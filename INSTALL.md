@@ -1,7 +1,36 @@
+
+## Dependencies
+
+There is a heavy dependencies on various different libraries. While it means we are not reinventing the wheel for many solved problems or optimized algorithms, it also leads to a more complicated setup.
+
+On a clean install of Ubuntu 20.04, you may run the following script:
+https://github.com/dougshidong/PHiLiP/blob/master/doc/install_ubuntu2004_VM.sh
+
+If you are on another OS, the above script still serves as a nice guideline since it lists all the necessary options from the dependent libraries.
+
+Note that some features and tests from a recent pull request only work with Gmsh 4.6. See
+https://github.com/dougshidong/PHiLiP/pull/55
+
+## NACA0012 Mesh Files
+
+**If you are running on the cluster, please see the instructions below in the Compute Canada section.**
+
+If you are running the code **on a local machine** (i.e. not on the cluster), you will need to download the [NACA0012 mesh files](https://drive.google.com/drive/folders/182JusbWV6NAA8ws1-TTg7M2GLc5jt6_r?usp=sharing) that are too large to store on GitHub by clicking the link, and place them in `tests/integration_tests_control_files/euler_integration/naca0012/`. To automate this process using `gdown`, do the following:
+1. `sudo apt install python3-pip` (if `pip` is not already installed)
+2. `pip install gdown` (if `gdown` is not already installed)
+3. If you receive a warning such as:
+   `WARNING: The script gdown is installed in '/home/parallels/.local/bin' which is not on PATH.`
+   then simply add the path by doing the following (modify accordingly):
+   `echo export PATH=/home/parallels/.local/bin:$PATH >> ~/.bashrc`
+   and resource:
+   `source ~/.bashrc`
+4. Then run the following bash script inside the `PHiLiP` directory:
+   `chmod +x get_NACA0012_mesh_files_local.sh`
+   `./get_NACA0012_mesh_files_local.sh`
+
 ## deal.II
 
-This is the main library being used by this code. Since we are using advanced features, we only support the `master` of deal.II, which means it will have to be installed from source by cloning their [repository](https://github.com/dealii/dealii).
-
+This is the main library being used by this code. We keep track of the working version from our [fork](https://github.com/dougshidong/dealii).
 Most of the packages are readily available through `apt install`. p4est might need to be installed from source since the current p4est version available on `apt` is lower than what is required by deal.II (p4est 2.0). A small set of instructions is available [here](https://www.dealii.org/current/external-libs/p4est.html).
 
 There is an [example script](doc/install_dealii.sh) for what has been used to install deal.II. You may need to provide the path such as `-DTRILINOS_DIR` if CMake does not find the package on its own.
@@ -59,32 +88,55 @@ The deal.II library has been setup with the following options:
   Run  $ make info  to print a help message with a list of top level targets
 ~~~~
 
-## Installation of PHiLiP on Beluga cluster
+## Installation of PHiLiP on Compute Canada clusters
 
-This section is aimed McGill's group who use Compute Canada's Beluga cluster.
+This section is aimed at McGill's group who use the Compute Canada (CC) clusters.
 
-The deal.II library is already installed in `/project/rrg-nadaraja-ac/Libraries/dealii/install`. The required modules were installed by Bart Oldeman from Compute Canada's team through modules. Therefore, simply put the following line in your .bashrc and source it.
+If you have just cloned the code onto the cluster, **you must copy the large NACA0012 mesh files** that cannot be stored on GitHub, this can be done by explicitly running the following:
 ~~~~
-module purge
-module load gcc/7.3.0
-module load trilinos/12.12.1
+chmod +x get_NACA0012_mesh_files_cluster.sh
+./get_NACA0012_mesh_files_cluster.sh
+~~~~
+If you are a **new user on a CC cluster**, **you must configure git modules** by explicitly running the following on the cluster before proceeding:
+~~~~
+chmod +x configure_git_submodules_cluster.sh
+./configure_git_submodules_cluster.sh
+~~~~
+in which the shell script runs the following commands:
+~~~~
+git submodule init
+git submodule update
+git config --global http.proxy ""
+git pull --recurse-submodules
+git submodule update --recursive
+~~~~
+For Beluga, the deal.II library is already installed in `/project/rrg-nadaraja-ac/Libraries/dealii/install`; install paths for other clusters are included in `job_compile_PHiLiP.sh`. The required modules were installed by Bart Oldeman from Compute Canada's team through modules. Therefore, simply put the following line in your .bashrc and source it.
+~~~~
+module --force purge
+module load StdEnv/2020
+module load gcc/9.3.0
+module load openmpi/4.0.3
+module load petsc/3.14.1
+module load trilinos/13.0.1
 export TRILINOS_DIR=$EBROOTTRILINOS
+module load opencascade/7.5.0
+module load gmsh/4.7.0
 module load metis/5.1.0
-module load muparser/2.2.6
-module load boost-mpi/1.68.0
-module load p4est/2.0
-module load petsc/3.10.2
+module load muparser/2.3.2
+module load boost-mpi/1.72.0
+module load p4est/2.2
 export P4EST_DIR=$EBROOTP4EST
-module load slepc/3.10.2
-module load gmsh/4.0.7
-module load gsl/2.5
-module load cmake/3.12.3
-module load netcdf-mpi
+module load slepc/3.14.2
+module load gsl/2.6
+module load cmake/3.18.4
+module load netcdf-c++-mpi/4.2
 export METIS_DIR=$EBROOTMETIS
 export GSL_DIR=$EBROOTGSL
 export P4EST_DIR=$EBROOTP4EST
-
-export DEAL_II_DIR=/project/rrg-nadaraja-ac/Libraries/dealii/install
+export METIS_DIR=/cvmfs/soft.computecanada.ca/easybuild/software/2017/avx512/Compiler/intel2018.3/metis/5.1.0
+export DEAL_II_DIR=/project/rrg-nadaraja-ac/Libraries/dealii_updated/dealii/install/install
+export GMSH_DIR=/cvmfs/soft.computecanada.ca/easybuild/software/2020/avx512/Compiler/intel2020/gmsh/4.7.0
+export OMP_NUM_THREADS=1
 ~~~~
 
 Ideally, you would have forked your own version of PHiLiP if you plan on developing. See the following link for the [forking workflow](https://www.atlassian.com/git/tutorials/comparing-workflows/forking-workflow).
@@ -174,3 +226,10 @@ cmake \
     -DDEAL_II_COMPONENT_EXAMPLES=OFF \
     -DDEAL_II_COMPILER_HAS_FUSE_LD_GOLD=OFF \
 ~~~~
+
+## Running PHiLiP using Parameter Files on the Beluga cluster
+After running `job_compile_PHiLiP.sh`, three PHiLiP executables are generated: `PHiLiP_1D`, `PHiLiP_2D`, `PHiLiP_3D`. These will be located in `home/username/scratch/`. For running PHiLiP using parameter files (`.prm`), create an appropriate directory for the runs e.g. `home/username/projects/rrg-nadaraja-ac/username/run_dir_name`, copy the 3 executables and the `job_parameters_file_PHiLiP.sh` to this directory, and modify the shell script accordingly. Submit jobs using `sbatch job_parameters_file_PHiLiP.sh`. 
+
+## Trilinos
+This is an important dependency of both deal.II and PHiLiP library being used by this code. We keep track of the working version from our [fork](https://github.com/dougshidong/Trilinos). Our fork also contains some bug fixes that have yet to be merged within their repository. An installation script with all the necessary options is given in
+https://raw.githubusercontent.com/dougshidong/PHiLiP/master/doc/prep_trilinos.sh

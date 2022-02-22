@@ -17,7 +17,7 @@
 #include "physics/manufactured_solution.h"
 #include "parameters/all_parameters.h"
 #include "parameters/parameters.h"
-#include "ode_solver/ode_solver.h"
+#include "ode_solver/ode_solver_factory.h"
 #include "dg/dg_factory.hpp"
 #include "functional/target_functional.h"
 
@@ -106,7 +106,7 @@ int main(int argc, char *argv[])
 
     const int n_refine = 2;
     for (int i=0; i<n_refine;i++) {
-        dg->high_order_grid.prepare_for_coarsening_and_refinement();
+        dg->high_order_grid->prepare_for_coarsening_and_refinement();
         grid->prepare_coarsening_and_refinement();
         unsigned int icell = 0;
         for (auto cell = grid->begin_active(); cell!=grid->end(); ++cell) {
@@ -118,7 +118,7 @@ int main(int argc, char *argv[])
         }
         grid->execute_coarsening_and_refinement();
         bool mesh_out = (i==n_refine-1);
-        dg->high_order_grid.execute_coarsening_and_refinement(mesh_out);
+        dg->high_order_grid->execute_coarsening_and_refinement(mesh_out);
     }
     dg->allocate_system ();
 

@@ -8,16 +8,16 @@
 #include <fstream>
 
 #include "testing/tests.h"
-#include "ode_solver/ode_solver.h"
+#include "ode_solver/ode_solver_factory.h"
 #include "parameters/all_parameters.h"
 
 #include "global_counter.hpp"
 
 int main (int argc, char *argv[])
 {
-#if !defined(__APPLE__)
-    feenableexcept(FE_INVALID | FE_OVERFLOW); // catch nan
-#endif
+// #if !defined(__APPLE__)
+//     feenableexcept(FE_INVALID | FE_OVERFLOW); // catch nan
+// #endif
 
     n_vmult = 0;
     dRdW_form = 0;

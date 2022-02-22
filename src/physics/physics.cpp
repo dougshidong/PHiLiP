@@ -10,57 +10,35 @@ namespace PHiLiP {
 namespace Physics {
 
 template <int dim, int nstate, typename real>
-PhysicsBase<dim,nstate,real>::PhysicsBase()
-    : manufactured_solution_function(std::make_shared< ManufacturedSolutionFunction<dim,real> >(nstate))
-    , diffusion_tensor(eval_diffusion_tensor())
-{ }
-
-template <int dim, int nstate, typename real>
-dealii::Tensor<2,dim,double> PhysicsBase<dim,nstate,real>::eval_diffusion_tensor()
+PhysicsBase<dim,nstate,real>::PhysicsBase(
+    const dealii::Tensor<2,3,double>                          input_diffusion_tensor,
+    std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function_input):
+        manufactured_solution_function(manufactured_solution_function_input)
 {
-    dealii::Tensor<2,dim,double> tensor;
-    // Anisotropic diffusion matrix
-    //A11 =   9; A12 =  -2; A13 =  -6;
-    //A21 =   3; A22 =  20; A23 =   4;
-    //A31 =  -2; A32 = 0.5; A33 =   8;
+    // if provided with a null ptr, give it the default manufactured solution
+    // currently only necessary for the unit test
+    if(!manufactured_solution_function)
+        manufactured_solution_function = std::make_shared<ManufacturedSolutionSine<dim,real>>(nstate);
 
-    // tensor[0][0] = 12;
-    // if (dim>=2) {
-    //     tensor[0][1] = -2;
-    //     tensor[1][0] = 3;
-    //     tensor[1][1] = 20;
-    // }
-    // if (dim>=3) {
-    //     tensor[0][2] = -6;
-    //     tensor[1][2] = -4;
-    //     tensor[2][0] = -2;
-    //     tensor[2][1] = 0.5;
-    //     tensor[2][2] = 8;
-    // }
-
-    tensor[0][0] = 12;
-    if constexpr (dim>=2) {
-        tensor[0][1] = 3;
-        tensor[1][0] = 3;
-        tensor[1][1] = 20;
+    // anisotropic diffusion matrix
+    diffusion_tensor[0][0] = input_diffusion_tensor[0][0];
+    if constexpr(dim >= 2) {
+        diffusion_tensor[0][1] = input_diffusion_tensor[0][1];
+        diffusion_tensor[1][0] = input_diffusion_tensor[1][0];
+        diffusion_tensor[1][1] = input_diffusion_tensor[1][1];
     }
-    if constexpr (dim>=3) {
-        tensor[0][2] = -2;
-        tensor[2][0] = 2;
-        tensor[2][1] = 5;
-        tensor[1][2] = -5;
-        tensor[2][2] = 18;
+    if constexpr(dim >= 3) {
+        diffusion_tensor[0][2] = input_diffusion_tensor[0][2];
+        diffusion_tensor[2][0] = input_diffusion_tensor[2][0];
+        diffusion_tensor[1][2] = input_diffusion_tensor[1][2];
+        diffusion_tensor[2][1] = input_diffusion_tensor[2][1];
+        diffusion_tensor[2][2] = input_diffusion_tensor[2][2];
     }
-    //for (int i=0;i<dim;i++)
-    //    for (int j=0;j<dim;j++)
-    //        tensor[i][j] = (i==j) ? 1.0 : 0.0;
-    //
-    return tensor;
 }
 
 template <int dim, int nstate, typename real>
 PhysicsBase<dim,nstate,real>::~PhysicsBase() {}
-
+/*
 template <int dim, int nstate, typename real>
 std::array<dealii::Tensor<1,dim,real>,nstate> PhysicsBase<dim,nstate,real>
 ::artificial_dissipative_flux (
@@ -76,7 +54,7 @@ std::array<dealii::Tensor<1,dim,real>,nstate> PhysicsBase<dim,nstate,real>
     }
     return diss_flux;
 }
-
+*/
 template <int dim, int nstate, typename real>
 std::array<real,nstate> PhysicsBase<dim,nstate,real>
 ::artificial_source_term (
@@ -252,4 +230,3 @@ template class PhysicsBase < PHILIP_DIM, 8, RadFadType >;
 
 } // Physics namespace
 } // PHiLiP namespace
-

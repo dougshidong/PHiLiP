@@ -1,0 +1,42 @@
+# Listing of Parameters
+# ---------------------
+
+set dimension = 1
+set test_type = flow_solver
+set pde_type = burgers_rewienski
+
+set use_weak_form = true
+set use_collocated_nodes = false
+
+subsection grid refinement study
+ set num_refinements = 10
+ set poly_degree = 0
+ set grid_left = 0.0
+ set grid_right = 100.0
+end
+
+#Reduced order parameters
+subsection reduced order
+ set rewienski_a = 3.0
+ set rewienski_b = 0.02
+end
+
+subsection flow_solver
+  set flow_case_type = burgers_rewienski_snapshot
+  set final_time = 0.5
+  set unsteady_data_table_filename = 3_0.02_solutions_table_unsteady
+  set steady_state = false
+end
+
+subsection ODE solver
+ set initial_time_step = 0.05
+ set nonlinear_max_iterations            = 500
+ set nonlinear_steady_residual_tolerance = 1e-12
+ set print_iteration_modulo              = 1
+ set output_solution_vector_modulo       = 1
+ set ode_solver_type                     = implicit
+ end
+
+subsection manufactured solution convergence study
+ set use_manufactured_source_term = true
+end

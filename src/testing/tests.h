@@ -2,6 +2,7 @@
 #define __TESTS_H__
 
 #include "parameters/all_parameters.h"
+
 #include <deal.II/grid/tria.h>
 #include <deal.II/base/conditional_ostream.h>
 
@@ -55,7 +56,7 @@ protected:
 };
 
 /// Test factory, that will create the correct test with the right template parameters.
-template<int dim, int nstate>
+template<int dim, int nstate, typename MeshType = dealii::Triangulation<dim>>
 class TestsFactory
 {
 public:
@@ -68,6 +69,12 @@ public:
      *  \return                     Smart pointer to the test
      */
     static std::unique_ptr< TestsBase > create_test(const Parameters::AllParameters *const parameters_input);
+
+    /// selects the mesh type to be used in the test
+    /** @param[in] parameters_input Input parameters.
+     *  \return                     Smart pointer to the test
+     */
+    static std::unique_ptr< TestsBase > select_mesh(const Parameters::AllParameters *const parameters_input);
 
     /// Selects the actual test such as grid convergence, numerical flux conversation, etc.
     /** @param[in] parameters_input Input parameters.

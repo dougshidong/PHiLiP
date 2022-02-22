@@ -1,0 +1,104 @@
+# Listing of Parameters
+# ---------------------
+# Number of dimensions
+set dimension = 2
+
+# The PDE we want to solve. Choices are
+# <advection|diffusion|convection_diffusion>.
+set pde_type  = convection_diffusion # advection # 
+set test_type = grid_refinement_study
+
+set sipg_penalty_factor = 20.0
+
+subsection linear solver
+#set linear_solver_type = direct
+  subsection gmres options
+    set linear_residual_tolerance = 1e-4
+    set max_iterations = 2000
+    set restart_number = 50
+    set ilut_fill = 10
+    # set ilut_drop = 1e-4
+  end 
+end
+
+subsection ODE solver
+  # Maximum nonlinear solver iterations
+  set nonlinear_max_iterations            = 500
+
+  # Nonlinear solver residual tolerance
+  set nonlinear_steady_residual_tolerance = 1e-12
+
+  # Print every print_iteration_modulo iterations of the nonlinear solver
+  set print_iteration_modulo              = 1
+
+  # Explicit or implicit solverChoices are <explicit|implicit>.
+  set ode_solver_type                         = implicit
+end
+
+subsection grid refinement study
+  # polyonomial degrees
+  set poly_degree      = 3
+  set poly_degree_max  = 4
+  set poly_degree_grid = 1
+
+  # grid setup
+  set grid_type = read_grid
+  set input_grid = msh_in/output_bl15_fb_p3_2.msh
+
+  # set grid_type  = hypercube
+  # set input_grid = NaN
+
+  set grid_left  = 0.0
+  set grid_right = 1.0
+  set grid_size  = 16
+
+  # settings for lpcvt runs
+  subsection grid refinement
+    set refinement_steps  = 2
+    set refinement_method = continuous
+    set refinement_type   = h
+
+    set anisotropic = true
+    set anisotropic_ratio_min = 0.2
+    set anisotropic_ratio_max = 5
+
+    set error_indicator = hessian_based
+    set norm_Lq = 2.0
+
+    # manually select complexity target, example progressions starting from 16x16 uniform grid
+    # p=1, 1.5x
+    # set complexity_vector = [1024, 1536, 2304, 3456, 5184, 7776, 11664, 17496, 26244, 39366, 59049]
+    # p=2, 1.5x
+    # set complexity_vector = [2304, 3456, 5184, 7776, 11664, 17496, 26244, 39366, 59049, 88574]
+    # p=3, 1.5x
+    # set complexity_vector = [4096, 6144, 9216, 13824, 20736, 31104, 46656, 69984, 104976, 157464]
+
+    set complexity_vector = [13824]
+
+    set output_type = msh_out
+    set output_data_type = metric_field
+
+    # to avoid error with msh write (exit immediately)
+    set exit_after_refine = true
+  end
+
+end
+
+subsection manufactured solution convergence study
+  set use_manufactured_source_term = true
+  set manufactured_solution_type   = boundary_layer_solution
+
+  # setting the default diffusion tensor
+  set diffusion_00 = 1
+  set diffusion_01 = 0
+  set diffusion_10 = 0
+  set diffusion_11 = 1
+
+  # setting the advection vector
+  set advection_0 = 1
+  set advection_1 = 1 
+
+  # setting the diffusion coefficient
+  set diffusion_coefficient = 0.1
+  
+end

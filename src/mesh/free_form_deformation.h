@@ -36,10 +36,10 @@ public:
     /// Using the initial surface nodes from the given HighOrderGrid, return the surface displacements based
     /// on the free-form deformation displacements.
     dealii::LinearAlgebra::distributed::Vector<double> 
-    get_surface_displacement (const HighOrderGrid<dim,double,dealii::LinearAlgebra::distributed::Vector<double>,dealii::DoFHandler<dim>> &high_order_grid) const;
+    get_surface_displacement (const HighOrderGrid<dim,double> &high_order_grid) const;
 
     /// Deform HighOrderGrid using its initial volume_nodes to retrieve the deformed set of volume_nodes.
-    void deform_mesh (HighOrderGrid<dim,double,dealii::LinearAlgebra::distributed::Vector<double>,dealii::DoFHandler<dim>> &high_order_grid) const;
+    void deform_mesh (HighOrderGrid<dim,double> &high_order_grid) const;
 
     /// Given an initial point in the undeformed initial parallepiped and the index a control point,
     /// return the derivative dXdXp of the new point location point_i with respect to that control_point_j.
@@ -50,7 +50,7 @@ public:
      *  The result is written into the given dXvsdXp SparseMatrix.
      */
     void get_dXvsdXp (
-        const HighOrderGrid<dim,double,dealii::LinearAlgebra::distributed::Vector<double>,dealii::DoFHandler<dim>> &high_order_grid,
+        const HighOrderGrid<dim,double> &high_order_grid,
         const std::vector< std::pair< unsigned int, unsigned int > > &ffd_design_variables_indices_dim,
         dealii::TrilinosWrappers::SparseMatrix &dXvsdXp
         ) const;
@@ -60,7 +60,7 @@ public:
      *  Note that the result is returned as a vector of vector because it will likely be used with a MeshMover's apply_dXvdXvs() function.
      */
     std::vector<dealii::LinearAlgebra::distributed::Vector<double>>
-    get_dXvsdXp (const HighOrderGrid<dim,double,dealii::LinearAlgebra::distributed::Vector<double>,dealii::DoFHandler<dim>> &high_order_grid,
+    get_dXvsdXp (const HighOrderGrid<dim,double> &high_order_grid,
                 const std::vector< std::pair< unsigned int, unsigned int > > &ffd_design_variables_indices_dim
                ) const;
 
@@ -69,7 +69,7 @@ public:
      *  Note that the result is returned as a vector of vector because it will likely be used with a MeshMover's apply_dXvdXvs() function.
      */
     std::vector<dealii::LinearAlgebra::distributed::Vector<double>>
-    get_dXvsdXp_FD (const HighOrderGrid<dim,double,dealii::LinearAlgebra::distributed::Vector<double>,dealii::DoFHandler<dim>> &high_order_grid,
+    get_dXvsdXp_FD (const HighOrderGrid<dim,double> &high_order_grid,
                 const std::vector< std::pair< unsigned int, unsigned int > > &ffd_design_variables_indices_dim,
                 const double eps
                );
@@ -78,7 +78,7 @@ public:
      *  derivatives of the HighOrderGrid's initial volume points with respect to the FFD.
      */
     void
-    get_dXvdXp (const HighOrderGrid<dim,double,dealii::LinearAlgebra::distributed::Vector<double>,dealii::DoFHandler<dim>> &high_order_grid,
+    get_dXvdXp (const HighOrderGrid<dim,double> &high_order_grid,
                 const std::vector< std::pair< unsigned int, unsigned int > > ffd_design_variables_indices_dim,
                 dealii::TrilinosWrappers::SparseMatrix &dXvdXp
                 ) const;
@@ -86,7 +86,7 @@ public:
      *  derivatives of the HighOrderGrid's initial volume points with respect to the FFD.
      */
     void
-    get_dXvdXp_FD (HighOrderGrid<dim,double,dealii::LinearAlgebra::distributed::Vector<double>,dealii::DoFHandler<dim>> &high_order_grid,
+    get_dXvdXp_FD (HighOrderGrid<dim,double> &high_order_grid,
                 const std::vector< std::pair< unsigned int, unsigned int > > ffd_design_variables_indices_dim,
                 dealii::TrilinosWrappers::SparseMatrix &dXvdXp_FD,
                 const double eps

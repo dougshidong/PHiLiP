@@ -21,19 +21,12 @@
 
 #include "parameters/all_parameters.h"
 #include "parameters/parameters.h"
-#include "numerical_flux/numerical_flux.h"
 #include "physics/physics_factory.h"
 #include "physics/physics.h"
-#include "ode_solver/ode_solver.h"
+#include "ode_solver/ode_solver_factory.h"
 
 #include<fenv.h>
 
-//using PDEType  = PHiLiP::Parameters::AllParameters::PartialDifferentialEquation;
-//using ConvType = PHiLiP::Parameters::AllParameters::ConvectiveNumericalFlux;
-//using DissType = PHiLiP::Parameters::AllParameters::DissipativeNumericalFlux;
-//
-//
-//const double TOLERANCE = 1E-12;
 namespace PHiLiP {
 namespace Tests {
 
@@ -62,6 +55,7 @@ private:
     /** Overintegration of kinetic energy.
      */
  double compute_kinetic_energy(std::shared_ptr < DGBase<dim, double> > &dg, unsigned int poly_degree) const;
+ double compute_MK_energy(std::shared_ptr < DGBase<dim, double> > &dg, unsigned int poly_degree) const;
  //double compute_quadrature_kinetic_energy(std::array<double,nstate> soln_at_q) const ;
     //const Parameters::AllParameters *const all_parameters; ///< Pointer to all parameters
 };

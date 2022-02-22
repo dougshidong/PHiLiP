@@ -1,6 +1,8 @@
 #ifndef __DIFFUSION_EXACT_ADJOINT_H__
 #define __DIFFUSION_EXACT_ADJOINT_H__
 
+#include <memory>
+
 #include <deal.II/base/tensor.h>
 
 #include "tests.h"
@@ -54,7 +56,7 @@ class ManufacturedSolutionU : public ManufacturedSolutionFunction <dim, real>
 protected:
     using dealii::Function<dim,real>::value;
     using dealii::Function<dim,real>::gradient;
-    using dealii::Function<dim,real>::vector_gradient;
+    using dealii::Function<dim,real>::hessian;
 public:
     /// constructor
     ManufacturedSolutionU(){}
@@ -64,6 +66,12 @@ public:
 
     /// Gradient of the manufactured solution
     dealii::Tensor<1,dim,real> gradient (const dealii::Point<dim,real> &pos, const unsigned int istate = 0) const override;
+
+    /// Hessian of manufactured solution is unused but needed to make class concrete
+    dealii::SymmetricTensor<2,dim,real> hessian (const dealii::Point<dim,real> &/* point */, const unsigned int /* istate = 0 */) const 
+    {
+        return dealii::SymmetricTensor<2,dim,real>();
+    }
 };
 
 /// manufactured solution for v
@@ -73,7 +81,7 @@ class ManufacturedSolutionV : public ManufacturedSolutionFunction <dim, real>
 protected:
     using dealii::Function<dim,real>::value;
     using dealii::Function<dim,real>::gradient;
-    using dealii::Function<dim,real>::vector_gradient;
+    using dealii::Function<dim,real>::hessian;
 public:
     /// constructor
     ManufacturedSolutionV(){}
@@ -83,6 +91,12 @@ public:
 
     /// Gradient of the manufactured solution
     dealii::Tensor<1,dim,real> gradient (const dealii::Point<dim,real> &pos, const unsigned int istate = 0) const override;
+
+    /// Hessian of manufactured solution is unused but needed to make class concrete
+    dealii::SymmetricTensor<2,dim,real> hessian (const dealii::Point<dim,real> &/* point */, const unsigned int /* istate = 0 */) const override
+    {
+        return dealii::SymmetricTensor<2,dim,real>();
+    }
 };
 
 /// parent class to add the objective function directly to physics as a virtual class
@@ -91,25 +105,44 @@ class diffusion_objective : public Physics::ConvectionDiffusion <dim, nstate, re
 {
 public:
     /// constructor
-    diffusion_objective(const bool convection = false, const bool diffusion = true): 
-        Physics::ConvectionDiffusion<dim,nstate,real>::ConvectionDiffusion(convection, diffusion)
-        {
-            // negative one is used so that the problem becomes \del u(x) = f(x)
-            Physics::ConvectionDiffusion<dim,nstate,real>::diffusion_scaling_coeff = -1.0;
-            Physics::ConvectionDiffusion<dim,nstate,real>::diffusion_tensor[0][0] = 1;
-            if (dim>=2) {
-                Physics::ConvectionDiffusion<dim,nstate,real>::diffusion_tensor[0][1] = 0.0;
-                Physics::ConvectionDiffusion<dim,nstate,real>::diffusion_tensor[1][0] = 0.0;
-                Physics::ConvectionDiffusion<dim,nstate,real>::diffusion_tensor[1][1] = 1.0;
-            }
-            if (dim>=3) {
-                Physics::ConvectionDiffusion<dim,nstate,real>::diffusion_tensor[0][2] = 0.0;
-                Physics::ConvectionDiffusion<dim,nstate,real>::diffusion_tensor[1][2] = 0.0;
-                Physics::ConvectionDiffusion<dim,nstate,real>::diffusion_tensor[2][0] = 0.0;
-                Physics::ConvectionDiffusion<dim,nstate,real>::diffusion_tensor[2][1] = 0.0;
-                Physics::ConvectionDiffusion<dim,nstate,real>::diffusion_tensor[2][2] = 1.0;
-            }
+    diffusion_objective(
+        const bool                                              convection, 
+        const bool                                              diffusion,
+        std::shared_ptr<ManufacturedSolutionFunction<dim,real>> manufactured_solution_function): 
+            Physics::ConvectionDiffusion<dim,nstate,real>::ConvectionDiffusion(
+                convection, 
+                diffusion,
+                default_diffusion_tensor(),
+                Parameters::ManufacturedSolutionParam::get_default_advection_vector(),
+                default_diffusion_coefficient(),
+                manufactured_solution_function)
+    {}
+
+    /// negative one is used for the diffusion coefficient so that the problem becomes \f$\nabla u(x) = f(x)\f$
+    static double default_diffusion_coefficient()
+    {
+        return -1.0;
+    }
+
+    /// Default diffusion tensor is set for isotropic diffusion, \f$D=I\f$
+    static dealii::Tensor<2,3,double> default_diffusion_tensor()
+    {
+        dealii::Tensor<2,3,double> diffusion_tensor;
+        diffusion_tensor[0][0] = 1;
+        if constexpr(dim>=2) {
+            diffusion_tensor[0][1] = 0.0;
+            diffusion_tensor[1][0] = 0.0;
+            diffusion_tensor[1][1] = 1.0;
         }
+        if constexpr(dim>=3) {
+            diffusion_tensor[0][2] = 0.0;
+            diffusion_tensor[1][2] = 0.0;
+            diffusion_tensor[2][0] = 0.0;
+            diffusion_tensor[2][1] = 0.0;
+            diffusion_tensor[2][2] = 1.0;
+        }
+        return diffusion_tensor;
+    }
 
     /// defnined directly as part of the physics to make passing to the functional simpler
     virtual real objective_function(
@@ -122,17 +155,20 @@ class diffusion_u : public diffusion_objective <dim, nstate, real>
 {
 public:
     /// constructor
-    diffusion_u(const bool convection = false, const bool diffusion = true): 
-        diffusion_objective<dim,nstate,real>::diffusion_objective(convection, diffusion)
-    {
-        this->manufactured_solution_function 
-            = std::shared_ptr< ManufacturedSolutionU<dim,real> >(new ManufacturedSolutionU<dim,real>());
-    }
+    diffusion_u(
+        const bool convection, 
+        const bool diffusion): 
+            diffusion_objective<dim,nstate,real>::diffusion_objective(
+                convection, 
+                diffusion,
+                std::make_shared<ManufacturedSolutionU<dim,real>>())
+    {}
 
     /// source term = f
     std::array<real,nstate> source_term (
         const dealii::Point<dim,real> &pos,
-        const std::array<real,nstate> &/*solution*/) const override;
+        const std::array<real,nstate> &/*solution*/,
+        const real /*current_time*/) const override;
 
     /// objective function = g
     real objective_function(
@@ -145,17 +181,20 @@ class diffusion_v : public diffusion_objective <dim, nstate, real>
 {
 public:
     /// constructor
-    diffusion_v(const bool convection = false, const bool diffusion = true): 
-        diffusion_objective<dim,nstate,real>::diffusion_objective(convection, diffusion)
-    {
-        this->manufactured_solution_function 
-            = std::shared_ptr< ManufacturedSolutionV<dim,real> >(new ManufacturedSolutionV<dim,real>());
-    }
+    diffusion_v(
+        const bool convection, 
+        const bool diffusion): 
+            diffusion_objective<dim,nstate,real>::diffusion_objective(
+                convection, 
+                diffusion,
+                std::make_shared<ManufacturedSolutionV<dim,real>>())
+    {}
 
     /// source term = g
     std::array<real,nstate> source_term (
         const dealii::Point<dim,real> &pos,
-        const std::array<real,nstate> &/*solution*/) const override;
+        const std::array<real,nstate> &/*solution*/,
+        const real current_time) const override;
 
     /// objective function = f
     real objective_function(

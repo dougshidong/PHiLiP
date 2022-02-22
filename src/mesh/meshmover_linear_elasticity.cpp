@@ -4,6 +4,7 @@
 
 //#include <deal.II/lac/solver_cg.h>
 #include <deal.II/lac/solver_gmres.h>
+#include <deal.II/lac/solver_bicgstab.h>
 //#include <deal.II/lac/precondition.h>
 //#include <deal.II/lac/precondition_block.h>
 
@@ -20,9 +21,9 @@
 namespace PHiLiP {
 namespace MeshMover {
 
-    // template <int dim, typename real, typename VectorType , typename DoFHandlerType>
-    // LinearElasticity<dim,real,VectorType,DoFHandlerType>::LinearElasticity(
-    //     const HighOrderGrid<dim,real,VectorType,DoFHandlerType> &high_order_grid,
+    // template <int dim, typename real>
+    // LinearElasticity<dim,real>::LinearElasticity(
+    //     const HighOrderGrid<dim,real> &high_order_grid,
     //     const dealii::LinearAlgebra::distributed::Vector<double> &boundary_displacements_vector)
     //   : triangulation(*(high_order_grid.triangulation))
     //   , mapping_fe_field(high_order_grid.mapping_fe_field)
@@ -38,11 +39,11 @@ namespace MeshMover {
     //     AssertDimension(boundary_displacements_vector.size(), boundary_ids_vector.size());
     // }
 
-    template <int dim, typename real, typename VectorType , typename DoFHandlerType>
-    LinearElasticity<dim,real,VectorType,DoFHandlerType>::LinearElasticity(
-        const HighOrderGrid<dim,real,VectorType,DoFHandlerType> &high_order_grid,
+    template <int dim, typename real>
+    LinearElasticity<dim,real>::LinearElasticity(
+        const HighOrderGrid<dim,real> &high_order_grid,
         const dealii::LinearAlgebra::distributed::Vector<double> &boundary_displacements_vector)
-      : LinearElasticity<dim,real,VectorType,DoFHandlerType> (
+      : LinearElasticity<dim,real> (
           *(high_order_grid.triangulation),
           high_order_grid.mapping_fe_field,
           high_order_grid.dof_handler_grid,
@@ -50,8 +51,8 @@ namespace MeshMover {
           boundary_displacements_vector)
     { }
 
-    template <int dim, typename real, typename VectorType , typename DoFHandlerType>
-    LinearElasticity<dim,real,VectorType,DoFHandlerType>::LinearElasticity(
+    template <int dim, typename real>
+    LinearElasticity<dim,real>::LinearElasticity(
         const Triangulation &_triangulation,
         const std::shared_ptr<dealii::MappingFEField<dim,dim,VectorType,DoFHandlerType>> mapping_fe_field,
         const DoFHandlerType &_dof_handler,
@@ -74,15 +75,15 @@ namespace MeshMover {
         setup_system();
     }
 
-    // template <int dim, typename real, typename VectorType , typename DoFHandlerType>
-    // LinearElasticity<dim,real,VectorType,DoFHandlerType>::LinearElasticity(
-    //     const HighOrderGrid<dim,real,VectorType,DoFHandlerType> &high_order_grid,
+    // template <int dim, typename real>
+    // LinearElasticity<dim,real>::LinearElasticity(
+    //     const HighOrderGrid<dim,real> &high_order_grid,
     //     const std::vector<dealii::Tensor<1,dim,real>> &boundary_displacements_tensors)
     //   : LinearElasticity(high_order_grid, boundary_displacements_vector(tensor_to_vector(boundary_displacements_tensors))
     // { }
 
-    template <int dim, typename real, typename VectorType , typename DoFHandlerType>
-    dealii::LinearAlgebra::distributed::Vector<double> LinearElasticity<dim,real,VectorType,DoFHandlerType>::
+    template <int dim, typename real>
+    dealii::LinearAlgebra::distributed::Vector<double> LinearElasticity<dim,real>::
     tensor_to_vector(const std::vector<dealii::Tensor<1,dim,real>> &boundary_displacements_tensors) const
     {
         (void) boundary_displacements_tensors;
@@ -90,11 +91,12 @@ namespace MeshMover {
         return boundary_displacements_vector;
     }
 
-    //template <int dim, typename real, typename VectorType , typename DoFHandlerType>
-    //LinearElasticity<dim,real,VectorType,DoFHandlerType>::~LinearElasticity() { dof_handler.clear(); }
+    //template <int dim, typename real>
+    //LinearElasticity<dim,real>::~LinearElasticity() { dof_handler.clear(); }
 
-    template <int dim, typename real, typename VectorType , typename DoFHandlerType>
-    VectorType LinearElasticity<dim,real,VectorType,DoFHandlerType>::get_volume_displacements()
+    template <int dim, typename real>
+    dealii::LinearAlgebra::distributed::Vector<real>
+    LinearElasticity<dim,real>::get_volume_displacements()
     {
         pcout << "Solving linear elasticity problem for volume displacements..." << std::endl;
         solve_timestep();
@@ -103,8 +105,8 @@ namespace MeshMover {
         displacement_solution.update_ghost_values();
         return displacement_solution;
     }
-    template <int dim, typename real, typename VectorType , typename DoFHandlerType>
-    void LinearElasticity<dim,real,VectorType,DoFHandlerType>::setup_system()
+    template <int dim, typename real>
+    void LinearElasticity<dim,real>::setup_system()
     {
         //dof_handler.distribute_dofs(fe_system);
         //dealii::DoFRenumbering::Cuthill_McKee(dof_handler);
@@ -179,8 +181,8 @@ namespace MeshMover {
         // pcout << "    Number of active cells: " << triangulation.n_active_cells() << std::endl;
         // pcout << "    Number of degrees of freedom: " << dof_handler.n_dofs() << std::endl;
     }
-    template <int dim, typename real, typename VectorType , typename DoFHandlerType>
-    void LinearElasticity<dim,real,VectorType,DoFHandlerType>::assemble_system()
+    template <int dim, typename real>
+    void LinearElasticity<dim,real>::assemble_system()
     {
         pcout << "    Assembling MeshMover::LinearElasticity system..." << std::endl;
 
@@ -203,8 +205,11 @@ namespace MeshMover {
         dealii::FullMatrix<double> cell_matrix(dofs_per_cell, dofs_per_cell);
         dealii::Vector<double>     cell_rhs(dofs_per_cell);
 
+        //std::vector<double> youngs_modulus(n_q_points, 1.0);
+        //std::vector<double> poissons_ratio(n_q_points, 0.4);
+
         std::vector<double> youngs_modulus(n_q_points, 1.0);
-        std::vector<double> poissons_ratio(n_q_points, 0.4);
+        std::vector<double> poissons_ratio(n_q_points, 0.1);
 
         std::vector<double> lame_lambda_values(n_q_points);
         std::vector<double> lame_mu_values(n_q_points);
@@ -225,6 +230,11 @@ namespace MeshMover {
             cell_rhs    = 0;
             fe_values.reinit(cell);
 
+            double volume = 0.0;
+            for (unsigned int q_point = 0; q_point < n_q_points; ++q_point) {
+                volume += fe_values.JxW(q_point);
+            }
+
             //lame_lambda.value_list(fe_values.get_quadrature_points(), lame_lambda_values);
             //lame_mu.value_list(fe_values.get_quadrature_points(), lame_mu_values);
 
@@ -238,6 +248,10 @@ namespace MeshMover {
 
                     for (unsigned int q_point = 0; q_point < n_q_points; ++q_point) {
 
+                        const double E = youngs_modulus[q_point] / volume;
+                        const double nu = poissons_ratio[q_point];
+                        lame_lambda_values[q_point] = E*nu/((1.0+nu)*(1-2.0*nu));
+                        lame_mu_values[q_point] = 0.5*E/(1.0+nu);
                         //const SymmetricTensor<2, dim> grad_basis_i_grad_u
                         //cell_matrix(itest, itrial) += 
                         double value = lame_lambda_values[q_point]
@@ -332,8 +346,8 @@ namespace MeshMover {
         system_matrix_unconstrained.compress(dealii::VectorOperation::insert);
         system_rhs_unconstrained.compress(dealii::VectorOperation::insert);
     }
-    template <int dim, typename real, typename VectorType , typename DoFHandlerType>
-    void LinearElasticity<dim,real,VectorType,DoFHandlerType>::solve_timestep()
+    template <int dim, typename real>
+    void LinearElasticity<dim,real>::solve_timestep()
     {
         assemble_system();
         apply_dXvdXvs(system_rhs, displacement_solution);
@@ -341,9 +355,9 @@ namespace MeshMover {
         //pcout << "    Solver converged in " << n_iterations << " iterations." << std::endl;
     }
 
-    template <int dim, typename real, typename VectorType , typename DoFHandlerType>
+    template <int dim, typename real>
     void
-    LinearElasticity<dim,real,VectorType,DoFHandlerType>
+    LinearElasticity<dim,real>
     ::apply_dXvdXvs(
         const dealii::LinearAlgebra::distributed::Vector<double> &input_vector,
         dealii::LinearAlgebra::distributed::Vector<double> &output_vector)
@@ -360,10 +374,42 @@ namespace MeshMover {
 
         assemble_system();
 
-        dealii::SolverControl solver_control(5000, 1e-14 * input_vector_norm);
-        dealii::SolverGMRES<dealii::LinearAlgebra::distributed::Vector<double>> solver(solver_control);
-        dealii::TrilinosWrappers::PreconditionJacobi      precondition;
-        precondition.initialize(system_matrix);
+        const bool log_history = (this_mpi_process == 0);
+        dealii::SolverControl solver_control(20000, 1e-14 * input_vector_norm, log_history);
+        //dealii::SolverControl solver_control(20000, 1e-14, log_history);
+        solver_control.log_frequency(100);
+        const int max_n_tmp_vectors=200;
+        const bool right_preconditioning=true;
+        const bool use_default_residual=true;
+        const bool force_re_orthogonalization=false;
+        dealii::SolverGMRES<dealii::LinearAlgebra::distributed::Vector<double>>::AdditionalData gmres_settings(max_n_tmp_vectors, right_preconditioning, use_default_residual, force_re_orthogonalization);
+        dealii::SolverGMRES<dealii::LinearAlgebra::distributed::Vector<double>> solver(solver_control, gmres_settings);
+
+        //dealii::TrilinosWrappers::PreconditionJacobi      precondition;
+        //precondition.initialize(system_matrix);
+
+        //dealii::TrilinosWrappers::PreconditionILU  precondition;
+        //const int ilu_fill = 2;
+        //dealii::TrilinosWrappers::PreconditionILU::AdditionalData precond_settings(ilu_fill, 0., 1.0, 1);
+        //precondition.initialize(system_matrix, precond_settings);
+
+        dealii::TrilinosWrappers::PreconditionILUT  precondition;
+        const unsigned int ilut_fill=50;
+        const double ilut_drop=1e-15;
+        const double ilut_atol=1e-6;
+        const double ilut_rtol=1.00001;
+        const unsigned int overlap=1;
+        dealii::TrilinosWrappers::PreconditionILUT::AdditionalData precond_settings(ilut_drop, ilut_fill, ilut_atol, ilut_rtol, overlap);
+        precondition.initialize(system_matrix, precond_settings);
+
+
+        //const double 	omega = 1;
+        //const double 	min_diagonal = 1e-8;
+        //const unsigned int 	overlap = 1;
+        //const unsigned int 	n_sweeps = 1;
+        //dealii::TrilinosWrappers::PreconditionSSOR::AdditionalData precond_settings(omega, min_diagonal, overlap, n_sweeps);
+        //dealii::TrilinosWrappers::PreconditionSSOR  precondition;
+        //precondition.initialize(system_matrix, precond_settings);
 
         using trilinos_vector_type = dealii::LinearAlgebra::distributed::Vector<double>;
         using payload_type = dealii::TrilinosWrappers::internal::LinearOperatorImplementation::TrilinosPayload;
@@ -371,23 +417,31 @@ namespace MeshMover {
 
         const auto &rhs_vector = input_vector;
         output_vector = input_vector;
+        //output_vector = 0.0;//input_vector;
 
         // Solve modified system.
-        dealii::deallog.depth_console(1);
+        dealii::deallog.depth_console(2);
         solver.solve(op_a, output_vector, rhs_vector, precondition);
 
         pcout << "dXvdXvs Solver took " << solver_control.last_step() << " steps. "
               << "Residual: " << solver_control.last_value() << ". "
               << std::endl;
+
+        solver.solve(op_a, output_vector, rhs_vector, precondition);
+
+        pcout << "dXvdXvs Solver took " << solver_control.last_step() << " steps. "
+              << "Residual: " << solver_control.last_value() << ". "
+              << std::endl;
+
         if (solver_control.last_check() != dealii::SolverControl::State::success) {
             pcout << "Failed to converge." << std::endl;
             std::abort();
         }
     }
 
-    template <int dim, typename real, typename VectorType , typename DoFHandlerType>
+    template <int dim, typename real>
     void
-    LinearElasticity<dim,real,VectorType,DoFHandlerType>
+    LinearElasticity<dim,real>
     ::apply_dXvdXvs(
         std::vector<dealii::LinearAlgebra::distributed::Vector<double>> &list_of_vectors,
         dealii::TrilinosWrappers::SparseMatrix &output_matrix)
@@ -416,8 +470,31 @@ namespace MeshMover {
 
         output_matrix.reinit(row_part, col_part, full_sp, mpi_communicator);
 
-        dealii::TrilinosWrappers::PreconditionJacobi      precondition;
-        precondition.initialize(system_matrix);
+        //dealii::TrilinosWrappers::PreconditionJacobi      precondition;
+        //precondition.initialize(system_matrix);
+
+        //dealii::TrilinosWrappers::PreconditionILU  precondition;
+        //const int ilu_fill = 2;
+        //dealii::TrilinosWrappers::PreconditionILU::AdditionalData precond_settings(ilu_fill, 0., 1.0, 1);
+        //precondition.initialize(system_matrix, precond_settings);
+
+        dealii::TrilinosWrappers::PreconditionILUT  precondition;
+        const unsigned int ilut_fill=50;
+        const double ilut_drop=0.0;//1e-15;
+        const double ilut_atol=0.0;//1e-6;
+        const double ilut_rtol=1.0;//1.00001;
+        const unsigned int overlap=1;
+        dealii::TrilinosWrappers::PreconditionILUT::AdditionalData precond_settings(ilut_drop, ilut_fill, ilut_atol, ilut_rtol, overlap);
+        precondition.initialize(system_matrix, precond_settings);
+
+
+        //const double 	omega = 1;
+        //const double 	min_diagonal = 1e-8;
+        //const unsigned int 	overlap = 1;
+        //const unsigned int 	n_sweeps = 1;
+        //dealii::TrilinosWrappers::PreconditionSSOR::AdditionalData precond_settings(omega, min_diagonal, overlap, n_sweeps);
+        //dealii::TrilinosWrappers::PreconditionSSOR  precondition;
+        //precondition.initialize(system_matrix, precond_settings);
 
         using trilinos_vector_type = dealii::LinearAlgebra::distributed::Vector<double>;
         using payload_type = dealii::TrilinosWrappers::internal::LinearOperatorImplementation::TrilinosPayload;
@@ -427,20 +504,42 @@ namespace MeshMover {
         pcout << "Applying for [dXvdXs] onto " << list_of_vectors.size() << " vectors..." << std::endl;
 
         unsigned int col = 0;
+        dealii::LinearAlgebra::distributed::Vector<double> output_vector;
+        output_vector.reinit(list_of_vectors[0]);
         for (auto &input_vector: list_of_vectors) {
+
+            pcout << " Vector " << col << " out of " << list_of_vectors.size() << std::endl;
 
             dealii::deallog.depth_console(0);
 
-            dealii::LinearAlgebra::distributed::Vector<double> output_vector;
-            output_vector.reinit(input_vector);
             double input_vector_norm = input_vector.l2_norm();
             if (input_vector_norm == 0.0) {
                 pcout << "Zero input vector. Zero output vector." << std::endl;
                 output_vector = 0.0;
             } else {
-                dealii::SolverControl solver_control(5000, 1e-14 * input_vector_norm);
-                dealii::SolverGMRES<dealii::LinearAlgebra::distributed::Vector<double>> solver(solver_control);
+                const bool log_history = (this_mpi_process == 0);
+                dealii::SolverControl solver_control(20000, 1e-14 * input_vector_norm, log_history);
+                //dealii::SolverControl solver_control(20000, 1e-14, log_history);
+                solver_control.log_frequency(100);
+                const int max_n_tmp_vectors=200;
+                const bool right_preconditioning=true;
+                const bool use_default_residual=true;
+                const bool force_re_orthogonalization=false;
+                dealii::SolverGMRES<dealii::LinearAlgebra::distributed::Vector<double>>::AdditionalData gmres_settings(max_n_tmp_vectors, right_preconditioning, use_default_residual, force_re_orthogonalization);
+                dealii::SolverGMRES<dealii::LinearAlgebra::distributed::Vector<double>> solver(solver_control, gmres_settings);
+
+                //dealii::SolverBicgstab<dealii::LinearAlgebra::distributed::Vector<double>> solver(solver_control);
+
+                dealii::deallog.depth_console(2);
                 solver.solve(op_a, output_vector, input_vector, precondition);
+                pcout << "dXvdXvs Solver took " << solver_control.last_step() << " steps. "
+                      << "Residual: " << solver_control.last_value() << ". "
+                      << std::endl;
+
+                solver.solve(op_a, output_vector, input_vector, precondition);
+                pcout << "dXvdXvs Solver took " << solver_control.last_step() << " steps. "
+                      << "Residual: " << solver_control.last_value() << ". "
+                      << std::endl;
             }
 
             dXvdXs.push_back(output_vector);
@@ -454,9 +553,9 @@ namespace MeshMover {
 
     }
 
-    template <int dim, typename real, typename VectorType , typename DoFHandlerType>
+    template <int dim, typename real>
     void
-    LinearElasticity<dim,real,VectorType,DoFHandlerType>
+    LinearElasticity<dim,real>
     ::apply_dXvdXvs_transpose(
         const dealii::LinearAlgebra::distributed::Vector<double> &input_vector,
         dealii::LinearAlgebra::distributed::Vector<double> &output_vector)
@@ -472,10 +571,41 @@ namespace MeshMover {
 
         assemble_system();
 
-        dealii::SolverControl solver_control(5000, 1e-14 * input_vector_norm);
-        dealii::SolverGMRES<dealii::LinearAlgebra::distributed::Vector<double>> solver(solver_control);
-        dealii::TrilinosWrappers::PreconditionJacobi      precondition;
-        precondition.initialize(system_matrix);
+        const bool log_history = (this_mpi_process == 0);
+        dealii::SolverControl solver_control(20000, 1e-14 * input_vector_norm, log_history);
+        //dealii::SolverControl solver_control(20000, 1e-14, log_history);
+        solver_control.log_frequency(100);
+        const int max_n_tmp_vectors=200;
+        const bool right_preconditioning=true;
+        const bool use_default_residual=true;
+        const bool force_re_orthogonalization=false;
+        dealii::SolverGMRES<dealii::LinearAlgebra::distributed::Vector<double>>::AdditionalData gmres_settings(max_n_tmp_vectors, right_preconditioning, use_default_residual, force_re_orthogonalization);
+        dealii::SolverGMRES<dealii::LinearAlgebra::distributed::Vector<double>> solver(solver_control, gmres_settings);
+
+        //dealii::TrilinosWrappers::PreconditionJacobi      precondition;
+        //precondition.initialize(system_matrix);
+
+        // dealii::TrilinosWrappers::PreconditionILU  precondition;
+        // const int ilu_fill = 2;
+        // dealii::TrilinosWrappers::PreconditionILU::AdditionalData precond_settings(ilu_fill, 0., 1.0, 1);
+        // precondition.initialize(system_matrix, precond_settings);
+
+        dealii::TrilinosWrappers::PreconditionILUT  precondition;
+        const unsigned int ilut_fill=50;
+        const double ilut_drop=1e-15;
+        const double ilut_atol=1e-6;
+        const double ilut_rtol=1.00001;
+        const unsigned int overlap=1;
+        dealii::TrilinosWrappers::PreconditionILUT::AdditionalData precond_settings(ilut_drop, ilut_fill, ilut_atol, ilut_rtol, overlap);
+        precondition.initialize(system_matrix, precond_settings);
+
+        //const double 	omega = 1;
+        //const double 	min_diagonal = 1e-8;
+        //const unsigned int 	overlap = 1;
+        //const unsigned int 	n_sweeps = 1;
+        //dealii::TrilinosWrappers::PreconditionSSOR::AdditionalData precond_settings(omega, min_diagonal, overlap, n_sweeps);
+        //dealii::TrilinosWrappers::PreconditionSSOR  precondition;
+        //precondition.initialize(system_matrix, precond_settings);
 
         using trilinos_vector_type = VectorType;
         using payload_type = dealii::TrilinosWrappers::internal::LinearOperatorImplementation::TrilinosPayload;
@@ -483,9 +613,13 @@ namespace MeshMover {
         const auto op_at = dealii::transpose_operator(op_a);
 
         // Solve system.
-        dealii::deallog.depth_console(0);
+        dealii::deallog.depth_console(2);
+        output_vector = input_vector;
         solver.solve(op_at, output_vector, input_vector, precondition);
-
+        pcout << "dXvdXvs_Transpose Solver took " << solver_control.last_step() << " steps. "
+              << "Residual: " << solver_control.last_value() << ". "
+              << std::endl;
+        solver.solve(op_at, output_vector, input_vector, precondition);
         pcout << "dXvdXvs_Transpose Solver took " << solver_control.last_step() << " steps. "
               << "Residual: " << solver_control.last_value() << ". "
               << std::endl;
@@ -497,12 +631,12 @@ namespace MeshMover {
 
     }
 
-    // template <int dim, typename real, typename VectorType , typename DoFHandlerType>
-    // unsigned int LinearElasticity<dim,real,VectorType,DoFHandlerType>::solve_linear_problem()
+    // template <int dim, typename real>
+    // unsigned int LinearElasticity<dim,real>::solve_linear_problem()
     // {
     //     displacement_solution.reinit(system_rhs);
 
-    //     dealii::SolverControl solver_control(5000, 1e-14 * system_rhs.l2_norm());
+    //     dealii::SolverControl solver_control(20000, 1e-14 * system_rhs.l2_norm());
     //     dealii::SolverGMRES<VectorType> solver(solver_control);
     //     dealii::TrilinosWrappers::PreconditionJacobi precondition;
     //     precondition.initialize(system_matrix);
@@ -516,9 +650,9 @@ namespace MeshMover {
     //     return solver_control.last_step();
     // }
 
-    // template <int dim, typename real, typename VectorType , typename DoFHandlerType>
+    // template <int dim, typename real>
     // void
-    // LinearElasticity<dim,real,VectorType,DoFHandlerType>
+    // LinearElasticity<dim,real>
     // ::apply_dXvdXvs(
     //     const dealii::LinearAlgebra::distributed::Vector<double> &input_vector,
     //     dealii::LinearAlgebra::distributed::Vector<double> &output_vector)
@@ -528,7 +662,7 @@ namespace MeshMover {
 
     //     assemble_system();
 
-    //     dealii::SolverControl solver_control(5000, 1e-14 * system_rhs.l2_norm());
+    //     dealii::SolverControl solver_control(20000, 1e-14 * system_rhs.l2_norm());
     //     dealii::SolverGMRES<dealii::LinearAlgebra::distributed::Vector<double>> solver(solver_control);
     //     dealii::TrilinosWrappers::PreconditionJacobi      precondition;
     //     precondition.initialize(system_matrix_unconstrained);
@@ -586,9 +720,9 @@ namespace MeshMover {
     //     output_vector += rhs_vector;
     // }
 
-    // template <int dim, typename real, typename VectorType , typename DoFHandlerType>
+    // template <int dim, typename real>
     // void
-    // LinearElasticity<dim,real,VectorType,DoFHandlerType>
+    // LinearElasticity<dim,real>
     // ::apply_dXvdXvs(
     //     std::vector<dealii::LinearAlgebra::distributed::Vector<double>> &list_of_vectors,
     //     dealii::TrilinosWrappers::SparseMatrix &output_matrix)
@@ -617,7 +751,7 @@ namespace MeshMover {
 
     //     output_matrix.reinit(row_part, col_part, full_sp, mpi_communicator);
 
-    //     dealii::SolverControl solver_control(5000, 1e-14 * system_rhs.l2_norm());
+    //     dealii::SolverControl solver_control(20000, 1e-14 * system_rhs.l2_norm());
     //     dealii::SolverGMRES<dealii::LinearAlgebra::distributed::Vector<double>> solver(solver_control);
     //     dealii::TrilinosWrappers::PreconditionJacobi      precondition;
     //     precondition.initialize(system_matrix_unconstrained);
@@ -691,9 +825,9 @@ namespace MeshMover {
 
     // }
 
-    // template <int dim, typename real, typename VectorType , typename DoFHandlerType>
+    // template <int dim, typename real>
     // void
-    // LinearElasticity<dim,real,VectorType,DoFHandlerType>
+    // LinearElasticity<dim,real>
     // ::apply_dXvdXvs_transpose(
     //     const dealii::LinearAlgebra::distributed::Vector<double> &input_vector,
     //     dealii::LinearAlgebra::distributed::Vector<double> &output_vector)
@@ -701,7 +835,7 @@ namespace MeshMover {
     //     pcout << "Applying [transpose(dXvdXvs)] onto a vector..." << std::endl;
     //     assemble_system();
 
-    //     dealii::SolverControl solver_control(5000, 1e-14 * system_rhs.l2_norm());
+    //     dealii::SolverControl solver_control(20000, 1e-14 * system_rhs.l2_norm());
     //     dealii::SolverGMRES<dealii::LinearAlgebra::distributed::Vector<double>> solver(solver_control);
     //     dealii::TrilinosWrappers::PreconditionJacobi      precondition;
     //     precondition.initialize(system_matrix_unconstrained);
@@ -743,8 +877,8 @@ namespace MeshMover {
 
     // }
 
-    template <int dim, typename real, typename VectorType , typename DoFHandlerType>
-    void LinearElasticity<dim,real,VectorType,DoFHandlerType>::evaluate_dXvdXs()
+    template <int dim, typename real>
+    void LinearElasticity<dim,real>::evaluate_dXvdXs()
     {
         std::vector<dealii::LinearAlgebra::distributed::Vector<double>> unit_rhs_vector;
         const unsigned int n_dirichlet_constraints = boundary_displacements_vector.size();
@@ -772,14 +906,14 @@ namespace MeshMover {
         apply_dXvdXvs(unit_rhs_vector, dXvdXs_matrix);
     }
 
-    // template <int dim, typename real, typename VectorType , typename DoFHandlerType>
-    // void LinearElasticity<dim,real,VectorType,DoFHandlerType>::evaluate_dXvdXs()
+    // template <int dim, typename real>
+    // void LinearElasticity<dim,real>::evaluate_dXvdXs()
     // {
     //     VectorType trilinos_solution(system_rhs);
 
     //     all_constraints.set_zero(trilinos_solution);
 
-    //     dealii::SolverControl solver_control(5000, 1e-14 * system_rhs.l2_norm());
+    //     dealii::SolverControl solver_control(20000, 1e-14 * system_rhs.l2_norm());
     //     dealii::SolverGMRES<VectorType> solver(solver_control);
     //     dealii::TrilinosWrappers::PreconditionJacobi      precondition;
     //     precondition.initialize(system_matrix_unconstrained);
@@ -898,8 +1032,8 @@ namespace MeshMover {
     //     //     }
     //     // }
     // }
-    // template <int dim, typename real, typename VectorType , typename DoFHandlerType>
-    // unsigned int LinearElasticity<dim,real,VectorType,DoFHandlerType>::solve_linear_problem()
+    // template <int dim, typename real>
+    // unsigned int LinearElasticity<dim,real>::solve_linear_problem()
     // {
     //     VectorType trilinos_solution(system_rhs);
 
@@ -912,7 +1046,7 @@ namespace MeshMover {
     //     //   //trilinos_solution.print(std::cout, 4);
     //     //   system_rhs.print(std::cout, 4);
 
-    //     dealii::SolverControl solver_control(5000, 1e-14 * system_rhs.l2_norm());
+    //     dealii::SolverControl solver_control(20000, 1e-14 * system_rhs.l2_norm());
     //     dealii::SolverGMRES<VectorType> solver(solver_control);
     //     dealii::TrilinosWrappers::PreconditionJacobi      precondition;
     //     //precondition.initialize(system_matrix);
@@ -956,7 +1090,7 @@ namespace MeshMover {
     //     return solver_control.last_step();
     // }
 
-template class LinearElasticity<PHILIP_DIM, double, dealii::LinearAlgebra::distributed::Vector<double>, dealii::DoFHandler<PHILIP_DIM>>;
+template class LinearElasticity<PHILIP_DIM, double>;
 } // namespace MeshMover
 
 } // namespace PHiLiP

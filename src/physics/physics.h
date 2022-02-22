@@ -6,6 +6,7 @@
 #include <deal.II/fe/fe_update_flags.h>
 
 #include "parameters/all_parameters.h"
+#include "parameters/parameters_manufactured_solution.h"
 #include "physics/manufactured_solution.h"
 
 
@@ -32,7 +33,9 @@ class PhysicsBase
 {
 public:
     /// Default constructor that will set the constants.
-    PhysicsBase();
+    PhysicsBase(
+        const dealii::Tensor<2,3,double>                          input_diffusion_tensor = Parameters::ManufacturedSolutionParam::get_default_diffusion_tensor(),
+        std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function_input = nullptr);
 
     /// Virtual destructor required for abstract classes.
     virtual ~PhysicsBase() = 0;
@@ -47,6 +50,11 @@ public:
     /// Convective Numerical Split Flux for split form
     virtual std::array<dealii::Tensor<1,dim,real>,nstate> convective_numerical_split_flux (
             const std::array<real,nstate> &soln_const, const std::array<real,nstate> &soln_loop) const = 0;
+
+/// Convective Numerical Split Flux for split form
+    virtual std::array<dealii::Tensor<1,dim,real>,nstate> convective_surface_numerical_split_flux (
+                const std::array< dealii::Tensor<1,dim,real>, nstate > &surface_flux,
+                const std::array< dealii::Tensor<1,dim,real>, nstate > &flux_interp_to_surface) const = 0;
 
     /// Spectral radius of convective term Jacobian.
     /** Used for scalar dissipation
@@ -79,15 +87,16 @@ public:
 
     /// Artificial dissipative fluxes that will be differentiated ONCE in space.
     /** Stems from the Persson2006 paper on subcell shock capturing */
-    virtual std::array<dealii::Tensor<1,dim,real>,nstate> artificial_dissipative_flux (
+/*    virtual std::array<dealii::Tensor<1,dim,real>,nstate> artificial_dissipative_flux (
         const real viscosity_coefficient,
         const std::array<real,nstate> &solution,
         const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient) const;
-
+*/ 
     /// Source term that does not require differentiation.
     virtual std::array<real,nstate> source_term (
         const dealii::Point<dim,real> &pos,
-        const std::array<real,nstate> &solution) const = 0;
+        const std::array<real,nstate> &solution,//) const;
+        const real /*current_time*/) const = 0;
 
     /// Artificial source term that does not require differentiation stemming from artificial dissipation.
     virtual std::array<real,nstate> artificial_source_term (
@@ -142,10 +151,7 @@ protected:
      *  we should have a stable diffusive system
      */
     dealii::Tensor<2,dim,double> diffusion_tensor;
-private:
-    /// Used to initialize @ref diffusion_tensor in constructor initializer list.
-    dealii::Tensor<2,dim,double> eval_diffusion_tensor();
-    
+
 };
 } // Physics namespace
 } // PHiLiP namespace

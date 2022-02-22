@@ -19,14 +19,19 @@
 #include <deal.II/fe/mapping_q.h>
 #include <deal.II/fe/mapping_manifold.h>
 
+#include "physics/initial_conditions/initial_condition.h"
 #include "physics/euler.h"
 #include "physics/manufactured_solution.h"
 #include "dg/dg_factory.hpp"
-#include "ode_solver/ode_solver.h"
+#include "ode_solver/ode_solver_factory.h"
 
 #include "mesh/grids/naca_airfoil_grid.hpp"
 #include "euler_naca0012.hpp"
 
+#include "functional/lift_drag.hpp"
+
+
+#include "mesh/gmsh_reader.hpp"
 
 namespace PHiLiP {
 namespace Tests {
@@ -105,7 +110,7 @@ int EulerNACA0012<dim,nstate>
         // dealii::VectorTools::interpolate(dg->dof_handler, initial_conditions, dg->solution);
 
         // // Create ODE solver and ramp up the solution from p0
-        // std::shared_ptr<ODE::ODESolver<dim, double>> ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
+        // std::shared_ptr<ODE::ODESolverBase<dim, double>> ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
         // ode_solver->initialize_steady_polynomial_ramping (poly_degree);
 
         for (unsigned int igrid=0; igrid<n_grids; ++igrid) {
@@ -115,9 +120,9 @@ int EulerNACA0012<dim,nstate>
             //    dealii::LinearAlgebra::distributed::Vector<double> old_solution(dg->solution);
             //    dealii::parallel::distributed::SolutionTransfer<dim, dealii::LinearAlgebra::distributed::Vector<double>, dealii::hp::DoFHandler<dim>> solution_transfer(dg->dof_handler);
             //    solution_transfer.prepare_for_coarsening_and_refinement(old_solution);
-            //    dg->high_order_grid.prepare_for_coarsening_and_refinement();
+            //    dg->high_order_grid->prepare_for_coarsening_and_refinement();
             //    grid->refine_global (1);
-            //    dg->high_order_grid.execute_coarsening_and_refinement(true);
+            //    dg->high_order_grid->execute_coarsening_and_refinement(true);
             //    dg->allocate_system ();
             //    dg->solution.zero_out_ghosts();
             //    solution_transfer.interpolate(dg->solution);
@@ -149,6 +154,16 @@ int EulerNACA0012<dim,nstate>
             //airfoil_data.n_subdivision_x_2 = 9;
             //airfoil_data.n_subdivision_y = 12;
 
+            //airfoil_data.n_subdivision_x_0 = 16;
+            //airfoil_data.n_subdivision_x_1 = 16;
+            //airfoil_data.n_subdivision_x_2 = 16;
+            //airfoil_data.n_subdivision_y = 16;
+
+            airfoil_data.n_subdivision_x_0 = 4;
+            airfoil_data.n_subdivision_x_1 = 4;
+            airfoil_data.n_subdivision_x_2 = 4;
+            airfoil_data.n_subdivision_y = 4;
+
             airfoil_data.airfoil_sampling_factor = 100000; // default 2
 
             // dealii::GridGenerator::Airfoil::create_triangulation(*grid, airfoil_data);
@@ -178,17 +193,29 @@ int EulerNACA0012<dim,nstate>
             //Grids::naca_airfoil(*grid, airfoil_data.naca_id, n_subdivisions, airfoil_data.height);
             Grids::naca_airfoil(*grid, airfoil_data);
 
-            const double solution_degree = poly_degree;
-            //const double grid_degree = solution_degree+1;
-            //const double grid_degree = 1;
-            const double grid_degree = 2;//solution_degree+1;
+            grid->refine_global();
+
+            const unsigned int solution_degree = poly_degree;
+            const unsigned int grid_degree = 2;//solution_degree+1;
+            //const unsigned int grid_degree = 1;
+            //const unsigned int grid_degree = 2;//solution_degree+1;
             std::shared_ptr < DGBase<dim, double> > dg = DGFactory<dim,double>::create_discontinuous_galerkin(&param, solution_degree, solution_degree, grid_degree, grid);
+
+            //std::shared_ptr<HighOrderGrid<dim,double>> joukowski_mesh = read_gmsh <dim, dim> ("joukowski_R1_Q"+std::to_string(grid_degree)+".msh");
+            //std::shared_ptr<HighOrderGrid<dim,double>> naca0012_mesh = read_gmsh <dim, dim> ("new_msh41.msh");
+            //std::shared_ptr<HighOrderGrid<dim,double>> naca0012_mesh = read_gmsh <dim, dim> ("naca0012_hopw.msh");
+            std::shared_ptr<HighOrderGrid<dim,double>> naca0012_mesh = read_gmsh <dim, dim> ("naca0012.msh");
+            dg->set_high_order_grid(naca0012_mesh);
+            for (unsigned int i=0; i<igrid; ++i) {
+                dg->high_order_grid->refine_global();
+            }
+            //dg->high_order_grid->refine_global();
 
             // Initialize coarse grid solution with free-stream
             dg->allocate_system ();
             dealii::VectorTools::interpolate(dg->dof_handler, initial_conditions, dg->solution);
 
-            const unsigned int n_global_active_cells = grid->n_global_active_cells();
+            const unsigned int n_global_active_cells = dg->triangulation->n_global_active_cells();
             const unsigned int n_dofs = dg->dof_handler.n_dofs();
             pcout << "Dimension: " << dim << "\t Polynomial degree p: " << poly_degree << std::endl
                  << "Grid number: " << igrid+1 << "/" << n_grids
@@ -197,146 +224,22 @@ int EulerNACA0012<dim,nstate>
                  << std::endl;
 
             // Create ODE solver and ramp up the solution from p0
-            std::shared_ptr<ODE::ODESolver<dim, double>> ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
+            std::shared_ptr<ODE::ODESolverBase<dim, double>> ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
             ode_solver->initialize_steady_polynomial_ramping (poly_degree);
+            //ode_solver->steady_state();
+            LiftDragFunctional<dim,dim+2,double> lift_functional( dg, LiftDragFunctional<dim,dim+2,double>::Functional_types::lift );
+            double lift = lift_functional.evaluate_functional();
 
-            // Overintegrate the error to make sure there is not integration error in the error estimate
-            int overintegrate = 10;
-            dealii::QGauss<dim> quad_extra(dg->max_degree+1+overintegrate);
-            //dealii::MappingQ<dim> mapping(dg->max_degree+overintegrate);
-            //const dealii::MappingManifold<dim,dim> mapping;
-            const dealii::Mapping<dim> &mapping = (*(dg->high_order_grid.mapping_fe_field));
-            dealii::FEValues<dim,dim> fe_values_extra(mapping, dg->fe_collection[poly_degree], quad_extra,
-                    dealii::update_values | dealii::update_JxW_values | dealii::update_quadrature_points);
-            const unsigned int n_quad_pts = fe_values_extra.n_quadrature_points;
-            std::array<double,nstate> soln_at_q;
+            LiftDragFunctional<dim,dim+2,double> drag_functional( dg, LiftDragFunctional<dim,dim+2,double>::Functional_types::drag );
+            double drag = drag_functional.evaluate_functional();
 
-            double l2error = 0;
+            std::cout << " Resulting lift : " << lift << std::endl;
+            std::cout << " Resulting drag : " << drag << std::endl;
 
-
-            std::vector<dealii::types::global_dof_index> dofs_indices (fe_values_extra.dofs_per_cell);
-
-            const double entropy_inf = euler_physics_double.entropy_inf;
-
-            // Integrate solution error and output error
-            for (auto cell = dg->dof_handler.begin_active(); cell!=dg->dof_handler.end(); ++cell) {
-
-                if (!cell->is_locally_owned()) continue;
-                fe_values_extra.reinit (cell);
-                cell->get_dof_indices (dofs_indices);
-
-                for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
-
-                    std::fill(soln_at_q.begin(), soln_at_q.end(), 0);
-                    for (unsigned int idof=0; idof<fe_values_extra.dofs_per_cell; ++idof) {
-                        const unsigned int istate = fe_values_extra.get_fe().system_to_component_index(idof).first;
-                        soln_at_q[istate] += dg->solution[dofs_indices[idof]] * fe_values_extra.shape_value_component(idof, iquad, istate);
-                    }
-                    const double entropy = euler_physics_double.compute_entropy_measure(soln_at_q);
-
-                    const double uexact = entropy_inf;
-                    l2error += pow(entropy - uexact, 2) * fe_values_extra.JxW(iquad);
-                }
-            }
-            const double l2error_mpi_sum = std::sqrt(dealii::Utilities::MPI::sum(l2error, mpi_communicator));
-
-
-            // Convergence table
-            double dx = 1.0/pow(n_dofs,(1.0/dim));
-            //dx = dealii::GridTools::maximal_cell_diameter(*grid);
-            grid_size[igrid] = dx;
-            entropy_error[igrid] = l2error_mpi_sum;
-
-            convergence_table.add_value("p", poly_degree);
-            convergence_table.add_value("cells", n_global_active_cells);
-            convergence_table.add_value("DoFs", n_dofs);
-            convergence_table.add_value("dx", dx);
-            convergence_table.add_value("L2_entropy_error", l2error_mpi_sum);
-
-
-            pcout << " Grid size h: " << dx
-                 << " L2-entropy_error: " << l2error_mpi_sum
-                 << " Residual: " << ode_solver->residual_norm
-                 << std::endl;
-
-            if (igrid > 0) {
-                const double slope_soln_err = log(entropy_error[igrid]/entropy_error[igrid-1])
-                                      / log(grid_size[igrid]/grid_size[igrid-1]);
-                pcout << "From grid " << igrid-1
-                     << "  to grid " << igrid
-                     << "  dimension: " << dim
-                     << "  polynomial degree p: " << poly_degree
-                     << std::endl
-                     << "  entropy_error1 " << entropy_error[igrid-1]
-                     << "  entropy_error2 " << entropy_error[igrid]
-                     << "  slope " << slope_soln_err
-                     << std::endl;
-            }
-
-            //output_results (igrid);
-        }
-        pcout << " ********************************************" << std::endl
-             << " Convergence rates for p = " << poly_degree << std::endl
-             << " ********************************************" << std::endl;
-        convergence_table.evaluate_convergence_rates("L2_entropy_error", "cells", dealii::ConvergenceTable::reduction_rate_log2, dim);
-        convergence_table.set_scientific("dx", true);
-        convergence_table.set_scientific("L2_entropy_error", true);
-        if (pcout.is_active()) convergence_table.write_text(pcout.get_stream());
-
-        convergence_table_vector.push_back(convergence_table);
-
-        const double expected_slope = poly_degree+1;
-
-        const double last_slope = log(entropy_error[n_grids-1]/entropy_error[n_grids-2])
-                                  / log(grid_size[n_grids-1]/grid_size[n_grids-2]);
-        //double before_last_slope = last_slope;
-        //if ( n_grids > 2 ) {
-        //    before_last_slope = log(entropy_error[n_grids-2]/entropy_error[n_grids-3])
-        //                        / log(grid_size[n_grids-2]/grid_size[n_grids-3]);
-        //}
-        //const double slope_avg = 0.5*(before_last_slope+last_slope);
-        const double slope_avg = last_slope;
-        const double slope_diff = slope_avg-expected_slope;
-
-        double slope_deficit_tolerance = -std::abs(manu_grid_conv_param.slope_deficit_tolerance);
-        if(poly_degree == 0) slope_deficit_tolerance *= 2; // Otherwise, grid sizes need to be much bigger for p=0
-
-        if (slope_diff < slope_deficit_tolerance) {
-            pcout << std::endl
-                 << "Convergence order not achieved. Average last 2 slopes of "
-                 << slope_avg << " instead of expected "
-                 << expected_slope << " within a tolerance of "
-                 << slope_deficit_tolerance
-                 << std::endl;
-            // p=0 just requires too many meshes to get into the asymptotic region.
-            if(poly_degree!=0) fail_conv_poly.push_back(poly_degree);
-            if(poly_degree!=0) fail_conv_slop.push_back(slope_avg);
         }
 
     }
-    pcout << std::endl << std::endl << std::endl << std::endl;
-    pcout << " ********************************************" << std::endl;
-    pcout << " Convergence summary" << std::endl;
-    pcout << " ********************************************" << std::endl;
-    for (auto conv = convergence_table_vector.begin(); conv!=convergence_table_vector.end(); conv++) {
-        if (pcout.is_active()) conv->write_text(pcout.get_stream());
-        pcout << " ********************************************" << std::endl;
-    }
-    int n_fail_poly = fail_conv_poly.size();
-    if (n_fail_poly > 0) {
-        for (int ifail=0; ifail < n_fail_poly; ++ifail) {
-            const double expected_slope = fail_conv_poly[ifail]+1;
-            const double slope_deficit_tolerance = -0.1;
-            pcout << std::endl
-                 << "Convergence order not achieved for polynomial p = "
-                 << fail_conv_poly[ifail]
-                 << ". Slope of "
-                 << fail_conv_slop[ifail] << " instead of expected "
-                 << expected_slope << " within a tolerance of "
-                 << slope_deficit_tolerance
-                 << std::endl;
-        }
-    }
+    int n_fail_poly = 0;
     return n_fail_poly;
 }
 

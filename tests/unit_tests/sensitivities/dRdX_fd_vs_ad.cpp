@@ -15,11 +15,8 @@
 #include "dg/dg_factory.hpp"
 #include "parameters/parameters.h"
 #include "physics/physics_factory.h"
-#include "numerical_flux/numerical_flux.h"
 
 using PDEType  = PHiLiP::Parameters::AllParameters::PartialDifferentialEquation;
-using ConvType = PHiLiP::Parameters::AllParameters::ConvectiveNumericalFlux;
-using DissType = PHiLiP::Parameters::AllParameters::DissipativeNumericalFlux;
 
 #if PHILIP_DIM==1
     using Triangulation = dealii::Triangulation<PHILIP_DIM>;
@@ -47,7 +44,7 @@ int test (
 
     const int n_refine = 1;
     for (int i=0; i<n_refine;i++) {
-        dg->high_order_grid.prepare_for_coarsening_and_refinement();
+        dg->high_order_grid->prepare_for_coarsening_and_refinement();
         grid->prepare_coarsening_and_refinement();
         unsigned int icell = 0;
         for (auto cell = grid->begin_active(); cell!=grid->end(); ++cell) {
@@ -59,8 +56,9 @@ int test (
         }
         grid->execute_coarsening_and_refinement();
         bool mesh_out = (i==n_refine-1);
-        dg->high_order_grid.execute_coarsening_and_refinement(mesh_out);
+        dg->high_order_grid->execute_coarsening_and_refinement(mesh_out);
     }
+    dg->high_order_grid->ensure_conforming_mesh();
     dg->allocate_system ();
 
     pcout << "Poly degree " << poly_degree << " ncells " << grid->n_global_active_cells() << " ndofs: " << dg->dof_handler.n_dofs() << std::endl;
@@ -88,70 +86,67 @@ int test (
     dealii::SparsityPattern sparsity_pattern = dg->get_dRdX_sparsity_pattern ();
 
     const dealii::IndexSet &row_parallel_partitioning = dg->locally_owned_dofs;
-    const dealii::IndexSet &col_parallel_partitioning = dg->high_order_grid.locally_owned_dofs_grid;
+    const dealii::IndexSet &col_parallel_partitioning = dg->high_order_grid->locally_owned_dofs_grid;
     dRdXv_fd.reinit(row_parallel_partitioning, col_parallel_partitioning, sparsity_pattern, MPI_COMM_WORLD);
 
-    PHiLiP::HighOrderGrid<dim,double> &high_order_grid = dg->high_order_grid;
+    std::shared_ptr<PHiLiP::HighOrderGrid<dim,double>> high_order_grid = dg->high_order_grid;
 
     using nodeVector = dealii::LinearAlgebra::distributed::Vector<double>;
-    nodeVector old_volume_nodes = high_order_grid.volume_nodes;
+    nodeVector old_volume_nodes = high_order_grid->volume_nodes;
     old_volume_nodes.update_ghost_values();
 
     dealii::AffineConstraints<double> hanging_node_constraints;
     hanging_node_constraints.clear();
-    dealii::DoFTools::make_hanging_node_constraints(high_order_grid.dof_handler_grid, hanging_node_constraints);
+    dealii::DoFTools::make_hanging_node_constraints(high_order_grid->dof_handler_grid, hanging_node_constraints);
     hanging_node_constraints.close();
 
     pcout << "Evaluating AD..." << std::endl;
     dg->assemble_residual(false, true, false);
 
     pcout << "Evaluating FD..." << std::endl;
-    for (unsigned int inode = 0; inode<high_order_grid.dof_handler_grid.n_dofs(); ++inode) {
-        if (inode % 100 == 0) pcout << "inode " << inode+1 << " out of " << high_order_grid.dof_handler_grid.n_dofs() << std::endl;
+    for (unsigned int inode = 0; inode<high_order_grid->dof_handler_grid.n_dofs(); ++inode) {
+        if (inode % 100 == 0) pcout << "inode " << inode+1 << " out of " << high_order_grid->dof_handler_grid.n_dofs() << std::endl;
         double old_node = -99999;
         // Positive perturbation
-        if (high_order_grid.locally_relevant_dofs_grid.is_element(inode) ) {
-            old_node = high_order_grid.volume_nodes[inode];
-            high_order_grid.volume_nodes(inode) = old_node+EPS;
+        if (high_order_grid->locally_relevant_dofs_grid.is_element(inode) ) {
+            old_node = high_order_grid->volume_nodes[inode];
+            high_order_grid->volume_nodes(inode) = old_node+EPS;
         }
-        //hanging_node_constraints.distribute(high_order_grid.volume_nodes);
-        //high_order_grid.volume_nodes.update_ghost_values();
+        // This should be uncommented once we fix:
+        // https://github.com/dougshidong/PHiLiP/issues/48#issue-771199898
+        //high_order_grid->ensure_conforming_mesh();
+        //hanging_node_constraints.distribute(high_order_grid->volume_nodes);
+        //high_order_grid->volume_nodes.update_ghost_values();
 
         dg->assemble_residual(false, false, false);
         solutionVector perturbed_residual_p = dg->right_hand_side;
 
-        //std::cout << "perturb volume_nodes " << std::endl;  high_order_grid.volume_nodes.print(std::cout, 5);
-        //high_order_grid.volume_nodes = old_volume_nodes;
-        //high_order_grid.volume_nodes.update_ghost_values();
-        //std::cout << "oldnodes " << std::endl; high_order_grid.volume_nodes.print(std::cout, 5);
+        //high_order_grid->volume_nodes = old_volume_nodes;
+        //high_order_grid->volume_nodes.update_ghost_values();
 
         // Negative perturbation
-        if (high_order_grid.locally_relevant_dofs_grid.is_element(inode) ) {
-            high_order_grid.volume_nodes(inode) = old_node-EPS;
+        if (high_order_grid->locally_relevant_dofs_grid.is_element(inode) ) {
+            high_order_grid->volume_nodes(inode) = old_node-EPS;
         }
-        //hanging_node_constraints.distribute(high_order_grid.volume_nodes);
-        //high_order_grid.volume_nodes.update_ghost_values();
+        // This should be uncommented once we fix:
+        // https://github.com/dougshidong/PHiLiP/issues/48#issue-771199898
+        //high_order_grid->ensure_conforming_mesh();
+        //hanging_node_constraints.distribute(high_order_grid->volume_nodes);
+        //high_order_grid->volume_nodes.update_ghost_values();
 
         dg->assemble_residual(false, false, false);
         solutionVector perturbed_residual_m = dg->right_hand_side;
 
-        //std::cout << "perturb volume_nodes " << std::endl; high_order_grid.volume_nodes.print(std::cout, 5);
-        //high_order_grid.volume_nodes = old_volume_nodes;
-        //high_order_grid.volume_nodes.update_ghost_values();
-        //std::cout << "old volume_nodes " << std::endl; high_order_grid.volume_nodes.print(std::cout, 5);
+        //high_order_grid->volume_nodes = old_volume_nodes;
+        //high_order_grid->volume_nodes.update_ghost_values();
 
         // Finite difference
-        //std::cout << "perturb residual p " << std::endl; perturbed_residual_p.print(std::cout, 5);
-        //std::cout << "perturb residual n " << std::endl; perturbed_residual_m.print(std::cout, 5);
-
         perturbed_residual_p -= perturbed_residual_m;
-        //std::cout << "perturb residual diff " << std::endl; perturbed_residual_p.print(std::cout, 5);
         perturbed_residual_p /= (2.0*EPS);
-        //std::cout << "fd residual " << std::endl; perturbed_residual_p.print(std::cout, 5);
 
         // Reset node
-        if (high_order_grid.locally_relevant_dofs_grid.is_element(inode) ) {
-            high_order_grid.volume_nodes(inode) = old_node;
+        if (high_order_grid->locally_relevant_dofs_grid.is_element(inode) ) {
+            high_order_grid->volume_nodes(inode) = old_node;
         }
 
         // Set
@@ -159,6 +154,7 @@ int test (
             if (dg->locally_owned_dofs.is_element(iresidual) ) {
                 const double drdx_entry = perturbed_residual_p[iresidual];
                 if (std::abs(drdx_entry) >= 1e-12) {
+                    std::cout << iresidual << " " << inode << std::endl;
                     dRdXv_fd.add(iresidual,inode,drdx_entry);
                 }
             }
@@ -166,26 +162,8 @@ int test (
     }
     dRdXv_fd.compress(dealii::VectorOperation::add);
 
-    // {
-    //     const unsigned int n_digits = 5;
-    //     const unsigned int n_spacing = 7+n_digits;
-    //     dealii::ConditionalOStream pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD)==0);
-    //     dealii::FullMatrix<double> fullA(dRdXv_fd.m(),dRdXv_fd.n());
-    //     fullA.copy_from(dRdXv_fd);
-    //     pcout<<"Dense matrix from FD:"<<std::endl;
-    //     if (pcout.is_active()) fullA.print_formatted(pcout.get_stream(), n_digits, true, n_spacing, "0", 1., 0.);
-    // }
-
-    // {
-    //     const unsigned int n_digits = 5;
-    //     const unsigned int n_spacing = 7+n_digits;
-    //     dealii::ConditionalOStream pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD)==0);
-    //     dealii::FullMatrix<double> fullA(dRdXv_fd.m(),dRdXv_fd.n());
-    //     fullA.copy_from(dg->dRdXv);
-    //     pcout<<"Dense matrix from AD:"<<std::endl;
-    //     if (pcout.is_active()) fullA.print_formatted(pcout.get_stream(), n_digits, true, n_spacing, "0", 1., 0.);
-    // }
-
+    pcout << "(dRdX_FD frob_norm) " << dRdXv_fd.frobenius_norm();
+    pcout << "(dRdX_AD frob_norm) " << dg->dRdXv.frobenius_norm() << std::endl;
     dRdXv_fd.add(-1.0,dg->dRdXv);
 
     const double diff_lone_norm = dRdXv_fd.l1_norm();
@@ -235,6 +213,7 @@ int main (int argc, char * argv[])
         // , PDEType::convection_diffusion
         , PDEType::advection_vector
         , PDEType::euler
+        , PDEType::navier_stokes
     };
     std::vector<std::string> pde_name {
          " PDEType::diffusion "
@@ -242,6 +221,7 @@ int main (int argc, char * argv[])
         // , " PDEType::convection_diffusion "
         , " PDEType::advection_vector "
         , " PDEType::euler "
+        , " PDEType::navier_stokes "
     };
 
     int ipde = -1;
@@ -271,7 +251,7 @@ int main (int argc, char * argv[])
                     }
                 }
 
-                if (*pde==PDEType::euler) {
+                if ((*pde==PDEType::euler) || (*pde==PDEType::navier_stokes)) {
                     error = test<dim,dim+2>(poly_degree, grid, all_parameters);
                 } else if (*pde==PDEType::burgers_inviscid) {
                     error = test<dim,dim>(poly_degree, grid, all_parameters);

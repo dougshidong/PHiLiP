@@ -27,7 +27,7 @@
 #include "physics/manufactured_solution.h"
 #include "dg/dg_factory.hpp"
 #include "dg/weak_dg.hpp"
-#include "ode_solver/ode_solver.h"
+#include "ode_solver/ode_solver_factory.h"
 
 
 namespace PHiLiP {
@@ -119,7 +119,7 @@ double Shock1D<dim,nstate>
     int overintegrate = 10;
     dealii::QGauss<dim> quad_extra(dg.max_degree+1+overintegrate);
     //dealii::MappingQ<dim,dim> mappingq_temp(dg.max_degree+1);
-    dealii::FEValues<dim,dim> fe_values_extra(*(dg.high_order_grid.mapping_fe_field), dg.fe_collection[dg.max_degree], quad_extra, 
+    dealii::FEValues<dim,dim> fe_values_extra(*(dg.high_order_grid->mapping_fe_field), dg.fe_collection[dg.max_degree], quad_extra, 
             dealii::update_values | dealii::update_JxW_values | dealii::update_quadrature_points);
     const unsigned int n_quad_pts = fe_values_extra.n_quadrature_points;
     std::array<double,nstate> soln_at_q;
@@ -304,7 +304,7 @@ int Shock1D<dim,nstate>
             dg->allocate_system ();
 
             // Create ODE solver using the factory and providing the DG object
-            std::shared_ptr<ODE::ODESolver<dim, double>> ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
+            std::shared_ptr<ODE::ODESolverBase<dim, double>> ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
 
             const unsigned int n_global_active_cells = grid->n_global_active_cells();
             const unsigned int n_dofs = dg->dof_handler.n_dofs();
@@ -326,7 +326,7 @@ int Shock1D<dim,nstate>
             int overintegrate = 10;
             dealii::QGauss<dim> quad_extra(dg->max_degree+overintegrate);
             //dealii::MappingQ<dim,dim> mappingq(dg->max_degree+1);
-            dealii::FEValues<dim,dim> fe_values_extra(*(dg->high_order_grid.mapping_fe_field), dg->fe_collection[poly_degree], quad_extra, 
+            dealii::FEValues<dim,dim> fe_values_extra(*(dg->high_order_grid->mapping_fe_field), dg->fe_collection[poly_degree], quad_extra, 
                     dealii::update_values | dealii::update_JxW_values | dealii::update_quadrature_points);
             const unsigned int n_quad_pts = fe_values_extra.n_quadrature_points;
             std::array<double,nstate> soln_at_q;

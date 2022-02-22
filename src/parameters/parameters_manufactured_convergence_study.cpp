@@ -4,15 +4,14 @@ namespace PHiLiP {
 namespace Parameters {
 
 // Manufactured Solution inputs
-ManufacturedConvergenceStudyParam::ManufacturedConvergenceStudyParam () {}
+ManufacturedConvergenceStudyParam::ManufacturedConvergenceStudyParam () :
+    manufactured_solution_param(ManufacturedSolutionParam()) {}
 
 void ManufacturedConvergenceStudyParam::declare_parameters (dealii::ParameterHandler &prm)
 {
     prm.enter_subsection("manufactured solution convergence study");
     {
-        prm.declare_entry("use_manufactured_source_term", "false",
-                          dealii::Patterns::Bool(),
-                          "Uses non-zero source term based on the manufactured solution and the PDE.");
+        Parameters::ManufacturedSolutionParam::declare_parameters(prm);
 
         prm.declare_entry("grid_type", "hypercube",
                           dealii::Patterns::Selection("hypercube|sinehypercube|read_grid"),
@@ -59,6 +58,21 @@ void ManufacturedConvergenceStudyParam::declare_parameters (dealii::ParameterHan
         prm.declare_entry("degree_end", "3",
                           dealii::Patterns::Integer(),
                           "Last degree used for convergence study");
+
+        prm.declare_entry("output_convergence_tables", "false",
+                          dealii::Patterns::Bool(),
+                          "Writes the convergence tables for each polynomial degree p."
+                          "Output will be txt files named convergence_table_[dim]d_[pde_string]_[conv_num_flux_string]_[diss_num_flux_string]_[manufactured_solution_string]_p[poly_degree].txt");
+
+        prm.declare_entry("output_solution", "false",
+                          dealii::Patterns::Bool(),
+                          "Writes the solution files."
+                          "Output will be vtu and pvtu files.");
+
+        prm.declare_entry("add_statewise_solution_error_to_convergence_tables", "false",
+                          dealii::Patterns::Bool(),
+                          "Adds the soln_L2_error of each state to the convergence table."
+                          "Field names are soln_L2_error_state_istate, where istate=[0,1,...,nstate-1]");
     }
     prm.leave_subsection();
 }
@@ -67,7 +81,8 @@ void ManufacturedConvergenceStudyParam ::parse_parameters (dealii::ParameterHand
 {
     prm.enter_subsection("manufactured solution convergence study");
     {
-        use_manufactured_source_term = prm.get_bool("use_manufactured_source_term");
+        manufactured_solution_param.parse_parameters(prm);
+
         const std::string grid_string = prm.get("grid_type");
         if (grid_string == "hypercube") grid_type = GridEnum::hypercube;
         if (grid_string == "sinehypercube") grid_type = GridEnum::sinehypercube;
@@ -88,6 +103,10 @@ void ManufacturedConvergenceStudyParam ::parse_parameters (dealii::ParameterHand
         grid_progression_add        = prm.get_integer("grid_progression_add");
 
         slope_deficit_tolerance     = prm.get_double("slope_deficit_tolerance");
+
+        output_convergence_tables   = prm.get_bool("output_convergence_tables");
+        output_solution             = prm.get_bool("output_solution");
+        add_statewise_solution_error_to_convergence_tables = prm.get_bool("add_statewise_solution_error_to_convergence_tables");
     }
     prm.leave_subsection();
 }

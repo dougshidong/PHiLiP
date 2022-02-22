@@ -22,7 +22,11 @@ std::unique_ptr< dealii::DataPostprocessor<dim> > PostprocessorFactory<dim>
         return std::make_unique< PhysicsPostprocessor<dim,1> >(parameters_input);
     } else if (pde_type == PDE_enum::burgers_inviscid) {
         return std::make_unique< PhysicsPostprocessor<dim,dim> >(parameters_input);
+    } else if (pde_type == PDE_enum::burgers_rewienski) {
+        return std::make_unique< PhysicsPostprocessor<dim,dim> >(parameters_input);
     } else if (pde_type == PDE_enum::euler) {
+        return std::make_unique< PhysicsPostprocessor<dim,dim+2> >(parameters_input);
+    } else if (pde_type == PDE_enum::navier_stokes) {
         return std::make_unique< PhysicsPostprocessor<dim,dim+2> >(parameters_input);
     } else {
         std::cout << "Invalid PDE when creating post-processor" << std::endl;
@@ -89,9 +93,9 @@ dealii::UpdateFlags PhysicsPostprocessor<dim,nstate>::get_needed_update_flags ()
 
 template class PhysicsPostprocessor < PHILIP_DIM, 1 >;
 template class PhysicsPostprocessor < PHILIP_DIM, 2 >;
-template class PhysicsPostprocessor < PHILIP_DIM, PHILIP_DIM+2 >;
-//template class PhysicsPostprocessor < PHILIP_DIM, 4 >;
-//template class PhysicsPostprocessor < PHILIP_DIM, 5 >;
+template class PhysicsPostprocessor < PHILIP_DIM, 3 >;
+template class PhysicsPostprocessor < PHILIP_DIM, 4 >;
+template class PhysicsPostprocessor < PHILIP_DIM, 5 >;
 
 } // Postprocess namespace
 } // PHiLiP namespace

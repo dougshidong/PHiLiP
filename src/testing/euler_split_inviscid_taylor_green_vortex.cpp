@@ -23,25 +23,30 @@ TestsBase::TestsBase(parameters_input)
 //}
 
 template<int dim, int nstate>
-double EulerTaylorGreen<dim, nstate>::compute_kinetic_energy(std::shared_ptr < DGBase<dim, double> > &dg, unsigned int poly_degree) const
+double EulerTaylorGreen<dim, nstate>::compute_MK_energy(std::shared_ptr < DGBase<dim, double> > &dg, unsigned int poly_degree) const
 {
  // Overintegrate the error to make sure there is not integration error in the error estimate
- int overintegrate = 10 ;//10;
+// int overintegrate = 10 ;//10;
+ int overintegrate = 0 ;//10;
  dealii::QGauss<dim> quad_extra(dg->max_degree+1+overintegrate);
-             dealii::FEValues<dim,dim> fe_values_extra(dealii::MappingQ<dim>(dg->max_degree+overintegrate), dg->fe_collection[poly_degree], quad_extra,
-             dealii::update_values | dealii::update_JxW_values | dealii::update_quadrature_points);
+           //  dealii::FEValues<dim,dim> fe_values_extra(dealii::MappingQ<dim>(dg->max_degree+overintegrate), dg->fe_collection[poly_degree], quad_extra,
+           //  dealii::update_values | dealii::update_JxW_values | dealii::update_quadrature_points);
+            const dealii::Mapping<dim> &mapping = (*(dg->high_order_grid->mapping_fe_field));
+            dealii::FEValues<dim,dim> fe_values_extra(mapping, dg->fe_collection[poly_degree], quad_extra, 
+                    dealii::update_values | dealii::update_JxW_values | dealii::update_quadrature_points);
 // dealii::QGauss<dim> quad_extra(dg->fe_system.tensor_degree()+overintegrate);
 // dealii::FEValues<dim,dim> fe_values_extra(dg->mapping, dg->fe_system, quad_extra,
 //       dealii::update_values | dealii::update_JxW_values | dealii::update_quadrature_points);
- const unsigned int n_quad_pts = fe_values_extra.n_quadrature_points;
- std::array<double,nstate> soln_at_q;
+
+// const unsigned int n_quad_pts = fe_values_extra.n_quadrature_points;
+// std::vector<std::array<double,nstate>> soln_at_q(n_quad_pts);;
 
  double total_kinetic_energy = 0;
 
  // Integrate solution error and output error
- typename dealii::DoFHandler<dim>::active_cell_iterator
- cell = dg->dof_handler.begin_active(),
- endc = dg->dof_handler.end();
+// typename dealii::DoFHandler<dim>::active_cell_iterator
+// cell = dg->dof_handler.begin_active(),
+// endc = dg->dof_handler.end();
 
  std::vector<dealii::types::global_dof_index> dofs_indices (fe_values_extra.dofs_per_cell);
 
@@ -54,11 +59,106 @@ double EulerTaylorGreen<dim, nstate>::compute_kinetic_energy(std::shared_ptr < D
              //const double entropy_inf = tot_pressure_inf*pow(density_inf,-gam);
  //const double entropy_inf = euler_physics_double.entropy_inf;
 
- for (; cell!=endc; ++cell) {
+// for (; cell!=endc; ++cell) {
+ for (auto cell = dg->dof_handler.begin_active(); cell!=dg->dof_handler.end(); ++cell) {
+    if (!cell->is_locally_owned()) continue;
 
-  fe_values_extra.reinit (cell);
+    fe_values_extra.reinit (cell);
   //std::cout << "sitting on cell " << cell->index() << std::endl;
      cell->get_dof_indices (dofs_indices);
+
+    
+#if 0
+        for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
+            soln_at_q[iquad] = 0.0;
+         for (unsigned int idof=0; idof<fe_values_extra.dofs_per_cell; ++idof) {
+          const unsigned int istate = fe_values_extra.get_fe().system_to_component_index(idof).first;
+             soln_at_q[iquad][istate] += dg->solution[dofs_indices[idof]] * fe_values_extra.shape_value_component(idof, iquad, istate);
+         }
+            for(unsigned int istate=1; istate<4; istate++){
+                soln_at_q[iquad][istate] /= soln_at_q[iquad][0];//get primitive velocities
+            }
+        }
+#endif
+
+
+
+//    std::fill(soln_at_q.begin(), soln_at_q.end(), 0);
+    const unsigned int n_dofs_cell = fe_values_extra.dofs_per_cell;
+    std::vector<double> Mu(n_dofs_cell);
+    for(unsigned int itest=0; itest<n_dofs_cell; itest++){
+        Mu[itest] = 0.0;
+       // const unsigned int istate_test = dg->fe_collection[poly_degree].get_fe().system_to_component_index(itest).first;
+        const unsigned int istate_test = fe_values_extra.get_fe().system_to_component_index(itest).first;
+        for(unsigned int idof=0; idof<n_dofs_cell; idof++){
+        //    const unsigned int istate = dg->fe_collection[poly_degree].get_fe().system_to_component_index(idof).first;
+            const unsigned int istate = fe_values_extra.get_fe().system_to_component_index(idof).first;
+            if(istate == istate_test && istate > 0 && istate < 4){
+                Mu[itest] += dg->global_mass_matrix(dofs_indices[itest],dofs_indices[idof]) * dg->solution[dofs_indices[idof]]; 
+            }
+        }
+    }
+    for(unsigned int idof=0; idof<n_dofs_cell; idof++){
+       // const unsigned int istate = dg->fe_collection[poly_degree].get_fe().system_to_component_index(idof).first;
+        const unsigned int istate = fe_values_extra.get_fe().system_to_component_index(idof).first;
+        const unsigned int ishape = fe_values_extra.get_fe().system_to_component_index(idof).second;
+       // const unsigned int ishape = dg->fe_collection[poly_degree].get_fe().system_to_component_index(idof).second;
+        if(istate > 0 && istate < 4){
+            total_kinetic_energy += 0.5 * Mu[idof] * dg->solution[dofs_indices[idof]] / dg->solution[dofs_indices[ishape]]; 
+           // total_kinetic_energy += 0.5 * Mu[idof] * soln_at_q[ishape][istate];//its collocated for now so no projection 
+        }
+    }
+    
+ }
+ return total_kinetic_energy;
+}
+template<int dim, int nstate>
+double EulerTaylorGreen<dim, nstate>::compute_kinetic_energy(std::shared_ptr < DGBase<dim, double> > &dg, unsigned int poly_degree) const
+{
+ // Overintegrate the error to make sure there is not integration error in the error estimate
+ int overintegrate = 10 ;//10;
+ dealii::QGauss<dim> quad_extra(dg->max_degree+1+overintegrate);
+           //  dealii::FEValues<dim,dim> fe_values_extra(dealii::MappingQ<dim>(dg->max_degree+overintegrate), dg->fe_collection[poly_degree], quad_extra,
+           //  dealii::update_values | dealii::update_JxW_values | dealii::update_quadrature_points);
+            const dealii::Mapping<dim> &mapping = (*(dg->high_order_grid->mapping_fe_field));
+            dealii::FEValues<dim,dim> fe_values_extra(mapping, dg->fe_collection[poly_degree], quad_extra, 
+                    dealii::update_values | dealii::update_JxW_values | dealii::update_quadrature_points);
+// dealii::QGauss<dim> quad_extra(dg->fe_system.tensor_degree()+overintegrate);
+// dealii::FEValues<dim,dim> fe_values_extra(dg->mapping, dg->fe_system, quad_extra,
+//       dealii::update_values | dealii::update_JxW_values | dealii::update_quadrature_points);
+
+//i comment out
+ const unsigned int n_quad_pts = fe_values_extra.n_quadrature_points;
+ std::array<double,nstate> soln_at_q;
+
+ double total_kinetic_energy = 0;
+
+ // Integrate solution error and output error
+// typename dealii::DoFHandler<dim>::active_cell_iterator
+// cell = dg->dof_handler.begin_active(),
+// endc = dg->dof_handler.end();
+
+ std::vector<dealii::types::global_dof_index> dofs_indices (fe_values_extra.dofs_per_cell);
+
+             //const double gam = euler_physics_double.gam;
+             //const double mach_inf = euler_physics_double.mach_inf;
+             //const double tot_temperature_inf = 1.0;
+             //const double tot_pressure_inf = 1.0;
+             //// Assuming a tank at rest, velocity = 0, therefore, static pressure and temperature are same as total
+             //const double density_inf = gam*tot_pressure_inf/tot_temperature_inf * mach_inf * mach_inf;
+             //const double entropy_inf = tot_pressure_inf*pow(density_inf,-gam);
+ //const double entropy_inf = euler_physics_double.entropy_inf;
+
+// for (; cell!=endc; ++cell) {
+ for (auto cell = dg->dof_handler.begin_active(); cell!=dg->dof_handler.end(); ++cell) {
+    if (!cell->is_locally_owned()) continue;
+
+    fe_values_extra.reinit (cell);
+  //std::cout << "sitting on cell " << cell->index() << std::endl;
+     cell->get_dof_indices (dofs_indices);
+
+
+
         for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
 
          std::fill(soln_at_q.begin(), soln_at_q.end(), 0);
@@ -72,6 +172,7 @@ double EulerTaylorGreen<dim, nstate>::compute_kinetic_energy(std::shared_ptr < D
          const double quadrature_kinetic_energy =  0.5*(soln_at_q[1]*soln_at_q[1] +
                    soln_at_q[2]*soln_at_q[2] +
                    soln_at_q[3]*soln_at_q[3] )/density;
+//pcout<<" SOLUTION BABY "<<soln_at_q[0]<<"  "<<soln_at_q[1]<<"  "<<soln_at_q[2]<<"  "<<soln_at_q[3]<<std::endl;
 
          //const double quadrature_kinetic_energy = compute_quadrature_kinetic_energy(soln_at_q);
 
@@ -88,11 +189,13 @@ int EulerTaylorGreen<dim, nstate>::run_test() const
     using Triangulation = dealii::parallel::distributed::Triangulation<dim>;
  std::shared_ptr<Triangulation> grid = std::make_shared<Triangulation> (mpi_communicator);
 
+        PHiLiP::Parameters::AllParameters all_parameters_new = *all_parameters;  
  double left = 0.0;
  double right = 2 * dealii::numbers::PI;
  const bool colorize = true;
  int n_refinements = 2;
- unsigned int poly_degree = 1;
+ unsigned int poly_degree = 3;
+ const unsigned int grid_degree = 1;
  dealii::GridGenerator::hyper_cube(*grid, left, right, colorize);
 
  std::vector<dealii::GridTools::PeriodicFacePair<typename dealii::Triangulation<PHILIP_DIM>::cell_iterator> > matched_pairs;
@@ -103,7 +206,18 @@ int EulerTaylorGreen<dim, nstate>::run_test() const
 
  grid->refine_global(n_refinements);
 
- std::shared_ptr < PHiLiP::DGBase<dim, double> > dg = PHiLiP::DGFactory<dim,double>::create_discontinuous_galerkin(all_parameters, poly_degree, grid);
+     const unsigned int n_global_active_cells2 = grid->n_global_active_cells();
+     double n_dofs_cfl = pow(n_global_active_cells2,dim) * pow(poly_degree+1.0, dim);
+     double delta_x = (right-left)/pow(n_dofs_cfl,(1.0/dim)); 
+   // double delta_x = (right-left)/(pow(2.0,n_refinements)*(poly_degree+1));
+    all_parameters_new.ode_solver_param.initial_time_step =  0.1 * delta_x;
+   // all_parameters_new.ode_solver_param.initial_time_step =  0.2 * delta_x;
+pcout<<" timestep "<<all_parameters_new.ode_solver_param.initial_time_step<<std::endl;
+   // all_parameters_new.ode_solver_param.initial_time_step =  0.001;
+
+    //Create DG
+// std::shared_ptr < PHiLiP::DGBase<dim, double> > dg = PHiLiP::DGFactory<dim,double>::create_discontinuous_galerkin(&all_parameters_new, poly_degree, grid);
+ std::shared_ptr < PHiLiP::DGBase<dim, double> > dg = PHiLiP::DGFactory<dim,double>::create_discontinuous_galerkin(&all_parameters_new, poly_degree, poly_degree, grid_degree, grid);
  dg->allocate_system ();
 
  std::cout << "Implement initial conditions" << std::endl;
@@ -116,7 +230,8 @@ int EulerTaylorGreen<dim, nstate>::run_test() const
  expressions[1] = "sin(x)*cos(y)*cos(z)";
  expressions[2] = "-cos(x)*sin(y)*cos(z)";
  expressions[3] = "0";
- expressions[4] = "250.0/1.4 + 2.5/16.0 * (cos(2.0*x)*cos(2.0*z) + 2.0*cos(2.0*y) + 2.0*cos(2.0*x) + cos(2.0*y)*cos(2.0*z)) + 0.5 * pow(cos(z),2.0) * (pow(cos(x),2.0) * pow(sin(y),2.0) +pow(sin(x),2.0) * pow(cos(y),2.0))";
+ expressions[4] = "100.0/1.4 + 1.0/16.0 * (cos(2.0*x)*cos(2.0*z) + 2.0*cos(2.0*y) + 2.0*cos(2.0*x) + cos(2.0*y)*cos(2.0*z))";
+ //expressions[4] = "250.0/1.4 + 2.5/16.0 * (cos(2.0*x)*cos(2.0*z) + 2.0*cos(2.0*y) + 2.0*cos(2.0*x) + cos(2.0*y)*cos(2.0*z)) + 0.5 * pow(cos(z),2.0) * (pow(cos(x),2.0) * pow(sin(y),2.0) +pow(sin(x),2.0) * pow(cos(y),2.0))";
  initial_condition.initialize(variables,
                               expressions,
                               constants);
@@ -131,16 +246,20 @@ int EulerTaylorGreen<dim, nstate>::run_test() const
  // Create ODE solver using the factory and providing the DG object
 
  std::cout << "creating ODE solver" << std::endl;
- std::shared_ptr<ODE::ODESolver<dim, double>> ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
+ std::shared_ptr<ODE::ODESolverBase<dim, double>> ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
  std::cout << "ODE solver successfully created" << std::endl;
  double finalTime = 14.;
- double dt = all_parameters->ode_solver_param.initial_time_step;
+ finalTime = 0.1;//to speed things up locally in tests, doesn't need full 14seconds to verify.
+// double dt = all_parameters->ode_solver_param.initial_time_step;
+ double dt = all_parameters_new.ode_solver_param.initial_time_step;
 
  //double dt = all_parameters->ode_solver_param.initial_time_step;
  //need to call ode_solver before calculating energy because mass matrix isn't allocated yet.
  //ode_solver->advance_solution_time(0.000001);
  //double initial_energy = compute_energy(dg);
 
+std::cout<<" number dofs "<<
+            dg->dof_handler.n_dofs()<<std::endl;
  std::cout << "preparing to advance solution in time" << std::endl;
 // //(void) finalTime;
 // std::cout << "kinetic energy is" << compute_kinetic_energy(dg) <<std::endl;
@@ -154,14 +273,38 @@ int EulerTaylorGreen<dim, nstate>::run_test() const
  //also the ode solver output doesn't make sense (says "iteration 1 out of 1")
  //but it works. I'll keep it for now and need to modify the output functions later to account for this.
 
- std::ofstream myfile ("kinetic_energy_plot.gpl" , std::ios::trunc);
+  pcout << "Energy at time " << 0 << " is " << compute_kinetic_energy(dg, poly_degree) << std::endl;
+    ode_solver->current_iteration = 0;
+	ode_solver->advance_solution_time(dt/10.0);
+	//ode_solver->advance_solution_time(dt/100000.0);
+	double initial_energy = compute_kinetic_energy(dg, poly_degree);
+        double initial_MK_energy = compute_MK_energy(dg, poly_degree);
+    
+  pcout << "Energy at one timestep is " << initial_energy << std::endl;
+//	double initial_MK_energy = compute_MK_energy(dg, poly_degree);
+ std::ofstream myfile ("kinetic_energy_3D_TGV.gpl" , std::ios::trunc);
 
  for (int i = 0; i < std::ceil(finalTime/dt); ++ i)
  {
   ode_solver->advance_solution_time(dt);
-  double current_energy = compute_kinetic_energy(dg,poly_degree);
-  std::cout << "Energy at time " << i * dt << " is " << current_energy << std::endl;
+  //double current_energy = compute_kinetic_energy(dg,poly_degree);
+  double current_energy = compute_kinetic_energy(dg,poly_degree) / initial_energy;
+  std::cout << std::setprecision(16) << std::fixed;
+  pcout << "Energy at time " << i * dt << " is " << current_energy << std::endl;
   myfile << i * dt << " " << current_energy << std::endl;
+ // if (current_energy - initial_energy >= 10.00)
+  if (current_energy*initial_energy - initial_energy >= 1.00)
+    {
+        pcout << " Energy was not monotonically decreasing" << std::endl;
+	return 1;
+	break;
+    }
+   // double current_MK_energy = compute_MK_energy(dg, poly_degree);
+    double current_MK_energy = compute_MK_energy(dg, poly_degree)/initial_MK_energy;
+    std::cout << std::setprecision(16) << std::fixed;
+    pcout << "M plus K norm at time " << i * dt << " is " << current_MK_energy<< std::endl;
+    myfile << i * dt << " " << std::fixed << std::setprecision(16) << current_MK_energy << std::endl;
+   // ode_solver->current_iteration++;
 
  }
 

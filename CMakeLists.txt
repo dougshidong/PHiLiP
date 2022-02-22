@@ -12,6 +12,9 @@ set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} ${WARNING_CXX_FLAGS} -march=native -std
 
 set(MPIMAX 4 CACHE STRING "Default number of processors used in ctest mpirun -np MPIMAX. Not the same as ctest -jX")
 
+set(ENABLE_GMSH 0 CACHE STRING "Enable GMSH access through command lines and tests.")
+set(ENABLE_GNUPLOT 0 CACHE STRING "Enable Gnu Plot outputs.")
+
 find_package(Git QUIET)
 if(GIT_FOUND AND EXISTS "${PROJECT_SOURCE_DIR}/.git")
 # Update submodules as needed
@@ -30,7 +33,14 @@ endif()
 if(NOT EXISTS "${PROJECT_SOURCE_DIR}/submodules/CoDiPack/include/codi.hpp")
     message(FATAL_ERROR "The submodules were not downloaded! GIT_SUBMODULE was turned off or failed. Please update submodules and try again.")
 endif()
+if(NOT EXISTS "${PROJECT_SOURCE_DIR}/submodules/joukowski_high_order_mesh/Joukowski.py")
+    message(FATAL_ERROR "The submodules were not downloaded! GIT_SUBMODULE was turned off or failed. Please update submodules and try again.")
+endif()
 
+find_library(GMSH_LIB gmsh)
+if(NOT GMSH_LIB)
+  message(FATAL_ERROR "Could not find gmsh")
+endif()
 
 #set(CMAKE_CXX_FLAGS_DEBUG  "${CMAKE_CXX_FLAGS_DEBUG} -Og -g")
 
@@ -92,6 +102,8 @@ SET(_philip_targets "#
 #      make PHiLiP_3D      - to build main program (wihtout tests) in 3D ")
 add_custom_target(unit_tests)
 
+add_custom_target(grids)
+
 # Source code
 include_directories(submodules)
 include_directories(src)
@@ -103,6 +115,49 @@ add_subdirectory(tests)
 
 # Documentation
 add_subdirectory(doc)
+
+file(GLOB JOUKOWSKI_GENERATOR_PY
+    RELATIVE "${CMAKE_SOURCE_DIR}/submodules/joukowski_high_order_mesh/"
+    "submodules/joukowski_high_order_mesh/*.py"
+)
+file(GLOB JOUKOWSKI_GENERATOR_GEO
+    RELATIVE "${CMAKE_SOURCE_DIR}/submodules/joukowski_high_order_mesh/"
+    "submodules/joukowski_high_order_mesh/*.geo"
+)
+MESSAGE( STATUS "Copying Joukowski generator...")
+foreach(file ${JOUKOWSKI_GENERATOR_PY})
+    MESSAGE( ${file})
+    MESSAGE( "${CMAKE_SOURCE_DIR}/submodules/joukowski_high_order_mesh/${file} to gmsh_meshes/joukowski/${file}" )
+    configure_file(${CMAKE_SOURCE_DIR}/submodules/joukowski_high_order_mesh/${file} gmsh_meshes/joukowski/${file} COPYONLY)
+endforeach()
+foreach(file ${JOUKOWSKI_GENERATOR_GEO})
+    MESSAGE( ${file})
+    MESSAGE( "${CMAKE_SOURCE_DIR}/submodules/joukowski_high_order_mesh/${file} to gmsh_meshes/joukowski/${file}" )
+    configure_file(${CMAKE_SOURCE_DIR}/submodules/joukowski_high_order_mesh/${file} gmsh_meshes/joukowski/${file} COPYONLY)
+endforeach()
+
+foreach(order RANGE 1 4)
+foreach(ref   RANGE 0 3)
+    add_custom_target(joukowski_R${ref}_Q${order}
+        WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/gmsh_meshes/joukowski
+        COMMAND python3 Joukowski.py --refine ${ref} --order ${order}
+        COMMAND gmsh  jouk_quad_ref${ref}_Q${order}.msh convert_to_msh4.geo -
+        COMMAND mv
+             "${CMAKE_BINARY_DIR}/gmsh_meshes/joukowski/new_msh41.msh"
+             "${CMAKE_BINARY_DIR}/tests/integration_tests_control_files/euler_integration/naca0012/joukowski_R${ref}_Q${order}.msh"
+    )
+    add_dependencies(grids joukowski_R${ref}_Q${order})
+endforeach()
+endforeach()
+
+#    if(NOT JOUKOWSKI_PY_RESULT EQUAL "0")
+#        message(FATAL_ERROR
+#                "gmsh ${JOUKOWSKI_PY_RESULT}, please check ${GMSH_GEO} file")
+#    endif()
+#
+#    string(CONCAT GMSH_MSH ${dim}D_square.msh)
+#    configure_file(${GMSH_MSH} ${GMSH_MSH} COPYONLY)
+
 
 ##########
 # Add a few commands to make life easier

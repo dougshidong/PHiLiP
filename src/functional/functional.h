@@ -38,7 +38,11 @@ namespace PHiLiP {
   * are involved in the computation of the adjoint. If derivatives are needed, the Sacado
   * versions of these functions must also be defined.
   */
-template <int dim, int nstate, typename real>
+#if PHILIP_DIM==1
+template <int dim, int nstate, typename real, typename MeshType = dealii::Triangulation<dim>>
+#else
+template <int dim, int nstate, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
+#endif
 class Functional 
 {
     using FadType = Sacado::Fad::DFad<real>; ///< Sacado AD type for first derivatives.
@@ -46,7 +50,7 @@ class Functional
 
 public:
     /// Smart pointer to DGBase
-    std::shared_ptr<DGBase<dim,real>> dg;
+    std::shared_ptr<DGBase<dim,real,MeshType>> dg;
 
 protected:
     /// Physics that should correspond to the one in DGBase
@@ -60,14 +64,14 @@ public:
      *  diffusion_exact_adjoint test case.
      */
     Functional(
-        std::shared_ptr<PHiLiP::DGBase<dim,real>> _dg,
+        std::shared_ptr<PHiLiP::DGBase<dim,real,MeshType>> _dg,
         const bool _uses_solution_values = true,
         const bool _uses_solution_gradient = true);
 
     /** Constructor.
      *  Uses provided physics instead of creating a new one base on DGBase */
     Functional(
-        std::shared_ptr<PHiLiP::DGBase<dim,real>> _dg,
+        std::shared_ptr<PHiLiP::DGBase<dim,real,MeshType>> _dg,
         std::shared_ptr<PHiLiP::Physics::PhysicsBase<dim,nstate,Sacado::Fad::DFad<Sacado::Fad::DFad<real>> >> _physics_fad_fad,
         const bool _uses_solution_values = true,
         const bool _uses_solution_gradient = true);
@@ -102,18 +106,18 @@ public:
 
     /** Finite difference evaluation of dIdW to verify against analytical.  */
     dealii::LinearAlgebra::distributed::Vector<real> evaluate_dIdw_finiteDifferences(
-        DGBase<dim,real> &dg, 
+        DGBase<dim,real,MeshType> &dg, 
         const PHiLiP::Physics::PhysicsBase<dim,nstate,real> &physics,
         const double stepsize);
 
     /** Finite difference evaluation of dIdX to verify against analytical.  */
     dealii::LinearAlgebra::distributed::Vector<real> evaluate_dIdX_finiteDifferences(
-        DGBase<dim,real> &dg, 
+        DGBase<dim,real,MeshType> &dg, 
         const PHiLiP::Physics::PhysicsBase<dim,nstate,real> &physics,
         const double stepsize);
 
- /// Store the functional value from the last time evaluate_functional() was called.
- real current_functional_value;
+    /// Store the functional value from the last time evaluate_functional() was called.
+    real current_functional_value;
 
     /// Vector for storing the derivatives with respect to each solution DoF
     dealii::LinearAlgebra::distributed::Vector<real> dIdw;
@@ -163,9 +167,11 @@ protected:
     /// Allocate and setup the derivative vectors/matrices.
     /** Helper function to simplify the evaluate_functional */
     void allocate_derivatives(const bool compute_dIdW, const bool compute_dIdX, const bool compute_d2I);
+    
     /// Allocate and setup the derivative dIdX vector.
     /** Helper function to simplify the evaluate_functional */
     void allocate_dIdX(dealii::LinearAlgebra::distributed::Vector<real> &dIdX) const;
+    
     /// Set the derivative vectors/matrices.
     /** Helper function to simplify the evaluate_functional */
     void set_derivatives(
@@ -190,6 +196,7 @@ protected:
         const std::vector< real2 > &coords_coeff,
         const dealii::FESystem<dim> &fe_metric,
         const dealii::Quadrature<dim> &volume_quadrature) const;
+    
     /// Corresponding real function to evaluate a cell's volume functional.
     virtual real evaluate_volume_cell_functional(
         const Physics::PhysicsBase<dim,nstate,real> &physics,
@@ -198,6 +205,7 @@ protected:
         const std::vector< real > &coords_coeff,
         const dealii::FESystem<dim> &fe_metric,
         const dealii::Quadrature<dim> &volume_quadrature) const;
+    
     /// Corresponding FadFadType function to evaluate a cell's volume functional.
     virtual Sacado::Fad::DFad<Sacado::Fad::DFad<real>> evaluate_volume_cell_functional(
         const Physics::PhysicsBase<dim,nstate,Sacado::Fad::DFad<Sacado::Fad::DFad<real>>> &physics_fad_fad,
@@ -207,23 +215,57 @@ protected:
         const dealii::FESystem<dim> &fe_metric,
         const dealii::Quadrature<dim> &volume_quadrature) const;
 
-    /// Virtual function for computation of cell boundary functional term
-    /** Used only in the computation of evaluate_function(). If not overriden returns 0. */
-    virtual real evaluate_cell_boundary(
-        const PHiLiP::Physics::PhysicsBase<dim,nstate,real> &/*physics*/,
-        const unsigned int /*boundary_id*/,
-        const dealii::FEFaceValues<dim,dim> &/*fe_values_boundary*/,
-        const std::vector<real> &/*local_solution*/) const
-    { return (real) 0.0; }
+    // /// Virtual function for computation of cell boundary functional term
+    // /** Used only in the computation of evaluate_function(). If not overriden returns 0. */
+    // virtual real evaluate_cell_boundary(
+    //     const PHiLiP::Physics::PhysicsBase<dim,nstate,real> &/*physics*/,
+    //     const unsigned int /*boundary_id*/,
+    //     const dealii::FEFaceValues<dim,dim> &/*fe_values_boundary*/,
+    //     const std::vector<real> &/*local_solution*/) const
+    // { return (real) 0.0; }
 
-    /// Virtual function for Sacado computation of cell boundary functional term and derivatives
-    /** Used only in the computation of evaluate_dIdw(). If not overriden returns 0. */
-    virtual FadFadType evaluate_cell_boundary(
-        const PHiLiP::Physics::PhysicsBase<dim,nstate,FadFadType> &/*physics*/,
-        const unsigned int /*boundary_id*/,
-        const dealii::FEFaceValues<dim,dim> &/*fe_values_boundary*/,
-        const std::vector<FadFadType> &/*local_solution*/) const
-    { return (FadFadType) 0.0; }
+    // /// Virtual function for Sacado computation of cell boundary functional term and derivatives
+    // /** Used only in the computation of evaluate_dIdw(). If not overriden returns 0. */
+    // virtual FadFadType evaluate_cell_boundary(
+    //     const PHiLiP::Physics::PhysicsBase<dim,nstate,FadFadType> &/*physics*/,
+    //     const unsigned int /*boundary_id*/,
+    //     const dealii::FEFaceValues<dim,dim> &/*fe_values_boundary*/,
+    //     const std::vector<FadFadType> &/*local_solution*/) const
+    // { return (FadFadType) 0.0; }
+
+    /// Templated function to evaluate a cell's boundary functional.
+    template <typename real2>
+    real2 evaluate_boundary_cell_functional(
+        const Physics::PhysicsBase<dim,nstate,real2> &physics,
+        const unsigned int boundary_id,
+        const std::vector< real2 > &soln_coeff,
+        const dealii::FESystem<dim> &fe_solution,
+        const std::vector< real2 > &coords_coeff,
+        const dealii::FESystem<dim> &fe_metric,
+        const unsigned int face_number,
+        const dealii::Quadrature<dim-1> &face_quadrature) const;
+    
+    /// Corresponding real function to evaluate a cell's boundary functional.
+    virtual real evaluate_boundary_cell_functional(
+        const Physics::PhysicsBase<dim,nstate,real> &physics,
+        const unsigned int boundary_id,
+        const std::vector< real > &soln_coeff,
+        const dealii::FESystem<dim> &fe_solution,
+        const std::vector< real > &coords_coeff,
+        const dealii::FESystem<dim> &fe_metric,
+        const unsigned int face_number,
+        const dealii::Quadrature<dim-1> &face_quadrature) const;
+    
+    /// Corresponding FadFadType function to evaluate a cell's boundary functional.
+    virtual Sacado::Fad::DFad<Sacado::Fad::DFad<real>> evaluate_boundary_cell_functional(
+        const Physics::PhysicsBase<dim,nstate,Sacado::Fad::DFad<Sacado::Fad::DFad<real>>> &physics_fad_fad,
+        const unsigned int boundary_id,
+        const std::vector< Sacado::Fad::DFad<Sacado::Fad::DFad<real>> > &soln_coeff,
+        const dealii::FESystem<dim> &fe_solution,
+        const std::vector< Sacado::Fad::DFad<Sacado::Fad::DFad<real>> > &coords_coeff,
+        const dealii::FESystem<dim> &fe_metric,
+        const unsigned int face_number,
+        const dealii::Quadrature<dim-1> &face_quadrature) const;
 
     /// Virtual function for computation of cell volume functional term
     /** Used only in the computation of evaluate_function(). If not overriden returns 0. */
@@ -233,6 +275,7 @@ protected:
         const std::array<real,nstate> &/*soln_at_q*/,
         const std::array<dealii::Tensor<1,dim,real>,nstate> &/*soln_grad_at_q*/) const
     { return (real) 0.0; }
+
     /// Virtual function for Sacado computation of cell volume functional term and derivatives
     /** Used only in the computation of evaluate_dIdw(). If not overriden returns 0. */
     virtual FadFadType evaluate_volume_integrand(
@@ -241,6 +284,28 @@ protected:
         const std::array<dealii::Tensor<1,dim,FadFadType>,nstate> &/*soln_grad_at_q*/) const
     { return (real) 0.0; }
 
+    /// Virtual function for computation of cell boundary functional term
+    /** Used only in the computation of evaluate_function(). If not overriden returns 0. */
+    virtual real evaluate_boundary_integrand(
+        const PHiLiP::Physics::PhysicsBase<dim,nstate,real> &/*physics*/,
+        const unsigned int /*boundary_id*/,
+        const dealii::Point<dim,real> &/*phys_coord*/,
+        const dealii::Tensor<1,dim,real> &/*normal*/,
+        const std::array<real,nstate> &/*soln_at_q*/,
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &/*soln_grad_at_q*/) const
+    { return (real) 0.0; }
+    
+    /// Virtual function for Sacado computation of cell boundary functional term and derivatives
+    /** Used only in the computation of evaluate_dIdw(). If not overriden returns 0. */
+    virtual FadFadType evaluate_boundary_integrand(
+        const PHiLiP::Physics::PhysicsBase<dim,nstate,FadFadType> &/*physics*/,
+        const unsigned int /*boundary_id*/,
+        const dealii::Point<dim,FadFadType> &/*phys_coord*/,
+        const dealii::Tensor<1,dim,FadFadType> &/*normal*/,
+        const std::array<FadFadType,nstate> &/*soln_at_q*/,
+        const std::array<dealii::Tensor<1,dim,FadFadType>,nstate> &/*soln_grad_at_q*/) const
+    { return (FadFadType) 0.0; }
+
 
 protected:
     /// Update flags needed at volume points.
@@ -248,12 +313,423 @@ protected:
     /// Update flags needed at face points.
     const dealii::UpdateFlags face_update_flags = dealii::update_values | dealii::update_gradients | dealii::update_quadrature_points | dealii::update_JxW_values | dealii::update_normal_vectors;
 
+
+protected:
     const bool uses_solution_values; ///< Will evaluate solution values at quadrature points
     const bool uses_solution_gradient; ///< Will evaluate solution gradient at quadrature points
 
     dealii::ConditionalOStream pcout; ///< Parallel std::cout that only outputs on mpi_rank==0
 
 }; // TargetFunctional class
+
+/// Lp volume norm functional class
+/** Default functional type based on Lp norm evaluated over the domain volume
+  * 
+  * \f[
+  *     J = \int_{\Omega} {|u(\boldsymbol{x})|^{Lp} \mathrm{d}\boldsymbol{x}}
+  * \f] 
+  */ 
+#if PHILIP_DIM==1
+template <int dim, int nstate, typename real, typename MeshType = dealii::Triangulation<dim>>
+#else
+template <int dim, int nstate, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
+#endif
+class FunctionalNormLpVolume : public Functional<dim,nstate,real,MeshType>
+{
+    using FadType = Sacado::Fad::DFad<real>; ///< Sacado AD type for first derivatives.
+    using FadFadType = Sacado::Fad::DFad<FadType>; ///< Sacado AD type that allows 2nd derivatives.
+public:
+    FunctionalNormLpVolume(
+        const double                               _normLp,
+        std::shared_ptr<DGBase<dim,real,MeshType>> _dg,
+        const bool                                 _uses_solution_values   = true,
+        const bool                                 _uses_solution_gradient = false);
+
+    template <typename real2>
+    real2 evaluate_volume_integrand(
+        const PHiLiP::Physics::PhysicsBase<dim,nstate,real2> &physics,
+        const dealii::Point<dim,real2> &                      phys_coord,
+        const std::array<real2,nstate> &                      soln_at_q,
+        const std::array<dealii::Tensor<1,dim,real2>,nstate> &soln_grad_at_q) const;
+
+    real evaluate_volume_integrand(
+        const PHiLiP::Physics::PhysicsBase<dim,nstate,real> &physics,
+        const dealii::Point<dim,real> &                      phys_coord,
+        const std::array<real,nstate> &                      soln_at_q,
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_at_q) const override
+    {
+        return evaluate_volume_integrand<>(physics, phys_coord, soln_at_q, soln_grad_at_q);
+    }
+
+    FadFadType evaluate_volume_integrand(
+        const PHiLiP::Physics::PhysicsBase<dim,nstate,FadFadType> &physics,
+        const dealii::Point<dim,FadFadType> &                      phys_coord,
+        const std::array<FadFadType,nstate> &                      soln_at_q,
+        const std::array<dealii::Tensor<1,dim,FadFadType>,nstate> &soln_grad_at_q) const override
+    {
+        return evaluate_volume_integrand<>(physics, phys_coord, soln_at_q, soln_grad_at_q);
+    }
+
+protected:
+    /// Norm exponent value
+    const double normLp;
+};
+
+/// Lp boundary norm functional class
+/** Default functional type based on Lp norm evaluated over domain boundaries
+  * 
+  * \f[
+  *     J = \int_{\partial\Omega} {|u(\boldsymbol{x})|^{Lp} \mathrm{d}\boldsymbol{x}}
+  * \f] 
+  * 
+  * where \f$\partial\Omega\f$ is a selected subset or all domain boundaries depending on 
+  * the chosen setup parameters.
+  */ 
+#if PHILIP_DIM==1
+template <int dim, int nstate, typename real, typename MeshType = dealii::Triangulation<dim>>
+#else
+template <int dim, int nstate, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
+#endif
+class FunctionalNormLpBoundary : public Functional<dim,nstate,real,MeshType>
+{
+    using FadType = Sacado::Fad::DFad<real>; ///< Sacado AD type for first derivatives.
+    using FadFadType = Sacado::Fad::DFad<FadType>; ///< Sacado AD type that allows 2nd derivatives.
+public:
+    FunctionalNormLpBoundary(
+        const double                               _normLp,
+        std::vector<unsigned int>                  _boundary_vector,
+        const bool                                 _use_all_boundaries,
+        std::shared_ptr<DGBase<dim,real,MeshType>> _dg,
+        const bool                                 _uses_solution_values   = true,
+        const bool                                 _uses_solution_gradient = false);
+
+    template <typename real2>
+    real2 evaluate_boundary_integrand(
+        const PHiLiP::Physics::PhysicsBase<dim,nstate,real2> &physics,
+        const unsigned int                                    boundary_id,
+        const dealii::Point<dim,real2> &                      phys_coord,
+        const dealii::Tensor<1,dim,real2> &                   normal,
+        const std::array<real2,nstate> &                      soln_at_q,
+        const std::array<dealii::Tensor<1,dim,real2>,nstate> &soln_grad_at_q) const;
+        
+    real evaluate_boundary_integrand(
+        const PHiLiP::Physics::PhysicsBase<dim,nstate,real> &physics,
+        const unsigned int                                   boundary_id,
+        const dealii::Point<dim,real> &                      phys_coord,
+        const dealii::Tensor<1,dim,real> &                   normal,
+        const std::array<real,nstate> &                      soln_at_q,
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_at_q) const override
+    {
+        return evaluate_boundary_integrand<>(physics, boundary_id, phys_coord, normal, soln_at_q, soln_grad_at_q);
+    }
+
+    FadFadType evaluate_boundary_integrand(
+        const PHiLiP::Physics::PhysicsBase<dim,nstate,FadFadType> &physics,
+        const unsigned int                                         boundary_id,
+        const dealii::Point<dim,FadFadType> &                      phys_coord,
+        const dealii::Tensor<1,dim,FadFadType> &                   normal,
+        const std::array<FadFadType,nstate> &                      soln_at_q,
+        const std::array<dealii::Tensor<1,dim,FadFadType>,nstate> &soln_grad_at_q) const override
+    {
+        return evaluate_boundary_integrand<>(physics, boundary_id, phys_coord, normal, soln_at_q, soln_grad_at_q);
+    }
+
+protected:
+    /// Norm exponent value
+    const double              normLp;
+    /// Ids of selected boundaries for integration
+    std::vector<unsigned int> boundary_vector;
+    /// Flag to use all domain boundaries
+    const bool                use_all_boundaries;
+};
+
+/// Weighted volume norm functional class
+/** Default functional type based on the weighted Lp norm evaluated over the domain volume. 
+  * Based on a selected manufactured solution function \f$f(\boldsymbol{x})\f$ to perform weighting. Optional flag
+  * use_weight_function_laplacian replaces evaluation with hessian trace
+  * 
+  * \f[
+  *     J = \int_{\Omega} {f(\boldsymbol{x})u(\boldsymbol{x}) \mathrm{d}\boldsymbol{x}}
+  * \f] 
+  */ 
+#if PHILIP_DIM==1
+template <int dim, int nstate, typename real, typename MeshType = dealii::Triangulation<dim>>
+#else
+template <int dim, int nstate, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
+#endif
+class FunctionalWeightedIntegralVolume : public Functional<dim,nstate,real,MeshType>
+{
+    using FadType = Sacado::Fad::DFad<real>; ///< Sacado AD type for first derivatives.
+    using FadFadType = Sacado::Fad::DFad<FadType>; ///< Sacado AD type that allows 2nd derivatives.
+public:
+    FunctionalWeightedIntegralVolume(
+        std::shared_ptr<ManufacturedSolutionFunction<dim,real>>   _weight_function_double,
+        std::shared_ptr<ManufacturedSolutionFunction<dim,FadFadType>> _weight_function_adtype,
+        const bool                                                _use_weight_function_laplacian,
+        std::shared_ptr<DGBase<dim,real,MeshType>>                _dg,
+        const bool                                                _uses_solution_values   = true,
+        const bool                                                _uses_solution_gradient = false);
+
+    template <typename real2>
+    real2 evaluate_volume_integrand(
+        const PHiLiP::Physics::PhysicsBase<dim,nstate,real2> &  physics,
+        const dealii::Point<dim,real2> &                        phys_coord,
+        const std::array<real2,nstate> &                        soln_at_q,
+        const std::array<dealii::Tensor<1,dim,real2>,nstate> &  soln_grad_at_q,
+        std::shared_ptr<ManufacturedSolutionFunction<dim,real2>> weight_function) const;
+
+    real evaluate_volume_integrand(
+        const PHiLiP::Physics::PhysicsBase<dim,nstate,real> &physics,
+        const dealii::Point<dim,real> &                      phys_coord,
+        const std::array<real,nstate> &                      soln_at_q,
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_at_q) const override
+    {
+        return evaluate_volume_integrand<>(physics, phys_coord, soln_at_q, soln_grad_at_q, this->weight_function_double);
+    }
+
+    FadFadType evaluate_volume_integrand(
+        const PHiLiP::Physics::PhysicsBase<dim,nstate,FadFadType> &physics,
+        const dealii::Point<dim,FadFadType> &                      phys_coord,
+        const std::array<FadFadType,nstate> &                      soln_at_q,
+        const std::array<dealii::Tensor<1,dim,FadFadType>,nstate> &soln_grad_at_q) const override
+    {
+        return evaluate_volume_integrand<>(physics, phys_coord, soln_at_q, soln_grad_at_q, this->weight_function_adtype);
+    }
+
+protected:
+    /// Manufactured solution weighting function of double return type
+    std::shared_ptr<ManufacturedSolutionFunction<dim,real>>   weight_function_double;
+    /// Manufactured solution weighting function of adtype return type
+    std::shared_ptr<ManufacturedSolutionFunction<dim,FadFadType>> weight_function_adtype;
+    /// Flag to enable using the weight function laplacian
+    const bool                                                use_weight_function_laplacian;
+};
+
+/// Weighted boundary norm functional class
+/** Default functional type based on the weighted Lp norm evaluated over the domain voboundarieslume. 
+  * Based on a selected manufactured solution function \f$f(\boldsymbol{x})\f$ to perform weighting. Optional flag
+  * use_weight_function_laplacian replaces evaluation with hessian trace
+  * 
+  * \f[
+  *     J = \int_{\partial\Omega} {f(\boldsymbol{x})u(\boldsymbol{x}) \mathrm{d}\boldsymbol{x}}
+  * \f] 
+  * 
+  * where \f$\partial\Omega\f$ is a selected subset or all domain boundaries depending on 
+  * the chosen setup parameters.
+  */ 
+#if PHILIP_DIM==1
+template <int dim, int nstate, typename real, typename MeshType = dealii::Triangulation<dim>>
+#else
+template <int dim, int nstate, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
+#endif
+class FunctionalWeightedIntegralBoundary : public Functional<dim,nstate,real,MeshType>
+{
+    using FadType = Sacado::Fad::DFad<real>; ///< Sacado AD type for first derivatives.
+    using FadFadType = Sacado::Fad::DFad<FadType>; ///< Sacado AD type that allows 2nd derivatives.
+public:
+    FunctionalWeightedIntegralBoundary(
+        std::shared_ptr<ManufacturedSolutionFunction<dim,real>>       _weight_function_double,
+        std::shared_ptr<ManufacturedSolutionFunction<dim,FadFadType>> _weight_function_adtype,
+        const bool                                                    _use_weight_function_laplacian,
+        std::vector<unsigned int>                                     _boundary_vector,
+        const bool                                                    _use_all_boundaries,
+        std::shared_ptr<DGBase<dim,real,MeshType>>                    _dg,
+        const bool                                                    _uses_solution_values   = true,
+        const bool                                                    _uses_solution_gradient = false);
+
+    template <typename real2>
+    real2 evaluate_boundary_integrand(
+        const PHiLiP::Physics::PhysicsBase<dim,nstate,real2> &   physics,
+        const unsigned int                                       boundary_id,
+        const dealii::Point<dim,real2> &                         phys_coord,
+        const dealii::Tensor<1,dim,real2> &                      normal,
+        const std::array<real2,nstate> &                         soln_at_q,
+        const std::array<dealii::Tensor<1,dim,real2>,nstate> &   soln_grad_at_q,
+        std::shared_ptr<ManufacturedSolutionFunction<dim,real2>> weight_function) const;
+        
+    real evaluate_boundary_integrand(
+        const PHiLiP::Physics::PhysicsBase<dim,nstate,real> &physics,
+        const unsigned int                                   boundary_id,
+        const dealii::Point<dim,real> &                      phys_coord,
+        const dealii::Tensor<1,dim,real> &                   normal,
+        const std::array<real,nstate> &                      soln_at_q,
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_at_q) const override
+    {
+        return evaluate_boundary_integrand<>(physics, boundary_id, phys_coord, normal, soln_at_q, soln_grad_at_q, this->weight_function_double);
+    }
+
+    FadFadType evaluate_boundary_integrand(
+        const PHiLiP::Physics::PhysicsBase<dim,nstate,FadFadType> &physics,
+        const unsigned int                                         boundary_id,
+        const dealii::Point<dim,FadFadType> &                      phys_coord,
+        const dealii::Tensor<1,dim,FadFadType> &                   normal,
+        const std::array<FadFadType,nstate> &                      soln_at_q,
+        const std::array<dealii::Tensor<1,dim,FadFadType>,nstate> &soln_grad_at_q) const override
+    {
+        return evaluate_boundary_integrand<>(physics, boundary_id, phys_coord, normal, soln_at_q, soln_grad_at_q, this->weight_function_adtype);
+    }
+
+protected:
+    /// Manufactured solution weighting function of double return type
+    std::shared_ptr<ManufacturedSolutionFunction<dim,real>>   weight_function_double;
+    /// Manufactured solution weighting function of adtype return type
+    std::shared_ptr<ManufacturedSolutionFunction<dim,FadFadType>> weight_function_adtype;
+    /// Flag to enable using the weight function laplacian
+    const bool                                                use_weight_function_laplacian;
+    /// Ids of selected boundaries for integration
+    std::vector<unsigned int>                                 boundary_vector;
+    /// Flag to use all domain boundaries
+    const bool                                                use_all_boundaries;
+};
+
+/// Lp volume error norm functional class
+/** Default functional type based on Lp norm of error evaluated over domain volume 
+  * relative to an exact manufactured solution function \f$\tilde{u}(\boldsymbol{x})\f$
+  * 
+  * \f[
+  *     J = \int_{\Omega} {|u(\boldsymbol{x})-\tilde{u}(\boldsymbol{x})|^{Lp} \mathrm{d}\boldsymbol{x}}
+  * \f]
+  */ 
+#if PHILIP_DIM==1
+template <int dim, int nstate, typename real, typename MeshType = dealii::Triangulation<dim>>
+#else
+template <int dim, int nstate, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
+#endif
+class FunctionalErrorNormLpVolume : public Functional<dim,nstate,real,MeshType>
+{
+    using FadType = Sacado::Fad::DFad<real>; ///< Sacado AD type for first derivatives.
+    using FadFadType = Sacado::Fad::DFad<FadType>; ///< Sacado AD type that allows 2nd derivatives.
+public:
+    FunctionalErrorNormLpVolume(
+        const double                               _normLp,
+        std::shared_ptr<DGBase<dim,real,MeshType>> _dg,
+        const bool                                 _uses_solution_values   = true,
+        const bool                                 _uses_solution_gradient = false);
+
+    template <typename real2>
+    real2 evaluate_volume_integrand(
+        const PHiLiP::Physics::PhysicsBase<dim,nstate,real2> &physics,
+        const dealii::Point<dim,real2> &                      phys_coord,
+        const std::array<real2,nstate> &                      soln_at_q,
+        const std::array<dealii::Tensor<1,dim,real2>,nstate> &soln_grad_at_q) const;
+
+    real evaluate_volume_integrand(
+        const PHiLiP::Physics::PhysicsBase<dim,nstate,real> &physics,
+        const dealii::Point<dim,real> &                      phys_coord,
+        const std::array<real,nstate> &                      soln_at_q,
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_at_q) const override
+    {
+        return evaluate_volume_integrand<>(physics, phys_coord, soln_at_q, soln_grad_at_q);
+    }
+
+    FadFadType evaluate_volume_integrand(
+        const PHiLiP::Physics::PhysicsBase<dim,nstate,FadFadType> &physics,
+        const dealii::Point<dim,FadFadType> &                      phys_coord,
+        const std::array<FadFadType,nstate> &                      soln_at_q,
+        const std::array<dealii::Tensor<1,dim,FadFadType>,nstate> &soln_grad_at_q) const override
+    {
+        return evaluate_volume_integrand<>(physics, phys_coord, soln_at_q, soln_grad_at_q);
+    }
+
+protected:
+    /// Norm exponent value
+    const double normLp;
+};
+
+/// Lp boundary error norm functional class
+/** Default functional type based on Lp norm of error evaluated over domain boundaries 
+  * relative to an exact manufactured solution function \f$\tilde{u}(\boldsymbol{x})\f$
+  * 
+  * \f[
+  *     J = \int_{\partial\Omega} {|u(\boldsymbol{x})-\tilde{u}(\boldsymbol{x})|^{Lp} \mathrm{d}\boldsymbol{x}}
+  * \f]
+  * 
+  * where \f$\partial\Omega\f$ is a selected subset or all domain boundaries depending on 
+  * the chosen setup parameters.
+  */ 
+#if PHILIP_DIM==1
+template <int dim, int nstate, typename real, typename MeshType = dealii::Triangulation<dim>>
+#else
+template <int dim, int nstate, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
+#endif
+class FunctionalErrorNormLpBoundary : public Functional<dim,nstate,real,MeshType>
+{
+    using FadType = Sacado::Fad::DFad<real>; ///< Sacado AD type for first derivatives.
+    using FadFadType = Sacado::Fad::DFad<FadType>; ///< Sacado AD type that allows 2nd derivatives.
+public:
+    FunctionalErrorNormLpBoundary(
+        const double                               _normLp,
+        std::vector<unsigned int>                  _boundary_vector,
+        const bool                                 _use_all_boundaries,
+        std::shared_ptr<DGBase<dim,real,MeshType>> _dg,
+        const bool                                 _uses_solution_values   = true,
+        const bool                                 _uses_solution_gradient = false);
+
+    template <typename real2>
+    real2 evaluate_boundary_integrand(
+        const PHiLiP::Physics::PhysicsBase<dim,nstate,real2> &physics,
+        const unsigned int                                    boundary_id,
+        const dealii::Point<dim,real2> &                      phys_coord,
+        const dealii::Tensor<1,dim,real2> &                   normal,
+        const std::array<real2,nstate> &                      soln_at_q,
+        const std::array<dealii::Tensor<1,dim,real2>,nstate> &soln_grad_at_q) const;
+        
+    real evaluate_boundary_integrand(
+        const PHiLiP::Physics::PhysicsBase<dim,nstate,real> &physics,
+        const unsigned int                                   boundary_id,
+        const dealii::Point<dim,real> &                      phys_coord,
+        const dealii::Tensor<1,dim,real> &                   normal,
+        const std::array<real,nstate> &                      soln_at_q,
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_at_q) const override
+    {
+        return evaluate_boundary_integrand<>(physics, boundary_id, phys_coord, normal, soln_at_q, soln_grad_at_q);
+    }
+
+    FadFadType evaluate_boundary_integrand(
+        const PHiLiP::Physics::PhysicsBase<dim,nstate,FadFadType> &physics,
+        const unsigned int                                         boundary_id,
+        const dealii::Point<dim,FadFadType> &                      phys_coord,
+        const dealii::Tensor<1,dim,FadFadType> &                   normal,
+        const std::array<FadFadType,nstate> &                      soln_at_q,
+        const std::array<dealii::Tensor<1,dim,FadFadType>,nstate> &soln_grad_at_q) const override
+    {
+        return evaluate_boundary_integrand<>(physics, boundary_id, phys_coord, normal, soln_at_q, soln_grad_at_q);
+    }
+
+protected:
+    /// Norm exponent value
+    const double              normLp;
+    /// Ids of selected boundaries for integration
+    std::vector<unsigned int> boundary_vector;
+    /// Flag to use all domain boundaries
+    const bool                use_all_boundaries;
+};
+
+/// Factory class to construct default functional types
+/** Functions based on PhiLiP::Paramters::FunctionalParam type. Enum choice is used
+  * to setup one of the default volume or boundary norm functional types. Other custom 
+  * functionals may still be used without this interface in the adjoint class.
+  */ 
+#if PHILIP_DIM==1
+template <int dim, int nstate, typename real, typename MeshType = dealii::Triangulation<dim>>
+#else
+template <int dim, int nstate, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
+#endif
+class FunctionalFactory
+{
+public:
+    /// Create standard functional object from constant parameter file
+    static std::shared_ptr< Functional<dim,nstate,real,MeshType> >
+    create_Functional(
+        PHiLiP::Parameters::AllParameters const *const       param,
+        std::shared_ptr< PHiLiP::DGBase<dim,real,MeshType> > dg);
+
+    /// Create standard functional object from parameter file
+    static std::shared_ptr< Functional<dim,nstate,real,MeshType> >
+    create_Functional(
+        PHiLiP::Parameters::FunctionalParam                  param,
+        std::shared_ptr< PHiLiP::DGBase<dim,real,MeshType> > dg);
+};
 
 } // PHiLiP namespace
 

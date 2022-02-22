@@ -3,6 +3,7 @@
 
 #include <deal.II/base/tensor.h>
 #include "physics.h"
+#include "parameters/parameters_manufactured_solution.h"
 
 namespace PHiLiP {
 namespace Physics {
@@ -77,8 +78,12 @@ class MHD : public PhysicsBase <dim, nstate, real>
 {
 public:
     /// Constructor
-    MHD (const double gamma_gas)
-    : gam(gamma_gas)
+    MHD(
+        const double                                              gamma_gas, 
+        const dealii::Tensor<2,3,double>                          input_diffusion_tensor = Parameters::ManufacturedSolutionParam::get_default_diffusion_tensor(),
+        std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function = nullptr)
+    : PhysicsBase<dim,nstate,real>(input_diffusion_tensor, manufactured_solution_function)
+    , gam(gamma_gas)
     , gamm1(gam-1.0)
     {
         static_assert(nstate==8, "Physics::MHD() should be created with nstate=8");
@@ -125,7 +130,8 @@ public:
     /// Source term is zero or depends on manufactured solution
     std::array<real,nstate> source_term (
         const dealii::Point<dim,real> &pos,
-        const std::array<real,nstate> &conservative_soln) const;
+        const std::array<real,nstate> &conservative_soln,//) const;
+        const real /*current_time*/) const;
 
     /// Given conservative variables [density, [momentum], total energy],
     /// returns primitive variables [density, [velocities], pressure].
@@ -197,6 +203,11 @@ public:
     std::array<dealii::Tensor<1,dim,real>,nstate> convective_numerical_split_flux (
         const std::array<real,nstate> &conservative_soln1,
         const std::array<real,nstate> &conservative_soln2) const;
+
+    /// Convective surface split flux
+    std::array<dealii::Tensor<1,dim,real>,nstate> convective_surface_numerical_split_flux (
+                const std::array< dealii::Tensor<1,dim,real>, nstate > &surface_flux,
+                const std::array< dealii::Tensor<1,dim,real>, nstate > &flux_interp_to_surface) const;
 
     /// Mean density given two sets of conservative solutions.
     /** Used in the implementation of the split form.

@@ -19,7 +19,7 @@ void curved_periodic_sine_grid(
 template<int dim,int spacedim,int chartdim>
 class PeriodicSineManifold: public dealii::ChartManifold<dim,spacedim,chartdim> {
 protected:
-    static constexpr double pi = atan(1) * 4.0;
+    static constexpr double pi = atan(1) * 4.0; ///< PI.
 public:
     /// Constructor.
     PeriodicSineManifold()

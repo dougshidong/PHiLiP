@@ -1,11 +1,14 @@
 set(TESTS_SOURCE
     tests.cpp
     grid_study.cpp
+    grid_refinement_study.cpp
     burgers_stability.cpp
     diffusion_exact_adjoint.cpp
     euler_gaussian_bump.cpp
+    euler_gaussian_bump_enthalpy_check.cpp
     euler_naca0012.cpp
     euler_bump_optimization.cpp
+    euler_naca0012_optimization.cpp
     shock_1d.cpp
 #euler_gaussian_bump_adjoint.cpp
     euler_cylinder.cpp
@@ -13,9 +16,15 @@ set(TESTS_SOURCE
     euler_vortex.cpp
     euler_entropy_waves.cpp
     advection_explicit_periodic.cpp
+    convection_diffusion_explicit_periodic.cpp
     euler_split_inviscid_taylor_green_vortex.cpp
- optimization_inverse_manufactured/optimization_inverse_manufactured.cpp
-)
+    optimization_inverse_manufactured/optimization_inverse_manufactured.cpp
+    reduced_order.cpp
+    reduced_order_pod_adaptation.cpp
+    flow_solver.cpp
+    flow_solver_cases/periodic_cube_flow.cpp
+    flow_solver_cases/1D_burgers_rewienski_snapshot.cpp
+    dual_weighted_residual_mesh_adaptation.cpp)
 
 foreach(dim RANGE 1 3)
     # Output library
@@ -33,6 +42,9 @@ foreach(dim RANGE 1 3)
     string(CONCAT ODESolverLib ODESolver_${dim}D)
     string(CONCAT OptimizationLib Optimization_${dim}D)
     string(CONCAT LinearSolverLib LinearSolver)
+    string(CONCAT GridRefinementLib GridRefinement_${dim}D)
+    string(CONCAT PODLib POD_${dim}D)
+    string(CONCAT InitialConditionsLib InitialConditions_${dim}D)
     target_link_libraries(${TestsLib} ${GridsLib})
     target_link_libraries(${TestsLib} ${NumericalFluxLib})
     target_link_libraries(${TestsLib} ${PhysicsLib})
@@ -40,7 +52,10 @@ foreach(dim RANGE 1 3)
     target_link_libraries(${TestsLib} ${DiscontinuousGalerkinLib})
     target_link_libraries(${TestsLib} ${ODESolverLib})
     target_link_libraries(${TestsLib} ${LinearSolverLib})
+    target_link_libraries(${TestsLib} ${GridRefinementLib})
     target_link_libraries(${TestsLib} ${OptimizationLib})
+    target_link_libraries(${TestsLib} ${PODLib})
+    target_link_libraries(${TestsLib} ${InitialConditionsLib})
     # Setup target with deal.II
     if(NOT DOC_ONLY)
         DEAL_II_SETUP_TARGET(${TestsLib})
@@ -54,6 +69,8 @@ foreach(dim RANGE 1 3)
     unset(NumericalFluxLib)
     unset(PhysicsLib)
     unset(LinearSolverLib)
+    unset(GridRefinementLib)
     unset(OptimizationLib)
-
+    unset(PODLib)
+    unset(InitialConditionsLib)
 endforeach()

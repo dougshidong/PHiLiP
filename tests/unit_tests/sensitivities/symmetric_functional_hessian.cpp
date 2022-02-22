@@ -56,52 +56,63 @@ public:
         return l2error;
     }
 
-    /** Templated function to evaluate the cell boundary functional.
-     *  This is simply integrates the solution on the boundary.
-     */
-    template <typename real2>
-    real2 evaluate_cell_boundary(
-        const PHiLiP::Physics::PhysicsBase<dim,nstate,real2> &/*physics*/,
+
+    /// Virtual function for computation of cell boundary functional term
+    /** Used only in the computation of evaluate_function(). If not overriden returns 0. */
+    template<typename real2>
+    real2 evaluate_boundary_integrand(
+        const PHiLiP::Physics::PhysicsBase<dim,nstate,real2> &physics,
         const unsigned int /*boundary_id*/,
-        const dealii::FEFaceValues<dim,dim> &fe_values_boundary,
-        const std::vector<real2> &local_solution) const
+        const dealii::Point<dim,real2> &phys_coord,
+        const dealii::Tensor<1,dim,real2> &/*normal*/,
+        const std::array<real2,nstate> &soln_at_q,
+        const std::array<dealii::Tensor<1,dim,real2>,nstate> &/*soln_grad_at_q*/) const
     {
-        real2 boundary_integral = 0;
-        const unsigned int n_dofs_cell = fe_values_boundary.dofs_per_cell;
-        const unsigned int n_quad = fe_values_boundary.n_quadrature_points;
-        std::array<real2,nstate> soln_at_q;
-        for (unsigned int iquad=0;iquad<n_quad;++iquad) {
-            soln_at_q.fill(0.0);
-            for (unsigned int idof=0; idof<n_dofs_cell; ++idof) {
-                const int istate = fe_values_boundary.get_fe().system_to_component_index(idof).first;
-                soln_at_q[istate]      += local_solution[idof] * fe_values_boundary.shape_value_component(idof, iquad, istate);
-            }
-            for (int s=0;s<nstate;++s) {
-                boundary_integral += soln_at_q[s] * fe_values_boundary.JxW(iquad);
-            }
+        real2 l1error = 0;
+        for (int istate=0; istate<nstate; ++istate) {
+            const real2 uexact = physics.manufactured_solution_function->value(phys_coord, istate);
+            l1error += std::abs(soln_at_q[istate] - uexact);
         }
-        return boundary_integral;
+        return l1error;
     }
 
-    /// Non-template functions to override the template classes
-    real evaluate_cell_boundary(
+    /// Virtual function for computation of cell boundary functional term
+    /** Used only in the computation of evaluate_function(). If not overriden returns 0. */
+    virtual real evaluate_boundary_integrand(
         const PHiLiP::Physics::PhysicsBase<dim,nstate,real> &physics,
         const unsigned int boundary_id,
-        const dealii::FEFaceValues<dim,dim> &fe_values_boundary,
-        const std::vector<real> &local_solution) const override
+        const dealii::Point<dim,real> &phys_coord,
+        const dealii::Tensor<1,dim,real> &normal,
+        const std::array<real,nstate> &soln_at_q,
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_at_q) const override
     {
-        return evaluate_cell_boundary<>(physics, boundary_id, fe_values_boundary, local_solution);
+        return evaluate_boundary_integrand<real>(
+            physics,
+            boundary_id,
+            phys_coord,
+            normal,
+            soln_at_q,
+            soln_grad_at_q);
     }
-
-    /// Non-template functions to override the template classes
-    FadFadType evaluate_cell_boundary(
+    /// Virtual function for Sacado computation of cell boundary functional term and derivatives
+    /** Used only in the computation of evaluate_dIdw(). If not overriden returns 0. */
+    virtual FadFadType evaluate_boundary_integrand(
         const PHiLiP::Physics::PhysicsBase<dim,nstate,FadFadType> &physics,
         const unsigned int boundary_id,
-        const dealii::FEFaceValues<dim,dim> &fe_values_boundary,
-        const std::vector<FadFadType> &local_solution) const override
+        const dealii::Point<dim,FadFadType> &phys_coord,
+        const dealii::Tensor<1,dim,FadFadType> &normal,
+        const std::array<FadFadType,nstate> &soln_at_q,
+        const std::array<dealii::Tensor<1,dim,FadFadType>,nstate> &soln_grad_at_q) const override
     {
-        return evaluate_cell_boundary<>(physics, boundary_id, fe_values_boundary, local_solution);
+        return evaluate_boundary_integrand<FadFadType>(
+            physics,
+            boundary_id,
+            phys_coord,
+            normal,
+            soln_at_q,
+            soln_grad_at_q);
     }
+
 
     /// Non-template functions to override the template classes
     real evaluate_volume_integrand(
@@ -137,25 +148,25 @@ void initialize_perturbed_solution(PHiLiP::DGBase<dim,double> &dg, const PHiLiP:
 int main(int argc, char *argv[])
 {
 
- const int dim = PHILIP_DIM;
- const int nstate = 1;
- int fail_bool = false;
+    const int dim = PHILIP_DIM;
+    const int nstate = 1;
+    int fail_bool = false;
 
- // Initializing MPI
- dealii::Utilities::MPI::MPI_InitFinalize mpi_initialization(argc, argv, 1);
- const int this_mpi_process = dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD);
- dealii::ConditionalOStream pcout(std::cout, this_mpi_process==0);
+    // Initializing MPI
+    dealii::Utilities::MPI::MPI_InitFinalize mpi_initialization(argc, argv, 1);
+    const int this_mpi_process = dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD);
+    dealii::ConditionalOStream pcout(std::cout, this_mpi_process==0);
 
- // Initializing parameter handling
- dealii::ParameterHandler parameter_handler;
- PHiLiP::Parameters::AllParameters::declare_parameters(parameter_handler);
- PHiLiP::Parameters::AllParameters all_parameters;
- all_parameters.parse_parameters(parameter_handler);
+    // Initializing parameter handling
+    dealii::ParameterHandler parameter_handler;
+    PHiLiP::Parameters::AllParameters::declare_parameters(parameter_handler);
+    PHiLiP::Parameters::AllParameters all_parameters;
+    all_parameters.parse_parameters(parameter_handler);
 
- // polynomial order and mesh size
- const unsigned poly_degree = 1;
+    // polynomial order and mesh size
+    const unsigned poly_degree = 1;
 
- // creating the grid
+    // creating the grid
     std::shared_ptr<Triangulation> grid = std::make_shared<Triangulation>(
 #if PHILIP_DIM!=1
         MPI_COMM_WORLD,
@@ -165,28 +176,28 @@ int main(int argc, char *argv[])
             dealii::Triangulation<dim>::smoothing_on_coarsening));
 
     const unsigned int n_refinements = 2;
- double left = 0.0;
- double right = 2.0;
- const bool colorize = true;
+    double left = 0.0;
+    double right = 2.0;
+    const bool colorize = true;
 
- dealii::GridGenerator::hyper_cube(*grid, left, right, colorize);
+    dealii::GridGenerator::hyper_cube(*grid, left, right, colorize);
     grid->refine_global(n_refinements);
     const double random_factor = 0.2;
     const bool keep_boundary = false;
     if (random_factor > 0.0) dealii::GridTools::distort_random (random_factor, *grid, keep_boundary);
 
- pcout << "Grid generated and refined" << std::endl;
+    pcout << "Grid generated and refined" << std::endl;
 
- // creating the dg
- std::shared_ptr < PHiLiP::DGBase<dim, double> > dg = PHiLiP::DGFactory<dim,double>::create_discontinuous_galerkin(&all_parameters, poly_degree, grid);
- pcout << "dg created" << std::endl;
+    // creating the dg
+    std::shared_ptr < PHiLiP::DGBase<dim, double> > dg = PHiLiP::DGFactory<dim,double>::create_discontinuous_galerkin(&all_parameters, poly_degree, grid);
+    pcout << "dg created" << std::endl;
 
- dg->allocate_system();
- pcout << "dg allocated" << std::endl;
+    dg->allocate_system();
+    pcout << "dg allocated" << std::endl;
 
     const int n_refine = 2;
     for (int i=0; i<n_refine;i++) {
-        dg->high_order_grid.prepare_for_coarsening_and_refinement();
+        dg->high_order_grid->prepare_for_coarsening_and_refinement();
         grid->prepare_coarsening_and_refinement();
         unsigned int icell = 0;
         for (auto cell = grid->begin_active(); cell!=grid->end(); ++cell) {
@@ -198,25 +209,25 @@ int main(int argc, char *argv[])
         }
         grid->execute_coarsening_and_refinement();
         bool mesh_out = (i==n_refine-1);
-        dg->high_order_grid.execute_coarsening_and_refinement(mesh_out);
+        dg->high_order_grid->execute_coarsening_and_refinement(mesh_out);
     }
     dg->allocate_system ();
 
- // manufactured solution function
+    // manufactured solution function
     using FadType = Sacado::Fad::DFad<double>;
- std::shared_ptr <PHiLiP::Physics::PhysicsBase<dim,nstate,double>> physics_double = PHiLiP::Physics::PhysicsFactory<dim, nstate, double>::create_Physics(&all_parameters);
- pcout << "Physics created" << std::endl;
+    std::shared_ptr <PHiLiP::Physics::PhysicsBase<dim,nstate,double>> physics_double = PHiLiP::Physics::PhysicsFactory<dim, nstate, double>::create_Physics(&all_parameters);
+    pcout << "Physics created" << std::endl;
  
- // performing the interpolation for the intial conditions
- initialize_perturbed_solution(*dg, *physics_double);
- pcout << "solution initialized" << std::endl;
+    // performing the interpolation for the intial conditions
+    initialize_perturbed_solution(*dg, *physics_double);
+    pcout << "solution initialized" << std::endl;
 
- // evaluating the derivative (using SACADO)
- pcout << std::endl << "Starting Hessian AD... " << std::endl;
- L2_Norm_Functional<dim,nstate,double> functional(dg,true,false);
- const bool compute_dIdW = false, compute_dIdX = false, compute_d2I = true;
- double functional_value = functional.evaluate_functional(compute_dIdW, compute_dIdX, compute_d2I);
- (void) functional_value;
+    // evaluating the derivative (using SACADO)
+    pcout << std::endl << "Starting Hessian AD... " << std::endl;
+    L2_Norm_Functional<dim,nstate,double> functional(dg,true,false);
+    const bool compute_dIdW = false, compute_dIdX = false, compute_d2I = true;
+    double functional_value = functional.evaluate_functional(compute_dIdW, compute_dIdX, compute_d2I);
+    (void) functional_value;
 
     dealii::TrilinosWrappers::SparseMatrix d2IdWdW_transpose;
     {
@@ -271,5 +282,5 @@ int main(int argc, char *argv[])
     if (d2IdWdW_abs_diff > tol && d2IdWdW_rel_diff > tol) fail_bool = true;
     if (d2IdXdX_abs_diff > tol && d2IdXdX_rel_diff > tol) fail_bool = true;
 
- return fail_bool;
+    return fail_bool;
 }

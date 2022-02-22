@@ -1,0 +1,105 @@
+# Listing of Parameters
+# ---------------------
+
+set test_type = euler_naca_optimization
+
+# Number of dimensions
+set dimension = 2
+
+# The PDE we want to solve. Choices are
+# <advection|diffusion|convection_diffusion>.
+set pde_type  = euler
+
+set conv_num_flux = lax_friedrichs #roe
+#set conv_num_flux = roe
+
+set use_split_form = false
+
+subsection artificial dissipation
+	#set add_artificial_dissipation = true
+	set add_artificial_dissipation = false
+end
+
+set overintegration = 0
+
+set sipg_penalty_factor = 20
+
+subsection euler
+  set reference_length = 1.0
+  set mach_infinity = 0.5
+  set angle_of_attack = 2.0
+end
+
+subsection linear solver
+#set linear_solver_type = direct
+  #set linear_solver_output = verbose
+  subsection gmres options
+    # Factor by which the diagonal of the matrix will be scaled, which
+    # sometimes can help to get better preconditioners
+    set ilut_atol                 = 1e-3
+
+    # Amount of an absolute perturbation that will be added to the diagonal of
+    # the matrix, which sometimes can help to get better preconditioners
+    set ilut_rtol                 = 1.01
+
+    # relative size of elements which should be dropped when forming an
+    # incomplete lu decomposition with threshold
+    set ilut_drop                 = 0.0
+
+    # Amount of additional fill-in elements besides the sparse matrix
+    # structure
+    set ilut_fill                 = 50
+
+    # Linear residual tolerance for convergence of the linear system
+    set linear_residual_tolerance = 1e-12
+
+    # Maximum number of iterations for linear solver
+    set max_iterations            = 2000
+
+    # Number of iterations before restarting GMRES
+    set restart_number            = 200
+
+  end 
+end
+
+subsection ODE solver
+  set output_solution_every_x_steps = 1
+  # Maximum nonlinear solver iterations
+  set nonlinear_max_iterations            = 150
+
+  # Nonlinear solver residual tolerance
+  set nonlinear_steady_residual_tolerance = 1e-14
+
+  # Explicit or implicit solverChoices are <explicit|implicit>.
+  set ode_solver_type  = implicit
+  set initial_time_step = 1e3
+  set time_step_factor_residual = 15.0
+  set time_step_factor_residual_exp = 2
+
+  # set ode_solver_type  = explicit
+  # set initial_time_step = 0.1
+  # set time_step_factor_residual = 0.0
+  # set time_step_factor_residual_exp = 1.0
+
+  # Print every print_iteration_modulo iterations of the nonlinear solver
+  set print_iteration_modulo              = 1
+
+end
+
+subsection manufactured solution convergence study
+  # Last degree used for convergence study
+  set degree_end        = 1
+
+  # Starting degree for convergence study
+  set degree_start      = 1
+
+  set grid_progression  = 2
+
+  set grid_progression_add  = 0
+
+  # Initial grid of size (initial_grid_size)^dim
+  set initial_grid_size = 4
+
+  # Number of grids in grid study
+  set number_of_grids   = 1
+end

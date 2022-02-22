@@ -3,6 +3,7 @@
 
 #include <deal.II/base/tensor.h>
 #include "physics.h"
+#include "parameters/parameters_manufactured_solution.h"
 
 namespace PHiLiP {
 namespace Physics {
@@ -77,11 +78,18 @@ class Euler : public PhysicsBase <dim, nstate, real>
 {
 public:
     /// Constructor
-    Euler ( const double ref_length,
-            const double gamma_gas,
-            const double mach_inf,
-            const double angle_of_attack,
-            const double side_slip_angle);
+    Euler ( 
+        const double                                              ref_length,
+        const double                                              gamma_gas,
+        const double                                              mach_inf,
+        const double                                              angle_of_attack,
+        const double                                              side_slip_angle,
+        const dealii::Tensor<2,3,double>                          input_diffusion_tensor = Parameters::ManufacturedSolutionParam::get_default_diffusion_tensor(),
+        std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function = nullptr);
+
+    /// Destructor
+    // virtual ~Euler() =0;
+    ~Euler() {};
 
     const double ref_length; ///< Reference length.
     const double gam; ///< Constant heat capacity ratio of fluid.
@@ -108,6 +116,7 @@ public:
     const double pressure_inf; ///< Non-dimensionalized pressure* at infinity
     const double entropy_inf; ///< Entropy measure at infinity
     double temperature_inf; ///< Non-dimensionalized temperature* at infinity. Should equal 1/density*(inf)
+    double dynamic_pressure_inf; ///< Non-dimensionalized dynamic pressure* at infinity
 
     //const double internal_energy_inf;
     /// Non-dimensionalized Velocity vector at farfield
@@ -123,7 +132,6 @@ public:
     /// Convective flux: \f$ \mathbf{F}_{conv} \f$
     std::array<dealii::Tensor<1,dim,real>,nstate> convective_flux (
         const std::array<real,nstate> &conservative_soln) const;
-
 
     /// Convective normal flux: \f$ \mathbf{F}_{conv} \cdot \hat{n} \f$
     std::array<real,nstate> convective_normal_flux (const std::array<real,nstate> &conservative_soln, const dealii::Tensor<1,dim,real> &normal) const;
@@ -147,15 +155,21 @@ public:
         const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient) const;
 
     /// Source term is zero or depends on manufactured solution
-    std::array<real,nstate> source_term (
+    virtual std::array<real,nstate> source_term (
         const dealii::Point<dim,real> &pos,
-        const std::array<real,nstate> &conservative_soln) const;
+        const std::array<real,nstate> &conservative_soln,//) const;
+        const real /*current_time*/) const;
+
+    /// Convective flux contribution to the source term
+    std::array<real,nstate> convective_source_term (
+        const dealii::Point<dim,real> &pos) const;
 
     /// Given conservative variables [density, [momentum], total energy],
     /// returns primitive variables [density, [velocities], pressure].
     ///
     /// Opposite of convert_primitive_to_conservative
-    std::array<real,nstate> convert_conservative_to_primitive ( const std::array<real,nstate> &conservative_soln ) const;
+    template<typename real2>
+    std::array<real2,nstate> convert_conservative_to_primitive ( const std::array<real2,nstate> &conservative_soln ) const;
 
     /// Given primitive variables [density, [velocities], pressure],
     /// returns conservative variables [density, [momentum], total energy].
@@ -164,7 +178,8 @@ public:
     std::array<real,nstate> convert_primitive_to_conservative ( const std::array<real,nstate> &primitive_soln ) const;
 
     /// Evaluate pressure from conservative variables
-    real compute_pressure ( const std::array<real,nstate> &conservative_soln ) const;
+    template<typename real2>
+    real2 compute_pressure ( const std::array<real2,nstate> &conservative_soln ) const;
 
     /// Evaluate pressure from conservative variables
     real compute_pressure_from_enthalpy ( const std::array<real,nstate> &conservative_soln ) const;
@@ -178,12 +193,15 @@ public:
     real compute_sound ( const real density, const real pressure ) const;
 
     /// Evaluate velocities from conservative variables
-    dealii::Tensor<1,dim,real> compute_velocities ( const std::array<real,nstate> &conservative_soln ) const;
+    template<typename real2>
+    dealii::Tensor<1,dim,real2> compute_velocities ( const std::array<real2,nstate> &conservative_soln ) const;
     /// Given the velocity vector \f$ \mathbf{u} \f$, returns the dot-product  \f$ \mathbf{u} \cdot \mathbf{u} \f$
-    real compute_velocity_squared ( const dealii::Tensor<1,dim,real> &velocities ) const;
+    template<typename real2>
+    real2 compute_velocity_squared ( const dealii::Tensor<1,dim,real2> &velocities ) const;
 
     /// Given primitive variables, returns velocities.
-    dealii::Tensor<1,dim,real> extract_velocities_from_primitive ( const std::array<real,nstate> &primitive_soln ) const;
+    template<typename real2>
+    dealii::Tensor<1,dim,real2> extract_velocities_from_primitive ( const std::array<real2,nstate> &primitive_soln ) const;
     /// Given primitive variables, returns total energy
     /** @param[in] primitive_soln    Primitive solution (density, momentum, energy)
      *  \return                      Entropy measure
@@ -208,11 +226,13 @@ public:
     real compute_mach_number ( const std::array<real,nstate> &conservative_soln ) const;
 
     /// Given primitive variables, returns DIMENSIONALIZED temperature using the equation of state
-    real compute_dimensional_temperature ( const std::array<real,nstate> &primitive_soln ) const;
+    template<typename real2>
+    real2 compute_dimensional_temperature ( const std::array<real2,nstate> &primitive_soln ) const;
 
     /// Given primitive variables, returns NON-DIMENSIONALIZED temperature using free-stream non-dimensionalization
     /** See the book I do like CFD, sec 4.14.2 */
-    real compute_temperature ( const std::array<real,nstate> &primitive_soln ) const;
+    template<typename real2>
+    real2 compute_temperature ( const std::array<real2,nstate> &primitive_soln ) const;
 
     /// Given pressure and temperature, returns NON-DIMENSIONALIZED density using free-stream non-dimensionalization
     /** See the book I do like CFD, sec 4.14.2 */
@@ -227,6 +247,11 @@ public:
     std::array<dealii::Tensor<1,dim,real>,nstate> convective_numerical_split_flux (
         const std::array<real,nstate> &conservative_soln1,
         const std::array<real,nstate> &conservative_soln2) const;
+
+    /// Convective Numerical Split Flux for split form
+    std::array<dealii::Tensor<1,dim,real>,nstate> convective_surface_numerical_split_flux (
+                const std::array< dealii::Tensor<1,dim,real>, nstate > &surface_flux,
+                const std::array< dealii::Tensor<1,dim,real>, nstate > &flux_interp_to_surface) const;
 
     /// Mean density given two sets of conservative solutions.
     /** Used in the implementation of the split form.
@@ -256,18 +281,7 @@ public:
         const std::array<real,nstate> &conservative_soln1,
         const std::array<real,nstate> &convervative_soln2) const;
 
-    /// Evaluate the no-slip boundary conditions for an Euler wall.
-    void boundary_slip_wall (
-       const dealii::Tensor<1,dim,real> &normal_int,
-       const std::array<real,nstate> &soln_int,
-       std::array<real,nstate> &soln_bc) const;
-
-    /// Evaluate the Riemann-based farfield boundary conditions based on freestream values.
-    void boundary_riemann (
-       const dealii::Tensor<1,dim,real> &normal_int,
-       const std::array<real,nstate> &soln_int,
-       std::array<real,nstate> &soln_bc) const;
-
+    /// Boundary condition handler
     void boundary_face_values (
         const int /*boundary_type*/,
         const dealii::Point<dim, real> &/*pos*/,
@@ -277,49 +291,74 @@ public:
         std::array<real,nstate> &/*soln_bc*/,
         std::array<dealii::Tensor<1,dim,real>,nstate> &/*soln_grad_bc*/) const;
 
+    /// For post processing purposes (update comment later)
     virtual dealii::Vector<double> post_compute_derived_quantities_vector (
         const dealii::Vector<double>      &uh,
         const std::vector<dealii::Tensor<1,dim> > &duh,
         const std::vector<dealii::Tensor<2,dim> > &dduh,
         const dealii::Tensor<1,dim>                  &normals,
         const dealii::Point<dim>                  &evaluation_points) const;
+    
+    /// For post processing purposes, sets the base names (with no prefix or suffix) of the computed quantities
     virtual std::vector<std::string> post_get_names () const;
+    
+    /// For post processing purposes, sets the interpretation of each computed quantity as either scalar or vector
     virtual std::vector<dealii::DataComponentInterpretation::DataComponentInterpretation> post_get_data_component_interpretation () const;
+    
+    /// For post processing purposes (update comment later)
     virtual dealii::UpdateFlags post_get_needed_update_flags () const;
+
 protected:
-
-
-};
-
-/// Function used to evaluate farfield conservative solution
-template <int dim, int nstate>
-class FreeStreamInitialConditions : public dealii::Function<dim>
-{
-public:
-    /// Farfield conservative solution
-    std::array<double,nstate> farfield_conservative;
-
-    /// Constructor.
-    /** Evaluates the primary farfield solution and converts it into the store farfield_conservative solution
+    /** Slip wall boundary conditions (No penetration)
+     *  * Given by Algorithm II of the following paper:
+     *  * * Krivodonova, L., and Berger, M.,
+     *      “High-order accurate implementation of solid wall boundary conditions in curved geometries,”
+     *      Journal of Computational Physics, vol. 211, 2006, pp. 492–512.
      */
-    FreeStreamInitialConditions (const Physics::Euler<dim,nstate,double> euler_physics)
-    : dealii::Function<dim,double>(nstate)
-    {
-        //const double density_bc = 2.33333*euler_physics.density_inf;
-        const double density_bc = euler_physics.density_inf;
-        const double pressure_bc = 1.0/(euler_physics.gam*euler_physics.mach_inf_sqr);
-        std::array<double,nstate> primitive_boundary_values;
-        primitive_boundary_values[0] = density_bc;
-        for (int d=0;d<dim;d++) { primitive_boundary_values[1+d] = euler_physics.velocities_inf[d]; }
-        primitive_boundary_values[nstate-1] = pressure_bc;
-        farfield_conservative = euler_physics.convert_primitive_to_conservative(primitive_boundary_values);
-    }
-  
-    /// Returns the istate-th farfield conservative value
-    double value (const dealii::Point<dim> &/*point*/, const unsigned int istate) const
-    {
-        return farfield_conservative[istate];
-    }
+    void boundary_slip_wall (
+        const dealii::Tensor<1,dim,real> &normal_int,
+        const std::array<real,nstate> &soln_int,
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_int,
+        std::array<real,nstate> &soln_bc,
+        std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_bc) const;
+
+    /// Evaluate the manufactured solution boundary conditions.
+    void boundary_manufactured_solution (
+        const dealii::Point<dim, real> &pos,
+        const dealii::Tensor<1,dim,real> &normal_int,
+        const std::array<real,nstate> &soln_int,
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_int,
+        std::array<real,nstate> &soln_bc,
+        std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_bc) const;
+
+    /// Pressure Outflow Boundary Condition (back pressure)
+    /// Reference: Carlson 2011, sec. 2.4
+    void boundary_pressure_outflow (
+        const real total_inlet_pressure,
+        const real back_pressure,
+        const std::array<real,nstate> &soln_int,
+        std::array<real,nstate> &soln_bc) const;
+
+    /// Inflow boundary conditions (both subsonic and supersonic)
+    /// Reference: Carlson 2011, sec. 2.2 & sec 2.9
+    void boundary_inflow (
+        const real total_inlet_pressure,
+        const real total_inlet_temperature,
+        const dealii::Tensor<1,dim,real> &normal_int,
+        const std::array<real,nstate> &soln_int,
+        std::array<real,nstate> &soln_bc) const;
+
+    /// Riemann-based farfield boundary conditions based on freestream values.
+    /// Reference: ? (ask Doug)
+    void boundary_riemann (
+       const dealii::Tensor<1,dim,real> &normal_int,
+       const std::array<real,nstate> &soln_int,
+       std::array<real,nstate> &soln_bc) const;
+
+    /// Simple farfield boundary conditions based on freestream values
+    void boundary_farfield (
+        std::array<real,nstate> &soln_bc) const;
+
 };
 
 } // Physics namespace

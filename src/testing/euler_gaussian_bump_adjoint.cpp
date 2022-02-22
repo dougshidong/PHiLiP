@@ -3,6 +3,9 @@
 
 #include <deal.II/base/convergence_table.h>
 
+#include <deal.II/distributed/tria.h>
+#include <deal.II/distributed/grid_refinement.h>
+
 #include <deal.II/distributed/solution_transfer.h>
 #include <deal.II/dofs/dof_tools.h>
 
@@ -28,7 +31,7 @@
 #include "physics/euler.h"
 #include "physics/manufactured_solution.h"
 #include "dg/dg.h"
-#include "ode_solver/ode_solver.h"
+#include "ode_solver/ode_solver_factory.h"
 
 #include "functional/functional.h"
 #include "functional/adjoint.h"
@@ -38,7 +41,7 @@
 
 #include "linear_solver/linear_solver.h"
 //#include "template_instantiator.h"
-
+#include "post_processor/physics_post_processor.h"
 
 namespace PHiLiP {
 namespace Tests {
@@ -114,7 +117,6 @@ class BoundaryIntegral : public PHiLiP::Functional<dim, nstate, real>
 
             if(boundary_id == 1002){
                 // casting it to a physics euler as it is needed for the pressure computation
-                // seems a bit risky, ask if anyone has a better way of implementing this
                 const Physics::Euler<dim,nstate,real2>& euler_physics = dynamic_cast<const Physics::Euler<dim,nstate,real2>&>(physics);
 
                 unsigned int n_quad_pts = fe_values_boundary.n_quadrature_points;
@@ -192,12 +194,11 @@ class BoundaryIntegral : public PHiLiP::Functional<dim, nstate, real>
             const unsigned int boundary_id,
             const dealii::FEFaceValues<dim,dim> &fe_values_boundary,
             std::vector<Sacado::Fad::DFad<real>> local_solution) override {return evaluate_cell_boundary<>(physics, boundary_id, fe_values_boundary, local_solution);}
-
 };
 
 /// Initial conditions to initialize our flow with.
 template <int dim, int nstate>
-class FreeStreamInitialConditions : public dealii::Function<dim>
+class FreeStreamInitialConditionsAdjoint : public dealii::Function<dim>
 {
 public:
     /// Conservative freestream variables.
@@ -213,7 +214,7 @@ public:
         primitive_boundary_values[0] = density_bc;
         for (int d=0;d<dim;d++) { primitive_boundary_values[1+d] = euler_physics.velocities_inf[d]; }
         primitive_boundary_values[nstate-1] = pressure_bc;
-        far_field_conservative = euler_physics.convert_primitive_to_conservative(primitive_boundary_values);
+        farfield_conservative = euler_physics.convert_primitive_to_conservative(primitive_boundary_values);
     }
 
     /// Destructor
@@ -222,10 +223,10 @@ public:
     /// Corresponds to dealii::Function::value
     double value (const dealii::Point<dim> &/*point*/, const unsigned int istate) const override
     {
-        return far_field_conservative[istate];
+        return farfield_conservative[istate];
     }
 };
-template class FreeStreamInitialConditions <PHILIP_DIM, PHILIP_DIM+2>;
+template class FreeStreamInitialConditionsAdjoint <PHILIP_DIM, PHILIP_DIM+2>;
 
 template <int dim, int nstate>
 EulerGaussianBumpAdjoint<dim,nstate>::EulerGaussianBumpAdjoint(const Parameters::AllParameters *const parameters_input)
@@ -326,6 +327,8 @@ int EulerGaussianBumpAdjoint<dim,nstate>
 
     const unsigned int n_grids_input       = manu_grid_conv_param.number_of_grids;
 
+    // const unsigned int poly_max = p_end+1;
+
     Physics::Euler<dim,nstate,double> euler_physics_double
         = Physics::Euler<dim, nstate, double>(
                 param.euler_param.ref_length,
@@ -333,17 +336,24 @@ int EulerGaussianBumpAdjoint<dim,nstate>
                 param.euler_param.mach_inf,
                 param.euler_param.angle_of_attack,
                 param.euler_param.side_slip_angle);
-    FreeStreamInitialConditions<dim,nstate> initial_conditions(euler_physics_double);
+
+    Physics::Euler<dim,nstate,Sacado::Fad::DFad<double>> euler_physics_adtype
+        = Physics::Euler<dim, nstate, Sacado::Fad::DFad<double>>(
+            param.euler_param.ref_length,
+            param.euler_param.gamma_gas,
+            param.euler_param.mach_inf,
+            param.euler_param.angle_of_attack,
+            param.euler_param.side_slip_angle);
+
+    FreeStreamInitialConditionsAdjoint<dim,nstate> initial_conditions(euler_physics_double);
     pcout << "Farfield conditions: "<< std::endl;
     for (int s=0;s<nstate;s++) {
-        pcout << initial_conditions.far_field_conservative[s] << std::endl;
+        pcout << initial_conditions.farfield_conservative[s] << std::endl;
     }
 
     std::vector<int> fail_conv_poly;
     std::vector<double> fail_conv_slop;
     std::vector<dealii::ConvergenceTable> convergence_table_vector;
-
-    unsigned poly_max = p_end+3;
 
     for (unsigned int poly_degree = p_start; poly_degree <= p_end; ++poly_degree) {
 
@@ -365,10 +375,10 @@ int EulerGaussianBumpAdjoint<dim,nstate>
         n_subdivisions[0] = 9*n_subdivisions[1]; // x-direction
         dealii::Point<2> p1(-1.5,0.0), p2(1.5,y_height);
         const bool colorize = true;
-        dealii::parallel::distributed::Triangulation<dim> grid(this->mpi_communicator,
-            typename dealii::Triangulation<dim>::MeshSmoothing(
-                dealii::Triangulation<dim>::smoothing_on_refinement |
-                dealii::Triangulation<dim>::smoothing_on_coarsening));
+        dealii::parallel::distributed::Triangulation<dim> grid(this->mpi_communicator);
+            // typename dealii::Triangulation<dim>::MeshSmoothing(
+            //     dealii::Triangulation<dim>::smoothing_on_refinement |
+            //     dealii::Triangulation<dim>::smoothing_on_coarsening));
         dealii::GridGenerator::subdivided_hyper_rectangle (grid, n_subdivisions, p1, p2, colorize);
 
         for (typename dealii::parallel::distributed::Triangulation<dim>::active_cell_iterator cell = grid.begin_active(); cell != grid.end(); ++cell) {
@@ -385,6 +395,7 @@ int EulerGaussianBumpAdjoint<dim,nstate>
         // Warp grid to be a gaussian bump
         dealii::GridTools::transform (&warp, grid);
         
+
         // Assign a manifold to have curved geometry
         const BumpManifoldAdjoint bump_manifold;
         unsigned int manifold_id=0; // top face, see GridGenerator::hyper_rectangle, colorize=true
@@ -393,47 +404,59 @@ int EulerGaussianBumpAdjoint<dim,nstate>
         grid.set_manifold ( manifold_id, bump_manifold );
 
         // Create DG object
-        std::shared_ptr < DGBase<dim, double> > dg = DGFactory<dim,double>::create_discontinuous_galerkin(&param, poly_max/*poly_degree*/, &grid);
+        // std::shared_ptr < DGBase<dim, double> > dg = DGFactory<dim,double>::create_discontinuous_galerkin(&param, poly_degree, &grid);
+        // std::shared_ptr < DGBase<dim, double> > dg = DGFactory<dim,double>::create_discontinuous_galerkin(&param, poly_max/*poly_degree*/, &grid);
+        std::shared_ptr < DGBase<dim, double> > dg = DGFactory<dim,double>::create_discontinuous_galerkin(&param, poly_degree, poly_degree+1, &grid);
 
         // Initialize coarse grid solution with free-stream
         dg->allocate_system ();
         dealii::VectorTools::interpolate(dg->dof_handler, initial_conditions, dg->solution);
 
         // Create ODE solver and ramp up the solution from p0
-        std::shared_ptr<ODE::ODESolver<dim, double>> ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
+        std::shared_ptr<ODE::ODESolverBase<dim, double>> ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
         ode_solver->initialize_steady_polynomial_ramping (poly_degree);
 
+        // setting up the target functional (error reduction)
+        BoundaryIntegral<dim, nstate, double> BoundaryIntegralFunctional;
+
+        // initializing an adjoint for this case
+        Adjoint<dim, nstate, double> adjoint(*dg, BoundaryIntegralFunctional, euler_physics_adtype);
+
+        dealii::Vector<float> estimated_error_per_cell(grid.n_active_cells());
         for (unsigned int igrid=0; igrid<n_grids; ++igrid) {
 
 
             if (igrid!=0) {
                 dealii::LinearAlgebra::distributed::Vector<double> old_solution(dg->solution);
-                dealii::parallel::distributed::SolutionTransfer<dim, dealii::LinearAlgebra::distributed::Vector<double>, dealii::hp::DoFHandler<dim>> solution_transfer(dg->dof_handler);
+                dealii::parallel::distributed::SolutionTransfer<dim, dealii::LinearAlgebra::distributed::Vector<double>, dealii::DoFHandler<dim>> solution_transfer(dg->dof_handler);
                 solution_transfer.prepare_for_coarsening_and_refinement(old_solution);
                 dg->high_order_grid.prepare_for_coarsening_and_refinement();
-                grid.refine_global (1);
+                // grid.refine_global (1);
+
+                dealii::parallel::distributed::GridRefinement::refine_and_coarsen_fixed_number(grid,
+                // dealii::GridRefinement::refine_and_coarsen_fixed_number(grid,
+                                               estimated_error_per_cell,
+                                               0.3,
+                                               0.03);
+
+                grid.execute_coarsening_and_refinement();
                 dg->high_order_grid.execute_coarsening_and_refinement();
                 dg->allocate_system ();
                 dg->solution.zero_out_ghosts();
                 solution_transfer.interpolate(dg->solution);
                 dg->solution.update_ghost_values();
+
+                estimated_error_per_cell.reinit(grid.n_active_cells());
             }
 
-            // bringing the order back to the proper spot
-            dealii::LinearAlgebra::distributed::Vector<double> old_solution(dg->solution);
-            old_solution.update_ghost_values();
+            const unsigned int n_global_active_cells = grid.n_global_active_cells();
+            const unsigned int n_dofs = dg->dof_handler.n_dofs();
+            pcout << "Dimension: " << dim << "\t Polynomial degree p: " << poly_degree << std::endl
+                 << "Grid number: " << igrid+1 << "/" << n_grids
+                 << ". Number of active cells: " << n_global_active_cells
+                 << ". Number of degrees of freedom: " << n_dofs
+                 << std::endl;
 
-            dealii::parallel::distributed::SolutionTransfer<dim, dealii::LinearAlgebra::distributed::Vector<double>, dealii::hp::DoFHandler<dim>> solution_transfer(dg->dof_handler);
-            solution_transfer.prepare_for_coarsening_and_refinement(old_solution);
-
-            dg->set_all_cells_fe_degree(poly_degree);
-            dg->allocate_system();
-
-            dg->solution.zero_out_ghosts();
-            solution_transfer.interpolate(dg->solution);
-            dg->solution.update_ghost_values();
-
-            // const unsigned int n_global_active_cells = grid.n_global_active_cells();
             // Solve the steady state problem
             ode_solver->steady_state();
             //ode_solver->initialize_steady_polynomial_ramping(poly_degree);
@@ -474,102 +497,123 @@ int EulerGaussianBumpAdjoint<dim,nstate>
                 }
             }
             const double l2error_mpi_sum = std::sqrt(dealii::Utilities::MPI::sum(l2error, mpi_communicator));
-            pcout << "l2error of the entropy: " << l2error_mpi_sum << std::endl;
-            
 
-            // evaluating the boundary integral
-            pcout << "Constructing the boundary integral object" << std::endl;
-            BoundaryIntegral<dim, nstate, double> BI;
-            // L2_Norm_Functional<dim, nstate, double> BI;
-            pcout << "Evaluating the function" << std::endl;
-            double BI_val = BI.evaluate_function(*dg, euler_physics_double);
-            pcout << "Boundary integral value is: " << BI_val << std::endl;
+            // computing using Functional for comparison
+            const double l2error_functional = BoundaryIntegralFunctional.evaluate_function(*dg, euler_physics_double);
+            pcout << "Error computed by original loop: " << l2error_mpi_sum << std::endl << "Error computed by the functional: " << std::sqrt(l2error_functional) << std::endl; 
 
-            // need to make a physics ADTYPE
-            Physics::Euler<dim,nstate,Sacado::Fad::DFad<double>> euler_physics_adtype
-                = Physics::Euler<dim, nstate, Sacado::Fad::DFad<double>>(
-                    param.euler_param.ref_length,
-                    param.euler_param.gamma_gas,
-                    param.euler_param.mach_inf,
-                    param.euler_param.angle_of_attack,
-                    param.euler_param.side_slip_angle);
+            // reinitializing the adjoint with the current values (from references)
+            adjoint.reinit();
 
-            // dealii::LinearAlgebra::distributed::Vector<double> dIdw_coarse = BI.evaluate_dIdw(*dg, euler_physics_adtype);
-            // std::cout << "solving linear system" << std::endl;
-
-            // dealii::LinearAlgebra::distributed::Vector<double> adjoint_coarse(dg->solution);
-            // solve_linear(dg->system_matrix, dIdw_coarse, adjoint_coarse, dg->all_parameters->linear_solver_param);
-            // std::cout << "Linear system solved" << std::endl;
-
-            dg->output_results_vtk(0);
-
-            // put on the fine grid projection and adjoint evaluation here
-            // what's the best way to deal with the creation of a new dg?
-
-            // steps:
-            // 1. Setup the fine grid data structure (constructor)
-            // 2. perform the solution projection (another variable or just the one associated with the dg fine)
-            // 3. can reuse the physics from the iniial dg and compute the system matrix and dIdw
-            // 4. Solve the linear system and allow the user to access the adjoint
-            // 5. (Optional) Since we already have access to the fine grid residual, compute the DWR (could add a flag that computes the adjoint again as well)
-
-            // solving the adjoint directly in this code instead for now
-            // std::cout << "transfering the solution to the fine mesh" << std::endl;
-           
-            // dealii::IndexSet locally_owned_dofs, locally_relevant_dofs;
-            // locally_owned_dofs =  dg->dof_handler.locally_owned_dofs();
-            // dealii::DoFTools::extract_locally_relevant_dofs(dg->dof_handler, locally_relevant_dofs);
-
-            // dealii::LinearAlgebra::distributed::Vector<double> old_solution2(dg->solution);
-            // old_solution2.update_ghost_values();
-
-            // dealii::parallel::distributed::SolutionTransfer<dim, dealii::LinearAlgebra::distributed::Vector<double>, dealii::hp::DoFHandler<dim>> solution_transfer2(dg->dof_handler);
-            // solution_transfer2.prepare_for_coarsening_and_refinement(old_solution2);
-
-            // dg->triangulation->prepare_coarsening_and_refinement();
-            // for (auto cell = dg->dof_handler.begin_active(); cell != dg->dof_handler.end(); ++cell)
-            // {
-            //     if (cell->is_locally_owned()) cell->set_future_fe_index(cell->active_fe_index()+1);
-            // }
-            // dg->triangulation->execute_coarsening_and_refinement();
-
-            // dg->allocate_system();
-            // dg->solution.zero_out_ghosts();
-            // solution_transfer2.interpolate(dg->solution);
-            // dg->solution.update_ghost_values();
-
-            // std::cout << "Starting system_matrix assembly" << std::endl;
-            // dg->assemble_residual(true);
-            // std::cout << "attempting to evaluate the functional on the fine mesh " << std::endl;
-
-            // BI_val = BI.evaluate_function(*dg, euler_physics_double);
-            // pcout << "Boundary integral value is: " << BI_val << std::endl;
-
-            // std::cout << "Starting AD " << std::endl;
-            // dealii::LinearAlgebra::distributed::Vector<double> dIdw = BI.evaluate_dIdw(*dg, euler_physics_adtype);
-            // std::cout << "solving linear system" << std::endl;
-
-            // dealii::LinearAlgebra::distributed::Vector<double> adjoint_fine(dg->solution);
-            // solve_linear(dg->system_matrix, dIdw, adjoint_fine, dg->all_parameters->linear_solver_param);
-            // std::cout << "Linear system solved" << std::endl;
-            
-            Adjoint<dim, nstate, double> adjoint(*dg, BI, euler_physics_adtype);
-            adjoint.coarse_grid_adjoint();
-            adjoint.output_results_vtk(3);
-
+            // evaluating the derivatives and the adjoint on the fine grid
+            adjoint.convert_to_state(PHiLiP::Adjoint<dim,nstate,double>::AdjointStateEnum::fine); // will do this automatically, but I prefer to repeat explicitly
             adjoint.fine_grid_adjoint();
-            adjoint.dual_weighted_residual();
-            adjoint.output_results_vtk(2);
+            estimated_error_per_cell = adjoint.dual_weighted_residual(); // performing the error indicator computation
 
-            ////// **************************************************** //////
+            // and outputing the fine properties
+            adjoint.output_results_vtk(igrid);
 
-            dg->output_results_vtk(1);
+            adjoint.convert_to_state(PHiLiP::Adjoint<dim,nstate,double>::AdjointStateEnum::coarse); // this one is necessary though
+            adjoint.coarse_grid_adjoint();
+            adjoint.output_results_vtk(igrid);
 
+            // Convergence table
+            double dx = 1.0/pow(n_dofs,(1.0/dim));
+            //dx = dealii::GridTools::maximal_cell_diameter(grid);
+            grid_size[igrid] = dx;
+            entropy_error[igrid] = l2error_mpi_sum;
+
+            convergence_table.add_value("p", poly_degree);
+            convergence_table.add_value("cells", n_global_active_cells);
+            convergence_table.add_value("DoFs", n_dofs);
+            convergence_table.add_value("dx", dx);
+            convergence_table.add_value("L2_entropy_error", l2error_mpi_sum);
+
+
+            pcout << " Grid size h: " << dx 
+                 << " L2-entropy_error: " << l2error_mpi_sum
+                 << " Residual: " << ode_solver->residual_norm
+                 << std::endl;
+
+            if (igrid > 0) {
+                const double slope_soln_err = log(entropy_error[igrid]/entropy_error[igrid-1])
+                                      / log(grid_size[igrid]/grid_size[igrid-1]);
+                pcout << "From grid " << igrid-1
+                     << "  to grid " << igrid
+                     << "  dimension: " << dim
+                     << "  polynomial degree p: " << poly_degree
+                     << std::endl
+                     << "  entropy_error1 " << entropy_error[igrid-1]
+                     << "  entropy_error2 " << entropy_error[igrid]
+                     << "  slope " << slope_soln_err
+                     << std::endl;
+            }
+
+            //output_results (igrid);
+        }
+        pcout << " ********************************************" << std::endl
+             << " Convergence rates for p = " << poly_degree << std::endl
+             << " ********************************************" << std::endl;
+        convergence_table.evaluate_convergence_rates("L2_entropy_error", "cells", dealii::ConvergenceTable::reduction_rate_log2, dim);
+        convergence_table.set_scientific("dx", true);
+        convergence_table.set_scientific("L2_entropy_error", true);
+        if (pcout.is_active()) convergence_table.write_text(pcout.get_stream());
+
+        convergence_table_vector.push_back(convergence_table);
+
+        const double expected_slope = poly_degree+1;
+
+        const double last_slope = log(entropy_error[n_grids-1]/entropy_error[n_grids-2])
+                                  / log(grid_size[n_grids-1]/grid_size[n_grids-2]);
+        //double before_last_slope = last_slope;
+        //if ( n_grids > 2 ) {
+        //    before_last_slope = log(entropy_error[n_grids-2]/entropy_error[n_grids-3])
+        //                        / log(grid_size[n_grids-2]/grid_size[n_grids-3]);
+        //}
+        //const double slope_avg = 0.5*(before_last_slope+last_slope);
+        const double slope_avg = last_slope;
+        const double slope_diff = slope_avg-expected_slope;
+
+        double slope_deficit_tolerance = -std::abs(manu_grid_conv_param.slope_deficit_tolerance);
+        if(poly_degree == 0) slope_deficit_tolerance *= 2; // Otherwise, grid sizes need to be much bigger for p=0
+
+        if (slope_diff < slope_deficit_tolerance) {
+            pcout << std::endl
+                 << "Convergence order not achieved. Average last 2 slopes of "
+                 << slope_avg << " instead of expected "
+                 << expected_slope << " within a tolerance of "
+                 << slope_deficit_tolerance
+                 << std::endl;
+            // p=0 just requires too many meshes to get into the asymptotic region.
+            if(poly_degree!=0) fail_conv_poly.push_back(poly_degree);
+            if(poly_degree!=0) fail_conv_slop.push_back(slope_avg);
         }
 
     }
-
-    return 0;
+    pcout << std::endl << std::endl << std::endl << std::endl;
+    pcout << " ********************************************" << std::endl;
+    pcout << " Convergence summary" << std::endl;
+    pcout << " ********************************************" << std::endl;
+    for (auto conv = convergence_table_vector.begin(); conv!=convergence_table_vector.end(); conv++) {
+        if (pcout.is_active()) conv->write_text(pcout.get_stream());
+        pcout << " ********************************************" << std::endl;
+    }
+    int n_fail_poly = fail_conv_poly.size();
+    if (n_fail_poly > 0) {
+        for (int ifail=0; ifail < n_fail_poly; ++ifail) {
+            const double expected_slope = fail_conv_poly[ifail]+1;
+            const double slope_deficit_tolerance = -0.1;
+            pcout << std::endl
+                 << "Convergence order not achieved for polynomial p = "
+                 << fail_conv_poly[ifail]
+                 << ". Slope of "
+                 << fail_conv_slop[ifail] << " instead of expected "
+                 << expected_slope << " within a tolerance of "
+                 << slope_deficit_tolerance
+                 << std::endl;
+        }
+    }
+    return n_fail_poly;
 }
 
 

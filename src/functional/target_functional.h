@@ -81,12 +81,12 @@ protected:
      */
     using Functional<dim,nstate,real>::evaluate_volume_integrand;
 
-    /// Avoid warning that the function was hidden [-Woverloaded-virtual].
-    /** The compiler would otherwise hide Functional::evaluate_cell_boundary, which is fine for 
-     *  us, but is a typical bug that other people have. This 'using' imports the base class function
-     *  to our derived class even though we don't need it.
-     */
-    using Functional<dim,nstate,real>::evaluate_cell_boundary;
+    ///// Avoid warning that the function was hidden [-Woverloaded-virtual].
+    ///** The compiler would otherwise hide Functional::evaluate_cell_boundary, which is fine for 
+    // *  us, but is a typical bug that other people have. This 'using' imports the base class function
+    // *  to our derived class even though we don't need it.
+    // */
+    //using Functional<dim,nstate,real>::evaluate_cell_boundary;
 
     /// Avoid warning that the function was hidden [-Woverloaded-virtual].
     /** The compiler would otherwise hide Functional::evaluate_volume_cell_functional, which is fine for 
@@ -95,6 +95,9 @@ protected:
      */
     using Functional<dim,nstate,real>::evaluate_volume_cell_functional;
 
+
+    using Functional<dim,nstate,real>::evaluate_boundary_cell_functional;
+    using Functional<dim,nstate,real>::evaluate_boundary_integrand;
 
 protected:
  /// Solution used to evaluate target functional
@@ -121,7 +124,7 @@ public:
      */
     TargetFunctional(
         std::shared_ptr<DGBase<dim,real>> dg_input,
-  const dealii::LinearAlgebra::distributed::Vector<real> &target_solution,
+        const dealii::LinearAlgebra::distributed::Vector<real> &target_solution,
         const bool uses_solution_values = true,
         const bool uses_solution_gradient = true);
 
@@ -183,7 +186,6 @@ public:
         const PHiLiP::Physics::PhysicsBase<dim,nstate,real> &physics,
         const double stepsize);
 
-
 private:
     /// Templated function to evaluate a cell's volume functional.
     template <typename real2>
@@ -219,33 +221,40 @@ protected:
 private:
     /// Templated function to evaluate a cell's face functional.
     template <typename real2>
-    real2 evaluate_face_cell_functional(
+    real2 evaluate_boundary_cell_functional(
         const Physics::PhysicsBase<dim,nstate,real2> &physics,
+        const unsigned int boundary_id,
         const std::vector< real2 > &soln_coeff,
         const std::vector< real > &target_soln_coeff,
         const dealii::FESystem<dim> &fe_solution,
         const std::vector< real2 > &coords_coeff,
         const dealii::FESystem<dim> &fe_metric,
-        const dealii::Quadrature<dim> &volume_quadrature) const;
+        const dealii::Quadrature<dim-1> &face_quadrature,
+        const unsigned int face_number) const;
 protected:
     /// Corresponding real function to evaluate a cell's face functional.
-    virtual real evaluate_face_cell_functional(
+    virtual real evaluate_boundary_cell_functional(
         const Physics::PhysicsBase<dim,nstate,real> &physics,
+        const unsigned int boundary_id,
         const std::vector< real > &soln_coeff,
         const std::vector< real > &target_soln_coeff,
         const dealii::FESystem<dim> &fe_solution,
         const std::vector< real > &coords_coeff,
         const dealii::FESystem<dim> &fe_metric,
-        const dealii::Quadrature<dim> &volume_quadrature) const;
+        const dealii::Quadrature<dim-1> &face_quadrature,
+        const unsigned int face_number) const;
+
     /// Corresponding FadFadType function to evaluate a cell's face functional.
-    virtual Sacado::Fad::DFad<Sacado::Fad::DFad<real>> evaluate_face_cell_functional(
+    virtual Sacado::Fad::DFad<Sacado::Fad::DFad<real>> evaluate_boundary_cell_functional(
         const Physics::PhysicsBase<dim,nstate,Sacado::Fad::DFad<Sacado::Fad::DFad<real>>> &physics_fad_fad,
+        const unsigned int boundary_id,
         const std::vector< Sacado::Fad::DFad<Sacado::Fad::DFad<real>> > &soln_coeff,
         const std::vector< real > &target_soln_coeff,
         const dealii::FESystem<dim> &fe_solution,
         const std::vector< Sacado::Fad::DFad<Sacado::Fad::DFad<real>> > &coords_coeff,
         const dealii::FESystem<dim> &fe_metric,
-        const dealii::Quadrature<dim> &face_quadrature) const;
+        const dealii::Quadrature<dim-1> &face_quadrature,
+        const unsigned int face_number) const;
 
     /// Virtual function for computation of cell volume functional term
     /** Used only in the computation of evaluate_function(). If not overriden returns 0. */
@@ -257,13 +266,13 @@ protected:
         const std::array<dealii::Tensor<1,dim,real>,nstate> &/*soln_grad_at_q*/,
         const std::array<dealii::Tensor<1,dim,real>,nstate> &/*target_soln_grad_at_q*/) const
     {
-  real l2error = 0;
-  
-  for (int istate=0; istate<nstate; ++istate) {
-   l2error += std::pow(soln_at_q[istate] - target_soln_at_q[istate], 2);
-  }
+        real l2error = 0;
 
-  return l2error;
+        for (int istate=0; istate<nstate; ++istate) {
+            l2error += std::pow(soln_at_q[istate] - target_soln_at_q[istate], 2);
+        }
+
+        return l2error;
     }
     /// Virtual function for Sacado computation of cell volume functional term and derivatives
     /** Used only in the computation of evaluate_dIdw(). If not overriden returns 0. */
@@ -275,73 +284,75 @@ protected:
         const std::array<dealii::Tensor<1,dim,FadFadType>,nstate> &/*soln_grad_at_q*/,
         const std::array<dealii::Tensor<1,dim,FadFadType>,nstate> &/*target_soln_grad_at_q*/) const
     {
-  FadFadType l2error = 0;
-  
-  for (int istate=0; istate<nstate; ++istate) {
-   l2error += std::pow(soln_at_q[istate] - target_soln_at_q[istate], 2);
-  }
-
-  return l2error;
+        FadFadType l2error = 0;
+        for (int istate=0; istate<nstate; ++istate) {
+            l2error += std::pow(soln_at_q[istate] - target_soln_at_q[istate], 2);
+        }
+        return l2error;
     }
 
     /// Virtual function for computation of cell face functional term
     /** Used only in the computation of evaluate_function(). If not overriden returns 0. */
-    virtual real evaluate_face_integrand(
+    virtual real evaluate_boundary_integrand(
         const PHiLiP::Physics::PhysicsBase<dim,nstate,real> &/*physics*/,
+        const unsigned int /*boundary_id*/,
         const dealii::Point<dim,real> &,//phys_coord,
+        const dealii::Tensor<1,dim,real> &/*normal*/,
         const std::array<real,nstate> &soln_at_q,
         const std::array<real,nstate> &target_soln_at_q,
         const std::array<dealii::Tensor<1,dim,real>,nstate> &,//soln_grad_at_q,
         const std::array<dealii::Tensor<1,dim,real>,nstate> &)//target_soln_grad_at_q)
         const
     {
-  real l2error = 0;
-  
-  for (int istate=0; istate<nstate; ++istate) {
-   l2error += std::pow(soln_at_q[istate] - target_soln_at_q[istate], 2);
-  }
-
-  return l2error;
+        real l2error = 0;
+        for (int istate=0; istate<nstate; ++istate) {
+            l2error += std::pow(soln_at_q[istate] - target_soln_at_q[istate], 2);
+        }
+        return l2error;
     }
     /// Virtual function for Sacado computation of cell face functional term and derivatives
     /** Used only in the computation of evaluate_dIdw(). If not overriden returns 0. */
-    virtual FadFadType evaluate_face_integrand(
+    virtual FadFadType evaluate_boundary_integrand(
         const PHiLiP::Physics::PhysicsBase<dim,nstate,FadFadType> &/*physics*/,
+        const unsigned int /*boundary_id*/,
         const dealii::Point<dim,FadFadType> &,//phys_coord,
+        const dealii::Tensor<1,dim,FadFadType> &/*normal*/,
         const std::array<FadFadType,nstate> &soln_at_q,
         const std::array<real,nstate> &target_soln_at_q,
         const std::array<dealii::Tensor<1,dim,FadFadType>,nstate> &,//soln_grad_at_q,
         const std::array<dealii::Tensor<1,dim,FadFadType>,nstate> &)//target_soln_grad_at_q)
         const
     {
-  FadFadType l2error = 0;
-  
-  for (int istate=0; istate<nstate; ++istate) {
-   l2error += std::pow(soln_at_q[istate] - target_soln_at_q[istate], 2);
-  }
-
-  return l2error;
+        FadFadType l2error = 0;
+        for (int istate=0; istate<nstate; ++istate) {
+            l2error += std::pow(soln_at_q[istate] - target_soln_at_q[istate], 2);
+        }
+        return l2error;
     }
 
-    /// Virtual function for computation of cell boundary functional term
-    /** Used only in the computation of evaluate_function(). If not overriden returns 0. */
-    virtual real evaluate_cell_boundary(
-        const PHiLiP::Physics::PhysicsBase<dim,nstate,real> &/*physics*/,
-        const unsigned int /*boundary_id*/,
-        const dealii::FEFaceValues<dim,dim> &/*fe_values_boundary*/,
-        std::vector<real> /*soln_coeff*/,
-        std::vector<real> /*target_soln_coeff*/)
- {return (real) 0.0;}
+    // /// Virtual function for computation of cell boundary functional term
+    // /** Used only in the computation of evaluate_function(). If not overriden returns 0. */
+    // virtual real evaluate_cell_boundary(
+    //     const PHiLiP::Physics::PhysicsBase<dim,nstate,real> &/*physics*/,
+    //     const unsigned int /*boundary_id*/,
+    //     const dealii::FEFaceValues<dim,dim> &/*fe_values_boundary*/,
+    //     std::vector<real> /*soln_coeff*/,
+    //     std::vector<real> /*target_soln_coeff*/)
+    // {
+    //     return (real) 0.0;
+    // }
 
-    /// Virtual function for Sacado computation of cell boundary functional term and derivatives
-    /** Used only in the computation of evaluate_dIdw(). If not overriden returns 0. */
-    virtual FadFadType evaluate_cell_boundary(
-        const PHiLiP::Physics::PhysicsBase<dim,nstate,FadFadType> &/*physics*/,
-        const unsigned int /*boundary_id*/,
-        const dealii::FEFaceValues<dim,dim> &/*fe_values_boundary*/,
-        std::vector<FadFadType> /*soln_coeff*/,
-        std::vector<real> /*target_soln_coeff*/)
- {return (FadFadType) 0.0;}
+    // /// Virtual function for Sacado computation of cell boundary functional term and derivatives
+    // /** Used only in the computation of evaluate_dIdw(). If not overriden returns 0. */
+    // virtual FadFadType evaluate_cell_boundary(
+    //     const PHiLiP::Physics::PhysicsBase<dim,nstate,FadFadType> &/*physics*/,
+    //     const unsigned int /*boundary_id*/,
+    //     const dealii::FEFaceValues<dim,dim> &/*fe_values_boundary*/,
+    //     std::vector<FadFadType> /*soln_coeff*/,
+    //     std::vector<real> /*target_soln_coeff*/)
+    // {
+    //     return (FadFadType) 0.0;
+    // }
 
 }; // TargetFunctional class
 } // PHiLiP namespace

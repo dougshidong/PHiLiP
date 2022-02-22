@@ -4,6 +4,8 @@
 #include <deal.II/base/conditional_ostream.h>
 
 #include <deal.II/grid/tria.h>
+#include <deal.II/distributed/shared_tria.h>
+#include <deal.II/distributed/tria.h>
 
 #include <deal.II/fe/fe_q.h>
 #include <deal.II/fe/fe_system.h>
@@ -24,12 +26,82 @@
 #include <deal.II/lac/trilinos_sparse_matrix.h>
 #include <deal.II/lac/trilinos_vector.h>
 
+#include "parameters/all_parameters.h"
+
 namespace PHiLiP {
-//#if PHILIP_DIM==1 // dealii::parallel::distributed::Triangulation<dim> does not work for 1D
-//    template <int dim> using Triangulation = dealii::Triangulation<dim>;
-//#else
-//    template <int dim> using Triangulation = dealii::parallel::distributed::Triangulation<dim>;
-//#endif
+
+// determines the associated typenames for HO grid from the meshType
+template <typename MeshType>
+class MeshTypeHelper{};
+
+// specializations
+template <>
+class MeshTypeHelper<dealii::Triangulation<PHILIP_DIM>>
+{
+public:
+    using VectorType     = dealii::LinearAlgebra::distributed::Vector<double>;
+    using DoFHandlerType = dealii::DoFHandler<PHILIP_DIM>;
+
+    template <int dim = PHILIP_DIM, typename Vector = VectorType, typename DoFHandler = DoFHandlerType>
+    using SolutionTransfer = dealii::SolutionTransfer<dim, Vector, DoFHandler>;
+
+    // reinitialize vector based on parralel Dofhandler
+    static void reinit_vector(
+        VectorType             &vector, 
+        DoFHandlerType const   &/* dof_handler */,
+        dealii::IndexSet const &locally_owned_dofs,
+        dealii::IndexSet const &ghost_dofs,
+        MPI_Comm const          mpi_communicator)
+    {
+        vector.reinit(locally_owned_dofs, ghost_dofs, mpi_communicator);
+    }
+};
+
+template <>
+class MeshTypeHelper<dealii::parallel::distributed::Triangulation<PHILIP_DIM>>
+{
+public:
+    using VectorType     = dealii::LinearAlgebra::distributed::Vector<double>;
+    using DoFHandlerType = dealii::DoFHandler<PHILIP_DIM>;
+    
+    template <int dim = PHILIP_DIM, typename Vector = VectorType, typename DoFHandler = DoFHandlerType>
+    using SolutionTransfer = dealii::parallel::distributed::SolutionTransfer<dim, Vector, DoFHandler>;
+
+    // reinitialize vector based on parralel Dofhandler
+    static void reinit_vector(
+        VectorType             &vector, 
+        DoFHandlerType const   &/* dof_handler */,
+        dealii::IndexSet const &locally_owned_dofs,
+        dealii::IndexSet const &ghost_dofs,
+        MPI_Comm const          mpi_communicator)
+    {
+        vector.reinit(locally_owned_dofs, ghost_dofs, mpi_communicator);
+    }
+};
+
+#if PHILIP_DIM1!=1 // dealii::parallel::distributed::Triangulation<dim> does not work for 1D
+template <>
+class MeshTypeHelper<dealii::parallel::shared::Triangulation<PHILIP_DIM>>
+{
+public:
+    using VectorType     = dealii::LinearAlgebra::distributed::Vector<double>;
+    using DoFHandlerType = dealii::DoFHandler<PHILIP_DIM>;
+
+    template <int dim = PHILIP_DIM, typename Vector = VectorType, typename DoFHandler = DoFHandlerType>
+    using SolutionTransfer = dealii::SolutionTransfer<dim, Vector, DoFHandler>;
+
+    // reinitialize vector based on parralel Dofhandler
+    static void reinit_vector(
+        VectorType             &vector, 
+        DoFHandlerType const   &/* dof_handler */,
+        dealii::IndexSet const &locally_owned_dofs,
+        dealii::IndexSet const &ghost_dofs,
+        MPI_Comm const          mpi_communicator)
+    {
+        vector.reinit(locally_owned_dofs, ghost_dofs, mpi_communicator);
+    }
+};
+#endif
 
 /** This HighOrderGrid class basically contains all the different part necessary to generate
  *  a dealii::MappingFEField that corresponds to the current Triangulation and attached Manifold.
@@ -41,40 +113,42 @@ namespace PHiLiP {
  *  and the Vector class act quite differently between serial and parallel implementation. Hopefully,
  *  deal.II will change this one day such that we have one interface for both.
  */
-template <int dim = PHILIP_DIM, typename real = double, typename VectorType = dealii::LinearAlgebra::distributed::Vector<double>, typename DoFHandlerType = dealii::DoFHandler<PHILIP_DIM>>
+#if PHILIP_DIM==1 // dealii::parallel::distributed::Triangulation<dim> does not work for 1D
+template <int      dim            = PHILIP_DIM, 
+          typename real           = double, 
+          typename MeshType       = dealii::Triangulation<dim>, 
+          typename VectorType     = typename MeshTypeHelper<MeshType>::VectorType, 
+          typename DoFHandlerType = typename MeshTypeHelper<MeshType>::DoFHandlerType>
+#else
+template <int      dim            = PHILIP_DIM, 
+          typename real           = double, 
+          typename MeshType       = dealii::parallel::distributed::Triangulation<dim>, 
+          typename VectorType     = typename MeshTypeHelper<MeshType>::VectorType, 
+          typename DoFHandlerType = typename MeshTypeHelper<MeshType>::DoFHandlerType>
+#endif
 class HighOrderGrid
 {
-    /// Distributed vector of double.
-    using Vector = dealii::LinearAlgebra::distributed::Vector<double>;
-#if PHILIP_DIM==1 // dealii::parallel::distributed::Triangulation<dim> does not work for 1D
-    /** Triangulation to store the grid.
-     *  In 1D, dealii::Triangulation<dim> is used.
-     *  In 2D, 3D, dealii::parallel::distributed::Triangulation<dim> is used.
-     */
-    using Triangulation = dealii::Triangulation<dim>;
-
-    /// SolutionTransfer using Vector
-    using SolutionTransfer = dealii::SolutionTransfer<dim, Vector, dealii::DoFHandler<dim>>;
-#else
-    /** Triangulation to store the grid.
-     *  In 1D, dealii::Triangulation<dim> is used.
-     *  In 2D, 3D, dealii::parallel::distributed::Triangulation<dim> is used.
-     */
-    using Triangulation = dealii::parallel::distributed::Triangulation<dim>;
-
-    /// SolutionTransfer using Vector
-    using SolutionTransfer = dealii::parallel::distributed::SolutionTransfer<dim, Vector, dealii::DoFHandler<dim>>;
-#endif
+    using SolutionTransfer = typename MeshTypeHelper<MeshType>::template SolutionTransfer<dim,VectorType,DoFHandlerType>;
 public:
     /// Principal constructor that will call delegated constructor.
-    HighOrderGrid(const unsigned int max_degree,
-                  const std::shared_ptr<Triangulation> triangulation_input);
+    HighOrderGrid(
+        const unsigned int              max_degree, 
+        const std::shared_ptr<MeshType> triangulation_input);
+
+    /// Reinitialize high_order_grid after a change in triangulation
+    void reinit();
 
     /// Update the MappingFEField
     /** Note that this rarely needs to be called since MappingFEField stores a
      *  pointer to the DoFHandler and to the node Vector.
      */
     void update_mapping_fe_field();
+
+    /// Ensures that hanging nodes are updated for a conforming mesh.
+    void ensure_conforming_mesh();
+
+    /// Sets the volume_nodes to the interpolated position of the Manifold associated to the triangulation.
+    void initialize_with_triangulation_manifold(const bool output_mesh = false);
 
     /// Needed to allocate the correct number of volume_nodes when initializing and after the mesh is refined
     void allocate();
@@ -85,7 +159,7 @@ public:
     /// Maximum degree of the geometry polynomial representing the grid.
     const unsigned int max_degree;
 
-    const std::shared_ptr<Triangulation> triangulation; ///< Mesh
+    const std::shared_ptr<MeshType> triangulation; ///< Mesh
 
     /// Degrees of freedom handler for the high-order grid
     dealii::DoFHandler<dim> dof_handler_grid;
@@ -97,21 +171,21 @@ public:
      *  the integer division "idof_index / dim" gives the coordinates related to the same
      *  point.
      */
-    Vector volume_nodes;
+    VectorType volume_nodes;
 
 
     /** Distributed ghosted vector of surface nodes.
      */
-    Vector surface_nodes;
+    VectorType surface_nodes;
 
     /// Initial nodal coefficients of the high-order grid.
     /** Used for deformation schemes that always deform the mesh from the initial mesh.
      */
-    Vector initial_volume_nodes;
+    VectorType initial_volume_nodes;
     /// Distributed ghosted vector of initial surface nodes.
     /** Used for deformation schemes that always deform the mesh from the initial mesh.
      */
-    Vector initial_surface_nodes;
+    VectorType initial_surface_nodes;
 
     /// Sets the initial_volume_nodes and initial_surface_nodes to the current volume_nodes and surface_nodes.
     void reset_initial_nodes();
@@ -154,9 +228,6 @@ public:
     std::vector<dealii::types::global_dof_index> locally_relevant_surface_nodes_indices;
     /// List of surface node boundary IDs, corresponding to locally_relevant_surface_nodes_indices
     std::vector<dealii::types::global_dof_index> locally_relevant_surface_nodes_boundary_id;
-
-    // /// List of surface node boundary user index, corresponding to locally_relevant_surface_nodes_indices
-    // std::vector<dealii::types::global_dof_index> locally_relevant_surface_nodes_user_index;
 
     /// List of surface nodes.
     /** Note that this contains all \<dim\> directions.
@@ -228,7 +299,7 @@ public:
     VectorType transform_surface_nodes(std::function<dealii::Point<dim>(dealii::Point<dim>)> transformation) const;
 
     /// RBF mesh deformation  -  To be done
-    //void deform_mesh(Vector surface_displacements);
+    //void deform_mesh(VectorType surface_displacements);
     void deform_mesh(std::vector<real> local_surface_displacements);
 
     void test_jacobian(); ///< Test metric Jacobian
@@ -283,6 +354,8 @@ public:
     //  {
     //  }
 
+    /// Globally refines the high-order mesh.
+    void refine_global();
 
     /// Prepares the solution transfer such that the curved refined grid is on top of the curved coarse grid.
     /** This function needs to be called before dealii::Triangulation::execute_coarsening_and_refinement() or dealii::Triangulation::refine_global()
@@ -294,6 +367,9 @@ public:
      *  dealii::Triangulation::execute_coarsening_and_refinement() or dealii::Triangulation::refine_global().
      */
     void execute_coarsening_and_refinement(const bool output_mesh = false);
+    
+    /// Returns the coordinates/vertex of the smallest cell.
+    dealii::Point<dim> smallest_cell_coordinates();
 
     /// Use Lagrange polynomial to represent the spatial location.
     const dealii::FE_Q<dim>     fe_q;
@@ -328,7 +404,7 @@ protected:
     void update_surface_indices();
 
     /// Used for the SolutionTransfer when performing grid adaptation.
-    Vector old_volume_nodes;
+    VectorType old_volume_nodes;
 
     /** Transfers the coarse curved curve onto the fine curved grid.
      *  Used in prepare_for_coarsening_and_refinement() and execute_coarsening_and_refinement()

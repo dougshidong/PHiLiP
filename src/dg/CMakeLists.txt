@@ -4,6 +4,8 @@ set(DG_SOURCE
     residual_sparsity_patterns.cpp
     weak_dg.cpp
     strong_dg.cpp
+    artificial_dissipation.cpp
+    artificial_dissipation_factory.cpp
     )
 
 foreach(dim RANGE 1 3)
@@ -18,10 +20,12 @@ foreach(dim RANGE 1 3)
     string(CONCAT PostprocessingLib Postprocessing_${dim}D)
     string(CONCAT NumericalFluxLib NumericalFlux_${dim}D)
     string(CONCAT PhysicsLib Physics_${dim}D)
+    string(CONCAT OperatorsLib Operator_Lib_${dim}D)
     target_link_libraries(${DiscontinuousGalerkinLib} ${HighOrderGridLib})
     target_link_libraries(${DiscontinuousGalerkinLib} ${PostprocessingLib})
     target_link_libraries(${DiscontinuousGalerkinLib} ${NumericalFluxLib})
     target_link_libraries(${DiscontinuousGalerkinLib} ${PhysicsLib})
+    target_link_libraries(${DiscontinuousGalerkinLib} ${OperatorsLib})
     # Setup target with deal.II
     if(NOT DOC_ONLY)
         DEAL_II_SETUP_TARGET(${DiscontinuousGalerkinLib})
@@ -32,5 +36,6 @@ foreach(dim RANGE 1 3)
     unset(DiscontinuousGalerkinLib)
     unset(NumericalFluxLib)
     unset(PhysicsLib)
+    unset(OperatorsLib)
 
 endforeach()

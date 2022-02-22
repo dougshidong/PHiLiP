@@ -25,10 +25,15 @@
 
 #include "euler_cylinder_adjoint.h"
 
+#include "physics/physics.h"
+#include "physics/physics_factory.h"
+#include "physics/initial_conditions/initial_condition.h"
 #include "physics/euler.h"
 #include "physics/manufactured_solution.h"
+
+#include "dg/dg.h"
 #include "dg/dg_factory.hpp"
-#include "ode_solver/ode_solver.h"
+#include "ode_solver/ode_solver_factory.h"
 
 #include "functional/functional.h"
 #include "functional/adjoint.h"
@@ -187,23 +192,32 @@ int EulerCylinderAdjoint<dim,nstate>
 
     const unsigned int n_grids_input       = manu_grid_conv_param.number_of_grids;
 
-    Physics::Euler<dim,nstate,double> euler_physics_double
-        = Physics::Euler<dim, nstate, double>(
-                param.euler_param.ref_length,
-                param.euler_param.gamma_gas,
-                param.euler_param.mach_inf,
-                param.euler_param.angle_of_attack,
-                param.euler_param.side_slip_angle);
+    std::shared_ptr< Physics::PhysicsBase<dim,nstate,double> > physics_double 
+        = Physics::PhysicsFactory<dim,nstate,double>::create_Physics(&param);
 
-    Physics::Euler<dim,nstate,Sacado::Fad::DFad<double>> euler_physics_adtype
-        = Physics::Euler<dim, nstate, Sacado::Fad::DFad<double>>(
-            param.euler_param.ref_length,
-            param.euler_param.gamma_gas,
-            param.euler_param.mach_inf,
-            param.euler_param.angle_of_attack,
-            param.euler_param.side_slip_angle);
+    std::shared_ptr< Physics::Euler<dim,nstate,double> > euler_physics_double 
+        = std::dynamic_pointer_cast< Physics::Euler<dim,nstate,double> >(physics_double);
 
-    Physics::FreeStreamInitialConditions<dim,nstate> initial_conditions(euler_physics_double);
+    std::shared_ptr< Physics::PhysicsBase<dim,nstate,Sacado::Fad::DFad<double>> > euler_physics_adtype 
+        = Physics::PhysicsFactory<dim,nstate,Sacado::Fad::DFad<double>>::create_Physics(&param);
+
+    // Physics::Euler<dim,nstate,double> euler_physics_double
+    //     = Physics::Euler<dim, nstate, double>(
+    //             param.euler_param.ref_length,
+    //             param.euler_param.gamma_gas,
+    //             param.euler_param.mach_inf,
+    //             param.euler_param.angle_of_attack,
+    //             param.euler_param.side_slip_angle);
+
+    // Physics::Euler<dim,nstate,Sacado::Fad::DFad<double>> euler_physics_adtype
+    //     = Physics::Euler<dim, nstate, Sacado::Fad::DFad<double>>(
+    //         param.euler_param.ref_length,
+    //         param.euler_param.gamma_gas,
+    //         param.euler_param.mach_inf,
+    //         param.euler_param.angle_of_attack,
+    //         param.euler_param.side_slip_angle);
+
+    Physics::FreeStreamInitialConditions<dim,nstate> initial_conditions(*euler_physics_double);
 
     std::vector<int> fail_conv_poly;
     std::vector<double> fail_conv_slop;
@@ -238,14 +252,15 @@ int EulerCylinderAdjoint<dim,nstate>
         dealii::VectorTools::interpolate(dg->dof_handler, initial_conditions, dg->solution);
 
         // Create ODE solver and ramp up the solution from p0
-        std::shared_ptr<ODE::ODESolver<dim, double>> ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
+        std::shared_ptr<ODE::ODESolverBase<dim, double>> ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
         ode_solver->initialize_steady_polynomial_ramping(poly_degree);
 
         // setting up the target functional (error reduction)
-        L2normError<dim, nstate, double> L2normFunctional(dg,true,false);
+        std::shared_ptr< L2normError<dim, nstate, double> > L2normFunctional = 
+                std::make_shared< L2normError<dim, nstate, double> >(dg,true,false);
 
         // initializing an adjoint for this case
-        Adjoint<dim, nstate, double> adjoint(*dg, L2normFunctional, euler_physics_adtype);
+        Adjoint<dim, nstate, double> adjoint(dg, L2normFunctional, euler_physics_adtype);
 
         dealii::Vector<float> estimated_error_per_cell(grid->n_active_cells());
         for (unsigned int igrid=0; igrid<n_grids; ++igrid) {
@@ -255,7 +270,7 @@ int EulerCylinderAdjoint<dim,nstate>
                 dealii::LinearAlgebra::distributed::Vector<double> old_solution(dg->solution);
                 dealii::parallel::distributed::SolutionTransfer<dim, dealii::LinearAlgebra::distributed::Vector<double>, dealii::DoFHandler<dim>> solution_transfer(dg->dof_handler);
                 solution_transfer.prepare_for_coarsening_and_refinement(old_solution);
-                dg->high_order_grid.prepare_for_coarsening_and_refinement();
+                dg->high_order_grid->prepare_for_coarsening_and_refinement();
 
                 // grid->refine_global (1);
                 // dealii::GridRefinement::refine_and_coarsen_fixed_fraction(*grid,
@@ -266,7 +281,7 @@ int EulerCylinderAdjoint<dim,nstate>
                                                0.3,
                                                0.03);
                 grid->execute_coarsening_and_refinement();
-                dg->high_order_grid.execute_coarsening_and_refinement();
+                dg->high_order_grid->execute_coarsening_and_refinement();
                 dg->allocate_system ();
                 dg->solution.zero_out_ghosts();
                 solution_transfer.interpolate(dg->solution);
@@ -293,13 +308,13 @@ int EulerCylinderAdjoint<dim,nstate>
             // Solve the steady state problem
             ode_solver->steady_state();
 
-            const auto mapping = (*(dg->high_order_grid.mapping_fe_field));
+            const auto mapping = (*(dg->high_order_grid->mapping_fe_field));
             dealii::hp::MappingCollection<dim> mapping_collection(mapping);
             dealii::hp::FEValues<dim,dim> fe_values_collection_volume (mapping_collection, dg->fe_collection, dg->volume_quadrature_collection, dealii::update_values | dealii::update_JxW_values); ///< FEValues of volume.
             // Overintegrate the error to make sure there is not integration error in the error estimate
             //int overintegrate = 0;
             //dealii::QGauss<dim> quad_extra(dg->max_degree+1+overintegrate);
-            //dealii::FEValues<dim,dim> fe_values_extra(*(dg->high_order_grid.mapping_fe_field), dg->fe_collection[poly_degree], quad_extra, 
+            //dealii::FEValues<dim,dim> fe_values_extra(*(dg->high_order_grid->mapping_fe_field), dg->fe_collection[poly_degree], quad_extra, 
             //        dealii::update_values | dealii::update_JxW_values | dealii::update_quadrature_points);
             std::array<double,nstate> soln_at_q;
 
@@ -308,7 +323,7 @@ int EulerCylinderAdjoint<dim,nstate>
             const double exact_area = (std::pow(outer_radius_adjoint+inner_radius_adjoint, 2.0) - std::pow(inner_radius_adjoint,2.0))*dealii::numbers::PI / 2.0;
 
 
-            const double entropy_inf = euler_physics_double.entropy_inf;
+            const double entropy_inf = euler_physics_double->entropy_inf;
 
             estimated_error_per_cell.reinit(grid->n_active_cells());
             // Integrate solution error and output error
@@ -335,7 +350,7 @@ int EulerCylinderAdjoint<dim,nstate>
                         const unsigned int istate = fe_values_volume.get_fe().system_to_component_index(idof).first;
                         soln_at_q[istate] += dg->solution[dofs_indices[idof]] * fe_values_volume.shape_value_component(idof, iquad, istate);
                     }
-                    const double entropy = euler_physics_double.compute_entropy_measure(soln_at_q);
+                    const double entropy = euler_physics_double->compute_entropy_measure(soln_at_q);
 
                     const double uexact = entropy_inf;
                     cell_l2error += pow(entropy - uexact, 2) * fe_values_volume.JxW(iquad);
@@ -343,28 +358,28 @@ int EulerCylinderAdjoint<dim,nstate>
                     area += fe_values_volume.JxW(iquad);
                 }
 
-                estimated_error_per_cell[cell->active_cell_index()] = cell_l2error;
+                // estimated_error_per_cell[cell->active_cell_index()] = cell_l2error;
                 l2error += cell_l2error;
             }
             const double l2error_mpi_sum = std::sqrt(dealii::Utilities::MPI::sum(l2error, mpi_communicator));
             const double area_mpi_sum = dealii::Utilities::MPI::sum(area, mpi_communicator);
 
             // computing using Functional for comparison
-            const double l2error_functional = L2normFunctional.evaluate_functional(false,false);
+            const double l2error_functional = L2normFunctional->evaluate_functional(false,false);
             pcout << "Error computed by original loop: " << l2error_mpi_sum << std::endl << "Error computed by the functional: " << std::sqrt(l2error_functional) << std::endl; 
 
             // reinitializing the adjoint with the current values (from references)
             adjoint.reinit();
 
             // evaluating the derivatives and the adjoint on the fine grid
-            adjoint.convert_to_state(AdjointEnum::fine); // will do this automatically, but I prefer to repeat explicitly
+            adjoint.convert_to_state(PHiLiP::Adjoint<dim,nstate,double>::AdjointStateEnum::fine); // will do this automatically, but I prefer to repeat explicitly
             adjoint.fine_grid_adjoint();
             estimated_error_per_cell = adjoint.dual_weighted_residual(); // performing the error indicator computation
 
             // and outputing the fine properties
             adjoint.output_results_vtk(igrid);
 
-            adjoint.convert_to_state(AdjointEnum::coarse); // this one is necessary though
+            adjoint.convert_to_state(PHiLiP::Adjoint<dim,nstate,double>::AdjointStateEnum::coarse); // this one is necessary though
             adjoint.coarse_grid_adjoint();
             adjoint.output_results_vtk(igrid);
 

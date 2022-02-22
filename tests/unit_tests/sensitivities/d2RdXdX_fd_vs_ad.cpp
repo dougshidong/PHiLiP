@@ -12,15 +12,12 @@
 
 #include <deal.II/dofs/dof_tools.h>
 
-#include "ode_solver/ode_solver.h"
+#include "ode_solver/ode_solver_factory.h"
 #include "dg/dg_factory.hpp"
 #include "parameters/parameters.h"
 #include "physics/physics_factory.h"
-#include "numerical_flux/numerical_flux.h"
 
 using PDEType  = PHiLiP::Parameters::AllParameters::PartialDifferentialEquation;
-using ConvType = PHiLiP::Parameters::AllParameters::ConvectiveNumericalFlux;
-using DissType = PHiLiP::Parameters::AllParameters::DissipativeNumericalFlux;
 
 #if PHILIP_DIM==1
     using Triangulation = dealii::Triangulation<PHILIP_DIM>;
@@ -40,28 +37,28 @@ const double EPS = 1E-4;
 //    )
 //{
 //    double old_inode, old_jnode;
-//    PHiLiP::HighOrderGrid<dim,double> &high_order_grid = dg->high_order_grid;
+//    std::shared_ptr<PHiLiP::HighOrderGrid<dim,double>> high_order_grid = dg->high_order_grid;
 //
 //    if (inode_relevant) {
-//        old_inode = high_order_grid.volume_nodes(inode);
-//        high_order_grid.volume_nodes(inode) = old_inode+dipert*EPS;
+//        old_inode = high_order_grid->volume_nodes(inode);
+//        high_order_grid->volume_nodes(inode) = old_inode+dipert*EPS;
 //    }
 //    if (jnode_relevant) {
-//        old_jnode = high_order_grid.volume_nodes(jnode);
+//        old_jnode = high_order_grid->volume_nodes(jnode);
 //        if (inode == jnode) {
-//            high_order_grid.volume_nodes(jnode) += j*EPS;
+//            high_order_grid->volume_nodes(jnode) += j*EPS;
 //        } else {
-//            high_order_grid.volume_nodes(jnode) = old_jnode+djpert*EPS;
+//            high_order_grid->volume_nodes(jnode) = old_jnode+djpert*EPS;
 //        }
 //    }
 //    dg->assemble_residual(false, false, false);
 //    perturbed_dual_dot_residual[ij] = dg->right_hand_side * dg->dual;
 //
 //    if (inode_relevant) {
-//        high_order_grid.volume_nodes(inode) = old_inode;
+//        high_order_grid->volume_nodes(inode) = old_inode;
 //    }
 //    if (jnode_relevant) {
-//        high_order_grid.volume_nodes(jnode) = old_jnode;
+//        high_order_grid->volume_nodes(jnode) = old_jnode;
 //    }
 /** This test checks that dRdX evaluated using automatic differentiation
  *  matches with the results obtained using finite-difference.
@@ -80,7 +77,7 @@ int test (
 
     const int n_refine = 1;
     for (int i=0; i<n_refine;i++) {
-        dg->high_order_grid.prepare_for_coarsening_and_refinement();
+        dg->high_order_grid->prepare_for_coarsening_and_refinement();
         grid->prepare_coarsening_and_refinement();
         unsigned int icell = 0;
         for (auto cell = grid->begin_active(); cell!=grid->end(); ++cell) {
@@ -92,7 +89,7 @@ int test (
         }
         grid->execute_coarsening_and_refinement();
         bool mesh_out = (i==n_refine-1);
-        dg->high_order_grid.execute_coarsening_and_refinement(mesh_out);
+        dg->high_order_grid->execute_coarsening_and_refinement(mesh_out);
     }
     dg->allocate_system ();
 
@@ -117,7 +114,7 @@ int test (
     //dg->solution.update_ghost_values();
 
     // Solving the flow to make sure that we're not at the point of non-differentiality between elements.
-    std::shared_ptr<PHiLiP::ODE::ODESolver<dim, double>> ode_solver = PHiLiP::ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
+    std::shared_ptr<PHiLiP::ODE::ODESolverBase<dim, double>> ode_solver = PHiLiP::ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
     ode_solver->steady_state();
 
     // Set dual to 1.0 so that every 2nd derivative of the residual is accounted for.
@@ -134,39 +131,39 @@ int test (
     dealii::TrilinosWrappers::SparseMatrix d2RdXdX_fd;
     dealii::SparsityPattern sparsity_pattern = dg->get_d2RdXdX_sparsity_pattern();
 
-    const dealii::IndexSet &row_parallel_partitioning = dg->high_order_grid.locally_owned_dofs_grid;
-    //const dealii::IndexSet &col_parallel_partitioning = dg->high_order_grid.locally_relevant_dofs_grid;
-    const dealii::IndexSet &col_parallel_partitioning = dg->high_order_grid.locally_owned_dofs_grid;
+    const dealii::IndexSet &row_parallel_partitioning = dg->high_order_grid->locally_owned_dofs_grid;
+    //const dealii::IndexSet &col_parallel_partitioning = dg->high_order_grid->locally_relevant_dofs_grid;
+    const dealii::IndexSet &col_parallel_partitioning = dg->high_order_grid->locally_owned_dofs_grid;
     d2RdXdX_fd.reinit(row_parallel_partitioning, col_parallel_partitioning, sparsity_pattern, MPI_COMM_WORLD);
 
-    PHiLiP::HighOrderGrid<dim,double> &high_order_grid = dg->high_order_grid;
+    std::shared_ptr<PHiLiP::HighOrderGrid<dim,double>> high_order_grid = dg->high_order_grid;
 
     using nodeVector = dealii::LinearAlgebra::distributed::Vector<double>;
-    nodeVector old_volume_nodes = high_order_grid.volume_nodes;
+    nodeVector old_volume_nodes = high_order_grid->volume_nodes;
     old_volume_nodes.update_ghost_values();
 
     pcout << "Evaluating FD..." << std::endl;
-    for (unsigned int inode = 0; inode<high_order_grid.dof_handler_grid.n_dofs(); ++inode) {
+    for (unsigned int inode = 0; inode<high_order_grid->dof_handler_grid.n_dofs(); ++inode) {
 
-        if (inode % 1 == 0) pcout << "inode " << inode+1 << " out of " << high_order_grid.dof_handler_grid.n_dofs() << std::endl;
+        if (inode % 1 == 0) pcout << "inode " << inode+1 << " out of " << high_order_grid->dof_handler_grid.n_dofs() << std::endl;
 
-        for (unsigned int jnode = inode; jnode<high_order_grid.dof_handler_grid.n_dofs(); ++jnode) {
+        for (unsigned int jnode = inode; jnode<high_order_grid->dof_handler_grid.n_dofs(); ++jnode) {
 
             const bool local_isnonzero = sparsity_pattern.exists(inode,jnode);
             bool global_isnonzero;
             MPI_Allreduce(&local_isnonzero, &global_isnonzero, 1, MPI::BOOL, MPI_LOR, MPI_COMM_WORLD);
             if (!global_isnonzero) continue;
 
-            const bool inode_relevant = high_order_grid.locally_relevant_dofs_grid.is_element(inode);
-            const bool jnode_relevant = high_order_grid.locally_relevant_dofs_grid.is_element(jnode);
+            const bool inode_relevant = high_order_grid->locally_relevant_dofs_grid.is_element(inode);
+            const bool jnode_relevant = high_order_grid->locally_relevant_dofs_grid.is_element(jnode);
             double old_inode = -99999;
             double old_jnode = -99999;
 
             if (inode_relevant) {
-                old_inode = high_order_grid.volume_nodes[inode];
+                old_inode = high_order_grid->volume_nodes[inode];
             }
             if (jnode_relevant) {
-                old_jnode = high_order_grid.volume_nodes[jnode];
+                old_jnode = high_order_grid->volume_nodes[jnode];
             }
             std::array<std::array<int, 2>, 25> pert;
             for (int i=-2; i<3; ++i) {
@@ -184,23 +181,23 @@ int test (
                     int ij = (i+2)*5 + (j+2);
 
                     if (inode_relevant) {
-                        high_order_grid.volume_nodes(inode) = old_inode+i*EPS;
+                        high_order_grid->volume_nodes(inode) = old_inode+i*EPS;
                     }
                     if (jnode_relevant) {
                         if (inode == jnode) {
-                            high_order_grid.volume_nodes(jnode) += j*EPS;
+                            high_order_grid->volume_nodes(jnode) += j*EPS;
                         } else {
-                            high_order_grid.volume_nodes(jnode) = old_jnode+j*EPS;
+                            high_order_grid->volume_nodes(jnode) = old_jnode+j*EPS;
                         }
                     }
                     dg->assemble_residual(false, false, false);
                     perturbed_dual_dot_residual[ij] = dg->right_hand_side * dg->dual;
 
                     if (inode_relevant) {
-                        high_order_grid.volume_nodes(inode) = old_inode;
+                        high_order_grid->volume_nodes(inode) = old_inode;
                     }
                     if (jnode_relevant) {
-                        high_order_grid.volume_nodes(jnode) = old_jnode;
+                        high_order_grid->volume_nodes(jnode) = old_jnode;
                     }
                 }
             }
@@ -262,19 +259,19 @@ int test (
 
             // Reset node
             if (inode_relevant) {
-                high_order_grid.volume_nodes(inode) = old_inode;
+                high_order_grid->volume_nodes(inode) = old_inode;
             }
             if (jnode_relevant) {
-                high_order_grid.volume_nodes(jnode) = old_jnode;
+                high_order_grid->volume_nodes(jnode) = old_jnode;
             }
 
             // Set
-            if (dg->high_order_grid.locally_owned_dofs_grid.is_element(inode) ) {
+            if (dg->high_order_grid->locally_owned_dofs_grid.is_element(inode) ) {
                 if (std::abs(fd_entry) >= 1e-12) {
                     d2RdXdX_fd.add(inode,jnode,fd_entry);
                 }
             }
-            if (inode != jnode && dg->high_order_grid.locally_owned_dofs_grid.is_element(jnode) ) {
+            if (inode != jnode && dg->high_order_grid->locally_owned_dofs_grid.is_element(jnode) ) {
                 if (std::abs(fd_entry) >= 1e-12) {
                     d2RdXdX_fd.add(jnode,inode,fd_entry);
                 }
@@ -367,6 +364,7 @@ int main (int argc, char * argv[])
          //, PDEType::convection_diffusion
          //, PDEType::advection_vector
          , PDEType::euler
+         , PDEType::navier_stokes
     };
     std::vector<std::string> pde_name {
          " PDEType::diffusion "
@@ -374,6 +372,7 @@ int main (int argc, char * argv[])
         //, " PDEType::convection_diffusion "
         //, " PDEType::advection_vector "
         , " PDEType::euler "
+        , " PDEType::navier_stokes "
     };
 
     int ipde = -1;
@@ -403,7 +402,7 @@ int main (int argc, char * argv[])
                     }
                 }
 
-                if (*pde==PDEType::euler) {
+                if (*pde==PDEType::euler || *pde==PDEType::navier_stokes) {
                     error = test<dim,dim+2>(poly_degree, grid, all_parameters);
                 } else if (*pde==PDEType::burgers_inviscid) {
                     error = test<dim,dim>(poly_degree, grid, all_parameters);

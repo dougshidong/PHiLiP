@@ -25,7 +25,7 @@
 #include "physics/euler.h"
 #include "physics/manufactured_solution.h"
 #include "dg/dg_factory.hpp"
-#include "ode_solver/ode_solver.h"
+#include "ode_solver/ode_solver_factory.h"
 
 #include "functional/functional.h"
 #include "functional/adjoint.h"
@@ -154,7 +154,8 @@ dealii::Tensor<1,dim,real> ManufacturedSolutionV<dim,real>::gradient(const deali
 template <int dim, int nstate, typename real>
 std::array<real,nstate> diffusion_u<dim,nstate,real>::source_term (
     const dealii::Point<dim,real> &pos,
-    const std::array<real,nstate> &/*solution*/) const
+    const std::array<real,nstate> &/*solution*/,
+    const real /*current_time*/) const
 {
     std::array<real,nstate> source;
 
@@ -224,7 +225,8 @@ real diffusion_u<dim,nstate,real>::objective_function (
 template <int dim, int nstate, typename real>
 std::array<real,nstate> diffusion_v<dim,nstate,real>::source_term (
     const dealii::Point<dim,real> &pos,
-    const std::array<real,nstate> &/*solution*/) const
+    const std::array<real,nstate> &/*solution*/,
+    const real /*current_time*/) const
 {
     const double pi = std::acos(-1);
 
@@ -332,7 +334,7 @@ int DiffusionExactAdjoint<dim,nstate>::run_test() const
     using PdeEnum = Parameters::AllParameters::PartialDifferentialEquation;
     Parameters::AllParameters param = *(TestsBase::all_parameters);
 
-    param.manufactured_convergence_study_param.use_manufactured_source_term = true;
+    param.manufactured_convergence_study_param.manufactured_solution_param.use_manufactured_source_term = true;
 
     Assert(dim == param.dimension, dealii::ExcDimensionMismatch(dim, param.dimension));
 
@@ -457,8 +459,7 @@ int DiffusionExactAdjoint<dim,nstate>::run_test() const
 
             // now overriding the original physics on each
             dg_state_u->set_physics(physics_u_double, physics_u_fadtype, physics_u_radtype, physics_u_fadfadtype, physics_u_radfadtype);
-
-            dg_state_v->set_physics(physics_v_double , physics_v_fadtype , physics_v_radtype, physics_v_fadfadtype , physics_v_radfadtype);
+            dg_state_v->set_physics(physics_v_double, physics_v_fadtype, physics_v_radtype, physics_v_fadfadtype, physics_v_radfadtype);
 
             dg_u->allocate_system();
             dg_v->allocate_system();
@@ -469,8 +470,8 @@ int DiffusionExactAdjoint<dim,nstate>::run_test() const
             //dg_v->solution.add(1.1);
             
             // Create ODE solvers using the factory and providing the DG object
-            std::shared_ptr<ODE::ODESolver<dim, double>> ode_solver_u = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg_u);
-            std::shared_ptr<ODE::ODESolver<dim, double>> ode_solver_v = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg_v);
+            std::shared_ptr<ODE::ODESolverBase<dim, double>> ode_solver_u = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg_u);
+            std::shared_ptr<ODE::ODESolverBase<dim, double>> ode_solver_v = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg_v);
 
             // solving
             ode_solver_u->steady_state();
@@ -478,13 +479,13 @@ int DiffusionExactAdjoint<dim,nstate>::run_test() const
 
             pcout << "Creating DiffusionFunctional... " << std::endl; 
             // functional for computations
-            DiffusionFunctional<dim,nstate,double> diffusion_functional_u(dg_u,physics_u_fadfadtype,true,false);
-            DiffusionFunctional<dim,nstate,double> diffusion_functional_v(dg_v,physics_v_fadfadtype,true,false);
+            auto diffusion_functional_u = std::make_shared<DiffusionFunctional<dim,nstate,double>>(dg_u,physics_u_fadfadtype,true,false);
+            auto diffusion_functional_v = std::make_shared<DiffusionFunctional<dim,nstate,double>>(dg_v,physics_v_fadfadtype,true,false);
 
             pcout << "Evaluating functional... " << std::endl; 
             // evaluating functionals from both methods
-            double functional_val_u = diffusion_functional_u.evaluate_functional(false,false);
-            double functional_val_v = diffusion_functional_v.evaluate_functional(false,false);
+            double functional_val_u = diffusion_functional_u->evaluate_functional(false,false);
+            double functional_val_v = diffusion_functional_v->evaluate_functional(false,false);
 
             // comparison betweent the values, add these to the convergence table
             pcout << std::endl << "Val1 = " << functional_val_u << "\tVal2 = " << functional_val_v << std::endl << std::endl; 
@@ -496,8 +497,8 @@ int DiffusionExactAdjoint<dim,nstate>::run_test() const
             pcout << std::endl << "error_val1 = " << error_functional_u << "\terror_val2 = " << error_functional_v << std::endl << std::endl; 
 
             // // Initializing the adjoints for each problem
-            Adjoint<dim, nstate, double> adj_u(*dg_u, diffusion_functional_u, *physics_u_fadtype.get());
-            Adjoint<dim, nstate, double> adj_v(*dg_v, diffusion_functional_v, *physics_v_fadtype.get());
+            Adjoint<dim, nstate, double> adj_u(dg_u, diffusion_functional_u, physics_u_fadtype);
+            Adjoint<dim, nstate, double> adj_v(dg_v, diffusion_functional_v, physics_v_fadtype);
 
             // solving for each coarse adjoint
             pcout << "Solving for the discrete adjoints." << std::endl;
@@ -507,7 +508,7 @@ int DiffusionExactAdjoint<dim,nstate>::run_test() const
             // using overintegration for estimating the error in the adjoint
             int overintegrate = 10;
             dealii::QGauss<dim> quad_extra(poly_degree+overintegrate);
-            dealii::FEValues<dim,dim> fe_values_extra(*(dg_u->high_order_grid.mapping_fe_field), dg_u->fe_collection[poly_degree], quad_extra, 
+            dealii::FEValues<dim,dim> fe_values_extra(*(dg_u->high_order_grid->mapping_fe_field), dg_u->fe_collection[poly_degree], quad_extra, 
                     dealii::update_values | dealii::update_JxW_values | dealii::update_quadrature_points);
             const unsigned int n_quad_pts = fe_values_extra.n_quadrature_points;
 

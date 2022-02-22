@@ -2,6 +2,8 @@
 #define __PARAMETERS_MANUFACTURED_CONVERGENCE_STUDY_H__
 
 #include <deal.II/base/parameter_handler.h>
+
+#include "parameters/parameters_manufactured_solution.h"
 #include "parameters/parameters.h"
 
 namespace PHiLiP {
@@ -13,8 +15,8 @@ class ManufacturedConvergenceStudyParam
 public:
     ManufacturedConvergenceStudyParam (); ///< Constructor
 
-    /// Uses non-zero source term based on the manufactured solution and the PDE.
-    bool use_manufactured_source_term;
+    /// Associated manufactured solution parameters
+    ManufacturedSolutionParam manufactured_solution_param;
 
     /// Types of grids that can be used for convergence study.
     /** Hypercube is simply a square from 0,1 in multiple dimensions.
@@ -59,6 +61,15 @@ public:
 
     /// Tolerance within which the convergence orders are considered to be optimal.
     double slope_deficit_tolerance;
+
+    /// Output the convergence tables (for each p) as txt files; currently only works for tests using grid_study.cpp
+    bool output_convergence_tables;
+
+    /// Output the solution files (for each p and grid) as vtu and pvtu files; currently only works for tests using grid_study.cpp
+    bool output_solution;
+
+    /// Adds the statewise solution L2 error to the convergence tables; currently only works for tests using grid_study.cpp
+    bool add_statewise_solution_error_to_convergence_tables;
 
     /// Declares the possible variables and sets the defaults.
     static void declare_parameters (dealii::ParameterHandler &prm);

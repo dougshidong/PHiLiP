@@ -1,0 +1,58 @@
+# Listing of Parameters
+# ---------------------
+
+set test_type = reduced_order
+
+# Number of dimensions
+set dimension = 1
+
+# The PDE we want to solve.
+set pde_type  = burgers_rewienski
+set use_weak_form = true
+set use_collocated_nodes = false
+
+# use the grid refinement study class to generate the grid
+subsection grid refinement study
+ set num_refinements = 10
+ set poly_degree = 0
+ set grid_left = 0.0
+ set grid_right = 100.0
+end
+
+#Reduced order parameters
+subsection reduced order
+  set rewienski_a = 3.0
+  set rewienski_b = 0.02
+end
+
+subsection flow_solver
+  set final_time = 0.5
+end
+
+subsection linear solver
+  set linear_solver_type = direct
+end
+
+subsection ODE solver
+  set initial_time_step = 0.05
+  # Maximum nonlinear solver iterations
+  set nonlinear_max_iterations            = 500
+
+  # Nonlinear solver residual tolerance
+  set nonlinear_steady_residual_tolerance = 1e-12
+
+  # Print every print_iteration_modulo iterations of the nonlinear solver
+  set print_iteration_modulo              = 1
+
+  # Output solution every output_solution_vector_modulo iterations in text file
+  set output_solution_vector_modulo        = 0
+
+  # Explicit or implicit solverChoices are <explicit|implicit>.
+  set ode_solver_type                         = pod_galerkin
+end
+
+subsection manufactured solution convergence study
+  set use_manufactured_source_term = true
+end
+
+

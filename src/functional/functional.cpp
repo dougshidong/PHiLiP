@@ -1,7 +1,12 @@
 // includes
 #include <vector>
+#include <algorithm>
 
 #include <Sacado.hpp>
+
+#include <deal.II/base/function.h>
+#include <deal.II/base/symmetric_tensor.h>
+
 #include <deal.II/lac/la_parallel_vector.h>
 
 #include <deal.II/differentiation/ad/sacado_math.h>
@@ -18,13 +23,255 @@
 #include "dg/dg.h"
 #include "functional.h"
 
+/// Returns y = Ax.
+/** Had to rewrite this instead of 
+ *  dealii::contract<1,0>(A,x);
+ *  because contract doesn't allow the use of codi variables.
+ */
+template<int dim, typename real1, typename real2>
+dealii::Tensor<1,dim,real1> vmult(const dealii::Tensor<2,dim,real1> A, const dealii::Tensor<1,dim,real2> x)
+{
+     dealii::Tensor<1,dim,real1> y;
+     for (int row=0;row<dim;++row) {
+         y[row] = 0.0;
+         for (int col=0;col<dim;++col) {
+             y[row] += A[row][col] * x[col];
+         }
+     }
+     return y;
+}
+
+/// Returns norm of dealii::Tensor<1,dim,real>
+/** Had to rewrite this instead of 
+ *  x.norm()
+ *  because norm() doesn't allow the use of codi variables.
+ */
+template<int dim, typename real1>
+real1 norm(const dealii::Tensor<1,dim,real1> x)
+{
+     real1 val = 0.0;
+     for (int row=0;row<dim;++row) {
+         val += x[row] * x[row];
+     }
+     return sqrt(val);
+}
+
 namespace PHiLiP {
 
-template <int dim, int nstate, typename real>
-Functional<dim,nstate,real>::Functional(
-    std::shared_ptr<DGBase<dim,real>> _dg,
-    const bool _uses_solution_values,
-    const bool _uses_solution_gradient)
+template <int dim, int nstate, typename real, typename MeshType>
+FunctionalNormLpVolume<dim,nstate,real,MeshType>::FunctionalNormLpVolume(
+    const double                               _normLp,
+    std::shared_ptr<DGBase<dim,real,MeshType>> _dg,
+    const bool                                 _uses_solution_values,
+    const bool                                 _uses_solution_gradient) : 
+        Functional<dim,nstate,real,MeshType>::Functional(_dg, _uses_solution_values, _uses_solution_gradient),
+        normLp(_normLp) {}
+
+template <int dim, int nstate, typename real, typename MeshType>
+template <typename real2>
+real2 FunctionalNormLpVolume<dim,nstate,real,MeshType>::evaluate_volume_integrand(
+    const PHiLiP::Physics::PhysicsBase<dim,nstate,real2> &/*physics*/,
+    const dealii::Point<dim,real2> &                      /*phys_coord*/,
+    const std::array<real2,nstate> &                      soln_at_q,
+    const std::array<dealii::Tensor<1,dim,real2>,nstate> &/*soln_grad_at_q*/) const
+{
+    real2 lpnorm_value = 0;
+    for(unsigned int istate = 0; istate < nstate; ++istate)
+        lpnorm_value += pow(abs(soln_at_q[istate]), this->normLp);
+    return lpnorm_value;
+}
+
+template <int dim, int nstate, typename real, typename MeshType>
+FunctionalNormLpBoundary<dim,nstate,real,MeshType>::FunctionalNormLpBoundary(
+    const double                               _normLp,
+    std::vector<unsigned int>                  _boundary_vector,
+    const bool                                 _use_all_boundaries,
+    std::shared_ptr<DGBase<dim,real,MeshType>> _dg,
+    const bool                                 _uses_solution_values,
+    const bool                                 _uses_solution_gradient) : 
+        Functional<dim,nstate,real,MeshType>::Functional(_dg, _uses_solution_values, _uses_solution_gradient),
+        normLp(_normLp),
+        boundary_vector(_boundary_vector),
+        use_all_boundaries(_use_all_boundaries) {}
+
+template <int dim, int nstate, typename real, typename MeshType>
+template <typename real2>
+real2 FunctionalNormLpBoundary<dim,nstate,real,MeshType>::evaluate_boundary_integrand(
+    const PHiLiP::Physics::PhysicsBase<dim,nstate,real2> &/* physics */,
+    const unsigned int                                    boundary_id,
+    const dealii::Point<dim,real2> &                      /* phys_coord */,
+    const dealii::Tensor<1,dim,real2> &                   /* normal */,
+    const std::array<real2,nstate> &                      soln_at_q,
+    const std::array<dealii::Tensor<1,dim,real2>,nstate> &/* soln_grad_at_q */) const
+{
+    real2 lpnorm_value = 0;
+
+    // condition for whether the current cell should be evaluated
+    auto boundary_vector_index = std::find(this->boundary_vector.begin(), this->boundary_vector.end(), boundary_id);
+    bool eval_boundary = this->use_all_boundaries || boundary_vector_index != this->boundary_vector.end();
+
+    if(!eval_boundary)
+        return lpnorm_value;
+
+    for(unsigned int istate = 0; istate < nstate; ++istate)
+        lpnorm_value += pow(abs(soln_at_q[istate]), this->normLp);
+
+    return lpnorm_value;
+}
+
+template <int dim, int nstate, typename real, typename MeshType>
+FunctionalWeightedIntegralVolume<dim,nstate,real,MeshType>::FunctionalWeightedIntegralVolume(
+    std::shared_ptr<ManufacturedSolutionFunction<dim,real>>                    _weight_function_double,
+    std::shared_ptr<ManufacturedSolutionFunction<dim,FadFadType>>              _weight_function_adtype,
+    const bool                                                                 _use_weight_function_laplacian,
+    std::shared_ptr<DGBase<dim,real,MeshType>>                                 _dg,
+    const bool                                                                 _uses_solution_values,
+    const bool                                                                 _uses_solution_gradient) : 
+        Functional<dim,nstate,real,MeshType>::Functional(_dg, _uses_solution_values, _uses_solution_gradient),
+        weight_function_double(_weight_function_double),
+        weight_function_adtype(_weight_function_adtype),
+        use_weight_function_laplacian(_use_weight_function_laplacian) {}
+
+template <int dim, int nstate, typename real, typename MeshType>
+template <typename real2>
+real2 FunctionalWeightedIntegralVolume<dim,nstate,real,MeshType>::evaluate_volume_integrand(
+    const PHiLiP::Physics::PhysicsBase<dim,nstate,real2> &  /*physics*/,
+    const dealii::Point<dim,real2> &                        phys_coord,
+    const std::array<real2,nstate> &                        soln_at_q,
+    const std::array<dealii::Tensor<1,dim,real2>,nstate> &  /*soln_grad_at_q*/,
+    std::shared_ptr<ManufacturedSolutionFunction<dim,real2>> weight_function) const
+{
+    real2 val = 0;
+
+    if(this->use_weight_function_laplacian){
+        for(unsigned int istate = 0; istate < nstate; ++istate)
+            val += soln_at_q[istate] * dealii::trace(weight_function->hessian(phys_coord, istate));
+    }else{
+        for(unsigned int istate = 0; istate < nstate; ++istate)
+            val += soln_at_q[istate] * weight_function->value(phys_coord, istate);
+    }
+
+    return val;
+}
+
+template <int dim, int nstate, typename real, typename MeshType>
+FunctionalWeightedIntegralBoundary<dim,nstate,real,MeshType>::FunctionalWeightedIntegralBoundary(
+    std::shared_ptr<ManufacturedSolutionFunction<dim,real>>                    _weight_function_double,
+    std::shared_ptr<ManufacturedSolutionFunction<dim,FadFadType>>              _weight_function_adtype,
+    const bool                                                                 _use_weight_function_laplacian,
+    std::vector<unsigned int>                                                  _boundary_vector,
+    const bool                                                                 _use_all_boundaries,
+    std::shared_ptr<DGBase<dim,real,MeshType>>                                 _dg,
+    const bool                                                                 _uses_solution_values,
+    const bool                                                                 _uses_solution_gradient) : 
+        Functional<dim,nstate,real,MeshType>::Functional(_dg, _uses_solution_values, _uses_solution_gradient),
+        weight_function_double(_weight_function_double),
+        weight_function_adtype(_weight_function_adtype),
+        use_weight_function_laplacian(_use_weight_function_laplacian),
+        boundary_vector(_boundary_vector),
+        use_all_boundaries(_use_all_boundaries) {}
+
+template <int dim, int nstate, typename real, typename MeshType>
+template <typename real2>
+real2 FunctionalWeightedIntegralBoundary<dim,nstate,real,MeshType>::evaluate_boundary_integrand(
+    const PHiLiP::Physics::PhysicsBase<dim,nstate,real2> &/* physics */,
+    const unsigned int                                    boundary_id,
+    const dealii::Point<dim,real2> &                      phys_coord,
+    const dealii::Tensor<1,dim,real2> &                   /* normal */,
+    const std::array<real2,nstate> &                      soln_at_q,
+    const std::array<dealii::Tensor<1,dim,real2>,nstate> &/* soln_grad_at_q */,
+    std::shared_ptr<ManufacturedSolutionFunction<dim,real2>> weight_function) const
+{
+    real2 val = 0;
+
+    // condition for whether the current cell should be evaluated
+    auto boundary_vector_index = std::find(this->boundary_vector.begin(), this->boundary_vector.end(), boundary_id);
+    bool eval_boundary = this->use_all_boundaries || boundary_vector_index != this->boundary_vector.end();
+
+    if(!eval_boundary)
+        return val;
+
+    if(this->use_weight_function_laplacian){
+        for(unsigned int istate = 0; istate < nstate; ++istate)
+            val += soln_at_q[istate] * dealii::trace(weight_function->hessian(phys_coord, istate));
+    }else{
+        for(unsigned int istate = 0; istate < nstate; ++istate)
+            val += soln_at_q[istate] * weight_function->value(phys_coord, istate);
+    }
+
+    return val;
+}
+
+template <int dim, int nstate, typename real, typename MeshType>
+FunctionalErrorNormLpVolume<dim,nstate,real,MeshType>::FunctionalErrorNormLpVolume(
+    const double                               _normLp,
+    std::shared_ptr<DGBase<dim,real,MeshType>> _dg,
+    const bool                                 _uses_solution_values,
+    const bool                                 _uses_solution_gradient) : 
+        Functional<dim,nstate,real,MeshType>::Functional(_dg, _uses_solution_values, _uses_solution_gradient),
+        normLp(_normLp) {}
+
+template <int dim, int nstate, typename real, typename MeshType>
+template <typename real2>
+real2 FunctionalErrorNormLpVolume<dim,nstate,real,MeshType>::evaluate_volume_integrand(
+    const PHiLiP::Physics::PhysicsBase<dim,nstate,real2> &physics,
+    const dealii::Point<dim,real2> &                      phys_coord,
+    const std::array<real2,nstate> &                      soln_at_q,
+    const std::array<dealii::Tensor<1,dim,real2>,nstate> &/*soln_grad_at_q*/) const
+{
+    real2 lpnorm_value = 0;
+    for(unsigned int istate = 0; istate < nstate; ++istate){
+        const real2 uexact = physics.manufactured_solution_function->value(phys_coord, istate);
+        lpnorm_value += pow(abs(soln_at_q[istate] - uexact), this->normLp);
+    }
+    return lpnorm_value;
+}
+
+template <int dim, int nstate, typename real, typename MeshType>
+FunctionalErrorNormLpBoundary<dim,nstate,real,MeshType>::FunctionalErrorNormLpBoundary(
+    const double                               _normLp,
+    std::vector<unsigned int>                  _boundary_vector,
+    const bool                                 _use_all_boundaries,
+    std::shared_ptr<DGBase<dim,real,MeshType>> _dg,
+    const bool                                 _uses_solution_values,
+    const bool                                 _uses_solution_gradient) : 
+        Functional<dim,nstate,real,MeshType>::Functional(_dg, _uses_solution_values, _uses_solution_gradient),
+        normLp(_normLp),
+        boundary_vector(_boundary_vector),
+        use_all_boundaries(_use_all_boundaries) {}
+
+template <int dim, int nstate, typename real, typename MeshType>
+template <typename real2>
+real2 FunctionalErrorNormLpBoundary<dim,nstate,real,MeshType>::evaluate_boundary_integrand(
+    const PHiLiP::Physics::PhysicsBase<dim,nstate,real2> &physics,
+    const unsigned int                                    boundary_id,
+    const dealii::Point<dim,real2> &                      phys_coord,
+    const dealii::Tensor<1,dim,real2> &                   /* normal */,
+    const std::array<real2,nstate> &                      soln_at_q,
+    const std::array<dealii::Tensor<1,dim,real2>,nstate> &/* soln_grad_at_q */) const
+{
+     real2 lpnorm_value = 0;
+
+    // condition for whether the current cell should be evaluated
+    auto boundary_vector_index = std::find(this->boundary_vector.begin(), this->boundary_vector.end(), boundary_id);
+    bool eval_boundary = this->use_all_boundaries || boundary_vector_index != this->boundary_vector.end();
+
+    if(!eval_boundary)
+        return lpnorm_value;
+
+    for(int istate = 0; istate < nstate; ++istate){
+        const real2 uexact = physics.manufactured_solution_function->value(phys_coord, istate);
+        lpnorm_value += pow(abs(soln_at_q[istate] - uexact), this->normLp);
+    }
+
+    return lpnorm_value;
+}
+
+template <int dim, int nstate, typename real, typename MeshType>
+Functional<dim,nstate,real,MeshType>::Functional(
+    std::shared_ptr<DGBase<dim,real,MeshType>> _dg,
+    const bool                                 _uses_solution_values,
+    const bool                                 _uses_solution_gradient)
     : dg(_dg)
     , uses_solution_values(_uses_solution_values)
     , uses_solution_gradient(_uses_solution_gradient)
@@ -36,33 +283,33 @@ Functional<dim,nstate,real>::Functional(
 
     init_vectors();
 }
-template <int dim, int nstate, typename real>
-void Functional<dim,nstate,real>::init_vectors()
+template <int dim, int nstate, typename real, typename MeshType>
+void Functional<dim,nstate,real,MeshType>::init_vectors()
 {
     solution_value.reinit(dg->solution);
     solution_value *= 0.0;
-    volume_nodes_value.reinit(dg->high_order_grid.volume_nodes);
+    volume_nodes_value.reinit(dg->high_order_grid->volume_nodes);
     volume_nodes_value *= 0.0;
 
     solution_dIdW.reinit(dg->solution);
     solution_dIdW *= 0.0;
-    volume_nodes_dIdW.reinit(dg->high_order_grid.volume_nodes);
+    volume_nodes_dIdW.reinit(dg->high_order_grid->volume_nodes);
     volume_nodes_dIdW *= 0.0;
 
     solution_dIdX.reinit(dg->solution);
     solution_dIdX *= 0.0;
-    volume_nodes_dIdX.reinit(dg->high_order_grid.volume_nodes);
+    volume_nodes_dIdX.reinit(dg->high_order_grid->volume_nodes);
     volume_nodes_dIdX *= 0.0;
 
     solution_d2I.reinit(dg->solution);
     solution_d2I *= 0.0;
-    volume_nodes_d2I.reinit(dg->high_order_grid.volume_nodes);
+    volume_nodes_d2I.reinit(dg->high_order_grid->volume_nodes);
     volume_nodes_d2I *= 0.0;
 }
 
-template <int dim, int nstate, typename real>
-Functional<dim,nstate,real>::Functional(
-    std::shared_ptr<PHiLiP::DGBase<dim,real>> _dg,
+template <int dim, int nstate, typename real, typename MeshType>
+Functional<dim,nstate,real,MeshType>::Functional(
+    std::shared_ptr<PHiLiP::DGBase<dim,real,MeshType>> _dg,
     std::shared_ptr<PHiLiP::Physics::PhysicsBase<dim,nstate,Sacado::Fad::DFad<Sacado::Fad::DFad<real>> >> _physics_fad_fad,
     const bool _uses_solution_values,
     const bool _uses_solution_gradient)
@@ -71,32 +318,32 @@ Functional<dim,nstate,real>::Functional(
     physics_fad_fad = _physics_fad_fad;
 }
 
-template <int dim, int nstate, typename real>
-void Functional<dim,nstate,real>::set_state(const dealii::LinearAlgebra::distributed::Vector<real> &solution_set)
+template <int dim, int nstate, typename real, typename MeshType>
+void Functional<dim,nstate,real,MeshType>::set_state(const dealii::LinearAlgebra::distributed::Vector<real> &solution_set)
 {
     dg->solution = solution_set;
 }
 
-template <int dim, int nstate, typename real>
-void Functional<dim,nstate,real>::set_geom(const dealii::LinearAlgebra::distributed::Vector<real> &volume_nodes_set)
+template <int dim, int nstate, typename real, typename MeshType>
+void Functional<dim,nstate,real,MeshType>::set_geom(const dealii::LinearAlgebra::distributed::Vector<real> &volume_nodes_set)
 {
-    dg->high_order_grid.volume_nodes = volume_nodes_set;
+    dg->high_order_grid->volume_nodes = volume_nodes_set;
 }
 
-template <int dim, int nstate, typename real>
-void Functional<dim,nstate,real>::allocate_dIdX(dealii::LinearAlgebra::distributed::Vector<real> &dIdX) const
+template <int dim, int nstate, typename real, typename MeshType>
+void Functional<dim,nstate,real,MeshType>::allocate_dIdX(dealii::LinearAlgebra::distributed::Vector<real> &dIdX) const
 {
     // allocating the vector
-    dealii::IndexSet locally_owned_dofs = dg->high_order_grid.dof_handler_grid.locally_owned_dofs();
+    dealii::IndexSet locally_owned_dofs = dg->high_order_grid->dof_handler_grid.locally_owned_dofs();
     dealii::IndexSet locally_relevant_dofs, ghost_dofs;
-    dealii::DoFTools::extract_locally_relevant_dofs(dg->high_order_grid.dof_handler_grid, locally_relevant_dofs);
+    dealii::DoFTools::extract_locally_relevant_dofs(dg->high_order_grid->dof_handler_grid, locally_relevant_dofs);
     ghost_dofs = locally_relevant_dofs;
     ghost_dofs.subtract_set(locally_owned_dofs);
     dIdX.reinit(locally_owned_dofs, ghost_dofs, MPI_COMM_WORLD);
 }
 
-template <int dim, int nstate, typename real>
-void Functional<dim,nstate,real>::allocate_derivatives(const bool compute_dIdW, const bool compute_dIdX, const bool compute_d2I)
+template <int dim, int nstate, typename real, typename MeshType>
+void Functional<dim,nstate,real,MeshType>::allocate_derivatives(const bool compute_dIdW, const bool compute_dIdX, const bool compute_d2I)
 {
     if (compute_dIdW) {
         // allocating the vector
@@ -110,7 +357,7 @@ void Functional<dim,nstate,real>::allocate_derivatives(const bool compute_dIdW, 
         {
             dealii::SparsityPattern sparsity_pattern_d2IdWdX = dg->get_d2RdWdX_sparsity_pattern ();
             const dealii::IndexSet &row_parallel_partitioning_d2IdWdX = dg->locally_owned_dofs;
-            const dealii::IndexSet &col_parallel_partitioning_d2IdWdX = dg->high_order_grid.locally_owned_dofs_grid;
+            const dealii::IndexSet &col_parallel_partitioning_d2IdWdX = dg->high_order_grid->locally_owned_dofs_grid;
             d2IdWdX.reinit(row_parallel_partitioning_d2IdWdX, col_parallel_partitioning_d2IdWdX, sparsity_pattern_d2IdWdX, MPI_COMM_WORLD);
         }
 
@@ -123,16 +370,16 @@ void Functional<dim,nstate,real>::allocate_derivatives(const bool compute_dIdW, 
 
         {
             dealii::SparsityPattern sparsity_pattern_d2IdXdX = dg->get_d2RdXdX_sparsity_pattern ();
-            const dealii::IndexSet &row_parallel_partitioning_d2IdXdX = dg->high_order_grid.locally_owned_dofs_grid;
-            const dealii::IndexSet &col_parallel_partitioning_d2IdXdX = dg->high_order_grid.locally_owned_dofs_grid;
+            const dealii::IndexSet &row_parallel_partitioning_d2IdXdX = dg->high_order_grid->locally_owned_dofs_grid;
+            const dealii::IndexSet &col_parallel_partitioning_d2IdXdX = dg->high_order_grid->locally_owned_dofs_grid;
             d2IdXdX.reinit(row_parallel_partitioning_d2IdXdX, col_parallel_partitioning_d2IdXdX, sparsity_pattern_d2IdXdX, MPI_COMM_WORLD);
         }
     }
 }
 
 
-template <int dim, int nstate, typename real>
-void Functional<dim,nstate,real>::set_derivatives(
+template <int dim, int nstate, typename real, typename MeshType>
+void Functional<dim,nstate,real,MeshType>::set_derivatives(
     const bool compute_dIdW, const bool compute_dIdX, const bool compute_d2I,
     const Sacado::Fad::DFad<Sacado::Fad::DFad<real>> volume_local_sum,
     std::vector<dealii::types::global_dof_index> cell_soln_dofs_indices,
@@ -198,9 +445,9 @@ void Functional<dim,nstate,real>::set_derivatives(
     AssertDimension(i_derivative, n_total_indep);
 }
 
-template <int dim, int nstate, typename real>
+template <int dim, int nstate, typename real, typename MeshType>
 template <typename real2>
-real2 Functional<dim, nstate, real>::evaluate_volume_cell_functional(
+real2 Functional<dim, nstate, real, MeshType>::evaluate_volume_cell_functional(
     const Physics::PhysicsBase<dim,nstate,real2> &physics,
     const std::vector< real2 > &soln_coeff,
     const dealii::FESystem<dim> &fe_solution,
@@ -236,7 +483,7 @@ real2 Functional<dim, nstate, real>::evaluate_volume_cell_functional(
         }
         const real2 jacobian_determinant = dealii::determinant(metric_jacobian);
         dealii::Tensor<2,dim,real2> jacobian_transpose_inverse;
-        if (uses_solution_gradient) jacobian_transpose_inverse = dealii::transpose(dealii::invert(metric_jacobian));
+        jacobian_transpose_inverse = dealii::transpose(dealii::invert(metric_jacobian));
 
         // Evaluate the solution and gradient at the quadrature points
         std::array<real2, nstate> soln_at_q;
@@ -259,8 +506,110 @@ real2 Functional<dim, nstate, real>::evaluate_volume_cell_functional(
     return volume_local_sum;
 }
 
-template <int dim, int nstate, typename real>
-real Functional<dim, nstate, real>::evaluate_volume_cell_functional(
+template <int dim, int nstate, typename real, typename MeshType>
+template <typename real2>
+real2 Functional<dim,nstate,real,MeshType>::evaluate_boundary_cell_functional(
+    const Physics::PhysicsBase<dim,nstate,real2> &physics,
+    const unsigned int boundary_id,
+    const std::vector< real2 > &soln_coeff,
+    const dealii::FESystem<dim> &fe_solution,
+    const std::vector< real2 > &coords_coeff,
+    const dealii::FESystem<dim> &fe_metric,
+    const unsigned int face_number,
+    const dealii::Quadrature<dim-1> &fquadrature) const
+{
+    const unsigned int n_face_quad_pts = fquadrature.size();
+    const unsigned int n_soln_dofs_cell = soln_coeff.size();
+    const unsigned int n_metric_dofs_cell = coords_coeff.size();
+
+    const dealii::Quadrature<dim> face_quadrature = dealii::QProjector<dim>::project_to_face( dealii::ReferenceCell::get_hypercube(dim),
+                                                                                              fquadrature,
+                                                                                              face_number);
+    const dealii::Tensor<1,dim,real> surface_unit_normal = dealii::GeometryInfo<dim>::unit_normal_vector[face_number];
+
+    real2 boundary_local_sum = 0.0;
+    for (unsigned int iquad=0; iquad<n_face_quad_pts; ++iquad) {
+
+        const dealii::Point<dim,double> &ref_point = face_quadrature.point(iquad);
+        const double quad_weight = face_quadrature.weight(iquad);
+
+        // Obtain physical quadrature coordinates (Might be used if there is a source term or a wall distance)
+        // and evaluate metric terms such as the metric Jacobian, its inverse transpose, and its determinant
+        dealii::Point<dim,real2> phys_coord;
+        for (int d=0;d<dim;++d) { phys_coord[d] = 0.0;}
+        std::array< dealii::Tensor<1,dim,real2>, dim > coord_grad; // Tensor initialize with zeros
+        dealii::Tensor<2,dim,real2> metric_jacobian;
+        for (unsigned int idof=0; idof<n_metric_dofs_cell; ++idof) {
+            const unsigned int axis = fe_metric.system_to_component_index(idof).first;
+            phys_coord[axis] += coords_coeff[idof] * fe_metric.shape_value(idof, ref_point);
+            coord_grad[axis] += coords_coeff[idof] * fe_metric.shape_grad (idof, ref_point);
+        }
+        for (int row=0;row<dim;++row) {
+            for (int col=0;col<dim;++col) {
+                metric_jacobian[row][col] = coord_grad[row][col];
+            }
+        }
+        const real2 jacobian_determinant = dealii::determinant(metric_jacobian);
+        dealii::Tensor<2,dim,real2> jacobian_transpose_inverse;
+        jacobian_transpose_inverse = dealii::transpose(dealii::invert(metric_jacobian));
+
+        const dealii::Tensor<1,dim,real2> phys_normal = vmult(jacobian_transpose_inverse, surface_unit_normal);
+        const real2 area = norm(phys_normal);
+        const dealii::Tensor<1,dim,real2> phys_unit_normal = phys_normal/area;
+
+        real2 surface_jacobian_determinant = area*jacobian_determinant;
+
+        // Evaluate the solution and gradient at the quadrature points
+        std::array<real2, nstate> soln_at_q;
+        soln_at_q.fill(0.0);
+        std::array< dealii::Tensor<1,dim,real2>, nstate > soln_grad_at_q;
+        for (unsigned int idof=0; idof<n_soln_dofs_cell; ++idof) {
+            const unsigned int istate = fe_solution.system_to_component_index(idof).first;
+            if (uses_solution_values) {
+                soln_at_q[istate]  += soln_coeff[idof] * fe_solution.shape_value(idof,ref_point);
+            }
+            if (uses_solution_gradient) {
+                const dealii::Tensor<1,dim,real2> phys_shape_grad = dealii::contract<1,0>(jacobian_transpose_inverse, fe_solution.shape_grad(idof,ref_point));
+                soln_grad_at_q[istate] += soln_coeff[idof] * phys_shape_grad;
+            }
+        }
+        real2 boundary_integrand = this->evaluate_boundary_integrand(physics, boundary_id, phys_coord, phys_unit_normal, soln_at_q, soln_grad_at_q);
+
+        boundary_local_sum += boundary_integrand * surface_jacobian_determinant * quad_weight;
+    }
+    return boundary_local_sum;
+}
+
+template <int dim, int nstate, typename real, typename MeshType>
+real Functional<dim,nstate,real,MeshType>::evaluate_boundary_cell_functional(
+    const Physics::PhysicsBase<dim,nstate,real> &physics,
+    const unsigned int boundary_id,
+    const std::vector< real > &soln_coeff,
+    const dealii::FESystem<dim> &fe_solution,
+    const std::vector< real > &coords_coeff,
+    const dealii::FESystem<dim> &fe_metric,
+    const unsigned int face_number,
+    const dealii::Quadrature<dim-1> &fquadrature) const
+{
+    return evaluate_boundary_cell_functional<real>(physics, boundary_id, soln_coeff, fe_solution, coords_coeff, fe_metric, face_number, fquadrature);
+}
+
+template <int dim, int nstate, typename real, typename MeshType>
+Sacado::Fad::DFad<Sacado::Fad::DFad<real>> Functional<dim,nstate,real,MeshType>::evaluate_boundary_cell_functional(
+    const Physics::PhysicsBase<dim,nstate,Sacado::Fad::DFad<Sacado::Fad::DFad<real>>> &physics,
+    const unsigned int boundary_id,
+    const std::vector< Sacado::Fad::DFad<Sacado::Fad::DFad<real>> > &soln_coeff,
+    const dealii::FESystem<dim> &fe_solution,
+    const std::vector< Sacado::Fad::DFad<Sacado::Fad::DFad<real>> > &coords_coeff,
+    const dealii::FESystem<dim> &fe_metric,
+    const unsigned int face_number,
+    const dealii::Quadrature<dim-1> &fquadrature) const
+{
+    return evaluate_boundary_cell_functional<Sacado::Fad::DFad<Sacado::Fad::DFad<real>>>(physics, boundary_id, soln_coeff, fe_solution, coords_coeff, fe_metric, face_number, fquadrature);
+}
+
+template <int dim, int nstate, typename real, typename MeshType>
+real Functional<dim,nstate,real,MeshType>::evaluate_volume_cell_functional(
     const Physics::PhysicsBase<dim,nstate,real> &physics,
     const std::vector< real > &soln_coeff,
     const dealii::FESystem<dim> &fe_solution,
@@ -271,8 +620,8 @@ real Functional<dim, nstate, real>::evaluate_volume_cell_functional(
     return evaluate_volume_cell_functional<real>(physics, soln_coeff, fe_solution, coords_coeff, fe_metric, volume_quadrature);
 }
 
-template <int dim, int nstate, typename real>
-Sacado::Fad::DFad<Sacado::Fad::DFad<real>> Functional<dim, nstate, real>::evaluate_volume_cell_functional(
+template <int dim, int nstate, typename real, typename MeshType>
+Sacado::Fad::DFad<Sacado::Fad::DFad<real>> Functional<dim,nstate,real,MeshType>::evaluate_volume_cell_functional(
     const Physics::PhysicsBase<dim,nstate,Sacado::Fad::DFad<Sacado::Fad::DFad<real>>> &physics_fad_fad,
     const std::vector< Sacado::Fad::DFad<Sacado::Fad::DFad<real>> > &soln_coeff,
     const dealii::FESystem<dim> &fe_solution,
@@ -283,15 +632,14 @@ Sacado::Fad::DFad<Sacado::Fad::DFad<real>> Functional<dim, nstate, real>::evalua
     return evaluate_volume_cell_functional<Sacado::Fad::DFad<Sacado::Fad::DFad<real>>>(physics_fad_fad, soln_coeff, fe_solution, coords_coeff, fe_metric, volume_quadrature);
 }
 
-
-template <int dim, int nstate, typename real>
-void Functional<dim, nstate, real>::need_compute(bool &compute_value, bool &compute_dIdW, bool &compute_dIdX, bool &compute_d2I)
+template <int dim, int nstate, typename real, typename MeshType>
+void Functional<dim,nstate,real,MeshType>::need_compute(bool &compute_value, bool &compute_dIdW, bool &compute_dIdX, bool &compute_d2I)
 {
     if (compute_value) {
         pcout << " with value...";
 
         if (dg->solution.size() == solution_value.size() 
-            && dg->high_order_grid.volume_nodes.size() == volume_nodes_value.size()) {
+            && dg->high_order_grid->volume_nodes.size() == volume_nodes_value.size()) {
 
             auto diff_sol = dg->solution;
             diff_sol -= solution_value;
@@ -299,7 +647,7 @@ void Functional<dim, nstate, real>::need_compute(bool &compute_value, bool &comp
 
             if (l2_norm_sol == 0.0) {
 
-                auto diff_node = dg->high_order_grid.volume_nodes;
+                auto diff_node = dg->high_order_grid->volume_nodes;
                 diff_node -= volume_nodes_value;
                 const double l2_norm_node = diff_node.l2_norm();
 
@@ -310,13 +658,13 @@ void Functional<dim, nstate, real>::need_compute(bool &compute_value, bool &comp
             }
         }
         solution_value = dg->solution;
-        volume_nodes_value = dg->high_order_grid.volume_nodes;
+        volume_nodes_value = dg->high_order_grid->volume_nodes;
     }
     if (compute_dIdW) {
         pcout << " with dIdW...";
 
         if (dg->solution.size() == solution_dIdW.size() 
-            && dg->high_order_grid.volume_nodes.size() == volume_nodes_dIdW.size()) {
+            && dg->high_order_grid->volume_nodes.size() == volume_nodes_dIdW.size()) {
 
             auto diff_sol = dg->solution;
             diff_sol -= solution_dIdW;
@@ -324,7 +672,7 @@ void Functional<dim, nstate, real>::need_compute(bool &compute_value, bool &comp
 
             if (l2_norm_sol == 0.0) {
 
-                auto diff_node = dg->high_order_grid.volume_nodes;
+                auto diff_node = dg->high_order_grid->volume_nodes;
                 diff_node -= volume_nodes_dIdW;
                 const double l2_norm_node = diff_node.l2_norm();
 
@@ -335,20 +683,20 @@ void Functional<dim, nstate, real>::need_compute(bool &compute_value, bool &comp
             }
         }
         solution_dIdW = dg->solution;
-        volume_nodes_dIdW = dg->high_order_grid.volume_nodes;
+        volume_nodes_dIdW = dg->high_order_grid->volume_nodes;
     }
     if (compute_dIdX) {
         pcout << " with dIdX...";
 
         if (dg->solution.size() == solution_dIdX.size() 
-            && dg->high_order_grid.volume_nodes.size() == volume_nodes_dIdX.size()) {
+            && dg->high_order_grid->volume_nodes.size() == volume_nodes_dIdX.size()) {
             auto diff_sol = dg->solution;
             diff_sol -= solution_dIdX;
             const double l2_norm_sol = diff_sol.l2_norm();
 
             if (l2_norm_sol == 0.0) {
 
-                auto diff_node = dg->high_order_grid.volume_nodes;
+                auto diff_node = dg->high_order_grid->volume_nodes;
                 diff_node -= volume_nodes_dIdX;
                 const double l2_norm_node = diff_node.l2_norm();
 
@@ -359,13 +707,13 @@ void Functional<dim, nstate, real>::need_compute(bool &compute_value, bool &comp
             }
         }
         solution_dIdX = dg->solution;
-        volume_nodes_dIdX = dg->high_order_grid.volume_nodes;
+        volume_nodes_dIdX = dg->high_order_grid->volume_nodes;
     }
     if (compute_d2I) {
         pcout << " with d2IdWdW, d2IdWdX, d2IdXdX...";
 
         if (dg->solution.size() == solution_d2I.size() 
-            && dg->high_order_grid.volume_nodes.size() == volume_nodes_d2I.size()) {
+            && dg->high_order_grid->volume_nodes.size() == volume_nodes_d2I.size()) {
 
             auto diff_sol = dg->solution;
             diff_sol -= solution_d2I;
@@ -373,7 +721,7 @@ void Functional<dim, nstate, real>::need_compute(bool &compute_value, bool &comp
 
             if (l2_norm_sol == 0.0) {
 
-                auto diff_node = dg->high_order_grid.volume_nodes;
+                auto diff_node = dg->high_order_grid->volume_nodes;
                 diff_node -= volume_nodes_d2I;
                 const double l2_norm_node = diff_node.l2_norm();
 
@@ -385,12 +733,12 @@ void Functional<dim, nstate, real>::need_compute(bool &compute_value, bool &comp
             }
         }
         solution_d2I = dg->solution;
-        volume_nodes_d2I = dg->high_order_grid.volume_nodes;
+        volume_nodes_d2I = dg->high_order_grid->volume_nodes;
     }
 }
 
-template <int dim, int nstate, typename real>
-real Functional<dim, nstate, real>::evaluate_functional(
+template <int dim, int nstate, typename real, typename MeshType>
+real Functional<dim, nstate, real, MeshType>::evaluate_functional(
     const bool compute_dIdW,
     const bool compute_dIdX,
     const bool compute_d2I)
@@ -415,7 +763,7 @@ real Functional<dim, nstate, real>::evaluate_functional(
     real local_functional = 0.0;
 
     // for taking the local derivatives
-    const dealii::FESystem<dim,dim> &fe_metric = dg->high_order_grid.fe_system;
+    const dealii::FESystem<dim,dim> &fe_metric = dg->high_order_grid->fe_system;
     const unsigned int n_metric_dofs_cell = fe_metric.dofs_per_cell;
     std::vector<dealii::types::global_dof_index> cell_metric_dofs_indices(n_metric_dofs_cell);
 
@@ -427,7 +775,7 @@ real Functional<dim, nstate, real>::evaluate_functional(
 
     std::vector<real>   local_dIdX(n_metric_dofs_cell);
 
-    const auto mapping = (*(dg->high_order_grid.mapping_fe_field));
+    const auto mapping = (*(dg->high_order_grid->mapping_fe_field));
     dealii::hp::MappingCollection<dim> mapping_collection(mapping);
 
     dealii::hp::FEFaceValues<dim,dim> fe_values_collection_face  (mapping_collection, dg->fe_collection, dg->face_quadrature_collection,   this->face_update_flags);
@@ -435,13 +783,13 @@ real Functional<dim, nstate, real>::evaluate_functional(
     allocate_derivatives(actually_compute_dIdW, actually_compute_dIdX, actually_compute_d2I);
 
     dg->solution.update_ghost_values();
-    auto metric_cell = dg->high_order_grid.dof_handler_grid.begin_active();
+    auto metric_cell = dg->high_order_grid->dof_handler_grid.begin_active();
     auto soln_cell = dg->dof_handler.begin_active();
     for( ; soln_cell != dg->dof_handler.end(); ++soln_cell, ++metric_cell) {
         if(!soln_cell->is_locally_owned()) continue;
 
         // setting up the volume integration
-        const unsigned int i_mapp = 0; // *** ask doug if this will ever be 
+        // const unsigned int i_mapp = 0;
         const unsigned int i_fele = soln_cell->active_fe_index();
         const unsigned int i_quad = i_fele;
 
@@ -456,7 +804,7 @@ real Functional<dim, nstate, real>::evaluate_functional(
         metric_cell->get_dof_indices (cell_metric_dofs_indices);
         std::vector< FadFadType > coords_coeff(n_metric_dofs_cell);
         for (unsigned int idof = 0; idof < n_metric_dofs_cell; ++idof) {
-            coords_coeff[idof] = dg->high_order_grid.volume_nodes[cell_metric_dofs_indices[idof]];
+            coords_coeff[idof] = dg->high_order_grid->volume_nodes[cell_metric_dofs_indices[idof]];
         }
 
         // Setup automatic differentiation
@@ -470,7 +818,7 @@ real Functional<dim, nstate, real>::evaluate_functional(
             if (actually_compute_dIdW || actually_compute_d2I) soln_coeff[idof].diff(i_derivative++, n_total_indep);
         }
         for (unsigned int idof = 0; idof < n_metric_dofs_cell; ++idof) {
-            const real val = dg->high_order_grid.volume_nodes[cell_metric_dofs_indices[idof]];
+            const real val = dg->high_order_grid->volume_nodes[cell_metric_dofs_indices[idof]];
             coords_coeff[idof] = val;
             if (actually_compute_dIdX || actually_compute_d2I) coords_coeff[idof].diff(i_derivative++, n_total_indep);
         }
@@ -483,7 +831,7 @@ real Functional<dim, nstate, real>::evaluate_functional(
                 soln_coeff[idof].val().diff(i_derivative++, n_total_indep);
             }
             for (unsigned int idof = 0; idof < n_metric_dofs_cell; ++idof) {
-                const real val = dg->high_order_grid.volume_nodes[cell_metric_dofs_indices[idof]];
+                const real val = dg->high_order_grid->volume_nodes[cell_metric_dofs_indices[idof]];
                 coords_coeff[idof].val() = val;
                 coords_coeff[idof].val().diff(i_derivative++, n_total_indep);
             }
@@ -501,12 +849,13 @@ real Functional<dim, nstate, real>::evaluate_functional(
             auto face = soln_cell->face(iface);
             
             if(face->at_boundary()){
-                fe_values_collection_face.reinit(soln_cell, iface, i_quad, i_mapp, i_fele);
-                const dealii::FEFaceValues<dim,dim> &fe_values_face = fe_values_collection_face.get_present_fe_values();
 
                 const unsigned int boundary_id = face->boundary_id();
 
-                volume_local_sum += this->evaluate_cell_boundary(*physics_fad_fad, boundary_id, fe_values_face, soln_coeff);
+                //fe_values_collection_face.reinit(soln_cell, iface, i_quad, i_mapp, i_fele);
+                //const dealii::FEFaceValues<dim,dim> &fe_values_face = fe_values_collection_face.get_present_fe_values();
+                //volume_local_sum += this->evaluate_cell_boundary(*physics_fad_fad, boundary_id, fe_values_face, soln_coeff);
+                volume_local_sum += this->evaluate_boundary_cell_functional(*physics_fad_fad, boundary_id, soln_coeff, fe_solution, coords_coeff, fe_metric, iface, dg->face_quadrature_collection[i_quad]);
             }
 
         }
@@ -577,9 +926,9 @@ real Functional<dim, nstate, real>::evaluate_functional(
     return current_functional_value;
 }
 
-template <int dim, int nstate, typename real>
-dealii::LinearAlgebra::distributed::Vector<real> Functional<dim,nstate,real>::evaluate_dIdw_finiteDifferences(
-    PHiLiP::DGBase<dim,real> &dg, 
+template <int dim, int nstate, typename real, typename MeshType>
+dealii::LinearAlgebra::distributed::Vector<real> Functional<dim,nstate,real,MeshType>::evaluate_dIdw_finiteDifferences(
+    PHiLiP::DGBase<dim,real,MeshType> &dg, 
     const PHiLiP::Physics::PhysicsBase<dim,nstate,real> &physics,
     const double stepsize)
 {
@@ -601,14 +950,14 @@ dealii::LinearAlgebra::distributed::Vector<real> Functional<dim,nstate,real>::ev
     std::vector<real> soln_coeff(max_dofs_per_cell); // for obtaining the local derivatives (to be copied back afterwards)
     std::vector<real> local_dIdw(max_dofs_per_cell);
 
-    const auto mapping = (*(dg.high_order_grid.mapping_fe_field));
+    const auto mapping = (*(dg.high_order_grid->mapping_fe_field));
     dealii::hp::MappingCollection<dim> mapping_collection(mapping);
 
     dealii::hp::FEValues<dim,dim>     fe_values_collection_volume(mapping_collection, dg.fe_collection, dg.volume_quadrature_collection, this->volume_update_flags);
     dealii::hp::FEFaceValues<dim,dim> fe_values_collection_face  (mapping_collection, dg.fe_collection, dg.face_quadrature_collection,   this->face_update_flags);
 
     dg.solution.update_ghost_values();
-    auto metric_cell = dg.high_order_grid.dof_handler_grid.begin_active();
+    auto metric_cell = dg.high_order_grid->dof_handler_grid.begin_active();
     auto cell = dg.dof_handler.begin_active();
     for( ; cell != dg.dof_handler.end(); ++cell, ++metric_cell) {
         if(!cell->is_locally_owned()) continue;
@@ -629,13 +978,13 @@ dealii::LinearAlgebra::distributed::Vector<real> Functional<dim,nstate,real>::ev
         }
 
         // Get metric coefficients
-        const dealii::FESystem<dim,dim> &fe_metric = dg.high_order_grid.fe_system;
+        const dealii::FESystem<dim,dim> &fe_metric = dg.high_order_grid->fe_system;
         const unsigned int n_metric_dofs_cell = fe_metric.dofs_per_cell;
         std::vector<dealii::types::global_dof_index> cell_metric_dofs_indices(n_metric_dofs_cell);
         metric_cell->get_dof_indices (cell_metric_dofs_indices);
         std::vector<real> coords_coeff(n_metric_dofs_cell);
         for (unsigned int idof = 0; idof < n_metric_dofs_cell; ++idof) {
-            coords_coeff[idof] = dg.high_order_grid.volume_nodes[cell_metric_dofs_indices[idof]];
+            coords_coeff[idof] = dg.high_order_grid->volume_nodes[cell_metric_dofs_indices[idof]];
         }
 
         const dealii::Quadrature<dim> &volume_quadrature = dg.volume_quadrature_collection[i_quad];
@@ -650,11 +999,12 @@ dealii::LinearAlgebra::distributed::Vector<real> Functional<dim,nstate,real>::ev
             
             if(face->at_boundary()){
                 fe_values_collection_face.reinit(cell, iface, i_quad, i_mapp, i_fele);
-                const dealii::FEFaceValues<dim,dim> &fe_values_face = fe_values_collection_face.get_present_fe_values();
 
                 const unsigned int boundary_id = face->boundary_id();
 
-                local_sum_old += this->evaluate_cell_boundary(physics, boundary_id, fe_values_face, soln_coeff);
+                //const dealii::FEFaceValues<dim,dim> &fe_values_face = fe_values_collection_face.get_present_fe_values();
+                //local_sum_old += this->evaluate_cell_boundary(physics, boundary_id, fe_values_face, soln_coeff);
+                local_sum_old += this->evaluate_boundary_cell_functional(physics, boundary_id, soln_coeff, fe_solution, coords_coeff, fe_metric, iface, dg.face_quadrature_collection[i_quad]);
             }
 
         }
@@ -678,11 +1028,12 @@ dealii::LinearAlgebra::distributed::Vector<real> Functional<dim,nstate,real>::ev
                 
                 if(face->at_boundary()){
                     fe_values_collection_face.reinit(cell, iface, i_quad, i_mapp, i_fele);
-                    const dealii::FEFaceValues<dim,dim> &fe_values_face = fe_values_collection_face.get_present_fe_values();
 
                     const unsigned int boundary_id = face->boundary_id();
 
-                    local_sum_new += this->evaluate_cell_boundary(physics, boundary_id, fe_values_face, soln_coeff);
+                    //const dealii::FEFaceValues<dim,dim> &fe_values_face = fe_values_collection_face.get_present_fe_values();
+                    //local_sum_new += this->evaluate_cell_boundary(physics, boundary_id, fe_values_face, soln_coeff);
+                    local_sum_new += this->evaluate_boundary_cell_functional(physics, boundary_id, soln_coeff, fe_solution, coords_coeff, fe_metric, iface, dg.face_quadrature_collection[i_quad]);
                 }
 
             }
@@ -698,9 +1049,9 @@ dealii::LinearAlgebra::distributed::Vector<real> Functional<dim,nstate,real>::ev
     return dIdw;
 }
 
-template <int dim, int nstate, typename real>
-dealii::LinearAlgebra::distributed::Vector<real> Functional<dim,nstate,real>::evaluate_dIdX_finiteDifferences(
-    PHiLiP::DGBase<dim,real> &dg, 
+template <int dim, int nstate, typename real, typename MeshType>
+dealii::LinearAlgebra::distributed::Vector<real> Functional<dim,nstate,real,MeshType>::evaluate_dIdX_finiteDifferences(
+    PHiLiP::DGBase<dim,real,MeshType> &dg, 
     const PHiLiP::Physics::PhysicsBase<dim,nstate,real> &physics,
     const double stepsize)
 {
@@ -719,20 +1070,20 @@ dealii::LinearAlgebra::distributed::Vector<real> Functional<dim,nstate,real>::ev
     std::vector<real> soln_coeff(max_dofs_per_cell); // for obtaining the local derivatives (to be copied back afterwards)
     std::vector<real> local_dIdX(max_dofs_per_cell);
 
-    const auto mapping = (*(dg.high_order_grid.mapping_fe_field));
+    const auto mapping = (*(dg.high_order_grid->mapping_fe_field));
     dealii::hp::MappingCollection<dim> mapping_collection(mapping);
 
     dealii::hp::FEValues<dim,dim>     fe_values_collection_volume(mapping_collection, dg.fe_collection, dg.volume_quadrature_collection, this->volume_update_flags);
     dealii::hp::FEFaceValues<dim,dim> fe_values_collection_face  (mapping_collection, dg.fe_collection, dg.face_quadrature_collection,   this->face_update_flags);
 
     dg.solution.update_ghost_values();
-    auto metric_cell = dg.high_order_grid.dof_handler_grid.begin_active();
+    auto metric_cell = dg.high_order_grid->dof_handler_grid.begin_active();
     auto cell = dg.dof_handler.begin_active();
     for( ; cell != dg.dof_handler.end(); ++cell, ++metric_cell) {
         if(!cell->is_locally_owned()) continue;
 
         // setting up the volume integration
-        const unsigned int i_mapp = 0;
+        //const unsigned int i_mapp = 0;
         const unsigned int i_fele = cell->active_fe_index();
         const unsigned int i_quad = i_fele;
 
@@ -747,13 +1098,13 @@ dealii::LinearAlgebra::distributed::Vector<real> Functional<dim,nstate,real>::ev
         }
 
         // Get metric coefficients
-        const dealii::FESystem<dim,dim> &fe_metric = dg.high_order_grid.fe_system;
+        const dealii::FESystem<dim,dim> &fe_metric = dg.high_order_grid->fe_system;
         const unsigned int n_metric_dofs_cell = fe_metric.dofs_per_cell;
         std::vector<dealii::types::global_dof_index> cell_metric_dofs_indices(n_metric_dofs_cell);
         metric_cell->get_dof_indices (cell_metric_dofs_indices);
         std::vector<real> coords_coeff(n_metric_dofs_cell);
         for (unsigned int idof = 0; idof < n_metric_dofs_cell; ++idof) {
-            coords_coeff[idof] = dg.high_order_grid.volume_nodes[cell_metric_dofs_indices[idof]];
+            coords_coeff[idof] = dg.high_order_grid->volume_nodes[cell_metric_dofs_indices[idof]];
         }
 
         const dealii::Quadrature<dim> &volume_quadrature = dg.volume_quadrature_collection[i_quad];
@@ -767,12 +1118,13 @@ dealii::LinearAlgebra::distributed::Vector<real> Functional<dim,nstate,real>::ev
             auto face = cell->face(iface);
             
             if(face->at_boundary()){
-                fe_values_collection_face.reinit(cell, iface, i_quad, i_mapp, i_fele);
-                const dealii::FEFaceValues<dim,dim> &fe_values_face = fe_values_collection_face.get_present_fe_values();
 
                 const unsigned int boundary_id = face->boundary_id();
 
-                local_sum_old += this->evaluate_cell_boundary(physics, boundary_id, fe_values_face, soln_coeff);
+                //fe_values_collection_face.reinit(cell, iface, i_quad, i_mapp, i_fele);
+                //const dealii::FEFaceValues<dim,dim> &fe_values_face = fe_values_collection_face.get_present_fe_values();
+                //local_sum_old += this->evaluate_cell_boundary(physics, boundary_id, fe_values_face, soln_coeff);
+                local_sum_old += this->evaluate_boundary_cell_functional(physics, boundary_id, soln_coeff, fe_solution, coords_coeff, fe_metric, iface, dg.face_quadrature_collection[i_quad]);
             }
 
         }
@@ -782,7 +1134,7 @@ dealii::LinearAlgebra::distributed::Vector<real> Functional<dim,nstate,real>::ev
         for(unsigned int idof = 0; idof < n_metric_dofs_cell; ++idof){
             // for each dof copying the solution
             for(unsigned int idof2 = 0; idof2 < n_metric_dofs_cell; ++idof2){
-                coords_coeff[idof2] = dg.high_order_grid.volume_nodes[cell_metric_dofs_indices[idof2]];
+                coords_coeff[idof2] = dg.high_order_grid->volume_nodes[cell_metric_dofs_indices[idof2]];
             }
             coords_coeff[idof] += stepsize;
 
@@ -794,12 +1146,13 @@ dealii::LinearAlgebra::distributed::Vector<real> Functional<dim,nstate,real>::ev
                 auto face = cell->face(iface);
                 
                 if(face->at_boundary()){
-                    fe_values_collection_face.reinit(cell, iface, i_quad, i_mapp, i_fele);
-                    const dealii::FEFaceValues<dim,dim> &fe_values_face = fe_values_collection_face.get_present_fe_values();
 
                     const unsigned int boundary_id = face->boundary_id();
 
-                    local_sum_new += this->evaluate_cell_boundary(physics, boundary_id, fe_values_face, soln_coeff);
+                    //fe_values_collection_face.reinit(cell, iface, i_quad, i_mapp, i_fele);
+                    //const dealii::FEFaceValues<dim,dim> &fe_values_face = fe_values_collection_face.get_present_fe_values();
+                    //local_sum_new += this->evaluate_cell_boundary(physics, boundary_id, fe_values_face, soln_coeff);
+                    local_sum_new += this->evaluate_boundary_cell_functional(physics, boundary_id, soln_coeff, fe_solution, coords_coeff, fe_metric, iface, dg.face_quadrature_collection[i_quad]);
                 }
 
             }
@@ -815,10 +1168,240 @@ dealii::LinearAlgebra::distributed::Vector<real> Functional<dim,nstate,real>::ev
     return dIdX_FD;
 }
 
-template class Functional <PHILIP_DIM, 1, double>;
-template class Functional <PHILIP_DIM, 2, double>;
-template class Functional <PHILIP_DIM, 3, double>;
-template class Functional <PHILIP_DIM, 4, double>;
-template class Functional <PHILIP_DIM, 5, double>;
+template <int dim, int nstate, typename real, typename MeshType>
+std::shared_ptr< Functional<dim,nstate,real,MeshType> >
+FunctionalFactory<dim,nstate,real,MeshType>::create_Functional(
+    PHiLiP::Parameters::AllParameters const *const param,
+    std::shared_ptr< PHiLiP::DGBase<dim,real,MeshType> > dg)
+{
+    return FunctionalFactory<dim,nstate,real,MeshType>::create_Functional(param->grid_refinement_study_param.functional_param, dg);
+}
+
+template <int dim, int nstate, typename real, typename MeshType>
+std::shared_ptr< Functional<dim,nstate,real,MeshType> >
+FunctionalFactory<dim,nstate,real,MeshType>::create_Functional(
+    PHiLiP::Parameters::FunctionalParam param,
+    std::shared_ptr< PHiLiP::DGBase<dim,real,MeshType> > dg)
+{
+    using FadFadType = Sacado::Fad::DFad<FadType>;
+
+    using FunctionalTypeEnum       = Parameters::FunctionalParam::FunctionalType;
+    using ManufacturedSolutionEnum = Parameters::ManufacturedSolutionParam::ManufacturedSolutionType;
+    FunctionalTypeEnum functional_type = param.functional_type;
+
+    const double normLp = param.normLp;
+
+    ManufacturedSolutionEnum  weight_function_type = param.weight_function_type;
+    std::shared_ptr< ManufacturedSolutionFunction<dim,real> > weight_function_double 
+        = ManufacturedSolutionFactory<dim,real>::create_ManufacturedSolution(weight_function_type, nstate);
+    std::shared_ptr< ManufacturedSolutionFunction<dim,FadFadType> > weight_function_adtype 
+        = ManufacturedSolutionFactory<dim,FadFadType>::create_ManufacturedSolution(weight_function_type, nstate);
+    
+    const bool use_weight_function_laplacian       = param.use_weight_function_laplacian;
+
+    std::vector<unsigned int> boundary_vector    = param.boundary_vector;
+    const bool                use_all_boundaries = param.use_all_boundaries;
+
+    if(functional_type == FunctionalTypeEnum::normLp_volume){
+        return std::make_shared<FunctionalNormLpVolume<dim,nstate,real,MeshType>>(
+            normLp,
+            dg,
+            true,
+            false);
+    }else if(functional_type == FunctionalTypeEnum::normLp_boundary){
+        return std::make_shared<FunctionalNormLpBoundary<dim,nstate,real,MeshType>>(
+            normLp,
+            boundary_vector,
+            use_all_boundaries,
+            dg,
+            true,
+            false);
+    }else if(functional_type == FunctionalTypeEnum::weighted_integral_volume){
+        return std::make_shared<FunctionalWeightedIntegralVolume<dim,nstate,real,MeshType>>(
+            weight_function_double,
+            weight_function_adtype,
+            use_weight_function_laplacian,
+            dg,
+            true,
+            false);
+    }else if(functional_type == FunctionalTypeEnum::weighted_integral_boundary){
+        return std::make_shared<FunctionalWeightedIntegralBoundary<dim,nstate,real,MeshType>>(
+            weight_function_double,
+            weight_function_adtype,
+            use_weight_function_laplacian,
+            boundary_vector,
+            use_all_boundaries,
+            dg,
+            true,
+            false);
+    }else if(functional_type == FunctionalTypeEnum::error_normLp_volume){
+        return std::make_shared<FunctionalErrorNormLpVolume<dim,nstate,real,MeshType>>(
+            normLp,
+            dg,
+            true,
+            false);
+    }else if(functional_type == FunctionalTypeEnum::error_normLp_boundary){
+        return std::make_shared<FunctionalErrorNormLpBoundary<dim,nstate,real,MeshType>>(
+            normLp,
+            boundary_vector,
+            use_all_boundaries,
+            dg,
+            true,
+            false);
+    }else{
+        std::cout << "Invalid Functional." << std::endl;
+    }
+
+    return nullptr;
+}
+
+// dealii::Triangulation<PHILIP_DIM>
+template class FunctionalNormLpVolume <PHILIP_DIM, 1, double, dealii::Triangulation<PHILIP_DIM>>;
+template class FunctionalNormLpVolume <PHILIP_DIM, 2, double, dealii::Triangulation<PHILIP_DIM>>;
+template class FunctionalNormLpVolume <PHILIP_DIM, 3, double, dealii::Triangulation<PHILIP_DIM>>;
+template class FunctionalNormLpVolume <PHILIP_DIM, 4, double, dealii::Triangulation<PHILIP_DIM>>;
+template class FunctionalNormLpVolume <PHILIP_DIM, 5, double, dealii::Triangulation<PHILIP_DIM>>;
+
+template class FunctionalNormLpBoundary <PHILIP_DIM, 1, double, dealii::Triangulation<PHILIP_DIM>>;
+template class FunctionalNormLpBoundary <PHILIP_DIM, 2, double, dealii::Triangulation<PHILIP_DIM>>;
+template class FunctionalNormLpBoundary <PHILIP_DIM, 3, double, dealii::Triangulation<PHILIP_DIM>>;
+template class FunctionalNormLpBoundary <PHILIP_DIM, 4, double, dealii::Triangulation<PHILIP_DIM>>;
+template class FunctionalNormLpBoundary <PHILIP_DIM, 5, double, dealii::Triangulation<PHILIP_DIM>>;
+
+template class FunctionalWeightedIntegralVolume <PHILIP_DIM, 1, double, dealii::Triangulation<PHILIP_DIM>>;
+template class FunctionalWeightedIntegralVolume <PHILIP_DIM, 2, double, dealii::Triangulation<PHILIP_DIM>>;
+template class FunctionalWeightedIntegralVolume <PHILIP_DIM, 3, double, dealii::Triangulation<PHILIP_DIM>>;
+template class FunctionalWeightedIntegralVolume <PHILIP_DIM, 4, double, dealii::Triangulation<PHILIP_DIM>>;
+template class FunctionalWeightedIntegralVolume <PHILIP_DIM, 5, double, dealii::Triangulation<PHILIP_DIM>>;
+
+template class FunctionalWeightedIntegralBoundary <PHILIP_DIM, 1, double, dealii::Triangulation<PHILIP_DIM>>;
+template class FunctionalWeightedIntegralBoundary <PHILIP_DIM, 2, double, dealii::Triangulation<PHILIP_DIM>>;
+template class FunctionalWeightedIntegralBoundary <PHILIP_DIM, 3, double, dealii::Triangulation<PHILIP_DIM>>;
+template class FunctionalWeightedIntegralBoundary <PHILIP_DIM, 4, double, dealii::Triangulation<PHILIP_DIM>>;
+template class FunctionalWeightedIntegralBoundary <PHILIP_DIM, 5, double, dealii::Triangulation<PHILIP_DIM>>;
+
+template class FunctionalErrorNormLpVolume <PHILIP_DIM, 1, double, dealii::Triangulation<PHILIP_DIM>>;
+template class FunctionalErrorNormLpVolume <PHILIP_DIM, 2, double, dealii::Triangulation<PHILIP_DIM>>;
+template class FunctionalErrorNormLpVolume <PHILIP_DIM, 3, double, dealii::Triangulation<PHILIP_DIM>>;
+template class FunctionalErrorNormLpVolume <PHILIP_DIM, 4, double, dealii::Triangulation<PHILIP_DIM>>;
+template class FunctionalErrorNormLpVolume <PHILIP_DIM, 5, double, dealii::Triangulation<PHILIP_DIM>>;
+
+template class FunctionalErrorNormLpBoundary <PHILIP_DIM, 1, double, dealii::Triangulation<PHILIP_DIM>>;
+template class FunctionalErrorNormLpBoundary <PHILIP_DIM, 2, double, dealii::Triangulation<PHILIP_DIM>>;
+template class FunctionalErrorNormLpBoundary <PHILIP_DIM, 3, double, dealii::Triangulation<PHILIP_DIM>>;
+template class FunctionalErrorNormLpBoundary <PHILIP_DIM, 4, double, dealii::Triangulation<PHILIP_DIM>>;
+template class FunctionalErrorNormLpBoundary <PHILIP_DIM, 5, double, dealii::Triangulation<PHILIP_DIM>>;
+
+template class Functional <PHILIP_DIM, 1, double, dealii::Triangulation<PHILIP_DIM>>;
+template class Functional <PHILIP_DIM, 2, double, dealii::Triangulation<PHILIP_DIM>>;
+template class Functional <PHILIP_DIM, 3, double, dealii::Triangulation<PHILIP_DIM>>;
+template class Functional <PHILIP_DIM, 4, double, dealii::Triangulation<PHILIP_DIM>>;
+template class Functional <PHILIP_DIM, 5, double, dealii::Triangulation<PHILIP_DIM>>;
+
+template class FunctionalFactory <PHILIP_DIM, 1, double, dealii::Triangulation<PHILIP_DIM>>;
+template class FunctionalFactory <PHILIP_DIM, 2, double, dealii::Triangulation<PHILIP_DIM>>;
+template class FunctionalFactory <PHILIP_DIM, 3, double, dealii::Triangulation<PHILIP_DIM>>;
+template class FunctionalFactory <PHILIP_DIM, 4, double, dealii::Triangulation<PHILIP_DIM>>;
+template class FunctionalFactory <PHILIP_DIM, 5, double, dealii::Triangulation<PHILIP_DIM>>;
+
+// dealii::parallel::shared::Triangulation<PHILIP_DIM>
+template class FunctionalNormLpVolume <PHILIP_DIM, 1, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class FunctionalNormLpVolume <PHILIP_DIM, 2, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class FunctionalNormLpVolume <PHILIP_DIM, 3, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class FunctionalNormLpVolume <PHILIP_DIM, 4, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class FunctionalNormLpVolume <PHILIP_DIM, 5, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+
+template class FunctionalNormLpBoundary <PHILIP_DIM, 1, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class FunctionalNormLpBoundary <PHILIP_DIM, 2, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class FunctionalNormLpBoundary <PHILIP_DIM, 3, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class FunctionalNormLpBoundary <PHILIP_DIM, 4, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class FunctionalNormLpBoundary <PHILIP_DIM, 5, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+
+template class FunctionalWeightedIntegralVolume <PHILIP_DIM, 1, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class FunctionalWeightedIntegralVolume <PHILIP_DIM, 2, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class FunctionalWeightedIntegralVolume <PHILIP_DIM, 3, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class FunctionalWeightedIntegralVolume <PHILIP_DIM, 4, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class FunctionalWeightedIntegralVolume <PHILIP_DIM, 5, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+
+template class FunctionalWeightedIntegralBoundary <PHILIP_DIM, 1, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class FunctionalWeightedIntegralBoundary <PHILIP_DIM, 2, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class FunctionalWeightedIntegralBoundary <PHILIP_DIM, 3, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class FunctionalWeightedIntegralBoundary <PHILIP_DIM, 4, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class FunctionalWeightedIntegralBoundary <PHILIP_DIM, 5, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+
+template class FunctionalErrorNormLpVolume <PHILIP_DIM, 1, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class FunctionalErrorNormLpVolume <PHILIP_DIM, 2, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class FunctionalErrorNormLpVolume <PHILIP_DIM, 3, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class FunctionalErrorNormLpVolume <PHILIP_DIM, 4, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class FunctionalErrorNormLpVolume <PHILIP_DIM, 5, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+
+template class FunctionalErrorNormLpBoundary <PHILIP_DIM, 1, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class FunctionalErrorNormLpBoundary <PHILIP_DIM, 2, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class FunctionalErrorNormLpBoundary <PHILIP_DIM, 3, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class FunctionalErrorNormLpBoundary <PHILIP_DIM, 4, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class FunctionalErrorNormLpBoundary <PHILIP_DIM, 5, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+
+template class Functional <PHILIP_DIM, 1, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class Functional <PHILIP_DIM, 2, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class Functional <PHILIP_DIM, 3, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class Functional <PHILIP_DIM, 4, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class Functional <PHILIP_DIM, 5, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+
+template class FunctionalFactory <PHILIP_DIM, 1, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class FunctionalFactory <PHILIP_DIM, 2, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class FunctionalFactory <PHILIP_DIM, 3, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class FunctionalFactory <PHILIP_DIM, 4, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class FunctionalFactory <PHILIP_DIM, 5, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+
+#if PHILIP_DIM != 1
+// dealii::parallel::distributed::Triangulation<PHILIP_DIM>
+template class FunctionalNormLpVolume <PHILIP_DIM, 1, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+template class FunctionalNormLpVolume <PHILIP_DIM, 2, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+template class FunctionalNormLpVolume <PHILIP_DIM, 3, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+template class FunctionalNormLpVolume <PHILIP_DIM, 4, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+template class FunctionalNormLpVolume <PHILIP_DIM, 5, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+
+template class FunctionalNormLpBoundary <PHILIP_DIM, 1, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+template class FunctionalNormLpBoundary <PHILIP_DIM, 2, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+template class FunctionalNormLpBoundary <PHILIP_DIM, 3, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+template class FunctionalNormLpBoundary <PHILIP_DIM, 4, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+template class FunctionalNormLpBoundary <PHILIP_DIM, 5, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+
+template class FunctionalWeightedIntegralVolume <PHILIP_DIM, 1, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+template class FunctionalWeightedIntegralVolume <PHILIP_DIM, 2, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+template class FunctionalWeightedIntegralVolume <PHILIP_DIM, 3, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+template class FunctionalWeightedIntegralVolume <PHILIP_DIM, 4, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+template class FunctionalWeightedIntegralVolume <PHILIP_DIM, 5, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+
+template class FunctionalWeightedIntegralBoundary <PHILIP_DIM, 1, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+template class FunctionalWeightedIntegralBoundary <PHILIP_DIM, 2, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+template class FunctionalWeightedIntegralBoundary <PHILIP_DIM, 3, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+template class FunctionalWeightedIntegralBoundary <PHILIP_DIM, 4, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+template class FunctionalWeightedIntegralBoundary <PHILIP_DIM, 5, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+
+template class FunctionalErrorNormLpVolume <PHILIP_DIM, 1, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+template class FunctionalErrorNormLpVolume <PHILIP_DIM, 2, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+template class FunctionalErrorNormLpVolume <PHILIP_DIM, 3, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+template class FunctionalErrorNormLpVolume <PHILIP_DIM, 4, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+template class FunctionalErrorNormLpVolume <PHILIP_DIM, 5, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+
+template class FunctionalErrorNormLpBoundary <PHILIP_DIM, 1, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+template class FunctionalErrorNormLpBoundary <PHILIP_DIM, 2, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+template class FunctionalErrorNormLpBoundary <PHILIP_DIM, 3, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+template class FunctionalErrorNormLpBoundary <PHILIP_DIM, 4, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+template class FunctionalErrorNormLpBoundary <PHILIP_DIM, 5, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+
+template class Functional <PHILIP_DIM, 1, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+template class Functional <PHILIP_DIM, 2, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+template class Functional <PHILIP_DIM, 3, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+template class Functional <PHILIP_DIM, 4, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+template class Functional <PHILIP_DIM, 5, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+
+template class FunctionalFactory <PHILIP_DIM, 1, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+template class FunctionalFactory <PHILIP_DIM, 2, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+template class FunctionalFactory <PHILIP_DIM, 3, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+template class FunctionalFactory <PHILIP_DIM, 4, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+template class FunctionalFactory <PHILIP_DIM, 5, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+#endif
 
 } // PHiLiP namespace

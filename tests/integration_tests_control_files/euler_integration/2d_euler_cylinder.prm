@@ -30,7 +30,7 @@ subsection linear solver
     set linear_residual_tolerance = 1e-2
     set max_iterations = 2000
     set restart_number = 200
-    set ilut_fill = 10
+    set ilut_fill = 0
     set ilut_atol = 1e-3
     set ilut_rtol = 1.01
     set ilut_drop = 1e-4

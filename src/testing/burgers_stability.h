@@ -8,26 +8,23 @@
 namespace PHiLiP {
 namespace Tests {
 
-/// Burgers sine wave to shock.
-/** Ensure that the kinetic energy is bounded.
- *  Gassner 2017.
- */
 template <int dim, int nstate>
+/// Burgers' periodic unsteady test
 class BurgersEnergyStability: public TestsBase
 {
 public:
-    /// Constructor.
- BurgersEnergyStability(const Parameters::AllParameters *const parameters_input);
-    /// Ensure that the kinetic energy is bounded.
-    /** If the kinetic energy increases about its initial value, then the test should fail.
-     *  Gassner 2017.
-     */
-    int run_test () const override;
+        /// Constructor
+	BurgersEnergyStability(const Parameters::AllParameters *const parameters_input);
+        /// Run the testcase
+        int run_test () const override;
 private:
-    /// Computes an integral of the kinetic energy (solution squared) in the entire domain.
-    /** Uses Inverse of inverse mass matrix (?) to evaluate integral of u^2.
-     */
- double compute_energy(std::shared_ptr < PHiLiP::DGBase<dim, double> > &dg) const;
+    /// Function computes the energy
+	double compute_energy(std::shared_ptr < PHiLiP::DGBase<dim, double> > &dg) const;
+    /// Function computes the conservation
+        double compute_conservation(std::shared_ptr < PHiLiP::DGBase<dim, double> > &dg, const double poly_degree) const;
+protected:
+    ///Initialize the initial condition
+        void initialize(DGBase<dim,double> &dg, const PHiLiP::Parameters::AllParameters &all_parameters_new) const;
 };
 
 } // End of Tests namespace

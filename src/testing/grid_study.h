@@ -5,6 +5,7 @@
 #include "dg/dg.h"
 #include "physics/physics.h"
 #include "parameters/all_parameters.h"
+#include <deal.II/base/convergence_table.h>
 
 namespace PHiLiP {
 namespace Tests {
@@ -54,6 +55,15 @@ protected:
     /** Used to evaluate error of a functional.
      */
     double integrate_solution_over_domain(DGBase<dim,double> &dg) const;
+
+    /// Returns the baseline filename for outputted convergence tables
+    std::string get_convergence_tables_baseline_filename(const Parameters::AllParameters *const parameters_input) const;
+
+    /// Writes the convergence table output file
+    void write_convergence_table_to_output_file(
+        const std::string error_filename_baseline, 
+        const dealii::ConvergenceTable convergence_table,
+        const unsigned int poly_degree) const;
 };
 
 

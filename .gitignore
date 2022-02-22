@@ -21,3 +21,5 @@ doc/html/**
 build*/
 .vscode/settings.json
 src/.vscode/settings.json
+src/dummy/*
+

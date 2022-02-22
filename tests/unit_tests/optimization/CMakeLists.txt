@@ -20,12 +20,16 @@ add_test(
   COMMAND mpirun -n ${NMPI} ${EXECUTABLE_OUTPUT_PATH}/${TEST_TARGET}
   WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )
-set(NMPI ${MPIMAX})
-add_test(
-  NAME ${TEST_TARGET}_nmpi=${NMPI}
-  COMMAND mpirun -n ${NMPI} ${EXECUTABLE_OUTPUT_PATH}/${TEST_TARGET}
-  WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
-)
+
+if(NOT NMPI EQUAL ${MPIMAX})
+  set(NMPI ${MPIMAX})
+  add_test(
+    NAME ${TEST_TARGET}_nmpi=${NMPI}
+    COMMAND mpirun -n ${NMPI} ${EXECUTABLE_OUTPUT_PATH}/${TEST_TARGET}
+    WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
+  )
+endif()
+
 unset(TEST_TARGET)
 
 set(TEST_SRC
@@ -46,6 +50,7 @@ add_dependencies(${dim}D ${TEST_TARGET})
 target_link_libraries(${TEST_TARGET} ParametersLibrary)
 target_link_libraries(${TEST_TARGET} Grids_${dim}D)
 target_link_libraries(${TEST_TARGET} Physics_${dim}D)
+target_link_libraries(${TEST_TARGET} InitialConditions_${dim}D)
 target_link_libraries(${TEST_TARGET} DiscontinuousGalerkin_${dim}D)
 target_link_libraries(${TEST_TARGET} ODESolver_${dim}D)
 target_link_libraries(${TEST_TARGET} Optimization_${dim}D)
@@ -82,6 +87,7 @@ add_dependencies(${dim}D ${TEST_TARGET})
 target_link_libraries(${TEST_TARGET} ParametersLibrary)
 target_link_libraries(${TEST_TARGET} Grids_${dim}D)
 target_link_libraries(${TEST_TARGET} Physics_${dim}D)
+target_link_libraries(${TEST_TARGET} InitialConditions_${dim}D)
 target_link_libraries(${TEST_TARGET} DiscontinuousGalerkin_${dim}D)
 target_link_libraries(${TEST_TARGET} ODESolver_${dim}D)
 target_link_libraries(${TEST_TARGET} Functional_${dim}D)

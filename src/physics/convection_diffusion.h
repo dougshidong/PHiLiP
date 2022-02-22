@@ -5,6 +5,7 @@
 
 #include "parameters/all_parameters.h"
 #include "physics.h"
+#include "parameters/parameters_manufactured_solution.h"
 
 namespace PHiLiP {
 namespace Physics {
@@ -36,12 +37,26 @@ public:
     const bool hasConvection; ///< Turns ON/OFF convection term.
 
     const bool hasDiffusion; ///< Turns ON/OFF diffusion term.
+    ///Allows convection diffusion to distinguish between different unsteady test types.
+    const Parameters::AllParameters::TestType test_type; ///< Pointer to all parameters
 
     /// Constructor
-    ConvectionDiffusion (const bool convection = true, const bool diffusion = true)
-        : hasConvection(convection), hasDiffusion(diffusion)
+    ConvectionDiffusion (
+        const bool                                                convection = true, 
+        const bool                                                diffusion = true, 
+        const dealii::Tensor<2,3,double>                          input_diffusion_tensor = Parameters::ManufacturedSolutionParam::get_default_diffusion_tensor(),
+        const dealii::Tensor<1,3,double>                          input_advection_vector = Parameters::ManufacturedSolutionParam::get_default_advection_vector(),
+        const double                                              input_diffusion_coefficient = Parameters::ManufacturedSolutionParam::get_default_diffusion_coefficient(),
+        std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function = nullptr,
+        const Parameters::AllParameters::TestType parameters_test = Parameters::AllParameters::TestType::run_control) : 
+            PhysicsBase<dim,nstate,real>(input_diffusion_tensor, manufactured_solution_function), 
+            linear_advection_velocity{input_advection_vector[0], input_advection_vector[1], input_advection_vector[2]},
+            diffusion_scaling_coeff(input_diffusion_coefficient),
+            hasConvection(convection), 
+            hasDiffusion(diffusion),
+            test_type(parameters_test)
     {
-        static_assert(nstate<=2, "Physics::ConvectionDiffusion() should be created with nstate<=2");
+        static_assert(nstate<=5, "Physics::ConvectionDiffusion() should be created with nstate<=5");
     };
 
     /// Destructor
@@ -52,6 +67,11 @@ public:
     std::array<dealii::Tensor<1,dim,real>,nstate> convective_numerical_split_flux (
         const std::array<real,nstate> &soln1,
         const std::array<real,nstate> &soln2) const;
+
+    /// Convective Numerical Split Flux for split form
+    std::array<dealii::Tensor<1,dim,real>,nstate> convective_surface_numerical_split_flux (
+                const std::array< dealii::Tensor<1,dim,real>, nstate > &surface_flux,
+                const std::array< dealii::Tensor<1,dim,real>, nstate > &flux_interp_to_surface) const;
 
     /// Spectral radius of convective term Jacobian is 'c'
     std::array<real,nstate> convective_eigenvalues (
@@ -74,7 +94,8 @@ public:
     /// Source term is zero or depends on manufactured solution
     std::array<real,nstate> source_term (
         const dealii::Point<dim,real> &pos,
-        const std::array<real,nstate> &solution) const;
+        const std::array<real,nstate> &solution,//) const;
+        const real /*current_time*/) const;
 
     /// If diffusion is present, assign Dirichlet boundary condition
     /** Using Neumann boundary conditions might need to modify the functional

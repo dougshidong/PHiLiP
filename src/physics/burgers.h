@@ -4,6 +4,7 @@
 #include <deal.II/base/tensor.h>
 
 #include "parameters/all_parameters.h"
+#include "parameters/parameters_manufactured_solution.h"
 
 #include "physics.h"
 
@@ -37,10 +38,22 @@ public:
     const bool hasConvection;
     /// Turns on diffusive part of the Burgers problem.
     const bool hasDiffusion;
+    ///Allows Burgers to distinguish between different unsteady test types.
+    const Parameters::AllParameters::TestType test_type; ///< Pointer to all parameters
 
     /// Constructor
-    Burgers (const bool convection = true, const bool diffusion = true)
-        : hasConvection(convection), hasDiffusion(diffusion)
+    Burgers(
+        const bool                                                convection = true, 
+        const bool                                                diffusion = true, 
+        const dealii::Tensor<2,3,double>                          input_diffusion_tensor = Parameters::ManufacturedSolutionParam::get_default_diffusion_tensor(),
+        std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function = nullptr,
+       // const Parameters::AllParameters::TestType parameters_test = Parameters::AllParameters::TestType::burgers_energy_stability) : 
+        const Parameters::AllParameters::TestType parameters_test = Parameters::AllParameters::TestType::run_control) : 
+        //const Parameters::AllParameters::TestType parameters_test) : 
+            PhysicsBase<dim,nstate,real>(input_diffusion_tensor, manufactured_solution_function), 
+            hasConvection(convection), 
+            hasDiffusion(diffusion),
+            test_type(parameters_test)
     {
         static_assert(nstate==dim, "Physics::Burgers() should be created with nstate==dim");
     };
@@ -54,6 +67,11 @@ public:
     std::array<dealii::Tensor<1,dim,real>,nstate> convective_numerical_split_flux (
                 const std::array<real,nstate> &soln_const,
                 const std::array<real,nstate> & soln_loop) const;
+
+    /// Convective surface split flux
+    std::array<dealii::Tensor<1,dim,real>,nstate> convective_surface_numerical_split_flux (
+                const std::array< dealii::Tensor<1,dim,real>, nstate > &surface_flux,
+                const std::array< dealii::Tensor<1,dim,real>, nstate > &flux_interp_to_surface) const;
 
     /// Spectral radius of convective term Jacobian is 'c'
     std::array<real,nstate> convective_eigenvalues (
@@ -76,7 +94,8 @@ public:
     /// Source term is zero or depends on manufactured solution
     std::array<real,nstate> source_term (
         const dealii::Point<dim,real> &pos,
-        const std::array<real,nstate> &solution) const;
+        const std::array<real,nstate> &solution,
+        const real current_time) const;
 
     /// If diffusion is present, assign Dirichlet boundary condition
     /** Using Neumann boundary conditions might need to modify the functional

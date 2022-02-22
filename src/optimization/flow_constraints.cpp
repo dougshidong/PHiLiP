@@ -3,7 +3,7 @@
 
 #include "rol_to_dealii_vector.hpp"
 
-#include "ode_solver/ode_solver.h"
+#include "ode_solver/ode_solver_factory.h"
 
 #include <Epetra_RowMatrixTransposer.h>
 
@@ -17,7 +17,8 @@ template<int dim>
 FlowConstraints<dim>
 ::FlowConstraints(std::shared_ptr<DGBase<dim,double>> &_dg, 
                  const FreeFormDeformation<dim> &_ffd,
-                 std::vector< std::pair< unsigned int, unsigned int > > &_ffd_design_variables_indices_dim)
+                 std::vector< std::pair< unsigned int, unsigned int > > &_ffd_design_variables_indices_dim,
+                 dealii::TrilinosWrappers::SparseMatrix *precomputed_dXvdXp)
     : mpi_rank(dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD))
     , i_print(mpi_rank==0)
     , dg(_dg)
@@ -27,10 +28,27 @@ FlowConstraints<dim>
     , adjoint_jacobian_prec(nullptr)
 {
     flow_CFL_ = 0.0;
-    ffd_des_var.reinit(ffd_design_variables_indices_dim.size());
+
+    const unsigned int n_design_variables = ffd_design_variables_indices_dim.size();
+    const dealii::IndexSet row_part = dealii::Utilities::MPI::create_evenly_distributed_partitioning(MPI_COMM_WORLD,n_design_variables);
+    dealii::IndexSet ghost_row_part(n_design_variables);
+    ghost_row_part.add_range(0,n_design_variables);
+    ffd_des_var.reinit(row_part, ghost_row_part, MPI_COMM_WORLD);
+
     ffd.get_design_variables(ffd_design_variables_indices_dim, ffd_des_var);
 
-    ffd.get_dXvdXp ( dg->high_order_grid, ffd_design_variables_indices_dim, dXvdXp);
+    initial_ffd_des_var = ffd_des_var;
+    initial_ffd_des_var.update_ghost_values();
+
+    //if(dXvdXp.m() == 0) ffd.get_dXvdXp ( *(dg->high_order_grid), ffd_design_variables_indices_dim, dXvdXp);
+    if (precomputed_dXvdXp) {
+        if (precomputed_dXvdXp->m() == dg->high_order_grid->volume_nodes.size() && precomputed_dXvdXp->n() == n_design_variables) {
+            dXvdXp.copy_from(*precomputed_dXvdXp);
+        }
+    } else {
+        ffd.get_dXvdXp ( *(dg->high_order_grid), ffd_design_variables_indices_dim, dXvdXp);
+    }
+    //ffd.get_dXvdXp_FD ( *(dg->high_order_grid), ffd_design_variables_indices_dim, dXvdXp, 1e-6);
 
     dealii::ParameterHandler parameter_handler;
     Parameters::LinearSolverParam::declare_parameters (parameter_handler);
@@ -38,14 +56,28 @@ FlowConstraints<dim>
     this->linear_solver_param.max_iterations = 1000;
     this->linear_solver_param.restart_number = 200;
     this->linear_solver_param.linear_residual = 1e-17;
-    this->linear_solver_param.ilut_fill = 0;
-    this->linear_solver_param.ilut_drop = 0.0;
-    this->linear_solver_param.ilut_rtol = 1.0;
-    this->linear_solver_param.ilut_atol = 0.0;
-    this->linear_solver_param.linear_solver_output = Parameters::OutputEnum::quiet;
+    //this->linear_solver_param.ilut_fill = 1.0;//2; 50
+    this->linear_solver_param.ilut_fill = 50;
+    this->linear_solver_param.ilut_drop = 1e-8;
+    //this->linear_solver_param.ilut_atol = 1e-3;
+    //this->linear_solver_param.ilut_rtol = 1.0+1e-2;
+    this->linear_solver_param.ilut_atol = 1e-5;
+    this->linear_solver_param.ilut_rtol = 1.0+1e-2;
+    this->linear_solver_param.linear_solver_output = Parameters::OutputEnum::verbose;
     this->linear_solver_param.linear_solver_type = Parameters::LinearSolverParam::LinearSolverEnum::gmres;
-
+    //this->linear_solver_param.linear_solver_type = Parameters::LinearSolverParam::LinearSolverEnum::direct;
 }
+
+// template<int dim>
+// FlowConstraints<dim>
+// ::FlowConstraints(std::shared_ptr<DGBase<dim,double>> &_dg, 
+//                  const FreeFormDeformation<dim> &_ffd,
+//                  std::vector< std::pair< unsigned int, unsigned int > > &_ffd_design_variables_indices_dim,
+//                  const dealii::TrilinosWrappers::SparseMatrix &_dXvdXp)
+//     : FlowConstraints(_dg, _ffd, _ffd_design_variables_indices_dim)
+// {
+//     dXvdXp = _dXvdXp;
+// }
 
 template<int dim>
 FlowConstraints<dim>::~FlowConstraints()
@@ -75,11 +107,24 @@ void FlowConstraints<dim>
     auto diff = ffd_des_var;
     diff -= current_ffd_des_var;
     const double l2_norm = diff.l2_norm();
+    //if (iter!=-1) {
+    //    dg->output_results_vtk(1000000+iter);
+    //    ffd.output_ffd_vtu(    1000000+iter);
+    //}
     if (l2_norm != 0.0) {
-        ffd.set_design_variables( ffd_design_variables_indices_dim, ffd_des_var);
-        ffd.deform_mesh(dg->high_order_grid);
 
-        static int iupdate = 0;
+        ffd.set_design_variables( ffd_design_variables_indices_dim, ffd_des_var);
+        //ffd.deform_mesh(*(dg->high_order_grid));
+ 
+        auto dXp = ffd_des_var;
+        dXp -= initial_ffd_des_var;
+        dXp.update_ghost_values();
+        auto dXv = dg->high_order_grid->volume_nodes;
+        dXvdXp.vmult(dXv, dXp);
+        dg->high_order_grid->volume_nodes = dg->high_order_grid->initial_volume_nodes;
+        dg->high_order_grid->volume_nodes += dXv;
+        dg->high_order_grid->volume_nodes.update_ghost_values();
+
         dg->output_results_vtk(iupdate);
         ffd.output_ffd_vtu(iupdate);
         iupdate++;
@@ -92,7 +137,7 @@ void FlowConstraints<dim>
     ROL::Vector<double>& constraint_values,
     ROL::Vector<double>& des_var_sim,
     const ROL::Vector<double>& des_var_ctl,
-    double& /*tol*/
+    double& tol
     )
 {
 
@@ -100,10 +145,11 @@ void FlowConstraints<dim>
 
     dg->output_results_vtk(i_out++);
     ffd.output_ffd_vtu(i_out);
-    std::shared_ptr<ODE::ODESolver<dim, double>> ode_solver_1 = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
+    std::shared_ptr<ODE::ODESolverBase<dim, double>> ode_solver_1 = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
     ode_solver_1->steady_state();
 
     dg->assemble_residual();
+    tol = dg->get_residual_l2norm();
     auto &constraint = ROL_vector_to_dealii_vector_reference(constraint_values);
     constraint = dg->right_hand_side;
     auto &des_var_sim_v = ROL_vector_to_dealii_vector_reference(des_var_sim);
@@ -191,6 +237,11 @@ void FlowConstraints<dim>
     auto input_vector_v = ROL_vector_to_dealii_vector_reference(input_vector);
     auto &output_vector_v = ROL_vector_to_dealii_vector_reference(output_vector);
 
+    //std::cout << std::setprecision(std::numeric_limits<long double>::digits10 + 1);
+    //std::cout << "System matrix flow_CFL_" << flow_CFL_ << std::endl;
+    //MPI_Barrier(MPI_COMM_WORLD);
+    //dg->system_matrix.print(std::cout);
+
     solve_linear (dg->system_matrix, input_vector_v, output_vector_v, this->linear_solver_param);
     //solve_linear_2 ( this->dg->system_matrix, input_vector_v, output_vector_v, this->linear_solver_param);
     //try {
@@ -231,39 +282,24 @@ int FlowConstraints<dim>
 
     destroy_JacobianPreconditioner_1();
     Ifpack Factory;
+
+    Teuchos::ParameterList List;
+
     const std::string PrecType = "ILUT"; 
+    List.set("fact: ilut level-of-fill", 50.0);
+    List.set("fact: absolute threshold", 1e-3);
+    List.set("fact: relative threshold", 1.01);//1.0+1e-2);
+    List.set("fact: drop tolerance", 0.0);//1e-12);
+
     //const std::string PrecType = "ILU"; 
+    //List.set("fact: level-of-fill", 0);
+
+    List.set("schwarz: reordering type", "rcm");
     const int OverlapLevel = 1; // one row of overlap among the processes
     jacobian_prec = Factory.Create(PrecType, jacobian, OverlapLevel);
     assert (jacobian_prec != 0);
 
-    Teuchos::ParameterList List;
-    // "fact: level-of-fill":
-    //      defines the level of fill for ILU factorizations.
-    //      This is based on powers of the graph, so the value 0 means no-fill.
-    // "fact: ilut level-of-fill":
-    //      defines the level of fill for ILUT factorizations.
-    //      This is a ratio, so 1.0 means same number of nonzeros for
-    //      the ILU factors as in the original matrix.
-    // "fact: absolute threshold":
-    //      cdefines the value α to add to each diagonal element
-    //      (times the signum of the actual diagonal element),
-    //      for incomplete factorizations only.
-    // "fact: relative threshold":
-    //      defines ρ, so that the diagonal element of the matrix
-    //      (without the contribution specified by "fact: absolute threshold") is multiplied by rho.
-    // "fact: relax value":
-    //      if different from zero, the elements dropped during the factorization process
-    //      will be added to the diagonal term, multiplied by the specified value.
 
-    List.set("fact: level-of-fill", 2);
-    List.set("fact: ilut level-of-fill", 2.0);
-    // no modifications on the diagonal
-    List.set("fact: absolute threshold", 1e-4);
-    List.set("fact: relative threshold", 1.0);
-    List.set("fact: drop tolerance", 1e-10);
-
-    List.set("schwarz: reordering type", "rcm");
 
 
     IFPACK_CHK_ERR(jacobian_prec->SetParameters(List));
@@ -290,39 +326,22 @@ int FlowConstraints<dim>
 
     destroy_AdjointJacobianPreconditioner_1();
     Ifpack Factory;
+
+    Teuchos::ParameterList List;
+
     const std::string PrecType = "ILUT"; 
+    List.set("fact: ilut level-of-fill", 50.0);
+    List.set("fact: absolute threshold", 1e-3);
+    List.set("fact: relative threshold", 1.01);//1.0+1e-2);
+    List.set("fact: drop tolerance", 0.0);//1e-12);
+
     //const std::string PrecType = "ILU"; 
+    //List.set("fact: level-of-fill", 0);
+
+    List.set("schwarz: reordering type", "rcm");
     const int OverlapLevel = 1; // one row of overlap among the processes
     adjoint_jacobian_prec = Factory.Create(PrecType, adjoint_jacobian, OverlapLevel);
     assert (adjoint_jacobian_prec != 0);
-
-    Teuchos::ParameterList List;
-    // "fact: level-of-fill":
-    //      defines the level of fill for ILU factorizations.
-    //      This is based on powers of the graph, so the value 0 means no-fill.
-    // "fact: ilut level-of-fill":
-    //      defines the level of fill for ILUT factorizations.
-    //      This is a ratio, so 1.0 means same number of nonzeros for
-    //      the ILU factors as in the original matrix.
-    // "fact: absolute threshold":
-    //      cdefines the value α to add to each diagonal element
-    //      (times the signum of the actual diagonal element),
-    //      for incomplete factorizations only.
-    // "fact: relative threshold":
-    //      defines ρ, so that the diagonal element of the matrix
-    //      (without the contribution specified by "fact: absolute threshold") is multiplied by rho.
-    // "fact: relax value":
-    //      if different from zero, the elements dropped during the factorization process
-    //      will be added to the diagonal term, multiplied by the specified value.
-
-    List.set("fact: level-of-fill", 2);
-    List.set("fact: ilut level-of-fill", 2.0);
-    // no modifications on the diagonal
-    List.set("fact: absolute threshold", 1e-4);
-    List.set("fact: relative threshold", 1.0);
-    List.set("fact: drop tolerance", 1e-10);
-
-    List.set("schwarz: reordering type", "rcm");
 
     IFPACK_CHK_ERR(adjoint_jacobian_prec->SetParameters(List));
     IFPACK_CHK_ERR(adjoint_jacobian_prec->Initialize());
@@ -357,8 +376,10 @@ void FlowConstraints<dim>
                     output_vector_v.begin());
     jacobian_prec->ApplyInverse (input_trilinos, output_trilinos);
 
-    n_vmult += 2;
-    dRdW_mult += 2;
+    //n_vmult += 2;
+    //dRdW_mult += 2;
+    n_vmult += 6;
+    dRdW_mult += 6;
 
 }
 
@@ -387,8 +408,10 @@ void FlowConstraints<dim>
                     output_vector_v.begin());
     adjoint_jacobian_prec->ApplyInverse (input_trilinos, output_trilinos);
 
-    n_vmult += 2;
-    dRdW_mult += 2;
+    //n_vmult += 2;
+    //dRdW_mult += 2;
+    n_vmult += 6;
+    dRdW_mult += 6;
 }
 
 template<int dim>
@@ -411,37 +434,8 @@ double& /*tol*/ )
     auto input_vector_v = ROL_vector_to_dealii_vector_reference(input_vector);
     auto &output_vector_v = ROL_vector_to_dealii_vector_reference(output_vector);
 
-    // dealii::TrilinosWrappers::SparseMatrix system_matrix_transpose;
-    // Epetra_CrsMatrix *system_matrix_transpose_tril;
-    // Epetra_RowMatrixTransposer epmt( const_cast<Epetra_CrsMatrix *>( &( dg->system_matrix.trilinos_matrix() ) ) );
-    // const bool make_data_contiguous = true;
-    // epmt.CreateTranspose(make_data_contiguous, system_matrix_transpose_tril);
-    // const bool copy_values = true;
-    // system_matrix_transpose.reinit(*system_matrix_transpose_tril, copy_values);
-    // delete system_matrix_transpose_tril;
-
     solve_linear (dg->system_matrix_transpose, input_vector_v, output_vector_v, this->linear_solver_param);
 
-    // dealii::TrilinosWrappers::SparseMatrix system_matrix_transpose;
-    // Epetra_CrsMatrix *system_matrix_transpose_tril;
-    // Epetra_RowMatrixTransposer epmt( const_cast<Epetra_CrsMatrix *>( &( dg->system_matrix.trilinos_matrix() ) ) );
-    // const bool make_data_contiguous = true;
-    // epmt.CreateTranspose(make_data_contiguous, system_matrix_transpose_tril);
-    // const bool copy_values = true;
-    // system_matrix_transpose.reinit(*system_matrix_transpose_tril, copy_values);
-    // delete system_matrix_transpose_tril;
-    // solve_linear (system_matrix_transpose, input_vector_v, output_vector_v, this->linear_solver_param);
-
-    //try {
-    //    solve_linear (system_matrix_transpose, input_vector_v, output_vector_v, this->linear_solver_param, true);
-    //} catch (...) {
-    //    if(i_print) std::cout << "Failed to solve linear system in " << __PRETTY_FUNCTION__ << std::endl;
-    //    output_vector.setScalar(1.0);
-    //}
-
-    // dg->system_matrix.transpose();
-    // solve_linear (dg->system_matrix, input_vector_v, output_vector_v, this->linear_solver_param);
-    // dg->system_matrix.transpose();
 }
 
 template<int dim>
@@ -459,27 +453,27 @@ double& /*tol*/ )
 
     const auto &input_vector_v = ROL_vector_to_dealii_vector_reference(input_vector);
 
-    //auto dXvsdXp_input = dg->high_order_grid.volume_nodes;
+    //auto dXvsdXp_input = dg->high_order_grid->volume_nodes;
     //{
     //    dealii::TrilinosWrappers::SparseMatrix dXvsdXp;
     //    ffd.get_dXvsdXp (dg->high_order_grid, ffd_design_variables_indices_dim, dXvsdXp);
     //    dXvsdXp.vmult(dXvsdXp_input,input_vector_v);
     //}
 
-    //auto dXvdXp_input = dg->high_order_grid.volume_nodes;
+    //auto dXvdXp_input = dg->high_order_grid->volume_nodes;
     //{
-    //    dealii::LinearAlgebra::distributed::Vector<double> dummy_vector(dg->high_order_grid.surface_nodes);
+    //    dealii::LinearAlgebra::distributed::Vector<double> dummy_vector(dg->high_order_grid->surface_nodes);
     //    MeshMover::LinearElasticity<dim, double, dealii::LinearAlgebra::distributed::Vector<double>, dealii::DoFHandler<dim>> 
-    //        meshmover(*(dg->high_order_grid.triangulation),
-    //          dg->high_order_grid.initial_mapping_fe_field,
-    //          dg->high_order_grid.dof_handler_grid,
-    //          dg->high_order_grid.surface_to_volume_indices,
+    //        meshmover(*(dg->high_order_grid->triangulation),
+    //          dg->high_order_grid->initial_mapping_fe_field,
+    //          dg->high_order_grid->dof_handler_grid,
+    //          dg->high_order_grid->surface_to_volume_indices,
     //          dummy_vector);
 
     //    meshmover.apply_dXvdXvs(dXvsdXp_input, dXvdXp_input);
     //}
 
-    auto dXvdXp_input = dg->high_order_grid.volume_nodes;
+    auto dXvdXp_input = dg->high_order_grid->volume_nodes;
     dXvdXp.vmult(dXvdXp_input, input_vector_v);
 
     auto &output_vector_v = ROL_vector_to_dealii_vector_reference(output_vector);
@@ -534,21 +528,21 @@ double& /*tol*/ )
 
     const auto &input_vector_v = ROL_vector_to_dealii_vector_reference(input_vector);
 
-    auto input_dRdXv = dg->high_order_grid.volume_nodes;
+    auto input_dRdXv = dg->high_order_grid->volume_nodes;
     {
         const bool compute_dRdW=false; const bool compute_dRdX=true; const bool compute_d2R=false;
         dg->assemble_residual(compute_dRdW, compute_dRdX, compute_d2R, flow_CFL_);
         dg->dRdXv.Tvmult(input_dRdXv, input_vector_v);
     }
 
-    // auto input_dRdXv_dXvdXvs = dg->high_order_grid.volume_nodes;
+    // auto input_dRdXv_dXvdXvs = dg->high_order_grid->volume_nodes;
     // {
-    //     dealii::LinearAlgebra::distributed::Vector<double> dummy_vector(dg->high_order_grid.surface_nodes);
+    //     dealii::LinearAlgebra::distributed::Vector<double> dummy_vector(dg->high_order_grid->surface_nodes);
     //     MeshMover::LinearElasticity<dim, double, dealii::LinearAlgebra::distributed::Vector<double>, dealii::DoFHandler<dim>> 
-    //         meshmover(*(dg->high_order_grid.triangulation),
-    //           dg->high_order_grid.initial_mapping_fe_field,
-    //           dg->high_order_grid.dof_handler_grid,
-    //           dg->high_order_grid.surface_to_volume_indices,
+    //         meshmover(*(dg->high_order_grid->triangulation),
+    //           dg->high_order_grid->initial_mapping_fe_field,
+    //           dg->high_order_grid->dof_handler_grid,
+    //           dg->high_order_grid->surface_to_volume_indices,
     //           dummy_vector);
     //     meshmover.apply_dXvdXvs_transpose(input_dRdXv, input_dRdXv_dXvdXvs);
     // }
@@ -616,21 +610,21 @@ void FlowConstraints<dim>
 
     const auto &input_vector_v = ROL_vector_to_dealii_vector_reference(input_vector);
 
-    auto input_d2RdWdX = dg->high_order_grid.volume_nodes;
+    auto input_d2RdWdX = dg->high_order_grid->volume_nodes;
     {
         const bool compute_dRdW=false; const bool compute_dRdX=false; const bool compute_d2R=true;
         dg->assemble_residual(compute_dRdW, compute_dRdX, compute_d2R, flow_CFL_);
         dg->d2RdWdX.Tvmult(input_d2RdWdX, input_vector_v);
     }
 
-    // auto input_d2RdWdX_dXvdXvs = dg->high_order_grid.volume_nodes;
+    // auto input_d2RdWdX_dXvdXvs = dg->high_order_grid->volume_nodes;
     // {
-    //     dealii::LinearAlgebra::distributed::Vector<double> dummy_vector(dg->high_order_grid.surface_nodes);
+    //     dealii::LinearAlgebra::distributed::Vector<double> dummy_vector(dg->high_order_grid->surface_nodes);
     //     MeshMover::LinearElasticity<dim, double, dealii::LinearAlgebra::distributed::Vector<double>, dealii::DoFHandler<dim>> 
-    //         meshmover(*(dg->high_order_grid.triangulation),
-    //           dg->high_order_grid.initial_mapping_fe_field,
-    //           dg->high_order_grid.dof_handler_grid,
-    //           dg->high_order_grid.surface_to_volume_indices,
+    //         meshmover(*(dg->high_order_grid->triangulation),
+    //           dg->high_order_grid->initial_mapping_fe_field,
+    //           dg->high_order_grid->dof_handler_grid,
+    //           dg->high_order_grid->surface_to_volume_indices,
     //           dummy_vector);
     //     meshmover.apply_dXvdXvs_transpose(input_d2RdWdX, input_d2RdWdX_dXvdXvs);
     // }
@@ -673,27 +667,27 @@ void FlowConstraints<dim>
 
     const auto &input_vector_v = ROL_vector_to_dealii_vector_reference(input_vector);
 
-    // auto dXvsdXp_input = dg->high_order_grid.volume_nodes;
+    // auto dXvsdXp_input = dg->high_order_grid->volume_nodes;
     // {
     //     dealii::TrilinosWrappers::SparseMatrix dXvsdXp;
     //     ffd.get_dXvsdXp (dg->high_order_grid, ffd_design_variables_indices_dim, dXvsdXp);
     //     dXvsdXp.vmult(dXvsdXp_input,input_vector_v);
     // }
 
-    // auto dXvdXp_input = dg->high_order_grid.volume_nodes;
+    // auto dXvdXp_input = dg->high_order_grid->volume_nodes;
     // {
-    //     dealii::LinearAlgebra::distributed::Vector<double> dummy_vector(dg->high_order_grid.surface_nodes);
+    //     dealii::LinearAlgebra::distributed::Vector<double> dummy_vector(dg->high_order_grid->surface_nodes);
     //     MeshMover::LinearElasticity<dim, double, dealii::LinearAlgebra::distributed::Vector<double>, dealii::DoFHandler<dim>> 
-    //         meshmover(*(dg->high_order_grid.triangulation),
-    //           dg->high_order_grid.initial_mapping_fe_field,
-    //           dg->high_order_grid.dof_handler_grid,
-    //           dg->high_order_grid.surface_to_volume_indices,
+    //         meshmover(*(dg->high_order_grid->triangulation),
+    //           dg->high_order_grid->initial_mapping_fe_field,
+    //           dg->high_order_grid->dof_handler_grid,
+    //           dg->high_order_grid->surface_to_volume_indices,
     //           dummy_vector);
 
     //     meshmover.apply_dXvdXvs(dXvsdXp_input, dXvdXp_input);
     // }
 
-    auto dXvdXp_input = dg->high_order_grid.volume_nodes;
+    auto dXvdXp_input = dg->high_order_grid->volume_nodes;
     dXvdXp.vmult(dXvdXp_input, input_vector_v);
 
     auto &output_vector_v = ROL_vector_to_dealii_vector_reference(output_vector);
@@ -733,44 +727,44 @@ void FlowConstraints<dim>
 
     const auto &input_vector_v = ROL_vector_to_dealii_vector_reference(input_vector);
 
-    // auto dXvsdXp_input = dg->high_order_grid.volume_nodes;
+    // auto dXvsdXp_input = dg->high_order_grid->volume_nodes;
     // {
     //     dealii::TrilinosWrappers::SparseMatrix dXvsdXp;
     //     ffd.get_dXvsdXp (dg->high_order_grid, ffd_design_variables_indices_dim, dXvsdXp);
     //     dXvsdXp.vmult(dXvsdXp_input,input_vector_v);
     // }
 
-    // auto dXvdXp_input = dg->high_order_grid.volume_nodes;
+    // auto dXvdXp_input = dg->high_order_grid->volume_nodes;
     // {
-    //     dealii::LinearAlgebra::distributed::Vector<double> dummy_vector(dg->high_order_grid.surface_nodes);
+    //     dealii::LinearAlgebra::distributed::Vector<double> dummy_vector(dg->high_order_grid->surface_nodes);
     //     MeshMover::LinearElasticity<dim, double, dealii::LinearAlgebra::distributed::Vector<double>, dealii::DoFHandler<dim>> 
-    //         meshmover(*(dg->high_order_grid.triangulation),
-    //           dg->high_order_grid.initial_mapping_fe_field,
-    //           dg->high_order_grid.dof_handler_grid,
-    //           dg->high_order_grid.surface_to_volume_indices,
+    //         meshmover(*(dg->high_order_grid->triangulation),
+    //           dg->high_order_grid->initial_mapping_fe_field,
+    //           dg->high_order_grid->dof_handler_grid,
+    //           dg->high_order_grid->surface_to_volume_indices,
     //           dummy_vector);
 
     //     meshmover.apply_dXvdXvs(dXvsdXp_input, dXvdXp_input);
     // }
 
-    auto dXvdXp_input = dg->high_order_grid.volume_nodes;
+    auto dXvdXp_input = dg->high_order_grid->volume_nodes;
     dXvdXp.vmult(dXvdXp_input, input_vector_v);
 
-    auto d2RdXdX_dXvdXp_input = dg->high_order_grid.volume_nodes;
+    auto d2RdXdX_dXvdXp_input = dg->high_order_grid->volume_nodes;
     {
         const bool compute_dRdW=false; const bool compute_dRdX=false; const bool compute_d2R=true;
         dg->assemble_residual(compute_dRdW, compute_dRdX, compute_d2R, flow_CFL_);
         dg->d2RdXdX.vmult(d2RdXdX_dXvdXp_input, dXvdXp_input);
     }
 
-    //auto dXvdXvsT_d2RdXdX_dXvdXp_input = dg->high_order_grid.volume_nodes;
+    //auto dXvdXvsT_d2RdXdX_dXvdXp_input = dg->high_order_grid->volume_nodes;
     //{
-    //    dealii::LinearAlgebra::distributed::Vector<double> dummy_vector(dg->high_order_grid.surface_nodes);
+    //    dealii::LinearAlgebra::distributed::Vector<double> dummy_vector(dg->high_order_grid->surface_nodes);
     //    MeshMover::LinearElasticity<dim, double, dealii::LinearAlgebra::distributed::Vector<double>, dealii::DoFHandler<dim>> 
-    //        meshmover(*(dg->high_order_grid.triangulation),
-    //          dg->high_order_grid.initial_mapping_fe_field,
-    //          dg->high_order_grid.dof_handler_grid,
-    //          dg->high_order_grid.surface_to_volume_indices,
+    //        meshmover(*(dg->high_order_grid->triangulation),
+    //          dg->high_order_grid->initial_mapping_fe_field,
+    //          dg->high_order_grid->dof_handler_grid,
+    //          dg->high_order_grid->surface_to_volume_indices,
     //          dummy_vector);
     //    meshmover.apply_dXvdXvs_transpose(d2RdXdX_dXvdXp_input, dXvdXvsT_d2RdXdX_dXvdXp_input);
     //}

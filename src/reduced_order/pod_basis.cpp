@@ -164,7 +164,7 @@ bool POD<dim>::getPODBasisFromSnapshots() {
         //Form diagonal matrix of inverse singular values
         eigenvaluesSqrtInverse.reinit(solutionSnapshots.n(), solutionSnapshots.n());
         for (unsigned int idx = 0; idx < solutionSnapshots.n(); idx++) {
-            eigenvaluesSqrtInverse(idx, idx) = 1 / sqrt(massWeightedSolutionSnapshots.singular_value(idx));
+            eigenvaluesSqrtInverse(idx, idx) = 1 / std::sqrt(massWeightedSolutionSnapshots.singular_value(idx));
         }
 
         //Compute POD basis: fullBasis = solutionSnapshots * eigenvectors * simgularValuesInverse

@@ -233,17 +233,8 @@ inline dealii::Tensor<1,dim,real> ManufacturedSolutionZero<dim,real>
 ::gradient (const dealii::Point<dim,real> &/*point*/, const unsigned int /*istate*/) const
 {
     dealii::Tensor<1,dim,real> gradient;
-    if (dim==1) {
-        gradient[0] = 0;
-    }
-    if (dim==2) {
-        gradient[0] = 0;
-        gradient[1] = 0;
-    }
-    if (dim==3) {
-        gradient[0] = 0;
-        gradient[1] = 0;
-        gradient[2] = 0;
+    for(unsigned int i = 0; i < dim; i++){
+        gradient[i] = 0;
     }
     return gradient;
 }
@@ -581,28 +572,10 @@ inline dealii::SymmetricTensor<2,dim,real> ManufacturedSolutionZero<dim,real>
 ::hessian (const dealii::Point<dim,real> &/*point*/, const unsigned int /*istate*/) const
 {
     dealii::SymmetricTensor<2,dim,real> hessian;
-    if (dim==1) {
-        hessian[0][0] = 0;
-    }
-    if (dim==2) {
-        hessian[0][0] = 0;
-        hessian[0][1] = 0;
-
-        hessian[1][0] = 0;
-        hessian[1][1] = 0;
-    }
-    if (dim==3) {
-        hessian[0][0] = 0;
-        hessian[0][1] = 0;
-        hessian[0][2] = 0;
-
-        hessian[1][0] = 0;
-        hessian[1][1] = 0;
-        hessian[1][2] = 0;
-
-        hessian[2][0] = 0;
-        hessian[2][1] = 0;
-        hessian[2][2] = 0;
+    for(unsigned int i = 0; i < dim; i++){
+        for(unsigned int j = 0; j < dim; j++){
+            hessian[i][j] = 0;
+        }
     }
     return hessian;
 }

@@ -70,7 +70,7 @@ int DualWeightedResidualMeshAdaptation<dim, nstate> :: run_test () const
                 = DGFactory<dim,double,Triangulation>::create_discontinuous_galerkin(
                  &param,
                  poly_degree,
-                 poly_degree+1,
+                 poly_degree+6,
                  poly_degree,
                  grid);
 
@@ -83,6 +83,7 @@ int DualWeightedResidualMeshAdaptation<dim, nstate> :: run_test () const
             std::shared_ptr< ODE::ODESolverBase<dim,double,Triangulation> > ode_solver = ODE::ODESolverFactory<dim,double,Triangulation>::create_ODESolver(dg);
 
             ode_solver->steady_state();
+            std::cout<<"Max fe degree = "<<dg->get_max_fe_degree()<<std::endl;
             
             if (param.mesh_adaptation_param.total_refinement_steps > 0)
                  {

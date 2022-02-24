@@ -145,36 +145,21 @@ InitialConditionFactory<dim,real>::create_InitialConditionFunction(
     Parameters::AllParameters const *const param, 
     int                                    nstate)
 {
-    /*
-    const FlowCaseEnum flow_type = param->flow_solver_param.flow_case_type;
-
-    if(flow_type == FlowCaseEnum::taylor_green_vortex && (dim==3)) {
-        return std::make_shared<InitialConditionFunction_TaylorGreenVortex<dim, real> >(
-                nstate,
-                param->euler_param.gamma_gas,
-                param->euler_param.mach_inf);
-    }else if(flow_type == FlowCaseEnum::burgers_rewienski_snapshot && (dim==1)){
-        return std::make_shared<InitialConditionFunction_BurgersRewienski<dim,real> > (
-                nstate);
-    }else{
-        std::cout << "Invalid Flow Case Type. You probably forgot to add it to the list of flow cases in initial_condition.cpp" << std::endl;
-        std::abort();
-    }
-     */
     // Get the flow case type
     const FlowCaseEnum flow_type = param->flow_solver_param.flow_case_type;
     if (flow_type == FlowCaseEnum::taylor_green_vortex) {
-        if constexpr (dim==3) return std::make_unique<InitialConditionFunction_TaylorGreenVortex<dim, real> >(
+        if constexpr (dim==3) return std::make_shared<InitialConditionFunction_TaylorGreenVortex<dim, real> >(
                     nstate,
                     param->euler_param.gamma_gas,
                     param->euler_param.mach_inf);
     } else if (flow_type == FlowCaseEnum::burgers_rewienski_snapshot) {
-        if constexpr (dim==1)  return std::make_unique<InitialConditionFunction_BurgersRewienski<dim,real> > (
+        if constexpr (dim==1)  return std::make_shared<InitialConditionFunction_BurgersRewienski<dim,real> > (
                     nstate);
     } else if (flow_type == FlowCaseEnum::burgers_viscous_snapshot) {
-        if constexpr (dim==1)  return std::make_unique<InitialConditionFunction_BurgersViscous<dim,real> > (
+        if constexpr (dim==1)  return std::make_shared<InitialConditionFunction_BurgersViscous<dim,real> > (
                     nstate);
     } else {
+        nstate = 1*nstate; //To avoid unused parameter error
         std::cout << "Invalid Flow Case Type. You probably forgot to add it to the list of flow cases in initial_condition.cpp" << std::endl;
         std::abort();
     }

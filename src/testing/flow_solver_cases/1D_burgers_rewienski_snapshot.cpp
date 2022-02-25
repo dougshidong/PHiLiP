@@ -67,4 +67,3 @@ template class BurgersRewienskiSnapshot<PHILIP_DIM,PHILIP_DIM>;
 
 } // Tests namespace
 } // PHiLiP namespace
-

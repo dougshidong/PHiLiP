@@ -117,4 +117,3 @@ template class DualWeightedResidualMeshAdaptation <PHILIP_DIM, 5>;
 } // namespace Tests
 } // namespace PHiLiP 
     
-

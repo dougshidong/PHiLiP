@@ -126,4 +126,3 @@ template class BurgersRewienskiFunctional<PHILIP_DIM, PHILIP_DIM, double>;
 #endif
 } // Tests namespace
 } // PHiLiP namespace
-

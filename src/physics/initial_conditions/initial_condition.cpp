@@ -154,4 +154,3 @@ template class InitialConditionFunction_TaylorGreenVortex <PHILIP_DIM,double>;
 template class InitialConditionFunction_Zero <PHILIP_DIM,double>;
 
 } // PHiLiP namespace
-

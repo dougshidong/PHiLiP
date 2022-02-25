@@ -54,4 +54,3 @@ protected:
 } // PHiLiP namespace
 
 #endif
-

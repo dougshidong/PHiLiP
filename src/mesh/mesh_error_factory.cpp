@@ -40,4 +40,3 @@ template class MeshErrorFactory<PHILIP_DIM, 5, double,  dealii::parallel::shared
 template class MeshErrorFactory<PHILIP_DIM, 5, double,  dealii::parallel::distributed::Triangulation<PHILIP_DIM> >;
 #endif
 } // namespace PHiLiP
-

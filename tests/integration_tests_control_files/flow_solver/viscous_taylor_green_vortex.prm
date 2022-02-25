@@ -21,7 +21,7 @@ set diss_num_flux = symm_internal_penalty
 subsection ODE solver
   set ode_output = quiet
   set ode_solver_type = explicit
-  set output_solution_every_x_steps = 30
+  set output_solution_every_dt_time_intervals = 0.01
   subsection explicit solver options
     set runge_kutta_order = 3
   end

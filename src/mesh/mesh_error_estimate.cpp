@@ -469,4 +469,3 @@ template class DualWeightedResidualError <PHILIP_DIM, 5, double, dealii::paralle
 #endif
 
 } // PHiLiP namespace
-

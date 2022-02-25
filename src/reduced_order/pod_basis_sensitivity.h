@@ -37,13 +37,11 @@ public:
     std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> sensitivityBasis; ///< sensitivity basis
     std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> sensitivityBasisTranspose; ///< Transpose of sensitivity basis
 
-public:
-
     /// Compute POD basis sensitivities
     void computeBasisSensitivity();
 
     /// Compute the sensitivity k-th POD basis mode
-    dealii::Vector<double> computeModeSensitivity(int k);
+    dealii::Vector<double> computeModeSensitivity(const int k);
 
     /// Function to build sensitivity POD basis
     void buildSensitivityPODBasis();

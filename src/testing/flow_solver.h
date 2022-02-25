@@ -63,7 +63,6 @@ protected:
     const Parameters::ODESolverParam ode_param; ///< ODE solver parameters
     const unsigned int poly_degree; ///< Polynomial order
     const double final_time; ///< Final time of solution
-    const std::string unsteady_data_table_filename_with_extension; ///< Filename (with extension) for the unsteady data table
 
 public:
     /// Pointer to dg so it can be accessed externally.

@@ -35,6 +35,7 @@ protected:
     const double domain_left; ///< Domain left-boundary value for generating the grid
     const double domain_right; ///< Domain right-boundary value for generating the grid
     const double domain_volume; ///< Domain volume
+    const std::string unsteady_data_table_filename_with_extension; ///< Filename (with extension) for the unsteady data table
 
     bool is_taylor_green_vortex = false; ///< Identifies if taylor green vortex case; initialized as false.
 

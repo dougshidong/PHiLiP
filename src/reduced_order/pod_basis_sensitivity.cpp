@@ -257,7 +257,7 @@ void SensitivityPOD<dim>::computeBasisSensitivity() {
 }
 
 template <int dim>
-dealii::Vector<double> SensitivityPOD<dim>::computeModeSensitivity(int k) {
+dealii::Vector<double> SensitivityPOD<dim>::computeModeSensitivity(const int k) {
     this->pcout << "Computing mode sensitivity..." << std::endl;
 
     //Assemble LHS: (massWeightedSolutionSnapshotsCopy - diag(eigenvalue))

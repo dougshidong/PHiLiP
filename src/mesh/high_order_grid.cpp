@@ -55,7 +55,7 @@ HighOrderGrid<dim,real,MeshType,VectorType,DoFHandlerType>::HighOrderGrid(
         const std::shared_ptr<MeshType> triangulation_input)
     : max_degree(max_degree)
     , triangulation(triangulation_input)
-    , dof_handler_grid(*triangulation, true)
+    , dof_handler_grid(*triangulation)
     , fe_q(max_degree) // The grid must be at least p1. A p0 solution required a p1 grid.
     , fe_system(dealii::FESystem<dim>(fe_q,dim)) // The grid must be at least p1. A p0 solution required a p1 grid.
     , solution_transfer(dof_handler_grid)

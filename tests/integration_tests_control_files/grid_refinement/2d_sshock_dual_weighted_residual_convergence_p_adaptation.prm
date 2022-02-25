@@ -22,7 +22,7 @@ subsection linear solver
 end
 
 subsection mesh adaptation
-    set critical_residual_val = 1.0e-9
+    set critical_residual_val = 1.0e-8
     set total_refinement_steps = 4
     set h_refine_fraction = 0.05
     set h_coarsen_fraction = 0.0
@@ -33,7 +33,7 @@ end
 
 subsection ODE solver
   #output solution
- # set output_solution_every_x_steps = 1
+ #set output_solution_every_x_steps = 1
 
   # Maximum nonlinear solver iterations
   set nonlinear_max_iterations            = 500

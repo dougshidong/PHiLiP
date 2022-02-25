@@ -53,15 +53,14 @@ void MeshAdaptation<dim,real,MeshType>::fixed_fraction_isotropic_refinement_and_
                                                                                         h_coarsen_fraction);
     }
 
-    // Currently, the indicator to flag p_adaptation is the same as h_adaptation, but it will likely change in future.
-    //dealii::hp::Refinement::p_adaptivity_fixed_number(dg->high_order_grid->dof_handler_grid,
-      //                                                cellwise_errors,
-        //                                              p_refine_fraction,
-          //                                            p_coarsen_fraction);
+    // Currently, the error indicator to flag p_adaptation is the same as h_adaptation, but it will likely change in future.
+    dealii::hp::Refinement::p_adaptivity_fixed_number(dg->dof_handler,
+                                                      cellwise_errors,
+                                                      p_refine_fraction,
+                                                      p_coarsen_fraction);
     
     // If a cell is flagged for both h and p adaptation, perform only p adaptation.
-    //dealii::hp::Refinement::choose_p_over_h(dg->high_order_grid->dof_handler_grid);
-    dealii::hp::Refinement::full_p_adaptivity(dg->high_order_grid->dof_handler_grid);
+    dealii::hp::Refinement::force_p_over_h(dg->dof_handler);
 
 
     dg->high_order_grid->triangulation->execute_coarsening_and_refinement();

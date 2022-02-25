@@ -26,7 +26,7 @@ subsection mesh adaptation
     set total_refinement_steps = 4
     set h_refine_fraction = 0.05
     set h_coarsen_fraction = 0.0
-    set p_refine_fraction = 0.99
+    set p_refine_fraction = 1.0
     set p_coarsen_fraction = 0.0
     set use_goal_oriented_mesh_adaptation = true
 end

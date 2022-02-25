@@ -151,6 +151,9 @@ public:
 
     /// Gets the minimum value of currently active FE degree
     unsigned int get_min_fe_degree();
+    
+    /// Returns the coordinates of the most refined cell.
+    dealii::Point<dim> coordinates_of_highest_refined_cell(bool check_for_p_refined_cell = false);
 
     /// Allocates the system.
     /** Must be done after setting the mesh and before assembling the system. */

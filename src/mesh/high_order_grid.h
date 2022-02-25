@@ -368,9 +368,6 @@ public:
      */
     void execute_coarsening_and_refinement(const bool output_mesh = false);
     
-    /// Returns the coordinates/vertex of the smallest cell.
-    dealii::Point<dim> smallest_cell_coordinates();
-
     /// Use Lagrange polynomial to represent the spatial location.
     const dealii::FE_Q<dim>     fe_q;
     /// Using system of polynomials to represent the x, y, and z directions.

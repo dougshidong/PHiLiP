@@ -55,7 +55,7 @@ HighOrderGrid<dim,real,MeshType,VectorType,DoFHandlerType>::HighOrderGrid(
         const std::shared_ptr<MeshType> triangulation_input)
     : max_degree(max_degree)
     , triangulation(triangulation_input)
-    , dof_handler_grid(*triangulation)
+    , dof_handler_grid(*triangulation, true)
     , fe_q(max_degree) // The grid must be at least p1. A p0 solution required a p1 grid.
     , fe_system(dealii::FESystem<dim>(fe_q,dim)) // The grid must be at least p1. A p0 solution required a p1 grid.
     , solution_transfer(dof_handler_grid)
@@ -1048,46 +1048,6 @@ void HighOrderGrid<dim,real,MeshType,VectorType,DoFHandlerType>::execute_coarsen
     //        //if (fixed_invalid_cell) std::cout << "Fixed it." << std::endl;
     //    }
     //}
-}
-
-template <int dim, typename real, typename MeshType, typename VectorType, typename DoFHandlerType>
-dealii::Point<dim> HighOrderGrid<dim,real,MeshType,VectorType,DoFHandlerType>::smallest_cell_coordinates()
-{
-    const int iproc = dealii::Utilities::MPI::this_mpi_process(mpi_communicator);
-    const dealii::Point<dim> unit_vertex = dealii::GeometryInfo<dim>::unit_cell_vertex(0);
-    double current_cell_diameter;
-    double min_diameter_local = dof_handler_grid.begin_active()->diameter();
-    dealii::Point<dim> smallest_cell_coord; 
-
-    for (auto cell = dof_handler_grid.begin_active(); cell!= dof_handler_grid.end(); ++cell) 
-    {
-        current_cell_diameter = cell->diameter(); // For future dealii version: current_cell_diameter = cell->diameter(*(mapping_fe_field));
-        if ((min_diameter_local > current_cell_diameter) && (cell->is_locally_owned()))
-        {
-            min_diameter_local = current_cell_diameter;
-            smallest_cell_coord = mapping_fe_field->transform_unit_to_real_cell(cell, unit_vertex);
-        }
-    }
-    
-    dealii::Utilities::MPI::MinMaxAvg minindexstore;
-    minindexstore = dealii::Utilities::MPI::min_max_avg(min_diameter_local, mpi_communicator); 
-
-    int n_proc_small = minindexstore.min_index; // Processor containing smallest diameter
-    double global_point[dim];
-
-    if (iproc == n_proc_small)
-    {
-       for (int i=0; i<dim; i++)
-            global_point[i] = smallest_cell_coord[i];
-    }
-    
-    MPI_Bcast(global_point, dim, MPI_DOUBLE, n_proc_small, mpi_communicator); // Update values in all processors
-    
-    for (int i=0; i<dim; i++)
-        smallest_cell_coord[i] = global_point[i];
-
-    return smallest_cell_coord;
-
 }
 
 template <typename T>

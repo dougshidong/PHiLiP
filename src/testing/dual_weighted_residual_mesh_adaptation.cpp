@@ -42,6 +42,7 @@ int DualWeightedResidualMeshAdaptation<dim, nstate> :: run_test () const
     const Parameters::AllParameters param = *(TestsBase::all_parameters);
     using ManParam = Parameters::ManufacturedConvergenceStudyParam;
     ManParam manu_grid_conv_param = param.manufactured_convergence_study_param;
+    bool check_for_p_refined_cell = (param.mesh_adaptation_param.p_refine_fraction > 0) ? true : false;
 
     const unsigned int p_start             = manu_grid_conv_param.degree_start;
     const unsigned int p_end               = manu_grid_conv_param.degree_end;
@@ -83,14 +84,13 @@ int DualWeightedResidualMeshAdaptation<dim, nstate> :: run_test () const
             std::shared_ptr< ODE::ODESolverBase<dim,double,Triangulation> > ode_solver = ODE::ODESolverFactory<dim,double,Triangulation>::create_ODESolver(dg);
 
             ode_solver->steady_state();
-            std::cout<<"Max fe degree = "<<dg->get_max_fe_degree()<<std::endl;
             
             if (param.mesh_adaptation_param.total_refinement_steps > 0)
                  {
-                    dealii::Point<dim> smallest_cell_coord = dg->high_order_grid->smallest_cell_coordinates();
-                    pcout<<" x = "<<smallest_cell_coord[0]<<" y = "<<smallest_cell_coord[1]<<std::endl;
-                    // Check if the mesh is refined near the shock i.e x,y in [0.3,0.7].
-                    if ((smallest_cell_coord[0] > 0.3) && (smallest_cell_coord[0] < 0.7) && (smallest_cell_coord[1] > 0.3) && (smallest_cell_coord[1] < 0.7))
+                    dealii::Point<dim> refined_cell_coord = dg->coordinates_of_highest_refined_cell(check_for_p_refined_cell);
+                    pcout<<" x = "<<refined_cell_coord[0]<<" y = "<<refined_cell_coord[1]<<std::endl;
+                    // Check if the mesh is refined near the shock i.e x,y in [0.3,0.6].
+                    if ((refined_cell_coord[0] > 0.3) && (refined_cell_coord[0] < 0.6) && (refined_cell_coord[1] > 0.3) && (refined_cell_coord[1] < 0.6))
                     {
                         pcout<<"Mesh is refined near the shock. Test passed"<<std::endl;
                         return 0; // Mesh adaptation test passed.

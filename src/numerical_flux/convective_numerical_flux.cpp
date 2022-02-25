@@ -414,6 +414,6 @@ template class L2Roe<PHILIP_DIM, PHILIP_DIM+2, RadType >;
 template class L2Roe<PHILIP_DIM, PHILIP_DIM+2, FadFadType >;
 template class L2Roe<PHILIP_DIM, PHILIP_DIM+2, RadFadType >;
 
-
 } // NumericalFlux namespace
 } // PHiLiP namespace
+

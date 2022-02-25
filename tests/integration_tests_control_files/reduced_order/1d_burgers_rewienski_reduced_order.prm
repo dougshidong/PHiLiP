@@ -21,9 +21,12 @@ end
 
 #Reduced order parameters
 subsection reduced order
-  set rewienski_a = 4.5
-  set rewienski_b = 0.04
-  set final_time = 5
+  set rewienski_a = 3.0
+  set rewienski_b = 0.02
+end
+
+subsection flow_solver
+  set final_time = 0.5
 end
 
 subsection linear solver
@@ -51,5 +54,6 @@ end
 subsection manufactured solution convergence study
   set use_manufactured_source_term = true
 end
+
 
 

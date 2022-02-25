@@ -27,9 +27,13 @@ public:
 
     /// Function to allocate the ODE system
     void allocate_ode_system ();
+
+    const unsigned int rk_order;///< The RK order for explicit timestep.    
+
 };
 
 } // ODE namespace
 } // PHiLiP namespace
 
 #endif
+

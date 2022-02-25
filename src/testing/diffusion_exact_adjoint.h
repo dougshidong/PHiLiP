@@ -167,7 +167,8 @@ public:
     /// source term = f
     std::array<real,nstate> source_term (
         const dealii::Point<dim,real> &pos,
-        const std::array<real,nstate> &/*solution*/) const override;
+        const std::array<real,nstate> &/*solution*/,
+        const real /*current_time*/) const override;
 
     /// objective function = g
     real objective_function(
@@ -192,7 +193,8 @@ public:
     /// source term = g
     std::array<real,nstate> source_term (
         const dealii::Point<dim,real> &pos,
-        const std::array<real,nstate> &/*solution*/) const override;
+        const std::array<real,nstate> &/*solution*/,
+        const real current_time) const override;
 
     /// objective function = f
     real objective_function(
@@ -270,3 +272,4 @@ double eval_avg_slope(std::vector<double> error, std::vector<double> grid_size, 
 } // PHiLiP namespace
 
 #endif //__DIFFUSION_EXACT_ADJOINT_H__
+

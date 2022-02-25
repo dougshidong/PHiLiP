@@ -31,6 +31,7 @@ public:
         boundary_layer_solution,
         s_shock_solution,
         quadratic_solution,
+        Alex_solution,
         navah_solution_1,
         navah_solution_2,
         navah_solution_3,
@@ -66,4 +67,5 @@ public:
 } // PHiLiP namespace
 
 #endif // __PARAMETERS_MANUFACTURED_SOLUTION_H__
+
 

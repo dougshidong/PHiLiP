@@ -38,6 +38,7 @@
 #include "numerical_flux/convective_numerical_flux.hpp"
 #include "numerical_flux/viscous_numerical_flux.hpp"
 #include "parameters/all_parameters.h"
+#include "operators/operators.h"
 #include "artificial_dissipation_factory.h"
 
 // Template specialization of MappingFEField
@@ -232,6 +233,14 @@ public:
     /// Global inverser mass matrix
     /** Should be block diagonal where each block contains the inverse mass matrix of each cell.  */
     dealii::TrilinosWrappers::SparseMatrix global_inverse_mass_matrix;
+
+    /// Global auxiliary mass matrix. 
+    /** Note that it has a mass matrix in each dimension since theauxiliary variable is a tensor of size dim*/
+    std::array<dealii::TrilinosWrappers::SparseMatrix,dim> global_mass_matrix_auxiliary;
+
+    /// Global inverse of the auxiliary mass matrix
+    std::array<dealii::TrilinosWrappers::SparseMatrix,dim> global_inverse_mass_matrix_auxiliary;
+
     /// System matrix corresponding to the derivative of the right_hand_side with
     /// respect to the solution
     dealii::TrilinosWrappers::SparseMatrix system_matrix;
@@ -301,6 +310,12 @@ public:
      *  and has write-access to all locally_owned_dofs
      */
     dealii::LinearAlgebra::distributed::Vector<double> solution;
+
+    ///The auxiliary equations' right hand sides.
+    std::vector<dealii::LinearAlgebra::distributed::Vector<double>> auxiliary_RHS;
+
+    ///The auxiliary equations' solution.
+    std::vector<dealii::LinearAlgebra::distributed::Vector<double>> auxiliary_solution;
 private:
     /// Modal coefficients of the solution used to compute dRdW last
     /// Will be used to avoid recomputing dRdW.
@@ -350,13 +365,6 @@ public:
     /// Artificial dissipation error ratio sensor in each cell.
     dealii::Vector<double> artificial_dissipation_se;
 
-    /** Discontinuity sensor based on projecting to p-1 */
-    template <typename real2>
-    real2 discontinuity_sensor(
-        const real2 diameter,
-        const std::vector< real2 > &soln_coeff_high,
-        const dealii::FiniteElement<dim,dim> &fe_high);
-    
     template <typename real2>
     /** Discontinuity sensor with 4 parameters, based on projecting to p-1. */
     real2 discontinuity_sensor(
@@ -514,7 +522,14 @@ public:
     /// High order grid that will provide the MappingFEField
     std::shared_ptr<HighOrderGrid<dim,real,MeshType>> high_order_grid;
 
+    /// Operators base that will provide the Operators
+    OPERATOR::OperatorBase<dim,real> operators;
+    /// Sets the current time within DG to be used for unsteady source terms.
+    void set_current_time(const real current_time);
+
 protected:
+    ///The current time for explicit solves
+    real current_time;
     /// Continuous distribution of artificial dissipation.
     const dealii::FE_Q<dim> fe_q_artificial_dissipation;
 
@@ -586,6 +601,9 @@ protected:
         const dealii::types::global_dof_index current_cell_index,
         const dealii::FEValues<dim,dim> &fe_values_volume,
         const std::vector<dealii::types::global_dof_index> &current_dofs_indices,
+        const std::vector<dealii::types::global_dof_index> &metric_dof_indices,
+        const unsigned int poly_degree,
+        const unsigned int grid_degree,
         dealii::Vector<real> &current_cell_rhs,
         const dealii::FEValues<dim,dim> &fe_values_lagrange) = 0;
     /// Evaluate the integral over the cell edges that are on domain boundaries
@@ -599,14 +617,18 @@ protected:
         dealii::Vector<real> &current_cell_rhs) = 0;
     /// Evaluate the integral over the internal cell edges
     virtual void assemble_face_term_explicit(
+        const unsigned int iface, const unsigned int neighbor_iface,
         typename dealii::DoFHandler<dim>::active_cell_iterator cell,
         const dealii::types::global_dof_index current_cell_index,
         const dealii::types::global_dof_index neighbor_cell_index,
+        const unsigned int poly_degree, const unsigned int grid_degree,
         const dealii::FEFaceValuesBase<dim,dim>     &fe_values_face_int,
         const dealii::FEFaceValuesBase<dim,dim>     &fe_values_face_ext,
         const real penalty,
         const std::vector<dealii::types::global_dof_index> &current_dofs_indices,
         const std::vector<dealii::types::global_dof_index> &neighbor_dofs_indices,
+        const std::vector<dealii::types::global_dof_index> &metric_dof_indices_int,
+        const std::vector<dealii::types::global_dof_index> &metric_dof_indices_ext,
         dealii::Vector<real>          &current_cell_rhs,
         dealii::Vector<real>          &neighbor_cell_rhs) = 0;
 
@@ -621,6 +643,13 @@ protected:
     const dealii::UpdateFlags neighbor_face_update_flags = dealii::update_values | dealii::update_gradients | dealii::update_quadrature_points | dealii::update_JxW_values;
 
 
+public:
+    ///To allocate the auxiliary equation, primarily for Strong form diffusive.
+    virtual void allocate_auxiliary_equation ()=0;
+
+    ///Asembles the auxiliary equations' residuals and solves.
+    virtual void assemble_auxiliary_residual ()=0;
+ 
 
 protected:
     MPI_Comm mpi_communicator; ///< MPI communicator
@@ -638,6 +667,7 @@ private:
         const int iface,
         const dealii::hp::FECollection<dim> fe_collection) const;
 
+protected:
     /// In the case that two cells have the same coarseness, this function decides if the current cell should perform the work.
     /** In the case the neighbor is a ghost cell, we let the processor with the lower rank do the work on that face.
      *  We cannot use the cell->index() because the index is relative to the distributed triangulation.
@@ -649,6 +679,7 @@ private:
     template<typename DoFCellAccessorType1, typename DoFCellAccessorType2>
     bool current_cell_should_do_the_work (const DoFCellAccessorType1 &current_cell, const DoFCellAccessorType2 &neighbor_cell) const;
 
+private:
     /// Used in the delegated constructor
     /** The main reason we use this weird function is because all of the above objects
      *  need to be looped with the various p-orders. This function allows us to do this in a

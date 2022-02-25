@@ -17,6 +17,7 @@ AllParameters::AllParameters ()
     , artificial_dissipation_param(ArtificialDissipationParam())
     , flow_solver_param(FlowSolverParam())
     , mesh_adaptation_param(MeshAdaptationParam())
+    , functional_param(FunctionalParam())
     , pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD)==0)
 { }
 void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
@@ -58,6 +59,14 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       dealii::Patterns::Bool(),
                       "Use original form by defualt. Otherwise, split the fluxes.");
 
+    prm.declare_entry("use_curvilinear_split_form", "false",
+                      dealii::Patterns::Bool(),
+                      "Use original form by defualt. Otherwise, split the curvilinear fluxes.");
+
+    prm.declare_entry("use_weight_adjusted_mass", "false",
+                      dealii::Patterns::Bool(),
+                      "Use original form by defualt. Otherwise, use the weight adjusted low storage mass matrix for curvilinear.");
+
     prm.declare_entry("use_periodic_bc", "false",
                       dealii::Patterns::Bool(),
                       "Use other boundary conditions by default. Otherwise use periodic (for 1d burgers only");
@@ -70,7 +79,7 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       dealii::Patterns::Bool(),
                       "Not calculate L2 norm by default (M+K). Otherwise, get L2 norm per iteration.");
 
-    prm.declare_entry("use_classical_Flux_Reconstruction", "false",
+    prm.declare_entry("use_classical_FR", "false",
                       dealii::Patterns::Bool(),
                       "Not use Classical Flux Reconstruction by default. Otherwise, use Classical Flux Reconstruction.");
 
@@ -87,6 +96,10 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
     prm.declare_entry("sipg_penalty_factor", "1.0",
                       dealii::Patterns::Double(1.0,1e200),
                       "Scaling of Symmetric Interior Penalty term to ensure coercivity.");
+
+    prm.declare_entry("rk_order", "3",
+                      dealii::Patterns::Integer(),
+                      "Runge-Kutta order for explicit timestep.");
 
     prm.declare_entry("test_type", "run_control",
                       dealii::Patterns::Selection(
@@ -109,8 +122,11 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       " euler_naca0012 | "
                       " reduced_order | "
                       " burgers_rewienski_snapshot |"
+                      " convection_diffusion_periodicity |"
                       " advection_periodicity | "
-                      " flow_solver"),
+                      " POD_adaptation |"
+                      " flow_solver | "
+                      " dual_weighted_residual_mesh_adaptation"),
                       "The type of test we want to solve. "
                       "Choices are (only run control has been coded up for now)" 
                       " <run_control | " 
@@ -132,8 +148,11 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       "  euler_naca0012 | "
                       "  reduced_order |"
                       "  burgers_rewienski_snapshot |"
+                      " convection_diffusion_periodicity |"
                       "  advection_periodicity | "
-                      "  flow_solver>.");
+                      "  POD_adaptation |"
+                      "  flow_solver | "
+                      "  dual_weighted_residual_mesh_adaptation>.");
 
     prm.declare_entry("pde_type", "advection",
                       dealii::Patterns::Selection(
@@ -159,9 +178,11 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       "  navier_stokes>.");
     
     prm.declare_entry("conv_num_flux", "lax_friedrichs",
-                      dealii::Patterns::Selection("lax_friedrichs | roe | l2roe | split_form"),
+
+                      dealii::Patterns::Selection("lax_friedrichs | roe | l2roe | split_form | central_flux | entropy_conserving_flux"),
                       "Convective numerical flux. "
-                      "Choices are <lax_friedrichs | roe | l2roe | split_form>.");
+                      "Choices are <lax_friedrichs | roe | l2roe | split_form | central_flux | entropy_conserving_flux>.");
+
 
     prm.declare_entry("diss_num_flux", "symm_internal_penalty",
                       dealii::Patterns::Selection("symm_internal_penalty | bassi_rebay_2"),
@@ -182,6 +203,8 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
     Parameters::MeshAdaptationParam::declare_parameters (prm);
 
     Parameters::FlowSolverParam::declare_parameters (prm);
+    
+    Parameters::FunctionalParam::declare_parameters (prm);
 
     pcout << "Done declaring inputs." << std::endl;
 }
@@ -199,7 +222,7 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     else if (mesh_type_string == "parallel_distributed_triangulation") { mesh_type = parallel_distributed_triangulation; }
 
     const std::string test_string = prm.get("test_type");
-    if      (test_string == "run_control")                       { test_type = run_control; }
+    if      (test_string == "run_control")                            { test_type = run_control; }
     else if (test_string == "grid_refinement_study")             { test_type = grid_refinement_study; }
     else if (test_string == "burgers_energy_stability")          { test_type = burgers_energy_stability; }
     else if (test_string == "diffusion_exact_adjoint")           { test_type = diffusion_exact_adjoint; }
@@ -211,15 +234,18 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     else if (test_string == "euler_vortex")                      { test_type = euler_vortex; }
     else if (test_string == "euler_entropy_waves")               { test_type = euler_entropy_waves; }
     else if (test_string == "advection_periodicity")             { test_type = advection_periodicity; }
+    else if (test_string == "convection_diffusion_periodicity")  { test_type = convection_diffusion_periodicity; }
     else if (test_string == "euler_split_taylor_green")          { test_type = euler_split_taylor_green; }
     else if (test_string == "euler_bump_optimization")           { test_type = euler_bump_optimization; }
     else if (test_string == "euler_naca_optimization")           { test_type = euler_naca_optimization; }
     else if (test_string == "shock_1d")                          { test_type = shock_1d; }
     else if (test_string == "reduced_order")                     { test_type = reduced_order; }
+    else if (test_string == "POD_adaptation")                           { test_type = POD_adaptation; }
     else if (test_string == "burgers_rewienski_snapshot")        { test_type = burgers_rewienski_snapshot; }
     else if (test_string == "euler_naca0012")                    { test_type = euler_naca0012; }
-    else if (test_string == "optimization_inverse_manufactured") { test_type = optimization_inverse_manufactured; }
-    else if (test_string == "flow_solver")                       { test_type = flow_solver; }
+    else if (test_string == "optimization_inverse_manufactured") {test_type = optimization_inverse_manufactured; }
+    else if (test_string == "flow_solver")                              { test_type = flow_solver; }
+    else if (test_string == "dual_weighted_residual_mesh_adaptation")   { test_type = dual_weighted_residual_mesh_adaptation; }
     
     const std::string pde_string = prm.get("pde_type");
     if (pde_string == "advection") {
@@ -253,17 +279,24 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     use_weak_form = prm.get_bool("use_weak_form");
     use_collocated_nodes = prm.get_bool("use_collocated_nodes");
     use_split_form = prm.get_bool("use_split_form");
+    use_curvilinear_split_form = prm.get_bool("use_curvilinear_split_form");
+    use_weight_adjusted_mass = prm.get_bool("use_weight_adjusted_mass");
     use_periodic_bc = prm.get_bool("use_periodic_bc");
     use_energy = prm.get_bool("use_energy");
     use_L2_norm = prm.get_bool("use_L2_norm");
-    use_classical_FR = prm.get_bool("use_classical_Flux_Reconstruction");
+    use_classical_FR = prm.get_bool("use_classical_FR");
     sipg_penalty_factor = prm.get_double("sipg_penalty_factor");
+    rk_order = prm.get_integer("rk_order");
 
     const std::string conv_num_flux_string = prm.get("conv_num_flux");
     if (conv_num_flux_string == "lax_friedrichs") conv_num_flux_type = lax_friedrichs;
     if (conv_num_flux_string == "split_form")     conv_num_flux_type = split_form;
     if (conv_num_flux_string == "roe")            conv_num_flux_type = roe;
-    if (conv_num_flux_string == "l2roe")            conv_num_flux_type = l2roe;
+
+    if (conv_num_flux_string == "l2roe")   conv_num_flux_type = l2roe;
+    if (conv_num_flux_string == "central_flux")   conv_num_flux_type = central_flux;
+    if (conv_num_flux_string == "entropy_conserving_flux")   conv_num_flux_type = entropy_cons_flux;
+
 
     const std::string diss_num_flux_string = prm.get("diss_num_flux");
     if (diss_num_flux_string == "symm_internal_penalty") diss_num_flux_type = symm_internal_penalty;
@@ -323,8 +356,12 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     pcout << "Parsing mesh adaptation subsection..." << std::endl;
     mesh_adaptation_param.parse_parameters (prm);
     
+    pcout << "Parsing functional subsection..." << std::endl;
+    functional_param.parse_parameters (prm);
+    
     pcout << "Done parsing." << std::endl;
 }
 
 } // Parameters namespace
 } // PHiLiP namespace
+

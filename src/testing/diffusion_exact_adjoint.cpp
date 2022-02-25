@@ -154,7 +154,8 @@ dealii::Tensor<1,dim,real> ManufacturedSolutionV<dim,real>::gradient(const deali
 template <int dim, int nstate, typename real>
 std::array<real,nstate> diffusion_u<dim,nstate,real>::source_term (
     const dealii::Point<dim,real> &pos,
-    const std::array<real,nstate> &/*solution*/) const
+    const std::array<real,nstate> &/*solution*/,
+    const real /*current_time*/) const
 {
     std::array<real,nstate> source;
 
@@ -224,7 +225,8 @@ real diffusion_u<dim,nstate,real>::objective_function (
 template <int dim, int nstate, typename real>
 std::array<real,nstate> diffusion_v<dim,nstate,real>::source_term (
     const dealii::Point<dim,real> &pos,
-    const std::array<real,nstate> &/*solution*/) const
+    const std::array<real,nstate> &/*solution*/,
+    const real /*current_time*/) const
 {
     const double pi = std::acos(-1);
 
@@ -851,3 +853,4 @@ template class DiffusionExactAdjoint <PHILIP_DIM,1>;
 
 } // Tests namespace
 } // PHiLiP namespace
+

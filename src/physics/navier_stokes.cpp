@@ -434,7 +434,8 @@ template <int dim, int nstate, typename real>
 std::array<real,nstate> NavierStokes<dim,nstate,real>
 ::source_term (
     const dealii::Point<dim,real> &pos,
-    const std::array<real,nstate> &/*conservative_soln*/) const
+    const std::array<real,nstate> &/*conservative_soln*/,
+    const real /*current_time*/) const
 {
     // will probably have to change this line: -- modify so we only need to provide a jacobian
     const std::array<real,nstate> conv_source_term = this->convective_source_term(pos);
@@ -635,3 +636,4 @@ template std::array<dealii::Tensor<1,PHILIP_DIM,FadFadType>,PHILIP_DIM> NavierSt
 template std::array<dealii::Tensor<1,PHILIP_DIM,RadFadType>,PHILIP_DIM> NavierStokes < PHILIP_DIM, PHILIP_DIM+2, RadFadType>::extract_velocities_gradient_from_primitive_solution_gradient<RadFadType>(const std::array<dealii::Tensor<1,PHILIP_DIM,RadFadType>,PHILIP_DIM+2> &primitive_soln_gradient) const;
 } // Physics namespace
 } // PHiLiP namespace
+

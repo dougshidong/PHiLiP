@@ -3,7 +3,7 @@
 
 #include "parameters/all_parameters.h"
 #include "dg/dg.h"
-#include "pod/proper_orthogonal_decomposition.h"
+#include "reduced_order/pod_basis.h"
 #include "ode_solver_base.h"
 
 namespace PHiLiP {
@@ -23,16 +23,17 @@ public:
     static std::shared_ptr<ODESolverBase<dim,real,MeshType>> create_ODESolver(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input);
 
     /// Creates either POD-Galerkin or POD-Petrov-Galerkin ODE solver based on parameter value (POD basis given)
-    static std::shared_ptr<ODESolverBase<dim,real,MeshType>> create_ODESolver(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input, std::shared_ptr<ProperOrthogonalDecomposition::POD> pod);
+    static std::shared_ptr<ODESolverBase<dim,real,MeshType>> create_ODESolver(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input, std::shared_ptr<ProperOrthogonalDecomposition::POD<dim>> pod);
 
-    /// Creates either implicit or explicit ODE solver based on manual input(no POD basis given)
+    /// Creates either implicit or explicit ODE solver based on manual input (no POD basis given)
     static std::shared_ptr<ODESolverBase<dim,real,MeshType>> create_ODESolver_manual(Parameters::ODESolverParam::ODESolverEnum ode_solver_type, std::shared_ptr< DGBase<dim, real, MeshType> > dg_input);
 
     /// Creates either POD-Galerkin or POD-Petrov-Galerkin ODE solver based on manual input (POD basis given)
-    static std::shared_ptr<ODESolverBase<dim,real,MeshType>> create_ODESolver_manual(Parameters::ODESolverParam::ODESolverEnum ode_solver_type, std::shared_ptr< DGBase<dim, real, MeshType> > dg_input, std::shared_ptr<ProperOrthogonalDecomposition::POD> pod);
+    static std::shared_ptr<ODESolverBase<dim,real,MeshType>> create_ODESolver_manual(Parameters::ODESolverParam::ODESolverEnum ode_solver_type, std::shared_ptr< DGBase<dim, real, MeshType> > dg_input, std::shared_ptr<ProperOrthogonalDecomposition::POD<dim>> pod);
 };
 
 } // ODE namespace
 } // PHiLiP namespace
 
 #endif
+

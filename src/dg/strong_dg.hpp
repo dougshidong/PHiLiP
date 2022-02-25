@@ -30,7 +30,46 @@ public:
     /// Destructor
     ~DGStrong();
 
+    ///Allocates the auxiliary equations' variables and RHS.
+    void allocate_auxiliary_equation ();
+
+    ///Assembles the auxiliary equations' residuals and solves for the auxiliary variables.
+    void assemble_auxiliary_residual ();
 private:
+
+    ///Assembles the auxiliary equations' cell residuals.
+    template<typename DoFCellAccessorType1, typename DoFCellAccessorType2>
+    void assemble_cell_auxiliary_residual (
+        const DoFCellAccessorType1 &current_cell,
+        const DoFCellAccessorType2 &current_metric_cell,
+        std::vector<dealii::LinearAlgebra::distributed::Vector<double>> &rhs);
+
+    ///Evaluate the volume RHS for the auxiliary equation.
+    void assemble_volume_term_auxiliary_equation(
+        const std::vector<dealii::types::global_dof_index> &current_dofs_indices,
+        const std::vector<dealii::types::global_dof_index> &metric_dof_indices,
+        const unsigned int poly_degree,
+        const unsigned int grid_degree,
+        std::vector<dealii::Tensor<1,dim,double>> &local_auxiliary_RHS);
+    ///Evaluate the boundary RHS for the auxiliary equation.
+    void assemble_boundary_term_auxiliary_equation(
+        const unsigned int poly_degree, const unsigned int grid_degree,
+        const unsigned int iface,
+        const unsigned int boundary_id,
+        const std::vector<dealii::types::global_dof_index> &current_dofs_indices,
+        const std::vector<dealii::types::global_dof_index> &metric_dof_indices,
+        std::vector<dealii::Tensor<1,dim,real>> &local_auxiliary_RHS);
+    ///Evaluate the facet RHS for the auxiliary equation.
+    void assemble_face_term_auxiliary(
+        const unsigned int iface, const unsigned int neighbor_iface,
+        const unsigned int poly_degree, const unsigned int grid_degree,
+        const std::vector<dealii::types::global_dof_index> &current_dofs_indices,
+        const std::vector<dealii::types::global_dof_index> &neighbor_dofs_indices,
+        const std::vector<dealii::types::global_dof_index> &metric_dof_indices_int,
+        const std::vector<dealii::types::global_dof_index> &metric_dof_indices_ext,
+        std::vector<dealii::Tensor<1,dim,real>> &local_auxiliary_RHS_int,
+        std::vector<dealii::Tensor<1,dim,real>> &local_auxiliary_RHS_ext);
+
 
     /// Evaluate the integral over the cell volume and the specified derivatives.
     /** Compute both the right-hand side and the corresponding block of dRdW, dRdX, and/or d2R. */
@@ -90,6 +129,9 @@ private:
         const dealii::types::global_dof_index current_cell_index,
         const dealii::FEValues<dim,dim> &fe_values_volume,
         const std::vector<dealii::types::global_dof_index> &current_dofs_indices,
+        const std::vector<dealii::types::global_dof_index> &metric_dof_indices,
+        const unsigned int poly_degree,
+        const unsigned int grid_degree,
         dealii::Vector<real> &current_cell_rhs,
         const dealii::FEValues<dim,dim> &fe_values_lagrange);
     /// Evaluate the integral over the cell edges that are on domain boundaries
@@ -103,14 +145,18 @@ private:
         dealii::Vector<real> &current_cell_rhs);
     /// Evaluate the integral over the internal cell edges
     void assemble_face_term_explicit(
+        const unsigned int iface, const unsigned int neighbor_iface,
         typename dealii::DoFHandler<dim>::active_cell_iterator cell,
         const dealii::types::global_dof_index current_cell_index,
         const dealii::types::global_dof_index neighbor_cell_index,
+        const unsigned int poly_degree, const unsigned int grid_degree,
         const dealii::FEFaceValuesBase<dim,dim>     &fe_values_face_int,
         const dealii::FEFaceValuesBase<dim,dim>     &fe_values_face_ext,
         const real penalty,
         const std::vector<dealii::types::global_dof_index> &current_dofs_indices,
         const std::vector<dealii::types::global_dof_index> &neighbor_dofs_indices,
+        const std::vector<dealii::types::global_dof_index> &metric_dof_indices_int,
+        const std::vector<dealii::types::global_dof_index> &metric_dof_indices_ext,
         dealii::Vector<real>          &current_cell_rhs,
         dealii::Vector<real>          &neighbor_cell_rhs);
 
@@ -123,3 +169,4 @@ private:
 } // PHiLiP namespace
 
 #endif
+

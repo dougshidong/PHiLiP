@@ -23,6 +23,9 @@ public:
     /// Fraction of cells to be coarsened
     double coarsening_fraction;
 
+    /// Flag to use goal oriented mesh adaptation
+    bool use_goal_oriented_mesh_adaptation;
+
     /// Constructor of mesh adaptation parameters.
     MeshAdaptationParam();
 
@@ -37,3 +40,4 @@ public:
 } // namespace Parameters
 } // namespace PHiLiP
 #endif
+

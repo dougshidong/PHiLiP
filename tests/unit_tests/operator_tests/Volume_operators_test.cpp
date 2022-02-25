@@ -80,7 +80,7 @@ int main (int argc, char * argv[])
 
     using FR_enum = Parameters::AllParameters::Flux_Reconstruction;
     all_parameters_new.flux_reconstruction_type = FR_enum::cHU;
-//    all_parameters_new.overintegration = 2;
+   // all_parameters_new.overintegration = 2;
    // const unsigned int overint= all_parameters_new.overintegration;
    // all_parameters_new.use_collocated_nodes = true;
 
@@ -116,7 +116,7 @@ int main (int argc, char * argv[])
         dealii::GridGenerator::hyper_cube (*grid, left, right, colorize);
         grid->refine_global(igrid);
 
-        OPERATOR::OperatorBase<dim,nstate,real> operators(&all_parameters_new, poly_degree, poly_degree, poly_degree); 
+        OPERATOR::OperatorBase<dim,real> operators(&all_parameters_new, nstate, poly_degree, poly_degree, poly_degree); 
 
         const unsigned int n_dofs = nstate * pow(poly_degree+1,dim);
        // dealii::QGaussLobatto<dim> vol_quad_GLL (poly_degree+1+overint);
@@ -290,3 +290,4 @@ pcout<<"flux stiff row "<<operators.local_flux_basis_stiffness[poly_degree][0].m
     }
 
 }//end of main
+

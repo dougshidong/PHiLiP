@@ -2,6 +2,8 @@
 
 #include "ADTypes.hpp"
 #include "split_form_numerical_flux.hpp"
+#include "central_numerical_flux.hpp"
+#include "entropy_cons_numerical_flux.hpp"
 
 namespace PHiLiP {
 namespace NumericalFlux {
@@ -23,6 +25,10 @@ NumericalFluxFactory<dim, nstate, real>
         if constexpr (dim+2==nstate) return std::make_unique< L2Roe<dim, nstate, real> > (physics_input);
     } else if (conv_num_flux_type == AllParam::split_form) {
         return std::make_unique< SplitFormNumFlux<dim, nstate, real> > (physics_input);
+    } else if (conv_num_flux_type == AllParam::central_flux) {
+        return std::make_unique< CentralNumFlux<dim, nstate, real> > (physics_input);
+    } else if (conv_num_flux_type == AllParam::entropy_cons_flux) {
+        return std::make_unique< EntropyConsNumFlux<dim, nstate, real> > (physics_input);
     }
 
     std::cout << "Invalid convective numerical flux" << std::endl;
@@ -74,3 +80,4 @@ template class NumericalFluxFactory<PHILIP_DIM, 5, RadFadType >;
 
 } // NumericalFlux namespace
 } // PHiLiP namespace
+

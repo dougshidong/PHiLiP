@@ -85,6 +85,25 @@ inline real InitialConditionFunction_TaylorGreenVortex<dim,real>
     return value;
 }
 
+// ========================================================
+// 1D BURGERS REWIENSKI -- Initial Condition
+// ========================================================
+template <int dim, typename real>
+InitialConditionFunction_BurgersRewienski<dim,real>
+::InitialConditionFunction_BurgersRewienski (const unsigned int nstate)
+        : InitialConditionFunction<dim,real>(nstate)
+{
+    // Nothing to do here yet
+}
+
+template <int dim, typename real>
+inline real InitialConditionFunction_BurgersRewienski<dim,real>
+::value(const dealii::Point<dim,real> &/*point*/, const unsigned int /*istate*/) const
+{
+    real value = 1.0;
+    return value;
+}
+
 //=========================================================
 // FLOW SOLVER -- Initial Condition Base Class + Factory
 //=========================================================
@@ -105,11 +124,14 @@ InitialConditionFactory<dim,real>::create_InitialConditionFunction(
 {
     const FlowCaseEnum flow_type = param->flow_solver_param.flow_case_type;
 
-    if(flow_type == FlowCaseEnum::taylor_green_vortex && (dim==3)){
-        return std::make_shared < InitialConditionFunction_TaylorGreenVortex<dim,real> > (
-            nstate,
-            param->euler_param.gamma_gas,
-            param->euler_param.mach_inf);
+    if(flow_type == FlowCaseEnum::taylor_green_vortex && (dim==3)) {
+        return std::make_shared<InitialConditionFunction_TaylorGreenVortex<dim, real> >(
+                nstate,
+                param->euler_param.gamma_gas,
+                param->euler_param.mach_inf);
+    }else if(flow_type == FlowCaseEnum::burgers_rewienski_snapshot && (dim==1)){
+        return std::make_shared<InitialConditionFunction_BurgersRewienski<dim,real> > (
+                nstate);
     }else{
         std::cout << "Invalid Flow Case Type." << std::endl;
     }
@@ -117,8 +139,19 @@ InitialConditionFactory<dim,real>::create_InitialConditionFunction(
     return nullptr;
 }
 
+// ========================================================
+// ZERO INITIAL CONDITION
+// ========================================================
+template<int dim, typename real>
+real InitialConditionFunction_Zero<dim, real> :: value(const dealii::Point<dim,real> &/*point*/, const unsigned int /*istate*/) const 
+{
+    return 0.0;
+}
+
 template class InitialConditionFunction <PHILIP_DIM,double>;
 template class InitialConditionFactory <PHILIP_DIM,double>;
 template class InitialConditionFunction_TaylorGreenVortex <PHILIP_DIM,double>;
+template class InitialConditionFunction_Zero <PHILIP_DIM,double>;
 
 } // PHiLiP namespace
+

@@ -96,6 +96,23 @@ protected:
     real convert_primitive_to_conversative_value(const dealii::Point<dim,real> &point, const unsigned int istate = 0) const;
 };
 
+/// Initial Condition Function: 1D Burgers Rewienski
+template <int dim, typename real>
+class InitialConditionFunction_BurgersRewienski
+        : public InitialConditionFunction<dim,real>
+{
+protected:
+    using dealii::Function<dim,real>::value; ///< dealii::Function we are templating on
+
+public:
+    /// Constructor for InitialConditionFunction_BurgersRewienski
+    /** Calls the Function(const unsigned int n_components) constructor in deal.II*/
+    InitialConditionFunction_BurgersRewienski (const unsigned int nstate = 1);
+
+    /// Value of initial condition
+    real value (const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
+};
+
 /// Initial condition function factory
 template <int dim, typename real>
 class InitialConditionFactory
@@ -112,5 +129,20 @@ public:
         int                                    nstate);
 };
 
+/// Initial condition 0.
+template <int dim, typename real>
+class InitialConditionFunction_Zero : public dealii::Function<dim>
+{
+public:
+    /// Constructor to initialize dealii::Function
+    InitialConditionFunction_Zero(const unsigned int nstate) 
+    : dealii::Function<dim,real>(nstate)
+    { }
+
+    /// Returns zero.
+    real value(const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
+};
+
 } // PHiLiP namespace
 #endif
+

@@ -16,11 +16,15 @@ set(TESTS_SOURCE
     euler_vortex.cpp
     euler_entropy_waves.cpp
     advection_explicit_periodic.cpp
+    convection_diffusion_explicit_periodic.cpp
     euler_split_inviscid_taylor_green_vortex.cpp
     optimization_inverse_manufactured/optimization_inverse_manufactured.cpp
-    burgers_rewienski_snapshot.cpp
     reduced_order.cpp
-    flow_solver.cpp)
+    reduced_order_pod_adaptation.cpp
+    flow_solver.cpp
+    flow_solver_cases/periodic_cube_flow.cpp
+    flow_solver_cases/1D_burgers_rewienski_snapshot.cpp
+    dual_weighted_residual_mesh_adaptation.cpp)
 
 foreach(dim RANGE 1 3)
     # Output library
@@ -70,3 +74,4 @@ foreach(dim RANGE 1 3)
     unset(PODLib)
     unset(InitialConditionsLib)
 endforeach()
+

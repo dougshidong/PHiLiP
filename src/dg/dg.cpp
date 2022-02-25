@@ -103,6 +103,7 @@ DGBase<dim,real,MeshType>::DGBase(
     , fe_collection_lagrange(std::get<4>(collection_tuple))
     , dof_handler(*triangulation, true)
     , high_order_grid(std::make_shared<HighOrderGrid<dim,real,MeshType>>(grid_degree_input, triangulation))
+    , operators(all_parameters, nstate, max_degree, max_degree, grid_degree_input)
     , fe_q_artificial_dissipation(1)
     , dof_handler_artificial_dissipation(*triangulation, false)
     , mpi_communicator(MPI_COMM_WORLD)
@@ -268,6 +269,7 @@ DGBaseState<dim,nstate,real,MeshType>::DGBaseState(
     artificial_dissip = ArtificialDissipationFactory<dim,nstate> ::create_artificial_dissipation(parameters_input);
     
     reset_numerical_fluxes();
+
 }
 
 template <int dim, int nstate, typename real, typename MeshType>
@@ -515,15 +517,37 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
 
     const dealii::types::global_dof_index current_cell_index = current_cell->active_cell_index();
 
-    assemble_volume_term_explicit (
-        current_cell,
-        current_cell_index,
-        fe_values_volume,
-        current_dofs_indices,
-        current_cell_rhs,
-        fe_values_lagrange);
-    current_cell_rhs*=0.0;
-    //if ( compute_dRdW || compute_dRdX || compute_d2R ) {
+    const unsigned int grid_degree = this->high_order_grid->fe_system.tensor_degree();
+    const unsigned int poly_degree = i_fele;
+  //  const unsigned int grid_degree = current_metric_cell->active_fe_index();
+
+    if(!this->all_parameters->use_weak_form 
+       && this->all_parameters->ode_solver_param.ode_solver_type == Parameters::ODESolverParam::ODESolverEnum::explicit_solver )//only for strong form explicit
+   {
+        assemble_volume_term_explicit (
+            current_cell,
+            current_cell_index,
+            fe_values_volume,
+            current_dofs_indices,
+            current_metric_dofs_indices,
+            poly_degree, grid_degree,
+            current_cell_rhs,
+            fe_values_lagrange);
+    }
+    else {
+        //Note the explicit is called first to set the max_dt_cell to a non-zero value.
+        assemble_volume_term_explicit (
+            current_cell,
+            current_cell_index,
+            fe_values_volume,
+            current_dofs_indices,
+            current_metric_dofs_indices,
+            poly_degree, grid_degree,
+            current_cell_rhs,
+            fe_values_lagrange);
+        //set current rhs to zero since the explicit call was just to set the max_dt_cell.
+        current_cell_rhs*=0.0;
+
         assemble_volume_term_derivatives (
             current_cell,
             current_cell_index,
@@ -531,12 +555,8 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
             current_metric_dofs_indices, current_dofs_indices,
             current_cell_rhs, fe_values_lagrange,
             compute_dRdW, compute_dRdX, compute_d2R);
-    //} else {
-    //    assemble_volume_term_explicit (
-    //    cell,
-    //    current_cell_index,
-    //    fe_values_volume, current_dofs_indices, current_cell_rhs, fe_values_lagrange);
-    //}
+ 
+   }
 
 
                     //// Add local contribution from current cell to global vector
@@ -556,28 +576,139 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
         if (current_face->at_boundary() && !current_cell->has_periodic_neighbor(iface) ) {
 
             fe_values_collection_face_int.reinit(current_cell, iface, i_quad, i_mapp, i_fele);
+        //for 1D periodic
 
+                if(current_face->at_boundary() && all_parameters->use_periodic_bc == true && dim == 1) //using periodic BCs (for 1d)
+                {
+                    int cell_index  = current_cell->index();
+                    auto neighbor_cell = dof_handler.begin_active();
+                    //int cell_index = current_cell->index();
+                    #if 0
+                    if (cell_index == 0 && iface == 0)
+                    {
+                        fe_values_collection_face_int.reinit(current_cell, iface, i_quad, i_mapp, i_fele);
+                        neighbor_cell = dof_handler.begin_active();
+                       for (unsigned int i = 0 ; i < triangulation->n_active_cells() - 1; ++i)
+                       {
+                           ++neighbor_cell;
+                       }
+                        neighbor_dofs_indices.resize(n_dofs_curr_cell);
+                        neighbor_cell->get_dof_indices(neighbor_dofs_indices);
+                         const unsigned int fe_index_neigh_cell = neighbor_cell->active_fe_index();
+                        const unsigned int quad_index_neigh_cell = fe_index_neigh_cell;
+                        const unsigned int mapping_index_neigh_cell = 0;
+
+                        fe_values_collection_face_ext.reinit(neighbor_cell,(iface == 1) ? 0 : 1,quad_index_neigh_cell,mapping_index_neigh_cell,fe_index_neigh_cell);
+
+                    }
+                    #endif
+                   // else if (cell_index == (int) triangulation->n_active_cells() - 1 && iface == 1)
+                    if (cell_index == (int) triangulation->n_active_cells() - 1 && iface == 1)
+                    {
+                     //   fe_values_collection_face_int.reinit(current_cell, iface, i_quad, i_mapp, i_fele);
+                        neighbor_cell = dof_handler.begin_active();
+                        neighbor_dofs_indices.resize(n_dofs_curr_cell);
+                        neighbor_cell->get_dof_indices(neighbor_dofs_indices);
+                        const unsigned int fe_index_neigh_cell = neighbor_cell->active_fe_index();
+                        const unsigned int quad_index_neigh_cell = fe_index_neigh_cell;
+                        const unsigned int mapping_index_neigh_cell = 0;
+                        fe_values_collection_face_ext.reinit(neighbor_cell,(iface == 1) ? 0 : 1, quad_index_neigh_cell, mapping_index_neigh_cell, fe_index_neigh_cell); //not sure how changing the face number would work in dim!=1-dimensions.
+                    }
+                    else {
+                        continue;
+                    }
+
+                    //std::cout << "cell " << current_cell->index() << "'s " << iface << "th face has neighbour: " << neighbor_cell->index() << std::endl;
+                    const int neighbor_face_no = (iface ==1) ? 0:1;
+                    const unsigned int fe_index_neigh_cell = neighbor_cell->active_fe_index();
+
+                    //check neighbour cell face on boundary
+                    auto neigh_face_check = neighbor_cell->face(neighbor_face_no);
+                    if(neigh_face_check->at_boundary()){
+                        //do nothing
+                    }
+                    else{
+                        pcout<<"FACE NOT ON BOUNDARY LOL"<<std::endl;
+                    } 
+
+                    const dealii::FEFaceValues<dim,dim> &fe_values_face_int = fe_values_collection_face_int.get_present_fe_values();
+                    const dealii::FEFaceValues<dim,dim> &fe_values_face_ext = fe_values_collection_face_ext.get_present_fe_values();
+
+                    const dealii::FESystem<dim,dim> &neigh_fe_ref = fe_collection[fe_index_neigh_cell];
+                   // const unsigned int neigh_cell_degree = neigh_fe_ref.tensor_degree();
+                    const unsigned int n_dofs_neigh_cell = neigh_fe_ref.n_dofs_per_cell();
+
+                    dealii::Vector<double> neighbor_cell_rhs (n_dofs_neigh_cell); // Defaults to 0.0 initialization
+
+                    const auto metric_neighbor_cell = high_order_grid->dof_handler_grid.begin_active();
+                    metric_neighbor_cell->get_dof_indices(neighbor_metric_dofs_indices);
+
+                    const real penalty = evaluate_penalty_scaling (current_cell, iface, fe_collection);
+
+              //      fe_values_collection_volume_neigh.reinit (neighbor_cell, i_quad, i_mapp, fe_index_neigh_cell);
+               //     const dealii::FEValues<dim,dim> &fe_values_volume_neigh = fe_values_collection_volume_neigh.get_present_fe_values();
+
+              //      if ( compute_dRdW ) {
+              //         assemble_face_term_implicit (
+              //                                     iface, neighbor_face_no, 
+              //                                     fe_values_face_int, fe_values_face_ext,
+              //                                     fe_values_volume, fe_values_volume_neigh,
+              //                                     penalty,
+              //                                     current_dofs_indices, neighbor_dofs_indices,
+              //                                     current_cell_rhs, neighbor_cell_rhs);
+              //     } else {
+    const dealii::types::global_dof_index neighbor_cell_index = neighbor_cell->active_cell_index();
+                if(!this->all_parameters->use_weak_form 
+                    && this->all_parameters->ode_solver_param.ode_solver_type == Parameters::ODESolverParam::ODESolverEnum::explicit_solver )//only for strong form explicit
+                {
+                    assemble_face_term_explicit (
+                        iface, neighbor_face_no, 
+                        current_cell,
+                        current_cell_index,
+                        neighbor_cell_index,
+                        poly_degree, grid_degree,
+                        fe_values_face_int, fe_values_face_ext,
+                        penalty,
+                        current_dofs_indices, neighbor_dofs_indices,
+                        current_metric_dofs_indices, neighbor_metric_dofs_indices,
+                        current_cell_rhs, neighbor_cell_rhs);
+
+                }
+                else {
+                //implicit weak 1D per boundary
+                }
+                for (unsigned int i=0; i<n_dofs_neigh_cell; ++i) {
+                    rhs[neighbor_dofs_indices[i]] += neighbor_cell_rhs[i];
+                }
+
+                } else {//at boundary and not 1D periodic
+
+        
             const dealii::FEFaceValues<dim,dim> &fe_values_face_int = fe_values_collection_face_int.get_present_fe_values();
 
             const real penalty = evaluate_penalty_scaling (current_cell, iface, fe_collection);
 
             const unsigned int boundary_id = current_face->boundary_id();
-            //if (compute_dRdW || compute_dRdX || compute_d2R) {
-                const dealii::Quadrature<dim-1> face_quadrature = face_quadrature_collection[i_quad];
-                assemble_boundary_term_derivatives (
-                    current_cell,
-                    current_cell_index,
-                    iface, boundary_id, fe_values_face_int, penalty,
-                    current_fe_ref, face_quadrature,
-                    current_metric_dofs_indices, current_dofs_indices, current_cell_rhs,
-                    compute_dRdW, compute_dRdX, compute_d2R);
+                if(!this->all_parameters->use_weak_form 
+                    && this->all_parameters->ode_solver_param.ode_solver_type == Parameters::ODESolverParam::ODESolverEnum::explicit_solver )//only for strong form explicit
+                {
+                    assemble_boundary_term_explicit (
+                        current_cell,
+                        current_cell_index,
+                        boundary_id, fe_values_face_int, penalty, current_dofs_indices, current_cell_rhs);
+                }
+                else {
+                   const dealii::Quadrature<dim-1> face_quadrature = face_quadrature_collection[i_quad];
+                   assemble_boundary_term_derivatives (
+                       current_cell,
+                       current_cell_index,
+                       iface, boundary_id, fe_values_face_int, penalty,
+                       current_fe_ref, face_quadrature,
+                       current_metric_dofs_indices, current_dofs_indices, current_cell_rhs,
+                       compute_dRdW, compute_dRdX, compute_d2R);
+               }
 
-            //} else {
-            //    assemble_boundary_term_explicit (
-            //        current_cell,
-            //        current_cell_index,
-            //        boundary_id, fe_values_face_int, penalty, current_dofs_indices, current_cell_rhs);
-            //}
+            }
 
         //CASE 2: PERIODIC BOUNDARY CONDITIONS
         //note that periodicity is not adapted for hp adaptivity yet. this needs to be figured out in the future
@@ -614,9 +745,9 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
                 const real penalty = 0.5 * (penalty1 + penalty2);
 
                 const dealii::types::global_dof_index neighbor_cell_index = neighbor_cell->active_cell_index();
-                //if ( compute_dRdW || compute_dRdX || compute_d2R ) {
                     const auto metric_neighbor_cell = current_metric_cell->periodic_neighbor(iface);
                     metric_neighbor_cell->get_dof_indices(neighbor_metric_dofs_indices);
+
                     const dealii::Quadrature<dim-1> &used_face_quadrature = face_quadrature_collection[i_quad_n]; // or i_quad
 
                     std::pair<unsigned int, int> face_subface_int = std::make_pair(iface, -1);
@@ -635,6 +766,22 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
                                                                                                   neighbor_cell->face_flip(neighbor_iface),
                                                                                                   neighbor_cell->face_rotation(neighbor_iface),
                                                                                                   used_face_quadrature.size());
+                if(!this->all_parameters->use_weak_form 
+                    && this->all_parameters->ode_solver_param.ode_solver_type == Parameters::ODESolverParam::ODESolverEnum::explicit_solver )//only for strong form explicit
+                {
+                    assemble_face_term_explicit (
+                        iface, neighbor_iface, 
+                        current_cell,
+                        current_cell_index,
+                        neighbor_cell_index,
+                        poly_degree, grid_degree,
+                        fe_values_face_int, fe_values_face_ext,
+                        penalty,
+                        current_dofs_indices, neighbor_dofs_indices,
+                        current_metric_dofs_indices, neighbor_metric_dofs_indices,
+                        current_cell_rhs, neighbor_cell_rhs);
+                }
+                else {
                     assemble_face_term_derivatives (
                         current_cell,
                         current_cell_index,
@@ -650,16 +797,7 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
                         current_dofs_indices, neighbor_dofs_indices,
                         current_cell_rhs, neighbor_cell_rhs,
                         compute_dRdW, compute_dRdX, compute_d2R);
-                //} else {
-                //    assemble_face_term_explicit (
-                //        current_cell,
-                //        current_cell_index,
-                //        neighbor_cell_index,
-                //        fe_values_face_int, fe_values_face_ext,
-                //        penalty,
-                //        current_dofs_indices, neighbor_dofs_indices,
-                //        current_cell_rhs, neighbor_cell_rhs);
-                //}
+                }
 
                 // Add local contribution from neighbor cell to global vector
                 for (unsigned int i=0; i<n_dofs_neigh_cell; ++i) {
@@ -718,7 +856,6 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
             const real penalty = 0.5 * (penalty1 + penalty2);
 
             const dealii::types::global_dof_index neighbor_cell_index = neighbor_cell->active_cell_index();
-            //if ( compute_dRdW || compute_dRdX || compute_d2R ) {
                 const auto metric_neighbor_cell = current_metric_cell->neighbor(iface);
                 metric_neighbor_cell->get_dof_indices(neighbor_metric_dofs_indices);
 
@@ -742,6 +879,22 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
                                                                                                     neighbor_cell->face_rotation(neighbor_iface),
                                                                                                     used_face_quadrature.size(),
                                                                                                     neighbor_cell->subface_case(neighbor_iface));
+            if(!this->all_parameters->use_weak_form 
+                && this->all_parameters->ode_solver_param.ode_solver_type == Parameters::ODESolverParam::ODESolverEnum::explicit_solver )//only for strong form explicit
+            {
+                assemble_face_term_explicit (
+                    iface, neighbor_iface, 
+                    current_cell,
+                    current_cell_index,
+                    neighbor_cell_index,
+                    poly_degree, grid_degree,
+                    fe_values_face_int, fe_values_face_ext,
+                    penalty,
+                    current_dofs_indices, neighbor_dofs_indices,
+                    current_metric_dofs_indices, neighbor_metric_dofs_indices,
+                    current_cell_rhs, neighbor_cell_rhs);
+            }
+            else {
                 assemble_face_term_derivatives (
                     current_cell,
                     current_cell_index,
@@ -757,16 +910,7 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
                     current_dofs_indices, neighbor_dofs_indices,
                     current_cell_rhs, neighbor_cell_rhs,
                     compute_dRdW, compute_dRdX, compute_d2R);
-            //} else {
-            //    assemble_face_term_explicit (
-            //        current_cell,
-            //        current_cell_index,
-            //        neighbor_cell_index,
-            //        fe_values_face_int, fe_values_face_ext,
-            //        penalty,
-            //        current_dofs_indices, neighbor_dofs_indices,
-            //        current_cell_rhs, neighbor_cell_rhs);
-            //}
+            }
             // Add local contribution from neighbor cell to global vector
             for (unsigned int i=0; i<n_dofs_neigh_cell; ++i) {
                 rhs[neighbor_dofs_indices[i]] += neighbor_cell_rhs[i];
@@ -803,9 +947,9 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
             const real penalty = 0.5 * (penalty1 + penalty2);
 
             const dealii::types::global_dof_index neighbor_cell_index = neighbor_cell->active_cell_index();
-            //if ( compute_dRdW || compute_dRdX || compute_d2R ) {
                 const auto metric_neighbor_cell = current_metric_cell->neighbor_or_periodic_neighbor(iface);
                 metric_neighbor_cell->get_dof_indices(neighbor_metric_dofs_indices);
+
                 const dealii::Quadrature<dim-1> &used_face_quadrature = face_quadrature_collection[i_quad_n]; // or i_quad
                 std::pair<unsigned int, int> face_subface_int = std::make_pair(iface, -1);
                 std::pair<unsigned int, int> face_subface_ext = std::make_pair(neighbor_iface, -1);
@@ -823,31 +967,38 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
                                                                                               neighbor_cell->face_flip(neighbor_iface),
                                                                                               neighbor_cell->face_rotation(neighbor_iface),
                                                                                               used_face_quadrature.size());
-                assemble_face_term_derivatives (
+            if(!this->all_parameters->use_weak_form 
+                && this->all_parameters->ode_solver_param.ode_solver_type == Parameters::ODESolverParam::ODESolverEnum::explicit_solver )//only for strong form explicit
+            {
+                assemble_face_term_explicit (
+                    iface, neighbor_iface, 
                     current_cell,
                     current_cell_index,
                     neighbor_cell_index,
-                    face_subface_int, face_subface_ext,
-                    face_data_set_int,
-                    face_data_set_ext,
+                    poly_degree, grid_degree,
                     fe_values_face_int, fe_values_face_ext,
                     penalty,
-                    fe_collection[i_fele], fe_collection[i_fele_n],
-                    used_face_quadrature,
-                    current_metric_dofs_indices, neighbor_metric_dofs_indices,
                     current_dofs_indices, neighbor_dofs_indices,
-                    current_cell_rhs, neighbor_cell_rhs,
-                    compute_dRdW, compute_dRdX, compute_d2R);
-            //} else {
-            //    assemble_face_term_explicit (
-            //        current_cell,
-            //        current_cell_index,
-            //        neighbor_cell_index,
-            //        fe_values_face_int, fe_values_face_ext,
-            //        penalty,
-            //        current_dofs_indices, neighbor_dofs_indices,
-            //        current_cell_rhs, neighbor_cell_rhs);
-            //}
+                    current_metric_dofs_indices, neighbor_metric_dofs_indices,
+                    current_cell_rhs, neighbor_cell_rhs);
+            }
+           else {
+              assemble_face_term_derivatives (
+                  current_cell,
+                  current_cell_index,
+                  neighbor_cell_index,
+                  face_subface_int, face_subface_ext,
+                  face_data_set_int,
+                  face_data_set_ext,
+                  fe_values_face_int, fe_values_face_ext,
+                  penalty,
+                  fe_collection[i_fele], fe_collection[i_fele_n],
+                  used_face_quadrature,
+                  current_metric_dofs_indices, neighbor_metric_dofs_indices,
+                  current_dofs_indices, neighbor_dofs_indices,
+                  current_cell_rhs, neighbor_cell_rhs,
+                  compute_dRdW, compute_dRdX, compute_d2R);
+          }
 
             // Add local contribution from neighbor cell to global vector
             for (unsigned int i=0; i<n_dofs_neigh_cell; ++i) {
@@ -1191,6 +1342,14 @@ void DGBase<dim,real,MeshType>::assemble_residual (const bool compute_dRdW, cons
     try {
 
         update_artificial_dissipation_discontinuity_sensor();
+        
+        //assembles and solves for auxiliary variable if necessary.
+        assemble_auxiliary_residual();
+
+//for(unsigned int i=0; i<auxiliary_solution[0].size(); i++){
+//auxiliary_solution[0].zero_out_ghosts();
+//pcout<<" aux "<<auxiliary_solution[0][i]<<std::endl;
+//}
 
         auto metric_cell = high_order_grid->dof_handler_grid.begin_active();
         for (auto soln_cell = dof_handler.begin_active(); soln_cell != dof_handler.end(); ++soln_cell, ++metric_cell) {
@@ -1875,6 +2034,9 @@ void DGBase<dim,real,MeshType>::allocate_system ()
     right_hand_side.add(1.0); // Avoid 0 initial residual for output and logarithmic visualization.
     dual.reinit(locally_owned_dofs, ghost_dofs, mpi_communicator);
 
+    //Allocate for auxiliary equation only.
+    allocate_auxiliary_equation ();
+
     // System matrix allocation
     dealii::DynamicSparsityPattern dsp(locally_relevant_dofs);
     dealii::DoFTools::make_flux_sparsity_pattern(dof_handler, dsp);
@@ -1988,6 +2150,10 @@ void DGBase<dim,real,MeshType>::allocate_dRdX ()
 template <int dim, typename real, typename MeshType>
 void DGBase<dim,real,MeshType>::evaluate_mass_matrices (bool do_inverse_mass_matrix)
 {
+
+    using PDE_enum = Parameters::AllParameters::PartialDifferentialEquation;
+    const bool use_auxiliary_eq = (all_parameters->pde_type == PDE_enum::convection_diffusion || all_parameters->pde_type == PDE_enum::diffusion) ? true : false;//bool to simplify aux check
+
     // Mass matrix sparsity pattern
     //dealii::SparsityPattern dsp(dof_handler.n_dofs(), dof_handler.n_dofs(), dof_handler.get_fe_collection().max_dofs_per_cell());
     //dealii::SparsityPattern dsp(dof_handler.n_dofs(), dof_handler.n_dofs(), dof_handler.get_fe_collection().max_dofs_per_cell());
@@ -2016,40 +2182,29 @@ void DGBase<dim,real,MeshType>::evaluate_mass_matrices (bool do_inverse_mass_mat
     mass_sparsity_pattern.copy_from(dsp);
     if (do_inverse_mass_matrix == true) {
         global_inverse_mass_matrix.reinit(locally_owned_dofs, mass_sparsity_pattern);
+        if (use_auxiliary_eq){
+            for(int idim=0; idim<dim; idim++){
+                global_inverse_mass_matrix_auxiliary[idim].reinit(locally_owned_dofs, mass_sparsity_pattern);
+            }
+        }
+        if (this->all_parameters->use_energy == true){//for split form get energy
+            global_mass_matrix.reinit(locally_owned_dofs, mass_sparsity_pattern);
+            if (use_auxiliary_eq){
+                for(int idim=0; idim<dim; idim++){
+                    global_mass_matrix_auxiliary[idim].reinit(locally_owned_dofs, mass_sparsity_pattern);
+                }
+            }
+        }
     } else {
         global_mass_matrix.reinit(locally_owned_dofs, mass_sparsity_pattern);
     }
 
-    //dealii::TrilinosWrappers::SparseMatrix
-    //    matrix_with_correct_size(locally_owned_dofs,
-    //            mpi_communicator,
-    //            dof_handler.get_fe_collection().max_dofs_per_cell());
-    //pcout << "Before compress" << std::endl;
-    //matrix_with_correct_size.compress(dealii::VectorOperation::unknown);
-    //if (do_inverse_mass_matrix == true) {
-    //    global_inverse_mass_matrix.reinit(matrix_with_correct_size);
-    //} else {
-    //    global_mass_matrix.reinit(matrix_with_correct_size);
-    //}
-    //pcout << "AFter reinit" << std::endl;
-
-    //const dealii::MappingManifold<dim,dim> mapping;
-    //const dealii::MappingQ<dim,dim> mapping(max_degree+1);
-    //const dealii::MappingQ<dim,dim> mapping(high_order_grid->max_degree);
-    // std::cout << "Grid degree: " << high_order_grid->max_degree << std::endl;
-    //const dealii::MappingQGeneric<dim,dim> mapping(high_order_grid->max_degree);
-    const auto mapping = (*(high_order_grid->mapping_fe_field));
-
-    dealii::hp::MappingCollection<dim> mapping_collection(mapping);
-
-    dealii::hp::FEValues<dim,dim> fe_values_collection_volume (mapping_collection, fe_collection, volume_quadrature_collection, this->volume_update_flags); ///< FEValues of volume.
-    for (auto cell = dof_handler.begin_active(); cell!=dof_handler.end(); ++cell) {
+    auto metric_cell = high_order_grid->dof_handler_grid.begin_active();
+    for (auto cell = dof_handler.begin_active(); cell!=dof_handler.end(); ++cell, ++metric_cell) {
 
         if (!cell->is_locally_owned()) continue;
 
-        const unsigned int mapping_index = 0;
         const unsigned int fe_index_curr_cell = cell->active_fe_index();
-        const unsigned int quad_index = fe_index_curr_cell;
 
         // Current reference element related to this physical cell
         const dealii::FESystem<dim,dim> &current_fe_ref = fe_collection[fe_index_curr_cell];
@@ -2058,46 +2213,158 @@ void DGBase<dim,real,MeshType>::evaluate_mass_matrices (bool do_inverse_mass_mat
 
         dealii::FullMatrix<real> local_mass_matrix(n_dofs_cell);
 
-        fe_values_collection_volume.reinit (cell, quad_index, mapping_index, fe_index_curr_cell);
-        const dealii::FEValues<dim,dim> &fe_values_volume = fe_values_collection_volume.get_present_fe_values();
-
-        for (unsigned int itest=0; itest<n_dofs_cell; ++itest) {
-
-            const unsigned int istate_test = fe_values_volume.get_fe().system_to_component_index(itest).first;
-
-            for (unsigned int itrial=itest; itrial<n_dofs_cell; ++itrial) {
-
-                const unsigned int istate_trial = fe_values_volume.get_fe().system_to_component_index(itrial).first;
-
-                real value = 0.0;
-                for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
-                    value +=
-                        fe_values_volume.shape_value_component(itest,iquad,istate_test)
-                        * fe_values_volume.shape_value_component(itrial,iquad,istate_trial)
-                        * fe_values_volume.JxW(iquad);
-                }
-                local_mass_matrix[itrial][itest] = 0.0;
-                local_mass_matrix[itest][itrial] = 0.0;
-                if(istate_test==istate_trial) {
-                    local_mass_matrix[itrial][itest] = value;
-                    local_mass_matrix[itest][itrial] = value;
-                }
+        //quadrature weights
+        const std::vector<real> &quad_weights = operators.volume_quadrature_collection[fe_index_curr_cell].get_weights();
+        //setup metric cell
+        const dealii::FESystem<dim> &fe_metric = high_order_grid->fe_system;
+        const unsigned int n_metric_dofs = high_order_grid->fe_system.dofs_per_cell;
+        std::vector<dealii::types::global_dof_index> metric_dof_indices(n_metric_dofs);
+        metric_cell->get_dof_indices (metric_dof_indices);
+        const unsigned int grid_degree = high_order_grid->fe_system.tensor_degree();
+        //get mapping_support points
+        std::vector<std::vector<real>> mapping_support_points(dim);
+        for(int idim=0; idim<dim; idim++){
+            mapping_support_points[idim].resize(n_metric_dofs/dim);
+        }
+        dealii::QGaussLobatto<dim> vol_GLL(grid_degree +1);
+        for (unsigned int igrid_node = 0; igrid_node< n_metric_dofs/dim; ++igrid_node) {
+            for (unsigned int idof = 0; idof< n_metric_dofs; ++idof) {
+                const real val = (high_order_grid->volume_nodes[metric_dof_indices[idof]]);
+                const unsigned int istate = fe_metric.system_to_component_index(idof).first; 
+                mapping_support_points[istate][igrid_node] += val * fe_metric.shape_value_component(idof,vol_GLL.point(igrid_node),istate); 
             }
         }
 
-        dofs_indices.resize(n_dofs_cell);
-        cell->get_dof_indices (dofs_indices);
-        if (do_inverse_mass_matrix == true) {
-            dealii::FullMatrix<real> local_inverse_mass_matrix(n_dofs_cell);
-            local_inverse_mass_matrix.invert(local_mass_matrix);
-            global_inverse_mass_matrix.set (dofs_indices, local_inverse_mass_matrix);
-        } else {
-            global_mass_matrix.set (dofs_indices, local_mass_matrix);
-        }
-    }
+        //get determinant of Jacobian
+        std::vector<real> determinant_Jacobian(n_quad_pts);
+        operators.build_local_vol_determinant_Jac(grid_degree, fe_index_curr_cell, n_quad_pts, n_metric_dofs/dim, mapping_support_points, determinant_Jacobian);
+
+ 
+        if(this->all_parameters->use_weight_adjusted_mass == false){
+           // const std::vector<real> &JxW = fe_values_volume.get_JxW_values();
+            std::vector<real> JxW(n_quad_pts);
+         //   const std::vector<real> &JxW_dealii = fe_values_volume.get_JxW_values();
+            for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
+                JxW[iquad] = quad_weights[iquad] * determinant_Jacobian[iquad];
+            }
+            operators.build_local_Mass_Matrix(JxW, n_dofs_cell, n_quad_pts, fe_index_curr_cell, local_mass_matrix);
+
+            std::vector<dealii::FullMatrix<real>> local_mass_matrix_aux(dim);
+            for(int idim=0; idim<dim; idim++){
+                local_mass_matrix_aux[idim].reinit(n_dofs_cell, n_dofs_cell);
+                if(use_auxiliary_eq){
+                    local_mass_matrix_aux[idim].add(1.0,local_mass_matrix);
+                }
+            }
+
+            if(this->all_parameters->flux_reconstruction_type != Parameters::AllParameters::Flux_Reconstruction::cDG){
+                //For flux reconstruction
+                dealii::FullMatrix<real> K_operator(n_dofs_cell);
+                const unsigned int curr_cell_degree = current_fe_ref.tensor_degree();
+                operators.build_local_K_operator(local_mass_matrix, n_dofs_cell, curr_cell_degree, K_operator);
+                for (unsigned int itest=0; itest<n_dofs_cell; ++itest) {
+                    for (unsigned int itrial=0; itrial<n_dofs_cell; ++itrial) {
+                        local_mass_matrix[itest][itrial] = local_mass_matrix[itest][itrial] + K_operator[itest][itrial];
+                    }
+                }
+            }
+            if(use_auxiliary_eq && this->all_parameters->flux_reconstruction_aux_type != Parameters::AllParameters::Flux_Reconstruction_Aux::kDG){
+                std::vector<dealii::FullMatrix<real>> K_operator_aux(dim);
+                for(int idim=0; idim<dim; idim++){
+                    K_operator_aux[idim].reinit(n_dofs_cell, n_dofs_cell);
+                }
+                const unsigned int curr_cell_degree = current_fe_ref.tensor_degree();
+                operators.build_local_K_operator_AUX(local_mass_matrix, n_dofs_cell, curr_cell_degree, K_operator_aux);
+                for(int idim=0; idim<dim; idim++){
+                    for (unsigned int itest=0; itest<n_dofs_cell; ++itest) {
+                        for (unsigned int itrial=0; itrial<n_dofs_cell; ++itrial) {
+                            local_mass_matrix_aux[idim][itest][itrial] = local_mass_matrix[itest][itrial] + K_operator_aux[idim][itest][itrial];
+                        }
+                    }
+                }
+            }
+
+            dofs_indices.resize(n_dofs_cell);
+            cell->get_dof_indices (dofs_indices);
+            if (do_inverse_mass_matrix == true) {
+                dealii::FullMatrix<real> local_inverse_mass_matrix(n_dofs_cell);
+                local_inverse_mass_matrix.invert(local_mass_matrix);
+                global_inverse_mass_matrix.set (dofs_indices, local_inverse_mass_matrix);
+
+                if(use_auxiliary_eq){
+                    dealii::FullMatrix<real> local_inverse_mass_matrix_aux(n_dofs_cell);
+                    for(int idim=0; idim<dim; idim++){
+                        local_inverse_mass_matrix_aux.invert(local_mass_matrix_aux[idim]);
+                        global_inverse_mass_matrix_auxiliary[idim].set (dofs_indices, local_inverse_mass_matrix_aux);
+                    }                 
+                }
+                if (this->all_parameters->use_energy == true){//for split form energy
+                    global_mass_matrix.set (dofs_indices, local_mass_matrix);
+                    if(use_auxiliary_eq){
+                        for(int idim=0; idim<dim; idim++){
+                            global_mass_matrix_auxiliary[idim].set (dofs_indices, local_mass_matrix_aux[idim]);
+                        }                 
+                    }
+                }
+            } else {
+                global_mass_matrix.set (dofs_indices, local_mass_matrix);
+            }
+        } else {//use weight adjusted Mass Matrix (it's based off the inverse)
+            std::vector<real> W_J_inv(n_quad_pts);
+            for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
+                W_J_inv[iquad] = quad_weights[iquad] / determinant_Jacobian[iquad]; 
+            }
+            const unsigned int curr_cell_degree = current_fe_ref.tensor_degree();
+            operators.build_local_Mass_Matrix(W_J_inv, n_dofs_cell, n_quad_pts, curr_cell_degree, local_mass_matrix);
+            if(this->all_parameters->flux_reconstruction_type != Parameters::AllParameters::Flux_Reconstruction::cDG){
+                //For flux reconstruction
+                dealii::FullMatrix<real> K_operator(n_dofs_cell);
+                operators.build_local_K_operator(local_mass_matrix, n_dofs_cell, curr_cell_degree, K_operator);
+                for (unsigned int itest=0; itest<n_dofs_cell; ++itest) {
+                    for (unsigned int itrial=0; itrial<n_dofs_cell; ++itrial) {
+                        local_mass_matrix[itest][itrial] = local_mass_matrix[itest][itrial] + K_operator[itest][itrial];
+                    }
+                }
+            }
+            dofs_indices.resize(n_dofs_cell);
+            cell->get_dof_indices (dofs_indices);
+            if (do_inverse_mass_matrix == true) {
+                dealii::FullMatrix<real> temp(n_dofs_cell);
+                operators.FR_mass_inv[curr_cell_degree].mmult(temp, local_mass_matrix);
+                dealii::FullMatrix<real> local_inverse_mass_matrix(n_dofs_cell);
+                temp.mmult(local_inverse_mass_matrix, operators.FR_mass_inv[curr_cell_degree]); 
+                global_inverse_mass_matrix.set (dofs_indices, local_inverse_mass_matrix);
+            
+                if (this->all_parameters->use_energy == true){//for split form energy
+                    dealii::FullMatrix<real> inverse_of_weighted_mass_inverse(n_dofs_cell);
+                    inverse_of_weighted_mass_inverse.invert(local_inverse_mass_matrix);
+                    global_mass_matrix.set (dofs_indices, inverse_of_weighted_mass_inverse);
+                }
+            } else {
+                dealii::FullMatrix<real> inv_weighted_mass_inv(n_dofs_cell);
+                inv_weighted_mass_inv.invert(local_mass_matrix);
+                dealii::FullMatrix<real> M_K(n_dofs_cell);
+                M_K.add(1.0, operators.local_mass[curr_cell_degree], 1.0, operators.local_K_operator[curr_cell_degree]);
+                dealii::FullMatrix<real> temp(n_dofs_cell);
+                M_K.mmult(temp, inv_weighted_mass_inv);
+                dealii::FullMatrix<real> inverse_of_weighted_mass_inverse(n_dofs_cell);
+                temp.mmult(inverse_of_weighted_mass_inverse, inv_weighted_mass_inv);
+                global_mass_matrix.set (dofs_indices, inverse_of_weighted_mass_inverse);
+            }
+
+        }//end of weight-adjusted mass matrix condition
+    }//end of cell loop
 
     if (do_inverse_mass_matrix == true) {
         global_inverse_mass_matrix.compress(dealii::VectorOperation::insert);
+        if (use_auxiliary_eq){
+            for(int idim=0; idim<dim; idim++){
+                global_inverse_mass_matrix_auxiliary[idim].compress(dealii::VectorOperation::insert);
+            }
+        }
+        if (this->all_parameters->use_energy == true){//for split form energy
+            global_mass_matrix.compress(dealii::VectorOperation::insert);
+        }
     } else {
         global_mass_matrix.compress(dealii::VectorOperation::insert);
         //std::cout << " global_mass_matrix "  << std::endl;
@@ -2242,124 +2509,6 @@ std::vector< real > project_function(
 
 }
 
-
-template <int dim, typename real, typename MeshType>
-template <typename real2>
-real2 DGBase<dim,real,MeshType>::discontinuity_sensor(
-    const real2 diameter,
-    const std::vector< real2 > &soln_coeff_high,
-    const dealii::FiniteElement<dim,dim> &fe_high)
-{
-    //return 0;
-    const unsigned int degree = fe_high.tensor_degree();
-    const unsigned int nstate = fe_high.components;
-    if (degree == 0) return 0;
-    //return 0.01;
-    const unsigned int lower_degree = degree-1;//degree-1;
-    const dealii::FE_DGQLegendre<dim> fe_dgq_lower(lower_degree);
-    const dealii::FESystem<dim,dim> fe_lower(fe_dgq_lower, nstate);
-
-    const unsigned int n_dofs_high = fe_high.dofs_per_cell;
-    const unsigned int n_dofs_lower = fe_lower.dofs_per_cell;
-    //dealii::FullMatrix<double> projection_matrix(n_dofs_lower,n_dofs_high);
-    //dealii::FETools::get_projection_matrix(fe_high, fe_lower, projection_matrix);
-
-    //std::vector< real2 > soln_coeff_lower(n_dofs_lower);
-    //for(unsigned int row=0; row<n_dofs_lower; ++row) {
-    //    soln_coeff_lower[row] = 0.0;
-    //    for(unsigned int col=0; col<n_dofs_high; ++col) {
-    //        soln_coeff_lower[row] += projection_matrix[row][col] * soln_coeff_high[col];
-    //    }
-    //}
-
-    const dealii::QGauss<dim> quadrature(degree+5);
-    const unsigned int n_quad_pts = quadrature.size();
-    const std::vector<dealii::Point<dim,double>> &unit_quad_pts = quadrature.get_points();
-
-    std::vector< real2 > soln_coeff_lower = project_function<dim,real2>( soln_coeff_high, fe_high, fe_lower, quadrature);
-
-    real2 error = 0.0;
-    real2 soln_norm = 0.0;
-    for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
-        real2 soln_high = 0.0;
-        real2 soln_lower = 0.0;
-        for (unsigned int idof=0; idof<n_dofs_high; ++idof) {
-              soln_high += soln_coeff_high[idof] * fe_high.shape_value(idof,unit_quad_pts[iquad]);
-        }
-        for (unsigned int idof=0; idof<n_dofs_lower; ++idof) {
-              soln_lower += soln_coeff_lower[idof] * fe_lower.shape_value(idof,unit_quad_pts[iquad]);
-        }
-        // Need JxW not just W
-        // However, this happens at the cell faces, and therefore can't query the
-        // the volume Jacobians
-        //std::cout << "soln_high" << std::endl;
-        //std::cout << soln_high << std::endl;
-        //std::cout << "soln_lower" << std::endl;
-        //std::cout << soln_lower << std::endl;
-        //error += std::pow(soln_high - soln_lower, 2) * quadrature.weight(iquad);
-        //soln_norm += std::pow(soln_high, 2) * quadrature.weight(iquad);
-        error += (soln_high - soln_lower) * (soln_high - soln_lower) * quadrature.weight(iquad);
-        soln_norm += soln_high * soln_high * quadrature.weight(iquad);
-    }
-
-    if (error < 1e-12) return 0.0;
-    if (soln_norm < 1e-12) return 0.0;
-
-    real2 S_e, s_e;
-    S_e = sqrt(error / soln_norm);
-    s_e = log10(S_e);
-
-    //double S_0, s_0;
-    //S_0 = 1.0 / std::pow(degree,4);
-    //s_0 = log10(S_0);
-    //const double kappa = 0.1 * std::abs(s_0);
-
-    //const double skappa = -2.3;
-    //const double s_0 = skappa-4.25*log10(degree);
-    //const double kappa = 10.2; // 1.2
-    //const double mu_scale = 1.0;
-
-    // log10(a/p^4) = log10(a) - 4*log10(p)
-    //const real2 s_0 = -1.5 - 4.25*log10(degree);
-    const double mu_scale = all_parameters->artificial_dissipation_param.mu_artificial_dissipation; //0.1
-    const real2 s_0 = log10(0.1) - 4.25*log10(degree);
-    const double kappa = all_parameters->artificial_dissipation_param.kappa_artificial_dissipation; //2.0
-    const real2 low = s_0 - kappa;
-    const real2 upp = s_0 + kappa;
-
-    // const double m_Skappa = -2.5;
-    // const double m_Kappa = 0.50;
-    // const double Skappa = m_Skappa - 4.25 * log10((double)degree);
-    // const real2 low = Skappa - m_Kappa;
-    // const real2 upp = Skappa + m_Kappa;
-
-    const real2 eps_0 =mu_scale* diameter / (double)degree;
-
-    if ( s_e < low) return 0.0;
-
-    if ( s_e > upp)
-    {
-        /*if(eps_0 > max_artificial_dissipation_coeff)
-        {
-            max_artificial_dissipation_coeff = eps_0;
-        }*/
-        return eps_0;
-    }
-
-    const double PI = 4*atan(1);
-    //real2 eps = 1.0 + std::sin(PI * (s_e - Skappa) * 0.5 / m_Kappa);
-    real2 eps = 1.0 + sin(PI * (s_e - s_0) * 0.5 / kappa);
-    eps *= eps_0 * 0.5;
-
-    /*if(eps > max_artificial_dissipation_coeff)
-    {
-        max_artificial_dissipation_coeff = eps;
-    }*/
-   
-   return eps;
-
-}
-
 template <int dim, typename real,typename MeshType>
 template <typename real2>
 real2 DGBase<dim,real,MeshType>::discontinuity_sensor(
@@ -2440,23 +2589,85 @@ real2 DGBase<dim,real,MeshType>::discontinuity_sensor(
 
     if ( s_e > upp) 
     {
-        /*if(eps_0 > max_artificial_dissipation_coeff)
-        {
-            max_artificial_dissipation_coeff = eps_0;
-        }*/
         return eps_0;
     }
 
     const double PI = 4*atan(1);
     real2 eps = 1.0 + sin(PI * (s_e - s_0) * 0.5 / kappa);
     eps *= eps_0 * 0.5;
-    /*if(eps > max_artificial_dissipation_coeff)
-    {
-        max_artificial_dissipation_coeff = eps;
-    }*/
     return eps;
 }
 
+//template<int dim, typename real, typename MeshType>
+//void DGBase<dim,real,MeshType>::refine_residual_based()
+//{
+//    dealii::Vector<float> gradient_indicator(high_order_grid->triangulation->n_active_cells());
+//
+//    const auto mapping = (*(high_order_grid->mapping_fe_field));
+//    dealii::DerivativeApproximation::approximate_gradient(mapping,
+//                                                  dof_handler,
+//                                                  solution,
+//                                                  gradient_indicator);
+//
+//    for (const auto &cell : high_order_grid->triangulation->active_cell_iterators()) {
+//        gradient_indicator[cell->active_cell_index()] *= std::pow(cell->diameter(), 1 + 1.0 * dim / 2);
+//    }
+//    std::vector<dealii::types::global_dof_index> dofs_indices;
+//    for (const auto &cell : dof_handler.active_cell_iterators()) {
+//        if (!cell->is_locally_owned()) continue;
+//
+//        const int i_fele = cell->active_fe_index();
+//        const dealii::FESystem<dim,dim> &fe_ref = fe_collection[i_fele];
+//        const unsigned int n_dofs_cell = fe_ref.n_dofs_per_cell();
+//        dofs_indices.resize(n_dofs_cell);
+//        cell->get_dof_indices (dofs_indices);
+//        double max_residual = 0;
+//        for (unsigned int idof = 0; idof < n_dofs_cell; ++idof) {
+//        //for (const auto &idof : dofs_indices) {
+//            const unsigned int index = dofs_indices[idof];
+//            const unsigned int istate = fe_ref.system_to_component_index(idof).first;
+//            if (istate == dim+2-1) {
+//                const double res = std::abs(right_hand_side[index]);
+//                if (res > max_residual) max_residual = res;
+//            }
+//        }
+//        gradient_indicator[cell->active_cell_index()] = max_residual;
+//    }
+//
+//    dealii::LinearAlgebra::distributed::Vector<double> old_solution(solution);
+//    dealii::parallel::distributed::SolutionTransfer<dim, dealii::LinearAlgebra::distributed::Vector<double>, dealii::DoFHandler<dim>> solution_transfer(dof_handler);
+//    solution_transfer.prepare_for_coarsening_and_refinement(old_solution);
+//    high_order_grid->prepare_for_coarsening_and_refinement();
+//
+//    //high_order_grid->triangulation->refine_global (1);
+//    if constexpr(dim == 1 ||
+//        !std::is_same<MeshType, dealii::parallel::distributed::Triangulation<dim>>::value) {
+//        dealii::GridRefinement::refine_and_coarsen_fixed_number(*high_order_grid->triangulation,
+//                                                        gradient_indicator,
+//                                                        0.05,
+//                                                        0.025);
+//    } else {
+//        dealii::parallel::distributed::GridRefinement::refine_and_coarsen_fixed_number(*(high_order_grid->triangulation),
+//                                                        gradient_indicator,
+//                                                        0.05,
+//                                                        0.01);
+//    }
+//    high_order_grid->triangulation->execute_coarsening_and_refinement();
+//    high_order_grid->execute_coarsening_and_refinement();
+//    allocate_system ();
+//    solution.zero_out_ghosts();
+//    solution_transfer.interpolate(solution);
+//    solution.update_ghost_values();
+//
+//    assemble_residual ();
+//
+//}
+
+template <int dim, typename real, typename MeshType>
+void DGBase<dim,real,MeshType>::set_current_time(const real time)
+{
+    this->current_time = time;
+}
 // No support for anisotropic mesh refinement with parallel::distributed::Triangulation
 // template<int dim, typename real>
 // void DGBase<dim,real,MeshType>::set_anisotropic_flags()
@@ -2620,24 +2831,24 @@ template class DGBaseState <PHILIP_DIM, 4, double, dealii::parallel::distributed
 template class DGBaseState <PHILIP_DIM, 5, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
 #endif
 
-template double DGBase<PHILIP_DIM,double,dealii::Triangulation<PHILIP_DIM>>::discontinuity_sensor(const dealii::Quadrature<PHILIP_DIM> &volume_quadrature, const std::vector< double > &soln_coeff_high, const dealii::FiniteElement<PHILIP_DIM,PHILIP_DIM> &fe_high, const std::vector<double>  &jac_det);
-template FadType DGBase<PHILIP_DIM,double,dealii::Triangulation<PHILIP_DIM>>::discontinuity_sensor(const dealii::Quadrature<PHILIP_DIM> &volume_quadrature, const std::vector< FadType > &soln_coeff_high, const dealii::FiniteElement<PHILIP_DIM,PHILIP_DIM> &fe_high, const std::vector<FadType>  &jac_det);
-template RadType DGBase<PHILIP_DIM,double,dealii::Triangulation<PHILIP_DIM>>::discontinuity_sensor(const dealii::Quadrature<PHILIP_DIM> &volume_quadrature, const std::vector< RadType > &soln_coeff_high, const dealii::FiniteElement<PHILIP_DIM,PHILIP_DIM> &fe_high, const std::vector<RadType>  &jac_det);
-template FadFadType DGBase<PHILIP_DIM,double,dealii::Triangulation<PHILIP_DIM>>::discontinuity_sensor(const dealii::Quadrature<PHILIP_DIM> &volume_quadrature, const std::vector< FadFadType > &soln_coeff_high, const dealii::FiniteElement<PHILIP_DIM,PHILIP_DIM> &fe_high, const std::vector<FadFadType>  &jac_det);
-template RadFadType DGBase<PHILIP_DIM,double,dealii::Triangulation<PHILIP_DIM>>::discontinuity_sensor(const dealii::Quadrature<PHILIP_DIM> &volume_quadrature, const std::vector< RadFadType > &soln_coeff_high, const dealii::FiniteElement<PHILIP_DIM,PHILIP_DIM> &fe_high, const std::vector<RadFadType>  &jac_det);
+template double DGBase<PHILIP_DIM,double,dealii::Triangulation<PHILIP_DIM>>::discontinuity_sensor<double>(const dealii::Quadrature<PHILIP_DIM> &volume_quadrature, const std::vector< double > &soln_coeff_high, const dealii::FiniteElement<PHILIP_DIM,PHILIP_DIM> &fe_high, const std::vector<double>  &jac_det);
+template FadType DGBase<PHILIP_DIM,double,dealii::Triangulation<PHILIP_DIM>>::discontinuity_sensor<FadType>(const dealii::Quadrature<PHILIP_DIM> &volume_quadrature, const std::vector< FadType > &soln_coeff_high, const dealii::FiniteElement<PHILIP_DIM,PHILIP_DIM> &fe_high, const std::vector<FadType>  &jac_det);
+template RadType DGBase<PHILIP_DIM,double,dealii::Triangulation<PHILIP_DIM>>::discontinuity_sensor<RadType>(const dealii::Quadrature<PHILIP_DIM> &volume_quadrature, const std::vector< RadType > &soln_coeff_high, const dealii::FiniteElement<PHILIP_DIM,PHILIP_DIM> &fe_high, const std::vector<RadType>  &jac_det);
+template FadFadType DGBase<PHILIP_DIM,double,dealii::Triangulation<PHILIP_DIM>>::discontinuity_sensor<FadFadType>(const dealii::Quadrature<PHILIP_DIM> &volume_quadrature, const std::vector< FadFadType > &soln_coeff_high, const dealii::FiniteElement<PHILIP_DIM,PHILIP_DIM> &fe_high, const std::vector<FadFadType>  &jac_det);
+template RadFadType DGBase<PHILIP_DIM,double,dealii::Triangulation<PHILIP_DIM>>::discontinuity_sensor<RadFadType>(const dealii::Quadrature<PHILIP_DIM> &volume_quadrature, const std::vector< RadFadType > &soln_coeff_high, const dealii::FiniteElement<PHILIP_DIM,PHILIP_DIM> &fe_high, const std::vector<RadFadType>  &jac_det);
 
 
-template double DGBase<PHILIP_DIM,double,dealii::parallel::distributed::Triangulation<PHILIP_DIM>>::discontinuity_sensor(const dealii::Quadrature<PHILIP_DIM> &volume_quadrature, const std::vector< double > &soln_coeff_high, const dealii::FiniteElement<PHILIP_DIM,PHILIP_DIM> &fe_high, const std::vector<double>  &jac_det);
-template FadType DGBase<PHILIP_DIM,double,dealii::parallel::distributed::Triangulation<PHILIP_DIM>>::discontinuity_sensor(const dealii::Quadrature<PHILIP_DIM> &volume_quadrature, const std::vector< FadType > &soln_coeff_high, const dealii::FiniteElement<PHILIP_DIM,PHILIP_DIM> &fe_high, const std::vector<FadType>  &jac_det);
-template RadType DGBase<PHILIP_DIM,double,dealii::parallel::distributed::Triangulation<PHILIP_DIM>>::discontinuity_sensor(const dealii::Quadrature<PHILIP_DIM> &volume_quadrature, const std::vector< RadType > &soln_coeff_high, const dealii::FiniteElement<PHILIP_DIM,PHILIP_DIM> &fe_high, const std::vector<RadType>  &jac_det);
-template FadFadType DGBase<PHILIP_DIM,double,dealii::parallel::distributed::Triangulation<PHILIP_DIM>>::discontinuity_sensor(const dealii::Quadrature<PHILIP_DIM> &volume_quadrature, const std::vector< FadFadType > &soln_coeff_high, const dealii::FiniteElement<PHILIP_DIM,PHILIP_DIM> &fe_high, const std::vector<FadFadType>  &jac_det);
-template RadFadType DGBase<PHILIP_DIM,double,dealii::parallel::distributed::Triangulation<PHILIP_DIM>>::discontinuity_sensor(const dealii::Quadrature<PHILIP_DIM> &volume_quadrature, const std::vector< RadFadType > &soln_coeff_high, const dealii::FiniteElement<PHILIP_DIM,PHILIP_DIM> &fe_high, const std::vector<RadFadType>  &jac_det);
+template double DGBase<PHILIP_DIM,double,dealii::parallel::distributed::Triangulation<PHILIP_DIM>>::discontinuity_sensor<double>(const dealii::Quadrature<PHILIP_DIM> &volume_quadrature, const std::vector< double > &soln_coeff_high, const dealii::FiniteElement<PHILIP_DIM,PHILIP_DIM> &fe_high, const std::vector<double>  &jac_det);
+template FadType DGBase<PHILIP_DIM,double,dealii::parallel::distributed::Triangulation<PHILIP_DIM>>::discontinuity_sensor<FadType>(const dealii::Quadrature<PHILIP_DIM> &volume_quadrature, const std::vector< FadType > &soln_coeff_high, const dealii::FiniteElement<PHILIP_DIM,PHILIP_DIM> &fe_high, const std::vector<FadType>  &jac_det);
+template RadType DGBase<PHILIP_DIM,double,dealii::parallel::distributed::Triangulation<PHILIP_DIM>>::discontinuity_sensor<RadType>(const dealii::Quadrature<PHILIP_DIM> &volume_quadrature, const std::vector< RadType > &soln_coeff_high, const dealii::FiniteElement<PHILIP_DIM,PHILIP_DIM> &fe_high, const std::vector<RadType>  &jac_det);
+template FadFadType DGBase<PHILIP_DIM,double,dealii::parallel::distributed::Triangulation<PHILIP_DIM>>::discontinuity_sensor<FadFadType>(const dealii::Quadrature<PHILIP_DIM> &volume_quadrature, const std::vector< FadFadType > &soln_coeff_high, const dealii::FiniteElement<PHILIP_DIM,PHILIP_DIM> &fe_high, const std::vector<FadFadType>  &jac_det);
+template RadFadType DGBase<PHILIP_DIM,double,dealii::parallel::distributed::Triangulation<PHILIP_DIM>>::discontinuity_sensor<RadFadType>(const dealii::Quadrature<PHILIP_DIM> &volume_quadrature, const std::vector< RadFadType > &soln_coeff_high, const dealii::FiniteElement<PHILIP_DIM,PHILIP_DIM> &fe_high, const std::vector<RadFadType>  &jac_det);
 
 
-template double DGBase<PHILIP_DIM,double,dealii::parallel::shared::Triangulation<PHILIP_DIM>>::discontinuity_sensor(const dealii::Quadrature<PHILIP_DIM> &volume_quadrature, const std::vector< double > &soln_coeff_high, const dealii::FiniteElement<PHILIP_DIM,PHILIP_DIM> &fe_high, const std::vector<double>  &jac_det);
-template FadType DGBase<PHILIP_DIM,double,dealii::parallel::shared::Triangulation<PHILIP_DIM>>::discontinuity_sensor(const dealii::Quadrature<PHILIP_DIM> &volume_quadrature, const std::vector< FadType > &soln_coeff_high, const dealii::FiniteElement<PHILIP_DIM,PHILIP_DIM> &fe_high, const std::vector<FadType>  &jac_det);
-template RadType DGBase<PHILIP_DIM,double,dealii::parallel::shared::Triangulation<PHILIP_DIM>>::discontinuity_sensor(const dealii::Quadrature<PHILIP_DIM> &volume_quadrature, const std::vector< RadType > &soln_coeff_high, const dealii::FiniteElement<PHILIP_DIM,PHILIP_DIM> &fe_high, const std::vector<RadType>  &jac_det);
-template FadFadType DGBase<PHILIP_DIM,double,dealii::parallel::shared::Triangulation<PHILIP_DIM>>::discontinuity_sensor(const dealii::Quadrature<PHILIP_DIM> &volume_quadrature, const std::vector< FadFadType > &soln_coeff_high, const dealii::FiniteElement<PHILIP_DIM,PHILIP_DIM> &fe_high, const std::vector<FadFadType>  &jac_det);
-template RadFadType DGBase<PHILIP_DIM,double,dealii::parallel::shared::Triangulation<PHILIP_DIM>>::discontinuity_sensor(const dealii::Quadrature<PHILIP_DIM> &volume_quadrature, const std::vector< RadFadType > &soln_coeff_high, const dealii::FiniteElement<PHILIP_DIM,PHILIP_DIM> &fe_high, const std::vector<RadFadType>  &jac_det);
+template double DGBase<PHILIP_DIM,double,dealii::parallel::shared::Triangulation<PHILIP_DIM>>::discontinuity_sensor<double>(const dealii::Quadrature<PHILIP_DIM> &volume_quadrature, const std::vector< double > &soln_coeff_high, const dealii::FiniteElement<PHILIP_DIM,PHILIP_DIM> &fe_high, const std::vector<double>  &jac_det);
+template FadType DGBase<PHILIP_DIM,double,dealii::parallel::shared::Triangulation<PHILIP_DIM>>::discontinuity_sensor<FadType>(const dealii::Quadrature<PHILIP_DIM> &volume_quadrature, const std::vector< FadType > &soln_coeff_high, const dealii::FiniteElement<PHILIP_DIM,PHILIP_DIM> &fe_high, const std::vector<FadType>  &jac_det);
+template RadType DGBase<PHILIP_DIM,double,dealii::parallel::shared::Triangulation<PHILIP_DIM>>::discontinuity_sensor<RadType>(const dealii::Quadrature<PHILIP_DIM> &volume_quadrature, const std::vector< RadType > &soln_coeff_high, const dealii::FiniteElement<PHILIP_DIM,PHILIP_DIM> &fe_high, const std::vector<RadType>  &jac_det);
+template FadFadType DGBase<PHILIP_DIM,double,dealii::parallel::shared::Triangulation<PHILIP_DIM>>::discontinuity_sensor<FadFadType>(const dealii::Quadrature<PHILIP_DIM> &volume_quadrature, const std::vector< FadFadType > &soln_coeff_high, const dealii::FiniteElement<PHILIP_DIM,PHILIP_DIM> &fe_high, const std::vector<FadFadType>  &jac_det);
+template RadFadType DGBase<PHILIP_DIM,double,dealii::parallel::shared::Triangulation<PHILIP_DIM>>::discontinuity_sensor<RadFadType>(const dealii::Quadrature<PHILIP_DIM> &volume_quadrature, const std::vector< RadFadType > &soln_coeff_high, const dealii::FiniteElement<PHILIP_DIM,PHILIP_DIM> &fe_high, const std::vector<RadFadType>  &jac_det);
 
 } // PHiLiP namespace

@@ -7,16 +7,14 @@ template <int dim, typename real, typename MeshType>
 ODESolverBase<dim,real,MeshType>::ODESolverBase(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input)
         : current_time(0.0)
         , current_iteration(0)
+        , current_desired_time_for_output_solution_every_dt_time_intervals(0.0)
         , dg(dg_input)
         , all_parameters(dg->all_parameters)
         , mpi_communicator(MPI_COMM_WORLD)
         , pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(mpi_communicator)==0)
         , refine_mesh_in_ode_solver(true)
         {
-            meshadaptation = std::make_unique<MeshAdaptation<dim,real,MeshType>>(all_parameters->mesh_adaptation_param.critical_residual_val,
-                                                                                 all_parameters->mesh_adaptation_param.total_refinement_steps,
-                                                                                 all_parameters->mesh_adaptation_param.refinement_fraction,
-                                                                                 all_parameters->mesh_adaptation_param.coarsening_fraction);
+            meshadaptation = std::make_unique<MeshAdaptation<dim,real,MeshType>>(dg);
         }
 
 template <int dim, typename real, typename MeshType>
@@ -156,7 +154,7 @@ int ODESolverBase<dim,real,MeshType>::steady_state ()
             && (refine_mesh_in_ode_solver) 
             && (meshadaptation->current_refinement_cycle < meshadaptation->total_refinement_cycles))
         {
-            meshadaptation->adapt_mesh(dg);
+            meshadaptation->adapt_mesh();
             allocate_ode_system ();
         }
 
@@ -174,6 +172,17 @@ int ODESolverBase<dim,real,MeshType>::steady_state ()
         this->dg->solution = initial_solution;
 
         if(CFL_factor <= 1e-2) this->dg->right_hand_side.add(1.0);
+    }
+
+    if (ode_param.output_solution_vector_modulo > 0) {
+        for (unsigned int i = 0; i < this->dg->solution.size(); ++i) {
+            solutions_table.add_value(
+                    "Steady-state solution:",
+                    this->dg->solution[i]);
+        }
+        solutions_table.set_precision("Steady-state solution:", 16);
+        std::ofstream out_file(ode_param.solutions_table_filename + ".txt");
+        solutions_table.write_text(out_file);
     }
 
     pcout << " ********************************************************** "
@@ -194,8 +203,10 @@ int ODESolverBase<dim,real,MeshType>::advance_solution_time (double time_advance
 {
     Parameters::ODESolverParam ode_param = ODESolverBase<dim,real,MeshType>::all_parameters->ode_solver_param;
 
-    const unsigned int number_of_time_steps = static_cast<int>(ceil(time_advance/ode_param.initial_time_step));
-    const double constant_time_step = time_advance/number_of_time_steps;
+   // const unsigned int number_of_time_steps = static_cast<int>(ceil(time_advance/ode_param.initial_time_step));
+    const unsigned int number_of_time_steps = (!this->all_parameters->use_energy) ? static_cast<int>(ceil(time_advance/ode_param.initial_time_step)) : this->current_iteration+1;
+   // const double constant_time_step = time_advance/number_of_time_steps;
+    const double constant_time_step = time_advance/static_cast<int>(ceil(time_advance/ode_param.initial_time_step));
 
     try {
         valid_initial_conditions();
@@ -209,8 +220,15 @@ int ODESolverBase<dim,real,MeshType>::advance_solution_time (double time_advance
             << number_of_time_steps << " iterations of size dt=" << constant_time_step << " ... " << std::endl;
     allocate_ode_system ();
 
-    this->current_iteration = 0;
-    if (ode_param.output_solution_every_x_steps >= 0) this->dg->output_results_vtk(this->current_iteration);
+    if(!this->all_parameters->use_energy)
+        this->current_iteration = 0;
+
+    if (ode_param.output_solution_every_x_steps >= 0) {
+        this->dg->output_results_vtk(this->current_iteration);  
+    } else if (ode_param.output_solution_every_dt_time_intervals > 0.0) {
+        this->dg->output_results_vtk(this->current_iteration);
+        this->current_desired_time_for_output_solution_every_dt_time_intervals += ode_param.output_solution_every_dt_time_intervals;
+    }
 
     while (this->current_iteration < number_of_time_steps)
     {
@@ -237,15 +255,24 @@ int ODESolverBase<dim,real,MeshType>::advance_solution_time (double time_advance
                 const int file_number = this->current_iteration / ode_param.output_solution_every_x_steps;
                 this->dg->output_results_vtk(file_number);
             }
+        } else if(ode_param.output_solution_every_dt_time_intervals > 0.0) {
+            const bool is_output_time = ((this->current_time <= this->current_desired_time_for_output_solution_every_dt_time_intervals) && 
+                                         ((this->current_time + constant_time_step) > this->current_desired_time_for_output_solution_every_dt_time_intervals));
+            if (is_output_time) {
+                const int file_number = this->current_desired_time_for_output_solution_every_dt_time_intervals / ode_param.output_solution_every_dt_time_intervals;
+                this->dg->output_results_vtk(file_number);
+                this->current_desired_time_for_output_solution_every_dt_time_intervals += ode_param.output_solution_every_dt_time_intervals;
+            }
         }
 
         if (ode_param.output_solution_vector_modulo > 0) {
             if (this->current_iteration % ode_param.output_solution_vector_modulo == 0) {
                 for (unsigned int i = 0; i < this->dg->solution.size(); ++i) {
                     solutions_table.add_value(
-                            "Time:" + std::to_string(this->current_iteration * constant_time_step),
+                            "Time:" + std::to_string(this->current_time),
                             this->dg->solution[i]);
                 }
+                solutions_table.set_precision("Time:" + std::to_string(this->current_time), 16);
             }
         }
     }
@@ -265,3 +292,4 @@ template class ODESolverBase<PHILIP_DIM, double, dealii::parallel::distributed::
 
 } // ODE namespace
 } // PHiLiP namespace
+

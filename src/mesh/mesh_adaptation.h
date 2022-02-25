@@ -9,6 +9,7 @@
 #include <deal.II/distributed/shared_tria.h>
 #include <deal.II/distributed/tria.h>
 #include <deal.II/distributed/grid_refinement.h>
+#include "mesh_error_factory.h"
 
 namespace PHiLiP {
 
@@ -25,10 +26,19 @@ class MeshAdaptation
 public:
 
     /// Constructor to initialize the class with a pointer to DG.
-    MeshAdaptation(double critical_res_input, int total_ref_cycle, double refine_frac, double coarsen_frac);
+    MeshAdaptation(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input);
+
+    /// Destructor
+    ~MeshAdaptation(){};
+
+    /// Pointer to the error estimator class
+    std::unique_ptr<MeshErrorEstimateBase<dim, real, MeshType>> mesh_error;
+
+    /// Pointer to DGBase
+    std::shared_ptr<DGBase<dim,real,MeshType>> dg;
 
     /// Function to adapt the mesh based on input parameters.
-    void adapt_mesh(std::shared_ptr< DGBase<dim, real, MeshType> > dg);
+    void adapt_mesh();
 
     /// Residual below which mesh adaptation begins.
     double critical_residual;
@@ -41,14 +51,8 @@ public:
 
 protected:
     
-    /// Computes the vector containing errors in each cell.
-    void compute_cellwise_errors(std::shared_ptr< DGBase<dim, real, MeshType> > dg);
-
-    /// Computes maximum residual in each cell.
-    void compute_max_cellwise_residuals(std::shared_ptr< DGBase<dim, real, MeshType> > dg);
-
     /// Performs fixed fraction refinement based on refinement and coarsening fractions.
-    void fixed_fraction_isotropic_refinement_and_coarsening(std::shared_ptr< DGBase<dim, real, MeshType> > dg);
+    void fixed_fraction_isotropic_refinement_and_coarsening();
     
     /// Fraction of cells to be refined in fixed-fraction refinement
     double refinement_fraction;
@@ -62,11 +66,9 @@ protected:
     /// Parallel std::cout
     dealii::ConditionalOStream pcout;
 
-    /// Pointer to the error estimator class
-    std::unique_ptr<MeshErrorEstimateBase<dim, real, MeshType>> mesh_error;
-
 };
 
 } // namespace PHiLiP
 
 #endif
+

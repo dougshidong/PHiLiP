@@ -79,20 +79,21 @@ int main (int argc, char * argv[])
     all_parameters.ode_solver_param.nonlinear_max_iterations = 500;
     all_parameters.ode_solver_param.print_iteration_modulo = 100;
     all_parameters.ode_solver_param.ode_output = PHiLiP::Parameters::OutputEnum::quiet; 
-    //all_parameters.ode_solver_param.runge_kutta_order = -1;a
-
-    double expected_order = -3.0;
+    
+    int rk_order = 3;
+    double expected_order = -double(rk_order);
     double order_tolerance = 0.1; 
+    all_parameters.ode_solver_param.runge_kutta_order = rk_order;
 
     double adv_speed_x = 1.0, adv_speed_y = 0.0;
     all_parameters.manufactured_convergence_study_param.manufactured_solution_param.advection_vector[0] = adv_speed_x; //x-velocity
     all_parameters.manufactured_convergence_study_param.manufactured_solution_param.advection_vector[1] = adv_speed_y; //y-velocity
 
-    int n_time_refinements = 4;
+    int n_time_refinements = 3;
     double dt_init = 2.5E-3;
     double dt = dt_init;
     const double refine_ratio = 0.5;
-    double finalTime = 0.1;
+    double finalTime = 1.0;
 
     dealii::ConvergenceTable convergence_table;
 
@@ -108,7 +109,7 @@ int main (int argc, char * argv[])
 
         all_parameters.ode_solver_param.output_solution_every_x_steps = int(finalTime/dt/10.0); //output 10 vtk files (if dt reaches finalTime exactly)
 
-        unsigned int space_poly_degree = 6;
+        unsigned int space_poly_degree = rk_order + 2;
         std::shared_ptr < PHiLiP::DGBase<dim, double> > dg = PHiLiP::DGFactory<dim,double>::create_discontinuous_galerkin(&all_parameters, space_poly_degree, grid);
         dg->allocate_system ();
 
@@ -143,7 +144,7 @@ int main (int argc, char * argv[])
         dealii::FunctionParser<dim> exact_solution;
         constants["a_x"] = adv_speed_x;
         constants["a_y"] = adv_speed_y;
-        constants["t"] = finalTime;
+        constants["t"] = ode_solver -> current_time;//finalTime;
         std::string expression_exact;
         if (dim == 2){
             expression_exact = "exp( -( 20*(x-1-a_x*t)*(x-1-a_x*t) + 20*(y-1-a_y*t)*(y-1-a_y*t) ) )";

@@ -9,14 +9,14 @@ set use_weak_form = true
 set use_collocated_nodes = false
 
 subsection grid refinement study
- set num_refinements = 10
+ set num_refinements = 8
  set poly_degree = 0
  set grid_left = 0.0
  set grid_right = 100.0
 end
 
-#Reduced order parameters
-subsection reduced order
+#Burgers parameters
+subsection burgers
  set rewienski_a = 3.0
  set rewienski_b = 0.02
 end

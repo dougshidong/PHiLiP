@@ -9,22 +9,21 @@ void ReducedOrderModelParam::declare_parameters (dealii::ParameterHandler &prm)
 {
     prm.enter_subsection("reduced order");
     {
-        prm.declare_entry("rewienski_a", "2.2360679775", //sqrt(5)
-                          dealii::Patterns::Double(1, 10),
-                          "Burgers Rewienski parameter a");
-        prm.declare_entry("rewienski_b", "0.02",
-                          dealii::Patterns::Double(0.01, 0.1),
-                          "Burgers Rewienski parameter b");
-        prm.declare_entry("rewienski_manufactured_solution", "false",
-                          dealii::Patterns::Bool(),
-                          "Adds the manufactured solution source term to the PDE source term."
-                          "Set as true for running a manufactured solution.");
         prm.declare_entry("coarse_basis_dimension", "0",
                           dealii::Patterns::Integer(0,dealii::Patterns::Integer::max_int_value),
                           "Initial dimension of the coarse POD basis");
         prm.declare_entry("fine_basis_dimension", "0",
                           dealii::Patterns::Integer(0,dealii::Patterns::Integer::max_int_value),
                           "Initial dimension of the fine POD basis");
+        prm.declare_entry("expanded_basis_dimension", "0",
+                          dealii::Patterns::Integer(0,dealii::Patterns::Integer::max_int_value),
+                          "Initial dimension of the expanded POD basis");
+        prm.declare_entry("extrapolated_basis_dimension", "0",
+                          dealii::Patterns::Integer(0,dealii::Patterns::Integer::max_int_value),
+                          "Initial dimension of the extrapolated POD basis");
+        prm.declare_entry("extrapolated_parameter_delta", "0.0",
+                          dealii::Patterns::Double(dealii::Patterns::Double::min_double_value, dealii::Patterns::Double::max_double_value),
+                          "Change in parameter from base parameter value");
         prm.declare_entry("adapt_coarse_basis_constant", "0",
                           dealii::Patterns::Integer(0,dealii::Patterns::Integer::max_int_value),
                           "Number of basis functions to add to coarse basis at each adaptation iteration. Set to 0 to turn off.");
@@ -48,11 +47,11 @@ void ReducedOrderModelParam::parse_parameters (dealii::ParameterHandler &prm)
 {
     prm.enter_subsection("reduced order");
     {
-        rewienski_a = prm.get_double("rewienski_a");
-        rewienski_b = prm.get_double("rewienski_b");
-        rewienski_manufactured_solution = prm.get_bool("rewienski_manufactured_solution");
         coarse_basis_dimension = prm.get_integer("coarse_basis_dimension");
         fine_basis_dimension = prm.get_integer("fine_basis_dimension");
+        expanded_basis_dimension = prm.get_integer("expanded_basis_dimension");
+        extrapolated_basis_dimension = prm.get_integer("extrapolated_basis_dimension");
+        extrapolated_parameter_delta = prm.get_double("extrapolated_parameter_delta");
         adapt_coarse_basis_constant = prm.get_integer("adapt_coarse_basis_constant");
         adaptation_tolerance = prm.get_double("adaptation_tolerance");
         path_to_search = prm.get("path_to_search");

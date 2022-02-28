@@ -128,5 +128,5 @@ Parameters::AllParameters FiniteDifferenceSensitivity<dim, nstate>::reinit_param
 #if PHILIP_DIM==1
     template class FiniteDifferenceSensitivity<PHILIP_DIM,PHILIP_DIM>;
 #endif
-    } // Tests namespace
+} // Tests namespace
 } // PHiLiP namespace

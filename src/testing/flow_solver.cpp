@@ -26,7 +26,7 @@ FlowSolver<dim, nstate>::FlowSolver(const PHiLiP::Parameters::AllParameters *con
     solution_no_ghost.reinit(dg->locally_owned_dofs, MPI_COMM_WORLD);
     dealii::VectorTools::interpolate(dg->dof_handler, *initial_condition_function, solution_no_ghost);
     dg->solution = solution_no_ghost;
-    pcout << "Done." << std::endl;
+    pcout << "done." << std::endl;
     ode_solver->allocate_ode_system();
 }
 

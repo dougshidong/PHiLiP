@@ -19,11 +19,12 @@ namespace Tests {
 //=========================================================
 template <int dim, int nstate>
 PeriodicCubeFlow<dim, nstate>::PeriodicCubeFlow(const PHiLiP::Parameters::AllParameters *const parameters_input)
-        : FlowSolver<dim,nstate>(parameters_input)
+        : FlowSolverCaseBase<dim, nstate>(parameters_input)
         , number_of_cells_per_direction(this->all_param.grid_refinement_study_param.grid_size)
         , domain_left(this->all_param.grid_refinement_study_param.grid_left)
         , domain_right(this->all_param.grid_refinement_study_param.grid_right)
         , domain_volume(pow(domain_right - domain_left, dim))
+        , unsteady_data_table_filename_with_extension(parameters_input->flow_solver_param.unsteady_data_table_filename+".txt")
 {
     // Get the flow case type
     using FlowCaseEnum = Parameters::FlowSolverParam::FlowCaseType;
@@ -42,9 +43,9 @@ void PeriodicCubeFlow<dim,nstate>::display_flow_solver_setup() const
     if (pde_type == PDE_enum::euler)                {pde_string = "euler";}
     if (pde_type == PDE_enum::navier_stokes)        {pde_string = "navier_stokes";}
     this->pcout << "- PDE Type: " << pde_string << std::endl;
-    this->pcout << "- Polynomial degree: " << this->poly_degree << std::endl;
-    this->pcout << "- Courant-Friedrich-Lewy number: " << this->courant_friedrich_lewy_number << std::endl;
-    this->pcout << "- Final time: " << this->final_time << std::endl;
+    this->pcout << "- Polynomial degree: " << this->all_param.grid_refinement_study_param.poly_degree << std::endl;
+    this->pcout << "- Courant-Friedrich-Lewy number: " << this->all_param.flow_solver_param.courant_friedrich_lewy_number << std::endl;
+    this->pcout << "- Final time: " << this->all_param.flow_solver_param.final_time << std::endl;
 
     std::string flow_type_string;
     if(is_taylor_green_vortex) {
@@ -56,9 +57,13 @@ void PeriodicCubeFlow<dim,nstate>::display_flow_solver_setup() const
 }
 
 template <int dim, int nstate>
-void PeriodicCubeFlow<dim,nstate>
-::generate_grid(std::shared_ptr<Triangulation> grid) const
+std::shared_ptr<Triangulation> PeriodicCubeFlow<dim,nstate>::generate_grid() const
 {
+    std::shared_ptr<Triangulation> grid = std::make_shared<Triangulation> (
+#if PHILIP_DIM!=1
+            this->mpi_communicator
+#endif
+    );
     Grids::straight_periodic_cube<dim,dealii::parallel::distributed::Triangulation<dim>>(grid, domain_left, domain_right, number_of_cells_per_direction);
     // Display the information about the grid
     this->pcout << "\n- GRID INFORMATION:" << std::endl;
@@ -68,6 +73,8 @@ void PeriodicCubeFlow<dim,nstate>
     this->pcout << "- - Domain right: " << domain_right << std::endl;
     this->pcout << "- - Number of cells in each direction: " << number_of_cells_per_direction << std::endl;
     this->pcout << "- - Domain volume: " << domain_volume << std::endl;
+
+    return grid;
 }
 
 template <int dim, int nstate>
@@ -75,7 +82,7 @@ double PeriodicCubeFlow<dim,nstate>::get_constant_time_step(std::shared_ptr<DGBa
 {
     const unsigned int number_of_degrees_of_freedom = dg->dof_handler.n_dofs();
     const double approximate_grid_spacing = (domain_right-domain_left)/pow(number_of_degrees_of_freedom,(1.0/dim));
-    const double constant_time_step = this->courant_friedrich_lewy_number * approximate_grid_spacing;
+    const double constant_time_step = this->all_param.flow_solver_param.courant_friedrich_lewy_number * approximate_grid_spacing;
     return constant_time_step;
 }
 
@@ -97,9 +104,10 @@ double PeriodicCubeFlow<dim,nstate>::integrand_l2_error_initial_condition(const 
 {
     // Description: Returns l2 error with the initial condition function
     // Purpose: For checking the initialization
+    std::shared_ptr<InitialConditionFunction<dim,double>> initial_condition_function = InitialConditionFactory<dim,double>::create_InitialConditionFunction(&this->all_param, nstate);
     double integrand_value = 0.0;
     for (int istate=0; istate<nstate; ++istate) {
-        const double exact_soln_at_q = this->initial_condition_function->value(qpoint, istate);
+        const double exact_soln_at_q = initial_condition_function->value(qpoint, istate);
         integrand_value += pow(soln_at_q[istate] - exact_soln_at_q, 2.0);
     }
     return integrand_value;
@@ -167,7 +175,7 @@ void PeriodicCubeFlow<dim, nstate>::compute_unsteady_data_and_write_to_table(
         unsteady_data_table->set_precision(kinetic_energy_string, 16);
         unsteady_data_table->set_scientific(kinetic_energy_string, true);
         // Write to file
-        std::ofstream unsteady_data_table_file(this->unsteady_data_table_filename_with_extension);
+        std::ofstream unsteady_data_table_file(unsteady_data_table_filename_with_extension);
         unsteady_data_table->write_text(unsteady_data_table_file);
     }
     // Print to console
@@ -178,8 +186,8 @@ void PeriodicCubeFlow<dim, nstate>::compute_unsteady_data_and_write_to_table(
 
     // Abort if energy is nan
     if(std::isnan(kinetic_energy)) {
-        std::cout << " ERROR: Kinetic energy at time " << current_time << " is nan." << std::endl;
-        std::cout << "        Consider decreasing the time step / CFL number." << std::endl;
+        this->pcout << " ERROR: Kinetic energy at time " << current_time << " is nan." << std::endl;
+        this->pcout << "        Consider decreasing the time step / CFL number." << std::endl;
         std::abort();
     }
 }

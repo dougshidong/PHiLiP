@@ -5,8 +5,8 @@ set dimension = 1
 
 set pde_type  = burgers_rewienski
 
-#Reduced order parameters
-subsection reduced order
+#Burgers parameters
+subsection burgers
   set rewienski_a = 2
   set rewienski_b = 0.02
   set rewienski_manufactured_solution = true

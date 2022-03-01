@@ -11,6 +11,22 @@ If you are on another OS, the above script still serves as a nice guideline sinc
 Note that some features and tests from a recent pull request only work with Gmsh 4.6. See
 https://github.com/dougshidong/PHiLiP/pull/55
 
+## NACA0012 Mesh Files
+
+**If you are running on the cluster, please see the instructions below in the Compute Canada section.**
+
+If you are running the code **on a local machine** (i.e. not on the cluster), you will need to download the [NACA0012 mesh files](https://drive.google.com/drive/folders/182JusbWV6NAA8ws1-TTg7M2GLc5jt6_r?usp=sharing) that are too large to store on GitHub by clicking the link, and place them in `tests/integration_tests_control_files/euler_integration/naca0012/`. To automate this process using `gdown`, do the following:
+1. `sudo apt install python3-pip` (if `pip` is not already installed)
+2. `pip install gdown` (if `gdown` is not already installed)
+3. If you receive a warning such as:
+   `WARNING: The script gdown is installed in '/home/parallels/.local/bin' which is not on PATH.`
+   then simply add the path by doing the following (modify accordingly):
+   `echo export PATH=/home/parallels/.local/bin:$PATH >> ~/.bashrc`
+   and resource:
+   `source ~/.bashrc`
+4. Then run the following bash script inside the `PHiLiP` directory:
+   `chmod +x get_NACA0012_mesh_files_local.sh`
+   `./get_NACA0012_mesh_files_local.sh`
 
 ## deal.II
 
@@ -72,11 +88,16 @@ The deal.II library has been setup with the following options:
   Run  $ make info  to print a help message with a list of top level targets
 ~~~~
 
-## Installation of PHiLiP on Beluga cluster
+## Installation of PHiLiP on Compute Canada clusters
 
 This section is aimed at McGill's group who use the Compute Canada (CC) clusters.
 
-If you are a new user on a CC cluster, you must configure git modules by explicitly running the following on the cluster before proceeding:
+If you have just cloned the code onto the cluster, **you must copy the large NACA0012 mesh files** that cannot be stored on GitHub, this can be done by explicitly running the following:
+~~~~
+chmod +x get_NACA0012_mesh_files_cluster.sh
+./get_NACA0012_mesh_files_cluster.sh
+~~~~
+If you are a **new user on a CC cluster**, **you must configure git modules** by explicitly running the following on the cluster before proceeding:
 ~~~~
 chmod +x configure_git_submodules_cluster.sh
 ./configure_git_submodules_cluster.sh

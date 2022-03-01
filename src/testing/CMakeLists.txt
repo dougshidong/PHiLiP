@@ -1,3 +1,4 @@
+
 set(TESTS_SOURCE
     tests.cpp
     grid_study.cpp
@@ -20,9 +21,13 @@ set(TESTS_SOURCE
     optimization_inverse_manufactured/optimization_inverse_manufactured.cpp
     reduced_order.cpp
     reduced_order_pod_adaptation.cpp
-    flow_solver.cpp
+    fd_state_sensitivity_wrt_parameter.cpp
+    flow_solver_cases/flow_solver_case_base.cpp
     flow_solver_cases/periodic_cube_flow.cpp
-    flow_solver_cases/1D_burgers_rewienski_snapshot.cpp)
+    flow_solver_cases/1D_burgers_rewienski_snapshot.cpp
+    flow_solver_cases/1d_burgers_viscous_snapshot.cpp
+    flow_solver.cpp
+    dual_weighted_residual_mesh_adaptation.cpp)
 
 foreach(dim RANGE 1 3)
     # Output library

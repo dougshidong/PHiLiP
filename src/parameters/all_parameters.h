@@ -13,11 +13,13 @@
 #include "parameters/parameters_navier_stokes.h"
 
 #include "parameters/parameters_reduced_order.h"
+#include "parameters/parameters_burgers.h"
 #include "parameters/parameters_grid_refinement_study.h"
 #include "parameters/parameters_grid_refinement.h"
 #include "parameters/parameters_artificial_dissipation.h"
 #include "parameters/parameters_flow_solver.h"
 #include "parameters/parameters_mesh_adaptation.h"
+#include "parameters/parameters_functional.h"
 
 namespace PHiLiP {
 namespace Parameters {
@@ -41,6 +43,8 @@ public:
     NavierStokesParam navier_stokes_param;
     /// Contains parameters for the Reduced-Order model
     ReducedOrderModelParam reduced_order_param;
+    /// Contains parameters for Burgers equation
+    BurgersParam burgers_param;
     /// Contains the parameters for grid refinement study
     GridRefinementStudyParam grid_refinement_study_param;
     /// Contains parameters for artificial dissipation
@@ -49,6 +53,8 @@ public:
     FlowSolverParam flow_solver_param;
     /// Constains parameters for mesh adaptation
     MeshAdaptationParam mesh_adaptation_param;
+    /// Contains parameters for functional
+    FunctionalParam functional_param;
 
     /// Number of dimensions. Note that it has to match the executable PHiLiP_xD
     unsigned int dimension;
@@ -119,8 +125,10 @@ public:
         euler_naca0012,
         reduced_order,
         POD_adaptation,
+        finite_difference_sensitivity,
         advection_periodicity,
         flow_solver,
+        dual_weighted_residual_mesh_adaptation,
     };
     TestType test_type; ///< Selected TestType from the input file.
 
@@ -131,6 +139,7 @@ public:
         convection_diffusion,
         advection_vector,
         burgers_inviscid,
+        burgers_viscous,
         burgers_rewienski,
         euler,
         mhd,

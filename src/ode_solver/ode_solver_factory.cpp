@@ -25,8 +25,6 @@ std::shared_ptr<ODESolverBase<dim,real,MeshType>> ODESolverFactory<dim,real,Mesh
     pcout << "Solver type possible: " << std::endl;
     pcout <<  ODEEnum::explicit_solver << std::endl;
     pcout <<  ODEEnum::implicit_solver << std::endl;
-    pcout <<  ODEEnum::pod_galerkin_solver << std::endl;
-    pcout <<  ODEEnum::pod_petrov_galerkin_solver << std::endl;
     pcout << "********************************************************************" << std::endl;
     std::abort();
     return nullptr;
@@ -46,8 +44,6 @@ std::shared_ptr<ODESolverBase<dim,real,MeshType>> ODESolverFactory<dim,real,Mesh
         pcout << "Can't create ODE solver since solver type is not clear." << std::endl;
         pcout << "Solver type specified: " << ode_solver_type << std::endl;
         pcout << "Solver type possible: " << std::endl;
-        pcout <<  ODEEnum::explicit_solver << std::endl;
-        pcout <<  ODEEnum::implicit_solver << std::endl;
         pcout <<  ODEEnum::pod_galerkin_solver << std::endl;
         pcout <<  ODEEnum::pod_petrov_galerkin_solver << std::endl;
         pcout << "********************************************************************" << std::endl;
@@ -70,8 +66,6 @@ else {
     pcout << "Solver type possible: " << std::endl;
     pcout <<  ODEEnum::explicit_solver << std::endl;
     pcout <<  ODEEnum::implicit_solver << std::endl;
-    pcout <<  ODEEnum::pod_galerkin_solver << std::endl;
-    pcout <<  ODEEnum::pod_petrov_galerkin_solver << std::endl;
     pcout << "********************************************************************" << std::endl;
     std::abort();
     return nullptr;
@@ -90,8 +84,6 @@ std::shared_ptr<ODESolverBase<dim,real,MeshType>> ODESolverFactory<dim,real,Mesh
         pcout << "Can't create ODE solver since solver type is not clear." << std::endl;
         pcout << "Solver type specified: " << ode_solver_type << std::endl;
         pcout << "Solver type possible: " << std::endl;
-        pcout <<  ODEEnum::explicit_solver << std::endl;
-        pcout <<  ODEEnum::implicit_solver << std::endl;
         pcout <<  ODEEnum::pod_galerkin_solver << std::endl;
         pcout <<  ODEEnum::pod_petrov_galerkin_solver << std::endl;
         pcout << "********************************************************************" << std::endl;

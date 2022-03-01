@@ -31,7 +31,7 @@ class Burgers : public PhysicsBase <dim, nstate, real>
 {
 protected:
     /// Diffusion scaling coefficient in front of the diffusion tensor.
-    double diffusion_scaling_coeff = 0.1*atan(1)*4.0/exp(1);
+    double diffusion_scaling_coeff;
 public:
     /// Turns on convective part of the Burgers problem.
     /** Without the nonlinear convection, it's simply diffusion */
@@ -39,13 +39,16 @@ public:
     /// Turns on diffusive part of the Burgers problem.
     const bool hasDiffusion;
 
+
     /// Constructor
     Burgers(
+        const double                                              diffusion_coefficient,
         const bool                                                convection = true, 
         const bool                                                diffusion = true, 
         const dealii::Tensor<2,3,double>                          input_diffusion_tensor = Parameters::ManufacturedSolutionParam::get_default_diffusion_tensor(),
         std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function = nullptr) : 
-            PhysicsBase<dim,nstate,real>(input_diffusion_tensor, manufactured_solution_function), 
+            PhysicsBase<dim,nstate,real>(input_diffusion_tensor, manufactured_solution_function),
+            diffusion_scaling_coeff(diffusion_coefficient),
             hasConvection(convection), 
             hasDiffusion(diffusion)
     {

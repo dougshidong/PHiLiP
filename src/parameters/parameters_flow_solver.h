@@ -17,6 +17,7 @@ public:
     /// Selects the flow case to be simulated
     enum FlowCaseType{
         taylor_green_vortex,
+        burgers_viscous_snapshot,
         burgers_rewienski_snapshot,
         };
     FlowCaseType flow_case_type; ///< Selected FlowCaseType from the input file
@@ -29,6 +30,10 @@ public:
     std::string unsteady_data_table_filename;
 
     bool steady_state; ///<Flag for solving steady state solution
+
+    /** Name of the output file for writing the sensitivity data;
+        will be written to file: sensitivity_table_filename.txt */
+    std::string sensitivity_table_filename;
 
     /// Declares the possible variables and sets the defaults.
     static void declare_parameters (dealii::ParameterHandler &prm);

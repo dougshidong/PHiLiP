@@ -22,7 +22,7 @@ void ExplicitODESolver<dim,real,MeshType>::step_in_time (real dt, const bool pse
 	//calculating stages
 	this->solution_update = this->dg->solution; //u_ni
 	for (int i = 0; i < rk_order; ++i){
-	    this -> rk_stage[i] = this -> solution_update; //u_n
+	    this->rk_stage[i] = this -> solution_update; //u_n
 	    for (int j = 0; j < i; ++j){
 	        if (this->butcher_a[i][j] != 0){
                 if (pseudotime) {

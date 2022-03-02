@@ -88,17 +88,6 @@ protected:
     /// Solution update given by the ODE solver
     dealii::LinearAlgebra::distributed::Vector<double> solution_update;
 
-    /// Stores the various RK stages.
-    /** Currently hard-coded to SSPRK3.
-     */
-    std::vector<dealii::LinearAlgebra::distributed::Vector<double>> rk_stage;
-
-    /// Stores the butcher block for RK methods
-    /** Currently only for explicit timestepping
-     */
-    dealii::Table<2,double> butcher_a;
-    dealii::Table<1,double> butcher_b;
-
 public:
     /// Smart pointer to DGBase
     std::shared_ptr<DGBase<dim,real,MeshType>> dg;

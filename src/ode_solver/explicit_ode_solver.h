@@ -27,6 +27,16 @@ public:
 
     /// Function to allocate the ODE system
     void allocate_ode_system ();
+
+protected:
+    /// Storage for the derivative at each Runge-Kutta stage
+    std::vector<dealii::LinearAlgebra::distributed::Vector<double>> rk_stage;
+    
+    /// Butcher tableau "a"
+    dealii::Table<2,double> butcher_a;
+
+    /// Butcher tableau "b"
+    dealii::Table<1,double> butcher_b;
 };
 
 } // ODE namespace

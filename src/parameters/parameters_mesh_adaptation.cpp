@@ -9,11 +9,11 @@ void MeshAdaptationParam::declare_parameters (dealii::ParameterHandler &prm)
 {
     prm.enter_subsection("mesh adaptation");
     {
-        prm.declare_entry("total_refinement_steps","0",
+        prm.declare_entry("total_refinement_cycles","0",
                           dealii::Patterns::Integer(),
                           "Maximum adaptation steps for a problem.");
         
-        prm.declare_entry("critical_residual_val","1.0e-9",
+        prm.declare_entry("critical_residual","1.0e-9",
                           dealii::Patterns::Double(0.0,1.0e5),
                           "Critical residual below which adaptation begins.");
         
@@ -45,8 +45,8 @@ void MeshAdaptationParam::parse_parameters (dealii::ParameterHandler &prm)
 {
     prm.enter_subsection("mesh adaptation");
     {
-        total_refinement_steps = prm.get_integer("total_refinement_steps");
-        critical_residual_val = prm.get_double("critical_residual_val");
+        total_refinement_cycles = prm.get_integer("total_refinement_cycles");
+        critical_residual = prm.get_double("critical_residual");
         use_goal_oriented_mesh_adaptation = prm.get_bool("use_goal_oriented_mesh_adaptation");
         h_refine_fraction = prm.get_double("h_refine_fraction");
         h_coarsen_fraction = prm.get_double("h_coarsen_fraction");

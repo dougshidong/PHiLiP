@@ -12,10 +12,10 @@ class MeshAdaptationParam
 public:
 
     /// Total/maximum number of refinement cycles while solving a problem.
-    int total_refinement_steps;
+    int total_refinement_cycles;
     
     /// Critical residual below which refinement begins.
-    double critical_residual_val;
+    double critical_residual;
 
     /// Fraction of cells to be h-refined
     double h_refine_fraction;

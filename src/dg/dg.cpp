@@ -403,6 +403,72 @@ unsigned int DGBase<dim,real,MeshType>::get_min_fe_degree()
 }
 
 template <int dim, typename real, typename MeshType>
+dealii::Point<dim> DGBase<dim,real,MeshType>::coordinates_of_highest_refined_cell(bool check_for_p_refined_cell)
+{
+    const int iproc = dealii::Utilities::MPI::this_mpi_process(mpi_communicator);
+    const dealii::Point<dim> unit_vertex = dealii::GeometryInfo<dim>::unit_cell_vertex(0);
+    double current_cell_diameter;
+    double min_diameter_local = high_order_grid->dof_handler_grid.begin_active()->diameter();
+    int max_cell_polynomial_order = 0;
+    int current_cell_polynomial_order = 0;
+    dealii::Point<dim> refined_cell_coord; 
+
+    if(check_for_p_refined_cell)
+    {
+        for (auto cell = dof_handler.begin_active(); cell!= dof_handler.end(); ++cell) 
+        {
+            current_cell_polynomial_order = cell->active_fe_index();
+            if ((current_cell_polynomial_order > max_cell_polynomial_order) && (cell->is_locally_owned()))
+            {
+                max_cell_polynomial_order = current_cell_polynomial_order;
+                refined_cell_coord = cell->center();
+            }
+        }
+    }
+    else
+    {
+        for (auto cell = high_order_grid->dof_handler_grid.begin_active(); cell!= high_order_grid->dof_handler_grid.end(); ++cell) 
+        {
+            current_cell_diameter = cell->diameter(); // For future dealii version: current_cell_diameter = cell->diameter(*(mapping_fe_field));
+            if ((min_diameter_local > current_cell_diameter) && (cell->is_locally_owned()))
+            {
+                min_diameter_local = current_cell_diameter;
+                refined_cell_coord = high_order_grid->mapping_fe_field->transform_unit_to_real_cell(cell, unit_vertex);
+            }
+        }
+    }
+    
+    dealii::Utilities::MPI::MinMaxAvg indexstore;
+    int processor_containing_refined_cell;
+
+    if(check_for_p_refined_cell)
+    {
+        indexstore = dealii::Utilities::MPI::min_max_avg(max_cell_polynomial_order, mpi_communicator);
+        processor_containing_refined_cell = indexstore.max_index;
+    }
+    else
+    {
+        indexstore = dealii::Utilities::MPI::min_max_avg(min_diameter_local, mpi_communicator);
+        processor_containing_refined_cell = indexstore.min_index;
+    }
+
+    double global_point[dim];
+
+    if (iproc == processor_containing_refined_cell)
+    {
+       for (int i=0; i<dim; i++)
+            global_point[i] = refined_cell_coord[i];
+    }
+
+    MPI_Bcast(global_point, dim, MPI_DOUBLE, processor_containing_refined_cell, mpi_communicator); // Update values in all processors
+     
+    for (int i=0; i<dim; i++)
+        refined_cell_coord[i] = global_point[i];
+ 
+    return refined_cell_coord;
+ }   
+
+template <int dim, typename real, typename MeshType>
 template<typename DoFCellAccessorType>
 real DGBase<dim,real,MeshType>::evaluate_penalty_scaling (
     const DoFCellAccessorType &cell,

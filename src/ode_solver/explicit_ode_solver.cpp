@@ -17,7 +17,6 @@ void ExplicitODESolver<dim,real,MeshType>::step_in_time (real dt, const bool pse
     Parameters::ODESolverParam ode_param = ODESolverBase<dim,real,MeshType>::all_parameters->ode_solver_param;
     const int rk_order = ode_param.runge_kutta_order;
    
-    const bool relaxation_runge_kutta = ode_param.relaxation_runge_kutta;
     
     //calculating stages
     this->solution_update = this->dg->solution; //u_ni
@@ -43,28 +42,14 @@ void ExplicitODESolver<dim,real,MeshType>::step_in_time (real dt, const bool pse
         this->dg->global_inverse_mass_matrix.vmult(this->rk_stage[i], this->dg->right_hand_side); //rk_stage[i] = IMM*RHS = F(u_n + dt*sum(a_ij*k_j)
     }
 
-    double gamma = 1;
-    if (relaxation_runge_kutta){
-        double denominator=0;
-        double numerator=0;
-        for (int i = 0; i < rk_order; ++i){
-            for (int j = 0; j < rk_order; ++j){
-                numerator += this->butcher_b[i] *this-> butcher_a[i][j] *(this->rk_stage[i]*this->rk_stage[j]); 
-                denominator += this->butcher_b[i]*this->butcher_b[j] *(this->rk_stage[i]*this->rk_stage[j]);
-            }
-        }
-        numerator *= 2;
-        gamma = (denominator < 1E-8) ? 1 : numerator/denominator;
-    }
-
     //assemble solution from stages
     for (int i = 0; i < rk_order; ++i){
-        this->solution_update.add(dt*gamma* this->butcher_b[i],this->rk_stage[i]);
+        this->solution_update.add(dt* this->butcher_b[i],this->rk_stage[i]);
     }
     this->dg->solution = this->solution_update; // u_np1 = u_n + dt* sum(k_i * b_i)
 
     ++(this->current_iteration);
-    this->current_time += dt*gamma;
+    this->current_time += dt;
 }
 
 template <int dim, typename real, typename MeshType>

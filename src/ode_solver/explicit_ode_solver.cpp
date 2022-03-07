@@ -19,28 +19,29 @@ void ExplicitODESolver<dim,real,MeshType>::step_in_time (real dt, const bool pse
    
     const bool relaxation_runge_kutta = ode_param.relaxation_runge_kutta;
     
-	//calculating stages
-	this->solution_update = this->dg->solution; //u_ni
-	for (int i = 0; i < rk_order; ++i){
-	    this->rk_stage[i] = this -> solution_update; //u_n
-	    for (int j = 0; j < i; ++j){
-	        if (this->butcher_a[i][j] != 0){
+    //calculating stages
+    this->solution_update = this->dg->solution; //u_ni
+    for (int i = 0; i < rk_order; ++i){
+        this->rk_stage[i] = this -> solution_update; //u_n
+        for (int j = 0; j < i; ++j){
+            if (this->butcher_a[i][j] != 0){
                 if (pseudotime) {
                     //implemented but not tested 
+                    //to my knowledge, there aren't any existing tests using explicit steady-state 
+                    //(searched through unit_tests folder)
                     std::cout << "Explicit pseudotime not tested!!" << std::endl;
                     const double CFL =this-> butcher_a[i][j] * dt;
                     this->dg->time_scale_solution_update(this->rk_stage[j], CFL);
                     this->rk_stage[i].add(1.0,  this->rk_stage[j]);
                 } else {
-	                this->rk_stage[i].add(dt*this->butcher_a[i][j], this->rk_stage[j]);
+                    this->rk_stage[i].add(dt*this->butcher_a[i][j], this->rk_stage[j]);
                 }
-		    }
-	    } //u_n + dt* sum(a_ij *k_j)
-            this->dg->solution = this->rk_stage[i];
-            this->dg->assemble_residual (); // RHS : du/dt = RHS = F(u_n + dt* sum(a_ij*k_j)
-            this->dg->global_inverse_mass_matrix.vmult(this->rk_stage[i], this->dg->right_hand_side); //rk_stage[i] = IMM*RHS = F(u_n + dt*sum(a_ij*k_j)
-
-	}
+            }
+        } //u_n + dt* sum(a_ij *k_j)
+        this->dg->solution = this->rk_stage[i];
+        this->dg->assemble_residual (); // RHS : du/dt = RHS = F(u_n + dt* sum(a_ij*k_j)
+        this->dg->global_inverse_mass_matrix.vmult(this->rk_stage[i], this->dg->right_hand_side); //rk_stage[i] = IMM*RHS = F(u_n + dt*sum(a_ij*k_j)
+    }
 
     double gamma = 1;
     if (relaxation_runge_kutta){
@@ -54,98 +55,17 @@ void ExplicitODESolver<dim,real,MeshType>::step_in_time (real dt, const bool pse
         }
         numerator *= 2;
         gamma = (denominator < 1E-8) ? 1 : numerator/denominator;
-        //std::cout<<gamma<<std::endl;
     }
 
-	//assemble solution from stages
-	for (int i = 0; i < rk_order; ++i){
-	    this->solution_update.add(dt*gamma* this->butcher_b[i],this->rk_stage[i]);
-	}
-	this->dg->solution = this->solution_update; // u_np1 = u_n + dt* sum(k_i * b_i)
+    //assemble solution from stages
+    for (int i = 0; i < rk_order; ++i){
+        this->solution_update.add(dt*gamma* this->butcher_b[i],this->rk_stage[i]);
+    }
+    this->dg->solution = this->solution_update; // u_np1 = u_n + dt* sum(k_i * b_i)
 
     ++(this->current_iteration);
     this->current_time += dt*gamma;
 }
-
-
-    /* Old code has been kept here because new implementation of pseudotime is untested
-    if (rk_order == 1) {
-        this->dg->global_inverse_mass_matrix.vmult(this->solution_update, this->dg->right_hand_side);
-        this->update_norm = this->solution_update.l2_norm();
-        if (pseudotime) {
-            const double CFL = dt;
-            this->dg->time_scale_solution_update( this->solution_update, CFL );
-            this->dg->solution.add(1.0,this->solution_update);
-        } else {
-            this->dg->solution.add(dt,this->solution_update);
-        }
-    }
-    else if (rk_order == 3) {
-        // Stage 0
-        this->rk_stage[0] = this->dg->solution;
-
-        // Stage 1
-        if ((ode_param.ode_output) == Parameters::OutputEnum::verbose) {
-            this->pcout<< "Stage 1... " << std::flush;            
-        }
-        this->dg->global_inverse_mass_matrix.vmult(this->solution_update, this->dg->right_hand_side);
-
-        this->rk_stage[1] = this->rk_stage[0];	
-        //this->rk_stage[1].add(dt,this->solution_update);
-        if (pseudotime) {
-            const double CFL = dt;
-            this->dg->time_scale_solution_update( this->solution_update, CFL );
-            this->rk_stage[1].add(1.0,this->solution_update);
-        } else {
-            this->rk_stage[1].add(dt,this->solution_update);
-        }
-
-        // Stage 2
-        if ((ode_param.ode_output) == Parameters::OutputEnum::verbose) {
-            this->pcout<< "2... " << std::flush;
-        }
-        this->dg->solution = this->rk_stage[1];
-        this->dg->assemble_residual ();
-        this->dg->global_inverse_mass_matrix.vmult(this->solution_update, this->dg->right_hand_side);
-
-        this->rk_stage[2] = this->rk_stage[0];
-        this->rk_stage[2] *= 0.75;
-        this->rk_stage[2].add(0.25, this->rk_stage[1]);
-        //this->rk_stage[2].add(0.25*dt, this->solution_update);
-        if (pseudotime) {
-            const double CFL = 0.25*dt;
-            this->dg->time_scale_solution_update( this->solution_update, CFL );
-            this->rk_stage[2].add(1.0,this->solution_update);
-        } else {
-            this->rk_stage[2].add(0.25*dt,this->solution_update);
-        }
-
-        // Stage 3
-        if ((ode_param.ode_output) == Parameters::OutputEnum::verbose) {
-            this->pcout<< "3... " << std::flush;
-        }
-        this->dg->solution = this->rk_stage[2];
-        this->dg->assemble_residual ();
-        this->dg->global_inverse_mass_matrix.vmult(this->solution_update, this->dg->right_hand_side);
-
-        this->rk_stage[3] = this->rk_stage[0];
-        this->rk_stage[3] *= 1.0/3.0;
-        this->rk_stage[3].add(2.0/3.0, this->rk_stage[2]);
-        //this->rk_stage[3].add(2.0/3.0*dt, this->solution_update);
-        if (pseudotime) {
-            const double CFL = (2.0/3.0)*dt;
-            this->dg->time_scale_solution_update( this->solution_update, CFL );
-            this->rk_stage[3].add(1.0,this->solution_update);
-        } else {
-            this->rk_stage[3].add((2.0/3.0)*dt,this->solution_update);
-        }
-
-        this->dg->solution = this->rk_stage[3];
-        if ((ode_param.ode_output) == Parameters::OutputEnum::verbose) {
-            this->pcout<< "done." << std::endl;
-        }
-    }
-    */
 
 template <int dim, typename real, typename MeshType>
 void ExplicitODESolver<dim,real,MeshType>::allocate_ode_system ()
@@ -162,21 +82,23 @@ void ExplicitODESolver<dim,real,MeshType>::allocate_ode_system ()
         this->rk_stage[i].reinit(this->dg->solution);
     }
 
+    //Assigning butcher tableau
     this->butcher_a.reinit(rk_order,rk_order);
     this->butcher_b.reinit(rk_order);
-
     if (rk_order == 3){
+        //RKSSP3
         double butcher_a_values[9] = {0,0,0,1.0,0,0,0.25, 0.25, 0};
         this->butcher_a.fill(butcher_a_values);
-    
         double butcher_b_values[3] = {1.0/6.0, 1.0/6.0, 2.0/3.0};
         this->butcher_b.fill(butcher_b_values);
     } else if (rk_order == 4) {
+        //Standard RK4
         double butcher_a_values[16] = {0,0,0,0,0.5,0,0,0,0,0.5,0,0,0,0,1.0,0};
         this->butcher_a.fill(butcher_a_values);
         double butcher_b_values[4] = {1.0/6.0,1.0/3.0,1.0/3.0,1.0/6.0};
         this->butcher_b.fill(butcher_b_values);
     } else if (rk_order == 1) {
+        //Explicit Euler
         double butcher_a_values[1] = {0};
         this->butcher_a.fill(butcher_a_values);
         double butcher_b_values[1] = {1.0};

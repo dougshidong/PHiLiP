@@ -39,6 +39,9 @@ public:
     virtual std::array<real,nstate> source_term (
         const dealii::Point<dim,real> &pos,
         const std::array<real,nstate> &solution) const = 0;
+
+    /// Update model member variables that depend on quantities outside of the Physics namespace
+    virtual void update_model(const double new_val) = 0; // NOTE: Currently hardcoded for LES, may want to rething implementation and move it completely within DG
 };
 
 } // Physics namespace

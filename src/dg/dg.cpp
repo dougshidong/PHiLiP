@@ -268,14 +268,14 @@ DGBaseState<dim,nstate,real,MeshType>::DGBaseState(
     // pde_physics_rad_fad = Physics::PhysicsFactory<dim,nstate,RadFadType>      ::create_Physics(parameters_input);
     artificial_dissip = ArtificialDissipationFactory<dim,nstate> ::create_artificial_dissipation(parameters_input);
     
-    const double filter_width = 1.0; // dummy
+    // const double filter_width = 1.0; // dummy -- REMOVE THIS
     
     // model:
-    pde_model_double  = Physics::ModelFactory<dim,nstate,real      >::create_Model(parameters_input, filter_width);
-    pde_model_fad     = Physics::ModelFactory<dim,nstate,FadType   >::create_Model(parameters_input, filter_width);
-    pde_model_rad     = Physics::ModelFactory<dim,nstate,RadType   >::create_Model(parameters_input, filter_width);
-    pde_model_fad_fad = Physics::ModelFactory<dim,nstate,FadFadType>::create_Model(parameters_input, filter_width);
-    pde_model_rad_fad = Physics::ModelFactory<dim,nstate,RadFadType>::create_Model(parameters_input, filter_width);
+    pde_model_double  = Physics::ModelFactory<dim,nstate,real      >::create_Model(parameters_input);
+    pde_model_fad     = Physics::ModelFactory<dim,nstate,FadType   >::create_Model(parameters_input);
+    pde_model_rad     = Physics::ModelFactory<dim,nstate,RadType   >::create_Model(parameters_input);
+    pde_model_fad_fad = Physics::ModelFactory<dim,nstate,FadFadType>::create_Model(parameters_input);
+    pde_model_rad_fad = Physics::ModelFactory<dim,nstate,RadFadType>::create_Model(parameters_input);
     
     // physics:
     pde_physics_double  = Physics::PhysicsFactory<dim,nstate,real      >::create_Physics(parameters_input,pde_model_double);
@@ -284,10 +284,10 @@ DGBaseState<dim,nstate,real,MeshType>::DGBaseState(
     pde_physics_fad_fad = Physics::PhysicsFactory<dim,nstate,FadFadType>::create_Physics(parameters_input,pde_model_fad_fad);
     pde_physics_rad_fad = Physics::PhysicsFactory<dim,nstate,RadFadType>::create_Physics(parameters_input,pde_model_rad_fad);
 
-    // inside DG, update_model(),
-    // pde_model_double->filter_width = new_val;
+    // inside DG, update_model(updated_filter_width)
+    // pde_model_double->filter_width = new_val; // DO IT FOR ALL ADTYPES
     
-    // physics:
+    // physics: -- remove below
     // pde_physics_double  = Physics::PhysicsFactory<dim,nstate,real      >::create_Physics(parameters_input);
     // pde_physics_fad     = Physics::PhysicsFactory<dim,nstate,FadType   >::create_Physics(parameters_input);
     // pde_physics_rad     = Physics::PhysicsFactory<dim,nstate,RadType   >::create_Physics(parameters_input);

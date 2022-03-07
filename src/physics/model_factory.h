@@ -15,8 +15,7 @@ class ModelFactory
 public:
     /// Factory to return the correct physics given input file and grid spacing
     static std::shared_ptr< ModelBase<dim,nstate,real> >
-        create_Model(const Parameters::AllParameters  *const parameters_input,
-                     const double                     filter_width);
+        create_Model(const Parameters::AllParameters  *const parameters_input);
 };
 
 

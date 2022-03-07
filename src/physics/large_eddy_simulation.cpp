@@ -144,6 +144,13 @@ std::array<real,nstate> LargeEddySimulationBase<dim,nstate,real>
     return source_term;
 }
 //----------------------------------------------------------------
+template <int dim, int nstate, typename real>
+void LargeEddySimulationBase<dim,nstate,real>
+::update_model (const double /*new_val*/)
+{ 
+    // do nothing
+}
+//----------------------------------------------------------------
 // Returns the value from a CoDiPack or Sacado variable.
 template<typename real>
 double getValue(const real &x) {
@@ -358,8 +365,7 @@ LargeEddySimulation_Smagorinsky<dim, nstate, real>::LargeEddySimulation_Smagorin
     const double                                              prandtl_number,
     const double                                              reynolds_number_inf,
     const double                                              turbulent_prandtl_number,
-    const double                                              model_constant,
-    const double                                              filter_width)
+    const double                                              model_constant)
     : LargeEddySimulationBase<dim,nstate,real>(manufactured_solution_function_input,
                                                ref_length,
                                                gamma_gas,
@@ -370,8 +376,15 @@ LargeEddySimulation_Smagorinsky<dim, nstate, real>::LargeEddySimulation_Smagorin
                                                reynolds_number_inf,
                                                turbulent_prandtl_number)
     , model_constant(model_constant)
-    , filter_width(filter_width/ref_length) // <-- Nondimensionalized filter width
 { }
+//----------------------------------------------------------------
+template <int dim, int nstate, typename real>
+void LargeEddySimulation_Smagorinsky<dim,nstate,real>
+::update_model (const double new_val)
+{ 
+    // update the filter_width
+    filter_width = new_val;
+}
 //----------------------------------------------------------------
 template <int dim, int nstate, typename real>
 real LargeEddySimulation_Smagorinsky<dim,nstate,real>
@@ -553,8 +566,7 @@ LargeEddySimulation_WALE<dim, nstate, real>::LargeEddySimulation_WALE(
     const double                                              prandtl_number,
     const double                                              reynolds_number_inf,
     const double                                              turbulent_prandtl_number,
-    const double                                              model_constant,
-    const double                                              filter_width)
+    const double                                              model_constant)
     : LargeEddySimulation_Smagorinsky<dim,nstate,real>(manufactured_solution_function_input,
                                                        ref_length,
                                                        gamma_gas,
@@ -564,8 +576,7 @@ LargeEddySimulation_WALE<dim, nstate, real>::LargeEddySimulation_WALE(
                                                        prandtl_number,
                                                        reynolds_number_inf,
                                                        turbulent_prandtl_number,
-                                                       model_constant,
-                                                       filter_width)
+                                                       model_constant)
 { }
 //----------------------------------------------------------------
 template <int dim, int nstate, typename real>

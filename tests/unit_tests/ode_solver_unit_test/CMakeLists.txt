@@ -2,7 +2,7 @@ set(TEST_SRC
     explicit_ode_solver.cpp
     )
 
-foreach(dim RANGE 1 2)
+foreach(dim RANGE 1 1)
 
     
     # Output executable

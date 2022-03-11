@@ -21,15 +21,15 @@ void ExplicitODESolver<dim,real,MeshType>::step_in_time (real dt, const bool pse
     //calculating stages
     this->solution_update = this->dg->solution; //u_ni
     for (int i = 0; i < rk_order; ++i){
-        this->rk_stage[i] = this -> solution_update; //u_n
+        this->rk_stage[i] = this->solution_update; //u_n
         for (int j = 0; j < i; ++j){
             if (this->butcher_a[i][j] != 0){
                 if (pseudotime) {
                     //implemented but not tested 
                     //to my knowledge, there aren't any existing tests using explicit steady-state 
                     //(searched through unit_tests folder)
-                    std::cout << "Explicit pseudotime not tested!!" << std::endl;
-                    const double CFL =this-> butcher_a[i][j] * dt;
+                    this->pcout << "Explicit pseudotime not tested!!" << std::endl;
+                    const double CFL =this->butcher_a[i][j] * dt;
                     this->dg->time_scale_solution_update(this->rk_stage[j], CFL);
                     this->rk_stage[i].add(1.0,  this->rk_stage[j]);
                 } else {
@@ -72,25 +72,25 @@ void ExplicitODESolver<dim,real,MeshType>::allocate_ode_system ()
     this->butcher_b.reinit(rk_order);
     if (rk_order == 3){
         //RKSSP3
-        double butcher_a_values[9] = {0,0,0,1.0,0,0,0.25, 0.25, 0};
+        const double butcher_a_values[9] = {0,0,0,1.0,0,0,0.25, 0.25, 0};
         this->butcher_a.fill(butcher_a_values);
-        double butcher_b_values[3] = {1.0/6.0, 1.0/6.0, 2.0/3.0};
+        const double butcher_b_values[3] = {1.0/6.0, 1.0/6.0, 2.0/3.0};
         this->butcher_b.fill(butcher_b_values);
     } else if (rk_order == 4) {
         //Standard RK4
-        double butcher_a_values[16] = {0,0,0,0,0.5,0,0,0,0,0.5,0,0,0,0,1.0,0};
+        const double butcher_a_values[16] = {0,0,0,0,0.5,0,0,0,0,0.5,0,0,0,0,1.0,0};
         this->butcher_a.fill(butcher_a_values);
-        double butcher_b_values[4] = {1.0/6.0,1.0/3.0,1.0/3.0,1.0/6.0};
+        const double butcher_b_values[4] = {1.0/6.0,1.0/3.0,1.0/3.0,1.0/6.0};
         this->butcher_b.fill(butcher_b_values);
     } else if (rk_order == 1) {
         //Explicit Euler
-        double butcher_a_values[1] = {0};
+        const double butcher_a_values[1] = {0};
         this->butcher_a.fill(butcher_a_values);
-        double butcher_b_values[1] = {1.0};
+        const double butcher_b_values[1] = {1.0};
         this->butcher_b.fill(butcher_b_values);
     }
     else{
-        std::cout << "Invalid RK order" << std::endl;
+        this->pcout << "Invalid RK order" << std::endl;
         std::abort();
     }
 }

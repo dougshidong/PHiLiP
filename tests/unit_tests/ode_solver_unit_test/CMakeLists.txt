@@ -33,9 +33,5 @@ foreach(dim RANGE 1 1)
 
     unset(dim)
     unset(TEST_TARGET)
-    unset(PhysicsLib)
-    unset(NumericalFluxLib)
-    unset(ODESolverLib)
-    unset(ParameterLib)
 
 endforeach()

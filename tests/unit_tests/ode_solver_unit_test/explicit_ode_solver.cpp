@@ -20,6 +20,11 @@ int main (int argc, char * argv[])
 {
     dealii::Utilities::MPI::MPI_InitFinalize mpi_initialization(argc, argv, 1);
     const int dim = PHILIP_DIM;
+    
+    if ( (dim != 1) && (dim != 2) ){
+        std::cout << "Test is only defined for dim = 1 or dim = 2. Aborting." << std::endl;
+        std::abort();
+    }
 
 #if PHILIP_DIM==1
     using Triangulation = dealii::Triangulation<PHILIP_DIM>;
@@ -32,22 +37,22 @@ int main (int argc, char * argv[])
             MPI_COMM_WORLD,
 #endif
 
-            //Advects a sine wave (1D) with peridic BCs and compares to anlytical solution
-            //refines spatial discretization 5 times and writes a convergence table to file
-            //Can be used to verify spatial order of the explicit ODE solver
-            //Note: 2D is implemented but is not included in CMakeLists.txt (untested)
+    //Advects a sine wave (1D) with peridic BCs and compares to anlytical solution
+    //refines spatial discretization 5 times and writes a convergence table to file
+    //Can be used to verify spatial order of the explicit ODE solver
+    //Note: 2D is implemented but is not included in CMakeLists.txt (untested)
 
 
-            typename dealii::Triangulation<dim>::MeshSmoothing(
+    typename dealii::Triangulation<dim>::MeshSmoothing(
                 dealii::Triangulation<dim>::smoothing_on_refinement |
                 dealii::Triangulation<dim>::smoothing_on_coarsening));
 
     int testfail = 0;
 
-    double left = 0.0;
-    double right = 2.0;
+    const double left = 0.0;
+    const double right = 2.0;
     const bool colorize = true;
-    int n_refinements = 5;
+    const int n_refinements = 5;
 
     //generating grid
     dealii::GridGenerator::hyper_cube(*grid, left, right, colorize);
@@ -74,33 +79,32 @@ int main (int argc, char * argv[])
     PHiLiP::Parameters::AllParameters all_parameters;
     all_parameters.parse_parameters (parameter_handler); // copies stuff from parameter_handler into all_parameters
 
-    //parameters consistent with MPI_2D_ADVECTION_EXPLICIT_PERIODIC_LONG test
+    //ode solver parameters
     all_parameters.ode_solver_param.ode_solver_type = PHiLiP::Parameters::ODESolverParam::ODESolverEnum::explicit_solver;
     all_parameters.ode_solver_param.nonlinear_max_iterations = 500;
     all_parameters.ode_solver_param.print_iteration_modulo = 100;
-    all_parameters.ode_solver_param.ode_output = PHiLiP::Parameters::OutputEnum::quiet; 
     
-    int rk_order = 3;
+    const int rk_order = 3;
     double expected_order = -double(rk_order);
     double order_tolerance = 0.1; 
     all_parameters.ode_solver_param.runge_kutta_order = rk_order;
 
-    double adv_speed_x = 1.0, adv_speed_y = 0.0;
+    const double adv_speed_x = 1.0, adv_speed_y = 0.0;
     all_parameters.manufactured_convergence_study_param.manufactured_solution_param.advection_vector[0] = adv_speed_x; //x-velocity
     all_parameters.manufactured_convergence_study_param.manufactured_solution_param.advection_vector[1] = adv_speed_y; //y-velocity
 
-    int n_time_refinements = 3;
-    double dt_init = 2.5E-3;
+    int n_time_calculations = 4;
+    const double dt_init = 2.5E-3;
     double dt = dt_init;
     const double refine_ratio = 0.5;
-    double finalTime = 1.0;
+    const double finalTime = 1.0;
 
     dealii::ConvergenceTable convergence_table;
 
     double L2_error_old = 0;
-    double L2_error_conv_rate[4];
+    dealii::Vector<double> L2_error_conv_rate(n_time_calculations);
 
-    for (int refinement = 0; refinement < n_time_refinements+1; ++refinement){
+    for (int refinement = 0; refinement < n_time_calculations; ++refinement){
 
         //initial_time_step is not modified by explicit ODE solver
         all_parameters.ode_solver_param.initial_time_step = dt;
@@ -109,7 +113,7 @@ int main (int argc, char * argv[])
 
         all_parameters.ode_solver_param.output_solution_every_x_steps = int(finalTime/dt/10.0); //output 10 vtk files (if dt reaches finalTime exactly)
 
-        unsigned int space_poly_degree = rk_order + 2;
+        const unsigned int space_poly_degree = rk_order + 2;
         std::shared_ptr < PHiLiP::DGBase<dim, double> > dg = PHiLiP::DGFactory<dim,double>::create_discontinuous_galerkin(&all_parameters, space_poly_degree, grid);
         dg->allocate_system ();
 
@@ -163,10 +167,9 @@ int main (int argc, char * argv[])
                 dg->solution, 
                 exact_solution, 
                 difference_per_cell, 
-                dealii::QGauss<dim>(space_poly_degree+1), //check that this is correct polynomial degree
+                dealii::QGauss<dim>(space_poly_degree+10), //check that this is correct polynomial degree
                 dealii::VectorTools::L2_norm);
-        double L2_error = 
-            dealii::VectorTools::compute_global_error(*grid,
+        double L2_error = dealii::VectorTools::compute_global_error(*grid,
                     difference_per_cell,
                     dealii::VectorTools::L2_norm);
         std::cout << "Computed error is " << L2_error << std::endl;
@@ -205,13 +208,13 @@ int main (int argc, char * argv[])
     convergence_table.write_text(conv_tab_file);
     conv_tab_file.close();
 
-    for (int i = 0; i < n_time_refinements; ++i){
+    for (int i = 0; i < n_time_calculations-1; ++i){
         if (abs(L2_error_conv_rate[i] - expected_order) > order_tolerance){
             testfail = 1;
             std::cout << "Expected convergence order was not reached at refinement " << i + 1 <<std::endl;
         }
     }
 
-    return testfail; //always passes
+    return testfail;
 }
 

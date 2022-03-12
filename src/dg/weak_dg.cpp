@@ -566,6 +566,12 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_volume_term_explicit(
 
     const std::vector<real> &JxW = fe_values_vol.get_JxW_values ();
 
+    real cell_volume_estimate = 0.0;
+    for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
+        cell_volume_estimate = cell_volume_estimate + JxW[iquad];
+    }
+    const real cell_volume = cell_volume_estimate;
+
     std::vector< doubleArray > soln_at_q(n_quad_pts);
     std::vector< ADArrayTensor1 > soln_grad_at_q(n_quad_pts);
 
@@ -606,29 +612,18 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_volume_term_explicit(
     // -------------------------------------------------------------------
     // ** Update model ** -- TO DO: Implement this in the other physics convective_flux call location
     // -------------------------------------------------------------------
-    // TO DO: Improve the implementation here
-    double estimated_cell_volume = 0.0;
-    
-    // Inputs I have to work with:
-        // typename dealii::DoFHandler<dim>::active_cell_iterator cell,
-        // const dealii::types::global_dof_index current_cell_index,
-        // const dealii::FEValues<dim,dim> &fe_values_vol,
-        // const std::vector<dealii::types::global_dof_index> &soln_dof_indices_int,
-        // dealii::Vector<real> &local_rhs_int_cell,
-        // const dealii::FEValues<dim,dim> &/*fe_values_lagrange*/)
-
+    // double estimated_cell_volume = 0.0;
     // Note: Overintegration has not yet been implemented for this cell volume estimate
-    double cell_volume = 0.0;
-    for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
-        cell_volume += fe_values_vol.JxW(iquad);
-    }
-    const double cell_volume_mpi_sum = dealii::Utilities::MPI::sum(estimated_cell_volume, MPI_COMM_WORLD);
+    // double cell_volume = 0.0;
+    // for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
+    //     cell_volume += fe_values_vol.JxW(iquad);
+    // }
+    // const double cell_volume_mpi_sum = dealii::Utilities::MPI::sum(estimated_cell_volume, MPI_COMM_WORLD);
 
     // Compute the LES filter width (Ref: flad2017use)
-    // TO DO: double check that I can call poly_degree like that
-    const double estimated_cell_volume = cell_volume_mpi_sum;
-    const double updated_filter_width = estimated_cell_volume/((poly_degree+1)*(poly_degree+1)*(poly_degree+1));
-    DGBaseState<dim,nstate,real,MeshType>::pde_model_double.update_model(updated_filter_width);
+    const int cell_poly_degree = cell->active_fe_index();
+    const double updated_filter_width = cell_volume/((cell_poly_degree+1)*(cell_poly_degree+1)*(cell_poly_degree+1));
+    DGBaseState<dim,nstate,real,MeshType>::pde_model_double->update_model(updated_filter_width);
     // -------------------------------------------------------------------
 
     for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
@@ -664,10 +659,6 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_volume_term_explicit(
 
     const unsigned int cell_index = fe_values_vol.get_cell()->active_cell_index();
     const unsigned int cell_degree = fe_values_vol.get_fe().tensor_degree();
-    real cell_volume = 0.0;
-    for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
-        cell_volume = cell_volume + JxW[iquad];
-    }
     const real diameter = fe_values_vol.get_cell()->diameter();
     const real cell_diameter = cell_volume / std::pow(diameter,dim-1);
     //const real cell_diameter = std::pow(cell_volume,1.0/dim);

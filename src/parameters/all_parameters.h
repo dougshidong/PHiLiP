@@ -46,8 +46,6 @@ public:
     ReducedOrderModelParam reduced_order_param;
     /// Contains parameters for Burgers equation
     BurgersParam burgers_param;
-    /// Contains parameters for Large Eddy Simulation equations non-dimensionalization
-    LargeEddySimulationParam large_eddy_simulation_param;
     /// Contains parameters for Physics Model
     PhysicsModelParam physics_model_param;
     /// Contains the parameters for grid refinement study

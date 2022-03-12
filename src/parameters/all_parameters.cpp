@@ -14,7 +14,6 @@ AllParameters::AllParameters ()
     , navier_stokes_param(NavierStokesParam())
     , reduced_order_param(ReducedOrderModelParam())
     , burgers_param(BurgersParam())
-    , large_eddy_simulation_param(LargeEddySimulationParam())
     , physics_model_param(PhysicsModelParam())
     , grid_refinement_study_param(GridRefinementStudyParam())
     , artificial_dissipation_param(ArtificialDissipationParam())
@@ -357,9 +356,6 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
 
     pcout << "Parsing Burgers subsection..." << std::endl;
     burgers_param.parse_parameters (prm);
-
-    pcout << "Parsing large eddy simulation subsection..." << std::endl;
-    large_eddy_simulation_param.parse_parameters (prm);
 
     pcout << "Parsing physics model subsection..." << std::endl;
     physics_model_param.parse_parameters (prm);

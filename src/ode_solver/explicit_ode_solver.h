@@ -33,10 +33,10 @@ protected:
     std::vector<dealii::LinearAlgebra::distributed::Vector<double>> rk_stage;
     
     /// Butcher tableau "a"
-    dealii::Table<2,double> butcher_a;
+    dealii::Table<2,double> butcher_tableau_a;
 
     /// Butcher tableau "b"
-    dealii::Table<1,double> butcher_b;
+    dealii::Table<1,double> butcher_tableau_b;
 };
 
 } // ODE namespace

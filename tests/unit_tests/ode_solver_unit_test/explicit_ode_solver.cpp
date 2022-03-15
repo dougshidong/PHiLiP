@@ -21,7 +21,7 @@ int main (int argc, char * argv[])
     dealii::Utilities::MPI::MPI_InitFinalize mpi_initialization(argc, argv, 1);
     const int dim = PHILIP_DIM;
     
-    if ( (dim != 1) && (dim != 2) ){
+    if ((dim != 1) && (dim != 2)){
         std::cout << "Test is only defined for dim = 1 or dim = 2. Aborting." << std::endl;
         std::abort();
     }
@@ -37,15 +37,14 @@ int main (int argc, char * argv[])
             MPI_COMM_WORLD,
 #endif
 
+    typename dealii::Triangulation<dim>::MeshSmoothing(
+                dealii::Triangulation<dim>::smoothing_on_refinement |
+                dealii::Triangulation<dim>::smoothing_on_coarsening));
+
     //Advects a sine wave (1D) with peridic BCs and compares to anlytical solution
     //refines spatial discretization 5 times and writes a convergence table to file
     //Can be used to verify spatial order of the explicit ODE solver
     //Note: 2D is implemented but is not included in CMakeLists.txt (untested)
-
-
-    typename dealii::Triangulation<dim>::MeshSmoothing(
-                dealii::Triangulation<dim>::smoothing_on_refinement |
-                dealii::Triangulation<dim>::smoothing_on_coarsening));
 
     int testfail = 0;
 
@@ -111,7 +110,7 @@ int main (int argc, char * argv[])
         std::cout << "Using time step = " << dt << std::endl;
         std::cout << "refinement = " << refinement << std::endl;
 
-        all_parameters.ode_solver_param.output_solution_every_x_steps = int(finalTime/dt/10.0); //output 10 vtk files (if dt reaches finalTime exactly)
+        all_parameters.ode_solver_param.output_solution_every_dt_time_intervals = int(finalTime/10.0); //output 10 vtk files (if dt reaches finalTime exactly)
 
         const unsigned int space_poly_degree = rk_order + 2;
         std::shared_ptr < PHiLiP::DGBase<dim, double> > dg = PHiLiP::DGFactory<dim,double>::create_discontinuous_galerkin(&all_parameters, space_poly_degree, grid);

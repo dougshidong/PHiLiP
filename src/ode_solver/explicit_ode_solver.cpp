@@ -72,7 +72,7 @@ void ExplicitODESolver<dim,real,MeshType>::allocate_ode_system ()
     this->butcher_tableau_b.reinit(rk_order);
     if (rk_order == 3){
         //RKSSP3
-        const double butcher_tableau_a_values[9] = {0,0,0,1.0,0,0,0.25, 0.25, 0};
+        const double butcher_tableau_a_values[9] = {0,0,0,1.0,0,0,0.25,0.25,0};
         this->butcher_tableau_a.fill(butcher_tableau_a_values);
         const double butcher_tableau_b_values[3] = {1.0/6.0, 1.0/6.0, 2.0/3.0};
         this->butcher_tableau_b.fill(butcher_tableau_b_values);

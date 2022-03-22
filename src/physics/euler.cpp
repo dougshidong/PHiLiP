@@ -565,6 +565,16 @@ real Euler<dim,nstate,real>
 template <int dim, int nstate, typename real>
 std::array<dealii::Tensor<1,dim,real>,nstate> Euler<dim,nstate,real>
 ::dissipative_flux (
+    const std::array<real,nstate> &conservative_soln,
+    const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient,
+    const dealii::types::global_dof_index /*cell_index*/) const
+{
+    return dissipative_flux(conservative_soln, solution_gradient);
+}
+
+template <int dim, int nstate, typename real>
+std::array<dealii::Tensor<1,dim,real>,nstate> Euler<dim,nstate,real>
+::dissipative_flux (
     const std::array<real,nstate> &/*conservative_soln*/,
     const std::array<dealii::Tensor<1,dim,real>,nstate> &/*solution_gradient*/) const
 {

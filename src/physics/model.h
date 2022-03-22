@@ -3,7 +3,6 @@
 
 #include <deal.II/lac/vector.h>
 #include <deal.II/base/tensor.h>
-
 #include <deal.II/base/types.h>
 
 #include "parameters/parameters_manufactured_solution.h"
@@ -36,7 +35,8 @@ public:
 	virtual std::array<dealii::Tensor<1,dim,real>,nstate> 
 	dissipative_flux (
     	const std::array<real,nstate> &conservative_soln,
-    	const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient) const = 0;
+    	const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient,
+        const dealii::types::global_dof_index cell_index) const = 0;
 
     /// Source terms additional to the baseline physics
     virtual std::array<real,nstate> source_term (

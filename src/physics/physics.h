@@ -4,6 +4,7 @@
 #include <deal.II/base/tensor.h>
 #include <deal.II/numerics/data_component_interpretation.h>
 #include <deal.II/fe/fe_update_flags.h>
+#include <deal.II/base/types.h>
 
 #include "parameters/all_parameters.h"
 #include "parameters/parameters_manufactured_solution.h"
@@ -72,7 +73,8 @@ public:
     /// Dissipative fluxes that will be differentiated ONCE in space.
     virtual std::array<dealii::Tensor<1,dim,real>,nstate> dissipative_flux (
         const std::array<real,nstate> &solution,
-        const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient) const = 0;
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient,
+        const dealii::types::global_dof_index cell_index) const = 0;
 
     /// Artificial dissipative fluxes that will be differentiated ONCE in space.
     /** Stems from the Persson2006 paper on subcell shock capturing */

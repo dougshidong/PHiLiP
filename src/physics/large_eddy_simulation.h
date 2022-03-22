@@ -4,7 +4,6 @@
 #include "model.h"
 #include "navier_stokes.h"
 #include "euler.h"
-// #include "physics.h"
 
 namespace PHiLiP {
 namespace Physics {
@@ -42,8 +41,8 @@ public:
     /// Dissipative (i.e. viscous) flux: \f$ \mathbf{F}_{diss} \f$ 
     std::array<dealii::Tensor<1,dim,real>,nstate> dissipative_flux (
         const std::array<real,nstate> &conservative_soln,
-        const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient/*,
-        const dealii::types::global_dof_index cell_index*/) const;
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient,
+        const dealii::types::global_dof_index cell_index) const;
 
     /// Source term for manufactured solution functions
     std::array<real,nstate> source_term (
@@ -51,27 +50,31 @@ public:
         const std::array<real,nstate> &solution) const;
 
     /// Compute the nondimensionalized filter width used by the SGS model given a cell index
-    double get_filter_width(const dealii::types::global_dof_index cell_index);
+    double get_filter_width (const dealii::types::global_dof_index cell_index);
 
     /// Nondimensionalized sub-grid scale (SGS) stress tensor, (tau^sgs)*
     virtual std::array<dealii::Tensor<1,dim,real>,dim> compute_SGS_stress_tensor (
         const std::array<real,nstate> &primitive_soln,
-        const std::array<dealii::Tensor<1,dim,real>,nstate> &primitive_soln_gradient) const = 0;
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &primitive_soln_gradient,
+        const dealii::types::global_dof_index cell_index) const = 0;
 
     /// Nondimensionalized sub-grid scale (SGS) heat flux, (q^sgs)*
     virtual dealii::Tensor<1,dim,real> compute_SGS_heat_flux (
         const std::array<real,nstate> &primitive_soln,
-        const std::array<dealii::Tensor<1,dim,real>,nstate> &primitive_soln_gradient) const = 0;
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &primitive_soln_gradient,
+        const dealii::types::global_dof_index cell_index) const = 0;
 
     /// Nondimensionalized sub-grid scale (SGS) stress tensor, (tau^sgs)* (Automatic Differentiation Type: FadType)
     virtual std::array<dealii::Tensor<1,dim,FadType>,dim> compute_SGS_stress_tensor_fad (
         const std::array<FadType,nstate> &primitive_soln,
-        const std::array<dealii::Tensor<1,dim,FadType>,nstate> &primitive_soln_gradient) const = 0;
+        const std::array<dealii::Tensor<1,dim,FadType>,nstate> &primitive_soln_gradient,
+        const dealii::types::global_dof_index cell_index) const = 0;
 
     /// Nondimensionalized sub-grid scale (SGS) heat flux, (q^sgs)* (Automatic Differentiation Type: FadType)
     virtual dealii::Tensor<1,dim,FadType> compute_SGS_heat_flux_fad (
         const std::array<FadType,nstate> &primitive_soln,
-        const std::array<dealii::Tensor<1,dim,FadType>,nstate> &primitive_soln_gradient) const = 0;
+        const std::array<dealii::Tensor<1,dim,FadType>,nstate> &primitive_soln_gradient,
+        const dealii::types::global_dof_index cell_index) const = 0;
 
 protected:
     /// Returns the square of the magnitude of the tensor
@@ -82,7 +85,8 @@ protected:
     template<typename real2>
     std::array<dealii::Tensor<1,dim,real2>,nstate> dissipative_flux_templated (
         const std::array<real2,nstate> &conservative_soln,
-        const std::array<dealii::Tensor<1,dim,real2>,nstate> &solution_gradient) const;
+        const std::array<dealii::Tensor<1,dim,real2>,nstate> &solution_gradient,
+        const dealii::types::global_dof_index cell_index) const;
 
     /** Dissipative flux Jacobian (repeated from NavierStokes)
      *  Note: Only used for computing the manufactured solution source term;
@@ -91,7 +95,8 @@ protected:
     dealii::Tensor<2,nstate,real> dissipative_flux_directional_jacobian (
         const std::array<real,nstate> &conservative_soln,
         const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient,
-        const dealii::Tensor<1,dim,real> &normal) const;
+        const dealii::Tensor<1,dim,real> &normal,
+        const dealii::types::global_dof_index cell_index) const;
 
     /** Dissipative flux Jacobian wrt gradient component (repeated from NavierStokes)
      *  Note: Only used for computing the manufactured solution source term;
@@ -101,7 +106,8 @@ protected:
         const std::array<real,nstate> &conservative_soln,
         const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient,
         const dealii::Tensor<1,dim,real> &normal,
-        const int d_gradient) const;
+        const int d_gradient,
+        const dealii::types::global_dof_index cell_index) const;
 
     /// Get manufactured solution value (repeated from Euler)
     std::array<real,nstate> get_manufactured_solution_value (
@@ -143,47 +149,58 @@ public:
     /// Destructor
     ~LargeEddySimulation_Smagorinsky() {};
 
+    /// Returns the product of the eddy viscosity model constant and the filter width
+    double get_model_constant_times_filter_width (const dealii::types::global_dof_index cell_index) const;
+
     /// Nondimensionalized sub-grid scale (SGS) stress tensor, (tau^sgs)*
     std::array<dealii::Tensor<1,dim,real>,dim> compute_SGS_stress_tensor (
         const std::array<real,nstate> &primitive_soln,
-        const std::array<dealii::Tensor<1,dim,real>,nstate> &primitive_soln_gradient) const;
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &primitive_soln_gradient,
+        const dealii::types::global_dof_index cell_index) const;
 
     /// Nondimensionalized sub-grid scale (SGS) heat flux, (q^sgs)* 
     dealii::Tensor<1,dim,real> compute_SGS_heat_flux (
         const std::array<real,nstate> &primitive_soln,
-        const std::array<dealii::Tensor<1,dim,real>,nstate> &primitive_soln_gradient) const;
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &primitive_soln_gradient,
+        const dealii::types::global_dof_index cell_index) const;
 
     /// Nondimensionalized sub-grid scale (SGS) stress tensor, (tau^sgs)* (Automatic Differentiation Type: FadType)
     std::array<dealii::Tensor<1,dim,FadType>,dim> compute_SGS_stress_tensor_fad (
         const std::array<FadType,nstate> &primitive_soln,
-        const std::array<dealii::Tensor<1,dim,FadType>,nstate> &primitive_soln_gradient) const;
+        const std::array<dealii::Tensor<1,dim,FadType>,nstate> &primitive_soln_gradient,
+        const dealii::types::global_dof_index cell_index) const;
 
     /// Nondimensionalized sub-grid scale (SGS) heat flux, (q^sgs)* (Automatic Differentiation Type: FadType)
     dealii::Tensor<1,dim,FadType> compute_SGS_heat_flux_fad (
         const std::array<FadType,nstate> &primitive_soln,
-        const std::array<dealii::Tensor<1,dim,FadType>,nstate> &primitive_soln_gradient) const;
+        const std::array<dealii::Tensor<1,dim,FadType>,nstate> &primitive_soln_gradient,
+        const dealii::types::global_dof_index cell_index) const;
 
     /// Nondimensionalized eddy viscosity for the Smagorinsky model
     virtual real compute_eddy_viscosity(
         const std::array<real,nstate> &primitive_soln,
-        const std::array<dealii::Tensor<1,dim,real>,nstate> &primitive_soln_gradient) const;
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &primitive_soln_gradient,
+        const dealii::types::global_dof_index cell_index) const;
 
     /// Nondimensionalized eddy viscosity for the Smagorinsky model (Automatic Differentiation Type: FadType)
     virtual FadType compute_eddy_viscosity_fad(
         const std::array<FadType,nstate> &primitive_soln,
-        const std::array<dealii::Tensor<1,dim,FadType>,nstate> &primitive_soln_gradient) const;
+        const std::array<dealii::Tensor<1,dim,FadType>,nstate> &primitive_soln_gradient,
+        const dealii::types::global_dof_index cell_index) const;
 
 protected:
     /// Templated nondimensionalized sub-grid scale (SGS) stress tensor, (tau^sgs)*
     template<typename real2> std::array<dealii::Tensor<1,dim,real2>,dim> compute_SGS_stress_tensor_templated (
         const std::array<real2,nstate> &primitive_soln,
-        const std::array<dealii::Tensor<1,dim,real2>,nstate> &primitive_soln_gradient) const;
+        const std::array<dealii::Tensor<1,dim,real2>,nstate> &primitive_soln_gradient,
+        const dealii::types::global_dof_index cell_index) const;
 
     /// Templated nondimensionalized sub-grid scale (SGS) heat flux, (q^sgs)*
     template<typename real2> 
     dealii::Tensor<1,dim,real2> compute_SGS_heat_flux_templated (
         const std::array<real2,nstate> &primitive_soln,
-        const std::array<dealii::Tensor<1,dim,real2>,nstate> &primitive_soln_gradient) const;
+        const std::array<dealii::Tensor<1,dim,real2>,nstate> &primitive_soln_gradient,
+        const dealii::types::global_dof_index cell_index) const;
 
     /// Templated scale nondimensionalized eddy viscosity for Smagorinsky model
     template<typename real2> real2 scale_eddy_viscosity_templated(
@@ -194,7 +211,8 @@ private:
     /// Templated nondimensionalized eddy viscosity for the Smagorinsky model.
     template<typename real2> real2 compute_eddy_viscosity_templated(
         const std::array<real2,nstate> &primitive_soln,
-        const std::array<dealii::Tensor<1,dim,real2>,nstate> &primitive_soln_gradient) const;
+        const std::array<dealii::Tensor<1,dim,real2>,nstate> &primitive_soln_gradient,
+        const dealii::types::global_dof_index cell_index) const;
 };
 
 /// WALE (Wall-Adapting Local Eddy-viscosity) eddy viscosity model. Derived from LargeEddySimulation_Smagorinsky for only modifying compute_eddy_viscosity.
@@ -226,20 +244,23 @@ public:
      */
     real compute_eddy_viscosity(
         const std::array<real,nstate> &primitive_soln,
-        const std::array<dealii::Tensor<1,dim,real>,nstate> &primitive_soln_gradient) const override;
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &primitive_soln_gradient,
+        const dealii::types::global_dof_index cell_index) const override;
 
     /** Nondimensionalized eddy viscosity for the WALE model. (Automatic Differentiation Type: FadType)
      *  Reference: Nicoud & Ducros (1999) "Subgrid-scale stress modelling based on the square of the velocity gradient tensor"
      */
     FadType compute_eddy_viscosity_fad(
         const std::array<FadType,nstate> &primitive_soln,
-        const std::array<dealii::Tensor<1,dim,FadType>,nstate> &primitive_soln_gradient) const override;
+        const std::array<dealii::Tensor<1,dim,FadType>,nstate> &primitive_soln_gradient,
+        const dealii::types::global_dof_index cell_index) const override;
 
 private:
     /// Templated nondimensionalized eddy viscosity for the WALE model.
     template<typename real2> real2 compute_eddy_viscosity_templated(
         const std::array<real2,nstate> &primitive_soln,
-        const std::array<dealii::Tensor<1,dim,real2>,nstate> &primitive_soln_gradient) const;
+        const std::array<dealii::Tensor<1,dim,real2>,nstate> &primitive_soln_gradient,
+        const dealii::types::global_dof_index cell_index) const;
 };
 
 } // Physics namespace

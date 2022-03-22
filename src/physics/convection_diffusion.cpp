@@ -166,6 +166,16 @@ std::array<dealii::Tensor<1,dim,real>,nstate> ConvectionDiffusion<dim,nstate,rea
 }
 
 template <int dim, int nstate, typename real>
+std::array<dealii::Tensor<1,dim,real>,nstate> ConvectionDiffusion<dim,nstate,real>
+::dissipative_flux (
+    const std::array<real,nstate> &solution,
+    const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient,
+    const dealii::types::global_dof_index /*cell_index*/) const
+{
+    return dissipative_flux(solution, solution_gradient);
+}
+
+template <int dim, int nstate, typename real>
 std::array<real,nstate> ConvectionDiffusion<dim,nstate,real>
 ::source_term (
     const dealii::Point<dim,real> &pos,

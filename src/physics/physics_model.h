@@ -37,7 +37,8 @@ public:
     /// Dissipative (i.e. viscous) flux: \f$ \mathbf{F}_{diss} \f$ 
     std::array<dealii::Tensor<1,dim,real>,nstate> dissipative_flux (
         const std::array<real,nstate> &conservative_soln,
-        const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient) const;
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient,
+        const dealii::types::global_dof_index cell_index) const;
 
     /// Source term that does not require differentiation.
     std::array<real,nstate> source_term (

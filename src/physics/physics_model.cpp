@@ -57,7 +57,8 @@ template <int dim, int nstate, typename real, int nstate_baseline_physics>
 std::array<dealii::Tensor<1,dim,real>,nstate> PhysicsModel<dim,nstate,real,nstate_baseline_physics>
 ::dissipative_flux (
     const std::array<real,nstate> &conservative_soln,
-    const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient) const
+    const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient,
+    const dealii::types::global_dof_index cell_index) const
 {
     // Get baseline conservative solution with nstate_baseline_physics
     std::array<real,nstate_baseline_physics> baseline_conservative_soln;
@@ -74,11 +75,13 @@ std::array<dealii::Tensor<1,dim,real>,nstate> PhysicsModel<dim,nstate,real,nstat
     }
 
     // Get baseline dissipative flux
+    /* Note: Even though the physics baseline dissipative flux does not depend on cell_index, we pass it 
+             anyways to accomodate the pure virtual member function defined in the PhysicsBase class */
     std::array<dealii::Tensor<1,dim,real>,nstate_baseline_physics> baseline_diss_flux
-        = this->physics_baseline->dissipative_flux(baseline_conservative_soln, baseline_solution_gradient);
+        = this->physics_baseline->dissipative_flux(baseline_conservative_soln, baseline_solution_gradient, cell_index);
 
     // Initialize diss_flux as the model dissipative flux
-    std::array<dealii::Tensor<1,dim,real>,nstate> diss_flux = this->model->dissipative_flux(conservative_soln, solution_gradient);
+    std::array<dealii::Tensor<1,dim,real>,nstate> diss_flux = this->model->dissipative_flux(conservative_soln, solution_gradient, cell_index);
 
     // Add the baseline_diss_flux terms to diss_flux
     for(int s=0; s<nstate_baseline_physics; ++s){

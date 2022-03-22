@@ -141,7 +141,7 @@ std::shared_ptr < PhysicsBase<dim,nstate,real> >
 PhysicsFactory<dim,nstate,real>
 ::create_Physics_Model(const Parameters::AllParameters                           *const parameters_input,
                        std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function,
-                       std::shared_ptr< ModelBase<dim,nstate,real> >              model_input)
+                       std::shared_ptr< ModelBase<dim,nstate,real> >             model_input)
 {
     using PDE_enum = Parameters::AllParameters::PartialDifferentialEquation;
 

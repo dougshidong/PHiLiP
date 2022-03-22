@@ -1,7 +1,10 @@
 #ifndef __MODEL__
 #define __MODEL__
 
+#include <deal.II/lac/vector.h>
 #include <deal.II/base/tensor.h>
+
+#include <deal.II/base/types.h>
 
 #include "parameters/parameters_manufactured_solution.h"
 #include "physics/manufactured_solution.h"
@@ -40,8 +43,9 @@ public:
         const dealii::Point<dim,real> &pos,
         const std::array<real,nstate> &solution) const = 0;
 
-    /// Update model member variables that depend on quantities outside of the Physics namespace
-    virtual void update_model(const double new_val) = 0; // NOTE: Currently hardcoded for LES, may want to rething implementation and move it completely within DG
+    // Quantities needed to be updated by DG for the model -- accomplished by DGBase update_model_variables()
+    dealii::Vector<int> cellwise_poly_degree; ///< Cellwise polynomial degree
+    dealii::Vector<double> cellwise_volume; ////< Cellwise element volume
 };
 
 } // Physics namespace

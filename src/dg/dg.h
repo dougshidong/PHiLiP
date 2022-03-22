@@ -657,6 +657,8 @@ public:
     double max_artificial_dissipation_coeff;
     /// Update discontinuity sensor.
     void update_artificial_dissipation_discontinuity_sensor();
+    /// Update the necessary variables declared in src/physics/model.h
+    virtual void update_model_variables() = 0;
 
 }; // end of DGBase class
 

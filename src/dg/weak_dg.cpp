@@ -621,9 +621,9 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_volume_term_explicit(
     // const double cell_volume_mpi_sum = dealii::Utilities::MPI::sum(estimated_cell_volume, MPI_COMM_WORLD);
 
     // Compute the LES filter width (Ref: flad2017use)
-    const int cell_poly_degree = cell->active_fe_index();
-    const double updated_filter_width = cell_volume/((cell_poly_degree+1)*(cell_poly_degree+1)*(cell_poly_degree+1));
-    DGBaseState<dim,nstate,real,MeshType>::pde_model_double->update_model(updated_filter_width);
+    // const int cell_poly_degree = cell->active_fe_index();
+    // const double updated_filter_width = cell_volume/((cell_poly_degree+1)*(cell_poly_degree+1)*(cell_poly_degree+1));
+    // DGBaseState<dim,nstate,real,MeshType>::pde_model_double->update_model(updated_filter_width);
     // -------------------------------------------------------------------
 
     for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {

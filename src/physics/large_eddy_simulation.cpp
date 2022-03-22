@@ -145,10 +145,15 @@ std::array<real,nstate> LargeEddySimulationBase<dim,nstate,real>
 }
 //----------------------------------------------------------------
 template <int dim, int nstate, typename real>
-void LargeEddySimulationBase<dim,nstate,real>
-::update_model (const double /*new_val*/)
+double LargeEddySimulationBase<dim,nstate,real>
+::get_filter_width (const dealii::types::global_dof_index cell_index)
 { 
-    // do nothing
+    // Compute the LES filter width (Ref: flad2017use)
+    const int cell_poly_degree = this->cellwise_poly_degree[cell_index];
+    const double cell_volume = this->cellwise_volume[cell_index];
+    const double filter_width = cell_volume/((cell_poly_degree+1)*(cell_poly_degree+1)*(cell_poly_degree+1));
+
+    return filter_width;
 }
 //----------------------------------------------------------------
 // Returns the value from a CoDiPack or Sacado variable.
@@ -420,8 +425,10 @@ real2 LargeEddySimulation_Smagorinsky<dim,nstate,real>
     const std::array<dealii::Tensor<1,dim,real2>,dim> strain_rate_tensor 
         = this->navier_stokes_physics->compute_strain_rate_tensor(vel_gradient);
     
+    // Compute the filter width for the cell
+    double filter_width = 1.0;//get_filter_width(cell_index); // TO DO: UNCOMMENT
     // Product of the model constant (Cs) and the filter width (delta)
-    const real2 CsDelta = model_constant*(this->filter_width);
+    const real2 CsDelta = model_constant*filter_width;
     // Get magnitude of strain_rate_tensor
     const real2 strain_rate_tensor_magnitude_sqr = this->template get_tensor_magnitude_sqr<real2>(strain_rate_tensor);
     // Compute the eddy viscosity
@@ -613,8 +620,10 @@ real2 LargeEddySimulation_WALE<dim,nstate,real>
     const std::array<dealii::Tensor<1,dim,real2>,dim> strain_rate_tensor 
         = this->navier_stokes_physics->compute_strain_rate_tensor(vel_gradient);
     
+    // Compute the filter width for the cell
+    double filter_width = 1.0;//this->get_filter_width(cell_index); // TO DO: UNCOMMENT
     // Product of the model constant (Cs) and the filter width (delta)
-    const real2 CwDelta = this->model_constant*(this->filter_width);
+    const real2 CwDelta = this->model_constant*filter_width;
     // Get deviatoric stresss tensor
     std::array<dealii::Tensor<1,dim,real2>,dim> g_sqr; // $g_{ij}^{2}$
     for (int i=0; i<dim; ++i) {

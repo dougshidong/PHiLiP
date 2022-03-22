@@ -248,11 +248,11 @@ dealii::UpdateFlags PhysicsModel<dim,nstate,real,nstate_baseline_physics>
 }
 
 // Instantiate explicitly
-template class PhysicsModel < PHILIP_DIM, PHILIP_DIM+2, double    ,PHILIP_DIM+2>;
-template class PhysicsModel < PHILIP_DIM, PHILIP_DIM+2, FadType   ,PHILIP_DIM+2>;
-template class PhysicsModel < PHILIP_DIM, PHILIP_DIM+2, RadType   ,PHILIP_DIM+2>;
-template class PhysicsModel < PHILIP_DIM, PHILIP_DIM+2, FadFadType,PHILIP_DIM+2>;
-template class PhysicsModel < PHILIP_DIM, PHILIP_DIM+2, RadFadType,PHILIP_DIM+2>;
+template class PhysicsModel < PHILIP_DIM, PHILIP_DIM+2, double    , PHILIP_DIM+2 >;
+template class PhysicsModel < PHILIP_DIM, PHILIP_DIM+2, FadType   , PHILIP_DIM+2 >;
+template class PhysicsModel < PHILIP_DIM, PHILIP_DIM+2, RadType   , PHILIP_DIM+2 >;
+template class PhysicsModel < PHILIP_DIM, PHILIP_DIM+2, FadFadType, PHILIP_DIM+2 >;
+template class PhysicsModel < PHILIP_DIM, PHILIP_DIM+2, RadFadType, PHILIP_DIM+2 >;
 
 } // Physics namespace
 } // PHiLiP namespace

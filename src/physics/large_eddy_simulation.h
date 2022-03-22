@@ -42,15 +42,16 @@ public:
     /// Dissipative (i.e. viscous) flux: \f$ \mathbf{F}_{diss} \f$ 
     std::array<dealii::Tensor<1,dim,real>,nstate> dissipative_flux (
         const std::array<real,nstate> &conservative_soln,
-        const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient) const;
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient/*,
+        const dealii::types::global_dof_index cell_index*/) const;
 
     /// Source term for manufactured solution functions
     std::array<real,nstate> source_term (
         const dealii::Point<dim,real> &pos,
         const std::array<real,nstate> &solution) const;
 
-    /// Update model member variables that depend on quantities outside of the Physics namespace
-    void update_model(const double new_val);
+    /// Compute the nondimensionalized filter width used by the SGS model given a cell index
+    double get_filter_width(const dealii::types::global_dof_index cell_index);
 
     /// Nondimensionalized sub-grid scale (SGS) stress tensor, (tau^sgs)*
     virtual std::array<dealii::Tensor<1,dim,real>,dim> compute_SGS_stress_tensor (
@@ -138,16 +139,9 @@ public:
 
     /// SGS model constant
     const double model_constant;
-    
-    /// Nondimensionalized filter width used by the SGS model
-    double filter_width = 1.0;
-    // TO DO: filter_width = filter_width_from_dg/ref_length; // this can be done in the updateModel() fxn
 
     /// Destructor
     ~LargeEddySimulation_Smagorinsky() {};
-
-    /// Update model member variables that depend on quantities outside of the Physics namespace
-    void update_model(const double new_val) override;
 
     /// Nondimensionalized sub-grid scale (SGS) stress tensor, (tau^sgs)*
     std::array<dealii::Tensor<1,dim,real>,dim> compute_SGS_stress_tensor (

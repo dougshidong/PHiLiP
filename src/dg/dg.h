@@ -744,6 +744,9 @@ public:
         std::shared_ptr< Physics::PhysicsBase<dim, nstate, FadFadType > > pde_physics_fad_fad_input,
         std::shared_ptr< Physics::PhysicsBase<dim, nstate, RadFadType > > pde_physics_rad_fad_input);
 
+    /// Update the necessary variables declared in src/physics/model.h
+    void update_model_variables();
+
 protected:
     /// Evaluate the time it takes for the maximum wavespeed to cross the cell domain.
     /** Currently only uses the convective eigenvalues. Future changes would take in account

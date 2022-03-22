@@ -13,6 +13,16 @@ namespace Physics {
 template <int dim, int nstate, typename real>
 std::array<real,nstate> MHD<dim,nstate,real>
 ::source_term (
+    const dealii::Point<dim,real> &pos,
+    const std::array<real,nstate> &conservative_soln,
+    const dealii::types::global_dof_index /*cell_index*/) const
+{
+    return source_term(pos,conservative_soln);
+}
+
+template <int dim, int nstate, typename real>
+std::array<real,nstate> MHD<dim,nstate,real>
+::source_term (
     const dealii::Point<dim,real> &/*pos*/,
     const std::array<real,nstate> &/*conservative_soln*/) const
 {

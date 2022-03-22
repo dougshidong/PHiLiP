@@ -160,6 +160,12 @@ public:
         const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient) const;
 
     /// Source term is zero or depends on manufactured solution
+    std::array<real,nstate> source_term (
+        const dealii::Point<dim,real> &pos,
+        const std::array<real,nstate> &conservative_soln,
+        const dealii::types::global_dof_index cell_index) const;
+
+    /// (function overload) Source term is zero or depends on manufactured solution
     virtual std::array<real,nstate> source_term (
         const dealii::Point<dim,real> &pos,
         const std::array<real,nstate> &conservative_soln) const;

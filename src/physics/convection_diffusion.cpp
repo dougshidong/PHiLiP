@@ -179,6 +179,16 @@ template <int dim, int nstate, typename real>
 std::array<real,nstate> ConvectionDiffusion<dim,nstate,real>
 ::source_term (
     const dealii::Point<dim,real> &pos,
+    const std::array<real,nstate> &solution,
+    const dealii::types::global_dof_index /*cell_index*/) const
+{
+    return source_term(pos,solution);
+}
+
+template <int dim, int nstate, typename real>
+std::array<real,nstate> ConvectionDiffusion<dim,nstate,real>
+::source_term (
+    const dealii::Point<dim,real> &pos,
     const std::array<real,nstate> &/*solution*/) const
 {
     std::array<real,nstate> source;

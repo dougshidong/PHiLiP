@@ -130,14 +130,15 @@ template <int dim, int nstate, typename real>
 std::array<real,nstate> LargeEddySimulationBase<dim,nstate,real>
 ::source_term (
         const dealii::Point<dim,real> &pos,
-        const std::array<real,nstate> &/*solution*/) const
+        const std::array<real,nstate> &/*solution*/,
+        const dealii::types::global_dof_index cell_index) const
 {
     /* TO DO Note: Since this is only used for the manufactured solution source term, 
              the grid spacing is fixed --> No AD wrt grid --> Can do same as I did in NavierStokes
              This is okay if we can ensure that filter_width is the same everywhere in the domain
              for the manufacture solution cases ran -- MUST CHECK THIS WHEN I ADD A MANUFACTURED SOLUTION TEST
      */
-    std::array<real,nstate> source_term = dissipative_source_term(pos);
+    std::array<real,nstate> source_term = dissipative_source_term(pos,cell_index);
     return source_term;
 }
 //----------------------------------------------------------------
@@ -292,7 +293,8 @@ std::array<dealii::Tensor<1,dim,real>,nstate> LargeEddySimulationBase<dim,nstate
 template <int dim, int nstate, typename real>
 std::array<real,nstate> LargeEddySimulationBase<dim,nstate,real>
 ::dissipative_source_term (
-    const dealii::Point<dim,real> &pos) const
+    const dealii::Point<dim,real> &pos,
+    const dealii::types::global_dof_index cell_index) const
 {    
     // Get Manufactured Solution values
     const std::array<real,nstate> manufactured_solution = get_manufactured_solution_value(pos); // from Euler

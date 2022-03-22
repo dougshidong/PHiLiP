@@ -43,7 +43,8 @@ public:
     /// Source term that does not require differentiation.
     std::array<real,nstate> source_term (
         const dealii::Point<dim,real> &pos,
-        const std::array<real,nstate> &conservative_soln) const;
+        const std::array<real,nstate> &conservative_soln,
+        const dealii::types::global_dof_index cell_index) const;
 
     //===========================================================================================
     // All other functions required by PhysicsBase:

@@ -41,7 +41,8 @@ public:
     /// Source terms additional to the baseline physics
     virtual std::array<real,nstate> source_term (
         const dealii::Point<dim,real> &pos,
-        const std::array<real,nstate> &solution) const = 0;
+        const std::array<real,nstate> &solution,
+        const dealii::types::global_dof_index cell_index) const = 0;
 
     // Quantities needed to be updated by DG for the model -- accomplished by DGBase update_model_variables()
     dealii::Vector<int> cellwise_poly_degree; ///< Cellwise polynomial degree

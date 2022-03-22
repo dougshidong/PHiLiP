@@ -47,7 +47,8 @@ public:
     /// Source term for manufactured solution functions
     std::array<real,nstate> source_term (
         const dealii::Point<dim,real> &pos,
-        const std::array<real,nstate> &solution) const;
+        const std::array<real,nstate> &solution,
+        const dealii::types::global_dof_index cell_index) const;
 
     /// Compute the nondimensionalized filter width used by the SGS model given a cell index
     double get_filter_width (const dealii::types::global_dof_index cell_index);
@@ -119,7 +120,8 @@ protected:
 
     /// Dissipative flux contribution to the source term (repeated from NavierStokes)
     std::array<real,nstate> dissipative_source_term (
-        const dealii::Point<dim,real> &pos) const;
+        const dealii::Point<dim,real> &pos,
+        const dealii::types::global_dof_index cell_index) const;
 };
 
 /// Smagorinsky eddy viscosity model. Derived from Large Eddy Simulation.

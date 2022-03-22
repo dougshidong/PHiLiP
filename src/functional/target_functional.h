@@ -54,7 +54,7 @@ public:
     using Functional<dim,nstate,real>::dIdw;
     /// Vector for storing the derivatives with respect to each grid DoF
     using Functional<dim,nstate,real>::dIdX;
- /// Store the functional value from the last time evaluate_functional() was called.
+    /// Store the functional value from the last time evaluate_functional() was called.
     using Functional<dim,nstate,real>::current_functional_value;
     /// Sparse matrix for storing the functional partial second derivatives.
     using Functional<dim,nstate,real>::d2IdWdW;
@@ -66,6 +66,8 @@ public:
 protected:
     /// Smart pointer to DGBase
     using Functional<dim,nstate,real>::dg;
+    /// Model that should correspond to the one in DGBase
+    using Function<dim,nstate,real>::model_fad_fad;
     /// Physics that should correspond to the one in DGBase
     using Functional<dim,nstate,real>::physics_fad_fad;
 

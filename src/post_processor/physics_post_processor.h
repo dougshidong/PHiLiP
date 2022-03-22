@@ -4,6 +4,7 @@
 #include <deal.II/numerics/data_postprocessor.h>
 
 #include "physics/physics.h"
+#include "physics/model.h"
 
 namespace PHiLiP {
 namespace Postprocess {
@@ -26,6 +27,9 @@ class PhysicsPostprocessor : public dealii::DataPostprocessor<dim>
 public:
     /// Constructor.
     PhysicsPostprocessor (const Parameters::AllParameters *const parameters_input);
+
+    /// Model passed to create_Physics
+    std::shared_ptr < Physics::ModelBase<dim, nstate, double > > model;
 
     /// Physics that the post-processor will use to evaluate derived data types.
     std::shared_ptr < Physics::PhysicsBase<dim, nstate, double > > physics;

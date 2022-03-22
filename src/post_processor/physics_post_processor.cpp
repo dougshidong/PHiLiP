@@ -1,5 +1,6 @@
 #include "physics_post_processor.h"
 #include "physics/physics_factory.h"
+#include "physics/model_factory.h"
 
 namespace PHiLiP {
 namespace Postprocess {
@@ -39,7 +40,8 @@ template class PostprocessorFactory <PHILIP_DIM>;
 
 template <int dim, int nstate> PhysicsPostprocessor<dim,nstate>
 ::PhysicsPostprocessor (const Parameters::AllParameters *const parameters_input)
-    : physics(Physics::PhysicsFactory<dim,nstate,double>::create_Physics(parameters_input))
+    : model(Physics::ModelFactory<dim,nstate,double>::create_Model(parameters_input) 
+    , physics(Physics::PhysicsFactory<dim,nstate,double>::create_Physics(parameters_input,model))
 { }
 
 template <int dim, int nstate> void PhysicsPostprocessor<dim,nstate>

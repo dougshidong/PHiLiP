@@ -26,6 +26,7 @@
 #include "grid_study.h"
 
 #include "physics/physics_factory.h"
+#include "physics/model_factory.h"
 #include "physics/manufactured_solution.h"
 #include "dg/dg_factory.hpp"
 #include "ode_solver/ode_solver_factory.h"
@@ -209,7 +210,8 @@ int GridStudy<dim,nstate>
 
     const unsigned int n_grids_input       = manu_grid_conv_param.number_of_grids;
 
-    std::shared_ptr <Physics::PhysicsBase<dim,nstate,double>> physics_double = Physics::PhysicsFactory<dim, nstate, double>::create_Physics(&param);
+    std::shared_ptr< Physics::ModelBase<dim,nstate,double> > model_double = Physics::ModelFactory<dim,nstate,double>::create_Model(&param);
+    std::shared_ptr <Physics::PhysicsBase<dim,nstate,double>> physics_double = Physics::PhysicsFactory<dim, nstate, double>::create_Physics(&param,model_double);
 
     // Evaluate solution integral on really fine mesh
     double exact_solution_integral;

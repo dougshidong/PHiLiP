@@ -18,6 +18,7 @@
 
 #include "dg/dg.h"
 #include "physics/physics.h"
+#include "physics/model.h"
 
 namespace PHiLiP {
 
@@ -53,6 +54,8 @@ public:
     std::shared_ptr<DGBase<dim,real,MeshType>> dg;
 
 protected:
+    /// Model that should correspond to the one in DGBase
+    std::shared_ptr<Physics::ModelBase<dim,nstate,FadFadType>> model_fad_fad;
     /// Physics that should correspond to the one in DGBase
     std::shared_ptr<Physics::PhysicsBase<dim,nstate,FadFadType>> physics_fad_fad;
 

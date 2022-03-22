@@ -384,7 +384,7 @@ void DGBaseState<dim,nstate,real,MeshType>::update_model_variables()
         const real cell_volume = cell_volume_estimate; // TO DO: This might give an error since cellwise_volume has different real type given the pde_model_realtype
         
         // get cell index for assignment
-        dealii::types::global_dof_index cell_index = cell->active_cell_index();
+        const dealii::types::global_dof_index cell_index = cell->active_cell_index();
 
         // assign values
         // -- double

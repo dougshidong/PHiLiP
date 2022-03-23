@@ -18,7 +18,6 @@
 
 #include "dg/dg.h"
 #include "physics/physics.h"
-#include "physics/model.h"
 
 namespace PHiLiP {
 
@@ -54,8 +53,6 @@ public:
     std::shared_ptr<DGBase<dim,real,MeshType>> dg;
 
 protected:
-    /// Model that should correspond to the one in DGBase
-    std::shared_ptr<Physics::ModelBase<dim,nstate,FadFadType>> model_fad_fad;
     /// Physics that should correspond to the one in DGBase
     std::shared_ptr<Physics::PhysicsBase<dim,nstate,FadFadType>> physics_fad_fad;
 
@@ -72,7 +69,7 @@ public:
         const bool _uses_solution_gradient = true);
 
     /** Constructor.
-     *  Uses provided physics instead of creating a new one base on DGBase */
+     *  Uses provided physics instead of creating a new one based on DGBase */
     Functional(
         std::shared_ptr<PHiLiP::DGBase<dim,real,MeshType>> _dg,
         std::shared_ptr<PHiLiP::Physics::PhysicsBase<dim,nstate,Sacado::Fad::DFad<Sacado::Fad::DFad<real>> >> _physics_fad_fad,

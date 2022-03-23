@@ -144,7 +144,7 @@ std::array<real,nstate> LargeEddySimulationBase<dim,nstate,real>
 //----------------------------------------------------------------
 template <int dim, int nstate, typename real>
 double LargeEddySimulationBase<dim,nstate,real>
-::get_filter_width (const dealii::types::global_dof_index cell_index)
+::get_filter_width (const dealii::types::global_dof_index cell_index) const
 { 
     // Compute the LES filter width (Ref: flad2017use)
     const int cell_poly_degree = this->cellwise_poly_degree[cell_index];
@@ -391,7 +391,7 @@ double LargeEddySimulation_Smagorinsky<dim,nstate,real>
     const dealii::types::global_dof_index cell_index) const
 {
     // Compute the filter width for the cell
-    double filter_width = get_filter_width(cell_index);
+    const double filter_width = this->get_filter_width(cell_index);
     // Product of the model constant (Cs) and the filter width (delta)
     const double model_constant_times_filter_width = model_constant*filter_width;
     return model_constant_times_filter_width;

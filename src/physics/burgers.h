@@ -30,6 +30,16 @@ template <int dim, int nstate, typename real>
 class Burgers : public PhysicsBase <dim, nstate, real>
 {
 protected:
+    // For overloading the virtual functions defined in PhysicsBase
+    /** Once you overload a function from Base class in Derived class,
+     *  all functions with the same name in the Base class get hidden in Derived class.  
+     *  
+     *  Solution: In order to make the hidden function visible in derived class, 
+     *  we need to add the following:
+    */
+    using PhysicsBase<dim,nstate,real>::dissipative_flux;
+    using PhysicsBase<dim,nstate,real>::source_term;
+protected:
     /// Diffusion scaling coefficient in front of the diffusion tensor.
     double diffusion_scaling_coeff;
 public:

@@ -40,7 +40,7 @@ template class PostprocessorFactory <PHILIP_DIM>;
 
 template <int dim, int nstate> PhysicsPostprocessor<dim,nstate>
 ::PhysicsPostprocessor (const Parameters::AllParameters *const parameters_input)
-    : model(Physics::ModelFactory<dim,nstate,double>::create_Model(parameters_input) 
+    : model(Physics::ModelFactory<dim,nstate,double>::create_Model(parameters_input)) 
     , physics(Physics::PhysicsFactory<dim,nstate,double>::create_Physics(parameters_input,model))
 { }
 

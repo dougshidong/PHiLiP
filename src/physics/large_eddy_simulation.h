@@ -51,7 +51,7 @@ public:
         const dealii::types::global_dof_index cell_index) const;
 
     /// Compute the nondimensionalized filter width used by the SGS model given a cell index
-    double get_filter_width (const dealii::types::global_dof_index cell_index);
+    double get_filter_width (const dealii::types::global_dof_index cell_index) const;
 
     /// Nondimensionalized sub-grid scale (SGS) stress tensor, (tau^sgs)*
     virtual std::array<dealii::Tensor<1,dim,real>,dim> compute_SGS_stress_tensor (

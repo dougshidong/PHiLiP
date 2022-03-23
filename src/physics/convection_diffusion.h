@@ -95,7 +95,7 @@ public:
         const dealii::types::global_dof_index cell_index) const;
 
     /// (function overload) Source term is zero or depends on manufactured solution
-    std::array<real,nstate> source_term (
+    virtual std::array<real,nstate> source_term (
         const dealii::Point<dim,real> &pos,
         const std::array<real,nstate> &solution) const;
 

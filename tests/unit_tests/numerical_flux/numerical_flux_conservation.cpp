@@ -73,8 +73,8 @@ int test_dissipative_numerical_flux_conservation (const PHiLiP::Parameters::AllP
 
     double penalty = 100;
     const double artificial_diss_int = 1.0, artificial_diss_ext = 2.0;
-    const dealii::types::global_dof_index cell_index_int; // TO DO: How to initialize?
-    const dealii::types::global_dof_index cell_index_ext; // TO DO: How to initialize?
+    const dealii::types::global_dof_index cell_index_int = 0; // TO DO: How to initialize?
+    const dealii::types::global_dof_index cell_index_ext = 0; // TO DO: How to initialize?
     std::array<double, nstate> diss_auxi_num_flux_dot_n_1 = diss_num_flux->evaluate_auxiliary_flux(
                  cell_index_int, cell_index_ext,
                  artificial_diss_int, artificial_diss_ext,
@@ -136,8 +136,8 @@ int test_dissipative_numerical_flux_consistency (const PHiLiP::Parameters::AllPa
     const std::array<double, nstate> diss_soln_num_flux_dot_n = diss_num_flux->evaluate_solution_flux(soln_int, soln_ext, normal_int);
     double penalty = 100;
     const double artificial_diss_int = 1.0, artificial_diss_ext = 2.0;
-    const dealii::types::global_dof_index cell_index_int; // TO DO: How to initialize?
-    const dealii::types::global_dof_index cell_index_ext; // TO DO: How to initialize?
+    const dealii::types::global_dof_index cell_index_int = 0; // TO DO: How to initialize?
+    const dealii::types::global_dof_index cell_index_ext = 0; // TO DO: How to initialize?
     const std::array<double, nstate> diss_auxi_num_flux_dot_n = diss_num_flux->evaluate_auxiliary_flux(
                  cell_index_int, cell_index_ext,
                  artificial_diss_int, artificial_diss_ext,

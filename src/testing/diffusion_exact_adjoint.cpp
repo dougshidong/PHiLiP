@@ -150,6 +150,16 @@ dealii::Tensor<1,dim,real> ManufacturedSolutionV<dim,real>::gradient(const deali
     return gradient;
 }
 
+// template <int dim, int nstate, typename real>
+// std::array<real,nstate> diffusion_u<dim,nstate,real>
+// ::source_term (
+//     const dealii::Point<dim,real> &pos,
+//     const std::array<real,nstate> &solution,
+//     const dealii::types::global_dof_index /*cell_index*/) const
+// {
+//     return source_term(pos,solution);
+// }
+
 /* Defining the physics objects to be used  */
 template <int dim, int nstate, typename real>
 std::array<real,nstate> diffusion_u<dim,nstate,real>::source_term (
@@ -220,6 +230,17 @@ real diffusion_u<dim,nstate,real>::objective_function (
 
     return val;
 }
+
+// template <int dim, int nstate, typename real>
+// std::array<real,nstate> diffusion_v<dim,nstate,real>
+// ::source_term (
+//     const dealii::Point<dim,real> &pos,
+//     const std::array<real,nstate> &solution,
+//     const dealii::types::global_dof_index /*cell_index*/) const
+// {
+//     return source_term(pos,solution);
+// }
+
 
 template <int dim, int nstate, typename real>
 std::array<real,nstate> diffusion_v<dim,nstate,real>::source_term (

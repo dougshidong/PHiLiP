@@ -66,8 +66,6 @@ public:
 protected:
     /// Smart pointer to DGBase
     using Functional<dim,nstate,real>::dg;
-    /// Model that should correspond to the one in DGBase
-    using Function<dim,nstate,real>::model_fad_fad;
     /// Physics that should correspond to the one in DGBase
     using Functional<dim,nstate,real>::physics_fad_fad;
 

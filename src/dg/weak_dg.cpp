@@ -572,6 +572,10 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_volume_term_explicit(
     }
     const real cell_volume = cell_volume_estimate;
 
+    // compute_cellwise_error inside of mesh error estimate -- but I need a global vector like the solution
+    // solution is nDOF whereas for me it would be total cells
+    // look up update_artificial_discontinuity_sensor() line 961
+
     std::vector< doubleArray > soln_at_q(n_quad_pts);
     std::vector< ADArrayTensor1 > soln_grad_at_q(n_quad_pts);
 

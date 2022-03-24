@@ -1,11 +1,13 @@
 #include <deal.II/base/mpi.h>
 #include <deal.II/base/tensor.h>
 #include <deal.II/base/types.h>
+#include <deal.II/lac/vector.h>
 
 #include "parameters/all_parameters.h"
 #include "parameters/parameters.h"
 #include "numerical_flux/numerical_flux_factory.hpp"
 #include "physics/model_factory.h"
+#include "physics/model.h"
 #include "physics/physics_factory.h"
 #include "dg/artificial_dissipation_factory.h"
 
@@ -38,6 +40,25 @@ void compare_array ( const std::array<double, nstate> &array1, const std::array<
 }
 
 template<int dim, int nstate>
+void initialize_model_variables(std::shared_ptr <PHiLiP::Physics::ModelBase<dim, nstate, double>> pde_model)
+{
+    /* Initializes the model variables defined in src/physics/model.h
+     * since this is normally accomplished by DGBase (but in this case
+     * we do not have a grid). Values arbitrarily chosen.
+     */
+    if(pde_model != nullptr) {
+        // allocate (i.e. reinit) dealii vectors
+        pde_model->cellwise_poly_degree.reinit(2);
+        pde_model->cellwise_volume.reinit(2);
+        // initialize
+        pde_model->cellwise_poly_degree[0] = 2;
+        pde_model->cellwise_poly_degree[1] = 3;
+        pde_model->cellwise_volume[0] = 10.0;
+        pde_model->cellwise_volume[1] = 20.0;
+    }
+}
+
+template<int dim, int nstate>
 int test_dissipative_numerical_flux_conservation (const PHiLiP::Parameters::AllParameters *const all_parameters)
 {
     std::cout << std::setprecision(std::numeric_limits<double>::digits10 + 1);
@@ -46,6 +67,7 @@ int test_dissipative_numerical_flux_conservation (const PHiLiP::Parameters::AllP
 
     using namespace PHiLiP;
     std::shared_ptr <Physics::ModelBase<dim, nstate, double>> pde_model = Physics::ModelFactory<dim, nstate, double>::create_Model(all_parameters);
+    initialize_model_variables(pde_model);
     std::shared_ptr <Physics::PhysicsBase<dim, nstate, double>> pde_physics = Physics::PhysicsFactory<dim, nstate, double>::create_Physics(all_parameters,pde_model);
     std::shared_ptr <ArtificialDissipationBase<dim,nstate>> artificial_dissipation_pointer = ArtificialDissipationFactory<dim,nstate>::create_artificial_dissipation(all_parameters);
     
@@ -73,8 +95,8 @@ int test_dissipative_numerical_flux_conservation (const PHiLiP::Parameters::AllP
 
     double penalty = 100;
     const double artificial_diss_int = 1.0, artificial_diss_ext = 2.0;
-    const dealii::types::global_dof_index cell_index_int = 0; // TO DO: How to initialize?
-    const dealii::types::global_dof_index cell_index_ext = 0; // TO DO: How to initialize?
+    const dealii::types::global_dof_index cell_index_int = 0;
+    const dealii::types::global_dof_index cell_index_ext = 1;
     std::array<double, nstate> diss_auxi_num_flux_dot_n_1 = diss_num_flux->evaluate_auxiliary_flux(
                  cell_index_int, cell_index_ext,
                  artificial_diss_int, artificial_diss_ext,
@@ -104,6 +126,7 @@ int test_dissipative_numerical_flux_consistency (const PHiLiP::Parameters::AllPa
 {
     using namespace PHiLiP;
     std::shared_ptr <Physics::ModelBase<dim, nstate, double>> pde_model = Physics::ModelFactory<dim, nstate, double>::create_Model(all_parameters);
+    initialize_model_variables(pde_model);
     std::shared_ptr <Physics::PhysicsBase<dim, nstate, double>> pde_physics = Physics::PhysicsFactory<dim, nstate, double>::create_Physics(all_parameters, pde_model);
     std::shared_ptr <ArtificialDissipationBase<dim,nstate>> artificial_dissipation_pointer = ArtificialDissipationFactory<dim,nstate> ::create_artificial_dissipation(all_parameters);
     
@@ -136,8 +159,8 @@ int test_dissipative_numerical_flux_consistency (const PHiLiP::Parameters::AllPa
     const std::array<double, nstate> diss_soln_num_flux_dot_n = diss_num_flux->evaluate_solution_flux(soln_int, soln_ext, normal_int);
     double penalty = 100;
     const double artificial_diss_int = 1.0, artificial_diss_ext = 2.0;
-    const dealii::types::global_dof_index cell_index_int = 0; // TO DO: How to initialize?
-    const dealii::types::global_dof_index cell_index_ext = 0; // TO DO: How to initialize?
+    const dealii::types::global_dof_index cell_index_int = 0;
+    const dealii::types::global_dof_index cell_index_ext = 1;
     const std::array<double, nstate> diss_auxi_num_flux_dot_n = diss_num_flux->evaluate_auxiliary_flux(
                  cell_index_int, cell_index_ext,
                  artificial_diss_int, artificial_diss_ext,
@@ -168,7 +191,9 @@ int test_convective_numerical_flux_conservation (const PHiLiP::Parameters::AllPa
 {
     using namespace PHiLiP;
     std::shared_ptr <Physics::ModelBase<dim, nstate, double>> pde_model = Physics::ModelFactory<dim, nstate, double>::create_Model(all_parameters);
+    initialize_model_variables(pde_model);
     std::shared_ptr <Physics::PhysicsBase<dim, nstate, double>> pde_physics = Physics::PhysicsFactory<dim, nstate, double>::create_Physics(all_parameters,pde_model);
+    
     std::unique_ptr<NumericalFlux::NumericalFluxConvective<dim, nstate, double>> conv_num_flux = 
         NumericalFlux::NumericalFluxFactory<dim, nstate, double>
         ::create_convective_numerical_flux (all_parameters->conv_num_flux_type, pde_physics);
@@ -203,6 +228,7 @@ int test_convective_numerical_flux_consistency (const PHiLiP::Parameters::AllPar
 {
     using namespace PHiLiP;
     std::shared_ptr <Physics::ModelBase<dim, nstate, double>> pde_model = Physics::ModelFactory<dim, nstate, double>::create_Model(all_parameters);
+    initialize_model_variables(pde_model);
     std::shared_ptr <Physics::PhysicsBase<dim, nstate, double>> pde_physics = Physics::PhysicsFactory<dim, nstate, double>::create_Physics(all_parameters,pde_model);
 
     std::unique_ptr<NumericalFlux::NumericalFluxConvective<dim, nstate, double>> conv_num_flux = 

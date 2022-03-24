@@ -31,6 +31,7 @@ public:
     /// Eddy-viscosity model constants:
     double smagorinsky_model_constant; ///< Smagorinsky Model Constant
     double WALE_model_constant; ///< WALE (Wall-Adapting Local Eddy-viscosity) eddy viscosity model constant
+    double ratio_of_filter_width_to_cell_size; ///< Ratio of the large eddy simulation filter width to the cell size
 
     /// Declares the possible variables and sets the defaults.
     static void declare_parameters (dealii::ParameterHandler &prm);

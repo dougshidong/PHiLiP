@@ -23,13 +23,17 @@ public:
         const double                                              side_slip_angle,
         const double                                              prandtl_number,
         const double                                              reynolds_number_inf,
-        const double                                              turbulent_prandtl_number);
+        const double                                              turbulent_prandtl_number,
+        const double                                              ratio_of_filter_width_to_cell_size);
 
     /// Destructor
     ~LargeEddySimulationBase() {};
 
     /// Turbulent Prandtl number
     const double turbulent_prandtl_number;
+
+    /// Ratio of filter width to cell size
+    const double ratio_of_filter_width_to_cell_size;
 
     /// Pointer to Navier-Stokes physics object
     std::unique_ptr< NavierStokes<dim,nstate,real> > navier_stokes_physics;
@@ -143,6 +147,7 @@ public:
         const double                                              prandtl_number,
         const double                                              reynolds_number_inf,
         const double                                              turbulent_prandtl_number,
+        const double                                              ratio_of_filter_width_to_cell_size,
         const double                                              model_constant);
 
     /// SGS model constant
@@ -236,6 +241,7 @@ public:
         const double                                              prandtl_number,
         const double                                              reynolds_number_inf,
         const double                                              turbulent_prandtl_number,
+        const double                                              ratio_of_filter_width_to_cell_size,
         const double                                              model_constant);
 
     /// Destructor

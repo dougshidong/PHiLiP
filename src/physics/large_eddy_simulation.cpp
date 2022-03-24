@@ -23,9 +23,11 @@ LargeEddySimulationBase<dim, nstate, real>::LargeEddySimulationBase(
     const double                                              side_slip_angle,
     const double                                              prandtl_number,
     const double                                              reynolds_number_inf,
-    const double                                              turbulent_prandtl_number)
+    const double                                              turbulent_prandtl_number,
+    const double                                              ratio_of_filter_width_to_cell_size)
     : ModelBase<dim,nstate,real>(manufactured_solution_function_input) 
     , turbulent_prandtl_number(turbulent_prandtl_number)
+    , ratio_of_filter_width_to_cell_size(ratio_of_filter_width_to_cell_size)
     , navier_stokes_physics(std::make_unique < NavierStokes<dim,nstate,real> > (
             ref_length,
             gamma_gas,
@@ -149,8 +151,13 @@ double LargeEddySimulationBase<dim,nstate,real>
     // Compute the LES filter width (Ref: flad2017use)
     const int cell_poly_degree = this->cellwise_poly_degree[cell_index];
     const double cell_volume = this->cellwise_volume[cell_index];
-    const double filter_width = cell_volume/((cell_poly_degree+1)*(cell_poly_degree+1)*(cell_poly_degree+1));
-    // Note: int will get implicitly casted as double in the division operation
+    double filter_width = cell_volume;
+    for(int i=0; i<dim; ++i) {
+        filter_width /= (cell_poly_degree+1);
+        // Note: int will get implicitly casted as double in the division operation
+    }
+    // Resize given the ratio of filter width to cell size
+    filter_width *= ratio_of_filter_width_to_cell_size;
 
     return filter_width;
 }
@@ -372,6 +379,7 @@ LargeEddySimulation_Smagorinsky<dim, nstate, real>::LargeEddySimulation_Smagorin
     const double                                              prandtl_number,
     const double                                              reynolds_number_inf,
     const double                                              turbulent_prandtl_number,
+    const double                                              ratio_of_filter_width_to_cell_size,
     const double                                              model_constant)
     : LargeEddySimulationBase<dim,nstate,real>(manufactured_solution_function_input,
                                                ref_length,
@@ -381,7 +389,8 @@ LargeEddySimulation_Smagorinsky<dim, nstate, real>::LargeEddySimulation_Smagorin
                                                side_slip_angle,
                                                prandtl_number,
                                                reynolds_number_inf,
-                                               turbulent_prandtl_number)
+                                               turbulent_prandtl_number,
+                                               ratio_of_filter_width_to_cell_size)
     , model_constant(model_constant)
 { }
 //----------------------------------------------------------------
@@ -588,6 +597,7 @@ LargeEddySimulation_WALE<dim, nstate, real>::LargeEddySimulation_WALE(
     const double                                              prandtl_number,
     const double                                              reynolds_number_inf,
     const double                                              turbulent_prandtl_number,
+    const double                                              ratio_of_filter_width_to_cell_size,
     const double                                              model_constant)
     : LargeEddySimulation_Smagorinsky<dim,nstate,real>(manufactured_solution_function_input,
                                                        ref_length,
@@ -598,6 +608,7 @@ LargeEddySimulation_WALE<dim, nstate, real>::LargeEddySimulation_WALE(
                                                        prandtl_number,
                                                        reynolds_number_inf,
                                                        turbulent_prandtl_number,
+                                                       ratio_of_filter_width_to_cell_size,
                                                        model_constant)
 { }
 //----------------------------------------------------------------

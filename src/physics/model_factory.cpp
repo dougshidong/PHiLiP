@@ -54,6 +54,7 @@ ModelFactory<dim,nstate,real>
                         parameters_input->navier_stokes_param.prandtl_number,
                         parameters_input->navier_stokes_param.reynolds_number_inf,
                         parameters_input->physics_model_param.turbulent_prandtl_number,
+                        parameters_input->physics_model_param.ratio_of_filter_width_to_cell_size,
                         parameters_input->physics_model_param.smagorinsky_model_constant);
                 } else if (sgs_model_type == SGS_enum::wall_adaptive_local_eddy_viscosity) {
                     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -69,6 +70,7 @@ ModelFactory<dim,nstate,real>
                         parameters_input->navier_stokes_param.prandtl_number,
                         parameters_input->navier_stokes_param.reynolds_number_inf,
                         parameters_input->physics_model_param.turbulent_prandtl_number,
+                        parameters_input->physics_model_param.ratio_of_filter_width_to_cell_size,
                         parameters_input->physics_model_param.WALE_model_constant);
                 } else {
                     std::cout << "Can't create LargeEddySimulationBase, invalid SGSModelType type: " << sgs_model_type << std::endl;

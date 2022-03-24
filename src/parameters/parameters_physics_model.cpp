@@ -27,15 +27,20 @@ void PhysicsModelParam::declare_parameters (dealii::ParameterHandler &prm)
 
             prm.declare_entry("turbulent_prandtl_number", "0.6",
                               dealii::Patterns::Double(1e-15, 10000000),
-                              "Turbulent Prandlt number");
+                              "Turbulent Prandlt number (default is 0.6)");
 
             prm.declare_entry("smagorinsky_model_constant", "0.1",
                               dealii::Patterns::Double(1e-15, 10000000),
-                              "Smagorinsky model constant");
+                              "Smagorinsky model constant (default is 0.1)");
 
             prm.declare_entry("WALE_model_constant", "0.6",
                               dealii::Patterns::Double(1e-15, 0.6),
-                              "WALE (Wall-Adapting Local Eddy-viscosity) eddy viscosity model constant");
+                              "WALE (Wall-Adapting Local Eddy-viscosity) eddy viscosity model constant (default is 0.6)");
+            
+            prm.declare_entry("ratio_of_filter_width_to_cell_size", "1.0",
+                              dealii::Patterns::Double(1e-15, 10000000),
+                              "Ratio of the large eddy simulation filter width to the cell size (default is 1)");
+
         }
         prm.leave_subsection();
     }
@@ -54,9 +59,10 @@ void PhysicsModelParam::parse_parameters (dealii::ParameterHandler &prm)
             if(SGS_model_type_string == "smagorinsky")                        SGS_model_type = smagorinsky;
             if(SGS_model_type_string == "wall_adaptive_local_eddy_viscosity") SGS_model_type = wall_adaptive_local_eddy_viscosity;
 
-            turbulent_prandtl_number   = prm.get_double("turbulent_prandtl_number");
-            smagorinsky_model_constant = prm.get_double("smagorinsky_model_constant");
-            WALE_model_constant        = prm.get_double("WALE_model_constant");
+            turbulent_prandtl_number           = prm.get_double("turbulent_prandtl_number");
+            smagorinsky_model_constant         = prm.get_double("smagorinsky_model_constant");
+            WALE_model_constant                = prm.get_double("WALE_model_constant");
+            ratio_of_filter_width_to_cell_size = prm.get_double("ratio_of_filter_width_to_cell_size");
         }
         prm.leave_subsection();
     }

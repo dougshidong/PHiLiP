@@ -186,15 +186,10 @@ public:
     {}
 
     /// source term = f
-    // std::array<real,nstate> source_term (
-    //     const dealii::Point<dim,real> &pos,
-    //     const std::array<real,nstate> &solution,
-    //     const dealii::types::global_dof_index cell_index) const;
-
-    /// source term = f
     std::array<real,nstate> source_term (
         const dealii::Point<dim,real> &pos,
-        const std::array<real,nstate> &solution) const override;
+        const std::array<real,nstate> &solution,
+        const dealii::types::global_dof_index cell_index) const;
 
     /// objective function = g
     real objective_function(
@@ -227,15 +222,10 @@ public:
     {}
 
     /// source term = g
-    // std::array<real,nstate> source_term (
-    //     const dealii::Point<dim,real> &pos,
-    //     const std::array<real,nstate> &solution,
-    //     const dealii::types::global_dof_index cell_index) const;
-
-    /// source term = g
     std::array<real,nstate> source_term (
         const dealii::Point<dim,real> &pos,
-        const std::array<real,nstate> &solution) const override;
+        const std::array<real,nstate> &solution,
+        const dealii::types::global_dof_index cell_index) const;
 
     /// objective function = f
     real objective_function(

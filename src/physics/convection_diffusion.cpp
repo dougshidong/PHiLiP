@@ -106,6 +106,7 @@ dealii::Tensor<1,dim,real> ConvectionDiffusion<dim,nstate,real>
     }
     return advection_speed;
 }
+
 template <int dim, int nstate, typename real>
 real ConvectionDiffusion<dim,nstate,real>
 ::diffusion_coefficient () const

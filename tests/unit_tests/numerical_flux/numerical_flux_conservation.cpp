@@ -5,7 +5,7 @@
 
 #include "parameters/all_parameters.h"
 #include "parameters/parameters.h"
-// #include "parameters/parameters_physics_model.h"
+#include "parameters/parameters_physics_model.h"
 #include "numerical_flux/numerical_flux_factory.hpp"
 #include "physics/model_factory.h"
 #include "physics/model.h"
@@ -16,8 +16,7 @@ using PDEType      = PHiLiP::Parameters::AllParameters::PartialDifferentialEquat
 using ModelType    = PHiLiP::Parameters::AllParameters::ModelType;
 using ConvType     = PHiLiP::Parameters::AllParameters::ConvectiveNumericalFlux;
 using DissType     = PHiLiP::Parameters::AllParameters::DissipativeNumericalFlux;
-// using SGSModelType = PHiLiP::Parameters::AllParameters::SubGridScaleModel;
-
+using SGSModelType = PHiLiP::Parameters::PhysicsModelParam::SubGridScaleModel;
 
 #define TOLERANCE 1E-12
 
@@ -272,13 +271,30 @@ int test_convective_numerical_flux_consistency (const PHiLiP::Parameters::AllPar
     return 0;
 }
 
-void print_model_type(ModelType model)
+void print_model_type(const ModelType model)
 {
     std::string model_string = "WARNING: invalid model";
+    // assign model string
     if(model==ModelType::large_eddy_simulation) model_string = "large_eddy_simulation";
+    
     // print model type
+    std::cout << "----------------------------------------------------------------------------" << std::endl;
     std::cout << "-- Model Type: " << model_string << std::endl;
     std::cout << "----------------------------------------------------------------------------" << std::endl;
+}
+
+void print_sub_grid_scale_model_type(const SGSModelType sgs_model)
+{
+    // sub-grid scale (SGS)
+    std::string sgs_model_string = "WARNING: invalid SGS model";
+    // assign model string
+    if     (sgs_model==SGSModelType::smagorinsky) sgs_model_string = "smagorinsky";
+    else if(sgs_model==SGSModelType::wall_adaptive_local_eddy_viscosity) sgs_model_string = "wall_adaptive_local_eddy_viscosity";
+    
+    // print SGS model type
+    std::cout << "- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - " << std::endl;
+    std::cout << "-- SGS Model Type: " << sgs_model_string << std::endl;
+    std::cout << "- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - " << std::endl;
 }
 
 int main (int argc, char * argv[])
@@ -299,10 +315,10 @@ int main (int argc, char * argv[])
         ModelType::large_eddy_simulation
     };
 
-    // const std::vector<SGSModelType> sgs_model_type {
-    //     SGSModelType::smagorinsky,
-    //     SGSModelType::wall_adaptive_local_eddy_viscosity
-    // };
+    const std::vector<SGSModelType> sgs_model_type {
+        SGSModelType::smagorinsky,
+        SGSModelType::wall_adaptive_local_eddy_viscosity
+    };
 
     std::vector<ConvType> conv_type {
         ConvType::lax_friedrichs,
@@ -319,8 +335,6 @@ int main (int argc, char * argv[])
     PHiLiP::Parameters::AllParameters::declare_parameters (parameter_handler);
     PHiLiP::Parameters::AllParameters all_parameters;
     all_parameters.parse_parameters (parameter_handler);
-
-    std::cout << "all_parameters.physics_model_param.SGS_model_type = " << all_parameters.physics_model_param.SGS_model_type << std::endl;
 
     for (auto pde = pde_type.begin(); pde != pde_type.end() && success == 0; pde++) {
 
@@ -365,14 +379,21 @@ int main (int argc, char * argv[])
             if(*pde==PDEType::burgers_inviscid) success = test_convective_numerical_flux_conservation<PHILIP_DIM,PHILIP_DIM> (&all_parameters);
             if(*pde==PDEType::euler) success = test_convective_numerical_flux_conservation<PHILIP_DIM,PHILIP_DIM+2> (&all_parameters);
             if(*pde==PDEType::navier_stokes) success = test_convective_numerical_flux_conservation<PHILIP_DIM,PHILIP_DIM+2> (&all_parameters);
-            if(*pde==PDEType::physics_model) success = test_convective_numerical_flux_conservation<PHILIP_DIM,PHILIP_DIM+2> (&all_parameters);
-            // {
-            //     for (auto model = model_type.begin(); model != model_type.end() && success == 0; model++) {
-            //         all_parameters.model_type = *model;
-            //         print_model_type(*model);
-            //         success = test_convective_numerical_flux_conservation<PHILIP_DIM,PHILIP_DIM+2> (&all_parameters);
-            //     }
-            // }
+            if(*pde==PDEType::physics_model) {
+                for (auto model = model_type.begin(); model != model_type.end() && success == 0; model++) {
+                    all_parameters.model_type = *model;
+                    print_model_type(*model);
+                    if(all_parameters.model_type == ModelType::large_eddy_simulation) {
+                        for (auto sgs_model = sgs_model_type.begin(); sgs_model != sgs_model_type.end() && success == 0; sgs_model++) {
+                            print_sub_grid_scale_model_type(*sgs_model);
+                            success = test_convective_numerical_flux_conservation<PHILIP_DIM,PHILIP_DIM+2> (&all_parameters);
+                        }
+                    }
+                    else {
+                        success = test_convective_numerical_flux_conservation<PHILIP_DIM,PHILIP_DIM+2> (&all_parameters);
+                    }
+                }
+            }
 
             if(*pde==PDEType::advection) success = test_convective_numerical_flux_consistency<PHILIP_DIM,1> (&all_parameters);
             if(*pde==PDEType::diffusion) success = test_convective_numerical_flux_consistency<PHILIP_DIM,1> (&all_parameters);
@@ -381,15 +402,21 @@ int main (int argc, char * argv[])
             if(*pde==PDEType::burgers_inviscid) success = test_convective_numerical_flux_consistency<PHILIP_DIM,PHILIP_DIM> (&all_parameters);
             if(*pde==PDEType::euler) success = test_convective_numerical_flux_consistency<PHILIP_DIM,PHILIP_DIM+2> (&all_parameters);
             if(*pde==PDEType::navier_stokes) success = test_convective_numerical_flux_consistency<PHILIP_DIM,PHILIP_DIM+2> (&all_parameters);
-            if(*pde==PDEType::physics_model) success = test_convective_numerical_flux_consistency<PHILIP_DIM,PHILIP_DIM+2> (&all_parameters);
-            // {
-            //     for (auto model = model_type.begin(); model != model_type.end() && success == 0; model++) {
-            //         all_parameters.model_type = *model;
-            //         pcout << "all_parameters.physics_model_param.SGS_model_type = " << all_parameters.physics_model_param.SGS_model_type << std::endl;
-            //         print_model_type(*model);
-            //         success = test_convective_numerical_flux_consistency<PHILIP_DIM,PHILIP_DIM+2> (&all_parameters);
-            //     }
-            // }
+            if(*pde==PDEType::physics_model) {
+                for (auto model = model_type.begin(); model != model_type.end() && success == 0; model++) {
+                    all_parameters.model_type = *model;
+                    print_model_type(*model);
+                    if(all_parameters.model_type == ModelType::large_eddy_simulation) {
+                        for (auto sgs_model = sgs_model_type.begin(); sgs_model != sgs_model_type.end() && success == 0; sgs_model++) {
+                            print_sub_grid_scale_model_type(*sgs_model);
+                            success = test_convective_numerical_flux_consistency<PHILIP_DIM,PHILIP_DIM+2> (&all_parameters);
+                        }
+                    }
+                    else {
+                        success = test_convective_numerical_flux_consistency<PHILIP_DIM,PHILIP_DIM+2> (&all_parameters);
+                    }
+                }
+            }
         }
         for (auto diss = diss_type.begin(); diss != diss_type.end() && success == 0; diss++) {
 
@@ -409,14 +436,21 @@ int main (int argc, char * argv[])
             if(*pde==PDEType::burgers_inviscid) success = test_dissipative_numerical_flux_conservation<PHILIP_DIM,PHILIP_DIM> (&all_parameters);
             if(*pde==PDEType::euler) success = test_dissipative_numerical_flux_conservation<PHILIP_DIM,PHILIP_DIM+2> (&all_parameters);
             if(*pde==PDEType::navier_stokes) success = test_dissipative_numerical_flux_conservation<PHILIP_DIM,PHILIP_DIM+2> (&all_parameters);
-            if(*pde==PDEType::physics_model) success = test_dissipative_numerical_flux_conservation<PHILIP_DIM,PHILIP_DIM+2> (&all_parameters);
-            // {
-            //     for (auto model = model_type.begin(); model != model_type.end() && success == 0; model++) {
-            //         all_parameters.model_type = *model;
-            //         print_model_type(*model);
-            //         success = test_dissipative_numerical_flux_conservation<PHILIP_DIM,PHILIP_DIM+2> (&all_parameters);
-            //     }
-            // }
+            if(*pde==PDEType::physics_model) {
+                for (auto model = model_type.begin(); model != model_type.end() && success == 0; model++) {
+                    all_parameters.model_type = *model;
+                    print_model_type(*model);
+                    if(all_parameters.model_type == ModelType::large_eddy_simulation) {
+                        for (auto sgs_model = sgs_model_type.begin(); sgs_model != sgs_model_type.end() && success == 0; sgs_model++) {
+                            print_sub_grid_scale_model_type(*sgs_model);
+                            success = test_dissipative_numerical_flux_conservation<PHILIP_DIM,PHILIP_DIM+2> (&all_parameters);
+                        }
+                    }
+                    else {
+                        success = test_dissipative_numerical_flux_conservation<PHILIP_DIM,PHILIP_DIM+2> (&all_parameters);
+                    }
+                }
+            }
 
 
             if(*pde==PDEType::advection) success = test_dissipative_numerical_flux_consistency<PHILIP_DIM,1> (&all_parameters);
@@ -426,14 +460,21 @@ int main (int argc, char * argv[])
             if(*pde==PDEType::burgers_inviscid) success = test_dissipative_numerical_flux_consistency<PHILIP_DIM,PHILIP_DIM> (&all_parameters);
             if(*pde==PDEType::euler) success = test_dissipative_numerical_flux_consistency<PHILIP_DIM,PHILIP_DIM+2> (&all_parameters);
             if(*pde==PDEType::navier_stokes) success = test_dissipative_numerical_flux_consistency<PHILIP_DIM,PHILIP_DIM+2> (&all_parameters);
-            if(*pde==PDEType::physics_model) success = test_dissipative_numerical_flux_consistency<PHILIP_DIM,PHILIP_DIM+2> (&all_parameters);
-            // {
-            //     for (auto model = model_type.begin(); model != model_type.end() && success == 0; model++) {
-            //         all_parameters.model_type = *model;
-            //         print_model_type(*model);
-            //         success = test_dissipative_numerical_flux_consistency<PHILIP_DIM,PHILIP_DIM+2> (&all_parameters);
-            //     }
-            // }
+            if(*pde==PDEType::physics_model) {
+                for (auto model = model_type.begin(); model != model_type.end() && success == 0; model++) {
+                    all_parameters.model_type = *model;
+                    print_model_type(*model);
+                    if(all_parameters.model_type == ModelType::large_eddy_simulation) {
+                        for (auto sgs_model = sgs_model_type.begin(); sgs_model != sgs_model_type.end() && success == 0; sgs_model++) {
+                            print_sub_grid_scale_model_type(*sgs_model);
+                            success = test_dissipative_numerical_flux_consistency<PHILIP_DIM,PHILIP_DIM+2> (&all_parameters);
+                        }
+                    }
+                    else {
+                        success = test_dissipative_numerical_flux_consistency<PHILIP_DIM,PHILIP_DIM+2> (&all_parameters);
+                    }
+                }
+            }
         }
     }
     return success;

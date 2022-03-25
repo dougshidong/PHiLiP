@@ -159,7 +159,7 @@ PhysicsFactory<dim,nstate,real>
     // Large Eddy Simulation (LES)
     // -------------------------------------------------------------------------------
     if (model_type == Model_enum::large_eddy_simulation) {
-        if constexpr (nstate==dim+2) {
+        if constexpr ((nstate==dim+2) && (dim==3)) {
             // Assign baseline physics type (and corresponding nstates) based on the physics model type
             // -- Assign nstates for the baseline physics (constexpr because template parameter)
             constexpr int nstate_baseline_physics = dim+2;
@@ -177,6 +177,11 @@ PhysicsFactory<dim,nstate,real>
                     baseline_physics_type,
                     model_input,
                     manufactured_solution_function);
+        }
+        else {
+            // LES does not exist for nstate!=(dim+2) || dim!=3
+            (void) baseline_physics_type;
+            return nullptr;
         }
     } else {
         // prevent warnings for dim=3,nstate=4, etc.

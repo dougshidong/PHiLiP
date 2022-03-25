@@ -36,7 +36,7 @@ ModelFactory<dim,nstate,real>
         // Large Eddy Simulation (LES)
         // -------------------------------------------------------------------------------
         if (model_type == Model_enum::large_eddy_simulation) {
-            if constexpr (nstate==dim+2) {
+            if constexpr ((nstate==dim+2) && (dim==3)) {
                 // Create Large Eddy Simulation (LES) model based on the SGS model type
                 using SGS_enum = Parameters::PhysicsModelParam::SubGridScaleModel;
                 SGS_enum sgs_model_type = parameters_input->physics_model_param.SGS_model_type;
@@ -56,7 +56,8 @@ ModelFactory<dim,nstate,real>
                         parameters_input->physics_model_param.turbulent_prandtl_number,
                         parameters_input->physics_model_param.ratio_of_filter_width_to_cell_size,
                         parameters_input->physics_model_param.smagorinsky_model_constant);
-                } else if (sgs_model_type == SGS_enum::wall_adaptive_local_eddy_viscosity) {
+                } 
+                else if (sgs_model_type == SGS_enum::wall_adaptive_local_eddy_viscosity) {
                     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
                     // WALE (Wall-Adapting Local Eddy-viscosity) eddy viscosity model
                     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -72,21 +73,29 @@ ModelFactory<dim,nstate,real>
                         parameters_input->physics_model_param.turbulent_prandtl_number,
                         parameters_input->physics_model_param.ratio_of_filter_width_to_cell_size,
                         parameters_input->physics_model_param.WALE_model_constant);
-                } else {
+                } 
+                else {
                     std::cout << "Can't create LargeEddySimulationBase, invalid SGSModelType type: " << sgs_model_type << std::endl;
                     assert(0==1 && "Can't create LargeEddySimulationBase, invalid SGSModelType type");
                     return nullptr;
                 }
+            } 
+            else {
+                // LES does not exist for nstate!=(dim+2) || dim!=3
+                manufactured_solution_function = nullptr;
+                return nullptr;
             }
-        } else {
+        } 
+        else {
             // prevent warnings for dim=3,nstate=4, etc.
             // to avoid "unused variable" warnings
+            std::cout << "Can't create ModelBase, invalid ModelType type: " << model_type << std::endl;
+            assert(0==1 && "Can't create ModelBase, invalid ModelType type");
             manufactured_solution_function = nullptr;
-        }    
-        std::cout << "Can't create ModelBase, invalid ModelType type: " << model_type << std::endl;
-        assert(0==1 && "Can't create ModelBase, invalid ModelType type");
-        return nullptr;
-    } else {
+            return nullptr;
+        }
+    } 
+    else {
         // if pde_type != PhysicsModel
         // (void) filter_width;
         return nullptr;

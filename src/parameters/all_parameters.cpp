@@ -247,8 +247,12 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     else if (test_string == "flow_solver")                              { test_type = flow_solver; }
     else if (test_string == "dual_weighted_residual_mesh_adaptation")   { test_type = dual_weighted_residual_mesh_adaptation; }
     
-    const std::string pde_string = prm.get("pde_type");
+    // Must assign model_type before pde_type
     const std::string model_string = prm.get("model_type");
+    if (model_string == "large_eddy_simulation") { model_type = large_eddy_simulation; }
+    //else if (model_string == "reynolds_averaged_navier_stokes") { model_type = reynolds_averaged_navier_stokes; }
+
+    const std::string pde_string = prm.get("pde_type");
     if (pde_string == "advection") {
         pde_type = advection;
         nstate = 1;
@@ -280,14 +284,12 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     }
     else if (pde_string == "physics_model") {
         pde_type = physics_model;
-        if (model_string == "large_eddy_simulation")
+        if (model_type == large_eddy_simulation)
         {
-            model_type = large_eddy_simulation;
             nstate = dimension+2;
         }
-        // else if (model_string == "reynolds_averaged_navier_stokes")
+        // else if (model_type == reynolds_averaged_navier_stokes)
         // {
-        //     model_type = reynolds_averaged_navier_stokes;
         //     nstate = dimension+3;
         // }
     }

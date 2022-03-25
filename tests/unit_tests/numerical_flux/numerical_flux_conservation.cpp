@@ -308,7 +308,9 @@ int main (int argc, char * argv[])
         PDEType::burgers_inviscid,
         PDEType::euler,
         PDEType::navier_stokes,
+#if PHILIP_DIM==3
         PDEType::physics_model
+#endif
     };
 
     const std::vector<ModelType> model_type {

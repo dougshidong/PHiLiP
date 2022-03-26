@@ -321,6 +321,11 @@ template <int dim, int nstate, typename real, typename MeshType>
 void DGBaseState<dim,nstate,real,MeshType>::update_model_variables()
 {
     // TO DO: Modify this so that it includes the ghost cells!!!
+    // STEP 1: Modify this to be a distributed vector
+
+    // compute_cellwise_error inside of mesh error estimate -- but I need a global vector like the solution
+    // solution is nDOF whereas for me it would be total cells
+    // look up update_artificial_discontinuity_sensor() line 961
 
     // get FEValues of volume
     const auto mapping = (*(this->high_order_grid->mapping_fe_field));
@@ -337,26 +342,31 @@ void DGBaseState<dim,nstate,real,MeshType>::update_model_variables()
     pde_model_double->cellwise_volume.reinit(0);
     pde_model_double->cellwise_poly_degree.reinit(this->triangulation->n_active_cells());
     pde_model_double->cellwise_volume.reinit(this->triangulation->n_active_cells());
+    pde_model_double->cellwise_volume_distVec.reinit(this->triangulation->n_active_cells(), this->mpi_communicator);
     // -- FadType
     pde_model_fad->cellwise_poly_degree.reinit(0);
     pde_model_fad->cellwise_volume.reinit(0);
     pde_model_fad->cellwise_poly_degree.reinit(this->triangulation->n_active_cells());
     pde_model_fad->cellwise_volume.reinit(this->triangulation->n_active_cells());
+    pde_model_fad->cellwise_volume_distVec.reinit(this->triangulation->n_active_cells(), this->mpi_communicator);
     // -- RadType
     pde_model_rad->cellwise_poly_degree.reinit(0);
     pde_model_rad->cellwise_volume.reinit(0);
     pde_model_rad->cellwise_poly_degree.reinit(this->triangulation->n_active_cells());
     pde_model_rad->cellwise_volume.reinit(this->triangulation->n_active_cells());
+    pde_model_rad->cellwise_volume_distVec.reinit(this->triangulation->n_active_cells(), this->mpi_communicator);
     // -- FadFadType
     pde_model_fad_fad->cellwise_poly_degree.reinit(0);
     pde_model_fad_fad->cellwise_volume.reinit(0);
     pde_model_fad_fad->cellwise_poly_degree.reinit(this->triangulation->n_active_cells());
     pde_model_fad_fad->cellwise_volume.reinit(this->triangulation->n_active_cells());
+    pde_model_fad_fad->cellwise_volume_distVec.reinit(this->triangulation->n_active_cells(), this->mpi_communicator);
     // -- RadRadType
     pde_model_rad_fad->cellwise_poly_degree.reinit(0);
     pde_model_rad_fad->cellwise_volume.reinit(0);
     pde_model_rad_fad->cellwise_poly_degree.reinit(this->triangulation->n_active_cells());
     pde_model_rad_fad->cellwise_volume.reinit(this->triangulation->n_active_cells());
+    pde_model_rad_fad->cellwise_volume_distVec.reinit(this->triangulation->n_active_cells(), this->mpi_communicator);
 
     // loop through all cells
     for (auto cell : this->dof_handler.active_cell_iterators()) {
@@ -390,18 +400,23 @@ void DGBaseState<dim,nstate,real,MeshType>::update_model_variables()
         // -- double
         pde_model_double->cellwise_poly_degree[cell_index] = cell_poly_degree;
         pde_model_double->cellwise_volume[cell_index] = cell_volume;
+        pde_model_double->cellwise_volume_distVec[cell_index] = cell_volume;
         // -- FadType
         pde_model_fad->cellwise_poly_degree[cell_index] = cell_poly_degree;
         pde_model_fad->cellwise_volume[cell_index] = cell_volume;
+        pde_model_fad->cellwise_volume_distVec[cell_index] = cell_volume;
         // -- RadType
         pde_model_rad->cellwise_poly_degree[cell_index] = cell_poly_degree;
         pde_model_rad->cellwise_volume[cell_index] = cell_volume;
+        pde_model_rad->cellwise_volume_distVec[cell_index] = cell_volume;
         // -- FadFadType
         pde_model_fad_fad->cellwise_poly_degree[cell_index] = cell_poly_degree;
         pde_model_fad_fad->cellwise_volume[cell_index] = cell_volume;
+        pde_model_fad_fad->cellwise_volume_distVec[cell_index] = cell_volume;
         // -- RadRadType
         pde_model_rad_fad->cellwise_poly_degree[cell_index] = cell_poly_degree;
         pde_model_rad_fad->cellwise_volume[cell_index] = cell_volume;
+        pde_model_rad_fad->cellwise_volume_distVec[cell_index] = cell_volume;
     }
 }
 

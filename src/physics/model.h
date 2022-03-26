@@ -1,7 +1,7 @@
 #ifndef __MODEL__
 #define __MODEL__
 
-#include <deal.II/lac/vector.h>
+#include <deal.II/lac/la_parallel_vector.h>
 #include <deal.II/base/tensor.h>
 #include <deal.II/base/types.h>
 
@@ -47,6 +47,10 @@ public:
     // Quantities needed to be updated by DG for the model -- accomplished by DGBase update_model_variables()
     dealii::Vector<int> cellwise_poly_degree; ///< Cellwise polynomial degree
     dealii::Vector<double> cellwise_volume; ////< Cellwise element volume
+
+    // dealii::LinearAlgebra::distributed::Vector<int> cellwise_poly_degree; ///< Cellwise polynomial degree
+    dealii::LinearAlgebra::distributed::Vector<double> cellwise_volume_distVec; ////< Cellwise element volume
+    // TO DO: check cellwise_volume_distVec and cellwise_volume are the same, then replace the latter with the former
 };
 
 } // Physics namespace

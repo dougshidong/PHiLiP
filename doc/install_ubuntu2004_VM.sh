@@ -1,4 +1,6 @@
 # Ubuntu minimal installation VirtualBox
+LINK_TO_YOUR_PHiLiP_REPO="https://github.com/dougshidong/PHiLiP.git"
+
 ### Download necessary packages
 sudo apt install -y \
 	vim \
@@ -149,14 +151,15 @@ mkdir -p Codes
 
 ## PHiLiP
 (cd $Codes ;\
-	git clone https://github.com/dougshidong/PHiLiP.git ;\
+	git clone ${LINK_TO_YOUR_PHiLiP_REPO} ;\
 	cd $Codes/PHiLiP ;\
+	git remote add upstream https://github.com/dougshidong/PHiLiP.git ;\
 	# Release build with all the optimization flags
 	mkdir -p build_release && cd build_release ;\
 	# MPI_MAX is the number of cores to use by default for tests with MPI
 	# USE_LD_GOLD uses the ld.gold linker, which is much faster than the default ld linker
 	# 	however, it does not work well on Ubuntu with OpenMPI. Works well with Fedora
 	cmake ../ -DCMAKE_BUILD_TYPE=Release -DMPI_MAX=4 -DUSE_LD_GOLD=OFF ;\
-	make -j8 ;\
+	make -j4 ;\
 	ctest ;\
 )

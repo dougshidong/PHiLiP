@@ -18,8 +18,9 @@ sudo apt install -y \
 	graphviz \
 	texlive \
 	liboce-ocaf-lite-dev
-	
 
+### Update gmsh to latest version
+pip install --upgrade gmsh
 
 ### Add some paths to ~/.bashrc
 echo 'export OMP_NUM_THREADS=1
@@ -33,7 +34,7 @@ export PETSC_ARCH=ubuntu_openmpi_openblas' >> ~/.bashrc
 # Load new .bashrc
 source ~/.bashrc
 
-# OPTIONAL My personal vim preferences
+# OPTIONAL Doug's personal vim preferences
 git clone https://github.com/dougshidong/.vim.git
 (cd .vim && git submodule init && git submodule update)
 

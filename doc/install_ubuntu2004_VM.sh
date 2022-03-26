@@ -153,6 +153,7 @@ mkdir -p Codes
 (cd $Codes ;\
 	git clone ${LINK_TO_YOUR_PHiLiP_REPO} ;\
 	cd $Codes/PHiLiP ;\
+	git checkout master ;\
 	git remote add upstream https://github.com/dougshidong/PHiLiP.git ;\
 	# Release build with all the optimization flags
 	mkdir -p build_release && cd build_release ;\

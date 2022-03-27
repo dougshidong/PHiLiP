@@ -37,12 +37,6 @@ PeriodicCubeFlow<dim, nstate>::PeriodicCubeFlow(const PHiLiP::Parameters::AllPar
 template <int dim, int nstate>
 void PeriodicCubeFlow<dim,nstate>::display_flow_solver_setup() const
 {
-    using PDE_enum = Parameters::AllParameters::PartialDifferentialEquation;
-    const PDE_enum pde_type = this->all_param.pde_type;
-    std::string pde_string;
-    if (pde_type == PDE_enum::euler)                {pde_string = "euler";}
-    if (pde_type == PDE_enum::navier_stokes)        {pde_string = "navier_stokes";}
-    this->pcout << "- PDE Type: " << pde_string << std::endl;
     this->pcout << "- Polynomial degree: " << this->all_param.grid_refinement_study_param.poly_degree << std::endl;
     this->pcout << "- Courant-Friedrich-Lewy number: " << this->all_param.flow_solver_param.courant_friedrich_lewy_number << std::endl;
     this->pcout << "- Final time: " << this->all_param.flow_solver_param.final_time << std::endl;

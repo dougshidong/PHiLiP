@@ -55,7 +55,90 @@ std::vector<int> TestsBase::get_number_1d_cells(const int n_grids) const
         n_1d_cells[igrid] = static_cast<int>(n_1d_cells[igrid-1]*param.grid_progression) + param.grid_progression_add;
     }
     return n_1d_cells;
+}
 
+std::string TestsBase::get_pde_string(const Parameters::AllParameters *const param) const
+{
+    using PDE_enum      = Parameters::AllParameters::PartialDifferentialEquation;
+    using Model_enum    = PHiLiP::Parameters::AllParameters::ModelType;
+    using SGSModel_enum = PHiLiP::Parameters::PhysicsModelParam::SubGridScaleModel;
+    
+    const PDE_enum pde_type = param->pde_type;
+    std::string pde_string;
+    if (pde_type == PDE_enum::advection)            {pde_string = "advection";}
+    if (pde_type == PDE_enum::advection_vector)     {pde_string = "advection_vector";}
+    if (pde_type == PDE_enum::diffusion)            {pde_string = "diffusion";}
+    if (pde_type == PDE_enum::convection_diffusion) {pde_string = "convection_diffusion";}
+    if (pde_type == PDE_enum::burgers_inviscid)     {pde_string = "burgers_inviscid";}
+    if (pde_type == PDE_enum::burgers_rewienski)    {pde_string = "burgers_rewienski";}
+    if (pde_type == PDE_enum::euler)                {pde_string = "euler";}
+    if (pde_type == PDE_enum::navier_stokes)        {pde_string = "navier_stokes";}
+    if (pde_type == PDE_enum::physics_model) {
+        pde_string = "physics_model";
+        // add the model name + sub model name (if applicable)
+        const Model_enum model = param->model_type;
+        std::string model_string = "WARNING: invalid model";
+        if(model == Model_enum::large_eddy_simulation) {
+            // assign model string
+            model_string = "large_eddy_simulation";
+            // sub-grid scale (SGS)
+            const SGSModel_enum sgs_model = param->physics_model_param.SGS_model_type;
+            std::string sgs_model_string = "WARNING: invalid SGS model";
+            // assign SGS model string
+            if     (sgs_model==SGSModel_enum::smagorinsky) sgs_model_string = "smagorinsky";
+            else if(sgs_model==SGSModel_enum::wall_adaptive_local_eddy_viscosity) sgs_model_string = "wall_adaptive_local_eddy_viscosity";
+            pde_string += std::string(" (Model: ") + model_string + std::string(", SGS Model: ") + sgs_model_string + std::string(")");
+        }
+        if(pde_string == "physics_model") pde_string += std::string(" (Model: ") + model_string + std::string(")");
+    }
+    return pde_string;
+}
+
+std::string TestsBase::get_conv_num_flux_string(const Parameters::AllParameters *const param) const
+{
+    using CNF_enum = Parameters::AllParameters::ConvectiveNumericalFlux;
+    const CNF_enum CNF_type = param->conv_num_flux_type;
+    std::string conv_num_flux_string;
+    if (CNF_type == CNF_enum::lax_friedrichs) {conv_num_flux_string = "lax_friedrichs";}
+    if (CNF_type == CNF_enum::split_form)     {conv_num_flux_string = "split_form";}
+    if (CNF_type == CNF_enum::roe)            {conv_num_flux_string = "roe";}
+    if (CNF_type == CNF_enum::l2roe)          {conv_num_flux_string = "l2roe";}
+    return conv_num_flux_string;
+}
+
+std::string TestsBase::get_diss_num_flux_string(const Parameters::AllParameters *const param) const
+{
+    using DNF_enum = Parameters::AllParameters::DissipativeNumericalFlux;
+    const DNF_enum DNF_type = param->diss_num_flux_type;
+    std::string diss_num_flux_string;
+    if (DNF_type == DNF_enum::symm_internal_penalty) {diss_num_flux_string = "symm_internal_penalty";}
+    if (DNF_type == DNF_enum::bassi_rebay_2)         {diss_num_flux_string = "bassi_rebay_2";}
+    return diss_num_flux_string;
+}
+
+std::string TestsBase::get_manufactured_solution_string(const Parameters::AllParameters *const param) const
+{
+    using ManParam = Parameters::ManufacturedConvergenceStudyParam;
+    ManParam manu_grid_conv_param = param->manufactured_convergence_study_param;
+    using ManufacturedSolutionEnum = Parameters::ManufacturedSolutionParam::ManufacturedSolutionType;
+    const ManufacturedSolutionEnum MS_type = manu_grid_conv_param.manufactured_solution_param.manufactured_solution_type;
+    std::string manufactured_solution_string;
+    if (MS_type == ManufacturedSolutionEnum::sine_solution)           {manufactured_solution_string = "sine_solution";}
+    if (MS_type == ManufacturedSolutionEnum::cosine_solution)         {manufactured_solution_string = "cosine_solution";}
+    if (MS_type == ManufacturedSolutionEnum::additive_solution)       {manufactured_solution_string = "additive_solution";}
+    if (MS_type == ManufacturedSolutionEnum::exp_solution)            {manufactured_solution_string = "exp_solution";}
+    if (MS_type == ManufacturedSolutionEnum::poly_solution)           {manufactured_solution_string = "poly_solution";}
+    if (MS_type == ManufacturedSolutionEnum::even_poly_solution)      {manufactured_solution_string = "even_poly_solution";}
+    if (MS_type == ManufacturedSolutionEnum::atan_solution)           {manufactured_solution_string = "atan_solution";}
+    if (MS_type == ManufacturedSolutionEnum::boundary_layer_solution) {manufactured_solution_string = "boundary_layer_solution";}
+    if (MS_type == ManufacturedSolutionEnum::s_shock_solution)        {manufactured_solution_string = "s_shock_solution";}
+    if (MS_type == ManufacturedSolutionEnum::quadratic_solution)      {manufactured_solution_string = "quadratic_solution";}
+    if (MS_type == ManufacturedSolutionEnum::navah_solution_1)        {manufactured_solution_string = "navah_solution_1";}
+    if (MS_type == ManufacturedSolutionEnum::navah_solution_2)        {manufactured_solution_string = "navah_solution_2";}
+    if (MS_type == ManufacturedSolutionEnum::navah_solution_3)        {manufactured_solution_string = "navah_solution_3";}
+    if (MS_type == ManufacturedSolutionEnum::navah_solution_4)        {manufactured_solution_string = "navah_solution_4";}
+    if (MS_type == ManufacturedSolutionEnum::navah_solution_5)        {manufactured_solution_string = "navah_solution_5";}
+    return manufactured_solution_string;
 }
 
 //template<int dim, int nstate>

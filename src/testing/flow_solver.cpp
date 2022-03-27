@@ -20,6 +20,7 @@ FlowSolver<dim, nstate>::FlowSolver(const PHiLiP::Parameters::AllParameters *con
 , ode_solver(ODE::ODESolverFactory<dim, double>::create_ODESolver(dg))
 {
     dg->allocate_system();
+    pcout << "- PDE Type: " << this->get_pde_string(&all_param) << std::endl;
     flow_solver_case->display_flow_solver_setup();
     pcout << "Initializing solution with initial condition function..." << std::flush;
     dealii::LinearAlgebra::distributed::Vector<double> solution_no_ghost;

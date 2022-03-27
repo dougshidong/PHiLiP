@@ -37,6 +37,11 @@ DGFactory<dim,real,MeshType>
         } else if (pde_type == PDE_enum::navier_stokes) {
             return std::make_shared< DGWeak<dim,dim+2,real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
         }
+#if PHILIP_DIM==3
+        else if (pde_type == PDE_enum::physics_model) {
+            return std::make_shared< DGWeak<dim,dim+2,real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
+        }
+#endif
     } else {
         if (pde_type == PDE_enum::advection) {
             return std::make_shared< DGStrong<dim,1,real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
@@ -56,7 +61,12 @@ DGFactory<dim,real,MeshType>
             return std::make_shared< DGStrong<dim,dim+2,real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
         } else if (pde_type == PDE_enum::navier_stokes) {
             return std::make_shared< DGStrong<dim,dim+2,real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
+        } 
+#if PHILIP_DIM==3
+        else if(pde_type == PDE_enum::physics_model) {
+            return std::make_shared< DGStrong<dim,dim+2,real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
         }
+#endif
     }
     std::cout << "Can't create DGBase in create_discontinuous_galerkin(). Invalid PDE type: " << pde_type << std::endl;
     return nullptr;

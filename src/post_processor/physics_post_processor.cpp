@@ -31,7 +31,13 @@ std::unique_ptr< dealii::DataPostprocessor<dim> > PostprocessorFactory<dim>
         return std::make_unique< PhysicsPostprocessor<dim,dim+2> >(parameters_input);
     } else if (pde_type == PDE_enum::navier_stokes) {
         return std::make_unique< PhysicsPostprocessor<dim,dim+2> >(parameters_input);
-    } else {
+    }
+#if PHILIP_DIM==3
+    else if (pde_type == PDE_enum::physics_model) {
+        return std::make_unique< PhysicsPostprocessor<dim,dim+2> >(parameters_input);
+    } 
+#endif
+    else {
         std::cout << "Invalid PDE when creating post-processor" << std::endl;
         std::abort();
     }

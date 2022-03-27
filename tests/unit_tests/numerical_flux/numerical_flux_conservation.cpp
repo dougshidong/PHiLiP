@@ -287,7 +287,7 @@ void print_sub_grid_scale_model_type(const SGSModelType sgs_model)
 {
     // sub-grid scale (SGS)
     std::string sgs_model_string = "WARNING: invalid SGS model";
-    // assign model string
+    // assign SGS model string
     if     (sgs_model==SGSModelType::smagorinsky) sgs_model_string = "smagorinsky";
     else if(sgs_model==SGSModelType::wall_adaptive_local_eddy_viscosity) sgs_model_string = "wall_adaptive_local_eddy_viscosity";
     

@@ -353,7 +353,8 @@ int main (int argc, char * argv[])
         if(*pde==PDEType::physics_model)        pde_string = "physics_model";
 
 
-        if((*pde==PDEType::navier_stokes) || (*pde==PDEType::physics_model)) {
+        if((*pde==PDEType::navier_stokes) || 
+           ((*pde==PDEType::physics_model) && (all_parameters.model_type==ModelType::large_eddy_simulation))) {
             // We want a non-zero viscous (dissipative) flux for testing Navier-Stokes
             all_parameters.navier_stokes_param.reynolds_number_inf = 1.0; // default is 10000000.0 (i.e. inviscid Navier-Stokes)
         }
@@ -361,8 +362,9 @@ int main (int argc, char * argv[])
         for (auto conv = conv_type.begin(); conv != conv_type.end() && success == 0; conv++) {
 
             // Roe-type fluxes are defined only for the Euler and Navier-Stokes equations
-            if(((*conv == ConvType::roe) || (*conv == ConvType::l2roe)) && ((*pde!=PDEType::euler) && (*pde!=PDEType::navier_stokes))) continue;
-            // TO DO: Do the above apply to PhysicsModel?
+            if(((*conv == ConvType::roe) || (*conv == ConvType::l2roe)) && 
+               ((*pde!=PDEType::euler) && (*pde!=PDEType::navier_stokes) && 
+                ((*pde!=PDEType::physics_model) && (all_parameters.model_type!=ModelType::large_eddy_simulation)))) continue;
             all_parameters.conv_num_flux_type = *conv;
 
             std::string conv_string;

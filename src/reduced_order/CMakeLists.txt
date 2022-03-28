@@ -1,8 +1,8 @@
 set(SOURCE
-    pod_basis.cpp
+        pod_state_base.cpp
     pod_basis_types.cpp
     pod_adaptation.cpp
-    pod_basis_sensitivity.cpp
+        pod_sensitivity_base.cpp
     pod_basis_sensitivity_types.cpp
     delaunay.cpp
     rbf_interpolation.cpp)

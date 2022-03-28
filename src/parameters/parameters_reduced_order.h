@@ -13,11 +13,17 @@ public:
     /// Initial dimension of the coarse basis
     unsigned int coarse_basis_dimension;
 
-    /// Initial dimension of the fine basis
+    /// Dimension of the fine basis
     unsigned int fine_basis_dimension;
 
-    /// Initial dimension of the expanded basis
-    unsigned int expanded_basis_dimension;
+    /// Initial dimension of the coarse expanded basis
+    unsigned int coarse_expanded_basis_dimension;
+
+    /// Dimension of the fine expanded basis
+    unsigned int fine_expanded_basis_dimension;
+
+    /// Number of sensitivities to compute and append to state basis
+    unsigned int num_sensitivities;
 
     /// Initial dimension of the extrapolated basis
     unsigned int extrapolated_basis_dimension;

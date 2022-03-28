@@ -4,7 +4,7 @@
 #include "dg/dg.h"
 #include "implicit_ode_solver.h"
 #include "linear_solver/linear_solver.h"
-#include "reduced_order/pod_basis.h"
+#include "reduced_order/pod_interfaces.h"
 #include <deal.II/lac/trilinos_sparsity_pattern.h>
 
 namespace PHiLiP {
@@ -40,11 +40,20 @@ public:
     /// Reduced rhs for linear solver
     std::unique_ptr<dealii::LinearAlgebra::distributed::Vector<double>> reduced_rhs;
 
+    /// Reference solution for consistency
+    dealii::LinearAlgebra::distributed::Vector<double> reference_solution;
+
+    /// Reduced solution
+    dealii::LinearAlgebra::distributed::Vector<double> reduced_solution;
+
     /// Psi = J * V
     std::unique_ptr<dealii::TrilinosWrappers::SparseMatrix> petrov_galerkin_basis;
 
     /// Reduced lhs for linear solver
     std::unique_ptr<dealii::TrilinosWrappers::SparseMatrix> reduced_lhs;
+
+    /// Line search algorithm
+    double linesearch () override;
 
 };
 

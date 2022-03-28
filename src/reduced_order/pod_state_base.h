@@ -1,5 +1,5 @@
-#ifndef __POD_BASIS__
-#define __POD_BASIS__
+#ifndef __POD_STATE_BASE__
+#define __POD_STATE_BASE__
 
 #include <fstream>
 #include <iostream>
@@ -12,40 +12,36 @@
 #include <deal.II/lac/vector_operation.h>
 #include "parameters/all_parameters.h"
 #include "dg/dg.h"
+#include "pod_interfaces.h"
 
 namespace PHiLiP {
 namespace ProperOrthogonalDecomposition {
 
 /// Class for full Proper Orthogonal Decomposition basis
 template <int dim>
-class POD
+class PODState
 {
 public:
     /// Constructor
-    POD(std::shared_ptr<DGBase<dim,double>> &dg_input);
+    PODState(std::shared_ptr<DGBase<dim,double>> &dg_input);
 
     /// Destructor
-    virtual ~POD () {};
+    virtual ~PODState () {};
 
     ///Virtual function to get POD basis for all derived classes
     virtual std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> getPODBasis();
 
-    ///Virtual function to get POD basis transpose for all derived classes
-    virtual std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> getPODBasisTranspose();
-
 private:
-
     /// Get POD basis saved to text file
     bool getSavedPODBasis();
 
     /// Save POD basis to text file
     void saveFullPODBasisToFile();
 
+protected:
     std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> fullPODBasis; ///< First num_basis columns of fullPODBasisLAPACK
-    std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> fullPODBasisTranspose; ///< Transpose of pod_basis
     std::shared_ptr<DGBase<dim,double>> dg; ///< Smart pointer to DGBase
 
-protected:
     dealii::LAPACKFullMatrix<double> fullBasis; ///< U matrix output from SVD, full POD basis
     dealii::LAPACKFullMatrix<double> solutionSnapshots; ///< Matrix of snapshots Y
     dealii::LAPACKFullMatrix<double> eigenvaluesSqrtInverse; ///< Matrix of inverse of singular values (sqrt of eigenvalues) along the diagonal
@@ -56,11 +52,12 @@ protected:
     const Parameters::AllParameters *const all_parameters; ///< Pointer to all parameters
     const MPI_Comm mpi_communicator; ///< MPI communicator.
     dealii::ConditionalOStream pcout; ///< Parallel std::cout that only outputs on mpi_rank==0
-/// Get full POD basis consisting of fullPODBasisLAPACK
+
+    /// Get full POD basis consisting of fullPODBasisLAPACK
     bool getPODBasisFromSnapshots();
 
-/// Build POD basis consisting of the first num_basis columns of fullPODBasisLAPACK
-void buildPODBasis();
+    /// Build POD basis consisting of the first num_basis columns of fullPODBasisLAPACK
+    void buildPODBasis();
 };
 
 }

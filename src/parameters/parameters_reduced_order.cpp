@@ -15,9 +15,15 @@ void ReducedOrderModelParam::declare_parameters (dealii::ParameterHandler &prm)
         prm.declare_entry("fine_basis_dimension", "0",
                           dealii::Patterns::Integer(0,dealii::Patterns::Integer::max_int_value),
                           "Initial dimension of the fine POD basis");
-        prm.declare_entry("expanded_basis_dimension", "0",
+        prm.declare_entry("coarse_expanded_basis_dimension", "0",
                           dealii::Patterns::Integer(0,dealii::Patterns::Integer::max_int_value),
-                          "Initial dimension of the expanded POD basis");
+                          "Initial dimension of the coarse expanded POD basis");
+        prm.declare_entry("fine_expanded_basis_dimension", "0",
+                          dealii::Patterns::Integer(0,dealii::Patterns::Integer::max_int_value),
+                          "Dimension of the fine expanded POD basis");
+        prm.declare_entry("num_sensitivities", "0",
+                          dealii::Patterns::Integer(0,dealii::Patterns::Integer::max_int_value),
+                          "Number of POD sensitivities to compute and append to state basis");
         prm.declare_entry("extrapolated_basis_dimension", "0",
                           dealii::Patterns::Integer(0,dealii::Patterns::Integer::max_int_value),
                           "Initial dimension of the extrapolated POD basis");
@@ -49,7 +55,9 @@ void ReducedOrderModelParam::parse_parameters (dealii::ParameterHandler &prm)
     {
         coarse_basis_dimension = prm.get_integer("coarse_basis_dimension");
         fine_basis_dimension = prm.get_integer("fine_basis_dimension");
-        expanded_basis_dimension = prm.get_integer("expanded_basis_dimension");
+        coarse_expanded_basis_dimension = prm.get_integer("coarse_expanded_basis_dimension");
+        fine_expanded_basis_dimension = prm.get_integer("fine_expanded_basis_dimension");
+        num_sensitivities = prm.get_integer("num_sensitivities");
         extrapolated_basis_dimension = prm.get_integer("extrapolated_basis_dimension");
         extrapolated_parameter_delta = prm.get_double("extrapolated_parameter_delta");
         adapt_coarse_basis_constant = prm.get_integer("adapt_coarse_basis_constant");

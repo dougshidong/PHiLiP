@@ -4,85 +4,93 @@
 #include <fstream>
 #include <iostream>
 #include <filesystem>
-
 #include "functional/functional.h"
 #include "dg/dg.h"
-#include "reduced_order/pod_basis.h"
+#include "reduced_order/pod_state_base.h"
 #include "linear_solver/linear_solver.h"
-
 #include <deal.II/numerics/vector_tools.h>
 #include <deal.II/lac/full_matrix.h>
 #include <deal.II/base/conditional_ostream.h>
 #include <deal.II/lac/trilinos_sparse_matrix.h>
 #include "ode_solver/ode_solver_factory.h"
+#include "pod_interfaces.h"
 
 namespace PHiLiP {
 namespace ProperOrthogonalDecomposition {
 
+/// Class for Coarse state POD basis, derived from PODState and implementing CoarseBasis
 template <int dim>
-/// Intermediary class that includes attributes common to all POD basis subtypes
-class SpecificPOD : public POD<dim>
+class CoarseStatePOD : public PODState<dim>, public CoarseBasis<dim>
 {
-protected:
-    /// Constructor
-    SpecificPOD(std::shared_ptr<DGBase<dim,double>> &dg_input);
-
-    /// Destructor
-    ~SpecificPOD() {}
-
-    std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> basis; ///< pod basis
-    std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> basisTranspose; ///< Transpose of pod_basis
+private:
+    std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> coarseBasis; ///< pod basis
+    std::vector<unsigned int> fullBasisIndices; ///< Vector to store which indicies of the full basis are present in this basis
 
 public:
+    /// Constructor
+    CoarseStatePOD(std::shared_ptr<DGBase<dim,double>> &dg_input);
+    /// Destructor
+    ~CoarseStatePOD () {};
 
-    /// Function to add columns (basis functions) to POD basis. Used when building basis and refining when doing POD adaptation
+    /// Add columns to the basis
     void addPODBasisColumns(const std::vector<unsigned int> addColumns);
 
     /// Function to return basis
-    std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> getPODBasis() override;
+    std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> getPODBasis();
 
-    /// Function to return basisTranspose
-    std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> getPODBasisTranspose() override;
-
-    /// Vector to store which indicies of the full basis are present in this basis
-    std::vector<unsigned int> fullBasisIndices;
-
+    /// Return vector storing which indices of the full basis are present in this basis
+    std::vector<unsigned int> getFullBasisIndices();
 };
 
-/// Class for Coarse POD basis, derived from SpecificPOD
+/// Class for Fine not in Coarse state POD basis, derived from PODState and implementing FineNotInCoarseBasis
 template <int dim>
-class CoarsePOD : public SpecificPOD<dim>
+class FineNotInCoarseStatePOD : public PODState<dim>, public FineNotInCoarseBasis<dim>
 {
-public:
-    /// Constructor
-    CoarsePOD(std::shared_ptr<DGBase<dim,double>> &dg_input);
-    /// Destructor
-    ~CoarsePOD () {};
-};
+private:
+    std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> fineNotInCoarseBasis; ///< pod basis
+    std::vector<unsigned int> fullBasisIndices; ///< Vector to store which indicies of the full basis are present in this basis
 
-/// Class for fine not in coarse POD basis, derived from SpecificPOD
-template <int dim>
-class FineNotInCoarsePOD : public SpecificPOD<dim>
-{
 public:
     /// Constructor
-    FineNotInCoarsePOD(std::shared_ptr<DGBase<dim,double>> &dg_input);
+    FineNotInCoarseStatePOD(std::shared_ptr<DGBase<dim,double>> &dg_input);
     /// Destructor
-    ~FineNotInCoarsePOD () {};
+    ~FineNotInCoarseStatePOD () {};
+
+    /// Add columns to the basis
+    void addPODBasisColumns(const std::vector<unsigned int> addColumns);
 
     /// Removes columns of the basis, used during POD adaptation
     void removePODBasisColumns(const std::vector<unsigned int> removeColumns);
+
+    /// Function to return basis
+    std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> getPODBasis();
+
+    /// Return vector storing which indices of the full basis are present in this basis
+    std::vector<unsigned int> getFullBasisIndices();
 };
 
-/// Class for fine POD basis, derived from SpecificPOD
+/// Class for Fine state POD basis, derived from PODState and implementing FineBasis
 template <int dim>
-class FinePOD : public SpecificPOD<dim>
+class FineStatePOD : public PODState<dim>, public FineBasis<dim>
 {
+private:
+    std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> fineBasis; ///< pod basis
+    std::vector<unsigned int> fullBasisIndices; ///< Vector to store which indicies of the full basis are present in this basis
+
 public:
     /// Constructor
-    FinePOD(std::shared_ptr<DGBase<dim,double>> &dg_input);
+    FineStatePOD(std::shared_ptr<DGBase<dim,double>> &dg_input);
     /// Destructor
-    ~FinePOD () {};
+    ~FineStatePOD () {};
+
+    /// Add columns to the basis
+    void addPODBasisColumns(const std::vector<unsigned int> addColumns);
+
+    /// Function to return basis
+    std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> getPODBasis();
+
+    /// Return vector storing which indices of the full basis are present in this basis
+    std::vector<unsigned int> getFullBasisIndices();
 };
 
 }

@@ -3,14 +3,14 @@
 
 #include "parameters/all_parameters.h"
 #include "dg/dg.h"
-#include "reduced_order/pod_basis.h"
+#include "reduced_order/pod_interfaces.h"
 #include "ode_solver_base.h"
 
 namespace PHiLiP {
 namespace ODE {
 /// Create specified ODE solver as ODESolverBase object
 /** Factory design pattern whose job is to create the correct ODE solver
- */
+*/
 #if PHILIP_DIM==1
 template <int dim, typename real, typename MeshType = dealii::Triangulation<dim>>
 #else

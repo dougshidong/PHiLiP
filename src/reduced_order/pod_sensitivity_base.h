@@ -1,11 +1,10 @@
-#ifndef __POD_BASIS_SENSITIVITY__
-#define __POD_BASIS_SENSITIVITY__
+#ifndef __POD_SENSITIVITY_BASE__
+#define __POD_SENSITIVITY_BASE__
 
 #include <fstream>
 #include <iostream>
 #include <filesystem>
 #include <cmath>
-
 #include <deal.II/numerics/vector_tools.h>
 #include <deal.II/lac/full_matrix.h>
 #include <deal.II/base/conditional_ostream.h>
@@ -13,7 +12,7 @@
 #include <deal.II/lac/vector_operation.h>
 #include "parameters/all_parameters.h"
 #include "dg/dg.h"
-#include "reduced_order/pod_basis.h"
+#include "reduced_order/pod_state_base.h"
 #include <deal.II/lac/householder.h>
 
 namespace PHiLiP {
@@ -21,40 +20,41 @@ namespace ProperOrthogonalDecomposition {
 
 template <int dim>
 /// Sensitivity POD basis class
-class SensitivityPOD : public POD<dim>
+class PODSensitivity : public PODState<dim>
 {
 public:
-
     /// Constructor
-    SensitivityPOD(std::shared_ptr<DGBase<dim,double>> &dg_input);
+    PODSensitivity(std::shared_ptr<DGBase<dim,double>> &dg_input);
 
     /// Destructor
-    ~SensitivityPOD() {}
+    ~PODSensitivity() {}
 
     /// Generate Sensitivity POD basis from snapshots
     bool getSensitivityPODBasisFromSnapshots();
 
     std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> sensitivityBasis; ///< sensitivity basis
-    std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> sensitivityBasisTranspose; ///< Transpose of sensitivity basis
+    std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> stateAndSensitivityBasis; ///< sensitivity basis
 
     /// Compute POD basis sensitivities
     void computeBasisSensitivity();
 
     /// Compute the sensitivity k-th POD basis mode
-    dealii::Vector<double> computeModeSensitivity(const int k);
+    dealii::Vector<double> computeModeSensitivity(int k);
 
     /// Function to build sensitivity POD basis
     void buildSensitivityPODBasis();
 
+    /// Function to build state and sensitivity POD basis
+    void buildStateAndSensitivityPODBasis();
+
     /// Function to return basis
     std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> getPODBasis() override;
 
-    /// Function to return basisTranspose
-    std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> getPODBasisTranspose() override;
 
 protected:
+    dealii::LAPACKFullMatrix<double> fullBasisSensitivity; ///< Full sensitivity basis only
+    dealii::LAPACKFullMatrix<double> fullBasisStateAndSensitivity; ///< Full state and sensitivity basis
 
-    dealii::LAPACKFullMatrix<double> fullBasisSensitivity; ///< Full sensitivity basis
 private:
 
     /// Get Sensitivity POD basis saved to text file
@@ -66,7 +66,6 @@ private:
     dealii::LAPACKFullMatrix<double> sensitivitySnapshots; ///< Matrix of sensitivity snapshots
     dealii::LAPACKFullMatrix<double> massWeightedSensitivitySnapshots; ///< Mass matrix weighted sensitivity snapshots
     dealii::LAPACKFullMatrix<double> eigenvaluesSensitivity; ///< Matrix of singular value derivatives along the diagonal
-
 
 };
 

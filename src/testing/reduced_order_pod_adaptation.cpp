@@ -14,7 +14,7 @@
 #include "dg/dg_factory.hpp"
 #include "ode_solver/ode_solver_factory.h"
 #include "reduced_order/pod_adaptation.h"
-#include "reduced_order/pod_basis_sensitivity.h"
+#include "reduced_order/pod_sensitivity_base.h"
 #include "reduced_order/pod_basis_sensitivity_types.h"
 #include "flow_solver.h"
 
@@ -85,7 +85,7 @@ int ReducedOrderPODAdaptation<dim, nstate>::run_test() const
     std::shared_ptr< DGBaseState<dim,nstate,double> > dg_state_fine = std::dynamic_pointer_cast< DGBaseState<dim,nstate,double> >(dg_fine);
     dg_fine->allocate_system ();
     dealii::VectorTools::interpolate(dg_fine->dof_handler,initial_condition,dg_fine->solution);
-    std::shared_ptr<ProperOrthogonalDecomposition::FinePOD<dim>> finePOD = std::make_shared<ProperOrthogonalDecomposition::FinePOD<dim>>(dg_fine);
+    std::shared_ptr<ProperOrthogonalDecomposition::FineStatePOD<dim>> finePOD = std::make_shared<ProperOrthogonalDecomposition::FineStatePOD<dim>>(dg_fine);
     std::shared_ptr<PHiLiP::ODE::ODESolverBase<dim, double>> ode_solver_fine = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg_fine, finePOD);
     ode_solver_fine->steady_state();
     auto functional_fine = BurgersRewienskiFunctional<dim,nstate,double>(dg_fine,dg_state_fine->pde_physics_fad_fad,true,false);

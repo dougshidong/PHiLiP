@@ -10,9 +10,9 @@ PODAdaptation<dim, nstate>::PODAdaptation(std::shared_ptr<DGBase<dim,double>> &d
         : functional(functional_input)
         , dg(dg_input)
         , all_parameters(dg->all_parameters)
-        , coarsePOD(std::make_shared<ProperOrthogonalDecomposition::CoarsePOD<dim>>(dg))
-        , finePOD(std::make_unique<ProperOrthogonalDecomposition::FinePOD<dim>>(dg))
-        , fineNotInCoarsePOD(std::make_unique<ProperOrthogonalDecomposition::FineNotInCoarsePOD<dim>>(dg))
+        , coarsePOD(std::make_shared<ProperOrthogonalDecomposition::CoarseStatePOD<dim>>(dg))
+        , finePOD(std::make_unique<ProperOrthogonalDecomposition::FineStatePOD<dim>>(dg))
+        , fineNotInCoarsePOD(std::make_unique<ProperOrthogonalDecomposition::FineNotInCoarseStatePOD<dim>>(dg))
         , mpi_communicator(MPI_COMM_WORLD)
         , pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(mpi_communicator) == 0)
 {
@@ -31,7 +31,7 @@ void PODAdaptation<dim, nstate>::progressivePODAdaptation()
         fineNotInCoarsePOD->removePODBasisColumns(newColumns);
         getDualWeightedResidual();
 
-        if(fineNotInCoarsePOD->fullBasisIndices.empty()){
+        if(fineNotInCoarsePOD->getFullBasisIndices().empty()){
             pcout << "Desired tolerance was not achieved." << std::endl;
             break;
         }
@@ -65,7 +65,7 @@ std::vector<unsigned int> PODAdaptation<dim, nstate>::getPODBasisColumnsToAdd()
 
     if(all_parameters->reduced_order_param.consider_error_sign){ //if considering sign of error
         for(unsigned int i = 0; i < dualWeightedResidual.size(); i++){
-            dualWeightedResidualToIndex.emplace(dualWeightedResidual[i], fineNotInCoarsePOD->fullBasisIndices[i]); //will automatically sort
+            dualWeightedResidualToIndex.emplace(dualWeightedResidual[i], fineNotInCoarsePOD->getFullBasisIndices()[i]); //will automatically sort
         }
         double adaptationError = error;
         if(all_parameters->reduced_order_param.adapt_coarse_basis_constant == 0){ //Automatically choose how many basis vectors to add
@@ -104,7 +104,7 @@ std::vector<unsigned int> PODAdaptation<dim, nstate>::getPODBasisColumnsToAdd()
     }
     else{ //If consdering only the absolute value of errors
         for(unsigned int i = 0; i < dualWeightedResidual.size(); i++){
-            dualWeightedResidualToIndex.emplace(abs(dualWeightedResidual[i]), fineNotInCoarsePOD->fullBasisIndices[i]);
+            dualWeightedResidualToIndex.emplace(abs(dualWeightedResidual[i]), fineNotInCoarsePOD->getFullBasisIndices()[i]);
         }
         for (unsigned int i = 0; i < all_parameters->reduced_order_param.adapt_coarse_basis_constant; i++) { //Add user-specified number of basis vectors
             element = std::prev(dualWeightedResidualToIndex.end());
@@ -139,7 +139,7 @@ void PODAdaptation<dim, nstate>::getDualWeightedResidual()
     applyReducedJacobianTranspose(fineAdjoint, fineGradient);
 
     //Extract fine not in coarse adjoint
-    fineAdjoint.extract_subvector_to(fineNotInCoarsePOD->fullBasisIndices, fineNotInCoarseAdjoint);
+    fineAdjoint.extract_subvector_to(fineNotInCoarsePOD->getFullBasisIndices(), fineNotInCoarseAdjoint);
 
     //Compute fine not in coarse residual
     fineNotInCoarsePOD->getPODBasis()->Tvmult(fineNotInCoarseResidual, dg->right_hand_side);
@@ -150,7 +150,7 @@ void PODAdaptation<dim, nstate>::getDualWeightedResidual()
     for(unsigned int i = 0; i < fineNotInCoarseAdjoint.size(); i++){
         dualWeightedResidual[i] = -(fineNotInCoarseAdjoint[i] * fineNotInCoarseResidual[i]);
         error = error + dualWeightedResidual[i];
-        pcout << std::setw(10) << std::left << fineNotInCoarsePOD->fullBasisIndices[i] << std::setw(20) << std::left << fineNotInCoarseAdjoint[i] << std::setw(20) << std::left << fineNotInCoarseResidual[i] << std::setw(20) << std::left << dualWeightedResidual[i] << std::endl;
+        pcout << std::setw(10) << std::left << fineNotInCoarsePOD->getFullBasisIndices()[i] << std::setw(20) << std::left << fineNotInCoarseAdjoint[i] << std::setw(20) << std::left << fineNotInCoarseResidual[i] << std::setw(20) << std::left << dualWeightedResidual[i] << std::endl;
     }
     pcout << std::endl << "Total error: " << error << std::endl;
 }

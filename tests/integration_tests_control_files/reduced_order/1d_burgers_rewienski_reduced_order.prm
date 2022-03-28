@@ -31,7 +31,7 @@ end
 
 #Reduced order parameters
 subsection reduced order
-  set coarse_basis_dimension = 12
+  set fine_basis_dimension = 12
   set method_of_snapshots = true
   set path_to_search = .
 end

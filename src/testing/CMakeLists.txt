@@ -27,7 +27,8 @@ set(TESTS_SOURCE
     flow_solver_cases/1D_burgers_rewienski_snapshot.cpp
     flow_solver_cases/1d_burgers_viscous_snapshot.cpp
     flow_solver.cpp
-    dual_weighted_residual_mesh_adaptation.cpp)
+    dual_weighted_residual_mesh_adaptation.cpp
+    pod_adaptive_sampling.cpp)
 
 foreach(dim RANGE 1 3)
     # Output library

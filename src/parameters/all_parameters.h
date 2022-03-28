@@ -125,6 +125,7 @@ public:
         euler_naca0012,
         reduced_order,
         POD_adaptation,
+        POD_adaptive_sampling,
         finite_difference_sensitivity,
         advection_periodicity,
         flow_solver,

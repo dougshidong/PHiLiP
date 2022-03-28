@@ -39,6 +39,16 @@ add_test(
         WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )
 
+# =======================================
+# POD Adaptive sampling
+# =======================================
+configure_file(1d_burgers_rewienski_adaptive_sampling.prm 1d_burgers_rewienski_adaptive_sampling.prm COPYONLY)
+add_test(
+        NAME 1D_BURGERS_REWIENSKI_ADAPTIVE_SAMPLING
+        COMMAND mpirun -np 1 ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_1D -i ${CMAKE_CURRENT_BINARY_DIR}/1d_burgers_rewienski_adaptive_sampling.prm
+        WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
+)
+
 #configure_file(1d_burgers_rewienski_testing.prm 1d_burgers_rewienski_testing.prm COPYONLY)
 #add_test(
 #        NAME 1D_BURGERS_REWIENSKI_TESTING

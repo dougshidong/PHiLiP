@@ -3,7 +3,9 @@ set(SOURCE
     pod_basis_types.cpp
     pod_adaptation.cpp
     pod_basis_sensitivity.cpp
-    pod_basis_sensitivity_types.cpp)
+    pod_basis_sensitivity_types.cpp
+    delaunay.cpp
+    rbf_interpolation.cpp)
 
 foreach(dim RANGE 1 3)
     # Output library

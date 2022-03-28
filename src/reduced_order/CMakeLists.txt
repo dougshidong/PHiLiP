@@ -1,11 +1,15 @@
 set(SOURCE
-        pod_state_base.cpp
+    pod_state_base.cpp
     pod_basis_types.cpp
     pod_adaptation.cpp
-        pod_sensitivity_base.cpp
+    pod_sensitivity_base.cpp
     pod_basis_sensitivity_types.cpp
     delaunay.cpp
-    rbf_interpolation.cpp)
+    rbf_interpolation.cpp
+    pod_basis_online.cpp
+    reduced_order_solution.cpp
+    full_order_solution.cpp
+    rom_test_location.cpp)
 
 foreach(dim RANGE 1 3)
     # Output library

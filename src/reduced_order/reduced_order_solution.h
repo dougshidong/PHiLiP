@@ -23,7 +23,7 @@ class ROMSolution
 {
 public:
     /// Constructor
-    ROMSolution(std::shared_ptr<DGBase<dim,double>> &dg_input, std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> system_matrix_transpose, Functional<dim,nstate,double> &functional_input, std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> pod_basis, dealii::LinearAlgebra::distributed::Vector<double> sensitivity);
+    ROMSolution(std::shared_ptr<DGBase<dim,double>> &dg_input, std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> system_matrix_transpose, Functional<dim,nstate,double> &functional_input, std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> pod_basis);
 
     /// Destructor
     ~ROMSolution () {};
@@ -37,8 +37,6 @@ public:
     const double functional_value;
 
     const dealii::LinearAlgebra::distributed::Vector<double> gradient;
-
-    const dealii::LinearAlgebra::distributed::Vector<double> sensitivity;
 
 };
 

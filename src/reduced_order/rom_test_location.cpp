@@ -4,14 +4,13 @@ namespace PHiLiP {
 namespace ProperOrthogonalDecomposition {
 
 template <int dim, int nstate>
-ROMTestLocation<dim, nstate>::ROMTestLocation(double parameter, std::shared_ptr<ROMSolution<dim, nstate>> rom_solution)
+ROMTestLocation<dim, nstate>::ROMTestLocation(RowVector2d parameter, std::shared_ptr<ROMSolution<dim, nstate>> rom_solution)
         : parameter(parameter)
         , rom_solution(rom_solution)
 {
     std::cout << "Creating ROM test location..." << std::endl;
     compute_FOM_to_initial_ROM_error();
     initial_rom_to_final_rom_error = 0;
-    initial_rom_to_final_rom_sensitivity = 0;
     compute_total_error();
     std::cout << "ROM test location created. Error estimate updated." << std::endl;
 }
@@ -42,15 +41,6 @@ void ROMTestLocation<dim, nstate>::compute_FOM_to_initial_ROM_error(){
         //std::cout << std::setw(10) << std::left << i << std::setw(20) << std::left << adjoint[i] << std::setw(20) << std::left << rom_solution->right_hand_side[i] << std::setw(20) << std::left << dualWeightedResidual[i] << std::endl;
     }
     std::cout << "Parameter: " << parameter << ". Error estimate between ROM and FOM: " << fom_to_initial_rom_error << std::endl;
-
-    //Compute estimated sensitivity
-    fom_to_initial_rom_sensitivity = 0;
-    //std::cout << std::setw(10) << std::left << "Index" << std::setw(20) << std::left << "Adjoint" << std::setw(20) << std::left << "Residual" << std::setw(20) << std::left << "Dual Weighted Residual" << std::endl;
-    for(unsigned int i = 0; i < adjoint.size(); i++){
-        fom_to_initial_rom_sensitivity = fom_to_initial_rom_sensitivity - (adjoint[i] * rom_solution->sensitivity[i]);
-    }
-    std::cout << "Parameter: " << parameter << ". Sensitivity estimate between ROM and FOM: " << fom_to_initial_rom_sensitivity << std::endl;
-
 }
 
 template <int dim, int nstate>
@@ -104,18 +94,6 @@ void ROMTestLocation<dim, nstate>::compute_initial_rom_to_final_rom_error(std::s
         //std::cout << std::setw(10) << std::left << i << std::setw(20) << std::left << fineAdjoint[i] << std::setw(20) << std::left << fineResidual[i] << std::setw(20) << std::left << dualWeightedResidual[i] << std::endl;
     }
     std::cout << "Parameter: " << parameter << ". Error estimate between initial ROM and updated ROM: " << initial_rom_to_final_rom_error << std::endl;
-
-    //Compute estimated sensitivity
-    DealiiVector fineSensitivity(pod_updated->getPODBasis()->n());
-    //*****************Compute fine sensitivity (Petrov_Galerkin)*************************
-    petrov_galerkin_basis.Tvmult(fineSensitivity, rom_solution->sensitivity);
-    //*********************************************************************************
-    initial_rom_to_final_rom_sensitivity = 0;
-    for(unsigned int i = 0; i < fineAdjoint.size(); i++){
-        initial_rom_to_final_rom_sensitivity = initial_rom_to_final_rom_sensitivity - (fineAdjoint[i] * fineSensitivity[i]);
-    }
-    std::cout << "Parameter: " << parameter << ". Sensitivity estimate between initial ROM and updated ROM: " << initial_rom_to_final_rom_sensitivity << std::endl;
-
 }
 
 template <int dim, int nstate>
@@ -123,10 +101,6 @@ void ROMTestLocation<dim, nstate>::compute_total_error(){
     std::cout << "Computing total error estimate between FOM and updated ROM..." << std::endl;
     total_error = fom_to_initial_rom_error - initial_rom_to_final_rom_error;
     std::cout << "Parameter: " << parameter <<  ". Total error estimate between FOM and updated ROM: " << total_error << std::endl;
-
-    total_sensitivity = fom_to_initial_rom_sensitivity - initial_rom_to_final_rom_sensitivity;
-    std::cout << "Parameter: " << parameter <<  ". Total sensitivity estimate between FOM and updated ROM: " << total_sensitivity << std::endl;
-
 }
 
 

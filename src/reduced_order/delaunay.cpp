@@ -107,6 +107,7 @@ void Delaunay::compute_centroids()
     centroids.resize(triangulation.size(), 2);
     int row_idx = 0;
     for(auto& triangle : triangulation){
+        std::cout << "computing centroid" << std::endl;
         RowVector2d centroid(0,0);
         for(auto& node : triangle.nodes){
             centroid = centroid + node/3;

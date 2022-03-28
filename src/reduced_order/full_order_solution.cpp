@@ -4,9 +4,8 @@ namespace PHiLiP {
 namespace ProperOrthogonalDecomposition {
 
 template <int dim, int nstate>
-FOMSolution<dim, nstate>::FOMSolution(std::shared_ptr<DGBase<dim,double>> &dg_input, Functional<dim,nstate,double> &functional_input, double sensitivity)
+FOMSolution<dim, nstate>::FOMSolution(std::shared_ptr<DGBase<dim,double>> &dg_input, Functional<dim,nstate,double> &functional_input)
         : state(dg_input->solution)
-        , sensitivity(sensitivity)
         , functional_value(functional_input.evaluate_functional(false, false, false))
 {
 }

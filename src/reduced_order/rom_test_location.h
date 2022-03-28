@@ -16,9 +16,11 @@
 #include "reduced_order_solution.h"
 #include "full_order_solution.h"
 #include "linear_solver/linear_solver.h"
+#include <Eigen/Dense>
 
 namespace PHiLiP {
 namespace ProperOrthogonalDecomposition {
+using Eigen::RowVector2d;
 
 /// Class to hold information about the reduced-order solution
 template <int dim, int nstate>
@@ -26,7 +28,7 @@ class ROMTestLocation
 {
 public:
     /// Constructor
-    ROMTestLocation(double parameter, std::shared_ptr<ROMSolution < dim, nstate>> rom_solution);
+    ROMTestLocation(RowVector2d parameter, std::shared_ptr<ROMSolution < dim, nstate>> rom_solution);
 
     /// Copy Constructor
     ROMTestLocation(const ROMTestLocation& rom_test_location) = default;
@@ -43,7 +45,7 @@ public:
 
     void compute_total_error();
 
-    double parameter;
+    RowVector2d parameter;
 
     std::shared_ptr<ROMSolution<dim, nstate>> rom_solution;
 
@@ -52,12 +54,6 @@ public:
     double initial_rom_to_final_rom_error;
 
     double total_error;
-
-    double fom_to_initial_rom_sensitivity;
-
-    double initial_rom_to_final_rom_sensitivity;
-
-    double total_sensitivity;
 
 };
 

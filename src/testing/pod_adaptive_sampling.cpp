@@ -7,9 +7,6 @@ template<int dim, int nstate>
 AdaptiveSampling<dim, nstate>::AdaptiveSampling(const PHiLiP::Parameters::AllParameters *const parameters_input)
         : TestsBase::TestsBase(parameters_input)
 {
-    std::vector<double> parameter_range = {0.01, 0.1};
-    parameter_space = parameter_range;
-
     std::shared_ptr<Tests::BurgersRewienskiSnapshot<dim, nstate>> flow_solver_case = std::make_shared<Tests::BurgersRewienskiSnapshot<dim,nstate>>(all_parameters);
     std::unique_ptr<Tests::FlowSolver<dim,nstate>> flow_solver = std::make_unique<Tests::FlowSolver<dim,nstate>>(all_parameters, flow_solver_case);
     current_pod = std::make_shared<ProperOrthogonalDecomposition::OnlinePOD<dim>>(flow_solver->dg);
@@ -20,9 +17,11 @@ int AdaptiveSampling<dim, nstate>::run_test() const
 {
     std::cout << "Starting adaptive sampling process" << std::endl;
 
-    int n = 5;
-    initializeSampling(n);
+    placeInitialSnapshots();
+    placeROMs();
 
+    getMaxErrorROM();
+    /*
     double max_error = 1;
     double tolerance = 1E-03;
     double max_parameter = getMaxErrorROM();
@@ -112,101 +111,118 @@ int AdaptiveSampling<dim, nstate>::run_test() const
 
     std::ofstream rom_table_file("adaptive_sampling_rom_table.txt");
     rom_table->write_text(rom_table_file);
-
+    */
     return 0;
 }
 
 
 template <int dim, int nstate>
 double AdaptiveSampling<dim, nstate>::getMaxErrorROM() const{
-    std::cout << "Updating error curve fit..." << std::endl;
+    std::cout << "Updating RBF interpolation..." << std::endl;
 
-    //Set errors at ROM locations
-    double max_parameter = 0;
-    double max_error = 0;
-    for(auto& [key, value] : rom_locations){
-        if(abs(max_error) < abs(value.total_error)){
-            max_parameter = value.parameter;
-            max_error = value.total_error;
-        }
-        std::cout << "Parameter: " << value.parameter << " Error: " << value.total_error << std::endl;
+    int n_rows = snapshot_parameters.rows() + rom_parameters.rows();
+    std::cout << "here1" << std::endl;
+    MatrixXd parameters(n_rows, 2);
+    parameters << snapshot_parameters,
+                  rom_parameters;
+    std::cout << "parameters" << std::endl;
+    VectorXd errors(n_rows);
+    std::cout << "here3" << std::endl;
+    for(int i = 0 ; i < snapshot_parameters.rows() ; i++){
+        errors(i) = 0;
     }
-    return max_parameter;
+    std::cout << "here4" << std::endl;
+    for(int i = snapshot_parameters.rows() ; i < n_rows ; i++){
+        RowVector2d param = parameters.row(i);
+        std::cout << param << std::endl;
+        errors(i) = rom_locations.at(param).total_error;
+    }
+    std::cout << "here5" << std::endl;
+    //Construct radial basis function
+    std::string kernel = "thin_plate_spline";
+    ProperOrthogonalDecomposition::RBFInterpolation rbf = ProperOrthogonalDecomposition::RBFInterpolation(parameters, errors, kernel);
+
+    //Find max error and parameters by minimizing function starting at each ROM location
+    RowVector2d max_error_params;
+    double max_error = 0;
+    Eigen::NumericalDiff<ProperOrthogonalDecomposition::RBFInterpolation> numericalDiffMyFunctor(rbf);
+    Eigen::LevenbergMarquardt<Eigen::NumericalDiff<ProperOrthogonalDecomposition::RBFInterpolation>, double> levenbergMarquardt(numericalDiffMyFunctor);
+    levenbergMarquardt.parameters.ftol = 1e-6;
+    levenbergMarquardt.parameters.xtol = 1e-6;
+    levenbergMarquardt.parameters.maxfev = 100; // Max iterations
+    for(auto rom : rom_parameters.rowwise()){
+        Eigen::VectorXd x = rom.transpose();
+        levenbergMarquardt.minimize(x);
+        std::cout << "Parameters that maximize the error: " << x << std::endl;
+
+        double actual_error = std::abs(rbf.evaluate(x.transpose()).value());
+        if(actual_error > max_error){
+            max_error = actual_error;
+            max_error_params = x.transpose();
+        }
+    }
+
+    return max_error;
+
 }
 
 template <int dim, int nstate>
-void AdaptiveSampling<dim, nstate>::initializeSampling(int n) const{
+void AdaptiveSampling<dim, nstate>::placeInitialSnapshots() const{
+    std::vector<double> rewienski_a_range = {2, 10};
+    std::vector<double> rewienski_b_range = {0.01, 0.1};
 
-    double dx = (parameter_space[1] - parameter_space[0])/(n - 1);
+    snapshot_parameters.resize(5,2);
+    snapshot_parameters << rewienski_a_range[0], rewienski_b_range[0],
+                           rewienski_a_range[0], rewienski_b_range[1],
+                           rewienski_a_range[1], rewienski_b_range[1],
+                           rewienski_a_range[1], rewienski_b_range[0],
+                           (rewienski_a_range[0] + rewienski_a_range[1])/2, (rewienski_b_range[0] + rewienski_b_range[1])/2;
 
     //Get initial conditions
-    double parameter = parameter_space[0];
-    Parameters::AllParameters params = reinitParams(parameter);
+    Parameters::AllParameters params = reinitParams(snapshot_parameters.row(0));
     std::shared_ptr<Tests::BurgersRewienskiSnapshot<dim, nstate>> flow_solver_case = std::make_shared<Tests::BurgersRewienskiSnapshot<dim,nstate>>(&params);
     std::unique_ptr<Tests::FlowSolver<dim,nstate>> flow_solver = std::make_unique<Tests::FlowSolver<dim,nstate>>(&params, flow_solver_case);
     const dealii::LinearAlgebra::distributed::Vector<double> initial_conditions = flow_solver->dg->solution;
-    //current_pod->addSnapshot(initial_conditions);
 
-    for(int i = 0 ; i < n ; i++){
-        parameter = i*dx + parameter_space[0];
-        std::cout << "Sampling initial snapshot at " << parameter << std::endl;
-        sampled_locations.push_back(parameter);
-        std::shared_ptr<ProperOrthogonalDecomposition::FOMSolution<dim,nstate>> fom_solution = solveSnapshotFOM(parameter);
+    for(auto snap_param : snapshot_parameters.rowwise()){
+        std::cout << "Sampling initial snapshot at " << snap_param << std::endl;
+        std::shared_ptr<ProperOrthogonalDecomposition::FOMSolution<dim,nstate>> fom_solution = solveSnapshotFOM(snap_param);
         dealii::LinearAlgebra::distributed::Vector<double> state_tmp = fom_solution->state;
         current_pod->addSnapshot(state_tmp -= initial_conditions);
-        //rom_locations.push_back(*fom_solution);
     }
+}
 
+template <int dim, int nstate>
+void AdaptiveSampling<dim, nstate>::placeROMs() const{
     current_pod->computeBasis();
 
-    for(int i = 0 ; i < n-1 ; i++) {
-        parameter = i * dx + dx / 2 + parameter_space[0];
-        std::cout << "Computing ROM at " << parameter << std::endl;
-        std::shared_ptr<ProperOrthogonalDecomposition::ROMSolution<dim, nstate>> rom_solution = solveSnapshotROM(parameter);
-        ProperOrthogonalDecomposition::ROMTestLocation < dim,nstate > rom_location = ProperOrthogonalDecomposition::ROMTestLocation < dim, nstate>(parameter, rom_solution);
-        rom_locations.emplace(parameter, rom_location);
-    }
+    ProperOrthogonalDecomposition::Delaunay delaunay(snapshot_parameters);
 
-}
+    for(auto centroid : delaunay.centroids.rowwise()){
+        auto element = rom_locations.find(centroid);
+        if(element == rom_locations.end()){
+            std::cout << "Computing ROM at " << centroid << std::endl;
+            std::shared_ptr<ProperOrthogonalDecomposition::ROMSolution<dim, nstate>> rom_solution = solveSnapshotROM(centroid);
+            ProperOrthogonalDecomposition::ROMTestLocation < dim,nstate > rom_location = ProperOrthogonalDecomposition::ROMTestLocation < dim, nstate>(centroid, rom_solution);
+            rom_locations.emplace(centroid, rom_location);
 
-template <int dim, int nstate>
-dealii::Vector<double> AdaptiveSampling<dim, nstate>::polyFit(dealii::Vector<double> x, dealii::Vector<double> y, unsigned int n) const{
-
-    dealii::FullMatrix<double> vandermonde(x.size(), n+1);
-
-    for(unsigned int i = 0 ; i < x.size() ; i++){
-        for(unsigned int j = 0 ; j < n+1 ; j++){
-            vandermonde.set(i, j, std::pow(x(i), j));
+            if(rom_parameters.rows() == 0){
+                rom_parameters.resize(rom_parameters.rows()+1,2);
+            }
+            else{
+                rom_parameters.conservativeResize(rom_parameters.rows()+1, 2);
+            }
+            rom_parameters.row(rom_parameters.rows()-1) = centroid;
         }
-    }
-
-    dealii::Householder<double> householder(vandermonde);
-
-    dealii::Vector<double> coefficients(n+1);
-    householder.least_squares(coefficients, y);
-
-    return coefficients;
-}
-
-template <int dim, int nstate>
-dealii::Vector<double> AdaptiveSampling<dim, nstate>::polyVal(dealii::Vector<double> polynomial, dealii::Vector<double> x) const{
-
-    dealii::FullMatrix<double> vandermonde(x.size(), polynomial.size());
-
-    for(unsigned int i = 0 ; i < x.size() ; i++){
-        for(unsigned int j = 0 ; j < polynomial.size() ; j++){
-            vandermonde.set(i, j, std::pow(x(i), j));
+        else{
+            std::cout << "ROM already computed." << std::endl;
         }
+        std::cout << rom_parameters << std::endl;
     }
-    dealii::Vector<double> y(x.size());
-    vandermonde.vmult(y, polynomial);
-
-    return y;
-
 }
 
 template <int dim, int nstate>
-std::shared_ptr<ProperOrthogonalDecomposition::FOMSolution<dim,nstate>> AdaptiveSampling<dim, nstate>::solveSnapshotFOM(double parameter) const{
+std::shared_ptr<ProperOrthogonalDecomposition::FOMSolution<dim,nstate>> AdaptiveSampling<dim, nstate>::solveSnapshotFOM(RowVector2d parameter) const{
     std::cout << "Solving FOM at " << parameter << std::endl;
     Parameters::AllParameters params = reinitParams(parameter);
 
@@ -224,14 +240,14 @@ std::shared_ptr<ProperOrthogonalDecomposition::FOMSolution<dim,nstate>> Adaptive
     // Create functional
     auto functional = BurgersRewienskiFunctional<dim,nstate,double>(flow_solver->dg,dg_state->pde_physics_fad_fad,true,false);
     //Get sensitivity from FlowSolver
-    std::shared_ptr<ProperOrthogonalDecomposition::FOMSolution<dim,nstate>> fom_solution = std::make_shared<ProperOrthogonalDecomposition::FOMSolution<dim, nstate>>(flow_solver->dg, functional, 0);
+    std::shared_ptr<ProperOrthogonalDecomposition::FOMSolution<dim,nstate>> fom_solution = std::make_shared<ProperOrthogonalDecomposition::FOMSolution<dim, nstate>>(flow_solver->dg, functional);
 
     std::cout << "Done solving FOM." << std::endl;
     return fom_solution;
 }
 
 template <int dim, int nstate>
-std::shared_ptr<ProperOrthogonalDecomposition::ROMSolution<dim,nstate>> AdaptiveSampling<dim, nstate>::solveSnapshotROM(double parameter) const{
+std::shared_ptr<ProperOrthogonalDecomposition::ROMSolution<dim,nstate>> AdaptiveSampling<dim, nstate>::solveSnapshotROM(RowVector2d parameter) const{
     std::cout << "Solving ROM at " << parameter << std::endl;
     Parameters::AllParameters params = reinitParams(parameter);
 
@@ -256,39 +272,13 @@ std::shared_ptr<ProperOrthogonalDecomposition::ROMSolution<dim,nstate>> Adaptive
     std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> pod_basis = std::make_shared<dealii::TrilinosWrappers::SparseMatrix>();
     pod_basis->copy_from(*current_pod->getPODBasis());
 
-    //Compute gradient dR/db
-    this->pcout << "Computing sensitivity to parameter" << std::endl;
-    int overintegrate = 0;
-    dealii::QGauss<dim> quad_extra(flow_solver->dg->max_degree+1+overintegrate);
-    dealii::FEValues<dim,dim> fe_values_extra(*(flow_solver->dg->high_order_grid->mapping_fe_field), flow_solver->dg->fe_collection[flow_solver->dg->max_degree], quad_extra,
-                                              dealii::update_values | dealii::update_JxW_values | dealii::update_quadrature_points);
-    const unsigned int n_quad_pts = fe_values_extra.n_quadrature_points;
-    std::vector<dealii::types::global_dof_index> dofs_indices(fe_values_extra.dofs_per_cell);
-    dealii::LinearAlgebra::distributed::Vector<double> sensitivity_dRdb(flow_solver->dg->n_dofs());
-    sensitivity_dRdb*=0;
-    for (auto cell : flow_solver->dg->dof_handler.active_cell_iterators()) {
-        if (!cell->is_locally_owned()) continue;
-
-        fe_values_extra.reinit(cell);
-        cell->get_dof_indices(dofs_indices);
-
-        for (unsigned int idof = 0; idof < fe_values_extra.dofs_per_cell; ++idof) {
-            for (unsigned int iquad = 0; iquad < n_quad_pts; ++iquad) {
-                const unsigned int istate = fe_values_extra.get_fe().system_to_component_index(idof).first;
-                double b = params.burgers_param.rewienski_b;
-                const dealii::Point<dim, double> point = fe_values_extra.quadrature_point(iquad);
-                sensitivity_dRdb[dofs_indices[idof]] += fe_values_extra.shape_value_component(idof, iquad, istate) * 0.02 * point[0] * exp(point[0] * b) * fe_values_extra.JxW(iquad);
-            }
-        }
-    }
-
-    std::shared_ptr<ProperOrthogonalDecomposition::ROMSolution<dim,nstate>> rom_solution = std::make_shared<ProperOrthogonalDecomposition::ROMSolution<dim, nstate>>(flow_solver->dg, system_matrix_transpose,functional, pod_basis, sensitivity_dRdb);
+    std::shared_ptr<ProperOrthogonalDecomposition::ROMSolution<dim,nstate>> rom_solution = std::make_shared<ProperOrthogonalDecomposition::ROMSolution<dim, nstate>>(flow_solver->dg, system_matrix_transpose,functional, pod_basis);
     std::cout << "Done solving ROM." << std::endl;
     return rom_solution;
 }
 
 template <int dim, int nstate>
-Parameters::AllParameters AdaptiveSampling<dim, nstate>::reinitParams(double parameter) const{
+Parameters::AllParameters AdaptiveSampling<dim, nstate>::reinitParams(RowVector2d parameter) const{
     dealii::ParameterHandler parameter_handler;
     PHiLiP::Parameters::AllParameters::declare_parameters (parameter_handler);
     PHiLiP::Parameters::AllParameters parameters;
@@ -317,10 +307,8 @@ Parameters::AllParameters AdaptiveSampling<dim, nstate>::reinitParams(double par
     using FlowCaseEnum = Parameters::FlowSolverParam::FlowCaseType;
     const FlowCaseEnum flow_type = this->all_parameters->flow_solver_param.flow_case_type;
     if (flow_type == FlowCaseEnum::burgers_rewienski_snapshot){
-        parameters.burgers_param.rewienski_b = parameter;
-    }
-    else if (flow_type == FlowCaseEnum::burgers_viscous_snapshot){
-        parameters.burgers_param.diffusion_coefficient = parameter;
+        parameters.burgers_param.rewienski_b = parameter(0);
+        parameters.burgers_param.rewienski_b = parameter(1);
     }
     else{
         std::cout << "Invalid flow case. You probably forgot to specify a flow case in the prm file." << std::endl;

@@ -10,8 +10,11 @@ std::unique_ptr< dealii::DataPostprocessor<dim> > PostprocessorFactory<dim>
 ::create_Postprocessor(const Parameters::AllParameters *const parameters_input)
 {
     using PDE_enum = Parameters::AllParameters::PartialDifferentialEquation;
-    PDE_enum pde_type = parameters_input->pde_type;
-    //Parameters::AllParameters::PartialDifferentialEquation pde_type = parameters_input->pde_type;
+    const PDE_enum pde_type = parameters_input->pde_type;
+#if PHILIP_DIM==3
+    using Model_enum = Parameters::AllParameters::ModelType;
+    const Model_enum model_type = parameters_input->model_type;
+#endif
 
     if (pde_type == PDE_enum::advection) {
         return std::make_unique< PhysicsPostprocessor<dim,1> >(parameters_input);
@@ -33,7 +36,7 @@ std::unique_ptr< dealii::DataPostprocessor<dim> > PostprocessorFactory<dim>
         return std::make_unique< PhysicsPostprocessor<dim,dim+2> >(parameters_input);
     }
 #if PHILIP_DIM==3
-    else if (pde_type == PDE_enum::physics_model) {
+    else if ((pde_type == PDE_enum::physics_model) && (model_type == Model_enum::large_eddy_simulation)) {
         return std::make_unique< PhysicsPostprocessor<dim,dim+2> >(parameters_input);
     } 
 #endif

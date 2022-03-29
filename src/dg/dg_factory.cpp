@@ -14,9 +14,13 @@ DGFactory<dim,real,MeshType>
     const unsigned int grid_degree_input,
     const std::shared_ptr<Triangulation> triangulation_input)
 {
-    using PDE_enum = Parameters::AllParameters::PartialDifferentialEquation;
+    using PDE_enum   = Parameters::AllParameters::PartialDifferentialEquation;
+    const PDE_enum pde_type = parameters_input->pde_type;
+#if PHILIP_DIM==3
+    using Model_enum = Parameters::AllParameters::ModelType;
+    const Model_enum model_type = parameters_input->model_type;
+#endif
 
-    PDE_enum pde_type = parameters_input->pde_type;
     if (parameters_input->use_weak_form) {
         if (pde_type == PDE_enum::advection) {
             return std::make_shared< DGWeak<dim,1,real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
@@ -38,7 +42,7 @@ DGFactory<dim,real,MeshType>
             return std::make_shared< DGWeak<dim,dim+2,real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
         }
 #if PHILIP_DIM==3
-        else if (pde_type == PDE_enum::physics_model) {
+        else if ((pde_type == PDE_enum::physics_model) && (model_type == Model_enum::large_eddy_simulation)) {
             return std::make_shared< DGWeak<dim,dim+2,real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
         }
 #endif
@@ -63,7 +67,7 @@ DGFactory<dim,real,MeshType>
             return std::make_shared< DGStrong<dim,dim+2,real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
         } 
 #if PHILIP_DIM==3
-        else if(pde_type == PDE_enum::physics_model) {
+        else if ((pde_type == PDE_enum::physics_model) && (model_type == Model_enum::large_eddy_simulation)) {
             return std::make_shared< DGStrong<dim,dim+2,real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
         }
 #endif

@@ -314,7 +314,9 @@ int main (int argc, char * argv[])
     };
 
     const std::vector<ModelType> model_type {
+#if PHILIP_DIM==3
         ModelType::large_eddy_simulation
+#endif
     };
 
     const std::vector<SGSModelType> sgs_model_type {

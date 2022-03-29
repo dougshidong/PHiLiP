@@ -80,4 +80,3 @@ template class NumericalFluxFactory<PHILIP_DIM, 5, RadFadType >;
 
 } // NumericalFlux namespace
 } // PHiLiP namespace
-

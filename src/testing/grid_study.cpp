@@ -59,15 +59,6 @@ void GridStudy<dim,nstate>
     //}
     dg.solution = solution_no_ghost;
 
-//Alex hard code initial condition
-#if 0
-            const unsigned int n_dofs = dg.dof_handler.n_dofs();
-            for(unsigned int idof=0; idof<n_dofs; idof++){
-                dg.solution[idof] = 0.0;
-            }
-#endif
-
-
 }
 template <int dim, int nstate>
 double GridStudy<dim,nstate>
@@ -733,4 +724,3 @@ template class GridStudy <PHILIP_DIM,5>;
 
 } // Tests namespace
 } // PHiLiP namespace
-

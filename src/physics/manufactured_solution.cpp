@@ -170,7 +170,7 @@ inline real ManufacturedSolutionQuadratic<dim,real>
 }
 
 template <int dim, typename real>
-inline real ManufacturedSolutionAlex<dim,real>
+inline real ManufacturedSolutionExample<dim,real>
 ::value (const dealii::Point<dim,real> &point, const unsigned int istate) const
 {
     real value = 0.0;
@@ -484,7 +484,7 @@ inline dealii::Tensor<1,dim,real> ManufacturedSolutionQuadratic<dim,real>
 }
 
 template <int dim, typename real>
-inline dealii::Tensor<1,dim,real> ManufacturedSolutionAlex<dim,real>
+inline dealii::Tensor<1,dim,real> ManufacturedSolutionExample<dim,real>
 ::gradient(const dealii::Point<dim,real> &point, const unsigned int /*istate*/) const
 {
     dealii::Tensor<1,dim,real> gradient;
@@ -916,7 +916,7 @@ inline dealii::SymmetricTensor<2,dim,real> ManufacturedSolutionQuadratic<dim,rea
 }
 
 template <int dim, typename real>
-inline dealii::SymmetricTensor<2,dim,real> ManufacturedSolutionAlex<dim,real>
+inline dealii::SymmetricTensor<2,dim,real> ManufacturedSolutionExample<dim,real>
 ::hessian (const dealii::Point<dim,real> &point, const unsigned int  /*istate*/) const
 {
     dealii::SymmetricTensor<2,dim,real> hessian;
@@ -1161,8 +1161,8 @@ ManufacturedSolutionFactory<dim,real>::create_ManufacturedSolution(
         return std::make_shared<ManufacturedSolutionSShock<dim,real>>(nstate);
     }else if(solution_type == ManufacturedSolutionEnum::quadratic_solution){
         return std::make_shared<ManufacturedSolutionQuadratic<dim,real>>(nstate);
-    }else if(solution_type == ManufacturedSolutionEnum::Alex_solution){
-        return std::make_shared<ManufacturedSolutionAlex<dim,real>>(nstate);
+    }else if(solution_type == ManufacturedSolutionEnum::example_solution){
+        return std::make_shared<ManufacturedSolutionExample<dim,real>>(nstate);
 
     }else if(solution_type == ManufacturedSolutionEnum::navah_solution_1){
         if constexpr((dim==2) /*&& (nstate==dim+2)*/) {
@@ -1304,4 +1304,3 @@ template class ManufacturedSolutionFactory<PHILIP_DIM,RadType>;
 template class ManufacturedSolutionFactory<PHILIP_DIM,FadFadType>;
 template class ManufacturedSolutionFactory<PHILIP_DIM,RadFadType>;
 }
-

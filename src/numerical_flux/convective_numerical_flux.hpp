@@ -166,33 +166,6 @@ protected:
 	    int &ssw_RIGHT) const;
 };
 
-#if 0
-/// Central numerical flux. Derived from NumericalFluxConvective.
-template<int dim, int nstate, typename real>
-class CentralFlux: public NumericalFluxConvective<dim, nstate, real>
-{
-public:
-
-/// Constructor
-CentralFlux(std::shared_ptr <Physics::PhysicsBase<dim, nstate, real>> physics_input)
-:
-pde_physics(physics_input)
-{};
-/// Destructor
-entralFlux() {};
-
-/// Returns the Central convective numerical flux at an interface.
-std::array<real, nstate> evaluate_flux (
-    const std::array<real, nstate> &soln_int,
-    const std::array<real, nstate> &soln_ext,
-    const dealii::Tensor<1,dim,real> &normal1) const;
-
-protected:
-/// Numerical flux requires physics to evaluate convective eigenvalues.
-const std::shared_ptr < Physics::PhysicsBase<dim, nstate, real> > pde_physics;
-
-};
-#endif
 
 } /// NumericalFlux namespace
 } /// PHiLiP namespace

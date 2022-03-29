@@ -223,4 +223,3 @@ template class FlowSolverFactory <PHILIP_DIM,PHILIP_DIM+2>;
 } // Tests namespace
 } // PHiLiP namespace
 
-

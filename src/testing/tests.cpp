@@ -205,4 +205,3 @@ template class TestsFactory <PHILIP_DIM,5,dealii::parallel::distributed::Triangu
 
 } // Tests namespace
 } // PHiLiP namespace
-

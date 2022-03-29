@@ -49,4 +49,3 @@ void MeshAdaptationParam::parse_parameters (dealii::ParameterHandler &prm)
 } // namespace Parameters
 } // namespace PHiLiP
 
-

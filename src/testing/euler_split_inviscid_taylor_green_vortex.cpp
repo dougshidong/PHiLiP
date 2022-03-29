@@ -68,20 +68,6 @@ double EulerTaylorGreen<dim, nstate>::compute_MK_energy(std::shared_ptr < DGBase
      cell->get_dof_indices (dofs_indices);
 
     
-#if 0
-        for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
-            soln_at_q[iquad] = 0.0;
-         for (unsigned int idof=0; idof<fe_values_extra.dofs_per_cell; ++idof) {
-          const unsigned int istate = fe_values_extra.get_fe().system_to_component_index(idof).first;
-             soln_at_q[iquad][istate] += dg->solution[dofs_indices[idof]] * fe_values_extra.shape_value_component(idof, iquad, istate);
-         }
-            for(unsigned int istate=1; istate<4; istate++){
-                soln_at_q[iquad][istate] /= soln_at_q[iquad][0];//get primitive velocities
-            }
-        }
-#endif
-
-
 
 //    std::fill(soln_at_q.begin(), soln_at_q.end(), 0);
     const unsigned int n_dofs_cell = fe_values_extra.dofs_per_cell;

@@ -814,4 +814,3 @@ template class MHD < PHILIP_DIM, 8, RadFadType >;
 
 } // Physics namespace
 } // PHiLiP namespace
-

@@ -113,4 +113,3 @@ template class BurgersRewienski < PHILIP_DIM, PHILIP_DIM, RadFadType >;
 
 
 
-

@@ -272,4 +272,3 @@ double eval_avg_slope(std::vector<double> error, std::vector<double> grid_size, 
 } // PHiLiP namespace
 
 #endif //__DIFFUSION_EXACT_ADJOINT_H__
-

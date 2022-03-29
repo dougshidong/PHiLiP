@@ -365,4 +365,3 @@ protected:
 } // PHiLiP namespace
 
 #endif
-

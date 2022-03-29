@@ -434,15 +434,6 @@ public:
     ///Checks on the fly that the grid hasn't been updated with a higher order. If the grid has been updated, then it recreates the appropriate metric basis.
     void is_the_grid_higher_order_than_initialized(
                                     const unsigned int grid_degree);
-
-#if 0
-    ///Given a physical flux, and the metric cofactor matrix, this function returns the reference flux.
-    void compute_reference_flux(
-                                    const std::vector< dealii::Tensor<1,dim,real>> &conv_phys_flux,
-                                    const dealii::FullMatrix<real> &metric_cofactor,
-                                    const int nstate,
-                                    std::vector< dealii::Tensor<1,dim,real>> &conv_ref_flux);
-#endif
                                 
 
 };///End operator base class.

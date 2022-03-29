@@ -24,4 +24,3 @@ foreach(dim RANGE 1 3)
 #    unset(DiscontinuousGalerkinLib)
 
 endforeach()
-

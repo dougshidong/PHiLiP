@@ -636,4 +636,3 @@ template std::array<dealii::Tensor<1,PHILIP_DIM,FadFadType>,PHILIP_DIM> NavierSt
 template std::array<dealii::Tensor<1,PHILIP_DIM,RadFadType>,PHILIP_DIM> NavierStokes < PHILIP_DIM, PHILIP_DIM+2, RadFadType>::extract_velocities_gradient_from_primitive_solution_gradient<RadFadType>(const std::array<dealii::Tensor<1,PHILIP_DIM,RadFadType>,PHILIP_DIM+2> &primitive_soln_gradient) const;
 } // Physics namespace
 } // PHiLiP namespace
-

@@ -477,9 +477,9 @@ private:
 };
 
 
-/// Sum of Alex functions manufactured solution (was used in Manufactured Solution presentation).
+/// Sum of example functions manufactured solution (was used in Manufactured Solution presentation).
 template <int dim, typename real>
-class ManufacturedSolutionAlex
+class ManufacturedSolutionExample
     : public ManufacturedSolutionFunction<dim, real>
 {
 // We want the Point to be templated on the type,
@@ -493,7 +493,7 @@ protected:
     using dealii::Function<dim,real>::hessian;
 public:
     ///Constructor
-    ManufacturedSolutionAlex(const unsigned int nstate = 1)
+    ManufacturedSolutionExample(const unsigned int nstate = 1)
         :   ManufacturedSolutionFunction<dim,real>(nstate){}
     /// Value
     real value (const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
@@ -713,4 +713,3 @@ public:
 } // namespace PHiLiP
 
 #endif //__MANUFACTUREDSOLUTIONFUNCTION_H__
-

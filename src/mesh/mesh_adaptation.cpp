@@ -66,4 +66,3 @@ template class MeshAdaptation<PHILIP_DIM, double, dealii::parallel::shared::Tria
 template class MeshAdaptation<PHILIP_DIM, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
 #endif
 } // namespace PHiLiP
-

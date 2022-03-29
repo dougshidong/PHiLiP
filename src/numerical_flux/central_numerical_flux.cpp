@@ -19,7 +19,6 @@ std::array<real, nstate> CentralNumFlux<dim,nstate,real>::evaluate_flux(
     conv_phys_flux_int = pde_physics->convective_flux (soln_int);
     conv_phys_flux_ext = pde_physics->convective_flux (soln_ext);
     
-    //RealArrayVector flux_avg = array_average<nstate, dealii::Tensor<1,dim,real>> (conv_phys_flux_int, conv_phys_flux_ext);
     RealArrayVector flux_avg;
     for (int s=0; s<nstate; s++) {
         flux_avg[s] = 0.0;
@@ -28,10 +27,8 @@ std::array<real, nstate> CentralNumFlux<dim,nstate,real>::evaluate_flux(
         }
     }
 
-    // Scalar dissipation
     std::array<real, nstate> numerical_flux_dot_n;
     for (int s=0; s<nstate; s++) {
-        //numerical_flux_dot_n[s] = flux_avg[s]*normal_int - 0.5 * conv_max_eig * (soln_ext[s]-soln_int[s]);
         real flux_dot_n = 0.0;
         for (int d=0; d<dim; ++d) {
             flux_dot_n += flux_avg[s][d]*normal_int[d];

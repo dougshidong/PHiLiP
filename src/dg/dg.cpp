@@ -583,25 +583,24 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
                     int cell_index  = current_cell->index();
                     auto neighbor_cell = dof_handler.begin_active();
                     //int cell_index = current_cell->index();
-                    #if 0
-                    if (cell_index == 0 && iface == 0)
-                    {
-                        fe_values_collection_face_int.reinit(current_cell, iface, i_quad, i_mapp, i_fele);
-                        neighbor_cell = dof_handler.begin_active();
-                       for (unsigned int i = 0 ; i < triangulation->n_active_cells() - 1; ++i)
-                       {
-                           ++neighbor_cell;
-                       }
-                        neighbor_dofs_indices.resize(n_dofs_curr_cell);
-                        neighbor_cell->get_dof_indices(neighbor_dofs_indices);
-                         const unsigned int fe_index_neigh_cell = neighbor_cell->active_fe_index();
-                        const unsigned int quad_index_neigh_cell = fe_index_neigh_cell;
-                        const unsigned int mapping_index_neigh_cell = 0;
-
-                        fe_values_collection_face_ext.reinit(neighbor_cell,(iface == 1) ? 0 : 1,quad_index_neigh_cell,mapping_index_neigh_cell,fe_index_neigh_cell);
-
-                    }
-                    #endif
+                    //in case choose first element, right now we choose last for periodic 1D
+//                    if (cell_index == 0 && iface == 0)
+//                    {
+//                        fe_values_collection_face_int.reinit(current_cell, iface, i_quad, i_mapp, i_fele);
+//                        neighbor_cell = dof_handler.begin_active();
+//                       for (unsigned int i = 0 ; i < triangulation->n_active_cells() - 1; ++i)
+//                       {
+//                           ++neighbor_cell;
+//                       }
+//                        neighbor_dofs_indices.resize(n_dofs_curr_cell);
+//                        neighbor_cell->get_dof_indices(neighbor_dofs_indices);
+//                         const unsigned int fe_index_neigh_cell = neighbor_cell->active_fe_index();
+//                        const unsigned int quad_index_neigh_cell = fe_index_neigh_cell;
+//                        const unsigned int mapping_index_neigh_cell = 0;
+//
+//                        fe_values_collection_face_ext.reinit(neighbor_cell,(iface == 1) ? 0 : 1,quad_index_neigh_cell,mapping_index_neigh_cell,fe_index_neigh_cell);
+//
+//                    }
                    // else if (cell_index == (int) triangulation->n_active_cells() - 1 && iface == 1)
                     if (cell_index == (int) triangulation->n_active_cells() - 1 && iface == 1)
                     {

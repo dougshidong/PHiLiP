@@ -74,4 +74,3 @@ foreach(dim RANGE 1 3)
     unset(PODLib)
     unset(InitialConditionsLib)
 endforeach()
-

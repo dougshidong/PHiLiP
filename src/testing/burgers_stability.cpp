@@ -38,16 +38,6 @@ double BurgersEnergyStability<dim, nstate>::compute_energy(std::shared_ptr < PHi
         dg->global_mass_matrix.vmult( Mu_hat, dg->solution);
         energy = dg->solution * Mu_hat;
         
-#if 0
-        dealii::LinearAlgebra::distributed::Vector<double> Mu_hat(dg->solution.size());
-        dg->global_mass_matrix.vmult( Mu_hat, dg->solution);
-
-	for (unsigned int i = 0; i < dg->solution.size(); ++i)
-	{
-            //energy += dg->global_mass_matrix(i,i) * dg->solution(i) * dg->solution(i);
-            energy +=  dg->solution(i) * Mu_hat(i);
-	}
-#endif
 	return energy;
 }
 
@@ -83,14 +73,6 @@ double BurgersEnergyStability<dim, nstate>::compute_conservation(std::shared_ptr
         Chi_inv.vmult(ones_hat, ones);
 
         dealii::LinearAlgebra::distributed::Vector<double> ones_hat_global(dg->right_hand_side);
-#if 0
-        const unsigned int number_cells = dg->right_hand_side.size() / n_dofs_cell;
-        for( unsigned int cell = 0; cell<number_cells; cell++){
-            for(unsigned int i= cell * n_dofs_cell, j=0; i< (cell+1) * n_dofs_cell && j<n_dofs_cell; i++, j++){
-                ones_hat_global[i] = ones_hat[j];
-            }
-        }
-#endif
         std::vector<dealii::types::global_dof_index> dofs_indices (n_dofs_cell);
         for (auto cell = dg->dof_handler.begin_active(); cell!=dg->dof_handler.end(); ++cell) {
             if (!cell->is_locally_owned()) continue;
@@ -128,19 +110,10 @@ void BurgersEnergyStability<dim, nstate>::initialize(PHiLiP::DGBase<dim, double>
         if (dim == 3){
             for(int idim=0; idim<dim; idim++)
                 expression.push_back("sin(pi*(x))*sin(pi*y)*sin(pi*z) + 0.01");
-#if 0
-	    expression[0]= "sin(pi*(x))*sin(pi*y)*sin(pi*z) + 0.01";
-	    expression[1]= "sin(pi*(x))*sin(pi*y)*sin(pi*z) + 0.01";
-	    expression[2] = "sin(pi*(x))*sin(pi*y)*sin(pi*z) + 0.01";
-#endif
         }
         if (dim == 2){
             for(int idim=0; idim<dim; idim++)
                 expression.push_back("sin(pi*(x))*sin(pi*y) + 0.01");
-#if 0
-	    expression[0] = "sin(pi*(x))*sin(pi*y) + 0.01";
-	    expression[1] = "sin(pi*(x))*sin(pi*y) + 0.01";
-#endif
         }
         if(dim==1){
             //expression.push_back("sin(pi*(x)) + 0.01");
@@ -155,12 +128,10 @@ void BurgersEnergyStability<dim, nstate>::initialize(PHiLiP::DGBase<dim, double>
 	                             expression,
 	                             constants);
 //	dealii::VectorTools::interpolate(dg.dof_handler,initial_condition,dg.solution);
-//#if 0
         dealii::LinearAlgebra::distributed::Vector<double> solution_no_ghost;
         solution_no_ghost.reinit(dg.locally_owned_dofs, MPI_COMM_WORLD);
 	dealii::VectorTools::interpolate(dg.dof_handler,initial_condition,solution_no_ghost);
         dg.solution = solution_no_ghost;
-//#endif
 
 }
 
@@ -202,19 +173,6 @@ int BurgersEnergyStability<dim, nstate>::run_test() const
     dealii::GridGenerator::hyper_cube(*grid, left, right, true);
     //dealii::GridGenerator::subdivided_hyper_cube(grid,static_cast<int>(pow(2, igrid)),left, right);
       //  dealii::GridGenerator::subdivided_hyper_cube(grid_super_fine, n_1d_cells[n_grids_input-1]);
-//curvilinear
-#if 0
-const dealii::Point<dim> center1(-1,1);
-const dealii::SphericalManifold<dim> m0(center1);
-dealii::GridGenerator::hyper_cube (grid, left, right, colorize);
-grid.set_manifold(0, m0);
-const dealii::Point<dim> center2(1,1);
-const dealii::SphericalManifold<dim> m02(center2);
-grid.set_manifold(1, m02);
-for(int idim=0; idim<dim; idim++){
-grid.set_all_manifold_ids_on_boundary(2*(idim -1),2*(idim-1));
-grid.set_all_manifold_ids_on_boundary(2*(idim -1)+1,2*(idim-1)+1);
-#endif
 #if PHILIP_DIM==1
 #else
 	std::vector<dealii::GridTools::PeriodicFacePair<typename dealii::parallel::distributed::Triangulation<PHILIP_DIM>::cell_iterator> > matched_pairs;
@@ -251,32 +209,6 @@ grid.set_all_manifold_ids_on_boundary(2*(idim -1)+1,2*(idim-1)+1);
 
        // initialize(*(dg));
         initialize(*(dg), all_parameters_new);
-    #if 0
-	pcout << "Implement initial conditions" << std::endl;
-	dealii::FunctionParser<dim> initial_condition;
-	std::string variables;
-        if (dim == 3)
-	    variables = "x,y,z";
-        if (dim == 2)
-	    variables = "x,y";
-        if (dim == 1)
-	    variables = "x";
-	//std::string variables = "x";
-	std::map<std::string,double> constants;
-	constants["pi"] = dealii::numbers::PI;
-	std::string expression;
-        if (dim == 3)
-	    expression = "sin(pi*(x))*sin(pi*y)*sin(pi*z) + 0.01";
-        if (dim == 2)
-	    expression = "sin(pi*(x))*sin(pi*y) + 0.01";
-        if(dim==1)
-	    expression = "sin(pi*(x)) + 0.01";
-	initial_condition.initialize(variables,
-	                             expression,
-	                             constants);
-//	dealii::VectorTools::interpolate(dg->dof_handler,initial_condition,dg->solution);
-	dealii::VectorTools::interpolate(*(dg).dof_handler,initial_condition,dg.solution);
-#endif
 	// Create ODE solver using the factory and providing the DG object
 //	std::shared_ptr<PHiLiP::ODE::ODESolver<dim, double>> ode_solver = PHiLiP::ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
 //	std::shared_ptr<ODE::ODESolver<dim, double>> ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);

@@ -52,4 +52,3 @@ public:
 } // PHiLiP namespace
 
 #endif
-

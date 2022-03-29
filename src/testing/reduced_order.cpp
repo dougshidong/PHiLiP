@@ -188,4 +188,3 @@ int ReducedOrder<dim, nstate>::run_test() const
 #endif
 } // Tests namespace
 } // PHiLiP namespace
-

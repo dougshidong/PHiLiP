@@ -10,4 +10,3 @@ add_subdirectory(navier_stokes_unit_test)
 add_subdirectory(optimization)
 add_subdirectory(operator_tests)
 add_subdirectory(flow_variable_tests)
-

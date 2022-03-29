@@ -17,7 +17,6 @@ std::array<real, nstate> EntropyConsNumFlux<dim,nstate,real>::evaluate_flux(
     conv_phys_flux_int = pde_physics->convective_flux (soln_int);
     conv_phys_flux_ext = pde_physics->convective_flux (soln_ext);
     
-    //RealArrayVector flux_avg = array_average<nstate, dealii::Tensor<1,dim,real>> (conv_phys_flux_int, conv_phys_flux_ext);
     RealArrayVector flux_avg;
     for (int s=0; s<nstate; s++) {
         flux_avg[s] = 0.0;
@@ -26,10 +25,10 @@ std::array<real, nstate> EntropyConsNumFlux<dim,nstate,real>::evaluate_flux(
         }
     }
 
-    // Scalar dissipation
     std::array<real, nstate> numerical_flux_dot_n;
     for (int s=0; s<nstate; s++) {
         for (int d=0; d<dim; ++d) {
+            //For Burgers' entropy conserving flux see Eq. 4.12 and 4.13 Gassner, Gregor J. "A skew-symmetric discontinuous Galerkin spectral element discretization and its relation to SBP-SAT finite difference methods." SIAM Journal on Scientific Computing 35.3 (2013): A1233-A1253.
             numerical_flux_dot_n[s] = flux_avg[s][d]*normal_int[d] - 1.0/12.0 * pow((soln_ext[s]-soln_int[s]),2.0);
         }
     }

@@ -60,4 +60,3 @@ subsection manufactured solution convergence study
     # Output convergence tables
     set output_convergence_tables = true
 end
-

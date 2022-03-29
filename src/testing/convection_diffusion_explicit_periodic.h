@@ -36,4 +36,3 @@ protected:
 } // End of Tests namespace
 } // End of PHiLiP namespace
 #endif
-

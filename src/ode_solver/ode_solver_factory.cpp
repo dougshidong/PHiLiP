@@ -108,4 +108,3 @@ template class ODESolverFactory<PHILIP_DIM, double, dealii::parallel::distribute
 
 } // ODE namespace
 } // PHiLiP namespace
-

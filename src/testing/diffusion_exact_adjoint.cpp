@@ -853,4 +853,3 @@ template class DiffusionExactAdjoint <PHILIP_DIM,1>;
 
 } // Tests namespace
 } // PHiLiP namespace
-

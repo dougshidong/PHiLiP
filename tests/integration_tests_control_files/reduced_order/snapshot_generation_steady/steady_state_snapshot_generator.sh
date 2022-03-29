@@ -1,22 +1,18 @@
 #!/bin/bash
 
-rewienski_a=(    1.0000    2.2857    3.5714    4.8571    6.1429    7.4286    8.7143   10.0000
-                 1.0000    2.2857    3.5714    4.8571    6.1429    7.4286    8.7143   10.0000
-                 1.0000    2.2857    3.5714    4.8571    6.1429    7.4286    8.7143   10.0000
-                 1.0000    2.2857    3.5714    4.8571    6.1429    7.4286    8.7143   10.0000
-                 1.0000    2.2857    3.5714    4.8571    6.1429    7.4286    8.7143   10.0000
-                 1.0000    2.2857    3.5714    4.8571    6.1429    7.4286    8.7143   10.0000
-                 1.0000    2.2857    3.5714    4.8571    6.1429    7.4286    8.7143   10.0000
-                 1.0000    2.2857    3.5714    4.8571    6.1429    7.4286    8.7143   10.0000)
+rewienski_a=( 3.0000   3.0000     3.0000
+              3.0000   3.0000     3.0000
+              3.0000   3.0000     3.0000
+              3.0000   3.0000     3.0000
+              3.0000   3.0000     3.0000
+              3.0000   3.0000     3.0000)
 
-rewienski_b=(    0.0100    0.0100    0.0100    0.0100    0.0100    0.0100    0.0100    0.0100
-                 0.0229    0.0229    0.0229    0.0229    0.0229    0.0229    0.0229    0.0229
-                 0.0357    0.0357    0.0357    0.0357    0.0357    0.0357    0.0357    0.0357
-                 0.0486    0.0486    0.0486    0.0486    0.0486    0.0486    0.0486    0.0486
-                 0.0614    0.0614    0.0614    0.0614    0.0614    0.0614    0.0614    0.0614
-                 0.0743    0.0743    0.0743    0.0743    0.0743    0.0743    0.0743    0.0743
-                 0.0871    0.0871    0.0871    0.0871    0.0871    0.0871    0.0871    0.0871
-                 0.1000    0.1000    0.1000    0.1000    0.1000    0.1000    0.1000    0.1000)
+rewienski_b=(  0.0100    0.0153    0.0206
+               0.0259    0.0312    0.0365
+               0.0418    0.0471    0.0524
+               0.0576    0.0629    0.0682
+               0.0735    0.0788    0.0841
+               0.0894    0.0947    0.1000)
 
 for ((i = 0 ; i < ${#rewienski_a[@]} ; i++)); do
 
@@ -39,15 +35,16 @@ echo " set grid_left = 0.0"                                                     
 echo " set grid_right = 100.0"                                                                      >> $file   
 echo "end"                                                                                          >> $file   
 echo " "                                                                                            >> $file   
-echo "#Reduced order parameters"                                                                    >> $file   
-echo "subsection reduced order"                                                                     >> $file   
+echo "#Burgers parameters"                                                                          >> $file
+echo "subsection burgers"                                                                           >> $file
 echo " set rewienski_a = ${rewienski_a[i]}"                                                         >> $file   
 echo " set rewienski_b = ${rewienski_b[i]}"                                                         >> $file   
 echo "end"                                                                                          >> $file   
 echo " "                                                                                            >> $file   
 echo "subsection flow_solver"                                                                       >> $file   
 echo " set flow_case_type = burgers_rewienski_snapshot"                                             >> $file   
-echo " set final_time = 0.5"                                                                        >> $file   
+echo " set final_time = 0.5"                                                                        >> $file
+echo " set sensitivity_table_filename = ${rewienski_b[i]}_sensitivity_table_steady"                 >> $file
 echo " set steady_state = true"                                                                     >> $file   
 echo "end"                                                                                          >> $file   
 echo " "                                                                                            >> $file   
@@ -67,7 +64,7 @@ echo "end"                                                                      
 
 
 dir=$(pwd)
-/usr/bin/mpirun "-n" "1" "$HOME/Codes/PHiLiP/cmake-build-release/bin/PHiLiP_1D" "-i" "${dir}/${file}"
+mpirun "-n" "1" "$HOME/Codes/PHiLiP/cmake-build-release/bin/PHiLiP_1D" "-i" "${dir}/${file}"
 
 rm ${file}
 done

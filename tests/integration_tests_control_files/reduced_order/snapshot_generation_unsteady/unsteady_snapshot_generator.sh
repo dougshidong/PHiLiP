@@ -24,8 +24,8 @@ echo " set grid_left = 0.0"                                                     
 echo " set grid_right = 100.0"                                                                              >> $file   
 echo "end"                                                                                                  >> $file   
 echo " "                                                                                                    >> $file   
-echo "#Reduced order parameters"                                                                            >> $file   
-echo "subsection reduced order"                                                                             >> $file   
+echo "#Burgers parameters"                                                                                  >> $file
+echo "subsection burgers"                                                                                   >> $file
 echo " set rewienski_a = ${rewienski_a[i]}"                                                                 >> $file   
 echo " set rewienski_b = ${rewienski_b[i]}"                                                                 >> $file   
 echo "end"                                                                                                  >> $file   

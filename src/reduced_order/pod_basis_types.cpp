@@ -28,7 +28,7 @@ void SpecificPOD<dim>::addPODBasisColumns(const std::vector<unsigned int> addCol
         fullBasisIndices.push_back(idx);
     }
 
-    std::vector<unsigned int> rowIndices(this->fullPODBasisLAPACK.n_rows());
+    std::vector<unsigned int> rowIndices(this->fullBasis.n_rows());
     std::iota(std::begin(rowIndices), std::end(rowIndices), 0);
 
     dealii::TrilinosWrappers::SparseMatrix basis_tmp(rowIndices.size(), fullBasisIndices.size(),
@@ -38,8 +38,8 @@ void SpecificPOD<dim>::addPODBasisColumns(const std::vector<unsigned int> addCol
 
     for (unsigned int i = 0; i < rowIndices.size(); i++) {
         for (unsigned int j = 0; j < fullBasisIndices.size(); j++) {
-            basis_tmp.set(i, j, this->fullPODBasisLAPACK(rowIndices[i], fullBasisIndices[j]));
-            basis_transpose_tmp.set(j, i, this->fullPODBasisLAPACK(rowIndices[i], fullBasisIndices[j]));
+            basis_tmp.set(i, j, this->fullBasis(rowIndices[i], fullBasisIndices[j]));
+            basis_transpose_tmp.set(j, i, this->fullBasis(rowIndices[i], fullBasisIndices[j]));
         }
     }
 
@@ -90,7 +90,7 @@ void FineNotInCoarsePOD<dim>::removePODBasisColumns(const std::vector<unsigned i
         this->fullBasisIndices.erase(std::remove(this->fullBasisIndices.begin(), this->fullBasisIndices.end(), idx), this->fullBasisIndices.end());
     }
 
-    std::vector<unsigned int> rowIndices(this->fullPODBasisLAPACK.n_rows());
+    std::vector<unsigned int> rowIndices(this->fullBasis.n_rows());
     std::iota(std::begin(rowIndices), std::end(rowIndices), 0);
 
     dealii::TrilinosWrappers::SparseMatrix basis_tmp(rowIndices.size(), this->fullBasisIndices.size(),
@@ -100,8 +100,8 @@ void FineNotInCoarsePOD<dim>::removePODBasisColumns(const std::vector<unsigned i
 
     for (unsigned int i = 0; i < rowIndices.size(); i++) {
         for (unsigned int j = 0; j < this->fullBasisIndices.size(); j++) {
-            basis_tmp.set(i, j, this->fullPODBasisLAPACK(rowIndices[i], this->fullBasisIndices[j]));
-            basis_transpose_tmp.set(j, i, this->fullPODBasisLAPACK(rowIndices[i], this->fullBasisIndices[j]));
+            basis_tmp.set(i, j, this->fullBasis(rowIndices[i], this->fullBasisIndices[j]));
+            basis_transpose_tmp.set(j, i, this->fullBasis(rowIndices[i], this->fullBasisIndices[j]));
         }
     }
 

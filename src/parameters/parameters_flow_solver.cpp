@@ -16,10 +16,12 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
         prm.declare_entry("flow_case_type","taylor_green_vortex",
                           dealii::Patterns::Selection(
                           " taylor_green_vortex | "
+                          " burgers_viscous_snapshot | "
                           " burgers_rewienski_snapshot"),
                           "The type of flow we want to simulate. "
                           "Choices are "
                           " <taylor_green_vortex | "
+                          " burgers_viscous_snapshot | "
                           " burgers_rewienski_snapshot>.");
 
         prm.declare_entry("final_time", "1",
@@ -37,6 +39,10 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
         prm.declare_entry("steady_state", "false",
                           dealii::Patterns::Bool(),
                           "Solve steady-state solution. False by default.");
+
+        prm.declare_entry("sensitivity_table_filename", "sensitivity_table",
+                          dealii::Patterns::FileName(dealii::Patterns::FileName::FileType::input),
+                          "Filename for the sensitivity data table output file: sensitivity_table_filename.txt.");
     }
     prm.leave_subsection();
 }
@@ -47,12 +53,14 @@ void FlowSolverParam::parse_parameters(dealii::ParameterHandler &prm)
     {
         const std::string flow_case_type_string = prm.get("flow_case_type");
         if      (flow_case_type_string == "taylor_green_vortex")  {flow_case_type = taylor_green_vortex;}
+        else if (flow_case_type_string == "burgers_viscous_snapshot")  {flow_case_type = burgers_viscous_snapshot;}
         else if (flow_case_type_string == "burgers_rewienski_snapshot")  {flow_case_type = burgers_rewienski_snapshot;}
 
         final_time = prm.get_double("final_time");
         courant_friedrich_lewy_number = prm.get_double("courant_friedrich_lewy_number");
         unsteady_data_table_filename = prm.get("unsteady_data_table_filename");
         steady_state = prm.get_bool("steady_state");
+        sensitivity_table_filename = prm.get("sensitivity_table_filename");
     }
     prm.leave_subsection();
 }

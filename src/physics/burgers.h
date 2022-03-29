@@ -31,7 +31,7 @@ class Burgers : public PhysicsBase <dim, nstate, real>
 {
 protected:
     /// Diffusion scaling coefficient in front of the diffusion tensor.
-    double diffusion_scaling_coeff = 0.1*atan(1)*4.0/exp(1);
+    double diffusion_scaling_coeff;
 public:
     /// Turns on convective part of the Burgers problem.
     /** Without the nonlinear convection, it's simply diffusion */
@@ -41,8 +41,10 @@ public:
     ///Allows Burgers to distinguish between different unsteady test types.
     const Parameters::AllParameters::TestType test_type; ///< Pointer to all parameters
 
+
     /// Constructor
     Burgers(
+        const double                                              diffusion_coefficient,
         const bool                                                convection = true, 
         const bool                                                diffusion = true, 
         const dealii::Tensor<2,3,double>                          input_diffusion_tensor = Parameters::ManufacturedSolutionParam::get_default_diffusion_tensor(),
@@ -51,6 +53,7 @@ public:
         const Parameters::AllParameters::TestType parameters_test = Parameters::AllParameters::TestType::run_control) : 
         //const Parameters::AllParameters::TestType parameters_test) : 
             PhysicsBase<dim,nstate,real>(input_diffusion_tensor, manufactured_solution_function), 
+            diffusion_scaling_coeff(diffusion_coefficient),
             hasConvection(convection), 
             hasDiffusion(diffusion),
             test_type(parameters_test)

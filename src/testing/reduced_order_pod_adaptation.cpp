@@ -14,6 +14,9 @@
 #include "dg/dg_factory.hpp"
 #include "ode_solver/ode_solver_factory.h"
 #include "reduced_order/pod_adaptation.h"
+#include "reduced_order/pod_basis_sensitivity.h"
+#include "reduced_order/pod_basis_sensitivity_types.h"
+#include "flow_solver.h"
 
 
 namespace PHiLiP {
@@ -30,13 +33,12 @@ int ReducedOrderPODAdaptation<dim, nstate>::run_test() const
     const Parameters::AllParameters param = *(TestsBase::all_parameters);
 
     pcout << "Running Burgers Rewienski with parameter a: "
-          << param.reduced_order_param.rewienski_a
+          << param.burgers_param.rewienski_a
           << " and parameter b: "
-          << param.reduced_order_param.rewienski_b
+          << param.burgers_param.rewienski_b
           << std::endl;
 
-    using Triangulation = dealii::Triangulation<dim>;
-    std::shared_ptr<Triangulation> grid = std::make_shared<Triangulation>();
+    std::shared_ptr<dealii::Triangulation<dim>> grid = std::make_shared<dealii::Triangulation<dim>>();
 
     double left = param.grid_refinement_study_param.grid_left;
     double right = param.grid_refinement_study_param.grid_right;

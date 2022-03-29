@@ -43,9 +43,10 @@ void Delaunay::triangulate(Eigen::Matrix<double, Eigen::Dynamic, 2> points)
     const auto midx = (min(0) + max(0))/2;
     const auto midy = (min(1) + max(1))/2;
 
-    RowVector2d super_node_1(midx - 20 * dmax, midy - dmax);
-    RowVector2d super_node_2(midx, midy + 20 * dmax);
-    RowVector2d super_node_3(midx + 20 * dmax, midy - dmax);
+    //Make supertriangle ridiculously large to make sure nothing gets cut out
+    RowVector2d super_node_1(midx - 1000 * dmax, midy - dmax);
+    RowVector2d super_node_2(midx, midy + 1000 * dmax);
+    RowVector2d super_node_3(midx + 1000 * dmax, midy - dmax);
 
     Triangle supertriangle = Triangle(super_node_1, super_node_2, super_node_3);
     triangulation.emplace_back(supertriangle);

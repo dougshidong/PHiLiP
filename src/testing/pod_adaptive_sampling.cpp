@@ -102,37 +102,86 @@ RowVector2d AdaptiveSampling<dim, nstate>::getMaxErrorROM() const{
         std::cout << i << std::endl;
     }
     std::cout << i << std::endl;
-    for(auto& rom: rom_locations){
-        std::cout << i << std::endl;
-        parameters.row(i) = rom.first;
-        errors(i) = rom.second.total_error;
+    for(auto& [key, value] : rom_locations){
+        std::cout << "Index: " << i << std::endl;
+        std::cout << "Parameters: " << key << std::endl;
+        std::cout << "Parameters array: " << key.array() << std::endl;
+        std::cout << "Error: " << value.total_error << std::endl;
+        parameters.row(i) = key.array();
+        errors(i) = value.total_error;
         i++;
     }
 
+    std::cout << "Parameters: " << parameters << std::endl;
+
+    //Must scale both axes between [0,1] for the 2d rbf interpolation to work optimally
+    MatrixXd parameters_scaled(n_rows, 2);
+    for(int j = 0 ; j < parameters.cols() ; j++){
+        double min = parameters.col(j).minCoeff();
+        double max = parameters.col(j).maxCoeff();
+        for(int k = 0 ; k < parameters.rows() ; k++){
+            parameters_scaled(k, j) = (parameters(k, j) - min) / (max - min);
+        }
+    }
+
+    std::cout << "Parameters scaled: " <<parameters_scaled << std::endl;
+
     //Construct radial basis function
     std::string kernel = "thin_plate_spline";
-    ProperOrthogonalDecomposition::RBFInterpolation rbf = ProperOrthogonalDecomposition::RBFInterpolation(parameters, errors, kernel);
+    ProperOrthogonalDecomposition::RBFInterpolation rbf = ProperOrthogonalDecomposition::RBFInterpolation(parameters_scaled, errors, kernel);
 
     //Find max error and parameters by minimizing function starting at each ROM location
-    RowVector2d max_error_params;
+    RowVector2d max_error_params_scaled;
     max_error = 0;
     Eigen::NumericalDiff<ProperOrthogonalDecomposition::RBFInterpolation> numericalDiffMyFunctor(rbf);
     Eigen::LevenbergMarquardt<Eigen::NumericalDiff<ProperOrthogonalDecomposition::RBFInterpolation>, double> levenbergMarquardt(numericalDiffMyFunctor);
     levenbergMarquardt.parameters.ftol = 1e-6;
     levenbergMarquardt.parameters.xtol = 1e-6;
     levenbergMarquardt.parameters.maxfev = 100; // Max iterations
-    for(auto& rom: rom_locations){
-        Eigen::VectorXd x = rom.first.transpose();
-        levenbergMarquardt.minimize(x);
+    for(auto& [key, value] : rom_locations){
 
-        double error = std::abs(rbf.evaluate(x.transpose()).value());
+        Eigen::RowVector2d rom_unscaled = key;
+        Eigen::VectorXd rom_scaled;
+        rom_scaled.resize(rom_unscaled.size());
+
+        //Scale ROM location
+        for(int k = 0 ; k < parameters.cols() ; k++){
+            double min = parameters.col(k).minCoeff();
+            double max = parameters.col(k).maxCoeff();
+            rom_scaled(k) = (rom_unscaled(k) - min) / (max - min);
+        }
+        std::cout << rom_scaled << std::endl;
+        rom_scaled(0) = rom_scaled(0) + 0.1;
+        std::cout << rom_scaled << std::endl;
+
+        levenbergMarquardt.minimize(rom_scaled);
+        std::cout << rom_scaled << std::endl;
+
+
+        double error = std::abs(rbf.evaluate(rom_scaled.transpose()).value());
         if(error > max_error){
             max_error = error;
-            std::cout << "Max error: " << max_error << std::endl;
-            max_error_params = x.transpose();
+            std::cout << "RBF Max error: " << max_error << std::endl;
+            max_error_params_scaled = rom_scaled.transpose();
         }
     }
-    std::cout << "Max error: " << max_error << std::endl;
+    std::cout << "RBF Max error: " << max_error << std::endl;
+
+    //Make sure max_error_params_scaled is within [0,1] X [0,1] and unscale it
+    RowVector2d max_error_params;
+    for(int k = 0 ; k < 2 ; k++){
+        if(max_error_params_scaled(k) > 1){
+            max_error_params_scaled(k) = 1;
+        }
+        if(max_error_params_scaled(k) < 0){
+            max_error_params_scaled(k) = 0;
+        }
+        double min = parameters.col(k).minCoeff();
+        double max = parameters.col(k).maxCoeff();
+        max_error_params(k) = (max_error_params_scaled(k)*(max - min)) + min;
+    }
+
+    std::cout << "Unscaled parameter: " << max_error_params << std::endl;
 
     //Check if max_error_params is a ROM point
     for(auto& rom: rom_locations){
@@ -151,13 +200,14 @@ void AdaptiveSampling<dim, nstate>::placeInitialSnapshots() const{
     std::vector<double> rewienski_a_range = {2, 10};
     std::vector<double> rewienski_b_range = {0.01, 0.1};
 
-    snapshot_parameters.resize(5,2);
+    snapshot_parameters.resize(3,2);
     snapshot_parameters << rewienski_a_range[0], rewienski_b_range[0],
                            rewienski_a_range[0], rewienski_b_range[1],
-                           rewienski_a_range[1], rewienski_b_range[1],
-                           rewienski_a_range[1], rewienski_b_range[0],
-                           (rewienski_a_range[0] + rewienski_a_range[1])/2, (rewienski_b_range[0] + rewienski_b_range[1])/2;
-
+                           rewienski_a_range[1], rewienski_b_range[1];
+                           //rewienski_a_range[1], rewienski_b_range[0],
+                           //0.5*(rewienski_a_range[1] - rewienski_a_range[0])+rewienski_a_range[0], 0.33*(rewienski_b_range[1] - rewienski_b_range[0])+rewienski_b_range[0],
+                           //0.25*(rewienski_a_range[1] - rewienski_a_range[0])+rewienski_a_range[0], 0.67*(rewienski_b_range[1] - rewienski_b_range[0])+rewienski_b_range[0];
+    std::cout << snapshot_parameters << std::endl;
     //Get initial conditions
     Parameters::AllParameters params = reinitParams(snapshot_parameters.row(0));
     std::shared_ptr<Tests::BurgersRewienskiSnapshot<dim, nstate>> flow_solver_case = std::make_shared<Tests::BurgersRewienskiSnapshot<dim,nstate>>(&params);

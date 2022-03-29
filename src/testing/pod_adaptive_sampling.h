@@ -66,7 +66,7 @@ public:
 
     mutable MatrixXd snapshot_parameters;
 
-    mutable MatrixXd rom_parameters;
+    mutable double max_error;
 
     std::shared_ptr<ProperOrthogonalDecomposition::OnlinePOD<dim>> current_pod;
 
@@ -77,7 +77,7 @@ public:
 
     void placeROMs() const;
 
-    double getMaxErrorROM() const;
+    RowVector2d getMaxErrorROM() const;
 
     std::shared_ptr<ProperOrthogonalDecomposition::FOMSolution<dim,nstate>> solveSnapshotFOM(RowVector2d parameter) const;
 

@@ -28,6 +28,10 @@
 #include "reduced_order/rbf_interpolation.h"
 #include <unsupported/Eigen/NonLinearOptimization>
 #include <unsupported/Eigen/NumericalDiff>
+#include "ROL_Algorithm.hpp"
+#include "ROL_LineSearchStep.hpp"
+#include "ROL_StatusTest.hpp"
+#include "ROL_Stream.hpp"
 
 namespace PHiLiP {
 namespace Tests {

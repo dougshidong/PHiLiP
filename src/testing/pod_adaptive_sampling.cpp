@@ -15,6 +15,45 @@ AdaptiveSampling<dim, nstate>::AdaptiveSampling(const PHiLiP::Parameters::AllPar
 template <int dim, int nstate>
 int AdaptiveSampling<dim, nstate>::run_test() const
 {
+    ProperOrthogonalDecomposition::RBFInterpolation obj = ProperOrthogonalDecomposition::RBFInterpolation();
+    int dimension = 2;
+
+    // Set parameters.
+    ROL::ParameterList parlist;
+    parlist.sublist("Step").sublist("Line Search").sublist("Descent Method").set("Type", "Newton-Krylov");
+    parlist.sublist("Status Test").set("Gradient Tolerance",1.e-12);
+    parlist.sublist("Status Test").set("Step Tolerance",1.e-14);
+    parlist.sublist("Status Test").set("Iteration Limit",100);
+
+    ROL::Ptr<ROL::Step<double>> step = ROL::makePtr<ROL::LineSearchStep<double>>(parlist);
+    ROL::Ptr<ROL::StatusTest<double>> status = ROL::makePtr<ROL::StatusTest<double>>(parlist);
+    ROL::Algorithm<double> algo(step,status,false);
+
+    // Iteration Vector
+    ROL::Ptr<std::vector<double> > x_ptr = ROL::makePtr<std::vector<double>>(dimension, 0.0);
+
+    // Set Initial Guess
+    (*x_ptr)[0]   = -4.0;
+    (*x_ptr)[1] =  3.0;
+
+    ROL::StdVector<double> x(x_ptr);
+
+    // Run Algorithm
+    ROL::Ptr<std::ostream> outStream;
+    outStream = ROL::makePtrFromRef(std::cout);
+    algo.run(x, obj, true, *outStream);
+
+    ROL::Ptr<std::vector<double>> x_std = x.getVector();
+
+    std::cout << (*x_std)[0] << " " << (*x_std)[1] << std::endl;
+
+
+
+
+
+
+
+    /*
     std::cout << "Starting adaptive sampling process" << std::endl;
 
     placeInitialSnapshots();
@@ -82,7 +121,7 @@ int AdaptiveSampling<dim, nstate>::run_test() const
 
     std::ofstream rom_table_file("adaptive_sampling_rom_table.txt");
     rom_table->write_text(rom_table_file);
-
+    */
     return 0;
 }
 
@@ -90,6 +129,7 @@ int AdaptiveSampling<dim, nstate>::run_test() const
 template <int dim, int nstate>
 RowVector2d AdaptiveSampling<dim, nstate>::getMaxErrorROM() const{
     std::cout << "Updating RBF interpolation..." << std::endl;
+    /*
 
     int n_rows = snapshot_parameters.rows() + rom_locations.size();
     MatrixXd parameters(n_rows, 2);
@@ -192,6 +232,9 @@ RowVector2d AdaptiveSampling<dim, nstate>::getMaxErrorROM() const{
         }
     }
 
+    return max_error_params;
+     */
+    RowVector2d max_error_params;
     return max_error_params;
 }
 

@@ -61,28 +61,5 @@ VectorXd RBFInterpolation::evaluate(RowVectorXd evaluate_coordinate) const {
     return s*weights;
 }
 
-/******************For use as a Functor to use with Eigen's minimizer*****************************
-*************************************************************************************************/
-
-int RBFInterpolation::operator()(const Eigen::VectorXd &x, Eigen::VectorXd &fvec) const
-{
-    // IMPORTANT: The Eigen Levenberg-Marquardt algorithm will square fvec internally (it assumes that the overall error
-    // function is made of the sum of squares of fvec components). Therefore, for this rbf, taking the inverse
-    // of the absolute value will give the right minimum.
-    std::cout << "Computing RBF at: " << x << std::endl;
-    RowVectorXd rbf_x = evaluate(x.transpose());
-    std::cout << "RBF value: " << rbf_x << std::endl;
-    fvec(0) = rbf_x.transpose().cwiseAbs().cwiseInverse().value();
-    //fvec(1) = 0;
-
-    std::cout << "fvec value: " << fvec << std::endl;
-    return 0;
-}
-
-int RBFInterpolation::inputs() const { return 2; }// inputs is the dimension of x.
-
-int RBFInterpolation::values() const { return 2; } // "values" is the number of f_i and
-
-
 }
 }

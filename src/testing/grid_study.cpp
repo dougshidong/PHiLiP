@@ -116,10 +116,7 @@ double GridStudy<dim,nstate>
 template<int dim, int nstate>
 std::string GridStudy<dim,nstate>::
 get_convergence_tables_baseline_filename(const Parameters::AllParameters *const param) const
-{
-    using ManParam = Parameters::ManufacturedConvergenceStudyParam;
-    ManParam manu_grid_conv_param = param->manufactured_convergence_study_param;
-    
+{    
     // initial base name
     std::string error_filename_baseline = "convergence_table";
     

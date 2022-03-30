@@ -273,6 +273,7 @@ inline real Euler<dim,nstate,real>
     const real density = gam*pressure/temperature * mach_inf_sqr;
     return density;
 }
+
 template <int dim, int nstate, typename real>
 inline real Euler<dim,nstate,real>
 ::compute_temperature_from_density_pressure ( const real density, const real pressure ) const
@@ -281,6 +282,13 @@ inline real Euler<dim,nstate,real>
     return temperature;
 }
 
+template <int dim, int nstate, typename real>
+inline real Euler<dim,nstate,real>
+::compute_pressure_from_density_temperature ( const real density, const real temperature ) const
+{
+    const real pressure = density*temperature/(gam*mach_inf_sqr);
+    return pressure;
+}
 
 template <int dim, int nstate, typename real>
 template<typename real2>

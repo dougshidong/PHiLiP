@@ -247,7 +247,10 @@ int main (int argc, char * argv[])
     std::vector<ConvType> conv_type {
         ConvType::lax_friedrichs,
         ConvType::roe,
-        ConvType::l2roe
+        ConvType::l2roe,
+        ConvType::split_form,
+        ConvType::central_flux,
+        ConvType::entropy_cons_flux
     };
     std::vector<DissType> diss_type {
         DissType::symm_internal_penalty
@@ -286,9 +289,12 @@ int main (int argc, char * argv[])
             all_parameters.conv_num_flux_type = *conv;
 
             std::string conv_string;
-            if(*conv==ConvType::lax_friedrichs) conv_string = "lax_friedrichs";
-            if(*conv==ConvType::roe)            conv_string = "roe";
-            if(*conv==ConvType::l2roe)          conv_string = "l2roe";
+            if(*conv==ConvType::lax_friedrichs)    conv_string = "lax_friedrichs";
+            if(*conv==ConvType::roe)               conv_string = "roe";
+            if(*conv==ConvType::l2roe)             conv_string = "l2roe";
+            if(*conv==ConvType::split_form)        conv_string = "split_form";
+            if(*conv==ConvType::central_flux)      conv_string = "central_flux";
+            if(*conv==ConvType::entropy_cons_flux) conv_string = "entropy_conserving_flux";
 
             std::cout << "============================================================================" << std::endl;
             std::cout << "PDE Type: " << pde_string << "\t Convective Flux Type: " << conv_string << std::endl;

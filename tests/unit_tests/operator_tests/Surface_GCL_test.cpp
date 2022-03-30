@@ -79,58 +79,16 @@ dealii::Point<dim> CurvManifold<dim>::pull_back(const dealii::Point<dim> &space_
     double alpha =1.0/10.0;
     int flag =0;
     while(flag != dim){
-#if 0
-        for(int idim=0;idim<dim;idim++){
-            function[idim] = 1.0/20.0; 
-            for(int idim2=0;idim2<dim;idim2++){
-                function[idim] *= std::cos(2.0 * pi* x_ref[idim2]);
-            }
-            function[idim] += x_ref[idim] - x_phys[idim];
-        }
-#endif
-
-//#if 0
     if(dim==2){
         function[0] = x_ref[0] - x_phys[0] +beta*std::cos(pi/2.0*x_ref[0])*std::cos(3.0*pi/2.0*x_ref[1]);
         function[1] = x_ref[1] - x_phys[1] +beta*std::sin(2.0*pi*(x_ref[0]))*std::cos(pi/2.0*x_ref[1]);
     }
     else{
-    #if 0
-        function[0] = x_ref[0] - x_phys[0] +alpha*std::cos(pi/2.0*x_ref[0])*std::cos(3.0*pi/2.0*x_ref[1])*std::sin(2.0*pi*(x_ref[2]));
-        function[1] = x_ref[1] - x_phys[1] +alpha*std::sin(2.0*pi*(x_ref[0]))*std::cos(pi/2.0*x_ref[1])*std::sin(3.0*pi/2.0*(x_ref[2]));
-        function[2] = x_ref[2] - x_phys[2] +alpha*std::sin(2.0*pi*(x_ref[0]))*std::cos(3.0*pi/2.0*x_ref[1])*std::sin(5.0*pi/2.0*(x_ref[2]));
-    #endif
-    //heavily warped
-   // #if 0
-      // function[0] = x_ref[0] - x_phys[0] +alpha*std::sin(pi * x_ref[0]) * std::sin(pi * x_ref[1]);
-      // function[1] = x_ref[1] - x_phys[1] +alpha*exp(1.0-x_ref[1])*std::sin(pi * x_ref[0]) * std::sin(pi* x_ref[1]);
-      // double x_temp = x_ref[0] +alpha*std::sin(pi * x_ref[0]) * std::sin(pi * x_ref[1]);
-      // double y_temp = x_ref[1] +alpha*exp(1.0-x_ref[1])*std::sin(pi * x_ref[0]) * std::sin(pi* x_ref[1]);
-       // function[2] = x_ref[2] - x_phys[2] +1.0/20.0*( std::sin(2.0 * pi * x_temp) + std::sin(2.0 * pi * y_temp));
-   // #endif
         function[0] = x_ref[0] - x_phys[0] +alpha*(std::cos(pi * x_ref[2]) + std::cos(pi * x_ref[1]));
         function[1] = x_ref[1] - x_phys[1] +alpha*exp(1.0-x_ref[1])*(std::sin(pi * x_ref[0]) + std::sin(pi* x_ref[2]));
         function[2] = x_ref[2] - x_phys[2] +1.0/20.0*( std::sin(2.0 * pi * x_ref[0]) + std::sin(2.0 * pi * x_ref[1]));
     }
-//#endif
 
-
-    #if 0
-        for(int idim=0; idim<dim; idim++){
-            for(int idim2=0; idim2<dim;idim2++){
-                derivative[idim][idim2] = - 1.0/20.0*2.0 * pi;
-                for(int idim3 =0;idim3<dim; idim3++){
-                    if(idim2 == idim3)
-                        derivative[idim][idim2] *=std::sin(2.0 * pi * x_ref[idim3]);
-                    else
-                        derivative[idim][idim2] *=std::cos(2.0 * pi* x_ref[idim3]);
-                }
-                if(idim == idim2)
-                    derivative[idim][idim2] += 1.0;
-            }
-        }
-#endif
-//#if 0
     if(dim==2){
         derivative[0][0] = 1.0 - beta* pi/2.0 * std::sin(pi/2.0*x_ref[0])*std::cos(3.0*pi/2.0*x_ref[1]);
         derivative[0][1] =  - beta*3.0 *pi/2.0 * std::cos(pi/2.0*x_ref[0])*std::sin(3.0*pi/2.0*x_ref[1]);
@@ -139,38 +97,6 @@ dealii::Point<dim> CurvManifold<dim>::pull_back(const dealii::Point<dim> &space_
         derivative[1][1] =  1.0 -beta*pi/2.0*std::sin(2.0*pi*(x_ref[0]))*std::sin(pi/2.0*x_ref[1]);  
     }
     else{
-    #if 0
-        derivative[0][0] = 1.0  - alpha* pi/2.0 * std::sin(pi/2.0*x_ref[0])*std::cos(3.0*pi/2.0*x_ref[1])*std::sin(2.0*pi*(x_ref[2]));
-        derivative[0][1] =      - alpha*3.0 *pi/2.0 * std::cos(pi/2.0*x_ref[0])*std::sin(3.0*pi/2.0*x_ref[1])*std::sin(2.0*pi*(x_ref[2]));
-        derivative[0][2] =        alpha*2.0*pi * std::cos(pi/2.0*x_ref[0])*std::cos(3.0*pi/2.0*x_ref[1])*std::cos(2.0*pi*(x_ref[2]));
-
-        derivative[1][0] =       alpha*2.0*pi*std::cos(2.0*pi*(x_ref[0]))*std::cos(pi/2.0*x_ref[1])*std::sin(3.0*pi/2.0*(x_ref[2]));
-        derivative[1][1] =  1.0 -alpha*pi/2.0*std::sin(2.0*pi*(x_ref[0]))*std::sin(pi/2.0*x_ref[1])*std::sin(3.0*pi/2.0*(x_ref[2]));  
-        derivative[1][2] =       alpha*3.0*pi/2.0*std::sin(2.0*pi*(x_ref[0]))*std::cos(pi/2.0*x_ref[1])*std::cos(3.0*pi/2.0*(x_ref[2]));
-
-        derivative[2][0] =       alpha*2.0*pi*std::cos(2.0*pi*(x_ref[0]))*std::cos(3.0*pi/2.0*x_ref[1])*std::sin(5.0*pi/2.0*(x_ref[2]));
-        derivative[2][1] =     - alpha*3.0*pi/2.0*std::sin(2.0*pi*(x_ref[0]))*std::sin(3.0*pi/2.0*x_ref[1])*std::sin(5.0*pi/2.0*(x_ref[2]));
-        derivative[2][2] = 1.0 + alpha*5.0*pi/2.0*std::sin(2.0*pi*(x_ref[0]))*std::cos(3.0*pi/2.0*x_ref[1])*std::cos(5.0*pi/2.0*(x_ref[2]));
-    #endif
-    //heavily warped
-   // #if 0
-     //  derivative[0][0] = 1.0 + alpha*pi*std::cos(pi*x_ref[0])*std::sin(pi*x_ref[1]);
-     //  derivative[0][1] =       alpha*pi*std::cos(pi*x_ref[1])*std::sin(pi*x_ref[0]);
-     //  derivative[0][2] =  0.0;
-
-     //  derivative[1][0] =       alpha*pi*exp(1.0-x_ref[1])*std::cos(pi*x_ref[0])*std::sin(pi*x_ref[1]);
-     //  derivative[1][1] =  1.0 -alpha*exp(1.0-x_ref[1])*std::sin(pi*x_ref[0])*std::sin(pi*x_ref[1])
-     //                          +alpha*pi*exp(1.0-x_ref[1])*std::sin(pi*x_ref[0])*std::cos(pi*x_ref[1]);  
-     //  derivative[1][2] =  0.0;
-
-      //  double x_temp = x_ref[0] + alpha*std::sin(pi * x_ref[0]) * std::sin(pi * x_ref[1]);
-     //  double y_temp = x_ref[1] + alpha*exp(1.0-x_ref[1])*std::sin(pi * x_ref[0]) * std::sin(pi* x_ref[1]);
-     //  derivative[2][0] = 1.0/10.0*pi*std::cos(2.0*pi*x_temp)*derivative[0][0] 
-     //                    +1.0/10.0*pi*std::cos(2.0*pi*y_temp)*derivative[1][0];
-     //  derivative[2][1] = 1.0/10.0*pi*std::cos(2.0*pi*x_temp)*derivative[0][1]
-     //                    +1.0/10.0*pi*std::cos(2.0*pi*y_temp)*derivative[1][1];
-     //
-     //
         derivative[0][0] = 1.0;
         derivative[0][1] =      - alpha*pi*std::sin(pi*x_ref[1]);
         derivative[0][2] =   - alpha*pi*std::sin(pi*x_ref[2]);
@@ -181,9 +107,7 @@ dealii::Point<dim> CurvManifold<dim>::pull_back(const dealii::Point<dim> &space_
         derivative[2][0] = 1.0/10.0*pi*std::cos(2.0*pi*x_ref[0]);
         derivative[2][1] = 1.0/10.0*pi*std::cos(2.0*pi*x_ref[1]);
         derivative[2][2] = 1.0;
-   // #endif
     }
-//#endif
 
         dealii::FullMatrix<double> Jacobian_inv(dim);
         Jacobian_inv.invert(derivative);
@@ -201,39 +125,15 @@ dealii::Point<dim> CurvManifold<dim>::pull_back(const dealii::Point<dim> &space_
             break;
     }
     std::vector<double> function_check(dim);
-#if 0
-    for(int idim=0;idim<dim; idim++){
-        function_check[idim] = 1.0/20.0;
-        for(int idim2=0; idim2<dim; idim2++){
-            function_check[idim] *= std::cos(2.0 * pi * x_ref[idim2]);
-        }
-        function_check[idim] += x_ref[idim];
-    }
-#endif
-//#if 0
     if(dim==2){
         function_check[0] = x_ref[0] + beta*std::cos(pi/2.0*x_ref[0])*std::cos(3.0*pi/2.0*x_ref[1]);
         function_check[1] = x_ref[1] + beta*std::sin(2.0*pi*(x_ref[0]))*std::cos(pi/2.0*x_ref[1]);
     }
     else{
-    #if 0
-        function_check[0] = x_ref[0] + alpha*std::cos(pi/2.0*x_ref[0])*std::cos(3.0*pi/2.0*x_ref[1])*std::sin(2.0*pi*(x_ref[2]));
-        function_check[1] = x_ref[1] + alpha*std::sin(2.0*pi*(x_ref[0]))*std::cos(pi/2.0*x_ref[1])*std::sin(3.0*pi/2.0*(x_ref[2]));
-        function_check[2] = x_ref[2] + alpha*std::sin(2.0*pi*(x_ref[0]))*std::cos(3.0*pi/2.0*x_ref[1])*std::sin(5.0*pi/2.0*(x_ref[2]));
-    #endif
-    //heavily warped
-    //#if 0
-      // function_check[0] = x_ref[0] +alpha*std::sin(pi * x_ref[0]) * std::sin(pi * x_ref[1]);
-      // function_check[1] = x_ref[1] +alpha*exp(1.0-x_ref[1])*std::sin(pi * x_ref[0]) * std::sin(pi* x_ref[1]);
-      //  double x_temp = x_ref[0] + alpha*std::sin(pi * x_ref[0]) * std::sin(pi * x_ref[1]);
-      // double y_temp = x_ref[1] + alpha*exp(1.0-x_ref[1])*std::sin(pi * x_ref[0]) * std::sin(pi* x_ref[1]);
-      // function_check[2] = x_ref[2] +1.0/20.0*( std::sin(2.0 * pi * x_temp) + std::sin(2.0 * pi * y_temp));
-   // #endif
         function_check[0] = x_ref[0] +alpha*(std::cos(pi * x_ref[2]) + std::cos(pi * x_ref[1]));
         function_check[1] = x_ref[1] +alpha*exp(1.0-x_ref[1])*(std::sin(pi * x_ref[0]) + std::sin(pi* x_ref[2]));
         function_check[2] = x_ref[2] +1.0/20.0*( std::sin(2.0 * pi * x_ref[0]) + std::sin(2.0 * pi * x_ref[1]));
     }
-//#endif
     std::vector<double> error(dim);
     for(int idim=0; idim<dim; idim++) 
         error[idim] = std::abs(function_check[idim] - x_phys[idim]);
@@ -256,39 +156,17 @@ dealii::Point<dim> CurvManifold<dim>::push_forward(const dealii::Point<dim> &cha
     dealii::Point<dim> x_phys;
     for(int idim=0; idim<dim; idim++)
         x_ref[idim] = chart_point[idim];
-#if 0
-    for(int idim=0; idim<dim; idim++){
-        x_phys[idim] = 1.0/20.0;
-        for(int idim2=0;idim2<dim; idim2++){
-           x_phys[idim] *= std::cos( 2.0 * pi * x_ref[idim2]);
-        }
-        x_phys[idim] += x_ref[idim];
-    }
-#endif
     double beta = 1.0/10.0;
     double alpha = 1.0/10.0;
-//#if 0
     if(dim==2){
         x_phys[0] = x_ref[0] + beta*std::cos(pi/2.0*x_ref[0])*std::cos(3.0*pi/2.0*x_ref[1]);
         x_phys[1] = x_ref[1] + beta*std::sin(2.0*pi*(x_ref[0]))*std::cos(pi/2.0*x_ref[1]);
     }
     else{
-    #if 0
-        x_phys[0] = x_ref[0] + alpha*std::cos(pi/2.0*x_ref[0])*std::cos(3.0*pi/2.0*x_ref[1])*std::sin(2.0*pi*(x_ref[2]));
-        x_phys[1] = x_ref[1] + alpha*std::sin(2.0*pi*(x_ref[0]))*std::cos(pi/2.0*x_ref[1])*std::sin(3.0*pi/2.0*(x_ref[2]));
-        x_phys[2] = x_ref[2] + alpha*std::sin(2.0*pi*(x_ref[0]))*std::cos(3.0*pi/2.0*x_ref[1])*std::sin(5.0*pi/2.0*(x_ref[2]));
-    #endif
-    //heavily warped
-    //#if 0
-      // x_phys[0] =x_ref[0] +  alpha*std::sin(pi * x_ref[0]) * std::sin(pi * x_ref[1]);
-      // x_phys[1] =x_ref[1] +  alpha*exp(1.0-x_ref[1])*std::sin(pi * x_ref[0]) * std::sin(pi* x_ref[1]);
-       // x_phys[2] =x_ref[2] +  1.0/20.0*( std::sin(2.0 * pi * x_phys[0]) + std::sin(2.0 * pi * x_phys[1]));
-    //#endif
         x_phys[0] =x_ref[0] +  alpha*(std::cos(pi * x_ref[2]) + std::cos(pi * x_ref[1]));
         x_phys[1] =x_ref[1] +  alpha*exp(1.0-x_ref[1])*(std::sin(pi * x_ref[0]) + std::sin(pi* x_ref[2]));
         x_phys[2] =x_ref[2] +  1.0/20.0*( std::sin(2.0 * pi * x_ref[0]) + std::sin(2.0 * pi * x_ref[1]));
     }
-//#endif
     return dealii::Point<dim> (x_phys); // Trigonometric
 }
 
@@ -297,25 +175,6 @@ dealii::DerivativeForm<1,dim,dim> CurvManifold<dim>::push_forward_gradient(const
 {
     const double pi = atan(1)*4.0;
     dealii::DerivativeForm<1, dim, dim> dphys_dref;
-#if 0
-    dealii::Point<dim> x;
-    for(int idim=0; idim<dim; idim++)
-        x[idim] = chart_point[idim];
-    for(int idim=0; idim<dim; idim++){
-        for(int idim2=0; idim2<dim;idim2++){
-            dphys_dref[idim][idim2] = - 1.0/20.0*2.0 * pi;
-            for(int idim3 =0;idim3<dim; idim3++){
-                if(idim2 == idim3)
-                    dphys_dref[idim][idim2] *=std::sin(2.0 * pi * x[idim3]);
-                else
-                     dphys_dref[idim][idim2] *=std::cos(2.0 * pi* x[idim3]);
-            }     
-            if(idim == idim2)
-                dphys_dref[idim][idim2] += 1.0;
-        }
-    }
-#endif
-//#if 0
     double beta = 1.0/10.0;
     double alpha = 1.0/10.0;
     dealii::Point<dim> x_ref;
@@ -331,37 +190,6 @@ dealii::DerivativeForm<1,dim,dim> CurvManifold<dim>::push_forward_gradient(const
         dphys_dref[1][1] =  1.0 -beta*pi/2.0*std::sin(2.0*pi*(x_ref[0]))*std::sin(pi/2.0*x_ref[1]);  
     }
     else{
-    #if 0
-        dphys_dref[0][0] = 1.0 - alpha*pi/2.0 * std::sin(pi/2.0*x_ref[0])*std::cos(3.0*pi/2.0*x_ref[1])*std::sin(2.0*pi*(x_ref[2]));
-        dphys_dref[0][1] =     - alpha*3.0*pi/2.0 * std::cos(pi/2.0*x_ref[0])*std::sin(3.0*pi/2.0*x_ref[1])*std::sin(2.0*pi*(x_ref[2]));
-        dphys_dref[0][2] =       alpha*2.0*pi * std::cos(pi/2.0*x_ref[0])*std::cos(3.0*pi/2.0*x_ref[1])*std::cos(2.0*pi*(x_ref[2]));
-
-        dphys_dref[1][0] =       alpha*2.0*pi*std::cos(2.0*pi*(x_ref[0]))*std::cos(pi/2.0*x_ref[1])*std::sin(3.0*pi/2.0*(x_ref[2]));
-        dphys_dref[1][1] =  1.0 -alpha*pi/2.0*std::sin(2.0*pi*(x_ref[0]))*std::sin(pi/2.0*x_ref[1])*std::sin(3.0*pi/2.0*(x_ref[2]));  
-        dphys_dref[1][2] =       alpha*3.0*pi/2.0*std::sin(2.0*pi*(x_ref[0]))*std::cos(pi/2.0*x_ref[1])*std::cos(3.0*pi/2.0*(x_ref[2]));
-
-        dphys_dref[2][0] =       alpha*2.0*pi*std::cos(2.0*pi*(x_ref[0]))*std::cos(3.0*pi/2.0*x_ref[1])*std::sin(5.0*pi/2.0*(x_ref[2]));
-        dphys_dref[2][1] =     - alpha*3.0*pi/2.0*std::sin(2.0*pi*(x_ref[0]))*std::sin(3.0*pi/2.0*x_ref[1])*std::sin(5.0*pi/2.0*(x_ref[2]));
-        dphys_dref[2][2] = 1.0 + alpha*5.0*pi/2.0*std::sin(2.0*pi*(x_ref[0]))*std::cos(3.0*pi/2.0*x_ref[1])*std::cos(5.0*pi/2.0*(x_ref[2]));
-    #endif
-    //heavily warped
-   // #if 0
-     //  dphys_dref[0][0] = 1.0 + alpha*pi*std::cos(pi*x_ref[0])*std::sin(pi*x_ref[1]);
-     //  dphys_dref[0][1] =       alpha*pi*std::cos(pi*x_ref[1])*std::sin(pi*x_ref[0]);
-     //  dphys_dref[0][2] =  0.0;
-
-     //  dphys_dref[1][0] =       alpha*pi*exp(1.0-x_ref[1])*std::cos(pi*x_ref[0])*std::sin(pi*x_ref[1]);
-     //  dphys_dref[1][1] =  1.0 -alpha*exp(1.0-x_ref[1])*std::sin(pi*x_ref[0])*std::sin(pi*x_ref[1])
-     //                          +alpha*pi*exp(1.0-x_ref[1])*std::sin(pi*x_ref[0])*std::cos(pi*x_ref[1]);  
-     //  dphys_dref[1][2] =  0.0;
-
-      //  double x_phys = x_ref[0] + alpha*std::sin(pi*x_ref[0])*std::sin(pi*x_ref[1]);
-     //  double y_phys = x_ref[1] + alpha*exp(1.0-x_ref[1])*std::sin(pi*x_ref[0])*std::sin(pi*x_ref[1]);
-     //  dphys_dref[2][0] = 1.0/10.0*pi*std::cos(2.0*pi*x_phys)*dphys_dref[0][0] 
-     //                    +1.0/10.0*pi*std::cos(2.0*pi*y_phys)*dphys_dref[1][0];
-     //  dphys_dref[2][1] = 1.0/10.0*pi*std::cos(2.0*pi*x_phys)*dphys_dref[0][1]
-     //                    +1.0/10.0*pi*std::cos(2.0*pi*y_phys)*dphys_dref[1][1];
-    //#endif
         dphys_dref[0][0] = 1.0;
         dphys_dref[0][1] =      - alpha*pi*std::sin(pi*x_ref[1]);
         dphys_dref[0][2] =   - alpha*pi*std::sin(pi*x_ref[2]);
@@ -373,7 +201,6 @@ dealii::DerivativeForm<1,dim,dim> CurvManifold<dim>::push_forward_gradient(const
         dphys_dref[2][1] = 1.0/10.0*pi*std::cos(2.0*pi*x_ref[1]);
         dphys_dref[2][2] = 1.0;
     }
-//#endif
 
     return dphys_dref;
 }
@@ -397,17 +224,6 @@ static dealii::Point<dim> warp (const dealii::Point<dim> &p)
         q[dim-1] =p[dim-1] +  beta*std::sin(2.0 * pi * (p[dim-2])) * std::cos(pi /2.0 * p[dim-1]);
     }
     if(dim==3){
-    #if 0
-        q[0] =p[0] +  alpha*std::cos(pi/2.0 * p[0]) * std::cos(3.0 * pi/2.0 * p[1]) * std::sin(2.0 * pi * (p[2]));
-        q[1] =p[1] +  alpha*std::sin(2.0 * pi * (p[0])) * std::cos(pi /2.0 * p[1]) * std::sin(3.0 * pi /2.0 * p[2]);
-        q[2] =p[2] +  alpha*std::sin(2.0 * pi * (p[0])) * std::cos(3.0 * pi/2.0 * p[1]) * std::cos(5.0 * pi/2.0 * p[2]);
-    #endif
-    //heavily warped
-   // #if 0
-       // q[0] =p[0] +  alpha*std::sin(pi * p[0]) * std::sin(pi * p[1]);
-       // q[1] =p[1] +  alpha*exp(1.0-p[1])*std::sin(pi * p[0]) * std::sin(pi* p[1]);
-       // q[2] =p[2] +  1.0/20.0*( std::sin(2.0 * pi * q[0]) + std::sin(2.0 * pi * q[1]));
-   // #endif
         q[0] =p[0] +  alpha*(std::cos(pi * p[2]) + std::cos(pi * p[1]));
         q[1] =p[1] +  alpha*exp(1.0-p[1])*(std::sin(pi * p[0]) + std::sin(pi* p[2]));
         q[2] =p[2] +  1.0/20.0*( std::sin(2.0 * pi * p[0]) + std::sin(2.0 * pi * p[1]));
@@ -455,7 +271,6 @@ int main (int argc, char * argv[])
 
 //Warp the grid
 //IF WANT NON-WARPED GRID COMMENT UNTIL SAYS "NOT COMMENT"
-//#if 0
     dealii::GridTools::transform (&warp<dim>, *grid);
 
 // Assign a manifold to have curved geometry
@@ -464,7 +279,6 @@ int main (int argc, char * argv[])
     grid->reset_all_manifolds();
     grid->set_all_manifold_ids(manifold_id);
     grid->set_manifold ( manifold_id, curv_manifold );
-//#endif
 //"END COMMENT" TO NOT WARP GRID
 
     double surf_int = 0.0;
@@ -490,14 +304,6 @@ int main (int argc, char * argv[])
         for(int idim=0; idim<dim; idim++){
             mapping_support_points[idim].resize(n_metric_dofs/dim);
         }
-#if 0
-        for (unsigned int idof = 0; idof < n_metric_dofs; ++idof) {
-            const real val = (dg->high_order_grid->volume_nodes[current_metric_dofs_indices[idof]]);
-            const unsigned int istate = fe_metric.system_to_component_index(idof).first; 
-            const unsigned int ishape = fe_metric.system_to_component_index(idof).second; 
-            mapping_support_points[istate][ishape] = val; 
-        }
-#endif
         dealii::QGaussLobatto<dim> vol_GLL(grid_degree +1);
         for (unsigned int igrid_node = 0; igrid_node< n_metric_dofs/dim; ++igrid_node) {
             for (unsigned int idof = 0; idof< n_metric_dofs; ++idof) {

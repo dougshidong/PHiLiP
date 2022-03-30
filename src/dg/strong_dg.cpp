@@ -1346,6 +1346,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_volume_term_explicit(
         }
     }
     //Note that this does curvilinear metric splitting built in.
+    //For details on the metric split-form, divergence, and gradient representations please refer to Cicchino, Alexander, et al. "Provably Stable Flux Reconstruction High-Order Methods on Curvilinear Elements."
     this->operators.get_Jacobian_scaled_physical_gradient(true, this->operators.gradient_flux_basis[poly_degree], metric_cofactor, n_quad_pts, nstate, physical_gradient); 
 
 
@@ -1396,7 +1397,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_volume_term_explicit(
 
     // Evaluate flux divergence by applying the Jacobian scaled physical divergence operator (physical_gradient) on the fluxes.
     // NOTE: the curvilinear split form is user defined incorporated in the assembly of the divergence operator.
-
+    //Entropy stable 2-point flux within the volume integral. Please refer to Cicchino, Alexander, Siva Nadarajah, and David C. Del Rey Fernández. "Nonlinearly stable flux reconstruction high-order methods in split form." Journal of Computational Physics (2022): 111094.
     std::vector<realArray> flux_divergence(n_quad_pts);
     std::vector<realArray> divergence_diffusive_flux(n_quad_pts);
     for (int istate = 0; istate<nstate; ++istate) {
@@ -1864,7 +1865,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_explicit(
         } else if(this->all_parameters->use_split_form == false && this->all_parameters->use_curvilinear_split_form == true){
             ADArrayTensor1 conv_surface_ref_flux;
             ADArrayTensor1 phys_flux = this->pde_physics_double->convective_flux (soln_int[iquad]);
-            //get surface reference flux anf do curvilinear surface splitting simultaneously
+            //get surface reference flux and do curvilinear surface splitting simultaneously
             for(int istate=0; istate<nstate; istate++){
                 this->operators.compute_physical_to_reference(phys_flux[istate], metric_cofactor_face[iquad], conv_surface_ref_flux[istate]);
                 conv_ref_flux_int_on_face[iquad][istate] = 0.5 * (conv_surface_ref_flux[istate] + conv_ref_flux_interp_to_face_int[iquad][istate]);

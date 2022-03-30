@@ -10,6 +10,9 @@ std::array<real, nstate> EntropyConsNumFlux<dim,nstate,real>::evaluate_flux(
     const std::array<real, nstate> &soln_ext,
     const dealii::Tensor<1,dim,real> &normal_int) const
 {
+//    using PDE_enum = Parameters::AllParameters::PartialDifferentialEquation;
+//    assert(pde_physics->parameters->pde_type == PDE_enum::burgers_inviscid);
+
     using RealArrayVector = std::array<dealii::Tensor<1,dim,real>,nstate>;
     RealArrayVector conv_phys_flux_int;
     RealArrayVector conv_phys_flux_ext;

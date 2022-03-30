@@ -122,30 +122,6 @@ int main (int argc, char * argv[])
        // dealii::QGaussLobatto<dim> vol_quad_GLL (poly_degree+1+overint);
         dealii::QGaussLobatto<dim> vol_quad_GLL (poly_degree+1);
         const std::vector<real> &quad_weights = vol_quad_GLL.get_weights ();
-#if 0
-pcout<<"GLL"<<std::endl;
-        for(unsigned int idof=0; idof<n_dofs; idof++){
-            for(unsigned int idof2=0; idof2<n_dofs; idof2++){
-                if(idof==idof2)
-                    pcout<<quad_weights[idof]<<" ";
-                else
-                    pcout<<0<<" ";
-            }
-    pcout<<std::endl;
-        }
-pcout<<"M+K"<<std::endl;
-        for(unsigned int idof=0; idof<n_dofs; idof++){
-            for(unsigned int idof2=0; idof2<n_dofs; idof2++){
-                if(std::abs(operators.local_mass[poly_degree][idof][idof2] +
-                            operators.local_K_operator[poly_degree][idof][idof2] )<1e-12)
-                    pcout<<0<<" ";
-                else
-                    pcout<<operators.local_mass[poly_degree][idof][idof2] +
-                            operators.local_K_operator[poly_degree][idof][idof2]<<" ";
-            }
-    pcout<<std::endl;
-        }
-#endif
 
 
         for(unsigned int idof=0; idof<n_dofs; idof++){
@@ -167,57 +143,7 @@ pcout<<"M+K"<<std::endl;
                 }
             }
         }
-#if 0
-pcout<<"MASS"<<std::endl;
-        for(unsigned int idof=0; idof<n_dofs; idof++){
-            for(unsigned int idof2=0; idof2<n_dofs; idof2++){
-    pcout<<operators.local_mass[poly_degree][idof][idof2]<<" ";
-            }
-    pcout<<" "<<std::endl;
-        }
-
-pcout<<"basis of row "<<operators.basis_at_vol_cubature[poly_degree].m()<< " "<<operators.basis_at_vol_cubature[poly_degree].n()<<std::endl;
-
-        for(unsigned int idof=0; idof<n_quad_pts; idof++){
-            for(unsigned int idof2=0; idof2<n_dofs; idof2++){
-    pcout<<operators.basis_at_vol_cubature[poly_degree][idof][idof2]<<" ";
-            }
-    pcout<<" "<<std::endl;
-        }
-pcout<<"local basis stiff"<<std::endl;
-        for(unsigned int idof=0; idof<n_dofs; idof++){
-            for(unsigned int idof2=0; idof2<n_dofs; idof2++){
-    pcout<<operators.local_basis_stiffness[poly_degree][0][idof][idof2]<<" ";
-            }
-    pcout<<" "<<std::endl;
-        }
-pcout<<"flux stiff"<<std::endl;
-pcout<<"flux stiff row "<<operators.local_flux_basis_stiffness[poly_degree][0].m()<< " "<<operators.local_flux_basis_stiffness[poly_degree][0].n()<<std::endl;
-        for(unsigned int idof=0; idof<n_dofs; idof++){
-            for(unsigned int idof2=0; idof2<operators.local_flux_basis_stiffness[poly_degree][0].n(); idof2++){
-    pcout<<operators.local_flux_basis_stiffness[poly_degree][0][idof][idof2]<<" ";
-            }
-    pcout<<" "<<std::endl;
-        }
-#endif
         
-#if 0
-    
-        dealii::FullMatrix<real> KD(n_dofs); 
-        for(int idim=0; idim<dim; idim++){
-            operators.local_K_operator[poly_degree].mmult(KD, operators.modal_basis_differential_operator[poly_degree][idim]); 
-            dealii::Vector<real> random_u(n_dofs);
-            for(unsigned int idof=0; idof<n_dofs; idof++){
-                random_u[idof] = (double) (rand() % 100);
-            }
-            dealii::Vector<real> KDu(n_dofs);
-            KD.vmult(KDu, random_u);
-            double uKDu = random_u * KDu;
-            if(std::abs(uKDu)>skew_sym)
-                skew_sym = std::abs(uKDu);
-    pcout<<"SKEW SYM "<<skew_sym<<std::endl;
-        }
-#endif
 
         dealii::FullMatrix<real> Dp(n_dofs);
         const unsigned int n_quad_pts = operators.volume_quadrature_collection[poly_degree].size();
@@ -279,12 +205,6 @@ pcout<<"flux stiff row "<<operators.local_flux_basis_stiffness[poly_degree][0].m
         pcout<<" KHU does not recover Collocated GLL M+K mass matrix with exact integration !"<<std::endl;
         return 1;
     }
-#if 0
-    if( skew_sym > 1e-11){
-        printf(" KD is not skew symmetric !\n");
-        return 1;
-    }
-#endif
     else{
         return 0;
     }

@@ -85,34 +85,6 @@ int main (int argc, char * argv[])
    // all_parameters_new.use_collocated_nodes=true;
     all_parameters_new.overintegration = 0;
 
-#if 0
-    double left = 0.0;
-    double right = 1.0;
-    const bool colorize = true;
-    const unsigned int igrid= 0;
-
-
-    const bool use_chebyshev = true;
-
-    //Generate a standard grid
-
-#if PHILIP_DIM==1 // dealii::parallel::distributed::Triangulation<dim> does not work for 1D
-    using Triangulation = dealii::Triangulation<dim>;
-    std::shared_ptr<Triangulation> grid = std::make_shared<Triangulation>(
-        typename dealii::Triangulation<dim>::MeshSmoothing(
-            dealii::Triangulation<dim>::smoothing_on_refinement |
-            dealii::Triangulation<dim>::smoothing_on_coarsening));
-#else
-    using Triangulation = dealii::parallel::distributed::Triangulation<dim>;
-    std::shared_ptr<Triangulation> grid = std::make_shared<Triangulation>(
-        MPI_COMM_WORLD,
-        typename dealii::Triangulation<dim>::MeshSmoothing(
-            dealii::Triangulation<dim>::smoothing_on_refinement |
-            dealii::Triangulation<dim>::smoothing_on_coarsening));
-#endif
-        dealii::GridGenerator::hyper_cube (*grid, left, right, colorize);
-        grid->refine_global(igrid);
-#endif
     for(unsigned int poly_degree=2; poly_degree<3; poly_degree++){
 
         OPERATOR::OperatorBase<dim,real> operators(&all_parameters_new, nstate, poly_degree, poly_degree, poly_degree); 

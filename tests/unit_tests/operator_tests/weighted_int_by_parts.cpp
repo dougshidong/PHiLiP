@@ -123,26 +123,6 @@ int main (int argc, char * argv[])
         std::vector<dealii::FullMatrix<real>> vol_int_parts(dim);
         std::vector<dealii::FullMatrix<real>> face_int_parts(dim);
 
-#if 0
-        std::vector<dealii::FullMatrix<real>> deriv_basis_weights(dim);
-        for(int idim=0; idim<dim; idim++){
-            deriv_basis_weights[idim].reinit(n_quad_pts, n_dofs);
-        }
-        for(int idim=0; idim<dim; idim++){
-        for(unsigned int idof=0; idof<n_dofs; idof++){
-            for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
-                deriv_basis_weights[idim][iquad][idof] = 0.0;
-                for(unsigned int iquad2=0; iquad2<n_quad_pts; iquad2++){
-                    const dealii::Point<dim> qpoint  = operators.volume_quadrature_collection[poly_degree].point(iquad2);
-                    deriv_basis_weights[idim][iquad][idof] +=         operators.gradient_flux_basis[poly_degree][0][idim][iquad][iquad2]
-                                                            *       operators.basis_at_vol_cubature[poly_degree][iquad2][idof]
-                                                           // *       (1.0/std::sqrt(qpoint[idim]*(1.0-qpoint[idim])));
-                                                            *       (1.0/(2.0*std::sqrt(qpoint[idim]*(1.0-qpoint[idim]))));
-                }
-            }
-        }
-        }
-#endif
 
 
 
@@ -154,7 +134,6 @@ int main (int argc, char * argv[])
             vol_int_parts[idim].reinit(n_dofs, n_dofs);
             vol_int_parts[idim].add(1.0, operators.local_basis_stiffness[poly_degree][idim]);
             vol_int_parts[idim].Tadd(1.0, operators.local_basis_stiffness[poly_degree][idim]);
-//#if 0
             if(use_chebyshev == true){
             for(unsigned int itest=0; itest<n_dofs; itest++){
                 const unsigned int istate_test = operators.fe_collection_basis[poly_degree].system_to_component_index(itest).first;
@@ -165,21 +144,11 @@ int main (int argc, char * argv[])
                         double value= 0.0;
                         for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
                             const dealii::Point<dim> qpoint  = operators.volume_quadrature_collection[poly_degree].point(iquad);
-//#if 0
                             value +=        operators.basis_at_vol_cubature[poly_degree][iquad][itest] 
                                     *       operators.basis_at_vol_cubature[poly_degree][iquad][idof]
                                     *       operators.volume_quadrature_collection[poly_degree].weight(iquad)
                                     /       (1.0/std::sqrt(qpoint[idim]*(1.0-qpoint[idim])))
                                     *        ((2.0*qpoint[idim]-1.0)/(pow(qpoint[idim]*(1.0-qpoint[idim]), 3.0/2.0)*2.0));
-//        pcout<<" for iquad "<<iquad<<" weight "<<operators.volume_quadrature_collection[poly_degree].weight(iquad)<<std::endl;
-//#endif
-#if 0
-                            value +=        deriv_basis_weights[idim][iquad][itest] 
-                                    *       operators.basis_at_vol_cubature[poly_degree][iquad][idof]
-                                    *       operators.volume_quadrature_collection[poly_degree].weight(iquad)
-                                   // /       (1.0/std::sqrt(qpoint[idim]*(1.0-qpoint[idim])));
-                                    /       (1.0/(2.0*std::sqrt(qpoint[idim]*(1.0-qpoint[idim]))));
-#endif
                         }
                         if(istate_test == istate_dof){
                           //  unsigned int dof_index = idof + n_dofs_flux * istate_dof;
@@ -189,7 +158,6 @@ int main (int argc, char * argv[])
                 }
             }
             }
-//#endif
 //            vol_int_parts[idim].Tadd(1.0, operators.local_basis_stiffness[poly_degree][idim]);
 pcout<<"VOLUME TERM "<<std::endl;
             for(unsigned int itest=0; itest<n_dofs; itest++){
@@ -245,12 +213,6 @@ pcout<<" THE TEST "<<test<<std::endl;
                         //           *       pi*(poly_degree+1)
                         //           *       operators.basis_at_facet_cubature[poly_degree][iface][iquad][idof];
                         }
-#if 0
-                        if(dim==1){
-                            const double pi = atan(1)*4.0;
-                            value *= pi*(poly_degree+1);
-                        }
-#endif
                         if(istate_test == istate_dof){
                             unsigned int dof_index = idof + n_dofs_flux * istate_dof;
                             face_int_parts[jdim][itest][dof_index] += value;

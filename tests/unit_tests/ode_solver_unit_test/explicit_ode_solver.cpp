@@ -82,6 +82,7 @@ int main (int argc, char * argv[])
     all_parameters.ode_solver_param.ode_solver_type = PHiLiP::Parameters::ODESolverParam::ODESolverEnum::explicit_solver;
     all_parameters.ode_solver_param.nonlinear_max_iterations = 500;
     all_parameters.ode_solver_param.print_iteration_modulo = 100;
+    all_parameters.use_periodic_bc = true;
     
     const int rk_order = 3;
     double expected_order = -double(rk_order);

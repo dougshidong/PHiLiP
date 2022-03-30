@@ -21,30 +21,38 @@ void ExplicitODESolver<dim,real,MeshType>::step_in_time (real dt, const bool pse
     //calculating stages
     this->solution_update = this->dg->solution; //u_ni
     for (int i = 0; i < rk_order; ++i){
-        this->rk_stage[i] = this->solution_update; //u_n
+        
+        this->rk_stage[i]=0.0; //resets all entries to zero
+        
         for (int j = 0; j < i; ++j){
-            if (this->butcher_tableau_a[i][j] != 0.0){
-                if (pseudotime) {
-                    //implemented but not tested 
-                    //to my knowledge, there aren't any existing tests using explicit steady-state 
-                    //(searched through unit_tests folder)
-                    this->pcout << "Explicit pseudotime not tested!!" << std::endl;
-                    const double CFL =this->butcher_tableau_a[i][j] * dt;
-                    this->dg->time_scale_solution_update(this->rk_stage[j], CFL);
-                    this->rk_stage[i].add(1.0,  this->rk_stage[j]);
-                } else {
-                    this->rk_stage[i].add(dt*this->butcher_tableau_a[i][j], this->rk_stage[j]);
-                }
+            if (this->butcher_tableau_a[i][j] != 0){
+                this->rk_stage[i].add(this->butcher_tableau_a[i][j], this->rk_stage[j]);
             }
-        } //u_n + dt* sum(a_ij *k_j)
+        } // sum(a_ij *k_j)
+        
+        if(pseudotime) {
+            const double CFL = dt;
+            this->dg->time_scale_solution_update(rk_stage[i], CFL);
+        }else {
+            this->rk_stage[i]*=dt; 
+        }//dt * sum(a_ij * k_j)
+        
+        this->rk_stage[i].add(1.0,this->solution_update); //u_n + dt * sum(a_ij * k_j)
+
         this->dg->solution = this->rk_stage[i];
-        this->dg->assemble_residual(); // RHS : du/dt = RHS = F(u_n + dt* sum(a_ij*k_j)
-        this->dg->global_inverse_mass_matrix.vmult(this->rk_stage[i], this->dg->right_hand_side); //rk_stage[i] = IMM*RHS = F(u_n + dt*sum(a_ij*k_j)
+        this->dg->assemble_residual(); // RHS : du/dt = RHS = F(u_n + dt* sum(a_ij*k_j))
+        this->dg->global_inverse_mass_matrix.vmult(this->rk_stage[i], this->dg->right_hand_side); //rk_stage[i] = IMM*RHS = F(u_n + dt*sum(a_ij*k_j))
     }
 
     //assemble solution from stages
     for (int i = 0; i < rk_order; ++i){
-        this->solution_update.add(dt* this->butcher_tableau_b[i],this->rk_stage[i]);
+        if (pseudotime){
+            const double CFL = butcher_tableau_b[i] * dt;
+            this->dg->time_scale_solution_update(rk_stage[i], CFL);
+            this->solution_update.add(1.0, this->rk_stage[i]);
+        } else {
+            this->solution_update.add(dt* this->butcher_tableau_b[i],this->rk_stage[i]); 
+        }
     }
     this->dg->solution = this->solution_update; // u_np1 = u_n + dt* sum(k_i * b_i)
 

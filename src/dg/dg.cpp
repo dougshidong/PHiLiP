@@ -376,7 +376,7 @@ void DGBaseState<dim,nstate,real,MeshType>::update_model_variables()
         const int i_fele = cell->active_fe_index();
         const int i_quad = i_fele;
         const int i_mapp = 0;
-        fe_values_collection_volume.reinit (cell, i_quad, i_mapp, i_fele);
+        fe_values_collection_volume.reinit(cell, i_quad, i_mapp, i_fele);
         const dealii::FEValues<dim,dim> &fe_values_volume = fe_values_collection_volume.get_present_fe_values();
 
         // get cell polynomial degree
@@ -395,6 +395,7 @@ void DGBaseState<dim,nstate,real,MeshType>::update_model_variables()
         
         // get cell index for assignment
         const dealii::types::global_dof_index cell_index = cell->active_cell_index();
+        // const dealii::types::global_dof_index cell_index = cell->global_active_cell_index(); // https://www.dealii.org/current/doxygen/deal.II/classCellAccessor.html
 
         // assign values
         // -- double

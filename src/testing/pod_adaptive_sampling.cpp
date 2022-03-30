@@ -15,45 +15,6 @@ AdaptiveSampling<dim, nstate>::AdaptiveSampling(const PHiLiP::Parameters::AllPar
 template <int dim, int nstate>
 int AdaptiveSampling<dim, nstate>::run_test() const
 {
-    ProperOrthogonalDecomposition::RBFInterpolation obj = ProperOrthogonalDecomposition::RBFInterpolation();
-    int dimension = 2;
-
-    // Set parameters.
-    ROL::ParameterList parlist;
-    parlist.sublist("Step").sublist("Line Search").sublist("Descent Method").set("Type", "Newton-Krylov");
-    parlist.sublist("Status Test").set("Gradient Tolerance",1.e-12);
-    parlist.sublist("Status Test").set("Step Tolerance",1.e-14);
-    parlist.sublist("Status Test").set("Iteration Limit",100);
-
-    ROL::Ptr<ROL::Step<double>> step = ROL::makePtr<ROL::LineSearchStep<double>>(parlist);
-    ROL::Ptr<ROL::StatusTest<double>> status = ROL::makePtr<ROL::StatusTest<double>>(parlist);
-    ROL::Algorithm<double> algo(step,status,false);
-
-    // Iteration Vector
-    ROL::Ptr<std::vector<double> > x_ptr = ROL::makePtr<std::vector<double>>(dimension, 0.0);
-
-    // Set Initial Guess
-    (*x_ptr)[0]   = -4.0;
-    (*x_ptr)[1] =  3.0;
-
-    ROL::StdVector<double> x(x_ptr);
-
-    // Run Algorithm
-    ROL::Ptr<std::ostream> outStream;
-    outStream = ROL::makePtrFromRef(std::cout);
-    algo.run(x, obj, true, *outStream);
-
-    ROL::Ptr<std::vector<double>> x_std = x.getVector();
-
-    std::cout << (*x_std)[0] << " " << (*x_std)[1] << std::endl;
-
-
-
-
-
-
-
-    /*
     std::cout << "Starting adaptive sampling process" << std::endl;
 
     placeInitialSnapshots();
@@ -121,7 +82,7 @@ int AdaptiveSampling<dim, nstate>::run_test() const
 
     std::ofstream rom_table_file("adaptive_sampling_rom_table.txt");
     rom_table->write_text(rom_table_file);
-    */
+
     return 0;
 }
 
@@ -129,7 +90,7 @@ int AdaptiveSampling<dim, nstate>::run_test() const
 template <int dim, int nstate>
 RowVector2d AdaptiveSampling<dim, nstate>::getMaxErrorROM() const{
     std::cout << "Updating RBF interpolation..." << std::endl;
-    /*
+
 
     int n_rows = snapshot_parameters.rows() + rom_locations.size();
     MatrixXd parameters(n_rows, 2);
@@ -148,7 +109,7 @@ RowVector2d AdaptiveSampling<dim, nstate>::getMaxErrorROM() const{
         std::cout << "Parameters array: " << key.array() << std::endl;
         std::cout << "Error: " << value.total_error << std::endl;
         parameters.row(i) = key.array();
-        errors(i) = value.total_error;
+        errors(i) = -std::abs(value.total_error);
         i++;
     }
 
@@ -170,14 +131,22 @@ RowVector2d AdaptiveSampling<dim, nstate>::getMaxErrorROM() const{
     std::string kernel = "thin_plate_spline";
     ProperOrthogonalDecomposition::RBFInterpolation rbf = ProperOrthogonalDecomposition::RBFInterpolation(parameters_scaled, errors, kernel);
 
+    // Set parameters.
+    ROL::ParameterList parlist;
+    parlist.sublist("General").set("Recompute Objective Function",false);
+    parlist.sublist("Step").sublist("Line Search").set("Initial Step Size", 0.5);
+    parlist.sublist("Step").sublist("Line Search").set("User Defined Initial Step Size",true);
+    parlist.sublist("Step").sublist("Line Search").sublist("Line-Search Method").set("Type","Bisection");
+    parlist.sublist("Step").sublist("Line Search").sublist("Descent Method").set("Type","Hestenes-Stiefel");
+    parlist.sublist("Step").sublist("Line Search").sublist("Curvature Condition").set("Type","Null Curvature Condition");
+    parlist.sublist("Status Test").set("Gradient Tolerance",1.e-4);
+    parlist.sublist("Status Test").set("Step Tolerance",1.e-14);
+    parlist.sublist("Status Test").set("Iteration Limit",100);
+
     //Find max error and parameters by minimizing function starting at each ROM location
     RowVector2d max_error_params_scaled;
     max_error = 0;
-    Eigen::NumericalDiff<ProperOrthogonalDecomposition::RBFInterpolation> numericalDiffMyFunctor(rbf);
-    Eigen::LevenbergMarquardt<Eigen::NumericalDiff<ProperOrthogonalDecomposition::RBFInterpolation>, double> levenbergMarquardt(numericalDiffMyFunctor);
-    levenbergMarquardt.parameters.ftol = 1e-6;
-    levenbergMarquardt.parameters.xtol = 1e-6;
-    levenbergMarquardt.parameters.maxfev = 100; // Max iterations
+
     for(auto& [key, value] : rom_locations){
 
         Eigen::RowVector2d rom_unscaled = key;
@@ -191,14 +160,44 @@ RowVector2d AdaptiveSampling<dim, nstate>::getMaxErrorROM() const{
             rom_scaled(k) = (rom_unscaled(k) - min) / (max - min);
         }
         std::cout << rom_scaled << std::endl;
-        rom_scaled(0) = rom_scaled(0) + 0.1;
-        std::cout << rom_scaled << std::endl;
 
-        levenbergMarquardt.minimize(rom_scaled);
-        std::cout << rom_scaled << std::endl;
+        ROL::Ptr<ROL::Step<double>> step = ROL::makePtr<ROL::LineSearchStep<double>>(parlist);
+        ROL::Ptr<ROL::StatusTest<double>> status = ROL::makePtr<ROL::StatusTest<double>>(parlist);
+        ROL::Algorithm<double> algo(step,status,false);
 
+        // Iteration Vector
+        int dimension = 2;
+        ROL::Ptr<std::vector<double> > x_ptr = ROL::makePtr<std::vector<double>>(dimension, 0.0);
+
+        // Set Initial Guess
+        (*x_ptr)[0] = rom_scaled(0);
+        (*x_ptr)[1] = rom_scaled(1);
+
+        std::cout << "ROL: " << (*x_ptr)[0] << " " << (*x_ptr)[1] << std::endl;
+
+        ROL::StdVector<double> x(x_ptr);
+
+        // Run Algorithm
+        ROL::Ptr<std::ostream> outStream;
+        outStream = ROL::makePtrFromRef(std::cout);
+        algo.run(x, rbf, true, *outStream);
+
+        ROL::Ptr<std::vector<double>> x_std = x.getVector();
+
+        rom_scaled(0) = (*x_std)[0];
+        rom_scaled(1) = (*x_std)[1];
+
+        RowVector2d optimum_unscaled(2);
+        for(int k = 0 ; k < 2 ; k++){
+            double min = parameters.col(k).minCoeff();
+            double max = parameters.col(k).maxCoeff();
+            optimum_unscaled(k) = (rom_scaled(k)*(max - min)) + min;
+        }
+
+        std::cout << "Minimum unscaled: " << optimum_unscaled << std::endl;
 
         double error = std::abs(rbf.evaluate(rom_scaled.transpose()).value());
+        std::cout << "RBF error: " << error << std::endl;
         if(error > max_error){
             max_error = error;
             std::cout << "RBF Max error: " << max_error << std::endl;
@@ -233,9 +232,6 @@ RowVector2d AdaptiveSampling<dim, nstate>::getMaxErrorROM() const{
     }
 
     return max_error_params;
-     */
-    RowVector2d max_error_params;
-    return max_error_params;
 }
 
 template <int dim, int nstate>
@@ -243,13 +239,13 @@ void AdaptiveSampling<dim, nstate>::placeInitialSnapshots() const{
     std::vector<double> rewienski_a_range = {2, 10};
     std::vector<double> rewienski_b_range = {0.01, 0.1};
 
-    snapshot_parameters.resize(3,2);
+    snapshot_parameters.resize(6,2);
     snapshot_parameters << rewienski_a_range[0], rewienski_b_range[0],
                            rewienski_a_range[0], rewienski_b_range[1],
-                           rewienski_a_range[1], rewienski_b_range[1];
-                           //rewienski_a_range[1], rewienski_b_range[0],
-                           //0.5*(rewienski_a_range[1] - rewienski_a_range[0])+rewienski_a_range[0], 0.33*(rewienski_b_range[1] - rewienski_b_range[0])+rewienski_b_range[0],
-                           //0.25*(rewienski_a_range[1] - rewienski_a_range[0])+rewienski_a_range[0], 0.67*(rewienski_b_range[1] - rewienski_b_range[0])+rewienski_b_range[0];
+                           rewienski_a_range[1], rewienski_b_range[1],
+                           rewienski_a_range[1], rewienski_b_range[0],
+                           0.5*(rewienski_a_range[1] - rewienski_a_range[0])+rewienski_a_range[0], 0.33*(rewienski_b_range[1] - rewienski_b_range[0])+rewienski_b_range[0],
+                           0.25*(rewienski_a_range[1] - rewienski_a_range[0])+rewienski_a_range[0], 0.67*(rewienski_b_range[1] - rewienski_b_range[0])+rewienski_b_range[0];
     std::cout << snapshot_parameters << std::endl;
     //Get initial conditions
     Parameters::AllParameters params = reinitParams(snapshot_parameters.row(0));

@@ -49,11 +49,7 @@ public:
         return dynamic_cast<const VectorType&>((x)).getVector();
     }
 
-    double value(const ROL::Vector<double> &x, double &/*tol*/ ) {
-        ROL::Ptr<const vector> xp = getVector<ROL::StdVector<double>>(x);
-        double val = 100 * pow(pow((*xp)[0],2) - (*xp)[1], 2) + pow((*xp)[0] - 1.0, 2);
-        return val;
-    }
+    double value(const ROL::Vector<double> &x, double &/*tol*/ );
 
 };
 

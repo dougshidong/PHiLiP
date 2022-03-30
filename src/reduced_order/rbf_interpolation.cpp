@@ -61,5 +61,14 @@ VectorXd RBFInterpolation::evaluate(RowVectorXd evaluate_coordinate) const {
     return s*weights;
 }
 
+double RBFInterpolation::value(const ROL::Vector<double> &x, double &/*tol*/ ) {
+    ROL::Ptr<const vector> xp = getVector<ROL::StdVector<double>>(x);
+    RowVectorXd evaluate_coordinate(2);
+    evaluate_coordinate(0) = (*xp)[0];
+    evaluate_coordinate(1) = (*xp)[1];
+    double val = evaluate(evaluate_coordinate).value();
+    return val;
+}
+
 }
 }

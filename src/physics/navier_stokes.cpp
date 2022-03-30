@@ -567,6 +567,55 @@ std::array<dealii::Tensor<1,dim,real2>,nstate> NavierStokes<dim,nstate,real>
 
 template <int dim, int nstate, typename real>
 void NavierStokes<dim,nstate,real>
+::boundary_no_slip_wall (
+   const dealii::Tensor<1,dim,real> &normal_int,
+   const std::array<real,nstate> &soln_int,
+   const std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_int,
+   std::array<real,nstate> &soln_bc,
+   std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_bc) const
+{
+    // Slip wall boundary conditions (No penetration)
+    // Given by Algorithm II of the following paper
+    // Krivodonova, L., and Berger, M.,
+    // “High-order accurate implementation of solid wall boundary conditions in curved geometries,”
+    // Journal of Computational Physics, vol. 211, 2006, pp. 492–512.
+    const std::array<real,nstate> primitive_interior_values = convert_conservative_to_primitive<real>(soln_int);
+
+    // Hard-coded for isothermal boundary
+    const double temperature_wall = this->temperature_inf; // add a parameter for this
+
+    // Copy density and pressure
+    std::array<real,nstate> primitive_boundary_values;
+    primitive_boundary_values[0] = primitive_interior_values[0];
+    primitive_boundary_values[nstate-1] = this->compute_pressure_from_density_temperature(primitive_boundary_values[0], temperature_wall);
+
+    //const dealii::Tensor<1,dim,real> surface_normal = -normal_int;
+    //const dealii::Tensor<1,dim,real> velocities_int = extract_velocities_from_primitive<real>(primitive_interior_values);
+    //const dealii::Tensor<1,dim,real> velocities_bc = velocities_int - 2.0*(velocities_int*surface_normal)*surface_normal;
+    // real vel_int_dot_normal = 0.0;
+    // for (int d=0; d<dim; d++) {
+    //     vel_int_dot_normal = vel_int_dot_normal + velocities_int[d]*surface_normal[d];
+    // }
+    dealii::Tensor<1,dim,real> velocities_bc;
+    for (int d=0; d<dim; d++) {
+        velocities_bc[d] = 0.0; 
+    }
+    for (int d=0; d<dim; ++d) {
+        primitive_boundary_values[1+d] = velocities_bc[d];
+    }
+
+    const std::array<real,nstate> modified_conservative_boundary_values = convert_primitive_to_conservative(primitive_boundary_values);
+    for (int istate=0; istate<nstate; ++istate) {
+        soln_bc[istate] = modified_conservative_boundary_values[istate];
+    }
+
+    for (int istate=0; istate<nstate; ++istate) {
+        soln_grad_bc[istate] = -soln_grad_int[istate];
+    }
+}
+
+template <int dim, int nstate, typename real>
+void NavierStokes<dim,nstate,real>
 ::boundary_face_values (
    const int boundary_type,
    const dealii::Point<dim, real> &pos,
@@ -592,6 +641,10 @@ void NavierStokes<dim,nstate,real>
             soln_grad_bc[istate] = boundary_gradients[istate];
         }
     }
+    else if (boundary_type == 1001) {
+        // No-slip wall boundary condition
+        boundary_no_slip_wall (normal_int, soln_int, soln_grad_int, soln_bc, soln_grad_bc);
+    } 
     // else if (boundary_type == 1005) {
     //     // Simple farfield boundary condition
     //     this->boundary_farfield(soln_bc);

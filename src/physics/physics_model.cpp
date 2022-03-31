@@ -39,10 +39,10 @@ std::array<dealii::Tensor<1,dim,real>,nstate> PhysicsModel<dim,nstate,real,nstat
 
     // Get baseline convective flux
     std::array<dealii::Tensor<1,dim,real>,nstate_baseline_physics> baseline_conv_flux
-         = this->physics_baseline->convective_flux(baseline_conservative_soln);
+         = physics_baseline->convective_flux(baseline_conservative_soln);
 
     // Initialize conv_flux as the model convective flux
-    std::array<dealii::Tensor<1,dim,real>,nstate> conv_flux = this->model->convective_flux(conservative_soln);
+    std::array<dealii::Tensor<1,dim,real>,nstate> conv_flux = model->convective_flux(conservative_soln);
 
     // Add the baseline_conv_flux terms to conv_flux
     for(int s=0; s<nstate_baseline_physics; ++s){
@@ -78,10 +78,10 @@ std::array<dealii::Tensor<1,dim,real>,nstate> PhysicsModel<dim,nstate,real,nstat
     /* Note: Even though the physics baseline dissipative flux does not depend on cell_index, we pass it 
              anyways to accomodate the pure virtual member function defined in the PhysicsBase class */
     std::array<dealii::Tensor<1,dim,real>,nstate_baseline_physics> baseline_diss_flux
-        = this->physics_baseline->dissipative_flux(baseline_conservative_soln, baseline_solution_gradient, cell_index);
+        = physics_baseline->dissipative_flux(baseline_conservative_soln, baseline_solution_gradient, cell_index);
 
     // Initialize diss_flux as the model dissipative flux
-    std::array<dealii::Tensor<1,dim,real>,nstate> diss_flux = this->model->dissipative_flux(conservative_soln, solution_gradient, cell_index);
+    std::array<dealii::Tensor<1,dim,real>,nstate> diss_flux = model->dissipative_flux(conservative_soln, solution_gradient, cell_index);
 
     // Add the baseline_diss_flux terms to diss_flux
     for(int s=0; s<nstate_baseline_physics; ++s){
@@ -100,7 +100,7 @@ std::array<real,nstate> PhysicsModel<dim,nstate,real,nstate_baseline_physics>
     const dealii::types::global_dof_index cell_index) const
 {
     // Initialize source_term as the model source term
-    std::array<real,nstate> source_term = this->model->source_term(pos,conservative_soln,cell_index);
+    std::array<real,nstate> source_term = model->source_term(pos,conservative_soln,cell_index);
     
     // Get baseline conservative solution with nstate_baseline_physics
     std::array<real,nstate_baseline_physics> baseline_conservative_soln;
@@ -111,7 +111,7 @@ std::array<real,nstate> PhysicsModel<dim,nstate,real,nstate_baseline_physics>
     // Get the baseline physics source term
     /* Note: Even though the physics baseline source term does not depend on cell_index, we pass it 
              anyways to accomodate the pure virtual member function defined in the PhysicsBase class */
-    std::array<real,nstate_baseline_physics> baseline_source_term = this->physics_baseline->source_term(pos,baseline_conservative_soln,cell_index);
+    std::array<real,nstate_baseline_physics> baseline_source_term = physics_baseline->source_term(pos,baseline_conservative_soln,cell_index);
 
     // Add the baseline_source_term terms to source_term
     for(int s=0; s<nstate_baseline_physics; ++s){
@@ -129,7 +129,7 @@ std::array<dealii::Tensor<1,dim,real>,nstate> PhysicsModel<dim,nstate,real,nstat
     // TO DO: Update for when nstate > nstate_baseline_physics
     std::array<dealii::Tensor<1,dim,real>,nstate> conv_num_split_flux;
     if(nstate==nstate_baseline_physics) {
-        conv_num_split_flux = this->physics_baseline->convective_numerical_split_flux(conservative_soln1,conservative_soln2);
+        conv_num_split_flux = physics_baseline->convective_numerical_split_flux(conservative_soln1,conservative_soln2);
     } else {
         // TO DO, make use of the physics_model object for nstate>nstate_baseline_physics
         std::abort();
@@ -146,7 +146,7 @@ std::array<real,nstate> PhysicsModel<dim,nstate,real,nstate_baseline_physics>
     // TO DO: Update for when nstate > nstate_baseline_physics
     std::array<real,nstate> eig;
     if(nstate==nstate_baseline_physics) {
-        eig = this->physics_baseline->convective_eigenvalues(conservative_soln, normal);
+        eig = physics_baseline->convective_eigenvalues(conservative_soln, normal);
     } else {
         // TO DO, make use of the physics_model object for nstate>nstate_baseline_physics
         std::abort();
@@ -161,7 +161,7 @@ real PhysicsModel<dim,nstate,real,nstate_baseline_physics>
     // TO DO: Update for when nstate > nstate_baseline_physics
     real max_eig;
     if(nstate==nstate_baseline_physics) {
-        max_eig = this->physics_baseline->max_convective_eigenvalue(conservative_soln);
+        max_eig = physics_baseline->max_convective_eigenvalue(conservative_soln);
     } else {
         // TO DO, make use of the physics_model object for nstate>nstate_baseline_physics
         std::abort();
@@ -182,7 +182,7 @@ void PhysicsModel<dim,nstate,real,nstate_baseline_physics>
 {
     // TO DO: Update for when nstate > nstate_baseline_physics
     if(nstate==nstate_baseline_physics) {
-        this->physics_baseline->boundary_face_values(
+        physics_baseline->boundary_face_values(
                 boundary_type, pos, normal_int, soln_int, soln_grad_int, 
                 soln_bc, soln_grad_bc);
     } else {
@@ -202,7 +202,7 @@ dealii::Vector<double> PhysicsModel<dim,nstate,real,nstate_baseline_physics>::po
     // TO DO: Update for when nstate > nstate_baseline_physics
     dealii::Vector<double> computed_quantities;
     if(nstate==nstate_baseline_physics) {
-        computed_quantities = this->physics_baseline->post_compute_derived_quantities_vector(
+        computed_quantities = physics_baseline->post_compute_derived_quantities_vector(
                                         uh, duh, dduh, normals, evaluation_points);
     } else {
         // TO DO, make use of the physics_model object for nstate>nstate_baseline_physics
@@ -218,7 +218,7 @@ std::vector<std::string> PhysicsModel<dim,nstate,real,nstate_baseline_physics>
     // TO DO: Update for when nstate > nstate_baseline_physics
     std::vector<std::string> names;
     if(nstate==nstate_baseline_physics) {
-        names = this->physics_baseline->post_get_names();
+        names = physics_baseline->post_get_names();
     } else {
         // TO DO, make use of the physics_model object for nstate>nstate_baseline_physics
         std::abort();
@@ -234,7 +234,7 @@ std::vector<dealii::DataComponentInterpretation::DataComponentInterpretation> Ph
     namespace DCI = dealii::DataComponentInterpretation;
     std::vector<DCI::DataComponentInterpretation> interpretation;
     if(nstate==nstate_baseline_physics) {
-        interpretation = this->physics_baseline->post_get_data_component_interpretation();
+        interpretation = physics_baseline->post_get_data_component_interpretation();
     } else {
         // TO DO, make use of the physics_model object for nstate>nstate_baseline_physics
         std::abort();

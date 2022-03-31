@@ -30,6 +30,9 @@ public:
     /// Destructor
     ~PeriodicCubeFlow() {};
 
+    /// Integrates over the entire domain
+    double integrate_over_domain(DGBase<dim, double> &dg,const std::string integrate_what) const;
+
 protected:
     const int number_of_cells_per_direction; ///< Number of cells per direction for the grid
     const double domain_left; ///< Domain left-boundary value for generating the grid
@@ -55,8 +58,6 @@ protected:
             const std::shared_ptr <DGBase<dim, double>> dg,
             const std::shared_ptr<dealii::TableHandler> unsteady_data_table) const override;
 
-    /// Integrates over the entire domain
-    double integrate_over_domain(DGBase<dim, double> &dg,const std::string integrate_what) const;
     /// Kinetic energy integrand used for integrating over the entire domain
     double integrand_kinetic_energy(const std::array<double,nstate> &soln_at_q) const;
     /// Integrand for computing the L2-error of the initialization with the initial condition

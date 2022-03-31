@@ -31,7 +31,7 @@ FlowSolver<dim, nstate>::FlowSolver(const PHiLiP::Parameters::AllParameters *con
 }
 
 template <int dim, int nstate>
-int FlowSolver<dim,nstate>::run_test() const
+void FlowSolver<dim,nstate>::run_flow_solver() const
 {
     pcout << "Running Flow Solver..." << std::endl;
     if (ode_param.output_solution_every_x_steps > 0) {
@@ -96,6 +96,12 @@ int FlowSolver<dim,nstate>::run_test() const
         flow_solver_case->steady_state_postprocessing(dg);
     }
     pcout << "done." << std::endl;
+}
+
+template <int dim, int nstate>
+int FlowSolver<dim,nstate>::run_test() const
+{
+    run_flow_solver();
     return 0;
 }
 

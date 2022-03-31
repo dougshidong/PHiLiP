@@ -11,24 +11,21 @@ ExplicitODESolver<dim,real,MeshType>::ExplicitODESolver(std::shared_ptr< DGBase<
 template <int dim, typename real, typename MeshType>
 void ExplicitODESolver<dim,real,MeshType>::step_in_time (real dt, const bool pseudotime)
 {
-    const bool compute_dRdW = false;
-    this->dg->assemble_residual(compute_dRdW);
-    
     Parameters::ODESolverParam ode_param = ODESolverBase<dim,real,MeshType>::all_parameters->ode_solver_param;
     const int rk_order = ode_param.runge_kutta_order;
    
+    this->solution_update = this->dg->solution; //storing u_n
     
-    //calculating stages
-    this->solution_update = this->dg->solution; //u_ni
+    //calculating stages **Note that rk_stage[i] stores the RHS at a partial time-step (not solution u)
     for (int i = 0; i < rk_order; ++i){
-        
+
         this->rk_stage[i]=0.0; //resets all entries to zero
         
         for (int j = 0; j < i; ++j){
             if (this->butcher_tableau_a[i][j] != 0){
                 this->rk_stage[i].add(this->butcher_tableau_a[i][j], this->rk_stage[j]);
             }
-        } // sum(a_ij *k_j)
+        } //sum(a_ij *k_j)
         
         if(pseudotime) {
             const double CFL = dt;
@@ -40,7 +37,7 @@ void ExplicitODESolver<dim,real,MeshType>::step_in_time (real dt, const bool pse
         this->rk_stage[i].add(1.0,this->solution_update); //u_n + dt * sum(a_ij * k_j)
 
         this->dg->solution = this->rk_stage[i];
-        this->dg->assemble_residual(); // RHS : du/dt = RHS = F(u_n + dt* sum(a_ij*k_j))
+        this->dg->assemble_residual(); //RHS : du/dt = RHS = F(u_n + dt* sum(a_ij*k_j))
         this->dg->global_inverse_mass_matrix.vmult(this->rk_stage[i], this->dg->right_hand_side); //rk_stage[i] = IMM*RHS = F(u_n + dt*sum(a_ij*k_j))
     }
 

@@ -109,7 +109,7 @@ RowVector2d AdaptiveSampling<dim, nstate>::getMaxErrorROM() const{
         std::cout << "Parameters array: " << key.array() << std::endl;
         std::cout << "Error: " << value.total_error << std::endl;
         parameters.row(i) = key.array();
-        errors(i) = -std::abs(value.total_error);
+        errors(i) = value.total_error;
         i++;
     }
 
@@ -133,18 +133,18 @@ RowVector2d AdaptiveSampling<dim, nstate>::getMaxErrorROM() const{
 
     // Set parameters.
     ROL::ParameterList parlist;
-    parlist.sublist("General").set("Recompute Objective Function",false);
-    parlist.sublist("Step").sublist("Line Search").set("Initial Step Size", 0.5);
-    parlist.sublist("Step").sublist("Line Search").set("User Defined Initial Step Size",true);
-    parlist.sublist("Step").sublist("Line Search").sublist("Line-Search Method").set("Type","Bisection");
-    parlist.sublist("Step").sublist("Line Search").sublist("Descent Method").set("Type","Hestenes-Stiefel");
+    //parlist.sublist("General").set("Recompute Objective Function",false);
+    //parlist.sublist("Step").sublist("Line Search").set("Initial Step Size", 1.0);
+    //parlist.sublist("Step").sublist("Line Search").set("User Defined Initial Step Size",true);
+    parlist.sublist("Step").sublist("Line Search").sublist("Line-Search Method").set("Type","Backtracking");
+    parlist.sublist("Step").sublist("Line Search").sublist("Descent Method").set("Type","Newton-Krylov");
     parlist.sublist("Step").sublist("Line Search").sublist("Curvature Condition").set("Type","Null Curvature Condition");
-    parlist.sublist("Status Test").set("Gradient Tolerance",1.e-4);
+    parlist.sublist("Status Test").set("Gradient Tolerance",1.e-10);
     parlist.sublist("Status Test").set("Step Tolerance",1.e-14);
     parlist.sublist("Status Test").set("Iteration Limit",100);
 
     //Find max error and parameters by minimizing function starting at each ROM location
-    RowVector2d max_error_params_scaled;
+    RowVector2d max_error_params(2);
     max_error = 0;
 
     for(auto& [key, value] : rom_locations){
@@ -159,7 +159,6 @@ RowVector2d AdaptiveSampling<dim, nstate>::getMaxErrorROM() const{
             double max = parameters.col(k).maxCoeff();
             rom_scaled(k) = (rom_unscaled(k) - min) / (max - min);
         }
-        std::cout << rom_scaled << std::endl;
 
         ROL::Ptr<ROL::Step<double>> step = ROL::makePtr<ROL::LineSearchStep<double>>(parlist);
         ROL::Ptr<ROL::StatusTest<double>> status = ROL::makePtr<ROL::StatusTest<double>>(parlist);
@@ -173,7 +172,8 @@ RowVector2d AdaptiveSampling<dim, nstate>::getMaxErrorROM() const{
         (*x_ptr)[0] = rom_scaled(0);
         (*x_ptr)[1] = rom_scaled(1);
 
-        std::cout << "ROL: " << (*x_ptr)[0] << " " << (*x_ptr)[1] << std::endl;
+        std::cout << "Unscaled parameter: " << rom_unscaled << std::endl;
+        std::cout << "Scaled parameter: " << (*x_ptr)[0] << " " << (*x_ptr)[1] << std::endl;
 
         ROL::StdVector<double> x(x_ptr);
 
@@ -182,51 +182,42 @@ RowVector2d AdaptiveSampling<dim, nstate>::getMaxErrorROM() const{
         outStream = ROL::makePtrFromRef(std::cout);
         algo.run(x, rbf, true, *outStream);
 
-        ROL::Ptr<std::vector<double>> x_std = x.getVector();
+        ROL::Ptr<std::vector<double>> x_min = x.getVector();
 
-        rom_scaled(0) = (*x_std)[0];
-        rom_scaled(1) = (*x_std)[1];
+        rom_scaled(0) = (*x_min)[0];
+        rom_scaled(1) = (*x_min)[1];
 
-        RowVector2d optimum_unscaled(2);
+        //Ensure that optimization did not converge outside of the domain or diverge.
+        RowVector2d rom_unscaled_optim(2);
         for(int k = 0 ; k < 2 ; k++){
+            if(rom_scaled(k) > 1){
+                rom_scaled(k) = 1;
+            }
+            if(rom_scaled(k) < 0){
+                rom_scaled(k) = 0;
+            }
             double min = parameters.col(k).minCoeff();
             double max = parameters.col(k).maxCoeff();
-            optimum_unscaled(k) = (rom_scaled(k)*(max - min)) + min;
+            rom_unscaled_optim(k) = (rom_scaled(k)*(max - min)) + min;
         }
 
-        std::cout << "Minimum unscaled: " << optimum_unscaled << std::endl;
+        std::cout << "Parameters of optimization convergence: " << rom_unscaled_optim << std::endl;
 
         double error = std::abs(rbf.evaluate(rom_scaled.transpose()).value());
-        std::cout << "RBF error: " << error << std::endl;
+        std::cout << "RBF error at optimization convergence: " << error << std::endl;
         if(error > max_error){
+            std::cout << "RBF error is greater than current max error. Updating max error." << std::endl;
             max_error = error;
+            max_error_params = rom_unscaled_optim;
             std::cout << "RBF Max error: " << max_error << std::endl;
-            max_error_params_scaled = rom_scaled.transpose();
         }
     }
-    std::cout << "RBF Max error: " << max_error << std::endl;
-
-    //Make sure max_error_params_scaled is within [0,1] X [0,1] and unscale it
-    RowVector2d max_error_params;
-    for(int k = 0 ; k < 2 ; k++){
-        if(max_error_params_scaled(k) > 1){
-            max_error_params_scaled(k) = 1;
-        }
-        if(max_error_params_scaled(k) < 0){
-            max_error_params_scaled(k) = 0;
-        }
-        double min = parameters.col(k).minCoeff();
-        double max = parameters.col(k).maxCoeff();
-        max_error_params(k) = (max_error_params_scaled(k)*(max - min)) + min;
-    }
-
-    std::cout << "Unscaled parameter: " << max_error_params << std::endl;
 
     //Check if max_error_params is a ROM point
-    for(auto& rom: rom_locations){
-        if(max_error_params.isApprox(rom.first)){
+    for(auto& [key, value] : rom_locations){
+        if(max_error_params.isApprox(key)){
             std::cout << "Max error location is approximately the same as a ROM location. Removing ROM location." << std::endl;
-            rom_locations.erase(rom.first);
+            rom_locations.erase(key);
             break;
         }
     }
@@ -239,13 +230,22 @@ void AdaptiveSampling<dim, nstate>::placeInitialSnapshots() const{
     std::vector<double> rewienski_a_range = {2, 10};
     std::vector<double> rewienski_b_range = {0.01, 0.1};
 
-    snapshot_parameters.resize(6,2);
+    snapshot_parameters.resize(10,2);
     snapshot_parameters << rewienski_a_range[0], rewienski_b_range[0],
                            rewienski_a_range[0], rewienski_b_range[1],
                            rewienski_a_range[1], rewienski_b_range[1],
                            rewienski_a_range[1], rewienski_b_range[0],
                            0.5*(rewienski_a_range[1] - rewienski_a_range[0])+rewienski_a_range[0], 0.33*(rewienski_b_range[1] - rewienski_b_range[0])+rewienski_b_range[0],
-                           0.25*(rewienski_a_range[1] - rewienski_a_range[0])+rewienski_a_range[0], 0.67*(rewienski_b_range[1] - rewienski_b_range[0])+rewienski_b_range[0];
+                           0.25*(rewienski_a_range[1] - rewienski_a_range[0])+rewienski_a_range[0], 0.67*(rewienski_b_range[1] - rewienski_b_range[0])+rewienski_b_range[0],
+                           0.75*(rewienski_a_range[1] - rewienski_a_range[0])+rewienski_a_range[0], 0.11*(rewienski_b_range[1] - rewienski_b_range[0])+rewienski_b_range[0],
+                           0.125*(rewienski_a_range[1] - rewienski_a_range[0])+rewienski_a_range[0], 0.44*(rewienski_b_range[1] - rewienski_b_range[0])+rewienski_b_range[0],
+                           0.625*(rewienski_a_range[1] - rewienski_a_range[0])+rewienski_a_range[0], 0.78*(rewienski_b_range[1] - rewienski_b_range[0])+rewienski_b_range[0],
+                           0.375*(rewienski_a_range[1] - rewienski_a_range[0])+rewienski_a_range[0], 0.22*(rewienski_b_range[1] - rewienski_b_range[0])+rewienski_b_range[0];
+                           //0.875*(rewienski_a_range[1] - rewienski_a_range[0])+rewienski_a_range[0], 0.56*(rewienski_b_range[1] - rewienski_b_range[0])+rewienski_b_range[0],
+                           //0.0625*(rewienski_a_range[1] - rewienski_a_range[0])+rewienski_a_range[0], 0.89*(rewienski_b_range[1] - rewienski_b_range[0])+rewienski_b_range[0],
+                           //0.5625*(rewienski_a_range[1] - rewienski_a_range[0])+rewienski_a_range[0], 0.03704*(rewienski_b_range[1] - rewienski_b_range[0])+rewienski_b_range[0],
+                           //0.3125*(rewienski_a_range[1] - rewienski_a_range[0])+rewienski_a_range[0], 0.37037*(rewienski_b_range[1] - rewienski_b_range[0])+rewienski_b_range[0],
+                           //0.8125*(rewienski_a_range[1] - rewienski_a_range[0])+rewienski_a_range[0], 0.7037*(rewienski_b_range[1] - rewienski_b_range[0])+rewienski_b_range[0];
     std::cout << snapshot_parameters << std::endl;
     //Get initial conditions
     Parameters::AllParameters params = reinitParams(snapshot_parameters.row(0));

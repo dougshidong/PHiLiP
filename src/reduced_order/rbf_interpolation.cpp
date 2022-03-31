@@ -67,7 +67,9 @@ double RBFInterpolation::value(const ROL::Vector<double> &x, double &/*tol*/ ) {
     evaluate_coordinate(0) = (*xp)[0];
     evaluate_coordinate(1) = (*xp)[1];
     double val = evaluate(evaluate_coordinate).value();
-    return val;
+
+    //For optimization, return -abs(val) to consider only magnitude of error, not sign
+    return -std::abs(val);
 }
 
 }

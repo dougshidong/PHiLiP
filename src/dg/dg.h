@@ -657,6 +657,8 @@ public:
     double max_artificial_dissipation_coeff;
     /// Update discontinuity sensor.
     void update_artificial_dissipation_discontinuity_sensor();
+    /// Allocate the necessary variables declared in src/physics/model.h
+    virtual void allocate_model_variables() = 0;
     /// Update the necessary variables declared in src/physics/model.h
     virtual void update_model_variables() = 0;
 
@@ -743,6 +745,9 @@ public:
         std::shared_ptr< Physics::PhysicsBase<dim, nstate, RadType    > > pde_physics_rad_input,
         std::shared_ptr< Physics::PhysicsBase<dim, nstate, FadFadType > > pde_physics_fad_fad_input,
         std::shared_ptr< Physics::PhysicsBase<dim, nstate, RadFadType > > pde_physics_rad_fad_input);
+
+    /// Allocate the necessary variables declared in src/physics/model.h
+    void allocate_model_variables();
 
     /// Update the necessary variables declared in src/physics/model.h
     void update_model_variables();

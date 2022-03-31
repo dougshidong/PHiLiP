@@ -318,25 +318,9 @@ void DGBaseState<dim,nstate,real,MeshType>::set_physics(
 }
 
 template <int dim, int nstate, typename real, typename MeshType>
-void DGBaseState<dim,nstate,real,MeshType>::update_model_variables()
+void DGBaseState<dim,nstate,real,MeshType>::allocate_model_variables()
 {
-    // TO DO: Modify this so that it includes the ghost cells!!!
-    // STEP 1: Modify this to be a distributed vector
-
-    // compute_cellwise_error inside of mesh error estimate -- but I need a global vector like the solution
-    // solution is nDOF whereas for me it would be total cells
-    // look up update_artificial_discontinuity_sensor() line 961
-
-    // get FEValues of volume
-    const auto mapping = (*(this->high_order_grid->mapping_fe_field));
-    dealii::hp::MappingCollection<dim> mapping_collection(mapping);
-    const dealii::UpdateFlags update_flags = dealii::update_values | dealii::update_JxW_values;
-    dealii::hp::FEValues<dim,dim> fe_values_collection_volume (mapping_collection, 
-                                                               this->fe_collection, 
-                                                               this->volume_quadrature_collection, 
-                                                               update_flags);
-
-    // allocate
+    // allocate all model variables for each ModelBase object
     // -- double
     pde_model_double->cellwise_poly_degree.reinit(0);
     pde_model_double->cellwise_volume.reinit(0);
@@ -367,6 +351,28 @@ void DGBaseState<dim,nstate,real,MeshType>::update_model_variables()
     pde_model_rad_fad->cellwise_poly_degree.reinit(this->triangulation->n_active_cells());
     pde_model_rad_fad->cellwise_volume.reinit(this->triangulation->n_active_cells());
     pde_model_rad_fad->cellwise_volume_distVec.reinit(this->triangulation->n_active_cells(), this->mpi_communicator);
+}
+
+template <int dim, int nstate, typename real, typename MeshType>
+void DGBaseState<dim,nstate,real,MeshType>::update_model_variables()
+{
+    // TO DO: Modify this so that it includes the ghost cells!!!
+    // STEP 1: Modify this to be a distributed vector
+
+    // compute_cellwise_error inside of mesh error estimate -- but I need a global vector like the solution
+    // solution is nDOF whereas for me it would be total cells
+    // look up update_artificial_discontinuity_sensor() line 961
+
+    allocate_model_variables();
+
+    // get FEValues of volume
+    const auto mapping = (*(this->high_order_grid->mapping_fe_field));
+    dealii::hp::MappingCollection<dim> mapping_collection(mapping);
+    const dealii::UpdateFlags update_flags = dealii::update_values | dealii::update_JxW_values;
+    dealii::hp::FEValues<dim,dim> fe_values_collection_volume (mapping_collection, 
+                                                               this->fe_collection, 
+                                                               this->volume_quadrature_collection, 
+                                                               update_flags);
 
     // loop through all cells
     for (auto cell : this->dof_handler.active_cell_iterators()) {
@@ -1985,6 +1991,8 @@ void DGBase<dim,real,MeshType>::allocate_system ()
     artificial_dissipation_se.reinit(triangulation->n_active_cells());
     max_dt_cell.reinit(triangulation->n_active_cells());
     cell_volume.reinit(triangulation->n_active_cells());
+
+    allocate_model_variables();
 
     solution.reinit(locally_owned_dofs, ghost_dofs, mpi_communicator);
     solution *= 0.0;

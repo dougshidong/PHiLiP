@@ -142,16 +142,6 @@ public:
     real compute_scaled_viscosity_coefficient_derivative_wrt_temperature_via_dfad (
         std::array<real,nstate> &conservative_soln) const;
 
-    /// Boundary face values
-    void boundary_face_values (
-        const int boundary_type,
-        const dealii::Point<dim, real> &pos,
-        const dealii::Tensor<1,dim,real> &normal,
-        const std::array<real,nstate> &soln_int,
-        const std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_int,
-        std::array<real,nstate> &soln_bc,
-        std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_bc) const override;
-
 protected:    
     ///@{
     /** Constants for Sutherland's law for viscosity
@@ -178,12 +168,21 @@ protected:
      *      “High-order accurate implementation of solid wall boundary conditions in curved geometries,”
      *      Journal of Computational Physics, vol. 211, 2006, pp. 492–512.
      */
-    void boundary_no_slip_wall (
+    void boundary_wall (
         const dealii::Tensor<1,dim,real> &normal_int,
         const std::array<real,nstate> &soln_int,
         const std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_int,
         std::array<real,nstate> &soln_bc,
-        std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_bc) const;
+        std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_bc) const override;
+
+    /// Evaluate the manufactured solution boundary conditions.
+    void boundary_manufactured_solution (
+        const dealii::Point<dim, real> &pos,
+        const dealii::Tensor<1,dim,real> &normal_int,
+        const std::array<real,nstate> &soln_int,
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_int,
+        std::array<real,nstate> &soln_bc,
+        std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_bc) const override;
 
 };
 

@@ -567,8 +567,8 @@ std::array<dealii::Tensor<1,dim,real2>,nstate> NavierStokes<dim,nstate,real>
 
 template <int dim, int nstate, typename real>
 void NavierStokes<dim,nstate,real>
-::boundary_no_slip_wall (
-   const dealii::Tensor<1,dim,real> &normal_int,
+::boundary_wall (
+   const dealii::Tensor<1,dim,real> &/*normal_int*/,
    const std::array<real,nstate> &soln_int,
    const std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_int,
    std::array<real,nstate> &soln_bc,
@@ -616,42 +616,26 @@ void NavierStokes<dim,nstate,real>
 
 template <int dim, int nstate, typename real>
 void NavierStokes<dim,nstate,real>
-::boundary_face_values (
-   const int boundary_type,
-   const dealii::Point<dim, real> &pos,
-   const dealii::Tensor<1,dim,real> &/*normal_int*/,
-   const std::array<real,nstate> &/*soln_int*/,
-   const std::array<dealii::Tensor<1,dim,real>,nstate> &/*soln_grad_int*/,
-   std::array<real,nstate> &soln_bc,
-   std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_bc) const
+::boundary_manufactured_solution (
+    const dealii::Point<dim, real> &pos,
+    const dealii::Tensor<1,dim,real> &/*normal_int*/,
+    const std::array<real,nstate> &/*soln_int*/,
+    const std::array<dealii::Tensor<1,dim,real>,nstate> &/*soln_grad_int*/,
+    std::array<real,nstate> &soln_bc,
+    std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_bc) const
 {
-    if (boundary_type == 1000) {
-        // Manufactured solution boundary condition 
-        // -- TO DO: could make this a function later on, similar to how its done in euler
-        // Note: This is consistent with Navah & Nadarajah (2018)
-        std::array<real,nstate> boundary_values;
-        std::array<dealii::Tensor<1,dim,real>,nstate> boundary_gradients;
-        for (int i=0; i<nstate; i++) {
-            boundary_values[i] = this->manufactured_solution_function->value (pos, i);
-            boundary_gradients[i] = this->manufactured_solution_function->gradient (pos, i);
-        }
-        for (int istate=0; istate<nstate; istate++) {
-            soln_bc[istate] = boundary_values[istate];
-            // soln_grad_bc[istate] = soln_grad_int[istate]; // done in convection_diffusion.cpp
-            soln_grad_bc[istate] = boundary_gradients[istate];
-        }
+    // Manufactured solution boundary condition 
+    // Note: This is consistent with Navah & Nadarajah (2018)
+    std::array<real,nstate> boundary_values;
+    std::array<dealii::Tensor<1,dim,real>,nstate> boundary_gradients;
+    for (int i=0; i<nstate; i++) {
+        boundary_values[i] = this->manufactured_solution_function->value (pos, i);
+        boundary_gradients[i] = this->manufactured_solution_function->gradient (pos, i);
     }
-    else if (boundary_type == 1001) {
-        // No-slip wall boundary condition
-        boundary_no_slip_wall (normal_int, soln_int, soln_grad_int, soln_bc, soln_grad_bc);
-    } 
-    // else if (boundary_type == 1005) {
-    //     // Simple farfield boundary condition
-    //     this->boundary_farfield(soln_bc);
-    // }
-    else {
-        std::cout << "Invalid boundary_type: " << boundary_type << std::endl;
-        std::abort();
+    for (int istate=0; istate<nstate; istate++) {
+        soln_bc[istate] = boundary_values[istate];
+        // soln_grad_bc[istate] = soln_grad_int[istate]; // done in convection_diffusion.cpp
+        soln_grad_bc[istate] = boundary_gradients[istate];
     }
 }
 

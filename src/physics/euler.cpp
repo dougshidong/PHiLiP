@@ -931,7 +931,7 @@ void Euler<dim,nstate,real>
     } 
     else if (boundary_type == 1001) {
         // Slip wall boundary condition
-        boundary_slip_wall (normal_int, soln_int, soln_grad_int, soln_bc, soln_grad_bc);
+        boundary_wall (normal_int, soln_int, soln_grad_int, soln_bc, soln_grad_bc);
     } 
     else if (boundary_type == 1002) {
         // Pressure outflow boundary condition (back pressure)

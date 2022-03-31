@@ -579,7 +579,7 @@ void NavierStokes<dim,nstate,real>
     // Krivodonova, L., and Berger, M.,
     // “High-order accurate implementation of solid wall boundary conditions in curved geometries,”
     // Journal of Computational Physics, vol. 211, 2006, pp. 492–512.
-    const std::array<real,nstate> primitive_interior_values = convert_conservative_to_primitive<real>(soln_int);
+    const std::array<real,nstate> primitive_interior_values = this->template convert_conservative_to_primitive<real>(soln_int);
 
     // Hard-coded for isothermal boundary
     const double temperature_wall = this->temperature_inf; // add a parameter for this
@@ -604,7 +604,7 @@ void NavierStokes<dim,nstate,real>
         primitive_boundary_values[1+d] = velocities_bc[d];
     }
 
-    const std::array<real,nstate> modified_conservative_boundary_values = convert_primitive_to_conservative(primitive_boundary_values);
+    const std::array<real,nstate> modified_conservative_boundary_values = this->convert_primitive_to_conservative(primitive_boundary_values);
     for (int istate=0; istate<nstate; ++istate) {
         soln_bc[istate] = modified_conservative_boundary_values[istate];
     }

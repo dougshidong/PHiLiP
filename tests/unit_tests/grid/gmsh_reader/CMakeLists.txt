@@ -63,7 +63,7 @@ if(NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${filename})
 "Missing NACA0012 files named ${filename}. Please download them from
     https://drive.google.com/drive/folders/1EeN4ooMK2awre2O_WBWJNMyO4FGDX_PN?usp=sharing
 and place them in
-      ${CMAKE_CURRENT_SOURCE_DIR}"
+      ${CMAKE_CURRENT_SOURCE_DIR}, or simply run get_NACA0012_mesh_files_local.sh"
       )
 endif()
 

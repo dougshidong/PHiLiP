@@ -685,7 +685,7 @@ bool get_new_rotated_indices(const dealii::CellAccessor<dim, spacedim>& cell,
                 }
             }
             if (!found) {
-                std::cout << "Wrong cell... High order nodes do not match the cell's vertices." << std::endl;
+                std::cout << "Wrong cell... High-order nodes do not match the cell's vertices." << std::endl;
                 std::abort();
             }
 

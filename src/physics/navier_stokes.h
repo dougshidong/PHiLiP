@@ -2,6 +2,7 @@
 #define __NAVIER_STOKES__
 
 #include "euler.h"
+#include "parameters/parameters_navier_stokes.h"
 
 namespace PHiLiP {
 namespace Physics {
@@ -11,6 +12,7 @@ template <int dim, int nstate, typename real>
 class NavierStokes : public Euler <dim, nstate, real>
 {
 public:
+    using wall_temperature_boundary_condition_enum = Parameters::NavierStokesParam::WallTemperatureBoundaryConditionEnum;
 	/// Constructor
 	NavierStokes( 
 	    const double                                              ref_length,
@@ -20,6 +22,8 @@ public:
 	    const double                                              side_slip_angle,
 	    const double                                              prandtl_number,
         const double                                              reynolds_number_inf,
+        const double                                              isothermal_wall_temperature = 1.0,
+        const wall_temperature_boundary_condition_enum            wall_temperature_boundary_condition_type = wall_temperature_boundary_condition_enum::adiabatic,
         const dealii::Tensor<2,3,double>                          input_diffusion_tensor = Parameters::ManufacturedSolutionParam::get_default_diffusion_tensor(),
 	    std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function = nullptr);
 
@@ -29,6 +33,10 @@ public:
 	const double prandtl_number;
 	/// Farfield (free stream) Reynolds number
 	const double reynolds_number_inf;
+    /// Isothermal wall temperature
+    const double isothermal_wall_temperature;
+    /// Wall temperature boundary condition type (adiabatic or isothermal)
+    const WallTemperatureBoundaryConditionEnum wall_temperature_boundary_condition_type;
 
     /** Obtain gradient of primitive variables from gradient of conservative variables */
     template<typename real2>

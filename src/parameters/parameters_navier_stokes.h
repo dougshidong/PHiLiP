@@ -9,10 +9,19 @@ namespace Parameters {
 class NavierStokesParam
 {
 public:
+    NavierStokesParam (); ///< Constructor
+
     double prandtl_number; ///< Prandtl number
     double reynolds_number_inf; ///< Farfield Reynolds number
+    double isothermal_wall_temperature; ///< Isothermal wall temperature
 
-    NavierStokesParam (); ///< Constructor
+    /// Types of wall temperature boundary conditions available.
+    enum WallTemperatureBoundaryConditionEnum {
+        adiabatic, /// adiabatic
+        isothermal /// isothermal
+    };
+    /// Wall temperature boundary condition type
+    WallTemperatureBoundaryConditionEnum wall_temperature_boundary_condition_type; ///< adiabatic or isothermal
 
     /// Declares the possible variables and sets the defaults.
     static void declare_parameters (dealii::ParameterHandler &prm);

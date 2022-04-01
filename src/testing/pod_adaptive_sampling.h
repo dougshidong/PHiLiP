@@ -79,7 +79,9 @@ public:
 
     void placeInitialSnapshots() const;
 
-    void placeROMs() const;
+    void placeInitialROMs() const;
+
+    void placeTriangulationROMs() const;
 
     RowVector2d getMaxErrorROM() const;
 

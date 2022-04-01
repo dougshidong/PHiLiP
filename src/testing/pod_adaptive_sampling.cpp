@@ -19,7 +19,8 @@ int AdaptiveSampling<dim, nstate>::run_test() const
 
     placeInitialSnapshots();
     current_pod->computeBasis();
-    placeROMs();
+    placeInitialROMs();
+    placeTriangulationROMs();
 
     RowVector2d max_error_params = getMaxErrorROM();
     double tolerance = 1E-03;
@@ -47,7 +48,7 @@ int AdaptiveSampling<dim, nstate>::run_test() const
         }
 
         //Find and compute new ROM locations
-        placeROMs();
+        placeTriangulationROMs();
 
         //Update max error
         max_error_params = getMaxErrorROM();
@@ -65,7 +66,7 @@ int AdaptiveSampling<dim, nstate>::run_test() const
     }
 
     std::ofstream snapshot_table_file("adaptive_sampling_snapshot_table.txt");
-    snapshot_table->write_text(snapshot_table_file);
+    snapshot_table->write_text(snapshot_table_file, dealii::TableHandler::TextOutputFormat::org_mode_table);
 
     std::shared_ptr<dealii::TableHandler> rom_table = std::make_shared<dealii::TableHandler>();
 
@@ -81,7 +82,7 @@ int AdaptiveSampling<dim, nstate>::run_test() const
     }
 
     std::ofstream rom_table_file("adaptive_sampling_rom_table.txt");
-    rom_table->write_text(rom_table_file);
+    rom_table->write_text(rom_table_file, dealii::TableHandler::TextOutputFormat::org_mode_table);
 
     return 0;
 }
@@ -230,17 +231,20 @@ void AdaptiveSampling<dim, nstate>::placeInitialSnapshots() const{
     std::vector<double> rewienski_a_range = {2, 10};
     std::vector<double> rewienski_b_range = {0.01, 0.1};
 
-    snapshot_parameters.resize(10,2);
+    snapshot_parameters.resize(5,2);
     snapshot_parameters << rewienski_a_range[0], rewienski_b_range[0],
                            rewienski_a_range[0], rewienski_b_range[1],
                            rewienski_a_range[1], rewienski_b_range[1],
                            rewienski_a_range[1], rewienski_b_range[0],
-                           0.5*(rewienski_a_range[1] - rewienski_a_range[0])+rewienski_a_range[0], 0.33*(rewienski_b_range[1] - rewienski_b_range[0])+rewienski_b_range[0],
-                           0.25*(rewienski_a_range[1] - rewienski_a_range[0])+rewienski_a_range[0], 0.67*(rewienski_b_range[1] - rewienski_b_range[0])+rewienski_b_range[0],
-                           0.75*(rewienski_a_range[1] - rewienski_a_range[0])+rewienski_a_range[0], 0.11*(rewienski_b_range[1] - rewienski_b_range[0])+rewienski_b_range[0],
-                           0.125*(rewienski_a_range[1] - rewienski_a_range[0])+rewienski_a_range[0], 0.44*(rewienski_b_range[1] - rewienski_b_range[0])+rewienski_b_range[0],
-                           0.625*(rewienski_a_range[1] - rewienski_a_range[0])+rewienski_a_range[0], 0.78*(rewienski_b_range[1] - rewienski_b_range[0])+rewienski_b_range[0],
-                           0.375*(rewienski_a_range[1] - rewienski_a_range[0])+rewienski_a_range[0], 0.22*(rewienski_b_range[1] - rewienski_b_range[0])+rewienski_b_range[0];
+                           0.5*(rewienski_a_range[1] - rewienski_a_range[0])+rewienski_a_range[0], 0.5*(rewienski_b_range[1] - rewienski_b_range[0])+rewienski_b_range[0];
+
+
+                           //0.5*(rewienski_a_range[1] - rewienski_a_range[0])+rewienski_a_range[0], 0.33*(rewienski_b_range[1] - rewienski_b_range[0])+rewienski_b_range[0],
+                           //0.25*(rewienski_a_range[1] - rewienski_a_range[0])+rewienski_a_range[0], 0.67*(rewienski_b_range[1] - rewienski_b_range[0])+rewienski_b_range[0],
+                           //0.75*(rewienski_a_range[1] - rewienski_a_range[0])+rewienski_a_range[0], 0.11*(rewienski_b_range[1] - rewienski_b_range[0])+rewienski_b_range[0],
+                           //0.125*(rewienski_a_range[1] - rewienski_a_range[0])+rewienski_a_range[0], 0.44*(rewienski_b_range[1] - rewienski_b_range[0])+rewienski_b_range[0],
+                           //0.625*(rewienski_a_range[1] - rewienski_a_range[0])+rewienski_a_range[0], 0.78*(rewienski_b_range[1] - rewienski_b_range[0])+rewienski_b_range[0],
+                           //0.375*(rewienski_a_range[1] - rewienski_a_range[0])+rewienski_a_range[0], 0.22*(rewienski_b_range[1] - rewienski_b_range[0])+rewienski_b_range[0];
                            //0.875*(rewienski_a_range[1] - rewienski_a_range[0])+rewienski_a_range[0], 0.56*(rewienski_b_range[1] - rewienski_b_range[0])+rewienski_b_range[0],
                            //0.0625*(rewienski_a_range[1] - rewienski_a_range[0])+rewienski_a_range[0], 0.89*(rewienski_b_range[1] - rewienski_b_range[0])+rewienski_b_range[0],
                            //0.5625*(rewienski_a_range[1] - rewienski_a_range[0])+rewienski_a_range[0], 0.03704*(rewienski_b_range[1] - rewienski_b_range[0])+rewienski_b_range[0],
@@ -262,7 +266,32 @@ void AdaptiveSampling<dim, nstate>::placeInitialSnapshots() const{
 }
 
 template <int dim, int nstate>
-void AdaptiveSampling<dim, nstate>::placeROMs() const{
+void AdaptiveSampling<dim, nstate>::placeInitialROMs() const{
+    std::vector<double> rewienski_a_range = {2, 10};
+    std::vector<double> rewienski_b_range = {0.01, 0.1};
+
+    MatrixXd initial_rom_parameters;
+    initial_rom_parameters.resize(8,2);
+    initial_rom_parameters <<
+            rewienski_a_range[0], 0.25*(rewienski_b_range[1] - rewienski_b_range[0])+rewienski_b_range[0],
+            rewienski_a_range[0], 0.75*(rewienski_b_range[1] - rewienski_b_range[0])+rewienski_b_range[0],
+            rewienski_a_range[1], 0.25*(rewienski_b_range[1] - rewienski_b_range[0])+rewienski_b_range[0],
+            rewienski_a_range[1], 0.75*(rewienski_b_range[1] - rewienski_b_range[0])+rewienski_b_range[0],
+            0.25*(rewienski_a_range[1] - rewienski_a_range[0])+rewienski_a_range[0], rewienski_b_range[0],
+            0.75*(rewienski_a_range[1] - rewienski_a_range[0])+rewienski_a_range[0], rewienski_b_range[0],
+            0.25*(rewienski_a_range[1] - rewienski_a_range[0])+rewienski_a_range[0], rewienski_b_range[1],
+            0.75*(rewienski_a_range[1] - rewienski_a_range[0])+rewienski_a_range[0], rewienski_b_range[1];
+
+    for(auto rom_param : initial_rom_parameters.rowwise()){
+        std::cout << "Sampling initial ROM at " << rom_param << std::endl;
+        std::shared_ptr<ProperOrthogonalDecomposition::ROMSolution<dim, nstate>> rom_solution = solveSnapshotROM(rom_param);
+        ProperOrthogonalDecomposition::ROMTestLocation < dim,nstate > rom_location = ProperOrthogonalDecomposition::ROMTestLocation < dim, nstate>(rom_param, rom_solution);
+        rom_locations.emplace(rom_param, rom_location);
+    }
+}
+
+template <int dim, int nstate>
+void AdaptiveSampling<dim, nstate>::placeTriangulationROMs() const{
     ProperOrthogonalDecomposition::Delaunay delaunay(snapshot_parameters);
 
     for(auto centroid : delaunay.centroids.rowwise()){
@@ -365,7 +394,7 @@ Parameters::AllParameters AdaptiveSampling<dim, nstate>::reinitParams(RowVector2
     using FlowCaseEnum = Parameters::FlowSolverParam::FlowCaseType;
     const FlowCaseEnum flow_type = this->all_parameters->flow_solver_param.flow_case_type;
     if (flow_type == FlowCaseEnum::burgers_rewienski_snapshot){
-        parameters.burgers_param.rewienski_b = parameter(0);
+        parameters.burgers_param.rewienski_a = parameter(0);
         parameters.burgers_param.rewienski_b = parameter(1);
     }
     else{

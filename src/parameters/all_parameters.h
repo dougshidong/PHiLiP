@@ -126,6 +126,7 @@ public:
         reduced_order,
         POD_adaptation,
         POD_adaptive_sampling,
+        adaptive_sampling_testing,
         finite_difference_sensitivity,
         advection_periodicity,
         flow_solver,

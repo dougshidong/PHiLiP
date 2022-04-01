@@ -33,6 +33,7 @@
 #include "fd_state_sensitivity_wrt_parameter.h"
 #include "dual_weighted_residual_mesh_adaptation.h"
 #include "pod_adaptive_sampling.h"
+#include "adaptive_sampling_testing.h"
 
 namespace PHiLiP {
 namespace Tests {
@@ -148,6 +149,8 @@ std::unique_ptr< TestsBase > TestsFactory<dim,nstate,MeshType>
         if constexpr (dim==1 && nstate==1) return std::make_unique<FiniteDifferenceSensitivity<dim,nstate>>(parameters_input);
     } else if(test_type == Test_enum::POD_adaptive_sampling) {
         if constexpr (dim==1 && nstate==1) return std::make_unique<AdaptiveSampling<dim,nstate>>(parameters_input);
+    } else if(test_type == Test_enum::adaptive_sampling_testing) {
+        if constexpr (dim==1 && nstate==1) return std::make_unique<AdaptiveSamplingTesting<dim,nstate>>(parameters_input);
     } else if(test_type == Test_enum::euler_naca0012) {
         if constexpr (dim==2 && nstate==dim+2) return std::make_unique<EulerNACA0012<dim,nstate>>(parameters_input);
     } else if(test_type == Test_enum::flow_solver) {

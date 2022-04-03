@@ -1,3 +1,5 @@
+#include <fstream>
+
 #include <deal.II/grid/grid_out.h>
 #include "mesh/gmsh_reader.hpp"
 
@@ -12,7 +14,20 @@ int main (int argc, char * argv[])
 
     using namespace PHiLiP;
 
-    std::string filename = std::to_string(dim) + "D_square.msh";
+    std::string filename;
+    for (int i = 1; i < argc; i++) {
+        std::string s(argv[i]);
+        if (s.rfind("--input=", 0) == 0) {
+            filename = s.substr(std::string("--input=").length());
+            std::ifstream f(filename);
+            std::cout << "File " << filename;
+            if (f.good()) std::cout << " exists" << std::endl;
+            else std::cout << " not found" << std::endl;
+            }
+        else {
+            std::cout << "Unknown: " << s << std::endl;
+        }
+    }
 
     std::shared_ptr< HighOrderGrid<dim, double> > high_order_grid = read_gmsh <dim, dim> (filename);
 

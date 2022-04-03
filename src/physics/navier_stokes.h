@@ -36,7 +36,7 @@ public:
     /// Isothermal wall temperature
     const double isothermal_wall_temperature;
     /// Wall temperature boundary condition type (adiabatic or isothermal)
-    const WallTemperatureBoundaryConditionEnum wall_temperature_boundary_condition_type;
+    const wall_temperature_boundary_condition_enum wall_temperature_boundary_condition_type;
 
     /** Obtain gradient of primitive variables from gradient of conservative variables */
     template<typename real2>

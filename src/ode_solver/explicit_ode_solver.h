@@ -28,6 +28,9 @@ public:
     /// Function to allocate the ODE system
     void allocate_ode_system ();
 
+    /// Function which scales a timestep dt according to the Relaxation Runge Kutta method (Ketcheson 2019)
+    real scale_dt_by_relaxation_factor(real dt);
+
 protected:
     /// Runge-Kutta order
     const int rk_order;

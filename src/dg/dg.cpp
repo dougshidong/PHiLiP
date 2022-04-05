@@ -601,7 +601,7 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
             fe_values_lagrange);
     }
     else {
-        //Note the explicit is called first to set the max_dt_cell to a non-zero value.
+        // Note the explicit is called first to set the max_dt_cell to a non-zero value.
         assemble_volume_term_explicit (
             current_cell,
             current_cell_index,
@@ -611,7 +611,7 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
             poly_degree, grid_degree,
             current_cell_rhs,
             fe_values_lagrange);
-        //set current rhs to zero since the explicit call was just to set the max_dt_cell.
+        // Set current RHS to zero since the explicit call was just to set the max_dt_cell.
         current_cell_rhs*=0.0;
 
         assemble_volume_term_derivatives (
@@ -2099,7 +2099,7 @@ void DGBase<dim,real,MeshType>::allocate_system ()
     right_hand_side.add(1.0); // Avoid 0 initial residual for output and logarithmic visualization.
     dual.reinit(locally_owned_dofs, ghost_dofs, mpi_communicator);
 
-    //Allocate for auxiliary equation only.
+    // Allocate for auxiliary equation only.
     allocate_auxiliary_equation ();
 
     // System matrix allocation
@@ -2278,15 +2278,15 @@ void DGBase<dim,real,MeshType>::evaluate_mass_matrices (bool do_inverse_mass_mat
 
         dealii::FullMatrix<real> local_mass_matrix(n_dofs_cell);
 
-        //quadrature weights
+        // quadrature weights
         const std::vector<real> &quad_weights = operators.volume_quadrature_collection[fe_index_curr_cell].get_weights();
-        //setup metric cell
+        // setup metric cell
         const dealii::FESystem<dim> &fe_metric = high_order_grid->fe_system;
         const unsigned int n_metric_dofs = high_order_grid->fe_system.dofs_per_cell;
         std::vector<dealii::types::global_dof_index> metric_dof_indices(n_metric_dofs);
         metric_cell->get_dof_indices (metric_dof_indices);
         const unsigned int grid_degree = high_order_grid->fe_system.tensor_degree();
-        //get mapping_support points
+        // get mapping_support points
         std::vector<std::vector<real>> mapping_support_points(dim);
         for(int idim=0; idim<dim; idim++){
             mapping_support_points[idim].resize(n_metric_dofs/dim);

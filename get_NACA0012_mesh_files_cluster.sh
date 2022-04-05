@@ -8,3 +8,6 @@ TARGET_DIR=tests/integration_tests_control_files/euler_integration/naca0012/
 for file in ${FILENAMES[@]}; do
     cp ${PATH_TO_FILES}/${file} ${TARGET_DIR}
 done
+
+TARGET_DIR=tests/unit_tests/grid/gmsh_reader/
+cp ${PATH_TO_FILES}/airfoil.msh ${TARGET_DIR}

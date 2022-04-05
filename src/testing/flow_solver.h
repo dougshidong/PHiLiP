@@ -53,8 +53,8 @@ public:
     /// Pointer to Flow Solver Case
     std::shared_ptr<FlowSolverCaseBase<dim, nstate>> flow_solver_case;
 
-    /// Runs the test (i.e. flow solver)
-    int run_test () const;
+    /// Simply runs the flow solver and returns 0 upon completion
+    int run_test () const override;
 
 protected:
     std::shared_ptr< InitialConditionFunction<dim,double> > initial_condition_function; ///< Initial condition function

@@ -16,11 +16,11 @@ int TaylorGreenVortexEnergyCheck<dim, nstate>::run_test() const
 {
     // Integrate to final time
     std::unique_ptr<FlowSolver<dim,nstate>> flow_solver = FlowSolverFactory<dim,nstate>::create_FlowSolver(this->all_parameters);
-    flow_solver->run_flow_solver();
+    static_cast<void>(flow_solver->run_test());
 
     // Compute kinetic energy
     std::unique_ptr<PeriodicCubeFlow<dim, nstate>> flow_solver_case = std::make_unique<PeriodicCubeFlow<dim,nstate>>(this->all_parameters);
-    const double kinetic_energy_computed = flow_solver_case->integrate_over_domain(*(flow_solver->dg),"kinetic_energy");
+    const double kinetic_energy_computed = flow_solver_case->compute_kinetic_energy(*(flow_solver->dg));
 
     const double relative_error = abs(kinetic_energy_computed - kinetic_energy_expected)/kinetic_energy_expected;
     if (relative_error > 1.0e-10) {

@@ -25,11 +25,11 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                           " burgers_rewienski_snapshot>.");
 
         prm.declare_entry("final_time", "1",
-                          dealii::Patterns::Double(1e-15, 10000000),
+                          dealii::Patterns::Double(0, dealii::Patterns::Double::max_double_value),
                           "Final solution time.");
 
         prm.declare_entry("courant_friedrich_lewy_number", "1",
-                          dealii::Patterns::Double(1e-15, 10000000),
+                          dealii::Patterns::Double(0, dealii::Patterns::Double::max_double_value),
                           "Courant-Friedrich-Lewy (CFL) number for constant time step.");
 
         prm.declare_entry("unsteady_data_table_filename", "unsteady_data_table",
@@ -47,7 +47,7 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
         prm.enter_subsection("taylor_green_vortex_energy_check");
         {
             prm.declare_entry("expected_kinetic_energy_at_final_time", "1",
-                              dealii::Patterns::Double(1e-15, 10000000),
+                              dealii::Patterns::Double(0, dealii::Patterns::Double::max_double_value),
                               "For integration test purposes, expected kinetic energy at final time.");
         }
         prm.leave_subsection();

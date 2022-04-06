@@ -4,6 +4,7 @@
 #include <Eigen/Dense>
 #include <Eigen/LU>
 #include <iostream>
+#include <algorithm>
 
 namespace PHiLiP {
 namespace ProperOrthogonalDecomposition {
@@ -55,9 +56,13 @@ public:
 
     void compute_centroids();
 
+    void compute_edge_midpoints();
+
     std::vector<Triangle> triangulation;
 
     Eigen::Matrix<double, Eigen::Dynamic, 2> centroids;
+
+    Eigen::Matrix<double, Eigen::Dynamic, 2> midpoints;
 
 };
 

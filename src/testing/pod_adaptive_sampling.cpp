@@ -19,7 +19,7 @@ int AdaptiveSampling<dim, nstate>::run_test() const
 
     placeInitialSnapshots();
     current_pod->computeBasis();
-    placeInitialROMs();
+    //placeInitialROMs();
     placeTriangulationROMs();
 
     RowVector2d max_error_params = getMaxErrorROM();
@@ -294,13 +294,13 @@ template <int dim, int nstate>
 void AdaptiveSampling<dim, nstate>::placeTriangulationROMs() const{
     ProperOrthogonalDecomposition::Delaunay delaunay(snapshot_parameters);
 
-    for(auto centroid : delaunay.centroids.rowwise()){
-        auto element = rom_locations.find(centroid);
+    for(auto midpoint : delaunay.midpoints.rowwise()){
+        auto element = rom_locations.find(midpoint);
         if(element == rom_locations.end()){
-            std::cout << "Computing ROM at " << centroid << std::endl;
-            std::shared_ptr<ProperOrthogonalDecomposition::ROMSolution<dim, nstate>> rom_solution = solveSnapshotROM(centroid);
-            ProperOrthogonalDecomposition::ROMTestLocation < dim,nstate > rom_location = ProperOrthogonalDecomposition::ROMTestLocation < dim, nstate>(centroid, rom_solution);
-            rom_locations.emplace(centroid, rom_location);
+            std::cout << "Computing ROM at " << midpoint << std::endl;
+            std::shared_ptr<ProperOrthogonalDecomposition::ROMSolution<dim, nstate>> rom_solution = solveSnapshotROM(midpoint);
+            ProperOrthogonalDecomposition::ROMTestLocation < dim,nstate > rom_location = ProperOrthogonalDecomposition::ROMTestLocation < dim, nstate>(midpoint, rom_solution);
+            rom_locations.emplace(midpoint, rom_location);
         }
         else{
             std::cout << "ROM already computed." << std::endl;

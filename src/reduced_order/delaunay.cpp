@@ -30,6 +30,7 @@ Delaunay::Delaunay(Eigen::Matrix<double, Eigen::Dynamic, 2> points)
 {
     triangulate(points);
     compute_centroids();
+    compute_edge_midpoints();
 }
 
 void Delaunay::triangulate(Eigen::Matrix<double, Eigen::Dynamic, 2> points)
@@ -115,6 +116,28 @@ void Delaunay::compute_centroids()
         }
         centroids.row(row_idx) = centroid;
         row_idx++;
+    }
+}
+
+void Delaunay::compute_edge_midpoints()
+{
+    std::vector<RowVector2d> edge_midpoints;
+
+    for(auto& triangle : triangulation){
+        for(auto& edge : triangle.edges){
+            RowVector2d midpoint = {(edge.node1(0) + edge.node2(0))/2, (edge.node1(1) + edge.node2(1))/2};
+            std::cout << midpoint << std::endl;
+
+            if(std::find(edge_midpoints.begin(), edge_midpoints.end(), midpoint) != edge_midpoints.end()) {
+                continue;
+            } else {
+                edge_midpoints.emplace_back(midpoint);
+            }
+        }
+    }
+    midpoints.resize(edge_midpoints.size(), 2);
+    for(unsigned int i = 0 ; i < edge_midpoints.size() ; i++){
+        midpoints.row(i) = edge_midpoints[i];
     }
 }
 

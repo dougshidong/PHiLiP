@@ -33,14 +33,30 @@ int AdaptiveSamplingTesting<dim, nstate>::run_test() const
 {
     //Generate points to test:
 
-    RowVectorXd snap_a {{2,2,10,10,6,4,8,3,7,5}};
-    RowVectorXd snap_b {{0.01,0.1,0.1,0.01,0.0397,0.0703,0.0199,0.0496,0.0802,0.0298}};
+    RowVectorXd snap_a {{2.        ,  2.        , 10.        , 10.        ,  6.        ,
+                         5.87695667,  2.        ,  3.97861367,  7.97897359,  2.        ,
+                         3.79484095}};
+    RowVectorXd snap_b {{0.01      , 0.1       , 0.1       , 0.01      , 0.055     ,
+                         0.1       , 0.05864627, 0.08444354, 0.1       , 0.07721791,
+                         0.1}};
 
-    RowVectorXd rom_a {{6.667, 2.33333,9.333,3,     4.3333,4,      5.6667,   5	,5	,7,	6.3333,	8.333,	6.3333,	3.33333}};
-    RowVectorXd rom_b {{0.0133,0.0532,0.0433,0.0733,0.0835,	0.0499,0.0634	,0.0199,0.0466,0.0466,	0.0934	,0.0667,0.0298,0.0298}};
+    RowVectorXd rom_a {{2.89742048,  2.89742048,  7.93847834,  2.        ,  8.98948679,
+                        3.93847834,  3.93847834,  8.        ,  6.        ,  6.        ,
+                        4.        ,  3.93847834,  2.        ,  2.98930683,  4.        ,
+                        2.        ,  8.98948679,  5.93847834,  4.83589881,  2.98930683,
+                        2.98930683,  4.98930683,  4.92778517,  2.89742048,  6.92796513,
+                        6.98948679,  2.98930683,  2.        ,  2.89742048,  8.        ,
+                        2.        , 10.        ,  3.88672731}};
+    RowVectorXd rom_b {{0.08860896, 0.055     , 0.1       , 0.03432313, 0.1       ,
+                        0.1       , 0.07932313, 0.0775    , 0.1       , 0.01      ,
+                        0.0325    , 0.055     , 0.055     , 0.07154491, 0.0775    ,
+                        0.07932313, 0.055     , 0.0775    , 0.1       , 0.09222177,
+                        0.04722177, 0.06972177, 0.09222177, 0.1       , 0.1       ,
+                        0.0775    , 0.08083073, 0.06793209, 0.07932313, 0.0325    ,
+                        0.08860896, 0.055     , 0.09222177}};
 
-    RowVectorXd A = VectorXd::LinSpaced(7,2,10).replicate(snap_a.size(),1).transpose();
-    MatrixXd b = VectorXd::LinSpaced(7, 0.01, 0.1).replicate(1,snap_b.size());
+    RowVectorXd A = VectorXd::LinSpaced(2,2,10).replicate(snap_a.size(),1).transpose();
+    MatrixXd b = VectorXd::LinSpaced(2, 0.01, 0.1).replicate(1,snap_b.size());
     b.transposeInPlace();
     VectorXd B_col(Eigen::Map<VectorXd>(b.data(), b.cols()*b.rows()));
     RowVectorXd B = B_col.transpose();
@@ -56,6 +72,15 @@ int AdaptiveSamplingTesting<dim, nstate>::run_test() const
 
     //RowVectorXd params_a{{6.3333}};
     //RowVectorXd params_b{{0.0934}};
+    /*
+    RowVectorXd params_a = VectorXd::LinSpaced(12,2,10).replicate(12,1).transpose();
+    MatrixXd b = VectorXd::LinSpaced(12, 0.01, 0.1).replicate(1,12);
+    b.transposeInPlace();
+    VectorXd B_col(Eigen::Map<VectorXd>(b.data(), b.cols()*b.rows()));
+    RowVectorXd params_b = B_col.transpose();
+    */
+    //std::cout << params_a << std::endl;
+    //std::cout << params_b << std::endl;
 
 
     std::shared_ptr<dealii::TableHandler> data_table = std::make_shared<dealii::TableHandler>();

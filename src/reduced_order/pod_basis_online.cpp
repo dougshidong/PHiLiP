@@ -34,7 +34,7 @@ void OnlinePOD<dim>::computeBasis() {
     std::ofstream out_file_snap("snapshot_matrix.txt");
     unsigned int precision1 = 16;
     snapshot_matrix.print_formatted(out_file_snap, precision1);
-
+    /*
     std::cout << "Computing POD basis using the method of snapshots..." << std::endl;
 
     // Get mass weighted solution snapshots: massWeightedSolutionSnapshots = solutionSnapshots^T * massMatrix * solutionSnapshots
@@ -75,10 +75,23 @@ void OnlinePOD<dim>::computeBasis() {
             basis_tmp.set(m, n, fullBasis(m,n));
         }
     }
-    /*
+    */
+
 
     snapshot_matrix.compute_svd();
     dealii::LAPACKFullMatrix<double> svd_u = snapshot_matrix.get_svd_u();
+
+    dealii::LAPACKFullMatrix<double> fullBasis(snapshot_matrix.m(), snapshot_matrix.n());
+
+    for(unsigned int m = 0 ; m < snapshotVectors[0].size() ; m++){
+        for(unsigned int n = 0 ; n < snapshotVectors.size() ; n++){
+            fullBasis.set(m, n, svd_u(m,n));
+        }
+    }
+
+    std::ofstream out_file("POD_adaptation_basis.txt");
+    unsigned int precision = 16;
+    fullBasis.print_formatted(out_file, precision);
 
     dealii::TrilinosWrappers::SparseMatrix basis_tmp(snapshotVectors[0].size(), snapshotVectors.size(), snapshotVectors.size());
     std::cout << snapshotVectors[0].size() << " " << snapshotVectors.size() << std::endl;
@@ -87,8 +100,6 @@ void OnlinePOD<dim>::computeBasis() {
             basis_tmp.set(m, n, svd_u(m,n));
         }
     }
-
-    */
 
     basis_tmp.compress(dealii::VectorOperation::insert);
 

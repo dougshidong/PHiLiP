@@ -12,6 +12,12 @@ add_test(
   WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )
 
+configure_file(2d_navier_stokes_naca0012_subsonic_05_200.prm 2d_navier_stokes_naca0012_subsonic_05_200.prm COPYONLY)
+add_test(
+  NAME 2D_NAVIER_STOKES_INTEGRATION_NACA0012_SUBSONIC_LONG
+  COMMAND mpirun -np 6 ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_2D -i ${CMAKE_CURRENT_BINARY_DIR}/2d_navier_stokes_naca0012_subsonic_05_200.prm
+  WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
+)
 
 set (filename "naca0012_hopw_ref2.msh")
 if(NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${filename})

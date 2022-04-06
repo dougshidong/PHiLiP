@@ -21,6 +21,9 @@ public:
         std::shared_ptr< ModelBase<dim,nstate,real> >                model_input,
         std::shared_ptr< ManufacturedSolutionFunction<dim,real> >    manufactured_solution_function);
 
+    /// Destructor
+    ~PhysicsModel() {};
+
     /// Number of model equations (i.e. those additional to the baseline physics)
     const int n_model_equations;
 

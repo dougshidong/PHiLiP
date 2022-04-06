@@ -17,6 +17,9 @@ ModelBase<dim, nstate, real>::ModelBase(
         manufactured_solution_function(manufactured_solution_function_input)
 { }
 //----------------------------------------------------------------
+template <int dim, int nstate, typename real>
+ModelBase<dim,nstate,real>::~ModelBase() {}
+//----------------------------------------------------------------
 
 //----------------------------------------------------------------
 //----------------------------------------------------------------

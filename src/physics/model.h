@@ -21,7 +21,7 @@ public:
         std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function_input = nullptr);
 
     /// Virtual destructor required for abstract classes.
-    virtual ~ModelBase() {};
+    virtual ~ModelBase() = 0;
 
     /// Manufactured solution function
     std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function;

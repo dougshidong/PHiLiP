@@ -61,6 +61,7 @@ double ImplicitODESolver<dim,real,MeshType>::linesearch ()
     this->dg->solution.add(step_length, this->solution_update);
     this->dg->assemble_residual ();
     double new_residual = this->dg->get_residual_l2norm();
+    this->pcout << " Start Line Search " << std::endl;
     this->pcout << " Step length " << step_length << ". Old residual: " << initial_residual << " New residual: " << new_residual << std::endl;
 
     int iline = 0;
@@ -72,10 +73,14 @@ double ImplicitODESolver<dim,real,MeshType>::linesearch ()
         new_residual = this->dg->get_residual_l2norm();
         this->pcout << " Step length " << step_length << " . Old residual: " << initial_residual << " New residual: " << new_residual << std::endl;
     }
-    if (iline == 0) this->CFL_factor *= 2.0;
+    if (iline == 0) {
+	this->CFL_factor *= 2.0;
+        this->pcout << " Line Search (Case 1): Increase CFL " << this->CFL_factor << std::endl;
+    }
 
     if (iline == maxline) {
         step_length = 1.0;
+        this->pcout << " Line Search (Case 2): Increase nonlinear residual tolerance by a factor " << std::endl;
         this->pcout << " Line search failed. Will accept any valid residual less than " << reduction_tolerance_2 << " times the current " << initial_residual << "residual. " << std::endl;
         this->dg->solution.add(step_length, this->solution_update);
         this->dg->assemble_residual ();
@@ -92,6 +97,7 @@ double ImplicitODESolver<dim,real,MeshType>::linesearch ()
     }
     if (iline == maxline) {
         this->CFL_factor *= 0.5;
+        this->pcout << " Line Search (Case 3): Decrease CFL " << std::endl;
         this->pcout << " Reached maximum number of linesearches. Terminating... " << std::endl;
         this->pcout << " Resetting solution and reducing CFL_factor by : " << this->CFL_factor << std::endl;
         this->dg->solution = old_solution;
@@ -99,6 +105,7 @@ double ImplicitODESolver<dim,real,MeshType>::linesearch ()
     }
 
     if (iline == maxline) {
+        this->pcout << " Line Search (Case 4): Reverse Search Direction " << std::endl;
         step_length = -1.0;
         this->dg->solution.add(step_length, this->solution_update);
         this->dg->assemble_residual ();
@@ -115,7 +122,7 @@ double ImplicitODESolver<dim,real,MeshType>::linesearch ()
     }
 
     if (iline == maxline) {
-        this->pcout << " Line search failed. Trying to step in the opposite direction. " << std::endl;
+        this->pcout << " Line Search (Case 5): Reverse Search Direction AND Increase nonlinear residual tolerance by a factor " << std::endl;
         step_length = -1.0;
         this->dg->solution.add(step_length, this->solution_update);
         this->dg->assemble_residual ();
@@ -132,6 +139,7 @@ double ImplicitODESolver<dim,real,MeshType>::linesearch ()
         //std::abort();
     }
     if (iline == maxline) {
+        this->pcout << " Line Search (Case 6): Decrease CFL " << std::endl;
         this->pcout << " Reached maximum number of linesearches. Terminating... " << std::endl;
         this->pcout << " Resetting solution and reducing CFL_factor by : " << this->CFL_factor << std::endl;
         this->dg->solution = old_solution;

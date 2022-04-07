@@ -233,8 +233,8 @@ int EulerNACA0012<dim,nstate>
             LiftDragFunctional<dim,dim+2,double> drag_functional( dg, LiftDragFunctional<dim,dim+2,double>::Functional_types::drag );
             double drag = drag_functional.evaluate_functional();
 
-            std::cout << " Resulting lift : " << lift << std::endl;
-            std::cout << " Resulting drag : " << drag << std::endl;
+            pcout << " Resulting lift : " << lift << std::endl;
+            pcout << " Resulting drag : " << drag << std::endl;
 
         }
 

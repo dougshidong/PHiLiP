@@ -129,7 +129,7 @@ int ODESolverBase<dim,real,MeshType>::steady_state ()
             ramped_CFL *= pow((1.0-std::log10(this->residual_norm_decrease)*ode_param.time_step_factor_residual), ode_param.time_step_factor_residual_exp);
         }
         ramped_CFL = std::max(ramped_CFL,initial_CFL*CFL_factor);
-        pcout << "Initial CFL = " << initial_CFL << ". Current CFL = " << ramped_CFL << std::endl;
+        pcout << "Initial CFL = " << initial_CFL << ". CFL Factor = " << CFL_factor << ". Current CFL = " << ramped_CFL << std::endl;
 
         if (this->residual_norm < 1e-12) {
             this->dg->freeze_artificial_dissipation = true;
@@ -164,7 +164,26 @@ int ODESolverBase<dim,real,MeshType>::steady_state ()
 
         convergence_error = this->residual_norm > ode_param.nonlinear_steady_residual_tolerance
                             && this->residual_norm_decrease > ode_param.nonlinear_steady_residual_tolerance;
+
+        pcout << " ********************************************************** "
+              << std::endl
+              << " Convergence Error: " << convergence_error
+              << std::endl
+              << " Residual Norm Decrease: " << residual_norm_decrease 
+              << " Nonlinear Steady Residual Tolerance: " << ode_param.nonlinear_steady_residual_tolerance
+              << std::endl
+              << " Nonlinear iteration: " << this->current_iteration
+              << " Nonlinear Max iteration: " << ode_param.nonlinear_max_iterations
+              << std::endl
+              << " residual norm: " << this->residual_norm
+              << std::endl
+              << " CFL_Factor: " << CFL_factor
+              << std::endl
+              << " ********************************************************** "
+              << std::endl;
+
     }
+
     if (this->residual_norm > 1e5
         || std::isnan(this->residual_norm)
         || CFL_factor <= 1e-2)
@@ -189,8 +208,17 @@ int ODESolverBase<dim,real,MeshType>::steady_state ()
           << std::endl
           << " ODESolver steady_state stopped at"
           << std::endl
+	  << " Convergence Error: " << convergence_error
+          << std::endl
+	  << " Residual Norm Decrease: " << residual_norm_decrease 
+	  << " Nonlinear Steady Residual Tolerance: " << ode_param.nonlinear_steady_residual_tolerance
+          << std::endl
           << " Nonlinear iteration: " << this->current_iteration
+          << " Nonlinear Max iteration: " << ode_param.nonlinear_max_iterations
+          << std::endl
           << " residual norm: " << this->residual_norm
+          << std::endl
+	  << " CFL_Factor: " << CFL_factor
           << std::endl
           << " ********************************************************** "
           << std::endl;

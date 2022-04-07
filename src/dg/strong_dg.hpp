@@ -53,7 +53,8 @@ private:
         std::vector<dealii::Tensor<1,dim,double>> &local_auxiliary_RHS);
     ///Evaluate the boundary RHS for the auxiliary equation.
     void assemble_boundary_term_auxiliary_equation(
-        const unsigned int poly_degree, const unsigned int grid_degree,
+        const unsigned int poly_degree, 
+        const unsigned int grid_degree,
         const unsigned int iface,
         const unsigned int boundary_id,
         const std::vector<dealii::types::global_dof_index> &current_dofs_indices,
@@ -61,8 +62,10 @@ private:
         std::vector<dealii::Tensor<1,dim,real>> &local_auxiliary_RHS);
     ///Evaluate the facet RHS for the auxiliary equation.
     void assemble_face_term_auxiliary(
-        const unsigned int iface, const unsigned int neighbor_iface,
-        const unsigned int poly_degree, const unsigned int grid_degree,
+        const unsigned int iface, 
+        const unsigned int neighbor_iface,
+        const unsigned int poly_degree, 
+        const unsigned int grid_degree,
         const std::vector<dealii::types::global_dof_index> &current_dofs_indices,
         const std::vector<dealii::types::global_dof_index> &neighbor_dofs_indices,
         const std::vector<dealii::types::global_dof_index> &metric_dof_indices_int,
@@ -145,11 +148,13 @@ private:
         dealii::Vector<real> &current_cell_rhs);
     /// Evaluate the integral over the internal cell edges
     void assemble_face_term_explicit(
-        const unsigned int iface, const unsigned int neighbor_iface,
+        const unsigned int iface, 
+        const unsigned int neighbor_iface,
         typename dealii::DoFHandler<dim>::active_cell_iterator cell,
         const dealii::types::global_dof_index current_cell_index,
         const dealii::types::global_dof_index neighbor_cell_index,
-        const unsigned int poly_degree, const unsigned int grid_degree,
+        const unsigned int poly_degree, 
+        const unsigned int grid_degree,
         const dealii::FEFaceValuesBase<dim,dim>     &fe_values_face_int,
         const dealii::FEFaceValuesBase<dim,dim>     &fe_values_face_ext,
         const real penalty,

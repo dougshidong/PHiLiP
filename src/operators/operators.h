@@ -435,6 +435,30 @@ public:
     void is_the_grid_higher_order_than_initialized(
                                     const unsigned int grid_degree);
                                 
+    ///Computes a matrix-vector product using sum-factorization. Pass the one-dimensional basis, where x runs the fastest, then y, and z runs the slowest. Also, assume each one-dimensional basis is the same size.
+    /** Uses sum-factorization with BLAS techniques to solve the the matrix-vector multiplication, where the matrix is the tensor product of three one-dimensional matrices. We use the standard notation that x runs the fastest, then y, and z runs the slowest.
+    */
+    void sum_factorization_matrix_vector_mult(
+                                    const std::vector<real> &input_vect,
+                                    std::vector<real> &output_vect,
+                                    const unsigned int rows, const unsigned int columns,
+                                    const unsigned int dimension,
+                                    const dealii::FullMatrix<real> &basis_x,
+                                    const dealii::FullMatrix<real> &basis_y,
+                                    const dealii::FullMatrix<real> &basis_z);
+
+    ///Computes the inner prodct between a matrix and a vector multiplied by some weight function.  
+    /** That is, we compute \f$ \int Awu d\mathbf{\Omega}_r = \mathbf{A}^T \text{diag}(w) \mathbf{u}^T \f$. When using this function, pass \f$ \mathbf{A} \f$ and NOT it's transpose--the function transposes it in the first few lines.
+    */
+    void sum_factorization_inner_product(
+                                    const std::vector<real> &input_vect,
+                                    const std::vector<real> &weight_vect,
+                                    std::vector<real> &output_vect,
+                                    const unsigned int rows, const unsigned int columns,
+                                    const unsigned int dimension,
+                                    const dealii::FullMatrix<real> &basis_x,
+                                    const dealii::FullMatrix<real> &basis_y,
+                                    const dealii::FullMatrix<real> &basis_z);
 
 };///End operator base class.
 

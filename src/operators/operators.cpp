@@ -1414,7 +1414,139 @@ void OperatorBase<dim,real>::is_the_grid_higher_order_than_initialized(
     }
 }
 
+template <int dim, typename real>
+void OperatorBase<dim,real>::sum_factorization_matrix_vector_mult(
+                                    const std::vector<real> &input_vect,
+                                    std::vector<real> &output_vect,
+                                    const unsigned int rows, const unsigned int columns,
+                                    const unsigned int dimension,
+                                    const dealii::FullMatrix<real> &basis_x,
+                                    const dealii::FullMatrix<real> &basis_y,
+                                    const dealii::FullMatrix<real> &basis_z)
+{
+    //assert that each basis matrix is of size (rows x columns)
+    assert(basis_x.m() == rows);
+    assert(basis_y.m() == rows);
+    if(dimension == 3)
+        assert(basis_z.m() == rows);
+    assert(basis_x.n() == columns);
+    assert(basis_y.n() == columns);
+    if(dimension == 3)
+        assert(basis_z.n() == columns);
+    //assert the input vector is of size columns^{dim}
+    assert(input_vect.size() == pow(columns, dimension));
+    assert(output_vect.size() == pow(rows, dimension));
 
+    if(dimension==2){
+        //convert the input vector to matrix
+        dealii::FullMatrix<real> input_mat(columns, columns);
+        for(unsigned int idof=0; idof<columns; idof++){ 
+            for(unsigned int jdof=0; jdof<columns; jdof++){ 
+                input_mat[jdof][idof] = input_vect[idof * columns + jdof];//jdof runs fastest (x) idof slowest (y)
+            }
+        }
+        dealii::FullMatrix<real> temp(rows, columns);
+        basis_x.mmult(temp, input_mat);//apply x tensor product
+        dealii::FullMatrix<real> output_mat(rows);
+        basis_y.mTmult(output_mat, temp);//apply y tensor product
+        //convert mat back to vect
+        for(unsigned int iquad=0; iquad<rows; iquad++){
+            for(unsigned int jquad=0; jquad<rows; jquad++){
+                output_vect[iquad*rows + jquad] = output_mat[iquad][jquad];
+            }
+        }
+
+    }
+    if(dimension==3){
+        //convert vect to mat first
+        dealii::FullMatrix<real> input_mat(columns, columns*columns);
+        for(unsigned int idof=0; idof<columns; idof++){ 
+            for(unsigned int jdof=0; jdof<columns; jdof++){ 
+                for(unsigned int kdof=0; kdof<columns; kdof++){
+                    const unsigned int dof_index = idof*pow(columns,2) + jdof*columns + kdof;
+                    input_mat[kdof][idof*columns + jdof] = input_vect[dof_index];//jdof runs fastest (x) idof slowest (y)
+                }
+            }
+        }
+        dealii::FullMatrix<real> temp(rows, columns*columns);
+        basis_x.mmult(temp, input_mat);//apply x tensor product
+        //convert to have y dofs ie/ change the stride
+        dealii::FullMatrix<real> temp2(columns, rows * columns);
+        for(unsigned int iquad=0; iquad<rows; iquad++){
+            for(unsigned int idof=0; idof<columns; idof++){
+                for(unsigned int jdof=0; jdof<columns; jdof++){
+                    temp2[jdof][iquad*rows + idof] = temp[iquad][idof*columns + jdof];//extract y runs second fastest
+                }
+            }
+        }
+        dealii::FullMatrix<real> temp3(rows, rows * columns);
+        basis_y.mmult(temp3, temp2);//apply y tensor product
+        dealii::FullMatrix<real> temp4(columns, rows * rows);
+        //convert to have z dofs ie/ change the stride
+        for(unsigned int iquad=0; iquad<rows; iquad++){
+            for(unsigned int idof=0; idof<columns; idof++){
+                for(unsigned int jquad=0; jquad<rows; jquad++){
+                    temp4[idof][iquad*rows + jquad] = temp3[jquad][iquad*rows + idof];//extract z runs slowest
+                }
+            }
+        }
+        dealii::FullMatrix<real> output_mat(rows, rows*rows);
+        basis_z.mmult(output_mat, temp4);
+        //convert mat to vect
+        for(unsigned int iquad=0; iquad<rows; iquad++){
+            for(unsigned int jquad=0; jquad<rows; jquad++){
+                for(unsigned int kquad=0; kquad<rows; kquad++){
+                    const unsigned int quad_index = iquad*pow(rows,2) + jquad*rows + kquad;
+                    output_vect[quad_index] = output_mat[iquad][kquad*rows + jquad];
+                }
+            }
+        }
+    }
+
+}
+template <int dim, typename real>
+void OperatorBase<dim,real>::sum_factorization_inner_product(
+                                    const std::vector<real> &input_vect,
+                                    const std::vector<real> &weight_vect,
+                                    std::vector<real> &output_vect,
+                                    const unsigned int rows, const unsigned int columns,
+                                    const unsigned int dimension,
+                                    const dealii::FullMatrix<real> &basis_x,
+                                    const dealii::FullMatrix<real> &basis_y,
+                                    const dealii::FullMatrix<real> &basis_z)
+{
+    //assert that each basis matrix is of size (rows x columns)
+    assert(basis_x.m() == rows);
+    assert(basis_y.m() == rows);
+    if(dimension == 3)
+        assert(basis_z.m() == rows);
+    assert(basis_x.n() == columns);
+    assert(basis_y.n() == columns);
+    if(dimension == 3)
+        assert(basis_z.n() == columns);
+    //assert the input vector is of size columns^{dim}
+    assert(input_vect.size() == pow(rows, dimension));//rows since matrix transpose
+    assert(weight_vect.size() == pow(rows, dimension));
+    assert(output_vect.size() == pow(rows, dimension));
+
+    dealii::FullMatrix<real> basis_x_trans(columns, rows);
+    dealii::FullMatrix<real> basis_y_trans(columns, rows);
+    dealii::FullMatrix<real> basis_z_trans(columns, rows);
+
+    //set as the transpose as inputed basis
+    basis_x_trans.Tadd(1.0, basis_x);
+    basis_y_trans.Tadd(1.0, basis_y);
+    if(dimension==3)
+        basis_z_trans.Tadd(1.0, basis_z);
+
+    std::vector<real> new_input_vect(pow(rows,dimension));
+    for(unsigned int iquad=0; iquad<pow(rows,dimension); iquad++){
+        new_input_vect[iquad] = input_vect[iquad] * weight_vect[iquad];
+    }
+
+    sum_factorization_matrix_vector_mult(new_input_vect, output_vect, rows, columns, dimension, basis_x_trans, basis_y_trans, basis_z_trans);
+
+}
 template class OperatorBase <PHILIP_DIM, double>;
 //template class OperatorBase <PHILIP_DIM, 1, double>;
 //template class OperatorBase <PHILIP_DIM, 2, double>;

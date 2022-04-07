@@ -4,14 +4,31 @@
 // for FlowSolver class:
 #include "physics/initial_conditions/initial_condition.h"
 #include "tests.h"
-#include "dg/dg.h"
 #include "physics/physics.h"
 #include "parameters/all_parameters.h"
-#include <deal.II/base/table_handler.h>
 
 // for generate_grid
 #include <deal.II/distributed/shared_tria.h>
 #include <deal.II/distributed/tria.h>
+
+// for the grid:
+#include "grid_refinement_study.h"
+#include <deal.II/base/function.h>
+#include <stdlib.h>
+#include <iostream>
+#include <deal.II/dofs/dof_tools.h>
+#include <deal.II/grid/grid_tools.h>
+#include <deal.II/numerics/vector_tools.h>
+#include "physics/physics_factory.h"
+#include "dg/dg.h"
+#include "dg/dg_factory.hpp"
+#include "ode_solver/explicit_ode_solver.h"
+#include "ode_solver/ode_solver_factory.h"
+#include "flow_solver_cases/periodic_cube_flow.h"
+#include "flow_solver_cases/1D_burgers_rewienski_snapshot.h"
+#include "flow_solver_cases/1d_burgers_viscous_snapshot.h"
+#include <deal.II/base/table_handler.h>
+
 
 namespace PHiLiP {
 namespace Tests {
@@ -28,42 +45,32 @@ class FlowSolver : public TestsBase
 {
 public:
     /// Constructor.
-    FlowSolver(const Parameters::AllParameters *const parameters_input);
+    FlowSolver(const Parameters::AllParameters *const parameters_input, std::shared_ptr<FlowSolverCaseBase<dim, nstate>>);
     
     /// Destructor
     ~FlowSolver() {};
 
-    /// Runs the test (i.e. flow solver)
-    int run_test () const;
+    /// Pointer to Flow Solver Case
+    std::shared_ptr<FlowSolverCaseBase<dim, nstate>> flow_solver_case;
+
+    /// Simply runs the flow solver and returns 0 upon completion
+    int run_test () const override;
 
 protected:
     std::shared_ptr< InitialConditionFunction<dim,double> > initial_condition_function; ///< Initial condition function
     const Parameters::AllParameters all_param; ///< All parameters
     const Parameters::FlowSolverParam flow_solver_param; ///< Flow solver parameters
     const Parameters::ODESolverParam ode_param; ///< ODE solver parameters
-    const double courant_friedrich_lewy_number; ///< Courant-Friedrich-Lewy (CFL) number
     const unsigned int poly_degree; ///< Polynomial order
     const double final_time; ///< Final time of solution
-    const std::string unsteady_data_table_filename_with_extension; ///< Filename (with extension) for the unsteady data table
-        
-    /// Displays the flow setup parameters
-    virtual void display_flow_solver_setup() const;
 
-    /// Pure virtual function to generate the grid
-    virtual void generate_grid(std::shared_ptr<Triangulation> grid) const = 0;
+public:
+    /// Pointer to dg so it can be accessed externally.
+    std::shared_ptr<DGBase<dim, double>> dg;
 
-    /// Pure virtual function to compute the constant time step
-    virtual double get_constant_time_step(std::shared_ptr <DGBase<dim, double>> dg) const;
+    /// Pointer to ode solver so it can be accessed externally.
+    std::shared_ptr<ODE::ODESolverBase<dim, double>> ode_solver;
 
-    /// Virtual function to compute the desired unsteady data and write it to the table
-    virtual void compute_unsteady_data_and_write_to_table(
-        const unsigned int current_iteration,
-        const double current_time,
-        const std::shared_ptr <DGBase<dim, double>> dg,
-        const std::shared_ptr<dealii::TableHandler> unsteady_data_table) const;
-
-    /// Restarts the computation from a desired outputted step
-    void restart_computation_from_outputted_step(std::shared_ptr <DGBase<dim, double>> dg) const;
 };
 
 /// Create specified flow solver as FlowSolver object 

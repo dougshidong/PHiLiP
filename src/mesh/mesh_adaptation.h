@@ -26,7 +26,7 @@ class MeshAdaptation
 public:
 
     /// Constructor to initialize the class with a pointer to DG.
-    MeshAdaptation(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input);
+    MeshAdaptation(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input, const Parameters::MeshAdaptationParam *const mesh_adaptation_param_input);
 
     /// Destructor
     ~MeshAdaptation(){};
@@ -40,25 +40,16 @@ public:
     /// Function to adapt the mesh based on input parameters.
     void adapt_mesh();
 
-    /// Residual below which mesh adaptation begins.
-    double critical_residual;
-
-    /// Total/maximum refinement steps to be performed while solving a problem.
-    int total_refinement_cycles;
-
     /// Stores the current refinement cycle.
     int current_refinement_cycle;
+
+    /// Holds parameters of mesh adaptation
+    const Parameters::MeshAdaptationParam *const mesh_adaptation_param;
 
 protected:
     
     /// Performs fixed fraction refinement based on refinement and coarsening fractions.
     void fixed_fraction_isotropic_refinement_and_coarsening();
-    
-    /// Fraction of cells to be refined in fixed-fraction refinement
-    double refinement_fraction;
-
-    /// Fraction of cells to be coarsened in fixed-fraction refinement
-    double coarsening_fraction;
     
     /// Stores errors in each cell
     dealii::Vector<real> cellwise_errors;

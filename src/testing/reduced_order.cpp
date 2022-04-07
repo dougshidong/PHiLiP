@@ -3,6 +3,7 @@
 #include "reduced_order.h"
 #include "parameters/all_parameters.h"
 #include "reduced_order/pod_basis.h"
+#include "reduced_order/pod_basis_types.h"
 
 #include <deal.II/numerics/vector_tools.h>
 #include <deal.II/numerics/solution_transfer.h>
@@ -60,9 +61,9 @@ int ReducedOrder<dim, nstate>::run_test() const
     /* FULL SOLUTION WITH IMPLICIT SOLVER */
 
     pcout << "Running full-order implicit ODE solver for Burgers Rewienski with parameter a: "
-          << param.reduced_order_param.rewienski_a
+          << param.burgers_param.rewienski_a
           << " and parameter b: "
-          << param.reduced_order_param.rewienski_b
+          << param.burgers_param.rewienski_b
           << std::endl;
 
     std::shared_ptr < PHiLiP::DGBase<dim, double> > dg_implicit = PHiLiP::DGFactory<dim,double>::create_discontinuous_galerkin(all_parameters, poly_degree, grid);
@@ -70,7 +71,7 @@ int ReducedOrder<dim, nstate>::run_test() const
     dg_implicit->allocate_system ();
 
     //will use all basis functions
-    std::shared_ptr<ProperOrthogonalDecomposition::POD<dim>> pod = std::make_shared<ProperOrthogonalDecomposition::POD<dim>>(dg_implicit);
+    std::shared_ptr<ProperOrthogonalDecomposition::CoarsePOD<dim>> pod = std::make_shared<ProperOrthogonalDecomposition::CoarsePOD<dim>>(dg_implicit);
 
     dealii::VectorTools::interpolate(dg_implicit->dof_handler,initial_condition,dg_implicit->solution);
 
@@ -83,9 +84,9 @@ int ReducedOrder<dim, nstate>::run_test() const
     /*POD GALERKIN SOLUTION*/
 
     pcout << "Running POD-Galerkin ODE solver for Burgers Rewienski with parameter a: "
-          << param.reduced_order_param.rewienski_a
+          << param.burgers_param.rewienski_a
           << " and parameter b: "
-          << param.reduced_order_param.rewienski_b
+          << param.burgers_param.rewienski_b
           << std::endl;
 
     std::shared_ptr < PHiLiP::DGBase<dim, double> > dg_pod_galerkin = PHiLiP::DGFactory<dim,double>::create_discontinuous_galerkin(all_parameters, poly_degree, grid);
@@ -103,9 +104,9 @@ int ReducedOrder<dim, nstate>::run_test() const
     /*POD PETROV-GALERKIN SOLUTION*/
 
     pcout << "Running POD-Petrov-Galerkin ODE solver for Burgers Rewienski with parameter a: "
-          << param.reduced_order_param.rewienski_a
+          << param.burgers_param.rewienski_a
           << " and parameter b: "
-          << param.reduced_order_param.rewienski_b
+          << param.burgers_param.rewienski_b
           << std::endl;
 
     std::shared_ptr < PHiLiP::DGBase<dim, double> > dg_pod_petrov_galerkin = PHiLiP::DGFactory<dim,double>::create_discontinuous_galerkin(all_parameters, poly_degree, grid);
@@ -162,8 +163,8 @@ int ReducedOrder<dim, nstate>::run_test() const
         dealii::LinearAlgebra::distributed::Vector<double> pod_petrov_galerkin_solution(dg_pod_petrov_galerkin->solution);
         dealii::LinearAlgebra::distributed::Vector<double> implicit_solution(dg_implicit->solution);
 
-        galerkin_error_norm_sum = galerkin_error_norm_sum + ((pod_galerkin_solution.operator-=(implicit_solution)).l2_norm()/implicit_solution.l2_norm());
-        petrov_galerkin_error_norm_sum = petrov_galerkin_error_norm_sum + (((pod_petrov_galerkin_solution.operator-=(implicit_solution)).l2_norm())/implicit_solution.l2_norm());
+        galerkin_error_norm_sum = galerkin_error_norm_sum + ((pod_galerkin_solution-=implicit_solution).l2_norm()/implicit_solution.l2_norm());
+        petrov_galerkin_error_norm_sum = petrov_galerkin_error_norm_sum + (((pod_petrov_galerkin_solution-=implicit_solution).l2_norm())/implicit_solution.l2_norm());
 
         current_iteration++;
     }

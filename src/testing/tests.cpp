@@ -30,7 +30,9 @@
 #include "reduced_order_pod_adaptation.h"
 #include "reduced_order.h"
 #include "flow_solver.h"
+#include "fd_state_sensitivity_wrt_parameter.h"
 #include "dual_weighted_residual_mesh_adaptation.h"
+#include "taylor_green_vortex_energy_check.h"
 
 namespace PHiLiP {
 namespace Tests {
@@ -142,12 +144,16 @@ std::unique_ptr< TestsBase > TestsFactory<dim,nstate,MeshType>
         if constexpr (dim==1 && nstate==1) return std::make_unique<ReducedOrder<dim,nstate>>(parameters_input);
     } else if(test_type == Test_enum::POD_adaptation) {
         if constexpr (dim==1 && nstate==1) return std::make_unique<ReducedOrderPODAdaptation<dim,nstate>>(parameters_input);
+    } else if(test_type == Test_enum::finite_difference_sensitivity) {
+        if constexpr (dim==1 && nstate==1) return std::make_unique<FiniteDifferenceSensitivity<dim,nstate>>(parameters_input);
     } else if(test_type == Test_enum::euler_naca0012) {
         if constexpr (dim==2 && nstate==dim+2) return std::make_unique<EulerNACA0012<dim,nstate>>(parameters_input);
     } else if(test_type == Test_enum::flow_solver) {
         if constexpr ((dim==3 && nstate==dim+2) || (dim==1 && nstate==1)) return FlowSolverFactory<dim,nstate>::create_FlowSolver(parameters_input);
     } else if(test_type == Test_enum::dual_weighted_residual_mesh_adaptation) {
         if constexpr (dim > 1)  return std::make_unique<DualWeightedResidualMeshAdaptation<dim, nstate>>(parameters_input);
+    } else if(test_type == Test_enum::taylor_green_vortex_energy_check) {
+        if constexpr (dim==3 && nstate==dim+2) return std::make_unique<TaylorGreenVortexEnergyCheck<dim,nstate>>(parameters_input);
     } else {
         std::cout << "Invalid test. You probably forgot to add it to the list of tests in tests.cpp" << std::endl;
         std::abort();

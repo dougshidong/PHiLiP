@@ -19,6 +19,7 @@ void ManufacturedSolutionParam::declare_parameters(dealii::ParameterHandler &prm
     prm.declare_entry("manufactured_solution_type","exp_solution",
                       dealii::Patterns::Selection(
                       " sine_solution | "
+                      " zero_solution | "
                       " cosine_solution | "
                       " additive_solution | "
                       " exp_solution | "
@@ -37,6 +38,7 @@ void ManufacturedSolutionParam::declare_parameters(dealii::ParameterHandler &prm
                       "The manufactured solution we want to use (if use_manufactured_source_term==true). "
                       "Choices are "
                       " <sine_solution | "
+                      "  zero_solution | "
                       "  cosine_solution | "
                       "  additive_solution | "
                       "  exp_solution | "
@@ -96,7 +98,8 @@ void ManufacturedSolutionParam::parse_parameters(dealii::ParameterHandler &prm)
     use_manufactured_source_term = prm.get_bool("use_manufactured_source_term");
     
     const std::string manufactured_solution_string = prm.get("manufactured_solution_type");
-    if(manufactured_solution_string == "sine_solution")               {manufactured_solution_type = sine_solution;} 
+    if(manufactured_solution_string == "sine_solution")               {manufactured_solution_type = sine_solution;}
+    else if(manufactured_solution_string == "zero_solution")          {manufactured_solution_type = zero_solution;}
     else if(manufactured_solution_string == "cosine_solution")        {manufactured_solution_type = cosine_solution;} 
     else if(manufactured_solution_string == "additive_solution")      {manufactured_solution_type = additive_solution;} 
     else if(manufactured_solution_string == "exp_solution")           {manufactured_solution_type = exp_solution;} 

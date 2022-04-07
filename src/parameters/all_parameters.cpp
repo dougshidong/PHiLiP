@@ -13,6 +13,7 @@ AllParameters::AllParameters ()
     , euler_param(EulerParam())
     , navier_stokes_param(NavierStokesParam())
     , reduced_order_param(ReducedOrderModelParam())
+    , burgers_param(BurgersParam())
     , grid_refinement_study_param(GridRefinementStudyParam())
     , artificial_dissipation_param(ArtificialDissipationParam())
     , flow_solver_param(FlowSolverParam())
@@ -110,9 +111,11 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       " euler_naca0012 | "
                       " reduced_order | "
                       " POD_adaptation |"
+                      " finite_difference_sensitivity | "
                       " advection_periodicity | "
                       " flow_solver | "
-                      " dual_weighted_residual_mesh_adaptation"),
+                      " dual_weighted_residual_mesh_adaptation | "
+                      " taylor_green_vortex_energy_check"),
                       "The type of test we want to solve. "
                       "Choices are (only run control has been coded up for now)" 
                       " <run_control | " 
@@ -134,9 +137,11 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       "  euler_naca0012 | "
                       "  reduced_order |"
                       "  POD_adaptation |"
+                      "  finite_difference_sensitivity | "
                       "  advection_periodicity | "
                       "  flow_solver | "
-                      "  dual_weighted_residual_mesh_adaptation>.");
+                      "  dual_weighted_residual_mesh_adaptation | "
+                      "  taylor_green_vortex_energy_check>.");
 
     prm.declare_entry("pde_type", "advection",
                       dealii::Patterns::Selection(
@@ -145,6 +150,7 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                           " convection_diffusion | "
                           " advection_vector | "
                           " burgers_inviscid | "
+                          " burgers_viscous | "
                           " burgers_rewienski | "
                           " euler |"
                           " mhd |"
@@ -156,6 +162,7 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       "  convection_diffusion | "
                       "  advection_vector | "
                       "  burgers_inviscid | "
+                      "  burgers_viscous | "
                       "  burgers_rewienski | "
                       "  euler | "
                       "  mhd |"
@@ -179,6 +186,7 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
     Parameters::NavierStokesParam::declare_parameters (prm);
 
     Parameters::ReducedOrderModelParam::declare_parameters (prm);
+    Parameters::BurgersParam::declare_parameters (prm);
     Parameters::GridRefinementStudyParam::declare_parameters (prm);
    
     Parameters::ArtificialDissipationParam::declare_parameters (prm);
@@ -222,11 +230,13 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     else if (test_string == "shock_1d")                                 { test_type = shock_1d; }
     else if (test_string == "reduced_order")                            { test_type = reduced_order; }
     else if (test_string == "POD_adaptation")                           { test_type = POD_adaptation; }
+    else if (test_string == "finite_difference_sensitivity")            { test_type = finite_difference_sensitivity; }
     else if (test_string == "euler_naca0012")                           { test_type = euler_naca0012; }
     else if (test_string == "optimization_inverse_manufactured")        { test_type = optimization_inverse_manufactured; }
     else if (test_string == "flow_solver")                              { test_type = flow_solver; }
     else if (test_string == "dual_weighted_residual_mesh_adaptation")   { test_type = dual_weighted_residual_mesh_adaptation; }
-    
+    else if (test_string == "taylor_green_vortex_energy_check")         { test_type = taylor_green_vortex_energy_check; }
+
     const std::string pde_string = prm.get("pde_type");
     if (pde_string == "advection") {
         pde_type = advection;
@@ -242,6 +252,9 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
         nstate = 1;
     } else if (pde_string == "burgers_inviscid") {
         pde_type = burgers_inviscid;
+        nstate = dimension;
+    } else if (pde_string == "burgers_viscous") {
+        pde_type = burgers_viscous;
         nstate = dimension;
     } else if (pde_string == "burgers_rewienski") {
         pde_type = burgers_rewienski;
@@ -316,6 +329,9 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
 
     pcout << "Parsing reduced order subsection..." << std::endl;
     reduced_order_param.parse_parameters (prm);
+
+    pcout << "Parsing Burgers subsection..." << std::endl;
+    burgers_param.parse_parameters (prm);
 
     pcout << "Parsing grid refinement study subsection..." << std::endl;
     grid_refinement_study_param.parse_parameters (prm);

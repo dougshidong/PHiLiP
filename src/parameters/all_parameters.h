@@ -13,6 +13,7 @@
 #include "parameters/parameters_navier_stokes.h"
 
 #include "parameters/parameters_reduced_order.h"
+#include "parameters/parameters_burgers.h"
 #include "parameters/parameters_grid_refinement_study.h"
 #include "parameters/parameters_grid_refinement.h"
 #include "parameters/parameters_artificial_dissipation.h"
@@ -42,6 +43,8 @@ public:
     NavierStokesParam navier_stokes_param;
     /// Contains parameters for the Reduced-Order model
     ReducedOrderModelParam reduced_order_param;
+    /// Contains parameters for Burgers equation
+    BurgersParam burgers_param;
     /// Contains the parameters for grid refinement study
     GridRefinementStudyParam grid_refinement_study_param;
     /// Contains parameters for artificial dissipation
@@ -122,9 +125,11 @@ public:
         euler_naca0012,
         reduced_order,
         POD_adaptation,
+        finite_difference_sensitivity,
         advection_periodicity,
         flow_solver,
         dual_weighted_residual_mesh_adaptation,
+        taylor_green_vortex_energy_check,
     };
     TestType test_type; ///< Selected TestType from the input file.
 
@@ -135,6 +140,7 @@ public:
         convection_diffusion,
         advection_vector,
         burgers_inviscid,
+        burgers_viscous,
         burgers_rewienski,
         euler,
         mhd,

@@ -17,12 +17,14 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                           dealii::Patterns::Selection(
                           " taylor_green_vortex | "
                           " burgers_viscous_snapshot | "
-                          " burgers_rewienski_snapshot"),
+                          " burgers_rewienski_snapshot | "
+                          " advection_explicit_time_study"),
                           "The type of flow we want to simulate. "
                           "Choices are "
                           " <taylor_green_vortex | "
                           " burgers_viscous_snapshot | "
-                          " burgers_rewienski_snapshot>.");
+                          " burgers_rewienski_snapshot | "
+                          " advection_explicit_time_study>.");
 
         prm.declare_entry("final_time", "1",
                           dealii::Patterns::Double(0, dealii::Patterns::Double::max_double_value),
@@ -63,6 +65,7 @@ void FlowSolverParam::parse_parameters(dealii::ParameterHandler &prm)
         if      (flow_case_type_string == "taylor_green_vortex")  {flow_case_type = taylor_green_vortex;}
         else if (flow_case_type_string == "burgers_viscous_snapshot")  {flow_case_type = burgers_viscous_snapshot;}
         else if (flow_case_type_string == "burgers_rewienski_snapshot")  {flow_case_type = burgers_rewienski_snapshot;}
+        else if (flow_case_type_string == "advection_explicit_time_study")  {flow_case_type = advection_explicit_time_study;}
 
         final_time = prm.get_double("final_time");
         courant_friedrich_lewy_number = prm.get_double("courant_friedrich_lewy_number");

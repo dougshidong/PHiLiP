@@ -1,0 +1,40 @@
+ Listing of Parameters
+# ---------------------
+# Number of dimensions
+
+set dimension = 1 
+set test_type = time_refinement_study_advection
+set pde_type = advection
+
+# Note: this was added to turn off check_same_coords() -- has no other function when dim!=1
+set use_periodic_bc = true
+
+# ODE solver
+subsection ODE solver
+  # set ode_output = quiet
+  set ode_solver_type = explicit
+  set output_solution_every_dt_time_intervals = 0.01
+  set initial_time_step = 2.5E-3
+  subsection explicit solver options
+    set runge_kutta_order = 3
+  end
+end
+
+# advection speed 
+advection_0 = 1.0
+advection_1 = 0.0
+
+# polynomial order and number of cells per direction (i.e. grid_size)
+subsection grid refinement study
+  set poly_degree = 5 # I will need to modify this during run
+  set grid_size = 32 
+  set grid_left = 0.0
+  set grid_right = 2.0 
+end
+
+subsection flow_solver
+  set flow_case_type = advection_explicit_time_study
+  set final_time = 0.1
+  # set courant_friedrich_lewy_number = 0.01
+  set unsteady_data_table_filename = time_study_convergence
+end

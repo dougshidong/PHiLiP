@@ -33,6 +33,7 @@
 #include "fd_state_sensitivity_wrt_parameter.h"
 #include "dual_weighted_residual_mesh_adaptation.h"
 #include "taylor_green_vortex_energy_check.h"
+#include "time_refinement_study_advection.h"
 
 namespace PHiLiP {
 namespace Tests {
@@ -154,6 +155,8 @@ std::unique_ptr< TestsBase > TestsFactory<dim,nstate,MeshType>
         if constexpr (dim > 1)  return std::make_unique<DualWeightedResidualMeshAdaptation<dim, nstate>>(parameters_input);
     } else if(test_type == Test_enum::taylor_green_vortex_energy_check) {
         if constexpr (dim==3 && nstate==dim+2) return std::make_unique<TaylorGreenVortexEnergyCheck<dim,nstate>>(parameters_input);
+    } else if(test_type == Test_enum::time_refinement_study_advection) {
+        if constexpr (dim==1 && nstate==1)  return std::make_unique<TimeRefinementStudyAdvection<dim, nstate>>(parameters_input);
     } else {
         std::cout << "Invalid test. You probably forgot to add it to the list of tests in tests.cpp" << std::endl;
         std::abort();

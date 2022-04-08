@@ -62,6 +62,8 @@ int EulerNACA0012<dim,nstate>
 
     const unsigned int n_grids_input       = manu_grid_conv_param.number_of_grids;
 
+    const std::string mesh_filename = param.flow_solver_param.input_mesh_filename+std::string(".msh");
+
     Physics::Euler<dim,nstate,double> euler_physics_double
         = Physics::Euler<dim, nstate, double>(
                 param.euler_param.ref_length,
@@ -204,7 +206,7 @@ int EulerNACA0012<dim,nstate>
             //std::shared_ptr<HighOrderGrid<dim,double>> joukowski_mesh = read_gmsh <dim, dim> ("joukowski_R1_Q"+std::to_string(grid_degree)+".msh");
             //std::shared_ptr<HighOrderGrid<dim,double>> naca0012_mesh = read_gmsh <dim, dim> ("new_msh41.msh");
             //std::shared_ptr<HighOrderGrid<dim,double>> naca0012_mesh = read_gmsh <dim, dim> ("naca0012_hopw.msh");
-            std::shared_ptr<HighOrderGrid<dim,double>> naca0012_mesh = read_gmsh <dim, dim> ("naca0012.msh");
+            std::shared_ptr<HighOrderGrid<dim,double>> naca0012_mesh = read_gmsh <dim, dim> (mesh_filename);
             dg->set_high_order_grid(naca0012_mesh);
             for (unsigned int i=0; i<igrid; ++i) {
                 dg->high_order_grid->refine_global();

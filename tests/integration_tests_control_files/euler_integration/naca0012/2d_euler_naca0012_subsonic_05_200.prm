@@ -102,3 +102,7 @@ subsection manufactured solution convergence study
   set number_of_grids   = 1
 end
 
+subsection flow_solver
+  set input_mesh_filename = naca0012
+end
+

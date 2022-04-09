@@ -198,7 +198,7 @@ int test_convective_numerical_flux_conservation (const PHiLiP::Parameters::AllPa
     
     std::unique_ptr<NumericalFlux::NumericalFluxConvective<dim, nstate, double>> conv_num_flux = 
         NumericalFlux::NumericalFluxFactory<dim, nstate, double>
-        ::create_convective_numerical_flux (all_parameters->conv_num_flux_type, pde_physics);
+        ::create_convective_numerical_flux (all_parameters->conv_num_flux_type, all_parameters->pde_type, all_parameters->model_type, pde_physics);
 
     dealii::Tensor<1,dim,double> normal_int;
     std::array<double, nstate> soln_int, soln_ext;
@@ -235,7 +235,7 @@ int test_convective_numerical_flux_consistency (const PHiLiP::Parameters::AllPar
 
     std::unique_ptr<NumericalFlux::NumericalFluxConvective<dim, nstate, double>> conv_num_flux = 
         NumericalFlux::NumericalFluxFactory<dim, nstate, double>
-        ::create_convective_numerical_flux (all_parameters->conv_num_flux_type, pde_physics);
+        ::create_convective_numerical_flux (all_parameters->conv_num_flux_type, all_parameters->pde_type, all_parameters->model_type, pde_physics);
 
     dealii::Tensor<1,dim,double> normal_int;
     std::array<double, nstate> soln_int, soln_ext;

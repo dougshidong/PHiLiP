@@ -53,10 +53,10 @@ int BurgersEnergyStability<dim, nstate>::run_test() const
     unsigned int poly_degree = 7;
     dealii::GridGenerator::hyper_cube(*grid, left, right, colorize);
    
-    std::vector<dealii::GridTools::PeriodicFacePair<typename Triangulation::cell_iterator> > matched_pairs;
-    dealii::GridTools::collect_periodic_faces(*grid,0,1,0,matched_pairs);
-    grid->add_periodicity(matched_pairs);
-   
+    //std::vector<dealii::GridTools::PeriodicFacePair<typename Triangulation::cell_iterator> > matched_pairs;
+    //dealii::GridTools::collect_periodic_faces(*grid,0,1,0,matched_pairs);
+    //grid->add_periodicity(matched_pairs);
+    //Imposing periodicity through use_periodic_bc param
    
     grid->refine_global(n_refinements);
     pcout << "Grid generated and refined" << std::endl;
@@ -78,7 +78,7 @@ int BurgersEnergyStability<dim, nstate>::run_test() const
     // Create ODE solver using the factory and providing the DG object
     std::shared_ptr<PHiLiP::ODE::ODESolverBase<dim, double>> ode_solver = PHiLiP::ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
    
-    double finalTime = 3.;
+    double finalTime = 1.;
    
     double dt = all_parameters->ode_solver_param.initial_time_step;
     //(void) dt;
@@ -87,6 +87,7 @@ int BurgersEnergyStability<dim, nstate>::run_test() const
 
     ode_solver->advance_solution_time(0.000001);
     double initial_energy = compute_energy(dg);
+    pcout << "Initial energy is " << initial_energy << std::endl;
 
     //currently the only way to calculate energy at each time-step is to advance solution by dt instead of finaltime
     //this causes some issues with outputs (only one file is output, which is overwritten at each time step)
@@ -104,8 +105,16 @@ int BurgersEnergyStability<dim, nstate>::run_test() const
             break;
         }
     }
+
+
+/*
+    ode_solver->advance_solution_time(finalTime);
+    double end_energy = compute_energy(dg);
+    pcout << "Initial energy is " << initial_energy << std::endl;
+    pcout << "Energy at t = " << finalTime << " is " << end_energy << std::endl;
+
     myfile.close();
-   
+*/ 
    
     //ode_solver->advance_solution_time(finalTime);
    

@@ -96,8 +96,6 @@ ModelFactory<dim,nstate,real>
         }
     } 
     else {
-        // if pde_type != PhysicsModel
-        // (void) filter_width;
         return nullptr;
     }
 }

@@ -578,14 +578,11 @@ void NavierStokes<dim,nstate,real>
    std::array<real,nstate> &soln_bc,
    std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_bc) const
 {
-    // could remove line below?
     using wall_temperature_boundary_condition_enum = Parameters::NavierStokesParam::WallTemperatureBoundaryConditionEnum;
 
-    // Slip wall boundary conditions (No penetration)
-    // Given by Algorithm II of the following paper
-    // Krivodonova, L., and Berger, M.,
-    // “High-order accurate implementation of solid wall boundary conditions in curved geometries,”
-    // Journal of Computational Physics, vol. 211, 2006, pp. 492–512.
+    // No-slip wall boundary conditions
+    // Given by equations 460-461 of the following paper
+    // Hartmann, Ralf. "Numerical analysis of higher order discontinuous Galerkin finite element methods." (2008): 1-107.
     const std::array<real,nstate> primitive_interior_values = this->template convert_conservative_to_primitive<real>(soln_int);
 
     // Copy density

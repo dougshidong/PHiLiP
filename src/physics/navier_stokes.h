@@ -170,11 +170,9 @@ protected:
         const std::array<real2,nstate> &conservative_soln,
         const std::array<dealii::Tensor<1,dim,real2>,nstate> &solution_gradient) const;
 
-    /** No-slip wall boundary conditions (No penetration)
-     *  * Given by Algorithm II of the following paper:
-     *  * * Krivodonova, L., and Berger, M.,
-     *      “High-order accurate implementation of solid wall boundary conditions in curved geometries,”
-     *      Journal of Computational Physics, vol. 211, 2006, pp. 492–512.
+    /** No-slip wall boundary conditions
+     *  * Given by equations 460-461 of the following paper:
+     *  * * Hartmann, Ralf. "Numerical analysis of higher order discontinuous Galerkin finite element methods." (2008): 1-107.
      */
     void boundary_wall (
         const dealii::Tensor<1,dim,real> &normal_int,

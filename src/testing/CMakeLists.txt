@@ -28,7 +28,8 @@ set(TESTS_SOURCE
     flow_solver_cases/1d_burgers_viscous_snapshot.cpp
     flow_solver.cpp
     dual_weighted_residual_mesh_adaptation.cpp
-    taylor_green_vortex_energy_check.cpp)
+    taylor_green_vortex_energy_check.cpp
+    taylor_green_vortex_restart_check.cpp)
 
 foreach(dim RANGE 1 3)
     # Output library

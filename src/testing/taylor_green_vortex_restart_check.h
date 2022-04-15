@@ -1,21 +1,21 @@
-#ifndef __TAYLOR_GREEN_VORTEX_ENERGY_CHECK__
-#define __TAYLOR_GREEN_VORTEX_ENERGY_CHECK__
+#ifndef __TAYLOR_GREEN_VORTEX_RESTART_CHECK__
+#define __TAYLOR_GREEN_VORTEX_RESTART_CHECK__
 
 #include "tests.h"
 
 namespace PHiLiP {
 namespace Tests {
 
-/// Taylor Green Vortex Energy Check
+/// Taylor Green Vortex Restart Check
 template <int dim, int nstate>
-class TaylorGreenVortexEnergyCheck: public TestsBase
+class TaylorGreenVortexRestartCheck: public TestsBase
 {
 public:
     /// Constructor
-    TaylorGreenVortexEnergyCheck(const Parameters::AllParameters *const parameters_input);
+    TaylorGreenVortexRestartCheck(const Parameters::AllParameters *const parameters_input);
 
     /// Destructor
-    ~TaylorGreenVortexEnergyCheck() {};
+    ~TaylorGreenVortexRestartCheck() {};
     
     /// Expected kinetic energy at final time
     const double kinetic_energy_expected;

@@ -44,6 +44,14 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                           dealii::Patterns::FileName(dealii::Patterns::FileName::FileType::input),
                           "Filename for the sensitivity data table output file: sensitivity_table_filename.txt.");
 
+        prm.declare_entry("restart_computation_from_file", "false",
+                          dealii::Patterns::Bool(),
+                          "Restarts the computation from the restart file. False by default.");
+
+        prm.declare_entry("output_restart_files", "false",
+                          dealii::Patterns::Bool(),
+                          "Output restart files for restarting the computation. False by default.");
+
         prm.enter_subsection("taylor_green_vortex_energy_check");
         {
             prm.declare_entry("expected_kinetic_energy_at_final_time", "1",
@@ -69,6 +77,8 @@ void FlowSolverParam::parse_parameters(dealii::ParameterHandler &prm)
         unsteady_data_table_filename = prm.get("unsteady_data_table_filename");
         steady_state = prm.get_bool("steady_state");
         sensitivity_table_filename = prm.get("sensitivity_table_filename");
+        restart_computation_from_file = prm.get_bool("restart_computation_from_file");
+        output_restart_files = prm.get_bool("output_restart_files");
 
         prm.enter_subsection("taylor_green_vortex_energy_check");
         {

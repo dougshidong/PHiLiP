@@ -38,6 +38,9 @@ public:
     /** For integration test purposes, expected kinetic energy at final time. */
     double expected_kinetic_energy_at_final_time;
 
+    bool restart_computation_from_file; ///< Restart computation from restart file
+    bool output_restart_files; ///< Output the restart files
+
     /// Declares the possible variables and sets the defaults.
     static void declare_parameters (dealii::ParameterHandler &prm);
 

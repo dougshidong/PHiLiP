@@ -3,6 +3,7 @@
 
 #include "tests.h"
 #include "dg/dg.h"
+#include "parameters/all_parameters.h"
 
 namespace PHiLiP {
 namespace Tests {
@@ -32,6 +33,12 @@ protected:
     double integrate_solution_over_domain(
         DGBase<dim, double> &dg,
         const dealii::LinearAlgebra::distributed::Vector<double> solution_input) const;
+
+    /// Renitialize parameters, necessary because parameters created for the test are constant
+    Parameters::AllParameters reinit_params(
+        const bool output_restart_files_input,
+        const bool restart_computation_from_file_input,
+        const double final_time_input) const;
 };
 
 } // End of Tests namespace

@@ -21,11 +21,37 @@ FlowSolver<dim, nstate>::FlowSolver(const PHiLiP::Parameters::AllParameters *con
 {
     dg->allocate_system();
     flow_solver_case->display_flow_solver_setup();
-    pcout << "Initializing solution with initial condition function..." << std::flush;
+    
     dealii::LinearAlgebra::distributed::Vector<double> solution_no_ghost;
     solution_no_ghost.reinit(dg->locally_owned_dofs, MPI_COMM_WORLD);
-    dealii::VectorTools::interpolate(dg->dof_handler, *initial_condition_function, solution_no_ghost);
-    dg->solution = solution_no_ghost;
+
+    if(flow_solver_param.restart_computation_from_file == true) {
+        if(dim == 1) {
+            pcout << "Error: restart_computation_from_file is not possible for 1D. Set to false." << std::endl;
+            std::abort();
+        }
+#if PHILIP_DIM>1
+        // Initialize solution from restart file
+        pcout << "Initializing solution from restart file..." << std::flush;
+        dg->triangulation->load("restart");
+        // --- after allocate_dg
+        // TO DO: Read section "Note on usage with DoFHandler with hp-capabilities" and add the stuff im missing
+        // ------ Ref: https://www.dealii.org/current/doxygen/deal.II/classparallel_1_1distributed_1_1SolutionTransfer.html
+        dealii::parallel::distributed::SolutionTransfer<dim, dealii::LinearAlgebra::distributed::Vector<double>, dealii::DoFHandler<dim>> solution_transfer(dg->dof_handler);
+        // dg->solution.zero_out_ghosts();
+        solution_transfer.deserialize(solution_no_ghost);
+        // dg->solution.update_ghost_values(); // -- should this be called when we do dg->solution = solution_no_ghost ?
+        // if (flow_solver_param.steady_state == true) {
+        //     pcout << "Error: Cannot use" << std::endl;
+        //     std::abort();
+        // }
+#endif
+    } else {
+        // Initialize solution from initial_condition_function
+        pcout << "Initializing solution with initial condition function..." << std::flush;
+        dealii::VectorTools::interpolate(dg->dof_handler, *initial_condition_function, solution_no_ghost);
+    }
+    dg->solution = solution_no_ghost; //< assignment
     pcout << "done." << std::endl;
     ode_solver->allocate_ode_system();
 }
@@ -66,6 +92,16 @@ int FlowSolver<dim,nstate>::run_test() const
         {
             ode_solver->step_in_time(constant_time_step,false); // pseudotime==false
 
+#if PHILIP_DIM>1
+            // output the restart file
+            if(flow_solver_param.output_restart_files == true) {
+                pcout << "  ... Writing restart file ..." << std::endl;
+                dealii::parallel::distributed::SolutionTransfer<dim, dealii::LinearAlgebra::distributed::Vector<double>, dealii::DoFHandler<dim>> solution_transfer(dg->dof_handler);
+                solution_transfer.prepare_for_coarsening_and_refinement(dg->solution);
+                dg->triangulation->save("restart");
+            }
+#endif
+            
             // Compute the unsteady quantities, write to the dealii table, and output to file
             flow_solver_case->compute_unsteady_data_and_write_to_table(ode_solver->current_iteration, ode_solver->current_time, dg, unsteady_data_table);
 

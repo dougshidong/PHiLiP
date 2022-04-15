@@ -3,7 +3,6 @@
 
 #include "tests.h"
 #include "dg/dg.h"
-#include "parameters/all_parameters.h"
 #include <deal.II/numerics/vector_tools.h>
 #include <deal.II/numerics/solution_transfer.h>
 #include <deal.II/base/numbers.h>

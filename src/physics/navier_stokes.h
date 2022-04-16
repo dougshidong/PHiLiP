@@ -12,7 +12,7 @@ template <int dim, int nstate, typename real>
 class NavierStokes : public Euler <dim, nstate, real>
 {
 public:
-    using wall_temperature_boundary_condition_enum = Parameters::NavierStokesParam::WallTemperatureBoundaryConditionEnum;
+    using thermal_boundary_condition_enum = Parameters::NavierStokesParam::ThermalBoundaryCondition;
 	/// Constructor
 	NavierStokes( 
 	    const double                                              ref_length,
@@ -23,7 +23,7 @@ public:
 	    const double                                              prandtl_number,
         const double                                              reynolds_number_inf,
         const double                                              isothermal_wall_temperature = 1.0,
-        const wall_temperature_boundary_condition_enum            wall_temperature_boundary_condition_type = wall_temperature_boundary_condition_enum::adiabatic,
+        const thermal_boundary_condition_enum                     thermal_boundary_condition_type = thermal_boundary_condition_enum::adiabatic,
         const dealii::Tensor<2,3,double>                          input_diffusion_tensor = Parameters::ManufacturedSolutionParam::get_default_diffusion_tensor(),
 	    std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function = nullptr);
 
@@ -33,10 +33,10 @@ public:
 	const double prandtl_number;
 	/// Farfield (free stream) Reynolds number
 	const double reynolds_number_inf;
-    /// Isothermal wall temperature
+    /// Nondimensionalized isothermal wall temperature
     const double isothermal_wall_temperature;
-    /// Wall temperature boundary condition type (adiabatic or isothermal)
-    const wall_temperature_boundary_condition_enum wall_temperature_boundary_condition_type;
+    /// Thermal boundary condition type (adiabatic or isothermal)
+    const thermal_boundary_condition_enum thermal_boundary_condition_type;
 
     /** Obtain gradient of primitive variables from gradient of conservative variables */
     template<typename real2>

@@ -39,6 +39,9 @@ public:
      *  will read file: input_mesh_filename.msh */
     std::string input_mesh_filename;
 
+    /** For integration test purposes, expected kinetic energy at final time. */
+    double expected_kinetic_energy_at_final_time;
+
     /// Declares the possible variables and sets the defaults.
     static void declare_parameters (dealii::ParameterHandler &prm);
 

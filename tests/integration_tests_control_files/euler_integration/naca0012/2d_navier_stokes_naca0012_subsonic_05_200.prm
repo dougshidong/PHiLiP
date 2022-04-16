@@ -35,7 +35,7 @@ end
 subsection navier_stokes
   set prandtl_number = 0.71
   set reynolds_number_inf = 5000.0
-  set wall_temperature_boundary_condition_type = adiabatic
+  set thermal_boundary_condition_type = adiabatic
 end
 
 subsection linear solver

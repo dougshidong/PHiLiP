@@ -47,6 +47,14 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
         prm.declare_entry("input_mesh_filename", "naca0012",
                           dealii::Patterns::FileName(dealii::Patterns::FileName::FileType::input),
                           "Filename of the input mesh: input_mesh_filename.msh");
+
+        prm.enter_subsection("taylor_green_vortex_energy_check");
+        {
+            prm.declare_entry("expected_kinetic_energy_at_final_time", "1",
+                              dealii::Patterns::Double(0, dealii::Patterns::Double::max_double_value),
+                              "For integration test purposes, expected kinetic energy at final time.");
+        }
+        prm.leave_subsection();
     }
     prm.leave_subsection();
 }
@@ -66,6 +74,12 @@ void FlowSolverParam::parse_parameters(dealii::ParameterHandler &prm)
         steady_state = prm.get_bool("steady_state");
         sensitivity_table_filename = prm.get("sensitivity_table_filename");
         input_mesh_filename = prm.get("input_mesh_filename");
+
+        prm.enter_subsection("taylor_green_vortex_energy_check");
+        {
+            expected_kinetic_energy_at_final_time = prm.get_double("expected_kinetic_energy_at_final_time");
+        }
+        prm.leave_subsection();
     }
     prm.leave_subsection();
 }

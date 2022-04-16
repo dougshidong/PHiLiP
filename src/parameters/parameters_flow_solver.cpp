@@ -34,7 +34,7 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
 
         prm.declare_entry("unsteady_data_table_filename", "unsteady_data_table",
                           dealii::Patterns::FileName(dealii::Patterns::FileName::FileType::input),
-                          "Filename for of the unsteady data table output file: unsteady_data_table_filename.txt.");
+                          "Filename of the unsteady data table output file: unsteady_data_table_filename.txt.");
 
         prm.declare_entry("steady_state", "false",
                           dealii::Patterns::Bool(),
@@ -43,6 +43,10 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
         prm.declare_entry("sensitivity_table_filename", "sensitivity_table",
                           dealii::Patterns::FileName(dealii::Patterns::FileName::FileType::input),
                           "Filename for the sensitivity data table output file: sensitivity_table_filename.txt.");
+
+        prm.declare_entry("input_mesh_filename", "naca0012",
+                          dealii::Patterns::FileName(dealii::Patterns::FileName::FileType::input),
+                          "Filename of the input mesh: input_mesh_filename.msh");
 
         prm.enter_subsection("taylor_green_vortex_energy_check");
         {
@@ -69,6 +73,7 @@ void FlowSolverParam::parse_parameters(dealii::ParameterHandler &prm)
         unsteady_data_table_filename = prm.get("unsteady_data_table_filename");
         steady_state = prm.get_bool("steady_state");
         sensitivity_table_filename = prm.get("sensitivity_table_filename");
+        input_mesh_filename = prm.get("input_mesh_filename");
 
         prm.enter_subsection("taylor_green_vortex_energy_check");
         {

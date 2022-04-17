@@ -38,7 +38,10 @@ protected:
     Parameters::AllParameters reinit_params(
         const bool output_restart_files_input,
         const bool restart_computation_from_file_input,
-        const double final_time_input) const;
+        const double final_time_input,
+        const double initial_time_input = 0.0,
+        const unsigned int initial_iteration_input = 0,
+        const double initial_desired_time_for_output_solution_every_dt_time_intervals_input = 0.0) const;
 };
 
 } // End of Tests namespace

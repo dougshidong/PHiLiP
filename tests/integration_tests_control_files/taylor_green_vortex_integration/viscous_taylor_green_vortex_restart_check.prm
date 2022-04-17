@@ -3,7 +3,7 @@
 # Number of dimensions
 
 set dimension = 3
-set test_type = taylor_green_vortex_energy_check
+set test_type = taylor_green_vortex_restart_check
 set pde_type = navier_stokes
 
 # DG formulation

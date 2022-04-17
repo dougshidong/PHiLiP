@@ -15,8 +15,10 @@ template <int dim, int nstate>
 Parameters::AllParameters TaylorGreenVortexRestartCheck<dim, nstate>::reinit_params(
     const bool output_restart_files_input,
     const bool restart_computation_from_file_input,
-    /*const double initial_time_input,*/
-    const double final_time_input) const {
+    const double final_time_input,
+    const double initial_time_input,
+    const unsigned int initial_iteration_input,
+    const double initial_desired_time_for_output_solution_every_dt_time_intervals_input) const {
 
     // copy all parameters
     PHiLiP::Parameters::AllParameters parameters = *(this->all_parameters);
@@ -25,6 +27,9 @@ Parameters::AllParameters TaylorGreenVortexRestartCheck<dim, nstate>::reinit_par
     parameters.flow_solver_param.output_restart_files = output_restart_files_input;
     parameters.flow_solver_param.restart_computation_from_file = restart_computation_from_file_input;
     parameters.flow_solver_param.final_time = final_time_input;
+    parameters.ode_solver_param.initial_time = initial_time_input;
+    parameters.ode_solver_param.initial_iteration = initial_iteration_input;
+    parameters.ode_solver_param.initial_desired_time_for_output_solution_every_dt_time_intervals = initial_desired_time_for_output_solution_every_dt_time_intervals_input;
 
     return parameters;
 }
@@ -34,9 +39,9 @@ int TaylorGreenVortexRestartCheck<dim, nstate>::run_test() const
 {
     const double time_at_which_we_stop_the_run = 6.1240484302437529e-03;
     // corresponds to the expected kinetic energy set in the prm file
-    const double time_at_which_the_run_is_complete = this->all_parameters->flow_solver_param.final_time - time_at_which_we_stop_the_run; // TO DO: Update without this hack
+    const double time_at_which_the_run_is_complete = this->all_parameters->flow_solver_param.final_time; // TO DO: Update without this hack
     Parameters::AllParameters params_incomplete_run = reinit_params(true,false,time_at_which_we_stop_the_run);
-    Parameters::AllParameters params_restart_to_complete_run = reinit_params(false,true,time_at_which_the_run_is_complete);
+    Parameters::AllParameters params_restart_to_complete_run = reinit_params(false,true,time_at_which_the_run_is_complete,time_at_which_we_stop_the_run,5,0.0); // TO DO: update the last arg
 
     // Integrate to time at which we stop the run
     std::unique_ptr<FlowSolver<dim,nstate>> flow_solver_incomplete_run = FlowSolverFactory<dim,nstate>::create_FlowSolver(&params_incomplete_run);

@@ -25,12 +25,14 @@ int FiniteDifferenceSensitivity<dim, nstate>::run_test() const
     dealii::LinearAlgebra::distributed::Vector<double> solution2 = flow_solver_2->dg->solution;
     dealii::LinearAlgebra::distributed::Vector<double> sensitivity_dWdParam(solution1.size());
 
+    const dealii::LinearAlgebra::distributed::Vector<double> initial_conditions = flow_solver_1->dg->solution;
+
     if(this->all_parameters->flow_solver_param.steady_state == true){
         flow_solver_1->ode_solver->steady_state();
-        flow_solver_2->ode_solver->steady_state();
+        //flow_solver_2->ode_solver->steady_state();
 
-        solution1 = flow_solver_1->dg->solution;
-        solution2 = flow_solver_2->dg->solution;
+        solution1 = flow_solver_1->dg->solution -= initial_conditions;
+        solution2 = flow_solver_2->dg->solution -= initial_conditions;
         sensitivity_dWdParam(solution1.size());
 
         for(unsigned int i = 0 ; i < solution1.size(); i++){
@@ -40,9 +42,9 @@ int FiniteDifferenceSensitivity<dim, nstate>::run_test() const
         }
 
         std::ofstream sensitivity_out("steady_state_sensitivity_snapshots.txt");
-        std::ofstream solutions_out("steady_state_solution_snapshots.txt");
+        std::ofstream solutions_out(this->all_parameters->ode_solver_param.solutions_table_filename+".txt");
         sensitivity_table.set_precision("Sensitivity:", 16);
-        sensitivity_table.set_precision("Solution:", 16);
+        solutions_table.set_precision("Solution:", 16);
         sensitivity_table.write_text(sensitivity_out);
         solutions_table.write_text(solutions_out);
     }

@@ -81,7 +81,7 @@ void OnlinePOD<dim>::computeBasis() {
     snapshot_matrix.compute_svd();
     dealii::LAPACKFullMatrix<double> svd_u = snapshot_matrix.get_svd_u();
 
-    dealii::LAPACKFullMatrix<double> fullBasis(snapshot_matrix.m(), snapshot_matrix.n());
+    fullBasis.reinit(snapshot_matrix.m(), snapshot_matrix.n());
 
     for(unsigned int m = 0 ; m < snapshotVectors[0].size() ; m++){
         for(unsigned int n = 0 ; n < snapshotVectors.size() ; n++){

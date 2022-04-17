@@ -19,11 +19,17 @@ int AdaptiveSampling<dim, nstate>::run_test() const
 
     placeInitialSnapshots();
     current_pod->computeBasis();
+    std::ofstream out_file("POD_adaptation_basis_0.txt");
+    unsigned int precision = 16;
+    current_pod->fullBasis.print_formatted(out_file, precision);
     //placeInitialROMs();
-    placeTriangulationROMs();
+    //placeTriangulationROMs();
+    ProperOrthogonalDecomposition::Delaunay delaunay(snapshot_parameters);
+    placeTriangulationROMs(delaunay);
 
     RowVector2d max_error_params = getMaxErrorROM();
     double tolerance = 1E-03;
+    int iteration = 0;
 
     Parameters::AllParameters params = reinitParams(max_error_params);
     std::shared_ptr<Tests::BurgersRewienskiSnapshot<dim, nstate>> flow_solver_case = std::make_shared<Tests::BurgersRewienskiSnapshot<dim,nstate>>(&params);
@@ -31,6 +37,8 @@ int AdaptiveSampling<dim, nstate>::run_test() const
     const dealii::LinearAlgebra::distributed::Vector<double> initial_conditions = flow_solver->dg->solution;
 
     while(max_error > tolerance){
+
+        outputErrors(iteration);
 
         std::cout << "Sampling snapshot at " << max_error_params << std::endl;
 
@@ -41,6 +49,10 @@ int AdaptiveSampling<dim, nstate>::run_test() const
         current_pod->addSnapshot(state_tmp -= initial_conditions);
         current_pod->computeBasis();
 
+        std::ofstream basis_out("POD_adaptation_basis_" + std::to_string(iteration + 1) + ".txt");
+        unsigned int basis_precision = 16;
+        current_pod->fullBasis.print_formatted(basis_out, basis_precision);
+
         //Update previous ROM errors with updated current_pod
         for(auto& [key, value] : rom_locations){
             value.compute_initial_rom_to_final_rom_error(current_pod);
@@ -48,14 +60,23 @@ int AdaptiveSampling<dim, nstate>::run_test() const
         }
 
         //Find and compute new ROM locations
-        placeTriangulationROMs();
+        delaunay.split_triangle(max_error_params);
+        placeTriangulationROMs(delaunay);
 
         //Update max error
         max_error_params = getMaxErrorROM();
 
         std::cout << "Max error is: " << max_error << std::endl;
+        iteration++;
     }
 
+    outputErrors(iteration);
+
+    return 0;
+}
+
+template <int dim, int nstate>
+void AdaptiveSampling<dim, nstate>::outputErrors(int iteration) const{
     std::shared_ptr<dealii::TableHandler> snapshot_table = std::make_shared<dealii::TableHandler>();
 
     for(auto parameters : snapshot_parameters.rowwise()){
@@ -65,7 +86,7 @@ int AdaptiveSampling<dim, nstate>::run_test() const
         snapshot_table->set_precision("Rewienski b", 16);
     }
 
-    std::ofstream snapshot_table_file("adaptive_sampling_snapshot_table.txt");
+    std::ofstream snapshot_table_file("snapshot_table_iteration_" + std::to_string(iteration) + ".txt");
     snapshot_table->write_text(snapshot_table_file, dealii::TableHandler::TextOutputFormat::org_mode_table);
 
     std::shared_ptr<dealii::TableHandler> rom_table = std::make_shared<dealii::TableHandler>();
@@ -81,12 +102,9 @@ int AdaptiveSampling<dim, nstate>::run_test() const
         rom_table->set_precision("ROM errors", 16);
     }
 
-    std::ofstream rom_table_file("adaptive_sampling_rom_table.txt");
+    std::ofstream rom_table_file("rom_table_iteration_" + std::to_string(iteration) + ".txt");
     rom_table->write_text(rom_table_file, dealii::TableHandler::TextOutputFormat::org_mode_table);
-
-    return 0;
 }
-
 
 template <int dim, int nstate>
 RowVector2d AdaptiveSampling<dim, nstate>::getMaxErrorROM() const{
@@ -129,7 +147,7 @@ RowVector2d AdaptiveSampling<dim, nstate>::getMaxErrorROM() const{
     std::cout << "Parameters scaled: " <<parameters_scaled << std::endl;
 
     //Construct radial basis function
-    std::string kernel = "thin_plate_spline";
+    std::string kernel = "cubic";
     ProperOrthogonalDecomposition::RBFInterpolation rbf = ProperOrthogonalDecomposition::RBFInterpolation(parameters_scaled, errors, kernel);
 
     // Set parameters.
@@ -271,7 +289,8 @@ void AdaptiveSampling<dim, nstate>::placeInitialROMs() const{
     std::vector<double> rewienski_b_range = {0.01, 0.1};
 
     MatrixXd initial_rom_parameters;
-    initial_rom_parameters.resize(8,2);
+    initial_rom_parameters.resize(4,2);
+    /*
     initial_rom_parameters <<
             rewienski_a_range[0], 0.25*(rewienski_b_range[1] - rewienski_b_range[0])+rewienski_b_range[0],
             rewienski_a_range[0], 0.75*(rewienski_b_range[1] - rewienski_b_range[0])+rewienski_b_range[0],
@@ -281,6 +300,12 @@ void AdaptiveSampling<dim, nstate>::placeInitialROMs() const{
             0.75*(rewienski_a_range[1] - rewienski_a_range[0])+rewienski_a_range[0], rewienski_b_range[0],
             0.25*(rewienski_a_range[1] - rewienski_a_range[0])+rewienski_a_range[0], rewienski_b_range[1],
             0.75*(rewienski_a_range[1] - rewienski_a_range[0])+rewienski_a_range[0], rewienski_b_range[1];
+    */
+     initial_rom_parameters <<
+         0.25*(rewienski_a_range[1] - rewienski_a_range[0])+rewienski_a_range[0], 0.25*(rewienski_b_range[1] - rewienski_b_range[0])+rewienski_b_range[0],
+         0.25*(rewienski_a_range[1] - rewienski_a_range[0])+rewienski_a_range[0], 0.75*(rewienski_b_range[1] - rewienski_b_range[0])+rewienski_b_range[0],
+         0.75*(rewienski_a_range[1] - rewienski_a_range[0])+rewienski_a_range[0], 0.25*(rewienski_b_range[1] - rewienski_b_range[0])+rewienski_b_range[0],
+         0.75*(rewienski_a_range[1] - rewienski_a_range[0])+rewienski_a_range[0], 0.75*(rewienski_b_range[1] - rewienski_b_range[0])+rewienski_b_range[0];
 
     for(auto rom_param : initial_rom_parameters.rowwise()){
         std::cout << "Sampling initial ROM at " << rom_param << std::endl;
@@ -291,8 +316,8 @@ void AdaptiveSampling<dim, nstate>::placeInitialROMs() const{
 }
 
 template <int dim, int nstate>
-void AdaptiveSampling<dim, nstate>::placeTriangulationROMs() const{
-    ProperOrthogonalDecomposition::Delaunay delaunay(snapshot_parameters);
+void AdaptiveSampling<dim, nstate>::placeTriangulationROMs(ProperOrthogonalDecomposition::Delaunay delaunay) const{
+    //delaunay = ProperOrthogonalDecomposition::Delaunay(snapshot_parameters);
 
     for(auto midpoint : delaunay.midpoints.rowwise()){
         auto element = rom_locations.find(midpoint);

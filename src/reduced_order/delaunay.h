@@ -58,6 +58,14 @@ public:
 
     void compute_edge_midpoints();
 
+    void split_triangle(RowVector2d new_node);
+
+    bool in_triangle(RowVector2d new_node, Triangle triangle);
+
+    bool on_edge(RowVector2d new_node, Edge edge);
+
+    bool edge_has_midpoint(Edge edge);
+
     std::vector<Triangle> triangulation;
 
     Eigen::Matrix<double, Eigen::Dynamic, 2> centroids;

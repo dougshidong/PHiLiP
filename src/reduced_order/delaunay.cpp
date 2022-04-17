@@ -141,5 +141,121 @@ void Delaunay::compute_edge_midpoints()
     }
 }
 
+void Delaunay::split_triangle(RowVector2d new_node)
+{
+    std::vector<Triangle> triangles;
+
+    for(auto& tri : triangulation){
+
+        //Check if new node is inside the triangle
+        if(in_triangle(new_node, tri)){
+            for(auto& edge : tri.edges){
+                if(!on_edge(new_node, edge)){ //make sure not to create a triangle from 3 points on the same line
+                    std::cout << "create new triangle" << std::endl;
+                    Triangle triangle(edge.node1, edge.node2, new_node);
+                    triangles.emplace_back(triangle);
+                    for(auto& n : triangle.nodes){
+                        std::cout << "Node: " << n(0) << " " << n(1) << std::endl;
+                    }
+                    //Update midpoints
+                    for(auto& e : triangle.edges){
+                        std::cout << "new edge" << std::endl;
+                        midpoints.conservativeResize(midpoints.rows()+1, 2);
+                        RowVector2d midpoint = {(e.node1(0) + e.node2(0))/2, (e.node1(1) + e.node2(1))/2};
+                        midpoints.row(midpoints.rows()-1) = midpoint;
+                        /*
+                        if(edge_has_midpoint(e)){
+                            std::cout << "edge already has a point on it" << std::endl;
+                        }
+                        else{
+                            std::cout << "edge has no midpoint on it" << std::endl;
+                            midpoints.conservativeResize(midpoints.rows()+1, 2);
+                            RowVector2d midpoint = {(e.node1(0) + e.node2(0))/2, (e.node1(1) + e.node2(1))/2};
+                            midpoints.row(midpoints.rows()-1) = midpoint;
+
+                        }
+                         */
+                    }
+                    //triangles.emplace_back(edge.node1, edge.node2, new_node);
+                }
+            }
+        }
+        else{
+            std::cout << "old triangle added" << std::endl;
+            triangles.emplace_back(tri);
+        }
+    }
+
+    triangulation = triangles;
+    //compute_centroids();
+    //compute_edge_midpoints();
+}
+
+bool Delaunay::in_triangle(RowVector2d new_node, Triangle triangle){
+    double x1 = triangle.nodes[0](0);
+    double x2 = triangle.nodes[1](0);
+    double x3 = triangle.nodes[2](0);
+    double y1 = triangle.nodes[0](1);
+    double y2 = triangle.nodes[1](1);
+    double y3 = triangle.nodes[2](1);
+    double x = new_node(0);
+    double y = new_node(1);
+
+    /* Calculate area of triangle */
+    double A = abs((x1*(y2-y3) + x2*(y3-y1)+ x3*(y1-y2))/2.0);
+    /* Calculate area of first subtriangle */
+    double A1 = abs((x*(y2-y3) + x2*(y3-y)+ x3*(y-y2))/2.0);
+    /* Calculate area of second subtriangle */
+    double A2 = abs((x1*(y-y3) + x*(y3-y1)+ x3*(y1-y))/2.0);
+    /* Calculate area of third subtriangle */
+    double A3 = abs((x1*(y2-y) + x2*(y-y1)+ x*(y1-y2))/2.0);
+    /* Check if sum of A1, A2 and A3 is same as A */
+    std::cout << "area A: " << A << " area A1: " << A1 << " area A2: " << A2 << " area A3: " << A3 << std::endl;
+    return ((A1 + A2 + A3) - A < 1E-08);
+}
+
+bool Delaunay::on_edge(RowVector2d new_node, Edge edge){
+
+    double x1 = edge.node1(0);
+    double x2 = edge.node2(0);
+    double y1 = edge.node1(1);
+    double y2 = edge.node2(1);
+    double x = new_node(0);
+    double y = new_node(1);
+
+    double len = std::sqrt(std::pow(x2 - x1, 2) + std::pow(y2 - y1, 2));
+    double len1 = std::sqrt(std::pow(x2 - x, 2) + std::pow(y2 - y, 2));
+    double len2 = std::sqrt(std::pow(x1 - x, 2) + std::pow(y1 - y, 2));
+
+    if((len1 + len2) - len < 1E-08){
+        return true;
+    }
+    else{
+        return false;
+    }
+}
+
+bool Delaunay::edge_has_midpoint(Edge edge){
+
+    for(auto point : midpoints.rowwise()) {
+        double x1 = edge.node1(0);
+        double x2 = edge.node2(0);
+        double y1 = edge.node1(1);
+        double y2 = edge.node2(1);
+        double x = point(0);
+        double y = point(1);
+
+        double len = std::sqrt(std::pow(x2 - x1, 2) + std::pow(y2 - y1, 2));
+        double len1 = std::sqrt(std::pow(x2 - x, 2) + std::pow(y2 - y, 2));
+        double len2 = std::sqrt(std::pow(x1 - x, 2) + std::pow(y1 - y, 2));
+
+        if ((len1 + len2) - len < 1E-08) {
+            return true;
+        }
+    }
+    return false;
+}
+
+
 }
 }

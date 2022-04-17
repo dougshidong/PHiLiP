@@ -1,18 +1,8 @@
 #!/bin/bash
 
-rewienski_a=( 3.0000   3.0000     3.0000
-              3.0000   3.0000     3.0000
-              3.0000   3.0000     3.0000
-              3.0000   3.0000     3.0000
-              3.0000   3.0000     3.0000
-              3.0000   3.0000     3.0000)
+rewienski_a=(8.5)
 
-rewienski_b=(  0.0100    0.0153    0.0206
-               0.0259    0.0312    0.0365
-               0.0418    0.0471    0.0524
-               0.0576    0.0629    0.0682
-               0.0735    0.0788    0.0841
-               0.0894    0.0947    0.1000)
+rewienski_b=(0.0733)
 
 for ((i = 0 ; i < ${#rewienski_a[@]} ; i++)); do
 
@@ -22,7 +12,7 @@ echo "# Listing of Parameters"                                                  
 echo "# ---------------------"                                                                      >> $file   
 echo " "                                                                                            >> $file   
 echo "set dimension = 1 "                                                                           >> $file   
-echo "set test_type = flow_solver"                                                                  >> $file   
+echo "set test_type = finite_difference_sensitivity"                                                >> $file
 echo "set pde_type = burgers_rewienski"                                                             >> $file   
 echo " "                                                                                            >> $file   
 echo "set use_weak_form = true"                                                                     >> $file   
@@ -50,11 +40,11 @@ echo "end"                                                                      
 echo " "                                                                                            >> $file   
 echo "subsection ODE solver "                                                                       >> $file   
 echo " set initial_time_step = 0.1"                                                                 >> $file   
-echo " set nonlinear_max_iterations            = 500"                                               >> $file   
-echo " set nonlinear_steady_residual_tolerance = 1e-12"                                             >> $file   
+echo " set nonlinear_max_iterations            = 50"                                               >> $file
+echo " set nonlinear_steady_residual_tolerance = 1e-15"                                             >> $file
 echo " set print_iteration_modulo              = 1"                                                 >> $file   
 echo " set output_solution_vector_modulo       = 1"                                                 >> $file   
-echo " set solutions_table_filename = ${rewienski_a[i]}_${rewienski_b[i]}_solutions_table_steady"   >> $file   
+echo " set solutions_table_filename = ${rewienski_a[i]}_${rewienski_b[i]}_solutions_table_steady"   >> $file
 echo " set ode_solver_type                     = implicit"                                          >> $file   
 echo " end"                                                                                         >> $file   
 echo " "                                                                                            >> $file   

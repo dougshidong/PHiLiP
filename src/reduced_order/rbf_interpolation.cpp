@@ -43,6 +43,9 @@ double RBFInterpolation::radialBasisFunction(double r) const{
             return 0;
         }
     }
+    else if(kernel == "cubic"){
+        return std::pow(r, 3);
+    }
     else{
         return std::pow(r, 2) * std::log(r);
     }

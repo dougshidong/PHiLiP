@@ -41,6 +41,8 @@ public:
 
     dealii::LAPACKFullMatrix<double> massMatrix;
 
+    dealii::LAPACKFullMatrix<double> fullBasis;
+
 };
 
 }

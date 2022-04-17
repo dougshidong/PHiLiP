@@ -34,10 +34,10 @@ end
 subsection reduced order
   set adaptation_tolerance = 0.00001
   set adapt_coarse_basis_constant = 0
-  set coarse_basis_dimension = 11
+  set coarse_basis_dimension = 12
   set fine_basis_dimension = 18
-  set path_to_search = ./pod_basis/POD_adaptation_basis
-  set method_of_snapshots = true
+  set path_to_search = ./pod_basis/POD_halton_12pts
+  set method_of_snapshots = false
   set consider_error_sign = true
 end
 

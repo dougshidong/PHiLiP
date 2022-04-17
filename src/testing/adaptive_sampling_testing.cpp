@@ -32,7 +32,7 @@ template <int dim, int nstate>
 int AdaptiveSamplingTesting<dim, nstate>::run_test() const
 {
     //Generate points to test:
-
+    /*
     RowVectorXd snap_a {{2.        ,  2.        , 10.        , 10.        ,  6.        ,
                          5.87695667,  2.        ,  3.97861367,  7.97897359,  2.        ,
                          3.79484095}};
@@ -69,18 +69,24 @@ int AdaptiveSamplingTesting<dim, nstate>::run_test() const
     params_b << snap_b, rom_b, B;
     std::cout << params_b << std::endl;
 
-
+    */
     //RowVectorXd params_a{{6.3333}};
     //RowVectorXd params_b{{0.0934}};
-    /*
+
     RowVectorXd params_a = VectorXd::LinSpaced(12,2,10).replicate(12,1).transpose();
     MatrixXd b = VectorXd::LinSpaced(12, 0.01, 0.1).replicate(1,12);
     b.transposeInPlace();
     VectorXd B_col(Eigen::Map<VectorXd>(b.data(), b.cols()*b.rows()));
     RowVectorXd params_b = B_col.transpose();
-    */
-    //std::cout << params_a << std::endl;
-    //std::cout << params_b << std::endl;
+
+    /*
+    RowVectorXd params_a {{
+                          }};
+    RowVectorXd params_b {{
+                          }};
+                          */
+    std::cout << params_a << std::endl;
+    std::cout << params_b << std::endl;
 
 
     std::shared_ptr<dealii::TableHandler> data_table = std::make_shared<dealii::TableHandler>();

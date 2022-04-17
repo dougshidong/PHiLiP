@@ -27,6 +27,8 @@ public:
     int run_test () const override;
 
     Parameters::AllParameters reinitParams(RowVector2d parameter) const;
+
+    void outputErrors(int iteration) const;
 };
 
 

@@ -72,6 +72,7 @@ public:
 
     mutable double max_error;
 
+
     std::shared_ptr<ProperOrthogonalDecomposition::OnlinePOD<dim>> current_pod;
 
     /// Run test
@@ -81,7 +82,7 @@ public:
 
     void placeInitialROMs() const;
 
-    void placeTriangulationROMs() const;
+    void placeTriangulationROMs(ProperOrthogonalDecomposition::Delaunay delaunay) const;
 
     RowVector2d getMaxErrorROM() const;
 
@@ -91,6 +92,7 @@ public:
 
     Parameters::AllParameters reinitParams(RowVector2d parameter) const;
 
+    void outputErrors(int iteration) const;
 };
 
 }

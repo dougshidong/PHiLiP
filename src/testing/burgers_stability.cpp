@@ -98,9 +98,11 @@ int BurgersEnergyStability<dim, nstate>::run_test() const
     for (int i = 0; i < std::ceil(finalTime/dt); ++ i) {
         ode_solver->advance_solution_time(dt);
         double current_energy = compute_energy(dg);
+        current_energy /= initial_energy;//normalize it by initial energy
+        std::cout << std::setprecision(16) << std::fixed;
         pcout << "Energy at time " << i * dt << " is " << current_energy << std::endl;
         myfile << i * dt << " " << current_energy << std::endl;
-        if (current_energy - initial_energy >= 0.001) {
+        if (current_energy - initial_energy >= 0.1) {
             return 1;
             break;
         }

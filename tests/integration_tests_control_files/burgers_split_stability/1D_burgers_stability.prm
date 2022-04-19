@@ -25,11 +25,13 @@ subsection ODE solver
 
   set ode_solver_type = explicit
 
-  set initial_time_step = 0.0001
+  set initial_time_step = 0.00000001
 
   subsection explicit solver options
 
-    set runge_kutta_order = 4
+    set runge_kutta_order = 3 
+
+    #set relaxation_runge_kutta = true
 
   end
 

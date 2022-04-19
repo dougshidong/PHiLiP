@@ -1,6 +1,11 @@
 #include "taylor_green_vortex_restart_check.h"
 #include "flow_solver.h"
 #include "flow_solver_cases/periodic_cube_flow.h"
+#include <deal.II/base/table_handler.h>
+#include <algorithm>
+#include <iterator>
+#include <string>
+#include <fstream>
 
 namespace PHiLiP {
 namespace Tests {
@@ -34,18 +39,62 @@ Parameters::AllParameters TaylorGreenVortexRestartCheck<dim, nstate>::reinit_par
     return parameters;
 }
 
+template<typename InputIterator1, typename InputIterator2>
+bool range_equal(InputIterator1 first1, InputIterator1 last1,
+        InputIterator2 first2, InputIterator2 last2)
+{
+    // Code reference: https://stackoverflow.com/questions/15118661/in-c-whats-the-fastest-way-to-tell-whether-two-string-or-binary-files-are-di
+    while(first1 != last1 && first2 != last2)
+    {
+        if(*first1 != *first2) return false;
+        ++first1;
+        ++first2;
+    }
+    return (first1 == last1) && (first2 == last2);
+}
+
+bool compare_files(const std::string& filename1, const std::string& filename2)
+{
+    // Code reference: https://stackoverflow.com/questions/15118661/in-c-whats-the-fastest-way-to-tell-whether-two-string-or-binary-files-are-di
+    std::ifstream file1(filename1);
+    std::ifstream file2(filename2);
+
+    std::istreambuf_iterator<char> begin1(file1);
+    std::istreambuf_iterator<char> begin2(file2);
+
+    std::istreambuf_iterator<char> end;
+
+    return range_equal(begin1, end, begin2, end);
+}
+
 template <int dim, int nstate>
 int TaylorGreenVortexRestartCheck<dim, nstate>::run_test() const
 {
     const double time_at_which_we_stop_the_run = 6.1240484302437529e-03;
     // corresponds to the expected kinetic energy set in the prm file
-    const double time_at_which_the_run_is_complete = this->all_parameters->flow_solver_param.final_time; // TO DO: Update without this hack
+    const double time_at_which_the_run_is_complete = this->all_parameters->flow_solver_param.final_time;
     Parameters::AllParameters params_incomplete_run = reinit_params(true,false,time_at_which_we_stop_the_run);
     Parameters::AllParameters params_restart_to_complete_run = reinit_params(false,true,time_at_which_the_run_is_complete,time_at_which_we_stop_the_run,5,0.0); // TO DO: update the last arg
 
     // Integrate to time at which we stop the run
     std::unique_ptr<FlowSolver<dim,nstate>> flow_solver_incomplete_run = FlowSolverFactory<dim,nstate>::create_FlowSolver(&params_incomplete_run);
     static_cast<void>(flow_solver_incomplete_run->run_test());
+
+    // INLINE SUB-TEST: Check whether the initialize_data_table_from_file() function in flow solver is working correctly
+    if(this->mpi_rank==0) {
+        std::shared_ptr<dealii::TableHandler> unsteady_data_table = std::make_shared<dealii::TableHandler>();//(this->mpi_communicator) ?;
+        std::string file_read = flow_solver_incomplete_run->flow_solver_case->unsteady_data_table_filename_with_extension;
+        flow_solver_incomplete_run->initialize_data_table_from_file(file_read,unsteady_data_table);
+        std::string file_write = "read_table_check.txt";
+        std::ofstream unsteady_data_table_file(file_write);
+        unsteady_data_table->write_text(unsteady_data_table_file);
+        // check if files are the same (i.e. if the tables are the same)
+        bool files_are_same = compare_files(file_read,file_write);
+        if(!files_are_same) {
+            pcout << "Error: initialize_data_table_from_file() failed." << std::endl;
+            return 1;
+        } 
+    } // end of inline sub-test
 
     // Integrate to final time by restarting from where we stopped
     std::unique_ptr<FlowSolver<dim,nstate>> flow_solver_restart_to_complete_run = FlowSolverFactory<dim,nstate>::create_FlowSolver(&params_restart_to_complete_run);

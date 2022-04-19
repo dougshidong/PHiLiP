@@ -1,5 +1,12 @@
 #include "flow_solver.h"
 
+#include <iostream>
+#include <fstream>
+#include <string>
+#include <stdlib.h>
+#include <vector>
+#include <sstream>
+
 namespace PHiLiP {
 
 namespace Tests {
@@ -57,6 +64,75 @@ FlowSolver<dim, nstate>::FlowSolver(const PHiLiP::Parameters::AllParameters *con
 }
 
 template <int dim, int nstate>
+std::vector<std::string> FlowSolver<dim,nstate>::get_data_table_column_names(const std::string string_input) const
+{
+    /* returns the column names of a dealii::TableHandler object
+       given the first line of the file */
+    
+    // Crete object of istringstream and initialize assign input string
+    std::istringstream iss(string_input);
+    std::string word;
+
+    // extract each name (no spaces)
+    std::vector<std::string> names;
+    while(iss >> word) {
+        names.push_back(word.c_str());
+    }
+    return names;
+}
+
+template <int dim, int nstate>
+void FlowSolver<dim,nstate>::initialize_data_table_from_file(
+    std::string data_table_filename_with_extension,
+    const std::shared_ptr <dealii::TableHandler> data_table) const
+{
+    if(this->mpi_rank==0) {
+        std::string line;
+        std::string::size_type sz1;
+
+        std::ifstream FILE (data_table_filename_with_extension);
+        std::getline(FILE, line); // read first line: column headers
+        
+        // check that the file is not empty
+        if (line.empty()) {
+            pcout << "Error: Trying to read empty file" << std::endl;
+            std::abort();
+        }
+
+        const std::vector<std::string> data_column_names = get_data_table_column_names(line);
+        const int number_of_columns = data_column_names.size();
+
+        std::getline(FILE, line); // read first line of data
+        
+        // check that there indeed is data to be read
+        if (line.empty()) {
+            pcout << "Error: Table has no data to be read" << std::endl;
+            std::abort();
+        }
+
+        std::vector<double> current_line_values(number_of_columns);
+        while (!line.empty()) {
+            std::string dummy_line = line;
+
+            current_line_values[0] = std::stod(dummy_line,&sz1);
+            for(int i=1; i<number_of_columns; ++i) {
+                dummy_line = dummy_line.substr(sz1);
+                sz1 = 0;
+                current_line_values[i] = std::stod(dummy_line,&sz1);
+            }
+
+            // Add data entries to table
+            for(int i=0; i<number_of_columns; ++i) {
+                data_table->add_value(data_column_names[i], current_line_values[i]);
+                data_table->set_precision(data_column_names[i], 16);
+                data_table->set_scientific(data_column_names[i], true);
+            }
+            std::getline(FILE, line); // read next line
+        }
+    }
+}
+
+template <int dim, int nstate>
 int FlowSolver<dim,nstate>::run_test() const
 {
     pcout << "Running Flow Solver..." << std::endl;
@@ -72,6 +148,8 @@ int FlowSolver<dim,nstate>::run_test() const
     //----------------------------------------------------
     if(flow_solver_param.steady_state == false){
         //----------------------------------------------------
+        //                  UNSTEADY FLOW
+        //----------------------------------------------------
         // Constant time step based on CFL number
         //----------------------------------------------------
         pcout << "Setting constant time step... " << std::flush;
@@ -81,9 +159,16 @@ int FlowSolver<dim,nstate>::run_test() const
         // dealii::TableHandler and data at initial time
         //----------------------------------------------------
         std::shared_ptr<dealii::TableHandler> unsteady_data_table = std::make_shared<dealii::TableHandler>();//(this->mpi_communicator) ?;
-        pcout << "Writing unsteady data computed at initial time... " << std::endl;
-        flow_solver_case->compute_unsteady_data_and_write_to_table(ode_solver->current_iteration, ode_solver->current_time, dg, unsteady_data_table);
-        pcout << "done." << std::endl;
+        if(flow_solver_param.restart_computation_from_file == true) {
+            pcout << "Initializing data table from corresponding restart file... " << std::flush;
+            initialize_data_table_from_file(flow_solver_case->unsteady_data_table_filename_with_extension,unsteady_data_table);
+            pcout << "done." << std::endl;
+        } else {
+            // no restart:
+            pcout << "Writing unsteady data computed at initial time... " << std::flush;
+            flow_solver_case->compute_unsteady_data_and_write_to_table(ode_solver->current_iteration, ode_solver->current_time, dg, unsteady_data_table);
+            pcout << "done." << std::endl;
+        }
         //----------------------------------------------------
         // Time advancement loop with on-the-fly post-processing
         //----------------------------------------------------

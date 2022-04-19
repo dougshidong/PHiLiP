@@ -118,7 +118,7 @@ void BurgersRewienskiSnapshot<dim, nstate>::steady_state_postprocessing(std::sha
                 sensitivity_dWdb[i]);
     }
     solutions_table.set_precision("Sensitivity:", 16);
-    std::ofstream out_file(this->all_param.flow_solver_param.sensitivity_table_filename + ".txt");
+    std::ofstream out_file(this->unsteady_data_table_filename_with_extension);
     solutions_table.write_text(out_file);
 }
 

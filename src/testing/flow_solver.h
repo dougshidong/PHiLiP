@@ -28,7 +28,8 @@
 #include "flow_solver_cases/1D_burgers_rewienski_snapshot.h"
 #include "flow_solver_cases/1d_burgers_viscous_snapshot.h"
 #include <deal.II/base/table_handler.h>
-
+#include <string>
+#include <vector>
 
 namespace PHiLiP {
 namespace Tests {
@@ -53,6 +54,11 @@ public:
     /// Pointer to Flow Solver Case
     std::shared_ptr<FlowSolverCaseBase<dim, nstate>> flow_solver_case;
 
+    /// Initializes the data table from an existing file
+    void initialize_data_table_from_file(
+        std::string data_table_filename_with_extension,
+        const std::shared_ptr <dealii::TableHandler> data_table) const;
+
     /// Simply runs the flow solver and returns 0 upon completion
     int run_test () const override;
 
@@ -70,6 +76,11 @@ public:
 
     /// Pointer to ode solver so it can be accessed externally.
     std::shared_ptr<ODE::ODESolverBase<dim, double>> ode_solver;
+
+private:
+    /** Returns the column names of a dealii::TableHandler object
+     *  given the first line of the file */
+    std::vector<std::string> get_data_table_column_names(const std::string string_input) const;
 
 };
 

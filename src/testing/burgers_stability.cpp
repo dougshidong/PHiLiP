@@ -32,14 +32,14 @@ template<int dim, int nstate>
 double BurgersEnergyStability<dim, nstate>::compute_energy(std::shared_ptr < PHiLiP::DGBase<dim, double> > &dg) const
 {
  double energy = 0.0;
- /*
+ 
  for (unsigned int i = 0; i < dg->solution.size(); ++i)
  {
   energy += 1./(dg->global_inverse_mass_matrix(i,i)) * dg->solution(i) * dg->solution(i);
   //energy += dg->solution(i) * dg->solution(i);
  }
- */
- energy = (dg->solution) * (dg->solution);
+ 
+ //energy = (dg->solution) * (dg->solution);
  return energy;
 }
 
@@ -83,14 +83,14 @@ int BurgersEnergyStability<dim, nstate>::run_test() const
     // Create ODE solver using the factory and providing the DG object
     std::shared_ptr<PHiLiP::ODE::ODESolverBase<dim, double>> ode_solver = PHiLiP::ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
    
-    double finalTime = 0.0001;
+    double finalTime = 0.01;
    
     //double dt = all_parameters->ode_solver_param.initial_time_step;
     //(void) dt;
    
     //need to call ode_solver before calculating energy because mass matrix isn't allocated yet.
 
-    //ode_solver->advance_solution_time(1E-8);
+    ode_solver->advance_solution_time(1E-10);
     double initial_energy = compute_energy(dg);
     pcout << "Initial energy is " << initial_energy << std::endl;
 

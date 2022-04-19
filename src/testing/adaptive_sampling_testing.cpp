@@ -80,11 +80,11 @@ int AdaptiveSamplingTesting<dim, nstate>::run_test() const
     RowVectorXd params_b = B_col.transpose();
 
     /*
-    RowVectorXd params_a {{
+    RowVectorXd params_a {{10,
                           }};
-    RowVectorXd params_b {{
+    RowVectorXd params_b {{0.055,
                           }};
-                          */
+    */
     std::cout << params_a << std::endl;
     std::cout << params_b << std::endl;
 

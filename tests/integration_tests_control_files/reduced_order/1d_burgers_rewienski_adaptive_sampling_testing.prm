@@ -36,7 +36,7 @@ subsection reduced order
   set adapt_coarse_basis_constant = 0
   set coarse_basis_dimension = 12
   set fine_basis_dimension = 18
-  set path_to_search = ./pod_basis/POD_halton_12pts
+  set path_to_search = /home/donovan/Codes/PHiLiP/cmake-build-release/tests/integration_tests_control_files/reduced_order/pod_basis/pod_adaptation_12pts
   set method_of_snapshots = false
   set consider_error_sign = true
 end

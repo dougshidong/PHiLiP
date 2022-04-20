@@ -28,8 +28,20 @@ public:
     /// Function to allocate the ODE system
     void allocate_ode_system ();
 
-    const unsigned int rk_order;///< The RK order for explicit timestep.    
+protected:
+    /// Storage for the derivative at each Runge-Kutta stage
+    std::vector<dealii::LinearAlgebra::distributed::Vector<double>> rk_stage;
+    
+    /// Butcher tableau "a"
+    dealii::Table<2,double> butcher_tableau_a;
 
+    /// Butcher tableau "b"
+    dealii::Table<1,double> butcher_tableau_b;
+
+    /// Butcher tableau "c"
+    /* Stores the c values in Butcher tableau for the time step
+    */
+    dealii::Table<1,double> butcher_tableau_c;
 };
 
 } // ODE namespace

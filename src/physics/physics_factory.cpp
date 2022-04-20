@@ -108,6 +108,8 @@ PhysicsFactory<dim,nstate,real>
                 parameters_input->euler_param.side_slip_angle,
                 parameters_input->navier_stokes_param.prandtl_number,
                 parameters_input->navier_stokes_param.reynolds_number_inf,
+                parameters_input->navier_stokes_param.nondimensionalized_isothermal_wall_temperature,
+                parameters_input->navier_stokes_param.thermal_boundary_condition_type,
                 diffusion_tensor, 
                 manufactured_solution_function);
         }

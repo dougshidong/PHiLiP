@@ -59,9 +59,9 @@ void ODESolverParam::declare_parameters (dealii::ParameterHandler &prm)
         prm.enter_subsection("explicit solver options");
         {
             prm.declare_entry("runge_kutta_order", "3",
-                              dealii::Patterns::Selection("1|3"),
+                              dealii::Patterns::Selection("1|3|4"),
                               "Order for the Runge-Kutta explicit time advancement scheme."
-                              "Choices are <1|3>.");
+                              "Choices are <1|3|4>.");
         }
         prm.leave_subsection();
     }
@@ -100,6 +100,7 @@ void ODESolverParam::parse_parameters (dealii::ParameterHandler &prm)
             const std::string runge_kutta_order_string = prm.get("runge_kutta_order");
             if (runge_kutta_order_string == "1") runge_kutta_order = 1;
             if (runge_kutta_order_string == "3") runge_kutta_order = 3;
+            if (runge_kutta_order_string == "4") runge_kutta_order = 4;
         }
         prm.leave_subsection();
     }

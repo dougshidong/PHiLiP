@@ -8,3 +8,7 @@ gdown 15Tt4ZEcZye0Q-P2ynDy67ETqeuCgINjK # naca0012_hopw_ref4.msh
 gdown 1qxWlxhqK3_OrPUe9gcBpUMdny_dfrrBy # naca0012_hopw_ref5.msh
 # move files to appropriate directory
 mv naca0012_hopw_ref* ${TARGET_DIR}
+
+TARGET_DIR=tests/unit_tests/grid/gmsh_reader/
+gdown 1HQAoa_dS8U91r0oPPuo1NN9ozXOnjymj # airfoil.msh
+mv airfoil.msh ${TARGET_DIR}

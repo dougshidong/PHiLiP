@@ -25,16 +25,16 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                           " burgers_rewienski_snapshot>.");
 
         prm.declare_entry("final_time", "1",
-                          dealii::Patterns::Double(1e-15, 10000000),
+                          dealii::Patterns::Double(0, dealii::Patterns::Double::max_double_value),
                           "Final solution time.");
 
         prm.declare_entry("courant_friedrich_lewy_number", "1",
-                          dealii::Patterns::Double(1e-15, 10000000),
+                          dealii::Patterns::Double(0, dealii::Patterns::Double::max_double_value),
                           "Courant-Friedrich-Lewy (CFL) number for constant time step.");
 
         prm.declare_entry("unsteady_data_table_filename", "unsteady_data_table",
                           dealii::Patterns::FileName(dealii::Patterns::FileName::FileType::input),
-                          "Filename for of the unsteady data table output file: unsteady_data_table_filename.txt.");
+                          "Filename of the unsteady data table output file: unsteady_data_table_filename.txt.");
 
         prm.declare_entry("steady_state", "false",
                           dealii::Patterns::Bool(),
@@ -43,6 +43,18 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
         prm.declare_entry("sensitivity_table_filename", "sensitivity_table",
                           dealii::Patterns::FileName(dealii::Patterns::FileName::FileType::input),
                           "Filename for the sensitivity data table output file: sensitivity_table_filename.txt.");
+
+        prm.declare_entry("input_mesh_filename", "naca0012",
+                          dealii::Patterns::FileName(dealii::Patterns::FileName::FileType::input),
+                          "Filename of the input mesh: input_mesh_filename.msh");
+
+        prm.enter_subsection("taylor_green_vortex_energy_check");
+        {
+            prm.declare_entry("expected_kinetic_energy_at_final_time", "1",
+                              dealii::Patterns::Double(0, dealii::Patterns::Double::max_double_value),
+                              "For integration test purposes, expected kinetic energy at final time.");
+        }
+        prm.leave_subsection();
     }
     prm.leave_subsection();
 }
@@ -61,6 +73,13 @@ void FlowSolverParam::parse_parameters(dealii::ParameterHandler &prm)
         unsteady_data_table_filename = prm.get("unsteady_data_table_filename");
         steady_state = prm.get_bool("steady_state");
         sensitivity_table_filename = prm.get("sensitivity_table_filename");
+        input_mesh_filename = prm.get("input_mesh_filename");
+
+        prm.enter_subsection("taylor_green_vortex_energy_check");
+        {
+            expected_kinetic_energy_at_final_time = prm.get_double("expected_kinetic_energy_at_final_time");
+        }
+        prm.leave_subsection();
     }
     prm.leave_subsection();
 }

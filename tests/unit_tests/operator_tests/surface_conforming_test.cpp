@@ -89,6 +89,7 @@ dealii::Point<dim> CurvManifold<dim>::pull_back(const dealii::Point<dim> &space_
         function[2] = x_ref[2] - x_phys[2] +1.0/20.0*( std::sin(2.0 * pi * x_ref[0]) + std::sin(2.0 * pi * x_ref[1]));
     }
 
+
     if(dim==2){
         derivative[0][0] = 1.0 - beta* pi/2.0 * std::sin(pi/2.0*x_ref[0])*std::cos(3.0*pi/2.0*x_ref[1]);
         derivative[0][1] =  - beta*3.0 *pi/2.0 * std::cos(pi/2.0*x_ref[0])*std::sin(3.0*pi/2.0*x_ref[1]);
@@ -267,7 +268,7 @@ int main (int argc, char * argv[])
             dealii::Triangulation<dim>::smoothing_on_refinement |
             dealii::Triangulation<dim>::smoothing_on_coarsening));
         dealii::GridGenerator::hyper_cube (*grid, left, right, colorize);
-        grid->refine_global(0);
+        grid->refine_global(1);
 
 //Warp the grid
 //IF WANT NON-WARPED GRID COMMENT UNTIL SAYS "NOT COMMENT"
@@ -281,11 +282,11 @@ int main (int argc, char * argv[])
     grid->set_manifold ( manifold_id, curv_manifold );
 //"END COMMENT" TO NOT WARP GRID
 
-    double surf_int = 0.0;
     for(unsigned int poly_degree = 2; poly_degree<6; poly_degree++){
     unsigned int grid_degree = poly_degree;
     //setup operator
-    OPERATOR::OperatorBase<dim,real> operators(&all_parameters_new, nstate, poly_degree, poly_degree, grid_degree); 
+    //OPERATOR::OperatorsBase<dim,real> operators(&all_parameters_new, nstate, poly_degree, poly_degree, grid_degree); 
+    OPERATOR::OperatorsBaseState<dim,real,nstate,2*dim> operators(&all_parameters_new, poly_degree, poly_degree);
 //setup DG
    // std::shared_ptr < PHiLiP::DGBase<dim, double> > dg = PHiLiP::DGFactory<dim,double>::create_discontinuous_galerkin(&all_parameters_new, poly_degree, grid);
     std::shared_ptr < PHiLiP::DGBase<dim, double> > dg = PHiLiP::DGFactory<dim,double>::create_discontinuous_galerkin(&all_parameters_new, poly_degree, poly_degree, grid_degree, grid);
@@ -311,12 +312,17 @@ int main (int argc, char * argv[])
                 const unsigned int istate = fe_metric.system_to_component_index(idof).first; 
                 mapping_support_points[istate][igrid_node] += val * fe_metric.shape_value_component(idof,vol_GLL.point(igrid_node),istate); 
             }
+//pcout<<" mapping supp "<<mapping_support_points[0][igrid_node]<<" quad "<<igrid_node<<" dim "<<0<<std::endl;
+//pcout<<" mapping supp "<<mapping_support_points[1][igrid_node]<<" quad "<<igrid_node<<" dim "<<1<<std::endl;
         }
 
 
+
         const unsigned int n_quad_face_pts = operators.face_quadrature_collection[poly_degree].size();
-        const std::vector<real> &quad_weights = operators.face_quadrature_collection[poly_degree].get_weights ();
         for (unsigned int iface=0; iface < dealii::GeometryInfo<dim>::faces_per_cell; ++iface) {
+            auto current_face = current_cell->face(iface);
+            if(current_face->at_boundary())
+                continue;
 
             std::vector<dealii::FullMatrix<real>> metric_cofactor(n_quad_face_pts);
             for(unsigned int iquad=0; iquad<n_quad_face_pts; iquad++){
@@ -326,36 +332,66 @@ int main (int argc, char * argv[])
             operators.build_local_face_metric_cofactor_matrix_and_det_Jac(grid_degree, poly_degree, iface,
                                                                         n_quad_face_pts, n_metric_dofs / dim, mapping_support_points, 
                                                                         determinant_Jacobian, metric_cofactor);
-            const dealii::Tensor<1,dim,real> unit_normal_int = dealii::GeometryInfo<dim>::unit_normal_vector[iface];
-            std::vector<dealii::Tensor<1,dim,real>> normals_int(n_quad_face_pts);
+
+           // auto metric_neighbor_cell = metric_cell->neighbor_or_periodic_neighbor(iface);
+            auto metric_neighbor_cell = metric_cell->neighbor(iface);
+            std::vector<dealii::types::global_dof_index> neighbor_metric_dofs_indices(n_metric_dofs);
+            metric_neighbor_cell->get_dof_indices(neighbor_metric_dofs_indices);
+            const unsigned int neighbor_iface = metric_cell->neighbor_face_no(iface);
+//pcout<<"FACE NUMBER "<<iface<<" NEIGH IFACE "<<neighbor_iface<<std::endl;
+        std::vector<std::vector<real>> mapping_support_points_neigh(dim);
+        for(int idim=0; idim<dim; idim++){
+            mapping_support_points_neigh[idim].resize(n_metric_dofs/dim);
+        }
+
+        for (unsigned int igrid_node = 0; igrid_node< n_metric_dofs/dim; ++igrid_node) {
+            for (unsigned int idof = 0; idof< n_metric_dofs; ++idof) {
+                const real val = (dg->high_order_grid->volume_nodes[neighbor_metric_dofs_indices[idof]]);
+                const unsigned int istate = fe_metric.system_to_component_index(idof).first; 
+                mapping_support_points_neigh[istate][igrid_node] += val * fe_metric.shape_value_component(idof,vol_GLL.point(igrid_node),istate); 
+            }
+//pcout<<" mapping supp NEIGH "<<mapping_support_points_neigh[0][igrid_node]<<" quad "<<igrid_node<<" dim "<<0<<std::endl;
+//pcout<<" mapping supp NEIGH "<<mapping_support_points_neigh[1][igrid_node]<<" quad "<<igrid_node<<" dim "<<1<<std::endl;
+//pcout<<" mapping supp "<<mapping_support_points[istate][ishape]<<" quad "<<ishape<<" dim "<<istate<<std::endl;
+        }
+
+
+
+            std::vector<dealii::FullMatrix<real>> metric_cofactor_neigh(n_quad_face_pts);
             for(unsigned int iquad=0; iquad<n_quad_face_pts; iquad++){
-                for(unsigned int idim=0; idim<dim; idim++){
-                    normals_int[iquad][idim] =  0.0;
-                    for(int idim2=0; idim2<dim; idim2++){
-                        normals_int[iquad][idim] += unit_normal_int[idim2] * metric_cofactor[iquad][idim][idim2];//\hat{n}^r * C_m^T 
+                metric_cofactor_neigh[iquad].reinit(dim,dim);
+            }
+            std::vector<real> determinant_Jacobian_neigh(n_quad_face_pts);
+            operators.build_local_face_metric_cofactor_matrix_and_det_Jac(grid_degree, poly_degree, neighbor_iface,
+                                                                        n_quad_face_pts, n_metric_dofs / dim, mapping_support_points_neigh, 
+                                                                        determinant_Jacobian_neigh, metric_cofactor_neigh);
+
+
+    const dealii::Tensor<1,dim> unit_normal_int = dealii::GeometryInfo<dim>::unit_normal_vector[iface];
+    std::vector<dealii::Tensor<1,dim> > normal_phys_int(n_quad_face_pts);
+    std::vector<dealii::Tensor<1,dim> > normal_phys_ext(n_quad_face_pts);
+    for(unsigned int iquad=0; iquad<n_quad_face_pts; iquad++){
+        operators.compute_reference_to_physical(unit_normal_int, metric_cofactor[iquad], normal_phys_int[iquad]);
+        operators.compute_reference_to_physical(unit_normal_int, metric_cofactor_neigh[iquad], normal_phys_ext[iquad]);
+    }
+
+
+            for(unsigned int iquad=0; iquad<n_quad_face_pts; iquad++){
+                for(int idim=0; idim<dim; idim++){
+                    if(std::abs(normal_phys_int[iquad][idim] - normal_phys_ext[iquad][idim]) > 1e-14){
+                        pcout<<" phys normal int "<<normal_phys_int[iquad][idim]<<" phys normal ext "<<normal_phys_ext[iquad][idim]<<" iquad "<<iquad<<" idim "<<idim<<std::endl;
+                        return 1;
                     }
                 }
             }
-            for(unsigned int iquad=0; iquad<n_quad_face_pts; iquad++){
-                for(int idim=0; idim<dim; idim++){
-                    surf_int += 1.0 * quad_weights[iquad] * normals_int[iquad][idim] * 1.0;
-                }
-            }
+            
+
         }//end of face loop
     }//end of cell loop
     }//end poly degree loop
-    const double surf_int_mpi= (dealii::Utilities::MPI::max(surf_int, MPI_COMM_WORLD));
 
-    if( std::abs(surf_int_mpi) > 1e-13){
-//        printf(" Metrics Do NOT Satisfy GCL Condition\n");
-        pcout<<" Metrics Do NOT Satisfy GCL Condition\n"<<std::endl;
-        return 1;
-    }
-    else{
-       // printf(" Metrics Satisfy GCL Condition\n");
-        pcout<<" Metrics Satisfy GCL Condition\n"<<std::endl;
-        return 0;
-    }
+    pcout<<" Metrics Satisfy Surface Conforming Condition\n"<<std::endl;
+    return 0;
 }
 
 //}//end PHiLiP namespace

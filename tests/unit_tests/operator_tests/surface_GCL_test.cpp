@@ -88,6 +88,7 @@ dealii::Point<dim> CurvManifold<dim>::pull_back(const dealii::Point<dim> &space_
         function[1] = x_ref[1] - x_phys[1] +alpha*exp(1.0-x_ref[1])*(std::sin(pi * x_ref[0]) + std::sin(pi* x_ref[2]));
         function[2] = x_ref[2] - x_phys[2] +1.0/20.0*( std::sin(2.0 * pi * x_ref[0]) + std::sin(2.0 * pi * x_ref[1]));
     }
+
     if(dim==2){
         derivative[0][0] = 1.0 - beta* pi/2.0 * std::sin(pi/2.0*x_ref[0])*std::cos(3.0*pi/2.0*x_ref[1]);
         derivative[0][1] =  - beta*3.0 *pi/2.0 * std::cos(pi/2.0*x_ref[0])*std::sin(3.0*pi/2.0*x_ref[1]);
@@ -251,7 +252,7 @@ int main (int argc, char * argv[])
     PHiLiP::Parameters::AllParameters all_parameters_new;
     all_parameters_new.parse_parameters (parameter_handler);
 
-    all_parameters_new.use_collocated_nodes=true;
+   // all_parameters_new.use_collocated_nodes=true;
 
     //unsigned int poly_degree = 3;
     double left = 0.0;
@@ -279,12 +280,12 @@ int main (int argc, char * argv[])
     grid->set_all_manifold_ids(manifold_id);
     grid->set_manifold ( manifold_id, curv_manifold );
 //"END COMMENT" TO NOT WARP GRID
-    double max_GCL = 0.0;
-    for(unsigned int poly_degree = 2; poly_degree<5; poly_degree++){
-        unsigned int grid_degree = poly_degree;
 
+    double surf_int = 0.0;
+    for(unsigned int poly_degree = 2; poly_degree<6; poly_degree++){
+    unsigned int grid_degree = poly_degree;
     //setup operator
-   // OPERATOR::OperatorsBase<dim,real> operators(&all_parameters_new, nstate, poly_degree, poly_degree, grid_degree); 
+    //OPERATOR::OperatorsBase<dim,real> operators(&all_parameters_new, nstate, poly_degree, poly_degree, grid_degree); 
     OPERATOR::OperatorsBaseState<dim,real,nstate,2*dim> operators(&all_parameters_new, poly_degree, poly_degree);
 //setup DG
    // std::shared_ptr < PHiLiP::DGBase<dim, double> > dg = PHiLiP::DGFactory<dim,double>::create_discontinuous_galerkin(&all_parameters_new, poly_degree, grid);
@@ -292,20 +293,18 @@ int main (int argc, char * argv[])
     dg->allocate_system ();
     
 
-    const unsigned int n_quad_pts      = dg->volume_quadrature_collection[poly_degree].size();
-
-            const dealii::FESystem<dim> &fe_metric = (dg->high_order_grid->fe_system);
-            const unsigned int n_metric_dofs = fe_metric.dofs_per_cell; 
-            auto metric_cell = dg->high_order_grid->dof_handler_grid.begin_active();
-            for (auto current_cell = dg->dof_handler.begin_active(); current_cell!=dg->dof_handler.end(); ++current_cell, ++metric_cell) {
-                if (!current_cell->is_locally_owned()) continue;
-	
-                std::vector<dealii::types::global_dof_index> current_metric_dofs_indices(n_metric_dofs);
-                metric_cell->get_dof_indices (current_metric_dofs_indices);
-                std::vector<std::vector<real>> mapping_support_points(dim);
-                for(int idim=0; idim<dim; idim++){
-                    mapping_support_points[idim].resize(n_metric_dofs/dim);
-                }
+    const dealii::FESystem<dim> &fe_metric = (dg->high_order_grid->fe_system);
+    const unsigned int n_metric_dofs = fe_metric.dofs_per_cell; 
+    auto metric_cell = dg->high_order_grid->dof_handler_grid.begin_active();
+    for (auto current_cell = dg->dof_handler.begin_active(); current_cell!=dg->dof_handler.end(); ++current_cell, ++metric_cell) {
+        if (!current_cell->is_locally_owned()) continue;
+    
+        std::vector<dealii::types::global_dof_index> current_metric_dofs_indices(n_metric_dofs);
+        metric_cell->get_dof_indices (current_metric_dofs_indices);
+        std::vector<std::vector<real>> mapping_support_points(dim);
+        for(int idim=0; idim<dim; idim++){
+            mapping_support_points[idim].resize(n_metric_dofs/dim);
+        }
         dealii::QGaussLobatto<dim> vol_GLL(grid_degree +1);
         for (unsigned int igrid_node = 0; igrid_node< n_metric_dofs/dim; ++igrid_node) {
             for (unsigned int idof = 0; idof< n_metric_dofs; ++idof) {
@@ -314,76 +313,47 @@ int main (int argc, char * argv[])
                 mapping_support_points[istate][igrid_node] += val * fe_metric.shape_value_component(idof,vol_GLL.point(igrid_node),istate); 
             }
         }
-                std::vector<dealii::FullMatrix<real>> metric_cofactor(n_quad_pts);
-                std::vector<real> determinant_Jacobian(n_quad_pts);
-                for(unsigned int iquad=0;iquad<n_quad_pts; iquad++){
-                    metric_cofactor[iquad].reinit(dim, dim);
-                }
-                operators.build_local_vol_metric_cofactor_matrix_and_det_Jac(grid_degree, poly_degree, n_quad_pts, n_metric_dofs/dim, mapping_support_points, determinant_Jacobian, metric_cofactor);
 
-                std::vector< std::vector<dealii::FullMatrix<real>>>  Gij(dim);
-                for(int idim=0; idim<dim; idim++){
-                    Gij[idim].resize(dim);
-                    for(int idim2=0; idim2<dim; idim2++){
-                        Gij[idim][idim2].reinit(n_quad_pts, n_quad_pts);
-                    }
-                }
 
-                for(int idim=0; idim<dim;idim++){
-                    for(int idim2=0; idim2<dim; idim2++){
-//printf(" G i=%d j =%d\n",idim,idim2);
-                        for(unsigned int idof=0; idof<n_quad_pts; idof++){
-                            for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
-                                if(idof==iquad){
-                                    Gij[idim][idim2][idof][iquad] = metric_cofactor[iquad][idim2][idim];
-//printf("%g \n",Gij[idim][idim2][idof][iquad]);
-                                }
-                            }
-                        }
-                    }
-                }
+        const unsigned int n_quad_face_pts = operators.face_quadrature_collection[poly_degree].size();
+        const std::vector<real> &quad_weights = operators.face_quadrature_collection[poly_degree].get_weights ();
+        for (unsigned int iface=0; iface < dealii::GeometryInfo<dim>::faces_per_cell; ++iface) {
 
-                std::vector<dealii::Vector<real>> GCL(dim);
-                for(int idim=0; idim<dim; idim++){
-                    GCL[idim].reinit(n_quad_pts);
-                }
-                dealii::Vector<real> ones(n_quad_pts);
-                for(unsigned int idof=0; idof<n_quad_pts; idof++){
-                    ones[idof] = 1.0;
-                }
-
-                for(int idim=0; idim< dim; idim++){
-                    for(int idim2=0; idim2<dim;idim2++){
-                        dealii::FullMatrix<real> temp(n_quad_pts);
-                        operators.gradient_flux_basis[poly_degree][0][idim2].mmult(temp, Gij[idim2][idim]);
-                        dealii::Vector<real> temp2(n_quad_pts);
-                        temp.vmult(temp2, ones);
-                        GCL[idim].add(1, temp2);
-                    }
-                }
-
-                for(int idim=0; idim<dim; idim++){
-                //    printf("\n GCL for derivative x_%d \n", idim);
-                    for(unsigned int idof=0; idof<n_quad_pts; idof++){
-                 //       printf(" %.16g \n", GCL[idim][idof]);
-                        if( std::abs(GCL[idim][idof]) > max_GCL){
-                            max_GCL = std::abs(GCL[idim][idof]);
-                        }
-                    }
-                }
-
+            std::vector<dealii::FullMatrix<real>> metric_cofactor(n_quad_face_pts);
+            for(unsigned int iquad=0; iquad<n_quad_face_pts; iquad++){
+                metric_cofactor[iquad].reinit(dim,dim);
             }
-
+            std::vector<real> determinant_Jacobian(n_quad_face_pts);
+            operators.build_local_face_metric_cofactor_matrix_and_det_Jac(grid_degree, poly_degree, iface,
+                                                                        n_quad_face_pts, n_metric_dofs / dim, mapping_support_points, 
+                                                                        determinant_Jacobian, metric_cofactor);
+            const dealii::Tensor<1,dim,real> unit_normal_int = dealii::GeometryInfo<dim>::unit_normal_vector[iface];
+            std::vector<dealii::Tensor<1,dim,real>> normals_int(n_quad_face_pts);
+            for(unsigned int iquad=0; iquad<n_quad_face_pts; iquad++){
+                for(unsigned int idim=0; idim<dim; idim++){
+                    normals_int[iquad][idim] =  0.0;
+                    for(int idim2=0; idim2<dim; idim2++){
+                        normals_int[iquad][idim] += unit_normal_int[idim2] * metric_cofactor[iquad][idim][idim2];//\hat{n}^r * C_m^T 
+                    }
+                }
+            }
+            for(unsigned int iquad=0; iquad<n_quad_face_pts; iquad++){
+                for(int idim=0; idim<dim; idim++){
+                    surf_int += 1.0 * quad_weights[iquad] * normals_int[iquad][idim] * 1.0;
+                }
+            }
+        }//end of face loop
+    }//end of cell loop
     }//end poly degree loop
-    const double max_GCL_mpi= (dealii::Utilities::MPI::max(max_GCL, MPI_COMM_WORLD));
+    const double surf_int_mpi= (dealii::Utilities::MPI::max(surf_int, MPI_COMM_WORLD));
 
-    if( max_GCL_mpi > 1e-10){
+    if( std::abs(surf_int_mpi) > 1e-13){
 //        printf(" Metrics Do NOT Satisfy GCL Condition\n");
         pcout<<" Metrics Do NOT Satisfy GCL Condition\n"<<std::endl;
         return 1;
     }
     else{
-//        printf(" Metrics Satisfy GCL Condition\n");
+       // printf(" Metrics Satisfy GCL Condition\n");
         pcout<<" Metrics Satisfy GCL Condition\n"<<std::endl;
         return 0;
     }

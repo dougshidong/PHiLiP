@@ -5,8 +5,6 @@
 #include <math.h>
 #include <iostream>
 #include <stdlib.h>
-//#include <ctime>
-#include <time.h>
 
 #include <deal.II/distributed/solution_transfer.h>
 
@@ -241,67 +239,6 @@ static dealii::Point<dim> warp (const dealii::Point<dim> &p)
  * End of Curvilinear Grid
  * ***************************/
 
-template <int dim, typename real>
-void compute_inverse_mass_matrix(PHiLiP::OPERATOR::OperatorBase<dim,real> &operators, 
-                    const std::vector<std::vector<real>> &mapping_support_points, const unsigned int n_metric_dofs, 
-                    const unsigned int n_quad_pts, const unsigned int n_dofs_cell, 
-                    const unsigned int poly_degree, const unsigned int grid_degree, 
-                    const std::vector<real> &quad_weights,
-                    dealii::FullMatrix<real> &mass_inv)
-{
-
-        std::vector<real> determinant_Jacobian(n_quad_pts);
-        operators.build_local_vol_determinant_Jac(grid_degree, poly_degree, n_quad_pts, n_metric_dofs, mapping_support_points, determinant_Jacobian);
-
-        std::vector<real> JxW(n_quad_pts);
-        for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
-            JxW[iquad] = quad_weights[iquad] * determinant_Jacobian[iquad];
-        }
-        dealii::FullMatrix<real> local_mass_matrix(n_dofs_cell);
-        operators.build_local_Mass_Matrix(JxW, n_dofs_cell, n_quad_pts, poly_degree, local_mass_matrix);
-
-        //For flux reconstruction
-        dealii::FullMatrix<real> K_operator(n_dofs_cell);
-        operators.build_local_K_operator(local_mass_matrix, n_dofs_cell, poly_degree, K_operator);
-        for (unsigned int itest=0; itest<n_dofs_cell; ++itest) {
-            for (unsigned int itrial=0; itrial<n_dofs_cell; ++itrial) {
-                local_mass_matrix[itest][itrial] = local_mass_matrix[itest][itrial] + K_operator[itest][itrial];
-            }
-        }
-
-        mass_inv.invert(local_mass_matrix);
-
-}
-template <int dim, typename real>
-void compute_weighted_inverse_mass_matrix(PHiLiP::OPERATOR::OperatorBase<dim,real> &operators, 
-                    const std::vector<std::vector<real>> mapping_support_points, const unsigned int n_metric_dofs, 
-                    const unsigned int n_quad_pts, const unsigned int n_dofs_cell, 
-                    const unsigned int poly_degree, const unsigned int grid_degree, 
-                    const std::vector<real> &quad_weights,
-                    dealii::FullMatrix<real> &mass_inv)
-{
-        std::vector<real> determinant_Jacobian(n_quad_pts);
-        operators.build_local_vol_determinant_Jac(grid_degree, poly_degree, n_quad_pts, n_metric_dofs, mapping_support_points, determinant_Jacobian);
-
-        std::vector<real> W_J_inv(n_quad_pts);
-        for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
-            W_J_inv[iquad] = quad_weights[iquad] / determinant_Jacobian[iquad]; 
-        }
-        dealii::FullMatrix<real> local_mass_matrix(n_dofs_cell);
-        operators.build_local_Mass_Matrix(W_J_inv, n_dofs_cell, n_quad_pts, poly_degree, local_mass_matrix);
-        //For flux reconstruction
-        dealii::FullMatrix<real> K_operator(n_dofs_cell);
-        operators.build_local_K_operator(local_mass_matrix, n_dofs_cell, poly_degree, K_operator);
-        for (unsigned int itest=0; itest<n_dofs_cell; ++itest) {
-            for (unsigned int itrial=0; itrial<n_dofs_cell; ++itrial) {
-               // local_mass_matrix[itest][itrial] = local_mass_matrix[itest][itrial] + K_operator[itest][itrial];
-                mass_inv[itest][itrial] = local_mass_matrix[itest][itrial] + K_operator[itest][itrial];
-            }
-        }
-}
-/*******************************
- * END OF MASS INV FUNCTIONS
- * ****************************/
 int main (int argc, char * argv[])
 {
 
@@ -320,20 +257,19 @@ int main (int argc, char * argv[])
 
    // all_parameters_new.use_collocated_nodes=true;
     all_parameters_new.use_curvilinear_split_form=true;
-    all_parameters_new.flux_reconstruction_type = Parameters::AllParameters::Flux_Reconstruction::cPlus; 
+    const int dim_check = 1;
 
     //unsigned int poly_degree = 3;
     double left = 0.0;
     double right = 1.0;
     const bool colorize = true;
     dealii::ConvergenceTable convergence_table;
-    const unsigned int igrid_start = 0;
-    const unsigned int n_grids = 1;
-//setup time
-// time_t tstart=0, tend=0, tstart_weight=0, tend_weight=0; 
-    clock_t time_normal, time_weighted;
-
-    for(unsigned int poly_degree = 6; poly_degree<7; poly_degree++){
+    const unsigned int igrid_start = 2;
+    const unsigned int n_grids = 5;
+    std::array<double,n_grids> grid_size;
+    std::array<double,n_grids> soln_error;
+    std::array<double,n_grids> soln_error_inf;
+    for(unsigned int poly_degree = 2; poly_degree<5; poly_degree++){
         unsigned int grid_degree = poly_degree;
     for(unsigned int igrid=igrid_start; igrid<n_grids; ++igrid){
 pcout<<" Grid Index"<<igrid<<std::endl;
@@ -362,7 +298,8 @@ pcout<<" made grid for Index"<<igrid<<std::endl;
 //"END COMMENT" TO NOT WARP GRID
 
     //setup operator
-    OPERATOR::OperatorBase<dim,real> operators(&all_parameters_new, nstate, poly_degree, poly_degree, grid_degree); 
+  //  OPERATOR::OperatorsBase<dim,real> operators(&all_parameters_new, nstate, poly_degree, poly_degree, grid_degree); 
+    OPERATOR::OperatorsBaseState<dim,real,nstate,2*dim> operators(&all_parameters_new, poly_degree, poly_degree);
 //setup DG
    // std::shared_ptr < PHiLiP::DGBase<dim, double> > dg = PHiLiP::DGFactory<dim,double>::create_discontinuous_galerkin(&all_parameters_new, poly_degree, grid);
     std::shared_ptr < PHiLiP::DGBase<dim, double> > dg = PHiLiP::DGFactory<dim,double>::create_discontinuous_galerkin(&all_parameters_new, poly_degree, poly_degree, grid_degree, grid);
@@ -376,8 +313,10 @@ pcout<<" made grid for Index"<<igrid<<std::endl;
             dealii::DoFTools::extract_locally_relevant_dofs(dg->dof_handler, ghost_dofs);
             locally_relevant_dofs = ghost_dofs;
             ghost_dofs.subtract_set(locally_owned_dofs);
-
-
+          //  dealii::LinearAlgebra::distributed::Vector<double> solution;
+          //  solution.reinit(locally_owned_dofs, ghost_dofs, MPI_COMM_WORLD);
+            dealii::LinearAlgebra::distributed::Vector<double> solution_deriv;
+            solution_deriv.reinit(locally_owned_dofs, ghost_dofs, MPI_COMM_WORLD);
 //setup metric and solve
 
     const unsigned int max_dofs_per_cell = dg->dof_handler.get_fe_collection().max_dofs_per_cell();
@@ -388,11 +327,6 @@ pcout<<" made grid for Index"<<igrid<<std::endl;
             const dealii::FESystem<dim> &fe_metric = (dg->high_order_grid->fe_system);
             const unsigned int n_metric_dofs = fe_metric.dofs_per_cell; 
             auto metric_cell = dg->high_order_grid->dof_handler_grid.begin_active();
-
-//loop over cells and do normal inv
-pcout<<"time to do normal"<<std::endl;
-          //  tstart = time(0);
-            time_normal = clock();
             for (auto current_cell = dg->dof_handler.begin_active(); current_cell!=dg->dof_handler.end(); ++current_cell, ++metric_cell) {
                 if (!current_cell->is_locally_owned()) continue;
 	
@@ -400,8 +334,10 @@ pcout<<"time to do normal"<<std::endl;
                 std::vector<dealii::types::global_dof_index> current_metric_dofs_indices(n_metric_dofs);
                 metric_cell->get_dof_indices (current_metric_dofs_indices);
                 std::vector<std::vector<real>> mapping_support_points(dim);
+                std::vector<std::vector<real>> phys_quad_pts(dim);
                 for(int idim=0; idim<dim; idim++){
                     mapping_support_points[idim].resize(n_metric_dofs/dim);
+                    phys_quad_pts[idim].resize(n_quad_pts);
                 }
                 dealii::QGaussLobatto<dim> vol_GLL(grid_degree +1);
                 for (unsigned int igrid_node = 0; igrid_node< n_metric_dofs/dim; ++igrid_node) {
@@ -411,73 +347,197 @@ pcout<<"time to do normal"<<std::endl;
                         mapping_support_points[istate][igrid_node] += val * fe_metric.shape_value_component(idof,vol_GLL.point(igrid_node),istate); 
                     }
                 }
-        const std::vector<real> &quad_weights = operators.volume_quadrature_collection[poly_degree].get_weights();
-
-
-                //build ESFR mass matrix and invert regularly
-                dealii::FullMatrix<real> mass_inv(n_dofs_cell);
-            time_normal = clock();
-                compute_inverse_mass_matrix(operators, mapping_support_points, n_metric_dofs/dim, n_quad_pts, n_dofs_cell, poly_degree, grid_degree, quad_weights, mass_inv);
-            time_normal = clock()-time_normal;
-
-            }//end of cell loop
-          //  tend = time(0);
-           // time_normal = clock()-time_normal;
-
-pcout<<"time to do weighted"<<std::endl;
-            metric_cell = dg->high_order_grid->dof_handler_grid.begin_active();
-            //loop over cells and do weight inv
-           // tstart_weight = time(0);
-            time_weighted = clock();
-            for (auto current_cell = dg->dof_handler.begin_active(); current_cell!=dg->dof_handler.end(); ++current_cell, ++metric_cell) {
-                if (!current_cell->is_locally_owned()) continue;
-	
-//pcout<<"grid degree "<<grid_degree<<" metric dofs "<<n_metric_dofs<<std::endl;
-                std::vector<dealii::types::global_dof_index> current_metric_dofs_indices(n_metric_dofs);
-                metric_cell->get_dof_indices (current_metric_dofs_indices);
-                std::vector<std::vector<real>> mapping_support_points(dim);
-                for(int idim=0; idim<dim; idim++){
-                    mapping_support_points[idim].resize(n_metric_dofs/dim);
+                std::vector<dealii::FullMatrix<real>> metric_cofactor(n_quad_pts);
+                std::vector<real> determinant_Jacobian(n_quad_pts);
+                for(unsigned int iquad=0;iquad<n_quad_pts; iquad++){
+                    metric_cofactor[iquad].reinit(dim, dim);
                 }
-                dealii::QGaussLobatto<dim> vol_GLL(grid_degree +1);
-                for (unsigned int igrid_node = 0; igrid_node< n_metric_dofs/dim; ++igrid_node) {
-                    for (unsigned int idof = 0; idof< n_metric_dofs; ++idof) {
-                        const real val = (dg->high_order_grid->volume_nodes[current_metric_dofs_indices[idof]]);
-                        const unsigned int istate = fe_metric.system_to_component_index(idof).first; 
-                        mapping_support_points[istate][igrid_node] += val * fe_metric.shape_value_component(idof,vol_GLL.point(igrid_node),istate); 
+                operators.build_local_vol_metric_cofactor_matrix_and_det_Jac(grid_degree, poly_degree, n_quad_pts, n_metric_dofs/dim, mapping_support_points, determinant_Jacobian, metric_cofactor);
+
+                //get physical split grdient in covariant basis
+                std::array<std::array<dealii::FullMatrix<real>,dim>,nstate> physical_gradient;
+                for(unsigned int istate=0; istate<nstate; istate++){
+                    for(int idim=0; idim<dim; idim++){
+                        physical_gradient[istate][idim].reinit(n_quad_pts, n_quad_pts);    
                     }
                 }
-                const std::vector<real> &quad_weights = operators.volume_quadrature_collection[poly_degree].get_weights();
+                operators.get_Jacobian_scaled_physical_gradient(true, operators.gradient_flux_basis[poly_degree], metric_cofactor, n_quad_pts, physical_gradient); 
 
-                //do weight-adjusted inverse ESFR mass matrix
-                dealii::FullMatrix<real> mass_inv(n_dofs_cell);
-            time_weighted = clock();
-                compute_weighted_inverse_mass_matrix(operators, mapping_support_points, n_metric_dofs/dim, n_quad_pts, n_dofs_cell, poly_degree, grid_degree, quad_weights, mass_inv);
-            time_weighted = clock() - time_weighted;
+            //interpolate solution
+                current_dofs_indices.resize(n_dofs_cell);
+                current_cell->get_dof_indices (current_dofs_indices);
+                for(int idim=0; idim<dim; idim++){
+                    for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
+                        phys_quad_pts[idim][iquad] = 0.0;
+                        for(unsigned int jquad=0; jquad<n_metric_dofs/dim; jquad++){
+                            phys_quad_pts[idim][iquad] += operators.mapping_shape_functions_vol_flux_nodes[grid_degree][poly_degree][iquad][jquad]
+                                                        * mapping_support_points[idim][jquad];
+                        }
+                    }
+                 //   operators.mapping_shape_functions_vol_flux_nodes[grid_degree][poly_degree].vmult(phys_quad_pts[idim], mapping_support_points[idim]);
+                }
+                std::vector<real> soln(n_quad_pts);
+               // for(unsigned int idof=0; idof<n_dofs_cell; idof++){
+                   // solution[current_dofs_indices[idof]]=0.0;
+                    for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
+                    //    soln[iquad] = 0.0;
+                      //  const dealii::Point<dim> qpoint = (fe_values_vol.quadrature_point(iquad));
+                        double exact = 1.0;
+                       for (int idim=0; idim<dim; idim++){
+                               // exact *= exp(-(qpoint[idim])*(qpoint[idim]));
+                                exact *= exp(-(phys_quad_pts[idim][iquad])*(phys_quad_pts[idim][iquad]));
+                        }
+                        soln[iquad] = exact;
+                    //    solution[current_dofs_indices[idof]] +=operators.vol_projection_operator[poly_degree][idof][iquad] *exact; 
+                    }   
+               // }
+                //end interpolated solution
 
-            }//end of cell loop
-           // tend_weight = time(0);
-           // time_weighted = clock() - time_weighted;
+
+                dealii::Vector<real> soln_derivative_x(n_quad_pts);
+                for(int istate=0; istate<nstate; istate++){
+                for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
+                   // solution_deriv[current_dofs_indices[iquad]] = 0.0;
+                    soln_derivative_x[iquad]=0.0;
+                    for(unsigned int idof=0; idof<n_quad_pts; idof++){
+                        soln_derivative_x[iquad] += physical_gradient[istate][dim_check][iquad][idof] * soln[idof];
+                       // soln_derivative_x[iquad] += physical_gradient[istate][0][iquad][idof] * solution[current_dofs_indices[idof]] / determinant_Jacobian[iquad];
+                       // solution_deriv[current_dofs_indices[iquad]] += physical_gradient[istate][0][iquad][idof] * solution[current_dofs_indices[idof]] / determinant_Jacobian[iquad];
+                    }
+                    soln_derivative_x[iquad] /= determinant_Jacobian[iquad];
+                }
+                 
+                for(unsigned int idof=0; idof<n_dofs_cell; idof++){
+                    solution_deriv[current_dofs_indices[idof]] = 0.0;
+                    for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
+                        solution_deriv[current_dofs_indices[idof]] += operators.vol_projection_operator[poly_degree][idof][iquad]
+                                                                    * soln_derivative_x[iquad];
+                    }
+//pcout<<" proj "<<solution_deriv[current_dofs_indices[idof]]<<" other "<<soln_derivative_x[idof]<<std::endl;
+                }
+                }
+
+
+
+
+            }
+
+    //TEST ERROR OOA
+
+pcout<<"OOA here"<<std::endl;
+            double l2error = 0.0;
+            double linf_error = 0.0;
+            int overintegrate = 4;
+            dealii::QGauss<dim> quad_extra(poly_degree+1+overintegrate);
+       //     const dealii::MappingQGeneric<dim, dim> mapping_collection2 (poly_degree+1);
+           // dealii::FEValues<dim,dim> fe_values_extra(mapping_collection2, dg->fe_collection[0], quad_extra, 
+            dealii::FEValues<dim,dim> fe_values_extra(*(dg->high_order_grid->mapping_fe_field), dg->fe_collection[poly_degree], quad_extra, 
+                                dealii::update_values | dealii::update_JxW_values | 
+                                dealii::update_jacobians |  
+                                dealii::update_quadrature_points | dealii::update_inverse_jacobians);
+            const unsigned int n_quad_pts_extra = fe_values_extra.n_quadrature_points;
+            std::vector<dealii::types::global_dof_index> dofs_indices (fe_values_extra.dofs_per_cell);
+            dealii::Vector<real> soln_at_q(n_quad_pts_extra);
+            for (auto current_cell = dg->dof_handler.begin_active(); current_cell!=dg->dof_handler.end(); ++current_cell) {
+                if (!current_cell->is_locally_owned()) continue;
+                fe_values_extra.reinit(current_cell);
+                dofs_indices.resize(fe_values_extra.dofs_per_cell);
+                current_cell->get_dof_indices (dofs_indices);
+
+                for (unsigned int iquad=0; iquad<n_quad_pts_extra; ++iquad) {
+                    soln_at_q[iquad] = 0.0;
+                    for (unsigned int idof=0; idof<fe_values_extra.dofs_per_cell; ++idof) {
+                        soln_at_q[iquad] += solution_deriv[dofs_indices[idof]] * fe_values_extra.shape_value_component(idof, iquad, 0);
+                    }
+                    const dealii::Point<dim> qpoint = (fe_values_extra.quadrature_point(iquad));
+                    double uexact_x=1.0;
+                    for(int idim=0; idim<dim; idim++){
+                        uexact_x *= exp(-((qpoint[idim]) * (qpoint[idim])));
+                    }
+                    uexact_x *= - 2.0 * qpoint[dim_check];
+//pcout<<" soln "<<soln_at_q[iquad]<<" exact "<<uexact_x<<std::endl;
+                    l2error += pow(soln_at_q[iquad] - uexact_x, 2) * fe_values_extra.JxW(iquad);
+                    double inf_temp = std::abs(soln_at_q[iquad]-uexact_x);
+                    if(inf_temp > linf_error){
+                        linf_error = inf_temp;
+                    }
+                }
+
+            }
+pcout<<"got OOA here"<<std::endl;
+
+
+    const unsigned int n_global_active_cells = grid->n_global_active_cells();
+            const double l2error_mpi_sum = std::sqrt(dealii::Utilities::MPI::sum(l2error, MPI_COMM_WORLD));
+            const double linferror_mpi= (dealii::Utilities::MPI::max(linf_error, MPI_COMM_WORLD));
+            // Convergence table
+            const unsigned int n_dofs = dg->dof_handler.n_dofs();
+            const double dx = 1.0/pow(n_dofs,(1.0/dim));
+            grid_size[igrid] = dx;
+            soln_error[igrid] = l2error_mpi_sum;
+            soln_error_inf[igrid] = linferror_mpi;
+
+            convergence_table.add_value("p", poly_degree);
+            convergence_table.add_value("cells", n_global_active_cells);
+            convergence_table.add_value("DoFs", n_dofs);
+            convergence_table.add_value("dx", dx);
+            convergence_table.add_value("soln_L2_error", l2error_mpi_sum);
+            convergence_table.add_value("soln_Linf_error", linferror_mpi);
+
+
+            pcout << " Grid size h: " << dx 
+                 << " L2-soln_error: " << l2error_mpi_sum
+                 << " Linf-soln_error: " << linferror_mpi
+                 << std::endl;
+
+
+            if (igrid > igrid_start) {
+                const double slope_soln_err = log(soln_error[igrid]/soln_error[igrid-1])
+                                      / log(grid_size[igrid]/grid_size[igrid-1]);
+                const double slope_soln_err_inf = log(soln_error_inf[igrid]/soln_error_inf[igrid-1])
+                                      / log(grid_size[igrid]/grid_size[igrid-1]);
+                pcout << "From grid " << igrid-1
+                     << "  to grid " << igrid
+                     << "  dimension: " << dim
+                     << "  polynomial degree p: " << poly_degree
+                     << std::endl
+                     << "  solution_error1 " << soln_error[igrid-1]
+                     << "  solution_error2 " << soln_error[igrid]
+                     << "  slope " << slope_soln_err
+                     << "  solution_error1_inf " << soln_error_inf[igrid-1]
+                     << "  solution_error2_inf " << soln_error_inf[igrid]
+                     << "  slope " << slope_soln_err_inf
+                     << std::endl;
+            }
+
+
+    //end test error OOA
+
 
 
     }//end grid refinement loop
 
-    }//end poly degree loop
-
-   // pcout<<"Normal Mass inv took "<<difftime(tend, tstart)<<" seconds (s)."<<std::endl;
-   // pcout<<"Weighted Mass inv took "<<difftime(tend_weight, tstart_weight)<<" seconds (s)."<<std::endl;
-  //  pcout<<"Normal Mass inv took "<<time_normal ((float)time_normal)/CLOCKS_PER_SEC<<" seconds (s)."<<std::endl;
-    printf(" it took %g seconds normal\n",((float)time_normal)/CLOCKS_PER_SEC);
-    printf(" it took %g seconds weighted\n",((float)time_weighted)/CLOCKS_PER_SEC);
-  //  pcout<<"Weighted Mass inv took "<<time_weighted<<" seconds (s)."<<std::endl;
-
-   // if(difftime(tend, tstart) < difftime(tend_weight, tstart_weight)){
-    if(time_normal < time_weighted){
-        pcout<<"Weighted inv not faster!"<<std::endl;
+    const int igrid = n_grids-1;
+    const double slope_soln_err = log(soln_error[igrid]/soln_error[igrid-1])
+                          / log(grid_size[igrid]/grid_size[igrid-1]);
+    if(std::abs(slope_soln_err-poly_degree)>0.05){
         return 1;
     }
-    else
-        return 0;
+    
+        pcout << " ********************************************"
+             << std::endl
+             << " Convergence rates for p = " << poly_degree
+             << std::endl
+             << " ********************************************"
+             << std::endl;
+        convergence_table.evaluate_convergence_rates("soln_L2_error", "cells", dealii::ConvergenceTable::reduction_rate_log2, dim);
+        convergence_table.evaluate_convergence_rates("soln_Linf_error", "cells", dealii::ConvergenceTable::reduction_rate_log2, dim);
+        convergence_table.set_scientific("dx", true);
+        convergence_table.set_scientific("soln_L2_error", true);
+        convergence_table.set_scientific("soln_Linf_error", true);
+        if (pcout.is_active()) convergence_table.write_text(pcout.get_stream());
+
+    }//end poly degree loop
 }
 
 //}//end PHiLiP namespace

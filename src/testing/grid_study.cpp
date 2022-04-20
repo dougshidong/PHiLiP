@@ -58,7 +58,6 @@ void GridStudy<dim,nstate>
     //    *sol = (++i) * 0.01;
     //}
     dg.solution = solution_no_ghost;
-
 }
 template <int dim, int nstate>
 double GridStudy<dim,nstate>

@@ -1,5 +1,6 @@
 SET(OPERSOURCE
     operators.cpp
+    operators_factory.cpp
     )
 
 foreach(dim RANGE 1 3)

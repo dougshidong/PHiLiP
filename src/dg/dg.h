@@ -191,6 +191,17 @@ public:
      */
     void evaluate_mass_matrices (bool do_inverse_mass_matrix = false);
 
+    ///Evaluates the metric dependent local mass matrices and inverses, then sets them in the global matrices.
+    void evaluate_local_metric_dependent_mass_matrix_and_set_in_global_mass_matrix(
+        const bool do_inverse_mass_matrix, 
+        const unsigned int fe_index_curr_cell, 
+        const unsigned int n_quad_pts, 
+        const unsigned int n_dofs_cell, 
+        const std::vector<dealii::types::global_dof_index> dofs_indices, 
+        const std::vector<real> &determinant_Jacobian, 
+        const std::vector<real> &quad_weights, 
+        dealii::FullMatrix<real> &local_mass_matrix);
+
     /// Evaluates the maximum stable time step
     /** If exact_time_stepping = true, use the same time step for the entire solution
      *  NOT YET IMPLEMENTED
@@ -315,10 +326,10 @@ public:
     dealii::LinearAlgebra::distributed::Vector<double> solution;
 
     ///The auxiliary equations' right hand sides.
-    std::vector<dealii::LinearAlgebra::distributed::Vector<double>> auxiliary_RHS;
+    std::array<dealii::LinearAlgebra::distributed::Vector<double>,dim> auxiliary_RHS;
 
     ///The auxiliary equations' solution.
-    std::vector<dealii::LinearAlgebra::distributed::Vector<double>> auxiliary_solution;
+    std::array<dealii::LinearAlgebra::distributed::Vector<double>,dim> auxiliary_solution;
 private:
     /// Modal coefficients of the solution used to compute dRdW last
     /// Will be used to avoid recomputing dRdW.
@@ -485,7 +496,9 @@ public:
         dealii::hp::FEFaceValues<dim,dim>    &fe_values_collection_face_ext,
         dealii::hp::FESubfaceValues<dim,dim> &fe_values_collection_subface,
         dealii::hp::FEValues<dim,dim>        &fe_values_collection_volume_lagrange,
-        dealii::LinearAlgebra::distributed::Vector<double> &rhs);
+        const bool compute_Auxiliary_RHS,//flag on whether computing the Auxiliary variable's equations' residuals
+        dealii::LinearAlgebra::distributed::Vector<double> &rhs,
+        std::array<dealii::LinearAlgebra::distributed::Vector<double>,dim> &rhs_aux);
 
     /// Finite Element Collection for p-finite-element to represent the solution
     /** This is a collection of FESystems */
@@ -526,7 +539,7 @@ public:
     std::shared_ptr<HighOrderGrid<dim,real,MeshType>> high_order_grid;
 
     /// Operators base that will provide the Operators
-    OPERATOR::OperatorBase<dim,real> operators;
+    std::shared_ptr<OPERATOR::OperatorsBase<dim,real,2*dim>> operators;
     /// Sets the current time within DG to be used for unsteady source terms.
     void set_current_time(const real current_time);
 
@@ -543,6 +556,32 @@ protected:
     dealii::LinearAlgebra::distributed::Vector<double> artificial_dissipation_c0;
 
 protected:
+
+    ///Evaluate the volume RHS for the auxiliary equation.
+    virtual void assemble_volume_term_auxiliary_equation(
+        const std::vector<dealii::types::global_dof_index> &current_dofs_indices,
+        const std::vector<dealii::types::global_dof_index> &metric_dof_indices,
+        const unsigned int poly_degree,
+        const unsigned int grid_degree,
+        std::vector<dealii::Tensor<1,dim,double>> &local_auxiliary_RHS)=0;
+    ///Evaluate the boundary RHS for the auxiliary equation.
+    virtual void assemble_boundary_term_auxiliary_equation(
+        const unsigned int poly_degree, const unsigned int grid_degree,
+        const unsigned int iface,
+        const unsigned int boundary_id,
+        const std::vector<dealii::types::global_dof_index> &current_dofs_indices,
+        const std::vector<dealii::types::global_dof_index> &metric_dof_indices,
+        std::vector<dealii::Tensor<1,dim,real>> &local_auxiliary_RHS)=0;
+    ///Evaluate the facet RHS for the auxiliary equation.
+    virtual void assemble_face_term_auxiliary(
+        const unsigned int iface, const unsigned int neighbor_iface,
+        const unsigned int poly_degree, const unsigned int grid_degree,
+        const std::vector<dealii::types::global_dof_index> &current_dofs_indices,
+        const std::vector<dealii::types::global_dof_index> &neighbor_dofs_indices,
+        const std::vector<dealii::types::global_dof_index> &metric_dof_indices_int,
+        const std::vector<dealii::types::global_dof_index> &metric_dof_indices_ext,
+        std::vector<dealii::Tensor<1,dim,real>> &local_auxiliary_RHS_int,
+        std::vector<dealii::Tensor<1,dim,real>> &local_auxiliary_RHS_ext)=0;
 
     /// Evaluate the integral over the cell volume and the specified derivatives.
     /** Compute both the right-hand side and the corresponding block of dRdW, dRdX, and/or d2R. */
@@ -789,6 +828,11 @@ protected:
     /** Usually called after setting physics.
      */
     void reset_numerical_fluxes();
+
+public:
+    
+    /// Operators base State that will provide the Operators to the DGStrong and DGWeak classes
+    std::shared_ptr<OPERATOR::OperatorsBaseState<dim,real,nstate,2*dim>> operators_state;
 }; // end of DGBaseState class
 
 } // PHiLiP namespace

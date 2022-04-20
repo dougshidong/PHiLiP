@@ -84,6 +84,7 @@ int main (int argc, char * argv[])
     std::array<double,n_grids> grid_size;
     std::array<double,n_grids> soln_error;
     std::array<double,n_grids> soln_error_inf;
+    unsigned int exit_grid=0;
     for(unsigned int poly_degree = 2; poly_degree<6; poly_degree++){
         unsigned int grid_degree = 1;
     for(unsigned int igrid=igrid_start; igrid<n_grids; ++igrid){
@@ -120,7 +121,8 @@ pcout<<" Grid Index"<<igrid<<std::endl;
 pcout<<" made grid for Index"<<igrid<<std::endl;
 
     //setup operator
-    OPERATOR::OperatorBase<dim,real> operators(&all_parameters_new, nstate, poly_degree, poly_degree, grid_degree); 
+   // OPERATOR::OperatorBase<dim,real> operators(&all_parameters_new, nstate, poly_degree, poly_degree, grid_degree); 
+    OPERATOR::OperatorsBaseState<dim,real,nstate,2*dim> operators(&all_parameters_new, poly_degree, poly_degree);
 //setup DG
    // std::shared_ptr < PHiLiP::DGBase<dim, double> > dg = PHiLiP::DGFactory<dim,double>::create_discontinuous_galerkin(&all_parameters_new, poly_degree, grid);
     using PDE_enum = Parameters::AllParameters::PartialDifferentialEquation;
@@ -299,25 +301,33 @@ pcout<<"got OOA here"<<std::endl;
                      << "  solution_error2_inf " << soln_error_inf[igrid]
                      << "  slope " << slope_soln_err_inf
                      << std::endl;
+
+                //if hit correct convergence rates skip to next poly
+                if(std::abs(slope_soln_err-poly_degree)<0.1 && poly_degree % 2 == 1){
+                    exit_grid = igrid;
+                    break;
+                }
+                if(std::abs(slope_soln_err-(poly_degree+1))<0.1 && poly_degree % 2 == 0){
+                    exit_grid = igrid;
+                    break;
+                }
             }
-
-
-    //end test error OOA
-
-
 
     }//end grid refinement loop
 
-    const int igrid = n_grids-1;
-   // const double slope_soln_err = log(soln_error[igrid]/soln_error[igrid-1])
-   //                       / log(grid_size[igrid]/grid_size[igrid-1]);
-    const double slope_soln_err = log(soln_error_inf[igrid]/soln_error_inf[igrid-1])
+    //const int igrid = n_grids-1;
+    const unsigned int igrid = exit_grid;
+    const double slope_soln_err = log(soln_error[igrid]/soln_error[igrid-1])
                           / log(grid_size[igrid]/grid_size[igrid-1]);
-    if(std::abs(slope_soln_err-poly_degree)>0.08 && poly_degree % 2 == 1){
+    //const double slope_soln_err = log(soln_error_inf[igrid]/soln_error_inf[igrid-1])
+    //                      / log(grid_size[igrid]/grid_size[igrid-1]);
+    if(std::abs(slope_soln_err-poly_degree)>0.1 && poly_degree % 2 == 1){
+        pcout<<" wrong order for poly "<<poly_degree<<" and slope "<<slope_soln_err<<std::endl;
         return 1;
     }
-    if(std::abs(slope_soln_err-(poly_degree+1))>0.05 && poly_degree % 2 == 0){
+    if(std::abs(slope_soln_err-(poly_degree+1))>0.1 && poly_degree % 2 == 0){
     //if(std::abs(slope_soln_err-(poly_degree))>0.05 && poly_degree % 2 == 0){
+        pcout<<" wrong order for poly "<<poly_degree<<" and slope "<<slope_soln_err<<std::endl;
         return 1;
     }
     

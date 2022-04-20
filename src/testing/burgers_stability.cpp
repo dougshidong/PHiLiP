@@ -83,7 +83,7 @@ int BurgersEnergyStability<dim, nstate>::run_test() const
     // Create ODE solver using the factory and providing the DG object
     std::shared_ptr<PHiLiP::ODE::ODESolverBase<dim, double>> ode_solver = PHiLiP::ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
    
-    double finalTime = 0.01;
+    double finalTime = 0.1;
    
     //double dt = all_parameters->ode_solver_param.initial_time_step;
     //(void) dt;

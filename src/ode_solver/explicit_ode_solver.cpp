@@ -41,7 +41,9 @@ void ExplicitODESolver<dim,real,MeshType>::step_in_time (real dt, const bool pse
 
     const bool relaxation_runge_kutta = ode_param.relaxation_runge_kutta;
     if (relaxation_runge_kutta) {
+        std::cout << "Target dt = " << dt << std::endl;
         dt = scale_dt_by_relaxation_factor(dt);
+        std::cout << "Modified dt = " << dt << std::endl;
     }
 
 
@@ -66,23 +68,34 @@ void ExplicitODESolver<dim,real,MeshType>::step_in_time (real dt, const bool pse
 template <int dim, typename real, typename MeshType>
 real ExplicitODESolver<dim,real,MeshType>::scale_dt_by_relaxation_factor (real dt)
 {
+
     Parameters::ODESolverParam ode_param = ODESolverBase<dim,real,MeshType>::all_parameters->ode_solver_param;
     const int rk_order = ode_param.runge_kutta_order;
     const bool relaxation_runge_kutta = ode_param.relaxation_runge_kutta;
-    double gamma = 0;
+    double gamma = 1;
     if (relaxation_runge_kutta){
+        std::cout << "Entering RRK" << std::endl;
+        std::cout << "Current time is " << this->current_time << std::endl;
         double denominator=0;
         double numerator=0;
         for (int i = 0; i < rk_order; ++i){
             for (int j = 0; j < rk_order; ++j){
-                numerator += this->butcher_tableau_b[i] *this-> butcher_tableau_a[i][j] *(this->rk_stage[i]*this->rk_stage[j]); 
-                denominator += this->butcher_tableau_b[i]*this->butcher_tableau_b[j] *(this->rk_stage[i]*this->rk_stage[j]);
+                std::cout << "    i = " << i << " j = " << j << " a_ij = " << butcher_tableau_a[i][j] << std::endl;
+                //double dot_product = (this->rk_stage[i]) *( this->rk_stage[j]);
+                double dot_product = 0.0;
+                for (unsigned int m = 0; m < this->dg->solution.size(); ++m) {
+                    dot_product += 1./(this->dg->global_inverse_mass_matrix(m,m)) * this->rk_stage[i][m] * this->rk_stage[j][m];
+                }
+                numerator += this->butcher_tableau_b[i] *this-> butcher_tableau_a[i][j] * dot_product; 
+                denominator += this->butcher_tableau_b[i]*this->butcher_tableau_b[j] * dot_product;
             }
         }
         numerator *= 2;
+        std::cout << std::setprecision(16) << std::fixed;
+        std::cout << "Numerator = " << numerator << "  Denominator = " << denominator << std::endl;
         gamma = (denominator < 1E-8) ? 1 : numerator/denominator;
     }
-
+    std::cout << "gamma = " << gamma << std::endl;
     return dt * gamma;
 }
 

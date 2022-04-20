@@ -36,7 +36,6 @@
 
 #include "parameters/all_parameters.h"
 #include "parameters/parameters.h"
-//#include "dg/dg.h"
 
 namespace PHiLiP {
 namespace OPERATOR {
@@ -139,7 +138,6 @@ public:
     void allocate_surface_operators ();
 
      ///Solution basis functions evaluated at volume cubature nodes.
-    // std::array<dealii::FullMatrix<real>, max_degree> basis_at_vol_cubature;
      std::vector<dealii::FullMatrix<real>> basis_at_vol_cubature;
      ///\f$ \mathbf{W}*\mathbf{\chi}(\mathbf{\xi}_v^r) \f$  That is Quadrature Weights multiplies with basis_at_vol_cubature.
      std::vector<dealii::FullMatrix<real>> vol_integral_basis;

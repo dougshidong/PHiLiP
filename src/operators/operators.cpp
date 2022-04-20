@@ -1428,6 +1428,7 @@ OperatorsBaseState<dim,real,nstate,n_faces>
     const unsigned int grid_degree_input)
     : OperatorsBase<dim,real,n_faces>::OperatorsBase(parameters_input, nstate, max_degree_input, max_degree_input, grid_degree_input)
 {
+    this->pcout<<" Constructing Operators state ..."<<std::endl;
     allocate_volume_operators_state();
     create_vol_basis_operators_state();
     //setup surface operators
@@ -1439,7 +1440,7 @@ template <  int dim, typename real, int nstate,
             int n_faces>  
 OperatorsBaseState<dim,real,nstate,n_faces>::~OperatorsBaseState ()
 {
-    this->pcout << "Destructing Operators state.." << std::endl;
+    this->pcout << "Destructing Operators state ..." << std::endl;
 }
 
 template <  int dim, typename real, int nstate,

@@ -106,9 +106,7 @@ dealii::Tensor<1,dim,real> ConvectionDiffusion<dim,nstate,real>
     dealii::Tensor<1,dim,real> advection_speed;
     if (hasConvection) {
         if(dim >= 1) advection_speed[0] = linear_advection_velocity[0];
-       // if(dim >= 1) advection_speed[0] = 1.0;
         if(dim >= 2) advection_speed[1] = linear_advection_velocity[1];
-       // if(dim >= 2) advection_speed[1] = 1.0;
         if(dim >= 3) advection_speed[2] = linear_advection_velocity[2];
     } else {
         const real zero = 0.0;

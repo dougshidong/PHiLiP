@@ -188,7 +188,7 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
 
                       dealii::Patterns::Selection("lax_friedrichs | roe | l2roe | split_form | central_flux | entropy_conserving_flux"),
                       "Convective numerical flux. "
-                      "Choices are <lax_friedrichs | roe | l2roe | split_form | central_flux | entropy_conserving_flux>.");
+                      "Choices are <lax_friedrichs | roe | l2roe | split_form | central_flux | entropy_conserving_flux (only for Burgers' Inviscid currently)>.");
 
 
     prm.declare_entry("diss_num_flux", "symm_internal_penalty",
@@ -230,27 +230,27 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     else if (mesh_type_string == "parallel_distributed_triangulation") { mesh_type = parallel_distributed_triangulation; }
 
     const std::string test_string = prm.get("test_type");
-    if      (test_string == "run_control")                            { test_type = run_control; }
-    else if (test_string == "grid_refinement_study")             { test_type = grid_refinement_study; }
-    else if (test_string == "burgers_energy_stability")          { test_type = burgers_energy_stability; }
-    else if (test_string == "diffusion_exact_adjoint")           { test_type = diffusion_exact_adjoint; }
-    else if (test_string == "euler_gaussian_bump")               { test_type = euler_gaussian_bump; }
-    else if (test_string == "euler_gaussian_bump_enthalpy")      { test_type = euler_gaussian_bump_enthalpy; }
-    else if (test_string == "euler_gaussian_bump_adjoint")       { test_type = euler_gaussian_bump_adjoint; }
-    else if (test_string == "euler_cylinder")                    { test_type = euler_cylinder; }
-    else if (test_string == "euler_cylinder_adjoint")            { test_type = euler_cylinder_adjoint; }
-    else if (test_string == "euler_vortex")                      { test_type = euler_vortex; }
-    else if (test_string == "euler_entropy_waves")               { test_type = euler_entropy_waves; }
-    else if (test_string == "advection_periodicity")             { test_type = advection_periodicity; }
-    else if (test_string == "convection_diffusion_periodicity")  { test_type = convection_diffusion_periodicity; }
-    else if (test_string == "euler_split_taylor_green")          { test_type = euler_split_taylor_green; }
-    else if (test_string == "euler_bump_optimization")           { test_type = euler_bump_optimization; }
-    else if (test_string == "euler_naca_optimization")           { test_type = euler_naca_optimization; }
-    else if (test_string == "shock_1d")                          { test_type = shock_1d; }
-    else if (test_string == "reduced_order")                     { test_type = reduced_order; }
+    if      (test_string == "run_control")                              { test_type = run_control; }
+    else if (test_string == "grid_refinement_study")                    { test_type = grid_refinement_study; }
+    else if (test_string == "burgers_energy_stability")                 { test_type = burgers_energy_stability; }
+    else if (test_string == "diffusion_exact_adjoint")                  { test_type = diffusion_exact_adjoint; }
+    else if (test_string == "euler_gaussian_bump")                      { test_type = euler_gaussian_bump; }
+    else if (test_string == "euler_gaussian_bump_enthalpy")             { test_type = euler_gaussian_bump_enthalpy; }
+    else if (test_string == "euler_gaussian_bump_adjoint")              { test_type = euler_gaussian_bump_adjoint; }
+    else if (test_string == "euler_cylinder")                           { test_type = euler_cylinder; }
+    else if (test_string == "euler_cylinder_adjoint")                   { test_type = euler_cylinder_adjoint; }
+    else if (test_string == "euler_vortex")                             { test_type = euler_vortex; }
+    else if (test_string == "euler_entropy_waves")                      { test_type = euler_entropy_waves; }
+    else if (test_string == "advection_periodicity")                    { test_type = advection_periodicity; }
+    else if (test_string == "convection_diffusion_periodicity")         { test_type = convection_diffusion_periodicity; }
+    else if (test_string == "euler_split_taylor_green")                 { test_type = euler_split_taylor_green; }
+    else if (test_string == "euler_bump_optimization")                  { test_type = euler_bump_optimization; }
+    else if (test_string == "euler_naca_optimization")                  { test_type = euler_naca_optimization; }
+    else if (test_string == "shock_1d")                                 { test_type = shock_1d; }
+    else if (test_string == "reduced_order")                            { test_type = reduced_order; }
     else if (test_string == "POD_adaptation")                           { test_type = POD_adaptation; }
 //    else if (test_string == "burgers_rewienski_snapshot")        { test_type = burgers_rewienski_snapshot; }
-    else if (test_string == "optimization_inverse_manufactured") {test_type = optimization_inverse_manufactured; }
+    else if (test_string == "optimization_inverse_manufactured")        {test_type = optimization_inverse_manufactured; }
     else if (test_string == "finite_difference_sensitivity")            { test_type = finite_difference_sensitivity; }
     else if (test_string == "euler_naca0012")                           { test_type = euler_naca0012; }
     else if (test_string == "optimization_inverse_manufactured")        { test_type = optimization_inverse_manufactured; }
@@ -302,13 +302,13 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     rk_order = prm.get_integer("rk_order");
 
     const std::string conv_num_flux_string = prm.get("conv_num_flux");
-    if (conv_num_flux_string == "lax_friedrichs") conv_num_flux_type = lax_friedrichs;
-    if (conv_num_flux_string == "split_form")     conv_num_flux_type = split_form;
-    if (conv_num_flux_string == "roe")            conv_num_flux_type = roe;
-
-    if (conv_num_flux_string == "l2roe")   conv_num_flux_type = l2roe;
-    if (conv_num_flux_string == "central_flux")   conv_num_flux_type = central_flux;
-    if (conv_num_flux_string == "entropy_conserving_flux")   conv_num_flux_type = entropy_cons_flux;
+    if (conv_num_flux_string == "lax_friedrichs")                                               conv_num_flux_type = lax_friedrichs;
+    if (conv_num_flux_string == "split_form")                                                   conv_num_flux_type = split_form;
+    if (conv_num_flux_string == "roe")                                                          conv_num_flux_type = roe;
+                                                                                                 
+    if (conv_num_flux_string == "l2roe")                                                        conv_num_flux_type = l2roe;
+    if (conv_num_flux_string == "central_flux")                                                 conv_num_flux_type = central_flux;
+    if (conv_num_flux_string == "entropy_conserving_flux" && pde_string == "burgers_inviscid" ) conv_num_flux_type = entropy_cons_flux;
 
 
     const std::string diss_num_flux_string = prm.get("diss_num_flux");
@@ -319,24 +319,24 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     }
 
     const std::string flux_reconstruction_string = prm.get("flux_reconstruction");
-    if (flux_reconstruction_string == "cDG") flux_reconstruction_type = cDG;
-    if (flux_reconstruction_string == "cSD") flux_reconstruction_type = cSD;
-    if (flux_reconstruction_string == "cHU") flux_reconstruction_type = cHU;
-    if (flux_reconstruction_string == "cNegative") flux_reconstruction_type = cNegative;
-    if (flux_reconstruction_string == "cNegative2") flux_reconstruction_type = cNegative2;
-    if (flux_reconstruction_string == "cPlus") flux_reconstruction_type = cPlus;
-    if (flux_reconstruction_string == "cPlus1D") flux_reconstruction_type = cPlus1D;
-    if (flux_reconstruction_string == "c10Thousand") flux_reconstruction_type = c10Thousand;
-    if (flux_reconstruction_string == "cHULumped") flux_reconstruction_type = cHULumped;
+    if (flux_reconstruction_string == "cDG")            flux_reconstruction_type = cDG;
+    if (flux_reconstruction_string == "cSD")            flux_reconstruction_type = cSD;
+    if (flux_reconstruction_string == "cHU")            flux_reconstruction_type = cHU;
+    if (flux_reconstruction_string == "cNegative")      flux_reconstruction_type = cNegative;
+    if (flux_reconstruction_string == "cNegative2")     flux_reconstruction_type = cNegative2;
+    if (flux_reconstruction_string == "cPlus")          flux_reconstruction_type = cPlus;
+    if (flux_reconstruction_string == "cPlus1D")        flux_reconstruction_type = cPlus1D;
+    if (flux_reconstruction_string == "c10Thousand")    flux_reconstruction_type = c10Thousand;
+    if (flux_reconstruction_string == "cHULumped")      flux_reconstruction_type = cHULumped;
 
     const std::string flux_reconstruction_aux_string = prm.get("flux_reconstruction_aux");
-    if (flux_reconstruction_aux_string == "kDG") flux_reconstruction_aux_type = kDG;
-    if (flux_reconstruction_aux_string == "kSD") flux_reconstruction_aux_type = kSD;
-    if (flux_reconstruction_aux_string == "kHU") flux_reconstruction_aux_type = kHU;
-    if (flux_reconstruction_aux_string == "kNegative") flux_reconstruction_aux_type = kNegative;
-    if (flux_reconstruction_aux_string == "kNegative2") flux_reconstruction_aux_type = kNegative2;
-    if (flux_reconstruction_aux_string == "kPlus") flux_reconstruction_aux_type = kPlus;
-    if (flux_reconstruction_aux_string == "k10Thousand") flux_reconstruction_aux_type = k10Thousand;
+    if (flux_reconstruction_aux_string == "kDG")                flux_reconstruction_aux_type = kDG;
+    if (flux_reconstruction_aux_string == "kSD")                flux_reconstruction_aux_type = kSD;
+    if (flux_reconstruction_aux_string == "kHU")                flux_reconstruction_aux_type = kHU;
+    if (flux_reconstruction_aux_string == "kNegative")          flux_reconstruction_aux_type = kNegative;
+    if (flux_reconstruction_aux_string == "kNegative2")         flux_reconstruction_aux_type = kNegative2;
+    if (flux_reconstruction_aux_string == "kPlus")              flux_reconstruction_aux_type = kPlus;
+    if (flux_reconstruction_aux_string == "k10Thousand")        flux_reconstruction_aux_type = k10Thousand;
 
 
     pcout << "Parsing linear solver subsection..." << std::endl;

@@ -1,5 +1,5 @@
 set(TEST_SRC
-    Volume_operators_test.cpp
+    volume_operators_test.cpp
     )
 
 foreach(dim RANGE 1 3)
@@ -79,7 +79,7 @@ foreach(dim RANGE 2 3)
 endforeach()
 
 set(TEST_SRC
-    Surface_oper_test.cpp
+    surface_oper_test.cpp
     )
 
 foreach(dim RANGE 1 3)
@@ -119,7 +119,7 @@ foreach(dim RANGE 1 3)
 endforeach()
 
 set(TEST_SRC
-Surface_GCL_test.cpp
+    surface_GCL_test.cpp
     )
 
 foreach(dim RANGE 2 3)
@@ -159,7 +159,7 @@ foreach(dim RANGE 2 3)
 endforeach()
 
 set(TEST_SRC
-Surface_GCL_Superparametric_test.cpp
+    surface_GCL_Superparametric_test.cpp
     )
 
 foreach(dim RANGE 2 3)
@@ -199,7 +199,7 @@ foreach(dim RANGE 2 3)
 endforeach()
 
 set(TEST_SRC
-GCL_Collocated_test.cpp
+    GCL_Collocated_test.cpp
     )
 
 foreach(dim RANGE 2 3)
@@ -239,7 +239,7 @@ foreach(dim RANGE 2 3)
 endforeach()
 
 set(TEST_SRC
-Flux_oper_test.cpp
+    flux_oper_test.cpp
     )
 
 foreach(dim RANGE 1 3)
@@ -318,7 +318,7 @@ foreach(dim RANGE 1 2)
 endforeach()
 
 set(TEST_SRC
-weighted_int_by_parts.cpp
+    weighted_int_by_parts.cpp
     )
 
 foreach(dim RANGE 1 3)
@@ -358,7 +358,7 @@ foreach(dim RANGE 1 3)
 endforeach()
 
 set(TEST_SRC
-Metric_split_form_gradient.cpp
+    metric_split_form_gradient.cpp
     )
 
 foreach(dim RANGE 2 3)
@@ -398,7 +398,7 @@ foreach(dim RANGE 2 3)
 endforeach()
 
 set(TEST_SRC
-Surface_conforming_test.cpp
+    surface_conforming_test.cpp
     )
 
 foreach(dim RANGE 2 3)
@@ -438,7 +438,7 @@ foreach(dim RANGE 2 3)
 endforeach()
 
 set(TEST_SRC
-Weight_adjusted_mass_inverse_test.cpp
+    weight_adjusted_mass_inverse_test.cpp
     )
 
 foreach(dim RANGE 2 3)
@@ -478,7 +478,7 @@ foreach(dim RANGE 2 3)
 endforeach()
 
 set(TEST_SRC
-Sum_factorization_test.cpp
+    sum_factorization_test.cpp
     )
 
 foreach(dim RANGE 2 3)

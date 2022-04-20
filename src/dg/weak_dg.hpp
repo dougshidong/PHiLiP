@@ -36,6 +36,31 @@ private:
 
     ///Assembles the auxiliary equations' residuals and solves for the auxiliary variables.
     void assemble_auxiliary_residual ();
+    ///Evaluate the volume RHS for the auxiliary equation.
+    void assemble_volume_term_auxiliary_equation(
+        const std::vector<dealii::types::global_dof_index> &current_dofs_indices,
+        const std::vector<dealii::types::global_dof_index> &metric_dof_indices,
+        const unsigned int poly_degree,
+        const unsigned int grid_degree,
+        std::vector<dealii::Tensor<1,dim,double>> &local_auxiliary_RHS);
+    ///Evaluate the boundary RHS for the auxiliary equation.
+    void assemble_boundary_term_auxiliary_equation(
+        const unsigned int poly_degree, const unsigned int grid_degree,
+        const unsigned int iface,
+        const unsigned int boundary_id,
+        const std::vector<dealii::types::global_dof_index> &current_dofs_indices,
+        const std::vector<dealii::types::global_dof_index> &metric_dof_indices,
+        std::vector<dealii::Tensor<1,dim,real>> &local_auxiliary_RHS);
+    ///Evaluate the facet RHS for the auxiliary equation.
+    void assemble_face_term_auxiliary(
+        const unsigned int iface, const unsigned int neighbor_iface,
+        const unsigned int poly_degree, const unsigned int grid_degree,
+        const std::vector<dealii::types::global_dof_index> &current_dofs_indices,
+        const std::vector<dealii::types::global_dof_index> &neighbor_dofs_indices,
+        const std::vector<dealii::types::global_dof_index> &metric_dof_indices_int,
+        const std::vector<dealii::types::global_dof_index> &metric_dof_indices_ext,
+        std::vector<dealii::Tensor<1,dim,real>> &local_auxiliary_RHS_int,
+        std::vector<dealii::Tensor<1,dim,real>> &local_auxiliary_RHS_ext);
 
     /// Main function responsible for evaluating the integral over the cell volume and the specified derivatives.
     /** This function templates the solution and metric coefficients in order to possible AD the residual.

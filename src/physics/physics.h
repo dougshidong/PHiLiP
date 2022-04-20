@@ -95,7 +95,7 @@ public:
     /// Source term that does not require differentiation.
     virtual std::array<real,nstate> source_term (
         const dealii::Point<dim,real> &pos,
-        const std::array<real,nstate> &solution,//) const;
+        const std::array<real,nstate> &solution,
         const real /*current_time*/) const = 0;
 
     /// Artificial source term that does not require differentiation stemming from artificial dissipation.

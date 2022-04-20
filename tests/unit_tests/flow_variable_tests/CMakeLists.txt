@@ -1,5 +1,5 @@
 set(TEST_SRC
-Auxiliary_variable_test.cpp
+auxiliary_variable_test.cpp
     )
 
 foreach(dim RANGE 1 1)
@@ -39,7 +39,7 @@ foreach(dim RANGE 1 1)
 endforeach()
 
 set(TEST_SRC
-Auxiliary_variable_test.cpp
+auxiliary_variable_test.cpp
     )
 
 foreach(dim RANGE 2 3)

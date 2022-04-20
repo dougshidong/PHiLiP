@@ -53,6 +53,7 @@
 #include "parameters/all_parameters.h"
 #include "parameters/parameters.h"
 #include "operators/operators.h"
+#include "operators/operators_factory.hpp"
 #include "dg/dg.h"
 #include "dg/dg_factory.hpp"
 
@@ -113,11 +114,15 @@ int main (int argc, char * argv[])
         dealii::GridGenerator::hyper_cube (*grid, left, right, colorize);
         grid->refine_global(igrid);
 
-      //  OPERATOR::OperatorBase<dim,real> operators_p_q(&all_parameters_new, nstate, poly_degree + q_degree, poly_degree + q_degree, 1); 
+      //  OPERATOR::OperatorsBase<dim,real> operators_p_q(&all_parameters_new, nstate, poly_degree + q_degree, poly_degree + q_degree, 1); 
         all_parameters_new.overintegration = q_degree;
-        OPERATOR::OperatorBase<dim,real> operators_p(&all_parameters_new, nstate, poly_degree, poly_degree, 1); 
+       // std::shared_ptr<OPERATOR::OperatorsBase<dim, real>> operators_p = OPERATOR::OperatorsFactory<dim, real>::create_operators(&all_parameters_new, nstate, poly_degree, poly_degree, 1);
+        std::shared_ptr<OPERATOR::OperatorsBaseState<dim,real,nstate,2*dim>> operators_p = std::make_shared< OPERATOR::OperatorsBaseState<dim,real,nstate,2*dim> >(&all_parameters_new, poly_degree, poly_degree);
+//        OPERATOR::OperatorsBase<dim,real> operators_p(&all_parameters_new, nstate, poly_degree, poly_degree, 1); 
         all_parameters_new.overintegration = poly_degree;
-        OPERATOR::OperatorBase<dim,real> operators_q(&all_parameters_new, nstate, q_degree, q_degree, 1); 
+//        OPERATOR::OperatorsBase<dim,real> operators_q(&all_parameters_new, nstate, q_degree, q_degree, 1); 
+        std::shared_ptr<OPERATOR::OperatorsBaseState<dim,real,nstate,2*dim>> operators_q = std::make_shared< OPERATOR::OperatorsBaseState<dim,real,nstate,2*dim> >(&all_parameters_new, q_degree, q_degree);
+       // std::shared_ptr<OPERATOR::OperatorsBase<dim, real>> operators_q = OPERATOR::OperatorsFactory<dim, real>::create_operators(&all_parameters_new, nstate, q_degree, q_degree, 1);
 
         const unsigned int n_dofs_p = pow(poly_degree+1, dim);
         const unsigned int n_dofs_q = pow(q_degree+1, dim);
@@ -140,12 +145,12 @@ int main (int argc, char * argv[])
 
         dealii::Vector<double> u_at_p_q_nodes(n_dofs_p_q);
         dealii::Vector<double> v_at_p_q_nodes(n_dofs_p_q);
-        operators_p.basis_at_vol_cubature[poly_degree].vmult(u_at_p_q_nodes, u_node);
-        operators_q.basis_at_vol_cubature[q_degree].vmult(v_at_p_q_nodes, v_node);
+        operators_p->basis_at_vol_cubature[poly_degree].vmult(u_at_p_q_nodes, u_node);
+        operators_q->basis_at_vol_cubature[q_degree].vmult(v_at_p_q_nodes, v_node);
         dealii::Vector<double> Du_at_p_q_nodes(n_dofs_p_q);
         dealii::Vector<double> Dv_at_p_q_nodes(n_dofs_p_q);
-        operators_p.gradient_flux_basis[poly_degree][0][0].vmult(Du_at_p_q_nodes, u_at_p_q_nodes);
-        operators_q.gradient_flux_basis[q_degree][0][0].vmult(Dv_at_p_q_nodes, v_at_p_q_nodes);
+        operators_p->gradient_flux_basis[poly_degree][0][0].vmult(Du_at_p_q_nodes, u_at_p_q_nodes);
+        operators_q->gradient_flux_basis[q_degree][0][0].vmult(Dv_at_p_q_nodes, v_at_p_q_nodes);
         dealii::Vector<double> u_v_at_p_q_nodes(n_dofs_p_q);
         dealii::Vector<double> Du_v_at_p_q_nodes(n_dofs_p_q);
         dealii::Vector<double> u_Dv_at_p_q_nodes(n_dofs_p_q);
@@ -155,7 +160,7 @@ int main (int argc, char * argv[])
             u_Dv_at_p_q_nodes[idof] = u_at_p_q_nodes[idof] * Dv_at_p_q_nodes[idof];
         }
         dealii::Vector<double> D_u_v_at_p_q_nodes(n_dofs_p_q);
-        operators_p.gradient_flux_basis[poly_degree][0][0].vmult(D_u_v_at_p_q_nodes, u_v_at_p_q_nodes);
+        operators_p->gradient_flux_basis[poly_degree][0][0].vmult(D_u_v_at_p_q_nodes, u_v_at_p_q_nodes);
     
     pcout<<" ABS difference"<<std::endl;
     for(unsigned int idof=0; idof<n_dofs_p_q; idof++){

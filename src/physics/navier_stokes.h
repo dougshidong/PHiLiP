@@ -129,7 +129,7 @@ public:
     /// Source term is zero or depends on manufactured solution
     std::array<real,nstate> source_term (
         const dealii::Point<dim,real> &pos,
-        const std::array<real,nstate> &conservative_soln,//) const;
+        const std::array<real,nstate> &conservative_soln,
         const real /*current_time*/) const override;
 
     /// Convective flux Jacobian computed via dfad (automatic differentiation)

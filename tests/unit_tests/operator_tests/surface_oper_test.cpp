@@ -111,7 +111,8 @@ int main (int argc, char * argv[])
     for(unsigned int poly_degree=2; poly_degree<6; poly_degree++){
 
 
-        OPERATOR::OperatorBase<dim,real> operators(&all_parameters_new, nstate, poly_degree, poly_degree, poly_degree); 
+       // OPERATOR::OperatorsBase<dim,real> operators(&all_parameters_new, nstate, poly_degree, poly_degree, poly_degree); 
+        OPERATOR::OperatorsBaseState<dim,real,nstate,2*dim> operators(&all_parameters_new, poly_degree, poly_degree);
 
         const unsigned int n_dofs = operators.fe_collection_basis[poly_degree].dofs_per_cell;
         std::vector<dealii::FullMatrix<real>> vol_int_parts(dim);

@@ -43,6 +43,7 @@
 #include "parameters/all_parameters.h"
 #include "parameters/parameters.h"
 #include "operators/operators.h"
+#include "operators/operators_factory.hpp"
 
 const double TOLERANCE = 1E-6;
 using namespace std;
@@ -114,10 +115,16 @@ int main (int argc, char * argv[])
     for(unsigned int poly_degree=poly_min; poly_degree<poly_max; poly_degree++){
 
 
-        OPERATOR::OperatorBase<1,real> operators_1D(&all_parameters_new, nstate, poly_degree, poly_degree, poly_degree);//store 1D operators for tensor product 
+  //      OPERATOR::OperatorsBase<1,real> operators_1D(&all_parameters_new, nstate, poly_degree, poly_degree, poly_degree);//store 1D operators for tensor product 
+        std::shared_ptr<OPERATOR::OperatorsBaseState<1,real,nstate,2>> operators_1D = std::make_shared< OPERATOR::OperatorsBaseState<1,real,nstate,2> >(&all_parameters_new, poly_degree, poly_degree);
+        //OPERATOR::OperatorsBaseState<1,real,nstate,2> operators_1D(&all_parameters_new, poly_degree, poly_degree);
+        //std::shared_ptr<OPERATOR::OperatorsBase<1, real>> operators_1D = OPERATOR::OperatorsFactory<1, real>::create_operators(&all_parameters_new, nstate, poly_degree, poly_degree, poly_degree);
+
+        //std::shared_ptr<OPERATOR::OperatorsBase<1, real> *> *operators_1D2 = new OPERATOR::OperatorsFactory<1, real>::create_operators(&all_parameters_new, nstate, poly_degree, poly_degree, poly_degree);
+       // std::shared_ptr<OPERATOR::OperatorsBaseState<1, real,nstate,2> *> *operators_1D = dynamic_cast<std::shared_ptr<OPERATOR::OperatorsBaseState<1, real,nstate,2>> *>(operators_1D2);
         const unsigned int n_dofs = nstate * pow(poly_degree+1,dim);
         const unsigned int n_dofs_1D = nstate * (poly_degree+1);
-        const unsigned int n_quad_pts_1D = operators_1D.volume_quadrature_collection[poly_degree].size();
+        const unsigned int n_quad_pts_1D = operators_1D->volume_quadrature_collection[poly_degree].size();
         const unsigned int n_quad_pts = pow(n_quad_pts_1D, dim);
 
         for(unsigned int ielement=0; ielement<6; ielement++){//do several loops as if there were elements
@@ -143,8 +150,8 @@ int main (int argc, char * argv[])
                         for(unsigned int kdof=0; kdof<n_dofs_1D; kdof++){
                             const unsigned int dof_index = jdof*n_dofs_1D + kdof;
                             sol_dim[quad_index] += sol_hat[dof_index]
-                                                *  operators_1D.basis_at_vol_cubature[poly_degree][jquad][jdof]
-                                                *  operators_1D.basis_at_vol_cubature[poly_degree][kquad][kdof];
+                                                *  operators_1D->basis_at_vol_cubature[poly_degree][jquad][jdof]
+                                                *  operators_1D->basis_at_vol_cubature[poly_degree][kquad][kdof];
                         }
                     }
                 }
@@ -161,9 +168,9 @@ int main (int argc, char * argv[])
                                 for(unsigned int kdof=0; kdof<n_dofs_1D; kdof++){
                                     const unsigned int dof_index = idof * pow(n_dofs_1D,2) + jdof*n_dofs_1D + kdof;
                                     sol_dim[quad_index] += sol_hat[dof_index]
-                                                        *  operators_1D.basis_at_vol_cubature[poly_degree][iquad][idof]
-                                                        *  operators_1D.basis_at_vol_cubature[poly_degree][jquad][jdof]
-                                                        *  operators_1D.basis_at_vol_cubature[poly_degree][kquad][kdof];
+                                                        *  operators_1D->basis_at_vol_cubature[poly_degree][iquad][idof]
+                                                        *  operators_1D->basis_at_vol_cubature[poly_degree][jquad][jdof]
+                                                        *  operators_1D->basis_at_vol_cubature[poly_degree][kquad][kdof];
                                 }
                             }
                         }
@@ -180,10 +187,10 @@ int main (int argc, char * argv[])
         time_t tsum;
         tsum = clock();
         if(dim==2){
-            operators_1D.sum_factorization_matrix_vector_mult(sol_hat, sol_1D, n_quad_pts_1D, n_dofs_1D, dim, operators_1D.basis_at_vol_cubature[poly_degree], operators_1D.basis_at_vol_cubature[poly_degree], operators_1D.basis_at_vol_cubature[poly_degree]);
+            operators_1D->sum_factorization_matrix_vector_mult(sol_hat, sol_1D, n_quad_pts_1D, n_dofs_1D, dim, operators_1D->basis_at_vol_cubature[poly_degree], operators_1D->basis_at_vol_cubature[poly_degree], operators_1D->basis_at_vol_cubature[poly_degree]);
         }
         if(dim==3){
-            operators_1D.sum_factorization_matrix_vector_mult(sol_hat, sol_1D, n_quad_pts_1D, n_dofs_1D, dim, operators_1D.basis_at_vol_cubature[poly_degree], operators_1D.basis_at_vol_cubature[poly_degree], operators_1D.basis_at_vol_cubature[poly_degree]);
+            operators_1D->sum_factorization_matrix_vector_mult(sol_hat, sol_1D, n_quad_pts_1D, n_dofs_1D, dim, operators_1D->basis_at_vol_cubature[poly_degree], operators_1D->basis_at_vol_cubature[poly_degree], operators_1D->basis_at_vol_cubature[poly_degree]);
         }
         if(ielement==0)
             time_diff_sum[poly_degree] = clock() - tsum;
@@ -204,7 +211,7 @@ int main (int argc, char * argv[])
         time_t tmass;
         tmass = clock();
         dealii::FullMatrix<real> mass(n_dofs);
-        build_mass_matrix(n_dofs_1D, dim, operators_1D.local_mass[poly_degree], mass);
+        build_mass_matrix(n_dofs_1D, dim, operators_1D->local_mass[poly_degree], mass);
         //compute M*u
         for(unsigned int idof=0; idof<n_dofs; idof++){
             sol_mass[idof] = 0.0;
@@ -220,7 +227,7 @@ int main (int argc, char * argv[])
         //second way
         time_t tmass_sum;
         tmass_sum = clock();
-        const std::vector<real> &quad_weights_1D = operators_1D.volume_quadrature_collection[poly_degree].get_weights(); 
+        const std::vector<real> &quad_weights_1D = operators_1D->volume_quadrature_collection[poly_degree].get_weights(); 
         std::vector<real> quad_weights(n_quad_pts);
         //get 2D or 3D quad weights from 1D
         if(dim==2){
@@ -242,9 +249,9 @@ int main (int argc, char * argv[])
         }
         std::vector<real> interm_step(n_quad_pts);
         //matrix-vect oper
-        operators_1D.sum_factorization_matrix_vector_mult(sol_hat, interm_step, n_quad_pts_1D, n_dofs_1D, dim, operators_1D.basis_at_vol_cubature[poly_degree], operators_1D.basis_at_vol_cubature[poly_degree], operators_1D.basis_at_vol_cubature[poly_degree]);
+        operators_1D->sum_factorization_matrix_vector_mult(sol_hat, interm_step, n_quad_pts_1D, n_dofs_1D, dim, operators_1D->basis_at_vol_cubature[poly_degree], operators_1D->basis_at_vol_cubature[poly_degree], operators_1D->basis_at_vol_cubature[poly_degree]);
         //inner prod
-        operators_1D.sum_factorization_inner_product(interm_step, quad_weights, sol_mass_sum, n_quad_pts_1D, n_dofs_1D, dim, operators_1D.basis_at_vol_cubature[poly_degree], operators_1D.basis_at_vol_cubature[poly_degree], operators_1D.basis_at_vol_cubature[poly_degree]); 
+        operators_1D->sum_factorization_inner_product(interm_step, quad_weights, sol_mass_sum, n_quad_pts_1D, n_dofs_1D, dim, operators_1D->basis_at_vol_cubature[poly_degree], operators_1D->basis_at_vol_cubature[poly_degree], operators_1D->basis_at_vol_cubature[poly_degree]); 
         if(ielement==0)
             time_diff_mass_sum[poly_degree] = clock() - tmass_sum;
         else
@@ -278,15 +285,17 @@ int main (int argc, char * argv[])
     const double sum_slope_mpi_mass = (dealii::Utilities::MPI::max(sum_slope_mass, MPI_COMM_WORLD));
 
     pcout<<"Times for operation A*u"<<std::endl;
+    pcout<<"Normal operation A*u  |  "<<"Sum factorization "<<std::endl;
     for(unsigned int i=poly_min; i<poly_max; i++){
-        pcout<<"time first "<<(float)time_diff[i]/CLOCKS_PER_SEC<<" time sum fact "<<(float)time_diff_sum[i]/CLOCKS_PER_SEC<<std::endl;
+        pcout<<(float)time_diff[i]/CLOCKS_PER_SEC<<" "<<(float)time_diff_sum[i]/CLOCKS_PER_SEC<<std::endl;
     }
 
     pcout<<" regular slope "<<first_slope_mpi<<" sum-factorization slope "<<sum_slope_mpi<<std::endl;
 
     pcout<<"Times for operation M*u"<<std::endl;
+    pcout<<"Normal operation M*u  |  "<<"Sum factorization "<<std::endl;
     for(unsigned int i=poly_min; i<poly_max; i++){
-        pcout<<"time first "<<(float)time_diff_mass[i]/CLOCKS_PER_SEC<<" time sum fact "<<(float)time_diff_mass_sum[i]/CLOCKS_PER_SEC<<std::endl;
+        pcout<<(float)time_diff_mass[i]/CLOCKS_PER_SEC<<" "<<(float)time_diff_mass_sum[i]/CLOCKS_PER_SEC<<std::endl;
     }
 
     pcout<<" regular slope "<<first_slope_mpi_mass<<" sum-factorization slope "<<sum_slope_mpi_mass<<std::endl;

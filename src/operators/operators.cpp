@@ -37,18 +37,18 @@ namespace PHiLiP {
 namespace OPERATOR {
 
 //Constructor
-template <int dim, typename real>
-OperatorBase<dim,real>::OperatorBase(
+template <int dim, typename real, int n_faces>
+OperatorsBase<dim,real,n_faces>::OperatorsBase(
     const Parameters::AllParameters *const parameters_input,
     const int nstate_input,
     const unsigned int degree,
     const unsigned int max_degree_input,
     const unsigned int grid_degree_input)
-    : OperatorBase<dim,real>(parameters_input, nstate_input, degree, max_degree_input, grid_degree_input, this->create_collection_tuple(max_degree_input, nstate_input, parameters_input))
+    : OperatorsBase<dim,real,n_faces>(parameters_input, nstate_input, degree, max_degree_input, grid_degree_input, this->create_collection_tuple(max_degree_input, nstate_input, parameters_input))
 { }
 
-template <int dim, typename real>
-OperatorBase<dim,real>::OperatorBase(
+template <int dim, typename real, int n_faces>
+OperatorsBase<dim,real,n_faces>::OperatorsBase(
     const Parameters::AllParameters *const parameters_input,
     const int nstate_input,
     const unsigned int /*degree*/,
@@ -68,6 +68,7 @@ OperatorBase<dim,real>::OperatorBase(
     , mpi_communicator(MPI_COMM_WORLD)
     , pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(mpi_communicator)==0)
 { 
+    //Allocate and construct the base operators.
     pcout<<" Constructing Operators ..."<<std::endl;
     //setup volume operators
     allocate_volume_operators();
@@ -86,24 +87,22 @@ OperatorBase<dim,real>::OperatorBase(
     //setup metric operators
     allocate_metric_operators(max_grid_degree);
     create_metric_basis_operators(max_grid_degree);
-    //set the check max grid degree to the initialized value
-   // max_grid_degree_check = max_grid_degree;
 
 }
 // Destructor
-template <int dim, typename real>
-OperatorBase<dim,real>::~OperatorBase ()
+template <int dim, typename real, int n_faces>
+OperatorsBase<dim,real,n_faces>::~OperatorsBase ()
 {
     pcout << "Destructing Operators..." << std::endl;
 }
-template <int dim, typename real>
+template <int dim, typename real, int n_faces>
 std::tuple<
         dealii::hp::FECollection<dim>, // Solution FE basis functions
         dealii::hp::QCollection<dim>,  // Volume quadrature
         dealii::hp::QCollection<dim-1>, // Face quadrature
         dealii::hp::QCollection<1>, // 1D quadrature for strong form
         dealii::hp::FECollection<dim> >   // Flux Basis polynomials for strong form
-OperatorBase<dim,real>::create_collection_tuple(const unsigned int max_degree, const int nstate, const Parameters::AllParameters *const parameters_input) const
+OperatorsBase<dim,real,n_faces>::create_collection_tuple(const unsigned int max_degree, const int nstate, const Parameters::AllParameters *const parameters_input) const
 {
     dealii::hp::FECollection<dim>      fe_coll;//basis functions collection
     dealii::hp::QCollection<dim>       volume_quad_coll;//volume flux nodes
@@ -172,8 +171,6 @@ OperatorBase<dim,real>::create_collection_tuple(const unsigned int max_degree, c
 
         // Solution FECollection
         const dealii::FE_DGQ<dim> fe_dg(degree);
-        //const dealii::FE_DGQArbitraryNodes<dim,dim> fe_dg(dealii::QGauss<1>(degree+1));
-        //std::cout << degree << " fe_dg.tensor_degree " << fe_dg.tensor_degree() << " fe_dg.n_dofs_per_cell " << fe_dg.n_dofs_per_cell() << std::endl;
         const dealii::FESystem<dim,dim> fe_system(fe_dg, nstate);
         fe_coll.push_back (fe_system);
 
@@ -227,57 +224,49 @@ OperatorBase<dim,real>::create_collection_tuple(const unsigned int max_degree, c
     return std::make_tuple(fe_coll, volume_quad_coll, face_quad_coll, oned_quad_coll, fe_coll_lagr);
 }
 
-template <int dim, typename real>
-double OperatorBase<dim,real>::compute_factorial(double n)
-{
-    if ((n==0)||(n==1))
-      return 1;
-   else
-      return n*compute_factorial(n-1);
-}
+
 /*******************************************
  *
  *      VOLUME OPERATORS FUNCTIONS
  *
  *
  *      *****************************************/
-template <int dim, typename real>
-void OperatorBase<dim,real>::allocate_volume_operators ()
+template <int dim, typename real, int n_faces>
+double OperatorsBase<dim,real,n_faces>::compute_factorial(double n)
+{
+    if ((n==0)||(n==1))
+      return 1;
+   else
+      return n*compute_factorial(n-1);
+}
+template <int dim, typename real, int n_faces>  
+void OperatorsBase<dim,real,n_faces>::allocate_volume_operators ()
 {
 
     //basis functions evaluated at volume cubature (flux) nodes
-    basis_at_vol_cubature.resize(max_degree+1);
-    vol_integral_basis.resize(max_degree+1);
-    flux_basis_at_vol_cubature.resize(max_degree+1);
-    gradient_flux_basis.resize(max_degree+1);
-    modal_basis_differential_operator.resize(max_degree+1);
-    local_mass.resize(max_degree+1);
-    local_basis_stiffness.resize(max_degree+1);
-    local_flux_basis_stiffness.resize(max_degree+1);
-    vol_integral_gradient_basis.resize(max_degree+1);
-    derivative_p.resize(max_degree+1);
-    derivative_2p.resize(max_degree+1);
-    derivative_3p.resize(max_degree+1);
-    local_K_operator.resize(max_degree+1);
-    c_param_FR.resize(max_degree+1);
-    local_K_operator_aux.resize(max_degree+1);
-    k_param_FR.resize(max_degree+1);
-    vol_projection_operator.resize(max_degree+1);
-    vol_projection_operator_FR.resize(max_degree+1);
-    FR_mass_inv.resize(max_degree+1);
-    for(unsigned int idegree=0; idegree<=max_degree; idegree++){
-        unsigned int n_quad_pts = volume_quadrature_collection[idegree].size();
-        unsigned int n_dofs = fe_collection_basis[idegree].dofs_per_cell;
+    basis_at_vol_cubature.resize(this->max_degree+1);
+    vol_integral_basis.resize(this->max_degree+1);
+    modal_basis_differential_operator.resize(this->max_degree+1);
+    local_mass.resize(this->max_degree+1);
+    local_basis_stiffness.resize(this->max_degree+1);
+    derivative_p.resize(this->max_degree+1);
+    derivative_2p.resize(this->max_degree+1);
+    derivative_3p.resize(this->max_degree+1);
+    local_K_operator.resize(this->max_degree+1);
+    c_param_FR.resize(this->max_degree+1);
+    local_K_operator_aux.resize(this->max_degree+1);
+    k_param_FR.resize(this->max_degree+1);
+    vol_projection_operator.resize(this->max_degree+1);
+    vol_projection_operator_FR.resize(this->max_degree+1);
+    FR_mass_inv.resize(this->max_degree+1);
+    for(unsigned int idegree=0; idegree<=this->max_degree; idegree++){
+        unsigned int n_quad_pts = this->volume_quadrature_collection[idegree].size();
+        unsigned int n_dofs = this->fe_collection_basis[idegree].dofs_per_cell;
         basis_at_vol_cubature[idegree].reinit(n_quad_pts, n_dofs);
         vol_integral_basis[idegree].reinit(n_quad_pts, n_dofs);
-        modal_basis_differential_operator[idegree].resize(dim);
         local_mass[idegree].reinit(n_dofs, n_dofs);
-        local_basis_stiffness[idegree].resize(dim);
-        derivative_p[idegree].resize(dim);
-        derivative_2p[idegree].resize(dim);
         derivative_3p[idegree].reinit(n_dofs, n_dofs);
         local_K_operator[idegree].reinit(n_dofs, n_dofs);
-        local_K_operator_aux[idegree].resize(dim);
         vol_projection_operator[idegree].reinit(n_dofs, n_quad_pts);
         vol_projection_operator_FR[idegree].reinit(n_dofs, n_quad_pts);
         FR_mass_inv[idegree].reinit(n_dofs, n_dofs);
@@ -288,75 +277,36 @@ void OperatorBase<dim,real>::allocate_volume_operators ()
             derivative_2p[idegree][idim].reinit(n_dofs, n_dofs);
             local_K_operator_aux[idegree][idim].reinit(n_dofs, n_dofs);
         }
-        //flux basis allocator
-        unsigned int n_dofs_flux = fe_collection_flux_basis[idegree].dofs_per_cell;
-        if(n_dofs_flux != n_quad_pts)
-            pcout<<"flux basis not collocated on quad points"<<std::endl;
-
-        //Note flux basis is collocated on the volume cubature nodes.
-        flux_basis_at_vol_cubature[idegree].resize(nstate);
-        gradient_flux_basis[idegree].resize(nstate);
-        local_flux_basis_stiffness[idegree].resize(nstate);
-        vol_integral_gradient_basis[idegree].resize(nstate);
-        for(int istate=0; istate<nstate; istate++){
-            flux_basis_at_vol_cubature[idegree][istate].reinit(n_quad_pts, n_dofs_flux);
-            gradient_flux_basis[idegree][istate].resize(dim);
-            local_flux_basis_stiffness[idegree][istate].resize(dim);
-            vol_integral_gradient_basis[idegree][istate].resize(dim);
-            for(int idim=0; idim<dim; idim++){
-                gradient_flux_basis[idegree][istate][idim].reinit(n_quad_pts, n_dofs_flux);
-                local_flux_basis_stiffness[idegree][istate][idim].reinit(n_dofs, n_dofs_flux);
-                vol_integral_gradient_basis[idegree][istate][idim].reinit(n_quad_pts, n_dofs);
-            }
-        }
     }
 
 }
 
-template <int dim, typename real>
-void OperatorBase<dim,real>::create_vol_basis_operators ()
+template <  int dim, typename real,
+            int n_faces>  
+void OperatorsBase<dim,real,n_faces>::create_vol_basis_operators ()
 {
 
-    for(unsigned int idegree=0; idegree<=max_degree; idegree++){
-        unsigned int n_quad_pts = volume_quadrature_collection[idegree].size();
-        unsigned int n_dofs = fe_collection_basis[idegree].dofs_per_cell;
-        unsigned int n_dofs_flux = fe_collection_flux_basis[idegree].dofs_per_cell;
+    for(unsigned int idegree=0; idegree<=this->max_degree; idegree++){
+        unsigned int n_quad_pts = this->volume_quadrature_collection[idegree].size();
+        unsigned int n_dofs = this->fe_collection_basis[idegree].dofs_per_cell;
         for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
-            const dealii::Point<dim> qpoint  = volume_quadrature_collection[idegree].point(iquad);
-            const std::vector<real> &quad_weights = volume_quadrature_collection[idegree].get_weights ();
+            const dealii::Point<dim> qpoint  = this->volume_quadrature_collection[idegree].point(iquad);
+            const std::vector<real> &quad_weights = this->volume_quadrature_collection[idegree].get_weights ();
             for(unsigned int idof=0; idof<n_dofs; idof++){
-                const int istate = fe_collection_basis[idegree].system_to_component_index(idof).first;
+                const int istate = this->fe_collection_basis[idegree].system_to_component_index(idof).first;
                 //Basis function idof of poly degree idegree evaluated at cubature node qpoint.
-                basis_at_vol_cubature[idegree][iquad][idof] = fe_collection_basis[idegree].shape_value_component(idof,qpoint,istate);
+                basis_at_vol_cubature[idegree][iquad][idof] = this->fe_collection_basis[idegree].shape_value_component(idof,qpoint,istate);
                 //Basis function idof of poly degree idegree evaluated at cubature node qpoint multiplied by quad weight.
                 vol_integral_basis[idegree][iquad][idof] = quad_weights[iquad] * basis_at_vol_cubature[idegree][iquad][idof];
             }
-            for(int istate=0; istate<nstate; istate++){
-                for(unsigned int idof=0; idof<n_dofs_flux; idof++){
-                    //Flux basis function idof of poly degree idegree evaluated at cubature node qpoint.
-                    flux_basis_at_vol_cubature[idegree][istate][iquad][idof] = fe_collection_flux_basis[idegree].shape_value_component(idof,qpoint,0);
-                }
-            }
-        }
-
-        for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
-            const dealii::Point<dim> qpoint  = volume_quadrature_collection[idegree].point(iquad);
-            for(int istate=0; istate<nstate; istate++){
-                for(unsigned int idof=0; idof<n_dofs_flux; idof++){
-                    dealii::Tensor<1,dim,real> derivative;
-                    derivative = fe_collection_flux_basis[idegree].shape_grad_component(idof, qpoint, 0);
-                    for(int idim=0; idim<dim; idim++){
-                        gradient_flux_basis[idegree][istate][idim][iquad][idof] = derivative[idim];
-                    }
-                }
-            }
         }
     }
 }
 
 
-template <int dim, typename real>
-void OperatorBase<dim,real>::build_local_Mass_Matrix (
+template <  int dim, typename real,
+            int n_faces>  
+void OperatorsBase<dim,real,n_faces>::build_local_Mass_Matrix (
                                 const std::vector<real> &quad_weights,
                                 const unsigned int n_dofs_cell, const unsigned int n_quad_pts,
                                 const int current_fe_index,
@@ -364,11 +314,11 @@ void OperatorBase<dim,real>::build_local_Mass_Matrix (
 {
     for (unsigned int itest=0; itest<n_dofs_cell; ++itest) {
 
-        const int istate_test = fe_collection_basis[current_fe_index].system_to_component_index(itest).first;
+        const int istate_test = this->fe_collection_basis[current_fe_index].system_to_component_index(itest).first;
 
         for (unsigned int itrial=itest; itrial<n_dofs_cell; ++itrial) {
 
-            const int istate_trial = fe_collection_basis[current_fe_index].system_to_component_index(itrial).first;
+            const int istate_trial = this->fe_collection_basis[current_fe_index].system_to_component_index(itrial).first;
 
             real value = 0.0;
             for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
@@ -388,61 +338,40 @@ void OperatorBase<dim,real>::build_local_Mass_Matrix (
     }
 }
 
-template <int dim, typename real>
-void OperatorBase<dim,real>::build_Mass_Matrix_operators ()
+template <  int dim, typename real,
+            int n_faces>  
+void OperatorsBase<dim,real,n_faces>::build_Mass_Matrix_operators ()
 {
-    for(unsigned int idegree=0; idegree<=max_degree; idegree++){
-        unsigned int n_quad_pts = volume_quadrature_collection[idegree].size();
-        unsigned int n_dofs_cell = fe_collection_basis[idegree].dofs_per_cell;
-        const std::vector<real> &quad_weights = volume_quadrature_collection[idegree].get_weights ();
+    for(unsigned int idegree=0; idegree<=this->max_degree; idegree++){
+        unsigned int n_quad_pts = this->volume_quadrature_collection[idegree].size();
+        unsigned int n_dofs_cell = this->fe_collection_basis[idegree].dofs_per_cell;
+        const std::vector<real> &quad_weights = this->volume_quadrature_collection[idegree].get_weights ();
         build_local_Mass_Matrix(quad_weights, n_dofs_cell, n_quad_pts, idegree, local_mass[idegree]);
     }
 }
-template <int dim, typename real>
-void OperatorBase<dim,real>::build_Stiffness_Matrix_operators ()
+template <  int dim, typename real,
+            int n_faces>  
+void OperatorsBase<dim,real,n_faces>::build_Stiffness_Matrix_operators ()
 {
-    for(unsigned int idegree=0; idegree<=max_degree; idegree++){
-        unsigned int n_quad_pts = volume_quadrature_collection[idegree].size();
-        unsigned int n_dofs = fe_collection_basis[idegree].dofs_per_cell;
-        unsigned int n_dofs_flux = fe_collection_flux_basis[idegree].dofs_per_cell;
-        const std::vector<real> &quad_weights = volume_quadrature_collection[idegree].get_weights ();
+    for(unsigned int idegree=0; idegree<=this->max_degree; idegree++){
+        unsigned int n_quad_pts = this->volume_quadrature_collection[idegree].size();
+        unsigned int n_dofs = this->fe_collection_basis[idegree].dofs_per_cell;
+        const std::vector<real> &quad_weights = this->volume_quadrature_collection[idegree].get_weights ();
         for(unsigned int itest=0; itest<n_dofs; itest++){
-            const int istate_test = fe_collection_basis[idegree].system_to_component_index(itest).first;
+            const int istate_test = this->fe_collection_basis[idegree].system_to_component_index(itest).first;
             for(unsigned int idof=0; idof<n_dofs; idof++){
-                const int istate = fe_collection_basis[idegree].system_to_component_index(idof).first;
+                const int istate = this->fe_collection_basis[idegree].system_to_component_index(idof).first;
                 dealii::Tensor<1,dim,real> value;
                 for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
-                    const dealii::Point<dim> qpoint  = volume_quadrature_collection[idegree].point(iquad);
+                    const dealii::Point<dim> qpoint  = this->volume_quadrature_collection[idegree].point(iquad);
                     dealii::Tensor<1,dim,real> derivative;
-                    derivative = fe_collection_basis[idegree].shape_grad_component(idof, qpoint, istate);
+                    derivative = this->fe_collection_basis[idegree].shape_grad_component(idof, qpoint, istate);
                     value += basis_at_vol_cubature[idegree][iquad][itest] * quad_weights[iquad] * derivative;
                 }
                 if(istate == istate_test){
                     for(int idim=0; idim<dim; idim++){
                         local_basis_stiffness[idegree][idim][itest][idof] = value[idim]; 
                     }
-                }
-            }
-            for(unsigned int idof=0; idof<n_dofs_flux; idof++){
-                dealii::Tensor<1,dim,real> value;
-                for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
-                    const dealii::Point<dim> qpoint  = volume_quadrature_collection[idegree].point(iquad);
-                    dealii::Tensor<1,dim,real> derivative;
-                    derivative = fe_collection_flux_basis[idegree].shape_grad_component(idof, qpoint, 0);
-                    value += basis_at_vol_cubature[idegree][iquad][itest] * quad_weights[iquad] * derivative;
-                }
-                const int test_shape = fe_collection_basis[idegree].system_to_component_index(itest).second;
-                    for(int idim=0; idim<dim; idim++){
-                        local_flux_basis_stiffness[idegree][istate_test][idim][test_shape][idof] = value[idim]; 
-                    }
-            }
-            const int ishape_test = fe_collection_basis[idegree].system_to_component_index(itest).second;
-            for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){ 
-                const dealii::Point<dim> qpoint  = volume_quadrature_collection[idegree].point(iquad);
-                dealii::Tensor<1,dim,real> derivative;
-                derivative = fe_collection_basis[idegree].shape_grad_component(itest, qpoint, istate_test);
-                for(int idim=0; idim<dim; idim++){
-                    vol_integral_gradient_basis[idegree][istate_test][idim][iquad][ishape_test] = derivative[idim] * quad_weights[iquad]; 
                 }
             }
         }
@@ -454,13 +383,14 @@ void OperatorBase<dim,real>::build_Stiffness_Matrix_operators ()
     }
 
 }
-template <int dim, typename real>
-void OperatorBase<dim,real>::get_higher_derivatives ()
+template <  int dim, typename real,
+            int n_faces>  
+void OperatorsBase<dim,real,n_faces>::get_higher_derivatives ()
 {
 
-    for(unsigned int curr_cell_degree=0;curr_cell_degree<=max_degree; curr_cell_degree++){
+    for(unsigned int curr_cell_degree=0;curr_cell_degree<=this->max_degree; curr_cell_degree++){
         unsigned int degree_index = curr_cell_degree;
-        unsigned int n_dofs_cell = fe_collection_basis[degree_index].dofs_per_cell;
+        unsigned int n_dofs_cell = this->fe_collection_basis[degree_index].dofs_per_cell;
         //write each deriv p to identity
         for(int idim=0; idim<dim; idim++){
             for(unsigned int idof=0; idof<n_dofs_cell; idof++){
@@ -489,8 +419,9 @@ void OperatorBase<dim,real>::get_higher_derivatives ()
         }
     }
 }
-template <int dim, typename real>
-void OperatorBase<dim,real>::get_FR_correction_parameter (
+template <  int dim, typename real,
+            int n_faces>  
+void OperatorsBase<dim,real,n_faces>::get_FR_correction_parameter (
                                 const unsigned int curr_cell_degree,
                                 real &c, real &k)
 {
@@ -499,29 +430,29 @@ void OperatorBase<dim,real>::get_FR_correction_parameter (
     FR_enum c_input = this->all_parameters->flux_reconstruction_type; 
     FR_Aux_enum k_input = this->all_parameters->flux_reconstruction_aux_type; 
     if(c_input == FR_enum::cHU || c_input == FR_enum::cHULumped){ 
-        const double pfact = compute_factorial(curr_cell_degree);
-        const double pfact2 = compute_factorial(2.0 * curr_cell_degree);
+        const double pfact = this->compute_factorial(curr_cell_degree);
+        const double pfact2 = this->compute_factorial(2.0 * curr_cell_degree);
         double cp = pfact2/(pow(pfact,2));//since ref element [0,1]
         c = 2.0 * (curr_cell_degree+1)/( curr_cell_degree*((2.0*curr_cell_degree+1.0)*(pow(pfact*cp,2))));  
         c/=2.0;//since orthonormal
     }
     else if(c_input == FR_enum::cSD){ 
-        const double pfact = compute_factorial(curr_cell_degree);
-        const double pfact2 = compute_factorial(2.0 * curr_cell_degree);
+        const double pfact = this->compute_factorial(curr_cell_degree);
+        const double pfact2 = this->compute_factorial(2.0 * curr_cell_degree);
         double cp = pfact2/(pow(pfact,2));
         c = 2.0 * (curr_cell_degree)/( (curr_cell_degree+1.0)*((2.0*curr_cell_degree+1.0)*(pow(pfact*cp,2))));  
         c/=2.0;//since orthonormal
     }
     else if(c_input == FR_enum::cNegative){ 
-        const double pfact = compute_factorial(curr_cell_degree);
-        const double pfact2 = compute_factorial(2.0 * curr_cell_degree);
+        const double pfact = this->compute_factorial(curr_cell_degree);
+        const double pfact2 = this->compute_factorial(2.0 * curr_cell_degree);
         double cp = pfact2/(pow(pfact,2));
         c = - 2.0 / ( pow((2.0*curr_cell_degree+1.0)*(pow(pfact*cp,2)),1.0));  
         c/=2.0;//since orthonormal
     }
     else if(c_input == FR_enum::cNegative2){ 
-        const double pfact = compute_factorial(curr_cell_degree);
-        const double pfact2 = compute_factorial(2.0 * curr_cell_degree);
+        const double pfact = this->compute_factorial(curr_cell_degree);
+        const double pfact2 = this->compute_factorial(2.0 * curr_cell_degree);
         double cp = pfact2/(pow(pfact,2));
         c = - 2.0 / ( pow((2.0*curr_cell_degree+1.0)*(pow(pfact*cp,2)),1.0));  
         c/=2.0;//since orthonormal
@@ -568,29 +499,29 @@ void OperatorBase<dim,real>::get_FR_correction_parameter (
         c/=pow(pow(2.0,curr_cell_degree),2);//since ref elem [0,1]
     }
     if(k_input == FR_Aux_enum::kHU){ 
-        const double pfact = compute_factorial(curr_cell_degree);
-        const double pfact2 = compute_factorial(2.0 * curr_cell_degree);
+        const double pfact = this->compute_factorial(curr_cell_degree);
+        const double pfact2 = this->compute_factorial(2.0 * curr_cell_degree);
         double cp = pfact2/(pow(pfact,2));
         k = 2.0 * (curr_cell_degree+1.0)/( curr_cell_degree*pow((2.0*curr_cell_degree+1.0)*(pow(pfact*cp,2)),1.0));  
         k/=2.0;//since orthonormal
     }
     else if(k_input == FR_Aux_enum::kSD){ 
-        const double pfact = compute_factorial(curr_cell_degree);
-        const double pfact2 = compute_factorial(2.0 * curr_cell_degree);
+        const double pfact = this->compute_factorial(curr_cell_degree);
+        const double pfact2 = this->compute_factorial(2.0 * curr_cell_degree);
         double cp = pfact2/(pow(pfact,2));
         k = 2.0 * (curr_cell_degree)/( (curr_cell_degree+1.0)*pow((2.0*curr_cell_degree+1.0)*(pow(pfact*cp,2)),1.0));  
         k/=2.0;//since orthonormal
     }
     else if(k_input == FR_Aux_enum::kNegative){ 
-        const double pfact = compute_factorial(curr_cell_degree);
-        const double pfact2 = compute_factorial(2.0 * curr_cell_degree);
+        const double pfact = this->compute_factorial(curr_cell_degree);
+        const double pfact2 = this->compute_factorial(2.0 * curr_cell_degree);
         double cp = pfact2/(pow(pfact,2));
         k = - 2.0 / ( pow((2.0*curr_cell_degree+1.0)*(pow(pfact*cp,2)),1.0));  
         k/=2.0;//since orthonormal
     }
     else if(k_input == FR_Aux_enum::kNegative2){//knegative divided by 2 
-        const double pfact = compute_factorial(curr_cell_degree);
-        const double pfact2 = compute_factorial(2.0 * curr_cell_degree);
+        const double pfact = this->compute_factorial(curr_cell_degree);
+        const double pfact2 = this->compute_factorial(2.0 * curr_cell_degree);
         double cp = pfact2/(pow(pfact,2));
         k = - 2.0 / ( pow((2.0*curr_cell_degree+1.0)*(pow(pfact*cp,2)),1.0));  
         k/=2.0;//since orthonormal
@@ -622,15 +553,16 @@ void OperatorBase<dim,real>::get_FR_correction_parameter (
         k/=pow(pow(2.0,curr_cell_degree),2);//since ref elem [0,1]
     }
 }
-template <int dim, typename real>
-void OperatorBase<dim, real>::build_local_K_operator(
+template <  int dim, typename real,
+            int n_faces>  
+void OperatorsBase<dim,real,n_faces>
+::build_local_K_operator(
                                 const dealii::FullMatrix<real> &local_Mass_Matrix,
                                 const unsigned int  n_dofs_cell, const unsigned int degree_index, 
                                 dealii::FullMatrix<real> &K_operator)
 {
     real c = 0.0;
 //get the K operator
-
     c = c_param_FR[degree_index];
     if(dim == 1){
         dealii::FullMatrix<real> derivative_p_temp(n_dofs_cell, n_dofs_cell);
@@ -679,11 +611,13 @@ void OperatorBase<dim, real>::build_local_K_operator(
     }
     
 }
-template <int dim, typename real>
-void OperatorBase<dim, real>::build_local_K_operator_AUX(
+template <  int dim, typename real,
+            int n_faces>  
+void OperatorsBase<dim,real,n_faces>
+::build_local_K_operator_AUX(
                                 const dealii::FullMatrix<real> &local_Mass_Matrix,
-                                const unsigned int  n_dofs_cell, const unsigned int degree_index, 
-                                std::vector<dealii::FullMatrix<real>> &K_operator_aux)
+                                const unsigned int n_dofs_cell, const unsigned int degree_index, 
+                                std::array<dealii::FullMatrix<real>,dim> &K_operator_aux)
 {
     real k = 0.0;
 //get the K AUX operator
@@ -697,11 +631,12 @@ void OperatorBase<dim, real>::build_local_K_operator_AUX(
     }
     
 }
-template <int dim, typename real>
-void OperatorBase<dim,real>::build_K_operators ()
+template <  int dim, typename real,
+            int n_faces>  
+void OperatorsBase<dim,real,n_faces>::build_K_operators ()
 {
-    for(unsigned int degree_index=0; degree_index<=max_degree; degree_index++){
-        unsigned int n_dofs_cell = fe_collection_basis[degree_index].dofs_per_cell;
+    for(unsigned int degree_index=0; degree_index<=this->max_degree; degree_index++){
+        unsigned int n_dofs_cell = this->fe_collection_basis[degree_index].dofs_per_cell;
         unsigned int curr_cell_degree = degree_index; 
         get_FR_correction_parameter(curr_cell_degree, c_param_FR[degree_index], k_param_FR[degree_index]);
         build_local_K_operator(local_mass[degree_index], n_dofs_cell, degree_index, local_K_operator[degree_index]);
@@ -709,8 +644,8 @@ void OperatorBase<dim,real>::build_K_operators ()
     }
 }
 
-template <int dim, typename real>
-void OperatorBase<dim, real>::compute_local_vol_projection_operator(
+template <int dim, typename real, int n_faces>  
+void OperatorsBase<dim,real,n_faces>::compute_local_vol_projection_operator(
                                 const unsigned int degree_index, 
                                 const unsigned int n_dofs_cell,
                                 const dealii::FullMatrix<real> &norm_matrix, 
@@ -720,11 +655,11 @@ void OperatorBase<dim, real>::compute_local_vol_projection_operator(
     norm_inv.invert(norm_matrix);
     norm_inv.mTmult(volume_projection, vol_integral_basis[degree_index]);
 }
-template <int dim, typename real>
-void OperatorBase<dim,real>::get_vol_projection_operators ()
+template <  int dim, typename real, int n_faces>  
+void OperatorsBase<dim,real,n_faces>::get_vol_projection_operators ()
 {
-    for(unsigned int degree_index=0; degree_index<=max_degree; degree_index++){
-        unsigned int n_dofs = fe_collection_basis[degree_index].dofs_per_cell;
+    for(unsigned int degree_index=0; degree_index<=this->max_degree; degree_index++){
+        unsigned int n_dofs = this->fe_collection_basis[degree_index].dofs_per_cell;
         compute_local_vol_projection_operator(degree_index, n_dofs, local_mass[degree_index], vol_projection_operator[degree_index]);
         dealii::FullMatrix<real> M_plus_K(n_dofs);
         M_plus_K.add(1.0, local_mass[degree_index], 1.0, local_K_operator[degree_index]);
@@ -739,73 +674,50 @@ void OperatorBase<dim,real>::get_vol_projection_operators ()
  *
  *
  *      *****************************************/
-template <int dim, typename real>
-void OperatorBase<dim,real>::allocate_surface_operators ()
+template <  int dim, typename real, int n_faces>  
+void OperatorsBase<dim,real,n_faces>::allocate_surface_operators ()
 {
-    unsigned int n_faces = dealii::GeometryInfo<dim>::faces_per_cell;
-    basis_at_facet_cubature.resize(max_degree+1);
-    flux_basis_at_facet_cubature.resize(max_degree+1);
-    face_integral_basis.resize(max_degree+1);
-    lifting_operator.resize(max_degree+1);
-    lifting_operator_FR.resize(max_degree+1);
-    for(unsigned int idegree=0; idegree<=max_degree; idegree++){
-        unsigned int n_quad_face_pts = face_quadrature_collection[idegree].size();
-        unsigned int n_dofs = fe_collection_basis[idegree].dofs_per_cell;
-        unsigned int n_dofs_flux = fe_collection_flux_basis[idegree].dofs_per_cell;
-        basis_at_facet_cubature[idegree].resize(n_faces);
-        face_integral_basis[idegree].resize(n_faces);
-        lifting_operator[idegree].resize(n_faces);
-        lifting_operator_FR[idegree].resize(n_faces);
+    basis_at_facet_cubature.resize(this->max_degree+1);
+    face_integral_basis.resize(this->max_degree+1);
+    lifting_operator.resize(this->max_degree+1);
+    lifting_operator_FR.resize(this->max_degree+1);
+    for(unsigned int idegree=0; idegree<=this->max_degree; idegree++){
+        unsigned int n_quad_face_pts = this->face_quadrature_collection[idegree].size();
+        unsigned int n_dofs = this->fe_collection_basis[idegree].dofs_per_cell;
         for(unsigned int iface=0; iface<n_faces; iface++){
             basis_at_facet_cubature[idegree][iface].reinit(n_quad_face_pts, n_dofs);
             face_integral_basis[idegree][iface].reinit(n_quad_face_pts, n_dofs);
             lifting_operator[idegree][iface].reinit(n_dofs, n_quad_face_pts);
             lifting_operator_FR[idegree][iface].reinit(n_dofs, n_quad_face_pts);
         }
-        //for flux basis by nstate
-        flux_basis_at_facet_cubature[idegree].resize(nstate);
-        for(int istate=0; istate<nstate; istate++){
-            flux_basis_at_facet_cubature[idegree][istate].resize(n_faces);
-            for(unsigned int iface=0; iface<n_faces; iface++){
-                flux_basis_at_facet_cubature[idegree][istate][iface].reinit(n_quad_face_pts, n_dofs_flux);
-            }
-        }
     }
 }
-template <int dim, typename real>
-void OperatorBase<dim,real>::create_surface_basis_operators ()
+template <  int dim, typename real, int n_faces>  
+void OperatorsBase<dim,real,n_faces>::create_surface_basis_operators ()
 {
-    unsigned int n_faces = dealii::GeometryInfo<dim>::faces_per_cell;
-    for(unsigned int idegree=0; idegree<=max_degree; idegree++){
-        unsigned int n_dofs = fe_collection_basis[idegree].dofs_per_cell;
-        unsigned int n_dofs_flux = fe_collection_flux_basis[idegree].dofs_per_cell;
-        unsigned int n_quad_face_pts = face_quadrature_collection[idegree].size();
-        const std::vector<real> &quad_weights = face_quadrature_collection[idegree].get_weights ();
+    for(unsigned int idegree=0; idegree<=this->max_degree; idegree++){
+        unsigned int n_dofs = this->fe_collection_basis[idegree].dofs_per_cell;
+        unsigned int n_quad_face_pts = this->face_quadrature_collection[idegree].size();
+        const std::vector<real> &quad_weights = this->face_quadrature_collection[idegree].get_weights ();
         for(unsigned int iface=0; iface<n_faces; iface++){ 
             const dealii::Quadrature<dim> quadrature = dealii::QProjector<dim>::project_to_face(dealii::ReferenceCell::get_hypercube(dim),
-                                                                                                face_quadrature_collection[idegree],
+                                                                                                this->face_quadrature_collection[idegree],
                                                                                                 iface);
-        
             for(unsigned int iquad=0; iquad<n_quad_face_pts; iquad++){
                 for(unsigned int idof=0; idof<n_dofs; idof++){
-                    const int istate = fe_collection_basis[idegree].system_to_component_index(idof).first;
-                    basis_at_facet_cubature[idegree][iface][iquad][idof] = fe_collection_basis[idegree].shape_value_component(idof,quadrature.point(iquad),istate);
+                    const int istate = this->fe_collection_basis[idegree].system_to_component_index(idof).first;
+                    basis_at_facet_cubature[idegree][iface][iquad][idof] = this->fe_collection_basis[idegree].shape_value_component(idof,quadrature.point(iquad),istate);
                     face_integral_basis[idegree][iface][iquad][idof] = 
                                 basis_at_facet_cubature[idegree][iface][iquad][idof] 
                             *   quad_weights[iquad];
-                }
-                for(int istate=0; istate<nstate; istate++){
-                    for(unsigned int idof=0; idof<n_dofs_flux; idof++){
-                        flux_basis_at_facet_cubature[idegree][istate][iface][iquad][idof] = fe_collection_flux_basis[idegree].shape_value_component(idof,quadrature.point(iquad),0);
-                    }
                 }
             }
         }
     }
 
 }
-template <int dim, typename real>
-void OperatorBase<dim,real>::build_local_surface_lifting_operator (
+template <  int dim, typename real, int n_faces>  
+void OperatorsBase<dim,real,n_faces>::build_local_surface_lifting_operator (
                                 const unsigned int degree_index, 
                                 const unsigned int n_dofs_cell, 
                                 const unsigned int face_number, 
@@ -816,12 +728,11 @@ void OperatorBase<dim,real>::build_local_surface_lifting_operator (
     norm_inv.invert(norm_matrix);
     norm_matrix.mTmult(lifting, face_integral_basis[degree_index][face_number]);
 }
-template <int dim, typename real>
-void OperatorBase<dim,real>::get_surface_lifting_operators ()
+template <  int dim, typename real, int n_faces>  
+void OperatorsBase<dim,real,n_faces>::get_surface_lifting_operators ()
 {
-    unsigned int n_faces = dealii::GeometryInfo<dim>::faces_per_cell;
-    for(unsigned int degree_index=0; degree_index<=max_degree; degree_index++){
-        unsigned int n_dofs = fe_collection_basis[degree_index].dofs_per_cell;
+    for(unsigned int degree_index=0; degree_index<=this->max_degree; degree_index++){
+        unsigned int n_dofs = this->fe_collection_basis[degree_index].dofs_per_cell;
         for(unsigned int iface=0; iface<n_faces; iface++){
             build_local_surface_lifting_operator(degree_index, n_dofs, iface, local_mass[degree_index], lifting_operator[degree_index][iface]);
             dealii::FullMatrix<real> M_plus_K(n_dofs);
@@ -836,11 +747,10 @@ void OperatorBase<dim,real>::get_surface_lifting_operators ()
  *              METRIC OPERATOR FUNCTIONS
  *
  *              ******************************************************/
-template <int dim, typename real>
-void OperatorBase<dim,real>::allocate_metric_operators (
+template <  int dim, typename real, int n_faces>  
+void OperatorsBase<dim,real,n_faces>::allocate_metric_operators (
                                                         const unsigned int max_grid_degree_local)
 {
-    unsigned int n_faces = dealii::GeometryInfo<dim>::faces_per_cell;
     mapping_shape_functions_grid_nodes.resize(max_grid_degree_local+1);
     gradient_mapping_shape_functions_grid_nodes.resize(max_grid_degree_local+1);
     mapping_shape_functions_vol_flux_nodes.resize(max_grid_degree_local+1);
@@ -850,28 +760,23 @@ void OperatorBase<dim,real>::allocate_metric_operators (
     for(unsigned int idegree=0; idegree<=max_grid_degree_local; idegree++){
         unsigned int n_dofs = pow(idegree+1,dim);
         mapping_shape_functions_grid_nodes[idegree].reinit(n_dofs, n_dofs);
-        gradient_mapping_shape_functions_grid_nodes[idegree].resize(dim);
         for(int idim=0; idim<dim; idim++){
             gradient_mapping_shape_functions_grid_nodes[idegree][idim].reinit(n_dofs, n_dofs);
         }
         //initialize flux sets
-        mapping_shape_functions_vol_flux_nodes[idegree].resize(max_degree+1);
-        mapping_shape_functions_face_flux_nodes[idegree].resize(max_degree+1);
-        gradient_mapping_shape_functions_vol_flux_nodes[idegree].resize(max_degree+1);
-        gradient_mapping_shape_functions_face_flux_nodes[idegree].resize(max_degree+1);
-        for(unsigned int iflux_degree=0; iflux_degree<=max_degree; iflux_degree++){
-            const unsigned int n_quad_pts = volume_quadrature_collection[iflux_degree].size();
+        mapping_shape_functions_vol_flux_nodes[idegree].resize(this->max_degree+1);
+        mapping_shape_functions_face_flux_nodes[idegree].resize(this->max_degree+1);
+        gradient_mapping_shape_functions_vol_flux_nodes[idegree].resize(this->max_degree+1);
+        gradient_mapping_shape_functions_face_flux_nodes[idegree].resize(this->max_degree+1);
+        for(unsigned int iflux_degree=0; iflux_degree<=this->max_degree; iflux_degree++){
+            const unsigned int n_quad_pts = this->volume_quadrature_collection[iflux_degree].size();
             mapping_shape_functions_vol_flux_nodes[idegree][iflux_degree].reinit(n_quad_pts, n_dofs);
-            mapping_shape_functions_face_flux_nodes[idegree][iflux_degree].resize(n_faces);
-            gradient_mapping_shape_functions_vol_flux_nodes[idegree][iflux_degree].resize(dim);
-            gradient_mapping_shape_functions_face_flux_nodes[idegree][iflux_degree].resize(n_faces);
             for(int idim=0; idim<dim; idim++){
                 gradient_mapping_shape_functions_vol_flux_nodes[idegree][iflux_degree][idim].reinit(n_quad_pts, n_dofs);
             }
-            const unsigned int n_face_quad_pts = face_quadrature_collection[iflux_degree].size();
+            const unsigned int n_face_quad_pts = this->face_quadrature_collection[iflux_degree].size();
             for(unsigned int iface=0; iface<n_faces; iface++){
                 mapping_shape_functions_face_flux_nodes[idegree][iflux_degree][iface].reinit(n_face_quad_pts, n_dofs);
-                gradient_mapping_shape_functions_face_flux_nodes[idegree][iflux_degree][iface].resize(dim);
                 for(int idim=0; idim<dim; idim++){
                     gradient_mapping_shape_functions_face_flux_nodes[idegree][iflux_degree][iface][idim].reinit(n_face_quad_pts, n_dofs);
                 }
@@ -881,8 +786,8 @@ void OperatorBase<dim,real>::allocate_metric_operators (
          
     }
 }
-template <int dim, typename real>
-void OperatorBase<dim,real>::create_metric_basis_operators (
+template <  int dim, typename real, int n_faces>  
+void OperatorsBase<dim,real,n_faces>::create_metric_basis_operators (
                                                             const unsigned int max_grid_degree_local)
 {
     //degree >=1
@@ -903,10 +808,10 @@ void OperatorBase<dim,real>::create_metric_basis_operators (
                 }
             }
         }
-        for(unsigned int ipoly=0; ipoly<=max_degree; ipoly++){
-            const unsigned int n_flux_quad_pts = volume_quadrature_collection[ipoly].size();
+        for(unsigned int ipoly=0; ipoly<=this->max_degree; ipoly++){
+            const unsigned int n_flux_quad_pts = this->volume_quadrature_collection[ipoly].size();
             for(unsigned int iquad=0; iquad<n_flux_quad_pts; iquad++){
-                const dealii::Point<dim> flux_node = volume_quadrature_collection[ipoly].point(iquad); 
+                const dealii::Point<dim> flux_node = this->volume_quadrature_collection[ipoly].point(iquad); 
                 for(unsigned int idof=0; idof<n_dofs; idof++){
                     mapping_shape_functions_vol_flux_nodes[idegree][ipoly][iquad][idof] = fe.shape_value_component(idof,flux_node,0);
                     dealii::Tensor<1,dim,real> derivative_flux;
@@ -916,12 +821,11 @@ void OperatorBase<dim,real>::create_metric_basis_operators (
                     }
                 }
             }
-            unsigned int n_faces = dealii::GeometryInfo<dim>::faces_per_cell;
             for(unsigned int iface=0; iface<n_faces; iface++){
                 const dealii::Quadrature<dim> quadrature = dealii::QProjector<dim>::project_to_face(dealii::ReferenceCell::get_hypercube(dim),
-                                                                                                    face_quadrature_collection[ipoly],
+                                                                                                    this->face_quadrature_collection[ipoly],
                                                                                                     iface);
-                const unsigned int n_quad_face_pts = face_quadrature_collection[ipoly].size();
+                const unsigned int n_quad_face_pts = this->face_quadrature_collection[ipoly].size();
                 for(unsigned int iquad=0; iquad<n_quad_face_pts; iquad++){
                     const dealii::Point<dim> flux_node = quadrature.point(iquad); 
                     for(unsigned int idof=0; idof<n_dofs; idof++){
@@ -938,8 +842,8 @@ void OperatorBase<dim,real>::create_metric_basis_operators (
     }
 }
 
-template <int dim, typename real>
-void OperatorBase<dim,real>::build_local_vol_determinant_Jac(
+template <  int dim, typename real, int n_faces>  
+void OperatorsBase<dim,real,n_faces>::build_local_vol_determinant_Jac(
                                     const unsigned int grid_degree, const unsigned int poly_degree, 
                                     const unsigned int n_quad_pts,//number volume quad pts
                                     const unsigned int n_metric_dofs,//dofs of metric basis. NOTE: this is the number of mapping support points
@@ -968,8 +872,8 @@ void OperatorBase<dim,real>::build_local_vol_determinant_Jac(
 }
 
 
-template <int dim, typename real>
-void OperatorBase<dim,real>::build_local_vol_metric_cofactor_matrix_and_det_Jac(
+template <  int dim, typename real, int n_faces>  
+void OperatorsBase<dim,real,n_faces>::build_local_vol_metric_cofactor_matrix_and_det_Jac(
                                     const unsigned int grid_degree, const unsigned int poly_degree, 
                                     const unsigned int n_quad_pts,//number volume quad pts
                                     const unsigned int n_metric_dofs,//dofs of metric basis. NOTE: this is the number of mapping support points
@@ -1014,8 +918,8 @@ void OperatorBase<dim,real>::build_local_vol_metric_cofactor_matrix_and_det_Jac(
         compute_local_3D_cofactor_vol(grid_degree, poly_degree, n_quad_pts, n_metric_dofs, mapping_support_points, metric_cofactor);
     }
 }
-template <int dim, typename real>
-void OperatorBase<dim,real>::compute_local_3D_cofactor_vol(
+template <  int dim, typename real, int n_faces>  
+void OperatorsBase<dim,real,n_faces>::compute_local_3D_cofactor_vol(
                                     const unsigned int grid_degree, const unsigned int poly_degree,
                                     const unsigned int n_quad_pts,
                                     const unsigned int n_metric_dofs,
@@ -1116,8 +1020,8 @@ void OperatorBase<dim,real>::compute_local_3D_cofactor_vol(
 
 }
 
-template <int dim, typename real>
-void OperatorBase<dim,real>::build_local_face_metric_cofactor_matrix_and_det_Jac(
+template <  int dim, typename real, int n_faces>  
+void OperatorsBase<dim,real,n_faces>::build_local_face_metric_cofactor_matrix_and_det_Jac(
                                     const unsigned int grid_degree, const unsigned int poly_degree,
                                     const unsigned int iface,
                                     const unsigned int n_quad_pts, const unsigned int n_metric_dofs,
@@ -1164,8 +1068,8 @@ void OperatorBase<dim,real>::build_local_face_metric_cofactor_matrix_and_det_Jac
 
 }
 
-template <int dim, typename real>
-void OperatorBase<dim,real>::compute_local_3D_cofactor_face(
+template <  int dim, typename real, int n_faces>  
+void OperatorsBase<dim,real,n_faces>::compute_local_3D_cofactor_face(
                                     const unsigned int grid_degree, const unsigned int poly_degree,
                                     const unsigned int n_quad_pts,
                                     const unsigned int n_metric_dofs, const unsigned int iface,
@@ -1266,8 +1170,8 @@ void OperatorBase<dim,real>::compute_local_3D_cofactor_face(
             do_curl_loop_metric_cofactor(n_quad_pts, grad_Xl_grad_Xm, metric_cofactor);
 
 }
-template <int dim, typename real>
-void OperatorBase<dim,real>::compute_Xl_grad_Xm(
+template <  int dim, typename real, int n_faces>  
+void OperatorsBase<dim,real,n_faces>::compute_Xl_grad_Xm(
                                     const unsigned int grid_degree,
                                     const unsigned int n_metric_dofs, 
                                     const std::vector<std::vector<real>> &mapping_support_points,
@@ -1309,8 +1213,8 @@ void OperatorBase<dim,real>::compute_Xl_grad_Xm(
         }
     }
 }
-template <int dim, typename real>
-void OperatorBase<dim,real>::do_curl_loop_metric_cofactor(
+template <  int dim, typename real, int n_faces>  
+void OperatorsBase<dim,real,n_faces>::do_curl_loop_metric_cofactor(
                                     const unsigned int n_quad_pts,
                                     const std::vector<dealii::DerivativeForm<2,dim,dim>> grad_Xl_grad_Xm,
                                     std::vector<dealii::FullMatrix<real>> &metric_cofactor)
@@ -1338,44 +1242,9 @@ void OperatorBase<dim,real>::do_curl_loop_metric_cofactor(
     }
 }
 
-template <int dim, typename real>
-void OperatorBase<dim,real>::get_Jacobian_scaled_physical_gradient(
-                                    const bool use_conservative_divergence,
-                                    const std::vector<std::vector<dealii::FullMatrix<real>>> &ref_gradient,
-                                    const std::vector<dealii::FullMatrix<real>> &metric_cofactor,
-                                    const unsigned int n_quad_pts, const int nstate,
-                                    std::vector<std::vector<dealii::FullMatrix<real>>> &physical_gradient)
-{
 
-    for(int istate=0; istate<nstate; istate++){
-        for(int idim=0; idim<dim; idim++){
-            for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
-                for(unsigned int iquad2=0; iquad2<n_quad_pts; iquad2++){
-                    physical_gradient[istate][idim][iquad][iquad2] = 0.0;
-                    for(int jdim=0; jdim<dim; jdim++){
-                        if(this->all_parameters->use_curvilinear_split_form == false){
-                            if(use_conservative_divergence){//Build gradient such that when applied computes conservative divergence operator.
-                                physical_gradient[istate][idim][iquad][iquad2] += metric_cofactor[iquad2][idim][jdim] * ref_gradient[istate][jdim][iquad][iquad2];
-                            }
-                            else{//Build gradient such that when applied computes the gradient of a scalar function.
-                                physical_gradient[istate][idim][iquad][iquad2] += metric_cofactor[iquad][idim][jdim] * ref_gradient[istate][jdim][iquad][iquad2];
-                            }
-                        }
-                        else{//Split form is half of the two forms above.
-                            physical_gradient[istate][idim][iquad][iquad2] += 0.5 * ( metric_cofactor[iquad][idim][jdim] 
-                                                                                   + metric_cofactor[iquad2][idim][jdim] ) 
-                                                                            * ref_gradient[istate][jdim][iquad][iquad2];
-                        }
-                    }
-                }
-            }
-        }
-    }
-    
-}
-
-template <int dim, typename real>
-void OperatorBase<dim,real>::compute_physical_to_reference(
+template <  int dim, typename real, int n_faces>  
+void OperatorsBase<dim,real,n_faces>::compute_physical_to_reference(
                                     const dealii::Tensor<1,dim,real> &phys,
                                     const dealii::FullMatrix<real> &metric_cofactor,
                                     dealii::Tensor<1,dim,real> &ref)
@@ -1388,8 +1257,8 @@ void OperatorBase<dim,real>::compute_physical_to_reference(
     }
 
 }
-template <int dim, typename real>
-void OperatorBase<dim,real>::compute_reference_to_physical(
+template <  int dim, typename real, int n_faces>  
+void OperatorsBase<dim,real,n_faces>::compute_reference_to_physical(
                                     const dealii::Tensor<1,dim,real> &ref,
                                     const dealii::FullMatrix<real> &metric_cofactor,
                                     dealii::Tensor<1,dim,real> &phys)
@@ -1402,20 +1271,20 @@ void OperatorBase<dim,real>::compute_reference_to_physical(
     }
 
 }
-template <int dim, typename real>
-void OperatorBase<dim,real>::is_the_grid_higher_order_than_initialized(
+template <  int dim, typename real, int n_faces>  
+void OperatorsBase<dim,real,n_faces>::is_the_grid_higher_order_than_initialized(
                                     const unsigned int grid_degree)
 {
-    if(grid_degree > max_grid_degree_check){
-        pcout<<"Updating the metric basis for grid degree "<<grid_degree<<std::endl;
+    if(grid_degree > this->max_grid_degree_check){
+        this->pcout<<"Updating the metric basis for grid degree "<<grid_degree<<std::endl;
         allocate_metric_operators(grid_degree);
         create_metric_basis_operators(grid_degree);
-        max_grid_degree_check = grid_degree; 
+        this->max_grid_degree_check = grid_degree; 
     }
 }
 
-template <int dim, typename real>
-void OperatorBase<dim,real>::sum_factorization_matrix_vector_mult(
+template <  int dim, typename real, int n_faces>  
+void OperatorsBase<dim,real,n_faces>::sum_factorization_matrix_vector_mult(
                                     const std::vector<real> &input_vect,
                                     std::vector<real> &output_vect,
                                     const unsigned int rows, const unsigned int columns,
@@ -1464,7 +1333,7 @@ void OperatorBase<dim,real>::sum_factorization_matrix_vector_mult(
             for(unsigned int jdof=0; jdof<columns; jdof++){ 
                 for(unsigned int kdof=0; kdof<columns; kdof++){
                     const unsigned int dof_index = idof*pow(columns,2) + jdof*columns + kdof;
-                    input_mat[kdof][idof*columns + jdof] = input_vect[dof_index];//jdof runs fastest (x) idof slowest (y)
+                    input_mat[kdof][idof*columns + jdof] = input_vect[dof_index];//kdof runs fastest (x) idof slowest (z)
                 }
             }
         }
@@ -1504,8 +1373,8 @@ void OperatorBase<dim,real>::sum_factorization_matrix_vector_mult(
     }
 
 }
-template <int dim, typename real>
-void OperatorBase<dim,real>::sum_factorization_inner_product(
+template <  int dim, typename real, int n_faces>  
+void OperatorsBase<dim,real,n_faces>::sum_factorization_inner_product(
                                     const std::vector<real> &input_vect,
                                     const std::vector<real> &weight_vect,
                                     std::vector<real> &output_vect,
@@ -1547,12 +1416,192 @@ void OperatorBase<dim,real>::sum_factorization_inner_product(
     sum_factorization_matrix_vector_mult(new_input_vect, output_vect, rows, columns, dimension, basis_x_trans, basis_y_trans, basis_z_trans);
 
 }
-template class OperatorBase <PHILIP_DIM, double>;
-//template class OperatorBase <PHILIP_DIM, 1, double>;
-//template class OperatorBase <PHILIP_DIM, 2, double>;
-//template class OperatorBase <PHILIP_DIM, 3, double>;
-//template class OperatorBase <PHILIP_DIM, 4, double>;
-//template class OperatorBase <PHILIP_DIM, 5, double>;
+/**********************************************************
+    * Operators Base State below constructing the operators
+    *******************************************************/
+template <  int dim, typename real, int nstate,
+            int n_faces>  
+OperatorsBaseState<dim,real,nstate,n_faces>
+::OperatorsBaseState(
+    const Parameters::AllParameters *const parameters_input,
+    const unsigned int max_degree_input,
+    const unsigned int grid_degree_input)
+    : OperatorsBase<dim,real,n_faces>::OperatorsBase(parameters_input, nstate, max_degree_input, max_degree_input, grid_degree_input)
+{
+    allocate_volume_operators_state();
+    create_vol_basis_operators_state();
+    //setup surface operators
+    allocate_surface_operators_state();
+    create_surface_basis_operators_state();
+}
+// Destructor
+template <  int dim, typename real, int nstate,
+            int n_faces>  
+OperatorsBaseState<dim,real,nstate,n_faces>::~OperatorsBaseState ()
+{
+    this->pcout << "Destructing Operators state.." << std::endl;
+}
+
+template <  int dim, typename real, int nstate,
+            int n_faces>  
+void OperatorsBaseState<dim,real,nstate,n_faces>::allocate_volume_operators_state()
+{
+    flux_basis_at_vol_cubature.resize(this->max_degree+1);
+    gradient_flux_basis.resize(this->max_degree+1);
+    local_flux_basis_stiffness.resize(this->max_degree+1);
+    vol_integral_gradient_basis.resize(this->max_degree+1);
+    for(unsigned int idegree=0; idegree<=this->max_degree; idegree++){
+        //flux basis allocator
+        unsigned int n_dofs_flux = this->fe_collection_flux_basis[idegree].dofs_per_cell;
+        unsigned int n_quad_pts = this->volume_quadrature_collection[idegree].size();
+        unsigned int n_dofs = this->fe_collection_basis[idegree].dofs_per_cell;
+        if(n_dofs_flux != n_quad_pts)
+           this->pcout<<"flux basis not collocated on quad points"<<std::endl;
+        //Note flux basis is collocated on the volume cubature nodes.
+        for(int istate=0; istate<nstate; istate++){
+            flux_basis_at_vol_cubature[idegree][istate].reinit(n_quad_pts, n_dofs_flux);
+            for(int idim=0; idim<dim; idim++){
+                gradient_flux_basis[idegree][istate][idim].reinit(n_quad_pts, n_dofs_flux);
+                local_flux_basis_stiffness[idegree][istate][idim].reinit(n_dofs, n_dofs_flux);
+                vol_integral_gradient_basis[idegree][istate][idim].reinit(n_quad_pts, n_dofs);
+            }
+        }
+    }
+
+}
+template <  int dim, typename real, int nstate,
+            int n_faces>  
+void OperatorsBaseState<dim,real,nstate,n_faces>::create_vol_basis_operators_state()
+{
+    for(unsigned int idegree=0; idegree<=this->max_degree; idegree++){
+        unsigned int n_dofs_flux = this->fe_collection_flux_basis[idegree].dofs_per_cell;
+        unsigned int n_quad_pts = this->volume_quadrature_collection[idegree].size();
+        unsigned int n_dofs = this->fe_collection_basis[idegree].dofs_per_cell;
+        for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
+            const dealii::Point<dim> qpoint  = this->volume_quadrature_collection[idegree].point(iquad);
+            for(int istate=0; istate<nstate; istate++){
+                for(unsigned int idof=0; idof<n_dofs_flux; idof++){
+                    //Flux basis function idof of poly degree idegree evaluated at cubature node qpoint.
+                    flux_basis_at_vol_cubature[idegree][istate][iquad][idof] = this->fe_collection_flux_basis[idegree].shape_value_component(idof,qpoint,0);
+                    dealii::Tensor<1,dim,real> derivative;
+                    derivative = this->fe_collection_flux_basis[idegree].shape_grad_component(idof, qpoint, 0);
+                    for(int idim=0; idim<dim; idim++){
+                        gradient_flux_basis[idegree][istate][idim][iquad][idof] = derivative[idim];
+                    }
+                }
+            }
+        }
+        const std::vector<real> &quad_weights = this->volume_quadrature_collection[idegree].get_weights ();
+        for(unsigned int itest=0; itest<n_dofs; itest++){
+            const int istate_test = this->fe_collection_basis[idegree].system_to_component_index(itest).first;
+            for(unsigned int idof=0; idof<n_dofs_flux; idof++){
+                dealii::Tensor<1,dim,real> value;
+                for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
+                    const dealii::Point<dim> qpoint  = this->volume_quadrature_collection[idegree].point(iquad);
+                    dealii::Tensor<1,dim,real> derivative;
+                    derivative = this->fe_collection_flux_basis[idegree].shape_grad_component(idof, qpoint, 0);
+                    value += this->basis_at_vol_cubature[idegree][iquad][itest] * quad_weights[iquad] * derivative;
+                }
+                const int test_shape = this->fe_collection_basis[idegree].system_to_component_index(itest).second;
+                    for(int idim=0; idim<dim; idim++){
+                        local_flux_basis_stiffness[idegree][istate_test][idim][test_shape][idof] = value[idim]; 
+                    }
+            }
+            const int ishape_test = this->fe_collection_basis[idegree].system_to_component_index(itest).second;
+            for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){ 
+                const dealii::Point<dim> qpoint  = this->volume_quadrature_collection[idegree].point(iquad);
+                dealii::Tensor<1,dim,real> derivative;
+                derivative = this->fe_collection_basis[idegree].shape_grad_component(itest, qpoint, istate_test);
+                for(int idim=0; idim<dim; idim++){
+                    vol_integral_gradient_basis[idegree][istate_test][idim][iquad][ishape_test] = derivative[idim] * quad_weights[iquad]; 
+                }
+            }
+        }
+    }
+
+}
+template <  int dim, typename real, int nstate,
+            int n_faces>  
+void OperatorsBaseState<dim,real,nstate,n_faces>::allocate_surface_operators_state()
+{
+    flux_basis_at_facet_cubature.resize(this->max_degree+1);
+    for(unsigned int idegree=0; idegree<=this->max_degree; idegree++){
+        unsigned int n_quad_face_pts = this->face_quadrature_collection[idegree].size();
+        unsigned int n_dofs_flux = this->fe_collection_flux_basis[idegree].dofs_per_cell;
+        //for flux basis by nstate
+        for(int istate=0; istate<nstate; istate++){
+            for(unsigned int iface=0; iface<n_faces; iface++){
+                flux_basis_at_facet_cubature[idegree][istate][iface].reinit(n_quad_face_pts, n_dofs_flux);
+            }
+        }
+    }
+
+}
+template <  int dim, typename real, int nstate,
+            int n_faces>  
+void OperatorsBaseState<dim,real,nstate,n_faces>::create_surface_basis_operators_state()
+{
+    for(unsigned int idegree=0; idegree<=this->max_degree; idegree++){
+        unsigned int n_dofs_flux = this->fe_collection_flux_basis[idegree].dofs_per_cell;
+        unsigned int n_quad_face_pts = this->face_quadrature_collection[idegree].size();
+        for(unsigned int iface=0; iface<n_faces; iface++){ 
+            const dealii::Quadrature<dim> quadrature = dealii::QProjector<dim>::project_to_face(dealii::ReferenceCell::get_hypercube(dim),
+                                                                                                this->face_quadrature_collection[idegree],
+                                                                                                iface);
+            for(unsigned int iquad=0; iquad<n_quad_face_pts; iquad++){
+                for(int istate=0; istate<nstate; istate++){
+                    for(unsigned int idof=0; idof<n_dofs_flux; idof++){
+                        flux_basis_at_facet_cubature[idegree][istate][iface][iquad][idof] = this->fe_collection_flux_basis[idegree].shape_value_component(idof,quadrature.point(iquad),0);
+                    }
+                }
+            }
+        }
+    }
+
+}
+template <  int dim, typename real, int nstate, int n_faces>  
+void OperatorsBaseState<dim,real,nstate,n_faces>::get_Jacobian_scaled_physical_gradient(
+                                    const bool use_conservative_divergence,
+                                    const std::array<std::array<dealii::FullMatrix<real>,dim>,nstate> &ref_gradient,
+                                    const std::vector<dealii::FullMatrix<real>> &metric_cofactor,
+                                    const unsigned int n_quad_pts,
+                                    std::array<std::array<dealii::FullMatrix<real>,dim>,nstate> &physical_gradient)
+{
+
+    for(int istate=0; istate<nstate; istate++){
+        for(int idim=0; idim<dim; idim++){
+            for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
+                for(unsigned int iquad2=0; iquad2<n_quad_pts; iquad2++){
+                    physical_gradient[istate][idim][iquad][iquad2] = 0.0;
+                    for(int jdim=0; jdim<dim; jdim++){
+                        if(this->all_parameters->use_curvilinear_split_form == false){
+                            if(use_conservative_divergence){//Build gradient such that when applied computes conservative divergence operator.
+                                physical_gradient[istate][idim][iquad][iquad2] += metric_cofactor[iquad2][idim][jdim] * ref_gradient[istate][jdim][iquad][iquad2];
+                            }
+                            else{//Build gradient such that when applied computes the gradient of a scalar function.
+                                physical_gradient[istate][idim][iquad][iquad2] += metric_cofactor[iquad][idim][jdim] * ref_gradient[istate][jdim][iquad][iquad2];
+                            }
+                        }
+                        else{//Split form is half of the two forms above.
+                            physical_gradient[istate][idim][iquad][iquad2] += 0.5 * ( metric_cofactor[iquad][idim][jdim] 
+                                                                                   + metric_cofactor[iquad2][idim][jdim] ) 
+                                                                            * ref_gradient[istate][jdim][iquad][iquad2];
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
+}
+
+template class OperatorsBase <PHILIP_DIM, double, 2*PHILIP_DIM>;
+
+template class OperatorsBaseState <PHILIP_DIM, double, 1, 2*PHILIP_DIM>;
+template class OperatorsBaseState <PHILIP_DIM, double, 2, 2*PHILIP_DIM>;
+template class OperatorsBaseState <PHILIP_DIM, double, 3, 2*PHILIP_DIM>;
+template class OperatorsBaseState <PHILIP_DIM, double, 4, 2*PHILIP_DIM>;
+template class OperatorsBaseState <PHILIP_DIM, double, 5, 2*PHILIP_DIM>;
 
 } // OPERATOR namespace
 } // PHiLiP namespace

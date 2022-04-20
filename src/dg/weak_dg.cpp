@@ -4261,6 +4261,40 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_auxiliary_residual ()
 {
     //Do Nothing.
 }
+template <int dim, int nstate, typename real, typename MeshType>
+void DGWeak<dim,nstate,real,MeshType>::assemble_volume_term_auxiliary_equation(
+        const std::vector<dealii::types::global_dof_index> &/*current_dofs_indices*/,
+        const std::vector<dealii::types::global_dof_index> &/*metric_dof_indices*/,
+        const unsigned int /*poly_degree*/,
+        const unsigned int /*grid_degree*/,
+        std::vector<dealii::Tensor<1,dim,double>> &/*local_auxiliary_RHS*/)
+{
+    //Do Nothing.
+}
+template <int dim, int nstate, typename real, typename MeshType>
+void DGWeak<dim,nstate,real,MeshType>::assemble_boundary_term_auxiliary_equation(
+        const unsigned int /*poly_degree*/, const unsigned int /*grid_degree*/,
+        const unsigned int /*iface*/,
+        const unsigned int /*boundary_id*/,
+        const std::vector<dealii::types::global_dof_index> &/*current_dofs_indices*/,
+        const std::vector<dealii::types::global_dof_index> &/*metric_dof_indices*/,
+        std::vector<dealii::Tensor<1,dim,real>> &/*local_auxiliary_RHS*/)
+{
+    //Do Nothing.
+}
+template <int dim, int nstate, typename real, typename MeshType>
+void DGWeak<dim,nstate,real,MeshType>::assemble_face_term_auxiliary(
+        const unsigned int /*iface*/, const unsigned int /*neighbor_iface*/,
+        const unsigned int /*poly_degree*/, const unsigned int /*grid_degree*/,
+        const std::vector<dealii::types::global_dof_index> &/*current_dofs_indices*/,
+        const std::vector<dealii::types::global_dof_index> &/*neighbor_dofs_indices*/,
+        const std::vector<dealii::types::global_dof_index> &/*metric_dof_indices_int*/,
+        const std::vector<dealii::types::global_dof_index> &/*metric_dof_indices_ext*/,
+        std::vector<dealii::Tensor<1,dim,real>> &/*local_auxiliary_RHS_int*/,
+        std::vector<dealii::Tensor<1,dim,real>> &/*local_auxiliary_RHS_ext*/)
+{
+    //Do Nothing.
+}
 
 
 // using default MeshType = Triangulation

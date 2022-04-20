@@ -659,11 +659,13 @@ protected:
         dealii::Vector<real> &current_cell_rhs) = 0;
     /// Evaluate the integral over the internal cell edges
     virtual void assemble_face_term_explicit(
-        const unsigned int iface, const unsigned int neighbor_iface,
+        const unsigned int iface, 
+        const unsigned int neighbor_iface,
         typename dealii::DoFHandler<dim>::active_cell_iterator cell,
         const dealii::types::global_dof_index current_cell_index,
         const dealii::types::global_dof_index neighbor_cell_index,
-        const unsigned int poly_degree, const unsigned int grid_degree,
+        const unsigned int poly_degree, 
+        const unsigned int grid_degree,
         const dealii::FEFaceValuesBase<dim,dim>     &fe_values_face_int,
         const dealii::FEFaceValuesBase<dim,dim>     &fe_values_face_ext,
         const real penalty,

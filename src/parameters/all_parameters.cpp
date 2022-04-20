@@ -151,7 +151,7 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       "  euler_naca0012 | "
                       "  reduced_order |"
                       "  burgers_rewienski_snapshot |"
-                      " convection_diffusion_periodicity |"
+                      "  convection_diffusion_periodicity |"
                       "  POD_adaptation |"
                       "  finite_difference_sensitivity | "
                       "  advection_periodicity | "

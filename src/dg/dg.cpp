@@ -639,7 +639,6 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
                 current_metric_dofs_indices, current_dofs_indices,
                 current_cell_rhs, fe_values_lagrange,
                 compute_dRdW, compute_dRdX, compute_d2R);
- 
         }
     }
 
@@ -2156,7 +2155,7 @@ void DGBase<dim,real,MeshType>::allocate_system ()
     right_hand_side.add(1.0); // Avoid 0 initial residual for output and logarithmic visualization.
     dual.reinit(locally_owned_dofs, ghost_dofs, mpi_communicator);
 
-    //Allocate for auxiliary equation only.
+    // Allocate for auxiliary equation only.
     allocate_auxiliary_equation ();
 
     // System matrix allocation
@@ -2345,7 +2344,7 @@ void DGBase<dim,real,MeshType>::evaluate_mass_matrices (bool do_inverse_mass_mat
         std::vector<dealii::types::global_dof_index> metric_dof_indices(n_metric_dofs);
         metric_cell->get_dof_indices (metric_dof_indices);
         const unsigned int grid_degree = high_order_grid->fe_system.tensor_degree();
-        //get mapping_support points
+        // get mapping_support points
         std::vector<std::vector<real>> mapping_support_points(dim);
         for(int idim=0; idim<dim; idim++){
             mapping_support_points[idim].resize(n_metric_dofs/dim);

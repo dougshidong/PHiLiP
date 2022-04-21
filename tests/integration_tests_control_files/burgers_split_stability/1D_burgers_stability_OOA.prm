@@ -6,8 +6,6 @@ set use_weak_form = false
 
 set overintegration = 0
 
-#set rk_order = 4
-
 set use_collocated_nodes = false
 
 set use_split_form = true

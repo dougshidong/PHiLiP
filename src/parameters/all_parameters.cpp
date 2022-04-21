@@ -98,10 +98,6 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       dealii::Patterns::Double(1.0,1e200),
                       "Scaling of Symmetric Interior Penalty term to ensure coercivity.");
 
-//    prm.declare_entry("rk_order", "3",
-//                      dealii::Patterns::Integer(),
-//                      "Runge-Kutta order for explicit timestep.");
-
     prm.declare_entry("test_type", "run_control",
                       dealii::Patterns::Selection(
                       " run_control | "
@@ -299,7 +295,6 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     use_L2_norm = prm.get_bool("use_L2_norm");
     use_classical_FR = prm.get_bool("use_classical_FR");
     sipg_penalty_factor = prm.get_double("sipg_penalty_factor");
-//    rk_order = prm.get_integer("rk_order");
 
     const std::string conv_num_flux_string = prm.get("conv_num_flux");
     if (conv_num_flux_string == "lax_friedrichs")                                               conv_num_flux_type = lax_friedrichs;

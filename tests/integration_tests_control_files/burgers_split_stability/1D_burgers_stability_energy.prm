@@ -6,7 +6,7 @@ set use_weak_form = false
 
 set overintegration = 0
 
-set rk_order = 4
+#set rk_order = 4
 
 set use_collocated_nodes = false
 
@@ -43,6 +43,12 @@ subsection ODE solver
 
   set initial_time_step = 0.0001
   #set initial_time_step = 0.00005
+
+  subsection explicit solver options
+
+    set runge_kutta_order = 4
+
+  end
 
 end
 

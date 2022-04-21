@@ -98,9 +98,9 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       dealii::Patterns::Double(1.0,1e200),
                       "Scaling of Symmetric Interior Penalty term to ensure coercivity.");
 
-    prm.declare_entry("rk_order", "3",
-                      dealii::Patterns::Integer(),
-                      "Runge-Kutta order for explicit timestep.");
+//    prm.declare_entry("rk_order", "3",
+//                      dealii::Patterns::Integer(),
+//                      "Runge-Kutta order for explicit timestep.");
 
     prm.declare_entry("test_type", "run_control",
                       dealii::Patterns::Selection(
@@ -122,7 +122,6 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       " shock_1d | "
                       " euler_naca0012 | "
                       " reduced_order | "
-//                      " burgers_rewienski_snapshot |"
                       " convection_diffusion_periodicity |"
                       " POD_adaptation |"
                       " finite_difference_sensitivity | "
@@ -151,7 +150,6 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       "  shock_1d | "
                       "  euler_naca0012 | "
                       "  reduced_order |"
-                      "  burgers_rewienski_snapshot |"
                       "  convection_diffusion_periodicity |"
                       "  POD_adaptation |"
                       "  finite_difference_sensitivity | "
@@ -251,7 +249,6 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     else if (test_string == "shock_1d")                                 { test_type = shock_1d; }
     else if (test_string == "reduced_order")                            { test_type = reduced_order; }
     else if (test_string == "POD_adaptation")                           { test_type = POD_adaptation; }
-//    else if (test_string == "burgers_rewienski_snapshot")        { test_type = burgers_rewienski_snapshot; }
     else if (test_string == "optimization_inverse_manufactured")        {test_type = optimization_inverse_manufactured; }
     else if (test_string == "finite_difference_sensitivity")            { test_type = finite_difference_sensitivity; }
     else if (test_string == "euler_naca0012")                           { test_type = euler_naca0012; }
@@ -302,7 +299,7 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     use_L2_norm = prm.get_bool("use_L2_norm");
     use_classical_FR = prm.get_bool("use_classical_FR");
     sipg_penalty_factor = prm.get_double("sipg_penalty_factor");
-    rk_order = prm.get_integer("rk_order");
+//    rk_order = prm.get_integer("rk_order");
 
     const std::string conv_num_flux_string = prm.get("conv_num_flux");
     if (conv_num_flux_string == "lax_friedrichs")                                               conv_num_flux_type = lax_friedrichs;

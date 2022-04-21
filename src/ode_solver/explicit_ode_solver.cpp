@@ -38,7 +38,7 @@ void ExplicitODESolver<dim,real,MeshType>::step_in_time (real dt, const bool pse
 
         this->dg->solution = this->rk_stage[i];
         //set the DG current time for unsteady source terms
-        this->dg->set_current_time(this->current_time + this->butcher_tableau_c[i]);
+        this->dg->set_current_time(this->current_time + this->butcher_tableau_c[i]*dt);
         //solve the system's right hande side
         this->dg->assemble_residual(); //RHS : du/dt = RHS = F(u_n + dt* sum(a_ij*k_j))
         this->dg->global_inverse_mass_matrix.vmult(this->rk_stage[i], this->dg->right_hand_side); //rk_stage[i] = IMM*RHS = F(u_n + dt*sum(a_ij*k_j))

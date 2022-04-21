@@ -33,5 +33,11 @@ subsection ODE solver
 
   set initial_time_step = 0.001
 
+  subsection explicit solver options
+
+    set runge_kutta_order = 4
+
+  end
+
 end
 

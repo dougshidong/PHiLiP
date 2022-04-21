@@ -109,8 +109,8 @@ public:
     /// Number of state variables. Will depend on PDE
     int nstate;
 
-    ///For explicit timestep Runge-Kutta order.
-    int rk_order;
+//    ///For explicit timestep Runge-Kutta order.
+//    int rk_order;
 
     /// Currently allows to solve advection, diffusion, convection-diffusion
     enum TestType {
@@ -133,7 +133,6 @@ public:
         shock_1d,
         euler_naca0012,
         reduced_order,
-//        burgers_rewienski_snapshot,
         convection_diffusion_periodicity,
         POD_adaptation,
         finite_difference_sensitivity,

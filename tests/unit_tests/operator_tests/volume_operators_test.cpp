@@ -130,17 +130,17 @@ int main (int argc, char * argv[])
                 if(idof == idof2){
                     const unsigned int ishape = operators.fe_collection_basis[poly_degree].system_to_component_index(idof).second;
                     if(std::abs(quad_weights[ishape] - operators.local_mass[poly_degree][idof][idof2] -
-                            operators.local_K_operator[poly_degree][idof][idof2]) > 1e-12)
+                            operators.local_Flux_Reconstruction_operator[poly_degree][idof][idof2]) > 1e-12)
                         M_K_HU = std::abs(quad_weights[idof] - operators.local_mass[poly_degree][idof][idof2] +
-                            operators.local_K_operator[poly_degree][idof][idof2]);
+                            operators.local_Flux_Reconstruction_operator[poly_degree][idof][idof2]);
                 }
                 else{
                     if(std::abs(operators.local_mass[poly_degree][idof][idof2] +
-                            operators.local_K_operator[poly_degree][idof][idof2]) > 1e-12)
+                            operators.local_Flux_Reconstruction_operator[poly_degree][idof][idof2]) > 1e-12)
                         if(std::abs(operators.local_mass[poly_degree][idof][idof2] +
-                            operators.local_K_operator[poly_degree][idof][idof2]) > M_K_HU)
+                            operators.local_Flux_Reconstruction_operator[poly_degree][idof][idof2]) > M_K_HU)
                             M_K_HU = std::abs(operators.local_mass[poly_degree][idof][idof2] +
-                            operators.local_K_operator[poly_degree][idof][idof2]); 
+                            operators.local_Flux_Reconstruction_operator[poly_degree][idof][idof2]); 
                 }
             }
         }

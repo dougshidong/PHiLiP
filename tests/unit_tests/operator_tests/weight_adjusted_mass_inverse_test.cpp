@@ -261,11 +261,11 @@ void compute_inverse_mass_matrix(PHiLiP::OPERATOR::OperatorsBase<dim,real,2*dim>
         operators.build_local_Mass_Matrix(JxW, n_dofs_cell, n_quad_pts, poly_degree, local_mass_matrix);
 
         //For flux reconstruction
-        dealii::FullMatrix<real> K_operator(n_dofs_cell);
-        operators.build_local_K_operator(local_mass_matrix, n_dofs_cell, poly_degree, K_operator);
+        dealii::FullMatrix<real> Flux_Reconstruction_operator(n_dofs_cell);
+        operators.build_local_Flux_Reconstruction_operator(local_mass_matrix, n_dofs_cell, poly_degree, Flux_Reconstruction_operator);
         for (unsigned int itest=0; itest<n_dofs_cell; ++itest) {
             for (unsigned int itrial=0; itrial<n_dofs_cell; ++itrial) {
-                local_mass_matrix[itest][itrial] = local_mass_matrix[itest][itrial] + K_operator[itest][itrial];
+                local_mass_matrix[itest][itrial] = local_mass_matrix[itest][itrial] + Flux_Reconstruction_operator[itest][itrial];
             }
         }
 
@@ -290,12 +290,12 @@ void compute_weighted_inverse_mass_matrix(PHiLiP::OPERATOR::OperatorsBase<dim,re
         dealii::FullMatrix<real> local_mass_matrix(n_dofs_cell);
         operators.build_local_Mass_Matrix(W_J_inv, n_dofs_cell, n_quad_pts, poly_degree, local_mass_matrix);
         //For flux reconstruction
-        dealii::FullMatrix<real> K_operator(n_dofs_cell);
-        operators.build_local_K_operator(local_mass_matrix, n_dofs_cell, poly_degree, K_operator);
+        dealii::FullMatrix<real> Flux_Reconstruction_operator(n_dofs_cell);
+        operators.build_local_Flux_Reconstruction_operator(local_mass_matrix, n_dofs_cell, poly_degree, Flux_Reconstruction_operator);
         for (unsigned int itest=0; itest<n_dofs_cell; ++itest) {
             for (unsigned int itrial=0; itrial<n_dofs_cell; ++itrial) {
-               // local_mass_matrix[itest][itrial] = local_mass_matrix[itest][itrial] + K_operator[itest][itrial];
-                mass_inv[itest][itrial] = local_mass_matrix[itest][itrial] + K_operator[itest][itrial];
+               // local_mass_matrix[itest][itrial] = local_mass_matrix[itest][itrial] + Flux_Reconstruction_operator[itest][itrial];
+                mass_inv[itest][itrial] = local_mass_matrix[itest][itrial] + Flux_Reconstruction_operator[itest][itrial];
             }
         }
 }

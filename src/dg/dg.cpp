@@ -678,10 +678,7 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
 
                 //check neighbour cell face on boundary
                 auto neigh_face_check = neighbor_cell->face(neighbor_face_no);
-                if(neigh_face_check->at_boundary()){
-                    //do nothing, this verifies on-the-fly the 1D periodic BC done correctly
-                }
-                else{
+                if(!neigh_face_check->at_boundary()){
                     pcout<<"FACE NOT ON BOUNDARY"<<std::endl;
                     exit(1);
                 } 
@@ -2441,7 +2438,7 @@ void DGBase<dim,real,MeshType>::evaluate_local_metric_dependent_mass_matrix_and_
             dealii::FullMatrix<real> FR_correction_operator(n_dofs_cell);
             const unsigned int curr_cell_degree = current_fe_ref.tensor_degree();
             //build metric dependent FR correction operator
-            operators->build_local_K_operator(local_mass_matrix, n_dofs_cell, curr_cell_degree, FR_correction_operator);
+            operators->build_local_Flux_Reconstruction_operator(local_mass_matrix, n_dofs_cell, curr_cell_degree, FR_correction_operator);
             for (unsigned int itest=0; itest<n_dofs_cell; ++itest) {
                 for (unsigned int itrial=0; itrial<n_dofs_cell; ++itrial) {
                     local_mass_matrix[itest][itrial] = local_mass_matrix[itest][itrial] + FR_correction_operator[itest][itrial];
@@ -2457,7 +2454,7 @@ void DGBase<dim,real,MeshType>::evaluate_local_metric_dependent_mass_matrix_and_
             }
             const unsigned int curr_cell_degree = current_fe_ref.tensor_degree();
             //build metric dependent FR correction operators for Auxiliary equations.
-            operators->build_local_K_operator_AUX(local_mass_matrix, n_dofs_cell, curr_cell_degree, FR_correction_operator_aux);
+            operators->build_local_Flux_Reconstruction_operator_AUX(local_mass_matrix, n_dofs_cell, curr_cell_degree, FR_correction_operator_aux);
             for(int idim=0; idim<dim; idim++){
                 for (unsigned int itest=0; itest<n_dofs_cell; ++itest) {
                     for (unsigned int itrial=0; itrial<n_dofs_cell; ++itrial) {
@@ -2512,7 +2509,7 @@ void DGBase<dim,real,MeshType>::evaluate_local_metric_dependent_mass_matrix_and_
         if(FR_Type != FR_enum::cDG){
             //For flux reconstruction
             dealii::FullMatrix<real> FR_correction_operator(n_dofs_cell);
-            operators->build_local_K_operator(local_mass_matrix, n_dofs_cell, curr_cell_degree, FR_correction_operator);
+            operators->build_local_Flux_Reconstruction_operator(local_mass_matrix, n_dofs_cell, curr_cell_degree, FR_correction_operator);
             for (unsigned int itest=0; itest<n_dofs_cell; ++itest) {
                 for (unsigned int itrial=0; itrial<n_dofs_cell; ++itrial) {
                     local_mass_matrix[itest][itrial] = local_mass_matrix[itest][itrial] + FR_correction_operator[itest][itrial];
@@ -2528,7 +2525,7 @@ void DGBase<dim,real,MeshType>::evaluate_local_metric_dependent_mass_matrix_and_
             }
             const unsigned int curr_cell_degree = current_fe_ref.tensor_degree();
             //build metric dependent FR correction operators for Auxiliary equations.
-            operators->build_local_K_operator_AUX(local_mass_matrix, n_dofs_cell, curr_cell_degree, FR_correction_operator_aux);
+            operators->build_local_Flux_Reconstruction_operator_AUX(local_mass_matrix, n_dofs_cell, curr_cell_degree, FR_correction_operator_aux);
             for(int idim=0; idim<dim; idim++){
                 for (unsigned int itest=0; itest<n_dofs_cell; ++itest) {
                     for (unsigned int itrial=0; itrial<n_dofs_cell; ++itrial) {
@@ -2555,7 +2552,7 @@ void DGBase<dim,real,MeshType>::evaluate_local_metric_dependent_mass_matrix_and_
             dealii::FullMatrix<real> inv_weighted_mass_inv(n_dofs_cell);
             inv_weighted_mass_inv.invert(local_mass_matrix);
             dealii::FullMatrix<real> M_K(n_dofs_cell);
-            M_K.add(1.0, operators->local_mass[curr_cell_degree], 1.0, operators->local_K_operator[curr_cell_degree]);
+            M_K.add(1.0, operators->local_mass[curr_cell_degree], 1.0, operators->local_Flux_Reconstruction_operator[curr_cell_degree]);
             dealii::FullMatrix<real> temp(n_dofs_cell);
             M_K.mmult(temp, inv_weighted_mass_inv);
             dealii::FullMatrix<real> inverse_of_weighted_mass_inverse(n_dofs_cell);

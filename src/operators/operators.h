@@ -125,7 +125,7 @@ public:
 
     /*
         * Operators Base to be used in DGBase needs: basis at vol, surf and metric basis at quad nodes.
-        * Mass matrix, K oper and vol det Jac which needs the metric basis grad at vol quad nodes.
+        * Mass matrix, Flux_Reconstruction oper and vol det Jac which needs the metric basis grad at vol quad nodes.
         * Everything else will be in OperatorsBaseState
         * Also deirvtivep etc, which requires modal derivative oper, which reuiqres local_basis_stiffness
         * FR_mass_inv
@@ -153,16 +153,16 @@ public:
     */
     std::vector<std::array<dealii::FullMatrix<real>,dim>> local_basis_stiffness;
     /// ESFR correction matrix without jac dependence
-    std::vector<dealii::FullMatrix<real>> local_K_operator;
-    ///ESFR c parameter K operator
+    std::vector<dealii::FullMatrix<real>> local_Flux_Reconstruction_operator;
+    ///ESFR c parameter Flux_Reconstruction operator
     std::vector<real> c_param_FR;
    /// ESFR correction matrix for AUX EQUATION without jac dependence
-   /** NOTE Auxiliary equation is a vector in dim, so theres an ESFR correction for each dim -> K_aux also a vector of dim
-   * ie/ local_K_operator_aux[degree_index][dimension_index] = K_operator for AUX eaquation in direction dimension_index for
+   /** NOTE Auxiliary equation is a vector in dim, so theres an ESFR correction for each dim -> Flux_Reconstruction_aux also a vector of dim
+   * ie/ local_Flux_Reconstruction_operator_aux[degree_index][dimension_index] = Flux_Reconstruction_operator for AUX eaquation in direction dimension_index for
    * polynomial degree of degree_index+1
    */
-    std::vector<std::array<dealii::FullMatrix<real>,dim>> local_K_operator_aux;
-    ///ESFR k parameter K-auxiliary operator
+    std::vector<std::array<dealii::FullMatrix<real>,dim>> local_Flux_Reconstruction_operator_aux;
+    ///ESFR k parameter Flux_Reconstruction-auxiliary operator
     std::vector<real> k_param_FR;
     ///\f$ p\f$ -th order modal derivative of basis fuctions, ie/\f$ [D_\xi^p, D_\eta^p, D_\zeta^p]\f$
     std::vector<std::array<dealii::FullMatrix<real>,dim>> derivative_p;
@@ -204,22 +204,22 @@ public:
     void get_FR_correction_parameter (
                                     const unsigned int curr_cell_degree,
                                     real &c, real &k);
-    ///Constructs the vector of K operators (ESFR correction operator) for each poly degree.
-    void build_K_operators ();
+    ///Constructs the vector of Flux_Reconstruction operators (ESFR correction operator) for each poly degree.
+    void build_Flux_Reconstruction_operators ();
 
-   ///Computes a single local K operator (ESFR correction operator) on the fly for a local element.
+   ///Computes a single local Flux_Reconstruction operator (ESFR correction operator) on the fly for a local element.
    /**Note that this is dependent on the Mass Matrix, so for metric Jacobian dependent \f$K_m\f$,
    *pass the metric Jacobian dependent Mass Matrix \f$M_m\f$.
     */
-    void build_local_K_operator(
+    void build_local_Flux_Reconstruction_operator(
                                 const dealii::FullMatrix<real> &local_Mass_Matrix,
                                 const unsigned int  n_dofs_cell, const unsigned int degree_index, 
-                                dealii::FullMatrix<real> &K_operator);
-    ///Similar to above but for the local K operator for the Auxiliary equation.
-    void build_local_K_operator_AUX(
+                                dealii::FullMatrix<real> &Flux_Reconstruction_operator);
+    ///Similar to above but for the local Flux_Reconstruction operator for the Auxiliary equation.
+    void build_local_Flux_Reconstruction_operator_AUX(
                                 const dealii::FullMatrix<real> &local_Mass_Matrix,
                                 const unsigned int  n_dofs_cell, const unsigned int degree_index, 
-                                std::array<dealii::FullMatrix<real>,dim> &K_operator_aux);
+                                std::array<dealii::FullMatrix<real>,dim> &Flux_Reconstruction_operator_aux);
 
     ///Computes the volume projection operators.
     void get_vol_projection_operators();
@@ -467,7 +467,10 @@ public:
     ///Flux basis functions evaluated at facet cubature nodes.
     std::vector<std::array<std::array<dealii::FullMatrix<real>,n_faces>,nstate>> flux_basis_at_facet_cubature;
     ///Computes the physical gradient operator scaled by the determinant of the metric Jacobian. 
-    /**By default we should use the skew-symmetric form for curvilinear elements. For the metric split-form, pass "use_curvilinear_split_form" in parameters. Explicitly, the skew-symmetric form's first component is the gradient operator and the second is the divergence operator. Using \f$\mathbf{\phi}\f$ as the flux basis collocated on the volume cubature nodes, the output of the function is \f$ D_i = \frac{1}{2} \sum_{j=1}^{d}(J\frac{\partial \xi_j}{\partial x_i})\frac{\partial \phi(\mathbf{\xi}_v^r)}{\partial \xi_j}  + \frac{\partial \phi(\mathbf{\xi}_v^r)}{\partial \xi_j}(J\frac{\partial \xi_j}{\partial x_i})\f$. Since this operator can also compute either the divergence or the gradoent, pass the option of whether to compute the conservative divergence operator or the gradient operator. For definitions of gradient and divergence operators, please see Equations (10) and (11) in Cicchino, Alexander, et al. "Provably Stable Flux Reconstruction High-Order Methods on Curvilinear Elements." arXiv preprint arXiv:2109.11617 (2021).*/
+    /**By default we should use the skew-symmetric form for curvilinear elements. For the metric split-form, pass "use_curvilinear_split_form" in parameters. Explicitly, the skew-symmetric form's first component is the gradient operator and the second is the divergence operator. 
+    * Using \f$\mathbf{\phi}\f$ as the flux basis collocated on the volume cubature nodes, the output of the function is \f$ D_i = \frac{1}{2} \sum_{j=1}^{d}(J\frac{\partial \xi_j}{\partial x_i})\frac{\partial \phi(\mathbf{\xi}_v^r)}{\partial \xi_j}  + \frac{\partial \phi(\mathbf{\xi}_v^r)}{\partial \xi_j}(J\frac{\partial \xi_j}{\partial x_i})\f$. 
+    * Since this operator can also compute either the divergence or the gradoent, pass the option of whether to compute the conservative divergence operator or the gradient operator. For definitions of gradient and divergence operators, please see Equations (10) and (11) in Cicchino, Alexander, et al. "Provably Stable Flux Reconstruction High-Order Methods on Curvilinear Elements." arXiv preprint arXiv:2109.11617 (2021).
+    */
     void get_Jacobian_scaled_physical_gradient(
                                     const bool use_conservative_divergence,
                                     const std::array<std::array<dealii::FullMatrix<real>,dim>,nstate> &ref_gradient,

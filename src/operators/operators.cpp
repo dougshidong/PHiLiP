@@ -76,7 +76,7 @@ OperatorsBase<dim,real,n_faces>::OperatorsBase(
     build_Mass_Matrix_operators();
     build_Stiffness_Matrix_operators ();
     get_higher_derivatives();
-    build_K_operators();
+    build_Flux_Reconstruction_operators();
     get_vol_projection_operators();
 
     //setup surface operators
@@ -252,9 +252,9 @@ void OperatorsBase<dim,real,n_faces>::allocate_volume_operators ()
     derivative_p.resize(this->max_degree+1);
     derivative_2p.resize(this->max_degree+1);
     derivative_3p.resize(this->max_degree+1);
-    local_K_operator.resize(this->max_degree+1);
+    local_Flux_Reconstruction_operator.resize(this->max_degree+1);
     c_param_FR.resize(this->max_degree+1);
-    local_K_operator_aux.resize(this->max_degree+1);
+    local_Flux_Reconstruction_operator_aux.resize(this->max_degree+1);
     k_param_FR.resize(this->max_degree+1);
     vol_projection_operator.resize(this->max_degree+1);
     vol_projection_operator_FR.resize(this->max_degree+1);
@@ -266,7 +266,7 @@ void OperatorsBase<dim,real,n_faces>::allocate_volume_operators ()
         vol_integral_basis[idegree].reinit(n_quad_pts, n_dofs);
         local_mass[idegree].reinit(n_dofs, n_dofs);
         derivative_3p[idegree].reinit(n_dofs, n_dofs);
-        local_K_operator[idegree].reinit(n_dofs, n_dofs);
+        local_Flux_Reconstruction_operator[idegree].reinit(n_dofs, n_dofs);
         vol_projection_operator[idegree].reinit(n_dofs, n_quad_pts);
         vol_projection_operator_FR[idegree].reinit(n_dofs, n_quad_pts);
         FR_mass_inv[idegree].reinit(n_dofs, n_dofs);
@@ -275,7 +275,7 @@ void OperatorsBase<dim,real,n_faces>::allocate_volume_operators ()
             local_basis_stiffness[idegree][idim].reinit(n_dofs, n_dofs);
             derivative_p[idegree][idim].reinit(n_dofs, n_dofs);
             derivative_2p[idegree][idim].reinit(n_dofs, n_dofs);
-            local_K_operator_aux[idegree][idim].reinit(n_dofs, n_dofs);
+            local_Flux_Reconstruction_operator_aux[idegree][idim].reinit(n_dofs, n_dofs);
         }
     }
 
@@ -556,91 +556,91 @@ void OperatorsBase<dim,real,n_faces>::get_FR_correction_parameter (
 template <  int dim, typename real,
             int n_faces>  
 void OperatorsBase<dim,real,n_faces>
-::build_local_K_operator(
+::build_local_Flux_Reconstruction_operator(
                                 const dealii::FullMatrix<real> &local_Mass_Matrix,
                                 const unsigned int  n_dofs_cell, const unsigned int degree_index, 
-                                dealii::FullMatrix<real> &K_operator)
+                                dealii::FullMatrix<real> &Flux_Reconstruction_operator)
 {
     real c = 0.0;
-//get the K operator
+//get the Flux_Reconstruction operator
     c = c_param_FR[degree_index];
     if(dim == 1){
         dealii::FullMatrix<real> derivative_p_temp(n_dofs_cell, n_dofs_cell);
         derivative_p_temp.add(c, derivative_p[degree_index][0]);
-        dealii::FullMatrix<real> K_operator_temp(n_dofs_cell);
-        derivative_p_temp.Tmmult(K_operator_temp, local_Mass_Matrix);
-        K_operator_temp.mmult(K_operator, derivative_p[degree_index][0]); 
+        dealii::FullMatrix<real> Flux_Reconstruction_operator_temp(n_dofs_cell);
+        derivative_p_temp.Tmmult(Flux_Reconstruction_operator_temp, local_Mass_Matrix);
+        Flux_Reconstruction_operator_temp.mmult(Flux_Reconstruction_operator, derivative_p[degree_index][0]); 
     }
     if(dim == 2){
         for(int idim=0; idim<dim; idim++){
             dealii::FullMatrix<real> derivative_p_temp(n_dofs_cell, n_dofs_cell);
             derivative_p_temp.add(c, derivative_p[degree_index][idim]);
-            dealii::FullMatrix<real> K_operator_temp(n_dofs_cell);
-            derivative_p_temp.Tmmult(K_operator_temp, local_Mass_Matrix);
-            K_operator_temp.mmult(K_operator, derivative_p[degree_index][idim], true);
+            dealii::FullMatrix<real> Flux_Reconstruction_operator_temp(n_dofs_cell);
+            derivative_p_temp.Tmmult(Flux_Reconstruction_operator_temp, local_Mass_Matrix);
+            Flux_Reconstruction_operator_temp.mmult(Flux_Reconstruction_operator, derivative_p[degree_index][idim], true);
         }
         double c_2 = pow(c,2.0);
         dealii::FullMatrix<real> derivative_p_temp(n_dofs_cell, n_dofs_cell);
         derivative_p_temp.add(c_2, derivative_2p[degree_index][0]);
-        dealii::FullMatrix<real> K_operator_temp(n_dofs_cell);
-        derivative_p_temp.Tmmult(K_operator_temp, local_Mass_Matrix);
-        K_operator_temp.mmult(K_operator, derivative_2p[degree_index][0], true);
+        dealii::FullMatrix<real> Flux_Reconstruction_operator_temp(n_dofs_cell);
+        derivative_p_temp.Tmmult(Flux_Reconstruction_operator_temp, local_Mass_Matrix);
+        Flux_Reconstruction_operator_temp.mmult(Flux_Reconstruction_operator, derivative_2p[degree_index][0], true);
     }
     if(dim == 3){
         for(int idim=0; idim<dim; idim++){
             dealii::FullMatrix<real> derivative_p_temp(n_dofs_cell, n_dofs_cell);
             derivative_p_temp.add(c, derivative_p[degree_index][idim]);
-            dealii::FullMatrix<real> K_operator_temp(n_dofs_cell);
-            derivative_p_temp.Tmmult(K_operator_temp, local_Mass_Matrix);
-            K_operator_temp.mmult(K_operator, derivative_p[degree_index][idim], true);
+            dealii::FullMatrix<real> Flux_Reconstruction_operator_temp(n_dofs_cell);
+            derivative_p_temp.Tmmult(Flux_Reconstruction_operator_temp, local_Mass_Matrix);
+            Flux_Reconstruction_operator_temp.mmult(Flux_Reconstruction_operator, derivative_p[degree_index][idim], true);
         }
         for(int idim=0; idim<dim; idim++){
             double c_2 = pow(c,2.0);
             dealii::FullMatrix<real> derivative_p_temp(n_dofs_cell, n_dofs_cell);
             derivative_p_temp.add(c_2, derivative_2p[degree_index][idim]);
-            dealii::FullMatrix<real> K_operator_temp(n_dofs_cell);
-            derivative_p_temp.Tmmult(K_operator_temp, local_Mass_Matrix);
-            K_operator_temp.mmult(K_operator, derivative_2p[degree_index][idim], true);
+            dealii::FullMatrix<real> Flux_Reconstruction_operator_temp(n_dofs_cell);
+            derivative_p_temp.Tmmult(Flux_Reconstruction_operator_temp, local_Mass_Matrix);
+            Flux_Reconstruction_operator_temp.mmult(Flux_Reconstruction_operator, derivative_2p[degree_index][idim], true);
         }
         double c_3 = pow(c,3.0);
         dealii::FullMatrix<real> derivative_p_temp(n_dofs_cell, n_dofs_cell);
         derivative_p_temp.add(c_3, derivative_3p[degree_index]);
-        dealii::FullMatrix<real> K_operator_temp(n_dofs_cell);
-        derivative_p_temp.Tmmult(K_operator_temp, local_Mass_Matrix);
-        K_operator_temp.mmult(K_operator, derivative_3p[degree_index], true);
+        dealii::FullMatrix<real> Flux_Reconstruction_operator_temp(n_dofs_cell);
+        derivative_p_temp.Tmmult(Flux_Reconstruction_operator_temp, local_Mass_Matrix);
+        Flux_Reconstruction_operator_temp.mmult(Flux_Reconstruction_operator, derivative_3p[degree_index], true);
     }
     
 }
 template <  int dim, typename real,
             int n_faces>  
 void OperatorsBase<dim,real,n_faces>
-::build_local_K_operator_AUX(
+::build_local_Flux_Reconstruction_operator_AUX(
                                 const dealii::FullMatrix<real> &local_Mass_Matrix,
                                 const unsigned int n_dofs_cell, const unsigned int degree_index, 
-                                std::array<dealii::FullMatrix<real>,dim> &K_operator_aux)
+                                std::array<dealii::FullMatrix<real>,dim> &Flux_Reconstruction_operator_aux)
 {
     real k = 0.0;
-//get the K AUX operator
+//get the Flux_Reconstruction AUX operator
     k = k_param_FR[degree_index];
     for(int idim=0; idim<dim; idim++){
         dealii::FullMatrix<real> derivative_p_temp2(n_dofs_cell, n_dofs_cell);
-        dealii::FullMatrix<real> K_operator_temp(n_dofs_cell);
+        dealii::FullMatrix<real> Flux_Reconstruction_operator_temp(n_dofs_cell);
         derivative_p_temp2.add(k,derivative_p[degree_index][idim]);
-        derivative_p_temp2.Tmmult(K_operator_temp, local_Mass_Matrix);
-        K_operator_temp.mmult(K_operator_aux[idim], derivative_p[degree_index][idim]);
+        derivative_p_temp2.Tmmult(Flux_Reconstruction_operator_temp, local_Mass_Matrix);
+        Flux_Reconstruction_operator_temp.mmult(Flux_Reconstruction_operator_aux[idim], derivative_p[degree_index][idim]);
     }
     
 }
 template <  int dim, typename real,
             int n_faces>  
-void OperatorsBase<dim,real,n_faces>::build_K_operators ()
+void OperatorsBase<dim,real,n_faces>::build_Flux_Reconstruction_operators ()
 {
     for(unsigned int degree_index=0; degree_index<=this->max_degree; degree_index++){
         unsigned int n_dofs_cell = this->fe_collection_basis[degree_index].dofs_per_cell;
         unsigned int curr_cell_degree = degree_index; 
         get_FR_correction_parameter(curr_cell_degree, c_param_FR[degree_index], k_param_FR[degree_index]);
-        build_local_K_operator(local_mass[degree_index], n_dofs_cell, degree_index, local_K_operator[degree_index]);
-        build_local_K_operator_AUX(local_mass[degree_index], n_dofs_cell, degree_index, local_K_operator_aux[degree_index]);
+        build_local_Flux_Reconstruction_operator(local_mass[degree_index], n_dofs_cell, degree_index, local_Flux_Reconstruction_operator[degree_index]);
+        build_local_Flux_Reconstruction_operator_AUX(local_mass[degree_index], n_dofs_cell, degree_index, local_Flux_Reconstruction_operator_aux[degree_index]);
     }
 }
 
@@ -661,10 +661,10 @@ void OperatorsBase<dim,real,n_faces>::get_vol_projection_operators ()
     for(unsigned int degree_index=0; degree_index<=this->max_degree; degree_index++){
         unsigned int n_dofs = this->fe_collection_basis[degree_index].dofs_per_cell;
         compute_local_vol_projection_operator(degree_index, n_dofs, local_mass[degree_index], vol_projection_operator[degree_index]);
-        dealii::FullMatrix<real> M_plus_K(n_dofs);
-        M_plus_K.add(1.0, local_mass[degree_index], 1.0, local_K_operator[degree_index]);
-        FR_mass_inv[degree_index].invert(M_plus_K);
-        compute_local_vol_projection_operator(degree_index, n_dofs, M_plus_K, vol_projection_operator_FR[degree_index]);
+        dealii::FullMatrix<real> M_plus_Flux_Reconstruction(n_dofs);
+        M_plus_Flux_Reconstruction.add(1.0, local_mass[degree_index], 1.0, local_Flux_Reconstruction_operator[degree_index]);
+        FR_mass_inv[degree_index].invert(M_plus_Flux_Reconstruction);
+        compute_local_vol_projection_operator(degree_index, n_dofs, M_plus_Flux_Reconstruction, vol_projection_operator_FR[degree_index]);
     }
 }
 
@@ -735,9 +735,9 @@ void OperatorsBase<dim,real,n_faces>::get_surface_lifting_operators ()
         unsigned int n_dofs = this->fe_collection_basis[degree_index].dofs_per_cell;
         for(unsigned int iface=0; iface<n_faces; iface++){
             build_local_surface_lifting_operator(degree_index, n_dofs, iface, local_mass[degree_index], lifting_operator[degree_index][iface]);
-            dealii::FullMatrix<real> M_plus_K(n_dofs);
-            M_plus_K.add(1.0, local_mass[degree_index], 1.0, local_K_operator[degree_index]);
-            build_local_surface_lifting_operator(degree_index, n_dofs, iface, M_plus_K, lifting_operator_FR[degree_index][iface]);
+            dealii::FullMatrix<real> M_plus_Flux_Reconstruction(n_dofs);
+            M_plus_Flux_Reconstruction.add(1.0, local_mass[degree_index], 1.0, local_Flux_Reconstruction_operator[degree_index]);
+            build_local_surface_lifting_operator(degree_index, n_dofs, iface, M_plus_Flux_Reconstruction, lifting_operator_FR[degree_index][iface]);
         }
     }
 

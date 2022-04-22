@@ -179,13 +179,22 @@ RowVector2d AdaptiveSampling<dim, nstate>::getMaxErrorROM() const{
             rom_scaled(k) = (rom_unscaled(k) - min) / (max - min);
         }
 
+        //start bounds
+        int dimension = 2;
+        ROL::Ptr<std::vector<double>> l_ptr = ROL::makePtr<std::vector<double>>(dimension,0.0);
+        ROL::Ptr<std::vector<double>> u_ptr = ROL::makePtr<std::vector<double>>(dimension,1.0);
+        ROL::Ptr<ROL::Vector<double>> lo = ROL::makePtr<ROL::StdVector<double>>(l_ptr);
+        ROL::Ptr<ROL::Vector<double>> up = ROL::makePtr<ROL::StdVector<double>>(u_ptr);
+        ROL::Bounds<double> bcon(lo,up);
+        //end bounds
+
         ROL::Ptr<ROL::Step<double>> step = ROL::makePtr<ROL::LineSearchStep<double>>(parlist);
         ROL::Ptr<ROL::StatusTest<double>> status = ROL::makePtr<ROL::StatusTest<double>>(parlist);
         ROL::Algorithm<double> algo(step,status,false);
 
         // Iteration Vector
-        int dimension = 2;
-        ROL::Ptr<std::vector<double> > x_ptr = ROL::makePtr<std::vector<double>>(dimension, 0.0);
+        //int dimension = 2;
+        ROL::Ptr<std::vector<double>> x_ptr = ROL::makePtr<std::vector<double>>(dimension, 0.0);
 
         // Set Initial Guess
         (*x_ptr)[0] = rom_scaled(0);
@@ -199,7 +208,7 @@ RowVector2d AdaptiveSampling<dim, nstate>::getMaxErrorROM() const{
         // Run Algorithm
         ROL::Ptr<std::ostream> outStream;
         outStream = ROL::makePtrFromRef(std::cout);
-        algo.run(x, rbf, true, *outStream);
+        algo.run(x, rbf, bcon,true, *outStream);
 
         ROL::Ptr<std::vector<double>> x_min = x.getVector();
 

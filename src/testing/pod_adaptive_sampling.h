@@ -32,6 +32,7 @@
 #include "ROL_LineSearchStep.hpp"
 #include "ROL_StatusTest.hpp"
 #include "ROL_Stream.hpp"
+#include "ROL_Bounds.hpp"
 
 namespace PHiLiP {
 namespace Tests {

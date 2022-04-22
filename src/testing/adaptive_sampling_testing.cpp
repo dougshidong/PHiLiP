@@ -72,19 +72,39 @@ int AdaptiveSamplingTesting<dim, nstate>::run_test() const
     */
     //RowVectorXd params_a{{6.3333}};
     //RowVectorXd params_b{{0.0934}};
-
+    /*
     RowVectorXd params_a = VectorXd::LinSpaced(12,2,10).replicate(12,1).transpose();
     MatrixXd b = VectorXd::LinSpaced(12, 0.01, 0.1).replicate(1,12);
     b.transposeInPlace();
     VectorXd B_col(Eigen::Map<VectorXd>(b.data(), b.cols()*b.rows()));
     RowVectorXd params_b = B_col.transpose();
+    */
 
-    /*
-    RowVectorXd params_a {{10,
+    RowVectorXd params_a {{10.00,
+                          8.000,
+                          8.000,
+                          6.000,
+                          6.000,
+                          4.000,
+                          4.000,
+                          2.000,
+                          9.219,
+                          7.219,
+                          9.219
                           }};
     RowVectorXd params_b {{0.055,
+                          0.078,
+                          0.033,
+                          0.100,
+                          0.010,
+                          0.033,
+                          0.078,
+                          0.055,
+                          0.043,
+                          0.065,
+                          0.088
                           }};
-    */
+
     std::cout << params_a << std::endl;
     std::cout << params_b << std::endl;
 
@@ -148,30 +168,8 @@ int AdaptiveSamplingTesting<dim, nstate>::run_test() const
 
 template <int dim, int nstate>
 Parameters::AllParameters AdaptiveSamplingTesting<dim, nstate>::reinitParams(RowVector2d parameter) const{
-    dealii::ParameterHandler parameter_handler;
-    PHiLiP::Parameters::AllParameters::declare_parameters (parameter_handler);
-    PHiLiP::Parameters::AllParameters parameters;
-    parameters.parse_parameters(parameter_handler);
-
     // Copy all parameters
-    parameters.manufactured_convergence_study_param = this->all_parameters->manufactured_convergence_study_param;
-    parameters.ode_solver_param = this->all_parameters->ode_solver_param;
-    parameters.linear_solver_param = this->all_parameters->linear_solver_param;
-    parameters.euler_param = this->all_parameters->euler_param;
-    parameters.navier_stokes_param = this->all_parameters->navier_stokes_param;
-    parameters.reduced_order_param= this->all_parameters->reduced_order_param;
-    parameters.burgers_param = this->all_parameters->burgers_param;
-    parameters.grid_refinement_study_param = this->all_parameters->grid_refinement_study_param;
-    parameters.artificial_dissipation_param = this->all_parameters->artificial_dissipation_param;
-    parameters.flow_solver_param = this->all_parameters->flow_solver_param;
-    parameters.mesh_adaptation_param = this->all_parameters->mesh_adaptation_param;
-    parameters.artificial_dissipation_param = this->all_parameters->artificial_dissipation_param;
-    parameters.artificial_dissipation_param = this->all_parameters->artificial_dissipation_param;
-    parameters.artificial_dissipation_param = this->all_parameters->artificial_dissipation_param;
-    parameters.dimension = this->all_parameters->dimension;
-    parameters.pde_type = this->all_parameters->pde_type;
-    parameters.use_weak_form = this->all_parameters->use_weak_form;
-    parameters.use_collocated_nodes = this->all_parameters->use_collocated_nodes;
+    PHiLiP::Parameters::AllParameters parameters = *(this->all_parameters);
 
     using FlowCaseEnum = Parameters::FlowSolverParam::FlowCaseType;
     const FlowCaseEnum flow_type = this->all_parameters->flow_solver_param.flow_case_type;

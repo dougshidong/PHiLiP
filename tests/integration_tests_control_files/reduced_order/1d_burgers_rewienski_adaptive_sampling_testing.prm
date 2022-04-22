@@ -34,9 +34,9 @@ end
 subsection reduced order
   set adaptation_tolerance = 0.00001
   set adapt_coarse_basis_constant = 0
-  set coarse_basis_dimension = 12
+  set coarse_basis_dimension = 6
   set fine_basis_dimension = 18
-  set path_to_search = /home/donovan/Codes/PHiLiP/cmake-build-release/tests/integration_tests_control_files/reduced_order/pod_basis/pod_adaptation_12pts
+  set path_to_search = ./pod_basis/pod_adaptation_12pts
   set method_of_snapshots = false
   set consider_error_sign = true
 end
@@ -49,7 +49,7 @@ end
 subsection ODE solver
   #set ode_output = quiet
   set nonlinear_max_iterations = 50
-  set nonlinear_steady_residual_tolerance = 1e-14
+  set nonlinear_steady_residual_tolerance = 1e-15
   set print_iteration_modulo  = 1
   set ode_solver_type = implicit
 end

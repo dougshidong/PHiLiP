@@ -189,7 +189,7 @@ bool PODState<dim>::getSavedPODBasis(){
 bool file_found = false;
 std::string path = all_parameters->reduced_order_param.path_to_search; //Search specified directory for files containing "solutions_table"
 for (const auto & entry : std::filesystem::directory_iterator(path)) {
-    if (std::string(entry.path().filename()).std::string::find("POD_adaptation_basis_7") != std::string::npos) {
+    if (std::string(entry.path().filename()).std::string::find("POD_adaptation_basis_1") != std::string::npos) {
         pcout << "Processing " << entry.path() << std::endl;
         file_found = true;
         std::ifstream myfile(entry.path());

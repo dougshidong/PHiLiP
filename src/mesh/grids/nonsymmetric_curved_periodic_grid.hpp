@@ -7,15 +7,15 @@
 namespace PHiLiP {
 namespace Grids {
 
-/// Create a Gaussian bump grid with an associated nonlinear manifold.
-/** Numbers used are the ones from the High-Order Prediction Workshop (HOPW)
- */
+/// Create a nonsymmetric grid with an associated nonlinear manifold.
+/*The mapping for the 2D and 3D grids follows from Cicchino, Alexander, et al. "Provably Stable Flux Reconstruction High-Order Methods on Curvilinear Elements.". The 2D is Eq. (66), and the 3D is Eq. (64).
+*/
 template<int dim, typename TriangulationType>
 void nonsymmetric_curved_grid(
     TriangulationType &grid,
     const unsigned int n_subdivisions);
 
-/// Gaussian bump manifold.
+/// Nonsymmetric manifold.
 template<int dim,int spacedim,int chartdim>
 class NonsymmetricCurvedGridManifold: public dealii::ChartManifold<dim,spacedim,chartdim> {
 protected:
@@ -25,7 +25,6 @@ public:
     NonsymmetricCurvedGridManifold()
     : dealii::ChartManifold<dim,spacedim,chartdim>()
     {};
-    ///The mapping for the 2D and 3D grids follows from Cicchino, Alexander, et al. "Provably Stable Flux Reconstruction High-Order Methods on Curvilinear Elements.". The 2D is Eq. (66), and the 3D is Eq. (64).
     template<typename real>
     dealii::Point<spacedim,real> mapping(const dealii::Point<chartdim,real> &chart_point) const; ///< Templated mapping from square to the nonsymmetric warping.
 

@@ -408,17 +408,81 @@ void OperatorsBase<dim,real,n_faces>::get_higher_derivatives ()
                modal_basis_differential_operator[degree_index][idim].mmult(derivative_p[degree_index][idim], derivative_p_temp);
             }
         }
-        if(dim == 2){
+        if(dim >= 2){
             derivative_p[degree_index][0].mmult(derivative_2p[degree_index][0],derivative_p[degree_index][1]);
         }
         if(dim==3){
-            derivative_p[degree_index][0].mmult(derivative_2p[degree_index][0],derivative_p[degree_index][1]);
+            //derivative_p[degree_index][0].mmult(derivative_2p[degree_index][0],derivative_p[degree_index][1]);
             derivative_p[degree_index][0].mmult(derivative_2p[degree_index][1],derivative_p[degree_index][2]);
             derivative_p[degree_index][1].mmult(derivative_2p[degree_index][2],derivative_p[degree_index][2]);
             derivative_p[degree_index][0].mmult(derivative_3p[degree_index],derivative_2p[degree_index][2]);
         }
     }
 }
+
+template <int dim, typename real, int n_faces>  
+void OperatorsBase<dim,real,n_faces>::get_Huynh_g2_parameter (
+                                const unsigned int curr_cell_degree,
+                                real &c)
+{
+    const double pfact = this->compute_factorial(curr_cell_degree);
+    const double pfact2 = this->compute_factorial(2.0 * curr_cell_degree);
+    double cp = pfact2/(pow(pfact,2));//since ref element [0,1]
+    c = 2.0 * (curr_cell_degree+1)/( curr_cell_degree*((2.0*curr_cell_degree+1.0)*(pow(pfact*cp,2))));  
+    c/=2.0;//since orthonormal
+}
+template <int dim, typename real, int n_faces>  
+void OperatorsBase<dim,real,n_faces>::get_spectral_difference_parameter (
+                                const unsigned int curr_cell_degree,
+                                real &c)
+{
+    const double pfact = this->compute_factorial(curr_cell_degree);
+    const double pfact2 = this->compute_factorial(2.0 * curr_cell_degree);
+    double cp = pfact2/(pow(pfact,2));
+    c = 2.0 * (curr_cell_degree)/( (curr_cell_degree+1.0)*((2.0*curr_cell_degree+1.0)*(pow(pfact*cp,2))));  
+    c/=2.0;//since orthonormal
+}
+template <int dim, typename real, int n_faces>  
+void OperatorsBase<dim,real,n_faces>::get_c_negative_FR_parameter (
+                                const unsigned int curr_cell_degree,
+                                real &c)
+{
+    const double pfact = this->compute_factorial(curr_cell_degree);
+    const double pfact2 = this->compute_factorial(2.0 * curr_cell_degree);
+    double cp = pfact2/(pow(pfact,2));
+    c = - 2.0 / ( pow((2.0*curr_cell_degree+1.0)*(pow(pfact*cp,2)),1.0));  
+    c/=2.0;//since orthonormal
+}
+template <int dim, typename real, int n_faces>  
+void OperatorsBase<dim,real,n_faces>::get_c_negative_divided_by_two_FR_parameter (
+                                const unsigned int curr_cell_degree,
+                                real &c)
+{
+    get_c_negative_FR_parameter(curr_cell_degree, c); 
+    c/=2.0;
+}
+template <int dim, typename real, int n_faces>  
+void OperatorsBase<dim,real,n_faces>::get_c_plus_parameter (
+                                const unsigned int curr_cell_degree,
+                                real &c)
+{
+    if(curr_cell_degree == 2){
+        c = 0.186;
+//        c = 0.173;//RK33
+    }
+    if(curr_cell_degree == 3)
+        c = 3.67e-3;
+    if(curr_cell_degree == 4){
+        c = 4.79e-5;
+//       c = 4.92e-5;//RK33
+    }
+    if(curr_cell_degree == 5)
+       c = 4.24e-7;
+
+    c/=2.0;//since orthonormal
+    c/=pow(pow(2.0,curr_cell_degree),2);//since ref elem [0,1]
+}
+
 template <  int dim, typename real,
             int n_faces>  
 void OperatorsBase<dim,real,n_faces>::get_FR_correction_parameter (
@@ -430,102 +494,40 @@ void OperatorsBase<dim,real,n_faces>::get_FR_correction_parameter (
     FR_enum c_input = this->all_parameters->flux_reconstruction_type; 
     FR_Aux_enum k_input = this->all_parameters->flux_reconstruction_aux_type; 
     if(c_input == FR_enum::cHU || c_input == FR_enum::cHULumped){ 
-        const double pfact = this->compute_factorial(curr_cell_degree);
-        const double pfact2 = this->compute_factorial(2.0 * curr_cell_degree);
-        double cp = pfact2/(pow(pfact,2));//since ref element [0,1]
-        c = 2.0 * (curr_cell_degree+1)/( curr_cell_degree*((2.0*curr_cell_degree+1.0)*(pow(pfact*cp,2))));  
-        c/=2.0;//since orthonormal
+        get_Huynh_g2_parameter(curr_cell_degree, c); 
     }
     else if(c_input == FR_enum::cSD){ 
-        const double pfact = this->compute_factorial(curr_cell_degree);
-        const double pfact2 = this->compute_factorial(2.0 * curr_cell_degree);
-        double cp = pfact2/(pow(pfact,2));
-        c = 2.0 * (curr_cell_degree)/( (curr_cell_degree+1.0)*((2.0*curr_cell_degree+1.0)*(pow(pfact*cp,2))));  
-        c/=2.0;//since orthonormal
+        get_spectral_difference_parameter(curr_cell_degree, c); 
     }
     else if(c_input == FR_enum::cNegative){ 
-        const double pfact = this->compute_factorial(curr_cell_degree);
-        const double pfact2 = this->compute_factorial(2.0 * curr_cell_degree);
-        double cp = pfact2/(pow(pfact,2));
-        c = - 2.0 / ( pow((2.0*curr_cell_degree+1.0)*(pow(pfact*cp,2)),1.0));  
-        c/=2.0;//since orthonormal
+        get_c_negative_FR_parameter(curr_cell_degree, c); 
     }
     else if(c_input == FR_enum::cNegative2){ 
-        const double pfact = this->compute_factorial(curr_cell_degree);
-        const double pfact2 = this->compute_factorial(2.0 * curr_cell_degree);
-        double cp = pfact2/(pow(pfact,2));
-        c = - 2.0 / ( pow((2.0*curr_cell_degree+1.0)*(pow(pfact*cp,2)),1.0));  
-        c/=2.0;//since orthonormal
-        c/=2.0;//since cneg/2
+        get_c_negative_divided_by_two_FR_parameter(curr_cell_degree, c); 
     }
     else if(c_input == FR_enum::cDG){ 
+        //DG case is the 0.0 case.
         c = 0.0;
     }
     else if(c_input == FR_enum::c10Thousand){ 
+        //Set the value to 10000 for arbitrary high-numbers.
         c = 10000.0;
     }
     else if(c_input == FR_enum::cPlus){ 
-        if(curr_cell_degree == 2){
-            c = 0.186;
-    //        c = 0.173;//RK33
-        }
-        if(curr_cell_degree == 3)
-            c = 3.67e-3;
-        if(curr_cell_degree == 4){
-            c = 4.79e-5;
-     //       c = 4.92e-5;//RK33
-        }
-        if(curr_cell_degree == 5)
-            c = 4.24e-7;
+        get_c_plus_parameter(curr_cell_degree, c); 
+    }
 
-        c/=2.0;//since orthonormal
-        c/=pow(pow(2.0,curr_cell_degree),2);//since ref elem [0,1]
-    }
-    else if(c_input == FR_enum::cPlus1D){ 
-        if(curr_cell_degree == 2){
-            c = 0.186;
-    //        c = 0.173;//RK33
-        }
-        if(curr_cell_degree == 3)
-            c = 3.67e-3;
-        if(curr_cell_degree == 4){
-            c = 4.79e-5;
-     //       c = 4.92e-5;//RK33
-        }
-        if(curr_cell_degree == 5)
-            c = 4.24e-7;
-        
-        c/=2.0;//since orthonormal
-        c/=pow(pow(2.0,curr_cell_degree),2);//since ref elem [0,1]
-    }
     if(k_input == FR_Aux_enum::kHU){ 
-        const double pfact = this->compute_factorial(curr_cell_degree);
-        const double pfact2 = this->compute_factorial(2.0 * curr_cell_degree);
-        double cp = pfact2/(pow(pfact,2));
-        k = 2.0 * (curr_cell_degree+1.0)/( curr_cell_degree*pow((2.0*curr_cell_degree+1.0)*(pow(pfact*cp,2)),1.0));  
-        k/=2.0;//since orthonormal
+        get_Huynh_g2_parameter(curr_cell_degree, k); 
     }
     else if(k_input == FR_Aux_enum::kSD){ 
-        const double pfact = this->compute_factorial(curr_cell_degree);
-        const double pfact2 = this->compute_factorial(2.0 * curr_cell_degree);
-        double cp = pfact2/(pow(pfact,2));
-        k = 2.0 * (curr_cell_degree)/( (curr_cell_degree+1.0)*pow((2.0*curr_cell_degree+1.0)*(pow(pfact*cp,2)),1.0));  
-        k/=2.0;//since orthonormal
+        get_spectral_difference_parameter(curr_cell_degree, k); 
     }
     else if(k_input == FR_Aux_enum::kNegative){ 
-        const double pfact = this->compute_factorial(curr_cell_degree);
-        const double pfact2 = this->compute_factorial(2.0 * curr_cell_degree);
-        double cp = pfact2/(pow(pfact,2));
-        k = - 2.0 / ( pow((2.0*curr_cell_degree+1.0)*(pow(pfact*cp,2)),1.0));  
-        k/=2.0;//since orthonormal
+        get_c_negative_FR_parameter(curr_cell_degree, k); 
     }
     else if(k_input == FR_Aux_enum::kNegative2){//knegative divided by 2 
-        const double pfact = this->compute_factorial(curr_cell_degree);
-        const double pfact2 = this->compute_factorial(2.0 * curr_cell_degree);
-        double cp = pfact2/(pow(pfact,2));
-        k = - 2.0 / ( pow((2.0*curr_cell_degree+1.0)*(pow(pfact*cp,2)),1.0));  
-        k/=2.0;//since orthonormal
-        k/=2.0;
+        get_c_negative_divided_by_two_FR_parameter(curr_cell_degree, k); 
     }
     else if(k_input == FR_Aux_enum::kDG){ 
         k = 0.0;
@@ -534,23 +536,7 @@ void OperatorsBase<dim,real,n_faces>::get_FR_correction_parameter (
         k = 10000.0;
     }
     else if(k_input == FR_Aux_enum::kPlus){ 
-        if(curr_cell_degree == 2)
-        {
-            k = 0.186;
-        //    k = 0.173;//RK33
-        }
-        if(curr_cell_degree == 3)
-        {
-            k = 3.67e-3;
-        }
-        if(curr_cell_degree == 4){
-            k = 4.79e-5;
-        //    k = 4.92e-5;//RK33
-        }
-        if(curr_cell_degree == 5)
-            k = 4.24e-7;
-        k/=2.0;//since orthonormal
-        k/=pow(pow(2.0,curr_cell_degree),2);//since ref elem [0,1]
+        get_c_plus_parameter(curr_cell_degree, k); 
     }
 }
 template <  int dim, typename real,
@@ -564,44 +550,25 @@ void OperatorsBase<dim,real,n_faces>
     real c = 0.0;
 //get the Flux_Reconstruction operator
     c = c_param_FR[degree_index];
-    if(dim == 1){
+    for(int idim=0; idim<dim; idim++){
         dealii::FullMatrix<real> derivative_p_temp(n_dofs_cell, n_dofs_cell);
-        derivative_p_temp.add(c, derivative_p[degree_index][0]);
+        derivative_p_temp.add(c, derivative_p[degree_index][idim]);
         dealii::FullMatrix<real> Flux_Reconstruction_operator_temp(n_dofs_cell);
         derivative_p_temp.Tmmult(Flux_Reconstruction_operator_temp, local_Mass_Matrix);
-        Flux_Reconstruction_operator_temp.mmult(Flux_Reconstruction_operator, derivative_p[degree_index][0]); 
+        Flux_Reconstruction_operator_temp.mmult(Flux_Reconstruction_operator, derivative_p[degree_index][idim], true);
     }
-    if(dim == 2){
-        for(int idim=0; idim<dim; idim++){
-            dealii::FullMatrix<real> derivative_p_temp(n_dofs_cell, n_dofs_cell);
-            derivative_p_temp.add(c, derivative_p[degree_index][idim]);
-            dealii::FullMatrix<real> Flux_Reconstruction_operator_temp(n_dofs_cell);
-            derivative_p_temp.Tmmult(Flux_Reconstruction_operator_temp, local_Mass_Matrix);
-            Flux_Reconstruction_operator_temp.mmult(Flux_Reconstruction_operator, derivative_p[degree_index][idim], true);
-        }
+    if(dim>=2){
+        const int deriv_2p_loop = (dim==2) ? 1 : dim; 
         double c_2 = pow(c,2.0);
-        dealii::FullMatrix<real> derivative_p_temp(n_dofs_cell, n_dofs_cell);
-        derivative_p_temp.add(c_2, derivative_2p[degree_index][0]);
-        dealii::FullMatrix<real> Flux_Reconstruction_operator_temp(n_dofs_cell);
-        derivative_p_temp.Tmmult(Flux_Reconstruction_operator_temp, local_Mass_Matrix);
-        Flux_Reconstruction_operator_temp.mmult(Flux_Reconstruction_operator, derivative_2p[degree_index][0], true);
-    }
-    if(dim == 3){
-        for(int idim=0; idim<dim; idim++){
-            dealii::FullMatrix<real> derivative_p_temp(n_dofs_cell, n_dofs_cell);
-            derivative_p_temp.add(c, derivative_p[degree_index][idim]);
-            dealii::FullMatrix<real> Flux_Reconstruction_operator_temp(n_dofs_cell);
-            derivative_p_temp.Tmmult(Flux_Reconstruction_operator_temp, local_Mass_Matrix);
-            Flux_Reconstruction_operator_temp.mmult(Flux_Reconstruction_operator, derivative_p[degree_index][idim], true);
-        }
-        for(int idim=0; idim<dim; idim++){
-            double c_2 = pow(c,2.0);
+        for(int idim=0; idim<deriv_2p_loop; idim++){
             dealii::FullMatrix<real> derivative_p_temp(n_dofs_cell, n_dofs_cell);
             derivative_p_temp.add(c_2, derivative_2p[degree_index][idim]);
             dealii::FullMatrix<real> Flux_Reconstruction_operator_temp(n_dofs_cell);
             derivative_p_temp.Tmmult(Flux_Reconstruction_operator_temp, local_Mass_Matrix);
             Flux_Reconstruction_operator_temp.mmult(Flux_Reconstruction_operator, derivative_2p[degree_index][idim], true);
         }
+    }
+    if(dim == 3){
         double c_3 = pow(c,3.0);
         dealii::FullMatrix<real> derivative_p_temp(n_dofs_cell, n_dofs_cell);
         derivative_p_temp.add(c_3, derivative_3p[degree_index]);

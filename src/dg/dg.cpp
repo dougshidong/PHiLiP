@@ -1463,11 +1463,6 @@ void DGBase<dim,real,MeshType>::assemble_residual (const bool compute_dRdW, cons
         //assembles and solves for auxiliary variable if necessary.
         assemble_auxiliary_residual();
 
-//for(unsigned int i=0; i<auxiliary_solution[0].size(); i++){
-//auxiliary_solution[0].zero_out_ghosts();
-//pcout<<" aux "<<auxiliary_solution[0][i]<<std::endl;
-//}
-
         auto metric_cell = high_order_grid->dof_handler_grid.begin_active();
         for (auto soln_cell = dof_handler.begin_active(); soln_cell != dof_handler.end(); ++soln_cell, ++metric_cell) {
         //for (auto cell = triangulation->begin_active(); cell != triangulation->end(); ++cell) {
@@ -2551,10 +2546,10 @@ void DGBase<dim,real,MeshType>::evaluate_local_metric_dependent_mass_matrix_and_
         } else {
             dealii::FullMatrix<real> inv_weighted_mass_inv(n_dofs_cell);
             inv_weighted_mass_inv.invert(local_mass_matrix);
-            dealii::FullMatrix<real> M_K(n_dofs_cell);
-            M_K.add(1.0, operators->local_mass[curr_cell_degree], 1.0, operators->local_Flux_Reconstruction_operator[curr_cell_degree]);
+            dealii::FullMatrix<real> FR_mass_matrix(n_dofs_cell);
+            FR_mass_matrix.add(1.0, operators->local_mass[curr_cell_degree], 1.0, operators->local_Flux_Reconstruction_operator[curr_cell_degree]);
             dealii::FullMatrix<real> temp(n_dofs_cell);
-            M_K.mmult(temp, inv_weighted_mass_inv);
+            FR_mass_matrix.mmult(temp, inv_weighted_mass_inv);
             dealii::FullMatrix<real> inverse_of_weighted_mass_inverse(n_dofs_cell);
             temp.mmult(inverse_of_weighted_mass_inverse, inv_weighted_mass_inv);
             global_mass_matrix.set (dofs_indices, inverse_of_weighted_mass_inverse);

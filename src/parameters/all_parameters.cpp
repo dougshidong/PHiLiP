@@ -85,9 +85,9 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       "Not use Classical Flux Reconstruction by default. Otherwise, use Classical Flux Reconstruction.");
 
     prm.declare_entry("flux_reconstruction", "cDG",
-                      dealii::Patterns::Selection("cDG | cSD | cHU | cNegative | cNegative2 | cPlus | cPlus1D |c10Thousand | cHULumped"),
+                      dealii::Patterns::Selection("cDG | cSD | cHU | cNegative | cNegative2 | cPlus | c10Thousand | cHULumped"),
                       "Flux Reconstruction. "
-                      "Choices are <cDG | cSD | cHU | cNegative | cNegative2 | cPlus | cPlus1D | c10Thousand | cHULumped>.");
+                      "Choices are <cDG | cSD | cHU | cNegative | cNegative2 | cPlus | c10Thousand | cHULumped>.");
 
     prm.declare_entry("flux_reconstruction_aux", "kDG",
                       dealii::Patterns::Selection("kDG | kSD | kHU | kNegative | kNegative2 | kPlus | k10Thousand"),
@@ -304,7 +304,10 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     if (conv_num_flux_string == "l2roe")                                                        conv_num_flux_type = l2roe;
     if (conv_num_flux_string == "central_flux")                                                 conv_num_flux_type = central_flux;
     if (conv_num_flux_string == "entropy_conserving_flux" && pde_string == "burgers_inviscid" ) conv_num_flux_type = entropy_cons_flux;
-
+    if (conv_num_flux_string == "entropy_conserving_flux" && pde_string != "burgers_inviscid" ){
+        pcout<<"Entorpy consevring flux only for Burgers' equation"<<std::endl;
+        exit(1);
+    }
 
     const std::string diss_num_flux_string = prm.get("diss_num_flux");
     if (diss_num_flux_string == "symm_internal_penalty") diss_num_flux_type = symm_internal_penalty;
@@ -320,7 +323,6 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     if (flux_reconstruction_string == "cNegative")      flux_reconstruction_type = cNegative;
     if (flux_reconstruction_string == "cNegative2")     flux_reconstruction_type = cNegative2;
     if (flux_reconstruction_string == "cPlus")          flux_reconstruction_type = cPlus;
-    if (flux_reconstruction_string == "cPlus1D")        flux_reconstruction_type = cPlus1D;
     if (flux_reconstruction_string == "c10Thousand")    flux_reconstruction_type = c10Thousand;
     if (flux_reconstruction_string == "cHULumped")      flux_reconstruction_type = cHULumped;
 

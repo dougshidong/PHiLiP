@@ -198,8 +198,49 @@ public:
     /**builds the \f$ p,\: 2p,\f$ and \f$ 3p \f$ derivative operators to compute broken Sobolev-space.
     */    
     void get_higher_derivatives ();
+
+    ///Evaluates Huynh's g2 parameter for flux reconstruction.
+    /* This parameter recovers Huynh, Hung T. "A flux reconstruction approach to high-order schemes including discontinuous Galerkin methods." 18th AIAA computational fluid dynamics conference. 2007.
+    */
+    void get_Huynh_g2_parameter (
+                                const unsigned int curr_cell_degree,
+                                real &c);
+
+    ///Evaluates the spectral difference parameter for flux reconstruction.
+    /*Value from Allaneau, Y., and Antony Jameson. "Connections between the filtered discontinuous Galerkin method and the flux reconstruction approach to high order discretizations." Computer Methods in Applied Mechanics and Engineering 200.49-52 (2011): 3628-3636. 
+    */
+    void get_spectral_difference_parameter (
+                                const unsigned int curr_cell_degree,
+                                real &c);
+    ///Evaluates the flux reconstruction parameter at the bottom limit where the scheme is unstable.
+    /*Value from Allaneau, Y., and Antony Jameson. "Connections between the filtered discontinuous Galerkin method and the flux reconstruction approach to high order discretizations." Computer Methods in Applied Mechanics and Engineering 200.49-52 (2011): 3628-3636. 
+    */
+    void get_c_negative_FR_parameter (
+                                const unsigned int curr_cell_degree,
+                                real &c);
+    ///Evaluates the flux reconstruction parameter at the bottom limit where the scheme is unstable, divided by 2.
+    /*Value from Allaneau, Y., and Antony Jameson. "Connections between the filtered discontinuous Galerkin method and the flux reconstruction approach to high order discretizations." Computer Methods in Applied Mechanics and Engineering 200.49-52 (2011): 3628-3636. 
+    * Commonly in the lterature we use this value to show the approach to the bottom limit of stability.
+    */
+    void get_c_negative_divided_by_two_FR_parameter (
+                                const unsigned int curr_cell_degree,
+                                real &c);
+    ///Gets the FR correction parameter corresponding to the maximum timestep.
+    /* Note that this parameter is also a good approximation for when the FR scheme begins to
+    * lose an order of accuracy, but the original definition is that it corresponds to the maximum timestep.
+    * Value from Table 3.4 in Castonguay, Patrice. High-order energy stable flux reconstruction schemes for fluid flow simulations on unstructured grids. Stanford University, 2012.
+    */
+    void get_c_plus_parameter (
+                                const unsigned int curr_cell_degree,
+                                real &c);
+
     ///Gets the FR correction parameter for both primary and auxiliary equations and stores for each degree.
     /**These values are name specified in parameters/all_parameters.h, passed through control file/or test and here converts/stores as value.
+    * Please note that in all the functions within this that evaluate the parameter, we divide the value in the literature by 2.0
+    * because our basis are contructed by an orthonormal Legendre basis rather than the orthogonal basis in the literature. 
+    * Also, we have the additional scaling by pow(pow(2.0,curr_cell_degree),2) because our basis functions are defined on
+    * a reference element between [0,1], whereas the values in the literature are based on [-1,1].
+    * For further details please refer to Cicchino, Alexander, and Siva Nadarajah. "A new norm and stability condition for tensor product flux reconstruction schemes." Journal of Computational Physics 429 (2021): 110025.
     */
     void get_FR_correction_parameter (
                                     const unsigned int curr_cell_degree,

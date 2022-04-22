@@ -501,8 +501,8 @@ void GridRefinement_Continuous<dim,nstate,real,MeshType>::field_h_error()
             B,
             this->dg->dof_handler,
             mapping_collection,
-            this->dg->fe_collection,
-            this->dg->volume_quadrature_collection,
+            this->dg->operators->fe_collection_basis,
+            this->dg->operators->volume_quadrature_collection,
             this->volume_update_flags,
             this->h_field,
             this->p_field);
@@ -539,8 +539,8 @@ void GridRefinement_Continuous<dim,nstate,real,MeshType>::field_h_hessian()
     ReconstructPoly<dim,nstate,real> reconstruct_poly(
         this->dg->dof_handler,
         mapping_collection,
-        this->dg->fe_collection,
-        this->dg->volume_quadrature_collection,
+        this->dg->operators->fe_collection_basis,
+        this->dg->operators->volume_quadrature_collection,
         this->volume_update_flags);
 
     // constructing the largest directional derivatives
@@ -607,8 +607,8 @@ void GridRefinement_Continuous<dim,nstate,real,MeshType>::field_h_hessian()
             B,
             this->dg->dof_handler,
             mapping_collection,
-            this->dg->fe_collection,
-            this->dg->volume_quadrature_collection,
+            this->dg->operators->fe_collection_basis,
+            this->dg->operators->volume_quadrature_collection,
             this->volume_update_flags,
             this->h_field,
             this->p_field);
@@ -664,8 +664,8 @@ void GridRefinement_Continuous<dim,nstate,real,MeshType>::field_h_adjoint()
     ReconstructPoly<dim,nstate,real> reconstruct_poly(
         this->dg->dof_handler,
         mapping_collection,
-        this->dg->fe_collection,
-        this->dg->volume_quadrature_collection,
+        this->dg->operators->fe_collection_basis,
+        this->dg->operators->volume_quadrature_collection,
         this->volume_update_flags);
 
     // constructing the largest directional derivatives
@@ -714,8 +714,8 @@ void GridRefinement_Continuous<dim,nstate,real,MeshType>::field_h_adjoint()
             dwr,
             this->dg->dof_handler,
             mapping_collection,
-            this->dg->fe_collection,
-            this->dg->volume_quadrature_collection,
+            this->dg->operators->fe_collection_basis,
+            this->dg->operators->volume_quadrature_collection,
             this->volume_update_flags,
             this->h_field,
             poly_degree);
@@ -742,8 +742,8 @@ void GridRefinement_Continuous<dim,nstate,real,MeshType>::field_h_adjoint()
             dwr,
             this->dg->dof_handler,
             mapping_collection,
-            this->dg->fe_collection,
-            this->dg->volume_quadrature_collection,
+            this->dg->operators->fe_collection_basis,
+            this->dg->operators->volume_quadrature_collection,
             this->volume_update_flags,
             this->h_field,
             this->p_field);
@@ -813,8 +813,8 @@ std::vector< std::pair<dealii::Vector<real>, std::string> > GridRefinement_Conti
         ReconstructPoly<dim,nstate,real> reconstruct_poly(
             this->dg->dof_handler,
             mapping_collection,
-            this->dg->fe_collection,
-            this->dg->volume_quadrature_collection,
+            this->dg->operators->fe_collection_basis,
+            this->dg->operators->volume_quadrature_collection,
             this->volume_update_flags);
 
         // constructing the largest directional derivatives

@@ -508,7 +508,7 @@ int DiffusionExactAdjoint<dim,nstate>::run_test() const
             // using overintegration for estimating the error in the adjoint
             int overintegrate = 10;
             dealii::QGauss<dim> quad_extra(poly_degree+overintegrate);
-            dealii::FEValues<dim,dim> fe_values_extra(*(dg_u->high_order_grid->mapping_fe_field), dg_u->fe_collection[poly_degree], quad_extra, 
+            dealii::FEValues<dim,dim> fe_values_extra(*(dg_u->high_order_grid->mapping_fe_field), dg_u->operators->fe_collection_basis[poly_degree], quad_extra, 
                     dealii::update_values | dealii::update_JxW_values | dealii::update_quadrature_points);
             const unsigned int n_quad_pts = fe_values_extra.n_quadrature_points;
 

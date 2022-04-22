@@ -112,28 +112,6 @@ public:
      */
     void reinit();
 
-    /// Makes for cleaner doxygen documentation
-    using MassiveCollectionTuple = std::tuple<
-        //dealii::hp::MappingCollection<dim>, // Mapping
-        dealii::hp::FECollection<dim>, // Solution FE
-        dealii::hp::QCollection<dim>,  // Volume quadrature
-        dealii::hp::QCollection<dim-1>, // Face quadrature
-        dealii::hp::QCollection<1>, // 1D quadrature for strong form
-        dealii::hp::FECollection<dim> >;  // Lagrange polynomials for strong form
-
-    /// Delegated constructor that initializes collections.
-    /** Since a function is used to generate multiple different objects, a delegated
-     *  constructor is used to unwrap the tuple and initialize the collections.
-     *
-     *  The tuple is built from create_collection_tuple(). */
-    DGBase( const int nstate_input,
-            const Parameters::AllParameters *const parameters_input,
-            const unsigned int degree,
-            const unsigned int max_degree_input,
-            const unsigned int grid_degree_input,
-            const std::shared_ptr<Triangulation> triangulation_input,
-            const MassiveCollectionTuple collection_tuple);
-
     std::shared_ptr<Triangulation> triangulation; ///< Mesh
 
 
@@ -500,10 +478,6 @@ public:
         dealii::LinearAlgebra::distributed::Vector<double> &rhs,
         std::array<dealii::LinearAlgebra::distributed::Vector<double>,dim> &rhs_aux);
 
-    /// Finite Element Collection for p-finite-element to represent the solution
-    /** This is a collection of FESystems */
-    const dealii::hp::FECollection<dim>    fe_collection;
-
     /// Finite Element Collection to represent the high-order grid
     /** This is a collection of FESystems.
      *  Unfortunately, deal.II doesn't have a working hp Mapping FE field.
@@ -511,18 +485,6 @@ public:
      */
     //const dealii::hp::FECollection<dim>    fe_collection_grid;
     //const dealii::FESystem<dim>    fe_grid;
-
-    /// Quadrature used to evaluate volume integrals.
-    dealii::hp::QCollection<dim>     volume_quadrature_collection;
-    /// Quadrature used to evaluate face integrals.
-    dealii::hp::QCollection<dim-1>   face_quadrature_collection;
-    /// 1D quadrature to generate Lagrange polynomials for the sake of flux interpolation.
-    dealii::hp::QCollection<1>       oned_quadrature_collection;
-
-protected:
-    /// Lagrange basis used in strong form
-    /** This is a collection of scalar Lagrange bases */
-    const dealii::hp::FECollection<dim>  fe_collection_lagrange;
 
 public:
     /// Degrees of freedom handler
@@ -722,14 +684,6 @@ protected:
      */
     template<typename DoFCellAccessorType1, typename DoFCellAccessorType2>
     bool current_cell_should_do_the_work (const DoFCellAccessorType1 &current_cell, const DoFCellAccessorType2 &neighbor_cell) const;
-
-private:
-    /// Used in the delegated constructor
-    /** The main reason we use this weird function is because all of the above objects
-     *  need to be looped with the various p-orders. This function allows us to do this in a
-     *  single function instead of having like 6 different functions to initialize each of them.
-     */
-    MassiveCollectionTuple create_collection_tuple(const unsigned int max_degree, const int nstate, const Parameters::AllParameters *const parameters_input) const;
 
 public:
     /// Flag to freeze artificial dissipation.

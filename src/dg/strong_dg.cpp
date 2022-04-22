@@ -78,12 +78,12 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_auxiliary_residual ()
 
         dealii::hp::MappingCollection<dim> mapping_collection(mapping);
          
-        dealii::hp::FEValues<dim,dim>        fe_values_collection_volume (mapping_collection, this->fe_collection, this->volume_quadrature_collection, this->volume_update_flags); ///< FEValues of volume.
-        dealii::hp::FEFaceValues<dim,dim>    fe_values_collection_face_int (mapping_collection, this->fe_collection, this->face_quadrature_collection, this->face_update_flags); ///< FEValues of interior face.
-        dealii::hp::FEFaceValues<dim,dim>    fe_values_collection_face_ext (mapping_collection, this->fe_collection, this->face_quadrature_collection, this->neighbor_face_update_flags); ///< FEValues of exterior face.
-        dealii::hp::FESubfaceValues<dim,dim> fe_values_collection_subface (mapping_collection, this->fe_collection, this->face_quadrature_collection, this->face_update_flags); ///< FEValues of subface.
+        dealii::hp::FEValues<dim,dim>        fe_values_collection_volume (mapping_collection, this->operators->fe_collection_basis, this->operators->volume_quadrature_collection, this->volume_update_flags); ///< FEValues of volume.
+        dealii::hp::FEFaceValues<dim,dim>    fe_values_collection_face_int (mapping_collection, this->operators->fe_collection_basis, this->operators->face_quadrature_collection, this->face_update_flags); ///< FEValues of interior face.
+        dealii::hp::FEFaceValues<dim,dim>    fe_values_collection_face_ext (mapping_collection, this->operators->fe_collection_basis, this->operators->face_quadrature_collection, this->neighbor_face_update_flags); ///< FEValues of exterior face.
+        dealii::hp::FESubfaceValues<dim,dim> fe_values_collection_subface (mapping_collection, this->operators->fe_collection_basis, this->operators->face_quadrature_collection, this->face_update_flags); ///< FEValues of subface.
          
-        dealii::hp::FEValues<dim,dim>        fe_values_collection_volume_lagrange (mapping_collection, this->fe_collection_lagrange, this->volume_quadrature_collection, this->volume_update_flags);
+        dealii::hp::FEValues<dim,dim>        fe_values_collection_volume_lagrange (mapping_collection, this->operators->fe_collection_flux_basis, this->operators->volume_quadrature_collection, this->volume_update_flags);
         //loop over cells solving for auxiliary rhs
         auto metric_cell = this->high_order_grid->dof_handler_grid.begin_active();
         for (auto soln_cell = DGBase<dim,real,MeshType>::dof_handler.begin_active(); soln_cell != DGBase<dim,real,MeshType>::dof_handler.end(); ++soln_cell, ++metric_cell) {

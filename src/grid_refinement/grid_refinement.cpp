@@ -249,7 +249,7 @@ void GridRefinementBase<dim,nstate,real,MeshType>::output_results_vtk_error(
     int overintegrate = 10;
     int poly_degree = dg->get_max_fe_degree();
     dealii::QGauss<dim> quad_extra(dg->max_degree+overintegrate);
-    dealii::FEValues<dim,dim> fe_values_extra(*(dg->high_order_grid->mapping_fe_field), dg->fe_collection[poly_degree], quad_extra, 
+    dealii::FEValues<dim,dim> fe_values_extra(*(dg->high_order_grid->mapping_fe_field), dg->operators->fe_collection_basis[poly_degree], quad_extra, 
         dealii::update_values | dealii::update_JxW_values | dealii::update_quadrature_points);
     const unsigned int n_quad_pts = fe_values_extra.n_quadrature_points;
     std::array<real,nstate> soln_at_q;

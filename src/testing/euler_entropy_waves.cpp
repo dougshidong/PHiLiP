@@ -222,7 +222,7 @@ int EulerEntropyWaves<dim,nstate>
             // Overintegrate the error to make sure there is not integration error in the error estimate
             int overintegrate = 10;
             dealii::QGauss<dim> quad_extra(dg->max_degree+1+overintegrate);
-            dealii::FEValues<dim,dim> fe_values_extra(dealii::MappingQ<dim>(dg->max_degree+overintegrate), dg->fe_collection[poly_degree], quad_extra, 
+            dealii::FEValues<dim,dim> fe_values_extra(dealii::MappingQ<dim>(dg->max_degree+overintegrate), dg->operators->fe_collection_basis[poly_degree], quad_extra, 
                     dealii::update_values | dealii::update_JxW_values | dealii::update_quadrature_points);
             //int overintegrate = 10;
             //dealii::QGauss<dim> quad_extra(dg->fe_system.tensor_degree()+overintegrate);

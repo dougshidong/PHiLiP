@@ -152,8 +152,8 @@ pcout<<" made grid for Index"<<igrid<<std::endl;
             const double pi = atan(1)*4.0;
     const unsigned int max_dofs_per_cell = dg->dof_handler.get_fe_collection().max_dofs_per_cell();
     std::vector<dealii::types::global_dof_index> current_dofs_indices(max_dofs_per_cell);
-    const unsigned int n_dofs_cell = dg->fe_collection[poly_degree].dofs_per_cell;
-    const unsigned int n_quad_pts      = dg->volume_quadrature_collection[poly_degree].size();
+    const unsigned int n_dofs_cell = dg->operators->fe_collection_basis[poly_degree].dofs_per_cell;
+    const unsigned int n_quad_pts      = dg->operators->volume_quadrature_collection[poly_degree].size();
 
             const dealii::FESystem<dim> &fe_metric = (dg->high_order_grid->fe_system);
             const unsigned int n_metric_dofs = fe_metric.dofs_per_cell; 
@@ -217,9 +217,7 @@ pcout<<"OOA here"<<std::endl;
             double linf_error = 0.0;
             int overintegrate = 4;
             dealii::QGauss<dim> quad_extra(poly_degree+1+overintegrate);
-       //     const dealii::MappingQGeneric<dim, dim> mapping_collection2 (poly_degree+1);
-           // dealii::FEValues<dim,dim> fe_values_extra(mapping_collection2, dg->fe_collection[0], quad_extra, 
-            dealii::FEValues<dim,dim> fe_values_extra(*(dg->high_order_grid->mapping_fe_field), dg->fe_collection[poly_degree], quad_extra, 
+            dealii::FEValues<dim,dim> fe_values_extra(*(dg->high_order_grid->mapping_fe_field), dg->operators->fe_collection_basis[poly_degree], quad_extra, 
                                 dealii::update_values | dealii::update_JxW_values | 
                                 dealii::update_jacobians |  
                                 dealii::update_quadrature_points | dealii::update_inverse_jacobians);

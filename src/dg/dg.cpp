@@ -79,28 +79,11 @@ DGBase<dim,real,MeshType>::DGBase(
     const unsigned int max_degree_input,
     const unsigned int grid_degree_input,
     const std::shared_ptr<Triangulation> triangulation_input)
-    : DGBase<dim,real,MeshType>(nstate_input, parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input, this->create_collection_tuple(max_degree_input, nstate_input, parameters_input))
-{ }
-
-template <int dim, typename real, typename MeshType>
-DGBase<dim,real,MeshType>::DGBase(
-    const int nstate_input,
-    const Parameters::AllParameters *const parameters_input,
-    const unsigned int degree,
-    const unsigned int max_degree_input,
-    const unsigned int grid_degree_input,
-    const std::shared_ptr<Triangulation> triangulation_input,
-    const MassiveCollectionTuple collection_tuple)
     : all_parameters(parameters_input)
     , nstate(nstate_input)
     , initial_degree(degree)
     , max_degree(max_degree_input)
     , triangulation(triangulation_input)
-    , fe_collection(std::get<0>(collection_tuple))
-    , volume_quadrature_collection(std::get<1>(collection_tuple))
-    , face_quadrature_collection(std::get<2>(collection_tuple))
-    , oned_quadrature_collection(std::get<3>(collection_tuple))
-    , fe_collection_lagrange(std::get<4>(collection_tuple))
     , dof_handler(*triangulation, true)
     , high_order_grid(std::make_shared<HighOrderGrid<dim,real,MeshType>>(grid_degree_input, triangulation))
     , operators(std::make_shared<OPERATOR::OperatorsBase<dim,real,2*dim>>(all_parameters, nstate, max_degree, max_degree, grid_degree_input))
@@ -112,7 +95,7 @@ DGBase<dim,real,MeshType>::DGBase(
     , max_artificial_dissipation_coeff(0.0)
 {
 
-    dof_handler.initialize(*triangulation, fe_collection);
+    dof_handler.initialize(*triangulation, operators->fe_collection_basis);
     dof_handler_artificial_dissipation.initialize(*triangulation, fe_q_artificial_dissipation);
 
     set_all_cells_fe_degree(degree);
@@ -124,7 +107,7 @@ void DGBase<dim,real,MeshType>::reinit()
 {
     high_order_grid->reinit();
 
-    dof_handler.initialize(*triangulation, fe_collection);
+    dof_handler.initialize(*triangulation, operators->fe_collection_basis);
     set_all_cells_fe_degree(initial_degree);
 }
 
@@ -133,123 +116,9 @@ void DGBase<dim,real,MeshType>::set_high_order_grid(std::shared_ptr<HighOrderGri
 {
     high_order_grid = new_high_order_grid;
     triangulation = high_order_grid->triangulation;
-    dof_handler.initialize(*triangulation, fe_collection);
+    dof_handler.initialize(*triangulation, operators->fe_collection_basis);
     dof_handler_artificial_dissipation.initialize(*triangulation, fe_q_artificial_dissipation);
     set_all_cells_fe_degree(max_degree);
-}
-
-template <int dim, typename real, typename MeshType>
-std::tuple<
-        //dealii::hp::MappingCollection<dim>, // Mapping
-        dealii::hp::FECollection<dim>, // Solution FE
-        dealii::hp::QCollection<dim>,  // Volume quadrature
-        dealii::hp::QCollection<dim-1>, // Face quadrature
-        dealii::hp::QCollection<1>, // 1D quadrature for strong form
-        dealii::hp::FECollection<dim> >   // Lagrange polynomials for strong form
-DGBase<dim,real,MeshType>::create_collection_tuple(
-    const unsigned int max_degree, 
-    const int nstate, 
-    const Parameters::AllParameters *const parameters_input) const
-{
-    dealii::hp::FECollection<dim>      fe_coll;
-    dealii::hp::QCollection<dim>       volume_quad_coll;
-    dealii::hp::QCollection<dim-1>     face_quad_coll;
-    dealii::hp::QCollection<1>         oned_quad_coll;
-
-    dealii::hp::FECollection<dim>      fe_coll_lagr;
-
-    // for p=0, we use a p=1 FE for collocation, since there's no p=0 quadrature for Gauss Lobatto
-    if (parameters_input->use_collocated_nodes==true)
-    {
-        int degree = 1;
-
-        const dealii::FE_DGQ<dim> fe_dg(degree);
-        const dealii::FESystem<dim,dim> fe_system(fe_dg, nstate);
-        fe_coll.push_back (fe_system);
-
-        dealii::Quadrature<1>     oned_quad(degree+1);
-        dealii::Quadrature<dim>   volume_quad(degree+1);
-        dealii::Quadrature<dim-1> face_quad(degree+1); //removed const
-
-        if (parameters_input->use_collocated_nodes) {
-
-            dealii::QGaussLobatto<1> oned_quad_Gauss_Lobatto (degree+1);
-            dealii::QGaussLobatto<dim> vol_quad_Gauss_Lobatto (degree+1);
-            oned_quad = oned_quad_Gauss_Lobatto;
-            volume_quad = vol_quad_Gauss_Lobatto;
-
-            if(dim == 1) {
-                dealii::QGauss<dim-1> face_quad_Gauss_Legendre (degree+1);
-                face_quad = face_quad_Gauss_Legendre;
-            } else {
-                dealii::QGaussLobatto<dim-1> face_quad_Gauss_Lobatto (degree+1);
-                face_quad = face_quad_Gauss_Lobatto;
-            }
-        } else {
-            dealii::QGauss<1> oned_quad_Gauss_Legendre (degree+1);
-            dealii::QGauss<dim> vol_quad_Gauss_Legendre (degree+1);
-            dealii::QGauss<dim-1> face_quad_Gauss_Legendre (degree+1);
-            oned_quad = oned_quad_Gauss_Legendre;
-            volume_quad = vol_quad_Gauss_Legendre;
-            face_quad = face_quad_Gauss_Legendre;
-        }
-
-        volume_quad_coll.push_back (volume_quad);
-        face_quad_coll.push_back (face_quad);
-        oned_quad_coll.push_back (oned_quad);
-
-        dealii::FE_DGQArbitraryNodes<dim,dim> lagrange_poly(oned_quad);
-        fe_coll_lagr.push_back (lagrange_poly);
-    }
-
-    int minimum_degree = (parameters_input->use_collocated_nodes==true) ?  1 :  0;
-    for (unsigned int degree=minimum_degree; degree<=max_degree; ++degree) {
-
-        // Solution FECollection
-        const dealii::FE_DGQ<dim> fe_dg(degree);
-        //const dealii::FE_DGQArbitraryNodes<dim,dim> fe_dg(dealii::QGauss<1>(degree+1));
-        //std::cout << degree << " fe_dg.tensor_degree " << fe_dg.tensor_degree() << " fe_dg.n_dofs_per_cell " << fe_dg.n_dofs_per_cell() << std::endl;
-        const dealii::FESystem<dim,dim> fe_system(fe_dg, nstate);
-        fe_coll.push_back (fe_system);
-
-        dealii::Quadrature<1>     oned_quad(degree+1);
-        dealii::Quadrature<dim>   volume_quad(degree+1);
-        dealii::Quadrature<dim-1> face_quad(degree+1); //removed const
-
-        if (parameters_input->use_collocated_nodes) {
-            dealii::QGaussLobatto<1> oned_quad_Gauss_Lobatto (degree+1);
-            dealii::QGaussLobatto<dim> vol_quad_Gauss_Lobatto (degree+1);
-            oned_quad = oned_quad_Gauss_Lobatto;
-            volume_quad = vol_quad_Gauss_Lobatto;
-
-            if(dim == 1)
-            {
-                dealii::QGauss<dim-1> face_quad_Gauss_Legendre (degree+1);
-                face_quad = face_quad_Gauss_Legendre;
-            }
-            else
-            {
-                dealii::QGaussLobatto<dim-1> face_quad_Gauss_Lobatto (degree+1);
-                face_quad = face_quad_Gauss_Lobatto;
-            }
-        } else {
-            const unsigned int overintegration = parameters_input->overintegration;
-            dealii::QGauss<1> oned_quad_Gauss_Legendre (degree+1+overintegration);
-            dealii::QGauss<dim> vol_quad_Gauss_Legendre (degree+1+overintegration);
-            dealii::QGauss<dim-1> face_quad_Gauss_Legendre (degree+1+overintegration);
-            oned_quad = oned_quad_Gauss_Legendre;
-            volume_quad = vol_quad_Gauss_Legendre;
-            face_quad = face_quad_Gauss_Legendre;
-        }
-
-        volume_quad_coll.push_back (volume_quad);
-        face_quad_coll.push_back (face_quad);
-        oned_quad_coll.push_back (oned_quad);
-
-        dealii::FE_DGQArbitraryNodes<dim,dim> lagrange_poly(oned_quad);
-        fe_coll_lagr.push_back (lagrange_poly);
-    }
-    return std::make_tuple(fe_coll, volume_quad_coll, face_quad_coll, oned_quad_coll, fe_coll_lagr);
 }
 
 template <int dim, int nstate, typename real, typename MeshType>
@@ -352,7 +221,7 @@ void DGBase<dim,real,MeshType>::time_scale_solution_update ( dealii::LinearAlgeb
 
 
         const int i_fele = cell->active_fe_index();
-        const dealii::FESystem<dim,dim> &fe_ref = fe_collection[i_fele];
+        const dealii::FESystem<dim,dim> &fe_ref = operators->fe_collection_basis[i_fele];
         const unsigned int n_dofs_cell = fe_ref.n_dofs_per_cell();
 
         dofs_indices.resize(n_dofs_cell);
@@ -550,7 +419,7 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
     const int i_quad = i_fele;
     const int i_mapp = 0;
 
-    const dealii::FESystem<dim,dim> &current_fe_ref = fe_collection[i_fele];
+    const dealii::FESystem<dim,dim> &current_fe_ref = operators->fe_collection_basis[i_fele];
     const unsigned int n_dofs_curr_cell = current_fe_ref.n_dofs_per_cell();
 
     // Local vector contribution from each cell
@@ -636,7 +505,7 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
             assemble_volume_term_derivatives (
                 current_cell,
                 current_cell_index,
-                fe_values_volume, current_fe_ref, volume_quadrature_collection[i_quad],
+                fe_values_volume, current_fe_ref, operators->volume_quadrature_collection[i_quad],
                 current_metric_dofs_indices, current_dofs_indices,
                 current_cell_rhs, fe_values_lagrange,
                 compute_dRdW, compute_dRdX, compute_d2R);
@@ -686,7 +555,7 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
                 const dealii::FEFaceValues<dim,dim> &fe_values_face_int = fe_values_collection_face_int.get_present_fe_values();
                 const dealii::FEFaceValues<dim,dim> &fe_values_face_ext = fe_values_collection_face_ext.get_present_fe_values();
 
-                const dealii::FESystem<dim,dim> &neigh_fe_ref = fe_collection[fe_index_neigh_cell];
+                const dealii::FESystem<dim,dim> &neigh_fe_ref = operators->fe_collection_basis[fe_index_neigh_cell];
                 const unsigned int n_dofs_neigh_cell = neigh_fe_ref.n_dofs_per_cell();
 
                 dealii::Vector<double> neighbor_cell_rhs (n_dofs_neigh_cell); // Defaults to 0.0 initialization
@@ -694,7 +563,7 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
                 const auto metric_neighbor_cell = high_order_grid->dof_handler_grid.begin_active();
                 metric_neighbor_cell->get_dof_indices(neighbor_metric_dofs_indices);
 
-                const real penalty = evaluate_penalty_scaling (current_cell, iface, fe_collection);
+                const real penalty = evaluate_penalty_scaling (current_cell, iface, operators->fe_collection_basis);
 
                 const dealii::types::global_dof_index neighbor_cell_index = neighbor_cell->active_cell_index();
                 if(compute_Auxiliary_RHS){
@@ -741,7 +610,7 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
         
                 const dealii::FEFaceValues<dim,dim> &fe_values_face_int = fe_values_collection_face_int.get_present_fe_values();
 
-                const real penalty = evaluate_penalty_scaling (current_cell, iface, fe_collection);
+                const real penalty = evaluate_penalty_scaling (current_cell, iface, operators->fe_collection_basis);
 
                 const unsigned int boundary_id = current_face->boundary_id();
                 if(compute_Auxiliary_RHS){
@@ -760,7 +629,7 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
                             boundary_id, fe_values_face_int, penalty, current_dofs_indices, current_cell_rhs);
                     }
                     else {
-                       const dealii::Quadrature<dim-1> face_quadrature = face_quadrature_collection[i_quad];
+                       const dealii::Quadrature<dim-1> face_quadrature = operators->face_quadrature_collection[i_quad];
                        assemble_boundary_term_derivatives (
                            current_cell,
                            current_cell_index,
@@ -786,7 +655,7 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
 
                 Assert (current_cell->periodic_neighbor(iface).state() == dealii::IteratorState::valid, dealii::ExcInternalError());
 
-                const unsigned int n_dofs_neigh_cell = fe_collection[neighbor_cell->active_fe_index()].n_dofs_per_cell();
+                const unsigned int n_dofs_neigh_cell = operators->fe_collection_basis[neighbor_cell->active_fe_index()].n_dofs_per_cell();
                 dealii::Vector<real> neighbor_cell_rhs (n_dofs_neigh_cell); // Defaults to 0.0 initialization
 
                 // Obtain the mapping from local dof indices to global dof indices for neighbor cell
@@ -803,15 +672,15 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
                 fe_values_collection_face_ext.reinit (neighbor_cell, neighbor_iface, i_quad_n, i_mapp_n, i_fele_n);
                 const dealii::FEFaceValues<dim,dim> &fe_values_face_ext = fe_values_collection_face_ext.get_present_fe_values();
 
-                const real penalty1 = evaluate_penalty_scaling (current_cell, iface, fe_collection);
-                const real penalty2 = evaluate_penalty_scaling (neighbor_cell, neighbor_iface, fe_collection);
+                const real penalty1 = evaluate_penalty_scaling (current_cell, iface, operators->fe_collection_basis);
+                const real penalty2 = evaluate_penalty_scaling (neighbor_cell, neighbor_iface, operators->fe_collection_basis);
                 const real penalty = 0.5 * (penalty1 + penalty2);
 
                 const dealii::types::global_dof_index neighbor_cell_index = neighbor_cell->active_cell_index();
                 const auto metric_neighbor_cell = current_metric_cell->periodic_neighbor(iface);
                 metric_neighbor_cell->get_dof_indices(neighbor_metric_dofs_indices);
 
-                const dealii::Quadrature<dim-1> &used_face_quadrature = face_quadrature_collection[i_quad_n]; // or i_quad
+                const dealii::Quadrature<dim-1> &used_face_quadrature = operators->face_quadrature_collection[i_quad_n]; // or i_quad
 
                 std::pair<unsigned int, int> face_subface_int = std::make_pair(iface, -1);
                 std::pair<unsigned int, int> face_subface_ext = std::make_pair(neighbor_iface, -1);
@@ -870,7 +739,7 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
                             face_data_set_ext,
                             fe_values_face_int, fe_values_face_ext,
                             penalty,
-                            fe_collection[i_fele], fe_collection[i_fele_n],
+                            operators->fe_collection_basis[i_fele], operators->fe_collection_basis[i_fele_n],
                             used_face_quadrature,
                             current_metric_dofs_indices, neighbor_metric_dofs_indices,
                             current_dofs_indices, neighbor_dofs_indices,
@@ -912,7 +781,7 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
 
             const int i_fele_n = neighbor_cell->active_fe_index(), i_quad_n = i_fele_n, i_mapp_n = 0;
 
-            const unsigned int n_dofs_neigh_cell = fe_collection[i_fele_n].n_dofs_per_cell();
+            const unsigned int n_dofs_neigh_cell = operators->fe_collection_basis[i_fele_n].n_dofs_per_cell();
             dealii::Vector<real> neighbor_cell_rhs (n_dofs_neigh_cell); // Defaults to 0.0 initialization
 
             // Obtain the mapping from local dof indices to global dof indices for neighbor cell
@@ -925,15 +794,15 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
             fe_values_collection_subface.reinit (neighbor_cell, neighbor_iface, neighbor_i_subface, i_quad_n, i_mapp_n, i_fele_n);
             const dealii::FESubfaceValues<dim,dim> &fe_values_face_ext = fe_values_collection_subface.get_present_fe_values();
 
-            const real penalty1 = evaluate_penalty_scaling (current_cell, iface, fe_collection);
-            const real penalty2 = evaluate_penalty_scaling (neighbor_cell, neighbor_iface, fe_collection);
+            const real penalty1 = evaluate_penalty_scaling (current_cell, iface, operators->fe_collection_basis);
+            const real penalty2 = evaluate_penalty_scaling (neighbor_cell, neighbor_iface, operators->fe_collection_basis);
             const real penalty = 0.5 * (penalty1 + penalty2);
 
             const dealii::types::global_dof_index neighbor_cell_index = neighbor_cell->active_cell_index();
             const auto metric_neighbor_cell = current_metric_cell->neighbor(iface);
             metric_neighbor_cell->get_dof_indices(neighbor_metric_dofs_indices);
 
-            const dealii::Quadrature<dim-1> &used_face_quadrature = face_quadrature_collection[i_quad_n]; // or i_quad
+            const dealii::Quadrature<dim-1> &used_face_quadrature = operators->face_quadrature_collection[i_quad_n]; // or i_quad
             std::pair<unsigned int, int> face_subface_int = std::make_pair(iface, -1);
             std::pair<unsigned int, int> face_subface_ext = std::make_pair(neighbor_iface, (int)neighbor_i_subface);
 
@@ -994,7 +863,7 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
                         face_data_set_ext,
                         fe_values_face_int, fe_values_face_ext,
                         penalty,
-                        fe_collection[i_fele], fe_collection[i_fele_n],
+                        operators->fe_collection_basis[i_fele], operators->fe_collection_basis[i_fele_n],
                         used_face_quadrature,
                         current_metric_dofs_indices, neighbor_metric_dofs_indices,
                         current_dofs_indices, neighbor_dofs_indices,
@@ -1017,7 +886,7 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
             const unsigned int neighbor_iface = current_cell->neighbor_of_neighbor(iface);
 
             // Get information about neighbor cell
-            const unsigned int n_dofs_neigh_cell = fe_collection[neighbor_cell->active_fe_index()].n_dofs_per_cell();
+            const unsigned int n_dofs_neigh_cell = operators->fe_collection_basis[neighbor_cell->active_fe_index()].n_dofs_per_cell();
 
             // Local rhs contribution from neighbor
             dealii::Vector<real> neighbor_cell_rhs (n_dofs_neigh_cell); // Defaults to 0.0 initialization
@@ -1033,15 +902,15 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
             fe_values_collection_face_ext.reinit (neighbor_cell, neighbor_iface, i_quad_n, i_mapp_n, i_fele_n);
             const dealii::FEFaceValues<dim,dim> &fe_values_face_ext = fe_values_collection_face_ext.get_present_fe_values();
 
-            const real penalty1 = evaluate_penalty_scaling (current_cell, iface, fe_collection);
-            const real penalty2 = evaluate_penalty_scaling (neighbor_cell, neighbor_iface, fe_collection);
+            const real penalty1 = evaluate_penalty_scaling (current_cell, iface, operators->fe_collection_basis);
+            const real penalty2 = evaluate_penalty_scaling (neighbor_cell, neighbor_iface, operators->fe_collection_basis);
             const real penalty = 0.5 * (penalty1 + penalty2);
 
             const dealii::types::global_dof_index neighbor_cell_index = neighbor_cell->active_cell_index();
             const auto metric_neighbor_cell = current_metric_cell->neighbor_or_periodic_neighbor(iface);
             metric_neighbor_cell->get_dof_indices(neighbor_metric_dofs_indices);
 
-            const dealii::Quadrature<dim-1> &used_face_quadrature = face_quadrature_collection[i_quad_n]; // or i_quad
+            const dealii::Quadrature<dim-1> &used_face_quadrature = operators->face_quadrature_collection[i_quad_n]; // or i_quad
             std::pair<unsigned int, int> face_subface_int = std::make_pair(iface, -1);
             std::pair<unsigned int, int> face_subface_ext = std::make_pair(neighbor_iface, -1);
             const auto face_data_set_int = dealii::QProjector<dim>::DataSetDescriptor::face (
@@ -1099,7 +968,7 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
                         face_data_set_ext,
                         fe_values_face_int, fe_values_face_ext,
                         penalty,
-                        fe_collection[i_fele], fe_collection[i_fele_n],
+                        operators->fe_collection_basis[i_fele], operators->fe_collection_basis[i_fele_n],
                         used_face_quadrature,
                         current_metric_dofs_indices, neighbor_metric_dofs_indices,
                         current_dofs_indices, neighbor_dofs_indices,
@@ -1147,7 +1016,7 @@ void DGBase<dim,real,MeshType>::update_artificial_dissipation_discontinuity_sens
     const auto mapping = (*(high_order_grid->mapping_fe_field));
     dealii::hp::MappingCollection<dim> mapping_collection(mapping);
     const dealii::UpdateFlags update_flags = dealii::update_values | dealii::update_JxW_values;
-    dealii::hp::FEValues<dim,dim> fe_values_collection_volume (mapping_collection, fe_collection, volume_quadrature_collection, update_flags); ///< FEValues of volume.
+    dealii::hp::FEValues<dim,dim> fe_values_collection_volume (mapping_collection, operators->fe_collection_basis, operators->volume_quadrature_collection, update_flags); ///< FEValues of volume.
 
     std::vector< double > soln_coeff_high;
     std::vector<dealii::types::global_dof_index> dof_indices;
@@ -1171,7 +1040,7 @@ void DGBase<dim,real,MeshType>::update_artificial_dissipation_discontinuity_sens
         const int i_quad = i_fele;
         const int i_mapp = 0;
 
-        const dealii::FESystem<dim,dim> &fe_high = fe_collection[i_fele];
+        const dealii::FESystem<dim,dim> &fe_high = operators->fe_collection_basis[i_fele];
         const unsigned int degree = fe_high.tensor_degree();
 
         if (degree == 0) continue;
@@ -1446,12 +1315,12 @@ void DGBase<dim,real,MeshType>::assemble_residual (const bool compute_dRdW, cons
 
     dealii::hp::MappingCollection<dim> mapping_collection(mapping);
 
-    dealii::hp::FEValues<dim,dim>        fe_values_collection_volume (mapping_collection, fe_collection, volume_quadrature_collection, this->volume_update_flags); ///< FEValues of volume.
-    dealii::hp::FEFaceValues<dim,dim>    fe_values_collection_face_int (mapping_collection, fe_collection, face_quadrature_collection, this->face_update_flags); ///< FEValues of interior face.
-    dealii::hp::FEFaceValues<dim,dim>    fe_values_collection_face_ext (mapping_collection, fe_collection, face_quadrature_collection, this->neighbor_face_update_flags); ///< FEValues of exterior face.
-    dealii::hp::FESubfaceValues<dim,dim> fe_values_collection_subface (mapping_collection, fe_collection, face_quadrature_collection, this->face_update_flags); ///< FEValues of subface.
+    dealii::hp::FEValues<dim,dim>        fe_values_collection_volume (mapping_collection, operators->fe_collection_basis, operators->volume_quadrature_collection, this->volume_update_flags); ///< FEValues of volume.
+    dealii::hp::FEFaceValues<dim,dim>    fe_values_collection_face_int (mapping_collection, operators->fe_collection_basis, operators->face_quadrature_collection, this->face_update_flags); ///< FEValues of interior face.
+    dealii::hp::FEFaceValues<dim,dim>    fe_values_collection_face_ext (mapping_collection, operators->fe_collection_basis, operators->face_quadrature_collection, this->neighbor_face_update_flags); ///< FEValues of exterior face.
+    dealii::hp::FESubfaceValues<dim,dim> fe_values_collection_subface (mapping_collection, operators->fe_collection_basis, operators->face_quadrature_collection, this->face_update_flags); ///< FEValues of subface.
 
-    dealii::hp::FEValues<dim,dim>        fe_values_collection_volume_lagrange (mapping_collection, fe_collection_lagrange, volume_quadrature_collection, this->volume_update_flags);
+    dealii::hp::FEValues<dim,dim>        fe_values_collection_volume_lagrange (mapping_collection, operators->fe_collection_flux_basis, operators->volume_quadrature_collection, this->volume_update_flags);
 
     solution.update_ghost_values();
 
@@ -1586,8 +1455,8 @@ double DGBase<dim,real,MeshType>::get_residual_linfnorm () const
     std::vector<dealii::types::global_dof_index> dofs_indices;
     const dealii::UpdateFlags update_flags = dealii::update_values | dealii::update_JxW_values;
     dealii::hp::FEValues<dim,dim> fe_values_collection_volume (mapping_collection,
-                                                               fe_collection,
-                                                               volume_quadrature_collection,
+                                                               operators->fe_collection_basis,
+                                                               operators->volume_quadrature_collection,
                                                                update_flags);
 
     // Obtain the mapping from local dof indices to global dof indices
@@ -1601,7 +1470,7 @@ double DGBase<dim,real,MeshType>::get_residual_linfnorm () const
         fe_values_collection_volume.reinit (cell, i_quad, i_mapp, i_fele);
         const dealii::FEValues<dim,dim> &fe_values_vol = fe_values_collection_volume.get_present_fe_values();
 
-        const dealii::FESystem<dim,dim> &fe_ref = fe_collection[i_fele];
+        const dealii::FESystem<dim,dim> &fe_ref = operators->fe_collection_basis[i_fele];
         const unsigned int n_dofs = fe_ref.n_dofs_per_cell();
         const unsigned int n_quad = fe_values_vol.n_quadrature_points;
 
@@ -1641,8 +1510,8 @@ double DGBase<dim,real,MeshType>::get_residual_l2norm () const
     std::vector<dealii::types::global_dof_index> dofs_indices;
     const dealii::UpdateFlags update_flags = dealii::update_values | dealii::update_JxW_values;
     dealii::hp::FEValues<dim,dim> fe_values_collection_volume (mapping_collection,
-                                                               fe_collection,
-                                                               volume_quadrature_collection,
+                                                               operators->fe_collection_basis,
+                                                               operators->volume_quadrature_collection,
                                                                update_flags);
 
     // Obtain the mapping from local dof indices to global dof indices
@@ -1656,7 +1525,7 @@ double DGBase<dim,real,MeshType>::get_residual_l2norm () const
         fe_values_collection_volume.reinit (cell, i_quad, i_mapp, i_fele);
         const dealii::FEValues<dim,dim> &fe_values_vol = fe_values_collection_volume.get_present_fe_values();
 
-        const dealii::FESystem<dim,dim> &fe_ref = fe_collection[i_fele];
+        const dealii::FESystem<dim,dim> &fe_ref = operators->fe_collection_basis[i_fele];
         const unsigned int n_dofs = fe_ref.n_dofs_per_cell();
         const unsigned int n_quad = fe_values_vol.n_quadrature_points;
 
@@ -2092,7 +1961,7 @@ void DGBase<dim,real,MeshType>::allocate_system ()
     // This function allocates all the necessary memory to the
     // system matrices and vectors.
 
-    dof_handler.distribute_dofs(fe_collection);
+    dof_handler.distribute_dofs(operators->fe_collection_basis);
     dealii::DoFRenumbering::Cuthill_McKee(dof_handler,true);
     //const bool reversed_numbering = true;
     //dealii::DoFRenumbering::Cuthill_McKee(dof_handler, reversed_numbering);
@@ -2281,7 +2150,8 @@ void DGBase<dim,real,MeshType>::evaluate_mass_matrices (bool do_inverse_mass_mat
         const unsigned int fe_index_curr_cell = cell->active_fe_index();
 
         // Current reference element related to this physical cell
-        const dealii::FESystem<dim,dim> &current_fe_ref = fe_collection[fe_index_curr_cell];
+       // const dealii::FESystem<dim,dim> &current_fe_ref = fe_collection[fe_index_curr_cell];
+        const dealii::FESystem<dim,dim> &current_fe_ref = operators->fe_collection_basis[fe_index_curr_cell];
         const unsigned int n_dofs_cell = current_fe_ref.n_dofs_per_cell();
 
         dofs_indices.resize(n_dofs_cell);
@@ -2323,9 +2193,9 @@ void DGBase<dim,real,MeshType>::evaluate_mass_matrices (bool do_inverse_mass_mat
         const unsigned int fe_index_curr_cell = cell->active_fe_index();
 
         // Current reference element related to this physical cell
-        const dealii::FESystem<dim,dim> &current_fe_ref = fe_collection[fe_index_curr_cell];
+        const dealii::FESystem<dim,dim> &current_fe_ref = operators->fe_collection_basis[fe_index_curr_cell];
         const unsigned int n_dofs_cell = current_fe_ref.n_dofs_per_cell();
-        const unsigned int n_quad_pts = volume_quadrature_collection[fe_index_curr_cell].size();
+        const unsigned int n_quad_pts = operators->volume_quadrature_collection[fe_index_curr_cell].size();
 
         dealii::FullMatrix<real> local_mass_matrix(n_dofs_cell);
 
@@ -2582,7 +2452,7 @@ void DGBase<dim,real,MeshType>::time_scaled_mass_matrices(const real dt_scale)
         const unsigned int fe_index_curr_cell = cell->active_fe_index();
 
         // Current reference element related to this physical cell
-        const dealii::FESystem<dim,dim> &current_fe_ref = fe_collection[fe_index_curr_cell];
+        const dealii::FESystem<dim,dim> &current_fe_ref = operators->fe_collection_basis[fe_index_curr_cell];
         const unsigned int n_dofs_cell = current_fe_ref.n_dofs_per_cell();
 
         dofs_indices.resize(n_dofs_cell);

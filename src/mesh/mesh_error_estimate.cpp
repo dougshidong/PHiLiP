@@ -55,7 +55,7 @@ dealii::Vector<real> ResidualErrorEstimate<dim, real, MeshType> :: compute_cellw
          continue;
 
          const int i_fele = cell->active_fe_index();
-         const dealii::FESystem<dim,dim> &fe_ref = this->dg->fe_collection[i_fele];
+         const dealii::FESystem<dim,dim> &fe_ref = this->dg->operators->fe_collection_basis[i_fele];
          const unsigned int n_dofs_cell = fe_ref.n_dofs_per_cell();
          dofs_indices.resize(n_dofs_cell);
          cell->get_dof_indices (dofs_indices);
@@ -317,7 +317,7 @@ dealii::Vector<real> DualWeightedResidualError<dim, nstate, real, MeshType>::dua
             continue;
         
         const unsigned int fe_index_curr_cell = cell->active_fe_index();
-        const dealii::FESystem<dim,dim> &current_fe_ref = this->dg->fe_collection[fe_index_curr_cell];
+        const dealii::FESystem<dim,dim> &current_fe_ref = this->dg->operators->fe_collection_basis[fe_index_curr_cell];
         const unsigned int n_dofs_curr_cell = current_fe_ref.n_dofs_per_cell();
 
         current_dofs_indices.resize(n_dofs_curr_cell);

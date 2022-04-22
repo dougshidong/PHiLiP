@@ -292,7 +292,7 @@ int main (int argc, char * argv[])
     dg->allocate_system ();
     
 
-    const unsigned int n_quad_pts      = dg->volume_quadrature_collection[poly_degree].size();
+    const unsigned int n_quad_pts      = dg->operators->volume_quadrature_collection[poly_degree].size();
 
             const dealii::FESystem<dim> &fe_metric = (dg->high_order_grid->fe_system);
             const unsigned int n_metric_dofs = fe_metric.dofs_per_cell; 

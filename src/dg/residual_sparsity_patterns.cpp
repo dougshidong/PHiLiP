@@ -61,7 +61,7 @@ dealii::SparsityPattern DGBase<dim,real,MeshType>::get_dRdX_sparsity_pattern ()
     for (; cell != dof_handler.end(); ++cell, ++metric_cell) {
         if (!cell->is_locally_owned()) continue;
 
-        const unsigned int n_resi_cell = fe_collection[cell->active_fe_index()].n_dofs_per_cell();
+        const unsigned int n_resi_cell = this->operators->fe_collection_basis[cell->active_fe_index()].n_dofs_per_cell();
         resi_indices.resize(n_resi_cell);
         cell->get_dof_indices (resi_indices);
 
@@ -173,7 +173,7 @@ dealii::SparsityPattern DGBase<dim,real,MeshType>::get_dRdXs_sparsity_pattern ()
     for (; cell != dof_handler.end(); ++cell) {
         if (!cell->is_locally_owned()) continue;
 
-        const unsigned int n_resi_cell = fe_collection[cell->active_fe_index()].n_dofs_per_cell();
+        const unsigned int n_resi_cell = this->operators->fe_collection_basis[cell->active_fe_index()].n_dofs_per_cell();
         resi_indices.resize(n_resi_cell);
         cell->get_dof_indices (resi_indices);
 

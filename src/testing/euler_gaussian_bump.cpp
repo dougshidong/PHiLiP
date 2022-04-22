@@ -180,7 +180,7 @@ double EulerGaussianBump<dim,nstate>
             //dealii::MappingQ<dim> mapping(dg->max_degree+overintegrate);
             //const dealii::MappingManifold<dim,dim> mapping;
             const dealii::Mapping<dim> &mapping = (*(dg->high_order_grid->mapping_fe_field));
-            dealii::FEValues<dim,dim> fe_values_extra(mapping, dg->fe_collection[poly_degree], quad_extra, 
+            dealii::FEValues<dim,dim> fe_values_extra(mapping, dg->operators->fe_collection_basis[poly_degree], quad_extra, 
                     dealii::update_values | dealii::update_JxW_values | dealii::update_quadrature_points);
             const unsigned int n_quad_pts = fe_values_extra.n_quadrature_points;
             std::array<double,nstate> soln_at_q;

@@ -51,8 +51,8 @@ double BurgersEnergyStability<dim, nstate>::compute_conservation(std::shared_ptr
         dealii::LinearAlgebra::distributed::Vector<double> mass_matrix_times_solution(dg->right_hand_side);
         dg->global_mass_matrix.vmult( mass_matrix_times_solution, dg->solution);
 
-        const unsigned int n_dofs_cell = dg->fe_collection[poly_degree].dofs_per_cell;
-        const unsigned int n_quad_pts = dg->volume_quadrature_collection[poly_degree].size();
+        const unsigned int n_dofs_cell = dg->operators->fe_collection_basis[poly_degree].dofs_per_cell;
+        const unsigned int n_quad_pts = dg->operators->volume_quadrature_collection[poly_degree].size();
         dealii::Vector<double> ones(n_quad_pts);
         for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
             ones[iquad] = 1.0;
@@ -253,7 +253,7 @@ int BurgersEnergyStability<dim, nstate>::run_test() const
             // Overintegrate the error to make sure there is not integration error in the error estimate
             int overintegrate = 0;
             dealii::QGaussLobatto<dim> quad_extra(dg->max_degree+1+overintegrate);
-            dealii::FEValues<dim,dim> fe_values_extra(*(dg->high_order_grid->mapping_fe_field), dg->fe_collection[poly_degree], quad_extra, 
+            dealii::FEValues<dim,dim> fe_values_extra(*(dg->high_order_grid->mapping_fe_field), dg->operators->fe_collection_basis[poly_degree], quad_extra, 
                     dealii::update_values | dealii::update_JxW_values | dealii::update_quadrature_points);
             const unsigned int n_quad_pts = fe_values_extra.n_quadrature_points;
             std::array<double,nstate> soln_at_q;
@@ -300,7 +300,7 @@ int BurgersEnergyStability<dim, nstate>::run_test() const
             // Overintegrate the error to make sure there is not integration error in the error estimate
             int overintegrate = 10;
             dealii::QGauss<dim> quad_extra(poly_degree+1+overintegrate);
-            dealii::FEValues<dim,dim> fe_values_extra(*(dg->high_order_grid->mapping_fe_field), dg->fe_collection[poly_degree], quad_extra, 
+            dealii::FEValues<dim,dim> fe_values_extra(*(dg->high_order_grid->mapping_fe_field), dg->operators->fe_collection_basis[poly_degree], quad_extra, 
                     dealii::update_values | dealii::update_JxW_values | dealii::update_quadrature_points);
             const unsigned int n_quad_pts = fe_values_extra.n_quadrature_points;
             std::array<double,nstate> soln_at_q;

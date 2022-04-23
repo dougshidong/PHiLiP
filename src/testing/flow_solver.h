@@ -30,6 +30,7 @@
 #include <deal.II/base/table_handler.h>
 #include <string>
 #include <vector>
+#include <deal.II/base/parameter_handler.h>
 
 namespace PHiLiP {
 namespace Tests {
@@ -46,7 +47,10 @@ class FlowSolver : public TestsBase
 {
 public:
     /// Constructor.
-    FlowSolver(const Parameters::AllParameters *const parameters_input, std::shared_ptr<FlowSolverCaseBase<dim, nstate>>);
+    FlowSolver(
+        const Parameters::AllParameters *const parameters_input, 
+        std::shared_ptr<FlowSolverCaseBase<dim, nstate>>,
+        const dealii::ParameterHandler &parameter_handler_input);
     
     /// Destructor
     ~FlowSolver() {};
@@ -54,13 +58,19 @@ public:
     /// Pointer to Flow Solver Case
     std::shared_ptr<FlowSolverCaseBase<dim, nstate>> flow_solver_case;
 
+    /// Parameter handler for storing the .prm file being ran
+    const dealii::ParameterHandler &parameter_handler;
+
+    /// Simply runs the flow solver and returns 0 upon completion
+    int run_test () const override;
+
     /// Initializes the data table from an existing file
     void initialize_data_table_from_file(
         std::string data_table_filename_with_extension,
         const std::shared_ptr <dealii::TableHandler> data_table) const;
 
-    /// Simply runs the flow solver and returns 0 upon completion
-    int run_test () const override;
+    /// Returns the restart filename without extension given a restart index (adds padding appropriately)
+    std::string get_restart_filename_without_extension(const int restart_index_input) const;
 
 protected:
     std::shared_ptr< InitialConditionFunction<dim,double> > initial_condition_function; ///< Initial condition function
@@ -82,6 +92,12 @@ private:
      *  given the first line of the file */
     std::vector<std::string> get_data_table_column_names(const std::string string_input) const;
 
+    /// Writes a parameter file (.prm) for restarting the computation with
+    void write_restart_parameter_file(const int restart_index_input,
+                                      const double constant_time_step_input) const;
+
+    /// Converts a double to a string with scientific format and with full precision
+    std::string double_to_string(const double value_input) const;
 };
 
 /// Create specified flow solver as FlowSolver object 
@@ -93,7 +109,8 @@ class FlowSolverFactory
 public:
     /// Factory to return the correct flow solver given input file.
     static std::unique_ptr< FlowSolver<dim,nstate> >
-        create_FlowSolver(const Parameters::AllParameters *const parameters_input);
+        create_FlowSolver(const Parameters::AllParameters *const parameters_input,
+                          const dealii::ParameterHandler &parameter_handler_input);
 };
 
 } // Tests namespace

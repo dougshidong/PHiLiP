@@ -40,6 +40,7 @@ public:
 
     bool restart_computation_from_file; ///< Restart computation from restart file
     bool output_restart_files; ///< Output the restart files
+    int restart_file_index; ///< Index of desired restart file for restarting the computation from
 
     /// Declares the possible variables and sets the defaults.
     static void declare_parameters (dealii::ParameterHandler &prm);

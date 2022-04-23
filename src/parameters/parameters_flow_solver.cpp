@@ -52,6 +52,10 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                           dealii::Patterns::Bool(),
                           "Output restart files for restarting the computation. False by default.");
 
+        prm.declare_entry("restart_file_index", "0",
+                          dealii::Patterns::Integer(0, dealii::Patterns::Integer::max_int_value),
+                          "Index of restart file from which the computation will be restarted from. 0 by default.");
+
         prm.enter_subsection("taylor_green_vortex_energy_check");
         {
             prm.declare_entry("expected_kinetic_energy_at_final_time", "1",
@@ -79,7 +83,8 @@ void FlowSolverParam::parse_parameters(dealii::ParameterHandler &prm)
         sensitivity_table_filename = prm.get("sensitivity_table_filename");
         restart_computation_from_file = prm.get_bool("restart_computation_from_file");
         output_restart_files = prm.get_bool("output_restart_files");
-
+        restart_file_index = prm.get_integer("restart_file_index");
+        
         prm.enter_subsection("taylor_green_vortex_energy_check");
         {
             expected_kinetic_energy_at_final_time = prm.get_double("expected_kinetic_energy_at_final_time");

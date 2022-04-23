@@ -14,9 +14,13 @@ namespace Tests {
 // FLOW SOLVER TEST CASE -- What runs the test
 //=========================================================
 template <int dim, int nstate>
-FlowSolver<dim, nstate>::FlowSolver(const PHiLiP::Parameters::AllParameters *const parameters_input, std::shared_ptr<FlowSolverCaseBase<dim, nstate>> flow_solver_case)
+FlowSolver<dim, nstate>::FlowSolver(
+    const PHiLiP::Parameters::AllParameters *const parameters_input, 
+    std::shared_ptr<FlowSolverCaseBase<dim, nstate>> flow_solver_case,
+    const dealii::ParameterHandler &parameter_handler_input)
 : TestsBase::TestsBase(parameters_input)
 , flow_solver_case(flow_solver_case)
+, parameter_handler(parameter_handler_input)
 , initial_condition_function(InitialConditionFactory<dim,double>::create_InitialConditionFunction(parameters_input, nstate))
 , all_param(*parameters_input)
 , flow_solver_param(all_param.flow_solver_param)
@@ -40,7 +44,8 @@ FlowSolver<dim, nstate>::FlowSolver(const PHiLiP::Parameters::AllParameters *con
 #if PHILIP_DIM>1
         // Initialize solution from restart file
         pcout << "Initializing solution from restart file..." << std::flush;
-        dg->triangulation->load("restart");
+        std::string restart_filename_without_extension = get_restart_filename_without_extension(flow_solver_param.restart_file_index);
+        dg->triangulation->load(restart_filename_without_extension);
         // --- after allocate_dg
         // TO DO: Read section "Note on usage with DoFHandler with hp-capabilities" and add the stuff im missing
         // ------ Ref: https://www.dealii.org/current/doxygen/deal.II/classparallel_1_1distributed_1_1SolutionTransfer.html
@@ -55,12 +60,22 @@ FlowSolver<dim, nstate>::FlowSolver(const PHiLiP::Parameters::AllParameters *con
 #endif
     } else {
         // Initialize solution from initial_condition_function
-        pcout << "Initializing solution with initial condition function..." << std::flush;
+        pcout << "Initializing solution with initial condition function... " << std::flush;
         dealii::VectorTools::interpolate(dg->dof_handler, *initial_condition_function, solution_no_ghost);
     }
     dg->solution = solution_no_ghost; //< assignment
     pcout << "done." << std::endl;
     ode_solver->allocate_ode_system();
+
+    // output a copy of the input parameters file
+    if(flow_solver_param.output_restart_files == true) {
+        pcout << "Writing a reference copy of the inputted parameters (.prm) file... " << std::flush;
+        if(this->mpi_rank==0) {
+            std::string parameter_filename = "input_copy.prm";
+            parameter_handler.print_parameters(parameter_filename);    
+        }
+        pcout << "done." << std::endl;
+    }
 }
 
 template <int dim, int nstate>
@@ -69,7 +84,7 @@ std::vector<std::string> FlowSolver<dim,nstate>::get_data_table_column_names(con
     /* returns the column names of a dealii::TableHandler object
        given the first line of the file */
     
-    // Crete object of istringstream and initialize assign input string
+    // Create object of istringstream and initialize assign input string
     std::istringstream iss(string_input);
     std::string word;
 
@@ -82,20 +97,34 @@ std::vector<std::string> FlowSolver<dim,nstate>::get_data_table_column_names(con
 }
 
 template <int dim, int nstate>
+std::string FlowSolver<dim,nstate>::get_restart_filename_without_extension(const int restart_index_input) const {
+    // returns the restart file index as a string with appropriate padding
+    std::string restart_index_string = std::to_string(restart_index_input);
+    const unsigned int length_of_index_with_padding = 5;
+    const int number_of_zeros = length_of_index_with_padding - restart_index_string.length();
+    restart_index_string.insert(0, number_of_zeros, '0');
+
+    std::string prefix = "restart-";
+    std::string restart_filename_without_extension = prefix+restart_index_string;
+
+    return restart_filename_without_extension;
+}
+
+template <int dim, int nstate>
 void FlowSolver<dim,nstate>::initialize_data_table_from_file(
-    std::string data_table_filename_with_extension,
+    std::string data_table_filename,
     const std::shared_ptr <dealii::TableHandler> data_table) const
 {
     if(this->mpi_rank==0) {
         std::string line;
         std::string::size_type sz1;
 
-        std::ifstream FILE (data_table_filename_with_extension);
+        std::ifstream FILE (data_table_filename);
         std::getline(FILE, line); // read first line: column headers
         
         // check that the file is not empty
         if (line.empty()) {
-            pcout << "Error: Trying to read empty file" << std::endl;
+            pcout << "Error: Trying to read empty file named " << data_table_filename << std::endl;
             std::abort();
         }
 
@@ -133,6 +162,137 @@ void FlowSolver<dim,nstate>::initialize_data_table_from_file(
 }
 
 template <int dim, int nstate>
+std::string FlowSolver<dim,nstate>::double_to_string(const double value_input) const {
+    // converts a double to a string with full precision
+    std::stringstream ss;
+    ss << std::scientific << std::setprecision(16) << value_input;
+    std::string double_to_string = ss.str();
+    return double_to_string;
+}
+
+template <int dim, int nstate>
+void FlowSolver<dim,nstate>::write_restart_parameter_file(
+    const int restart_index_input,
+    const double constant_time_step_input) const {
+    // write the restart parameter file
+    if(this->mpi_rank==0) {
+        // read a copy of the current parameters file
+        std::ifstream CURRENT_FILE("input_copy.prm");
+        
+        // create write file with appropriate postfix given the restart index input
+        std::string restart_filename = get_restart_filename_without_extension(restart_index_input)+std::string(".prm");
+        std::ofstream RESTART_FILE(restart_filename);
+
+        // Lines to identify the subsections in the .prm file
+        /* WARNING: (2) These must be in the order they appear in the .prm file
+         */
+        std::vector<std::string> subsection_line;
+        subsection_line.push_back("subsection ODE solver");
+        subsection_line.push_back("subsection flow_solver");
+        // Number of subsections to change values in
+        int number_of_subsections = subsection_line.size();
+
+
+        /* WARNING: (1) Must put a space before and after each parameter string as done below
+         *          (2) These must be in the order they appear in the .prm file
+         */
+        // -- names
+        std::vector<std::string> ODE_solver_restart_parameter_names;
+        ODE_solver_restart_parameter_names.push_back(" initial_desired_time_for_output_solution_every_dt_time_intervals ");
+        ODE_solver_restart_parameter_names.push_back(" initial_iteration ");
+        ODE_solver_restart_parameter_names.push_back(" initial_time ");
+        ODE_solver_restart_parameter_names.push_back(" initial_time_step ");
+        // -- corresponding values
+        std::vector<std::string> ODE_solver_restart_parameter_values;
+        ODE_solver_restart_parameter_values.push_back(double_to_string(ode_solver->current_desired_time_for_output_solution_every_dt_time_intervals));
+        ODE_solver_restart_parameter_values.push_back(std::to_string(ode_solver->current_iteration));
+        ODE_solver_restart_parameter_values.push_back(double_to_string(ode_solver->current_time));
+        ODE_solver_restart_parameter_values.push_back(double_to_string(constant_time_step_input));
+
+
+        /* WARNING: (1) Must put a space before and after each parameter string as done below
+         *          (2) These must be in the order they appear in the .prm file
+         */
+        // -- Names
+        std::vector<std::string> flow_solver_restart_parameter_names;
+        flow_solver_restart_parameter_names.push_back(" output_restart_files ");
+        flow_solver_restart_parameter_names.push_back(" restart_computation_from_file ");
+        flow_solver_restart_parameter_names.push_back(" restart_file_index ");
+        // -- Corresponding values
+        std::vector<std::string> flow_solver_restart_parameter_values;
+        flow_solver_restart_parameter_values.push_back(std::string("true"));
+        flow_solver_restart_parameter_values.push_back(std::string("true"));
+        flow_solver_restart_parameter_values.push_back(std::to_string(restart_index_input));
+
+
+        // Number of parameters in each subsection
+        std::vector<int> number_of_subsection_parameters;
+        number_of_subsection_parameters.push_back(ODE_solver_restart_parameter_names.size());
+        number_of_subsection_parameters.push_back(flow_solver_restart_parameter_names.size());
+        
+        // Initialize for the while loop
+        int i_subsection = 0;
+        std::string line;
+
+        // read line until end of file
+        while (std::getline(CURRENT_FILE, line)) {
+            // check if the desired subsection has been reached
+            if (line == subsection_line[i_subsection]) {
+                RESTART_FILE << line << "\n"; // write line
+
+                int i_parameter = 0;
+                std::string name;
+                std::string value_string;
+
+                if (i_subsection==0) {
+                    name = ODE_solver_restart_parameter_names[i_parameter];
+                    value_string = ODE_solver_restart_parameter_values[i_parameter];
+                } else if (i_subsection==1) {
+                    name = flow_solver_restart_parameter_names[i_parameter];
+                    value_string = flow_solver_restart_parameter_values[i_parameter];
+                }
+
+                while (line!="end") {
+                    std::getline(CURRENT_FILE, line); // read line
+                    std::string::size_type found = line.find(name);
+                    
+                    // found the line corresponding to the desired parameter
+                    if (found!=std::string::npos) {
+
+                        // construct the updated line
+                        std::string updated_line = line;
+                        std::string::size_type position_to_replace = line.find_last_of("=")+2;
+                        std::string part_of_line_to_replace = line.substr(position_to_replace);
+                        updated_line.replace(position_to_replace,part_of_line_to_replace.length(),value_string);
+
+                        // write updated line to restart file
+                        RESTART_FILE << updated_line << "\n";
+                        
+                        // update the parameter index, name, and value
+                        if ((i_parameter+1) < number_of_subsection_parameters[i_subsection]) ++i_parameter; // to avoid going out of bounds
+                        if (i_subsection==0) {
+                            name = ODE_solver_restart_parameter_names[i_parameter];
+                            value_string = ODE_solver_restart_parameter_values[i_parameter];
+                        } else if (i_subsection==1) {
+                            name = flow_solver_restart_parameter_names[i_parameter];
+                            value_string = flow_solver_restart_parameter_values[i_parameter];
+                        }
+                    } else {
+                        // write line (that does correspond to the desired parameter) to the restart file
+                        RESTART_FILE << line << "\n";
+                    }
+                }
+                // update the subsection index
+                if ((i_subsection+1) < number_of_subsections) ++i_subsection; // to avoid going out of bounds
+            } else {
+                // write line (that is not in a desired subsection) to the restart file
+                RESTART_FILE << line << "\n";
+            }
+        }
+    }
+}
+
+template <int dim, int nstate>
 int FlowSolver<dim,nstate>::run_test() const
 {
     pcout << "Running Flow Solver..." << std::endl;
@@ -150,6 +310,11 @@ int FlowSolver<dim,nstate>::run_test() const
         //----------------------------------------------------
         //                  UNSTEADY FLOW
         //----------------------------------------------------
+        // Initializing restart related variables
+        //----------------------------------------------------
+        int current_restart_index = flow_solver_param.restart_file_index;
+        std::string restart_filename_without_extension = get_restart_filename_without_extension(current_restart_index);
+        //----------------------------------------------------
         // Constant time step based on CFL number
         //----------------------------------------------------
         pcout << "Setting constant time step... " << std::flush;
@@ -161,11 +326,12 @@ int FlowSolver<dim,nstate>::run_test() const
         std::shared_ptr<dealii::TableHandler> unsteady_data_table = std::make_shared<dealii::TableHandler>();//(this->mpi_communicator) ?;
         if(flow_solver_param.restart_computation_from_file == true) {
             pcout << "Initializing data table from corresponding restart file... " << std::flush;
-            initialize_data_table_from_file(flow_solver_case->unsteady_data_table_filename_with_extension,unsteady_data_table);
+            std::string restart_unsteady_data_table_filename = flow_solver_param.unsteady_data_table_filename+std::string("-")+restart_filename_without_extension+std::string(".txt");
+            initialize_data_table_from_file(restart_unsteady_data_table_filename,unsteady_data_table);
             pcout << "done." << std::endl;
         } else {
             // no restart:
-            pcout << "Writing unsteady data computed at initial time... " << std::flush;
+            pcout << "Writing unsteady data computed at initial time... " << std::endl;
             flow_solver_case->compute_unsteady_data_and_write_to_table(ode_solver->current_iteration, ode_solver->current_time, dg, unsteady_data_table);
             pcout << "done." << std::endl;
         }
@@ -175,20 +341,38 @@ int FlowSolver<dim,nstate>::run_test() const
         pcout << "Advancing solution in time... " << std::endl;
         while(ode_solver->current_time < final_time)
         {
+            // advance solution
             ode_solver->step_in_time(constant_time_step,false); // pseudotime==false
 
-#if PHILIP_DIM>1
-            // output the restart file
-            if(flow_solver_param.output_restart_files == true) {
-                pcout << "  ... Writing restart file ..." << std::endl;
-                dealii::parallel::distributed::SolutionTransfer<dim, dealii::LinearAlgebra::distributed::Vector<double>, dealii::DoFHandler<dim>> solution_transfer(dg->dof_handler);
-                solution_transfer.prepare_for_coarsening_and_refinement(dg->solution);
-                dg->triangulation->save("restart");
-            }
-#endif
-            
             // Compute the unsteady quantities, write to the dealii table, and output to file
             flow_solver_case->compute_unsteady_data_and_write_to_table(ode_solver->current_iteration, ode_solver->current_time, dg, unsteady_data_table);
+
+#if PHILIP_DIM>1
+            // output the restart files
+            if(flow_solver_param.output_restart_files == true) {
+                // TO DO: add mod for outputting this (add to the if statement above)
+                pcout << "  ... Writing restart file ... " << std::endl;
+                
+                // update the restart index and correspond filename without extension
+                ++current_restart_index;
+                restart_filename_without_extension = get_restart_filename_without_extension(current_restart_index);
+
+                // solution files
+                dealii::parallel::distributed::SolutionTransfer<dim, dealii::LinearAlgebra::distributed::Vector<double>, dealii::DoFHandler<dim>> solution_transfer(dg->dof_handler);
+                solution_transfer.prepare_for_coarsening_and_refinement(dg->solution);
+                dg->triangulation->save(restart_filename_without_extension);
+                
+                // parameter file
+                write_restart_parameter_file(current_restart_index, constant_time_step);
+
+                // unsteady data table
+                if(this->mpi_rank==0) {
+                    std::string restart_unsteady_data_table_filename = flow_solver_param.unsteady_data_table_filename+std::string("-")+restart_filename_without_extension+std::string(".txt");
+                    std::ofstream unsteady_data_table_file(restart_unsteady_data_table_filename);
+                    unsteady_data_table->write_text(unsteady_data_table_file);
+                }
+            }
+#endif
 
             // Output vtk solution files for post-processing in Paraview
             if (ode_param.output_solution_every_x_steps > 0) {
@@ -224,12 +408,13 @@ template class FlowSolver <PHILIP_DIM,PHILIP_DIM>;
 template class FlowSolver <PHILIP_DIM,PHILIP_DIM+2>;
 
 //=========================================================
-// FLOW SOLVER FACTORY
+//                  FLOW SOLVER FACTORY
 //=========================================================
 template <int dim, int nstate>
 std::unique_ptr < FlowSolver<dim,nstate> >
 FlowSolverFactory<dim,nstate>
-::create_FlowSolver(const Parameters::AllParameters *const parameters_input)
+::create_FlowSolver(const Parameters::AllParameters *const parameters_input,
+                    const dealii::ParameterHandler &parameter_handler_input)
 {
     // Get the flow case type
     using FlowCaseEnum = Parameters::FlowSolverParam::FlowCaseType;
@@ -237,17 +422,17 @@ FlowSolverFactory<dim,nstate>
     if (flow_type == FlowCaseEnum::taylor_green_vortex){
         if constexpr (dim==3 && nstate==dim+2){
             std::shared_ptr<FlowSolverCaseBase<dim, nstate>> flow_solver_case = std::make_shared<PeriodicCubeFlow<dim,nstate>>(parameters_input);
-            return std::make_unique<FlowSolver<dim,nstate>>(parameters_input, flow_solver_case);
+            return std::make_unique<FlowSolver<dim,nstate>>(parameters_input, flow_solver_case, parameter_handler_input);
         }
     } else if (flow_type == FlowCaseEnum::burgers_viscous_snapshot){
         if constexpr (dim==1 && nstate==dim) {
             std::shared_ptr<FlowSolverCaseBase<dim, nstate>> flow_solver_case = std::make_shared<BurgersViscousSnapshot<dim,nstate>>(parameters_input);
-            return std::make_unique<FlowSolver<dim,nstate>>(parameters_input, flow_solver_case);
+            return std::make_unique<FlowSolver<dim,nstate>>(parameters_input, flow_solver_case, parameter_handler_input);
         }
     } else if (flow_type == FlowCaseEnum::burgers_rewienski_snapshot){
         if constexpr (dim==1 && nstate==dim){
             std::shared_ptr<FlowSolverCaseBase<dim, nstate>> flow_solver_case = std::make_shared<BurgersRewienskiSnapshot<dim,nstate>>(parameters_input);
-            return std::make_unique<FlowSolver<dim,nstate>>(parameters_input, flow_solver_case);
+            return std::make_unique<FlowSolver<dim,nstate>>(parameters_input, flow_solver_case, parameter_handler_input);
         }
     } else {
         std::cout << "Invalid flow case. You probably forgot to add it to the list of flow cases in flow_solver.cpp" << std::endl;

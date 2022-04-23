@@ -11,8 +11,11 @@ namespace PHiLiP {
 namespace Tests {
 
 template <int dim, int nstate>
-TaylorGreenVortexRestartCheck<dim, nstate>::TaylorGreenVortexRestartCheck(const PHiLiP::Parameters::AllParameters *const parameters_input)
+TaylorGreenVortexRestartCheck<dim, nstate>::TaylorGreenVortexRestartCheck(
+    const PHiLiP::Parameters::AllParameters *const parameters_input,
+    const dealii::ParameterHandler &parameter_handler_input)
         : TestsBase::TestsBase(parameters_input)
+        , parameter_handler(parameter_handler_input)
         , kinetic_energy_expected(parameters_input->flow_solver_param.expected_kinetic_energy_at_final_time)
 {}
 
@@ -23,7 +26,8 @@ Parameters::AllParameters TaylorGreenVortexRestartCheck<dim, nstate>::reinit_par
     const double final_time_input,
     const double initial_time_input,
     const unsigned int initial_iteration_input,
-    const double initial_desired_time_for_output_solution_every_dt_time_intervals_input) const {
+    const double initial_desired_time_for_output_solution_every_dt_time_intervals_input,
+    const int restart_file_index_input) const {
 
     // copy all parameters
     PHiLiP::Parameters::AllParameters parameters = *(this->all_parameters);
@@ -35,6 +39,7 @@ Parameters::AllParameters TaylorGreenVortexRestartCheck<dim, nstate>::reinit_par
     parameters.ode_solver_param.initial_time = initial_time_input;
     parameters.ode_solver_param.initial_iteration = initial_iteration_input;
     parameters.ode_solver_param.initial_desired_time_for_output_solution_every_dt_time_intervals = initial_desired_time_for_output_solution_every_dt_time_intervals_input;
+    parameters.flow_solver_param.restart_file_index = restart_file_index_input;
 
     return parameters;
 }
@@ -71,19 +76,20 @@ template <int dim, int nstate>
 int TaylorGreenVortexRestartCheck<dim, nstate>::run_test() const
 {
     const double time_at_which_we_stop_the_run = 6.1240484302437529e-03;
-    // corresponds to the expected kinetic energy set in the prm file
+    const int restart_file_index = 4;
+    const int initial_iteration_restart = restart_file_index; // assumes output mod for restart files is 1
     const double time_at_which_the_run_is_complete = this->all_parameters->flow_solver_param.final_time;
     Parameters::AllParameters params_incomplete_run = reinit_params(true,false,time_at_which_we_stop_the_run);
-    Parameters::AllParameters params_restart_to_complete_run = reinit_params(false,true,time_at_which_the_run_is_complete,time_at_which_we_stop_the_run,5,0.0); // TO DO: update the last arg
+    Parameters::AllParameters params_restart_to_complete_run = reinit_params(false,true,time_at_which_the_run_is_complete,time_at_which_we_stop_the_run,initial_iteration_restart,0.0,restart_file_index);
 
     // Integrate to time at which we stop the run
-    std::unique_ptr<FlowSolver<dim,nstate>> flow_solver_incomplete_run = FlowSolverFactory<dim,nstate>::create_FlowSolver(&params_incomplete_run);
+    std::unique_ptr<FlowSolver<dim,nstate>> flow_solver_incomplete_run = FlowSolverFactory<dim,nstate>::create_FlowSolver(&params_incomplete_run, parameter_handler);
     static_cast<void>(flow_solver_incomplete_run->run_test());
 
     // INLINE SUB-TEST: Check whether the initialize_data_table_from_file() function in flow solver is working correctly
     if(this->mpi_rank==0) {
         std::shared_ptr<dealii::TableHandler> unsteady_data_table = std::make_shared<dealii::TableHandler>();//(this->mpi_communicator) ?;
-        std::string file_read = flow_solver_incomplete_run->flow_solver_case->unsteady_data_table_filename_with_extension;
+        std::string file_read = params_incomplete_run.flow_solver_param.unsteady_data_table_filename+std::string("-")+flow_solver_incomplete_run->get_restart_filename_without_extension(restart_file_index)+std::string(".txt");
         flow_solver_incomplete_run->initialize_data_table_from_file(file_read,unsteady_data_table);
         std::string file_write = "read_table_check.txt";
         std::ofstream unsteady_data_table_file(file_write);
@@ -91,13 +97,16 @@ int TaylorGreenVortexRestartCheck<dim, nstate>::run_test() const
         // check if files are the same (i.e. if the tables are the same)
         bool files_are_same = compare_files(file_read,file_write);
         if(!files_are_same) {
-            pcout << "Error: initialize_data_table_from_file() failed." << std::endl;
+            pcout << "\n Error: initialize_data_table_from_file() failed." << std::endl;
             return 1;
-        } 
-    } // end of inline sub-test
+        }
+        else {
+            pcout << "\n Sub-test for initialize_data_table_from_file() passed, continuing test..." << std::endl;
+        }
+    } // END
 
     // Integrate to final time by restarting from where we stopped
-    std::unique_ptr<FlowSolver<dim,nstate>> flow_solver_restart_to_complete_run = FlowSolverFactory<dim,nstate>::create_FlowSolver(&params_restart_to_complete_run);
+    std::unique_ptr<FlowSolver<dim,nstate>> flow_solver_restart_to_complete_run = FlowSolverFactory<dim,nstate>::create_FlowSolver(&params_restart_to_complete_run, parameter_handler);
     static_cast<void>(flow_solver_restart_to_complete_run->run_test());
 
     // Compute kinetic energy at final time achieved by restarting the computation

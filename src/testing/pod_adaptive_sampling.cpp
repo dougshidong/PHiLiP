@@ -218,12 +218,14 @@ RowVector2d AdaptiveSampling<dim, nstate>::getMaxErrorROM() const{
         //Ensure that optimization did not converge outside of the domain or diverge.
         RowVector2d rom_unscaled_optim(2);
         for(int k = 0 ; k < 2 ; k++){
+            /*
             if(rom_scaled(k) > 1){
                 rom_scaled(k) = 1;
             }
             if(rom_scaled(k) < 0){
                 rom_scaled(k) = 0;
             }
+            */
             double min = parameters.col(k).minCoeff();
             double max = parameters.col(k).maxCoeff();
             rom_unscaled_optim(k) = (rom_scaled(k)*(max - min)) + min;

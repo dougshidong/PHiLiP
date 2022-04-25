@@ -80,6 +80,9 @@ protected:
     const unsigned int poly_degree; ///< Polynomial order
     const double final_time; ///< Final time of solution
 
+    /// Name of the reference copy of inputted parameters file; for restart purposes
+    const std::string input_parameters_file_reference_copy_filename;
+    
 public:
     /// Pointer to dg so it can be accessed externally.
     std::shared_ptr<DGBase<dim, double>> dg;

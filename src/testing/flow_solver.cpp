@@ -27,6 +27,7 @@ FlowSolver<dim, nstate>::FlowSolver(
 , ode_param(all_param.ode_solver_param)
 , poly_degree(all_param.grid_refinement_study_param.poly_degree)
 , final_time(flow_solver_param.final_time)
+, input_parameters_file_reference_copy_filename(flow_solver_param.restart_files_directory_name + std::string("/") + std::string("input_copy.prm"))
 , dg(DGFactory<dim,double>::create_discontinuous_galerkin(&all_param, poly_degree, flow_solver_case->generate_grid()))
 , ode_solver(ODE::ODESolverFactory<dim, double>::create_ODESolver(dg))
 {
@@ -49,8 +50,8 @@ FlowSolver<dim, nstate>::FlowSolver(
 
         // Initialize solution from restart file
         pcout << "Initializing solution from restart file..." << std::flush;
-        std::string restart_filename_without_extension = get_restart_filename_without_extension(flow_solver_param.restart_file_index);
-        dg->triangulation->load(restart_filename_without_extension);
+        const std::string restart_filename_without_extension = get_restart_filename_without_extension(flow_solver_param.restart_file_index);
+        dg->triangulation->load(flow_solver_param.restart_files_directory_name + std::string("/") + restart_filename_without_extension);
         
         // Note: Future development with hp-capabilities, see section "Note on usage with DoFHandler with hp-capabilities"
         // ----- Ref: https://www.dealii.org/current/doxygen/deal.II/classparallel_1_1distributed_1_1SolutionTransfer.html
@@ -71,8 +72,7 @@ FlowSolver<dim, nstate>::FlowSolver(
     if(flow_solver_param.output_restart_files == true) {
         pcout << "Writing a reference copy of the inputted parameters (.prm) file... " << std::flush;
         if(this->mpi_rank==0) {
-            std::string parameter_filename = "input_copy.prm";
-            parameter_handler.print_parameters(parameter_filename);    
+            parameter_handler.print_parameters(input_parameters_file_reference_copy_filename);    
         }
         pcout << "done." << std::endl;
     }
@@ -104,8 +104,8 @@ std::string FlowSolver<dim,nstate>::get_restart_filename_without_extension(const
     const int number_of_zeros = length_of_index_with_padding - restart_index_string.length();
     restart_index_string.insert(0, number_of_zeros, '0');
 
-    std::string prefix = "restart-";
-    std::string restart_filename_without_extension = prefix+restart_index_string;
+    const std::string prefix = "restart-";
+    const std::string restart_filename_without_extension = prefix+restart_index_string;
 
     return restart_filename_without_extension;
 }
@@ -177,11 +177,11 @@ void FlowSolver<dim,nstate>::write_restart_parameter_file(
     // write the restart parameter file
     if(this->mpi_rank==0) {
         // read a copy of the current parameters file
-        std::ifstream CURRENT_FILE("input_copy.prm");
+        std::ifstream CURRENT_FILE(input_parameters_file_reference_copy_filename);
         
         // create write file with appropriate postfix given the restart index input
-        std::string restart_filename = get_restart_filename_without_extension(restart_index_input)+std::string(".prm");
-        std::ofstream RESTART_FILE(restart_filename);
+        const std::string restart_filename = get_restart_filename_without_extension(restart_index_input)+std::string(".prm");
+        std::ofstream RESTART_FILE(flow_solver_param.restart_files_directory_name + std::string("/") + restart_filename);
 
         // Lines to identify the subsections in the .prm file
         /* WARNING: (2) These must be in the order they appear in the .prm file
@@ -300,17 +300,17 @@ void FlowSolver<dim,nstate>::output_restart_files(
     const std::shared_ptr <dealii::TableHandler> unsteady_data_table) const
 {
     pcout << "  ... Writing restart files ... " << std::endl;
-    std::string restart_filename_without_extension = get_restart_filename_without_extension(current_restart_index);
+    const std::string restart_filename_without_extension = get_restart_filename_without_extension(current_restart_index);
 
     // solution files
     dealii::parallel::distributed::SolutionTransfer<dim, dealii::LinearAlgebra::distributed::Vector<double>, dealii::DoFHandler<dim>> solution_transfer(dg->dof_handler);
     solution_transfer.prepare_for_coarsening_and_refinement(dg->solution);
-    dg->triangulation->save(restart_filename_without_extension);
+    dg->triangulation->save(flow_solver_param.restart_files_directory_name + std::string("/") + restart_filename_without_extension);
     
     // unsteady data table
     if(this->mpi_rank==0) {
         std::string restart_unsteady_data_table_filename = flow_solver_param.unsteady_data_table_filename+std::string("-")+restart_filename_without_extension+std::string(".txt");
-        std::ofstream unsteady_data_table_file(restart_unsteady_data_table_filename);
+        std::ofstream unsteady_data_table_file(flow_solver_param.restart_files_directory_name + std::string("/") + restart_unsteady_data_table_filename);
         unsteady_data_table->write_text(unsteady_data_table_file);
     }
 
@@ -354,9 +354,9 @@ int FlowSolver<dim,nstate>::run_test() const
         std::shared_ptr<dealii::TableHandler> unsteady_data_table = std::make_shared<dealii::TableHandler>();//(this->mpi_communicator) ?;
         if(flow_solver_param.restart_computation_from_file == true) {
             pcout << "Initializing data table from corresponding restart file... " << std::flush;
-            std::string restart_filename_without_extension = get_restart_filename_without_extension(flow_solver_param.restart_file_index);
-            std::string restart_unsteady_data_table_filename = flow_solver_param.unsteady_data_table_filename+std::string("-")+restart_filename_without_extension+std::string(".txt");
-            initialize_data_table_from_file(restart_unsteady_data_table_filename,unsteady_data_table);
+            const std::string restart_filename_without_extension = get_restart_filename_without_extension(flow_solver_param.restart_file_index);
+            const std::string restart_unsteady_data_table_filename = flow_solver_param.unsteady_data_table_filename+std::string("-")+restart_filename_without_extension+std::string(".txt");
+            initialize_data_table_from_file(flow_solver_param.restart_files_directory_name + std::string("/") + restart_unsteady_data_table_filename,unsteady_data_table);
             pcout << "done." << std::endl;
         } else {
             // no restart:

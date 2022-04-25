@@ -52,6 +52,10 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                           dealii::Patterns::Bool(),
                           "Output restart files for restarting the computation. False by default.");
 
+        prm.declare_entry("restart_files_directory_name", ".",
+                          dealii::Patterns::FileName(dealii::Patterns::FileName::FileType::input),
+                          "Name of directory for writing and reading restart files. Current directory by default.");
+
         prm.declare_entry("restart_file_index", "1",
                           dealii::Patterns::Integer(1, dealii::Patterns::Integer::max_int_value),
                           "Index of restart file from which the computation will be restarted from. 1 by default.");
@@ -91,6 +95,7 @@ void FlowSolverParam::parse_parameters(dealii::ParameterHandler &prm)
         sensitivity_table_filename = prm.get("sensitivity_table_filename");
         restart_computation_from_file = prm.get_bool("restart_computation_from_file");
         output_restart_files = prm.get_bool("output_restart_files");
+        restart_files_directory_name = prm.get("restart_files_directory_name");
         restart_file_index = prm.get_integer("restart_file_index");
         output_restart_files_every_x_steps = prm.get_integer("output_restart_files_every_x_steps");
         output_restart_files_every_dt_time_intervals = prm.get_double("output_restart_files_every_dt_time_intervals");

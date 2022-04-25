@@ -384,16 +384,14 @@ int FlowSolver<dim,nstate>::run_test() const
                                                 ((ode_solver->current_time + constant_time_step) > current_desired_time_for_output_restart_files_every_dt_time_intervals));
                     if (is_output_time) {
                         const int file_number = current_desired_time_for_output_restart_files_every_dt_time_intervals / flow_solver_param.output_restart_files_every_dt_time_intervals;
-                        const int current_restart_index = file_number;
-                        output_restart_files(current_restart_index,constant_time_step,unsteady_data_table);
+                        output_restart_files(file_number, constant_time_step, unsteady_data_table);
                         current_desired_time_for_output_restart_files_every_dt_time_intervals += flow_solver_param.output_restart_files_every_dt_time_intervals;
                     }
                 } else /*if (flow_solver_param.output_restart_files_every_x_steps > 0)*/ {
                     const bool is_output_iteration = (ode_solver->current_iteration % flow_solver_param.output_restart_files_every_x_steps == 0);
                     if (is_output_iteration) {
                         const int file_number = ode_solver->current_iteration / flow_solver_param.output_restart_files_every_x_steps;
-                        const int current_restart_index = file_number;
-                        output_restart_files(current_restart_index,constant_time_step,unsteady_data_table);
+                        output_restart_files(file_number, constant_time_step, unsteady_data_table);
                     }
                 }
             }

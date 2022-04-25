@@ -56,6 +56,14 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                           dealii::Patterns::Integer(0, dealii::Patterns::Integer::max_int_value),
                           "Index of restart file from which the computation will be restarted from. 0 by default.");
 
+        prm.declare_entry("output_restart_files_every_x_steps", "1",
+                          dealii::Patterns::Integer(1,dealii::Patterns::Integer::max_int_value),
+                          "Outputs the restart files every x steps.");
+
+        prm.declare_entry("output_restart_files_every_dt_time_intervals", "0.0",
+                          dealii::Patterns::Double(0,dealii::Patterns::Double::max_double_value),
+                          "Outputs the restart files at time intervals of dt.");
+
         prm.enter_subsection("taylor_green_vortex_energy_check");
         {
             prm.declare_entry("expected_kinetic_energy_at_final_time", "1",
@@ -84,6 +92,8 @@ void FlowSolverParam::parse_parameters(dealii::ParameterHandler &prm)
         restart_computation_from_file = prm.get_bool("restart_computation_from_file");
         output_restart_files = prm.get_bool("output_restart_files");
         restart_file_index = prm.get_integer("restart_file_index");
+        output_restart_files_every_x_steps = prm.get_integer("output_restart_files_every_x_steps");
+        output_restart_files_every_dt_time_intervals = prm.get_double("output_restart_files_every_dt_time_intervals");
         
         prm.enter_subsection("taylor_green_vortex_energy_check");
         {

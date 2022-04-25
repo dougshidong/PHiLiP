@@ -98,6 +98,14 @@ private:
 
     /// Converts a double to a string with scientific format and with full precision
     std::string double_to_string(const double value_input) const;
+
+#if PHILIP_DIM>1
+    /// Outputs all the necessary restart files
+    void output_restart_files(
+        const int current_restart_index,
+        const double constant_time_step,
+        const std::shared_ptr <dealii::TableHandler> unsteady_data_table) const;
+#endif
 };
 
 /// Create specified flow solver as FlowSolver object 

@@ -292,6 +292,33 @@ void FlowSolver<dim,nstate>::write_restart_parameter_file(
     }
 }
 
+#if PHILIP_DIM>1
+template <int dim, int nstate>
+void FlowSolver<dim,nstate>::output_restart_files(
+    const int current_restart_index,
+    const double constant_time_step,
+    const std::shared_ptr <dealii::TableHandler> unsteady_data_table) const
+{
+    pcout << "  ... Writing restart files ... " << std::endl;
+    std::string restart_filename_without_extension = get_restart_filename_without_extension(current_restart_index);
+
+    // solution files
+    dealii::parallel::distributed::SolutionTransfer<dim, dealii::LinearAlgebra::distributed::Vector<double>, dealii::DoFHandler<dim>> solution_transfer(dg->dof_handler);
+    solution_transfer.prepare_for_coarsening_and_refinement(dg->solution);
+    dg->triangulation->save(restart_filename_without_extension);
+    
+    // parameter file
+    write_restart_parameter_file(current_restart_index, constant_time_step);
+
+    // unsteady data table
+    if(this->mpi_rank==0) {
+        std::string restart_unsteady_data_table_filename = flow_solver_param.unsteady_data_table_filename+std::string("-")+restart_filename_without_extension+std::string(".txt");
+        std::ofstream unsteady_data_table_file(restart_unsteady_data_table_filename);
+        unsteady_data_table->write_text(unsteady_data_table_file);
+    }
+}
+#endif
+
 template <int dim, int nstate>
 int FlowSolver<dim,nstate>::run_test() const
 {
@@ -312,8 +339,9 @@ int FlowSolver<dim,nstate>::run_test() const
         //----------------------------------------------------
         // Initializing restart related variables
         //----------------------------------------------------
-        int current_restart_index = flow_solver_param.restart_file_index;
-        std::string restart_filename_without_extension = get_restart_filename_without_extension(current_restart_index);
+#if PHILIP_DIM>1
+        double current_desired_time_for_output_restart_files_every_dt_time_intervals = ode_solver->current_time; // when used, same as the initial time
+#endif
         //----------------------------------------------------
         // Constant time step based on CFL number
         //----------------------------------------------------
@@ -326,6 +354,7 @@ int FlowSolver<dim,nstate>::run_test() const
         std::shared_ptr<dealii::TableHandler> unsteady_data_table = std::make_shared<dealii::TableHandler>();//(this->mpi_communicator) ?;
         if(flow_solver_param.restart_computation_from_file == true) {
             pcout << "Initializing data table from corresponding restart file... " << std::flush;
+            std::string restart_filename_without_extension = get_restart_filename_without_extension(flow_solver_param.restart_file_index);
             std::string restart_unsteady_data_table_filename = flow_solver_param.unsteady_data_table_filename+std::string("-")+restart_filename_without_extension+std::string(".txt");
             initialize_data_table_from_file(restart_unsteady_data_table_filename,unsteady_data_table);
             pcout << "done." << std::endl;
@@ -348,28 +377,24 @@ int FlowSolver<dim,nstate>::run_test() const
             flow_solver_case->compute_unsteady_data_and_write_to_table(ode_solver->current_iteration, ode_solver->current_time, dg, unsteady_data_table);
 
 #if PHILIP_DIM>1
-            // output the restart files
             if(flow_solver_param.output_restart_files == true) {
-                // TO DO: add mod for outputting this (add to the if statement above)
-                pcout << "  ... Writing restart file ... " << std::endl;
-                
-                // update the restart index and correspond filename without extension
-                ++current_restart_index;
-                restart_filename_without_extension = get_restart_filename_without_extension(current_restart_index);
-
-                // solution files
-                dealii::parallel::distributed::SolutionTransfer<dim, dealii::LinearAlgebra::distributed::Vector<double>, dealii::DoFHandler<dim>> solution_transfer(dg->dof_handler);
-                solution_transfer.prepare_for_coarsening_and_refinement(dg->solution);
-                dg->triangulation->save(restart_filename_without_extension);
-                
-                // parameter file
-                write_restart_parameter_file(current_restart_index, constant_time_step);
-
-                // unsteady data table
-                if(this->mpi_rank==0) {
-                    std::string restart_unsteady_data_table_filename = flow_solver_param.unsteady_data_table_filename+std::string("-")+restart_filename_without_extension+std::string(".txt");
-                    std::ofstream unsteady_data_table_file(restart_unsteady_data_table_filename);
-                    unsteady_data_table->write_text(unsteady_data_table_file);
+                // Output restart files
+                if(flow_solver_param.output_restart_files_every_dt_time_intervals > 0.0) {
+                    const bool is_output_time = ((ode_solver->current_time <= current_desired_time_for_output_restart_files_every_dt_time_intervals) && 
+                                                ((ode_solver->current_time + constant_time_step) > current_desired_time_for_output_restart_files_every_dt_time_intervals));
+                    if (is_output_time) {
+                        const int file_number = current_desired_time_for_output_restart_files_every_dt_time_intervals / flow_solver_param.output_restart_files_every_dt_time_intervals;
+                        const int current_restart_index = file_number;
+                        output_restart_files(current_restart_index,constant_time_step,unsteady_data_table);
+                        current_desired_time_for_output_restart_files_every_dt_time_intervals += flow_solver_param.output_restart_files_every_dt_time_intervals;
+                    }
+                } else /*if (flow_solver_param.output_restart_files_every_x_steps > 0)*/ {
+                    const bool is_output_iteration = (ode_solver->current_iteration % flow_solver_param.output_restart_files_every_x_steps == 0);
+                    if (is_output_iteration) {
+                        const int file_number = ode_solver->current_iteration / flow_solver_param.output_restart_files_every_x_steps;
+                        const int current_restart_index = file_number;
+                        output_restart_files(current_restart_index,constant_time_step,unsteady_data_table);
+                    }
                 }
             }
 #endif

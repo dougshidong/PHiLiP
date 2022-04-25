@@ -1,4 +1,4 @@
- Listing of Parameters
+# Listing of Parameters
 # ---------------------
 # Number of dimensions
 
@@ -20,9 +20,11 @@ subsection ODE solver
   end
 end
 
-# advection speed 
-advection_0 = 1.0
-advection_1 = 0.0
+subsection grid refinement study
+  # advection speed 
+  set advection_0 = 1.0
+  set advection_1 = 0.0
+end
 
 # polynomial order and number of cells per direction (i.e. grid_size)
 subsection grid refinement study

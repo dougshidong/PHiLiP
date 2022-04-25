@@ -14,7 +14,7 @@ template <int dim, int nstate>
 int TimeRefinementStudyAdvection<dim, nstate>::run_test() const
 {
 
-    const int n_time_calculations = 4;
+    const int n_time_calculations = 1;
     //const double refine_ratio = 0.5;
     //Construct flow_solver with initial_time_step
 

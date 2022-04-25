@@ -127,6 +127,31 @@ inline real InitialConditionFunction_BurgersViscous<dim,real>
 
 }
 
+// ========================================================
+// 1D SINE -- Initial Condition for advection_explicit_time_study
+// ========================================================
+template <int dim, typename real>
+InitialConditionFunction_1DSine<dim,real>
+::InitialConditionFunction_1DSine (const unsigned int nstate)
+        : InitialConditionFunction<dim,real>(nstate)
+{
+    // Nothing to do here yet
+}
+
+template <int dim, typename real>
+inline real InitialConditionFunction_1DSine<dim,real>
+::value(const dealii::Point<dim,real> &point, const unsigned int /*istate*/) const
+{
+    real value = 0;
+    //real advection_speed_x = 1.0; //consistent with input parameters
+    real pi = dealii::numbers::PI;
+    if(point[0] >= 0.0 && point[0] <= 2.0){
+        value = sin(2*pi*point[0]/2.0);
+    }
+    return value;
+}
+
+
 //=========================================================
 // FLOW SOLVER -- Initial Condition Base Class + Factory
 //=========================================================
@@ -158,6 +183,10 @@ InitialConditionFactory<dim,real>::create_InitialConditionFunction(
     } else if (flow_type == FlowCaseEnum::burgers_viscous_snapshot) {
         if constexpr (dim==1)  return std::make_shared<InitialConditionFunction_BurgersViscous<dim,real> > (
                     nstate);
+    } else if (flow_type == FlowCaseEnum::advection_explicit_time_study) {
+        if constexpr (dim==1)  return std::make_shared<InitialConditionFunction_1DSine<dim,real> > (
+                    nstate);
+        //std::cout << "Temporarily using zero IC. Change to sinusoid later!!" << std::endl;
     } else {
         nstate = 1*nstate; //To avoid unused parameter error
         std::cout << "Invalid Flow Case Type. You probably forgot to add it to the list of flow cases in initial_condition.cpp" << std::endl;

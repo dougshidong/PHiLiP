@@ -27,11 +27,11 @@ Periodic1DFlow<dim, nstate>::Periodic1DFlow(const PHiLiP::Parameters::AllParamet
         , domain_volume(pow(domain_right - domain_left, dim))
         , unsteady_data_table_filename_with_extension(parameters_input->flow_solver_param.unsteady_data_table_filename+".txt")
 {
-    // Get the flow case type
-    using FlowCaseEnum = Parameters::FlowSolverParam::FlowCaseType;
-    const FlowCaseEnum flow_type = parameters_input->flow_solver_param.flow_case_type;
+    // Get the flow case type -- I think this was for assigning the TGV stuff
+    //using FlowCaseEnum = Parameters::FlowSolverParam::FlowCaseType;
+    //const FlowCaseEnum flow_type = parameters_input->flow_solver_param.flow_case_type;
 
-    this->number_times_refined_by_half = 0;
+    //this->number_times_refined_by_half = 0;
 }
 
 template <int dim, int nstate>
@@ -43,7 +43,7 @@ void Periodic1DFlow<dim,nstate>::display_flow_solver_setup() const
     if (pde_type == PDE_enum::advection)                {pde_string = "advection";}
     this->pcout << "- PDE Type: " << pde_string << std::endl;
     this->pcout << "- Polynomial degree: " << this->all_param.grid_refinement_study_param.poly_degree << std::endl;
-    this->pcout << "- Constant time step size: " << this->all_param.ode_param.initial_time_step << std::endl;
+    this->pcout << "- Constant time step size: " << this->all_param.ode_solver_param.initial_time_step << std::endl;
     this->pcout << "- Final time: " << this->all_param.flow_solver_param.final_time << std::endl;
 
 }
@@ -59,10 +59,11 @@ std::shared_ptr<Triangulation> Periodic1DFlow<dim,nstate>::generate_grid() const
     // Grids::straight_periodic_cube<dim,dealii::parallel::distributed::Triangulation<dim>>(grid, domain_left, domain_right, number_of_cells_per_direction);
     // Should modify the straight_periodic_cube to allow 1D later
 
-    n_refinements = 5; //currently hard-coded, SHOULD CHANGE
-    colorize = true;
+    const int n_refinements = 5; //currently hard-coded, SHOULD CHANGE
+    const bool colorize = true;
     dealii::GridGenerator::hyper_cube(*grid, domain_left, domain_right, colorize);
-    dealii::GridTools::collect_periodic_faces(*grid, 0,1,0. matched_pairs);
+    std::vector<dealii::GridTools::PeriodicFacePair<typename Triangulation::cell_iterator> > matched_pairs;
+    dealii::GridTools::collect_periodic_faces(*grid, 0,1,0, matched_pairs);
     grid->add_periodicity(matched_pairs);
     grid->refine_global(n_refinements);
 
@@ -81,9 +82,11 @@ std::shared_ptr<Triangulation> Periodic1DFlow<dim,nstate>::generate_grid() const
 template <int dim, int nstate>
 double Periodic1DFlow<dim,nstate>::get_constant_time_step(std::shared_ptr<DGBase<dim,double>> dg) const
 {
-    const double initial_time_step = all_parameters.ode_solver_param.initial_time_step;
-    double constant_time_step = initial_time_step * pow(0.5, this->number_of_times_refined_by_half);
-    (this->number_of_times_refined_by_half)++
+    this->pcout << "    Temp: " << dg->nstate << std::endl; //printing garbage to avoid warning about unused parameter
+
+    const double initial_time_step = this->all_param.ode_solver_param.initial_time_step;
+    double constant_time_step = initial_time_step;// * pow(0.5, this->number_of_times_refined_by_half);
+    //(this->number_of_times_refined_by_half)++
     return constant_time_step;
 }
 
@@ -95,13 +98,19 @@ void Periodic1DFlow<dim, nstate>::compute_unsteady_data_and_write_to_table(
         const std::shared_ptr <dealii::TableHandler> unsteady_data_table) const
 {
 
+    // I don't actually want this to write anything; currently printing stuff to avoid warnings. Will fix later.
+
+         this->pcout << "    Iter: " << current_iteration
+                     << "    Time: " << current_time
+                     << "    Temp: " << dg->nstate << std::endl;
+
     // Pretty sure this doesn't actually need to write anything
     
     
     if(this->mpi_rank==0) {
         unsteady_data_table->add_value("cells", number_of_cells_per_direction);
-        unsteady_data_table->add_value("space_poly_degree", all_param.grid_refinement_study_param.poly_degree);
-        unsteady_data_table->add_value("dt", all_param.ode_solver_param.initial_time_step); //maybe store this in the class
+        unsteady_data_table->add_value("space_poly_degree", this->all_param.grid_refinement_study_param.poly_degree);
+        unsteady_data_table->add_value("dt", this->all_param.ode_solver_param.initial_time_step); //maybe store this in the class
         unsteady_data_table->set_precision("dt",3);
         unsteady_data_table->set_scientific("dt", true);
         //ADD ERROR CALC BASED ON EXACT SOLUTION

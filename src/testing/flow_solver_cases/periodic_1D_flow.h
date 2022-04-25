@@ -47,7 +47,7 @@ protected:
     double get_constant_time_step(std::shared_ptr<DGBase<dim,double>> dg) const override;
     
     /// 
-    int number_of_times_refined_by_half;
+    //int number_of_times_refined_by_half;
 
     /// Compute the desired unsteady data and write it to a table
     void compute_unsteady_data_and_write_to_table(

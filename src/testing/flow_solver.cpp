@@ -307,15 +307,15 @@ void FlowSolver<dim,nstate>::output_restart_files(
     solution_transfer.prepare_for_coarsening_and_refinement(dg->solution);
     dg->triangulation->save(restart_filename_without_extension);
     
-    // parameter file
-    write_restart_parameter_file(current_restart_index, constant_time_step);
-
     // unsteady data table
     if(this->mpi_rank==0) {
         std::string restart_unsteady_data_table_filename = flow_solver_param.unsteady_data_table_filename+std::string("-")+restart_filename_without_extension+std::string(".txt");
         std::ofstream unsteady_data_table_file(restart_unsteady_data_table_filename);
         unsteady_data_table->write_text(unsteady_data_table_file);
     }
+
+    // parameter file; written last to ensure necessary data/solution files have been written before
+    write_restart_parameter_file(current_restart_index, constant_time_step);
 }
 #endif
 

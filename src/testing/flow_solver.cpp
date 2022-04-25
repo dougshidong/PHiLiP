@@ -42,21 +42,20 @@ FlowSolver<dim, nstate>::FlowSolver(
             std::abort();
         }
 #if PHILIP_DIM>1
+        if (flow_solver_param.steady_state == true) {
+            pcout << "Error: Restart capability has not been fully implemented / tested for steady state computations." << std::endl;
+            std::abort();
+        }
+
         // Initialize solution from restart file
         pcout << "Initializing solution from restart file..." << std::flush;
         std::string restart_filename_without_extension = get_restart_filename_without_extension(flow_solver_param.restart_file_index);
         dg->triangulation->load(restart_filename_without_extension);
-        // --- after allocate_dg
-        // TO DO: Read section "Note on usage with DoFHandler with hp-capabilities" and add the stuff im missing
-        // ------ Ref: https://www.dealii.org/current/doxygen/deal.II/classparallel_1_1distributed_1_1SolutionTransfer.html
+        
+        // Note: Future development with hp-capabilities, see section "Note on usage with DoFHandler with hp-capabilities"
+        // ----- Ref: https://www.dealii.org/current/doxygen/deal.II/classparallel_1_1distributed_1_1SolutionTransfer.html
         dealii::parallel::distributed::SolutionTransfer<dim, dealii::LinearAlgebra::distributed::Vector<double>, dealii::DoFHandler<dim>> solution_transfer(dg->dof_handler);
-        // dg->solution.zero_out_ghosts();
         solution_transfer.deserialize(solution_no_ghost);
-        // dg->solution.update_ghost_values(); // -- should this be called when we do dg->solution = solution_no_ghost ?
-        // if (flow_solver_param.steady_state == true) {
-        //     pcout << "Error: Cannot use" << std::endl;
-        //     std::abort();
-        // }
 #endif
     } else {
         // Initialize solution from initial_condition_function
@@ -64,6 +63,7 @@ FlowSolver<dim, nstate>::FlowSolver(
         dealii::VectorTools::interpolate(dg->dof_handler, *initial_condition_function, solution_no_ghost);
     }
     dg->solution = solution_no_ghost; //< assignment
+    // dg->solution.update_ghost_values(); // -- should this be done ?
     pcout << "done." << std::endl;
     ode_solver->allocate_ode_system();
 

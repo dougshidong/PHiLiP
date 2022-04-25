@@ -52,9 +52,9 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                           dealii::Patterns::Bool(),
                           "Output restart files for restarting the computation. False by default.");
 
-        prm.declare_entry("restart_file_index", "0",
-                          dealii::Patterns::Integer(0, dealii::Patterns::Integer::max_int_value),
-                          "Index of restart file from which the computation will be restarted from. 0 by default.");
+        prm.declare_entry("restart_file_index", "1",
+                          dealii::Patterns::Integer(1, dealii::Patterns::Integer::max_int_value),
+                          "Index of restart file from which the computation will be restarted from. 1 by default.");
 
         prm.declare_entry("output_restart_files_every_x_steps", "1",
                           dealii::Patterns::Integer(1,dealii::Patterns::Integer::max_int_value),

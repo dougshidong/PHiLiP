@@ -63,7 +63,7 @@ void BurgersRewienskiSnapshot<dim, nstate>::compute_unsteady_data_and_write_to_t
             }
             unsteady_data_table->set_precision("Time:" + std::to_string(current_time), 16);
             // Write to file
-            std::ofstream unsteady_data_table_file(this->all_param.flow_solver_param.unsteady_data_table_filename+".txt");
+            std::ofstream unsteady_data_table_file(this->unsteady_data_table_filename_with_extension);
             unsteady_data_table->write_text(unsteady_data_table_file);
         }
     }
@@ -118,7 +118,7 @@ void BurgersRewienskiSnapshot<dim, nstate>::steady_state_postprocessing(std::sha
                 sensitivity_dWdb[i]);
     }
     solutions_table.set_precision("Sensitivity:", 16);
-    std::ofstream out_file(this->unsteady_data_table_filename_with_extension);
+    std::ofstream out_file(this->all_param.flow_solver_param.sensitivity_table_filename + ".txt");
     solutions_table.write_text(out_file);
 }
 

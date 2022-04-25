@@ -42,7 +42,7 @@ FlowSolver<dim, nstate>::FlowSolver(
             pcout << "Error: restart_computation_from_file is not possible for 1D. Set to false." << std::endl;
             std::abort();
         }
-#if PHILIP_DIM>1
+
         if (flow_solver_param.steady_state == true) {
             pcout << "Error: Restart capability has not been fully implemented / tested for steady state computations." << std::endl;
             std::abort();
@@ -51,6 +51,7 @@ FlowSolver<dim, nstate>::FlowSolver(
         // Initialize solution from restart file
         pcout << "Initializing solution from restart file..." << std::flush;
         const std::string restart_filename_without_extension = get_restart_filename_without_extension(flow_solver_param.restart_file_index);
+#if PHILIP_DIM>1
         dg->triangulation->load(flow_solver_param.restart_files_directory_name + std::string("/") + restart_filename_without_extension);
         
         // Note: Future development with hp-capabilities, see section "Note on usage with DoFHandler with hp-capabilities"
@@ -64,7 +65,7 @@ FlowSolver<dim, nstate>::FlowSolver(
         dealii::VectorTools::interpolate(dg->dof_handler, *initial_condition_function, solution_no_ghost);
     }
     dg->solution = solution_no_ghost; //< assignment
-    // dg->solution.update_ghost_values(); // -- should this be done ?
+    dg->solution.update_ghost_values();
     pcout << "done." << std::endl;
     ode_solver->allocate_ode_system();
 
@@ -304,7 +305,9 @@ void FlowSolver<dim,nstate>::output_restart_files(
 
     // solution files
     dealii::parallel::distributed::SolutionTransfer<dim, dealii::LinearAlgebra::distributed::Vector<double>, dealii::DoFHandler<dim>> solution_transfer(dg->dof_handler);
-    solution_transfer.prepare_for_coarsening_and_refinement(dg->solution);
+    // Note: Future development with hp-capabilities, see section "Note on usage with DoFHandler with hp-capabilities"
+    // ----- Ref: https://www.dealii.org/current/doxygen/deal.II/classparallel_1_1distributed_1_1SolutionTransfer.html
+    solution_transfer.prepare_for_serialization(dg->solution);
     dg->triangulation->save(flow_solver_param.restart_files_directory_name + std::string("/") + restart_filename_without_extension);
     
     // unsteady data table

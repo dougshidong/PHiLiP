@@ -86,32 +86,11 @@ int FiniteDifferenceSensitivity<dim, nstate>::run_test() const
 }
 
 template <int dim, int nstate>
-Parameters::AllParameters FiniteDifferenceSensitivity<dim, nstate>::reinit_params(double pertubation) const{
-    dealii::ParameterHandler parameter_handler;
-    PHiLiP::Parameters::AllParameters::declare_parameters (parameter_handler);
-    PHiLiP::Parameters::AllParameters parameters;
-    parameters.parse_parameters(parameter_handler);
+Parameters::AllParameters FiniteDifferenceSensitivity<dim, nstate>::reinit_params(double pertubation) const {
+    // copy all parameters
+    PHiLiP::Parameters::AllParameters parameters = *(this->all_parameters);
 
-    // Copy all parameters
-    parameters.manufactured_convergence_study_param = this->all_parameters->manufactured_convergence_study_param;
-    parameters.ode_solver_param = this->all_parameters->ode_solver_param;
-    parameters.linear_solver_param = this->all_parameters->linear_solver_param;
-    parameters.euler_param = this->all_parameters->euler_param;
-    parameters.navier_stokes_param = this->all_parameters->navier_stokes_param;
-    parameters.reduced_order_param= this->all_parameters->reduced_order_param;
-    parameters.burgers_param = this->all_parameters->burgers_param;
-    parameters.grid_refinement_study_param = this->all_parameters->grid_refinement_study_param;
-    parameters.artificial_dissipation_param = this->all_parameters->artificial_dissipation_param;
-    parameters.flow_solver_param = this->all_parameters->flow_solver_param;
-    parameters.mesh_adaptation_param = this->all_parameters->mesh_adaptation_param;
-    parameters.artificial_dissipation_param = this->all_parameters->artificial_dissipation_param;
-    parameters.artificial_dissipation_param = this->all_parameters->artificial_dissipation_param;
-    parameters.artificial_dissipation_param = this->all_parameters->artificial_dissipation_param;
-    parameters.dimension = this->all_parameters->dimension;
-    parameters.pde_type = this->all_parameters->pde_type;
-    parameters.use_weak_form = this->all_parameters->use_weak_form;
-    parameters.use_collocated_nodes = this->all_parameters->use_collocated_nodes;
-
+    // change desired parameters based on inputs
     using FlowCaseEnum = Parameters::FlowSolverParam::FlowCaseType;
     const FlowCaseEnum flow_type = this->all_parameters->flow_solver_param.flow_case_type;
     if (flow_type == FlowCaseEnum::burgers_rewienski_snapshot){

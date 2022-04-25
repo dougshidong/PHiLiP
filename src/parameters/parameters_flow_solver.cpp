@@ -34,7 +34,7 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
 
         prm.declare_entry("unsteady_data_table_filename", "unsteady_data_table",
                           dealii::Patterns::FileName(dealii::Patterns::FileName::FileType::input),
-                          "Filename for of the unsteady data table output file: unsteady_data_table_filename.txt.");
+                          "Filename of the unsteady data table output file: unsteady_data_table_filename.txt.");
 
         prm.declare_entry("steady_state", "false",
                           dealii::Patterns::Bool(),
@@ -67,6 +67,10 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
         prm.declare_entry("output_restart_files_every_dt_time_intervals", "0.0",
                           dealii::Patterns::Double(0,dealii::Patterns::Double::max_double_value),
                           "Outputs the restart files at time intervals of dt.");
+      
+        prm.declare_entry("input_mesh_filename", "naca0012",
+                          dealii::Patterns::FileName(dealii::Patterns::FileName::FileType::input),
+                          "Filename of the input mesh: input_mesh_filename.msh");
 
         prm.enter_subsection("taylor_green_vortex_energy_check");
         {
@@ -99,7 +103,8 @@ void FlowSolverParam::parse_parameters(dealii::ParameterHandler &prm)
         restart_file_index = prm.get_integer("restart_file_index");
         output_restart_files_every_x_steps = prm.get_integer("output_restart_files_every_x_steps");
         output_restart_files_every_dt_time_intervals = prm.get_double("output_restart_files_every_dt_time_intervals");
-        
+        input_mesh_filename = prm.get("input_mesh_filename");
+
         prm.enter_subsection("taylor_green_vortex_energy_check");
         {
             expected_kinetic_energy_at_final_time = prm.get_double("expected_kinetic_energy_at_final_time");

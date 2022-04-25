@@ -46,15 +46,13 @@ protected:
     /// Function to compute the constant time step
     double get_constant_time_step(std::shared_ptr<DGBase<dim,double>> dg) const override;
     
-    /// 
-    //int number_of_times_refined_by_half;
-
     /// Compute the desired unsteady data and write it to a table
     void compute_unsteady_data_and_write_to_table(
             const unsigned int current_iteration,
             const double current_time,
             const std::shared_ptr <DGBase<dim, double>> dg,
             const std::shared_ptr<dealii::TableHandler> unsteady_data_table) const override;
+
 };
 
 } // Tests namespace

@@ -11,6 +11,7 @@
 #include "dg/dg.h"
 #include "mesh/grids/straight_periodic_cube.hpp"
 #include <deal.II/base/table_handler.h>
+//#include <cmath>
 
 namespace PHiLiP {
 
@@ -85,8 +86,8 @@ double Periodic1DFlow<dim,nstate>::get_constant_time_step(std::shared_ptr<DGBase
     this->pcout << "    Temp: " << dg->nstate << std::endl; //printing garbage to avoid warning about unused parameter
 
     const double initial_time_step = this->all_param.ode_solver_param.initial_time_step;
-    double constant_time_step = initial_time_step;// * pow(0.5, this->number_of_times_refined_by_half);
-    //(this->number_of_times_refined_by_half)++
+    double constant_time_step = initial_time_step;  
+    
     return constant_time_step;
 }
 
@@ -106,7 +107,7 @@ void Periodic1DFlow<dim, nstate>::compute_unsteady_data_and_write_to_table(
 
     // Pretty sure this doesn't actually need to write anything
     
-    
+   
     if(this->mpi_rank==0) {
         unsteady_data_table->add_value("cells", number_of_cells_per_direction);
         unsteady_data_table->add_value("space_poly_degree", this->all_param.grid_refinement_study_param.poly_degree);
@@ -117,12 +118,6 @@ void Periodic1DFlow<dim, nstate>::compute_unsteady_data_and_write_to_table(
 
     }
 
-/*    // Print to console
-    this->pcout << "    Iter: " << current_iteration
-                << "    Time: " << current_time
-                << "    Energy: " << kinetic_energy
-                << std::endl;
-*/
 
 }
 

@@ -42,6 +42,13 @@ public:
     /** For integration test purposes, expected kinetic energy at final time. */
     double expected_kinetic_energy_at_final_time;
 
+    bool restart_computation_from_file; ///< Restart computation from restart file
+    bool output_restart_files; ///< Output the restart files
+    std::string restart_files_directory_name; ///< Name of directory for writing and reading restart files
+    int restart_file_index; ///< Index of desired restart file for restarting the computation from
+    int output_restart_files_every_x_steps; ///< Outputs the restart files every x steps
+    double output_restart_files_every_dt_time_intervals; ///< Outputs the restart files at time intervals of dt
+
     /// Declares the possible variables and sets the defaults.
     static void declare_parameters (dealii::ParameterHandler &prm);
 

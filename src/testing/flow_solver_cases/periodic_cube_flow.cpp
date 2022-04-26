@@ -24,7 +24,7 @@ PeriodicCubeFlow<dim, nstate>::PeriodicCubeFlow(const PHiLiP::Parameters::AllPar
         , domain_left(this->all_param.grid_refinement_study_param.grid_left)
         , domain_right(this->all_param.grid_refinement_study_param.grid_right)
         , domain_volume(pow(domain_right - domain_left, dim))
-        , unsteady_data_table_filename_with_extension(parameters_input->flow_solver_param.unsteady_data_table_filename+".txt")
+        , unsteady_data_table_filename_with_extension(this->all_param.flow_solver_param.unsteady_data_table_filename+".txt")
 {
     // Get the flow case type
     using FlowCaseEnum = Parameters::FlowSolverParam::FlowCaseType;

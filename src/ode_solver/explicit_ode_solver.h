@@ -29,6 +29,9 @@ public:
     void allocate_ode_system ();
 
 protected:
+    /// Runge-Kutta order
+    const int rk_order;
+    
     /// Storage for the derivative at each Runge-Kutta stage
     std::vector<dealii::LinearAlgebra::distributed::Vector<double>> rk_stage;
     

@@ -63,7 +63,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_auxiliary_residual ()
     using PDE_enum = Parameters::AllParameters::PartialDifferentialEquation;
     using ODE_enum = Parameters::ODESolverParam::ODESolverEnum;
     if( this->all_parameters->pde_type == PDE_enum::navier_stokes || this->all_parameters->pde_type == PDE_enum::burgers_viscous){
-        pcout<<"DG Strong not yet verified for Burgers' viscous or Navir-Stokes."<<std::endl;
+        pcout<<"DG Strong not yet verified for Burgers' viscous or Navier-Stokes."<<std::endl;
         exit(1);
     }
     if ( (this->all_parameters->pde_type == PDE_enum::convection_diffusion || this->all_parameters->pde_type == PDE_enum::diffusion)

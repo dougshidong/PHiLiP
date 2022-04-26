@@ -57,10 +57,6 @@ protected:
     /** Used as std::cout, but only prints if mpi_rank == 0
      */
     dealii::ConditionalOStream pcout;
-
-public:
-    // Filename (with extension) for the unsteady data table
-    const std::string unsteady_data_table_filename_with_extension;
 };
 
 } // Tests namespace

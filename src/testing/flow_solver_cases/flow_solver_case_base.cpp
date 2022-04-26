@@ -10,7 +10,6 @@ FlowSolverCaseBase<dim, nstate>::FlowSolverCaseBase(const PHiLiP::Parameters::Al
         , mpi_rank(dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD))
         , n_mpi(dealii::Utilities::MPI::n_mpi_processes(MPI_COMM_WORLD))
         , pcout(std::cout, mpi_rank==0)
-        , unsteady_data_table_filename_with_extension(all_param.flow_solver_param.unsteady_data_table_filename+".txt")
         {}
 
 

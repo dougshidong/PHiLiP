@@ -62,7 +62,7 @@ void BurgersViscousSnapshot<dim, nstate>::compute_unsteady_data_and_write_to_tab
             }
             unsteady_data_table->set_precision("Time:" + std::to_string(current_time), 16);
             // Write to file
-            std::ofstream unsteady_data_table_file(this->unsteady_data_table_filename_with_extension);
+            std::ofstream unsteady_data_table_file(this->all_param.flow_solver_param.unsteady_data_table_filename+".txt");
             unsteady_data_table->write_text(unsteady_data_table_file);
         }
     }

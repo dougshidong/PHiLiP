@@ -22,7 +22,7 @@
 #include "euler_gaussian_bump.h"
 #include "mesh/grids/gaussian_bump.h"
 
-#include "physics/initial_conditions/initial_condition.h"
+#include "physics/initial_conditions/initial_condition_function.h"
 #include "physics/euler.h"
 #include "physics/manufactured_solution.h"
 #include "dg/dg_factory.hpp"

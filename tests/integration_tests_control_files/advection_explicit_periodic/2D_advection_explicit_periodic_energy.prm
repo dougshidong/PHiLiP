@@ -54,3 +54,8 @@ subsection ODE solver
 
 end
 
+subsection flow_solver
+    set flow_case_type = advection
+    set interpolate_initial_condition = false
+end
+

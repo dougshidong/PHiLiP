@@ -20,6 +20,7 @@
 #include "ode_solver/ode_solver_base.h"
 #include <fstream>
 #include "ode_solver/ode_solver_factory.h"
+#include "physics/initial_conditions/initial_condition_base.h"
 
 
 namespace PHiLiP {
@@ -75,54 +76,6 @@ double BurgersEnergyStability<dim, nstate>::compute_conservation(std::shared_ptr
         conservation = ones_hat_global * mass_matrix_times_solution;
 
 	return conservation;
-}
-
-
-template<int dim, int nstate>
-void BurgersEnergyStability<dim, nstate>::initialize(PHiLiP::DGBase<dim, double>  &dg,
-                                                    const PHiLiP::Parameters::AllParameters &all_parameters_new) const
-{
-	pcout << "Implement initial conditions" << std::endl;
-//	dealii::FunctionParser<dim> initial_condition;
-	dealii::FunctionParser<dim> initial_condition(nstate);
-	std::string variables;
-        if (dim == 3)
-	    variables = "x,y,z";
-        if (dim == 2)
-	    variables = "x,y";
-        if (dim == 1)
-	    variables = "x";
-	//std::string variables = "x";
-	std::map<std::string,double> constants;
-	constants["pi"] = dealii::numbers::PI;
-//	std::string expression;
-	std::vector<std::string> expression;
-        if (dim == 3){
-            for(int idim=0; idim<dim; idim++)
-                expression.push_back("sin(pi*(x))*sin(pi*y)*sin(pi*z) + 0.01");
-        }
-        if (dim == 2){
-            for(int idim=0; idim<dim; idim++)
-                expression.push_back("sin(pi*(x))*sin(pi*y) + 0.01");
-        }
-        if(dim==1){
-            //expression.push_back("sin(pi*(x)) + 0.01");
-            if (all_parameters_new.use_energy){//for split form get energy
-                expression.push_back("sin(pi*(x)) + 0.01");
-            } else {
-                expression.push_back("cos(pi*(x))");
-            }
-	  //  expression[0] = "sin(pi*(x)) + 0.01";
-        }
-	initial_condition.initialize(variables,
-	                             expression,
-	                             constants);
-//	dealii::VectorTools::interpolate(dg.dof_handler,initial_condition,dg.solution);
-        dealii::LinearAlgebra::distributed::Vector<double> solution_no_ghost;
-        solution_no_ghost.reinit(dg.locally_owned_dofs, MPI_COMM_WORLD);
-	dealii::VectorTools::interpolate(dg.dof_handler,initial_condition,solution_no_ghost);
-        dg.solution = solution_no_ghost;
-
 }
 
 template <int dim, int nstate>
@@ -188,7 +141,7 @@ int BurgersEnergyStability<dim, nstate>::run_test() const
         dg->allocate_system ();
          
         //initialize IC
-        initialize(*(dg), all_parameters_new);
+        InitialConditionBase<dim,double> initial_condition(dg, &all_parameters_new, nstate);
 	// Create ODE solver using the factory and providing the DG object
 	std::shared_ptr<ODE::ODESolverBase<dim, double>> ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
 

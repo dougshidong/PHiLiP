@@ -17,12 +17,18 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                           dealii::Patterns::Selection(
                           " taylor_green_vortex | "
                           " burgers_viscous_snapshot | "
-                          " burgers_rewienski_snapshot"),
+                          " burgers_rewienski_snapshot | "
+                          " burgers_inviscid | "
+                          " advection | "
+                          " convection_diffusion"),
                           "The type of flow we want to simulate. "
                           "Choices are "
                           " <taylor_green_vortex | "
                           " burgers_viscous_snapshot | "
-                          " burgers_rewienski_snapshot>.");
+                          " burgers_rewienski_snapshot | "
+                          " burgers_inviscid | "
+                          " advection | "
+                          " convection_diffusion>.");
 
         prm.declare_entry("final_time", "1",
                           dealii::Patterns::Double(0, dealii::Patterns::Double::max_double_value),
@@ -79,6 +85,10 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                               "For integration test purposes, expected kinetic energy at final time.");
         }
         prm.leave_subsection();
+
+        prm.declare_entry("interpolate_initial_condition", "true",
+                          dealii::Patterns::Bool(),
+                          "Interpolate the initial condition function onto the DG solution. If fale, then it projects the physical value. True by default.");
     }
     prm.leave_subsection();
 }
@@ -88,9 +98,12 @@ void FlowSolverParam::parse_parameters(dealii::ParameterHandler &prm)
     prm.enter_subsection("flow_solver");
     {
         const std::string flow_case_type_string = prm.get("flow_case_type");
-        if      (flow_case_type_string == "taylor_green_vortex")  {flow_case_type = taylor_green_vortex;}
-        else if (flow_case_type_string == "burgers_viscous_snapshot")  {flow_case_type = burgers_viscous_snapshot;}
-        else if (flow_case_type_string == "burgers_rewienski_snapshot")  {flow_case_type = burgers_rewienski_snapshot;}
+        if      (flow_case_type_string == "taylor_green_vortex")        {flow_case_type = taylor_green_vortex;}
+        else if (flow_case_type_string == "burgers_viscous_snapshot")   {flow_case_type = burgers_viscous_snapshot;}
+        else if (flow_case_type_string == "burgers_rewienski_snapshot") {flow_case_type = burgers_rewienski_snapshot;}
+        else if (flow_case_type_string == "burgers_inviscid")           {flow_case_type = burgers_inviscid;}
+        else if (flow_case_type_string == "advection")                  {flow_case_type = advection;}
+        else if (flow_case_type_string == "convection_diffusion")       {flow_case_type = convection_diffusion;}
 
         final_time = prm.get_double("final_time");
         courant_friedrich_lewy_number = prm.get_double("courant_friedrich_lewy_number");
@@ -110,6 +123,7 @@ void FlowSolverParam::parse_parameters(dealii::ParameterHandler &prm)
             expected_kinetic_energy_at_final_time = prm.get_double("expected_kinetic_energy_at_final_time");
         }
         prm.leave_subsection();
+        interpolate_initial_condition = prm.get_bool("interpolate_initial_condition");
     }
     prm.leave_subsection();
 }

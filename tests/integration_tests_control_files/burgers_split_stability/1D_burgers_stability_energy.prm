@@ -50,7 +50,6 @@ subsection ODE solver
 
 end
 
-#subsection manufactured solution convergence study
-#  set use_manufactured_source_term = true
-#end
-
+subsection flow_solver
+    set flow_case_type = burgers_inviscid
+end

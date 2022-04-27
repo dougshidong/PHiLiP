@@ -20,6 +20,7 @@
 #include "ode_solver/ode_solver_base.h"
 #include <fstream>
 #include "ode_solver/ode_solver_factory.h"
+#include "physics/initial_conditions/initial_condition_base.h"
 
 
 namespace PHiLiP {
@@ -98,41 +99,6 @@ double ConvectionDiffusionPeriodic<dim, nstate>::compute_conservation(std::share
 }
 
 
-template<int dim, int nstate>
-void ConvectionDiffusionPeriodic<dim, nstate>::initialize(PHiLiP::DGBase<dim, double>  &dg,
-                                                    const PHiLiP::Parameters::AllParameters &/*all_parameters_new*/) const
-{
-	pcout << "Implement initial conditions" << std::endl;
-	dealii::FunctionParser<dim> initial_condition(nstate);
-	std::string variables;
-        if (dim == 3)
-	    variables = "x,y,z";
-        if (dim == 2)
-	    variables = "x,y";
-        if (dim == 1)
-	    variables = "x";
-	std::map<std::string,double> constants;
-	constants["pi"] = dealii::numbers::PI;
-	std::vector<std::string> expression;
-        if (dim == 3){
-            expression.push_back("sin(pi*(x))*sin(pi*y)*sin(pi*z)");
-        }
-        if (dim == 2){
-            expression.push_back("sin(pi*(x))*sin(pi*y)");
-        }
-        if(dim==1){
-            expression.push_back("sin(pi*(x))");
-        }
-	initial_condition.initialize(variables,
-	                             expression,
-	                             constants);
-        dealii::LinearAlgebra::distributed::Vector<double> solution_no_ghost;
-        solution_no_ghost.reinit(dg.locally_owned_dofs, MPI_COMM_WORLD);
-	dealii::VectorTools::interpolate(dg.dof_handler,initial_condition,solution_no_ghost);
-        dg.solution = solution_no_ghost;
-
-}
-
 template <int dim, int nstate>
 int ConvectionDiffusionPeriodic<dim, nstate>::run_test() const
 {
@@ -193,7 +159,7 @@ int ConvectionDiffusionPeriodic<dim, nstate>::run_test() const
     pcout << "dg created" <<std::endl;
     dg->allocate_system ();
 
-    initialize(*(dg), all_parameters_new);
+    InitialConditionBase<dim,double> initial_condition(dg, &all_parameters_new, nstate);
 
     // Create ODE solver using the factory and providing the DG object
     std::shared_ptr<ODE::ODESolverBase<dim, double>> ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);

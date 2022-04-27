@@ -20,6 +20,7 @@
 #include "dg/dg_factory.hpp"
 #include "ode_solver/ode_solver_factory.h"
 #include "advection_explicit_periodic.h"
+#include "physics/initial_conditions/initial_condition_base.h"
 
 #include "mesh/grids/nonsymmetric_curved_periodic_grid.hpp"
 
@@ -85,59 +86,6 @@ double AdvectionPeriodic<dim, nstate>::compute_conservation(std::shared_ptr < PH
 
 	return conservation;
 }
-template<int dim, int nstate>
-void AdvectionPeriodic<dim, nstate>::initialize(    std::shared_ptr < PHiLiP::DGBase<dim, double>>  &dg,
-                                                    const PHiLiP::Parameters::AllParameters &all_parameters_new,
-                                                    const unsigned int poly_degree,
-                                                    const double left) const
-{
-    //Note that for curvilinear, can't use dealii interpolate since it doesn't project at the correct order.
-    //Thus we interpolate it directly.
-    //if use curvilinear grid to interpolate IC
-    const unsigned int n_quad_pts1      = dg->operators->volume_quadrature_collection[poly_degree].size();
-    const unsigned int n_dofs_cell1     = dg->operators->fe_collection_basis[poly_degree].dofs_per_cell;
-    dealii::FEValues<dim,dim> fe_values_test(*(dg->high_order_grid->mapping_fe_field), dg->operators->fe_collection_basis[poly_degree], dg->operators->volume_quadrature_collection[poly_degree], 
-                                dealii::update_values | dealii::update_JxW_values | 
-                                dealii::update_jacobians |  
-                                dealii::update_quadrature_points | dealii::update_inverse_jacobians);
-    const unsigned int max_dofs_per_cell = dg->dof_handler.get_fe_collection().max_dofs_per_cell();
-    std::vector<dealii::types::global_dof_index> current_dofs_indices(max_dofs_per_cell);
-    const double pi2 = atan(1)*4.0;
-    for (auto current_cell = dg->dof_handler.begin_active(); current_cell!=dg->dof_handler.end(); ++current_cell) {
-        if (!current_cell->is_locally_owned()) continue;
-    
-        fe_values_test.reinit (current_cell);
-        current_dofs_indices.resize(n_dofs_cell1);
-        current_cell->get_dof_indices (current_dofs_indices);
-        for(unsigned int idof=0; idof<n_dofs_cell1; idof++){
-            dg->solution[current_dofs_indices[idof]]=0.0;
-            for(unsigned int iquad=0; iquad<n_quad_pts1; iquad++){
-            const dealii::Point<dim> qpoint = (fe_values_test.quadrature_point(iquad));
-            double exact = 1.0;
-               for (int idim=0; idim<dim; idim++){
-                    if (all_parameters_new.use_energy == true){//for split form get energy
-                        if(left == 0){
-                            exact *= exp(-20*(qpoint[idim]-0.5)*(qpoint[idim]-0.5));
-                        }
-                        if(left == -1){
-                            exact *= exp(-20*(qpoint[idim])*(qpoint[idim]));
-                        }
-                    }
-                    else{
-                        if(left == 0){
-                            exact *= sin(2.0*pi2*qpoint[idim]);
-                        }
-                        if(left==-1){
-                            exact *= sin(pi2*qpoint[idim]);
-                        }
-                    }
-                }
-                //project the solution from quad points to dofs
-                dg->solution[current_dofs_indices[idof]] +=dg->operators->vol_projection_operator[poly_degree][idof][iquad] *exact; 
-            }   
-        }
-    }
-}
 
 template <int dim, int nstate>
 int AdvectionPeriodic<dim, nstate>::run_test() const
@@ -196,7 +144,7 @@ int AdvectionPeriodic<dim, nstate>::run_test() const
     dg->allocate_system ();
 
     std::cout << "Implement initial conditions" << std::endl;
-    initialize(dg, all_parameters_new, poly_degree, left);
+    InitialConditionBase<dim,double> initial_condition(dg, &all_parameters_new, nstate);
 
     // Create ODE solver using the factory and providing the DG object
     std::shared_ptr<PHiLiP::ODE::ODESolverBase<dim, double>> ode_solver = PHiLiP::ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);

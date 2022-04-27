@@ -2,7 +2,7 @@
 #define __FLOW_SOLVER_H__
 
 // for FlowSolver class:
-#include "physics/initial_conditions/initial_condition.h"
+#include "physics/initial_conditions/initial_condition_function.h"
 #include "tests.h"
 #include "physics/physics.h"
 #include "parameters/all_parameters.h"

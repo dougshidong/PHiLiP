@@ -21,7 +21,7 @@
 
 #include "dual_weighted_residual_mesh_adaptation.h"
 
-#include "physics/initial_conditions/initial_condition.h"
+#include "physics/initial_conditions/initial_condition_function.h"
 #include "physics/manufactured_solution.h"
 #include "dg/dg_factory.hpp"
 

@@ -19,6 +19,9 @@ public:
         taylor_green_vortex,
         burgers_viscous_snapshot,
         burgers_rewienski_snapshot,
+        burgers_inviscid,
+        advection,
+        convection_diffusion,
         };
     FlowCaseType flow_case_type; ///< Selected FlowCaseType from the input file
 
@@ -54,6 +57,9 @@ public:
 
     /// Parses input file and sets the variables.
     void parse_parameters (dealii::ParameterHandler &prm);
+
+    ///Interpolate or project the initial condition.
+    bool interpolate_initial_condition;
 };
 
 } // Parameters namespace

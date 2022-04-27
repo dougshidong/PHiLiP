@@ -16,7 +16,7 @@
 
 #include "euler_bump_optimization.h"
 
-#include "physics/initial_conditions/initial_condition.h"
+#include "physics/initial_conditions/initial_condition_function.h"
 #include "physics/euler.h"
 #include "dg/dg_factory.hpp"
 #include "ode_solver/ode_solver_factory.h"

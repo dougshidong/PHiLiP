@@ -22,9 +22,6 @@ private:
 	double compute_energy(std::shared_ptr < PHiLiP::DGBase<dim, double> > &dg) const;
     /// Function computes the conservation
         double compute_conservation(std::shared_ptr < PHiLiP::DGBase<dim, double> > &dg, const double poly_degree) const;
-protected:
-    ///Initialize the initial condition
-        void initialize(DGBase<dim,double> &dg, const PHiLiP::Parameters::AllParameters &all_parameters_new) const;
 };
 
 } // End of Tests namespace

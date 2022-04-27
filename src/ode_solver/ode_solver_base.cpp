@@ -201,7 +201,6 @@ int ODESolverBase<dim,real,MeshType>::steady_state ()
 template <int dim, typename real, typename MeshType>
 int ODESolverBase<dim,real,MeshType>::advance_solution_time (double time_advance)
 {
-//    Parameters::ODESolverParam ode_param = ODESolverBase<dim,real,MeshType>::all_parameters->ode_solver_param;
 
     const unsigned int number_of_time_steps = (!this->all_parameters->use_energy) ? static_cast<int>(ceil(time_advance/ode_param.initial_time_step)) : this->current_iteration+1;
     const double constant_time_step = time_advance/static_cast<int>(ceil(time_advance/ode_param.initial_time_step));

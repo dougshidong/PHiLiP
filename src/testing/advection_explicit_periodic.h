@@ -46,12 +46,6 @@ private:
     double compute_conservation(std::shared_ptr < PHiLiP::DGBase<dim, double> > &dg, const double poly_degree) const;
     /// Warping for nonlinear manifold (see CurvManifold above)
     static dealii::Point<dim> warp (const dealii::Point<dim> &p);
-protected:
-    ///Initialize the initial condition
-        void initialize(std::shared_ptr < DGBase<dim,double> > &dg, 
-                        const PHiLiP::Parameters::AllParameters &all_parameters_new,
-                        const unsigned int poly_degree,
-                        const double left) const;
 };
 
 } // End of Tests namespace

@@ -21,7 +21,7 @@ FlowSolver<dim, nstate>::FlowSolver(
 : TestsBase::TestsBase(parameters_input)
 , flow_solver_case(flow_solver_case)
 , parameter_handler(parameter_handler_input)
-, initial_condition_function(InitialConditionFactory<dim, nstate, double>::create_InitialConditionFunction(parameters_input, nstate))
+, initial_condition_function(InitialConditionFactory<dim, nstate, double>::create_InitialConditionFunction(parameters_input))
 , all_param(*parameters_input)
 , flow_solver_param(all_param.flow_solver_param)
 , ode_param(all_param.ode_solver_param)

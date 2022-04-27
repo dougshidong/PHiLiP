@@ -70,7 +70,7 @@ std::shared_ptr<Triangulation> NACA0012<dim,nstate>::generate_grid() const
 
     airfoil_data.airfoil_sampling_factor = 100000; // default 2
 
-    Grids::naca_airfoil(*grid, airfoil_data);
+    Grids::naca_airfoil(reinterpret_cast<dealii::parallel::distributed::Triangulation<2> &>(*grid), airfoil_data);
 
     grid->refine_global();
 

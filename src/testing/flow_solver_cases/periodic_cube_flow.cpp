@@ -104,7 +104,7 @@ double PeriodicCubeFlow<dim,nstate>::integrand_l2_error_initial_condition(const 
 {
     // Description: Returns l2 error with the initial condition function
     // Purpose: For checking the initialization
-    std::shared_ptr<InitialConditionFunction<dim,double>> initial_condition_function = InitialConditionFactory<dim,double>::create_InitialConditionFunction(&this->all_param, nstate);
+    std::shared_ptr<InitialConditionFunction<dim,nstate,double>> initial_condition_function = InitialConditionFactory<dim,nstate,double>::create_InitialConditionFunction(&this->all_param);
     double integrand_value = 0.0;
     for (int istate=0; istate<nstate; ++istate) {
         const double exact_soln_at_q = initial_condition_function->value(qpoint, istate);

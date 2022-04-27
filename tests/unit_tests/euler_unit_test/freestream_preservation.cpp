@@ -251,7 +251,7 @@ int test()
                         param.euler_param.mach_inf,
                         param.euler_param.angle_of_attack,
                         param.euler_param.side_slip_angle);
-            Physics::FreeStreamInitialConditions<dim,dim+2> initial_conditions(euler_physics_double);
+            FreeStreamInitialConditions<dim,dim+2,double> initial_conditions(euler_physics_double);
             dealii::VectorTools::interpolate(dg->dof_handler, initial_conditions, dg->solution);
 
             dg->assemble_residual();

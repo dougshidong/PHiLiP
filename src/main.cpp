@@ -61,7 +61,7 @@ int main (int argc, char *argv[])
 
         const int max_dim = PHILIP_DIM;
         const int max_nstate = 5;
-        std::unique_ptr<PHiLiP::Tests::TestsBase> test = PHiLiP::Tests::TestsFactory<max_dim,max_nstate>::create_test(&all_parameters);
+        std::unique_ptr<PHiLiP::Tests::TestsBase> test = PHiLiP::Tests::TestsFactory<max_dim,max_nstate>::create_test(&all_parameters,parameter_handler);
         test_error = test->run_test();
 
         pcout << "Finished test with test error code: " << test_error << std::endl;

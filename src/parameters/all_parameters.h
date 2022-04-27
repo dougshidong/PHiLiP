@@ -137,6 +137,7 @@ public:
         flow_solver,
         dual_weighted_residual_mesh_adaptation,
         taylor_green_vortex_energy_check,
+        taylor_green_vortex_restart_check,
     };
     TestType test_type; ///< Selected TestType from the input file.
 

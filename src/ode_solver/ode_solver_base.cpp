@@ -5,11 +5,12 @@ namespace ODE{
 
 template <int dim, typename real, typename MeshType>
 ODESolverBase<dim,real,MeshType>::ODESolverBase(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input)
-        : current_time(0.0)
-        , current_iteration(0)
-        , current_desired_time_for_output_solution_every_dt_time_intervals(0.0)
-        , dg(dg_input)
+        : dg(dg_input)
         , all_parameters(dg->all_parameters)
+        , ode_param(all_parameters->ode_solver_param)
+        , current_time(ode_param.initial_time)
+        , current_iteration(ode_param.initial_iteration)
+        , current_desired_time_for_output_solution_every_dt_time_intervals(ode_param.initial_desired_time_for_output_solution_every_dt_time_intervals)
         , mpi_communicator(MPI_COMM_WORLD)
         , pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(mpi_communicator)==0)
         , refine_mesh_in_ode_solver(true)
@@ -68,7 +69,6 @@ int ODESolverBase<dim,real,MeshType>::steady_state ()
         std::abort();
     }
 
-    Parameters::ODESolverParam ode_param = ODESolverBase<dim,real,MeshType>::all_parameters->ode_solver_param;
     pcout << " Performing steady state analysis... " << std::endl;
     allocate_ode_system ();
 
@@ -201,7 +201,7 @@ int ODESolverBase<dim,real,MeshType>::steady_state ()
 template <int dim, typename real, typename MeshType>
 int ODESolverBase<dim,real,MeshType>::advance_solution_time (double time_advance)
 {
-    Parameters::ODESolverParam ode_param = ODESolverBase<dim,real,MeshType>::all_parameters->ode_solver_param;
+//    Parameters::ODESolverParam ode_param = ODESolverBase<dim,real,MeshType>::all_parameters->ode_solver_param;
 
     const unsigned int number_of_time_steps = (!this->all_parameters->use_energy) ? static_cast<int>(ceil(time_advance/ode_param.initial_time_step)) : this->current_iteration+1;
     const double constant_time_step = time_advance/static_cast<int>(ceil(time_advance/ode_param.initial_time_step));

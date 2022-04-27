@@ -34,11 +34,3 @@ add_test(
   WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )
 # ----------------------------------------
-
-configure_file(naca0012.prm naca0012.prm COPYONLY)
-add_test(
-  NAME NACA0012_FLOWSOLVER
-  COMMAND mpirun -np ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_2D -i ${CMAKE_CURRENT_BINARY_DIR}/naca0012.prm
-  WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
-)
-# ----------------------------------------

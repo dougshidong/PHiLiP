@@ -84,22 +84,8 @@ subsection ODE solver
 
 end
 
-subsection manufactured solution convergence study
-  # Last degree used for convergence study
-  set degree_end        = 0
-
-  # Starting degree for convergence study
-  set degree_start      = 0
-
-  set grid_progression  = 2
-
-  set grid_progression_add  = 0
-
-  # Initial grid of size (initial_grid_size)^dim
-  set initial_grid_size = 4
-
-  # Number of grids in grid study
-  set number_of_grids   = 1
+subsection grid refinement study
+ set poly_degree = 0
 end
 
 subsection flow_solver

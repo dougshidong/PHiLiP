@@ -6,97 +6,53 @@ namespace ODE {
 template <int dim, typename real, typename MeshType>
 ExplicitODESolver<dim,real,MeshType>::ExplicitODESolver(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input)
         : ODESolverBase<dim,real,MeshType>(dg_input)
+        , rk_order(this->ode_param.runge_kutta_order)
         {}
 
 template <int dim, typename real, typename MeshType>
 void ExplicitODESolver<dim,real,MeshType>::step_in_time (real dt, const bool pseudotime)
-{
-    const bool compute_dRdW = false;
-    this->dg->assemble_residual(compute_dRdW);
-    this->current_time += dt;
+{  
+    this->solution_update = this->dg->solution; //storing u_n
     
-    Parameters::ODESolverParam ode_param = ODESolverBase<dim,real,MeshType>::all_parameters->ode_solver_param;
-    const int rk_order = ode_param.runge_kutta_order;
-    if (rk_order == 1) {
-        this->dg->global_inverse_mass_matrix.vmult(this->solution_update, this->dg->right_hand_side);
-        this->update_norm = this->solution_update.l2_norm();
-        if (pseudotime) {
+    //calculating stages **Note that rk_stage[i] stores the RHS at a partial time-step (not solution u)
+    for (int i = 0; i < rk_order; ++i){
+
+        this->rk_stage[i]=0.0; //resets all entries to zero
+        
+        for (int j = 0; j < i; ++j){
+            if (this->butcher_tableau_a[i][j] != 0){
+                this->rk_stage[i].add(this->butcher_tableau_a[i][j], this->rk_stage[j]);
+            }
+        } //sum(a_ij *k_j)
+        
+        if(pseudotime) {
             const double CFL = dt;
-            this->dg->time_scale_solution_update( this->solution_update, CFL );
-            this->dg->solution.add(1.0,this->solution_update);
+            this->dg->time_scale_solution_update(rk_stage[i], CFL);
+        }else {
+            this->rk_stage[i]*=dt; 
+        }//dt * sum(a_ij * k_j)
+        
+        this->rk_stage[i].add(1.0,this->solution_update); //u_n + dt * sum(a_ij * k_j)
+
+        this->dg->solution = this->rk_stage[i];
+        this->dg->assemble_residual(); //RHS : du/dt = RHS = F(u_n + dt* sum(a_ij*k_j))
+        this->dg->global_inverse_mass_matrix.vmult(this->rk_stage[i], this->dg->right_hand_side); //rk_stage[i] = IMM*RHS = F(u_n + dt*sum(a_ij*k_j))
+    }
+
+    //assemble solution from stages
+    for (int i = 0; i < rk_order; ++i){
+        if (pseudotime){
+            const double CFL = butcher_tableau_b[i] * dt;
+            this->dg->time_scale_solution_update(rk_stage[i], CFL);
+            this->solution_update.add(1.0, this->rk_stage[i]);
         } else {
-            this->dg->solution.add(dt,this->solution_update);
-        }
-    } else if (rk_order == 3) {
-        // Stage 0
-        this->rk_stage[0] = this->dg->solution;
-
-        // Stage 1
-        if ((ode_param.ode_output) == Parameters::OutputEnum::verbose) {
-            this->pcout<< "Stage 1... " << std::flush;            
-        }
-        this->dg->global_inverse_mass_matrix.vmult(this->solution_update, this->dg->right_hand_side);
-
-        this->rk_stage[1] = this->rk_stage[0];
-        //this->rk_stage[1].add(dt,this->solution_update);
-        if (pseudotime) {
-            const double CFL = dt;
-            this->dg->time_scale_solution_update( this->solution_update, CFL );
-            this->rk_stage[1].add(1.0,this->solution_update);
-        } else {
-            this->rk_stage[1].add(dt,this->solution_update);
-        }
-
-        // Stage 2
-        if ((ode_param.ode_output) == Parameters::OutputEnum::verbose) {
-            this->pcout<< "2... " << std::flush;
-        }
-        this->dg->solution = this->rk_stage[1];
-        this->dg->assemble_residual ();
-        this->dg->global_inverse_mass_matrix.vmult(this->solution_update, this->dg->right_hand_side);
-
-        this->rk_stage[2] = this->rk_stage[0];
-        this->rk_stage[2] *= 0.75;
-        this->rk_stage[2].add(0.25, this->rk_stage[1]);
-        //this->rk_stage[2].add(0.25*dt, this->solution_update);
-        if (pseudotime) {
-            const double CFL = 0.25*dt;
-            this->dg->time_scale_solution_update( this->solution_update, CFL );
-            this->rk_stage[2].add(1.0,this->solution_update);
-        } else {
-            this->rk_stage[2].add(0.25*dt,this->solution_update);
-        }
-
-        // Stage 3
-        if ((ode_param.ode_output) == Parameters::OutputEnum::verbose) {
-            this->pcout<< "3... " << std::flush;
-        }
-        this->dg->solution = this->rk_stage[2];
-        this->dg->assemble_residual ();
-        this->dg->global_inverse_mass_matrix.vmult(this->solution_update, this->dg->right_hand_side);
-
-        this->rk_stage[3] = this->rk_stage[0];
-        this->rk_stage[3] *= 1.0/3.0;
-        this->rk_stage[3].add(2.0/3.0, this->rk_stage[2]);
-        //this->rk_stage[3].add(2.0/3.0*dt, this->solution_update);
-        if (pseudotime) {
-            const double CFL = (2.0/3.0)*dt;
-            this->dg->time_scale_solution_update( this->solution_update, CFL );
-            this->rk_stage[3].add(1.0,this->solution_update);
-        } else {
-            this->rk_stage[3].add((2.0/3.0)*dt,this->solution_update);
-        }
-
-        this->dg->solution = this->rk_stage[3];
-        if ((ode_param.ode_output) == Parameters::OutputEnum::verbose) {
-            this->pcout<< "done." << std::endl;
+            this->solution_update.add(dt* this->butcher_tableau_b[i],this->rk_stage[i]); 
         }
     }
-    else {
-        this->pcout << "Invalid runge_kutta_order." << std::endl;
-        std::abort();
-    }
+    this->dg->solution = this->solution_update; // u_np1 = u_n + dt* sum(k_i * b_i)
+
     ++(this->current_iteration);
+    this->current_time += dt;
 }
 
 template <int dim, typename real, typename MeshType>
@@ -107,9 +63,36 @@ void ExplicitODESolver<dim,real,MeshType>::allocate_ode_system ()
     this->solution_update.reinit(this->dg->right_hand_side);
     this->dg->evaluate_mass_matrices(do_inverse_mass_matrix);
 
-    this->rk_stage.resize(4);
-    for (int i=0; i<4; i++) {
+    this->rk_stage.resize(rk_order);
+    for (int i=0; i<rk_order; i++) {
         this->rk_stage[i].reinit(this->dg->solution);
+    }
+
+    // Assigning butcher tableau
+    this->butcher_tableau_a.reinit(rk_order,rk_order);
+    this->butcher_tableau_b.reinit(rk_order);
+    if (rk_order == 3){
+        // RKSSP3 (RK-3 Strong-Stability-Preserving)
+        const double butcher_tableau_a_values[9] = {0,0,0,1.0,0,0,0.25,0.25,0};
+        this->butcher_tableau_a.fill(butcher_tableau_a_values);
+        const double butcher_tableau_b_values[3] = {1.0/6.0, 1.0/6.0, 2.0/3.0};
+        this->butcher_tableau_b.fill(butcher_tableau_b_values);
+    } else if (rk_order == 4) {
+        // Standard RK4
+        const double butcher_tableau_a_values[16] = {0,0,0,0,0.5,0,0,0,0,0.5,0,0,0,0,1.0,0};
+        this->butcher_tableau_a.fill(butcher_tableau_a_values);
+        const double butcher_tableau_b_values[4] = {1.0/6.0,1.0/3.0,1.0/3.0,1.0/6.0};
+        this->butcher_tableau_b.fill(butcher_tableau_b_values);
+    } else if (rk_order == 1) {
+        // Explicit Euler
+        const double butcher_tableau_a_values[1] = {0};
+        this->butcher_tableau_a.fill(butcher_tableau_a_values);
+        const double butcher_tableau_b_values[1] = {1.0};
+        this->butcher_tableau_b.fill(butcher_tableau_b_values);
+    }
+    else{
+        this->pcout << "Invalid RK order" << std::endl;
+        std::abort();
     }
 }
 

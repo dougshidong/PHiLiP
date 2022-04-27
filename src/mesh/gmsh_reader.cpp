@@ -77,6 +77,9 @@ void rotate_indices(std::vector<unsigned int> &numbers, const unsigned int n_ind
         {
           // Rotate xy-plane
           // counter-clockwise
+          // 3 6 2           2 5 1
+          // 7 8 5  becomes  6 8 4
+          // 0 4 1           3 7 0
           case 'z':
             for (unsigned int iz = 0; iz < ((dim > 2) ? n : 1); ++iz)
               for (unsigned int j = 0; j < n; ++j)
@@ -88,12 +91,29 @@ void rotate_indices(std::vector<unsigned int> &numbers, const unsigned int n_ind
             break;
           // Rotate xy-plane
           // clockwise
+          // 3 6 2           0 7 3
+          // 7 8 5  becomes  4 8 6
+          // 0 4 1           1 5 2
           case 'Z':
             for (unsigned int iz = 0; iz < ((dim > 2) ? n : 1); ++iz)
               for (unsigned int iy = 0; iy < n; ++iy)
                 for (unsigned int ix = 0; ix < n; ++ix)
                   {
                     unsigned int k = n * ix - iy + n - 1 + n * n * iz;
+                    numbers[k]     = l++;
+                  }
+            break;
+          // Change Z normal
+          // Instead of 
+          // 3 6 2           1 5 2
+          // 7 8 5  becomes  4 8 6
+          // 0 4 1           0 7 3
+          case '3':
+            for (unsigned int iz = 0; iz < ((dim > 2) ? n : 1); ++iz)
+              for (unsigned int iy = 0; iy < n; ++iy)
+                for (unsigned int ix = 0; ix < n; ++ix)
+                  {
+                    unsigned int k = iy + n * ix + n * n * iz; // transpose x and y indices
                     numbers[k]     = l++;
                   }
             break;
@@ -338,7 +358,14 @@ unsigned int gmsh_cell_type_to_order(unsigned int cell_type)
     } else if ( (cell_type == MSH_PNT) ) {
         cell_order = 0;
     } else {
-        //AssertThrow(false, dealii::ExcGmshUnsupportedGeometry(cell_type));
+        std::cout << "Invalid element type read from GMSH " << cell_type << ". "
+                  << "\n Valid element types are:"
+                  << "\n " << MSH_PNT
+                  << "\n " << MSH_LIN_2 << " " << MSH_LIN_3 << " " << MSH_LIN_4 << " " << MSH_LIN_5 << " " << MSH_LIN_6 << " " << MSH_LIN_7 << " " << MSH_LIN_8 << " " << MSH_LIN_9
+                  << "\n " << MSH_QUA_4 << " " << MSH_QUA_9 << " " << MSH_QUA_16 << " " << MSH_QUA_25 << " " << MSH_QUA_36 << " " << MSH_QUA_49 << " " << MSH_QUA_64 << " " << MSH_QUA_81
+                  << "\n " << MSH_HEX_8 <<  " " << MSH_HEX_27 << " " << MSH_HEX_64 << " " << MSH_HEX_125 << " " << MSH_HEX_216 << " " << MSH_HEX_343 << " " << MSH_HEX_512 << " " << MSH_HEX_729
+                  << std::endl;
+        std::abort();
     }
 
     return cell_order;
@@ -629,6 +656,56 @@ void fe_q_node_number(const unsigned int index,
     j = index;
     k = index;
 }
+
+template <int dim, int spacedim>
+bool get_new_rotated_indices(const dealii::CellAccessor<dim, spacedim>& cell,
+                             const std::vector<dealii::Point<spacedim>>& all_vertices,
+                             const std::vector<unsigned int>& deal_h2l,
+                             const std::vector<unsigned int>& rotate_z90degree,
+                             std::vector<unsigned int>& high_order_vertices_id)
+{
+
+    const unsigned int n_vertices = cell.n_vertices();
+    for (int zr = 0; zr < 4; ++zr) {
+
+        std::vector<char> matching(n_vertices);
+
+        for (unsigned int i_vertex=0; i_vertex < n_vertices; ++i_vertex) {
+
+            const unsigned int base_index = i_vertex;
+            const unsigned int lexicographic_index = deal_h2l[base_index];
+
+            const unsigned int vertex_id = high_order_vertices_id[lexicographic_index];
+            const dealii::Point<dim,double> high_order_vertex = all_vertices[vertex_id];
+
+            bool found = false;
+            for (unsigned int i=0; i < n_vertices; ++i) {
+                if (cell.vertex(i) == high_order_vertex) {
+                    found = true;
+                }
+            }
+            if (!found) {
+                std::cout << "Wrong cell... High-order nodes do not match the cell's vertices." << std::endl;
+                std::abort();
+            }
+
+            matching[i_vertex] = (high_order_vertex == cell.vertex(i_vertex)) ? 'T' : 'F';
+        }
+
+        bool all_matching = true;
+        for (unsigned int i=0; i < n_vertices; ++i) {
+            if (matching[i] == 'F') all_matching = false;
+        }
+        if (all_matching) return true;
+
+        const auto high_order_vertices_id_temp = high_order_vertices_id;
+        for (unsigned int i=0; i<high_order_vertices_id.size(); ++i) {
+            high_order_vertices_id[i] = high_order_vertices_id_temp[rotate_z90degree[i]];
+        }
+    }
+    return false;
+}
+
 
 template <int dim, int spacedim>
 std::shared_ptr< HighOrderGrid<dim, double> >
@@ -936,7 +1013,7 @@ read_gmsh(std::string filename, int requested_grid_order)
     // AssertThrow(p1_cells.size() > 0, dealii::ExcGmshNoCellInformation());
   
     // do some clean-up on vertices...
-    auto all_vertices = vertices;
+    const std::vector<dealii::Point<spacedim>> all_vertices = vertices;
     dealii::GridTools::delete_unused_vertices(vertices, p1_cells, subcelldata);
     // ... and p1_cells
     if (dim == spacedim) {
@@ -1010,6 +1087,9 @@ read_gmsh(std::string filename, int requested_grid_order)
     //              << " maps to global id " 
     //              << " vertices high_order_vertices_id[i] << " point " << all_vertices[high_order_vertices_id[i]] << std::endl;
     //}
+    std::vector<unsigned int> rotate_z90degree;
+    rotate_indices<dim>(rotate_z90degree, grid_order+1, 'Z');
+
     for (const auto &cell : high_order_grid->dof_handler_grid.active_cell_iterators()) {
         if (cell->is_locally_owned()) {
             auto &high_order_vertices_id = high_order_cells[icell].vertices;
@@ -1017,18 +1097,12 @@ read_gmsh(std::string filename, int requested_grid_order)
             //for (unsigned int i=0; i<high_order_vertices_id.size(); ++i) {
             //    std::cout << " I " << high_order_vertices_id[i] << " point " << all_vertices[high_order_vertices_id[i]] << std::endl;
             //}
-            cell->get_dof_indices(dof_indices);
 
             //std::cout << " cell " << icell << " with vertices: " << std::endl;
             //for (unsigned int i=0; i < cell->n_vertices(); ++i) {
             //    std::cout << cell->vertex(i) << std::endl;
             //}
             //std::cout << " highordercell with vertices: " << std::endl;
-
-            std::vector<unsigned int> rotate_z90degree;
-            rotate_indices<dim>(rotate_z90degree, grid_order+1, 'Z');
-
-            bool good_rotation = false;
 
             auto high_order_vertices_id_lexico = high_order_vertices_id;
             for (unsigned int ihierachic=0; ihierachic<high_order_vertices_id.size(); ++ihierachic) {
@@ -1038,58 +1112,27 @@ read_gmsh(std::string filename, int requested_grid_order)
 
             //auto high_order_vertices_id_rotated = high_order_cells[icell].vertices;
             auto high_order_vertices_id_rotated = high_order_vertices_id_lexico;
-            for (int zr = 0; zr < 4; ++zr) {
-                
-                std::vector<int> matching(cell->n_vertices());
-                for (unsigned int i_vertex=0; i_vertex < cell->n_vertices(); ++i_vertex) {
+            bool good_rotation = get_new_rotated_indices(*cell, all_vertices, deal_h2l, rotate_z90degree, high_order_vertices_id_rotated);
+            if (!good_rotation) {
+                //std::cout << "Couldn't find rotation... Flipping Z axis and doing it again" << std::endl;
 
-                    const unsigned int base_index = i_vertex;
-                    const unsigned int lexicographic_index = deal_h2l[base_index];
-
-                    //const unsigned int gmsh_hierarchical_index = gmsh_l2h[lexicographic_index];
-                    //const unsigned int vertex_id = high_order_vertices_id_rotated[gmsh_hierarchical_index];
-                    const unsigned int vertex_id = high_order_vertices_id_rotated[lexicographic_index];
-                    const dealii::Point<dim,double> high_order_vertex = all_vertices[vertex_id];
-                    //std::cout << high_order_vertex << std::endl;
-
-                    bool found = false;
-                    for (unsigned int i=0; i < cell->n_vertices(); ++i) {
-                        if (cell->vertex(i) == high_order_vertex) {
-                            //std::cout << " cell vertex " << i << " matches HO vertex " << i_vertex << std::endl;
-                            found = true;
-                        }
-                    }
-                    if (!found) {
-                        std::cout << "Wrong cell... High order nodes do not match the cell's vertices." << std::endl;
-                        std::abort();
-                    }
-
-                    matching[i_vertex] = (high_order_vertex == cell->vertex(i_vertex)) ? 0 : 1;
-                }
-
-                bool all_matching = true;
-                for (unsigned int i=0; i < cell->n_vertices(); ++i) {
-                    if (matching[i] == 1) all_matching = false;
-                }
-                good_rotation = all_matching;
-                if (good_rotation) {
-                    //std::cout << "Found rotation cell..." << std::endl;
-                    break;
-                }
-
-                //std::cout << "Rotating indices " << std::endl;
-                high_order_vertices_id = high_order_vertices_id_rotated;
-                for (unsigned int i=0; i<high_order_vertices_id.size(); ++i) {
-                    high_order_vertices_id_rotated[i] = high_order_vertices_id[rotate_z90degree[i]];
+                // Flip Z-axis and do above again
+                std::vector<unsigned int> flipZ;
+                rotate_indices<dim>(flipZ, grid_order+1, '3');
+                auto high_order_vertices_id_copy = high_order_vertices_id_rotated;
+                for (unsigned int i=0; i<high_order_vertices_id_rotated.size(); ++i) {
+                    high_order_vertices_id_rotated[i] = high_order_vertices_id_copy[flipZ[i]];
                 }
             }
+            good_rotation = get_new_rotated_indices(*cell, all_vertices, deal_h2l, rotate_z90degree, high_order_vertices_id_rotated);
             if (!good_rotation) {
-                std::cout << "Couldn't find rotation..." << std::endl;
+                std::cout << "Couldn't find rotation after flipping either... Aborting..." << std::endl;
                 std::abort();
-            } 
+            }
 
 
 
+            cell->get_dof_indices(dof_indices);
             for (unsigned int i_vertex = 0; i_vertex < high_order_vertices_id.size(); ++i_vertex) {
 
                 const unsigned int base_index = i_vertex;

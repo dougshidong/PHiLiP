@@ -7,10 +7,10 @@ template<int dim, int nstate>
 FlowSolverCaseBase<dim, nstate>::FlowSolverCaseBase(const PHiLiP::Parameters::AllParameters *const parameters_input)
         : all_param(*parameters_input)
         , mpi_communicator(MPI_COMM_WORLD)
-        , mpi_rank (dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD))
-        , n_mpi (dealii::Utilities::MPI::n_mpi_processes(MPI_COMM_WORLD))
+        , mpi_rank(dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD))
+        , n_mpi(dealii::Utilities::MPI::n_mpi_processes(MPI_COMM_WORLD))
         , pcout(std::cout, mpi_rank==0)
-          {}
+        {}
 
 
 template <int dim, int nstate>

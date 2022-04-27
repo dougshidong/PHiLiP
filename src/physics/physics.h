@@ -119,7 +119,7 @@ public:
     /** The implementation in this Physics base class simply returns the stored solution.
      */
     virtual dealii::Vector<double> post_compute_derived_quantities_scalar (
-        const double              &uh,
+        const double                &uh,
         const dealii::Tensor<1,dim> &/*duh*/,
         const dealii::Tensor<2,dim> &/*dduh*/,
         const dealii::Tensor<1,dim> &/*normals*/,

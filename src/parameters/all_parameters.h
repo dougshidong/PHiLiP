@@ -133,6 +133,8 @@ public:
         advection_periodicity,
         flow_solver,
         dual_weighted_residual_mesh_adaptation,
+        taylor_green_vortex_energy_check,
+        taylor_green_vortex_restart_check,
     };
     /// Store selected TestType from the input file.
     TestType test_type;

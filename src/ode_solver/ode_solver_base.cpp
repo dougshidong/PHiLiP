@@ -5,17 +5,18 @@ namespace ODE{
 
 template <int dim, typename real, typename MeshType>
 ODESolverBase<dim,real,MeshType>::ODESolverBase(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input)
-        : current_time(0.0)
-        , current_iteration(0)
-        , current_desired_time_for_output_solution_every_dt_time_intervals(0.0)
-        , dg(dg_input)
+        : dg(dg_input)
         , all_parameters(dg->all_parameters)
+        , ode_param(all_parameters->ode_solver_param)
+        , current_time(ode_param.initial_time)
+        , current_iteration(ode_param.initial_iteration)
+        , current_desired_time_for_output_solution_every_dt_time_intervals(ode_param.initial_desired_time_for_output_solution_every_dt_time_intervals)
         , mpi_communicator(MPI_COMM_WORLD)
         , mpi_rank(dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD))
         , pcout(std::cout, mpi_rank==0)
         , refine_mesh_in_ode_solver(true)
         {
-            meshadaptation = std::make_unique<MeshAdaptation<dim,real,MeshType>>(dg);
+            meshadaptation = std::make_unique<MeshAdaptation<dim,real,MeshType>>(dg, &(all_parameters->mesh_adaptation_param));
         }
 
 template <int dim, typename real, typename MeshType>
@@ -92,7 +93,6 @@ int ODESolverBase<dim,real,MeshType>::steady_state ()
         std::abort();
     }
 
-    Parameters::ODESolverParam ode_param = ODESolverBase<dim,real,MeshType>::all_parameters->ode_solver_param;
     pcout << " Performing steady state analysis... " << std::endl;
     allocate_ode_system ();
 
@@ -185,9 +185,9 @@ int ODESolverBase<dim,real,MeshType>::steady_state ()
             }
         }
         
-        if ((this->residual_norm < meshadaptation->critical_residual) 
+        if ((this->residual_norm < meshadaptation->mesh_adaptation_param->critical_residual) 
             && (refine_mesh_in_ode_solver) 
-            && (meshadaptation->current_refinement_cycle < meshadaptation->total_refinement_cycles))
+            && (meshadaptation->current_refinement_cycle < meshadaptation->mesh_adaptation_param->total_refinement_cycles))
         {
             meshadaptation->adapt_mesh();
             allocate_ode_system ();
@@ -236,8 +236,6 @@ int ODESolverBase<dim,real,MeshType>::steady_state ()
 template <int dim, typename real, typename MeshType>
 int ODESolverBase<dim,real,MeshType>::advance_solution_time (double time_advance)
 {
-    Parameters::ODESolverParam ode_param = ODESolverBase<dim,real,MeshType>::all_parameters->ode_solver_param;
-
     const unsigned int number_of_time_steps = static_cast<int>(ceil(time_advance/ode_param.initial_time_step));
     const double constant_time_step = time_advance/number_of_time_steps;
 

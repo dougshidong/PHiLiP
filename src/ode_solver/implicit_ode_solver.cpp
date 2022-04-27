@@ -1,5 +1,6 @@
 #include "implicit_ode_solver.h"
 
+
 namespace PHiLiP {
 namespace ODE {
 
@@ -16,7 +17,6 @@ void ImplicitODESolver<dim,real,MeshType>::step_in_time (real dt, const bool pse
     this->current_time += dt;
     // Solve (M/dt - dRdW) dw = R
     // w = w + dw
-    Parameters::ODESolverParam ode_param = ODESolverBase<dim,real,MeshType>::all_parameters->ode_solver_param;
 
     this->dg->system_matrix *= -1.0;
 
@@ -28,8 +28,8 @@ void ImplicitODESolver<dim,real,MeshType>::step_in_time (real dt, const bool pse
         this->dg->add_mass_matrices(1.0/dt);
     }
 
-    if ((ode_param.ode_output) == Parameters::OutputEnum::verbose &&
-        (this->current_iteration%ode_param.print_iteration_modulo) == 0 ) {
+    if ((this->ode_param.ode_output) == Parameters::OutputEnum::verbose &&
+        (this->current_iteration%this->ode_param.print_iteration_modulo) == 0 ) {
         this->pcout << " Evaluating system update... " << std::endl;
     }
 

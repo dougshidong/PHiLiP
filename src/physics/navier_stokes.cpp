@@ -20,6 +20,8 @@ NavierStokes<dim, nstate, real>::NavierStokes(
     const double                                              side_slip_angle,
     const double                                              prandtl_number,
     const double                                              reynolds_number_inf,
+    const double                                              isothermal_wall_temperature,
+    const thermal_boundary_condition_enum                     thermal_boundary_condition_type,
     std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function)
     : Euler<dim,nstate,real>(ref_length, 
                              gamma_gas, 
@@ -30,6 +32,8 @@ NavierStokes<dim, nstate, real>::NavierStokes(
     , viscosity_coefficient_inf(1.0) // Nondimensional - Free stream values
     , prandtl_number(prandtl_number)
     , reynolds_number_inf(reynolds_number_inf)
+    , isothermal_wall_temperature(isothermal_wall_temperature) // Nondimensional - Free stream values
+    , thermal_boundary_condition_type(thermal_boundary_condition_type)
 {
     static_assert(nstate==dim+2, "Physics::NavierStokes() should be created with nstate=dim+2");
     // Nothing to do here so far
@@ -649,38 +653,76 @@ std::array<dealii::Tensor<1,dim,real2>,nstate> NavierStokes<dim,nstate,real>
 
 template <int dim, int nstate, typename real>
 void NavierStokes<dim,nstate,real>
-::boundary_face_values (
-   const int boundary_type,
-   const dealii::Point<dim, real> &pos,
+::boundary_wall (
    const dealii::Tensor<1,dim,real> &/*normal_int*/,
-   const std::array<real,nstate> &/*soln_int*/,
-   const std::array<dealii::Tensor<1,dim,real>,nstate> &/*soln_grad_int*/,
+   const std::array<real,nstate> &soln_int,
+   const std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_int,
    std::array<real,nstate> &soln_bc,
    std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_bc) const
 {
-    if (boundary_type == 1000) {
-        // Manufactured solution boundary condition 
-        // -- TO DO: could make this a function later on, similar to how its done in euler
-        // Note: This is consistent with Navah & Nadarajah (2018)
-        std::array<real,nstate> boundary_values;
-        std::array<dealii::Tensor<1,dim,real>,nstate> boundary_gradients;
-        for (int i=0; i<nstate; i++) {
-            boundary_values[i] = this->manufactured_solution_function->value (pos, i);
-            boundary_gradients[i] = this->manufactured_solution_function->gradient (pos, i);
-        }
-        for (int istate=0; istate<nstate; istate++) {
-            soln_bc[istate] = boundary_values[istate];
-            // soln_grad_bc[istate] = soln_grad_int[istate]; // done in convection_diffusion.cpp
-            soln_grad_bc[istate] = boundary_gradients[istate];
-        }
+    using thermal_boundary_condition_enum = Parameters::NavierStokesParam::ThermalBoundaryCondition;
+
+    // No-slip wall boundary conditions
+    // Given by equations 460-461 of the following paper
+    // Hartmann, Ralf. "Numerical analysis of higher order discontinuous Galerkin finite element methods." (2008): 1-107.
+    const std::array<real,nstate> primitive_interior_values = this->template convert_conservative_to_primitive<real>(soln_int);
+
+    // Copy density
+    std::array<real,nstate> primitive_boundary_values;
+    primitive_boundary_values[0] = primitive_interior_values[0];
+
+    // Associated thermal boundary condition
+    if(thermal_boundary_condition_type == thermal_boundary_condition_enum::isothermal) { 
+        // isothermal boundary
+        primitive_boundary_values[nstate-1] = this->compute_pressure_from_density_temperature(primitive_boundary_values[0], isothermal_wall_temperature);
+    } else if(thermal_boundary_condition_type == thermal_boundary_condition_enum::adiabatic) {
+        // adiabatic boundary
+        primitive_boundary_values[nstate-1] = primitive_interior_values[nstate-1];
     }
-    // else if (boundary_type == 1005) {
-    //     // Simple farfield boundary condition
-    //     this->boundary_farfield(soln_bc);
-    // }
-    else {
-        std::cout << "Invalid boundary_type: " << boundary_type << std::endl;
-        std::abort();
+    
+    // No-slip boundary condition on velocity
+    dealii::Tensor<1,dim,real> velocities_bc;
+    for (int d=0; d<dim; d++) {
+        velocities_bc[d] = 0.0;
+    }
+    for (int d=0; d<dim; ++d) {
+        primitive_boundary_values[1+d] = velocities_bc[d];
+    }
+
+    // Apply boundary conditions:
+    // -- solution at boundary
+    const std::array<real,nstate> modified_conservative_boundary_values = this->convert_primitive_to_conservative(primitive_boundary_values);
+    for (int istate=0; istate<nstate; ++istate) {
+        soln_bc[istate] = modified_conservative_boundary_values[istate];
+    }
+    // -- gradient of solution at boundary
+    for (int istate=0; istate<nstate; ++istate) {
+        soln_grad_bc[istate] = soln_grad_int[istate];
+    }
+}
+
+template <int dim, int nstate, typename real>
+void NavierStokes<dim,nstate,real>
+::boundary_manufactured_solution (
+    const dealii::Point<dim, real> &pos,
+    const dealii::Tensor<1,dim,real> &/*normal_int*/,
+    const std::array<real,nstate> &/*soln_int*/,
+    const std::array<dealii::Tensor<1,dim,real>,nstate> &/*soln_grad_int*/,
+    std::array<real,nstate> &soln_bc,
+    std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_bc) const
+{
+    // Manufactured solution boundary condition 
+    // Note: This is consistent with Navah & Nadarajah (2018)
+    std::array<real,nstate> boundary_values;
+    std::array<dealii::Tensor<1,dim,real>,nstate> boundary_gradients;
+    for (int i=0; i<nstate; i++) {
+        boundary_values[i] = this->manufactured_solution_function->value (pos, i);
+        boundary_gradients[i] = this->manufactured_solution_function->gradient (pos, i);
+    }
+    for (int istate=0; istate<nstate; istate++) {
+        soln_bc[istate] = boundary_values[istate];
+        // soln_grad_bc[istate] = soln_grad_int[istate]; // done in convection_diffusion.cpp
+        soln_grad_bc[istate] = boundary_gradients[istate];
     }
 }
 

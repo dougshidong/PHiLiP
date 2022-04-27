@@ -117,6 +117,8 @@ PhysicsFactory<dim,nstate,real>
                 parameters_input->euler_param.side_slip_angle,
                 parameters_input->navier_stokes_param.prandtl_number,
                 parameters_input->navier_stokes_param.reynolds_number_inf,
+                parameters_input->navier_stokes_param.nondimensionalized_isothermal_wall_temperature,
+                parameters_input->navier_stokes_param.thermal_boundary_condition_type,
                 manufactured_solution_function);
         }
     } else if (pde_type == PDE_enum::physics_model) {

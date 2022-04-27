@@ -42,6 +42,12 @@ public:
       *  steady state to a file named "ode_solver_steady_state_convergence_data_table.txt"
       */
     bool output_ode_solver_steady_state_convergence_table;
+  
+    double initial_time; ///< Initial time at which we initialize the ODE solver with.
+    unsigned int initial_iteration; ///< Initial iteration at which we initialize the ODE solver with.
+    /** Initial desired time for outputting the solution every dt time intervals 
+        at which we initialize the ODE solver with. */
+    double initial_desired_time_for_output_solution_every_dt_time_intervals;
 
     int runge_kutta_order; ///< Order for the Runge-Kutta explicit time advancement scheme.
 

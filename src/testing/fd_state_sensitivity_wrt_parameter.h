@@ -3,7 +3,6 @@
 
 #include "tests.h"
 #include "dg/dg.h"
-#include "parameters/all_parameters.h"
 #include <deal.II/numerics/vector_tools.h>
 #include <deal.II/numerics/solution_transfer.h>
 #include <deal.II/base/numbers.h>
@@ -28,7 +27,12 @@ class FiniteDifferenceSensitivity: public TestsBase
 {
 public:
     /// Constructor.
-    FiniteDifferenceSensitivity(const Parameters::AllParameters *const parameters_input);
+    FiniteDifferenceSensitivity(
+        const Parameters::AllParameters *const parameters_input,
+        const dealii::ParameterHandler &parameter_handler_input);
+
+    /// Parameter handler for storing the .prm file being ran
+    const dealii::ParameterHandler &parameter_handler;
 
     /// Run test
     int run_test () const override;

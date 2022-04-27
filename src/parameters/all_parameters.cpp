@@ -116,7 +116,9 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       " finite_difference_sensitivity | "
                       " advection_periodicity | "
                       " flow_solver | "
-                      " dual_weighted_residual_mesh_adaptation"),
+                      " dual_weighted_residual_mesh_adaptation | "
+                      " taylor_green_vortex_energy_check | "
+                      " taylor_green_vortex_restart_check"),
                       "The type of test we want to solve. "
                       "Choices are (only run control has been coded up for now)" 
                       " <run_control | " 
@@ -141,7 +143,9 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       "  finite_difference_sensitivity | "
                       "  advection_periodicity | "
                       "  flow_solver | "
-                      "  dual_weighted_residual_mesh_adaptation>.");
+                      "  dual_weighted_residual_mesh_adaptation | "
+                      "  taylor_green_vortex_energy_check | "
+                      "  taylor_green_vortex_restart_check>.");
 
     prm.declare_entry("pde_type", "advection",
                       dealii::Patterns::Selection(
@@ -246,8 +250,10 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     else if (test_string == "optimization_inverse_manufactured")        { test_type = optimization_inverse_manufactured; }
     else if (test_string == "flow_solver")                              { test_type = flow_solver; }
     else if (test_string == "dual_weighted_residual_mesh_adaptation")   { test_type = dual_weighted_residual_mesh_adaptation; }
+    else if (test_string == "taylor_green_vortex_energy_check")         { test_type = taylor_green_vortex_energy_check; }
+    else if (test_string == "taylor_green_vortex_restart_check")        { test_type = taylor_green_vortex_restart_check; }
     
-    // Must assign model_type before pde_type
+    // WARNING: Must assign model_type before pde_type
     const std::string model_string = prm.get("model_type");
     if (model_string == "large_eddy_simulation") { model_type = large_eddy_simulation; }
     //else if (model_string == "reynolds_averaged_navier_stokes") { model_type = reynolds_averaged_navier_stokes; }

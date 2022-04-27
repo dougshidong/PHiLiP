@@ -2041,6 +2041,10 @@ void DGBase<dim,real,MeshType>::allocate_system ()
     ghost_dofs.subtract_set(locally_owned_dofs);
     //dealii::DoFTools::extract_locally_relevant_dofs(dof_handler, locally_relevant_dofs);
 
+    // TO DO: QUESTION FOR PRANSHUL / DOUG:
+    /* Should all these aritifical dissipation variables be allocated here when artificial dissipation
+       isn't being used? If so, consider moving this allocation section to a void function called
+       allocate_artificial_dissipation() */
     dof_handler_artificial_dissipation.distribute_dofs(fe_q_artificial_dissipation);
     const dealii::IndexSet locally_owned_dofs_artificial_dissipation = dof_handler_artificial_dissipation.locally_owned_dofs();
 
@@ -2058,7 +2062,8 @@ void DGBase<dim,real,MeshType>::allocate_system ()
     max_dt_cell.reinit(triangulation->n_active_cells());
     cell_volume.reinit(triangulation->n_active_cells());
 
-    allocate_model_variables();
+    // allocates model variables only if there is a model
+    if(all_parameters->pde_type == Parameters::AllParameters::PartialDifferentialEquation::physics_model) allocate_model_variables();
 
     solution.reinit(locally_owned_dofs, ghost_dofs, mpi_communicator);
     solution *= 0.0;

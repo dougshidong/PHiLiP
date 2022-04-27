@@ -23,25 +23,25 @@ protected:
     using PhysicsBase<dim,nstate,real>::source_term;
 public:
     using thermal_boundary_condition_enum = Parameters::NavierStokesParam::ThermalBoundaryCondition;
-	/// Constructor
-	NavierStokes( 
-	    const double                                              ref_length,
-	    const double                                              gamma_gas,
-	    const double                                              mach_inf,
-	    const double                                              angle_of_attack,
-	    const double                                              side_slip_angle,
-	    const double                                              prandtl_number,
+    /// Constructor
+    NavierStokes( 
+        const double                                              ref_length,
+        const double                                              gamma_gas,
+        const double                                              mach_inf,
+        const double                                              angle_of_attack,
+        const double                                              side_slip_angle,
+        const double                                              prandtl_number,
         const double                                              reynolds_number_inf,
         const double                                              isothermal_wall_temperature = 1.0,
         const thermal_boundary_condition_enum                     thermal_boundary_condition_type = thermal_boundary_condition_enum::adiabatic,
-	    std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function = nullptr);
+        std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function = nullptr);
 
-	/// Nondimensionalized viscosity coefficient at infinity.
-	const double viscosity_coefficient_inf;
-	/// Prandtl number
-	const double prandtl_number;
-	/// Farfield (free stream) Reynolds number
-	const double reynolds_number_inf;
+    /// Nondimensionalized viscosity coefficient at infinity.
+    const double viscosity_coefficient_inf;
+    /// Prandtl number
+    const double prandtl_number;
+    /// Farfield (free stream) Reynolds number
+    const double reynolds_number_inf;
     /// Nondimensionalized isothermal wall temperature
     const double isothermal_wall_temperature;
     /// Thermal boundary condition type (adiabatic or isothermal)
@@ -54,14 +54,14 @@ public:
     template<typename real2>
     std::array<dealii::Tensor<1,dim,real2>,nstate> 
     convert_conservative_gradient_to_primitive_gradient (
-    	const std::array<real2,nstate> &conservative_soln,
-    	const std::array<dealii::Tensor<1,dim,real2>,nstate> &conservative_soln_gradient) const;
+        const std::array<real2,nstate> &conservative_soln,
+        const std::array<dealii::Tensor<1,dim,real2>,nstate> &conservative_soln_gradient) const;
 
     /** Nondimensionalized temperature gradient */
     template<typename real2>
     dealii::Tensor<1,dim,real2> compute_temperature_gradient (
-    	const std::array<real2,nstate> &primitive_soln,
-    	const std::array<dealii::Tensor<1,dim,real2>,nstate> &primitive_soln_gradient) const;
+        const std::array<real2,nstate> &primitive_soln,
+        const std::array<dealii::Tensor<1,dim,real2>,nstate> &primitive_soln_gradient) const;
 
     /** Nondimensionalized viscosity coefficient, mu*
      *  Reference: Masatsuka 2018 "I do like CFD", p.148, eq.(4.14.16)
@@ -104,8 +104,8 @@ public:
      */
     template<typename real2>
     dealii::Tensor<1,dim,real2> compute_heat_flux (
-    	const std::array<real2,nstate> &primitive_soln,
-    	const std::array<dealii::Tensor<1,dim,real2>,nstate> &primitive_soln_gradient) const;
+        const std::array<real2,nstate> &primitive_soln,
+        const std::array<dealii::Tensor<1,dim,real2>,nstate> &primitive_soln_gradient) const;
 
     /** Nondimensionalized heat flux, q*, given the scaled heat conductivity and temperature gradient
      *  Reference: Masatsuka 2018 "I do like CFD", p.148, eq.(4.14.13)
@@ -119,7 +119,7 @@ public:
     template<typename real2>
     std::array<dealii::Tensor<1,dim,real2>,dim> 
     extract_velocities_gradient_from_primitive_solution_gradient (
-    	const std::array<dealii::Tensor<1,dim,real2>,nstate> &primitive_soln_gradient) const;
+        const std::array<dealii::Tensor<1,dim,real2>,nstate> &primitive_soln_gradient) const;
 
     /** Nondimensionalized strain rate tensor, S*
      *  Reference: Masatsuka 2018 "I do like CFD", p.148, extracted from eq.(4.14.12)
@@ -150,23 +150,23 @@ public:
     /** Nondimensionalized viscous flux (i.e. dissipative flux)
      *  Reference: Masatsuka 2018 "I do like CFD", p.142, eq.(4.12.1-4.12.4)
      */
-	std::array<dealii::Tensor<1,dim,real>,nstate> 
-	dissipative_flux (
-    	const std::array<real,nstate> &conservative_soln,
-    	const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient) const override;
+    std::array<dealii::Tensor<1,dim,real>,nstate> 
+    dissipative_flux (
+        const std::array<real,nstate> &conservative_soln,
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient) const override;
 
-	/** Gradient of the scaled nondimensionalized viscosity coefficient
+    /** Gradient of the scaled nondimensionalized viscosity coefficient
      *  Reference: Masatsuka 2018 "I do like CFD", p.148, eq.(4.14.14 and 4.14.17)
      */
-	dealii::Tensor<1,dim,real> compute_scaled_viscosity_gradient (
-    	const std::array<real,nstate> &primitive_soln,
-    	const dealii::Tensor<1,dim,real> &temperature_gradient) const;
+    dealii::Tensor<1,dim,real> compute_scaled_viscosity_gradient (
+        const std::array<real,nstate> &primitive_soln,
+        const dealii::Tensor<1,dim,real> &temperature_gradient) const;
 
-	/** Dissipative flux Jacobian 
-	 *  Note: Only used for computing the manufactured solution source term;
+    /** Dissipative flux Jacobian 
+     *  Note: Only used for computing the manufactured solution source term;
      *        computed using automatic differentiation
-	 */
-	dealii::Tensor<2,nstate,real> dissipative_flux_directional_jacobian (
+     */
+    dealii::Tensor<2,nstate,real> dissipative_flux_directional_jacobian (
         const std::array<real,nstate> &conservative_soln,
         const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient,
         const dealii::Tensor<1,dim,real> &normal) const;

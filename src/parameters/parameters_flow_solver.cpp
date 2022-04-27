@@ -44,6 +44,30 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                           dealii::Patterns::FileName(dealii::Patterns::FileName::FileType::input),
                           "Filename for the sensitivity data table output file: sensitivity_table_filename.txt.");
 
+        prm.declare_entry("restart_computation_from_file", "false",
+                          dealii::Patterns::Bool(),
+                          "Restarts the computation from the restart file. False by default.");
+
+        prm.declare_entry("output_restart_files", "false",
+                          dealii::Patterns::Bool(),
+                          "Output restart files for restarting the computation. False by default.");
+
+        prm.declare_entry("restart_files_directory_name", ".",
+                          dealii::Patterns::FileName(dealii::Patterns::FileName::FileType::input),
+                          "Name of directory for writing and reading restart files. Current directory by default.");
+
+        prm.declare_entry("restart_file_index", "1",
+                          dealii::Patterns::Integer(1, dealii::Patterns::Integer::max_int_value),
+                          "Index of restart file from which the computation will be restarted from. 1 by default.");
+
+        prm.declare_entry("output_restart_files_every_x_steps", "1",
+                          dealii::Patterns::Integer(1,dealii::Patterns::Integer::max_int_value),
+                          "Outputs the restart files every x steps.");
+
+        prm.declare_entry("output_restart_files_every_dt_time_intervals", "0.0",
+                          dealii::Patterns::Double(0,dealii::Patterns::Double::max_double_value),
+                          "Outputs the restart files at time intervals of dt.");
+      
         prm.declare_entry("input_mesh_filename", "naca0012",
                           dealii::Patterns::FileName(dealii::Patterns::FileName::FileType::input),
                           "Filename of the input mesh: input_mesh_filename.msh");
@@ -73,6 +97,12 @@ void FlowSolverParam::parse_parameters(dealii::ParameterHandler &prm)
         unsteady_data_table_filename = prm.get("unsteady_data_table_filename");
         steady_state = prm.get_bool("steady_state");
         sensitivity_table_filename = prm.get("sensitivity_table_filename");
+        restart_computation_from_file = prm.get_bool("restart_computation_from_file");
+        output_restart_files = prm.get_bool("output_restart_files");
+        restart_files_directory_name = prm.get("restart_files_directory_name");
+        restart_file_index = prm.get_integer("restart_file_index");
+        output_restart_files_every_x_steps = prm.get_integer("output_restart_files_every_x_steps");
+        output_restart_files_every_dt_time_intervals = prm.get_double("output_restart_files_every_dt_time_intervals");
         input_mesh_filename = prm.get("input_mesh_filename");
 
         prm.enter_subsection("taylor_green_vortex_energy_check");

@@ -21,3 +21,17 @@ add_test(
   WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )
 # ----------------------------------------
+configure_file(viscous_taylor_green_vortex_restart_check.prm viscous_taylor_green_vortex_restart_check.prm COPYONLY)
+add_test(
+  NAME MPI_VISCOUS_TAYLOR_GREEN_VORTEX_RESTART_CHECK
+  COMMAND mpirun -np ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_3D -i ${CMAKE_CURRENT_BINARY_DIR}/viscous_taylor_green_vortex_restart_check.prm
+  WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
+)
+# ----------------------------------------
+configure_file(viscous_taylor_green_vortex_restart_from_parameter_file_check.prm viscous_taylor_green_vortex_restart_from_parameter_file_check.prm COPYONLY)
+add_test(
+  NAME MPI_VISCOUS_TAYLOR_GREEN_VORTEX_RESTART_FROM_PARAMETER_FILE_CHECK
+  COMMAND mpirun -np ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_3D -i ${CMAKE_CURRENT_BINARY_DIR}/viscous_taylor_green_vortex_restart_from_parameter_file_check.prm
+  WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
+)
+# ----------------------------------------

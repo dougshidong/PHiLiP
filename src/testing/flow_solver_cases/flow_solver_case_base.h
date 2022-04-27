@@ -22,14 +22,11 @@ template <int dim, int nstate>
 class FlowSolverCaseBase
 {
 public:
-
     ///Constructor
     FlowSolverCaseBase(const Parameters::AllParameters *const parameters_input);
 
     /// Destructor
     virtual ~FlowSolverCaseBase() {};
-
-public:
 
     /// Displays the flow setup parameters
     virtual void display_flow_solver_setup() const;
@@ -50,7 +47,6 @@ public:
     /// Virtual function for postprocessing when solving for steady state
     virtual void steady_state_postprocessing(std::shared_ptr <DGBase<dim, double>> dg) const;
 
-
 protected:
     const Parameters::AllParameters all_param; ///< All parameters
     const MPI_Comm mpi_communicator; ///< MPI communicator.
@@ -61,7 +57,6 @@ protected:
     /** Used as std::cout, but only prints if mpi_rank == 0
      */
     dealii::ConditionalOStream pcout;
-
 };
 
 } // Tests namespace

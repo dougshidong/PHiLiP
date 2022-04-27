@@ -131,7 +131,7 @@ public:
 };
 
 /// Initial condition function factory
-template <int dim, typename real>
+template <int dim, int nstate, typename real>
 class InitialConditionFactory
 {
 protected:    
@@ -143,7 +143,7 @@ public:
     static std::shared_ptr< InitialConditionFunction<dim,real> > 
     create_InitialConditionFunction(
         Parameters::AllParameters const *const param, 
-        int                                    nstate);
+        int                                    n_state);
 };
 
 /// Initial condition 0.

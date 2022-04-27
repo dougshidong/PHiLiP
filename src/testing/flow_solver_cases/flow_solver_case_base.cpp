@@ -29,6 +29,12 @@ void FlowSolverCaseBase<dim,nstate>::display_flow_solver_setup() const
 }
 
 template <int dim, int nstate>
+void FlowSolverCaseBase<dim,nstate>::set_higher_order_grid(std::shared_ptr<DGBase<dim, double>> /*dg*/) const
+{
+    // Do nothing
+}
+
+template <int dim, int nstate>
 double FlowSolverCaseBase<dim,nstate>::get_constant_time_step(std::shared_ptr<DGBase<dim,double>> /*dg*/) const
 {
     pcout << "Using initial time step in ODE parameters." <<std::endl;

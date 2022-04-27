@@ -21,7 +21,7 @@ FlowSolver<dim, nstate>::FlowSolver(
 : TestsBase::TestsBase(parameters_input)
 , flow_solver_case(flow_solver_case)
 , parameter_handler(parameter_handler_input)
-, initial_condition_function(InitialConditionFactory<dim,double>::create_InitialConditionFunction(parameters_input, nstate))
+, initial_condition_function(InitialConditionFactory<dim, nstate, double>::create_InitialConditionFunction(parameters_input, nstate))
 , all_param(*parameters_input)
 , flow_solver_param(all_param.flow_solver_param)
 , ode_param(all_param.ode_solver_param)
@@ -31,6 +31,7 @@ FlowSolver<dim, nstate>::FlowSolver(
 , dg(DGFactory<dim,double>::create_discontinuous_galerkin(&all_param, poly_degree, flow_solver_case->generate_grid()))
 , ode_solver(ODE::ODESolverFactory<dim, double>::create_ODESolver(dg))
 {
+    flow_solver_case->set_higher_order_grid(dg);
     dg->allocate_system();
     flow_solver_case->display_flow_solver_setup();
     
@@ -458,6 +459,11 @@ FlowSolverFactory<dim,nstate>
     } else if (flow_type == FlowCaseEnum::burgers_rewienski_snapshot){
         if constexpr (dim==1 && nstate==dim){
             std::shared_ptr<FlowSolverCaseBase<dim, nstate>> flow_solver_case = std::make_shared<BurgersRewienskiSnapshot<dim,nstate>>(parameters_input);
+            return std::make_unique<FlowSolver<dim,nstate>>(parameters_input, flow_solver_case, parameter_handler_input);
+        }
+    } else if (flow_type == FlowCaseEnum::naca0012){
+        if constexpr (dim==2 && nstate==dim+2){
+            std::shared_ptr<FlowSolverCaseBase<dim, nstate>> flow_solver_case = std::make_shared<NACA0012<dim,nstate>>(parameters_input);
             return std::make_unique<FlowSolver<dim,nstate>>(parameters_input, flow_solver_case, parameter_handler_input);
         }
     } else {

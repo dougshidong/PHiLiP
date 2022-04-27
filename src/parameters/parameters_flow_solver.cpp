@@ -22,6 +22,7 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                           "Choices are "
                           " <taylor_green_vortex | "
                           " burgers_viscous_snapshot | "
+                          " naca0012 | "
                           " burgers_rewienski_snapshot>.");
 
         prm.declare_entry("final_time", "1",

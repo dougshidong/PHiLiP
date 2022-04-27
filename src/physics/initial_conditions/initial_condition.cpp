@@ -139,27 +139,37 @@ InitialConditionFunction<dim,real>
     // Nothing to do here yet
 }
 
-template <int dim, typename real>
-std::shared_ptr< InitialConditionFunction<dim,real> >
-InitialConditionFactory<dim,real>::create_InitialConditionFunction(
+template <int dim, int nstate, typename real>
+std::shared_ptr< InitialConditionFunction<dim, real> >
+InitialConditionFactory<dim,nstate, real>::create_InitialConditionFunction(
     Parameters::AllParameters const *const param, 
-    int                                    nstate)
+    int                                    n_state)
 {
     // Get the flow case type
     const FlowCaseEnum flow_type = param->flow_solver_param.flow_case_type;
     if (flow_type == FlowCaseEnum::taylor_green_vortex) {
         if constexpr (dim==3) return std::make_shared<InitialConditionFunction_TaylorGreenVortex<dim, real> >(
-                    nstate,
+                    n_state,
                     param->euler_param.gamma_gas,
                     param->euler_param.mach_inf);
     } else if (flow_type == FlowCaseEnum::burgers_rewienski_snapshot) {
         if constexpr (dim==1)  return std::make_shared<InitialConditionFunction_BurgersRewienski<dim,real> > (
-                    nstate);
+                    n_state);
     } else if (flow_type == FlowCaseEnum::burgers_viscous_snapshot) {
         if constexpr (dim==1)  return std::make_shared<InitialConditionFunction_BurgersViscous<dim,real> > (
-                    nstate);
+                    n_state);
+    } else if (flow_type == FlowCaseEnum::naca0012) {
+        if constexpr (dim==2){
+            Physics::Euler<dim,nstate,double> euler_physics_double = Physics::Euler<dim, nstate, double>(
+                    param->euler_param.ref_length,
+                    param->euler_param.gamma_gas,
+                    param->euler_param.mach_inf,
+                    param->euler_param.angle_of_attack,
+                    param->euler_param.side_slip_angle);
+            return std::make_shared<Physics::FreeStreamInitialConditions<dim,nstate>>(euler_physics_double);
+        }
     } else {
-        nstate = 1*nstate; //To avoid unused parameter error
+        n_state = 1*n_state; //To avoid unused parameter error
         std::cout << "Invalid Flow Case Type. You probably forgot to add it to the list of flow cases in initial_condition.cpp" << std::endl;
         std::abort();
     }
@@ -176,7 +186,8 @@ real InitialConditionFunction_Zero<dim, real> :: value(const dealii::Point<dim,r
 }
 
 template class InitialConditionFunction <PHILIP_DIM,double>;
-template class InitialConditionFactory <PHILIP_DIM,double>;
+template class InitialConditionFactory <PHILIP_DIM, PHILIP_DIM+2, double>;
+template class InitialConditionFactory <PHILIP_DIM, PHILIP_DIM, double>;
 template class InitialConditionFunction_TaylorGreenVortex <PHILIP_DIM,double>;
 template class InitialConditionFunction_Zero <PHILIP_DIM,double>;
 

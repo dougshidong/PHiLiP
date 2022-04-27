@@ -128,6 +128,7 @@ int ODESolverBase<dim,real,MeshType>::steady_state ()
         if (this->residual_norm_decrease < 1.0) {
             ramped_CFL *= pow((1.0-std::log10(this->residual_norm_decrease)*ode_param.time_step_factor_residual), ode_param.time_step_factor_residual_exp);
         }
+        // ramped_CFL = initial_CFL*CFL_factor;
         ramped_CFL = std::max(ramped_CFL,initial_CFL*CFL_factor);
         pcout << "Initial CFL = " << initial_CFL << ". CFL Factor = " << CFL_factor << ". Current CFL = " << ramped_CFL << std::endl;
 

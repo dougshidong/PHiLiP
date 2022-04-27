@@ -12,6 +12,7 @@ ImplicitODESolver<dim,real,MeshType>::ImplicitODESolver(std::shared_ptr< DGBase<
 template <int dim, typename real, typename MeshType>
 void ImplicitODESolver<dim,real,MeshType>::step_in_time (real dt, const bool pseudotime)
 {
+    double step_length = 1.0;
     const bool compute_dRdW = true;
     this->dg->assemble_residual(compute_dRdW);
     this->current_time += dt;
@@ -40,10 +41,32 @@ void ImplicitODESolver<dim,real,MeshType>::step_in_time (real dt, const bool pse
             this->solution_update,
             this->ODESolverBase<dim,real,MeshType>::all_parameters->linear_solver_param);
 
-    linesearch();
+    const auto old_solution = this->dg->solution;
+    const double initial_residual = this->dg->get_residual_l2norm();
+
+    step_length = linesearch();
+    evaluate_cfl(step_length, initial_residual);
 
     this->update_norm = this->solution_update.l2_norm();
     ++(this->current_iteration);
+}
+
+template <int dim, typename real, typename MeshType>
+void ImplicitODESolver<dim,real,MeshType>::evaluate_cfl (double step_length, double initial_residual)
+{
+    double minimum_step_length = 0.01;
+
+    this->dg->assemble_residual ();
+    const double new_residual = this->dg->get_residual_l2norm();
+
+    if (abs(new_residual) < abs(initial_residual) 
+        && step_length == 1. 
+	&& abs(new_residual / initial_residual) <= 0.5 ) {
+        this->CFL_factor *= 2.;
+    } else if (step_length < minimum_step_length) {
+        this->CFL_factor *= 0.1;
+    }     
+    return;
 }
 
 template <int dim, typename real, typename MeshType>
@@ -66,7 +89,9 @@ double ImplicitODESolver<dim,real,MeshType>::linesearch ()
     this->pcout << " Step length " << step_length << ". Old residual: " << initial_residual << " New residual: " << new_residual << std::endl;
 
     int iline = 0;
-    for (iline = 0; iline < maxline && new_residual > initial_residual * reduction_tolerance_1; ++iline) {
+    for (iline = 0; iline < maxline 
+		    && new_residual > initial_residual * reduction_tolerance_1
+		    && step_length > 0.1; ++iline) {
         step_length = step_length * step_reduction;
         this->dg->solution = old_solution;
         this->dg->solution.add(step_length, this->solution_update);
@@ -74,10 +99,11 @@ double ImplicitODESolver<dim,real,MeshType>::linesearch ()
         new_residual = this->dg->get_residual_l2norm();
         this->pcout << " Step length " << step_length << " . Old residual: " << initial_residual << " New residual: " << new_residual << std::endl;
     }
+    /*
     if (iline == 0) {
-	this->CFL_factor *= 2.0;
+	// this->CFL_factor *= 2.0;
         this->pcout << " Line Search (Case 1): Increase CFL " << this->CFL_factor << std::endl;
-    }
+    } */
 
     if (iline == maxline) {
         step_length = 1.0;
@@ -96,6 +122,7 @@ double ImplicitODESolver<dim,real,MeshType>::linesearch ()
             this->pcout << " Step length " << step_length << " . Old residual: " << initial_residual << " New residual: " << new_residual << std::endl;
         }
     }
+    /*
     if (iline == maxline) {
         this->CFL_factor *= 0.5;
         this->pcout << " Line Search (Case 3): Decrease CFL " << std::endl;
@@ -103,7 +130,7 @@ double ImplicitODESolver<dim,real,MeshType>::linesearch ()
         this->pcout << " Resetting solution and reducing CFL_factor by : " << this->CFL_factor << std::endl;
         this->dg->solution = old_solution;
         return 0.0;
-    }
+    }*/
 
     if (iline == maxline) {
         this->pcout << " Line Search (Case 4): Reverse Search Direction " << std::endl;
@@ -139,6 +166,7 @@ double ImplicitODESolver<dim,real,MeshType>::linesearch ()
         }
         //std::abort();
     }
+    /*
     if (iline == maxline) {
         this->pcout << " Line Search (Case 6): Decrease CFL " << std::endl;
         this->pcout << " Reached maximum number of linesearches. Terminating... " << std::endl;
@@ -146,7 +174,7 @@ double ImplicitODESolver<dim,real,MeshType>::linesearch ()
         this->dg->solution = old_solution;
         this->CFL_factor *= 0.5;
     }
-
+    */
     return step_length;
 }
 

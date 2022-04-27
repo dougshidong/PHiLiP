@@ -44,31 +44,34 @@ template <int dim, int nstate>
      parameters.use_periodic_bc = this->all_parameters->use_periodic_bc;
      
      parameters.ode_solver_param.initial_time_step *= pow(refine_ratio,refinement);
+     //ADD : flow_solver params: change file name
      return parameters;
  }
 
 
 /*
 template <int dim, int nstate>
-void TimeRefinementStudyAdvection<dim, nstate>::write_convergence_summary() {
+void TimeRefinementStudyAdvection<dim, nstate>::write_convergence_summary(int refinement, double dt) {
     
-    convergence_table.add_value("cells",grid->n_active_cells());
-    convergence_table.add_value("space_poly_deg", space_poly_degree);
+    //convergence_table.add_value("cells",grid->n_active_cells());
+    //convergence_table.add_value("space_poly_deg", space_poly_degree);
     convergence_table.add_value("refinement", refinement);
-    convergence_table.add_value("dt",dt );
-    convergence_table.add_value("L2_error",L2_error );
-    convergence_table.set_precision("L2_error", 4);
-    convergence_table.set_scientific("L2_error", true);
+    convergence_table.add_value("dt", dt );
+    //convergence_table.add_value("L2_error",L2_error );
+    //convergence_table.set_precision("L2_error", 4);
+    //convergence_table.set_scientific("L2_error", true);
     convergence_table.set_precision("dt", 3);
     convergence_table.set_scientific("dt", true);
-    convergence_table.evaluate_convergence_rates("L2_error", "dt", dealii::ConvergenceTable::reduction_rate_log2, 1);
+    //convergence_table.evaluate_convergence_rates("L2_error", "dt", dealii::ConvergenceTable::reduction_rate_log2, 1);
 
 
 }
 */
+
 template <int dim, int nstate>
 int TimeRefinementStudyAdvection<dim, nstate>::run_test() const
 {
+    dealii::ConvergenceTable convergence_table; 
 
     for (int refinement = 0; refinement < n_time_calculations; ++refinement){
         
@@ -81,8 +84,26 @@ int TimeRefinementStudyAdvection<dim, nstate>::run_test() const
         
         //check L2 error
         //write to data table
+        //this->write_convergence_summary(refinement, params.ode_solver_param.initial_time_step);
 
+        const double dt =  params.ode_solver_param.initial_time_step;
+        convergence_table.add_value("refinement", refinement);
+        convergence_table.add_value("dt", dt );
+        convergence_table.set_precision("dt", 3);
+        convergence_table.set_scientific("dt", true);
     }
+
+    //Printing and writing convergence table
+    pcout << std::endl;
+    convergence_table.write_text(std::cout); //pcout gives an error. Shouldn't be an issue as this is 1D and doesn't use MPI
+
+     std::ofstream conv_tab_file;
+     const char fname[25] = "convergence_table_1D.txt";
+     conv_tab_file.open(fname);
+     convergence_table.write_text(conv_tab_file);
+     conv_tab_file.close();
+
+
 
     //PASS/FAIL CHECK
 

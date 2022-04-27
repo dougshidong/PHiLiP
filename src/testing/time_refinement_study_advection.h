@@ -2,6 +2,7 @@
 #define __TIME_REFINEMENT_STUDY_ADVECTION__
 
 #include "tests.h"
+#include <deal.II/base/convergence_table.h>
 
 namespace PHiLiP {
 namespace Tests {
@@ -31,7 +32,7 @@ protected:
     //dealii::ConvergenceTable convergence_table;
 
     /// Write to data table at the end of a computation
-    //void write_convergence_summary();
+    //void write_convergence_summary(int refinement, double dt);
 
     /// L2 error
    // dealii::Vector<double> L2_error_conv_rate();
@@ -39,6 +40,10 @@ protected:
 
     /// Reinitialize parameters while refining the timestep. Necessary because all_parameters is constant.
     Parameters::AllParameters reinit_params_and_refine_timestep(int refinement) const;
+
+
+    /// Parameters for the current refinement (i.e., duplicate of .prm file except for timestep size)
+    //Parameters::AllParameters params;
 };
 
 } // End of Tests namespace

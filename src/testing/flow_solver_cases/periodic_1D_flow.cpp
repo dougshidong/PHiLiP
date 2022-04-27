@@ -81,9 +81,8 @@ std::shared_ptr<Triangulation> Periodic1DFlow<dim,nstate>::generate_grid() const
 }
 
 template <int dim, int nstate>
-double Periodic1DFlow<dim,nstate>::get_constant_time_step(std::shared_ptr<DGBase<dim,double>> dg) const
+double Periodic1DFlow<dim,nstate>::get_constant_time_step(std::shared_ptr<DGBase<dim,double>> /* dg*/) const
 {
-    this->pcout << "    Temp: " << dg->nstate << std::endl; //printing garbage to avoid warning about unused parameter
 
     const double initial_time_step = this->all_param.ode_solver_param.initial_time_step;
     double constant_time_step = initial_time_step;  
@@ -95,33 +94,26 @@ template <int dim, int nstate>
 void Periodic1DFlow<dim, nstate>::compute_unsteady_data_and_write_to_table(
         const unsigned int current_iteration,
         const double current_time,
-        const std::shared_ptr <DGBase<dim, double>> dg,
+        const std::shared_ptr <DGBase<dim, double>>/* dg */,
         const std::shared_ptr <dealii::TableHandler> unsteady_data_table) const
 {
+    this->pcout << "    Iter: " << current_iteration
+                << "    Time: " << current_time
+                << std::endl;
 
-    // I don't actually want this to write anything; currently printing stuff to avoid warnings. Will fix later.
-
-         this->pcout << "    Iter: " << current_iteration
-                     << "    Time: " << current_time
-                     << "    Temp: " << dg->nstate << std::endl;
-
-    // Pretty sure this doesn't actually need to write anything
-    
-   
     if(this->mpi_rank==0) {
-        unsteady_data_table->add_value("cells", number_of_cells_per_direction);
-        unsteady_data_table->add_value("space_poly_degree", this->all_param.grid_refinement_study_param.poly_degree);
-        unsteady_data_table->add_value("dt", this->all_param.ode_solver_param.initial_time_step); //maybe store this in the class
+        unsteady_data_table->add_value("dt", this->all_param.ode_solver_param.initial_time_step);
         unsteady_data_table->set_precision("dt",3);
         unsteady_data_table->set_scientific("dt", true);
-        //ADD ERROR CALC BASED ON EXACT SOLUTION
+        
+        //Currently only writes time
+        //In other versions, could add other useful data (e.g., entropy for e-stable schemes)
 
     }
 
 
 }
 
-//not confident this is correct
 #if PHILIP_DIM==1
     template class Periodic1DFlow <PHILIP_DIM,PHILIP_DIM>;
 #endif

@@ -13,9 +13,9 @@ template <int dim, int nstate, typename real>
 class LargeEddySimulationBase : public ModelBase <dim, nstate, real>
 {
 public:
+    using thermal_boundary_condition_enum = Parameters::NavierStokesParam::ThermalBoundaryCondition;
     /// Constructor
 	LargeEddySimulationBase(
-        std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function_input,
 	    const double                                              ref_length,
         const double                                              gamma_gas,
         const double                                              mach_inf,
@@ -24,7 +24,10 @@ public:
         const double                                              prandtl_number,
         const double                                              reynolds_number_inf,
         const double                                              turbulent_prandtl_number,
-        const double                                              ratio_of_filter_width_to_cell_size);
+        const double                                              ratio_of_filter_width_to_cell_size,
+        const double                                              isothermal_wall_temperature = 1.0,
+        const thermal_boundary_condition_enum                     thermal_boundary_condition_type = thermal_boundary_condition_enum::adiabatic,
+        std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function = nullptr);
 
     /// Destructor
     ~LargeEddySimulationBase() {};
@@ -133,12 +136,12 @@ template <int dim, int nstate, typename real>
 class LargeEddySimulation_Smagorinsky : public LargeEddySimulationBase <dim, nstate, real>
 {
 public:
+    using thermal_boundary_condition_enum = Parameters::NavierStokesParam::ThermalBoundaryCondition;
     /** Constructor for the sub-grid scale (SGS) model: Smagorinsky
      *  More details...
      *  Reference: To be put here
      */
     LargeEddySimulation_Smagorinsky(
-        std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function_input,
         const double                                              ref_length,
         const double                                              gamma_gas,
         const double                                              mach_inf,
@@ -148,7 +151,10 @@ public:
         const double                                              reynolds_number_inf,
         const double                                              turbulent_prandtl_number,
         const double                                              ratio_of_filter_width_to_cell_size,
-        const double                                              model_constant);
+        const double                                              model_constant,
+        const double                                              isothermal_wall_temperature = 1.0,
+        const thermal_boundary_condition_enum                     thermal_boundary_condition_type = thermal_boundary_condition_enum::adiabatic,
+        std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function = nullptr);
 
     /// SGS model constant
     const double model_constant;
@@ -227,12 +233,12 @@ template <int dim, int nstate, typename real>
 class LargeEddySimulation_WALE : public LargeEddySimulation_Smagorinsky <dim, nstate, real>
 {
 public:
+    using thermal_boundary_condition_enum = Parameters::NavierStokesParam::ThermalBoundaryCondition;
     /** Constructor for the sub-grid scale (SGS) model: Smagorinsky
      *  More details...
      *  Reference: Nicoud & Ducros (1999) "Subgrid-scale stress modelling based on the square of the velocity gradient tensor"
      */
     LargeEddySimulation_WALE(
-        std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function_input,
         const double                                              ref_length,
         const double                                              gamma_gas,
         const double                                              mach_inf,
@@ -242,7 +248,10 @@ public:
         const double                                              reynolds_number_inf,
         const double                                              turbulent_prandtl_number,
         const double                                              ratio_of_filter_width_to_cell_size,
-        const double                                              model_constant);
+        const double                                              model_constant,
+        const double                                              isothermal_wall_temperature = 1.0,
+        const thermal_boundary_condition_enum                     thermal_boundary_condition_type = thermal_boundary_condition_enum::adiabatic,
+        std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function = nullptr);
 
     /// Destructor
     ~LargeEddySimulation_WALE() {};

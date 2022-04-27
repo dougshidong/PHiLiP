@@ -364,9 +364,7 @@ int main (int argc, char * argv[])
         for (auto conv = conv_type.begin(); conv != conv_type.end() && success == 0; conv++) {
 
             // Roe-type fluxes are defined only for the Euler and Navier-Stokes equations
-            if(((*conv == ConvType::roe) || (*conv == ConvType::l2roe)) && 
-               ((*pde!=PDEType::euler) && (*pde!=PDEType::navier_stokes) && 
-                ((*pde!=PDEType::physics_model) && (all_parameters.model_type!=ModelType::large_eddy_simulation)))) continue;
+            if(((*conv == ConvType::roe) || (*conv == ConvType::l2roe)) && ((*pde!=PDEType::euler) && (*pde!=PDEType::navier_stokes) && (*pde!=PDEType::physics_model))) continue;
             all_parameters.conv_num_flux_type = *conv;
 
             std::string conv_string;

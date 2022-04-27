@@ -101,7 +101,7 @@ void NACA0012<dim,nstate>::steady_state_postprocessing(std::shared_ptr<DGBase<di
 
 
 #if PHILIP_DIM==2
-template class NACA0012<PHILIP_DIM,PHILIP_DIM+2>;
+    template class NACA0012<PHILIP_DIM,PHILIP_DIM+2>;
 #endif
 
 } // Tests namespace

@@ -17,6 +17,7 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                           dealii::Patterns::Selection(
                           " taylor_green_vortex | "
                           " burgers_viscous_snapshot | "
+                          " naca0012 | "
                           " burgers_rewienski_snapshot"),
                           "The type of flow we want to simulate. "
                           "Choices are "
@@ -92,6 +93,7 @@ void FlowSolverParam::parse_parameters(dealii::ParameterHandler &prm)
         if      (flow_case_type_string == "taylor_green_vortex")  {flow_case_type = taylor_green_vortex;}
         else if (flow_case_type_string == "burgers_viscous_snapshot")  {flow_case_type = burgers_viscous_snapshot;}
         else if (flow_case_type_string == "burgers_rewienski_snapshot")  {flow_case_type = burgers_rewienski_snapshot;}
+        else if (flow_case_type_string == "naca0012")  {flow_case_type = naca0012;}
 
         final_time = prm.get_double("final_time");
         courant_friedrich_lewy_number = prm.get_double("courant_friedrich_lewy_number");

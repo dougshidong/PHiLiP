@@ -1,7 +1,7 @@
 # Listing of Parameters
 # ---------------------
 
-set test_type = euler_naca0012
+set test_type = flow_solver
 
 # Number of dimensions
 set dimension = 2
@@ -104,6 +104,6 @@ end
 
 subsection flow_solver
   set flow_case_type = naca0012
-  set input_mesh_filename = naca0012_hopw_ref2
+  set input_mesh_filename = naca0012
 end
 

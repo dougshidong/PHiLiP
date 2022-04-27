@@ -86,10 +86,10 @@ end
 
 subsection manufactured solution convergence study
   # Last degree used for convergence study
-  set degree_end        = 3
+  set degree_end        = 0
 
   # Starting degree for convergence study
-  set degree_start      = 3
+  set degree_start      = 0
 
   set grid_progression  = 1
 
@@ -100,9 +100,5 @@ subsection manufactured solution convergence study
 
   # Number of grids in grid study
   set number_of_grids   = 1
-end
-
-subsection flow_solver
-  set input_mesh_filename = naca0012_hopw_ref2
 end
 

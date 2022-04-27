@@ -132,7 +132,7 @@ inline real InitialConditionFunction_BurgersViscous<dim,nstate,real>
 template <int dim, int nstate, typename real>
 InitialConditionFunction<dim,nstate,real>
 ::InitialConditionFunction ()
-    : dealii::Function<dim,real>()//,0.0) // 0.0 denotes initial time (t=0)
+    : dealii::Function<dim,real>(nstate)//,0.0) // 0.0 denotes initial time (t=0)
 {
     // Nothing to do here yet
 }
@@ -154,6 +154,7 @@ InitialConditionFactory<dim,nstate, real>::create_InitialConditionFunction(
         if constexpr (dim==1 && nstate==dim)  return std::make_shared<InitialConditionFunction_BurgersViscous<dim,nstate,real> > ();
     } else if (flow_type == FlowCaseEnum::naca0012) {
         if constexpr (dim==2 && nstate==dim+2){
+            std::cout << "HERE 0" << std::endl;
             Physics::Euler<dim,nstate,double> euler_physics_double = Physics::Euler<dim, nstate, double>(
                     param->euler_param.ref_length,
                     param->euler_param.gamma_gas,

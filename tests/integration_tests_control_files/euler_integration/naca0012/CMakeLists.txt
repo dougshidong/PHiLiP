@@ -12,9 +12,9 @@ add_test(
   WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )
 
-configure_file(naca0012.prm naca0012.prm COPYONLY)
+configure_file(inviscid_transonic_steady_state_naca0012.prm inviscid_transonic_steady_state_naca0012.prm COPYONLY)
 add_test(
-        NAME NACA0012_FLOWSOLVER
+        NAME INVISCID_TRANSONIC_STEADY_STATE_NACA0012
         COMMAND mpirun -np ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_2D -i ${CMAKE_CURRENT_BINARY_DIR}/naca0012.prm
         WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )

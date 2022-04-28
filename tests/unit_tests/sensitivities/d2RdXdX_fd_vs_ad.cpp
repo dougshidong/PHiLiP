@@ -17,7 +17,8 @@
 #include "parameters/parameters.h"
 #include "physics/physics_factory.h"
 
-using PDEType  = PHiLiP::Parameters::AllParameters::PartialDifferentialEquation;
+using PDEType   = PHiLiP::Parameters::AllParameters::PartialDifferentialEquation;
+using ModelType = PHiLiP::Parameters::AllParameters::ModelType;
 
 #if PHILIP_DIM==1
     using Triangulation = dealii::Triangulation<PHILIP_DIM>;
@@ -365,6 +366,9 @@ int main (int argc, char * argv[])
          //, PDEType::advection_vector
          , PDEType::euler
          , PDEType::navier_stokes
+#if PHILIP_DIM==3
+        , PDEType::physics_model
+#endif
     };
     std::vector<std::string> pde_name {
          " PDEType::diffusion "
@@ -373,6 +377,9 @@ int main (int argc, char * argv[])
         //, " PDEType::advection_vector "
         , " PDEType::euler "
         , " PDEType::navier_stokes "
+#if PHILIP_DIM==3
+        , " PDEType::physics_model "
+#endif
     };
 
     int ipde = -1;
@@ -402,7 +409,11 @@ int main (int argc, char * argv[])
                     }
                 }
 
-                if (*pde==PDEType::euler || *pde==PDEType::navier_stokes) {
+                if ((*pde==PDEType::euler) || (*pde==PDEType::navier_stokes)
+#if PHILIP_DIM==3
+         || ((*pde==PDEType::physics_model) && (all_parameters.model_type==ModelType::large_eddy_simulation))
+#endif
+                    ) {
                     error = test<dim,dim+2>(poly_degree, grid, all_parameters);
                 } else if (*pde==PDEType::burgers_inviscid) {
                     error = test<dim,dim>(poly_degree, grid, all_parameters);

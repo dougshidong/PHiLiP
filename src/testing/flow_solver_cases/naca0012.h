@@ -14,15 +14,14 @@
 namespace PHiLiP {
 namespace Tests {
 
+template <int dim, int nstate>
+class NACA0012 : public FlowSolverCaseBase<dim,nstate>
+{
 #if PHILIP_DIM==1
     using Triangulation = dealii::Triangulation<PHILIP_DIM>;
 #else
     using Triangulation = dealii::parallel::distributed::Triangulation<PHILIP_DIM>;
 #endif
-
-template <int dim, int nstate>
-class NACA0012 : public FlowSolverCaseBase<dim,nstate>
-{
 public:
     /// Constructor.
     NACA0012(const Parameters::AllParameters *const parameters_input);

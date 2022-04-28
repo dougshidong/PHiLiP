@@ -225,8 +225,8 @@ int EulerNACA0012<dim,nstate>
 
             // Create ODE solver and ramp up the solution from p0
             std::shared_ptr<ODE::ODESolverBase<dim, double>> ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
-            ode_solver->initialize_steady_polynomial_ramping (poly_degree);
-            //ode_solver->steady_state();
+            //ode_solver->initialize_steady_polynomial_ramping (poly_degree);
+            ode_solver->steady_state();
             LiftDragFunctional<dim,dim+2,double> lift_functional( dg, LiftDragFunctional<dim,dim+2,double>::Functional_types::lift );
             double lift = lift_functional.evaluate_functional();
 

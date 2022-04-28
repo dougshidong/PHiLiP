@@ -48,6 +48,10 @@ public:
         for (int d=0;d<dim;d++) { primitive_boundary_values[1+d] = euler_physics.velocities_inf[d]; }
         primitive_boundary_values[nstate-1] = pressure_bc;
         farfield_conservative = euler_physics.convert_primitive_to_conservative(primitive_boundary_values);
+        std::cout << "Farfield conditions: "<< std::endl;
+        for (int s=0;s<nstate;s++) {
+            std::cout << farfield_conservative[s] << std::endl;
+        }
     }
 
     /// Returns the istate-th farfield conservative value

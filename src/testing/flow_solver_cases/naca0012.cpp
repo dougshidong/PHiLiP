@@ -48,32 +48,11 @@ void NACA0012<dim,nstate>::display_flow_solver_setup() const
 template <int dim, int nstate>
 std::shared_ptr<Triangulation> NACA0012<dim,nstate>::generate_grid() const
 {
-    std::shared_ptr<Triangulation> grid = std::make_shared<Triangulation>(
-            MPI_COMM_WORLD,
-            typename dealii::Triangulation<dim>::MeshSmoothing(
-                    dealii::Triangulation<dim>::smoothing_on_refinement |
-                    dealii::Triangulation<dim>::smoothing_on_coarsening));
-
+    //Dummy triangulation
+    std::shared_ptr<Triangulation> grid = std::make_shared<Triangulation>(MPI_COMM_WORLD);
     dealii::GridGenerator::Airfoil::AdditionalData airfoil_data;
-    airfoil_data.airfoil_type = "NACA";
-    airfoil_data.naca_id      = "0012";
-    airfoil_data.airfoil_length = 1.0;
-    airfoil_data.height         = 150.0; // Farfield radius.
-    airfoil_data.length_b2      = 150.0;
-    airfoil_data.incline_factor = 0.0;
-    airfoil_data.bias_factor    = 5.0;
-    airfoil_data.refinements    = 0;
-    airfoil_data.n_subdivision_x_0 = 4;
-    airfoil_data.n_subdivision_x_1 = 4;
-    airfoil_data.n_subdivision_x_2 = 4;
-    airfoil_data.n_subdivision_y = 4;
-
-    airfoil_data.airfoil_sampling_factor = 100000; // default 2
-
-    Grids::naca_airfoil(reinterpret_cast<dealii::parallel::distributed::Triangulation<2> &>(*grid), airfoil_data);
-
+    dealii::GridGenerator::Airfoil::create_triangulation(*grid, airfoil_data);
     grid->refine_global();
-
     return grid;
 }
 

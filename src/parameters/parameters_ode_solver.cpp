@@ -56,12 +56,25 @@ void ODESolverParam::declare_parameters (dealii::ParameterHandler &prm)
                           dealii::Patterns::Anything(),
                           "Filename to use when outputting solution vectors in a table format.");
 
+        prm.declare_entry("initial_time", "0.0",
+                          dealii::Patterns::Double(0, dealii::Patterns::Double::max_double_value),
+                          "Initial time at which we initialize the ODE solver with.");
+
+        prm.declare_entry("initial_iteration", "0",
+                          dealii::Patterns::Integer(0, dealii::Patterns::Integer::max_int_value),
+                          "Initial iteration at which we initialize the ODE solver with.");
+        
+        prm.declare_entry("initial_desired_time_for_output_solution_every_dt_time_intervals", "0.0",
+                           dealii::Patterns::Double(0, dealii::Patterns::Double::max_double_value),
+                           "Initial desired time for outputting the solution every dt time intervals "
+                           "at which we initialize the ODE solver with.");
+
         prm.enter_subsection("explicit solver options");
         {
             prm.declare_entry("runge_kutta_order", "3",
-                              dealii::Patterns::Selection("1|3"),
+                              dealii::Patterns::Selection("1|3|4"),
                               "Order for the Runge-Kutta explicit time advancement scheme."
-                              "Choices are <1|3>.");
+                              "Choices are <1|3|4>.");
         }
         prm.leave_subsection();
     }
@@ -95,11 +108,16 @@ void ODESolverParam::parse_parameters (dealii::ParameterHandler &prm)
         output_solution_vector_modulo = prm.get_integer("output_solution_vector_modulo");
         solutions_table_filename = prm.get("solutions_table_filename");
 
+        initial_time = prm.get_double("initial_time");
+        initial_iteration = prm.get_integer("initial_iteration");
+        initial_desired_time_for_output_solution_every_dt_time_intervals = prm.get_double("initial_desired_time_for_output_solution_every_dt_time_intervals");
+
         prm.enter_subsection("explicit solver options");
         {
             const std::string runge_kutta_order_string = prm.get("runge_kutta_order");
             if (runge_kutta_order_string == "1") runge_kutta_order = 1;
             if (runge_kutta_order_string == "3") runge_kutta_order = 3;
+            if (runge_kutta_order_string == "4") runge_kutta_order = 4;
         }
         prm.leave_subsection();
     }

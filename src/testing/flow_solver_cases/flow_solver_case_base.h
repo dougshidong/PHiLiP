@@ -22,20 +22,20 @@ template <int dim, int nstate>
 class FlowSolverCaseBase
 {
 public:
-
     ///Constructor
     FlowSolverCaseBase(const Parameters::AllParameters *const parameters_input);
 
     /// Destructor
     virtual ~FlowSolverCaseBase() {};
 
-public:
-
     /// Displays the flow setup parameters
     virtual void display_flow_solver_setup() const;
 
     /// Pure Virtual function to generate the grid
     virtual std::shared_ptr<Triangulation> generate_grid() const = 0;
+
+    /// Set higher order grid
+    virtual void set_higher_order_grid(std::shared_ptr <DGBase<dim, double>> dg) const;
 
     /// Virtual function to write unsteady snapshot data to table
     virtual void compute_unsteady_data_and_write_to_table(
@@ -50,7 +50,6 @@ public:
     /// Virtual function for postprocessing when solving for steady state
     virtual void steady_state_postprocessing(std::shared_ptr <DGBase<dim, double>> dg) const;
 
-
 protected:
     const Parameters::AllParameters all_param; ///< All parameters
     const MPI_Comm mpi_communicator; ///< MPI communicator.
@@ -61,7 +60,6 @@ protected:
     /** Used as std::cout, but only prints if mpi_rank == 0
      */
     dealii::ConditionalOStream pcout;
-
 };
 
 } // Tests namespace

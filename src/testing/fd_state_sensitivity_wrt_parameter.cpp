@@ -4,8 +4,11 @@ namespace PHiLiP {
 namespace Tests {
 
 template <int dim, int nstate>
-FiniteDifferenceSensitivity<dim, nstate>::FiniteDifferenceSensitivity(const PHiLiP::Parameters::AllParameters *const parameters_input)
+FiniteDifferenceSensitivity<dim, nstate>::FiniteDifferenceSensitivity(
+    const PHiLiP::Parameters::AllParameters *const parameters_input,
+    const dealii::ParameterHandler &parameter_handler_input)
         : TestsBase::TestsBase(parameters_input)
+        , parameter_handler(parameter_handler_input)
 {}
 
 template <int dim, int nstate>
@@ -15,8 +18,8 @@ int FiniteDifferenceSensitivity<dim, nstate>::run_test() const
     Parameters::AllParameters params_1 = reinit_params(0);
     Parameters::AllParameters params_2 = reinit_params(h);
 
-    std::unique_ptr<FlowSolver<dim,nstate>> flow_solver_1 = FlowSolverFactory<dim,nstate>::create_FlowSolver(&params_1);
-    std::unique_ptr<FlowSolver<dim,nstate>> flow_solver_2 = FlowSolverFactory<dim,nstate>::create_FlowSolver(&params_2);
+    std::unique_ptr<FlowSolver<dim,nstate>> flow_solver_1 = FlowSolverFactory<dim,nstate>::create_FlowSolver(&params_1, parameter_handler);
+    std::unique_ptr<FlowSolver<dim,nstate>> flow_solver_2 = FlowSolverFactory<dim,nstate>::create_FlowSolver(&params_2, parameter_handler);
 
     dealii::TableHandler sensitivity_table;
     dealii::TableHandler solutions_table;
@@ -89,6 +92,7 @@ Parameters::AllParameters FiniteDifferenceSensitivity<dim, nstate>::reinit_param
     // Copy all parameters
     PHiLiP::Parameters::AllParameters parameters = *(this->all_parameters);
 
+    // change desired parameters based on inputs
     using FlowCaseEnum = Parameters::FlowSolverParam::FlowCaseType;
     const FlowCaseEnum flow_type = this->all_parameters->flow_solver_param.flow_case_type;
     if (flow_type == FlowCaseEnum::burgers_rewienski_snapshot){

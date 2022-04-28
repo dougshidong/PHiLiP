@@ -273,6 +273,7 @@ inline real Euler<dim,nstate,real>
     const real density = gam*pressure/temperature * mach_inf_sqr;
     return density;
 }
+
 template <int dim, int nstate, typename real>
 inline real Euler<dim,nstate,real>
 ::compute_temperature_from_density_pressure ( const real density, const real pressure ) const
@@ -281,6 +282,13 @@ inline real Euler<dim,nstate,real>
     return temperature;
 }
 
+template <int dim, int nstate, typename real>
+inline real Euler<dim,nstate,real>
+::compute_pressure_from_density_temperature ( const real density, const real temperature ) const
+{
+    const real pressure = density*temperature/(gam*mach_inf_sqr);
+    return pressure;
+}
 
 template <int dim, int nstate, typename real>
 template<typename real2>
@@ -635,7 +643,7 @@ void Euler<dim,nstate,real>
 
 template <int dim, int nstate, typename real>
 void Euler<dim,nstate,real>
-::boundary_slip_wall (
+::boundary_wall (
    const dealii::Tensor<1,dim,real> &normal_int,
    const std::array<real,nstate> &soln_int,
    const std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_int,
@@ -923,7 +931,7 @@ void Euler<dim,nstate,real>
     } 
     else if (boundary_type == 1001) {
         // Slip wall boundary condition
-        boundary_slip_wall (normal_int, soln_int, soln_grad_int, soln_bc, soln_grad_bc);
+        boundary_wall (normal_int, soln_int, soln_grad_int, soln_bc, soln_grad_bc);
     } 
     else if (boundary_type == 1002) {
         // Pressure outflow boundary condition (back pressure)

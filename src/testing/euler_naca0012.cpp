@@ -69,7 +69,7 @@ int EulerNACA0012<dim,nstate>
                 param.euler_param.mach_inf,
                 param.euler_param.angle_of_attack,
                 param.euler_param.side_slip_angle);
-    Physics::FreeStreamInitialConditions<dim,nstate> initial_conditions(euler_physics_double);
+    FreeStreamInitialConditions<dim,nstate,double> initial_conditions(euler_physics_double);
     pcout << "Farfield conditions: "<< std::endl;
     for (int s=0;s<nstate;s++) {
         pcout << initial_conditions.farfield_conservative[s] << std::endl;

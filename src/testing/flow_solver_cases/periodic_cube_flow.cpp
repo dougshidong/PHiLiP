@@ -24,7 +24,7 @@ PeriodicCubeFlow<dim, nstate>::PeriodicCubeFlow(const PHiLiP::Parameters::AllPar
         , domain_left(this->all_param.grid_refinement_study_param.grid_left)
         , domain_right(this->all_param.grid_refinement_study_param.grid_right)
         , domain_volume(pow(domain_right - domain_left, dim))
-        , unsteady_data_table_filename_with_extension(parameters_input->flow_solver_param.unsteady_data_table_filename+".txt")
+        , unsteady_data_table_filename_with_extension(this->all_param.flow_solver_param.unsteady_data_table_filename+".txt")
 {
     // Get the flow case type
     using FlowCaseEnum = Parameters::FlowSolverParam::FlowCaseType;
@@ -104,7 +104,7 @@ double PeriodicCubeFlow<dim,nstate>::integrand_l2_error_initial_condition(const 
 {
     // Description: Returns l2 error with the initial condition function
     // Purpose: For checking the initialization
-    std::shared_ptr<InitialConditionFunction<dim,double>> initial_condition_function = InitialConditionFactory<dim,double>::create_InitialConditionFunction(&this->all_param, nstate);
+    std::shared_ptr<InitialConditionFunction<dim,nstate,double>> initial_condition_function = InitialConditionFactory<dim,nstate,double>::create_InitialConditionFunction(&this->all_param);
     double integrand_value = 0.0;
     for (int istate=0; istate<nstate; ++istate) {
         const double exact_soln_at_q = initial_condition_function->value(qpoint, istate);
@@ -114,7 +114,7 @@ double PeriodicCubeFlow<dim,nstate>::integrand_l2_error_initial_condition(const 
 }
 
 template<int dim, int nstate>
-double PeriodicCubeFlow<dim, nstate>::integrate_over_domain(DGBase<dim, double> &dg,const std::string integrate_what) const
+double PeriodicCubeFlow<dim, nstate>::integrate_over_domain(DGBase<dim, double> &dg,const IntegratedQuantitiesEnum integrated_quantity) const
 {
     double integral_value = 0.0;
 
@@ -143,14 +143,20 @@ double PeriodicCubeFlow<dim, nstate>::integrate_over_domain(DGBase<dim, double> 
             const dealii::Point<dim> qpoint = (fe_values_extra.quadrature_point(iquad));
 
             double integrand_value = 0.0;
-            if(integrate_what=="kinetic_energy") {integrand_value = integrand_kinetic_energy(soln_at_q);}
-            if(integrate_what=="l2_error_initial_condition") {integrand_value = integrand_l2_error_initial_condition(soln_at_q,qpoint);}
+            if(integrated_quantity == IntegratedQuantitiesEnum::kinetic_energy)             {integrand_value = integrand_kinetic_energy(soln_at_q);}
+            if(integrated_quantity == IntegratedQuantitiesEnum::l2_error_initial_condition) {integrand_value = integrand_l2_error_initial_condition(soln_at_q,qpoint);}
 
             integral_value += integrand_value * fe_values_extra.JxW(iquad);
         }
     }
     const double integral_value_mpi_sum = dealii::Utilities::MPI::sum(integral_value, this->mpi_communicator);
     return integral_value_mpi_sum;
+}
+
+template<int dim, int nstate>
+double PeriodicCubeFlow<dim, nstate>::compute_kinetic_energy(DGBase<dim, double> &dg) const
+{
+    return integrate_over_domain(dg, IntegratedQuantitiesEnum::kinetic_energy);
 }
 
 template <int dim, int nstate>
@@ -161,7 +167,7 @@ void PeriodicCubeFlow<dim, nstate>::compute_unsteady_data_and_write_to_table(
         const std::shared_ptr <dealii::TableHandler> unsteady_data_table) const
 {
     // Compute kinetic energy
-    const double kinetic_energy = integrate_over_domain(*dg,"kinetic_energy");
+    const double kinetic_energy = integrate_over_domain(*dg,IntegratedQuantitiesEnum::kinetic_energy);
 
     if(this->mpi_rank==0) {
         // Add time to table

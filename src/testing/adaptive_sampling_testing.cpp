@@ -24,8 +24,10 @@ namespace PHiLiP {
 namespace Tests {
 
 template <int dim, int nstate>
-AdaptiveSamplingTesting<dim, nstate>::AdaptiveSamplingTesting(const PHiLiP::Parameters::AllParameters *const parameters_input)
+AdaptiveSamplingTesting<dim, nstate>::AdaptiveSamplingTesting(const PHiLiP::Parameters::AllParameters *const parameters_input,
+                                                              const dealii::ParameterHandler &parameter_handler_input)
         : TestsBase::TestsBase(parameters_input)
+        , parameter_handler(parameter_handler_input)
 {}
 
 template <int dim, int nstate>
@@ -119,14 +121,14 @@ int AdaptiveSamplingTesting<dim, nstate>::run_test() const
         RowVector2d parameter = {params_a(i), params_b(i)};
         Parameters::AllParameters params = reinitParams(parameter);
 
-        std::unique_ptr<FlowSolver<dim,nstate>> flow_solver_implicit = FlowSolverFactory<dim,nstate>::create_FlowSolver(&params);
+        std::unique_ptr<FlowSolver<dim,nstate>> flow_solver_implicit = FlowSolverFactory<dim,nstate>::create_FlowSolver(&params, parameter_handler);
         auto ode_solver_type = Parameters::ODESolverParam::ODESolverEnum::implicit_solver;
         flow_solver_implicit->ode_solver =  PHiLiP::ODE::ODESolverFactory<dim, double>::create_ODESolver_manual(ode_solver_type, flow_solver_implicit->dg);
         flow_solver_implicit->ode_solver->allocate_ode_system();
         std::shared_ptr<DGBaseState<dim,nstate,double>> dg_state_implicit = std::dynamic_pointer_cast<DGBaseState<dim,nstate,double>>(flow_solver_implicit->dg);
         auto functional_implicit = BurgersRewienskiFunctional<dim,nstate,double>(flow_solver_implicit->dg, dg_state_implicit->pde_physics_fad_fad, true, false);
 
-        std::unique_ptr<FlowSolver<dim,nstate>> flow_solver_standard = FlowSolverFactory<dim,nstate>::create_FlowSolver(&params);
+        std::unique_ptr<FlowSolver<dim,nstate>> flow_solver_standard = FlowSolverFactory<dim,nstate>::create_FlowSolver(&params, parameter_handler);
         ode_solver_type = Parameters::ODESolverParam::ODESolverEnum::pod_petrov_galerkin_solver;
         std::shared_ptr<ProperOrthogonalDecomposition::CoarseStatePOD<dim>> pod_standard = std::make_shared<ProperOrthogonalDecomposition::CoarseStatePOD<dim>>(flow_solver_standard->dg);
         flow_solver_standard->ode_solver =  PHiLiP::ODE::ODESolverFactory<dim, double>::create_ODESolver_manual(ode_solver_type, flow_solver_standard->dg, pod_standard);

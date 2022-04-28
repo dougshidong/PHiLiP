@@ -21,12 +21,16 @@ class AdaptiveSamplingTesting: public TestsBase
 {
 public:
     /// Constructor.
-    AdaptiveSamplingTesting(const Parameters::AllParameters *const parameters_input);
+    AdaptiveSamplingTesting(const Parameters::AllParameters *const parameters_input,
+                            const dealii::ParameterHandler &parameter_handler_input);
 
     /// Run test
     int run_test () const override;
 
     Parameters::AllParameters reinitParams(RowVector2d parameter) const;
+
+    /// Parameter handler for storing the .prm file being ran
+    const dealii::ParameterHandler &parameter_handler;
 
     void outputErrors(int iteration) const;
 };

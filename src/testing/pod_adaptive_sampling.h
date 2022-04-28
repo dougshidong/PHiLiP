@@ -62,7 +62,8 @@ class AdaptiveSampling: public TestsBase
 {
 public:
     /// Constructor
-    AdaptiveSampling(const PHiLiP::Parameters::AllParameters *const parameters_input);
+    AdaptiveSampling(const PHiLiP::Parameters::AllParameters *const parameters_input,
+                     const dealii::ParameterHandler &parameter_handler_input);
 
     /// Destructor
     ~AdaptiveSampling() {};
@@ -73,6 +74,8 @@ public:
 
     mutable double max_error;
 
+    /// Parameter handler for storing the .prm file being ran
+    const dealii::ParameterHandler &parameter_handler;
 
     std::shared_ptr<ProperOrthogonalDecomposition::OnlinePOD<dim>> current_pod;
 

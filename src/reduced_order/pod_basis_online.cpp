@@ -16,7 +16,9 @@ OnlinePOD<dim>::OnlinePOD(std::shared_ptr<DGBase<dim,double>> &dg_input)
 template <int dim>
 void OnlinePOD<dim>::addSnapshot(dealii::LinearAlgebra::distributed::Vector<double> snapshot) {
     std::cout << "Adding new snapshot to POD basis..." << std::endl;
-    snapshotVectors.push_back(snapshot);
+    dealii::LinearAlgebra::ReadWriteVector<double> snapshot_vector(snapshot.size());
+    snapshot_vector.import(snapshot, dealii::VectorOperation::values::insert);
+    snapshotVectors.push_back(snapshot_vector);
 }
 
 template <int dim>
@@ -24,11 +26,11 @@ void OnlinePOD<dim>::computeBasis() {
     std::cout << "Computing POD basis..." << std::endl;
 
     dealii::LAPACKFullMatrix<double> snapshot_matrix(snapshotVectors[0].size(), snapshotVectors.size());
+
     std::cout << "lapack matrix generated" << std::endl;
     for(unsigned int n = 0 ; n < snapshotVectors.size() ; n++){
         for(unsigned int m = 0 ; m < snapshotVectors[0].size() ; m++){
-            std::cout << snapshotVectors[n][m] << std::endl;
-            //snapshot_matrix(m,n) = snapshotVectors[n][m];
+            snapshot_matrix(m,n) = snapshotVectors[n][m];
         }
     }
 
@@ -106,6 +108,7 @@ void OnlinePOD<dim>::computeBasis() {
 
     basis->reinit(basis_tmp);
     basis->copy_from(basis_tmp);
+    basis->compress(dealii::VectorOperation::insert);
     std::cout << "Done computing POD basis. Basis now has " << basis->n() << " columns." << std::endl;
 }
 

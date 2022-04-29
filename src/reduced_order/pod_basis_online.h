@@ -35,7 +35,7 @@ public:
 
     void computeBasis();
 
-    std::vector<dealii::LinearAlgebra::distributed::Vector<double>> snapshotVectors;
+    std::vector<dealii::LinearAlgebra::ReadWriteVector<double>> snapshotVectors;
 
     std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> basis;
 

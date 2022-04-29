@@ -35,18 +35,22 @@ void PODPetrovGalerkinODESolver<dim,real,MeshType>::step_in_time (real dt, const
     */
     //Petrov-Galerkin projection, petrov_galerkin_basis = V^T*J^T, pod basis V, system matrix J
     //V^T*J*V*p = -V^T*R
-
+    this->pcout << "here0" << std::endl;
     this->dg->system_matrix.mmult(*this->petrov_galerkin_basis, *pod->getPODBasis()); // petrov_galerkin_basis = system_matrix * pod_basis. Note, use transpose in subsequent multiplications
+    this->pcout << "here1" << std::endl;
 
     this->petrov_galerkin_basis->Tvmult(*this->reduced_rhs, this->dg->right_hand_side); // reduced_rhs = (petrov_galerkin_basis)^T * right_hand_side
+    this->pcout << "here2" << std::endl;
 
     this->petrov_galerkin_basis->Tmmult(*this->reduced_lhs, *this->petrov_galerkin_basis); //reduced_lhs = petrov_galerkin_basis^T * petrov_galerkin_basis , equivalent to V^T*J^T*J*V
+    this->pcout << "here3" << std::endl;
 
     solve_linear(
             *this->reduced_lhs,
             *this->reduced_rhs,
             *this->reduced_solution_update,
             this->ODESolverBase<dim,real,MeshType>::all_parameters->linear_solver_param);
+    this->pcout << "here4" << std::endl;
 
     linesearch();
 
@@ -102,7 +106,7 @@ void PODPetrovGalerkinODESolver<dim,real,MeshType>::allocate_ode_system ()
 
     reduced_solution_update = std::make_unique<dealii::LinearAlgebra::distributed::Vector<double>>(pod->getPODBasis()->n());
     reduced_rhs = std::make_unique<dealii::LinearAlgebra::distributed::Vector<double>>(pod->getPODBasis()->n());
-    petrov_galerkin_basis = std::make_unique<dealii::TrilinosWrappers::SparseMatrix>();
+    petrov_galerkin_basis = std::make_unique<dealii::TrilinosWrappers::SparseMatrix>(pod->getPODBasis()->m(), pod->getPODBasis()->n(), pod->getPODBasis()->n());
     reduced_lhs = std::make_unique<dealii::TrilinosWrappers::SparseMatrix>();
     reference_solution = this->dg->solution; //Set reference solution to initial conditions
     reduced_solution = dealii::LinearAlgebra::distributed::Vector<double>(pod->getPODBasis()->n()); //Zero if reference solution is the initial conditions

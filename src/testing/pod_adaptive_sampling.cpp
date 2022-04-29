@@ -285,7 +285,6 @@ void AdaptiveSampling<dim, nstate>::placeTriangulationROMs(ProperOrthogonalDecom
     for(auto midpoint : delaunay.midpoints.rowwise()){
         auto element = rom_locations.find(midpoint);
         if(element == rom_locations.end()){
-            std::cout << "Computing ROM at " << midpoint << std::endl;
             std::shared_ptr<ProperOrthogonalDecomposition::ROMSolution<dim, nstate>> rom_solution = solveSnapshotROM(midpoint);
             ProperOrthogonalDecomposition::ROMTestLocation < dim,nstate > rom_location = ProperOrthogonalDecomposition::ROMTestLocation < dim, nstate>(midpoint, rom_solution);
             rom_locations.emplace(midpoint, rom_location);

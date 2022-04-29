@@ -59,7 +59,13 @@ add_test(
         WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )
 
-
+configure_file(inviscid_transonic_naca0012_adaptive_sampling.prm inviscid_transonic_naca0012_adaptive_sampling.prm COPYONLY)
+configure_file(naca0012_hopw_ref2.msh naca0012_hopw_ref2.msh COPYONLY)
+add_test(
+        NAME INVISCID_TRANSONIC_NACA0012_ADAPTIVE_SAMPLING
+        COMMAND mpirun -np ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_2D -i ${CMAKE_CURRENT_BINARY_DIR}/inviscid_transonic_naca0012_adaptive_sampling.prm
+        WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
+)
 
 #configure_file(1d_burgers_rewienski_testing.prm 1d_burgers_rewienski_testing.prm COPYONLY)
 #add_test(

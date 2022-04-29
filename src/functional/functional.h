@@ -77,7 +77,7 @@ public:
         const bool _uses_solution_gradient = true);
 
     /// Destructor.
-    ~Functional(){}
+    virtual ~Functional(){};
 
 public:
     /** Set the associated @ref DGBase's solution to @p solution_set. */
@@ -125,11 +125,11 @@ public:
     dealii::LinearAlgebra::distributed::Vector<real> dIdX;
 
     /// Sparse matrix for storing the functional partial second derivatives.
-    dealii::TrilinosWrappers::SparseMatrix d2IdWdW;
+    std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> d2IdWdW;
     /// Sparse matrix for storing the functional partial second derivatives.
-    dealii::TrilinosWrappers::SparseMatrix d2IdWdX;
+    std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> d2IdWdX;
     /// Sparse matrix for storing the functional partial second derivatives.
-    dealii::TrilinosWrappers::SparseMatrix d2IdXdX;
+    std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> d2IdXdX;
 
 private:
     /// Initializes/allocates the vectors used to check if we recompute

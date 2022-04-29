@@ -9,8 +9,8 @@ AdaptiveSampling<dim, nstate>::AdaptiveSampling(const PHiLiP::Parameters::AllPar
         : TestsBase::TestsBase(parameters_input)
         , parameter_handler(parameter_handler_input)
 {
-    std::shared_ptr<Tests::BurgersRewienskiSnapshot<dim, nstate>> flow_solver_case = std::make_shared<Tests::BurgersRewienskiSnapshot<dim,nstate>>(all_parameters);
-    std::unique_ptr<Tests::FlowSolver<dim,nstate>> flow_solver = std::make_unique<Tests::FlowSolver<dim,nstate>>(all_parameters, flow_solver_case, parameter_handler);
+    configureParameterSpace();
+    std::unique_ptr<Tests::FlowSolver<dim,nstate>> flow_solver = FlowSolverFactory<dim,nstate>::create_FlowSolver(all_parameters, parameter_handler);
     current_pod = std::make_shared<ProperOrthogonalDecomposition::OnlinePOD<dim>>(flow_solver->dg);
 }
 
@@ -34,8 +34,7 @@ int AdaptiveSampling<dim, nstate>::run_test() const
     int iteration = 0;
 
     Parameters::AllParameters params = reinitParams(max_error_params);
-    std::shared_ptr<Tests::BurgersRewienskiSnapshot<dim, nstate>> flow_solver_case = std::make_shared<Tests::BurgersRewienskiSnapshot<dim,nstate>>(&params);
-    std::unique_ptr<Tests::FlowSolver<dim,nstate>> flow_solver = std::make_unique<Tests::FlowSolver<dim,nstate>>(&params, flow_solver_case, parameter_handler);
+    std::unique_ptr<Tests::FlowSolver<dim,nstate>> flow_solver = FlowSolverFactory<dim,nstate>::create_FlowSolver(&params, parameter_handler);
     const dealii::LinearAlgebra::distributed::Vector<double> initial_conditions = flow_solver->dg->solution;
 
     while(max_error > tolerance){
@@ -82,10 +81,10 @@ void AdaptiveSampling<dim, nstate>::outputErrors(int iteration) const{
     std::shared_ptr<dealii::TableHandler> snapshot_table = std::make_shared<dealii::TableHandler>();
 
     for(auto parameters : snapshot_parameters.rowwise()){
-        snapshot_table->add_value("Rewienski a", parameters(0));
-        snapshot_table->add_value("Rewienski b", parameters(1));
-        snapshot_table->set_precision("Rewienski a", 16);
-        snapshot_table->set_precision("Rewienski b", 16);
+        snapshot_table->add_value(parameter1_name, parameters(0));
+        snapshot_table->add_value(parameter2_name, parameters(1));
+        snapshot_table->set_precision(parameter1_name, 16);
+        snapshot_table->set_precision(parameter2_name, 16);
     }
 
     std::ofstream snapshot_table_file("snapshot_table_iteration_" + std::to_string(iteration) + ".txt");
@@ -94,11 +93,11 @@ void AdaptiveSampling<dim, nstate>::outputErrors(int iteration) const{
     std::shared_ptr<dealii::TableHandler> rom_table = std::make_shared<dealii::TableHandler>();
 
     for(auto& [key, value] : rom_locations){
-        rom_table->add_value("Rewienski a", value.parameter(0));
-        rom_table->set_precision("Rewienski a", 16);
+        rom_table->add_value(parameter1_name, value.parameter(0));
+        rom_table->set_precision(parameter1_name, 16);
 
-        rom_table->add_value("Rewienski b", value.parameter(1));
-        rom_table->set_precision("Rewienski b", 16);
+        rom_table->add_value(parameter2_name, value.parameter(1));
+        rom_table->set_precision(parameter2_name, 16);
 
         rom_table->add_value("ROM errors", value.total_error);
         rom_table->set_precision("ROM errors", 16);
@@ -111,7 +110,6 @@ void AdaptiveSampling<dim, nstate>::outputErrors(int iteration) const{
 template <int dim, int nstate>
 RowVector2d AdaptiveSampling<dim, nstate>::getMaxErrorROM() const{
     std::cout << "Updating RBF interpolation..." << std::endl;
-
 
     int n_rows = snapshot_parameters.rows() + rom_locations.size();
     MatrixXd parameters(n_rows, 2);
@@ -259,33 +257,9 @@ RowVector2d AdaptiveSampling<dim, nstate>::getMaxErrorROM() const{
 
 template <int dim, int nstate>
 void AdaptiveSampling<dim, nstate>::placeInitialSnapshots() const{
-    std::vector<double> rewienski_a_range = {2, 10};
-    std::vector<double> rewienski_b_range = {0.01, 0.1};
-
-    snapshot_parameters.resize(5,2);
-    snapshot_parameters << rewienski_a_range[0], rewienski_b_range[0],
-                           rewienski_a_range[0], rewienski_b_range[1],
-                           rewienski_a_range[1], rewienski_b_range[1],
-                           rewienski_a_range[1], rewienski_b_range[0],
-                           0.5*(rewienski_a_range[1] - rewienski_a_range[0])+rewienski_a_range[0], 0.5*(rewienski_b_range[1] - rewienski_b_range[0])+rewienski_b_range[0];
-
-
-                           //0.5*(rewienski_a_range[1] - rewienski_a_range[0])+rewienski_a_range[0], 0.33*(rewienski_b_range[1] - rewienski_b_range[0])+rewienski_b_range[0],
-                           //0.25*(rewienski_a_range[1] - rewienski_a_range[0])+rewienski_a_range[0], 0.67*(rewienski_b_range[1] - rewienski_b_range[0])+rewienski_b_range[0],
-                           //0.75*(rewienski_a_range[1] - rewienski_a_range[0])+rewienski_a_range[0], 0.11*(rewienski_b_range[1] - rewienski_b_range[0])+rewienski_b_range[0],
-                           //0.125*(rewienski_a_range[1] - rewienski_a_range[0])+rewienski_a_range[0], 0.44*(rewienski_b_range[1] - rewienski_b_range[0])+rewienski_b_range[0],
-                           //0.625*(rewienski_a_range[1] - rewienski_a_range[0])+rewienski_a_range[0], 0.78*(rewienski_b_range[1] - rewienski_b_range[0])+rewienski_b_range[0],
-                           //0.375*(rewienski_a_range[1] - rewienski_a_range[0])+rewienski_a_range[0], 0.22*(rewienski_b_range[1] - rewienski_b_range[0])+rewienski_b_range[0];
-                           //0.875*(rewienski_a_range[1] - rewienski_a_range[0])+rewienski_a_range[0], 0.56*(rewienski_b_range[1] - rewienski_b_range[0])+rewienski_b_range[0],
-                           //0.0625*(rewienski_a_range[1] - rewienski_a_range[0])+rewienski_a_range[0], 0.89*(rewienski_b_range[1] - rewienski_b_range[0])+rewienski_b_range[0],
-                           //0.5625*(rewienski_a_range[1] - rewienski_a_range[0])+rewienski_a_range[0], 0.03704*(rewienski_b_range[1] - rewienski_b_range[0])+rewienski_b_range[0],
-                           //0.3125*(rewienski_a_range[1] - rewienski_a_range[0])+rewienski_a_range[0], 0.37037*(rewienski_b_range[1] - rewienski_b_range[0])+rewienski_b_range[0],
-                           //0.8125*(rewienski_a_range[1] - rewienski_a_range[0])+rewienski_a_range[0], 0.7037*(rewienski_b_range[1] - rewienski_b_range[0])+rewienski_b_range[0];
-    std::cout << snapshot_parameters << std::endl;
     //Get initial conditions
     Parameters::AllParameters params = reinitParams(snapshot_parameters.row(0));
-    std::shared_ptr<Tests::BurgersRewienskiSnapshot<dim, nstate>> flow_solver_case = std::make_shared<Tests::BurgersRewienskiSnapshot<dim,nstate>>(&params);
-    std::unique_ptr<Tests::FlowSolver<dim,nstate>> flow_solver = std::make_unique<Tests::FlowSolver<dim,nstate>>(&params, flow_solver_case, parameter_handler);
+    std::unique_ptr<Tests::FlowSolver<dim,nstate>> flow_solver = FlowSolverFactory<dim,nstate>::create_FlowSolver(&params, parameter_handler);
     const dealii::LinearAlgebra::distributed::Vector<double> initial_conditions = flow_solver->dg->solution;
 
     for(auto snap_param : snapshot_parameters.rowwise()){
@@ -298,40 +272,16 @@ void AdaptiveSampling<dim, nstate>::placeInitialSnapshots() const{
 
 template <int dim, int nstate>
 void AdaptiveSampling<dim, nstate>::placeInitialROMs() const{
-    std::vector<double> rewienski_a_range = {2, 10};
-    std::vector<double> rewienski_b_range = {0.01, 0.1};
-
-    MatrixXd initial_rom_parameters;
-    initial_rom_parameters.resize(4,2);
-    /*
-    initial_rom_parameters <<
-            rewienski_a_range[0], 0.25*(rewienski_b_range[1] - rewienski_b_range[0])+rewienski_b_range[0],
-            rewienski_a_range[0], 0.75*(rewienski_b_range[1] - rewienski_b_range[0])+rewienski_b_range[0],
-            rewienski_a_range[1], 0.25*(rewienski_b_range[1] - rewienski_b_range[0])+rewienski_b_range[0],
-            rewienski_a_range[1], 0.75*(rewienski_b_range[1] - rewienski_b_range[0])+rewienski_b_range[0],
-            0.25*(rewienski_a_range[1] - rewienski_a_range[0])+rewienski_a_range[0], rewienski_b_range[0],
-            0.75*(rewienski_a_range[1] - rewienski_a_range[0])+rewienski_a_range[0], rewienski_b_range[0],
-            0.25*(rewienski_a_range[1] - rewienski_a_range[0])+rewienski_a_range[0], rewienski_b_range[1],
-            0.75*(rewienski_a_range[1] - rewienski_a_range[0])+rewienski_a_range[0], rewienski_b_range[1];
-    */
-     initial_rom_parameters <<
-         0.25*(rewienski_a_range[1] - rewienski_a_range[0])+rewienski_a_range[0], 0.25*(rewienski_b_range[1] - rewienski_b_range[0])+rewienski_b_range[0],
-         0.25*(rewienski_a_range[1] - rewienski_a_range[0])+rewienski_a_range[0], 0.75*(rewienski_b_range[1] - rewienski_b_range[0])+rewienski_b_range[0],
-         0.75*(rewienski_a_range[1] - rewienski_a_range[0])+rewienski_a_range[0], 0.25*(rewienski_b_range[1] - rewienski_b_range[0])+rewienski_b_range[0],
-         0.75*(rewienski_a_range[1] - rewienski_a_range[0])+rewienski_a_range[0], 0.75*(rewienski_b_range[1] - rewienski_b_range[0])+rewienski_b_range[0];
-
     for(auto rom_param : initial_rom_parameters.rowwise()){
         std::cout << "Sampling initial ROM at " << rom_param << std::endl;
         std::shared_ptr<ProperOrthogonalDecomposition::ROMSolution<dim, nstate>> rom_solution = solveSnapshotROM(rom_param);
-        ProperOrthogonalDecomposition::ROMTestLocation < dim,nstate > rom_location = ProperOrthogonalDecomposition::ROMTestLocation < dim, nstate>(rom_param, rom_solution);
+        ProperOrthogonalDecomposition::ROMTestLocation<dim,nstate> rom_location = ProperOrthogonalDecomposition::ROMTestLocation<dim, nstate>(rom_param, rom_solution);
         rom_locations.emplace(rom_param, rom_location);
     }
 }
 
 template <int dim, int nstate>
 void AdaptiveSampling<dim, nstate>::placeTriangulationROMs(ProperOrthogonalDecomposition::Delaunay delaunay) const{
-    //delaunay = ProperOrthogonalDecomposition::Delaunay(snapshot_parameters);
-
     for(auto midpoint : delaunay.midpoints.rowwise()){
         auto element = rom_locations.find(midpoint);
         if(element == rom_locations.end()){
@@ -351,21 +301,18 @@ std::shared_ptr<ProperOrthogonalDecomposition::FOMSolution<dim,nstate>> Adaptive
     std::cout << "Solving FOM at " << parameter << std::endl;
     Parameters::AllParameters params = reinitParams(parameter);
 
-    std::shared_ptr<Tests::BurgersRewienskiSnapshot<dim, nstate>> flow_solver_case = std::make_shared<Tests::BurgersRewienskiSnapshot<dim,nstate>>(&params);
-    std::unique_ptr<Tests::FlowSolver<dim,nstate>> flow_solver = std::make_unique<Tests::FlowSolver<dim,nstate>>(&params, flow_solver_case, parameter_handler);
+    std::unique_ptr<Tests::FlowSolver<dim,nstate>> flow_solver = FlowSolverFactory<dim,nstate>::create_FlowSolver(&params, parameter_handler);
 
     // Solve implicit solution
     auto ode_solver_type = Parameters::ODESolverParam::ODESolverEnum::implicit_solver;
     flow_solver->ode_solver =  PHiLiP::ODE::ODESolverFactory<dim, double>::create_ODESolver_manual(ode_solver_type, flow_solver->dg);
     flow_solver->ode_solver->allocate_ode_system();
     flow_solver->ode_solver->steady_state();
-    flow_solver->flow_solver_case->steady_state_postprocessing(flow_solver->dg);
-    // Casting to dg state
-    std::shared_ptr< DGBaseState<dim,nstate,double>> dg_state = std::dynamic_pointer_cast< DGBaseState<dim,nstate,double> >(flow_solver->dg);
+
     // Create functional
-    auto functional = BurgersRewienskiFunctional<dim,nstate,double>(flow_solver->dg,dg_state->pde_physics_fad_fad,true,false);
-    //Get sensitivity from FlowSolver
-    std::shared_ptr<ProperOrthogonalDecomposition::FOMSolution<dim,nstate>> fom_solution = std::make_shared<ProperOrthogonalDecomposition::FOMSolution<dim, nstate>>(flow_solver->dg, functional);
+    std::shared_ptr<Functional<dim,nstate,double>> functional = functionalFactory(flow_solver->dg);
+
+    std::shared_ptr<ProperOrthogonalDecomposition::FOMSolution<dim,nstate>> fom_solution = std::make_shared<ProperOrthogonalDecomposition::FOMSolution<dim, nstate>>(flow_solver->dg, *functional);
 
     std::cout << "Done solving FOM." << std::endl;
     return fom_solution;
@@ -376,8 +323,7 @@ std::shared_ptr<ProperOrthogonalDecomposition::ROMSolution<dim,nstate>> Adaptive
     std::cout << "Solving ROM at " << parameter << std::endl;
     Parameters::AllParameters params = reinitParams(parameter);
 
-    std::shared_ptr<Tests::BurgersRewienskiSnapshot<dim, nstate>> flow_solver_case = std::make_shared<Tests::BurgersRewienskiSnapshot<dim,nstate>>(&params);
-    std::unique_ptr<Tests::FlowSolver<dim,nstate>> flow_solver = std::make_unique<Tests::FlowSolver<dim,nstate>>(&params, flow_solver_case, parameter_handler);
+    std::unique_ptr<Tests::FlowSolver<dim,nstate>> flow_solver = FlowSolverFactory<dim,nstate>::create_FlowSolver(&params, parameter_handler);
 
     // Solve implicit solution
     auto ode_solver_type = Parameters::ODESolverParam::ODESolverEnum::pod_petrov_galerkin_solver;
@@ -385,11 +331,8 @@ std::shared_ptr<ProperOrthogonalDecomposition::ROMSolution<dim,nstate>> Adaptive
     flow_solver->ode_solver->allocate_ode_system();
     flow_solver->ode_solver->steady_state();
 
-    // Casting to dg state
-    std::shared_ptr< DGBaseState<dim,nstate,double>> dg_state = std::dynamic_pointer_cast< DGBaseState<dim,nstate,double>>(flow_solver->dg);
-
     // Create functional
-    auto functional = BurgersRewienskiFunctional<dim,nstate,double>(flow_solver->dg,dg_state->pde_physics_fad_fad,true,false);
+    std::shared_ptr<Functional<dim,nstate,double>> functional = functionalFactory(flow_solver->dg);
 
     std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> system_matrix_transpose = std::make_shared<dealii::TrilinosWrappers::SparseMatrix>();
     system_matrix_transpose->copy_from(flow_solver->dg->system_matrix_transpose);
@@ -397,7 +340,7 @@ std::shared_ptr<ProperOrthogonalDecomposition::ROMSolution<dim,nstate>> Adaptive
     std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> pod_basis = std::make_shared<dealii::TrilinosWrappers::SparseMatrix>();
     pod_basis->copy_from(*current_pod->getPODBasis());
 
-    std::shared_ptr<ProperOrthogonalDecomposition::ROMSolution<dim,nstate>> rom_solution = std::make_shared<ProperOrthogonalDecomposition::ROMSolution<dim, nstate>>(flow_solver->dg, system_matrix_transpose,functional, pod_basis);
+    std::shared_ptr<ProperOrthogonalDecomposition::ROMSolution<dim,nstate>> rom_solution = std::make_shared<ProperOrthogonalDecomposition::ROMSolution<dim, nstate>>(flow_solver->dg, system_matrix_transpose, *functional, pod_basis);
     std::cout << "Done solving ROM." << std::endl;
     return rom_solution;
 }
@@ -425,30 +368,93 @@ Parameters::AllParameters AdaptiveSampling<dim, nstate>::reinitParams(RowVector2
 }
 
 template <int dim, int nstate>
-Functional<dim,nstate,double> AdaptiveSampling<dim, nstate>::functionalFactory(std::shared_ptr<DGBase<dim, double>> dg) const
+std::shared_ptr<Functional<dim,nstate,double>> AdaptiveSampling<dim, nstate>::functionalFactory(std::shared_ptr<DGBase<dim, double>> dg) const
 {
     using FlowCaseEnum = Parameters::FlowSolverParam::FlowCaseType;
     const FlowCaseEnum flow_type = this->all_parameters->flow_solver_param.flow_case_type;
     if (flow_type == FlowCaseEnum::burgers_rewienski_snapshot){
-        std::shared_ptr< DGBaseState<dim,nstate,double>> dg_state = std::dynamic_pointer_cast< DGBaseState<dim,nstate,double>>(dg);
-        return BurgersRewienskiFunctional<dim,nstate,double>(dg,dg_state->pde_physics_fad_fad,true,false);
+        if constexpr (dim==1 && nstate==dim){
+            std::shared_ptr< DGBaseState<dim,nstate,double>> dg_state = std::dynamic_pointer_cast< DGBaseState<dim,nstate,double>>(dg);
+            return std::make_shared<BurgersRewienskiFunctional<dim,nstate,double>>(dg,dg_state->pde_physics_fad_fad,true,false);
+        }
     }
     else if (flow_type == FlowCaseEnum::naca0012){
-        return LiftDragFunctional<dim, nstate, double>(dg, LiftDragFunctional<dim,nstate,double>::Functional_types::lift);
+        if constexpr (dim==2 && nstate==dim+2){
+            return std::make_shared<LiftDragFunctional<dim,nstate,double>>(dg, LiftDragFunctional<dim,nstate,double>::Functional_types::lift);
+        }
     }
     else{
         std::cout << "Invalid flow case. You probably forgot to specify a flow case in the prm file." << std::endl;
         std::abort();
     }
-    return static_cast<Functional<1, 1, double>>(nullptr);
+    return nullptr;
 }
 
-#if PHILIP_DIM==1
-    template class AdaptiveSampling<PHILIP_DIM, PHILIP_DIM>;
-#endif
-#if PHILIP_DIM==2
-    template class AdaptiveSampling<PHILIP_DIM, PHILIP_DIM+2>;
-#endif
+template <int dim, int nstate>
+void AdaptiveSampling<dim, nstate>::configureParameterSpace() const
+{
+    using FlowCaseEnum = Parameters::FlowSolverParam::FlowCaseType;
+    const FlowCaseEnum flow_type = this->all_parameters->flow_solver_param.flow_case_type;
+    if (flow_type == FlowCaseEnum::burgers_rewienski_snapshot){
+        parameter1_name = "rewienski_a";
+        parameter2_name = "rewienski_b";
+        parameter1_range.resize(2);
+        parameter2_range.resize(2);
+        parameter1_range << 2, 10;
+        parameter2_range << 0.01, 0.1;
+
+        snapshot_parameters.resize(5,2);
+        snapshot_parameters  << parameter1_range[0], parameter2_range[0],
+                                parameter1_range[0], parameter2_range[1],
+                                parameter1_range[1], parameter2_range[1],
+                                parameter1_range[1], parameter2_range[0],
+                                0.5*(parameter1_range[1] - parameter1_range[0])+parameter1_range[0], 0.5*(parameter2_range[1] - parameter2_range[0])+parameter2_range[0];
+
+        std::cout << snapshot_parameters << std::endl;
+
+        initial_rom_parameters.resize(4,2);
+        initial_rom_parameters << 0.25*(parameter1_range[1] - parameter1_range[0])+parameter1_range[0], 0.25*(parameter1_range[1] - parameter1_range[0])+parameter1_range[0],
+                                  0.25*(parameter1_range[1] - parameter1_range[0])+parameter1_range[0], 0.75*(parameter1_range[1] - parameter1_range[0])+parameter1_range[0],
+                                  0.75*(parameter1_range[1] - parameter1_range[0])+parameter1_range[0], 0.25*(parameter1_range[1] - parameter1_range[0])+parameter1_range[0],
+                                  0.75*(parameter1_range[1] - parameter1_range[0])+parameter1_range[0], 0.75*(parameter1_range[1] - parameter1_range[0])+parameter1_range[0];
+
+        std::cout << initial_rom_parameters << std::endl;
+    }
+    else if (flow_type == FlowCaseEnum::naca0012){
+        const double pi = atan(1.0) * 4.0;
+        parameter1_name = "mach_number";
+        parameter2_name = "angle_of_attack";
+        parameter1_range.resize(2);
+        parameter2_range.resize(2);
+        parameter1_range << 0.5, 0.9;
+        parameter2_range << -4, 4;
+        parameter2_range *= pi/180; //convert to radians
+
+        snapshot_parameters.resize(5,2);
+        snapshot_parameters  << parameter1_range[0], parameter2_range[0],
+                parameter1_range[0], parameter2_range[1],
+                parameter1_range[1], parameter2_range[1],
+                parameter1_range[1], parameter2_range[0],
+                0.5*(parameter1_range[1] - parameter1_range[0])+parameter1_range[0], 0.5*(parameter2_range[1] - parameter2_range[0])+parameter2_range[0];
+
+        std::cout << snapshot_parameters << std::endl;
+
+        initial_rom_parameters.resize(4,2);
+        initial_rom_parameters << 0.25*(parameter1_range[1] - parameter1_range[0])+parameter1_range[0], 0.25*(parameter1_range[1] - parameter1_range[0])+parameter1_range[0],
+                0.25*(parameter1_range[1] - parameter1_range[0])+parameter1_range[0], 0.75*(parameter1_range[1] - parameter1_range[0])+parameter1_range[0],
+                0.75*(parameter1_range[1] - parameter1_range[0])+parameter1_range[0], 0.25*(parameter1_range[1] - parameter1_range[0])+parameter1_range[0],
+                0.75*(parameter1_range[1] - parameter1_range[0])+parameter1_range[0], 0.75*(parameter1_range[1] - parameter1_range[0])+parameter1_range[0];
+
+        std::cout << initial_rom_parameters << std::endl;
+    }
+    else{
+        std::cout << "Invalid flow case. You probably forgot to specify a flow case in the prm file." << std::endl;
+        std::abort();
+    }
+}
+
+template class AdaptiveSampling<PHILIP_DIM, PHILIP_DIM>;
+template class AdaptiveSampling<PHILIP_DIM, PHILIP_DIM+2>;
 
 }
 }

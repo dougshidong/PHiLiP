@@ -24,10 +24,11 @@ void OnlinePOD<dim>::computeBasis() {
     std::cout << "Computing POD basis..." << std::endl;
 
     dealii::LAPACKFullMatrix<double> snapshot_matrix(snapshotVectors[0].size(), snapshotVectors.size());
-
+    std::cout << "lapack matrix generated" << std::endl;
     for(unsigned int n = 0 ; n < snapshotVectors.size() ; n++){
         for(unsigned int m = 0 ; m < snapshotVectors[0].size() ; m++){
-            snapshot_matrix(m,n) = snapshotVectors[n][m];
+            std::cout << snapshotVectors[n][m] << std::endl;
+            //snapshot_matrix(m,n) = snapshotVectors[n][m];
         }
     }
 

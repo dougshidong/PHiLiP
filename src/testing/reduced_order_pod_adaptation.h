@@ -37,6 +37,8 @@ public:
             const bool uses_solution_gradient = false)
             : PHiLiP::Functional<dim,nstate,real>(dg_input,_physics_fad_fad,uses_solution_values,uses_solution_gradient)
     {}
+    //~BurgersRewienskiFunctional() = 0;
+
     template <typename real2>
     /// Templated volume integrand
     real2 evaluate_volume_integrand(

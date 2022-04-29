@@ -358,21 +358,21 @@ void Functional<dim,nstate,real,MeshType>::allocate_derivatives(const bool compu
             dealii::SparsityPattern sparsity_pattern_d2IdWdX = dg->get_d2RdWdX_sparsity_pattern ();
             const dealii::IndexSet &row_parallel_partitioning_d2IdWdX = dg->locally_owned_dofs;
             const dealii::IndexSet &col_parallel_partitioning_d2IdWdX = dg->high_order_grid->locally_owned_dofs_grid;
-            d2IdWdX.reinit(row_parallel_partitioning_d2IdWdX, col_parallel_partitioning_d2IdWdX, sparsity_pattern_d2IdWdX, MPI_COMM_WORLD);
+            d2IdWdX->reinit(row_parallel_partitioning_d2IdWdX, col_parallel_partitioning_d2IdWdX, sparsity_pattern_d2IdWdX, MPI_COMM_WORLD);
         }
 
         {
             dealii::SparsityPattern sparsity_pattern_d2IdWdW = dg->get_d2RdWdW_sparsity_pattern ();
             const dealii::IndexSet &row_parallel_partitioning_d2IdWdW = dg->locally_owned_dofs;
             const dealii::IndexSet &col_parallel_partitioning_d2IdWdW = dg->locally_owned_dofs;
-            d2IdWdW.reinit(row_parallel_partitioning_d2IdWdW, col_parallel_partitioning_d2IdWdW, sparsity_pattern_d2IdWdW, MPI_COMM_WORLD);
+            d2IdWdW->reinit(row_parallel_partitioning_d2IdWdW, col_parallel_partitioning_d2IdWdW, sparsity_pattern_d2IdWdW, MPI_COMM_WORLD);
         }
 
         {
             dealii::SparsityPattern sparsity_pattern_d2IdXdX = dg->get_d2RdXdX_sparsity_pattern ();
             const dealii::IndexSet &row_parallel_partitioning_d2IdXdX = dg->high_order_grid->locally_owned_dofs_grid;
             const dealii::IndexSet &col_parallel_partitioning_d2IdXdX = dg->high_order_grid->locally_owned_dofs_grid;
-            d2IdXdX.reinit(row_parallel_partitioning_d2IdXdX, col_parallel_partitioning_d2IdXdX, sparsity_pattern_d2IdXdX, MPI_COMM_WORLD);
+            d2IdXdX->reinit(row_parallel_partitioning_d2IdXdX, col_parallel_partitioning_d2IdXdX, sparsity_pattern_d2IdXdX, MPI_COMM_WORLD);
         }
     }
 }
@@ -423,12 +423,12 @@ void Functional<dim,nstate,real,MeshType>::set_derivatives(
             for (unsigned int jdof=0; jdof<n_soln_dofs_cell; ++jdof) {
                 dWidW[jdof] = dWi.dx(j_derivative++);
             }
-            d2IdWdW.add(cell_soln_dofs_indices[idof], cell_soln_dofs_indices, dWidW);
+            d2IdWdW->add(cell_soln_dofs_indices[idof], cell_soln_dofs_indices, dWidW);
 
             for (unsigned int jdof=0; jdof<n_metric_dofs_cell; ++jdof) {
                 dWidX[jdof] = dWi.dx(j_derivative++);
             }
-            d2IdWdX.add(cell_soln_dofs_indices[idof], cell_metric_dofs_indices, dWidX);
+            d2IdWdX->add(cell_soln_dofs_indices[idof], cell_metric_dofs_indices, dWidX);
         }
 
         for (unsigned int idof=0; idof<n_metric_dofs_cell; ++idof) {
@@ -439,7 +439,7 @@ void Functional<dim,nstate,real,MeshType>::set_derivatives(
             for (unsigned int jdof=0; jdof<n_metric_dofs_cell; ++jdof) {
                 dXidX[jdof] = dXi.dx(j_derivative++);
             }
-            d2IdXdX.add(cell_metric_dofs_indices[idof], cell_metric_dofs_indices, dXidX);
+            d2IdXdX->add(cell_metric_dofs_indices[idof], cell_metric_dofs_indices, dXidX);
         }
     }
     AssertDimension(i_derivative, n_total_indep);
@@ -891,12 +891,12 @@ real Functional<dim, nstate, real, MeshType>::evaluate_functional(
                 for (unsigned int jdof=0; jdof<n_soln_dofs_cell; ++jdof) {
                     dWidW[jdof] = dWi.dx(j_derivative++);
                 }
-                d2IdWdW.add(cell_soln_dofs_indices[idof], cell_soln_dofs_indices, dWidW);
+                d2IdWdW->add(cell_soln_dofs_indices[idof], cell_soln_dofs_indices, dWidW);
 
                 for (unsigned int jdof=0; jdof<n_metric_dofs_cell; ++jdof) {
                     dWidX[jdof] = dWi.dx(j_derivative++);
                 }
-                d2IdWdX.add(cell_soln_dofs_indices[idof], cell_metric_dofs_indices, dWidX);
+                d2IdWdX->add(cell_soln_dofs_indices[idof], cell_metric_dofs_indices, dWidX);
             }
 
             for (unsigned int idof=0; idof<n_metric_dofs_cell; ++idof) {
@@ -907,7 +907,7 @@ real Functional<dim, nstate, real, MeshType>::evaluate_functional(
                 for (unsigned int jdof=0; jdof<n_metric_dofs_cell; ++jdof) {
                     dXidX[jdof] = dXi.dx(j_derivative++);
                 }
-                d2IdXdX.add(cell_metric_dofs_indices[idof], cell_metric_dofs_indices, dXidX);
+                d2IdXdX->add(cell_metric_dofs_indices[idof], cell_metric_dofs_indices, dXidX);
             }
         }
         AssertDimension(i_derivative, n_total_indep);
@@ -918,9 +918,9 @@ real Functional<dim, nstate, real, MeshType>::evaluate_functional(
     if (actually_compute_dIdW) dIdw.compress(dealii::VectorOperation::add);
     if (actually_compute_dIdX) dIdX.compress(dealii::VectorOperation::add);
     if (actually_compute_d2I) {
-        d2IdWdW.compress(dealii::VectorOperation::add);
-        d2IdWdX.compress(dealii::VectorOperation::add);
-        d2IdXdX.compress(dealii::VectorOperation::add);
+        d2IdWdW->compress(dealii::VectorOperation::add);
+        d2IdWdX->compress(dealii::VectorOperation::add);
+        d2IdXdX->compress(dealii::VectorOperation::add);
     }
 
     return current_functional_value;

@@ -41,6 +41,7 @@ namespace Tests {
 using DealiiVector = dealii::LinearAlgebra::distributed::Vector<double>;
 using Eigen::MatrixXd;
 using Eigen::RowVector2d;
+using Eigen::RowVectorXd;
 using Eigen::VectorXd;
 
 //Refer to https://www.boost.org/doc/libs/1_55_0/doc/html/hash/reference.html#boost.hash_combine
@@ -69,9 +70,14 @@ public:
     /// Destructor
     ~AdaptiveSampling() {};
 
-    mutable std::unordered_map<RowVector2d, ProperOrthogonalDecomposition::ROMTestLocation<dim,nstate>, matrix_hash<RowVector2d>> rom_locations;
-
+    mutable RowVectorXd parameter1_range;
+    mutable RowVectorXd parameter2_range;
+    mutable std::string parameter1_name;
+    mutable std::string parameter2_name;
     mutable MatrixXd snapshot_parameters;
+    mutable MatrixXd initial_rom_parameters;
+
+    mutable std::unordered_map<RowVector2d, ProperOrthogonalDecomposition::ROMTestLocation<dim,nstate>, matrix_hash<RowVector2d>> rom_locations;
 
     mutable double max_error;
 
@@ -97,7 +103,9 @@ public:
 
     Parameters::AllParameters reinitParams(RowVector2d parameter) const;
 
-    Functional<dim,nstate,double> functionalFactory(std::shared_ptr<DGBase<dim, double>> dg) const;
+    std::shared_ptr<Functional<dim,nstate,double>> functionalFactory(std::shared_ptr<DGBase<dim, double>> dg) const;
+
+    void configureParameterSpace() const;
 
     void outputErrors(int iteration) const;
 };

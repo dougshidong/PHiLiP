@@ -56,7 +56,11 @@ template <int dim, int nstate>
 std::shared_ptr<Triangulation> NACA0012<dim,nstate>::generate_grid() const
 {
     //Dummy triangulation
-    std::shared_ptr<Triangulation> grid = std::make_shared<Triangulation>(MPI_COMM_WORLD);
+    std::shared_ptr<Triangulation> grid = std::make_shared<Triangulation>(
+#if PHILIP_DIM!=1
+            this->mpi_communicator
+#endif
+    );
     dealii::GridGenerator::Airfoil::AdditionalData airfoil_data;
     dealii::GridGenerator::Airfoil::create_triangulation(*grid, airfoil_data);
     grid->refine_global();

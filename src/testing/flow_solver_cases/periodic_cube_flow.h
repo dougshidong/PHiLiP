@@ -45,7 +45,7 @@ protected:
     bool is_taylor_green_vortex = false; ///< Identifies if taylor green vortex case; initialized as false.
 
     /// Displays the flow setup parameters
-    void display_flow_solver_setup() const override;
+    void display_flow_solver_setup(std::shared_ptr<InitialConditionFunction<dim,nstate,double>> initial_condition) const override;
 
     /// Function to generate the grid
     std::shared_ptr<Triangulation> generate_grid() const override;

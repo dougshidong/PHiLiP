@@ -33,7 +33,7 @@ FlowSolver<dim, nstate>::FlowSolver(
 {
     flow_solver_case->set_higher_order_grid(dg);
     dg->allocate_system();
-    flow_solver_case->display_flow_solver_setup();
+    flow_solver_case->display_flow_solver_setup(initial_condition_function);
     
     dealii::LinearAlgebra::distributed::Vector<double> solution_no_ghost;
     solution_no_ghost.reinit(dg->locally_owned_dofs, MPI_COMM_WORLD);

@@ -31,7 +31,7 @@ public:
 
 protected:
     /// Displays the flow setup parameters
-    void display_flow_solver_setup() const override;
+    void display_flow_solver_setup(std::shared_ptr<InitialConditionFunction<dim,nstate,double>> initial_condition) const override;
 
     /// Function to generate the grid
     std::shared_ptr<Triangulation> generate_grid() const override;

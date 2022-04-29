@@ -35,7 +35,7 @@ PeriodicCubeFlow<dim, nstate>::PeriodicCubeFlow(const PHiLiP::Parameters::AllPar
 }
 
 template <int dim, int nstate>
-void PeriodicCubeFlow<dim,nstate>::display_flow_solver_setup() const
+void PeriodicCubeFlow<dim,nstate>::display_flow_solver_setup(std::shared_ptr<InitialConditionFunction<dim,nstate,double>> /*initial_condition*/) const
 {
     using PDE_enum = Parameters::AllParameters::PartialDifferentialEquation;
     const PDE_enum pde_type = this->all_param.pde_type;

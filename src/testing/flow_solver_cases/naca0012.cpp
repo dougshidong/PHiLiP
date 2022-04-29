@@ -48,7 +48,7 @@ void NACA0012<dim,nstate>::display_flow_solver_setup(std::shared_ptr<InitialCond
     this->pcout << "- Farfield conditions: " << std::endl;
     const dealii::Point<dim> dummy_point;
     for (int s=0;s<nstate;s++) {
-        this->pcout << initial_condition->value(dummy_point, s) << std::endl;
+        this->pcout << "  - State " << s << "; Value: " << initial_condition->value(dummy_point, s) << std::endl;
     }
 }
 

@@ -413,18 +413,42 @@ Parameters::AllParameters AdaptiveSampling<dim, nstate>::reinitParams(RowVector2
         parameters.burgers_param.rewienski_a = parameter(0);
         parameters.burgers_param.rewienski_b = parameter(1);
     }
+    else if (flow_type == FlowCaseEnum::naca0012){
+        parameters.euler_param.mach_inf = parameter(0);
+        parameters.euler_param.angle_of_attack = parameter(1); //radians!
+    }
     else{
         std::cout << "Invalid flow case. You probably forgot to specify a flow case in the prm file." << std::endl;
         std::abort();
     }
-
     return parameters;
 }
 
-#if PHILIP_DIM==1
-template class AdaptiveSampling<PHILIP_DIM, PHILIP_DIM>;
-#endif
+template <int dim, int nstate>
+Functional<dim,nstate,double> AdaptiveSampling<dim, nstate>::functionalFactory(std::shared_ptr<DGBase<dim, double>> dg) const
+{
+    using FlowCaseEnum = Parameters::FlowSolverParam::FlowCaseType;
+    const FlowCaseEnum flow_type = this->all_parameters->flow_solver_param.flow_case_type;
+    if (flow_type == FlowCaseEnum::burgers_rewienski_snapshot){
+        std::shared_ptr< DGBaseState<dim,nstate,double>> dg_state = std::dynamic_pointer_cast< DGBaseState<dim,nstate,double>>(dg);
+        return BurgersRewienskiFunctional<dim,nstate,double>(dg,dg_state->pde_physics_fad_fad,true,false);
+    }
+    else if (flow_type == FlowCaseEnum::naca0012){
+        return LiftDragFunctional<dim, nstate, double>(dg, LiftDragFunctional<dim,nstate,double>::Functional_types::lift);
+    }
+    else{
+        std::cout << "Invalid flow case. You probably forgot to specify a flow case in the prm file." << std::endl;
+        std::abort();
+    }
+    return static_cast<Functional<1, 1, double>>(nullptr);
+}
 
+#if PHILIP_DIM==1
+    template class AdaptiveSampling<PHILIP_DIM, PHILIP_DIM>;
+#endif
+#if PHILIP_DIM==2
+    template class AdaptiveSampling<PHILIP_DIM, PHILIP_DIM+2>;
+#endif
 
 }
 }

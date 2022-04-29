@@ -33,6 +33,7 @@
 #include "ROL_StatusTest.hpp"
 #include "ROL_Stream.hpp"
 #include "ROL_Bounds.hpp"
+#include "functional/lift_drag.hpp"
 
 namespace PHiLiP {
 namespace Tests {
@@ -95,6 +96,8 @@ public:
     std::shared_ptr<ProperOrthogonalDecomposition::ROMSolution<dim,nstate>> solveSnapshotROM(RowVector2d parameter) const;
 
     Parameters::AllParameters reinitParams(RowVector2d parameter) const;
+
+    Functional<dim,nstate,double> functionalFactory(std::shared_ptr<DGBase<dim, double>> dg) const;
 
     void outputErrors(int iteration) const;
 };

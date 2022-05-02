@@ -29,10 +29,13 @@ public:
     virtual ~FlowSolverCaseBase() {};
 
     /// Displays the flow setup parameters
-    virtual void display_flow_solver_setup() const;
+    virtual void display_flow_solver_setup(std::shared_ptr<InitialConditionFunction<dim,nstate,double>> initial_condition) const;
 
     /// Pure Virtual function to generate the grid
     virtual std::shared_ptr<Triangulation> generate_grid() const = 0;
+
+    /// Set higher order grid
+    virtual void set_higher_order_grid(std::shared_ptr <DGBase<dim, double>> dg) const;
 
     /// Virtual function to write unsteady snapshot data to table
     virtual void compute_unsteady_data_and_write_to_table(

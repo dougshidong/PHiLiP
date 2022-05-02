@@ -135,7 +135,7 @@ int check_flow_constraints(
                 0.8,
                 1.25,
                 0.0);
-    Physics::FreeStreamInitialConditions<dim,nstate> initial_conditions(euler_physics_double);
+    FreeStreamInitialConditions<dim,nstate,double> initial_conditions(euler_physics_double);
 
     int test_error = 0;
     // Temporary vectors
@@ -283,7 +283,7 @@ int check_objective(
                 0.8,
                 1.25,
                 0.0);
-    Physics::FreeStreamInitialConditions<dim,nstate> initial_conditions(euler_physics_double);
+    FreeStreamInitialConditions<dim,nstate,double> initial_conditions(euler_physics_double);
 
     auto des_var_p = ROL::makePtr<ROL::Vector_SimOpt<double>>(des_var_sim_rol_p, des_var_ctl_rol_p);
 
@@ -444,7 +444,7 @@ int EulerNACAOptimization<dim,nstate>
                 param.euler_param.mach_inf,
                 param.euler_param.angle_of_attack,
                 param.euler_param.side_slip_angle);
-    Physics::FreeStreamInitialConditions<dim,nstate> initial_conditions(euler_physics_double);
+    FreeStreamInitialConditions<dim,nstate,double> initial_conditions(euler_physics_double);
 
     using Triangulation = dealii::parallel::distributed::Triangulation<dim>;
     std::shared_ptr <Triangulation> grid = std::make_shared<Triangulation> (

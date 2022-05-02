@@ -164,9 +164,9 @@ std::unique_ptr< TestsBase > TestsFactory<dim,nstate,MeshType>
     } else if(test_type == Test_enum::finite_difference_sensitivity) {
         if constexpr (dim==1 && nstate==1) return std::make_unique<FiniteDifferenceSensitivity<dim,nstate>>(parameters_input,parameter_handler_input);
     } else if(test_type == Test_enum::euler_naca0012) {
-        if constexpr (dim==2 && nstate==dim+2) return std::make_unique<EulerNACA0012<dim,nstate>>(parameters_input);
+        if constexpr (dim==2 && nstate==dim+2) return std::make_unique<EulerNACA0012<dim,nstate>>(parameters_input,parameter_handler_input);
     } else if(test_type == Test_enum::flow_solver) {
-        if constexpr ((dim==3 && nstate==dim+2) || (dim==1 && nstate==1)) return FlowSolverFactory<dim,nstate>::create_FlowSolver(parameters_input,parameter_handler_input);
+        if constexpr (((dim==3 || dim==2) && nstate==dim+2) || (dim==1 && nstate==1)) return FlowSolverFactory<dim,nstate>::create_FlowSolver(parameters_input,parameter_handler_input);
     } else if(test_type == Test_enum::dual_weighted_residual_mesh_adaptation) {
         if constexpr (dim > 1)  return std::make_unique<DualWeightedResidualMeshAdaptation<dim, nstate>>(parameters_input);
     } else if(test_type == Test_enum::taylor_green_vortex_energy_check) {

@@ -131,7 +131,7 @@ int EulerCylinder<dim,nstate>
                 param.euler_param.mach_inf,
                 param.euler_param.angle_of_attack,
                 param.euler_param.side_slip_angle);
-    Physics::FreeStreamInitialConditions<dim,nstate> initial_conditions(euler_physics_double);
+    FreeStreamInitialConditions<dim,nstate,double> initial_conditions(euler_physics_double);
 
     std::vector<int> fail_conv_poly;
     std::vector<double> fail_conv_slop;

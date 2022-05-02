@@ -76,7 +76,7 @@ int DualWeightedResidualMeshAdaptation<dim, nstate> :: run_test () const
                  grid);
 
             dg->allocate_system();
-            InitialConditionFunction_Zero<dim,double> initial_conditions(nstate);
+            InitialConditionFunction_Zero<dim,nstate,double> initial_conditions;
             const auto mapping = *(dg->high_order_grid->mapping_fe_field);
             dealii::VectorTools::interpolate(mapping, dg->dof_handler, initial_conditions, dg->solution);
             

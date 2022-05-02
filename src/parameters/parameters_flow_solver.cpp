@@ -17,6 +17,7 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                           dealii::Patterns::Selection(
                           " taylor_green_vortex | "
                           " burgers_viscous_snapshot | "
+                          " naca0012 | "
                           " burgers_rewienski_snapshot | "
                           " burgers_inviscid | "
                           " advection | "
@@ -25,6 +26,7 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                           "Choices are "
                           " <taylor_green_vortex | "
                           " burgers_viscous_snapshot | "
+                          " naca0012 | "
                           " burgers_rewienski_snapshot | "
                           " burgers_inviscid | "
                           " advection | "
@@ -101,6 +103,7 @@ void FlowSolverParam::parse_parameters(dealii::ParameterHandler &prm)
         if      (flow_case_type_string == "taylor_green_vortex")        {flow_case_type = taylor_green_vortex;}
         else if (flow_case_type_string == "burgers_viscous_snapshot")   {flow_case_type = burgers_viscous_snapshot;}
         else if (flow_case_type_string == "burgers_rewienski_snapshot") {flow_case_type = burgers_rewienski_snapshot;}
+        else if (flow_case_type_string == "naca0012")                   {flow_case_type = naca0012;}
         else if (flow_case_type_string == "burgers_inviscid")           {flow_case_type = burgers_inviscid;}
         else if (flow_case_type_string == "advection")                  {flow_case_type = advection;}
         else if (flow_case_type_string == "convection_diffusion")       {flow_case_type = convection_diffusion;}

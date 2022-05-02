@@ -2168,20 +2168,19 @@ void DGBase<dim,real,MeshType>::evaluate_mass_matrices (bool do_inverse_mass_mat
     if (do_inverse_mass_matrix == true) {
         global_inverse_mass_matrix.reinit(locally_owned_dofs, mass_sparsity_pattern);
         if (use_auxiliary_eq){
-            for(int idim=0; idim<dim; idim++){
-                global_inverse_mass_matrix_auxiliary[idim].reinit(locally_owned_dofs, mass_sparsity_pattern);
-            }
+            global_inverse_mass_matrix_auxiliary.reinit(locally_owned_dofs, mass_sparsity_pattern);
         }
         if (this->all_parameters->use_energy == true){//for split form get energy
             global_mass_matrix.reinit(locally_owned_dofs, mass_sparsity_pattern);
             if (use_auxiliary_eq){
-                for(int idim=0; idim<dim; idim++){
-                    global_mass_matrix_auxiliary[idim].reinit(locally_owned_dofs, mass_sparsity_pattern);
-                }
+                global_mass_matrix_auxiliary.reinit(locally_owned_dofs, mass_sparsity_pattern);
             }
         }
     } else {
         global_mass_matrix.reinit(locally_owned_dofs, mass_sparsity_pattern);
+        if (use_auxiliary_eq){
+            global_mass_matrix_auxiliary.reinit(locally_owned_dofs, mass_sparsity_pattern);
+        }
     }
 
     //Loop over cells and set the matrices.
@@ -2238,15 +2237,19 @@ void DGBase<dim,real,MeshType>::evaluate_mass_matrices (bool do_inverse_mass_mat
     if (do_inverse_mass_matrix == true) {
         global_inverse_mass_matrix.compress(dealii::VectorOperation::insert);
         if (use_auxiliary_eq){
-            for(int idim=0; idim<dim; idim++){
-                global_inverse_mass_matrix_auxiliary[idim].compress(dealii::VectorOperation::insert);
-            }
+            global_inverse_mass_matrix_auxiliary.compress(dealii::VectorOperation::insert);
         }
         if (this->all_parameters->use_energy == true){//for split form energy
             global_mass_matrix.compress(dealii::VectorOperation::insert);
+            if (use_auxiliary_eq){
+                global_mass_matrix_auxiliary.compress(dealii::VectorOperation::insert);
+            }
         }
     } else {
         global_mass_matrix.compress(dealii::VectorOperation::insert);
+        if (use_auxiliary_eq){
+            global_mass_matrix_auxiliary.compress(dealii::VectorOperation::insert);
+        }
         //std::cout << " global_mass_matrix "  << std::endl;
         //std::cout << std::setprecision(std::numeric_limits<long double>::digits10 + 1);
         //global_mass_matrix.print(std::cout);
@@ -2338,23 +2341,22 @@ void DGBase<dim,real,MeshType>::evaluate_local_metric_dependent_mass_matrix_and_
             //set the global inverse mass matrix for auxiliary equations
             if(use_auxiliary_eq){
                 dealii::FullMatrix<real> local_inverse_mass_matrix_aux(n_dofs_cell);
-                for(int idim=0; idim<dim; idim++){
-                    local_inverse_mass_matrix_aux.invert(local_mass_matrix_aux[idim]);
-                    global_inverse_mass_matrix_auxiliary[idim].set (dofs_indices, local_inverse_mass_matrix_aux);
-                }                 
+                local_inverse_mass_matrix_aux.invert(local_mass_matrix_aux[0]);
+                global_inverse_mass_matrix_auxiliary.set (dofs_indices, local_inverse_mass_matrix_aux);
             }
             //If an energy test, we also need to store the mass matrix to compute energy/entropy and conservation.
             if (this->all_parameters->use_energy == true){//for split form energy
                 global_mass_matrix.set (dofs_indices, local_mass_matrix);
                 if(use_auxiliary_eq){
-                    for(int idim=0; idim<dim; idim++){
-                        global_mass_matrix_auxiliary[idim].set (dofs_indices, local_mass_matrix_aux[idim]);
-                    }                 
+                    global_mass_matrix_auxiliary.set (dofs_indices, local_mass_matrix_aux[0]);
                 }
             }
         } else {
             //only store global mass matrix
             global_mass_matrix.set (dofs_indices, local_mass_matrix);
+            if(use_auxiliary_eq){
+                global_mass_matrix_auxiliary.set (dofs_indices, local_mass_matrix_aux[0]);
+            }
         }
     } else {//use weight adjusted Mass Matrix (it's based off the inverse)
         //Weight-adjusted framework based off Cicchino, Alexander, and Sivakumaran Nadarajah. "Nonlinearly Stable Split Forms for the Weight-Adjusted Flux Reconstruction High-Order Method: Curvilinear Numerical Validation." AIAA SCITECH 2022 Forum. 2022 for FR. For a DG background please refer to Chan, Jesse, and Lucas C. Wilcox. "On discretely entropy stable weight-adjusted discontinuous Galerkin methods: curvilinear meshes." Journal of Computational Physics 378 (2019): 366-393. Section 4.1.

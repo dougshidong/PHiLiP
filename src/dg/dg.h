@@ -227,11 +227,11 @@ public:
     dealii::TrilinosWrappers::SparseMatrix global_inverse_mass_matrix;
 
     /// Global auxiliary mass matrix. 
-    /** Note that it has a mass matrix in each dimension since theauxiliary variable is a tensor of size dim*/
-    std::array<dealii::TrilinosWrappers::SparseMatrix,dim> global_mass_matrix_auxiliary;
+    /** Note that it has a mass matrix in each dimension since the auxiliary variable is a tensor of size dim. We use the same matrix in each dim.*/
+    dealii::TrilinosWrappers::SparseMatrix global_mass_matrix_auxiliary;
 
     /// Global inverse of the auxiliary mass matrix
-    std::array<dealii::TrilinosWrappers::SparseMatrix,dim> global_inverse_mass_matrix_auxiliary;
+    dealii::TrilinosWrappers::SparseMatrix global_inverse_mass_matrix_auxiliary;
 
     /// System matrix corresponding to the derivative of the right_hand_side with
     /// respect to the solution

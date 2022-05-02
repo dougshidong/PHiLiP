@@ -110,7 +110,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_auxiliary_residual ()
             this->auxiliary_RHS[idim].update_ghost_values();
 
             //solve for auxiliary solution for each dimension
-            this->global_inverse_mass_matrix_auxiliary[idim].vmult(this->auxiliary_solution[idim], this->auxiliary_RHS[idim]);
+            this->global_inverse_mass_matrix_auxiliary.vmult(this->auxiliary_solution[idim], this->auxiliary_RHS[idim]);
 
             //update ghost values of auxiliary solution
             this->auxiliary_solution[idim].update_ghost_values();

@@ -144,7 +144,7 @@ int AdvectionPeriodic<dim, nstate>::run_test() const
     dg->allocate_system ();
 
     std::cout << "Implement initial conditions" << std::endl;
-    InitialConditionBase<dim,double> initial_condition(dg, &all_parameters_new, nstate);
+    InitialConditionBase<dim,nstate,double> initial_condition(dg, &all_parameters_new);
 
     // Create ODE solver using the factory and providing the DG object
     std::shared_ptr<PHiLiP::ODE::ODESolverBase<dim, double>> ode_solver = PHiLiP::ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);

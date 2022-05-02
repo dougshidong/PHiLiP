@@ -12,22 +12,19 @@ namespace PHiLiP {
 
 ///Initial Condition Base class.
 
-template <int dim, typename real>
+template <int dim, int nstate, typename real>
 class InitialConditionBase
 {
 public:
     ///Constructor
     InitialConditionBase(
         std::shared_ptr< PHiLiP::DGBase<dim, real> > dg_input,
-        const Parameters::AllParameters *const parameters_input,
-        const int nstate_input);
+        const Parameters::AllParameters *const parameters_input);
     ///Destructor
     ~InitialConditionBase();
 
     ///Input parameters.
     const Parameters::AllParameters *const all_parameters;
-    ///Number of states.
-    const int nstate;
 
     /// Smart pointer to DGBase
     std::shared_ptr<PHiLiP::DGBase<dim,real>> dg;
@@ -46,7 +43,7 @@ public:
         
     protected:
     ///Initial condition function
-    std::shared_ptr< InitialConditionFunction<dim,double> > initial_condition_function;
+    std::shared_ptr< InitialConditionFunction<dim,nstate,double> > initial_condition_function;
     const MPI_Comm mpi_communicator; ///< MPI communicator.
     dealii::ConditionalOStream pcout; ///< Parallel std::cout that only outputs on mpi_rank==0
 

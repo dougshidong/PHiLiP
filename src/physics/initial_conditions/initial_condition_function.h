@@ -124,9 +124,9 @@ public:
 };
 
 /// Initial Condition Function: 1D Burgers Inviscid
-template <int dim, typename real>
+template <int dim, int nstate, typename real>
 class InitialConditionFunction_BurgersInviscid
-        : public InitialConditionFunction<dim,real>
+        : public InitialConditionFunction<dim,nstate,real>
 {
 protected:
     using dealii::Function<dim,real>::value; ///< dealii::Function we are templating on
@@ -134,16 +134,16 @@ protected:
 public:
     /// Constructor for InitialConditionFunction_BurgersInviscid
     /** Calls the Function(const unsigned int n_components) constructor in deal.II*/
-    InitialConditionFunction_BurgersInviscid (const unsigned int nstate = 1);
+    InitialConditionFunction_BurgersInviscid ();
 
     /// Value of initial condition
     real value (const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
 };
 
 /// Initial Condition Function: 1D Burgers Inviscid Energy
-template <int dim, typename real>
+template <int dim, int nstate, typename real>
 class InitialConditionFunction_BurgersInviscidEnergy
-        : public InitialConditionFunction<dim,real>
+        : public InitialConditionFunction<dim,nstate,real>
 {
 protected:
     using dealii::Function<dim,real>::value; ///< dealii::Function we are templating on
@@ -151,16 +151,16 @@ protected:
 public:
     /// Constructor for InitialConditionFunction_BurgersInviscidEnergy
     /** Calls the Function(const unsigned int n_components) constructor in deal.II*/
-    InitialConditionFunction_BurgersInviscidEnergy (const unsigned int nstate);
+    InitialConditionFunction_BurgersInviscidEnergy ();
 
     /// Value of initial condition
     real value (const dealii::Point<dim,real> &point, const unsigned int istate) const override;
 };
 
 /// Initial Condition Function: 1D Burgers Inviscid
-template <int dim, typename real>
+template <int dim, int nstate, typename real>
 class InitialConditionFunction_Advection
-        : public InitialConditionFunction<dim,real>
+        : public InitialConditionFunction<dim,nstate,real>
 {
 protected:
     using dealii::Function<dim,real>::value; ///< dealii::Function we are templating on
@@ -168,16 +168,16 @@ protected:
 public:
     /// Constructor for InitialConditionFunction_Inviscid
     /** Calls the Function(const unsigned int n_components) constructor in deal.II*/
-    InitialConditionFunction_Advection (const unsigned int nstate);
+    InitialConditionFunction_Advection ();
 
     /// Value of initial condition
     real value (const dealii::Point<dim,real> &point, const unsigned int istate) const override;
 };
 
 /// Initial Condition Function: Advection Energy
-template <int dim, typename real>
+template <int dim, int nstate, typename real>
 class InitialConditionFunction_AdvectionEnergy
-        : public InitialConditionFunction<dim,real>
+        : public InitialConditionFunction<dim,nstate,real>
 {
 protected:
     using dealii::Function<dim,real>::value; ///< dealii::Function we are templating on
@@ -185,16 +185,16 @@ protected:
 public:
     /// Constructor for InitialConditionFunction_AdvectionEnergy
     /** Calls the Function(const unsigned int n_components) constructor in deal.II*/
-    InitialConditionFunction_AdvectionEnergy (const unsigned int nstate);
+    InitialConditionFunction_AdvectionEnergy ();
 
     /// Value of initial condition
     real value (const dealii::Point<dim,real> &point, const unsigned int istate) const override;
 };
 
 /// Initial Condition Function: Convection Diffusion Energy
-template <int dim, typename real>
+template <int dim, int nstate, typename real>
 class InitialConditionFunction_ConvDiff
-        : public InitialConditionFunction<dim,real>
+        : public InitialConditionFunction<dim,nstate,real>
 {
 protected:
     using dealii::Function<dim,real>::value; ///< dealii::Function we are templating on
@@ -202,7 +202,7 @@ protected:
 public:
     /// Constructor for InitialConditionFunction_ConvDiff
     /** Calls the Function(const unsigned int n_components) constructor in deal.II*/
-    InitialConditionFunction_ConvDiff (const unsigned int nstate);
+    InitialConditionFunction_ConvDiff ();
 
     /// Value of initial condition
     real value (const dealii::Point<dim,real> &point, const unsigned int istate) const override;

@@ -141,7 +141,7 @@ int BurgersEnergyStability<dim, nstate>::run_test() const
         dg->allocate_system ();
          
         //initialize IC
-        InitialConditionBase<dim,double> initial_condition(dg, &all_parameters_new, nstate);
+        InitialConditionBase<dim,nstate,double> initial_condition(dg, &all_parameters_new);
 	// Create ODE solver using the factory and providing the DG object
 	std::shared_ptr<ODE::ODESolverBase<dim, double>> ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
 

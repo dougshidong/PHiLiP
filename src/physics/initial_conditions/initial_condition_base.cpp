@@ -7,15 +7,13 @@
 namespace PHiLiP{
 
 //Constructor
-template<int dim, typename real>
-InitialConditionBase<dim,real>::InitialConditionBase(
+template<int dim, int nstate, typename real>
+InitialConditionBase<dim,nstate,real>::InitialConditionBase(
         std::shared_ptr< PHiLiP::DGBase<dim, real> > dg_input,
-        const Parameters::AllParameters *const parameters_input,
-        const int nstate_input)
+        const Parameters::AllParameters *const parameters_input)
         : all_parameters(parameters_input)
-        , nstate(nstate_input)
         , dg(dg_input)
-        , initial_condition_function(InitialConditionFactory<dim,double>::create_InitialConditionFunction(parameters_input, nstate_input))
+        , initial_condition_function(InitialConditionFactory<dim,nstate,double>::create_InitialConditionFunction(parameters_input))
         , mpi_communicator(MPI_COMM_WORLD)
         , pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(mpi_communicator)==0)
 {
@@ -28,12 +26,12 @@ InitialConditionBase<dim,real>::InitialConditionBase(
 }
 
 //Destructor
-template<int dim, typename real>
-InitialConditionBase<dim,real>::~InitialConditionBase ()
+template<int dim, int nstate, typename real>
+InitialConditionBase<dim,nstate,real>::~InitialConditionBase ()
 {}
 
-template<int dim, typename real>
-void InitialConditionBase<dim,real>::interpolate_initial_condition(
+template<int dim, int nstate, typename real>
+void InitialConditionBase<dim,nstate,real>::interpolate_initial_condition(
         std::shared_ptr < PHiLiP::DGBase<dim,real> > &dg) 
 {
     dealii::LinearAlgebra::distributed::Vector<double> solution_no_ghost;
@@ -42,8 +40,8 @@ void InitialConditionBase<dim,real>::interpolate_initial_condition(
     dg->solution = solution_no_ghost;
 }
 
-template<int dim, typename real>
-void InitialConditionBase<dim,real>::project_initial_condition(
+template<int dim, int nstate, typename real>
+void InitialConditionBase<dim,nstate,real>::project_initial_condition(
         std::shared_ptr < PHiLiP::DGBase<dim,real> > &dg) 
 {
     //Note that for curvilinear, can't use dealii interpolate since it doesn't project at the correct order.
@@ -81,6 +79,10 @@ void InitialConditionBase<dim,real>::project_initial_condition(
 
 }
 
-template class InitialConditionBase<PHILIP_DIM, double>;
+template class InitialConditionBase<PHILIP_DIM, 1, double>;
+template class InitialConditionBase<PHILIP_DIM, 2, double>;
+template class InitialConditionBase<PHILIP_DIM, 3, double>;
+template class InitialConditionBase<PHILIP_DIM, 4, double>;
+template class InitialConditionBase<PHILIP_DIM, 5, double>;
 
 }//end of namespace PHILIP

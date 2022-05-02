@@ -81,6 +81,11 @@ public:
     	const std::array<real2,nstate> &primitive_soln,
     	const std::array<dealii::Tensor<1,dim,real2>,nstate> &primitive_soln_gradient) const;
 
+    /// Evaluate vorticity from conservative variables and gradient of conservative variables
+    dealii::Tensor<1,3,real> compute_vorticity (
+        const std::array<real,nstate> &conservative_soln,
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &conservative_soln_gradient) const;
+
     /** Extract gradient of velocities */
     template<typename real2>
     std::array<dealii::Tensor<1,dim,real2>,dim> 

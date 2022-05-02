@@ -167,6 +167,34 @@ dealii::Tensor<1,dim,real2> NavierStokes<dim,nstate,real>
 }
 
 template <int dim, int nstate, typename real>
+dealii::Tensor<1,3,real> NavierStokes<dim,nstate,real>
+::compute_vorticity (
+    const std::array<real,nstate> &conservative_soln,
+    const std::array<dealii::Tensor<1,dim,real>,nstate> &conservative_soln_gradient) const
+{
+    // Compute the vorticity
+    dealii::Tensor<1,3,real> vorticity;
+    for(int d=0; d<3; ++d) {
+        vorticity[d] = 0.0;
+    }
+    if constexpr(dim>1) {
+        // Get velocity gradient
+        const std::array<dealii::Tensor<1,dim,real>,nstate> primitive_soln_gradient = convert_conservative_gradient_to_primitive_gradient<real>(conservative_soln, conservative_soln_gradient);
+        const std::array<dealii::Tensor<1,dim,real>,dim> velocities_gradient = extract_velocities_gradient_from_primitive_solution_gradient<real>(primitive_soln_gradient);
+        if constexpr(dim==2) {
+            // vorticity exists only in z-component
+            vorticity[2] = velocities_gradient[1][0] - velocities_gradient[0][1]; // z-component
+        }
+        if constexpr(dim==3) {
+            vorticity[0] = velocities_gradient[2][1] - velocities_gradient[1][2]; // x-component
+            vorticity[1] = velocities_gradient[0][2] - velocities_gradient[2][0]; // y-component
+            vorticity[2] = velocities_gradient[1][0] - velocities_gradient[0][1]; // z-component
+        }
+    }
+    return vorticity;
+}
+
+template <int dim, int nstate, typename real>
 template<typename real2>
 std::array<dealii::Tensor<1,dim,real2>,dim> NavierStokes<dim,nstate,real>
 ::extract_velocities_gradient_from_primitive_solution_gradient (

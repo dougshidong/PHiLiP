@@ -21,7 +21,12 @@ public:
     /// Constructor.
     /** Simply calls the TestsBase constructor to set its parameters = parameters_input
      */
-    EulerNACA0012(const Parameters::AllParameters *const parameters_input);
+    EulerNACA0012(const Parameters::AllParameters *const parameters_input,
+                  const dealii::ParameterHandler &parameter_handler_input);
+
+
+    /// Parameter handler for storing the .prm file being ran
+    const dealii::ParameterHandler &parameter_handler;
 
     /// Grid convergence on Euler Gaussian Bump
     /** Will run the a grid convergence test for various p

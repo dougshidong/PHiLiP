@@ -18,6 +18,7 @@ public:
     enum FlowCaseType{
         taylor_green_vortex,
         burgers_viscous_snapshot,
+        naca0012,
         burgers_rewienski_snapshot,
         };
     FlowCaseType flow_case_type; ///< Selected FlowCaseType from the input file

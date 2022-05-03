@@ -29,10 +29,10 @@ inline real ExactSolutionFunction_Zero<dim,nstate,real>
 // ========================================================
 template <int dim, int nstate, typename real>
 ExactSolutionFunction_1DSine<dim,nstate,real>
-::ExactSolutionFunction_1DSine ()
+::ExactSolutionFunction_1DSine (double time_compare)
         : ExactSolutionFunction<dim,nstate,real>()
 {
-    t = 0.1;//time_compare;
+    t = time_compare;
 }
 
 template <int dim, int nstate, typename real>
@@ -68,17 +68,18 @@ ExactSolutionFactory<dim,nstate, real>::create_ExactSolutionFunction(
 {
 
     //read the final time
-    //double time_compare = param->flow_solver_param.final_time;
+    const double time_compare = param->flow_solver_param.final_time;
 
     // Get the flow case type
     const FlowCaseEnum flow_type = param->flow_solver_param.flow_case_type;
     if (flow_type == FlowCaseEnum::advection_explicit_time_study) {
-        if constexpr (dim==1 && nstate==dim)  return std::make_shared<ExactSolutionFunction_1DSine<dim,nstate,real> > ();
-        std::cout << "successfully selected an exact solution" << std::endl;
+        std::cout << "Selected an exact solution at t = " << time_compare << std::endl;
+        if constexpr (dim==1 && nstate==dim)  return std::make_shared<ExactSolutionFunction_1DSine<dim,nstate,real> > (time_compare);
     } else {
-        std::cout << "No exact solution is defined for this flow case type in initial_condition.cpp. Using zero function as a placeholder." <<std::endl;
+        std::cout << "No exact solution is defined for this flow case type in initial_condition.cpp." <<std::endl;
         return std::make_shared<ExactSolutionFunction_Zero<dim,nstate,real>> ();
     }
+    (void) time_compare; //to avoid 
     return nullptr;
 }
 

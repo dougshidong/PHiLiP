@@ -56,7 +56,7 @@ protected:
 public:
     /// Constructor for InitialConditionFunction_BurgersRewienski
     /** Calls the Function(const unsigned int n_components) constructor in deal.II*/
-    ExactSolutionFunction_1DSine ();
+    ExactSolutionFunction_1DSine (double time_compare);
 
     /// Time at which to compute the exact solution
     double t; 

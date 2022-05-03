@@ -1,4 +1,5 @@
 #include "pod_petrov_galerkin_ode_solver.h"
+#include <deal.II/lac/householder.h>
 #include <deal.II/lac/la_parallel_vector.h>
 
 namespace PHiLiP {
@@ -36,6 +37,77 @@ void PODPetrovGalerkinODESolver<dim,real,MeshType>::step_in_time (real dt, const
     //Petrov-Galerkin projection, petrov_galerkin_basis = V^T*J^T, pod basis V, system matrix J
     //V^T*J*V*p = -V^T*R
     this->pcout << "here0" << std::endl;
+    std::ofstream out_file("system_matrix.txt");
+    unsigned int precision1 = 16;
+    this->dg->system_matrix.print(out_file, precision1);
+
+    std::ofstream out_file2("pod_basis_petrovgalerkin.txt");
+    unsigned int precision2 = 16;
+    pod->getPODBasis()->print(out_file2, precision2);
+    /*
+    Epetra_CrsMatrix *epetra_system_matrix  = const_cast<Epetra_CrsMatrix *>(&(this->dg->system_matrix.trilinos_matrix()));
+    Epetra_Map system_matrix_map = epetra_system_matrix->DomainMap();
+
+    Epetra_CrsMatrix *epetra_pod  = const_cast<Epetra_CrsMatrix *>(&(pod->getPODBasis()->trilinos_matrix()));
+    //Epetra_Map pod_domainmap = epetra_pod->DomainMap();
+
+    //epetra_pod->FillComplete(pod_domainmap, system_matrix_map);
+    std::cout << epetra_pod->ReplaceRowMap(system_matrix_map) << std::endl;
+    epetra_pod->FillComplete();
+
+    dealii::TrilinosWrappers::SparseMatrix pod_basis;
+    pod_basis.reinit(*epetra_pod, true);
+
+    Epetra_CrsMatrix *epetra_petrovgalerkin  = const_cast<Epetra_CrsMatrix *>(&(this->petrov_galerkin_basis->trilinos_matrix()));
+    //epetra_pod->FillComplete(pod_domainmap, system_matrix_map);
+    epetra_petrovgalerkin->ReplaceRowMap(system_matrix_map);
+    epetra_petrovgalerkin->FillComplete();
+
+    dealii::TrilinosWrappers::SparseMatrix petrovgalerkin;
+    petrovgalerkin.reinit(*epetra_petrovgalerkin, true);
+
+    this->dg->system_matrix.mmult(petrovgalerkin, pod_basis); // petrov_galerkin_basis = system_matrix * pod_basis. Note, use transpose in subsequent multiplications
+    */
+    this->pcout << "here1" << std::endl;
+    /*
+    dealii::FullMatrix<double> system_matrix_full(this->dg->system_matrix.m(), this->dg->system_matrix.n());
+    system_matrix_full.copy_from(this->dg->system_matrix);
+    this->pcout << "here2" << std::endl;
+
+    dealii::FullMatrix<double> pod_full(pod->getPODBasis()->m(), pod->getPODBasis()->n());
+    pod_full.copy_from(*pod->getPODBasis());
+    this->pcout << "here3" << std::endl;
+
+    dealii::FullMatrix<double> result;
+    system_matrix_full.mmult(result, pod_full); // petrov_galerkin_basis = system_matrix * pod_basis. Note, use transpose in subsequent multiplications
+    this->pcout << "here4" << std::endl;
+
+    dealii::Householder<double> householder (result);
+    dealii::Vector<double> leastSquaresSolution(pod->getPODBasis()->n());
+    dealii::Vector<double> rhs(pod->getPODBasis()->m());
+    this->pcout << "here5" << std::endl;
+
+    for(unsigned int i = 0 ; i < pod->getPODBasis()->m() ; i++){
+        rhs(i) = this->dg->right_hand_side(i);
+    }
+    this->pcout << "here6" << std::endl;
+
+    householder.least_squares(leastSquaresSolution, rhs);
+    this->pcout << "here7" << std::endl;
+
+    dealii::LinearAlgebra::distributed::Vector<double> soln(leastSquaresSolution.size());
+    for(unsigned int i = 0 ; i < pod->getPODBasis()->m() ; i++){
+        soln[i] = leastSquaresSolution[i];
+    }
+    this->pcout << "here8" << std::endl;
+
+    *reduced_solution_update = soln;
+    this->pcout << "here9" << std::endl;
+    */
+    /*
+    this->pcout << "here0.5" << std::endl;
+
+
     this->dg->system_matrix.mmult(*this->petrov_galerkin_basis, *pod->getPODBasis()); // petrov_galerkin_basis = system_matrix * pod_basis. Note, use transpose in subsequent multiplications
     this->pcout << "here1" << std::endl;
 
@@ -45,12 +117,62 @@ void PODPetrovGalerkinODESolver<dim,real,MeshType>::step_in_time (real dt, const
     this->petrov_galerkin_basis->Tmmult(*this->reduced_lhs, *this->petrov_galerkin_basis); //reduced_lhs = petrov_galerkin_basis^T * petrov_galerkin_basis , equivalent to V^T*J^T*J*V
     this->pcout << "here3" << std::endl;
 
+    std::ofstream out_file3("reduced_lhs.txt");
+    unsigned int precision3 = 16;
+    this->reduced_lhs->print(out_file3, precision3);
+
     solve_linear(
             *this->reduced_lhs,
             *this->reduced_rhs,
             *this->reduced_solution_update,
             this->ODESolverBase<dim,real,MeshType>::all_parameters->linear_solver_param);
     this->pcout << "here4" << std::endl;
+    */
+
+    dealii::LinearAlgebra::distributed::Vector<double> reduced_rhs(pod->getPODBasis()->n());
+    dealii::FullMatrix<double> system_matrix_full(this->dg->system_matrix.m(), this->dg->system_matrix.n());
+    system_matrix_full.copy_from(this->dg->system_matrix);
+    this->pcout << "here2" << std::endl;
+
+    dealii::FullMatrix<double> pod_full(pod->getPODBasis()->m(), pod->getPODBasis()->n());
+    pod_full.copy_from(*pod->getPODBasis());
+    this->pcout << "here3" << std::endl;
+
+    dealii::FullMatrix<double> reduced_lhs_full(pod->getPODBasis()->m(), pod->getPODBasis()->n());
+    system_matrix_full.mmult(reduced_lhs_full, pod_full); // petrov_galerkin_basis = system_matrix * pod_basis. Note, use transpose in subsequent multiplications
+    this->pcout << "here4" << std::endl;
+
+    std::ofstream out_file4("reduced_rhs.txt");
+    unsigned int precision4 = 16;
+    reduced_rhs.print(out_file4, precision4);
+
+    std::ofstream out_file5("reduced_lhs.txt");
+    unsigned int precision5 = 16;
+    reduced_lhs_full.print(out_file5, precision5);
+
+    this->pcout << "here4" << std::endl;
+    dealii::Householder<double> householder (reduced_lhs_full);
+    dealii::Vector<double> leastSquaresSolution(pod->getPODBasis()->n());
+    dealii::Vector<double> rhs(pod->getPODBasis()->n());
+    this->pcout << "here5" << std::endl;
+
+    for(unsigned int i = 0 ; i < pod->getPODBasis()->n() ; i++){
+        rhs[i] = reduced_rhs[i];
+        std::cout << reduced_rhs[i] << std::endl;
+    }
+    this->pcout << "here6" << std::endl;
+
+    householder.least_squares(leastSquaresSolution, rhs);
+    this->pcout << "here7" << std::endl;
+
+    dealii::LinearAlgebra::distributed::Vector<double> soln(leastSquaresSolution.size());
+    for(unsigned int i = 0 ; i < pod->getPODBasis()->n() ; i++){
+        soln[i] = leastSquaresSolution[i];
+    }
+    this->pcout << "here8" << std::endl;
+
+    *reduced_solution_update = soln;
+    this->pcout << "here9" << std::endl;
 
     linesearch();
 
@@ -105,7 +227,7 @@ void PODPetrovGalerkinODESolver<dim,real,MeshType>::allocate_ode_system ()
     this->solution_update.reinit(this->dg->right_hand_side);
 
     reduced_solution_update = std::make_unique<dealii::LinearAlgebra::distributed::Vector<double>>(pod->getPODBasis()->n());
-    reduced_rhs = std::make_unique<dealii::LinearAlgebra::distributed::Vector<double>>(pod->getPODBasis()->n());
+    //reduced_rhs = std::make_unique<dealii::LinearAlgebra::distributed::Vector<double>>(pod->getPODBasis()->n());
     petrov_galerkin_basis = std::make_unique<dealii::TrilinosWrappers::SparseMatrix>(pod->getPODBasis()->m(), pod->getPODBasis()->n(), pod->getPODBasis()->n());
     reduced_lhs = std::make_unique<dealii::TrilinosWrappers::SparseMatrix>();
     reference_solution = this->dg->solution; //Set reference solution to initial conditions

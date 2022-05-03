@@ -38,7 +38,7 @@ public:
     std::unique_ptr<dealii::LinearAlgebra::distributed::Vector<double>> reduced_solution_update;
 
     /// Reduced rhs for linear solver
-    std::unique_ptr<dealii::LinearAlgebra::distributed::Vector<double>> reduced_rhs;
+    //std::unique_ptr<dealii::LinearAlgebra::distributed::Vector<double>> reduced_rhs;
 
     /// Reference solution for consistency
     dealii::LinearAlgebra::distributed::Vector<double> reference_solution;

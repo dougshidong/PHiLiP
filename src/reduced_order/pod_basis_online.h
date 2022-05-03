@@ -8,10 +8,13 @@
 #include <deal.II/numerics/vector_tools.h>
 #include <deal.II/lac/full_matrix.h>
 #include <deal.II/base/conditional_ostream.h>
-#include <deal.II/lac/trilinos_sparse_matrix.h>
 #include <deal.II/lac/vector_operation.h>
+#include <deal.II/lac/trilinos_sparsity_pattern.h>
 #include "parameters/all_parameters.h"
+#include <deal.II/lac/trilinos_sparse_matrix.h>
 #include "dg/dg.h"
+#include <Epetra_CrsGraph.h>
+#include <Epetra_CrsMatrix.h>
 #include "pod_interfaces.h"
 
 namespace PHiLiP {
@@ -42,6 +45,10 @@ public:
     dealii::LAPACKFullMatrix<double> massMatrix;
 
     dealii::LAPACKFullMatrix<double> fullBasis;
+
+    Epetra_CrsGraph mass_matrix_sparsity;
+
+    std::shared_ptr<DGBase<dim,double>> dg;
 
 };
 

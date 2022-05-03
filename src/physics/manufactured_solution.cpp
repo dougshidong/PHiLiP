@@ -524,7 +524,7 @@ dealii::Tensor<1,dim,real> ManufacturedSolutionNavahBase<dim,real>
             gradient[0] = -ncm[3][4]*c*ncm[3][1]*sin(ncm[3][4]*c*x) - ncm[3][6]*c*ncm[3][3]*sin(ncm[3][6]*c*x)*cos(ncm[3][6]*c*y); // dx
             gradient[1] =  ncm[3][5]*c*ncm[3][2]*cos(ncm[3][5]*c*y) - ncm[3][6]*c*ncm[3][3]*cos(ncm[3][6]*c*x)*sin(ncm[3][6]*c*y); // dy
         }
-        if(istate==3) {
+        if(istate==4) {
             // turbulent working variable
             gradient[0] = -ncm[4][4]*c*ncm[4][1]*sin(ncm[4][4]*c*x) - ncm[4][6]*c*ncm[4][3]*sin(ncm[4][6]*c*x)*cos(ncm[4][6]*c*y); // dx
             gradient[1] = -ncm[4][5]*c*ncm[4][2]*sin(ncm[4][5]*c*y) - ncm[4][6]*c*ncm[4][3]*cos(ncm[4][6]*c*x)*sin(ncm[4][6]*c*y); // dy

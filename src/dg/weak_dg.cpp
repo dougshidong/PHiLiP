@@ -609,23 +609,6 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_volume_term_explicit(
                                        this->artificial_dissipation_coeffs[current_cell_index]
                                        : 0.0;
 
-    // -------------------------------------------------------------------
-    // ** Update model ** -- TO DO: Implement this in the other physics convective_flux call location
-    // -------------------------------------------------------------------
-    // double estimated_cell_volume = 0.0;
-    // Note: Overintegration has not yet been implemented for this cell volume estimate
-    // double cell_volume = 0.0;
-    // for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
-    //     cell_volume += fe_values_vol.JxW(iquad);
-    // }
-    // const double cell_volume_mpi_sum = dealii::Utilities::MPI::sum(estimated_cell_volume, MPI_COMM_WORLD);
-
-    // Compute the LES filter width (Ref: flad2017use)
-    // const int cell_poly_degree = cell->active_fe_index();
-    // const double updated_filter_width = cell_volume/((cell_poly_degree+1)*(cell_poly_degree+1)*(cell_poly_degree+1));
-    // DGBaseState<dim,nstate,real,MeshType>::pde_model_double->update_model(updated_filter_width);
-    // -------------------------------------------------------------------
-
     for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
         for (int istate=0; istate<nstate; istate++) {
             // Interpolate solution to the face quadrature points

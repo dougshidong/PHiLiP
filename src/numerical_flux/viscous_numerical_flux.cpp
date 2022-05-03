@@ -85,7 +85,7 @@ std::array<real, nstate> SymmetricInternalPenalty<dim,nstate,real>
         const std::array<dealii::Tensor<1,dim,real>, nstate> soln_grad_bc = soln_grad_int;
         //const std::array<dealii::Tensor<1,dim,real>, nstate> soln_grad_bc = soln_grad_ext;
         real artificial_diss_coeff_bc = artificial_diss_coeff_int;
-        const dealii::types::global_dof_index boundary_cell_index = current_cell_index; // TO DO: CHECK THIS WITH DOUG
+        const dealii::types::global_dof_index boundary_cell_index = current_cell_index;
 
         return evaluate_auxiliary_flux ( current_cell_index, boundary_cell_index,
                                          artificial_diss_coeff_int, artificial_diss_coeff_bc,

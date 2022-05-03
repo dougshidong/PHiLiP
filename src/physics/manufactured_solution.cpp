@@ -1191,18 +1191,18 @@ ManufacturedSolutionFactory<dim,real>::create_ManufacturedSolution(
         return std::make_shared<ManufacturedSolutionSShock<dim,real>>(nstate);
     }else if(solution_type == ManufacturedSolutionEnum::quadratic_solution){
         return std::make_shared<ManufacturedSolutionQuadratic<dim,real>>(nstate);
-    }else if(((solution_type == ManufacturedSolutionEnum::navah_solution_1) && (dim==2)) && (nstate==dim+2 || nstate==dim+3)){
+    }else if((solution_type == ManufacturedSolutionEnum::navah_solution_1) && (dim==2) && (nstate==dim+2 || nstate==dim+3)){
         return std::make_shared<ManufacturedSolutionNavah_MS1<dim,real>>(nstate);
-    }else if(((solution_type == ManufacturedSolutionEnum::navah_solution_2) && (dim==2)) && (nstate==dim+2 || nstate==dim+3)){
+    }else if((solution_type == ManufacturedSolutionEnum::navah_solution_2) && (dim==2) && (nstate==dim+2 || nstate==dim+3)){
         return std::make_shared<ManufacturedSolutionNavah_MS2<dim,real>>(nstate);
-    }else if(((solution_type == ManufacturedSolutionEnum::navah_solution_3) && (dim==2)) && (nstate==dim+2 || nstate==dim+3)){
+    }else if((solution_type == ManufacturedSolutionEnum::navah_solution_3) && (dim==2) && (nstate==dim+2 || nstate==dim+3)){
         return std::make_shared<ManufacturedSolutionNavah_MS3<dim,real>>(nstate);
-    }else if(((solution_type == ManufacturedSolutionEnum::navah_solution_4) && (dim==2)) && (nstate==dim+2 || nstate==dim+3)){
+    }else if((solution_type == ManufacturedSolutionEnum::navah_solution_4) && (dim==2) && (nstate==dim+2 || nstate==dim+3)){
         return std::make_shared<ManufacturedSolutionNavah_MS4<dim,real>>(nstate);
-    }else if(((solution_type == ManufacturedSolutionEnum::navah_solution_5) && (dim==2)) && (nstate==dim+2 || nstate==dim+3)){
+    }else if((solution_type == ManufacturedSolutionEnum::navah_solution_5) && (dim==2) && (nstate==dim+2 || nstate==dim+3)){
         return std::make_shared<ManufacturedSolutionNavah_MS5<dim,real>>(nstate);
     }else{
-        std::cout << "Invalid combination of Manufactured Solution, Number of Dimensions, and PDE Type." << std::endl;
+        std::cout << "Invalid combination of Manufactured Solution, dimension, and PDE Type." << std::endl;
     }
     return nullptr;
 }

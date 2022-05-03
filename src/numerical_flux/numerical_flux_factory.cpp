@@ -18,7 +18,7 @@ NumericalFluxFactory<dim, nstate, real>
     const AllParam::ModelType model_type,
     std::shared_ptr<Physics::PhysicsBase<dim, nstate, real>> physics_input)
 {
-    // checks if conv_numerical_flux_type exists only for Euler equations
+    // checks if conv_num_flux_type exists only for Euler equations
     const bool is_euler_based_flux = ((conv_num_flux_type == AllParam::roe) ||
                                       (conv_num_flux_type == AllParam::l2roe));
 
@@ -55,17 +55,10 @@ NumericalFluxFactory<dim, nstate, real>
         model_type==Model_enum::large_eddy_simulation)) 
     {
         if constexpr (dim+2==nstate) {
-            // const auto &physics_model = dynamic_cast< const Physics::PhysicsModel<dim,dim+2,real,dim+2> &>(*physics_input);
-            // const auto &physics_baseline = dynamic_cast<const Physics::Euler<dim,dim+2,real>&>(*(physics_model.physics_baseline));
-            // euler_based_physics_to_be_passed = physics_baseline;
-
-            // using dynamic_pointer_cast
             std::shared_ptr<Physics::PhysicsModel<dim,dim+2,real,dim+2>> physics_model = std::dynamic_pointer_cast<Physics::PhysicsModel<dim,dim+2,real,dim+2>>(physics_input);
             std::shared_ptr<Physics::Euler<dim,dim+2,real>> physics_baseline = std::dynamic_pointer_cast<Physics::Euler<dim,dim+2,real>>(physics_model->physics_baseline);
             euler_based_physics_to_be_passed = physics_baseline;
-        } 
-        // pass the baseline physics object of type Euler
-        // euler_based_physics_to_be_passed = std::make_shared(physics_baseline);
+        }
     }
     else if((pde_type==PDE_enum::physics_model && 
              model_type!=Model_enum::large_eddy_simulation)) 
@@ -75,13 +68,11 @@ NumericalFluxFactory<dim, nstate, real>
         std::abort();
     }
 #endif
-    // if((pde_type == PDE_enum::euler) || (pde_type == PDE_enum::navier_stokes)) {
-        if(conv_num_flux_type == AllParam::roe) {
-            if constexpr (dim+2==nstate) return std::make_unique< RoePike<dim, nstate, real> > (euler_based_physics_to_be_passed);
-        } else if(conv_num_flux_type == AllParam::l2roe) {
-            if constexpr (dim+2==nstate) return std::make_unique< L2Roe<dim, nstate, real> > (euler_based_physics_to_be_passed);
-        } 
-    // }
+    if(conv_num_flux_type == AllParam::roe) {
+        if constexpr (dim+2==nstate) return std::make_unique< RoePike<dim, nstate, real> > (euler_based_physics_to_be_passed);
+    } else if(conv_num_flux_type == AllParam::l2roe) {
+        if constexpr (dim+2==nstate) return std::make_unique< L2Roe<dim, nstate, real> > (euler_based_physics_to_be_passed);
+    }
 
     (void) pde_type;
     (void) model_type;

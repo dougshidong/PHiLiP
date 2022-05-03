@@ -17,7 +17,6 @@ std::shared_ptr < ModelBase<dim,nstate,real> >
 ModelFactory<dim,nstate,real>
 ::create_Model(const Parameters::AllParameters *const parameters_input)
 {
-    // In the future, we could create an object / class for holding/updating inputs such as grid spacing etc and just pass a pointer to the object
     using PDE_enum = Parameters::AllParameters::PartialDifferentialEquation;
     PDE_enum pde_type = parameters_input->pde_type;
 

@@ -13,7 +13,7 @@ template <int dim, int nstate, typename real>
 class ModelFactory
 {
 public:
-    /// Factory to return the correct physics given input file and grid spacing
+    /// Factory to return the correct physics given input parameters
     static std::shared_ptr< ModelBase<dim,nstate,real> >
         create_Model(const Parameters::AllParameters  *const parameters_input);
 };

@@ -10,9 +10,8 @@ set(SOURCE
     parameters_grid_refinement_study.cpp
     parameters_functional.cpp
     parameters_grid_refinement.cpp
-    parameters_artificial_dissipation.cpp
     parameters_reduced_order.cpp
-    parameters_physics_model.cpp
+    parameters_artificial_dissipation.cpp
     parameters_flow_solver.cpp
     parameters_mesh_adaptation.cpp
     parameters_burgers.cpp

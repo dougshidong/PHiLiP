@@ -6,8 +6,11 @@ namespace PHiLiP {
 namespace Tests {
 
 template <int dim, int nstate>
-TaylorGreenVortexEnergyCheck<dim, nstate>::TaylorGreenVortexEnergyCheck(const PHiLiP::Parameters::AllParameters *const parameters_input)
+TaylorGreenVortexEnergyCheck<dim, nstate>::TaylorGreenVortexEnergyCheck(
+    const PHiLiP::Parameters::AllParameters *const parameters_input,
+    const dealii::ParameterHandler &parameter_handler_input)
         : TestsBase::TestsBase(parameters_input)
+        , parameter_handler(parameter_handler_input)
         , kinetic_energy_expected(parameters_input->flow_solver_param.expected_kinetic_energy_at_final_time)
 {}
 
@@ -15,7 +18,7 @@ template <int dim, int nstate>
 int TaylorGreenVortexEnergyCheck<dim, nstate>::run_test() const
 {
     // Integrate to final time
-    std::unique_ptr<FlowSolver<dim,nstate>> flow_solver = FlowSolverFactory<dim,nstate>::create_FlowSolver(this->all_parameters);
+    std::unique_ptr<FlowSolver<dim,nstate>> flow_solver = FlowSolverFactory<dim,nstate>::create_FlowSolver(this->all_parameters, parameter_handler);
     static_cast<void>(flow_solver->run_test());
 
     // Compute kinetic energy

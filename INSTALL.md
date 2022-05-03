@@ -227,8 +227,11 @@ cmake \
     -DDEAL_II_COMPILER_HAS_FUSE_LD_GOLD=OFF \
 ~~~~
 
-## Running PHiLiP using Parameter Files on the Beluga cluster
+## Running PHiLiP using Parameter Files on the Compute Canada clusters
 After running `job_compile_PHiLiP.sh`, three PHiLiP executables are generated: `PHiLiP_1D`, `PHiLiP_2D`, `PHiLiP_3D`. These will be located in `home/username/scratch/`. For running PHiLiP using parameter files (`.prm`), create an appropriate directory for the runs e.g. `home/username/projects/rrg-nadaraja-ac/username/run_dir_name`, copy the 3 executables and the `job_parameters_file_PHiLiP.sh` to this directory, and modify the shell script accordingly. Submit jobs using `sbatch job_parameters_file_PHiLiP.sh`. 
+
+### Restarting a FlowSolver simulation
+For running long jobs that might exceed the maximum allowable wall-time on the clusters, set the `subsection flow_solver` parameter `output_restart_files = true` in your original `.prm` file, e.g. `my_parameters.prm`, and also specify the `subsection flow_solver` parameter `output_restart_files_every_x_steps` **or** `output_restart_files_every_dt_time_intervals` to reduce the frequency of restart file output. Furthermore, within the job submit directory, do `mkdir restart` and set `subsection flow_solver` parameter `restart_files_directory_name = restart` to set the path for writing all the restart files; default behaviour is to write all files to current directory. Then submit the job using `sbatch job_parameters_file_PHiLiP.sh`; modified accordingly as explained above. Once the job completes, you will see outputted parameter files of the form `my_parameters-restart-X.prm` in the restart file directory. To restart the simulation from a given restart file index `X` (highest being the most recent), simply update `job_parameters_file_PHiLiP.sh` to pass the corresponding parameters file (with appropriate path) for the desired restart file index `X`, and re-submit the job using `sbatch job_parameters_file_PHiLiP.sh`.
 
 ## Trilinos
 This is an important dependency of both deal.II and PHiLiP library being used by this code. We keep track of the working version from our [fork](https://github.com/dougshidong/Trilinos). Our fork also contains some bug fixes that have yet to be merged within their repository. An installation script with all the necessary options is given in

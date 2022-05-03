@@ -24,7 +24,7 @@ PeriodicCubeFlow<dim, nstate>::PeriodicCubeFlow(const PHiLiP::Parameters::AllPar
         , domain_left(this->all_param.grid_refinement_study_param.grid_left)
         , domain_right(this->all_param.grid_refinement_study_param.grid_right)
         , domain_volume(pow(domain_right - domain_left, dim))
-        , unsteady_data_table_filename_with_extension(parameters_input->flow_solver_param.unsteady_data_table_filename+".txt")
+        , unsteady_data_table_filename_with_extension(this->all_param.flow_solver_param.unsteady_data_table_filename+".txt")
 {
     // Get the flow case type
     using FlowCaseEnum = Parameters::FlowSolverParam::FlowCaseType;
@@ -35,7 +35,7 @@ PeriodicCubeFlow<dim, nstate>::PeriodicCubeFlow(const PHiLiP::Parameters::AllPar
 }
 
 template <int dim, int nstate>
-void PeriodicCubeFlow<dim,nstate>::display_flow_solver_setup() const
+void PeriodicCubeFlow<dim,nstate>::display_flow_solver_setup(std::shared_ptr<InitialConditionFunction<dim,nstate,double>> /*initial_condition*/) const
 {
     using PDE_enum = Parameters::AllParameters::PartialDifferentialEquation;
     const PDE_enum pde_type = this->all_param.pde_type;
@@ -104,7 +104,7 @@ double PeriodicCubeFlow<dim,nstate>::integrand_l2_error_initial_condition(const 
 {
     // Description: Returns l2 error with the initial condition function
     // Purpose: For checking the initialization
-    std::shared_ptr<InitialConditionFunction<dim,double>> initial_condition_function = InitialConditionFactory<dim,double>::create_InitialConditionFunction(&this->all_param, nstate);
+    std::shared_ptr<InitialConditionFunction<dim,nstate,double>> initial_condition_function = InitialConditionFactory<dim,nstate,double>::create_InitialConditionFunction(&this->all_param);
     double integrand_value = 0.0;
     for (int istate=0; istate<nstate; ++istate) {
         const double exact_soln_at_q = initial_condition_function->value(qpoint, istate);

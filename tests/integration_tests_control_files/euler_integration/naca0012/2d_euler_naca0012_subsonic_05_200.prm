@@ -102,3 +102,9 @@ subsection manufactured solution convergence study
   set number_of_grids   = 1
 end
 
+subsection flow_solver
+  set flow_case_type = naca0012
+  set input_mesh_filename = naca0012_hopw_ref2
+  set steady_state = true
+end
+

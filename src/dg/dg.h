@@ -136,7 +136,8 @@ public:
 
     /// Allocates the system.
     /** Must be done after setting the mesh and before assembling the system. */
-    virtual void allocate_system ();
+    virtual void allocate_system (
+                    const bool compute_dRdW = true, const bool compute_dRdX = true, const bool compute_d2R = true);
 
 private:
     /// Allocates the second derivatives.

@@ -301,7 +301,7 @@ int main (int argc, char * argv[])
     
         std::vector<dealii::types::global_dof_index> current_metric_dofs_indices(n_metric_dofs);
         metric_cell->get_dof_indices (current_metric_dofs_indices);
-        std::vector<std::vector<real>> mapping_support_points(dim);
+        std::array<std::vector<real>,dim> mapping_support_points;
         for(int idim=0; idim<dim; idim++){
             mapping_support_points[idim].resize(n_metric_dofs/dim);
         }
@@ -339,7 +339,7 @@ int main (int argc, char * argv[])
             metric_neighbor_cell->get_dof_indices(neighbor_metric_dofs_indices);
             const unsigned int neighbor_iface = metric_cell->neighbor_face_no(iface);
 //pcout<<"FACE NUMBER "<<iface<<" NEIGH IFACE "<<neighbor_iface<<std::endl;
-        std::vector<std::vector<real>> mapping_support_points_neigh(dim);
+        std::array<std::vector<real>,dim> mapping_support_points_neigh;
         for(int idim=0; idim<dim; idim++){
             mapping_support_points_neigh[idim].resize(n_metric_dofs/dim);
         }

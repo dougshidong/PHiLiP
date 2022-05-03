@@ -242,27 +242,28 @@ static dealii::Point<dim> warp (const dealii::Point<dim> &p)
  * ***************************/
 
 template <int dim, typename real>
-void compute_inverse_mass_matrix(PHiLiP::OPERATOR::OperatorsBase<dim,real,2*dim> &operators, 
-                    const std::vector<std::vector<real>> &mapping_support_points, const unsigned int n_metric_dofs, 
-                    const unsigned int n_quad_pts, const unsigned int n_dofs_cell, 
+void compute_inverse_mass_matrix(std::shared_ptr < PHiLiP::OPERATOR::OperatorsBase<dim,real,2*dim> > &operators, 
+                    const std::array<std::vector<real>,PHILIP_DIM> &mapping_support_points, 
+                    const unsigned int n_metric_dofs, 
+                    const unsigned int n_quad_pts,  const unsigned int n_dofs_cell, 
                     const unsigned int poly_degree, const unsigned int grid_degree, 
                     const std::vector<real> &quad_weights,
                     dealii::FullMatrix<real> &mass_inv)
 {
 
         std::vector<real> determinant_Jacobian(n_quad_pts);
-        operators.build_local_vol_determinant_Jac(grid_degree, poly_degree, n_quad_pts, n_metric_dofs, mapping_support_points, determinant_Jacobian);
+        operators->build_local_vol_determinant_Jac(grid_degree, poly_degree, n_quad_pts, n_metric_dofs, mapping_support_points, determinant_Jacobian);
 
         std::vector<real> JxW(n_quad_pts);
         for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
             JxW[iquad] = quad_weights[iquad] * determinant_Jacobian[iquad];
         }
         dealii::FullMatrix<real> local_mass_matrix(n_dofs_cell);
-        operators.build_local_Mass_Matrix(JxW, n_dofs_cell, n_quad_pts, poly_degree, local_mass_matrix);
+        operators->build_local_Mass_Matrix(JxW, n_dofs_cell, n_quad_pts, poly_degree, local_mass_matrix);
 
         //For flux reconstruction
         dealii::FullMatrix<real> Flux_Reconstruction_operator(n_dofs_cell);
-        operators.build_local_Flux_Reconstruction_operator(local_mass_matrix, n_dofs_cell, poly_degree, Flux_Reconstruction_operator);
+        operators->build_local_Flux_Reconstruction_operator(local_mass_matrix, n_dofs_cell, poly_degree, Flux_Reconstruction_operator);
         for (unsigned int itest=0; itest<n_dofs_cell; ++itest) {
             for (unsigned int itrial=0; itrial<n_dofs_cell; ++itrial) {
                 local_mass_matrix[itest][itrial] = local_mass_matrix[itest][itrial] + Flux_Reconstruction_operator[itest][itrial];
@@ -273,25 +274,25 @@ void compute_inverse_mass_matrix(PHiLiP::OPERATOR::OperatorsBase<dim,real,2*dim>
 
 }
 template <int dim, typename real>
-void compute_weighted_inverse_mass_matrix(PHiLiP::OPERATOR::OperatorsBase<dim,real,2*dim> &operators, 
-                    const std::vector<std::vector<real>> mapping_support_points, const unsigned int n_metric_dofs, 
+void compute_weighted_inverse_mass_matrix(std::shared_ptr < PHiLiP::OPERATOR::OperatorsBase<dim,real,2*dim> > &operators, 
+                    const std::array<std::vector<real>,PHILIP_DIM> &mapping_support_points, const unsigned int n_metric_dofs, 
                     const unsigned int n_quad_pts, const unsigned int n_dofs_cell, 
                     const unsigned int poly_degree, const unsigned int grid_degree, 
                     const std::vector<real> &quad_weights,
                     dealii::FullMatrix<real> &mass_inv)
 {
         std::vector<real> determinant_Jacobian(n_quad_pts);
-        operators.build_local_vol_determinant_Jac(grid_degree, poly_degree, n_quad_pts, n_metric_dofs, mapping_support_points, determinant_Jacobian);
+        operators->build_local_vol_determinant_Jac(grid_degree, poly_degree, n_quad_pts, n_metric_dofs, mapping_support_points, determinant_Jacobian);
 
         std::vector<real> W_J_inv(n_quad_pts);
         for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
             W_J_inv[iquad] = quad_weights[iquad] / determinant_Jacobian[iquad]; 
         }
         dealii::FullMatrix<real> local_mass_matrix(n_dofs_cell);
-        operators.build_local_Mass_Matrix(W_J_inv, n_dofs_cell, n_quad_pts, poly_degree, local_mass_matrix);
+        operators->build_local_Mass_Matrix(W_J_inv, n_dofs_cell, n_quad_pts, poly_degree, local_mass_matrix);
         //For flux reconstruction
         dealii::FullMatrix<real> Flux_Reconstruction_operator(n_dofs_cell);
-        operators.build_local_Flux_Reconstruction_operator(local_mass_matrix, n_dofs_cell, poly_degree, Flux_Reconstruction_operator);
+        operators->build_local_Flux_Reconstruction_operator(local_mass_matrix, n_dofs_cell, poly_degree, Flux_Reconstruction_operator);
         for (unsigned int itest=0; itest<n_dofs_cell; ++itest) {
             for (unsigned int itrial=0; itrial<n_dofs_cell; ++itrial) {
                // local_mass_matrix[itest][itrial] = local_mass_matrix[itest][itrial] + Flux_Reconstruction_operator[itest][itrial];
@@ -310,7 +311,6 @@ int main (int argc, char * argv[])
     using namespace PHiLiP;
     std::cout << std::setprecision(std::numeric_limits<long double>::digits10 + 1) << std::scientific;
     const int dim = PHILIP_DIM;
-    const int nstate = 1;
     dealii::ParameterHandler parameter_handler;
     PHiLiP::Parameters::AllParameters::declare_parameters (parameter_handler);
     dealii::ConditionalOStream pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD)==0);
@@ -363,7 +363,7 @@ pcout<<" made grid for Index"<<igrid<<std::endl;
 
     //setup operator
     //OPERATOR::OperatorsBase<dim,real> operators(&all_parameters_new, nstate, poly_degree, poly_degree, grid_degree); 
-    OPERATOR::OperatorsBaseState<dim,real,nstate,2*dim> operators(&all_parameters_new, poly_degree, poly_degree);
+//    OPERATOR::OperatorsBaseState<dim,real,nstate,2*dim> operators(&all_parameters_new, poly_degree, poly_degree);
 //setup DG
    // std::shared_ptr < PHiLiP::DGBase<dim, double> > dg = PHiLiP::DGFactory<dim,double>::create_discontinuous_galerkin(&all_parameters_new, poly_degree, grid);
     std::shared_ptr < PHiLiP::DGBase<dim, double> > dg = PHiLiP::DGFactory<dim,double>::create_discontinuous_galerkin(&all_parameters_new, poly_degree, poly_degree, grid_degree, grid);
@@ -400,7 +400,7 @@ pcout<<"time to do normal"<<std::endl;
 //pcout<<"grid degree "<<grid_degree<<" metric dofs "<<n_metric_dofs<<std::endl;
                 std::vector<dealii::types::global_dof_index> current_metric_dofs_indices(n_metric_dofs);
                 metric_cell->get_dof_indices (current_metric_dofs_indices);
-                std::vector<std::vector<real>> mapping_support_points(dim);
+                std::array<std::vector<real>,dim> mapping_support_points;
                 for(int idim=0; idim<dim; idim++){
                     mapping_support_points[idim].resize(n_metric_dofs/dim);
                 }
@@ -412,13 +412,13 @@ pcout<<"time to do normal"<<std::endl;
                         mapping_support_points[istate][igrid_node] += val * fe_metric.shape_value_component(idof,vol_GLL.point(igrid_node),istate); 
                     }
                 }
-        const std::vector<real> &quad_weights = operators.volume_quadrature_collection[poly_degree].get_weights();
+        const std::vector<real> &quad_weights = dg->operators->volume_quadrature_collection[poly_degree].get_weights();
 
 
                 //build ESFR mass matrix and invert regularly
                 dealii::FullMatrix<real> mass_inv(n_dofs_cell);
             time_normal = clock();
-                compute_inverse_mass_matrix(operators, mapping_support_points, n_metric_dofs/dim, n_quad_pts, n_dofs_cell, poly_degree, grid_degree, quad_weights, mass_inv);
+                compute_inverse_mass_matrix(dg->operators, mapping_support_points, n_metric_dofs/dim, n_quad_pts, n_dofs_cell, poly_degree, grid_degree, quad_weights, mass_inv);
             time_normal = clock()-time_normal;
 
             }//end of cell loop
@@ -436,7 +436,7 @@ pcout<<"time to do weighted"<<std::endl;
 //pcout<<"grid degree "<<grid_degree<<" metric dofs "<<n_metric_dofs<<std::endl;
                 std::vector<dealii::types::global_dof_index> current_metric_dofs_indices(n_metric_dofs);
                 metric_cell->get_dof_indices (current_metric_dofs_indices);
-                std::vector<std::vector<real>> mapping_support_points(dim);
+                std::array<std::vector<real>,dim> mapping_support_points;
                 for(int idim=0; idim<dim; idim++){
                     mapping_support_points[idim].resize(n_metric_dofs/dim);
                 }
@@ -448,12 +448,12 @@ pcout<<"time to do weighted"<<std::endl;
                         mapping_support_points[istate][igrid_node] += val * fe_metric.shape_value_component(idof,vol_GLL.point(igrid_node),istate); 
                     }
                 }
-                const std::vector<real> &quad_weights = operators.volume_quadrature_collection[poly_degree].get_weights();
+                const std::vector<real> &quad_weights = dg->operators->volume_quadrature_collection[poly_degree].get_weights();
 
                 //do weight-adjusted inverse ESFR mass matrix
                 dealii::FullMatrix<real> mass_inv(n_dofs_cell);
             time_weighted = clock();
-                compute_weighted_inverse_mass_matrix(operators, mapping_support_points, n_metric_dofs/dim, n_quad_pts, n_dofs_cell, poly_degree, grid_degree, quad_weights, mass_inv);
+                compute_weighted_inverse_mass_matrix(dg->operators, mapping_support_points, n_metric_dofs/dim, n_quad_pts, n_dofs_cell, poly_degree, grid_degree, quad_weights, mass_inv);
             time_weighted = clock() - time_weighted;
 
             }//end of cell loop

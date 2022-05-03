@@ -1955,7 +1955,8 @@ void DGBase<dim,real,MeshType>::output_results_vtk (const unsigned int cycle)// 
 }
 
 template <int dim, typename real, typename MeshType>
-void DGBase<dim,real,MeshType>::allocate_system ()
+void DGBase<dim,real,MeshType>::allocate_system (
+    const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R)
 {
     pcout << "Allocating DG system and initializing FEValues" << std::endl;
     // This function allocates all the necessary memory to the
@@ -2027,7 +2028,9 @@ void DGBase<dim,real,MeshType>::allocate_system ()
 
     sparsity_pattern.copy_from(dsp);
 
-    system_matrix.reinit(locally_owned_dofs, sparsity_pattern, mpi_communicator);
+    if (compute_dRdW || compute_dRdX || compute_d2R) {
+        system_matrix.reinit(locally_owned_dofs, sparsity_pattern, mpi_communicator);
+    }
 
     // system_matrix_transpose.reinit(system_matrix);
     // Epetra_CrsMatrix *input_matrix  = const_cast<Epetra_CrsMatrix *>(&(system_matrix.trilinos_matrix()));
@@ -2074,24 +2077,30 @@ void DGBase<dim,real,MeshType>::allocate_system ()
     d2RdWdW.clear();
     d2RdXdX.clear();
 
-    solution_dRdW.reinit(solution);
-    solution_dRdW *= 0.0;
-    volume_nodes_dRdW.reinit(high_order_grid->volume_nodes);
-    volume_nodes_dRdW *= 0.0;
+    if (compute_dRdW) {
+        solution_dRdW.reinit(solution);
+        solution_dRdW *= 0.0;
+        volume_nodes_dRdW.reinit(high_order_grid->volume_nodes);
+        volume_nodes_dRdW *= 0.0;
+    }
 
     CFL_mass_dRdW = 0.0;
 
-    solution_dRdX.reinit(solution);
-    solution_dRdX *= 0.0;
-    volume_nodes_dRdX.reinit(high_order_grid->volume_nodes);
-    volume_nodes_dRdX *= 0.0;
+    if (compute_dRdX) {
+        solution_dRdX.reinit(solution);
+        solution_dRdX *= 0.0;
+        volume_nodes_dRdX.reinit(high_order_grid->volume_nodes);
+        volume_nodes_dRdX *= 0.0;
+    }
 
-    solution_d2R.reinit(solution);
-    solution_d2R *= 0.0;
-    volume_nodes_d2R.reinit(high_order_grid->volume_nodes);
-    volume_nodes_d2R *= 0.0;
-    dual_d2R.reinit(dual);
-    dual_d2R *= 0.0;
+    if (compute_d2R) {
+        solution_d2R.reinit(solution);
+        solution_d2R *= 0.0;
+        volume_nodes_d2R.reinit(high_order_grid->volume_nodes);
+        volume_nodes_d2R *= 0.0;
+        dual_d2R.reinit(dual);
+        dual_d2R *= 0.0;
+    }
 }
 
 template <int dim, typename real, typename MeshType>
@@ -2207,7 +2216,7 @@ void DGBase<dim,real,MeshType>::evaluate_mass_matrices (bool do_inverse_mass_mat
         metric_cell->get_dof_indices (metric_dof_indices);
         const unsigned int grid_degree = high_order_grid->fe_system.tensor_degree();
         // get mapping_support points
-        std::vector<std::vector<real>> mapping_support_points(dim);
+        std::array<std::vector<real>,dim> mapping_support_points;
         for(int idim=0; idim<dim; idim++){
             mapping_support_points[idim].resize(n_metric_dofs/dim);
         }

@@ -149,7 +149,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_volume_term_auxiliary_equation
     const dealii::FESystem<dim> &fe_metric = this->high_order_grid->fe_system;
     const unsigned int n_metric_dofs = fe_metric.dofs_per_cell;
     //get local cofactor matrix
-    std::vector<std::vector<real>> mapping_support_points(dim);
+    std::array<std::vector<real>,dim> mapping_support_points;
     for(int idim=0; idim<dim; idim++){
         mapping_support_points[idim].resize(n_metric_dofs/dim);
     }
@@ -260,7 +260,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_auxiliary_equati
     //Compute metric terms (cofactor and normals)
 
     //get local cofactor matrix
-    std::vector<std::vector<real>> mapping_support_points(dim);//mapping support points of interior cell
+    std::array<std::vector<real>,dim> mapping_support_points;//mapping support points of interior cell
     for(int idim=0; idim<dim; idim++){
         mapping_support_points[idim].resize(n_metric_dofs/dim);//there are n_metric_dofs/dim shape functions
     }
@@ -428,7 +428,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_auxiliary(
     //Compute metric terms (cofactor and normals)
 
     //get local cofactor matrix
-    std::vector<std::vector<real>> mapping_support_points_int(dim);//mapping support points of interior cell
+    std::array<std::vector<real>,dim> mapping_support_points_int;//mapping support points of interior cell
     for(int idim=0; idim<dim; idim++){
         mapping_support_points_int[idim].resize(n_metric_dofs/dim);//there are n_metric_dofs/dim shape functions
     }
@@ -1076,7 +1076,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_volume_term_explicit(
     std::vector< realArray > source_at_q(n_quad_pts);
 
     //get local cofactor matrix
-    std::vector<std::vector<real>> mapping_support_points(dim);
+    std::array<std::vector<real>,dim> mapping_support_points;
     for(int idim=0; idim<dim; idim++){
         mapping_support_points[idim].resize(n_metric_dofs/dim);
     }
@@ -1403,8 +1403,8 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_explicit(
     //Compute metric terms (cofactor and normals)
 
     //get local cofactor matrix
-    std::vector<std::vector<real>> mapping_support_points_int(dim);//mapping support points of interior cell
-    std::vector<std::vector<real>> mapping_support_points_ext(dim);//mapping support points of exterior cell
+    std::array<std::vector<real>,dim> mapping_support_points_int;//mapping support points of interior cell
+    std::array<std::vector<real>,dim> mapping_support_points_ext;//mapping support points of exterior cell
     for(int idim=0; idim<dim; idim++){
         mapping_support_points_int[idim].resize(n_metric_dofs/dim);//there are n_metric_dofs/dim shape functions
         mapping_support_points_ext[idim].resize(n_metric_dofs/dim);

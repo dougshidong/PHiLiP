@@ -305,7 +305,7 @@ int main (int argc, char * argv[])
 pcout<<"grid degree "<<grid_degree<<" metric dofs "<<n_metric_dofs<<std::endl;
                 std::vector<dealii::types::global_dof_index> current_metric_dofs_indices(n_metric_dofs);
                 metric_cell->get_dof_indices (current_metric_dofs_indices);
-                std::vector<std::vector<real>> mapping_support_points(dim);
+                std::array<std::vector<real>,dim> mapping_support_points;
                 for(int idim=0; idim<dim; idim++){
                     mapping_support_points[idim].resize(n_metric_dofs/dim);
                 }

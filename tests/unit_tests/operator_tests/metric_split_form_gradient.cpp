@@ -255,11 +255,9 @@ int main (int argc, char * argv[])
     PHiLiP::Parameters::AllParameters all_parameters_new;
     all_parameters_new.parse_parameters (parameter_handler);
 
-   // all_parameters_new.use_collocated_nodes=true;
     all_parameters_new.use_curvilinear_split_form=true;
     const int dim_check = 1;
 
-    //unsigned int poly_degree = 3;
     double left = 0.0;
     double right = 1.0;
     const bool colorize = true;
@@ -271,41 +269,38 @@ int main (int argc, char * argv[])
     std::array<double,n_grids> soln_error_inf;
     for(unsigned int poly_degree = 2; poly_degree<5; poly_degree++){
         unsigned int grid_degree = poly_degree;
-    for(unsigned int igrid=igrid_start; igrid<n_grids; ++igrid){
-pcout<<" Grid Index"<<igrid<<std::endl;
-    //Generate a standard grid
+        for(unsigned int igrid=igrid_start; igrid<n_grids; ++igrid){
+            pcout<<" Grid Index"<<igrid<<std::endl;
+            //Generate a standard grid
 
-    using Triangulation = dealii::parallel::distributed::Triangulation<dim>;
-    std::shared_ptr<Triangulation> grid = std::make_shared<Triangulation>(
-        MPI_COMM_WORLD,
-        typename dealii::Triangulation<dim>::MeshSmoothing(
-            dealii::Triangulation<dim>::smoothing_on_refinement |
-            dealii::Triangulation<dim>::smoothing_on_coarsening));
-        dealii::GridGenerator::hyper_cube (*grid, left, right, colorize);
-        grid->refine_global(igrid);
-pcout<<" made grid for Index"<<igrid<<std::endl;
+            using Triangulation = dealii::parallel::distributed::Triangulation<dim>;
+            std::shared_ptr<Triangulation> grid = std::make_shared<Triangulation>(
+                                                    MPI_COMM_WORLD,
+                                                    typename dealii::Triangulation<dim>::MeshSmoothing(
+                                                    dealii::Triangulation<dim>::smoothing_on_refinement |
+                                                    dealii::Triangulation<dim>::smoothing_on_coarsening));
+            dealii::GridGenerator::hyper_cube (*grid, left, right, colorize);
+            grid->refine_global(igrid);
+            pcout<<" made grid for Index"<<igrid<<std::endl;
 
-//Warp the grid
-//IF WANT NON-WARPED GRID COMMENT UNTIL SAYS "NOT COMMENT"
-    dealii::GridTools::transform (&warp<dim>, *grid);
+            //Warp the grid
+            //IF WANT NON-WARPED GRID COMMENT UNTIL SAYS "NOT COMMENT"
+            dealii::GridTools::transform (&warp<dim>, *grid);
 
-// Assign a manifold to have curved geometry
-    const CurvManifold<dim> curv_manifold;
-    unsigned int manifold_id=0; // top face, see GridGenerator::hyper_rectangle, colorize=true
-    grid->reset_all_manifolds();
-    grid->set_all_manifold_ids(manifold_id);
-    grid->set_manifold ( manifold_id, curv_manifold );
-//"END COMMENT" TO NOT WARP GRID
+            // Assign a manifold to have curved geometry
+            const CurvManifold<dim> curv_manifold;
+            unsigned int manifold_id=0; // top face, see GridGenerator::hyper_rectangle, colorize=true
+            grid->reset_all_manifolds();
+            grid->set_all_manifold_ids(manifold_id);
+            grid->set_manifold ( manifold_id, curv_manifold );
+            //"END COMMENT" TO NOT WARP GRID
 
-    //setup operator
-  //  OPERATOR::OperatorsBase<dim,real> operators(&all_parameters_new, nstate, poly_degree, poly_degree, grid_degree); 
-    OPERATOR::OperatorsBaseState<dim,real,nstate,2*dim> operators(&all_parameters_new, poly_degree, poly_degree);
-//setup DG
-   // std::shared_ptr < PHiLiP::DGBase<dim, double> > dg = PHiLiP::DGFactory<dim,double>::create_discontinuous_galerkin(&all_parameters_new, poly_degree, grid);
-    std::shared_ptr < PHiLiP::DGBase<dim, double> > dg = PHiLiP::DGFactory<dim,double>::create_discontinuous_galerkin(&all_parameters_new, poly_degree, poly_degree, grid_degree, grid);
-    dg->allocate_system ();
+            //setup operator
+            OPERATOR::OperatorsBaseState<dim,real,nstate,2*dim> operators(&all_parameters_new, poly_degree, poly_degree);
+            //setup DG
+            std::shared_ptr < PHiLiP::DGBase<dim, double> > dg = PHiLiP::DGFactory<dim,double>::create_discontinuous_galerkin(&all_parameters_new, poly_degree, poly_degree, grid_degree, grid);
+            dg->allocate_system ();
     
-
             dealii::IndexSet locally_owned_dofs;
             dealii::IndexSet ghost_dofs;
             dealii::IndexSet locally_relevant_dofs;
@@ -313,16 +308,14 @@ pcout<<" made grid for Index"<<igrid<<std::endl;
             dealii::DoFTools::extract_locally_relevant_dofs(dg->dof_handler, ghost_dofs);
             locally_relevant_dofs = ghost_dofs;
             ghost_dofs.subtract_set(locally_owned_dofs);
-          //  dealii::LinearAlgebra::distributed::Vector<double> solution;
-          //  solution.reinit(locally_owned_dofs, ghost_dofs, MPI_COMM_WORLD);
             dealii::LinearAlgebra::distributed::Vector<double> solution_deriv;
             solution_deriv.reinit(locally_owned_dofs, ghost_dofs, MPI_COMM_WORLD);
-//setup metric and solve
+            //setup metric and solve
 
-    const unsigned int max_dofs_per_cell = dg->dof_handler.get_fe_collection().max_dofs_per_cell();
-    std::vector<dealii::types::global_dof_index> current_dofs_indices(max_dofs_per_cell);
-    const unsigned int n_dofs_cell = dg->operators->fe_collection_basis[poly_degree].dofs_per_cell;
-    const unsigned int n_quad_pts      = dg->operators->volume_quadrature_collection[poly_degree].size();
+            const unsigned int max_dofs_per_cell = dg->dof_handler.get_fe_collection().max_dofs_per_cell();
+            std::vector<dealii::types::global_dof_index> current_dofs_indices(max_dofs_per_cell);
+            const unsigned int n_dofs_cell = dg->operators->fe_collection_basis[poly_degree].dofs_per_cell;
+            const unsigned int n_quad_pts      = dg->operators->volume_quadrature_collection[poly_degree].size();
 
             const dealii::FESystem<dim> &fe_metric = (dg->high_order_grid->fe_system);
             const unsigned int n_metric_dofs = fe_metric.dofs_per_cell; 
@@ -330,10 +323,9 @@ pcout<<" made grid for Index"<<igrid<<std::endl;
             for (auto current_cell = dg->dof_handler.begin_active(); current_cell!=dg->dof_handler.end(); ++current_cell, ++metric_cell) {
                 if (!current_cell->is_locally_owned()) continue;
 	
-//pcout<<"grid degree "<<grid_degree<<" metric dofs "<<n_metric_dofs<<std::endl;
                 std::vector<dealii::types::global_dof_index> current_metric_dofs_indices(n_metric_dofs);
                 metric_cell->get_dof_indices (current_metric_dofs_indices);
-                std::vector<std::vector<real>> mapping_support_points(dim);
+                std::array<std::vector<real>,dim> mapping_support_points;
                 std::vector<std::vector<real>> phys_quad_pts(dim);
                 for(int idim=0; idim<dim; idim++){
                     mapping_support_points[idim].resize(n_metric_dofs/dim);
@@ -363,7 +355,7 @@ pcout<<" made grid for Index"<<igrid<<std::endl;
                 }
                 operators.get_Jacobian_scaled_physical_gradient(true, operators.gradient_flux_basis[poly_degree], metric_cofactor, n_quad_pts, physical_gradient); 
 
-            //interpolate solution
+                //interpolate solution
                 current_dofs_indices.resize(n_dofs_cell);
                 current_cell->get_dof_indices (current_dofs_indices);
                 for(int idim=0; idim<dim; idim++){
@@ -374,57 +366,40 @@ pcout<<" made grid for Index"<<igrid<<std::endl;
                                                         * mapping_support_points[idim][jquad];
                         }
                     }
-                 //   operators.mapping_shape_functions_vol_flux_nodes[grid_degree][poly_degree].vmult(phys_quad_pts[idim], mapping_support_points[idim]);
                 }
                 std::vector<real> soln(n_quad_pts);
-               // for(unsigned int idof=0; idof<n_dofs_cell; idof++){
-                   // solution[current_dofs_indices[idof]]=0.0;
                     for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
-                    //    soln[iquad] = 0.0;
-                      //  const dealii::Point<dim> qpoint = (fe_values_vol.quadrature_point(iquad));
                         double exact = 1.0;
                        for (int idim=0; idim<dim; idim++){
-                               // exact *= exp(-(qpoint[idim])*(qpoint[idim]));
                                 exact *= exp(-(phys_quad_pts[idim][iquad])*(phys_quad_pts[idim][iquad]));
                         }
                         soln[iquad] = exact;
-                    //    solution[current_dofs_indices[idof]] +=operators.vol_projection_operator[poly_degree][idof][iquad] *exact; 
                     }   
-               // }
                 //end interpolated solution
-
 
                 dealii::Vector<real> soln_derivative_x(n_quad_pts);
                 for(int istate=0; istate<nstate; istate++){
-                for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
-                   // solution_deriv[current_dofs_indices[iquad]] = 0.0;
-                    soln_derivative_x[iquad]=0.0;
-                    for(unsigned int idof=0; idof<n_quad_pts; idof++){
-                        soln_derivative_x[iquad] += physical_gradient[istate][dim_check][iquad][idof] * soln[idof];
-                       // soln_derivative_x[iquad] += physical_gradient[istate][0][iquad][idof] * solution[current_dofs_indices[idof]] / determinant_Jacobian[iquad];
-                       // solution_deriv[current_dofs_indices[iquad]] += physical_gradient[istate][0][iquad][idof] * solution[current_dofs_indices[idof]] / determinant_Jacobian[iquad];
-                    }
-                    soln_derivative_x[iquad] /= determinant_Jacobian[iquad];
-                }
-                 
-                for(unsigned int idof=0; idof<n_dofs_cell; idof++){
-                    solution_deriv[current_dofs_indices[idof]] = 0.0;
                     for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
-                        solution_deriv[current_dofs_indices[idof]] += operators.vol_projection_operator[poly_degree][idof][iquad]
-                                                                    * soln_derivative_x[iquad];
+                        soln_derivative_x[iquad]=0.0;
+                        for(unsigned int idof=0; idof<n_quad_pts; idof++){
+                            soln_derivative_x[iquad] += physical_gradient[istate][dim_check][iquad][idof] * soln[idof];
+                        }
+                        soln_derivative_x[iquad] /= determinant_Jacobian[iquad];
                     }
-//pcout<<" proj "<<solution_deriv[current_dofs_indices[idof]]<<" other "<<soln_derivative_x[idof]<<std::endl;
+                 
+                    for(unsigned int idof=0; idof<n_dofs_cell; idof++){
+                        solution_deriv[current_dofs_indices[idof]] = 0.0;
+                        for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
+                            solution_deriv[current_dofs_indices[idof]] += operators.vol_projection_operator[poly_degree][idof][iquad]
+                                                                        * soln_derivative_x[iquad];
+                        }
+                    }
                 }
-                }
-
-
-
-
             }
 
-    //TEST ERROR OOA
+            //TEST ERROR OOA
 
-pcout<<"OOA here"<<std::endl;
+            pcout<<"OOA here"<<std::endl;
             double l2error = 0.0;
             double linf_error = 0.0;
             int overintegrate = 4;
@@ -453,7 +428,6 @@ pcout<<"OOA here"<<std::endl;
                         uexact_x *= exp(-((qpoint[idim]) * (qpoint[idim])));
                     }
                     uexact_x *= - 2.0 * qpoint[dim_check];
-//pcout<<" soln "<<soln_at_q[iquad]<<" exact "<<uexact_x<<std::endl;
                     l2error += pow(soln_at_q[iquad] - uexact_x, 2) * fe_values_extra.JxW(iquad);
                     double inf_temp = std::abs(soln_at_q[iquad]-uexact_x);
                     if(inf_temp > linf_error){
@@ -465,7 +439,7 @@ pcout<<"OOA here"<<std::endl;
 pcout<<"got OOA here"<<std::endl;
 
 
-    const unsigned int n_global_active_cells = grid->n_global_active_cells();
+            const unsigned int n_global_active_cells = grid->n_global_active_cells();
             const double l2error_mpi_sum = std::sqrt(dealii::Utilities::MPI::sum(l2error, MPI_COMM_WORLD));
             const double linferror_mpi= (dealii::Utilities::MPI::max(linf_error, MPI_COMM_WORLD));
             // Convergence table

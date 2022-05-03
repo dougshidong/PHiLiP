@@ -75,15 +75,13 @@ int main (int argc, char * argv[])
     double left = 0.0;
     double right = 1.0;
     dealii::ConvergenceTable convergence_table;
-   // const unsigned int igrid_start = 2;
-    const unsigned int igrid_start = 5;
+    const unsigned int igrid_start = 2;
     const unsigned int n_grids = 7;
     std::array<double,n_grids> grid_size;
     std::array<double,n_grids> soln_error;
     std::array<double,n_grids> soln_error_inf;
     unsigned int exit_grid=0;
-   // for(unsigned int poly_degree = 2; poly_degree<6; poly_degree++){
-    for(unsigned int poly_degree = 3; poly_degree<6; poly_degree++){
+    for(unsigned int poly_degree = 2; poly_degree<6; poly_degree++){
         const unsigned int grid_degree = 1;
     for(unsigned int igrid=igrid_start; igrid<n_grids; ++igrid){
 pcout<<" Grid Index"<<igrid<<std::endl;
@@ -127,7 +125,7 @@ pcout<<" Grid Index"<<igrid<<std::endl;
     all_parameters_new.ode_solver_param.ode_solver_type = ODE_enum::explicit_solver;//auxiliary only works explicit for now
     std::shared_ptr < PHiLiP::DGBase<dim, double> > dg = PHiLiP::DGFactory<dim,double>::create_discontinuous_galerkin(&all_parameters_new, poly_degree, poly_degree, grid_degree, grid);
     pcout<<"going in allocate"<<std::endl;
-    dg->allocate_system ();
+    dg->allocate_system (false,false,false);
     pcout<<"Evaluating mass matrices"<<std::endl;
     dg->evaluate_mass_matrices(true);
     
@@ -147,7 +145,7 @@ pcout<<" Grid Index"<<igrid<<std::endl;
     
         std::vector<dealii::types::global_dof_index> current_metric_dofs_indices(n_metric_dofs);
         metric_cell->get_dof_indices (current_metric_dofs_indices);
-        std::vector<std::vector<real>> mapping_support_points(dim);
+        std::array<std::vector<real>,dim> mapping_support_points;
         std::vector<std::vector<real>> phys_quad_pts(dim);
         for(int idim=0; idim<dim; idim++){
             mapping_support_points[idim].resize(n_metric_dofs/dim);

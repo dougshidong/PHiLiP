@@ -348,7 +348,7 @@ public:
                                     const unsigned int grid_degree, const unsigned int poly_degree,
                                     const unsigned int n_quad_pts, 
                                     const unsigned int n_metric_dofs,
-                                    const std::vector<std::vector<real>> &mapping_support_points,
+                                    const std::array<std::vector<real>,dim> &mapping_support_points,
                                     std::vector<real> &determinant_Jacobian);
     ///Called on the fly and returns the metric cofactor and determinant of Jacobian at VOLUME cubature nodes.
     /**
@@ -369,7 +369,7 @@ public:
                                     const unsigned int grid_degree, const unsigned int poly_degree,
                                     const unsigned int n_quad_pts, 
                                     const unsigned int n_metric_dofs,
-                                    const std::vector<std::vector<real>> &mapping_support_points,
+                                    const std::array<std::vector<real>,dim> &mapping_support_points,
                                     std::vector<real> &determinant_Jacobian,
                                     std::vector<dealii::FullMatrix<real>> &metric_cofactor);
     ///Called on the fly and returns the metric cofactor and determinant of Jacobian at face cubature nodes.
@@ -377,7 +377,7 @@ public:
                                     const unsigned int grid_degree, const unsigned int poly_degree,
                                     const unsigned int iface,
                                     const unsigned int n_quad_pts, const unsigned int n_metric_dofs,
-                                    const std::vector<std::vector<real>> &mapping_support_points,
+                                    const std::array<std::vector<real>,dim> &mapping_support_points,
                                     std::vector<real> &determinant_Jacobian,
                                     std::vector<dealii::FullMatrix<real>> &metric_cofactor);
     ///Computes local 3D cofactor matrix in VOLUME.
@@ -385,20 +385,20 @@ public:
                                     const unsigned int grid_degree, const unsigned int poly_degree,
                                     const unsigned int n_quad_pts,
                                     const unsigned int n_metric_dofs,
-                                    const std::vector<std::vector<real>> &mapping_support_points,
+                                    const std::array<std::vector<real>,dim> &mapping_support_points,
                                     std::vector<dealii::FullMatrix<real>> &metric_cofactor);
     ///Computes local 3D cofactor matrix on FACE for consistent normals with water-tight mesh.
     void compute_local_3D_cofactor_face(
                                     const unsigned int grid_degree, const unsigned int poly_degree,
                                     const unsigned int n_quad_pts,
                                     const unsigned int n_metric_dofs, const unsigned int iface,
-                                    const std::vector<std::vector<real>> &mapping_support_points,
+                                    const std::array<std::vector<real>,dim> &mapping_support_points,
                                     std::vector<dealii::FullMatrix<real>> &metric_cofactor);
     ///Computes \f$(\mathbf{x}_l * \nabla(\mathbf{x}_m))\f$ at GRID NODES.
     void compute_Xl_grad_Xm(
                                     const unsigned int grid_degree,
                                     const unsigned int n_metric_dofs, 
-                                    const std::vector<std::vector<real>> &mapping_support_points,
+                                    const std::array<std::vector<real>,dim> &mapping_support_points,
                                     std::vector<dealii::DerivativeForm<1,dim,dim>> &Xl_grad_Xm);
     ///Computes the cyclic curl loop for metric cofactor matrix.
     /**

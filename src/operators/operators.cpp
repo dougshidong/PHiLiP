@@ -814,7 +814,7 @@ void OperatorsBase<dim,real,n_faces>::build_local_vol_determinant_Jac(
                                     const unsigned int grid_degree, const unsigned int poly_degree, 
                                     const unsigned int n_quad_pts,//number volume quad pts
                                     const unsigned int n_metric_dofs,//dofs of metric basis. NOTE: this is the number of mapping support points
-                                    const std::vector<std::vector<real>> &mapping_support_points,
+                                    const std::array<std::vector<real>,dim> &mapping_support_points,
                                     std::vector<real> &determinant_Jacobian)
 {
     //mapping support points must be passed as a vector[dim][n_metric_dofs]
@@ -844,7 +844,7 @@ void OperatorsBase<dim,real,n_faces>::build_local_vol_metric_cofactor_matrix_and
                                     const unsigned int grid_degree, const unsigned int poly_degree, 
                                     const unsigned int n_quad_pts,//number volume quad pts
                                     const unsigned int n_metric_dofs,//dofs of metric basis. NOTE: this is the number of mapping support points
-                                    const std::vector<std::vector<real>> &mapping_support_points,
+                                    const std::array<std::vector<real>,dim> &mapping_support_points,
                                     std::vector<real> &determinant_Jacobian,
                                     std::vector<dealii::FullMatrix<real>> &metric_cofactor)
 {
@@ -890,7 +890,7 @@ void OperatorsBase<dim,real,n_faces>::compute_local_3D_cofactor_vol(
                                     const unsigned int grid_degree, const unsigned int poly_degree,
                                     const unsigned int n_quad_pts,
                                     const unsigned int n_metric_dofs,
-                                    const std::vector<std::vector<real>> &mapping_support_points,
+                                    const std::array<std::vector<real>,dim> &mapping_support_points,
                                     std::vector<dealii::FullMatrix<real>> &metric_cofactor)
 {
 //Invariant curl form commented out because not freestream preserving
@@ -992,7 +992,7 @@ void OperatorsBase<dim,real,n_faces>::build_local_face_metric_cofactor_matrix_an
                                     const unsigned int grid_degree, const unsigned int poly_degree,
                                     const unsigned int iface,
                                     const unsigned int n_quad_pts, const unsigned int n_metric_dofs,
-                                    const std::vector<std::vector<real>> &mapping_support_points,
+                                    const std::array<std::vector<real>,dim> &mapping_support_points,
                                     std::vector<real> &determinant_Jacobian,
                                     std::vector<dealii::FullMatrix<real>> &metric_cofactor)
 {
@@ -1040,7 +1040,7 @@ void OperatorsBase<dim,real,n_faces>::compute_local_3D_cofactor_face(
                                     const unsigned int grid_degree, const unsigned int poly_degree,
                                     const unsigned int n_quad_pts,
                                     const unsigned int n_metric_dofs, const unsigned int iface,
-                                    const std::vector<std::vector<real>> &mapping_support_points,
+                                    const std::array<std::vector<real>,dim> &mapping_support_points,
                                     std::vector<dealii::FullMatrix<real>> &metric_cofactor)
 {
 //compute invariant curl form on surface, commented out bc not freestream preserving
@@ -1141,7 +1141,7 @@ template <  int dim, typename real, int n_faces>
 void OperatorsBase<dim,real,n_faces>::compute_Xl_grad_Xm(
                                     const unsigned int grid_degree,
                                     const unsigned int n_metric_dofs, 
-                                    const std::vector<std::vector<real>> &mapping_support_points,
+                                    const std::array<std::vector<real>,dim> &mapping_support_points,
                                     std::vector<dealii::DerivativeForm<1,dim,dim>> &Xl_grad_Xm)
 {
     std::vector<dealii::DerivativeForm<1,dim,dim>> grad_Xm(n_metric_dofs);//gradient of mapping support points at Grid nodes

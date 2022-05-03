@@ -35,7 +35,7 @@ PeriodicCubeFlow<dim, nstate>::PeriodicCubeFlow(const PHiLiP::Parameters::AllPar
 }
 
 template <int dim, int nstate>
-void PeriodicCubeFlow<dim,nstate>::display_flow_solver_setup() const
+void PeriodicCubeFlow<dim,nstate>::display_flow_solver_setup(std::shared_ptr<InitialConditionFunction<dim,nstate,double>> /*initial_condition*/) const
 {
     this->pcout << "- Polynomial degree: " << this->all_param.grid_refinement_study_param.poly_degree << std::endl;
     this->pcout << "- Courant-Friedrich-Lewy number: " << this->all_param.flow_solver_param.courant_friedrich_lewy_number << std::endl;
@@ -98,7 +98,7 @@ double PeriodicCubeFlow<dim,nstate>::integrand_l2_error_initial_condition(const 
 {
     // Description: Returns l2 error with the initial condition function
     // Purpose: For checking the initialization
-    std::shared_ptr<InitialConditionFunction<dim,double>> initial_condition_function = InitialConditionFactory<dim,double>::create_InitialConditionFunction(&this->all_param, nstate);
+    std::shared_ptr<InitialConditionFunction<dim,nstate,double>> initial_condition_function = InitialConditionFactory<dim,nstate,double>::create_InitialConditionFunction(&this->all_param);
     double integrand_value = 0.0;
     for (int istate=0; istate<nstate; ++istate) {
         const double exact_soln_at_q = initial_condition_function->value(qpoint, istate);

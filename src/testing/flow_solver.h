@@ -27,6 +27,7 @@
 #include "flow_solver_cases/periodic_cube_flow.h"
 #include "flow_solver_cases/1D_burgers_rewienski_snapshot.h"
 #include "flow_solver_cases/1d_burgers_viscous_snapshot.h"
+#include "flow_solver_cases/naca0012.h"
 #include <deal.II/base/table_handler.h>
 #include <string>
 #include <vector>
@@ -73,7 +74,7 @@ public:
     std::string get_restart_filename_without_extension(const int restart_index_input) const;
 
 protected:
-    std::shared_ptr< InitialConditionFunction<dim,double> > initial_condition_function; ///< Initial condition function
+    std::shared_ptr<InitialConditionFunction<dim,nstate,double>> initial_condition_function; ///< Initial condition function
     const Parameters::AllParameters all_param; ///< All parameters
     const Parameters::FlowSolverParam flow_solver_param; ///< Flow solver parameters
     const Parameters::ODESolverParam ode_param; ///< ODE solver parameters

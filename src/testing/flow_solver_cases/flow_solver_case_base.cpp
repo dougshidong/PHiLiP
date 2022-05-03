@@ -14,10 +14,16 @@ FlowSolverCaseBase<dim, nstate>::FlowSolverCaseBase(const PHiLiP::Parameters::Al
 
 
 template <int dim, int nstate>
-void FlowSolverCaseBase<dim,nstate>::display_flow_solver_setup() const
+void FlowSolverCaseBase<dim,nstate>::display_flow_solver_setup(std::shared_ptr<InitialConditionFunction<dim,nstate,double>> /*initial_condition*/) const
 {
     pcout << "- Polynomial degree: " << this->all_param.grid_refinement_study_param.poly_degree << std::endl;
     pcout << "- Final time: " << this->all_param.flow_solver_param.final_time << std::endl;
+}
+
+template <int dim, int nstate>
+void FlowSolverCaseBase<dim,nstate>::set_higher_order_grid(std::shared_ptr<DGBase<dim, double>> /*dg*/) const
+{
+    // Do nothing
 }
 
 template <int dim, int nstate>
@@ -46,6 +52,10 @@ void FlowSolverCaseBase<dim, nstate>::compute_unsteady_data_and_write_to_table(
 
 #if PHILIP_DIM==1
         template class FlowSolverCaseBase<PHILIP_DIM,PHILIP_DIM>;
+#endif
+
+#if PHILIP_DIM==2
+        template class FlowSolverCaseBase<PHILIP_DIM,PHILIP_DIM+2>;
 #endif
 
 #if PHILIP_DIM==3

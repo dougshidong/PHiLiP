@@ -89,7 +89,7 @@ int test(const unsigned int nx_ffd)
                 param.euler_param.mach_inf,
                 param.euler_param.angle_of_attack,
                 param.euler_param.side_slip_angle);
-    Physics::FreeStreamInitialConditions<dim,nstate> initial_conditions(euler_physics_double);
+    FreeStreamInitialConditions<dim,nstate,double> initial_conditions(euler_physics_double);
 
     std::vector<unsigned int> n_subdivisions(dim);
     n_subdivisions[1] = NY_CELL;

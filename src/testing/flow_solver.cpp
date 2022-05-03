@@ -22,6 +22,7 @@ FlowSolver<dim, nstate>::FlowSolver(
 , flow_solver_case(flow_solver_case)
 , parameter_handler(parameter_handler_input)
 , initial_condition_function(InitialConditionFactory<dim, nstate, double>::create_InitialConditionFunction(parameters_input))
+, exact_solution_function(ExactSolutionFactory<dim, nstate, double>::create_ExactSolutionFunction(parameters_input))
 , all_param(*parameters_input)
 , flow_solver_param(all_param.flow_solver_param)
 , ode_param(all_param.ode_solver_param)

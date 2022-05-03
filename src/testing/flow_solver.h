@@ -3,6 +3,7 @@
 
 // for FlowSolver class:
 #include "physics/initial_conditions/initial_condition.h"
+#include "physics/exact_solutions/exact_solution.h"
 #include "tests.h"
 #include "physics/physics.h"
 #include "parameters/all_parameters.h"
@@ -76,6 +77,7 @@ public:
 
 protected:
     std::shared_ptr<InitialConditionFunction<dim,nstate,double>> initial_condition_function; ///< Initial condition function
+    std::shared_ptr<ExactSolutionFunction<dim,nstate,double>> exact_solution_function; ///< Exact Solution function
     const Parameters::AllParameters all_param; ///< All parameters
     const Parameters::FlowSolverParam flow_solver_param; ///< Flow solver parameters
     const Parameters::ODESolverParam ode_param; ///< ODE solver parameters

@@ -474,12 +474,10 @@ std::array<real,nstate> NavierStokes<dim,nstate,real>
                 }
             }
         }
-
-        //dissipative_flux_divergence += jacobian*manufactured_solution_gradient[d]; <-- needs second term! (jac wrt gradient)
         for (int sr = 0; sr < nstate; ++sr) {
             real jac_grad_row = 0.0;
             for (int sc = 0; sc < nstate; ++sc) {
-                jac_grad_row += jacobian[sr][sc]*manufactured_solution_gradient[sc][d]; // Euler is the same as this
+                jac_grad_row += jacobian[sr][sc]*manufactured_solution_gradient[sc][d];
                 // Second term -- wrt to the gradient of conservative variables
                 // -- add the contribution of each gradient component (e.g. x,y,z for dim==3)
                 for (int d_gradient=0;d_gradient<dim;d_gradient++) {

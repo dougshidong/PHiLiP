@@ -94,7 +94,7 @@ std::array<dealii::Tensor<1,dim,real2>,nstate> LargeEddySimulationBase<dim,nstat
     const std::array<dealii::Tensor<1,dim,real2>,nstate> &solution_gradient,
     const dealii::types::global_dof_index cell_index) const
 {   
-    // Step 2: Primitive solution and Gradient of primitive solution
+    // Step 1,2: Primitive solution and Gradient of primitive solution
     const std::array<dealii::Tensor<1,dim,real2>,nstate> primitive_soln_gradient = this->navier_stokes_physics->convert_conservative_gradient_to_primitive_gradient(conservative_soln, solution_gradient);
     const std::array<real2,nstate> primitive_soln = this->navier_stokes_physics->convert_conservative_to_primitive(conservative_soln); // from Euler
 
@@ -140,9 +140,9 @@ std::array<real,nstate> LargeEddySimulationBase<dim,nstate,real>
         const dealii::types::global_dof_index cell_index) const
 {
     /* TO DO Note: Since this is only used for the manufactured solution source term, 
-             the grid spacing is fixed --> No AD wrt grid --> Can do same as I did in NavierStokes
-             This is okay if we can ensure that filter_width is the same everywhere in the domain
-             for the manufacture solution cases ran -- MUST CHECK THIS WHEN I ADD A MANUFACTURED SOLUTION TEST
+             the grid spacing is fixed --> No AD wrt grid --> Can use same computation as NavierStokes
+             Acceptable if we can ensure that filter_width is the same everywhere in the domain
+             for the manufacture solution cases chosen
      */
     std::array<real,nstate> source_term = dissipative_source_term(pos,cell_index);
     return source_term;
@@ -307,6 +307,10 @@ std::array<real,nstate> LargeEddySimulationBase<dim,nstate,real>
     const dealii::Point<dim,real> &pos,
     const dealii::types::global_dof_index cell_index) const
 {    
+    /** This function is same as the one in NavierStokes; 
+     *  TO DO: Reduce this code repetition in the future by moving it elsewhere
+     * */
+
     // Get Manufactured Solution values
     const std::array<real,nstate> manufactured_solution = get_manufactured_solution_value(pos); // from Euler
     

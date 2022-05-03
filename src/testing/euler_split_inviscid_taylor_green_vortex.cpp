@@ -133,7 +133,7 @@ int EulerTaylorGreen<dim, nstate>::run_test() const
     dg->allocate_system ();
 
     std::cout << "Implement initial conditions" << std::endl;
-    dealii::FunctionParser<PHILIP_DIM> initial_condition(5);
+    dealii::FunctionParser<dim> initial_condition(5);
     std::string variables = "x,y,z";
     std::map<std::string,double> constants;
     constants["pi"] = dealii::numbers::PI;
@@ -187,7 +187,6 @@ int EulerTaylorGreen<dim, nstate>::run_test() const
           {
               pcout << " Energy was not monotonically decreasing" << std::endl;
               return 1;
-              break;
           }
           double current_MK_energy = compute_MK_energy(dg, poly_degree)/initial_MK_energy;
           std::cout << std::setprecision(16) << std::fixed;

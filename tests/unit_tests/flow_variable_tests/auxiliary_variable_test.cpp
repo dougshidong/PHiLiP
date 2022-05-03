@@ -81,7 +81,7 @@ int main (int argc, char * argv[])
     std::array<double,n_grids> soln_error;
     std::array<double,n_grids> soln_error_inf;
     unsigned int exit_grid=0;
-    for(unsigned int poly_degree = 2; poly_degree<6; poly_degree++){
+    for(unsigned int poly_degree = 3; poly_degree<6; poly_degree++){
         const unsigned int grid_degree = 1;
     for(unsigned int igrid=igrid_start; igrid<n_grids; ++igrid){
 pcout<<" Grid Index"<<igrid<<std::endl;

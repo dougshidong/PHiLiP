@@ -64,10 +64,11 @@ double AdvectionPeriodic<dim, nstate>::compute_conservation(std::shared_ptr < PH
         const unsigned int n_dofs_cell = dg->operators->fe_collection_basis[poly_degree].dofs_per_cell;
         const unsigned int n_quad_pts = dg->operators->volume_quadrature_collection[poly_degree].size();
         dealii::Vector<double> ones(n_quad_pts);
-        for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
-            ones[iquad] = 1.0;
-        }
-        //Porjected vector of ones. That is, the interpolation of ones_hat to the volume nodes is 1.
+        ones = 1.0;
+//        for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
+//            ones[iquad] = 1.0;
+//        }
+        //Projected vector of ones. That is, the interpolation of ones_hat to the volume nodes is 1.
         dealii::Vector<double> ones_hat(n_dofs_cell);
         //We have to project the vector of ones because the mass matrix has an interpolation from solution nodes built into it.
         dg->operators->vol_projection_operator[poly_degree].vmult(ones_hat, ones);
@@ -109,7 +110,7 @@ int AdvectionPeriodic<dim, nstate>::run_test() const
     unsigned int grid_degree = poly_degree;
     
     dealii::ConvergenceTable convergence_table;
-    const unsigned int igrid_start = (all_parameters_new.use_energy) ? 3 : 3;
+    const unsigned int igrid_start = 3;
 
     for(unsigned int igrid=igrid_start; igrid<n_refinements; ++igrid){
 #if PHILIP_DIM==1 // dealii::parallel::distributed::Triangulation<dim> does not work for 1D
@@ -184,13 +185,11 @@ int AdvectionPeriodic<dim, nstate>::run_test() const
             {
                 pcout << " Energy was not monotonically decreasing" << std::endl;
             	return 1;
-            	break;
             }
             if ( (current_energy*initial_energy - initial_energy >= 1.0e-12) && (all_parameters_new.conv_num_flux_type == Parameters::AllParameters::ConvectiveNumericalFlux::central_flux))
             {
                 pcout << " Energy was not conserved" << std::endl;
             	return 1;
-            	break;
             }
             //Conservation
          
@@ -204,7 +203,6 @@ int AdvectionPeriodic<dim, nstate>::run_test() const
             {
                 pcout << "Not conserved" << std::endl;
             	return 1;
-            	break;
             }
          
         }

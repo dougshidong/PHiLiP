@@ -55,10 +55,8 @@ double BurgersEnergyStability<dim, nstate>::compute_conservation(std::shared_ptr
         const unsigned int n_dofs_cell = dg->operators->fe_collection_basis[poly_degree].dofs_per_cell;
         const unsigned int n_quad_pts = dg->operators->volume_quadrature_collection[poly_degree].size();
         dealii::Vector<double> ones(n_quad_pts);
-        for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
-            ones[iquad] = 1.0;
-        }
-        //Porjected vector of ones. That is, the interpolation of ones_hat to the volume nodes is 1.
+        ones = 1.0;
+        //Projected vector of ones. That is, the interpolation of ones_hat to the volume nodes is 1.
         dealii::Vector<double> ones_hat(n_dofs_cell);
         //We have to project the vector of ones because the mass matrix has an interpolation from solution nodes built into it.
         dg->operators->vol_projection_operator[poly_degree].vmult(ones_hat, ones);
@@ -203,9 +201,7 @@ int BurgersEnergyStability<dim, nstate>::run_test() const
             //Print to a file the final solution vs x to plot
 	    std::ofstream myfile2 ("solution_burgers.gpl" , std::ios::trunc);
              
-            // Overintegrate the error to make sure there is not integration error in the error estimate
-            int overintegrate = 0;
-            dealii::QGaussLobatto<dim> quad_extra(dg->max_degree+1+overintegrate);
+            dealii::QGaussLobatto<dim> quad_extra(dg->max_degree+1);
             dealii::FEValues<dim,dim> fe_values_extra(*(dg->high_order_grid->mapping_fe_field), dg->operators->fe_collection_basis[poly_degree], quad_extra, 
                     dealii::update_values | dealii::update_JxW_values | dealii::update_quadrature_points);
             const unsigned int n_quad_pts = fe_values_extra.n_quadrature_points;
@@ -289,11 +285,7 @@ int BurgersEnergyStability<dim, nstate>::run_test() const
                 }
 
             }
-#if PHILIP_DIM==1 
-            const double l2error_mpi_sum = sqrt(l2error);
-#else
             const double l2error_mpi_sum = std::sqrt(dealii::Utilities::MPI::sum(l2error, mpi_communicator));
-#endif
 
             // Convergence table
             const double dx = 1.0/pow(n_dofs,(1.0/dim));

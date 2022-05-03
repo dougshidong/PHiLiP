@@ -2020,6 +2020,7 @@ void DGBase<dim,real,MeshType>::allocate_system (
 
     // Allocate for auxiliary equation only.
     allocate_auxiliary_equation ();
+    // Allocate for auxiliary equation only.
 
     // System matrix allocation
     dealii::DynamicSparsityPattern dsp(locally_relevant_dofs);

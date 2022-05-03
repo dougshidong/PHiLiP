@@ -131,8 +131,8 @@ inline real InitialConditionFunction_BurgersViscous<dim,nstate,real>
 // ========================================================
 template <int dim, int nstate, typename real>
 InitialConditionFunction_1DSine<dim,nstate,real>
-::InitialConditionFunction_1DSine (const unsigned int nstate)
-        : InitialConditionFunction<dim,real>(nstate)
+::InitialConditionFunction_1DSine ()
+        : InitialConditionFunction<dim,nstate,real>()
 {
     // Nothing to do here yet
 }
@@ -187,9 +187,7 @@ InitialConditionFactory<dim,nstate, real>::create_InitialConditionFunction(
             return std::make_shared<FreeStreamInitialConditions<dim,nstate,real>>(euler_physics_double);
         }
     } else if (flow_type == FlowCaseEnum::advection_explicit_time_study) {
-        if constexpr (dim==1 && nstate=dim)  return std::make_shared<InitialConditionFunction_1DSine<dim,nstate,real> > (
-                    nstate);
-        //std::cout << "Temporarily using zero IC. Change to sinusoid later!!" << std::endl;
+        if constexpr (dim==1 && nstate==dim)  return std::make_shared<InitialConditionFunction_1DSine<dim,nstate,real> > ();
     } else {
         std::cout << "Invalid Flow Case Type. You probably forgot to add it to the list of flow cases in initial_condition.cpp" << std::endl;
         std::abort();

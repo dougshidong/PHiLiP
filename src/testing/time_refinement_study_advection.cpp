@@ -7,8 +7,11 @@ namespace PHiLiP {
 namespace Tests {
 
 template <int dim, int nstate>
-TimeRefinementStudyAdvection<dim, nstate>::TimeRefinementStudyAdvection(const PHiLiP::Parameters::AllParameters *const parameters_input)  //CHECK NAME
-        : TestsBase::TestsBase(parameters_input)
+TimeRefinementStudyAdvection<dim, nstate>::TimeRefinementStudyAdvection(
+        const PHiLiP::Parameters::AllParameters *const parameters_input,
+        const dealii::ParameterHandler &parameter_handler_input)  
+        : TestsBase::TestsBase(parameters_input),
+         parameter_handler(parameter_handler_input)
 {}
 
 
@@ -79,7 +82,7 @@ int TimeRefinementStudyAdvection<dim, nstate>::run_test() const
             " of " << n_time_calculations - 1 << std::endl << "---------------------------------------------" << std::endl;
         Parameters::AllParameters params = reinit_params_and_refine_timestep(refinement);
 
-        std::unique_ptr<FlowSolver<dim,nstate>> flow_solver = FlowSolverFactory<dim,nstate>::create_FlowSolver(&params);
+        std::unique_ptr<FlowSolver<dim,nstate>> flow_solver = FlowSolverFactory<dim,nstate>::create_FlowSolver(&params, parameter_handler);
         static_cast<void>(flow_solver->run_test());
         
         //check L2 error

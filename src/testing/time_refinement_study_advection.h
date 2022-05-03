@@ -7,16 +7,21 @@
 namespace PHiLiP {
 namespace Tests {
 
-/// Taylor Green Vortex
+/// Advection time refinement study 
 template <int dim, int nstate>
 class TimeRefinementStudyAdvection: public TestsBase
 {
 public:
     /// Constructor
-    TimeRefinementStudyAdvection(const Parameters::AllParameters *const parameters_input);
+    TimeRefinementStudyAdvection(
+            const Parameters::AllParameters *const parameters_input,
+            const dealii::ParameterHandler &parameter_handler_input);
 
     /// Destructor
     ~TimeRefinementStudyAdvection() {};
+
+    /// Parameter handler for storing the .prm file being ran
+    const dealii::ParameterHandler &parameter_handler;
     
     /// Run test
     int run_test () const override;

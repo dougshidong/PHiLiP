@@ -21,7 +21,6 @@ FlowSolver<dim, nstate>::FlowSolver(
 : TestsBase::TestsBase(parameters_input)
 , flow_solver_case(flow_solver_case)
 , parameter_handler(parameter_handler_input)
-, initial_condition_function(InitialConditionFactory<dim, nstate, double>::create_InitialConditionFunction(parameters_input))
 , all_param(*parameters_input)
 , flow_solver_param(all_param.flow_solver_param)
 , ode_param(all_param.ode_solver_param)
@@ -33,7 +32,7 @@ FlowSolver<dim, nstate>::FlowSolver(
 {
     flow_solver_case->set_higher_order_grid(dg);
     dg->allocate_system();
-    flow_solver_case->display_flow_solver_setup(initial_condition_function);
+    flow_solver_case->display_flow_solver_setup();
     
     dealii::LinearAlgebra::distributed::Vector<double> solution_no_ghost;
     solution_no_ghost.reinit(dg->locally_owned_dofs, MPI_COMM_WORLD);
@@ -63,7 +62,7 @@ FlowSolver<dim, nstate>::FlowSolver(
     } else {
         // Initialize solution from initial_condition_function
         pcout << "Initializing solution with initial condition function... " << std::flush;
-        dealii::VectorTools::interpolate(dg->dof_handler, *initial_condition_function, solution_no_ghost);
+        dealii::VectorTools::interpolate(dg->dof_handler, *(flow_solver_case->initial_condition_function), solution_no_ghost);
     }
     dg->solution = solution_no_ghost; //< assignment
     dg->solution.update_ghost_values();

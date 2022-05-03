@@ -34,7 +34,7 @@ public:
     /// Pointer to Navier-Stokes physics object for computing things on the fly
     std::shared_ptr< Physics::NavierStokes<dim,dim+2,double> > navier_stokes_physics;
 
-    /// Computes the kinetic energy
+    /// Computes the kinetic energy given DG; called in TaylorGreenVortex integration tests
     double compute_kinetic_energy(DGBase<dim, double> &dg) const;
 
 protected:
@@ -49,7 +49,7 @@ protected:
     bool is_taylor_green_vortex = false; ///< Identifies if taylor green vortex case; initialized as false.
 
     /// Displays the flow setup parameters
-    void display_flow_solver_setup(std::shared_ptr<InitialConditionFunction<dim,nstate,double>> initial_condition) const override;
+    void display_flow_solver_setup() const override;
 
     /// Function to generate the grid
     std::shared_ptr<Triangulation> generate_grid() const override;
@@ -67,16 +67,18 @@ protected:
     /// List of possible integrated quantities over the domain
     enum IntegratedQuantitiesEnum {
         kinetic_energy,
+        enstrophy,
         l2_error_initial_condition
     };
 
-    /// Kinetic energy integrand used for integrating over the entire domain
-    double integrand_kinetic_energy(const std::array<double,nstate> &soln_at_q) const;
     /// Integrand for computing the L2-error of the initialization with the initial condition
     double integrand_l2_error_initial_condition(const std::array<double,nstate> &soln_at_q, const dealii::Point<dim> qpoint) const;
 
     /// Integrates over the entire domain
     double integrate_over_domain(DGBase<dim, double> &dg,const IntegratedQuantitiesEnum integrated_quantity) const;
+
+    /// Returns the initial density; assumes initial density is uniform; used for TaylorGreenVortex
+    double get_initial_density() const;
 };
 
 } // Tests namespace

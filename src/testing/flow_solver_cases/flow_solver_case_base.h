@@ -25,11 +25,13 @@ public:
     ///Constructor
     FlowSolverCaseBase(const Parameters::AllParameters *const parameters_input);
 
+    std::shared_ptr<InitialConditionFunction<dim,nstate,double>> initial_condition_function; ///< Initial condition function
+
     /// Destructor
-    virtual ~FlowSolverCaseBase() {};
+    ~FlowSolverCaseBase() {};
 
     /// Displays the flow setup parameters
-    virtual void display_flow_solver_setup(std::shared_ptr<InitialConditionFunction<dim,nstate,double>> initial_condition) const;
+    virtual void display_flow_solver_setup() const;
 
     /// Pure Virtual function to generate the grid
     virtual std::shared_ptr<Triangulation> generate_grid() const = 0;
@@ -60,6 +62,12 @@ protected:
     /** Used as std::cout, but only prints if mpi_rank == 0
      */
     dealii::ConditionalOStream pcout;
+
+    /// Add a value to a given data table with scientific format
+    void add_value_to_data_table(
+            const double value,
+            const std::string value_string,
+            const std::shared_ptr <dealii::TableHandler> data_table) const;
 };
 
 } // Tests namespace

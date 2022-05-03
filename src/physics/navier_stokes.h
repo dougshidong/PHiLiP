@@ -86,6 +86,21 @@ public:
         const std::array<real,nstate> &conservative_soln,
         const std::array<dealii::Tensor<1,dim,real>,nstate> &conservative_soln_gradient) const;
 
+    /// Evaluate enstrophy from conservative variables and gradient of conservative variables
+    real compute_enstrophy (
+        const std::array<real,nstate> &conservative_soln,
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &conservative_soln_gradient) const;
+
+    /** Evaluate kinetic energy dissipation rate from density, viscosity, and enstropy. 
+     *  Note: For incompressible flows or when dilatation effects are negligible
+     *  Reference: 
+     *  -- J. Wu, Y. Zhou, and M. Fan. A note on kinetic energy, dissipation and enstrophy. Physics of Fluids, 11(2):503–505, February 1999.
+     * */
+    real compute_kinetic_energy_dissipation_rate_from_density_viscosity_enstrophy (
+        const real density,
+        const real viscosity_coefficient,
+        const real enstrophy) const;
+
     /** Extract gradient of velocities */
     template<typename real2>
     std::array<dealii::Tensor<1,dim,real2>,dim> 

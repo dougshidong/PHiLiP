@@ -5,7 +5,8 @@ namespace Tests {
 
 template<int dim, int nstate>
 FlowSolverCaseBase<dim, nstate>::FlowSolverCaseBase(const PHiLiP::Parameters::AllParameters *const parameters_input)
-        : all_param(*parameters_input)
+        : initial_condition_function(InitialConditionFactory<dim, nstate, double>::create_InitialConditionFunction(parameters_input))
+        , all_param(*parameters_input)
         , mpi_communicator(MPI_COMM_WORLD)
         , mpi_rank(dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD))
         , n_mpi(dealii::Utilities::MPI::n_mpi_processes(MPI_COMM_WORLD))
@@ -14,7 +15,7 @@ FlowSolverCaseBase<dim, nstate>::FlowSolverCaseBase(const PHiLiP::Parameters::Al
 
 
 template <int dim, int nstate>
-void FlowSolverCaseBase<dim,nstate>::display_flow_solver_setup(std::shared_ptr<InitialConditionFunction<dim,nstate,double>> /*initial_condition*/) const
+void FlowSolverCaseBase<dim,nstate>::display_flow_solver_setup() const
 {
     using PDE_enum = Parameters::AllParameters::PartialDifferentialEquation;
     const PDE_enum pde_type = all_param.pde_type;
@@ -57,6 +58,16 @@ void FlowSolverCaseBase<dim, nstate>::compute_unsteady_data_and_write_to_table(
     // do nothing by default
 }
 
+template <int dim, int nstate>
+void FlowSolverCaseBase<dim, nstate>::add_value_to_data_table(
+    const double value,
+    const std::string value_string,
+    const std::shared_ptr <dealii::TableHandler> data_table) const
+{
+    data_table->add_value(value_string, value);
+    data_table->set_precision(value_string, 16);
+    data_table->set_scientific(value_string, true);
+}
 
 #if PHILIP_DIM==1
         template class FlowSolverCaseBase<PHILIP_DIM,PHILIP_DIM>;

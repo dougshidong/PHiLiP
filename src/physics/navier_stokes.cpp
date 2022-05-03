@@ -195,6 +195,41 @@ dealii::Tensor<1,3,real> NavierStokes<dim,nstate,real>
 }
 
 template <int dim, int nstate, typename real>
+real NavierStokes<dim,nstate,real>
+::compute_enstrophy (
+    const std::array<real,nstate> &conservative_soln,
+    const std::array<dealii::Tensor<1,dim,real>,nstate> &conservative_soln_gradient) const
+{
+    // Compute the vorticity
+    dealii::Tensor<1,3,real> vorticity = compute_vorticity(conservative_soln, conservative_soln_gradient);
+    // Compute enstrophy
+    real enstrophy = 0.0;
+    for(int d=0; d<3; ++d) {
+        enstrophy += vorticity[d]*vorticity[d];
+    }
+    const real density = conservative_soln[0];
+    enstrophy *= 0.5*density;
+    return enstrophy;
+}
+
+template <int dim, int nstate, typename real>
+real NavierStokes<dim,nstate,real>
+::compute_kinetic_energy_dissipation_rate_from_density_viscosity_enstrophy (
+    const real density,
+    const real viscosity_coefficient,
+    const real enstrophy) const
+{
+    /* Compute kinetic energy dissipation rate
+       for incompressible flow or when dilatation effects are negligible
+     */
+    /** Reference: 
+     *  -- J. Wu, Y. Zhou, and M. Fan. A note on kinetic energy, dissipation and enstrophy. Physics of Fluids, 11(2):503–505, February 1999.
+     * */
+    real kinetic_energy_dissipation_rate = 2.0*viscosity_coefficient*enstrophy/density;
+    return kinetic_energy_dissipation_rate;
+}
+
+template <int dim, int nstate, typename real>
 template<typename real2>
 std::array<dealii::Tensor<1,dim,real2>,dim> NavierStokes<dim,nstate,real>
 ::extract_velocities_gradient_from_primitive_solution_gradient (

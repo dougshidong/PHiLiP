@@ -32,6 +32,12 @@ PeriodicCubeFlow<dim, nstate>::PeriodicCubeFlow(const PHiLiP::Parameters::AllPar
 
     // Flow case identifiers
     is_taylor_green_vortex = (flow_type == FlowCaseEnum::taylor_green_vortex);
+
+    // Navier-Stokes object; create using dynamic_pointer_cast and the create_Physics factory
+    PHiLiP::Parameters::AllParameters parameters_navier_stokes = this->all_param;
+    parameters_navier_stokes.pde_type = Parameters::AllParameters::PartialDifferentialEquation::navier_stokes;
+    navier_stokes_physics = std::dynamic_pointer_cast<Physics::NavierStokes<dim,dim+2,double>>(
+                Physics::PhysicsFactory<dim,dim+2,double>::create_Physics(&parameters_navier_stokes));
 }
 
 template <int dim, int nstate>
@@ -90,13 +96,8 @@ template<int dim, int nstate>
 double PeriodicCubeFlow<dim,nstate>::integrand_kinetic_energy(const std::array<double,nstate> &soln_at_q) const
 {
     // Description: Returns nondimensional kinetic energy
-    const double nondimensional_density = soln_at_q[0];
-    double dot_product_of_nondimensional_momentum = 0.0;
-    for (int d=0; d<dim; ++d) {
-        dot_product_of_nondimensional_momentum += soln_at_q[d+1]*soln_at_q[d+1];
-    }
-    const double nondimensional_kinetic_energy = 0.5*(dot_product_of_nondimensional_momentum)/nondimensional_density;
-    return nondimensional_kinetic_energy/domain_volume;
+    const double nondimensional_kinetic_energy = navier_stokes_physics->compute_kinetic_energy_from_conservative_solution(soln_at_q);
+    return nondimensional_kinetic_energy;
 }
 
 template<int dim, int nstate>
@@ -149,6 +150,7 @@ double PeriodicCubeFlow<dim, nstate>::integrate_over_domain(DGBase<dim, double> 
             integral_value += integrand_value * fe_values_extra.JxW(iquad);
         }
     }
+    integral_value /= domain_volume;
     const double integral_value_mpi_sum = dealii::Utilities::MPI::sum(integral_value, this->mpi_communicator);
     return integral_value_mpi_sum;
 }

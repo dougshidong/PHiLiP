@@ -10,6 +10,7 @@
 #include <deal.II/distributed/shared_tria.h>
 #include <deal.II/distributed/tria.h>
 #include "flow_solver_case_base.h"
+#include "physics/navier_stokes.h"
 
 namespace PHiLiP {
 namespace Tests {
@@ -29,6 +30,9 @@ public:
 
     /// Destructor
     ~PeriodicCubeFlow() {};
+
+    /// Pointer to Navier-Stokes physics object for computing things on the fly
+    std::shared_ptr< Physics::NavierStokes<dim,dim+2,double> > navier_stokes_physics;
 
     /// Computes the kinetic energy
     double compute_kinetic_energy(DGBase<dim, double> &dg) const;

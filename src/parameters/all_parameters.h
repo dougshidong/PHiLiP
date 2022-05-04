@@ -103,6 +103,9 @@ public:
     //The default ESFR scheme is the Nonlinearly Stable FR where the volume is also reconstructed
     bool use_classical_FR;
 
+    ///Flag to store global mass matrix
+    bool store_global_mass_matrix;
+
     /// Scaling of Symmetric Interior Penalty term to ensure coercivity.
     double sipg_penalty_factor;
 

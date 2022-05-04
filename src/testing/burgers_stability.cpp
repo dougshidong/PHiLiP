@@ -89,7 +89,7 @@ int BurgersEnergyStability<dim, nstate>::run_test() const
     std::vector<double> soln_error(n_grids);
     unsigned int poly_degree = 4;
     dealii::ConvergenceTable convergence_table;
-    const unsigned int igrid_start = (all_parameters_new.use_energy) ? 3 : 3;
+    const unsigned int igrid_start = 3;
     const unsigned int grid_degree = 1;
 
     for(unsigned int igrid = igrid_start; igrid<n_grids; igrid++){

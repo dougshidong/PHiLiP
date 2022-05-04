@@ -81,6 +81,19 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                               "For integration test purposes, expected kinetic energy at final time.");
         }
         prm.leave_subsection();
+
+        prm.enter_subsection("taylor_green_vortex");
+        {
+            prm.declare_entry("density_initial_condition_type", "uniform",
+                              dealii::Patterns::Selection(
+                              " uniform | "
+                              " isothermal "),
+                              "The type of density initialization. "
+                              "Choices are "
+                              " <uniform | "
+                              " isothermal>.");
+        }
+        prm.leave_subsection();
     }
     prm.leave_subsection();
 }
@@ -90,10 +103,10 @@ void FlowSolverParam::parse_parameters(dealii::ParameterHandler &prm)
     prm.enter_subsection("flow_solver");
     {
         const std::string flow_case_type_string = prm.get("flow_case_type");
-        if      (flow_case_type_string == "taylor_green_vortex")  {flow_case_type = taylor_green_vortex;}
-        else if (flow_case_type_string == "burgers_viscous_snapshot")  {flow_case_type = burgers_viscous_snapshot;}
-        else if (flow_case_type_string == "burgers_rewienski_snapshot")  {flow_case_type = burgers_rewienski_snapshot;}
-        else if (flow_case_type_string == "naca0012")  {flow_case_type = naca0012;}
+        if      (flow_case_type_string == "taylor_green_vortex")        {flow_case_type = taylor_green_vortex;}
+        else if (flow_case_type_string == "burgers_viscous_snapshot")   {flow_case_type = burgers_viscous_snapshot;}
+        else if (flow_case_type_string == "burgers_rewienski_snapshot") {flow_case_type = burgers_rewienski_snapshot;}
+        else if (flow_case_type_string == "naca0012")                   {flow_case_type = naca0012;}
 
         final_time = prm.get_double("final_time");
         courant_friedrich_lewy_number = prm.get_double("courant_friedrich_lewy_number");
@@ -111,6 +124,14 @@ void FlowSolverParam::parse_parameters(dealii::ParameterHandler &prm)
         prm.enter_subsection("taylor_green_vortex_energy_check");
         {
             expected_kinetic_energy_at_final_time = prm.get_double("expected_kinetic_energy_at_final_time");
+        }
+        prm.leave_subsection();
+
+        prm.enter_subsection("taylor_green_vortex");
+        {
+            const std::string density_initial_condition_type_string = prm.get("density_initial_condition_type");
+            if      (density_initial_condition_type_string == "uniform")     {density_initial_condition_type = uniform;}
+            else if (density_initial_condition_type_string == "isothermal")  {density_initial_condition_type = isothermal;}
         }
         prm.leave_subsection();
     }

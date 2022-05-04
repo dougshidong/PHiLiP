@@ -34,8 +34,19 @@ public:
     /// Pointer to Navier-Stokes physics object for computing things on the fly
     std::shared_ptr< Physics::NavierStokes<dim,dim+2,double> > navier_stokes_physics;
 
-    /// Computes the kinetic energy given DG; called in TaylorGreenVortex integration tests
-    double compute_kinetic_energy(DGBase<dim, double> &dg) const;
+    /** Computes the nondimensional integrated kinetic energy given a DG object from dg->solution
+     *  -- Reference: Cox, Christopher, et al. "Accuracy, stability, and performance comparison 
+     *                between the spectral difference and flux reconstruction schemes." 
+     *                Computers & Fluids 221 (2021): 104922.
+     * */
+    double compute_integrated_kinetic_energy(DGBase<dim, double> &dg) const;
+
+    /** Computes the nondimensional integrated enstrophy given a DG object from dg->solution
+     *  -- Reference: Cox, Christopher, et al. "Accuracy, stability, and performance comparison 
+     *                between the spectral difference and flux reconstruction schemes." 
+     *                Computers & Fluids 221 (2021): 104922.
+     * */
+    double compute_integrated_enstrophy(DGBase<dim, double> &dg) const;
 
 protected:
     const int number_of_cells_per_direction; ///< Number of cells per direction for the grid

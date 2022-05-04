@@ -91,15 +91,14 @@ public:
         const std::array<real,nstate> &conservative_soln,
         const std::array<dealii::Tensor<1,dim,real>,nstate> &conservative_soln_gradient) const;
 
-    /** Evaluate kinetic energy dissipation rate from density, viscosity, and enstropy. 
+    /** Evaluate non-dimensional theoretical vorticity dissipation rate from density, viscosity, and enstropy. 
      *  Note: For incompressible flows or when dilatation effects are negligible
-     *  Reference: 
-     *  -- J. Wu, Y. Zhou, and M. Fan. A note on kinetic energy, dissipation and enstrophy. Physics of Fluids, 11(2):503–505, February 1999.
+     *  -- Reference: Cox, Christopher, et al. "Accuracy, stability, and performance comparison 
+     *                between the spectral difference and flux reconstruction schemes." 
+     *                Computers & Fluids 221 (2021): 104922.
      * */
-    real compute_kinetic_energy_dissipation_rate_from_density_viscosity_enstrophy (
-        const real density,
-        const real viscosity_coefficient,
-        const real enstrophy) const;
+    real compute_vorticity_based_dissipation_rate_from_integrated_enstrophy (
+        const real integrated_enstrophy) const;
 
     /** Extract gradient of velocities */
     template<typename real2>

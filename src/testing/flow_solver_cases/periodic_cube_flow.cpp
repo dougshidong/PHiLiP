@@ -116,7 +116,9 @@ double PeriodicCubeFlow<dim,nstate>::get_initial_density() const
 }
 
 template<int dim, int nstate>
-double PeriodicCubeFlow<dim, nstate>::integrate_over_domain(DGBase<dim, double> &dg,const IntegratedQuantitiesEnum integrated_quantity) const
+double PeriodicCubeFlow<dim, nstate>::integrate_over_domain(
+        DGBase<dim, double> &dg,
+        const IntegratedQuantitiesEnum integrated_quantity) const
 {
     double integral_value = 0.0;
 
@@ -154,18 +156,22 @@ double PeriodicCubeFlow<dim, nstate>::integrate_over_domain(DGBase<dim, double> 
             integral_value += integrand_value * fe_values_extra.JxW(iquad);
         }
     }
-
-    const double initial_density = get_initial_density();
-    integral_value /= (initial_density*domain_volume);
+    integral_value /= domain_volume; // divide by total domain volume
     
     const double integral_value_mpi_sum = dealii::Utilities::MPI::sum(integral_value, this->mpi_communicator);
     return integral_value_mpi_sum;
 }
 
 template<int dim, int nstate>
-double PeriodicCubeFlow<dim, nstate>::compute_kinetic_energy(DGBase<dim, double> &dg) const
+double PeriodicCubeFlow<dim, nstate>::compute_integrated_kinetic_energy(DGBase<dim, double> &dg) const
 {
     return integrate_over_domain(dg, IntegratedQuantitiesEnum::kinetic_energy);
+}
+
+template<int dim, int nstate>
+double PeriodicCubeFlow<dim, nstate>::compute_integrated_enstrophy(DGBase<dim, double> &dg) const
+{
+    return integrate_over_domain(dg, IntegratedQuantitiesEnum::enstrophy);
 }
 
 template <int dim, int nstate>
@@ -175,21 +181,18 @@ void PeriodicCubeFlow<dim, nstate>::compute_unsteady_data_and_write_to_table(
         const std::shared_ptr <DGBase<dim, double>> dg,
         const std::shared_ptr <dealii::TableHandler> unsteady_data_table) const
 {
-    // Compute kinetic energy
-    const double kinetic_energy = integrate_over_domain(*dg,IntegratedQuantitiesEnum::kinetic_energy);
-    const double enstrophy = integrate_over_domain(*dg,IntegratedQuantitiesEnum::enstrophy);
-    const double dissipation_rate_from_enstrophy
-         = navier_stokes_physics->compute_kinetic_energy_dissipation_rate_from_density_viscosity_enstrophy(
-                get_initial_density(),
-                navier_stokes_physics->viscosity_coefficient_inf,
-                enstrophy);
+    // Compute quantities
+    const double integrated_kinetic_energy = compute_integrated_kinetic_energy(*dg);
+    const double integrated_enstrophy = compute_integrated_enstrophy(*dg);
+    const double vorticity_based_dissipation_rate
+         = navier_stokes_physics->compute_vorticity_based_dissipation_rate_from_integrated_enstrophy(integrated_enstrophy);
 
     if(this->mpi_rank==0) {
         // Add values to data table
         this->add_value_to_data_table(current_time,"time",unsteady_data_table);
-        this->add_value_to_data_table(kinetic_energy,"kinetic_energy",unsteady_data_table);
-        this->add_value_to_data_table(enstrophy,"enstrophy",unsteady_data_table);
-        this->add_value_to_data_table(dissipation_rate_from_enstrophy,"dissip_rate",unsteady_data_table);
+        this->add_value_to_data_table(integrated_kinetic_energy,"kinetic_energy",unsteady_data_table);
+        this->add_value_to_data_table(integrated_enstrophy,"enstrophy",unsteady_data_table);
+        this->add_value_to_data_table(vorticity_based_dissipation_rate,"dissip_rate",unsteady_data_table);
         // Write to file
         std::ofstream unsteady_data_table_file(unsteady_data_table_filename_with_extension);
         unsteady_data_table->write_text(unsteady_data_table_file);
@@ -197,12 +200,13 @@ void PeriodicCubeFlow<dim, nstate>::compute_unsteady_data_and_write_to_table(
     // Print to console
     this->pcout << "    Iter: " << current_iteration
                 << "    Time: " << current_time
-                << "    Energy: " << kinetic_energy
-                << "    Dissip. Rate: " << dissipation_rate_from_enstrophy
+                << "    Energy: " << integrated_kinetic_energy
+                << "    Enstrophy: " << integrated_enstrophy
+                << "    Dissip. Rate: " << vorticity_based_dissipation_rate
                 << std::endl;
 
     // Abort if energy is nan
-    if(std::isnan(kinetic_energy)) {
+    if(std::isnan(integrated_kinetic_energy)) {
         this->pcout << " ERROR: Kinetic energy at time " << current_time << " is nan." << std::endl;
         this->pcout << "        Consider decreasing the time step / CFL number." << std::endl;
         std::abort();

@@ -214,19 +214,17 @@ real NavierStokes<dim,nstate,real>
 
 template <int dim, int nstate, typename real>
 real NavierStokes<dim,nstate,real>
-::compute_kinetic_energy_dissipation_rate_from_density_viscosity_enstrophy (
-    const real density,
-    const real viscosity_coefficient,
-    const real enstrophy) const
+::compute_vorticity_based_dissipation_rate_from_integrated_enstrophy (
+    const real integrated_enstrophy) const
 {
-    /* Compute kinetic energy dissipation rate
-       for incompressible flow or when dilatation effects are negligible
-     */
-    /** Reference: 
-     *  -- J. Wu, Y. Zhou, and M. Fan. A note on kinetic energy, dissipation and enstrophy. Physics of Fluids, 11(2):503–505, February 1999.
+    /** Evaluate non-dimensional theoretical vorticity dissipation rate from density, viscosity, and enstropy. 
+     *  Note: For incompressible flows or when dilatation effects are negligible
+     *  -- Reference: Cox, Christopher, et al. "Accuracy, stability, and performance comparison 
+     *                between the spectral difference and flux reconstruction schemes." 
+     *                Computers & Fluids 221 (2021): 104922.
      * */
-    real kinetic_energy_dissipation_rate = 2.0*viscosity_coefficient*enstrophy/density;
-    return kinetic_energy_dissipation_rate;
+    real dissipation_rate = 2.0*integrated_enstrophy/(this->reynolds_number_inf);
+    return dissipation_rate;
 }
 
 template <int dim, int nstate, typename real>

@@ -74,26 +74,47 @@ void TimeRefinementStudyAdvection<dim, nstate>::write_convergence_summary(int re
 template <int dim, int nstate>
 int TimeRefinementStudyAdvection<dim, nstate>::run_test() const
 {
-    dealii::ConvergenceTable convergence_table; 
+    int testfail = 0;
+    double expected_order =(double) this->all_parameters->ode_solver_param.runge_kutta_order;
+    double order_tolerance = 0.1;
+
+    dealii::ConvergenceTable convergence_table;
+    double L2_error_old = 0;
+    double L2_error_conv_rate=0;
 
     for (int refinement = 0; refinement < n_time_calculations; ++refinement){
         
         pcout << "\n\n---------------------------------------------\n Refinement number " << refinement <<
             " of " << n_time_calculations - 1 << std::endl << "---------------------------------------------" << std::endl;
         Parameters::AllParameters params = reinit_params_and_refine_timestep(refinement);
-
         std::unique_ptr<FlowSolver<dim,nstate>> flow_solver = FlowSolverFactory<dim,nstate>::create_FlowSolver(&params, parameter_handler);
         static_cast<void>(flow_solver->run_test());
         
+        pcout << "Advection speed is " << params.manufactured_convergence_study_param.manufactured_solution_param.advection_vector[0]<< std::endl;
+
         //check L2 error
-        //write to data table
-        //this->write_convergence_summary(refinement, params.ode_solver_param.initial_time_step);
+        double L2_error = flow_solver->calculate_L2_error_at_final_time();
 
         const double dt =  params.ode_solver_param.initial_time_step;
         convergence_table.add_value("refinement", refinement);
         convergence_table.add_value("dt", dt );
         convergence_table.set_precision("dt", 3);
         convergence_table.set_scientific("dt", true);
+        convergence_table.add_value("L2_error",L2_error);
+        convergence_table.set_precision("L2_error", 4);
+        convergence_table.set_scientific("L2_error", true);
+        convergence_table.evaluate_convergence_rates("L2_error", "dt", dealii::ConvergenceTable::reduction_rate_log2, 1);
+
+        //Checking convergence order
+        if (refinement > 0) {
+            L2_error_conv_rate = -log(L2_error_old/L2_error)/log(refine_ratio);
+            pcout << "Order at " << refinement << " is " << L2_error_conv_rate << std::endl;
+            if (abs(L2_error_conv_rate - expected_order) > order_tolerance){
+                testfail = 1;
+                pcout << "Expected convergence order was not reached at refinement " << refinement <<std::endl;
+            }
+        }
+        L2_error_old = L2_error;
     }
 
     //Printing and writing convergence table
@@ -105,12 +126,18 @@ int TimeRefinementStudyAdvection<dim, nstate>::run_test() const
      conv_tab_file.open(fname);
      convergence_table.write_text(conv_tab_file);
      conv_tab_file.close();
-
-
-
+/*
+     for (int i = 0; i < n_time_calculations-1; ++i){
+         pcout << "Order at " << i << " is " << L2_error_conv_rate[i] << std::endl;
+         if (abs(L2_error_conv_rate[i] - expected_order) > order_tolerance){
+             testfail = 1;
+             std::cout << "Expected convergence order was not reached at refinement " << i + 1 <<std::endl;
+         }
+     }
+*/
     //PASS/FAIL CHECK
 
-    return 0;
+    return testfail;
 }
 
 #if PHILIP_DIM==1

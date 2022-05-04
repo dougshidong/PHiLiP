@@ -28,21 +28,11 @@ public:
 protected:
 
     /// Number of times to solve for convergence summary
-    const int n_time_calculations = 2;
+    const int n_time_calculations = 4;
 
     /// Ratio to refine by
     const double refine_ratio = 0.5;
     
-    /// Data table for convergence summary
-    //dealii::ConvergenceTable convergence_table;
-
-    /// Write to data table at the end of a computation
-    //void write_convergence_summary(int refinement, double dt);
-
-    /// L2 error
-   // dealii::Vector<double> L2_error_conv_rate();
-
-
     /// Reinitialize parameters while refining the timestep. Necessary because all_parameters is constant.
     Parameters::AllParameters reinit_params_and_refine_timestep(int refinement) const;
 

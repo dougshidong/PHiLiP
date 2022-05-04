@@ -75,6 +75,11 @@ public:
     /// Returns the restart filename without extension given a restart index (adds padding appropriately)
     std::string get_restart_filename_without_extension(const int restart_index_input) const;
 
+    /// Returns the L2 error between the solution at final_time and exact_solution_function
+    /** Should be called after run_test
+     */
+    double calculate_L2_error_at_final_time();
+
 protected:
     std::shared_ptr<InitialConditionFunction<dim,nstate,double>> initial_condition_function; ///< Initial condition function
     std::shared_ptr<ExactSolutionFunction<dim,nstate,double>> exact_solution_function; ///< Exact Solution function

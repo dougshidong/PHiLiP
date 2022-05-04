@@ -6,6 +6,8 @@
 #include <stdlib.h>
 #include <vector>
 #include <sstream>
+#include <deal.II/numerics/vector_tools.h>
+
 
 namespace PHiLiP {
 
@@ -325,6 +327,41 @@ void FlowSolver<dim,nstate>::output_restart_files(
 #endif
 
 template <int dim, int nstate>
+double FlowSolver<dim,nstate>::calculate_L2_error_at_final_time()
+{
+
+    //Check that ode_solver->current_time matches final_time
+    if ( (ode_solver->current_time - final_time)==0.0) {
+        pcout << "calculate_L2_error_at_final_time() has been called but \n"
+            "    current_time does not match final_time" << std::endl;
+        pcout << "current_time = " << ode_solver->current_time << 
+            "    final_time = " << final_time <<  
+            "    difference = " << (ode_solver->current_time) - final_time << std::endl;
+        return -1.0;
+    }else{
+        //current_time is okay
+        dealii::Vector<double> difference_per_cell(dg->solution.size());
+        dealii::VectorTools::integrate_difference(dg->dof_handler,
+                 dg->solution,
+                 *exact_solution_function, 
+                 difference_per_cell, 
+                 dealii::QGauss<dim>(poly_degree+10), //overintegrating by 10
+                 dealii::VectorTools::L2_norm);
+        double L2_error = dealii::VectorTools::compute_global_error(*dg->triangulation,
+                     difference_per_cell,
+                     dealii::VectorTools::L2_norm);
+        std::cout << "Computed error is " << L2_error << std::endl;
+        return L2_error;
+    }
+
+    //use deal.ii overintegration thing to calculate L2 error
+    
+
+
+}
+
+
+template <int dim, int nstate>
 int FlowSolver<dim,nstate>::run_test() const
 {
     pcout << "Running Flow Solver..." << std::endl;
@@ -373,7 +410,7 @@ int FlowSolver<dim,nstate>::run_test() const
         // Time advancement loop with on-the-fly post-processing
         //----------------------------------------------------
         pcout << "Advancing solution in time... " << std::endl;
-        while(ode_solver->current_time < final_time)
+        while((final_time - ode_solver->current_time) > (0.5 * constant_time_step)) //comparing to constant_time_step in case roundoff errors exceed machine zero
         {
             // advance solution
             ode_solver->step_in_time(constant_time_step,false); // pseudotime==false

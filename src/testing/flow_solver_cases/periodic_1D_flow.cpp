@@ -22,10 +22,9 @@ namespace Tests {
 template <int dim, int nstate>
 Periodic1DFlow<dim, nstate>::Periodic1DFlow(const PHiLiP::Parameters::AllParameters *const parameters_input)
         : FlowSolverCaseBase<dim, nstate>(parameters_input)
-        , number_of_cells_per_direction(this->all_param.grid_refinement_study_param.grid_size)
+        , number_of_refinements(this->all_param.grid_refinement_study_param.num_refinements)
         , domain_left(this->all_param.grid_refinement_study_param.grid_left)
         , domain_right(this->all_param.grid_refinement_study_param.grid_right)
-        , domain_volume(pow(domain_right - domain_left, dim))
         , unsteady_data_table_filename_with_extension(parameters_input->flow_solver_param.unsteady_data_table_filename+".txt")
 {
     // Get the flow case type -- I think this was for assigning the TGV stuff
@@ -57,16 +56,12 @@ std::shared_ptr<Triangulation> Periodic1DFlow<dim,nstate>::generate_grid() const
             this->mpi_communicator
 #endif
     );
-    // Grids::straight_periodic_cube<dim,dealii::parallel::distributed::Triangulation<dim>>(grid, domain_left, domain_right, number_of_cells_per_direction);
-    // Should modify the straight_periodic_cube to allow 1D later
-
-    const int n_refinements = 5; //currently hard-coded, SHOULD CHANGE
-    const bool colorize = true;
-    dealii::GridGenerator::hyper_cube(*grid, domain_left, domain_right, colorize);
+    
+    dealii::GridGenerator::hyper_cube(*grid, domain_left, domain_right, true); //colorize = true
     std::vector<dealii::GridTools::PeriodicFacePair<typename Triangulation::cell_iterator> > matched_pairs;
     dealii::GridTools::collect_periodic_faces(*grid, 0,1,0, matched_pairs);
     grid->add_periodicity(matched_pairs);
-    grid->refine_global(n_refinements);
+    grid->refine_global(number_of_refinements);
 
     // Display the information about the grid
     this->pcout << "\n- GRID INFORMATION:" << std::endl;
@@ -74,8 +69,7 @@ std::shared_ptr<Triangulation> Periodic1DFlow<dim,nstate>::generate_grid() const
     this->pcout << "- - Domain dimensionality: " << dim << std::endl;
     this->pcout << "- - Domain left: " << domain_left << std::endl;
     this->pcout << "- - Domain right: " << domain_right << std::endl;
-    this->pcout << "- - Number of cells in each direction: " << number_of_cells_per_direction << std::endl;
-    this->pcout << "- - Domain volume: " << domain_volume << std::endl;
+    this->pcout << "- - Number of refinements: " << number_of_refinements << std::endl;
 
     return grid;
 }

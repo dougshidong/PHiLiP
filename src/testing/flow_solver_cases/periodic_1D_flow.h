@@ -31,10 +31,9 @@ public:
     ~Periodic1DFlow() {};
 
 protected:
-    const int number_of_cells_per_direction; ///< Number of cells per direction for the grid
+    const int number_of_refinements; ///< Number of refinements for the grid
     const double domain_left; ///< Domain left-boundary value for generating the grid
     const double domain_right; ///< Domain right-boundary value for generating the grid
-    const double domain_volume; ///< Domain volume
     const std::string unsteady_data_table_filename_with_extension; ///< Filename (with extension) for the unsteady data table
 
     /// Displays the flow setup parameters

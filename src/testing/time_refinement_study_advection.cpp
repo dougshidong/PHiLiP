@@ -90,8 +90,6 @@ int TimeRefinementStudyAdvection<dim, nstate>::run_test() const
         std::unique_ptr<FlowSolver<dim,nstate>> flow_solver = FlowSolverFactory<dim,nstate>::create_FlowSolver(&params, parameter_handler);
         static_cast<void>(flow_solver->run_test());
         
-        pcout << "Advection speed is " << params.manufactured_convergence_study_param.manufactured_solution_param.advection_vector[0]<< std::endl;
-
         //check L2 error
         double L2_error = flow_solver->calculate_L2_error_at_final_time();
 
@@ -121,21 +119,11 @@ int TimeRefinementStudyAdvection<dim, nstate>::run_test() const
     pcout << std::endl;
     convergence_table.write_text(std::cout); //pcout gives an error. Shouldn't be an issue as this is 1D and doesn't use MPI
 
-     std::ofstream conv_tab_file;
-     const char fname[25] = "convergence_table_1D.txt";
-     conv_tab_file.open(fname);
-     convergence_table.write_text(conv_tab_file);
-     conv_tab_file.close();
-/*
-     for (int i = 0; i < n_time_calculations-1; ++i){
-         pcout << "Order at " << i << " is " << L2_error_conv_rate[i] << std::endl;
-         if (abs(L2_error_conv_rate[i] - expected_order) > order_tolerance){
-             testfail = 1;
-             std::cout << "Expected convergence order was not reached at refinement " << i + 1 <<std::endl;
-         }
-     }
-*/
-    //PASS/FAIL CHECK
+    std::ofstream conv_tab_file;
+    const char fname[25] = "convergence_table_1D.txt";
+    conv_tab_file.open(fname);
+    convergence_table.write_text(conv_tab_file);
+    conv_tab_file.close();
 
     return testfail;
 }

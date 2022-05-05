@@ -73,10 +73,9 @@ ExactSolutionFactory<dim,nstate, real>::create_ExactSolutionFunction(
     // Get the flow case type
     const FlowCaseEnum flow_type = param->flow_solver_param.flow_case_type;
     if (flow_type == FlowCaseEnum::advection_explicit_time_study) {
-        std::cout << "Selected an exact solution at t = " << time_compare << std::endl;
         if constexpr (dim==1 && nstate==dim)  return std::make_shared<ExactSolutionFunction_1DSine<dim,nstate,real> > (time_compare);
     } else {
-        std::cout << "No exact solution is defined for this flow case type in initial_condition.cpp." <<std::endl;
+        // Select zero function if there is no exact solution defined
         return std::make_shared<ExactSolutionFunction_Zero<dim,nstate,real>> ();
     }
     (void) time_compare; //to avoid 

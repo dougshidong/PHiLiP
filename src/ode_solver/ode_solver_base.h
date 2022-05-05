@@ -44,6 +44,12 @@ public:
     /// Table used to output solution vector at each time step
     dealii::TableHandler solutions_table;
 
+    /// Writes the ode solver steady state convergence data to a file
+    void write_ode_convergence_data_to_table(
+        const unsigned int current_iteration,
+        const double current_residual,
+        const std::shared_ptr <dealii::TableHandler> data_table) const;
+
     /// Evaluate steady state solution.
     int steady_state ();
 
@@ -100,6 +106,7 @@ protected:
     const Parameters::AllParameters *const all_parameters;
 
     const MPI_Comm mpi_communicator; ///< MPI communicator.
+    const int mpi_rank; ///< MPI rank.
     dealii::ConditionalOStream pcout; ///< Parallel std::cout that only outputs on mpi_rank==0
 
     /// Flag to perform mesh adaptation in steady state ode solver.

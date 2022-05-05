@@ -55,6 +55,10 @@ void ODESolverParam::declare_parameters (dealii::ParameterHandler &prm)
         prm.declare_entry("solutions_table_filename", "solutions_table",
                           dealii::Patterns::Anything(),
                           "Filename to use when outputting solution vectors in a table format.");
+        prm.declare_entry("output_ode_solver_steady_state_convergence_table","false",
+                          dealii::Patterns::Bool(),
+                          "Set as false by default. If true, writes the linear solver convergence data "
+                          "for steady state to a file named 'ode_solver_steady_state_convergence_data_table.txt'.");
 
         prm.enter_subsection("explicit solver options");
         {
@@ -94,6 +98,7 @@ void ODESolverParam::parse_parameters (dealii::ParameterHandler &prm)
         print_iteration_modulo = prm.get_integer("print_iteration_modulo");
         output_solution_vector_modulo = prm.get_integer("output_solution_vector_modulo");
         solutions_table_filename = prm.get("solutions_table_filename");
+        output_ode_solver_steady_state_convergence_table = prm.get_bool("output_ode_solver_steady_state_convergence_table");
 
         prm.enter_subsection("explicit solver options");
         {

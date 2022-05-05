@@ -35,6 +35,7 @@ void ImplicitODESolver<dim,real,MeshType>::step_in_time (real dt, const bool pse
         this->pcout << " Evaluating system update... " << std::endl;
     }
 
+    std::pair<unsigned int, double> linear_solver_iterations_and_residual;
     solve_linear (
             this->dg->system_matrix,
             this->dg->right_hand_side,

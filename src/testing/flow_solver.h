@@ -78,7 +78,7 @@ public:
     /// Returns the L2 error between the solution at final_time and exact_solution_function
     /** Should be called after run_test
      */
-    double calculate_L2_error_at_final_time();
+    double calculate_L2_error_at_final_time_wrt_function();
 
 protected:
     std::shared_ptr<InitialConditionFunction<dim,nstate,double>> initial_condition_function; ///< Initial condition function

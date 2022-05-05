@@ -91,7 +91,7 @@ int TimeRefinementStudyAdvection<dim, nstate>::run_test() const
         static_cast<void>(flow_solver->run_test());
         
         //check L2 error
-        double L2_error = flow_solver->calculate_L2_error_at_final_time();
+        double L2_error = flow_solver->calculate_L2_error_at_final_time_wrt_function();
 
         const double dt =  params.ode_solver_param.initial_time_step;
         convergence_table.add_value("refinement", refinement);

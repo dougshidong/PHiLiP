@@ -327,7 +327,7 @@ void FlowSolver<dim,nstate>::output_restart_files(
 #endif
 
 template <int dim, int nstate>
-double FlowSolver<dim,nstate>::calculate_L2_error_at_final_time()
+double FlowSolver<dim,nstate>::calculate_L2_error_at_final_time_wrt_function()
 {
 
     //Check that ode_solver->current_time matches final_time

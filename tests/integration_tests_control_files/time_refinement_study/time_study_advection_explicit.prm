@@ -28,7 +28,8 @@ end
 # polynomial order and number of cells per direction (i.e. grid_size)
 subsection grid refinement study
   set poly_degree = 5 
-  set num_refinements = 5
+  #set num_refinements = 5 #using grid_size instead
+  set grid_size = 32
   set grid_left = 0.0
   set grid_right = 2.0 
 end

@@ -22,7 +22,7 @@ namespace Tests {
 template <int dim, int nstate>
 Periodic1DFlow<dim, nstate>::Periodic1DFlow(const PHiLiP::Parameters::AllParameters *const parameters_input)
         : FlowSolverCaseBase<dim, nstate>(parameters_input)
-        , number_of_refinements(this->all_param.grid_refinement_study_param.num_refinements)
+        , number_of_cells_per_direction(this->all_param.grid_refinement_study_param.grid_size)
         , domain_left(this->all_param.grid_refinement_study_param.grid_left)
         , domain_right(this->all_param.grid_refinement_study_param.grid_right)
         , unsteady_data_table_filename_with_extension(parameters_input->flow_solver_param.unsteady_data_table_filename+".txt")
@@ -56,20 +56,14 @@ std::shared_ptr<Triangulation> Periodic1DFlow<dim,nstate>::generate_grid() const
             this->mpi_communicator
 #endif
     );
-    
-    dealii::GridGenerator::hyper_cube(*grid, domain_left, domain_right, true); //colorize = true
-    std::vector<dealii::GridTools::PeriodicFacePair<typename Triangulation::cell_iterator> > matched_pairs;
-    dealii::GridTools::collect_periodic_faces(*grid, 0,1,0, matched_pairs);
-    grid->add_periodicity(matched_pairs);
-    grid->refine_global(number_of_refinements);
-
+    Grids::straight_periodic_cube<dim,dealii::Triangulation<dim>>(grid, domain_left, domain_right, number_of_cells_per_direction);
     // Display the information about the grid
     this->pcout << "\n- GRID INFORMATION:" << std::endl;
     // pcout << "- - Grid type: " << grid_type_string << std::endl;
     this->pcout << "- - Domain dimensionality: " << dim << std::endl;
     this->pcout << "- - Domain left: " << domain_left << std::endl;
     this->pcout << "- - Domain right: " << domain_right << std::endl;
-    this->pcout << "- - Number of refinements: " << number_of_refinements << std::endl;
+    this->pcout << "- - Number of cells in each dimension: " << number_of_cells_per_direction << std::endl;
 
     return grid;
 }

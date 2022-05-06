@@ -406,7 +406,7 @@ int FlowSolver<dim,nstate>::run_test() const
         // Time advancement loop with on-the-fly post-processing
         //----------------------------------------------------
         pcout << "Advancing solution in time... " << std::endl;
-        while((final_time - ode_solver->current_time) > (0.5 * constant_time_step)) //comparing to constant_time_step in case roundoff errors exceed machine zero
+        while((ode_solver->current_time) < (final_time - 1E-13)) //comparing to 1E-13 to avoid taking an extra timestep
         {
             // advance solution
             ode_solver->step_in_time(constant_time_step,false); // pseudotime==false

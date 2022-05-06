@@ -68,15 +68,6 @@ std::shared_ptr<Triangulation> Periodic1DFlow<dim,nstate>::generate_grid() const
     return grid;
 }
 
-template <int dim, int nstate>
-double Periodic1DFlow<dim,nstate>::get_constant_time_step(std::shared_ptr<DGBase<dim,double>> /* dg*/) const
-{
-
-    const double initial_time_step = this->all_param.ode_solver_param.initial_time_step;
-    double constant_time_step = initial_time_step;  
-    
-    return constant_time_step;
-}
 
 template <int dim, int nstate>
 void Periodic1DFlow<dim, nstate>::compute_unsteady_data_and_write_to_table(

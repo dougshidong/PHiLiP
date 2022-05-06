@@ -36,9 +36,6 @@ protected:
     /// Reinitialize parameters while refining the timestep. Necessary because all_parameters is constant.
     Parameters::AllParameters reinit_params_and_refine_timestep(int refinement) const;
 
-
-    /// Parameters for the current refinement (i.e., duplicate of .prm file except for timestep size)
-    //Parameters::AllParameters params;
 };
 
 } // End of Tests namespace

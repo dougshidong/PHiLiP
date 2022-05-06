@@ -354,10 +354,6 @@ double FlowSolver<dim,nstate>::calculate_L2_error_at_final_time_wrt_function()
         return L2_error;
     }
 
-    //use deal.ii overintegration thing to calculate L2 error
-    
-
-
 }
 
 
@@ -504,7 +500,7 @@ FlowSolverFactory<dim,nstate>
             std::shared_ptr<FlowSolverCaseBase<dim, nstate>> flow_solver_case = std::make_shared<NACA0012<dim,nstate>>(parameters_input);
             return std::make_unique<FlowSolver<dim,nstate>>(parameters_input, flow_solver_case, parameter_handler_input);
         }
-    } else if (flow_type == FlowCaseEnum::advection_explicit_time_study){
+    } else if (flow_type == FlowCaseEnum::advection_periodic){
         if constexpr (dim==1 && nstate==dim){
             std::shared_ptr<FlowSolverCaseBase<dim, nstate>> flow_solver_case = std::make_shared<Periodic1DFlow<dim,nstate>>(parameters_input);
             return std::make_unique<FlowSolver<dim,nstate>>(parameters_input, flow_solver_case, parameter_handler_input);

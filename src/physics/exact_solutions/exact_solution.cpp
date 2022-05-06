@@ -8,18 +8,16 @@ namespace PHiLiP {
 // ========================================================
 template <int dim, int nstate, typename real>
 ExactSolutionFunction_Zero<dim,nstate,real>
-::ExactSolutionFunction_Zero()
+::ExactSolutionFunction_Zero(double time_compare)
         : ExactSolutionFunction<dim,nstate,real>()
 {
-    t = 0;//time_compare;
+    t = time_compare;
 }
 
 template <int dim, int nstate, typename real>
 inline real ExactSolutionFunction_Zero<dim,nstate,real>
 ::value(const dealii::Point<dim,real> &/*point*/, const unsigned int /*istate*/) const
 {
-    //NEED TO UPDATE THIS
-    //(void) point;
     real value = 0;
     return value;
 }
@@ -56,9 +54,9 @@ inline real ExactSolutionFunction_1DSine<dim,nstate,real>
 template <int dim, int nstate, typename real>
 ExactSolutionFunction<dim,nstate,real>
 ::ExactSolutionFunction ()
-    : dealii::Function<dim,real>(nstate)//,0.0) // 0.0 denotes initial time (t=0)
+    : dealii::Function<dim,real>(nstate)
 {
-    //time_compare +=0;
+    //do nothing
 }
 
 template <int dim, int nstate, typename real>
@@ -72,13 +70,12 @@ ExactSolutionFactory<dim,nstate, real>::create_ExactSolutionFunction(
 
     // Get the flow case type
     const FlowCaseEnum flow_type = param->flow_solver_param.flow_case_type;
-    if (flow_type == FlowCaseEnum::advection_explicit_time_study) {
+    if (flow_type == FlowCaseEnum::advection_periodic) {
         if constexpr (dim==1 && nstate==dim)  return std::make_shared<ExactSolutionFunction_1DSine<dim,nstate,real> > (time_compare);
     } else {
         // Select zero function if there is no exact solution defined
-        return std::make_shared<ExactSolutionFunction_Zero<dim,nstate,real>> ();
+        return std::make_shared<ExactSolutionFunction_Zero<dim,nstate,real>> (time_compare);
     }
-    (void) time_compare; //to avoid 
     return nullptr;
 }
 

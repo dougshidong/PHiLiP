@@ -26,18 +26,18 @@ void straight_periodic_cube(std::shared_ptr<TriangulationType> &grid,
     std::string grid_type_string;
     const bool colorize = true;
     dealii::GridGenerator::hyper_cube(*grid, domain_left, domain_right, colorize);
-    if (dim == 1){
+    if constexpr(dim == 1){
         grid_type_string = "Periodic 1D domain.";
         std::vector<dealii::GridTools::PeriodicFacePair<typename TriangulationType::cell_iterator> > matched_pairs;
         dealii::GridTools::collect_periodic_faces(*grid,0,1,0,matched_pairs);
         grid->add_periodicity(matched_pairs);
-    }else if(dim==2) {
+    }else if constexpr(dim==2) {
         grid_type_string = "Doubly periodic square.";
         std::vector<dealii::GridTools::PeriodicFacePair<typename dealii::Triangulation<dim>::cell_iterator> > matched_pairs;
         dealii::GridTools::collect_periodic_faces(*grid,0,1,0,matched_pairs);
         dealii::GridTools::collect_periodic_faces(*grid,2,3,1,matched_pairs);
         grid->add_periodicity(matched_pairs);
-    }else if(dim==3) {
+    }else if constexpr(dim==3) {
         grid_type_string = "Triply periodic cube.";
         std::vector<dealii::GridTools::PeriodicFacePair<typename dealii::Triangulation<dim>::cell_iterator> > matched_pairs;
         dealii::GridTools::collect_periodic_faces(*grid,0,1,0,matched_pairs);

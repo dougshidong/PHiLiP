@@ -23,7 +23,7 @@ PeriodicCubeFlow<dim, nstate>::PeriodicCubeFlow(const PHiLiP::Parameters::AllPar
         , number_of_cells_per_direction(this->all_param.grid_refinement_study_param.grid_size)
         , domain_left(this->all_param.grid_refinement_study_param.grid_left)
         , domain_right(this->all_param.grid_refinement_study_param.grid_right)
-        , domain_volume(pow(domain_right - domain_left, dim))
+        , domain_size(pow(this->domain_right - this->domain_left, dim))
 { }
 
 template <int dim, int nstate>
@@ -39,10 +39,12 @@ std::shared_ptr<Triangulation> PeriodicCubeFlow<dim,nstate>::generate_grid() con
     this->pcout << "\n- GRID INFORMATION:" << std::endl;
     // pcout << "- - Grid type: " << grid_type_string << std::endl;
     this->pcout << "- - Domain dimensionality: " << dim << std::endl;
-    this->pcout << "- - Domain left: " << domain_left << std::endl;
-    this->pcout << "- - Domain right: " << domain_right << std::endl;
+    this->pcout << "- - Domain left: " << this->domain_left << std::endl;
+    this->pcout << "- - Domain right: " << this->domain_right << std::endl;
     this->pcout << "- - Number of cells in each direction: " << number_of_cells_per_direction << std::endl;
-    this->pcout << "- - Domain volume: " << domain_volume << std::endl;
+    if constexpr(dim==1) this->pcout << "- - Domain length: " << this->domain_size << std::endl;
+    if constexpr(dim==2) this->pcout << "- - Domain area: " << this->domain_size << std::endl;
+    if constexpr(dim==3) this->pcout << "- - Domain volume: " << this->domain_size << std::endl;
 
     return grid;
 }
@@ -57,7 +59,7 @@ double PeriodicCubeFlow<dim,nstate>::integrand_kinetic_energy(const std::array<d
         dot_product_of_nondimensional_momentum += soln_at_q[d+1]*soln_at_q[d+1];
     }
     const double nondimensional_kinetic_energy = 0.5*(dot_product_of_nondimensional_momentum)/nondimensional_density;
-    return nondimensional_kinetic_energy/domain_volume;
+    return nondimensional_kinetic_energy/domain_size;
 }
 
 template<int dim, int nstate>

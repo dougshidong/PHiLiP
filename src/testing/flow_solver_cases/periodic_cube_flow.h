@@ -39,8 +39,6 @@ protected:
     const double domain_right; ///< Domain right-boundary value for generating the grid
     const double domain_volume; ///< Domain volume
 
-    bool is_taylor_green_vortex = false; ///< Identifies if taylor green vortex case; initialized as false.
-
     /// Function to generate the grid
     std::shared_ptr<Triangulation> generate_grid() const override;
 

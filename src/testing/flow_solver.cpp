@@ -448,7 +448,7 @@ FlowSolverFactory<dim,nstate>
     const FlowCaseEnum flow_type = parameters_input->flow_solver_param.flow_case_type;
     if (flow_type == FlowCaseEnum::taylor_green_vortex){
         if constexpr (dim==3 && nstate==dim+2){
-            std::shared_ptr<FlowSolverCaseBase<dim, nstate>> flow_solver_case = std::make_shared<PeriodicCubeFlow<dim,nstate>>(parameters_input);
+            std::shared_ptr<FlowSolverCaseBase<dim, nstate>> flow_solver_case = std::make_shared<PeriodicTurbulence<dim,nstate>>(parameters_input);
             return std::make_unique<FlowSolver<dim,nstate>>(parameters_input, flow_solver_case, parameter_handler_input);
         }
     } else if (flow_type == FlowCaseEnum::burgers_viscous_snapshot){

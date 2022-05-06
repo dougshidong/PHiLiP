@@ -15,7 +15,7 @@ namespace PHiLiP {
 
 namespace Tests {
 //=========================================================
-// TURBULENCE IN PERIODIC CUBE DOMAIN
+// FLOW IN PERIODIC CUBE DOMAIN
 //=========================================================
 template <int dim, int nstate>
 PeriodicCubeFlow<dim, nstate>::PeriodicCubeFlow(const PHiLiP::Parameters::AllParameters *const parameters_input)
@@ -24,37 +24,7 @@ PeriodicCubeFlow<dim, nstate>::PeriodicCubeFlow(const PHiLiP::Parameters::AllPar
         , domain_left(this->all_param.grid_refinement_study_param.grid_left)
         , domain_right(this->all_param.grid_refinement_study_param.grid_right)
         , domain_volume(pow(domain_right - domain_left, dim))
-        , unsteady_data_table_filename_with_extension(this->all_param.flow_solver_param.unsteady_data_table_filename+".txt")
-{
-    // Get the flow case type
-    using FlowCaseEnum = Parameters::FlowSolverParam::FlowCaseType;
-    const FlowCaseEnum flow_type = parameters_input->flow_solver_param.flow_case_type;
-
-    // Flow case identifiers
-    is_taylor_green_vortex = (flow_type == FlowCaseEnum::taylor_green_vortex);
-}
-
-template <int dim, int nstate>
-void PeriodicCubeFlow<dim,nstate>::display_flow_solver_setup(std::shared_ptr<InitialConditionFunction<dim,nstate,double>> /*initial_condition*/) const
-{
-    using PDE_enum = Parameters::AllParameters::PartialDifferentialEquation;
-    const PDE_enum pde_type = this->all_param.pde_type;
-    std::string pde_string;
-    if (pde_type == PDE_enum::euler)                {pde_string = "euler";}
-    if (pde_type == PDE_enum::navier_stokes)        {pde_string = "navier_stokes";}
-    this->pcout << "- PDE Type: " << pde_string << std::endl;
-    this->pcout << "- Polynomial degree: " << this->all_param.grid_refinement_study_param.poly_degree << std::endl;
-    this->pcout << "- Courant-Friedrich-Lewy number: " << this->all_param.flow_solver_param.courant_friedrich_lewy_number << std::endl;
-    this->pcout << "- Final time: " << this->all_param.flow_solver_param.final_time << std::endl;
-
-    std::string flow_type_string;
-    if(is_taylor_green_vortex) {
-        flow_type_string = "Taylor Green Vortex";
-        this->pcout << "- Flow Case: " << flow_type_string << std::endl;
-        this->pcout << "- - Freestream Reynolds number: " << this->all_param.navier_stokes_param.reynolds_number_inf << std::endl;
-        this->pcout << "- - Freestream Mach number: " << this->all_param.euler_param.mach_inf << std::endl;
-    }
-}
+{ }
 
 template <int dim, int nstate>
 std::shared_ptr<Triangulation> PeriodicCubeFlow<dim,nstate>::generate_grid() const
@@ -75,15 +45,6 @@ std::shared_ptr<Triangulation> PeriodicCubeFlow<dim,nstate>::generate_grid() con
     this->pcout << "- - Domain volume: " << domain_volume << std::endl;
 
     return grid;
-}
-
-template <int dim, int nstate>
-double PeriodicCubeFlow<dim,nstate>::get_constant_time_step(std::shared_ptr<DGBase<dim,double>> dg) const
-{
-    const unsigned int number_of_degrees_of_freedom = dg->dof_handler.n_dofs();
-    const double approximate_grid_spacing = (domain_right-domain_left)/pow(number_of_degrees_of_freedom,(1.0/dim));
-    const double constant_time_step = this->all_param.flow_solver_param.courant_friedrich_lewy_number * approximate_grid_spacing;
-    return constant_time_step;
 }
 
 template<int dim, int nstate>
@@ -159,15 +120,53 @@ double PeriodicCubeFlow<dim, nstate>::compute_kinetic_energy(DGBase<dim, double>
     return integrate_over_domain(dg, IntegratedQuantitiesEnum::kinetic_energy);
 }
 
+//=========================================================
+// TURBULENCE IN PERIODIC CUBE DOMAIN
+//=========================================================
 template <int dim, int nstate>
-void PeriodicCubeFlow<dim, nstate>::compute_unsteady_data_and_write_to_table(
+PeriodicTurbulence<dim, nstate>::PeriodicTurbulence(const PHiLiP::Parameters::AllParameters *const parameters_input)
+        : PeriodicCubeFlow<dim, nstate>(parameters_input)
+        , unsteady_data_table_filename_with_extension(this->all_param.flow_solver_param.unsteady_data_table_filename+".txt")
+{
+    // Get the flow case type
+    using FlowCaseEnum = Parameters::FlowSolverParam::FlowCaseType;
+    const FlowCaseEnum flow_type = parameters_input->flow_solver_param.flow_case_type;
+
+    // Flow case identifiers
+    this->is_taylor_green_vortex = (flow_type == FlowCaseEnum::taylor_green_vortex);
+}
+
+template <int dim, int nstate>
+void PeriodicTurbulence<dim,nstate>::display_additional_flow_case_specific_parameters(std::shared_ptr<InitialConditionFunction<dim,nstate,double>> /*initial_condition*/) const
+{
+    this->pcout << "- Courant-Friedrich-Lewy number: " << this->all_param.flow_solver_param.courant_friedrich_lewy_number << std::endl;
+    std::string flow_type_string;
+    if(this->is_taylor_green_vortex) {
+        flow_type_string = "Taylor Green Vortex";
+        this->pcout << "- Flow Case: " << flow_type_string << std::endl;
+        this->pcout << "- - Freestream Reynolds number: " << this->all_param.navier_stokes_param.reynolds_number_inf << std::endl;
+        this->pcout << "- - Freestream Mach number: " << this->all_param.euler_param.mach_inf << std::endl;
+    }
+}
+
+template <int dim, int nstate>
+double PeriodicTurbulence<dim,nstate>::get_constant_time_step(std::shared_ptr<DGBase<dim,double>> dg) const
+{
+    const unsigned int number_of_degrees_of_freedom = dg->dof_handler.n_dofs();
+    const double approximate_grid_spacing = (this->domain_right-this->domain_left)/pow(number_of_degrees_of_freedom,(1.0/dim));
+    const double constant_time_step = this->all_param.flow_solver_param.courant_friedrich_lewy_number * approximate_grid_spacing;
+    return constant_time_step;
+}
+
+template <int dim, int nstate>
+void PeriodicTurbulence<dim, nstate>::compute_unsteady_data_and_write_to_table(
         const unsigned int current_iteration,
         const double current_time,
         const std::shared_ptr <DGBase<dim, double>> dg,
         const std::shared_ptr <dealii::TableHandler> unsteady_data_table) const
 {
     // Compute kinetic energy
-    const double kinetic_energy = integrate_over_domain(*dg,IntegratedQuantitiesEnum::kinetic_energy);
+    const double kinetic_energy = this->compute_kinetic_energy(*dg);
 
     if(this->mpi_rank==0) {
         // Add time to table
@@ -181,7 +180,7 @@ void PeriodicCubeFlow<dim, nstate>::compute_unsteady_data_and_write_to_table(
         unsteady_data_table->set_precision(kinetic_energy_string, 16);
         unsteady_data_table->set_scientific(kinetic_energy_string, true);
         // Write to file
-        std::ofstream unsteady_data_table_file(unsteady_data_table_filename_with_extension);
+        std::ofstream unsteady_data_table_file(this->unsteady_data_table_filename_with_extension);
         unsteady_data_table->write_text(unsteady_data_table_file);
     }
     // Print to console
@@ -200,6 +199,7 @@ void PeriodicCubeFlow<dim, nstate>::compute_unsteady_data_and_write_to_table(
 
 #if PHILIP_DIM==3
     template class PeriodicCubeFlow <PHILIP_DIM,PHILIP_DIM+2>;
+    template class PeriodicTurbulence <PHILIP_DIM,PHILIP_DIM+2>;
 #endif
 
 } // Tests namespace

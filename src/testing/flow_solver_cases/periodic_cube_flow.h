@@ -38,27 +38,11 @@ protected:
     const double domain_left; ///< Domain left-boundary value for generating the grid
     const double domain_right; ///< Domain right-boundary value for generating the grid
     const double domain_volume; ///< Domain volume
-    
-    /// Filename (with extension) for the unsteady data table
-    const std::string unsteady_data_table_filename_with_extension;
 
     bool is_taylor_green_vortex = false; ///< Identifies if taylor green vortex case; initialized as false.
 
-    /// Displays the flow setup parameters
-    void display_flow_solver_setup(std::shared_ptr<InitialConditionFunction<dim,nstate,double>> initial_condition) const override;
-
     /// Function to generate the grid
     std::shared_ptr<Triangulation> generate_grid() const override;
-
-    /// Function to compute the constant time step
-    double get_constant_time_step(std::shared_ptr<DGBase<dim,double>> dg) const override;
-
-    /// Compute the desired unsteady data and write it to a table
-    void compute_unsteady_data_and_write_to_table(
-            const unsigned int current_iteration,
-            const double current_time,
-            const std::shared_ptr <DGBase<dim, double>> dg,
-            const std::shared_ptr<dealii::TableHandler> unsteady_data_table) const override;
 
     /// List of possible integrated quantities over the domain
     enum IntegratedQuantitiesEnum {
@@ -73,6 +57,36 @@ protected:
 
     /// Integrates over the entire domain
     double integrate_over_domain(DGBase<dim, double> &dg,const IntegratedQuantitiesEnum integrated_quantity) const;
+};
+
+template <int dim, int nstate>
+class PeriodicTurbulence : public PeriodicCubeFlow<dim,nstate>
+{
+public:
+    /// Constructor.
+    PeriodicTurbulence(const Parameters::AllParameters *const parameters_input);
+
+    /// Destructor
+    ~PeriodicTurbulence() {};
+
+protected:
+    /// Filename (with extension) for the unsteady data table
+    const std::string unsteady_data_table_filename_with_extension;
+
+    /// Display additional more specific flow case parameters
+    void display_additional_flow_case_specific_parameters(std::shared_ptr<InitialConditionFunction<dim,nstate,double>> initial_condition) const override;
+
+    bool is_taylor_green_vortex = false; ///< Identifies if taylor green vortex case; initialized as false.
+
+    /// Function to compute the constant time step
+    double get_constant_time_step(std::shared_ptr<DGBase<dim,double>> dg) const override;
+
+    /// Compute the desired unsteady data and write it to a table
+    void compute_unsteady_data_and_write_to_table(
+            const unsigned int current_iteration,
+            const double current_time,
+            const std::shared_ptr <DGBase<dim, double>> dg,
+            const std::shared_ptr<dealii::TableHandler> unsteady_data_table) const override;
 };
 
 } // Tests namespace

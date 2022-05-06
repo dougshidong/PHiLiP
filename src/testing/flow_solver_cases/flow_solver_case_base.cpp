@@ -14,7 +14,7 @@ FlowSolverCaseBase<dim, nstate>::FlowSolverCaseBase(const PHiLiP::Parameters::Al
 
 
 template <int dim, int nstate>
-void FlowSolverCaseBase<dim,nstate>::display_flow_solver_setup(std::shared_ptr<InitialConditionFunction<dim,nstate,double>> /*initial_condition*/) const
+void FlowSolverCaseBase<dim,nstate>::display_flow_solver_setup(std::shared_ptr<InitialConditionFunction<dim,nstate,double>> initial_condition) const
 {
     using PDE_enum = Parameters::AllParameters::PartialDifferentialEquation;
     const PDE_enum pde_type = all_param.pde_type;
@@ -26,6 +26,14 @@ void FlowSolverCaseBase<dim,nstate>::display_flow_solver_setup(std::shared_ptr<I
     pcout << "- PDE Type: " << pde_string << std::endl;
     pcout << "- Polynomial degree: " << this->all_param.grid_refinement_study_param.poly_degree << std::endl;
     pcout << "- Final time: " << this->all_param.flow_solver_param.final_time << std::endl;
+
+    this->display_additional_flow_case_specific_parameters(initial_condition);
+}
+
+template <int dim, int nstate>
+void FlowSolverCaseBase<dim,nstate>::display_additional_flow_case_specific_parameters(std::shared_ptr<InitialConditionFunction<dim,nstate,double>> /*initial_condition*/) const
+{
+    // Do nothing
 }
 
 template <int dim, int nstate>

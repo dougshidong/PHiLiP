@@ -60,6 +60,9 @@ protected:
     /** Used as std::cout, but only prints if mpi_rank == 0
      */
     dealii::ConditionalOStream pcout;
+
+    /// Display additional more specific flow case parameters
+    virtual void display_additional_flow_case_specific_parameters(std::shared_ptr<InitialConditionFunction<dim,nstate,double>> initial_condition) const;
 };
 
 } // Tests namespace

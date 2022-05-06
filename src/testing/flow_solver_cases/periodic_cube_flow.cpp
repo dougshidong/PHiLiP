@@ -49,79 +49,6 @@ std::shared_ptr<Triangulation> PeriodicCubeFlow<dim,nstate>::generate_grid() con
     return grid;
 }
 
-template<int dim, int nstate>
-double PeriodicCubeFlow<dim,nstate>::integrand_kinetic_energy(const std::array<double,nstate> &soln_at_q) const
-{
-    // Description: Returns nondimensional kinetic energy
-    const double nondimensional_density = soln_at_q[0];
-    double dot_product_of_nondimensional_momentum = 0.0;
-    for (int d=0; d<dim; ++d) {
-        dot_product_of_nondimensional_momentum += soln_at_q[d+1]*soln_at_q[d+1];
-    }
-    const double nondimensional_kinetic_energy = 0.5*(dot_product_of_nondimensional_momentum)/nondimensional_density;
-    return nondimensional_kinetic_energy/domain_size;
-}
-
-template<int dim, int nstate>
-double PeriodicCubeFlow<dim,nstate>::integrand_l2_error_initial_condition(const std::array<double,nstate> &soln_at_q, const dealii::Point<dim> qpoint) const
-{
-    // Description: Returns l2 error with the initial condition function
-    // Purpose: For checking the initialization
-    std::shared_ptr<InitialConditionFunction<dim,nstate,double>> initial_condition_function = InitialConditionFactory<dim,nstate,double>::create_InitialConditionFunction(&this->all_param);
-    double integrand_value = 0.0;
-    for (int istate=0; istate<nstate; ++istate) {
-        const double exact_soln_at_q = initial_condition_function->value(qpoint, istate);
-        integrand_value += pow(soln_at_q[istate] - exact_soln_at_q, 2.0);
-    }
-    return integrand_value;
-}
-
-template<int dim, int nstate>
-double PeriodicCubeFlow<dim, nstate>::integrate_over_domain(DGBase<dim, double> &dg,const IntegratedQuantitiesEnum integrated_quantity) const
-{
-    double integral_value = 0.0;
-
-    // Overintegrate the error to make sure there is not integration error in the error estimate
-    int overintegrate = 10;
-    dealii::QGauss<dim> quad_extra(dg.max_degree+1+overintegrate);
-    dealii::FEValues<dim,dim> fe_values_extra(*(dg.high_order_grid->mapping_fe_field), dg.fe_collection[dg.max_degree], quad_extra,
-                                              dealii::update_values | dealii::update_JxW_values | dealii::update_quadrature_points);
-
-    const unsigned int n_quad_pts = fe_values_extra.n_quadrature_points;
-    std::array<double,nstate> soln_at_q;
-
-    std::vector<dealii::types::global_dof_index> dofs_indices (fe_values_extra.dofs_per_cell);
-    for (auto cell : dg.dof_handler.active_cell_iterators()) {
-        if (!cell->is_locally_owned()) continue;
-        fe_values_extra.reinit (cell);
-        cell->get_dof_indices (dofs_indices);
-
-        for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
-
-            std::fill(soln_at_q.begin(), soln_at_q.end(), 0.0);
-            for (unsigned int idof=0; idof<fe_values_extra.dofs_per_cell; ++idof) {
-                const unsigned int istate = fe_values_extra.get_fe().system_to_component_index(idof).first;
-                soln_at_q[istate] += dg.solution[dofs_indices[idof]] * fe_values_extra.shape_value_component(idof, iquad, istate);
-            }
-            const dealii::Point<dim> qpoint = (fe_values_extra.quadrature_point(iquad));
-
-            double integrand_value = 0.0;
-            if(integrated_quantity == IntegratedQuantitiesEnum::kinetic_energy)             {integrand_value = integrand_kinetic_energy(soln_at_q);}
-            if(integrated_quantity == IntegratedQuantitiesEnum::l2_error_initial_condition) {integrand_value = integrand_l2_error_initial_condition(soln_at_q,qpoint);}
-
-            integral_value += integrand_value * fe_values_extra.JxW(iquad);
-        }
-    }
-    const double integral_value_mpi_sum = dealii::Utilities::MPI::sum(integral_value, this->mpi_communicator);
-    return integral_value_mpi_sum;
-}
-
-template<int dim, int nstate>
-double PeriodicCubeFlow<dim, nstate>::compute_kinetic_energy(DGBase<dim, double> &dg) const
-{
-    return integrate_over_domain(dg, IntegratedQuantitiesEnum::kinetic_energy);
-}
-
 //=========================================================
 // TURBULENCE IN PERIODIC CUBE DOMAIN
 //=========================================================
@@ -197,6 +124,79 @@ void PeriodicTurbulence<dim, nstate>::compute_unsteady_data_and_write_to_table(
         this->pcout << "        Consider decreasing the time step / CFL number." << std::endl;
         std::abort();
     }
+}
+
+template<int dim, int nstate>
+double PeriodicTurbulence<dim,nstate>::integrand_kinetic_energy(const std::array<double,nstate> &soln_at_q) const
+{
+    // Description: Returns nondimensional kinetic energy
+    const double nondimensional_density = soln_at_q[0];
+    double dot_product_of_nondimensional_momentum = 0.0;
+    for (int d=0; d<dim; ++d) {
+        dot_product_of_nondimensional_momentum += soln_at_q[d+1]*soln_at_q[d+1];
+    }
+    const double nondimensional_kinetic_energy = 0.5*(dot_product_of_nondimensional_momentum)/nondimensional_density;
+    return nondimensional_kinetic_energy/this->domain_size;
+}
+
+template<int dim, int nstate>
+double PeriodicTurbulence<dim,nstate>::integrand_l2_error_initial_condition(const std::array<double,nstate> &soln_at_q, const dealii::Point<dim> qpoint) const
+{
+    // Description: Returns l2 error with the initial condition function
+    // Purpose: For checking the initialization
+    std::shared_ptr<InitialConditionFunction<dim,nstate,double>> initial_condition_function = InitialConditionFactory<dim,nstate,double>::create_InitialConditionFunction(&this->all_param);
+    double integrand_value = 0.0;
+    for (int istate=0; istate<nstate; ++istate) {
+        const double exact_soln_at_q = initial_condition_function->value(qpoint, istate);
+        integrand_value += pow(soln_at_q[istate] - exact_soln_at_q, 2.0);
+    }
+    return integrand_value;
+}
+
+template<int dim, int nstate>
+double PeriodicTurbulence<dim, nstate>::integrate_over_domain(DGBase<dim, double> &dg,const IntegratedQuantitiesEnum integrated_quantity) const
+{
+    double integral_value = 0.0;
+
+    // Overintegrate the error to make sure there is not integration error in the error estimate
+    int overintegrate = 10;
+    dealii::QGauss<dim> quad_extra(dg.max_degree+1+overintegrate);
+    dealii::FEValues<dim,dim> fe_values_extra(*(dg.high_order_grid->mapping_fe_field), dg.fe_collection[dg.max_degree], quad_extra,
+                                              dealii::update_values | dealii::update_JxW_values | dealii::update_quadrature_points);
+
+    const unsigned int n_quad_pts = fe_values_extra.n_quadrature_points;
+    std::array<double,nstate> soln_at_q;
+
+    std::vector<dealii::types::global_dof_index> dofs_indices (fe_values_extra.dofs_per_cell);
+    for (auto cell : dg.dof_handler.active_cell_iterators()) {
+        if (!cell->is_locally_owned()) continue;
+        fe_values_extra.reinit (cell);
+        cell->get_dof_indices (dofs_indices);
+
+        for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
+
+            std::fill(soln_at_q.begin(), soln_at_q.end(), 0.0);
+            for (unsigned int idof=0; idof<fe_values_extra.dofs_per_cell; ++idof) {
+                const unsigned int istate = fe_values_extra.get_fe().system_to_component_index(idof).first;
+                soln_at_q[istate] += dg.solution[dofs_indices[idof]] * fe_values_extra.shape_value_component(idof, iquad, istate);
+            }
+            const dealii::Point<dim> qpoint = (fe_values_extra.quadrature_point(iquad));
+
+            double integrand_value = 0.0;
+            if(integrated_quantity == IntegratedQuantitiesEnum::kinetic_energy)             {integrand_value = integrand_kinetic_energy(soln_at_q);}
+            if(integrated_quantity == IntegratedQuantitiesEnum::l2_error_initial_condition) {integrand_value = integrand_l2_error_initial_condition(soln_at_q,qpoint);}
+
+            integral_value += integrand_value * fe_values_extra.JxW(iquad);
+        }
+    }
+    const double integral_value_mpi_sum = dealii::Utilities::MPI::sum(integral_value, this->mpi_communicator);
+    return integral_value_mpi_sum;
+}
+
+template<int dim, int nstate>
+double PeriodicTurbulence<dim, nstate>::compute_kinetic_energy(DGBase<dim, double> &dg) const
+{
+    return integrate_over_domain(dg, IntegratedQuantitiesEnum::kinetic_energy);
 }
 
 #if PHILIP_DIM==3

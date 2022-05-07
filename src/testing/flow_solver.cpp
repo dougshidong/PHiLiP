@@ -431,9 +431,6 @@ int FlowSolver<dim,nstate>::run_test() const
     return 0;
 }
 
-template class FlowSolver <PHILIP_DIM,PHILIP_DIM>;
-template class FlowSolver <PHILIP_DIM,PHILIP_DIM+2>;
-
 //=========================================================
 //                  FLOW SOLVER FACTORY
 //=========================================================
@@ -473,8 +470,15 @@ FlowSolverFactory<dim,nstate>
     return nullptr;
 }
 
+#if PHILIP_DIM==1
+template class FlowSolver <PHILIP_DIM,PHILIP_DIM>;
 template class FlowSolverFactory <PHILIP_DIM,PHILIP_DIM>;
+#endif
+
+#if PHILIP_DIM!=1
+template class FlowSolver <PHILIP_DIM,PHILIP_DIM+2>;
 template class FlowSolverFactory <PHILIP_DIM,PHILIP_DIM+2>;
+#endif
 
 
 } // Tests namespace

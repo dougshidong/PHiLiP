@@ -35,9 +35,16 @@ std::shared_ptr<Triangulation> PeriodicCubeFlow<dim,nstate>::generate_grid() con
 #endif
     );
     Grids::straight_periodic_cube<dim,dealii::parallel::distributed::Triangulation<dim>>(grid, domain_left, domain_right, number_of_cells_per_direction);
+
+    return grid;
+}
+
+template <int dim, int nstate>
+void PeriodicCubeFlow<dim,nstate>::display_grid_parameters() const
+{
+    const std::string grid_type_string = "straight_periodic_cube";
     // Display the information about the grid
-    this->pcout << "\n- GRID INFORMATION:" << std::endl;
-    // pcout << "- - Grid type: " << grid_type_string << std::endl;
+    this->pcout << "- Grid type: " << grid_type_string << std::endl;
     this->pcout << "- - Domain dimensionality: " << dim << std::endl;
     this->pcout << "- - Domain left: " << this->domain_left << std::endl;
     this->pcout << "- - Domain right: " << this->domain_right << std::endl;
@@ -45,8 +52,13 @@ std::shared_ptr<Triangulation> PeriodicCubeFlow<dim,nstate>::generate_grid() con
     if constexpr(dim==1) this->pcout << "- - Domain length: " << this->domain_size << std::endl;
     if constexpr(dim==2) this->pcout << "- - Domain area: " << this->domain_size << std::endl;
     if constexpr(dim==3) this->pcout << "- - Domain volume: " << this->domain_size << std::endl;
+}
 
-    return grid;
+template <int dim, int nstate>
+void PeriodicCubeFlow<dim,nstate>::display_additional_flow_case_specific_parameters(std::shared_ptr<InitialConditionFunction<dim,nstate,double>> /*initial_condition*/) const
+{
+
+    this->display_grid_parameters();
 }
 
 //=========================================================
@@ -68,14 +80,13 @@ PeriodicTurbulence<dim, nstate>::PeriodicTurbulence(const PHiLiP::Parameters::Al
 template <int dim, int nstate>
 void PeriodicTurbulence<dim,nstate>::display_additional_flow_case_specific_parameters(std::shared_ptr<InitialConditionFunction<dim,nstate,double>> /*initial_condition*/) const
 {
-    this->pcout << "- Courant-Friedrich-Lewy number: " << this->all_param.flow_solver_param.courant_friedrich_lewy_number << std::endl;
+    this->pcout << "- - Courant-Friedrich-Lewy number: " << this->all_param.flow_solver_param.courant_friedrich_lewy_number << std::endl;
     std::string flow_type_string;
     if(this->is_taylor_green_vortex) {
-        flow_type_string = "Taylor Green Vortex";
-        this->pcout << "- Flow Case: " << flow_type_string << std::endl;
         this->pcout << "- - Freestream Reynolds number: " << this->all_param.navier_stokes_param.reynolds_number_inf << std::endl;
         this->pcout << "- - Freestream Mach number: " << this->all_param.euler_param.mach_inf << std::endl;
     }
+    this->display_grid_parameters();
 }
 
 template <int dim, int nstate>
@@ -200,8 +211,8 @@ double PeriodicTurbulence<dim, nstate>::compute_kinetic_energy(DGBase<dim, doubl
 }
 
 #if PHILIP_DIM==3
-    template class PeriodicCubeFlow <PHILIP_DIM,PHILIP_DIM+2>;
-    template class PeriodicTurbulence <PHILIP_DIM,PHILIP_DIM+2>;
+template class PeriodicCubeFlow <PHILIP_DIM,PHILIP_DIM+2>;
+template class PeriodicTurbulence <PHILIP_DIM,PHILIP_DIM+2>;
 #endif
 
 } // Tests namespace

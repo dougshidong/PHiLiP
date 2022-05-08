@@ -11,6 +11,7 @@
 #include "mesh/grids/straight_periodic_cube.hpp"
 #include <deal.II/base/table_handler.h>
 #include <deal.II/base/tensor.h>
+#include "math.h"
 
 namespace PHiLiP {
 
@@ -34,17 +35,17 @@ PeriodicCubeFlow<dim, nstate>::PeriodicCubeFlow(const PHiLiP::Parameters::AllPar
     // Flow case identifiers
     is_taylor_green_vortex = (flow_type == FlowCaseEnum::taylor_green_vortex);
 
-    // Flag for computing the solution gradient in integrate_over_domain
-    if(this->all_param.flow_solver_param.output_integrated_enstrophy || 
-       this->all_param.flow_solver_param.output_vorticity_based_dissipation_rate){
-        compute_solution_gradient_in_integrate_over_domain = true;
-    }
-
     // Navier-Stokes object; create using dynamic_pointer_cast and the create_Physics factory
     PHiLiP::Parameters::AllParameters parameters_navier_stokes = this->all_param;
     parameters_navier_stokes.pde_type = Parameters::AllParameters::PartialDifferentialEquation::navier_stokes;
-    navier_stokes_physics = std::dynamic_pointer_cast<Physics::NavierStokes<dim,dim+2,double>>(
+    this->navier_stokes_physics = std::dynamic_pointer_cast<Physics::NavierStokes<dim,dim+2,double>>(
                 Physics::PhysicsFactory<dim,dim+2,double>::create_Physics(&parameters_navier_stokes));
+
+    /* Initialize integrated quantities as NAN; 
+       done as a precaution in the case compute_integrated_quantities() is not called
+       before a member function of kind get_integrated_quantity() is called
+     */
+    std::fill(this->integrated_quantities.begin(), this->integrated_quantities.end(), NAN);
 }
 
 template <int dim, int nstate>
@@ -100,19 +101,6 @@ double PeriodicCubeFlow<dim,nstate>::get_constant_time_step(std::shared_ptr<DGBa
 }
 
 template<int dim, int nstate>
-double PeriodicCubeFlow<dim,nstate>::integrand_l2_error_initial_condition(const std::array<double,nstate> &soln_at_q, const dealii::Point<dim> qpoint) const
-{
-    // Description: Returns l2 error with the initial condition function
-    // Purpose: For checking the initialization
-    double integrand_value = 0.0;
-    for (int istate=0; istate<nstate; ++istate) {
-        const double exact_soln_at_q = this->initial_condition_function->value(qpoint, istate);
-        integrand_value += pow(soln_at_q[istate] - exact_soln_at_q, 2.0);
-    }
-    return integrand_value;
-}
-
-template<int dim, int nstate>
 double PeriodicCubeFlow<dim,nstate>::get_initial_density() const
 {
     // this is particular to TaylorGreenVortex
@@ -122,11 +110,12 @@ double PeriodicCubeFlow<dim,nstate>::get_initial_density() const
 }
 
 template<int dim, int nstate>
-double PeriodicCubeFlow<dim, nstate>::integrate_over_domain(
-        DGBase<dim, double> &dg,
-        const IntegratedQuantitiesEnum integrated_quantity) const
+void PeriodicCubeFlow<dim, nstate>::compute_and_update_integrated_quantities(
+        DGBase<dim, double> &dg)
 {
-    double integral_value = 0.0;
+    this->MAX_NUMBER_OF_COMPUTED_QUANTITIES = 4;
+    std::array<double,4/*this->MAX_NUMBER_OF_COMPUTED_QUANTITIES*/> integral_values;
+    std::fill(integral_values.begin(), integral_values.end(), 0.0);
 
     // Overintegrate the error to make sure there is not integration error in the error estimate
     int overintegrate = 10;
@@ -147,60 +136,76 @@ double PeriodicCubeFlow<dim, nstate>::integrate_over_domain(
         for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
 
             std::fill(soln_at_q.begin(), soln_at_q.end(), 0.0);
-            if(compute_solution_gradient_in_integrate_over_domain) {
-                for (int s=0; s<nstate; ++s) {
-                    for (int d=0; d<dim; ++d) {
-                        soln_grad_at_q[s][d] = 0.0;
-                    }
+            for (int s=0; s<nstate; ++s) {
+                for (int d=0; d<dim; ++d) {
+                    soln_grad_at_q[s][d] = 0.0;
                 }
             }
             for (unsigned int idof=0; idof<fe_values_extra.dofs_per_cell; ++idof) {
                 const unsigned int istate = fe_values_extra.get_fe().system_to_component_index(idof).first;
                 soln_at_q[istate] += dg.solution[dofs_indices[idof]] * fe_values_extra.shape_value_component(idof, iquad, istate);
-                if(compute_solution_gradient_in_integrate_over_domain) soln_grad_at_q[istate] += dg.solution[dofs_indices[idof]] * fe_values_extra.shape_grad_component(idof,iquad,istate);
+                soln_grad_at_q[istate] += dg.solution[dofs_indices[idof]] * fe_values_extra.shape_grad_component(idof,iquad,istate);
             }
-            const dealii::Point<dim> qpoint = (fe_values_extra.quadrature_point(iquad));
+            // const dealii::Point<dim> qpoint = (fe_values_extra.quadrature_point(iquad));
 
-            double integrand_value = 0.0;
-            if(integrated_quantity == IntegratedQuantitiesEnum::kinetic_energy)                              {integrand_value = navier_stokes_physics->compute_kinetic_energy_from_conservative_solution(soln_at_q);}
-            if(integrated_quantity == IntegratedQuantitiesEnum::enstrophy)                                   {integrand_value = navier_stokes_physics->compute_enstrophy(soln_at_q,soln_grad_at_q);}
-            if(integrated_quantity == IntegratedQuantitiesEnum::pressure_dilatation)                         {integrand_value = navier_stokes_physics->compute_pressure_dilatation(soln_at_q,soln_grad_at_q);}
-            if(integrated_quantity == IntegratedQuantitiesEnum::deviatoric_strain_rate_tensor_magnitude_sqr) {integrand_value = navier_stokes_physics->compute_deviatoric_strain_rate_tensor_magnitude_sqr(soln_at_q,soln_grad_at_q);}
-            if(integrated_quantity == IntegratedQuantitiesEnum::l2_error_initial_condition)                  {integrand_value = integrand_l2_error_initial_condition(soln_at_q,qpoint);}
+            std::array<double,4/*this->MAX_NUMBER_OF_COMPUTED_QUANTITIES*/> integrand_values;
+            std::fill(integrand_values.begin(), integrand_values.end(), 0.0);
+            integrand_values[IntegratedQuantitiesEnum::kinetic_energy] = this->navier_stokes_physics->compute_kinetic_energy_from_conservative_solution(soln_at_q);
+            integrand_values[IntegratedQuantitiesEnum::enstrophy] = this->navier_stokes_physics->compute_enstrophy(soln_at_q,soln_grad_at_q);
+            integrand_values[IntegratedQuantitiesEnum::pressure_dilatation] = this->navier_stokes_physics->compute_pressure_dilatation(soln_at_q,soln_grad_at_q);
+            integrand_values[IntegratedQuantitiesEnum::deviatoric_strain_rate_tensor_magnitude_sqr] = this->navier_stokes_physics->compute_deviatoric_strain_rate_tensor_magnitude_sqr(soln_at_q,soln_grad_at_q);
 
-            integral_value += integrand_value * fe_values_extra.JxW(iquad);
+            for(int i_quantity=0; i_quantity<this->MAX_NUMBER_OF_COMPUTED_QUANTITIES; ++i_quantity) {
+                integral_values[i_quantity] += integrand_values[i_quantity] * fe_values_extra.JxW(iquad);
+            }
         }
     }
-    integral_value /= domain_volume; // divide by total domain volume
-    
-    const double integral_value_mpi_sum = dealii::Utilities::MPI::sum(integral_value, this->mpi_communicator);
-    return integral_value_mpi_sum;
+
+    // update integrated quantities
+    for(int i_quantity=0; i_quantity<4/*this->MAX_NUMBER_OF_COMPUTED_QUANTITIES*/; ++i_quantity) {
+        this->integrated_quantities[i_quantity] = dealii::Utilities::MPI::sum(integral_values[i_quantity], this->mpi_communicator);
+        this->integrated_quantities[i_quantity] /= domain_volume; // divide by total domain volume
+    }
 }
 
 template<int dim, int nstate>
-double PeriodicCubeFlow<dim, nstate>::compute_integrated_kinetic_energy(DGBase<dim, double> &dg) const
+double PeriodicCubeFlow<dim, nstate>::get_integrated_kinetic_energy() const
 {
-    return integrate_over_domain(dg, IntegratedQuantitiesEnum::kinetic_energy);
+    const double integrated_kinetic_energy = this->integrated_quantities[IntegratedQuantitiesEnum::kinetic_energy];
+    // // Abort if energy is nan
+    // if(std::isnan(integrated_kinetic_energy)) {
+    //     this->pcout << " ERROR: Kinetic energy at time " << current_time << " is nan." << std::endl;
+    //     this->pcout << "        Consider decreasing the time step / CFL number." << std::endl;
+    //     std::abort();
+    // }
+    return integrated_kinetic_energy;
 }
 
 template<int dim, int nstate>
-double PeriodicCubeFlow<dim, nstate>::compute_integrated_enstrophy(DGBase<dim, double> &dg) const
+double PeriodicCubeFlow<dim, nstate>::get_integrated_enstrophy() const
 {
-    return integrate_over_domain(dg, IntegratedQuantitiesEnum::enstrophy);
+    return this->integrated_quantities[IntegratedQuantitiesEnum::enstrophy];
 }
 
 template<int dim, int nstate>
-double PeriodicCubeFlow<dim, nstate>::compute_pressure_dilatation_based_dissipation_rate(DGBase<dim, double> &dg) const
+double PeriodicCubeFlow<dim, nstate>::get_vorticity_based_dissipation_rate() const
 {
-    const double integrated_pressure_dilatation = integrate_over_domain(dg, IntegratedQuantitiesEnum::pressure_dilatation);
+    const double integrated_enstrophy = this->integrated_quantities[IntegratedQuantitiesEnum::enstrophy];
+    return this->navier_stokes_physics->compute_vorticity_based_dissipation_rate_from_integrated_enstrophy(integrated_enstrophy);
+}
+
+template<int dim, int nstate>
+double PeriodicCubeFlow<dim, nstate>::get_pressure_dilatation_based_dissipation_rate() const
+{
+    const double integrated_pressure_dilatation = this->integrated_quantities[IntegratedQuantitiesEnum::pressure_dilatation];
     return (-1.0*integrated_pressure_dilatation); // See reference (listed in header file), equation (57b)
 }
 
 template<int dim, int nstate>
-double PeriodicCubeFlow<dim, nstate>::compute_deviatoric_strain_rate_tensor_based_dissipation_rate(DGBase<dim, double> &dg) const
+double PeriodicCubeFlow<dim, nstate>::get_deviatoric_strain_rate_tensor_based_dissipation_rate() const
 {
-    const double integrated_deviatoric_strain_rate_tensor_magnitude_sqr = integrate_over_domain(dg, IntegratedQuantitiesEnum::deviatoric_strain_rate_tensor_magnitude_sqr);
-    return navier_stokes_physics->compute_deviatoric_strain_rate_tensor_based_dissipation_rate_from_integrated_deviatoric_strain_rate_tensor_magnitude_sqr(integrated_deviatoric_strain_rate_tensor_magnitude_sqr);
+    const double integrated_deviatoric_strain_rate_tensor_magnitude_sqr = this->integrated_quantities[IntegratedQuantitiesEnum::deviatoric_strain_rate_tensor_magnitude_sqr];
+    return this->navier_stokes_physics->compute_deviatoric_strain_rate_tensor_based_dissipation_rate_from_integrated_deviatoric_strain_rate_tensor_magnitude_sqr(integrated_deviatoric_strain_rate_tensor_magnitude_sqr);
 }
 
 template <int dim, int nstate>
@@ -208,28 +213,25 @@ void PeriodicCubeFlow<dim, nstate>::compute_unsteady_data_and_write_to_table(
         const unsigned int current_iteration,
         const double current_time,
         const std::shared_ptr <DGBase<dim, double>> dg,
-        const std::shared_ptr <dealii::TableHandler> unsteady_data_table) const
+        const std::shared_ptr <dealii::TableHandler> unsteady_data_table)
 {
-    // Declare optional quantities
-    double integrated_enstrophy = 0.0;
-    double vorticity_based_dissipation_rate = 0.0;
-    // Compute quantities
-    const double integrated_kinetic_energy = compute_integrated_kinetic_energy(*dg);
-    if(this->all_param.flow_solver_param.output_vorticity_based_dissipation_rate) {
-        integrated_enstrophy = compute_integrated_enstrophy(*dg);
-        vorticity_based_dissipation_rate
-            = navier_stokes_physics->compute_vorticity_based_dissipation_rate_from_integrated_enstrophy(integrated_enstrophy);
-    } else if(this->all_param.flow_solver_param.output_integrated_enstrophy) {
-        integrated_enstrophy = compute_integrated_enstrophy(*dg);
-    }
-    
+    // Compute and update integrated quantities
+    compute_and_update_integrated_quantities(*dg);
+    // Get computed quantities
+    const double integrated_kinetic_energy = get_integrated_kinetic_energy();
+    const double integrated_enstrophy = get_integrated_enstrophy();
+    const double vorticity_based_dissipation_rate = get_vorticity_based_dissipation_rate();
+    const double pressure_dilatation_based_dissipation_rate = get_pressure_dilatation_based_dissipation_rate();
+    const double deviatoric_strain_rate_tensor_based_dissipation_rate = get_deviatoric_strain_rate_tensor_based_dissipation_rate();
 
     if(this->mpi_rank==0) {
         // Add values to data table
         this->add_value_to_data_table(current_time,"time",unsteady_data_table);
         this->add_value_to_data_table(integrated_kinetic_energy,"kinetic_energy",unsteady_data_table);
         if(this->all_param.flow_solver_param.output_integrated_enstrophy) this->add_value_to_data_table(integrated_enstrophy,"enstrophy",unsteady_data_table);
-        if(this->all_param.flow_solver_param.output_vorticity_based_dissipation_rate) this->add_value_to_data_table(vorticity_based_dissipation_rate,"dissip_rate",unsteady_data_table);
+        if(this->all_param.flow_solver_param.output_vorticity_based_dissipation_rate) this->add_value_to_data_table(vorticity_based_dissipation_rate,"eps_vorticity",unsteady_data_table);
+        if(this->all_param.flow_solver_param.output_pressure_dilatation_based_dissipation_rate) this->add_value_to_data_table(pressure_dilatation_based_dissipation_rate,"eps_pressure",unsteady_data_table);
+        if(this->all_param.flow_solver_param.output_deviatoric_strain_rate_tensor_based_dissipation_rate) this->add_value_to_data_table(deviatoric_strain_rate_tensor_based_dissipation_rate,"eps_strain",unsteady_data_table);
         // Write to file
         std::ofstream unsteady_data_table_file(unsteady_data_table_filename_with_extension);
         unsteady_data_table->write_text(unsteady_data_table_file);
@@ -238,11 +240,17 @@ void PeriodicCubeFlow<dim, nstate>::compute_unsteady_data_and_write_to_table(
     this->pcout << "    Iter: " << current_iteration
                 << "    Time: " << current_time
                 << "    Energy: " << integrated_kinetic_energy << std::flush;
-    if(this->all_param.flow_solver_param.output_vorticity_based_dissipation_rate){
-    this->pcout << "    Dissip. Rate: " << vorticity_based_dissipation_rate << std::flush;
-    }
     if(this->all_param.flow_solver_param.output_integrated_enstrophy){
     this->pcout << "    Enstrophy: " << integrated_enstrophy << std::flush;
+    }
+    if(this->all_param.flow_solver_param.output_vorticity_based_dissipation_rate){
+    this->pcout << "    eps_vorticity: " << vorticity_based_dissipation_rate << std::flush;
+    }
+    if(this->all_param.flow_solver_param.output_pressure_dilatation_based_dissipation_rate){
+    this->pcout << "    eps_p: " << pressure_dilatation_based_dissipation_rate << std::flush;
+    }
+    if(this->all_param.flow_solver_param.output_deviatoric_strain_rate_tensor_based_dissipation_rate){
+    this->pcout << "    eps_strain: " << deviatoric_strain_rate_tensor_based_dissipation_rate << std::flush;
     }
     this->pcout << std::endl;
 

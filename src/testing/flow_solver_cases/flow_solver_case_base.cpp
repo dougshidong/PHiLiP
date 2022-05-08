@@ -53,7 +53,7 @@ void FlowSolverCaseBase<dim, nstate>::compute_unsteady_data_and_write_to_table(
         const unsigned int /*current_iteration*/,
         const double /*current_time*/,
         const std::shared_ptr <DGBase<dim, double>> /*dg*/,
-        const std::shared_ptr <dealii::TableHandler> /*unsteady_data_table*/) const
+        const std::shared_ptr <dealii::TableHandler> /*unsteady_data_table*/)
 {
     // do nothing by default
 }

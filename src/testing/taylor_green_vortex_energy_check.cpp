@@ -23,7 +23,8 @@ int TaylorGreenVortexEnergyCheck<dim, nstate>::run_test() const
 
     // Compute kinetic energy
     std::unique_ptr<PeriodicCubeFlow<dim, nstate>> flow_solver_case = std::make_unique<PeriodicCubeFlow<dim,nstate>>(this->all_parameters);
-    const double kinetic_energy_computed = flow_solver_case->compute_integrated_kinetic_energy(*(flow_solver->dg));
+    flow_solver_case->compute_and_update_integrated_quantities(*(flow_solver->dg));
+    const double kinetic_energy_computed = flow_solver_case->get_integrated_kinetic_energy();
 
     const double relative_error = abs(kinetic_energy_computed - kinetic_energy_expected)/kinetic_energy_expected;
     if (relative_error > 1.0e-10) {

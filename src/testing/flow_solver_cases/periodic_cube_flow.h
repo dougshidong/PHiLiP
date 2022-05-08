@@ -31,37 +31,44 @@ public:
     /// Destructor
     ~PeriodicCubeFlow() {};
 
-    /// Pointer to Navier-Stokes physics object for computing things on the fly
-    std::shared_ptr< Physics::NavierStokes<dim,dim+2,double> > navier_stokes_physics;
+    /// Computes the integrated quantities over the domain simultaneously and updates the array storing them
+    void compute_and_update_integrated_quantities(DGBase<dim, double> &dg);
 
-    /** Computes the nondimensional integrated kinetic energy given a DG object from dg->solution
+    /** Gets the nondimensional integrated kinetic energy given a DG object from dg->solution
      *  -- Reference: Cox, Christopher, et al. "Accuracy, stability, and performance comparison 
      *                between the spectral difference and flux reconstruction schemes." 
      *                Computers & Fluids 221 (2021): 104922.
      * */
-    double compute_integrated_kinetic_energy(DGBase<dim, double> &dg) const;
+    double get_integrated_kinetic_energy() const;
 
-    /** Computes the nondimensional integrated enstrophy given a DG object from dg->solution
+    /** Gets the nondimensional integrated enstrophy given a DG object from dg->solution
      *  -- Reference: Cox, Christopher, et al. "Accuracy, stability, and performance comparison 
      *                between the spectral difference and flux reconstruction schemes." 
      *                Computers & Fluids 221 (2021): 104922.
      * */
-    double compute_integrated_enstrophy(DGBase<dim, double> &dg) const;
+    double get_integrated_enstrophy() const;
 
-    /** Evaluate non-dimensional theoretical pressure-dilatation dissipation rate given a DG object from dg->solution
+    /** Gets non-dimensional theoretical vorticity tensor based dissipation rate 
+     *  Note: For incompressible flows or when dilatation effects are negligible 
      *  -- Reference: Cox, Christopher, et al. "Accuracy, stability, and performance comparison 
      *                between the spectral difference and flux reconstruction schemes." 
      *                Computers & Fluids 221 (2021): 104922.
      * */
-    double compute_pressure_dilatation_based_dissipation_rate (DGBase<dim, double> &dg) const;
+    double get_vorticity_based_dissipation_rate() const;
 
-    /** Evaluate non-dimensional theoretical deviatoric strain-rate tensor based dissipation rate 
-     *  given a DG object from dg->solution
+    /** Evaluate non-dimensional theoretical pressure-dilatation dissipation rate
      *  -- Reference: Cox, Christopher, et al. "Accuracy, stability, and performance comparison 
      *                between the spectral difference and flux reconstruction schemes." 
      *                Computers & Fluids 221 (2021): 104922.
      * */
-    double compute_deviatoric_strain_rate_tensor_based_dissipation_rate(DGBase<dim, double> &dg) const;
+    double get_pressure_dilatation_based_dissipation_rate () const;
+
+    /** Gets non-dimensional theoretical deviatoric strain-rate tensor based dissipation rate 
+     *  -- Reference: Cox, Christopher, et al. "Accuracy, stability, and performance comparison 
+     *                between the spectral difference and flux reconstruction schemes." 
+     *                Computers & Fluids 221 (2021): 104922.
+     * */
+    double get_deviatoric_strain_rate_tensor_based_dissipation_rate() const;
 
 protected:
     const int number_of_cells_per_direction; ///< Number of cells per direction for the grid
@@ -72,8 +79,10 @@ protected:
     /// Filename (with extension) for the unsteady data table
     const std::string unsteady_data_table_filename_with_extension;
 
+    /// Pointer to Navier-Stokes physics object for computing things on the fly
+    std::shared_ptr< Physics::NavierStokes<dim,dim+2,double> > navier_stokes_physics;
+
     bool is_taylor_green_vortex = false; ///< Identifies if taylor green vortex case; initialized as false.
-    bool compute_solution_gradient_in_integrate_over_domain = false; ///< Flag for computing the solution gradient in integrate_over_domain
 
     /// Displays the flow setup parameters
     void display_flow_solver_setup() const override;
@@ -89,7 +98,7 @@ protected:
             const unsigned int current_iteration,
             const double current_time,
             const std::shared_ptr <DGBase<dim, double>> dg,
-            const std::shared_ptr<dealii::TableHandler> unsteady_data_table) const override;
+            const std::shared_ptr<dealii::TableHandler> unsteady_data_table) override;
 
     /// List of possible integrated quantities over the domain
     enum IntegratedQuantitiesEnum {
@@ -97,19 +106,12 @@ protected:
         enstrophy,
         pressure_dilatation,
         deviatoric_strain_rate_tensor_magnitude_sqr,
-        l2_error_initial_condition,
         INTEGRATEDQUANTITIESENUM_NR_ITEMS // NOTE: This must be the last entry
     };
     /// Maximum number of computed quantities
-    const int MAX_NUMBER_OF_COMPUTED_QUANTITIES = IntegratedQuantitiesEnum::INTEGRATEDQUANTITIESENUM_NR_ITEMS;
+    /*const*/ int MAX_NUMBER_OF_COMPUTED_QUANTITIES = IntegratedQuantitiesEnum::INTEGRATEDQUANTITIESENUM_NR_ITEMS;
     /// Array for storing the computed quantities; done for computational efficiency
-    std::array<double,MAX_NUMBER_OF_COMPUTED_QUANTITIES> integrated_quantities;
-
-    /// Integrand for computing the L2-error of the initialization with the initial condition
-    double integrand_l2_error_initial_condition(const std::array<double,nstate> &soln_at_q, const dealii::Point<dim> qpoint) const;
-
-    /// Integrates over the entire domain
-    double integrate_over_domain(DGBase<dim, double> &dg,const IntegratedQuantitiesEnum integrated_quantity) const;
+    std::array<double,/*MAX_NUMBER_OF_COMPUTED_QUANTITIES*/4> integrated_quantities;
 
     /// Returns the initial density; assumes initial density is uniform; used for TaylorGreenVortex
     double get_initial_density() const;

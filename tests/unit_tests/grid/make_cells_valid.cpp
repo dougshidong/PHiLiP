@@ -151,7 +151,7 @@ int main (int argc, char * argv[])
     }
 
     bool mpi_has_invalid_poly;
-    MPI_Allreduce(&has_invalid_poly, &mpi_has_invalid_poly, 1, MPI::BOOL, MPI_LOR, MPI_COMM_WORLD);
+    MPI_Allreduce(&has_invalid_poly, &mpi_has_invalid_poly, 1, MPI_C_BOOL, MPI_LOR, MPI_COMM_WORLD);
 
     return mpi_has_invalid_poly;
 }

@@ -217,13 +217,101 @@ real NavierStokes<dim,nstate,real>
 ::compute_vorticity_based_dissipation_rate_from_integrated_enstrophy (
     const real integrated_enstrophy) const
 {
-    /** Evaluate non-dimensional theoretical vorticity dissipation rate from density, viscosity, and enstropy. 
+    /** Evaluate non-dimensional theoretical vorticity-based dissipation rate from integrated enstropy. 
      *  Note: For incompressible flows or when dilatation effects are negligible
      *  -- Reference: Cox, Christopher, et al. "Accuracy, stability, and performance comparison 
      *                between the spectral difference and flux reconstruction schemes." 
      *                Computers & Fluids 221 (2021): 104922.
      * */
+    // See reference, equation (56) with free-stream nondimensionalization applied
     real dissipation_rate = 2.0*integrated_enstrophy/(this->reynolds_number_inf);
+    return dissipation_rate;
+}
+
+template <int dim, int nstate, typename real>
+real NavierStokes<dim,nstate,real>
+::compute_pressure_dilatation (
+    const std::array<real,nstate> &conservative_soln,
+    const std::array<dealii::Tensor<1,dim,real>,nstate> &conservative_soln_gradient) const
+{
+    // Get pressure
+    const real pressure = this->template compute_pressure<real>(conservative_soln);
+
+    // Get velocity gradient
+    const std::array<dealii::Tensor<1,dim,real>,nstate> primitive_soln_gradient = convert_conservative_gradient_to_primitive_gradient<real>(conservative_soln, conservative_soln_gradient);
+    const std::array<dealii::Tensor<1,dim,real>,dim> velocities_gradient = extract_velocities_gradient_from_primitive_solution_gradient<real>(primitive_soln_gradient);
+
+    // Compute the pressure dilatation
+    real pressure_dilatation = 0.0;
+    for(int d=0; d<dim; ++d) {
+        pressure_dilatation += velocities_gradient[d][d]; // divergence
+    }
+    pressure_dilatation *= pressure;
+
+    return pressure_dilatation;
+}
+
+template <int dim, int nstate, typename real>
+std::array<dealii::Tensor<1,dim,real>,dim> NavierStokes<dim,nstate,real>
+::compute_deviatoric_strain_rate_tensor (
+    const std::array<real,nstate> &conservative_soln,
+    const std::array<dealii::Tensor<1,dim,real>,nstate> &conservative_soln_gradient) const
+{
+    // Get velocity gradient
+    const std::array<dealii::Tensor<1,dim,real>,nstate> primitive_soln_gradient = convert_conservative_gradient_to_primitive_gradient<real>(conservative_soln, conservative_soln_gradient);
+    const std::array<dealii::Tensor<1,dim,real>,dim> velocities_gradient = extract_velocities_gradient_from_primitive_solution_gradient<real>(primitive_soln_gradient);
+
+    // Compute the deviatoric strain rate tensor
+    std::array<dealii::Tensor<1,dim,real>,dim> deviatoric_strain_rate_tensor;
+    for(int d1=0; d1<dim; ++d1) {
+        for(int d2=0; d2<dim; ++d2) {
+            deviatoric_strain_rate_tensor[d1][d2] = 0.5*(velocities_gradient[d1][d2] + velocities_gradient[d2][d1]);
+        }
+    }
+    return deviatoric_strain_rate_tensor;
+}
+
+template <int dim, int nstate, typename real>
+real NavierStokes<dim,nstate,real>
+::get_tensor_magnitude_sqr (
+    const std::array<dealii::Tensor<1,dim,real>,dim> &tensor) const
+{
+    real tensor_magnitude_sqr = 0.0;
+    for (int i=0; i<dim; ++i) {
+        for (int j=0; j<dim; ++j) {
+            tensor_magnitude_sqr += tensor[i][j]*tensor[i][j];
+        }
+    }
+    return tensor_magnitude_sqr;
+}
+
+template <int dim, int nstate, typename real>
+real NavierStokes<dim,nstate,real>
+::compute_deviatoric_strain_rate_tensor_magnitude_sqr (
+    const std::array<real,nstate> &conservative_soln,
+    const std::array<dealii::Tensor<1,dim,real>,nstate> &conservative_soln_gradient) const
+{
+    // Compute the deviatoric strain rate tensor
+    const std::array<dealii::Tensor<1,dim,real>,dim> deviatoric_strain_rate_tensor = compute_deviatoric_strain_rate_tensor(conservative_soln,conservative_soln_gradient);
+    // Get magnitude squared
+    real deviatoric_strain_rate_tensor_magnitude_sqr = get_tensor_magnitude_sqr(deviatoric_strain_rate_tensor);
+    
+    return deviatoric_strain_rate_tensor_magnitude_sqr;
+}
+
+template <int dim, int nstate, typename real>
+real NavierStokes<dim,nstate,real>
+::compute_deviatoric_strain_rate_tensor_based_dissipation_rate_from_integrated_deviatoric_strain_rate_tensor_magnitude_sqr (
+    const real integrated_deviatoric_strain_rate_tensor_magnitude_sqr) const
+{
+    /** Evaluate non-dimensional theoretical deviatoric strain-rate tensor based dissipation rate from integrated
+     *  deviatoric strain-rate tensor magnitude squared.
+     *  -- Reference: Cox, Christopher, et al. "Accuracy, stability, and performance comparison 
+     *                between the spectral difference and flux reconstruction schemes." 
+     *                Computers & Fluids 221 (2021): 104922.
+     * */
+    // See reference, equation (57a) with free-stream nondimensionalization applied
+    real dissipation_rate = 2.0*integrated_deviatoric_strain_rate_tensor_magnitude_sqr/(this->reynolds_number_inf);
     return dissipation_rate;
 }
 

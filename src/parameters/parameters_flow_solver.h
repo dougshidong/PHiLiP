@@ -64,6 +64,12 @@ public:
     /// For taylor green vortex, flag for computing the vorticity based dissipation rate
     bool output_vorticity_based_dissipation_rate;
 
+    /// For taylor green vortex, flag for computing the pressure dilatation based dissipation rate
+    bool output_pressure_dilatation_based_dissipation_rate;
+
+    /// For taylor green vortex, flag for computing the deviatoric strain-rate tensor based dissipation rate
+    bool output_deviatoric_strain_rate_tensor_based_dissipation_rate;
+
     /// Declares the possible variables and sets the defaults.
     static void declare_parameters (dealii::ParameterHandler &prm);
 

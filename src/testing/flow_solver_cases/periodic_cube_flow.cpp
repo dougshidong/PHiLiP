@@ -162,9 +162,11 @@ double PeriodicCubeFlow<dim, nstate>::integrate_over_domain(
             const dealii::Point<dim> qpoint = (fe_values_extra.quadrature_point(iquad));
 
             double integrand_value = 0.0;
-            if(integrated_quantity == IntegratedQuantitiesEnum::kinetic_energy)             {integrand_value = navier_stokes_physics->compute_kinetic_energy_from_conservative_solution(soln_at_q);}
-            if(integrated_quantity == IntegratedQuantitiesEnum::enstrophy)                  {integrand_value = navier_stokes_physics->compute_enstrophy(soln_at_q,soln_grad_at_q);}
-            if(integrated_quantity == IntegratedQuantitiesEnum::l2_error_initial_condition) {integrand_value = integrand_l2_error_initial_condition(soln_at_q,qpoint);}
+            if(integrated_quantity == IntegratedQuantitiesEnum::kinetic_energy)                              {integrand_value = navier_stokes_physics->compute_kinetic_energy_from_conservative_solution(soln_at_q);}
+            if(integrated_quantity == IntegratedQuantitiesEnum::enstrophy)                                   {integrand_value = navier_stokes_physics->compute_enstrophy(soln_at_q,soln_grad_at_q);}
+            if(integrated_quantity == IntegratedQuantitiesEnum::pressure_dilatation)                         {integrand_value = navier_stokes_physics->compute_pressure_dilatation(soln_at_q,soln_grad_at_q);}
+            if(integrated_quantity == IntegratedQuantitiesEnum::deviatoric_strain_rate_tensor_magnitude_sqr) {integrand_value = navier_stokes_physics->compute_deviatoric_strain_rate_tensor_magnitude_sqr(soln_at_q,soln_grad_at_q);}
+            if(integrated_quantity == IntegratedQuantitiesEnum::l2_error_initial_condition)                  {integrand_value = integrand_l2_error_initial_condition(soln_at_q,qpoint);}
 
             integral_value += integrand_value * fe_values_extra.JxW(iquad);
         }
@@ -185,6 +187,20 @@ template<int dim, int nstate>
 double PeriodicCubeFlow<dim, nstate>::compute_integrated_enstrophy(DGBase<dim, double> &dg) const
 {
     return integrate_over_domain(dg, IntegratedQuantitiesEnum::enstrophy);
+}
+
+template<int dim, int nstate>
+double PeriodicCubeFlow<dim, nstate>::compute_pressure_dilatation_based_dissipation_rate(DGBase<dim, double> &dg) const
+{
+    const double integrated_pressure_dilatation = integrate_over_domain(dg, IntegratedQuantitiesEnum::pressure_dilatation);
+    return (-1.0*integrated_pressure_dilatation); // See reference (listed in header file), equation (57b)
+}
+
+template<int dim, int nstate>
+double PeriodicCubeFlow<dim, nstate>::compute_deviatoric_strain_rate_tensor_based_dissipation_rate(DGBase<dim, double> &dg) const
+{
+    const double integrated_deviatoric_strain_rate_tensor_magnitude_sqr = integrate_over_domain(dg, IntegratedQuantitiesEnum::deviatoric_strain_rate_tensor_magnitude_sqr);
+    return navier_stokes_physics->compute_deviatoric_strain_rate_tensor_based_dissipation_rate_from_integrated_deviatoric_strain_rate_tensor_magnitude_sqr(integrated_deviatoric_strain_rate_tensor_magnitude_sqr);
 }
 
 template <int dim, int nstate>

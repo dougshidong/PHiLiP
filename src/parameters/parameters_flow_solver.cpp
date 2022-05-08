@@ -100,6 +100,14 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
             prm.declare_entry("output_vorticity_based_dissipation_rate", "false",
                               dealii::Patterns::Bool(),
                               "Compute, output, and write the vorticity based dissipation rate to the unsteady data output file. False by default.");
+
+            prm.declare_entry("output_pressure_dilatation_based_dissipation_rate", "false",
+                              dealii::Patterns::Bool(),
+                              "Compute, output, and write the pressure dilatation based dissipation rate to the unsteady data output file. False by default.");
+
+            prm.declare_entry("output_deviatoric_strain_rate_tensor_based_dissipation_rate", "false",
+                              dealii::Patterns::Bool(),
+                              "Compute, output, and write the deviatoric strain-rate tensor based dissipation rate to the unsteady data output file. False by default.");
         }
         prm.leave_subsection();
     }
@@ -143,6 +151,8 @@ void FlowSolverParam::parse_parameters(dealii::ParameterHandler &prm)
         
             output_integrated_enstrophy = prm.get_bool("output_integrated_enstrophy");
             output_vorticity_based_dissipation_rate = prm.get_bool("output_vorticity_based_dissipation_rate");
+            output_pressure_dilatation_based_dissipation_rate = prm.get_bool("output_vorticity_based_dissipation_rate");
+            output_deviatoric_strain_rate_tensor_based_dissipation_rate = prm.get_bool("output_vorticity_based_dissipation_rate");
         }
         prm.leave_subsection();
     }

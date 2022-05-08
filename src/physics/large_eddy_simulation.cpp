@@ -667,7 +667,11 @@ real2 LargeEddySimulation_WALE<dim,nstate,real>
     
     // Product of the model constant (Cs) and the filter width (delta)
     const real2 model_constant_times_filter_width = this->get_model_constant_times_filter_width(cell_index);
-    // Get deviatoric stresss tensor
+
+    /** Get traceless symmetric square of velocity gradient tensor, i.e. $\bm{S}^{d}$
+     *  Reference: Nicoud and Ducros (1999) - Equation (10)
+     */
+    // -- Compute $\bm{g}^{2}$
     std::array<dealii::Tensor<1,dim,real2>,dim> g_sqr; // $g_{ij}^{2}$
     for (int i=0; i<dim; ++i) {
         for (int j=0; j<dim; ++j) {
@@ -684,21 +688,21 @@ real2 LargeEddySimulation_WALE<dim,nstate,real>
     for (int k=0; k<dim; ++k) {
         trace_g_sqr += g_sqr[k][k];
     }
-    std::array<dealii::Tensor<1,dim,real2>,dim> deviatoric_strain_rate_tensor;
+    std::array<dealii::Tensor<1,dim,real2>,dim> traceless_symmetric_square_of_velocity_gradient_tensor;
     for (int i=0; i<dim; ++i) {
         for (int j=0; j<dim; ++j) {
-            deviatoric_strain_rate_tensor[i][j] = 0.5*(g_sqr[i][j]+g_sqr[j][i]);
+            traceless_symmetric_square_of_velocity_gradient_tensor[i][j] = 0.5*(g_sqr[i][j]+g_sqr[j][i]);
         }
     }
     for (int k=0; k<dim; ++k) {
-        deviatoric_strain_rate_tensor[k][k] += -(1.0/3.0)*trace_g_sqr;
+        traceless_symmetric_square_of_velocity_gradient_tensor[k][k] += -(1.0/3.0)*trace_g_sqr;
     }
     
-    // Get magnitude of strain_rate_tensor and deviatoric_strain_rate_tensor
-    const real2 strain_rate_tensor_magnitude_sqr            = this->template get_tensor_magnitude_sqr<real2>(strain_rate_tensor);
-    const real2 deviatoric_strain_rate_tensor_magnitude_sqr = this->template get_tensor_magnitude_sqr<real2>(deviatoric_strain_rate_tensor);
+    // Get magnitude of strain_rate_tensor and ducros_strain_rate_tensor
+    const real2 strain_rate_tensor_magnitude_sqr                                     = this->template get_tensor_magnitude_sqr<real2>(strain_rate_tensor);
+    const real2 traceless_symmetric_square_of_velocity_gradient_tensor_magnitude_sqr = this->template get_tensor_magnitude_sqr<real2>(traceless_symmetric_square_of_velocity_gradient_tensor);
     // Compute the eddy viscosity
-    const real2 eddy_viscosity = model_constant_times_filter_width*model_constant_times_filter_width*pow(deviatoric_strain_rate_tensor_magnitude_sqr,1.5)/(pow(strain_rate_tensor_magnitude_sqr,2.5) + pow(deviatoric_strain_rate_tensor_magnitude_sqr,1.25));
+    const real2 eddy_viscosity = model_constant_times_filter_width*model_constant_times_filter_width*pow(traceless_symmetric_square_of_velocity_gradient_tensor_magnitude_sqr,1.5)/(pow(strain_rate_tensor_magnitude_sqr,2.5) + pow(traceless_symmetric_square_of_velocity_gradient_tensor_magnitude_sqr,1.25));
 
     return eddy_viscosity;
 }

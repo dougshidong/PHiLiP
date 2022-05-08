@@ -2145,7 +2145,7 @@ void DGBase<dim,real,MeshType>::evaluate_mass_matrices (bool do_inverse_mass_mat
 {
 
     using PDE_enum = Parameters::AllParameters::PartialDifferentialEquation;
-    const bool use_auxiliary_eq = (all_parameters->pde_type == PDE_enum::convection_diffusion || all_parameters->pde_type == PDE_enum::diffusion) ? true : false;//bool to simplify aux check
+    const bool use_auxiliary_eq = (all_parameters->pde_type == PDE_enum::convection_diffusion || all_parameters->pde_type == PDE_enum::diffusion || all_parameters->pde_type == PDE_enum::navier_stokes) ? true : false;//bool to simplify aux check
 
     // Mass matrix sparsity pattern
     //dealii::SparsityPattern dsp(dof_handler.n_dofs(), dof_handler.n_dofs(), dof_handler.get_fe_collection().max_dofs_per_cell());
@@ -2285,7 +2285,7 @@ void DGBase<dim,real,MeshType>::evaluate_local_metric_dependent_mass_matrix_and_
     using FR_Aux_enum = Parameters::AllParameters::Flux_Reconstruction_Aux;
     const FR_enum FR_Type = this->all_parameters->flux_reconstruction_type;
     const FR_Aux_enum FR_Aux_Type = this->all_parameters->flux_reconstruction_aux_type;
-    const bool use_auxiliary_eq = (this->all_parameters->pde_type == PDE_enum::convection_diffusion || all_parameters->pde_type == PDE_enum::diffusion) ? true : false;//bool to simplify aux check
+    const bool use_auxiliary_eq = (this->all_parameters->pde_type == PDE_enum::convection_diffusion || all_parameters->pde_type == PDE_enum::diffusion || all_parameters->pde_type == PDE_enum::navier_stokes) ? true : false;//bool to simplify aux check
     const dealii::FESystem<dim,dim> &current_fe_ref = operators->fe_collection_basis[poly_degree];
     //set auxiliary mass matrices as primary mass matrix
     std::vector<dealii::FullMatrix<real>> local_mass_matrix_aux(dim);

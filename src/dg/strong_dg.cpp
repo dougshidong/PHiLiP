@@ -67,7 +67,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_auxiliary_residual ()
         pcout<<"DG Strong not yet verified for Burgers' viscous."<<std::endl;
         exit(1);
     }
-    if ( (this->all_parameters->pde_type == PDE_enum::convection_diffusion || this->all_parameters->pde_type == PDE_enum::diffusion)
+    if ( (this->all_parameters->pde_type == PDE_enum::convection_diffusion || this->all_parameters->pde_type == PDE_enum::diffusion || this->all_parameters->pde_type == PDE_enum::navier_stokes)
         && this->all_parameters->ode_solver_param.ode_solver_type == ODE_enum::explicit_solver )//auxiliary only works explicit for now
     {
         //set auxiliary rhs to 0
@@ -112,6 +112,12 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_auxiliary_residual ()
 
             //solve for auxiliary solution for each dimension
             this->global_inverse_mass_matrix_auxiliary.vmult(this->auxiliary_solution[idim], this->auxiliary_RHS[idim]);
+//            for(unsigned int i=0; i<this->auxiliary_RHS[idim].size(); i++){
+//                pcout<<"aux rhs "<<this->auxiliary_RHS[idim][i]<<" aux sol "<<this->auxiliary_solution[idim][i]<<std::endl;
+            //    for(unsigned int j=0; j<this->auxiliary_RHS[idim].size(); j++){
+            //    pcout<<"aux mass  "<<this->global_inverse_mass_matrix_auxiliary(i,j)<<std::endl;
+            //    }
+//            }
 
             //update ghost values of auxiliary solution
             this->auxiliary_solution[idim].update_ghost_values();

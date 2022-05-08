@@ -92,6 +92,14 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                               "Choices are "
                               " <uniform | "
                               " isothermal>.");
+
+            prm.declare_entry("output_integrated_enstrophy", "false",
+                              dealii::Patterns::Bool(),
+                              "Compute, output, and write the integrated enstrophy to the unsteady data output file. False by default.");
+
+            prm.declare_entry("output_vorticity_based_dissipation_rate", "false",
+                              dealii::Patterns::Bool(),
+                              "Compute, output, and write the vorticity based dissipation rate to the unsteady data output file. False by default.");
         }
         prm.leave_subsection();
     }
@@ -130,8 +138,11 @@ void FlowSolverParam::parse_parameters(dealii::ParameterHandler &prm)
         prm.enter_subsection("taylor_green_vortex");
         {
             const std::string density_initial_condition_type_string = prm.get("density_initial_condition_type");
-            if      (density_initial_condition_type_string == "uniform")     {density_initial_condition_type = uniform;}
-            else if (density_initial_condition_type_string == "isothermal")  {density_initial_condition_type = isothermal;}
+            if      (density_initial_condition_type_string == "uniform")    {density_initial_condition_type = uniform;}
+            else if (density_initial_condition_type_string == "isothermal") {density_initial_condition_type = isothermal;}
+        
+            output_integrated_enstrophy = prm.get_bool("output_integrated_enstrophy");
+            output_vorticity_based_dissipation_rate = prm.get_bool("output_vorticity_based_dissipation_rate");
         }
         prm.leave_subsection();
     }

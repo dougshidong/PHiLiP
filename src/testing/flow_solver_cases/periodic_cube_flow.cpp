@@ -34,6 +34,12 @@ PeriodicCubeFlow<dim, nstate>::PeriodicCubeFlow(const PHiLiP::Parameters::AllPar
     // Flow case identifiers
     is_taylor_green_vortex = (flow_type == FlowCaseEnum::taylor_green_vortex);
 
+    // Flag for computing the solution gradient in integrate_over_domain
+    if(this->all_param.flow_solver_param.output_integrated_enstrophy || 
+       this->all_param.flow_solver_param.output_vorticity_based_dissipation_rate){
+        compute_solution_gradient_in_integrate_over_domain = true;
+    }
+
     // Navier-Stokes object; create using dynamic_pointer_cast and the create_Physics factory
     PHiLiP::Parameters::AllParameters parameters_navier_stokes = this->all_param;
     parameters_navier_stokes.pde_type = Parameters::AllParameters::PartialDifferentialEquation::navier_stokes;
@@ -141,10 +147,17 @@ double PeriodicCubeFlow<dim, nstate>::integrate_over_domain(
         for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
 
             std::fill(soln_at_q.begin(), soln_at_q.end(), 0.0);
+            if(compute_solution_gradient_in_integrate_over_domain) {
+                for (int s=0; s<nstate; ++s) {
+                    for (int d=0; d<dim; ++d) {
+                        soln_grad_at_q[s][d] = 0.0;
+                    }
+                }
+            }
             for (unsigned int idof=0; idof<fe_values_extra.dofs_per_cell; ++idof) {
                 const unsigned int istate = fe_values_extra.get_fe().system_to_component_index(idof).first;
                 soln_at_q[istate] += dg.solution[dofs_indices[idof]] * fe_values_extra.shape_value_component(idof, iquad, istate);
-            	soln_grad_at_q[istate] += dg.solution[dofs_indices[idof]] * fe_values_extra.shape_grad_component(idof,iquad,istate);
+                if(compute_solution_gradient_in_integrate_over_domain) soln_grad_at_q[istate] += dg.solution[dofs_indices[idof]] * fe_values_extra.shape_grad_component(idof,iquad,istate);
             }
             const dealii::Point<dim> qpoint = (fe_values_extra.quadrature_point(iquad));
 
@@ -181,18 +194,26 @@ void PeriodicCubeFlow<dim, nstate>::compute_unsteady_data_and_write_to_table(
         const std::shared_ptr <DGBase<dim, double>> dg,
         const std::shared_ptr <dealii::TableHandler> unsteady_data_table) const
 {
+    // Declare optional quantities
+    double integrated_enstrophy = 0.0;
+    double vorticity_based_dissipation_rate = 0.0;
     // Compute quantities
     const double integrated_kinetic_energy = compute_integrated_kinetic_energy(*dg);
-    const double integrated_enstrophy = compute_integrated_enstrophy(*dg);
-    const double vorticity_based_dissipation_rate
-         = navier_stokes_physics->compute_vorticity_based_dissipation_rate_from_integrated_enstrophy(integrated_enstrophy);
+    if(this->all_param.flow_solver_param.output_vorticity_based_dissipation_rate) {
+        integrated_enstrophy = compute_integrated_enstrophy(*dg);
+        vorticity_based_dissipation_rate
+            = navier_stokes_physics->compute_vorticity_based_dissipation_rate_from_integrated_enstrophy(integrated_enstrophy);
+    } else if(this->all_param.flow_solver_param.output_integrated_enstrophy) {
+        integrated_enstrophy = compute_integrated_enstrophy(*dg);
+    }
+    
 
     if(this->mpi_rank==0) {
         // Add values to data table
         this->add_value_to_data_table(current_time,"time",unsteady_data_table);
         this->add_value_to_data_table(integrated_kinetic_energy,"kinetic_energy",unsteady_data_table);
-        this->add_value_to_data_table(integrated_enstrophy,"enstrophy",unsteady_data_table);
-        this->add_value_to_data_table(vorticity_based_dissipation_rate,"dissip_rate",unsteady_data_table);
+        if(this->all_param.flow_solver_param.output_integrated_enstrophy) this->add_value_to_data_table(integrated_enstrophy,"enstrophy",unsteady_data_table);
+        if(this->all_param.flow_solver_param.output_vorticity_based_dissipation_rate) this->add_value_to_data_table(vorticity_based_dissipation_rate,"dissip_rate",unsteady_data_table);
         // Write to file
         std::ofstream unsteady_data_table_file(unsteady_data_table_filename_with_extension);
         unsteady_data_table->write_text(unsteady_data_table_file);
@@ -200,10 +221,14 @@ void PeriodicCubeFlow<dim, nstate>::compute_unsteady_data_and_write_to_table(
     // Print to console
     this->pcout << "    Iter: " << current_iteration
                 << "    Time: " << current_time
-                << "    Energy: " << integrated_kinetic_energy
-                << "    Enstrophy: " << integrated_enstrophy
-                << "    Dissip. Rate: " << vorticity_based_dissipation_rate
-                << std::endl;
+                << "    Energy: " << integrated_kinetic_energy << std::flush;
+    if(this->all_param.flow_solver_param.output_vorticity_based_dissipation_rate){
+    this->pcout << "    Dissip. Rate: " << vorticity_based_dissipation_rate << std::flush;
+    }
+    if(this->all_param.flow_solver_param.output_integrated_enstrophy){
+    this->pcout << "    Enstrophy: " << integrated_enstrophy << std::flush;
+    }
+    this->pcout << std::endl;
 
     // Abort if energy is nan
     if(std::isnan(integrated_kinetic_energy)) {

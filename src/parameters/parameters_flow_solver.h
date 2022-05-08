@@ -58,6 +58,12 @@ public:
     /// Selected DensityInitialConditionType from the input file
     DensityInitialConditionType density_initial_condition_type;
 
+    /// For taylor green vortex, flag for computing the integrated enstrophy
+    bool output_integrated_enstrophy;
+
+    /// For taylor green vortex, flag for computing the vorticity based dissipation rate
+    bool output_vorticity_based_dissipation_rate;
+
     /// Declares the possible variables and sets the defaults.
     static void declare_parameters (dealii::ParameterHandler &prm);
 

@@ -58,6 +58,7 @@ protected:
     const std::string unsteady_data_table_filename_with_extension;
 
     bool is_taylor_green_vortex = false; ///< Identifies if taylor green vortex case; initialized as false.
+    bool compute_solution_gradient_in_integrate_over_domain = false; ///< Flag for computing the solution gradient in integrate_over_domain
 
     /// Displays the flow setup parameters
     void display_flow_solver_setup() const override;

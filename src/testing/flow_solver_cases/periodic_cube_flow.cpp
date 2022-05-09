@@ -34,7 +34,7 @@ std::shared_ptr<Triangulation> PeriodicCubeFlow<dim,nstate>::generate_grid() con
             this->mpi_communicator
 #endif
     );
-    Grids::straight_periodic_cube<dim,dealii::parallel::distributed::Triangulation<dim>>(grid, domain_left, domain_right, number_of_cells_per_direction);
+    Grids::straight_periodic_cube<dim,Triangulation>(grid, domain_left, domain_right, number_of_cells_per_direction);
 
     return grid;
 }
@@ -210,9 +210,41 @@ double PeriodicTurbulence<dim, nstate>::compute_kinetic_energy(DGBase<dim, doubl
     return integrate_over_domain(dg, IntegratedQuantitiesEnum::kinetic_energy);
 }
 
+//=========================================================
+// PERIODIC 1D DOMAIN FOR TIME REFINEMENT STUDY
+//=========================================================
+
+template <int dim, int nstate>
+Periodic1DFlow<dim, nstate>::Periodic1DFlow(const PHiLiP::Parameters::AllParameters *const parameters_input)
+        : PeriodicCubeFlow<dim, nstate>(parameters_input)
+{
+}
+
+template <int dim, int nstate>
+void Periodic1DFlow<dim, nstate>::compute_unsteady_data_and_write_to_table(
+       const unsigned int current_iteration,
+        const double current_time,
+        const std::shared_ptr <DGBase<dim, double>>/* dg */,
+        const std::shared_ptr <dealii::TableHandler> /* unsteady_data_table */) const
+{
+    double dt = this->all_param.ode_solver_param.initial_time_step;
+    int output_solution_every_n_iterations = (int) (this->all_param.ode_solver_param.output_solution_every_dt_time_intervals/dt);
+ 
+    if ((current_iteration % output_solution_every_n_iterations) == 0){
+        this->pcout << "    Iter: " << current_iteration
+                    << "    Time: " << current_time
+                    << std::endl;
+    }
+}
+
+
+
 #if PHILIP_DIM==3
 template class PeriodicCubeFlow <PHILIP_DIM,PHILIP_DIM+2>;
 template class PeriodicTurbulence <PHILIP_DIM,PHILIP_DIM+2>;
+#elif PHILIP_DIM==1
+template class PeriodicCubeFlow <PHILIP_DIM,PHILIP_DIM>;
+template class Periodic1DFlow <PHILIP_DIM,PHILIP_DIM>;
 #endif
 
 } // Tests namespace

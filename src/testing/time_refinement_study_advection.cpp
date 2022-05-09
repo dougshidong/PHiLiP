@@ -1,6 +1,6 @@
 #include "time_refinement_study_advection.h"
 #include "flow_solver.h"
-#include "flow_solver_cases/periodic_1D_flow.h"
+#include "flow_solver_cases/periodic_cube_flow.h"
 #include "cmath"
 
 namespace PHiLiP {

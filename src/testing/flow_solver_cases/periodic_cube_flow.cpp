@@ -30,10 +30,11 @@ PeriodicCubeFlow<dim, nstate>::PeriodicCubeFlow(const PHiLiP::Parameters::AllPar
 {
     // Get the flow case type
     using FlowCaseEnum = Parameters::FlowSolverParam::FlowCaseType;
-    const FlowCaseEnum flow_type = parameters_input->flow_solver_param.flow_case_type;
+    const FlowCaseEnum flow_type = this->all_param.flow_solver_param.flow_case_type;
 
     // Flow case identifiers
     is_taylor_green_vortex = (flow_type == FlowCaseEnum::taylor_green_vortex);
+    is_viscous_flow = (this->all_param.pde_type == Parameters::AllParameters::PartialDifferentialEquation::navier_stokes);
 
     // Navier-Stokes object; create using dynamic_pointer_cast and the create_Physics factory
     PHiLiP::Parameters::AllParameters parameters_navier_stokes = this->all_param;
@@ -98,15 +99,6 @@ double PeriodicCubeFlow<dim,nstate>::get_constant_time_step(std::shared_ptr<DGBa
     const double approximate_grid_spacing = (domain_right-domain_left)/pow(number_of_degrees_of_freedom,(1.0/dim));
     const double constant_time_step = this->all_param.flow_solver_param.courant_friedrich_lewy_number * approximate_grid_spacing;
     return constant_time_step;
-}
-
-template<int dim, int nstate>
-double PeriodicCubeFlow<dim,nstate>::get_initial_density() const
-{
-    // this is particular to TaylorGreenVortex
-    const dealii::Point<dim> dummy_point = dealii::Point<dim>(); // since initial density is uniform in space
-    const double initial_density = this->initial_condition_function->value(dummy_point,0); // istate=0
-    return initial_density;
 }
 
 template<int dim, int nstate>
@@ -191,7 +183,11 @@ template<int dim, int nstate>
 double PeriodicCubeFlow<dim, nstate>::get_vorticity_based_dissipation_rate() const
 {
     const double integrated_enstrophy = this->integrated_quantities[IntegratedQuantitiesEnum::enstrophy];
-    return this->navier_stokes_physics->compute_vorticity_based_dissipation_rate_from_integrated_enstrophy(integrated_enstrophy);
+    double vorticity_based_dissipation_rate = 0.0;
+    if (is_viscous_flow){
+        vorticity_based_dissipation_rate = this->navier_stokes_physics->compute_vorticity_based_dissipation_rate_from_integrated_enstrophy(integrated_enstrophy);
+    }
+    return vorticity_based_dissipation_rate;
 }
 
 template<int dim, int nstate>
@@ -205,7 +201,12 @@ template<int dim, int nstate>
 double PeriodicCubeFlow<dim, nstate>::get_deviatoric_strain_rate_tensor_based_dissipation_rate() const
 {
     const double integrated_deviatoric_strain_rate_tensor_magnitude_sqr = this->integrated_quantities[IntegratedQuantitiesEnum::deviatoric_strain_rate_tensor_magnitude_sqr];
-    return this->navier_stokes_physics->compute_deviatoric_strain_rate_tensor_based_dissipation_rate_from_integrated_deviatoric_strain_rate_tensor_magnitude_sqr(integrated_deviatoric_strain_rate_tensor_magnitude_sqr);
+    double deviatoric_strain_rate_tensor_based_dissipation_rate = 0.0;
+    if (is_viscous_flow){
+        deviatoric_strain_rate_tensor_based_dissipation_rate = 
+            this->navier_stokes_physics->compute_deviatoric_strain_rate_tensor_based_dissipation_rate_from_integrated_deviatoric_strain_rate_tensor_magnitude_sqr(integrated_deviatoric_strain_rate_tensor_magnitude_sqr);
+    }
+    return deviatoric_strain_rate_tensor_based_dissipation_rate;
 }
 
 template <int dim, int nstate>
@@ -228,29 +229,22 @@ void PeriodicCubeFlow<dim, nstate>::compute_unsteady_data_and_write_to_table(
         // Add values to data table
         this->add_value_to_data_table(current_time,"time",unsteady_data_table);
         this->add_value_to_data_table(integrated_kinetic_energy,"kinetic_energy",unsteady_data_table);
-        if(this->all_param.flow_solver_param.output_integrated_enstrophy) this->add_value_to_data_table(integrated_enstrophy,"enstrophy",unsteady_data_table);
-        if(this->all_param.flow_solver_param.output_vorticity_based_dissipation_rate) this->add_value_to_data_table(vorticity_based_dissipation_rate,"eps_vorticity",unsteady_data_table);
-        if(this->all_param.flow_solver_param.output_pressure_dilatation_based_dissipation_rate) this->add_value_to_data_table(pressure_dilatation_based_dissipation_rate,"eps_pressure",unsteady_data_table);
-        if(this->all_param.flow_solver_param.output_deviatoric_strain_rate_tensor_based_dissipation_rate) this->add_value_to_data_table(deviatoric_strain_rate_tensor_based_dissipation_rate,"eps_strain",unsteady_data_table);
+        this->add_value_to_data_table(integrated_enstrophy,"enstrophy",unsteady_data_table);
+        if(is_viscous_flow) this->add_value_to_data_table(vorticity_based_dissipation_rate,"eps_vorticity",unsteady_data_table);
+        this->add_value_to_data_table(pressure_dilatation_based_dissipation_rate,"eps_pressure",unsteady_data_table);
+        if(is_viscous_flow) this->add_value_to_data_table(deviatoric_strain_rate_tensor_based_dissipation_rate,"eps_strain",unsteady_data_table);
         // Write to file
-        std::ofstream unsteady_data_table_file(unsteady_data_table_filename_with_extension);
+        std::ofstream unsteady_data_table_file(this->unsteady_data_table_filename_with_extension);
         unsteady_data_table->write_text(unsteady_data_table_file);
     }
     // Print to console
     this->pcout << "    Iter: " << current_iteration
                 << "    Time: " << current_time
-                << "    Energy: " << integrated_kinetic_energy << std::flush;
-    if(this->all_param.flow_solver_param.output_integrated_enstrophy){
-    this->pcout << "    Enstrophy: " << integrated_enstrophy << std::flush;
-    }
-    if(this->all_param.flow_solver_param.output_vorticity_based_dissipation_rate){
-    this->pcout << "    eps_vorticity: " << vorticity_based_dissipation_rate << std::flush;
-    }
-    if(this->all_param.flow_solver_param.output_pressure_dilatation_based_dissipation_rate){
-    this->pcout << "    eps_p: " << pressure_dilatation_based_dissipation_rate << std::flush;
-    }
-    if(this->all_param.flow_solver_param.output_deviatoric_strain_rate_tensor_based_dissipation_rate){
-    this->pcout << "    eps_strain: " << deviatoric_strain_rate_tensor_based_dissipation_rate << std::flush;
+                << "    Energy: " << integrated_kinetic_energy
+                << "    Enstrophy: " << integrated_enstrophy;
+    if(is_viscous_flow) {
+    this->pcout << "    eps_vorticity: " << vorticity_based_dissipation_rate
+                << "    eps_p+eps_strain: " << (pressure_dilatation_based_dissipation_rate + deviatoric_strain_rate_tensor_based_dissipation_rate);
     }
     this->pcout << std::endl;
 

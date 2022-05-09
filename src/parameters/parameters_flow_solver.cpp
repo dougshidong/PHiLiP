@@ -74,16 +74,16 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                           dealii::Patterns::FileName(dealii::Patterns::FileName::FileType::input),
                           "Filename of the input mesh: input_mesh_filename.msh");
 
-        prm.enter_subsection("taylor_green_vortex_energy_check");
+        prm.enter_subsection("taylor_green_vortex");
         {
             prm.declare_entry("expected_kinetic_energy_at_final_time", "1",
                               dealii::Patterns::Double(0, dealii::Patterns::Double::max_double_value),
                               "For integration test purposes, expected kinetic energy at final time.");
-        }
-        prm.leave_subsection();
 
-        prm.enter_subsection("taylor_green_vortex");
-        {
+            prm.declare_entry("expected_theoretical_dissipation_rate_at_final_time", "1",
+                              dealii::Patterns::Double(0, dealii::Patterns::Double::max_double_value),
+                              "For integration test purposes, expected theoretical kinetic energy dissipation rate at final time.");
+
             prm.declare_entry("density_initial_condition_type", "uniform",
                               dealii::Patterns::Selection(
                               " uniform | "
@@ -92,22 +92,6 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                               "Choices are "
                               " <uniform | "
                               " isothermal>.");
-
-            prm.declare_entry("output_integrated_enstrophy", "false",
-                              dealii::Patterns::Bool(),
-                              "Compute, output, and write the integrated enstrophy to the unsteady data output file. False by default.");
-
-            prm.declare_entry("output_vorticity_based_dissipation_rate", "false",
-                              dealii::Patterns::Bool(),
-                              "Compute, output, and write the vorticity based dissipation rate to the unsteady data output file. False by default.");
-
-            prm.declare_entry("output_pressure_dilatation_based_dissipation_rate", "false",
-                              dealii::Patterns::Bool(),
-                              "Compute, output, and write the pressure dilatation based dissipation rate to the unsteady data output file. False by default.");
-
-            prm.declare_entry("output_deviatoric_strain_rate_tensor_based_dissipation_rate", "false",
-                              dealii::Patterns::Bool(),
-                              "Compute, output, and write the deviatoric strain-rate tensor based dissipation rate to the unsteady data output file. False by default.");
         }
         prm.leave_subsection();
     }
@@ -137,22 +121,14 @@ void FlowSolverParam::parse_parameters(dealii::ParameterHandler &prm)
         output_restart_files_every_dt_time_intervals = prm.get_double("output_restart_files_every_dt_time_intervals");
         input_mesh_filename = prm.get("input_mesh_filename");
 
-        prm.enter_subsection("taylor_green_vortex_energy_check");
-        {
-            expected_kinetic_energy_at_final_time = prm.get_double("expected_kinetic_energy_at_final_time");
-        }
-        prm.leave_subsection();
-
         prm.enter_subsection("taylor_green_vortex");
         {
+            expected_kinetic_energy_at_final_time = prm.get_double("expected_kinetic_energy_at_final_time");
+            expected_theoretical_dissipation_rate_at_final_time = prm.get_double("expected_theoretical_dissipation_rate_at_final_time");
+
             const std::string density_initial_condition_type_string = prm.get("density_initial_condition_type");
             if      (density_initial_condition_type_string == "uniform")    {density_initial_condition_type = uniform;}
             else if (density_initial_condition_type_string == "isothermal") {density_initial_condition_type = isothermal;}
-        
-            output_integrated_enstrophy = prm.get_bool("output_integrated_enstrophy");
-            output_vorticity_based_dissipation_rate = prm.get_bool("output_vorticity_based_dissipation_rate");
-            output_pressure_dilatation_based_dissipation_rate = prm.get_bool("output_vorticity_based_dissipation_rate");
-            output_deviatoric_strain_rate_tensor_based_dissipation_rate = prm.get_bool("output_vorticity_based_dissipation_rate");
         }
         prm.leave_subsection();
     }

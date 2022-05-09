@@ -40,15 +40,20 @@ public:
      *  will read file: input_mesh_filename.msh */
     std::string input_mesh_filename;
 
-    /** For taylor green vortex integration tests, expected kinetic energy at final time. */
-    double expected_kinetic_energy_at_final_time;
-
     bool restart_computation_from_file; ///< Restart computation from restart file
     bool output_restart_files; ///< Output the restart files
     std::string restart_files_directory_name; ///< Name of directory for writing and reading restart files
     int restart_file_index; ///< Index of desired restart file for restarting the computation from
     int output_restart_files_every_x_steps; ///< Outputs the restart files every x steps
     double output_restart_files_every_dt_time_intervals; ///< Outputs the restart files at time intervals of dt
+
+    /** For taylor green vortex integration tests, expected kinetic energy at final time. */
+    double expected_kinetic_energy_at_final_time;
+
+    /** For taylor green vortex integration tests, 
+     *  expected theoretical kinetic energy dissipation
+     *  rate at final time. */
+    double expected_theoretical_dissipation_rate_at_final_time;
 
     /// For taylor green vortex, selects the type of density initialization
     enum DensityInitialConditionType{
@@ -57,18 +62,6 @@ public:
         };
     /// Selected DensityInitialConditionType from the input file
     DensityInitialConditionType density_initial_condition_type;
-
-    /// For taylor green vortex, flag for computing the integrated enstrophy
-    bool output_integrated_enstrophy;
-
-    /// For taylor green vortex, flag for computing the vorticity based dissipation rate
-    bool output_vorticity_based_dissipation_rate;
-
-    /// For taylor green vortex, flag for computing the pressure dilatation based dissipation rate
-    bool output_pressure_dilatation_based_dissipation_rate;
-
-    /// For taylor green vortex, flag for computing the deviatoric strain-rate tensor based dissipation rate
-    bool output_deviatoric_strain_rate_tensor_based_dissipation_rate;
 
     /// Declares the possible variables and sets the defaults.
     static void declare_parameters (dealii::ParameterHandler &prm);

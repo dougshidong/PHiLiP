@@ -83,6 +83,8 @@ protected:
     std::shared_ptr< Physics::NavierStokes<dim,dim+2,double> > navier_stokes_physics;
 
     bool is_taylor_green_vortex = false; ///< Identifies if taylor green vortex case; initialized as false.
+    bool is_viscous_flow = true; ///< Identifies if viscous flow; initialized as true.
+
 
     /// Displays the flow setup parameters
     void display_flow_solver_setup() const override;
@@ -112,9 +114,6 @@ protected:
     /*const*/ int MAX_NUMBER_OF_COMPUTED_QUANTITIES = IntegratedQuantitiesEnum::INTEGRATEDQUANTITIESENUM_NR_ITEMS;
     /// Array for storing the computed quantities; done for computational efficiency
     std::array<double,/*MAX_NUMBER_OF_COMPUTED_QUANTITIES*/4> integrated_quantities;
-
-    /// Returns the initial density; assumes initial density is uniform; used for TaylorGreenVortex
-    double get_initial_density() const;
 };
 
 } // Tests namespace

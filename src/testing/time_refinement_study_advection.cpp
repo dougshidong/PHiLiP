@@ -55,6 +55,17 @@ double TimeRefinementStudy<dim,nstate>::calculate_L2_error_at_final_time_wrt_fun
 template <int dim, int nstate>
 int TimeRefinementStudy<dim, nstate>::run_test() const
 {
+
+    double final_time = this->all_parameters->flow_solver_param.final_time;
+    double initial_time_step = this->all_parameters->ode_solver_param.initial_time_step;
+    int n_steps = round(final_time/initial_time_step);
+    if (n_steps * initial_time_step != final_time){
+        pcout << "Error: final_time is not evenly divisible by initial_time_step!" << std::endl
+              << "Remainder is " << fmod(final_time, initial_time_step)
+              << ". Modify parameters to run this test." << std::endl;
+        std::abort();
+    }
+
     int testfail = 0;
     double expected_order =(double) this->all_parameters->ode_solver_param.runge_kutta_order;
     double order_tolerance = 0.1;

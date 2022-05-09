@@ -6,6 +6,8 @@
 #include "linear_solver/linear_solver.h"
 #include "reduced_order/pod_interfaces.h"
 #include <deal.II/lac/trilinos_sparsity_pattern.h>
+#include <EpetraExt_MatrixMatrix.h>
+#include <Epetra_Vector.h>
 
 namespace PHiLiP {
 namespace ODE {
@@ -35,10 +37,10 @@ public:
     void allocate_ode_system () override;
 
     /// Reduced solution update given by the ODE solver
-    std::unique_ptr<dealii::LinearAlgebra::distributed::Vector<double>> reduced_solution_update;
+    dealii::LinearAlgebra::distributed::Vector<double> reduced_solution_update;
 
     /// Reduced rhs for linear solver
-    //std::unique_ptr<dealii::LinearAlgebra::distributed::Vector<double>> reduced_rhs;
+    std::unique_ptr<dealii::LinearAlgebra::distributed::Vector<double>> reduced_rhs;
 
     /// Reference solution for consistency
     dealii::LinearAlgebra::distributed::Vector<double> reference_solution;

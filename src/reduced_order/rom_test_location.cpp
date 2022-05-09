@@ -18,15 +18,12 @@ ROMTestLocation<dim, nstate>::ROMTestLocation(RowVector2d parameter, std::shared
 template <int dim, int nstate>
 void ROMTestLocation<dim, nstate>::compute_FOM_to_initial_ROM_error(){
     std::cout << "Computing adjoint-based error estimate between ROM and FOM..." << std::endl;
-    dealii::LinearAlgebra::distributed::Vector<double> gradient(rom_solution->right_hand_side.size());
-    dealii::LinearAlgebra::distributed::Vector<double> adjoint(rom_solution->right_hand_side.size());
-    dealii::LinearAlgebra::distributed::Vector<double> dualWeightedResidual(rom_solution->right_hand_side.size());
+    dealii::LinearAlgebra::distributed::Vector<double> gradient(rom_solution->right_hand_side);
+    dealii::LinearAlgebra::distributed::Vector<double> adjoint(rom_solution->right_hand_side);
+    //adjoint.update_ghost_values();
+    //gradient.update_ghost_values();
 
     gradient = rom_solution->gradient;
-
-    //dealii::TrilinosWrappers::SparseMatrix system_matrix_transpose;
-    //system_matrix_transpose.reinit(rom_solution->system_matrix_transpose);
-    //system_matrix_transpose.copy_from(rom_solution->system_matrix_transpose);
 
     Parameters::LinearSolverParam linear_solver_param;
     linear_solver_param.linear_solver_type = Parameters::LinearSolverParam::direct;
@@ -34,65 +31,59 @@ void ROMTestLocation<dim, nstate>::compute_FOM_to_initial_ROM_error(){
 
     //Compute dual weighted residual
     fom_to_initial_rom_error = 0;
-    //std::cout << std::setw(10) << std::left << "Index" << std::setw(20) << std::left << "Adjoint" << std::setw(20) << std::left << "Residual" << std::setw(20) << std::left << "Dual Weighted Residual" << std::endl;
-    for(unsigned int i = 0; i < adjoint.size(); i++){
-        dualWeightedResidual[i] = -(adjoint[i] * rom_solution->right_hand_side[i]);
-        fom_to_initial_rom_error = fom_to_initial_rom_error + dualWeightedResidual[i];
-        //std::cout << std::setw(10) << std::left << i << std::setw(20) << std::left << adjoint[i] << std::setw(20) << std::left << rom_solution->right_hand_side[i] << std::setw(20) << std::left << dualWeightedResidual[i] << std::endl;
-    }
+    fom_to_initial_rom_error = -(adjoint * rom_solution->right_hand_side);
+    fom_to_initial_rom_error  = dealii::Utilities::MPI::sum(fom_to_initial_rom_error, MPI_COMM_WORLD);
     std::cout << "Parameter: " << parameter << ". Error estimate between ROM and FOM: " << fom_to_initial_rom_error << std::endl;
 }
 
 template <int dim, int nstate>
 void ROMTestLocation<dim, nstate>::compute_initial_rom_to_final_rom_error(std::shared_ptr<ProperOrthogonalDecomposition::POD<dim>> pod_updated){
+
     std::cout << "Computing adjoint-based error estimate between initial ROM and updated ROM..." << std::endl;
 
-    using DealiiVector = dealii::LinearAlgebra::distributed::Vector<double>;
-    //Initialize
-    DealiiVector fineGradient(pod_updated->getPODBasis()->n());
-    DealiiVector fineAdjoint(pod_updated->getPODBasis()->n());
-    DealiiVector fineResidual(pod_updated->getPODBasis()->n());
-    DealiiVector dualWeightedResidual(pod_updated->getPODBasis()->n());
+    Epetra_CrsMatrix *epetra_pod_basis = const_cast<Epetra_CrsMatrix *>(&(pod_updated->getPODBasis()->trilinos_matrix()));
+    Epetra_CrsMatrix *epetra_system_matrix_transpose = const_cast<Epetra_CrsMatrix *>(&(rom_solution->system_matrix_transpose->trilinos_matrix()));
 
-    pod_updated->getPODBasis()->Tvmult(fineGradient, rom_solution->gradient);
+    Epetra_CrsMatrix epetra_petrov_galerkin_basis(Epetra_DataAccess::Copy, epetra_system_matrix_transpose->DomainMap(), pod_updated->getPODBasis()->n());
+    EpetraExt::MatrixMatrix::Multiply(*epetra_system_matrix_transpose, true, *epetra_pod_basis, false, epetra_petrov_galerkin_basis, true);
 
-    //*******************Compute fine jacobian transpose (Petrov-Galerkin)********************
-    dealii::TrilinosWrappers::SparseMatrix petrov_galerkin_basis;
-    dealii::TrilinosWrappers::SparseMatrix fineJacobianTranspose;
-    rom_solution->system_matrix_transpose->Tmmult(petrov_galerkin_basis, *pod_updated->getPODBasis()); // petrov_galerkin_basis = system_matrix * pod_basis. Note, use transpose in subsequent multiplications
-    petrov_galerkin_basis.Tmmult(fineJacobianTranspose, petrov_galerkin_basis); //reduced_lhs = petrov_galerkin_basis^T * petrov_galerkin_basis , equivalent to V^T*J^T*J*V
-    //*****************************************************************************************
+    Epetra_MpiComm epetra_comm(MPI_COMM_WORLD);
+    Epetra_Map domain_map((int)pod_updated->getPODBasis()->n(), 0, epetra_comm);
+    epetra_petrov_galerkin_basis.FillComplete(domain_map, epetra_system_matrix_transpose->DomainMap());
 
-    //************************Compute fine jacobian transpose (Galerkin)**********************
-    //dealii::TrilinosWrappers::SparseMatrix tmp;
-    //dealii::TrilinosWrappers::SparseMatrix fineJacobianTranspose;
-    //pod_updated->getPODBasis()->Tmmult(tmp, *rom_solution->system_matrix_transpose); //tmp = pod_basis^T * dg->system_matrix_transpose
-    //tmp.mmult(fineJacobianTranspose, *pod_updated->getPODBasis()); // reducedJacobianTranspose= tmp*pod_basis
-    //****************************************************************************************
+    std::cout << "here" << std::endl;
 
-    dealii::ParameterHandler parameter_handler;
-    Parameters::LinearSolverParam linear_solver_param;
-    Parameters::LinearSolverParam::declare_parameters (parameter_handler);
-    linear_solver_param.parse_parameters (parameter_handler);
-    linear_solver_param.linear_solver_type = Parameters::LinearSolverParam::direct;
-    solve_linear(fineJacobianTranspose, fineGradient*=-1.0, fineAdjoint, linear_solver_param);
+    Epetra_Vector epetra_gradient(Epetra_DataAccess::View, epetra_petrov_galerkin_basis.RangeMap(), const_cast<double *>(rom_solution->gradient.begin()));
+    Epetra_Vector epetra_reduced_gradient(epetra_petrov_galerkin_basis.DomainMap());
 
-    //******************Compute fine residual (Galerkin)********************************
-    //pod_updated->getPODBasis()->Tvmult(fineResidual, rom_solution->right_hand_side);
-    //**********************************************************************************
+    epetra_petrov_galerkin_basis.Multiply(true, epetra_gradient, epetra_reduced_gradient);
 
-    //*****************Compute fine residual (Petrov_Galerkin)*************************
-    petrov_galerkin_basis.Tvmult(fineResidual, rom_solution->right_hand_side);
-    //*********************************************************************************
+    Epetra_CrsMatrix epetra_reduced_jacobian(Epetra_DataAccess::View, epetra_petrov_galerkin_basis.DomainMap(), pod_updated->getPODBasis()->n());
+    EpetraExt::MatrixMatrix::Multiply(epetra_petrov_galerkin_basis, true, epetra_petrov_galerkin_basis, false, epetra_reduced_jacobian);
+
+    Epetra_Vector epetra_reduced_adjoint(epetra_reduced_jacobian.DomainMap());
+    Epetra_LinearProblem linearProblem(&epetra_reduced_jacobian, &epetra_reduced_adjoint, &epetra_reduced_gradient);
+
+    Amesos_BaseSolver* Solver;
+    Amesos Factory;
+    std::string SolverType = "Klu";
+    Solver = Factory.Create(SolverType, linearProblem);
+    Teuchos::ParameterList List;
+    List.set("PrintTiming", true);
+    List.set("PrintStatus", true);
+    Solver->SetParameters(List);
+    Solver->SymbolicFactorization();
+    Solver->NumericFactorization();
+    Solver->Solve();
+
+    Epetra_Vector epetra_reduced_residual(epetra_petrov_galerkin_basis.DomainMap());
+    Epetra_Vector epetra_residual(Epetra_DataAccess::View, epetra_petrov_galerkin_basis.RangeMap(), const_cast<double *>(rom_solution->right_hand_side.begin()));
+    epetra_petrov_galerkin_basis.Multiply(true, epetra_residual, epetra_reduced_residual);
 
     //Compute dual weighted residual
     initial_rom_to_final_rom_error = 0;
-    //std::cout << std::setw(10) << std::left << "Index" << std::setw(20) << std::left << "Reduced Adjoint" << std::setw(20) << std::left << "Reduced Residual" << std::setw(20) << std::left << "Dual Weighted Residual" << std::endl;
-    for(unsigned int i = 0; i < fineAdjoint.size(); i++){
-        dualWeightedResidual[i] = -(fineAdjoint[i] * fineResidual[i]);
-        initial_rom_to_final_rom_error = initial_rom_to_final_rom_error + dualWeightedResidual[i];
-        //std::cout << std::setw(10) << std::left << i << std::setw(20) << std::left << fineAdjoint[i] << std::setw(20) << std::left << fineResidual[i] << std::setw(20) << std::left << dualWeightedResidual[i] << std::endl;
-    }
+    epetra_reduced_adjoint.Dot(epetra_reduced_residual, &initial_rom_to_final_rom_error);
+
     std::cout << "Parameter: " << parameter << ". Error estimate between initial ROM and updated ROM: " << initial_rom_to_final_rom_error << std::endl;
 }
 

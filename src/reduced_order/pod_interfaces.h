@@ -2,6 +2,7 @@
 #define __POD_BASIS_INTERFACE__
 
 #include <deal.II/numerics/vector_tools.h>
+#include <deal.II/lac/la_parallel_vector.h>
 #include <deal.II/lac/trilinos_sparse_matrix.h>
 
 namespace PHiLiP {
@@ -17,6 +18,8 @@ public:
 
     /// Function to return basis
     virtual std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> getPODBasis() = 0;
+
+    virtual dealii::LinearAlgebra::ReadWriteVector<double> getReferenceState() {return dealii::LinearAlgebra::ReadWriteVector<double>(0);};
 };
 
 /// Interface for coarse basis

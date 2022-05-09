@@ -1,6 +1,9 @@
 #include "pod_petrov_galerkin_ode_solver.h"
-#include <deal.II/lac/householder.h>
 #include <deal.II/lac/la_parallel_vector.h>
+#include <Epetra_Vector.h>
+#include <Epetra_LinearProblem.h>
+#include "Amesos.h"
+#include "Amesos_BaseSolver.h"
 
 namespace PHiLiP {
 namespace ODE {
@@ -36,143 +39,64 @@ void PODPetrovGalerkinODESolver<dim,real,MeshType>::step_in_time (real dt, const
     */
     //Petrov-Galerkin projection, petrov_galerkin_basis = V^T*J^T, pod basis V, system matrix J
     //V^T*J*V*p = -V^T*R
-    this->pcout << "here0" << std::endl;
-    std::ofstream out_file("system_matrix.txt");
-    unsigned int precision1 = 16;
-    this->dg->system_matrix.print(out_file, precision1);
-
-    std::ofstream out_file2("pod_basis_petrovgalerkin.txt");
-    unsigned int precision2 = 16;
-    pod->getPODBasis()->print(out_file2, precision2);
-    /*
-    Epetra_CrsMatrix *epetra_system_matrix  = const_cast<Epetra_CrsMatrix *>(&(this->dg->system_matrix.trilinos_matrix()));
-    Epetra_Map system_matrix_map = epetra_system_matrix->DomainMap();
-
-    Epetra_CrsMatrix *epetra_pod  = const_cast<Epetra_CrsMatrix *>(&(pod->getPODBasis()->trilinos_matrix()));
-    //Epetra_Map pod_domainmap = epetra_pod->DomainMap();
-
-    //epetra_pod->FillComplete(pod_domainmap, system_matrix_map);
-    std::cout << epetra_pod->ReplaceRowMap(system_matrix_map) << std::endl;
-    epetra_pod->FillComplete();
-
-    dealii::TrilinosWrappers::SparseMatrix pod_basis;
-    pod_basis.reinit(*epetra_pod, true);
-
-    Epetra_CrsMatrix *epetra_petrovgalerkin  = const_cast<Epetra_CrsMatrix *>(&(this->petrov_galerkin_basis->trilinos_matrix()));
-    //epetra_pod->FillComplete(pod_domainmap, system_matrix_map);
-    epetra_petrovgalerkin->ReplaceRowMap(system_matrix_map);
-    epetra_petrovgalerkin->FillComplete();
-
-    dealii::TrilinosWrappers::SparseMatrix petrovgalerkin;
-    petrovgalerkin.reinit(*epetra_petrovgalerkin, true);
-
-    this->dg->system_matrix.mmult(petrovgalerkin, pod_basis); // petrov_galerkin_basis = system_matrix * pod_basis. Note, use transpose in subsequent multiplications
-    */
-    this->pcout << "here1" << std::endl;
-    /*
-    dealii::FullMatrix<double> system_matrix_full(this->dg->system_matrix.m(), this->dg->system_matrix.n());
-    system_matrix_full.copy_from(this->dg->system_matrix);
-    this->pcout << "here2" << std::endl;
-
-    dealii::FullMatrix<double> pod_full(pod->getPODBasis()->m(), pod->getPODBasis()->n());
-    pod_full.copy_from(*pod->getPODBasis());
-    this->pcout << "here3" << std::endl;
-
-    dealii::FullMatrix<double> result;
-    system_matrix_full.mmult(result, pod_full); // petrov_galerkin_basis = system_matrix * pod_basis. Note, use transpose in subsequent multiplications
-    this->pcout << "here4" << std::endl;
-
-    dealii::Householder<double> householder (result);
-    dealii::Vector<double> leastSquaresSolution(pod->getPODBasis()->n());
-    dealii::Vector<double> rhs(pod->getPODBasis()->m());
-    this->pcout << "here5" << std::endl;
-
-    for(unsigned int i = 0 ; i < pod->getPODBasis()->m() ; i++){
-        rhs(i) = this->dg->right_hand_side(i);
-    }
-    this->pcout << "here6" << std::endl;
-
-    householder.least_squares(leastSquaresSolution, rhs);
-    this->pcout << "here7" << std::endl;
-
-    dealii::LinearAlgebra::distributed::Vector<double> soln(leastSquaresSolution.size());
-    for(unsigned int i = 0 ; i < pod->getPODBasis()->m() ; i++){
-        soln[i] = leastSquaresSolution[i];
-    }
-    this->pcout << "here8" << std::endl;
-
-    *reduced_solution_update = soln;
-    this->pcout << "here9" << std::endl;
-    */
-    /*
-    this->pcout << "here0.5" << std::endl;
 
 
-    this->dg->system_matrix.mmult(*this->petrov_galerkin_basis, *pod->getPODBasis()); // petrov_galerkin_basis = system_matrix * pod_basis. Note, use transpose in subsequent multiplications
-    this->pcout << "here1" << std::endl;
+    Epetra_CrsMatrix *epetra_system_matrix = const_cast<Epetra_CrsMatrix *>(&(this->dg->system_matrix.trilinos_matrix()));
+    Epetra_Map system_matrix_rowmap = epetra_system_matrix->RowMap();
 
-    this->petrov_galerkin_basis->Tvmult(*this->reduced_rhs, this->dg->right_hand_side); // reduced_rhs = (petrov_galerkin_basis)^T * right_hand_side
-    this->pcout << "here2" << std::endl;
+    Epetra_CrsMatrix *epetra_pod_basis = const_cast<Epetra_CrsMatrix *>(&(pod->getPODBasis()->trilinos_matrix()));
 
-    this->petrov_galerkin_basis->Tmmult(*this->reduced_lhs, *this->petrov_galerkin_basis); //reduced_lhs = petrov_galerkin_basis^T * petrov_galerkin_basis , equivalent to V^T*J^T*J*V
-    this->pcout << "here3" << std::endl;
+    Epetra_CrsMatrix epetra_petrov_galerkin_basis(Epetra_DataAccess::Copy, system_matrix_rowmap, pod->getPODBasis()->n());
 
-    std::ofstream out_file3("reduced_lhs.txt");
-    unsigned int precision3 = 16;
-    this->reduced_lhs->print(out_file3, precision3);
+    EpetraExt::MatrixMatrix::Multiply(*epetra_system_matrix, false, *epetra_pod_basis, false, epetra_petrov_galerkin_basis, false);
 
-    solve_linear(
-            *this->reduced_lhs,
-            *this->reduced_rhs,
-            *this->reduced_solution_update,
-            this->ODESolverBase<dim,real,MeshType>::all_parameters->linear_solver_param);
-    this->pcout << "here4" << std::endl;
-    */
+    Epetra_MpiComm epetra_comm(MPI_COMM_WORLD);
+    Epetra_Map domain_map((int)pod->getPODBasis()->n(), 0, epetra_comm);
+    epetra_petrov_galerkin_basis.FillComplete(domain_map, system_matrix_rowmap);
 
-    dealii::LinearAlgebra::distributed::Vector<double> reduced_rhs(pod->getPODBasis()->n());
-    dealii::FullMatrix<double> system_matrix_full(this->dg->system_matrix.m(), this->dg->system_matrix.n());
-    system_matrix_full.copy_from(this->dg->system_matrix);
-    this->pcout << "here2" << std::endl;
+    std::cout << "here" << std::endl;
 
-    dealii::FullMatrix<double> pod_full(pod->getPODBasis()->m(), pod->getPODBasis()->n());
-    pod_full.copy_from(*pod->getPODBasis());
-    this->pcout << "here3" << std::endl;
+    Epetra_Vector epetra_right_hand_side(Epetra_DataAccess::View, epetra_system_matrix->RowMap(), this->dg->right_hand_side.begin());
 
-    dealii::FullMatrix<double> reduced_lhs_full(pod->getPODBasis()->m(), pod->getPODBasis()->n());
-    system_matrix_full.mmult(reduced_lhs_full, pod_full); // petrov_galerkin_basis = system_matrix * pod_basis. Note, use transpose in subsequent multiplications
-    this->pcout << "here4" << std::endl;
+    Epetra_Vector epetra_reduced_rhs(epetra_petrov_galerkin_basis.DomainMap());
 
-    std::ofstream out_file4("reduced_rhs.txt");
-    unsigned int precision4 = 16;
-    reduced_rhs.print(out_file4, precision4);
+    epetra_petrov_galerkin_basis.Multiply(true, epetra_right_hand_side, epetra_reduced_rhs);
 
-    std::ofstream out_file5("reduced_lhs.txt");
-    unsigned int precision5 = 16;
-    reduced_lhs_full.print(out_file5, precision5);
+    Epetra_CrsMatrix epetra_reduced_lhs(Epetra_DataAccess::Copy, epetra_petrov_galerkin_basis.DomainMap(), pod->getPODBasis()->n());
 
-    this->pcout << "here4" << std::endl;
-    dealii::Householder<double> householder (reduced_lhs_full);
-    dealii::Vector<double> leastSquaresSolution(pod->getPODBasis()->n());
-    dealii::Vector<double> rhs(pod->getPODBasis()->n());
-    this->pcout << "here5" << std::endl;
+    EpetraExt::MatrixMatrix::Multiply(epetra_petrov_galerkin_basis, true, epetra_petrov_galerkin_basis, false, epetra_reduced_lhs);
 
-    for(unsigned int i = 0 ; i < pod->getPODBasis()->n() ; i++){
-        rhs[i] = reduced_rhs[i];
-        std::cout << reduced_rhs[i] << std::endl;
-    }
-    this->pcout << "here6" << std::endl;
+    //Epetra_Vector epetra_reduced_solution_update(epetra_reduced_lhs.DomainMap());
+    Epetra_Vector epetra_reduced_solution_update(Epetra_DataAccess::View, epetra_reduced_lhs.DomainMap(), reduced_solution_update.begin());
 
-    householder.least_squares(leastSquaresSolution, rhs);
-    this->pcout << "here7" << std::endl;
+    Epetra_LinearProblem linearProblem(&epetra_reduced_lhs, &epetra_reduced_solution_update, &epetra_reduced_rhs);
 
-    dealii::LinearAlgebra::distributed::Vector<double> soln(leastSquaresSolution.size());
-    for(unsigned int i = 0 ; i < pod->getPODBasis()->n() ; i++){
-        soln[i] = leastSquaresSolution[i];
-    }
-    this->pcout << "here8" << std::endl;
+    Amesos_BaseSolver* Solver;
+    Amesos Factory;
+    std::string SolverType = "Klu";
+    Solver = Factory.Create(SolverType, linearProblem);
 
-    *reduced_solution_update = soln;
-    this->pcout << "here9" << std::endl;
+    Teuchos::ParameterList List;
+    List.set("PrintTiming", true);
+    List.set("PrintStatus", true);
+    Solver->SetParameters(List);
+
+    this->pcout << "Starting symbolic factorization..." << std::endl;
+    Solver->SymbolicFactorization();
+
+    // you can change the matrix values here
+    this->pcout << "Starting numeric factorization..." << std::endl;
+    Solver->NumericFactorization();
+
+    // you can change LHS and RHS here
+    this->pcout << "Starting solution phase..." << std::endl;
+    Solver->Solve();
+
+    //delete Solver;
+    //delete epetra_pod_basis;
+    //delete epetra_system_matrix;
+
+    this->pcout << "Reduced solution update norm: " << reduced_solution_update.l2_norm() << std::endl;
 
     linesearch();
 
@@ -183,31 +107,42 @@ void PODPetrovGalerkinODESolver<dim,real,MeshType>::step_in_time (real dt, const
 template <int dim, typename real, typename MeshType>
 double PODPetrovGalerkinODESolver<dim,real,MeshType>::linesearch()
 {
-    const auto old_reduced_solution = reduced_solution;
+    const dealii::LinearAlgebra::distributed::Vector<double> old_reduced_solution(reduced_solution);
     double step_length = 1.0;
 
     const double step_reduction = 0.5;
     const int maxline = 10;
     const double reduction_tolerance_1 = 1.0;
+    this->pcout << "here5" << std::endl;
 
     const double initial_residual = this->dg->get_residual_l2norm();
+    reduced_solution.add(step_length, this->reduced_solution_update);
+    this->pcout << "here5" << std::endl;
 
-    reduced_solution = old_reduced_solution;
-    reduced_solution.add(step_length, *this->reduced_solution_update);
-    pod->getPODBasis()->vmult(this->dg->solution, reduced_solution);
-    this->dg->solution.add(1, reference_solution);
+    Epetra_CrsMatrix *epetra_pod_basis = const_cast<Epetra_CrsMatrix *>(&(pod->getPODBasis()->trilinos_matrix()));
+    Epetra_Vector epetra_reduced_solution(Epetra_DataAccess::View, epetra_pod_basis->DomainMap(), reduced_solution.begin());
+    Epetra_Vector solution(Epetra_DataAccess::View, epetra_pod_basis->RangeMap(), this->dg->solution.begin());
+    //Epetra_Vector solution(epetra_pod_basis->RangeMap());
+    this->pcout << "here5.1" << std::endl;
+    epetra_pod_basis->Multiply(false, epetra_reduced_solution, solution);
+    this->pcout << "here5.2" << std::endl;
+    this->dg->solution += reference_solution;
+    this->pcout << "here6" << std::endl;
 
-    this->dg->assemble_residual ();
+    this->dg->assemble_residual();
     double new_residual = this->dg->get_residual_l2norm();
     this->pcout << " Step length " << step_length << ". Old residual: " << initial_residual << " New residual: " << new_residual << std::endl;
+    this->pcout << "here7" << std::endl;
 
     int iline = 0;
     for (iline = 0; iline < maxline && new_residual > initial_residual * reduction_tolerance_1; ++iline) {
         step_length = step_length * step_reduction;
         reduced_solution = old_reduced_solution;
-        reduced_solution.add(step_length, *this->reduced_solution_update);
-        pod->getPODBasis()->vmult(this->dg->solution, reduced_solution);
-        this->dg->solution.add(1, reference_solution);
+        reduced_solution.add(step_length, this->reduced_solution_update);
+
+        epetra_pod_basis->Multiply(false, epetra_reduced_solution, solution);
+        this->dg->solution += reference_solution;
+
         this->dg->assemble_residual();
         new_residual = this->dg->get_residual_l2norm();
         this->pcout << " Step length " << step_length << " . Old residual: " << initial_residual << " New residual: " << new_residual << std::endl;
@@ -220,18 +155,41 @@ double PODPetrovGalerkinODESolver<dim,real,MeshType>::linesearch()
 template <int dim, typename real, typename MeshType>
 void PODPetrovGalerkinODESolver<dim,real,MeshType>::allocate_ode_system ()
 {
+
     this->pcout << "Allocating ODE system and evaluating mass matrix..." << std::endl;
+    reference_solution = this->dg->solution;
+    reference_solution.import(pod->getReferenceState(), dealii::VectorOperation::values::insert);
+    this->pcout << "0..." << std::endl;
+
+    dealii::LinearAlgebra::distributed::Vector<double> initial_condition(this->dg->solution);
+    initial_condition -= reference_solution;
+
+    Epetra_CrsMatrix *epetra_pod_basis = const_cast<Epetra_CrsMatrix *>(&(pod->getPODBasis()->trilinos_matrix()));
+    reduced_solution.reinit(pod->getPODBasis()->n());
+    reduced_solution *= 0;
+    Epetra_Vector epetra_reduced_solution(Epetra_DataAccess::View, epetra_pod_basis->DomainMap(), reduced_solution.begin());
+    Epetra_Vector epetra_initial_condition(Epetra_DataAccess::View, epetra_pod_basis->RangeMap(), initial_condition.begin());
+
+    epetra_pod_basis->Multiply(true, epetra_initial_condition, epetra_reduced_solution);
+
+    this->pcout << "1..." << std::endl;
+
+    dealii::LinearAlgebra::distributed::Vector<double> initial_condition_projected(this->dg->solution);
+    initial_condition_projected *= 0;
+    Epetra_Vector epetra_projection_tmp(Epetra_DataAccess::View, epetra_pod_basis->RangeMap(), initial_condition_projected.begin());
+    epetra_pod_basis->Multiply(false, epetra_reduced_solution, epetra_projection_tmp);
+    //reference_solution += projection_tmp;
+    initial_condition_projected += reference_solution;
+    this->dg->solution = initial_condition_projected;
+
+
+
+    reduced_solution_update.reinit(pod->getPODBasis()->n());
+    reduced_solution_update *= 0;
+
     const bool do_inverse_mass_matrix = false;
     this->dg->evaluate_mass_matrices(do_inverse_mass_matrix);
 
-    this->solution_update.reinit(this->dg->right_hand_side);
-
-    reduced_solution_update = std::make_unique<dealii::LinearAlgebra::distributed::Vector<double>>(pod->getPODBasis()->n());
-    //reduced_rhs = std::make_unique<dealii::LinearAlgebra::distributed::Vector<double>>(pod->getPODBasis()->n());
-    petrov_galerkin_basis = std::make_unique<dealii::TrilinosWrappers::SparseMatrix>(pod->getPODBasis()->m(), pod->getPODBasis()->n(), pod->getPODBasis()->n());
-    reduced_lhs = std::make_unique<dealii::TrilinosWrappers::SparseMatrix>();
-    reference_solution = this->dg->solution; //Set reference solution to initial conditions
-    reduced_solution = dealii::LinearAlgebra::distributed::Vector<double>(pod->getPODBasis()->n()); //Zero if reference solution is the initial conditions
 }
 
 template class PODPetrovGalerkinODESolver<PHILIP_DIM, double, dealii::Triangulation<PHILIP_DIM>>;

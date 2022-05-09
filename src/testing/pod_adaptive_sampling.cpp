@@ -33,21 +33,15 @@ int AdaptiveSampling<dim, nstate>::run_test() const
     double tolerance = 1E-03;
     int iteration = 0;
 
-    Parameters::AllParameters params = reinitParams(max_error_params);
-    std::unique_ptr<Tests::FlowSolver<dim,nstate>> flow_solver = FlowSolverFactory<dim,nstate>::create_FlowSolver(&params, parameter_handler);
-    const dealii::LinearAlgebra::distributed::Vector<double> initial_conditions = flow_solver->dg->solution;
-
     while(max_error > tolerance){
 
         outputErrors(iteration);
 
         std::cout << "Sampling snapshot at " << max_error_params << std::endl;
-
         std::shared_ptr<ProperOrthogonalDecomposition::FOMSolution<dim,nstate>> fom_solution = solveSnapshotFOM(max_error_params);
-        dealii::LinearAlgebra::distributed::Vector<double> state_tmp = fom_solution->state;
         snapshot_parameters.conservativeResize(snapshot_parameters.rows()+1, 2);
         snapshot_parameters.row(snapshot_parameters.rows()-1) = max_error_params;
-        current_pod->addSnapshot(state_tmp -= initial_conditions);
+        current_pod->addSnapshot(fom_solution->state);
         current_pod->computeBasis();
 
         std::ofstream basis_out("POD_adaptation_basis_" + std::to_string(iteration + 1) + ".txt");
@@ -257,16 +251,10 @@ RowVector2d AdaptiveSampling<dim, nstate>::getMaxErrorROM() const{
 
 template <int dim, int nstate>
 void AdaptiveSampling<dim, nstate>::placeInitialSnapshots() const{
-    //Get initial conditions
-    Parameters::AllParameters params = reinitParams(snapshot_parameters.row(0));
-    std::unique_ptr<Tests::FlowSolver<dim,nstate>> flow_solver = FlowSolverFactory<dim,nstate>::create_FlowSolver(&params, parameter_handler);
-    const dealii::LinearAlgebra::distributed::Vector<double> initial_conditions = flow_solver->dg->solution;
-
     for(auto snap_param : snapshot_parameters.rowwise()){
         std::cout << "Sampling initial snapshot at " << snap_param << std::endl;
         std::shared_ptr<ProperOrthogonalDecomposition::FOMSolution<dim,nstate>> fom_solution = solveSnapshotFOM(snap_param);
-        dealii::LinearAlgebra::distributed::Vector<double> state_tmp = fom_solution->state;
-        current_pod->addSnapshot(state_tmp -= initial_conditions);
+        current_pod->addSnapshot(fom_solution->state);
     }
 }
 

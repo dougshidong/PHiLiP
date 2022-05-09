@@ -47,7 +47,7 @@ subsection linear solver
 end
 
 subsection ODE solver
-  set ode_output = quiet
+  #set ode_output = quiet
   set nonlinear_max_iterations = 50
   set nonlinear_steady_residual_tolerance = 1e-14
   set print_iteration_modulo  = 1

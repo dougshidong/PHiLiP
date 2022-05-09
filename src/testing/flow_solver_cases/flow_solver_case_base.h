@@ -31,7 +31,7 @@ public:
     ~FlowSolverCaseBase() {};
 
     /// Displays the flow setup parameters
-    virtual void display_flow_solver_setup() const;
+    void display_flow_solver_setup() const;
 
     /// Pure Virtual function to generate the grid
     virtual std::shared_ptr<Triangulation> generate_grid() const = 0;
@@ -68,6 +68,17 @@ protected:
             const double value,
             const std::string value_string,
             const std::shared_ptr <dealii::TableHandler> data_table) const;
+
+    /// Display additional more specific flow case parameters
+    virtual void display_additional_flow_case_specific_parameters() const = 0;
+
+private:
+    /// Returns the pde type string from the all_param class member
+    std::string get_pde_string() const;
+
+    /// Returns the flow case type string from the all_param class member
+    std::string get_flow_case_string() const;
+
 };
 
 } // Tests namespace

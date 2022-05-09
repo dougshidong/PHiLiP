@@ -110,7 +110,7 @@ int TaylorGreenVortexRestartCheck<dim, nstate>::run_test() const
     static_cast<void>(flow_solver_restart_to_complete_run->run_test());
 
     // Compute kinetic energy at final time achieved by restarting the computation
-    std::unique_ptr<PeriodicCubeFlow<dim, nstate>> flow_solver_case = std::make_unique<PeriodicCubeFlow<dim,nstate>>(this->all_parameters);
+    std::unique_ptr<PeriodicTurbulence<dim, nstate>> flow_solver_case = std::make_unique<PeriodicTurbulence<dim,nstate>>(this->all_parameters);
     flow_solver_case->compute_and_update_integrated_quantities(*(flow_solver_restart_to_complete_run->dg));
     const double kinetic_energy_computed = flow_solver_case->get_integrated_kinetic_energy();
 

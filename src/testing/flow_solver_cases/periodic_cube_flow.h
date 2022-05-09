@@ -31,6 +31,32 @@ public:
     /// Destructor
     ~PeriodicCubeFlow() {};
 
+    /// Function to generate the grid
+    std::shared_ptr<Triangulation> generate_grid() const override;
+
+protected:
+    const int number_of_cells_per_direction; ///< Number of cells per direction for the grid
+    const double domain_left; ///< Domain left-boundary value for generating the grid
+    const double domain_right; ///< Domain right-boundary value for generating the grid
+    const double domain_size; ///< Domain size (length in 1D, area in 2D, and volume in 3D)
+
+    /// Display additional more specific flow case parameters
+    virtual void display_additional_flow_case_specific_parameters() const override;
+
+    /// Display grid parameters
+    void display_grid_parameters() const;
+};
+
+template <int dim, int nstate>
+class PeriodicTurbulence : public PeriodicCubeFlow<dim,nstate>
+{
+public:
+    /// Constructor.
+    PeriodicTurbulence(const Parameters::AllParameters *const parameters_input);
+
+    /// Destructor
+    ~PeriodicTurbulence() {};
+    
     /// Computes the integrated quantities over the domain simultaneously and updates the array storing them
     void compute_and_update_integrated_quantities(DGBase<dim, double> &dg);
 
@@ -71,11 +97,6 @@ public:
     double get_deviatoric_strain_rate_tensor_based_dissipation_rate() const;
 
 protected:
-    const int number_of_cells_per_direction; ///< Number of cells per direction for the grid
-    const double domain_left; ///< Domain left-boundary value for generating the grid
-    const double domain_right; ///< Domain right-boundary value for generating the grid
-    const double domain_volume; ///< Domain volume
-    
     /// Filename (with extension) for the unsteady data table
     const std::string unsteady_data_table_filename_with_extension;
 
@@ -85,12 +106,8 @@ protected:
     bool is_taylor_green_vortex = false; ///< Identifies if taylor green vortex case; initialized as false.
     bool is_viscous_flow = true; ///< Identifies if viscous flow; initialized as true.
 
-
-    /// Displays the flow setup parameters
-    void display_flow_solver_setup() const override;
-
-    /// Function to generate the grid
-    std::shared_ptr<Triangulation> generate_grid() const override;
+    /// Display additional more specific flow case parameters
+    void display_additional_flow_case_specific_parameters() const override;
 
     /// Function to compute the constant time step
     double get_constant_time_step(std::shared_ptr<DGBase<dim,double>> dg) const override;

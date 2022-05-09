@@ -36,14 +36,19 @@ std::shared_ptr<Triangulation> BurgersViscousSnapshot<dim,nstate>::generate_grid
     const bool colorize = true;
     dealii::GridGenerator::hyper_cube(*grid, domain_left, domain_right, colorize);
     grid->refine_global(number_of_refinements);
+
+    return grid;
+}
+
+template <int dim, int nstate>
+void BurgersViscousSnapshot<dim,nstate>::display_additional_flow_case_specific_parameters(std::shared_ptr<InitialConditionFunction<dim,nstate,double>> /*initial_condition*/) const
+{
     // Display the information about the grid
     this->pcout << "\n- GRID INFORMATION:" << std::endl;
     this->pcout << "- - Domain dimensionality: " << dim << std::endl;
     this->pcout << "- - Domain left: " << domain_left << std::endl;
     this->pcout << "- - Domain right: " << domain_right << std::endl;
     this->pcout << "- - Number of refinements:  " << number_of_refinements << std::endl;
-
-    return grid;
 }
 
 template <int dim, int nstate>

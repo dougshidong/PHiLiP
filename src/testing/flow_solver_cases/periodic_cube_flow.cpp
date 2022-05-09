@@ -17,7 +17,7 @@ namespace PHiLiP {
 
 namespace Tests {
 //=========================================================
-// TURBULENCE IN PERIODIC CUBE DOMAIN
+// FLOW IN PERIODIC CUBE DOMAIN
 //=========================================================
 template <int dim, int nstate>
 PeriodicCubeFlow<dim, nstate>::PeriodicCubeFlow(const PHiLiP::Parameters::AllParameters *const parameters_input)
@@ -25,7 +25,49 @@ PeriodicCubeFlow<dim, nstate>::PeriodicCubeFlow(const PHiLiP::Parameters::AllPar
         , number_of_cells_per_direction(this->all_param.grid_refinement_study_param.grid_size)
         , domain_left(this->all_param.grid_refinement_study_param.grid_left)
         , domain_right(this->all_param.grid_refinement_study_param.grid_right)
-        , domain_volume(pow(domain_right - domain_left, dim))
+        , domain_size(pow(this->domain_right - this->domain_left, dim))
+{ }
+
+template <int dim, int nstate>
+std::shared_ptr<Triangulation> PeriodicCubeFlow<dim,nstate>::generate_grid() const
+{
+    std::shared_ptr<Triangulation> grid = std::make_shared<Triangulation> (
+#if PHILIP_DIM!=1
+            this->mpi_communicator
+#endif
+    );
+    Grids::straight_periodic_cube<dim,dealii::parallel::distributed::Triangulation<dim>>(grid, domain_left, domain_right, number_of_cells_per_direction);
+
+    return grid;
+}
+
+template <int dim, int nstate>
+void PeriodicCubeFlow<dim,nstate>::display_grid_parameters() const
+{
+    const std::string grid_type_string = "straight_periodic_cube";
+    // Display the information about the grid
+    this->pcout << "- Grid type: " << grid_type_string << std::endl;
+    this->pcout << "- - Domain dimensionality: " << dim << std::endl;
+    this->pcout << "- - Domain left: " << this->domain_left << std::endl;
+    this->pcout << "- - Domain right: " << this->domain_right << std::endl;
+    this->pcout << "- - Number of cells in each direction: " << number_of_cells_per_direction << std::endl;
+    if constexpr(dim==1) this->pcout << "- - Domain length: " << this->domain_size << std::endl;
+    if constexpr(dim==2) this->pcout << "- - Domain area: " << this->domain_size << std::endl;
+    if constexpr(dim==3) this->pcout << "- - Domain volume: " << this->domain_size << std::endl;
+}
+
+template <int dim, int nstate>
+void PeriodicCubeFlow<dim,nstate>::display_additional_flow_case_specific_parameters() const
+{
+    this->display_grid_parameters();
+}
+
+//=========================================================
+// TURBULENCE IN PERIODIC CUBE DOMAIN
+//=========================================================
+template <int dim, int nstate>
+PeriodicTurbulence<dim, nstate>::PeriodicTurbulence(const PHiLiP::Parameters::AllParameters *const parameters_input)
+        : PeriodicCubeFlow<dim, nstate>(parameters_input)
         , unsteady_data_table_filename_with_extension(this->all_param.flow_solver_param.unsteady_data_table_filename+".txt")
 {
     // Get the flow case type
@@ -33,8 +75,8 @@ PeriodicCubeFlow<dim, nstate>::PeriodicCubeFlow(const PHiLiP::Parameters::AllPar
     const FlowCaseEnum flow_type = this->all_param.flow_solver_param.flow_case_type;
 
     // Flow case identifiers
-    is_taylor_green_vortex = (flow_type == FlowCaseEnum::taylor_green_vortex);
-    is_viscous_flow = (this->all_param.pde_type == Parameters::AllParameters::PartialDifferentialEquation::navier_stokes);
+    this->is_taylor_green_vortex = (flow_type == FlowCaseEnum::taylor_green_vortex);
+    this->is_viscous_flow = (this->all_param.pde_type == Parameters::AllParameters::PartialDifferentialEquation::navier_stokes);
 
     // Navier-Stokes object; create using dynamic_pointer_cast and the create_Physics factory
     PHiLiP::Parameters::AllParameters parameters_navier_stokes = this->all_param;
@@ -50,60 +92,28 @@ PeriodicCubeFlow<dim, nstate>::PeriodicCubeFlow(const PHiLiP::Parameters::AllPar
 }
 
 template <int dim, int nstate>
-void PeriodicCubeFlow<dim,nstate>::display_flow_solver_setup() const
+void PeriodicTurbulence<dim,nstate>::display_additional_flow_case_specific_parameters() const
 {
-    using PDE_enum = Parameters::AllParameters::PartialDifferentialEquation;
-    const PDE_enum pde_type = this->all_param.pde_type;
-    std::string pde_string;
-    if (pde_type == PDE_enum::euler)                {pde_string = "euler";}
-    if (pde_type == PDE_enum::navier_stokes)        {pde_string = "navier_stokes";}
-    this->pcout << "- PDE Type: " << pde_string << std::endl;
-    this->pcout << "- Polynomial degree: " << this->all_param.grid_refinement_study_param.poly_degree << std::endl;
-    this->pcout << "- Courant-Friedrich-Lewy number: " << this->all_param.flow_solver_param.courant_friedrich_lewy_number << std::endl;
-    this->pcout << "- Final time: " << this->all_param.flow_solver_param.final_time << std::endl;
-
+    this->pcout << "- - Courant-Friedrich-Lewy number: " << this->all_param.flow_solver_param.courant_friedrich_lewy_number << std::endl;
     std::string flow_type_string;
-    if(is_taylor_green_vortex) {
-        flow_type_string = "Taylor Green Vortex";
-        this->pcout << "- Flow Case: " << flow_type_string << std::endl;
+    if(this->is_taylor_green_vortex) {
         this->pcout << "- - Freestream Reynolds number: " << this->all_param.navier_stokes_param.reynolds_number_inf << std::endl;
         this->pcout << "- - Freestream Mach number: " << this->all_param.euler_param.mach_inf << std::endl;
     }
+    this->display_grid_parameters();
 }
 
 template <int dim, int nstate>
-std::shared_ptr<Triangulation> PeriodicCubeFlow<dim,nstate>::generate_grid() const
-{
-    std::shared_ptr<Triangulation> grid = std::make_shared<Triangulation> (
-#if PHILIP_DIM!=1
-            this->mpi_communicator
-#endif
-    );
-    Grids::straight_periodic_cube<dim,dealii::parallel::distributed::Triangulation<dim>>(grid, domain_left, domain_right, number_of_cells_per_direction);
-    // Display the information about the grid
-    this->pcout << "\n- GRID INFORMATION:" << std::endl;
-    // pcout << "- - Grid type: " << grid_type_string << std::endl;
-    this->pcout << "- - Domain dimensionality: " << dim << std::endl;
-    this->pcout << "- - Domain left: " << domain_left << std::endl;
-    this->pcout << "- - Domain right: " << domain_right << std::endl;
-    this->pcout << "- - Number of cells in each direction: " << number_of_cells_per_direction << std::endl;
-    this->pcout << "- - Domain volume: " << domain_volume << std::endl;
-
-    return grid;
-}
-
-template <int dim, int nstate>
-double PeriodicCubeFlow<dim,nstate>::get_constant_time_step(std::shared_ptr<DGBase<dim,double>> dg) const
+double PeriodicTurbulence<dim,nstate>::get_constant_time_step(std::shared_ptr<DGBase<dim,double>> dg) const
 {
     const unsigned int number_of_degrees_of_freedom = dg->dof_handler.n_dofs();
-    const double approximate_grid_spacing = (domain_right-domain_left)/pow(number_of_degrees_of_freedom,(1.0/dim));
+    const double approximate_grid_spacing = (this->domain_right-this->domain_left)/pow(number_of_degrees_of_freedom,(1.0/dim));
     const double constant_time_step = this->all_param.flow_solver_param.courant_friedrich_lewy_number * approximate_grid_spacing;
     return constant_time_step;
 }
 
 template<int dim, int nstate>
-void PeriodicCubeFlow<dim, nstate>::compute_and_update_integrated_quantities(
-        DGBase<dim, double> &dg)
+void PeriodicTurbulence<dim, nstate>::compute_and_update_integrated_quantities(DGBase<dim, double> &dg) const
 {
     this->MAX_NUMBER_OF_COMPUTED_QUANTITIES = 4;
     std::array<double,4/*this->MAX_NUMBER_OF_COMPUTED_QUANTITIES*/> integral_values;
@@ -161,7 +171,7 @@ void PeriodicCubeFlow<dim, nstate>::compute_and_update_integrated_quantities(
 }
 
 template<int dim, int nstate>
-double PeriodicCubeFlow<dim, nstate>::get_integrated_kinetic_energy() const
+double PeriodicTurbulence<dim, nstate>::get_integrated_kinetic_energy() const
 {
     const double integrated_kinetic_energy = this->integrated_quantities[IntegratedQuantitiesEnum::kinetic_energy];
     // // Abort if energy is nan
@@ -174,13 +184,13 @@ double PeriodicCubeFlow<dim, nstate>::get_integrated_kinetic_energy() const
 }
 
 template<int dim, int nstate>
-double PeriodicCubeFlow<dim, nstate>::get_integrated_enstrophy() const
+double PeriodicTurbulence<dim, nstate>::get_integrated_enstrophy() const
 {
     return this->integrated_quantities[IntegratedQuantitiesEnum::enstrophy];
 }
 
 template<int dim, int nstate>
-double PeriodicCubeFlow<dim, nstate>::get_vorticity_based_dissipation_rate() const
+double PeriodicTurbulence<dim, nstate>::get_vorticity_based_dissipation_rate() const
 {
     const double integrated_enstrophy = this->integrated_quantities[IntegratedQuantitiesEnum::enstrophy];
     double vorticity_based_dissipation_rate = 0.0;
@@ -191,14 +201,14 @@ double PeriodicCubeFlow<dim, nstate>::get_vorticity_based_dissipation_rate() con
 }
 
 template<int dim, int nstate>
-double PeriodicCubeFlow<dim, nstate>::get_pressure_dilatation_based_dissipation_rate() const
+double PeriodicTurbulence<dim, nstate>::get_pressure_dilatation_based_dissipation_rate() const
 {
     const double integrated_pressure_dilatation = this->integrated_quantities[IntegratedQuantitiesEnum::pressure_dilatation];
     return (-1.0*integrated_pressure_dilatation); // See reference (listed in header file), equation (57b)
 }
 
 template<int dim, int nstate>
-double PeriodicCubeFlow<dim, nstate>::get_deviatoric_strain_rate_tensor_based_dissipation_rate() const
+double PeriodicTurbulence<dim, nstate>::get_deviatoric_strain_rate_tensor_based_dissipation_rate() const
 {
     const double integrated_deviatoric_strain_rate_tensor_magnitude_sqr = this->integrated_quantities[IntegratedQuantitiesEnum::deviatoric_strain_rate_tensor_magnitude_sqr];
     double deviatoric_strain_rate_tensor_based_dissipation_rate = 0.0;
@@ -210,20 +220,20 @@ double PeriodicCubeFlow<dim, nstate>::get_deviatoric_strain_rate_tensor_based_di
 }
 
 template <int dim, int nstate>
-void PeriodicCubeFlow<dim, nstate>::compute_unsteady_data_and_write_to_table(
+void PeriodicTurbulence<dim, nstate>::compute_unsteady_data_and_write_to_table(
         const unsigned int current_iteration,
         const double current_time,
         const std::shared_ptr <DGBase<dim, double>> dg,
         const std::shared_ptr <dealii::TableHandler> unsteady_data_table)
 {
     // Compute and update integrated quantities
-    compute_and_update_integrated_quantities(*dg);
+    this->compute_and_update_integrated_quantities(*dg);
     // Get computed quantities
-    const double integrated_kinetic_energy = get_integrated_kinetic_energy();
-    const double integrated_enstrophy = get_integrated_enstrophy();
-    const double vorticity_based_dissipation_rate = get_vorticity_based_dissipation_rate();
-    const double pressure_dilatation_based_dissipation_rate = get_pressure_dilatation_based_dissipation_rate();
-    const double deviatoric_strain_rate_tensor_based_dissipation_rate = get_deviatoric_strain_rate_tensor_based_dissipation_rate();
+    const double integrated_kinetic_energy = this->get_integrated_kinetic_energy();
+    const double integrated_enstrophy = this->get_integrated_enstrophy();
+    const double vorticity_based_dissipation_rate = this->get_vorticity_based_dissipation_rate();
+    const double pressure_dilatation_based_dissipation_rate = this->get_pressure_dilatation_based_dissipation_rate();
+    const double deviatoric_strain_rate_tensor_based_dissipation_rate = this->get_deviatoric_strain_rate_tensor_based_dissipation_rate();
 
     if(this->mpi_rank==0) {
         // Add values to data table
@@ -257,7 +267,8 @@ void PeriodicCubeFlow<dim, nstate>::compute_unsteady_data_and_write_to_table(
 }
 
 #if PHILIP_DIM==3
-    template class PeriodicCubeFlow <PHILIP_DIM,PHILIP_DIM+2>;
+template class PeriodicCubeFlow <PHILIP_DIM,PHILIP_DIM+2>;
+template class PeriodicTurbulence <PHILIP_DIM,PHILIP_DIM+2>;
 #endif
 
 } // Tests namespace

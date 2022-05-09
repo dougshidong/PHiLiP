@@ -45,10 +45,6 @@ void straight_periodic_cube(std::shared_ptr<TriangulationType> &grid,
         dealii::GridTools::collect_periodic_faces(*grid,4,5,2,matched_pairs);
         grid->add_periodicity(matched_pairs);
     }
-    else {
-    	std::cout << " ERROR: straight_periodic_cube() cannot be called for dim>3 " << std::endl;
-    	std::abort();
-    }
     grid->refine_global(number_of_refinements);
 }
 

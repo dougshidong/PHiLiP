@@ -113,7 +113,7 @@ double PeriodicTurbulence<dim,nstate>::get_constant_time_step(std::shared_ptr<DG
 }
 
 template<int dim, int nstate>
-void PeriodicTurbulence<dim, nstate>::compute_and_update_integrated_quantities(DGBase<dim, double> &dg) const
+void PeriodicTurbulence<dim, nstate>::compute_and_update_integrated_quantities(DGBase<dim, double> &dg)
 {
     this->MAX_NUMBER_OF_COMPUTED_QUANTITIES = 4;
     std::array<double,4/*this->MAX_NUMBER_OF_COMPUTED_QUANTITIES*/> integral_values;
@@ -166,7 +166,7 @@ void PeriodicTurbulence<dim, nstate>::compute_and_update_integrated_quantities(D
     // update integrated quantities
     for(int i_quantity=0; i_quantity<4/*this->MAX_NUMBER_OF_COMPUTED_QUANTITIES*/; ++i_quantity) {
         this->integrated_quantities[i_quantity] = dealii::Utilities::MPI::sum(integral_values[i_quantity], this->mpi_communicator);
-        this->integrated_quantities[i_quantity] /= domain_volume; // divide by total domain volume
+        this->integrated_quantities[i_quantity] /= this->domain_size; // divide by total domain volume
     }
 }
 

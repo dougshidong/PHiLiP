@@ -42,7 +42,7 @@ std::shared_ptr<Triangulation> BurgersRewienskiSnapshot<dim,nstate>::generate_gr
 }
 
 template <int dim, int nstate>
-void BurgersRewienskiSnapshot<dim,nstate>::display_additional_flow_case_specific_parameters(std::shared_ptr<InitialConditionFunction<dim,nstate,double>> /*initial_condition*/) const
+void BurgersRewienskiSnapshot<dim,nstate>::display_additional_flow_case_specific_parameters() const
 {
     // Display the information about the grid
     this->pcout << "\n- GRID INFORMATION:" << std::endl;

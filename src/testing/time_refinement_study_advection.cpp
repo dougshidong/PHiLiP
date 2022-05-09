@@ -1,6 +1,7 @@
 #include "time_refinement_study_advection.h"
 #include "flow_solver.h"
 #include "flow_solver_cases/periodic_cube_flow.h"
+#include "physics/exact_solutions/exact_solution.h"
 #include "cmath"
 
 namespace PHiLiP {
@@ -17,14 +18,38 @@ TimeRefinementStudy<dim, nstate>::TimeRefinementStudy(
 
 
 template <int dim, int nstate>
-Parameters::AllParameters TimeRefinementStudy<dim, nstate>::reinit_params_and_refine_timestep(int refinement) const{
-
+Parameters::AllParameters TimeRefinementStudy<dim,nstate>::reinit_params_and_refine_timestep(int refinement) const
+{
      PHiLiP::Parameters::AllParameters parameters = *(this->all_parameters);
      
      parameters.ode_solver_param.initial_time_step *= pow(refine_ratio,refinement);
      
      return parameters;
- }
+}
+
+template <int dim, int nstate>
+double TimeRefinementStudy<dim,nstate>::calculate_L2_error_at_final_time_wrt_function(std::shared_ptr<DGBase<dim,double>> dg, const Parameters::AllParameters parameters) const
+{
+
+    //generate exact solution at final time
+    std::shared_ptr<ExactSolutionFunction<dim,nstate,double>> exact_solution_function;
+    exact_solution_function = ExactSolutionFactory<dim,nstate,double>::create_ExactSolutionFunction(&parameters);
+    int poly_degree = parameters.grid_refinement_study_param.poly_degree;
+    dealii::Vector<double> difference_per_cell(dg->solution.size());
+    
+    dealii::VectorTools::integrate_difference(dg->dof_handler,    
+                                              dg->solution,
+                                              *exact_solution_function,
+                                              difference_per_cell,
+                                              dealii::QGauss<dim>(poly_degree+10), //overintegrating by 10
+                                              dealii::VectorTools::L2_norm);
+
+    double L2_error = dealii::VectorTools::compute_global_error(*dg->triangulation,
+                                                              difference_per_cell,
+                                                              dealii::VectorTools::L2_norm);
+    return L2_error;    
+
+}
 
 
 template <int dim, int nstate>
@@ -42,12 +67,13 @@ int TimeRefinementStudy<dim, nstate>::run_test() const
         
         pcout << "\n\n---------------------------------------------\n Refinement number " << refinement <<
             " of " << n_time_calculations - 1 << std::endl << "---------------------------------------------" << std::endl;
-        Parameters::AllParameters params = reinit_params_and_refine_timestep(refinement);
+        const Parameters::AllParameters params = reinit_params_and_refine_timestep(refinement);
         std::unique_ptr<FlowSolver<dim,nstate>> flow_solver = FlowSolverFactory<dim,nstate>::create_FlowSolver(&params, parameter_handler);
         static_cast<void>(flow_solver->run_test());
         
         //check L2 error
-        double L2_error = flow_solver->calculate_L2_error_at_final_time_wrt_function();
+        double L2_error = calculate_L2_error_at_final_time_wrt_function(flow_solver->dg, params);
+        pcout << "Computed error is " << L2_error << std::endl;
 
         const double dt =  params.ode_solver_param.initial_time_step;
         convergence_table.add_value("refinement", refinement);

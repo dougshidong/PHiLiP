@@ -24,7 +24,6 @@ FlowSolver<dim, nstate>::FlowSolver(
 , flow_solver_case(flow_solver_case)
 , parameter_handler(parameter_handler_input)
 , initial_condition_function(InitialConditionFactory<dim, nstate, double>::create_InitialConditionFunction(parameters_input))
-, exact_solution_function(ExactSolutionFactory<dim, nstate, double>::create_ExactSolutionFunction(parameters_input))
 , all_param(*parameters_input)
 , flow_solver_param(all_param.flow_solver_param)
 , ode_param(all_param.ode_solver_param)
@@ -325,37 +324,6 @@ void FlowSolver<dim,nstate>::output_restart_files(
     write_restart_parameter_file(current_restart_index, constant_time_step);
 }
 #endif
-
-template <int dim, int nstate>
-double FlowSolver<dim,nstate>::calculate_L2_error_at_final_time_wrt_function()
-{
-
-    //Check that ode_solver->current_time matches final_time
-    if ( (ode_solver->current_time - final_time)==0.0) {
-        pcout << "calculate_L2_error_at_final_time() has been called but \n"
-            "    current_time does not match final_time" << std::endl;
-        pcout << "current_time = " << ode_solver->current_time << 
-            "    final_time = " << final_time <<  
-            "    difference = " << (ode_solver->current_time) - final_time << std::endl;
-        return -1.0;
-    }else{
-        //current_time is okay
-        dealii::Vector<double> difference_per_cell(dg->solution.size());
-        dealii::VectorTools::integrate_difference(dg->dof_handler,
-                 dg->solution,
-                 *exact_solution_function, 
-                 difference_per_cell, 
-                 dealii::QGauss<dim>(poly_degree+10), //overintegrating by 10
-                 dealii::VectorTools::L2_norm);
-        double L2_error = dealii::VectorTools::compute_global_error(*dg->triangulation,
-                     difference_per_cell,
-                     dealii::VectorTools::L2_norm);
-        std::cout << "Computed error is " << L2_error << std::endl;
-        return L2_error;
-    }
-
-}
-
 
 template <int dim, int nstate>
 int FlowSolver<dim,nstate>::run_test() const

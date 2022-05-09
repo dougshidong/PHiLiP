@@ -3,7 +3,6 @@
 
 // for FlowSolver class:
 #include "physics/initial_conditions/initial_condition.h"
-#include "physics/exact_solutions/exact_solution.h"
 #include "tests.h"
 #include "physics/physics.h"
 #include "parameters/all_parameters.h"
@@ -26,7 +25,6 @@
 #include "ode_solver/explicit_ode_solver.h"
 #include "ode_solver/ode_solver_factory.h"
 #include "flow_solver_cases/periodic_cube_flow.h"
-//#include "flow_solver_cases/periodic_1D_flow.h"
 #include "flow_solver_cases/1D_burgers_rewienski_snapshot.h"
 #include "flow_solver_cases/1d_burgers_viscous_snapshot.h"
 #include "flow_solver_cases/naca0012.h"
@@ -75,14 +73,8 @@ public:
     /// Returns the restart filename without extension given a restart index (adds padding appropriately)
     std::string get_restart_filename_without_extension(const int restart_index_input) const;
 
-    /// Returns the L2 error between the solution at final_time and exact_solution_function
-    /** Should be called after run_test
-     */
-    double calculate_L2_error_at_final_time_wrt_function();
-
 protected:
     std::shared_ptr<InitialConditionFunction<dim,nstate,double>> initial_condition_function; ///< Initial condition function
-    std::shared_ptr<ExactSolutionFunction<dim,nstate,double>> exact_solution_function; ///< Exact Solution function
     const Parameters::AllParameters all_param; ///< All parameters
     const Parameters::FlowSolverParam flow_solver_param; ///< Flow solver parameters
     const Parameters::ODESolverParam ode_param; ///< ODE solver parameters

@@ -1,4 +1,4 @@
-#include "time_refinement_study_advection.h"
+#include "time_refinement_study.h"
 #include "flow_solver.h"
 #include "flow_solver_cases/periodic_cube_flow.h"
 #include "physics/exact_solutions/exact_solution.h"
@@ -12,7 +12,9 @@ TimeRefinementStudy<dim, nstate>::TimeRefinementStudy(
         const PHiLiP::Parameters::AllParameters *const parameters_input,
         const dealii::ParameterHandler &parameter_handler_input)  
         : TestsBase::TestsBase(parameters_input),
-         parameter_handler(parameter_handler_input)
+         parameter_handler(parameter_handler_input),
+         n_time_calculations(parameters_input->flow_solver_param.number_of_times_to_solve),
+         refine_ratio(parameters_input->flow_solver_param.refinement_ratio)
 {}
 
 
@@ -33,7 +35,7 @@ double TimeRefinementStudy<dim,nstate>::calculate_L2_error_at_final_time_wrt_fun
 
     //generate exact solution at final time
     std::shared_ptr<ExactSolutionFunction<dim,nstate,double>> exact_solution_function;
-    exact_solution_function = ExactSolutionFactory<dim,nstate,double>::create_ExactSolutionFunction(&parameters);
+    exact_solution_function = ExactSolutionFactory<dim,nstate,double>::create_ExactSolutionFunction(parameters.flow_solver_param);
     int poly_degree = parameters.grid_refinement_study_param.poly_degree;
     dealii::Vector<double> difference_per_cell(dg->solution.size());
     

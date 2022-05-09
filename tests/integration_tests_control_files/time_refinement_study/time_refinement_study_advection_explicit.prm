@@ -37,5 +37,8 @@ end
 subsection flow_solver
   set flow_case_type = advection_periodic
   set final_time = 1.0
-  set unsteady_data_table_filename = time_study_convergence
+  subsection time_refinement_study
+    set number_of_times_to_solve = 4
+    set refinement_ratio = 0.5
+  end
 end

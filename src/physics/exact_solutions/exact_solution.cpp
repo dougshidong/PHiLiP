@@ -62,14 +62,13 @@ ExactSolutionFunction<dim,nstate,real>
 template <int dim, int nstate, typename real>
 std::shared_ptr<ExactSolutionFunction<dim, nstate, real>>
 ExactSolutionFactory<dim,nstate, real>::create_ExactSolutionFunction(
-    Parameters::AllParameters const *const param)
+        const Parameters::FlowSolverParam& flow_solver_parameters)
 {
-
     //read the final time
-    const double time_compare = param->flow_solver_param.final_time;
+    const double time_compare = flow_solver_parameters.final_time;
 
     // Get the flow case type
-    const FlowCaseEnum flow_type = param->flow_solver_param.flow_case_type;
+    const FlowCaseEnum flow_type = flow_solver_parameters.flow_case_type;
     if (flow_type == FlowCaseEnum::advection_periodic) {
         if constexpr (dim==1 && nstate==dim)  return std::make_shared<ExactSolutionFunction_1DSine<dim,nstate,real> > (time_compare);
     } else {

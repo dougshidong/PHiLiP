@@ -83,6 +83,17 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                               "For integration test purposes, expected kinetic energy at final time.");
         }
         prm.leave_subsection();
+        
+        prm.enter_subsection("time_refinement_study");
+        {
+            prm.declare_entry("number_of_times_to_solve", "4",
+                              dealii::Patterns::Integer(1, dealii::Patterns::Integer::max_int_value),
+                              "Number of times to run the flow solver during a time refinement study.");
+            prm.declare_entry("refinement_ratio", "0.5",
+                              dealii::Patterns::Double(0, 1.0),
+                              "Ratio between a timestep size and the next in a time refinement study, 0<r<1.");
+        }
+        prm.leave_subsection();
     }
     prm.leave_subsection();
 }
@@ -114,6 +125,12 @@ void FlowSolverParam::parse_parameters(dealii::ParameterHandler &prm)
         prm.enter_subsection("taylor_green_vortex_energy_check");
         {
             expected_kinetic_energy_at_final_time = prm.get_double("expected_kinetic_energy_at_final_time");
+        }
+        prm.leave_subsection();
+        prm.enter_subsection("time_refinement_study");
+        {
+            number_of_times_to_solve = prm.get_integer("number_of_times_to_solve");
+            refinement_ratio = prm.get_double("refinement_ratio");
         }
         prm.leave_subsection();
     }

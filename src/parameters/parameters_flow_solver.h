@@ -51,6 +51,9 @@ public:
     int output_restart_files_every_x_steps; ///< Outputs the restart files every x steps
     double output_restart_files_every_dt_time_intervals; ///< Outputs the restart files at time intervals of dt
 
+    int number_of_times_to_solve;
+    double refinement_ratio;
+
     /// Declares the possible variables and sets the defaults.
     static void declare_parameters (dealii::ParameterHandler &prm);
 

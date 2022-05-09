@@ -15,17 +15,88 @@ PODPetrovGalerkinODESolver<dim,real,MeshType>::PODPetrovGalerkinODESolver(std::s
 {}
 
 template <int dim, typename real, typename MeshType>
-void PODPetrovGalerkinODESolver<dim,real,MeshType>::step_in_time (real dt, const bool /*pseudotime*/)
+int PODPetrovGalerkinODESolver<dim,real,MeshType>::steady_state ()
+{
+    this->pcout << " Performing steady state analysis... " << std::endl;
+    allocate_ode_system ();
+
+    this->residual_norm_decrease = 1; // Always do at least 1 iteration
+    this->current_iteration = 0;
+
+    this->pcout << " Evaluating right-hand side and setting system_matrix to Jacobian before starting iterations... " << std::endl;
+    this->dg->assemble_residual ();
+    this->residual_norm = this->dg->get_residual_l2norm();
+    this->pcout << " ********************************************************** "
+          << std::endl
+          << " Initial absolute residual norm: " << this->residual_norm
+          << std::endl;
+
+    double old_residual_norm = this->residual_norm;
+
+    while (this->residual_norm_decrease > this->ode_param.nonlinear_steady_residual_tolerance)
+    {
+        if ((this->ode_param.ode_output) == Parameters::OutputEnum::verbose
+            && (this->current_iteration%this->ode_param.print_iteration_modulo) == 0
+            && dealii::Utilities::MPI::this_mpi_process(this->mpi_communicator) == 0 )
+        {
+            this->pcout.set_condition(true);
+        } else {
+            this->pcout.set_condition(false);
+        }
+        this->pcout << " ********************************************************** "
+              << std::endl
+              << " Nonlinear iteration: " << this->current_iteration
+              << " Residual norm (normalized) : " << this->residual_norm
+              << std::endl;
+
+        if ((this->ode_param.ode_output) == Parameters::OutputEnum::verbose &&
+            (this->current_iteration%this->ode_param.print_iteration_modulo) == 0 ) {
+            this->pcout << " Evaluating right-hand side and setting system_matrix to Jacobian... " << std::endl;
+        }
+
+        if (this->residual_norm < 1e-12) {
+            this->dg->freeze_artificial_dissipation = true;
+        } else {
+            this->dg->freeze_artificial_dissipation = false;
+        }
+
+
+        const bool pseudotime = true;
+        double ramped_CFL = 0;
+        step_in_time(ramped_CFL, pseudotime);
+
+        this->dg->assemble_residual ();
+
+        this->residual_norm = this->dg->get_residual_l2norm();
+        this->residual_norm_decrease = std::abs(old_residual_norm - this->residual_norm);
+        old_residual_norm = this->residual_norm;
+    }
+
+    this->pcout << " ********************************************************** "
+          << std::endl
+          << " ODESolver steady_state stopped at"
+          << std::endl
+          << " Nonlinear iteration: " << this->current_iteration
+          << " residual norm: " << this->residual_norm
+          << std::endl
+          << " ********************************************************** "
+          << std::endl;
+
+    return 0;
+}
+
+template <int dim, typename real, typename MeshType>
+void PODPetrovGalerkinODESolver<dim,real,MeshType>::step_in_time (real /*dt*/, const bool /*pseudotime*/)
 {
     const bool compute_dRdW = true;
     this->dg->assemble_residual(compute_dRdW);
-    this->current_time += dt;
+    //this->current_time += dt;
     // Solve (M/dt - dRdW) dw = R
     // w = w + dw
 
     this->dg->system_matrix *= -1.0;
 
-    this->dg->add_mass_matrices(1.0/dt);
+    //this->dg->add_mass_matrices(1.0/dt);
 
     if ((this->ode_param.ode_output) == Parameters::OutputEnum::verbose &&
         (this->current_iteration%this->ode_param.print_iteration_modulo) == 0 ) {
@@ -100,7 +171,6 @@ void PODPetrovGalerkinODESolver<dim,real,MeshType>::step_in_time (real dt, const
 
     linesearch();
 
-    this->update_norm = this->solution_update.l2_norm();
     ++(this->current_iteration);
 }
 
@@ -110,9 +180,9 @@ double PODPetrovGalerkinODESolver<dim,real,MeshType>::linesearch()
     const dealii::LinearAlgebra::distributed::Vector<double> old_reduced_solution(reduced_solution);
     double step_length = 1.0;
 
-    const double step_reduction = 0.5;
-    const int maxline = 10;
-    const double reduction_tolerance_1 = 1.0;
+    //const double step_reduction = 0.5;
+    //const int maxline = 10;
+    //const double reduction_tolerance_1 = 1.0;
     this->pcout << "here5" << std::endl;
 
     const double initial_residual = this->dg->get_residual_l2norm();
@@ -133,7 +203,7 @@ double PODPetrovGalerkinODESolver<dim,real,MeshType>::linesearch()
     double new_residual = this->dg->get_residual_l2norm();
     this->pcout << " Step length " << step_length << ". Old residual: " << initial_residual << " New residual: " << new_residual << std::endl;
     this->pcout << "here7" << std::endl;
-
+    /*
     int iline = 0;
     for (iline = 0; iline < maxline && new_residual > initial_residual * reduction_tolerance_1; ++iline) {
         step_length = step_length * step_reduction;
@@ -147,8 +217,7 @@ double PODPetrovGalerkinODESolver<dim,real,MeshType>::linesearch()
         new_residual = this->dg->get_residual_l2norm();
         this->pcout << " Step length " << step_length << " . Old residual: " << initial_residual << " New residual: " << new_residual << std::endl;
     }
-    if (iline == 0) this->CFL_factor *= 2.0;
-
+    */
     return step_length;
 }
 

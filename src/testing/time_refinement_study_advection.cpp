@@ -76,7 +76,7 @@ int TimeRefinementStudyAdvection<dim, nstate>::run_test() const
     convergence_table.write_text(std::cout); //pcout gives an error. Shouldn't be an issue as this is 1D and doesn't use MPI
 
     std::ofstream conv_tab_file;
-    const char fname[25] = "convergence_table_1D.txt";
+    const std::string fname = "temporal_convergence_table.txt";
     conv_tab_file.open(fname);
     convergence_table.write_text(conv_tab_file);
     conv_tab_file.close();

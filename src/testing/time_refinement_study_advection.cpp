@@ -7,7 +7,7 @@ namespace PHiLiP {
 namespace Tests {
 
 template <int dim, int nstate>
-TimeRefinementStudyAdvection<dim, nstate>::TimeRefinementStudyAdvection(
+TimeRefinementStudy<dim, nstate>::TimeRefinementStudy(
         const PHiLiP::Parameters::AllParameters *const parameters_input,
         const dealii::ParameterHandler &parameter_handler_input)  
         : TestsBase::TestsBase(parameters_input),
@@ -17,7 +17,7 @@ TimeRefinementStudyAdvection<dim, nstate>::TimeRefinementStudyAdvection(
 
 
 template <int dim, int nstate>
- Parameters::AllParameters TimeRefinementStudyAdvection<dim, nstate>::reinit_params_and_refine_timestep(int refinement) const{
+Parameters::AllParameters TimeRefinementStudy<dim, nstate>::reinit_params_and_refine_timestep(int refinement) const{
 
      PHiLiP::Parameters::AllParameters parameters = *(this->all_parameters);
      
@@ -28,7 +28,7 @@ template <int dim, int nstate>
 
 
 template <int dim, int nstate>
-int TimeRefinementStudyAdvection<dim, nstate>::run_test() const
+int TimeRefinementStudy<dim, nstate>::run_test() const
 {
     int testfail = 0;
     double expected_order =(double) this->all_parameters->ode_solver_param.runge_kutta_order;
@@ -85,7 +85,7 @@ int TimeRefinementStudyAdvection<dim, nstate>::run_test() const
 }
 
 #if PHILIP_DIM==1
-    template class TimeRefinementStudyAdvection<PHILIP_DIM,PHILIP_DIM>;
+    template class TimeRefinementStudy<PHILIP_DIM,PHILIP_DIM>;
 #endif
 } // Tests namespace
 } // PHiLiP namespace

@@ -171,7 +171,7 @@ std::unique_ptr< TestsBase > TestsFactory<dim,nstate,MeshType>
     } else if(test_type == Test_enum::taylor_green_vortex_restart_check) {
         if constexpr (dim==3 && nstate==dim+2) return std::make_unique<TaylorGreenVortexRestartCheck<dim,nstate>>(parameters_input,parameter_handler_input);
     } else if(test_type == Test_enum::time_refinement_study_advection) {
-        if constexpr (dim==1 && nstate==1)  return std::make_unique<TimeRefinementStudyAdvection<dim, nstate>>(parameters_input, parameter_handler_input);
+        if constexpr (dim==1 && nstate==1)  return std::make_unique<TimeRefinementStudy<dim, nstate>>(parameters_input, parameter_handler_input);
     } else {
         std::cout << "Invalid test. You probably forgot to add it to the list of tests in tests.cpp" << std::endl;
         std::abort();

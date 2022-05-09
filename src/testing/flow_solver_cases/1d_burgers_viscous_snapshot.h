@@ -30,11 +30,6 @@ public:
     /// Destructor
     ~BurgersViscousSnapshot() {};
 
-protected:
-    const int number_of_refinements; ///< Number of cells per direction for the grid
-    const double domain_left; ///< Domain left-boundary value for generating the grid
-    const double domain_right; ///< Domain right-boundary value for generating the grid
-
     /// Virtual function to generate the grid
     std::shared_ptr<Triangulation> generate_grid() const override;
 
@@ -45,6 +40,13 @@ protected:
             const std::shared_ptr <DGBase<dim, double>> dg,
             const std::shared_ptr<dealii::TableHandler> unsteady_data_table) const override;
 
+protected:
+    const int number_of_refinements; ///< Number of cells per direction for the grid
+    const double domain_left; ///< Domain left-boundary value for generating the grid
+    const double domain_right; ///< Domain right-boundary value for generating the grid
+
+    /// Display additional more specific flow case parameters
+    void display_additional_flow_case_specific_parameters(std::shared_ptr<InitialConditionFunction<dim,nstate,double>> initial_condition) const override;
 };
 
 } // Tests namespace

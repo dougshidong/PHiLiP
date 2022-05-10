@@ -32,7 +32,9 @@ void ROMTestLocation<dim, nstate>::compute_FOM_to_initial_ROM_error(){
     //Compute dual weighted residual
     fom_to_initial_rom_error = 0;
     fom_to_initial_rom_error = -(adjoint * rom_solution->right_hand_side);
-    fom_to_initial_rom_error  = dealii::Utilities::MPI::sum(fom_to_initial_rom_error, MPI_COMM_WORLD);
+    //std::cout << "fom_to_initial_rom_error: " << fom_to_initial_rom_error << std::endl;
+    //fom_to_initial_rom_error  = dealii::Utilities::MPI::sum(fom_to_initial_rom_error, MPI_COMM_WORLD);
+    //std::cout << "fom_to_initial_rom_error: " << fom_to_initial_rom_error << std::endl;
     std::cout << "Parameter: " << parameter << ". Error estimate between ROM and FOM: " << fom_to_initial_rom_error << std::endl;
 }
 
@@ -95,7 +97,9 @@ void ROMTestLocation<dim, nstate>::compute_initial_rom_to_final_rom_error(std::s
     initial_rom_to_final_rom_error = 0;
     epetra_reduced_adjoint.Dot(epetra_reduced_residual, &initial_rom_to_final_rom_error);
     initial_rom_to_final_rom_error *= -1;
-    initial_rom_to_final_rom_error = dealii::Utilities::MPI::sum(initial_rom_to_final_rom_error, MPI_COMM_WORLD);
+    //std::cout << "initial_rom_to_final_rom_error: " << initial_rom_to_final_rom_error << std::endl;
+    //initial_rom_to_final_rom_error = dealii::Utilities::MPI::sum(initial_rom_to_final_rom_error, MPI_COMM_WORLD);
+    //std::cout << "initial_rom_to_final_rom_error: " << initial_rom_to_final_rom_error << std::endl;
     std::cout << "Parameter: " << parameter << ". Error estimate between initial ROM and updated ROM: " << initial_rom_to_final_rom_error << std::endl;
 }
 

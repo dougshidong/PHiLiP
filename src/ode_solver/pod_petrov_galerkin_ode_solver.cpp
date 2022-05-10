@@ -13,7 +13,7 @@ PODPetrovGalerkinODESolver<dim,real,MeshType>::PODPetrovGalerkinODESolver(std::s
         : ImplicitODESolver<dim,real,MeshType>(dg_input)
         , pod(pod)
 {}
-/*
+
 template <int dim, typename real, typename MeshType>
 int PODPetrovGalerkinODESolver<dim,real,MeshType>::steady_state ()
 {
@@ -69,6 +69,7 @@ int PODPetrovGalerkinODESolver<dim,real,MeshType>::steady_state ()
 
         this->residual_norm = this->dg->get_residual_l2norm();
         this->residual_norm_decrease = std::abs(old_residual_norm - this->residual_norm);
+        this->pcout << "Residual norm decrease: " << this->residual_norm_decrease << std::endl;
         old_residual_norm = this->residual_norm;
     }
 
@@ -84,7 +85,7 @@ int PODPetrovGalerkinODESolver<dim,real,MeshType>::steady_state ()
 
     return 0;
 }
-*/
+
 template <int dim, typename real, typename MeshType>
 void PODPetrovGalerkinODESolver<dim,real,MeshType>::step_in_time (real /*dt*/, const bool /*pseudotime*/)
 {
@@ -180,9 +181,9 @@ double PODPetrovGalerkinODESolver<dim,real,MeshType>::linesearch()
     const dealii::LinearAlgebra::distributed::Vector<double> old_reduced_solution(reduced_solution);
     double step_length = 1.0;
 
-    const double step_reduction = 0.5;
-    const int maxline = 10;
-    const double reduction_tolerance_1 = 1.0;
+    //const double step_reduction = 0.5;
+    //const int maxline = 10;
+    //const double reduction_tolerance_1 = 1.0;
     this->pcout << "here5" << std::endl;
 
     const double initial_residual = this->dg->get_residual_l2norm();
@@ -203,7 +204,7 @@ double PODPetrovGalerkinODESolver<dim,real,MeshType>::linesearch()
     double new_residual = this->dg->get_residual_l2norm();
     this->pcout << " Step length " << step_length << ". Old residual: " << initial_residual << " New residual: " << new_residual << std::endl;
     this->pcout << "here7" << std::endl;
-
+    /*
     int iline = 0;
     for (iline = 0; iline < maxline && new_residual > initial_residual * reduction_tolerance_1; ++iline) {
         step_length = step_length * step_reduction;
@@ -217,7 +218,7 @@ double PODPetrovGalerkinODESolver<dim,real,MeshType>::linesearch()
         new_residual = this->dg->get_residual_l2norm();
         this->pcout << " Step length " << step_length << " . Old residual: " << initial_residual << " New residual: " << new_residual << std::endl;
     }
-
+    */
     return step_length;
 }
 

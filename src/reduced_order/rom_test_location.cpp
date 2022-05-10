@@ -45,7 +45,7 @@ void ROMTestLocation<dim, nstate>::compute_initial_rom_to_final_rom_error(std::s
     Epetra_CrsMatrix *epetra_system_matrix_transpose = const_cast<Epetra_CrsMatrix *>(&(rom_solution->system_matrix_transpose->trilinos_matrix()));
 
     Epetra_CrsMatrix epetra_petrov_galerkin_basis(Epetra_DataAccess::Copy, epetra_system_matrix_transpose->DomainMap(), pod_updated->getPODBasis()->n());
-    EpetraExt::MatrixMatrix::Multiply(*epetra_system_matrix_transpose, true, *epetra_pod_basis, false, epetra_petrov_galerkin_basis, true);
+    EpetraExt::MatrixMatrix::Multiply(*epetra_system_matrix_transpose, true, *epetra_pod_basis, false, epetra_petrov_galerkin_basis, false);
 
     Epetra_MpiComm epetra_comm(MPI_COMM_WORLD);
     Epetra_Map domain_map((int)pod_updated->getPODBasis()->n(), 0, epetra_comm);
@@ -53,17 +53,17 @@ void ROMTestLocation<dim, nstate>::compute_initial_rom_to_final_rom_error(std::s
 
     std::cout << "here" << std::endl;
 
-    Epetra_Vector epetra_gradient(Epetra_DataAccess::View, epetra_petrov_galerkin_basis.RangeMap(), const_cast<double *>(rom_solution->gradient.begin()));
-    Epetra_Vector epetra_reduced_gradient(epetra_petrov_galerkin_basis.DomainMap());
+    Epetra_Vector epetra_gradient(Epetra_DataAccess::View, epetra_pod_basis->RangeMap(), const_cast<double *>(rom_solution->gradient.begin()));
+    Epetra_Vector epetra_reduced_gradient(epetra_pod_basis->DomainMap());
 
-    epetra_petrov_galerkin_basis.Multiply(true, epetra_gradient, epetra_reduced_gradient);
+    epetra_pod_basis->Multiply(true, epetra_gradient, epetra_reduced_gradient);
 
-    Epetra_CrsMatrix epetra_reduced_jacobian(Epetra_DataAccess::View, epetra_petrov_galerkin_basis.DomainMap(), pod_updated->getPODBasis()->n());
-    EpetraExt::MatrixMatrix::Multiply(epetra_petrov_galerkin_basis, true, epetra_petrov_galerkin_basis, false, epetra_reduced_jacobian);
+    Epetra_CrsMatrix epetra_reduced_jacobian_transpose(Epetra_DataAccess::View, epetra_petrov_galerkin_basis.DomainMap(), pod_updated->getPODBasis()->n());
+    EpetraExt::MatrixMatrix::Multiply(epetra_petrov_galerkin_basis, true, epetra_petrov_galerkin_basis, false, epetra_reduced_jacobian_transpose);
 
-    Epetra_Vector epetra_reduced_adjoint(epetra_reduced_jacobian.DomainMap());
+    Epetra_Vector epetra_reduced_adjoint(epetra_reduced_jacobian_transpose.DomainMap());
     epetra_reduced_gradient.Scale(-1);
-    Epetra_LinearProblem linearProblem(&epetra_reduced_jacobian, &epetra_reduced_adjoint, &epetra_reduced_gradient);
+    Epetra_LinearProblem linearProblem(&epetra_reduced_jacobian_transpose, &epetra_reduced_adjoint, &epetra_reduced_gradient);
 
     Amesos_BaseSolver* Solver;
     Amesos Factory;
@@ -80,6 +80,16 @@ void ROMTestLocation<dim, nstate>::compute_initial_rom_to_final_rom_error(std::s
     Epetra_Vector epetra_reduced_residual(epetra_petrov_galerkin_basis.DomainMap());
     Epetra_Vector epetra_residual(Epetra_DataAccess::View, epetra_petrov_galerkin_basis.RangeMap(), const_cast<double *>(rom_solution->right_hand_side.begin()));
     epetra_petrov_galerkin_basis.Multiply(true, epetra_residual, epetra_reduced_residual);
+
+    std::cout << "Reduced adjoint: " << std::endl;
+    epetra_reduced_adjoint.Print(std::cout);
+
+    std::cout << "Reduced gradient: " << std::endl;
+    epetra_reduced_gradient.Print(std::cout);
+
+    std::cout << "Reduced residual: " << std::endl;
+    epetra_reduced_residual.Print(std::cout);
+
 
     //Compute dual weighted residual
     initial_rom_to_final_rom_error = 0;

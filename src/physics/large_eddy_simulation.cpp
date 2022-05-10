@@ -51,16 +51,16 @@ real2 LargeEddySimulationBase<dim,nstate,real>
 ::get_tensor_magnitude_sqr (
     const std::array<dealii::Tensor<1,dim,real2>,dim> &tensor) const
 {
-    real2 tensor_magnitude; // complex initializes it as 0+0i
+    real2 tensor_magnitude_sqr; // complex initializes it as 0+0i
     if(std::is_same<real2,real>::value){
-        tensor_magnitude = 0.0;
+        tensor_magnitude_sqr = 0.0;
     }
     for (int i=0; i<dim; ++i) {
         for (int j=0; j<dim; ++j) {
-            tensor_magnitude += tensor[i][j]*tensor[i][j];
+            tensor_magnitude_sqr += tensor[i][j]*tensor[i][j];
         }
     }
-    return tensor_magnitude;
+    return tensor_magnitude_sqr;
 }
 //----------------------------------------------------------------
 template <int dim, int nstate, typename real>

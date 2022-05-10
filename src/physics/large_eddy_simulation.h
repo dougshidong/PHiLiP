@@ -85,7 +85,7 @@ public:
         const dealii::types::global_dof_index cell_index) const = 0;
 
 protected:
-    /// Returns the square of the magnitude of the tensor
+    /// Returns the square of the magnitude of the tensor (i.e. the double dot product of a tensor with itself)
     template<typename real2> 
     real2 get_tensor_magnitude_sqr (const std::array<dealii::Tensor<1,dim,real2>,dim> &tensor) const;
 

@@ -113,7 +113,7 @@ public:
     /** Evaluate the deviatoric strain-rate tensor from conservative variables and gradient of conservative variables
      *  -- Reference: Pope, Stephen B., "Turbulent Flows", Cambridge University Press (2000). Eq.(2.70)
      * */
-    std::array<dealii::Tensor<1,dim,real>,dim> compute_deviatoric_strain_rate_tensor (
+    dealii::Tensor<2,dim,real> compute_deviatoric_strain_rate_tensor (
         const std::array<real,nstate> &conservative_soln,
         const std::array<dealii::Tensor<1,dim,real>,nstate> &conservative_soln_gradient) const;
 
@@ -134,7 +134,7 @@ public:
 
     /** Extract gradient of velocities */
     template<typename real2>
-    std::array<dealii::Tensor<1,dim,real2>,dim> 
+    dealii::Tensor<2,dim,real2> 
     extract_velocities_gradient_from_primitive_solution_gradient (
     	const std::array<dealii::Tensor<1,dim,real2>,nstate> &primitive_soln_gradient) const;
 
@@ -142,7 +142,7 @@ public:
      *  Reference: Masatsuka 2018 "I do like CFD", p.148, eq.(4.14.12)
      */
     template<typename real2>
-    std::array<dealii::Tensor<1,dim,real2>,dim> 
+    dealii::Tensor<2,dim,real2>
     compute_viscous_stress_tensor (
     const std::array<real2,nstate> &primitive_soln,
     const std::array<dealii::Tensor<1,dim,real2>,nstate> &primitive_soln_gradient) const;
@@ -243,7 +243,7 @@ protected:
 
 private:
     /// Returns the square of the magnitude of the tensor (i.e. the double dot product of a tensor with itself)
-    real get_tensor_magnitude_sqr (const std::array<dealii::Tensor<1,dim,real>,dim> &tensor) const;
+    real get_tensor_magnitude_sqr (const dealii::Tensor<2,dim,real> &tensor) const;
 
 };
 

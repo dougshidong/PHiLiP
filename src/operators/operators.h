@@ -510,7 +510,7 @@ public:
     ///Computes the physical gradient operator scaled by the determinant of the metric Jacobian. 
     /**By default we should use the skew-symmetric form for curvilinear elements. For the metric split-form, pass "use_curvilinear_split_form" in parameters. Explicitly, the skew-symmetric form's first component is the gradient operator and the second is the divergence operator. 
     * Using \f$\mathbf{\phi}\f$ as the flux basis collocated on the volume cubature nodes, the output of the function is \f$ D_i = \frac{1}{2} \sum_{j=1}^{d}(J\frac{\partial \xi_j}{\partial x_i})\frac{\partial \phi(\mathbf{\xi}_v^r)}{\partial \xi_j}  + \frac{\partial \phi(\mathbf{\xi}_v^r)}{\partial \xi_j}(J\frac{\partial \xi_j}{\partial x_i})\f$. 
-    * Since this operator can also compute either the divergence or the gradoent, pass the option of whether to compute the conservative divergence operator or the gradient operator. For definitions of gradient and divergence operators, please see Equations (10) and (11) in Cicchino, Alexander, et al. "Provably Stable Flux Reconstruction High-Order Methods on Curvilinear Elements." arXiv preprint arXiv:2109.11617 (2021).
+    * Since this operator can also compute either the divergence or the gradoent, pass the option of whether to compute the conservative divergence operator or the gradient operator. For definitions of gradient and divergence operators, please see Equations (10) and (11) in Cicchino, Alexander, et al. "Provably stable flux reconstruction high-order methods on curvilinear elements." Journal of Computational Physics (2022): 111259. 
     */
     void get_Jacobian_scaled_physical_gradient(
                                     const bool use_conservative_divergence,

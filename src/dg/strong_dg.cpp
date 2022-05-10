@@ -1110,7 +1110,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_volume_term_explicit(
         }
     }
     //Note that this does curvilinear metric splitting built in.
-    //For details on the metric split-form, divergence, and gradient representations please refer to Cicchino, Alexander, et al. "Provably Stable Flux Reconstruction High-Order Methods on Curvilinear Elements."
+    //For details on the metric split-form, divergence, and gradient representations please refer to Cicchino, Alexander, et al. "Provably stable flux reconstruction high-order methods on curvilinear elements." Journal of Computational Physics (2022): 111259. 
     this->operators_state->get_Jacobian_scaled_physical_gradient(true, this->operators_state->gradient_flux_basis[poly_degree], metric_cofactor, n_quad_pts, physical_gradient); 
 
     // AD variable

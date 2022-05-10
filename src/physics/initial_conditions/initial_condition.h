@@ -1,5 +1,5 @@
-#ifndef __INITIAL_CONDITION_BASE_H__
-#define __INITIAL_CONDITION_BASE_H__
+#ifndef __INITIAL_CONDITION_H__
+#define __INITIAL_CONDITION_H__
 
 #include <deal.II/lac/vector.h>
 #include <deal.II/base/function.h>
@@ -10,18 +10,18 @@
 
 namespace PHiLiP {
 
-///Initial Condition Base class.
+///Initial Condition class.
 
 template <int dim, int nstate, typename real>
-class InitialConditionBase
+class InitialCondition
 {
 public:
     ///Constructor
-    InitialConditionBase(
+    InitialCondition(
         std::shared_ptr< PHiLiP::DGBase<dim, real> > dg_input,
         const Parameters::AllParameters *const parameters_input);
     ///Destructor
-    ~InitialConditionBase();
+    ~InitialCondition();
 
     ///Input parameters.
     const Parameters::AllParameters *const all_parameters;

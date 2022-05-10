@@ -20,7 +20,7 @@
 #include "ode_solver/ode_solver_base.h"
 #include <fstream>
 #include "ode_solver/ode_solver_factory.h"
-#include "physics/initial_conditions/initial_condition_base.h"
+#include "physics/initial_conditions/initial_condition.h"
 
 
 namespace PHiLiP {
@@ -159,7 +159,7 @@ int ConvectionDiffusionPeriodic<dim, nstate>::run_test() const
     pcout << "dg created" <<std::endl;
     dg->allocate_system ();
 
-    InitialConditionBase<dim,nstate,double> initial_condition(dg, &all_parameters_new);
+    InitialCondition<dim,nstate,double> initial_condition(dg, &all_parameters_new);
 
     // Create ODE solver using the factory and providing the DG object
     std::shared_ptr<ODE::ODESolverBase<dim, double>> ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);

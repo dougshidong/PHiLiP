@@ -1,14 +1,14 @@
 #include <deal.II/base/function.h>
 #include <deal.II/numerics/vector_tools.h>
 #include <deal.II/numerics/solution_transfer.h>
-#include "initial_condition_base.h"
+#include "initial_condition.h"
 #include "dg/dg.h"
 
 namespace PHiLiP{
 
 //Constructor
 template<int dim, int nstate, typename real>
-InitialConditionBase<dim,nstate,real>::InitialConditionBase(
+InitialCondition<dim,nstate,real>::InitialCondition(
         std::shared_ptr< PHiLiP::DGBase<dim, real> > dg_input,
         const Parameters::AllParameters *const parameters_input)
         : all_parameters(parameters_input)
@@ -27,11 +27,11 @@ InitialConditionBase<dim,nstate,real>::InitialConditionBase(
 
 //Destructor
 template<int dim, int nstate, typename real>
-InitialConditionBase<dim,nstate,real>::~InitialConditionBase ()
+InitialCondition<dim,nstate,real>::~InitialCondition()
 {}
 
 template<int dim, int nstate, typename real>
-void InitialConditionBase<dim,nstate,real>::interpolate_initial_condition(
+void InitialCondition<dim,nstate,real>::interpolate_initial_condition(
         std::shared_ptr < PHiLiP::DGBase<dim,real> > &dg) 
 {
     dealii::LinearAlgebra::distributed::Vector<double> solution_no_ghost;
@@ -41,7 +41,7 @@ void InitialConditionBase<dim,nstate,real>::interpolate_initial_condition(
 }
 
 template<int dim, int nstate, typename real>
-void InitialConditionBase<dim,nstate,real>::project_initial_condition(
+void InitialCondition<dim,nstate,real>::project_initial_condition(
         std::shared_ptr < PHiLiP::DGBase<dim,real> > &dg) 
 {
     //Note that for curvilinear, can't use dealii interpolate since it doesn't project at the correct order.
@@ -79,10 +79,10 @@ void InitialConditionBase<dim,nstate,real>::project_initial_condition(
 
 }
 
-template class InitialConditionBase<PHILIP_DIM, 1, double>;
-template class InitialConditionBase<PHILIP_DIM, 2, double>;
-template class InitialConditionBase<PHILIP_DIM, 3, double>;
-template class InitialConditionBase<PHILIP_DIM, 4, double>;
-template class InitialConditionBase<PHILIP_DIM, 5, double>;
+template class InitialCondition<PHILIP_DIM, 1, double>;
+template class InitialCondition<PHILIP_DIM, 2, double>;
+template class InitialCondition<PHILIP_DIM, 3, double>;
+template class InitialCondition<PHILIP_DIM, 4, double>;
+template class InitialCondition<PHILIP_DIM, 5, double>;
 
 }//end of namespace PHILIP

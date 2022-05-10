@@ -1,5 +1,5 @@
 set(INITIAL_CONDITIONS_SOURCE
-    initial_condition_base.cpp
+    initial_condition.cpp
     initial_condition_function.cpp
     )
 

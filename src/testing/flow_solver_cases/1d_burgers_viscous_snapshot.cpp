@@ -41,7 +41,7 @@ std::shared_ptr<Triangulation> BurgersViscousSnapshot<dim,nstate>::generate_grid
 }
 
 template <int dim, int nstate>
-void BurgersViscousSnapshot<dim,nstate>::display_additional_flow_case_specific_parameters(std::shared_ptr<InitialConditionFunction<dim,nstate,double>> /*initial_condition*/) const
+void BurgersViscousSnapshot<dim,nstate>::display_additional_flow_case_specific_parameters() const
 {
     // Display the information about the grid
     this->pcout << "\n- GRID INFORMATION:" << std::endl;
@@ -56,7 +56,7 @@ void BurgersViscousSnapshot<dim, nstate>::compute_unsteady_data_and_write_to_tab
         const unsigned int current_iteration,
         const double current_time,
         const std::shared_ptr <DGBase<dim, double>> dg,
-        const std::shared_ptr <dealii::TableHandler> unsteady_data_table) const
+        const std::shared_ptr <dealii::TableHandler> unsteady_data_table)
 {
     if (this->all_param.ode_solver_param.output_solution_vector_modulo > 0) {
         if (current_iteration % this->all_param.ode_solver_param.output_solution_vector_modulo == 0) {

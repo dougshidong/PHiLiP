@@ -62,6 +62,7 @@ void ROMTestLocation<dim, nstate>::compute_initial_rom_to_final_rom_error(std::s
     EpetraExt::MatrixMatrix::Multiply(epetra_petrov_galerkin_basis, true, epetra_petrov_galerkin_basis, false, epetra_reduced_jacobian);
 
     Epetra_Vector epetra_reduced_adjoint(epetra_reduced_jacobian.DomainMap());
+    epetra_reduced_gradient.Scale(-1);
     Epetra_LinearProblem linearProblem(&epetra_reduced_jacobian, &epetra_reduced_adjoint, &epetra_reduced_gradient);
 
     Amesos_BaseSolver* Solver;
@@ -83,7 +84,8 @@ void ROMTestLocation<dim, nstate>::compute_initial_rom_to_final_rom_error(std::s
     //Compute dual weighted residual
     initial_rom_to_final_rom_error = 0;
     epetra_reduced_adjoint.Dot(epetra_reduced_residual, &initial_rom_to_final_rom_error);
-
+    initial_rom_to_final_rom_error *= -1;
+    initial_rom_to_final_rom_error = dealii::Utilities::MPI::sum(initial_rom_to_final_rom_error, MPI_COMM_WORLD);
     std::cout << "Parameter: " << parameter << ". Error estimate between initial ROM and updated ROM: " << initial_rom_to_final_rom_error << std::endl;
 }
 

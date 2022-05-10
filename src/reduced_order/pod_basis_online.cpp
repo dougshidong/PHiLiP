@@ -31,9 +31,9 @@ void OnlinePOD<dim>::computeBasis() {
 
     VectorXd reference_state = snapshotMatrix.rowwise().mean();
 
-    //for(unsigned int i = 0 ; i < reference_state.size() ; i++){
-    //    reference_state(i) = 1;
-    //}
+    for(unsigned int i = 0 ; i < reference_state.size() ; i++){
+        reference_state(i) = 1;
+    }
 
     referenceState.reinit(reference_state.size());
     for(unsigned int i = 0 ; i < reference_state.size() ; i++){

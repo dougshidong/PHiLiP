@@ -29,10 +29,6 @@ public:
     /// Destructor
     ~NACA0012() {};
 
-protected:
-    /// Displays the flow setup parameters
-    void display_flow_solver_setup(std::shared_ptr<InitialConditionFunction<dim,nstate,double>> initial_condition) const override;
-
     /// Function to generate the grid
     std::shared_ptr<Triangulation> generate_grid() const override;
 
@@ -42,6 +38,9 @@ protected:
     /// Will compute and print lift and drag coefficients
     void steady_state_postprocessing(std::shared_ptr <DGBase<dim, double>> dg) const override;
 
+protected:
+    /// Display additional more specific flow case parameters
+    void display_additional_flow_case_specific_parameters() const override;
 };
 
 } // Tests namespace

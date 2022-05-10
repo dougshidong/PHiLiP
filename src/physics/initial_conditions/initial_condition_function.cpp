@@ -3,7 +3,7 @@
 
 namespace PHiLiP {
 // ========================================================
-// TAYLOR GREEN VORTEX -- Initial Condition
+// TAYLOR GREEN VORTEX -- Initial Condition (Uniform density)
 // ========================================================
 template <int dim, int nstate, typename real>
 InitialConditionFunction_TaylorGreenVortex<dim,nstate,real>
@@ -14,9 +14,7 @@ InitialConditionFunction_TaylorGreenVortex<dim,nstate,real>
     , gamma_gas(gamma_gas)
     , mach_inf(mach_inf)
     , mach_inf_sqr(mach_inf*mach_inf)
-{
-    // Nothing to do here yet
-}
+{}
 
 template <int dim, int nstate, typename real>
 real InitialConditionFunction_TaylorGreenVortex<dim,nstate,real>
@@ -29,7 +27,7 @@ real InitialConditionFunction_TaylorGreenVortex<dim,nstate,real>
 
         if(istate==0) {
             // density
-            value = 1.0;
+            value = this->density(point);
         }
         if(istate==1) {
             // x-velocity
@@ -45,7 +43,7 @@ real InitialConditionFunction_TaylorGreenVortex<dim,nstate,real>
         }
         if(istate==4) {
             // pressure
-            value = 1.0/(gamma_gas*mach_inf_sqr) + (1.0/16.0)*(cos(2.0*x)+cos(2.0*y))*(cos(2.0*z)+2.0);
+            value = 1.0/(this->gamma_gas*this->mach_inf_sqr) + (1.0/16.0)*(cos(2.0*x)+cos(2.0*y))*(cos(2.0*z)+2.0);
         }
     }
     return value;
@@ -69,7 +67,7 @@ real InitialConditionFunction_TaylorGreenVortex<dim,nstate,real>
         if(istate==1) value = rho*u; // x-momentum
         if(istate==2) value = rho*v; // y-momentum
         if(istate==3) value = rho*w; // z-momentum
-        if(istate==4) value = p/(1.4-1.0) + 0.5*rho*(u*u + v*v + w*w); // total energy
+        if(istate==4) value = p/(this->gamma_gas-1.0) + 0.5*rho*(u*u + v*v + w*w); // total energy
     }
 
     return value;
@@ -81,6 +79,40 @@ inline real InitialConditionFunction_TaylorGreenVortex<dim, nstate, real>
 {
     real value = 0.0;
     value = convert_primitive_to_conversative_value(point,istate);
+    return value;
+}
+
+template <int dim, int nstate, typename real>
+real InitialConditionFunction_TaylorGreenVortex<dim,nstate,real>
+::density(const dealii::Point<dim,real> &/*point*/) const
+{
+    // Note: This is in non-dimensional form (free-stream values as reference)
+    real value = 0.;
+    // density
+    value = 1.0;
+    return value;
+}
+
+// ========================================================
+// TAYLOR GREEN VORTEX -- Initial Condition (Isothermal density)
+// ========================================================
+template <int dim, int nstate, typename real>
+InitialConditionFunction_TaylorGreenVortex_Isothermal<dim,nstate,real>
+::InitialConditionFunction_TaylorGreenVortex_Isothermal (
+    const double       gamma_gas,
+    const double       mach_inf)
+    : InitialConditionFunction_TaylorGreenVortex<dim,nstate,real>(gamma_gas,mach_inf)
+{}
+
+template <int dim, int nstate, typename real>
+real InitialConditionFunction_TaylorGreenVortex_Isothermal<dim,nstate,real>
+::density(const dealii::Point<dim,real> &point) const
+{
+    // Note: This is in non-dimensional form (free-stream values as reference)
+    real value = 0.;
+    // density
+    value = this->primitive_value(point, 4); // get pressure
+    value *= this->gamma_gas*this->mach_inf_sqr;
     return value;
 }
 
@@ -272,9 +304,19 @@ InitialConditionFactory<dim,nstate, real>::create_InitialConditionFunction(
     // Get the flow case type
     const FlowCaseEnum flow_type = param->flow_solver_param.flow_case_type;
     if (flow_type == FlowCaseEnum::taylor_green_vortex) {
-        if constexpr (dim==3 && nstate==dim+2) return std::make_shared<InitialConditionFunction_TaylorGreenVortex<dim,nstate,real> >(
+        if constexpr (dim==3 && nstate==dim+2){ 
+            // Get the density initial condition type
+            const DensityInitialConditionEnum density_initial_condition_type = param->flow_solver_param.density_initial_condition_type;
+            if(density_initial_condition_type == DensityInitialConditionEnum::uniform) {
+                return std::make_shared<InitialConditionFunction_TaylorGreenVortex<dim,nstate,real> >(
                     param->euler_param.gamma_gas,
                     param->euler_param.mach_inf);
+            } else if (density_initial_condition_type == DensityInitialConditionEnum::isothermal) {
+                return std::make_shared<InitialConditionFunction_TaylorGreenVortex_Isothermal<dim,nstate,real> >(
+                    param->euler_param.gamma_gas,
+                    param->euler_param.mach_inf);
+            }
+        }
     } else if (flow_type == FlowCaseEnum::burgers_rewienski_snapshot) {
         if constexpr (dim==1 && nstate==dim)  return std::make_shared<InitialConditionFunction_BurgersRewienski<dim,nstate,real> > ();
     } else if (flow_type == FlowCaseEnum::burgers_viscous_snapshot) {
@@ -325,6 +367,7 @@ template class InitialConditionFactory <PHILIP_DIM, 5, double>;
 template class InitialConditionFunction_BurgersViscous<PHILIP_DIM, PHILIP_DIM, double>;
 template class InitialConditionFunction_BurgersRewienski<PHILIP_DIM, PHILIP_DIM, double>;
 template class InitialConditionFunction_TaylorGreenVortex <PHILIP_DIM,PHILIP_DIM+2,double>;
+template class InitialConditionFunction_TaylorGreenVortex_Isothermal <PHILIP_DIM,PHILIP_DIM+2,double>;
 template class InitialConditionFunction_Zero <PHILIP_DIM,1, double>;
 template class InitialConditionFunction_Zero <PHILIP_DIM,2, double>;
 template class InitialConditionFunction_Zero <PHILIP_DIM,3, double>;

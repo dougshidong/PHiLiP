@@ -28,27 +28,22 @@ NACA0012<dim, nstate>::NACA0012(const PHiLiP::Parameters::AllParameters *const p
 }
 
 template <int dim, int nstate>
-void NACA0012<dim,nstate>::display_flow_solver_setup(std::shared_ptr<InitialConditionFunction<dim,nstate,double>> initial_condition) const
+void NACA0012<dim,nstate>::display_additional_flow_case_specific_parameters() const
 {
     using PDE_enum = Parameters::AllParameters::PartialDifferentialEquation;
     const PDE_enum pde_type = this->all_param.pde_type;
-    const double pi = atan(1.0) * 4.0;
-    std::string pde_string;
-    if (pde_type == PDE_enum::euler)                {pde_string = "euler";}
-    if (pde_type == PDE_enum::navier_stokes)        {pde_string = "navier_stokes";}
-    this->pcout << "- PDE Type: " << pde_string << std::endl;
-    this->pcout << "- Polynomial degree: " << this->all_param.grid_refinement_study_param.poly_degree << std::endl;
     if (pde_type == PDE_enum::navier_stokes){
-        this->pcout << "- Freestream Reynolds number: " << this->all_param.navier_stokes_param.reynolds_number_inf << std::endl;
+        this->pcout << "- - Freestream Reynolds number: " << this->all_param.navier_stokes_param.reynolds_number_inf << std::endl;
     }
-    this->pcout << "- Courant-Friedrich-Lewy number: " << this->all_param.flow_solver_param.courant_friedrich_lewy_number << std::endl;
-    this->pcout << "- Freestream Mach number: " << this->all_param.euler_param.mach_inf << std::endl;
-    this->pcout << "- Angle of attack: " << this->all_param.euler_param.angle_of_attack*180/pi << std::endl;
-    this->pcout << "- Side-slip angle: " << this->all_param.euler_param.side_slip_angle*180/pi << std::endl;
-    this->pcout << "- Farfield conditions: " << std::endl;
+    this->pcout << "- - Courant-Friedrich-Lewy number: " << this->all_param.flow_solver_param.courant_friedrich_lewy_number << std::endl;
+    this->pcout << "- - Freestream Mach number: " << this->all_param.euler_param.mach_inf << std::endl;
+    const double pi = atan(1.0) * 4.0;
+    this->pcout << "- - Angle of attack [deg]: " << this->all_param.euler_param.angle_of_attack*180/pi << std::endl;
+    this->pcout << "- - Side-slip angle [deg]: " << this->all_param.euler_param.side_slip_angle*180/pi << std::endl;
+    this->pcout << "- - Farfield conditions: " << std::endl;
     const dealii::Point<dim> dummy_point;
     for (int s=0;s<nstate;s++) {
-        this->pcout << "  - State " << s << "; Value: " << initial_condition->value(dummy_point, s) << std::endl;
+        this->pcout << "- - - State " << s << "; Value: " << this->initial_condition_function->value(dummy_point, s) << std::endl;
     }
 }
 

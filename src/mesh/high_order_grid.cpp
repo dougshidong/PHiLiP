@@ -1081,7 +1081,7 @@ void HighOrderGrid<dim,real,MeshType,VectorType,DoFHandlerType>::update_surface_
 
         n_locally_owned_surface_nodes_per_mpi.clear();
         n_locally_owned_surface_nodes_per_mpi.resize(n_mpi);
-        MPI_Allgather(&n_locally_owned_surface_nodes, 1, MPI::UNSIGNED, &(n_locally_owned_surface_nodes_per_mpi[0]), 1, MPI::UNSIGNED, MPI_COMM_WORLD);
+        MPI_Allgather(&n_locally_owned_surface_nodes, 1, MPI_UNSIGNED, &(n_locally_owned_surface_nodes_per_mpi[0]), 1, MPI_UNSIGNED, MPI_COMM_WORLD);
 
         std::vector<std::vector<real>> vector_locally_owned_surface_nodes(n_mpi);
         std::vector<std::vector<unsigned int>> vector_locally_owned_surface_indices(n_mpi);
@@ -1097,7 +1097,7 @@ void HighOrderGrid<dim,real,MeshType,VectorType,DoFHandlerType>::update_surface_
 
         for (int i_mpi=0; i_mpi<n_mpi; ++i_mpi) {
             MPI_Bcast(&(vector_locally_owned_surface_nodes[i_mpi][0]), n_locally_owned_surface_nodes_per_mpi[i_mpi], MPI_DOUBLE, i_mpi, MPI_COMM_WORLD);
-            MPI_Bcast(&(vector_locally_owned_surface_indices[i_mpi][0]), n_locally_owned_surface_nodes_per_mpi[i_mpi], MPI::UNSIGNED, i_mpi, MPI_COMM_WORLD);
+            MPI_Bcast(&(vector_locally_owned_surface_indices[i_mpi][0]), n_locally_owned_surface_nodes_per_mpi[i_mpi], MPI_UNSIGNED, i_mpi, MPI_COMM_WORLD);
         }
 
         all_surface_nodes = flatten(vector_locally_owned_surface_nodes);
@@ -1127,7 +1127,7 @@ void HighOrderGrid<dim,real,MeshType,VectorType,DoFHandlerType>::update_surface_
         }
 
         std::vector<unsigned int> n_locally_relevant_surface_nodes_per_mpi(n_mpi);
-        MPI_Allgather(&n_locally_relevant_surface_nodes, 1, MPI::UNSIGNED, &(n_locally_relevant_surface_nodes_per_mpi[0]), 1, MPI::UNSIGNED, MPI_COMM_WORLD);
+        MPI_Allgather(&n_locally_relevant_surface_nodes, 1, MPI_UNSIGNED, &(n_locally_relevant_surface_nodes_per_mpi[0]), 1, MPI_UNSIGNED, MPI_COMM_WORLD);
 
     }
 

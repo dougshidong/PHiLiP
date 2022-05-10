@@ -57,7 +57,7 @@ public:
     }
 };
 
-/// Initial Condition Function: Taylor Green Vortex
+/// Initial Condition Function: Taylor Green Vortex (uniform density)
 template <int dim, int nstate, typename real>
 class InitialConditionFunction_TaylorGreenVortex: public InitialConditionFunction<dim,nstate,real>
 {
@@ -65,7 +65,7 @@ protected:
     using dealii::Function<dim,real>::value; ///< dealii::Function we are templating on
 
 public:
-    /// Constructor for TaylorGreenVortex_InitialCondition
+    /// Constructor for TaylorGreenVortex_InitialCondition with uniform density
     /** Calls the Function(const unsigned int n_components) constructor in deal.II
      *  This sets the public attribute n_components = nstate, which can then be accessed
      *  by all the other functions
@@ -89,6 +89,34 @@ protected:
     
     /// Converts value from: primitive to conservative
     real convert_primitive_to_conversative_value(const dealii::Point<dim,real> &point, const unsigned int istate = 0) const;
+
+    /// Value of initial condition for density
+    virtual real density(const dealii::Point<dim,real> &point) const;
+};
+
+/// Initial Condition Function: Taylor Green Vortex (isothermal density)
+template <int dim, int nstate, typename real>
+class InitialConditionFunction_TaylorGreenVortex_Isothermal
+    : public InitialConditionFunction_TaylorGreenVortex<dim,nstate,real>
+{
+public:
+    /// Constructor for TaylorGreenVortex_InitialCondition with isothermal density
+    /** Calls the Function(const unsigned int n_components) constructor in deal.II
+     *  This sets the public attribute n_components = nstate, which can then be accessed
+     *  by all the other functions
+     *  -- Reference: (1) Cox, Christopher, et al. "Accuracy, stability, and performance comparison 
+     *                    between the spectral difference and flux reconstruction schemes." 
+     *                    Computers & Fluids 221 (2021): 104922.
+     *                (2) Brian Vermeire 2014 Thesis  
+     *  These initial conditions are given in nondimensional form (free-stream as reference)
+     */
+    InitialConditionFunction_TaylorGreenVortex_Isothermal (
+        const double       gamma_gas = 1.4,
+        const double       mach_inf = 0.1);
+
+protected:
+    /// Value of initial condition for density
+    real density(const dealii::Point<dim,real> &point) const override;
 };
 
 /// Initial Condition Function: 1D Burgers Rewienski
@@ -215,6 +243,8 @@ class InitialConditionFactory
 protected:    
     /// Enumeration of all flow solver initial conditions types defined in the Parameters class
     using FlowCaseEnum = Parameters::FlowSolverParam::FlowCaseType;
+    /// Enumeration of all taylor green vortex initial condition sub-types defined in the Parameters class
+    using DensityInitialConditionEnum = Parameters::FlowSolverParam::DensityInitialConditionType;
 
 public:
     /// Construct InitialConditionFunction object from global parameter file

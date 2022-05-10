@@ -203,6 +203,9 @@ public:
     /// Store flux reconstruction type
     Flux_Reconstruction_Aux flux_reconstruction_aux_type;
 
+    /// Name of directory for writing solution vtk files
+    std::string solution_vtk_files_directory_name;
+
     /// Declare parameters that can be set as inputs and set up the default options
     /** This subroutine should call the sub-parameter classes static declare_parameters()
       * such that each sub-parameter class is responsible to declare their own parameters.

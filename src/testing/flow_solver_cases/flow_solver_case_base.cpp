@@ -5,7 +5,8 @@ namespace Tests {
 
 template<int dim, int nstate>
 FlowSolverCaseBase<dim, nstate>::FlowSolverCaseBase(const PHiLiP::Parameters::AllParameters *const parameters_input)
-        : all_param(*parameters_input)
+        : initial_condition_function(InitialConditionFactory<dim, nstate, double>::create_InitialConditionFunction(parameters_input))
+        , all_param(*parameters_input)
         , mpi_communicator(MPI_COMM_WORLD)
         , mpi_rank(dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD))
         , n_mpi(dealii::Utilities::MPI::n_mpi_processes(MPI_COMM_WORLD))
@@ -51,7 +52,7 @@ std::string FlowSolverCaseBase<dim, nstate>::get_flow_case_string() const
 }
 
 template <int dim, int nstate>
-void FlowSolverCaseBase<dim,nstate>::display_flow_solver_setup(std::shared_ptr<InitialConditionFunction<dim,nstate,double>> initial_condition) const
+void FlowSolverCaseBase<dim,nstate>::display_flow_solver_setup() const
 {
     const std::string pde_string = this->get_pde_string();
     pcout << "- PDE Type: " << pde_string << " " << "(dim=" << dim << ", nstate=" << nstate << ")" << std::endl;
@@ -65,7 +66,7 @@ void FlowSolverCaseBase<dim,nstate>::display_flow_solver_setup(std::shared_ptr<I
         pcout << "- - Final time: " << this->all_param.flow_solver_param.final_time << std::endl;
     }
 
-    this->display_additional_flow_case_specific_parameters(initial_condition);
+    this->display_additional_flow_case_specific_parameters();
 }
 
 template <int dim, int nstate>
@@ -92,11 +93,21 @@ void FlowSolverCaseBase<dim, nstate>::compute_unsteady_data_and_write_to_table(
         const unsigned int /*current_iteration*/,
         const double /*current_time*/,
         const std::shared_ptr <DGBase<dim, double>> /*dg*/,
-        const std::shared_ptr <dealii::TableHandler> /*unsteady_data_table*/) const
+        const std::shared_ptr <dealii::TableHandler> /*unsteady_data_table*/)
 {
     // do nothing by default
 }
 
+template <int dim, int nstate>
+void FlowSolverCaseBase<dim, nstate>::add_value_to_data_table(
+    const double value,
+    const std::string value_string,
+    const std::shared_ptr <dealii::TableHandler> data_table) const
+{
+    data_table->add_value(value_string, value);
+    data_table->set_precision(value_string, 16);
+    data_table->set_scientific(value_string, true);
+}
 
 #if PHILIP_DIM==1
 template class FlowSolverCaseBase<PHILIP_DIM,PHILIP_DIM>;

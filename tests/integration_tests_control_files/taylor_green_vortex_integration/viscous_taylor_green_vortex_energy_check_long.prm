@@ -53,7 +53,7 @@ subsection flow_solver
   set final_time = 4.0005346370569432e+00
   set courant_friedrich_lewy_number = 0.005
   set unsteady_data_table_filename = tgv_kinetic_energy_vs_time_table_for_energy_check
-  subsection taylor_green_vortex_energy_check
+  subsection taylor_green_vortex
     set expected_kinetic_energy_at_final_time = 1.0848940550514036e-01
   end
 end

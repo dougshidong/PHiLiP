@@ -28,7 +28,7 @@ NACA0012<dim, nstate>::NACA0012(const PHiLiP::Parameters::AllParameters *const p
 }
 
 template <int dim, int nstate>
-void NACA0012<dim,nstate>::display_additional_flow_case_specific_parameters(std::shared_ptr<InitialConditionFunction<dim,nstate,double>> initial_condition) const
+void NACA0012<dim,nstate>::display_additional_flow_case_specific_parameters() const
 {
     using PDE_enum = Parameters::AllParameters::PartialDifferentialEquation;
     const PDE_enum pde_type = this->all_param.pde_type;
@@ -43,7 +43,7 @@ void NACA0012<dim,nstate>::display_additional_flow_case_specific_parameters(std:
     this->pcout << "- - Farfield conditions: " << std::endl;
     const dealii::Point<dim> dummy_point;
     for (int s=0;s<nstate;s++) {
-        this->pcout << "- - - State " << s << "; Value: " << initial_condition->value(dummy_point, s) << std::endl;
+        this->pcout << "- - - State " << s << "; Value: " << this->initial_condition_function->value(dummy_point, s) << std::endl;
     }
 }
 

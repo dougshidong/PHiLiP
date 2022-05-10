@@ -38,7 +38,7 @@ public:
             const unsigned int current_iteration,
             const double current_time,
             const std::shared_ptr <DGBase<dim, double>> dg,
-            const std::shared_ptr<dealii::TableHandler> unsteady_data_table) const override;
+            const std::shared_ptr<dealii::TableHandler> unsteady_data_table) override;
 
 protected:
     const int number_of_refinements; ///< Number of cells per direction for the grid
@@ -46,7 +46,7 @@ protected:
     const double domain_right; ///< Domain right-boundary value for generating the grid
 
     /// Display additional more specific flow case parameters
-    void display_additional_flow_case_specific_parameters(std::shared_ptr<InitialConditionFunction<dim,nstate,double>> initial_condition) const override;
+    void display_additional_flow_case_specific_parameters() const override;
 };
 
 } // Tests namespace

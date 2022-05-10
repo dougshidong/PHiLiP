@@ -143,7 +143,7 @@ int test (
 
             const bool local_isnonzero = sparsity_pattern.exists(iw,jw);
             bool global_isnonzero;
-            MPI_Allreduce(&local_isnonzero, &global_isnonzero, 1, MPI::BOOL, MPI_LOR, MPI_COMM_WORLD);
+            MPI_Allreduce(&local_isnonzero, &global_isnonzero, 1, MPI_C_BOOL, MPI_LOR, MPI_COMM_WORLD);
             if (!global_isnonzero) continue;
 
             const bool iw_relevant = dg->locally_relevant_dofs.is_element(iw);

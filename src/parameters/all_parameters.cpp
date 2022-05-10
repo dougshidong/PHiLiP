@@ -194,6 +194,10 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       "Dissipative numerical flux. "
                       "Choices are <symm_internal_penalty | bassi_rebay_2>.");
 
+    prm.declare_entry("solution_vtk_files_directory_name", ".",
+                      dealii::Patterns::FileName(dealii::Patterns::FileName::FileType::input),
+                      "Name of directory for writing solution vtk files. Current directory by default.");
+
     Parameters::LinearSolverParam::declare_parameters (prm);
     Parameters::ManufacturedConvergenceStudyParam::declare_parameters (prm);
     Parameters::ODESolverParam::declare_parameters (prm);
@@ -338,6 +342,7 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     if (flux_reconstruction_aux_string == "kPlus")              flux_reconstruction_aux_type = kPlus;
     if (flux_reconstruction_aux_string == "k10Thousand")        flux_reconstruction_aux_type = k10Thousand;
 
+    solution_vtk_files_directory_name = prm.get("solution_vtk_files_directory_name");
 
     pcout << "Parsing linear solver subsection..." << std::endl;
     linear_solver_param.parse_parameters (prm);

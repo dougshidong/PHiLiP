@@ -49,14 +49,8 @@ void ROMTestLocation<dim, nstate>::compute_initial_rom_to_final_rom_error(std::s
     Epetra_CrsMatrix *epetra_pod_basis = const_cast<Epetra_CrsMatrix *>(&(pod_updated->getPODBasis()->trilinos_matrix()));
     Epetra_CrsMatrix *epetra_system_matrix_transpose = const_cast<Epetra_CrsMatrix *>(&(rom_solution->system_matrix_transpose->trilinos_matrix()));
 
-    Epetra_CrsMatrix epetra_petrov_galerkin_basis(Epetra_DataAccess::Copy, epetra_system_matrix_transpose->DomainMap(), pod_updated->getPODBasis()->n());
-    EpetraExt::MatrixMatrix::Multiply(*epetra_system_matrix_transpose, true, *epetra_pod_basis, false, epetra_petrov_galerkin_basis, false);
-
-    Epetra_MpiComm epetra_comm(MPI_COMM_WORLD);
-    Epetra_Map domain_map((int)pod_updated->getPODBasis()->n(), 0, epetra_comm);
-    epetra_petrov_galerkin_basis.FillComplete(domain_map, epetra_system_matrix_transpose->DomainMap());
-
-    pcout << "here" << std::endl;
+    Epetra_CrsMatrix epetra_petrov_galerkin_basis(Epetra_DataAccess::View, epetra_system_matrix_transpose->DomainMap(), pod_updated->getPODBasis()->n());
+    EpetraExt::MatrixMatrix::Multiply(*epetra_system_matrix_transpose, true, *epetra_pod_basis, false, epetra_petrov_galerkin_basis, true);
 
     Epetra_Vector epetra_gradient(Epetra_DataAccess::View, epetra_pod_basis->RangeMap(), const_cast<double *>(rom_solution->gradient.begin()));
     Epetra_Vector epetra_reduced_gradient(epetra_pod_basis->DomainMap());
@@ -75,8 +69,6 @@ void ROMTestLocation<dim, nstate>::compute_initial_rom_to_final_rom_error(std::s
     std::string SolverType = "Klu";
     Solver = Factory.Create(SolverType, linearProblem);
     Teuchos::ParameterList List;
-    List.set("PrintTiming", true);
-    List.set("PrintStatus", true);
     Solver->SetParameters(List);
     Solver->SymbolicFactorization();
     Solver->NumericFactorization();
@@ -86,14 +78,14 @@ void ROMTestLocation<dim, nstate>::compute_initial_rom_to_final_rom_error(std::s
     Epetra_Vector epetra_residual(Epetra_DataAccess::View, epetra_petrov_galerkin_basis.RangeMap(), const_cast<double *>(rom_solution->right_hand_side.begin()));
     epetra_petrov_galerkin_basis.Multiply(true, epetra_residual, epetra_reduced_residual);
 
-    pcout << "Reduced adjoint: " << std::endl;
-    epetra_reduced_adjoint.Print(std::cout);
+    //pcout << "Reduced adjoint: " << std::endl;
+    //epetra_reduced_adjoint.Print(std::cout);
 
-    pcout << "Reduced gradient: " << std::endl;
-    epetra_reduced_gradient.Print(std::cout);
+    //pcout << "Reduced gradient: " << std::endl;
+    //epetra_reduced_gradient.Print(std::cout);
 
-    pcout << "Reduced residual: " << std::endl;
-    epetra_reduced_residual.Print(std::cout);
+    //pcout << "Reduced residual: " << std::endl;
+    //epetra_reduced_residual.Print(std::cout);
 
 
     //Compute dual weighted residual
@@ -104,6 +96,8 @@ void ROMTestLocation<dim, nstate>::compute_initial_rom_to_final_rom_error(std::s
     //initial_rom_to_final_rom_error = dealii::Utilities::MPI::sum(initial_rom_to_final_rom_error, MPI_COMM_WORLD);
     //std::cout << "initial_rom_to_final_rom_error: " << initial_rom_to_final_rom_error << std::endl;
     pcout << "Parameter: " << parameter << ". Error estimate between initial ROM and updated ROM: " << initial_rom_to_final_rom_error << std::endl;
+
+    delete Solver;
 }
 
 template <int dim, int nstate>

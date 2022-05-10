@@ -112,21 +112,14 @@ void PODPetrovGalerkinODESolver<dim,real,MeshType>::step_in_time (real /*dt*/, c
     //Petrov-Galerkin projection, petrov_galerkin_basis = V^T*J^T, pod basis V, system matrix J
     //V^T*J*V*p = -V^T*R
 
-
     Epetra_CrsMatrix *epetra_system_matrix = const_cast<Epetra_CrsMatrix *>(&(this->dg->system_matrix.trilinos_matrix()));
     Epetra_Map system_matrix_rowmap = epetra_system_matrix->RowMap();
 
     Epetra_CrsMatrix *epetra_pod_basis = const_cast<Epetra_CrsMatrix *>(&(pod->getPODBasis()->trilinos_matrix()));
 
-    Epetra_CrsMatrix epetra_petrov_galerkin_basis(Epetra_DataAccess::Copy, system_matrix_rowmap, pod->getPODBasis()->n());
+    Epetra_CrsMatrix epetra_petrov_galerkin_basis(Epetra_DataAccess::View, system_matrix_rowmap, pod->getPODBasis()->n());
 
-    EpetraExt::MatrixMatrix::Multiply(*epetra_system_matrix, false, *epetra_pod_basis, false, epetra_petrov_galerkin_basis, false);
-
-    Epetra_MpiComm epetra_comm(MPI_COMM_WORLD);
-    Epetra_Map domain_map((int)pod->getPODBasis()->n(), 0, epetra_comm);
-    epetra_petrov_galerkin_basis.FillComplete(domain_map, system_matrix_rowmap);
-
-    std::cout << "here" << std::endl;
+    EpetraExt::MatrixMatrix::Multiply(*epetra_system_matrix, false, *epetra_pod_basis, false, epetra_petrov_galerkin_basis, true);
 
     Epetra_Vector epetra_right_hand_side(Epetra_DataAccess::View, epetra_system_matrix->RowMap(), this->dg->right_hand_side.begin());
 
@@ -134,7 +127,7 @@ void PODPetrovGalerkinODESolver<dim,real,MeshType>::step_in_time (real /*dt*/, c
 
     epetra_petrov_galerkin_basis.Multiply(true, epetra_right_hand_side, epetra_reduced_rhs);
 
-    Epetra_CrsMatrix epetra_reduced_lhs(Epetra_DataAccess::Copy, epetra_petrov_galerkin_basis.DomainMap(), pod->getPODBasis()->n());
+    Epetra_CrsMatrix epetra_reduced_lhs(Epetra_DataAccess::View, epetra_petrov_galerkin_basis.DomainMap(), pod->getPODBasis()->n());
 
     EpetraExt::MatrixMatrix::Multiply(epetra_petrov_galerkin_basis, true, epetra_petrov_galerkin_basis, false, epetra_reduced_lhs);
 
@@ -149,30 +142,19 @@ void PODPetrovGalerkinODESolver<dim,real,MeshType>::step_in_time (real /*dt*/, c
     Solver = Factory.Create(SolverType, linearProblem);
 
     Teuchos::ParameterList List;
-    List.set("PrintTiming", true);
-    List.set("PrintStatus", true);
     Solver->SetParameters(List);
 
-    this->pcout << "Starting symbolic factorization..." << std::endl;
     Solver->SymbolicFactorization();
-
-    // you can change the matrix values here
-    this->pcout << "Starting numeric factorization..." << std::endl;
     Solver->NumericFactorization();
-
-    // you can change LHS and RHS here
-    this->pcout << "Starting solution phase..." << std::endl;
     Solver->Solve();
-
-    //delete Solver;
-    //delete epetra_pod_basis;
-    //delete epetra_system_matrix;
 
     this->pcout << "Reduced solution update norm: " << reduced_solution_update.l2_norm() << std::endl;
 
     linesearch();
 
     ++(this->current_iteration);
+
+    delete Solver;
 }
 
 template <int dim, typename real, typename MeshType>
@@ -184,26 +166,20 @@ double PODPetrovGalerkinODESolver<dim,real,MeshType>::linesearch()
     //const double step_reduction = 0.5;
     //const int maxline = 10;
     //const double reduction_tolerance_1 = 1.0;
-    this->pcout << "here5" << std::endl;
 
     const double initial_residual = this->dg->get_residual_l2norm();
     reduced_solution.add(step_length, this->reduced_solution_update);
-    this->pcout << "here5" << std::endl;
 
     Epetra_CrsMatrix *epetra_pod_basis = const_cast<Epetra_CrsMatrix *>(&(pod->getPODBasis()->trilinos_matrix()));
     Epetra_Vector epetra_reduced_solution(Epetra_DataAccess::View, epetra_pod_basis->DomainMap(), reduced_solution.begin());
     Epetra_Vector solution(Epetra_DataAccess::View, epetra_pod_basis->RangeMap(), this->dg->solution.begin());
     //Epetra_Vector solution(epetra_pod_basis->RangeMap());
-    this->pcout << "here5.1" << std::endl;
     epetra_pod_basis->Multiply(false, epetra_reduced_solution, solution);
-    this->pcout << "here5.2" << std::endl;
     this->dg->solution += reference_solution;
-    this->pcout << "here6" << std::endl;
 
     this->dg->assemble_residual();
     double new_residual = this->dg->get_residual_l2norm();
     this->pcout << " Step length " << step_length << ". Old residual: " << initial_residual << " New residual: " << new_residual << std::endl;
-    this->pcout << "here7" << std::endl;
     /*
     int iline = 0;
     for (iline = 0; iline < maxline && new_residual > initial_residual * reduction_tolerance_1; ++iline) {
@@ -219,6 +195,7 @@ double PODPetrovGalerkinODESolver<dim,real,MeshType>::linesearch()
         this->pcout << " Step length " << step_length << " . Old residual: " << initial_residual << " New residual: " << new_residual << std::endl;
     }
     */
+
     return step_length;
 }
 
@@ -229,7 +206,6 @@ void PODPetrovGalerkinODESolver<dim,real,MeshType>::allocate_ode_system ()
     this->pcout << "Allocating ODE system and evaluating mass matrix..." << std::endl;
     reference_solution = this->dg->solution;
     reference_solution.import(pod->getReferenceState(), dealii::VectorOperation::values::insert);
-    this->pcout << "0..." << std::endl;
 
     dealii::LinearAlgebra::distributed::Vector<double> initial_condition(this->dg->solution);
     initial_condition -= reference_solution;
@@ -242,8 +218,6 @@ void PODPetrovGalerkinODESolver<dim,real,MeshType>::allocate_ode_system ()
 
     epetra_pod_basis->Multiply(true, epetra_initial_condition, epetra_reduced_solution);
 
-    this->pcout << "1..." << std::endl;
-
     dealii::LinearAlgebra::distributed::Vector<double> initial_condition_projected(this->dg->solution);
     initial_condition_projected *= 0;
     Epetra_Vector epetra_projection_tmp(Epetra_DataAccess::View, epetra_pod_basis->RangeMap(), initial_condition_projected.begin());
@@ -251,8 +225,6 @@ void PODPetrovGalerkinODESolver<dim,real,MeshType>::allocate_ode_system ()
     //reference_solution += projection_tmp;
     initial_condition_projected += reference_solution;
     this->dg->solution = initial_condition_projected;
-
-
 
     reduced_solution_update.reinit(pod->getPODBasis()->n());
     reduced_solution_update *= 0;

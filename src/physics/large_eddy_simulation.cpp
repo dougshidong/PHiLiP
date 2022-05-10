@@ -49,7 +49,7 @@ template <int dim, int nstate, typename real>
 template<typename real2>
 real2 LargeEddySimulationBase<dim,nstate,real>
 ::get_tensor_magnitude_sqr (
-    const std::array<dealii::Tensor<1,dim,real2>,dim> &tensor) const
+    const dealii::Tensor<2,dim,real2> &tensor) const
 {
     real2 tensor_magnitude_sqr; // complex initializes it as 0+0i
     if(std::is_same<real2,real>::value){
@@ -101,7 +101,7 @@ std::array<dealii::Tensor<1,dim,real2>,nstate> LargeEddySimulationBase<dim,nstat
     // Step 3: Viscous stress tensor, Velocities, Heat flux
     const dealii::Tensor<1,dim,real2> vel = this->navier_stokes_physics->extract_velocities_from_primitive(primitive_soln); // from Euler
     // Templated virtual member functions
-    std::array<dealii::Tensor<1,dim,real2>,dim> viscous_stress_tensor;
+    dealii::Tensor<2,dim,real2> viscous_stress_tensor;
     dealii::Tensor<1,dim,real2> heat_flux;
     if constexpr(std::is_same<real2,real>::value){ 
         viscous_stress_tensor = compute_SGS_stress_tensor(primitive_soln, primitive_soln_gradient,cell_index);
@@ -451,10 +451,10 @@ real2 LargeEddySimulation_Smagorinsky<dim,nstate,real>
     //        --> Solution is to simply dimensionalize the strain_rate_tensor and do eddy_viscosity/free_stream_eddy_viscosity
     //        (2) Will also have to further compute the "scaled" eddy_viscosity wrt the free stream Reynolds number
     // Get velocity gradient
-    const std::array<dealii::Tensor<1,dim,real2>,dim> vel_gradient 
+    const dealii::Tensor<2,dim,real2> vel_gradient 
         = this->navier_stokes_physics->extract_velocities_gradient_from_primitive_solution_gradient(primitive_soln_gradient);
     // Get strain rate tensor
-    const std::array<dealii::Tensor<1,dim,real2>,dim> strain_rate_tensor 
+    const dealii::Tensor<2,dim,real2> strain_rate_tensor 
         = this->navier_stokes_physics->compute_strain_rate_tensor(vel_gradient);
     
     // Product of the model constant (Cs) and the filter width (delta)
@@ -537,7 +537,7 @@ dealii::Tensor<1,dim,real2> LargeEddySimulation_Smagorinsky<dim,nstate,real>
 }
 //----------------------------------------------------------------
 template <int dim, int nstate, typename real>
-std::array<dealii::Tensor<1,dim,real>,dim> LargeEddySimulation_Smagorinsky<dim,nstate,real>
+dealii::Tensor<2,dim,real> LargeEddySimulation_Smagorinsky<dim,nstate,real>
 ::compute_SGS_stress_tensor (
     const std::array<real,nstate> &primitive_soln,
     const std::array<dealii::Tensor<1,dim,real>,nstate> &primitive_soln_gradient,
@@ -547,7 +547,7 @@ std::array<dealii::Tensor<1,dim,real>,dim> LargeEddySimulation_Smagorinsky<dim,n
 }
 //----------------------------------------------------------------
 template <int dim, int nstate, typename real>
-std::array<dealii::Tensor<1,dim,FadType>,dim> LargeEddySimulation_Smagorinsky<dim,nstate,real>
+dealii::Tensor<2,dim,FadType> LargeEddySimulation_Smagorinsky<dim,nstate,real>
 ::compute_SGS_stress_tensor_fad (
     const std::array<FadType,nstate> &primitive_soln,
     const std::array<dealii::Tensor<1,dim,FadType>,nstate> &primitive_soln_gradient,
@@ -558,7 +558,7 @@ std::array<dealii::Tensor<1,dim,FadType>,dim> LargeEddySimulation_Smagorinsky<di
 //----------------------------------------------------------------
 template <int dim, int nstate, typename real>
 template<typename real2>
-std::array<dealii::Tensor<1,dim,real2>,dim> LargeEddySimulation_Smagorinsky<dim,nstate,real>
+dealii::Tensor<2,dim,real2> LargeEddySimulation_Smagorinsky<dim,nstate,real>
 ::compute_SGS_stress_tensor_templated (
     const std::array<real2,nstate> &primitive_soln,
     const std::array<dealii::Tensor<1,dim,real2>,nstate> &primitive_soln_gradient,
@@ -581,15 +581,15 @@ std::array<dealii::Tensor<1,dim,real2>,dim> LargeEddySimulation_Smagorinsky<dim,
     const real2 scaled_eddy_viscosity = scale_eddy_viscosity_templated<real2>(primitive_soln,eddy_viscosity);
 
     // Get velocity gradients
-    const std::array<dealii::Tensor<1,dim,real2>,dim> vel_gradient 
+    const dealii::Tensor<2,dim,real2> vel_gradient 
         = this->navier_stokes_physics->extract_velocities_gradient_from_primitive_solution_gradient(primitive_soln_gradient);
     
     // Get strain rate tensor
-    const std::array<dealii::Tensor<1,dim,real2>,dim> strain_rate_tensor 
+    const dealii::Tensor<2,dim,real2> strain_rate_tensor 
         = this->navier_stokes_physics->compute_strain_rate_tensor(vel_gradient);
 
     // Compute the SGS stress tensor via the eddy_viscosity and the strain rate tensor
-    std::array<dealii::Tensor<1,dim,real2>,dim> SGS_stress_tensor;
+    dealii::Tensor<2,dim,real2> SGS_stress_tensor;
     SGS_stress_tensor = this->navier_stokes_physics->compute_viscous_stress_tensor_via_viscosity_and_strain_rate_tensor(scaled_eddy_viscosity,strain_rate_tensor);
 
     return SGS_stress_tensor;
@@ -660,9 +660,9 @@ real2 LargeEddySimulation_WALE<dim,nstate,real>
     //        (2) Figure out how to nondimensionalize the eddy_viscosity since strain_rate_tensor is nondimensional but filter_width is not
     //        --> Solution is to simply dimensionalize the strain_rate_tensor and do eddy_viscosity/free_stream_eddy_viscosity
     //        (3) Will also have to further compute the "scaled" eddy_viscosity wrt the free stream Reynolds number
-    const std::array<dealii::Tensor<1,dim,real2>,dim> vel_gradient 
+    const dealii::Tensor<2,dim,real2> vel_gradient 
         = this->navier_stokes_physics->extract_velocities_gradient_from_primitive_solution_gradient(primitive_soln_gradient);
-    const std::array<dealii::Tensor<1,dim,real2>,dim> strain_rate_tensor 
+    const dealii::Tensor<2,dim,real2> strain_rate_tensor 
         = this->navier_stokes_physics->compute_strain_rate_tensor(vel_gradient);
     
     // Product of the model constant (Cs) and the filter width (delta)
@@ -672,7 +672,7 @@ real2 LargeEddySimulation_WALE<dim,nstate,real>
      *  Reference: Nicoud and Ducros (1999) - Equation (10)
      */
     // -- Compute $\bm{g}^{2}$
-    std::array<dealii::Tensor<1,dim,real2>,dim> g_sqr; // $g_{ij}^{2}$
+    dealii::Tensor<2,dim,real2> g_sqr; // $g_{ij}^{2}$
     for (int i=0; i<dim; ++i) {
         for (int j=0; j<dim; ++j) {
             
@@ -688,7 +688,7 @@ real2 LargeEddySimulation_WALE<dim,nstate,real>
     for (int k=0; k<dim; ++k) {
         trace_g_sqr += g_sqr[k][k];
     }
-    std::array<dealii::Tensor<1,dim,real2>,dim> traceless_symmetric_square_of_velocity_gradient_tensor;
+    dealii::Tensor<2,dim,real2> traceless_symmetric_square_of_velocity_gradient_tensor;
     for (int i=0; i<dim; ++i) {
         for (int j=0; j<dim; ++j) {
             traceless_symmetric_square_of_velocity_gradient_tensor[i][j] = 0.5*(g_sqr[i][j]+g_sqr[j][i]);
@@ -733,16 +733,16 @@ template class LargeEddySimulation_WALE        < PHILIP_DIM, PHILIP_DIM+2, RadFa
 // Templated members used by derived classes, defined in respective parent classes
 //-------------------------------------------------------------------------------------
 // -- get_tensor_magnitude_sqr()
-template double     LargeEddySimulationBase < PHILIP_DIM, PHILIP_DIM+2, double     >::get_tensor_magnitude_sqr< double     >(const std::array<dealii::Tensor<1,PHILIP_DIM,double    >, PHILIP_DIM> &tensor) const;
-template FadType    LargeEddySimulationBase < PHILIP_DIM, PHILIP_DIM+2, FadType    >::get_tensor_magnitude_sqr< FadType    >(const std::array<dealii::Tensor<1,PHILIP_DIM,FadType   >, PHILIP_DIM> &tensor) const;
-template RadType    LargeEddySimulationBase < PHILIP_DIM, PHILIP_DIM+2, RadType    >::get_tensor_magnitude_sqr< RadType    >(const std::array<dealii::Tensor<1,PHILIP_DIM,RadType   >, PHILIP_DIM> &tensor) const;
-template FadFadType LargeEddySimulationBase < PHILIP_DIM, PHILIP_DIM+2, FadFadType >::get_tensor_magnitude_sqr< FadFadType >(const std::array<dealii::Tensor<1,PHILIP_DIM,FadFadType>, PHILIP_DIM> &tensor) const;
-template RadFadType LargeEddySimulationBase < PHILIP_DIM, PHILIP_DIM+2, RadFadType >::get_tensor_magnitude_sqr< RadFadType >(const std::array<dealii::Tensor<1,PHILIP_DIM,RadFadType>, PHILIP_DIM> &tensor) const;
+template double     LargeEddySimulationBase < PHILIP_DIM, PHILIP_DIM+2, double     >::get_tensor_magnitude_sqr< double     >(const dealii::Tensor<2,PHILIP_DIM,double    > &tensor) const;
+template FadType    LargeEddySimulationBase < PHILIP_DIM, PHILIP_DIM+2, FadType    >::get_tensor_magnitude_sqr< FadType    >(const dealii::Tensor<2,PHILIP_DIM,FadType   > &tensor) const;
+template RadType    LargeEddySimulationBase < PHILIP_DIM, PHILIP_DIM+2, RadType    >::get_tensor_magnitude_sqr< RadType    >(const dealii::Tensor<2,PHILIP_DIM,RadType   > &tensor) const;
+template FadFadType LargeEddySimulationBase < PHILIP_DIM, PHILIP_DIM+2, FadFadType >::get_tensor_magnitude_sqr< FadFadType >(const dealii::Tensor<2,PHILIP_DIM,FadFadType> &tensor) const;
+template RadFadType LargeEddySimulationBase < PHILIP_DIM, PHILIP_DIM+2, RadFadType >::get_tensor_magnitude_sqr< RadFadType >(const dealii::Tensor<2,PHILIP_DIM,RadFadType> &tensor) const;
 // -- -- instantiate all the real types with real2 = FadType for automatic differentiation
-template FadType    LargeEddySimulationBase < PHILIP_DIM, PHILIP_DIM+2, double     >::get_tensor_magnitude_sqr< FadType    >(const std::array<dealii::Tensor<1,PHILIP_DIM,FadType   >, PHILIP_DIM> &tensor) const;
-template FadType    LargeEddySimulationBase < PHILIP_DIM, PHILIP_DIM+2, RadType    >::get_tensor_magnitude_sqr< FadType    >(const std::array<dealii::Tensor<1,PHILIP_DIM,FadType   >, PHILIP_DIM> &tensor) const;
-template FadType    LargeEddySimulationBase < PHILIP_DIM, PHILIP_DIM+2, FadFadType >::get_tensor_magnitude_sqr< FadType    >(const std::array<dealii::Tensor<1,PHILIP_DIM,FadType   >, PHILIP_DIM> &tensor) const;
-template FadType    LargeEddySimulationBase < PHILIP_DIM, PHILIP_DIM+2, RadFadType >::get_tensor_magnitude_sqr< FadType    >(const std::array<dealii::Tensor<1,PHILIP_DIM,FadType   >, PHILIP_DIM> &tensor) const;
+template FadType    LargeEddySimulationBase < PHILIP_DIM, PHILIP_DIM+2, double     >::get_tensor_magnitude_sqr< FadType    >(const dealii::Tensor<2,PHILIP_DIM,FadType   > &tensor) const;
+template FadType    LargeEddySimulationBase < PHILIP_DIM, PHILIP_DIM+2, RadType    >::get_tensor_magnitude_sqr< FadType    >(const dealii::Tensor<2,PHILIP_DIM,FadType   > &tensor) const;
+template FadType    LargeEddySimulationBase < PHILIP_DIM, PHILIP_DIM+2, FadFadType >::get_tensor_magnitude_sqr< FadType    >(const dealii::Tensor<2,PHILIP_DIM,FadType   > &tensor) const;
+template FadType    LargeEddySimulationBase < PHILIP_DIM, PHILIP_DIM+2, RadFadType >::get_tensor_magnitude_sqr< FadType    >(const dealii::Tensor<2,PHILIP_DIM,FadType   > &tensor) const;
 
 
 } // Physics namespace

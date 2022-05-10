@@ -61,7 +61,7 @@ public:
     double get_filter_width (const dealii::types::global_dof_index cell_index) const;
 
     /// Nondimensionalized sub-grid scale (SGS) stress tensor, (tau^sgs)*
-    virtual std::array<dealii::Tensor<1,dim,real>,dim> compute_SGS_stress_tensor (
+    virtual dealii::Tensor<2,dim,real> compute_SGS_stress_tensor (
         const std::array<real,nstate> &primitive_soln,
         const std::array<dealii::Tensor<1,dim,real>,nstate> &primitive_soln_gradient,
         const dealii::types::global_dof_index cell_index) const = 0;
@@ -73,7 +73,7 @@ public:
         const dealii::types::global_dof_index cell_index) const = 0;
 
     /// Nondimensionalized sub-grid scale (SGS) stress tensor, (tau^sgs)* (Automatic Differentiation Type: FadType)
-    virtual std::array<dealii::Tensor<1,dim,FadType>,dim> compute_SGS_stress_tensor_fad (
+    virtual dealii::Tensor<2,dim,FadType> compute_SGS_stress_tensor_fad (
         const std::array<FadType,nstate> &primitive_soln,
         const std::array<dealii::Tensor<1,dim,FadType>,nstate> &primitive_soln_gradient,
         const dealii::types::global_dof_index cell_index) const = 0;
@@ -87,7 +87,7 @@ public:
 protected:
     /// Returns the square of the magnitude of the tensor (i.e. the double dot product of a tensor with itself)
     template<typename real2> 
-    real2 get_tensor_magnitude_sqr (const std::array<dealii::Tensor<1,dim,real2>,dim> &tensor) const;
+    real2 get_tensor_magnitude_sqr (const dealii::Tensor<2,dim,real2> &tensor) const;
 
     /// Templated dissipative (i.e. viscous) flux: \f$ \mathbf{F}_{diss} \f$ 
     template<typename real2>
@@ -166,7 +166,7 @@ public:
     double get_model_constant_times_filter_width (const dealii::types::global_dof_index cell_index) const;
 
     /// Nondimensionalized sub-grid scale (SGS) stress tensor, (tau^sgs)*
-    std::array<dealii::Tensor<1,dim,real>,dim> compute_SGS_stress_tensor (
+    dealii::Tensor<2,dim,real> compute_SGS_stress_tensor (
         const std::array<real,nstate> &primitive_soln,
         const std::array<dealii::Tensor<1,dim,real>,nstate> &primitive_soln_gradient,
         const dealii::types::global_dof_index cell_index) const;
@@ -178,7 +178,7 @@ public:
         const dealii::types::global_dof_index cell_index) const;
 
     /// Nondimensionalized sub-grid scale (SGS) stress tensor, (tau^sgs)* (Automatic Differentiation Type: FadType)
-    std::array<dealii::Tensor<1,dim,FadType>,dim> compute_SGS_stress_tensor_fad (
+    dealii::Tensor<2,dim,FadType> compute_SGS_stress_tensor_fad (
         const std::array<FadType,nstate> &primitive_soln,
         const std::array<dealii::Tensor<1,dim,FadType>,nstate> &primitive_soln_gradient,
         const dealii::types::global_dof_index cell_index) const;
@@ -203,7 +203,7 @@ public:
 
 protected:
     /// Templated nondimensionalized sub-grid scale (SGS) stress tensor, (tau^sgs)*
-    template<typename real2> std::array<dealii::Tensor<1,dim,real2>,dim> compute_SGS_stress_tensor_templated (
+    template<typename real2> dealii::Tensor<2,dim,real2> compute_SGS_stress_tensor_templated (
         const std::array<real2,nstate> &primitive_soln,
         const std::array<dealii::Tensor<1,dim,real2>,nstate> &primitive_soln_gradient,
         const dealii::types::global_dof_index cell_index) const;

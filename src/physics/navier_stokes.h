@@ -176,18 +176,18 @@ public:
      *  Reference: Masatsuka 2018 "I do like CFD", p.148, extracted from eq.(4.14.12)
      */
     template<typename real2>
-    std::array<dealii::Tensor<1,dim,real2>,dim> 
+    dealii::Tensor<2,dim,real2> 
     compute_strain_rate_tensor (
-        const std::array<dealii::Tensor<1,dim,real2>,dim> &vel_gradient) const;
+        const dealii::Tensor<2,dim,real2> &vel_gradient) const;
 
     /** Nondimensionalized viscous stress tensor, tau*
      *  Reference: Masatsuka 2018 "I do like CFD", p.148, eq.(4.14.12)
      */
     template<typename real2>
-    std::array<dealii::Tensor<1,dim,real2>,dim> 
+    dealii::Tensor<2,dim,real2> 
     compute_viscous_stress_tensor_via_viscosity_and_strain_rate_tensor (
         const real2 scaled_viscosity_coefficient,
-        const std::array<dealii::Tensor<1,dim,real2>,dim> &strain_rate_tensor) const;
+        const dealii::Tensor<2,dim,real2> &strain_rate_tensor) const;
 
     /** Nondimensionalized viscous stress tensor, tau*
      *  Reference: Masatsuka 2018 "I do like CFD", p.148, eq.(4.14.12)
@@ -260,7 +260,7 @@ public:
     std::array<dealii::Tensor<1,dim,real2>,nstate> 
     dissipative_flux_given_velocities_viscous_stress_tensor_and_heat_flux (
         const dealii::Tensor<1,dim,real2> &vel,
-        const std::array<dealii::Tensor<1,dim,real2>,dim> &viscous_stress_tensor,
+        const dealii::Tensor<2,dim,real2> &viscous_stress_tensor,
         const dealii::Tensor<1,dim,real2> &heat_flux) const;
 
 protected:    

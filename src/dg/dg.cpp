@@ -1384,7 +1384,7 @@ double DGBase<dim,real,MeshType>::get_residual_linfnorm () const
                                                                update_flags);
 
     // Obtain the mapping from local dof indices to global dof indices
-    for (const auto cell : dof_handler.active_cell_iterators()) {
+    for (const auto& cell : dof_handler.active_cell_iterators()) {
         if (!cell->is_locally_owned()) continue;
 
         const int i_fele = cell->active_fe_index();
@@ -1439,7 +1439,7 @@ double DGBase<dim,real,MeshType>::get_residual_l2norm () const
                                                                update_flags);
 
     // Obtain the mapping from local dof indices to global dof indices
-    for (const auto cell : dof_handler.active_cell_iterators()) {
+    for (const auto& cell : dof_handler.active_cell_iterators()) {
         if (!cell->is_locally_owned()) continue;
 
         const int i_fele = cell->active_fe_index();

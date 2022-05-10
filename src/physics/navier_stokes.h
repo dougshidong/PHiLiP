@@ -91,11 +91,12 @@ public:
         const std::array<real,nstate> &conservative_soln,
         const std::array<dealii::Tensor<1,dim,real>,nstate> &conservative_soln_gradient) const;
 
-    /** Evaluate non-dimensional theoretical vorticity-based dissipation rate integrated enstropy. 
+    /** Evaluate non-dimensional theoretical vorticity-based dissipation rate integrated enstrophy. 
      *  Note: For incompressible flows or when dilatation effects are negligible
      *  -- Reference: Cox, Christopher, et al. "Accuracy, stability, and performance comparison 
      *                between the spectral difference and flux reconstruction schemes." 
      *                Computers & Fluids 221 (2021): 104922.
+     *  -- Equation (56) with free-stream nondimensionalization applied
      * */
     real compute_vorticity_based_dissipation_rate_from_integrated_enstrophy (
         const real integrated_enstrophy) const;
@@ -126,6 +127,7 @@ public:
      *  -- Reference: Cox, Christopher, et al. "Accuracy, stability, and performance comparison 
      *                between the spectral difference and flux reconstruction schemes." 
      *                Computers & Fluids 221 (2021): 104922.
+     *  -- Equation (57a) with free-stream nondimensionalization applied
      * */
     real compute_deviatoric_strain_rate_tensor_based_dissipation_rate_from_integrated_deviatoric_strain_rate_tensor_magnitude_sqr (
         const real integrated_deviatoric_strain_rate_tensor_magnitude_sqr) const;

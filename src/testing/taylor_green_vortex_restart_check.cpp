@@ -1,6 +1,6 @@
 #include "taylor_green_vortex_restart_check.h"
 #include "flow_solver.h"
-#include "flow_solver_cases/periodic_cube_flow.h"
+#include "flow_solver_cases/periodic_turbulence.h"
 #include <deal.II/base/table_handler.h>
 #include <algorithm>
 #include <iterator>

@@ -205,14 +205,14 @@ inline real Euler<dim,nstate,real>
 ::compute_total_energy ( const std::array<real,nstate> &primitive_soln ) const
 {
     const real pressure = primitive_soln[nstate-1];
-    const real kinetic_energy = compute_kinetic_energy(primitive_soln);
+    const real kinetic_energy = compute_kinetic_energy_from_primitive_solution(primitive_soln);
     const real tot_energy = pressure / this->gamm1 + kinetic_energy;
     return tot_energy;
 }
 
 template <int dim, int nstate, typename real>
 inline real Euler<dim,nstate,real>
-::compute_kinetic_energy ( const std::array<real,nstate> &primitive_soln ) const
+::compute_kinetic_energy_from_primitive_solution ( const std::array<real,nstate> &primitive_soln ) const
 {
     const real density = primitive_soln[0];
     const dealii::Tensor<1,dim,real> velocities = extract_velocities_from_primitive<real>(primitive_soln);
@@ -226,7 +226,7 @@ inline real Euler<dim,nstate,real>
 ::compute_kinetic_energy_from_conservative_solution ( const std::array<real,nstate> &conservative_soln ) const
 {
     const std::array<real,nstate> primitive_soln = convert_conservative_to_primitive<real>(conservative_soln);
-    const real kinetic_energy = compute_kinetic_energy(primitive_soln);
+    const real kinetic_energy = compute_kinetic_energy_from_primitive_solution(primitive_soln);
     return kinetic_energy;
 }
 

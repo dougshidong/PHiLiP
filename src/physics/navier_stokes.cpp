@@ -125,9 +125,7 @@ inline real2 NavierStokes<dim,nstate,real>
      */
     const real2 viscosity_coefficient = compute_viscosity_coefficient<real2>(primitive_soln);
     const real2 scaled_viscosity_coefficient = viscosity_coefficient/reynolds_number_inf;
-    // print the value for Re
-    // std::cout << "\n Reynolds number inside compute_scaled_viscosity_coefficient(): " << reynolds_number_inf << "\n" << std::endl;
-
+    
     return scaled_viscosity_coefficient;
 }
 
@@ -217,13 +215,6 @@ real NavierStokes<dim,nstate,real>
 ::compute_vorticity_based_dissipation_rate_from_integrated_enstrophy (
     const real integrated_enstrophy) const
 {
-    /** Evaluate non-dimensional theoretical vorticity-based dissipation rate from integrated enstropy. 
-     *  Note: For incompressible flows or when dilatation effects are negligible
-     *  -- Reference: Cox, Christopher, et al. "Accuracy, stability, and performance comparison 
-     *                between the spectral difference and flux reconstruction schemes." 
-     *                Computers & Fluids 221 (2021): 104922.
-     * */
-    // See reference, equation (56) with free-stream nondimensionalization applied
     real dissipation_rate = 2.0*integrated_enstrophy/(this->reynolds_number_inf);
     return dissipation_rate;
 }
@@ -304,13 +295,6 @@ real NavierStokes<dim,nstate,real>
 ::compute_deviatoric_strain_rate_tensor_based_dissipation_rate_from_integrated_deviatoric_strain_rate_tensor_magnitude_sqr (
     const real integrated_deviatoric_strain_rate_tensor_magnitude_sqr) const
 {
-    /** Evaluate non-dimensional theoretical deviatoric strain-rate tensor based dissipation rate from integrated
-     *  deviatoric strain-rate tensor magnitude squared.
-     *  -- Reference: Cox, Christopher, et al. "Accuracy, stability, and performance comparison 
-     *                between the spectral difference and flux reconstruction schemes." 
-     *                Computers & Fluids 221 (2021): 104922.
-     * */
-    // See reference, equation (57a) with free-stream nondimensionalization applied
     real dissipation_rate = 2.0*integrated_deviatoric_strain_rate_tensor_magnitude_sqr/(this->reynolds_number_inf);
     return dissipation_rate;
 }

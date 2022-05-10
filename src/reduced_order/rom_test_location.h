@@ -64,6 +64,14 @@ public:
 
     double total_error;
 
+    const MPI_Comm mpi_communicator; ///< MPI communicator.
+    const int mpi_rank; ///< MPI rank.
+
+    /// ConditionalOStream.
+    /** Used as std::cout, but only prints if mpi_rank == 0
+     */
+    dealii::ConditionalOStream pcout;
+
 };
 
 }

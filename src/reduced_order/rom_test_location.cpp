@@ -7,17 +7,20 @@ template <int dim, int nstate>
 ROMTestLocation<dim, nstate>::ROMTestLocation(RowVector2d parameter, std::shared_ptr<ROMSolution<dim, nstate>> rom_solution)
         : parameter(parameter)
         , rom_solution(rom_solution)
+        , mpi_communicator(MPI_COMM_WORLD)
+        , mpi_rank(dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD))
+        , pcout(std::cout, mpi_rank==0)
 {
-    std::cout << "Creating ROM test location..." << std::endl;
+    pcout << "Creating ROM test location..." << std::endl;
     compute_FOM_to_initial_ROM_error();
     initial_rom_to_final_rom_error = 0;
     compute_total_error();
-    std::cout << "ROM test location created. Error estimate updated." << std::endl;
+    pcout << "ROM test location created. Error estimate updated." << std::endl;
 }
 
 template <int dim, int nstate>
 void ROMTestLocation<dim, nstate>::compute_FOM_to_initial_ROM_error(){
-    std::cout << "Computing adjoint-based error estimate between ROM and FOM..." << std::endl;
+    pcout << "Computing adjoint-based error estimate between ROM and FOM..." << std::endl;
     dealii::LinearAlgebra::distributed::Vector<double> gradient(rom_solution->right_hand_side);
     dealii::LinearAlgebra::distributed::Vector<double> adjoint(rom_solution->right_hand_side);
     //adjoint.update_ghost_values();
@@ -35,13 +38,13 @@ void ROMTestLocation<dim, nstate>::compute_FOM_to_initial_ROM_error(){
     //std::cout << "fom_to_initial_rom_error: " << fom_to_initial_rom_error << std::endl;
     //fom_to_initial_rom_error  = dealii::Utilities::MPI::sum(fom_to_initial_rom_error, MPI_COMM_WORLD);
     //std::cout << "fom_to_initial_rom_error: " << fom_to_initial_rom_error << std::endl;
-    std::cout << "Parameter: " << parameter << ". Error estimate between ROM and FOM: " << fom_to_initial_rom_error << std::endl;
+    pcout << "Parameter: " << parameter << ". Error estimate between ROM and FOM: " << fom_to_initial_rom_error << std::endl;
 }
 
 template <int dim, int nstate>
 void ROMTestLocation<dim, nstate>::compute_initial_rom_to_final_rom_error(std::shared_ptr<ProperOrthogonalDecomposition::POD<dim>> pod_updated){
 
-    std::cout << "Computing adjoint-based error estimate between initial ROM and updated ROM..." << std::endl;
+    pcout << "Computing adjoint-based error estimate between initial ROM and updated ROM..." << std::endl;
 
     Epetra_CrsMatrix *epetra_pod_basis = const_cast<Epetra_CrsMatrix *>(&(pod_updated->getPODBasis()->trilinos_matrix()));
     Epetra_CrsMatrix *epetra_system_matrix_transpose = const_cast<Epetra_CrsMatrix *>(&(rom_solution->system_matrix_transpose->trilinos_matrix()));
@@ -53,7 +56,7 @@ void ROMTestLocation<dim, nstate>::compute_initial_rom_to_final_rom_error(std::s
     Epetra_Map domain_map((int)pod_updated->getPODBasis()->n(), 0, epetra_comm);
     epetra_petrov_galerkin_basis.FillComplete(domain_map, epetra_system_matrix_transpose->DomainMap());
 
-    std::cout << "here" << std::endl;
+    pcout << "here" << std::endl;
 
     Epetra_Vector epetra_gradient(Epetra_DataAccess::View, epetra_pod_basis->RangeMap(), const_cast<double *>(rom_solution->gradient.begin()));
     Epetra_Vector epetra_reduced_gradient(epetra_pod_basis->DomainMap());
@@ -83,13 +86,13 @@ void ROMTestLocation<dim, nstate>::compute_initial_rom_to_final_rom_error(std::s
     Epetra_Vector epetra_residual(Epetra_DataAccess::View, epetra_petrov_galerkin_basis.RangeMap(), const_cast<double *>(rom_solution->right_hand_side.begin()));
     epetra_petrov_galerkin_basis.Multiply(true, epetra_residual, epetra_reduced_residual);
 
-    std::cout << "Reduced adjoint: " << std::endl;
+    pcout << "Reduced adjoint: " << std::endl;
     epetra_reduced_adjoint.Print(std::cout);
 
-    std::cout << "Reduced gradient: " << std::endl;
+    pcout << "Reduced gradient: " << std::endl;
     epetra_reduced_gradient.Print(std::cout);
 
-    std::cout << "Reduced residual: " << std::endl;
+    pcout << "Reduced residual: " << std::endl;
     epetra_reduced_residual.Print(std::cout);
 
 
@@ -100,14 +103,14 @@ void ROMTestLocation<dim, nstate>::compute_initial_rom_to_final_rom_error(std::s
     //std::cout << "initial_rom_to_final_rom_error: " << initial_rom_to_final_rom_error << std::endl;
     //initial_rom_to_final_rom_error = dealii::Utilities::MPI::sum(initial_rom_to_final_rom_error, MPI_COMM_WORLD);
     //std::cout << "initial_rom_to_final_rom_error: " << initial_rom_to_final_rom_error << std::endl;
-    std::cout << "Parameter: " << parameter << ". Error estimate between initial ROM and updated ROM: " << initial_rom_to_final_rom_error << std::endl;
+    pcout << "Parameter: " << parameter << ". Error estimate between initial ROM and updated ROM: " << initial_rom_to_final_rom_error << std::endl;
 }
 
 template <int dim, int nstate>
 void ROMTestLocation<dim, nstate>::compute_total_error(){
-    std::cout << "Computing total error estimate between FOM and updated ROM..." << std::endl;
+    pcout << "Computing total error estimate between FOM and updated ROM..." << std::endl;
     total_error = fom_to_initial_rom_error - initial_rom_to_final_rom_error;
-    std::cout << "Parameter: " << parameter <<  ". Total error estimate between FOM and updated ROM: " << total_error << std::endl;
+    pcout << "Parameter: " << parameter <<  ". Total error estimate between FOM and updated ROM: " << total_error << std::endl;
 }
 
 

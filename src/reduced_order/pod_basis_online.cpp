@@ -7,6 +7,9 @@ template<int dim>
 OnlinePOD<dim>::OnlinePOD(std::shared_ptr<DGBase<dim,double>> &dg_input)
         : basis(std::make_shared<dealii::TrilinosWrappers::SparseMatrix>())
         , dg(dg_input)
+        , mpi_communicator(MPI_COMM_WORLD)
+        , mpi_rank(dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD))
+        , pcout(std::cout, mpi_rank==0)
 {
     const bool compute_dRdW = true;
     dg_input->assemble_residual(compute_dRdW);
@@ -14,7 +17,7 @@ OnlinePOD<dim>::OnlinePOD(std::shared_ptr<DGBase<dim,double>> &dg_input)
 
 template <int dim>
 void OnlinePOD<dim>::addSnapshot(dealii::LinearAlgebra::distributed::Vector<double> snapshot) {
-    std::cout << "Adding new snapshot to snapshot matrix..." << std::endl;
+    pcout << "Adding new snapshot to snapshot matrix..." << std::endl;
     dealii::LinearAlgebra::ReadWriteVector<double> read_snapshot(snapshot.size());
     read_snapshot.import(snapshot, dealii::VectorOperation::values::insert);
     VectorXd eigen_snapshot(snapshot.size());
@@ -27,7 +30,7 @@ void OnlinePOD<dim>::addSnapshot(dealii::LinearAlgebra::distributed::Vector<doub
 
 template <int dim>
 void OnlinePOD<dim>::computeBasis() {
-    std::cout << "Computing POD basis..." << std::endl;
+    pcout << "Computing POD basis..." << std::endl;
 
     VectorXd reference_state = snapshotMatrix.rowwise().mean();
 
@@ -66,7 +69,7 @@ void OnlinePOD<dim>::computeBasis() {
 
     for (int localRow = 0; localRow < numMyElements; ++localRow){
         const int globalRow = system_matrix_map.GID(localRow);
-        //std::cout << "global row: " << globalRow << std::endl;
+        //pcout << "global row: " << globalRow << std::endl;
         for(int n = 0 ; n < pod_basis.cols() ; n++){
             epetra_basis.InsertGlobalValues(globalRow, 1, &pod_basis(globalRow, n), &n);
         }
@@ -86,13 +89,13 @@ void OnlinePOD<dim>::computeBasis() {
         epetra_basis.ExtractGlobalRowView(globalRow, numentries, values);
 
         for(int n = 0 ; n < pod_basis.cols() ; n++){
-            std::cout << "global row: " << globalRow << "entry: " << values[n] << std::endl;
+            pcout << "global row: " << globalRow << "entry: " << values[n] << std::endl;
         }
     }
     */
     basis->reinit(epetra_basis);
 
-    std::cout << "Done computing POD basis. Basis now has " << basis->n() << " columns." << std::endl;
+    pcout << "Done computing POD basis. Basis now has " << basis->n() << " columns." << std::endl;
 }
 
 template <int dim>

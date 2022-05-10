@@ -17,7 +17,7 @@ AdaptiveSampling<dim, nstate>::AdaptiveSampling(const PHiLiP::Parameters::AllPar
 template <int dim, int nstate>
 int AdaptiveSampling<dim, nstate>::run_test() const
 {
-    std::cout << "Starting adaptive sampling process" << std::endl;
+    this->pcout << "Starting adaptive sampling process" << std::endl;
 
     placeInitialSnapshots();
     current_pod->computeBasis();
@@ -37,7 +37,7 @@ int AdaptiveSampling<dim, nstate>::run_test() const
 
         outputErrors(iteration);
 
-        std::cout << "Sampling snapshot at " << max_error_params << std::endl;
+        this->pcout << "Sampling snapshot at " << max_error_params << std::endl;
         std::shared_ptr<ProperOrthogonalDecomposition::FOMSolution<dim,nstate>> fom_solution = solveSnapshotFOM(max_error_params);
         snapshot_parameters.conservativeResize(snapshot_parameters.rows()+1, 2);
         snapshot_parameters.row(snapshot_parameters.rows()-1) = max_error_params;
@@ -61,7 +61,7 @@ int AdaptiveSampling<dim, nstate>::run_test() const
         //Update max error
         max_error_params = getMaxErrorROM();
 
-        std::cout << "Max error is: " << max_error << std::endl;
+        this->pcout << "Max error is: " << max_error << std::endl;
         iteration++;
     }
 
@@ -103,7 +103,7 @@ void AdaptiveSampling<dim, nstate>::outputErrors(int iteration) const{
 
 template <int dim, int nstate>
 RowVector2d AdaptiveSampling<dim, nstate>::getMaxErrorROM() const{
-    std::cout << "Updating RBF interpolation..." << std::endl;
+    this->pcout << "Updating RBF interpolation..." << std::endl;
 
     int n_rows = snapshot_parameters.rows() + rom_locations.size();
     MatrixXd parameters(n_rows, 2);
@@ -113,20 +113,20 @@ RowVector2d AdaptiveSampling<dim, nstate>::getMaxErrorROM() const{
     for(i = 0 ; i < snapshot_parameters.rows() ; i++){
         errors(i) = 0;
         parameters.row(i) = snapshot_parameters.row(i);
-        std::cout << i << std::endl;
+        this->pcout << i << std::endl;
     }
-    std::cout << i << std::endl;
+    this->pcout << i << std::endl;
     for(auto& [key, value] : rom_locations){
-        std::cout << "Index: " << i << std::endl;
-        std::cout << "Parameters: " << key << std::endl;
-        std::cout << "Parameters array: " << key.array() << std::endl;
-        std::cout << "Error: " << value.total_error << std::endl;
+        this->pcout << "Index: " << i << std::endl;
+        this->pcout << "Parameters: " << key << std::endl;
+        this->pcout << "Parameters array: " << key.array() << std::endl;
+        this->pcout << "Error: " << value.total_error << std::endl;
         parameters.row(i) = key.array();
         errors(i) = value.total_error;
         i++;
     }
 
-    std::cout << "Parameters: " << parameters << std::endl;
+    this->pcout << "Parameters: " << parameters << std::endl;
 
     //Must scale both axes between [0,1] for the 2d rbf interpolation to work optimally
     MatrixXd parameters_scaled(n_rows, 2);
@@ -138,7 +138,7 @@ RowVector2d AdaptiveSampling<dim, nstate>::getMaxErrorROM() const{
         }
     }
 
-    std::cout << "Parameters scaled: " <<parameters_scaled << std::endl;
+    this->pcout << "Parameters scaled: " <<parameters_scaled << std::endl;
 
     //Construct radial basis function
     std::string kernel = "cubic";
@@ -194,8 +194,8 @@ RowVector2d AdaptiveSampling<dim, nstate>::getMaxErrorROM() const{
         (*x_ptr)[0] = rom_scaled(0);
         (*x_ptr)[1] = rom_scaled(1);
 
-        std::cout << "Unscaled parameter: " << rom_unscaled << std::endl;
-        std::cout << "Scaled parameter: " << (*x_ptr)[0] << " " << (*x_ptr)[1] << std::endl;
+        this->pcout << "Unscaled parameter: " << rom_unscaled << std::endl;
+        this->pcout << "Scaled parameter: " << (*x_ptr)[0] << " " << (*x_ptr)[1] << std::endl;
 
         ROL::StdVector<double> x(x_ptr);
 
@@ -225,22 +225,22 @@ RowVector2d AdaptiveSampling<dim, nstate>::getMaxErrorROM() const{
             rom_unscaled_optim(k) = (rom_scaled(k)*(max - min)) + min;
         }
 
-        std::cout << "Parameters of optimization convergence: " << rom_unscaled_optim << std::endl;
+        this->pcout << "Parameters of optimization convergence: " << rom_unscaled_optim << std::endl;
 
         double error = std::abs(rbf.evaluate(rom_scaled.transpose()).value());
-        std::cout << "RBF error at optimization convergence: " << error << std::endl;
+        this->pcout << "RBF error at optimization convergence: " << error << std::endl;
         if(error > max_error){
-            std::cout << "RBF error is greater than current max error. Updating max error." << std::endl;
+            this->pcout << "RBF error is greater than current max error. Updating max error." << std::endl;
             max_error = error;
             max_error_params = rom_unscaled_optim;
-            std::cout << "RBF Max error: " << max_error << std::endl;
+            this->pcout << "RBF Max error: " << max_error << std::endl;
         }
     }
 
     //Check if max_error_params is a ROM point
     for(auto& [key, value] : rom_locations){
         if(max_error_params.isApprox(key)){
-            std::cout << "Max error location is approximately the same as a ROM location. Removing ROM location." << std::endl;
+            this->pcout << "Max error location is approximately the same as a ROM location. Removing ROM location." << std::endl;
             rom_locations.erase(key);
             break;
         }
@@ -252,7 +252,7 @@ RowVector2d AdaptiveSampling<dim, nstate>::getMaxErrorROM() const{
 template <int dim, int nstate>
 void AdaptiveSampling<dim, nstate>::placeInitialSnapshots() const{
     for(auto snap_param : snapshot_parameters.rowwise()){
-        std::cout << "Sampling initial snapshot at " << snap_param << std::endl;
+        this->pcout << "Sampling initial snapshot at " << snap_param << std::endl;
         std::shared_ptr<ProperOrthogonalDecomposition::FOMSolution<dim,nstate>> fom_solution = solveSnapshotFOM(snap_param);
         current_pod->addSnapshot(fom_solution->state);
     }
@@ -261,7 +261,7 @@ void AdaptiveSampling<dim, nstate>::placeInitialSnapshots() const{
 template <int dim, int nstate>
 void AdaptiveSampling<dim, nstate>::placeInitialROMs() const{
     for(auto rom_param : initial_rom_parameters.rowwise()){
-        std::cout << "Sampling initial ROM at " << rom_param << std::endl;
+        this->pcout << "Sampling initial ROM at " << rom_param << std::endl;
         std::shared_ptr<ProperOrthogonalDecomposition::ROMSolution<dim, nstate>> rom_solution = solveSnapshotROM(rom_param);
         ProperOrthogonalDecomposition::ROMTestLocation<dim,nstate> rom_location = ProperOrthogonalDecomposition::ROMTestLocation<dim, nstate>(rom_param, rom_solution);
         rom_locations.emplace(rom_param, rom_location);
@@ -278,14 +278,14 @@ void AdaptiveSampling<dim, nstate>::placeTriangulationROMs(ProperOrthogonalDecom
             rom_locations.emplace(midpoint, rom_location);
         }
         else{
-            std::cout << "ROM already computed." << std::endl;
+            this->pcout << "ROM already computed." << std::endl;
         }
     }
 }
 
 template <int dim, int nstate>
 std::shared_ptr<ProperOrthogonalDecomposition::FOMSolution<dim,nstate>> AdaptiveSampling<dim, nstate>::solveSnapshotFOM(RowVector2d parameter) const{
-    std::cout << "Solving FOM at " << parameter << std::endl;
+    this->pcout << "Solving FOM at " << parameter << std::endl;
     Parameters::AllParameters params = reinitParams(parameter);
 
     std::unique_ptr<Tests::FlowSolver<dim,nstate>> flow_solver = FlowSolverFactory<dim,nstate>::create_FlowSolver(&params, parameter_handler);
@@ -301,13 +301,13 @@ std::shared_ptr<ProperOrthogonalDecomposition::FOMSolution<dim,nstate>> Adaptive
 
     std::shared_ptr<ProperOrthogonalDecomposition::FOMSolution<dim,nstate>> fom_solution = std::make_shared<ProperOrthogonalDecomposition::FOMSolution<dim, nstate>>(flow_solver->dg, *functional);
 
-    std::cout << "Done solving FOM." << std::endl;
+    this->pcout << "Done solving FOM." << std::endl;
     return fom_solution;
 }
 
 template <int dim, int nstate>
 std::shared_ptr<ProperOrthogonalDecomposition::ROMSolution<dim,nstate>> AdaptiveSampling<dim, nstate>::solveSnapshotROM(RowVector2d parameter) const{
-    std::cout << "Solving ROM at " << parameter << std::endl;
+    this->pcout << "Solving ROM at " << parameter << std::endl;
     Parameters::AllParameters params = reinitParams(parameter);
 
     std::unique_ptr<Tests::FlowSolver<dim,nstate>> flow_solver = FlowSolverFactory<dim,nstate>::create_FlowSolver(&params, parameter_handler);
@@ -328,7 +328,7 @@ std::shared_ptr<ProperOrthogonalDecomposition::ROMSolution<dim,nstate>> Adaptive
     pod_basis->copy_from(*current_pod->getPODBasis());
 
     std::shared_ptr<ProperOrthogonalDecomposition::ROMSolution<dim,nstate>> rom_solution = std::make_shared<ProperOrthogonalDecomposition::ROMSolution<dim, nstate>>(flow_solver->dg, system_matrix_transpose, *functional, pod_basis);
-    std::cout << "Done solving ROM." << std::endl;
+    this->pcout << "Done solving ROM." << std::endl;
     return rom_solution;
 }
 
@@ -348,7 +348,7 @@ Parameters::AllParameters AdaptiveSampling<dim, nstate>::reinitParams(RowVector2
         parameters.euler_param.angle_of_attack = parameter(1); //radians!
     }
     else{
-        std::cout << "Invalid flow case. You probably forgot to specify a flow case in the prm file." << std::endl;
+        this->pcout << "Invalid flow case. You probably forgot to specify a flow case in the prm file." << std::endl;
         std::abort();
     }
     return parameters;
@@ -371,7 +371,7 @@ std::shared_ptr<Functional<dim,nstate,double>> AdaptiveSampling<dim, nstate>::fu
         }
     }
     else{
-        std::cout << "Invalid flow case. You probably forgot to specify a flow case in the prm file." << std::endl;
+        this->pcout << "Invalid flow case. You probably forgot to specify a flow case in the prm file." << std::endl;
         std::abort();
     }
     return nullptr;
@@ -397,7 +397,7 @@ void AdaptiveSampling<dim, nstate>::configureParameterSpace() const
                                 parameter1_range[1], parameter2_range[0],
                                 0.5*(parameter1_range[1] - parameter1_range[0])+parameter1_range[0], 0.5*(parameter2_range[1] - parameter2_range[0])+parameter2_range[0];
 
-        std::cout << snapshot_parameters << std::endl;
+        this->pcout << snapshot_parameters << std::endl;
 
         initial_rom_parameters.resize(4,2);
         initial_rom_parameters << 0.25*(parameter1_range[1] - parameter1_range[0])+parameter1_range[0], 0.25*(parameter1_range[1] - parameter1_range[0])+parameter1_range[0],
@@ -405,7 +405,7 @@ void AdaptiveSampling<dim, nstate>::configureParameterSpace() const
                                   0.75*(parameter1_range[1] - parameter1_range[0])+parameter1_range[0], 0.25*(parameter1_range[1] - parameter1_range[0])+parameter1_range[0],
                                   0.75*(parameter1_range[1] - parameter1_range[0])+parameter1_range[0], 0.75*(parameter1_range[1] - parameter1_range[0])+parameter1_range[0];
 
-        std::cout << initial_rom_parameters << std::endl;
+        this->pcout << initial_rom_parameters << std::endl;
     }
     else if (flow_type == FlowCaseEnum::naca0012){
         const double pi = atan(1.0) * 4.0;
@@ -424,7 +424,7 @@ void AdaptiveSampling<dim, nstate>::configureParameterSpace() const
                 parameter1_range[1], parameter2_range[0],
                 0.5*(parameter1_range[1] - parameter1_range[0])+parameter1_range[0], 0.5*(parameter2_range[1] - parameter2_range[0])+parameter2_range[0];
 
-        std::cout << snapshot_parameters << std::endl;
+        this->pcout << snapshot_parameters << std::endl;
 
         initial_rom_parameters.resize(4,2);
         initial_rom_parameters << 0.25*(parameter1_range[1] - parameter1_range[0])+parameter1_range[0], 0.25*(parameter1_range[1] - parameter1_range[0])+parameter1_range[0],
@@ -432,10 +432,10 @@ void AdaptiveSampling<dim, nstate>::configureParameterSpace() const
                 0.75*(parameter1_range[1] - parameter1_range[0])+parameter1_range[0], 0.25*(parameter1_range[1] - parameter1_range[0])+parameter1_range[0],
                 0.75*(parameter1_range[1] - parameter1_range[0])+parameter1_range[0], 0.75*(parameter1_range[1] - parameter1_range[0])+parameter1_range[0];
 
-        std::cout << initial_rom_parameters << std::endl;
+        this->pcout << initial_rom_parameters << std::endl;
     }
     else{
-        std::cout << "Invalid flow case. You probably forgot to specify a flow case in the prm file." << std::endl;
+        this->pcout << "Invalid flow case. You probably forgot to specify a flow case in the prm file." << std::endl;
         std::abort();
     }
 }

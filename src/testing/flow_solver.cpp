@@ -6,7 +6,6 @@
 #include <stdlib.h>
 #include <vector>
 #include <sstream>
-#include <deal.II/numerics/vector_tools.h>
 
 
 namespace PHiLiP {
@@ -467,7 +466,7 @@ FlowSolverFactory<dim,nstate>
         }
     } else if (flow_type == FlowCaseEnum::advection_periodic){
         if constexpr (dim==1 && nstate==dim){
-            std::shared_ptr<FlowSolverCaseBase<dim, nstate>> flow_solver_case = std::make_shared<Periodic1DFlow<dim,nstate>>(parameters_input);
+            std::shared_ptr<FlowSolverCaseBase<dim, nstate>> flow_solver_case = std::make_shared<Periodic1DUnsteady<dim,nstate>>(parameters_input);
             return std::make_unique<FlowSolver<dim,nstate>>(parameters_input, flow_solver_case, parameter_handler_input);
         }
     } else {

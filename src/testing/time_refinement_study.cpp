@@ -1,6 +1,6 @@
 #include "time_refinement_study.h"
 #include "flow_solver.h"
-#include "flow_solver_cases/periodic_cube_flow.h"
+#include "flow_solver_cases/periodic_1D_unsteady.h"
 #include "physics/exact_solutions/exact_solution.h"
 #include "cmath"
 
@@ -30,12 +30,12 @@ Parameters::AllParameters TimeRefinementStudy<dim,nstate>::reinit_params_and_ref
 }
 
 template <int dim, int nstate>
-double TimeRefinementStudy<dim,nstate>::calculate_L2_error_at_final_time_wrt_function(std::shared_ptr<DGBase<dim,double>> dg, const Parameters::AllParameters parameters) const
+double TimeRefinementStudy<dim,nstate>::calculate_L2_error_at_final_time_wrt_function(std::shared_ptr<DGBase<dim,double>> dg, const Parameters::AllParameters parameters, double final_time) const
 {
 
     //generate exact solution at final time
     std::shared_ptr<ExactSolutionFunction<dim,nstate,double>> exact_solution_function;
-    exact_solution_function = ExactSolutionFactory<dim,nstate,double>::create_ExactSolutionFunction(parameters.flow_solver_param);
+    exact_solution_function = ExactSolutionFactory<dim,nstate,double>::create_ExactSolutionFunction(parameters.flow_solver_param, final_time);
     int poly_degree = parameters.grid_refinement_study_param.poly_degree;
     dealii::Vector<double> difference_per_cell(dg->solution.size());
     
@@ -78,24 +78,25 @@ int TimeRefinementStudy<dim, nstate>::run_test() const
 
     for (int refinement = 0; refinement < n_time_calculations; ++refinement){
         
-        pcout << "\n\n---------------------------------------------\n Refinement number " << refinement <<
-            " of " << n_time_calculations - 1 << std::endl << "---------------------------------------------" << std::endl;
+        pcout << "\n\n---------------------------------------------" << std::endl;
+        pcout << "Refinement number " << refinement << " of " << n_time_calculations - 1 << std::endl;
+        pcout << "---------------------------------------------" << std::endl;
+
         const Parameters::AllParameters params = reinit_params_and_refine_timestep(refinement);
         std::unique_ptr<FlowSolver<dim,nstate>> flow_solver = FlowSolverFactory<dim,nstate>::create_FlowSolver(&params, parameter_handler);
         static_cast<void>(flow_solver->run_test());
         
         //check L2 error
-        double L2_error = calculate_L2_error_at_final_time_wrt_function(flow_solver->dg, params);
+        double L2_error = calculate_L2_error_at_final_time_wrt_function(flow_solver->dg, params, flow_solver->ode_solver->current_time);
         pcout << "Computed error is " << L2_error << std::endl;
 
         const double dt =  params.ode_solver_param.initial_time_step;
         convergence_table.add_value("refinement", refinement);
         convergence_table.add_value("dt", dt );
-        convergence_table.set_precision("dt", 3);
+        convergence_table.set_precision("dt", 5);
         convergence_table.set_scientific("dt", true);
         convergence_table.add_value("L2_error",L2_error);
-        convergence_table.set_precision("L2_error", 4);
-        convergence_table.set_scientific("L2_error", true);
+        convergence_table.set_precision("L2_error", 16);
         convergence_table.evaluate_convergence_rates("L2_error", "dt", dealii::ConvergenceTable::reduction_rate_log2, 1);
 
         //Checking convergence order
@@ -112,7 +113,8 @@ int TimeRefinementStudy<dim, nstate>::run_test() const
 
     //Printing and writing convergence table
     pcout << std::endl;
-    convergence_table.write_text(std::cout); //pcout gives an error. Shouldn't be an issue as this is 1D and doesn't use MPI
+    if (pcout.is_active()) convergence_table.write_text(pcout.get_stream());
+    //convergence_table.write_text(std::cout);
 
     std::ofstream conv_tab_file;
     const std::string fname = "temporal_convergence_table.txt";

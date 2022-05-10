@@ -48,9 +48,12 @@ void straight_periodic_cube(std::shared_ptr<TriangulationType> &grid,
     grid->refine_global(number_of_refinements);
 }
 
-template void straight_periodic_cube<1, dealii::Triangulation<1>> (std::shared_ptr<dealii::Triangulation<1>> &grid, const double domain_left, const double domain_right, const int number_of_cells_per_direction);
-template void straight_periodic_cube<2, dealii::parallel::distributed::Triangulation<2>> (std::shared_ptr<dealii::parallel::distributed::Triangulation<2>> &grid, const double domain_left, const double domain_right, const int number_of_cells_per_direction);
-template void straight_periodic_cube<3, dealii::parallel::distributed::Triangulation<3>> (std::shared_ptr<dealii::parallel::distributed::Triangulation<3>> &grid, const double domain_left, const double domain_right, const int number_of_cells_per_direction);
+#if PHILIP_DIM==1
+    template void straight_periodic_cube<1, dealii::Triangulation<1>> (std::shared_ptr<dealii::Triangulation<1>> &grid, const double domain_left, const double domain_right, const int number_of_cells_per_direction);
+#endif
+#if PHILIP_DIM!=1
+    template void straight_periodic_cube<PHILIP_DIM, dealii::parallel::distributed::Triangulation<PHILIP_DIM>> (std::shared_ptr<dealii::parallel::distributed::Triangulation<PHILIP_DIM>> &grid, const double domain_left, const double domain_right, const int number_of_cells_per_direction);
+#endif
 
 } // namespace Grids
 } // namespace PHiLiP

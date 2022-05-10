@@ -25,11 +25,13 @@ public:
     ///Constructor
     FlowSolverCaseBase(const Parameters::AllParameters *const parameters_input);
 
+    std::shared_ptr<InitialConditionFunction<dim,nstate,double>> initial_condition_function; ///< Initial condition function
+
     /// Destructor
-    virtual ~FlowSolverCaseBase() {};
+    ~FlowSolverCaseBase() {};
 
     /// Displays the flow setup parameters
-    virtual void display_flow_solver_setup(std::shared_ptr<InitialConditionFunction<dim,nstate,double>> initial_condition) const;
+    void display_flow_solver_setup() const;
 
     /// Pure Virtual function to generate the grid
     virtual std::shared_ptr<Triangulation> generate_grid() const = 0;
@@ -42,7 +44,7 @@ public:
             const unsigned int current_iteration,
             const double current_time,
             const std::shared_ptr <DGBase<dim, double>> dg,
-            const std::shared_ptr<dealii::TableHandler> unsteady_data_table) const;
+            const std::shared_ptr<dealii::TableHandler> unsteady_data_table);
 
     /// Virtual function to compute the constant time step
     virtual double get_constant_time_step(std::shared_ptr <DGBase<dim, double>> dg) const;
@@ -60,6 +62,23 @@ protected:
     /** Used as std::cout, but only prints if mpi_rank == 0
      */
     dealii::ConditionalOStream pcout;
+
+    /// Add a value to a given data table with scientific format
+    void add_value_to_data_table(
+            const double value,
+            const std::string value_string,
+            const std::shared_ptr <dealii::TableHandler> data_table) const;
+
+    /// Display additional more specific flow case parameters
+    virtual void display_additional_flow_case_specific_parameters() const = 0;
+
+private:
+    /// Returns the pde type string from the all_param class member
+    std::string get_pde_string() const;
+
+    /// Returns the flow case type string from the all_param class member
+    std::string get_flow_case_string() const;
+
 };
 
 } // Tests namespace

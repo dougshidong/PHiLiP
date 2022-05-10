@@ -231,7 +231,7 @@ subsection flow_solver
   set unsteady_data_table_filename  = tgv_kinetic_energy_vs_time_table_for_restart_check # default: unsteady_data_table
 
 
-  subsection taylor_green_vortex_energy_check
+  subsection taylor_green_vortex
     # For integration test purposes, expected kinetic energy at final time.
     set expected_kinetic_energy_at_final_time = 1.2074066465958100e-01 # default: 1
   end

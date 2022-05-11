@@ -69,9 +69,8 @@ std::array<dealii::Tensor<1,dim,real>,nstate> LargeEddySimulationBase<dim,nstate
     const std::array<real,nstate> &/*conservative_soln*/) const
 {
     std::array<dealii::Tensor<1,dim,real>,nstate> conv_flux;
-    // No additional convective terms for Large Eddy Simulation
     for (int i=0; i<nstate; i++) {
-        conv_flux[i] = 0;
+        conv_flux[i] = 0; // No additional convective terms for Large Eddy Simulation
     }
     return conv_flux;
 }
@@ -112,22 +111,13 @@ std::array<dealii::Tensor<1,dim,real2>,nstate> LargeEddySimulationBase<dim,nstat
         heat_flux = compute_SGS_heat_flux_fad(primitive_soln, primitive_soln_gradient,cell_index);
     }
     else{
-        std::cout << "ERROR in physics/large_eddy_simulation.cpp --> dissipative_flux_templated(): real2 != real or FadType" << std::endl;
+        std::cout << "ERROR in physics/large_eddy_simulation.cpp --> dissipative_flux_templated(): real2!=real || real2!=FadType)" << std::endl;
         std::abort();
     }
     
     // Step 4: Construct viscous flux; Note: sign corresponds to LHS
     std::array<dealii::Tensor<1,dim,real2>,nstate> viscous_flux
         = this->navier_stokes_physics->dissipative_flux_given_velocities_viscous_stress_tensor_and_heat_flux(vel,viscous_stress_tensor,heat_flux);
-
-    // Step 5: Correct sign to RHS (for model term)
-    for(int s=0;s<nstate;++s)
-    {
-        for(int d=0;d<dim;++d)
-        {
-            viscous_flux[s][d] = -viscous_flux[s][d]; 
-        }
-    }
     
     return viscous_flux;
 }
@@ -590,7 +580,7 @@ dealii::Tensor<2,dim,real2> LargeEddySimulation_Smagorinsky<dim,nstate,real>
 
     // Compute the SGS stress tensor via the eddy_viscosity and the strain rate tensor
     dealii::Tensor<2,dim,real2> SGS_stress_tensor;
-    SGS_stress_tensor = this->navier_stokes_physics->compute_viscous_stress_tensor_via_viscosity_and_strain_rate_tensor(scaled_eddy_viscosity,strain_rate_tensor);
+    SGS_stress_tensor = this->navier_stokes_physics->compute_viscous_stress_tensor_via_scaled_viscosity_and_strain_rate_tensor(scaled_eddy_viscosity,strain_rate_tensor);
 
     return SGS_stress_tensor;
 }

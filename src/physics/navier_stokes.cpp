@@ -373,7 +373,7 @@ dealii::Tensor<2,dim,real2> NavierStokes<dim,nstate,real>
 template <int dim, int nstate, typename real>
 template<typename real2>
 dealii::Tensor<2,dim,real2> NavierStokes<dim,nstate,real>
-::compute_viscous_stress_tensor_via_viscosity_and_strain_rate_tensor (
+::compute_viscous_stress_tensor_via_scaled_viscosity_and_strain_rate_tensor (
     const real2 scaled_viscosity_coefficient,
     const dealii::Tensor<2,dim,real2> &strain_rate_tensor) const
 {
@@ -420,7 +420,7 @@ dealii::Tensor<2,dim,real2> NavierStokes<dim,nstate,real>
 
     // Viscous stress tensor, \tau_{i,j}
     const dealii::Tensor<2,dim,real2> viscous_stress_tensor 
-        = compute_viscous_stress_tensor_via_viscosity_and_strain_rate_tensor<real2>(scaled_viscosity_coefficient,strain_rate_tensor);
+        = compute_viscous_stress_tensor_via_scaled_viscosity_and_strain_rate_tensor<real2>(scaled_viscosity_coefficient,strain_rate_tensor);
 
     return viscous_stress_tensor;
 }
@@ -919,17 +919,17 @@ template dealii::Tensor<2,PHILIP_DIM,FadType   > NavierStokes<PHILIP_DIM,PHILIP_
 template dealii::Tensor<2,PHILIP_DIM,FadType   > NavierStokes<PHILIP_DIM,PHILIP_DIM+2,RadType   >::extract_velocities_gradient_from_primitive_solution_gradient<FadType   > (const std::array<dealii::Tensor<1,PHILIP_DIM,FadType   >,PHILIP_DIM+2> &primitive_soln_gradient) const;
 template dealii::Tensor<2,PHILIP_DIM,FadType   > NavierStokes<PHILIP_DIM,PHILIP_DIM+2,FadFadType>::extract_velocities_gradient_from_primitive_solution_gradient<FadType   > (const std::array<dealii::Tensor<1,PHILIP_DIM,FadType   >,PHILIP_DIM+2> &primitive_soln_gradient) const;
 template dealii::Tensor<2,PHILIP_DIM,FadType   > NavierStokes<PHILIP_DIM,PHILIP_DIM+2,RadFadType>::extract_velocities_gradient_from_primitive_solution_gradient<FadType   > (const std::array<dealii::Tensor<1,PHILIP_DIM,FadType   >,PHILIP_DIM+2> &primitive_soln_gradient) const;
-// -- compute_viscous_stress_tensor_via_viscosity_and_strain_rate_tensor()
-template dealii::Tensor<2,PHILIP_DIM,double    > NavierStokes<PHILIP_DIM,PHILIP_DIM+2,double    >::compute_viscous_stress_tensor_via_viscosity_and_strain_rate_tensor<double    > (const double     scaled_viscosity_coefficient, const dealii::Tensor<2,PHILIP_DIM,double    > &strain_rate_tensor) const;
-template dealii::Tensor<2,PHILIP_DIM,FadType   > NavierStokes<PHILIP_DIM,PHILIP_DIM+2,FadType   >::compute_viscous_stress_tensor_via_viscosity_and_strain_rate_tensor<FadType   > (const FadType    scaled_viscosity_coefficient, const dealii::Tensor<2,PHILIP_DIM,FadType   > &strain_rate_tensor) const;
-template dealii::Tensor<2,PHILIP_DIM,RadType   > NavierStokes<PHILIP_DIM,PHILIP_DIM+2,RadType   >::compute_viscous_stress_tensor_via_viscosity_and_strain_rate_tensor<RadType   > (const RadType    scaled_viscosity_coefficient, const dealii::Tensor<2,PHILIP_DIM,RadType   > &strain_rate_tensor) const;
-template dealii::Tensor<2,PHILIP_DIM,FadFadType> NavierStokes<PHILIP_DIM,PHILIP_DIM+2,FadFadType>::compute_viscous_stress_tensor_via_viscosity_and_strain_rate_tensor<FadFadType> (const FadFadType scaled_viscosity_coefficient, const dealii::Tensor<2,PHILIP_DIM,FadFadType> &strain_rate_tensor) const;
-template dealii::Tensor<2,PHILIP_DIM,RadFadType> NavierStokes<PHILIP_DIM,PHILIP_DIM+2,RadFadType>::compute_viscous_stress_tensor_via_viscosity_and_strain_rate_tensor<RadFadType> (const RadFadType scaled_viscosity_coefficient, const dealii::Tensor<2,PHILIP_DIM,RadFadType> &strain_rate_tensor) const;
+// -- compute_viscous_stress_tensor_via_scaled_viscosity_and_strain_rate_tensor()
+template dealii::Tensor<2,PHILIP_DIM,double    > NavierStokes<PHILIP_DIM,PHILIP_DIM+2,double    >::compute_viscous_stress_tensor_via_scaled_viscosity_and_strain_rate_tensor<double    > (const double     scaled_viscosity_coefficient, const dealii::Tensor<2,PHILIP_DIM,double    > &strain_rate_tensor) const;
+template dealii::Tensor<2,PHILIP_DIM,FadType   > NavierStokes<PHILIP_DIM,PHILIP_DIM+2,FadType   >::compute_viscous_stress_tensor_via_scaled_viscosity_and_strain_rate_tensor<FadType   > (const FadType    scaled_viscosity_coefficient, const dealii::Tensor<2,PHILIP_DIM,FadType   > &strain_rate_tensor) const;
+template dealii::Tensor<2,PHILIP_DIM,RadType   > NavierStokes<PHILIP_DIM,PHILIP_DIM+2,RadType   >::compute_viscous_stress_tensor_via_scaled_viscosity_and_strain_rate_tensor<RadType   > (const RadType    scaled_viscosity_coefficient, const dealii::Tensor<2,PHILIP_DIM,RadType   > &strain_rate_tensor) const;
+template dealii::Tensor<2,PHILIP_DIM,FadFadType> NavierStokes<PHILIP_DIM,PHILIP_DIM+2,FadFadType>::compute_viscous_stress_tensor_via_scaled_viscosity_and_strain_rate_tensor<FadFadType> (const FadFadType scaled_viscosity_coefficient, const dealii::Tensor<2,PHILIP_DIM,FadFadType> &strain_rate_tensor) const;
+template dealii::Tensor<2,PHILIP_DIM,RadFadType> NavierStokes<PHILIP_DIM,PHILIP_DIM+2,RadFadType>::compute_viscous_stress_tensor_via_scaled_viscosity_and_strain_rate_tensor<RadFadType> (const RadFadType scaled_viscosity_coefficient, const dealii::Tensor<2,PHILIP_DIM,RadFadType> &strain_rate_tensor) const;
 // -- -- instantiate all the real types with real2 = FadType for automatic differentiation in classes derived from LargeEddySimulationBase
-template dealii::Tensor<2,PHILIP_DIM,FadType   > NavierStokes<PHILIP_DIM,PHILIP_DIM+2,double    >::compute_viscous_stress_tensor_via_viscosity_and_strain_rate_tensor<FadType   > (const FadType    scaled_viscosity_coefficient, const dealii::Tensor<2,PHILIP_DIM,FadType   > &strain_rate_tensor) const;
-template dealii::Tensor<2,PHILIP_DIM,FadType   > NavierStokes<PHILIP_DIM,PHILIP_DIM+2,RadType   >::compute_viscous_stress_tensor_via_viscosity_and_strain_rate_tensor<FadType   > (const FadType    scaled_viscosity_coefficient, const dealii::Tensor<2,PHILIP_DIM,FadType   > &strain_rate_tensor) const;
-template dealii::Tensor<2,PHILIP_DIM,FadType   > NavierStokes<PHILIP_DIM,PHILIP_DIM+2,FadFadType>::compute_viscous_stress_tensor_via_viscosity_and_strain_rate_tensor<FadType   > (const FadType    scaled_viscosity_coefficient, const dealii::Tensor<2,PHILIP_DIM,FadType   > &strain_rate_tensor) const;
-template dealii::Tensor<2,PHILIP_DIM,FadType   > NavierStokes<PHILIP_DIM,PHILIP_DIM+2,RadFadType>::compute_viscous_stress_tensor_via_viscosity_and_strain_rate_tensor<FadType   > (const FadType    scaled_viscosity_coefficient, const dealii::Tensor<2,PHILIP_DIM,FadType   > &strain_rate_tensor) const;
+template dealii::Tensor<2,PHILIP_DIM,FadType   > NavierStokes<PHILIP_DIM,PHILIP_DIM+2,double    >::compute_viscous_stress_tensor_via_scaled_viscosity_and_strain_rate_tensor<FadType   > (const FadType    scaled_viscosity_coefficient, const dealii::Tensor<2,PHILIP_DIM,FadType   > &strain_rate_tensor) const;
+template dealii::Tensor<2,PHILIP_DIM,FadType   > NavierStokes<PHILIP_DIM,PHILIP_DIM+2,RadType   >::compute_viscous_stress_tensor_via_scaled_viscosity_and_strain_rate_tensor<FadType   > (const FadType    scaled_viscosity_coefficient, const dealii::Tensor<2,PHILIP_DIM,FadType   > &strain_rate_tensor) const;
+template dealii::Tensor<2,PHILIP_DIM,FadType   > NavierStokes<PHILIP_DIM,PHILIP_DIM+2,FadFadType>::compute_viscous_stress_tensor_via_scaled_viscosity_and_strain_rate_tensor<FadType   > (const FadType    scaled_viscosity_coefficient, const dealii::Tensor<2,PHILIP_DIM,FadType   > &strain_rate_tensor) const;
+template dealii::Tensor<2,PHILIP_DIM,FadType   > NavierStokes<PHILIP_DIM,PHILIP_DIM+2,RadFadType>::compute_viscous_stress_tensor_via_scaled_viscosity_and_strain_rate_tensor<FadType   > (const FadType    scaled_viscosity_coefficient, const dealii::Tensor<2,PHILIP_DIM,FadType   > &strain_rate_tensor) const;
 // -- convert_conservative_gradient_to_primitive_gradient()
 // -- -- instantiate all the real types with real2 = FadType for automatic differentiation in classes derived from LargeEddySimulationBase
 template std::array<dealii::Tensor<1,PHILIP_DIM,FadType   >,PHILIP_DIM+2> NavierStokes<PHILIP_DIM,PHILIP_DIM+2,double    >::convert_conservative_gradient_to_primitive_gradient<FadType   >(const std::array<FadType   ,PHILIP_DIM+2> &conservative_soln, const std::array<dealii::Tensor<1,PHILIP_DIM,FadType   >,PHILIP_DIM+2> &conservative_soln_gradient) const;

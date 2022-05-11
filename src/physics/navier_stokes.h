@@ -185,7 +185,7 @@ public:
      */
     template<typename real2>
     dealii::Tensor<2,dim,real2> 
-    compute_viscous_stress_tensor_via_viscosity_and_strain_rate_tensor (
+    compute_viscous_stress_tensor_via_scaled_viscosity_and_strain_rate_tensor (
         const real2 scaled_viscosity_coefficient,
         const dealii::Tensor<2,dim,real2> &strain_rate_tensor) const;
 

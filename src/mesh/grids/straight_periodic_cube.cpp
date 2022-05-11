@@ -49,7 +49,7 @@ void straight_periodic_cube(std::shared_ptr<TriangulationType> &grid,
 }
 
 #if PHILIP_DIM==1
-    template void straight_periodic_cube<1, dealii::Triangulation<1>> (std::shared_ptr<dealii::Triangulation<1>> &grid, const double domain_left, const double domain_right, const int number_of_cells_per_direction);
+    template void straight_periodic_cube<PHILIP_DIM, dealii::Triangulation<PHILIP_DIM>> (std::shared_ptr<dealii::Triangulation<PHILIP_DIM>> &grid, const double domain_left, const double domain_right, const int number_of_cells_per_direction);
 #endif
 #if PHILIP_DIM!=1
     template void straight_periodic_cube<PHILIP_DIM, dealii::parallel::distributed::Triangulation<PHILIP_DIM>> (std::shared_ptr<dealii::parallel::distributed::Triangulation<PHILIP_DIM>> &grid, const double domain_left, const double domain_right, const int number_of_cells_per_direction);

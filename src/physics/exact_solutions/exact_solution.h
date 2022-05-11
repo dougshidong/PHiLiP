@@ -34,8 +34,7 @@ protected:
     using dealii::Function<dim,real>::value; ///< dealii::Function we are templating on
 
 public:
-    /// Constructor for InitialConditionFunction_BurgersRewienski
-    /** Calls the Function(const unsigned int n_components) constructor in deal.II*/
+    /// Constructor for InitialConditionFunction_Zero
     ExactSolutionFunction_Zero (double time_compare);
 
     /// Time at which to compute the exact solution
@@ -54,7 +53,7 @@ protected:
     using dealii::Function<dim,real>::value; ///< dealii::Function we are templating on
 
 public:
-    /// Constructor for InitialConditionFunction_BurgersRewienski
+    /// Constructor for InitialConditionFunction_1DSine
     /** Calls the Function(const unsigned int n_components) constructor in deal.II*/
     ExactSolutionFunction_1DSine (double time_compare);
 

@@ -160,8 +160,7 @@ protected:
     using dealii::Function<dim,real>::value; ///< dealii::Function we are templating on
 
 public:
-    /// Constructor for InitialConditionFunction_BurgersRewienski
-    /** Calls the Function(const unsigned int n_components) constructor in deal.II*/
+    /// Constructor for InitialConditionFunction_1DSine
     InitialConditionFunction_1DSine ();
 
     /// Value of initial condition

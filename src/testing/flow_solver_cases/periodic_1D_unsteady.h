@@ -7,17 +7,9 @@
 #include "physics/physics.h"
 #include "parameters/all_parameters.h"
 #include <deal.II/base/table_handler.h>
-#include <deal.II/distributed/shared_tria.h>
-#include <deal.II/distributed/tria.h>
 
 namespace PHiLiP {
 namespace Tests {
-
-#if PHILIP_DIM==1
-    using Triangulation = dealii::Triangulation<PHILIP_DIM>;
-#else
-    using Triangulation = dealii::parallel::distributed::Triangulation<PHILIP_DIM>;
-#endif
 
 template <int dim, int nstate>
 class Periodic1DUnsteady : public PeriodicCubeFlow<dim,nstate>

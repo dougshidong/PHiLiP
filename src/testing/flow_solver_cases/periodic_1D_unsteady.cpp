@@ -9,7 +9,6 @@
 #include "physics/physics_factory.h"
 #include "dg/dg.h"
 #include "mesh/grids/straight_periodic_cube.hpp"
-#include <deal.II/base/table_handler.h>
 
 namespace PHiLiP {
 

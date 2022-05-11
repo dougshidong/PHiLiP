@@ -10,8 +10,8 @@ template <int dim, int nstate, typename real>
 ExactSolutionFunction_Zero<dim,nstate,real>
 ::ExactSolutionFunction_Zero(double time_compare)
         : ExactSolutionFunction<dim,nstate,real>()
+        , t(time_compare)
 {
-    t = time_compare;
 }
 
 template <int dim, int nstate, typename real>
@@ -29,8 +29,8 @@ template <int dim, int nstate, typename real>
 ExactSolutionFunction_1DSine<dim,nstate,real>
 ::ExactSolutionFunction_1DSine (double time_compare)
         : ExactSolutionFunction<dim,nstate,real>()
+        , t(time_compare)
 {
-    t = time_compare;
 }
 
 template <int dim, int nstate, typename real>

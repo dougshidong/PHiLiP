@@ -93,7 +93,7 @@ int TimeRefinementStudy<dim, nstate>::run_test() const
         const double dt =  params.ode_solver_param.initial_time_step;
         convergence_table.add_value("refinement", refinement);
         convergence_table.add_value("dt", dt );
-        convergence_table.set_precision("dt", 5);
+        convergence_table.set_precision("dt", 16);
         convergence_table.set_scientific("dt", true);
         convergence_table.add_value("L2_error",L2_error);
         convergence_table.set_precision("L2_error", 16);

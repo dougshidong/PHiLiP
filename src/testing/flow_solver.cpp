@@ -7,6 +7,7 @@
 #include <vector>
 #include <sstream>
 
+
 namespace PHiLiP {
 
 namespace Tests {
@@ -371,7 +372,7 @@ int FlowSolver<dim,nstate>::run_test() const
         // Time advancement loop with on-the-fly post-processing
         //----------------------------------------------------
         pcout << "Advancing solution in time... " << std::endl;
-        while(ode_solver->current_time < final_time)
+        while((ode_solver->current_time) < (final_time - 1E-13)) //comparing to 1E-13 to avoid taking an extra timestep
         {
             // advance solution
             ode_solver->step_in_time(constant_time_step,false); // pseudotime==false
@@ -460,6 +461,11 @@ FlowSolverFactory<dim,nstate>
     } else if (flow_type == FlowCaseEnum::naca0012){
         if constexpr (dim==2 && nstate==dim+2){
             std::shared_ptr<FlowSolverCaseBase<dim, nstate>> flow_solver_case = std::make_shared<NACA0012<dim,nstate>>(parameters_input);
+            return std::make_unique<FlowSolver<dim,nstate>>(parameters_input, flow_solver_case, parameter_handler_input);
+        }
+    } else if (flow_type == FlowCaseEnum::advection_periodic){
+        if constexpr (dim==1 && nstate==dim){
+            std::shared_ptr<FlowSolverCaseBase<dim, nstate>> flow_solver_case = std::make_shared<Periodic1DUnsteady<dim,nstate>>(parameters_input);
             return std::make_unique<FlowSolver<dim,nstate>>(parameters_input, flow_solver_case, parameter_handler_input);
         }
     } else {

@@ -149,6 +149,9 @@ void PODPetrovGalerkinODESolver<dim,real,MeshType>::step_in_time (real /*dt*/, c
     Solver->Solve();
 
     this->pcout << "Reduced solution update norm: " << reduced_solution_update.l2_norm() << std::endl;
+    double l2norm;
+    epetra_reduced_rhs.Norm2(&l2norm);
+    this->pcout << "l2 norm of reduced order residual: " << l2norm << std::endl;
 
     linesearch();
 
@@ -163,9 +166,9 @@ double PODPetrovGalerkinODESolver<dim,real,MeshType>::linesearch()
     const dealii::LinearAlgebra::distributed::Vector<double> old_reduced_solution(reduced_solution);
     double step_length = 1.0;
 
-    //const double step_reduction = 0.5;
-    //const int maxline = 10;
-    //const double reduction_tolerance_1 = 1.0;
+    const double step_reduction = 0.5;
+    const int maxline = 10;
+    const double reduction_tolerance_1 = 1.0;
 
     const double initial_residual = this->dg->get_residual_l2norm();
     reduced_solution.add(step_length, this->reduced_solution_update);
@@ -179,8 +182,9 @@ double PODPetrovGalerkinODESolver<dim,real,MeshType>::linesearch()
 
     this->dg->assemble_residual();
     double new_residual = this->dg->get_residual_l2norm();
+    this->pcout << "l2 norm of the rhs: " << this->dg->right_hand_side.l2_norm() << std::endl;
     this->pcout << " Step length " << step_length << ". Old residual: " << initial_residual << " New residual: " << new_residual << std::endl;
-    /*
+
     int iline = 0;
     for (iline = 0; iline < maxline && new_residual > initial_residual * reduction_tolerance_1; ++iline) {
         step_length = step_length * step_reduction;
@@ -192,9 +196,10 @@ double PODPetrovGalerkinODESolver<dim,real,MeshType>::linesearch()
 
         this->dg->assemble_residual();
         new_residual = this->dg->get_residual_l2norm();
+        this->pcout << "l2 norm of the rhs: " << this->dg->right_hand_side.l2_norm() << std::endl;
         this->pcout << " Step length " << step_length << " . Old residual: " << initial_residual << " New residual: " << new_residual << std::endl;
     }
-    */
+
 
     return step_length;
 }

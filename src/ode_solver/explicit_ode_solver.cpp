@@ -39,6 +39,8 @@ void ExplicitODESolver<dim,real,MeshType>::step_in_time (real dt, const bool pse
         this->dg->global_inverse_mass_matrix.vmult(this->rk_stage[i], this->dg->right_hand_side); //rk_stage[i] = IMM*RHS = F(u_n + dt*sum(a_ij*k_j))
     }
 
+    
+    Parameters::ODESolverParam ode_param = ODESolverBase<dim,real,MeshType>::all_parameters->ode_solver_param;
     const bool relaxation_runge_kutta = ode_param.relaxation_runge_kutta;
     if (relaxation_runge_kutta) {
         std::cout << "Target dt = " << dt << std::endl;

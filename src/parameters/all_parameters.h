@@ -142,6 +142,7 @@ public:
         taylor_green_vortex_energy_check,
         taylor_green_vortex_restart_check,
         time_refinement_study,
+        time_refinement_study_reference,
     };
     /// Store selected TestType from the input file.
     TestType test_type;

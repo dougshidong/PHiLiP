@@ -186,7 +186,7 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
 
                       dealii::Patterns::Selection("lax_friedrichs | roe | l2roe | split_form | central_flux | entropy_conserving_flux"),
                       "Convective numerical flux. "
-                      "Choices are <lax_friedrichs | roe | l2roe | split_form | central_flux | entropy_conserving_flux (only for Burgers' Inviscid currently)>.");
+                      "Choices are <lax_friedrichs | roe | l2roe | split_form | central_flux | entropy_conserving_flux>.");
 
 
     prm.declare_entry("diss_num_flux", "symm_internal_penalty",
@@ -304,17 +304,13 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     sipg_penalty_factor = prm.get_double("sipg_penalty_factor");
 
     const std::string conv_num_flux_string = prm.get("conv_num_flux");
-    if (conv_num_flux_string == "lax_friedrichs")                                               conv_num_flux_type = lax_friedrichs;
-    if (conv_num_flux_string == "split_form")                                                   conv_num_flux_type = split_form;
-    if (conv_num_flux_string == "roe")                                                          conv_num_flux_type = roe;
-                                                                                                 
-    if (conv_num_flux_string == "l2roe")                                                        conv_num_flux_type = l2roe;
-    if (conv_num_flux_string == "central_flux")                                                 conv_num_flux_type = central_flux;
-    if (conv_num_flux_string == "entropy_conserving_flux" && pde_string == "burgers_inviscid" ) conv_num_flux_type = entropy_cons_flux;
-    if (conv_num_flux_string == "entropy_conserving_flux" && pde_string != "burgers_inviscid" ){
-        pcout<<"Entropy conserving flux only for Burgers' equation."<<std::endl;
-        exit(1);
-    }
+    if (conv_num_flux_string == "lax_friedrichs")          conv_num_flux_type = lax_friedrichs;
+    if (conv_num_flux_string == "split_form")              conv_num_flux_type = split_form;
+    if (conv_num_flux_string == "roe")                     conv_num_flux_type = roe;
+                                                            
+    if (conv_num_flux_string == "l2roe")                   conv_num_flux_type = l2roe;
+    if (conv_num_flux_string == "central_flux")            conv_num_flux_type = central_flux;
+    if (conv_num_flux_string == "entropy_conserving_flux") conv_num_flux_type = entropy_cons_flux;
 
     const std::string diss_num_flux_string = prm.get("diss_num_flux");
     if (diss_num_flux_string == "symm_internal_penalty") diss_num_flux_type = symm_internal_penalty;

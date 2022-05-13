@@ -46,6 +46,8 @@ protected:
     /// Reinitialize parameters and set initial_timestep according to reference solution and passed final time
     Parameters::AllParameters reinit_params_for_reference_solution(int number_of_timesteps, double final_time) const;
 
+    dealii::LinearAlgebra::distributed::Vector<double> calculate_reference_solution(double final_time) const;
+
 };
 
 } // End of Tests namespace

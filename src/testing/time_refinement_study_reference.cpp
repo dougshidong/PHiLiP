@@ -41,6 +41,18 @@ Parameters::AllParameters TimeRefinementStudyReference<dim,nstate>::reinit_param
 }
 
 template <int dim, int nstate>
+dealii::LinearAlgebra::distributed::Vector<double> TimeRefinementStudyReference<dim,nstate>::calculate_reference_solution(
+        double final_time) const
+{
+    int number_of_timesteps_for_reference_solution = this->all_parameters->flow_solver_param.number_of_timesteps_for_reference_solution;
+    const Parameters::AllParameters params_reference = reinit_params_for_reference_solution(number_of_timesteps_for_reference_solution, final_time);
+    std::unique_ptr<FlowSolver<dim,nstate>> flow_solver = FlowSolverFactory<dim,nstate>::create_FlowSolver(&params_reference, parameter_handler);
+    static_cast<void>(flow_solver->run_test());
+
+    return flow_solver->dg->solution;
+}
+
+template <int dim, int nstate>
 double TimeRefinementStudyReference<dim,nstate>::calculate_L2_error_at_final_time_wrt_reference(
             std::shared_ptr<DGBase<dim,double>> dg,
             const Parameters::AllParameters parameters, 
@@ -72,7 +84,16 @@ double TimeRefinementStudyReference<dim,nstate>::calculate_L2_error_at_final_tim
         return L2_error;
     }else{
         //recompute reference solution at actual 
-        return 1.0;
+
+        pcout << "    ---------------------------------------------" << std::endl;
+        pcout << "    Calculating reference solution at actual final_time = " << final_time_actual << " ..."<<std::endl;
+        pcout << "    ---------------------------------------------" << std::endl;
+        const dealii::LinearAlgebra::distributed::Vector<double> reference_solution_actual = calculate_reference_solution(final_time_actual);
+
+        dealii::LinearAlgebra::distributed::Vector<double> cellwise_difference(reference_solution_actual); 
+        cellwise_difference.add(-1.0, dg->solution);
+        double L2_error = cellwise_difference.l2_norm();
+        return L2_error;
     }
     
 }
@@ -100,14 +121,15 @@ int TimeRefinementStudyReference<dim, nstate>::run_test() const
     pcout << "\n\n---------------------------------------------" << std::endl;
     pcout << "Calculating reference solution at target final_time = " << final_time << " ..."<<std::endl;
     pcout << "---------------------------------------------" << std::endl;
-
+/*
     int number_of_timesteps_for_reference_solution = this->all_parameters->flow_solver_param.number_of_timesteps_for_reference_solution;
     double final_time_target = this->all_parameters->flow_solver_param.final_time;
     const Parameters::AllParameters params_reference = reinit_params_for_reference_solution(number_of_timesteps_for_reference_solution, final_time_target);
     std::unique_ptr<FlowSolver<dim,nstate>> flow_solver = FlowSolverFactory<dim,nstate>::create_FlowSolver(&params_reference, parameter_handler);
     static_cast<void>(flow_solver->run_test());
-
-    const dealii::LinearAlgebra::distributed::Vector<double> reference_solution = flow_solver->dg->solution;
+*/
+    double final_time_target = this->all_parameters->flow_solver_param.final_time;
+    const dealii::LinearAlgebra::distributed::Vector<double> reference_solution = calculate_reference_solution(final_time_target);
 
     dealii::ConvergenceTable convergence_table;
     double L2_error_old = 0;

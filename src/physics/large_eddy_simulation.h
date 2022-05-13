@@ -138,8 +138,7 @@ class LargeEddySimulation_Smagorinsky : public LargeEddySimulationBase <dim, nst
 public:
     using thermal_boundary_condition_enum = Parameters::NavierStokesParam::ThermalBoundaryCondition;
     /** Constructor for the sub-grid scale (SGS) model: Smagorinsky
-     *  More details...
-     *  Reference: To be put here
+     *  Reference: plata2019performance
      */
     LargeEddySimulation_Smagorinsky(
         const double                                              ref_length,
@@ -234,9 +233,9 @@ class LargeEddySimulation_WALE : public LargeEddySimulation_Smagorinsky <dim, ns
 {
 public:
     using thermal_boundary_condition_enum = Parameters::NavierStokesParam::ThermalBoundaryCondition;
-    /** Constructor for the sub-grid scale (SGS) model: Smagorinsky
-     *  More details...
-     *  Reference: Nicoud & Ducros (1999) "Subgrid-scale stress modelling based on the square of the velocity gradient tensor"
+    /** Constructor for the sub-grid scale (SGS) model: WALE
+     *  Reference 1: plata2019performance
+     *  Reference 2: Nicoud & Ducros (1999) "Subgrid-scale stress modelling based on the square of the velocity gradient tensor"
      */
     LargeEddySimulation_WALE(
         const double                                              ref_length,

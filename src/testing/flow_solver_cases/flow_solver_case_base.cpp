@@ -16,7 +16,9 @@ FlowSolverCaseBase<dim, nstate>::FlowSolverCaseBase(const PHiLiP::Parameters::Al
 template<int dim, int nstate>
 std::string FlowSolverCaseBase<dim, nstate>::get_pde_string() const
 {
-    using PDE_enum = Parameters::AllParameters::PartialDifferentialEquation;
+    using PDE_enum      = Parameters::AllParameters::PartialDifferentialEquation;
+    using Model_enum    = Parameters::AllParameters::ModelType;
+    using SGSModel_enum = Parameters::PhysicsModelParam::SubGridScaleModel;
     
     const PDE_enum pde_type = this->all_param.pde_type;
     std::string pde_string;
@@ -30,6 +32,24 @@ std::string FlowSolverCaseBase<dim, nstate>::get_pde_string() const
     if (pde_type == PDE_enum::mhd)                  {pde_string = "mhd";}
     if (pde_type == PDE_enum::euler)                {pde_string = "euler";}
     if (pde_type == PDE_enum::navier_stokes)        {pde_string = "navier_stokes";}
+    if (pde_type == PDE_enum::physics_model) {
+        pde_string = "physics_model";
+        // add the model name + sub model name (if applicable)
+        const Model_enum model = this->all_param.model_type;
+        std::string model_string = "WARNING: invalid model";
+        if(model == Model_enum::large_eddy_simulation) {
+            // assign model string
+            model_string = "large_eddy_simulation";
+            // sub-grid scale (SGS)
+            const SGSModel_enum sgs_model = this->all_param.physics_model_param.SGS_model_type;
+            std::string sgs_model_string = "WARNING: invalid SGS model";
+            // assign SGS model string
+            if     (sgs_model==SGSModel_enum::smagorinsky) sgs_model_string = "smagorinsky";
+            else if(sgs_model==SGSModel_enum::wall_adaptive_local_eddy_viscosity) sgs_model_string = "wall_adaptive_local_eddy_viscosity";
+            pde_string += std::string(" (Model: ") + model_string + std::string(", SGS Model: ") + sgs_model_string + std::string(")");
+        }
+        if(pde_string == "physics_model") pde_string += std::string(" (Model: ") + model_string + std::string(")");
+    }
     
     return pde_string;
 }

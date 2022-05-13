@@ -290,12 +290,20 @@ dealii::Tensor<2,dim,real> NavierStokes<dim,nstate,real>
     const std::array<dealii::Tensor<1,dim,real>,nstate> primitive_soln_gradient = convert_conservative_gradient_to_primitive_gradient<real>(conservative_soln, conservative_soln_gradient);
     const dealii::Tensor<2,dim,real> velocities_gradient = extract_velocities_gradient_from_primitive_solution_gradient<real>(primitive_soln_gradient);
 
+    // Strain rate tensor, S_{i,j}
+    const dealii::Tensor<2,dim,real> strain_rate_tensor = compute_strain_rate_tensor<real>(velocities_gradient);
+    
+    // Compute divergence of velocity
+    real2 vel_divergence = 0.0;
+    for(int d1=0; d1<dim; ++d1) {
+        vel_divergence += velocities_gradient[d1][d1];
+    }
+
     // Compute the deviatoric strain rate tensor
-    // TO DO: Update this to call compute_strain_rate_tensor() and rename that function appropriately
     dealii::Tensor<2,dim,real> deviatoric_strain_rate_tensor;
     for(int d1=0; d1<dim; ++d1) {
         for(int d2=0; d2<dim; ++d2) {
-            deviatoric_strain_rate_tensor[d1][d2] = 0.5*(velocities_gradient[d1][d2] + velocities_gradient[d2][d1]);
+            deviatoric_strain_rate_tensor[d1][d2] = strain_rate_tensor[d1][d2] - (1.0/3.0)*vel_divergence;
         }
     }
     return deviatoric_strain_rate_tensor;

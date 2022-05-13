@@ -20,20 +20,35 @@ int PODPetrovGalerkinODESolver<dim,real,MeshType>::steady_state ()
     this->pcout << " Performing steady state analysis... " << std::endl;
     allocate_ode_system ();
 
-    this->residual_norm_decrease = 1; // Always do at least 1 iteration
     this->current_iteration = 0;
 
     this->pcout << " Evaluating right-hand side and setting system_matrix to Jacobian before starting iterations... " << std::endl;
-    this->dg->assemble_residual ();
-    this->residual_norm = this->dg->get_residual_l2norm();
+    const bool compute_dRdW = true;
+    this->dg->assemble_residual(compute_dRdW);
+
+    Epetra_CrsMatrix *epetra_system_matrix = const_cast<Epetra_CrsMatrix *>(&(this->dg->system_matrix.trilinos_matrix()));
+    Epetra_Map system_matrix_rowmap = epetra_system_matrix->RowMap();
+    Epetra_CrsMatrix *epetra_pod_basis = const_cast<Epetra_CrsMatrix *>(&(pod->getPODBasis()->trilinos_matrix()));
+    Epetra_CrsMatrix epetra_petrov_galerkin_basis(Epetra_DataAccess::View, system_matrix_rowmap, pod->getPODBasis()->n());
+    EpetraExt::MatrixMatrix::Multiply(*epetra_system_matrix, false, *epetra_pod_basis, false, epetra_petrov_galerkin_basis, true);
+    Epetra_Vector epetra_right_hand_side(Epetra_DataAccess::View, epetra_system_matrix->RowMap(), this->dg->right_hand_side.begin());
+    Epetra_Vector epetra_reduced_rhs(epetra_petrov_galerkin_basis.DomainMap());
+    epetra_petrov_galerkin_basis.Multiply(true, epetra_right_hand_side, epetra_reduced_rhs);;
+    epetra_reduced_rhs.Norm2(&this->initial_residual_norm);
+
     this->pcout << " ********************************************************** "
           << std::endl
-          << " Initial absolute residual norm: " << this->residual_norm
+          << " Initial absolute residual norm: " << this->initial_residual_norm
           << std::endl;
 
-    double old_residual_norm = this->residual_norm;
+    this->residual_norm = 1;
+    this->residual_norm_decrease = 1;
 
-    while (this->residual_norm_decrease > this->ode_param.nonlinear_steady_residual_tolerance)
+    // Initial Courant-Friedrichs-Lax number
+    const double initial_CFL = this->all_parameters->ode_solver_param.initial_time_step;
+    this->CFL_factor = 1.0;
+
+    while (this->residual_norm > this->ode_param.nonlinear_steady_residual_tolerance)
     {
         if ((this->ode_param.ode_output) == Parameters::OutputEnum::verbose
             && (this->current_iteration%this->ode_param.print_iteration_modulo) == 0
@@ -54,23 +69,29 @@ int PODPetrovGalerkinODESolver<dim,real,MeshType>::steady_state ()
             this->pcout << " Evaluating right-hand side and setting system_matrix to Jacobian... " << std::endl;
         }
 
+        double ramped_CFL = initial_CFL * this->CFL_factor;
+        if (this->residual_norm_decrease < 1.0) {
+            ramped_CFL *= pow((1.0-std::log10(this->residual_norm_decrease)*this->ode_param.time_step_factor_residual), this->ode_param.time_step_factor_residual_exp);
+            this->pcout << "ramped cfl " << ramped_CFL << std::endl;
+        }
+        ramped_CFL = std::max(ramped_CFL,initial_CFL*this->CFL_factor);
+        this->pcout << "Initial CFL = " << initial_CFL << ". Current CFL = " << ramped_CFL << std::endl;
+
+        /*
         if (this->residual_norm < 1e-12) {
             this->dg->freeze_artificial_dissipation = true;
         } else {
             this->dg->freeze_artificial_dissipation = false;
         }
-
+        */
 
         const bool pseudotime = true;
-        double ramped_CFL = 0;
         step_in_time(ramped_CFL, pseudotime);
 
-        this->dg->assemble_residual ();
+        this->residual_norm_decrease = this->residual_norm / this->initial_residual_norm;
+        this->pcout << "this->residual_norm_decrease = " << this->residual_norm_decrease << std::endl;
 
-        this->residual_norm = this->dg->get_residual_l2norm();
-        this->residual_norm_decrease = std::abs(old_residual_norm - this->residual_norm);
-        this->pcout << "Residual norm decrease: " << this->residual_norm_decrease << std::endl;
-        old_residual_norm = this->residual_norm;
+        //this->residual_norm = this->dg->get_residual_l2norm();
     }
 
     this->pcout << " ********************************************************** "
@@ -87,7 +108,7 @@ int PODPetrovGalerkinODESolver<dim,real,MeshType>::steady_state ()
 }
 
 template <int dim, typename real, typename MeshType>
-void PODPetrovGalerkinODESolver<dim,real,MeshType>::step_in_time (real /*dt*/, const bool /*pseudotime*/)
+void PODPetrovGalerkinODESolver<dim,real,MeshType>::step_in_time (real dt, const bool /*pseudotime*/)
 {
     const bool compute_dRdW = true;
     this->dg->assemble_residual(compute_dRdW);
@@ -97,7 +118,9 @@ void PODPetrovGalerkinODESolver<dim,real,MeshType>::step_in_time (real /*dt*/, c
 
     this->dg->system_matrix *= -1.0;
 
-    //this->dg->add_mass_matrices(1.0/dt);
+    const double CFL = dt;
+    this->dg->time_scaled_mass_matrices(CFL);
+    this->dg->add_time_scaled_mass_matrices();
 
     if ((this->ode_param.ode_output) == Parameters::OutputEnum::verbose &&
         (this->current_iteration%this->ode_param.print_iteration_modulo) == 0 ) {
@@ -149,12 +172,46 @@ void PODPetrovGalerkinODESolver<dim,real,MeshType>::step_in_time (real /*dt*/, c
     Solver->Solve();
 
     this->pcout << "Reduced solution update norm: " << reduced_solution_update.l2_norm() << std::endl;
-    double l2norm;
-    epetra_reduced_rhs.Norm2(&l2norm);
-    this->pcout << "l2 norm of reduced order residual: " << l2norm << std::endl;
+    //double l2norm;
+    //epetra_reduced_rhs.Norm2(&l2norm);
+    //this->pcout << "l2 norm of reduced order residual: " << l2norm << std::endl;
 
-    linesearch();
+    const dealii::LinearAlgebra::distributed::Vector<double> old_reduced_solution(reduced_solution);
+    double step_length = 1.0;
+    const double step_reduction = 0.5;
+    const int maxline = 10;
+    const double reduction_tolerance_1 = 1.0;
 
+    double initial_residual;
+    epetra_reduced_rhs.Norm2(&initial_residual);
+
+    reduced_solution.add(step_length, this->reduced_solution_update);
+    Epetra_Vector epetra_reduced_solution(Epetra_DataAccess::View, epetra_pod_basis->DomainMap(), reduced_solution.begin());
+    Epetra_Vector solution(Epetra_DataAccess::View, epetra_pod_basis->RangeMap(), this->dg->solution.begin());
+    epetra_pod_basis->Multiply(false, epetra_reduced_solution, solution);
+    this->dg->solution += reference_solution;
+    this->dg->assemble_residual();
+    epetra_petrov_galerkin_basis.Multiply(true, epetra_right_hand_side, epetra_reduced_rhs);
+    double new_residual;
+    epetra_reduced_rhs.Norm2(&new_residual);
+    this->pcout << " Step length " << step_length << ". Old residual: " << initial_residual << " New residual: " << new_residual << std::endl;
+
+    int iline = 0;
+    for (iline = 0; iline < maxline && new_residual > initial_residual * reduction_tolerance_1; ++iline) {
+        step_length = step_length * step_reduction;
+        reduced_solution = old_reduced_solution;
+        reduced_solution.add(step_length, this->reduced_solution_update);
+        epetra_pod_basis->Multiply(false, epetra_reduced_solution, solution);
+        this->dg->solution += reference_solution;
+        this->dg->assemble_residual();
+        epetra_petrov_galerkin_basis.Multiply(true, epetra_right_hand_side, epetra_reduced_rhs);
+        epetra_reduced_rhs.Norm2(&new_residual);
+        this->pcout << " Step length " << step_length << " . Old residual: " << initial_residual << " New residual: " << new_residual << std::endl;
+    }
+    if (iline == 0) this->CFL_factor *= 1.1;
+    if (iline == maxline) this->CFL_factor *= 0.5;
+
+    this->residual_norm = new_residual;
     ++(this->current_iteration);
 
     delete Solver;

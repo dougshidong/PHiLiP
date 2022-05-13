@@ -1471,6 +1471,89 @@ double DGBase<dim,real,MeshType>::get_residual_l2norm () const
     const double mpi_domain_volume    = dealii::Utilities::MPI::sum(domain_volume, mpi_communicator);
     return std::sqrt(mpi_residual_l2_norm) / mpi_domain_volume;
 }
+
+template <int dim, typename real, typename MeshType>
+double DGBase<dim,real,MeshType>::get_reduced_residual_l2norm (Epetra_CrsMatrix epetra_basis) const
+{
+    dealii::LinearAlgebra::distributed::Vector<double> scaled_right_hand_side(right_hand_side);
+    scaled_right_hand_side*=0;
+
+    const auto mapping = (*(high_order_grid->mapping_fe_field));
+    dealii::hp::MappingCollection<dim> mapping_collection(mapping);
+
+    double domain_volume = 0.0;
+    std::vector<dealii::types::global_dof_index> dofs_indices;
+    const dealii::UpdateFlags update_flags = dealii::update_values | dealii::update_JxW_values;
+    dealii::hp::FEValues<dim,dim> fe_values_collection_volume (mapping_collection,
+                                                               fe_collection,
+                                                               volume_quadrature_collection,
+                                                               update_flags);
+
+    // Obtain the mapping from local dof indices to global dof indices
+    for (const auto cell : dof_handler.active_cell_iterators()) {
+        if (!cell->is_locally_owned()) continue;
+
+        const int i_fele = cell->active_fe_index();
+        const int i_quad = i_fele;
+        const int i_mapp = 0;
+
+        fe_values_collection_volume.reinit (cell, i_quad, i_mapp, i_fele);
+        const dealii::FEValues<dim,dim> &fe_values_vol = fe_values_collection_volume.get_present_fe_values();
+
+        const dealii::FESystem<dim,dim> &fe_ref = fe_collection[i_fele];
+        const unsigned int n_dofs = fe_ref.n_dofs_per_cell();
+        const unsigned int n_quad = fe_values_vol.n_quadrature_points;
+
+        dofs_indices.resize(n_dofs);
+        cell->get_dof_indices (dofs_indices);
+
+        for (unsigned int iquad = 0; iquad < n_quad; ++iquad) {
+            for (unsigned int idof = 0; idof < n_dofs; ++idof) {
+                scaled_right_hand_side[dofs_indices[idof]] += right_hand_side[dofs_indices[idof]] * fe_values_vol.JxW(iquad);
+            }
+            domain_volume += fe_values_vol.JxW(iquad);
+        }
+
+
+        /*
+        const int i_fele = cell->active_fe_index();
+        const int i_quad = i_fele;
+        const int i_mapp = 0;
+
+        fe_values_collection_volume.reinit (cell, i_quad, i_mapp, i_fele);
+        const dealii::FEValues<dim,dim> &fe_values_vol = fe_values_collection_volume.get_present_fe_values();
+
+        const dealii::FESystem<dim,dim> &fe_ref = fe_collection[i_fele];
+        const unsigned int n_dofs = fe_ref.n_dofs_per_cell();
+        const unsigned int n_quad = fe_values_vol.n_quadrature_points;
+
+        dofs_indices.resize(n_dofs);
+        cell->get_dof_indices (dofs_indices);
+
+        double cell_volume_estimate = 0.0;
+        for (unsigned int iquad=0; iquad<n_quad; ++iquad) {
+            cell_volume_estimate += fe_values_vol.JxW(iquad);
+        }
+
+        for (unsigned int iquad = 0; iquad < n_quad; ++iquad) {
+            for (unsigned int idof = 0; idof < n_dofs; ++idof) {
+                scaled_right_hand_side[dofs_indices[idof]] = right_hand_side[dofs_indices[idof]] * fe_values_vol.JxW(iquad);
+            }
+            domain_volume += fe_values_vol.JxW(iquad);
+        }
+         */
+    }
+
+    Epetra_Vector epetra_scaled_right_hand_side(Epetra_DataAccess::View, epetra_basis.RangeMap(), scaled_right_hand_side.begin());
+    Epetra_Vector epetra_reduced_rhs(epetra_basis.DomainMap());
+    epetra_basis.Multiply(true, epetra_scaled_right_hand_side, epetra_reduced_rhs);
+
+    const double mpi_domain_volume = dealii::Utilities::MPI::sum(domain_volume, mpi_communicator);
+    double reduced_l2norm;
+    epetra_reduced_rhs.Norm2(&reduced_l2norm);
+    return std::sqrt(reduced_l2norm) / mpi_domain_volume;
+}
+
 template <int dim, typename real, typename MeshType>
 unsigned int DGBase<dim,real,MeshType>::n_dofs () const
 {

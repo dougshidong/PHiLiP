@@ -294,7 +294,7 @@ dealii::Tensor<2,dim,real> NavierStokes<dim,nstate,real>
     const dealii::Tensor<2,dim,real> strain_rate_tensor = compute_strain_rate_tensor<real>(velocities_gradient);
     
     // Compute divergence of velocity
-    real2 vel_divergence = 0.0;
+    real vel_divergence = 0.0;
     for(int d1=0; d1<dim; ++d1) {
         vel_divergence += velocities_gradient[d1][d1];
     }

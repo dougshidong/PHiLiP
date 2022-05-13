@@ -43,9 +43,9 @@ void ExplicitODESolver<dim,real,MeshType>::step_in_time (real dt, const bool pse
     Parameters::ODESolverParam ode_param = ODESolverBase<dim,real,MeshType>::all_parameters->ode_solver_param;
     const bool relaxation_runge_kutta = ode_param.relaxation_runge_kutta;
     if (relaxation_runge_kutta) {
-        std::cout << "Target dt = " << dt << std::endl;
+        //std::cout << "Target dt = " << dt << std::endl;
         dt = scale_dt_by_relaxation_factor(dt);
-        std::cout << "Modified dt = " << dt << std::endl;
+        //std::cout << "Modified dt = " << dt << std::endl;
     }
 
 
@@ -76,13 +76,13 @@ real ExplicitODESolver<dim,real,MeshType>::scale_dt_by_relaxation_factor (real d
     const bool relaxation_runge_kutta = ode_param.relaxation_runge_kutta;
     double gamma = 1;
     if (relaxation_runge_kutta){
-        std::cout << "Entering RRK" << std::endl;
-        std::cout << "Current time is " << this->current_time << std::endl;
+        //std::cout << "Entering RRK" << std::endl;
+        //std::cout << "Current time is " << this->current_time << std::endl;
         double denominator=0;
         double numerator=0;
         for (int i = 0; i < rk_order; ++i){
             for (int j = 0; j < rk_order; ++j){
-                std::cout << "    i = " << i << " j = " << j << " a_ij = " << butcher_tableau_a[i][j] << std::endl;
+                //std::cout << "    i = " << i << " j = " << j << " a_ij = " << butcher_tableau_a[i][j] << std::endl;
                 //double dot_product = (this->rk_stage[i]) *( this->rk_stage[j]);
                 double dot_product = 0.0;
                 for (unsigned int m = 0; m < this->dg->solution.size(); ++m) {
@@ -93,11 +93,11 @@ real ExplicitODESolver<dim,real,MeshType>::scale_dt_by_relaxation_factor (real d
             }
         }
         numerator *= 2;
-        std::cout << std::setprecision(16) << std::fixed;
-        std::cout << "Numerator = " << numerator << "  Denominator = " << denominator << std::endl;
+        //std::cout << std::setprecision(16) << std::fixed;
+        //std::cout << "Numerator = " << numerator << "  Denominator = " << denominator << std::endl;
         gamma = (denominator < 1E-8) ? 1 : numerator/denominator;
     }
-    std::cout << "gamma = " << gamma << std::endl;
+    //std::cout << "gamma = " << gamma << std::endl;
     return dt * gamma;
 }
 

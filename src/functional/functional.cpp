@@ -22,6 +22,7 @@
 #include "physics/physics_factory.h"
 #include "dg/dg.h"
 #include "functional.h"
+#include "lift_drag.hpp"
 
 /// Returns y = Ax.
 /** Had to rewrite this instead of 
@@ -1248,6 +1249,22 @@ FunctionalFactory<dim,nstate,real,MeshType>::create_Functional(
             dg,
             true,
             false);
+    }else if(functional_type == FunctionalTypeEnum::lift){
+        if constexpr(dim==2 && 
+                     nstate==(dim+2) && 
+                     std::is_same<MeshType, dealii::parallel::distributed::Triangulation<dim>>::value){
+            return std::make_shared<LiftDragFunctional<dim,nstate,real,MeshType>>(
+                dg,
+                LiftDragFunctional<dim,dim+2,double,MeshType>::Functional_types::lift);
+        }
+    }else if(functional_type == FunctionalTypeEnum::drag){
+        if constexpr(dim==2 && 
+                     nstate==(dim+2) && 
+                     std::is_same<MeshType, dealii::parallel::distributed::Triangulation<dim>>::value){
+            return std::make_shared<LiftDragFunctional<dim,nstate,real,MeshType>>(
+                dg,
+                LiftDragFunctional<dim,dim+2,double,MeshType>::Functional_types::drag);
+        }
     }else{
         std::cout << "Invalid Functional." << std::endl;
     }

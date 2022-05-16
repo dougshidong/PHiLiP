@@ -23,6 +23,8 @@ public:
         weighted_integral_boundary,
         error_normLp_volume,
         error_normLp_boundary,
+        lift,
+        drag,
     };
     /// Selection of functinal type
     FunctionalType functional_type;

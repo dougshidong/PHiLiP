@@ -6,7 +6,7 @@ set dimension = 1
 set test_type = time_refinement_study_reference
 set pde_type = burgers_inviscid
 
-# Note: this was added to turn off check_same_coords() -- has no other function when dim!=1
+# Note: this is required to correctly calculate energy
 set use_periodic_bc = true
 
 # ODE solver
@@ -16,6 +16,7 @@ subsection ODE solver
   set initial_time_step = 2.5E-3
   subsection explicit solver options
     set runge_kutta_order = 3
+    set relaxation_runge_kutta = true
   end
 end
 
@@ -29,8 +30,9 @@ subsection grid refinement study
 end
 
 subsection flow_solver
-  set flow_case_type = advection_periodic
+  set flow_case_type = burgers_periodic
   set final_time = 0.1 
+  set unsteady_data_table_filename = burgers_unsteady_data
   subsection time_refinement_study
     set number_of_times_to_solve = 4 
     set refinement_ratio = 0.5

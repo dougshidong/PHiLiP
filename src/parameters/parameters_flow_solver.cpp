@@ -19,6 +19,7 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                           " burgers_viscous_snapshot | "
                           " naca0012 | "
                           " burgers_rewienski_snapshot | "
+                          " burgers_periodic | "
                           " advection_periodic"),
                           "The type of flow we want to simulate. "
                           "Choices are "
@@ -26,6 +27,7 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                           " burgers_viscous_snapshot | "
                           " naca0012 | "
                           " burgers_rewienski_snapshot | "
+                          " burgers_periodic | "
                           " advection_periodic>.");
 
         prm.declare_entry("poly_degree", "1",
@@ -155,6 +157,7 @@ void FlowSolverParam::parse_parameters(dealii::ParameterHandler &prm)
         else if (flow_case_type_string == "burgers_viscous_snapshot")   {flow_case_type = burgers_viscous_snapshot;}
         else if (flow_case_type_string == "burgers_rewienski_snapshot") {flow_case_type = burgers_rewienski_snapshot;}
         else if (flow_case_type_string == "naca0012")                   {flow_case_type = naca0012;}
+        else if (flow_case_type_string == "burgers_periodic")           {flow_case_type = burgers_periodic;}
         else if (flow_case_type_string == "advection_periodic")         {flow_case_type = advection_periodic;}
 
         poly_degree = prm.get_integer("poly_degree");

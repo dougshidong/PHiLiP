@@ -30,7 +30,7 @@ PeriodicTurbulence<dim, nstate>::PeriodicTurbulence(const PHiLiP::Parameters::Al
 
     // Flow case identifiers
     this->is_taylor_green_vortex = (flow_type == FlowCaseEnum::taylor_green_vortex);
-    this->is_viscous_flow = (this->all_param.pde_type == Parameters::AllParameters::PartialDifferentialEquation::navier_stokes);
+    this->is_viscous_flow = (this->all_param.pde_type != Parameters::AllParameters::PartialDifferentialEquation::euler);
 
     // Navier-Stokes object; create using dynamic_pointer_cast and the create_Physics factory
     PHiLiP::Parameters::AllParameters parameters_navier_stokes = this->all_param;

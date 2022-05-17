@@ -35,3 +35,10 @@ add_test(
   WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )
 # ----------------------------------------
+configure_file(viscous_taylor_green_vortex_large_eddy_simulation_energy_check_quick.prm viscous_taylor_green_vortex_large_eddy_simulation_energy_check_quick.prm COPYONLY)
+add_test(
+  NAME MPI_VISCOUS_TAYLOR_GREEN_VORTEX_LARGE_EDDY_SIMULATION_ENERGY_CHECK_QUICK
+  COMMAND mpirun -np ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_3D -i ${CMAKE_CURRENT_BINARY_DIR}/viscous_taylor_green_vortex_large_eddy_simulation_energy_check_quick.prm
+  WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
+)
+# ----------------------------------------

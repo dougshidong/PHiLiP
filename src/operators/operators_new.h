@@ -57,16 +57,12 @@ class OperatorsBase
 public:
     ///Constructor
     OperatorsBase(
-          const Parameters::AllParameters *const parameters_input,
           const int nstate_input,//number of states input
-          const unsigned int degree,//degree not really needed at the moment
           const unsigned int max_degree_input,//max poly degree for operators
           const unsigned int grid_degree_input);//max grid degree for operators
     ///Destructor
     ~OperatorsBase();
 
-    /// Input parameters.
-    const Parameters::AllParameters *const all_parameters;
     ///Max polynomial degree.
     const unsigned int max_degree;
     ///Max grid degree.
@@ -123,6 +119,7 @@ public:
                     std::vector<real> &output_vect,
                     const unsigned int rows, const unsigned int columns,
                     const unsigned int dimension,
+                    const dealii::FullMatrix<real> &basis_x,
                     const dealii::FullMatrix<real> &basis_y,
                     const dealii::FullMatrix<real> &basis_z) = 0;
     ///virtual function to be defined.
@@ -132,6 +129,7 @@ public:
                     std::vector<real> &output_vect,
                     const unsigned int rows, const unsigned int columns,
                     const unsigned int dimension,
+                    const dealii::FullMatrix<real> &basis_x,
                     const dealii::FullMatrix<real> &basis_y,
                     const dealii::FullMatrix<real> &basis_z) = 0;
 protected:
@@ -151,13 +149,12 @@ class SumFactorizedOperators : public OperatorsBase<dim,real,n_faces>
 
 public:
     /// Precompute 1D operator in constructor
-    SumFactorizedOperators() : oneD_vol_operator             (build_1D_volume_operator()) 
-                             , oneD_surf_operator            (build_1D_surface_operator()) 
-                             , oneD_grad_operator            (build_1D_gradient_operator())
-                             , oneD_surf_grad_operator       (build_1D_surface_gradient_operator())
-                             , oneD_diag_operator            (build_1D_diagonal_operator())
-                             , oneD_diag_tensor_operator     (build_1D_diagonal_tensor_operator())
-                             {};
+    SumFactorizedOperators(
+        const int nstate_input,
+        const unsigned int max_degree_input,
+        const unsigned int grid_degree_input);
+    ///Destructor
+    ~SumFactorizedOperators ();
 
     ///Computes a matrix-vector product using sum-factorization. Pass the one-dimensional basis, where x runs the fastest, then y, and z runs the slowest. Also, assume each one-dimensional basis is the same size.
     /** Uses sum-factorization with BLAS techniques to solve the the matrix-vector multiplication, where the matrix is the tensor product of three one-dimensional matrices. We use the standard notation that x runs the fastest, then y, and z runs the slowest.
@@ -169,6 +166,7 @@ public:
                     std::vector<real> &output_vect,
                     const unsigned int rows, const unsigned int columns,
                     const unsigned int dimension,
+                    const dealii::FullMatrix<real> &basis_x,
                     const dealii::FullMatrix<real> &basis_y,
                     const dealii::FullMatrix<real> &basis_z) const override;
     ///Computes the inner prodct between a matrix and a vector multiplied by some weight function.  
@@ -180,6 +178,7 @@ public:
                     std::vector<real> &output_vect,
                     const unsigned int rows, const unsigned int columns,
                     const unsigned int dimension,
+                    const dealii::FullMatrix<real> &basis_x,
                     const dealii::FullMatrix<real> &basis_y,
                     const dealii::FullMatrix<real> &basis_z) const override;
 
@@ -242,6 +241,14 @@ protected:
 template<int dim, typename real, int n_faces>
 class basis_at_vol_cubature : public SumFactorizedOperators<dim,real,n_faces>
 {
+public:
+    //Constructor.
+    basis_at_vol_cubature (
+        const int nstate_input,
+        const unsigned int max_degree_input,
+        const unsigned int grid_degree_input);
+    //Destructor.
+    ~basis_at_vol_cubature ();
 protected:
     ///Assembles the one dimensional operator.
     dealii::FullMatrix<real> build_1D_volume_operator() override;
@@ -251,15 +258,14 @@ protected:
 template<int dim, typename real, int n_faces>
 class vol_integral_basis : public SumFactorizedOperators<dim,real,n_faces>
 {
-protected:
-    ///Assembles the one dimensional operator.
-    dealii::FullMatrix<real> build_1D_volume_operator() override;
-}
-
-///This is the solution basis \f$\mathbf{D}_i\f$, the modal differential opertaor commonly seen in DG defined as \f$\mathbf{D}_i=\mathbf{M}^{-1}*\mathbf{S}_i\f$.
-template<int dim, typename real, int n_faces>
-class modal_basis_differential_operator : public SumFactorizedOperators<dim,real,n_faces>
-{
+public:
+    //Constructor.
+    vol_integral_basis (
+        const int nstate_input,
+        const unsigned int max_degree_input,
+        const unsigned int grid_degree_input);
+    //Destructor.
+    ~vol_integral_basis ();
 protected:
     ///Assembles the one dimensional operator.
     dealii::FullMatrix<real> build_1D_volume_operator() override;
@@ -269,6 +275,14 @@ protected:
 template<int dim, typename real, int n_faces>
 class local_mass : public SumFactorizedOperators<dim,real,n_faces>
 {
+public:
+    //Constructor.
+    local_mass (
+        const int nstate_input,
+        const unsigned int max_degree_input,
+        const unsigned int grid_degree_input);
+    //Destructor.
+    ~local_mass ();
 protected:
     ///Assembles the one dimensional operator.
     dealii::FullMatrix<real> build_1D_volume_operator() override;
@@ -283,6 +297,48 @@ protected:
 template<int dim, typename real, int n_faces>
 class local_basis_stiffness : public SumFactorizedOperators<dim,real,n_faces>
 {
+public:
+    //Constructor.
+    local_basis_stiffness (
+        const int nstate_input,
+        const unsigned int max_degree_input,
+        const unsigned int grid_degree_input);
+    //Destructor.
+    ~local_basis_stiffness ();
+protected:
+    ///Assembles the one dimensional operator.
+    dealii::FullMatrix<real> build_1D_volume_operator() override;
+}
+
+///This is the solution basis \f$\mathbf{D}_i\f$, the modal differential opertaor commonly seen in DG defined as \f$\mathbf{D}_i=\mathbf{M}^{-1}*\mathbf{S}_i\f$.
+template<int dim, typename real, int n_faces>
+class modal_basis_differential_operator : public SumFactorizedOperators<dim,real,n_faces>
+{
+public:
+    //Constructor.
+    modal_basis_differential_operator (
+        const int nstate_input,
+        const unsigned int max_degree_input,
+        const unsigned int grid_degree_input);
+    //Destructor.
+    ~modal_basis_differential_operator ();
+protected:
+    ///Assembles the one dimensional operator.
+    dealii::FullMatrix<real> build_1D_volume_operator() override;
+}
+
+///\f$ p\f$ -th order modal derivative of basis fuctions, ie/\f$ [D_\xi^p, D_\eta^p, D_\zeta^p]\f$
+template<int dim, typename real, int n_faces>
+class derivative_p : public SumFactorizedOperators<dim,real,n_faces>
+{
+public:
+    //Constructor.
+    derivative_p (
+        const int nstate_input,
+        const unsigned int max_degree_input,
+        const unsigned int grid_degree_input);
+    //Destructor.
+    ~derivative_p ();
 protected:
     ///Assembles the one dimensional operator.
     dealii::FullMatrix<real> build_1D_volume_operator() override;
@@ -292,6 +348,73 @@ protected:
 template<int dim, typename real, int n_faces>
 class local_Flux_Reconstruction_operator : public SumFactorizedOperators<dim,real,n_faces>
 {
+public:
+    //Constructor.
+    local_Flux_Reconstruction_operator (
+        const int nstate_input,
+        const unsigned int max_degree_input,
+        const unsigned int grid_degree_input);
+    //Destructor.
+    ~local_Flux_Reconstruction_operator ();
+    ///Flux reconstruction parameter type.
+    const Paramaters::AllParameters::Flux_Reconstruction FR_param_type;
+    ///Flux reconstruction paramater value.
+    double FR_param;
+    ///Evaluates Huynh's g2 parameter for flux reconstruction.
+    /* This parameter recovers Huynh, Hung T. "A flux reconstruction approach to high-order schemes including discontinuous Galerkin methods." 18th AIAA computational fluid dynamics conference. 2007.
+    */
+    void get_Huynh_g2_parameter (
+                                const unsigned int curr_cell_degree,
+                                double &c);
+
+    ///Evaluates the spectral difference parameter for flux reconstruction.
+    /*Value from Allaneau, Y., and Antony Jameson. "Connections between the filtered discontinuous Galerkin method and the flux reconstruction approach to high order discretizations." Computer Methods in Applied Mechanics and Engineering 200.49-52 (2011): 3628-3636. 
+    */
+    void get_spectral_difference_parameter (
+                                const unsigned int curr_cell_degree,
+                                double &c);
+    ///Evaluates the flux reconstruction parameter at the bottom limit where the scheme is unstable.
+    /*Value from Allaneau, Y., and Antony Jameson. "Connections between the filtered discontinuous Galerkin method and the flux reconstruction approach to high order discretizations." Computer Methods in Applied Mechanics and Engineering 200.49-52 (2011): 3628-3636. 
+    */
+    void get_c_negative_FR_parameter (
+                                const unsigned int curr_cell_degree,
+                                double &c);
+    ///Evaluates the flux reconstruction parameter at the bottom limit where the scheme is unstable, divided by 2.
+    /*Value from Allaneau, Y., and Antony Jameson. "Connections between the filtered discontinuous Galerkin method and the flux reconstruction approach to high order discretizations." Computer Methods in Applied Mechanics and Engineering 200.49-52 (2011): 3628-3636. 
+    * Commonly in the lterature we use this value to show the approach to the bottom limit of stability.
+    */
+    void get_c_negative_divided_by_two_FR_parameter (
+                                const unsigned int curr_cell_degree,
+                                double &c);
+    ///Gets the FR correction parameter corresponding to the maximum timestep.
+    /* Note that this parameter is also a good approximation for when the FR scheme begins to
+    * lose an order of accuracy, but the original definition is that it corresponds to the maximum timestep.
+    * Value from Table 3.4 in Castonguay, Patrice. High-order energy stable flux reconstruction schemes for fluid flow simulations on unstructured grids. Stanford University, 2012.
+    */
+    void get_c_plus_parameter (
+                                const unsigned int curr_cell_degree,
+                                double &c);
+    ///Gets the FR correction parameter for the primary equation and stores.
+    /**These values are name specified in parameters/all_parameters.h, passed through control file/or test and here converts/stores as value.
+    * Please note that in all the functions within this that evaluate the parameter, we divide the value in the literature by 2.0
+    * because our basis are contructed by an orthonormal Legendre basis rather than the orthogonal basis in the literature. 
+    * Also, we have the additional scaling by pow(pow(2.0,curr_cell_degree),2) because our basis functions are defined on
+    * a reference element between [0,1], whereas the values in the literature are based on [-1,1].
+    * For further details please refer to Cicchino, Alexander, and Siva Nadarajah. "A new norm and stability condition for tensor product flux reconstruction schemes." Journal of Computational Physics 429 (2021): 110025.
+    */
+    void get_FR_correction_parameter (
+                                const unsigned int curr_cell_degree,
+                                double &c);
+   ///Computes a single local Flux_Reconstruction operator (ESFR correction operator) on the fly for a local element.
+   /**Note that this is dependent on the Mass Matrix, so for metric Jacobian dependent \f$K_m\f$,
+   *pass the metric Jacobian dependent Mass Matrix \f$M_m\f$.
+    */
+    void build_local_Flux_Reconstruction_operator(
+                                const dealii::FullMatrix<real> &local_Mass_Matrix,
+                                const dealii::FullMatrix<real> &pth_derivative,
+                                const unsigned int n_dofs, 
+                                const double c,
+                                dealii::FullMatrix<real> &Flux_Reconstruction_operator);
 protected:
     ///Assembles the one dimensional operator.
     dealii::FullMatrix<real> build_1D_volume_operator() override;
@@ -303,17 +426,31 @@ protected:
 * polynomial degree of degree_index+1
 */
 template<int dim, typename real, int n_faces>
-class local_Flux_Reconstruction_operator_aux : public SumFactorizedOperators<dim,real,n_faces>
+class local_Flux_Reconstruction_operator_aux : public local_Flux_Reconstruction_operator<dim,real,n_faces>
 {
-protected:
-    ///Assembles the one dimensional operator.
-    dealii::FullMatrix<real> build_1D_volume_operator() override;
-}
-
-///\f$ p\f$ -th order modal derivative of basis fuctions, ie/\f$ [D_\xi^p, D_\eta^p, D_\zeta^p]\f$
-template<int dim, typename real, int n_faces>
-class derivative_p : public SumFactorizedOperators<dim,real,n_faces>
-{
+public:
+    //Constructor.
+    local_Flux_Reconstruction_operator_aux (
+        const int nstate_input,
+        const unsigned int max_degree_input,
+        const unsigned int grid_degree_input);
+    //Destructor.
+    ~local_Flux_Reconstruction_operator_aux ();
+    ///Flux reconstruction parameter type.
+    const Paramaters::AllParameters::Flux_Reconstruction_Aux FR_param_aux_type;
+    ///Flux reconstruction paramater value.
+    double FR_param_aux;
+    ///Gets the FR correction parameter for the auxiliary equations and stores.
+    /**These values are name specified in parameters/all_parameters.h, passed through control file/or test and here converts/stores as value.
+    * Please note that in all the functions within this that evaluate the parameter, we divide the value in the literature by 2.0
+    * because our basis are contructed by an orthonormal Legendre basis rather than the orthogonal basis in the literature. 
+    * Also, we have the additional scaling by pow(pow(2.0,curr_cell_degree),2) because our basis functions are defined on
+    * a reference element between [0,1], whereas the values in the literature are based on [-1,1].
+    * For further details please refer to Cicchino, Alexander, and Siva Nadarajah. "A new norm and stability condition for tensor product flux reconstruction schemes." Journal of Computational Physics 429 (2021): 110025.
+    */
+    void get_FR_aux_correction_parameter (
+                                const unsigned int curr_cell_degree,
+                                double &k);
 protected:
     ///Assembles the one dimensional operator.
     dealii::FullMatrix<real> build_1D_volume_operator() override;
@@ -323,6 +460,20 @@ protected:
 template<int dim, typename real, int n_faces>
 class vol_projection_operator : public SumFactorizedOperators<dim,real,n_faces>
 {
+public:
+    //Constructor.
+    vol_projection_operator (
+        const int nstate_input,
+        const unsigned int max_degree_input,
+        const unsigned int grid_degree_input);
+    //Destructor.
+    ~vol_projection_operator ();
+    ///Computes a single local projection operator on some space (norm).
+    void compute_local_vol_projection_operator(
+                                const unsigned int n_dofs, 
+                                const dealii::FullMatrix<real> &norm_matrix_inverse, 
+                                const dealii::FullMatrix<real> &integral_vol_basis, 
+                                dealii::FullMatrix<real> &volume_projection);
 protected:
     ///Assembles the one dimensional operator.
     dealii::FullMatrix<real> build_1D_volume_operator() override;
@@ -330,8 +481,16 @@ protected:
 
 ///Projection operator corresponding to basis functions onto \f$(M+K)\f$-norm.
 template<int dim, typename real, int n_faces>
-class vol_projection_operator_FR : public SumFactorizedOperators<dim,real,n_faces>
+class vol_projection_operator_FR : public vol_projection_operator <dim,real,n_faces>
 {
+public:
+    //Constructor.
+    vol_projection_operator_FR (
+        const int nstate_input,
+        const unsigned int max_degree_input,
+        const unsigned int grid_degree_input);
+    //Destructor.
+    ~vol_projection_operator_FR ();
 protected:
     ///Assembles the one dimensional operator.
     dealii::FullMatrix<real> build_1D_volume_operator() override;
@@ -341,6 +500,14 @@ protected:
 template<int dim, typename real, int n_faces>
 class FR_mass_inv : public SumFactorizedOperators<dim,real,n_faces>
 {
+public:
+    //Constructor.
+    FR_mass_inv (
+        const int nstate_input,
+        const unsigned int max_degree_input,
+        const unsigned int grid_degree_input);
+    //Destructor.
+    ~FR_mass_inv ();
 protected:
     ///Assembles the one dimensional operator.
     dealii::FullMatrix<real> build_1D_volume_operator() override;
@@ -356,6 +523,14 @@ protected:
 template<int dim, typename real, int n_faces>
 class basis_at_facet_cubature : public SumFactorizedOperators<dim,real,n_faces>
 {
+public:
+    //Constructor.
+    basis_at_facet_cubature (
+        const int nstate_input,
+        const unsigned int max_degree_input,
+        const unsigned int grid_degree_input);
+    //Destructor.
+    ~basis_at_facet_cubature ();
 protected:
     ///Assembles the one dimensional operator.
     std::array<dealii::FullMatrix<real>,n_faces> build_1D_surface_operator() override;
@@ -371,6 +546,14 @@ protected:
 template<int dim, typename real, int n_faces>
 class face_integral_basis : public SumFactorizedOperators<dim,real,n_faces>
 {
+public:
+    //Constructor.
+    face_integral_basis (
+        const int nstate_input,
+        const unsigned int max_degree_input,
+        const unsigned int grid_degree_input);
+    //Destructor.
+    ~face_integral_basis ();
 protected:
     ///Assembles the one dimensional operator.
     std::array<dealii::FullMatrix<real>,n_faces> build_1D_surface_operator() override;
@@ -385,6 +568,14 @@ protected:
 template<int dim, typename real, int n_faces>
 class lifting_operator : public SumFactorizedOperators<dim,real,n_faces>
 {
+public:
+    //Constructor.
+    lifting_operator (
+        const int nstate_input,
+        const unsigned int max_degree_input,
+        const unsigned int grid_degree_input);
+    //Destructor.
+    ~lifting_operator ();
 protected:
     ///Assembles the one dimensional operator.
     std::array<dealii::FullMatrix<real>,n_faces> build_1D_surface_operator() override;
@@ -401,6 +592,14 @@ protected:
 template<int dim, typename real, int n_faces>
 class lifting_operator_FR : public SumFactorizedOperators<dim,real,n_faces>
 {
+public:
+    //Constructor.
+    lifting_operator_FR (
+        const int nstate_input,
+        const unsigned int max_degree_input,
+        const unsigned int grid_degree_input);
+    //Destructor.
+    ~lifting_operator_FR ();
 protected:
     ///Assembles the one dimensional operator.
     std::array<dealii::FullMatrix<real>,n_faces> build_1D_surface_operator() override;
@@ -421,6 +620,14 @@ protected:
 template<int dim, typename real, int n_faces>
 class mapping_shape_functions_vol_flux_nodes : public SumFactorizedOperators<dim,real,n_faces>
 {
+public:
+    //Constructor.
+    mapping_shape_functions_vol_flux_nodes (
+        const int nstate_input,
+        const unsigned int max_degree_input,
+        const unsigned int grid_degree_input);
+    //Destructor.
+    ~mapping_shape_functions_vol_flux_nodes ();
 protected:
     ///Assembles the one dimensional operator.
     dealii::FullMatrix<real> build_1D_volume_operator() override;
@@ -430,6 +637,14 @@ protected:
 template<int dim, typename real, int n_faces>
 class gradient_mapping_shape_functions_grid_nodes : public SumFactorizedOperators<dim,real,n_faces>
 {
+public:
+    //Constructor.
+    gradient_mapping_shape_functions_grid_nodes (
+        const int nstate_input,
+        const unsigned int max_degree_input,
+        const unsigned int grid_degree_input);
+    //Destructor.
+    ~gradient_mapping_shape_functions_grid_nodes ();
 protected:
     ///Assembles the one dimensional operator.
     std::array<dealii::FullMatrix<real>,dim> build_1D_gradient_operator() override;
@@ -442,6 +657,14 @@ protected:
 template<int dim, typename real, int n_faces>
 class mapping_shape_functions_vol_flux_nodes : public SumFactorizedOperators<dim,real,n_faces>
 {
+public:
+    //Constructor.
+    mapping_shape_functions_vol_flux_nodes (
+        const int nstate_input,
+        const unsigned int max_degree_input,
+        const unsigned int grid_degree_input);
+    //Destructor.
+    ~mapping_shape_functions_vol_flux_nodes ();
 protected:
     ///Assembles the one dimensional operator.
     dealii::FullMatrix<real> build_1D_volume_operator() override;
@@ -451,6 +674,14 @@ protected:
 template<int dim, typename real, int n_faces>
 class mapping_shape_functions_face_flux_nodes : public SumFactorizedOperators<dim,real,n_faces>
 {
+public:
+    //Constructor.
+    mapping_shape_functions_face_flux_nodes (
+        const int nstate_input,
+        const unsigned int max_degree_input,
+        const unsigned int grid_degree_input);
+    //Destructor.
+    ~mapping_shape_functions_face_flux_nodes ();
 protected:
     ///Assembles the one dimensional operator.
     std::array<dealii::FullMatrix<real>,n_faces> build_1D_surface_operator() override;
@@ -464,6 +695,14 @@ protected:
 template<int dim, typename real, int n_faces>
 class gradient_mapping_shape_functions_vol_flux_nodes : public SumFactorizedOperators<dim,real,n_faces>
 {
+public:
+    //Constructor.
+    gradient_mapping_shape_functions_vol_flux_nodes (
+        const int nstate_input,
+        const unsigned int max_degree_input,
+        const unsigned int grid_degree_input);
+    //Destructor.
+    ~gradient_mapping_shape_functions_vol_flux_nodes ();
 protected:
     ///Assembles the one dimensional operator.
     std::array<dealii::FullMatrix<real>,dim> build_1D_gradient_operator() override;
@@ -475,6 +714,14 @@ protected:
 template<int dim, typename real, int n_faces>
 class gradient_mapping_shape_functions_face_flux_nodes : public SumFactorizedOperators<dim,real,n_faces>
 {
+public:
+    //Constructor.
+    gradient_mapping_shape_functions_face_flux_nodes (
+        const int nstate_input,
+        const unsigned int max_degree_input,
+        const unsigned int grid_degree_input);
+    //Destructor.
+    ~gradient_mapping_shape_functions_face_flux_nodes ();
 protected:
     ///Assembles the one dimensional operator.
     std::array<std::array<dealii::FullMatrix<real>,dim>,n_faces> build_1D_surface_gradient_operator() override;
@@ -484,6 +731,14 @@ protected:
 template <int dim, typename real, int nstate, int n_faces>  
 class vol_determinant_metric_Jacobian: public SumFactorizedOperators<dim,real,n_faces>
 {
+public:
+    //Constructor.
+    vol_determinant_metric_Jacobian(
+        const int nstate_input,
+        const unsigned int max_degree_input,
+        const unsigned int grid_degree_input);
+    //Destructor.
+    ~vol_determinant_metric_Jacobian();
 protected:
     ///Assembles the one dimensional operator.
     std::vector<real> build_1D_diag_operator() override;
@@ -493,6 +748,14 @@ protected:
 template <int dim, typename real, int nstate, int n_faces>  
 class vol_metric_cofactor: public SumFactorizedOperators<dim,real,n_faces>
 {
+public:
+    //Constructor.
+    vol_metric_cofactor(
+        const int nstate_input,
+        const unsigned int max_degree_input,
+        const unsigned int grid_degree_input);
+    //Destructor.
+    ~vol_metric_cofactor();
 protected:
     ///Assembles the one dimensional operator.
     std::vector<dealii::Tensor<2,dim,real>> build_1D_diag_tensor_operator() override;
@@ -504,6 +767,14 @@ protected:
 template <int dim, typename real, int nstate, int n_faces>  
 class surface_metric_cofactor: public SumFactorizedOperators<dim,real,n_faces>
 {
+public:
+    //Constructor.
+    surface_metric_cofactor(
+        const int nstate_input,
+        const unsigned int max_degree_input,
+        const unsigned int grid_degree_input);
+    //Destructor.
+    ~surface_metric_cofactor();
 protected:
     ///Assembles the one dimensional operator.
     std::vector<dealii::Tensor<2,dim,real>> build_1D_diag_tensor_operator() override;
@@ -519,12 +790,12 @@ template <int dim, typename real, int nstate, int n_faces>
 class SumFactorizedOperatorsState : public SumFactorizedOperators<dim, real, n_faces>
 {
 public:
-    //Constructor
-    SumFactorizedOperatorsState (): oneD_vol_state_operator      (build_1D_volume_state_operator()) 
-                                  , oneD_surf_state_operator     (build_1D_surface_state_operator()) 
-                                  , oneD_grad_state_operator     (build_1D_gradient_state_operator())
-                                  , oneD_surf_grad_state_operator(build_1D_surface_gradient_state_operator())
-                                  {};
+    //Constructor.
+    SumFactorizedOperatorsState (
+        const unsigned int max_degree_input,
+        const unsigned int grid_degree_input);
+    //Destructor.
+    ~SumFactorizedOperatorsState (); 
 protected:
     ///virtual function to build the one dimensional volume operator.
     virtual std::array<dealii::FullMatrix<real>,nstate> build_1D_volume_state_operator() = 0;
@@ -557,6 +828,13 @@ protected:
 template <int dim, typename real, int nstate, int n_faces>  
 class flux_basis_at_vol_cubature : public SumFactorizedOperators<dim,real,n_faces>
 {
+public:
+    //Constructor.
+    flux_basis_at_vol_cubature (
+        const unsigned int max_degree_input,
+        const unsigned int grid_degree_input);
+    //Destructor.
+    ~flux_basis_at_vol_cubature ();
 protected:
     ///Assembles the one dimensional operator.
     std::array<dealii::FullMatrix<real>,nstate> build_1D_volume_state_operator() override;
@@ -568,6 +846,13 @@ protected:
 template <int dim, typename real, int nstate, int n_faces>  
 class gradient_flux_basis : public SumFactorizedOperators<dim,real,n_faces>
 {
+public:
+    //Constructor.
+    gradient_flux_basis (
+        const unsigned int max_degree_input,
+        const unsigned int grid_degree_input);
+    //Destructor.
+    ~gradient_flux_basis ();
 protected:
     ///Assembles the one dimensional operator.
     std::array<std::array<dealii::FullMatrix<real>,dim>,nstate> build_1D_gradient_state_operator() override;
@@ -583,6 +868,13 @@ protected:
 template <int dim, typename real, int nstate, int n_faces>  
 class local_flux_basis_stiffness : public SumFactorizedOperators<dim,real,n_faces>
 {
+public:
+    //Constructor.
+    local_flux_basis_stiffness (
+        const unsigned int max_degree_input,
+        const unsigned int grid_degree_input);
+    //Destructor.
+    ~local_flux_basis_stiffness ();
 protected:
     ///Assembles the one dimensional operator.
     std::array<std::array<dealii::FullMatrix<real>,dim>,nstate> build_1D_gradient_state_operator() override;
@@ -599,6 +891,13 @@ protected:
 template <int dim, typename real, int nstate, int n_faces>  
 class vol_integral_gradient_basis : public SumFactorizedOperators<dim,real,n_faces>
 {
+public:
+    //Constructor.
+    vol_integral_gradient_basis (
+        const unsigned int max_degree_input,
+        const unsigned int grid_degree_input);
+    //Destructor.
+    ~vol_integral_gradient_basis ();
 protected:
     ///Assembles the one dimensional operator.
     std::array<std::array<dealii::FullMatrix<real>,dim>,nstate> build_1D_gradient_state_operator() override;
@@ -608,6 +907,13 @@ protected:
 template <int dim, typename real, int nstate, int n_faces>  
 class flux_basis_at_facet_cubature : public SumFactorizedOperators<dim,real,n_faces>
 {
+public:
+    //Constructor.
+    flux_basis_at_facet_cubature (
+        const unsigned int max_degree_input,
+        const unsigned int grid_degree_input);
+    //Destructor.
+    ~flux_basis_at_facet_cubature ();
 protected:
     ///Assembles the one dimensional operator.
     std::array<std::array<dealii::FullMatrix<real>,n_faces>,nstate> build_1D_surface_state_operator() override;

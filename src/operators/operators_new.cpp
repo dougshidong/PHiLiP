@@ -39,9 +39,7 @@ namespace OPERATOR {
 //Constructor
 template <int dim, typename real, int n_faces>
 OperatorsBase<dim,real,n_faces>::OperatorsBase(
-    const Parameters::AllParameters *const parameters_input,
     const int nstate_input,
-    const unsigned int degree,
     const unsigned int max_degree_input,
     const unsigned int grid_degree_input)
     : OperatorsBase<dim,real,n_faces>(parameters_input, nstate_input, degree, max_degree_input, grid_degree_input, this->create_collection_tuple(max_degree_input, nstate_input, parameters_input))
@@ -49,13 +47,10 @@ OperatorsBase<dim,real,n_faces>::OperatorsBase(
 
 template <int dim, typename real, int n_faces>
 OperatorsBase<dim,real,n_faces>::OperatorsBase(
-    const Parameters::AllParameters *const parameters_input,
     const int nstate_input,
-    const unsigned int /*degree*/,
     const unsigned int max_degree_input,
     const unsigned int grid_degree_input,
     const MassiveCollectionTuple collection_tuple)
-    : all_parameters(parameters_input)
     , max_degree(max_degree_input)
     , max_grid_degree(grid_degree_input)
     , nstate(nstate_input)
@@ -203,14 +198,6 @@ OperatorsBase<dim,real,n_faces>::create_collection_tuple(const unsigned int max_
 
     return std::make_tuple(fe_coll, volume_quad_coll, face_quad_coll, oned_quad_coll, fe_coll_lagr);
 }
-
-
-/*******************************************
- *
- *      VOLUME OPERATORS FUNCTIONS
- *
- *
- *      *****************************************/
 template <int dim, typename real, int n_faces>
 double OperatorsBase<dim,real,n_faces>::compute_factorial(double n)
 {
@@ -219,6 +206,681 @@ double OperatorsBase<dim,real,n_faces>::compute_factorial(double n)
    else
       return n*compute_factorial(n-1);
 }
+
+/**********************************
+*
+* Sum Factorization class
+*
+**********************************/
+//Constructor
+template <int dim, typename real, int n_faces>
+SumFactorizedOperators<dim,real,n_faces>::SumFactorizedOperators(
+    const int nstate_input,
+    const unsigned int max_degree_input,
+    const unsigned int grid_degree_input)
+    : OperatorsBase<dim,real,n_faces>::OperatorsBase(parameters_input, nstate_input, degree, max_degree_input, grid_degree_input)
+    , oneD_vol_operator        (build_1D_volume_operator()) 
+    , oneD_surf_operator       (build_1D_surface_operator()) 
+    , oneD_grad_operator       (build_1D_gradient_operator())
+    , oneD_surf_grad_operator  (build_1D_surface_gradient_operator())
+    , oneD_diag_operator       (build_1D_diagonal_operator())
+    , oneD_diag_tensor_operator(build_1D_diagonal_tensor_operator())
+{ 
+}
+// Destructor
+template <int dim, typename real, int n_faces>
+SumFactorizedOperators<dim,real,n_faces>::SumFactorizedOperators~()
+{
+    this->pcout << "Destructing Sum Factorized Operators ..." << std::endl;
+}
+
+template <  int dim, typename real, int n_faces>  
+void SumFactorizedOperators<dim,real,n_faces>::matrix_vector_mult(
+                                    const std::vector<real> &input_vect,
+                                    std::vector<real> &output_vect,
+                                    const unsigned int rows, const unsigned int columns,
+                                    const unsigned int dimension,
+                                    const dealii::FullMatrix<real> &basis_x,
+                                    const dealii::FullMatrix<real> &basis_y,
+                                    const dealii::FullMatrix<real> &basis_z)
+{
+    //assert that each basis matrix is of size (rows x columns)
+    assert(basis_x.m() == rows);
+    assert(basis_y.m() == rows);
+    if(dimension == 3)
+        assert(basis_z.m() == rows);
+    assert(basis_x.n() == columns);
+    assert(basis_y.n() == columns);
+    if(dimension == 3)
+        assert(basis_z.n() == columns);
+    //assert the input vector is of size columns^{dim}
+    assert(input_vect.size() == pow(columns, dimension));
+    assert(output_vect.size() == pow(rows, dimension));
+
+    if(dimension==2){
+        //convert the input vector to matrix
+        dealii::FullMatrix<real> input_mat(columns, columns);
+        for(unsigned int idof=0; idof<columns; idof++){ 
+            for(unsigned int jdof=0; jdof<columns; jdof++){ 
+                input_mat[jdof][idof] = input_vect[idof * columns + jdof];//jdof runs fastest (x) idof slowest (y)
+            }
+        }
+        dealii::FullMatrix<real> temp(rows, columns);
+        basis_x.mmult(temp, input_mat);//apply x tensor product
+        dealii::FullMatrix<real> output_mat(rows);
+        basis_y.mTmult(output_mat, temp);//apply y tensor product
+        //convert mat back to vect
+        for(unsigned int iquad=0; iquad<rows; iquad++){
+            for(unsigned int jquad=0; jquad<rows; jquad++){
+                output_vect[iquad*rows + jquad] = output_mat[iquad][jquad];
+            }
+        }
+
+    }
+    if(dimension==3){
+        //convert vect to mat first
+        dealii::FullMatrix<real> input_mat(columns, columns*columns);
+        for(unsigned int idof=0; idof<columns; idof++){ 
+            for(unsigned int jdof=0; jdof<columns; jdof++){ 
+                for(unsigned int kdof=0; kdof<columns; kdof++){
+                    const unsigned int dof_index = idof*pow(columns,2) + jdof*columns + kdof;
+                    input_mat[kdof][idof*columns + jdof] = input_vect[dof_index];//kdof runs fastest (x) idof slowest (z)
+                }
+            }
+        }
+        dealii::FullMatrix<real> temp(rows, columns*columns);
+        basis_x.mmult(temp, input_mat);//apply x tensor product
+        //convert to have y dofs ie/ change the stride
+        dealii::FullMatrix<real> temp2(columns, rows * columns);
+        for(unsigned int iquad=0; iquad<rows; iquad++){
+            for(unsigned int idof=0; idof<columns; idof++){
+                for(unsigned int jdof=0; jdof<columns; jdof++){
+                    temp2[jdof][iquad*rows + idof] = temp[iquad][idof*columns + jdof];//extract y runs second fastest
+                }
+            }
+        }
+        dealii::FullMatrix<real> temp3(rows, rows * columns);
+        basis_y.mmult(temp3, temp2);//apply y tensor product
+        dealii::FullMatrix<real> temp4(columns, rows * rows);
+        //convert to have z dofs ie/ change the stride
+        for(unsigned int iquad=0; iquad<rows; iquad++){
+            for(unsigned int idof=0; idof<columns; idof++){
+                for(unsigned int jquad=0; jquad<rows; jquad++){
+                    temp4[idof][iquad*rows + jquad] = temp3[jquad][iquad*rows + idof];//extract z runs slowest
+                }
+            }
+        }
+        dealii::FullMatrix<real> output_mat(rows, rows*rows);
+        basis_z.mmult(output_mat, temp4);
+        //convert mat to vect
+        for(unsigned int iquad=0; iquad<rows; iquad++){
+            for(unsigned int jquad=0; jquad<rows; jquad++){
+                for(unsigned int kquad=0; kquad<rows; kquad++){
+                    const unsigned int quad_index = iquad*pow(rows,2) + jquad*rows + kquad;
+                    output_vect[quad_index] = output_mat[iquad][kquad*rows + jquad];
+                }
+            }
+        }
+    }
+
+}
+template <  int dim, typename real, int n_faces>  
+void SumFactorizedOperators<dim,real,n_faces>::inner_product(
+                                    const std::vector<real> &input_vect,
+                                    const std::vector<real> &weight_vect,
+                                    std::vector<real> &output_vect,
+                                    const unsigned int rows, const unsigned int columns,
+                                    const unsigned int dimension,
+                                    const dealii::FullMatrix<real> &basis_x,
+                                    const dealii::FullMatrix<real> &basis_y,
+                                    const dealii::FullMatrix<real> &basis_z)
+{
+    //assert that each basis matrix is of size (rows x columns)
+    assert(basis_x.m() == rows);
+    assert(basis_y.m() == rows);
+    if(dimension == 3)
+        assert(basis_z.m() == rows);
+    assert(basis_x.n() == columns);
+    assert(basis_y.n() == columns);
+    if(dimension == 3)
+        assert(basis_z.n() == columns);
+    //assert the input vector is of size columns^{dim}
+    assert(input_vect.size() == pow(rows, dimension));//rows since matrix transpose
+    assert(weight_vect.size() == pow(rows, dimension));
+    assert(output_vect.size() == pow(rows, dimension));
+
+    dealii::FullMatrix<real> basis_x_trans(columns, rows);
+    dealii::FullMatrix<real> basis_y_trans(columns, rows);
+    dealii::FullMatrix<real> basis_z_trans(columns, rows);
+
+    //set as the transpose as inputed basis
+    basis_x_trans.Tadd(1.0, basis_x);
+    basis_y_trans.Tadd(1.0, basis_y);
+    if(dimension==3)
+        basis_z_trans.Tadd(1.0, basis_z);
+
+    std::vector<real> new_input_vect(pow(rows,dimension));
+    for(unsigned int iquad=0; iquad<pow(rows,dimension); iquad++){
+        new_input_vect[iquad] = input_vect[iquad] * weight_vect[iquad];
+    }
+
+    sum_factorization_matrix_vector_mult(new_input_vect, output_vect, rows, columns, dimension, basis_x_trans, basis_y_trans, basis_z_trans);
+
+}
+
+/*******************************************
+ *
+ *      VOLUME OPERATORS FUNCTIONS
+ *
+ *
+ *      *****************************************/
+
+template <int dim, typename real, int n_faces>  
+basis_at_vol_cubature<dim,real,n_faces>::basis_at_vol_cubature(
+    const int nstate_input,
+    const unsigned int max_degree_input,
+    const unsigned int grid_degree_input)
+    : SumFactorizedOperators<dim,real,n_faces>::SumFactorizedOperators(parameters_input, nstate_input, degree, max_degree_input, grid_degree_input)
+{
+}
+template <int dim, typename real, int n_faces>  
+void basis_at_vol_cubature<dim,real,n_faces>::build_1D_volume_operator(
+    const dealii::FESystem<1,> &finite_element,
+    const dealii::Quadrature<1> &quadrature)
+{
+    const unsigned int n_quad_pts = quadrature.size();
+    const unsigned int n_dofs     = finite_element.dofs_per_cell;
+    //allocate the basis at volume cubature
+    oneD_vol_operator.reinit(n_quad_pts, n_dofs);
+    //loop and store
+    for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
+        const dealii::Point<dim> qpoint  = quadrature.point(iquad);
+        for(unsigned int idof=0; idof<n_dofs; idof++){
+            const int istate = finite_element.system_to_component_index(idof).first;
+            //Basis function idof of poly degree idegree evaluated at cubature node qpoint.
+            oneD_vol_operator[iquad][idof] = finite_element.shape_value_component(idof,qpoint,istate);
+        }
+    }
+}
+
+template <int dim, typename real, int n_faces>  
+vol_integral_basis<dim,real,n_faces>::vol_integral_basis(
+    const int nstate_input,
+    const unsigned int max_degree_input,
+    const unsigned int grid_degree_input)
+    : SumFactorizedOperators<dim,real,n_faces>::SumFactorizedOperators(parameters_input, nstate_input, degree, max_degree_input, grid_degree_input)
+{
+}
+template <int dim, typename real, int n_faces>  
+void vol_integral_basis<dim,real,n_faces>::build_1D_volume_operator(
+    const dealii::FESystem<1,1> &finite_element,
+    const dealii::Quadrature<1> &quadrature)
+{
+    const unsigned int n_quad_pts = quadrature.size();
+    const unsigned int n_dofs     = finite_element.dofs_per_cell;
+    //allocate
+    oneD_vol_operator.reinit(n_quad_pts, n_dofs);
+    //loop and store
+    const std::vector<real> &quad_weights = quadrature.get_weights ();
+    for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
+        const dealii::Point<dim> qpoint  = quadrature.point(iquad);
+        for(unsigned int idof=0; idof<n_dofs; idof++){
+            const int istate = finite_element.system_to_component_index(idof).first;
+            //Basis function idof of poly degree idegree evaluated at cubature node qpoint multiplied by quad weight.
+            oneD_vol_operator[iquad][idof] = quad_weights[iquad] * finite_element.shape_value_component(idof,qpoint,istate);
+        }
+    }
+}
+
+template <int dim, typename real, int n_faces>  
+local_mass<dim,real,n_faces>::local_mass(
+    const int nstate_input,
+    const unsigned int max_degree_input,
+    const unsigned int grid_degree_input)
+    : SumFactorizedOperators<dim,real,n_faces>::SumFactorizedOperators(parameters_input, nstate_input, degree, max_degree_input, grid_degree_input)
+{
+}
+template <int dim, typename real, int n_faces>  
+void local_mass<dim,real,n_faces>::build_1D_volume_operator(
+    const dealii::FESystem<1,1> &finite_element,
+    const dealii::Quadrature<1> &quadrature)
+{
+    const unsigned int n_quad_pts = quadrature.size();
+    const unsigned int n_dofs     = finite_element.dofs_per_cell;
+    const std::vector<real> &quad_weights = quadrature.get_weights ();
+    //allocate
+    oneD_vol_operator.reinit(n_dofs,n_dofs);
+    //loop and store
+    for (unsigned int itest=0; itest<n_dofs; ++itest) {
+        const int istate_test = finite_element.system_to_component_index(itest).first;
+        for (unsigned int itrial=itest; itrial<n_dofs; ++itrial) {
+            const int istate_trial = finite_element.system_to_component_index(itrial).first;
+            real value = 0.0;
+            for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
+                const dealii::Point<dim> qpoint  = quadrature.point(iquad);
+                value +=
+                        finite_element.shape_value_component(itest,qpoint,istate)
+                      * finite_element.shape_value_component(itrial,qpoint,istate)
+                      * quad_weights[iquad];                            
+            }
+
+            oneD_vol_operator[itrial][itest] = 0.0;
+            oneD_vol_operator[itest][itrial] = 0.0;
+            if(istate_test==istate_trial) {
+                oneD_vol_operator[itrial][itest] = value;
+                oneD_vol_operator[itest][itrial] = value;
+            }
+        }
+    }
+}
+
+template <int dim, typename real, int n_faces>  
+local_basis_stiffness<dim,real,n_faces>::local_basis_stiffness(
+    const int nstate_input,
+    const unsigned int max_degree_input,
+    const unsigned int grid_degree_input)
+    : SumFactorizedOperators<dim,real,n_faces>::SumFactorizedOperators(parameters_input, nstate_input, degree, max_degree_input, grid_degree_input)
+{
+}
+template <int dim, typename real, int n_faces>  
+void local_basis_stiffness<dim,real,n_faces>::build_1D_volume_operator(
+    const dealii::FESystem<1,1> &finite_element,
+    const dealii::Quadrature<1> &quadrature)
+{
+    const unsigned int n_quad_pts = quadrature.size();
+    const unsigned int n_dofs     = finite_element.dofs_per_cell;
+    const std::vector<real> &quad_weights = quadrature.get_weights ();
+    //allocate
+    oneD_vol_operator.reinit(n_dofs,n_dofs);
+    //loop and store
+    for(unsigned int itest=0; itest<n_dofs; itest++){
+        const int istate_test = finite_element.system_to_component_index(itest).first;
+        for(unsigned int idof=0; idof<n_dofs; idof++){
+            const int istate = finite_element.system_to_component_index(idof).first;
+            double value;
+            for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
+                const dealii::Point<dim> qpoint  = quadrature.point(iquad);
+                dealii::Tensor<1,dim,real> derivative;
+                derivative = finite_element.shape_grad_component(idof, qpoint, istate);
+                value += finite_element.shape_value_component(itest,qpoint,istate)
+                       * derivative[0]//since it's a 1D operator
+                       * quad_weights[iquad];
+            }
+            if(istate == istate_test){
+                oneD_vol_operator[itest][idof] = value; 
+            }
+        }
+    }
+}
+
+template <int dim, typename real, int n_faces>  
+modal_basis_differential_operator<dim,real,n_faces>::modal_basis_differential_operator(
+    const int nstate_input,
+    const unsigned int max_degree_input,
+    const unsigned int grid_degree_input)
+    : SumFactorizedOperators<dim,real,n_faces>::SumFactorizedOperators(parameters_input, nstate_input, degree, max_degree_input, grid_degree_input)
+{
+}
+template <int dim, typename real, int n_faces>  
+void modal_basis_differential_operator<dim,real,n_faces>::build_1D_volume_operator(
+    const dealii::FESystem<1,1> &finite_element,
+    const dealii::Quadrature<1> &quadrature)
+{
+    const unsigned int n_dofs     = finite_element.dofs_per_cell;
+    local_mass mass_matrix(this->nstate, this->max_degree, this->max_grid_degree);
+    mass_matrix.build_1D_volume_operator(finite_element, quadrature);
+    local_basis_stiffness stiffness(this->nstate, this->max_degree, this->max_grid_degree);
+    stiffness.build_1D_volume_operator(finite_element, quadrature);
+    //allocate
+    oneD_vol_operator.reinit(n_dofs,n_dofs);
+    dealii::FullMatrix<real> inv_mass(n_dofs);
+    inv_mass.invert(mass_matrix.oneD_vol_operator);
+    inv_mass.mmult(oneD_vol_operator, stiffness);
+}
+
+template <int dim, typename real, int n_faces>  
+derivative_p<dim,real,n_faces>::derivative_p(
+    const int nstate_input,
+    const unsigned int max_degree_input,
+    const unsigned int grid_degree_input)
+    : SumFactorizedOperators<dim,real,n_faces>::SumFactorizedOperators(parameters_input, nstate_input, degree, max_degree_input, grid_degree_input)
+{
+}
+template <int dim, typename real, int n_faces>  
+void derivative_p<dim,real,n_faces>::build_1D_volume_operator(
+    const dealii::FESystem<1,1> &finite_element,
+    const dealii::Quadrature<1> &quadrature)
+{
+    const unsigned int n_quad_pts = quadrature.size();
+    const unsigned int n_dofs     = finite_element.dofs_per_cell;
+    //allocate
+    oneD_vol_operator.reinit(n_dofs,n_dofs);
+    //set as identity
+    oneD_vol_operator = IdentityMatrix(n_dofs);
+    //get modal basis differential operator
+    modal_basis_differential_operator diff_oper(this->nstate, this->max_degree, this->max_grid_degree);
+    diff_oper.build_1D_volume_operator(finite_element, quadrature);
+    //loop and solve
+    for(unsigned int idegree=0; idegree< this->max_degree; idegree++){
+       dealii::FullMatrix<real> derivative_p_temp(n_dofs_cell, n_dofs_cell);
+       derivative_p_temp.add(1, oneD_vol_operator);
+       diff_oper.oneD_vol_operator.mmult(oneD_vol_operator, derivative_p_temp);
+    }
+}
+
+template <int dim, typename real, int n_faces>  
+local_Flux_Reconstruction_operator<dim,real,n_faces>::local_Flux_Reconstruction_operator(
+    const int nstate_input,
+    const unsigned int max_degree_input,
+    const unsigned int grid_degree_input,
+    const Parameters::AllParameters::Flux_Reconstruction FR_param_input)
+    : SumFactorizedOperators<dim,real,n_faces>::SumFactorizedOperators(parameters_input, nstate_input, degree, max_degree_input, grid_degree_input)
+    , FR_param_type(FR_param_input)
+{
+    //get the FR corrcetion parameter value
+    get_FR_correction_parameter(this->max_degree, FR_param);
+}
+template <int dim, typename real, int n_faces>  
+void local_Flux_Reconstruction_operator<dim,real,n_faces>::get_Huynh_g2_parameter (
+                                const unsigned int curr_cell_degree,
+                                double &c)
+{
+    const double pfact = this->compute_factorial(curr_cell_degree);
+    const double pfact2 = this->compute_factorial(2.0 * curr_cell_degree);
+    double cp = pfact2/(pow(pfact,2));//since ref element [0,1]
+    c = 2.0 * (curr_cell_degree+1)/( curr_cell_degree*((2.0*curr_cell_degree+1.0)*(pow(pfact*cp,2))));  
+    c/=2.0;//since orthonormal
+}
+template <int dim, typename real, int n_faces>  
+void local_Flux_Reconstruction_operator<dim,real,n_faces>::get_spectral_difference_parameter (
+                                const unsigned int curr_cell_degree,
+                                double &c)
+{
+    const double pfact = this->compute_factorial(curr_cell_degree);
+    const double pfact2 = this->compute_factorial(2.0 * curr_cell_degree);
+    double cp = pfact2/(pow(pfact,2));
+    c = 2.0 * (curr_cell_degree)/( (curr_cell_degree+1.0)*((2.0*curr_cell_degree+1.0)*(pow(pfact*cp,2))));  
+    c/=2.0;//since orthonormal
+}
+template <int dim, typename real, int n_faces>  
+void local_Flux_Reconstruction_operator<dim,real,n_faces>::get_c_negative_FR_parameter (
+                                const unsigned int curr_cell_degree,
+                                double &c)
+{
+    const double pfact = this->compute_factorial(curr_cell_degree);
+    const double pfact2 = this->compute_factorial(2.0 * curr_cell_degree);
+    double cp = pfact2/(pow(pfact,2));
+    c = - 2.0 / ( pow((2.0*curr_cell_degree+1.0)*(pow(pfact*cp,2)),1.0));  
+    c/=2.0;//since orthonormal
+}
+template <int dim, typename real, int n_faces>  
+void local_Flux_Reconstruction_operator<dim,real,n_faces>::get_c_negative_divided_by_two_FR_parameter (
+                                const unsigned int curr_cell_degree,
+                                double &c)
+{
+    get_c_negative_FR_parameter(curr_cell_degree, c); 
+    c/=2.0;
+}
+template <int dim, typename real, int n_faces>  
+void local_Flux_Reconstruction_operator<dim,real,n_faces>::get_c_plus_parameter (
+                                const unsigned int curr_cell_degree,
+                                double &c)
+{
+    if(curr_cell_degree == 2){
+        c = 0.186;
+//        c = 0.173;//RK33
+    }
+    if(curr_cell_degree == 3)
+        c = 3.67e-3;
+    if(curr_cell_degree == 4){
+        c = 4.79e-5;
+//       c = 4.92e-5;//RK33
+    }
+    if(curr_cell_degree == 5)
+       c = 4.24e-7;
+
+    c/=2.0;//since orthonormal
+    c/=pow(pow(2.0,curr_cell_degree),2);//since ref elem [0,1]
+}
+
+template <int dim, typename real, int n_faces>  
+void local_Flux_Reconstruction_operator<dim,real,n_faces>::get_FR_correction_parameter (
+                                const unsigned int curr_cell_degree,
+                                double &c)
+{
+    using FR_enum = Parameters::AllParameters::Flux_Reconstruction;
+    if(FR_param_type == FR_enum::cHU || FR_param_type == FR_enum::cHULumped){ 
+        get_Huynh_g2_parameter(curr_cell_degree, FR_param); 
+    }
+    else if(FR_param_type == FR_enum::cSD){ 
+        get_spectral_difference_parameter(curr_cell_degree, c); 
+    }
+    else if(FR_param_type == FR_enum::cNegative){ 
+        get_c_negative_FR_parameter(curr_cell_degree, c); 
+    }
+    else if(FR_param_type == FR_enum::cNegative2){ 
+        get_c_negative_divided_by_two_FR_parameter(curr_cell_degree, c); 
+    }
+    else if(FR_param_type == FR_enum::cDG){ 
+        //DG case is the 0.0 case.
+        c = 0.0;
+    }
+    else if(FR_param_type == FR_enum::c10Thousand){ 
+        //Set the value to 10000 for arbitrary high-numbers.
+        c = 10000.0;
+    }
+    else if(FR_param_type == FR_enum::cPlus){ 
+        get_c_plus_parameter(curr_cell_degree, c); 
+    }
+}
+template <int dim, typename real, int n_faces>  
+void local_Flux_Reconstruction_operator<dim,real,n_faces>::build_local_Flux_Reconstruction_operator(
+    const dealii::FullMatrix<real> &local_Mass_Matrix,
+    const dealii::FullMatrix<real> &pth_derivative,
+    const unsigned int n_dofs, 
+    const double c, 
+    dealii::FullMatrix<real> &Flux_Reconstruction_operator)
+{
+    dealii::FullMatrix<real> derivative_p_temp(n_dofs);
+    derivative_p_temp.add(c, pth_derivative);
+    dealii::FullMatrix<real> Flux_Reconstruction_operator_temp(n_dofs);
+    derivative_p_temp.Tmmult(Flux_Reconstruction_operator_temp, local_Mass_Matrix);
+    Flux_Reconstruction_operator_temp.mmult(Flux_Reconstruction_operator, pth_derivative);
+}
+
+
+template <int dim, typename real, int n_faces>  
+void local_Flux_Reconstruction_operator<dim,real,n_faces>::build_1D_volume_operator(
+    const dealii::FESystem<1,1> &finite_element,
+    const dealii::Quadrature<1> &quadrature)
+{
+    const unsigned int n_quad_pts = quadrature.size();
+    const unsigned int n_dofs     = finite_element.dofs_per_cell;
+    //build the FR correction operator
+    derivative_p pth_derivative(this->nstate, this->max_degree, this->max_grid_degree);
+    pth_derivative.build_1D_volume_operator(finite_element, quadrature);
+    local_mass local_Mass_Matrix(this->nstate, this->max_degree, this->max_grid_degree);
+    local_Mass_Matrix.build_1D_volume_operator(finite_element, quadrature);
+    build_local_Flux_Reconstruction_operator(local_Mass_Matrix.oneD_vol_operator, pth_derivative.oneD_vol_operator, n_dofs, FR_param, oneD_vol_operator);
+}
+
+template <int dim, typename real, int n_faces>  
+local_Flux_Reconstruction_operator_aux<dim,real,n_faces>::local_Flux_Reconstruction_operator_aux(
+    const int nstate_input,
+    const unsigned int max_degree_input,
+    const unsigned int grid_degree_input,
+    const Parameters::AllParameters::Flux_Reconstruction_Aux FR_param_aux_input)
+    : local_flux_reconstruction_operator<dim,real,n_faces>::local_flux_reconstruction_operator(parameters_input, nstate_input, degree, max_degree_input, grid_degree_input)
+    , FR_param_aux_type(FR_param_aux_input)
+{
+    //get the FR corrcetion parameter value
+    get_FR_aux_correction_parameter(this->max_degree, FR_param_aux);
+}
+template <int dim, typename real, int n_faces>  
+void local_Flux_Reconstruction_operator_aux<dim,real,n_faces>::get_FR_aux_correction_parameter (
+                                const unsigned int curr_cell_degree,
+                                double &k)
+{
+    using FR_Aux_enum = Parameters::AllParameters::Flux_Reconstruction_Aux;
+    if(FR_param_aux_type == FR_Aux_enum::kHU){ 
+        this->get_Huynh_g2_parameter(curr_cell_degree, k); 
+    }
+    else if(FR_param_aux_type == FR_Aux_enum::kSD){ 
+        this->get_spectral_difference_parameter(curr_cell_degree, k); 
+    }
+    else if(FR_param_aux_type == FR_Aux_enum::kNegative){ 
+        this->get_c_negative_FR_parameter(curr_cell_degree, k); 
+    }
+    else if(FR_param_aux_type == FR_Aux_enum::kNegative2){//knegative divided by 2 
+        this->get_c_negative_divided_by_two_FR_parameter(curr_cell_degree, k); 
+    }
+    else if(FR_param_aux_type == FR_Aux_enum::kDG){ 
+        k = 0.0;
+    }
+    else if(FR_param_aux_type == FR_Aux_enum::k10Thousand){ 
+        k = 10000.0;
+    }
+    else if(FR_param_aux_type == FR_Aux_enum::kPlus){ 
+        this->get_c_plus_parameter(curr_cell_degree, k); 
+    }
+}
+template <int dim, typename real, int n_faces>  
+void local_Flux_Reconstruction_operator_aux<dim,real,n_faces>::build_1D_volume_operator(
+    const dealii::FESystem<1,1> &finite_element,
+    const dealii::Quadrature<1> &quadrature)
+{
+    const unsigned int n_quad_pts = quadrature.size();
+    const unsigned int n_dofs     = finite_element.dofs_per_cell;
+    //build the FR correction operator
+    derivative_p pth_derivative(this->nstate, this->max_degree, this->max_grid_degree);
+    pth_derivative.build_1D_volume_operator(finite_element, quadrature);
+    local_mass local_Mass_Matrix(this->nstate, this->max_degree, this->max_grid_degree);
+    local_Mass_Matrix.build_1D_volume_operator(finite_element, quadrature);
+    build_local_Flux_Reconstruction_operator(local_Mass_Matrix.oneD_vol_operator, pth_derivative.oneD_vol_operator, n_dofs, FR_param_aux, oneD_vol_operator);
+}
+
+template <int dim, typename real, int n_faces>  
+vol_projection_operator<dim,real,n_faces>::vol_projection_operator(
+    const int nstate_input,
+    const unsigned int max_degree_input,
+    const unsigned int grid_degree_input)
+    : SumFactorizedOperators<dim,real,n_faces>::SumFactorizedOperators(parameters_input, nstate_input, degree, max_degree_input, grid_degree_input)
+{
+}
+template <int dim, typename real, int n_faces>  
+void vol_projection_operator<dim,real,n_faces>::compute_local_vol_projection_operator(
+                                const unsigned int n_dofs,
+                                const dealii::FullMatrix<real> &norm_matrix_inverse, 
+                                const dealii::FullMatrix<real> &integral_vol_basis, 
+                                dealii::FullMatrix<real> &volume_projection)
+{
+    norm_matrix_inverse.mTmult(volume_projection, integral_vol_basis);
+}
+template <int dim, typename real, int n_faces>  
+void vol_projection_operator<dim,real,n_faces>::build_1D_volume_operator(
+    const dealii::FESystem<1,1> &finite_element,
+    const dealii::Quadrature<1> &quadrature)
+{
+    const unsigned int n_dofs     = finite_element.dofs_per_cell;
+    vol_integral_basis integral_vol_basis(this->nstate, this->max_degree, this->max_grid_degree);
+    integral_vol_basis.build_1D_volume_operator(finite_element, quadrature);
+    local_mass local_Mass_Matrix(this->nstate, this->max_degree, this->max_grid_degree);
+    local_Mass_Matrix.build_1D_volume_operator(finite_element, quadrature);
+    dealii::FullMatrix<real> mass_inv(n_dofs);
+    mass_inv.invert(local_Mass_Matrix);
+    compute_local_vol_projection_operator(n_dofs, mass_inv, integral_vol_basis, oneD_vol_operator);
+}
+
+template <int dim, typename real, int n_faces>  
+vol_projection_operator_FR<dim,real,n_faces>::vol_projection_operator_FR(
+    const int nstate_input,
+    const unsigned int max_degree_input,
+    const unsigned int grid_degree_input)
+    : vol_projection_operator<dim,real,n_faces>::vol_projection_operator(parameters_input, nstate_input, degree, max_degree_input, grid_degree_input)
+{
+}
+
+template <int dim, typename real, int n_faces>  
+void vol_projection_operator_FR<dim,real,n_faces>::build_1D_volume_operator(
+    const dealii::FESystem<1,1> &finite_element,
+    const dealii::Quadrature<1> &quadrature)
+{
+    const unsigned int n_dofs     = finite_element.dofs_per_cell;
+    vol_integral_basis integral_vol_basis(this->nstate, this->max_degree, this->max_grid_degree);
+    integral_vol_basis.build_1D_volume_operator(finite_element, quadrature);
+    FR_mass_inv local_FR_Mass_Matrix_inv(this->nstate, this->max_degree, this->max_grid_degree);
+    local_FR_Mass_Matrix_inv.build_1D_volume_operator(finite_element, quadrature);
+    this->compute_local_vol_projection_operator(n_dofs, local_FR_Mass_Matrix_inv, integral_vol_basis, oneD_vol_operator);
+}
+
+template <int dim, typename real, int n_faces>  
+FR_mass_inv<dim,real,n_faces>::FR_mass_inv(
+    const int nstate_input,
+    const unsigned int max_degree_input,
+    const unsigned int grid_degree_input)
+    : SumFactorizedOperators<dim,real,n_faces>::SumFactorizedOperators(parameters_input, nstate_input, degree, max_degree_input, grid_degree_input)
+{
+}
+template <int dim, typename real, int n_faces>  
+void FR_mass_inv<dim,real,n_faces>::build_1D_volume_operator(
+    const dealii::FESystem<1,1> &finite_element,
+    const dealii::Quadrature<1> &quadrature)
+{
+    const unsigned int n_dofs     = finite_element.dofs_per_cell;
+    local_mass local_Mass_Matrix(this->nstate, this->max_degree, this->max_grid_degree);
+    local_FR_Mass_Matrix_inv.build_1D_volume_operator(finite_element, quadrature);
+    local_Flux_Reconstruction_operator local_FR_oper(this->nstate, this->max_degree, this->max_grid_degree);
+    local_FR_oper.build_1D_volume_operator(finite_element, quadrature);
+    dealii::FullMatrix<real> FR_mass_matrix(n_dofs);
+    FR_mass_matrix.add(1.0, local_Mass_Matrix.oneD_vol_operator, 1.0, local_FR_oper.oneD_vol_operator);
+    oneD_vol_operator.invert(FR_mass_matrix);
+}
+
+
+/*************************************
+*
+*  SURFACE OPERATORS
+*
+*************************************/
+
+
+
+
+
+
+
+
+
+/**********************************
+*
+* Sum Factorization STATE class
+*
+**********************************/
+//Constructor
+template <int dim, typename real, int nstate, int n_faces>
+SumFactorizedOperatorsState<dim,real,nstate,n_faces>::SumFactorizedOperatorsState(
+    const unsigned int max_degree_input,
+    const unsigned int grid_degree_input)
+    : SumFactorsOperators<dim,real,n_faces>::SumFactorsOperators(parameters_input, nstate, degree, max_degree_input, grid_degree_input)
+    , oneD_vol_state_operator        (build_1D_volume_state_operator()) 
+    , oneD_surf_state_operator       (build_1D_surface_state_operator()) 
+    , oneD_grad_state_operator       (build_1D_gradient_state_operator())
+    , oneD_surf_grad_state_operator  (build_1D_surface_gradient_state_operator())
+{ 
+}
+// Destructor
+template <int dim, typename real, int nstate, int n_faces>
+SumFactorizedOperatorsState<dim,real,nstate,n_faces>::SumFactorizedOperatorsState~()
+{
+    this->pcout << "Destructing Sum Factorized Operators ..." << std::endl;
+}
+
+
+
+
+
+
+
 template <int dim, typename real, int n_faces>  
 void OperatorsBase<dim,real,n_faces>::allocate_volume_operators ()
 {
@@ -1230,139 +1892,6 @@ void OperatorsBase<dim,real,n_faces>::is_the_grid_higher_order_than_initialized(
     }
 }
 
-template <  int dim, typename real, int n_faces>  
-void OperatorsBase<dim,real,n_faces>::sum_factorization_matrix_vector_mult(
-                                    const std::vector<real> &input_vect,
-                                    std::vector<real> &output_vect,
-                                    const unsigned int rows, const unsigned int columns,
-                                    const unsigned int dimension,
-                                    const dealii::FullMatrix<real> &basis_x,
-                                    const dealii::FullMatrix<real> &basis_y,
-                                    const dealii::FullMatrix<real> &basis_z)
-{
-    //assert that each basis matrix is of size (rows x columns)
-    assert(basis_x.m() == rows);
-    assert(basis_y.m() == rows);
-    if(dimension == 3)
-        assert(basis_z.m() == rows);
-    assert(basis_x.n() == columns);
-    assert(basis_y.n() == columns);
-    if(dimension == 3)
-        assert(basis_z.n() == columns);
-    //assert the input vector is of size columns^{dim}
-    assert(input_vect.size() == pow(columns, dimension));
-    assert(output_vect.size() == pow(rows, dimension));
-
-    if(dimension==2){
-        //convert the input vector to matrix
-        dealii::FullMatrix<real> input_mat(columns, columns);
-        for(unsigned int idof=0; idof<columns; idof++){ 
-            for(unsigned int jdof=0; jdof<columns; jdof++){ 
-                input_mat[jdof][idof] = input_vect[idof * columns + jdof];//jdof runs fastest (x) idof slowest (y)
-            }
-        }
-        dealii::FullMatrix<real> temp(rows, columns);
-        basis_x.mmult(temp, input_mat);//apply x tensor product
-        dealii::FullMatrix<real> output_mat(rows);
-        basis_y.mTmult(output_mat, temp);//apply y tensor product
-        //convert mat back to vect
-        for(unsigned int iquad=0; iquad<rows; iquad++){
-            for(unsigned int jquad=0; jquad<rows; jquad++){
-                output_vect[iquad*rows + jquad] = output_mat[iquad][jquad];
-            }
-        }
-
-    }
-    if(dimension==3){
-        //convert vect to mat first
-        dealii::FullMatrix<real> input_mat(columns, columns*columns);
-        for(unsigned int idof=0; idof<columns; idof++){ 
-            for(unsigned int jdof=0; jdof<columns; jdof++){ 
-                for(unsigned int kdof=0; kdof<columns; kdof++){
-                    const unsigned int dof_index = idof*pow(columns,2) + jdof*columns + kdof;
-                    input_mat[kdof][idof*columns + jdof] = input_vect[dof_index];//kdof runs fastest (x) idof slowest (z)
-                }
-            }
-        }
-        dealii::FullMatrix<real> temp(rows, columns*columns);
-        basis_x.mmult(temp, input_mat);//apply x tensor product
-        //convert to have y dofs ie/ change the stride
-        dealii::FullMatrix<real> temp2(columns, rows * columns);
-        for(unsigned int iquad=0; iquad<rows; iquad++){
-            for(unsigned int idof=0; idof<columns; idof++){
-                for(unsigned int jdof=0; jdof<columns; jdof++){
-                    temp2[jdof][iquad*rows + idof] = temp[iquad][idof*columns + jdof];//extract y runs second fastest
-                }
-            }
-        }
-        dealii::FullMatrix<real> temp3(rows, rows * columns);
-        basis_y.mmult(temp3, temp2);//apply y tensor product
-        dealii::FullMatrix<real> temp4(columns, rows * rows);
-        //convert to have z dofs ie/ change the stride
-        for(unsigned int iquad=0; iquad<rows; iquad++){
-            for(unsigned int idof=0; idof<columns; idof++){
-                for(unsigned int jquad=0; jquad<rows; jquad++){
-                    temp4[idof][iquad*rows + jquad] = temp3[jquad][iquad*rows + idof];//extract z runs slowest
-                }
-            }
-        }
-        dealii::FullMatrix<real> output_mat(rows, rows*rows);
-        basis_z.mmult(output_mat, temp4);
-        //convert mat to vect
-        for(unsigned int iquad=0; iquad<rows; iquad++){
-            for(unsigned int jquad=0; jquad<rows; jquad++){
-                for(unsigned int kquad=0; kquad<rows; kquad++){
-                    const unsigned int quad_index = iquad*pow(rows,2) + jquad*rows + kquad;
-                    output_vect[quad_index] = output_mat[iquad][kquad*rows + jquad];
-                }
-            }
-        }
-    }
-
-}
-template <  int dim, typename real, int n_faces>  
-void OperatorsBase<dim,real,n_faces>::sum_factorization_inner_product(
-                                    const std::vector<real> &input_vect,
-                                    const std::vector<real> &weight_vect,
-                                    std::vector<real> &output_vect,
-                                    const unsigned int rows, const unsigned int columns,
-                                    const unsigned int dimension,
-                                    const dealii::FullMatrix<real> &basis_x,
-                                    const dealii::FullMatrix<real> &basis_y,
-                                    const dealii::FullMatrix<real> &basis_z)
-{
-    //assert that each basis matrix is of size (rows x columns)
-    assert(basis_x.m() == rows);
-    assert(basis_y.m() == rows);
-    if(dimension == 3)
-        assert(basis_z.m() == rows);
-    assert(basis_x.n() == columns);
-    assert(basis_y.n() == columns);
-    if(dimension == 3)
-        assert(basis_z.n() == columns);
-    //assert the input vector is of size columns^{dim}
-    assert(input_vect.size() == pow(rows, dimension));//rows since matrix transpose
-    assert(weight_vect.size() == pow(rows, dimension));
-    assert(output_vect.size() == pow(rows, dimension));
-
-    dealii::FullMatrix<real> basis_x_trans(columns, rows);
-    dealii::FullMatrix<real> basis_y_trans(columns, rows);
-    dealii::FullMatrix<real> basis_z_trans(columns, rows);
-
-    //set as the transpose as inputed basis
-    basis_x_trans.Tadd(1.0, basis_x);
-    basis_y_trans.Tadd(1.0, basis_y);
-    if(dimension==3)
-        basis_z_trans.Tadd(1.0, basis_z);
-
-    std::vector<real> new_input_vect(pow(rows,dimension));
-    for(unsigned int iquad=0; iquad<pow(rows,dimension); iquad++){
-        new_input_vect[iquad] = input_vect[iquad] * weight_vect[iquad];
-    }
-
-    sum_factorization_matrix_vector_mult(new_input_vect, output_vect, rows, columns, dimension, basis_x_trans, basis_y_trans, basis_z_trans);
-
-}
 /**********************************************************
     * Operators Base State below constructing the operators
     *******************************************************/

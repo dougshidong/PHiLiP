@@ -215,10 +215,11 @@ int ODESolverBase<dim,real,MeshType>::advance_solution_time (double time_advance
     pcout
             << " Advancing solution by " << time_advance << " time units, using "
             << number_of_time_steps << " iterations of size dt=" << constant_time_step << " ... " << std::endl;
-    allocate_ode_system ();
-
     if(!this->all_parameters->use_energy)
         this->current_iteration = 0;
+
+    if(this->current_iteration == 0)
+        allocate_ode_system ();
 
     if (ode_param.output_solution_every_x_steps >= 0) {
         this->dg->output_results_vtk(this->current_iteration);  

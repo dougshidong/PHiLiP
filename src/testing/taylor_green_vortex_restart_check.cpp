@@ -75,7 +75,7 @@ bool compare_files(const std::string& filename1, const std::string& filename2)
 template <int dim, int nstate>
 int TaylorGreenVortexRestartCheck<dim, nstate>::run_test() const
 {
-    const double time_at_which_we_stop_the_run = 6.1240484302437529e-03;
+    const double time_at_which_we_stop_the_run = 6.2831853072000017e-03;
     const int restart_file_index = 4;
     const int initial_iteration_restart = restart_file_index; // assumes output mod for restart files is 1
     const double time_at_which_the_run_is_complete = this->all_parameters->flow_solver_param.final_time;

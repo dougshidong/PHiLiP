@@ -24,17 +24,25 @@ set flux_reconstruction_aux           = kDG
 # parallel_shared_triangulation |  parallel_distributed_triangulation>.
 set mesh_type                         = default_triangulation
 
+# Enum of models.Choices are  <large_eddy_simulation>.
+set model_type                        = large_eddy_simulation
+
 # Number of extra quadrature points to use.If overintegration=0, then we use
 # n_quad = soln_degree + 1.
 set overintegration                   = 0
 
 # The PDE we want to solve. Choices are  <advection |   diffusion |
 # convection_diffusion |   advection_vector |   burgers_inviscid |
-# burgers_viscous |   burgers_rewienski |   euler |   mhd |  navier_stokes>.
+# burgers_viscous |   burgers_rewienski |   euler |   mhd |  navier_stokes |
+# physics_model>.
 set pde_type                          = navier_stokes                     # default: advection
 
 # Scaling of Symmetric Interior Penalty term to ensure coercivity.
 set sipg_penalty_factor               = 1.0
+
+# Name of directory for writing solution vtk files. Current directory by
+# default.
+set solution_vtk_files_directory_name = .
 
 # The type of test we want to solve. Choices are (only run control has been
 # coded up for now) <run_control |   grid_refinement_study |
@@ -47,7 +55,8 @@ set sipg_penalty_factor               = 1.0
 # reduced_order |  POD_adaptation |  finite_difference_sensitivity |
 # advection_periodicity |   flow_solver |
 # dual_weighted_residual_mesh_adaptation |   taylor_green_vortex_energy_check
-# |   taylor_green_vortex_restart_check>.
+# |   taylor_green_vortex_restart_check |
+# taylor_green_vortex_large_eddy_simulation_check>.
 set test_type                         = taylor_green_vortex_energy_check # default: run_control
 
 # Not calculate L2 norm by default (M+K). Otherwise, get L2 norm per
@@ -84,10 +93,10 @@ subsection ODE solver
   set initial_iteration                                                = 4
 
   # Initial time at which we initialize the ODE solver with.
-  set initial_time                                                     = 6.1240484302437529e-03
+  set initial_time                                                     = 6.2831853072000017e-03
 
   # Time step used in ODE solver.
-  set initial_time_step                                                = 1.5310121075609382e-03
+  set initial_time_step                                                = 1.5707963268000004e-03
 
   # Maximum nonlinear solver iterations
   set nonlinear_max_iterations                                         = 500000
@@ -103,6 +112,11 @@ subsection ODE solver
   # Galerkin solverChoices are
   # <explicit|implicit|pod_galerkin|pod_petrov_galerkin>.
   set ode_solver_type                                                  = explicit        # default: implicit
+
+  # Set as false by default. If true, writes the linear solver convergence
+  # data for steady state to a file named
+  # 'ode_solver_steady_state_convergence_data_table.txt'.
+  set output_ode_solver_steady_state_convergence_table                 = false
 
   # Outputs the solution at time intervals of dt in .vtk file
   set output_solution_every_dt_time_intervals                          = 0.0
@@ -200,40 +214,61 @@ end
 
 subsection flow_solver
   # Courant-Friedrich-Lewy (CFL) number for constant time step.
-  set courant_friedrich_lewy_number = 0.0029240177382128664                              # default: 1
+  set courant_friedrich_lewy_number                = 0.003                                              # default: 1
 
   # Final solution time.
-  set final_time                    = 1.2248096860487504e-02                             # default: 1
+  set final_time                                   = 1.2566370614400000e-02                             # default: 1
 
   # The type of flow we want to simulate. Choices are  <taylor_green_vortex |
-  # burgers_viscous_snapshot |  burgers_rewienski_snapshot>.
-  set flow_case_type                = taylor_green_vortex
+  # burgers_viscous_snapshot |  naca0012 |  burgers_rewienski_snapshot>.
+  set flow_case_type                               = taylor_green_vortex
+
+  # Filename of the input mesh: input_mesh_filename.msh
+  set input_mesh_filename                          = naca0012
 
   # Output restart files for restarting the computation. False by default.
-  set output_restart_files          = true
+  set output_restart_files                         = true
+
+  # Outputs the restart files at time intervals of dt.
+  set output_restart_files_every_dt_time_intervals = 0.0
+
+  # Outputs the restart files every x steps.
+  set output_restart_files_every_x_steps           = 1
 
   # Restarts the computation from the restart file. False by default.
-  set restart_computation_from_file = true
+  set restart_computation_from_file                = true
 
-  # Index of restart file from which the computation will be restarted from. 0
+  # Index of restart file from which the computation will be restarted from. 1
   # by default.
-  set restart_file_index            = 4
+  set restart_file_index                           = 4
+
+  # Name of directory for writing and reading restart files. Current directory
+  # by default.
+  set restart_files_directory_name                 = .
 
   # Filename for the sensitivity data table output file:
   # sensitivity_table_filename.txt.
-  set sensitivity_table_filename    = sensitivity_table
+  set sensitivity_table_filename                   = sensitivity_table
 
   # Solve steady-state solution. False by default.
-  set steady_state                  = false
+  set steady_state                                 = false
 
-  # Filename for of the unsteady data table output file:
+  # Filename of the unsteady data table output file:
   # unsteady_data_table_filename.txt.
-  set unsteady_data_table_filename  = tgv_kinetic_energy_vs_time_table_for_restart_check # default: unsteady_data_table
+  set unsteady_data_table_filename                 = tgv_kinetic_energy_vs_time_table_for_restart_check # default: unsteady_data_table
 
 
   subsection taylor_green_vortex
+    # The type of density initialization. Choices are  <uniform |
+    # isothermal>.
+    set density_initial_condition_type                      = uniform
+
     # For integration test purposes, expected kinetic energy at final time.
-    set expected_kinetic_energy_at_final_time = 1.2074066465958100e-01 # default: 1
+    set expected_kinetic_energy_at_final_time               = 1.2073987162682624e-01 # default: 1
+
+    # For integration test purposes, expected theoretical kinetic energy
+    # dissipation rate at final time.
+    set expected_theoretical_dissipation_rate_at_final_time = 4.5422264559811485e-04 # default: 1
   end
 
 end
@@ -770,6 +805,426 @@ subsection grid refinement study
     set refinement_type             = h
   end
 
+  subsection grid refinement [4]
+    # Inidcates whether the refinement should be done anisotropically.
+    set anisotropic                 = false
+
+    # Enum of anisotropic indicators (unused for isotropic refinement).Choices
+    # are  <jump_based |   reconstruction_based>.
+    set anisotropic_indicator       = jump_based
+
+    # maximum anisotropic ratio for continuous size field targets.
+    set anisotropic_ratio_max       = 1.0e+12
+
+    # miniumum anistropic ratio for continuous size field targets.
+    set anisotropic_ratio_min       = 1.0e-12
+
+    # Threshold for flagging cells with anisotropic refinement.
+    set anisotropic_threshold_ratio = 3.0
+
+    # Maximum coarsening factor for adjoint-based size-field (from log DWR).
+    set c_max                       = 4
+
+    # Fraction of elements to undergo coarsening for fixed_fraction method.
+    set coarsening_fraction         = 0.03
+
+    # Constant added to the complexity at each step.
+    set complexity_add              = 0.0
+
+    # Scaling factor multiplying previous complexity.
+    set complexity_scale            = 2.0
+
+    # Stores an initial vector of values for complexity targets. Will iterate
+    # over and then switch to scaling and adding. Formatted in square brackets
+    # and seperated by commas, eg. "[1000,2000]"
+    set complexity_vector           = []
+
+    # Enum of error indicators (unused for uniform refinement).Choices are
+    # <error_based |   hessian_based |   residual_based |   adjoint_based>.
+    set error_indicator             = error_based
+
+    # Option to exit after call to the grid refinement (for debugging mesh
+    # write).
+    set exit_after_refine           = false
+
+    # Degree of q for use in the Lq norm of some indicators.
+    set norm_Lq                     = 2.0
+
+    # Enum of output data types of refinement indicator (used for msh_out only
+    # currently).Choices are  <size_field |   frame_field |   metric_field>.
+    set output_data_type            = size_field
+
+    # Enum of output data types (for interface with mesh generators).Choices
+    # are  <gmsh_out |   msh_out>.
+    set output_type                 = msh_out
+
+    # Maximum refinement factor for adjoint-based size-field (from log DWR).
+    set r_max                       = 20
+
+    # Fraction of elements to undergo refinement for fixed_fraction method.
+    set refinement_fraction         = 0.3
+
+    # Enum of refinement methods.Choices are  <uniform |   fixed_fraction |
+    # continuous>.
+    set refinement_method           = uniform
+
+    # Number of iterations to be performed
+    set refinement_steps            = 3
+
+    # Enum of refinement types.Choices are  <h |   p |   hp>.
+    set refinement_type             = h
+  end
+
+  subsection grid refinement [5]
+    # Inidcates whether the refinement should be done anisotropically.
+    set anisotropic                 = false
+
+    # Enum of anisotropic indicators (unused for isotropic refinement).Choices
+    # are  <jump_based |   reconstruction_based>.
+    set anisotropic_indicator       = jump_based
+
+    # maximum anisotropic ratio for continuous size field targets.
+    set anisotropic_ratio_max       = 1.0e+12
+
+    # miniumum anistropic ratio for continuous size field targets.
+    set anisotropic_ratio_min       = 1.0e-12
+
+    # Threshold for flagging cells with anisotropic refinement.
+    set anisotropic_threshold_ratio = 3.0
+
+    # Maximum coarsening factor for adjoint-based size-field (from log DWR).
+    set c_max                       = 4
+
+    # Fraction of elements to undergo coarsening for fixed_fraction method.
+    set coarsening_fraction         = 0.03
+
+    # Constant added to the complexity at each step.
+    set complexity_add              = 0.0
+
+    # Scaling factor multiplying previous complexity.
+    set complexity_scale            = 2.0
+
+    # Stores an initial vector of values for complexity targets. Will iterate
+    # over and then switch to scaling and adding. Formatted in square brackets
+    # and seperated by commas, eg. "[1000,2000]"
+    set complexity_vector           = []
+
+    # Enum of error indicators (unused for uniform refinement).Choices are
+    # <error_based |   hessian_based |   residual_based |   adjoint_based>.
+    set error_indicator             = error_based
+
+    # Option to exit after call to the grid refinement (for debugging mesh
+    # write).
+    set exit_after_refine           = false
+
+    # Degree of q for use in the Lq norm of some indicators.
+    set norm_Lq                     = 2.0
+
+    # Enum of output data types of refinement indicator (used for msh_out only
+    # currently).Choices are  <size_field |   frame_field |   metric_field>.
+    set output_data_type            = size_field
+
+    # Enum of output data types (for interface with mesh generators).Choices
+    # are  <gmsh_out |   msh_out>.
+    set output_type                 = msh_out
+
+    # Maximum refinement factor for adjoint-based size-field (from log DWR).
+    set r_max                       = 20
+
+    # Fraction of elements to undergo refinement for fixed_fraction method.
+    set refinement_fraction         = 0.3
+
+    # Enum of refinement methods.Choices are  <uniform |   fixed_fraction |
+    # continuous>.
+    set refinement_method           = uniform
+
+    # Number of iterations to be performed
+    set refinement_steps            = 3
+
+    # Enum of refinement types.Choices are  <h |   p |   hp>.
+    set refinement_type             = h
+  end
+
+  subsection grid refinement [6]
+    # Inidcates whether the refinement should be done anisotropically.
+    set anisotropic                 = false
+
+    # Enum of anisotropic indicators (unused for isotropic refinement).Choices
+    # are  <jump_based |   reconstruction_based>.
+    set anisotropic_indicator       = jump_based
+
+    # maximum anisotropic ratio for continuous size field targets.
+    set anisotropic_ratio_max       = 1.0e+12
+
+    # miniumum anistropic ratio for continuous size field targets.
+    set anisotropic_ratio_min       = 1.0e-12
+
+    # Threshold for flagging cells with anisotropic refinement.
+    set anisotropic_threshold_ratio = 3.0
+
+    # Maximum coarsening factor for adjoint-based size-field (from log DWR).
+    set c_max                       = 4
+
+    # Fraction of elements to undergo coarsening for fixed_fraction method.
+    set coarsening_fraction         = 0.03
+
+    # Constant added to the complexity at each step.
+    set complexity_add              = 0.0
+
+    # Scaling factor multiplying previous complexity.
+    set complexity_scale            = 2.0
+
+    # Stores an initial vector of values for complexity targets. Will iterate
+    # over and then switch to scaling and adding. Formatted in square brackets
+    # and seperated by commas, eg. "[1000,2000]"
+    set complexity_vector           = []
+
+    # Enum of error indicators (unused for uniform refinement).Choices are
+    # <error_based |   hessian_based |   residual_based |   adjoint_based>.
+    set error_indicator             = error_based
+
+    # Option to exit after call to the grid refinement (for debugging mesh
+    # write).
+    set exit_after_refine           = false
+
+    # Degree of q for use in the Lq norm of some indicators.
+    set norm_Lq                     = 2.0
+
+    # Enum of output data types of refinement indicator (used for msh_out only
+    # currently).Choices are  <size_field |   frame_field |   metric_field>.
+    set output_data_type            = size_field
+
+    # Enum of output data types (for interface with mesh generators).Choices
+    # are  <gmsh_out |   msh_out>.
+    set output_type                 = msh_out
+
+    # Maximum refinement factor for adjoint-based size-field (from log DWR).
+    set r_max                       = 20
+
+    # Fraction of elements to undergo refinement for fixed_fraction method.
+    set refinement_fraction         = 0.3
+
+    # Enum of refinement methods.Choices are  <uniform |   fixed_fraction |
+    # continuous>.
+    set refinement_method           = uniform
+
+    # Number of iterations to be performed
+    set refinement_steps            = 3
+
+    # Enum of refinement types.Choices are  <h |   p |   hp>.
+    set refinement_type             = h
+  end
+
+  subsection grid refinement [7]
+    # Inidcates whether the refinement should be done anisotropically.
+    set anisotropic                 = false
+
+    # Enum of anisotropic indicators (unused for isotropic refinement).Choices
+    # are  <jump_based |   reconstruction_based>.
+    set anisotropic_indicator       = jump_based
+
+    # maximum anisotropic ratio for continuous size field targets.
+    set anisotropic_ratio_max       = 1.0e+12
+
+    # miniumum anistropic ratio for continuous size field targets.
+    set anisotropic_ratio_min       = 1.0e-12
+
+    # Threshold for flagging cells with anisotropic refinement.
+    set anisotropic_threshold_ratio = 3.0
+
+    # Maximum coarsening factor for adjoint-based size-field (from log DWR).
+    set c_max                       = 4
+
+    # Fraction of elements to undergo coarsening for fixed_fraction method.
+    set coarsening_fraction         = 0.03
+
+    # Constant added to the complexity at each step.
+    set complexity_add              = 0.0
+
+    # Scaling factor multiplying previous complexity.
+    set complexity_scale            = 2.0
+
+    # Stores an initial vector of values for complexity targets. Will iterate
+    # over and then switch to scaling and adding. Formatted in square brackets
+    # and seperated by commas, eg. "[1000,2000]"
+    set complexity_vector           = []
+
+    # Enum of error indicators (unused for uniform refinement).Choices are
+    # <error_based |   hessian_based |   residual_based |   adjoint_based>.
+    set error_indicator             = error_based
+
+    # Option to exit after call to the grid refinement (for debugging mesh
+    # write).
+    set exit_after_refine           = false
+
+    # Degree of q for use in the Lq norm of some indicators.
+    set norm_Lq                     = 2.0
+
+    # Enum of output data types of refinement indicator (used for msh_out only
+    # currently).Choices are  <size_field |   frame_field |   metric_field>.
+    set output_data_type            = size_field
+
+    # Enum of output data types (for interface with mesh generators).Choices
+    # are  <gmsh_out |   msh_out>.
+    set output_type                 = msh_out
+
+    # Maximum refinement factor for adjoint-based size-field (from log DWR).
+    set r_max                       = 20
+
+    # Fraction of elements to undergo refinement for fixed_fraction method.
+    set refinement_fraction         = 0.3
+
+    # Enum of refinement methods.Choices are  <uniform |   fixed_fraction |
+    # continuous>.
+    set refinement_method           = uniform
+
+    # Number of iterations to be performed
+    set refinement_steps            = 3
+
+    # Enum of refinement types.Choices are  <h |   p |   hp>.
+    set refinement_type             = h
+  end
+
+  subsection grid refinement [8]
+    # Inidcates whether the refinement should be done anisotropically.
+    set anisotropic                 = false
+
+    # Enum of anisotropic indicators (unused for isotropic refinement).Choices
+    # are  <jump_based |   reconstruction_based>.
+    set anisotropic_indicator       = jump_based
+
+    # maximum anisotropic ratio for continuous size field targets.
+    set anisotropic_ratio_max       = 1.0e+12
+
+    # miniumum anistropic ratio for continuous size field targets.
+    set anisotropic_ratio_min       = 1.0e-12
+
+    # Threshold for flagging cells with anisotropic refinement.
+    set anisotropic_threshold_ratio = 3.0
+
+    # Maximum coarsening factor for adjoint-based size-field (from log DWR).
+    set c_max                       = 4
+
+    # Fraction of elements to undergo coarsening for fixed_fraction method.
+    set coarsening_fraction         = 0.03
+
+    # Constant added to the complexity at each step.
+    set complexity_add              = 0.0
+
+    # Scaling factor multiplying previous complexity.
+    set complexity_scale            = 2.0
+
+    # Stores an initial vector of values for complexity targets. Will iterate
+    # over and then switch to scaling and adding. Formatted in square brackets
+    # and seperated by commas, eg. "[1000,2000]"
+    set complexity_vector           = []
+
+    # Enum of error indicators (unused for uniform refinement).Choices are
+    # <error_based |   hessian_based |   residual_based |   adjoint_based>.
+    set error_indicator             = error_based
+
+    # Option to exit after call to the grid refinement (for debugging mesh
+    # write).
+    set exit_after_refine           = false
+
+    # Degree of q for use in the Lq norm of some indicators.
+    set norm_Lq                     = 2.0
+
+    # Enum of output data types of refinement indicator (used for msh_out only
+    # currently).Choices are  <size_field |   frame_field |   metric_field>.
+    set output_data_type            = size_field
+
+    # Enum of output data types (for interface with mesh generators).Choices
+    # are  <gmsh_out |   msh_out>.
+    set output_type                 = msh_out
+
+    # Maximum refinement factor for adjoint-based size-field (from log DWR).
+    set r_max                       = 20
+
+    # Fraction of elements to undergo refinement for fixed_fraction method.
+    set refinement_fraction         = 0.3
+
+    # Enum of refinement methods.Choices are  <uniform |   fixed_fraction |
+    # continuous>.
+    set refinement_method           = uniform
+
+    # Number of iterations to be performed
+    set refinement_steps            = 3
+
+    # Enum of refinement types.Choices are  <h |   p |   hp>.
+    set refinement_type             = h
+  end
+
+  subsection grid refinement [9]
+    # Inidcates whether the refinement should be done anisotropically.
+    set anisotropic                 = false
+
+    # Enum of anisotropic indicators (unused for isotropic refinement).Choices
+    # are  <jump_based |   reconstruction_based>.
+    set anisotropic_indicator       = jump_based
+
+    # maximum anisotropic ratio for continuous size field targets.
+    set anisotropic_ratio_max       = 1.0e+12
+
+    # miniumum anistropic ratio for continuous size field targets.
+    set anisotropic_ratio_min       = 1.0e-12
+
+    # Threshold for flagging cells with anisotropic refinement.
+    set anisotropic_threshold_ratio = 3.0
+
+    # Maximum coarsening factor for adjoint-based size-field (from log DWR).
+    set c_max                       = 4
+
+    # Fraction of elements to undergo coarsening for fixed_fraction method.
+    set coarsening_fraction         = 0.03
+
+    # Constant added to the complexity at each step.
+    set complexity_add              = 0.0
+
+    # Scaling factor multiplying previous complexity.
+    set complexity_scale            = 2.0
+
+    # Stores an initial vector of values for complexity targets. Will iterate
+    # over and then switch to scaling and adding. Formatted in square brackets
+    # and seperated by commas, eg. "[1000,2000]"
+    set complexity_vector           = []
+
+    # Enum of error indicators (unused for uniform refinement).Choices are
+    # <error_based |   hessian_based |   residual_based |   adjoint_based>.
+    set error_indicator             = error_based
+
+    # Option to exit after call to the grid refinement (for debugging mesh
+    # write).
+    set exit_after_refine           = false
+
+    # Degree of q for use in the Lq norm of some indicators.
+    set norm_Lq                     = 2.0
+
+    # Enum of output data types of refinement indicator (used for msh_out only
+    # currently).Choices are  <size_field |   frame_field |   metric_field>.
+    set output_data_type            = size_field
+
+    # Enum of output data types (for interface with mesh generators).Choices
+    # are  <gmsh_out |   msh_out>.
+    set output_type                 = msh_out
+
+    # Maximum refinement factor for adjoint-based size-field (from log DWR).
+    set r_max                       = 20
+
+    # Fraction of elements to undergo refinement for fixed_fraction method.
+    set refinement_fraction         = 0.3
+
+    # Enum of refinement methods.Choices are  <uniform |   fixed_fraction |
+    # continuous>.
+    set refinement_method           = uniform
+
+    # Number of iterations to be performed
+    set refinement_steps            = 3
+
+    # Enum of refinement types.Choices are  <h |   p |   hp>.
+    set refinement_type             = h
+  end
+
 end
 
 
@@ -954,11 +1409,46 @@ end
 
 
 subsection navier_stokes
+  # Nondimensionalized isothermal wall temperature.
+  set nondimensionalized_isothermal_wall_temperature = 1.0
+
   # Prandlt number
-  set prandtl_number      = 0.71   # default: 0.72
+  set prandtl_number                                 = 0.71      # default: 0.72
 
   # Farfield Reynolds number
-  set reynolds_number_inf = 1600.0 # default: 10000000.0
+  set reynolds_number_inf                            = 1600.0    # default: 10000000.0
+
+  # Type of thermal boundary conditions to be imposed. Choices are
+  # <adiabatic|isothermal>.
+  set thermal_boundary_condition_type                = adiabatic
+end
+
+
+subsection physics_model
+  subsection large_eddy_simulation
+    # Enum of sub-grid scale models.Choices are  <smagorinsky |
+    # wall_adaptive_local_eddy_viscosity>.
+    set SGS_model_type                     = smagorinsky
+
+    # WALE (Wall-Adapting Local Eddy-viscosity) eddy viscosity model constant
+    # (default is 0.6)
+    set WALE_model_constant                = 0.6
+
+    # Set as false by default. If true, sets the baseline physics for LES to
+    # the Euler equations.
+    set euler_turbulence                   = false
+
+    # Ratio of the large eddy simulation filter width to the cell size
+    # (default is 1)
+    set ratio_of_filter_width_to_cell_size = 1.0
+
+    # Smagorinsky model constant (default is 0.1)
+    set smagorinsky_model_constant         = 0.1
+
+    # Turbulent Prandlt number (default is 0.6)
+    set turbulent_prandtl_number           = 0.6
+  end
+
 end
 
 

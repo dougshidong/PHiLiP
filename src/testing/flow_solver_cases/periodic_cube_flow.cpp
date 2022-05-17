@@ -41,7 +41,7 @@ void PeriodicCubeFlow<dim,nstate>::display_grid_parameters() const
     this->pcout << "- - Domain dimensionality: " << dim << std::endl;
     this->pcout << "- - Domain left: " << this->domain_left << std::endl;
     this->pcout << "- - Domain right: " << this->domain_right << std::endl;
-    this->pcout << "- - Number of cells in each direction: " << number_of_cells_per_direction << std::endl;
+    this->pcout << "- - Number of cells in each direction: " << this->number_of_cells_per_direction << std::endl;
     if constexpr(dim==1) this->pcout << "- - Domain length: " << this->domain_size << std::endl;
     if constexpr(dim==2) this->pcout << "- - Domain area: " << this->domain_size << std::endl;
     if constexpr(dim==3) this->pcout << "- - Domain volume: " << this->domain_size << std::endl;

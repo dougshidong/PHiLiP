@@ -4,7 +4,8 @@
 
 set dimension = 3
 set test_type = taylor_green_vortex_energy_check
-set pde_type = navier_stokes
+set pde_type = physics_model
+set model_type = large_eddy_simulation
 
 # DG formulation
 set use_weak_form = true
@@ -40,6 +41,17 @@ subsection navier_stokes
   set reynolds_number_inf = 1600.0
 end
 
+subsection physics_model
+  subsection large_eddy_simulation
+    set euler_turbulence = false
+    set SGS_model_type = wall_adaptive_local_eddy_viscosity
+    set turbulent_prandtl_number = 0.6
+    set smagorinsky_model_constant = 0.1
+    set WALE_model_constant = 0.6
+    set ratio_of_filter_width_to_cell_size = 1.0
+  end
+end
+
 # polynomial order and number of cells per direction (i.e. grid_size)
 subsection grid refinement study
   set poly_degree = 2
@@ -52,9 +64,9 @@ subsection flow_solver
   set flow_case_type = taylor_green_vortex
   set final_time = 1.2248096860487504e-02
   set courant_friedrich_lewy_number = 0.0029240177382128664
-  set unsteady_data_table_filename = tgv_kinetic_energy_vs_time_table_for_energy_check
+  set unsteady_data_table_filename = tgv_les_wale_kinetic_energy_vs_time_table_for_energy_check
   subsection taylor_green_vortex
-    set expected_kinetic_energy_at_final_time = 1.2074066465958100e-01
-    set expected_theoretical_dissipation_rate_at_final_time = 4.5425660033539928e-04
+    set expected_kinetic_energy_at_final_time = 1.2073862193735652e-01
+    set expected_theoretical_dissipation_rate_at_final_time = 4.5425025250607552e-04
   end
 end

@@ -16,10 +16,10 @@ namespace Tests {
 template <int dim, int nstate>
 FlowSolver<dim, nstate>::FlowSolver(
     const PHiLiP::Parameters::AllParameters *const parameters_input, 
-    std::shared_ptr<FlowSolverCaseBase<dim, nstate>> flow_solver_case,
+    std::shared_ptr<FlowSolverCaseBase<dim, nstate>> flow_solver_case_input,
     const dealii::ParameterHandler &parameter_handler_input)
 : TestsBase::TestsBase(parameters_input)
-, flow_solver_case(flow_solver_case)
+, flow_solver_case(flow_solver_case_input)
 , parameter_handler(parameter_handler_input)
 , all_param(*parameters_input)
 , flow_solver_param(all_param.flow_solver_param)
@@ -27,12 +27,12 @@ FlowSolver<dim, nstate>::FlowSolver(
 , poly_degree(all_param.grid_refinement_study_param.poly_degree)
 , final_time(flow_solver_param.final_time)
 , input_parameters_file_reference_copy_filename(flow_solver_param.restart_files_directory_name + std::string("/") + std::string("input_copy.prm"))
-, dg(DGFactory<dim,double>::create_discontinuous_galerkin(&all_param, poly_degree, flow_solver_case->generate_grid()))
+, dg(DGFactory<dim,double>::create_discontinuous_galerkin(&all_param, poly_degree, poly_degree, 1, flow_solver_case->generate_grid()))
 , ode_solver(ODE::ODESolverFactory<dim, double>::create_ODESolver(dg))
 {
     flow_solver_case->set_higher_order_grid(dg);
     dg->allocate_system();
-    flow_solver_case->display_flow_solver_setup();
+    flow_solver_case->display_flow_solver_setup(dg);
     
     dealii::LinearAlgebra::distributed::Vector<double> solution_no_ghost;
     solution_no_ghost.reinit(dg->locally_owned_dofs, MPI_COMM_WORLD);

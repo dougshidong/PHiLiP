@@ -63,8 +63,8 @@ end
 subsection flow_solver
   set flow_case_type = taylor_green_vortex
   set final_time = 1.2248096860487504e-02
-  set courant_friedrich_lewy_number = 0.005
-  set unsteady_data_table_filename = LES_tgv_kinetic_energy_vs_time_table_for_energy_check
+  set courant_friedrich_lewy_number = 0.0029240177382128664
+  set unsteady_data_table_filename = tgv_les_smagorinsky_kinetic_energy_vs_time_table_for_energy_check
   subsection taylor_green_vortex
     set expected_kinetic_energy_at_final_time = 1.2073862193735652e-01
     set expected_theoretical_dissipation_rate_at_final_time = 4.5425025250607552e-04

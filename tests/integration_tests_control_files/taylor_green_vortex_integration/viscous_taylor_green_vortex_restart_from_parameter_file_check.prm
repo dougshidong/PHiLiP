@@ -200,7 +200,7 @@ end
 
 subsection flow_solver
   # Courant-Friedrich-Lewy (CFL) number for constant time step.
-  set courant_friedrich_lewy_number = 0.005                                              # default: 1
+  set courant_friedrich_lewy_number = 0.0029240177382128664                              # default: 1
 
   # Final solution time.
   set final_time                    = 1.2248096860487504e-02                             # default: 1

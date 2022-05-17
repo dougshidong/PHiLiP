@@ -51,7 +51,7 @@ public:
     /// Constructor.
     FlowSolver(
         const Parameters::AllParameters *const parameters_input, 
-        std::shared_ptr<FlowSolverCaseBase<dim, nstate>>,
+        std::shared_ptr<FlowSolverCaseBase<dim, nstate>> flow_solver_case_input,
         const dealii::ParameterHandler &parameter_handler_input);
     
     /// Destructor

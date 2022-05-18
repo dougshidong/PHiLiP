@@ -122,8 +122,11 @@ int EulerTaylorGreen<dim, nstate>::run_test() const
      
     grid->refine_global(n_refinements);
 
-    const unsigned int n_global_active_cells2 = grid->n_global_active_cells();
-    double n_dofs_cfl = pow(n_global_active_cells2,dim) * pow(poly_degree+1.0, dim);
+   // const unsigned int n_global_active_cells2 = grid->n_global_active_cells();
+    const unsigned int n_global_active_cells2 = pow(2,n_refinements);
+   // const double n_dofs_cfl = pow(n_global_active_cells2,dim) * pow(poly_degree+1.0, dim);
+    const double n_dofs_cfl = pow(n_global_active_cells2,dim) * pow(poly_degree+1.0, dim);
+    pcout<<"number dofs locally what we want "<<n_dofs_cfl<<" number of active cells "<<n_global_active_cells2<<std::endl;
     double delta_x = (right-left)/pow(n_dofs_cfl,(1.0/dim)); 
     all_parameters_new.ode_solver_param.initial_time_step =  0.1 * delta_x;
     pcout<<" timestep "<<all_parameters_new.ode_solver_param.initial_time_step<<std::endl;
@@ -142,20 +145,26 @@ int EulerTaylorGreen<dim, nstate>::run_test() const
     expressions[1] = "sin(x)*cos(y)*cos(z)";
     expressions[2] = "-cos(x)*sin(y)*cos(z)";
     expressions[3] = "0";
-    expressions[4] = "100.0/1.4 + 1.0/16.0 * (cos(2.0*x)*cos(2.0*z) + 2.0*cos(2.0*y) + 2.0*cos(2.0*x) + cos(2.0*y)*cos(2.0*z))";
+   // expressions[4] = "100.0/1.4 + 1.0/16.0 * (cos(2.0*x)*cos(2.0*z) + 2.0*cos(2.0*y) + 2.0*cos(2.0*x) + cos(2.0*y)*cos(2.0*z))";
+    expressions[4] = " (100.0/1.4 + 1.0/16.0 * (cos(2.0*x)*cos(2.0*z) + 2.0*cos(2.0*y) + 2.0*cos(2.0*x) + cos(2.0*y)*cos(2.0*z)) ) / 1.4 + (sin(x)*cos(y)*cos(z))*(sin(x)*cos(y)*cos(z)) + (-cos(x)*sin(y)*cos(z))*(-cos(x)*sin(y)*cos(z)) ";
     initial_condition.initialize(variables,
                                  expressions,
                                  constants);
      
     std::cout << "initial condition successfully implemented" << std::endl;
-    dealii::VectorTools::interpolate(dg->dof_handler,initial_condition,dg->solution);
+    dealii::LinearAlgebra::distributed::Vector<double> solution_no_ghost;
+    solution_no_ghost.reinit(dg->locally_owned_dofs, MPI_COMM_WORLD);
+    dealii::VectorTools::interpolate(dg->dof_handler,initial_condition,solution_no_ghost);
+    dg->solution = solution_no_ghost;
+    dg->solution.update_ghost_values();
+   // dealii::VectorTools::interpolate(dg->dof_handler,initial_condition,dg->solution);
     std::cout << "initial condition interpolated to DG solution" << std::endl;
      
     std::cout << "creating ODE solver" << std::endl;
     std::shared_ptr<ODE::ODESolverBase<dim, double>> ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
     std::cout << "ODE solver successfully created" << std::endl;
     double finalTime = 14.;
-    finalTime = 0.1;//to speed things up locally in tests, doesn't need full 14seconds to verify.
+//    finalTime = 0.1;//to speed things up locally in tests, doesn't need full 14seconds to verify.
     double dt = all_parameters_new.ode_solver_param.initial_time_step;
 
     std::cout<<" number dofs "<<
@@ -166,24 +175,46 @@ int EulerTaylorGreen<dim, nstate>::run_test() const
     //this causes some issues with outputs (only one file is output, which is overwritten at each time step)
     //also the ode solver output doesn't make sense (says "iteration 1 out of 1")
     //but it works. I'll keep it for now and need to modify the output functions later to account for this.
+    double initialcond_energy = compute_kinetic_energy(dg, poly_degree);
+    double initialcond_energy_mpi = (dealii::Utilities::MPI::sum(initialcond_energy, mpi_communicator));
+    std::cout << std::setprecision(16) << std::fixed;
+    pcout << "Energy for initial condition " << initialcond_energy_mpi/(8*pow(dealii::numbers::PI,3)) << std::endl;
+
+    //output initial cond solution
+//    for(unsigned int i=0; i<dg->solution.size(); i++){
+//        pcout<<"initial cond solution "<<dg->solution[i]<<std::endl;
+//    }
 
     pcout << "Energy at time " << 0 << " is " << compute_kinetic_energy(dg, poly_degree) << std::endl;
     ode_solver->current_iteration = 0;
 	ode_solver->advance_solution_time(dt/10.0);
 	double initial_energy = compute_kinetic_energy(dg, poly_degree);
+	double initial_energy_mpi = (dealii::Utilities::MPI::sum(initial_energy, mpi_communicator));
         double initial_MK_energy = compute_MK_energy(dg, poly_degree);
+    //output initial cond solution
+//    for(unsigned int i=0; i<dg->solution.size(); i++){
+//        pcout<<"initial cond solution after "<<dg->solution[i]<<std::endl;
+//    }
     
-    pcout << "Energy at one timestep is " << initial_energy << std::endl;
+   // pcout << "Energy at one timestep is " << initial_energy << std::endl;
+    std::cout << std::setprecision(16) << std::fixed;
+    pcout << "Energy at one timestep is " << initial_energy_mpi/(8*pow(dealii::numbers::PI,3)) << std::endl;
     std::ofstream myfile ("kinetic_energy_3D_TGV.gpl" , std::ios::trunc);
 
     for (int i = 0; i < std::ceil(finalTime/dt); ++ i)
     {
         ode_solver->advance_solution_time(dt);
-        double current_energy = compute_kinetic_energy(dg,poly_degree) / initial_energy;
+       // double current_energy = compute_kinetic_energy(dg,poly_degree) / initial_energy;
+        double current_energy = compute_kinetic_energy(dg,poly_degree);
+        double current_energy_mpi = (dealii::Utilities::MPI::sum(current_energy, mpi_communicator))/initial_energy_mpi;
         std::cout << std::setprecision(16) << std::fixed;
-        pcout << "Energy at time " << i * dt << " is " << current_energy << std::endl;
-        myfile << i * dt << " " << current_energy << std::endl;
-        if (current_energy*initial_energy - initial_energy >= 1.00)
+       // pcout << "Energy at time " << i * dt << " is " << current_energy << std::endl;
+        pcout << "Energy at time " << i * dt << " is " << current_energy_mpi << std::endl;
+        pcout << "Actual Energy Divided by volume at time " << i * dt << " is " << current_energy_mpi*initial_energy_mpi/(8*pow(dealii::numbers::PI,3)) << std::endl;
+       // myfile << i * dt << " " << current_energy << std::endl;
+        myfile << i * dt << " " << current_energy_mpi << std::endl;
+       // if (current_energy*initial_energy - initial_energy >= 1.00)
+        if (current_energy_mpi*initial_energy_mpi - initial_energy_mpi >= 1.00)
           {
               pcout << " Energy was not monotonically decreasing" << std::endl;
               return 1;

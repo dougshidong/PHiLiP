@@ -5,8 +5,8 @@ set(TESTS_SOURCE
     rol_objective.cpp
     full_space_step.cpp
     sequential_quadratic_programming.cpp
+    pdas_kkt_system.cpp
     primal_dual_active_set.cpp
-    primal_dual_active_set_full_space2.cpp
 )
 
 foreach(dim RANGE 1 3)

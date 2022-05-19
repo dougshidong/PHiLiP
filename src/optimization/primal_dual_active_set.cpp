@@ -50,1174 +50,145 @@
 
 #include "ROL_Constraint_Partitioned.hpp"
 #include "ROL_Objective_SimOpt.hpp"
+#include "ROL_Reduced_Objective_SimOpt.hpp"
 #include "ROL_SlacklessObjective.hpp"
 
 #include <deal.II/lac/full_matrix.h>
 
 #include "optimization/flow_constraints.hpp"
-#include "primal_dual_active_set.hpp"
+#include "optimization/pdas_kkt_system.hpp"
+#include "optimization/pdas_preconditioner.hpp"
+#include "optimization/primal_dual_active_set.hpp"
 #include "optimization/dealii_solver_rol_vector.hpp"
 
 namespace PHiLiP {
 
-/// Preconditioners from Biros & Ghattas 2005 with additional constraints.
-/** Option to use or ignore second-order term to obtain P4 or P2 preconditioners
- *  Option to use approximate or exact inverses of the Jacobian (transpose) to obtain the Tilde version.
- */
-template<typename Real = double>
-class PDAS_P24_Constrained_Preconditioner: public ROL::LinearOperator<Real>
-{
-
-protected:
-    const ROL::Ptr<const ROL::PartitionedVector<Real>>  design_variables_;     ///< Design variables.
-
-    const ROL::Ptr<ROL::Objective_SimOpt<Real>>         objective_;            ///< Objective function.
-
-    const ROL::Ptr<PHiLiP::FlowConstraints<PHILIP_DIM>> state_constraints_; ///< Equality constraints.
-    const ROL::Ptr<const ROL::Vector<Real>>             dual_state_;        ///< Lagrange multipliers associated with state coonstraints.
-
-    const ROL::Ptr<ROL::Constraint_Partitioned<Real>>        equality_constraints_simopt_;  ///< Equality constraints.
-    const unsigned int n_equality_constraints_;
-    const ROL::Ptr<const ROL::PartitionedVector<Real>>             dual_equality_;        ///< Lagrange multipliers associated with other equality coonstraints.
-
-    const ROL::Ptr<ROL::BoundConstraint<Real>>          bound_constraints_;  ///< Equality constraints.
-    const ROL::Ptr<const ROL::Vector<Real>>             dual_inequality_;        ///< Lagrange multipliers associated with box-bound constraints.
-    const ROL::Ptr<const ROL::Vector<Real> > des_plus_dual_;            ///< Container for primal plus dual variables
-    Real bounded_constraint_tolerance_;
-
-    ROL::Ptr<const ROL::Vector_SimOpt<Real>>             simulation_and_control_variables_; ///< Simulation and control design variables.
-    ROL::Ptr<const ROL::Vector<Real>>             simulation_variables_; ///< Simulation design variables.
-    ROL::Ptr<const ROL::Vector<Real>>             control_variables_;    ///< Control design variables.
-    ROL::Ptr<const ROL::Vector<Real>>             slack_variables_;    ///< Slack variables emanating from bounded constraints.
-    const ROL::Ptr<ROL::Secant<Real> >                  secant_;               ///< Secant method used to precondition the reduced Hessian.
-
-    /// Use an approximate inverse of the Jacobian and Jacobian transpose using
-    /// the preconditioner to obtain the "tilde" operator version of Biros and Ghattas.
-
-protected:
-    ROL::Ptr<ROL::Vector<Real>> y1;
-    ROL::Ptr<ROL::Vector<Real>> y2;
-    ROL::Ptr<ROL::Vector<Real>> y3;
-    ROL::Ptr<ROL::Vector<Real>> y4;
-
-    ROL::Ptr<ROL::Vector<Real>> temp_1;
-    ROL::Ptr<ROL::Vector<Real>> Lxs_Rsinv_y1;
-    ROL::Ptr<ROL::Vector<Real>> Rsinv_y1;
-
-    bool use_second_order_terms_;
-    const bool use_approximate_preconditioner_;
-
-    const unsigned int mpi_rank; ///< MPI rank used to reset the deallog depth
-    dealii::ConditionalOStream pcout; ///< Parallel std::cout that only outputs on mpi_rank==0
+class ApproximateJacobianFlowConstraints : public ROL::Constraint_SimOpt<double> {
 private:
-    std::vector<ROL::Ptr<ROL::Vector<Real>>> cx;
-    std::vector<ROL::Ptr<ROL::Vector<Real>>> cs;
-    std::vector<ROL::Ptr<ROL::Vector<Real>>> cs_Rsinv;
-    std::vector<ROL::Ptr<ROL::Vector<Real>>> cs_Rsinv_Rx;
-    std::vector<ROL::Ptr<ROL::Vector<Real>>> C;
-    std::vector<ROL::Ptr<ROL::Vector<Real>>> C_Lzz;
-    //std::vector<ROL::Ptr<ROL::Vector<Real>>> C_Lzz_Ct;
-    dealii::FullMatrix<double> C_Lzz_Ct;
-    dealii::FullMatrix<double> C_Lzz_Ct_inv;
-
-    const Real one = 1.0;
-
+    const ROL::Ptr<FlowConstraints<PHILIP_DIM>> flow_constraints_;
 public:
-
-    class CLzzC_block : public ROL::LinearOperator<Real> {
-        private:
-            const std::vector<ROL::Ptr<ROL::Vector<Real>>> &C;
-            const ROL::Ptr<ROL::Secant<Real> > secant_;
-            const ROL::Ptr<ROL::BoundConstraint<Real>> bound_constraints_;
-            const ROL::Ptr<const ROL::Vector<Real> > des_plus_dual_;
-            Real bounded_constraint_tolerance_;
-        public:
-            CLzzC_block(
-              const std::vector<ROL::Ptr<ROL::Vector<Real>>> &C,
-              const ROL::Ptr<ROL::Secant<Real> > secant,
-              const ROL::Ptr<ROL::BoundConstraint<Real>> bound_constraints,
-              const ROL::Ptr<const ROL::Vector<Real> > des_plus_dual,
-              const Real constraint_tolerance)
-              : C(C)
-              , secant_(secant)
-              , bound_constraints_(bound_constraints)
-              , des_plus_dual_(des_plus_dual)
-              , bounded_constraint_tolerance_(constraint_tolerance)
-            { }
-
-            void apply( ROL::Vector<Real> &Hv, const ROL::Vector<Real> &v, Real &tol ) const
-            {
-                (void) v;
-                (void) tol;
-                MPI_Barrier(MPI_COMM_WORLD);
-                static int ii = 0; (void) ii;
-                //std::cout << __PRETTY_FUNCTION__ << " " << ii++ << std::endl;
-
-                const unsigned int neq = C.size();
-
-                const auto &v_partitioned = dynamic_cast<const ROL::PartitionedVector<Real>&>(v);
-
-                // Break down x2
-                const ROL::Ptr< const ROL::Vector<Real> > x2 = v_partitioned.get(0);
-                const auto &x2_partitioned = dynamic_cast<const ROL::PartitionedVector<Real>&>(*x2);
-
-                ROL::Ptr< const ROL::Vector<Real> > x2_ctl;
-                std::vector<ROL::Ptr< const ROL::Vector<Real> >> x2_slk_vec(neq);
-
-                unsigned int ith_x2_partition = 0;
-                x2_ctl = x2_partitioned.get(ith_x2_partition++);
-                for (unsigned int ieq = 0; ieq < neq; ++ieq) {
-                    x2_slk_vec[ieq] = x2_partitioned.get(ith_x2_partition++);
-                }
-
-                // Break down x4
-                const ROL::Ptr< const ROL::Vector<Real> > x4 = v_partitioned.get(1);
-                const auto &x4_partitioned = dynamic_cast<const ROL::PartitionedVector<Real>&>(*x4);
-
-                unsigned int ith_x4_partition = 0;
-
-                std::vector<ROL::Ptr< const ROL::Vector<Real> >> x4_adj_equ_var(neq);
-                ROL::Ptr< const ROL::Vector<Real> > x4_adj_sim_ctl_bnd;
-                std::vector<ROL::Ptr< const ROL::Vector<Real> >> x4_adj_slk_bnd(neq);
-
-                for (unsigned int ieq = 0; ieq < neq; ++ieq) {
-                    x4_adj_equ_var[ieq] = x4_partitioned.get(ith_x4_partition++);
-                }
-                x4_adj_sim_ctl_bnd = x4_partitioned.get(ith_x4_partition++);
-                for (unsigned int ieq = 0; ieq < neq; ++ieq) {
-                    x4_adj_slk_bnd[ieq] = x4_partitioned.get(ith_x4_partition++);
-                }
-
-                // std::cout << " x2->dimension() " << x2->dimension() << std::endl;
-                // std::cout << " x2_partitioned->numVectors() " << x2_partitioned.numVectors() << std::endl;
-                // std::cout << " x4->dimension() " << x4->dimension() << std::endl;
-                // std::cout << " x4_partitioned->numVectors() " << x4_partitioned.numVectors() << std::endl;
-
-                // std::cout << " x2_ctl->dimension() " << x2_ctl->dimension() << std::endl;
-                // std::cout << " x2_slk_vec.size() " << x2_slk_vec.size() << std::endl;
-                // for (unsigned int ieq = 0; ieq < neq; ++ieq) {
-                //     std::cout << " x2_slk_vec["<<ieq<<"]->dimension() " << x2_slk_vec[ieq]->dimension() << std::endl;
-                // }
-
-                // std::cout << " x4_adj_equ_var.size() " << x4_adj_equ_var.size() << std::endl;
-                // for (unsigned int ieq = 0; ieq < neq; ++ieq) {
-                //     std::cout << " x4_adj_equ_var["<<ieq<<"]->dimension() " << x4_adj_equ_var[ieq]->dimension() << std::endl;
-                // }
-                // std::cout << " x4_adj_sim_ctl_bnd->dimension() " << x4_adj_sim_ctl_bnd->dimension() << std::endl;
-                // std::cout << " x4_adj_slk_bnd.size() " << x4_adj_slk_bnd.size() << std::endl;
-                // for (unsigned int ieq = 0; ieq < neq; ++ieq) {
-                //     std::cout << " x4_adj_slk_bnd["<<ieq<<"]->dimension() " << x4_adj_slk_bnd[ieq]->dimension() << std::endl;
-                // }
-
-
-                auto &Hv_partitioned = dynamic_cast<ROL::PartitionedVector<Real>&>(Hv);
-
-                // Break down y2
-                const ROL::Ptr< ROL::Vector<Real> > y2 = Hv_partitioned.get(0);
-                auto &y2_partitioned = dynamic_cast<ROL::PartitionedVector<Real>&>(*y2);
-
-                unsigned int ith_y2_partition = 0;
-
-                std::vector<ROL::Ptr< ROL::Vector<Real> >> y2_adj_equ_var(neq);
-                ROL::Ptr< ROL::Vector<Real> > y2_adj_sim_ctl_bnd;
-                std::vector<ROL::Ptr< ROL::Vector<Real> >> y2_adj_slk_bnd(neq);
-
-                for (unsigned int ieq = 0; ieq < neq; ++ieq) {
-                    y2_adj_equ_var[ieq] = y2_partitioned.get(ith_y2_partition++);
-                }
-                y2_adj_sim_ctl_bnd = y2_partitioned.get(ith_y2_partition++);
-                for (unsigned int ieq = 0; ieq < neq; ++ieq) {
-                    y2_adj_slk_bnd[ieq] = y2_partitioned.get(ith_y2_partition++);
-                }
-
-                // Break down y3
-                const ROL::Ptr< ROL::Vector<Real> > y3 = Hv_partitioned.get(1);
-                auto &y3_partitioned = dynamic_cast<ROL::PartitionedVector<Real>&>(*y3);
-
-                ROL::Ptr< ROL::Vector<Real> > y3_ctl;
-                std::vector<ROL::Ptr< ROL::Vector<Real> >> y3_slk_vec(neq);
-
-                unsigned int ith_y3_partition = 0;
-                y3_ctl = y3_partitioned.get(ith_y3_partition++);
-                for (unsigned int ieq = 0; ieq < neq; ++ieq) {
-                    y3_slk_vec[ieq] = y3_partitioned.get(ith_y3_partition++);
-                }
-
-
-
-                // std::cout << " y3->dimension() " << y3->dimension() << std::endl;
-                // std::cout << " y3_partitioned->numVectors() " << y3_partitioned.numVectors() << std::endl;
-                // std::cout << " y2->dimension() " << y2->dimension() << std::endl;
-                // std::cout << " y2_partitioned->numVectors() " << y2_partitioned.numVectors() << std::endl;
-
-                // std::cout << " y3_ctl->dimension() " << y3_ctl->dimension() << std::endl;
-                // std::cout << " y3_slk_vec.size() " << y3_slk_vec.size() << std::endl;
-                // for (unsigned int ieq = 0; ieq < neq; ++ieq) {
-                //     std::cout << " y3_slk_vec["<<ieq<<"]->dimension() " << y3_slk_vec[ieq]->dimension() << std::endl;
-                // }
-
-                // std::cout << " y2_adj_equ_var.size() " << y2_adj_equ_var.size() << std::endl;
-                // for (unsigned int ieq = 0; ieq < neq; ++ieq) {
-                //     std::cout << " y2_adj_equ_var["<<ieq<<"]->dimension() " << y2_adj_equ_var[ieq]->dimension() << std::endl;
-                // }
-                // std::cout << " y2_adj_sim_ctl_bnd->dimension() " << y2_adj_sim_ctl_bnd->dimension() << std::endl;
-                // std::cout << " y2_adj_slk_bnd.size() " << y2_adj_slk_bnd.size() << std::endl;
-                // for (unsigned int ieq = 0; ieq < neq; ++ieq) {
-                //     std::cout << " y2_adj_slk_bnd["<<ieq<<"]->dimension() " << y2_adj_slk_bnd[ieq]->dimension() << std::endl;
-                // }
-
-                // std::cout << " y2_adj_sim_ctl_bnd->dimension() " << y2_adj_sim_ctl_bnd->dimension() << std::endl;
-                // std::cout << " y2_adj_slk_bnd.size() " << y2_adj_slk_bnd.size() << std::endl;
-                // for (unsigned int ieq = 0; ieq < neq; ++ieq) {
-                //     std::cout << " y2_adj_slk_bnd["<<ieq<<"]->dimension() " << y2_adj_slk_bnd[ieq]->dimension() << std::endl;
-                // }
-
-                const Real one = 1.0;
-                // Compute y2
-                y2->zero();
-                for (unsigned int ieq = 0; ieq < neq; ++ieq) {
-                    const Real cx_dot_dx = C[ieq]->dot(*x2_ctl);
-                    y2_adj_equ_var[ieq]->setScalar(cx_dot_dx);
-                    y2_adj_equ_var[ieq]->axpy(-one, *x2_slk_vec[ieq]);
-                }
-
-                const auto &des_plus_dual_partitioned = dynamic_cast<const ROL::PartitionedVector<Real>&>(*des_plus_dual_);
-
-                //std::cout
-                //<< " des_plus_dual_->dimension() "
-                //<< des_plus_dual_->dimension()
-                //<< std::endl;
-                //std::cout
-                //<< " des_plus_dual_partitioned.numVectors() "
-                //<< des_plus_dual_partitioned.numVectors()
-                //<< std::endl;
-                //for (unsigned int ivec = 0; ivec < des_plus_dual_partitioned.numVectors(); ++ivec) {
-                //    std::cout << ivec 
-                //    << " des_plus_dual_->get(ivec)->dimension() "
-                //    << des_plus_dual_partitioned.get(ivec)->dimension()
-                //    << std::endl;
-                //}
-
-                ROL::Ptr<ROL::Vector<Real>> x2_adj_sim_ctl_bnd = des_plus_dual_partitioned.get(0)->clone();
-                ROL::Vector_SimOpt<Real> &x2_adj_sim_ctl_bnd_simopt = dynamic_cast<ROL::Vector_SimOpt<Real>&>(*x2_adj_sim_ctl_bnd);
-                ROL::Ptr<ROL::Vector<Real>> x2_adj_sim_bnd = x2_adj_sim_ctl_bnd_simopt.get_1();
-                ROL::Ptr<ROL::Vector<Real>> x2_adj_ctl_bnd = x2_adj_sim_ctl_bnd_simopt.get_2();
-
-                x2_adj_sim_bnd->zero();
-                x2_adj_ctl_bnd->set(*x2_ctl);
-                
-
-                std::vector<ROL::Ptr<ROL::Vector<Real>>> y2_dual_inequality_stdvec(des_plus_dual_partitioned.numVectors());
-                y2_dual_inequality_stdvec[0] = x2_adj_sim_ctl_bnd->clone();
-                y2_dual_inequality_stdvec[0]->set( *x2_adj_sim_ctl_bnd );
-                for (unsigned int ieq = 0; ieq < neq; ++ieq) {
-                    y2_dual_inequality_stdvec[ieq+1] = x2_slk_vec[ieq]->clone();
-                    y2_dual_inequality_stdvec[ieq+1]->set( *(x2_slk_vec[ieq]) );
-                }
-                ROL::PartitionedVector<Real> y2_dual_inequality_partitioned(y2_dual_inequality_stdvec);
-
-                Real bnd_tol = bounded_constraint_tolerance_;
-                bound_constraints_->pruneInactive(y2_dual_inequality_partitioned, *des_plus_dual_, bnd_tol);
-
-                y2_adj_sim_ctl_bnd->set(*(y2_dual_inequality_partitioned.get(0)));
-                for (unsigned int ieq = 0; ieq < neq; ++ieq) {
-                    y2_adj_slk_bnd[ieq]->set(*(y2_dual_inequality_partitioned.get(ieq+1)));
-                }
-
-                std::vector<ROL::Ptr<ROL::Vector<Real>>> x4_des_dual_vec(des_plus_dual_partitioned.numVectors());
-                x4_des_dual_vec[0] = x4_adj_sim_ctl_bnd->clone();
-                x4_des_dual_vec[0]->set(*x4_adj_sim_ctl_bnd);
-                for (unsigned int ieq = 0; ieq < neq; ++ieq) {
-                    x4_des_dual_vec[ieq+1] = x4_adj_slk_bnd[ieq]->clone();
-                    x4_des_dual_vec[ieq+1]->set(*(x4_adj_slk_bnd[ieq]));
-                }
-                ROL::PartitionedVector<Real> x4_active_des_dual_inequality(x4_des_dual_vec);
-                bound_constraints_->pruneInactive(x4_active_des_dual_inequality, *des_plus_dual_, bnd_tol);
-                ROL::Vector<Real> &x4_active_ctl_sim_dual_inequality = *(x4_active_des_dual_inequality.get(0));
-                ROL::Vector_SimOpt<Real> &x4_active_des_dual_inequality_simopt = dynamic_cast<ROL::Vector_SimOpt<Real>&>(x4_active_ctl_sim_dual_inequality);
-                ROL::Vector<Real> &x4_active_ctl_dual_inequality = *(x4_active_des_dual_inequality_simopt.get_2());
-
-                secant_->applyB( *y3_ctl, *x2_ctl);
-                for (unsigned int ieq = 0; ieq < neq; ++ieq) {
-                    const ROL::SingletonVector<Real> &x4_adj_equ_var_singleton = dynamic_cast<const ROL::SingletonVector<Real>&>(*x4_adj_equ_var[ieq]);
-                    y3_ctl->axpy(x4_adj_equ_var_singleton.getValue(), *C[ieq]);
-                }
-                y3_ctl->axpy(one, x4_active_ctl_dual_inequality);
-
-                for (unsigned int ieq = 0; ieq < neq; ++ieq) {
-                    y3_slk_vec[ieq]->set(*x4_adj_equ_var[ieq]);
-                    y3_slk_vec[ieq]->scale(-one);
-                    y3_slk_vec[ieq]->axpy(one, *x4_active_des_dual_inequality.get(ieq+1));
-                }
-                //y3->set(*x2);
-                //MPI_Barrier(MPI_COMM_WORLD);
-                //std::cout << __PRETTY_FUNCTION__ << " " << ii++ << std::endl;
-
-                //std::cout << "Done applying CLzzC_block..." << std::endl;
-                //std::abort();
-            }
-    };
-    class Identity_Preconditioner_FlipVectors : public ROL::LinearOperator<Real> {
-        public:
-          void apply( ROL::Vector<Real> &Hv, const ROL::Vector<Real> &v, Real &tol ) const
-          {
-              applyInverse( Hv, v, tol );
-          }
-          void applyInverse( ROL::Vector<Real> &Hv, const ROL::Vector<Real> &v, Real &tol ) const
-          {
-              MPI_Barrier(MPI_COMM_WORLD);
-              (void) v;
-              (void) tol;
-              //static int ii = 0;
-              //std::cout << __PRETTY_FUNCTION__ << " " << ii++ << std::endl;
-
-              const auto &v_partitioned = dynamic_cast<const ROL::PartitionedVector<Real>&>(v);
-              const ROL::Ptr< const ROL::Vector<Real> > x2 = v_partitioned.get(0);
-              const ROL::Ptr< const ROL::Vector<Real> > x4 = v_partitioned.get(1);
-
-              auto &Hv_partitioned = dynamic_cast<ROL::PartitionedVector<Real>&>(Hv);
-              const ROL::Ptr< ROL::Vector<Real> > y2 = Hv_partitioned.get(0);
-              const ROL::Ptr< ROL::Vector<Real> > y3 = Hv_partitioned.get(1);
-
-              // std::cout << " x2->dimension() " << x2->dimension() << std::endl;
-              // std::cout << " x4->dimension() " << x4->dimension() << std::endl;
-
-              // std::cout << " y2->dimension() " << y2->dimension() << std::endl;
-              // std::cout << " y3->dimension() " << y3->dimension() << std::endl;
-
-              const auto &x2_partitioned = dynamic_cast<const ROL::PartitionedVector<Real>&>(*x2); (void) x2_partitioned;
-              const auto &x4_partitioned = dynamic_cast<const ROL::PartitionedVector<Real>&>(*x4); (void) x4_partitioned;
-
-              auto &y2_partitioned = dynamic_cast<ROL::PartitionedVector<Real>&>(*y2); (void) y2_partitioned;
-              auto &y3_partitioned = dynamic_cast<ROL::PartitionedVector<Real>&>(*y3); (void) y3_partitioned;
-              // std::cout << " x2_partitioned->numVectors() " << x2_partitioned.numVectors() << std::endl;
-              // std::cout << " x4_partitioned->numVectors() " << x4_partitioned.numVectors() << std::endl;
-              // std::cout << " y2_partitioned->numVectors() " << y2_partitioned.numVectors() << std::endl;
-              // std::cout << " y3_partitioned->numVectors() " << y3_partitioned.numVectors() << std::endl;
-
-
-              // MPI_Barrier(MPI_COMM_WORLD);
-              // std::cout << __PRETTY_FUNCTION__ << " " << ii++ << std::endl;
-
-              y2->set(*x4);
-              y3->set(*x2);
-          }
-    };
-
-    ROL::Ptr<const ROL::Vector<Real>> extract_simulation_variables( const ROL::PartitionedVector<Real> &design_variables )
+    ApproximateJacobianFlowConstraints(
+        ROL::Ptr<FlowConstraints<PHILIP_DIM>> flow_constraints,
+        const ROL::Ptr<const ROL::Vector<double>> des_var_sim,
+        const ROL::Ptr<const ROL::Vector<double>> des_var_ctl)
+    : flow_constraints_(flow_constraints)
     {
-        const unsigned int nvecs = design_variables.numVectors();
-        if (nvecs < 2) std::abort();
-
-        ROL::Ptr<const ROL::Vector<Real>> non_slack_variables = design_variables[0];
-        ROL::Ptr<const ROL::Vector<Real>> non_slack_variables_simopt = ROL::makePtrFromRef<const ROL::Vector_SimOpt<Real>>(dynamic_cast<const ROL::Vector_SimOpt<Real>&>(*non_slack_variables));
-        return non_slack_variables_simopt->get_1();
+        flow_constraints_->construct_JacobianPreconditioner_1(*des_var_sim, *des_var_ctl);
+        flow_constraints_->construct_AdjointJacobianPreconditioner_1(*des_var_sim, *des_var_ctl);
     }
-    ROL::Ptr<const ROL::Vector<Real>> extract_control_variables( const ROL::PartitionedVector<Real> &design_variables ) const
-    {
-        MPI_Barrier(MPI_COMM_WORLD);
-        const unsigned int nvecs = design_variables.numVectors();
-        if (nvecs < 2) std::abort();
+    void update_1 ( const ROL::Vector<double>& des_var_sim, bool flag, int iter ) override { flow_constraints_->update_1(des_var_sim, flag, iter); }
+    void update_2 ( const ROL::Vector<double>& des_var_ctl, bool flag, int iter ) override { flow_constraints_->update_2(des_var_ctl, flag, iter); }
 
-        ROL::Ptr<const ROL::Vector<Real>> non_slack_variables = design_variables.get(0);
-        ROL::Ptr<const ROL::Vector_SimOpt<Real>> non_slack_variables_simopt = ROL::makePtrFromRef<const ROL::Vector_SimOpt<Real>>(dynamic_cast<const ROL::Vector_SimOpt<Real>&>(*non_slack_variables));
-        return non_slack_variables_simopt->get_2();
+    void solve (ROL::Vector<double>& constraint_values, ROL::Vector<double>& des_var_sim, const ROL::Vector<double>& des_var_ctl, double& tol) override
+    {
+        flow_constraints_->solve(constraint_values, des_var_sim, des_var_ctl, tol);
     }
-
-    ROL::Ptr<const ROL::PartitionedVector<Real>> extract_slacks( const ROL::PartitionedVector<Real> &design_variables ) const
+    /// Avoid -Werror=overloaded-virtual.
+    using ROL::Constraint_SimOpt<double>::value;
+    /// Avoid -Werror=overloaded-virtual.
+    using ROL::Constraint_SimOpt<double>::applyAdjointJacobian_1;
+    /// Avoid -Werror=overloaded-virtual.
+    using ROL::Constraint_SimOpt<double>::applyAdjointJacobian_2;
+    void value(ROL::Vector<double>& constraint_values, const ROL::Vector<double>& des_var_sim, const ROL::Vector<double>& des_var_ctl, double &tol) override
     {
-        MPI_Barrier(MPI_COMM_WORLD);
-        std::vector<ROL::Ptr<ROL::Vector<Real>>> slack_vecs;
-        const unsigned int n_vec = design_variables.numVectors();
-        for (unsigned int i_vec = 1; i_vec < n_vec; ++i_vec) {
-            slack_vecs.push_back( design_variables_->get(i_vec)->clone() );
-            slack_vecs[i_vec-1]->set( *(design_variables_->get(i_vec)) );
-        }
-        ROL::Ptr<const ROL::PartitionedVector<Real>> slack_variables_partitioned = ROL::makePtr<const ROL::PartitionedVector<Real>> (slack_vecs);
-        return slack_variables_partitioned;
+        flow_constraints_->value(constraint_values, des_var_sim, des_var_ctl, tol);
     }
-
-    std::vector<ROL::Ptr<ROL::Vector<Real>>> extract_nonsim_dual_equality( const ROL::PartitionedVector<Real> &dual_equality ) const
+    void applyJacobian_1(
+        ROL::Vector<double>& output_vector,
+        const ROL::Vector<double>& input_vector,
+        const ROL::Vector<double>& des_var_sim,
+        const ROL::Vector<double>& des_var_ctl,
+        double& tol) override
     {
-        std::vector<ROL::Ptr<ROL::Vector<Real>>> nonsim_dual_equality;
-        const unsigned int n_vec = dual_equality.numVectors();
-        for (unsigned int i_vec = 1; i_vec < n_vec; ++i_vec) {
-            nonsim_dual_equality.push_back( dual_equality.get(i_vec)->clone() );
-            nonsim_dual_equality[i_vec-1]->set( *(dual_equality.get(i_vec)) );
-        }
-        return nonsim_dual_equality;
+        flow_constraints_->applyJacobian_1( output_vector, input_vector, des_var_sim, des_var_ctl, tol );
     }
-
-    ROL::Ptr<const ROL::PartitionedVector<Real>> extract_control_and_slacks( const ROL::PartitionedVector<Real> &design_variables ) const
+    void applyJacobian_2(
+        ROL::Vector<double>& output_vector,
+        const ROL::Vector<double>& input_vector,
+        const ROL::Vector<double>& des_var_sim,
+        const ROL::Vector<double>& des_var_ctl,
+        double& tol) override
     {
-        MPI_Barrier(MPI_COMM_WORLD);
-        ROL::Ptr<const ROL::Vector<Real>> ctl_variables = extract_control_variables( design_variables );
-
-        std::vector<ROL::Ptr<ROL::Vector<Real>>> slack_vecs;
-
-        slack_vecs.push_back( ctl_variables->clone() );
-        slack_vecs[0]->set( *ctl_variables );
-
-        const unsigned int n_vec = design_variables.numVectors();
-        for (unsigned int i_vec = 1; i_vec < n_vec; ++i_vec) {
-            slack_vecs.push_back( design_variables_->get(i_vec)->clone() );
-            slack_vecs[i_vec]->set( *(design_variables_->get(i_vec)) );
-        }
-        ROL::Ptr<const ROL::PartitionedVector<Real>> slack_variables_partitioned = ROL::makePtr<const ROL::PartitionedVector<Real>> (slack_vecs);
-        return slack_variables_partitioned;
+        flow_constraints_->applyJacobian_2( output_vector, input_vector, des_var_sim, des_var_ctl, tol );
     }
-
-    // Non-const version
-    ROL::Ptr<ROL::Vector<Real>> extract_control_variables( ROL::PartitionedVector<Real> &design_variables ) const
+    void applyAdjointJacobian_1(
+        ROL::Vector<double>& output_vector,
+        const ROL::Vector<double>& input_vector,
+        const ROL::Vector<double>& des_var_sim,
+        const ROL::Vector<double>& des_var_ctl,
+        double& tol ) override
     {
-        MPI_Barrier(MPI_COMM_WORLD);
-        const unsigned int nvecs = design_variables.numVectors();
-        if (nvecs < 2) std::abort();
-
-        ROL::Ptr<ROL::Vector<Real>> non_slack_variables = design_variables.get(0);
-        ROL::Ptr<ROL::Vector_SimOpt<Real>> non_slack_variables_simopt = ROL::makePtrFromRef<ROL::Vector_SimOpt<Real>>(dynamic_cast<ROL::Vector_SimOpt<Real>&>(*non_slack_variables));
-        return non_slack_variables_simopt->get_2();
+        flow_constraints_->applyAdjointJacobian_1( output_vector, input_vector, des_var_sim, des_var_ctl, tol );
     }
-    // Non-const version
-    ROL::Ptr<ROL::PartitionedVector<Real>> extract_control_and_slacks( ROL::PartitionedVector<Real> &design_variables ) const
+    void applyAdjointJacobian_2(
+        ROL::Vector<double>& output_vector,
+        const ROL::Vector<double>& input_vector,
+        const ROL::Vector<double>& des_var_sim,
+        const ROL::Vector<double>& des_var_ctl,
+        double& tol ) override
     {
-        MPI_Barrier(MPI_COMM_WORLD);
-        ROL::Ptr<ROL::Vector<Real>> ctl_variables = extract_control_variables( design_variables );
-
-        std::vector<ROL::Ptr<ROL::Vector<Real>>> slack_vecs;
-
-        slack_vecs.push_back( ctl_variables->clone() );
-        slack_vecs[0]->set( *ctl_variables );
-
-        const unsigned int n_vec = design_variables.numVectors();
-        for (unsigned int i_vec = 1; i_vec < n_vec; ++i_vec) {
-            slack_vecs.push_back( design_variables_->get(i_vec)->clone() );
-            slack_vecs[i_vec]->set( *(design_variables_->get(i_vec)) );
-        }
-        ROL::Ptr<ROL::PartitionedVector<Real>> slack_variables_partitioned = ROL::makePtr<ROL::PartitionedVector<Real>> (slack_vecs);
-        return slack_variables_partitioned;
+        flow_constraints_->applyAdjointJacobian_2( output_vector, input_vector, des_var_sim, des_var_ctl, tol );
     }
-
-    //ROL::Ptr<const ROL::Vector<Real>> extract_control_variables( const ROL::PartitionedVector<Real> &design_variables )
-    //{
-    //    const unsigned int nvecs = design_variables.numVectors();
-    //    if (numVectors < 2) std::abort();
-
-    //    ROL::Ptr<const ROL::Vector<Real>> non_slack_variables = design_variables[0];
-    //    ROL::Ptr<const ROL::Vector<Real>> non_slack_variables_simopt = ROL::makePtrFromRef<const ROL::Vector_SimOpt<Real>>(dynamic_cast<const ROL::Vector_SimOpt<Real>&>(*non_slack_variables));
-    //    return non_slack_variables_simopt->get_2();
-    //}
-    /// Constructor.
-    PDAS_P24_Constrained_Preconditioner(
-        const ROL::Ptr<const ROL::Vector<Real>>             design_variables,
-        const ROL::Ptr<ROL::Objective<Real>>                objective,
-        const ROL::Ptr<ROL::Constraint<Real>>               state_constraints,
-        const ROL::Ptr<const ROL::Vector<Real>>             dual_state,
-        const ROL::Ptr<ROL::Constraint<Real>>               equality_constraints,
-        const ROL::Ptr<const ROL::Vector<Real>>             dual_equality,
-        const ROL::Ptr<ROL::BoundConstraint<Real>>          bound_constraints,
-        const ROL::Ptr<const ROL::Vector<Real>>             dual_inequality,
-        const ROL::Ptr<const ROL::Vector<Real>>             des_plus_dual,
-        const Real                                          constraint_tolerance,
-        const ROL::Ptr<ROL::Secant<Real> >                  secant,
-        const bool use_second_order_terms = true,
-        const bool use_approximate_preconditioner = false)
-        : design_variables_ (ROL::makePtrFromRef<const ROL::PartitionedVector<Real>>(dynamic_cast<const ROL::PartitionedVector<Real>&>(*design_variables)))
-        , objective_(ROL::makePtrFromRef<ROL::Objective_SimOpt<Real>>(dynamic_cast<ROL::Objective_SimOpt<Real>&>(*objective)))
-        , state_constraints_(ROL::makePtrFromRef<PHiLiP::FlowConstraints<PHILIP_DIM>>(dynamic_cast<PHiLiP::FlowConstraints<PHILIP_DIM>&>(*state_constraints)))
-        , dual_state_(dual_state)
-        , equality_constraints_simopt_(ROL::makePtrFromRef<ROL::Constraint_Partitioned<Real>>(dynamic_cast<ROL::Constraint_Partitioned<Real>&>(*equality_constraints)))
-        , n_equality_constraints_(equality_constraints_simopt_->get_n_constraints())
-        , dual_equality_(ROL::makePtrFromRef<const ROL::PartitionedVector<Real>>(dynamic_cast<const ROL::PartitionedVector<Real>&>(*dual_equality)))
-        , bound_constraints_(bound_constraints)
-        , dual_inequality_(dual_inequality)
-        , des_plus_dual_(des_plus_dual)
-        , bounded_constraint_tolerance_(constraint_tolerance)
-        , secant_(secant)
-        , use_second_order_terms_(use_second_order_terms)
-        , use_approximate_preconditioner_(use_approximate_preconditioner)
-        , mpi_rank(dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD))
-        , pcout(std::cout, mpi_rank==0)
-        , cx(n_equality_constraints_)
-        , cs(n_equality_constraints_)
-        , cs_Rsinv(n_equality_constraints_)
-        , cs_Rsinv_Rx(n_equality_constraints_)
-        , C(n_equality_constraints_)
-        , C_Lzz(n_equality_constraints_)
-        , C_Lzz_Ct(n_equality_constraints_)
-        , C_Lzz_Ct_inv(n_equality_constraints_)
+    void applyAdjointHessian_11 ( ROL::Vector<double> &output_vector,
+                                      const ROL::Vector<double> &dual,
+                                      const ROL::Vector<double> &input_vector,
+                                      const ROL::Vector<double> &des_var_sim,
+                                      const ROL::Vector<double> &des_var_ctl,
+                                      double &tol) override
     {
-        //MPI_Barrier(MPI_COMM_WORLD);
-        //if(mpi_rank==0) std::cout << __PRETTY_FUNCTION__ << std::endl;
-        //std::cout << "n_equality_constraints_ " << n_equality_constraints_ << std::endl;
-        //const unsigned int n_other_dual = dual_equality_->dimension();
-        //std::cout << "n_other_dual " << n_other_dual << std::endl;
-        //std::abort();
-
-        simulation_and_control_variables_ = ROL::makePtrFromRef(dynamic_cast<const ROL::Vector_SimOpt<Real>&> (*(design_variables_->get(0))));
-        simulation_variables_ = simulation_and_control_variables_->get_1();
-        control_variables_ = simulation_and_control_variables_->get_2();
-
-        const int error_precond1 = state_constraints_->construct_JacobianPreconditioner_1(*simulation_variables_, *control_variables_);
-        const int error_precond2 = state_constraints_->construct_AdjointJacobianPreconditioner_1(*simulation_variables_, *control_variables_);
-        assert(error_precond1 == 0);
-        assert(error_precond2 == 0);
-        (void) error_precond1;
-        (void) error_precond2;
-
-
-        std::vector<ROL::Ptr<ROL::Vector<Real>>> slack_vecs;
-        const unsigned int n_vec = design_variables_->numVectors();
-        for (unsigned int i_vec = 1; i_vec < n_vec; ++i_vec) {
-            slack_vecs.push_back( design_variables_->get(i_vec)->clone() );
-            slack_vecs[i_vec-1]->set( *(design_variables_->get(i_vec)) );
-        }
-        ROL::PartitionedVector<Real> slack_variables_partitioned (slack_vecs);
-        slack_variables_ = ROL::makePtrFromRef(slack_variables_partitioned);
-
-        initialize_constraint_sensitivities();
-
-        // if (use_approximate_preconditioner_) {
-        //     const int error_precond1 = equal_constraints_->construct_JacobianPreconditioner_1(*simulation_variables_, *control_variables_);
-        //     const int error_precond2 = equal_constraints_->construct_AdjointJacobianPreconditioner_1(*simulation_variables_, *control_variables_);
-        //     assert(error_precond1 == 0);
-        //     assert(error_precond2 == 0);
-        //     (void) error_precond1;
-        //     (void) error_precond2;
-        // }
-
-        // const auto &design_simopt = dynamic_cast<const ROL::Vector_SimOpt<Real>&>(*design_variables);
-
-        // const ROL::Ptr<const ROL::Vector<Real>> input_1 = design_simopt.get_1();
-        // const ROL::Ptr<const ROL::Vector<Real>> input_2 = design_simopt.get_2();
-        // const ROL::Ptr<const ROL::Vector<Real>> input_3 = dual_state;
-        // const ROL::Ptr<const ROL::Vector<Real>> input_4 = other_lagrange_mult;
-
-        // y1 = input_1->clone();
-        // y2 = input_2->clone();
-        // y3 = input_3->clone();
-        // y4 = input_4->clone();
-
-        // temp_1 = input_1->clone();
-        // if (use_second_order_terms_) {
-        //     Rsinv_y1 = input_1->clone();
-        //     Lxs_Rsinv_y1 = input_2->clone();
-        // }
-
-        // const unsigned int n_other_constraints = dual_equality_->dimension();
-        // cs.resize(n_other_constraints);
-        // //for (unsigned int i_other_constraints = 0; i_other_constraints < n_other_constraints; ++i_other_constraints) {
-        // //    cs[i_other_constraints] = input_1->clone();
-
-        // //    const auto i_basis_vector = cs[i_other_constraints].basis(i_other_constraints);
-        // //    equality_constraints_simopt_->applyAdjointJacobian_1(
-
-        // //    equality_constraints_simopt_->applyJacobian_2
-        // //}
-
-        // RsTinv_cs = input_1->clone();
-    };
-
-
-    void initialize_constraint_sensitivities()
-    {
-        Real tol = 1e-15;
-        for(unsigned int i = 0; i < n_equality_constraints_; ++ i) {
-
-            ROL::Ptr<ROL::Vector<Real>> input_one = dual_equality_->get(i)->clone();
-            if (input_one->dimension() != 1) {
-                std::cout << "Aborting. The current implementation allows for additional scalar constraints, not vector constraints" << std::endl;
-                std::cout << "If vector constraints are used, please break them down into scalars. " << std::endl;
-                std::cout << "Othewise, the follow evaluation of the constraints' derivatives are combined into a vector instead of a matrix. " << std::endl;
-                std::abort();
-            }
-            input_one->setScalar(one);
-
-            const ROL::Ptr<ROL::Constraint<Real>> i_con = equality_constraints_simopt_->get(i);
-            ROL::Constraint_SimOpt<Real> &i_con_simopt = dynamic_cast<ROL::Constraint_SimOpt<Real>&>(*i_con);
-            ROL::Ptr<ROL::Vector<Real>> i_cs = simulation_variables_->clone();
-            i_con_simopt.applyAdjointJacobian_1(*i_cs, *input_one, *simulation_variables_, *control_variables_, tol);
-
-            cs[i] = i_cs->clone();
-            cs[i]->set(*i_cs);
-
-            state_constraints_->applyInverseAdjointJacobian_1(*i_cs, *(cs[i]), *simulation_variables_, *control_variables_, tol);
-
-            cs_Rsinv[i] = i_cs->clone();
-            cs_Rsinv[i]->set(*i_cs);
-
-
-            ROL::Ptr<ROL::Vector<Real>> i_cx = control_variables_->clone();
-
-            i_con_simopt.applyAdjointJacobian_2(*i_cx, *input_one, *simulation_variables_, *control_variables_, tol);
-
-            cx[i] = i_cx->clone();
-            cx[i]->set(*i_cx);
-
-
-            state_constraints_->applyAdjointJacobian_2(*i_cx, *(cs_Rsinv[i]), *simulation_variables_, *control_variables_, tol);
-            cs_Rsinv_Rx[i] = i_cx->clone();
-            cs_Rsinv_Rx[i]->set(*i_cx);
-
-            C[i] = cx[i]->clone();
-            C[i]->set(*cx[i]);
-            C[i]->axpy(-one,*cs_Rsinv_Rx[i]);
-
-            C_Lzz[i] = cx[i]->clone();
-            secant_->applyB(*C_Lzz[i],*C[i]);
-
-        }
-        for(unsigned int i = 0; i < n_equality_constraints_; ++i) {
-            for(unsigned int j = 0; j < n_equality_constraints_; ++j) {
-                C_Lzz_Ct[i][j] = C_Lzz[i]->dot(*C[j]);
-            }
-        }
-        C_Lzz_Ct_inv.invert(C_Lzz_Ct);
+        flow_constraints_->applyAdjointHessian_11 ( output_vector, dual, input_vector, des_var_sim, des_var_ctl, tol);
     }
-
-    void apply( ROL::Vector<Real> &output, const ROL::Vector<Real> &input, Real &/*tol*/ ) const
+    void applyAdjointHessian_12 ( ROL::Vector<double> &output_vector,
+                                      const ROL::Vector<double> &dual,
+                                      const ROL::Vector<double> &input_vector,
+                                      const ROL::Vector<double> &des_var_sim,
+                                      const ROL::Vector<double> &des_var_ctl,
+                                      double &tol) override
     {
-        (void) output;
-        (void) input;
+        flow_constraints_->applyAdjointHessian_12 ( output_vector, dual, input_vector, des_var_sim, des_var_ctl, tol);
     }
-
-    /// Applies [ cx - cs Rsinv Rx ]
-    void applyC() const
+    void applyAdjointHessian_21 ( ROL::Vector<double> &output_vector,
+                                      const ROL::Vector<double> &dual,
+                                      const ROL::Vector<double> &input_vector,
+                                      const ROL::Vector<double> &des_var_sim,
+                                      const ROL::Vector<double> &des_var_ctl,
+                                      double &tol) override
     {
+        flow_constraints_->applyAdjointHessian_21 ( output_vector, dual, input_vector, des_var_sim, des_var_ctl, tol);
     }
-
-
-    /// Application of KKT preconditionner on vector input outputted into output.
-    //void vmult (dealiiSolverVectorWrappingROL<Real>       &output,
-    //            const dealiiSolverVectorWrappingROL<Real> &input) const
-    void applyInverse( ROL::Vector<Real> &output, const ROL::Vector<Real> &input, Real &tol ) const
+    void applyAdjointHessian_22 ( ROL::Vector<double> &output_vector,
+                                      const ROL::Vector<double> &dual,
+                                      const ROL::Vector<double> &input_vector,
+                                      const ROL::Vector<double> &des_var_sim,
+                                      const ROL::Vector<double> &des_var_ctl,
+                                      double &tol) override
     {
-        MPI_Barrier(MPI_COMM_WORLD);
-        if(mpi_rank==0) std::cout << __PRETTY_FUNCTION__ << std::endl;
-        output.set(input);
-
-        static int number_of_times = 0;
-        number_of_times++;
-        pcout << "Number of P4_KKT vmult = " << number_of_times << std::endl;
-
-        // Split input vector
-        //const ROL::Ptr<const ROL::Vector<Real>> input_rol = input.getVector();
-        const ROL::Ptr<const ROL::Vector<Real>> input_rol = ROL::makePtrFromRef(input);
-        const auto &input_partitioned = dynamic_cast<const ROL::PartitionedVector<Real>&>(*input_rol);
-        const ROL::Ptr< const ROL::Vector<Real> > input_design           = input_partitioned.get(0);
-        const ROL::Ptr< const ROL::Vector<Real> > input_dual_equality    = input_partitioned.get(1);
-        const ROL::Ptr< const ROL::Vector<Real> > input_dual_inequality  = input_partitioned.get(2);
-
-        const ROL::Ptr< const ROL::Vector<Real> > input_design_sim_ctl = (dynamic_cast<const ROL::PartitionedVector<Real>&>(*input_design)).get(0);
-        const ROL::Ptr< const ROL::Vector<Real> > input_design_simulation = (dynamic_cast<const ROL::Vector_SimOpt<Real>&>(*input_design_sim_ctl)).get_1();
-        const ROL::Ptr< const ROL::Vector<Real> > input_design_control    = (dynamic_cast<const ROL::Vector_SimOpt<Real>&>(*input_design_sim_ctl)).get_2();
-
-        //const ROL::Ptr< const ROL::PartitionedVector<Real> > input_design_slacks  = extract_slacks(dynamic_cast<const ROL::PartitionedVector<Real> &> (*input_design));
-
-        const ROL::Ptr< const ROL::Vector<Real> > input_simdual_equality = (dynamic_cast<const ROL::PartitionedVector<Real>&>(*input_dual_equality)).get(0);
-
-        std::vector<ROL::Ptr<ROL::Vector<Real>>> input_nonsimdual_stdvec = extract_nonsim_dual_equality( dynamic_cast<const ROL::PartitionedVector<Real>&>(*input_dual_equality) );
-        const ROL::PartitionedVector<Real> &input_dual_inequality_partitioned = dynamic_cast<const ROL::PartitionedVector<Real>&>(*input_dual_inequality);
-        const unsigned int n_vec_dual_inequality = input_dual_inequality_partitioned.numVectors();
-        for (unsigned int i_vec = 0; i_vec < n_vec_dual_inequality; ++i_vec) {
-            input_nonsimdual_stdvec.push_back(input_dual_inequality_partitioned.get(i_vec)->clone());
-            input_nonsimdual_stdvec.back()->set(*(input_dual_inequality_partitioned.get(i_vec)));
-        }
-        const ROL::Ptr< const ROL::PartitionedVector<Real> > input_nonsimdual = ROL::makePtr<const ROL::PartitionedVector<Real>> (input_nonsimdual_stdvec);
-
-
-
-        int ii = 0;
-        MPI_Barrier(MPI_COMM_WORLD);
-        if(mpi_rank==0) std::cout << __PRETTY_FUNCTION__ << " " << ii++ << std::endl;
-
-        //ROL::Ptr<ROL::Vector<Real>> output_rol = output.getVector();
-        ROL::Ptr<ROL::Vector<Real>> output_rol = ROL::makePtrFromRef(output);
-        auto &output_partitioned = dynamic_cast<ROL::PartitionedVector<Real>&>(*output_rol);
-        const ROL::Ptr<       ROL::Vector<Real> > output_design          = output_partitioned.get(0);
-        const ROL::Ptr<       ROL::Vector<Real> > output_dual_equality   = output_partitioned.get(1);
-        const ROL::Ptr<       ROL::Vector<Real> > output_dual_inequality = output_partitioned.get(2);
-
-        MPI_Barrier(MPI_COMM_WORLD);
-        if(mpi_rank==0) std::cout << __PRETTY_FUNCTION__ << " " << ii++ << std::endl;
-
-        const ROL::Ptr< ROL::Vector<Real> > output_design_sim_ctl = (dynamic_cast<ROL::PartitionedVector<Real>&>(*output_design)).get(0);
-        const ROL::Ptr< ROL::Vector<Real> > output_design_simulation = (dynamic_cast<ROL::Vector_SimOpt<Real>&>(*output_design_sim_ctl)).get_1();
-        const ROL::Ptr< ROL::Vector<Real> > output_design_control    = (dynamic_cast<ROL::Vector_SimOpt<Real>&>(*output_design_sim_ctl)).get_2();
-
-        //const ROL::Ptr< ROL::PartitionedVector<Real> > output_design_slacks  = extract_slacks(dynamic_cast<ROL::PartitionedVector<Real> &> (*output_design));
-
-        const ROL::Ptr< ROL::Vector<Real> > output_simdual_equality = (dynamic_cast<ROL::PartitionedVector<Real>&>(*output_dual_equality)).get(0);
-
-        std::vector<ROL::Ptr<ROL::Vector<Real>>> output_nonsimdual_stdvec = extract_nonsim_dual_equality( dynamic_cast<ROL::PartitionedVector<Real>&>(*output_dual_equality) );
-        ROL::PartitionedVector<Real> &output_dual_inequality_partitioned = dynamic_cast<ROL::PartitionedVector<Real>&>(*output_dual_inequality);
-        for (unsigned int i_vec = 0; i_vec < n_vec_dual_inequality; ++i_vec) {
-            output_nonsimdual_stdvec.push_back(output_dual_inequality_partitioned.get(i_vec)->clone());
-            output_nonsimdual_stdvec.back()->set(*(output_dual_inequality_partitioned.get(i_vec)));
-        }
-        const ROL::Ptr< ROL::PartitionedVector<Real> > output_nonsimdual = ROL::makePtr<ROL::PartitionedVector<Real>> (output_nonsimdual_stdvec);
-
-
-        const ROL::Ptr< const ROL::Vector<Real> >            z1 = input_design_simulation;
-        const ROL::Ptr< const ROL::PartitionedVector<Real> > z2 = extract_control_and_slacks(dynamic_cast<const ROL::PartitionedVector<Real> &> (*input_design));
-        const ROL::Ptr< const ROL::Vector<Real> >            z3 = input_simdual_equality;
-        const ROL::Ptr< const ROL::PartitionedVector<Real> > z4 = input_nonsimdual;
-
-        const ROL::Ptr< ROL::Vector<Real> >                  x1 = output_design_simulation;
-        const ROL::Ptr< ROL::PartitionedVector<Real> >       x2 = extract_control_and_slacks(dynamic_cast<ROL::PartitionedVector<Real> &> (*output_design));
-        const ROL::Ptr< ROL::Vector<Real> >                  x3 = output_simdual_equality;
-        const ROL::Ptr< ROL::PartitionedVector<Real> >       x4 = output_nonsimdual;
-
-        const ROL::Ptr< ROL::Vector<Real> >                  y1 = z3->clone();
-        const ROL::Ptr< ROL::PartitionedVector<Real> >       y2 = ROL::makePtr<ROL::PartitionedVector<Real>>(dynamic_cast<ROL::PartitionedVector<Real>&>(*z4->clone()));
-        const ROL::Ptr< ROL::PartitionedVector<Real> >       y3 = ROL::makePtr<ROL::PartitionedVector<Real>>(dynamic_cast<ROL::PartitionedVector<Real>&>(*z2->clone()));
-        const ROL::Ptr< ROL::Vector<Real> >                  y4 = z1->clone();
-
-        // y1
-        y1->set(*z3);
-
-        // y2
-        const ROL::Ptr< ROL::Vector<Real> > Rsinv_y1 = y1->clone();
-        //state_constraints_->applyInverseJacobian_1(*Rsinv_y1, *y1, *simulation_variables_, *control_variables_, tol);
-        state_constraints_->applyInverseJacobianPreconditioner_1(*Rsinv_y1, *y1, *simulation_variables_, *control_variables_, tol);
-
-        y2->set(*z4);
-        const ROL::Ptr< ROL::Vector<Real> > cs_Rsinv_y1 = y2->clone();
-        cs_Rsinv_y1->zero();
-
-        for(unsigned int i = 0; i < n_equality_constraints_; ++ i) {
-            const ROL::Ptr<ROL::Constraint<Real>> i_con = equality_constraints_simopt_->get(i);
-            ROL::Constraint_SimOpt<Real> &i_con_simopt = dynamic_cast<ROL::Constraint_SimOpt<Real>&>(*i_con);
-            (void) i_con_simopt;
-            ROL::Vector<Real> &i_vec_out = *((dynamic_cast<ROL::PartitionedVector<Real>&>(*cs_Rsinv_y1)).get(i));
-            i_con_simopt.applyJacobian_1(i_vec_out, *Rsinv_y1, *simulation_variables_, *control_variables_, tol);
-        }
-
-        //std::vector<ROL::Ptr<ROL::Vector<Real>>> cx(n_equality_constraints_);
-        //std::vector<ROL::Ptr<ROL::Vector<Real>>> cs(n_equality_constraints_);
-        //std::vector<ROL::Ptr<ROL::Vector<Real>>> cs_Rsinv(n_equality_constraints_);
-
-        //if ( output_nonsimdual->dimension() != (int)n_equality_constraints_ ) {
-        //    std::cout << "The n equality constraints contain some contraints that output more than a single constraint value" << std::endl;
-        //    std::cout << "The current implementation only works if the constraints are scalars, such as lift or moment in a single direction" << std::endl;
-        //    std::cout << "This is because we require the derivative of the constraints with respect to the state variables explicitly such that we applyAdjointJacobian_1 on a unit vector." << std::endl;
-        //}
-        //for(unsigned int i = 0; i < n_equality_constraints_; ++ i) {
-
-
-        //    ROL::Ptr<ROL::Vector<Real>> input_one = output_nonsimdual->get(i)->clone();
-        //    if ( input_one->dimension() != 1) {
-        //        std::cout << "The n equality constraints contain some contraints that output more than a single constraint value" << std::endl;
-        //        std::cout << "The current implementation only works if the constraints are scalars, such as lift or moment in a single direction" << std::endl;
-        //        std::cout << "This is because we require the derivative of the constraints with respect to the state variables explicitly such that we applyAdjointJacobian_1 on a unit vector." << std::endl;
-        //    }
-        //    input_one->setScalar(one);
-
-        //    const ROL::Ptr<ROL::Constraint<Real>> i_con = equality_constraints_simopt_->get(i);
-        //    ROL::Constraint_SimOpt<Real> &i_con_simopt = dynamic_cast<ROL::Constraint_SimOpt<Real>&>(*i_con);
-        //    ROL::Ptr<ROL::Vector<Real>> i_cs = simulation_variables_->clone();
-        //    i_con_simopt.applyAdjointJacobian_1(*i_cs, *input_one, *simulation_variables_, *control_variables_, tol);
-
-        //    cs[i] = i_cs->clone();
-        //    cs[i]->set(*i_cs);
-
-        //    state_constraints_->applyInverseAdjointJacobian_1(*i_cs, *(cs[i]), *simulation_variables_, *control_variables_, tol);
-
-        //    cs_Rsinv[i] = i_cs->clone();
-        //    cs_Rsinv[i]->set(*i_cs);
-
-
-        //    ROL::Ptr<ROL::Vector<Real>> i_cx = control_variables_->clone();
-
-        //    i_con_simopt.applyAdjointJacobian_2(*i_cx, *input_one, *simulation_variables_, *control_variables_, tol);
-
-        //    cx[i] = i_cx->clone();
-        //    cx[i]->set(*i_cx);
-        //}
-
-        //(ROL::makePtrFromRef<ROL::Constraint_Partitioned<Real>>(dynamic_cast<ROL::Constraint_Partitioned<Real>&>(*equality_constraints)))
-        y2->axpy(-one, *cs_Rsinv_y1);
-
-        // y4
-        y4->set(*z1);
-
-        // y3
-        y3->set(*z2);
-
-        const ROL::Ptr< ROL::Vector<Real> > RsTinv_y4 = y4->clone();
-        //state_constraints_->applyInverseAdjointJacobian_1(*RsTinv_y4, *y4, *simulation_variables_, *control_variables_, tol);
-        state_constraints_->applyInverseAdjointJacobianPreconditioner_1(*RsTinv_y4, *y4, *simulation_variables_, *control_variables_, tol);
-
-        //const ROL::Ptr< ROL::Vector<Real> > RxT_RsTinv_y4 = y3->clone();
-        const ROL::Ptr< ROL::Vector<Real> > RxT_RsTinv_y4 = control_variables_->clone();
-        state_constraints_->applyAdjointJacobian_2(*RxT_RsTinv_y4, *RsTinv_y4, *simulation_variables_, *control_variables_, tol);
-
-        const ROL::Ptr< ROL::Vector<Real> > RxallT_RsTinv_y4 = y3->clone();
-
-        ROL::PartitionedVector<Real> &RxallT_RsTinv_y4_part = dynamic_cast<ROL::PartitionedVector<Real> &> (*RxallT_RsTinv_y4);
-
-        RxallT_RsTinv_y4_part.zero();
-        RxallT_RsTinv_y4_part.get(0)->set(*RxT_RsTinv_y4);
-
-
-        y3->axpy(-one, *RxallT_RsTinv_y4);
-
-        // std::cout << " C_Lzz_Ct_inv.m() " << C_Lzz_Ct_inv.m() << std::endl;
-        // std::cout << " C_Lzz_Ct_inv.n() " << C_Lzz_Ct_inv.n() << std::endl;
-
-        // std::cout << " x1->dimension() " << x1->dimension() << std::endl;
-        // std::cout << " x2->dimension() " << x2->dimension() << std::endl;
-        // std::cout << " x3->dimension() " << x3->dimension() << std::endl;
-        // std::cout << " x4->dimension() " << x4->dimension() << std::endl;
-        // std::cout << " y1->dimension() " << y1->dimension() << std::endl;
-        // std::cout << " y2->dimension() " << y2->dimension() << std::endl;
-        // std::cout << " y3->dimension() " << y3->dimension() << std::endl;
-        // std::cout << " y4->dimension() " << y4->dimension() << std::endl;
-
-        // std::cout << " input.norm() " << input.norm() << std::endl;
-        // std::cout << " output.norm() " << output.norm() << std::endl;
-        // std::cout << " x1->norm() " << x1->norm() << std::endl;
-        // std::cout << " x2->norm() " << x2->norm() << std::endl;
-        // std::cout << " x3->norm() " << x3->norm() << std::endl;
-        // std::cout << " x4->norm() " << x4->norm() << std::endl;
-        // std::cout << " y1->norm() " << y1->norm() << std::endl;
-        // std::cout << " y2->norm() " << y2->norm() << std::endl;
-        // std::cout << " y3->norm() " << y3->norm() << std::endl;
-        // std::cout << " y4->norm() " << y4->norm() << std::endl;
-        //std::abort();
-
-        // Need to solve for x2 and x4 simultaneously
-        // [ (cx - cs Rsinv Rx)          0              ]    [x2]   =   [y2]
-        // [        Lzz          (cx - cs Rsinv Rx)^T   ]    [x4]   =   [y3]
-        Teuchos::ParameterList gmres_setting;
-        gmres_setting.sublist("General").sublist("Krylov").set("Absolute Tolerance", 1e-6);
-        gmres_setting.sublist("General").sublist("Krylov").set("Relative Tolerance", 1e-4);
-        gmres_setting.sublist("General").sublist("Krylov").set("Iteration Limit", 300);
-        gmres_setting.sublist("General").sublist("Krylov").set("Use Initial Guess", true);
-        //gmres_setting.sublist("General").sublist("Krylov").set("Use Initial Guess", false);
-        ROL::Ptr< ROL::Krylov<Real> > krylov = ROL::KrylovFactory<Real>(gmres_setting);
-        auto &gmres = dynamic_cast<ROL::GMRES<Real>&>(*krylov);
-        if(dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD)==0) gmres.enableOutput(std::cout);
-
-
-        int iter_Krylov_;  ///< GMRES iteration counter
-        int flag_Krylov_;  ///< GMRES termination flag
-
-        ROL::Ptr<ROL::PartitionedVector<Real>> x2_x4 = ROL::makePtr<ROL::PartitionedVector<Real>>(
-                std::vector<ROL::Ptr<ROL::Vector<Real>> >({x2, x4})
-            );
-        ROL::Ptr<ROL::PartitionedVector<Real>> y2_y3 = ROL::makePtr<ROL::PartitionedVector<Real>>(
-                std::vector<ROL::Ptr<ROL::Vector<Real>> >({y2, y3})
-            );
-
-        const ROL::Ptr<ROL::Secant<Real> > Lzz = secant_;
-        ROL::Ptr<ROL::LinearOperator<Real> > CLzzC_block_operator = ROL::makePtr<CLzzC_block>(C, Lzz, bound_constraints_, des_plus_dual_, bounded_constraint_tolerance_);
-        ROL::Ptr<ROL::LinearOperator<Real> > precond_identity = ROL::makePtr<Identity_Preconditioner_FlipVectors>();
-        gmres.run(*x2_x4,*CLzzC_block_operator,*y2_y3,*precond_identity,iter_Krylov_,flag_Krylov_);
-
-        // Solve for x1
-        ROL::Ptr<ROL::Vector<Real>> Rx_x2 = x1->clone();
-        state_constraints_->applyJacobian_2(*Rx_x2, *(x2->get(0)), *simulation_variables_, *control_variables_, tol);
-        ROL::Ptr<ROL::Vector<Real>> y1_minus_Rx_x2 = y1->clone();
-        y1_minus_Rx_x2->set(*y1);
-        y1_minus_Rx_x2->axpy(-one, *Rx_x2);
-        //state_constraints_->applyInverseJacobian_1(*x1, *y1_minus_Rx_x2, *simulation_variables_, *control_variables_, tol);
-        state_constraints_->applyInverseJacobianPreconditioner_1(*x1, *y1_minus_Rx_x2, *simulation_variables_, *control_variables_, tol);
-
-        // Solve for x3
-        x3->set(*RsTinv_y4);
-        for(unsigned int i = 0; i < n_equality_constraints_; ++ i) {
-            const ROL::Vector<Real> &x4_dual_equ = *(x4->get(i));
-            const ROL::SingletonVector<Real> &x4_dual_equ_singleton = dynamic_cast<const ROL::SingletonVector<Real>&>(x4_dual_equ);
-            const Real x4_dual_equ_val = x4_dual_equ_singleton.getValue();
-            x3->axpy(x4_dual_equ_val, *cs_Rsinv[i]);
-        }
-
-
- 
-        // // const ROL::Ptr<const ROL::Vector<Real>> src_design = output_design_constraint.get_1();
-        // // const auto &src_state_split_control = dynamic_cast<const ROL::Vector_SimOpt<Real>&>(*src_design);
-        // // const ROL::Ptr<const ROL::Vector<Real>> z1 = src_state_split_control.get_1();
-        // // const ROL::Ptr<const ROL::Vector<Real>> z2 = src_state_split_control.get_2();
-
-        // // const ROL::Ptr<const ROL::Vector<Real>> src_constraint = output_design_constraint.get_2();
-        // // const auto &src_constraintpde_split_constraintother = dynamic_cast<const ROL::Vector_SimOpt<Real>&>(*src_constraint);
-        // // const ROL::Ptr<const ROL::Vector<Real>> z3 = src_constraintpde_split_constraintother.get_1();
-        // // const ROL::Ptr<const ROL::Vector<Real>> z4 = src_constraintpde_split_constraintother.get_2();
-
-        // // // Split output vector
-        // // ROL::Ptr<ROL::Vector<Real>> dst_rol = dst.getVector();
-        // // auto &dst_design_split_constraint = dynamic_cast<ROL::Vector_SimOpt<Real>&>(*dst_rol);
-
-        // // ROL::Ptr<ROL::Vector<Real>> dst_design = dst_design_split_constraint.get_1();
-        // // auto &dst_state_split_control = dynamic_cast<ROL::Vector_SimOpt<Real>&>(*dst_design);
-        // // ROL::Ptr<ROL::Vector<Real>> x1 = dst_state_split_control.get_1();
-        // // ROL::Ptr<ROL::Vector<Real>> x2 = dst_state_split_control.get_2();
-
-        // // ROL::Ptr<ROL::Vector<Real>> dst_constraint = dst_design_split_constraint.get_2();
-        // // auto &dst_constraintpde_split_constraintother = dynamic_cast<ROL::Vector_SimOpt<Real>&>(*dst_constraint);
-        // // ROL::Ptr<ROL::Vector<Real>> x3 = dst_constraintpde_split_constraintother.get_1();
-        // // ROL::Ptr<ROL::Vector<Real>> x4 = dst_constraintpde_split_constraintother.get_2();
-
-        // ROL::Ptr<ROL::Vector<Real>> x1, x2, x3, x4;
-        // ROL::Ptr<ROL::Vector<Real>> z1, z2, z3, z4;
-
-        // // Evaluate y ********************
-
-        // // Evaluate y1 = z3
-        // y1->set(*z3);
-
-        // // Evaluate y2 = z4 - (cs Rs^{-1}) y1
-        // y2->set(*z4);
-
-        // if (use_second_order_terms_) {
-        //     // Evaluate Rs^{-1} y1
-        //     if (use_approximate_preconditioner_) {
-        //         equality_constraints_simopt_->applyInverseJacobianPreconditioner_1(*Rsinv_y1, *y1, *simulation_variables_, *control_variables_, tol);
-        //     } else {
-        //         equality_constraints_simopt_->applyInverseJacobian_1(*Rsinv_y1, *y1, *simulation_variables_, *control_variables_, tol);
-        //     }
-
-        //     equality_constraints_simopt_->applyAdjointHessian_11 (*temp_1, *dual_state_, *Rsinv_y1, *simulation_variables_, *control_variables_, tol);
-        //     y3->axpy(-1.0, *temp_1);
-        //     objective_->hessVec_11(*temp_1, *Rsinv_y1, *simulation_variables_, *control_variables_, tol);
-        //     y3->axpy(-1.0, *temp_1);
-        // }
-
-        // // Evaluate y2 = z2 - Rx^{T} Rs^{-T} y3 - Lxs Rs^{-1} y1  
-        // auto RsTinv_y3 = y3->clone();
-        // if (use_approximate_preconditioner_) {
-        //     equality_constraints_simopt_->applyInverseAdjointJacobianPreconditioner_1(*RsTinv_y3, *y3, *simulation_variables_, *control_variables_, tol);
-        // } else {
-        //     equality_constraints_simopt_->applyInverseAdjointJacobian_1(*RsTinv_y3, *y3, *simulation_variables_, *control_variables_, tol);
-        // }
-        // equality_constraints_simopt_->applyAdjointJacobian_2(*y2, *RsTinv_y3, *simulation_variables_, *control_variables_, tol);
-        // y2->scale(-1.0);
-        // y2->plus(*z2);
-
-        // if (use_second_order_terms_) {
-        //     equality_constraints_simopt_->applyAdjointHessian_12(*Lxs_Rsinv_y1, *dual_state_, *Rsinv_y1, *simulation_variables_, *control_variables_, tol);
-        //     y2->axpy(-1.0,*Lxs_Rsinv_y1);
-        //     objective_->hessVec_21(*Lxs_Rsinv_y1, *Rsinv_y1, *simulation_variables_, *control_variables_, tol);
-        //     y2->axpy(-1.0,*Lxs_Rsinv_y1);
-        // }
-
-        // // Evaluate x ********************
-
-        // // x2 = Lzz^{-1} y2
-        // const bool use_secant = true;
-        // if (use_secant) {
-        //     secant_->applyH( *x2, *y2);
-        // } else {
-        //     x2->set(*y2);
-        // }
-
-        // // x1 = Rs^{-1} (y1 - Ad x2)
-
-        // // temp1 = y1 - Ad x2
-        // equality_constraints_simopt_->applyJacobian_2(*temp_1, *x2, *simulation_variables_, *control_variables_, tol);
-        // temp_1->scale(-1.0);
-        // temp_1->axpy(1.0, *y1);
-
-        // auto Rsinv_y1_minus_Ad_x2 = y1->clone();
-        // if (use_approximate_preconditioner_) {
-        //     equality_constraints_simopt_->applyInverseJacobianPreconditioner_1(*x1, *temp_1, *simulation_variables_, *control_variables_, tol);
-        // } else {
-        //     equality_constraints_simopt_->applyInverseJacobian_1(*x1, *temp_1, *simulation_variables_, *control_variables_, tol);
-        // }
-
-        // // x3 = Rs^{-T} x3_rhs
-        // // x3_rhs  = y3
-        // auto x3_rhs = y3->clone();
-
-        // if (use_second_order_terms_) {
-
-        //     // x3_rhs += -(Lsx - Lss Rs^{-1} Rx x2)
-
-        //     auto negative_Rsinv_Ad_x2 = Rsinv_y1_minus_Ad_x2;
-        //     negative_Rsinv_Ad_x2->axpy(-1.0, *Rsinv_y1);
-
-        //     equality_constraints_simopt_->applyAdjointHessian_11 (*temp_1, *dual_state_, *negative_Rsinv_Ad_x2, *simulation_variables_, *control_variables_, tol);
-        //     x3_rhs->axpy(-1.0, *temp_1);
-        //     objective_->hessVec_11(*temp_1, *negative_Rsinv_Ad_x2, *simulation_variables_, *control_variables_, tol);
-        //     x3_rhs->axpy(-1.0, *temp_1);
-
-        //     equality_constraints_simopt_->applyAdjointHessian_21 (*temp_1, *dual_state_, *x2, *simulation_variables_, *control_variables_, tol);
-        //     x3_rhs->axpy(-1.0, *temp_1);
-        //     objective_->hessVec_12(*temp_1, *x2, *simulation_variables_, *control_variables_, tol);
-        //     x3_rhs->axpy(-1.0, *temp_1);
-        // }
-
-        // // x3 = Rs^{-T} x3_rhs
-        // if (use_approximate_preconditioner_) {
-        //     equality_constraints_simopt_->applyInverseAdjointJacobianPreconditioner_1(*x3, *x3_rhs, *simulation_variables_, *control_variables_, tol);
-        // } else {
-        //     equality_constraints_simopt_->applyInverseAdjointJacobian_1(*x3, *x3_rhs, *simulation_variables_, *control_variables_, tol);
-        // }
-
-        // if (mpi_rank == 0) {
-        //     dealii::deallog.depth_console(99);
-        // } else {
-        //     dealii::deallog.depth_console(0);
-        // }
-
+        flow_constraints_->applyAdjointHessian_22 ( output_vector, dual, input_vector, des_var_sim, des_var_ctl, tol);
     }
-
+    void applyInverseJacobian_1(
+        ROL::Vector<double>& output_vector,
+        const ROL::Vector<double>& input_vector,
+        const ROL::Vector<double>& des_var_sim,
+        const ROL::Vector<double>& des_var_ctl,
+        double& tol ) override
+    {
+        flow_constraints_->applyInverseJacobianPreconditioner_1( output_vector, input_vector, des_var_sim, des_var_ctl, tol );
+    }
+    void applyInverseAdjointJacobian_1(
+        ROL::Vector<double>& output_vector,
+        const ROL::Vector<double>& input_vector,
+        const ROL::Vector<double>& des_var_sim,
+        const ROL::Vector<double>& des_var_ctl,
+        double& tol ) override
+    {
+        flow_constraints_->applyInverseAdjointJacobianPreconditioner_1( output_vector, input_vector, des_var_sim, des_var_ctl, tol );
+    }
 };
 
-template<typename Real>
-void get_active_design_minus_bound(
-    ROL::Vector<Real> &active_design_minus_bound,
-    const ROL::Vector<Real> &design_variables,
-    const ROL::Vector<Real> &predicted_design_variables,
-    ROL::BoundConstraint<Real> &bound_constraints)
-{
-    const Real one(1);
-    const Real neps = -ROL::ROL_EPSILON<Real>();
-    active_design_minus_bound.zero();
-    auto temp = design_variables.clone();
-    // Evaluate active (design - upper_bound)
-    temp->set(*bound_constraints.getUpperBound());                               // temp = upper_bound
-    temp->axpy(-one,design_variables);                                           // temp = upper_bound - design_variables
-    temp->scale(-one);                                                           // temp = design_variables - upper_bound
-    bound_constraints.pruneUpperInactive(*temp,predicted_design_variables,neps); // temp = (predicted_design_variables) <= upper_bound ? 0 : design_variables - upper_bound 
-    // Store active (design - upper_bound)
-    active_design_minus_bound.axpy(one,*temp);
-
-    // Evaluate active (design - lower_bound)
-    temp->set(*bound_constraints.getLowerBound());                               // temp = lower_bound
-    temp->axpy(-one,design_variables);                                           // temp = lower_bound - design_variables
-    temp->scale(-one);                                                           // temp = design_variables - lower_bound
-    bound_constraints.pruneLowerInactive(*temp,predicted_design_variables,neps); // temp = (predicted_design_variables) <= lower_bound ? 0 : design_variables - lower_bound 
-    // Store active (design - lower_bound)
-    active_design_minus_bound.axpy(one,*temp);
-}
-
-
-template <typename Real>
-PrimalDualActiveSetStep<Real>::PDAS_KKT_System::
-PDAS_KKT_System( const ROL::Ptr<ROL::Objective<Real> > &objective,
-                 const ROL::Ptr<ROL::Constraint<Real> > &equality_constraints,
-                 const ROL::Ptr<ROL::BoundConstraint<Real> > &bound_constraints,
-                 const ROL::Ptr<const ROL::Vector<Real> > &design_variables,
-                 const ROL::Ptr<const ROL::Vector<Real> > &dual_equality,
-                 const ROL::Ptr<const ROL::Vector<Real> > &des_plus_dual,
-                 const Real add_identity,
-                 const Real constraint_tolerance,
-                 const ROL::Ptr<ROL::Secant<Real> > &secant,
-                 const bool useSecant)
-    : objective_(objective)
-    , equality_constraints_(equality_constraints)
-    , bound_constraints_(bound_constraints)
-    , design_variables_(design_variables)
-    , dual_equality_(dual_equality)
-    , des_plus_dual_(des_plus_dual)
-    , add_identity_(add_identity)
-    , bounded_constraint_tolerance_(constraint_tolerance)
-    , secant_(secant)
-    , useSecant_(useSecant)
-{
-    temp_design_          = design_variables_->clone();
-    temp_dual_equality_   = dual_equality_->clone();
-    temp_dual_inequality_ = design_variables_->clone();
-    if ( !useSecant || secant == ROL::nullPtr ) useSecant_ = false;
-}
-
-template <typename Real>
-void PrimalDualActiveSetStep<Real>::PDAS_KKT_System::
-apply( ROL::Vector<Real> &Hv, const ROL::Vector<Real> &v, Real &tol ) const
-{
-    Real one(1);
-
-    ROL::PartitionedVector<Real> &output_partitioned = dynamic_cast<ROL::PartitionedVector<Real>&>(Hv);
-    const ROL::PartitionedVector<Real> &input_partitioned = dynamic_cast<const ROL::PartitionedVector<Real>&>(v);
-
-    const ROL::Ptr< const ROL::Vector<Real> > input_design           = input_partitioned.get(0);
-    const ROL::Ptr< const ROL::Vector<Real> > input_dual_equality    = input_partitioned.get(1);
-    const ROL::Ptr< const ROL::Vector<Real> > input_dual_inequality  = input_partitioned.get(2);
-
-    MPI_Barrier(MPI_COMM_WORLD);
-    static int ii = 0; (void) ii;
-    //std::cout << __PRETTY_FUNCTION__ << " " << ii++ << std::endl;
-    //std::cout << "input_design " << input_design->norm() << std::endl;
-    //std::cout << "input_dual_equality " << input_dual_equality->norm() << std::endl;
-    //std::cout << "input_dual_inequality " << input_dual_inequality->norm() << std::endl;
-
-    const ROL::Ptr<       ROL::Vector<Real> > output_design          = output_partitioned.get(0);
-    const ROL::Ptr<       ROL::Vector<Real> > output_dual_equality   = output_partitioned.get(1);
-    const ROL::Ptr<       ROL::Vector<Real> > output_dual_inequality = output_partitioned.get(2);
-
-    output_design->zero();
-    output_dual_equality->zero();
-    output_dual_inequality->zero();
-
-    // Rows 1-4: inactive design, active design, inactive slacks, active slacks
-    //// Columns 1-4
-    if ( useSecant_ ) {
-        secant_->applyB(*getCtlOpt(*output_design),*getCtlOpt(*input_design));
-    } else {
-        objective_->hessVec(*output_design,*input_design,*design_variables_,tol);
-        equality_constraints_->applyAdjointHessian(*temp_design_, *dual_equality_, *input_design, *design_variables_, tol);
-        output_design->axpy(one,*temp_design_);
-
-        // secant_->applyB(*getCtlOpt(*temp_design_),*getCtlOpt(*input_design));
-        // output_design->axpy(one,*temp_design_);
-        // output_design->scale(one/2.0);
-        std::cout << "Adding identity matrix of " << add_identity_ << std::endl;
-        getCtlOpt(*output_design)->axpy(add_identity_,*getCtlOpt(*input_design));
-    }
-    //objective_->hessVec(*output_design,*input_design,*design_variables_, tol);
-    //secant_->applyB(*output_design,*input_design);
-    //double add_identity = 1.0; // 10.0
-    //getOpt(*output_design)->axpy(add_identity_,*getOpt(*input_design));
-
-    //objective_->hessVec(*output_design,*input_design,*design_variables_,tol);
-    //equality_constraints_->applyAdjointHessian(*temp_design_, *dual_equality_, *input_design, *design_variables_, tol);
-    //output_design->axpy(one,*temp_design_);
-
-    //output_design->zero();
-    //double add_identity = 10.0; // 10.0
-    //output_design->axpy(add_identity,*input_design);
-    //std::cout << "output_design1 " << output_design->norm() << std::endl;
-
-    //// Columns 5-6
-    equality_constraints_->applyAdjointJacobian(*temp_design_, *input_dual_equality, *design_variables_, tol);
-    output_design->axpy(one,*temp_design_);
-    //std::cout << "output_design2 " << temp_design_->norm() << std::endl;
-
-    //// Columns 7-10
-    if (symmetrize_matrix_) {
-        temp_dual_inequality_->set(*input_dual_inequality);
-        bound_constraints_->pruneInactive(*temp_dual_inequality_,*des_plus_dual_,bounded_constraint_tolerance_);
-        output_design->axpy(one,*temp_dual_inequality_);
-    } else {
-        output_design->axpy(one,*input_dual_inequality);
-    }
-
-    // Rows 5-6: inactive dual_equality, active dual_equality
-    //// Columns 1-4
-    equality_constraints_->applyJacobian(*output_dual_equality, *input_design, *design_variables_, tol);
-
-    // Rows 7-10: inactive dual_inequality, active dual_inequality
-    //// Rows 7 & 9
-    output_dual_inequality->zero();
-    if (symmetrize_matrix_) {
-    } else {
-        temp_dual_inequality_->set(*input_dual_inequality);
-        bound_constraints_->pruneActive(*temp_dual_inequality_,*des_plus_dual_,bounded_constraint_tolerance_);
-        output_dual_inequality->axpy(one,*temp_dual_inequality_);
-    }
-
-    //// Rows 8 & 10
-    temp_dual_inequality_->set(*input_design);
-    bound_constraints_->pruneInactive(*temp_dual_inequality_,*des_plus_dual_,bounded_constraint_tolerance_);
-    output_dual_inequality->axpy(one,*temp_dual_inequality_);
-
-}
 
 template <typename Real>
 Real PrimalDualActiveSetStep<Real>::computeCriticalityMeasure(
-    ROL::Vector<Real> &design_variables,
+    Vector &design_variables,
     ROL::Objective<Real> &objective,
     ROL::BoundConstraint<Real> &bound_constraints,
     Real tol)
@@ -1232,8 +203,6 @@ Real PrimalDualActiveSetStep<Real>::computeCriticalityMeasure(
     return desvar_tmp_->norm();
 }
 
-  
-
 template <typename Real>
 PrimalDualActiveSetStep<Real>::PrimalDualActiveSetStep( ROL::ParameterList &parlist ) 
     : ROL::Step<Real>::Step(),
@@ -1244,6 +213,7 @@ PrimalDualActiveSetStep<Real>::PrimalDualActiveSetStep( ROL::ParameterList &parl
       //neps_(-ROL::ROL_EPSILON<Real>()), // Negative epsilon means that x = boundconstraint is INACTIVE when pruneActive occurs
       neps_(ROL::ROL_EPSILON<Real>()), // Positive epsilon means that x = boundconstraint is ACTIVE when pruneActive occurs
       feasible_(false),
+      index_to_project_interior(0),
       dual_inequality_(ROL::nullPtr),
       des_plus_dual_(ROL::nullPtr),
       new_design_variables_(ROL::nullPtr),
@@ -1254,9 +224,9 @@ PrimalDualActiveSetStep<Real>::PrimalDualActiveSetStep( ROL::ParameterList &parl
       quadratic_residual_(ROL::nullPtr),
       gradient_active_set_(ROL::nullPtr),
       gradient_inactive_set_(ROL::nullPtr),
+      old_gradient_(ROL::nullPtr),
       gradient_tmp1_(ROL::nullPtr),
-      gradient_tmp2_(ROL::nullPtr),
-      esec_(ROL::SECANT_LBFGS), secant_(ROL::nullPtr), useSecantPrecond_(false),
+      esec_(ROL::SECANT_LBFGS), objective_secant_(ROL::nullPtr), useSecantPrecond_(false),
       useSecantHessVec_(false),
       pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD)==0)
 {
@@ -1268,24 +238,27 @@ PrimalDualActiveSetStep<Real>::PrimalDualActiveSetStep( ROL::ParameterList &parl
     scale_ = parlist_.sublist("Step").sublist("Primal Dual Active Set").get("Dual Scaling", one);
     // Build secant object
     esec_ = ROL::StringToESecant(parlist_.sublist("General").sublist("Secant").get("Type","Limited-Memory BFGS"));
+    //esec_ = ROL::StringToESecant(parlist_.sublist("General").sublist("Secant").get("Type","Limited-Memory SR1"));
     useSecantHessVec_ = parlist_.sublist("General").sublist("Secant").get("Use as Hessian", false); 
 
     useSecantPrecond_ = parlist_.sublist("General").sublist("Secant").get("Use as Preconditioner", false);
 
-    parlist_.sublist("General").sublist("Secant").set("Maximum Storage",1000);
-    if ( useSecantHessVec_ || useSecantPrecond_ ) {
-      secant_ = ROL::SecantFactory<Real>(parlist_);
-    }
+    //parlist_.sublist("General").sublist("Secant").set("Maximum Storage",1000);
+    //if ( useSecantHessVec_ || useSecantPrecond_ ) {
+      objective_secant_ = ROL::SecantFactory<Real>(parlist_);
+      lagrangian_secant_ = ROL::SecantFactory<Real>(parlist_);
+    //}
     // Build Krylov object
     krylov_ = ROL::KrylovFactory<Real>(parlist_);
+    d_force_use_bfgs = false;
 }
 
 template<typename Real>
 void PrimalDualActiveSetStep<Real>::initialize(
-    ROL::Vector<Real> &design_variables,
-    const ROL::Vector<Real> &gradient_vec_to_clone, 
-    ROL::Vector<Real> &dual_equality,
-    const ROL::Vector<Real> &constraint_vec_to_clone, 
+    Vector &design_variables,
+    const Vector &gradient_vec_to_clone, 
+    Vector &dual_equality,
+    const Vector &constraint_vec_to_clone, 
     ROL::Objective<Real> &objective,
     ROL::Constraint<Real> &equality_constraints, 
     ROL::BoundConstraint<Real> &bound_constraints, 
@@ -1295,9 +268,10 @@ void PrimalDualActiveSetStep<Real>::initialize(
 
     (void) equality_constraints;
     try {
-        const ROL::Constraint_Partitioned<Real> &equality_constraints_partitioned = dynamic_cast<const ROL::Constraint_Partitioned<Real>&>(equality_constraints);
-        const PHiLiP::FlowConstraints<PHILIP_DIM> &flow_constraints = dynamic_cast<const PHiLiP::FlowConstraints<PHILIP_DIM>&>(*equality_constraints_partitioned.get(0));
+        auto& equality_constraints_partitioned = dynamic_cast<ROL::Constraint_Partitioned<Real>&>(equality_constraints);
+        auto& flow_constraints = dynamic_cast<PHiLiP::FlowConstraints<PHILIP_DIM>&>(*equality_constraints_partitioned.get(0));
         (void) flow_constraints;
+        flow_constraints.flow_CFL_ = 0.0;
         is_full_space_ = true;
         std::cout << "Found a FlowConstraints, full-space optimization occuring..." << std::endl;
     } catch (...) {
@@ -1320,14 +294,15 @@ void PrimalDualActiveSetStep<Real>::initialize(
     search_direction_dual_->set((step_state->constraintVec)->dual());
     search_direction_dual_->scale(-one);
 
+    index_to_project_interior = 0;
 
 }
 
 template<typename Real>
 void PrimalDualActiveSetStep<Real>::initialize(
-    ROL::Vector<Real> &design_variables,
-    const ROL::Vector<Real> &search_direction_vec_to_clone,
-    const ROL::Vector<Real> &gradient_vec_to_clone, 
+    Vector &design_variables,
+    const Vector &search_direction_vec_to_clone,
+    const Vector &gradient_vec_to_clone, 
     ROL::Objective<Real> &objective,
     ROL::BoundConstraint<Real> &bound_constraints, 
     ROL::AlgorithmState<Real> &algo_state )
@@ -1350,7 +325,7 @@ void PrimalDualActiveSetStep<Real>::initialize(
     gradient_active_set_   = gradient_vec_to_clone.clone(); 
     gradient_inactive_set_   = gradient_vec_to_clone.clone(); 
     gradient_tmp1_ = gradient_vec_to_clone.clone(); 
-    gradient_tmp2_ = gradient_vec_to_clone.clone(); 
+    old_gradient_ = gradient_vec_to_clone.clone(); 
     // Project design_variables onto constraint set
     //bound_constraints.project(design_variables);
     // Update objective function, get value, and get gradient
@@ -1366,223 +341,34 @@ void PrimalDualActiveSetStep<Real>::initialize(
     //dual_inequality_->setScalar(0.01);
     dual_inequality_->setScalar(0.0);
     old_dual_inequality_ = dual_inequality_->clone(); 
+    old_dual_inequality_->set(*dual_inequality_);
     //Real one(1);
     //dual_inequality_->set((step_state->gradientVec)->dual());
     //dual_inequality_->scale(-one);
 }
 
-template<typename Real>
-void split_design_into_control_slacks(
-    const ROL::Vector<Real> &design_variables,
-    ROL::Vector<Real> &control_variables,
-    ROL::Vector<Real> &slack_variables
-    )
-{
-    const ROL::PartitionedVector<Real> &design_partitioned = dynamic_cast<const ROL::PartitionedVector<Real>&>(design_variables);
-    const unsigned int n_vec = design_partitioned.numVectors();
-
-    ROL::Ptr<ROL::Objective<Real> > control_variables_ptr = ROL::makePtrFromRef(control_variables);
-    control_variables_ptr = design_partitioned[0].clone();
-    control_variables_ptr->set( *(design_partitioned.get(0)) );
-    std::vector<ROL::Ptr<ROL::Vector<Real>>> slack_vecs;
-    for (unsigned int i_vec = 1; i_vec < n_vec; ++i_vec) {
-        slack_vecs._push_back( design_partitioned.get(i_vec)->clone() );
-        slack_vecs[i_vec-1].set( *(design_partitioned.get(i_vec)) );
-    }
-    slack_variables = ROL::PartitionedVector<Real> (slack_vecs);
-}
-
-template<typename Real>
-void PrimalDualActiveSetStep<Real>::compute2(
-    ROL::Vector<Real> &search_direction_design,
-    const ROL::Vector<Real> &design_variables,
-    const ROL::Vector<Real> &dual_equality,
-    ROL::Objective<Real> &objective,
-    ROL::Constraint<Real> &equality_constraints, 
-    ROL::BoundConstraint<Real> &bound_constraints, 
-    ROL::AlgorithmState<Real> &algo_state )
-{
-    ROL::Ptr<ROL::StepState<Real> > step_state = ROL::Step<Real>::getState();
-    Real zero(0), one(1);
-    search_direction_design.zero();
-    new_dual_equality_->set(dual_equality);
-    quadratic_residual_->set(*(step_state->gradientVec));
-
-    new_design_variables_->set(design_variables);
-
-    // Temporary variables
-    ROL::Ptr<ROL::Vector<Real>> inactive_dual_equality_ = dual_equality.clone();
-    ROL::Ptr<ROL::Vector<Real>> active_dual_equality_ = dual_equality.clone();
-
-    ROL::Ptr<ROL::Vector<Real>> rhs_design_temp = design_variables.clone(); 
-
-    // PDAS iterates through 3 steps.
-    // 1. Estimate active set
-    // 2. Use active set to determine search direction of the active constraints
-    // 3. Solve KKT system for remaining inactive constraints
-    for ( iter_PDAS_ = 0; iter_PDAS_ < maxit_; iter_PDAS_++ ) {
-
-        /********************************************************************/
-        // Modify iterate vector to check active set
-        /********************************************************************/
-        des_plus_dual_->set(*new_design_variables_);    // des_plus_dual = initial_desvar
-        des_plus_dual_->axpy(scale_,*(dual_inequality_));    // des_plus_dual = initial_desvar + c*dualvar, note that papers would usually divide by scale_ instead of multiply
-
-        /********************************************************************/
-        // Project design_variables onto primal dual feasible set
-        // Using approximation of the active set, obtain the search direction since
-        // we know that step will be constrained.
-        /********************************************************************/
-        if (false) {
-            search_direction_active_set_->zero();                                     // active_set_search_direction   = 0
-        
-            search_temp_->set(*bound_constraints.getUpperBound());                    // search_tmp = upper_bound
-            search_temp_->axpy(-one,design_variables);                                // search_tmp = upper_bound - design_variables
-            desvar_tmp_->set(*search_temp_);                                          // tmp        = upper_bound - design_variables
-            bound_constraints.pruneUpperActive(*desvar_tmp_,*des_plus_dual_,neps_);   // tmp        = (upper_bound - (upper_bound - design_variables + c*dual_variables)) < 0 ? 0 : upper_bound - design_variables
-            search_temp_->axpy(-one,*desvar_tmp_);                                    // search_tmp = ACTIVE(upper_bound - design_variables)
-
-            search_direction_active_set_->plus(*search_temp_);                        // active_set_search_direction += ACTIVE(upper_bound - design_variables)
-      
-            search_temp_->set(*bound_constraints.getLowerBound());                    // search_tmp = lower_bound
-            search_temp_->axpy(-one,design_variables);                                // search_tmp = lower_bound - design_variables
-            desvar_tmp_->set(*search_temp_);                                          // tmp        = lower_bound - design_variables
-            bound_constraints.pruneLowerActive(*desvar_tmp_,*des_plus_dual_,neps_);   // tmp        = INACTIVE(lower_bound - design_variables)
-            search_temp_->axpy(-one,*desvar_tmp_);                                    // search_tmp = ACTIVE(lower_bound - design_variables)
-            search_direction_active_set_->plus(*search_temp_);                        // active_set_search_direction += ACTIVE(lower_bound - design_variables)
-        } else { 
-            get_active_design_minus_bound(*search_direction_active_set_, design_variables, *des_plus_dual_, bound_constraints);
-            search_direction_active_set_->scale(-1.0);
-        }
-
-        inactive_dual_equality_ = new_dual_equality_->clone();
-        active_dual_equality_ = new_dual_equality_->clone();
-
-        /********************************************************************/
-        // Apply Hessian to active components of search_direction_design and remove inactive
-        /********************************************************************/
-        itol_ = std::sqrt(ROL::ROL_EPSILON<Real>());
-        // INACTIVE(H)*active_set_search_direction = H*active_set_search_direction
-        // INACTIVE(H)*active_set_search_direction = INACTIVE(H*active_set_search_direction)
-        gradient_tmp1_->zero();
-        if ( useSecantHessVec_ && secant_ != ROL::nullPtr ) {
-            secant_->applyB(*getOpt(*gradient_tmp1_),*getOpt(*search_direction_active_set_));
-        } else {
-            objective.hessVec(*gradient_tmp1_,*search_direction_active_set_,design_variables,itol_);
-            equality_constraints.applyAdjointHessian(*gradient_tmp2_, dual_equality, *getOpt(*search_direction_active_set_), *getOpt(design_variables), itol_);
-            gradient_tmp1_->axpy(one, *gradient_tmp2_);
-        }
-        bound_constraints.pruneActive(*gradient_tmp1_,*des_plus_dual_,neps_);
-        /********************************************************************/
-        // SEPARATE ACTIVE AND INACTIVE COMPONENTS OF THE GRADIENT
-        /********************************************************************/
-        // Inactive components
-        gradient_inactive_set_->set(*(step_state->gradientVec));
-        bound_constraints.pruneActive(*gradient_inactive_set_,*des_plus_dual_,neps_);
-        // Active components
-        gradient_active_set_->set(*(step_state->gradientVec));
-        gradient_active_set_->axpy(-one,*gradient_inactive_set_);
-        /********************************************************************/
-        // SOLVE REDUCED NEWTON SYSTEM 
-        /********************************************************************/
-
-        // rhs_design_temp = -(INACTIVE(gradient) + INACTIVE(H*active_set_search_direction))
-        rhs_design_temp->set(*gradient_inactive_set_);
-        rhs_design_temp->plus(*gradient_tmp1_);
-        rhs_design_temp->scale(-one);
-
-        search_direction_design.zero();
-        if ( rhs_design_temp->norm() > zero ) {             
-            // Initialize Hessian and preconditioner
-            ROL::Ptr<ROL::Objective<Real> >       objective_ptr  = ROL::makePtrFromRef(objective);
-            ROL::Ptr<ROL::BoundConstraint<Real> > bound_constraint_ptr = ROL::makePtrFromRef(bound_constraints);
-            ROL::Ptr<ROL::Constraint<Real> > equality_constraints_ptr = ROL::makePtrFromRef(equality_constraints);
-
-            ROL::Ptr<ROL::Vector<Real>> search_direction_des_ptr = ROL::makePtrFromRef(search_direction_design);
-            ROL::Ptr<ROL::Vector<Real>> search_direction_dual_ptr = search_direction_dual_;
-            ROL::Ptr<ROL::PartitionedVector<Real>> search_partitioned = ROL::makePtr<ROL::PartitionedVector<Real>>(
-                    std::vector<ROL::Ptr<ROL::Vector<Real>> >({search_direction_des_ptr, search_direction_dual_ptr})
-                );
-
-            ROL::Ptr<ROL::Vector<Real>> rhs_des_ptr = rhs_design_temp;
-            ROL::Ptr<ROL::Vector<Real>> rhs_dual_ptr = (step_state->constraintVec)->clone();
-            rhs_dual_ptr->scale(-one);
-            ROL::Ptr<ROL::PartitionedVector<Real>> rhs_partitioned = ROL::makePtr<ROL::PartitionedVector<Real>>(std::vector<ROL::Ptr<ROL::Vector<Real>> >({rhs_des_ptr, rhs_dual_ptr}));
-
-            ROL::Ptr<ROL::LinearOperator<Real> > hessian = ROL::makePtr<InactiveConstrainedHessian>(objective_ptr, equality_constraints_ptr, bound_constraint_ptr, algo_state.iterateVec, algo_state.lagmultVec, des_plus_dual_, neps_, secant_, useSecantHessVec_);
-            ROL::Ptr<ROL::LinearOperator<Real> > precond = ROL::makePtr<InactiveConstrainedHessianPreconditioner>(objective_ptr, bound_constraint_ptr, algo_state.iterateVec, des_plus_dual_, neps_, secant_, useSecantPrecond_);
-
-            krylov_->run(*search_partitioned, *hessian, *rhs_partitioned, *precond, iter_Krylov_, flag_Krylov_);
-
-            bound_constraints.pruneActive(search_direction_design,*des_plus_dual_,neps_);        // search_direction_design <- inactive_search_direction
-        }
-        search_direction_design.plus(*search_direction_active_set_);                             // search_direction_design = inactive_search_direction + active_set_search_direction
-        /********************************************************************/
-        // UPDATE MULTIPLIER 
-        /********************************************************************/
-        rhs_design_temp->zero();
-        if ( useSecantHessVec_ && secant_ != ROL::nullPtr ) {
-            secant_->applyB(*getOpt(*rhs_design_temp),*getOpt(search_direction_design));
-        } else {
-            objective.hessVec(*rhs_design_temp,search_direction_design,design_variables,itol_);
-        }
-        gradient_tmp1_->set(*rhs_design_temp);
-        bound_constraints.pruneActive(*gradient_tmp1_,*des_plus_dual_,neps_);
-
-        // dual^{k+1} = - ( ACTIVE(H * search_direction_design) + gradient_active_set_ )
-        dual_inequality_->set(*rhs_design_temp);
-        dual_inequality_->axpy(-one,*gradient_tmp1_);
-        dual_inequality_->plus(*gradient_active_set_);
-        dual_inequality_->scale(-one);
-        dual_inequality_->zero();
-        /********************************************************************/
-        // UPDATE STEP 
-        /********************************************************************/
-        new_design_variables_->set(design_variables);
-        new_design_variables_->plus(search_direction_design);
-        quadratic_residual_->set(*(step_state->gradientVec));
-        quadratic_residual_->plus(*rhs_design_temp);
-        // Compute criticality measure  
-        desvar_tmp_->set(*new_design_variables_);
-        desvar_tmp_->axpy(-one,quadratic_residual_->dual());
-        bound_constraints.project(*desvar_tmp_);
-        desvar_tmp_->axpy(-one,*new_design_variables_);
-        pcout << "des_var_temp " << desvar_tmp_->norm() << std::endl;
-        pcout << "gtol gnorm " << gtol_*algo_state.gnorm << std::endl;
-        pcout << "rhs_design_temp.norm() " << rhs_design_temp->norm() << std::endl;
-        if ( desvar_tmp_->norm() < gtol_*algo_state.gnorm ) {
-            flag_PDAS_ = 0;
-            break;
-        }
-        if ( search_direction_design.norm() < stol_*design_variables.norm() ) {
-            flag_PDAS_ = 2;
-            break;
-        } 
-    }
-    if ( iter_PDAS_ == maxit_ ) {
-        flag_PDAS_ = 1;
-    } else {
-        iter_PDAS_++;
-    }
-}
-
 
 template<typename Real>
 void PrimalDualActiveSetStep<Real>::compute_PDAS_rhs(
-    const ROL::Vector<Real> &old_design_variables,
-    const ROL::Vector<Real> &new_design_variables,
-    const ROL::Vector<Real> &new_dual_equality,
-    const ROL::Vector<Real> &dual_inequality,
-    const ROL::Vector<Real> &des_plus_dual,
-    const ROL::Vector<Real> &old_objective_gradient,
+    const Vector &old_design_variables,
+    const Vector &new_design_variables,
+    const Vector &new_dual_equality,
+    const Vector &dual_inequality,
+    const Vector &des_plus_dual,
+    const Vector &old_objective_gradient,
     ROL::Objective<Real> &objective, 
     ROL::Constraint<Real> &equality_constraints, 
     ROL::BoundConstraint<Real> &bound_constraints, 
-    ROL::PartitionedVector<Real> &rhs_partitioned)
+    ROL::PartitionedVector<Real> &rhs_partitioned,
+    const int objective_type, // 0 = nonlinear, 1 = linear, 2 = quadratic
+    const int constraint_type, // 0 = nonlinear, 1 = linear
+    const ROL::Secant<Real> &secant,
+    const bool useSecant,
+    const Real identity_factor_)
 {
-    MPI_Barrier(MPI_COMM_WORLD);
-    static int ii = 0; (void) ii;
-    std::cout << __PRETTY_FUNCTION__ << " " << ii++ << std::endl;
+    //MPI_Barrier(MPI_COMM_WORLD);
+    //static int ii = 0; (void) ii;
+    //std::cout << __PRETTY_FUNCTION__ << " " << ii++ << std::endl;
     // Define old_ as using variables that do not change over the PDAS iterations
     // For example, gradients applied onto a vector would use the old_design_variables.
     // However, evaluating the constraint itself would use new_design_variables.
@@ -1591,39 +377,90 @@ void PrimalDualActiveSetStep<Real>::compute_PDAS_rhs(
     Real one(1);
     Real tol = ROL::ROL_EPSILON<Real>();
 
-    ROL::Ptr<ROL::Vector<Real>> rhs_design          = rhs_partitioned.get(0);
-    ROL::Ptr<ROL::Vector<Real>> rhs_dual_equality   = rhs_partitioned.get(1);
-    ROL::Ptr<ROL::Vector<Real>> rhs_dual_inequality = rhs_partitioned.get(2);
+    VectorPtr rhs_design          = rhs_partitioned.get(0);
+    VectorPtr rhs_dual_equality   = rhs_partitioned.get(1);
+    VectorPtr rhs_dual_inequality = rhs_partitioned.get(2);
 
-    ROL::Ptr<ROL::Vector<Real>> rhs_dual_inequality_temp = rhs_dual_inequality->clone();
+    VectorPtr rhs_dual_inequality_temp = rhs_dual_inequality->clone();
 
+    // ********************
     // Design RHS
+    // Row 1-5
+    // ********************
+    VectorPtr rhs_design_temp = rhs_design->clone(); 
     // rhs_design = objective_gradient + constraint^T dualEquality + dualInequality
     (void) old_objective_gradient;
     (void) old_design_variables;
     //rhs_design->set( old_objective_gradient );
-    const bool LINEAR_OBJECTIVE = false;
-    if (LINEAR_OBJECTIVE) {
+    if (objective_type == 2) {
+        // Given a nonlinear objective I(x) w.r.t. design variables x, its gradient dI/dx is also nonlinear.
+        // Assume a quadratic objectve J(x) that models I(x), with design variables x, matrix H, and vector f such that
+        //     I(x) \approx J(x) = xAx + fx
+        // Given a known matrix H, whether it is an exact Hessian of I(x) or a BFGS approximation
+        // and the exact nonlinear gradient of the objective w.r.t. the design dI/dx
+        //     dI/dx \approx (dJ/dx)_old = H x_old + f,
+        // we can compute the constant vector (f) by subtracting H x_old from the nonlinear (dJ/dx)_old
+        //     f = (dJ/dx)_old - H x_old
+        // such that (dJ/dx)_new = H x_new + f = (dJ/dx)_old + H (x_new - x_old)
         objective.gradient(*rhs_design, old_design_variables, tol);
-    } else {
+
+        VectorPtr dx_design = new_design_variables.clone(); 
+        dx_design->set(new_design_variables);
+        dx_design->axpy(-one, old_design_variables);
+        if ( useSecant ) {
+            rhs_design_temp->set(*dx_design);
+            secant.applyB(*getCtlOpt(*rhs_design_temp),*getCtlOpt(*dx_design));
+            //secant.applyB(*rhs_design_temp,*dx_design);
+        } else {
+            //objective.hessVec(*getCtlOpt(*rhs_design_temp),*getCtlOpt(*dx_design),old_design_variables,tol);
+            objective.hessVec(*rhs_design_temp,*dx_design,old_design_variables,tol);
+        }
+        rhs_design->axpy(one, *rhs_design_temp);
+    } else if (objective_type == 1) {
+        objective.gradient(*rhs_design, old_design_variables, tol);
+    } else if (objective_type == 0) {
         objective.gradient(*rhs_design, new_design_variables, tol);
     }
+    if (identity_factor_) {
+        rhs_design->axpy(identity_factor_, new_design_variables);
+    }
 
-    ROL::Ptr<ROL::Vector<Real>> rhs_design_temp = rhs_design->clone(); 
-    const bool LINEAR_CONSTRAINTS = true;//false;
-    if (LINEAR_CONSTRAINTS) {
+    if (constraint_type == 1) {
         equality_constraints.applyAdjointJacobian(*rhs_design_temp, new_dual_equality, old_design_variables, tol);
-    } else {
+    } else if (constraint_type == 0) {
         equality_constraints.applyAdjointJacobian(*rhs_design_temp, new_dual_equality, new_design_variables, tol);
     }
     rhs_design->axpy(one, *rhs_design_temp);
     rhs_design->axpy(one, dual_inequality);
-    pcout << "RHS design : " << rhs_design->norm() << std::endl;
+    if (objective_type == 2) pcout << "quadratic objective_type ";
+    if (objective_type == 1) pcout << "linear objective_type ";
+    if (objective_type == 0) pcout << "nonlinear objective_type ";
+    if (constraint_type == 1) pcout << "linear constraint_type ";
+    if (constraint_type == 0) pcout << "nonlinear constraint_type ";
+    pcout << std::endl;
 
+    // ********************
+    // Equality constraint RHS
+    // Row 6-8
+    // ********************
     // Dual equality RHS
     // dual_equality = equality_constraint_value - slacks   (which is already the case for Constraint_Partitioned)
-    equality_constraints.value(*rhs_dual_equality, new_design_variables, tol);
-    pcout << "RHS dual_equality : " << rhs_dual_equality->norm() << std::endl;
+    if (constraint_type == 1) {
+        VectorPtr rhs_dual_equality_temp = rhs_dual_equality->clone();
+        
+        // temp = g_old
+        equality_constraints.value(*rhs_dual_equality_temp, old_design_variables, tol);
+        // rhs = A * x_old
+        equality_constraints.applyJacobian(*rhs_dual_equality, old_design_variables, old_design_variables, tol);
+        // temp = g_old - A * x_old
+        rhs_dual_equality_temp->axpy(-one, *rhs_dual_equality);
+        // rhs = A * x_new
+        equality_constraints.applyJacobian(*rhs_dual_equality, new_design_variables, old_design_variables, tol);
+        // rhs = g_old + A * (x_new - x_old)
+        rhs_dual_equality->axpy(one,*rhs_dual_equality_temp);
+    } else {
+        equality_constraints.value(*rhs_dual_equality, new_design_variables, tol);
+    }
 
     // Dual inequality RHS
     // Note that it should be equal to 
@@ -1633,49 +470,26 @@ void PrimalDualActiveSetStep<Real>::compute_PDAS_rhs(
     // Therefore, we will simply evaluate (BOUND - design_variables) on the right_hand_side, and ignore -c 
     // in the system matrix
 
-    // // Set RHS = inactivedual_inequality)
+    // ********************
+    // Inequality constraint RHS
+    // Row 9-12
+    // ********************
     rhs_dual_inequality->zero();
-    if (false) {
-        pcout << "dual_inequality : " << rhs_dual_inequality->norm() << std::endl;
-        rhs_dual_inequality->set(dual_inequality);
-        bound_constraints.pruneActive(*rhs_dual_inequality,des_plus_dual,neps_);
-        pcout << "inactive dual_inequality : " << rhs_dual_inequality->norm() << std::endl;
 
-        // // Evaluate active (design - upper_bound)
-        rhs_dual_inequality_temp->set(*bound_constraints.getUpperBound());                       // rhs_dual_inequality_temp = upper_bound
-        rhs_dual_inequality_temp->axpy(-one,new_design_variables);                               // rhs_dual_inequality_temp = upper_bound - design_variables
-        rhs_dual_inequality_temp->scale(-one);                                                   // rhs_dual_inequality_temp = design_variables - upper_bound
-        bound_constraints.pruneUpperInactive(*rhs_dual_inequality_temp,des_plus_dual,neps_);   // rhs_dual_inequality_temp = (design_variables + c*dual_variables)) <= upper_bound ? 0 : design_variables - upper_bound 
+    get_active_design_minus_bound(*rhs_dual_inequality, new_design_variables, des_plus_dual, bound_constraints);
+    auto inactive_dual_inequality = dual_inequality.clone();
+    inactive_dual_inequality->set(dual_inequality);
+    bound_constraints.pruneActive(*inactive_dual_inequality,des_plus_dual,neps_);
+    rhs_dual_inequality->plus(*inactive_dual_inequality);
 
-        // // Store active (design - upper_bound)
-        rhs_dual_inequality->axpy(one,*rhs_dual_inequality_temp);
-        pcout << "rhs_dual_inequality_temp_upper : " << rhs_dual_inequality_temp->norm() << std::endl;
-
-        // // Evaluate active (design - lower_bound)
-        rhs_dual_inequality_temp->set(*bound_constraints.getLowerBound());                       // rhs_dual_inequality_temp = lower_bound
-        rhs_dual_inequality_temp->axpy(-one,new_design_variables);                               // rhs_dual_inequality_temp = lower_bound - design_variables
-        rhs_dual_inequality_temp->scale(-one);                                                   // rhs_dual_inequality_temp = design_variables - lower_bound
-        bound_constraints.pruneLowerInactive(*rhs_dual_inequality_temp,des_plus_dual,neps_);   // rhs_dual_inequality_temp = (design_variables + c*dual_variables)) <= lower_bound ? 0 : design_variables - lower_bound 
-
-        // // Store active (design - lower_bound)
-        rhs_dual_inequality->axpy(one,*rhs_dual_inequality_temp);
-        pcout << "rhs_dual_inequality_temp_lower: " << rhs_dual_inequality_temp->norm() << std::endl;
-    } else {
-
-        get_active_design_minus_bound(*rhs_dual_inequality, new_design_variables, des_plus_dual, bound_constraints);
-
-        auto inactive_dual_inequality = dual_inequality.clone();
-        inactive_dual_inequality->set(dual_inequality);
-        bound_constraints.pruneActive(*inactive_dual_inequality,des_plus_dual,neps_);
-        rhs_dual_inequality->plus(*inactive_dual_inequality);
-    }
-
-    if (symmetrize_matrix_) {
+    pcout << "RHS dual_inequality1 norm: " << rhs_dual_inequality->norm() << std::endl;
+    if (SYMMETRIZE_MATRIX_) {// && !(objective_type==0 && constraint_type==0)) {
         rhs_dual_inequality_temp->set(*rhs_dual_inequality);
         bound_constraints.pruneActive(*rhs_dual_inequality_temp,des_plus_dual,neps_);
         rhs_design->axpy(-one, *rhs_dual_inequality_temp);
 
         bound_constraints.pruneInactive(*rhs_dual_inequality,des_plus_dual,neps_);
+
     }
 
 
@@ -1695,129 +509,227 @@ void PrimalDualActiveSetStep<Real>::compute_PDAS_rhs(
 }
 
 template<typename Real>
-const Real get_value(unsigned int i, const ROL::Vector<Real> &vec) {
+void PrimalDualActiveSetStep<Real>::printDesignDual (
+    const std::string &code_location,
+    const Vector &design_variables,
+    ROL::BoundConstraint<Real> &bound_constraints,
+    const Vector &dual_inequalities,
+    const Vector &designs_plus_duals,
+    const Vector &dual_equalities) const
+{
+    constexpr int printWidth = 24;
+    VectorPtr active_indices_one = designs_plus_duals.clone();
+    bound_constraints.setActiveEntriesToOne( *active_indices_one, designs_plus_duals );
 
-    try {
-        /// Base case 1
-        /// We have a VectorAdapter from deal.II which can return a value (if single processor).
-        const dealii::LinearAlgebra::distributed::Vector<double> &vecdealii = PHiLiP::ROL_vector_to_dealii_vector_reference(vec);
-        if (vecdealii.in_local_range(i)) {
-            return vecdealii[i];
-        } else {
-            return -9999999999;
-        }
-    } catch (...) {
-        try {
-            /// Base case 2
-            /// We have a Singleton, which can return a value
-            const auto &vec_singleton = dynamic_cast<const ROL::SingletonVector<Real>&>(vec);
-            return vec_singleton.getValue();
-        } catch (const std::bad_cast& e) {
+    ROL::Ptr<const Vector> lower_bounds = bound_constraints.getLowerBound();
+    ROL::Ptr<const Vector> upper_bounds = bound_constraints.getUpperBound();
 
-            try {
-                /// Try to convert into Vector_SimOpt
-                const auto &vec_simopt = dynamic_cast<const ROL::Vector_SimOpt<Real>&>(vec);
-
-                const unsigned int size_1 = vec_simopt.get_1()->dimension();
-
-                if (i < size_1) {
-                    return get_value(i, *(vec_simopt.get_1()));
-                } else {
-                    return get_value(i-size_1, *(vec_simopt.get_2()));
-                }
-                return -99999;
-            } catch (const std::bad_cast& e) {
-                /// Try to convert into PartitionedVector
-                const auto &vec_part = dynamic_cast<const ROL::PartitionedVector<Real>&>(vec);
-
-                const unsigned int numVec = vec_part.numVectors();
-
-                unsigned int start_index = 0;
-                unsigned int end_index = 0;
-                for (unsigned int i_vec = 0; i_vec < numVec; ++i_vec) {
-                    start_index = end_index;
-                    end_index += vec_part[i_vec].dimension();
-                    if (i < end_index) {
-                        return get_value(i-start_index, vec_part[i_vec]);
-                    }
-                }
-                return -99999999;
-            }
-        }
+    std::streamsize ss = std::cout.precision();
+    std::cout << std::scientific;
+    std::cout << std::showpos;
+    std::cout.precision(12); 
+    int myrank;
+    MPI_Comm_rank(MPI_COMM_WORLD, &myrank);
+    if (myrank == 0) {
+        std::cout << code_location << std::endl;
+        std::cout << std::setw(printWidth) << std::left << "Lower Bound <";
+        std::cout << std::setw(printWidth) << std::left << "Design";
+        std::cout << std::setw(printWidth) << std::left << "Des + factor*dual";
+        std::cout << std::setw(printWidth) << std::left << "< Upper Bound";
+        std::cout << std::setw(printWidth) << std::left << "Dual inequality";
+        std::cout << std::setw(printWidth) << std::left << "Active Upp(1) Low(-1)";
+        std::cout << std::endl;
     }
 
+    int design_simulation_dimension = 0;
+    if (is_full_space_) {
+        ROL::Ptr<const Vector> design  = dynamic_cast<const ROL::PartitionedVector<Real>&>(design_variables).get(0);
+        ROL::Ptr<const Vector> design_simulation = (dynamic_cast<const ROL::Vector_SimOpt<Real>&>(*design)).get_1();
+        design_simulation_dimension = design_simulation->dimension();
+    }
+    for (int i = 0; i < design_variables.dimension(); i++) {
+        MPI_Barrier(MPI_COMM_WORLD);
+        // Avoid printing simulation variables
+        if (is_full_space_ && i < design_simulation_dimension) continue;
+
+        const std::optional<Real> low_bound = get_value(i, *lower_bounds);
+        const std::optional<Real> design_variable = get_value(i, design_variables);
+        const std::optional<Real> design_plus_dual = get_value(i, designs_plus_duals);
+        const std::optional<Real> upp_bound = get_value(i, *upper_bounds);
+        const std::optional<Real> dual_inequality = get_value(i, dual_inequalities);
+        const std::optional<Real> active = get_value(i, *active_indices_one);
+        const bool isAccessible = low_bound
+                                  && design_variable
+                                  && design_plus_dual
+                                  && upp_bound
+                                  && dual_inequality
+                                  && active;
+        if (isAccessible) {
+            std::cout << std::setw(printWidth) << std::left << *low_bound;
+            std::cout << std::setw(printWidth) << std::left << *design_variable;
+            std::cout << std::setw(printWidth) << std::left << *design_plus_dual;
+            std::cout << std::setw(printWidth) << std::left << *upp_bound;
+            std::cout << std::setw(printWidth) << std::left << *dual_inequality;
+            std::cout << std::setw(printWidth) << std::left << *active;
+            std::cout << std::endl;
+        }
+    }
+    MPI_Barrier(MPI_COMM_WORLD);
+    pcout << std::endl;
+    pcout << std::endl;
+    pcout << "Equality dual before KKT iteration" << std::endl;
+    for (int i = 0; i < dual_equalities.dimension(); i++) {
+        MPI_Barrier(MPI_COMM_WORLD);
+        // Avoid printing simulation variables
+        if (is_full_space_ && i < design_simulation_dimension) continue;
+
+        const std::optional<Real> dual_equality = get_value(i, dual_equalities);
+        if (dual_equality) {
+            std::cout << std::setw(printWidth) << std::left << *dual_equality;
+            std::cout << std::endl;
+        }
+    }
+    MPI_Barrier(MPI_COMM_WORLD);
+    pcout << std::endl;
+    pcout << std::endl;
+
+    std::cout.precision(ss);
+    std::cout << std::scientific;
+    std::cout << std::noshowpos;
 }
+
+template <typename Real>
+void PrimalDualActiveSetStep<Real>::printSearchDirection (
+    const std::string& vector_name,
+    const Vector& search_design,
+    const Vector& search_dual_equality,
+    const Vector& search_dual_inequality) const
+{
+    pcout << std::endl;
+    std::streamsize ss = std::cout.precision();
+    std::cout << std::scientific;
+    std::cout << std::showpos;
+    std::cout.precision(12);
+
+    constexpr int printWidth = 34;
+    pcout << std::setw(printWidth) << std::left << vector_name + " Design";
+    pcout << std::setw(printWidth) << std::left << vector_name + " Dual Ineq.";
+    pcout << std::endl;
+
+    int design_simulation_dimension = 0;
+    if (is_full_space_) {
+        ROL::Ptr<const Vector> design  = dynamic_cast<const ROL::PartitionedVector<Real>&>(search_design).get(0);
+        ROL::Ptr<const Vector> design_simulation = (dynamic_cast<const ROL::Vector_SimOpt<Real>&>(*design)).get_1();
+        design_simulation_dimension = design_simulation->dimension();
+    }
+    for (int i = 0; i < search_design.dimension(); i++) {
+        MPI_Barrier(MPI_COMM_WORLD);
+        // Avoid printing simulation variables
+        if (is_full_space_ && i < design_simulation_dimension) continue;
+
+        const std::optional<Real> design  = get_value(i, search_design);
+        const std::optional<Real> dual_inequality  = get_value(i, search_dual_inequality);
+        if (design && dual_inequality) {
+            std::cout << std::setw(printWidth) << std::left << *design;
+            std::cout << std::setw(printWidth) << std::left << *dual_inequality;
+            std::cout << std::endl;
+        }
+    }
+    MPI_Barrier(MPI_COMM_WORLD);
+    pcout << std::endl;
+
+    pcout << std::setw(printWidth) << std::left << vector_name + " Dual Eq.";
+    for (int i = 0; i < search_dual_equality.dimension(); i++) {
+        MPI_Barrier(MPI_COMM_WORLD);
+        // Avoid printing simulation variables
+        if (is_full_space_ && i < design_simulation_dimension) continue;
+
+        const std::optional<Real> dual_equality = get_value(i, search_dual_equality);
+        if (dual_equality) {
+            std::cout << std::setw(printWidth) << std::left << *dual_equality;
+            std::cout << std::endl;
+        }
+    }
+    MPI_Barrier(MPI_COMM_WORLD);
+    pcout << std::endl;
+    pcout << std::endl;
+
+    std::cout.precision(ss);
+    std::cout << std::scientific;
+    std::cout << std::noshowpos;
+}
+
 template<typename Real>
-void set_value(unsigned int i, const Real value, ROL::Vector<Real> &vec) {
+void printKktSystem (const ROL::Vector<Real>& rhs,
+                     const ROL::LinearOperator<Real>& hessian,
+                     const ROL::LinearOperator<Real>& precond)
+{
+    if (1 != dealii::Utilities::MPI::n_mpi_processes(MPI_COMM_WORLD)) return;
 
-    try {
-        /// Base case 1
-        /// We have a VectorAdapter from deal.II which can return a value (if single processor).
-        PHiLiP::ROL_vector_to_dealii_vector_reference(vec)[i] = value;
-        return;
-    } catch (...) {
-        try {
-            /// Base case 2
-            /// We have a Singleton, which can return a value
-            auto &vec_singleton = dynamic_cast<ROL::SingletonVector<Real>&>(vec);
-            vec_singleton.setValue(value);
-            return;
-        } catch (const std::bad_cast& e) {
+    ROL::Ptr<ROL::Vector<Real>> column_of_kkt_operator = rhs.clone();
+    ROL::Ptr<ROL::Vector<Real>> column_of_precond_kkt_operator = rhs.clone();
 
-            try {
-                /// Try to convert into Vector_SimOpt
-                auto &vec_simopt = dynamic_cast<ROL::Vector_SimOpt<Real>&>(vec);
+    const int rhs_size = rhs.dimension();
+    dealii::FullMatrix<double> fullA(rhs_size);
 
-                const unsigned int size_1 = vec_simopt.get_1()->dimension();
+    for (int i = 0; i < rhs_size; ++i) {
+        std::cout << "RHS NUMBER: " << i+1 << " OUT OF " << rhs_size << ": ";
+        std::cout << *get_value<Real>(i, rhs) << std::endl;
+    }
+    Real tol = ROL::ROL_EPSILON<Real>();
+    for (int i = 0; i < rhs_size; ++i) {
+        ROL::Ptr<ROL::Vector<Real>> basis = rhs.basis(i);
+        MPI_Barrier(MPI_COMM_WORLD);
 
-                if (i < size_1) {
-                    set_value(i, value, *(vec_simopt.get_1()));
-                } else {
-                    set_value(i-size_1, value, *(vec_simopt.get_2()));
-                }
-                return;
-            } catch (const std::bad_cast& e) {
-                /// Try to convert into PartitionedVector
-                auto &vec_part = dynamic_cast<ROL::PartitionedVector<Real>&>(vec);
+        hessian.apply(*column_of_kkt_operator,*basis, tol);
 
-                const unsigned int numVec = vec_part.numVectors();
-
-                unsigned int start_index = 0;
-                unsigned int end_index = 0;
-                for (unsigned int i_vec = 0; i_vec < numVec; ++i_vec) {
-                    start_index = end_index;
-                    end_index += vec_part[i_vec].dimension();
-                    if (i < end_index) {
-                        set_value(i-start_index, value, vec_part[i_vec]);
-                        return;
-                    }
-                }
+        const bool print_preconditionned_system = true;
+        if (print_preconditionned_system) {
+            precond.applyInverse(*column_of_precond_kkt_operator,*column_of_kkt_operator, tol);
+            for (int j = 0; j < rhs_size; ++j) {
+                fullA[j][i] = *get_value(j,*column_of_precond_kkt_operator);
+            }
+        } else {
+            // Print KKT system
+            for (int j = 0; j < rhs_size; ++j) {
+                fullA[j][i] = *get_value(j,*column_of_kkt_operator);
             }
         }
     }
-    throw;
+    std::cout<<"Dense matrix:"<<std::endl;
+    fullA.print_formatted(std::cout, 10, true, 18, "0", 1., 0.);
+    //std::abort();
 }
 
+// Constrained PDAS
 template<typename Real>
 void PrimalDualActiveSetStep<Real>::compute(
-    ROL::Vector<Real> &search_direction_design,
-    const ROL::Vector<Real> &design_variables,
-    const ROL::Vector<Real> &dual_equality,
+    Vector &search_direction_design,
+    const Vector &design_variables,
+    const Vector &dual_equality,
     ROL::Objective<Real> &objective,
     ROL::Constraint<Real> &equality_constraints, 
     ROL::BoundConstraint<Real> &bound_constraints, 
     ROL::AlgorithmState<Real> &algo_state )
 {
+    const bool DO_LINE_SEARCH = false;
+    const bool DO_PROJECT_DESIGN_FEASIBLE = false;
+
+    const bool oldSecantHessVec = useSecantHessVec_;
+    if (d_force_use_bfgs) {
+        useSecantHessVec_ = true;
+    }
+
     ROL::Ptr<ROL::StepState<Real> > step_state = ROL::Step<Real>::getState();
     Real one(1); (void) one;
     search_direction_design.zero();
     quadratic_residual_->set(*(step_state->gradientVec));
 
 
-    ROL::Ptr<ROL::Vector<Real>> new_dual_equality = dual_equality.clone();
+    VectorPtr new_dual_equality = dual_equality.clone();
     new_dual_equality->set(dual_equality);
 
-    ROL::Ptr<ROL::Vector<Real>> old_dual_equality = dual_equality.clone();
+    VectorPtr old_dual_equality = dual_equality.clone();
     old_dual_equality->set(dual_equality);
 
     // PDAS iterates through 3 steps.
@@ -1825,100 +737,179 @@ void PrimalDualActiveSetStep<Real>::compute(
     // 2. Use active set to determine search direction of the active constraints
     // 3. Solve KKT system for remaining inactive constraints
 
-    ROL::Ptr<ROL::Vector<Real>> rhs_design = design_variables.clone();
-    ROL::Ptr<ROL::Vector<Real>> rhs_dual_equality = dual_equality.clone();
-    ROL::Ptr<ROL::Vector<Real>> rhs_dual_inequality = design_variables.clone();
+    VectorPtr rhs_design = design_variables.clone();
+    VectorPtr rhs_dual_equality = dual_equality.clone();
+    VectorPtr rhs_dual_inequality = design_variables.clone();
 
-    ROL::Ptr<ROL::PartitionedVector<Real>> rhs_partitioned
-        = ROL::makePtr<ROL::PartitionedVector<Real>>(
-            std::vector<ROL::Ptr<ROL::Vector<Real>> >(
-                {rhs_design, rhs_dual_equality, rhs_dual_inequality}
-            )
-          );
+    ROL::Ptr<ROL::PartitionedVector<Real>> rhs_partitioned = ROL::makePtr<ROL::PartitionedVector<Real>>(
+            std::vector<VectorPtr >( {rhs_design, rhs_dual_equality, rhs_dual_inequality}));
 
-    ROL::Ptr<ROL::Vector<Real>> search_design = design_variables.clone();
-    ROL::Ptr<ROL::Vector<Real>> search_dual_equality = dual_equality.clone();
-    ROL::Ptr<ROL::Vector<Real>> search_dual_inequality = design_variables.clone();
+    VectorPtr search_design = design_variables.clone();
+    VectorPtr search_dual_equality = dual_equality.clone();
+    VectorPtr search_dual_inequality = design_variables.clone();
 
-    ROL::Ptr<ROL::PartitionedVector<Real>> search_partitioned 
-        = ROL::makePtr<ROL::PartitionedVector<Real>>(
-            std::vector<ROL::Ptr<ROL::Vector<Real>> >(
-                {search_design, search_dual_equality, search_dual_inequality}
-            )
-          );
-    //const ROL::Ptr<ROL::Vector<Real>> search_design          = search_partitioned->get(0);
-    //const ROL::Ptr<ROL::Vector<Real>> search_dual_equality   = search_partitioned->get(1);
-    //const ROL::Ptr<ROL::Vector<Real>> search_dual_inequality = search_partitioned->get(2);
+    ROL::Ptr<ROL::PartitionedVector<Real>> search_partitioned = ROL::makePtr<ROL::PartitionedVector<Real>>(
+            std::vector<VectorPtr >( {search_design, search_dual_equality, search_dual_inequality}));
 
-    ROL::Ptr<ROL::Vector<Real>> rhs_design_temp = rhs_design->clone(); 
-    ROL::Ptr<ROL::Vector<Real>> rhs_dual_inequality_temp = rhs_dual_inequality->clone();
+    VectorPtr rhs_design_temp = rhs_design->clone(); 
+    VectorPtr rhs_dual_inequality_temp = rhs_dual_inequality->clone();
 
     Real tol = ROL::ROL_EPSILON<Real>();
-    ROL::Ptr<ROL::Vector<Real>> objective_gradient = design_variables.clone();
+    VectorPtr objective_gradient = design_variables.clone();
     objective.gradient(*objective_gradient, design_variables, tol);
 
-    // pcout << "Old design: " << std::endl;
-    // for (int i = 0; i < design_variables.dimension(); ++i) {
-    //     pcout << get_value<Real>(i, design_variables) << std::endl;
-    // }
-    // pcout << "Old dual equality: " << std::endl;
-    // for (int i = 0; i < new_dual_equality_->dimension(); ++i) {
-    //     pcout << get_value<Real>(i, *new_dual_equality_) << std::endl;
-    // }
-    // pcout << "Old dual inequality: " << std::endl;
-    // for (int i = 0; i < dual_inequality_->dimension(); ++i) {
-    //     pcout << get_value<Real>(i, *dual_inequality_) << std::endl;
-    // }
+    iter_Krylov_ = 0;
 
-    old_dual_inequality_->set(*dual_inequality_);
-    new_design_variables_->set(design_variables);
+    Real max_eig_estimate_ = 0.0;
+    const bool power_method = false;
+    if (is_full_space_ && power_method) {
+        auto& equality_constraints_partitioned = dynamic_cast<ROL::Constraint_Partitioned<Real>&>(equality_constraints);
+        auto flow_constraints = ROL::dynamicPtrCast<PHiLiP::FlowConstraints<PHILIP_DIM>>(equality_constraints_partitioned.get(0));
+
+        auto& slackless_objective = dynamic_cast<ROL::SlacklessObjective<Real>&>(objective);
+        auto objective_simopt = ROL::dynamicPtrCast<ROL::Objective_SimOpt<Real>>(slackless_objective.getObjective());
+
+        auto design_sim_ctl = (dynamic_cast<const ROL::PartitionedVector<Real>&>(design_variables)).get(0);
+        auto dual_equality_partitioned = dynamic_cast<const ROL::PartitionedVector<Real>&>(dual_equality);
+        auto design_simulation = (ROL::dynamicPtrCast<const ROL::Vector_SimOpt<Real>>(design_sim_ctl))->get_1();
+        auto design_control    = (ROL::dynamicPtrCast<const ROL::Vector_SimOpt<Real>>(design_sim_ctl))->get_2();
+        auto dual_state = dual_equality_partitioned.get(0);
+
+        auto design_simulation_clone = design_simulation->clone(); design_simulation_clone->set(*design_simulation);
+        auto design_control_clone = design_control->clone(); design_control_clone->set(*design_control);
+        auto dual_state_clone = dual_state->clone(); dual_state_clone->set(*dual_state);
+
+        auto approximate_flow_constraints = ROL::makePtr<ApproximateJacobianFlowConstraints>( flow_constraints, design_simulation, design_control);
+        (void) approximate_flow_constraints;
+        //auto robj = ROL::makePtr<ROL::Reduced_Objective_SimOpt<double>>( objective_simopt, flow_constraints, design_simulation, design_control, dual_state);
+        auto robj = ROL::makePtr<ROL::Reduced_Objective_SimOpt<double>>( objective_simopt, approximate_flow_constraints, design_simulation_clone, design_control_clone, dual_state_clone);
+
+        auto oldVec = design_control->clone();
+        auto newVec = design_control->clone();
+
+        oldVec->setScalar(1.0);
+
+        double vec_norm = oldVec->norm();
+        oldVec->scale(1.0/vec_norm);
+        newVec->set(*oldVec);
+
+        for (int i = 0; i < 500; ++i) {
+            robj->hessVec(*newVec,*oldVec,*design_control,tol);
+
+            vec_norm = newVec->norm();
+
+            max_eig_estimate_ = newVec->dot(*oldVec) / oldVec->dot(*oldVec);
+            newVec->scale(1.0/vec_norm);
+
+            oldVec->set(*newVec);
+
+            pcout << "max_eig_estimate_ " << max_eig_estimate_ << std::endl;
+        }
+        const double largest_eig_estimate = max_eig_estimate_;
+        pcout << "power_method: largest_eig_estimate_ " << max_eig_estimate_ << std::endl;
+        max_eig_estimate_ = std::abs(max_eig_estimate_);
+        if (max_eig_estimate_ < 0) {
+            max_eig_estimate_ = std::abs(max_eig_estimate_);
+        } else {
+
+            const double first_largest_positive_eig = max_eig_estimate_;
+            oldVec->setScalar(1.0);
+            double vec_norm = oldVec->norm();
+            oldVec->scale(1.0/vec_norm);
+            newVec->set(*oldVec);
+
+            double previous_eig;
+            for (int i = 0; i < 500; ++i) {
+                robj->hessVec(*newVec,*oldVec,*design_control,tol);
+                newVec->axpy(-first_largest_positive_eig,*oldVec);
+
+                vec_norm = newVec->norm();
+
+                previous_eig = max_eig_estimate_;
+                max_eig_estimate_ = newVec->dot(*oldVec) / oldVec->dot(*oldVec);
+                newVec->scale(1.0/vec_norm);
+
+                oldVec->set(*newVec);
+
+                pcout << "deflated_max_eig_estimate_ " << max_eig_estimate_ << std::endl;
+            }
+            pcout << "power_method: largest_eig_estimate_ " << largest_eig_estimate << std::endl;
+            pcout << "power_method: deflated_eig " << max_eig_estimate_ << std::endl;
+            const double max_previous_eig = previous_eig + first_largest_positive_eig;
+            const double max_negative_eig = max_eig_estimate_ + first_largest_positive_eig;
+            //if (max_previous_eig > max_negative_eig) {
+            (void) max_previous_eig;
+            if (max_negative_eig < 0) {
+                max_eig_estimate_ = std::abs(max_negative_eig);
+            } else {
+                max_eig_estimate_ = 0.0;
+            }
+            //add_identity_ = 0.0;
+        }
+        pcout << "power_method: max_negative_eig_estimate_ " << max_eig_estimate_ << std::endl;
+    }
+    // POWER METHOD to find largest??
+    // https://scicomp.stackexchange.com/questions/10321/largest-negative-eigenvalue
+    //const Real identity_factor_ = 10.0;
+    //const Real identity_factor_ = std::sqrt(algo_state.gnorm) * 3.0;
+    //const Real identity_factor_ = 1.0;//algo_state.gnorm * 3.0;
+    //const Real identity_factor_ = 0.0;//std::min(algo_state.gnorm * algo_state.gnorm, 0.25) * 1000.0;
+    //const Real identity_factor_ = std::min(algo_state.gnorm * algo_state.gnorm, 0.25) * 100.0;//1000.0;
+    //const Real identity_factor_ = std::min(std::pow(algo_state.gnorm, 1.5), 0.25) * 100.0;//1000.0;
+    //const Real identity_factor_ = std::min(std::pow(algo_state.gnorm, 1.5), 0.25) * 1000.0;//1000.0;
+    //const Real identity_factor = std::min(std::pow(algo_state.gnorm, 1.0), 0.25) * 100.0;//1000.0;
+    //const Real identity_factor_ = std::min(algo_state.gnorm, 0.25) * 300.0;//1000.0;
+    Real identity_factor = std::min(std::pow(algo_state.gnorm, 1.0), 0.25) * 10.0;//1000.0;
+    if (!is_full_space_) identity_factor /= 10.0;
+    identity_factor_ = identity_factor + max_eig_estimate_;
+    pcout << "identity_factor = " << identity_factor << std::endl;
+    pcout << "identity_factor_ + max_eig_estimate_ = " << identity_factor_ << std::endl;
+
     for ( iter_PDAS_ = 0; iter_PDAS_ < maxit_; iter_PDAS_++ ) {
 
         /********************************************************************/
         // Modify iterate vector to check active set
         /********************************************************************/
         des_plus_dual_->set(*new_design_variables_);    // des_plus_dual = initial_desvar
-        const Real positive_scale = 0.001;
-        des_plus_dual_->axpy(positive_scale,*(dual_inequality_));    // des_plus_dual = initial_desvar + c*dualvar, note that papers would usually divide by scale_ instead of multiply
+        // The larger the scale, the harder it will try and predict the next active set.
+        // However, a large scale might result in bouncing back and forth between the active constraints.
+        //const Real positive_scale = 0.00001;
+        const Real positive_scale = 0.01;
+        // des_plus_dual = initial_desvar + c*dualvar, note that papers would usually divide by scale_ instead of multiply
+        des_plus_dual_->axpy(positive_scale,*(dual_inequality_));
 
-        //pcout << "des_plus_dual: " << std::endl;
-        //for (int i = 0; i < des_plus_dual_->dimension(); ++i) {
-        //    pcout << get_value<Real>(i, *des_plus_dual_) << std::endl;
-        //}
-        auto des_plus_dual_clone = des_plus_dual_->clone();
-        des_plus_dual_clone->set(*des_plus_dual_);
-        bound_constraints.pruneActive( *des_plus_dual_clone, *des_plus_dual_, neps_);
-        std::cout << "des_plus_dual_clone norm: " << des_plus_dual_clone->norm() << std::endl;
-        static unsigned int index_to_project_interior = 0;
+        auto projected_design_plus_dual = des_plus_dual_->clone();
+        projected_design_plus_dual->set(*des_plus_dual_);
+        bound_constraints.pruneActive( *projected_design_plus_dual, *des_plus_dual_, neps_);
+        if (projected_design_plus_dual->norm() < 1e-14) {
+        //if (getCtlOpt(*projected_design_plus_dual)->norm() < 1e-14) {
+            // If all the bounded constraints are estimated to be active,
+            // rotate between the indices of the active constraints.
 
-        if (des_plus_dual_clone->norm() < 1e-14) {
-
-            des_plus_dual_clone->set(*des_plus_dual_);
-            bound_constraints.projectInterior( *des_plus_dual_clone );
-            //const unsigned int n = des_plus_dual_->dimension();
-            const unsigned int n = getCtlOpt(design_variables)->dimension();
-
-
+            // WARNING:
+            // Need to be careful in full-space
+            // Can't rotate through state variables.
+            projected_design_plus_dual->set(*des_plus_dual_);
+            bound_constraints.projectInterior( *projected_design_plus_dual );
+            const unsigned int n = des_plus_dual_->dimension();
+            //const unsigned int n = getCtlOpt(design_variables)->dimension();
             const unsigned int index = index_to_project_interior % n;
 
-            //for (int i = 0; i < des_plus_dual_->dimension(); ++i) {
-            //    pcout << get_value<Real>(i, *des_plus_dual_) << std::endl;
-            //}
+            std::cout << "ALL CONSTRAINTS ACTIVE, overdefined problem. Projecting index "<< index << " in feasible region..." << std::endl;
+            std::cout << "projected_design_plus_dual norm: " << projected_design_plus_dual->norm() << std::endl;
 
-            set_value(index, get_value(index, *des_plus_dual_clone), *des_plus_dual_);
+            const std::optional<Real> val = get_value(index, *projected_design_plus_dual);
+            set_value(index, *val, *des_plus_dual_);
             index_to_project_interior++;
-
-            //for (int i = 0; i < des_plus_dual_->dimension(); ++i) {
-            //    pcout << get_value<Real>(i, *des_plus_dual_) << std::endl;
-            //}
-            
-
-            //bound_constraints.projectInterior( *new_design_variables_ );
-            //dual_inequality_->zero();
-            //des_plus_dual_->set(*new_design_variables_);    // des_plus_dual = initial_desvar
-            //des_plus_dual_->axpy(positive_scale,*(dual_inequality_));    // des_plus_dual = initial_desvar + c*dualvar, note that papers would usually divide by scale_ instead of multiply
         }
 
+        auto active_indices_one = des_plus_dual_->clone();
+        bound_constraints.setActiveEntriesToOne( *active_indices_one, *des_plus_dual_ );
+
+        printDesignDual("Before KKT iteration", *new_design_variables_, bound_constraints, *dual_inequality_, *des_plus_dual_, *new_dual_equality);
+
+        const int objective_type = 2; // 0 = nonlinear, 1 = linear, 2 = quadratic
+        const int constraint_type = 1; // 0 = nonlinear, 1 = linear
         compute_PDAS_rhs(
             design_variables,
             *new_design_variables_,
@@ -1929,18 +920,17 @@ void PrimalDualActiveSetStep<Real>::compute(
             objective, 
             equality_constraints, 
             bound_constraints, 
-            *rhs_partitioned);
+            *rhs_partitioned,
+            objective_type,
+            constraint_type,
+            *objective_secant_,
+            useSecantHessVec_);//, add_identity_factor);
 
-        //if (rhs_partitioned->norm() < gtol_*algo_state.gnorm) {
         pcout << "RHS norm: " << rhs_partitioned->norm() << std::endl;
-        /********************************************************************/
-        //const unsigned int rhs_size = rhs_partitioned->dimension();
-        //pcout << "RHS: " << std::endl;
-        //for (unsigned int i = 0; i < rhs_size; ++i) {
-        //    pcout << get_value<Real>(i, *rhs_partitioned) << std::endl;
-        //}
+
         if (rhs_partitioned->norm() < gtol_*algo_state.gnorm) {
             flag_PDAS_ = 0;
+            pcout << "QP problem converged because RHS norm < 1e-4 * gnorm..." << std::endl;
             break;
         }
         search_partitioned->set(*rhs_partitioned);
@@ -1949,50 +939,46 @@ void PrimalDualActiveSetStep<Real>::compute(
         const ROL::Ptr<ROL::Objective<Real> >       objective_ptr           = ROL::makePtrFromRef(objective);
         const ROL::Ptr<ROL::Constraint<Real> >      equality_constraint_ptr = ROL::makePtrFromRef(equality_constraints);
         const ROL::Ptr<ROL::BoundConstraint<Real> > bound_constraint_ptr    = ROL::makePtrFromRef(bound_constraints);
-        const ROL::Ptr<const ROL::Vector<Real> >    old_design_var_ptr      = ROL::makePtrFromRef(design_variables);
-        const ROL::Ptr<ROL::Vector<Real> >    old_dual_equality_ptr   = ROL::makePtrFromRef(*old_dual_equality);
-        //const Real add_identity_factor = 10.0;
-        //const Real add_identity_factor = std::sqrt(algo_state.gnorm) * 3.0;
-        //const Real add_identity_factor = 1.0;//algo_state.gnorm * 3.0;
-        const Real add_identity_factor = 0.0;//algo_state.gnorm * 3.0;
+        const ROL::Ptr<const Vector >    old_design_var_ptr      = ROL::makePtrFromRef(design_variables);
+        const VectorPtr    old_dual_equality_ptr   = ROL::makePtrFromRef(*old_dual_equality);
         pcout << "Building PDAS KKT system..." << std::endl;
-        ROL::Ptr<ROL::LinearOperator<Real> > hessian = ROL::makePtr<PDAS_KKT_System>(objective_ptr,
-                                                                                     equality_constraint_ptr, bound_constraint_ptr,
-                                                                                     old_design_var_ptr, old_dual_equality_ptr, des_plus_dual_,
-                                                                                     add_identity_factor, neps_, secant_, useSecantHessVec_);
-        ROL::Ptr<ROL::LinearOperator<Real> > precond = ROL::makePtr<Identity_Preconditioner>();
+        ROL::Ptr<ROL::LinearOperator<Real> > hessian = ROL::makePtr<PDAS_KKT_System<Real>>(objective_ptr,
+                                                                                           equality_constraint_ptr, bound_constraint_ptr,
+                                                                                           old_design_var_ptr, old_dual_equality_ptr,
+                                                                                           des_plus_dual_,
+                                                                                           identity_factor_, neps_,
+                                                                                           //objective_secant_, useSecantHessVec_);
+                                                                                           lagrangian_secant_, useSecantHessVec_);
+        ROL::Ptr<ROL::LinearOperator<Real> > precond = ROL::makePtr<Identity_Preconditioner<Real>>();
 
-        // Get FlowConstraint
-        const ROL::Ptr<ROL::Constraint_Partitioned<Real> >  equality_constraint_partitioned_ptr = ROL::makePtrFromRef(dynamic_cast<ROL::Constraint_Partitioned<Real>&>(*equality_constraint_ptr));
-        const ROL::Ptr<ROL::Constraint<Real> >  state_constraints_ptr = equality_constraint_partitioned_ptr->get(0);
-
-        pcout << "Build constraints..." << std::endl;
-        // Get remaining constraints
-        const unsigned int n_equality_constraints_ = equality_constraint_partitioned_ptr->get_n_constraints();
-        std::vector<ROL::Ptr<ROL::Constraint<Real> >>  remaining_equality_constraints(n_equality_constraints_-1);
-        std::vector<bool>  remaining_is_inequality(n_equality_constraints_-1);
-        for (unsigned int i = 0; i < n_equality_constraints_-1; ++i) {
-            remaining_equality_constraints[i] = equality_constraint_partitioned_ptr->get(i+1);
-            remaining_is_inequality[i] = equality_constraint_partitioned_ptr->isInequality_[i+1];
-        }
-        ROL::Constraint_Partitioned<Real> other_equality_constraints(remaining_equality_constraints, remaining_is_inequality);
-        const ROL::Ptr<ROL::Constraint_Partitioned<Real> >  other_equality_constraints_ptr = ROL::makePtrFromRef(other_equality_constraints);
-
-        pcout << "Build dual vectors..." << std::endl;
-        const ROL::Ptr<ROL::PartitionedVector<Real> >  old_dual_equality_partitioned_ptr = ROL::makePtrFromRef(dynamic_cast<ROL::PartitionedVector<Real>&>(*old_dual_equality_ptr));
-        const ROL::Ptr<const ROL::Vector<Real>>   dual_state_ptr = old_dual_equality_partitioned_ptr->get(0);
-
-        const unsigned int n_dual_vecs = old_dual_equality_partitioned_ptr->numVectors();
-        std::vector<ROL::Ptr<ROL::Vector<Real>>> other_dual_equality_vectors(n_dual_vecs-1);
-        for (unsigned int i_vec = 1; i_vec < n_dual_vecs; ++i_vec) {
-            other_dual_equality_vectors[i_vec-1] = old_dual_equality_partitioned_ptr->get(i_vec);
-        }
-        const ROL::PartitionedVector<Real> other_dual_equality_partitioned(other_dual_equality_vectors);
-        const ROL::Ptr<const ROL::PartitionedVector<Real> >  other_dual_equality_partitioned_ptr = ROL::makePtrFromRef(other_dual_equality_partitioned);
-
-
-
+        ROL::Ptr<ROL::Constraint_Partitioned<Real> >  other_equality_constraints_ptr;
+        ROL::Ptr<const ROL::PartitionedVector<Real> >  other_dual_equality_partitioned_ptr;
         if (is_full_space_) {
+            // Get equality FlowConstraint
+            const ROL::Ptr<ROL::Constraint_Partitioned<Real> >  equality_constraint_partitioned_ptr = ROL::dynamicPtrCast<ROL::Constraint_Partitioned<Real>>(equality_constraint_ptr);
+            const ROL::Ptr<ROL::Constraint<Real> >  state_constraints_ptr = equality_constraint_partitioned_ptr->get(0);
+
+            pcout << "Build constraints..." << std::endl;
+            // Get remaining constraints
+            const unsigned int n_equality_constraints = equality_constraint_partitioned_ptr->get_n_constraints();
+            std::vector<ROL::Ptr<ROL::Constraint<Real> >> remaining_equality_constraints(n_equality_constraints-1);
+            std::vector<bool> remaining_is_inequality(n_equality_constraints-1);
+            for (unsigned int i = 1; i < n_equality_constraints; ++i) {
+                remaining_equality_constraints[i-1] = equality_constraint_partitioned_ptr->get(i);
+                remaining_is_inequality[i-1] = equality_constraint_partitioned_ptr->isInequality_[i];
+            }
+            other_equality_constraints_ptr = ROL::makePtr<ROL::Constraint_Partitioned<Real>>(remaining_equality_constraints, remaining_is_inequality);
+
+            pcout << "Build dual vectors..." << std::endl;
+            const ROL::Ptr<ROL::PartitionedVector<Real> >  old_dual_equality_partitioned_ptr = ROL::dynamicPtrCast<ROL::PartitionedVector<Real>>(old_dual_equality_ptr);
+            const ROL::Ptr<const Vector>   dual_state_ptr = old_dual_equality_partitioned_ptr->get(0);
+
+            const unsigned int n_dual_vecs = old_dual_equality_partitioned_ptr->numVectors();
+            std::vector<VectorPtr> other_dual_equality_vectors(n_dual_vecs-1);
+            for (unsigned int i_vec = 1; i_vec < n_dual_vecs; ++i_vec) {
+                other_dual_equality_vectors[i_vec-1] = old_dual_equality_partitioned_ptr->get(i_vec);
+            }
+            other_dual_equality_partitioned_ptr = ROL::makePtr<ROL::PartitionedVector<Real>>(other_dual_equality_vectors);
 
             auto &slackless_objective = dynamic_cast<ROL::SlacklessObjective<Real> &>(*objective_ptr);
             auto &objective_simopt = dynamic_cast<ROL::Objective_SimOpt<Real> &>(*(slackless_objective.getObjective()));
@@ -2008,69 +994,31 @@ void PrimalDualActiveSetStep<Real>::compute(
                 old_dual_inequality_,
                 des_plus_dual_,
                 neps_,
-                secant_
+                objective_secant_
                 );
         }
 
         pcout << "old_design_variables norm " << design_variables.norm() << std::endl;
         pcout << "new_design_variables_ norm " << new_design_variables_->norm() << std::endl;
 
-        //std::abort();
-        bool print_KKT = false;
-        //bool print_KKT = (algo_state.iter == 0);
+        bool print_KKT = (algo_state.iter < 0);
         if (print_KKT) {
-            const int do_full_matrix = (1 == dealii::Utilities::MPI::n_mpi_processes(MPI_COMM_WORLD));
-            //pcout << "do_full_matrix: " << do_full_matrix << std::endl;
-            if (do_full_matrix) {
-
-                auto column_of_kkt_operator = search_partitioned->clone();
-                auto column_of_precond_kkt_operator = search_partitioned->clone();
-
-                const int rhs_size = rhs_partitioned->dimension();
-                dealii::FullMatrix<double> fullA(rhs_size);
-
-                for (int i = 0; i < rhs_size; ++i) {
-                    pcout << "COLUMN NUMBER: " << i+1 << " OUT OF " << rhs_size << std::endl;
-                    auto basis = rhs_partitioned->basis(i);
-
-                    for (int j = 0; j < basis->dimension(); ++j) {
-                        pcout << get_value<Real>(j, *basis);
-                    }
-                    pcout << std::endl;
-                    MPI_Barrier(MPI_COMM_WORLD);
-                    {
-                        hessian->apply(*column_of_kkt_operator,*basis, tol);
-                        precond->applyInverse(*column_of_precond_kkt_operator,*column_of_kkt_operator, tol);
-
-                        //precond->applyInverse(*column_of_kkt_operator,*basis, tol);
-                        //hessian->apply(*column_of_precond_kkt_operator,*column_of_kkt_operator, tol);
-                    }
-                    //preconditioner.vmult(column_of_precond_kkt_operator,*basis);
-                    if (do_full_matrix) {
-                        for (int j = 0; j < rhs_size; ++j) {
-                            fullA[j][i] = get_value(j,*column_of_precond_kkt_operator);
-                            //fullA[j][i] = get_value(j,*column_of_kkt_operator);
-                            //pcout<< get_value(j,*basis) << " ";
-                        }
-                        //pcout << std::endl;
-                    }
-                }
-                pcout<<"Dense matrix:"<<std::endl;
-                fullA.print_formatted(std::cout, 10, true, 18, "0", 1., 0.);
-                std::abort();
-            }
+            printKktSystem(*search_partitioned, *hessian, *precond);
         }
 
         auto &gmres = dynamic_cast<ROL::GMRES<Real>&>(*krylov_);
         if(dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD)==0) gmres.enableOutput(std::cout);
-        gmres.run(*search_partitioned,*hessian,*rhs_partitioned,*precond,iter_Krylov_,flag_Krylov_);
+        int iter_Krylov_this_iteration = 0;
+        pcout << "right before gmres.run " << std::endl;
+        gmres.run(*search_partitioned,*hessian,*rhs_partitioned,*precond,iter_Krylov_this_iteration,flag_Krylov_);
+        pcout << "right after gmres.run " << std::endl;
+        iter_Krylov_ += iter_Krylov_this_iteration;
 
-        if (symmetrize_matrix_) {
-            bound_constraints.pruneInactive(*search_dual_inequality, *des_plus_dual_, tol);
-            //search_dual_inequality->zero();
-
+        if (SYMMETRIZE_MATRIX_) {
             rhs_dual_inequality_temp->set(*dual_inequality_);
             bound_constraints.pruneActive(*rhs_dual_inequality_temp, *des_plus_dual_, tol);
+
+            bound_constraints.pruneInactive(*search_dual_inequality, *des_plus_dual_, tol);
             search_dual_inequality->axpy(-one, *rhs_dual_inequality_temp);
 
             auto search_design_temp = rhs_dual_inequality->clone();
@@ -2079,75 +1027,94 @@ void PrimalDualActiveSetStep<Real>::compute(
             bound_constraints.pruneActive(*search_design, *des_plus_dual_, tol);
             search_design->axpy(one, *search_design_temp);
         }
+        pcout << "QP Search direction: " << std::endl;
+        printSearchDirection("Search", *search_design, *search_dual_equality, *search_dual_inequality);
 
-
-        pcout << "Search norm: " << search_partitioned->norm() << std::endl;
         pcout << "Search norm design: " << search_design->norm() << std::endl;
         pcout << "Search norm equality: " << search_dual_equality->norm() << std::endl;
         pcout << "Search norm inequality: " << search_dual_inequality->norm() << std::endl;
-        if (search_partitioned->norm() > 1e10) {
-
-            auto temp = search_dual_inequality->clone();
-
-            temp->set(*search_dual_inequality);
-            bound_constraints.pruneActive(*temp,*des_plus_dual_,tol);
-            pcout << "Search norm inactive inequality: " << temp->norm() << std::endl;
-
-            temp->set(*search_dual_inequality);
-            bound_constraints.pruneInactive(*temp,*des_plus_dual_,tol);
-            pcout << "Search norm active inequality: " << temp->norm() << std::endl;
-        }
+        pcout << "Search norm: " << search_partitioned->norm() << std::endl;
 
         // Check that inactive dual inequality equal to 0
-        rhs_dual_inequality_temp->set(*search_dual_inequality);
-        rhs_dual_inequality_temp->axpy(one,*dual_inequality_);
-        bound_constraints.pruneActive(*rhs_dual_inequality_temp,*des_plus_dual_,tol);
-        Real inactive_dual_inequality_norm = rhs_dual_inequality_temp->norm();
-        pcout << "Inactive dual inequality norm: " << inactive_dual_inequality_norm << std::endl;
+        {
+            rhs_dual_inequality_temp->set(*search_dual_inequality);
+            rhs_dual_inequality_temp->axpy(one,*dual_inequality_);
+            bound_constraints.pruneActive(*rhs_dual_inequality_temp,*des_plus_dual_,tol);
+            Real inactive_dual_inequality_norm = rhs_dual_inequality_temp->norm();
+            if (inactive_dual_inequality_norm != 0.0) {
+                std::cout << "Inactive dual_inequality is not zero" << std::endl;
+                std::abort();
+            }
+        }
 
-        /********************************************************************/
-        // Double check some values
-        // const unsigned int sea_size = search_partitioned->dimension();
-        // pcout << "Search: " << std::endl;
-        // for (unsigned int i = 0; i < sea_size; ++i) {
-        //     pcout << get_value<Real>(i, *search_partitioned) << std::endl;
-        // }
+        if (DO_LINE_SEARCH) {
+            /********************************************************************/
+            // UPDATE STEP 
+            /********************************************************************/
+            // NOTE: Using a linesearch here ruins the 1 KKT iteration of the Newton-based solver
+            // on the the quadratic objective linear constraint test case.
+            int max_linesearches = 100;
+            double steplength = 1.0;
+            double linesearch_factor = 0.8;
+            VectorPtr design_copy = new_design_variables_->clone();
+            design_copy->set(*new_design_variables_);
+            for (int i_linesearch = 0; i_linesearch < max_linesearches; ++i_linesearch) {
+                if (i_linesearch > 0) steplength *= linesearch_factor;
 
-        /********************************************************************/
-        // UPDATE STEP 
-        /********************************************************************/
-        new_design_variables_->plus(*search_design);
+                new_design_variables_->set(*design_copy);
+                new_design_variables_->axpy(steplength, *search_design);
+
+                rhs_design_temp->set(*new_design_variables_);
+                //printVec(*new_design_variables_);
+                bound_constraints.project(*new_design_variables_);
+                //printVec(*new_design_variables_);
+
+                rhs_design_temp->axpy(-one, *new_design_variables_);
+
+                // x <- f(x) = { 0      if x == 0
+                //             { 1      otherwise
+                class SetNonZeroToOne : public ROL::Elementwise::UnaryFunction<Real> {
+                public:
+                Real apply( const Real &x ) const {
+                    const Real zero(0);
+                    return (x == zero) ? 0 : 1.0;
+                }
+                }; // class SetNonZeroToOne
+                SetNonZeroToOne unary;
+                rhs_design_temp->applyUnary(unary);
+
+                Real difference_norm = rhs_design_temp->norm();
+                int number_of_violating_constraints = std::round(difference_norm * difference_norm);
+                pcout << i_linesearch << " n_constraint violated = " << number_of_violating_constraints << std::endl;
+                if (number_of_violating_constraints <= 2) break;
+                //if (rhs_design_temp->norm() == 0.0) break;
+            }
+            // new_dual_equality_->axpy(steplength, *search_dual_equality);
+            // dual_inequality_->axpy(steplength, *search_dual_inequality);
+            pcout << "QP Linesearch resulting in steplength of " << steplength << std::endl;
+        } else {
+            new_design_variables_->plus(*search_design);
+        }
         new_dual_equality_->plus(*search_dual_equality);
         dual_inequality_->plus(*search_dual_inequality);
 
-        if ( bound_constraints.isActivated() ) {
+        if ( DO_PROJECT_DESIGN_FEASIBLE && bound_constraints.isActivated() ) {
             bound_constraints.project(*new_design_variables_);
         }
 
-        // pcout << "new design: " << std::endl;
-        // for (int i = 0; i < new_design_variables_->dimension(); ++i) {
-        //     pcout << get_value<Real>(i, *new_design_variables_) << std::endl;
-        // }
-        // pcout << "new dual equality: " << std::endl;
-        // for (int i = 0; i < new_dual_equality_->dimension(); ++i) {
-        //     pcout << get_value<Real>(i, *new_dual_equality_) << std::endl;
-        // }
-        // pcout << "new dual inequality: " << std::endl;
-        // for (int i = 0; i < dual_inequality_->dimension(); ++i) {
-        //     pcout << get_value<Real>(i, *dual_inequality_) << std::endl;
-        // }
+        //const bool DO_CHECK_ACTIVE_DUAL = true;
+        //if (DO_CHECK_ACTIVE_DUAL) {
+        //    auto old_dual_inequality = dual_inequality_->clone();
+        //    old_dual_inequality->set(*dual_inequality_);
+        //    old_dual_inequality->axpy(-one, search_dual_inequality_);
+
+
+        //    auto dual_inequality_temp = dual_inequality_->clone();
+        //    dual_inequality_temp->set(
+        //}
 
         //quadratic_residual_->set(*(step_state->gradientVec));
         //quadratic_residual_->plus(*rhs_design_temp);
-
-        //// Compute criticality measure  
-        //desvar_tmp_->set(*new_design_variables_);
-        //desvar_tmp_->axpy(-one,quadratic_residual_->dual());
-        //bound_constraints.project(*desvar_tmp_);
-        //desvar_tmp_->axpy(-one,*new_design_variables_);
-        //std::cout << "des_var_temp " << desvar_tmp_->norm() << std::endl;
-        //std::cout << "gtol gnorm " << gtol_*algo_state.gnorm << std::endl;
-        //std::cout << "rhs_design_temp.norm() " << rhs_design_temp->norm() << std::endl;
 
         //  // Double check that the result matches
         //  search_direction_active_set_->zero();                                     // active_set_search_direction   = 0
@@ -2175,164 +1142,57 @@ void PrimalDualActiveSetStep<Real>::compute(
 
         if ( search_partitioned->norm() < gtol_*algo_state.gnorm ) {
             flag_PDAS_ = 0;
+            pcout << "QP problem converged because RHS norm < 1e-4 * gnorm..." << std::endl;
             break;
         }
         //if ( search_partitioned.norm() < stol_*design_variables.norm() ) {
         //    flag_PDAS_ = 2;
         //    break;
         //} 
+
+        des_plus_dual_->set(*new_design_variables_);
+        des_plus_dual_->axpy(positive_scale,*(dual_inequality_));
+
+        // If active set didn't change, exit QP.
+        auto new_active_indices_one = des_plus_dual_->clone();
+        bound_constraints.setActiveEntriesToOne( *new_active_indices_one, *des_plus_dual_ );
+        new_active_indices_one->axpy(-one, *active_indices_one);
+        if ( new_active_indices_one->norm() < 1e-10 ) {
+            flag_PDAS_ = 0;
+            pcout << "QP problem converged active set did not change..." << std::endl;
+            break;
+        }
+
     }
     if ( iter_PDAS_ == maxit_ ) {
         flag_PDAS_ = 1;
     } else {
         iter_PDAS_++;
     }
+    if (d_force_use_bfgs) {
+        useSecantHessVec_ = oldSecantHessVec;
+    }
 }
-  
+
 template<typename Real>
 void PrimalDualActiveSetStep<Real>::compute(
-    ROL::Vector<Real> &search_direction_design,
-    const ROL::Vector<Real> &design_variables,
+    Vector &search_direction_design,
+    const Vector &design_variables,
     ROL::Objective<Real> &objective,
     ROL::BoundConstraint<Real> &bound_constraints, 
     ROL::AlgorithmState<Real> &algo_state )
 {
-    ROL::Ptr<ROL::StepState<Real> > step_state = ROL::Step<Real>::getState();
-    Real zero(0), one(1);
-    search_direction_design.zero();
-    quadratic_residual_->set(*(step_state->gradientVec));
-
-    new_design_variables_->set(design_variables);
-    // PDAS iterates through 3 steps.
-    // 1. Estimate active set
-    // 2. Use active set to determine search direction of the active constraints
-    // 3. Solve KKT system for remaining inactive constraints
-    ROL::Ptr<ROL::Vector<Real>> rhs_design_temp = design_variables.clone(); 
-    for ( iter_PDAS_ = 0; iter_PDAS_ < maxit_; iter_PDAS_++ ) {
-        /********************************************************************/
-        // Modify iterate vector to check active set
-        /********************************************************************/
-        des_plus_dual_->set(*new_design_variables_);    // des_plus_dual = initial_desvar
-        des_plus_dual_->axpy(scale_,*(dual_inequality_));    // des_plus_dual = initial_desvar + c*dualvar, note that papers would usually divide by scale_ instead of multiply
-        /********************************************************************/
-        // Project design_variables onto primal dual feasible set
-        // Using approximation of the active set, obtain the search direction since
-        // we know that step will be constrained.
-        /********************************************************************/
-        search_direction_active_set_->zero();                                     // active_set_search_direction   = 0
-    
-        search_temp_->set(*bound_constraints.getUpperBound());                    // search_tmp = upper_bound
-        search_temp_->axpy(-one,design_variables);                                // search_tmp = upper_bound - design_variables
-        desvar_tmp_->set(*search_temp_);                                          // tmp        = upper_bound - design_variables
-        bound_constraints.pruneUpperActive(*desvar_tmp_,*des_plus_dual_,neps_);   // tmp        = (upper_bound - (upper_bound - design_variables + c*dual_variables)) < 0 ? 0 : upper_bound - design_variables
-        search_temp_->axpy(-one,*desvar_tmp_);                                    // search_tmp = ACTIVE(upper_bound - design_variables)
-
-        search_direction_active_set_->plus(*search_temp_);                        // active_set_search_direction += ACTIVE(upper_bound - design_variables)
-  
-        search_temp_->set(*bound_constraints.getLowerBound());                    // search_tmp = lower_bound
-        search_temp_->axpy(-one,design_variables);                                // search_tmp = lower_bound - design_variables
-        desvar_tmp_->set(*search_temp_);                                          // tmp        = lower_bound - design_variables
-        bound_constraints.pruneLowerActive(*desvar_tmp_,*des_plus_dual_,neps_);   // tmp        = INACTIVE(lower_bound - design_variables)
-        search_temp_->axpy(-one,*desvar_tmp_);                                    // search_tmp = ACTIVE(lower_bound - design_variables)
-        search_direction_active_set_->plus(*search_temp_);                        // active_set_search_direction += ACTIVE(lower_bound - design_variables)
-        /********************************************************************/
-        // Apply Hessian to active components of search_direction_design and remove inactive
-        /********************************************************************/
-        itol_ = std::sqrt(ROL::ROL_EPSILON<Real>());
-        // INACTIVE(H)*active_set_search_direction = H*active_set_search_direction
-        // INACTIVE(H)*active_set_search_direction = INACTIVE(H*active_set_search_direction)
-        gradient_tmp1_->zero();
-        if ( useSecantHessVec_ && secant_ != ROL::nullPtr ) {
-            secant_->applyB(*getOpt(*gradient_tmp1_),*getOpt(*search_direction_active_set_));
-        } else {
-            objective.hessVec(*gradient_tmp1_,*search_direction_active_set_,design_variables,itol_);
-            //gradient_tmp1_->axpy(10.0, *search_direction_active_set_);
-        }
-        bound_constraints.pruneActive(*gradient_tmp1_,*des_plus_dual_,neps_);
-        /********************************************************************/
-        // SEPARATE ACTIVE AND INACTIVE COMPONENTS OF THE GRADIENT
-        /********************************************************************/
-        // Inactive components
-        gradient_inactive_set_->set(*(step_state->gradientVec));
-        bound_constraints.pruneActive(*gradient_inactive_set_,*des_plus_dual_,neps_);
-        // Active components
-        gradient_active_set_->set(*(step_state->gradientVec));
-        gradient_active_set_->axpy(-one,*gradient_inactive_set_);
-        /********************************************************************/
-        // SOLVE REDUCED NEWTON SYSTEM 
-        /********************************************************************/
-
-        // rhs_design_temp = -(INACTIVE(gradient) + INACTIVE(H*active_set_search_direction))
-        rhs_design_temp->set(*gradient_inactive_set_);
-        rhs_design_temp->plus(*gradient_tmp1_);
-        rhs_design_temp->scale(-one);
-
-        search_direction_design.zero();
-        if ( rhs_design_temp->norm() > zero ) {             
-            // Initialize Hessian and preconditioner
-            ROL::Ptr<ROL::Objective<Real> >       objective_ptr  = ROL::makePtrFromRef(objective);
-            ROL::Ptr<ROL::BoundConstraint<Real> > bound_constraint_ptr = ROL::makePtrFromRef(bound_constraints);
-            ROL::Ptr<ROL::LinearOperator<Real> > hessian = ROL::makePtr<InactiveHessian>(objective_ptr, bound_constraint_ptr, algo_state.iterateVec, des_plus_dual_, neps_, secant_, useSecantHessVec_);
-            ROL::Ptr<ROL::LinearOperator<Real> > precond = ROL::makePtr<InactiveHessianPreconditioner>(objective_ptr, bound_constraint_ptr, algo_state.iterateVec, des_plus_dual_, neps_, secant_, useSecantPrecond_);
-            krylov_->run(search_direction_design,*hessian,*rhs_design_temp,*precond,iter_Krylov_,flag_Krylov_);
-            bound_constraints.pruneActive(search_direction_design,*des_plus_dual_,neps_);        // search_direction_design <- inactive_search_direction
-        }
-        search_direction_design.plus(*search_direction_active_set_);                             // search_direction_design = inactive_search_direction + active_set_search_direction
-        /********************************************************************/
-        // UPDATE MULTIPLIER 
-        /********************************************************************/
-        rhs_design_temp->zero();
-        if ( useSecantHessVec_ && secant_ != ROL::nullPtr ) {
-            secant_->applyB(*getOpt(*rhs_design_temp),*getOpt(search_direction_design));
-        } else {
-            objective.hessVec(*rhs_design_temp,search_direction_design,design_variables,itol_);
-            //rhs_design_temp->axpy(10.0, search_direction_design);
-        }
-        gradient_tmp1_->set(*rhs_design_temp);
-        bound_constraints.pruneActive(*gradient_tmp1_,*des_plus_dual_,neps_);
-
-        // dual^{k+1} = - ( ACTIVE(H * search_direction_design) + gradient_active_set_ )
-        dual_inequality_->set(*rhs_design_temp);
-        dual_inequality_->axpy(-one,*gradient_tmp1_);
-        dual_inequality_->plus(*gradient_active_set_);
-        dual_inequality_->scale(-one);
-        /********************************************************************/
-        // UPDATE STEP 
-        /********************************************************************/
-        new_design_variables_->set(design_variables);
-        new_design_variables_->plus(search_direction_design);
-        //quadratic_residual_->set(*(step_state->gradientVec));
-        //quadratic_residual_->plus(*rhs_design_temp);
-        quadratic_residual_->set(*rhs_design_temp);
-        // Compute criticality measure  
-        desvar_tmp_->set(*new_design_variables_);
-        desvar_tmp_->axpy(-one,quadratic_residual_->dual());
-        bound_constraints.project(*desvar_tmp_);
-        desvar_tmp_->axpy(-one,*new_design_variables_);
-        std::cout << "des_var_temp " << desvar_tmp_->norm() << std::endl;
-        std::cout << "gtol gnorm " << gtol_*algo_state.gnorm << std::endl;
-        std::cout << "rhs_design_temp.norm() " << rhs_design_temp->norm() << std::endl;
-
-        if ( desvar_tmp_->norm() < gtol_*algo_state.gnorm ) {
-            flag_PDAS_ = 0;
-            break;
-        }
-        if ( search_direction_design.norm() < stol_*design_variables.norm() ) {
-            flag_PDAS_ = 2;
-            break;
-        } 
-    }
-    if ( iter_PDAS_ == maxit_ ) {
-        flag_PDAS_ = 1;
-    } else {
-        iter_PDAS_++;
-    }
+    (void) search_direction_design;
+    (void) design_variables;
+    (void) objective;
+    (void) bound_constraints;
+    (void) algo_state;
 }
   
 template<typename Real>
 void PrimalDualActiveSetStep<Real>::update(
-    ROL::Vector<Real> &design_variables,
-    const ROL::Vector<Real> &search_direction_design,
+    Vector &design_variables,
+    const Vector &search_direction_design,
     ROL::Objective<Real> &objective,
     ROL::BoundConstraint<Real> &bound_constraints,
     ROL::AlgorithmState<Real> &algo_state )
@@ -2353,14 +1213,14 @@ void PrimalDualActiveSetStep<Real>::update(
     algo_state.value = objective.value(design_variables,tol);
     algo_state.nfval++;
     
-    if ( secant_ != ROL::nullPtr ) {
+    if ( objective_secant_ != ROL::nullPtr ) {
       gradient_tmp1_->set(*(step_state->gradientVec));
     }
     algo_state.gnorm = computeCriticalityMeasure(design_variables,objective,bound_constraints,tol);
     algo_state.ngrad++;
 
-    if ( secant_ != ROL::nullPtr ) {
-      secant_->updateStorage(design_variables,*(step_state->gradientVec),*gradient_tmp1_,search_direction_design,algo_state.snorm,algo_state.iter+1);
+    if ( objective_secant_ != ROL::nullPtr ) {
+      objective_secant_->updateStorage(design_variables,*(step_state->gradientVec),*gradient_tmp1_,search_direction_design,algo_state.snorm,algo_state.iter+1);
     }
     (algo_state.iterateVec)->set(design_variables);
 }
@@ -2368,8 +1228,10 @@ void PrimalDualActiveSetStep<Real>::update(
 template<typename Real>
 class PDAS_Lagrangian: public ROL::AugmentedLagrangian<Real>
 {
-    ROL::Ptr<ROL::Vector<Real> > active_des_minus_bnd;
-    const ROL::Vector<Real> &dual_inequality;
+    using Vector = ROL::Vector<Real>;
+    using VectorPtr = ROL::Ptr<Vector>;
+    VectorPtr active_des_minus_bnd;
+    const Vector &dual_inequality;
     ROL::Ptr<ROL::BoundConstraint<Real> > bound_constraints_;
 
     private:
@@ -2378,12 +1240,12 @@ class PDAS_Lagrangian: public ROL::AugmentedLagrangian<Real>
 public:
     PDAS_Lagrangian(const ROL::Ptr<ROL::Objective<Real> > &obj,
                     const ROL::Ptr<ROL::Constraint<Real> > &con,
-                    const ROL::Vector<Real> &multiplier,
+                    const Vector &multiplier,
                     const Real penaltyParameter,
-                    const ROL::Vector<Real> &optVec,
-                    const ROL::Vector<Real> &conVec,
+                    const Vector &optVec,
+                    const Vector &conVec,
                     ROL::ParameterList &parlist,
-                    const ROL::Vector<Real> &inequality_multiplier,
+                    const Vector &inequality_multiplier,
                     const ROL::Ptr<ROL::BoundConstraint<Real>> &bound_constraints)
     : ROL::AugmentedLagrangian<Real>(obj, con, multiplier, penaltyParameter, optVec, conVec, parlist)
     , dual_inequality(inequality_multiplier)
@@ -2392,16 +1254,36 @@ public:
     {
         active_des_minus_bnd = optVec.clone();
     }
-    virtual Real value( const ROL::Vector<Real> &x, Real &tol ) override
+    virtual Real value( const Vector &x, Real &tol ) override
     {
         Real val = ROL::AugmentedLagrangian<Real>::value(x,tol);
+        std::cout << " AugmentedLagrangian::value()  " << val << std::endl;
         get_active_design_minus_bound(*active_des_minus_bnd, x, x, *bound_constraints_);
         val += dual_inequality.dot(*active_des_minus_bnd);
-        val += penaltyParameter_ * active_des_minus_bnd->dot(*active_des_minus_bnd);
+        std::cout << " dual_inequality.dot(*active_des_minus_bnd) " << dual_inequality.dot(*active_des_minus_bnd) << std::endl;
+        std::cout << " AugmentedLagrangian::value() + dual_inequality*(des-bound)" << val << std::endl;
+        val += 0.5 * penaltyParameter_ * active_des_minus_bnd->dot(*active_des_minus_bnd);
+        std::cout << " AugmentedLagrangian::value() + dual_inequality*(des-bound) + 0.5*pen*(des-bound)" << val << std::endl;
+        std::cout << "0.5 * penaltyParameter_ * active_des_minus_bnd->dot(*active_des_minus_bnd) " << 0.5 * penaltyParameter_ * active_des_minus_bnd->dot(*active_des_minus_bnd) << std::endl;
+        std::cout << " PDAS_Lagrangian::value()  " << val << std::endl;
         return val;
     }
+    virtual void gradient( Vector &g, const Vector &x, Real &tol ) override
+    {
+        ROL::AugmentedLagrangian<Real>::gradient( g, x, tol );
+
+        auto temp_dual_inequality = dual_inequality.clone();
+        temp_dual_inequality->set(dual_inequality);
+        
+        const Real neps = ROL::ROL_EPSILON<Real>();
+        bound_constraints_->pruneInactive(*temp_dual_inequality,x,neps);
+        get_active_design_minus_bound(*active_des_minus_bnd, x, x, *bound_constraints_);
+        temp_dual_inequality->axpy(penaltyParameter_, *active_des_minus_bnd);
+
+        g.plus(*temp_dual_inequality);
+    }
     // Reset with upated penalty parameter
-    virtual void reset(const ROL::Vector<Real> &multiplier, const Real penaltyParameter) {
+    virtual void reset(const Vector &multiplier, const Real penaltyParameter) {
         ROL::AugmentedLagrangian<Real>::reset(multiplier, penaltyParameter);
         penaltyParameter_ = penaltyParameter;
     }
@@ -2409,21 +1291,39 @@ public:
 
 template<typename Real>
 void PrimalDualActiveSetStep<Real>::update(
-    ROL::Vector<Real> &design_variables,
-    ROL::Vector<Real> &dual_equality,
-    const ROL::Vector<Real> &search_direction_design,
+    Vector &design_variables,
+    Vector &dual_equality,
+    const Vector &search_direction_design,
     ROL::Objective<Real> &objective,
     ROL::Constraint<Real> &equality_constraints,
     ROL::BoundConstraint<Real> &bound_constraints,
     ROL::AlgorithmState<Real> &algo_state )
 {
+    //const Real positive_scale = 0.0001;
+    const Real positive_scale = 0.01;
+    des_plus_dual_->set(design_variables);
+    des_plus_dual_->axpy(positive_scale,*(dual_inequality_));
+    printDesignDual("Before update", design_variables, bound_constraints, *old_dual_inequality_, *des_plus_dual_, dual_equality);
+
     (void) search_direction_design;
     const double one = 1;
+    Real tol = ROL::ROL_EPSILON<Real>();
+    Real sqrttol = std::sqrt(tol);
+
+    const bool DO_DUAL_UPDATE_FIRST = true;
+    const bool DO_PROJECT_DESIGN_FEASIBLE = true;
+    const bool DO_EVALUATE_NONLINEAR_SLACKS = true;
+    const bool DO_SCALE_DUAL_SEARCH_STEP = false;
+    const bool DO_ZERO_MASS_LINESEARCH = true;
 
     ROL::Ptr<ROL::StepState<Real> > step_state = ROL::Step<Real>::getState();
     step_state->SPiter = (maxit_ > 1) ? iter_PDAS_ : iter_Krylov_;
     step_state->SPflag = (maxit_ > 1) ? flag_PDAS_ : flag_Krylov_;
 
+    VectorPtr dual_times_equality_jacobian = design_variables.clone(); 
+
+    VectorPtr old_design = design_variables.clone();
+    old_design->set(design_variables);
 
     auto search_design = new_design_variables_->clone();
     search_design->set(*new_design_variables_);
@@ -2438,36 +1338,37 @@ void PrimalDualActiveSetStep<Real>::update(
     search_dual_inequality->axpy(-one, *old_dual_inequality_);
     dual_inequality_->set(*old_dual_inequality_);
 
-    //const double step_length = 0.1;
-    //auto old_des = design_variables.clone();
-    //old_des->set(design_variables);
-    //new_design_variables_->axpy(-one, *old_des);
-    //design_variables.axpy(step_length, *new_design_variables_);
+    if (DO_DUAL_UPDATE_FIRST) {
+        dual_equality.plus(*search_dual_equality);
+        dual_inequality_->plus(*search_dual_inequality);
 
-    //std::cout << "new_dual_equality_.snorm" << new_dual_equality_->norm() << std::endl;
-    //std::cout << "dual_equality_.snorm" << dual_equality.norm() << std::endl;
-    //auto old_dual = dual_equality.clone();
-    //old_dual->set(dual_equality);
-    //new_dual_equality_->axpy(-one,*old_dual);
-    //dual_equality.axpy(step_length,*new_dual_equality_);
+        // Save current gradient as previous gradient.
+        // WARNING: NEEDS TO BE DONE AFTER DUAL UPDATE, BUT BEFORE DESIGN UPDATE
+        objective.gradient(*old_gradient_,design_variables,sqrttol);
+        equality_constraints.applyAdjointJacobian(*dual_times_equality_jacobian, dual_equality, design_variables, sqrttol);
+        old_gradient_->axpy(one, *dual_times_equality_jacobian);
+        //old_gradient_->axpy(one, *dual_inequality_);
+    }
+
+    double old_CFL = 0.0;
+    if (DO_ZERO_MASS_LINESEARCH && is_full_space_) {
+        auto& equality_constraints_partitioned = dynamic_cast<ROL::Constraint_Partitioned<Real>&>(equality_constraints);
+        auto& flow_constraints = dynamic_cast<PHiLiP::FlowConstraints<PHILIP_DIM>&>(*equality_constraints_partitioned.get(0));
+        old_CFL = flow_constraints.flow_CFL_;
+        flow_constraints.flow_CFL_ = 0.0;
+    }
 
     bool linesearch_success = false;
     Real fold = 0.0;
     int n_searches = 0;
+    const int max_n_searches = 0;
     Real merit_function_value = 0.0;
+    //double penalty_value_ = 10.0/algo_state.gnorm;
+    //double penalty_value_ = 10.0/(algo_state.gnorm);
+    //double penalty_value_ = 0.0;
+    //double penalty_value_ = 1.0;
+    double penalty_value_ = 1.0e-1;
 
-    // Create a merit function based on the Augmented Lagrangian
-    double penalty_value_ = 10.0;
-    //auto dual_equality_zero = dual_equality.clone();
-    //dual_equality_zero->zero();
-    //auto merit_function = ROL::makePtr<ROL::AugmentedLagrangian<Real>> (
-    //        ROL::makePtrFromRef<ROL::Objective<Real>>(objective),
-    //        ROL::makePtrFromRef<ROL::Constraint<Real>>(equality_constraints),
-    //        dual_equality,
-    //        penalty_value_,
-    //        design_variables,
-    //        *(step_state->constraintVec),
-    //        parlist_);
     auto merit_function = ROL::makePtr<PHiLiP::PDAS_Lagrangian<Real>> (
             ROL::makePtrFromRef<ROL::Objective<Real>>(objective),
             ROL::makePtrFromRef<ROL::Constraint<Real>>(equality_constraints),
@@ -2480,22 +1381,29 @@ void PrimalDualActiveSetStep<Real>::update(
             ROL::makePtrFromRef<ROL::BoundConstraint<Real>>(bound_constraints));
     (void) merit_function;
 
-    const bool changed_design_variables = true;
+    const bool is_changed_design_variables = true;
+    merit_function->update(design_variables, is_changed_design_variables, algo_state.iter);
     merit_function->reset(dual_equality, penalty_value_);
-    merit_function->update(design_variables, changed_design_variables, algo_state.iter);
+    merit_function_value = merit_function->value(design_variables, tol );
+    std::cout << "old_lagrangian_value: " << merit_function_value << std::endl;
+
+    //merit_function->reset(dual_equality, penalty_value_);
+    //merit_function->reset(dual_equality, 0.0);
+    //merit_function->update(design_variables, is_changed_design_variables, algo_state.iter);
 
     auto lineSearch_ = ROL::LineSearchFactory<Real>(parlist_);
     lineSearch_->initialize(design_variables, *search_design, *(step_state->gradientVec), *merit_function, bound_constraints);
 
-    ROL::Ptr<ROL::Vector<Real> > merit_function_gradient = design_variables.clone();
+    VectorPtr merit_function_gradient = design_variables.clone();
     kkt_linesearches_ = 0;
+    pcout << "Nonlinear Search direction: " << std::endl;
+    printSearchDirection("Before Line Search", *search_design, *search_dual_equality, *search_dual_inequality);
     while (!linesearch_success) {
 
         merit_function->reset(dual_equality, penalty_value_);
-        merit_function->update(design_variables, changed_design_variables, algo_state.iter);
-
-        Real tol = ROL::ROL_EPSILON<Real>();
+        merit_function->update(design_variables, is_changed_design_variables, algo_state.iter);
         merit_function_value = merit_function->value(design_variables, tol );
+
         merit_function->gradient( *merit_function_gradient, design_variables, tol );
 
         fold = merit_function_value;
@@ -2507,10 +1415,17 @@ void PrimalDualActiveSetStep<Real>::update(
             << "Performing line search..."
             << " Initial merit function value = " << merit_function_value
             << std::endl;
-        lineSearch_->setData(algo_state.gnorm,*merit_function_gradient);
+        Real neps = ROL::ROL_EPSILON<Real>();
+        lineSearch_->setData(neps,*merit_function_gradient);
+        //lineSearch_->setData(algo_state.gnorm,*merit_function_gradient);
 
         int n_linesearches = 0;
-        //bound_constraints.deactivate();
+        pcout << "step_state->searchSize " << step_state->searchSize << std::endl;
+        pcout << "merit_function_value " << merit_function_value << std::endl;
+        pcout << "n_linesearches " << n_linesearches << std::endl;
+        pcout << "directional_derivative_step " << directional_derivative_step << std::endl;
+        pcout << "search_design->norm() " << search_design->norm() << std::endl;
+        pcout << "design_variables.norm() " << design_variables.norm() << std::endl;
         lineSearch_->run(step_state->searchSize,
                          merit_function_value,
                          n_linesearches,
@@ -2545,90 +1460,209 @@ void PrimalDualActiveSetStep<Real>::update(
                 << " to " << penalty_value_ * penalty_reduction
                 << std::endl;
             penalty_value_ = penalty_value_ * penalty_reduction;
+            //penalty_value_ = std::sqrt(penalty_value_);
 
             //linesearch_success = true;
-            if (n_searches > 1) {
+            if (n_searches > max_n_searches) {
+
                 linesearch_success = true;
-                //pcout << " Linesearch failed, searching other direction " << std::endl;
-                //search_design->scale(-1.0);
-                //penalty_value_ = std::max(1e-0/step_state->gradientVec->norm(), 1.0);
-            }
-            if (n_searches > 2) {
-                pcout << " Linesearch failed in other direction... ending " << std::endl;
-                linesearch_success = true;
-                //std::abort();
             }
         }
         kkt_linesearches_ += n_linesearches;
-        lineSearch_->setMaxitUpdate(step_state->searchSize, merit_function_value, fold);
     }
-    //if (n_searches > 0) {
-    //    step_state->searchSize = -0.001;
-    //}
+    if (n_searches > max_n_searches) {
+        // Unsuccessful line search
+        if (d_force_use_bfgs) {
+            // Unsuccessful backup BFGS
+            d_force_use_bfgs = false;
+            (void) fold;
+            lineSearch_->setMaxitUpdate(step_state->searchSize, merit_function_value, fold);
+            std::cout << "Failed the linesearch with the backup BFGS step. Taking minimizing step of " << step_state->searchSize << std::endl;
+            //step_state->searchSize = 0.1;
+            //std::cout << "Failed the linesearch with the BFGS step. Taking a constant step of 0.1" << std::endl;
+        } else if (useSecantHessVec_) {
+            // Unsuccessful BFGS
+            d_force_use_bfgs = false;
+            (void) fold;
+            lineSearch_->setMaxitUpdate(step_state->searchSize, merit_function_value, fold);
+            std::cout << "Failed the linesearch with the BFGS step. Taking minimizing step of " << step_state->searchSize << std::endl;
+        } else {
+            // Unsuccessful BFGS
+            // Unsuccessful Newton
+            std::cout << "Failed the linesearch with the Newton step. Trying again with a BFGS step" << std::endl;
+            d_force_use_bfgs = true;
+            step_state->searchSize = 0.0;
+            search_dual_equality->scale(step_state->searchSize);
+            search_dual_inequality->scale(step_state->searchSize);
+        }
+    } else {
+        if (d_force_use_bfgs) {
+            // Successful BFGS
+            d_force_use_bfgs = false;
+        } else {
+            // Successful Newton
+        }
+    }
+
+    if (DO_ZERO_MASS_LINESEARCH && is_full_space_) {
+        auto& equality_constraints_partitioned = dynamic_cast<ROL::Constraint_Partitioned<Real>&>(equality_constraints);
+        auto& flow_constraints = dynamic_cast<PHiLiP::FlowConstraints<PHILIP_DIM>&>(*equality_constraints_partitioned.get(0));
+        flow_constraints.flow_CFL_ = old_CFL;
+    }
+
+    auto s_design = dynamic_cast<ROL::PartitionedVector<Real>&>(*search_design).get(0);
+    auto s_slack  = dynamic_cast<ROL::PartitionedVector<Real>&>(*search_design).get(1);
+    //s_design->scale(step_state->searchSize);
     search_design->scale(step_state->searchSize);
-    //search_dual_equality->scale(step_state->searchSize);
-    //search_dual_inequality->scale(step_state->searchSize);
-    std::cout << "searchSize " << step_state->searchSize << std::endl;
-    std::cout << "search_design.norm() " << search_design->norm() << std::endl;
-    std::cout << "search_dual_equality.norm() " << search_dual_equality->norm() << std::endl;
-    std::cout << "search_dual_inequality.norm() " << search_dual_inequality->norm() << std::endl;
-    if ( bound_constraints.isActivated() ) {
+    if (DO_SCALE_DUAL_SEARCH_STEP) {
+        search_dual_equality->scale(step_state->searchSize);
+        search_dual_inequality->scale(step_state->searchSize);
+    }
+    pcout << "searchSize " << step_state->searchSize << std::endl;
+    pcout << "search_design.norm() " << search_design->norm() << std::endl;
+    pcout << "search_dual_equality.norm() " << search_dual_equality->norm() << std::endl;
+    pcout << "search_dual_inequality.norm() " << search_dual_inequality->norm() << std::endl;
+
+    if ( bound_constraints.isActivated() && DO_PROJECT_DESIGN_FEASIBLE) {
         search_design->plus(design_variables);
-        //bound_constraints.project(*search_design);
+        bound_constraints.project(*search_design);
         search_design->axpy(static_cast<Real>(-1),design_variables);
     }
+
+    if (!DO_DUAL_UPDATE_FIRST) {
+        dual_equality.plus(*search_dual_equality);
+        dual_inequality_->plus(*search_dual_inequality);
+        // Save current gradient as previous gradient.
+        // WARNING: NEEDS TO BE DONE AFTER DUAL UPDATE, BUT BEFORE DESIGN UPDATE
+        objective.gradient(*old_gradient_,design_variables,sqrttol);
+        equality_constraints.applyAdjointJacobian(*dual_times_equality_jacobian, dual_equality, design_variables, sqrttol);
+        old_gradient_->axpy(one, *dual_times_equality_jacobian);
+        //old_gradient_->axpy(one, *dual_inequality_);
+    }
     design_variables.plus(*search_design);
-    dual_equality.plus(*search_dual_equality);
-    dual_inequality_->plus(*search_dual_inequality);
+
+    pcout << "Nonlinear Search direction: " << std::endl;
+    printSearchDirection("After Line Search", *search_design, *search_dual_equality, *search_dual_inequality);
+
+    //merit_function->reset(dual_equality, 0.0);
+    merit_function->update(design_variables, is_changed_design_variables, algo_state.iter);
+    merit_function_value = merit_function->value(design_variables, tol );
+    pcout << "new_lagrangian_value: " << merit_function_value << std::endl;
 
     //design_variables.plus(*search_design);
-    feasible_ = bound_constraints.isFeasible(design_variables);
+    const bool localFeasible = bound_constraints.isFeasible(design_variables);
+    MPI_Allreduce(&localFeasible, &feasible_, 1, MPI::BOOL, MPI::LAND, MPI_COMM_WORLD);
     algo_state.snorm = search_design->norm();
     algo_state.snorm += search_dual_equality->norm();
     algo_state.snorm += search_dual_inequality->norm();
     algo_state.iter++;
-    //if (algo_state.iter > 5) {
-    //    useSecantHessVec_ = false;
-    //}
-    Real tol = std::sqrt(ROL::ROL_EPSILON<Real>());
-    objective.update(design_variables,true,algo_state.iter);
-    algo_state.value = objective.value(design_variables,tol);
-    algo_state.nfval++;
+    if (d_force_use_bfgs) {
+        algo_state.snorm = 1e99;
+    }
     
+
+    // Update objective
+    objective.update(design_variables,true,algo_state.iter);
+    algo_state.value = objective.value(design_variables,sqrttol);
+    algo_state.nfval++;
+
+    // Update constraints
     equality_constraints.update(design_variables,true,algo_state.iter);
-    equality_constraints.value(*(step_state->constraintVec),design_variables,tol);
-    algo_state.cnorm = (step_state->constraintVec)->norm();
+    equality_constraints.value(*(step_state->constraintVec),design_variables,sqrttol);
+
+    if (is_full_space_) {
+        ROL::Constraint_Partitioned<Real> &equality_constraints_partitioned = dynamic_cast<ROL::Constraint_Partitioned<Real>&>(equality_constraints);
+        PHiLiP::FlowConstraints<PHILIP_DIM> &flow_constraints = dynamic_cast<PHiLiP::FlowConstraints<PHILIP_DIM>&>(*equality_constraints_partitioned.get(0));
+        VectorPtr input_design_sim_ctl = (dynamic_cast<ROL::PartitionedVector<Real>&>(design_variables)).get(0);
+        VectorPtr input_design_simulation = (dynamic_cast<ROL::Vector_SimOpt<Real>&>(*input_design_sim_ctl)).get_1();
+        VectorPtr input_design_control    = (dynamic_cast<ROL::Vector_SimOpt<Real>&>(*input_design_sim_ctl)).get_2();
+        flowcnorm_ = flow_constraints.dg_l2_norm(*input_design_simulation, *input_design_control);
+        //flowcnorm_ = dynamic_cast<ROL::PartitionedVector<Real>&>(*(step_state->constraintVec)).get(0)->norm();
+        if (flowcnorm_ > 1e-3) {
+            flow_constraints.solve( *((dynamic_cast<ROL::PartitionedVector<Real>&>(*(step_state->constraintVec))).get(0)),
+                                    *input_design_simulation,
+                                    *input_design_control,
+                                    flowcnorm_);
+        }
+
+    } else {
+        flowcnorm_ = sqrttol;
+    }
+
+    if (DO_EVALUATE_NONLINEAR_SLACKS) {
+
+        ROL::PartitionedVector<Real>& design_partitioned  = dynamic_cast<ROL::PartitionedVector<Real>&>(design_variables);
+
+        VectorPtr design  = design_partitioned.get(0);
+        const VectorPtr current_design = design->clone();
+        current_design->set(*design);
+
+        const ROL::PartitionedVector<Real>& nonlinear_equality_constraints = dynamic_cast<ROL::PartitionedVector<Real>&>(*(step_state->constraintVec));
+
+        if (is_full_space_) {
+            for (unsigned int i = 1; i < nonlinear_equality_constraints.numVectors(); ++i) {
+                ROL::Ptr<const Vector> constraint = nonlinear_equality_constraints.get(i); // constraint vec starts at 1, because cvec[0] is FlowConstraints
+                VectorPtr slack  = design_partitioned.get(i); // design_partitioned = [design, slack0, slack1, ...]
+                slack->axpy(one,*constraint); // s = s + (g-s)
+            }
+        } else {
+            for (unsigned int i = 0; i < nonlinear_equality_constraints.numVectors(); ++i) {
+                ROL::Ptr<const Vector> constraint = nonlinear_equality_constraints.get(i); // constraint vec starts at 0
+                VectorPtr slack  = design_partitioned.get(i+1); // design_partitioned = [design, slack0, slack1, ...]
+                slack->axpy(one,*constraint); // s = s + (g-s)
+            }
+        }
+
+        // Project all variables within bound, but reset the nonslack variables to their original value such that they are not projected into the bounds.
+        // This effectively only projects the slack variables.
+        bound_constraints.project(design_variables);
+        design->set(*current_design);
+    }
+    equality_constraints.value(*(step_state->constraintVec),design_variables,sqrttol);
+
+    // Evaluate constraint norm
+    if (is_full_space_) {
+        const ROL::PartitionedVector<Real>& nonlinear_equality_constraints = dynamic_cast<ROL::PartitionedVector<Real>&>(*(step_state->constraintVec));
+        ecnorm_ = flowcnorm_ * flowcnorm_;
+        for (unsigned int i = 1; i < nonlinear_equality_constraints.numVectors(); ++i) {
+            ROL::Ptr<const Vector> constraint = nonlinear_equality_constraints.get(i); // constraint vec starts at 1, because cvec[0] is FlowConstraints
+            const Real constraint_norm = constraint->norm();
+            ecnorm_ += constraint_norm * constraint_norm;
+        }
+        ecnorm_ = sqrt(ecnorm_);
+    } else {
+        ecnorm_ = (step_state->constraintVec)->norm();
+    }
+    algo_state.cnorm = ecnorm_;
 
     auto active_set_des_min_bnd = design_variables.clone();
     get_active_design_minus_bound(*active_set_des_min_bnd, design_variables, design_variables, bound_constraints);
-    algo_state.cnorm += active_set_des_min_bnd->norm();
+    icnorm_ = active_set_des_min_bnd->norm();
+    algo_state.cnorm += icnorm_;
     algo_state.ncval++;
 
-    
-    if ( secant_ != ROL::nullPtr ) {
-        // Save current gradient as previous gradient.
-        gradient_tmp1_->set(*(step_state->gradientVec));
-    }
-
-    objective.gradient(*(step_state->gradientVec),design_variables,tol);
-    ROL::Ptr<ROL::Vector<Real>> rhs_design_temp = design_variables.clone(); 
-    equality_constraints.applyAdjointJacobian(*rhs_design_temp, dual_equality, design_variables, tol);
-    step_state->gradientVec->axpy(one, *rhs_design_temp);
-    //step_state->gradientVec->axpy(one, *dual_inequality_);
-
     des_plus_dual_->set(design_variables);
-    des_plus_dual_->plus(*dual_inequality_);
+    des_plus_dual_->axpy(positive_scale,*(dual_inequality_));
 
-    ROL::Ptr<ROL::Vector<Real>> rhs_design = design_variables.clone();
-    ROL::Ptr<ROL::Vector<Real>> rhs_dual_equality = dual_equality.clone();
-    ROL::Ptr<ROL::Vector<Real>> rhs_dual_inequality = design_variables.clone();
+    VectorPtr rhs_design = design_variables.clone();
+    VectorPtr rhs_dual_equality = dual_equality.clone();
+    VectorPtr rhs_dual_inequality = design_variables.clone();
 
     ROL::Ptr<ROL::PartitionedVector<Real>> rhs_partitioned
         = ROL::makePtr<ROL::PartitionedVector<Real>>(
-            std::vector<ROL::Ptr<ROL::Vector<Real>> >(
+            std::vector<VectorPtr >(
                 {rhs_design, rhs_dual_equality, rhs_dual_inequality}
             )
           );
+    const int objective_type = 0; // 0 = nonlinear, 1 = linear, 2 = quadratic
+    const int constraint_type = 0; // 0 = nonlinear, 1 = linear
+
+    if (is_full_space_) {
+        auto& equality_constraints_partitioned = dynamic_cast<ROL::Constraint_Partitioned<Real>&>(equality_constraints);
+        auto& flow_constraints = dynamic_cast<PHiLiP::FlowConstraints<PHILIP_DIM>&>(*equality_constraints_partitioned.get(0));
+        old_CFL = flow_constraints.flow_CFL_;
+        flow_constraints.flow_CFL_ = 0.0;
+    }
     compute_PDAS_rhs(
         design_variables,
         design_variables,
@@ -2639,29 +1673,78 @@ void PrimalDualActiveSetStep<Real>::update(
         objective, 
         equality_constraints, 
         bound_constraints, 
-        *rhs_partitioned);
-    //algo_state.gnorm = step_state->gradientVec->norm();
+        *rhs_partitioned,
+        objective_type,
+        constraint_type,
+        *objective_secant_,
+        useSecantHessVec_);
+    printSearchDirection("RHS", *rhs_design, *rhs_dual_equality, *rhs_dual_inequality);
+
+    if (is_full_space_) {
+        auto& equality_constraints_partitioned = dynamic_cast<ROL::Constraint_Partitioned<Real>&>(equality_constraints);
+        auto& flow_constraints = dynamic_cast<PHiLiP::FlowConstraints<PHILIP_DIM>&>(*equality_constraints_partitioned.get(0));
+        flow_constraints.flow_CFL_ = old_CFL;
+    }
+
     algo_state.gnorm = rhs_partitioned->norm();
 
-    if ( secant_ != ROL::nullPtr ) {
-        Real design_snorm = getCtlOpt(*search_design)->norm();
-        secant_->updateStorage(*getCtlOpt(design_variables),*getCtlOpt(*(step_state->gradientVec)),*getCtlOpt(*gradient_tmp1_),*getCtlOpt(*search_design),design_snorm,algo_state.iter+1);
+    if (is_full_space_) {
+        ROL::Constraint_Partitioned<Real> &equality_constraints_partitioned = dynamic_cast<ROL::Constraint_Partitioned<Real>&>(equality_constraints);
+        PHiLiP::FlowConstraints<PHILIP_DIM> &flow_constraints = dynamic_cast<PHiLiP::FlowConstraints<PHILIP_DIM>&>(*equality_constraints_partitioned.get(0));
+        //flow_constraints.flow_CFL_ = -10.0*std::max(1.0, 1.0/std::pow(algo_state.cnorm, 1.50));
+        //flow_constraints.flow_CFL_ = -10*std::max(1.0, 1.0/std::pow(algo_state.cnorm, 2.00));
+        flow_constraints.flow_CFL_ = -10000*std::max(1.0, 1.0/std::pow(algo_state.cnorm, 2.00));
+        flow_constraints.flow_CFL_ = -std::max(1.0, 1.0/std::pow(flowcnorm_, 1.25)) / 10000.0;
+        flow_constraints.flow_CFL_ = -std::max(1.0, 1.0/std::pow(flowcnorm_, 1.00)) / 100.0;
+        flow_constraints.flow_CFL_ = -std::max(1.0, 1.0/std::pow(flowcnorm_, 1.00)) / algo_state.gnorm * 100.0;
+        const double factor = std::pow(flowcnorm_, 1.00) * std::pow(algo_state.gnorm, 1.0) * 1.0;
+        flow_constraints.flow_CFL_ = 1.0/factor;
+        flow_cfl_ = flow_constraints.flow_CFL_;
+    }
 
-        //pcout << "new gradient: " << std::endl;
-        //for (int i = 0; i < step_state->gradientVec->dimension(); ++i) {
-        //    pcout << get_value<Real>(i, *step_state->gradientVec) << std::endl;
-        //}
-        //pcout << "old gradient: " << std::endl;
-        //for (int i = 0; i < step_state->gradientVec->dimension(); ++i) {
-        //    pcout << get_value<Real>(i, *gradient_tmp1_) << std::endl;
+    // Update Secant
+    // Let gradientVec be the gradient of the Lagrangian.
+    objective.gradient(*(step_state->gradientVec),design_variables,sqrttol);
+    equality_constraints.applyAdjointJacobian(*dual_times_equality_jacobian, dual_equality, design_variables, sqrttol);
+    step_state->gradientVec->axpy(one, *dual_times_equality_jacobian);
+    //step_state->gradientVec->axpy(one, *dual_inequality_);
+
+    printSearchDirection("Old Gradient", *(old_gradient_), *search_dual_equality, *search_dual_inequality);
+    printSearchDirection("Gradient", *(step_state->gradientVec), *search_dual_equality, *search_dual_inequality);
+    if ( lagrangian_secant_ != ROL::nullPtr && !d_force_use_bfgs) {
+        search_design->set(design_variables);
+        search_design->axpy(-one, *old_design);
+
+        Real design_snorm = getCtlOpt(*search_design)->norm();
+        const Real sy2 = getCtlOpt(*(step_state->gradientVec))->dot(*getCtlOpt(*search_design));
+        auto Bs = getCtlOpt(*search_design)->clone();
+        lagrangian_secant_->applyB(*Bs, *getCtlOpt(*search_design));
+        Real sBs = Bs->dot(*getCtlOpt(*search_design));
+        sBs *= 1e-2;
+        //if (sy2 <= sBs || step_state->searchSize < 1e-1) {
+        //if (std::abs(sy2) < 1e-12) {
+            pcout << "Not updating Lagrangian BFGS since sy <= 1e-15..." << sy2 << std::endl;
+        //} else {
+            pcout << "Updating Lagrangian BFGS..." << std::endl;
+            lagrangian_secant_->updateStorage(*getCtlOpt(design_variables),*getCtlOpt(*(step_state->gradientVec)),*getCtlOpt(*old_gradient_),*getCtlOpt(*search_design),design_snorm,algo_state.iter+1);
         //}
     }
+
+    printDesignDual("After Update", design_variables, bound_constraints, *dual_inequality_, *des_plus_dual_, dual_equality);
 
     algo_state.ngrad++;
 
     (algo_state.iterateVec)->set(design_variables);
     (algo_state.lagmultVec)->set(dual_equality);
+
+    old_dual_inequality_->set(*dual_inequality_);
+    new_design_variables_->set(design_variables);
+
+    int comm_size;
+    MPI_Comm_size(MPI_COMM_WORLD, &comm_size);
+    if( comm_size == 1) std::cout << print( algo_state, true);
 }
+
 
   
 template<typename Real>
@@ -2673,6 +1756,12 @@ std::string PrimalDualActiveSetStep<Real>::printHeader( void ) const
     hist << std::setw(15) << std::left << "value";
     hist << std::setw(15) << std::left << "gnorm";
     hist << std::setw(15) << std::left << "cnorm";
+    hist << std::setw(15) << std::left << "ecnorm";
+    hist << std::setw(15) << std::left << "flowcnorm";
+    if (is_full_space_)
+        hist << std::setw(15) << std::left << "flow_cfl";
+    hist << std::setw(15) << std::left << "identity";
+    hist << std::setw(15) << std::left << "icnorm";
     hist << std::setw(15) << std::left << "snorm";
     hist << std::setw(11) << std::left << "#fval";
     hist << std::setw(11) << std::left << "#grad";
@@ -2690,7 +1779,17 @@ template<typename Real>
 std::string PrimalDualActiveSetStep<Real>::printName( void ) const
 {
     std::stringstream hist;
-    hist << "\nPrimal Dual Active Set Newton's Method\n";
+    hist << "\nPrimal Dual Active Set Method\n";
+    if (is_full_space_) {
+        hist << "\n Full-Space Newton Method\n";
+    } else {
+        hist << "\n Reduced-Space ";
+        if (useSecantHessVec_) {
+            hist << " Quasi-Newton\n";
+        } else {
+            hist << " Newton\n";
+        }
+    }
     return hist.str();
 }
   
@@ -2713,6 +1812,12 @@ std::string PrimalDualActiveSetStep<Real>::print( ROL::AlgorithmState<Real> &alg
         hist << std::setw(15) << std::left << algo_state.value;
         hist << std::setw(15) << std::left << algo_state.gnorm;
         hist << std::setw(15) << std::left << algo_state.cnorm;
+        hist << std::setw(15) << std::left << ecnorm_;
+        hist << std::setw(15) << std::left << flowcnorm_;
+        if (is_full_space_)
+            hist << std::setw(15) << std::left << flow_cfl_;
+        hist << std::setw(15) << std::left << identity_factor_;
+        hist << std::setw(15) << std::left << icnorm_;
         hist << std::setw(15) << std::left << algo_state.snorm;
         hist << std::setw(11) << std::left << algo_state.nfval;
         hist << std::setw(11) << std::left << algo_state.ngrad;
@@ -2732,5 +1837,323 @@ std::string PrimalDualActiveSetStep<Real>::print( ROL::AlgorithmState<Real> &alg
 }
   
 template class PrimalDualActiveSetStep <double>;
-} // namespace ROL
+} // namespace PHiLiP
 
+//  template<typename Real>
+//  void PrimalDualActiveSetStep<Real>::compute2(
+//      Vector &search_direction_design,
+//      const Vector &design_variables,
+//      const Vector &dual_equality,
+//      ROL::Objective<Real> &objective,
+//      ROL::Constraint<Real> &equality_constraints, 
+//      ROL::BoundConstraint<Real> &bound_constraints, 
+//      ROL::AlgorithmState<Real> &algo_state )
+//  {
+//      ROL::Ptr<ROL::StepState<Real> > step_state = ROL::Step<Real>::getState();
+//      Real zero(0), one(1);
+//      search_direction_design.zero();
+//      new_dual_equality_->set(dual_equality);
+//      quadratic_residual_->set(*(step_state->gradientVec));
+//  
+//      new_design_variables_->set(design_variables);
+//  
+//      // Temporary variables
+//      VectorPtr inactive_dual_equality_ = dual_equality.clone();
+//      VectorPtr active_dual_equality_ = dual_equality.clone();
+//  
+//      VectorPtr rhs_design_temp = design_variables.clone(); 
+//  
+//      // PDAS iterates through 3 steps.
+//      // 1. Estimate active set
+//      // 2. Use active set to determine search direction of the active constraints
+//      // 3. Solve KKT system for remaining inactive constraints
+//      for ( iter_PDAS_ = 0; iter_PDAS_ < maxit_; iter_PDAS_++ ) {
+//  
+//          /********************************************************************/
+//          // Modify iterate vector to check active set
+//          /********************************************************************/
+//          des_plus_dual_->set(*new_design_variables_);    // des_plus_dual = initial_desvar
+//          des_plus_dual_->axpy(scale_,*(dual_inequality_));    // des_plus_dual = initial_desvar + c*dualvar, note that papers would usually divide by scale_ instead of multiply
+//  
+//          /********************************************************************/
+//          // Project design_variables onto primal dual feasible set
+//          // Using approximation of the active set, obtain the search direction since
+//          // we know that step will be constrained.
+//          /********************************************************************/
+//          if (false) {
+//              search_direction_active_set_->zero();                                     // active_set_search_direction   = 0
+//          
+//              search_temp_->set(*bound_constraints.getUpperBound());                    // search_tmp = upper_bound
+//              search_temp_->axpy(-one,design_variables);                                // search_tmp = upper_bound - design_variables
+//              desvar_tmp_->set(*search_temp_);                                          // tmp        = upper_bound - design_variables
+//              bound_constraints.pruneUpperActive(*desvar_tmp_,*des_plus_dual_,neps_);   // tmp        = (upper_bound - (upper_bound - design_variables + c*dual_variables)) < 0 ? 0 : upper_bound - design_variables
+//              search_temp_->axpy(-one,*desvar_tmp_);                                    // search_tmp = ACTIVE(upper_bound - design_variables)
+//  
+//              search_direction_active_set_->plus(*search_temp_);                        // active_set_search_direction += ACTIVE(upper_bound - design_variables)
+//        
+//              search_temp_->set(*bound_constraints.getLowerBound());                    // search_tmp = lower_bound
+//              search_temp_->axpy(-one,design_variables);                                // search_tmp = lower_bound - design_variables
+//              desvar_tmp_->set(*search_temp_);                                          // tmp        = lower_bound - design_variables
+//              bound_constraints.pruneLowerActive(*desvar_tmp_,*des_plus_dual_,neps_);   // tmp        = INACTIVE(lower_bound - design_variables)
+//              search_temp_->axpy(-one,*desvar_tmp_);                                    // search_tmp = ACTIVE(lower_bound - design_variables)
+//              search_direction_active_set_->plus(*search_temp_);                        // active_set_search_direction += ACTIVE(lower_bound - design_variables)
+//          } else { 
+//              get_active_design_minus_bound(*search_direction_active_set_, design_variables, *des_plus_dual_, bound_constraints);
+//              search_direction_active_set_->scale(-1.0);
+//          }
+//  
+//          inactive_dual_equality_ = new_dual_equality_->clone();
+//          active_dual_equality_ = new_dual_equality_->clone();
+//  
+//          /********************************************************************/
+//          // Apply Hessian to active components of search_direction_design and remove inactive
+//          /********************************************************************/
+//          itol_ = std::sqrt(ROL::ROL_EPSILON<Real>());
+//          // INACTIVE(H)*active_set_search_direction = H*active_set_search_direction
+//          // INACTIVE(H)*active_set_search_direction = INACTIVE(H*active_set_search_direction)
+//          gradient_tmp1_->zero();
+//          if ( useSecantHessVec_ && objective_secant_ != ROL::nullPtr ) {
+//              objective_secant_->applyB(*getOpt(*gradient_tmp1_),*getOpt(*search_direction_active_set_));
+//          } else {
+//              objective.hessVec(*gradient_tmp1_,*search_direction_active_set_,design_variables,itol_);
+//              equality_constraints.applyAdjointHessian(*old_gradient_, dual_equality, *getOpt(*search_direction_active_set_), *getOpt(design_variables), itol_);
+//              gradient_tmp1_->axpy(one, *old_gradient_);
+//          }
+//          bound_constraints.pruneActive(*gradient_tmp1_,*des_plus_dual_,neps_);
+//          /********************************************************************/
+//          // SEPARATE ACTIVE AND INACTIVE COMPONENTS OF THE GRADIENT
+//          /********************************************************************/
+//          // Inactive components
+//          gradient_inactive_set_->set(*(step_state->gradientVec));
+//          bound_constraints.pruneActive(*gradient_inactive_set_,*des_plus_dual_,neps_);
+//          // Active components
+//          gradient_active_set_->set(*(step_state->gradientVec));
+//          gradient_active_set_->axpy(-one,*gradient_inactive_set_);
+//          /********************************************************************/
+//          // SOLVE REDUCED NEWTON SYSTEM 
+//          /********************************************************************/
+//  
+//          // rhs_design_temp = -(INACTIVE(gradient) + INACTIVE(H*active_set_search_direction))
+//          rhs_design_temp->set(*gradient_inactive_set_);
+//          rhs_design_temp->plus(*gradient_tmp1_);
+//          rhs_design_temp->scale(-one);
+//  
+//          search_direction_design.zero();
+//          if ( rhs_design_temp->norm() > zero ) {             
+//              // Initialize Hessian and preconditioner
+//              ROL::Ptr<ROL::Objective<Real> >       objective_ptr  = ROL::makePtrFromRef(objective);
+//              ROL::Ptr<ROL::BoundConstraint<Real> > bound_constraint_ptr = ROL::makePtrFromRef(bound_constraints);
+//              ROL::Ptr<ROL::Constraint<Real> > equality_constraints_ptr = ROL::makePtrFromRef(equality_constraints);
+//  
+//              VectorPtr search_direction_des_ptr = ROL::makePtrFromRef(search_direction_design);
+//              VectorPtr search_direction_dual_ptr = search_direction_dual_;
+//              ROL::Ptr<ROL::PartitionedVector<Real>> search_partitioned = ROL::makePtr<ROL::PartitionedVector<Real>>(
+//                      std::vector<VectorPtr >({search_direction_des_ptr, search_direction_dual_ptr})
+//                  );
+//  
+//              VectorPtr rhs_des_ptr = rhs_design_temp;
+//              VectorPtr rhs_dual_ptr = (step_state->constraintVec)->clone();
+//              rhs_dual_ptr->scale(-one);
+//              ROL::Ptr<ROL::PartitionedVector<Real>> rhs_partitioned = ROL::makePtr<ROL::PartitionedVector<Real>>(std::vector<VectorPtr >({rhs_des_ptr, rhs_dual_ptr}));
+//  
+//              ROL::Ptr<ROL::LinearOperator<Real> > hessian = ROL::makePtr<InactiveConstrainedHessian>(objective_ptr, equality_constraints_ptr, bound_constraint_ptr, algo_state.iterateVec, algo_state.lagmultVec, des_plus_dual_, neps_, objective_secant_, useSecantHessVec_);
+//              ROL::Ptr<ROL::LinearOperator<Real> > precond = ROL::makePtr<InactiveConstrainedHessianPreconditioner>(objective_ptr, bound_constraint_ptr, algo_state.iterateVec, des_plus_dual_, neps_, objective_secant_, useSecantPrecond_);
+//  
+//              krylov_->run(*search_partitioned, *hessian, *rhs_partitioned, *precond, iter_Krylov_, flag_Krylov_);
+//  
+//              bound_constraints.pruneActive(search_direction_design,*des_plus_dual_,neps_);        // search_direction_design <- inactive_search_direction
+//          }
+//          search_direction_design.plus(*search_direction_active_set_);                             // search_direction_design = inactive_search_direction + active_set_search_direction
+//          /********************************************************************/
+//          // UPDATE MULTIPLIER 
+//          /********************************************************************/
+//          rhs_design_temp->zero();
+//          if ( useSecantHessVec_ && objective_secant_ != ROL::nullPtr ) {
+//              objective_secant_->applyB(*getOpt(*rhs_design_temp),*getOpt(search_direction_design));
+//          } else {
+//              objective.hessVec(*rhs_design_temp,search_direction_design,design_variables,itol_);
+//          }
+//          gradient_tmp1_->set(*rhs_design_temp);
+//          bound_constraints.pruneActive(*gradient_tmp1_,*des_plus_dual_,neps_);
+//  
+//          // dual^{k+1} = - ( ACTIVE(H * search_direction_design) + gradient_active_set_ )
+//          dual_inequality_->set(*rhs_design_temp);
+//          dual_inequality_->axpy(-one,*gradient_tmp1_);
+//          dual_inequality_->plus(*gradient_active_set_);
+//          dual_inequality_->scale(-one);
+//          dual_inequality_->zero();
+//          /********************************************************************/
+//          // UPDATE STEP 
+//          /********************************************************************/
+//          new_design_variables_->set(design_variables);
+//          new_design_variables_->plus(search_direction_design);
+//          quadratic_residual_->set(*(step_state->gradientVec));
+//          quadratic_residual_->plus(*rhs_design_temp);
+//          // Compute criticality measure  
+//          desvar_tmp_->set(*new_design_variables_);
+//          desvar_tmp_->axpy(-one,quadratic_residual_->dual());
+//          bound_constraints.project(*desvar_tmp_);
+//          desvar_tmp_->axpy(-one,*new_design_variables_);
+//          pcout << "des_var_temp " << desvar_tmp_->norm() << std::endl;
+//          pcout << "gtol gnorm " << gtol_*algo_state.gnorm << std::endl;
+//          pcout << "rhs_design_temp.norm() " << rhs_design_temp->norm() << std::endl;
+//          if ( desvar_tmp_->norm() < gtol_*algo_state.gnorm ) {
+//              flag_PDAS_ = 0;
+//              break;
+//          }
+//          if ( search_direction_design.norm() < stol_*design_variables.norm() ) {
+//              flag_PDAS_ = 2;
+//              break;
+//          } 
+//      }
+//      if ( iter_PDAS_ == maxit_ ) {
+//          flag_PDAS_ = 1;
+//      } else {
+//          iter_PDAS_++;
+//      }
+//  }
+
+
+
+// Unconstrained PDAS
+// template<typename Real>
+// void PrimalDualActiveSetStep<Real>::compute(
+//     Vector &search_direction_design,
+//     const Vector &design_variables,
+//     ROL::Objective<Real> &objective,
+//     ROL::BoundConstraint<Real> &bound_constraints, 
+//     ROL::AlgorithmState<Real> &algo_state )
+// {
+//     ROL::Ptr<ROL::StepState<Real> > step_state = ROL::Step<Real>::getState();
+//     Real zero(0), one(1);
+//     search_direction_design.zero();
+//     quadratic_residual_->set(*(step_state->gradientVec));
+// 
+//     new_design_variables_->set(design_variables);
+//     // PDAS iterates through 3 steps.
+//     // 1. Estimate active set
+//     // 2. Use active set to determine search direction of the active constraints
+//     // 3. Solve KKT system for remaining inactive constraints
+//     VectorPtr rhs_design_temp = design_variables.clone(); 
+//     for ( iter_PDAS_ = 0; iter_PDAS_ < maxit_; iter_PDAS_++ ) {
+//         /********************************************************************/
+//         // Modify iterate vector to check active set
+//         /********************************************************************/
+//         des_plus_dual_->set(*new_design_variables_);    // des_plus_dual = initial_desvar
+//         des_plus_dual_->axpy(scale_,*(dual_inequality_));    // des_plus_dual = initial_desvar + c*dualvar, note that papers would usually divide by scale_ instead of multiply
+//         /********************************************************************/
+//         // Project design_variables onto primal dual feasible set
+//         // Using approximation of the active set, obtain the search direction since
+//         // we know that step will be constrained.
+//         /********************************************************************/
+//         search_direction_active_set_->zero();                                     // active_set_search_direction   = 0
+//     
+//         search_temp_->set(*bound_constraints.getUpperBound());                    // search_tmp = upper_bound
+//         search_temp_->axpy(-one,design_variables);                                // search_tmp = upper_bound - design_variables
+//         desvar_tmp_->set(*search_temp_);                                          // tmp        = upper_bound - design_variables
+//         bound_constraints.pruneUpperActive(*desvar_tmp_,*des_plus_dual_,neps_);   // tmp        = (upper_bound - (upper_bound - design_variables + c*dual_variables)) < 0 ? 0 : upper_bound - design_variables
+//         search_temp_->axpy(-one,*desvar_tmp_);                                    // search_tmp = ACTIVE(upper_bound - design_variables)
+// 
+//         search_direction_active_set_->plus(*search_temp_);                        // active_set_search_direction += ACTIVE(upper_bound - design_variables)
+//   
+//         search_temp_->set(*bound_constraints.getLowerBound());                    // search_tmp = lower_bound
+//         search_temp_->axpy(-one,design_variables);                                // search_tmp = lower_bound - design_variables
+//         desvar_tmp_->set(*search_temp_);                                          // tmp        = lower_bound - design_variables
+//         bound_constraints.pruneLowerActive(*desvar_tmp_,*des_plus_dual_,neps_);   // tmp        = INACTIVE(lower_bound - design_variables)
+//         search_temp_->axpy(-one,*desvar_tmp_);                                    // search_tmp = ACTIVE(lower_bound - design_variables)
+//         search_direction_active_set_->plus(*search_temp_);                        // active_set_search_direction += ACTIVE(lower_bound - design_variables)
+//         /********************************************************************/
+//         // Apply Hessian to active components of search_direction_design and remove inactive
+//         /********************************************************************/
+//         itol_ = std::sqrt(ROL::ROL_EPSILON<Real>());
+//         // INACTIVE(H)*active_set_search_direction = H*active_set_search_direction
+//         // INACTIVE(H)*active_set_search_direction = INACTIVE(H*active_set_search_direction)
+//         gradient_tmp1_->zero();
+//         if ( useSecantHessVec_ && lagrangian_secant_ != ROL::nullPtr ) {
+//             //secant_->applyB(*getOpt(*gradient_tmp1_),*getOpt(*search_direction_active_set_));
+//             lagrangian_secant_->applyB(*getOpt(*gradient_tmp1_),*getOpt(*search_direction_active_set_));
+//         } else {
+//             objective.hessVec(*gradient_tmp1_,*search_direction_active_set_,design_variables,itol_);
+//             //gradient_tmp1_->axpy(10.0, *search_direction_active_set_);
+//         }
+//         bound_constraints.pruneActive(*gradient_tmp1_,*des_plus_dual_,neps_);
+//         /********************************************************************/
+//         // SEPARATE ACTIVE AND INACTIVE COMPONENTS OF THE GRADIENT
+//         /********************************************************************/
+//         // Inactive components
+//         gradient_inactive_set_->set(*(step_state->gradientVec));
+//         bound_constraints.pruneActive(*gradient_inactive_set_,*des_plus_dual_,neps_);
+//         // Active components
+//         gradient_active_set_->set(*(step_state->gradientVec));
+//         gradient_active_set_->axpy(-one,*gradient_inactive_set_);
+//         /********************************************************************/
+//         // SOLVE REDUCED NEWTON SYSTEM 
+//         /********************************************************************/
+// 
+//         // rhs_design_temp = -(INACTIVE(gradient) + INACTIVE(H*active_set_search_direction))
+//         rhs_design_temp->set(*gradient_inactive_set_);
+//         rhs_design_temp->plus(*gradient_tmp1_);
+//         rhs_design_temp->scale(-one);
+// 
+//         search_direction_design.zero();
+//         if ( rhs_design_temp->norm() > zero ) {             
+//             // Initialize Hessian and preconditioner
+//             ROL::Ptr<ROL::Objective<Real> >       objective_ptr  = ROL::makePtrFromRef(objective);
+//             ROL::Ptr<ROL::BoundConstraint<Real> > bound_constraint_ptr = ROL::makePtrFromRef(bound_constraints);
+//             ROL::Ptr<ROL::LinearOperator<Real> > hessian = ROL::makePtr<InactiveHessian<Real>>(objective_ptr, bound_constraint_ptr, algo_state.iterateVec, des_plus_dual_, neps_, lagrangian_secant_, useSecantHessVec_);
+//             ROL::Ptr<ROL::LinearOperator<Real> > precond = ROL::makePtr<InactiveHessianPreconditioner<Real>>(objective_ptr, bound_constraint_ptr, algo_state.iterateVec, des_plus_dual_, neps_, lagrangian_secant_, useSecantPrecond_);
+//             krylov_->run(search_direction_design,*hessian,*rhs_design_temp,*precond,iter_Krylov_,flag_Krylov_);
+//             bound_constraints.pruneActive(search_direction_design,*des_plus_dual_,neps_);        // search_direction_design <- inactive_search_direction
+//         }
+//         search_direction_design.plus(*search_direction_active_set_);                             // search_direction_design = inactive_search_direction + active_set_search_direction
+//         /********************************************************************/
+//         // UPDATE MULTIPLIER 
+//         /********************************************************************/
+//         rhs_design_temp->zero();
+//         if ( useSecantHessVec_ && lagrangian_secant_ != ROL::nullPtr ) {
+//             lagrangian_secant_->applyB(*getOpt(*rhs_design_temp),*getOpt(search_direction_design));
+//         } else {
+//             objective.hessVec(*rhs_design_temp,search_direction_design,design_variables,itol_);
+//             //rhs_design_temp->axpy(10.0, search_direction_design);
+//         }
+//         gradient_tmp1_->set(*rhs_design_temp);
+//         bound_constraints.pruneActive(*gradient_tmp1_,*des_plus_dual_,neps_);
+// 
+//         // dual^{k+1} = - ( ACTIVE(H * search_direction_design) + gradient_active_set_ )
+//         dual_inequality_->set(*rhs_design_temp);
+//         dual_inequality_->axpy(-one,*gradient_tmp1_);
+//         dual_inequality_->plus(*gradient_active_set_);
+//         dual_inequality_->scale(-one);
+//         /********************************************************************/
+//         // UPDATE STEP 
+//         /********************************************************************/
+//         new_design_variables_->set(design_variables);
+//         new_design_variables_->plus(search_direction_design);
+//         //quadratic_residual_->set(*(step_state->gradientVec));
+//         //quadratic_residual_->plus(*rhs_design_temp);
+//         quadratic_residual_->set(*rhs_design_temp);
+//         // Compute criticality measure  
+//         desvar_tmp_->set(*new_design_variables_);
+//         desvar_tmp_->axpy(-one,quadratic_residual_->dual());
+//         bound_constraints.project(*desvar_tmp_);
+//         desvar_tmp_->axpy(-one,*new_design_variables_);
+//         std::cout << "des_var_temp " << desvar_tmp_->norm() << std::endl;
+//         std::cout << "gtol gnorm " << gtol_*algo_state.gnorm << std::endl;
+//         std::cout << "rhs_design_temp.norm() " << rhs_design_temp->norm() << std::endl;
+// 
+//         if ( desvar_tmp_->norm() < gtol_*algo_state.gnorm ) {
+//             flag_PDAS_ = 0;
+//             break;
+//         }
+//         if ( search_direction_design.norm() < stol_*design_variables.norm() ) {
+//             flag_PDAS_ = 2;
+//             break;
+//         } 
+//     }
+//     if ( iter_PDAS_ == maxit_ ) {
+//         flag_PDAS_ = 1;
+//     } else {
+//         iter_PDAS_++;
+//     }
+// }
+  

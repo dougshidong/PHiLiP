@@ -1,7 +1,7 @@
 # Listing of Parameters
 # ---------------------
 
-set test_type = euler_naca_optimization
+set test_type = euler_naca_optimization_constrained
 
 # Number of dimensions
 set dimension = 2
@@ -14,11 +14,7 @@ set conv_num_flux = lax_friedrichs
 
 set use_split_form = false
 
-subsection artificial dissipation
-	#set add_artificial_dissipation = true
-	set add_artificial_dissipation = false
-end
-
+set add_artificial_dissipation = false
 set overintegration = 0
 
 subsection euler

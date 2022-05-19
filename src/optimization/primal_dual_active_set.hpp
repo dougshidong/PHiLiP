@@ -57,6 +57,8 @@
 #include "ROL_PartitionedVector.hpp"
 #include "ROL_ParameterList.hpp"
 
+#include "optimization_utils.hpp"
+
 /** @ingroup step_group
     \class ROL::PrimalDualActiveSetStep
     \brief Implements the computation of optimization steps 
@@ -133,9 +135,7 @@
 
 namespace PHiLiP {
 
-const bool symmetrize_matrix_ = true;
-
-template <class Real>
+template <typename Real>
 class PrimalDualActiveSetStep : public ROL::Step<Real>
 {
 private:
@@ -159,380 +159,47 @@ private:
     Real neps_;      ///< \f$\epsilon\f$-active set parameter 
     bool feasible_;  ///< Flag whether the current iterate is feasible or not
     int kkt_linesearches_;  ///< Number of linesearches done within the KKT iteration.
+    unsigned int index_to_project_interior;
 
     bool is_full_space_;
+    double ecnorm_;      ///< Norm of equality constraints (includes active nonlinear inequality - slack).
+    double flowcnorm_;      ///< Norm of residual equality constraints.
+    double flow_cfl_;      ///< Flow CFL associated with equality constraints.
+    double identity_factor_;      ///< Identity matrix added to Hessian wrt to control variables.
+    double icnorm_;      ///< Norm of active box inequality constraints.
 
+    using Vector = ROL::Vector<Real>;
+    using VectorPtr = ROL::Ptr<Vector>;
   
     // Dual Variable
-    ROL::Ptr<ROL::Vector<Real> > dual_equality_;           ///< Container for dual variables
-    ROL::Ptr<ROL::Vector<Real> > dual_inequality_;           ///< Container for dual variables
-    ROL::Ptr<ROL::Vector<Real> > old_dual_inequality_;           ///< Container for dual variables
-    ROL::Ptr<ROL::Vector<Real> > des_plus_dual_;            ///< Container for primal plus dual variables
-    ROL::Ptr<ROL::Vector<Real> > new_design_variables_;     ///< Container for new dual equality variables
-    ROL::Ptr<ROL::Vector<Real> > new_dual_equality_;     ///< Container for new dual equality variables
-    ROL::Ptr<ROL::Vector<Real> > search_temp_;              ///< Container for primal variable bounds
-    ROL::Ptr<ROL::Vector<Real> > search_direction_active_set_;     ///< Container for step projected onto active set
-    ROL::Ptr<ROL::Vector<Real> > desvar_tmp_;   ///< Container for temporary primal storage
-    ROL::Ptr<ROL::Vector<Real> > quadratic_residual_;    ///< Container for optimality system residual for quadratic model
-    ROL::Ptr<ROL::Vector<Real> > gradient_active_set_;     ///< Container for gradient projected onto active set
-    ROL::Ptr<ROL::Vector<Real> > gradient_inactive_set_;     ///< Container for gradient projected onto active set
-    ROL::Ptr<ROL::Vector<Real> > gradient_tmp1_;   ///< Container for temporary gradient storage
-    ROL::Ptr<ROL::Vector<Real> > gradient_tmp2_;   ///< Container for temporary gradient storage
+    VectorPtr dual_equality_;           ///< Container for dual variables
+    VectorPtr dual_inequality_;           ///< Container for dual variables
+    VectorPtr old_dual_inequality_;           ///< Container for dual variables
+    VectorPtr des_plus_dual_;            ///< Container for primal plus dual variables
+    VectorPtr new_design_variables_;     ///< Container for new dual equality variables
+    VectorPtr new_dual_equality_;     ///< Container for new dual equality variables
+    VectorPtr search_temp_;              ///< Container for primal variable bounds
+    VectorPtr search_direction_active_set_;     ///< Container for step projected onto active set
+    VectorPtr desvar_tmp_;   ///< Container for temporary primal storage
+    VectorPtr quadratic_residual_;    ///< Container for optimality system residual for quadratic model
+    VectorPtr gradient_active_set_;     ///< Container for gradient projected onto active set
+    VectorPtr gradient_inactive_set_;     ///< Container for gradient projected onto active set
+    VectorPtr old_gradient_;   ///< Container for temporary gradient storage
+    VectorPtr gradient_tmp1_;   ///< Container for temporary gradient storage
    
 
-    ROL::Ptr<ROL::Vector<Real> > search_direction_dual_;  ///< Container for dual variable search direction
+    VectorPtr search_direction_dual_;  ///< Container for dual variable search direction
 
     // Secant Information
     ROL::ESecant esec_;                       ///< Enum for secant type
-    ROL::Ptr<ROL::Secant<Real> > secant_; ///< Secant object
+    ROL::Ptr<ROL::Secant<Real> > objective_secant_; ///< Secant object
+    ROL::Ptr<ROL::Secant<Real> > lagrangian_secant_; ///< BFGS for only the control variables.
     bool useSecantPrecond_; 
     bool useSecantHessVec_;
+    bool d_force_use_bfgs; ///< Line search was bad with Newton step, recompute search direction using BFGS.
 
-    class PDAS_KKT_System : public ROL::LinearOperator<Real> {
-        private:
-            const ROL::Ptr<ROL::Objective<Real> > objective_;
-            const ROL::Ptr<ROL::Constraint<Real> > equality_constraints_;
-            const ROL::Ptr<ROL::BoundConstraint<Real> > bound_constraints_;
-            const ROL::Ptr<const ROL::Vector<Real> > design_variables_;
-            const ROL::Ptr<const ROL::Vector<Real> > dual_equality_;
-            const ROL::Ptr<const ROL::Vector<Real> > des_plus_dual_;
-
-            ROL::Ptr<ROL::Vector<Real> > temp_design_;
-            ROL::Ptr<ROL::Vector<Real> > temp_dual_equality_;
-            ROL::Ptr<ROL::Vector<Real> > temp_dual_inequality_;
-
-            ROL::Ptr<ROL::Vector<Real> > v_;
-
-            const Real add_identity_;
-            Real bounded_constraint_tolerance_;
-            const ROL::Ptr<ROL::Secant<Real> > secant_;
-            bool useSecant_;
-        public:
-          PDAS_KKT_System(
-                    const ROL::Ptr<ROL::Objective<Real> > &objective,
-                    const ROL::Ptr<ROL::Constraint<Real> > &equality_constraints,
-                    const ROL::Ptr<ROL::BoundConstraint<Real> > &bound_constraints,
-                    const ROL::Ptr<const ROL::Vector<Real> > &design_variables,
-                    const ROL::Ptr<const ROL::Vector<Real> > &dual_equality,
-                    const ROL::Ptr<const ROL::Vector<Real> > &des_plus_dual,
-                    const Real add_identity,
-                    const Real constraint_tolerance = 0,
-                    const ROL::Ptr<ROL::Secant<Real> > &secant = ROL::nullPtr,
-                    const bool useSecant = false );
-          void apply( ROL::Vector<Real> &Hv, const ROL::Vector<Real> &v, Real &tol ) const;
-    };
-    class Identity_Preconditioner : public ROL::LinearOperator<Real> {
-        public:
-          void apply( ROL::Vector<Real> &Hv, const ROL::Vector<Real> &v, Real &tol ) const
-          {
-              (void) v;
-              (void) tol;
-              Hv.set(v);
-          }
-    };
-
-  
-    class InactiveHessian : public ROL::LinearOperator<Real> {
-        private:
-            const ROL::Ptr<ROL::Objective<Real> > objective_;
-            const ROL::Ptr<ROL::BoundConstraint<Real> > bound_constraints_;
-            const ROL::Ptr<ROL::Vector<Real> > design_variables_;
-            const ROL::Ptr<ROL::Vector<Real> > des_plus_dual_;
-            ROL::Ptr<ROL::Vector<Real> > v_;
-            Real bounded_constraint_tolerance_;
-            const ROL::Ptr<ROL::Secant<Real> > secant_;
-            bool useSecant_;
-        public:
-          InactiveHessian(const ROL::Ptr<ROL::Objective<Real> > &objective,
-                    const ROL::Ptr<ROL::BoundConstraint<Real> > &bound_constraints,
-                    const ROL::Ptr<ROL::Vector<Real> > &design_variables,
-                    const ROL::Ptr<ROL::Vector<Real> > &des_plus_dual,
-                    const Real constraint_tolerance = 0,
-                    const ROL::Ptr<ROL::Secant<Real> > &secant = ROL::nullPtr,
-                    const bool useSecant = false )
-            : objective_(objective)
-            , bound_constraints_(bound_constraints)
-            , design_variables_(design_variables)
-            , des_plus_dual_(des_plus_dual)
-            , bounded_constraint_tolerance_(constraint_tolerance)
-            , secant_(secant)
-            , useSecant_(useSecant)
-          {
-              v_ = design_variables_->clone();
-              if ( !useSecant || secant == ROL::nullPtr ) useSecant_ = false;
-          }
-          void apply( ROL::Vector<Real> &Hv, const ROL::Vector<Real> &v, Real &tol ) const
-          {
-              v_->set(v);
-              bound_constraints_->pruneActive(*v_,*des_plus_dual_,bounded_constraint_tolerance_);
-              if ( useSecant_ ) {
-                  secant_->applyB(Hv,*v_);
-              } else {
-                  objective_->hessVec(Hv,*v_,*design_variables_,tol);
-                  //Hv.axpy(10.0,*v_);
-              }
-              bound_constraints_->pruneActive(Hv,*des_plus_dual_,bounded_constraint_tolerance_);
-          }
-    };
-      
-    class InactiveHessianPreconditioner : public ROL::LinearOperator<Real> {
-        private:
-
-            const ROL::Ptr<ROL::Objective<Real> > objective_;
-            const ROL::Ptr<ROL::BoundConstraint<Real> > bound_constraints_;
-            const ROL::Ptr<ROL::Vector<Real> > design_variables_;
-            const ROL::Ptr<ROL::Vector<Real> > des_plus_dual_;
-            ROL::Ptr<ROL::Vector<Real> > v_;
-            Real bounded_constraint_tolerance_;
-            const ROL::Ptr<ROL::Secant<Real> > secant_;
-            bool useSecant_;
-
-        public:
-            InactiveHessianPreconditioner(const ROL::Ptr<ROL::Objective<Real> > &objective,
-                      const ROL::Ptr<ROL::BoundConstraint<Real> > &bound_constraints,
-                      const ROL::Ptr<ROL::Vector<Real> > &design_variables,
-                      const ROL::Ptr<ROL::Vector<Real> > &des_plus_dual,
-                      const Real constraint_tolerance = 0,
-                      const ROL::Ptr<ROL::Secant<Real> > &secant = ROL::nullPtr,
-                      const bool useSecant = false )
-              : objective_(objective)
-              , bound_constraints_(bound_constraints)
-              , design_variables_(design_variables)
-              , des_plus_dual_(des_plus_dual)
-              , bounded_constraint_tolerance_(constraint_tolerance)
-              , secant_(secant)
-              , useSecant_(useSecant)
-            {
-                v_ = design_variables_->dual().clone();
-                if ( !useSecant || secant == ROL::nullPtr ) useSecant_ = false;
-            }
-            void apply( ROL::Vector<Real> &Hv, const ROL::Vector<Real> &v, Real &/*tol*/ ) const
-            {
-                Hv.set(v.dual());
-            }
-            void applyInverse( ROL::Vector<Real> &Hv, const ROL::Vector<Real> &v, Real &tol ) const
-            {
-                v_->set(v);
-                bound_constraints_->pruneActive(*v_,*des_plus_dual_,bounded_constraint_tolerance_);
-                if ( useSecant_ ) {
-                    secant_->applyH(Hv,*v_);
-                } else {
-                    objective_->precond(Hv,*v_,*design_variables_,tol);
-                }
-                bound_constraints_->pruneActive(Hv,*des_plus_dual_,bounded_constraint_tolerance_);
-            }
-    };
-
-
-protected:
-    /// Used to prune active or inactive constraints values or dual values using the same
-    /// BoundConstraint_Partitioned class.
-    static ROL::PartitionedVector<Real> augment_constraint_to_design_and_constraint(
-        const ROL::Ptr<ROL::Vector<Real>> vector_of_design_size,
-        const ROL::Ptr<ROL::Vector<Real>> vector_of_constraint_size)
-    {
-        std::vector<ROL::Ptr<ROL::Vector<Real>>> vec_of_vec { vector_of_design_size, vector_of_constraint_size };
-        ROL::PartitionedVector<Real> partitioned_vector( vec_of_vec );
-
-        partitioned_vector[0].set(*vector_of_design_size);
-        partitioned_vector[1].set(*vector_of_constraint_size);
-
-        return partitioned_vector;
-    }
-    static void prune_active_constraints(const ROL::Ptr<ROL::Vector<Real>> constraint_vector_to_prune,
-                                  const ROL::Ptr<const ROL::Vector<Real>> ref_controlslacks_vector,
-                                  const ROL::Ptr<ROL::BoundConstraint<Real>> bound_constraints,
-                                  Real /*eps*/)
-    {
-        const ROL::PartitionedVector<Real> &ref_controlslacks_vector_partitioned = dynamic_cast<const ROL::PartitionedVector<Real>&>(*ref_controlslacks_vector);
-        ROL::Ptr<ROL::Vector<Real>> design_vector = ref_controlslacks_vector_partitioned.get(0)->clone();
-
-        ROL::PartitionedVector<Real> dummydes_constraint = augment_constraint_to_design_and_constraint( design_vector, constraint_vector_to_prune );
-        
-        bound_constraints->pruneActive(dummydes_constraint, ref_controlslacks_vector_partitioned);
-
-        constraint_vector_to_prune->set(dummydes_constraint[1]);
-    }
-    static void prune_inactive_constraints(const ROL::Ptr<ROL::Vector<Real>> constraint_vector_to_prune,
-                                  const ROL::Ptr<const ROL::Vector<Real>> ref_controlslacks_vector,
-                                  const ROL::Ptr<ROL::BoundConstraint<Real>> bound_constraints)
-    {
-        const ROL::PartitionedVector<Real> &ref_controlslacks_vector_partitioned = dynamic_cast<const ROL::PartitionedVector<Real>&>(*ref_controlslacks_vector);
-        ROL::Ptr<ROL::Vector<Real>> design_vector = ref_controlslacks_vector_partitioned.get(0)->clone();
-
-        ROL::PartitionedVector<Real> dummydes_constraint = augment_constraint_to_design_and_constraint( design_vector, constraint_vector_to_prune );
-        
-        bound_constraints->pruneInactive(dummydes_constraint, ref_controlslacks_vector_partitioned);
-
-        constraint_vector_to_prune->set(dummydes_constraint[1]);
-    }
-    static ROL::Ptr<ROL::Vector<Real>> getOpt( ROL::Vector<Real> &xs )
-    {
-        return dynamic_cast<ROL::PartitionedVector<Real>&>(xs).get(0);
-    }
-    static ROL::Ptr<const ROL::Vector<Real>> getOpt( const ROL::Vector<Real> &xs )
-    {
-        return dynamic_cast<const ROL::PartitionedVector<Real>&>(xs).get(0);
-    }
-    static ROL::Ptr<ROL::Vector<Real>> getCtlOpt( ROL::Vector<Real> &xs )
-    {
-        ROL::Ptr<ROL::Vector<Real>> xopt = getOpt( xs );
-        try {
-            ROL::Vector_SimOpt<Real> &xopt_simopt = dynamic_cast<ROL::Vector_SimOpt<Real>&>(*xopt);
-            return xopt_simopt.get_2();
-        } catch (...) {
-        }
-        return xopt;
-    }
-    static ROL::Ptr<const ROL::Vector<Real>> getCtlOpt( const ROL::Vector<Real> &xs )
-    {
-        ROL::Ptr<const ROL::Vector<Real>> xopt = getOpt( xs );
-        try {
-            const ROL::Vector_SimOpt<Real> &xopt_simopt = dynamic_cast<const ROL::Vector_SimOpt<Real>&>(*xopt);
-            return xopt_simopt.get_2();
-        } catch (...) {
-        }
-        return xopt;
-    }
 private:
 
-    class InactiveConstrainedHessian : public ROL::LinearOperator<Real> {
-        private:
-            const ROL::Ptr<ROL::Objective<Real> > objective_;
-            const ROL::Ptr<ROL::Constraint<Real> > equality_constraints_;
-            const ROL::Ptr<ROL::BoundConstraint<Real> > bound_constraints_;
-            const ROL::Ptr<ROL::Vector<Real> > design_variables_;
-            const ROL::Ptr<ROL::Vector<Real> > dual_equality_;
-            const ROL::Ptr<ROL::Vector<Real> > des_plus_dual_;
-
-            ROL::Ptr<ROL::Vector<Real> > temp_des_;
-            ROL::Ptr<ROL::Vector<Real> > temp_dual_;
-
-            ROL::Ptr<ROL::Vector<Real> > v_;
-            const ROL::Ptr<ROL::Vector<Real> > inactive_input_des_;
-            const ROL::Ptr<ROL::Vector<Real> > active_input_dual_;
-
-            Real bounded_constraint_tolerance_;
-            const ROL::Ptr<ROL::Secant<Real> > secant_;
-            bool useSecant_;
-        public:
-          InactiveConstrainedHessian(
-                    const ROL::Ptr<ROL::Objective<Real> > &objective,
-                    const ROL::Ptr<ROL::Constraint<Real> > &equality_constraints,
-                    const ROL::Ptr<ROL::BoundConstraint<Real> > &bound_constraints,
-                    const ROL::Ptr<ROL::Vector<Real> > &design_variables,
-                    const ROL::Ptr<ROL::Vector<Real> > &dual_equality,
-                    const ROL::Ptr<ROL::Vector<Real> > &des_plus_dual,
-                    const Real constraint_tolerance = 0,
-                    const ROL::Ptr<ROL::Secant<Real> > &secant = ROL::nullPtr,
-                    const bool useSecant = false )
-            : objective_(objective)
-            , equality_constraints_(equality_constraints)
-            , bound_constraints_(bound_constraints)
-            , design_variables_(design_variables)
-            , dual_equality_(dual_equality)
-            , des_plus_dual_(des_plus_dual)
-            , inactive_input_des_(design_variables_->clone())
-            , active_input_dual_(dual_equality_->clone())
-            , bounded_constraint_tolerance_(constraint_tolerance)
-            , secant_(secant)
-            , useSecant_(useSecant)
-          {
-
-              temp_des_ = design_variables_->clone();
-              temp_dual_ = dual_equality_->clone();
-              if ( !useSecant || secant == ROL::nullPtr ) useSecant_ = false;
-          }
-          void apply( ROL::Vector<Real> &Hv, const ROL::Vector<Real> &v, Real &tol ) const
-          {
-
-              ROL::PartitionedVector<Real> &output_partitioned = dynamic_cast<ROL::PartitionedVector<Real>&>(Hv);
-              const ROL::PartitionedVector<Real> &input_partitioned = dynamic_cast<const ROL::PartitionedVector<Real>&>(v);
-
-              const ROL::Ptr< const ROL::Vector< Real > > input_des = input_partitioned.get(0);
-              const ROL::Ptr< const ROL::Vector< Real > > input_dual = input_partitioned.get(1);
-              const ROL::Ptr< ROL::Vector< Real > > output_des = output_partitioned.get(0);
-              const ROL::Ptr< ROL::Vector< Real > > output_dual = output_partitioned.get(1);
-
-              inactive_input_des_->set(*input_des);
-              bound_constraints_->pruneActive(*inactive_input_des_,*des_plus_dual_,bounded_constraint_tolerance_);
-
-              //const ROL::PartitionedVector<Real> &inactive_input_des_partitioned = dynamic_cast<const ROL::PartitionedVector<Real>&>(inactive_input_des_);
-              //inactive_input_des_partitioned.get(0);
-
-              Real one(1);
-              if ( useSecant_ ) {
-                  secant_->applyB(*output_des,*inactive_input_des_);
-              } else {
-                  // Hv1 = H11 * v1
-                  objective_->hessVec(*output_des,*inactive_input_des_,*design_variables_,tol);
-                  equality_constraints_->applyAdjointHessian(*temp_des_, *dual_equality_, *inactive_input_des_, *design_variables_, tol);
-                  output_des->axpy(one,*temp_des_);
-                  //*output_des.axpy(10.0,*inactive_input_des_);
-              }
-              // Hv1 += H12 * v2
-
-              active_input_dual_->set(*input_dual);
-              PrimalDualActiveSetStep<Real>::prune_inactive_constraints( active_input_dual_, des_plus_dual_, bound_constraints_);
-              equality_constraints_->applyAdjointJacobian(*temp_des_, *active_input_dual_, *design_variables_, tol);
-              output_des->axpy(one,*temp_des_);
-
-              bound_constraints_->pruneActive(*output_des,*des_plus_dual_,bounded_constraint_tolerance_);
-
-              equality_constraints_->applyJacobian(*output_dual, *input_des, *design_variables_, tol);
-          }
-    };
-      
-    class InactiveConstrainedHessianPreconditioner : public ROL::LinearOperator<Real> {
-        private:
-
-            const ROL::Ptr<ROL::Objective<Real> > objective_;
-            const ROL::Ptr<ROL::BoundConstraint<Real> > bound_constraints_;
-            const ROL::Ptr<ROL::Vector<Real> > design_variables_;
-            const ROL::Ptr<ROL::Vector<Real> > des_plus_dual_;
-            ROL::Ptr<ROL::Vector<Real> > v_;
-            Real bounded_constraint_tolerance_;
-            const ROL::Ptr<ROL::Secant<Real> > secant_;
-            bool useSecant_;
-
-        public:
-            InactiveConstrainedHessianPreconditioner(const ROL::Ptr<ROL::Objective<Real> > &objective,
-                      const ROL::Ptr<ROL::BoundConstraint<Real> > &bound_constraints,
-                      const ROL::Ptr<ROL::Vector<Real> > &design_variables,
-                      const ROL::Ptr<ROL::Vector<Real> > &des_plus_dual,
-                      const Real constraint_tolerance = 0,
-                      const ROL::Ptr<ROL::Secant<Real> > &secant = ROL::nullPtr,
-                      const bool useSecant = false )
-              : objective_(objective)
-              , bound_constraints_(bound_constraints)
-              , design_variables_(design_variables)
-              , des_plus_dual_(des_plus_dual)
-              , bounded_constraint_tolerance_(constraint_tolerance)
-              , secant_(secant)
-              , useSecant_(useSecant)
-            {
-                v_ = design_variables_->dual().clone();
-                if ( !useSecant || secant == ROL::nullPtr ) useSecant_ = false;
-            }
-            void apply( ROL::Vector<Real> &Hv, const ROL::Vector<Real> &v, Real &/*tol*/ ) const
-            {
-                Hv.set(v.dual());
-            }
-            void applyInverse( ROL::Vector<Real> &Hv, const ROL::Vector<Real> &v, Real &tol ) const
-            {
-                //v_->set(v);
-                //bound_constraints_->pruneActive(*v_,*des_plus_dual_,bounded_constraint_tolerance_);
-                //if ( useSecant_ ) {
-                //    secant_->applyH(Hv,*v_);
-                //} else {
-                //    objective_->precond(Hv,*v_,*design_variables_,tol);
-                //}
-                //bound_constraints_->pruneActive(Hv,*des_plus_dual_,bounded_constraint_tolerance_);
-                (void) tol;
-                Hv.set(v.dual());
-            }
-    };
-  
     /** \brief Compute the gradient-based criticality measure.
   
                The criticality measure is 
@@ -546,10 +213,25 @@ private:
                @param[in]    tol   is a tolerance for inexact evaluations of the objective function
     */ 
     Real computeCriticalityMeasure(
-        ROL::Vector<Real> &design_variables,
+        Vector &design_variables,
         ROL::Objective<Real> &objective,
         ROL::BoundConstraint<Real> &bound_constraints,
         Real tol);
+
+  void printDesignDual(
+    const std::string &code_location,
+    const Vector &design_variables,
+    ROL::BoundConstraint<Real> &bound_constraints,
+    const Vector &dual_inequalities,
+    const Vector &designs_plus_duals,
+    const Vector &dual_equalities) const;
+
+  void printSearchDirection (
+    const std::string& vector_name,
+    const Vector& search_design,
+    const Vector& search_dual_equality,
+    const Vector& search_dual_inequality) const;
+
   
   public:
     /** \brief Constructor.
@@ -572,17 +254,17 @@ private:
                @param[in]        algo_state  is the current state of the algorithm
     */
     using ROL::Step<Real>::initialize;
-    void initialize( ROL::Vector<Real> &design_variables,
-                     const ROL::Vector<Real> &search_direction_vec_to_clone,
-                     const ROL::Vector<Real> &gradient_vec_to_clone, 
+    void initialize( Vector &design_variables,
+                     const Vector &search_direction_vec_to_clone,
+                     const Vector &gradient_vec_to_clone, 
                      ROL::Objective<Real> &objective,
                      ROL::BoundConstraint<Real> &bound_constraints, 
                      ROL::AlgorithmState<Real> &algo_state );
 
-    void initialize(ROL::Vector<Real> &design_variables,
-                    const ROL::Vector<Real> &gradient_vec_to_clone, 
-                    ROL::Vector<Real> &dual_equality,
-                    const ROL::Vector<Real> &constraint_vec_to_clone, 
+    void initialize(Vector &design_variables,
+                    const Vector &gradient_vec_to_clone, 
+                    Vector &dual_equality,
+                    const Vector &constraint_vec_to_clone, 
                     ROL::Objective<Real> &objective,
                     ROL::Constraint<Real> &equality_constraints, 
                     ROL::BoundConstraint<Real> &bound_constraints, 
@@ -611,35 +293,40 @@ private:
                @param[in]        algo_state  is the current state of the algorithm
     */
     using ROL::Step<Real>::compute;
-    void compute( ROL::Vector<Real> &search_direction_design,
-                  const ROL::Vector<Real> &design_variables,
+    void compute( Vector &search_direction_design,
+                  const Vector &design_variables,
                   ROL::Objective<Real> &objective,
                   ROL::BoundConstraint<Real> &bound_constraints, 
                   ROL::AlgorithmState<Real> &algo_state );
 
     void compute_PDAS_rhs(
-        const ROL::Vector<Real> &old_design_variables,
-        const ROL::Vector<Real> &new_design_variables,
-        const ROL::Vector<Real> &new_dual_equality,
-        const ROL::Vector<Real> &dual_inequality,
-        const ROL::Vector<Real> &des_plus_dual,
-        const ROL::Vector<Real> &old_objective_gradient,
+        const Vector &old_design_variables,
+        const Vector &new_design_variables,
+        const Vector &new_dual_equality,
+        const Vector &dual_inequality,
+        const Vector &des_plus_dual,
+        const Vector &old_objective_gradient,
         ROL::Objective<Real> &objective, 
         ROL::Constraint<Real> &equality_constraints, 
         ROL::BoundConstraint<Real> &bound_constraints, 
-        ROL::PartitionedVector<Real> &rhs_partitioned);
+        ROL::PartitionedVector<Real> &rhs_partitioned,
+        const int objective_type, // 0 = nonlinear, 1 = linear, 2 = quadratic
+        const int constraint_type, // 0 = nonlinear, 1 = linear
+        const ROL::Secant<Real> &secant,
+        const bool useSecant,
+        const Real add_identity_factor = 0.0);
     void compute2(
-        ROL::Vector<Real> &search_direction_design,
-        const ROL::Vector<Real> &design_variables,
-        const ROL::Vector<Real> &dual_equality,
+        Vector &search_direction_design,
+        const Vector &design_variables,
+        const Vector &dual_equality,
         ROL::Objective<Real> &objective,
         ROL::Constraint<Real> &equality_constraints, 
         ROL::BoundConstraint<Real> &bound_constraints, 
         ROL::AlgorithmState<Real> &algo_state );
     void compute(
-        ROL::Vector<Real> &search_direction_design,
-        const ROL::Vector<Real> &design_variables,
-        const ROL::Vector<Real> &dual_equality,
+        Vector &search_direction_design,
+        const Vector &design_variables,
+        const Vector &dual_equality,
         ROL::Objective<Real> &objective,
         ROL::Constraint<Real> &equality_constraints, 
         ROL::BoundConstraint<Real> &bound_constraints, 
@@ -657,16 +344,16 @@ private:
                @param[in]        algo_state  is the current state of the algorithm
     */
     using ROL::Step<Real>::update;
-    void update( ROL::Vector<Real> &design_variables,
-                 const ROL::Vector<Real> &search_direction_design,
+    void update( Vector &design_variables,
+                 const Vector &search_direction_design,
                  ROL::Objective<Real> &objective,
                  ROL::BoundConstraint<Real> &bound_constraints,
                  ROL::AlgorithmState<Real> &algo_state );
 
     void update(
-        ROL::Vector<Real> &design_variables,
-        ROL::Vector<Real> &dual_equality,
-        const ROL::Vector<Real> &search_direction_design,
+        Vector &design_variables,
+        Vector &dual_equality,
+        const Vector &search_direction_design,
         ROL::Objective<Real> &objective,
         ROL::Constraint<Real> &equality_constraints,
         ROL::BoundConstraint<Real> &bound_constraints,

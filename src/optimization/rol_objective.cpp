@@ -67,6 +67,7 @@ void ROLObjectiveSimOpt<dim,nstate>::update(
         dXv.update_ghost_values();
         functional.dg->high_order_grid->volume_nodes = functional.dg->high_order_grid->initial_volume_nodes;
         functional.dg->high_order_grid->volume_nodes += dXv;
+        functional.dg->high_order_grid->ensure_conforming_mesh();
         functional.dg->high_order_grid->volume_nodes.update_ghost_values();
     }
 }

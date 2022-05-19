@@ -18,7 +18,7 @@
 #include "euler_split_inviscid_taylor_green_vortex.h"
 #include "optimization_inverse_manufactured/optimization_inverse_manufactured.h"
 #include "euler_bump_optimization.h"
-#include "euler_naca0012_optimization.hpp"
+#include "naca0012_optimization/euler_naca0012_optimization.hpp"
 #include "shock_1d.h"
 #include "euler_naca0012.hpp"
 
@@ -93,6 +93,8 @@ std::unique_ptr< TestsBase > TestsFactory<dim,nstate>
         if constexpr (dim==2 && nstate==dim+2) return std::make_unique<EulerBumpOptimization<dim,nstate>>(parameters_input);
     } else if(test_type == Test_enum::euler_naca_optimization) {
         if constexpr (dim==2 && nstate==dim+2) return std::make_unique<EulerNACAOptimization<dim,nstate>>(parameters_input);
+    } else if(test_type == Test_enum::euler_naca_drag_optimization_lift_constrained) {
+        if constexpr (dim==2 && nstate==dim+2) return std::make_unique<EulerNACADragOptimizationLiftConstrained<dim,nstate>>(parameters_input);
     } else if(test_type == Test_enum::euler_naca_optimization_constrained) {
         if constexpr (dim==2 && nstate==dim+2) return std::make_unique<EulerNACAOptimizationConstrained<dim,nstate>>(parameters_input);
     } else if(test_type == Test_enum::shock_1d) {

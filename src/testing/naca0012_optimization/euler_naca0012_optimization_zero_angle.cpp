@@ -32,7 +32,7 @@
 #include "functional/target_boundary_functional.h"
 
 #include "mesh/grids/gaussian_bump.h"
-#include "mesh/free_form_deformation.h"
+#include "mesh/symmetric_free_form_deformation.hpp"
 
 #include "optimization/rol_to_dealii_vector.hpp"
 #include "optimization/flow_constraints.hpp"
@@ -62,30 +62,267 @@ const std::vector<Preconditioner> precond_list { Preconditioner::P4 };
 //const std::vector<OptimizationAlgorithm> opt_list { OptimizationAlgorithm::full_space_birosghattas };
 //const std::vector<OptimizationAlgorithm> opt_list { OptimizationAlgorithm::reduced_space_bfgs };
 const std::vector<OptimizationAlgorithm> opt_list {
-    OptimizationAlgorithm::reduced_space_newton,
-    OptimizationAlgorithm::full_space_birosghattas,
+    //OptimizationAlgorithm::reduced_space_newton,
+    //OptimizationAlgorithm::full_space_birosghattas,
+    OptimizationAlgorithm::reduced_space_bfgs,
     };
 
 const unsigned int POLY_START = 1;
 const unsigned int POLY_END = 1; // Can do until at least P2
 
 const unsigned int n_des_var_start = 10;//20;
-const unsigned int n_des_var_end   = 10;//100;
+const unsigned int n_des_var_end   = 50;//100;
 const unsigned int n_des_var_step  = 10;//20;
+
+//const double upper_bound_dx = ROL::ROL_INF<double>();
+//const double lower_bound_dx = -ROL::ROL_INF<double>();
+const double upper_bound_dx = 0.02;
+const double lower_bound_dx = -0.001;
 
 const int max_design_cycle = 1000;
 
 const double FD_TOL = 1e-6;
 const double CONSISTENCY_ABS_TOL = 1e-10;
 
-const int LINESEARCH_MAX_ITER = 5;
-const int PDAS_MAX_ITER = 2;
+bool USE_BFGS = false;
+const int LINESEARCH_MAX_ITER = 10;
+const double BACKTRACKING_RATE = 0.75;
+const int PDAS_MAX_ITER = 1;//20;
+const double GRADIENT_TOLERANCE = 1e-6;
 
-const std::string line_search_curvature = "Null Curvature Condition";
+const std::string line_search_curvature =
+    //"Null Curvature Condition";
+    //"Goldstein Conditions";
+    "Wolfe Conditions";
+    //"Strong Wolfe Conditions";
 const std::string line_search_method = "Backtracking";
 
 namespace PHiLiP {
 namespace Tests {
+double check_max_rel_error3(std::vector<std::vector<double>> rol_check_results) {
+    double max_rel_err = 999999;
+    for (unsigned int i = 0; i < rol_check_results.size(); ++i) {
+        const double abs_val_ad = std::abs(rol_check_results[i][1]);
+        const double abs_val_fd = std::abs(rol_check_results[i][2]);
+        const double abs_err    = std::abs(rol_check_results[i][3]);
+        const double rel_err    = abs_err / std::max(abs_val_ad,abs_val_fd);
+        max_rel_err = std::min(max_rel_err, rel_err);
+    }
+    return max_rel_err;
+}
+template<int dim, int nstate>
+int check_flow_constraints2(
+    const unsigned int nx_ffd,
+    ROL::Ptr<FlowConstraints<dim>> flow_constraints,
+    ROL::Ptr<ROL::Vector<double>> des_var_sim_rol_p,
+    ROL::Ptr<ROL::Vector<double>> des_var_ctl_rol_p,
+    ROL::Ptr<ROL::Vector<double>> des_var_adj_rol_p)
+{
+    Physics::Euler<dim,nstate,double> euler_physics_double
+        = Physics::Euler<dim, nstate, double>(
+                1,
+                1.4,
+                0.8,
+                1.25,
+                0.0);
+    Physics::FreeStreamInitialConditions<dim,nstate> initial_conditions(euler_physics_double);
+
+    int test_error = 0;
+    // Temporary vectors
+    const auto temp_sim = des_var_sim_rol_p->clone();
+    const auto temp_ctl = des_var_ctl_rol_p->clone();
+    const auto v1 = temp_sim->clone();
+    const auto v2 = temp_ctl->clone();
+
+    const auto jv1 = temp_sim->clone();
+    const auto jv2 = temp_sim->clone();
+
+    v1->zero();
+    v1->setScalar(1.0);
+    v2->zero();
+    v2->setScalar(1.0);
+
+    std::vector<double> steps;
+    for (int i = -2; i > -12; i--) {
+        steps.push_back(std::pow(10,i));
+    }
+    const int order = 2;
+
+    const ROL::Ptr<ROL::Vector_SimOpt<double>> des_var_rol_p = ROL::makePtr<ROL::Vector_SimOpt<double>>(des_var_sim_rol_p, des_var_ctl_rol_p);
+
+    Teuchos::RCP<std::ostream> outStream;
+    ROL::nullstream bhs; // outputs nothing
+    const unsigned int mpi_rank = dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD);
+    std::filebuf filebuffer;
+    if (mpi_rank == 0) filebuffer.open ("flow_constraints_check"+std::to_string(nx_ffd)+".log",std::ios::out);
+    std::ostream ostr(&filebuffer);
+    if (mpi_rank == 0) outStream = ROL::makePtrFromRef(ostr);
+    else if (mpi_rank == 1) outStream = ROL::makePtrFromRef(std::cout);
+    else outStream = ROL::makePtrFromRef(bhs);
+
+    *outStream << "flow_constraints->checkApplyJacobian_1..." << std::endl;
+    *outStream << "Checks dRdW * v1 against R(w+h*v1,x)/h  ..." << std::endl;
+    {
+        std::vector<std::vector<double>> results
+            = flow_constraints->checkApplyJacobian_1(*temp_sim, *temp_ctl, *v1, *jv1, steps, true, *outStream, order);
+
+        const double max_rel_err = check_max_rel_error3(results);
+        if (max_rel_err > FD_TOL) {
+            test_error++;
+            *outStream << "Failed flow_constraints->checkApplyJacobian_1..." << std::endl;
+        }
+    }
+
+    *outStream << "flow_constraints->checkApplyJacobian_2..." << std::endl;
+    *outStream << "Checks dRdX * v2 against R(w,x+h*v2)/h  ..." << std::endl;
+    {
+        std::vector<std::vector<double>> results
+            = flow_constraints->checkApplyJacobian_2(*temp_sim, *temp_ctl, *v2, *jv2, steps, true, *outStream, order);
+
+        const double max_rel_err = check_max_rel_error3(results);
+        if (max_rel_err > FD_TOL) {
+            test_error++;
+            *outStream << "Failed flow_constraints->checkApplyJacobian_2..." << std::endl;
+        }
+    }
+
+    *outStream << "flow_constraints->checkInverseJacobian_1..." << std::endl;
+    *outStream << "Checks || v - Jinv J v || == 0  ..." << std::endl;
+    {
+        const double v_minus_Jinv_J_v = flow_constraints->checkInverseJacobian_1(*jv1, *v1, *temp_sim, *temp_ctl, true, *outStream);
+        const double normalized_v_minus_Jinv_J_v = v_minus_Jinv_J_v / v1->norm();
+        if (normalized_v_minus_Jinv_J_v > CONSISTENCY_ABS_TOL) {
+            test_error++;
+            *outStream << "Failed flow_constraints->checkInverseJacobian_1..." << std::endl;
+        }
+    }
+
+    *outStream << "flow_constraints->checkInverseAdjointJacobian_1..." << std::endl;
+    *outStream << "Checks || v - Jtinv Jt v || == 0  ..." << std::endl;
+    {
+        const double v_minus_Jinv_J_v = flow_constraints->checkInverseAdjointJacobian_1(*jv1, *v1, *temp_sim, *temp_ctl, true, *outStream);
+        const double normalized_v_minus_Jinv_J_v = v_minus_Jinv_J_v / v1->norm();
+        if (normalized_v_minus_Jinv_J_v > CONSISTENCY_ABS_TOL) {
+            test_error++;
+            *outStream << "Failed flow_constraints->checkInverseAdjointJacobian_1..." << std::endl;
+        }
+
+    }
+
+    *outStream << "flow_constraints->checkAdjointConsistencyJacobian..." << std::endl;
+    *outStream << "Checks (w J v) versus (v Jt w)  ..." << std::endl;
+    {
+        const auto w = des_var_adj_rol_p->clone();
+        const auto v = des_var_rol_p->clone();
+        const auto x = des_var_rol_p->clone();
+        const auto temp_Jv = des_var_adj_rol_p->clone();
+        const auto temp_Jtw = des_var_rol_p->clone();
+        const bool printToStream = true;
+        const double wJv_minus_vJw = flow_constraints->checkAdjointConsistencyJacobian (*w, *v, *x, *temp_Jv, *temp_Jtw, printToStream, *outStream);
+        if (wJv_minus_vJw > CONSISTENCY_ABS_TOL) {
+            test_error++;
+            *outStream << "Failed flow_constraints->checkAdjointConsistencyJacobian..." << std::endl;
+        }
+    }
+
+    *outStream << "flow_constraints->checkApplyAdjointHessian..." << std::endl;
+    *outStream << "Checks (w H v) versus FD approximation  ..." << std::endl;
+    {
+        const auto dual = des_var_sim_rol_p->clone();
+        const auto temp_sim_ctl = des_var_rol_p->clone();
+        const auto v3 = des_var_rol_p->clone();
+        const auto hv3 = des_var_rol_p->clone();
+
+        std::vector<std::vector<double>> results
+            = flow_constraints->checkApplyAdjointHessian(*des_var_rol_p, *dual, *v3, *hv3, steps, true, *outStream, order);
+
+        const double max_rel_err = check_max_rel_error3(results);
+        if (max_rel_err > FD_TOL) {
+            test_error++;
+            *outStream << "Failed flow_constraints->checkApplyAdjointHessian..." << std::endl;
+        }
+    }
+    filebuffer.close();
+
+    return test_error;
+}
+
+template<int dim, int nstate>
+int check_objective(
+    ROL::Ptr<ROL::Objective_SimOpt<double>> objective,
+    ROL::Ptr<FlowConstraints<dim>> flow_constraints,
+    ROL::Ptr<ROL::Vector<double>> des_var_sim_rol_p,
+    ROL::Ptr<ROL::Vector<double>> des_var_ctl_rol_p,
+    ROL::Ptr<ROL::Vector<double>> des_var_adj_rol_p)
+{
+    int test_error = 0;
+    const bool storage = false;
+    const bool useFDHessian = false;
+    auto robj = ROL::makePtr<ROL::Reduced_Objective_SimOpt<double>>( objective, flow_constraints, des_var_sim_rol_p, des_var_ctl_rol_p, des_var_adj_rol_p, storage, useFDHessian);
+
+    auto des_var_p = ROL::makePtr<ROL::Vector_SimOpt<double>>(des_var_sim_rol_p, des_var_ctl_rol_p);
+
+    Teuchos::RCP<std::ostream> outStream;
+    ROL::nullstream bhs; // outputs nothing
+    const unsigned int mpi_rank = dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD);
+    std::filebuf filebuffer;
+    static int objective_count = 0;
+    if (mpi_rank == 0) filebuffer.open ("objective"+std::to_string(objective_count)+"_check"+std::to_string(999)+".log",std::ios::out);
+    objective_count++;
+    std::ostream ostr(&filebuffer);
+    if (mpi_rank == 0) outStream = ROL::makePtrFromRef(ostr);
+    else if (mpi_rank == 1) outStream = ROL::makePtrFromRef(std::cout);
+    else outStream = ROL::makePtrFromRef(bhs);
+
+    std::vector<double> steps;
+    for (int i = -2; i > -9; i--) {
+        steps.push_back(std::pow(10,i));
+    }
+    const int order = 2;
+    {
+        const auto direction = des_var_p->clone();
+        *outStream << "objective->checkGradient..." << std::endl;
+        std::vector<std::vector<double>> results
+            = objective->checkGradient( *des_var_p, *direction, steps, true, *outStream, order);
+
+        const double max_rel_err = check_max_rel_error3(results);
+        if (max_rel_err > FD_TOL) test_error++;
+    }
+    {
+        const auto direction_1 = des_var_p->clone();
+        auto direction_2 = des_var_p->clone();
+        direction_2->scale(0.5);
+        *outStream << "objective->checkHessVec..." << std::endl;
+        std::vector<std::vector<double>> results
+            = objective->checkHessVec( *des_var_p, *direction_1, steps, true, *outStream, order);
+
+        const double max_rel_err = check_max_rel_error3(results);
+        if (max_rel_err > FD_TOL) test_error++;
+
+        *outStream << "objective->checkHessSym..." << std::endl;
+        std::vector<double> results_HessSym = objective->checkHessSym( *des_var_p, *direction_1, *direction_2, true, *outStream);
+        double wHv       = std::abs(results_HessSym[0]);
+        double vHw       = std::abs(results_HessSym[1]);
+        double abs_error = std::abs(wHv - vHw);
+        double rel_error = abs_error / std::max(wHv, vHw);
+        if (rel_error > FD_TOL) test_error++;
+    }
+
+    {
+        const auto direction_ctl = des_var_ctl_rol_p->clone();
+        *outStream << "robj->checkGradient..." << std::endl;
+        std::vector<std::vector<double>> results
+            = robj->checkGradient( *des_var_ctl_rol_p, *direction_ctl, steps, true, *outStream, order);
+
+        const double max_rel_err = check_max_rel_error3(results);
+        if (max_rel_err > FD_TOL) test_error++;
+
+    }
+    filebuffer.close();
+
+    return test_error;
+}
+
 static double check_max_rel_error1(std::vector<std::vector<double>> rol_check_results) {
     double max_rel_err = 999999;
     for (unsigned int i = 0; i < rol_check_results.size(); ++i) {
@@ -112,19 +349,23 @@ ROL::Ptr<ROL::Vector<double>> getDesignVariables(
 
 
 ROL::Ptr<ROL::Objective<double>> getObjective(
-    const ROL::Ptr<ROL::Objective_SimOpt<double>> drag_objective,
+    const ROL::Ptr<ROL::Objective_SimOpt<double>> objective_simopt,
     const ROL::Ptr<ROL::Constraint_SimOpt<double>> flow_constraints,
     const ROL::Ptr<ROL::Vector<double>> simulation_variables,
     const ROL::Ptr<ROL::Vector<double>> control_variables,
     const bool is_reduced_space)
 {
-    if (!is_reduced_space) return drag_objective;
+    const auto state_constraints = ROL::makePtrFromRef<PHiLiP::FlowConstraints<PHILIP_DIM>>(dynamic_cast<PHiLiP::FlowConstraints<PHILIP_DIM>&>(*flow_constraints));
+    ROL::Ptr<ROL::Vector<double>> adjoint = simulation_variables->clone();
+    // int objective_check_error = check_objective<PHILIP_DIM,PHILIP_DIM+2>( objective_simopt, state_constraints, simulation_variables, control_variables, adjoint);
+    // (void) objective_check_error;
+
+    if (!is_reduced_space) return objective_simopt;
 
     const bool storage = true;
     const bool useFDHessian = false;
 
-    ROL::Ptr<ROL::Vector<double>> drag_adjoint = simulation_variables->clone();
-    return ROL::makePtr<ROL::Reduced_Objective_SimOpt<double>>( drag_objective, flow_constraints, simulation_variables, control_variables, drag_adjoint, storage, useFDHessian);
+    return ROL::makePtr<ROL::Reduced_Objective_SimOpt<double>>( objective_simopt, flow_constraints, simulation_variables, control_variables, adjoint, storage, useFDHessian);
 }
 
 ROL::Ptr<ROL::BoundConstraint<double>> getDesignBoundConstraint(
@@ -140,8 +381,13 @@ ROL::Ptr<ROL::BoundConstraint<double>> getDesignBoundConstraint(
         public:
             setUpper() : zero_(0) {}
             double apply(const double &x) const {
-                if(x>zero_) { return ROL::ROL_INF<double>(); }
-                else { return zero_; }
+                //if(x>zero_) { return 0.070; }//ROL::ROL_INF<double>(); }
+                //else { return -0.052; }
+                if(x>zero_) {
+                    return x + upper_bound_dx;
+                } else {
+                    return x + upper_bound_dx;
+                }
             }
     } setupper;
     struct setLower : public ROL::Elementwise::UnaryFunction<double> {
@@ -150,19 +396,26 @@ ROL::Ptr<ROL::BoundConstraint<double>> getDesignBoundConstraint(
         public:
             setLower() : zero_(0) {}
             double apply(const double &x) const {
-                if(x<zero_) { return -1.0*ROL::ROL_INF<double>(); }
-                else { return zero_; }
+                //if(x>zero_) { return 0.060; }//ROL::ROL_INF<double>(); }
+                //else { return -0.062; }
+                if(x>zero_) {
+                    return x + lower_bound_dx;
+                } else {
+                    return x + lower_bound_dx;
+                }
             }
     } setlower;
 
     ROL::Ptr<ROL::Vector<double>> l = control_variables->clone();
+    l->set(*control_variables);
     ROL::Ptr<ROL::Vector<double>> u = control_variables->clone();
+    u->set(*control_variables);
 
     l->applyUnary(setlower);
     u->applyUnary(setupper);
 
     double scale = 1;
-    double feasTol = 1e-4;
+    double feasTol = 1e-8;
     ROL::Ptr<ROL::BoundConstraint<double>> control_bounds = ROL::makePtr<ROL::Bounds<double>>(l,u, scale, feasTol);
 
     if (is_reduced_space) return control_bounds;
@@ -191,10 +444,12 @@ std::vector<ROL::Ptr<ROL::Constraint<double>>> getInequalityConstraint(
     const double lift_target,
     const ROL::Ptr<ROL::Objective_SimOpt<double>> volume_objective,
     const bool is_reduced_space,
-    const double volume_target = -1
+    const double volume_target
     )
 {
     std::vector<ROL::Ptr<ROL::Constraint<double> > > cvec;
+    (void) lift_objective;
+    (void) lift_target;
     ROL::Ptr<ROL::Constraint<double>> lift_constraint;
     if (is_reduced_space) {
         ROL::Ptr<ROL::SimController<double> > stateStore = ROL::makePtr<ROL::SimController<double>>();
@@ -203,70 +458,68 @@ std::vector<ROL::Ptr<ROL::Constraint<double>>> getInequalityConstraint(
         const bool useFDHessian = false;
         auto reduced_lift_objective = ROL::makePtr<ROL::Reduced_Objective_SimOpt<double>>( lift_objective, flow_constraints, simulation_variables, control_variables, lift_adjoint, storage, useFDHessian);
 
+        const auto state_constraints = ROL::makePtrFromRef<PHiLiP::FlowConstraints<PHILIP_DIM>>(dynamic_cast<PHiLiP::FlowConstraints<PHILIP_DIM>&>(*flow_constraints));
+        //int objective_check_error = check_objective<PHILIP_DIM,PHILIP_DIM+2>( lift_objective, state_constraints, simulation_variables, control_variables, lift_adjoint);
+        //(void) objective_check_error;
         ROL::Ptr<ROL::Constraint<double>> reduced_lift_constraint = ROL::makePtr<ROL::ConstraintFromObjective<double>> (reduced_lift_objective, lift_target);
         lift_constraint = reduced_lift_constraint;
 
         cvec.push_back(lift_constraint);
-        if (volume_target > 0) {
-            const bool storage = true;
-            const bool useFDHessian = false;
-            ROL::Ptr<ROL::Vector<double>> lift_adjoint = simulation_variables->clone();
-            auto reduced_volume_objective = ROL::makePtr<ROL::Reduced_Objective_SimOpt<double>>( volume_objective, flow_constraints, simulation_variables, control_variables, lift_adjoint, storage, useFDHessian);
+        //if (volume_target > 0) {
+            ROL::Ptr<ROL::Vector<double>> volume_adjoint = simulation_variables->clone();
+            auto reduced_volume_objective = ROL::makePtr<ROL::Reduced_Objective_SimOpt<double>>( volume_objective, flow_constraints, simulation_variables, control_variables, volume_adjoint, storage, useFDHessian);
             const ROL::Ptr<ROL::Constraint<double>> volume_constraint = ROL::makePtr<ROL::ConstraintFromObjective<double>> (reduced_volume_objective, volume_target);
             cvec.push_back(volume_constraint);
-        }
+        //}
     } else {
         ROL::Ptr<ROL::Constraint<double>> lift_constraint_simpopt = ROL::makePtr<PHiLiP::ConstraintFromObjective_SimOpt<double>> (lift_objective, lift_target);
         lift_constraint = lift_constraint_simpopt;
 
         cvec.push_back(lift_constraint);
-        if (volume_target > 0) {
+        //if (volume_target > 0) {
             //const bool storage = true;
             //const bool useFDHessian = false;
-            //ROL::Ptr<ROL::Vector<double>> lift_adjoint = simulation_variables->clone();
+            //ROL::Ptr<ROL::Vector<double>> volume_adjoint = simulation_variables->clone();
             //auto reduced_volume_objective = ROL::makePtr<ROL::Reduced_Objective_SimOpt<double>>( volume_objective, flow_constraints, simulation_variables, control_variables, lift_adjoint, storage, useFDHessian);
             const ROL::Ptr<ROL::Constraint<double>> volume_constraint = ROL::makePtr<PHiLiP::ConstraintFromObjective_SimOpt<double>> (volume_objective, volume_target);
             cvec.push_back(volume_constraint);
-        }
+        //}
     }
 
     return cvec;
 
 }
 
-std::vector<ROL::Ptr<ROL::Vector<double>>> getInequalityMultiplier(const double volume_target = -1) {
-    const ROL::Ptr<ROL::SingletonVector<double>> lift_constraint_dual = ROL::makePtr<ROL::SingletonVector<double>> (1.0);
+std::vector<ROL::Ptr<ROL::Vector<double>>> getInequalityMultiplier(const double volume_target) {
     std::vector<ROL::Ptr<ROL::Vector<double>>> emul;
+    const ROL::Ptr<ROL::SingletonVector<double>> lift_constraint_dual = ROL::makePtr<ROL::SingletonVector<double>> (1.0);
     emul.push_back(lift_constraint_dual);
-    if (volume_target > 0) {
+    (void) volume_target;
+    //if (volume_target > 0) {
         const ROL::Ptr<ROL::SingletonVector<double>> volume_constraint_dual = ROL::makePtr<ROL::SingletonVector<double>> (1.0);
         emul.push_back(volume_constraint_dual);
-    }
+    //}
     return emul;
 }
 
-std::vector<ROL::Ptr<ROL::BoundConstraint<double>>> getSlackBoundConstraint(const double lift_target, const double volume_target = -1)
+std::vector<ROL::Ptr<ROL::BoundConstraint<double>>> getSlackBoundConstraint(const double lift_target, const double volume_target)
 {
 
-    (void) lift_target;
-    //const ROL::Ptr<ROL::SingletonVector<double>> lift_lower_bound = ROL::makePtr<ROL::SingletonVector<double>> (lift_target);
-    // Constraint is already (lift - target_lift), therefore, the lower bound is 0.0.
-    const ROL::Ptr<ROL::SingletonVector<double>> lift_lower_bound = ROL::makePtr<ROL::SingletonVector<double>> (0.0);
-    const ROL::Ptr<ROL::SingletonVector<double>> lift_upper_bound = ROL::makePtr<ROL::SingletonVector<double>> (1.0);
-    //const bool isLower = true;
+    std::vector<ROL::Ptr<ROL::BoundConstraint<double>>> bcon;
     double scale = 1;
     double feasTol = 1e-4;
+    (void) lift_target;
+    const ROL::Ptr<ROL::SingletonVector<double>> lift_lower_bound = ROL::makePtr<ROL::SingletonVector<double>> (-1.0e10);
+    const ROL::Ptr<ROL::SingletonVector<double>> lift_upper_bound = ROL::makePtr<ROL::SingletonVector<double>> (1.0e10);
     auto lift_bounds = ROL::makePtr<ROL::Bounds<double>> (lift_lower_bound, lift_upper_bound, scale, feasTol);
-
-
-    std::vector<ROL::Ptr<ROL::BoundConstraint<double>>> bcon;
     bcon.push_back(lift_bounds);
-    if (volume_target > 0) {
-        const ROL::Ptr<ROL::SingletonVector<double>> volume_lower_bound = ROL::makePtr<ROL::SingletonVector<double>> (-1e-4);
-        const ROL::Ptr<ROL::SingletonVector<double>> volume_upper_bound = ROL::makePtr<ROL::SingletonVector<double>> (1e-4);
+    (void) volume_target;
+    //if (volume_target > 0) {
+        const ROL::Ptr<ROL::SingletonVector<double>> volume_lower_bound = ROL::makePtr<ROL::SingletonVector<double>> (-1e+4);
+        const ROL::Ptr<ROL::SingletonVector<double>> volume_upper_bound = ROL::makePtr<ROL::SingletonVector<double>> (1e+4);
         auto volume_bounds = ROL::makePtr<ROL::Bounds<double>> (volume_lower_bound, volume_upper_bound, scale, feasTol);
         bcon.push_back(volume_bounds);
-    }
+    //}
     return bcon;
 }
 
@@ -508,7 +761,7 @@ int EulerNACAOptimizationConstrained<dim,nstate>
 
 
     const dealii::Point<dim> ffd_origin(0.0,-0.061);
-    const std::array<double,dim> ffd_rectangle_lengths = {{0.999,0.122}};
+    const std::array<double,dim> ffd_rectangle_lengths = {{0.9,0.122}};
     const std::array<unsigned int,dim> ffd_ndim_control_pts = {{nx_ffd,3}};
     FreeFormDeformation<dim> ffd( ffd_origin, ffd_rectangle_lengths, ffd_ndim_control_pts);
 
@@ -551,11 +804,59 @@ int EulerNACAOptimizationConstrained<dim,nstate>
     ffd_design_variables.update_ghost_values();
     ffd.set_design_variables( ffd_design_variables_indices_dim, ffd_design_variables);
 
-    std::shared_ptr < DGBase<dim, double> > dg = DGFactory<dim,double>::create_discontinuous_galerkin(&param, poly_degree, grid);
 
-    //naca0012_mesh->refine_global();
+    DealiiVector target_solution;
+    {
+        for (unsigned int i_ctl = 0; i_ctl < ffd.n_control_pts; ++i_ctl) {
+
+            const std::array<unsigned int,dim> ijk = ffd.global_to_grid ( i_ctl );
+            if (   ijk[0] == 0 // Constrain first column of FFD points.
+                || ijk[0] == ffd_ndim_control_pts[0] - 1  // Constrain last column of FFD points.
+                || ijk[1] == 1 // Constrain middle row of FFD points.
+               ) continue;
+
+            dealii::Point<dim> control_pt = ffd.control_pts[i_ctl];
+            double x = control_pt[0];
+            double dy = -0.1*x*x+0.09*x;
+            //double dy = -0.16*x*x+0.16*x;
+            //if (x>0.85) {
+            //    continue;
+            //}
+            ffd.control_pts[i_ctl][1] += dy;
+        }
+
+        Parameters::AllParameters param_target = *(TestsBase::all_parameters);
+        //const double target_AoA = 0.5;
+        //const double pi = atan(1.0) * 4.0;
+        //param_target.euler_param.angle_of_attack = target_AoA * pi/170.0;
+        std::shared_ptr < DGBase<dim, double> > dg_target = DGFactory<dim,double>::create_discontinuous_galerkin(&param_target, poly_degree, grid);
+        std::shared_ptr<HighOrderGrid<dim,double>> naca0012_mesh = read_gmsh <dim, dim> ("naca0012.msh");
+        dg_target->set_high_order_grid(naca0012_mesh);
+
+        ffd.deform_mesh (*(dg_target->high_order_grid));
+
+        dg_target->allocate_system ();
+        dealii::VectorTools::interpolate(dg_target->dof_handler, initial_conditions, dg_target->solution);
+        std::shared_ptr<ODE::ODESolver<dim, double>> ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg_target);
+        ode_solver->n_refine = 0;
+        ode_solver->initialize_steady_polynomial_ramping (poly_degree);
+        ode_solver->steady_state();
+
+        dg_target->output_results_vtk(9998);
+        target_solution = dg_target->solution;
+    }
+    ffd.set_design_variables( ffd_design_variables_indices_dim, ffd_design_variables);
+
+    std::shared_ptr < DGBase<dim, double> > dg = DGFactory<dim,double>::create_discontinuous_galerkin(&param, poly_degree, grid);
     std::shared_ptr<HighOrderGrid<dim,double>> naca0012_mesh = read_gmsh <dim, dim> ("naca0012.msh");
     dg->set_high_order_grid(naca0012_mesh);
+
+
+
+    auto cons  = ROL::makePtr<FlowConstraints<dim>>(dg,ffd,ffd_design_variables_indices_dim);
+
+
+    //naca0012_mesh->refine_global();
 
     dg->allocate_system ();
     dealii::VectorTools::interpolate(dg->dof_handler, initial_conditions, dg->solution);
@@ -586,6 +887,7 @@ int EulerNACAOptimizationConstrained<dim,nstate>
     ROL::OptimizationProblem<double> opt;
     Teuchos::ParameterList parlist;
 
+    TargetWallPressure<dim,nstate,double> target_wall_pressure_functional(dg, target_solution);
     LiftDragFunctional<dim,nstate,double> lift_functional( dg, LiftDragFunctional<dim,dim+2,double>::Functional_types::lift );
     LiftDragFunctional<dim,nstate,double> drag_functional( dg, LiftDragFunctional<dim,dim+2,double>::Functional_types::drag );
     GeometricVolume<dim,nstate,double> volume_functional( dg );
@@ -594,16 +896,21 @@ int EulerNACAOptimizationConstrained<dim,nstate>
               << ". Current drag = " << drag_functional.evaluate_functional()
               << std::endl;
 
-    double lift_target = lift_functional.evaluate_functional() * 1.0;
-    double volume_target = volume_functional.evaluate_functional() * 1.0;
-
+    double lift_target = lift_functional.evaluate_functional() * 0.0;
+    double volume_target = volume_functional.evaluate_functional() * 0.0;
 
     ffd.output_ffd_vtu(8999);
     auto flow_constraints  = ROL::makePtr<FlowConstraints<dim>>(dg,ffd,ffd_design_variables_indices_dim);
-    //ROL::Ptr<ROL::Vector<double>> drag_adjoint = ROL::makePtr<VectorAdaptor>(des_var_adj_rol);
-    //int flow_constraints_check_error = check_flow_constraints<dim,nstate>( nx_ffd, flow_constraints, simulation_variables, control_variables, drag_adjoint);
+    ROL::Ptr<ROL::Vector<double>> adjoint = ROL::makePtr<VectorAdaptor>(des_var_adj_rol);
+    // int flow_constraints_check_error
+    //     = check_flow_constraints2<dim,nstate>( nx_ffd,
+    //                                            flow_constraints,
+    //                                            simulation_variables,
+    //                                            control_variables,
+    //                                            adjoint);
+    // (void) flow_constraints_check_error;
 
-    auto drag_objective = ROL::makePtr<ROLObjectiveSimOpt<dim,nstate>>( drag_functional, ffd, ffd_design_variables_indices_dim, &(flow_constraints->dXvdXp) );
+    auto objective_simopt = ROL::makePtr<ROLObjectiveSimOpt<dim,nstate>>( target_wall_pressure_functional, ffd, ffd_design_variables_indices_dim, &(cons->dXvdXp) );
     auto lift_objective = ROL::makePtr<ROLObjectiveSimOpt<dim,nstate>>( lift_functional, ffd, ffd_design_variables_indices_dim, &(flow_constraints->dXvdXp) );
     auto volume_objective = ROL::makePtr<ROLObjectiveSimOpt<dim,nstate>>( volume_functional, ffd, ffd_design_variables_indices_dim, &(flow_constraints->dXvdXp) );
 
@@ -611,9 +918,6 @@ int EulerNACAOptimizationConstrained<dim,nstate>
     const dealii::IndexSet constraint_row_part = dealii::Utilities::MPI::create_evenly_distributed_partitioning(MPI_COMM_WORLD,n_other_constraints);
     dealii::IndexSet constraint_ghost_row_part(n_other_constraints);
     constraint_ghost_row_part.add_range(0,n_other_constraints);
-
-    double tol = 0.0;
-    std::cout << "Drag value= " << drag_objective->value(*simulation_variables, *control_variables, tol) << std::endl;
 
     dg->output_results_vtk(9999);
 
@@ -623,20 +927,24 @@ int EulerNACAOptimizationConstrained<dim,nstate>
     parlist.sublist("General").set("Print Verbosity", 1);
 
     //parlist.sublist("Status Test").set("Gradient Tolerance", 1e-9);
-    parlist.sublist("Status Test").set("Gradient Tolerance", 1e-7);
+    parlist.sublist("Status Test").set("Gradient Tolerance", GRADIENT_TOLERANCE);
     parlist.sublist("Status Test").set("Iteration Limit", max_design_cycle);
 
     parlist.sublist("Step").sublist("Line Search").set("User Defined Initial Step Size",true);
     parlist.sublist("Step").sublist("Line Search").set("Initial Step Size",3e-1); // Might be needed for p2 BFGS
     parlist.sublist("Step").sublist("Line Search").set("Initial Step Size",1e-0);
     parlist.sublist("Step").sublist("Line Search").set("Function Evaluation Limit",LINESEARCH_MAX_ITER); // 0.5^30 ~  1e-10
+    parlist.sublist("Step").sublist("Line Search").sublist("Line-Search Method").get("Backtracking Rate", BACKTRACKING_RATE);
     parlist.sublist("Step").sublist("Line Search").set("Accept Linesearch Minimizer",true);//false);
     parlist.sublist("Step").sublist("Line Search").sublist("Line-Search Method").set("Type",line_search_method);
     parlist.sublist("Step").sublist("Line Search").sublist("Curvature Condition").set("Type",line_search_curvature);
 
 
     parlist.sublist("General").sublist("Secant").set("Type","Limited-Memory BFGS");
-    parlist.sublist("General").sublist("Secant").set("Maximum Storage",max_design_cycle);
+    //parlist.sublist("General").sublist("Secant").set("Type","Limited-Memory SR1");
+    //parlist.sublist("General").sublist("Secant").set("Maximum Storage",(int)n_design_variables);
+    parlist.sublist("General").sublist("Secant").set("Maximum Storage", 100);
+    parlist.sublist("General").sublist("Secant").set("Use as Hessian", USE_BFGS);
 
     parlist.sublist("Full Space").set("Preconditioner",preconditioner_string);
 
@@ -651,8 +959,8 @@ int EulerNACAOptimizationConstrained<dim,nstate>
         case OptimizationAlgorithm::full_space_composite_step: {
             // Full space problem
             auto dual_sim_p = simulation_variables->clone();
-            //opt = ROL::OptimizationProblem<double> ( drag_objective, des_var_p, flow_constraints, dual_sim_p );
-            opt = ROL::OptimizationProblem<double> ( drag_objective, des_var_p, flow_constraints, dual_sim_p );
+            //opt = ROL::OptimizationProblem<double> ( objective_simopt, des_var_p, flow_constraints, dual_sim_p );
+            opt = ROL::OptimizationProblem<double> ( objective_simopt, des_var_p, flow_constraints, dual_sim_p );
 
             // Set parameters.
 
@@ -676,6 +984,8 @@ int EulerNACAOptimizationConstrained<dim,nstate>
             break;
         }
         case OptimizationAlgorithm::reduced_space_bfgs:
+            USE_BFGS = true;
+            parlist.sublist("General").sublist("Secant").set("Use as Hessian", USE_BFGS);
             [[fallthrough]];
         case OptimizationAlgorithm::reduced_space_newton: {
             *outStream << "Starting optimization with " << n_design_variables << "..." << std::endl;
@@ -683,32 +993,27 @@ int EulerNACAOptimizationConstrained<dim,nstate>
             const bool is_reduced_space = true;
             ROL::Ptr<ROL::Vector<double>>                       design_variables               = getDesignVariables(simulation_variables, control_variables, is_reduced_space);
             ROL::Ptr<ROL::BoundConstraint<double>>              design_bounds                  = getDesignBoundConstraint(simulation_variables, control_variables, is_reduced_space);
-            ROL::Ptr<ROL::Objective<double>>                    reduced_drag_objective         = getObjective(drag_objective, flow_constraints, simulation_variables, control_variables, is_reduced_space);
+            ROL::Ptr<ROL::Objective<double>>                    reduced_objective              = getObjective(objective_simopt, flow_constraints, simulation_variables, control_variables, is_reduced_space);
             std::vector<ROL::Ptr<ROL::Constraint<double>>>      reduced_inequality_constraints = getInequalityConstraint(lift_objective, flow_constraints, simulation_variables, control_variables, lift_target, volume_objective, is_reduced_space, volume_target);
             std::vector<ROL::Ptr<ROL::Vector<double>>>          dual_inequality                = getInequalityMultiplier(volume_target);
             std::vector<ROL::Ptr<ROL::BoundConstraint<double>>> inequality_bounds              = getSlackBoundConstraint(lift_target, volume_target);
 
-            opt = ROL::OptimizationProblem<double> ( reduced_drag_objective, design_variables, design_bounds,
+            opt = ROL::OptimizationProblem<double> ( reduced_objective, design_variables, design_bounds,
                                                      reduced_inequality_constraints, dual_inequality, inequality_bounds);
             ROL::EProblem problem_type_opt = opt.getProblemType();
             ROL::EProblem problem_type = ROL::TYPE_EB;
             if (problem_type_opt != problem_type) std::abort();
 
             parlist.sublist("Step").sublist("Primal Dual Active Set").set("Iteration Limit",PDAS_MAX_ITER);
-            parlist.sublist("General").sublist("Secant").set("Use as Hessian", true);
             parlist.sublist("General").sublist("Krylov").set("Absolute Tolerance", 1e-10);
             parlist.sublist("General").sublist("Krylov").set("Relative Tolerance", 1e-8);
             parlist.sublist("General").sublist("Krylov").set("Iteration Limit", 300);
             parlist.sublist("General").sublist("Krylov").set("Use Initial Guess", true);
-            //parlist.sublist("General").sublist("Secant").set("Use as Hessian", false);
 
             parlist.sublist("Step").sublist("Line Search").set("User Defined Initial Step Size",true);
             parlist.sublist("Step").sublist("Line Search").set("Initial Step Size",3e-1); // Might be needed for p2 BFGS
             parlist.sublist("Step").sublist("Line Search").set("Initial Step Size",1e-0);
-            parlist.sublist("Step").sublist("Line Search").set("Function Evaluation Limit",LINESEARCH_MAX_ITER); // 0.5^30 ~  1e-10
             parlist.sublist("Step").sublist("Line Search").set("Accept Linesearch Minimizer",true);//false);
-            parlist.sublist("Step").sublist("Line Search").sublist("Line-Search Method").set("Type",line_search_method);
-            parlist.sublist("Step").sublist("Line Search").sublist("Curvature Condition").set("Type",line_search_curvature);
 
 
             // This step transforms the inequality into equality + slack variables with box constraints.
@@ -735,43 +1040,6 @@ int EulerNACAOptimizationConstrained<dim,nstate>
             break;
         } case OptimizationAlgorithm::reduced_sqp: {
             [[fallthrough]];
-
-        //     // Reduced space problem
-        //     const bool storage = true;
-        //     const bool useFDHessian = false;
-        //     // Create reduced-objective by combining objective with PDE constraints.
-        //     ROL::Ptr<ROL::Vector<double>> drag_adjoint = ROL::makePtr<VectorAdaptor>(des_var_adj_rol);
-        //     auto reduced_drag_objective = ROL::makePtr<ROL::Reduced_Objective_SimOpt<double>>( drag_objective, flow_constraints, simulation_variables, control_variables, drag_adjoint, storage, useFDHessian);
-
-        //     // Create reduced-constraint by combining lift-objective with PDE constraints.
-        //     ROL::Ptr<ROL::SimController<double> > stateStore = ROL::makePtr<ROL::SimController<double>>();
-        //     ROL::Ptr<ROL::Vector<double>> lift_adjoint = drag_adjoint->clone();
-        //     ROL::Ptr<ROL::SingletonVector<double>> lift_constraint_residual_rol_p = ROL::makePtr<ROL::SingletonVector<double>> (0.0);
-        //     //auto reduced_lift_constraint = ROL::makePtr<ROL::Reduced_Constraint_SimOpt<double>>(
-        //     //    lift_constraint, flow_constraints, stateStore,
-        //     //    simulation_variables, control_variables, lift_adjoint, lift_constraint_residual_rol_p,
-        //     //    storage, useFDHessian);
-
-        //     // Create reduced-objective by combining objective with PDE constraints.
-        //     auto reduced_lift_objective = ROL::makePtr<ROL::Reduced_Objective_SimOpt<double>>( lift_objective, flow_constraints, simulation_variables, control_variables, lift_adjoint, storage, useFDHessian);
-        //     std::cout << " Converting reduced lift objective into reduced_lift_constraint " << std::endl;
-        //     ROL::Ptr<ROL::Constraint<double>> reduced_lift_constraint = ROL::makePtr<ROL::ConstraintFromObjective<double>> (reduced_lift_objective, lift_target);
-
-        //     std::cout << " Starting check_lift_constraints " << std::endl;
-        //     lift_constraint_residual_rol_p->setScalar(1.0);
-        //     //(void) check_lift_constraints<dim,nstate>( nx_ffd, reduced_lift_constraint, control_variables, lift_constraint_residual_rol_p);
-
-        //     // Run the algorithm
-        //     parlist.sublist("Step").sublist("Line Search").set("Initial Step Size",1e-0);
-        //     //auto reduced_sqp_step = ROL::makePtr<ROL::SequentialQuadraticProgrammingStep<double>>(parlist);
-        //     auto reduced_sqp_step = ROL::makePtr<ROL::InteriorPointStep<double>>(parlist);
-
-        //     auto status_test = ROL::makePtr<ROL::StatusTest<double>>(parlist);
-        //     const bool printHeader = false;//true;
-        //     ROL::Algorithm<double> algorithm(reduced_sqp_step, status_test, printHeader);
-        //     algorithm.run(*control_variables, *lift_constraint_residual_rol_p, *reduced_drag_objective, *reduced_lift_constraint, false, *outStream);
-        //     algo_state = algorithm.getState();
-        //     break;
         } case OptimizationAlgorithm::full_space_birosghattas: {
 
             *outStream << "Starting optimization with " << n_design_variables << " control variables..." << std::endl;
@@ -779,7 +1047,7 @@ int EulerNACAOptimizationConstrained<dim,nstate>
             const bool is_reduced_space = false;
             ROL::Ptr<ROL::Vector<double>>                       design_variables               = getDesignVariables(simulation_variables, control_variables, is_reduced_space);
             ROL::Ptr<ROL::BoundConstraint<double>>              design_bounds                  = getDesignBoundConstraint(simulation_variables, control_variables, is_reduced_space);
-            ROL::Ptr<ROL::Objective<double>>                    drag_objective_simopt          = getObjective(drag_objective, flow_constraints, simulation_variables, control_variables, is_reduced_space);
+            ROL::Ptr<ROL::Objective<double>>                    objective                      = getObjective(objective_simopt, flow_constraints, simulation_variables, control_variables, is_reduced_space);
             std::vector<ROL::Ptr<ROL::Constraint<double>>>      inequality_constraints         = getInequalityConstraint(lift_objective, flow_constraints, simulation_variables, control_variables, lift_target, volume_objective, is_reduced_space, volume_target);
             std::vector<ROL::Ptr<ROL::Vector<double>>>          dual_inequality                = getInequalityMultiplier(volume_target);
             std::vector<ROL::Ptr<ROL::BoundConstraint<double>>> inequality_bounds              = getSlackBoundConstraint(lift_target, volume_target);
@@ -788,7 +1056,7 @@ int EulerNACAOptimizationConstrained<dim,nstate>
             ROL::Ptr<ROL::Vector<double>>                       dual_equality                  = simulation_variables->clone();
             dual_equality->zero();
 
-            opt = ROL::OptimizationProblem<double> ( drag_objective_simopt, design_variables, design_bounds,
+            opt = ROL::OptimizationProblem<double> ( objective, design_variables, design_bounds,
                                                      equality_constraints, dual_equality,
                                                      inequality_constraints, dual_inequality, inequality_bounds);
             ROL::EProblem problem_type_opt = opt.getProblemType();
@@ -796,20 +1064,17 @@ int EulerNACAOptimizationConstrained<dim,nstate>
             if (problem_type_opt != problem_type) std::abort();
 
             parlist.sublist("Step").sublist("Primal Dual Active Set").set("Iteration Limit",PDAS_MAX_ITER);
-            parlist.sublist("General").sublist("Secant").set("Use as Hessian", false);
-            parlist.sublist("General").sublist("Krylov").set("Absolute Tolerance", 1e-6);
+            parlist.sublist("General").sublist("Secant").set("Use as Preconditioner", true);
+            parlist.sublist("General").sublist("Krylov").set("Absolute Tolerance", 1e-12);
             parlist.sublist("General").sublist("Krylov").set("Relative Tolerance", 1e-4);
-            parlist.sublist("General").sublist("Krylov").set("Iteration Limit", 1000);
+            parlist.sublist("General").sublist("Krylov").set("Iteration Limit", 400);
             parlist.sublist("General").sublist("Krylov").set("Use Initial Guess", true);
-            //parlist.sublist("General").sublist("Secant").set("Use as Hessian", false);
 
             parlist.sublist("Step").sublist("Line Search").set("User Defined Initial Step Size",true);
             parlist.sublist("Step").sublist("Line Search").set("Initial Step Size",3e-1); // Might be needed for p2 BFGS
             parlist.sublist("Step").sublist("Line Search").set("Initial Step Size",1e-0);
             parlist.sublist("Step").sublist("Line Search").set("Function Evaluation Limit",LINESEARCH_MAX_ITER); // 0.5^30 ~  1e-10
             parlist.sublist("Step").sublist("Line Search").set("Accept Linesearch Minimizer",true);//false);
-            parlist.sublist("Step").sublist("Line Search").sublist("Line-Search Method").set("Type",line_search_method);
-            parlist.sublist("Step").sublist("Line Search").sublist("Curvature Condition").set("Type",line_search_curvature);
 
 
             // This step transforms the inequality into equality + slack variables with box constraints.
@@ -836,9 +1101,6 @@ int EulerNACAOptimizationConstrained<dim,nstate>
             break;
         }
     }
-    std::cout << " Current lift = " << lift_functional.evaluate_functional()
-              << ". Current drag = " << drag_functional.evaluate_functional()
-              << ". Drag with quadratic lift penalty = " << drag_objective->value(*simulation_variables, *control_variables, tol);
     static int resulting_optimization = 5000;
     std::cout << "Outputting final grid resulting_optimization: " << resulting_optimization << std::endl;
     dg->output_results_vtk(resulting_optimization++);

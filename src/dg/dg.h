@@ -205,7 +205,7 @@ public:
     unsigned int n_dofs() const; ///< Number of degrees of freedom
 
     /// Refine cells with the highest residuals.
-    void refine_residual_based();
+    void refine_residual_based(const double percentage_to_refine, const double percentage_to_coarsen);
 
     /// Set anisotropic flags based on jump indicator.
     /** Some cells must have already been tagged for refinement through some other indicator

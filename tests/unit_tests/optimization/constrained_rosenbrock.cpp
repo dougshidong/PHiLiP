@@ -45,16 +45,16 @@ enum class ConstraintType { linear, quadratic };
 enum class ObjectiveType { quadratic, polynomial, rosenbrock };
 
 const ConstraintType constraint_type
-    = ConstraintType::quadratic;
-    //= ConstraintType::linear;
+    //= ConstraintType::quadratic;
+    = ConstraintType::linear;
 const ObjectiveType objective_type
-    //= ObjectiveType::quadratic;
+    = ObjectiveType::quadratic;
     //= ObjectiveType::polynomial;
-    = ObjectiveType::rosenbrock;
+    //= ObjectiveType::rosenbrock;
 
 const bool USE_BFGS = false;//true;
 const int LINESEARCH_MAX_ITER = 5;
-const int PDAS_MAX_ITER = 7;
+const int PDAS_MAX_ITER = 10;
 
 // This test is used to check that the dealii::LinearAlgebra::distributed::Vector<double>
 // is working properly with ROL. This is done by performing an unconstrained optimization
@@ -323,6 +323,26 @@ public:
             }
         }
     }
+
+    /// Return the Rosenbrock objective function value.
+    void hessVec(ROL::Vector<Real> &hv, const ROL::Vector<Real> &v, const ROL::Vector<Real> &x, Real & /*tol*/) override
+    {
+        int powerr = 1; (void) powerr; (void) x;
+        Teuchos::RCP<const VectorType> vp = this->get_rcp_to_VectorType(v);
+        Teuchos::RCP<VectorType>       hvp = this->get_rcp_to_VectorType(hv);
+
+        const dealii::IndexSet &local_range = (*vp).locally_owned_elements ();
+        double quadratic_term = 1.0;
+        for (auto ip = local_range.begin(); ip != local_range.end(); ++ip) {
+            const auto i = *ip;
+            const Real &v1 = (*vp)[i];
+            Real drosenbrock_dx1 = 0.0;
+            drosenbrock_dx1 = quadratic_term;
+            quadratic_term *= 0.85;
+            (*hvp)[i]  = drosenbrock_dx1 * v1;
+        }
+        return;
+    }
 };
 
 template <typename VectorType, class Real = double>
@@ -398,6 +418,7 @@ int test(const unsigned int n_des_var)
     typedef double RealT;
   
     int mpi_rank = dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD);
+    int nmpi = dealii::Utilities::MPI::n_mpi_processes(MPI_COMM_WORLD);
 
     if (mpi_rank == 0) std::cout << std::endl << std::endl;
     if (mpi_rank == 0) std::cout << "Optimization with " << n_des_var << " design variables using VectorType = " << typeid(VectorType).name() << std::endl;
@@ -472,7 +493,29 @@ int test(const unsigned int n_des_var)
     // Output stream
     ROL::nullstream bhs; // outputs nothing
     Teuchos::RCP<std::ostream> outStream;
-    if (mpi_rank == 0) outStream = ROL::makePtrFromRef(std::cout);
+
+    std::filebuf filebuffer;
+    std::string otype_string, ctype_string;
+    switch (objective_type) {
+        case(ObjectiveType::quadratic) : otype_string = "quadratic"; break;
+        case(ObjectiveType::rosenbrock) : otype_string = "rosenbrock"; break;
+        case(ObjectiveType::polynomial) : otype_string = "polynomial"; break;
+        default : std::abort(); break;
+    }
+    switch (constraint_type) {
+        case(ConstraintType::quadratic) : ctype_string = "quadratic"; break;
+        case(ConstraintType::linear) : ctype_string = "linear"; break;
+        default : std::abort(); break;
+    }
+    if (mpi_rank == 0) filebuffer.open ("optimization_"
+                                        +otype_string+"Objective_"
+                                        +ctype_string+"Constraint_"
+                                        +"nmpi"+std::to_string(nmpi)
+                                        +"ndes"+std::to_string(n_des_var)
+                                        +".log", std::ios::out);
+    std::ostream ostr(&filebuffer);
+    if (mpi_rank == 0) outStream = ROL::makePtrFromRef(ostr);
+    else if (mpi_rank == 1) outStream = ROL::makePtrFromRef(std::cout);
     else outStream = ROL::makePtrFromRef(bhs);
 
     ROL::Ptr<const ROL::AlgorithmState<RealT> > algo_state;
@@ -511,24 +554,25 @@ int test(const unsigned int n_des_var)
   
     Teuchos::RCP<const VectorType> xg = design_variables_rol.getVector();
     *outStream << "The solution to minimization problem is: ";
-    std::cout << std::flush;
+    *outStream << std::flush;
 
     //(*xg).print(std::cout);
     for (unsigned int i=0; i<n_des_var; ++i) {
         if (locally_owned_dofs.is_element(i)) {
-            std::cout << (*xg)[i] << " ";
+            *outStream << (*xg)[i] << " ";
         }
         (void) MPI_Barrier(MPI_COMM_WORLD);
     }
-    std::cout << std::flush;
+    *outStream << std::flush;
     *outStream << std::endl;
+    if (mpi_rank == 0) filebuffer.close();
 
     return algo_state->statusFlag;
 }
 
 int main (int argc, char * argv[])
 {
-    feenableexcept(FE_INVALID | FE_OVERFLOW); // catch nan
+    //feenableexcept(FE_INVALID | FE_OVERFLOW); // catch nan
     dealii::Utilities::MPI::MPI_InitFinalize mpi_initialization(argc, argv, 1);
     int test_error = false;
     try {

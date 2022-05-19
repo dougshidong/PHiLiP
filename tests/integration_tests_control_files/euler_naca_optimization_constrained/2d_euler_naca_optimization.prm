@@ -1,7 +1,7 @@
 # Listing of Parameters
 # ---------------------
 
-set test_type = euler_naca_optimization_constrained
+set test_type = euler_naca_drag_optimization_lift_constrained
 
 # Number of dimensions
 set dimension = 2

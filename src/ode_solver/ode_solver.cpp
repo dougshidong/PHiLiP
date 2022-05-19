@@ -185,7 +185,7 @@ int ODESolver<dim,real>::steady_state ()
         //if ( refine && (current_iteration+1) % 5 == 0 && this->residual_norm < 1e-11) {
         if ( refine && this->residual_norm < 1e-9 && i_refine < n_refine) {
             i_refine++;
-            dg->refine_residual_based();
+            dg->refine_residual_based(0.075, 0.025);
             allocate_ode_system ();
         }
 
@@ -207,6 +207,9 @@ int ODESolver<dim,real>::steady_state ()
         if(CFL_factor <= 1e-2) this->dg->right_hand_side.add(1.0);
     }
 
+    if ( dealii::Utilities::MPI::this_mpi_process(mpi_communicator) == 0 ) {
+        pcout.set_condition(true);
+    }
     pcout << " ********************************************************** "
           << std::endl
           << " ODESolver steady_state stopped at"
@@ -260,7 +263,7 @@ int ODESolver<dim,real>::advance_solution_time (double time_advance)
         pcout << " Evaluating right-hand side and setting system_matrix to Jacobian... " << std::endl;
     }
 
-    const bool pseudotime = true;//false;
+    const bool pseudotime = false;
     step_in_time(constant_time_step, pseudotime);
 
 

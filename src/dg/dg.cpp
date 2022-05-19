@@ -1771,6 +1771,7 @@ void DGBase<dim,real>::output_results_vtk (const unsigned int cycle)// const
     data_out.write_vtu(output);
     //std::cout << "Writing out file: " << filename << std::endl;
 
+    pcout << "Outputting solution file: " << filename << std::endl;
     if (iproc == 0) {
         std::vector<std::string> filenames;
         for (unsigned int iproc = 0; iproc < dealii::Utilities::MPI::n_mpi_processes(mpi_communicator); ++iproc) {
@@ -2413,18 +2414,18 @@ real2 DGBase<dim,real>::discontinuity_sensor(
 }
 
 template<int dim, typename real>
-void DGBase<dim,real>::refine_residual_based()
+void DGBase<dim,real>::refine_residual_based(const double percentage_to_refine, const double percentage_to_coarsen)
 {
-    dealii::Vector<float> gradient_indicator(high_order_grid->triangulation->n_active_cells());
+    dealii::Vector<float> error_indicator(high_order_grid->triangulation->n_active_cells());
 
     const auto mapping = (*(high_order_grid->mapping_fe_field));
     dealii::DerivativeApproximation::approximate_gradient(mapping,
                                                   dof_handler,
                                                   solution,
-                                                  gradient_indicator);
+                                                  error_indicator);
 
     for (const auto &cell : high_order_grid->triangulation->active_cell_iterators()) {
-        gradient_indicator[cell->active_cell_index()] *= std::pow(cell->diameter(), 1 + 1.0 * dim / 2);
+        error_indicator[cell->active_cell_index()] *= std::pow(cell->diameter(), 1 + 1.0 * dim / 2);
     }
     std::vector<dealii::types::global_dof_index> dofs_indices;
     for (const auto &cell : dof_handler.active_cell_iterators()) {
@@ -2445,32 +2446,47 @@ void DGBase<dim,real>::refine_residual_based()
                 if (res > max_residual) max_residual = res;
             }
         }
-        gradient_indicator[cell->active_cell_index()] = max_residual;
+        error_indicator[cell->active_cell_index()] = max_residual;
     }
+    //dealii::DerivativeApproximation::approximate_gradient(mapping,
+    //                                              dof_handler,
+    //                                              solution,
+    //                                              error_indicator);
 
     dealii::LinearAlgebra::distributed::Vector<double> old_solution(solution);
     dealii::parallel::distributed::SolutionTransfer<dim, dealii::LinearAlgebra::distributed::Vector<double>, dealii::DoFHandler<dim>> solution_transfer(dof_handler);
     solution_transfer.prepare_for_coarsening_and_refinement(old_solution);
+
+    dealii::LinearAlgebra::distributed::Vector<double> old_dual(dual);
+    dealii::parallel::distributed::SolutionTransfer<dim, dealii::LinearAlgebra::distributed::Vector<double>, dealii::DoFHandler<dim>> dual_transfer(dof_handler);
+    dual_transfer.prepare_for_coarsening_and_refinement(old_dual);
+
+
     high_order_grid->prepare_for_coarsening_and_refinement();
 
     //high_order_grid->triangulation->refine_global (1);
     if constexpr(dim == 1) {
         dealii::GridRefinement::refine_and_coarsen_fixed_number(*high_order_grid->triangulation,
-                                                        gradient_indicator,
-                                                        0.05,
-                                                        0.025);
+                                                        error_indicator,
+                                                        percentage_to_refine,
+                                                        percentage_to_coarsen);
     } else {
         dealii::parallel::distributed::GridRefinement::refine_and_coarsen_fixed_number(*(high_order_grid->triangulation),
-                                                        gradient_indicator,
-                                                        0.05,
-                                                        0.01);
+                                                        error_indicator,
+                                                        percentage_to_refine,
+                                                        percentage_to_coarsen);
     }
     high_order_grid->triangulation->execute_coarsening_and_refinement();
     high_order_grid->execute_coarsening_and_refinement();
     allocate_system ();
+
     solution.zero_out_ghosts();
     solution_transfer.interpolate(solution);
     solution.update_ghost_values();
+
+    dual.zero_out_ghosts();
+    dual_transfer.interpolate(dual);
+    dual.update_ghost_values();
 
     assemble_residual ();
 

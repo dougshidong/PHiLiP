@@ -187,7 +187,11 @@ void FullSpace_BirosGhattas<Real>::initialize(
     // Update equal_constraints.
     equal_constraints.update(design_variables,true,algo_state.iter);
     equal_constraints.value(*(step_state->constraintVec), design_variables, zero);
-    algo_state.cnorm = lagrange_variable_cloner_->norm();
+
+    auto &flow_constraint = (dynamic_cast<PHiLiP::FlowConstraints<PHILIP_DIM>&>(equal_constraints));
+    algo_state.cnorm = step_state->constraintVec->norm();
+    algo_state.cnorm = flow_constraint.dg_l2_norm(*((dynamic_cast<const Vector_SimOpt<Real>&>(design_variables)).get_1()),
+                                                  *((dynamic_cast<const Vector_SimOpt<Real>&>(design_variables)).get_2()));
     algo_state.ncval++;
 
     //computeInitialLagrangeMultiplier(lagrange_mult, design_variables, *(step_state->gradientVec), equal_constraints);
@@ -201,17 +205,18 @@ void FullSpace_BirosGhattas<Real>::initialize(
 
     // Compute gradient of Lagrangian at new multiplier guess.
     ROL::Ptr<Vector<Real> > lagrangian_gradient = step_state->gradientVec->clone();
+    algo_state.gnorm = lagrangian_gradient->norm();
     computeLagrangianGradient(*lagrangian_gradient, design_variables, lagrange_mult, *(step_state->gradientVec), equal_constraints);
     const auto &lagrangian_gradient_simopt = dynamic_cast<const Vector_SimOpt<Real>&>(*lagrangian_gradient);
     previous_reduced_gradient_ = lagrangian_gradient_simopt.get_2()->clone();
     algo_state.ngrad++;
 
-    auto &flow_constraint = (dynamic_cast<PHiLiP::FlowConstraints<PHILIP_DIM>&>(equal_constraints));
     //flow_constraint.flow_CFL_ = 1.0/std::pow(algo_state.cnorm, 0.5);
     //flow_constraint.flow_CFL_ = 1.0/std::pow(lagrangian_gradient->norm(), 1.00);
     //flow_constraint.flow_CFL_ = -std::max(1.0/std::pow(algo_state.cnorm, 2.0), 100.0);
     //flow_constraint.flow_CFL_ = -1e-0;
     flow_constraint.flow_CFL_ = -100;
+    flow_constraint.flow_CFL_ = -10000*std::max(1.0, 1.0/std::pow(algo_state.cnorm, 2.00));
 
     // // Not sure why this is done in ROL_Step.hpp
     // if ( bound_constraints.isActivated() ) {
@@ -795,6 +800,8 @@ void FullSpace_BirosGhattas<Real>::update(
     algo_state.snorm = std::sqrt(algo_state.snorm);
 
     auto &flow_constraint = (dynamic_cast<PHiLiP::FlowConstraints<PHILIP_DIM>&>(equal_constraints));
+    algo_state.cnorm = flow_constraint.dg_l2_norm(*((dynamic_cast<const Vector_SimOpt<Real>&>(design_variables)).get_1()),
+                                                  *((dynamic_cast<const Vector_SimOpt<Real>&>(design_variables)).get_2()));
     //flow_constraint.update(
     //    *((dynamic_cast<const Vector_SimOpt<Real>&>(design_variables)).get_1()),
     //    *((dynamic_cast<const Vector_SimOpt<Real>&>(design_variables)).get_2()),

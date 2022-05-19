@@ -45,13 +45,21 @@ foreach(dim RANGE 2 3)
         DEAL_II_SETUP_TARGET(${TEST_TARGET})
     endif()
 
-    add_test(
-      NAME ${TEST_TARGET}
-      COMMAND mpirun -n ${MPIMAX} ${CMAKE_CURRENT_BINARY_DIR}/${TEST_TARGET}
-      WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
-    )
-
     unset(TEST_TARGET)
 
 endforeach()
+
+foreach(dim RANGE 2 3)
+    add_test(
+      NAME ${dim}D_GMSH_READER_SQUARE
+      COMMAND mpirun -n ${MPIMAX} ${CMAKE_CURRENT_BINARY_DIR}/${dim}D_GMSH_READER --input=${dim}D_square.msh
+      WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
+    )
+endforeach()
+
+add_test(
+  NAME 2D_GMSH_READER_NACA0012
+  COMMAND mpirun -n ${MPIMAX} ${CMAKE_CURRENT_BINARY_DIR}/2D_GMSH_READER --input=airfoil.msh
+  WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
+)
 

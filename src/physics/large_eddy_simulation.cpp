@@ -692,7 +692,18 @@ real2 LargeEddySimulation_WALE<dim,nstate,real>
     const real2 strain_rate_tensor_magnitude_sqr                                     = this->template get_tensor_magnitude_sqr<real2>(strain_rate_tensor);
     const real2 traceless_symmetric_square_of_velocity_gradient_tensor_magnitude_sqr = this->template get_tensor_magnitude_sqr<real2>(traceless_symmetric_square_of_velocity_gradient_tensor);
     // Compute the eddy viscosity
-    const real2 eddy_viscosity = model_constant_times_filter_width*model_constant_times_filter_width*pow(traceless_symmetric_square_of_velocity_gradient_tensor_magnitude_sqr,1.5)/(pow(strain_rate_tensor_magnitude_sqr,2.5) + pow(traceless_symmetric_square_of_velocity_gradient_tensor_magnitude_sqr,1.25));
+    // -- Initialize as zero
+    real2 eddy_viscosity;if(std::is_same<real2,real>::value){eddy_viscosity = 0.0;}
+    if((strain_rate_tensor_magnitude_sqr != 0.0) &&
+       (traceless_symmetric_square_of_velocity_gradient_tensor_magnitude_sqr != 0.0)) {
+        /** Eddy viscosity is zero in the absence of turbulent fluctuations, 
+         *  i.e. zero strain rate and zero rotation rate. See Nicoud and Ducros (1999). 
+         *  Since the denominator in this eddy viscosity model will go to zero, 
+         *  we must explicitly set the eddy viscosity to zero to avoid a division by zero.
+         *  Or equivalently, update it from its zero initialization only if there is turbulence.
+        */
+        eddy_viscosity = model_constant_times_filter_width*model_constant_times_filter_width*pow(traceless_symmetric_square_of_velocity_gradient_tensor_magnitude_sqr,1.5)/(pow(strain_rate_tensor_magnitude_sqr,2.5) + pow(traceless_symmetric_square_of_velocity_gradient_tensor_magnitude_sqr,1.25));
+    }
 
     return eddy_viscosity;
 }

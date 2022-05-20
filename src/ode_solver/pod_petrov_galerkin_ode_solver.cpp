@@ -108,7 +108,7 @@ int PODPetrovGalerkinODESolver<dim,real,MeshType>::steady_state ()
 }
 
 template <int dim, typename real, typename MeshType>
-void PODPetrovGalerkinODESolver<dim,real,MeshType>::step_in_time (real dt, const bool /*pseudotime*/)
+void PODPetrovGalerkinODESolver<dim,real,MeshType>::step_in_time (real /*dt*/, const bool /*pseudotime*/)
 {
     const bool compute_dRdW = true;
     this->dg->assemble_residual(compute_dRdW);
@@ -118,9 +118,9 @@ void PODPetrovGalerkinODESolver<dim,real,MeshType>::step_in_time (real dt, const
 
     this->dg->system_matrix *= -1.0;
 
-    const double CFL = dt;
-    this->dg->time_scaled_mass_matrices(CFL);
-    this->dg->add_time_scaled_mass_matrices();
+    //const double CFL = dt;
+    //this->dg->time_scaled_mass_matrices(CFL);
+    //this->dg->add_time_scaled_mass_matrices();
 
     if ((this->ode_param.ode_output) == Parameters::OutputEnum::verbose &&
         (this->current_iteration%this->ode_param.print_iteration_modulo) == 0 ) {
@@ -212,8 +212,9 @@ void PODPetrovGalerkinODESolver<dim,real,MeshType>::step_in_time (real dt, const
         this->pcout << " Step length " << step_length << " . Old residual: " << initial_residual << " New residual: " << new_residual << std::endl;
         reduced_l2norm = this->dg->get_reduced_residual_l2norm(epetra_petrov_galerkin_basis);
         this->pcout << "Reduced l2norm: " << reduced_l2norm << std::endl;
+        this->pcout << "Residual l2norm: " << this->dg->get_residual_l2norm() << std::endl;
     }
-    if (iline == 0) this->CFL_factor *= 1.1;
+    if (iline == 0) this->CFL_factor *= 2.0;
     if (iline == maxline) this->CFL_factor *= 0.5;
 
     this->residual_norm = new_residual;

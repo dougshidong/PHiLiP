@@ -79,6 +79,7 @@ protected:
     const Parameters::FlowSolverParam flow_solver_param; ///< Flow solver parameters
     const Parameters::ODESolverParam ode_param; ///< ODE solver parameters
     const unsigned int poly_degree; ///< Polynomial order
+    const unsigned int grid_degree; ///< Polynomial order of the grid
     const double final_time; ///< Final time of solution
 
     /// Name of the reference copy of inputted parameters file; for restart purposes

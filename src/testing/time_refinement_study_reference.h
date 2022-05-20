@@ -33,12 +33,6 @@ protected:
     /// Ratio to refine by
     const double refine_ratio;
 
-    /// Calculate L2 error at the final time in the passed parameters
-    double calculate_L2_error_at_final_time_wrt_reference(
-            std::shared_ptr<DGBase<dim,double>> dg,
-            const Parameters::AllParameters parameters, 
-            double final_time_actual,
-            dealii::LinearAlgebra::distributed::Vector<double> reference_solution) const;
 
     /// Reinitialize parameters while refining the timestep. Necessary because all_parameters is constant.
     Parameters::AllParameters reinit_params_and_refine_timestep(int refinement) const;
@@ -47,6 +41,16 @@ protected:
     Parameters::AllParameters reinit_params_for_reference_solution(int number_of_timesteps, double final_time) const;
 
     dealii::LinearAlgebra::distributed::Vector<double> calculate_reference_solution(double final_time) const;
+    
+    /// Calculate L2 error at the final time in the passed parameters
+    double calculate_L2_error_at_final_time_wrt_reference(
+            std::shared_ptr<DGBase<dim,double>> dg,
+            const Parameters::AllParameters parameters, 
+            double final_time_actual,
+            dealii::LinearAlgebra::distributed::Vector<double> reference_solution) const;
+
+    /// Compute energy from dg
+    double compute_energy(const std::shared_ptr <DGBase<dim, double>> dg) const;
 
 };
 

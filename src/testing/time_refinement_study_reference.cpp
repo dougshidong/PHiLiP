@@ -98,6 +98,18 @@ double TimeRefinementStudyReference<dim,nstate>::calculate_L2_error_at_final_tim
     
 }
 
+template <int dim, int nstate>
+double TimeRefinementStudyReference<dim, nstate>::compute_energy(
+        const std::shared_ptr <DGBase<dim, double>> dg
+        ) const
+{
+    double energy = 0.0;
+    for (unsigned int i = 0; i < dg->solution.size(); ++i)
+    {
+        energy += 1./(dg->global_inverse_mass_matrix.diag_element(i)) * dg->solution(i) * dg->solution(i);
+    }
+    return energy;
+}
 
 template <int dim, int nstate>
 int TimeRefinementStudyReference<dim, nstate>::run_test() const
@@ -110,7 +122,7 @@ int TimeRefinementStudyReference<dim, nstate>::run_test() const
         pcout << "Error: final_time is not evenly divisible by initial_time_step!" << std::endl
               << "Remainder is " << fmod(final_time, initial_time_step)
               << ". Modify parameters to run this test." << std::endl;
-        std::abort();
+        //std::abort();
     }
 
     int testfail = 0;
@@ -165,6 +177,18 @@ int TimeRefinementStudyReference<dim, nstate>::run_test() const
         convergence_table.add_value("L2_error",L2_error);
         convergence_table.set_precision("L2_error", 16);
         convergence_table.evaluate_convergence_rates("L2_error", "dt", dealii::ConvergenceTable::reduction_rate_log2, 1);
+
+        double energy_end = compute_energy(flow_solver->dg);
+        convergence_table.add_value("energy_end", energy_end);
+        convergence_table.set_precision("energy_end", 16);
+        convergence_table.set_scientific("energy_end", true);
+
+        double gamma_aggregate_m1 = (final_time_actual / final_time_target)-1;
+        convergence_table.add_value("gamma_aggregate_m1", gamma_aggregate_m1);
+        convergence_table.set_precision("gamma_aggregate_m1", 16);
+        convergence_table.set_scientific("gamma_aggregate_m1", true);
+        convergence_table.evaluate_convergence_rates("gamma_aggregate_m1", "dt", dealii::ConvergenceTable::reduction_rate_log2, 1);
+
 
         //Checking convergence order
         if (refinement > 0) {

@@ -26,8 +26,9 @@
 #include "euler_naca0012_optimization.hpp"
 
 #include "physics/euler.h"
+#include "physics/initial_conditions/initial_condition.h"
 #include "dg/dg_factory.hpp"
-#include "ode_solver/ode_solver.h"
+#include "ode_solver/ode_solver_factory.h"
 
 #include "functional/target_boundary_functional.h"
 
@@ -125,7 +126,7 @@ int check_flow_constraints2(
                 0.8,
                 1.25,
                 0.0);
-    Physics::FreeStreamInitialConditions<dim,nstate> initial_conditions(euler_physics_double);
+    FreeStreamInitialConditions<dim,nstate,double> initial_conditions(euler_physics_double);
 
     int test_error = 0;
     // Temporary vectors
@@ -750,7 +751,7 @@ int EulerNACAOptimizationConstrained<dim,nstate>
                 param.euler_param.mach_inf,
                 param.euler_param.angle_of_attack,
                 param.euler_param.side_slip_angle);
-    Physics::FreeStreamInitialConditions<dim,nstate> initial_conditions(euler_physics_double);
+    FreeStreamInitialConditions<dim,nstate,double> initial_conditions(euler_physics_double);
 
     using Triangulation = dealii::parallel::distributed::Triangulation<dim>;
     std::shared_ptr <Triangulation> grid = std::make_shared<Triangulation> (
@@ -837,8 +838,7 @@ int EulerNACAOptimizationConstrained<dim,nstate>
 
         dg_target->allocate_system ();
         dealii::VectorTools::interpolate(dg_target->dof_handler, initial_conditions, dg_target->solution);
-        std::shared_ptr<ODE::ODESolver<dim, double>> ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg_target);
-        ode_solver->n_refine = 0;
+        std::shared_ptr<ODE::ODESolverBase<dim, double>> ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg_target);
         ode_solver->initialize_steady_polynomial_ramping (poly_degree);
         ode_solver->steady_state();
 
@@ -861,8 +861,7 @@ int EulerNACAOptimizationConstrained<dim,nstate>
     dg->allocate_system ();
     dealii::VectorTools::interpolate(dg->dof_handler, initial_conditions, dg->solution);
     // Create ODE solver and ramp up the solution from p0
-    std::shared_ptr<ODE::ODESolver<dim, double>> ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
-    ode_solver->n_refine = 0;
+    std::shared_ptr<ODE::ODESolverBase<dim, double>> ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
     //param.ode_solver_param.nonlinear_steady_residual_tolerance = 1e-4;
     ode_solver->initialize_steady_polynomial_ramping (poly_degree);
     // // Solve the steady state problem

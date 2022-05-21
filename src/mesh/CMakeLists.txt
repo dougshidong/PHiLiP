@@ -7,7 +7,7 @@ set(GRID_SOURCE
     free_form_deformation.cpp
     mesh_adaptation.cpp
     mesh_error_estimate.cpp
-    mesh_error_factory.cpp)
+    mesh_error_factory.cpp
     symmetric_free_form_deformation.cpp
     )
 

@@ -146,7 +146,7 @@ void FlowConstraints<dim>
     if(i_print) std::cout << __PRETTY_FUNCTION__ << std::endl;
     update_2(des_var_ctl);
 
-    std::shared_ptr<ODE::ODESolver<dim, double>> ode_solver_1 = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
+    std::shared_ptr<ODE::ODESolverBase<dim, double>> ode_solver_1 = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
     try {
         dg->assemble_residual();
         tol = dg->get_residual_l2norm();

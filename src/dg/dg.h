@@ -219,9 +219,6 @@ public:
 
     unsigned int n_dofs() const; ///< Number of degrees of freedom
 
-    /// Refine cells with the highest residuals.
-    void refine_residual_based(const double percentage_to_refine, const double percentage_to_coarsen);
-
     /// Set anisotropic flags based on jump indicator.
     /** Some cells must have already been tagged for refinement through some other indicator
      */
@@ -362,14 +359,6 @@ public:
 
     /// Artificial dissipation error ratio sensor in each cell.
     dealii::Vector<double> artificial_dissipation_se;
-
-    template <typename real2>
-    /** Discontinuity sensor with 4 parameters, based on projecting to p-1. */
-    real2 discontinuity_sensor(
-        const dealii::Quadrature<dim> &volume_quadrature,
-        const std::vector< real2 > &soln_coeff_high,
-        const dealii::FiniteElement<dim,dim> &fe_high,
-        const std::vector<real2> &jac_det);
 
     /// Discontinuity sensor based on projecting to p-1
     template <typename real2>

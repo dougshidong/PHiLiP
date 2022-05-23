@@ -129,15 +129,12 @@ protected:
     ROL::Ptr<ROL::Constraint<double>> getEqualityConstraint(void) const;
     ROL::Ptr<ROL::Vector<double>> getEqualityMultiplier(void) const;
     std::vector<ROL::Ptr<ROL::Constraint<double>>> getInequalityConstraint(
-        const ROL::Ptr<ROL::Objective_SimOpt<double>> lift_objective,
-        const ROL::Ptr<ROL::Constraint_SimOpt<double>> flow_constraints,
-        const ROL::Ptr<ROL::Vector<double>> simulation_variables,
-        const ROL::Ptr<ROL::Vector<double>> control_variables,
-        const double lift_target,
-        const ROL::Ptr<ROL::Objective_SimOpt<double>> volume_objective,
-        const bool is_reduced_space,
-        const double volume_target = -1
-        ) const;
+		const std::vector<ROL::Ptr<ROL::Objective_SimOpt<double>>> constraints,
+		const ROL::Ptr<ROL::Constraint_SimOpt<double>> flow_constraints,
+		const ROL::Ptr<ROL::Vector<double>> simulation_variables,
+		const ROL::Ptr<ROL::Vector<double>> control_variables,
+		const bool is_reduced_space
+		) const;
 
     std::vector<ROL::Ptr<ROL::Vector<double>>> getInequalityMultiplier(const double volume_target = -1) const;
     std::vector<ROL::Ptr<ROL::BoundConstraint<double>>> getSlackBoundConstraint(const double lift_target, const double volume_target = -1) const;

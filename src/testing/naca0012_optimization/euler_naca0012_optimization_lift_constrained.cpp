@@ -445,7 +445,7 @@ template <int dim, int nstate>
 ROL::Ptr<ROL::Objective<double>> 
 EulerNACADragOptimizationLiftConstrained<dim,nstate>::
 getObjective(
-    const ROL::Ptr<ROL::Objective_SimOpt<double>> drag_objective,
+    const ROL::Ptr<ROL::Objective_SimOpt<double>> objective,
     const ROL::Ptr<ROL::Constraint_SimOpt<double>> flow_constraints,
     const ROL::Ptr<ROL::Vector<double>> simulation_variables,
     const ROL::Ptr<ROL::Vector<double>> control_variables,
@@ -453,15 +453,15 @@ getObjective(
 {
     const auto state_constraints = ROL::makePtrFromRef<PHiLiP::FlowConstraints<PHILIP_DIM>>(dynamic_cast<PHiLiP::FlowConstraints<PHILIP_DIM>&>(*flow_constraints));
     ROL::Ptr<ROL::Vector<double>> drag_adjoint = simulation_variables->clone();
-    // int objective_check_error = check_objective<PHILIP_DIM,PHILIP_DIM+2>( drag_objective, state_constraints, simulation_variables, control_variables, drag_adjoint);
+    // int objective_check_error = check_objective<PHILIP_DIM,PHILIP_DIM+2>( objective, state_constraints, simulation_variables, control_variables, drag_adjoint);
     // (void) objective_check_error;
 
-    if (!is_reduced_space) return drag_objective;
+    if (!is_reduced_space) return objective;
 
     const bool storage = true;
     const bool useFDHessian = false;
 
-    return ROL::makePtr<ROL::Reduced_Objective_SimOpt<double>>( drag_objective, flow_constraints, simulation_variables, control_variables, drag_adjoint, storage, useFDHessian);
+    return ROL::makePtr<ROL::Reduced_Objective_SimOpt<double>>( objective, flow_constraints, simulation_variables, control_variables, drag_adjoint, storage, useFDHessian);
 }
 
 template <int dim, int nstate>
@@ -533,58 +533,36 @@ template <int dim, int nstate>
 std::vector<ROL::Ptr<ROL::Constraint<double>>>
 EulerNACADragOptimizationLiftConstrained<dim,nstate>::
 getInequalityConstraint(
-    const ROL::Ptr<ROL::Objective_SimOpt<double>> lift_objective,
+    const std::vector<ROL::Ptr<ROL::Objective_SimOpt<double>>> constraints_as_objective,
     const ROL::Ptr<ROL::Constraint_SimOpt<double>> flow_constraints,
     const ROL::Ptr<ROL::Vector<double>> simulation_variables,
     const ROL::Ptr<ROL::Vector<double>> control_variables,
-    const double lift_target,
-    const ROL::Ptr<ROL::Objective_SimOpt<double>> volume_objective,
-    const bool is_reduced_space,
-    const double volume_target
+    const bool is_reduced_space
     ) const
 {
     std::vector<ROL::Ptr<ROL::Constraint<double> > > cvec;
-    ROL::Ptr<ROL::Constraint<double>> lift_constraint;
     if (is_reduced_space) {
-        ROL::Ptr<ROL::SimController<double> > stateStore = ROL::makePtr<ROL::SimController<double>>();
-        ROL::Ptr<ROL::Vector<double>> lift_adjoint = simulation_variables->clone();
-        const bool storage = true;
-        const bool useFDHessian = false;
-        auto reduced_lift_objective = ROL::makePtr<ROL::Reduced_Objective_SimOpt<double>>( lift_objective, flow_constraints, simulation_variables, control_variables, lift_adjoint, storage, useFDHessian);
+		const bool storage = true;
+		const bool useFDHessian = false;
+		for (unsigned int i = 0; i < constraints_as_objective.size(); ++i) {
+			ROL::Ptr<ROL::Vector<double>> adjoint = simulation_variables->clone();
+			auto reduced_objective = ROL::makePtr<ROL::Reduced_Objective_SimOpt<double>>(
+				constraints_as_objective[i], flow_constraints, simulation_variables, control_variables, adjoint, storage, useFDHessian);
+			//const auto state_constraints = ROL::makePtrFromRef<PHiLiP::FlowConstraints<PHILIP_DIM>>(dynamic_cast<PHiLiP::FlowConstraints<PHILIP_DIM>&>(*flow_constraints));
+			//int objective_check_error = check_objective<PHILIP_DIM,PHILIP_DIM+2>( constraints_as_objective[i], state_constraints, simulation_variables, control_variables, adjoint);
+			//(void) objective_check_error;
+			ROL::Ptr<ROL::Constraint<double>> reduced_constraint = ROL::makePtr<ROL::ConstraintFromObjective<double>> (reduced_objective, 0.0);
 
-        const auto state_constraints = ROL::makePtrFromRef<PHiLiP::FlowConstraints<PHILIP_DIM>>(dynamic_cast<PHiLiP::FlowConstraints<PHILIP_DIM>&>(*flow_constraints));
-        //int objective_check_error = check_objective<PHILIP_DIM,PHILIP_DIM+2>( lift_objective, state_constraints, simulation_variables, control_variables, lift_adjoint);
-        //(void) objective_check_error;
-        (void) lift_target;
-        (void) volume_target;
-        ROL::Ptr<ROL::Constraint<double>> reduced_lift_constraint = ROL::makePtr<ROL::ConstraintFromObjective<double>> (reduced_lift_objective, 0.0);
-        lift_constraint = reduced_lift_constraint;
-
-        cvec.push_back(lift_constraint);
-        //if (volume_target > 0) {
-            //const bool storage = true;
-            //const bool useFDHessian = false;
-            ROL::Ptr<ROL::Vector<double>> volume_adjoint = simulation_variables->clone();
-            auto reduced_volume_objective = ROL::makePtr<ROL::Reduced_Objective_SimOpt<double>>( volume_objective, flow_constraints, simulation_variables, control_variables, volume_adjoint, storage, useFDHessian);
-            const ROL::Ptr<ROL::Constraint<double>> volume_constraint = ROL::makePtr<ROL::ConstraintFromObjective<double>> (reduced_volume_objective, 0.0);
-            cvec.push_back(volume_constraint);
-        //}
+			cvec.push_back(reduced_constraint);
+		}
     } else {
-        ROL::Ptr<ROL::Constraint<double>> lift_constraint_simpopt = ROL::makePtr<PHiLiP::ConstraintFromObjective_SimOpt<double>> (lift_objective, 0.0);
-        lift_constraint = lift_constraint_simpopt;
-
-        cvec.push_back(lift_constraint);
-        //if (volume_target > 0) {
-            //const bool storage = true;
-            //const bool useFDHessian = false;
-            //ROL::Ptr<ROL::Vector<double>> lift_adjoint = simulation_variables->clone();
-            //auto reduced_volume_objective = ROL::makePtr<ROL::Reduced_Objective_SimOpt<double>>( volume_objective, flow_constraints, simulation_variables, control_variables, lift_adjoint, storage, useFDHessian);
-            const ROL::Ptr<ROL::Constraint<double>> volume_constraint = ROL::makePtr<PHiLiP::ConstraintFromObjective_SimOpt<double>> (volume_objective, 0.0);
-            cvec.push_back(volume_constraint);
-        //}
+		for (unsigned int i = 0; i < constraints_as_objective.size(); ++i) {
+			ROL::Ptr<ROL::Constraint<double>> constraint = ROL::makePtr<PHiLiP::ConstraintFromObjective_SimOpt<double>> (constraints_as_objective[i], 0.0);
+			cvec.push_back(constraint);
+		}
     }
+	return cvec;
 
-    return cvec;
 
 }
 
@@ -874,13 +852,17 @@ int EulerNACADragOptimizationLiftConstrained<dim,nstate>
     auto lift_objective = ROL::makePtr<ROLObjectiveSimOpt<dim,nstate>>( lift_functional, ffd, ffd_design_variables_indices_dim, &(flow_constraints->dXvdXp) );
     auto volume_objective = ROL::makePtr<ROLObjectiveSimOpt<dim,nstate>>( volume_functional, ffd, ffd_design_variables_indices_dim, &(flow_constraints->dXvdXp) );
 
+	auto objective = drag_objective;
+	auto constraint1 = lift_objective;
+	auto constraint2 = volume_objective;
+
     const unsigned int n_other_constraints = 1;
     const dealii::IndexSet constraint_row_part = dealii::Utilities::MPI::create_evenly_distributed_partitioning(MPI_COMM_WORLD,n_other_constraints);
     dealii::IndexSet constraint_ghost_row_part(n_other_constraints);
     constraint_ghost_row_part.add_range(0,n_other_constraints);
 
     double tol = 0.0;
-    std::cout << "Drag value= " << drag_objective->value(*simulation_variables, *control_variables, tol) << std::endl;
+    std::cout << "Drag value= " << objective->value(*simulation_variables, *control_variables, tol) << std::endl;
 
     dg->output_results_vtk(9999);
 
@@ -922,8 +904,8 @@ int EulerNACADragOptimizationLiftConstrained<dim,nstate>
         case OptimizationAlgorithm::full_space_composite_step: {
             // Full space problem
             auto dual_sim_p = simulation_variables->clone();
-            //opt = ROL::OptimizationProblem<double> ( drag_objective, des_var_p, flow_constraints, dual_sim_p );
-            opt = ROL::OptimizationProblem<double> ( drag_objective, des_var_p, flow_constraints, dual_sim_p );
+            //opt = ROL::OptimizationProblem<double> ( objective, des_var_p, flow_constraints, dual_sim_p );
+            opt = ROL::OptimizationProblem<double> ( objective, des_var_p, flow_constraints, dual_sim_p );
 
             // Set parameters.
 
@@ -956,8 +938,8 @@ int EulerNACADragOptimizationLiftConstrained<dim,nstate>
             const bool is_reduced_space = true;
             ROL::Ptr<ROL::Vector<double>>                       design_variables               = getDesignVariables(simulation_variables, control_variables, is_reduced_space);
             ROL::Ptr<ROL::BoundConstraint<double>>              design_bounds                  = getDesignBoundConstraint(simulation_variables, control_variables, is_reduced_space);
-            ROL::Ptr<ROL::Objective<double>>                    reduced_drag_objective         = getObjective(drag_objective, flow_constraints, simulation_variables, control_variables, is_reduced_space);
-            std::vector<ROL::Ptr<ROL::Constraint<double>>>      reduced_inequality_constraints = getInequalityConstraint(lift_objective, flow_constraints, simulation_variables, control_variables, lift_target, volume_objective, is_reduced_space, volume_target);
+            ROL::Ptr<ROL::Objective<double>>                    reduced_drag_objective         = getObjective(objective, flow_constraints, simulation_variables, control_variables, is_reduced_space);
+            std::vector<ROL::Ptr<ROL::Constraint<double>>>      reduced_inequality_constraints = getInequalityConstraint({constraint1, constraint2}, flow_constraints, simulation_variables, control_variables, is_reduced_space);
             std::vector<ROL::Ptr<ROL::Vector<double>>>          dual_inequality                = getInequalityMultiplier(volume_target);
             std::vector<ROL::Ptr<ROL::BoundConstraint<double>>> inequality_bounds              = getSlackBoundConstraint(lift_target, volume_target);
 
@@ -1011,7 +993,7 @@ int EulerNACADragOptimizationLiftConstrained<dim,nstate>
         //     const bool useFDHessian = false;
         //     // Create reduced-objective by combining objective with PDE constraints.
         //     ROL::Ptr<ROL::Vector<double>> drag_adjoint = ROL::makePtr<VectorAdaptor>(des_var_adj_rol);
-        //     auto reduced_drag_objective = ROL::makePtr<ROL::Reduced_Objective_SimOpt<double>>( drag_objective, flow_constraints, simulation_variables, control_variables, drag_adjoint, storage, useFDHessian);
+        //     auto reduced_drag_objective = ROL::makePtr<ROL::Reduced_Objective_SimOpt<double>>( objective, flow_constraints, simulation_variables, control_variables, drag_adjoint, storage, useFDHessian);
 
         //     // Create reduced-constraint by combining lift-objective with PDE constraints.
         //     ROL::Ptr<ROL::SimController<double> > stateStore = ROL::makePtr<ROL::SimController<double>>();
@@ -1023,7 +1005,7 @@ int EulerNACADragOptimizationLiftConstrained<dim,nstate>
         //     //    storage, useFDHessian);
 
         //     // Create reduced-objective by combining objective with PDE constraints.
-        //     auto reduced_lift_objective = ROL::makePtr<ROL::Reduced_Objective_SimOpt<double>>( lift_objective, flow_constraints, simulation_variables, control_variables, lift_adjoint, storage, useFDHessian);
+        //     auto reduced_lift_objective = ROL::makePtr<ROL::Reduced_Objective_SimOpt<double>>( constraint1, flow_constraints, simulation_variables, control_variables, lift_adjoint, storage, useFDHessian);
         //     std::cout << " Converting reduced lift objective into reduced_lift_constraint " << std::endl;
         //     ROL::Ptr<ROL::Constraint<double>> reduced_lift_constraint = ROL::makePtr<ROL::ConstraintFromObjective<double>> (reduced_lift_objective, lift_target);
 
@@ -1049,8 +1031,8 @@ int EulerNACADragOptimizationLiftConstrained<dim,nstate>
             const bool is_reduced_space = false;
             ROL::Ptr<ROL::Vector<double>>                       design_variables               = getDesignVariables(simulation_variables, control_variables, is_reduced_space);
             ROL::Ptr<ROL::BoundConstraint<double>>              design_bounds                  = getDesignBoundConstraint(simulation_variables, control_variables, is_reduced_space);
-            ROL::Ptr<ROL::Objective<double>>                    drag_objective_simopt          = getObjective(drag_objective, flow_constraints, simulation_variables, control_variables, is_reduced_space);
-            std::vector<ROL::Ptr<ROL::Constraint<double>>>      inequality_constraints         = getInequalityConstraint(lift_objective, flow_constraints, simulation_variables, control_variables, lift_target, volume_objective, is_reduced_space, volume_target);
+            ROL::Ptr<ROL::Objective<double>>                    drag_objective_simopt          = getObjective(objective, flow_constraints, simulation_variables, control_variables, is_reduced_space);
+            std::vector<ROL::Ptr<ROL::Constraint<double>>>      inequality_constraints         = getInequalityConstraint({constraint1, constraint2}, flow_constraints, simulation_variables, control_variables, is_reduced_space);
             std::vector<ROL::Ptr<ROL::Vector<double>>>          dual_inequality                = getInequalityMultiplier(volume_target);
             std::vector<ROL::Ptr<ROL::BoundConstraint<double>>> inequality_bounds              = getSlackBoundConstraint(lift_target, volume_target);
 
@@ -1107,7 +1089,7 @@ int EulerNACADragOptimizationLiftConstrained<dim,nstate>
     }
     std::cout << " Current lift = " << lift_functional.evaluate_functional()
               << ". Current drag = " << drag_functional.evaluate_functional()
-              << ". Drag with quadratic lift penalty = " << drag_objective->value(*simulation_variables, *control_variables, tol);
+              << ". Drag with quadratic lift penalty = " << objective->value(*simulation_variables, *control_variables, tol);
     static int resulting_optimization = 5000;
     std::cout << "Outputting final grid resulting_optimization: " << resulting_optimization << std::endl;
     dg->output_results_vtk(resulting_optimization++);

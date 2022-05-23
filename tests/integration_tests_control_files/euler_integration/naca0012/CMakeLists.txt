@@ -15,7 +15,7 @@ add_test(
 configure_file(inviscid_transonic_steady_state_naca0012.prm inviscid_transonic_steady_state_naca0012.prm COPYONLY)
 add_test(
         NAME INVISCID_TRANSONIC_STEADY_STATE_NACA0012
-        COMMAND mpirun -np ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_2D -i ${CMAKE_CURRENT_BINARY_DIR}/naca0012.prm
+        COMMAND mpirun -np ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_2D -i ${CMAKE_CURRENT_BINARY_DIR}/inviscid_transonic_steady_state_naca0012.prm
         WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )
 

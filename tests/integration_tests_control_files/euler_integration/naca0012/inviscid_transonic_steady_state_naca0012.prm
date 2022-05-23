@@ -57,7 +57,7 @@ subsection ODE solver
 end
 
 subsection grid refinement study
- set poly_degree = 0
+ set poly_degree = 1
  set num_refinements = 0
  #set grid_size = 4
 end

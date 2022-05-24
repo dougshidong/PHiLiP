@@ -47,6 +47,7 @@
 
 #include "mesh/gmsh_reader.hpp"
 #include "functional/lift_drag.hpp"
+#include "functional/moment.hpp"
 #include "functional/geometric_volume.hpp"
 #include "functional/target_wall_pressure.hpp"
 
@@ -786,8 +787,8 @@ int EulerNACADragOptimizationLiftConstrained<dim,nstate>
 
     std::shared_ptr < DGBase<dim, double> > dg = DGFactory<dim,double>::create_discontinuous_galerkin(&param, poly_degree, grid);
 
-    //naca0012_mesh->refine_global();
     std::shared_ptr<HighOrderGrid<dim,double>> naca0012_mesh = read_gmsh <dim, dim> ("naca0012.msh");
+	//naca0012_mesh->refine_global();
     dg->set_high_order_grid(naca0012_mesh);
 
     dg->allocate_system ();
@@ -820,14 +821,17 @@ int EulerNACADragOptimizationLiftConstrained<dim,nstate>
 
     LiftDragFunctional<dim,nstate,double> lift_functional( dg, LiftDragFunctional<dim,dim+2,double>::Functional_types::lift );
     LiftDragFunctional<dim,nstate,double> drag_functional( dg, LiftDragFunctional<dim,dim+2,double>::Functional_types::drag );
+    ZMomentFunctional<dim,nstate,double> moment_functional( dg, {0.25, 0.0} );
     GeometricVolume<dim,nstate,double> volume_functional( dg );
 
     std::cout << " Current lift = " << lift_functional.evaluate_functional()
               << ". Current drag = " << drag_functional.evaluate_functional()
+              << ". Current Z-moment = " << moment_functional.evaluate_functional()
               << std::endl;
 
     double lift_target = lift_functional.evaluate_functional() * 1.50;
     double volume_target = volume_functional.evaluate_functional() * 1.0;
+    double moment_target = moment_functional.evaluate_functional() * 1.0;
 
 
     ffd.output_ffd_vtu(8999);
@@ -856,6 +860,7 @@ int EulerNACADragOptimizationLiftConstrained<dim,nstate>
                                                                                               *simulation_variables,
                                                                                               *control_variables,
                                                                                               *lift_constraint_value);
+
   //QuadraticPenalty_SimOpt(const ROL::Ptr<Constraint_SimOpt<Real> > &con,
   //                        const Vector<Real> &multiplier,
   //                        const Real penaltyParameter,
@@ -866,18 +871,21 @@ int EulerNACADragOptimizationLiftConstrained<dim,nstate>
   //                        const int HessianApprox = 0 )
 
     auto volume_objective = ROL::makePtr<ROLObjectiveSimOpt<dim,nstate>>( volume_functional, ffd, ffd_design_variables_indices_dim, &(flow_constraints->dXvdXp) );
+    auto moment_objective = ROL::makePtr<ROLObjectiveSimOpt<dim,nstate>>( moment_functional, ffd, ffd_design_variables_indices_dim, &(flow_constraints->dXvdXp) );
 
 	auto objective = lift_target_quadratic_objective;
 	auto constraint1 = volume_objective;
     const double constraint1_lower_bound_dx = -1e-4;
     const double constraint1_upper_bound_dx = 1e-1;
-	//auto constraint1 = lift_objective;
-	//auto constraint2 = volume_objective;
 
-    std::vector<ROL::Ptr<ROL::Objective_SimOpt<double>>> nonlinear_inequalities_as_objectives {constraint1};//, constraint2};
-    std::vector<double> nonlinear_inequality_targets {volume_target};
-    std::vector<double> constraint_lower_bound_dx {constraint1_lower_bound_dx};
-    std::vector<double> constraint_upper_bound_dx {constraint1_upper_bound_dx};
+	auto constraint2 = moment_objective;
+    const double constraint2_lower_bound_dx = -1e-3;
+    const double constraint2_upper_bound_dx = 1e-3;
+
+    std::vector<ROL::Ptr<ROL::Objective_SimOpt<double>>> nonlinear_inequalities_as_objectives {constraint1, constraint2};//, constraint2};
+    std::vector<double> nonlinear_inequality_targets {volume_target, moment_target};
+    std::vector<double> constraint_lower_bound_dx {constraint1_lower_bound_dx, constraint2_lower_bound_dx};
+    std::vector<double> constraint_upper_bound_dx {constraint1_upper_bound_dx, constraint2_upper_bound_dx};
 
     const unsigned int n_other_constraints = 1;
     const dealii::IndexSet constraint_row_part = dealii::Utilities::MPI::create_evenly_distributed_partitioning(MPI_COMM_WORLD,n_other_constraints);

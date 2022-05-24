@@ -88,6 +88,14 @@ int PODPetrovGalerkinODESolver<dim,real,MeshType>::steady_state ()
         const bool pseudotime = true;
         step_in_time(ramped_CFL, pseudotime);
 
+        if (this->ode_param.output_solution_every_x_steps > 0) {
+            const bool is_output_iteration = (this->current_iteration % this->ode_param.output_solution_every_x_steps == 0);
+            if (is_output_iteration) {
+                const int file_number = this->current_iteration / this->ode_param.output_solution_every_x_steps;
+                this->dg->output_results_vtk(file_number);
+            }
+        }
+
         this->residual_norm_decrease = this->residual_norm / this->initial_residual_norm;
         this->pcout << "this->residual_norm_decrease = " << this->residual_norm_decrease << std::endl;
 

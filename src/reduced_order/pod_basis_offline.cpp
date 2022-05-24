@@ -19,8 +19,6 @@ OfflinePOD<dim>::OfflinePOD(std::shared_ptr<DGBase<dim,double>> &dg_input)
     pcout << "Searching files..." << std::endl;
 
     getPODBasisFromSnapshots();
-
-    //buildPODBasis();
 }
 
 template <int dim>
@@ -75,7 +73,7 @@ bool OfflinePOD<dim>::getPODBasisFromSnapshots() {
                         if (field.empty()) {
                             continue;
                         } else {
-                            snapshotMatrix(rows-1, cols) = std::stod(field);
+                            snapshotMatrix(rows-1, snapshotMatrix.cols()-1+cols) = std::stof(field);
                             cols++;
                         }
                     }
@@ -123,6 +121,26 @@ bool OfflinePOD<dim>::getPODBasisFromSnapshots() {
     unsigned int precision = 16;
     fullBasis.print_formatted(out_file, precision);
 
+    Epetra_CrsMatrix *epetra_system_matrix  = const_cast<Epetra_CrsMatrix *>(&(this->dg->system_matrix.trilinos_matrix()));
+    Epetra_Map system_matrix_map = epetra_system_matrix->RowMap();
+    Epetra_CrsMatrix epetra_basis(Epetra_DataAccess::Copy, system_matrix_map, pod_basis.cols());
+
+    const int numMyElements = system_matrix_map.NumMyElements(); //Number of elements on the calling processor
+
+    for (int localRow = 0; localRow < numMyElements; ++localRow){
+        const int globalRow = system_matrix_map.GID(localRow);
+        for(int n = 0 ; n < pod_basis.cols() ; n++){
+            epetra_basis.InsertGlobalValues(globalRow, 1, &pod_basis(globalRow, n), &n);
+        }
+    }
+
+    Epetra_MpiComm epetra_comm(MPI_COMM_WORLD);
+    Epetra_Map domain_map((int)pod_basis.cols(), 0, epetra_comm);
+
+    epetra_basis.FillComplete(domain_map, system_matrix_map);
+
+    basis->reinit(epetra_basis);
+
     return file_found;
 }
 
@@ -136,29 +154,6 @@ dealii::LinearAlgebra::ReadWriteVector<double> OfflinePOD<dim>::getReferenceStat
     return referenceState;
 }
 
-/*
-template <int dim>
-void OfflinePOD<dim>::buildPODBasis() {
-    std::vector<int> row_index_set(fullBasis.n_rows());
-    std::iota(std::begin(row_index_set), std::end(row_index_set),0);
-
-    std::vector<int> column_index_set(fullBasis.n_cols());
-    std::iota(std::begin(column_index_set), std::end(column_index_set),0);
-
-    dealii::TrilinosWrappers::SparseMatrix pod_basis_tmp(fullBasis.n_rows(), fullBasis.n_cols(), fullBasis.n_cols());
-
-    for(int i : row_index_set){
-        for(int j : column_index_set){
-            pod_basis_tmp.set(i, j, fullBasis(i, j));
-        }
-    }
-
-    pod_basis_tmp.compress(dealii::VectorOperation::insert);
-
-    fullPODBasis->reinit(pod_basis_tmp);
-    fullPODBasis->copy_from(pod_basis_tmp);
-}
-*/
 template class OfflinePOD <PHILIP_DIM>;
 
 }

@@ -69,3 +69,6 @@ subsection flow_solver
   set reduced_order = true
 end
 
+subsection reduced order
+  set path_to_search = ./naca0012_solutions/10pts/
+end

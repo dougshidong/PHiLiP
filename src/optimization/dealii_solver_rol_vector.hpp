@@ -3,6 +3,7 @@
 
 #include "ROL_Types.hpp"
 #include "ROL_Vector_SimOpt.hpp"
+#include "ROL_SingletonVector.hpp"
 
 
 #include "optimization/rol_to_dealii_vector.hpp"
@@ -86,6 +87,7 @@ public:
     dealiiSolverVectorWrappingROL & operator=(const dealiiSolverVectorWrappingROL &x)
     {
         rol_vector_ptr = (x.getVector())->clone();
+        rol_vector_ptr->set(*(x.getVector()));
         return *this;
     }
     
@@ -181,24 +183,38 @@ public:
     Real operator [](int i) const
     {
         const auto &vec_split12 = dynamic_cast<const ROL::Vector_SimOpt<Real>&>(*rol_vector_ptr);
-        const auto des = vec_split12.get_1();
-        const auto &des_split = dynamic_cast<const ROL::Vector_SimOpt<Real>&>(*des);
 
-        const auto sim_des = des_split.get_1();
-        const auto ctl_des = des_split.get_2();
+        const auto des = vec_split12.get_1();
         const auto con = vec_split12.get_2();
 
-        const auto n1 = sim_des->dimension();
-        const auto n2 = ctl_des->dimension() + n1;
-        //const auto n3 = con->dimension() + n2;
-
-        if (i < n1) {
-            return PHiLiP::ROL_vector_to_dealii_vector_reference(*sim_des)[i];
-        } else if (i < n2) {
-            return PHiLiP::ROL_vector_to_dealii_vector_reference(*ctl_des)[i-n1];
+        const auto des_n = des->dimension();
+        if (i >= des_n) {
+            try {
+                return PHiLiP::ROL_vector_to_dealii_vector_reference(*con)[i-des_n];
+            } catch (...) {
+                const auto &con_singleton = dynamic_cast<const ROL::SingletonVector<Real>&>(*con);
+                return con_singleton.getValue();
+            }
         } else {
-            return PHiLiP::ROL_vector_to_dealii_vector_reference(*con)[i-n2];
+
+            try {
+                const auto &des_split = dynamic_cast<const ROL::Vector_SimOpt<Real>&>(*des);
+                const auto sim_des = des_split.get_1();
+                const auto ctl_des = des_split.get_2();
+
+                const auto sim_n = sim_des->dimension();
+
+                if (i < sim_n) {
+                    return PHiLiP::ROL_vector_to_dealii_vector_reference(*sim_des)[i];
+                } else {
+                    return PHiLiP::ROL_vector_to_dealii_vector_reference(*ctl_des)[i-sim_n];
+                }
+            } catch (const std::bad_cast& e) {
+                // In case design vector isn't SimOpt.
+                return PHiLiP::ROL_vector_to_dealii_vector_reference(*des)[i];
+            }
         }
+
     }
 
 };

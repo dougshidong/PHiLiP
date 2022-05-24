@@ -1,5 +1,6 @@
 #include<limits>
 #include<fstream>
+
 #include <deal.II/base/parameter_handler.h>
 #include <deal.II/base/tensor.h>
 
@@ -330,7 +331,7 @@ real DGBaseState<dim,nstate,real,MeshType>::evaluate_CFL (
     const real cfl_convective = (cell_diameter / max_eig) / (2*p+1);//(p * p);
     const real cfl_diffusive  = artificial_dissipation != 0.0 ?
                                 (0.5*cell_diameter*cell_diameter / artificial_dissipation) / (p*p*p*p)
-                                : 1e200;
+                                : 1.923e200;
     real min_cfl = std::min(cfl_convective, cfl_diffusive);
 
     if (min_cfl >= 1e190) min_cfl = cell_diameter / 1;
@@ -1200,22 +1201,28 @@ void DGBase<dim,real,MeshType>::assemble_residual (const bool compute_dRdW, cons
         diff_sol -= solution_d2R;
         const double l2_norm_sol = diff_sol.l2_norm();
 
-        if (l2_norm_sol == 0.0) {
+        if (l2_norm_sol < 1e-12) {
 
             auto diff_node = high_order_grid->volume_nodes;
             diff_node -= volume_nodes_d2R;
             const double l2_norm_node = diff_node.l2_norm();
 
-            if (l2_norm_node == 0.0) {
+            if (l2_norm_node < 1e-12) {
 
                 auto diff_dual = dual;
                 diff_dual -= dual_d2R;
                 const double l2_norm_dual = diff_dual.l2_norm();
-                if (l2_norm_dual == 0.0) {
+                if (l2_norm_dual < 1e-12) {
                     pcout << " which is already assembled..." << std::endl;
                     return;
+                } else {
+                    pcout << " Reassembling Hessian since dual differ by " << diff_dual.l2_norm() << " since last computation" << std::endl;
                 }
+            } else {
+                pcout << " Reassembling Hessian since nodes differ by " << diff_node.l2_norm() << " since last computation" << std::endl;
             }
+        } else {
+            pcout << " Reassembling Hessian since solution differs by " << diff_sol.l2_norm() << " since last computation" << std::endl;
         }
         solution_d2R = solution;
         volume_nodes_d2R = high_order_grid->volume_nodes;
@@ -1254,6 +1261,9 @@ void DGBase<dim,real,MeshType>::assemble_residual (const bool compute_dRdW, cons
     solution.update_ghost_values();
 
     int assembly_error = 0;
+    bool negative_pressure = false;
+    bool negative_density = false;
+    bool inconsistent_normals = false;
     try {
 
         update_artificial_dissipation_discontinuity_sensor();
@@ -1286,16 +1296,32 @@ void DGBase<dim,real,MeshType>::assemble_residual (const bool compute_dRdW, cons
                 fe_values_collection_volume_lagrange,
                 right_hand_side);
         } // end of cell loop
-    } catch(...) {
+    } catch(const PHiLiP::ExcInconsistentNormals& e) {
+        assembly_error = 2;
+        inconsistent_normals = true;
+    } catch(int e) {
+        negative_pressure = true;
+        negative_density = true;
         assembly_error = 1;
     }
-    const int mpi_assembly_error = dealii::Utilities::MPI::sum(assembly_error, mpi_communicator);
+    (void) assembly_error;
 
-    if (mpi_assembly_error != 0) {
+    bool inconsistent_normals_reduction = false;
+    (void) MPI_Allreduce(&inconsistent_normals, &inconsistent_normals_reduction, 1, MPI::BOOL, MPI::LOR, MPI_COMM_WORLD);
+    bool negative_pressure_reduction = false;
+    (void) MPI_Allreduce(&negative_pressure, &negative_pressure_reduction, 1, MPI::BOOL, MPI::LOR, MPI_COMM_WORLD);
+    bool negative_density_reduction = false;
+    (void) MPI_Allreduce(&negative_density, &negative_density_reduction, 1, MPI::BOOL, MPI::LOR, MPI_COMM_WORLD);
+
+    const bool mpi_assembly_error = inconsistent_normals_reduction || negative_pressure_reduction || negative_density_reduction;
+    //const int mpi_assembly_error = dealii::Utilities::MPI::sum(assembly_error, mpi_communicator);
+    //MPI_Allreduce(void* send_data, void* recv_data, int count, MPI_Datatype datatype, MPI_Op op, MPI_Comm communicator)
+    //if (mpi_assembly_error != 0) {
+    if (mpi_assembly_error) {
         std::cout << "Invalid residual assembly encountered..."
-                  << " Filling up RHS with 1s. " << std::endl;
+                  << " Filling up RHS with 1e20s. " << std::endl;
         right_hand_side *= 0.0;
-        right_hand_side.add(1.0);
+        right_hand_side.add(1.0e20);
         if (compute_dRdW) {
             std::cout << " Filling up Jacobian with mass matrix. " << std::endl;
             const bool do_inverse_mass_matrix = false;
@@ -1362,6 +1388,10 @@ void DGBase<dim,real,MeshType>::assemble_residual (const bool compute_dRdW, cons
         d2RdWdW.compress(dealii::VectorOperation::add);
         d2RdXdX.compress(dealii::VectorOperation::add);
         d2RdWdX.compress(dealii::VectorOperation::add);
+    }
+
+    if (inconsistent_normals_reduction) {
+        throw PHiLiP::ExcInconsistentNormals();
     }
     //if ( compute_dRdW ) system_matrix.compress(dealii::VectorOperation::insert);
     //system_matrix.print(std::cout);
@@ -1861,6 +1891,7 @@ void DGBase<dim,real,MeshType>::output_results_vtk (const unsigned int cycle)// 
     data_out.write_vtu(output);
     //std::cout << "Writing out file: " << filename << std::endl;
 
+    pcout << "Outputting solution file: " << filename << std::endl;
     if (iproc == 0) {
         std::vector<std::string> filenames;
         for (unsigned int iproc = 0; iproc < dealii::Utilities::MPI::n_mpi_processes(mpi_communicator); ++iproc) {
@@ -2308,7 +2339,7 @@ std::vector< real > project_function(
 
 }
 
-template <int dim, typename real,typename MeshType>
+template <int dim, typename real, typename MeshType>
 template <typename real2>
 real2 DGBase<dim,real,MeshType>::discontinuity_sensor(
     const dealii::Quadrature<dim> &volume_quadrature,
@@ -2363,21 +2394,21 @@ real2 DGBase<dim,real,MeshType>::discontinuity_sensor(
         element_volume += JxW;
         // Only integrate over the first state variable.
         // Persson and Peraire only did density.
-        for (unsigned int s=0; s<1/*nstate*/; ++s) 
-        {
+        for (unsigned int s=0; s<1/*nstate*/; ++s) {
             error += (soln_high[s] - soln_lower[s]) * (soln_high[s] - soln_lower[s]) * JxW;
             soln_norm += soln_high[s] * soln_high[s] * JxW;
         }
     }
 
-    if (soln_norm < 1e-15) return 0;
+    if (soln_norm < 1e-12) return 0;
 
-    const real2 S_e = sqrt(error / soln_norm);
-    const real2 s_e = log10(S_e);
+    real2 S_e, s_e;
+    S_e = sqrt(error / soln_norm);
+    s_e = log10(S_e);
 
-    const double mu_scale = all_parameters->artificial_dissipation_param.mu_artificial_dissipation;
+    const double mu_scale = 2.0 * 1e-0;
     const double s_0 = -0.00 - 4.00*log10(degree);
-    const double kappa = all_parameters->artificial_dissipation_param.kappa_artificial_dissipation;
+    const double kappa = 1.0;
     const double low = s_0 - kappa;
     const double upp = s_0 + kappa;
 
@@ -2386,8 +2417,7 @@ real2 DGBase<dim,real,MeshType>::discontinuity_sensor(
 
     if ( s_e < low) return 0.0;
 
-    if ( s_e > upp) 
-    {
+    if ( s_e > upp) {
         return eps_0;
     }
 

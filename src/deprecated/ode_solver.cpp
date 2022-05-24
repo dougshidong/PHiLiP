@@ -79,7 +79,20 @@ int ODESolver<dim,real,MeshType>::steady_state ()
     if (ode_param.output_solution_every_x_steps >= 0) this->dg->output_results_vtk(this->current_iteration);
 
     pcout << " Evaluating right-hand side and setting system_matrix to Jacobian before starting iterations... " << std::endl;
-    this->dg->assemble_residual ();
+
+    bool inconsistent_normals = false;
+    try {
+        this->dg->assemble_residual ();
+    } catch(const PHiLiP::ExcInconsistentNormals& e) {
+        inconsistent_normals = true;
+    }
+    bool inconsistent_normals_reduction = false;
+    (void) MPI_Allreduce(&inconsistent_normals, &inconsistent_normals_reduction, 1, MPI::BOOL, MPI::LOR, MPI_COMM_WORLD);
+    if (inconsistent_normals_reduction) {
+        this->residual_norm = 1e99;
+        return 1;
+    }
+
     initial_residual_norm = this->dg->get_residual_l2norm();
     this->residual_norm = initial_residual_norm;
     pcout << " ********************************************************** "
@@ -139,11 +152,11 @@ int ODESolver<dim,real,MeshType>::steady_state ()
         //if ( this->current_iteration < 50 ) this->dg->update_artificial_dissipation_discontinuity_sensor();
 
         //if (this->residual_norm < 1e-12 || this->current_iteration > 20) {
-        if (this->residual_norm < 1e-12) {
-            this->dg->freeze_artificial_dissipation = true;
-        } else {
-            this->dg->freeze_artificial_dissipation = false;
-        }
+        // if (this->residual_norm < 1e-12) {
+        //     this->dg->freeze_artificial_dissipation = true;
+        // } else {
+        //     this->dg->freeze_artificial_dissipation = false;
+        // }
         //if (this->current_iteration % 1 == 0) {
         //    this->dg->freeze_artificial_dissipation = false;
         //} else {
@@ -172,7 +185,7 @@ int ODESolver<dim,real,MeshType>::steady_state ()
         //if ( refine && (current_iteration+1) % 5 == 0 && this->residual_norm < 1e-11) {
         if ( refine && this->residual_norm < 1e-9 && i_refine < n_refine) {
             i_refine++;
-            dg->refine_residual_based();
+            dg->refine_residual_based(0.075, 0.025);
             allocate_ode_system ();
         }
 
@@ -185,13 +198,18 @@ int ODESolver<dim,real,MeshType>::steady_state ()
     }
     if (this->residual_norm > 1e5
         || std::isnan(this->residual_norm)
-        || CFL_factor <= 1e-2)
+        || CFL_factor <= 1e-2
+        || this->current_iteration >= ode_param.nonlinear_max_iterations
+       )
     {
         this->dg->solution = initial_solution;
 
         if(CFL_factor <= 1e-2) this->dg->right_hand_side.add(1.0);
     }
 
+    if ( dealii::Utilities::MPI::this_mpi_process(mpi_communicator) == 0 ) {
+        pcout.set_condition(true);
+    }
     pcout << " ********************************************************** "
           << std::endl
           << " ODESolver steady_state stopped at"
@@ -320,7 +338,7 @@ double Implicit_ODESolver<dim,real,MeshType>::linesearch ()
     double step_length = 1.0;
 
     const double step_reduction = 0.5;
-    const int maxline = 10;
+    const int maxline = 5;
     const double reduction_tolerance_1 = 1.0;
     const double reduction_tolerance_2 = 2.0;
 
@@ -340,7 +358,9 @@ double Implicit_ODESolver<dim,real,MeshType>::linesearch ()
         new_residual = this->dg->get_residual_l2norm();
         pcout << " Step length " << step_length << " . Old residual: " << initial_residual << " New residual: " << new_residual << std::endl;
     }
-    if (iline == 0) this->CFL_factor *= 2.0;
+    if (iline == 0) {
+        this->CFL_factor *= 2.0;
+    }
 
     if (iline == maxline) {
         step_length = 1.0;

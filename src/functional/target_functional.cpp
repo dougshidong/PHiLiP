@@ -163,8 +163,8 @@ real2 TargetFunctional<dim, nstate, real>::evaluate_volume_cell_functional(
         (void) quad_weight;
         volume_local_sum += volume_integrand;// * jacobian_determinant * quad_weight;
         if (volume_local_sum != 0.0 && jacobian_determinant < 0) {
-            std::cout << "Bad jacobian... setting volume_local_sum *= 1e200" << std::endl;
-            volume_local_sum += 1e200;
+            std::cout << "Bad jacobian... setting volume_local_sum *= 1.456e200" << std::endl;
+            volume_local_sum += 1.8768e200;
         }
     }
     return volume_local_sum;

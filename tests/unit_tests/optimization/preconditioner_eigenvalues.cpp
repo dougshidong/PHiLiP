@@ -1,5 +1,9 @@
-
-#include <deal.II/grid/grid_generator.h>
+// The KKT system preconditioned with Biros and Ghattas' preconditioners P2 and P4
+// should be perfectly conditioned if the exact Jacobians are used
+// except for the eigenvalues from the control variables.
+// Therefore, we check the eigenvalues of the system precond(KKT)^{-1} * KKT * Identity.
+//
+// We use a basic Euler test case and the Identity matrix to form the resulting matrix.
 
 #include <deal.II/numerics/vector_tools.h>
 
@@ -12,9 +16,10 @@
 #include "ROL_LineSearchStep.hpp"
 //#include "ROL_StatusTest.hpp"
 
-#include "physics/initial_conditions/initial_condition.h"
 #include "physics/euler.h"
+#include "physics/initial_conditions/initial_condition.h"
 #include "dg/dg_factory.hpp"
+#include "ode_solver/ode_solver_base.h"
 #include "ode_solver/ode_solver_factory.h"
 
 #include "functional/target_boundary_functional.h"
@@ -26,12 +31,20 @@
 #include "optimization/flow_constraints.hpp"
 #include "optimization/rol_objective.hpp"
 
+#include "optimization/full_space_step.hpp"
+#include "optimization/kkt_operator.hpp"
+#include "optimization/kkt_birosghattas_preconditioners.hpp"
+
+#include <deal.II/lac/lapack_full_matrix.h>
+
+#include <string>
+
 
 const double TOL = 1e-7;
 
 const int dim = 2;
 const int nstate = 4;
-const int POLY_DEGREE = 2;
+const int POLY_DEGREE = 0;
 const int MESH_DEGREE = POLY_DEGREE+1;
 const double BUMP_HEIGHT = 0.0625;
 const double CHANNEL_LENGTH = 3.0;
@@ -49,6 +62,80 @@ double check_max_rel_error(std::vector<std::vector<double>> rol_check_results) {
         max_rel_err = std::min(max_rel_err, rel_err);
     }
     return max_rel_err;
+}
+template<typename PrecType>
+int check_preconditioned_system_eigenvalues(
+    const ROL::Ptr<ROL::Vector_SimOpt<double>> design_variables,
+    const ROL::Ptr<ROL::Vector<double>> lagrange_mult,
+    const KKT_Operator<double> &kkt_operator,
+    const PrecType &kkt_preconditioner,
+    const unsigned int n_expected_eig,
+    std::string &output)
+{
+    ROL::Ptr<ROL::Vector<double> > rhs1 = design_variables->clone();
+    ROL::Ptr<ROL::Vector<double> > rhs2 = lagrange_mult->clone();
+    ROL::Vector_SimOpt rhs_rol(rhs1, rhs2);
+    dealiiSolverVectorWrappingROL<double> right_hand_side(makePtrFromRef(rhs_rol));
+    dealiiSolverVectorWrappingROL<double> column_of_kkt_operator, column_of_precond_kkt_operator;
+    column_of_kkt_operator.reinit(right_hand_side);
+    column_of_precond_kkt_operator.reinit(right_hand_side);
+
+    const unsigned int n = right_hand_side.size();
+    dealii::FullMatrix<double> fullA(n);
+
+    for (unsigned int i = 0; i < n; ++i) {
+        std::cout << "COLUMN NUMBER: " << i+1 << " OUT OF " << n << std::endl;
+        auto basis = right_hand_side.basis(i);
+        MPI_Barrier(MPI_COMM_WORLD);
+        {
+            kkt_operator.vmult(column_of_kkt_operator,*basis);
+            kkt_preconditioner.vmult(column_of_precond_kkt_operator,column_of_kkt_operator);
+        }
+        //kkt_preconditioner.vmult(column_of_precond_kkt_operator,*basis);
+        for (unsigned int j = 0; j < n; ++j) {
+            fullA[j][i] = column_of_precond_kkt_operator[j];
+            //fullA[j][i] = column_of_kkt_operator[j];
+        }
+    }
+    dealii::LAPACKFullMatrix< double > lapack_fullmatrix(n,n);
+    lapack_fullmatrix = fullA;
+    lapack_fullmatrix.compute_eigenvalues();
+
+    unsigned int n_nonunity_eig = 0;
+    for(unsigned int i = 0; i < n; ++i) {
+        const std::complex<double> eig = lapack_fullmatrix.eigenvalue(i);
+
+        if (std::abs(std::real(eig) - 1.0) > TOL
+            || std::abs(std::real(eig) - 1.0) > TOL ) {
+
+            std::string out = " Eigenvalue " + std::to_string(i) + " is not 1.0. It is ("
+                                + std::to_string(std::real(eig))
+                                + "  ,   "
+                                + std::to_string(std::imag(eig))
+                                + ")\n";
+            std::cout << out;
+            output.append(out);
+            //std::cout << " Eigenvalue " << i << " is not 1.0. It is " << eig << std::endl;
+            n_nonunity_eig++;
+
+        }
+        
+    }
+    //std::cout << "Total of " << n_nonunity_eig << " non 1.0 eigenvalues, where " << n_expected_eig << " are expected." << std::endl;
+    std::string out = "Total of " + std::to_string(n_nonunity_eig) 
+                      + " non 1.0 eigenvalues, where "
+                      + std::to_string(n_expected_eig) 
+                      + " are expected. \n";
+
+    std::cout << out;
+    output.append(out);
+
+    //std::cout<<"Dense matrix:"<<std::endl;
+    //fullA.print_formatted(std::cout, 14, true, 10, "0", 1., 0.);
+    //std::abort();
+
+
+    return (n_nonunity_eig - n_expected_eig);
 }
 
 int test(const unsigned int nx_ffd)
@@ -227,96 +314,56 @@ int test(const unsigned int nx_ffd)
     else if (mpi_rank == 1) outStream = ROL::makePtrFromRef(std::cout);
     else outStream = ROL::makePtrFromRef(bhs);
 
-    auto obj  = ROL::makePtr<ROLObjectiveSimOpt<dim,nstate>>( functional, ffd, ffd_design_variables_indices_dim );
-    auto con  = ROL::makePtr<FlowConstraints<dim>>(dg,ffd,ffd_design_variables_indices_dim);
-    const bool storage = false;
-    const bool useFDHessian = false;
-    auto robj = ROL::makePtr<ROL::Reduced_Objective_SimOpt<double>>( obj, con, des_var_sim_rol_p, des_var_ctl_rol_p, des_var_adj_rol_p, storage, useFDHessian);
-    //const bool full_space = true;
-    ROL::OptimizationProblem<double> opt;
-    // Set parameters.
+    auto objective = ROL::makePtr<ROLObjectiveSimOpt<dim,nstate>>( functional, ffd, ffd_design_variables_indices_dim );
+    auto flow_constraints = ROL::makePtr<FlowConstraints<dim>>(dg,ffd,ffd_design_variables_indices_dim);
+
+    auto design_variables = ROL::makePtr<ROL::Vector_SimOpt<double>>(des_var_sim_rol_p, des_var_ctl_rol_p);
+    auto lagrange_mult    = des_var_adj_rol_p;
+    lagrange_mult->set(*des_var_sim_rol_p);
+
+    KKT_Operator<double> kkt_operator( objective, flow_constraints, design_variables, lagrange_mult);
+
     Teuchos::ParameterList parlist;
+    auto secant = ROL::SecantFactory<double>(parlist);
 
-    auto des_var_p = ROL::makePtr<ROL::Vector_SimOpt<double>>(des_var_sim_rol_p, des_var_ctl_rol_p);
 
-    std::vector<double> steps;
-    for (int i = -2; i > -9; i--) {
-        steps.push_back(std::pow(10,i));
-    }
-    const int order = 2;
+
+    std::string output;
+    output.append("\n\n Summary *************************************** \n\n");
+    output.append("P4 preconditioner eigenvalues output: \n");
     {
-        const auto direction = des_var_p->clone();
-        *outStream << "obj->checkGradient..." << std::endl;
-        std::vector<std::vector<double>> results
-            = obj->checkGradient( *des_var_p, *direction, steps, true, *outStream, order);
-
-        const double max_rel_err = check_max_rel_error(results);
-        if (max_rel_err > TOL) test_error++;
+        // P4 preconditioner
+        const unsigned int n_expected_eig = nx_ffd - 2;
+        const bool use_second_order_terms = true;
+        const bool use_approximate_preconditioner = false;
+        KKT_P24_Preconditioner<double> kkt_preconditioner(
+            objective,
+            flow_constraints,
+            design_variables,
+            lagrange_mult,
+            secant,
+            use_second_order_terms,
+            use_approximate_preconditioner);
+        test_error += check_preconditioned_system_eigenvalues(design_variables, lagrange_mult, kkt_operator, kkt_preconditioner, n_expected_eig, output);
     }
+    output.append("\n\n ");
+    output.append("P2 preconditioner eigenvalues output: \n");
     {
-        const auto direction_1 = des_var_p->clone();
-        auto direction_2 = des_var_p->clone();
-        direction_2->scale(0.5);
-        *outStream << "obj->checkHessVec..." << std::endl;
-        std::vector<std::vector<double>> results
-            = obj->checkHessVec( *des_var_p, *direction_1, steps, true, *outStream, order);
-
-        const double max_rel_err = check_max_rel_error(results);
-        if (max_rel_err > TOL) test_error++;
-
-        *outStream << "obj->checkHessSym..." << std::endl;
-        std::vector<double> results_HessSym = obj->checkHessSym( *des_var_p, *direction_1, *direction_2, true, *outStream);
-        double wHv       = std::abs(results_HessSym[0]);
-        double vHw       = std::abs(results_HessSym[1]);
-        double abs_error = std::abs(wHv - vHw);
-        double rel_error = abs_error / std::max(wHv, vHw);
-        if (rel_error > TOL) test_error++;
+        // P2 preconditioner
+        const unsigned int n_expected_eig = nx_ffd - 2;
+        const bool use_second_order_terms = false;
+        const bool use_approximate_preconditioner = false;
+        KKT_P24_Preconditioner<double> kkt_preconditioner(
+            objective,
+            flow_constraints,
+            design_variables,
+            lagrange_mult,
+            secant,
+            use_second_order_terms,
+            use_approximate_preconditioner);
+        test_error += check_preconditioned_system_eigenvalues(design_variables, lagrange_mult, kkt_operator, kkt_preconditioner, n_expected_eig, output);
     }
-
-    {
-        const auto direction_ctl = des_var_ctl_rol_p->clone();
-        *outStream << "robj->checkGradient..." << std::endl;
-        dg->solution.update_ghost_values();
-        dg->solution.zero_out_ghosts();
-        dealii::VectorTools::interpolate(dg->dof_handler, initial_conditions, dg->solution);
-        std::vector<std::vector<double>> results
-            = robj->checkGradient( *des_var_ctl_rol_p, *direction_ctl, steps, true, *outStream, order);
-
-        const double max_rel_err = check_max_rel_error(results);
-        if (max_rel_err > TOL) test_error++;
-
-    }
-    // Takes a really long time to evaluate the reduced Hessian.
-    // {
-
-    //     const auto direction_ctl_1 = des_var_ctl_rol_p->clone();
-    //     auto direction_ctl_2 = des_var_ctl_rol_p->clone();
-    //     direction_ctl_2->scale(0.5);
-    //     *outStream << "robj->checkHessVec..." << std::endl;
-    //     robj->checkHessVec( *des_var_ctl_rol_p, *direction_ctl_1, steps, true, *outStream, order);
-
-    //     *outStream << "robj->checkHessSym..." << std::endl;
-    //     robj->checkHessSym( *des_var_ctl_rol_p, *direction_ctl_1, *direction_ctl_2, true, *outStream);
-    // }
-    {
-        //  *outStream << "Outputting Hessian..." << std::endl;
-        //  dealii::FullMatrix<double> hessian(n_design_variables, n_design_variables);
-        //  for (unsigned int i=0; i<n_design_variables; ++i) {
-        //      pcout << "Column " << i << " out of " << n_design_variables << std::endl;
-        //      auto direction_unit = des_var_ctl_rol_p->basis(i);
-        //      auto hv = des_var_ctl_rol_p->clone();
-        //      double tol = 1e-6;
-        //      robj->hessVec( *hv, *direction_unit, *des_var_ctl_rol_p, tol );
-
-        //      auto result = ROL_vector_to_dealii_vector_reference(*hv);
-        //      result.update_ghost_values();
-
-        //      for (unsigned int j=0; j<result.size(); ++j) {
-        //          hessian[j][i] = result[j];
-        //      }
-        //  }
-        //  if (mpi_rank == 0) hessian.print_formatted(*outStream, 3, true, 10, "0", 1., 0.);
-    }
+    std::cout << output;
 
 
     filebuffer.close();
@@ -327,10 +374,10 @@ int test(const unsigned int nx_ffd)
 int main (int argc, char * argv[])
 {
     dealii::Utilities::MPI::MPI_InitFinalize mpi_initialization(argc, argv, 1);
+    assert (1 == dealii::Utilities::MPI::n_mpi_processes(MPI_COMM_WORLD));
     int test_error = 0;
     try {
          test_error += test(5);
-         test_error += test(10);
     }
     catch (std::exception &exc) {
         std::cerr << std::endl
@@ -358,4 +405,5 @@ int main (int argc, char * argv[])
 
     return test_error;
 }
+
 

@@ -3,7 +3,7 @@
 
 #include "ROL_Objective_SimOpt.hpp"
 
-#include "mesh/free_form_deformation.h"
+#include "mesh/symmetric_free_form_deformation.hpp"
 
 #include "functional/functional.h"
 
@@ -24,6 +24,7 @@ private:
     Functional<dim,nstate,double> &functional;
 
     /// Free-form deformation used to parametrize the geometry.
+    //SymmetryFreeFormDeformation<dim> ffd;
     FreeFormDeformation<dim> ffd;
 
     /// List of FFD design variables and axes.

@@ -1030,6 +1030,7 @@ void HighOrderGrid<dim,real,MeshType,VectorType,DoFHandlerType>::execute_coarsen
     ensure_conforming_mesh();
 
     update_surface_nodes();
+    reset_initial_nodes();
     update_mapping_fe_field();
     if (output_mesh) output_results_vtk(nth_refinement++);
 

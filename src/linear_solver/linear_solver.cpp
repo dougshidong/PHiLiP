@@ -186,6 +186,11 @@ solve_linear (
     //    pcout<<"Dense matrix:"<<std::endl;
     //    if (pcout.is_active()) fullA.print_formatted(pcout.get_stream(), 12, true, 10, "0", 1., 0.);
     //}
+    const double rhs_norm = right_hand_side.l2_norm();
+    if (rhs_norm < 1e-15) {
+        solution *= 0.0;
+        return {0, 0.0};
+    }
     if (param.linear_solver_type == direct_type) {
 
         dealii::SolverControl solver_control(1, 0);
@@ -206,7 +211,7 @@ solve_linear (
                         system_matrix.trilinos_matrix().RangeMap(),
                         right_hand_side.begin());
         AztecOO solver;
-        solver.SetAztecOption( AZ_output, (param.linear_solver_output ? AZ_all : AZ_last));
+        solver.SetAztecOption( AZ_output, (param.linear_solver_output ? AZ_all : AZ_none));
         solver.SetAztecOption(AZ_solver, AZ_gmres);
         //solver.SetAztecOption(AZ_solver, AZ_bicgstab);
         //solver.SetAztecOption(AZ_solver, AZ_cg);
@@ -215,7 +220,6 @@ solve_linear (
         solver.SetLHS(&x);
 
 
-        const double rhs_norm = right_hand_side.l2_norm();
         const double linear_residual = param.linear_residual * rhs_norm;//1e-4;
         const int max_iterations = param.max_iterations;//200
         solver.SetUserMatrix(const_cast<Epetra_CrsMatrix *>(&system_matrix.trilinos_matrix()));
@@ -265,13 +269,15 @@ solve_linear (
             solver.Iterate(max_iterations,
                            linear_residual);
             n_iterations += solver.NumIters();
-            pcout << " Solve #" << i_solve + 1 << " out of " << n_solves << "."
-                  << " Linear solver took " << solver.NumIters()
-                  << " iterations resulting in a linear residual of " << solver.ScaledResidual()
-                  << std::endl;
+            if (param.linear_solver_output == Parameters::OutputEnum::verbose) {
+                pcout << " Solve #" << i_solve + 1 << " out of " << n_solves << "."
+                      << " Linear solver took " << solver.NumIters()
+                      << " iterations resulting in a linear residual of " << solver.ScaledResidual()
+                      << std::endl;
+            }
         }
 
-        pcout << " Totalling " << n_iterations
+        pcout << " Total of " << n_iterations
               << " iterations resulting in a linear residual of " << solver.ScaledResidual() << std::endl
               << " Current RHS norm: " << right_hand_side.l2_norm()
               << " Linear solution norm: " << solution.l2_norm() << std::endl;

@@ -45,6 +45,35 @@ FreeFormDeformation<dim>::FreeFormDeformation (
     pcout << " **************************************** " << std::endl;
 }
 
+// template<int dim>
+// std::vector< std::pair< unsigned int, unsigned int > > 
+// FreeFormDeformation<dim>::get_design_variables_indices_dim(
+//     const std::array<std::vector<unsigned int>, dim> &constrain_row
+//     const std::array<bool, dim> &constrain_direction
+//     )
+// {
+//     for (unsigned int i_ctl = 0; i_ctl < n_control_pts; ++i_ctl) {
+// 
+//         const std::array<unsigned int,dim> ijk = ffd.global_to_grid ( i_ctl );
+// 
+//         for (unsigned int d = 0; d < dim; ++d) {
+//             n_row_constraints = constrain_row[d].size();
+//             for (const auto &i_row_constraints: constrain_row[d]) {
+//                 if (ijk[d] ==  i_row_constraints)
+//                     continue;
+//             }
+//         }
+//         for (unsigned int d_ffd = 0; d_ffd < dim; ++d_ffd) {
+// 
+//             if (constrain_direction[d_ffd]) {
+//                 continue;
+//             }
+// 
+//             ffd_design_variables_indices_dim.push_back(std::make_pair(i_ctl, d_ffd));
+//         }
+//     }
+// }
+
 template<int dim>
 FreeFormDeformation<dim>::FreeFormDeformation (
         const dealii::Point<dim> &_origin,

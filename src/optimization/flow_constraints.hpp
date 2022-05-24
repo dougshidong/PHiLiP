@@ -9,7 +9,7 @@
 
 #include "parameters/all_parameters.h"
 
-#include "mesh/free_form_deformation.h"
+#include "mesh/symmetric_free_form_deformation.hpp"
 #include "mesh/meshmover_linear_elasticity.hpp"
 
 #include "dg/dg.h"
@@ -39,6 +39,7 @@ private:
     std::shared_ptr<DGBase<dim,double>> dg;
 
     /// FFD used to parametrize the grid and used as design variables.
+    //SymmetryFreeFormDeformation<dim> ffd;
     FreeFormDeformation<dim> ffd;
 
     /// Linear solver parameters.
@@ -61,7 +62,7 @@ private:
     /** Currently uses ILUT */
     Ifpack_Preconditioner *adjoint_jacobian_prec;
 
-protected:
+public:
     /// ID used when outputting the flow solution.
     int i_out = 1000;
     /// ID used when outputting the flow solution.
@@ -128,6 +129,8 @@ public:
         double& /*tol*/ 
         ) override;
 
+    /// Creates a vector of the size of the simulation variables.
+    ROL::Ptr<ROL::Vector<double>> create_vector1();
     /// Returns the current constraint residual given a set of control and simulation variables.
     void value(
         ROL::Vector<double>& constraint_values,
@@ -135,6 +138,9 @@ public:
         const ROL::Vector<double>& des_var_ctl,
         double &/*tol*/ 
         ) override;
+
+    /// Returns the l2 norm defined by DG instead of the l2 norm of the solution.
+    double dg_l2_norm( const ROL::Vector<double>& des_var_sim, const ROL::Vector<double>& des_var_ctl);
     
     /// Applies the Jacobian of the Constraints w.\ r.\ t.\ the simulation variables onto a vector.
     void applyJacobian_1(
@@ -300,6 +306,8 @@ public:
         double &tol
         ) override;
 
+    /// Output a vtk file of the current flow solution.
+    void output_vtk(const int id);
     // std::vector<double> solveAugmentedSystem(
     //     ROL::Vector<double> &v1,
     //     ROL::Vector<double> &v2,

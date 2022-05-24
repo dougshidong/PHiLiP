@@ -42,6 +42,9 @@ if(NOT GMSH_LIB)
   message(FATAL_ERROR "Could not find gmsh")
 endif()
 
+find_package( Boost REQUIRED COMPONENTS program_options )
+include_directories( ${Boost_INCLUDE_DIRS} )
+
 #set(CMAKE_CXX_FLAGS_DEBUG  "${CMAKE_CXX_FLAGS_DEBUG} -Og -g")
 
 set(EXECUTABLE_OUTPUT_PATH ${PROJECT_BINARY_DIR}/bin)

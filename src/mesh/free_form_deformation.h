@@ -43,7 +43,7 @@ public:
 
     /// Given an initial point in the undeformed initial parallepiped and the index a control point,
     /// return the derivative dXdXp of the new point location point_i with respect to that control_point_j.
-    dealii::Point<dim,double> dXdXp (const dealii::Point<dim,double> &initial_point, const unsigned int ctl_index, const unsigned int ctl_axis) const;
+    virtual dealii::Point<dim,double> dXdXp (const dealii::Point<dim,double> &initial_point, const unsigned int ctl_index, const unsigned int ctl_axis) const;
 
     /** For the given list of FFD indices and direction, return the analytical
      *  derivatives of the HighOrderGrid's initial surface points with respect to the FFD.
@@ -68,7 +68,7 @@ public:
      *  derivatives of the HighOrderGrid's initial surface points with respect to the FFD.
      *  Note that the result is returned as a vector of vector because it will likely be used with a MeshMover's apply_dXvdXvs() function.
      */
-    std::vector<dealii::LinearAlgebra::distributed::Vector<double>>
+    virtual std::vector<dealii::LinearAlgebra::distributed::Vector<double>>
     get_dXvsdXp_FD (const HighOrderGrid<dim,double> &high_order_grid,
                 const std::vector< std::pair< unsigned int, unsigned int > > &ffd_design_variables_indices_dim,
                 const double eps
@@ -77,7 +77,7 @@ public:
     /** For the given list of FFD indices and direction, return the finite-differenced
      *  derivatives of the HighOrderGrid's initial volume points with respect to the FFD.
      */
-    void
+    virtual void
     get_dXvdXp (const HighOrderGrid<dim,double> &high_order_grid,
                 const std::vector< std::pair< unsigned int, unsigned int > > ffd_design_variables_indices_dim,
                 dealii::TrilinosWrappers::SparseMatrix &dXvdXp
@@ -85,7 +85,7 @@ public:
     /** For the given list of FFD indices and direction, return the analytical
      *  derivatives of the HighOrderGrid's initial volume points with respect to the FFD.
      */
-    void
+    virtual void
     get_dXvdXp_FD (HighOrderGrid<dim,double> &high_order_grid,
                 const std::vector< std::pair< unsigned int, unsigned int > > ffd_design_variables_indices_dim,
                 dealii::TrilinosWrappers::SparseMatrix &dXvdXp_FD,
@@ -113,9 +113,6 @@ public:
         const dealii::Point<dim,double> &s_t_u_point,
         const std::vector<dealii::Point<dim,real>> &control_pts) const;
 
-    /// Control points of the FFD box used to deform the geometry.
-    std::vector<dealii::Point<dim>> control_pts;
-
     /// Given a control points' global index return its ijk coordinate.
     /** Opposite of grid_to_global
      */
@@ -127,17 +124,17 @@ public:
     unsigned int grid_to_global ( const std::array<unsigned int,dim> &ijk_index ) const;
 
     /// Move control point with global index i.
-    void move_ctl_dx ( const unsigned i, const dealii::Tensor<1,dim,double> );
+    virtual void move_ctl_dx ( const unsigned i, const dealii::Tensor<1,dim,double> );
 
     /// Move control point with grid index (i,j,k).
-    void move_ctl_dx ( const std::array<unsigned int,dim> ijk, const dealii::Tensor<1,dim,double> );
+    virtual void move_ctl_dx ( const std::array<unsigned int,dim> ijk, const dealii::Tensor<1,dim,double> );
 
     /// Copies the desired control points from FreeFormDeformation object into vector_to_copy_into.
     void get_design_variables(
         const std::vector< std::pair< unsigned int, unsigned int > > &ffd_design_variables_indices_dim,
         dealii::LinearAlgebra::distributed::Vector<double> &vector_to_copy_into) const;
     /// Copies the desired control points from vector_to_copy_from into FreeFormDeformation object 
-    void set_design_variables(
+    virtual void set_design_variables(
         const std::vector< std::pair< unsigned int, unsigned int > > &ffd_design_variables_indices_dim,
         dealii::LinearAlgebra::distributed::Vector<double> &vector_to_copy_from);
 
@@ -161,10 +158,12 @@ protected:
 
     /// Number of control points in each direction.
     const std::array<unsigned int, dim> ndim_control_pts;
+
 public:
     /// Total number of control points.
     const unsigned int n_control_pts;
-private:
+
+protected:
 
     /// Returns rectangular vector box given the box lengths.
     std::array<dealii::Tensor<1,dim,double>,dim> get_rectangular_parallepiped_vectors (const std::array<double,dim> &rectangle_lengths) const;
@@ -177,6 +176,11 @@ private:
 
     /// Initial message.
     void init_msg() const;
+
+public:
+    /// Control points of the FFD box used to deform the geometry.
+    std::vector<dealii::Point<dim>> control_pts;
+
 };
 
 } // namespace PHiLiP

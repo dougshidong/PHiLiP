@@ -1,5 +1,5 @@
-#ifndef __PHILIP_LIFT_DRAG_H__
-#define __PHILIP_LIFT_DRAG_H__
+#ifndef __PHILIP_MOMENT_H__
+#define __PHILIP_MOMENT_H__
 
 #include "functional.h"
 
@@ -9,11 +9,8 @@ namespace PHiLiP {
  *  Simply zero out the default volume contribution.
  */
 template <int dim, int nstate, typename real>
-class LiftDragFunctional : public Functional<dim, nstate, real>
+class ZMomentFunctional : public Functional<dim, nstate, real>
 {
-public:
-    /// @brief Switch between lift and drag functional types.
-    enum Functional_types { lift, drag };
 private:
     using FadType = Sacado::Fad::DFad<real>; ///< Sacado AD type for first derivatives.
     using FadFadType = Sacado::Fad::DFad<FadType>; ///< Sacado AD type that allows 2nd derivatives.
@@ -25,24 +22,12 @@ private:
      */
     using Functional<dim,nstate,real>::evaluate_volume_integrand;
 
-    /// @brief Switches between lift and drag.
-    const Functional_types functional_type;
+
+    /// @brief Origin used to evaluate moment coefficients.
+	const dealii::Point<dim,double> moment_origin;
 
     /// @brief Casts DG's physics into an Euler physics reference.
     const Physics::Euler<dim,dim+2,FadFadType> &euler_fad_fad;
-    /// @brief Angle of attack retrieved from euler_fad_fad.
-    const double angle_of_attack;
-    /// @brief Rotation matrix based on angle of attack.
-    const dealii::Tensor<2,dim,double> rotation_matrix;
-    /// @brief Lift force scaling based on the rotation matrix applied on a [0 1]^T vector.
-    /// Assumes that the lift is the force in the positive y-direction.
-    const dealii::Tensor<1,dim,double> lift_vector;
-    /// @brief Drag force scaling based on the rotation matrix applied on a [1 0]^T vector.
-    /// Assumes that the drag is the force in the positive x-direction.
-    const dealii::Tensor<1,dim,double> drag_vector;
-
-    /// Used force scaling vector depending whether this functional represents lift or drag.
-    dealii::Tensor<1,dim,double> force_vector;
 
     /// Pressure induced drag is given by
     /**
@@ -63,53 +48,6 @@ private:
         const double dynamic_pressure_inf  = euler_fad_fad.dynamic_pressure_inf;
 
         return 1.0 / (ref_length * dynamic_pressure_inf);
-    }
-
-    /// Initialize rotation matrix based on given angle of attack.
-    dealii::Tensor<2,dim,double> initialize_rotation_matrix (const double angle_of_attack)
-    {
-        dealii::Tensor<2,dim,double> rotation_matrix;
-        if constexpr (dim == 1) {
-            assert(false);
-        }
-
-        rotation_matrix[0][0] = cos(angle_of_attack);
-        rotation_matrix[0][1] = -sin(angle_of_attack);
-        rotation_matrix[1][0] = sin(angle_of_attack);
-        rotation_matrix[1][1] = cos(angle_of_attack);
-
-        if constexpr (dim == 3) {
-            rotation_matrix[0][2] = 0.0;
-            rotation_matrix[1][2] = 0.0;
-
-            rotation_matrix[2][0] = 0.0;
-            rotation_matrix[2][1] = 0.0;
-            rotation_matrix[2][2] = 1.0;
-        }
-
-        return rotation_matrix;
-    }
-
-    /// Initialize lift vector with given rotation matrix based on angle of attack.
-    /** Use convention that lift is in the positive y-direction.
-     */
-    dealii::Tensor<1,dim,double> initialize_lift_vector (const dealii::Tensor<2,dim,double> &rotation_matrix)
-    {
-        dealii::Tensor<1,dim,double> lift_direction;
-        lift_direction[0] = 0.0;
-        lift_direction[1] = 1.0;
-
-        if constexpr (dim == 1) {
-            assert(false);
-        }
-        if constexpr (dim == 3) {
-            lift_direction[2] = 0.0;
-        }
-
-        dealii::Tensor<1,dim,double> vec;
-        vec = rotation_matrix * lift_direction;
-
-        return vec;
     }
 
     /// Initialize drag vector with given rotation matrix based on angle of attack.
@@ -137,40 +75,21 @@ private:
 
 public:
     /// Constructor
-    LiftDragFunctional(
+    ZMomentFunctional(
         std::shared_ptr<DGBase<dim,real>> dg_input,
-        const Functional_types functional_type)
+		const dealii::Point<dim,double> moment_origin)
         : Functional<dim,nstate,real>(dg_input)
-        , functional_type(functional_type)
+		, moment_origin(moment_origin)
         , euler_fad_fad(dynamic_cast< Physics::Euler<dim,dim+2,FadFadType> &>(*(this->physics_fad_fad)))
-        , angle_of_attack(euler_fad_fad.angle_of_attack)
-        , rotation_matrix(initialize_rotation_matrix(angle_of_attack))
-        , lift_vector(initialize_lift_vector(rotation_matrix))
-        , drag_vector(initialize_drag_vector(rotation_matrix))
         , force_dimensionalization_factor(initialize_force_dimensionalization_factor())
-    {
-        switch(functional_type) {
-            case Functional_types::lift : force_vector = lift_vector; break;
-            case Functional_types::drag : force_vector = drag_vector; break;
-            default: break;
-        }
-    }
+    { }
 
     real evaluate_functional( const bool compute_dIdW = false, const bool compute_dIdX = false, const bool compute_d2I = false) override
     {
         //if(Functional<dim,nstate,real>::dg->get_residual_l2norm() > 1e-9) return 1.7e199;
         double value = Functional<dim,nstate,real>::evaluate_functional( compute_dIdW, compute_dIdX, compute_d2I);
 
-        if (functional_type == Functional_types::lift) {
-            this->pcout << "Lift value: " << value << "\n";
-            //std::cout << "Lift value: " << value << std::cout;
-            //std::cout << "Lift value: " << value << std::cout;
-        }
-        if (functional_type == Functional_types::drag) {
-            this->pcout << "Drag value: " << value << "\n";
-            value = abs(value);
-        }
-
+		this->pcout << "ZMoment value: " << value << "\n";
         return value;
     }
 
@@ -181,7 +100,7 @@ public:
     real2 evaluate_boundary_integrand(
         const PHiLiP::Physics::PhysicsBase<dim,nstate,real2> &physics,
         const unsigned int boundary_id,
-        const dealii::Point<dim,real2> &/*phys_coord*/,
+        const dealii::Point<dim,real2> &phys_coord,
         const dealii::Tensor<1,dim,real2> &normal,
         const std::array<real2,nstate> &soln_at_q,
         const std::array<dealii::Tensor<1,dim,real2>,nstate> &/*soln_grad_at_q*/) const
@@ -192,12 +111,26 @@ public:
 
             real2 pressure = euler.compute_pressure (soln_at_q);
 
-            //std::cout << " force_dimensionalization_factor: " << force_dimensionalization_factor
-            //          << " pressure: " << pressure
-            //          << " normal*force_vector: " << normal*force_vector
-            //          << std::endl;
+			dealii::Tensor<1,dim,real2> distance_vector; 
+			for (int d = 0; d < dim; ++d) {
+			    distance_vector[d] = phys_coord[d] - moment_origin[d];
+			}
+			const dealii::Tensor<1,dim,real2> force = pressure * normal; // Area accounted for in integration
+			dealii::Tensor<1,3,real2> distance3D;
+			dealii::Tensor<1,3,real2> force3D;
+			if constexpr (dim == 1) { 
+			    std::abort();
+			} else if constexpr (dim == 2) { 
+				distance3D = dealii::Tensor<1,3,real2> ({ distance_vector[0], distance_vector[1], 0.0 });
+				force3D = dealii::Tensor<1,3,real2> ({ force[0], force[1], 0.0 });
+			} else if constexpr (dim == 3) {
+			    distance3D = distance_vector;
+				force3D = force;
+			}
+			const dealii::Tensor<1,3,real2> moment3D = dealii::cross_product_3d(distance3D, force3D);
 
-            return force_dimensionalization_factor * pressure * (normal * force_vector);
+			const int Zmoment_index = 2;
+            return force_dimensionalization_factor * moment3D[Zmoment_index];
         } 
         return (real2) 0.0;
     }
@@ -257,77 +190,6 @@ public:
 
 
 };
-
-// template <int dim, int nstate, typename real>
-// class TargetLiftDragFunctional : public LiftDragFunctional<dim,nstate,real>
-// {
-// private:
-//     /// Constructor
-//     TargetLiftDragFunctional(
-//         std::shared_ptr<DGBase<dim,real>> dg_input,
-//         const Functional_types functional_type
-//         const double target_value = -1e200
-//         : LiftDragFunctional(dg_input, functional_type)
-//         , target_value(target_value)
-//     { }
-// 
-// 
-//     real evaluate_functional(
-//         const bool compute_dIdW,
-//         const bool compute_dIdX,
-//         const bool compute_d2I)
-//     {
-//         real value = LiftDragFunctional<dim,nstate,real>::evaluate_functional(compute_dIdW, compute_dIdX, compute_d2I);
-// 
-//         return value - target_value
-//     }
-// 
-// };
-// 
-// template <int dim, int nstate, typename real>
-// class QuadraticPenaltyTargetLiftDragFunctional : public TargetLiftDragFunctional<dim,nstate,real>
-// {
-// public:
-// 
-//     double penalty;
-// 
-//     /// Constructor
-//     QuadraticPenaltyTargetLiftDragFunctional(
-//         std::shared_ptr<DGBase<dim,real>> dg_input,
-//         const Functional_types functional_type
-//         const double target_value = -1e200
-//         const double penalty = 0
-//         : TargetLiftDragFunctional(dg_input, functional_type, target_value)
-//         , penalty(penalty)
-//     { }
-// 
-// 
-//     real evaluate_functional(
-//         const bool compute_dIdW,
-//         const bool compute_dIdX,
-//         const bool compute_d2I)
-//     {
-//         real value = TargetLiftDragFunctional<dim,nstate,real>::evaluate_functional((compute_dIdW || compute_d2I), (compute_dIdX || compute_d2I), compute_d2I);
-// 
-//         if (compute_dIdW) {
-//             const real scaling = 2.0*value;
-//             this->dIdw *= scaling;
-//         }
-// 
-//         if (compute_dIdX) {
-//             const real scaling = 2.0*value;
-//             this->dIdX *= scaling;
-//         }
-// 
-//         if (compute_d2I) {
-//             const real scaling = 2.0*value;
-//             this->dIdX *= scaling;
-//         }
-// 
-//         return penalty * value * value;
-//     }
-// 
-// };
 
 } // PHiLiP namespace
 

@@ -40,9 +40,16 @@
 #include "parameters/all_parameters.h"
 #include "artificial_dissipation_factory.h"
 
-// Template specialization of MappingFEField
-//extern template class dealii::MappingFEField<PHILIP_DIM,PHILIP_DIM,dealii::LinearAlgebra::distributed::Vector<double>, dealii::DoFHandler<PHILIP_DIM> >;
+#include <exception>
+
 namespace PHiLiP {
+
+DeclExceptionMsg(ExcInconsistentNormals,
+                 "Inconsistent face normals for neighbor cells."
+                 "This can happen if: "
+                 "\n1. The grid has not been read correctly wrongfully "
+                 "\n2. The normal computations has been changed and results in an inconsistent result between the two cells"
+                 "\n3. A large mesh deformation led to an inverted cell. ");
 
 /// DGBase is independent of the number of state variables.
 /**  This base class allows the use of arrays to efficiently allocate the data structures
@@ -353,8 +360,8 @@ public:
     /// Artificial dissipation error ratio sensor in each cell.
     dealii::Vector<double> artificial_dissipation_se;
 
+    /// Discontinuity sensor based on projecting to p-1
     template <typename real2>
-    /** Discontinuity sensor with 4 parameters, based on projecting to p-1. */
     real2 discontinuity_sensor(
         const dealii::Quadrature<dim> &volume_quadrature,
         const std::vector< real2 > &soln_coeff_high,

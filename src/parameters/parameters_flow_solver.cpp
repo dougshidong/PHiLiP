@@ -42,6 +42,10 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                           dealii::Patterns::Bool(),
                           "Solve steady-state solution. False by default.");
 
+        prm.declare_entry("reduced_order", "false",
+                          dealii::Patterns::Bool(),
+                          "Solve reduced_order solution. False by default.");
+
         prm.declare_entry("sensitivity_table_filename", "sensitivity_table",
                           dealii::Patterns::FileName(dealii::Patterns::FileName::FileType::input),
                           "Filename for the sensitivity data table output file: sensitivity_table_filename.txt.");
@@ -99,6 +103,7 @@ void FlowSolverParam::parse_parameters(dealii::ParameterHandler &prm)
         courant_friedrich_lewy_number = prm.get_double("courant_friedrich_lewy_number");
         unsteady_data_table_filename = prm.get("unsteady_data_table_filename");
         steady_state = prm.get_bool("steady_state");
+        reduced_order = prm.get_bool("reduced_order");
         sensitivity_table_filename = prm.get("sensitivity_table_filename");
         restart_computation_from_file = prm.get_bool("restart_computation_from_file");
         output_restart_files = prm.get_bool("output_restart_files");

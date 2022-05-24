@@ -32,6 +32,8 @@ public:
 
     bool steady_state; ///<Flag for solving steady state solution
 
+    bool reduced_order; ///<Flag for solving reduced order solution
+
     /** Name of the output file for writing the sensitivity data;
      *   will be written to file: sensitivity_table_filename.txt */
     std::string sensitivity_table_filename;

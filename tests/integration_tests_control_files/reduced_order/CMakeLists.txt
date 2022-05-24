@@ -67,6 +67,21 @@ add_test(
         WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )
 
+configure_file(naca0012_snapshot_generator.sh naca0012_snapshot_generator.sh COPYONLY)
+add_test(
+        NAME NACA0012_GENERATE_SNAPSHOTS
+        COMMAND bash -c
+        "./naca0012_snapshot_generator.sh ${EXECUTABLE_OUTPUT_PATH}"
+        WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
+)
+
+configure_file(naca0012_reduced_order.prm naca0012_reduced_order.prm COPYONLY)
+add_test(
+        NAME NACA0012_REDUCED_ORDER
+        COMMAND mpirun -np ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_2D -i ${CMAKE_CURRENT_BINARY_DIR}/naca0012_reduced_order.prm
+        WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
+)
+
 #configure_file(1d_burgers_rewienski_testing.prm 1d_burgers_rewienski_testing.prm COPYONLY)
 #add_test(
 #        NAME 1D_BURGERS_REWIENSKI_TESTING

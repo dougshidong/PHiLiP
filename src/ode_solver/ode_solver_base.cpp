@@ -175,10 +175,12 @@ int ODESolverBase<dim,real,MeshType>::steady_state ()
     }
 
     if (ode_param.output_solution_vector_modulo > 0) {
-        for (unsigned int i = 0; i < this->dg->solution.size(); ++i) {
+        dealii::LinearAlgebra::ReadWriteVector<double> write_dg_solution(this->dg->solution.size());
+        write_dg_solution.import(this->dg->solution, dealii::VectorOperation::values::insert);
+        for (unsigned int i = 0; i < write_dg_solution.size(); ++i) {
             solutions_table.add_value(
                     "Steady-state solution:",
-                    this->dg->solution[i]);
+                    write_dg_solution[i]);
         }
         solutions_table.set_precision("Steady-state solution:", 16);
         std::ofstream out_file(ode_param.solutions_table_filename + ".txt");

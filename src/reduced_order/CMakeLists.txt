@@ -9,7 +9,8 @@ set(SOURCE
     pod_basis_online.cpp
     reduced_order_solution.cpp
     full_order_solution.cpp
-    rom_test_location.cpp)
+    rom_test_location.cpp
+    pod_basis_offline.cpp)
 
 foreach(dim RANGE 1 3)
     # Output library

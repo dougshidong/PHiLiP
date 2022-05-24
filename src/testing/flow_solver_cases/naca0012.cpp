@@ -65,6 +65,7 @@ void NACA0012<dim,nstate>::set_higher_order_grid(std::shared_ptr<DGBase<dim, dou
     for (unsigned int i=0; i<this->all_param.grid_refinement_study_param.num_refinements; ++i) {
         dg->high_order_grid->refine_global();
     }
+    dg->allocate_system();
     const unsigned int n_global_active_cells = dg->triangulation->n_global_active_cells();
     const unsigned int n_dofs = dg->dof_handler.n_dofs();
     this->pcout << "Dimension: " << dim << "\t Polynomial degree p: " << this->all_param.grid_refinement_study_param.poly_degree << std::endl

@@ -1,5 +1,4 @@
 #include "flow_solver.h"
-
 #include <iostream>
 #include <fstream>
 #include <string>
@@ -29,10 +28,18 @@ FlowSolver<dim, nstate>::FlowSolver(
 , final_time(flow_solver_param.final_time)
 , input_parameters_file_reference_copy_filename(flow_solver_param.restart_files_directory_name + std::string("/") + std::string("input_copy.prm"))
 , dg(DGFactory<dim,double>::create_discontinuous_galerkin(&all_param, poly_degree, flow_solver_case->generate_grid()))
-, ode_solver(ODE::ODESolverFactory<dim, double>::create_ODESolver(dg))
 {
     flow_solver_case->set_higher_order_grid(dg);
     dg->allocate_system();
+
+    if(flow_solver_param.reduced_order){
+        std::shared_ptr<ProperOrthogonalDecomposition::OfflinePOD<dim>> pod = std::make_shared<ProperOrthogonalDecomposition::OfflinePOD<dim>>(dg);
+        ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg, pod);
+    }
+    else{
+        ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
+    }
+
     flow_solver_case->display_flow_solver_setup();
     
     dealii::LinearAlgebra::distributed::Vector<double> solution_no_ghost;

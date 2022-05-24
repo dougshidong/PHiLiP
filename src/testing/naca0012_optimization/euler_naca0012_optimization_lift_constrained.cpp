@@ -70,7 +70,7 @@ const std::vector<OptimizationAlgorithm> opt_list {
     OptimizationAlgorithm::reduced_space_bfgs,
     };
 
-const unsigned int POLY_START = 0;
+const unsigned int POLY_START = 1;
 const unsigned int POLY_END = 1; // Can do until at least P2
 
 const unsigned int n_des_var_start = 10;//20;
@@ -569,44 +569,37 @@ getInequalityConstraint(
 template <int dim, int nstate>
 std::vector<ROL::Ptr<ROL::Vector<double>>> 
 EulerNACADragOptimizationLiftConstrained<dim,nstate>::
-getInequalityMultiplier(const double volume_target) const
+getInequalityMultiplier(std::vector<double>& nonlinear_inequality_targets) const
 {
-    const ROL::Ptr<ROL::SingletonVector<double>> lift_constraint_dual = ROL::makePtr<ROL::SingletonVector<double>> (1.0);
     std::vector<ROL::Ptr<ROL::Vector<double>>> emul;
-    emul.push_back(lift_constraint_dual);
-    (void) volume_target;
-    //if (volume_target > 0) {
-        const ROL::Ptr<ROL::SingletonVector<double>> volume_constraint_dual = ROL::makePtr<ROL::SingletonVector<double>> (1.0);
-        emul.push_back(volume_constraint_dual);
-    //}
+    const unsigned int size = nonlinear_inequality_targets.size();
+    for (unsigned int i = 0; i < size; ++i) {
+        const ROL::Ptr<ROL::SingletonVector<double>> lift_constraint_dual = ROL::makePtr<ROL::SingletonVector<double>> (1.0);
+        emul.push_back(lift_constraint_dual);
+    }
     return emul;
 }
 
 template <int dim, int nstate>
 std::vector<ROL::Ptr<ROL::BoundConstraint<double>>>
 EulerNACADragOptimizationLiftConstrained<dim,nstate>::
-getSlackBoundConstraint(const double lift_target, const double volume_target) const
+getSlackBoundConstraint(
+    const std::vector<double>& nonlinear_targets,
+    const std::vector<double>& lower_bound_dx,
+    const std::vector<double>& upper_bound_dx) const
 {
 
-    (void) lift_target;
-    //const ROL::Ptr<ROL::SingletonVector<double>> lift_lower_bound = ROL::makePtr<ROL::SingletonVector<double>> (lift_target);
-    // Constraint is already (lift - target_lift), therefore, the lower bound is 0.0.
-    const ROL::Ptr<ROL::SingletonVector<double>> lift_lower_bound = ROL::makePtr<ROL::SingletonVector<double>> (lift_target+0.0);
-    const ROL::Ptr<ROL::SingletonVector<double>> lift_upper_bound = ROL::makePtr<ROL::SingletonVector<double>> (lift_target+1.0);
-    //const bool isLower = true;
     double scale = 1;
     double feasTol = 1e-4;
-    auto lift_bounds = ROL::makePtr<ROL::Bounds<double>> (lift_lower_bound, lift_upper_bound, scale, feasTol);
-
 
     std::vector<ROL::Ptr<ROL::BoundConstraint<double>>> bcon;
-    bcon.push_back(lift_bounds);
-    //if (volume_target > 0) {
-        const ROL::Ptr<ROL::SingletonVector<double>> volume_lower_bound = ROL::makePtr<ROL::SingletonVector<double>> (volume_target-1e-4);
-        const ROL::Ptr<ROL::SingletonVector<double>> volume_upper_bound = ROL::makePtr<ROL::SingletonVector<double>> (volume_target+1e+4);
-        auto volume_bounds = ROL::makePtr<ROL::Bounds<double>> (volume_lower_bound, volume_upper_bound, scale, feasTol);
-        bcon.push_back(volume_bounds);
-    //}
+
+    for (unsigned int i = 0; i < nonlinear_targets.size(); ++i) {
+        const ROL::Ptr<ROL::SingletonVector<double>> nonlinear_lower_bound = ROL::makePtr<ROL::SingletonVector<double>> (nonlinear_targets[i]+lower_bound_dx[i]);
+        const ROL::Ptr<ROL::SingletonVector<double>> nonlinear_upper_bound = ROL::makePtr<ROL::SingletonVector<double>> (nonlinear_targets[i]+upper_bound_dx[i]);
+        auto nonlinear_bounds = ROL::makePtr<ROL::Bounds<double>> (nonlinear_lower_bound, nonlinear_upper_bound, scale, feasTol);
+        bcon.push_back(nonlinear_bounds);
+    }
     return bcon;
 }
 
@@ -833,7 +826,7 @@ int EulerNACADragOptimizationLiftConstrained<dim,nstate>
               << ". Current drag = " << drag_functional.evaluate_functional()
               << std::endl;
 
-    double lift_target = lift_functional.evaluate_functional() * 1.0;
+    double lift_target = lift_functional.evaluate_functional() * 1.50;
     double volume_target = volume_functional.evaluate_functional() * 1.0;
 
 
@@ -848,13 +841,43 @@ int EulerNACADragOptimizationLiftConstrained<dim,nstate>
     //                                            drag_adjoint);
     // (void) flow_constraints_check_error;
 
-    auto drag_objective = ROL::makePtr<ROLObjectiveSimOpt<dim,nstate>>( drag_functional, ffd, ffd_design_variables_indices_dim, &(flow_constraints->dXvdXp) );
+    //auto drag_objective = ROL::makePtr<ROLObjectiveSimOpt<dim,nstate>>( drag_functional, ffd, ffd_design_variables_indices_dim, &(flow_constraints->dXvdXp) );
+
+    // Constrast lift-target minimization objective
     auto lift_objective = ROL::makePtr<ROLObjectiveSimOpt<dim,nstate>>( lift_functional, ffd, ffd_design_variables_indices_dim, &(flow_constraints->dXvdXp) );
+    auto lift_target_constraint = ROL::makePtr<PHiLiP::ConstraintFromObjective_SimOpt<double>>( lift_objective, lift_target );
+    const ROL::Ptr<ROL::SingletonVector<double>> lift_constraint_dual = ROL::makePtr<ROL::SingletonVector<double>> (0.0);
+    const ROL::Ptr<ROL::SingletonVector<double>> lift_constraint_value = ROL::makePtr<ROL::SingletonVector<double>> (1.0);
+    const double penaltyParameter = 1.0;
+
+    auto lift_target_quadratic_objective = ROL::makePtr<ROL::QuadraticPenalty_SimOpt<double>>(lift_target_constraint,
+                                                                                              *lift_constraint_dual,
+                                                                                              penaltyParameter,
+                                                                                              *simulation_variables,
+                                                                                              *control_variables,
+                                                                                              *lift_constraint_value);
+  //QuadraticPenalty_SimOpt(const ROL::Ptr<Constraint_SimOpt<Real> > &con,
+  //                        const Vector<Real> &multiplier,
+  //                        const Real penaltyParameter,
+  //                        const Vector<Real> &simVec,
+  //                        const Vector<Real> &optVec,
+  //                        const Vector<Real> &conVec,
+  //                        const bool useScaling = false,
+  //                        const int HessianApprox = 0 )
+
     auto volume_objective = ROL::makePtr<ROLObjectiveSimOpt<dim,nstate>>( volume_functional, ffd, ffd_design_variables_indices_dim, &(flow_constraints->dXvdXp) );
 
-	auto objective = drag_objective;
-	auto constraint1 = lift_objective;
-	auto constraint2 = volume_objective;
+	auto objective = lift_target_quadratic_objective;
+	auto constraint1 = volume_objective;
+    const double constraint1_lower_bound_dx = -1e-4;
+    const double constraint1_upper_bound_dx = 1e-1;
+	//auto constraint1 = lift_objective;
+	//auto constraint2 = volume_objective;
+
+    std::vector<ROL::Ptr<ROL::Objective_SimOpt<double>>> nonlinear_inequalities_as_objectives {constraint1};//, constraint2};
+    std::vector<double> nonlinear_inequality_targets {volume_target};
+    std::vector<double> constraint_lower_bound_dx {constraint1_lower_bound_dx};
+    std::vector<double> constraint_upper_bound_dx {constraint1_upper_bound_dx};
 
     const unsigned int n_other_constraints = 1;
     const dealii::IndexSet constraint_row_part = dealii::Utilities::MPI::create_evenly_distributed_partitioning(MPI_COMM_WORLD,n_other_constraints);
@@ -939,9 +962,9 @@ int EulerNACADragOptimizationLiftConstrained<dim,nstate>
             ROL::Ptr<ROL::Vector<double>>                       design_variables               = getDesignVariables(simulation_variables, control_variables, is_reduced_space);
             ROL::Ptr<ROL::BoundConstraint<double>>              design_bounds                  = getDesignBoundConstraint(simulation_variables, control_variables, is_reduced_space);
             ROL::Ptr<ROL::Objective<double>>                    reduced_drag_objective         = getObjective(objective, flow_constraints, simulation_variables, control_variables, is_reduced_space);
-            std::vector<ROL::Ptr<ROL::Constraint<double>>>      reduced_inequality_constraints = getInequalityConstraint({constraint1, constraint2}, flow_constraints, simulation_variables, control_variables, is_reduced_space);
-            std::vector<ROL::Ptr<ROL::Vector<double>>>          dual_inequality                = getInequalityMultiplier(volume_target);
-            std::vector<ROL::Ptr<ROL::BoundConstraint<double>>> inequality_bounds              = getSlackBoundConstraint(lift_target, volume_target);
+            std::vector<ROL::Ptr<ROL::Constraint<double>>>      reduced_inequality_constraints = getInequalityConstraint(nonlinear_inequalities_as_objectives, flow_constraints, simulation_variables, control_variables, is_reduced_space);
+            std::vector<ROL::Ptr<ROL::Vector<double>>>          dual_inequality                = getInequalityMultiplier(nonlinear_inequality_targets);
+            std::vector<ROL::Ptr<ROL::BoundConstraint<double>>> inequality_bounds              = getSlackBoundConstraint(nonlinear_inequality_targets, constraint_lower_bound_dx, constraint_upper_bound_dx);
 
             opt = ROL::OptimizationProblem<double> ( reduced_drag_objective, design_variables, design_bounds,
                                                      reduced_inequality_constraints, dual_inequality, inequality_bounds);
@@ -1032,9 +1055,9 @@ int EulerNACADragOptimizationLiftConstrained<dim,nstate>
             ROL::Ptr<ROL::Vector<double>>                       design_variables               = getDesignVariables(simulation_variables, control_variables, is_reduced_space);
             ROL::Ptr<ROL::BoundConstraint<double>>              design_bounds                  = getDesignBoundConstraint(simulation_variables, control_variables, is_reduced_space);
             ROL::Ptr<ROL::Objective<double>>                    drag_objective_simopt          = getObjective(objective, flow_constraints, simulation_variables, control_variables, is_reduced_space);
-            std::vector<ROL::Ptr<ROL::Constraint<double>>>      inequality_constraints         = getInequalityConstraint({constraint1, constraint2}, flow_constraints, simulation_variables, control_variables, is_reduced_space);
-            std::vector<ROL::Ptr<ROL::Vector<double>>>          dual_inequality                = getInequalityMultiplier(volume_target);
-            std::vector<ROL::Ptr<ROL::BoundConstraint<double>>> inequality_bounds              = getSlackBoundConstraint(lift_target, volume_target);
+            std::vector<ROL::Ptr<ROL::Constraint<double>>>      inequality_constraints         = getInequalityConstraint(nonlinear_inequalities_as_objectives, flow_constraints, simulation_variables, control_variables, is_reduced_space);
+            std::vector<ROL::Ptr<ROL::Vector<double>>>          dual_inequality                = getInequalityMultiplier(nonlinear_inequality_targets);
+            std::vector<ROL::Ptr<ROL::BoundConstraint<double>>> inequality_bounds              = getSlackBoundConstraint(nonlinear_inequality_targets, constraint_lower_bound_dx, constraint_upper_bound_dx);
 
             ROL::Ptr<ROL::Constraint<double>>                   equality_constraints           = flow_constraints;
             ROL::Ptr<ROL::Vector<double>>                       dual_equality                  = simulation_variables->clone();

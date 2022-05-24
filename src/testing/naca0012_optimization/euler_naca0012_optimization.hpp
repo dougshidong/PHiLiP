@@ -136,8 +136,11 @@ protected:
 		const bool is_reduced_space
 		) const;
 
-    std::vector<ROL::Ptr<ROL::Vector<double>>> getInequalityMultiplier(const double volume_target = -1) const;
-    std::vector<ROL::Ptr<ROL::BoundConstraint<double>>> getSlackBoundConstraint(const double lift_target, const double volume_target = -1) const;
+    std::vector<ROL::Ptr<ROL::Vector<double>>> getInequalityMultiplier(std::vector<double>& nonlinear_inequality_targets) const;
+    std::vector<ROL::Ptr<ROL::BoundConstraint<double>>> getSlackBoundConstraint(
+        const std::vector<double>& nonlinear_targets,
+        const std::vector<double>& lower_bound_dx,
+        const std::vector<double>& upper_bound_dx) const;
 
     int check_flow_constraints(
         const unsigned int nx_ffd,

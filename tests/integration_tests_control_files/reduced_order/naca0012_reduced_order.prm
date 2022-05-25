@@ -18,8 +18,8 @@ set overintegration = 0
 
 subsection euler
   set reference_length = 1.0
-  set mach_infinity = 0.80
-  set angle_of_attack = 1.25
+  set mach_infinity = 0.5
+  set angle_of_attack = 4
 end
 
 subsection linear solver
@@ -70,5 +70,5 @@ subsection flow_solver
 end
 
 subsection reduced order
-  set path_to_search = ./naca0012_solutions/10pts/
+  set path_to_search = ./naca0012_solutions/13pts/
 end

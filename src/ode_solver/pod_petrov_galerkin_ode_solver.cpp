@@ -203,8 +203,8 @@ void PODPetrovGalerkinODESolver<dim,real,MeshType>::step_in_time (real /*dt*/, c
     double new_residual;
     epetra_reduced_rhs.Norm2(&new_residual);
 
-    double reduced_l2norm = this->dg->get_reduced_residual_l2norm(epetra_petrov_galerkin_basis);
-    this->pcout << "Reduced l2norm: " << reduced_l2norm << std::endl;
+    //double reduced_l2norm = this->dg->get_reduced_residual_l2norm(epetra_petrov_galerkin_basis);
+    //this->pcout << "Reduced l2norm: " << reduced_l2norm << std::endl;
     this->pcout << " Step length " << step_length << ". Old residual: " << initial_residual << " New residual: " << new_residual << std::endl;
 
     int iline = 0;
@@ -217,9 +217,10 @@ void PODPetrovGalerkinODESolver<dim,real,MeshType>::step_in_time (real /*dt*/, c
         this->dg->assemble_residual();
         epetra_petrov_galerkin_basis.Multiply(true, epetra_right_hand_side, epetra_reduced_rhs);
         epetra_reduced_rhs.Norm2(&new_residual);
+        //epetra_reduced_rhs.Print(std::cout);
         this->pcout << " Step length " << step_length << " . Old residual: " << initial_residual << " New residual: " << new_residual << std::endl;
-        reduced_l2norm = this->dg->get_reduced_residual_l2norm(epetra_petrov_galerkin_basis);
-        this->pcout << "Reduced l2norm: " << reduced_l2norm << std::endl;
+        //reduced_l2norm = this->dg->get_reduced_residual_l2norm(epetra_petrov_galerkin_basis);
+        //this->pcout << "Reduced l2norm: " << reduced_l2norm << std::endl;
         this->pcout << "Residual l2norm: " << this->dg->get_residual_l2norm() << std::endl;
     }
     if (iline == 0) this->CFL_factor *= 2.0;

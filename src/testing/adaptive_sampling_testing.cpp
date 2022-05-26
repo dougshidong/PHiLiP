@@ -82,7 +82,8 @@ int AdaptiveSamplingTesting<dim, nstate>::run_test() const
     RowVectorXd params_b = B_col.transpose();
     */
 
-    RowVectorXd params_a {{10.00,
+    RowVectorXd params_a {{2.00,
+                           10.00,
                           8.000,
                           8.000,
                           6.000,
@@ -94,7 +95,8 @@ int AdaptiveSamplingTesting<dim, nstate>::run_test() const
                           7.219,
                           9.219
                           }};
-    RowVectorXd params_b {{0.055,
+    RowVectorXd params_b {{0.01,
+                           0.055,
                           0.078,
                           0.033,
                           0.100,
@@ -130,7 +132,8 @@ int AdaptiveSamplingTesting<dim, nstate>::run_test() const
 
         std::unique_ptr<FlowSolver<dim,nstate>> flow_solver_standard = FlowSolverFactory<dim,nstate>::create_FlowSolver(&params, parameter_handler);
         ode_solver_type = Parameters::ODESolverParam::ODESolverEnum::pod_petrov_galerkin_solver;
-        std::shared_ptr<ProperOrthogonalDecomposition::CoarseStatePOD<dim>> pod_standard = std::make_shared<ProperOrthogonalDecomposition::CoarseStatePOD<dim>>(flow_solver_standard->dg);
+        //std::shared_ptr<ProperOrthogonalDecomposition::CoarseStatePOD<dim>> pod_standard = std::make_shared<ProperOrthogonalDecomposition::CoarseStatePOD<dim>>(flow_solver_standard->dg);
+        std::shared_ptr<ProperOrthogonalDecomposition::OfflinePOD<dim>> pod_standard = std::make_shared<ProperOrthogonalDecomposition::OfflinePOD<dim>>(flow_solver_standard->dg);
         flow_solver_standard->ode_solver =  PHiLiP::ODE::ODESolverFactory<dim, double>::create_ODESolver_manual(ode_solver_type, flow_solver_standard->dg, pod_standard);
         flow_solver_standard->ode_solver->allocate_ode_system();
         std::shared_ptr<DGBaseState<dim,nstate,double> > dg_state_standard = std::dynamic_pointer_cast< DGBaseState<dim,nstate,double>>(flow_solver_standard->dg);

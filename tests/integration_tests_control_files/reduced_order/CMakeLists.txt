@@ -59,6 +59,14 @@ add_test(
         WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )
 
+configure_file(burgers_rewienski_snapshot_generator.sh burgers_rewienski_snapshot_generator.sh COPYONLY)
+add_test(
+        NAME 1D_BURGERS_REWIENSKI_GENERATE_SNAPSHOTS
+        COMMAND bash -c
+        "./burgers_rewienski_snapshot_generator.sh ${EXECUTABLE_OUTPUT_PATH}"
+        WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
+)
+
 configure_file(inviscid_transonic_naca0012_adaptive_sampling.prm inviscid_transonic_naca0012_adaptive_sampling.prm COPYONLY)
 configure_file(naca0012_hopw_ref2.msh naca0012_hopw_ref2.msh COPYONLY)
 add_test(

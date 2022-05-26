@@ -32,7 +32,7 @@ bool OfflinePOD<dim>::getPODBasisFromSnapshots() {
     std::sort(files_in_directory.begin(), files_in_directory.end()); //Sort files so that the order is the same as for the sensitivity basis
 
     for (const auto & entry : files_in_directory){
-        if(std::string(entry.filename()).std::string::find("solution") != std::string::npos){
+        if(std::string(entry.filename()).std::string::find("snapshot") != std::string::npos){
             pcout << "Processing " << entry << std::endl;
             file_found = true;
             std::ifstream myfile(entry);
@@ -73,7 +73,7 @@ bool OfflinePOD<dim>::getPODBasisFromSnapshots() {
                         if (field.empty()) {
                             continue;
                         } else {
-                            snapshotMatrix(rows-1, snapshotMatrix.cols()-1+cols) = std::stof(field);
+                            snapshotMatrix(rows-1, snapshotMatrix.cols()-1+cols) = std::stod(field);
                             cols++;
                         }
                     }
@@ -83,6 +83,8 @@ bool OfflinePOD<dim>::getPODBasisFromSnapshots() {
             myfile.close();
         }
     }
+
+    //snapshotMatrix.reverseInPlace();
 
     pcout << snapshotMatrix << std::endl;
 
@@ -98,6 +100,10 @@ bool OfflinePOD<dim>::getPODBasisFromSnapshots() {
     pcout << "Computing POD basis..." << std::endl;
 
     VectorXd reference_state = snapshotMatrix.rowwise().mean();
+
+    for(unsigned int i = 0 ; i < reference_state.size() ; i++){
+        reference_state(i) = 50;
+    }
 
     referenceState.reinit(reference_state.size());
     for(unsigned int i = 0 ; i < reference_state.size() ; i++){

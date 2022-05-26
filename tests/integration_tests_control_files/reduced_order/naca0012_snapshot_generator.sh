@@ -50,14 +50,14 @@ echo "  end" >> $file
 echo "end" >> $file
 echo "" >> $file
 echo "subsection ODE solver" >> $file
-echo "  set output_solution_every_x_steps = 1" >> $file
+echo "  #set output_solution_every_x_steps = 1" >> $file
 echo "  set nonlinear_max_iterations            = 2000" >> $file
 echo "  set nonlinear_steady_residual_tolerance = 1e-15" >> $file
 echo "  set ode_solver_type  = implicit" >> $file
 echo "  set initial_time_step = 1e3" >> $file
 echo "  set time_step_factor_residual = 15.0" >> $file
 echo "  set time_step_factor_residual_exp = 2" >> $file
-echo "  set print_iteration_modulo              = 1" >> $file
+echo "  #set print_iteration_modulo              = 1" >> $file
 echo "  set output_solution_vector_modulo       = 1" >> $file
 echo "  set solutions_table_filename = ${mach[i]}_${alpha[i]}_solution_snapshot" >> $file
 echo "end" >> $file

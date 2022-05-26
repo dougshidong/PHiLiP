@@ -272,7 +272,62 @@ public:
         const dealii::types::global_dof_index cell_index) const override;
 
 private:
-    /// Templated nondimensionalized eddy viscosity for the WALE model.
+    /** Templated nondimensionalized eddy viscosity for the WALE model. 
+     *  Reference: Nicoud & Ducros (1999) "Subgrid-scale stress modelling based on the square of the velocity gradient tensor"
+     */
+    template<typename real2> real2 compute_eddy_viscosity_templated(
+        const std::array<real2,nstate> &primitive_soln,
+        const std::array<dealii::Tensor<1,dim,real2>,nstate> &primitive_soln_gradient,
+        const dealii::types::global_dof_index cell_index) const;
+};
+
+/// Vreman eddy viscosity model. Derived from LargeEddySimulation_Smagorinsky for only modifying compute_eddy_viscosity.
+template <int dim, int nstate, typename real>
+class LargeEddySimulation_Vreman : public LargeEddySimulation_Smagorinsky <dim, nstate, real>
+{
+public:
+    using thermal_boundary_condition_enum = Parameters::NavierStokesParam::ThermalBoundaryCondition;
+    /** Constructor for the sub-grid scale (SGS) model: Vreman
+     *  Reference: Vreman, A. W. (2004) "An eddy-viscosity subgrid-scale model for turbulent shear flow: Algebraic theory and applications."
+     */
+    LargeEddySimulation_Vreman(
+        const double                                              ref_length,
+        const double                                              gamma_gas,
+        const double                                              mach_inf,
+        const double                                              angle_of_attack,
+        const double                                              side_slip_angle,
+        const double                                              prandtl_number,
+        const double                                              reynolds_number_inf,
+        const double                                              turbulent_prandtl_number,
+        const double                                              ratio_of_filter_width_to_cell_size,
+        const double                                              model_constant,
+        const double                                              isothermal_wall_temperature = 1.0,
+        const thermal_boundary_condition_enum                     thermal_boundary_condition_type = thermal_boundary_condition_enum::adiabatic,
+        std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function = nullptr);
+
+    /// Destructor
+    ~LargeEddySimulation_Vreman() {};
+
+    /** Nondimensionalized eddy viscosity for the Vreman model. 
+     *  Reference: Vreman, A. W. (2004) "An eddy-viscosity subgrid-scale model for turbulent shear flow: Algebraic theory and applications."
+     */
+    real compute_eddy_viscosity(
+        const std::array<real,nstate> &primitive_soln,
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &primitive_soln_gradient,
+        const dealii::types::global_dof_index cell_index) const override;
+
+    /** Nondimensionalized eddy viscosity for the Vreman model. (Automatic Differentiation Type: FadType)
+     *  Reference: Vreman, A. W. (2004) "An eddy-viscosity subgrid-scale model for turbulent shear flow: Algebraic theory and applications."
+     */
+    FadType compute_eddy_viscosity_fad(
+        const std::array<FadType,nstate> &primitive_soln,
+        const std::array<dealii::Tensor<1,dim,FadType>,nstate> &primitive_soln_gradient,
+        const dealii::types::global_dof_index cell_index) const override;
+
+private:
+    /** Templated nondimensionalized eddy viscosity for the Vreman model. 
+     *  Reference: Vreman, A. W. (2004) "An eddy-viscosity subgrid-scale model for turbulent shear flow: Algebraic theory and applications."
+     */
     template<typename real2> real2 compute_eddy_viscosity_templated(
         const std::array<real2,nstate> &primitive_soln,
         const std::array<dealii::Tensor<1,dim,real2>,nstate> &primitive_soln_gradient,

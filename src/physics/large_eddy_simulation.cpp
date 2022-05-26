@@ -646,10 +646,6 @@ real2 LargeEddySimulation_WALE<dim,nstate,real>
     const std::array<dealii::Tensor<1,dim,real2>,nstate> &primitive_soln_gradient,
     const dealii::types::global_dof_index cell_index) const
 {
-    // TO DO: -- DOUBLE CHECK BEFORE MERGING PR
-    //        (2) Figure out how to nondimensionalize the eddy_viscosity since strain_rate_tensor is nondimensional but filter_width is not
-    //        --> Solution is to simply dimensionalize the strain_rate_tensor and do eddy_viscosity/free_stream_eddy_viscosity
-    //        (3) Will also have to further compute the "scaled" eddy_viscosity wrt the free stream Reynolds number
     const dealii::Tensor<2,dim,real2> vel_gradient 
         = this->navier_stokes_physics->extract_velocities_gradient_from_primitive_solution_gradient(primitive_soln_gradient);
     const dealii::Tensor<2,dim,real2> strain_rate_tensor 
@@ -708,6 +704,120 @@ real2 LargeEddySimulation_WALE<dim,nstate,real>
     return eddy_viscosity;
 }
 //----------------------------------------------------------------
+//================================================================
+// Vreman eddy viscosity model
+//================================================================
+template <int dim, int nstate, typename real>
+LargeEddySimulation_Vreman<dim, nstate, real>::LargeEddySimulation_Vreman(
+    const double                                              ref_length,
+    const double                                              gamma_gas,
+    const double                                              mach_inf,
+    const double                                              angle_of_attack,
+    const double                                              side_slip_angle,
+    const double                                              prandtl_number,
+    const double                                              reynolds_number_inf,
+    const double                                              turbulent_prandtl_number,
+    const double                                              ratio_of_filter_width_to_cell_size,
+    const double                                              model_constant,
+    const double                                              isothermal_wall_temperature,
+    const thermal_boundary_condition_enum                     thermal_boundary_condition_type,
+    std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function)
+    : LargeEddySimulation_Smagorinsky<dim,nstate,real>(ref_length,
+                                                       gamma_gas,
+                                                       mach_inf,
+                                                       angle_of_attack,
+                                                       side_slip_angle,
+                                                       prandtl_number,
+                                                       reynolds_number_inf,
+                                                       turbulent_prandtl_number,
+                                                       ratio_of_filter_width_to_cell_size,
+                                                       model_constant,
+                                                       isothermal_wall_temperature,
+                                                       thermal_boundary_condition_type,
+                                                       manufactured_solution_function)
+{ }
+//----------------------------------------------------------------
+template <int dim, int nstate, typename real>
+real LargeEddySimulation_Vreman<dim,nstate,real>
+::compute_eddy_viscosity (
+    const std::array<real,nstate> &primitive_soln,
+    const std::array<dealii::Tensor<1,dim,real>,nstate> &primitive_soln_gradient,
+    const dealii::types::global_dof_index cell_index) const
+{
+    return compute_eddy_viscosity_templated<real>(primitive_soln,primitive_soln_gradient,cell_index);
+}
+//----------------------------------------------------------------
+template <int dim, int nstate, typename real>
+FadType LargeEddySimulation_Vreman<dim,nstate,real>
+::compute_eddy_viscosity_fad (
+    const std::array<FadType,nstate> &primitive_soln,
+    const std::array<dealii::Tensor<1,dim,FadType>,nstate> &primitive_soln_gradient,
+    const dealii::types::global_dof_index cell_index) const
+{
+    return compute_eddy_viscosity_templated<FadType>(primitive_soln,primitive_soln_gradient,cell_index);
+}
+//----------------------------------------------------------------
+template <int dim, int nstate, typename real>
+template<typename real2>
+real2 LargeEddySimulation_Vreman<dim,nstate,real>
+::compute_eddy_viscosity_templated (
+    const std::array<real2,nstate> &/*primitive_soln*/,
+    const std::array<dealii::Tensor<1,dim,real2>,nstate> &primitive_soln_gradient,
+    const dealii::types::global_dof_index cell_index) const
+{
+    const dealii::Tensor<2,dim,real2> vel_gradient 
+        = this->navier_stokes_physics->extract_velocities_gradient_from_primitive_solution_gradient(primitive_soln_gradient);
+
+    // Compute the filter width for the cell
+    const double filter_width = this->get_filter_width(cell_index);
+    
+    /** Get beta tensor which is propo tensor, i.e. $\bm{S}^{d}$
+     *  Reference: Vreman (2004) - Equation (7)
+     */
+    // -- Compute $\bm{beta}$
+    dealii::Tensor<2,dim,real2> beta_tensor;
+    for (int i=0; i<dim; ++i) {
+        for (int j=0; j<dim; ++j) {
+            
+            real2 val;if(std::is_same<real2,real>::value){val = 0.0;}
+
+            for (int k=0; k<dim; ++k) {
+                val += vel_gradient[i][k]*vel_gradient[j][k];
+            }
+            beta_tensor[i][j] = filter_width*filter_width*val; // for isotropic filter width
+        }
+    }
+    // Reference: Vreman (2004) - Equation (8)
+    real2 B;if(std::is_same<real2,real>::value){B = 0.0;}
+    if constexpr(dim>1){
+        B = beta_tensor[0][0]*beta_tensor[1][1] - beta_tensor[0][1]*beta_tensor[0][1];
+    }
+    if constexpr(dim==3){
+        for (int i=0; i<2; ++i) {
+            B += beta_tensor[i][i]*beta_tensor[2][2] - beta_tensor[i][2]*beta_tensor[i][2];
+        }
+    }
+    
+    // Get magnitude of velocity gradient tensor squared
+    const real2 velocity_gradient_tensor_magnitude_sqr = this->template get_tensor_magnitude_sqr<real2>(strain_rate_tensor);
+    
+    // Compute the eddy viscosity
+    // -- Initialize as zero
+    real2 eddy_viscosity;if(std::is_same<real2,real>::value){eddy_viscosity = 0.0;}
+    if(velocity_gradient_tensor_magnitude_sqr != 0.0) {
+        /** Eddy viscosity is zero in the absence of turbulent fluctuations, 
+         *  i.e. zero strain rate and zero rotation rate. See Vreman (2004). 
+         *  Since the denominator in this eddy viscosity model will go to zero, 
+         *  we must explicitly set the eddy viscosity to zero to avoid a division by zero.
+         *  Or equivalently, update it from its zero initialization only if there is turbulence.
+        */
+        // Reference: Vreman (2004) - Equation (5)
+        eddy_viscosity = model_constant*sqrt(B/velocity_gradient_tensor_magnitude_sqr);
+    }
+
+    return eddy_viscosity;
+}
+//----------------------------------------------------------------
 //----------------------------------------------------------------
 //----------------------------------------------------------------
 // Instantiate explicitly
@@ -729,7 +839,12 @@ template class LargeEddySimulation_WALE        < PHILIP_DIM, PHILIP_DIM+2, FadTy
 template class LargeEddySimulation_WALE        < PHILIP_DIM, PHILIP_DIM+2, RadType  >;
 template class LargeEddySimulation_WALE        < PHILIP_DIM, PHILIP_DIM+2, FadFadType >;
 template class LargeEddySimulation_WALE        < PHILIP_DIM, PHILIP_DIM+2, RadFadType >;
-
+// -- LargeEddySimulation_Vreman
+template class LargeEddySimulation_Vreman      < PHILIP_DIM, PHILIP_DIM+2, double >;
+template class LargeEddySimulation_Vreman      < PHILIP_DIM, PHILIP_DIM+2, FadType  >;
+template class LargeEddySimulation_Vreman      < PHILIP_DIM, PHILIP_DIM+2, RadType  >;
+template class LargeEddySimulation_Vreman      < PHILIP_DIM, PHILIP_DIM+2, FadFadType >;
+template class LargeEddySimulation_Vreman      < PHILIP_DIM, PHILIP_DIM+2, RadFadType >;
 //-------------------------------------------------------------------------------------
 // Templated members used by derived classes, defined in respective parent classes
 //-------------------------------------------------------------------------------------

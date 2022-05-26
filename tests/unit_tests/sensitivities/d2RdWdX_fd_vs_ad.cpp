@@ -334,6 +334,9 @@ int main (int argc, char * argv[])
         , " PDEType::physics_model "
 #endif
     };
+#if PHILIP_DIM==3
+    ModelType model = ModelType::large_eddy_simulation
+#endif
 
     int ipde = -1;
     for (auto pde = pde_type.begin(); pde != pde_type.end() || error == 1; pde++) {
@@ -364,7 +367,7 @@ int main (int argc, char * argv[])
 
                 if ((*pde==PDEType::euler) || (*pde==PDEType::navier_stokes)
 #if PHILIP_DIM==3
-         || ((*pde==PDEType::physics_model) && (all_parameters.model_type==ModelType::large_eddy_simulation))
+         || ((*pde==PDEType::physics_model) && (model==ModelType::large_eddy_simulation))
 #endif
                     ) {
                     error = test<dim,dim+2>(poly_degree, grid, all_parameters);

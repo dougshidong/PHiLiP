@@ -145,7 +145,7 @@ public:
         const std::array<dealii::Tensor<1,dim,real>,nstate> &conservative_soln_gradient) const;
 
     /** Evaluate the deviatoric strain-rate tensor from conservative variables and gradient of conservative variables
-     *  -- Reference: plata2019performance
+     *  -- Reference: de la Llave Plata et al. (2019). "On the performance of a high-order multiscale DG approach to LES at increasing Reynolds number."
      * */
     dealii::Tensor<2,dim,real> compute_deviatoric_strain_rate_tensor (
         const std::array<real,nstate> &conservative_soln,

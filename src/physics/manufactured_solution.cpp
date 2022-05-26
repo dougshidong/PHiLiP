@@ -217,18 +217,23 @@ inline real ManufacturedSolutionNavahBase<dim,real>
 {
     real value = 0.0;
     if (dim == 2) {
-        const real rho = primitive_value(point,0); // density
-        const real u   = primitive_value(point,1); // x-velocity
-        const real v   = primitive_value(point,2); // y-velocity
-        const real p   = primitive_value(point,3); // pressure
-        const real twv = primitive_value(point,4); // turbulent working variable (twv)
+        const real density = primitive_value(point,0);
+        const real x_velocity = primitive_value(point,1);
+        const real y_velocity = primitive_value(point,2);
+        const real pressure   = primitive_value(point,3);
+        const real turbulent_working_variable = primitive_value(point,4);
 
         // convert primitive to conservative solution
-        if(istate==0) value = rho; // density
-        if(istate==1) value = rho*u; // x-momentum
-        if(istate==2) value = rho*v; // y-momentum
-        if(istate==3) value = p/(1.4-1.0) + 0.5*rho*(u*u + v*v); // total energy
-        if(istate==4) value = rho*twv; // transport of the turbulent working variable
+        // - density:
+        if(istate==0) value = density;
+        // - x-momentum:
+        if(istate==1) value = density*x_velocity;
+        // - y-momentum:
+        if(istate==2) value = density*y_velocity;
+        // - total energy:
+        if(istate==3) value = pressure/(1.4-1.0) + 0.5*density*(x_velocity*x_velocity + y_velocity*y_velocity);
+        // - transport of the turbulent working variable:
+        if(istate==4) value = density*turbulent_working_variable;
     }
 
     return value;

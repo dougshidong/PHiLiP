@@ -82,8 +82,7 @@ protected:
      *  all functions with the same name in the Base class get hidden in Derived class.  
      *  
      *  Solution: In order to make the hidden function visible in derived class, 
-     *  we need to add the following:
-    */
+     *  we need to add the following: */
     using PhysicsBase<dim,nstate,real>::dissipative_flux;
     using PhysicsBase<dim,nstate,real>::source_term;
 public:

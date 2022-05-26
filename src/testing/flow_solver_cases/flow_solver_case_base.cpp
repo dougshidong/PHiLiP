@@ -76,11 +76,12 @@ void FlowSolverCaseBase<dim,nstate>::display_flow_solver_setup(std::shared_ptr<D
     const std::string pde_string = this->get_pde_string();
     pcout << "- PDE Type: " << pde_string << " " << "(dim=" << dim << ", nstate=" << nstate << ")" << std::endl;
     
-    pcout << "- Polynomial degree: " << this->all_param.grid_refinement_study_param.poly_degree << std::endl;
+    pcout << "- Polynomial degree: " << this->all_param.flow_solver_param.poly_degree << std::endl;
     
     const unsigned int number_of_degrees_of_freedom_per_state = dg->dof_handler.n_dofs()/nstate;
     const double number_of_degrees_of_freedom_per_dim = pow(number_of_degrees_of_freedom_per_state,(1.0/dim));
     pcout << "- Degrees of freedom (per state): " << number_of_degrees_of_freedom_per_state << " " << "(" << number_of_degrees_of_freedom_per_dim << " per state per dim)" << std::endl;
+    pcout << "- Number of active cells: " << dg->triangulation->n_global_active_cells() << std::endl;
 
     const std::string flow_case_string = this->get_flow_case_string();
     pcout << "- Flow case: " << flow_case_string << " " << std::flush;

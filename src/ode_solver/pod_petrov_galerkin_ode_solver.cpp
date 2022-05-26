@@ -13,7 +13,7 @@ PODPetrovGalerkinODESolver<dim,real,MeshType>::PODPetrovGalerkinODESolver(std::s
         : ImplicitODESolver<dim,real,MeshType>(dg_input)
         , pod(pod)
 {}
-/*
+
 template <int dim, typename real, typename MeshType>
 int PODPetrovGalerkinODESolver<dim,real,MeshType>::steady_state ()
 {
@@ -48,7 +48,7 @@ int PODPetrovGalerkinODESolver<dim,real,MeshType>::steady_state ()
     const double initial_CFL = this->all_parameters->ode_solver_param.initial_time_step;
     this->CFL_factor = 1.0;
 
-    while (this->residual_norm > this->ode_param.nonlinear_steady_residual_tolerance)
+    while (this->residual_norm > this->ode_param.nonlinear_steady_residual_tolerance && this->current_iteration < this->ode_param.nonlinear_max_iterations)
     {
         if ((this->ode_param.ode_output) == Parameters::OutputEnum::verbose
             && (this->current_iteration%this->ode_param.print_iteration_modulo) == 0
@@ -114,7 +114,7 @@ int PODPetrovGalerkinODESolver<dim,real,MeshType>::steady_state ()
 
     return 0;
 }
-*/
+
 template <int dim, typename real, typename MeshType>
 void PODPetrovGalerkinODESolver<dim,real,MeshType>::step_in_time (real /*dt*/, const bool /*pseudotime*/)
 {

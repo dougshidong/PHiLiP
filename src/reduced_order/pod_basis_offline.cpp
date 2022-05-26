@@ -102,7 +102,7 @@ bool OfflinePOD<dim>::getPODBasisFromSnapshots() {
     VectorXd reference_state = snapshotMatrix.rowwise().mean();
 
     for(unsigned int i = 0 ; i < reference_state.size() ; i++){
-        reference_state(i) = 50;
+        //reference_state(i) = 50;
     }
 
     referenceState.reinit(reference_state.size());

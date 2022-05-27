@@ -1189,8 +1189,6 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_volume_term_explicit(
         }
     }
 
-
-
     // Strong form
     // The right-hand side sends all the term to the side of the source term
     // Therefore, 
@@ -1661,6 +1659,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_explicit(
         for (unsigned int iquad=0; iquad<n_face_quad_pts; ++iquad) {
 
             // Convection
+           // const ADtype flux_diff = face_jac[iquad]*conv_num_flux_dot_n[iquad][istate] - conv_ref_flux_int_on_face[iquad][istate]*unit_normal_int;
             const ADtype flux_diff = face_jac[iquad]*conv_num_flux_dot_n[iquad][istate] - conv_ref_flux_int_on_face[iquad][istate]*unit_normal_int;
             rhs = rhs - this->operators_state->face_integral_basis[poly_degree][iface][iquad][itest_int] * flux_diff;
 

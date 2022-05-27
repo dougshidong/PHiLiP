@@ -27,7 +27,7 @@ std::shared_ptr<Triangulation> PeriodicCubeFlow<dim,nstate>::generate_grid() con
             this->mpi_communicator
 #endif
     );
-    Grids::straight_periodic_cube<dim,dealii::parallel::distributed::Triangulation<dim>>(grid, domain_left, domain_right, number_of_cells_per_direction);
+    Grids::straight_periodic_cube<dim,Triangulation>(grid, domain_left, domain_right, number_of_cells_per_direction);
 
     return grid;
 }
@@ -55,8 +55,9 @@ void PeriodicCubeFlow<dim,nstate>::display_additional_flow_case_specific_paramet
 
 #if PHILIP_DIM==3
 template class PeriodicCubeFlow <PHILIP_DIM,PHILIP_DIM+2>;
+#elif PHILIP_DIM==1
+template class PeriodicCubeFlow <PHILIP_DIM,PHILIP_DIM>;
 #endif
-
 } // Tests namespace
 } // PHiLiP namespace
 

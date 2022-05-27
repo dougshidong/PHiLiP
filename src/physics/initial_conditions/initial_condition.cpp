@@ -158,6 +158,30 @@ inline real InitialConditionFunction_BurgersViscous<dim,nstate,real>
 
 }
 
+// ========================================================
+// 1D SINE -- Initial Condition for advection_explicit_time_study
+// ========================================================
+template <int dim, int nstate, typename real>
+InitialConditionFunction_1DSine<dim,nstate,real>
+::InitialConditionFunction_1DSine ()
+        : InitialConditionFunction<dim,nstate,real>()
+{
+    // Nothing to do here yet
+}
+
+template <int dim, int nstate, typename real>
+inline real InitialConditionFunction_1DSine<dim,nstate,real>
+::value(const dealii::Point<dim,real> &point, const unsigned int /*istate*/) const
+{
+    real value = 0;
+    real pi = dealii::numbers::PI;
+    if(point[0] >= 0.0 && point[0] <= 2.0){
+        value = sin(2*pi*point[0]/2.0);
+    }
+    return value;
+}
+
+
 //=========================================================
 // FLOW SOLVER -- Initial Condition Base Class + Factory
 //=========================================================
@@ -204,6 +228,8 @@ InitialConditionFactory<dim,nstate, real>::create_InitialConditionFunction(
                     param->euler_param.side_slip_angle);
             return std::make_shared<FreeStreamInitialConditions<dim,nstate,real>>(euler_physics_double);
         }
+    } else if (flow_type == FlowCaseEnum::advection_periodic) {
+        if constexpr (dim==1 && nstate==dim)  return std::make_shared<InitialConditionFunction_1DSine<dim,nstate,real> > ();
     } else {
         std::cout << "Invalid Flow Case Type. You probably forgot to add it to the list of flow cases in initial_condition.cpp" << std::endl;
         std::abort();

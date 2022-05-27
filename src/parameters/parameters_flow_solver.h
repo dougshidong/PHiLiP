@@ -20,6 +20,7 @@ public:
         burgers_viscous_snapshot,
         naca0012,
         burgers_rewienski_snapshot,
+        advection_periodic
         };
     FlowCaseType flow_case_type; ///< Selected FlowCaseType from the input file
 
@@ -69,6 +70,9 @@ public:
         };
     /// Selected DensityInitialConditionType from the input file
     DensityInitialConditionType density_initial_condition_type;
+  
+    int number_of_times_to_solve; ///<For time refinement study, number of times to run the calculation
+    double refinement_ratio; ///<For time refinement study, ratio of next timestep size to current one, 0<r<1
 
     /// Declares the possible variables and sets the defaults.
     static void declare_parameters (dealii::ParameterHandler &prm);

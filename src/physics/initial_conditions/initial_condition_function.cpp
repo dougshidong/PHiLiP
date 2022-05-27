@@ -200,11 +200,11 @@ inline real InitialConditionFunction_BurgersInviscidEnergy<dim,nstate,real>
 {
     real value = 1.0;
     if(dim >= 1)
-        value *= sin(point[0]);
+        value *= sin(dealii::numbers::PI*point[0]);
     if(dim >= 2)
-        value *= sin(point[1]);
+        value *= sin(dealii::numbers::PI*point[1]);
     if(dim == 3)
-        value *= sin(point[2]);
+        value *= sin(dealii::numbers::PI*point[2]);
 
     value += 0.01;
     return value;

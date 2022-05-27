@@ -90,6 +90,13 @@ add_test(
         WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )
 
+configure_file(naca0012_reduced_order_testing.prm naca0012_reduced_order_testing.prm COPYONLY)
+add_test(
+        NAME NACA0012_REDUCED_ORDER_TESTING
+        COMMAND mpirun -np ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_2D -i ${CMAKE_CURRENT_BINARY_DIR}/naca0012_reduced_order_testing.prm
+        WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
+)
+
 configure_file(burgers_rewienski_reduced_order.prm burgers_rewienski_reduced_order.prm COPYONLY)
 add_test(
         NAME BURGERS_REWIENSKI_REDUCED_ORDER

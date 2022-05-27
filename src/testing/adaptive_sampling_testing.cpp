@@ -33,56 +33,8 @@ AdaptiveSamplingTesting<dim, nstate>::AdaptiveSamplingTesting(const PHiLiP::Para
 template <int dim, int nstate>
 int AdaptiveSamplingTesting<dim, nstate>::run_test() const
 {
-    //Generate points to test:
     /*
-    RowVectorXd snap_a {{2.        ,  2.        , 10.        , 10.        ,  6.        ,
-                         5.87695667,  2.        ,  3.97861367,  7.97897359,  2.        ,
-                         3.79484095}};
-    RowVectorXd snap_b {{0.01      , 0.1       , 0.1       , 0.01      , 0.055     ,
-                         0.1       , 0.05864627, 0.08444354, 0.1       , 0.07721791,
-                         0.1}};
-
-    RowVectorXd rom_a {{2.89742048,  2.89742048,  7.93847834,  2.        ,  8.98948679,
-                        3.93847834,  3.93847834,  8.        ,  6.        ,  6.        ,
-                        4.        ,  3.93847834,  2.        ,  2.98930683,  4.        ,
-                        2.        ,  8.98948679,  5.93847834,  4.83589881,  2.98930683,
-                        2.98930683,  4.98930683,  4.92778517,  2.89742048,  6.92796513,
-                        6.98948679,  2.98930683,  2.        ,  2.89742048,  8.        ,
-                        2.        , 10.        ,  3.88672731}};
-    RowVectorXd rom_b {{0.08860896, 0.055     , 0.1       , 0.03432313, 0.1       ,
-                        0.1       , 0.07932313, 0.0775    , 0.1       , 0.01      ,
-                        0.0325    , 0.055     , 0.055     , 0.07154491, 0.0775    ,
-                        0.07932313, 0.055     , 0.0775    , 0.1       , 0.09222177,
-                        0.04722177, 0.06972177, 0.09222177, 0.1       , 0.1       ,
-                        0.0775    , 0.08083073, 0.06793209, 0.07932313, 0.0325    ,
-                        0.08860896, 0.055     , 0.09222177}};
-
-    RowVectorXd A = VectorXd::LinSpaced(2,2,10).replicate(snap_a.size(),1).transpose();
-    MatrixXd b = VectorXd::LinSpaced(2, 0.01, 0.1).replicate(1,snap_b.size());
-    b.transposeInPlace();
-    VectorXd B_col(Eigen::Map<VectorXd>(b.data(), b.cols()*b.rows()));
-    RowVectorXd B = B_col.transpose();
-
-    RowVectorXd params_a(A.size() + snap_a.size() + rom_a.size());
-    params_a << snap_a, rom_a, A;
-    std::cout << params_a << std::endl;
-
-    RowVectorXd params_b(B.size() + snap_b.size() + rom_b.size());
-    params_b << snap_b, rom_b, B;
-    std::cout << params_b << std::endl;
-
-    */
-    //RowVectorXd params_a{{6.3333}};
-    //RowVectorXd params_b{{0.0934}};
-    /*
-    RowVectorXd params_a = VectorXd::LinSpaced(12,2,10).replicate(12,1).transpose();
-    MatrixXd b = VectorXd::LinSpaced(12, 0.01, 0.1).replicate(1,12);
-    b.transposeInPlace();
-    VectorXd B_col(Eigen::Map<VectorXd>(b.data(), b.cols()*b.rows()));
-    RowVectorXd params_b = B_col.transpose();
-    */
-
-    RowVectorXd params_a {{2.00,
+    RowVectorXd params_1 {{2.00,
                            10.00,
                           8.000,
                           8.000,
@@ -95,7 +47,7 @@ int AdaptiveSamplingTesting<dim, nstate>::run_test() const
                           7.219,
                           9.219
                           }};
-    RowVectorXd params_b {{0.01,
+    RowVectorXd params_2 {{0.01,
                            0.055,
                           0.078,
                           0.033,
@@ -108,58 +60,57 @@ int AdaptiveSamplingTesting<dim, nstate>::run_test() const
                           0.065,
                           0.088
                           }};
+    */
 
-    std::cout << params_a << std::endl;
-    std::cout << params_b << std::endl;
+    RowVectorXd params_1 {{0.7
+                          }};
+    RowVectorXd params_2 {{3
+                          }};
 
+    std::cout << params_1 << std::endl;
+    std::cout << params_2 << std::endl;
 
     std::shared_ptr<dealii::TableHandler> data_table = std::make_shared<dealii::TableHandler>();
 
-    for(int i=0 ; i < params_a.size() ; i++){
+    for(int i=0 ; i < params_1.size() ; i++){
         std::cout << "Index: " << i << std::endl;
-        std::cout << "Rewienski a: " << params_a(i) << std::endl;
-        std::cout << "Rewienski b: " << params_b(i) << std::endl;
+        std::cout << "Parameter 1: " << params_1(i) << std::endl;
+        std::cout << "Parameter 2: " << params_2(i) << std::endl;
 
-        RowVector2d parameter = {params_a(i), params_b(i)};
+        RowVector2d parameter = {params_1(i), params_2(i)};
         Parameters::AllParameters params = reinitParams(parameter);
 
         std::unique_ptr<FlowSolver<dim,nstate>> flow_solver_implicit = FlowSolverFactory<dim,nstate>::create_FlowSolver(&params, parameter_handler);
-        auto ode_solver_type = Parameters::ODESolverParam::ODESolverEnum::implicit_solver;
-        flow_solver_implicit->ode_solver =  PHiLiP::ODE::ODESolverFactory<dim, double>::create_ODESolver_manual(ode_solver_type, flow_solver_implicit->dg);
-        flow_solver_implicit->ode_solver->allocate_ode_system();
-        std::shared_ptr<DGBaseState<dim,nstate,double>> dg_state_implicit = std::dynamic_pointer_cast<DGBaseState<dim,nstate,double>>(flow_solver_implicit->dg);
-        auto functional_implicit = BurgersRewienskiFunctional<dim,nstate,double>(flow_solver_implicit->dg, dg_state_implicit->pde_physics_fad_fad, true, false);
+        auto functional_implicit = functionalFactory(flow_solver_implicit->dg);
 
-        std::unique_ptr<FlowSolver<dim,nstate>> flow_solver_standard = FlowSolverFactory<dim,nstate>::create_FlowSolver(&params, parameter_handler);
-        ode_solver_type = Parameters::ODESolverParam::ODESolverEnum::pod_petrov_galerkin_solver;
-        //std::shared_ptr<ProperOrthogonalDecomposition::CoarseStatePOD<dim>> pod_standard = std::make_shared<ProperOrthogonalDecomposition::CoarseStatePOD<dim>>(flow_solver_standard->dg);
-        std::shared_ptr<ProperOrthogonalDecomposition::OfflinePOD<dim>> pod_standard = std::make_shared<ProperOrthogonalDecomposition::OfflinePOD<dim>>(flow_solver_standard->dg);
-        flow_solver_standard->ode_solver =  PHiLiP::ODE::ODESolverFactory<dim, double>::create_ODESolver_manual(ode_solver_type, flow_solver_standard->dg, pod_standard);
-        flow_solver_standard->ode_solver->allocate_ode_system();
-        std::shared_ptr<DGBaseState<dim,nstate,double> > dg_state_standard = std::dynamic_pointer_cast< DGBaseState<dim,nstate,double>>(flow_solver_standard->dg);
-        auto functional_standard = BurgersRewienskiFunctional<dim,nstate,double>(flow_solver_standard->dg, dg_state_standard->pde_physics_fad_fad, true, false);
+        std::unique_ptr<FlowSolver<dim,nstate>> flow_solver = FlowSolverFactory<dim,nstate>::create_FlowSolver(&params, parameter_handler);
+        auto ode_solver_type = Parameters::ODESolverParam::ODESolverEnum::pod_petrov_galerkin_solver;
+        std::shared_ptr<ProperOrthogonalDecomposition::OfflinePOD<dim>> pod_standard = std::make_shared<ProperOrthogonalDecomposition::OfflinePOD<dim>>(flow_solver->dg);
+        flow_solver->ode_solver =  PHiLiP::ODE::ODESolverFactory<dim, double>::create_ODESolver_manual(ode_solver_type, flow_solver->dg, pod_standard);
+        flow_solver->ode_solver->allocate_ode_system();
+        auto functional = functionalFactory(flow_solver->dg);
 
         flow_solver_implicit->ode_solver->steady_state();
-        flow_solver_standard->ode_solver->steady_state();
+        flow_solver->ode_solver->steady_state();
 
-        dealii::LinearAlgebra::distributed::Vector<double> standard_solution(flow_solver_standard->dg->solution);
+        dealii::LinearAlgebra::distributed::Vector<double> standard_solution(flow_solver->dg->solution);
         dealii::LinearAlgebra::distributed::Vector<double> implicit_solution(flow_solver_implicit->dg->solution);
 
         double standard_error = ((standard_solution-=implicit_solution).l2_norm()/implicit_solution.l2_norm());
-        double standard_func_error = functional_standard.evaluate_functional(false,false) - functional_implicit.evaluate_functional(false,false);
+        double standard_func_error = functional->evaluate_functional(false,false) - functional_implicit->evaluate_functional(false,false);
 
-        pcout << "Standard error: " << standard_error << std::endl;
-        pcout << "Standard func error: " << std::setprecision(15)  << standard_func_error << std::setprecision(6) << std::endl;
+        pcout << "State error: " << std::setprecision(15) << standard_error << std::setprecision(6) << std::endl;
+        pcout << "Functional error: " << std::setprecision(15) << standard_func_error << std::setprecision(6) << std::endl;
 
-        data_table->add_value("Rewienski a", parameter(0));
-        data_table->add_value("Rewienski b", parameter(1));
-        data_table->add_value("FOM func", functional_implicit.evaluate_functional(false,false));
-        data_table->add_value("ROM func", functional_standard.evaluate_functional(false,false));
+        data_table->add_value("Parameter 1", parameter(0));
+        data_table->add_value("Parameter 2", parameter(1));
+        data_table->add_value("FOM func", functional_implicit->evaluate_functional(false,false));
+        data_table->add_value("ROM func", functional->evaluate_functional(false,false));
         data_table->add_value("Func error", standard_func_error);
         data_table->add_value("State error", standard_error);
 
-        data_table->set_precision("Rewienski a", 16);
-        data_table->set_precision("Rewienski b", 16);
+        data_table->set_precision("Parameter 1", 16);
+        data_table->set_precision("Parameter 2", 16);
         data_table->set_precision("FOM func", 16);
         data_table->set_precision("ROM func", 16);
         data_table->set_precision("Func error", 16);
@@ -182,18 +133,44 @@ Parameters::AllParameters AdaptiveSamplingTesting<dim, nstate>::reinitParams(Row
         parameters.burgers_param.rewienski_a = parameter(0);
         parameters.burgers_param.rewienski_b = parameter(1);
     }
+    else if (flow_type == FlowCaseEnum::naca0012){
+        const double pi = atan(1.0) * 4.0;
+        parameters.euler_param.mach_inf = parameter(0);
+        parameters.euler_param.angle_of_attack = parameter(1)*pi/180; //Convert to radians
+    }
     else{
-        std::cout << "Invalid flow case. You probably forgot to specify a flow case in the prm file." << std::endl;
+        this->pcout << "Invalid flow case. You probably forgot to specify a flow case in the prm file." << std::endl;
         std::abort();
     }
-
     return parameters;
 }
 
+template <int dim, int nstate>
+std::shared_ptr<Functional<dim,nstate,double>> AdaptiveSamplingTesting<dim, nstate>::functionalFactory(std::shared_ptr<DGBase<dim, double>> dg) const
+{
+    using FlowCaseEnum = Parameters::FlowSolverParam::FlowCaseType;
+    const FlowCaseEnum flow_type = this->all_parameters->flow_solver_param.flow_case_type;
+    if (flow_type == FlowCaseEnum::burgers_rewienski_snapshot){
+        if constexpr (dim==1 && nstate==dim){
+            std::shared_ptr< DGBaseState<dim,nstate,double>> dg_state = std::dynamic_pointer_cast< DGBaseState<dim,nstate,double>>(dg);
+            return std::make_shared<BurgersRewienskiFunctional<dim,nstate,double>>(dg,dg_state->pde_physics_fad_fad,true,false);
+        }
+    }
+    else if (flow_type == FlowCaseEnum::naca0012){
+        if constexpr (dim==2 && nstate==dim+2){
+            return std::make_shared<LiftDragFunctional<dim,nstate,double>>(dg, LiftDragFunctional<dim,nstate,double>::Functional_types::lift);
+        }
+    }
+    else{
+        this->pcout << "Invalid flow case. You probably forgot to specify a flow case in the prm file." << std::endl;
+        std::abort();
+    }
+    return nullptr;
+}
 
-#if PHILIP_DIM==1
-template class AdaptiveSamplingTesting<PHILIP_DIM,PHILIP_DIM>;
-#endif
+
+template class AdaptiveSamplingTesting<PHILIP_DIM, PHILIP_DIM>;
+template class AdaptiveSamplingTesting<PHILIP_DIM, PHILIP_DIM+2>;
 } // Tests namespace
 } // PHiLiP namespace
 

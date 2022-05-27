@@ -6,6 +6,7 @@
 #include "parameters/all_parameters.h"
 #include "functional/functional.h"
 #include <Eigen/Dense>
+#include "functional/lift_drag.hpp"
 
 namespace PHiLiP {
 namespace Tests {
@@ -33,6 +34,8 @@ public:
     const dealii::ParameterHandler &parameter_handler;
 
     void outputErrors(int iteration) const;
+
+    std::shared_ptr<Functional<dim,nstate,double>> functionalFactory(std::shared_ptr<DGBase<dim, double>> dg) const;
 };
 
 

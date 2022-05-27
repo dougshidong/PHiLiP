@@ -1,7 +1,7 @@
 # Listing of Parameters
 # ---------------------
 
-set test_type = flow_solver
+set test_type = adaptive_sampling_testing
 set dimension = 2
 set pde_type  = euler
 
@@ -47,9 +47,9 @@ end
 
 subsection ODE solver
   set output_solution_every_x_steps = 1
-  set nonlinear_max_iterations            = 2000
+  set nonlinear_max_iterations            = 20
   set nonlinear_steady_residual_tolerance = 1e-15
-  set ode_solver_type  = pod_petrov_galerkin
+  set ode_solver_type  = implicit
   set initial_time_step = 1e3
   set time_step_factor_residual = 15.0
   set time_step_factor_residual_exp = 2
@@ -66,7 +66,6 @@ subsection flow_solver
   set flow_case_type = naca0012
   set input_mesh_filename = naca0012_hopw_ref2
   set steady_state = true
-  set reduced_order = true
 end
 
 subsection reduced order

@@ -179,9 +179,9 @@ void PODPetrovGalerkinODESolver<dim,real,MeshType>::step_in_time (real /*dt*/, c
     Solver->NumericFactorization();
     Solver->Solve();
 
-    linesearch();
+    //linesearch();
 
-    /*
+
 
     this->pcout << "Reduced solution update norm: " << reduced_solution_update.l2_norm() << std::endl;
     //double l2norm;
@@ -234,7 +234,7 @@ void PODPetrovGalerkinODESolver<dim,real,MeshType>::step_in_time (real /*dt*/, c
     this->residual_norm = new_residual;
 
     ++(this->current_iteration);
-    */
+
     delete Solver;
 
 }

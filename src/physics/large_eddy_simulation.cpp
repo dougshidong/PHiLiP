@@ -799,7 +799,7 @@ real2 LargeEddySimulation_Vreman<dim,nstate,real>
     }
     
     // Get magnitude of velocity gradient tensor squared
-    const real2 velocity_gradient_tensor_magnitude_sqr = this->template get_tensor_magnitude_sqr<real2>(strain_rate_tensor);
+    const real2 velocity_gradient_tensor_magnitude_sqr = this->template get_tensor_magnitude_sqr<real2>(vel_gradient);
     
     // Compute the eddy viscosity
     // -- Initialize as zero

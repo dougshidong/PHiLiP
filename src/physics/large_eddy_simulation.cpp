@@ -812,7 +812,7 @@ real2 LargeEddySimulation_Vreman<dim,nstate,real>
          *  Or equivalently, update it from its zero initialization only if there is turbulence.
         */
         // Reference: Vreman (2004) - Equation (5)
-        eddy_viscosity = model_constant*sqrt(B/velocity_gradient_tensor_magnitude_sqr);
+        eddy_viscosity = this->model_constant*sqrt(B/velocity_gradient_tensor_magnitude_sqr);
     }
 
     return eddy_viscosity;

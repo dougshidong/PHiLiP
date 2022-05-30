@@ -290,6 +290,7 @@ void print_sub_grid_scale_model_type(const SGSModelType sgs_model)
     // assign SGS model string
     if     (sgs_model==SGSModelType::smagorinsky) sgs_model_string = "smagorinsky";
     else if(sgs_model==SGSModelType::wall_adaptive_local_eddy_viscosity) sgs_model_string = "wall_adaptive_local_eddy_viscosity";
+    else if(sgs_model==SGSModelType::vreman) sgs_model_string = "vreman";
     
     // print SGS model type
     std::cout << "- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - " << std::endl;
@@ -321,7 +322,8 @@ int main (int argc, char * argv[])
 
     const std::vector<SGSModelType> sgs_model_type {
         SGSModelType::smagorinsky,
-        SGSModelType::wall_adaptive_local_eddy_viscosity
+        SGSModelType::wall_adaptive_local_eddy_viscosity,
+        SGSModelType::vreman
     };
 
     std::vector<ConvType> conv_type {

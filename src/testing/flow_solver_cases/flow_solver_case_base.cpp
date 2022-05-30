@@ -46,6 +46,7 @@ std::string FlowSolverCaseBase<dim, nstate>::get_pde_string() const
             // assign SGS model string
             if     (sgs_model==SGSModel_enum::smagorinsky) sgs_model_string = "smagorinsky";
             else if(sgs_model==SGSModel_enum::wall_adaptive_local_eddy_viscosity) sgs_model_string = "wall_adaptive_local_eddy_viscosity";
+            else if(sgs_model==SGSModel_enum::vreman) sgs_model_string = "vreman";
             pde_string += std::string(" (Model: ") + model_string + std::string(", SGS Model: ") + sgs_model_string + std::string(")");
         }
         if(pde_string == "physics_model") pde_string += std::string(" (Model: ") + model_string + std::string(")");

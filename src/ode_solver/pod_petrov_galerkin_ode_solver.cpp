@@ -205,12 +205,14 @@ void PODPetrovGalerkinODESolver<dim,real,MeshType>::step_in_time (real /*dt*/, c
     this->dg->assemble_residual();
     epetra_petrov_galerkin_basis.Multiply(true, epetra_right_hand_side, epetra_reduced_rhs);
     double new_residual;
-    epetra_reduced_rhs.Norm2(&new_residual);
+    //epetra_reduced_rhs.Norm2(&new_residual);
+    new_residual = this->dg->get_reduced_residual_l2norm(epetra_petrov_galerkin_basis);
 
     //double reduced_l2norm = this->dg->get_reduced_residual_l2norm(epetra_petrov_galerkin_basis);
     //this->pcout << "Reduced l2norm: " << reduced_l2norm << std::endl;
     this->pcout << " Step length " << step_length << ". Old residual: " << initial_residual << " New residual: " << new_residual << std::endl;
-    this->pcout << "Residual l2norm: " << this->dg->get_residual_l2norm() << std::endl;
+    this->pcout << "Full-order residual norm: " << this->dg->get_residual_l2norm() << std::endl;
+    this->pcout << "dg->right_hand_side l2 norm: " << this->dg->right_hand_side.l2_norm() << std::endl;
 
     int iline = 0;
     for (iline = 0; iline < maxline && new_residual > initial_residual * reduction_tolerance_1; ++iline) {
@@ -221,12 +223,14 @@ void PODPetrovGalerkinODESolver<dim,real,MeshType>::step_in_time (real /*dt*/, c
         this->dg->solution += reference_solution;
         this->dg->assemble_residual();
         epetra_petrov_galerkin_basis.Multiply(true, epetra_right_hand_side, epetra_reduced_rhs);
-        epetra_reduced_rhs.Norm2(&new_residual);
+        //epetra_reduced_rhs.Norm2(&new_residual);
+        new_residual = this->dg->get_reduced_residual_l2norm(epetra_petrov_galerkin_basis);
         //epetra_reduced_rhs.Print(std::cout);
         this->pcout << " Step length " << step_length << " . Old residual: " << initial_residual << " New residual: " << new_residual << std::endl;
         //reduced_l2norm = this->dg->get_reduced_residual_l2norm(epetra_petrov_galerkin_basis);
         //this->pcout << "Reduced l2norm: " << reduced_l2norm << std::endl;
-        this->pcout << "Residual l2norm: " << this->dg->get_residual_l2norm() << std::endl;
+        this->pcout << "Full-order residual norm: " << this->dg->get_residual_l2norm() << std::endl;
+        this->pcout << "dg->right_hand_side l2 norm: " << this->dg->right_hand_side.l2_norm() << std::endl;
     }
     if (iline == 0) this->CFL_factor *= 2.0;
     if (iline == maxline) this->CFL_factor *= 0.5;

@@ -1419,6 +1419,7 @@ double DGBase<dim,real,MeshType>::get_residual_linfnorm () const
 template <int dim, typename real, typename MeshType>
 double DGBase<dim,real,MeshType>::get_residual_l2norm () const
 {
+
     //return get_residual_linfnorm ();
     //return right_hand_side.l2_norm();
     //return right_hand_side.l2_norm() / right_hand_side.size();
@@ -1426,6 +1427,7 @@ double DGBase<dim,real,MeshType>::get_residual_l2norm () const
     //global_mass_matrix.vmult(scaled_residual, right_hand_side);
     //return scaled_residual.l2_norm();
     //pcout << "Evaluating residual L2-norm..." << std::endl;
+
     const auto mapping = (*(high_order_grid->mapping_fe_field));
     dealii::hp::MappingCollection<dim> mapping_collection(mapping);
 
@@ -1470,15 +1472,42 @@ double DGBase<dim,real,MeshType>::get_residual_l2norm () const
     const double mpi_residual_l2_norm = dealii::Utilities::MPI::sum(residual_l2_norm, mpi_communicator);
     const double mpi_domain_volume    = dealii::Utilities::MPI::sum(domain_volume, mpi_communicator);
     return std::sqrt(mpi_residual_l2_norm) / mpi_domain_volume;
+
+    /*
+    dealii::LinearAlgebra::distributed::Vector<double> residual(right_hand_side);
+    // Obtain the mapping from local dof indices to global dof indices
+    for (const auto cell : dof_handler.active_cell_iterators()) {
+        if (!cell->is_locally_owned()) continue;
+
+        const int i_fele = cell->active_fe_index();
+        const int i_quad = i_fele;
+        const int i_mapp = 0;
+
+        fe_values_collection_volume.reinit (cell, i_quad, i_mapp, i_fele);
+        const dealii::FEValues<dim,dim> &fe_values_vol = fe_values_collection_volume.get_present_fe_values();
+
+        const dealii::FESystem<dim,dim> &fe_ref = fe_collection[i_fele];
+        const unsigned int n_dofs = fe_ref.n_dofs_per_cell();
+        const unsigned int n_quad = fe_values_vol.n_quadrature_points;
+
+        dofs_indices.resize(n_dofs);
+        cell->get_dof_indices (dofs_indices);
+
+        for (unsigned int iquad = 0; iquad < n_quad; ++iquad) {
+            for (unsigned int idof = 0; idof < n_dofs; ++idof) {
+                const unsigned int istate = fe_values_vol.get_fe().system_to_component_index(idof).first;
+                residual[dofs_indices[idof]] = pow(right_hand_side[dofs_indices[idof]] * fe_values_vol.shape_value_component(idof, iquad, istate), 2) * fe_values_vol.JxW(iquad);
+            }
+            domain_volume += fe_values_vol.JxW(iquad);
+        }
+    }
+    pcout << "new method " << (std::sqrt(residual.l1_norm()) / mpi_domain_volume) << std::endl;
+    return std::sqrt(residual.l1_norm()) / mpi_domain_volume;
+     */
 }
 
 template <int dim, typename real, typename MeshType>
 double DGBase<dim,real,MeshType>::get_reduced_residual_l2norm (Epetra_CrsMatrix epetra_basis) const {
-    dealii::TrilinosWrappers::SparseMatrix basis;
-    basis.reinit(epetra_basis);
-
-    //dealii::LinearAlgebra::distributed::Vector<double> scaled_right_hand_side(right_hand_side);
-    //scaled_right_hand_side*=0;
 
     const auto mapping = (*(high_order_grid->mapping_fe_field));
     dealii::hp::MappingCollection<dim> mapping_collection(mapping);
@@ -1514,175 +1543,29 @@ double DGBase<dim,real,MeshType>::get_reduced_residual_l2norm (Epetra_CrsMatrix 
         for (unsigned int iquad = 0; iquad < n_quad; ++iquad) {
             for (unsigned int idof = 0; idof < n_dofs; ++idof) {
                 const unsigned int istate = fe_values_vol.get_fe().system_to_component_index(idof).first;
-                residual[dofs_indices[idof]] += right_hand_side[dofs_indices[idof]] * fe_values_vol.shape_value_component(idof, iquad, istate);
+                //residual[dofs_indices[idof]] = pow(right_hand_side[dofs_indices[idof]] * fe_values_vol.shape_value_component(idof, iquad, istate), 2) * fe_values_vol.JxW(iquad);
+                residual[dofs_indices[idof]] = right_hand_side[dofs_indices[idof]] * fe_values_vol.shape_value_component(idof, iquad, istate);
+
             }
             domain_volume += fe_values_vol.JxW(iquad);
         }
     }
 
     //double mpi_domain_volume = dealii::Utilities::MPI::sum(domain_volume, mpi_communicator);
+
     //residual /= mpi_domain_volume;
+    residual /= residual.size();
 
     Epetra_Vector epetra_residual(Epetra_DataAccess::View, epetra_basis.RangeMap(), residual.begin());
 
     Epetra_Vector epetra_reduced_rhs(epetra_basis.DomainMap());
     epetra_basis.Multiply(true, epetra_residual, epetra_reduced_rhs);
 
-    epetra_reduced_rhs.Print(std::cout);
-
+    //return reduced_l2norm;
     double reduced_l2norm;
     epetra_reduced_rhs.Norm2(&reduced_l2norm);
-    pcout << "reduced rhs norm 1: " << reduced_l2norm << std::endl;
-
-    dealii::LinearAlgebra::distributed::Vector<double> rhs(right_hand_side);
-    Epetra_Vector epetra_right_hand_side(Epetra_DataAccess::View, epetra_basis.RangeMap(), rhs.begin());
-    epetra_basis.Multiply(true, epetra_right_hand_side, epetra_reduced_rhs);
-    epetra_reduced_rhs.Norm2(&reduced_l2norm);
-    pcout << "reduced rhs norm 2: " << reduced_l2norm << std::endl;
-
-    return reduced_l2norm;
-    /*
-    dealii::TrilinosWrappers::SparseMatrix basis;
-    basis.reinit(epetra_basis);
-
-    //dealii::LinearAlgebra::distributed::Vector<double> scaled_right_hand_side(right_hand_side);
-    //scaled_right_hand_side*=0;
-
-    const auto mapping = (*(high_order_grid->mapping_fe_field));
-    dealii::hp::MappingCollection<dim> mapping_collection(mapping);
-
-    std::vector<dealii::types::global_dof_index> dofs_indices;
-    const dealii::UpdateFlags update_flags = dealii::update_values | dealii::update_JxW_values;
-    dealii::hp::FEValues<dim, dim> fe_values_collection_volume(mapping_collection,
-                                                               fe_collection,
-                                                               volume_quadrature_collection,
-                                                               update_flags);
-    std::vector<double> domain_volume(basis.n());
-    std::vector<double> residual_l2_norm(basis.n());
-
-    // Obtain the mapping from local dof indices to global dof indices
-    for (const auto cell: dof_handler.active_cell_iterators()) {
-        if (!cell->is_locally_owned()) continue;
-
-        const int i_fele = cell->active_fe_index();
-        const int i_quad = i_fele;
-        const int i_mapp = 0;
-
-        fe_values_collection_volume.reinit(cell, i_quad, i_mapp, i_fele);
-        const dealii::FEValues<dim, dim> &fe_values_vol = fe_values_collection_volume.get_present_fe_values();
-
-        const dealii::FESystem<dim, dim> &fe_ref = fe_collection[i_fele];
-        const unsigned int n_dofs = fe_ref.n_dofs_per_cell();
-        const unsigned int n_quad = fe_values_vol.n_quadrature_points;
-
-        dofs_indices.resize(n_dofs);
-        cell->get_dof_indices(dofs_indices);
-
-        for (unsigned int basis_function = 0; basis_function < basis.n(); ++basis_function) {
-            for (unsigned int iquad = 0; iquad < n_quad; ++iquad) {
-                double residual_val = 0.0;
-                for (unsigned int idof = 0; idof < n_dofs; ++idof) {
-                    const unsigned int istate = fe_values_vol.get_fe().system_to_component_index(idof).first;
-                    residual_val += basis.el(dofs_indices[idof], basis_function) * right_hand_side[dofs_indices[idof]] *
-                                    fe_values_vol.shape_value_component(idof, iquad, istate);
-                }
-                residual_l2_norm[basis_function] += residual_val * fe_values_vol.JxW(iquad);
-                domain_volume[basis_function] += fe_values_vol.JxW(iquad);
-            }
-        }
-    }
-
-    double mpi_domain_volume    = dealii::Utilities::MPI::sum(domain_volume[0], mpi_communicator);
-
-    std::vector<double> reduced_vector(basis.n());
-    for (unsigned int basis_function = 0; basis_function < basis.n(); ++basis_function) {
-        reduced_vector[basis_function] = dealii::Utilities::MPI::sum(residual_l2_norm[basis_function], mpi_communicator)/mpi_domain_volume;
-        pcout << "element: " << basis_function << " " << reduced_vector[basis_function] << std::endl;
-    }
-
-    double mpi_l2_norm = 0;
-    for (unsigned int basis_function = 0; basis_function < basis.n(); ++basis_function) {
-        mpi_l2_norm += reduced_vector[basis_function] * reduced_vector[basis_function];
-    }
-
-    return std::sqrt(mpi_l2_norm);
-    */
-    /*
-    dealii::TrilinosWrappers::SparseMatrix basis;
-    basis.reinit(epetra_basis);
-
-    dealii::LinearAlgebra::distributed::Vector<double> scaled_right_hand_side(right_hand_side);
-    scaled_right_hand_side*=0;
-
-    const auto mapping = (*(high_order_grid->mapping_fe_field));
-    dealii::hp::MappingCollection<dim> mapping_collection(mapping);
-
-    std::vector<dealii::types::global_dof_index> dofs_indices;
-    const dealii::UpdateFlags update_flags = dealii::update_values | dealii::update_JxW_values;
-    dealii::hp::FEValues<dim, dim> fe_values_collection_volume(mapping_collection,
-                                                               fe_collection,
-                                                               volume_quadrature_collection,
-                                                               update_flags);
-    double domain_volume = 0;
-
-    for (const auto cell: dof_handler.active_cell_iterators()) {
-        if (!cell->is_locally_owned()) continue;
-
-        const int i_fele = cell->active_fe_index();
-        const int i_quad = i_fele;
-        const int i_mapp = 0;
-
-        fe_values_collection_volume.reinit(cell, i_quad, i_mapp, i_fele);
-        const dealii::FEValues<dim, dim> &fe_values_vol = fe_values_collection_volume.get_present_fe_values();
-
-        const dealii::FESystem<dim, dim> &fe_ref = fe_collection[i_fele];
-        const unsigned int n_dofs = fe_ref.n_dofs_per_cell();
-        const unsigned int n_quad = fe_values_vol.n_quadrature_points;
-
-        dofs_indices.resize(n_dofs);
-        cell->get_dof_indices(dofs_indices);
-
-        double cell_vol = 0.0;
-        for (unsigned int iquad = 0; iquad < n_quad; ++iquad) {
-            cell_vol += fe_values_vol.JxW(iquad);
-        }
-        domain_volume += cell_vol;
-
-        for (unsigned int idof = 0; idof < n_dofs; ++idof) {
-            scaled_right_hand_side[dofs_indices[idof]] = right_hand_side[dofs_indices[idof]];
-        }
-    }
-
-    //double avg_cell_volume = dealii::Utilities::MPI::sum(domain_volume, mpi_communicator)/triangulation->n_global_active_cells();
-
-    //scaled_right_hand_side /= avg_cell_volume;
-
-    Epetra_Vector epetra_scaled_right_hand_side(Epetra_DataAccess::View, epetra_basis.RangeMap(), scaled_right_hand_side.begin());
-
-    double full_scaled_rhs_norm;
-    epetra_scaled_right_hand_side.Norm2(&full_scaled_rhs_norm);
-    pcout << "epetra_scaled_right_hand_side norm: " << full_scaled_rhs_norm << std::endl;
-    pcout << "epetra_right_hand_side norm: " << right_hand_side.l2_norm() << std::endl;
-
-    Epetra_Vector epetra_reduced_rhs(epetra_basis.DomainMap());
-    epetra_basis.Multiply(true, epetra_scaled_right_hand_side, epetra_reduced_rhs);
-
     epetra_reduced_rhs.Print(std::cout);
-
-    double reduced_l2norm;
-    epetra_reduced_rhs.Norm2(&reduced_l2norm);
-    pcout << "scaled reduced rhs norm: " << reduced_l2norm << std::endl;
-
-    dealii::LinearAlgebra::distributed::Vector<double> rhs(right_hand_side);
-    Epetra_Vector epetra_right_hand_side(Epetra_DataAccess::View, epetra_basis.RangeMap(), rhs.begin());
-    epetra_basis.Multiply(true, epetra_right_hand_side, epetra_reduced_rhs);
-    epetra_reduced_rhs.Norm2(&reduced_l2norm);
-    pcout << "reduced rhs norm: " << reduced_l2norm << std::endl;
-
-    pcout << "scaled rhs norm: " << reduced_l2norm << std::endl;
-
     return reduced_l2norm;
-    */
 }
 
 template <int dim, typename real, typename MeshType>

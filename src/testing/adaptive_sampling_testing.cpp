@@ -60,8 +60,9 @@ int AdaptiveSamplingTesting<dim, nstate>::run_test() const
                           0.065,
                           0.088
                           }};
-
     */
+
+
     RowVectorXd params_1 {{0.7, 0.82
                           }};
     RowVectorXd params_2 {{3, 3.3

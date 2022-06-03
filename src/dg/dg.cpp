@@ -1509,6 +1509,9 @@ double DGBase<dim,real,MeshType>::get_residual_l2norm () const
 template <int dim, typename real, typename MeshType>
 double DGBase<dim,real,MeshType>::get_reduced_residual_l2norm (Epetra_CrsMatrix epetra_basis) const {
 
+    dealii::TrilinosWrappers::SparseMatrix basis;
+    basis.reinit(epetra_basis);
+
     const auto mapping = (*(high_order_grid->mapping_fe_field));
     dealii::hp::MappingCollection<dim> mapping_collection(mapping);
 
@@ -1542,29 +1545,43 @@ double DGBase<dim,real,MeshType>::get_reduced_residual_l2norm (Epetra_CrsMatrix 
 
         for (unsigned int iquad = 0; iquad < n_quad; ++iquad) {
             for (unsigned int idof = 0; idof < n_dofs; ++idof) {
-                const unsigned int istate = fe_values_vol.get_fe().system_to_component_index(idof).first;
+                //const unsigned int istate = fe_values_vol.get_fe().system_to_component_index(idof).first;
                 //residual[dofs_indices[idof]] = pow(right_hand_side[dofs_indices[idof]] * fe_values_vol.shape_value_component(idof, iquad, istate), 2) * fe_values_vol.JxW(iquad);
-                residual[dofs_indices[idof]] = right_hand_side[dofs_indices[idof]] * fe_values_vol.shape_value_component(idof, iquad, istate);
-
+                //residual[dofs_indices[idof]] = right_hand_side[dofs_indices[idof]] * fe_values_vol.shape_value_component(idof, iquad, istate);
+                residual[dofs_indices[idof]] = right_hand_side[dofs_indices[idof]];
             }
             domain_volume += fe_values_vol.JxW(iquad);
+        }
+    }
+
+    std::vector<double> basis_function_magnitude(basis.n());
+    for (unsigned int basis_function = 0; basis_function < basis.n(); ++basis_function) {
+        for (unsigned int element = 0; element < basis.m(); ++element) {
+            basis_function_magnitude[basis_function] += dealii::Utilities::MPI::sum(basis(element, basis_function)*basis(element, basis_function), mpi_communicator);
         }
     }
 
     //double mpi_domain_volume = dealii::Utilities::MPI::sum(domain_volume, mpi_communicator);
 
     //residual /= mpi_domain_volume;
-    residual /= residual.size();
+    //residual /= residual.size();
+    //residual /= mpi_domain_volume;
 
     Epetra_Vector epetra_residual(Epetra_DataAccess::View, epetra_basis.RangeMap(), residual.begin());
 
     Epetra_Vector epetra_reduced_rhs(epetra_basis.DomainMap());
     epetra_basis.Multiply(true, epetra_residual, epetra_reduced_rhs);
 
+    //for (unsigned int basis_function = 0; basis_function < basis.n(); ++basis_function) {
+    //    pcout << basis_function_magnitude[basis_function] << std::endl;
+    //    epetra_reduced_rhs[basis_function] = epetra_reduced_rhs[basis_function] / basis_function_magnitude[basis_function];
+    //}
+
     //return reduced_l2norm;
     double reduced_l2norm;
     epetra_reduced_rhs.Norm2(&reduced_l2norm);
     epetra_reduced_rhs.Print(std::cout);
+    reduced_l2norm /= residual.size();
     return reduced_l2norm;
 }
 

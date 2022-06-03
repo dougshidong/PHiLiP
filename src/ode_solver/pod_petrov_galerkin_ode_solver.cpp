@@ -315,7 +315,7 @@ void PODPetrovGalerkinODESolver<dim,real,MeshType>::allocate_ode_system ()
     initial_condition_projected += reference_solution;
     this->dg->solution = initial_condition_projected;
 
-    epetra_projection_tmp.Print(std::cout);
+    //epetra_projection_tmp.Print(std::cout);
 
     reduced_solution_update.reinit(pod->getPODBasis()->n());
     reduced_solution_update *= 0;

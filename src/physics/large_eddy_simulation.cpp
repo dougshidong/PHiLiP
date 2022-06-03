@@ -771,8 +771,7 @@ real2 LargeEddySimulation_Vreman<dim,nstate,real>
     // Compute the filter width for the cell
     const double filter_width = this->get_filter_width(cell_index);
     
-    /** Get beta tensor which is propo tensor, i.e. $\bm{S}^{d}$
-     *  Reference: Vreman (2004) - Equation (7)
+    /** Reference: Vreman (2004) - Equation (7)
      */
     // -- Compute $\bm{beta}$
     dealii::Tensor<2,dim,real2> beta_tensor;

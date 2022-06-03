@@ -787,32 +787,32 @@ real2 LargeEddySimulation_Vreman<dim,nstate,real>
             beta_tensor[i][j] = filter_width*filter_width*val; // for isotropic filter width
         }
     }
-    // Reference: Vreman (2004) - Equation (8)
-    real2 B;if(std::is_same<real2,real>::value){B = 0.0;}
+    // Reference: Vreman (2004) - Equation (8) - $B_{\beta}$ (determinant of beta tensor -- symmetrical)
+    real2 beta_tensor_determinant;if(std::is_same<real2,real>::value){beta_tensor_determinant = 0.0;}
     if constexpr(dim>1){
-        B = beta_tensor[0][0]*beta_tensor[1][1] - beta_tensor[0][1]*beta_tensor[0][1];
+        beta_tensor_determinant = beta_tensor[0][0]*beta_tensor[1][1] - beta_tensor[0][1]*beta_tensor[0][1];
     }
     if constexpr(dim==3){
         for (int i=0; i<2; ++i) {
-            B += beta_tensor[i][i]*beta_tensor[2][2] - beta_tensor[i][2]*beta_tensor[i][2];
+            beta_tensor_determinant += beta_tensor[i][i]*beta_tensor[2][2] - beta_tensor[i][2]*beta_tensor[i][2];
         }
     }
     
     // Get magnitude of velocity gradient tensor squared
     const real2 velocity_gradient_tensor_magnitude_sqr = this->template get_tensor_magnitude_sqr<real2>(vel_gradient);
-    
     // Compute the eddy viscosity
     // -- Initialize as zero
     real2 eddy_viscosity;if(std::is_same<real2,real>::value){eddy_viscosity = 0.0;}
-    if(velocity_gradient_tensor_magnitude_sqr != 0.0) {
+    if((velocity_gradient_tensor_magnitude_sqr !=0.0) && (beta_tensor_determinant >= 0.0)) {
         /** Eddy viscosity is zero in the absence of turbulent fluctuations, 
-         *  i.e. zero strain rate and zero rotation rate. See Vreman (2004). 
+         *  i.e. zero strain rate and zero rotation rate, 
+         *  also B is positive-semidefinite (i.e. beta_tensor_determinant>=0). See Vreman (2004). 
          *  Since the denominator in this eddy viscosity model will go to zero, 
          *  we must explicitly set the eddy viscosity to zero to avoid a division by zero.
          *  Or equivalently, update it from its zero initialization only if there is turbulence.
         */
         // Reference: Vreman (2004) - Equation (5)
-        eddy_viscosity = this->model_constant*sqrt(B/velocity_gradient_tensor_magnitude_sqr);
+        eddy_viscosity = this->model_constant*sqrt(beta_tensor_determinant/velocity_gradient_tensor_magnitude_sqr);
     }
 
     return eddy_viscosity;

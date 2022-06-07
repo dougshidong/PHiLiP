@@ -322,45 +322,26 @@ void DGBaseState<dim,nstate,real,MeshType>::allocate_model_variables()
 {
     // allocate all model variables for each ModelBase object
     // -- double
-    pde_model_double->cellwise_poly_degree.reinit(0);
-    pde_model_double->cellwise_volume.reinit(0);
-    pde_model_double->cellwise_poly_degree.reinit(this->triangulation->n_active_cells());
-    pde_model_double->cellwise_volume.reinit(this->triangulation->n_active_cells());
-    pde_model_double->cellwise_volume_distVec.reinit(this->triangulation->n_active_cells(), this->mpi_communicator);
+    pde_model_double->cellwise_poly_degree.reinit(this->triangulation->n_active_cells(), this->mpi_communicator);
+    pde_model_double->cellwise_volume.reinit(this->triangulation->n_active_cells(), this->mpi_communicator);
     // -- FadType
-    pde_model_fad->cellwise_poly_degree.reinit(0);
-    pde_model_fad->cellwise_volume.reinit(0);
-    pde_model_fad->cellwise_poly_degree.reinit(this->triangulation->n_active_cells());
-    pde_model_fad->cellwise_volume.reinit(this->triangulation->n_active_cells());
-    pde_model_fad->cellwise_volume_distVec.reinit(this->triangulation->n_active_cells(), this->mpi_communicator);
+    pde_model_fad->cellwise_poly_degree.reinit(this->triangulation->n_active_cells(), this->mpi_communicator);
+    pde_model_fad->cellwise_volume.reinit(this->triangulation->n_active_cells(), this->mpi_communicator);
     // -- RadType
-    pde_model_rad->cellwise_poly_degree.reinit(0);
-    pde_model_rad->cellwise_volume.reinit(0);
-    pde_model_rad->cellwise_poly_degree.reinit(this->triangulation->n_active_cells());
-    pde_model_rad->cellwise_volume.reinit(this->triangulation->n_active_cells());
-    pde_model_rad->cellwise_volume_distVec.reinit(this->triangulation->n_active_cells(), this->mpi_communicator);
+    pde_model_rad->cellwise_poly_degree.reinit(this->triangulation->n_active_cells(), this->mpi_communicator);
+    pde_model_rad->cellwise_volume.reinit(this->triangulation->n_active_cells(), this->mpi_communicator);
     // -- FadFadType
-    pde_model_fad_fad->cellwise_poly_degree.reinit(0);
-    pde_model_fad_fad->cellwise_volume.reinit(0);
-    pde_model_fad_fad->cellwise_poly_degree.reinit(this->triangulation->n_active_cells());
-    pde_model_fad_fad->cellwise_volume.reinit(this->triangulation->n_active_cells());
-    pde_model_fad_fad->cellwise_volume_distVec.reinit(this->triangulation->n_active_cells(), this->mpi_communicator);
+    pde_model_fad_fad->cellwise_poly_degree.reinit(this->triangulation->n_active_cells(), this->mpi_communicator);
+    pde_model_fad_fad->cellwise_volume.reinit(this->triangulation->n_active_cells(), this->mpi_communicator);
     // -- RadRadType
-    pde_model_rad_fad->cellwise_poly_degree.reinit(0);
-    pde_model_rad_fad->cellwise_volume.reinit(0);
-    pde_model_rad_fad->cellwise_poly_degree.reinit(this->triangulation->n_active_cells());
-    pde_model_rad_fad->cellwise_volume.reinit(this->triangulation->n_active_cells());
-    pde_model_rad_fad->cellwise_volume_distVec.reinit(this->triangulation->n_active_cells(), this->mpi_communicator);
+    pde_model_rad_fad->cellwise_poly_degree.reinit(this->triangulation->n_active_cells(), this->mpi_communicator);
+    pde_model_rad_fad->cellwise_volume.reinit(this->triangulation->n_active_cells(), this->mpi_communicator);
 }
 
 template <int dim, int nstate, typename real, typename MeshType>
 void DGBaseState<dim,nstate,real,MeshType>::update_model_variables()
 {
-    /** Future work: May need to modify this so that it includes ghost cells,
-     *  by using distributed vectors for the model variables, similar to how it is 
-     *  done for dg->solution; a global vector           
-     * */
-
+    // allocate/reinit the model variables
     allocate_model_variables();
 
     // get FEValues of volume
@@ -395,7 +376,7 @@ void DGBaseState<dim,nstate,real,MeshType>::update_model_variables()
         for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
             cell_volume_estimate = cell_volume_estimate + JxW[iquad];
         }
-        const real cell_volume = cell_volume_estimate; // TO DO: This might give an error since cell_volume has different real type given the pde_model_realtype
+        const real cell_volume = cell_volume_estimate;
         
         // get cell index for assignment
         const dealii::types::global_dof_index cell_index = cell->active_cell_index();
@@ -405,24 +386,29 @@ void DGBaseState<dim,nstate,real,MeshType>::update_model_variables()
         // -- double
         pde_model_double->cellwise_poly_degree[cell_index] = cell_poly_degree;
         pde_model_double->cellwise_volume[cell_index] = cell_volume;
-        pde_model_double->cellwise_volume_distVec[cell_index] = cell_volume;
         // -- FadType
         pde_model_fad->cellwise_poly_degree[cell_index] = cell_poly_degree;
         pde_model_fad->cellwise_volume[cell_index] = cell_volume;
-        pde_model_fad->cellwise_volume_distVec[cell_index] = cell_volume;
         // -- RadType
         pde_model_rad->cellwise_poly_degree[cell_index] = cell_poly_degree;
         pde_model_rad->cellwise_volume[cell_index] = cell_volume;
-        pde_model_rad->cellwise_volume_distVec[cell_index] = cell_volume;
         // -- FadFadType
         pde_model_fad_fad->cellwise_poly_degree[cell_index] = cell_poly_degree;
         pde_model_fad_fad->cellwise_volume[cell_index] = cell_volume;
-        pde_model_fad_fad->cellwise_volume_distVec[cell_index] = cell_volume;
         // -- RadRadType
         pde_model_rad_fad->cellwise_poly_degree[cell_index] = cell_poly_degree;
         pde_model_rad_fad->cellwise_volume[cell_index] = cell_volume;
-        pde_model_rad_fad->cellwise_volume_distVec[cell_index] = cell_volume;
     }
+    pde_model_double->cellwise_poly_degree.update_ghost_values();
+    pde_model_double->cellwise_volume.update_ghost_values();
+    pde_model_fad->cellwise_poly_degree.update_ghost_values();
+    pde_model_fad->cellwise_volume.update_ghost_values();
+    pde_model_rad->cellwise_poly_degree.update_ghost_values();
+    pde_model_rad->cellwise_volume.update_ghost_values();
+    pde_model_fad_fad->cellwise_poly_degree.update_ghost_values();
+    pde_model_fad_fad->cellwise_volume.update_ghost_values();
+    pde_model_rad_fad->cellwise_poly_degree.update_ghost_values();
+    pde_model_rad_fad->cellwise_volume.update_ghost_values();
 }
 
 template <int dim, int nstate, typename real, typename MeshType>

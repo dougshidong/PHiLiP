@@ -148,7 +148,6 @@ double LargeEddySimulationBase<dim,nstate,real>
     double filter_width = cell_volume;
     for(int i=0; i<dim; ++i) {
         filter_width /= (cell_poly_degree+1);
-        // Note: int will get implicitly casted as double in the division operation
     }
     // Resize given the ratio of filter width to cell size
     filter_width *= ratio_of_filter_width_to_cell_size;

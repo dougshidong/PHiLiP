@@ -15,7 +15,7 @@
 
 namespace PHiLiP {
 
-namespace Tests {
+namespace FlowSolver {
 
 template <int dim, int nstate>
 BurgersRewienskiSnapshot<dim, nstate>::BurgersRewienskiSnapshot(const PHiLiP::Parameters::AllParameters *const parameters_input)
@@ -131,5 +131,5 @@ void BurgersRewienskiSnapshot<dim, nstate>::steady_state_postprocessing(std::sha
 template class BurgersRewienskiSnapshot<PHILIP_DIM,PHILIP_DIM>;
 #endif
 
-} // Tests namespace
+} // FlowSolver namespace
 } // PHiLiP namespace

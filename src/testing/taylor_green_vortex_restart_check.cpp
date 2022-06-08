@@ -1,6 +1,6 @@
 #include "taylor_green_vortex_restart_check.h"
-#include "flow_solver.h"
-#include "flow_solver_cases/periodic_turbulence.h"
+#include "flow_solver/flow_solver.h"
+#include "flow_solver/flow_solver_cases/periodic_turbulence.h"
 #include <deal.II/base/table_handler.h>
 #include <algorithm>
 #include <iterator>
@@ -83,8 +83,8 @@ int TaylorGreenVortexRestartCheck<dim, nstate>::run_test() const
     Parameters::AllParameters params_restart_to_complete_run = reinit_params(false,true,time_at_which_the_run_is_complete,time_at_which_we_stop_the_run,initial_iteration_restart,0.0,restart_file_index);
 
     // Integrate to time at which we stop the run
-    std::unique_ptr<FlowSolver<dim,nstate>> flow_solver_incomplete_run = FlowSolverFactory<dim,nstate>::create_FlowSolver(&params_incomplete_run, parameter_handler);
-    static_cast<void>(flow_solver_incomplete_run->run_test());
+    std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver_incomplete_run = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(&params_incomplete_run, parameter_handler);
+    static_cast<void>(flow_solver_incomplete_run->run());
 
     // INLINE SUB-TEST: Check whether the initialize_data_table_from_file() function in flow solver is working correctly
     if(this->mpi_rank==0) {
@@ -106,11 +106,11 @@ int TaylorGreenVortexRestartCheck<dim, nstate>::run_test() const
     } // END
 
     // Integrate to final time by restarting from where we stopped
-    std::unique_ptr<FlowSolver<dim,nstate>> flow_solver_restart_to_complete_run = FlowSolverFactory<dim,nstate>::create_FlowSolver(&params_restart_to_complete_run, parameter_handler);
-    static_cast<void>(flow_solver_restart_to_complete_run->run_test());
+    std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver_restart_to_complete_run = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(&params_restart_to_complete_run, parameter_handler);
+    static_cast<void>(flow_solver_restart_to_complete_run->run());
 
     // Compute kinetic energy at final time achieved by restarting the computation
-    std::unique_ptr<PeriodicTurbulence<dim, nstate>> flow_solver_case = std::make_unique<PeriodicTurbulence<dim,nstate>>(this->all_parameters);
+    std::unique_ptr<FlowSolver::PeriodicTurbulence<dim, nstate>> flow_solver_case = std::make_unique<FlowSolver::PeriodicTurbulence<dim,nstate>>(this->all_parameters);
     flow_solver_case->compute_and_update_integrated_quantities(*(flow_solver_restart_to_complete_run->dg));
     const double kinetic_energy_computed = flow_solver_case->get_integrated_kinetic_energy();
 

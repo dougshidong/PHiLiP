@@ -1,6 +1,6 @@
 #include "taylor_green_vortex_energy_check.h"
-#include "flow_solver.h"
-#include "flow_solver_cases/periodic_turbulence.h"
+#include "flow_solver/flow_solver.h"
+#include "flow_solver/flow_solver_cases/periodic_turbulence.h"
 
 namespace PHiLiP {
 namespace Tests {
@@ -18,11 +18,11 @@ template <int dim, int nstate>
 int TaylorGreenVortexEnergyCheck<dim, nstate>::run_test() const
 {
     // Integrate to final time
-    std::unique_ptr<FlowSolver<dim,nstate>> flow_solver = FlowSolverFactory<dim,nstate>::create_FlowSolver(this->all_parameters, parameter_handler);
-    static_cast<void>(flow_solver->run_test());
+    std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(this->all_parameters, parameter_handler);
+    static_cast<void>(flow_solver->run());
 
     // Compute kinetic energy
-    std::unique_ptr<PeriodicTurbulence<dim, nstate>> flow_solver_case = std::make_unique<PeriodicTurbulence<dim,nstate>>(this->all_parameters);
+    std::unique_ptr<FlowSolver::PeriodicTurbulence<dim, nstate>> flow_solver_case = std::make_unique<FlowSolver::PeriodicTurbulence<dim,nstate>>(this->all_parameters);
     flow_solver_case->compute_and_update_integrated_quantities(*(flow_solver->dg));
     const double kinetic_energy_computed = flow_solver_case->get_integrated_kinetic_energy();
 

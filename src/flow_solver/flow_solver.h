@@ -3,16 +3,15 @@
 
 // for FlowSolver class:
 #include "physics/initial_conditions/initial_condition.h"
-#include "tests.h"
 #include "physics/physics.h"
 #include "parameters/all_parameters.h"
 
 // for generate_grid
+#include <deal.II/grid/tria.h>
 #include <deal.II/distributed/shared_tria.h>
 #include <deal.II/distributed/tria.h>
 
-// for the grid:
-#include "grid_refinement_study.h"
+// #include "grid_refinement_study.h" // remove?
 #include <deal.II/base/function.h>
 #include <stdlib.h>
 #include <iostream>
@@ -33,19 +32,20 @@
 #include <string>
 #include <vector>
 #include <deal.II/base/parameter_handler.h>
+#include <deal.II/base/conditional_ostream.h> // remove?
 
 namespace PHiLiP {
-namespace Tests {
+namespace FlowSolver {
 
 #if PHILIP_DIM==1
-        using Triangulation = dealii::Triangulation<PHILIP_DIM>;
+    using Triangulation = dealii::Triangulation<PHILIP_DIM>;
 #else
-        using Triangulation = dealii::parallel::distributed::Triangulation<PHILIP_DIM>;
+    using Triangulation = dealii::parallel::distributed::Triangulation<PHILIP_DIM>;
 #endif
 
 /// Selects which flow case to simulate.
 template <int dim, int nstate>
-class FlowSolver : public TestsBase
+class FlowSolver
 {
 public:
     /// Constructor.
@@ -64,7 +64,7 @@ public:
     const dealii::ParameterHandler &parameter_handler;
 
     /// Simply runs the flow solver and returns 0 upon completion
-    int run_test () const override;
+    int run () const;
 
     /// Initializes the data table from an existing file
     void initialize_data_table_from_file(
@@ -75,6 +75,13 @@ public:
     std::string get_restart_filename_without_extension(const int restart_index_input) const;
 
 protected:
+    const MPI_Comm mpi_communicator; ///< MPI communicator.
+    const int mpi_rank; ///< MPI rank.
+    const int n_mpi; ///< Number of MPI processes.
+    /// ConditionalOStream.
+    /** Used as std::cout, but only prints if mpi_rank == 0
+     */
+    dealii::ConditionalOStream pcout;
     const Parameters::AllParameters all_param; ///< All parameters
     const Parameters::FlowSolverParam flow_solver_param; ///< Flow solver parameters
     const Parameters::ODESolverParam ode_param; ///< ODE solver parameters
@@ -121,10 +128,10 @@ class FlowSolverFactory
 public:
     /// Factory to return the correct flow solver given input file.
     static std::unique_ptr< FlowSolver<dim,nstate> >
-        create_FlowSolver(const Parameters::AllParameters *const parameters_input,
-                          const dealii::ParameterHandler &parameter_handler_input);
+        select_flow_case(const Parameters::AllParameters *const parameters_input,
+                         const dealii::ParameterHandler &parameter_handler_input);
 };
 
-} // Tests namespace
+} // FlowSolver namespace
 } // PHiLiP namespace
 #endif

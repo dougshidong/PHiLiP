@@ -4,7 +4,7 @@
 #include "flow_solver_case_base.h"
 
 namespace PHiLiP {
-namespace Tests {
+namespace FlowSolver {
 
 #if PHILIP_DIM==1
 using Triangulation = dealii::Triangulation<PHILIP_DIM>;
@@ -38,6 +38,6 @@ protected:
     void display_grid_parameters() const;
 };
 
-} // Tests namespace
+} // FlowSolver namespace
 } // PHiLiP namespace
 #endif

@@ -30,6 +30,13 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       dealii::Patterns::Integer(),
                       "Number of dimensions");
 
+    prm.declare_entry("run_type", "integration_test",
+                      dealii::Patterns::Selection(
+                      " integration_test | "
+                      " flow_simulation"),
+                      "Type of run (default is integration_test). "
+                      "Choices are  <integration_test | flow_simulation>.");
+
     prm.declare_entry("mesh_type", "default_triangulation",
                       dealii::Patterns::Selection(
                       " default_triangulation | "
@@ -118,7 +125,7 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       " taylor_green_vortex_energy_check | "
                       " taylor_green_vortex_restart_check"),
                       "The type of test we want to solve. "
-                      "Choices are (only run control has been coded up for now)" 
+                      "Choices are " 
                       " <run_control | " 
                       "  grid_refinement_study | "
                       "  burgers_energy_stability | "
@@ -210,6 +217,10 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     pcout << "Parsing main input..." << std::endl;
 
     dimension = prm.get_integer("dimension");
+
+    const std::string run_type_string = prm.get("run_type");
+    if      (run_type_string == "integration_test") { run_type = integration_test; }
+    else if (run_type_string == "flow_simulation")  { run_type = flow_simulation; }
 
     const std::string mesh_type_string = prm.get("mesh_type");
     if      (mesh_type_string == "default_triangulation")              { mesh_type = default_triangulation; }

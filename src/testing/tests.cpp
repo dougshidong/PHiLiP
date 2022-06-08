@@ -33,6 +33,7 @@
 #include "dual_weighted_residual_mesh_adaptation.h"
 #include "taylor_green_vortex_energy_check.h"
 #include "taylor_green_vortex_restart_check.h"
+#include "time_refinement_study.h"
 
 namespace PHiLiP {
 namespace Tests {
@@ -109,8 +110,7 @@ std::unique_ptr< TestsBase > TestsFactory<dim,nstate,MeshType>
     const Test_enum test_type = parameters_input->test_type;
 
     // prevent warnings for when a create_FlowSolver is not being called (explicit and implicit cases)
-    if((test_type != Test_enum::flow_solver) && 
-       (test_type != Test_enum::finite_difference_sensitivity) &&
+    if((test_type != Test_enum::finite_difference_sensitivity) &&
        (test_type != Test_enum::taylor_green_vortex_energy_check) && 
        (test_type != Test_enum::taylor_green_vortex_restart_check)) {
         (void) parameter_handler_input;
@@ -166,6 +166,8 @@ std::unique_ptr< TestsBase > TestsFactory<dim,nstate,MeshType>
         if constexpr (dim==3 && nstate==dim+2) return std::make_unique<TaylorGreenVortexEnergyCheck<dim,nstate>>(parameters_input,parameter_handler_input);
     } else if(test_type == Test_enum::taylor_green_vortex_restart_check) {
         if constexpr (dim==3 && nstate==dim+2) return std::make_unique<TaylorGreenVortexRestartCheck<dim,nstate>>(parameters_input,parameter_handler_input);
+    } else if(test_type == Test_enum::time_refinement_study) {
+        if constexpr (dim==1 && nstate==1)  return std::make_unique<TimeRefinementStudy<dim, nstate>>(parameters_input, parameter_handler_input);
     } else {
         std::cout << "Invalid test. You probably forgot to add it to the list of tests in tests.cpp" << std::endl;
         std::abort();

@@ -46,6 +46,7 @@ std::string FlowSolverCaseBase<dim, nstate>::get_flow_case_string() const
     if (flow_case_type == FlowCaseEnum::burgers_viscous_snapshot)   {flow_case_string = "burgers_viscous_snapshot";}
     if (flow_case_type == FlowCaseEnum::burgers_rewienski_snapshot) {flow_case_string = "burgers_rewienski_snapshot";}
     if (flow_case_type == FlowCaseEnum::naca0012)                   {flow_case_string = "naca0012";}
+    if (flow_case_type == FlowCaseEnum::advection_periodic)         {flow_case_string = "advection_periodic";}
     
     return flow_case_string;
 }

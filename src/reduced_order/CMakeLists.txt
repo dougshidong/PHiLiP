@@ -10,7 +10,8 @@ set(SOURCE
     reduced_order_solution.cpp
     full_order_solution.cpp
     rom_test_location.cpp
-    pod_basis_offline.cpp)
+    pod_basis_offline.cpp
+    halton.cpp)
 
 foreach(dim RANGE 1 3)
     # Output library

@@ -34,6 +34,7 @@
 #include "ROL_Stream.hpp"
 #include "ROL_Bounds.hpp"
 #include "functional/lift_drag.hpp"
+#include "reduced_order/halton.h"
 
 namespace PHiLiP {
 namespace Tests {

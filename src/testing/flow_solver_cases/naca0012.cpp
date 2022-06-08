@@ -83,6 +83,13 @@ void NACA0012<dim,nstate>::steady_state_postprocessing(std::shared_ptr<DGBase<di
     LiftDragFunctional<dim,dim+2,double> drag_functional(dg, LiftDragFunctional<dim,dim+2,double>::Functional_types::drag);
     double drag = drag_functional.evaluate_functional();
 
+    dealii::TableHandler residual_table;
+
+    residual_table.add_value("Residual", dg->get_residual_l2norm());
+    residual_table.set_precision("Residual", 16);
+    std::ofstream out_file(this->all_param.ode_solver_param.solutions_table_filename + "_residual.txt");
+    residual_table.write_text(out_file);
+
     this->pcout << " Resulting lift : " << lift << std::endl;
     this->pcout << " Resulting drag : " << drag << std::endl;
 }

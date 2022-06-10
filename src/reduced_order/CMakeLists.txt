@@ -11,7 +11,8 @@ set(SOURCE
     full_order_solution.cpp
     rom_test_location.cpp
     pod_basis_offline.cpp
-    halton.cpp)
+    halton.cpp
+    nearest_neighbors.cpp)
 
 foreach(dim RANGE 1 3)
     # Output library

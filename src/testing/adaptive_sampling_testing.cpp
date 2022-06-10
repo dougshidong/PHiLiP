@@ -63,9 +63,10 @@ int AdaptiveSamplingTesting<dim, nstate>::run_test() const
     */
 
 
-    RowVectorXd params_1 {{0.9000000000000000, 0.8000000000000000, 0.7000000000000000
+    RowVectorXd params_1 {{0.6625, 0.5875, 0.6375, 0.7 //0.6625, 0.5875, 0.6375
                           }};
-    RowVectorXd params_2 {{0.0000000000000000, 0.0349065850398866, 0.0698131700797732
+    //INPUT AS RADIANS
+    RowVectorXd params_2 {{0.03619942, 0.06334898, 0.05171345, 0.0698131 //0.03619942, 0.063489, 0.0517134
                           }};
 
     std::cout << params_1 << std::endl;
@@ -135,9 +136,9 @@ Parameters::AllParameters AdaptiveSamplingTesting<dim, nstate>::reinitParams(Row
         parameters.burgers_param.rewienski_b = parameter(1);
     }
     else if (flow_type == FlowCaseEnum::naca0012){
-        const double pi = atan(1.0) * 4.0;
+        //const double pi = atan(1.0) * 4.0;
         parameters.euler_param.mach_inf = parameter(0);
-        parameters.euler_param.angle_of_attack = parameter(1)*pi/180; //Convert to radians
+        parameters.euler_param.angle_of_attack = parameter(1); //Already in radians
     }
     else{
         this->pcout << "Invalid flow case. You probably forgot to specify a flow case in the prm file." << std::endl;

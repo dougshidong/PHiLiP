@@ -24,10 +24,12 @@ int AdaptiveSampling<dim, nstate>::run_test() const
     std::ofstream out_file("POD_adaptation_basis_0.txt");
     unsigned int precision = 16;
     current_pod->fullBasis.print_formatted(out_file, precision);
-    //placeInitialROMs();
-    //placeTriangulationROMs();
-    ProperOrthogonalDecomposition::Delaunay delaunay(snapshot_parameters);
-    placeTriangulationROMs(delaunay);
+
+    ProperOrthogonalDecomposition::NearestNeighbors nearestNeighbors(snapshot_parameters);
+    MatrixXd rom_points = nearestNeighbors.kPairwiseNearestNeighborsMidpoint();
+    pcout << rom_points << std::endl;
+
+    placeTriangulationROMs(rom_points);
 
     RowVector2d max_error_params = getMaxErrorROM();
     double tolerance = 1E-03;
@@ -49,14 +51,16 @@ int AdaptiveSampling<dim, nstate>::run_test() const
         current_pod->fullBasis.print_formatted(basis_out, basis_precision);
 
         //Update previous ROM errors with updated current_pod
-        for(auto& [key, value] : rom_locations){
-            value.compute_initial_rom_to_final_rom_error(current_pod);
-            value.compute_total_error();
+        for(auto it = rom_locations.begin(); it != rom_locations.end(); ++it){
+            it->second->compute_initial_rom_to_final_rom_error(current_pod);
+            it->second->compute_total_error();
         }
 
-        //Find and compute new ROM locations
-        delaunay.split_triangle(max_error_params);
-        placeTriangulationROMs(delaunay);
+        rom_points = nearestNeighbors.kNearestNeighborsMidpoint(max_error_params);
+        pcout << rom_points << std::endl;
+        nearestNeighbors.updateSnapshotParameters(snapshot_parameters);
+
+        placeTriangulationROMs(rom_points);
 
         //Update max error
         max_error_params = getMaxErrorROM();
@@ -72,7 +76,7 @@ int AdaptiveSampling<dim, nstate>::run_test() const
 
 template <int dim, int nstate>
 void AdaptiveSampling<dim, nstate>::outputErrors(int iteration) const{
-    std::shared_ptr<dealii::TableHandler> snapshot_table = std::make_shared<dealii::TableHandler>();
+    std::unique_ptr<dealii::TableHandler> snapshot_table = std::make_unique<dealii::TableHandler>();
 
     for(auto parameters : snapshot_parameters.rowwise()){
         snapshot_table->add_value(parameter1_name, parameters(0));
@@ -84,16 +88,16 @@ void AdaptiveSampling<dim, nstate>::outputErrors(int iteration) const{
     std::ofstream snapshot_table_file("snapshot_table_iteration_" + std::to_string(iteration) + ".txt");
     snapshot_table->write_text(snapshot_table_file, dealii::TableHandler::TextOutputFormat::org_mode_table);
 
-    std::shared_ptr<dealii::TableHandler> rom_table = std::make_shared<dealii::TableHandler>();
+    std::unique_ptr<dealii::TableHandler> rom_table = std::make_unique<dealii::TableHandler>();
 
-    for(auto& [key, value] : rom_locations){
-        rom_table->add_value(parameter1_name, value.parameter(0));
+    for(auto it = rom_locations.begin(); it != rom_locations.end(); ++it){
+        rom_table->add_value(parameter1_name, it->first(0));
         rom_table->set_precision(parameter1_name, 16);
 
-        rom_table->add_value(parameter2_name, value.parameter(1));
+        rom_table->add_value(parameter2_name, it->first(1));
         rom_table->set_precision(parameter2_name, 16);
 
-        rom_table->add_value("ROM errors", value.total_error);
+        rom_table->add_value("ROM errors", it->second->total_error);
         rom_table->set_precision("ROM errors", 16);
     }
 
@@ -116,13 +120,13 @@ RowVector2d AdaptiveSampling<dim, nstate>::getMaxErrorROM() const{
         this->pcout << i << std::endl;
     }
     this->pcout << i << std::endl;
-    for(auto& [key, value] : rom_locations){
+    for(auto it = rom_locations.begin(); it != rom_locations.end(); ++it){
         this->pcout << "Index: " << i << std::endl;
-        this->pcout << "Parameters: " << key << std::endl;
-        this->pcout << "Parameters array: " << key.array() << std::endl;
-        this->pcout << "Error: " << value.total_error << std::endl;
-        parameters.row(i) = key.array();
-        errors(i) = value.total_error;
+        this->pcout << "Parameters: " << it->first << std::endl;
+        this->pcout << "Parameters array: " << it->first.array() << std::endl;
+        this->pcout << "Error: " << it->second->total_error << std::endl;
+        parameters.row(i) = it->first.array();
+        errors(i) = it->second->total_error;
         i++;
     }
 
@@ -160,9 +164,9 @@ RowVector2d AdaptiveSampling<dim, nstate>::getMaxErrorROM() const{
     RowVector2d max_error_params(2);
     max_error = 0;
 
-    for(auto& [key, value] : rom_locations){
+    for(auto it = rom_locations.begin(); it != rom_locations.end(); ++it){
 
-        Eigen::RowVector2d rom_unscaled = key;
+        Eigen::RowVector2d rom_unscaled = it->first;
         Eigen::VectorXd rom_scaled;
         rom_scaled.resize(rom_unscaled.size());
 
@@ -212,14 +216,6 @@ RowVector2d AdaptiveSampling<dim, nstate>::getMaxErrorROM() const{
         //Ensure that optimization did not converge outside of the domain or diverge.
         RowVector2d rom_unscaled_optim(2);
         for(int k = 0 ; k < 2 ; k++){
-            /*
-            if(rom_scaled(k) > 1){
-                rom_scaled(k) = 1;
-            }
-            if(rom_scaled(k) < 0){
-                rom_scaled(k) = 0;
-            }
-            */
             double min = parameters.col(k).minCoeff();
             double max = parameters.col(k).maxCoeff();
             rom_unscaled_optim(k) = (rom_scaled(k)*(max - min)) + min;
@@ -238,10 +234,10 @@ RowVector2d AdaptiveSampling<dim, nstate>::getMaxErrorROM() const{
     }
 
     //Check if max_error_params is a ROM point
-    for(auto& [key, value] : rom_locations){
-        if(max_error_params.isApprox(key)){
+    for(auto it = rom_locations.begin(); it != rom_locations.end(); ++it){
+        if(max_error_params.isApprox(it->first)){
             this->pcout << "Max error location is approximately the same as a ROM location. Removing ROM location." << std::endl;
-            rom_locations.erase(key);
+            rom_locations.erase(it);
             break;
         }
     }
@@ -263,19 +259,19 @@ void AdaptiveSampling<dim, nstate>::placeInitialROMs() const{
     for(auto rom_param : initial_rom_parameters.rowwise()){
         this->pcout << "Sampling initial ROM at " << rom_param << std::endl;
         std::shared_ptr<ProperOrthogonalDecomposition::ROMSolution<dim, nstate>> rom_solution = solveSnapshotROM(rom_param);
-        ProperOrthogonalDecomposition::ROMTestLocation<dim,nstate> rom_location = ProperOrthogonalDecomposition::ROMTestLocation<dim, nstate>(rom_param, rom_solution);
-        rom_locations.emplace(rom_param, rom_location);
+        std::shared_ptr<ProperOrthogonalDecomposition::ROMTestLocation<dim,nstate>> rom_location = std::make_shared<ProperOrthogonalDecomposition::ROMTestLocation<dim, nstate>>(rom_param, rom_solution);
+        rom_locations.emplace_back(std::make_pair(rom_param, rom_location));
     }
 }
 
 template <int dim, int nstate>
-void AdaptiveSampling<dim, nstate>::placeTriangulationROMs(ProperOrthogonalDecomposition::Delaunay delaunay) const{
-    for(auto midpoint : delaunay.midpoints.rowwise()){
-        auto element = rom_locations.find(midpoint);
+void AdaptiveSampling<dim, nstate>::placeTriangulationROMs(MatrixXd rom_points) const{
+    for(auto midpoint : rom_points.rowwise()){
+        auto element = std::find_if(rom_locations.begin(), rom_locations.end(), [&midpoint](std::pair<RowVector2d, std::shared_ptr<ProperOrthogonalDecomposition::ROMTestLocation<dim,nstate>>>& location){ return location.first == midpoint;} );
         if(element == rom_locations.end()){
             std::shared_ptr<ProperOrthogonalDecomposition::ROMSolution<dim, nstate>> rom_solution = solveSnapshotROM(midpoint);
-            ProperOrthogonalDecomposition::ROMTestLocation < dim,nstate > rom_location = ProperOrthogonalDecomposition::ROMTestLocation < dim, nstate>(midpoint, rom_solution);
-            rom_locations.emplace(midpoint, rom_location);
+            std::shared_ptr<ProperOrthogonalDecomposition::ROMTestLocation < dim,nstate >> rom_location = std::make_shared<ProperOrthogonalDecomposition::ROMTestLocation < dim, nstate>>(midpoint, rom_solution);
+            rom_locations.emplace_back(std::make_pair(midpoint, rom_location));
         }
         else{
             this->pcout << "ROM already computed." << std::endl;

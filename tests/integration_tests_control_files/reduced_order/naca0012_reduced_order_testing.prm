@@ -48,7 +48,7 @@ end
 subsection ODE solver
   set output_solution_every_x_steps = 1
   set nonlinear_max_iterations            = 20
-  set nonlinear_steady_residual_tolerance = 1e-15
+  set nonlinear_steady_residual_tolerance = 1e-14
   set ode_solver_type  = implicit
   set initial_time_step = 1e3
   set time_step_factor_residual = 15.0
@@ -69,5 +69,5 @@ subsection flow_solver
 end
 
 subsection reduced order
-  set path_to_search = ./naca0012_solutions/6pts
+  set path_to_search = ./naca0012_solutions/24pts
 end

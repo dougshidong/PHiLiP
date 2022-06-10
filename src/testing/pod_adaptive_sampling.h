@@ -25,6 +25,7 @@
 #include "testing/reduced_order_pod_adaptation.h" //For burgers rewienski functional
 #include <Eigen/Dense>
 #include "reduced_order/delaunay.h"
+#include "reduced_order/nearest_neighbors.h"
 #include "reduced_order/rbf_interpolation.h"
 #include <unsupported/Eigen/NonLinearOptimization>
 #include <unsupported/Eigen/NumericalDiff>
@@ -47,6 +48,7 @@ using Eigen::VectorXd;
 
 //Refer to https://www.boost.org/doc/libs/1_55_0/doc/html/hash/reference.html#boost.hash_combine
 // https://wjngkoh.wordpress.com/2015/03/04/c-hash-function-for-eigen-matrix-and-vector/
+/*
 template<typename T>
 struct matrix_hash : std::unary_function<T, long> {
 long operator()(T const& matrix) const {
@@ -58,6 +60,7 @@ long operator()(T const& matrix) const {
     return seed;
 }
 };
+ */
 
 /// Class to hold information about the reduced-order solution
 template <int dim, int nstate>
@@ -78,7 +81,14 @@ public:
     mutable MatrixXd snapshot_parameters;
     mutable MatrixXd initial_rom_parameters;
 
-    mutable std::unordered_map<RowVector2d, ProperOrthogonalDecomposition::ROMTestLocation<dim,nstate>, matrix_hash<RowVector2d>> rom_locations;
+    //mutable std::vector<ProperOrthogonalDecomposition::ROMTestLocation<dim,nstate>> rom_locations;
+
+    //mutable std::unordered_map<RowVector2d, ProperOrthogonalDecomposition::ROMTestLocation<dim,nstate>, matrix_hash<RowVector2d>> rom_locations;
+
+    //mutable std::map<RowVector2d, ProperOrthogonalDecomposition::ROMTestLocation<dim,nstate>, matrix_hash<RowVector2d>> rom_locations;
+
+    mutable std::list<std::pair<RowVector2d, std::shared_ptr<ProperOrthogonalDecomposition::ROMTestLocation<dim,nstate>>>> rom_locations;
+
 
     mutable double max_error;
 
@@ -94,7 +104,7 @@ public:
 
     void placeInitialROMs() const;
 
-    void placeTriangulationROMs(ProperOrthogonalDecomposition::Delaunay delaunay) const;
+    void placeTriangulationROMs(MatrixXd rom_points) const;
 
     RowVector2d getMaxErrorROM() const;
 

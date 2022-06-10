@@ -27,11 +27,11 @@ void RBFInterpolation::computeWeights() {
         }
     }
 
-    std::cout << A << std::endl;
+    //std::cout << A << std::endl;
 
     weights = A.lu().solve(data_values);
 
-    std::cout << weights << std::endl;
+    //std::cout << weights << std::endl;
 }
 
 double RBFInterpolation::radialBasisFunction(double r) const{

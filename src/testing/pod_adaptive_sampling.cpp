@@ -12,6 +12,7 @@ AdaptiveSampling<dim, nstate>::AdaptiveSampling(const PHiLiP::Parameters::AllPar
     configureParameterSpace();
     std::unique_ptr<Tests::FlowSolver<dim,nstate>> flow_solver = FlowSolverFactory<dim,nstate>::create_FlowSolver(all_parameters, parameter_handler);
     current_pod = std::make_shared<ProperOrthogonalDecomposition::OnlinePOD<dim>>(flow_solver->dg);
+    nearest_neighbors = std::make_shared<ProperOrthogonalDecomposition::NearestNeighbors>();
 }
 
 template <int dim, int nstate>
@@ -25,8 +26,7 @@ int AdaptiveSampling<dim, nstate>::run_test() const
     unsigned int precision = 16;
     current_pod->fullBasis.print_formatted(out_file, precision);
 
-    ProperOrthogonalDecomposition::NearestNeighbors nearestNeighbors(snapshot_parameters);
-    MatrixXd rom_points = nearestNeighbors.kPairwiseNearestNeighborsMidpoint();
+    MatrixXd rom_points = nearest_neighbors->kPairwiseNearestNeighborsMidpoint();
     pcout << rom_points << std::endl;
 
     placeTriangulationROMs(rom_points);
@@ -43,6 +43,7 @@ int AdaptiveSampling<dim, nstate>::run_test() const
         std::shared_ptr<ProperOrthogonalDecomposition::FOMSolution<dim,nstate>> fom_solution = solveSnapshotFOM(max_error_params);
         snapshot_parameters.conservativeResize(snapshot_parameters.rows()+1, 2);
         snapshot_parameters.row(snapshot_parameters.rows()-1) = max_error_params;
+        nearest_neighbors->updateSnapshots(snapshot_parameters, fom_solution->state);
         current_pod->addSnapshot(fom_solution->state);
         current_pod->computeBasis();
 
@@ -56,9 +57,8 @@ int AdaptiveSampling<dim, nstate>::run_test() const
             it->second->compute_total_error();
         }
 
-        rom_points = nearestNeighbors.kNearestNeighborsMidpoint(max_error_params);
+        rom_points = nearest_neighbors->kNearestNeighborsMidpoint(max_error_params);
         pcout << rom_points << std::endl;
-        nearestNeighbors.updateSnapshotParameters(snapshot_parameters);
 
         placeTriangulationROMs(rom_points);
 
@@ -130,19 +130,12 @@ RowVector2d AdaptiveSampling<dim, nstate>::getMaxErrorROM() const{
         i++;
     }
 
-    this->pcout << "Parameters: " << parameters << std::endl;
+    this->pcout << "Parameters:" << std::endl << parameters << std::endl;
 
     //Must scale both axes between [0,1] for the 2d rbf interpolation to work optimally
-    MatrixXd parameters_scaled(n_rows, 2);
-    for(int j = 0 ; j < parameters.cols() ; j++){
-        double min = parameters.col(j).minCoeff();
-        double max = parameters.col(j).maxCoeff();
-        for(int k = 0 ; k < parameters.rows() ; k++){
-            parameters_scaled(k, j) = (parameters(k, j) - min) / (max - min);
-        }
-    }
-
-    this->pcout << "Parameters scaled: " <<parameters_scaled << std::endl;
+    ProperOrthogonalDecomposition::MinMaxScaler scaler;
+    MatrixXd parameters_scaled = scaler.fit_transform(parameters);
+    this->pcout << "Parameters scaled:" << std::endl << parameters_scaled << std::endl;
 
     //Construct radial basis function
     std::string kernel = "cubic";
@@ -166,16 +159,8 @@ RowVector2d AdaptiveSampling<dim, nstate>::getMaxErrorROM() const{
 
     for(auto it = rom_locations.begin(); it != rom_locations.end(); ++it){
 
-        Eigen::RowVector2d rom_unscaled = it->first;
-        Eigen::VectorXd rom_scaled;
-        rom_scaled.resize(rom_unscaled.size());
-
-        //Scale ROM location
-        for(int k = 0 ; k < parameters.cols() ; k++){
-            double min = parameters.col(k).minCoeff();
-            double max = parameters.col(k).maxCoeff();
-            rom_scaled(k) = (rom_unscaled(k) - min) / (max - min);
-        }
+        Eigen::RowVectorXd rom_unscaled = it->first;
+        Eigen::RowVectorXd rom_scaled = scaler.transform(rom_unscaled);
 
         //start bounds
         int dimension = 2;
@@ -213,17 +198,11 @@ RowVector2d AdaptiveSampling<dim, nstate>::getMaxErrorROM() const{
         rom_scaled(0) = (*x_min)[0];
         rom_scaled(1) = (*x_min)[1];
 
-        //Ensure that optimization did not converge outside of the domain or diverge.
-        RowVector2d rom_unscaled_optim(2);
-        for(int k = 0 ; k < 2 ; k++){
-            double min = parameters.col(k).minCoeff();
-            double max = parameters.col(k).maxCoeff();
-            rom_unscaled_optim(k) = (rom_scaled(k)*(max - min)) + min;
-        }
+        RowVector2d rom_unscaled_optim = scaler.inverse_transform(rom_scaled);
 
         this->pcout << "Parameters of optimization convergence: " << rom_unscaled_optim << std::endl;
 
-        double error = std::abs(rbf.evaluate(rom_scaled.transpose()).value());
+        double error = std::abs(rbf.evaluate(rom_scaled).value());
         this->pcout << "RBF error at optimization convergence: " << error << std::endl;
         if(error > max_error){
             this->pcout << "RBF error is greater than current max error. Updating max error." << std::endl;
@@ -250,6 +229,7 @@ void AdaptiveSampling<dim, nstate>::placeInitialSnapshots() const{
     for(auto snap_param : snapshot_parameters.rowwise()){
         this->pcout << "Sampling initial snapshot at " << snap_param << std::endl;
         std::shared_ptr<ProperOrthogonalDecomposition::FOMSolution<dim,nstate>> fom_solution = solveSnapshotFOM(snap_param);
+        nearest_neighbors->updateSnapshots(snapshot_parameters, fom_solution->state);
         current_pod->addSnapshot(fom_solution->state);
     }
 }
@@ -311,6 +291,7 @@ std::shared_ptr<ProperOrthogonalDecomposition::ROMSolution<dim,nstate>> Adaptive
     // Solve implicit solution
     auto ode_solver_type = Parameters::ODESolverParam::ODESolverEnum::pod_petrov_galerkin_solver;
     flow_solver->ode_solver =  PHiLiP::ODE::ODESolverFactory<dim, double>::create_ODESolver_manual(ode_solver_type, flow_solver->dg, current_pod);
+    flow_solver->dg->solution = nearest_neighbors->nearestNeighborMidpointSolution(parameter);
     flow_solver->ode_solver->allocate_ode_system();
     flow_solver->ode_solver->steady_state();
 

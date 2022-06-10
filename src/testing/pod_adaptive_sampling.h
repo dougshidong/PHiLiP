@@ -36,6 +36,7 @@
 #include "ROL_Bounds.hpp"
 #include "functional/lift_drag.hpp"
 #include "reduced_order/halton.h"
+#include "reduced_order/min_max_scaler.h"
 
 namespace PHiLiP {
 namespace Tests {
@@ -45,22 +46,6 @@ using Eigen::MatrixXd;
 using Eigen::RowVector2d;
 using Eigen::RowVectorXd;
 using Eigen::VectorXd;
-
-//Refer to https://www.boost.org/doc/libs/1_55_0/doc/html/hash/reference.html#boost.hash_combine
-// https://wjngkoh.wordpress.com/2015/03/04/c-hash-function-for-eigen-matrix-and-vector/
-/*
-template<typename T>
-struct matrix_hash : std::unary_function<T, long> {
-long operator()(T const& matrix) const {
-    long seed = 0;
-    for (long i = 0; i < matrix.size(); ++i) {
-        auto elem = *(matrix.data() + i);
-        seed ^= std::hash<typename T::Scalar>()(elem) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
-    }
-    return seed;
-}
-};
- */
 
 /// Class to hold information about the reduced-order solution
 template <int dim, int nstate>
@@ -81,14 +66,7 @@ public:
     mutable MatrixXd snapshot_parameters;
     mutable MatrixXd initial_rom_parameters;
 
-    //mutable std::vector<ProperOrthogonalDecomposition::ROMTestLocation<dim,nstate>> rom_locations;
-
-    //mutable std::unordered_map<RowVector2d, ProperOrthogonalDecomposition::ROMTestLocation<dim,nstate>, matrix_hash<RowVector2d>> rom_locations;
-
-    //mutable std::map<RowVector2d, ProperOrthogonalDecomposition::ROMTestLocation<dim,nstate>, matrix_hash<RowVector2d>> rom_locations;
-
     mutable std::list<std::pair<RowVector2d, std::shared_ptr<ProperOrthogonalDecomposition::ROMTestLocation<dim,nstate>>>> rom_locations;
-
 
     mutable double max_error;
 
@@ -96,6 +74,8 @@ public:
     const dealii::ParameterHandler &parameter_handler;
 
     std::shared_ptr<ProperOrthogonalDecomposition::OnlinePOD<dim>> current_pod;
+
+    std::shared_ptr<ProperOrthogonalDecomposition::NearestNeighbors> nearest_neighbors;
 
     /// Run test
     int run_test () const override;

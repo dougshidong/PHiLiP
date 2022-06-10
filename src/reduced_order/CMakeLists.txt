@@ -12,7 +12,7 @@ set(SOURCE
     rom_test_location.cpp
     pod_basis_offline.cpp
     halton.cpp
-    nearest_neighbors.cpp)
+    nearest_neighbors.cpp min_max_scaler.cpp min_max_scaler.h)
 
 foreach(dim RANGE 1 3)
     # Output library

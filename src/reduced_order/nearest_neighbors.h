@@ -5,6 +5,9 @@
 #include <Eigen/LU>
 #include <iostream>
 #include <algorithm>
+#include <numeric>
+#include <deal.II/lac/la_parallel_vector.h>
+#include "min_max_scaler.h"
 
 namespace PHiLiP {
 namespace ProperOrthogonalDecomposition {
@@ -16,12 +19,13 @@ using Eigen::RowVectorXd;
 class NearestNeighbors
 {
 public:
-
     /// Constructor
-    NearestNeighbors(const MatrixXd& snapshot_parameters);
+    NearestNeighbors();
 
     /// Destructor
     ~NearestNeighbors() {};
+
+    void updateSnapshots(const MatrixXd& snapshot_parameters, dealii::LinearAlgebra::distributed::Vector<double> snapshot);
 
     MatrixXd kPairwiseNearestNeighborsMidpoint();
 
@@ -29,11 +33,15 @@ public:
     MatrixXd kNearestNeighborsMidpoint(const RowVectorXd& point);
 
     //Given a point, return the index of nearest snapshot_parameter
-    Eigen::Index nearestNeighbor(const RowVectorXd& point);
-
-    void updateSnapshotParameters(const MatrixXd& snapshot_parameters);
+    dealii::LinearAlgebra::distributed::Vector<double> nearestNeighborMidpointSolution(const RowVectorXd& point);
 
     MatrixXd snapshot_params;
+
+    MinMaxScaler scaler;
+
+    std::vector<dealii::LinearAlgebra::distributed::Vector<double>> snapshots;
+
+    MatrixXd scaled_snapshot_params;
 
 };
 

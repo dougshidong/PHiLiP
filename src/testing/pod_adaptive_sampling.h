@@ -14,7 +14,6 @@
 #include "dg/dg.h"
 #include "reduced_order/pod_basis_online.h"
 #include "reduced_order/reduced_order_solution.h"
-#include "reduced_order/full_order_solution.h"
 #include "linear_solver/linear_solver.h"
 #include "testing/flow_solver.h"
 #include "reduced_order/rom_test_location.h"
@@ -24,11 +23,8 @@
 #include <deal.II/base/function_lib.h>
 #include "testing/reduced_order_pod_adaptation.h" //For burgers rewienski functional
 #include <Eigen/Dense>
-#include "reduced_order/delaunay.h"
 #include "reduced_order/nearest_neighbors.h"
 #include "reduced_order/rbf_interpolation.h"
-#include <unsupported/Eigen/NonLinearOptimization>
-#include <unsupported/Eigen/NumericalDiff>
 #include "ROL_Algorithm.hpp"
 #include "ROL_LineSearchStep.hpp"
 #include "ROL_StatusTest.hpp"
@@ -88,7 +84,7 @@ public:
 
     RowVector2d getMaxErrorROM() const;
 
-    std::shared_ptr<ProperOrthogonalDecomposition::FOMSolution<dim,nstate>> solveSnapshotFOM(RowVector2d parameter) const;
+    dealii::LinearAlgebra::distributed::Vector<double> solveSnapshotFOM(RowVector2d parameter) const;
 
     std::shared_ptr<ProperOrthogonalDecomposition::ROMSolution<dim,nstate>> solveSnapshotROM(RowVector2d parameter) const;
 

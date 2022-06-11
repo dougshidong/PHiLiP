@@ -48,7 +48,7 @@ int PODPetrovGalerkinODESolver<dim,real,MeshType>::steady_state ()
     const double initial_CFL = this->all_parameters->ode_solver_param.initial_time_step;
     this->CFL_factor = 1.0;
 
-    while (this->residual_norm > this->ode_param.nonlinear_steady_residual_tolerance && this->current_iteration < this->ode_param.nonlinear_max_iterations)
+    while (this->residual_norm > this->all_parameters->reduced_order_param.reduced_residual_tolerance && this->current_iteration < this->ode_param.nonlinear_max_iterations)
     {
         if ((this->ode_param.ode_output) == Parameters::OutputEnum::verbose
             && (this->current_iteration%this->ode_param.print_iteration_modulo) == 0

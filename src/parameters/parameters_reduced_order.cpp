@@ -45,6 +45,9 @@ void ReducedOrderModelParam::declare_parameters (dealii::ParameterHandler &prm)
         prm.declare_entry("consider_error_sign", "false",
                           dealii::Patterns::Bool(),
                           "Consider the sign of the error estimate from the dual-weighted residual. False by default.");
+        prm.declare_entry("reduced_residual_tolerance", "1E-13",
+                          dealii::Patterns::Double(0, dealii::Patterns::Double::max_double_value),
+                          "Tolerance for nonlinear reduced residual");
     }
     prm.leave_subsection();
 }
@@ -62,6 +65,7 @@ void ReducedOrderModelParam::parse_parameters (dealii::ParameterHandler &prm)
         extrapolated_parameter_delta = prm.get_double("extrapolated_parameter_delta");
         adapt_coarse_basis_constant = prm.get_integer("adapt_coarse_basis_constant");
         adaptation_tolerance = prm.get_double("adaptation_tolerance");
+        reduced_residual_tolerance = prm.get_double("reduced_residual_tolerance");
         path_to_search = prm.get("path_to_search");
         method_of_snapshots = prm.get_bool("method_of_snapshots");
         consider_error_sign = prm.get_bool("consider_error_sign");

@@ -46,6 +46,9 @@ public:
     /// Consider the sign of the error estimate from the dual-weighted residual
     bool consider_error_sign;
 
+    /// Tolerance of the reduced-order nonlinear residual
+    double reduced_residual_tolerance;
+
     ReducedOrderModelParam (); ///< Constructor
 
     /// Declares the possible variables and sets the defaults.

@@ -21,7 +21,7 @@ void RBFInterpolation::computeWeights() {
     for(unsigned int i = 0 ; i < N ; i++){
         for(unsigned int j = i ; j < N ; j++){
             double point = (data_coordinates.row(i) - data_coordinates.row(j)).norm();
-            std::cout << point << std::endl;
+            //std::cout << point << std::endl;
             A(i,j) = radialBasisFunction(point);
             A(j,i) = A(i,j);
         }

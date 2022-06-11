@@ -55,4 +55,5 @@ subsection reduced order
   #set fine_basis_dimension = 18
   set path_to_search = .
   set method_of_snapshots = false
+  set reduced_residual_tolerance = 5e-13
 end

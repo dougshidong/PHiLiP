@@ -14,7 +14,6 @@
 #include "dg/dg.h"
 #include "pod_interfaces.h"
 #include "reduced_order_solution.h"
-#include "full_order_solution.h"
 #include "linear_solver/linear_solver.h"
 #include <Eigen/Dense>
 #include <Eigen/SparseCore>

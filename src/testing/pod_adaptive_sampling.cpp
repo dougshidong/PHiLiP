@@ -40,11 +40,11 @@ int AdaptiveSampling<dim, nstate>::run_test() const
         outputErrors(iteration);
 
         this->pcout << "Sampling snapshot at " << max_error_params << std::endl;
-        std::shared_ptr<ProperOrthogonalDecomposition::FOMSolution<dim,nstate>> fom_solution = solveSnapshotFOM(max_error_params);
+        dealii::LinearAlgebra::distributed::Vector<double> fom_solution = solveSnapshotFOM(max_error_params);
         snapshot_parameters.conservativeResize(snapshot_parameters.rows()+1, 2);
         snapshot_parameters.row(snapshot_parameters.rows()-1) = max_error_params;
-        nearest_neighbors->updateSnapshots(snapshot_parameters, fom_solution->state);
-        current_pod->addSnapshot(fom_solution->state);
+        nearest_neighbors->updateSnapshots(snapshot_parameters, fom_solution);
+        current_pod->addSnapshot(fom_solution);
         current_pod->computeBasis();
 
         std::ofstream basis_out("POD_adaptation_basis_" + std::to_string(iteration + 1) + ".txt");
@@ -117,14 +117,14 @@ RowVector2d AdaptiveSampling<dim, nstate>::getMaxErrorROM() const{
     for(i = 0 ; i < snapshot_parameters.rows() ; i++){
         errors(i) = 0;
         parameters.row(i) = snapshot_parameters.row(i);
-        this->pcout << i << std::endl;
+        //this->pcout << i << std::endl;
     }
     this->pcout << i << std::endl;
     for(auto it = rom_locations.begin(); it != rom_locations.end(); ++it){
-        this->pcout << "Index: " << i << std::endl;
-        this->pcout << "Parameters: " << it->first << std::endl;
-        this->pcout << "Parameters array: " << it->first.array() << std::endl;
-        this->pcout << "Error: " << it->second->total_error << std::endl;
+        //this->pcout << "Index: " << i << std::endl;
+        //this->pcout << "Parameters: " << it->first << std::endl;
+        //this->pcout << "Parameters array: " << it->first.array() << std::endl;
+        //this->pcout << "Error: " << it->second->total_error << std::endl;
         parameters.row(i) = it->first.array();
         errors(i) = it->second->total_error;
         i++;
@@ -228,9 +228,9 @@ template <int dim, int nstate>
 void AdaptiveSampling<dim, nstate>::placeInitialSnapshots() const{
     for(auto snap_param : snapshot_parameters.rowwise()){
         this->pcout << "Sampling initial snapshot at " << snap_param << std::endl;
-        std::shared_ptr<ProperOrthogonalDecomposition::FOMSolution<dim,nstate>> fom_solution = solveSnapshotFOM(snap_param);
-        nearest_neighbors->updateSnapshots(snapshot_parameters, fom_solution->state);
-        current_pod->addSnapshot(fom_solution->state);
+        dealii::LinearAlgebra::distributed::Vector<double> fom_solution = solveSnapshotFOM(snap_param);
+        nearest_neighbors->updateSnapshots(snapshot_parameters, fom_solution);
+        current_pod->addSnapshot(fom_solution);
     }
 }
 
@@ -260,7 +260,7 @@ void AdaptiveSampling<dim, nstate>::placeTriangulationROMs(MatrixXd rom_points) 
 }
 
 template <int dim, int nstate>
-std::shared_ptr<ProperOrthogonalDecomposition::FOMSolution<dim,nstate>> AdaptiveSampling<dim, nstate>::solveSnapshotFOM(RowVector2d parameter) const{
+dealii::LinearAlgebra::distributed::Vector<double> AdaptiveSampling<dim, nstate>::solveSnapshotFOM(RowVector2d parameter) const{
     this->pcout << "Solving FOM at " << parameter << std::endl;
     Parameters::AllParameters params = reinitParams(parameter);
 
@@ -272,13 +272,8 @@ std::shared_ptr<ProperOrthogonalDecomposition::FOMSolution<dim,nstate>> Adaptive
     flow_solver->ode_solver->allocate_ode_system();
     flow_solver->ode_solver->steady_state();
 
-    // Create functional
-    std::shared_ptr<Functional<dim,nstate,double>> functional = functionalFactory(flow_solver->dg);
-
-    std::shared_ptr<ProperOrthogonalDecomposition::FOMSolution<dim,nstate>> fom_solution = std::make_shared<ProperOrthogonalDecomposition::FOMSolution<dim, nstate>>(flow_solver->dg, *functional);
-
     this->pcout << "Done solving FOM." << std::endl;
-    return fom_solution;
+    return flow_solver->dg->solution;
 }
 
 template <int dim, int nstate>
@@ -291,7 +286,7 @@ std::shared_ptr<ProperOrthogonalDecomposition::ROMSolution<dim,nstate>> Adaptive
     // Solve implicit solution
     auto ode_solver_type = Parameters::ODESolverParam::ODESolverEnum::pod_petrov_galerkin_solver;
     flow_solver->ode_solver =  PHiLiP::ODE::ODESolverFactory<dim, double>::create_ODESolver_manual(ode_solver_type, flow_solver->dg, current_pod);
-    flow_solver->dg->solution = nearest_neighbors->nearestNeighborMidpointSolution(parameter);
+    //flow_solver->dg->solution = nearest_neighbors->nearestNeighborMidpointSolution(parameter);
     flow_solver->ode_solver->allocate_ode_system();
     flow_solver->ode_solver->steady_state();
 
@@ -396,7 +391,7 @@ void AdaptiveSampling<dim, nstate>::configureParameterSpace() const
         parameter2_range << 0, 4;
         parameter2_range *= pi/180; //convert to radians
 
-        int n_halton = 15;
+        int n_halton = 3;
 
         snapshot_parameters.resize(4,2);
         snapshot_parameters  << //parameter1_range[0], parameter2_range[0],
@@ -436,8 +431,6 @@ void AdaptiveSampling<dim, nstate>::configureParameterSpace() const
         delete [] seq;
 
         this->pcout << snapshot_parameters << std::endl;
-
-
 
         initial_rom_parameters.resize(4,2);
         initial_rom_parameters << 0.25*(parameter1_range[1] - parameter1_range[0])+parameter1_range[0], 0.25*(parameter1_range[1] - parameter1_range[0])+parameter1_range[0],

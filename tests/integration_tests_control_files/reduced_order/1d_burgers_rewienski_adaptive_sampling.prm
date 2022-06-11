@@ -39,6 +39,7 @@ subsection reduced order
   set path_to_search = .
   set method_of_snapshots = false
   set consider_error_sign = true
+  set reduced_residual_tolerance = 1e-14
 end
 
 subsection linear solver

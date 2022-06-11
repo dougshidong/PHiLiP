@@ -27,9 +27,9 @@ void RBFInterpolation::computeWeights() {
         }
     }
 
-    //std::cout << A << std::endl;
-
     weights = A.lu().solve(data_values);
+    //Eigen::HouseholderQR<MatrixXd> qr(A);
+    //weights = qr.solve(data_values);
 
     //std::cout << weights << std::endl;
 }
@@ -60,6 +60,8 @@ VectorXd RBFInterpolation::evaluate(RowVectorXd evaluate_coordinate) const {
         double point = (evaluate_coordinate - data_coordinates.row(i)).norm();
         s(0,i) = radialBasisFunction(point);
     }
+
+    //std::cout << s*weights << std::endl;
 
     return s*weights;
 }

@@ -130,6 +130,8 @@ RowVector2d AdaptiveSampling<dim, nstate>::getMaxErrorROM() const{
         i++;
     }
 
+    this->pcout << "Errors:" << std::endl << errors << std::endl;
+
     this->pcout << "Parameters:" << std::endl << parameters << std::endl;
 
     //Must scale both axes between [0,1] for the 2d rbf interpolation to work optimally
@@ -391,7 +393,7 @@ void AdaptiveSampling<dim, nstate>::configureParameterSpace() const
         parameter2_range << 0, 4;
         parameter2_range *= pi/180; //convert to radians
 
-        int n_halton = 3;
+        int n_halton = 2;
 
         snapshot_parameters.resize(4,2);
         snapshot_parameters  << //parameter1_range[0], parameter2_range[0],

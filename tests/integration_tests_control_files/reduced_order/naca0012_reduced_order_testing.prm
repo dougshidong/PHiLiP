@@ -47,8 +47,8 @@ end
 
 subsection ODE solver
   set output_solution_every_x_steps = 1
-  set nonlinear_max_iterations            = 20
-  set nonlinear_steady_residual_tolerance = 1e-14
+  set nonlinear_max_iterations            = 50
+  set nonlinear_steady_residual_tolerance = 1e-15
   set ode_solver_type  = implicit
   set initial_time_step = 1e3
   set time_step_factor_residual = 15.0
@@ -64,10 +64,11 @@ end
 
 subsection flow_solver
   set flow_case_type = naca0012
-  set input_mesh_filename = naca0012_hopw_ref2
+  set input_mesh_filename = naca0012_hopw_ref1
   set steady_state = true
 end
 
 subsection reduced order
-  set path_to_search = ./naca0012_solutions/24pts
+  set path_to_search = ./naca0012_solutions/6pts_ref1
+    set reduced_residual_tolerance = 5e-13
 end

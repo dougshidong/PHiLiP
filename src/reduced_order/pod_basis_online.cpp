@@ -43,9 +43,9 @@ void OnlinePOD<dim>::computeBasis() {
         referenceState(i) = reference_state(i);
     }
 
-    snapshotMatrix = snapshotMatrix.colwise() - reference_state;
+    MatrixXd snapshotMatrixCentered = snapshotMatrix.colwise() - reference_state;
 
-    Eigen::BDCSVD<MatrixXd> svd(snapshotMatrix, Eigen::DecompositionOptions::ComputeThinU);
+    Eigen::BDCSVD<MatrixXd> svd(snapshotMatrixCentered, Eigen::DecompositionOptions::ComputeThinU);
     MatrixXd pod_basis = svd.matrixU();
 
     fullBasis.reinit(pod_basis.rows(), pod_basis.cols());

@@ -393,7 +393,7 @@ void AdaptiveSampling<dim, nstate>::configureParameterSpace() const
         parameter2_range << 0, 4;
         parameter2_range *= pi/180; //convert to radians
 
-        int n_halton = 2;
+        int n_halton = 6;
 
         snapshot_parameters.resize(4,2);
         snapshot_parameters  << //parameter1_range[0], parameter2_range[0],

@@ -7,7 +7,8 @@ set(FLOW_SOLVER_SOURCE
     flow_solver_cases/1D_burgers_rewienski_snapshot.cpp
     flow_solver_cases/1d_burgers_viscous_snapshot.cpp
     flow_solver_cases/naca0012.cpp
-    flow_solver.cpp)
+    flow_solver.cpp
+    flow_solver_factory.cpp)
 
 foreach(dim RANGE 1 3)
     # Output library

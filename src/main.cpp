@@ -8,7 +8,7 @@
 #include <fstream>
 
 #include "testing/tests.h"
-#include "flow_solver/flow_solver.h"
+#include "flow_solver/flow_solver_factory.h"
 #include "parameters/all_parameters.h"
 
 #include "global_counter.hpp"

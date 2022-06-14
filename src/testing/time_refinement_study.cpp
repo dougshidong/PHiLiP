@@ -1,5 +1,5 @@
 #include "time_refinement_study.h"
-#include "flow_solver/flow_solver.h"
+#include "flow_solver/flow_solver_factory.h"
 #include "flow_solver/flow_solver_cases/periodic_1D_unsteady.h"
 #include "physics/exact_solutions/exact_solution.h"
 #include "cmath"

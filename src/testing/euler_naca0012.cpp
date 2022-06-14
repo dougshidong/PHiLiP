@@ -3,7 +3,7 @@
 #include <deal.II/grid/grid_refinement.h>
 #include "physics/manufactured_solution.h"
 #include "euler_naca0012.hpp"
-#include "flow_solver/flow_solver.h"
+#include "flow_solver/flow_solver_factory.h"
 
 
 namespace PHiLiP {

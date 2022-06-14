@@ -1,5 +1,5 @@
 #include "taylor_green_vortex_restart_check.h"
-#include "flow_solver/flow_solver.h"
+#include "flow_solver/flow_solver_factory.h"
 #include "flow_solver/flow_solver_cases/periodic_turbulence.h"
 #include <deal.II/base/table_handler.h>
 #include <algorithm>

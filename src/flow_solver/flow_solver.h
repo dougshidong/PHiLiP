@@ -2,6 +2,7 @@
 #define __FLOW_SOLVER_H__
 
 // for FlowSolver class:
+#include "flow_solver_cases/flow_solver_case_base.h"
 #include "physics/initial_conditions/initial_condition.h"
 #include "physics/physics.h"
 #include "parameters/all_parameters.h"
@@ -10,8 +11,6 @@
 #include <deal.II/grid/tria.h>
 #include <deal.II/distributed/shared_tria.h>
 #include <deal.II/distributed/tria.h>
-
-// #include "grid_refinement_study.h" // remove?
 #include <deal.II/base/function.h>
 #include <stdlib.h>
 #include <iostream>
@@ -23,17 +22,10 @@
 #include "dg/dg_factory.hpp"
 #include "ode_solver/explicit_ode_solver.h"
 #include "ode_solver/ode_solver_factory.h"
-#include "flow_solver_cases/periodic_cube_flow.h"
-#include "flow_solver_cases/periodic_turbulence.h"
-#include "flow_solver_cases/periodic_1D_unsteady.h"
-#include "flow_solver_cases/1D_burgers_rewienski_snapshot.h"
-#include "flow_solver_cases/1d_burgers_viscous_snapshot.h"
-#include "flow_solver_cases/naca0012.h"
 #include <deal.II/base/table_handler.h>
 #include <string>
 #include <vector>
 #include <deal.II/base/parameter_handler.h>
-#include <deal.II/base/conditional_ostream.h> // remove?
 
 namespace PHiLiP {
 namespace FlowSolver {
@@ -138,25 +130,6 @@ private:
         const double constant_time_step,
         const std::shared_ptr <dealii::TableHandler> unsteady_data_table) const;
 #endif
-};
-
-/// Create specified flow solver as FlowSolver object 
-/** Factory design pattern whose job is to create the correct flow solver
- */
-template <int dim, int nstate>
-class FlowSolverFactory
-{
-public:
-    /// Factory to return the correct flow solver given input file.
-    static std::unique_ptr< FlowSolver<dim,nstate> >
-        select_flow_case(const Parameters::AllParameters *const parameters_input,
-                         const dealii::ParameterHandler &parameter_handler_input);
-
-    /// Recursive factory that will create FlowSolverBase (i.e. FlowSolver<dim,nstate>)
-    static std::unique_ptr< FlowSolverBase > 
-        create_flow_solver(const Parameters::AllParameters *const parameters_input,
-                           const dealii::ParameterHandler &parameter_handler_input);
-
 };
 
 } // FlowSolver namespace

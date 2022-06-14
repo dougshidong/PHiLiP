@@ -33,6 +33,8 @@ public:
 
     bool steady_state; ///<Flag for solving steady state solution
 
+    bool adaptive_time_step; ///< Flag for computing the time step on the fly
+
     /** Name of the output file for writing the sensitivity data;
      *   will be written to file: sensitivity_table_filename.txt */
     std::string sensitivity_table_filename;

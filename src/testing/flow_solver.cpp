@@ -175,7 +175,7 @@ std::string FlowSolver<dim,nstate>::double_to_string(const double value_input) c
 template <int dim, int nstate>
 void FlowSolver<dim,nstate>::write_restart_parameter_file(
     const int restart_index_input,
-    const double constant_time_step_input) const {
+    const double time_step_input) const {
     // write the restart parameter file
     if(this->mpi_rank==0) {
         // read a copy of the current parameters file
@@ -209,7 +209,7 @@ void FlowSolver<dim,nstate>::write_restart_parameter_file(
         ODE_solver_restart_parameter_values.push_back(double_to_string(ode_solver->current_desired_time_for_output_solution_every_dt_time_intervals));
         ODE_solver_restart_parameter_values.push_back(std::to_string(ode_solver->current_iteration));
         ODE_solver_restart_parameter_values.push_back(double_to_string(ode_solver->current_time));
-        ODE_solver_restart_parameter_values.push_back(double_to_string(constant_time_step_input));
+        ODE_solver_restart_parameter_values.push_back(double_to_string(time_step_input));
 
 
         /* WARNING: (1) Must put a space before and after each parameter string as done below
@@ -298,7 +298,7 @@ void FlowSolver<dim,nstate>::write_restart_parameter_file(
 template <int dim, int nstate>
 void FlowSolver<dim,nstate>::output_restart_files(
     const int current_restart_index,
-    const double constant_time_step,
+    const double time_step_input,
     const std::shared_ptr <dealii::TableHandler> unsteady_data_table) const
 {
     pcout << "  ... Writing restart files ... " << std::endl;
@@ -319,7 +319,7 @@ void FlowSolver<dim,nstate>::output_restart_files(
     }
 
     // parameter file; written last to ensure necessary data/solution files have been written before
-    write_restart_parameter_file(current_restart_index, constant_time_step);
+    write_restart_parameter_file(current_restart_index, time_step_input);
 }
 #endif
 
@@ -349,8 +349,19 @@ int FlowSolver<dim,nstate>::run_test() const
         //----------------------------------------------------
         // Constant time step based on CFL number
         //----------------------------------------------------
-        pcout << "Setting constant time step... " << std::flush;
-        const double constant_time_step = flow_solver_case->get_constant_time_step(dg);
+        double time_step = 0.0;
+        if(flow_solver_param.restart_computation_from_file == true) {
+            pcout << "Setting time step from restart file... " << std::flush;
+            time_step = ode_param.initial_time_step;
+        } else {
+            if(flow_solver_param.adaptive_time_step == false) {
+                pcout << "Setting constant time step... " << std::flush;
+                time_step = flow_solver_case->get_constant_time_step(dg);
+            } else {
+                pcout << "Setting initial adaptive time step... " << std::flush;
+                time_step = flow_solver_case->get_adaptive_time_step(dg);
+            }
+        }
         pcout << "done." << std::endl;
         //----------------------------------------------------
         // dealii::TableHandler and data at initial time
@@ -374,8 +385,11 @@ int FlowSolver<dim,nstate>::run_test() const
         pcout << "Advancing solution in time... " << std::endl;
         while((ode_solver->current_time) < (final_time - 1E-13)) //comparing to 1E-13 to avoid taking an extra timestep
         {
+            // update adaptive time step
+            if(flow_solver_param.adaptive_time_step == true) time_step = flow_solver_case->get_adaptive_time_step(dg);
+
             // advance solution
-            ode_solver->step_in_time(constant_time_step,false); // pseudotime==false
+            ode_solver->step_in_time(time_step,false); // pseudotime==false
 
             // Compute the unsteady quantities, write to the dealii table, and output to file
             flow_solver_case->compute_unsteady_data_and_write_to_table(ode_solver->current_iteration, ode_solver->current_time, dg, unsteady_data_table);
@@ -385,17 +399,17 @@ int FlowSolver<dim,nstate>::run_test() const
                 // Output restart files
                 if(flow_solver_param.output_restart_files_every_dt_time_intervals > 0.0) {
                     const bool is_output_time = ((ode_solver->current_time <= current_desired_time_for_output_restart_files_every_dt_time_intervals) && 
-                                                ((ode_solver->current_time + constant_time_step) > current_desired_time_for_output_restart_files_every_dt_time_intervals));
+                                                ((ode_solver->current_time + time_step) > current_desired_time_for_output_restart_files_every_dt_time_intervals));
                     if (is_output_time) {
                         const int file_number = current_desired_time_for_output_restart_files_every_dt_time_intervals / flow_solver_param.output_restart_files_every_dt_time_intervals;
-                        output_restart_files(file_number, constant_time_step, unsteady_data_table);
+                        output_restart_files(file_number, time_step, unsteady_data_table);
                         current_desired_time_for_output_restart_files_every_dt_time_intervals += flow_solver_param.output_restart_files_every_dt_time_intervals;
                     }
                 } else /*if (flow_solver_param.output_restart_files_every_x_steps > 0)*/ {
                     const bool is_output_iteration = (ode_solver->current_iteration % flow_solver_param.output_restart_files_every_x_steps == 0);
                     if (is_output_iteration) {
                         const int file_number = ode_solver->current_iteration / flow_solver_param.output_restart_files_every_x_steps;
-                        output_restart_files(file_number, constant_time_step, unsteady_data_table);
+                        output_restart_files(file_number, time_step, unsteady_data_table);
                     }
                 }
             }
@@ -411,7 +425,7 @@ int FlowSolver<dim,nstate>::run_test() const
                 }
             } else if(ode_param.output_solution_every_dt_time_intervals > 0.0) {
                 const bool is_output_time = ((ode_solver->current_time <= ode_solver->current_desired_time_for_output_solution_every_dt_time_intervals) && 
-                                            ((ode_solver->current_time + constant_time_step) > ode_solver->current_desired_time_for_output_solution_every_dt_time_intervals));
+                                            ((ode_solver->current_time + time_step) > ode_solver->current_desired_time_for_output_solution_every_dt_time_intervals));
                 if (is_output_time) {
                     pcout << "  ... Writing vtk solution file ..." << std::endl;
                     const int file_number = ode_solver->current_desired_time_for_output_solution_every_dt_time_intervals / ode_param.output_solution_every_dt_time_intervals;

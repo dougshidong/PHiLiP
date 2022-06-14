@@ -66,11 +66,25 @@ double PeriodicTurbulence<dim,nstate>::get_constant_time_step(std::shared_ptr<DG
     return constant_time_step;
 }
 
+template <int dim, int nstate>
+double PeriodicTurbulence<dim,nstate>::get_adaptive_time_step(std::shared_ptr<DGBase<dim,double>> dg) const
+{
+    // compute time step based on advection speed (i.e. maximum local wave speed)
+    const unsigned int number_of_degrees_of_freedom_per_state = dg->dof_handler.n_dofs()/nstate;
+    const double approximate_grid_spacing = (this->domain_right-this->domain_left)/pow(number_of_degrees_of_freedom_per_state,(1.0/dim));
+    const double cfl_number = this->all_param.flow_solver_param.courant_friedrich_lewy_number;
+    const double time_step = cfl_number * approximate_grid_spacing / this->maximum_local_wave_speed;
+    return time_step;
+}
+
 template<int dim, int nstate>
 void PeriodicTurbulence<dim, nstate>::compute_and_update_integrated_quantities(DGBase<dim, double> &dg)
 {
     std::array<double,NUMBER_OF_INTEGRATED_QUANTITIES> integral_values;
     std::fill(integral_values.begin(), integral_values.end(), 0.0);
+    
+    // Initialize the maximum local wave speed to zero; only used for adaptive time step
+    if(this->all_param.flow_solver_param.adaptive_time_step == true) this->maximum_local_wave_speed = 0.0;
 
     // Overintegrate the error to make sure there is not integration error in the error estimate
     int overintegrate = 10;
@@ -112,6 +126,12 @@ void PeriodicTurbulence<dim, nstate>::compute_and_update_integrated_quantities(D
 
             for(int i_quantity=0; i_quantity<NUMBER_OF_INTEGRATED_QUANTITIES; ++i_quantity) {
                 integral_values[i_quantity] += integrand_values[i_quantity] * fe_values_extra.JxW(iquad);
+            }
+
+            // Update the maximum local wave speed (i.e. convective eigenvalue) if using an adaptive time step
+            if(this->all_param.flow_solver_param.adaptive_time_step == true) {
+                const double local_wave_speed = this->navier_stokes_physics->max_convective_eigenvalue(soln_at_q);
+                if(local_wave_speed > this->maximum_local_wave_speed) this->maximum_local_wave_speed = local_wave_speed;
             }
         }
     }

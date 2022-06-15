@@ -1,7 +1,7 @@
 #include "flow_solver_case_base.h"
 
 namespace PHiLiP {
-namespace Tests {
+namespace FlowSolver {
 
 template<int dim, int nstate>
 FlowSolverCaseBase<dim, nstate>::FlowSolverCaseBase(const PHiLiP::Parameters::AllParameters *const parameters_input)
@@ -117,5 +117,5 @@ template class FlowSolverCaseBase<PHILIP_DIM,PHILIP_DIM>;
 template class FlowSolverCaseBase<PHILIP_DIM,PHILIP_DIM+2>;
 #endif
 
-}
-}
+} // FlowSolver namespace
+} // PHiLiP namespace

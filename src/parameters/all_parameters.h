@@ -143,6 +143,7 @@ public:
         taylor_green_vortex_restart_check,
         time_refinement_study,
         time_refinement_study_reference,
+        burgers_energy_conservation_rrk,
     };
     /// Store selected TestType from the input file.
     TestType test_type;

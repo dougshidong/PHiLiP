@@ -352,7 +352,7 @@ int FlowSolver<dim,nstate>::run() const
         double current_desired_time_for_output_restart_files_every_dt_time_intervals = ode_solver->current_time; // when used, same as the initial time
 #endif
         //----------------------------------------------------
-        // Constant time step based on CFL number
+        // Initialize time step
         //----------------------------------------------------
         double time_step = 0.0;
         if(flow_solver_param.restart_computation_from_file == true) {

@@ -88,11 +88,12 @@ int TaylorGreenVortexRestartCheck<dim, nstate>::run_test() const
     static_cast<void>(flow_solver_incomplete_run->run());
 
     const double time_step_at_stop_time = flow_solver_incomplete_run->flow_solver_case->get_constant_time_step(flow_solver_incomplete_run->dg);
+    const double desired_time_for_output_solution_every_dt_time_intervals_at_stop_time = flow_solver_incomplete_run->ode_solver->current_desired_time_for_output_solution_every_dt_time_intervals;
     Parameters::AllParameters params_restart_to_complete_run = reinit_params(false,true,
                                                                              time_at_which_the_run_is_complete,
                                                                              time_at_which_we_stop_the_run,
                                                                              initial_iteration_restart,
-                                                                             0.0,
+                                                                             desired_time_for_output_solution_every_dt_time_intervals_at_stop_time,
                                                                              time_step_at_stop_time,
                                                                              restart_file_index);
 

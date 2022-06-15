@@ -85,9 +85,9 @@ double FlowSolverCaseBase<dim,nstate>::get_constant_time_step(std::shared_ptr<DG
 template <int dim, int nstate>
 double FlowSolverCaseBase<dim,nstate>::get_adaptive_time_step(std::shared_ptr<DGBase<dim,double>> /*dg*/) const
 {
-    pcout << "Using initial time step in ODE parameters." <<std::endl;
-    pcout << " Base definition for get_adaptive_time_step() has not yet been implemented." <<std::endl;
-    return all_param.ode_solver_param.initial_time_step;
+    pcout << "ERROR: Base definition for get_adaptive_time_step() has not yet been implemented. " <<std::flush;
+    std::abort();
+    return 0.0;
 }
 
 template <int dim, int nstate>

@@ -70,7 +70,6 @@ std::array<dealii::Tensor<1,dim,real>,nstate> ConvectionDiffusion<dim,nstate,rea
     for (int i=0; i<nstate; ++i) {
         conv_flux[i] = 0.0;
         for (int d=0; d<dim; ++d) {
-//std::cout<<" vel "<<velocity_field[d]<<" dir "<<d<<std::endl;
             conv_flux[i][d] += velocity_field[d] * solution[i];
         }
     }

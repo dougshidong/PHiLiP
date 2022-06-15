@@ -19,17 +19,16 @@ set conv_num_flux = split_form
 subsection ODE solver
   set ode_solver_type = explicit
   set output_solution_every_dt_time_intervals = 0.01
-  set initial_time_step = 2.5E-3 # 0.000001 #2.5E-3
+  set initial_time_step = 2.5E-3 
   subsection explicit solver options
     set runge_kutta_order = 3 
-    set relaxation_runge_kutta = true
+    set relaxation_runge_kutta = false #change to true to use RRK
   end
 end
 
 # polynomial order and number of cells per direction (i.e. grid_size)
 subsection grid refinement study
   set poly_degree = 5 
-  #set num_refinements = 5 #using grid_size instead
   set grid_size = 16 
   set grid_left = 0.0
   set grid_right = 2.0 

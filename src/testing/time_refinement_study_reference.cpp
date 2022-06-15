@@ -46,10 +46,10 @@ dealii::LinearAlgebra::distributed::Vector<double> TimeRefinementStudyReference<
 {
     int number_of_timesteps_for_reference_solution = this->all_parameters->flow_solver_param.number_of_timesteps_for_reference_solution;
     const Parameters::AllParameters params_reference = reinit_params_for_reference_solution(number_of_timesteps_for_reference_solution, final_time);
-    std::unique_ptr<FlowSolver<dim,nstate>> flow_solver = FlowSolverFactory<dim,nstate>::create_FlowSolver(&params_reference, parameter_handler);
-    static_cast<void>(flow_solver->run_test());
+    std::unique_ptr<FlowSolver<dim,nstate>> flow_solver_reference = FlowSolverFactory<dim,nstate>::create_FlowSolver(&params_reference, parameter_handler);
+    static_cast<void>(flow_solver_reference->run_test());
 
-    return flow_solver->dg->solution;
+    return flow_solver_reference->dg->solution;
 }
 
 template <int dim, int nstate>
@@ -59,17 +59,6 @@ double TimeRefinementStudyReference<dim,nstate>::calculate_L2_error_at_final_tim
             double final_time_actual,
             dealii::LinearAlgebra::distributed::Vector<double> reference_solution) const
 {
-    //Here, calculate L2 error by comparing reference solution and passed dg object
-    //
-    //if (final_time == parameters -> final_time)
-    //  compare to stored reference solution
-    //else 
-    //  recompute reference solution
-    //  compare to recomputed solution
-    //  issue with this structure: is it still possible to get IDT order?
-    //  I guess I could pass the convergence table instead...
-    //
-    
     const double final_time_target = parameters.flow_solver_param.final_time;
 
     if (abs(final_time_target-final_time_actual)<1E-13){
@@ -77,17 +66,17 @@ double TimeRefinementStudyReference<dim,nstate>::calculate_L2_error_at_final_tim
         pcout << "Comparing to reference solution at target final_time = " << final_time_target << " ..."  << std::endl;
 
         //calculate L2 norm of error
-        //NOTE TO SELF: LATER ADD OVERINTEGRATION
         dealii::LinearAlgebra::distributed::Vector<double> cellwise_difference(reference_solution); 
         cellwise_difference.add(-1.0, dg->solution);
         double L2_error = cellwise_difference.l2_norm();
         return L2_error;
     }else{
-        //recompute reference solution at actual 
+        //recompute reference solution at actual end time
+        //intended to be used when relaxation_runge_kutta = true
 
-        pcout << "    ---------------------------------------------" << std::endl;
+        pcout << "    -------------------------------------------------------" << std::endl;
         pcout << "    Calculating reference solution at actual final_time = " << final_time_actual << " ..."<<std::endl;
-        pcout << "    ---------------------------------------------" << std::endl;
+        pcout << "    -------------------------------------------------------" << std::endl;
         const dealii::LinearAlgebra::distributed::Vector<double> reference_solution_actual = calculate_reference_solution(final_time_actual);
 
         dealii::LinearAlgebra::distributed::Vector<double> cellwise_difference(reference_solution_actual); 
@@ -99,7 +88,7 @@ double TimeRefinementStudyReference<dim,nstate>::calculate_L2_error_at_final_tim
 }
 
 template <int dim, int nstate>
-double TimeRefinementStudyReference<dim, nstate>::compute_energy(
+double TimeRefinementStudyReference<dim, nstate>::compute_energy_collocated(
         const std::shared_ptr <DGBase<dim, double>> dg
         ) const
 {
@@ -122,24 +111,17 @@ int TimeRefinementStudyReference<dim, nstate>::run_test() const
         pcout << "Error: final_time is not evenly divisible by initial_time_step!" << std::endl
               << "Remainder is " << fmod(final_time, initial_time_step)
               << ". Modify parameters to run this test." << std::endl;
-        //std::abort();
+        std::abort();
     }
 
     int testfail = 0;
     double expected_order =(double) this->all_parameters->ode_solver_param.runge_kutta_order;
     double order_tolerance = 0.1;
 
-    //Here, calculate reference solution using a small timestep; store dg->solution
-    pcout << "\n\n---------------------------------------------" << std::endl;
+    pcout << "\n\n-------------------------------------------------------" << std::endl;
     pcout << "Calculating reference solution at target final_time = " << final_time << " ..."<<std::endl;
-    pcout << "---------------------------------------------" << std::endl;
-/*
-    int number_of_timesteps_for_reference_solution = this->all_parameters->flow_solver_param.number_of_timesteps_for_reference_solution;
-    double final_time_target = this->all_parameters->flow_solver_param.final_time;
-    const Parameters::AllParameters params_reference = reinit_params_for_reference_solution(number_of_timesteps_for_reference_solution, final_time_target);
-    std::unique_ptr<FlowSolver<dim,nstate>> flow_solver = FlowSolverFactory<dim,nstate>::create_FlowSolver(&params_reference, parameter_handler);
-    static_cast<void>(flow_solver->run_test());
-*/
+    pcout << "-------------------------------------------------------" << std::endl;
+    
     double final_time_target = this->all_parameters->flow_solver_param.final_time;
     const dealii::LinearAlgebra::distributed::Vector<double> reference_solution = calculate_reference_solution(final_time_target);
 
@@ -149,9 +131,9 @@ int TimeRefinementStudyReference<dim, nstate>::run_test() const
 
     for (int refinement = 0; refinement < n_time_calculations; ++refinement){
         
-        pcout << "\n\n---------------------------------------------" << std::endl;
+        pcout << "\n\n-------------------------------------------------------" << std::endl;
         pcout << "Refinement number " << refinement << " of " << n_time_calculations - 1 << std::endl;
-        pcout << "---------------------------------------------" << std::endl;
+        pcout << "-------------------------------------------------------" << std::endl;
 
         const Parameters::AllParameters params = reinit_params_and_refine_timestep(refinement);
         std::unique_ptr<FlowSolver<dim,nstate>> flow_solver = FlowSolverFactory<dim,nstate>::create_FlowSolver(&params, parameter_handler);
@@ -177,17 +159,23 @@ int TimeRefinementStudyReference<dim, nstate>::run_test() const
         convergence_table.add_value("L2_error",L2_error);
         convergence_table.set_precision("L2_error", 16);
         convergence_table.evaluate_convergence_rates("L2_error", "dt", dealii::ConvergenceTable::reduction_rate_log2, 1);
-
-        double energy_end = compute_energy(flow_solver->dg);
-        convergence_table.add_value("energy_end", energy_end);
-        convergence_table.set_precision("energy_end", 16);
-        convergence_table.set_scientific("energy_end", true);
-
-        double gamma_aggregate_m1 = (final_time_actual / final_time_target)-1;
-        convergence_table.add_value("gamma_aggregate_m1", gamma_aggregate_m1);
-        convergence_table.set_precision("gamma_aggregate_m1", 16);
-        convergence_table.set_scientific("gamma_aggregate_m1", true);
-        convergence_table.evaluate_convergence_rates("gamma_aggregate_m1", "dt", dealii::ConvergenceTable::reduction_rate_log2, 1);
+        
+        if (params.use_collocated_nodes){
+            //current energy calculation is only valid for collocated nodes
+            double energy_end = compute_energy_collocated(flow_solver->dg);
+            convergence_table.add_value("energy_end", energy_end);
+            convergence_table.set_precision("energy_end", 16);
+            convergence_table.set_scientific("energy_end", true);
+        }
+        
+        if(params.ode_solver_param.relaxation_runge_kutta){
+            //for burgers, this is the average gamma over the runtime
+            double gamma_aggregate_m1 = (final_time_actual / final_time_target)-1;
+            convergence_table.add_value("gamma_aggregate_m1", gamma_aggregate_m1);
+            convergence_table.set_precision("gamma_aggregate_m1", 16);
+            convergence_table.set_scientific("gamma_aggregate_m1", true);
+            convergence_table.evaluate_convergence_rates("gamma_aggregate_m1", "dt", dealii::ConvergenceTable::reduction_rate_log2, 1);
+        }
 
 
         //Checking convergence order

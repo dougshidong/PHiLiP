@@ -20,7 +20,8 @@
 #include "dg/dg_factory.hpp"
 #include "ode_solver/ode_solver_factory.h"
 #include "advection_explicit_periodic.h"
-#include "physics/initial_conditions/initial_condition.h"
+#include "physics/initial_conditions/set_initial_condition.h"
+#include "physics/initial_conditions/initial_condition_function.h"
 
 #include "mesh/grids/nonsymmetric_curved_periodic_grid.hpp"
 
@@ -145,7 +146,10 @@ int AdvectionPeriodic<dim, nstate>::run_test() const
     dg->allocate_system ();
 
     std::cout << "Implement initial conditions" << std::endl;
-    InitialCondition<dim,nstate,double> initial_condition(dg, &all_parameters_new);
+    // Create initial condition function
+    std::shared_ptr< InitialConditionFunction<dim,nstate,double> > initial_condition_function = 
+            InitialConditionFactory<dim,nstate,double>::create_InitialConditionFunction(&all_parameters_new); 
+    SetInitialCondition<dim,nstate,double>::set_initial_condition(initial_condition_function, dg, &all_parameters_new);
 
     // Create ODE solver using the factory and providing the DG object
     std::shared_ptr<PHiLiP::ODE::ODESolverBase<dim, double>> ode_solver = PHiLiP::ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);

@@ -1,10 +1,7 @@
-#ifndef __INITIAL_CONDITION_H__
-#define __INITIAL_CONDITION_H__
+#ifndef __SET_INITIAL_CONDITION_H__
+#define __SET_INITIAL_CONDITION_H__
 
-#include <deal.II/lac/vector.h>
-#include <deal.II/base/function.h>
 #include "parameters/all_parameters.h"
-#include "parameters/parameters.h"
 #include "dg/dg.h"
 #include "initial_condition_function.h"
 
@@ -13,25 +10,20 @@ namespace PHiLiP {
 ///Initial Condition class.
 
 template <int dim, int nstate, typename real>
-class InitialCondition
+class SetInitialCondition
 {
 public:
-    ///Constructor
-    InitialCondition(
-        std::shared_ptr< PHiLiP::DGBase<dim, real> > dg_input,
+    /// Applies the given initial condition function to the given dg object
+    static void set_initial_condition(
+        std::shared_ptr< InitialConditionFunction<dim,nstate,double> > initial_condition_function_input,
+        std::shared_ptr< PHiLiP::DGBase<dim,real> > dg_input,
         const Parameters::AllParameters *const parameters_input);
-    ///Destructor
-    ~InitialCondition();
-
-    ///Input parameters.
-    const Parameters::AllParameters *const all_parameters;
-
-    /// Smart pointer to DGBase
-    std::shared_ptr<PHiLiP::DGBase<dim,real>> dg;
-
+private:
     ///Interpolates the initial condition function onto the dg solution.
-    void interpolate_initial_condition(
+    static void interpolate_initial_condition(
+        std::shared_ptr< InitialConditionFunction<dim,nstate,double> > &initial_condition_function,
         std::shared_ptr < PHiLiP::DGBase<dim,real> > &dg); 
+    
     ///Projects the initial condition function physical value onto the dg solution modal coefficients.
     /*This is critical for curvilinear coordinates since the physical coordinates are
     * nonlinear functions of the reference coordinates. This leads to the interpolation
@@ -42,15 +34,9 @@ public:
     * Note that the physical mapping only appears in the function to be projected \f$\mathbf{f}\f$ and the determinant of the metric Jacobian is not in the projection.
     * For more information, please refer to Sections 3.1 and 3.2 in Cicchino, Alexander, et al. "Provably stable flux reconstruction high-order methods on curvilinear elements." Journal of Computational Physics (2022): 111259.
     */
-    void project_initial_condition(
+    static void project_initial_condition(
+        std::shared_ptr< InitialConditionFunction<dim,nstate,double> > &initial_condition_function,
         std::shared_ptr < PHiLiP::DGBase<dim,real> > &dg); 
-        
-    protected:
-    ///Initial condition function
-    std::shared_ptr< InitialConditionFunction<dim,nstate,double> > initial_condition_function;
-    const MPI_Comm mpi_communicator; ///< MPI communicator.
-    dealii::ConditionalOStream pcout; ///< Parallel std::cout that only outputs on mpi_rank==0
-
 };
 
 }//end PHiLiP namespace

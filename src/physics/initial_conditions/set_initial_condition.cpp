@@ -1,37 +1,31 @@
-#include <deal.II/base/function.h>
+#include "set_initial_condition.h"
+
+// #include <deal.II/base/function.h>
 #include <deal.II/numerics/vector_tools.h>
-#include <deal.II/numerics/solution_transfer.h>
-#include "initial_condition.h"
-#include "dg/dg.h"
+// #include <deal.II/numerics/solution_transfer.h>
 
 namespace PHiLiP{
 
-//Constructor
 template<int dim, int nstate, typename real>
-InitialCondition<dim,nstate,real>::InitialCondition(
+void SetInitialCondition<dim,nstate,real>::set_initial_condition(
+        std::shared_ptr< InitialConditionFunction<dim,nstate,double> > initial_condition_function_input,
         std::shared_ptr< PHiLiP::DGBase<dim, real> > dg_input,
         const Parameters::AllParameters *const parameters_input)
-        : all_parameters(parameters_input)
-        , dg(dg_input)
-        , initial_condition_function(InitialConditionFactory<dim,nstate,double>::create_InitialConditionFunction(parameters_input))
-        , mpi_communicator(MPI_COMM_WORLD)
-        , pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(mpi_communicator)==0)
 {
-
-    pcout<<"Setting up Initial Condition"<<std::endl;
-    if(all_parameters->flow_solver_param.interpolate_initial_condition)
-        interpolate_initial_condition(dg);
-    else
-        project_initial_condition(dg);
+    // Apply initial condition depending on the application type
+    const bool interpolate_initial_condition = parameters_input->flow_solver_param.interpolate_initial_condition;
+    if(interpolate_initial_condition == true) {
+        // for non-curvilinear
+        SetInitialCondition<dim,nstate,real>::interpolate_initial_condition(initial_condition_function_input, dg_input);
+    } else {
+        // for curvilinear
+        SetInitialCondition<dim,nstate,real>::project_initial_condition(initial_condition_function_input, dg_input);
+    }
 }
 
-//Destructor
 template<int dim, int nstate, typename real>
-InitialCondition<dim,nstate,real>::~InitialCondition()
-{}
-
-template<int dim, int nstate, typename real>
-void InitialCondition<dim,nstate,real>::interpolate_initial_condition(
+void SetInitialCondition<dim,nstate,real>::interpolate_initial_condition(
+        std::shared_ptr< InitialConditionFunction<dim,nstate,double> > &initial_condition_function,
         std::shared_ptr < PHiLiP::DGBase<dim,real> > &dg) 
 {
     dealii::LinearAlgebra::distributed::Vector<double> solution_no_ghost;
@@ -41,7 +35,8 @@ void InitialCondition<dim,nstate,real>::interpolate_initial_condition(
 }
 
 template<int dim, int nstate, typename real>
-void InitialCondition<dim,nstate,real>::project_initial_condition(
+void SetInitialCondition<dim,nstate,real>::project_initial_condition(
+        std::shared_ptr< InitialConditionFunction<dim,nstate,double> > &initial_condition_function,
         std::shared_ptr < PHiLiP::DGBase<dim,real> > &dg) 
 {
     //Note that for curvilinear, can't use dealii interpolate since it doesn't project at the correct order.
@@ -76,13 +71,12 @@ void InitialCondition<dim,nstate,real>::project_initial_condition(
             }   
         }
     }
-
 }
 
-template class InitialCondition<PHILIP_DIM, 1, double>;
-template class InitialCondition<PHILIP_DIM, 2, double>;
-template class InitialCondition<PHILIP_DIM, 3, double>;
-template class InitialCondition<PHILIP_DIM, 4, double>;
-template class InitialCondition<PHILIP_DIM, 5, double>;
+template class SetInitialCondition<PHILIP_DIM, 1, double>;
+template class SetInitialCondition<PHILIP_DIM, 2, double>;
+template class SetInitialCondition<PHILIP_DIM, 3, double>;
+template class SetInitialCondition<PHILIP_DIM, 4, double>;
+template class SetInitialCondition<PHILIP_DIM, 5, double>;
 
 }//end of namespace PHILIP

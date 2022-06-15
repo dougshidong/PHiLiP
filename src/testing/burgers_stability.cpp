@@ -20,7 +20,8 @@
 #include "ode_solver/ode_solver_base.h"
 #include <fstream>
 #include "ode_solver/ode_solver_factory.h"
-#include "physics/initial_conditions/initial_condition.h"
+#include "physics/initial_conditions/set_initial_condition.h"
+#include "physics/initial_conditions/initial_condition_function.h"
 
 
 namespace PHiLiP {
@@ -139,7 +140,11 @@ int BurgersEnergyStability<dim, nstate>::run_test() const
         dg->allocate_system ();
          
         //initialize IC
-        InitialCondition<dim,nstate,double> initial_condition(dg, &all_parameters_new);
+        pcout<<"Setting up Initial Condition"<<std::endl;
+        // Create initial condition function
+        std::shared_ptr< InitialConditionFunction<dim,nstate,double> > initial_condition_function = 
+                InitialConditionFactory<dim,nstate,double>::create_InitialConditionFunction(&all_parameters_new);
+        SetInitialCondition<dim,nstate,double>::set_initial_condition(initial_condition_function, dg, &all_parameters_new);
 	// Create ODE solver using the factory and providing the DG object
 	std::shared_ptr<ODE::ODESolverBase<dim, double>> ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
 

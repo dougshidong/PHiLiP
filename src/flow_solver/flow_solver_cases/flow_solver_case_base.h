@@ -10,7 +10,7 @@
 #include <deal.II/distributed/tria.h>
 
 namespace PHiLiP {
-namespace Tests {
+namespace FlowSolver {
 
 #if PHILIP_DIM==1
 using Triangulation = dealii::Triangulation<PHILIP_DIM>;
@@ -84,7 +84,7 @@ private:
 
 };
 
-} // Tests namespace
+} // FlowSolver namespace
 } // PHiLiP namespace
 
 #endif

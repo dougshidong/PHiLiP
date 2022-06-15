@@ -1,6 +1,6 @@
 #include "time_refinement_study.h"
-#include "flow_solver.h"
-#include "flow_solver_cases/periodic_1D_unsteady.h"
+#include "flow_solver/flow_solver_factory.h"
+#include "flow_solver/flow_solver_cases/periodic_1D_unsteady.h"
 #include "physics/exact_solutions/exact_solution.h"
 #include "cmath"
 
@@ -83,8 +83,8 @@ int TimeRefinementStudy<dim, nstate>::run_test() const
         pcout << "---------------------------------------------" << std::endl;
 
         const Parameters::AllParameters params = reinit_params_and_refine_timestep(refinement);
-        std::unique_ptr<FlowSolver<dim,nstate>> flow_solver = FlowSolverFactory<dim,nstate>::create_FlowSolver(&params, parameter_handler);
-        static_cast<void>(flow_solver->run_test());
+        std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(&params, parameter_handler);
+        static_cast<void>(flow_solver->run());
         
         //check L2 error
         double L2_error = calculate_L2_error_at_final_time_wrt_function(flow_solver->dg, params, flow_solver->ode_solver->current_time);

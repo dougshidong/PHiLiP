@@ -6,7 +6,7 @@
 #include "physics/navier_stokes.h"
 
 namespace PHiLiP {
-namespace Tests {
+namespace FlowSolver {
 
 template <int dim, int nstate>
 class PeriodicTurbulence : public PeriodicCubeFlow<dim,nstate>
@@ -102,6 +102,6 @@ protected:
     double maximum_local_wave_speed;
 };
 
-} // Tests namespace
+} // FlowSolver namespace
 } // PHiLiP namespace
 #endif

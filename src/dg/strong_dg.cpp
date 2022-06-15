@@ -256,24 +256,16 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_volume_term_derivatives(
 
     std::array<std::array<std::vector<FadType>,nstate>,dim> f;
     std::array<std::array<std::vector<FadType>,nstate>,dim> g;
-    // Evaluate flux divergence by interpolating the flux
-    // Since we have nodal values of the flux, we use the Lagrange polynomials to obtain the gradients at the quadrature points.
+
     for (int istate = 0; istate<nstate; ++istate) {
         for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
             flux_divergence[iquad][istate] = 0.0;
             for ( unsigned int flux_basis = 0; flux_basis < n_quad_pts; ++flux_basis ) {
-                if (this->all_parameters->use_split_form == true)
-                {
-                    flux_divergence[iquad][istate] += 2* DGBaseState<dim,nstate,real,MeshType>::pde_physics_fad->convective_numerical_split_flux(soln_at_q[iquad],soln_at_q[flux_basis])[istate] *  fe_values_lagrange.shape_grad(flux_basis,iquad);
-                }
-                else
-                {
-                    flux_divergence[iquad][istate] += conv_phys_flux_at_q[flux_basis][istate] * fe_values_lagrange.shape_grad(flux_basis,iquad);
-                }
+                flux_divergence[iquad][istate] += conv_phys_flux_at_q[flux_basis][istate] * fe_values_lagrange.shape_grad(flux_basis,iquad);
             }
+
         }
     }
-
 
     // Strong form
     // The right-hand side sends all the term to the side of the source term

@@ -32,14 +32,10 @@ template<int dim, int nstate>
 double BurgersEnergyStability<dim, nstate>::compute_energy(std::shared_ptr < PHiLiP::DGBase<dim, double> > &dg) const
 {
  double energy = 0.0;
- 
  for (unsigned int i = 0; i < dg->solution.size(); ++i)
  {
   energy += 1./(dg->global_inverse_mass_matrix(i,i)) * dg->solution(i) * dg->solution(i);
-  //energy += dg->solution(i) * dg->solution(i);
  }
- 
- //energy = (dg->solution) * (dg->solution);
  return energy;
 }
 
@@ -54,13 +50,13 @@ int BurgersEnergyStability<dim, nstate>::run_test() const
     double right = 2.0;
     const bool colorize = true;
     int n_refinements = 5;
-    unsigned int poly_degree = 3;
+    unsigned int poly_degree = 7;
     dealii::GridGenerator::hyper_cube(*grid, left, right, colorize);
    
-    //std::vector<dealii::GridTools::PeriodicFacePair<typename Triangulation::cell_iterator> > matched_pairs;
-    //dealii::GridTools::collect_periodic_faces(*grid,0,1,0,matched_pairs);
-    //grid->add_periodicity(matched_pairs);
-    //Imposing periodicity through use_periodic_bc param
+    std::vector<dealii::GridTools::PeriodicFacePair<typename Triangulation::cell_iterator> > matched_pairs;
+    dealii::GridTools::collect_periodic_faces(*grid,0,1,0,matched_pairs);
+    grid->add_periodicity(matched_pairs);
+   
    
     grid->refine_global(n_refinements);
     pcout << "Grid generated and refined" << std::endl;
@@ -73,9 +69,8 @@ int BurgersEnergyStability<dim, nstate>::run_test() const
     dealii::FunctionParser<1> initial_condition;
     std::string variables = "x";
     std::map<std::string,double> constants;
-    //constants["pi"] = dealii::numbers::PI;
-    //std::string expression = "sin(pi*(x)) + 0.01";
-    std::string expression = "exp(-30*(x-1)*(x-1))";
+    constants["pi"] = dealii::numbers::PI;
+    std::string expression = "sin(pi*(x)) + 0.01";
     initial_condition.initialize(variables,
                                  expression,
                                  constants);
@@ -83,53 +78,34 @@ int BurgersEnergyStability<dim, nstate>::run_test() const
     // Create ODE solver using the factory and providing the DG object
     std::shared_ptr<PHiLiP::ODE::ODESolverBase<dim, double>> ode_solver = PHiLiP::ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
    
-    double finalTime = 0.1;
+    double finalTime = 3.;
    
-    //double dt = all_parameters->ode_solver_param.initial_time_step;
+    double dt = all_parameters->ode_solver_param.initial_time_step;
     //(void) dt;
    
     //need to call ode_solver before calculating energy because mass matrix isn't allocated yet.
 
-    ode_solver->advance_solution_time(1E-10);
+    ode_solver->advance_solution_time(0.000001);
     double initial_energy = compute_energy(dg);
-    pcout << "Initial energy is " << initial_energy << std::endl;
 
     //currently the only way to calculate energy at each time-step is to advance solution by dt instead of finaltime
     //this causes some issues with outputs (only one file is output, which is overwritten at each time step)
     //also the ode solver output doesn't make sense (says "iteration 1 out of 1")
     //but it works. I'll keep it for now and need to modify the output functions later to account for this.
     std::ofstream myfile ("energy_plot.gpl" , std::ios::trunc);
-
-
-/*
    
     for (int i = 0; i < std::ceil(finalTime/dt); ++ i) {
         ode_solver->advance_solution_time(dt);
         double current_energy = compute_energy(dg);
-        current_energy -= initial_energy;//subtract initial energya
-        current_energy = abs(current_energy);
-        std::cout << std::setprecision(16) << std::fixed;
-        pcout << "Change in energy (current - initial) at time " << i * dt << " is " << current_energy << std::endl;
+        pcout << "Energy at time " << i * dt << " is " << current_energy << std::endl;
         myfile << i * dt << " " << current_energy << std::endl;
-        if (current_energy - initial_energy >= 0.1) {
-            //return 1;
-            //break;
-            pcout << "WARNING: Large change in energy!" << std::endl;
+        if (current_energy - initial_energy >= 0.001) {
+            return 1;
+            break;
         }
     }
-*/
-
-
-    std::cout << std::setprecision(16) << std::fixed;
-    ode_solver->advance_solution_time(finalTime);
-    double end_energy = compute_energy(dg);
-    end_energy = abs(end_energy - initial_energy);
-    //std::cout << std::setprecision(16) << std::fixed;
-    pcout << "Initial energy is " << initial_energy << std::endl;
-    pcout << "Change in energy at t = " << ode_solver->current_time << " is " << end_energy << std::endl;
-
     myfile.close();
-
+   
    
     //ode_solver->advance_solution_time(finalTime);
    

@@ -728,75 +728,6 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
 
             fe_values_collection_face_int.reinit(current_cell, iface, i_quad, i_mapp, i_fele);
 
-              //for 1D periodic
-              if(current_face->at_boundary() && all_parameters->use_periodic_bc == true && dim == 1) //using periodic BCs (for 1d)
-              {
-                  int cell_index  = current_cell->index();
-                  auto neighbor_cell = dof_handler.begin_active();
-                  if (cell_index == (int) triangulation->n_active_cells() - 1 && iface == 1)
-                  {
-                      neighbor_cell = dof_handler.begin_active();
-                      neighbor_dofs_indices.resize(n_dofs_curr_cell);
-                      neighbor_cell->get_dof_indices(neighbor_dofs_indices);
-                      const unsigned int fe_index_neigh_cell = neighbor_cell->active_fe_index();
-                      const unsigned int quad_index_neigh_cell = fe_index_neigh_cell;
-                      const unsigned int mapping_index_neigh_cell = 0;
-                      fe_values_collection_face_ext.reinit(neighbor_cell,(iface == 1) ? 0 : 1, quad_index_neigh_cell, mapping_index_neigh_cell, fe_index_neigh_cell); //not sure how changing the face n     umber would work in dim!=1-dimensions.
-                  }
-                  else {
-                      continue;
-                  }
-  
-                  const int neighbor_face_no = (iface ==1) ? 0:1;
-                  const unsigned int fe_index_neigh_cell = neighbor_cell->active_fe_index();
-  
-                  //check neighbour cell face on boundary
-                  auto neigh_face_check = neighbor_cell->face(neighbor_face_no);
-                  if(neigh_face_check->at_boundary()){
-                      //do nothing, this verifies on-the-fly the 1D periodic BC done correctly
-                  }
-                  else{
-                      pcout<<"FACE NOT ON BOUNDARY"<<std::endl;
-                         exit(1);
-                  }
-  
-                  const dealii::FEFaceValues<dim,dim> &fe_values_face_int = fe_values_collection_face_int.get_present_fe_values();
-                  const dealii::FEFaceValues<dim,dim> &fe_values_face_ext = fe_values_collection_face_ext.get_present_fe_values();
-  
-                  const dealii::FESystem<dim,dim> &neigh_fe_ref = fe_collection[fe_index_neigh_cell];
-                  const unsigned int n_dofs_neigh_cell = neigh_fe_ref.n_dofs_per_cell();
-  
-                  dealii::Vector<double> neighbor_cell_rhs (n_dofs_neigh_cell); // Defaults to 0.0 initialization
-  
-                  const auto metric_neighbor_cell = high_order_grid->dof_handler_grid.begin_active();
-                  metric_neighbor_cell->get_dof_indices(neighbor_metric_dofs_indices);
-  
-                  const real penalty = evaluate_penalty_scaling (current_cell, iface, fe_collection);
-  
-                  const dealii::types::global_dof_index neighbor_cell_index = neighbor_cell->active_cell_index();
-                  if(!this->all_parameters->use_weak_form
-                      && this->all_parameters->ode_solver_param.ode_solver_type == Parameters::ODESolverParam::ODESolverEnum::explicit_solver )//only for strong form explicit
-                  {
-                      assemble_face_term_explicit (
-                          current_cell,
-                          current_cell_index, neighbor_cell_index,
-                          fe_values_face_int, fe_values_face_ext,
-                          penalty,
-                          current_dofs_indices, neighbor_dofs_indices,
-                          current_cell_rhs, neighbor_cell_rhs);
-                  }
-                  else {
-                      //implicit weak 1D periodic BC to be done in future
-                  }
-                  //store neighbour RHS values
-                  for (unsigned int i=0; i<n_dofs_neigh_cell; ++i) {
-                      rhs[neighbor_dofs_indices[i]] += neighbor_cell_rhs[i];
-                  }
-  
-              } else {//at boundary and not 1D periodic
-
-
-
             const dealii::FEFaceValues<dim,dim> &fe_values_face_int = fe_values_collection_face_int.get_present_fe_values();
 
             const real penalty = evaluate_penalty_scaling (current_cell, iface, fe_collection);
@@ -811,7 +742,6 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
                     current_fe_ref, face_quadrature,
                     current_metric_dofs_indices, current_dofs_indices, current_cell_rhs,
                     compute_dRdW, compute_dRdX, compute_d2R);
-            }
 
             //} else {
             //    assemble_boundary_term_explicit (

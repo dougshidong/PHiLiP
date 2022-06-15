@@ -10,10 +10,7 @@ set use_split_form = true
 
 set pde_type = burgers_inviscid
 
-set conv_num_flux = split_form #entropy conservation
-#set conv_num_flux = lax_friedrichs #entropy monotonically decrease
-
-set use_periodic_bc = true
+set conv_num_flux = split_form
 
 subsection ODE solver
 
@@ -25,15 +22,6 @@ subsection ODE solver
 
   set ode_solver_type = explicit
 
-  #set initial_time_step = 0.00000001
-  set initial_time_step = 0.003125
-
-  subsection explicit solver options
-
-    set runge_kutta_order = 3 
-
-    set relaxation_runge_kutta = true
-
-  end
+  set initial_time_step = 0.0001
 
 end

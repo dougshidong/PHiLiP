@@ -18,8 +18,8 @@ int FiniteDifferenceSensitivity<dim, nstate>::run_test() const
     Parameters::AllParameters params_1 = reinit_params(0);
     Parameters::AllParameters params_2 = reinit_params(h);
 
-    std::unique_ptr<FlowSolver<dim,nstate>> flow_solver_1 = FlowSolverFactory<dim,nstate>::create_FlowSolver(&params_1, parameter_handler);
-    std::unique_ptr<FlowSolver<dim,nstate>> flow_solver_2 = FlowSolverFactory<dim,nstate>::create_FlowSolver(&params_2, parameter_handler);
+    std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver_1 = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(&params_1, parameter_handler);
+    std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver_2 = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(&params_2, parameter_handler);
 
     dealii::TableHandler sensitivity_table;
     dealii::TableHandler solutions_table;

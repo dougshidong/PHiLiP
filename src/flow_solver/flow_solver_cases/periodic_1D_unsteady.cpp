@@ -12,7 +12,7 @@
 
 namespace PHiLiP {
 
-namespace Tests {
+namespace FlowSolver {
 
 //=========================================================
 // PERIODIC 1D DOMAIN FOR UNSTEADY CALCULATIONS
@@ -45,6 +45,6 @@ void Periodic1DUnsteady<dim, nstate>::compute_unsteady_data_and_write_to_table(
 template class Periodic1DUnsteady <PHILIP_DIM,PHILIP_DIM>;
 #endif
 
-} // Tests namespace
+} // FlowSolver namespace
 } // PHiLiP namespace
 

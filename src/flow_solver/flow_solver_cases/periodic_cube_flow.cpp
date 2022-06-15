@@ -6,7 +6,7 @@
 
 namespace PHiLiP {
 
-namespace Tests {
+namespace FlowSolver {
 //=========================================================
 // FLOW IN PERIODIC CUBE DOMAIN
 //=========================================================
@@ -58,6 +58,7 @@ template class PeriodicCubeFlow <PHILIP_DIM,PHILIP_DIM+2>;
 #elif PHILIP_DIM==1
 template class PeriodicCubeFlow <PHILIP_DIM,PHILIP_DIM>;
 #endif
-} // Tests namespace
+
+} // FlowSolver namespace
 } // PHiLiP namespace
 

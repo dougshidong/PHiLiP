@@ -3,7 +3,7 @@
 #include <deal.II/grid/grid_refinement.h>
 #include "physics/manufactured_solution.h"
 #include "euler_naca0012.hpp"
-#include "flow_solver.h"
+#include "flow_solver/flow_solver_factory.h"
 
 
 namespace PHiLiP {
@@ -31,8 +31,8 @@ int EulerNACA0012<dim,nstate>
         for (unsigned int igrid=0; igrid<n_grids_input; ++igrid) {
             param.flow_solver_param.poly_degree = poly_degree;
             param.grid_refinement_study_param.num_refinements = igrid;
-            std::unique_ptr<FlowSolver<dim,nstate>> flow_solver = FlowSolverFactory<dim,nstate>::create_FlowSolver(&param, parameter_handler);
-            flow_solver->run_test();
+            std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(&param, parameter_handler);
+            flow_solver->run();
         }
     }
     return 0;

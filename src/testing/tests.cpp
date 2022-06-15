@@ -29,7 +29,6 @@
 #include "euler_naca0012.hpp"
 #include "reduced_order_pod_adaptation.h"
 #include "reduced_order.h"
-#include "flow_solver.h"
 #include "fd_state_sensitivity_wrt_parameter.h"
 #include "dual_weighted_residual_mesh_adaptation.h"
 #include "taylor_green_vortex_energy_check.h"
@@ -196,8 +195,7 @@ std::unique_ptr< TestsBase > TestsFactory<dim,nstate,MeshType>
     const Test_enum test_type = parameters_input->test_type;
 
     // prevent warnings for when a create_FlowSolver is not being called (explicit and implicit cases)
-    if((test_type != Test_enum::flow_solver) && 
-       (test_type != Test_enum::finite_difference_sensitivity) &&
+    if((test_type != Test_enum::finite_difference_sensitivity) &&
        (test_type != Test_enum::taylor_green_vortex_energy_check) && 
        (test_type != Test_enum::taylor_green_vortex_restart_check)) {
         (void) parameter_handler_input;
@@ -247,8 +245,6 @@ std::unique_ptr< TestsBase > TestsFactory<dim,nstate,MeshType>
         if constexpr (dim==1 && nstate==1) return std::make_unique<FiniteDifferenceSensitivity<dim,nstate>>(parameters_input,parameter_handler_input);
     } else if(test_type == Test_enum::euler_naca0012) {
         if constexpr (dim==2 && nstate==dim+2) return std::make_unique<EulerNACA0012<dim,nstate>>(parameters_input,parameter_handler_input);
-    } else if(test_type == Test_enum::flow_solver) {
-        if constexpr (((dim==3 || dim==2) && nstate==dim+2) || (dim==1 && nstate==1)) return FlowSolverFactory<dim,nstate>::create_FlowSolver(parameters_input,parameter_handler_input);
     } else if(test_type == Test_enum::dual_weighted_residual_mesh_adaptation) {
         if constexpr (dim > 1)  return std::make_unique<DualWeightedResidualMeshAdaptation<dim, nstate>>(parameters_input);
     } else if(test_type == Test_enum::taylor_green_vortex_energy_check) {

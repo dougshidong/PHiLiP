@@ -1,8 +1,5 @@
 #include "set_initial_condition.h"
-
-// #include <deal.II/base/function.h>
 #include <deal.II/numerics/vector_tools.h>
-// #include <deal.II/numerics/solution_transfer.h>
 
 namespace PHiLiP{
 

@@ -39,6 +39,13 @@ protected:
     /// Compute energy from dg. Only valid for collocated nodes.
     double compute_energy_collocated(const std::shared_ptr <DGBase<dim, double>> dg) const;
 
+    /// runs flow solver. Returns 0 (pass) or 1 (fail) based on energy conservation of calculation.
+    int run_flow_solver(
+            const Parameters::AllParameters params,
+            const double energy_initial,
+            bool expect_conservation
+            ) const;
+
 };
 
 } // End of Tests namespace

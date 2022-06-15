@@ -75,6 +75,19 @@ double BurgersEnergyConservationRRK<dim, nstate>::compute_energy_collocated(
 }
 
 template <int dim, int nstate>
+int BurgersEnergyConservationRRK<dim,nstate>::run_flow_solver(
+        const Parameters::AllParameters params,
+        const double energy_initial,
+        bool expect_conservation
+        ) const
+{
+    std::unique_ptr<FlowSolver<dim,nstate>> flow_solver = FlowSolverFactory<dim,nstate>::create_FlowSolver(&params, parameter_handler);
+    static_cast<void>(flow_solver->run_test());
+    int failed_this_calculation = compare_energy_to_initial(flow_solver->dg, energy_initial, expect_conservation); //expect_conservation = true
+    return failed_this_calculation;
+}
+
+template <int dim, int nstate>
 int BurgersEnergyConservationRRK<dim, nstate>::run_test() const
 {
 
@@ -91,18 +104,16 @@ int BurgersEnergyConservationRRK<dim, nstate>::run_test() const
     }
 
     int testfail = 0;
-
+    int failed_this_calculation = 0;
     
-    std::unique_ptr<FlowSolver<dim,nstate>> flow_solver;
-
+    double time_step_verysmall = 1E-10;
     pcout << "\n\n-------------------------------------------------------------" << std::endl;
-    pcout << "  Using very small timestep dt = " << 1E-10 << " for initial energy" << std::endl;
+    pcout << "  Using very small timestep dt = " << time_step_verysmall << " for initial energy" << std::endl;
     pcout << "-------------------------------------------------------------" << std::endl;
     //take a very small step to calculate initial energy
     //necessary because the inverse mass matrix is not initialized until timestepping starts
-    const Parameters::AllParameters params_initial = reinit_params(true, 1E-10);
-    //params_initial.flow_solver_param.final_time = 1E-8;
-    flow_solver = FlowSolverFactory<dim,nstate>::create_FlowSolver(&params_initial, parameter_handler);
+    const Parameters::AllParameters params_initial = reinit_params(true, time_step_verysmall);
+    std::unique_ptr<FlowSolver<dim,nstate>> flow_solver = FlowSolverFactory<dim,nstate>::create_FlowSolver(&params_initial, parameter_handler);
     static_cast<void>(flow_solver->run_test());
     const double energy_initial = compute_energy_collocated(flow_solver->dg);
 
@@ -112,36 +123,41 @@ int BurgersEnergyConservationRRK<dim, nstate>::run_test() const
     pcout << "-------------------------------------------------------------" << std::endl;
 
     const Parameters::AllParameters params_large_rrk = reinit_params(true, time_step_large);
-    flow_solver = FlowSolverFactory<dim,nstate>::create_FlowSolver(&params_large_rrk, parameter_handler);
-    static_cast<void>(flow_solver->run_test());
-    testfail = compare_energy_to_initial(flow_solver->dg, energy_initial, true); //expect_conservation = true
+    failed_this_calculation = run_flow_solver(params_large_rrk,
+                                              energy_initial,
+                                              true); //expect_conservation = true
+
+    if (failed_this_calculation) testfail = 1;
 
     pcout << "\n\n-------------------------------------------------------------" << std::endl;
     pcout << "  Using large timestep, dt = " << time_step_large << " without RRK" << std::endl;
     pcout << "-------------------------------------------------------------" << std::endl;
 
     const Parameters::AllParameters params_large_norrk = reinit_params(false, time_step_large);
-    flow_solver = FlowSolverFactory<dim,nstate>::create_FlowSolver(&params_large_norrk, parameter_handler);
-    static_cast<void>(flow_solver->run_test());
-    testfail = compare_energy_to_initial(flow_solver->dg, energy_initial, false); //expect_conservation = false
+    failed_this_calculation = run_flow_solver(params_large_norrk,
+                                              energy_initial,
+                                              false); //expect_conservation = false 
+    if (failed_this_calculation) testfail = 1;
 
     pcout << "\n\n-------------------------------------------------------------" << std::endl;
     pcout << "  Using small timestep, dt = " << time_step_small << " and RRK" << std::endl;
     pcout << "-------------------------------------------------------------" << std::endl;
 
     const Parameters::AllParameters params_small_rrk = reinit_params(true, time_step_small);
-    flow_solver = FlowSolverFactory<dim,nstate>::create_FlowSolver(&params_small_rrk, parameter_handler);
-    static_cast<void>(flow_solver->run_test());
-    testfail = compare_energy_to_initial(flow_solver->dg, energy_initial, true); //expect_conservation = true
+    failed_this_calculation = run_flow_solver(params_small_rrk,
+                                              energy_initial,
+                                              true); //expect_conservation = true
+    if (failed_this_calculation) testfail = 1;
 
     pcout << "\n\n-------------------------------------------------------------" << std::endl;
     pcout << "  Using small timestep, dt = " << time_step_small << " without RRK" << std::endl;
     pcout << "-------------------------------------------------------------" << std::endl;
     
     const Parameters::AllParameters params_small_norrk = reinit_params(false, time_step_small);
-    flow_solver = FlowSolverFactory<dim,nstate>::create_FlowSolver(&params_small_norrk, parameter_handler);
-    static_cast<void>(flow_solver->run_test());
-    testfail = compare_energy_to_initial(flow_solver->dg, energy_initial, true); //expect_conservation = true
+    failed_this_calculation = run_flow_solver(params_small_norrk,
+                                              energy_initial,
+                                              true); //expect_conservation = true
+    if (failed_this_calculation) testfail = 1;
 
     return testfail;
 }

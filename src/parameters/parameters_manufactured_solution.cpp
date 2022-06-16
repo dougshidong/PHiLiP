@@ -99,24 +99,23 @@ void ManufacturedSolutionParam::parse_parameters(dealii::ParameterHandler &prm)
     use_manufactured_source_term = prm.get_bool("use_manufactured_source_term");
     
     const std::string manufactured_solution_string = prm.get("manufactured_solution_type");
-    if(manufactured_solution_string == "sine_solution")               {manufactured_solution_type = sine_solution;}
-    else if(manufactured_solution_string == "zero_solution")          {manufactured_solution_type = zero_solution;}
-    else if(manufactured_solution_string == "cosine_solution")        {manufactured_solution_type = cosine_solution;} 
-    else if(manufactured_solution_string == "additive_solution")      {manufactured_solution_type = additive_solution;} 
-    else if(manufactured_solution_string == "exp_solution")           {manufactured_solution_type = exp_solution;} 
-    else if(manufactured_solution_string == "poly_solution")          {manufactured_solution_type = poly_solution;} 
-    else if(manufactured_solution_string == "even_poly_solution")     {manufactured_solution_type = even_poly_solution;} 
-    else if(manufactured_solution_string == "atan_solution")          {manufactured_solution_type = atan_solution;}
-    else if(manufactured_solution_string == "boundary_layer_solution"){manufactured_solution_type = boundary_layer_solution;}
-    else if(manufactured_solution_string == "s_shock_solution")       {manufactured_solution_type = s_shock_solution;}
-    else if(manufactured_solution_string == "quadratic_solution")     {manufactured_solution_type = quadratic_solution;}
-    else if(manufactured_solution_string == "example_solution")           {manufactured_solution_type = example_solution;} 
-    else if(manufactured_solution_string == "navah_solution_1")         {manufactured_solution_type = navah_solution_1;}
-    else if(manufactured_solution_string == "navah_solution_2")         {manufactured_solution_type = navah_solution_2;}
-    else if(manufactured_solution_string == "navah_solution_3")         {manufactured_solution_type = navah_solution_3;}
-    else if(manufactured_solution_string == "navah_solution_4")         {manufactured_solution_type = navah_solution_4;}
-    else if(manufactured_solution_string == "navah_solution_5")         {manufactured_solution_type = navah_solution_5;}
-
+    if(manufactured_solution_string == "sine_solution")                {manufactured_solution_type = sine_solution;}
+    else if(manufactured_solution_string == "zero_solution")           {manufactured_solution_type = zero_solution;}
+    else if(manufactured_solution_string == "cosine_solution")         {manufactured_solution_type = cosine_solution;} 
+    else if(manufactured_solution_string == "additive_solution")       {manufactured_solution_type = additive_solution;} 
+    else if(manufactured_solution_string == "exp_solution")            {manufactured_solution_type = exp_solution;} 
+    else if(manufactured_solution_string == "poly_solution")           {manufactured_solution_type = poly_solution;} 
+    else if(manufactured_solution_string == "even_poly_solution")      {manufactured_solution_type = even_poly_solution;} 
+    else if(manufactured_solution_string == "atan_solution")           {manufactured_solution_type = atan_solution;}
+    else if(manufactured_solution_string == "boundary_layer_solution") {manufactured_solution_type = boundary_layer_solution;}
+    else if(manufactured_solution_string == "s_shock_solution")        {manufactured_solution_type = s_shock_solution;}
+    else if(manufactured_solution_string == "quadratic_solution")      {manufactured_solution_type = quadratic_solution;}
+    else if(manufactured_solution_string == "example_solution")        {manufactured_solution_type = example_solution;} 
+    else if(manufactured_solution_string == "navah_solution_1")        {manufactured_solution_type = navah_solution_1;}
+    else if(manufactured_solution_string == "navah_solution_2")        {manufactured_solution_type = navah_solution_2;}
+    else if(manufactured_solution_string == "navah_solution_3")        {manufactured_solution_type = navah_solution_3;}
+    else if(manufactured_solution_string == "navah_solution_4")        {manufactured_solution_type = navah_solution_4;}
+    else if(manufactured_solution_string == "navah_solution_5")        {manufactured_solution_type = navah_solution_5;}
  
     diffusion_tensor[0][0] = prm.get_double("diffusion_00");
     diffusion_tensor[0][1] = prm.get_double("diffusion_01");

@@ -240,7 +240,6 @@ inline real ManufacturedSolutionNavahBase<dim,real>
     return value;
 }
 
-
 template <int dim, typename real>
 inline dealii::Tensor<1,dim,real> ManufacturedSolutionZero<dim,real>
 ::gradient (const dealii::Point<dim,real> &/*point*/, const unsigned int /*istate*/) const
@@ -590,7 +589,6 @@ inline dealii::Tensor<1,dim,real> ManufacturedSolutionNavahBase<dim,real>
     }
     return gradient;
 }
-
 
 template <int dim, typename real>
 inline dealii::SymmetricTensor<2,dim,real> ManufacturedSolutionZero<dim,real>
@@ -1197,7 +1195,6 @@ ManufacturedSolutionFactory<dim,real>::create_ManufacturedSolution(
         return std::make_shared<ManufacturedSolutionQuadratic<dim,real>>(nstate);
     }else if(solution_type == ManufacturedSolutionEnum::example_solution){
         return std::make_shared<ManufacturedSolutionExample<dim,real>>(nstate);
-
     }else if(solution_type == ManufacturedSolutionEnum::navah_solution_1){
         if constexpr((dim==2) /*&& (nstate==dim+2)*/) {
             return std::make_shared<ManufacturedSolutionNavah_MS1<dim,real>>(nstate);

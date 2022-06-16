@@ -504,7 +504,9 @@ private:
 };
 
 
-/// Sum of example functions manufactured solution (was used in Manufactured Solution presentation).
+/** Sum of example manufactured solutions 
+ * (i.e. those used in group lab presentation on implementing Manufactured Solutions).
+ * */
 template <int dim, typename real>
 class ManufacturedSolutionExample
     : public ManufacturedSolutionFunction<dim, real>
@@ -534,7 +536,7 @@ public:
 /// Reference: Navah F. and Nadarajah S., A comprehensive high-order solver verification methodology for free fluid flows, 2018
 template <int dim, typename real>
 class ManufacturedSolutionNavahBase
-: public ManufacturedSolutionFunction<dim, real>
+    : public ManufacturedSolutionFunction<dim, real>
 {
 // We want the Point to be templated on the type,
 // however, dealii does not template that part of the Function.

@@ -7,8 +7,7 @@
 
 namespace PHiLiP {
 
-///Initial Condition class.
-
+/// Class for setting/applying the initial condition
 template <int dim, int nstate, typename real>
 class SetInitialCondition
 {

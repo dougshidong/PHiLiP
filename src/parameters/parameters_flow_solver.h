@@ -20,10 +20,10 @@ public:
         burgers_viscous_snapshot,
         naca0012,
         burgers_rewienski_snapshot,
+        advection_periodic,
         burgers_inviscid,
         convection_diffusion,
-        advection,
-        advection_periodic
+        advection
         };
     FlowCaseType flow_case_type; ///< Selected FlowCaseType from the input file
 

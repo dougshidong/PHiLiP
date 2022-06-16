@@ -1,6 +1,6 @@
 #include "burgers_energy_conservation_rrk.h"
-#include "flow_solver.h"
-#include "flow_solver_cases/periodic_1D_unsteady.h"
+#include "flow_solver/flow_solver_factory.h"
+#include "flow_solver/flow_solver_cases/periodic_1D_unsteady.h"    
 #include "physics/exact_solutions/exact_solution.h"
 #include "cmath"
 
@@ -81,8 +81,8 @@ int BurgersEnergyConservationRRK<dim,nstate>::run_flow_solver(
         bool expect_conservation
         ) const
 {
-    std::unique_ptr<FlowSolver<dim,nstate>> flow_solver = FlowSolverFactory<dim,nstate>::create_FlowSolver(&params, parameter_handler);
-    static_cast<void>(flow_solver->run_test());
+    std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(&params, parameter_handler);
+    static_cast<void>(flow_solver->run());
     int failed_this_calculation = compare_energy_to_initial(flow_solver->dg, energy_initial, expect_conservation); //expect_conservation = true
     return failed_this_calculation;
 }
@@ -113,8 +113,8 @@ int BurgersEnergyConservationRRK<dim, nstate>::run_test() const
     //take a very small step to calculate initial energy
     //necessary because the inverse mass matrix is not initialized until timestepping starts
     const Parameters::AllParameters params_initial = reinit_params(true, time_step_verysmall);
-    std::unique_ptr<FlowSolver<dim,nstate>> flow_solver = FlowSolverFactory<dim,nstate>::create_FlowSolver(&params_initial, parameter_handler);
-    static_cast<void>(flow_solver->run_test());
+    std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(&params_initial, parameter_handler);
+    static_cast<void>(flow_solver->run());
     const double energy_initial = compute_energy_collocated(flow_solver->dg);
 
     //Run four main tests

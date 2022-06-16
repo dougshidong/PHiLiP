@@ -1,6 +1,6 @@
 #include "time_refinement_study_reference.h"
-#include "flow_solver.h"
-#include "flow_solver_cases/periodic_1D_unsteady.h"
+#include "flow_solver/flow_solver_factory.h"
+#include "flow_solver/flow_solver_cases/periodic_1D_unsteady.h"
 #include "physics/exact_solutions/exact_solution.h"
 #include "cmath"
 
@@ -46,8 +46,8 @@ dealii::LinearAlgebra::distributed::Vector<double> TimeRefinementStudyReference<
 {
     int number_of_timesteps_for_reference_solution = this->all_parameters->flow_solver_param.number_of_timesteps_for_reference_solution;
     const Parameters::AllParameters params_reference = reinit_params_for_reference_solution(number_of_timesteps_for_reference_solution, final_time);
-    std::unique_ptr<FlowSolver<dim,nstate>> flow_solver_reference = FlowSolverFactory<dim,nstate>::create_FlowSolver(&params_reference, parameter_handler);
-    static_cast<void>(flow_solver_reference->run_test());
+    std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver_reference = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(&params_reference, parameter_handler);
+    static_cast<void>(flow_solver_reference->run());
 
     return flow_solver_reference->dg->solution;
 }
@@ -136,8 +136,8 @@ int TimeRefinementStudyReference<dim, nstate>::run_test() const
         pcout << "-------------------------------------------------------" << std::endl;
 
         const Parameters::AllParameters params = reinit_params_and_refine_timestep(refinement);
-        std::unique_ptr<FlowSolver<dim,nstate>> flow_solver = FlowSolverFactory<dim,nstate>::create_FlowSolver(&params, parameter_handler);
-        static_cast<void>(flow_solver->run_test());
+        std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(&params, parameter_handler);
+        static_cast<void>(flow_solver->run());
 
         double final_time_actual = flow_solver->ode_solver->current_time;
 

@@ -17,7 +17,7 @@
 #include "functional/lift_drag.hpp"
 
 namespace PHiLiP {
-namespace Tests {
+namespace FlowSolver {
 //=========================================================
 // NACA0012
 //=========================================================
@@ -94,6 +94,6 @@ void NACA0012<dim,nstate>::steady_state_postprocessing(std::shared_ptr<DGBase<di
     template class NACA0012<PHILIP_DIM,PHILIP_DIM+2>;
 #endif
 
-} // Tests namespace
+} // FlowSolver namespace
 } // PHiLiP namespace
 

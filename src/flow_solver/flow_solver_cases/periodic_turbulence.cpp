@@ -14,7 +14,7 @@
 
 namespace PHiLiP {
 
-namespace Tests {
+namespace FlowSolver {
 
 //=========================================================
 // TURBULENCE IN PERIODIC CUBE DOMAIN
@@ -223,6 +223,6 @@ void PeriodicTurbulence<dim, nstate>::compute_unsteady_data_and_write_to_table(
 template class PeriodicTurbulence <PHILIP_DIM,PHILIP_DIM+2>;
 #endif
 
-} // Tests namespace
+} // FlowSolver namespace
 } // PHiLiP namespace
 

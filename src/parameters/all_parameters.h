@@ -59,6 +59,13 @@ public:
     /// Number of dimensions. Note that it has to match the executable PHiLiP_xD
     unsigned int dimension;
 
+    /// Run type
+    enum RunType {
+        integration_test,
+        flow_simulation
+        };
+    RunType run_type; ///< Selected RunType from the input file
+
     /// Mesh type to be used in defining the triangulation
     enum MeshType {
         default_triangulation,
@@ -112,7 +119,7 @@ public:
     /// Number of state variables. Will depend on PDE
     int nstate;
 
-    /// Currently allows to solve advection, diffusion, convection-diffusion
+    /// Possible integration tests to run
     enum TestType {
         run_control,
         grid_refinement_study,
@@ -137,14 +144,14 @@ public:
         POD_adaptation,
         finite_difference_sensitivity,
         advection_periodicity,
-        flow_solver,
         dual_weighted_residual_mesh_adaptation,
         taylor_green_vortex_energy_check,
         taylor_green_vortex_restart_check,
+        time_refinement_study,
     };
     TestType test_type; ///< Selected TestType from the input file.
 
-    /// Currently allows to solve advection, diffusion, convection-diffusion
+    /// Possible Partial Differential Equations to solve
     enum PartialDifferentialEquation {
         advection,
         diffusion,
@@ -174,14 +181,15 @@ public:
     /// Store the PDE type to be solved
     PartialDifferentialEquation pde_type;
 
-    /// Currently only Lax-Friedrichs, roe, and split_form can be used as an input parameter
+    /// Possible convective numerical flux types
     enum ConvectiveNumericalFlux { 
         lax_friedrichs, 
         roe, 
         l2roe, 
         split_form, 
         central_flux,
-        entropy_cons_flux};
+        entropy_cons_flux
+    };
 
     /// Store convective flux type
     ConvectiveNumericalFlux conv_num_flux_type;

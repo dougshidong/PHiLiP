@@ -1,4 +1,5 @@
 add_subdirectory(initial_conditions)
+add_subdirectory(exact_solutions)
 
 SET(SOURCE
     physics_factory.cpp

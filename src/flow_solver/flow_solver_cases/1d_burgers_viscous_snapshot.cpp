@@ -14,7 +14,7 @@
 #include "linear_solver/linear_solver.h"
 
 namespace PHiLiP {
-namespace Tests {
+namespace FlowSolver {
 
 template <int dim, int nstate>
 BurgersViscousSnapshot<dim, nstate>::BurgersViscousSnapshot(const PHiLiP::Parameters::AllParameters *const parameters_input)
@@ -77,5 +77,5 @@ void BurgersViscousSnapshot<dim, nstate>::compute_unsteady_data_and_write_to_tab
 template class BurgersViscousSnapshot<PHILIP_DIM,PHILIP_DIM>;
 #endif
 
-} // Tests namespace
+} // FlowSolver namespace
 } // PHiLiP namespace

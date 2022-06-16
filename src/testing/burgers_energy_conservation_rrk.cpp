@@ -40,23 +40,20 @@ int BurgersEnergyConservationRRK<dim, nstate>::compare_energy_to_initial(
     
     const double final_energy = compute_energy_collocated(dg);
     const double energy_change = abs(initial_energy-final_energy);
+    pcout << "Energy change at end was " << energy_change <<std::endl;
     if (expect_conservation && (energy_change< 1E-13)){
         pcout << "Energy was conserved, as expected." << std::endl;
-        pcout << "    Energy change at end was " << energy_change <<std::endl;
         return 0; //pass test
     } else if (!expect_conservation && (energy_change > 1E-13)){
         pcout << "Energy was NOT conserved, as expected." << std::endl;
-        pcout << "    Energy change at end was " << energy_change <<std::endl;
         return 0; //pass test
     }else if (expect_conservation && (energy_change > 1E-13)){
         pcout << "Energy was NOT conserved, but was expected to be conserved." << std::endl;
         pcout << "    Unexpected result! Test failing." << std::endl;
-        pcout << "    Energy change at end was " << energy_change <<std::endl;
         return 1; //fail test
     }else{
         pcout << "Energy was conserved, but was expected NOT to be conserved." << std::endl;
         pcout << "    Unexpected result! Test failing." << std::endl;
-        pcout << "    Energy change at end was " << energy_change <<std::endl;
         return 1; //fail test
     }
 }
@@ -106,16 +103,12 @@ int BurgersEnergyConservationRRK<dim, nstate>::run_test() const
     int testfail = 0;
     int failed_this_calculation = 0;
     
-    double time_step_verysmall = 1E-10;
     pcout << "\n\n-------------------------------------------------------------" << std::endl;
-    pcout << "  Using very small timestep dt = " << time_step_verysmall << " for initial energy" << std::endl;
+    pcout << "  Calculating initial energy..." << std::endl;
     pcout << "-------------------------------------------------------------" << std::endl;
-    //take a very small step to calculate initial energy
-    //necessary because the inverse mass matrix is not initialized until timestepping starts
-    const Parameters::AllParameters params_initial = reinit_params(true, time_step_verysmall);
-    std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(&params_initial, parameter_handler);
-    static_cast<void>(flow_solver->run());
-    const double energy_initial = compute_energy_collocated(flow_solver->dg);
+    std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case((this->all_parameters), parameter_handler);
+    const double energy_initial = compute_energy_collocated(flow_solver->dg); //no need to run
+    pcout << "   Initial energy is " << energy_initial << std::endl;
 
     //Run four main tests
     pcout << "\n\n-------------------------------------------------------------" << std::endl;

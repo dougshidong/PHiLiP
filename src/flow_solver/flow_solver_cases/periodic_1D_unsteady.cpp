@@ -59,7 +59,7 @@ std::shared_ptr<Triangulation> Periodic1DUnsteady<dim,nstate>::generate_grid() c
 }
 
 template <int dim, int nstate>
-double Periodic1DUnsteady<dim, nstate>::compute_energy(
+double Periodic1DUnsteady<dim, nstate>::compute_energy_collocated(
         const std::shared_ptr <DGBase<dim, double>> dg
         ) const
 {
@@ -93,8 +93,8 @@ void Periodic1DUnsteady<dim, nstate>::compute_unsteady_data_and_write_to_table(
         (void) dg;
         (void) unsteady_data_table;
     }
-    else if (flow_case_type == FlowCaseEnum::burgers_periodic){
-        double energy = this->compute_energy(dg);
+    else if ((flow_case_type == FlowCaseEnum::burgers_periodic)&&(this->all_param.use_collocated_nodes)){
+        double energy = this->compute_energy_collocated(dg);
     
         if ((current_iteration % output_solution_every_n_iterations) == 0){
             this->pcout << "    Iter: " << current_iteration
@@ -103,7 +103,7 @@ void Periodic1DUnsteady<dim, nstate>::compute_unsteady_data_and_write_to_table(
                         << std::endl;
         }
     
-        //detecting if the current run is calculating a reference solution
+        //detecting if the current run is calculating a reference solution 
         int number_timesteps_ref = this->all_param.flow_solver_param.number_of_timesteps_for_reference_solution;
         double final_time = this->all_param.flow_solver_param.final_time;
         bool is_reference_solution = (dt < 2 * final_time/number_timesteps_ref);

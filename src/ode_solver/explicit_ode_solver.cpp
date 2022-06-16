@@ -70,6 +70,18 @@ void ExplicitODESolver<dim,real,MeshType>::step_in_time (real dt, const bool pse
 template <int dim, typename real, typename MeshType>
 real ExplicitODESolver<dim,real,MeshType>::scale_dt_by_relaxation_factor (real dt)
 {
+    //This implementation is only valid for inviscid burgers on collocated nodes
+    //due to method of calculating energy
+    //following check to ensure that a consistent simulation type is being used
+    bool use_collocated_nodes = ODESolverBase<dim,real,MeshType>::all_parameters->use_collocated_nodes;
+    using PDEEnum = Parameters::AllParameters::PartialDifferentialEquation;
+    PDEEnum pde_type = ODESolverBase<dim,real,MeshType>::all_parameters->pde_type;
+    bool use_inviscid_burgers = pde_type == PDEEnum::burgers_inviscid;
+    if (!use_collocated_nodes || !use_inviscid_burgers){
+        this->pcout << "RRK is only implemented for inviscid burgers and collocated nodes." << std::endl;
+        this->pcout << "Parameters are inconsistent with the implementation. Aborting..." << std::flush;
+        std::abort();
+    }
 
     Parameters::ODESolverParam ode_param = ODESolverBase<dim,real,MeshType>::all_parameters->ode_solver_param;
     const int rk_order = ode_param.runge_kutta_order;

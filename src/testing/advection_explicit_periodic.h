@@ -10,8 +10,8 @@
 namespace PHiLiP {
 namespace Tests {
 
+/// Curvilinear manifold
 template <int dim>
-/// Curvilinear manifold.
 class CurvManifold: public dealii::ChartManifold<dim,dim,dim> {
     /// Pull Back function
     virtual dealii::Point<dim> pull_back(const dealii::Point<dim> &space_point) const override; ///< See dealii::Manifold.
@@ -24,8 +24,8 @@ class CurvManifold: public dealii::ChartManifold<dim,dim,dim> {
 };
 
 
-template <int dim, int nstate>
 /// Advection periodic unsteady test
+template <int dim, int nstate>
 class AdvectionPeriodic: public TestsBase
 {
 public:

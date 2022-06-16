@@ -53,7 +53,7 @@ public:
 
     std::shared_ptr<DGBase<dim,double>> dg;
 
-    dealii::LAPACKFullMatrix<double> fullBasis;
+    dealii::LAPACKFullMatrix<double> dealiiSnapshotMatrix;
 
     MatrixXd snapshotMatrix;
 

@@ -22,9 +22,6 @@ int AdaptiveSampling<dim, nstate>::run_test() const
 
     placeInitialSnapshots();
     current_pod->computeBasis();
-    std::ofstream out_file("POD_adaptation_basis_0.txt");
-    unsigned int precision = 16;
-    current_pod->fullBasis.print_formatted(out_file, precision);
 
     MatrixXd rom_points = nearest_neighbors->kPairwiseNearestNeighborsMidpoint();
     pcout << rom_points << std::endl;
@@ -46,10 +43,6 @@ int AdaptiveSampling<dim, nstate>::run_test() const
         nearest_neighbors->updateSnapshots(snapshot_parameters, fom_solution);
         current_pod->addSnapshot(fom_solution);
         current_pod->computeBasis();
-
-        std::ofstream basis_out("POD_adaptation_basis_" + std::to_string(iteration + 1) + ".txt");
-        unsigned int basis_precision = 16;
-        current_pod->fullBasis.print_formatted(basis_out, basis_precision);
 
         //Update previous ROM errors with updated current_pod
         for(auto it = rom_locations.begin(); it != rom_locations.end(); ++it){
@@ -77,6 +70,10 @@ int AdaptiveSampling<dim, nstate>::run_test() const
 template <int dim, int nstate>
 void AdaptiveSampling<dim, nstate>::outputErrors(int iteration) const{
     std::unique_ptr<dealii::TableHandler> snapshot_table = std::make_unique<dealii::TableHandler>();
+
+    std::ofstream solution_out_file("solution_snapshots_iteration_" +  std::to_string(iteration) + ".txt");
+    unsigned int precision = 16;
+    current_pod->dealiiSnapshotMatrix.print_formatted(solution_out_file, precision);
 
     for(auto parameters : snapshot_parameters.rowwise()){
         snapshot_table->add_value(parameter1_name, parameters(0));
@@ -288,7 +285,7 @@ std::shared_ptr<ProperOrthogonalDecomposition::ROMSolution<dim,nstate>> Adaptive
     // Solve implicit solution
     auto ode_solver_type = Parameters::ODESolverParam::ODESolverEnum::pod_petrov_galerkin_solver;
     flow_solver->ode_solver =  PHiLiP::ODE::ODESolverFactory<dim, double>::create_ODESolver_manual(ode_solver_type, flow_solver->dg, current_pod);
-    flow_solver->dg->solution = nearest_neighbors->nearestNeighborMidpointSolution(parameter);
+    //flow_solver->dg->solution = nearest_neighbors->nearestNeighborMidpointSolution(parameter);
     flow_solver->ode_solver->allocate_ode_system();
     flow_solver->ode_solver->steady_state();
 
@@ -393,7 +390,7 @@ void AdaptiveSampling<dim, nstate>::configureParameterSpace() const
         parameter2_range << 0, 4;
         parameter2_range *= pi/180; //convert to radians
 
-        int n_halton = 6;
+        int n_halton = 2;
 
         snapshot_parameters.resize(4,2);
         snapshot_parameters  << //parameter1_range[0], parameter2_range[0],

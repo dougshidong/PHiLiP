@@ -26,6 +26,14 @@ void OnlinePOD<dim>::addSnapshot(dealii::LinearAlgebra::distributed::Vector<doub
     }
     snapshotMatrix.conservativeResize(snapshot.size(), snapshotMatrix.cols()+1);
     snapshotMatrix.col(snapshotMatrix.cols()-1) = eigen_snapshot;
+
+    //Copy snapshot matrix to dealii Lapack matrix for easy printing to file
+    dealiiSnapshotMatrix.reinit(snapshotMatrix.rows(), snapshotMatrix.cols());
+    for (unsigned int m = 0; m < snapshotMatrix.rows(); m++) {
+        for (unsigned int n = 0; n < snapshotMatrix.cols(); n++) {
+            dealiiSnapshotMatrix.set(m, n, snapshotMatrix(m, n));
+        }
+    }
 }
 
 template <int dim>
@@ -48,19 +56,6 @@ void OnlinePOD<dim>::computeBasis() {
     Eigen::BDCSVD<MatrixXd> svd(snapshotMatrixCentered, Eigen::DecompositionOptions::ComputeThinU);
     MatrixXd pod_basis = svd.matrixU();
 
-    fullBasis.reinit(pod_basis.rows(), pod_basis.cols());
-
-    for (unsigned int m = 0; m < pod_basis.rows(); m++) {
-        for (unsigned int n = 0; n < pod_basis.cols(); n++) {
-            fullBasis.set(m, n, pod_basis(m, n));
-        }
-    }
-
-    std::ofstream out_file("POD_adaptation_basis.txt");
-    unsigned int precision = 16;
-    fullBasis.print_formatted(out_file, precision);
-
-
     Epetra_CrsMatrix *epetra_system_matrix  = const_cast<Epetra_CrsMatrix *>(&(this->dg->system_matrix.trilinos_matrix()));
     Epetra_Map system_matrix_map = epetra_system_matrix->RowMap();
     Epetra_CrsMatrix epetra_basis(Epetra_DataAccess::Copy, system_matrix_map, pod_basis.cols());
@@ -69,7 +64,6 @@ void OnlinePOD<dim>::computeBasis() {
 
     for (int localRow = 0; localRow < numMyElements; ++localRow){
         const int globalRow = system_matrix_map.GID(localRow);
-        //pcout << "global row: " << globalRow << std::endl;
         for(int n = 0 ; n < pod_basis.cols() ; n++){
             epetra_basis.InsertGlobalValues(globalRow, 1, &pod_basis(globalRow, n), &n);
         }
@@ -79,20 +73,7 @@ void OnlinePOD<dim>::computeBasis() {
     Epetra_Map domain_map((int)pod_basis.cols(), 0, epetra_comm);
 
     epetra_basis.FillComplete(domain_map, system_matrix_map);
-    //epetra_basis.FillComplete();
 
-    /*
-    for (int localRow = 0; localRow < numMyElements; ++localRow){
-        const int globalRow = system_matrix_map.GID(localRow);
-        int numentries;
-        double* values;
-        epetra_basis.ExtractGlobalRowView(globalRow, numentries, values);
-
-        for(int n = 0 ; n < pod_basis.cols() ; n++){
-            pcout << "global row: " << globalRow << "entry: " << values[n] << std::endl;
-        }
-    }
-    */
     basis->reinit(epetra_basis);
 
     pcout << "Done computing POD basis. Basis now has " << basis->n() << " columns." << std::endl;

@@ -58,33 +58,31 @@ bool OfflinePOD<dim>::getPODBasisFromSnapshots() {
                 rows++;
             }
 
-            snapshotMatrix.conservativeResize(rows-1, snapshotMatrix.cols()+cols); //Subtract 1 from row because of header row
+            snapshotMatrix.conservativeResize(rows, snapshotMatrix.cols()+cols); //Subtract 1 from row because of header row
 
-            rows = 0;
+            int row = 0;
             myfile.clear();
             myfile.seekg(0); //Bring back to beginning of file
             //Second loop set to build solutions matrix
             while(std::getline(myfile, line)){ //for each line
                 std::istringstream stream(line);
                 std::string field;
-                cols = 0;
-                if(rows != 0){
-                    while (getline(stream, field,' ')) { //parse data values on each line
-                        if (field.empty()) {
-                            continue;
-                        } else {
-                            snapshotMatrix(rows-1, snapshotMatrix.cols()-1+cols) = std::stod(field);
-                            cols++;
-                        }
+                int col = 0;
+                while (getline(stream, field,' ')) { //parse data values on each line
+                    if (field.empty()) {
+                        continue;
+                    } else {
+                        snapshotMatrix(row, snapshotMatrix.cols()-cols+col) = std::stod(field); //This will work for however many solutions in each file
+                        col++;
                     }
                 }
-                rows++;
+                row++;
             }
             myfile.close();
         }
     }
 
-    //pcout << snapshotMatrix << std::endl;
+    pcout << snapshotMatrix << std::endl;
 
     pcout << "Snapshot matrix generated." << std::endl;
 

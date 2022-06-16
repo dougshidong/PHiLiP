@@ -69,6 +69,6 @@ subsection flow_solver
 end
 
 subsection reduced order
-  set path_to_search = ./naca0012_solutions/16pts_ref1
+  set path_to_search = ./naca0012_solutions/5pts
     set reduced_residual_tolerance = 5e-13
 end

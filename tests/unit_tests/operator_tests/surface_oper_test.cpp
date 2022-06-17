@@ -60,8 +60,6 @@
 const double TOLERANCE = 1E-6;
 using namespace std;
 
-
-
 int main (int argc, char * argv[])
 {
 
@@ -87,10 +85,7 @@ int main (int argc, char * argv[])
     const bool colorize = true;
     const unsigned int igrid= 2;
 
-
-
     //Generate a standard grid
-
 #if PHILIP_DIM==1 // dealii::parallel::distributed::Triangulation<dim> does not work for 1D
     using Triangulation = dealii::Triangulation<dim>;
     std::shared_ptr<Triangulation> grid = std::make_shared<Triangulation>(
@@ -108,10 +103,9 @@ int main (int argc, char * argv[])
         dealii::GridGenerator::hyper_cube (*grid, left, right, colorize);
         grid->refine_global(igrid);
     double max_dif_int_parts = 0.0;
+    
     for(unsigned int poly_degree=2; poly_degree<6; poly_degree++){
-
-
-       // OPERATOR::OperatorsBase<dim,real> operators(&all_parameters_new, nstate, poly_degree, poly_degree, poly_degree); 
+        // OPERATOR::OperatorsBase<dim,real> operators(&all_parameters_new, nstate, poly_degree, poly_degree, poly_degree); 
         OPERATOR::OperatorsBaseState<dim,real,nstate,2*dim> operators(&all_parameters_new, poly_degree, poly_degree);
 
         const unsigned int n_dofs = operators.fe_collection_basis[poly_degree].dofs_per_cell;
@@ -156,18 +150,14 @@ int main (int argc, char * argv[])
                 }
             }
         }
-        
     }//end of poly_degree loop
 
     const double max_dif_int_parts_mpi= (dealii::Utilities::MPI::max(max_dif_int_parts, MPI_COMM_WORLD));
-    if( max_dif_int_parts_mpi >1e-7){
+    if(max_dif_int_parts_mpi >1e-7){
         pcout<<" Surface operator not satisfy integration by parts !"<<std::endl;
-       // printf(" One of the pth order deirvatives is wrong !\n");
         return 1;
     }
     else{
         return 0;
     }
-
 }//end of main
-

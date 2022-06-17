@@ -57,7 +57,6 @@ const double TOLERANCE = 1E-6;
 using namespace std;
 //namespace PHiLiP {
 
-
 template <int dim>
 class CurvManifold: public dealii::ChartManifold<dim,dim,dim> {
     virtual dealii::Point<dim> pull_back(const dealii::Point<dim> &space_point) const override; ///< See dealii::Manifold.
@@ -66,6 +65,7 @@ class CurvManifold: public dealii::ChartManifold<dim,dim,dim> {
     
     virtual std::unique_ptr<dealii::Manifold<dim,dim> > clone() const override; ///< See dealii::Manifold.
 };
+
 template<int dim>
 dealii::Point<dim> CurvManifold<dim>::pull_back(const dealii::Point<dim> &space_point) const 
 {
@@ -149,7 +149,6 @@ dealii::Point<dim> CurvManifold<dim>::pull_back(const dealii::Point<dim> &space_
     }
 
     return x_ref;
-
 }
 
 template<int dim>
@@ -242,37 +241,37 @@ static dealii::Point<dim> warp (const dealii::Point<dim> &p)
  * ***************************/
 
 template <int dim, typename real>
-void compute_inverse_mass_matrix(std::shared_ptr < PHiLiP::OPERATOR::OperatorsBase<dim,real,2*dim> > &operators, 
-                    const std::array<std::vector<real>,PHILIP_DIM> &mapping_support_points, 
-                    const unsigned int n_metric_dofs, 
-                    const unsigned int n_quad_pts,  const unsigned int n_dofs_cell, 
-                    const unsigned int poly_degree, const unsigned int grid_degree, 
-                    const std::vector<real> &quad_weights,
-                    dealii::FullMatrix<real> &mass_inv)
+void compute_inverse_mass_matrix(
+    std::shared_ptr < PHiLiP::OPERATOR::OperatorsBase<dim,real,2*dim> > &operators, 
+    const std::array<std::vector<real>,PHILIP_DIM> &mapping_support_points, 
+    const unsigned int n_metric_dofs, 
+    const unsigned int n_quad_pts,  const unsigned int n_dofs_cell, 
+    const unsigned int poly_degree, const unsigned int grid_degree, 
+    const std::vector<real> &quad_weights,
+    dealii::FullMatrix<real> &mass_inv)
 {
+    std::vector<real> determinant_Jacobian(n_quad_pts);
+    operators->build_local_vol_determinant_Jac(grid_degree, poly_degree, n_quad_pts, n_metric_dofs, mapping_support_points, determinant_Jacobian);
 
-        std::vector<real> determinant_Jacobian(n_quad_pts);
-        operators->build_local_vol_determinant_Jac(grid_degree, poly_degree, n_quad_pts, n_metric_dofs, mapping_support_points, determinant_Jacobian);
+    std::vector<real> JxW(n_quad_pts);
+    for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
+        JxW[iquad] = quad_weights[iquad] * determinant_Jacobian[iquad];
+    }
+    dealii::FullMatrix<real> local_mass_matrix(n_dofs_cell);
+    operators->build_local_Mass_Matrix(JxW, n_dofs_cell, n_quad_pts, poly_degree, local_mass_matrix);
 
-        std::vector<real> JxW(n_quad_pts);
-        for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
-            JxW[iquad] = quad_weights[iquad] * determinant_Jacobian[iquad];
+    //For flux reconstruction
+    dealii::FullMatrix<real> Flux_Reconstruction_operator(n_dofs_cell);
+    operators->build_local_Flux_Reconstruction_operator(local_mass_matrix, n_dofs_cell, poly_degree, Flux_Reconstruction_operator);
+    for (unsigned int itest=0; itest<n_dofs_cell; ++itest) {
+        for (unsigned int itrial=0; itrial<n_dofs_cell; ++itrial) {
+            local_mass_matrix[itest][itrial] = local_mass_matrix[itest][itrial] + Flux_Reconstruction_operator[itest][itrial];
         }
-        dealii::FullMatrix<real> local_mass_matrix(n_dofs_cell);
-        operators->build_local_Mass_Matrix(JxW, n_dofs_cell, n_quad_pts, poly_degree, local_mass_matrix);
+    }
 
-        //For flux reconstruction
-        dealii::FullMatrix<real> Flux_Reconstruction_operator(n_dofs_cell);
-        operators->build_local_Flux_Reconstruction_operator(local_mass_matrix, n_dofs_cell, poly_degree, Flux_Reconstruction_operator);
-        for (unsigned int itest=0; itest<n_dofs_cell; ++itest) {
-            for (unsigned int itrial=0; itrial<n_dofs_cell; ++itrial) {
-                local_mass_matrix[itest][itrial] = local_mass_matrix[itest][itrial] + Flux_Reconstruction_operator[itest][itrial];
-            }
-        }
-
-        mass_inv.invert(local_mass_matrix);
-
+    mass_inv.invert(local_mass_matrix);
 }
+
 template <int dim, typename real>
 void compute_weighted_inverse_mass_matrix(std::shared_ptr < PHiLiP::OPERATOR::OperatorsBase<dim,real,2*dim> > &operators, 
                     const std::array<std::vector<real>,PHILIP_DIM> &mapping_support_points, const unsigned int n_metric_dofs, 
@@ -281,31 +280,32 @@ void compute_weighted_inverse_mass_matrix(std::shared_ptr < PHiLiP::OPERATOR::Op
                     const std::vector<real> &quad_weights,
                     dealii::FullMatrix<real> &mass_inv)
 {
-        std::vector<real> determinant_Jacobian(n_quad_pts);
-        operators->build_local_vol_determinant_Jac(grid_degree, poly_degree, n_quad_pts, n_metric_dofs, mapping_support_points, determinant_Jacobian);
+    std::vector<real> determinant_Jacobian(n_quad_pts);
+    operators->build_local_vol_determinant_Jac(grid_degree, poly_degree, n_quad_pts, n_metric_dofs, mapping_support_points, determinant_Jacobian);
 
-        std::vector<real> W_J_inv(n_quad_pts);
-        for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
-            W_J_inv[iquad] = quad_weights[iquad] / determinant_Jacobian[iquad]; 
+    std::vector<real> W_J_inv(n_quad_pts);
+    for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
+        W_J_inv[iquad] = quad_weights[iquad] / determinant_Jacobian[iquad]; 
+    }
+    dealii::FullMatrix<real> local_mass_matrix(n_dofs_cell);
+    operators->build_local_Mass_Matrix(W_J_inv, n_dofs_cell, n_quad_pts, poly_degree, local_mass_matrix);
+    // For flux reconstruction
+    dealii::FullMatrix<real> Flux_Reconstruction_operator(n_dofs_cell);
+    operators->build_local_Flux_Reconstruction_operator(local_mass_matrix, n_dofs_cell, poly_degree, Flux_Reconstruction_operator);
+    for (unsigned int itest=0; itest<n_dofs_cell; ++itest) {
+        for (unsigned int itrial=0; itrial<n_dofs_cell; ++itrial) {
+            // local_mass_matrix[itest][itrial] = local_mass_matrix[itest][itrial] + Flux_Reconstruction_operator[itest][itrial];
+            mass_inv[itest][itrial] = local_mass_matrix[itest][itrial] + Flux_Reconstruction_operator[itest][itrial];
         }
-        dealii::FullMatrix<real> local_mass_matrix(n_dofs_cell);
-        operators->build_local_Mass_Matrix(W_J_inv, n_dofs_cell, n_quad_pts, poly_degree, local_mass_matrix);
-        //For flux reconstruction
-        dealii::FullMatrix<real> Flux_Reconstruction_operator(n_dofs_cell);
-        operators->build_local_Flux_Reconstruction_operator(local_mass_matrix, n_dofs_cell, poly_degree, Flux_Reconstruction_operator);
-        for (unsigned int itest=0; itest<n_dofs_cell; ++itest) {
-            for (unsigned int itrial=0; itrial<n_dofs_cell; ++itrial) {
-               // local_mass_matrix[itest][itrial] = local_mass_matrix[itest][itrial] + Flux_Reconstruction_operator[itest][itrial];
-                mass_inv[itest][itrial] = local_mass_matrix[itest][itrial] + Flux_Reconstruction_operator[itest][itrial];
-            }
-        }
+    }
 }
+
 /*******************************
  * END OF MASS INV FUNCTIONS
  * ****************************/
+
 int main (int argc, char * argv[])
 {
-
     dealii::Utilities::MPI::MPI_InitFinalize mpi_initialization(argc, argv, 1);
     using real = double;
     using namespace PHiLiP;
@@ -318,58 +318,57 @@ int main (int argc, char * argv[])
     PHiLiP::Parameters::AllParameters all_parameters_new;
     all_parameters_new.parse_parameters (parameter_handler);
 
-   // all_parameters_new.use_collocated_nodes=true;
+    // all_parameters_new.use_collocated_nodes=true;
     all_parameters_new.use_curvilinear_split_form=true;
     all_parameters_new.flux_reconstruction_type = Parameters::AllParameters::Flux_Reconstruction::cPlus; 
 
-    //unsigned int poly_degree = 3;
+    // unsigned int poly_degree = 3;
     double left = 0.0;
     double right = 1.0;
     const bool colorize = true;
     dealii::ConvergenceTable convergence_table;
     const unsigned int igrid_start = 0;
     const unsigned int n_grids = 1;
-//setup time
-// time_t tstart=0, tend=0, tstart_weight=0, tend_weight=0; 
+    // setup time
+    // time_t tstart=0, tend=0, tstart_weight=0, tend_weight=0; 
     clock_t time_normal, time_weighted;
 
     for(unsigned int poly_degree = 6; poly_degree<7; poly_degree++){
         unsigned int grid_degree = poly_degree;
-    for(unsigned int igrid=igrid_start; igrid<n_grids; ++igrid){
-pcout<<" Grid Index"<<igrid<<std::endl;
-    //Generate a standard grid
+        for(unsigned int igrid=igrid_start; igrid<n_grids; ++igrid){
+            pcout<<" Grid Index"<<igrid<<std::endl;
+            
+            //Generate a standard grid
+            using Triangulation = dealii::parallel::distributed::Triangulation<dim>;
+            std::shared_ptr<Triangulation> grid = std::make_shared<Triangulation>(
+                MPI_COMM_WORLD,
+                typename dealii::Triangulation<dim>::MeshSmoothing(
+                    dealii::Triangulation<dim>::smoothing_on_refinement |
+                    dealii::Triangulation<dim>::smoothing_on_coarsening));
+            dealii::GridGenerator::hyper_cube (*grid, left, right, colorize);
+            grid->refine_global(igrid);
+            pcout<<" made grid for Index"<<igrid<<std::endl;
 
-    using Triangulation = dealii::parallel::distributed::Triangulation<dim>;
-    std::shared_ptr<Triangulation> grid = std::make_shared<Triangulation>(
-        MPI_COMM_WORLD,
-        typename dealii::Triangulation<dim>::MeshSmoothing(
-            dealii::Triangulation<dim>::smoothing_on_refinement |
-            dealii::Triangulation<dim>::smoothing_on_coarsening));
-        dealii::GridGenerator::hyper_cube (*grid, left, right, colorize);
-        grid->refine_global(igrid);
-pcout<<" made grid for Index"<<igrid<<std::endl;
+            //Warp the grid
+            //IF WANT NON-WARPED GRID COMMENT UNTIL SAYS "NOT COMMENT"
+            dealii::GridTools::transform (&warp<dim>, *grid);
 
-//Warp the grid
-//IF WANT NON-WARPED GRID COMMENT UNTIL SAYS "NOT COMMENT"
-    dealii::GridTools::transform (&warp<dim>, *grid);
+            // Assign a manifold to have curved geometry
+            const CurvManifold<dim> curv_manifold;
+            unsigned int manifold_id=0; // top face, see GridGenerator::hyper_rectangle, colorize=true
+            grid->reset_all_manifolds();
+            grid->set_all_manifold_ids(manifold_id);
+            grid->set_manifold ( manifold_id, curv_manifold );
+            //"END COMMENT" TO NOT WARP GRID
 
-// Assign a manifold to have curved geometry
-    const CurvManifold<dim> curv_manifold;
-    unsigned int manifold_id=0; // top face, see GridGenerator::hyper_rectangle, colorize=true
-    grid->reset_all_manifolds();
-    grid->set_all_manifold_ids(manifold_id);
-    grid->set_manifold ( manifold_id, curv_manifold );
-//"END COMMENT" TO NOT WARP GRID
-
-    //setup operator
-    //OPERATOR::OperatorsBase<dim,real> operators(&all_parameters_new, nstate, poly_degree, poly_degree, grid_degree); 
-//    OPERATOR::OperatorsBaseState<dim,real,nstate,2*dim> operators(&all_parameters_new, poly_degree, poly_degree);
-//setup DG
-   // std::shared_ptr < PHiLiP::DGBase<dim, double> > dg = PHiLiP::DGFactory<dim,double>::create_discontinuous_galerkin(&all_parameters_new, poly_degree, grid);
-    std::shared_ptr < PHiLiP::DGBase<dim, double> > dg = PHiLiP::DGFactory<dim,double>::create_discontinuous_galerkin(&all_parameters_new, poly_degree, poly_degree, grid_degree, grid);
-    dg->allocate_system ();
-    
-
+            // setup operator
+            // OPERATOR::OperatorsBase<dim,real> operators(&all_parameters_new, nstate, poly_degree, poly_degree, grid_degree); 
+            // OPERATOR::OperatorsBaseState<dim,real,nstate,2*dim> operators(&all_parameters_new, poly_degree, poly_degree);
+            // setup DG
+            // std::shared_ptr < PHiLiP::DGBase<dim, double> > dg = PHiLiP::DGFactory<dim,double>::create_discontinuous_galerkin(&all_parameters_new, poly_degree, grid);
+            std::shared_ptr < PHiLiP::DGBase<dim, double> > dg = PHiLiP::DGFactory<dim,double>::create_discontinuous_galerkin(&all_parameters_new, poly_degree, poly_degree, grid_degree, grid);
+            dg->allocate_system ();
+        
             dealii::IndexSet locally_owned_dofs;
             dealii::IndexSet ghost_dofs;
             dealii::IndexSet locally_relevant_dofs;
@@ -378,26 +377,24 @@ pcout<<" made grid for Index"<<igrid<<std::endl;
             locally_relevant_dofs = ghost_dofs;
             ghost_dofs.subtract_set(locally_owned_dofs);
 
-
-//setup metric and solve
-
-    const unsigned int max_dofs_per_cell = dg->dof_handler.get_fe_collection().max_dofs_per_cell();
-    std::vector<dealii::types::global_dof_index> current_dofs_indices(max_dofs_per_cell);
-    const unsigned int n_dofs_cell = dg->operators->fe_collection_basis[poly_degree].dofs_per_cell;
-    const unsigned int n_quad_pts      = dg->operators->volume_quadrature_collection[poly_degree].size();
+            // setup metric and solve
+            const unsigned int max_dofs_per_cell = dg->dof_handler.get_fe_collection().max_dofs_per_cell();
+            std::vector<dealii::types::global_dof_index> current_dofs_indices(max_dofs_per_cell);
+            const unsigned int n_dofs_cell = dg->operators->fe_collection_basis[poly_degree].dofs_per_cell;
+            const unsigned int n_quad_pts      = dg->operators->volume_quadrature_collection[poly_degree].size();
 
             const dealii::FESystem<dim> &fe_metric = (dg->high_order_grid->fe_system);
             const unsigned int n_metric_dofs = fe_metric.dofs_per_cell; 
             auto metric_cell = dg->high_order_grid->dof_handler_grid.begin_active();
 
-//loop over cells and do normal inv
-pcout<<"time to do normal"<<std::endl;
-          //  tstart = time(0);
+            //loop over cells and do normal inv
+            pcout<<"time to do normal"<<std::endl;
+            // tstart = time(0);
             time_normal = clock();
             for (auto current_cell = dg->dof_handler.begin_active(); current_cell!=dg->dof_handler.end(); ++current_cell, ++metric_cell) {
                 if (!current_cell->is_locally_owned()) continue;
-	
-//pcout<<"grid degree "<<grid_degree<<" metric dofs "<<n_metric_dofs<<std::endl;
+    	
+                // pcout<<"grid degree "<<grid_degree<<" metric dofs "<<n_metric_dofs<<std::endl;
                 std::vector<dealii::types::global_dof_index> current_metric_dofs_indices(n_metric_dofs);
                 metric_cell->get_dof_indices (current_metric_dofs_indices);
                 std::array<std::vector<real>,dim> mapping_support_points;
@@ -412,28 +409,28 @@ pcout<<"time to do normal"<<std::endl;
                         mapping_support_points[istate][igrid_node] += val * fe_metric.shape_value_component(idof,vol_GLL.point(igrid_node),istate); 
                     }
                 }
-        const std::vector<real> &quad_weights = dg->operators->volume_quadrature_collection[poly_degree].get_weights();
-
+                const std::vector<real> &quad_weights = dg->operators->volume_quadrature_collection[poly_degree].get_weights();
 
                 //build ESFR mass matrix and invert regularly
                 dealii::FullMatrix<real> mass_inv(n_dofs_cell);
-            time_normal = clock();
+                time_normal = clock();
                 compute_inverse_mass_matrix(dg->operators, mapping_support_points, n_metric_dofs/dim, n_quad_pts, n_dofs_cell, poly_degree, grid_degree, quad_weights, mass_inv);
-            time_normal = clock()-time_normal;
+                time_normal = clock()-time_normal;
 
             }//end of cell loop
-          //  tend = time(0);
-           // time_normal = clock()-time_normal;
+            
+            // tend = time(0);
+            // time_normal = clock()-time_normal;
 
-pcout<<"time to do weighted"<<std::endl;
+            pcout<<"time to do weighted"<<std::endl;
             metric_cell = dg->high_order_grid->dof_handler_grid.begin_active();
             //loop over cells and do weight inv
-           // tstart_weight = time(0);
+            // tstart_weight = time(0);
             time_weighted = clock();
             for (auto current_cell = dg->dof_handler.begin_active(); current_cell!=dg->dof_handler.end(); ++current_cell, ++metric_cell) {
                 if (!current_cell->is_locally_owned()) continue;
-	
-//pcout<<"grid degree "<<grid_degree<<" metric dofs "<<n_metric_dofs<<std::endl;
+    	
+                // pcout<<"grid degree "<<grid_degree<<" metric dofs "<<n_metric_dofs<<std::endl;
                 std::vector<dealii::types::global_dof_index> current_metric_dofs_indices(n_metric_dofs);
                 metric_cell->get_dof_indices (current_metric_dofs_indices);
                 std::array<std::vector<real>,dim> mapping_support_points;
@@ -452,34 +449,30 @@ pcout<<"time to do weighted"<<std::endl;
 
                 //do weight-adjusted inverse ESFR mass matrix
                 dealii::FullMatrix<real> mass_inv(n_dofs_cell);
-            time_weighted = clock();
+                time_weighted = clock();
                 compute_weighted_inverse_mass_matrix(dg->operators, mapping_support_points, n_metric_dofs/dim, n_quad_pts, n_dofs_cell, poly_degree, grid_degree, quad_weights, mass_inv);
-            time_weighted = clock() - time_weighted;
+                time_weighted = clock() - time_weighted;
 
             }//end of cell loop
-           // tend_weight = time(0);
-           // time_weighted = clock() - time_weighted;
 
-
-    }//end grid refinement loop
-
+            // tend_weight = time(0);
+            // time_weighted = clock() - time_weighted;
+        }//end grid refinement loop
     }//end poly degree loop
 
-   // pcout<<"Normal Mass inv took "<<difftime(tend, tstart)<<" seconds (s)."<<std::endl;
-   // pcout<<"Weighted Mass inv took "<<difftime(tend_weight, tstart_weight)<<" seconds (s)."<<std::endl;
-  //  pcout<<"Normal Mass inv took "<<time_normal ((float)time_normal)/CLOCKS_PER_SEC<<" seconds (s)."<<std::endl;
+    // pcout<<"Normal Mass inv took "<<difftime(tend, tstart)<<" seconds (s)."<<std::endl;
+    // pcout<<"Weighted Mass inv took "<<difftime(tend_weight, tstart_weight)<<" seconds (s)."<<std::endl;
+    // pcout<<"Normal Mass inv took "<<time_normal ((float)time_normal)/CLOCKS_PER_SEC<<" seconds (s)."<<std::endl;
     printf(" it took %g seconds normal\n",((float)time_normal)/CLOCKS_PER_SEC);
     printf(" it took %g seconds weighted\n",((float)time_weighted)/CLOCKS_PER_SEC);
-  //  pcout<<"Weighted Mass inv took "<<time_weighted<<" seconds (s)."<<std::endl;
+    // pcout<<"Weighted Mass inv took "<<time_weighted<<" seconds (s)."<<std::endl;
 
-   // if(difftime(tend, tstart) < difftime(tend_weight, tstart_weight)){
+    // if(difftime(tend, tstart) < difftime(tend_weight, tstart_weight)){
     if(time_normal < time_weighted){
         pcout<<"Weighted inv not faster!"<<std::endl;
         return 1;
     }
-    else
+    else {
         return 0;
-}
-
-//}//end PHiLiP namespace
-
+    }
+}//end of main

@@ -7,17 +7,15 @@ namespace Tests {
 
 template <int dim, int nstate>
 EulerTaylorGreen<dim, nstate>::EulerTaylorGreen(const Parameters::AllParameters *const parameters_input)
-:
-TestsBase::TestsBase(parameters_input)
+    : TestsBase::TestsBase(parameters_input)
 {}
-
 
 template<int dim, int nstate>
 double EulerTaylorGreen<dim, nstate>::compute_MK_energy(std::shared_ptr < DGBase<dim, double> > &dg, unsigned int poly_degree) const
 {
     //returns the energy evaluated in the broken Sobolev-norm rather than L2-norm
     // Overintegrate the error to make sure there is not integration error in the error estimate
-    int overintegrate = 0 ;//10;
+    int overintegrate = 0;//10;
     dealii::QGauss<dim> quad_extra(dg->max_degree+1+overintegrate);
     const dealii::Mapping<dim> &mapping = (*(dg->high_order_grid->mapping_fe_field));
     dealii::FEValues<dim,dim> fe_values_extra(mapping, dg->operators->fe_collection_basis[poly_degree], quad_extra, 
@@ -56,6 +54,7 @@ double EulerTaylorGreen<dim, nstate>::compute_MK_energy(std::shared_ptr < DGBase
     }
     return total_kinetic_energy;
 }
+
 template<int dim, int nstate>
 double EulerTaylorGreen<dim, nstate>::compute_kinetic_energy(std::shared_ptr < DGBase<dim, double> > &dg, unsigned int poly_degree) const
 {
@@ -91,7 +90,7 @@ double EulerTaylorGreen<dim, nstate>::compute_kinetic_energy(std::shared_ptr < D
 
             const double quadrature_kinetic_energy =  0.5*(soln_at_q[1]*soln_at_q[1]
                                                     + soln_at_q[2]*soln_at_q[2]
-                                                    + soln_at_q[3]*soln_at_q[3] )/density;
+                                                    + soln_at_q[3]*soln_at_q[3])/density;
 
             total_kinetic_energy += quadrature_kinetic_energy * fe_values_extra.JxW(iquad);
         }
@@ -122,9 +121,9 @@ int EulerTaylorGreen<dim, nstate>::run_test() const
      
     grid->refine_global(n_refinements);
 
-   // const unsigned int n_global_active_cells2 = grid->n_global_active_cells();
+    // const unsigned int n_global_active_cells2 = grid->n_global_active_cells();
     const unsigned int n_global_active_cells2 = pow(2,n_refinements);
-   // const double n_dofs_cfl = pow(n_global_active_cells2,dim) * pow(poly_degree+1.0, dim);
+    // const double n_dofs_cfl = pow(n_global_active_cells2,dim) * pow(poly_degree+1.0, dim);
     const double n_dofs_cfl = pow(n_global_active_cells2,dim) * pow(poly_degree+1.0, dim);
     pcout<<"number dofs locally what we want "<<n_dofs_cfl<<" number of active cells "<<n_global_active_cells2<<std::endl;
     double delta_x = (right-left)/pow(n_dofs_cfl,(1.0/dim)); 
@@ -145,7 +144,7 @@ int EulerTaylorGreen<dim, nstate>::run_test() const
     expressions[1] = "sin(x)*cos(y)*cos(z)";
     expressions[2] = "-cos(x)*sin(y)*cos(z)";
     expressions[3] = "0";
-   // expressions[4] = "100.0/1.4 + 1.0/16.0 * (cos(2.0*x)*cos(2.0*z) + 2.0*cos(2.0*y) + 2.0*cos(2.0*x) + cos(2.0*y)*cos(2.0*z))";
+    // expressions[4] = "100.0/1.4 + 1.0/16.0 * (cos(2.0*x)*cos(2.0*z) + 2.0*cos(2.0*y) + 2.0*cos(2.0*x) + cos(2.0*y)*cos(2.0*z))"; // pressure
     expressions[4] = " (100.0/1.4 + 1.0/16.0 * (cos(2.0*x)*cos(2.0*z) + 2.0*cos(2.0*y) + 2.0*cos(2.0*x) + cos(2.0*y)*cos(2.0*z)) ) / 1.4 + (sin(x)*cos(y)*cos(z))*(sin(x)*cos(y)*cos(z)) + (-cos(x)*sin(y)*cos(z))*(-cos(x)*sin(y)*cos(z)) ";
     initial_condition.initialize(variables,
                                  expressions,
@@ -157,14 +156,14 @@ int EulerTaylorGreen<dim, nstate>::run_test() const
     dealii::VectorTools::interpolate(dg->dof_handler,initial_condition,solution_no_ghost);
     dg->solution = solution_no_ghost;
     dg->solution.update_ghost_values();
-   // dealii::VectorTools::interpolate(dg->dof_handler,initial_condition,dg->solution);
+    // dealii::VectorTools::interpolate(dg->dof_handler,initial_condition,dg->solution);
     std::cout << "initial condition interpolated to DG solution" << std::endl;
      
     std::cout << "creating ODE solver" << std::endl;
     std::shared_ptr<ODE::ODESolverBase<dim, double>> ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
     std::cout << "ODE solver successfully created" << std::endl;
     double finalTime = 14.;
-//    finalTime = 0.1;//to speed things up locally in tests, doesn't need full 14seconds to verify.
+    // finalTime = 0.1;//to speed things up locally in tests, doesn't need full 14seconds to verify.
     double dt = all_parameters_new.ode_solver_param.initial_time_step;
 
     std::cout<<" number dofs "<<
@@ -181,9 +180,9 @@ int EulerTaylorGreen<dim, nstate>::run_test() const
     pcout << "Energy for initial condition " << initialcond_energy_mpi/(8*pow(dealii::numbers::PI,3)) << std::endl;
 
     //output initial cond solution
-//    for(unsigned int i=0; i<dg->solution.size(); i++){
-//        pcout<<"initial cond solution "<<dg->solution[i]<<std::endl;
-//    }
+    //    for(unsigned int i=0; i<dg->solution.size(); i++){
+    //        pcout<<"initial cond solution "<<dg->solution[i]<<std::endl;
+    //    }
 
     pcout << "Energy at time " << 0 << " is " << compute_kinetic_energy(dg, poly_degree) << std::endl;
     ode_solver->current_iteration = 0;
@@ -192,50 +191,46 @@ int EulerTaylorGreen<dim, nstate>::run_test() const
 	double initial_energy_mpi = (dealii::Utilities::MPI::sum(initial_energy, mpi_communicator));
         double initial_MK_energy = compute_MK_energy(dg, poly_degree);
     //output initial cond solution
-//    for(unsigned int i=0; i<dg->solution.size(); i++){
-//        pcout<<"initial cond solution after "<<dg->solution[i]<<std::endl;
-//    }
+    //    for(unsigned int i=0; i<dg->solution.size(); i++){
+    //        pcout<<"initial cond solution after "<<dg->solution[i]<<std::endl;
+    //    }
     
-   // pcout << "Energy at one timestep is " << initial_energy << std::endl;
+    // pcout << "Energy at one timestep is " << initial_energy << std::endl;
     std::cout << std::setprecision(16) << std::fixed;
     pcout << "Energy at one timestep is " << initial_energy_mpi/(8*pow(dealii::numbers::PI,3)) << std::endl;
     std::ofstream myfile ("kinetic_energy_3D_TGV.gpl" , std::ios::trunc);
 
-    for (int i = 0; i < std::ceil(finalTime/dt); ++ i)
-    {
+    for (int i = 0; i < std::ceil(finalTime/dt); ++ i) {
         ode_solver->advance_solution_time(dt);
-       // double current_energy = compute_kinetic_energy(dg,poly_degree) / initial_energy;
+        // double current_energy = compute_kinetic_energy(dg,poly_degree) / initial_energy;
         double current_energy = compute_kinetic_energy(dg,poly_degree);
         double current_energy_mpi = (dealii::Utilities::MPI::sum(current_energy, mpi_communicator))/initial_energy_mpi;
         std::cout << std::setprecision(16) << std::fixed;
-       // pcout << "Energy at time " << i * dt << " is " << current_energy << std::endl;
+        // pcout << "Energy at time " << i * dt << " is " << current_energy << std::endl;
         pcout << "Energy at time " << i * dt << " is " << current_energy_mpi << std::endl;
         pcout << "Actual Energy Divided by volume at time " << i * dt << " is " << current_energy_mpi*initial_energy_mpi/(8*pow(dealii::numbers::PI,3)) << std::endl;
-       // myfile << i * dt << " " << current_energy << std::endl;
+        // myfile << i * dt << " " << current_energy << std::endl;
         myfile << i * dt << " " << current_energy_mpi << std::endl;
-       // if (current_energy*initial_energy - initial_energy >= 1.00)
+        // if (current_energy*initial_energy - initial_energy >= 1.00)
         if (current_energy_mpi*initial_energy_mpi - initial_energy_mpi >= 1.00)
-          {
-              pcout << " Energy was not monotonically decreasing" << std::endl;
-              return 1;
-          }
-          double current_MK_energy = compute_MK_energy(dg, poly_degree)/initial_MK_energy;
-          std::cout << std::setprecision(16) << std::fixed;
-          pcout << "M plus K norm at time " << i * dt << " is " << current_MK_energy<< std::endl;
-          myfile << i * dt << " " << std::fixed << std::setprecision(16) << current_MK_energy << std::endl;
+        {
+          pcout << " Energy was not monotonically decreasing" << std::endl;
+          return 1;
+        }
+        double current_MK_energy = compute_MK_energy(dg, poly_degree)/initial_MK_energy;
+        std::cout << std::setprecision(16) << std::fixed;
+        pcout << "M plus K norm at time " << i * dt << " is " << current_MK_energy<< std::endl;
+        myfile << i * dt << " " << std::fixed << std::setprecision(16) << current_MK_energy << std::endl;
     }
 
     myfile.close();
 
-    return 0;}
+    return 0;
+}
 
 #if PHILIP_DIM==3
     template class EulerTaylorGreen <PHILIP_DIM,PHILIP_DIM+2>;
 #endif
 
-}
-}
-
-
-
-
+} // Tests namespace
+} // PHiLiP namespace

@@ -60,11 +60,8 @@
 const double TOLERANCE = 1E-6;
 using namespace std;
 
-
-
 int main (int argc, char * argv[])
 {
-
     dealii::Utilities::MPI::MPI_InitFinalize mpi_initialization(argc, argv, 1);
     using real = double;
     using namespace PHiLiP;
@@ -81,48 +78,46 @@ int main (int argc, char * argv[])
 
     using FR_enum = Parameters::AllParameters::Flux_Reconstruction;
     all_parameters_new.flux_reconstruction_type = FR_enum::cHU;
-//    all_parameters_new.overintegration = 2;
-   // const unsigned int overint= all_parameters_new.overintegration;
-   // all_parameters_new.use_collocated_nodes = true;
+    // all_parameters_new.overintegration = 2;
+    // const unsigned int overint= all_parameters_new.overintegration;
+    // all_parameters_new.use_collocated_nodes = true;
 
-    double chain_rule =0.0;
+    double chain_rule = 0.0;
+    // loop poly degree
     for(unsigned int poly_degree=6; poly_degree<7; poly_degree++){
-    double left = 0.0;
-    double right = 1.0;
-    const bool colorize = true;
-    const unsigned int igrid= 2;
-    unsigned int q_degree = poly_degree + 2;
+        double left = 0.0;
+        double right = 1.0;
+        const bool colorize = true;
+        const unsigned int igrid= 2;
+        unsigned int q_degree = poly_degree + 2;
 
-
-
-    //Generate a standard grid
-
+        //Generate a standard grid
 #if PHILIP_DIM==1 // dealii::parallel::distributed::Triangulation<dim> does not work for 1D
-    using Triangulation = dealii::Triangulation<dim>;
-    std::shared_ptr<Triangulation> grid = std::make_shared<Triangulation>(
-        typename dealii::Triangulation<dim>::MeshSmoothing(
-            dealii::Triangulation<dim>::smoothing_on_refinement |
-            dealii::Triangulation<dim>::smoothing_on_coarsening));
+        using Triangulation = dealii::Triangulation<dim>;
+        std::shared_ptr<Triangulation> grid = std::make_shared<Triangulation>(
+            typename dealii::Triangulation<dim>::MeshSmoothing(
+                dealii::Triangulation<dim>::smoothing_on_refinement |
+                dealii::Triangulation<dim>::smoothing_on_coarsening));
 #else
-    using Triangulation = dealii::parallel::distributed::Triangulation<dim>;
-    std::shared_ptr<Triangulation> grid = std::make_shared<Triangulation>(
-        MPI_COMM_WORLD,
-        typename dealii::Triangulation<dim>::MeshSmoothing(
-            dealii::Triangulation<dim>::smoothing_on_refinement |
-            dealii::Triangulation<dim>::smoothing_on_coarsening));
+        using Triangulation = dealii::parallel::distributed::Triangulation<dim>;
+        std::shared_ptr<Triangulation> grid = std::make_shared<Triangulation>(
+            MPI_COMM_WORLD,
+            typename dealii::Triangulation<dim>::MeshSmoothing(
+                dealii::Triangulation<dim>::smoothing_on_refinement |
+                dealii::Triangulation<dim>::smoothing_on_coarsening));
 #endif
         dealii::GridGenerator::hyper_cube (*grid, left, right, colorize);
         grid->refine_global(igrid);
 
-      //  OPERATOR::OperatorsBase<dim,real> operators_p_q(&all_parameters_new, nstate, poly_degree + q_degree, poly_degree + q_degree, 1); 
+        //  OPERATOR::OperatorsBase<dim,real> operators_p_q(&all_parameters_new, nstate, poly_degree + q_degree, poly_degree + q_degree, 1); 
         all_parameters_new.overintegration = q_degree;
-       // std::shared_ptr<OPERATOR::OperatorsBase<dim, real>> operators_p = OPERATOR::OperatorsFactory<dim, real>::create_operators(&all_parameters_new, nstate, poly_degree, poly_degree, 1);
+        // std::shared_ptr<OPERATOR::OperatorsBase<dim, real>> operators_p = OPERATOR::OperatorsFactory<dim, real>::create_operators(&all_parameters_new, nstate, poly_degree, poly_degree, 1);
         std::shared_ptr<OPERATOR::OperatorsBaseState<dim,real,nstate,2*dim>> operators_p = std::make_shared< OPERATOR::OperatorsBaseState<dim,real,nstate,2*dim> >(&all_parameters_new, poly_degree, poly_degree);
-//        OPERATOR::OperatorsBase<dim,real> operators_p(&all_parameters_new, nstate, poly_degree, poly_degree, 1); 
+        // OPERATOR::OperatorsBase<dim,real> operators_p(&all_parameters_new, nstate, poly_degree, poly_degree, 1); 
         all_parameters_new.overintegration = poly_degree;
-//        OPERATOR::OperatorsBase<dim,real> operators_q(&all_parameters_new, nstate, q_degree, q_degree, 1); 
+        // OPERATOR::OperatorsBase<dim,real> operators_q(&all_parameters_new, nstate, q_degree, q_degree, 1); 
         std::shared_ptr<OPERATOR::OperatorsBaseState<dim,real,nstate,2*dim>> operators_q = std::make_shared< OPERATOR::OperatorsBaseState<dim,real,nstate,2*dim> >(&all_parameters_new, q_degree, q_degree);
-       // std::shared_ptr<OPERATOR::OperatorsBase<dim, real>> operators_q = OPERATOR::OperatorsFactory<dim, real>::create_operators(&all_parameters_new, nstate, q_degree, q_degree, 1);
+        // std::shared_ptr<OPERATOR::OperatorsBase<dim, real>> operators_q = OPERATOR::OperatorsFactory<dim, real>::create_operators(&all_parameters_new, nstate, q_degree, q_degree, 1);
 
         const unsigned int n_dofs_p = pow(poly_degree+1, dim);
         const unsigned int n_dofs_q = pow(q_degree+1, dim);
@@ -161,32 +156,29 @@ int main (int argc, char * argv[])
         }
         dealii::Vector<double> D_u_v_at_p_q_nodes(n_dofs_p_q);
         operators_p->gradient_flux_basis[poly_degree][0][0].vmult(D_u_v_at_p_q_nodes, u_v_at_p_q_nodes);
-    
-    pcout<<" ABS difference"<<std::endl;
-    for(unsigned int idof=0; idof<n_dofs_p_q; idof++){
-        pcout<<std::abs(D_u_v_at_p_q_nodes[idof]-(Du_v_at_p_q_nodes[idof]+u_Dv_at_p_q_nodes[idof]))<<std::endl;
-        if(std::abs(D_u_v_at_p_q_nodes[idof]-(Du_v_at_p_q_nodes[idof]+u_Dv_at_p_q_nodes[idof]))>chain_rule)
-            chain_rule = std::abs(D_u_v_at_p_q_nodes[idof]-(Du_v_at_p_q_nodes[idof]+u_Dv_at_p_q_nodes[idof]));
-    }
-    pcout<<" Derivative of (u times v)"<<std::endl;
-    for(unsigned int idof=0; idof<n_dofs_p_q; idof++){
-        pcout<<D_u_v_at_p_q_nodes[idof]<<std::endl;
-    }
-    pcout<<" u*Dv + v*Du"<<std::endl;
-    for(unsigned int idof=0; idof<n_dofs_p_q; idof++){
-        pcout<<Du_v_at_p_q_nodes[idof]+u_Dv_at_p_q_nodes[idof]<<std::endl;
-    }
-    pcout<<" v*Du"<<std::endl;
-    for(unsigned int idof=0; idof<n_dofs_p_q; idof++){
-        pcout<<Du_v_at_p_q_nodes[idof]<<std::endl;
-    }
-    pcout<<" u*Dv"<<std::endl;
-    for(unsigned int idof=0; idof<n_dofs_p_q; idof++){
-        pcout<<u_Dv_at_p_q_nodes[idof]<<std::endl;
-    }
-
-
-
+        
+        pcout<<" ABS difference"<<std::endl;
+        for(unsigned int idof=0; idof<n_dofs_p_q; idof++){
+            pcout<<std::abs(D_u_v_at_p_q_nodes[idof]-(Du_v_at_p_q_nodes[idof]+u_Dv_at_p_q_nodes[idof]))<<std::endl;
+            if(std::abs(D_u_v_at_p_q_nodes[idof]-(Du_v_at_p_q_nodes[idof]+u_Dv_at_p_q_nodes[idof]))>chain_rule)
+                chain_rule = std::abs(D_u_v_at_p_q_nodes[idof]-(Du_v_at_p_q_nodes[idof]+u_Dv_at_p_q_nodes[idof]));
+        }
+        pcout<<" Derivative of (u times v)"<<std::endl;
+        for(unsigned int idof=0; idof<n_dofs_p_q; idof++){
+            pcout<<D_u_v_at_p_q_nodes[idof]<<std::endl;
+        }
+        pcout<<" u*Dv + v*Du"<<std::endl;
+        for(unsigned int idof=0; idof<n_dofs_p_q; idof++){
+            pcout<<Du_v_at_p_q_nodes[idof]+u_Dv_at_p_q_nodes[idof]<<std::endl;
+        }
+        pcout<<" v*Du"<<std::endl;
+        for(unsigned int idof=0; idof<n_dofs_p_q; idof++){
+            pcout<<Du_v_at_p_q_nodes[idof]<<std::endl;
+        }
+        pcout<<" u*Dv"<<std::endl;
+        for(unsigned int idof=0; idof<n_dofs_p_q; idof++){
+            pcout<<u_Dv_at_p_q_nodes[idof]<<std::endl;
+        }
     }//end of poly_degree loop
 
     if( chain_rule >1e-11){
@@ -196,6 +188,4 @@ int main (int argc, char * argv[])
     else{
         return 0;
     }
-
 }//end of main
-

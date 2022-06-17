@@ -35,21 +35,21 @@ BurgersEnergyStability<dim, nstate>::BurgersEnergyStability(const PHiLiP::Parame
 template<int dim, int nstate>
 double BurgersEnergyStability<dim, nstate>::compute_energy(std::shared_ptr < PHiLiP::DGBase<dim, double> > &dg) const
 {
-	double energy = 0.0;
+    double energy = 0.0;
     dealii::LinearAlgebra::distributed::Vector<double> mass_matrix_times_solution(dg->right_hand_side);
     dg->global_mass_matrix.vmult( mass_matrix_times_solution, dg->solution);
     //Since we normalize the energy later, don't bother scaling by 0.5
     //Energy \f$ = 0.5 * \int u^2 d\Omega_m \f$
     energy = dg->solution * mass_matrix_times_solution;
         
-	return energy;
+    return energy;
 }
 
 template<int dim, int nstate>
 double BurgersEnergyStability<dim, nstate>::compute_conservation(std::shared_ptr < PHiLiP::DGBase<dim, double> > &dg, const double poly_degree) const
 {
     // Conservation \f$ =  \int 1 * u d\Omega_m \f$
-	double conservation = 0.0;
+    double conservation = 0.0;
     dealii::LinearAlgebra::distributed::Vector<double> mass_matrix_times_solution(dg->right_hand_side);
     dg->global_mass_matrix.vmult( mass_matrix_times_solution, dg->solution);
 
@@ -74,7 +74,7 @@ double BurgersEnergyStability<dim, nstate>::compute_conservation(std::shared_ptr
 
     conservation = ones_hat_global * mass_matrix_times_solution;
 
-	return conservation;
+    return conservation;
 }
 
 template <int dim, int nstate>
@@ -114,11 +114,11 @@ int BurgersEnergyStability<dim, nstate>::run_test() const
         //found the periodicity in dealii doesn't work as expected in 1D so I hard coded the 1D periodic condition in DG
 #if PHILIP_DIM==1
 #else
-	   std::vector<dealii::GridTools::PeriodicFacePair<typename dealii::parallel::distributed::Triangulation<PHILIP_DIM>::cell_iterator> > matched_pairs;
-		dealii::GridTools::collect_periodic_faces(*grid,0,1,0,matched_pairs);
+        std::vector<dealii::GridTools::PeriodicFacePair<typename dealii::parallel::distributed::Triangulation<PHILIP_DIM>::cell_iterator> > matched_pairs;
+        dealii::GridTools::collect_periodic_faces(*grid,0,1,0,matched_pairs);
         if(dim>=2) dealii::GridTools::collect_periodic_faces(*grid,2,3,1,matched_pairs);
         if(dim>=3) dealii::GridTools::collect_periodic_faces(*grid,4,5,2,matched_pairs);
-		grid->add_periodicity(matched_pairs);
+        grid->add_periodicity(matched_pairs);
 #endif
         grid->refine_global(igrid);
         pcout << "Grid generated and refined" << std::endl;
@@ -141,66 +141,66 @@ int BurgersEnergyStability<dim, nstate>::run_test() const
         std::shared_ptr< InitialConditionFunction<dim,nstate,double> > initial_condition_function = 
             InitialConditionFactory<dim,nstate,double>::create_InitialConditionFunction(&all_parameters_new);
         SetInitialCondition<dim,nstate,double>::set_initial_condition(initial_condition_function, dg, &all_parameters_new);
-	    // Create ODE solver using the factory and providing the DG object
-	    std::shared_ptr<ODE::ODESolverBase<dim, double>> ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
-        
+        // Create ODE solver using the factory and providing the DG object
+        std::shared_ptr<ODE::ODESolverBase<dim, double>> ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
+
         double finalTime = 3.0;
 
         if (all_parameters_new.use_energy == true){//for split form get energy
 
-	        double dt = all_parameters_new.ode_solver_param.initial_time_step;
+        double dt = all_parameters_new.ode_solver_param.initial_time_step;
 
-	        // need to call ode_solver before calculating energy because mass matrix isn't allocated yet.
-            ode_solver->current_iteration = 0;
-            ode_solver->advance_solution_time(0.000001);
-	        double initial_energy = compute_energy(dg);
-	        double initial_conservation = compute_conservation(dg, poly_degree);
+        // need to call ode_solver before calculating energy because mass matrix isn't allocated yet.
+        ode_solver->current_iteration = 0;
+        ode_solver->advance_solution_time(0.000001);
+        double initial_energy = compute_energy(dg);
+        double initial_conservation = compute_conservation(dg, poly_degree);
 
-    	    // currently the only way to calculate energy at each time-step is to advance solution by dt instead of finaltime
-    	    // this causes some issues with outputs (only one file is output, which is overwritten at each time step)
-    	    // also the ode solver output doesn't make sense (says "iteration 1 out of 1")
-    	    // but it works. I'll keep it for now and need to modify the output functions later to account for this.
-    	    std::ofstream myfile ("energy_plot_burgers.gpl" , std::ios::trunc);
-                 
-            ode_solver->current_iteration = 0;
-    	    for (int i = 0; i < std::ceil(finalTime/dt); ++ i)
-    	    {
-	            ode_solver->advance_solution_time(dt);
+        // currently the only way to calculate energy at each time-step is to advance solution by dt instead of finaltime
+        // this causes some issues with outputs (only one file is output, which is overwritten at each time step)
+        // also the ode solver output doesn't make sense (says "iteration 1 out of 1")
+        // but it works. I'll keep it for now and need to modify the output functions later to account for this.
+        std::ofstream myfile ("energy_plot_burgers.gpl" , std::ios::trunc);
+             
+        ode_solver->current_iteration = 0;
+        for (int i = 0; i < std::ceil(finalTime/dt); ++ i)
+        {
+                ode_solver->advance_solution_time(dt);
                 //Energy
-	            double current_energy = compute_energy(dg);
+                double current_energy = compute_energy(dg);
                 current_energy /=initial_energy;
                 std::cout << std::setprecision(16) << std::fixed;
-	            pcout << "Energy at time " << i * dt << " is " << current_energy << std::endl;
-	            myfile << i * dt << " " << std::fixed << std::setprecision(16) << current_energy << std::endl;
-	            if (current_energy*initial_energy - initial_energy >= 1.0)
-	            {
+                pcout << "Energy at time " << i * dt << " is " << current_energy << std::endl;
+                myfile << i * dt << " " << std::fixed << std::setprecision(16) << current_energy << std::endl;
+                if (current_energy*initial_energy - initial_energy >= 1.0)
+                {
                     pcout<<"Energy not monotonicaly decreasing"<<std::endl;
-	            	return 1;
-	            	break;
-	            }
-	            if ( (current_energy*initial_energy - initial_energy >= 1.0e-11)&&(all_parameters_new.conv_num_flux_type == Parameters::AllParameters::ConvectiveNumericalFlux::entropy_cons_flux) )
-	            {
+                    return 1;
+                    break;
+                }
+                if ( (current_energy*initial_energy - initial_energy >= 1.0e-11)&&(all_parameters_new.conv_num_flux_type == Parameters::AllParameters::ConvectiveNumericalFlux::entropy_cons_flux) )
+                {
                     pcout<<"Energy not conserved"<<std::endl;
-                	return 1;
-	            	break;
-	            }
+                    return 1;
+                    break;
+                }
                 //Conservation
-	            double current_conservation = compute_conservation(dg, poly_degree);
+                double current_conservation = compute_conservation(dg, poly_degree);
                 current_conservation /=initial_conservation;
                 std::cout << std::setprecision(16) << std::fixed;
-	            pcout << "Normalized Conservation at time " << i * dt << " is " << current_conservation<< std::endl;
-	            myfile << i * dt << " " << std::fixed << std::setprecision(16) << current_conservation << std::endl;
-	            if (current_conservation*initial_conservation - initial_conservation >= 10.00)
-	            {
+                pcout << "Normalized Conservation at time " << i * dt << " is " << current_conservation<< std::endl;
+                myfile << i * dt << " " << std::fixed << std::setprecision(16) << current_conservation << std::endl;
+                if (current_conservation*initial_conservation - initial_conservation >= 10.00)
+                {
                     pcout << "Not conserved" << std::endl;
-	            	return 1;
-	            	break;
-	            }
-	        }
-	        myfile.close();
+                    return 1;
+                    break;
+                }
+            }
+            myfile.close();
              
             //Print to a file the final solution vs x to plot
-	        std::ofstream myfile2 ("solution_burgers.gpl" , std::ios::trunc);
+            std::ofstream myfile2 ("solution_burgers.gpl" , std::ios::trunc);
              
             dealii::QGaussLobatto<dim> quad_extra(dg->max_degree+1);
             dealii::FEValues<dim,dim> fe_values_extra(*(dg->high_order_grid->mapping_fe_field), dg->operators->fe_collection_basis[poly_degree], quad_extra, 
@@ -223,17 +223,17 @@ int BurgersEnergyStability<dim, nstate>::run_test() const
                     }
                     const dealii::Point<dim> qpoint = (fe_values_extra.quadrature_point(iquad));
                     std::cout << std::setprecision(16) << std::fixed;
-	                myfile2<< std::fixed << std::setprecision(16) << qpoint[0] << std::fixed << std::setprecision(16) <<" " << soln_at_q[0]<< std::endl;
+                    myfile2<< std::fixed << std::setprecision(16) << qpoint[0] << std::fixed << std::setprecision(16) <<" " << soln_at_q[0]<< std::endl;
                 }
             }
-	        myfile2.close();
+            myfile2.close();
         }//end of energy
         else{//do OOA
             finalTime = 0.001;//This is sufficient for verification
 
             ode_solver->current_iteration = 0;
 
-	        ode_solver->advance_solution_time(finalTime);
+            ode_solver->advance_solution_time(finalTime);
             const unsigned int n_global_active_cells = grid->n_global_active_cells();
             const unsigned int n_dofs = dg->dof_handler.n_dofs();
             pcout << "Dimension: " << dim

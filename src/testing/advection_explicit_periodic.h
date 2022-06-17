@@ -5,23 +5,8 @@
 #include "dg/dg.h"
 #include "parameters/all_parameters.h"
 
-#include <deal.II/grid/manifold_lib.h>
-
 namespace PHiLiP {
 namespace Tests {
-
-/// Curvilinear manifold
-template <int dim>
-class CurvManifold: public dealii::ChartManifold<dim,dim,dim> {
-    /// Pull Back function
-    virtual dealii::Point<dim> pull_back(const dealii::Point<dim> &space_point) const override; ///< See dealii::Manifold.
-    /// Push forward function
-    virtual dealii::Point<dim> push_forward(const dealii::Point<dim> &chart_point) const override; ///< See dealii::Manifold.
-    /// Derivative of mapping
-    virtual dealii::DerivativeForm<1,dim,dim> push_forward_gradient(const dealii::Point<dim> &chart_point) const override; ///< See dealii::Manifold.
-    /// Clone
-    virtual std::unique_ptr<dealii::Manifold<dim,dim> > clone() const override; ///< See dealii::Manifold.
-};
 
 /// Advection periodic unsteady test
 template <int dim, int nstate>

@@ -42,8 +42,6 @@ protected:
     dealii::Table<1,double> butcher_tableau_b;
 
     /// Butcher tableau "c"
-    /* Stores the c values in Butcher tableau for the time step
-    */
     dealii::Table<1,double> butcher_tableau_c;
 };
 

@@ -1,6 +1,5 @@
 set(TEST_SRC
-auxiliary_variable_test.cpp
-    )
+    auxiliary_variable_test.cpp)
 
 foreach(dim RANGE 1 1)
 
@@ -17,11 +16,10 @@ foreach(dim RANGE 1 1)
 
     # Library dependency
     target_link_libraries(${TEST_TARGET} ParametersLibrary)
-   string(CONCAT OperatorsLib Operator_Lib_${dim}D)
-   target_link_libraries(${TEST_TARGET} ${OperatorsLib})
+    string(CONCAT OperatorsLib Operator_Lib_${dim}D)
+    target_link_libraries(${TEST_TARGET} ${OperatorsLib})
     target_link_libraries(${TEST_TARGET} DiscontinuousGalerkin_${dim}D)
-#   # Setup target with deal.II
-#   DEAL_II_SETUP_TARGET(${TEST_TARGET})
+    # Setup target with deal.II
     if (NOT DOC_ONLY)
         DEAL_II_SETUP_TARGET(${TEST_TARGET})
     endif()
@@ -33,19 +31,18 @@ foreach(dim RANGE 1 1)
     )
 
     unset(TEST_TARGET)
- #   unset(ParametersLib)
+    # unset(ParametersLib)
     unset(OperatorsLib)
 
 endforeach()
 
 set(TEST_SRC
-auxiliary_variable_test.cpp
-    )
+    auxiliary_variable_test.cpp)
 
 foreach(dim RANGE 2 3)
 
     # Output executable
-    string(CONCAT TEST_TARGET ${dim}AUXILIARY_SOLUTION_TEST)
+    string(CONCAT TEST_TARGET ${dim}D_AUXILIARY_SOLUTION_TEST)
     message("Adding executable " ${TEST_TARGET} " with files " ${TEST_SRC} "\n")
     add_executable(${TEST_TARGET} ${TEST_SRC})
     # Replace occurences of PHILIP_DIM with 1, 2, or 3 in the code
@@ -57,11 +54,10 @@ foreach(dim RANGE 2 3)
 
     # Library dependency
     target_link_libraries(${TEST_TARGET} ParametersLibrary)
-   string(CONCAT OperatorsLib Operator_Lib_${dim}D)
-   target_link_libraries(${TEST_TARGET} ${OperatorsLib})
+    string(CONCAT OperatorsLib Operator_Lib_${dim}D)
+    target_link_libraries(${TEST_TARGET} ${OperatorsLib})
     target_link_libraries(${TEST_TARGET} DiscontinuousGalerkin_${dim}D)
-#   # Setup target with deal.II
-#   DEAL_II_SETUP_TARGET(${TEST_TARGET})
+    # Setup target with deal.II
     if (NOT DOC_ONLY)
         DEAL_II_SETUP_TARGET(${TEST_TARGET})
     endif()
@@ -73,7 +69,7 @@ foreach(dim RANGE 2 3)
     )
 
     unset(TEST_TARGET)
- #   unset(ParametersLib)
+    # unset(ParametersLib)
     unset(OperatorsLib)
 
 endforeach()

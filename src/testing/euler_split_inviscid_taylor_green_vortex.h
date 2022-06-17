@@ -32,7 +32,7 @@ namespace Tests {
 
 /// Euler Taylor Green Vortex
 /** Ensure that the kinetic energy is bounded.
- *  Gassner 2016.
+ *  Ref: Gassner 2016.
  */
 template <int dim, int nstate>
 class EulerTaylorGreen : public TestsBase
@@ -40,23 +40,23 @@ class EulerTaylorGreen : public TestsBase
 public:
     /// Constructor.
     /** Simply calls the TestsBase constructor to set its parameters = parameters_input
-     */
+     * */
     EulerTaylorGreen(const Parameters::AllParameters *const parameters_input);
 
     /// Ensure that the kinetic energy is bounded.
-    /*  If the kinetic energy increases about its initial value, then the test should fail.
-    *  Gassner 2016.
-    */
+    /** If the kinetic energy increases about its initial value, then the test should fail.
+     *  Ref: Gassner 2016.
+     * */
     int run_test() const override;
 
 private:
     /// Computes an integral of the kinetic energy (density * velocity squared) in the entire domain.
     /** Overintegration of kinetic energy.
-     */
+     * */
     double compute_kinetic_energy(std::shared_ptr < DGBase<dim, double> > &dg, unsigned int poly_degree) const;
     ///Computes the kinetic energy by integrating with respect to the ESFR correction mass matrix.
-    /* That is it uses the ESFR mass matrix \f$M+K\f$ in the integral rather than the DG mass matrix
-    */
+    /** That is it uses the ESFR mass matrix \f$M+K\f$ in the integral rather than the DG mass matrix
+     * */
     double compute_MK_energy(std::shared_ptr < DGBase<dim, double> > &dg, unsigned int poly_degree) const;
 };
 

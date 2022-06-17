@@ -23,23 +23,20 @@ class CurvManifold: public dealii::ChartManifold<dim,dim,dim> {
     virtual std::unique_ptr<dealii::Manifold<dim,dim> > clone() const override; ///< See dealii::Manifold.
 };
 
-
 /// Advection periodic unsteady test
 template <int dim, int nstate>
 class AdvectionPeriodic: public TestsBase
 {
 public:
-        /// delete
-	AdvectionPeriodic() = delete;
-        /// Constructor
-	AdvectionPeriodic(const Parameters::AllParameters *const parameters_input);
-        /// Run the testcase
-        int run_test () const override;
+    /// Constructor
+    AdvectionPeriodic(const Parameters::AllParameters *const parameters_input);
+
+    /// Destructor
+    ~AdvectionPeriodic() {};
+    
+    /// Run test
+    int run_test () const override;
 private:
-    /// MPI communicator
-    const MPI_Comm mpi_communicator;
-    /// print for first rank
-    dealii::ConditionalOStream pcout;
     /// Function computes the energy
     double compute_energy(std::shared_ptr < PHiLiP::DGBase<dim, double> > &dg) const;
     /// Function computes the conservation

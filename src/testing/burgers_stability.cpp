@@ -36,11 +36,11 @@ template<int dim, int nstate>
 double BurgersEnergyStability<dim, nstate>::compute_energy(std::shared_ptr < PHiLiP::DGBase<dim, double> > &dg) const
 {
 	double energy = 0.0;
-        dealii::LinearAlgebra::distributed::Vector<double> mass_matrix_times_solution(dg->right_hand_side);
-        dg->global_mass_matrix.vmult( mass_matrix_times_solution, dg->solution);
-        //Since we normalize the energy later, don't bother scaling by 0.5
-        //Energy \f$ = 0.5 * \int u^2 d\Omega_m \f$
-        energy = dg->solution * mass_matrix_times_solution;
+    dealii::LinearAlgebra::distributed::Vector<double> mass_matrix_times_solution(dg->right_hand_side);
+    dg->global_mass_matrix.vmult( mass_matrix_times_solution, dg->solution);
+    //Since we normalize the energy later, don't bother scaling by 0.5
+    //Energy \f$ = 0.5 * \int u^2 d\Omega_m \f$
+    energy = dg->solution * mass_matrix_times_solution;
         
 	return energy;
 }
@@ -48,31 +48,31 @@ double BurgersEnergyStability<dim, nstate>::compute_energy(std::shared_ptr < PHi
 template<int dim, int nstate>
 double BurgersEnergyStability<dim, nstate>::compute_conservation(std::shared_ptr < PHiLiP::DGBase<dim, double> > &dg, const double poly_degree) const
 {
-        //Conservation \f$ =  \int 1 * u d\Omega_m \f$
+    // Conservation \f$ =  \int 1 * u d\Omega_m \f$
 	double conservation = 0.0;
-        dealii::LinearAlgebra::distributed::Vector<double> mass_matrix_times_solution(dg->right_hand_side);
-        dg->global_mass_matrix.vmult( mass_matrix_times_solution, dg->solution);
+    dealii::LinearAlgebra::distributed::Vector<double> mass_matrix_times_solution(dg->right_hand_side);
+    dg->global_mass_matrix.vmult( mass_matrix_times_solution, dg->solution);
 
-        const unsigned int n_dofs_cell = dg->operators->fe_collection_basis[poly_degree].dofs_per_cell;
-        const unsigned int n_quad_pts = dg->operators->volume_quadrature_collection[poly_degree].size();
-        dealii::Vector<double> ones(n_quad_pts);
-        ones = 1.0;
-        //Projected vector of ones. That is, the interpolation of ones_hat to the volume nodes is 1.
-        dealii::Vector<double> ones_hat(n_dofs_cell);
-        //We have to project the vector of ones because the mass matrix has an interpolation from solution nodes built into it.
-        dg->operators->vol_projection_operator[poly_degree].vmult(ones_hat, ones);
+    const unsigned int n_dofs_cell = dg->operators->fe_collection_basis[poly_degree].dofs_per_cell;
+    const unsigned int n_quad_pts = dg->operators->volume_quadrature_collection[poly_degree].size();
+    dealii::Vector<double> ones(n_quad_pts);
+    ones = 1.0;
+    //Projected vector of ones. That is, the interpolation of ones_hat to the volume nodes is 1.
+    dealii::Vector<double> ones_hat(n_dofs_cell);
+    //We have to project the vector of ones because the mass matrix has an interpolation from solution nodes built into it.
+    dg->operators->vol_projection_operator[poly_degree].vmult(ones_hat, ones);
 
-        dealii::LinearAlgebra::distributed::Vector<double> ones_hat_global(dg->right_hand_side);
-        std::vector<dealii::types::global_dof_index> dofs_indices (n_dofs_cell);
-        for (auto cell = dg->dof_handler.begin_active(); cell!=dg->dof_handler.end(); ++cell) {
-            if (!cell->is_locally_owned()) continue;
-            cell->get_dof_indices (dofs_indices);
-            for(unsigned int idof=0;idof<n_dofs_cell; idof++){
-                ones_hat_global[dofs_indices[idof]] = ones_hat[idof];
-            }
+    dealii::LinearAlgebra::distributed::Vector<double> ones_hat_global(dg->right_hand_side);
+    std::vector<dealii::types::global_dof_index> dofs_indices (n_dofs_cell);
+    for (auto cell = dg->dof_handler.begin_active(); cell!=dg->dof_handler.end(); ++cell) {
+        if (!cell->is_locally_owned()) continue;
+        cell->get_dof_indices (dofs_indices);
+        for(unsigned int idof=0;idof<n_dofs_cell; idof++){
+            ones_hat_global[dofs_indices[idof]] = ones_hat[idof];
         }
+    }
 
-        conservation = ones_hat_global * mass_matrix_times_solution;
+    conservation = ones_hat_global * mass_matrix_times_solution;
 
 	return conservation;
 }
@@ -114,16 +114,14 @@ int BurgersEnergyStability<dim, nstate>::run_test() const
         //found the periodicity in dealii doesn't work as expected in 1D so I hard coded the 1D periodic condition in DG
 #if PHILIP_DIM==1
 #else
-	std::vector<dealii::GridTools::PeriodicFacePair<typename dealii::parallel::distributed::Triangulation<PHILIP_DIM>::cell_iterator> > matched_pairs;
+	   std::vector<dealii::GridTools::PeriodicFacePair<typename dealii::parallel::distributed::Triangulation<PHILIP_DIM>::cell_iterator> > matched_pairs;
 		dealii::GridTools::collect_periodic_faces(*grid,0,1,0,matched_pairs);
-                if(dim >= 2)
-		dealii::GridTools::collect_periodic_faces(*grid,2,3,1,matched_pairs);
-                if(dim>=3)
-		dealii::GridTools::collect_periodic_faces(*grid,4,5,2,matched_pairs);
+        if(dim>=2) dealii::GridTools::collect_periodic_faces(*grid,2,3,1,matched_pairs);
+        if(dim>=3) dealii::GridTools::collect_periodic_faces(*grid,4,5,2,matched_pairs);
 		grid->add_periodicity(matched_pairs);
 #endif
-	grid->refine_global(igrid);
-	pcout << "Grid generated and refined" << std::endl;
+        grid->refine_global(igrid);
+        pcout << "Grid generated and refined" << std::endl;
         //CFL number
         const unsigned int n_global_active_cells2 = grid->n_global_active_cells();
         double n_dofs_cfl = pow(n_global_active_cells2,dim) * pow(poly_degree+1.0, dim);
@@ -132,8 +130,6 @@ int BurgersEnergyStability<dim, nstate>::run_test() const
         //use 0.0001 to be consisitent with Ranocha and Gassner papers
         all_parameters_new.ode_solver_param.initial_time_step =  0.0001;
         
-        
-             
         //allocate dg
         std::shared_ptr < PHiLiP::DGBase<dim, double> > dg = PHiLiP::DGFactory<dim,double>::create_discontinuous_galerkin(&all_parameters_new, poly_degree, poly_degree, grid_degree, grid);
         pcout << "dg created" <<std::endl;
@@ -143,68 +139,68 @@ int BurgersEnergyStability<dim, nstate>::run_test() const
         pcout<<"Setting up Initial Condition"<<std::endl;
         // Create initial condition function
         std::shared_ptr< InitialConditionFunction<dim,nstate,double> > initial_condition_function = 
-                InitialConditionFactory<dim,nstate,double>::create_InitialConditionFunction(&all_parameters_new);
+            InitialConditionFactory<dim,nstate,double>::create_InitialConditionFunction(&all_parameters_new);
         SetInitialCondition<dim,nstate,double>::set_initial_condition(initial_condition_function, dg, &all_parameters_new);
-	// Create ODE solver using the factory and providing the DG object
-	std::shared_ptr<ODE::ODESolverBase<dim, double>> ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
-
-	double finalTime = 3.0;
+	    // Create ODE solver using the factory and providing the DG object
+	    std::shared_ptr<ODE::ODESolverBase<dim, double>> ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
+        
+        double finalTime = 3.0;
 
         if (all_parameters_new.use_energy == true){//for split form get energy
 
-	    double dt = all_parameters_new.ode_solver_param.initial_time_step;
+	        double dt = all_parameters_new.ode_solver_param.initial_time_step;
 
-	    //need to call ode_solver before calculating energy because mass matrix isn't allocated yet.
+	        // need to call ode_solver before calculating energy because mass matrix isn't allocated yet.
             ode_solver->current_iteration = 0;
             ode_solver->advance_solution_time(0.000001);
-	    double initial_energy = compute_energy(dg);
-	    double initial_conservation = compute_conservation(dg, poly_degree);
+	        double initial_energy = compute_energy(dg);
+	        double initial_conservation = compute_conservation(dg, poly_degree);
 
-	    //currently the only way to calculate energy at each time-step is to advance solution by dt instead of finaltime
-	    //this causes some issues with outputs (only one file is output, which is overwritten at each time step)
-	    //also the ode solver output doesn't make sense (says "iteration 1 out of 1")
-	    //but it works. I'll keep it for now and need to modify the output functions later to account for this.
-	    std::ofstream myfile ("energy_plot_burgers.gpl" , std::ios::trunc);
-             
+    	    // currently the only way to calculate energy at each time-step is to advance solution by dt instead of finaltime
+    	    // this causes some issues with outputs (only one file is output, which is overwritten at each time step)
+    	    // also the ode solver output doesn't make sense (says "iteration 1 out of 1")
+    	    // but it works. I'll keep it for now and need to modify the output functions later to account for this.
+    	    std::ofstream myfile ("energy_plot_burgers.gpl" , std::ios::trunc);
+                 
             ode_solver->current_iteration = 0;
-	    for (int i = 0; i < std::ceil(finalTime/dt); ++ i)
-	    {
+    	    for (int i = 0; i < std::ceil(finalTime/dt); ++ i)
+    	    {
 	            ode_solver->advance_solution_time(dt);
-                    //Energy
+                //Energy
 	            double current_energy = compute_energy(dg);
-                    current_energy /=initial_energy;
-                    std::cout << std::setprecision(16) << std::fixed;
+                current_energy /=initial_energy;
+                std::cout << std::setprecision(16) << std::fixed;
 	            pcout << "Energy at time " << i * dt << " is " << current_energy << std::endl;
 	            myfile << i * dt << " " << std::fixed << std::setprecision(16) << current_energy << std::endl;
 	            if (current_energy*initial_energy - initial_energy >= 1.0)
 	            {
-                        pcout<<"Energy not monotonicaly decreasing"<<std::endl;
+                    pcout<<"Energy not monotonicaly decreasing"<<std::endl;
 	            	return 1;
 	            	break;
 	            }
 	            if ( (current_energy*initial_energy - initial_energy >= 1.0e-11)&&(all_parameters_new.conv_num_flux_type == Parameters::AllParameters::ConvectiveNumericalFlux::entropy_cons_flux) )
 	            {
-                        pcout<<"Energy not conserved"<<std::endl;
-	            	return 1;
+                    pcout<<"Energy not conserved"<<std::endl;
+                	return 1;
 	            	break;
 	            }
-                    //Conservation
+                //Conservation
 	            double current_conservation = compute_conservation(dg, poly_degree);
-                    current_conservation /=initial_conservation;
-                    std::cout << std::setprecision(16) << std::fixed;
+                current_conservation /=initial_conservation;
+                std::cout << std::setprecision(16) << std::fixed;
 	            pcout << "Normalized Conservation at time " << i * dt << " is " << current_conservation<< std::endl;
 	            myfile << i * dt << " " << std::fixed << std::setprecision(16) << current_conservation << std::endl;
 	            if (current_conservation*initial_conservation - initial_conservation >= 10.00)
 	            {
-                        pcout << "Not conserved" << std::endl;
+                    pcout << "Not conserved" << std::endl;
 	            	return 1;
 	            	break;
 	            }
-	    }
-	    myfile.close();
+	        }
+	        myfile.close();
              
             //Print to a file the final solution vs x to plot
-	    std::ofstream myfile2 ("solution_burgers.gpl" , std::ios::trunc);
+	        std::ofstream myfile2 ("solution_burgers.gpl" , std::ios::trunc);
              
             dealii::QGaussLobatto<dim> quad_extra(dg->max_degree+1);
             dealii::FEValues<dim,dim> fe_values_extra(*(dg->high_order_grid->mapping_fe_field), dg->operators->fe_collection_basis[poly_degree], quad_extra, 
@@ -212,44 +208,41 @@ int BurgersEnergyStability<dim, nstate>::run_test() const
             const unsigned int n_quad_pts = fe_values_extra.n_quadrature_points;
             std::array<double,nstate> soln_at_q;
             std::vector<dealii::types::global_dof_index> dofs_indices (fe_values_extra.dofs_per_cell);
-            for (auto cell = dg->dof_handler.begin_active(); cell!=dg->dof_handler.end(); ++cell) {
             
+            for (auto cell = dg->dof_handler.begin_active(); cell!=dg->dof_handler.end(); ++cell) {
                 if (!cell->is_locally_owned()) continue;
             
                 fe_values_extra.reinit (cell);
                 cell->get_dof_indices (dofs_indices);
             
                 for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
-            
                     std::fill(soln_at_q.begin(), soln_at_q.end(), 0.0);
                     for (unsigned int idof=0; idof<fe_values_extra.dofs_per_cell; ++idof) {
                         const unsigned int istate = fe_values_extra.get_fe().system_to_component_index(idof).first;
                         soln_at_q[istate] += dg->solution[dofs_indices[idof]] * fe_values_extra.shape_value_component(idof, iquad, istate);
                     }
                     const dealii::Point<dim> qpoint = (fe_values_extra.quadrature_point(iquad));
-                std::cout << std::setprecision(16) << std::fixed;
-	        myfile2<< std::fixed << std::setprecision(16) << qpoint[0] << std::fixed << std::setprecision(16) <<" " << soln_at_q[0]<< std::endl;
+                    std::cout << std::setprecision(16) << std::fixed;
+	                myfile2<< std::fixed << std::setprecision(16) << qpoint[0] << std::fixed << std::setprecision(16) <<" " << soln_at_q[0]<< std::endl;
                 }
-            
             }
-             
-	    myfile2.close();
+	        myfile2.close();
         }//end of energy
         else{//do OOA
             finalTime = 0.001;//This is sufficient for verification
 
             ode_solver->current_iteration = 0;
 
-	    ode_solver->advance_solution_time(finalTime);
+	        ode_solver->advance_solution_time(finalTime);
             const unsigned int n_global_active_cells = grid->n_global_active_cells();
             const unsigned int n_dofs = dg->dof_handler.n_dofs();
             pcout << "Dimension: " << dim
-                 << "\t Polynomial degree p: " << poly_degree
-                 << std::endl
-                 << "Grid number: " << igrid+1 << "/" << n_grids
-                 << ". Number of active cells: " << n_global_active_cells
-                 << ". Number of degrees of freedom: " << n_dofs
-                 << std::endl;
+                  << "\t Polynomial degree p: " << poly_degree
+                  << std::endl
+                  << "Grid number: " << igrid+1 << "/" << n_grids
+                  << ". Number of active cells: " << n_global_active_cells
+                  << ". Number of degrees of freedom: " << n_dofs
+                  << std::endl;
 
             // Overintegrate the error to make sure there is not integration error in the error estimate
             int overintegrate = 10;
@@ -281,14 +274,13 @@ int BurgersEnergyStability<dim, nstate>::run_test() const
 
                     for (int istate=0; istate<nstate; ++istate) {
                     const dealii::Point<dim> qpoint = (fe_values_extra.quadrature_point(iquad));
-                    double uexact=0.0;
+                    double uexact = 0.0;
                     for(int idim=0; idim<dim; idim++){
                         uexact += cos(pi*(qpoint[idim]-finalTime));//for grid 1-3
                     }
                         l2error += pow(soln_at_q[istate] - uexact, 2) * fe_values_extra.JxW(iquad);
                     }
                 }
-
             }
             const double l2error_mpi_sum = std::sqrt(dealii::Utilities::MPI::sum(l2error, mpi_communicator));
 
@@ -304,22 +296,22 @@ int BurgersEnergyStability<dim, nstate>::run_test() const
             convergence_table.add_value("soln_L2_error", l2error_mpi_sum);
 
             pcout << " Grid size h: " << dx 
-                 << " L2-soln_error: " << l2error_mpi_sum
-                 << " Residual: " << ode_solver->residual_norm
-                 << std::endl;
+                  << " L2-soln_error: " << l2error_mpi_sum
+                  << " Residual: " << ode_solver->residual_norm
+                  << std::endl;
 
             if (igrid > igrid_start) {
                 const double slope_soln_err = log(soln_error[igrid]/soln_error[igrid-1])
                                       / log(grid_size[igrid]/grid_size[igrid-1]);
                 pcout << "From grid " << igrid
-                     << "  to grid " << igrid+1
-                     << "  dimension: " << dim
-                     << "  polynomial degree p: " << poly_degree
-                     << std::endl
-                     << "  solution_error1 " << soln_error[igrid-1]
-                     << "  solution_error2 " << soln_error[igrid]
-                     << "  slope " << slope_soln_err
-                     << std::endl;
+                      << "  to grid " << igrid+1
+                      << "  dimension: " << dim
+                      << "  polynomial degree p: " << poly_degree
+                      << std::endl
+                      << "  solution_error1 " << soln_error[igrid-1]
+                      << "  solution_error2 " << soln_error[igrid]
+                      << "  slope " << slope_soln_err
+                      << std::endl;
                 if(igrid == n_grids-1){
                     if(std::abs(slope_soln_err-(poly_degree+1))>0.05){
                         return 1;
@@ -327,26 +319,24 @@ int BurgersEnergyStability<dim, nstate>::run_test() const
                 }
             }
         
-
-    
             pcout << " ********************************************"
-                << std::endl
-                << " Convergence rates for p = " << poly_degree
-                << std::endl
-                << " ********************************************"
-                << std::endl;
+                  << std::endl
+                  << " Convergence rates for p = " << poly_degree
+                  << std::endl
+                  << " ********************************************"
+                  << std::endl;
             convergence_table.evaluate_convergence_rates("soln_L2_error", "cells", dealii::ConvergenceTable::reduction_rate_log2, dim);
             convergence_table.set_scientific("dx", true);
             convergence_table.set_scientific("soln_L2_error", true);
             if (pcout.is_active()) convergence_table.write_text(pcout.get_stream());
         }//end of OOA
-    
     }//end of grid loop
-        
-
     return 0; //if got to here means passed the test, otherwise would've failed earlier
 }
+
+#if PHILIP_DIM==1
 template class BurgersEnergyStability<PHILIP_DIM,PHILIP_DIM>;
+#endif
+
 } // Tests namespace
 } // PHiLiP namespace
-

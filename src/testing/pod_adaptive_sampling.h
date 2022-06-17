@@ -62,7 +62,7 @@ public:
     mutable MatrixXd snapshot_parameters;
     mutable MatrixXd initial_rom_parameters;
 
-    mutable std::list<std::pair<RowVector2d, std::shared_ptr<ProperOrthogonalDecomposition::ROMTestLocation<dim,nstate>>>> rom_locations;
+    mutable std::vector<std::pair<RowVector2d, std::shared_ptr<ProperOrthogonalDecomposition::ROMTestLocation<dim,nstate>>>> rom_locations;
 
     mutable double max_error;
 
@@ -73,6 +73,8 @@ public:
 
     std::shared_ptr<ProperOrthogonalDecomposition::NearestNeighbors> nearest_neighbors;
 
+    double tolerance;
+
     /// Run test
     int run_test () const override;
 
@@ -80,7 +82,9 @@ public:
 
     void placeInitialROMs() const;
 
-    void placeTriangulationROMs(MatrixXd rom_points) const;
+    bool placeTriangulationROMs(MatrixXd rom_points) const;
+
+    void updateNearestExistingROMs(RowVector2d parameter) const;
 
     RowVector2d getMaxErrorROM() const;
 

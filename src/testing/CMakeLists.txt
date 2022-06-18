@@ -25,7 +25,6 @@ set(TESTS_SOURCE
     dual_weighted_residual_mesh_adaptation.cpp
     taylor_green_vortex_energy_check.cpp
     taylor_green_vortex_restart_check.cpp
-    flow_solver_cases/naca0012.cpp
     pod_adaptive_sampling.cpp
     adaptive_sampling_testing.cpp
     taylor_green_vortex_restart_check.cpp

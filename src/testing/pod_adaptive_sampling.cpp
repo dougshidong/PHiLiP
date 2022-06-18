@@ -10,7 +10,7 @@ AdaptiveSampling<dim, nstate>::AdaptiveSampling(const PHiLiP::Parameters::AllPar
         , parameter_handler(parameter_handler_input)
 {
     configureParameterSpace();
-    std::unique_ptr<Tests::FlowSolver<dim,nstate>> flow_solver = FlowSolverFactory<dim,nstate>::create_FlowSolver(all_parameters, parameter_handler);
+    std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(all_parameters, parameter_handler);
     current_pod = std::make_shared<ProperOrthogonalDecomposition::OnlinePOD<dim>>(flow_solver->dg);
     nearest_neighbors = std::make_shared<ProperOrthogonalDecomposition::NearestNeighbors>();
     tolerance = 1E-03;
@@ -310,7 +310,7 @@ dealii::LinearAlgebra::distributed::Vector<double> AdaptiveSampling<dim, nstate>
     this->pcout << "Solving FOM at " << parameter << std::endl;
     Parameters::AllParameters params = reinitParams(parameter);
 
-    std::unique_ptr<Tests::FlowSolver<dim,nstate>> flow_solver = FlowSolverFactory<dim,nstate>::create_FlowSolver(&params, parameter_handler);
+    std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(&params, parameter_handler);
 
     // Solve implicit solution
     auto ode_solver_type = Parameters::ODESolverParam::ODESolverEnum::implicit_solver;
@@ -327,7 +327,7 @@ std::shared_ptr<ProperOrthogonalDecomposition::ROMSolution<dim,nstate>> Adaptive
     this->pcout << "Solving ROM at " << parameter << std::endl;
     Parameters::AllParameters params = reinitParams(parameter);
 
-    std::unique_ptr<Tests::FlowSolver<dim,nstate>> flow_solver = FlowSolverFactory<dim,nstate>::create_FlowSolver(&params, parameter_handler);
+    std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(&params, parameter_handler);
 
     // Solve implicit solution
     auto ode_solver_type = Parameters::ODESolverParam::ODESolverEnum::pod_petrov_galerkin_solver;
@@ -492,8 +492,13 @@ void AdaptiveSampling<dim, nstate>::configureParameterSpace() const
     }
 }
 
-template class AdaptiveSampling<PHILIP_DIM, PHILIP_DIM>;
-template class AdaptiveSampling<PHILIP_DIM, PHILIP_DIM+2>;
+#if PHILIP_DIM==1
+        template class AdaptiveSampling<PHILIP_DIM, PHILIP_DIM>;
+#endif
+
+#if PHILIP_DIM!=1
+        template class AdaptiveSampling<PHILIP_DIM, PHILIP_DIM+2>;
+#endif
 
 }
 }

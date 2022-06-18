@@ -15,7 +15,8 @@
 #include "reduced_order/pod_basis_online.h"
 #include "reduced_order/reduced_order_solution.h"
 #include "linear_solver/linear_solver.h"
-#include "testing/flow_solver.h"
+#include "flow_solver/flow_solver.h"
+#include "flow_solver/flow_solver_factory.h"
 #include "reduced_order/rom_test_location.h"
 #include <deal.II/lac/householder.h>
 #include <cmath>

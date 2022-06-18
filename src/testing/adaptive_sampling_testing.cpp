@@ -16,7 +16,8 @@
 #include "reduced_order/pod_adaptation.h"
 #include "reduced_order/pod_sensitivity_base.h"
 #include "reduced_order/pod_basis_sensitivity_types.h"
-#include "flow_solver.h"
+#include "flow_solver/flow_solver.h"
+#include "flow_solver/flow_solver_factory.h"
 
 
 
@@ -84,10 +85,11 @@ int AdaptiveSamplingTesting<dim, nstate>::run_test() const
         RowVector2d parameter = {params_1(i), params_2(i)};
         Parameters::AllParameters params = reinitParams(parameter);
 
-        std::unique_ptr<FlowSolver<dim,nstate>> flow_solver_implicit = FlowSolverFactory<dim,nstate>::create_FlowSolver(&params, parameter_handler);
+        std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver_implicit = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(&params, parameter_handler);
+
         auto functional_implicit = functionalFactory(flow_solver_implicit->dg);
 
-        std::unique_ptr<FlowSolver<dim,nstate>> flow_solver = FlowSolverFactory<dim,nstate>::create_FlowSolver(&params, parameter_handler);
+        std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(&params, parameter_handler);
         auto ode_solver_type = Parameters::ODESolverParam::ODESolverEnum::pod_petrov_galerkin_solver;
         std::shared_ptr<ProperOrthogonalDecomposition::OfflinePOD<dim>> pod_standard = std::make_shared<ProperOrthogonalDecomposition::OfflinePOD<dim>>(flow_solver->dg);
         flow_solver->ode_solver =  PHiLiP::ODE::ODESolverFactory<dim, double>::create_ODESolver_manual(ode_solver_type, flow_solver->dg, pod_standard);
@@ -173,8 +175,14 @@ std::shared_ptr<Functional<dim,nstate,double>> AdaptiveSamplingTesting<dim, nsta
 }
 
 
-template class AdaptiveSamplingTesting<PHILIP_DIM, PHILIP_DIM>;
-template class AdaptiveSamplingTesting<PHILIP_DIM, PHILIP_DIM+2>;
+#if PHILIP_DIM==1
+        template class AdaptiveSamplingTesting<PHILIP_DIM, PHILIP_DIM>;
+#endif
+
+#if PHILIP_DIM!=1
+        template class AdaptiveSamplingTesting<PHILIP_DIM, PHILIP_DIM+2>;
+#endif
+
 } // Tests namespace
 } // PHiLiP namespace
 

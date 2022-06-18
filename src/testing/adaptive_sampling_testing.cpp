@@ -33,28 +33,16 @@ AdaptiveSamplingTesting<dim, nstate>::AdaptiveSamplingTesting(const PHiLiP::Para
 template <int dim, int nstate>
 int AdaptiveSamplingTesting<dim, nstate>::run_test() const
 {
+
+    RowVectorXd params_1 {{4.0000000000000000,
+                           2.0000000000000000
+                          }};
+    RowVectorXd params_2 {{0.0325000000000000,
+                           0.0100000000000000
+                          }};
+
+
     /*
-    RowVectorXd params_1 {{4,
-                          2,
-                          6,
-                          4,
-                          6,
-                          8,
-                          10,
-                          8
-                          }};
-    RowVectorXd params_2 {{0.0325,
-                          0.055,
-                          0.01,
-                          0.0775,
-                          0.1,
-                          0.0775,
-                          0.055,
-                          0.0325
-                          }};
-    */
-
-
     RowVectorXd params_1 {{0.6,
                                   0.6,
                                   0.7,
@@ -82,7 +70,7 @@ int AdaptiveSamplingTesting<dim, nstate>::run_test() const
                                   0.011635528346629,
                                   0.034906585039887
                           }};
-
+    */
     std::cout << params_1 << std::endl;
     std::cout << params_2 << std::endl;
 

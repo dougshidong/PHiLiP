@@ -82,7 +82,7 @@ bool OfflinePOD<dim>::getPODBasisFromSnapshots() {
         }
     }
 
-    pcout << snapshotMatrix << std::endl;
+    //pcout << snapshotMatrix << std::endl;
 
     pcout << "Snapshot matrix generated." << std::endl;
 

@@ -4,7 +4,7 @@
 #include "dg/dg.h"
 #include "implicit_ode_solver.h"
 #include "linear_solver/linear_solver.h"
-#include "reduced_order/pod_interfaces.h"
+#include "reduced_order/pod_interface.h"
 #include <deal.II/lac/trilinos_sparsity_pattern.h>
 
 namespace PHiLiP {

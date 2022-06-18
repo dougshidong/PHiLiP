@@ -492,8 +492,27 @@ void AdaptiveSampling<dim, nstate>::configureParameterSpace() const
     }
 }
 
+template <int dim, int nstate, typename real>
+template <typename real2>
+real2 BurgersRewienskiFunctional<dim,nstate,real>::evaluate_volume_integrand(
+        const PHiLiP::Physics::PhysicsBase<dim,nstate,real2> &/*physics*/,
+        const dealii::Point<dim,real2> &/*phys_coord*/,
+        const std::array<real2,nstate> &soln_at_q,
+        const std::array<dealii::Tensor<1,dim,real2>,nstate> &/*soln_grad_at_q*/) const
+{
+    real2 val = 0;
+
+// integrating over the domain
+    for (int istate=0; istate<nstate; ++istate) {
+        val += soln_at_q[istate];
+    }
+
+    return val;
+}
+
 #if PHILIP_DIM==1
         template class AdaptiveSampling<PHILIP_DIM, PHILIP_DIM>;
+        template class BurgersRewienskiFunctional<PHILIP_DIM, PHILIP_DIM, double>;
 #endif
 
 #if PHILIP_DIM!=1

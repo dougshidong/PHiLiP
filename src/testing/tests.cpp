@@ -27,9 +27,7 @@
 #include "euler_naca0012_optimization.hpp"
 #include "shock_1d.h"
 #include "euler_naca0012.hpp"
-#include "reduced_order_pod_adaptation.h"
 #include "reduced_order.h"
-#include "fd_state_sensitivity_wrt_parameter.h"
 #include "dual_weighted_residual_mesh_adaptation.h"
 #include "pod_adaptive_sampling.h"
 #include "adaptive_sampling_testing.h"
@@ -156,10 +154,6 @@ std::unique_ptr< TestsBase > TestsFactory<dim,nstate,MeshType>
         if constexpr (dim==1 && nstate==1) return std::make_unique<Shock1D<dim,nstate>>(parameters_input);
     } else if(test_type == Test_enum::reduced_order) {
         if constexpr (dim==1 && nstate==1) return std::make_unique<ReducedOrder<dim,nstate>>(parameters_input);
-    } else if(test_type == Test_enum::POD_adaptation) {
-        if constexpr (dim==1 && nstate==1) return std::make_unique<ReducedOrderPODAdaptation<dim,nstate>>(parameters_input);
-    } else if(test_type == Test_enum::finite_difference_sensitivity) {
-        if constexpr (dim==1 && nstate==1) return std::make_unique<FiniteDifferenceSensitivity<dim,nstate>>(parameters_input,parameter_handler_input);
     } else if(test_type == Test_enum::POD_adaptive_sampling) {
         if constexpr ((dim==2 && nstate==dim+2) || (dim==1 && nstate==1)) return std::make_unique<AdaptiveSampling<dim,nstate>>(parameters_input,parameter_handler_input);
     } else if(test_type == Test_enum::adaptive_sampling_testing) {

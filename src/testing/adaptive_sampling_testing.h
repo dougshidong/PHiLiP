@@ -2,6 +2,15 @@
 #define __ADAPTIVE_SAMPLING_TESTING__
 
 #include "tests.h"
+#include <fstream>
+#include <deal.II/numerics/solution_transfer.h>
+#include <deal.II/base/numbers.h>
+#include "parameters/all_parameters.h"
+#include "dg/dg_factory.hpp"
+#include "ode_solver/ode_solver_factory.h"
+#include "flow_solver/flow_solver.h"
+#include "flow_solver/flow_solver_factory.h"
+#include "pod_adaptive_sampling.h"
 #include "dg/dg.h"
 #include "parameters/all_parameters.h"
 #include "functional/functional.h"

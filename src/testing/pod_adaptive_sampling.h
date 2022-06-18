@@ -22,7 +22,6 @@
 #include <cmath>
 #include <iostream>
 #include <deal.II/base/function_lib.h>
-#include "testing/reduced_order_pod_adaptation.h" //For burgers rewienski functional
 #include <Eigen/Dense>
 #include "reduced_order/nearest_neighbors.h"
 #include "reduced_order/rbf_interpolation.h"
@@ -32,8 +31,10 @@
 #include "ROL_Stream.hpp"
 #include "ROL_Bounds.hpp"
 #include "functional/lift_drag.hpp"
+#include "functional/functional.h"
 #include "reduced_order/halton.h"
 #include "reduced_order/min_max_scaler.h"
+#include "tests.h"
 
 namespace PHiLiP {
 namespace Tests {
@@ -100,6 +101,52 @@ public:
     void configureParameterSpace() const;
 
     void outputErrors(int iteration) const;
+};
+
+///Functional to take the integral of the solution
+template <int dim, int nstate, typename real>
+class BurgersRewienskiFunctional : public Functional<dim, nstate, real>
+{
+public:
+    using FadType = Sacado::Fad::DFad<real>; ///< Sacado AD type for first derivatives.
+    using FadFadType = Sacado::Fad::DFad<FadType>; ///< Sacado AD type that allows 2nd derivatives.
+public:
+    /// Constructor
+    BurgersRewienskiFunctional(
+            std::shared_ptr<PHiLiP::DGBase<dim,real>> dg_input,
+            std::shared_ptr<PHiLiP::Physics::PhysicsBase<dim,nstate,FadFadType>> _physics_fad_fad,
+            const bool uses_solution_values = true,
+            const bool uses_solution_gradient = false)
+            : PHiLiP::Functional<dim,nstate,real>(dg_input,_physics_fad_fad,uses_solution_values,uses_solution_gradient)
+    {}
+    //~BurgersRewienskiFunctional() = 0;
+
+    template <typename real2>
+    /// Templated volume integrand
+    real2 evaluate_volume_integrand(
+            const PHiLiP::Physics::PhysicsBase<dim,nstate,real2> &physics,
+            const dealii::Point<dim,real2> &phys_coord,
+            const std::array<real2,nstate> &soln_at_q,
+            const std::array<dealii::Tensor<1,dim,real2>,nstate> &soln_grad_at_q) const;
+
+    /// Non-template functions to override the template classes
+    real evaluate_volume_integrand(
+            const PHiLiP::Physics::PhysicsBase<dim,nstate,real> &physics,
+            const dealii::Point<dim,real> &phys_coord,
+            const std::array<real,nstate> &soln_at_q,
+            const std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_at_q) const override
+    {
+        return evaluate_volume_integrand<>(physics, phys_coord, soln_at_q, soln_grad_at_q);
+    }
+    /// Non-template functions to override the template classes
+    FadFadType evaluate_volume_integrand(
+            const PHiLiP::Physics::PhysicsBase<dim,nstate,FadFadType> &physics,
+            const dealii::Point<dim,FadFadType> &phys_coord,
+            const std::array<FadFadType,nstate> &soln_at_q,
+            const std::array<dealii::Tensor<1,dim,FadFadType>,nstate> &soln_grad_at_q) const override
+    {
+        return evaluate_volume_integrand<>(physics, phys_coord, soln_at_q, soln_grad_at_q);
+    }
 };
 
 }

@@ -2,7 +2,6 @@
 
 #include "reduced_order.h"
 #include "parameters/all_parameters.h"
-#include "reduced_order/pod_basis_types.h"
 #include <deal.II/numerics/vector_tools.h>
 #include <deal.II/numerics/solution_transfer.h>
 #include <deal.II/base/numbers.h>
@@ -26,10 +25,10 @@ ReducedOrder<dim, nstate>::ReducedOrder(const PHiLiP::Parameters::AllParameters 
 template <int dim, int nstate>
 int ReducedOrder<dim, nstate>::run_test() const
 {
+    /*
     const Parameters::AllParameters param = *(TestsBase::all_parameters);
 
-    /*%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
-    /*SET UP GRID, PARAMETERS AND INITIAL CONDITIONS*/
+
 
     using Triangulation = dealii::Triangulation<dim>;
     std::shared_ptr<Triangulation> grid = std::make_shared<Triangulation>();
@@ -54,8 +53,7 @@ int ReducedOrder<dim, nstate>::run_test() const
 
     double finalTime = param.flow_solver_param.final_time;
 
-    /*%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
-    /* FULL SOLUTION WITH IMPLICIT SOLVER */
+
 
     pcout << "Running full-order implicit ODE solver for Burgers Rewienski with parameter a: "
           << param.burgers_param.rewienski_a
@@ -77,8 +75,7 @@ int ReducedOrder<dim, nstate>::run_test() const
     Parameters::ODESolverParam::ODESolverEnum ode_solver_type = Parameters::ODESolverParam::ODESolverEnum::implicit_solver;
     std::shared_ptr<PHiLiP::ODE::ODESolverBase<dim, double>> ode_solver_implicit = PHiLiP::ODE::ODESolverFactory<dim, double>::create_ODESolver_manual(ode_solver_type, dg_implicit);
 
-    /*%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
-    /*POD GALERKIN SOLUTION*/
+
 
     pcout << "Running POD-Galerkin ODE solver for Burgers Rewienski with parameter a: "
           << param.burgers_param.rewienski_a
@@ -97,8 +94,7 @@ int ReducedOrder<dim, nstate>::run_test() const
     ode_solver_type = Parameters::ODESolverParam::ODESolverEnum::pod_galerkin_solver;
     std::shared_ptr<PHiLiP::ODE::ODESolverBase<dim, double>> ode_solver_galerkin = PHiLiP::ODE::ODESolverFactory<dim, double>::create_ODESolver_manual(ode_solver_type, dg_pod_galerkin, pod);
 
-    /*%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
-    /*POD PETROV-GALERKIN SOLUTION*/
+
 
     pcout << "Running POD-Petrov-Galerkin ODE solver for Burgers Rewienski with parameter a: "
           << param.burgers_param.rewienski_a
@@ -117,12 +113,6 @@ int ReducedOrder<dim, nstate>::run_test() const
     ode_solver_type = Parameters::ODESolverParam::ODESolverEnum::pod_petrov_galerkin_solver;
     std::shared_ptr<PHiLiP::ODE::ODESolverBase<dim, double>> ode_solver_petrov_galerkin = PHiLiP::ODE::ODESolverFactory<dim, double>::create_ODESolver_manual(ode_solver_type, dg_pod_petrov_galerkin, pod);
 
-    /*%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
-    /*Time-averaged relative error, E = 1/n_t * sum_{n=1}^{n_t} (||U_FOM(t^{n}) - U_ROM(t^{n})||_L2 / ||U_FOM(t^{n})||_L2 )
-     *Refer to section 6.1 in "The GNAT method for nonlinear model reduction: Effective implementation and application to computational ﬂuid dynamics and turbulent ﬂows"
-     *Authors: Kevin Carlberg, Charbel Farhat, ulien Cortial,  David Amsallem
-     *Journal of Computational Physics, 2013
-     */
 
     const unsigned int number_of_time_steps = static_cast<int>(ceil(finalTime/param.ode_solver_param.initial_time_step));
     const double constant_time_step = finalTime/number_of_time_steps;
@@ -180,6 +170,8 @@ int ReducedOrder<dim, nstate>::run_test() const
         pcout << "Failed!";
         return -1;
     }
+    */
+    return 0;
 }
 #if PHILIP_DIM==1
         template class ReducedOrder<PHILIP_DIM,PHILIP_DIM>;

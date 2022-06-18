@@ -1,25 +1,4 @@
 #include "adaptive_sampling_testing.h"
-#include <fstream>
-#include <deal.II/numerics/vector_tools.h>
-#include <deal.II/numerics/solution_transfer.h>
-#include <deal.II/base/numbers.h>
-#include <deal.II/base/function_parser.h>
-#include <deal.II/grid/grid_generator.h>
-#include <deal.II/grid/grid_tools.h>
-#include <deal.II/grid/grid_out.h>
-#include <deal.II/grid/grid_in.h>
-
-#include "reduced_order_pod_adaptation.h"
-#include "parameters/all_parameters.h"
-#include "dg/dg_factory.hpp"
-#include "ode_solver/ode_solver_factory.h"
-#include "reduced_order/pod_adaptation.h"
-#include "reduced_order/pod_sensitivity_base.h"
-#include "reduced_order/pod_basis_sensitivity_types.h"
-#include "flow_solver/flow_solver.h"
-#include "flow_solver/flow_solver_factory.h"
-
-
 
 namespace PHiLiP {
 namespace Tests {

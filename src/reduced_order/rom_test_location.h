@@ -12,7 +12,7 @@
 #include <deal.II/lac/vector_operation.h>
 #include "parameters/all_parameters.h"
 #include "dg/dg.h"
-#include "pod_interfaces.h"
+#include "pod_interface.h"
 #include "reduced_order_solution.h"
 #include "linear_solver/linear_solver.h"
 #include <Eigen/Dense>

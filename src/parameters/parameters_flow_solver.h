@@ -20,6 +20,7 @@ public:
         burgers_viscous_snapshot,
         naca0012,
         burgers_rewienski_snapshot,
+        advection_periodic
         };
     FlowCaseType flow_case_type; ///< Selected FlowCaseType from the input file
 
@@ -32,6 +33,8 @@ public:
 
     bool steady_state; ///<Flag for solving steady state solution
 
+    bool adaptive_time_step; ///< Flag for computing the time step on the fly
+
     bool reduced_order; ///<Flag for solving reduced order solution
 
     /** Name of the output file for writing the sensitivity data;
@@ -42,15 +45,31 @@ public:
      *  will read file: input_mesh_filename.msh */
     std::string input_mesh_filename;
 
-    /** For integration test purposes, expected kinetic energy at final time. */
-    double expected_kinetic_energy_at_final_time;
-
     bool restart_computation_from_file; ///< Restart computation from restart file
     bool output_restart_files; ///< Output the restart files
     std::string restart_files_directory_name; ///< Name of directory for writing and reading restart files
     int restart_file_index; ///< Index of desired restart file for restarting the computation from
     int output_restart_files_every_x_steps; ///< Outputs the restart files every x steps
     double output_restart_files_every_dt_time_intervals; ///< Outputs the restart files at time intervals of dt
+
+    /** For taylor green vortex integration tests, expected kinetic energy at final time. */
+    double expected_kinetic_energy_at_final_time;
+
+    /** For taylor green vortex integration tests,
+     *  expected theoretical kinetic energy dissipation
+     *  rate at final time. */
+    double expected_theoretical_dissipation_rate_at_final_time;
+
+    /// For taylor green vortex, selects the type of density initialization
+    enum DensityInitialConditionType{
+        uniform,
+        isothermal,
+        };
+    /// Selected DensityInitialConditionType from the input file
+    DensityInitialConditionType density_initial_condition_type;
+
+    int number_of_times_to_solve; ///<For time refinement study, number of times to run the calculation
+    double refinement_ratio; ///<For time refinement study, ratio of next timestep size to current one, 0<r<1
 
     /// Declares the possible variables and sets the defaults.
     static void declare_parameters (dealii::ParameterHandler &prm);

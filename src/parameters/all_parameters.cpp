@@ -30,6 +30,13 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       dealii::Patterns::Integer(),
                       "Number of dimensions");
 
+    prm.declare_entry("run_type", "integration_test",
+                      dealii::Patterns::Selection(
+                      " integration_test | "
+                      " flow_simulation"),
+                      "Type of run (default is integration_test). "
+                      "Choices are  <integration_test | flow_simulation>.");
+
     prm.declare_entry("mesh_type", "default_triangulation",
                       dealii::Patterns::Selection(
                       " default_triangulation | "
@@ -115,12 +122,12 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       " adaptive_sampling_testing |"
                       " finite_difference_sensitivity | "
                       " advection_periodicity | "
-                      " flow_solver | "
                       " dual_weighted_residual_mesh_adaptation | "
                       " taylor_green_vortex_energy_check | "
-                      " taylor_green_vortex_restart_check"),
+                      " taylor_green_vortex_restart_check | "
+                      " time_refinement_study"),
                       "The type of test we want to solve. "
-                      "Choices are (only run control has been coded up for now)" 
+                      "Choices are " 
                       " <run_control | " 
                       "  grid_refinement_study | "
                       "  burgers_energy_stability | "
@@ -144,10 +151,10 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       "  adaptive_sampling_testing |"
                       "  finite_difference_sensitivity | "
                       "  advection_periodicity | "
-                      "  flow_solver | "
                       "  dual_weighted_residual_mesh_adaptation | "
                       "  taylor_green_vortex_energy_check | "
-                      "  taylor_green_vortex_restart_check>.");
+                      "  taylor_green_vortex_restart_check | "
+                      "  time_refinement_study>.");
 
     prm.declare_entry("pde_type", "advection",
                       dealii::Patterns::Selection(
@@ -184,6 +191,10 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       "Dissipative numerical flux. "
                       "Choices are <symm_internal_penalty | bassi_rebay_2>.");
 
+    prm.declare_entry("solution_vtk_files_directory_name", ".",
+                      dealii::Patterns::FileName(dealii::Patterns::FileName::FileType::input),
+                      "Name of directory for writing solution vtk files. Current directory by default.");
+
     Parameters::LinearSolverParam::declare_parameters (prm);
     Parameters::ManufacturedConvergenceStudyParam::declare_parameters (prm);
     Parameters::ODESolverParam::declare_parameters (prm);
@@ -210,6 +221,10 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     pcout << "Parsing main input..." << std::endl;
 
     dimension = prm.get_integer("dimension");
+
+    const std::string run_type_string = prm.get("run_type");
+    if      (run_type_string == "integration_test") { run_type = integration_test; }
+    else if (run_type_string == "flow_simulation")  { run_type = flow_simulation; }
 
     const std::string mesh_type_string = prm.get("mesh_type");
     if      (mesh_type_string == "default_triangulation")              { mesh_type = default_triangulation; }
@@ -241,10 +256,10 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     else if (test_string == "finite_difference_sensitivity")            { test_type = finite_difference_sensitivity; }
     else if (test_string == "euler_naca0012")                           { test_type = euler_naca0012; }
     else if (test_string == "optimization_inverse_manufactured")        { test_type = optimization_inverse_manufactured; }
-    else if (test_string == "flow_solver")                              { test_type = flow_solver; }
     else if (test_string == "dual_weighted_residual_mesh_adaptation")   { test_type = dual_weighted_residual_mesh_adaptation; }
     else if (test_string == "taylor_green_vortex_energy_check")         { test_type = taylor_green_vortex_energy_check; }
     else if (test_string == "taylor_green_vortex_restart_check")        { test_type = taylor_green_vortex_restart_check; }
+    else if (test_string == "time_refinement_study")                    { test_type = time_refinement_study; }
 
     const std::string pde_string = prm.get("pde_type");
     if (pde_string == "advection") {
@@ -320,6 +335,7 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     if (flux_reconstruction_aux_string == "kPlus") flux_reconstruction_aux_type = kPlus;
     if (flux_reconstruction_aux_string == "k10Thousand") flux_reconstruction_aux_type = k10Thousand;
 
+    solution_vtk_files_directory_name = prm.get("solution_vtk_files_directory_name");
 
     pcout << "Parsing linear solver subsection..." << std::endl;
     linear_solver_param.parse_parameters (prm);

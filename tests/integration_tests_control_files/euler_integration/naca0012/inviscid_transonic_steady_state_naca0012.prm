@@ -18,8 +18,8 @@ set overintegration = 0
 
 subsection euler
   set reference_length = 1.0
-  set mach_infinity = 0.5
-  set angle_of_attack = 2.00
+  set mach_infinity = 0.80
+  set angle_of_attack = 1.25
 end
 
 subsection linear solver
@@ -57,9 +57,8 @@ subsection ODE solver
 end
 
 subsection grid refinement study
- set poly_degree = 1
+ set poly_degree = 0
  set num_refinements = 0
- #set grid_size = 4
 end
 
 subsection flow_solver

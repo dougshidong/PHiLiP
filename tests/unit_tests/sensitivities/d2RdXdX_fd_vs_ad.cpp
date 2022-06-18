@@ -151,7 +151,7 @@ int test (
 
             const bool local_isnonzero = sparsity_pattern.exists(inode,jnode);
             bool global_isnonzero;
-            MPI_Allreduce(&local_isnonzero, &global_isnonzero, 1, MPI::BOOL, MPI_LOR, MPI_COMM_WORLD);
+            MPI_Allreduce(&local_isnonzero, &global_isnonzero, 1, MPI_C_BOOL, MPI_LOR, MPI_COMM_WORLD);
             if (!global_isnonzero) continue;
 
             const bool inode_relevant = high_order_grid->locally_relevant_dofs_grid.is_element(inode);

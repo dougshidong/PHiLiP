@@ -1,4 +1,5 @@
 #include "flow_solver.h"
+
 #include <iostream>
 #include <fstream>
 #include <string>
@@ -6,21 +7,26 @@
 #include <vector>
 #include <sstream>
 
+
 namespace PHiLiP {
 
-namespace Tests {
+namespace FlowSolver {
+
 //=========================================================
-// FLOW SOLVER TEST CASE -- What runs the test
+// FLOW SOLVER CLASS
 //=========================================================
 template <int dim, int nstate>
 FlowSolver<dim, nstate>::FlowSolver(
     const PHiLiP::Parameters::AllParameters *const parameters_input, 
     std::shared_ptr<FlowSolverCaseBase<dim, nstate>> flow_solver_case,
     const dealii::ParameterHandler &parameter_handler_input)
-: TestsBase::TestsBase(parameters_input)
+: FlowSolverBase()
 , flow_solver_case(flow_solver_case)
 , parameter_handler(parameter_handler_input)
-, initial_condition_function(InitialConditionFactory<dim, nstate, double>::create_InitialConditionFunction(parameters_input))
+, mpi_communicator(MPI_COMM_WORLD)
+, mpi_rank(dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD))
+, n_mpi(dealii::Utilities::MPI::n_mpi_processes(MPI_COMM_WORLD))
+, pcout(std::cout, mpi_rank==0)
 , all_param(*parameters_input)
 , flow_solver_param(all_param.flow_solver_param)
 , ode_param(all_param.ode_solver_param)
@@ -70,7 +76,7 @@ FlowSolver<dim, nstate>::FlowSolver(
     } else {
         // Initialize solution from initial_condition_function
         pcout << "Initializing solution with initial condition function... " << std::flush;
-        dealii::VectorTools::interpolate(dg->dof_handler, *initial_condition_function, solution_no_ghost);
+        dealii::VectorTools::interpolate(dg->dof_handler, *(flow_solver_case->initial_condition_function), solution_no_ghost);
     }
     dg->solution = solution_no_ghost; //< assignment
     dg->solution.update_ghost_values();
@@ -80,7 +86,7 @@ FlowSolver<dim, nstate>::FlowSolver(
     // output a copy of the input parameters file
     if(flow_solver_param.output_restart_files == true) {
         pcout << "Writing a reference copy of the inputted parameters (.prm) file... " << std::flush;
-        if(this->mpi_rank==0) {
+        if(mpi_rank==0) {
             parameter_handler.print_parameters(input_parameters_file_reference_copy_filename);    
         }
         pcout << "done." << std::endl;
@@ -124,7 +130,7 @@ void FlowSolver<dim,nstate>::initialize_data_table_from_file(
     std::string data_table_filename,
     const std::shared_ptr <dealii::TableHandler> data_table) const
 {
-    if(this->mpi_rank==0) {
+    if(mpi_rank==0) {
         std::string line;
         std::string::size_type sz1;
 
@@ -182,9 +188,9 @@ std::string FlowSolver<dim,nstate>::double_to_string(const double value_input) c
 template <int dim, int nstate>
 void FlowSolver<dim,nstate>::write_restart_parameter_file(
     const int restart_index_input,
-    const double constant_time_step_input) const {
+    const double time_step_input) const {
     // write the restart parameter file
-    if(this->mpi_rank==0) {
+    if(mpi_rank==0) {
         // read a copy of the current parameters file
         std::ifstream CURRENT_FILE(input_parameters_file_reference_copy_filename);
         
@@ -216,7 +222,7 @@ void FlowSolver<dim,nstate>::write_restart_parameter_file(
         ODE_solver_restart_parameter_values.push_back(double_to_string(ode_solver->current_desired_time_for_output_solution_every_dt_time_intervals));
         ODE_solver_restart_parameter_values.push_back(std::to_string(ode_solver->current_iteration));
         ODE_solver_restart_parameter_values.push_back(double_to_string(ode_solver->current_time));
-        ODE_solver_restart_parameter_values.push_back(double_to_string(constant_time_step_input));
+        ODE_solver_restart_parameter_values.push_back(double_to_string(time_step_input));
 
 
         /* WARNING: (1) Must put a space before and after each parameter string as done below
@@ -305,7 +311,7 @@ void FlowSolver<dim,nstate>::write_restart_parameter_file(
 template <int dim, int nstate>
 void FlowSolver<dim,nstate>::output_restart_files(
     const int current_restart_index,
-    const double constant_time_step,
+    const double time_step_input,
     const std::shared_ptr <dealii::TableHandler> unsteady_data_table) const
 {
     pcout << "  ... Writing restart files ... " << std::endl;
@@ -319,19 +325,19 @@ void FlowSolver<dim,nstate>::output_restart_files(
     dg->triangulation->save(flow_solver_param.restart_files_directory_name + std::string("/") + restart_filename_without_extension);
     
     // unsteady data table
-    if(this->mpi_rank==0) {
+    if(mpi_rank==0) {
         std::string restart_unsteady_data_table_filename = flow_solver_param.unsteady_data_table_filename+std::string("-")+restart_filename_without_extension+std::string(".txt");
         std::ofstream unsteady_data_table_file(flow_solver_param.restart_files_directory_name + std::string("/") + restart_unsteady_data_table_filename);
         unsteady_data_table->write_text(unsteady_data_table_file);
     }
 
     // parameter file; written last to ensure necessary data/solution files have been written before
-    write_restart_parameter_file(current_restart_index, constant_time_step);
+    write_restart_parameter_file(current_restart_index, time_step_input);
 }
 #endif
 
 template <int dim, int nstate>
-int FlowSolver<dim,nstate>::run_test() const
+int FlowSolver<dim,nstate>::run() const
 {
     pcout << "Running Flow Solver..." << std::endl;
     if (ode_param.output_solution_every_x_steps > 0) {
@@ -354,15 +360,26 @@ int FlowSolver<dim,nstate>::run_test() const
         double current_desired_time_for_output_restart_files_every_dt_time_intervals = ode_solver->current_time; // when used, same as the initial time
 #endif
         //----------------------------------------------------
-        // Constant time step based on CFL number
+        // Initialize time step
         //----------------------------------------------------
-        pcout << "Setting constant time step... " << std::flush;
-        const double constant_time_step = flow_solver_case->get_constant_time_step(dg);
+        double time_step = 0.0;
+        if(flow_solver_param.restart_computation_from_file == true) {
+            pcout << "Setting time step from restart file... " << std::flush;
+            time_step = ode_param.initial_time_step;
+        } else {
+            if(flow_solver_param.adaptive_time_step == false) {
+                pcout << "Setting constant time step... " << std::flush;
+                time_step = flow_solver_case->get_constant_time_step(dg);
+            } else {
+                pcout << "Setting initial adaptive time step... " << std::flush;
+                time_step = flow_solver_case->get_adaptive_time_step(dg);
+            }
+        }
         pcout << "done." << std::endl;
         //----------------------------------------------------
         // dealii::TableHandler and data at initial time
         //----------------------------------------------------
-        std::shared_ptr<dealii::TableHandler> unsteady_data_table = std::make_shared<dealii::TableHandler>();//(this->mpi_communicator) ?;
+        std::shared_ptr<dealii::TableHandler> unsteady_data_table = std::make_shared<dealii::TableHandler>();//(mpi_communicator) ?;
         if(flow_solver_param.restart_computation_from_file == true) {
             pcout << "Initializing data table from corresponding restart file... " << std::flush;
             const std::string restart_filename_without_extension = get_restart_filename_without_extension(flow_solver_param.restart_file_index);
@@ -379,10 +396,13 @@ int FlowSolver<dim,nstate>::run_test() const
         // Time advancement loop with on-the-fly post-processing
         //----------------------------------------------------
         pcout << "Advancing solution in time... " << std::endl;
-        while(ode_solver->current_time < final_time)
+        while((ode_solver->current_time) < (final_time - 1E-13)) //comparing to 1E-13 to avoid taking an extra timestep
         {
+            // update adaptive time step
+            if(flow_solver_param.adaptive_time_step == true) time_step = flow_solver_case->get_adaptive_time_step(dg);
+
             // advance solution
-            ode_solver->step_in_time(constant_time_step,false); // pseudotime==false
+            ode_solver->step_in_time(time_step,false); // pseudotime==false
 
             // Compute the unsteady quantities, write to the dealii table, and output to file
             flow_solver_case->compute_unsteady_data_and_write_to_table(ode_solver->current_iteration, ode_solver->current_time, dg, unsteady_data_table);
@@ -392,17 +412,17 @@ int FlowSolver<dim,nstate>::run_test() const
                 // Output restart files
                 if(flow_solver_param.output_restart_files_every_dt_time_intervals > 0.0) {
                     const bool is_output_time = ((ode_solver->current_time <= current_desired_time_for_output_restart_files_every_dt_time_intervals) && 
-                                                ((ode_solver->current_time + constant_time_step) > current_desired_time_for_output_restart_files_every_dt_time_intervals));
+                                                ((ode_solver->current_time + time_step) > current_desired_time_for_output_restart_files_every_dt_time_intervals));
                     if (is_output_time) {
                         const int file_number = current_desired_time_for_output_restart_files_every_dt_time_intervals / flow_solver_param.output_restart_files_every_dt_time_intervals;
-                        output_restart_files(file_number, constant_time_step, unsteady_data_table);
+                        output_restart_files(file_number, time_step, unsteady_data_table);
                         current_desired_time_for_output_restart_files_every_dt_time_intervals += flow_solver_param.output_restart_files_every_dt_time_intervals;
                     }
                 } else /*if (flow_solver_param.output_restart_files_every_x_steps > 0)*/ {
                     const bool is_output_iteration = (ode_solver->current_iteration % flow_solver_param.output_restart_files_every_x_steps == 0);
                     if (is_output_iteration) {
                         const int file_number = ode_solver->current_iteration / flow_solver_param.output_restart_files_every_x_steps;
-                        output_restart_files(file_number, constant_time_step, unsteady_data_table);
+                        output_restart_files(file_number, time_step, unsteady_data_table);
                     }
                 }
             }
@@ -418,7 +438,7 @@ int FlowSolver<dim,nstate>::run_test() const
                 }
             } else if(ode_param.output_solution_every_dt_time_intervals > 0.0) {
                 const bool is_output_time = ((ode_solver->current_time <= ode_solver->current_desired_time_for_output_solution_every_dt_time_intervals) && 
-                                            ((ode_solver->current_time + constant_time_step) > ode_solver->current_desired_time_for_output_solution_every_dt_time_intervals));
+                                            ((ode_solver->current_time + time_step) > ode_solver->current_desired_time_for_output_solution_every_dt_time_intervals));
                 if (is_output_time) {
                     pcout << "  ... Writing vtk solution file ..." << std::endl;
                     const int file_number = ode_solver->current_desired_time_for_output_solution_every_dt_time_intervals / ode_param.output_solution_every_dt_time_intervals;
@@ -432,59 +452,20 @@ int FlowSolver<dim,nstate>::run_test() const
         // Steady-state solution
         //----------------------------------------------------
         ode_solver->steady_state();
-        //ode_solver->initialize_steady_polynomial_ramping(poly_degree);
         flow_solver_case->steady_state_postprocessing(dg);
     }
     pcout << "done." << std::endl;
     return 0;
 }
 
+#if PHILIP_DIM==1
 template class FlowSolver <PHILIP_DIM,PHILIP_DIM>;
+#endif
+
+#if PHILIP_DIM!=1
 template class FlowSolver <PHILIP_DIM,PHILIP_DIM+2>;
+#endif
 
-//=========================================================
-//                  FLOW SOLVER FACTORY
-//=========================================================
-template <int dim, int nstate>
-std::unique_ptr < FlowSolver<dim,nstate> >
-FlowSolverFactory<dim,nstate>
-::create_FlowSolver(const Parameters::AllParameters *const parameters_input,
-                    const dealii::ParameterHandler &parameter_handler_input)
-{
-    // Get the flow case type
-    using FlowCaseEnum = Parameters::FlowSolverParam::FlowCaseType;
-    const FlowCaseEnum flow_type = parameters_input->flow_solver_param.flow_case_type;
-    if (flow_type == FlowCaseEnum::taylor_green_vortex){
-        if constexpr (dim==3 && nstate==dim+2){
-            std::shared_ptr<FlowSolverCaseBase<dim, nstate>> flow_solver_case = std::make_shared<PeriodicCubeFlow<dim,nstate>>(parameters_input);
-            return std::make_unique<FlowSolver<dim,nstate>>(parameters_input, flow_solver_case, parameter_handler_input);
-        }
-    } else if (flow_type == FlowCaseEnum::burgers_viscous_snapshot){
-        if constexpr (dim==1 && nstate==dim) {
-            std::shared_ptr<FlowSolverCaseBase<dim, nstate>> flow_solver_case = std::make_shared<BurgersViscousSnapshot<dim,nstate>>(parameters_input);
-            return std::make_unique<FlowSolver<dim,nstate>>(parameters_input, flow_solver_case, parameter_handler_input);
-        }
-    } else if (flow_type == FlowCaseEnum::burgers_rewienski_snapshot){
-        if constexpr (dim==1 && nstate==dim){
-            std::shared_ptr<FlowSolverCaseBase<dim, nstate>> flow_solver_case = std::make_shared<BurgersRewienskiSnapshot<dim,nstate>>(parameters_input);
-            return std::make_unique<FlowSolver<dim,nstate>>(parameters_input, flow_solver_case, parameter_handler_input);
-        }
-    } else if (flow_type == FlowCaseEnum::naca0012){
-        if constexpr (dim==2 && nstate==dim+2){
-            std::shared_ptr<FlowSolverCaseBase<dim, nstate>> flow_solver_case = std::make_shared<NACA0012<dim,nstate>>(parameters_input);
-            return std::make_unique<FlowSolver<dim,nstate>>(parameters_input, flow_solver_case, parameter_handler_input);
-        }
-    } else {
-        std::cout << "Invalid flow case. You probably forgot to add it to the list of flow cases in flow_solver.cpp" << std::endl;
-        std::abort();
-    }
-    return nullptr;
-}
-
-template class FlowSolverFactory <PHILIP_DIM,PHILIP_DIM>;
-template class FlowSolverFactory <PHILIP_DIM,PHILIP_DIM+2>;
-
-
-} // Tests namespace
+} // FlowSolver namespace
 } // PHiLiP namespace
 

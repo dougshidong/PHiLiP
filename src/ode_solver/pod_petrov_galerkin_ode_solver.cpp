@@ -1,9 +1,4 @@
 #include "pod_petrov_galerkin_ode_solver.h"
-#include <deal.II/lac/la_parallel_vector.h>
-#include <Epetra_Vector.h>
-#include <Epetra_LinearProblem.h>
-#include "Amesos.h"
-#include "Amesos_BaseSolver.h"
 
 namespace PHiLiP {
 namespace ODE {
@@ -160,6 +155,7 @@ void PODPetrovGalerkinODESolver<dim,real,MeshType>::step_in_time (real /*dt*/, c
 
     double initial_residual;
     epetra_reduced_rhs.Norm2(&initial_residual);
+    initial_residual /= this->dg->right_hand_side.size();
 
     reduced_solution.add(step_length, this->reduced_solution_update);
     Epetra_Vector epetra_reduced_solution(Epetra_DataAccess::View, epetra_pod_basis->DomainMap(), reduced_solution.begin());

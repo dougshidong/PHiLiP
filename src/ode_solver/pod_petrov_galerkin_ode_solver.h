@@ -8,6 +8,11 @@
 #include <deal.II/lac/trilinos_sparsity_pattern.h>
 #include <EpetraExt_MatrixMatrix.h>
 #include <Epetra_Vector.h>
+#include <deal.II/lac/la_parallel_vector.h>
+#include <Epetra_Vector.h>
+#include <Epetra_LinearProblem.h>
+#include "Amesos.h"
+#include "Amesos_BaseSolver.h"
 
 namespace PHiLiP {
 namespace ODE {

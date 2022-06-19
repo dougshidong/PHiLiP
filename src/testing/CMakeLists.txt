@@ -19,12 +19,12 @@ set(TESTS_SOURCE
     advection_explicit_periodic.cpp
     euler_split_inviscid_taylor_green_vortex.cpp
     optimization_inverse_manufactured/optimization_inverse_manufactured.cpp
-    reduced_order.cpp
     dual_weighted_residual_mesh_adaptation.cpp
     taylor_green_vortex_energy_check.cpp
     taylor_green_vortex_restart_check.cpp
     pod_adaptive_sampling.cpp
     adaptive_sampling_testing.cpp
+    reduced_order.cpp
     taylor_green_vortex_restart_check.cpp
     time_refinement_study.cpp)
 

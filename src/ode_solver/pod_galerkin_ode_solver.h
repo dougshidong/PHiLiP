@@ -6,6 +6,13 @@
 #include "linear_solver/linear_solver.h"
 #include "reduced_order/pod_interface.h"
 #include <deal.II/lac/trilinos_sparsity_pattern.h>
+#include <EpetraExt_MatrixMatrix.h>
+#include <Epetra_Vector.h>
+#include <deal.II/lac/la_parallel_vector.h>
+#include <Epetra_Vector.h>
+#include <Epetra_LinearProblem.h>
+#include "Amesos.h"
+#include "Amesos_BaseSolver.h"
 
 namespace PHiLiP {
 namespace ODE {
@@ -28,6 +35,9 @@ public:
     /// Destructor
     ~PODGalerkinODESolver() {};
 
+    /// Evaluate steady state solution.
+    int steady_state () override;
+
     /// Function to evaluate solution update
     void step_in_time(real dt, const bool pseudotime) override;
 
@@ -35,20 +45,13 @@ public:
     void allocate_ode_system () override;
 
     /// Reduced solution update given by the ODE solver
-    std::unique_ptr<dealii::LinearAlgebra::distributed::Vector<double>> reduced_solution_update;
+    dealii::LinearAlgebra::distributed::Vector<double> reduced_solution_update;
 
-    /// Reduced rhs for linear solver
-    std::unique_ptr<dealii::LinearAlgebra::distributed::Vector<double>> reduced_rhs;
+    /// Reference solution for consistency
+    dealii::LinearAlgebra::distributed::Vector<double> reference_solution;
 
-    /// Temporary reduced lhs
-    std::unique_ptr<dealii::TrilinosWrappers::SparseMatrix> reduced_lhs_tmp;
-
-    /// Reduced lhs for linear solver
-    std::unique_ptr<dealii::TrilinosWrappers::SparseMatrix> reduced_lhs;
-
-    /// Line search algorithm
-    double linesearch () override;
-
+    /// Reduced solution
+    dealii::LinearAlgebra::distributed::Vector<double> reduced_solution;
 };
 
 } // ODE namespace

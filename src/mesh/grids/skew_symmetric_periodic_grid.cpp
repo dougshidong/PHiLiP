@@ -53,26 +53,27 @@ void skewsymmetric_curved_grid(
 
 template<int dim,int spacedim,int chartdim>
 template<typename real>
-dealii::Point<spacedim,real> SkewsymmetricCurvedGridManifold<dim,spacedim,chartdim>::mapping(const dealii::Point<chartdim,real> &p) const 
+dealii::Point<spacedim,real> SkewsymmetricCurvedGridManifold<dim,spacedim,chartdim>
+::mapping(const dealii::Point<chartdim,real> &p) const 
 {
     dealii::Point<dim> q = p;
 
-    if (dim >= 2){
+    if constexpr(dim >= 2){
         //Gassner skew symmetric
         q[0] =p[0] - 0.1*std::sin(2.0*pi*p[1]); 
         q[1] =p[1] + 0.1*std::sin(2.0*pi*p[0]);
-
     }
 
     return q;
 }
 
 template<int dim,int spacedim,int chartdim>
-dealii::Point<chartdim> SkewsymmetricCurvedGridManifold<dim,spacedim,chartdim>::pull_back(const dealii::Point<spacedim> &space_point) const {
-
+dealii::Point<chartdim> SkewsymmetricCurvedGridManifold<dim,spacedim,chartdim>
+::pull_back(const dealii::Point<spacedim> &space_point) const 
+{
     dealii::Point<dim> x_ref;
     dealii::Point<dim> x_phys;
-    for(int idim=0; idim<dim; idim++){
+    for(int idim=0; idim<dim; idim++) {
         x_ref[idim] = space_point[idim];
         x_phys[idim] = space_point[idim];
     }
@@ -85,17 +86,17 @@ dealii::Point<chartdim> SkewsymmetricCurvedGridManifold<dim,spacedim,chartdim>::
             function[d] = new_point[d] - x_phys[d];
         }
         //set derivative value
-        if(dim>=1){
+        if constexpr(dim>=1){
             derivative[0][0] = 1.0;
         }
-        if(dim>=2){
+        if constexpr(dim>=2){
             derivative[0][0] = 1.0;        
             derivative[0][1] = - 2.0 * pi * 0.1*std::cos(2.0 * pi * x_ref[1]);
                             
             derivative[1][0] =   2.0 * pi * 0.1*std::cos(2.0 * pi * x_ref[0]);
             derivative[1][1] = 1.0;
         }
-        else if(dim>=3){
+        else if constexpr(dim>=3){
             derivative[0][2] = 0.0; 
             derivative[1][2] = 0.0;
             derivative[2][0] = 0.0;
@@ -119,19 +120,22 @@ dealii::Point<chartdim> SkewsymmetricCurvedGridManifold<dim,spacedim,chartdim>::
             break;
     }
     std::vector<double> function_check(dim);
-    if(dim==1){
+    if constexpr(dim==1){
         function_check[0] = x_ref[0];
     }
-    if(dim>=2){
+    if constexpr(dim>=2){
         function_check[0] = x_ref[0] - 0.1*std::sin(2.0*pi*x_ref[1]); 
         function_check[1] = x_ref[1] + 0.1*std::sin(2.0*pi*x_ref[0]);
     }
-    else if(dim>=3){
+    else if constexpr(dim>=3){
         function_check[2] = x_ref[2] + x_ref[2];
     }
+    
     std::vector<double> error(dim);
-    for(int idim=0; idim<dim; idim++) 
+    for(int idim=0; idim<dim; idim++) {
         error[idim] = std::abs(function_check[idim] - x_phys[idim]);
+    }
+    
     if (error[0] > 1e-13) {
         std::cout << "Large error " << error[0] << std::endl;
         for(int idim=0;idim<dim; idim++)
@@ -139,7 +143,6 @@ dealii::Point<chartdim> SkewsymmetricCurvedGridManifold<dim,spacedim,chartdim>::
     }
 
     return x_ref;
-
 }
 
 template<int dim,int spacedim,int chartdim>
@@ -157,17 +160,17 @@ dealii::DerivativeForm<1,chartdim,spacedim> SkewsymmetricCurvedGridManifold<dim,
         x_ref[idim] = chart_point[idim];
     }
 
-    if(dim==1){
+    if constexpr(dim==1){
         dphys_dref[0][0] = 1.0;
     }
-    if(dim==2){
+    if constexpr(dim==2){
         dphys_dref[0][0] = 1.0;        
         dphys_dref[0][1] = - 2.0 * pi * 0.1*std::cos(2.0 * pi * x_ref[1]);
               
         dphys_dref[1][0] =   2.0 * pi * 0.1*std::cos(2.0 * pi * x_ref[0]);
         dphys_dref[1][1] = 1.0;
     }
-    else if(dim==3){
+    else if constexpr(dim==3){
         dphys_dref[0][2] = 0.0; 
         dphys_dref[1][2] = 0.0;
 

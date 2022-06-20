@@ -42,8 +42,7 @@
 
 #include "parameters/all_parameters.h"
 #include "parameters/parameters.h"
-#include "operators/operators.h"
-#include "operators/operators_factory.hpp"
+#include "operators/operators_new.h"
 
 const double TOLERANCE = 1E-6;
 using namespace std;
@@ -106,7 +105,7 @@ int main (int argc, char * argv[])
 
     bool different = false;
     bool different_mass = false;
-    const unsigned int poly_max = 11;
+    const unsigned int poly_max = 18;
     const unsigned int poly_min = 2;
     std::array<clock_t,poly_max> time_diff;
     std::array<clock_t,poly_max> time_diff_sum;
@@ -114,17 +113,17 @@ int main (int argc, char * argv[])
     std::array<clock_t,poly_max> time_diff_mass_sum;
     for(unsigned int poly_degree=poly_min; poly_degree<poly_max; poly_degree++){
 
+        PHiLiP::OPERATOR::local_mass<dim,2*dim> mass_matrix(nstate, poly_degree, 1);
+        PHiLiP::OPERATOR::basis_at_vol_cubature<dim,2*dim> basis(nstate, poly_degree, 1);
+        dealii::QGauss<1> quad1D (poly_degree+1);
+        const dealii::FE_DGQ<1> fe_dg(poly_degree);
+        const dealii::FESystem<1,1> fe_system(fe_dg, nstate);
+        mass_matrix.build_1D_volume_operator(fe_system,quad1D);
+        basis.build_1D_volume_operator(fe_system,quad1D);
 
-  //      OPERATOR::OperatorsBase<1,real> operators_1D(&all_parameters_new, nstate, poly_degree, poly_degree, poly_degree);//store 1D operators for tensor product 
-        std::shared_ptr<OPERATOR::OperatorsBaseState<1,real,nstate,2>> operators_1D = std::make_shared< OPERATOR::OperatorsBaseState<1,real,nstate,2> >(&all_parameters_new, poly_degree, poly_degree);
-        //OPERATOR::OperatorsBaseState<1,real,nstate,2> operators_1D(&all_parameters_new, poly_degree, poly_degree);
-        //std::shared_ptr<OPERATOR::OperatorsBase<1, real>> operators_1D = OPERATOR::OperatorsFactory<1, real>::create_operators(&all_parameters_new, nstate, poly_degree, poly_degree, poly_degree);
-
-        //std::shared_ptr<OPERATOR::OperatorsBase<1, real> *> *operators_1D2 = new OPERATOR::OperatorsFactory<1, real>::create_operators(&all_parameters_new, nstate, poly_degree, poly_degree, poly_degree);
-       // std::shared_ptr<OPERATOR::OperatorsBaseState<1, real,nstate,2> *> *operators_1D = dynamic_cast<std::shared_ptr<OPERATOR::OperatorsBaseState<1, real,nstate,2>> *>(operators_1D2);
         const unsigned int n_dofs = nstate * pow(poly_degree+1,dim);
         const unsigned int n_dofs_1D = nstate * (poly_degree+1);
-        const unsigned int n_quad_pts_1D = operators_1D->volume_quadrature_collection[poly_degree].size();
+        const unsigned int n_quad_pts_1D = quad1D.size();
         const unsigned int n_quad_pts = pow(n_quad_pts_1D, dim);
 
         for(unsigned int ielement=0; ielement<6; ielement++){//do several loops as if there were elements
@@ -150,8 +149,8 @@ int main (int argc, char * argv[])
                         for(unsigned int kdof=0; kdof<n_dofs_1D; kdof++){
                             const unsigned int dof_index = jdof*n_dofs_1D + kdof;
                             sol_dim[quad_index] += sol_hat[dof_index]
-                                                *  operators_1D->basis_at_vol_cubature[poly_degree][jquad][jdof]
-                                                *  operators_1D->basis_at_vol_cubature[poly_degree][kquad][kdof];
+                                                 * basis.oneD_vol_operator[jquad][jdof]
+                                                 * basis.oneD_vol_operator[kquad][kdof];
                         }
                     }
                 }
@@ -168,9 +167,9 @@ int main (int argc, char * argv[])
                                 for(unsigned int kdof=0; kdof<n_dofs_1D; kdof++){
                                     const unsigned int dof_index = idof * pow(n_dofs_1D,2) + jdof*n_dofs_1D + kdof;
                                     sol_dim[quad_index] += sol_hat[dof_index]
-                                                        *  operators_1D->basis_at_vol_cubature[poly_degree][iquad][idof]
-                                                        *  operators_1D->basis_at_vol_cubature[poly_degree][jquad][jdof]
-                                                        *  operators_1D->basis_at_vol_cubature[poly_degree][kquad][kdof];
+                                                         * basis.oneD_vol_operator[iquad][idof]
+                                                         * basis.oneD_vol_operator[jquad][jdof]
+                                                         * basis.oneD_vol_operator[kquad][kdof];
                                 }
                             }
                         }
@@ -186,12 +185,8 @@ int main (int argc, char * argv[])
         //compute A*u using sum-factorization
         time_t tsum;
         tsum = clock();
-        if(dim==2){
-            operators_1D->sum_factorization_matrix_vector_mult(sol_hat, sol_1D, n_quad_pts_1D, n_dofs_1D, dim, operators_1D->basis_at_vol_cubature[poly_degree], operators_1D->basis_at_vol_cubature[poly_degree], operators_1D->basis_at_vol_cubature[poly_degree]);
-        }
-        if(dim==3){
-            operators_1D->sum_factorization_matrix_vector_mult(sol_hat, sol_1D, n_quad_pts_1D, n_dofs_1D, dim, operators_1D->basis_at_vol_cubature[poly_degree], operators_1D->basis_at_vol_cubature[poly_degree], operators_1D->basis_at_vol_cubature[poly_degree]);
-        }
+        basis.matrix_vector_mult(sol_hat, sol_1D, basis.oneD_vol_operator, basis.oneD_vol_operator, basis.oneD_vol_operator);
+
         if(ielement==0)
             time_diff_sum[poly_degree] = clock() - tsum;
         else
@@ -211,7 +206,9 @@ int main (int argc, char * argv[])
         time_t tmass;
         tmass = clock();
         dealii::FullMatrix<real> mass(n_dofs);
-        build_mass_matrix(n_dofs_1D, dim, operators_1D->local_mass[poly_degree], mass);
+        mass = mass_matrix.tensor_product_state(mass_matrix.oneD_vol_operator.m(), mass_matrix.oneD_vol_operator.n(), nstate,
+                                                mass_matrix.oneD_vol_operator,
+                                                mass_matrix.oneD_vol_operator,mass_matrix.oneD_vol_operator);
         //compute M*u
         for(unsigned int idof=0; idof<n_dofs; idof++){
             sol_mass[idof] = 0.0;
@@ -227,7 +224,7 @@ int main (int argc, char * argv[])
         //second way
         time_t tmass_sum;
         tmass_sum = clock();
-        const std::vector<real> &quad_weights_1D = operators_1D->volume_quadrature_collection[poly_degree].get_weights(); 
+        const std::vector<real> &quad_weights_1D = quad1D.get_weights(); 
         std::vector<real> quad_weights(n_quad_pts);
         //get 2D or 3D quad weights from 1D
         if(dim==2){
@@ -249,9 +246,9 @@ int main (int argc, char * argv[])
         }
         std::vector<real> interm_step(n_quad_pts);
         //matrix-vect oper
-        operators_1D->sum_factorization_matrix_vector_mult(sol_hat, interm_step, n_quad_pts_1D, n_dofs_1D, dim, operators_1D->basis_at_vol_cubature[poly_degree], operators_1D->basis_at_vol_cubature[poly_degree], operators_1D->basis_at_vol_cubature[poly_degree]);
+        basis.matrix_vector_mult(sol_hat, interm_step, basis.oneD_vol_operator, basis.oneD_vol_operator, basis.oneD_vol_operator);
         //inner prod
-        operators_1D->sum_factorization_inner_product(interm_step, quad_weights, sol_mass_sum, n_quad_pts_1D, n_dofs_1D, dim, operators_1D->basis_at_vol_cubature[poly_degree], operators_1D->basis_at_vol_cubature[poly_degree], operators_1D->basis_at_vol_cubature[poly_degree]); 
+        basis.inner_product(interm_step, quad_weights, sol_mass_sum, basis.oneD_vol_operator, basis.oneD_vol_operator, basis.oneD_vol_operator);
         if(ielement==0)
             time_diff_mass_sum[poly_degree] = clock() - tmass_sum;
         else
@@ -285,9 +282,13 @@ int main (int argc, char * argv[])
     const double sum_slope_mpi_mass = (dealii::Utilities::MPI::max(sum_slope_mass, MPI_COMM_WORLD));
 
     pcout<<"Times for operation A*u"<<std::endl;
-    pcout<<"Normal operation A*u  |  "<<"Sum factorization "<<std::endl;
-    for(unsigned int i=poly_min; i<poly_max; i++){
-        pcout<<(float)time_diff[i]/CLOCKS_PER_SEC<<" "<<(float)time_diff_sum[i]/CLOCKS_PER_SEC<<std::endl;
+    pcout<<"Normal operation A*u  | Slope |  "<<"Sum factorization | Slope "<<std::endl;
+    for(unsigned int i=poly_min+1; i<poly_max; i++){
+        pcout<<(float)time_diff[i]/CLOCKS_PER_SEC<<" "<<std::log(((float)time_diff[i]/CLOCKS_PER_SEC) / ((float)time_diff[i-1]/CLOCKS_PER_SEC))
+                        / std::log((double)((i)/(i-1.0)))<<" "<<
+        (float)time_diff_sum[i]/CLOCKS_PER_SEC<<" "<<std::log(((float)time_diff_sum[i]/CLOCKS_PER_SEC) /( (float)time_diff_sum[i-1]/CLOCKS_PER_SEC))
+                        / std::log((double)((i)/(i-1.0)))<<
+        std::endl;
     }
 
     pcout<<" regular slope "<<first_slope_mpi<<" sum-factorization slope "<<sum_slope_mpi<<std::endl;

@@ -333,7 +333,7 @@ void DGBaseState<dim,nstate,real,MeshType>::allocate_model_variables()
     // -- FadFadType
     pde_model_fad_fad->cellwise_poly_degree.reinit(this->triangulation->n_active_cells(), this->mpi_communicator);
     pde_model_fad_fad->cellwise_volume.reinit(this->triangulation->n_active_cells(), this->mpi_communicator);
-    // -- RadRadType
+    // -- RadFadType
     pde_model_rad_fad->cellwise_poly_degree.reinit(this->triangulation->n_active_cells(), this->mpi_communicator);
     pde_model_rad_fad->cellwise_volume.reinit(this->triangulation->n_active_cells(), this->mpi_communicator);
 }

@@ -184,7 +184,8 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
     prm.declare_entry("model_type", "large_eddy_simulation",
                       dealii::Patterns::Selection(
                       "large_eddy_simulation"),
-                      "Enum of models."
+                      "Enum of physics models "
+                      "(i.e. model equations and/or terms additional to Navier-Stokes or a chosen underlying baseline physics)."
                       "Choices are "
                       " <large_eddy_simulation>.");
     

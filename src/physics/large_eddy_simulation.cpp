@@ -142,7 +142,11 @@ template <int dim, int nstate, typename real>
 double LargeEddySimulationBase<dim,nstate,real>
 ::get_filter_width (const dealii::types::global_dof_index cell_index) const
 { 
-    // Compute the LES filter width (Ref: flad2017use)
+    // Compute the LES filter width
+    /** Reference: Flad, David, and Gregor Gassner. "On the use of kinetic
+     *  energy preserving DG-schemes for large eddy simulation."
+     *  Journal of Computational Physics 350 (2017): 782-795.
+     * */
     const int cell_poly_degree = this->cellwise_poly_degree[cell_index];
     const double cell_volume = this->cellwise_volume[cell_index];
     double filter_width = cell_volume;
@@ -435,10 +439,6 @@ real2 LargeEddySimulation_Smagorinsky<dim,nstate,real>
     const std::array<dealii::Tensor<1,dim,real2>,nstate> &primitive_soln_gradient,
     const dealii::types::global_dof_index cell_index) const
 {
-    // TO DO: Pretty sure I addressed these but double check before merging:
-    //        (1) Figure out how to nondimensionalize the eddy_viscosity since strain_rate_tensor is nondimensional but filter_width is not
-    //        --> Solution is to simply dimensionalize the strain_rate_tensor and do eddy_viscosity/free_stream_eddy_viscosity
-    //        (2) Will also have to further compute the "scaled" eddy_viscosity wrt the free stream Reynolds number
     // Get velocity gradient
     const dealii::Tensor<2,dim,real2> vel_gradient 
         = this->navier_stokes_physics->extract_velocities_gradient_from_primitive_solution_gradient(primitive_soln_gradient);

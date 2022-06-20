@@ -32,7 +32,7 @@ public:
     dealii::TableHandler solutions_table;
 
     /// Writes the ode solver steady state convergence data to a file
-    void write_ode_convergence_data_to_table(
+    void write_ode_solver_steady_state_convergence_data_to_table(
         const unsigned int current_iteration,
         const double current_residual,
         const std::shared_ptr <dealii::TableHandler> data_table) const;

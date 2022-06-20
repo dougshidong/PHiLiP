@@ -14,7 +14,8 @@ void PhysicsModelParam::declare_parameters (dealii::ParameterHandler &prm)
         {
             prm.declare_entry("euler_turbulence","false",
                               dealii::Patterns::Bool(),
-                              "Set as false by default. If true, sets the baseline physics for LES to the Euler equations.");
+                              "Set as false by default (i.e. Navier-Stokes is the baseline physics). " 
+                              "If true, sets the baseline physics to the Euler equations.");
 
             prm.declare_entry("SGS_model_type", "smagorinsky",
                               dealii::Patterns::Selection(
@@ -28,11 +29,11 @@ void PhysicsModelParam::declare_parameters (dealii::ParameterHandler &prm)
                               "  vreman>.");
 
             prm.declare_entry("turbulent_prandtl_number", "0.6",
-                              dealii::Patterns::Double(1e-15, 10000000),
+                              dealii::Patterns::Double(1e-15, dealii::Patterns::Double::max_double_value),
                               "Turbulent Prandlt number (default is 0.6)");
 
             prm.declare_entry("smagorinsky_model_constant", "0.1",
-                              dealii::Patterns::Double(1e-15, 10000000),
+                              dealii::Patterns::Double(1e-15, dealii::Patterns::Double::max_double_value),
                               "Smagorinsky model constant (default is 0.1)");
 
             prm.declare_entry("WALE_model_constant", "0.6",
@@ -44,7 +45,7 @@ void PhysicsModelParam::declare_parameters (dealii::ParameterHandler &prm)
                               "Vreman eddy viscosity model constant (default is 0.025)");
             
             prm.declare_entry("ratio_of_filter_width_to_cell_size", "1.0",
-                              dealii::Patterns::Double(1e-15, 10000000),
+                              dealii::Patterns::Double(1e-15, dealii::Patterns::Double::max_double_value),
                               "Ratio of the large eddy simulation filter width to the cell size (default is 1)");
 
         }

@@ -61,7 +61,7 @@ void ODESolverBase<dim,real,MeshType>::valid_initial_conditions () const
 }
 
 template <int dim, typename real, typename MeshType>
-void ODESolverBase<dim,real,MeshType>::write_ode_convergence_data_to_table(
+void ODESolverBase<dim,real,MeshType>::write_ode_solver_steady_state_convergence_data_to_table(
         const unsigned int current_iteration,
         const double current_residual,
         const std::shared_ptr <dealii::TableHandler> data_table) const
@@ -70,8 +70,6 @@ void ODESolverBase<dim,real,MeshType>::write_ode_convergence_data_to_table(
         // Add iteration to the table
         std::string iteration_string = "Iteration";
         data_table->add_value(iteration_string, current_iteration);
-        data_table->set_precision(iteration_string, 16);
-        data_table->set_scientific(iteration_string, true);
         // Add residual to the table
         std::string residual_string = "Residual";
         data_table->add_value(residual_string, current_residual);
@@ -114,7 +112,7 @@ int ODESolverBase<dim,real,MeshType>::steady_state ()
 
     if (ode_param.output_ode_solver_steady_state_convergence_table == true) {
         // write initial convergence data
-        write_ode_convergence_data_to_table(this->current_iteration, this->residual_norm, ode_solver_steady_state_convergence_table);
+        write_ode_solver_steady_state_convergence_data_to_table(this->current_iteration, this->residual_norm, ode_solver_steady_state_convergence_table);
     }
 
     // Initial Courant-Friedrichs-Lax number
@@ -151,7 +149,7 @@ int ODESolverBase<dim,real,MeshType>::steady_state ()
               << std::endl;
 
         if (ode_param.output_ode_solver_steady_state_convergence_table == true) {
-            write_ode_convergence_data_to_table(this->current_iteration, this->residual_norm, ode_solver_steady_state_convergence_table);
+            write_ode_solver_steady_state_convergence_data_to_table(this->current_iteration, this->residual_norm, ode_solver_steady_state_convergence_table);
         }
 
         if ((ode_param.ode_output) == Parameters::OutputEnum::verbose &&

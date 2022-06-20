@@ -188,7 +188,7 @@ public:
         l2roe, 
         split_form, 
         central_flux,
-        entropy_cons_flux
+        entropy_conserving_flux
     };
 
     /// Store convective flux type

@@ -212,14 +212,12 @@ int ODESolverBase<dim,real,MeshType>::advance_solution_time (double time_advance
         std::abort();
     }
 
-    pcout
-            << " Advancing solution by " << time_advance << " time units, using "
-            << number_of_time_steps << " iterations of size dt=" << constant_time_step << " ... " << std::endl;
-    if(!this->all_parameters->use_energy)
-        this->current_iteration = 0;
+    pcout << " Advancing solution by " << time_advance << " time units, using "
+          << number_of_time_steps << " iterations of size dt=" << constant_time_step << " ... " << std::endl;
+    
+    if(!this->all_parameters->use_energy) this->current_iteration = 0;
 
-    if(this->current_iteration == 0)
-        allocate_ode_system ();
+    if(this->current_iteration == 0) allocate_ode_system ();
 
     if (ode_param.output_solution_every_x_steps >= 0) {
         this->dg->output_results_vtk(this->current_iteration);  
@@ -290,4 +288,3 @@ template class ODESolverBase<PHILIP_DIM, double, dealii::parallel::distributed::
 
 } // ODE namespace
 } // PHiLiP namespace
-

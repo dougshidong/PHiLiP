@@ -135,8 +135,9 @@ public:
 
     /// Allocates the system.
     /** Must be done after setting the mesh and before assembling the system. */
-    virtual void allocate_system (
-                    const bool compute_dRdW = true, const bool compute_dRdX = true, const bool compute_d2R = true);
+    virtual void allocate_system (const bool compute_dRdW = true, 
+                                  const bool compute_dRdX = true, 
+                                  const bool compute_d2R = true);
 
 private:
     /// Allocates the second derivatives.
@@ -503,7 +504,7 @@ public:
     /// Operators base that will provide the Operators
     std::shared_ptr<OPERATOR::OperatorsBase<dim,real,2*dim>> operators;
     /// Sets the current time within DG to be used for unsteady source terms.
-    void set_current_time(const real current_time);
+    void set_current_time(const real current_time_input);
 
 protected:
     ///The current time for explicit solves
@@ -673,7 +674,6 @@ private:
         const int iface,
         const dealii::hp::FECollection<dim> fe_collection) const;
 
-protected:
     /// In the case that two cells have the same coarseness, this function decides if the current cell should perform the work.
     /** In the case the neighbor is a ghost cell, we let the processor with the lower rank do the work on that face.
      *  We cannot use the cell->index() because the index is relative to the distributed triangulation.

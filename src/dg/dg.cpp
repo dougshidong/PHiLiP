@@ -139,7 +139,6 @@ DGBaseState<dim,nstate,real,MeshType>::DGBaseState(
     artificial_dissip = ArtificialDissipationFactory<dim,nstate> ::create_artificial_dissipation(parameters_input);
     
     reset_numerical_fluxes();
-
 }
 
 template <int dim, int nstate, typename real, typename MeshType>
@@ -499,6 +498,7 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
                 poly_degree, grid_degree,
                 current_cell_rhs,
                 fe_values_lagrange);
+            
             //set current rhs to zero since the explicit call was just to set the max_dt_cell.
             current_cell_rhs*=0.0;
          
@@ -520,10 +520,11 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
         auto current_face = current_cell->face(iface);
 
         // CASE 1: FACE AT BOUNDARY
-        if (current_face->at_boundary() && !current_cell->has_periodic_neighbor(iface) ) {
-
+        if (current_face->at_boundary() && !current_cell->has_periodic_neighbor(iface) ) 
+        {
             fe_values_collection_face_int.reinit(current_cell, iface, i_quad, i_mapp, i_fele);
-            //for 1D periodic
+            
+            //for 1D periodic boundary conditions
             if(current_face->at_boundary() && all_parameters->use_periodic_bc == true && dim == 1) //using periodic BCs (for 1d)
             {
                 int cell_index  = current_cell->index();
@@ -604,10 +605,8 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
                         rhs[neighbor_dofs_indices[i]] += neighbor_cell_rhs[i];
                     }
                 }
-
-            } else {//at boundary and not 1D periodic
-
-        
+            } 
+            else {//at boundary and not 1D periodic        
                 const dealii::FEFaceValues<dim,dim> &fe_values_face_int = fe_values_collection_face_int.get_present_fe_values();
 
                 const real penalty = evaluate_penalty_scaling (current_cell, iface, operators->fe_collection_basis);
@@ -639,17 +638,15 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
                            compute_dRdW, compute_dRdX, compute_d2R);
                     }
                 }
-
             }
-
-        //CASE 2: PERIODIC BOUNDARY CONDITIONS
-        //note that periodicity is not adapted for hp adaptivity yet. this needs to be figured out in the future
-        } else if (current_face->at_boundary() && current_cell->has_periodic_neighbor(iface)){
-
+        }
+        // CASE 2: PERIODIC BOUNDARY CONDITIONS
+        // NOTE: Periodicity is not adapted for hp adaptivity yet. this needs to be figured out in the future
+        else if (current_face->at_boundary() && current_cell->has_periodic_neighbor(iface))
+        {
             const auto neighbor_cell = current_cell->periodic_neighbor(iface);
             //std::cout << "cell " << current_cell->index() << " at boundary" <<std::endl;
             //std::cout << "periodic neighbour on face " << iface << " is " << neighbor_cell->index() << std::endl;
-
 
             if (!current_cell->periodic_neighbor_is_coarser(iface) && current_cell_should_do_the_work(current_cell, neighbor_cell)) {
 
@@ -698,7 +695,7 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
                                                                                               neighbor_cell->face_flip(neighbor_iface),
                                                                                               neighbor_cell->face_rotation(neighbor_iface),
                                                                                               used_face_quadrature.size());
-                if(compute_Auxiliary_RHS){
+                if(compute_Auxiliary_RHS) {
                     std::vector<dealii::Tensor<1,dim,double>> neighbor_cell_rhs_aux (n_dofs_neigh_cell ); // Defaults to 0.0 initialization
                     assemble_face_term_auxiliary (
                         iface, neighbor_iface, 
@@ -713,7 +710,7 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
                         }
                     }
                 }
-                else{
+                else {
                     if(!this->all_parameters->use_weak_form 
                         && this->all_parameters->ode_solver_param.ode_solver_type == Parameters::ODESolverParam::ODESolverEnum::explicit_solver )//only for strong form explicit
                     {
@@ -752,15 +749,18 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
                     }
                 }
             }
+        }
         // CASE 3: NEIGHBOUR IS FINER
         // Occurs if the face has children
-        // Do nothing.
-        // The face contribution from the current cell will appear then the finer neighbor cell is assembled.
-        } else if (current_cell->face(iface)->has_children()) {
+        else if (current_cell->face(iface)->has_children()) 
+        {
+            // Do nothing.
+            // The face contribution from the current cell will appear then the finer neighbor cell is assembled.
+        }
         // CASE 4: NEIGHBOR IS COARSER
         // Assemble face residual.
-        } else if (current_cell->neighbor(iface)->face(current_cell->neighbor_face_no(iface))->has_children()) {
-
+        else if (current_cell->neighbor(iface)->face(current_cell->neighbor_face_no(iface))->has_children()) 
+        {
             Assert (current_cell->neighbor(iface).state() == dealii::IteratorState::valid, dealii::ExcInternalError());
             Assert (!(current_cell->neighbor(iface)->has_children()), dealii::ExcInternalError());
 
@@ -875,9 +875,11 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
                     rhs[neighbor_dofs_indices[i]] += neighbor_cell_rhs[i];
                 }
             }
+        }
         // CASE 5: NEIGHBOR CELL HAS SAME COARSENESS
         // Therefore, we need to choose one of them to do the work
-        } else if ( current_cell_should_do_the_work(current_cell, current_cell->neighbor(iface)) ) {
+        else if ( current_cell_should_do_the_work(current_cell, current_cell->neighbor(iface)) ) 
+        {
             Assert (current_cell->neighbor(iface).state() == dealii::IteratorState::valid, dealii::ExcInternalError());
 
             const auto neighbor_cell = current_cell->neighbor_or_periodic_neighbor(iface);
@@ -927,7 +929,7 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
                                                                                           neighbor_cell->face_flip(neighbor_iface),
                                                                                           neighbor_cell->face_rotation(neighbor_iface),
                                                                                           used_face_quadrature.size());
-            if(compute_Auxiliary_RHS){
+            if(compute_Auxiliary_RHS) {
                 std::vector<dealii::Tensor<1,dim,double>> neighbor_cell_rhs_aux (n_dofs_neigh_cell ); // Defaults to 0.0 initialization
                 assemble_face_term_auxiliary (
                     iface, neighbor_iface, 
@@ -942,7 +944,7 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
                     }
                 }
             }
-            else{
+            else {
                 if(!this->all_parameters->use_weak_form 
                     && this->all_parameters->ode_solver_param.ode_solver_type == Parameters::ODESolverParam::ODESolverEnum::explicit_solver )//only for strong form explicit
                 {
@@ -984,11 +986,9 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
             // Should be faces where the neighbor cell has the same coarseness
             // but will be evaluated when we visit the other cell.
         }
-
-
     } // end of face loop
 
-    if(compute_Auxiliary_RHS){
+    if(compute_Auxiliary_RHS) {
         // Add local contribution from current cell to global vector
         for (unsigned int i=0; i<n_dofs_curr_cell; ++i) {
             for(int idim=0; idim<dim; idim++){
@@ -996,7 +996,7 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
             }
         }
     }
-    else{
+    else {
         // Add local contribution from current cell to global vector
         for (unsigned int i=0; i<n_dofs_curr_cell; ++i) {
             rhs[current_dofs_indices[i]] += current_cell_rhs[i];
@@ -2020,7 +2020,6 @@ void DGBase<dim,real,MeshType>::allocate_system (
 
     // Allocate for auxiliary equation only.
     allocate_auxiliary_equation ();
-    // Allocate for auxiliary equation only.
 
     // System matrix allocation
     dealii::DynamicSparsityPattern dsp(locally_relevant_dofs);
@@ -2143,9 +2142,14 @@ void DGBase<dim,real,MeshType>::allocate_dRdX ()
 template <int dim, typename real, typename MeshType>
 void DGBase<dim,real,MeshType>::evaluate_mass_matrices (bool do_inverse_mass_matrix)
 {
-
     using PDE_enum = Parameters::AllParameters::PartialDifferentialEquation;
-    const bool use_auxiliary_eq = (all_parameters->pde_type == PDE_enum::convection_diffusion || all_parameters->pde_type == PDE_enum::diffusion || all_parameters->pde_type == PDE_enum::navier_stokes) ? true : false;//bool to simplify aux check
+    const PDE_enum pde_type = all_parameters->pde_type;
+    // use auxiliary equation if PDE has a diffusive term (bool to simplify aux check)
+    const bool use_auxiliary_eq = (pde_type == PDE_enum::convection_diffusion || 
+                                   pde_type == PDE_enum::diffusion || 
+                                   pde_type == PDE_enum::navier_stokes);
+    // if energy test
+    const bool use_energy = all_parameters->use_energy;
 
     // Mass matrix sparsity pattern
     //dealii::SparsityPattern dsp(dof_handler.n_dofs(), dof_handler.n_dofs(), dof_handler.get_fe_collection().max_dofs_per_cell());
@@ -2160,7 +2164,6 @@ void DGBase<dim,real,MeshType>::evaluate_mass_matrices (bool do_inverse_mass_mat
         const unsigned int fe_index_curr_cell = cell->active_fe_index();
 
         // Current reference element related to this physical cell
-       // const dealii::FESystem<dim,dim> &current_fe_ref = fe_collection[fe_index_curr_cell];
         const dealii::FESystem<dim,dim> &current_fe_ref = operators->fe_collection_basis[fe_index_curr_cell];
         const unsigned int n_dofs_cell = current_fe_ref.n_dofs_per_cell();
 
@@ -2175,12 +2178,12 @@ void DGBase<dim,real,MeshType>::evaluate_mass_matrices (bool do_inverse_mass_mat
     //Initialize gloabl matrices to 0.
     dealii::SparsityTools::distribute_sparsity_pattern(dsp, dof_handler.locally_owned_dofs(), mpi_communicator, locally_owned_dofs);
     mass_sparsity_pattern.copy_from(dsp);
-    if (do_inverse_mass_matrix == true) {
+    if (do_inverse_mass_matrix) {
         global_inverse_mass_matrix.reinit(locally_owned_dofs, mass_sparsity_pattern);
         if (use_auxiliary_eq){
             global_inverse_mass_matrix_auxiliary.reinit(locally_owned_dofs, mass_sparsity_pattern);
         }
-        if (this->all_parameters->use_energy == true){//for split form get energy
+        if (use_energy){//for split form get energy
             global_mass_matrix.reinit(locally_owned_dofs, mass_sparsity_pattern);
             if (use_auxiliary_eq){
                 global_mass_matrix_auxiliary.reinit(locally_owned_dofs, mass_sparsity_pattern);
@@ -2232,24 +2235,36 @@ void DGBase<dim,real,MeshType>::evaluate_mass_matrices (bool do_inverse_mass_mat
 
         //get determinant of Jacobian
         std::vector<real> determinant_Jacobian(n_quad_pts);
-        operators->build_local_vol_determinant_Jac(grid_degree, fe_index_curr_cell, n_quad_pts, n_metric_dofs/dim, mapping_support_points, determinant_Jacobian);
+        operators->build_local_vol_determinant_Jac(
+            grid_degree, 
+            fe_index_curr_cell, 
+            n_quad_pts, 
+            n_metric_dofs/dim, 
+            mapping_support_points, 
+            determinant_Jacobian);
 
         //Get dofs indices to set local matrices in global.
         dofs_indices.resize(n_dofs_cell);
         cell->get_dof_indices (dofs_indices);
         //Compute local matrices and set them in the global system.
         evaluate_local_metric_dependent_mass_matrix_and_set_in_global_mass_matrix(
-            do_inverse_mass_matrix, fe_index_curr_cell, n_quad_pts, n_dofs_cell, dofs_indices, determinant_Jacobian, quad_weights, local_mass_matrix);
- 
+            do_inverse_mass_matrix, 
+            fe_index_curr_cell, 
+            n_quad_pts, 
+            n_dofs_cell, 
+            dofs_indices, 
+            determinant_Jacobian, 
+            quad_weights, 
+            local_mass_matrix);
     }//end of cell loop
 
     //Compress global matrices.
-    if (do_inverse_mass_matrix == true) {
+    if (do_inverse_mass_matrix) {
         global_inverse_mass_matrix.compress(dealii::VectorOperation::insert);
         if (use_auxiliary_eq){
             global_inverse_mass_matrix_auxiliary.compress(dealii::VectorOperation::insert);
         }
-        if (this->all_parameters->use_energy == true){//for split form energy
+        if (use_energy){//for split form energy
             global_mass_matrix.compress(dealii::VectorOperation::insert);
             if (use_auxiliary_eq){
                 global_mass_matrix_auxiliary.compress(dealii::VectorOperation::insert);
@@ -2260,13 +2275,7 @@ void DGBase<dim,real,MeshType>::evaluate_mass_matrices (bool do_inverse_mass_mat
         if (use_auxiliary_eq){
             global_mass_matrix_auxiliary.compress(dealii::VectorOperation::insert);
         }
-        //std::cout << " global_mass_matrix "  << std::endl;
-        //std::cout << std::setprecision(std::numeric_limits<long double>::digits10 + 1);
-        //global_mass_matrix.print(std::cout);
-        ////std::abort();
     }
-
-    return;
 }
 
 template<int dim, typename real, typename MeshType>
@@ -2283,10 +2292,19 @@ void DGBase<dim,real,MeshType>::evaluate_local_metric_dependent_mass_matrix_and_
     using PDE_enum = Parameters::AllParameters::PartialDifferentialEquation;
     using FR_enum = Parameters::AllParameters::Flux_Reconstruction;
     using FR_Aux_enum = Parameters::AllParameters::Flux_Reconstruction_Aux;
-    const FR_enum FR_Type = this->all_parameters->flux_reconstruction_type;
-    const FR_Aux_enum FR_Aux_Type = this->all_parameters->flux_reconstruction_aux_type;
-    const bool use_auxiliary_eq = (this->all_parameters->pde_type == PDE_enum::convection_diffusion || all_parameters->pde_type == PDE_enum::diffusion || all_parameters->pde_type == PDE_enum::navier_stokes) ? true : false;//bool to simplify aux check
+    const PDE_enum pde_type = all_parameters->pde_type;
+    const FR_enum FR_Type = all_parameters->flux_reconstruction_type;
+    const FR_Aux_enum FR_Aux_Type = all_parameters->flux_reconstruction_aux_type;
+        
+    // use auxiliary equation if PDE has a diffusive term (bool to simplify aux check)
+    const bool use_auxiliary_eq = (pde_type == PDE_enum::convection_diffusion || 
+                                   pde_type == PDE_enum::diffusion || 
+                                   pde_type == PDE_enum::navier_stokes);
+    // if energy test
+    const bool use_energy = all_parameters->use_energy;
+    
     const dealii::FESystem<dim,dim> &current_fe_ref = operators->fe_collection_basis[poly_degree];
+    
     //set auxiliary mass matrices as primary mass matrix
     std::vector<dealii::FullMatrix<real>> local_mass_matrix_aux(dim);
     for(int idim=0; idim<dim; idim++){
@@ -2297,7 +2315,7 @@ void DGBase<dim,real,MeshType>::evaluate_local_metric_dependent_mass_matrix_and_
     }
 
     //compute mass matrix and inverse the standard way
-    if(this->all_parameters->use_weight_adjusted_mass == false){
+    if(all_parameters->use_weight_adjusted_mass == false){
         std::vector<real> JxW(n_quad_pts);
         for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
             JxW[iquad] = quad_weights[iquad] * determinant_Jacobian[iquad];
@@ -2324,7 +2342,7 @@ void DGBase<dim,real,MeshType>::evaluate_local_metric_dependent_mass_matrix_and_
             }
         }
         //Only compute Auxiliary equations' FR corrcetion operators if they aren't DG.
-        if(use_auxiliary_eq && FR_Aux_Type != FR_Aux_enum::kDG){
+        if(use_auxiliary_eq && (FR_Aux_Type != FR_Aux_enum::kDG)){
             //FR corrections for each dim direction of the auxiliary equations. Each dirrection can be different.
             std::array<dealii::FullMatrix<real>,dim> FR_correction_operator_aux;
             for(int idim=0; idim<dim; idim++){
@@ -2342,7 +2360,7 @@ void DGBase<dim,real,MeshType>::evaluate_local_metric_dependent_mass_matrix_and_
             }
         }
 
-        if (do_inverse_mass_matrix == true) {
+        if (do_inverse_mass_matrix) {
             //set the global inverse mass matrix
             dealii::FullMatrix<real> local_inverse_mass_matrix(n_dofs_cell);
             local_inverse_mass_matrix.invert(local_mass_matrix);
@@ -2355,7 +2373,7 @@ void DGBase<dim,real,MeshType>::evaluate_local_metric_dependent_mass_matrix_and_
                 global_inverse_mass_matrix_auxiliary.set (dofs_indices, local_inverse_mass_matrix_aux);
             }
             //If an energy test, we also need to store the mass matrix to compute energy/entropy and conservation.
-            if (this->all_parameters->use_energy == true){//for split form energy
+            if (use_energy){//for split form energy
                 global_mass_matrix.set (dofs_indices, local_mass_matrix);
                 if(use_auxiliary_eq){
                     global_mass_matrix_auxiliary.set (dofs_indices, local_mass_matrix_aux[0]);
@@ -2411,7 +2429,7 @@ void DGBase<dim,real,MeshType>::evaluate_local_metric_dependent_mass_matrix_and_
                 }
             }
         }
-        if (do_inverse_mass_matrix == true) {
+        if (do_inverse_mass_matrix) {
             //Please note that the weight-adjusted matrix is based off the inverse.
             dealii::FullMatrix<real> temp(n_dofs_cell);
             operators->FR_mass_inv[curr_cell_degree].mmult(temp, local_mass_matrix);
@@ -2420,7 +2438,7 @@ void DGBase<dim,real,MeshType>::evaluate_local_metric_dependent_mass_matrix_and_
             global_inverse_mass_matrix.set (dofs_indices, local_inverse_mass_matrix);
         
             //If energy test needs to store global mass matrix.
-            if (this->all_parameters->use_energy == true){//for split form energy
+            if (use_energy){//for split form energy
                 dealii::FullMatrix<real> inverse_of_weighted_mass_inverse(n_dofs_cell);
                 inverse_of_weighted_mass_inverse.invert(local_inverse_mass_matrix);
                 global_mass_matrix.set (dofs_indices, inverse_of_weighted_mass_inverse);
@@ -2438,7 +2456,6 @@ void DGBase<dim,real,MeshType>::evaluate_local_metric_dependent_mass_matrix_and_
         }
 
     }//end of weight-adjusted mass matrix condition
-
 }
 
 template<int dim, typename real, typename MeshType>
@@ -2664,9 +2681,9 @@ real2 DGBase<dim,real,MeshType>::discontinuity_sensor(
 }
 
 template <int dim, typename real, typename MeshType>
-void DGBase<dim,real,MeshType>::set_current_time(const real time)
+void DGBase<dim,real,MeshType>::set_current_time(const real current_time_input)
 {
-    this->current_time = time;
+    this->current_time = current_time_input;
 }
 // No support for anisotropic mesh refinement with parallel::distributed::Triangulation
 // template<int dim, typename real>

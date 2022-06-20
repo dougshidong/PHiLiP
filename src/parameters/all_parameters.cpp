@@ -330,7 +330,7 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     if (conv_num_flux_string == "roe")                     { conv_num_flux_type = roe; }                                        
     if (conv_num_flux_string == "l2roe")                   { conv_num_flux_type = l2roe; }
     if (conv_num_flux_string == "central_flux")            { conv_num_flux_type = central_flux; }
-    if (conv_num_flux_string == "entropy_conserving_flux") { conv_num_flux_type = entropy_cons_flux; }
+    if (conv_num_flux_string == "entropy_conserving_flux") { conv_num_flux_type = entropy_conserving_flux; }
 
     const std::string diss_num_flux_string = prm.get("diss_num_flux");
     if (diss_num_flux_string == "symm_internal_penalty") {diss_num_flux_type = symm_internal_penalty; }

@@ -274,7 +274,6 @@ private:
         const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R);
 
 private: 
-
     /// Evaluate the integral over the cell volume.
     /** Compute the right-hand side only. */
     void assemble_volume_residual(
@@ -336,7 +335,6 @@ private:
         dealii::Vector<real>          &local_rhs_ext_cell,
         const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R);
 
-
     /// Evaluate the integral over the cell volume
     void assemble_volume_term_explicit(
         typename dealii::DoFHandler<dim>::active_cell_iterator cell,
@@ -348,6 +346,7 @@ private:
         const unsigned int grid_degree,
         dealii::Vector<real> &current_cell_rhs,
         const dealii::FEValues<dim,dim> &fe_values_lagrange);
+    
     /// Evaluate the integral over the cell edges that are on domain boundaries
     void assemble_boundary_term_explicit(
         typename dealii::DoFHandler<dim>::active_cell_iterator cell,
@@ -357,6 +356,7 @@ private:
         const real penalty,
         const std::vector<dealii::types::global_dof_index> &current_dofs_indices,
         dealii::Vector<real> &current_cell_rhs);
+    
     /// Evaluate the integral over the internal cell edges
     void assemble_face_term_explicit(
         const unsigned int /*iface*/, 
@@ -376,12 +376,9 @@ private:
         dealii::Vector<real>          &current_cell_rhs,
         dealii::Vector<real>          &neighbor_cell_rhs);
 
-    using DGBase<dim,real,MeshType>::mpi_communicator; ///< MPI communicator
     using DGBase<dim,real,MeshType>::pcout; ///< Parallel std::cout that only outputs on mpi_rank==0
-
 }; // end of DGWeak class
 
 } // PHiLiP namespace
 
 #endif
-

@@ -1,9 +1,7 @@
 #include "numerical_flux_factory.hpp"
 
+#include "convective_numerical_flux.hpp"
 #include "ADTypes.hpp"
-#include "split_form_numerical_flux.hpp"
-#include "central_numerical_flux.hpp"
-#include "entropy_cons_numerical_flux.hpp"
 
 namespace PHiLiP {
 namespace NumericalFlux {
@@ -24,16 +22,17 @@ NumericalFluxFactory<dim, nstate, real>
     } else if(conv_num_flux_type == AllParam::l2roe) {
         if constexpr (dim+2==nstate) return std::make_unique< L2Roe<dim, nstate, real> > (physics_input);
     } else if (conv_num_flux_type == AllParam::split_form) {
-        return std::make_unique< SplitFormNumFlux<dim, nstate, real> > (physics_input);
+        return std::make_unique< SplitFormNumericalFlux<dim, nstate, real> > (physics_input);
     } else if (conv_num_flux_type == AllParam::central_flux) {
-        return std::make_unique< CentralNumFlux<dim, nstate, real> > (physics_input);
-    } else if (conv_num_flux_type == AllParam::entropy_cons_flux) {
-        return std::make_unique< EntropyConsNumFlux<dim, nstate, real> > (physics_input);
+        return std::make_unique< CentralNumericalFlux<dim, nstate, real> > (physics_input);
+    } else if (conv_num_flux_type == AllParam::entropy_conserving_flux) {
+        return std::make_unique< EntropyConservingNumericalFlux<dim, nstate, real> > (physics_input);
     }
 
     std::cout << "Invalid convective numerical flux" << std::endl;
     return nullptr;
 }
+
 template <int dim, int nstate, typename real>
 std::unique_ptr< NumericalFluxDissipative<dim,nstate,real> >
 NumericalFluxFactory<dim, nstate, real>

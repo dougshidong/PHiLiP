@@ -18,6 +18,7 @@ class DGStrong: public DGBaseState<dim, nstate, real, MeshType>
 protected:
     /// Alias to base class Triangulation.
     using Triangulation = typename DGBaseState<dim,nstate,real,MeshType>::Triangulation;
+
 public:
     /// Constructor
     DGStrong(
@@ -30,28 +31,29 @@ public:
     /// Destructor
     ~DGStrong();
 
-    ///Allocates the auxiliary equations' variables and RHS.
+    /// Allocates the auxiliary equations' variables and RHS.
     void allocate_auxiliary_equation ();
 
-    ///Assembles the auxiliary equations' residuals and solves for the auxiliary variables.
+    /// Assembles the auxiliary equations' residuals and solves for the auxiliary variables.
     void assemble_auxiliary_residual ();
-private:
 
-    ///Assembles the auxiliary equations' cell residuals.
+private:
+    /// Assembles the auxiliary equations' cell residuals.
     template<typename DoFCellAccessorType1, typename DoFCellAccessorType2>
     void assemble_cell_auxiliary_residual (
         const DoFCellAccessorType1 &current_cell,
         const DoFCellAccessorType2 &current_metric_cell,
         std::vector<dealii::LinearAlgebra::distributed::Vector<double>> &rhs);
 
-    ///Evaluate the volume RHS for the auxiliary equation.
+    /// Evaluate the volume RHS for the auxiliary equation.
     void assemble_volume_term_auxiliary_equation(
         const std::vector<dealii::types::global_dof_index> &current_dofs_indices,
         const std::vector<dealii::types::global_dof_index> &metric_dof_indices,
         const unsigned int poly_degree,
         const unsigned int grid_degree,
         std::vector<dealii::Tensor<1,dim,double>> &local_auxiliary_RHS);
-    ///Evaluate the boundary RHS for the auxiliary equation.
+    
+    /// Evaluate the boundary RHS for the auxiliary equation.
     void assemble_boundary_term_auxiliary_equation(
         const unsigned int poly_degree, 
         const unsigned int grid_degree,
@@ -60,7 +62,8 @@ private:
         const std::vector<dealii::types::global_dof_index> &current_dofs_indices,
         const std::vector<dealii::types::global_dof_index> &metric_dof_indices,
         std::vector<dealii::Tensor<1,dim,real>> &local_auxiliary_RHS);
-    ///Evaluate the facet RHS for the auxiliary equation.
+    
+    /// Evaluate the facet RHS for the auxiliary equation.
     void assemble_face_term_auxiliary(
         const unsigned int iface, 
         const unsigned int neighbor_iface,
@@ -72,7 +75,6 @@ private:
         const std::vector<dealii::types::global_dof_index> &metric_dof_indices_ext,
         std::vector<dealii::Tensor<1,dim,real>> &local_auxiliary_RHS_int,
         std::vector<dealii::Tensor<1,dim,real>> &local_auxiliary_RHS_ext);
-
 
     /// Evaluate the integral over the cell volume and the specified derivatives.
     /** Compute both the right-hand side and the corresponding block of dRdW, dRdX, and/or d2R. */
@@ -87,6 +89,8 @@ private:
         dealii::Vector<real> &local_rhs_cell,
         const dealii::FEValues<dim,dim> &/*fe_values_lagrange*/,
         const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R);
+    
+    /// Assemble boundary term derivatives
     void assemble_boundary_term_derivatives(
         typename dealii::DoFHandler<dim>::active_cell_iterator cell,
         const dealii::types::global_dof_index current_cell_index,
@@ -100,6 +104,7 @@ private:
         const std::vector<dealii::types::global_dof_index> &soln_dof_indices,
         dealii::Vector<real> &local_rhs_cell,
         const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R);
+    
     /// Evaluate the integral over the internal cell edges and its specified derivatives.
     /** Compute both the right-hand side and the block of the Jacobian.
      *  This adds the contribution to both cell's residual and effectively
@@ -137,6 +142,7 @@ private:
         const unsigned int grid_degree,
         dealii::Vector<real> &current_cell_rhs,
         const dealii::FEValues<dim,dim> &fe_values_lagrange);
+    
     /// Evaluate the integral over the cell edges that are on domain boundaries
     void assemble_boundary_term_explicit(
         typename dealii::DoFHandler<dim>::active_cell_iterator cell,
@@ -146,6 +152,7 @@ private:
         const real penalty,
         const std::vector<dealii::types::global_dof_index> &current_dofs_indices,
         dealii::Vector<real> &current_cell_rhs);
+    
     /// Evaluate the integral over the internal cell edges
     void assemble_face_term_explicit(
         const unsigned int iface, 
@@ -165,8 +172,6 @@ private:
         dealii::Vector<real>          &current_cell_rhs,
         dealii::Vector<real>          &neighbor_cell_rhs);
 
-    using DGBase<dim,real,MeshType>::all_parameters; ///< Pointer to all parameters
-    using DGBase<dim,real,MeshType>::mpi_communicator; ///< MPI communicator
     using DGBase<dim,real,MeshType>::pcout; ///< Parallel std::cout that only outputs on mpi_rank==0
 
 }; // end of DGStrong class
@@ -174,4 +179,3 @@ private:
 } // PHiLiP namespace
 
 #endif
-

@@ -262,7 +262,6 @@ void evaluate_finite_element_values (
     }
 }
 
-
 template <int dim, typename real>
 bool check_same_coords (
     const std::vector<dealii::Point<dim>> &unit_quad_pts_int,
@@ -633,7 +632,7 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_volume_term_explicit(
         }
         if(this->all_parameters->manufactured_convergence_study_param.manufactured_solution_param.use_manufactured_source_term) {
             const dealii::Point<dim,real> point = fe_values_vol.quadrature_point(iquad);
-            source_at_q[iquad] = DGBaseState<dim,nstate,real,MeshType>::pde_physics_double->source_term (point, soln_at_q[iquad], DGBase<dim,real,MeshType>::current_time);
+            source_at_q[iquad] = DGBaseState<dim,nstate,real,MeshType>::pde_physics_double->source_term (point, soln_at_q[iquad], this->current_time);
             //std::array<real,nstate> artificial_source_at_q = DGBaseState<dim,nstate,real,MeshType>::pde_physics_double->artificial_source_term (artificial_diss_coeff, point, soln_at_q[iquad]);
             //for (int s=0;s<nstate;++s) source_at_q[iquad][s] += artificial_source_at_q[s];
         }
@@ -3646,7 +3645,7 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_volume_term(
                 const int iaxis = fe_metric.system_to_component_index(idof).first;
                 ad_point[iaxis] += coords_coeff[idof] * fe_metric.shape_value(idof,unit_quad_pts[iquad]);
             }
-            source_at_q[iquad] = physics.source_term (ad_point, soln_at_q[iquad], DGBase<dim,real,MeshType>::current_time);
+            source_at_q[iquad] = physics.source_term (ad_point, soln_at_q[iquad], this->current_time);
             //Array artificial_source_at_q = physics.artificial_source_term (artificial_diss_coeff, ad_point, soln_at_q[iquad]);
             //Array artificial_source_at_q = physics.artificial_source_term (artificial_diss_coeff_at_q[iquad], ad_point, soln_at_q[iquad]);
             //for (int s=0;s<nstate;++s) source_at_q[iquad][s] += artificial_source_at_q[s];
@@ -3681,11 +3680,8 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_volume_term(
                 rhs[itest] = rhs[itest] + interpolation_operator[itest][iquad]* source_at_q[iquad][istate] * JxW_iquad;
             }
         }
-
         dual_dot_residual += local_dual[itest]*rhs[itest];
-
     }
-
 }
 
 #ifdef FADFAD
@@ -4142,8 +4138,6 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_volume_term_derivatives(
             *(DGBaseState<dim,nstate,real,MeshType>::pde_physics_double),
             compute_dRdW, compute_dRdX, compute_d2R);
     }
-
-    return;
 }
 
 template <int dim, int nstate, typename real, typename MeshType>
@@ -4247,8 +4241,6 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_face_term_derivatives(
             local_rhs_ext_cell,
             compute_dRdW, compute_dRdX, compute_d2R);
     }
-
-    return;
 }
 #endif
 
@@ -4258,11 +4250,13 @@ void DGWeak<dim,nstate,real,MeshType>::allocate_auxiliary_equation ()
 {
     //Do Nothing.
 }
+
 template <int dim, int nstate, typename real, typename MeshType>
 void DGWeak<dim,nstate,real,MeshType>::assemble_auxiliary_residual ()
 {
     //Do Nothing.
 }
+
 template <int dim, int nstate, typename real, typename MeshType>
 void DGWeak<dim,nstate,real,MeshType>::assemble_volume_term_auxiliary_equation(
         const std::vector<dealii::types::global_dof_index> &/*current_dofs_indices*/,
@@ -4273,6 +4267,7 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_volume_term_auxiliary_equation(
 {
     //Do Nothing.
 }
+
 template <int dim, int nstate, typename real, typename MeshType>
 void DGWeak<dim,nstate,real,MeshType>::assemble_boundary_term_auxiliary_equation(
         const unsigned int /*poly_degree*/, const unsigned int /*grid_degree*/,
@@ -4284,6 +4279,7 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_boundary_term_auxiliary_equation
 {
     //Do Nothing.
 }
+
 template <int dim, int nstate, typename real, typename MeshType>
 void DGWeak<dim,nstate,real,MeshType>::assemble_face_term_auxiliary(
         const unsigned int /*iface*/, const unsigned int /*neighbor_iface*/,
@@ -4298,10 +4294,9 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_face_term_auxiliary(
     //Do Nothing.
 }
 
-
 // using default MeshType = Triangulation
 // 1D: dealii::Triangulation<dim>;
-// OW: dealii::parallel::distributed::Triangulation<dim>;
+// Otherwise: dealii::parallel::distributed::Triangulation<dim>;
 template class DGWeak <PHILIP_DIM, 1, double, dealii::Triangulation<PHILIP_DIM>>;
 template class DGWeak <PHILIP_DIM, 2, double, dealii::Triangulation<PHILIP_DIM>>;
 template class DGWeak <PHILIP_DIM, 3, double, dealii::Triangulation<PHILIP_DIM>>;
@@ -4323,5 +4318,3 @@ template class DGWeak <PHILIP_DIM, 5, double, dealii::parallel::distributed::Tri
 #endif
 
 } // PHiLiP namespace
-
-

@@ -51,7 +51,7 @@ int ReducedOrder<dim, nstate>::run_test() const
           << "Galerkin functional error: " << galerkin_func_error << std::endl
           << "Petrov-Galerkin functional error: " << petrov_galerkin_func_error << std::endl;
 
-    if (galerkin_solution_error < 1E-11 && petrov_galerkin_solution_error < 1E-11 && galerkin_func_error < 1E-11 && petrov_galerkin_func_error < 1E-11){
+    if (std::abs(galerkin_solution_error) < 1E-10 && std::abs(petrov_galerkin_solution_error) < 1E-11 && std::abs(galerkin_func_error) < 1E-10 && std::abs(petrov_galerkin_func_error) < 1E-11){
         pcout << "Passed!";
         return 0;
     }else{

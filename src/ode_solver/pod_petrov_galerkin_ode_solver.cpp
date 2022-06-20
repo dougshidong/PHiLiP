@@ -169,7 +169,6 @@ void PODPetrovGalerkinODESolver<dim,real,MeshType>::step_in_time (real /*dt*/, c
     new_residual /= this->dg->right_hand_side.size();
 
     this->pcout << " Step length " << step_length << ". Old residual: " << initial_residual << " New residual: " << new_residual << std::endl;
-    this->pcout << "Full-order residual norm: " << this->dg->get_residual_l2norm() << std::endl;
 
     int iline = 0;
     for (iline = 0; iline < maxline && new_residual > initial_residual * reduction_tolerance_1; ++iline) {
@@ -183,8 +182,8 @@ void PODPetrovGalerkinODESolver<dim,real,MeshType>::step_in_time (real /*dt*/, c
         epetra_reduced_rhs.Norm2(&new_residual);
         new_residual /= this->dg->right_hand_side.size();
         this->pcout << " Step length " << step_length << " . Old residual: " << initial_residual << " New residual: " << new_residual << std::endl;
-        this->pcout << "Full-order residual norm: " << this->dg->get_residual_l2norm() << std::endl;
     }
+    this->pcout << "Full-order residual norm: " << this->dg->get_residual_l2norm() << std::endl;
 
     this->residual_norm = new_residual;
 

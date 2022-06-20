@@ -38,7 +38,7 @@ for ((i = 0 ; i < ${#mach[@]} ; i++)); do
 
 file="${mach[i]}_${alpha[i]}_naca0012.prm"
 
-echo "set test_type = flow_solver" >> $file
+echo "set run_type = flow_simulation" >> $file
 echo "set dimension = 2" >> $file
 echo "set pde_type  = euler" >> $file
 echo "" >> $file

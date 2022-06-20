@@ -2,6 +2,7 @@
 #define __VISCOUS_NUMERICAL_FLUX__
 
 #include <deal.II/base/tensor.h>
+#include <deal.II/base/types.h>
 #include "physics/physics.h"
 #include "dg/artificial_dissipation.h"
 
@@ -26,6 +27,8 @@ virtual std::array<real, nstate> evaluate_solution_flux (
 
 /// Auxiliary flux at the interface.
 virtual std::array<real, nstate> evaluate_auxiliary_flux (
+    const dealii::types::global_dof_index current_cell_index,
+    const dealii::types::global_dof_index neighbor_cell_index,
     const real artificial_diss_coeff_int,
     const real artificial_diss_coeff_ext,
     const std::array<real, nstate> &soln_int,
@@ -69,6 +72,8 @@ std::array<real, nstate> evaluate_solution_flux (
  *
  */
 std::array<real, nstate> evaluate_auxiliary_flux (
+    const dealii::types::global_dof_index current_cell_index,
+    const dealii::types::global_dof_index neighbor_cell_index,
     const real artificial_diss_coeff_int,
     const real artificial_diss_coeff_ext,
     const std::array<real, nstate> &soln_int,
@@ -108,6 +113,8 @@ std::array<real, nstate> evaluate_solution_flux (
  *
  */
 std::array<real, nstate> evaluate_auxiliary_flux (
+    const dealii::types::global_dof_index current_cell_index,
+    const dealii::types::global_dof_index neighbor_cell_index,
     const real artificial_diss_coeff_int,
     const real artificial_diss_coeff_ext,
     const std::array<real, nstate> &soln_int,

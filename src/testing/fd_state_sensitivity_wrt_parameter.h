@@ -38,7 +38,7 @@ public:
     int run_test () const override;
 
     /// Renitialize parameters, necessary because parameters created for the test are constant
-    Parameters::AllParameters reinit_params(double pertubation) const;
+    Parameters::AllParameters reinit_params(double perturbation) const;
 
 };
 

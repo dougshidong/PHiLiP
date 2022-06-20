@@ -30,7 +30,7 @@ PeriodicTurbulence<dim, nstate>::PeriodicTurbulence(const PHiLiP::Parameters::Al
 
     // Flow case identifiers
     this->is_taylor_green_vortex = (flow_type == FlowCaseEnum::taylor_green_vortex);
-    this->is_viscous_flow = (this->all_param.pde_type == Parameters::AllParameters::PartialDifferentialEquation::navier_stokes);
+    this->is_viscous_flow = (this->all_param.pde_type != Parameters::AllParameters::PartialDifferentialEquation::euler);
 
     // Navier-Stokes object; create using dynamic_pointer_cast and the create_Physics factory
     PHiLiP::Parameters::AllParameters parameters_navier_stokes = this->all_param;
@@ -60,8 +60,8 @@ void PeriodicTurbulence<dim,nstate>::display_additional_flow_case_specific_param
 template <int dim, int nstate>
 double PeriodicTurbulence<dim,nstate>::get_constant_time_step(std::shared_ptr<DGBase<dim,double>> dg) const
 {
-    const unsigned int number_of_degrees_of_freedom = dg->dof_handler.n_dofs();
-    const double approximate_grid_spacing = (this->domain_right-this->domain_left)/pow(number_of_degrees_of_freedom,(1.0/dim));
+    const unsigned int number_of_degrees_of_freedom_per_state = dg->dof_handler.n_dofs()/nstate;
+    const double approximate_grid_spacing = (this->domain_right-this->domain_left)/pow(number_of_degrees_of_freedom_per_state,(1.0/dim));
     const double constant_time_step = this->all_param.flow_solver_param.courant_friedrich_lewy_number * approximate_grid_spacing;
     return constant_time_step;
 }

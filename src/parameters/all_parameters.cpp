@@ -14,6 +14,7 @@ AllParameters::AllParameters ()
     , navier_stokes_param(NavierStokesParam())
     , reduced_order_param(ReducedOrderModelParam())
     , burgers_param(BurgersParam())
+    , physics_model_param(PhysicsModelParam())
     , grid_refinement_study_param(GridRefinementStudyParam())
     , artificial_dissipation_param(ArtificialDissipationParam())
     , flow_solver_param(FlowSolverParam())
@@ -21,6 +22,7 @@ AllParameters::AllParameters ()
     , functional_param(FunctionalParam())
     , pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD)==0)
 { }
+
 void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
 {
     const int mpi_rank = dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD);
@@ -154,16 +156,17 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
 
     prm.declare_entry("pde_type", "advection",
                       dealii::Patterns::Selection(
-                          " advection | "
-                          " diffusion | "
-                          " convection_diffusion | "
-                          " advection_vector | "
-                          " burgers_inviscid | "
-                          " burgers_viscous | "
-                          " burgers_rewienski | "
-                          " euler |"
-                          " mhd |"
-                          " navier_stokes"),
+                      " advection | "
+                      " diffusion | "
+                      " convection_diffusion | "
+                      " advection_vector | "
+                      " burgers_inviscid | "
+                      " burgers_viscous | "
+                      " burgers_rewienski | "
+                      " euler |"
+                      " mhd |"
+                      " navier_stokes |"
+                      " physics_model"),
                       "The PDE we want to solve. "
                       "Choices are " 
                       " <advection | " 
@@ -175,7 +178,16 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       "  burgers_rewienski | "
                       "  euler | "
                       "  mhd |"
-                      "  navier_stokes>.");
+                      "  navier_stokes |"
+                      "  physics_model>.");
+
+    prm.declare_entry("model_type", "large_eddy_simulation",
+                      dealii::Patterns::Selection(
+                      "large_eddy_simulation"),
+                      "Enum of physics models "
+                      "(i.e. model equations and/or terms additional to Navier-Stokes or a chosen underlying baseline physics)."
+                      "Choices are "
+                      " <large_eddy_simulation>.");
     
     prm.declare_entry("conv_num_flux", "lax_friedrichs",
                       dealii::Patterns::Selection("lax_friedrichs | roe | l2roe | split_form"),
@@ -197,6 +209,8 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
 
     Parameters::EulerParam::declare_parameters (prm);
     Parameters::NavierStokesParam::declare_parameters (prm);
+    
+    Parameters::PhysicsModelParam::declare_parameters (prm);
 
     Parameters::ReducedOrderModelParam::declare_parameters (prm);
     Parameters::BurgersParam::declare_parameters (prm);
@@ -254,6 +268,11 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     else if (test_string == "taylor_green_vortex_energy_check")         { test_type = taylor_green_vortex_energy_check; }
     else if (test_string == "taylor_green_vortex_restart_check")        { test_type = taylor_green_vortex_restart_check; }
     else if (test_string == "time_refinement_study")                    { test_type = time_refinement_study; }
+    
+    // WARNING: Must assign model_type before pde_type
+    const std::string model_string = prm.get("model_type");
+    if (model_string == "large_eddy_simulation") { model_type = large_eddy_simulation; }
+    //else if (model_string == "reynolds_averaged_navier_stokes") { model_type = reynolds_averaged_navier_stokes; }
 
     const std::string pde_string = prm.get("pde_type");
     if (pde_string == "advection") {
@@ -285,6 +304,18 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
         pde_type = navier_stokes;
         nstate = dimension+2;
     }
+    else if (pde_string == "physics_model") {
+        pde_type = physics_model;
+        if (model_type == large_eddy_simulation)
+        {
+            nstate = dimension+2;
+        }
+        // else if (model_type == reynolds_averaged_navier_stokes)
+        // {
+        //     nstate = dimension+3;
+        // }
+    }
+    
     overintegration = prm.get_integer("overintegration");
 
     use_weak_form = prm.get_bool("use_weak_form");
@@ -351,6 +382,9 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
 
     pcout << "Parsing Burgers subsection..." << std::endl;
     burgers_param.parse_parameters (prm);
+
+    pcout << "Parsing physics model subsection..." << std::endl;
+    physics_model_param.parse_parameters (prm);
 
     pcout << "Parsing grid refinement study subsection..." << std::endl;
     grid_refinement_study_param.parse_parameters (prm);

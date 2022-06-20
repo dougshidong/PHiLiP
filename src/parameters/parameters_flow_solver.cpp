@@ -28,6 +28,10 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                           " burgers_rewienski_snapshot | "
                           " advection_periodic>.");
 
+        prm.declare_entry("poly_degree", "1",
+                          dealii::Patterns::Integer(0, dealii::Patterns::Integer::max_int_value),
+                          "Polynomial order (P) of the basis functions for DG.");
+
         prm.declare_entry("final_time", "1",
                           dealii::Patterns::Double(0, dealii::Patterns::Double::max_double_value),
                           "Final solution time.");
@@ -47,6 +51,10 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
         prm.declare_entry("adaptive_time_step", "false",
                           dealii::Patterns::Bool(),
                           "Adapt the time step on the fly for unsteady flow simulations. False by default (i.e. constant time step by default).");
+
+        prm.declare_entry("steady_state_polynomial_ramping", "false",
+                          dealii::Patterns::Bool(),
+                          "For steady-state cases, does polynomial ramping if set to true. False by default.");
 
         prm.declare_entry("sensitivity_table_filename", "sensitivity_table",
                           dealii::Patterns::FileName(dealii::Patterns::FileName::FileType::input),
@@ -75,10 +83,30 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
         prm.declare_entry("output_restart_files_every_dt_time_intervals", "0.0",
                           dealii::Patterns::Double(0,dealii::Patterns::Double::max_double_value),
                           "Outputs the restart files at time intervals of dt.");
-      
-        prm.declare_entry("input_mesh_filename", "naca0012",
-                          dealii::Patterns::FileName(dealii::Patterns::FileName::FileType::input),
-                          "Filename of the input mesh: input_mesh_filename.msh");
+
+        prm.enter_subsection("grid");
+        {
+          prm.declare_entry("input_mesh_filename", "naca0012",
+                            dealii::Patterns::FileName(dealii::Patterns::FileName::FileType::input),
+                            "Filename of the input mesh: input_mesh_filename.msh. For cases that import a mesh file.");
+
+          prm.declare_entry("grid_degree", "1",
+                            dealii::Patterns::Integer(1, dealii::Patterns::Integer::max_int_value),
+                            "Polynomial degree of the grid. Curvilinear grid if set greater than 1; default is 1.");
+
+          prm.declare_entry("grid_left_bound", "0.0",
+                            dealii::Patterns::Double(0, dealii::Patterns::Double::max_double_value),
+                            "Left bound of domain for hyper_cube mesh based cases.");
+
+          prm.declare_entry("grid_right_bound", "1.0",
+                            dealii::Patterns::Double(0, dealii::Patterns::Double::max_double_value),
+                            "Right bound of domain for hyper_cube mesh based cases.");
+
+          prm.declare_entry("number_of_grid_elements_per_dimension", "4",
+                            dealii::Patterns::Integer(1, dealii::Patterns::Integer::max_int_value),
+                            "Number of grid elements per dimension for hyper_cube mesh based cases.");
+        }
+        prm.leave_subsection();
 
         prm.enter_subsection("taylor_green_vortex");
         {
@@ -126,10 +154,12 @@ void FlowSolverParam::parse_parameters(dealii::ParameterHandler &prm)
         else if (flow_case_type_string == "naca0012")                   {flow_case_type = naca0012;}
         else if (flow_case_type_string == "advection_periodic")         {flow_case_type = advection_periodic;}
 
+        poly_degree = prm.get_integer("poly_degree");
         final_time = prm.get_double("final_time");
         courant_friedrich_lewy_number = prm.get_double("courant_friedrich_lewy_number");
         unsteady_data_table_filename = prm.get("unsteady_data_table_filename");
         steady_state = prm.get_bool("steady_state");
+        steady_state_polynomial_ramping = prm.get_bool("steady_state_polynomial_ramping");
         adaptive_time_step = prm.get_bool("adaptive_time_step");
         sensitivity_table_filename = prm.get("sensitivity_table_filename");
         restart_computation_from_file = prm.get_bool("restart_computation_from_file");
@@ -138,7 +168,16 @@ void FlowSolverParam::parse_parameters(dealii::ParameterHandler &prm)
         restart_file_index = prm.get_integer("restart_file_index");
         output_restart_files_every_x_steps = prm.get_integer("output_restart_files_every_x_steps");
         output_restart_files_every_dt_time_intervals = prm.get_double("output_restart_files_every_dt_time_intervals");
-        input_mesh_filename = prm.get("input_mesh_filename");
+
+        prm.enter_subsection("grid");
+        {
+          input_mesh_filename = prm.get("input_mesh_filename");
+          grid_degree = prm.get_integer("grid_degree");
+          grid_left_bound = prm.get_double("grid_left_bound");
+          grid_right_bound = prm.get_double("grid_right_bound");
+          number_of_grid_elements_per_dimension = prm.get_integer("number_of_grid_elements_per_dimension");
+        }
+        prm.leave_subsection();
 
         prm.enter_subsection("taylor_green_vortex");
         {

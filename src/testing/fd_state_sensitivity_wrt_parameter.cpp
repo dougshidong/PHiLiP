@@ -86,7 +86,7 @@ int FiniteDifferenceSensitivity<dim, nstate>::run_test() const
 }
 
 template <int dim, int nstate>
-Parameters::AllParameters FiniteDifferenceSensitivity<dim, nstate>::reinit_params(double pertubation) const {
+Parameters::AllParameters FiniteDifferenceSensitivity<dim, nstate>::reinit_params(double perturbation) const {
     // copy all parameters
     PHiLiP::Parameters::AllParameters parameters = *(this->all_parameters);
 
@@ -94,10 +94,10 @@ Parameters::AllParameters FiniteDifferenceSensitivity<dim, nstate>::reinit_param
     using FlowCaseEnum = Parameters::FlowSolverParam::FlowCaseType;
     const FlowCaseEnum flow_type = this->all_parameters->flow_solver_param.flow_case_type;
     if (flow_type == FlowCaseEnum::burgers_rewienski_snapshot){
-        parameters.burgers_param.rewienski_b = parameters.burgers_param.rewienski_b + pertubation;
+        parameters.burgers_param.rewienski_b = parameters.burgers_param.rewienski_b + perturbation;
     }
     else if (flow_type == FlowCaseEnum::burgers_viscous_snapshot){
-        parameters.burgers_param.diffusion_coefficient = parameters.burgers_param.diffusion_coefficient + pertubation;
+        parameters.burgers_param.diffusion_coefficient = parameters.burgers_param.diffusion_coefficient + perturbation;
     }
     else{
         std::cout << "Invalid flow case. You probably forgot to add it to the list of flow cases in finite_difference_sensitivity.cpp" << std::endl;

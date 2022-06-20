@@ -2,7 +2,7 @@
 # ---------------------
 
 set dimension = 1
-set test_type = flow_solver
+set run_type = flow_simulation
 set pde_type = burgers_rewienski
 
 set use_weak_form = true

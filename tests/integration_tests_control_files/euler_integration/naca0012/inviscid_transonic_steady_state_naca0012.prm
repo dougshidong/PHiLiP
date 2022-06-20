@@ -1,7 +1,7 @@
 # Listing of Parameters
 # ---------------------
 
-set test_type = flow_solver
+set run_type = flow_simulation
 set dimension = 2
 set pde_type  = euler
 

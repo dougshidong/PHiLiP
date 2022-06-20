@@ -70,7 +70,6 @@ std::vector< real > project_function(
     const dealii::FESystem<dim,dim> &fe_output,
     const dealii::QGauss<dim> &projection_quadrature);
 
-
 template <int dim, typename real, typename MeshType>
 DGBase<dim,real,MeshType>::DGBase(
     const int nstate_input,
@@ -79,11 +78,28 @@ DGBase<dim,real,MeshType>::DGBase(
     const unsigned int max_degree_input,
     const unsigned int grid_degree_input,
     const std::shared_ptr<Triangulation> triangulation_input)
+    : DGBase<dim,real,MeshType>(nstate_input, parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input, this->create_collection_tuple(max_degree_input, nstate_input, parameters_input))
+{ }
+
+template <int dim, typename real, typename MeshType>
+DGBase<dim,real,MeshType>::DGBase(
+    const int nstate_input,
+    const Parameters::AllParameters *const parameters_input,
+    const unsigned int degree,
+    const unsigned int max_degree_input,
+    const unsigned int grid_degree_input,
+    const std::shared_ptr<Triangulation> triangulation_input,
+    const MassiveCollectionTuple collection_tuple)
     : all_parameters(parameters_input)
     , nstate(nstate_input)
     , initial_degree(degree)
     , max_degree(max_degree_input)
     , triangulation(triangulation_input)
+    , fe_collection(std::get<0>(collection_tuple))
+    , volume_quadrature_collection(std::get<1>(collection_tuple))
+    , face_quadrature_collection(std::get<2>(collection_tuple))
+    , oned_quadrature_collection(std::get<3>(collection_tuple))
+    , fe_collection_lagrange(std::get<4>(collection_tuple))
     , dof_handler(*triangulation, true)
     , high_order_grid(std::make_shared<HighOrderGrid<dim,real,MeshType>>(grid_degree_input, triangulation))
     , operators(std::make_shared<OPERATOR::OperatorsBase<dim,real,2*dim>>(all_parameters, nstate, max_degree, max_degree, grid_degree_input))
@@ -119,6 +135,121 @@ void DGBase<dim,real,MeshType>::set_high_order_grid(std::shared_ptr<HighOrderGri
     dof_handler.initialize(*triangulation, operators->fe_collection_basis);
     dof_handler_artificial_dissipation.initialize(*triangulation, fe_q_artificial_dissipation);
     set_all_cells_fe_degree(max_degree);
+}
+
+
+template <int dim, typename real, typename MeshType>
+std::tuple<
+        //dealii::hp::MappingCollection<dim>, // Mapping
+        dealii::hp::FECollection<dim>, // Solution FE
+        dealii::hp::QCollection<dim>,  // Volume quadrature
+        dealii::hp::QCollection<dim-1>, // Face quadrature
+        dealii::hp::QCollection<1>, // 1D quadrature for strong form
+        dealii::hp::FECollection<dim> >   // Lagrange polynomials for strong form
+DGBase<dim,real,MeshType>::create_collection_tuple(
+    const unsigned int max_degree, 
+    const int nstate, 
+    const Parameters::AllParameters *const parameters_input) const
+{
+    dealii::hp::FECollection<dim>      fe_coll;
+    dealii::hp::QCollection<dim>       volume_quad_coll;
+    dealii::hp::QCollection<dim-1>     face_quad_coll;
+    dealii::hp::QCollection<1>         oned_quad_coll;
+
+    dealii::hp::FECollection<dim>      fe_coll_lagr;
+
+    // for p=0, we use a p=1 FE for collocation, since there's no p=0 quadrature for Gauss Lobatto
+    if (parameters_input->use_collocated_nodes==true)
+    {
+        int degree = 1;
+
+        const dealii::FE_DGQ<dim> fe_dg(degree);
+        const dealii::FESystem<dim,dim> fe_system(fe_dg, nstate);
+        fe_coll.push_back (fe_system);
+
+        dealii::Quadrature<1>     oned_quad(degree+1);
+        dealii::Quadrature<dim>   volume_quad(degree+1);
+        dealii::Quadrature<dim-1> face_quad(degree+1); //removed const
+
+        if (parameters_input->use_collocated_nodes) {
+
+            dealii::QGaussLobatto<1> oned_quad_Gauss_Lobatto (degree+1);
+            dealii::QGaussLobatto<dim> vol_quad_Gauss_Lobatto (degree+1);
+            oned_quad = oned_quad_Gauss_Lobatto;
+            volume_quad = vol_quad_Gauss_Lobatto;
+
+            if(dim == 1) {
+                dealii::QGauss<dim-1> face_quad_Gauss_Legendre (degree+1);
+                face_quad = face_quad_Gauss_Legendre;
+            } else {
+                dealii::QGaussLobatto<dim-1> face_quad_Gauss_Lobatto (degree+1);
+                face_quad = face_quad_Gauss_Lobatto;
+            }
+        } else {
+            dealii::QGauss<1> oned_quad_Gauss_Legendre (degree+1);
+            dealii::QGauss<dim> vol_quad_Gauss_Legendre (degree+1);
+            dealii::QGauss<dim-1> face_quad_Gauss_Legendre (degree+1);
+            oned_quad = oned_quad_Gauss_Legendre;
+            volume_quad = vol_quad_Gauss_Legendre;
+            face_quad = face_quad_Gauss_Legendre;
+        }
+
+        volume_quad_coll.push_back (volume_quad);
+        face_quad_coll.push_back (face_quad);
+        oned_quad_coll.push_back (oned_quad);
+
+        dealii::FE_DGQArbitraryNodes<dim,dim> lagrange_poly(oned_quad);
+        fe_coll_lagr.push_back (lagrange_poly);
+    }
+
+    int minimum_degree = (parameters_input->use_collocated_nodes==true) ?  1 :  0;
+    for (unsigned int degree=minimum_degree; degree<=max_degree; ++degree) {
+
+        // Solution FECollection
+        const dealii::FE_DGQ<dim> fe_dg(degree);
+        //const dealii::FE_DGQArbitraryNodes<dim,dim> fe_dg(dealii::QGauss<1>(degree+1));
+        //std::cout << degree << " fe_dg.tensor_degree " << fe_dg.tensor_degree() << " fe_dg.n_dofs_per_cell " << fe_dg.n_dofs_per_cell() << std::endl;
+        const dealii::FESystem<dim,dim> fe_system(fe_dg, nstate);
+        fe_coll.push_back (fe_system);
+
+        dealii::Quadrature<1>     oned_quad(degree+1);
+        dealii::Quadrature<dim>   volume_quad(degree+1);
+        dealii::Quadrature<dim-1> face_quad(degree+1); //removed const
+
+        if (parameters_input->use_collocated_nodes) {
+            dealii::QGaussLobatto<1> oned_quad_Gauss_Lobatto (degree+1);
+            dealii::QGaussLobatto<dim> vol_quad_Gauss_Lobatto (degree+1);
+            oned_quad = oned_quad_Gauss_Lobatto;
+            volume_quad = vol_quad_Gauss_Lobatto;
+
+            if(dim == 1)
+            {
+                dealii::QGauss<dim-1> face_quad_Gauss_Legendre (degree+1);
+                face_quad = face_quad_Gauss_Legendre;
+            }
+            else
+            {
+                dealii::QGaussLobatto<dim-1> face_quad_Gauss_Lobatto (degree+1);
+                face_quad = face_quad_Gauss_Lobatto;
+            }
+        } else {
+            const unsigned int overintegration = parameters_input->overintegration;
+            dealii::QGauss<1> oned_quad_Gauss_Legendre (degree+1+overintegration);
+            dealii::QGauss<dim> vol_quad_Gauss_Legendre (degree+1+overintegration);
+            dealii::QGauss<dim-1> face_quad_Gauss_Legendre (degree+1+overintegration);
+            oned_quad = oned_quad_Gauss_Legendre;
+            volume_quad = vol_quad_Gauss_Legendre;
+            face_quad = face_quad_Gauss_Legendre;
+        }
+
+        volume_quad_coll.push_back (volume_quad);
+        face_quad_coll.push_back (face_quad);
+        oned_quad_coll.push_back (oned_quad);
+
+        dealii::FE_DGQArbitraryNodes<dim,dim> lagrange_poly(oned_quad);
+        fe_coll_lagr.push_back (lagrange_poly);
+    }
+    return std::make_tuple(fe_coll, volume_quad_coll, face_quad_coll, oned_quad_coll, fe_coll_lagr);
 }
 
 template <int dim, int nstate, typename real, typename MeshType>

@@ -22,6 +22,8 @@ template<int dim,int spacedim,int chartdim>
 class NonsymmetricCurvedGridManifold : public dealii::ChartManifold<dim,spacedim,chartdim> {
 protected:
     static constexpr double pi = atan(1) * 4.0; ///< PI.
+    const double beta = 1.0/10.0;
+    const double alpha = 1.0/10.0;
 
 public:
     /// Constructor.

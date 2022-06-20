@@ -3,7 +3,7 @@
 # Number of dimensions
 
 set dimension = 3
-set test_type = flow_solver
+set run_type = flow_simulation
 set pde_type = navier_stokes
 
 # DG formulation

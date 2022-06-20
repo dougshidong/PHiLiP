@@ -22,7 +22,7 @@ echo "# Listing of Parameters"                                                  
 echo "# ---------------------"                                                                      >> $file   
 echo " "                                                                                            >> $file   
 echo "set dimension = 1 "                                                                           >> $file   
-echo "set test_type = flow_solver"                                                                  >> $file   
+echo "set run_type = flow_simulation"                                                               >> $file   
 echo "set pde_type = burgers_rewienski"                                                             >> $file   
 echo " "                                                                                            >> $file   
 echo "set use_weak_form = true"                                                                     >> $file   

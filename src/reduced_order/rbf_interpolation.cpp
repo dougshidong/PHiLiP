@@ -4,7 +4,7 @@ namespace PHiLiP {
 namespace ProperOrthogonalDecomposition {
 
 
-RBFInterpolation::RBFInterpolation(MatrixXd data_coordinates, VectorXd data_values, std::string kernel)
+RBFInterpolation::RBFInterpolation(const MatrixXd& data_coordinates, const VectorXd& data_values, std::string kernel)
         : data_coordinates(data_coordinates)
         , data_values(data_values)
         , kernel(kernel)
@@ -46,12 +46,15 @@ double RBFInterpolation::radialBasisFunction(double r) const{
     else if(kernel == "cubic"){
         return std::pow(r, 3);
     }
+    else if(kernel == "linear"){
+        return r;
+    }
     else{
         return std::pow(r, 2) * std::log(r);
     }
 }
 
-VectorXd RBFInterpolation::evaluate(RowVectorXd evaluate_coordinate) const {
+VectorXd RBFInterpolation::evaluate(const RowVectorXd& evaluate_coordinate) const {
     long N = data_coordinates.rows();
 
     RowVectorXd s(1,N);

@@ -84,17 +84,17 @@ public:
 
     void placeInitialROMs() const;
 
-    bool placeTriangulationROMs(MatrixXd rom_points) const;
+    bool placeTriangulationROMs(const MatrixXd& rom_points) const;
 
-    void updateNearestExistingROMs(RowVector2d parameter) const;
+    void updateNearestExistingROMs(const RowVector2d& parameter) const;
 
     RowVector2d getMaxErrorROM() const;
 
-    dealii::LinearAlgebra::distributed::Vector<double> solveSnapshotFOM(RowVector2d parameter) const;
+    dealii::LinearAlgebra::distributed::Vector<double> solveSnapshotFOM(const RowVector2d& parameter) const;
 
-    std::shared_ptr<ProperOrthogonalDecomposition::ROMSolution<dim,nstate>> solveSnapshotROM(RowVector2d parameter) const;
+    std::shared_ptr<ProperOrthogonalDecomposition::ROMSolution<dim,nstate>> solveSnapshotROM(const RowVector2d& parameter) const;
 
-    Parameters::AllParameters reinitParams(RowVector2d parameter) const;
+    Parameters::AllParameters reinitParams(const RowVector2d& parameter) const;
 
     std::shared_ptr<Functional<dim,nstate,double>> functionalFactory(std::shared_ptr<DGBase<dim, double>> dg) const;
 

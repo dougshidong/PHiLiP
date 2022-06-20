@@ -36,13 +36,7 @@ class ROMTestLocation
 {
 public:
     /// Constructor
-    ROMTestLocation(RowVector2d parameter, std::shared_ptr<ROMSolution < dim, nstate>> rom_solution);
-
-    /// Copy Constructor
-    //ROMTestLocation(const ROMTestLocation& rom_test_location) = default;
-
-    ///Assignment operator
-    //ROMTestLocation& operator= (const ROMTestLocation& rom_test_location) = default;
+    ROMTestLocation(const RowVector2d& parameter, std::shared_ptr<ROMSolution < dim, nstate>> rom_solution);
 
     /// Destructor
     ~ROMTestLocation() {};

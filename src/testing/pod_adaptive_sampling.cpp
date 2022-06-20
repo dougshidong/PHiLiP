@@ -131,17 +131,17 @@ RowVector2d AdaptiveSampling<dim, nstate>::getMaxErrorROM() const{
         i++;
     }
 
-    this->pcout << "Errors:" << std::endl << errors << std::endl;
+    //this->pcout << "Errors:" << std::endl << errors << std::endl;
 
-    this->pcout << "Parameters:" << std::endl << parameters << std::endl;
+    //this->pcout << "Parameters:" << std::endl << parameters << std::endl;
 
     //Must scale both axes between [0,1] for the 2d rbf interpolation to work optimally
     ProperOrthogonalDecomposition::MinMaxScaler scaler;
     MatrixXd parameters_scaled = scaler.fit_transform(parameters);
-    this->pcout << "Parameters scaled:" << std::endl << parameters_scaled << std::endl;
+    //this->pcout << "Parameters scaled:" << std::endl << parameters_scaled << std::endl;
 
     //Construct radial basis function
-    std::string kernel = "cubic";
+    std::string kernel = "thin_plate_spline";
     ProperOrthogonalDecomposition::RBFInterpolation rbf = ProperOrthogonalDecomposition::RBFInterpolation(parameters_scaled, errors, kernel);
 
     // Set parameters.
@@ -249,7 +249,7 @@ void AdaptiveSampling<dim, nstate>::placeInitialROMs() const{
 }
 
 template <int dim, int nstate>
-bool AdaptiveSampling<dim, nstate>::placeTriangulationROMs(MatrixXd rom_points) const{
+bool AdaptiveSampling<dim, nstate>::placeTriangulationROMs(const MatrixXd& rom_points) const{
     bool error_greater_than_tolerance = false;
     for(auto midpoint : rom_points.rowwise()){
         auto element = std::find_if(rom_locations.begin(), rom_locations.end(), [&midpoint](std::pair<RowVector2d, std::shared_ptr<ProperOrthogonalDecomposition::ROMTestLocation<dim,nstate>>>& location){ return location.first == midpoint;} );
@@ -269,7 +269,7 @@ bool AdaptiveSampling<dim, nstate>::placeTriangulationROMs(MatrixXd rom_points) 
 }
 
 template <int dim, int nstate>
-void AdaptiveSampling<dim, nstate>::updateNearestExistingROMs(RowVector2d parameter) const{
+void AdaptiveSampling<dim, nstate>::updateNearestExistingROMs(const RowVector2d& parameter) const{
     //Assemble ROM points in a matrix
     MatrixXd rom_points(0,0);
     for(auto it = rom_locations.begin(); it != rom_locations.end(); ++it){
@@ -306,7 +306,7 @@ void AdaptiveSampling<dim, nstate>::updateNearestExistingROMs(RowVector2d parame
 }
 
 template <int dim, int nstate>
-dealii::LinearAlgebra::distributed::Vector<double> AdaptiveSampling<dim, nstate>::solveSnapshotFOM(RowVector2d parameter) const{
+dealii::LinearAlgebra::distributed::Vector<double> AdaptiveSampling<dim, nstate>::solveSnapshotFOM(const RowVector2d& parameter) const{
     this->pcout << "Solving FOM at " << parameter << std::endl;
     Parameters::AllParameters params = reinitParams(parameter);
 
@@ -323,7 +323,7 @@ dealii::LinearAlgebra::distributed::Vector<double> AdaptiveSampling<dim, nstate>
 }
 
 template <int dim, int nstate>
-std::shared_ptr<ProperOrthogonalDecomposition::ROMSolution<dim,nstate>> AdaptiveSampling<dim, nstate>::solveSnapshotROM(RowVector2d parameter) const{
+std::shared_ptr<ProperOrthogonalDecomposition::ROMSolution<dim,nstate>> AdaptiveSampling<dim, nstate>::solveSnapshotROM(const RowVector2d& parameter) const{
     this->pcout << "Solving ROM at " << parameter << std::endl;
     Parameters::AllParameters params = reinitParams(parameter);
 
@@ -351,7 +351,7 @@ std::shared_ptr<ProperOrthogonalDecomposition::ROMSolution<dim,nstate>> Adaptive
 }
 
 template <int dim, int nstate>
-Parameters::AllParameters AdaptiveSampling<dim, nstate>::reinitParams(RowVector2d parameter) const{
+Parameters::AllParameters AdaptiveSampling<dim, nstate>::reinitParams(const RowVector2d& parameter) const{
     // Copy all parameters
     PHiLiP::Parameters::AllParameters parameters = *(this->all_parameters);
 

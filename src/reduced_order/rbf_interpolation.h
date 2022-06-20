@@ -18,7 +18,7 @@ class RBFInterpolation: public ROL::Objective<double>
 {
 public:
     /// Constructor
-    RBFInterpolation(MatrixXd data_coordinates, VectorXd data_values, std::string kernel);
+    RBFInterpolation(const MatrixXd& data_coordinates, const VectorXd& data_values, std::string kernel);
 
     RBFInterpolation() = default;
 
@@ -29,7 +29,7 @@ public:
 
     double radialBasisFunction(double r) const;
 
-    VectorXd evaluate(RowVectorXd evaluate_coordinate) const;
+    VectorXd evaluate(const RowVectorXd& evaluate_coordinate) const;
 
     VectorXd weights;
 

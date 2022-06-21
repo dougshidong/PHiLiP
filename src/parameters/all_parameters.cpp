@@ -211,23 +211,16 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
     Parameters::LinearSolverParam::declare_parameters (prm);
     Parameters::ManufacturedConvergenceStudyParam::declare_parameters (prm);
     Parameters::ODESolverParam::declare_parameters (prm);
-
     Parameters::EulerParam::declare_parameters (prm);
     Parameters::NavierStokesParam::declare_parameters (prm);
-    
     Parameters::PhysicsModelParam::declare_parameters (prm);
-
     Parameters::ReducedOrderModelParam::declare_parameters (prm);
     Parameters::BurgersParam::declare_parameters (prm);
     Parameters::GridRefinementStudyParam::declare_parameters (prm);
-   
     Parameters::ArtificialDissipationParam::declare_parameters (prm);
     Parameters::MeshAdaptationParam::declare_parameters (prm);
-
     Parameters::FlowSolverParam::declare_parameters (prm);
-    
     Parameters::FunctionalParam::declare_parameters (prm);
-    
     Parameters::TimeRefinementStudyParam::declare_parameters (prm);
 
     pcout << "Done declaring inputs." << std::endl;

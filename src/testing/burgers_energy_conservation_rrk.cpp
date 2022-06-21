@@ -23,11 +23,6 @@ Parameters::AllParameters BurgersEnergyConservationRRK<dim,nstate>::reinit_param
      parameters.ode_solver_param.initial_time_step = time_step_size;
      parameters.ode_solver_param.relaxation_runge_kutta = use_rrk;
 
-     if (time_step_size < 1E-9){
-        //for calculating initial energy - only want to take 1 timestep        
-        parameters.flow_solver_param.final_time = time_step_size;
-     }
-     
      return parameters;
 }
 
@@ -80,7 +75,7 @@ int BurgersEnergyConservationRRK<dim,nstate>::run_flow_solver(
 {
     std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(&params, parameter_handler);
     static_cast<void>(flow_solver->run());
-    int failed_this_calculation = compare_energy_to_initial(flow_solver->dg, energy_initial, expect_conservation); //expect_conservation = true
+    int failed_this_calculation = compare_energy_to_initial(flow_solver->dg, energy_initial, expect_conservation);
     return failed_this_calculation;
 }
 
@@ -107,8 +102,8 @@ int BurgersEnergyConservationRRK<dim, nstate>::run_test() const
     pcout << "  Calculating initial energy..." << std::endl;
     pcout << "-------------------------------------------------------------" << std::endl;
     std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case((this->all_parameters), parameter_handler);
-    const double energy_initial = compute_energy_collocated(flow_solver->dg); //no need to run
-    pcout << "   Initial energy is " << energy_initial << std::endl;
+    const double energy_initial = compute_energy_collocated(flow_solver->dg); //no need to run as ode_solver is allocated during construction
+    pcout << "   Initial energy : " << energy_initial << std::endl;
 
     //Run four main tests
     pcout << "\n\n-------------------------------------------------------------" << std::endl;

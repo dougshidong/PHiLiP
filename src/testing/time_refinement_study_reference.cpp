@@ -177,7 +177,6 @@ int TimeRefinementStudyReference<dim, nstate>::run_test() const
             convergence_table.evaluate_convergence_rates("gamma_aggregate_m1", "dt", dealii::ConvergenceTable::reduction_rate_log2, 1);
         }
 
-
         //Checking convergence order
         if (refinement > 0) {
             L2_error_conv_rate = -log(L2_error_old/L2_error)/log(refine_ratio);

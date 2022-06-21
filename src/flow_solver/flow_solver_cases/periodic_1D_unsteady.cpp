@@ -51,6 +51,7 @@ std::shared_ptr<Triangulation> Periodic1DUnsteady<dim,nstate>::generate_grid() c
         const int number_of_refinements = log(number_of_cells_per_direction)/log(2);
 
         //using hyper_cube and relying on use_periodic_bc flag
+        //necessary due to deal.ii bug with periodic boundaries
         dealii::GridGenerator::hyper_cube(*grid, domain_left, domain_right, true);//colorize = true
         grid->refine_global(number_of_refinements);
     }

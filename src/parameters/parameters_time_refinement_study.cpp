@@ -18,7 +18,7 @@ void TimeRefinementStudyParam::declare_parameters(dealii::ParameterHandler &prm)
                           "Number of times to run the flow solver during a time refinement study.");
         prm.declare_entry("refinement_ratio", "0.5",
                           dealii::Patterns::Double(0, 1.0),
-                          "Ratio between a the next timestep size and the current one in a time refinement study, 0<r<1.");
+                          "Ratio between the next timestep size and the current one in a time refinement study, 0<r<1.");
         prm.declare_entry("number_of_timesteps_for_reference_solution", "100000",
                           dealii::Patterns::Integer(1, dealii::Patterns::Integer::max_int_value),
                           "Number of times to run the flow solver during a time refinement study.");

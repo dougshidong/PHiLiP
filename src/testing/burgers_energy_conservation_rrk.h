@@ -8,7 +8,7 @@
 namespace PHiLiP {
 namespace Tests {
 
-/// Time refinement study which compares to a reference solution
+/// Verify energy conservation for inviscid Burgers using split form and RRK
 template <int dim, int nstate>
 class BurgersEnergyConservationRRK: public TestsBase
 {
@@ -30,12 +30,14 @@ protected:
 
     /// Reinitialize parameters. Necessary because all_parameters is constant.
     Parameters::AllParameters reinit_params(bool use_rrk, double time_step_size) const;
-
+    
+    /// Compare the energy after flow simulation to initial, and return test fail int
     int compare_energy_to_initial(
             const std::shared_ptr <DGBase<dim, double>> dg,
             const double initial_energy,
             bool expect_conservation
             ) const;
+
     /// Compute energy from dg. Only valid for collocated nodes.
     double compute_energy_collocated(const std::shared_ptr <DGBase<dim, double>> dg) const;
 

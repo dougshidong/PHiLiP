@@ -4,6 +4,7 @@
 #include "tests.h"
 #include "dg/dg.h"
 #include "physics/physics.h"
+#include "physics/model.h"
 #include "parameters/all_parameters.h"
 
 #include "grid_refinement/gnu_out.h"

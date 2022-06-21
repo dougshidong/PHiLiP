@@ -31,7 +31,7 @@ public:
     ~FlowSolverCaseBase() {};
 
     /// Displays the flow setup parameters
-    void display_flow_solver_setup() const;
+    void display_flow_solver_setup(std::shared_ptr<DGBase<dim,double>> dg) const;
 
     /// Pure Virtual function to generate the grid
     virtual std::shared_ptr<Triangulation> generate_grid() const = 0;

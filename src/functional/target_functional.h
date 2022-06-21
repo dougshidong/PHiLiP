@@ -54,7 +54,7 @@ public:
     using Functional<dim,nstate,real>::dIdw;
     /// Vector for storing the derivatives with respect to each grid DoF
     using Functional<dim,nstate,real>::dIdX;
- /// Store the functional value from the last time evaluate_functional() was called.
+    /// Store the functional value from the last time evaluate_functional() was called.
     using Functional<dim,nstate,real>::current_functional_value;
     /// Sparse matrix for storing the functional partial second derivatives.
     using Functional<dim,nstate,real>::d2IdWdW;

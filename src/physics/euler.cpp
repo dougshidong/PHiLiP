@@ -17,9 +17,8 @@ Euler<dim,nstate,real>::Euler (
     const double                                              mach_inf,
     const double                                              angle_of_attack,
     const double                                              side_slip_angle,
-    const dealii::Tensor<2,3,double>                          input_diffusion_tensor,
     std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function)
-    : PhysicsBase<dim,nstate,real>(input_diffusion_tensor, manufactured_solution_function)
+    : PhysicsBase<dim,nstate,real>(manufactured_solution_function)
     , ref_length(ref_length)
     , gam(gamma_gas)
     , gamm1(gam-1.0)
@@ -66,6 +65,16 @@ template <int dim, int nstate, typename real>
 std::array<real,nstate> Euler<dim,nstate,real>
 ::source_term (
     const dealii::Point<dim,real> &pos,
+    const std::array<real,nstate> &conservative_soln,
+    const dealii::types::global_dof_index /*cell_index*/) const
+{
+    return source_term(pos,conservative_soln);
+}
+
+template <int dim, int nstate, typename real>
+std::array<real,nstate> Euler<dim,nstate,real>
+::source_term (
+    const dealii::Point<dim,real> &pos,
     const std::array<real,nstate> &/*conservative_soln*/) const
 {
     std::array<real,nstate> source_term = convective_source_term(pos);
@@ -74,7 +83,7 @@ std::array<real,nstate> Euler<dim,nstate,real>
 
 template <int dim, int nstate, typename real>
 std::array<real,nstate> Euler<dim,nstate,real>
-::convective_source_term (
+::get_manufactured_solution_value (
     const dealii::Point<dim,real> &pos) const
 {
     std::array<real,nstate> manufactured_solution;
@@ -84,14 +93,32 @@ std::array<real,nstate> Euler<dim,nstate,real>
             assert(manufactured_solution[s] > 0);
         }
     }
+    return manufactured_solution;
+}
+
+template <int dim, int nstate, typename real>
+std::array<dealii::Tensor<1,dim,real>,nstate> Euler<dim,nstate,real>
+::get_manufactured_solution_gradient (
+    const dealii::Point<dim,real> &pos) const
+{
     std::vector<dealii::Tensor<1,dim,real>> manufactured_solution_gradient_dealii(nstate);
-    this->manufactured_solution_function->vector_gradient (pos, manufactured_solution_gradient_dealii);
-    std::array<dealii::Tensor<1,nstate,real>,dim> manufactured_solution_gradient;
+    this->manufactured_solution_function->vector_gradient(pos,manufactured_solution_gradient_dealii);
+    std::array<dealii::Tensor<1,dim,real>,nstate> manufactured_solution_gradient;
     for (int d=0;d<dim;d++) {
         for (int s=0; s<nstate; s++) {
-            manufactured_solution_gradient[d][s] = manufactured_solution_gradient_dealii[s][d];
+            manufactured_solution_gradient[s][d] = manufactured_solution_gradient_dealii[s][d];
         }
     }
+    return manufactured_solution_gradient;
+}
+
+template <int dim, int nstate, typename real>
+std::array<real,nstate> Euler<dim,nstate,real>
+::convective_source_term (
+    const dealii::Point<dim,real> &pos) const
+{
+    const std::array<real,nstate> manufactured_solution = get_manufactured_solution_value(pos);
+    const std::array<dealii::Tensor<1,dim,real>,nstate> manufactured_solution_gradient = get_manufactured_solution_gradient(pos);
 
     dealii::Tensor<1,nstate,real> convective_flux_divergence;
     for (int d=0;d<dim;d++) {
@@ -103,7 +130,7 @@ std::array<real,nstate> Euler<dim,nstate,real>
         for (int sr = 0; sr < nstate; ++sr) {
             real jac_grad_row = 0.0;
             for (int sc = 0; sc < nstate; ++sc) {
-                jac_grad_row += jacobian[sr][sc]*manufactured_solution_gradient[d][sc];
+                jac_grad_row += jacobian[sr][sc]*manufactured_solution_gradient[sc][d];
             }
             convective_flux_divergence[sr] += jac_grad_row;
         }
@@ -554,6 +581,7 @@ std::array<real,nstate> Euler<dim,nstate,real>
     }
     return eig;
 }
+
 template <int dim, int nstate, typename real>
 real Euler<dim,nstate,real>
 ::max_convective_eigenvalue (const std::array<real,nstate> &conservative_soln) const
@@ -569,6 +597,15 @@ real Euler<dim,nstate,real>
     return max_eig;
 }
 
+template <int dim, int nstate, typename real>
+std::array<dealii::Tensor<1,dim,real>,nstate> Euler<dim,nstate,real>
+::dissipative_flux (
+    const std::array<real,nstate> &conservative_soln,
+    const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient,
+    const dealii::types::global_dof_index /*cell_index*/) const
+{
+    return dissipative_flux(conservative_soln, solution_gradient);
+}
 
 template <int dim, int nstate, typename real>
 std::array<dealii::Tensor<1,dim,real>,nstate> Euler<dim,nstate,real>
@@ -1056,7 +1093,8 @@ std::vector<dealii::DataComponentInterpretation::DataComponentInterpretation> Eu
 
 
 template <int dim, int nstate, typename real>
-std::vector<std::string> Euler<dim,nstate,real> ::post_get_names () const
+std::vector<std::string> Euler<dim,nstate,real>
+::post_get_names () const
 {
     std::vector<std::string> names = PhysicsBase<dim,nstate,real>::post_get_names ();
     names.push_back ("density");
@@ -1093,7 +1131,9 @@ template class Euler < PHILIP_DIM, PHILIP_DIM+2, RadType    >;
 template class Euler < PHILIP_DIM, PHILIP_DIM+2, FadFadType >;
 template class Euler < PHILIP_DIM, PHILIP_DIM+2, RadFadType >;
 
-// -> Templated inline member functions: // could be automated later on using Boost MPL
+//==============================================================================
+// -> Templated member functions: // could be automated later on using Boost MPL
+//------------------------------------------------------------------------------
 // -- compute_pressure()
 template double     Euler < PHILIP_DIM, PHILIP_DIM+2, double     >::compute_pressure< double     >(const std::array<double,    PHILIP_DIM+2> &conservative_soln) const;
 template FadType    Euler < PHILIP_DIM, PHILIP_DIM+2, FadType    >::compute_pressure< FadType    >(const std::array<FadType,   PHILIP_DIM+2> &conservative_soln) const;
@@ -1171,6 +1211,7 @@ template dealii::Tensor<1,PHILIP_DIM,FadType   > Euler < PHILIP_DIM, PHILIP_DIM+
 template dealii::Tensor<1,PHILIP_DIM,FadType   > Euler < PHILIP_DIM, PHILIP_DIM+2, RadType    >::compute_velocities< FadType    >(const std::array<FadType,   PHILIP_DIM+2> &conservative_soln) const;
 template dealii::Tensor<1,PHILIP_DIM,FadType   > Euler < PHILIP_DIM, PHILIP_DIM+2, FadFadType >::compute_velocities< FadType    >(const std::array<FadType,   PHILIP_DIM+2> &conservative_soln) const;
 template dealii::Tensor<1,PHILIP_DIM,FadType   > Euler < PHILIP_DIM, PHILIP_DIM+2, RadFadType >::compute_velocities< FadType    >(const std::array<FadType,   PHILIP_DIM+2> &conservative_soln) const;
+//==============================================================================
 
 } // Physics namespace
 } // PHiLiP namespace

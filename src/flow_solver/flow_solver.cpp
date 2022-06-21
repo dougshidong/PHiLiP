@@ -18,10 +18,10 @@ namespace FlowSolver {
 template <int dim, int nstate>
 FlowSolver<dim, nstate>::FlowSolver(
     const PHiLiP::Parameters::AllParameters *const parameters_input, 
-    std::shared_ptr<FlowSolverCaseBase<dim, nstate>> flow_solver_case,
+    std::shared_ptr<FlowSolverCaseBase<dim, nstate>> flow_solver_case_input,
     const dealii::ParameterHandler &parameter_handler_input)
 : FlowSolverBase()
-, flow_solver_case(flow_solver_case)
+, flow_solver_case(flow_solver_case_input)
 , parameter_handler(parameter_handler_input)
 , mpi_communicator(MPI_COMM_WORLD)
 , mpi_rank(dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD))
@@ -30,10 +30,12 @@ FlowSolver<dim, nstate>::FlowSolver(
 , all_param(*parameters_input)
 , flow_solver_param(all_param.flow_solver_param)
 , ode_param(all_param.ode_solver_param)
-, poly_degree(all_param.grid_refinement_study_param.poly_degree)
+, poly_degree(flow_solver_param.poly_degree)
+, grid_degree(flow_solver_param.grid_degree)
 , final_time(flow_solver_param.final_time)
 , input_parameters_file_reference_copy_filename(flow_solver_param.restart_files_directory_name + std::string("/") + std::string("input_copy.prm"))
-, dg(DGFactory<dim,double>::create_discontinuous_galerkin(&all_param, poly_degree, flow_solver_case->generate_grid()))
+, dg(DGFactory<dim,double>::create_discontinuous_galerkin(&all_param, poly_degree, poly_degree, grid_degree, flow_solver_case->generate_grid()))
+, ode_solver(ODE::ODESolverFactory<dim, double>::create_ODESolver(dg))
 {
     flow_solver_case->set_higher_order_grid(dg);
     dg->allocate_system();
@@ -42,14 +44,11 @@ FlowSolver<dim, nstate>::FlowSolver(
         std::shared_ptr<ProperOrthogonalDecomposition::OfflinePOD<dim>> pod = std::make_shared<ProperOrthogonalDecomposition::OfflinePOD<dim>>(dg);
         ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg, pod);
     }
-    else{
-        ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
-    }
 
-    flow_solver_case->display_flow_solver_setup();
-    
+    flow_solver_case->display_flow_solver_setup(dg);
+
     dealii::LinearAlgebra::distributed::Vector<double> solution_no_ghost;
-    solution_no_ghost.reinit(dg->locally_owned_dofs, MPI_COMM_WORLD);
+    solution_no_ghost.reinit(dg->locally_owned_dofs, this->mpi_communicator);
 
     if(flow_solver_param.restart_computation_from_file == true) {
         if(dim == 1) {
@@ -451,6 +450,9 @@ int FlowSolver<dim,nstate>::run() const
         //----------------------------------------------------
         // Steady-state solution
         //----------------------------------------------------
+        if(flow_solver_param.steady_state_polynomial_ramping) {
+            ode_solver->initialize_steady_polynomial_ramping(poly_degree);
+        }
         ode_solver->steady_state();
         flow_solver_case->steady_state_postprocessing(dg);
     }

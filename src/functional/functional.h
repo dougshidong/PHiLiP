@@ -69,7 +69,7 @@ public:
         const bool _uses_solution_gradient = true);
 
     /** Constructor.
-     *  Uses provided physics instead of creating a new one base on DGBase */
+     *  Uses provided physics instead of creating a new one based on DGBase */
     Functional(
         std::shared_ptr<PHiLiP::DGBase<dim,real,MeshType>> _dg,
         std::shared_ptr<PHiLiP::Physics::PhysicsBase<dim,nstate,Sacado::Fad::DFad<Sacado::Fad::DFad<real>> >> _physics_fad_fad,

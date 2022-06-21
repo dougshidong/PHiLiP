@@ -4,6 +4,7 @@
 #include <memory>
 
 #include <deal.II/base/tensor.h>
+#include <deal.II/base/types.h>
 
 #include "tests.h"
 #include "dg/dg.h"
@@ -103,6 +104,16 @@ public:
 template <int dim, int nstate, typename real>
 class diffusion_objective : public Physics::ConvectionDiffusion <dim, nstate, real>
 {
+protected:
+    // For overloading the virtual functions defined in PhysicsBase
+    /** Once you overload a function from Base class in Derived class,
+     *  all functions with the same name in the Base class get hidden in Derived class.  
+     *  
+     *  Solution: In order to make the hidden function visible in derived class, 
+     *  we need to add the following:
+    */
+    using Physics::PhysicsBase<dim,nstate,real>::dissipative_flux;
+    using Physics::PhysicsBase<dim,nstate,real>::source_term;
 public:
     /// constructor
     diffusion_objective(
@@ -153,6 +164,16 @@ public:
 template <int dim, int nstate, typename real>
 class diffusion_u : public diffusion_objective <dim, nstate, real>
 {
+protected:
+    // For overloading the virtual functions defined in PhysicsBase
+    /** Once you overload a function from Base class in Derived class,
+     *  all functions with the same name in the Base class get hidden in Derived class.  
+     *  
+     *  Solution: In order to make the hidden function visible in derived class, 
+     *  we need to add the following:
+    */
+    using Physics::PhysicsBase<dim,nstate,real>::dissipative_flux;
+    using Physics::PhysicsBase<dim,nstate,real>::source_term;
 public:
     /// constructor
     diffusion_u(
@@ -167,7 +188,8 @@ public:
     /// source term = f
     std::array<real,nstate> source_term (
         const dealii::Point<dim,real> &pos,
-        const std::array<real,nstate> &/*solution*/) const override;
+        const std::array<real,nstate> &solution,
+        const dealii::types::global_dof_index cell_index) const;
 
     /// objective function = g
     real objective_function(
@@ -178,6 +200,16 @@ public:
 template <int dim, int nstate, typename real>
 class diffusion_v : public diffusion_objective <dim, nstate, real>
 {
+protected:
+    // For overloading the virtual functions defined in PhysicsBase
+    /** Once you overload a function from Base class in Derived class,
+     *  all functions with the same name in the Base class get hidden in Derived class.  
+     *  
+     *  Solution: In order to make the hidden function visible in derived class, 
+     *  we need to add the following:
+    */
+    using Physics::PhysicsBase<dim,nstate,real>::dissipative_flux;
+    using Physics::PhysicsBase<dim,nstate,real>::source_term;
 public:
     /// constructor
     diffusion_v(
@@ -192,7 +224,8 @@ public:
     /// source term = g
     std::array<real,nstate> source_term (
         const dealii::Point<dim,real> &pos,
-        const std::array<real,nstate> &/*solution*/) const override;
+        const std::array<real,nstate> &solution,
+        const dealii::types::global_dof_index cell_index) const;
 
     /// objective function = f
     real objective_function(
@@ -205,41 +238,43 @@ class DiffusionFunctional : public Functional<dim, nstate, real>
 {
     using FadType = Sacado::Fad::DFad<real>; ///< Sacado AD type for first derivatives.
     using FadFadType = Sacado::Fad::DFad<FadType>; ///< Sacado AD type that allows 2nd derivatives.
-    public:
-        /// Constructor
-        DiffusionFunctional(
-            std::shared_ptr<PHiLiP::DGBase<dim,real>> dg_input,
-            std::shared_ptr<PHiLiP::Physics::PhysicsBase<dim,nstate,FadFadType>> _physics_fad_fad,
-            const bool uses_solution_values = true,
-            const bool uses_solution_gradient = false)
-        : PHiLiP::Functional<dim,nstate,real>(dg_input,_physics_fad_fad,uses_solution_values,uses_solution_gradient)
-        {}
-        template <typename real2>
-        /// Templated volume integrand
-        real2 evaluate_volume_integrand(
-            const PHiLiP::Physics::PhysicsBase<dim,nstate,real2> &physics,
-            const dealii::Point<dim,real2> &phys_coord,
-            const std::array<real2,nstate> &soln_at_q,
-            const std::array<dealii::Tensor<1,dim,real2>,nstate> &soln_grad_at_q) const;
+public:
+    /// Constructor
+    DiffusionFunctional(
+        std::shared_ptr<PHiLiP::DGBase<dim,real>> dg_input,
+        std::shared_ptr<PHiLiP::Physics::PhysicsBase<dim,nstate,FadFadType>> _physics_fad_fad,
+        const bool uses_solution_values = true,
+        const bool uses_solution_gradient = false)
+    : PHiLiP::Functional<dim,nstate,real>(dg_input,_physics_fad_fad,uses_solution_values,uses_solution_gradient)
+    {}
 
-     /// Non-template functions to override the template classes
-  real evaluate_volume_integrand(
-            const PHiLiP::Physics::PhysicsBase<dim,nstate,real> &physics,
-            const dealii::Point<dim,real> &phys_coord,
-            const std::array<real,nstate> &soln_at_q,
-            const std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_at_q) const override
-  {
-   return evaluate_volume_integrand<>(physics, phys_coord, soln_at_q, soln_grad_at_q);
-  }
-     /// Non-template functions to override the template classes
-  FadFadType evaluate_volume_integrand(
-            const PHiLiP::Physics::PhysicsBase<dim,nstate,FadFadType> &physics,
-            const dealii::Point<dim,FadFadType> &phys_coord,
-            const std::array<FadFadType,nstate> &soln_at_q,
-            const std::array<dealii::Tensor<1,dim,FadFadType>,nstate> &soln_grad_at_q) const override
-  {
-   return evaluate_volume_integrand<>(physics, phys_coord, soln_at_q, soln_grad_at_q);
-  }
+    /// Templated volume integrand
+    template <typename real2>
+    real2 evaluate_volume_integrand(
+        const PHiLiP::Physics::PhysicsBase<dim,nstate,real2> &physics,
+        const dealii::Point<dim,real2> &phys_coord,
+        const std::array<real2,nstate> &soln_at_q,
+        const std::array<dealii::Tensor<1,dim,real2>,nstate> &soln_grad_at_q) const;
+
+    /// Non-template functions to override the template classes
+    real evaluate_volume_integrand(
+        const PHiLiP::Physics::PhysicsBase<dim,nstate,real> &physics,
+        const dealii::Point<dim,real> &phys_coord,
+        const std::array<real,nstate> &soln_at_q,
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_at_q) const override
+    {
+        return evaluate_volume_integrand<>(physics, phys_coord, soln_at_q, soln_grad_at_q);
+    }
+    
+    /// Non-template functions to override the template classes
+    FadFadType evaluate_volume_integrand(
+        const PHiLiP::Physics::PhysicsBase<dim,nstate,FadFadType> &physics,
+        const dealii::Point<dim,FadFadType> &phys_coord,
+        const std::array<FadFadType,nstate> &soln_at_q,
+        const std::array<dealii::Tensor<1,dim,FadFadType>,nstate> &soln_grad_at_q) const override
+    {
+        return evaluate_volume_integrand<>(physics, phys_coord, soln_at_q, soln_grad_at_q);
+    }
 };
 
 /// test case

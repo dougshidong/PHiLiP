@@ -1,5 +1,6 @@
 #include "physics_post_processor.h"
 #include "physics/physics_factory.h"
+#include "physics/model_factory.h"
 
 namespace PHiLiP {
 namespace Postprocess {
@@ -9,8 +10,11 @@ std::unique_ptr< dealii::DataPostprocessor<dim> > PostprocessorFactory<dim>
 ::create_Postprocessor(const Parameters::AllParameters *const parameters_input)
 {
     using PDE_enum = Parameters::AllParameters::PartialDifferentialEquation;
-    PDE_enum pde_type = parameters_input->pde_type;
-    //Parameters::AllParameters::PartialDifferentialEquation pde_type = parameters_input->pde_type;
+    const PDE_enum pde_type = parameters_input->pde_type;
+#if PHILIP_DIM==3
+    using Model_enum = Parameters::AllParameters::ModelType;
+    const Model_enum model_type = parameters_input->model_type;
+#endif
 
     if (pde_type == PDE_enum::advection) {
         return std::make_unique< PhysicsPostprocessor<dim,1> >(parameters_input);
@@ -30,7 +34,13 @@ std::unique_ptr< dealii::DataPostprocessor<dim> > PostprocessorFactory<dim>
         return std::make_unique< PhysicsPostprocessor<dim,dim+2> >(parameters_input);
     } else if (pde_type == PDE_enum::navier_stokes) {
         return std::make_unique< PhysicsPostprocessor<dim,dim+2> >(parameters_input);
-    } else {
+    }
+#if PHILIP_DIM==3
+    else if ((pde_type == PDE_enum::physics_model) && (model_type == Model_enum::large_eddy_simulation)) {
+        return std::make_unique< PhysicsPostprocessor<dim,dim+2> >(parameters_input);
+    } 
+#endif
+    else {
         std::cout << "Invalid PDE when creating post-processor" << std::endl;
         std::abort();
     }
@@ -39,7 +49,8 @@ template class PostprocessorFactory <PHILIP_DIM>;
 
 template <int dim, int nstate> PhysicsPostprocessor<dim,nstate>
 ::PhysicsPostprocessor (const Parameters::AllParameters *const parameters_input)
-    : physics(Physics::PhysicsFactory<dim,nstate,double>::create_Physics(parameters_input))
+    : model(Physics::ModelFactory<dim,nstate,double>::create_Model(parameters_input)) 
+    , physics(Physics::PhysicsFactory<dim,nstate,double>::create_Physics(parameters_input,model))
 { }
 
 template <int dim, int nstate> void PhysicsPostprocessor<dim,nstate>

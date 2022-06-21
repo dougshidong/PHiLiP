@@ -30,6 +30,9 @@ public:
 template <int dim, int nstate, typename real>
 class FreeStreamInitialConditions : public InitialConditionFunction<dim,nstate,real>
 {
+protected:
+    using dealii::Function<dim,real>::value; ///< dealii::Function we are templating on
+
 public:
     /// Farfield conservative solution
     std::array<double,nstate> farfield_conservative;
@@ -59,7 +62,7 @@ public:
 
 /// Initial Condition Function: Taylor Green Vortex (uniform density)
 template <int dim, int nstate, typename real>
-class InitialConditionFunction_TaylorGreenVortex: public InitialConditionFunction<dim,nstate,real>
+class InitialConditionFunction_TaylorGreenVortex : public InitialConditionFunction<dim,nstate,real>
 {
 protected:
     using dealii::Function<dim,real>::value; ///< dealii::Function we are templating on
@@ -69,7 +72,8 @@ public:
     /** Calls the Function(const unsigned int n_components) constructor in deal.II
      *  This sets the public attribute n_components = nstate, which can then be accessed
      *  by all the other functions
-     *  Reference: Gassner2016split, plata2019performance
+     *  Reference: (1) Gassner2016split, 
+     *             (2) de la Llave Plata et al. (2019). "On the performance of a high-order multiscale DG approach to LES at increasing Reynolds number."
      *  These initial conditions are given in nondimensional form (free-stream as reference)
      */
     InitialConditionFunction_TaylorGreenVortex (
@@ -187,13 +191,16 @@ public:
 
 /// Initial condition 0.
 template <int dim, int nstate, typename real>
-class InitialConditionFunction_Zero : public dealii::Function<dim>
+class InitialConditionFunction_Zero : public InitialConditionFunction<dim,nstate,real>
 {
+protected:
+    using dealii::Function<dim,real>::value; ///< dealii::Function we are templating on
+    
 public:
     /// Constructor to initialize dealii::Function
     InitialConditionFunction_Zero()
-    : dealii::Function<dim,real>(nstate)
-    { }
+    : InitialConditionFunction<dim,nstate,real>()
+    {}
 
     /// Returns zero.
     real value(const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;

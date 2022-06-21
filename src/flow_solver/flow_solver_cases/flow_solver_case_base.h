@@ -10,7 +10,7 @@
 #include <deal.II/distributed/tria.h>
 
 namespace PHiLiP {
-namespace Tests {
+namespace FlowSolver {
 
 #if PHILIP_DIM==1
 using Triangulation = dealii::Triangulation<PHILIP_DIM>;
@@ -31,7 +31,7 @@ public:
     ~FlowSolverCaseBase() {};
 
     /// Displays the flow setup parameters
-    void display_flow_solver_setup() const;
+    void display_flow_solver_setup(std::shared_ptr<DGBase<dim,double>> dg) const;
 
     /// Pure Virtual function to generate the grid
     virtual std::shared_ptr<Triangulation> generate_grid() const = 0;
@@ -48,6 +48,9 @@ public:
 
     /// Virtual function to compute the constant time step
     virtual double get_constant_time_step(std::shared_ptr <DGBase<dim, double>> dg) const;
+
+    /// Virtual function to compute the adaptive time step
+    virtual double get_adaptive_time_step(std::shared_ptr <DGBase<dim, double>> dg) const;
 
     /// Virtual function for postprocessing when solving for steady state
     virtual void steady_state_postprocessing(std::shared_ptr <DGBase<dim, double>> dg) const;
@@ -81,7 +84,7 @@ private:
 
 };
 
-} // Tests namespace
+} // FlowSolver namespace
 } // PHiLiP namespace
 
 #endif

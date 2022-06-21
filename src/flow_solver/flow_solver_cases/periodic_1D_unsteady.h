@@ -9,7 +9,7 @@
 #include <deal.II/base/table_handler.h>
 
 namespace PHiLiP {
-namespace Tests {
+namespace FlowSolver {
 
 template <int dim, int nstate>
 class Periodic1DUnsteady : public PeriodicCubeFlow<dim,nstate>
@@ -37,6 +37,6 @@ protected:
 };
 
 
-} // Tests namespace
+} // FlowSolver namespace
 } // PHiLiP namespace
 #endif

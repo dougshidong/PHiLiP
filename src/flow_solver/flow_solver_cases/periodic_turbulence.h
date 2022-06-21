@@ -6,7 +6,7 @@
 #include "physics/navier_stokes.h"
 
 namespace PHiLiP {
-namespace Tests {
+namespace FlowSolver {
 
 template <int dim, int nstate>
 class PeriodicTurbulence : public PeriodicCubeFlow<dim,nstate>
@@ -78,6 +78,9 @@ protected:
     /// Function to compute the constant time step
     double get_constant_time_step(std::shared_ptr<DGBase<dim,double>> dg) const override;
 
+    /// Function to compute the adaptive time step
+    double get_adaptive_time_step(std::shared_ptr<DGBase<dim,double>> dg) const override;
+
     /// Compute the desired unsteady data and write it to a table
     void compute_unsteady_data_and_write_to_table(
             const unsigned int current_iteration,
@@ -94,8 +97,11 @@ protected:
     };
     /// Array for storing the integrated quantities; done for computational efficiency
     std::array<double,NUMBER_OF_INTEGRATED_QUANTITIES> integrated_quantities;
+
+    /// Maximum local wave speed (i.e. convective eigenvalue)
+    double maximum_local_wave_speed;
 };
 
-} // Tests namespace
+} // FlowSolver namespace
 } // PHiLiP namespace
 #endif

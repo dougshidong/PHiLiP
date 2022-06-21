@@ -14,6 +14,7 @@
 #include "euler.h"
 #include "mhd.h"
 #include "navier_stokes.h"
+#include "physics_model.h"
 
 namespace PHiLiP {
 namespace Physics {
@@ -21,11 +22,23 @@ namespace Physics {
 template <int dim, int nstate, typename real>
 std::shared_ptr < PhysicsBase<dim,nstate,real> >
 PhysicsFactory<dim,nstate,real>
-::create_Physics(const Parameters::AllParameters *const parameters_input)
+::create_Physics(const Parameters::AllParameters               *const parameters_input,
+                 std::shared_ptr< ModelBase<dim,nstate,real> > model_input)
 {
     using PDE_enum = Parameters::AllParameters::PartialDifferentialEquation;
-
     PDE_enum pde_type = parameters_input->pde_type;
+
+    return create_Physics(parameters_input, pde_type, model_input);
+}
+
+template <int dim, int nstate, typename real>
+std::shared_ptr < PhysicsBase<dim,nstate,real> >
+PhysicsFactory<dim,nstate,real>
+::create_Physics(const Parameters::AllParameters                              *const parameters_input,
+                 const Parameters::AllParameters::PartialDifferentialEquation pde_type,
+                 std::shared_ptr< ModelBase<dim,nstate,real> >                model_input)
+{
+    using PDE_enum = Parameters::AllParameters::PartialDifferentialEquation;
 
     // generating the manufactured solution from the manufactured solution factory
     std::shared_ptr< ManufacturedSolutionFunction<dim,real> >  manufactured_solution_function 
@@ -86,7 +99,6 @@ PhysicsFactory<dim,nstate,real>
                 parameters_input->euler_param.mach_inf,
                 parameters_input->euler_param.angle_of_attack,
                 parameters_input->euler_param.side_slip_angle,
-                diffusion_tensor, 
                 manufactured_solution_function);
         }
     } else if (pde_type == PDE_enum::mhd) {
@@ -107,8 +119,13 @@ PhysicsFactory<dim,nstate,real>
                 parameters_input->navier_stokes_param.reynolds_number_inf,
                 parameters_input->navier_stokes_param.nondimensionalized_isothermal_wall_temperature,
                 parameters_input->navier_stokes_param.thermal_boundary_condition_type,
-                diffusion_tensor, 
                 manufactured_solution_function);
+        }
+    } else if (pde_type == PDE_enum::physics_model) {
+        if constexpr (nstate>=dim+2) {
+            return create_Physics_Model(parameters_input,
+                                        manufactured_solution_function,
+                                        model_input);
         }
     } else {
         // prevent warnings for dim=3,nstate=4, etc.
@@ -118,6 +135,62 @@ PhysicsFactory<dim,nstate,real>
     }
     std::cout << "Can't create PhysicsBase, invalid PDE type: " << pde_type << std::endl;
     assert(0==1 && "Can't create PhysicsBase, invalid PDE type");
+    return nullptr;
+}
+
+template <int dim, int nstate, typename real>
+std::shared_ptr < PhysicsBase<dim,nstate,real> >
+PhysicsFactory<dim,nstate,real>
+::create_Physics_Model(const Parameters::AllParameters                           *const parameters_input,
+                       std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function,
+                       std::shared_ptr< ModelBase<dim,nstate,real> >             model_input)
+{
+    using PDE_enum = Parameters::AllParameters::PartialDifferentialEquation;
+
+    using Model_enum = Parameters::AllParameters::ModelType;
+    Model_enum model_type = parameters_input->model_type;
+    
+    // ===============================================================================
+    // Physics Model
+    // ===============================================================================
+    
+    // Create baseline physics object
+    PDE_enum baseline_physics_type;
+
+    // -------------------------------------------------------------------------------
+    // Large Eddy Simulation (LES)
+    // -------------------------------------------------------------------------------
+    if (model_type == Model_enum::large_eddy_simulation) {
+        if constexpr ((nstate==dim+2) && (dim==3)) {
+            // Assign baseline physics type (and corresponding nstates) based on the physics model type
+            // -- Assign nstates for the baseline physics (constexpr because template parameter)
+            constexpr int nstate_baseline_physics = dim+2;
+            // -- Assign baseline physics type
+            if(parameters_input->physics_model_param.euler_turbulence) {
+                baseline_physics_type = PDE_enum::euler;
+            }
+            else {
+                baseline_physics_type = PDE_enum::navier_stokes;
+            }
+
+            // Create the physics model object in physics
+            return std::make_shared < PhysicsModel<dim,nstate,real,nstate_baseline_physics> > (
+                    parameters_input,
+                    baseline_physics_type,
+                    model_input,
+                    manufactured_solution_function);
+        }
+        else {
+            // LES does not exist for nstate!=(dim+2) || dim!=3
+            (void) baseline_physics_type;
+            return nullptr;
+        }
+    } else {
+        // prevent warnings for dim=3,nstate=4, etc.
+        (void) baseline_physics_type;
+    }    
+    std::cout << "Can't create PhysicsModel, invalid ModelType type: " << model_type << std::endl;
+    assert(0==1 && "Can't create PhysicsModel, invalid ModelType type");
     return nullptr;
 }
 

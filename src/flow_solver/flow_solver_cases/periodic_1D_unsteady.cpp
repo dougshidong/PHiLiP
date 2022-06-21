@@ -22,9 +22,9 @@ namespace FlowSolver {
 template <int dim, int nstate>
 Periodic1DUnsteady<dim, nstate>::Periodic1DUnsteady(const PHiLiP::Parameters::AllParameters *const parameters_input)
         : PeriodicCubeFlow<dim, nstate>(parameters_input)
-        , number_of_cells_per_direction(this->all_param.grid_refinement_study_param.grid_size)
-        , domain_left(this->all_param.grid_refinement_study_param.grid_left)
-        , domain_right(this->all_param.grid_refinement_study_param.grid_right)
+        , number_of_cells_per_direction(this->all_param.flow_solver_param.number_of_grid_elements_per_dimension)
+        , domain_left(this->all_param.flow_solver_param.grid_left_bound)
+        , domain_right(this->all_param.flow_solver_param.grid_right_bound)
         , domain_size(pow(this->domain_right - this->domain_left, dim))
         , unsteady_data_table_filename_with_extension(this->all_param.flow_solver_param. unsteady_data_table_filename+ ".txt")
 {

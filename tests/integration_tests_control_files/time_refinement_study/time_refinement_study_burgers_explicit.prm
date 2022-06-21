@@ -26,21 +26,19 @@ subsection ODE solver
   end
 end
 
-# polynomial order and number of cells per direction (i.e. grid_size)
-subsection grid refinement study
-  set poly_degree = 5 
-  set grid_size = 16 
-  set grid_left = 0.0
-  set grid_right = 2.0 
-end
-
 subsection flow_solver
   set flow_case_type = burgers_periodic
   set final_time = 0.1 
+  set poly_degree = 5
   set unsteady_data_table_filename = burgers_unsteady_data
   subsection time_refinement_study
     set number_of_times_to_solve = 4 
     set refinement_ratio = 0.5
     set number_of_timesteps_for_reference_solution = 10000
+  end
+  subsection grid
+    set grid_left_bound = 0.0
+    set grid_right_bound = 2.0
+    set number_of_grid_elements_per_dimension = 16
   end
 end

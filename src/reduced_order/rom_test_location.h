@@ -23,12 +23,9 @@
 #include "Amesos.h"
 #include "Amesos_BaseSolver.h"
 
-
-
 namespace PHiLiP {
 namespace ProperOrthogonalDecomposition {
-using Eigen::RowVector2d;
-
+using Eigen::RowVectorXd;
 
 /// Class to hold information about the reduced-order solution
 template <int dim, int nstate>
@@ -36,7 +33,7 @@ class ROMTestLocation
 {
 public:
     /// Constructor
-    ROMTestLocation(const RowVector2d& parameter, std::shared_ptr<ROMSolution < dim, nstate>> rom_solution);
+    ROMTestLocation(const RowVectorXd& parameter, std::shared_ptr<ROMSolution < dim, nstate>> rom_solution);
 
     /// Destructor
     ~ROMTestLocation() {};
@@ -47,7 +44,7 @@ public:
 
     void compute_total_error();
 
-    RowVector2d parameter;
+    RowVectorXd parameter;
 
     std::shared_ptr<ROMSolution<dim, nstate>> rom_solution;
 

@@ -4,7 +4,7 @@ namespace PHiLiP {
 namespace ProperOrthogonalDecomposition {
 
 template <int dim, int nstate>
-ROMTestLocation<dim, nstate>::ROMTestLocation(const RowVector2d& parameter, std::shared_ptr<ROMSolution<dim, nstate>> rom_solution)
+ROMTestLocation<dim, nstate>::ROMTestLocation(const RowVectorXd& parameter, std::shared_ptr<ROMSolution<dim, nstate>> rom_solution)
         : parameter(parameter)
         , rom_solution(rom_solution)
         , mpi_communicator(MPI_COMM_WORLD)

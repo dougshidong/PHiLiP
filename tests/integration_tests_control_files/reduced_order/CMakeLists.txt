@@ -1,5 +1,10 @@
 set(TEST_OUTPUT_DIR ${CMAKE_CURRENT_BINARY_DIR})
 
+configure_file(naca0012_hopw_ref1.msh naca0012_hopw_ref1.msh COPYONLY)
+configure_file(naca0012_hopw_ref2.msh naca0012_hopw_ref2.msh COPYONLY)
+configure_file(naca0012_hopw_ref3.msh naca0012_hopw_ref3.msh COPYONLY)
+configure_file(naca0012_hopw_ref4.msh naca0012_hopw_ref4.msh COPYONLY)
+
 # =======================================
 # Test Burgers Rewienski Galerkin and Petrov-Galerkin reduced-order solvers
 # =======================================
@@ -73,7 +78,6 @@ add_test(
 # Inviscid NACA0012 Adaptive Sampling
 # =======================================
 configure_file(inviscid_naca0012_adaptive_sampling.prm inviscid_naca0012_adaptive_sampling.prm COPYONLY)
-configure_file(naca0012_hopw_ref2.msh naca0012_hopw_ref2.msh COPYONLY)
 add_test(
         NAME INVISCID_NACA0012_ADAPTIVE_SAMPLING
         COMMAND mpirun -np ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_2D -i ${CMAKE_CURRENT_BINARY_DIR}/inviscid_naca0012_adaptive_sampling.prm

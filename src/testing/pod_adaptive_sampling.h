@@ -41,7 +41,6 @@ namespace Tests {
 
 using DealiiVector = dealii::LinearAlgebra::distributed::Vector<double>;
 using Eigen::MatrixXd;
-using Eigen::RowVector2d;
 using Eigen::RowVectorXd;
 using Eigen::VectorXd;
 
@@ -59,12 +58,11 @@ public:
 
     mutable RowVectorXd parameter1_range;
     mutable RowVectorXd parameter2_range;
-    mutable std::string parameter1_name;
-    mutable std::string parameter2_name;
+    mutable std::vector<std::string> parameter_names;
     mutable MatrixXd snapshot_parameters;
     mutable MatrixXd initial_rom_parameters;
 
-    mutable std::vector<std::pair<RowVector2d, std::shared_ptr<ProperOrthogonalDecomposition::ROMTestLocation<dim,nstate>>>> rom_locations;
+    mutable std::vector<std::pair<RowVectorXd, std::shared_ptr<ProperOrthogonalDecomposition::ROMTestLocation<dim,nstate>>>> rom_locations;
 
     mutable double max_error;
 
@@ -86,15 +84,15 @@ public:
 
     bool placeTriangulationROMs(const MatrixXd& rom_points) const;
 
-    void updateNearestExistingROMs(const RowVector2d& parameter) const;
+    void updateNearestExistingROMs(const RowVectorXd& parameter) const;
 
-    RowVector2d getMaxErrorROM() const;
+    RowVectorXd getMaxErrorROM() const;
 
-    dealii::LinearAlgebra::distributed::Vector<double> solveSnapshotFOM(const RowVector2d& parameter) const;
+    dealii::LinearAlgebra::distributed::Vector<double> solveSnapshotFOM(const RowVectorXd& parameter) const;
 
-    std::shared_ptr<ProperOrthogonalDecomposition::ROMSolution<dim,nstate>> solveSnapshotROM(const RowVector2d& parameter) const;
+    std::shared_ptr<ProperOrthogonalDecomposition::ROMSolution<dim,nstate>> solveSnapshotROM(const RowVectorXd& parameter) const;
 
-    Parameters::AllParameters reinitParams(const RowVector2d& parameter) const;
+    Parameters::AllParameters reinitParams(const RowVectorXd& parameter) const;
 
     std::shared_ptr<Functional<dim,nstate,double>> functionalFactory(std::shared_ptr<DGBase<dim, double>> dg) const;
 

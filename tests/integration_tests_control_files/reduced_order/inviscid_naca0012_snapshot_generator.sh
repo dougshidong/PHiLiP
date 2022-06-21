@@ -1,38 +1,8 @@
 #!/bin/bash
 
-mach=(0.5
-      0.9
-      0.9
-      0.7
-      0.5
-      0.7
-      0.6
-      0.8
-      0.55
-      0.75
-      0.675606423723048
-      0.644669190880549
-      0.827514215729673
-      0.868460675499731
-      0.9
-      0.821407462389499)
+mach=(0.8)
 
-alpha=(4
-       4
-       0
-       2
-       0
-       1.33333333333333
-       2.66666666666667
-       0.444444444444446
-       1.77777777777778
-       3.11111111111111
-       4
-       0
-       3.6673627841082
-       1.31601972817496
-       0.834803142735038
-       0.97359735186394)
+alpha=(4)
 
 for ((i = 0 ; i < ${#mach[@]} ; i++)); do
 
@@ -79,7 +49,7 @@ echo "  set ode_solver_type  = implicit" >> $file
 echo "  set initial_time_step = 1e3" >> $file
 echo "  set time_step_factor_residual = 15.0" >> $file
 echo "  set time_step_factor_residual_exp = 2" >> $file
-echo "  #set print_iteration_modulo              = 1" >> $file
+echo "  set print_iteration_modulo              = 1" >> $file
 echo "  set output_solution_vector_modulo       = 1" >> $file
 echo "  set solutions_table_filename = ${mach[i]}_${alpha[i]}_solution_snapshot" >> $file
 echo "end" >> $file
@@ -91,7 +61,7 @@ echo "end" >> $file
 echo "" >> $file
 echo "subsection flow_solver" >> $file
 echo "  set flow_case_type = naca0012" >> $file
-echo "  set input_mesh_filename = naca0012_hopw_ref1" >> $file
+echo "  set input_mesh_filename = naca0012_hopw_ref4" >> $file
 echo "  set steady_state = true" >> $file
 echo "end" >> $file
 

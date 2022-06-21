@@ -36,24 +36,21 @@ subsection ODE solver
 end
 
 subsection grid refinement study
- set poly_degree = 0
  set num_refinements = 0
- #set grid_size = 4
 end
 
 subsection flow_solver
   set flow_case_type = naca0012
-  set input_mesh_filename = naca0012_hopw_ref1
+  set poly_degree = 0
   set steady_state = true
+  subsection grid
+    set input_mesh_filename = naca0012_hopw_ref2
+  end
 end
 
 #Reduced order parameters
 subsection reduced order
-  #set adaptation_tolerance = 0.00001
-  #set adapt_coarse_basis_constant = 0
-  #set coarse_basis_dimension = 8
-  #set fine_basis_dimension = 18
+  set adaptation_tolerance = 0.001
   set path_to_search = .
-  set method_of_snapshots = false
   set reduced_residual_tolerance = 5e-13
 end

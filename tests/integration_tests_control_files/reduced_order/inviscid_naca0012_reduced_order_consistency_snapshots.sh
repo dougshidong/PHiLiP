@@ -63,14 +63,16 @@ echo "  set solutions_table_filename = ${mach[i]}_${alpha[i]}_solution_snapshot"
 echo "end" >> $file
 echo "" >> $file
 echo "subsection grid refinement study" >> $file
-echo " set poly_degree = 0" >> $file
 echo " set num_refinements = 0" >> $file
 echo "end" >> $file
 echo "" >> $file
 echo "subsection flow_solver" >> $file
 echo "  set flow_case_type = naca0012" >> $file
-echo "  set input_mesh_filename = naca0012_hopw_ref1" >> $file
+echo "  set poly_degree = 0" >> $file
 echo "  set steady_state = true" >> $file
+echo "  subsection grid" >> $file
+echo "    set input_mesh_filename = naca0012_hopw_ref1" >> $file
+echo "  end" >> $file
 echo "end" >> $file
 
 dir=$(pwd)

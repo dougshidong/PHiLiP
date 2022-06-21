@@ -49,7 +49,7 @@ subsection ODE solver
   set output_solution_every_x_steps = 1
   set nonlinear_max_iterations            = 50
   set nonlinear_steady_residual_tolerance = 1e-15
-  set ode_solver_type  = pod_petrov_galerkin
+  set ode_solver_type  = implicit
   set initial_time_step = 1e3
   set time_step_factor_residual = 15.0
   set time_step_factor_residual_exp = 2
@@ -57,16 +57,16 @@ subsection ODE solver
 end
 
 subsection grid refinement study
- set poly_degree = 0
  set num_refinements = 0
- #set grid_size = 4
 end
 
 subsection flow_solver
   set flow_case_type = naca0012
-  set input_mesh_filename = naca0012_hopw_ref1
+  set poly_degree = 0
   set steady_state = true
-  set reduced_order = true
+  subsection grid
+    set input_mesh_filename = naca0012_hopw_ref1
+  end
 end
 
 subsection reduced order

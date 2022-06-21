@@ -14,14 +14,16 @@ set use_collocated_nodes = false
 # use the grid refinement study class to generate the grid
 subsection grid refinement study
  set num_refinements = 10
- set poly_degree = 0
- set grid_left = 0.0
- set grid_right = 100.0
 end
 
 subsection flow_solver
   set flow_case_type = burgers_rewienski_snapshot
   set steady_state = true
+  set poly_degree = 0
+  subsection grid
+    set grid_left_bound = 0.0
+    set grid_right_bound = 100.0
+  end
 end
 
 #Burgers parameters
@@ -32,13 +34,7 @@ end
 
 #Reduced order parameters
 subsection reduced order
-  set adaptation_tolerance = 0.00001
-  set adapt_coarse_basis_constant = 0
-  set coarse_basis_dimension = 6
-  set fine_basis_dimension = 18
   set path_to_search = ./rewienski_solutions/conference_convergence
-  set method_of_snapshots = false
-  set consider_error_sign = true
   set reduced_residual_tolerance = 1e-16
 end
 

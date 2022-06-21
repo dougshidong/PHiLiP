@@ -28,9 +28,6 @@ echo "set use_collocated_nodes = false"                                         
 echo " "                                                                                            >> $file
 echo "subsection grid refinement study"                                                             >> $file
 echo " set num_refinements = 10"                                                                    >> $file
-echo " set poly_degree = 0"                                                                         >> $file
-echo " set grid_left = 0.0"                                                                         >> $file
-echo " set grid_right = 100.0"                                                                      >> $file
 echo "end"                                                                                          >> $file
 echo " "                                                                                            >> $file
 echo "#Burgers parameters"                                                                          >> $file
@@ -42,6 +39,11 @@ echo " "                                                                        
 echo "subsection flow_solver"                                                                       >> $file
 echo " set flow_case_type = burgers_rewienski_snapshot"                                             >> $file
 echo " set steady_state = true"                                                                     >> $file
+echo " set poly_degree = 0"                                                                         >> $file
+echo "   subsection grid"                                                                           >> $file
+echo "   set grid_left_bound = 0.0"                                                                       >> $file
+echo "   set grid_right_bound = 100.0"                                                                    >> $file
+echo "  end"                                                                                        >> $file
 echo "end"                                                                                          >> $file
 echo " "                                                                                            >> $file
 echo "subsection ODE solver "                                                                       >> $file

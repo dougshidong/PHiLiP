@@ -13,8 +13,8 @@ TimeRefinementStudyReference<dim, nstate>::TimeRefinementStudyReference(
         const dealii::ParameterHandler &parameter_handler_input)  
         : TestsBase::TestsBase(parameters_input),
          parameter_handler(parameter_handler_input),
-         n_time_calculations(parameters_input->flow_solver_param.number_of_times_to_solve),
-         refine_ratio(parameters_input->flow_solver_param.refinement_ratio)
+         n_time_calculations(parameters_input->time_refinement_study_param.number_of_times_to_solve),
+         refine_ratio(parameters_input->time_refinement_study_param.refinement_ratio)
 {}
 
 template <int dim, int nstate>
@@ -44,7 +44,7 @@ template <int dim, int nstate>
 dealii::LinearAlgebra::distributed::Vector<double> TimeRefinementStudyReference<dim,nstate>::calculate_reference_solution(
         double final_time) const
 {
-    int number_of_timesteps_for_reference_solution = this->all_parameters->flow_solver_param.number_of_timesteps_for_reference_solution;
+    int number_of_timesteps_for_reference_solution = this->all_parameters->time_refinement_study_param.number_of_timesteps_for_reference_solution;
     const Parameters::AllParameters params_reference = reinit_params_for_reference_solution(number_of_timesteps_for_reference_solution, final_time);
     std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver_reference = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(&params_reference, parameter_handler);
     static_cast<void>(flow_solver_reference->run());

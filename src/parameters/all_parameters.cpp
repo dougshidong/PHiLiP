@@ -20,6 +20,7 @@ AllParameters::AllParameters ()
     , flow_solver_param(FlowSolverParam())
     , mesh_adaptation_param(MeshAdaptationParam())
     , functional_param(FunctionalParam())
+    , time_refinement_study_param(TimeRefinementStudyParam())
     , pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD)==0)
 { }
 
@@ -226,6 +227,8 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
     Parameters::FlowSolverParam::declare_parameters (prm);
     
     Parameters::FunctionalParam::declare_parameters (prm);
+    
+    Parameters::TimeRefinementStudyParam::declare_parameters (prm);
 
     pcout << "Done declaring inputs." << std::endl;
 }
@@ -406,6 +409,9 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     
     pcout << "Parsing functional subsection..." << std::endl;
     functional_param.parse_parameters (prm);
+    
+    pcout << "Parsing time refinement study subsection..." << std::endl;
+    time_refinement_study_param.parse_parameters (prm);
     
     pcout << "Done parsing." << std::endl;
 }

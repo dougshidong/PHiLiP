@@ -131,7 +131,7 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
         }
         prm.leave_subsection();
         
-        prm.enter_subsection("time_refinement_study");
+/*        prm.enter_subsection("time_refinement_study");
         {
             prm.declare_entry("number_of_times_to_solve", "4",
                               dealii::Patterns::Integer(1, dealii::Patterns::Integer::max_int_value),
@@ -144,6 +144,7 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                               "Number of times to run the flow solver during a time refinement study.");
         }
         prm.leave_subsection();
+*/
     }
     prm.leave_subsection();
 }
@@ -195,13 +196,13 @@ void FlowSolverParam::parse_parameters(dealii::ParameterHandler &prm)
             else if (density_initial_condition_type_string == "isothermal") {density_initial_condition_type = isothermal;}
         }
         prm.leave_subsection();
-        prm.enter_subsection("time_refinement_study");
+/*        prm.enter_subsection("time_refinement_study");
         {
             number_of_times_to_solve = prm.get_integer("number_of_times_to_solve");
             refinement_ratio = prm.get_double("refinement_ratio");
             number_of_timesteps_for_reference_solution = prm.get_integer("number_of_timesteps_for_reference_solution");
         }
-        prm.leave_subsection();
+        prm.leave_subsection();         */
     }
     prm.leave_subsection();
 }

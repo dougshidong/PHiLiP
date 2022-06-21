@@ -287,6 +287,16 @@ int main (int argc, char * argv[])
         std::shared_ptr < PHiLiP::DGBase<dim, double> > dg = PHiLiP::DGFactory<dim,double>::create_discontinuous_galerkin(&all_parameters_new, poly_degree, poly_degree, grid_degree, grid);
         dg->allocate_system ();
 
+        dealii::QGaussLobatto<1> grid_quad(grid_degree +1);
+        const dealii::FE_DGQ<1> fe_grid(grid_degree);
+        const dealii::FESystem<1,1> fe_sys_grid(fe_grid, nstate);
+        dealii::QGauss<1> flux_quad(poly_degree +1);
+        dealii::QGauss<0> flux_quad_face(poly_degree +1);
+
+        PHiLiP::OPERATOR::mapping_shape_functions<dim,2*dim> mapping_basis(nstate,poly_degree,grid_degree);
+        mapping_basis.build_1D_shape_functions_at_grid_nodes(fe_sys_grid, grid_quad);
+        mapping_basis.build_1D_shape_functions_at_flux_nodes(fe_sys_grid, flux_quad, flux_quad_face);
+
         const unsigned int n_quad_pts = pow(poly_degree+1,dim);
 
         const dealii::FESystem<dim> &fe_metric = (dg->high_order_grid->fe_system);
@@ -311,43 +321,12 @@ int main (int argc, char * argv[])
                 }
             }
 
-            dealii::QGaussLobatto<1> grid_quad(grid_degree +1);
-            const dealii::FE_DGQ<1> fe_grid(grid_degree);
-            const dealii::FESystem<1,1> fe_sys_grid(fe_grid, nstate);
-            dealii::QGauss<1> flux_quad(poly_degree +1);
-
-            PHiLiP::OPERATOR::mapping_shape_functions<dim,2*dim> mapping_GN(nstate,poly_degree,grid_degree);
-            mapping_GN.build_1D_volume_operator(fe_sys_grid, grid_quad);
-            mapping_GN.build_1D_gradient_operator(fe_sys_grid, grid_quad);
-
-            PHiLiP::OPERATOR::mapping_shape_functions<dim,2*dim> mapping_FN(nstate,poly_degree,grid_degree);
-            mapping_FN.build_1D_volume_operator(fe_sys_grid, flux_quad);
-            mapping_FN.build_1D_gradient_operator(fe_sys_grid, flux_quad);
-
-
-            PHiLiP::OPERATOR::metric_operators<real,dim,2*dim> vol_metric_oper(nstate,poly_degree,grid_degree);
-            dealii::Tensor<2,dim,std::vector<real>> metric_cofactor;
-            for(int idim=0; idim<dim; idim++){
-                for(int idim2=0; idim2<dim; idim2++){
-                    metric_cofactor[idim][idim2].resize(n_quad_pts);
-                }
-            }
-
-            metric_cofactor = vol_metric_oper.build_local_metric_cofactor_matrix(
-                                n_quad_pts, n_metric_dofs/dim,
-                                mapping_support_points,
-                                mapping_GN.oneD_vol_operator, 
-                                mapping_GN.oneD_vol_operator, 
-                                mapping_GN.oneD_vol_operator, 
-                                mapping_FN.oneD_vol_operator,
-                                mapping_FN.oneD_vol_operator,
-                                mapping_FN.oneD_vol_operator,
-                                mapping_GN.oneD_grad_operator, 
-                                mapping_GN.oneD_grad_operator, 
-                                mapping_GN.oneD_grad_operator, 
-                                mapping_FN.oneD_grad_operator,
-                                mapping_FN.oneD_grad_operator,
-                                mapping_FN.oneD_grad_operator);
+            PHiLiP::OPERATOR::metric_operators<real,dim,2*dim> metric_oper(nstate,poly_degree,grid_degree);
+            metric_oper.build_volume_metric_operators(
+                n_quad_pts, n_metric_dofs/dim,
+                mapping_support_points,
+                mapping_basis,
+                false);
 
             std::array<std::vector<real>,dim> GCL;
             for(int idim=0; idim<dim; idim++){
@@ -360,7 +339,7 @@ int main (int argc, char * argv[])
             flux_basis_quad.build_1D_gradient_state_operator(fe_sys_poly, flux_quad);
             flux_basis_quad.build_1D_volume_state_operator(fe_sys_poly, flux_quad);
             for(int idim=0; idim<dim; idim++){
-                flux_basis_quad.divergence_matrix_vector_mult(metric_cofactor[idim], GCL[idim],
+                flux_basis_quad.divergence_matrix_vector_mult(metric_oper.metric_cofactor_vol[idim], GCL[idim],
                                                               flux_basis_quad.oneD_vol_state_operator[0],
                                                               flux_basis_quad.oneD_vol_state_operator[0],
                                                               flux_basis_quad.oneD_vol_state_operator[0],

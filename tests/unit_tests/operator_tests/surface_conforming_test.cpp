@@ -291,20 +291,18 @@ int main (int argc, char * argv[])
         std::shared_ptr < PHiLiP::DGBase<dim, double> > dg = PHiLiP::DGFactory<dim,double>::create_discontinuous_galerkin(&all_parameters_new, poly_degree, poly_degree, grid_degree, grid);
         dg->allocate_system ();
         
-        const dealii::FE_DGQ<1> fe_dg(poly_degree);
-        const dealii::FESystem<1,1> fe_system(fe_dg, nstate);
-        dealii::QGaussLobatto<1> quad1D (poly_degree+1);
-        dealii::QGauss<1> flux_quad1D (poly_degree+1);
-        dealii::QGauss<0> face_quad1D (poly_degree+1);
-        PHiLiP::OPERATOR::mapping_shape_functions<dim,2*dim> mapp_basis_GN(nstate, poly_degree, grid_degree);
-        mapp_basis_GN.build_1D_volume_operator(fe_system, quad1D);
-        mapp_basis_GN.build_1D_gradient_operator(fe_system, quad1D);
-        PHiLiP::OPERATOR::mapping_shape_functions<dim,2*dim> mapp_basis_FN(nstate, poly_degree, grid_degree);
-        mapp_basis_FN.build_1D_volume_operator(fe_system, flux_quad1D);
-        mapp_basis_FN.build_1D_gradient_operator(fe_system, flux_quad1D);
-        mapp_basis_FN.build_1D_surface_operator(fe_system, face_quad1D);
-        mapp_basis_FN.build_1D_surface_gradient_operator(fe_system, face_quad1D);
+        dealii::QGaussLobatto<1> grid_quad(grid_degree +1);
+        const dealii::FE_DGQ<1> fe_grid(grid_degree);
+        const dealii::FESystem<1,1> fe_sys_grid(fe_grid, nstate);
+        dealii::QGauss<1> flux_quad(poly_degree +1);
+        dealii::QGauss<0> flux_quad_face(poly_degree +1);
+
+        PHiLiP::OPERATOR::mapping_shape_functions<dim,2*dim> mapping_basis(nstate,poly_degree,grid_degree);
+        mapping_basis.build_1D_shape_functions_at_grid_nodes(fe_sys_grid, grid_quad);
+        mapping_basis.build_1D_shape_functions_at_flux_nodes(fe_sys_grid, flux_quad, flux_quad_face);
+
         PHiLiP::OPERATOR::metric_operators<real,dim,2*dim> metric_oper(nstate, poly_degree, grid_degree);
+        PHiLiP::OPERATOR::metric_operators<real,dim,2*dim> metric_oper_neigh(nstate, poly_degree, grid_degree);
              
          
         const dealii::FESystem<dim> &fe_metric = (dg->high_order_grid->fe_system);
@@ -334,27 +332,13 @@ int main (int argc, char * argv[])
                 if(current_face->at_boundary())
                     continue;
              
-                dealii::Tensor<2,dim,std::vector<real>> metric_cofactor;
-                for(int idim=0; idim<dim; idim++){
-                    for(int idim2=0; idim2<dim; idim2++){
-                        metric_cofactor[idim][idim2].resize(n_quad_face_pts);
-                    }
-                }
-                metric_cofactor = metric_oper.build_local_metric_cofactor_matrix(
-                                    n_quad_face_pts, n_metric_dofs/dim,
-                                    mapping_support_points,
-                                    mapp_basis_GN.oneD_vol_operator,  
-                                    mapp_basis_GN.oneD_vol_operator,  
-                                    mapp_basis_GN.oneD_vol_operator,  
-                                    (iface == 0) ? mapp_basis_FN.oneD_surf_operator[0] : ((iface == 1) ? mapp_basis_FN.oneD_surf_operator[1] : mapp_basis_FN.oneD_vol_operator),
-                                    (iface == 2) ? mapp_basis_FN.oneD_surf_operator[0] : ((iface == 3) ? mapp_basis_FN.oneD_surf_operator[1] : mapp_basis_FN.oneD_vol_operator),
-                                    (iface == 4) ? mapp_basis_FN.oneD_surf_operator[0] : ((iface == 5) ? mapp_basis_FN.oneD_surf_operator[1] : mapp_basis_FN.oneD_vol_operator),
-                                    mapp_basis_GN.oneD_grad_operator, 
-                                    mapp_basis_GN.oneD_grad_operator, 
-                                    mapp_basis_GN.oneD_grad_operator, 
-                                    (iface == 0) ? mapp_basis_FN.oneD_surf_grad_operator[0] : ((iface == 1) ? mapp_basis_FN.oneD_surf_grad_operator[1] : mapp_basis_FN.oneD_grad_operator),
-                                    (iface == 2) ? mapp_basis_FN.oneD_surf_grad_operator[0] : ((iface == 3) ? mapp_basis_FN.oneD_surf_grad_operator[1] : mapp_basis_FN.oneD_grad_operator),
-                                    (iface == 4) ? mapp_basis_FN.oneD_surf_grad_operator[0] : ((iface == 5) ? mapp_basis_FN.oneD_surf_grad_operator[1] : mapp_basis_FN.oneD_grad_operator));
+                metric_oper.build_facet_metric_operators(
+                    iface,
+                    n_quad_face_pts, n_metric_dofs/dim,
+                    mapping_support_points,
+                    mapping_basis,
+                    false);
+                
              
                 auto metric_neighbor_cell = metric_cell->neighbor(iface);
                 std::vector<dealii::types::global_dof_index> neighbor_metric_dofs_indices(n_metric_dofs);
@@ -372,28 +356,13 @@ int main (int argc, char * argv[])
                         mapping_support_points_neigh[istate][igrid_node] += val * fe_metric.shape_value_component(idof,vol_GLL.point(igrid_node),istate); 
                     }
                 }
-             
-                dealii::Tensor<2,dim,std::vector<real>> metric_cofactor_neigh;
-                for(int idim=0; idim<dim; idim++){
-                    for(int idim2=0; idim2<dim; idim2++){
-                        metric_cofactor_neigh[idim][idim2].resize(n_quad_face_pts);
-                    }
-                }
-                metric_cofactor_neigh = metric_oper.build_local_metric_cofactor_matrix(
-                                        n_quad_face_pts, n_metric_dofs/dim,
-                                        mapping_support_points_neigh,
-                                        mapp_basis_GN.oneD_vol_operator,  
-                                        mapp_basis_GN.oneD_vol_operator,  
-                                        mapp_basis_GN.oneD_vol_operator,  
-                                        (neighbor_iface == 0) ? mapp_basis_FN.oneD_surf_operator[0] : ((neighbor_iface == 1) ? mapp_basis_FN.oneD_surf_operator[1] : mapp_basis_FN.oneD_vol_operator),
-                                        (neighbor_iface == 2) ? mapp_basis_FN.oneD_surf_operator[0] : ((neighbor_iface == 3) ? mapp_basis_FN.oneD_surf_operator[1] : mapp_basis_FN.oneD_vol_operator),
-                                        (neighbor_iface == 4) ? mapp_basis_FN.oneD_surf_operator[0] : ((neighbor_iface == 5) ? mapp_basis_FN.oneD_surf_operator[1] : mapp_basis_FN.oneD_vol_operator),
-                                        mapp_basis_GN.oneD_grad_operator, 
-                                        mapp_basis_GN.oneD_grad_operator, 
-                                        mapp_basis_GN.oneD_grad_operator, 
-                                        (neighbor_iface == 0) ? mapp_basis_FN.oneD_surf_grad_operator[0] : ((neighbor_iface == 1) ? mapp_basis_FN.oneD_surf_grad_operator[1] : mapp_basis_FN.oneD_grad_operator),
-                                        (neighbor_iface == 2) ? mapp_basis_FN.oneD_surf_grad_operator[0] : ((neighbor_iface == 3) ? mapp_basis_FN.oneD_surf_grad_operator[1] : mapp_basis_FN.oneD_grad_operator),
-                                        (neighbor_iface == 4) ? mapp_basis_FN.oneD_surf_grad_operator[0] : ((neighbor_iface == 5) ? mapp_basis_FN.oneD_surf_grad_operator[1] : mapp_basis_FN.oneD_grad_operator));
+
+                metric_oper_neigh.build_facet_metric_operators(
+                    neighbor_iface,
+                    n_quad_face_pts, n_metric_dofs/dim,
+                    mapping_support_points_neigh,
+                    mapping_basis,
+                    false);
              
              
                 const dealii::Tensor<1,dim> unit_normal_int = dealii::GeometryInfo<dim>::unit_normal_vector[iface];
@@ -404,8 +373,8 @@ int main (int argc, char * argv[])
                   //  operators.compute_reference_to_physical(unit_normal_int, metric_cofactor_neigh[iquad], normal_phys_ext[iquad]);
                     for(int idim=0; idim<dim; idim++){
                         for(int jdim=0; jdim<dim; jdim++){
-                            normal_phys_int[iquad][idim] += metric_cofactor[idim][jdim][iquad] * unit_normal_int[jdim];
-                            normal_phys_ext[iquad][idim] += metric_cofactor_neigh[idim][jdim][iquad] * unit_normal_int[jdim];
+                            normal_phys_int[iquad][idim] += metric_oper.metric_cofactor_surf[idim][jdim][iquad] * unit_normal_int[jdim];
+                            normal_phys_ext[iquad][idim] += metric_oper_neigh.metric_cofactor_surf[idim][jdim][iquad] * unit_normal_int[jdim];
                         } 
                     } 
                 }

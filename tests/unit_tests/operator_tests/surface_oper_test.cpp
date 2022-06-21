@@ -133,7 +133,7 @@ int main (int argc, char * argv[])
         dealii::QGauss<0> face_quad1D (poly_degree+1);
         PHiLiP::OPERATOR::face_integral_basis<dim,2*dim> face_int(nstate, poly_degree, 1);
         face_int.build_1D_surface_operator(fe_system, face_quad1D);
-        PHiLiP::OPERATOR::basis_at_facet_cubature<dim,2*dim> face_basis(nstate, poly_degree, 1);
+        PHiLiP::OPERATOR::basis_functions<dim,2*dim> face_basis(nstate, poly_degree, 1);
         face_basis.build_1D_surface_operator(fe_system, face_quad1D);
 
         const unsigned int n_face_quad_pts = face_quad1D.size();

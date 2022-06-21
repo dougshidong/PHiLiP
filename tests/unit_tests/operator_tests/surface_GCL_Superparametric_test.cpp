@@ -291,6 +291,19 @@ int main (int argc, char * argv[])
         const dealii::FESystem<dim> &fe_metric = (dg->high_order_grid->fe_system);
         const unsigned int n_metric_dofs = fe_metric.dofs_per_cell; 
         auto metric_cell = dg->high_order_grid->dof_handler_grid.begin_active();
+
+        dealii::QGaussLobatto<1> grid_quad(grid_degree +1);
+        const dealii::FE_DGQ<1> fe_grid(grid_degree);
+        const dealii::FESystem<1,1> fe_sys_grid(fe_grid, nstate);
+        dealii::QGauss<1> flux_quad(poly_degree +1);
+        dealii::QGauss<0> flux_quad_face(poly_degree +1);
+
+        PHiLiP::OPERATOR::mapping_shape_functions<dim,2*dim> mapping_basis(nstate,poly_degree,grid_degree);
+        mapping_basis.build_1D_shape_functions_at_grid_nodes(fe_sys_grid, grid_quad);
+        mapping_basis.build_1D_shape_functions_at_flux_nodes(fe_sys_grid, flux_quad, flux_quad_face);
+
+        PHiLiP::OPERATOR::metric_operators<real,dim,2*dim> metric_oper(nstate, poly_degree, grid_degree);
+        
         for (auto current_cell = dg->dof_handler.begin_active(); current_cell!=dg->dof_handler.end(); ++current_cell, ++metric_cell) {
             if (!current_cell->is_locally_owned()) continue;
         
@@ -309,54 +322,24 @@ int main (int argc, char * argv[])
                 }
             }
          
-            const dealii::FE_DGQ<1> fe_dg(poly_degree);
-            const dealii::FESystem<1,1> fe_system(fe_dg, nstate);
-            dealii::QGaussLobatto<1> quad1D (poly_degree+1);
-            dealii::QGauss<1> flux_quad1D (poly_degree+1);
-            dealii::QGauss<0> face_quad1D (poly_degree+1);
-            PHiLiP::OPERATOR::mapping_shape_functions<dim,2*dim> mapp_basis_GN(nstate, poly_degree, grid_degree);
-            mapp_basis_GN.build_1D_volume_operator(fe_system, quad1D);
-            mapp_basis_GN.build_1D_gradient_operator(fe_system, quad1D);
-            PHiLiP::OPERATOR::mapping_shape_functions<dim,2*dim> mapp_basis_FN(nstate, poly_degree, grid_degree);
-            mapp_basis_FN.build_1D_volume_operator(fe_system, flux_quad1D);
-            mapp_basis_FN.build_1D_gradient_operator(fe_system, flux_quad1D);
-            mapp_basis_FN.build_1D_surface_operator(fe_system, face_quad1D);
-            mapp_basis_FN.build_1D_surface_gradient_operator(fe_system, face_quad1D);
-         
             const unsigned int n_quad_face_pts = dg->face_quadrature_collection[poly_degree].size();
             const std::vector<real> &quad_weights = dg->face_quadrature_collection[poly_degree].get_weights ();
             for (unsigned int iface=0; iface < dealii::GeometryInfo<dim>::faces_per_cell; ++iface) {
+
+                metric_oper.build_facet_metric_operators(
+                    iface,
+                    n_quad_face_pts, n_metric_dofs/dim,
+                    mapping_support_points,
+                    mapping_basis,
+                    false);
          
-                PHiLiP::OPERATOR::metric_operators<real,dim,2*dim> metric_oper(nstate, poly_degree, grid_degree);
-         
-                dealii::Tensor<2,dim,std::vector<real>> metric_cofactor;
-                for(int idim=0; idim<dim; idim++){
-                    for(int idim2=0; idim2<dim; idim2++){
-                        metric_cofactor[idim][idim2].resize(n_quad_face_pts);
-                    }
-                }
-                metric_cofactor = metric_oper.build_local_metric_cofactor_matrix(
-                                    n_quad_face_pts, n_metric_dofs/dim,
-                                    mapping_support_points,
-                                    mapp_basis_GN.oneD_vol_operator,  
-                                    mapp_basis_GN.oneD_vol_operator,  
-                                    mapp_basis_GN.oneD_vol_operator,  
-                                    (iface == 0) ? mapp_basis_FN.oneD_surf_operator[0] : ((iface == 1) ? mapp_basis_FN.oneD_surf_operator[1] : mapp_basis_FN.oneD_vol_operator),
-                                    (iface == 2) ? mapp_basis_FN.oneD_surf_operator[0] : ((iface == 3) ? mapp_basis_FN.oneD_surf_operator[1] : mapp_basis_FN.oneD_vol_operator),
-                                    (iface == 4) ? mapp_basis_FN.oneD_surf_operator[0] : ((iface == 5) ? mapp_basis_FN.oneD_surf_operator[1] : mapp_basis_FN.oneD_vol_operator),
-                                    mapp_basis_GN.oneD_grad_operator, 
-                                    mapp_basis_GN.oneD_grad_operator, 
-                                    mapp_basis_GN.oneD_grad_operator, 
-                                    (iface == 0) ? mapp_basis_FN.oneD_surf_grad_operator[0] : ((iface == 1) ? mapp_basis_FN.oneD_surf_grad_operator[1] : mapp_basis_FN.oneD_grad_operator),
-                                    (iface == 2) ? mapp_basis_FN.oneD_surf_grad_operator[0] : ((iface == 3) ? mapp_basis_FN.oneD_surf_grad_operator[1] : mapp_basis_FN.oneD_grad_operator),
-                                    (iface == 4) ? mapp_basis_FN.oneD_surf_grad_operator[0] : ((iface == 5) ? mapp_basis_FN.oneD_surf_grad_operator[1] : mapp_basis_FN.oneD_grad_operator));
                 const dealii::Tensor<1,dim,real> unit_normal_int = dealii::GeometryInfo<dim>::unit_normal_vector[iface];
                 std::vector<dealii::Tensor<1,dim,real>> normals_int(n_quad_face_pts);
                 for(unsigned int iquad=0; iquad<n_quad_face_pts; iquad++){
                     for(unsigned int idim=0; idim<dim; idim++){
                         normals_int[iquad][idim] =  0.0;
                         for(int idim2=0; idim2<dim; idim2++){
-                            normals_int[iquad][idim] += unit_normal_int[idim2] * metric_cofactor[idim][idim2][iquad];//\hat{n}^r * C_m^T 
+                            normals_int[iquad][idim] += unit_normal_int[idim2] * metric_oper.metric_cofactor_surf[idim][idim2][iquad];//\hat{n}^r * C_m^T 
                         }
                     }
                 }

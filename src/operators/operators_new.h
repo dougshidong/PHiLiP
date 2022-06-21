@@ -223,12 +223,6 @@ public:
     ///Stores the one dimensional surface gradient operator.
     std::array<dealii::FullMatrix<double>,n_faces>  oneD_surf_grad_operator;
 
-    ///Stores the one dimensional diagonal operator.
-    std::vector<double>  oneD_diag_operator;
-
-    ///Stores the one dimensional diagonal tensor operator.
-    std::vector<dealii::Tensor<2,dim,double>>  oneD_diag_tensor_operator;
-
 };//End of SumFactorizedOperators Class
 
 /************************************************************************
@@ -237,23 +231,38 @@ public:
 *
 ************************************************************************/
 
-///Solution basis functions evaluated at volume cubature nodes.
+///Basis functions.
+/* This class stores the basis functions evaluated at volume and facet
+* cubature nodes, as well as it's gradient in REFERENCE space.
+*/
 template<int dim, int n_faces>
-class basis_at_vol_cubature : public SumFactorizedOperators<dim,n_faces>
+class basis_functions : public SumFactorizedOperators<dim,n_faces>
 {
 public:
     ///Constructor.
-    basis_at_vol_cubature (
+    basis_functions (
         const int nstate_input,
         const unsigned int max_degree_input,
         const unsigned int grid_degree_input);
     ///Destructor.
-    ~basis_at_vol_cubature ();
+    ~basis_functions ();
 
     ///Assembles the one dimensional operator.
     void build_1D_volume_operator(
             const dealii::FESystem<1,1> &finite_element,
             const dealii::Quadrature<1> &quadrature);
+    ///Assembles the one dimensional operator.
+    void build_1D_gradient_operator(
+            const dealii::FESystem<1,1> &finite_element,
+            const dealii::Quadrature<1> &quadrature);
+    ///Assembles the one dimensional operator.
+    void build_1D_surface_operator(
+            const dealii::FESystem<1,1> &finite_element,
+            const dealii::Quadrature<0> &quadrature);
+    ///Assembles the one dimensional operator.
+    void build_1D_surface_gradient_operator(
+            const dealii::FESystem<1,1> &finite_element,
+            const dealii::Quadrature<0> &quadrature);
 };
 
 ///\f$ \mathbf{W}*\mathbf{\chi}(\mathbf{\xi}_v^r) \f$  That is Quadrature Weights multiplies with basis_at_vol_cubature.
@@ -596,24 +605,24 @@ public:
 *
 ************************************************************************/
 
-///Solution basis functions evaluated at facet cubature nodes.
-template<int dim, int n_faces>
-class basis_at_facet_cubature : public SumFactorizedOperators<dim,n_faces>
-{
-public:
-    ///Constructor.
-    basis_at_facet_cubature (
-        const int nstate_input,
-        const unsigned int max_degree_input,
-        const unsigned int grid_degree_input);
-    ///Destructor.
-    ~basis_at_facet_cubature ();
-
-    ///Assembles the one dimensional operator.
-    void build_1D_surface_operator(
-            const dealii::FESystem<1,1> &finite_element,
-            const dealii::Quadrature<0> &face_quadrature);
-};
+/////Solution basis functions evaluated at facet cubature nodes.
+//template<int dim, int n_faces>
+//class basis_at_facet_cubature : public SumFactorizedOperators<dim,n_faces>
+//{
+//public:
+//    ///Constructor.
+//    basis_at_facet_cubature (
+//        const int nstate_input,
+//        const unsigned int max_degree_input,
+//        const unsigned int grid_degree_input);
+//    ///Destructor.
+//    ~basis_at_facet_cubature ();
+//
+//    ///Assembles the one dimensional operator.
+//    void build_1D_surface_operator(
+//            const dealii::FESystem<1,1> &finite_element,
+//            const dealii::Quadrature<0> &face_quadrature);
+//};
 
 ///The surface integral of test functions.
 /**\f[
@@ -737,25 +746,52 @@ public:
     ///Destructor.
     ~mapping_shape_functions();
 
-    ///Mapping shape functions evaluated at the volume grid nodes.
-    void build_1D_volume_operator(
-            const dealii::FESystem<1,1> &finite_element,
-            const dealii::Quadrature<1> &quadrature);
-    ///REFERENCE gradient of the the mapping shape functions evaluated at the volume grid nodes.
-    void build_1D_gradient_operator(
-            const dealii::FESystem<1,1> &finite_element,
-            const dealii::Quadrature<1> &quadrature);
-    ///Mapping shape functions evaluated at the SURFACE flux nodes. 
-    /**
-    * The quadrature passed has to be the surface flux nodes
+    ///Object of mapping shape functions evaluated at grid nodes.
+    basis_functions<dim,n_faces> mapping_shape_functions_grid_nodes;
+
+    ///Object of mapping shape functions evaluated at flux nodes.
+    basis_functions<dim,n_faces> mapping_shape_functions_flux_nodes;
+
+    ///Constructs the volume operator and gradient operator.
+    /*
+    * This function assures that the shape
+    * functions are collocated on the grid nodes.
+    * Also, makes for easier function calls.
+    * Function builds the 1D operators in mapping_shape_functions_grid_nodes.
+    * Note that at grid nodes, we do NOT need any surface information.
     */
-    void build_1D_surface_operator(
+    void build_1D_shape_functions_at_grid_nodes(
             const dealii::FESystem<1,1> &finite_element,
-            const dealii::Quadrature<0> &face_quadrature);
-    ///Gradient of mapping shape functions evalutated at surface flux nodes.
-    void build_1D_surface_gradient_operator(
+            const dealii::Quadrature<1> &quadrature);
+
+    ///Constructs the volume, gradient, surface, and surface gradient operator.
+    /*
+    * Function builds the 1D operators in mapping_shape_functions_flux_nodes.
+    */
+    void build_1D_shape_functions_at_flux_nodes(
             const dealii::FESystem<1,1> &finite_element,
+            const dealii::Quadrature<1> &quadrature,
             const dealii::Quadrature<0> &face_quadrature);
+
+//    ///Mapping shape functions evaluated at the volume grid nodes.
+//    void build_1D_volume_operator(
+//            const dealii::FESystem<1,1> &finite_element,
+//            const dealii::Quadrature<1> &quadrature);
+//    ///REFERENCE gradient of the the mapping shape functions evaluated at the volume grid nodes.
+//    void build_1D_gradient_operator(
+//            const dealii::FESystem<1,1> &finite_element,
+//            const dealii::Quadrature<1> &quadrature);
+//    ///Mapping shape functions evaluated at the SURFACE flux nodes. 
+//    /**
+//    * The quadrature passed has to be the surface flux nodes
+//    */
+//    void build_1D_surface_operator(
+//            const dealii::FESystem<1,1> &finite_element,
+//            const dealii::Quadrature<0> &face_quadrature);
+//    ///Gradient of mapping shape functions evalutated at surface flux nodes.
+//    void build_1D_surface_gradient_operator(
+//            const dealii::FESystem<1,1> &finite_element,
+//            const dealii::Quadrature<0> &face_quadrature);
 };
 
 /*****************************************************************************
@@ -788,8 +824,82 @@ public:
         const dealii::Tensor<1,dim,real> &ref,
         const dealii::Tensor<2,dim,real> &metric_cofactor,
         dealii::Tensor<1,dim,real> &phys);
+
+    ///Builds the volume metric operators.
+    /* Builds and stores volume metric cofactor and determinant of metric Jacobian
+    * at the volume cubature nodes. If passed flag to store Jacobian when metric
+    * operators is constructed, will also store the JAcobian at flux nodes.
+    */
+    void build_volume_metric_operators(
+        const unsigned int n_quad_pts,//number volume quad pts
+        const unsigned int n_metric_dofs,//dofs of metric basis. NOTE: this is the number of mapping support points
+        const std::array<std::vector<real>,dim> &mapping_support_points,
+        mapping_shape_functions<dim,n_faces> &mapping_basis,
+        const bool use_invariant_curl_form = false);
+
+    ///Builds the facet metric operators.
+    /* Builds and stores facet metric cofactor and determinant of metric Jacobian
+    * at the facet cubature nodes (one face). If passed flag to store Jacobian when metric
+    * operators is constructed, will also store the JAcobian at flux nodes.
+    */
+    void build_facet_metric_operators(
+        const unsigned int iface,
+        const unsigned int n_quad_pts,//number volume quad pts
+        const unsigned int n_metric_dofs,//dofs of metric basis. NOTE: this is the number of mapping support points
+        const std::array<std::vector<real>,dim> &mapping_support_points,
+        mapping_shape_functions<dim,n_faces> &mapping_basis,
+        const bool use_invariant_curl_form = false);
+
+    ///The volume metric cofactor matrix.
+    dealii::Tensor<2,dim,std::vector<real>> metric_cofactor_vol;
+    
+    ///The facet metric cofactor matrix, for ONE face.
+    dealii::Tensor<2,dim,std::vector<real>> metric_cofactor_surf;
+
+    ///The determinant of the metric Jacobian at volume cubature nodes.
+    std::vector<real> det_Jac_vol;
+
+    ///The determinant of the metric Jacobian at facet cubature nodes.
+    std::vector<real> det_Jac_surf;
+
+    //Stores the metric Jacobian at flux nodes.
+    dealii::Tensor<2,dim,std::vector<real>> metric_Jacobian_vol_cubature;
+
+protected:
+
+    ///Builds the metric Jacobian evaluated at a vector of points.
+    /* \f$ \mathbf{J} = [\mathbf{a}_1, \mathbf{a}_2, \mathbf{a}_3]^T \f$.
+    */
+    void build_metric_Jacobian(
+        const unsigned int n_quad_pts,//the dim sized n_quad_pts, NOT the 1D
+        const std::array<std::vector<real>,dim> &mapping_support_points,
+        const dealii::FullMatrix<double> &basis_x_flux_nodes,
+        const dealii::FullMatrix<double> &basis_y_flux_nodes,
+        const dealii::FullMatrix<double> &basis_z_flux_nodes,
+        const dealii::FullMatrix<double> &grad_basis_x_flux_nodes,
+        const dealii::FullMatrix<double> &grad_basis_y_flux_nodes,
+        const dealii::FullMatrix<double> &grad_basis_z_flux_nodes,
+        std::vector<dealii::Tensor<2,dim,real>> &local_Jac);
+
+    ///Assembles the determinant of metric Jacobian.
+    /* \f$ \|J^\Omega \| = \mathbf{a}_1 \cdot (\mathbf{a}_2 \otimes \mathbf{a}_3)\f$,
+    * where \f$\mathbf{a}_i = \mathbf{\nabla}^r x_i \f$ are the physical vector bases.
+    * Pass the 1D mapping shape functions evaluated at flux nodes,
+    * and the 1D gradient of mapping shape functions evaluated at flux nodes.
+    */
+    void build_determinant_metric_Jacobian(
+        const unsigned int n_quad_pts,//number volume quad pts
+        const std::array<std::vector<real>,dim> &mapping_support_points,
+        const dealii::FullMatrix<double> &basis_x_flux_nodes,
+        const dealii::FullMatrix<double> &basis_y_flux_nodes,
+        const dealii::FullMatrix<double> &basis_z_flux_nodes,
+        const dealii::FullMatrix<double> &grad_basis_x_flux_nodes,
+        const dealii::FullMatrix<double> &grad_basis_y_flux_nodes,
+        const dealii::FullMatrix<double> &grad_basis_z_flux_nodes,
+        std::vector<real> &det_metric_Jac);
+
     ///Called on the fly and returns the metric cofactor at cubature nodes.
-    dealii::Tensor<2,dim,std::vector<real>> build_local_metric_cofactor_matrix(
+    void build_local_metric_cofactor_matrix(
         const unsigned int n_quad_pts,//number volume quad pts
         const unsigned int n_metric_dofs,//dofs of metric basis. NOTE: this is the number of mapping support points
         const std::array<std::vector<real>,dim> &mapping_support_points,
@@ -805,38 +915,9 @@ public:
         const dealii::FullMatrix<double> &grad_basis_x_flux_nodes,
         const dealii::FullMatrix<double> &grad_basis_y_flux_nodes,
         const dealii::FullMatrix<double> &grad_basis_z_flux_nodes,
+        dealii::Tensor<2,dim,std::vector<real>> &metric_cofactor, 
         const bool use_invariant_curl_form = false);
-    ///Assembles the determinant of metric Jacobian.
-    /* \f$ \|J^\Omega \| = \mathbf{a}_1 \cdot (\mathbf{a}_2 \otimes \mathbf{a}_3)\f$,
-    * where \f$\mathbf{a}_i = \mathbf{\nabla}^r x_i \f$ are the physical vector bases.
-    * Pass the 1D mapping shape functions evaluated at flux nodes,
-    * and the 1D gradient of mapping shape functions evaluated at flux nodes.
-    */
-    std::vector<real> build_determinant_metric_Jacobian(
-        const unsigned int n_quad_pts,//number volume quad pts
-        const std::array<std::vector<real>,dim> &mapping_support_points,
-        const dealii::FullMatrix<double> &basis_x_flux_nodes,
-        const dealii::FullMatrix<double> &basis_y_flux_nodes,
-        const dealii::FullMatrix<double> &basis_z_flux_nodes,
-        const dealii::FullMatrix<double> &grad_basis_x_flux_nodes,
-        const dealii::FullMatrix<double> &grad_basis_y_flux_nodes,
-        const dealii::FullMatrix<double> &grad_basis_z_flux_nodes);
-    //Stores the cofactor matrix for the metric Jacobian at flux nodes.
-    dealii::Tensor<2,dim,std::vector<real>> metric_Jacobian_vol_cubature;
-    ///Builds the metric Jacobian evaluated at a vector of points.
-    /* \f$ \mathbf{J} = [\mathbf{a}_1, \mathbf{a}_2, \mathbf{a}_3]^T \f$.
-    */
-    void build_metric_Jacobian(
-        const unsigned int n_quad_pts,//the dim sized n_quad_pts, NOT the 1D
-        const std::array<std::vector<real>,dim> &mapping_support_points,
-        const dealii::FullMatrix<double> &basis_x_flux_nodes,
-        const dealii::FullMatrix<double> &basis_y_flux_nodes,
-        const dealii::FullMatrix<double> &basis_z_flux_nodes,
-        const dealii::FullMatrix<double> &grad_basis_x_flux_nodes,
-        const dealii::FullMatrix<double> &grad_basis_y_flux_nodes,
-        const dealii::FullMatrix<double> &grad_basis_z_flux_nodes,
-        std::vector<dealii::Tensor<2,dim,real>> &local_Jac);
-protected:
+
     ///Computes local 3D cofactor matrix.
     /**
     *We compute the metric cofactor matrix \f$\mathbf{C}_m\f$ via the oncservative curl form of Abe 2014 and Kopriva 2006 by default. Can use invariant curl form by passing flag. To ensure consistent normals, we consider

@@ -23,8 +23,6 @@ void ROMTestLocation<dim, nstate>::compute_FOM_to_initial_ROM_error(){
     pcout << "Computing adjoint-based error estimate between ROM and FOM..." << std::endl;
     dealii::LinearAlgebra::distributed::Vector<double> gradient(rom_solution->right_hand_side);
     dealii::LinearAlgebra::distributed::Vector<double> adjoint(rom_solution->right_hand_side);
-    //adjoint.update_ghost_values();
-    //gradient.update_ghost_values();
 
     gradient = rom_solution->gradient;
 
@@ -35,9 +33,7 @@ void ROMTestLocation<dim, nstate>::compute_FOM_to_initial_ROM_error(){
     //Compute dual weighted residual
     fom_to_initial_rom_error = 0;
     fom_to_initial_rom_error = -(adjoint * rom_solution->right_hand_side);
-    //std::cout << "fom_to_initial_rom_error: " << fom_to_initial_rom_error << std::endl;
-    //fom_to_initial_rom_error  = dealii::Utilities::MPI::sum(fom_to_initial_rom_error, MPI_COMM_WORLD);
-    //std::cout << "fom_to_initial_rom_error: " << fom_to_initial_rom_error << std::endl;
+
     pcout << "Parameter: " << parameter << ". Error estimate between ROM and FOM: " << fom_to_initial_rom_error << std::endl;
 }
 
@@ -46,16 +42,16 @@ void ROMTestLocation<dim, nstate>::compute_initial_rom_to_final_rom_error(std::s
 
     pcout << "Computing adjoint-based error estimate between initial ROM and updated ROM..." << std::endl;
 
-    Epetra_CrsMatrix *epetra_pod_basis = const_cast<Epetra_CrsMatrix *>(&(pod_updated->getPODBasis()->trilinos_matrix()));
-    Epetra_CrsMatrix *epetra_system_matrix_transpose = const_cast<Epetra_CrsMatrix *>(&(rom_solution->system_matrix_transpose->trilinos_matrix()));
+    const Epetra_CrsMatrix epetra_pod_basis = pod_updated->getPODBasis()->trilinos_matrix();
+    const Epetra_CrsMatrix epetra_system_matrix_transpose = rom_solution->system_matrix_transpose->trilinos_matrix();
 
-    Epetra_CrsMatrix epetra_petrov_galerkin_basis(Epetra_DataAccess::View, epetra_system_matrix_transpose->DomainMap(), pod_updated->getPODBasis()->n());
-    EpetraExt::MatrixMatrix::Multiply(*epetra_system_matrix_transpose, true, *epetra_pod_basis, false, epetra_petrov_galerkin_basis, true);
+    Epetra_CrsMatrix epetra_petrov_galerkin_basis(Epetra_DataAccess::View, epetra_system_matrix_transpose.DomainMap(), pod_updated->getPODBasis()->n());
+    EpetraExt::MatrixMatrix::Multiply(epetra_system_matrix_transpose, true, epetra_pod_basis, false, epetra_petrov_galerkin_basis, true);
 
-    Epetra_Vector epetra_gradient(Epetra_DataAccess::View, epetra_pod_basis->RowMap(), const_cast<double *>(rom_solution->gradient.begin()));
-    Epetra_Vector epetra_reduced_gradient(epetra_pod_basis->DomainMap());
+    Epetra_Vector epetra_gradient(Epetra_DataAccess::View, epetra_pod_basis.RowMap(), const_cast<double *>(rom_solution->gradient.begin()));
+    Epetra_Vector epetra_reduced_gradient(epetra_pod_basis.DomainMap());
 
-    epetra_pod_basis->Multiply(true, epetra_gradient, epetra_reduced_gradient);
+    epetra_pod_basis.Multiply(true, epetra_gradient, epetra_reduced_gradient);
 
     Epetra_CrsMatrix epetra_reduced_jacobian_transpose(Epetra_DataAccess::View, epetra_petrov_galerkin_basis.DomainMap(), pod_updated->getPODBasis()->n());
     EpetraExt::MatrixMatrix::Multiply(epetra_petrov_galerkin_basis, true, epetra_petrov_galerkin_basis, false, epetra_reduced_jacobian_transpose);
@@ -78,23 +74,11 @@ void ROMTestLocation<dim, nstate>::compute_initial_rom_to_final_rom_error(std::s
     Epetra_Vector epetra_residual(Epetra_DataAccess::View, epetra_petrov_galerkin_basis.RangeMap(), const_cast<double *>(rom_solution->right_hand_side.begin()));
     epetra_petrov_galerkin_basis.Multiply(true, epetra_residual, epetra_reduced_residual);
 
-    //pcout << "Reduced adjoint: " << std::endl;
-    //epetra_reduced_adjoint.Print(std::cout);
-
-    //pcout << "Reduced gradient: " << std::endl;
-    //epetra_reduced_gradient.Print(std::cout);
-
-    //pcout << "Reduced residual: " << std::endl;
-    //epetra_reduced_residual.Print(std::cout);
-
-
     //Compute dual weighted residual
     initial_rom_to_final_rom_error = 0;
     epetra_reduced_adjoint.Dot(epetra_reduced_residual, &initial_rom_to_final_rom_error);
     initial_rom_to_final_rom_error *= -1;
-    //std::cout << "initial_rom_to_final_rom_error: " << initial_rom_to_final_rom_error << std::endl;
-    //initial_rom_to_final_rom_error = dealii::Utilities::MPI::sum(initial_rom_to_final_rom_error, MPI_COMM_WORLD);
-    //std::cout << "initial_rom_to_final_rom_error: " << initial_rom_to_final_rom_error << std::endl;
+
     pcout << "Parameter: " << parameter << ". Error estimate between initial ROM and updated ROM: " << initial_rom_to_final_rom_error << std::endl;
 
     delete Solver;

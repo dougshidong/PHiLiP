@@ -442,7 +442,7 @@ void AdaptiveSampling<dim, nstate>::configureParameterSpace() const
         parameter2_range << 0, 4;
         parameter2_range *= pi/180; //convert to radians
 
-        int n_halton = 16;
+        int n_halton = 6;
 
         snapshot_parameters.resize(4,2);
         snapshot_parameters  << //parameter1_range[0], parameter2_range[0],
@@ -450,18 +450,6 @@ void AdaptiveSampling<dim, nstate>::configureParameterSpace() const
                 parameter1_range[1], parameter2_range[1],
                 parameter1_range[1], parameter2_range[0],
                 0.5*(parameter1_range[1] - parameter1_range[0])+parameter1_range[0], 0.5*(parameter2_range[1] - parameter2_range[0])+parameter2_range[0];
-                /*
-                0.1*(parameter1_range[1] - parameter1_range[0])+parameter1_range[0], 0.3*(parameter2_range[1] - parameter2_range[0])+parameter2_range[0],
-                0.4*(parameter1_range[1] - parameter1_range[0])+parameter1_range[0], 0.7*(parameter2_range[1] - parameter2_range[0])+parameter2_range[0],
-                0.7*(parameter1_range[1] - parameter1_range[0])+parameter1_range[0], 0.6*(parameter2_range[1] - parameter2_range[0])+parameter2_range[0],
-                0.45*(parameter1_range[1] - parameter1_range[0])+parameter1_range[0], 0.15*(parameter2_range[1] - parameter2_range[0])+parameter2_range[0],
-                0.85*(parameter1_range[1] - parameter1_range[0])+parameter1_range[0], 0.2*(parameter2_range[1] - parameter2_range[0])+parameter2_range[0],
-                0.2*(parameter1_range[1] - parameter1_range[0])+parameter1_range[0], 0.9*(parameter2_range[1] - parameter2_range[0])+parameter2_range[0],
-                0.25*(parameter1_range[1] - parameter1_range[0])+parameter1_range[0], 0.35*(parameter2_range[1] - parameter2_range[0])+parameter2_range[0],
-                0.6*(parameter1_range[1] - parameter1_range[0])+parameter1_range[0], 0.1*(parameter2_range[1] - parameter2_range[0])+parameter2_range[0],
-                0.9*(parameter1_range[1] - parameter1_range[0])+parameter1_range[0], 0.85*(parameter2_range[1] - parameter2_range[0])+parameter2_range[0],
-                0.5*(parameter1_range[1] - parameter1_range[0])+parameter1_range[0], 0.5*(parameter2_range[1] - parameter2_range[0])+parameter2_range[0];
-                 */
 
         snapshot_parameters.conservativeResize(snapshot_parameters.rows() + n_halton, snapshot_parameters.cols());
 

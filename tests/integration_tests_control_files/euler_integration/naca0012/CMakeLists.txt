@@ -36,6 +36,7 @@ and place them in
       )
 endif()
 configure_file(naca0012_hopw_ref2.msh naca0012.msh COPYONLY)
+configure_file(naca0012_hopw_ref1.msh naca0012_hopw_ref1.msh COPYONLY)
 configure_file(naca0012_hopw_ref2.msh naca0012_hopw_ref2.msh COPYONLY)
 configure_file(naca0012_hopw_ref5.msh naca0012_hopw_ref5.msh COPYONLY)
 

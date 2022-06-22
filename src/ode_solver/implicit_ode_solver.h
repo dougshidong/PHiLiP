@@ -47,7 +47,7 @@ public:
     void allocate_ode_system ();
 
     /// Line search algorithm
-    virtual double linesearch ();
+    double linesearch ();
 
 };
 

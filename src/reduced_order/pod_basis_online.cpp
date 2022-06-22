@@ -42,10 +42,6 @@ void OnlinePOD<dim>::computeBasis() {
 
     VectorXd reference_state = snapshotMatrix.rowwise().mean();
 
-    //for(unsigned int i = 0 ; i < reference_state.size() ; i++){
-    //    reference_state(i) = 1;
-    //}
-
     referenceState.reinit(reference_state.size());
     for(unsigned int i = 0 ; i < reference_state.size() ; i++){
         referenceState(i) = reference_state(i);
@@ -53,7 +49,6 @@ void OnlinePOD<dim>::computeBasis() {
 
     MatrixXd snapshotMatrixCentered = snapshotMatrix.colwise() - reference_state;
 
-    //Eigen::BDCSVD<MatrixXd> svd(snapshotMatrixCentered, Eigen::DecompositionOptions::ComputeThinU);
     Eigen::BDCSVD<MatrixXd, Eigen::DecompositionOptions::ComputeThinU> svd(snapshotMatrixCentered);
     MatrixXd pod_basis = svd.matrixU();
 

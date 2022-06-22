@@ -82,8 +82,6 @@ bool OfflinePOD<dim>::getPODBasisFromSnapshots() {
         }
     }
 
-    //pcout << snapshotMatrix << std::endl;
-
     pcout << "Snapshot matrix generated." << std::endl;
 
 
@@ -97,10 +95,6 @@ bool OfflinePOD<dim>::getPODBasisFromSnapshots() {
 
     VectorXd reference_state = snapshotMatrix.rowwise().mean();
 
-    for(unsigned int i = 0 ; i < reference_state.size() ; i++){
-        //reference_state(i) = 1;
-    }
-
     referenceState.reinit(reference_state.size());
     for(unsigned int i = 0 ; i < reference_state.size() ; i++){
         referenceState(i) = reference_state(i);
@@ -108,7 +102,6 @@ bool OfflinePOD<dim>::getPODBasisFromSnapshots() {
 
     snapshotMatrix = snapshotMatrix.colwise() - reference_state;
 
-    //Eigen::BDCSVD<MatrixXd> svd(snapshotMatrix, Eigen::DecompositionOptions::ComputeThinU);
     Eigen::BDCSVD<MatrixXd, Eigen::DecompositionOptions::ComputeThinU> svd(snapshotMatrix);
     MatrixXd pod_basis = svd.matrixU();
 

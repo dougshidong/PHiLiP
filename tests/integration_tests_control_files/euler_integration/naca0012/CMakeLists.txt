@@ -19,6 +19,13 @@ add_test(
         WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )
 
+configure_file(2d_euler_naca0012_lift_based_grid_adaptation.prm 2d_euler_naca0012_lift_based_grid_adaptation.prm COPYONLY)
+add_test(
+        NAME INVISCID_STEADY_STATE_NACA0012_WITH_LIFT_BASED_GRID_ADAPTATION
+        COMMAND mpirun -np ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_2D -i ${CMAKE_CURRENT_BINARY_DIR}/2d_euler_naca0012_lift_based_grid_adaptation.prm
+        WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
+)
+
 #configure_file(2d_navier_stokes_naca0012_subsonic_05_200.prm 2d_navier_stokes_naca0012_subsonic_05_200.prm COPYONLY)
 #add_test(
 #  NAME 2D_NAVIER_STOKES_INTEGRATION_NACA0012_SUBSONIC_LONG
@@ -36,7 +43,11 @@ and place them in
       )
 endif()
 configure_file(naca0012_hopw_ref2.msh naca0012.msh COPYONLY)
+configure_file(naca0012_hopw_ref0.msh naca0012_hopw_ref0.msh COPYONLY)
+configure_file(naca0012_hopw_ref1.msh naca0012_hopw_ref1.msh COPYONLY)
 configure_file(naca0012_hopw_ref2.msh naca0012_hopw_ref2.msh COPYONLY)
+configure_file(naca0012_hopw_ref3.msh naca0012_hopw_ref3.msh COPYONLY)
+configure_file(naca0012_hopw_ref4.msh naca0012_hopw_ref4.msh COPYONLY)
 configure_file(naca0012_hopw_ref5.msh naca0012_hopw_ref5.msh COPYONLY)
 
 #configure_file(naca0012.geo naca0012.geo COPYONLY)

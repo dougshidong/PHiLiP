@@ -53,7 +53,8 @@ void OnlinePOD<dim>::computeBasis() {
 
     MatrixXd snapshotMatrixCentered = snapshotMatrix.colwise() - reference_state;
 
-    Eigen::BDCSVD<MatrixXd> svd(snapshotMatrixCentered, Eigen::DecompositionOptions::ComputeThinU);
+    //Eigen::BDCSVD<MatrixXd> svd(snapshotMatrixCentered, Eigen::DecompositionOptions::ComputeThinU);
+    Eigen::BDCSVD<MatrixXd, Eigen::DecompositionOptions::ComputeThinU> svd(snapshotMatrixCentered);
     MatrixXd pod_basis = svd.matrixU();
 
     Epetra_CrsMatrix *epetra_system_matrix  = const_cast<Epetra_CrsMatrix *>(&(this->dg->system_matrix.trilinos_matrix()));

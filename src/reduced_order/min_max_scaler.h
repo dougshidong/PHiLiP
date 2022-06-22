@@ -1,7 +1,7 @@
 #ifndef __MIN_MAX_SCALER__
 #define __MIN_MAX_SCALER__
 
-#include <Eigen/Dense>
+#include <eigen/Eigen/Dense>
 #include <iostream>
 #include <algorithm>
 

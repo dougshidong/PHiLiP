@@ -15,8 +15,8 @@
 #include <EpetraExt_MatrixMatrix.h>
 #include <Epetra_CrsMatrix.h>
 #include <Epetra_Map.h>
-#include <Eigen/Dense>
-#include <Eigen/SVD>
+#include <eigen/Eigen/Dense>
+#include <eigen/Eigen/SVD>
 
 namespace PHiLiP {
 namespace ProperOrthogonalDecomposition {

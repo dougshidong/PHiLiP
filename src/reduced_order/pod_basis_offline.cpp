@@ -108,7 +108,8 @@ bool OfflinePOD<dim>::getPODBasisFromSnapshots() {
 
     snapshotMatrix = snapshotMatrix.colwise() - reference_state;
 
-    Eigen::BDCSVD<MatrixXd> svd(snapshotMatrix, Eigen::DecompositionOptions::ComputeThinU);
+    //Eigen::BDCSVD<MatrixXd> svd(snapshotMatrix, Eigen::DecompositionOptions::ComputeThinU);
+    Eigen::BDCSVD<MatrixXd, Eigen::DecompositionOptions::ComputeThinU> svd(snapshotMatrix);
     MatrixXd pod_basis = svd.matrixU();
 
     fullBasis.reinit(pod_basis.rows(), pod_basis.cols());

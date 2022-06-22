@@ -36,13 +36,14 @@ endif()
 if(NOT EXISTS "${PROJECT_SOURCE_DIR}/submodules/joukowski_high_order_mesh/Joukowski.py")
     message(FATAL_ERROR "The submodules were not downloaded! GIT_SUBMODULE was turned off or failed. Please update submodules and try again.")
 endif()
+if(NOT EXISTS "${PROJECT_SOURCE_DIR}/submodules/eigen/Eigen/Eigen")
+    message(FATAL_ERROR "The submodules were not downloaded! GIT_SUBMODULE was turned off or failed. Please update submodules and try again.")
+endif()
 
 find_library(GMSH_LIB gmsh)
 if(NOT GMSH_LIB)
   message(FATAL_ERROR "Could not find gmsh")
 endif()
-
-include_directories(${PROJECT_SOURCE_DIR}/submodules/eigen-3.4.0)
 
 #set(CMAKE_CXX_FLAGS_DEBUG  "${CMAKE_CXX_FLAGS_DEBUG} -Og -g")
 

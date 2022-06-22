@@ -15,8 +15,8 @@
 #include "pod_interface.h"
 #include "reduced_order_solution.h"
 #include "linear_solver/linear_solver.h"
-#include <Eigen/Dense>
-#include <Eigen/SparseCore>
+#include <eigen/Eigen/Dense>
+#include <eigen/Eigen/SparseCore>
 #include <Epetra_Vector.h>
 #include <EpetraExt_MatrixMatrix.h>
 #include <Epetra_LinearProblem.h>

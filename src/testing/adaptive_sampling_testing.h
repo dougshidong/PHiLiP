@@ -14,7 +14,7 @@
 #include "dg/dg.h"
 #include "parameters/all_parameters.h"
 #include "functional/functional.h"
-#include <Eigen/Dense>
+#include <eigen/Eigen/Dense>
 #include "functional/lift_drag.hpp"
 
 namespace PHiLiP {

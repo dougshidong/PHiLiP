@@ -22,7 +22,7 @@
 #include <cmath>
 #include <iostream>
 #include <deal.II/base/function_lib.h>
-#include <Eigen/Dense>
+#include <eigen/Eigen/Dense>
 #include "reduced_order/nearest_neighbors.h"
 #include "reduced_order/rbf_interpolation.h"
 #include "ROL_Algorithm.hpp"

@@ -1,8 +1,8 @@
 #ifndef __NEAREST_NEIGHBORS__
 #define __NEAREST_NEIGHBORS__
 
-#include <Eigen/Dense>
-#include <Eigen/LU>
+#include <eigen/Eigen/Dense>
+#include <eigen/Eigen/LU>
 #include <iostream>
 #include <algorithm>
 #include <numeric>

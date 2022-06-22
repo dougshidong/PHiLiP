@@ -1,8 +1,8 @@
 #ifndef __RBF_INTERPOLATION__
 #define __RBF_INTERPOLATION__
 
-#include <Eigen/Dense>
-#include <Eigen/LU>
+#include <eigen/Eigen/Dense>
+#include <eigen/Eigen/LU>
 #include <iostream>
 #include "ROL_OptimizationProblem.hpp"
 #include "ROL_StdVector.hpp"

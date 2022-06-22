@@ -38,6 +38,7 @@ void PeriodicCubeFlow<dim,nstate>::display_grid_parameters() const
     const std::string grid_type_string = "straight_periodic_cube";
     // Display the information about the grid
     this->pcout << "- Grid type: " << grid_type_string << std::endl;
+    this->pcout << "- - Grid degree: " << this->all_param.flow_solver_param.grid_degree << std::endl;
     this->pcout << "- - Domain dimensionality: " << dim << std::endl;
     this->pcout << "- - Domain left: " << this->domain_left << std::endl;
     this->pcout << "- - Domain right: " << this->domain_right << std::endl;

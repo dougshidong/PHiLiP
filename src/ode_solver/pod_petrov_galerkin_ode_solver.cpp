@@ -21,12 +21,12 @@ int PODPetrovGalerkinODESolver<dim,real,MeshType>::steady_state ()
     const bool compute_dRdW = true;
     this->dg->assemble_residual(compute_dRdW);
 
-    Epetra_CrsMatrix *epetra_system_matrix = const_cast<Epetra_CrsMatrix *>(&(this->dg->system_matrix.trilinos_matrix()));
-    Epetra_Map system_matrix_rowmap = epetra_system_matrix->RowMap();
-    Epetra_CrsMatrix *epetra_pod_basis = const_cast<Epetra_CrsMatrix *>(&(pod->getPODBasis()->trilinos_matrix()));
+    const Epetra_CrsMatrix epetra_system_matrix = this->dg->system_matrix.trilinos_matrix();
+    Epetra_Map system_matrix_rowmap = epetra_system_matrix.RowMap();
+    const Epetra_CrsMatrix epetra_pod_basis = pod->getPODBasis()->trilinos_matrix();
     Epetra_CrsMatrix epetra_petrov_galerkin_basis(Epetra_DataAccess::View, system_matrix_rowmap, pod->getPODBasis()->n());
-    EpetraExt::MatrixMatrix::Multiply(*epetra_system_matrix, false, *epetra_pod_basis, false, epetra_petrov_galerkin_basis, true);
-    Epetra_Vector epetra_right_hand_side(Epetra_DataAccess::View, epetra_system_matrix->RowMap(), this->dg->right_hand_side.begin());
+    EpetraExt::MatrixMatrix::Multiply(epetra_system_matrix, false, epetra_pod_basis, false, epetra_petrov_galerkin_basis, true);
+    Epetra_Vector epetra_right_hand_side(Epetra_DataAccess::View, epetra_system_matrix.RowMap(), this->dg->right_hand_side.begin());
     Epetra_Vector epetra_reduced_rhs(epetra_petrov_galerkin_basis.DomainMap());
     epetra_petrov_galerkin_basis.Multiply(true, epetra_right_hand_side, epetra_reduced_rhs);
     epetra_reduced_rhs.Norm2(&this->initial_residual_norm);
@@ -121,12 +121,12 @@ void PODPetrovGalerkinODESolver<dim,real,MeshType>::step_in_time (real /*dt*/, c
     //Petrov-Galerkin projection, petrov_galerkin_basis = V^T*J^T, pod basis V, system matrix J
     //V^T*J*V*p = -V^T*R
 
-    Epetra_CrsMatrix *epetra_system_matrix = const_cast<Epetra_CrsMatrix *>(&(this->dg->system_matrix.trilinos_matrix()));
-    Epetra_Map system_matrix_rowmap = epetra_system_matrix->RowMap();
-    Epetra_CrsMatrix *epetra_pod_basis = const_cast<Epetra_CrsMatrix *>(&(pod->getPODBasis()->trilinos_matrix()));
+    const Epetra_CrsMatrix epetra_system_matrix = this->dg->system_matrix.trilinos_matrix();
+    Epetra_Map system_matrix_rowmap = epetra_system_matrix.RowMap();
+    const Epetra_CrsMatrix epetra_pod_basis = pod->getPODBasis()->trilinos_matrix();
     Epetra_CrsMatrix epetra_petrov_galerkin_basis(Epetra_DataAccess::View, system_matrix_rowmap, pod->getPODBasis()->n());
-    EpetraExt::MatrixMatrix::Multiply(*epetra_system_matrix, false, *epetra_pod_basis, false, epetra_petrov_galerkin_basis, true);
-    Epetra_Vector epetra_right_hand_side(Epetra_DataAccess::View, epetra_system_matrix->RowMap(), this->dg->right_hand_side.begin());
+    EpetraExt::MatrixMatrix::Multiply(epetra_system_matrix, false, epetra_pod_basis, false, epetra_petrov_galerkin_basis, true);
+    Epetra_Vector epetra_right_hand_side(Epetra_DataAccess::View, epetra_system_matrix.RowMap(), this->dg->right_hand_side.begin());
     Epetra_Vector epetra_reduced_rhs(epetra_petrov_galerkin_basis.DomainMap());
     epetra_petrov_galerkin_basis.Multiply(true, epetra_right_hand_side, epetra_reduced_rhs);
     Epetra_CrsMatrix epetra_reduced_lhs(Epetra_DataAccess::View, epetra_petrov_galerkin_basis.DomainMap(), pod->getPODBasis()->n());
@@ -158,9 +158,9 @@ void PODPetrovGalerkinODESolver<dim,real,MeshType>::step_in_time (real /*dt*/, c
     initial_residual /= this->dg->right_hand_side.size();
 
     reduced_solution.add(step_length, this->reduced_solution_update);
-    Epetra_Vector epetra_reduced_solution(Epetra_DataAccess::View, epetra_pod_basis->DomainMap(), reduced_solution.begin());
-    Epetra_Vector solution(Epetra_DataAccess::View, epetra_pod_basis->RangeMap(), this->dg->solution.begin());
-    epetra_pod_basis->Multiply(false, epetra_reduced_solution, solution);
+    Epetra_Vector epetra_reduced_solution(Epetra_DataAccess::View, epetra_pod_basis.DomainMap(), reduced_solution.begin());
+    Epetra_Vector solution(Epetra_DataAccess::View, epetra_pod_basis.RangeMap(), this->dg->solution.begin());
+    epetra_pod_basis.Multiply(false, epetra_reduced_solution, solution);
     this->dg->solution += reference_solution;
     this->dg->assemble_residual();
     epetra_petrov_galerkin_basis.Multiply(true, epetra_right_hand_side, epetra_reduced_rhs);
@@ -175,7 +175,7 @@ void PODPetrovGalerkinODESolver<dim,real,MeshType>::step_in_time (real /*dt*/, c
         step_length = step_length * step_reduction;
         reduced_solution = old_reduced_solution;
         reduced_solution.add(step_length, this->reduced_solution_update);
-        epetra_pod_basis->Multiply(false, epetra_reduced_solution, solution);
+        epetra_pod_basis.Multiply(false, epetra_reduced_solution, solution);
         this->dg->solution += reference_solution;
         this->dg->assemble_residual();
         epetra_petrov_galerkin_basis.Multiply(true, epetra_right_hand_side, epetra_reduced_rhs);
@@ -202,18 +202,18 @@ void PODPetrovGalerkinODESolver<dim,real,MeshType>::allocate_ode_system ()
     dealii::LinearAlgebra::distributed::Vector<double> initial_condition(this->dg->solution);
     initial_condition -= reference_solution;
 
-    Epetra_CrsMatrix *epetra_pod_basis = const_cast<Epetra_CrsMatrix *>(&(pod->getPODBasis()->trilinos_matrix()));
+    const Epetra_CrsMatrix epetra_pod_basis = pod->getPODBasis()->trilinos_matrix();
     reduced_solution.reinit(pod->getPODBasis()->n());
     reduced_solution *= 0;
-    Epetra_Vector epetra_reduced_solution(Epetra_DataAccess::View, epetra_pod_basis->DomainMap(), reduced_solution.begin());
-    Epetra_Vector epetra_initial_condition(Epetra_DataAccess::View, epetra_pod_basis->RangeMap(), initial_condition.begin());
+    Epetra_Vector epetra_reduced_solution(Epetra_DataAccess::View, epetra_pod_basis.DomainMap(), reduced_solution.begin());
+    Epetra_Vector epetra_initial_condition(Epetra_DataAccess::View, epetra_pod_basis.RangeMap(), initial_condition.begin());
 
-    epetra_pod_basis->Multiply(true, epetra_initial_condition, epetra_reduced_solution);
+    epetra_pod_basis.Multiply(true, epetra_initial_condition, epetra_reduced_solution);
 
     dealii::LinearAlgebra::distributed::Vector<double> initial_condition_projected(this->dg->solution);
     initial_condition_projected *= 0;
-    Epetra_Vector epetra_projection_tmp(Epetra_DataAccess::View, epetra_pod_basis->RangeMap(), initial_condition_projected.begin());
-    epetra_pod_basis->Multiply(false, epetra_reduced_solution, epetra_projection_tmp);
+    Epetra_Vector epetra_projection_tmp(Epetra_DataAccess::View, epetra_pod_basis.RangeMap(), initial_condition_projected.begin());
+    epetra_pod_basis.Multiply(false, epetra_reduced_solution, epetra_projection_tmp);
     initial_condition_projected += reference_solution;
     this->dg->solution = initial_condition_projected;
 

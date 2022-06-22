@@ -117,8 +117,8 @@ bool OfflinePOD<dim>::getPODBasisFromSnapshots() {
     unsigned int precision = 16;
     fullBasis.print_formatted(out_file, precision);
 
-    Epetra_CrsMatrix *epetra_system_matrix  = const_cast<Epetra_CrsMatrix *>(&(this->dg->system_matrix.trilinos_matrix()));
-    Epetra_Map system_matrix_map = epetra_system_matrix->RowMap();
+    const Epetra_CrsMatrix epetra_system_matrix  = this->dg->system_matrix.trilinos_matrix();
+    Epetra_Map system_matrix_map = epetra_system_matrix.RowMap();
     Epetra_CrsMatrix epetra_basis(Epetra_DataAccess::Copy, system_matrix_map, pod_basis.cols());
 
     const int numMyElements = system_matrix_map.NumMyElements(); //Number of elements on the calling processor

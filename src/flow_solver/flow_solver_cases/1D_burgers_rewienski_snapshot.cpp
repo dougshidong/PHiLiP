@@ -21,8 +21,8 @@ template <int dim, int nstate>
 BurgersRewienskiSnapshot<dim, nstate>::BurgersRewienskiSnapshot(const PHiLiP::Parameters::AllParameters *const parameters_input)
         : FlowSolverCaseBase<dim, nstate>(parameters_input)
         , number_of_refinements(this->all_param.grid_refinement_study_param.num_refinements)
-        , domain_left(this->all_param.grid_refinement_study_param.grid_left)
-        , domain_right(this->all_param.grid_refinement_study_param.grid_right)
+        , domain_left(this->all_param.flow_solver_param.grid_left_bound)
+        , domain_right(this->all_param.flow_solver_param.grid_right_bound)
 {
 }
 

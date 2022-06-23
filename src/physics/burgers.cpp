@@ -136,6 +136,16 @@ real Burgers<dim,nstate,real>
 template <int dim, int nstate, typename real>
 std::array<dealii::Tensor<1,dim,real>,nstate> Burgers<dim,nstate,real>
 ::dissipative_flux (
+    const std::array<real,nstate> &solution,
+    const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient,
+    const dealii::types::global_dof_index /*cell_index*/) const
+{
+    return dissipative_flux(solution, solution_gradient);
+}
+
+template <int dim, int nstate, typename real>
+std::array<dealii::Tensor<1,dim,real>,nstate> Burgers<dim,nstate,real>
+::dissipative_flux (
     const std::array<real,nstate> &/*solution*/,
     const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient) const
 {
@@ -150,6 +160,17 @@ std::array<dealii::Tensor<1,dim,real>,nstate> Burgers<dim,nstate,real>
         }
     }
     return diss_flux;
+}
+
+template <int dim, int nstate, typename real>
+std::array<real,nstate> Burgers<dim,nstate,real>
+::source_term (
+    const dealii::Point<dim,real> &pos,
+    const std::array<real,nstate> &solution,
+    const real current_time,
+    const dealii::types::global_dof_index /*cell_index*/) const
+{
+    return source_term(pos,solution,current_time);
 }
 
 template <int dim, int nstate, typename real>

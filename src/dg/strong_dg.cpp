@@ -31,7 +31,7 @@ DGStrong<dim,nstate,real,MeshType>::DGStrong(
 
 // Destructor
 template <int dim, int nstate, typename real, typename MeshType>
-DGStrong<dim,nstate,real,MeshType>::~DGStrong ()
+DGStrong<dim,nstate,real,MeshType>::~DGStrong()
 {
     pcout << "Destructing DGStrong..." << std::endl;
 }
@@ -45,22 +45,19 @@ DGStrong<dim,nstate,real,MeshType>::~DGStrong ()
  *******************************************************************/
 
 template <int dim, int nstate, typename real, typename MeshType>
-void DGStrong<dim,nstate,real,MeshType>::allocate_auxiliary_equation ()
+void DGStrong<dim,nstate,real,MeshType>::allocate_auxiliary_equation()
 {
-    {
-        for (int idim=0; idim<dim; idim++){
-            this->auxiliary_RHS[idim].reinit(this->locally_owned_dofs, this->ghost_dofs, this->mpi_communicator);
-            this->auxiliary_RHS[idim].add(1.0);
+    for (int idim=0; idim<dim; idim++) {
+        this->auxiliary_RHS[idim].reinit(this->locally_owned_dofs, this->ghost_dofs, this->mpi_communicator);
+        this->auxiliary_RHS[idim].add(1.0);
 
-            this->auxiliary_solution[idim].reinit(this->locally_owned_dofs, this->ghost_dofs, this->mpi_communicator);
-            this->auxiliary_solution[idim] *= 0.0;
-        }
-
+        this->auxiliary_solution[idim].reinit(this->locally_owned_dofs, this->ghost_dofs, this->mpi_communicator);
+        this->auxiliary_solution[idim] *= 0.0;
     }
 }
 
 template <int dim, int nstate, typename real, typename MeshType>
-void DGStrong<dim,nstate,real,MeshType>::assemble_auxiliary_residual ()
+void DGStrong<dim,nstate,real,MeshType>::assemble_auxiliary_residual()
 {
     using PDE_enum = Parameters::AllParameters::PartialDifferentialEquation;
     using ODE_enum = Parameters::ODESolverParam::ODESolverEnum;
@@ -660,9 +657,10 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_derivatives(
                 diss_soln_jump_int[s][d] = (diss_soln_num_flux[iquad][s] - soln_int[iquad][s]) * normal_int[d];
             }
         }
-        diss_flux_jump_int[iquad] = this->pde_physics_fad->dissipative_flux (soln_int[iquad], diss_soln_jump_int);
- 
+        diss_flux_jump_int[iquad] = this->pde_physics_fad->dissipative_flux (soln_int[iquad], diss_soln_jump_int, current_cell_index);
+
         diss_auxi_num_flux_dot_n[iquad] = this->diss_num_flux_fad->evaluate_auxiliary_flux(
+            current_cell_index, current_cell_index,
             0.0, 0.0,
             soln_int[iquad], soln_ext[iquad],
             soln_grad_int[iquad], soln_grad_ext[iquad],
@@ -759,13 +757,13 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_volume_term_derivatives(
         // std::cout << "Energy " << soln_at_q[iquad][nstate-1] << std::endl;
         // Evaluate physical convective flux and source term
         conv_phys_flux_at_q[iquad] = this->pde_physics_fad->convective_flux (soln_at_q[iquad]);
-        diss_phys_flux_at_q[iquad] = this->pde_physics_fad->dissipative_flux (soln_at_q[iquad], soln_grad_at_q[iquad]);
+        diss_phys_flux_at_q[iquad] = this->pde_physics_fad->dissipative_flux (soln_at_q[iquad], soln_grad_at_q[iquad], current_cell_index);
 
         if(this->all_parameters->manufactured_convergence_study_param.manufactured_solution_param.use_manufactured_source_term) {
             const dealii::Point<dim,real> real_quad_point = fe_values_vol.quadrature_point(iquad);
             dealii::Point<dim,FadType> ad_point;
             for (int d=0;d<dim;++d) { ad_point[d] = real_quad_point[d]; }
-            source_at_q[iquad] = this->pde_physics_fad->source_term (ad_point, soln_at_q[iquad], this->current_time);
+            source_at_q[iquad] = this->pde_physics_fad->source_term (ad_point, soln_at_q[iquad], this->current_time, current_cell_index);
         }
     }
 
@@ -956,10 +954,11 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_derivatives(
                 diss_soln_jump_ext[s][d] = (diss_soln_num_flux[iquad][s] - soln_ext[iquad][s]) * normal_ext[d];
             }
         }
-        diss_flux_jump_int[iquad] = this->pde_physics_fad->dissipative_flux (soln_int[iquad], diss_soln_jump_int);
-        diss_flux_jump_ext[iquad] = this->pde_physics_fad->dissipative_flux (soln_ext[iquad], diss_soln_jump_ext);
+        diss_flux_jump_int[iquad] = this->pde_physics_fad->dissipative_flux (soln_int[iquad], diss_soln_jump_int, current_cell_index);
+        diss_flux_jump_ext[iquad] = this->pde_physics_fad->dissipative_flux (soln_ext[iquad], diss_soln_jump_ext, neighbor_cell_index);
 
         diss_auxi_num_flux_dot_n[iquad] = this->diss_num_flux_fad->evaluate_auxiliary_flux(
+            current_cell_index, neighbor_cell_index,
             0.0, 0.0,
             soln_int[iquad], soln_ext[iquad],
             soln_grad_int[iquad], soln_grad_ext[iquad],
@@ -1121,7 +1120,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_volume_term_explicit(
         conv_phys_flux_at_q[iquad] = this->pde_physics_double->convective_flux (soln_at_q[iquad]);
 
         // Diffusion
-        diffusive_phys_flux_at_q[iquad] = this->pde_physics_double->dissipative_flux(soln_at_q[iquad], aux_soln_at_q[iquad]);
+        diffusive_phys_flux_at_q[iquad] = this->pde_physics_double->dissipative_flux(soln_at_q[iquad], aux_soln_at_q[iquad], current_cell_index);
 
         // Source
         if(this->all_parameters->manufactured_convergence_study_param.manufactured_solution_param.use_manufactured_source_term) {
@@ -1133,7 +1132,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_volume_term_explicit(
                                                         * mapping_support_points[idim][imetric_dof];
                 }
             }
-            source_at_q[iquad] = this->pde_physics_double->source_term (quad_point, soln_at_q[iquad], this->current_time);
+            source_at_q[iquad] = this->pde_physics_double->source_term (quad_point, soln_at_q[iquad], this->current_time, current_cell_index);
         }
     }
 
@@ -1298,13 +1297,15 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_explicit(
                 diss_soln_jump_int[s][d] = (diss_soln_num_flux[iquad][s] - soln_int[iquad][s]) * normal_int[d];
             }
         }
-        diss_flux_jump_int[iquad] = this->pde_physics_fad->dissipative_flux(soln_int[iquad], diss_soln_jump_int);
+
+        diss_flux_jump_int[iquad] = this->pde_physics_fad->dissipative_flux(soln_int[iquad], diss_soln_jump_int, current_cell_index);
 
         diss_auxi_num_flux_dot_n[iquad] = this->diss_num_flux_fad->evaluate_auxiliary_flux(
-                                                                        0.0, 0.0,
-                                                                        soln_int[iquad], soln_ext[iquad],
-                                                                        soln_grad_int[iquad], soln_grad_ext[iquad],
-                                                                        normal_int, penalty, true);
+            current_cell_index, current_cell_index,
+            0.0, 0.0,
+            soln_int[iquad], soln_ext[iquad],
+            soln_grad_int[iquad], soln_grad_ext[iquad],
+            normal_int, penalty, true);
     }
 
     // Boundary integral
@@ -1483,7 +1484,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_explicit(
         }
         //get phys flux in vol quad
         ADArrayTensor1 phys_flux_conv      = this->pde_physics_double->convective_flux  (soln_at_q_int[iquad]);
-        ADArrayTensor1 phys_flux_diffusive = this->pde_physics_double->dissipative_flux (soln_at_q_int[iquad], aux_soln_at_q_int[iquad]);
+        ADArrayTensor1 phys_flux_diffusive = this->pde_physics_double->dissipative_flux (soln_at_q_int[iquad], aux_soln_at_q_int[iquad], current_cell_index);
         //transform to a reference flux
         for(int istate=0; istate<nstate; istate++){
             this->operators_state->compute_physical_to_reference(phys_flux_conv[istate],      metric_cofactor_int[iquad], conv_ref_flux_vol_int[iquad][istate]);
@@ -1499,7 +1500,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_explicit(
         }
         //get phys flux in vol quad
         ADArrayTensor1 phys_flux_conv      = this->pde_physics_double->convective_flux  (soln_at_q_ext[iquad]);
-        ADArrayTensor1 phys_flux_diffusive = this->pde_physics_double->dissipative_flux (soln_at_q_ext[iquad], aux_soln_at_q_ext[iquad]);
+        ADArrayTensor1 phys_flux_diffusive = this->pde_physics_double->dissipative_flux (soln_at_q_ext[iquad], aux_soln_at_q_ext[iquad], neighbor_cell_index);
         //transform to a reference flux
         for(int istate=0; istate<nstate; istate++) {
             this->operators_state->compute_physical_to_reference(phys_flux_conv[istate],      metric_cofactor_ext[iquad], conv_ref_flux_vol_ext[iquad][istate]);
@@ -1611,6 +1612,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_explicit(
         }
 
         diss_auxi_num_flux_dot_n[iquad] = this->diss_num_flux_double->evaluate_auxiliary_flux(
+            current_cell_index, neighbor_cell_index,
             0.0, 0.0,
             soln_int[iquad], soln_ext[iquad],
             aux_soln_int[iquad], aux_soln_ext[iquad],

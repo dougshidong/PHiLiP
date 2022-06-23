@@ -24,7 +24,6 @@ public:
         const dealii::Tensor<1,dim,real> &normal1) const = 0;
 };
 
-
 /// Lax-Friedrichs numerical flux. Derived from NumericalFluxConvective.
 template<int dim, int nstate, typename real>
 class LaxFriedrichs: public NumericalFluxConvective<dim, nstate, real>

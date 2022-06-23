@@ -19,6 +19,7 @@ std::array<real, nstate> array_average(
     }
     return array_average;
 }
+
 template<int nstate, int dim, typename real>
 std::array<dealii::Tensor<1,dim,real>, nstate> array_average(
     const std::array<dealii::Tensor<1,dim,real>,nstate> &array1,
@@ -63,6 +64,8 @@ std::array<real, nstate> SymmetricInternalPenalty<dim,nstate,real>
 template<int dim, int nstate, typename real>
 std::array<real, nstate> SymmetricInternalPenalty<dim,nstate,real>
 ::evaluate_auxiliary_flux (
+    const dealii::types::global_dof_index current_cell_index,
+    const dealii::types::global_dof_index neighbor_cell_index,
     const real artificial_diss_coeff_int,
     const real artificial_diss_coeff_ext,
     const std::array<real, nstate> &soln_int,
@@ -83,8 +86,10 @@ std::array<real, nstate> SymmetricInternalPenalty<dim,nstate,real>
         const std::array<dealii::Tensor<1,dim,real>, nstate> soln_grad_bc = soln_grad_int;
         //const std::array<dealii::Tensor<1,dim,real>, nstate> soln_grad_bc = soln_grad_ext;
         real artificial_diss_coeff_bc = artificial_diss_coeff_int;
+        const dealii::types::global_dof_index boundary_cell_index = current_cell_index;
 
-        return evaluate_auxiliary_flux ( artificial_diss_coeff_int, artificial_diss_coeff_bc,
+        return evaluate_auxiliary_flux ( current_cell_index, boundary_cell_index,
+                                         artificial_diss_coeff_int, artificial_diss_coeff_bc,
                                          soln_int, soln_bc,
                                          soln_grad_int, soln_grad_bc,
                                          normal_int, penalty,
@@ -94,16 +99,16 @@ std::array<real, nstate> SymmetricInternalPenalty<dim,nstate,real>
     ArrayTensor1 phys_flux_int, phys_flux_ext;
 
     // {{A*grad_u}}
-    phys_flux_int = pde_physics->dissipative_flux (soln_int, soln_grad_int);
-    phys_flux_ext = pde_physics->dissipative_flux (soln_ext, soln_grad_ext);
+    phys_flux_int = pde_physics->dissipative_flux (soln_int, soln_grad_int, current_cell_index);
+    phys_flux_ext = pde_physics->dissipative_flux (soln_ext, soln_grad_ext, neighbor_cell_index);
 
     ArrayTensor1 phys_flux_avg = array_average<nstate,dim,real>(phys_flux_int, phys_flux_ext);
 
     // {{A}}*[[u]]
     ArrayTensor1 soln_jump     = array_jump<dim,nstate,real>(soln_int, soln_ext, normal_int);
     ArrayTensor1 A_jumpu_int, A_jumpu_ext;
-    A_jumpu_int = pde_physics->dissipative_flux (soln_int, soln_jump);
-    A_jumpu_ext = pde_physics->dissipative_flux (soln_ext, soln_jump);
+    A_jumpu_int = pde_physics->dissipative_flux (soln_int, soln_jump, current_cell_index);
+    A_jumpu_ext = pde_physics->dissipative_flux (soln_ext, soln_jump, neighbor_cell_index);
     const ArrayTensor1 A_jumpu_avg = array_average<nstate,dim,real>(A_jumpu_int, A_jumpu_ext);
 
     std::array<real,nstate> auxiliary_flux_dot_n;
@@ -158,6 +163,8 @@ std::array<real, nstate> BassiRebay2<dim,nstate,real>
 template<int dim, int nstate, typename real>
 std::array<real, nstate> BassiRebay2<dim,nstate,real>
 ::evaluate_auxiliary_flux (
+    const dealii::types::global_dof_index current_cell_index,
+    const dealii::types::global_dof_index neighbor_cell_index,
     const real artificial_diss_coeff_int,
     const real artificial_diss_coeff_ext,
     const std::array<real, nstate> &soln_int,
@@ -191,8 +198,8 @@ std::array<real, nstate> BassiRebay2<dim,nstate,real>
     ArrayTensor1 phys_flux_int, phys_flux_ext;
 
     // {{A*grad_u}}
-    phys_flux_int = pde_physics->dissipative_flux (soln_int, soln_grad_int);
-    phys_flux_ext = pde_physics->dissipative_flux (soln_ext, soln_grad_ext);
+    phys_flux_int = pde_physics->dissipative_flux (soln_int, soln_grad_int, current_cell_index);
+    phys_flux_ext = pde_physics->dissipative_flux (soln_ext, soln_grad_ext, neighbor_cell_index);
 
     ArrayTensor1 phys_flux_avg = array_average<nstate,dim,real>(phys_flux_int, phys_flux_ext);
 
@@ -224,7 +231,6 @@ std::array<real, nstate> BassiRebay2<dim,nstate,real>
 
     return auxiliary_flux_dot_n;
 }
-
 
 // Instantiation
 template class NumericalFluxDissipative<PHILIP_DIM, 1, double>;

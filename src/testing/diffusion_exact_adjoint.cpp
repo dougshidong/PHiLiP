@@ -155,7 +155,8 @@ template <int dim, int nstate, typename real>
 std::array<real,nstate> diffusion_u<dim,nstate,real>::source_term (
     const dealii::Point<dim,real> &pos,
     const std::array<real,nstate> &/*solution*/,
-    const real /*current_time*/) const
+    const real /*current_time*/,
+    const dealii::types::global_dof_index /*cell_index*/) const
 {
     std::array<real,nstate> source;
 
@@ -226,7 +227,8 @@ template <int dim, int nstate, typename real>
 std::array<real,nstate> diffusion_v<dim,nstate,real>::source_term (
     const dealii::Point<dim,real> &pos,
     const std::array<real,nstate> &/*solution*/,
-    const real /*current_time*/) const
+    const real /*current_time*/,
+    const dealii::types::global_dof_index /*cell_index*/) const
 {
     const double pi = std::acos(-1);
 

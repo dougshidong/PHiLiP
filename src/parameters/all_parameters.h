@@ -11,6 +11,7 @@
 
 #include "parameters/parameters_euler.h"
 #include "parameters/parameters_navier_stokes.h"
+#include "parameters/parameters_physics_model.h"
 
 #include "parameters/parameters_reduced_order.h"
 #include "parameters/parameters_burgers.h"
@@ -45,6 +46,8 @@ public:
     ReducedOrderModelParam reduced_order_param;
     /// Contains parameters for Burgers equation
     BurgersParam burgers_param;
+    /// Contains parameters for Physics Model
+    PhysicsModelParam physics_model_param;
     /// Contains the parameters for grid refinement study
     GridRefinementStudyParam grid_refinement_study_param;
     /// Contains parameters for artificial dissipation
@@ -73,8 +76,9 @@ public:
         parallel_shared_triangulation,
         parallel_distributed_triangulation,
         };
-    MeshType mesh_type; ///< Selected MeshType from the input file
-
+    /// Store selected MeshType from the input file
+    MeshType mesh_type;
+    
     /// Number of additional quadrature points to use.
     /** overintegration = 0 leads to number_quad_points = dg_solution_degree + 1
      */
@@ -149,7 +153,8 @@ public:
         taylor_green_vortex_restart_check,
         time_refinement_study,
     };
-    TestType test_type; ///< Selected TestType from the input file.
+    /// Store selected TestType from the input file.
+    TestType test_type;
 
     /// Possible Partial Differential Equations to solve
     enum PartialDifferentialEquation {
@@ -163,7 +168,18 @@ public:
         euler,
         mhd,
         navier_stokes,
+        physics_model,
     };
+    /// Store the PDE type to be solved
+    PartialDifferentialEquation pde_type;
+
+    /// Types of models available.
+    enum ModelType {
+        large_eddy_simulation,
+        //reynolds_averaged_navier_stokes,
+    };
+    /// Store the model type
+    ModelType model_type;
 
     /// Possible boundary types, NOT IMPLEMENTED YET
     enum BoundaryType {
@@ -178,9 +194,6 @@ public:
         manufactured,
     };
 
-    /// Store the PDE type to be solved
-    PartialDifferentialEquation pde_type;
-
     /// Possible convective numerical flux types
     enum ConvectiveNumericalFlux { 
         lax_friedrichs, 
@@ -190,7 +203,6 @@ public:
         central_flux,
         entropy_conserving_flux
     };
-
     /// Store convective flux type
     ConvectiveNumericalFlux conv_num_flux_type;
 
@@ -201,14 +213,12 @@ public:
 
     /// Type of correction in Flux Reconstruction
     enum Flux_Reconstruction {cDG, cSD, cHU, cNegative, cNegative2, cPlus, c10Thousand, cHULumped};
-
     /// Store flux reconstruction type
     Flux_Reconstruction flux_reconstruction_type;
 
     /// Type of correction in Flux Reconstruction for the auxiliary variables
     enum Flux_Reconstruction_Aux {kDG, kSD, kHU, kNegative, kNegative2, kPlus, k10Thousand};
-
-    /// Store flux reconstruction type
+    /// Store flux reconstruction type for the auxiliary variables
     Flux_Reconstruction_Aux flux_reconstruction_aux_type;
 
     /// Name of directory for writing solution vtk files

@@ -390,7 +390,7 @@ set(TEST_SRC
 
 foreach(dim RANGE 2 3)
     # Output executable
-    string(CONCAT TEST_TARGET ${dim}WEIGHT_ADJUSTED_MASS_INV_TEST)
+    string(CONCAT TEST_TARGET ${dim}D_WEIGHT_ADJUSTED_MASS_INV_TEST)
     message("Adding executable " ${TEST_TARGET} " with files " ${TEST_SRC} "\n")
     add_executable(${TEST_TARGET} ${TEST_SRC})
     # Replace occurences of PHILIP_DIM with 1, 2, or 3 in the code

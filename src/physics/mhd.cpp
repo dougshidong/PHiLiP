@@ -13,6 +13,17 @@ namespace Physics {
 template <int dim, int nstate, typename real>
 std::array<real,nstate> MHD<dim,nstate,real>
 ::source_term (
+    const dealii::Point<dim,real> &pos,
+    const std::array<real,nstate> &conservative_soln,
+    const real current_time,
+    const dealii::types::global_dof_index /*cell_index*/) const
+{
+    return source_term(pos,conservative_soln,current_time);
+}
+
+template <int dim, int nstate, typename real>
+std::array<real,nstate> MHD<dim,nstate,real>
+::source_term (
     const dealii::Point<dim,real> &/*pos*/,
     const std::array<real,nstate> &/*conservative_soln*/,
     const real /*current_time*/) const
@@ -464,6 +475,15 @@ real MHD<dim,nstate,real>
     return max_eig;
 }
 
+template <int dim, int nstate, typename real>
+std::array<dealii::Tensor<1,dim,real>,nstate> MHD<dim,nstate,real>
+::dissipative_flux (
+    const std::array<real,nstate> &conservative_soln,
+    const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient,
+    const dealii::types::global_dof_index /*cell_index*/) const
+{
+    return dissipative_flux(conservative_soln,solution_gradient);
+}
 
 template <int dim, int nstate, typename real>
 std::array<dealii::Tensor<1,dim,real>,nstate> MHD<dim,nstate,real>

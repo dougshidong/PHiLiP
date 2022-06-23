@@ -2,6 +2,18 @@
 #include "initial_condition_function.h"
 
 namespace PHiLiP {
+
+// =========================================================
+// Initial Condition Base Class
+// =========================================================
+template <int dim, int nstate, typename real>
+InitialConditionFunction<dim,nstate,real>
+::InitialConditionFunction ()
+    : dealii::Function<dim,real>(nstate)//,0.0) // 0.0 denotes initial time (t=0)
+{
+    // Nothing to do here yet
+}
+
 // ========================================================
 // TAYLOR GREEN VORTEX -- Initial Condition (Uniform density)
 // ========================================================
@@ -174,11 +186,11 @@ inline real InitialConditionFunction_BurgersInviscid<dim,nstate,real>
 ::value(const dealii::Point<dim,real> &point, const unsigned int /*istate*/) const
 {
     real value = 1.0;
-    if(dim >= 1)
+    if constexpr(dim >= 1)
         value *= cos(dealii::numbers::PI*point[0]);
-    if(dim >= 2)
+    if constexpr(dim >= 2)
         value *= cos(dealii::numbers::PI*point[1]);
-    if(dim == 3)
+    if constexpr(dim == 3)
         value *= cos(dealii::numbers::PI*point[2]);
 
     return value;
@@ -200,11 +212,11 @@ inline real InitialConditionFunction_BurgersInviscidEnergy<dim,nstate,real>
 ::value(const dealii::Point<dim,real> &point, const unsigned int /*istate*/) const
 {
     real value = 1.0;
-    if(dim >= 1)
+    if constexpr(dim >= 1)
         value *= sin(dealii::numbers::PI*point[0]);
-    if(dim >= 2)
+    if constexpr(dim >= 2)
         value *= sin(dealii::numbers::PI*point[1]);
-    if(dim == 3)
+    if constexpr(dim == 3)
         value *= sin(dealii::numbers::PI*point[2]);
 
     value += 0.01;
@@ -227,11 +239,11 @@ inline real InitialConditionFunction_AdvectionEnergy<dim,nstate,real>
 ::value(const dealii::Point<dim,real> &point, const unsigned int /*istate*/) const
 {
     real value = 1.0;
-    if(dim >= 1)
+    if constexpr(dim >= 1)
         value *= exp(-20.0*point[0]*point[0]);
-    if(dim >= 2)
+    if constexpr(dim >= 2)
         value *= exp(-20.0*point[1]*point[1]);
-    if(dim == 3)
+    if constexpr(dim == 3)
         value *= exp(-20.0*point[2]*point[2]);
 
     return value;
@@ -253,11 +265,11 @@ inline real InitialConditionFunction_Advection<dim,nstate,real>
 ::value(const dealii::Point<dim,real> &point, const unsigned int /*istate*/) const
 {
     real value = 1.0;
-    if(dim >= 1)
+    if constexpr(dim >= 1)
         value *= sin(2.0*dealii::numbers::PI*point[0]);
-    if(dim >= 2)
+    if constexpr(dim >= 2)
         value *= sin(2.0*dealii::numbers::PI*point[1]);
-    if(dim == 3)
+    if constexpr(dim == 3)
         value *= sin(2.0*dealii::numbers::PI*point[2]);
 
     return value;
@@ -279,11 +291,11 @@ inline real InitialConditionFunction_ConvDiff<dim,nstate,real>
 ::value(const dealii::Point<dim,real> &point, const unsigned int /*istate*/) const
 {
     real value = 1.0;
-    if(dim >= 1)
+    if constexpr(dim >= 1)
         value *= sin(dealii::numbers::PI*point[0]);
-    if(dim >= 2)
+    if constexpr(dim >= 2)
         value *= sin(dealii::numbers::PI*point[1]);
-    if(dim == 3)
+    if constexpr(dim == 3)
         value *= sin(dealii::numbers::PI*point[2]);
 
     return value;
@@ -312,15 +324,22 @@ inline real InitialConditionFunction_1DSine<dim,nstate,real>
     return value;
 }
 
-// =========================================================
-// Initial Condition Base Class
-// =========================================================
+// ========================================================
+// ZERO INITIAL CONDITION
+// ========================================================
 template <int dim, int nstate, typename real>
-InitialConditionFunction<dim,nstate,real>
-::InitialConditionFunction ()
-    : dealii::Function<dim,real>(nstate)//,0.0) // 0.0 denotes initial time (t=0)
+InitialConditionFunction_Zero<dim,nstate,real>
+::InitialConditionFunction_Zero()
+    : InitialConditionFunction<dim,nstate,real>()
 {
     // Nothing to do here yet
+}
+
+template <int dim, int nstate, typename real>
+real InitialConditionFunction_Zero<dim, nstate, real>
+::value(const dealii::Point<dim,real> &/*point*/, const unsigned int /*istate*/) const
+{
+    return 0.0;
 }
 
 // =========================================================
@@ -348,9 +367,9 @@ InitialConditionFactory<dim,nstate, real>::create_InitialConditionFunction(
             }
         }
     } else if (flow_type == FlowCaseEnum::burgers_rewienski_snapshot) {
-        if constexpr (dim==1 && nstate==dim) return std::make_shared<InitialConditionFunction_BurgersRewienski<dim,nstate,real> > ();
+        if constexpr (dim==1 && nstate==1) return std::make_shared<InitialConditionFunction_BurgersRewienski<dim,nstate,real> > ();
     } else if (flow_type == FlowCaseEnum::burgers_viscous_snapshot) {
-        if constexpr (dim==1 && nstate==dim) return std::make_shared<InitialConditionFunction_BurgersViscous<dim,nstate,real> > ();
+        if constexpr (dim==1 && nstate==1) return std::make_shared<InitialConditionFunction_BurgersViscous<dim,nstate,real> > ();
     } else if (flow_type == FlowCaseEnum::naca0012) {
         if constexpr (dim==2 && nstate==dim+2) {
             Physics::Euler<dim,nstate,double> euler_physics_double = Physics::Euler<dim, nstate, double>(
@@ -362,17 +381,17 @@ InitialConditionFactory<dim,nstate, real>::create_InitialConditionFunction(
             return std::make_shared<FreeStreamInitialConditions<dim,nstate,real>>(euler_physics_double);
         }
     } else if (flow_type == FlowCaseEnum::burgers_inviscid && param->use_energy==false ) {
-        if constexpr (dim==1 && nstate==dim) return std::make_shared<InitialConditionFunction_BurgersInviscid<dim,nstate,real> > ();
+        if constexpr (dim==1 && nstate==1) return std::make_shared<InitialConditionFunction_BurgersInviscid<dim,nstate,real> > ();
     } else if (flow_type == FlowCaseEnum::burgers_inviscid && param->use_energy==true ) {
-        if constexpr (dim==1 && nstate==dim) return std::make_shared<InitialConditionFunction_BurgersInviscidEnergy<dim,nstate,real> > ();
+        if constexpr (dim==1 && nstate==1) return std::make_shared<InitialConditionFunction_BurgersInviscidEnergy<dim,nstate,real> > ();
     } else if (flow_type == FlowCaseEnum::advection && param->use_energy==true ) {
-        if constexpr (dim==1 && nstate==dim) return std::make_shared<InitialConditionFunction_AdvectionEnergy<dim,nstate,real> > ();
+        if constexpr (nstate==1) return std::make_shared<InitialConditionFunction_AdvectionEnergy<dim,nstate,real> > ();
     } else if (flow_type == FlowCaseEnum::advection && param->use_energy==false ) {
-        if constexpr (dim==1 && nstate==dim) return std::make_shared<InitialConditionFunction_Advection<dim,nstate,real> > ();
+        if constexpr (nstate==1) return std::make_shared<InitialConditionFunction_Advection<dim,nstate,real> > ();
     } else if (flow_type == FlowCaseEnum::convection_diffusion) {
-        if constexpr (dim==1 && nstate==dim) return std::make_shared<InitialConditionFunction_ConvDiff<dim,nstate,real> > ();
+        if constexpr (nstate==1) return std::make_shared<InitialConditionFunction_ConvDiff<dim,nstate,real> > ();
     } else if (flow_type == FlowCaseEnum::advection_periodic) {
-        if constexpr (dim==1 && nstate==dim) return std::make_shared<InitialConditionFunction_1DSine<dim,nstate,real> > ();
+        if constexpr (dim==1 && nstate==1) return std::make_shared<InitialConditionFunction_1DSine<dim,nstate,real> > ();
     } else {
         std::cout << "Invalid Flow Case Type. You probably forgot to add it to the list of flow cases in initial_condition.cpp" << std::endl;
         std::abort();
@@ -380,35 +399,29 @@ InitialConditionFactory<dim,nstate, real>::create_InitialConditionFunction(
     return nullptr;
 }
 
-// ========================================================
-// ZERO INITIAL CONDITION
-// ========================================================
-template <int dim, int nstate, typename real>
-real InitialConditionFunction_Zero<dim, nstate, real> :: value(const dealii::Point<dim,real> &/*point*/, const unsigned int /*istate*/) const
-{
-    return 0.0;
-}
-
-template class InitialConditionFunction <PHILIP_DIM,PHILIP_DIM, double>;
-template class InitialConditionFunction <PHILIP_DIM,PHILIP_DIM+2, double>;
+template class InitialConditionFunction <PHILIP_DIM,1, double>;
+template class InitialConditionFunction <PHILIP_DIM, PHILIP_DIM+2, double>;
 template class InitialConditionFactory <PHILIP_DIM, 1, double>;
-template class InitialConditionFactory <PHILIP_DIM, 2, double>;
-template class InitialConditionFactory <PHILIP_DIM, 3, double>;
-template class InitialConditionFactory <PHILIP_DIM, 4, double>;
-template class InitialConditionFactory <PHILIP_DIM, 5, double>;
-template class InitialConditionFunction_BurgersViscous<PHILIP_DIM, PHILIP_DIM, double>;
-template class InitialConditionFunction_BurgersRewienski<PHILIP_DIM, PHILIP_DIM, double>;
-template class InitialConditionFunction_TaylorGreenVortex <PHILIP_DIM,PHILIP_DIM+2,double>;
-template class InitialConditionFunction_TaylorGreenVortex_Isothermal <PHILIP_DIM,PHILIP_DIM+2,double>;
+template class InitialConditionFactory <PHILIP_DIM, PHILIP_DIM+2, double>;
+
+#if PHILIP_DIM==1
+template class InitialConditionFunction_BurgersViscous <PHILIP_DIM, 1, double>;
+template class InitialConditionFunction_BurgersRewienski <PHILIP_DIM, 1, double>;
+template class InitialConditionFunction_BurgersInviscid <PHILIP_DIM, 1, double>;
+template class InitialConditionFunction_BurgersInviscidEnergy <PHILIP_DIM, 1, double>;
+#endif
+#if PHILIP_DIM==3
+template class InitialConditionFunction_TaylorGreenVortex <PHILIP_DIM, PHILIP_DIM+2, double>;
+template class InitialConditionFunction_TaylorGreenVortex_Isothermal <PHILIP_DIM, PHILIP_DIM+2, double>;
+#endif
+// functions instantiated for all dim
 template class InitialConditionFunction_Zero <PHILIP_DIM,1, double>;
 template class InitialConditionFunction_Zero <PHILIP_DIM,2, double>;
 template class InitialConditionFunction_Zero <PHILIP_DIM,3, double>;
 template class InitialConditionFunction_Zero <PHILIP_DIM,4, double>;
 template class InitialConditionFunction_Zero <PHILIP_DIM,5, double>;
-template class InitialConditionFunction_BurgersInviscid <PHILIP_DIM,PHILIP_DIM,double>;
-template class InitialConditionFunction_BurgersInviscidEnergy <PHILIP_DIM,PHILIP_DIM,double>;
-template class InitialConditionFunction_Advection <PHILIP_DIM,1,double>;
-template class InitialConditionFunction_AdvectionEnergy <PHILIP_DIM,1,double>;
-template class InitialConditionFunction_ConvDiff <PHILIP_DIM,1,double>;
+template class InitialConditionFunction_Advection <PHILIP_DIM, 1, double>;
+template class InitialConditionFunction_AdvectionEnergy <PHILIP_DIM, 1, double>;
+template class InitialConditionFunction_ConvDiff <PHILIP_DIM, 1, double>;
 
 } // PHiLiP namespace

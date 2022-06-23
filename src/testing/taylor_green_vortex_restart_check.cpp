@@ -27,6 +27,7 @@ Parameters::AllParameters TaylorGreenVortexRestartCheck<dim, nstate>::reinit_par
     const double initial_time_input,
     const unsigned int initial_iteration_input,
     const double initial_desired_time_for_output_solution_every_dt_time_intervals_input,
+    const double initial_time_step_input,
     const int restart_file_index_input) const {
 
     // copy all parameters
@@ -39,6 +40,7 @@ Parameters::AllParameters TaylorGreenVortexRestartCheck<dim, nstate>::reinit_par
     parameters.ode_solver_param.initial_time = initial_time_input;
     parameters.ode_solver_param.initial_iteration = initial_iteration_input;
     parameters.ode_solver_param.initial_desired_time_for_output_solution_every_dt_time_intervals = initial_desired_time_for_output_solution_every_dt_time_intervals_input;
+    parameters.ode_solver_param.initial_time_step = initial_time_step_input;
     parameters.flow_solver_param.restart_file_index = restart_file_index_input;
 
     return parameters;
@@ -75,16 +77,25 @@ bool compare_files(const std::string& filename1, const std::string& filename2)
 template <int dim, int nstate>
 int TaylorGreenVortexRestartCheck<dim, nstate>::run_test() const
 {
-    const double time_at_which_we_stop_the_run = 6.1240484302437529e-03;
+    const double time_at_which_we_stop_the_run = 6.2831853072000017e-03;// chosen from running test MPI_VISCOUS_TAYLOR_GREEN_VORTEX_ENERGY_CHECK_QUICK
     const int restart_file_index = 4;
     const int initial_iteration_restart = restart_file_index; // assumes output mod for restart files is 1
     const double time_at_which_the_run_is_complete = this->all_parameters->flow_solver_param.final_time;
     Parameters::AllParameters params_incomplete_run = reinit_params(true,false,time_at_which_we_stop_the_run);
-    Parameters::AllParameters params_restart_to_complete_run = reinit_params(false,true,time_at_which_the_run_is_complete,time_at_which_we_stop_the_run,initial_iteration_restart,0.0,restart_file_index);
 
     // Integrate to time at which we stop the run
     std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver_incomplete_run = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(&params_incomplete_run, parameter_handler);
     static_cast<void>(flow_solver_incomplete_run->run());
+
+    const double time_step_at_stop_time = flow_solver_incomplete_run->flow_solver_case->get_constant_time_step(flow_solver_incomplete_run->dg);
+    const double desired_time_for_output_solution_every_dt_time_intervals_at_stop_time = flow_solver_incomplete_run->ode_solver->current_desired_time_for_output_solution_every_dt_time_intervals;
+    Parameters::AllParameters params_restart_to_complete_run = reinit_params(false,true,
+                                                                             time_at_which_the_run_is_complete,
+                                                                             time_at_which_we_stop_the_run,
+                                                                             initial_iteration_restart,
+                                                                             desired_time_for_output_solution_every_dt_time_intervals_at_stop_time,
+                                                                             time_step_at_stop_time,
+                                                                             restart_file_index);
 
     // INLINE SUB-TEST: Check whether the initialize_data_table_from_file() function in flow solver is working correctly
     if(this->mpi_rank==0) {

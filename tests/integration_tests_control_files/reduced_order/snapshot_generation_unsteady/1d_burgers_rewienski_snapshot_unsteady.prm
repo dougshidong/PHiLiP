@@ -10,9 +10,6 @@ set use_collocated_nodes = false
 
 subsection grid refinement study
  set num_refinements = 10
- set poly_degree = 0
- set grid_left = 0.0
- set grid_right = 100.0
 end
 
 #Burgers parameters
@@ -26,6 +23,11 @@ subsection flow_solver
   set final_time = 0.5
   set unsteady_data_table_filename = 3_0.02_solutions_table_unsteady
   set steady_state = false
+  set poly_degree = 0
+  subsection grid
+    set grid_left_bound = 0.0
+    set grid_right_bound = 100.0
+  end
 end
 
 subsection ODE solver

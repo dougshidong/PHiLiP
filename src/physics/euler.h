@@ -76,6 +76,15 @@ namespace Physics {
 template <int dim, int nstate, typename real>
 class Euler : public PhysicsBase <dim, nstate, real>
 {
+protected:
+    // For overloading the virtual functions defined in PhysicsBase
+    /** Once you overload a function from Base class in Derived class,
+     *  all functions with the same name in the Base class get hidden in Derived class.  
+     *  
+     *  Solution: In order to make the hidden function visible in derived class, 
+     *  we need to add the following: */
+    using PhysicsBase<dim,nstate,real>::dissipative_flux;
+    using PhysicsBase<dim,nstate,real>::source_term;
 public:
     /// Constructor
     Euler ( 
@@ -84,7 +93,6 @@ public:
         const double                                              mach_inf,
         const double                                              angle_of_attack,
         const double                                              side_slip_angle,
-        const dealii::Tensor<2,3,double>                          input_diffusion_tensor = Parameters::ManufacturedSolutionParam::get_default_diffusion_tensor(),
         std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function = nullptr);
 
     /// Destructor
@@ -150,11 +158,24 @@ public:
     real max_convective_eigenvalue (const std::array<real,nstate> &soln) const;
 
     /// Dissipative flux: 0
+    std::array<dealii::Tensor<1,dim,real>,nstate> dissipative_flux (
+        const std::array<real,nstate> &conservative_soln,
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient,
+        const dealii::types::global_dof_index cell_index) const;
+
+    /// (function overload) Dissipative flux: 0
     virtual std::array<dealii::Tensor<1,dim,real>,nstate> dissipative_flux (
         const std::array<real,nstate> &conservative_soln,
         const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient) const;
 
     /// Source term is zero or depends on manufactured solution
+    std::array<real,nstate> source_term (
+        const dealii::Point<dim,real> &pos,
+        const std::array<real,nstate> &conservative_soln,
+        const real current_time,
+        const dealii::types::global_dof_index cell_index) const;
+
+    /// (function overload) Source term is zero or depends on manufactured solution
     virtual std::array<real,nstate> source_term (
         const dealii::Point<dim,real> &pos,
         const std::array<real,nstate> &conservative_soln,
@@ -303,10 +324,10 @@ public:
 
     /// For post processing purposes (update comment later)
     virtual dealii::Vector<double> post_compute_derived_quantities_vector (
-        const dealii::Vector<double>      &uh,
+        const dealii::Vector<double>              &uh,
         const std::vector<dealii::Tensor<1,dim> > &duh,
         const std::vector<dealii::Tensor<2,dim> > &dduh,
-        const dealii::Tensor<1,dim>                  &normals,
+        const dealii::Tensor<1,dim>               &normals,
         const dealii::Point<dim>                  &evaluation_points) const;
     
     /// For post processing purposes, sets the base names (with no prefix or suffix) of the computed quantities
@@ -369,6 +390,13 @@ protected:
     void boundary_farfield (
         std::array<real,nstate> &soln_bc) const;
 
+    /// Get manufactured solution value
+    std::array<real,nstate> get_manufactured_solution_value(
+        const dealii::Point<dim,real> &pos) const;
+
+    /// Get manufactured solution gradient
+    std::array<dealii::Tensor<1,dim,real>,nstate> get_manufactured_solution_gradient(
+        const dealii::Point<dim,real> &pos) const;
 };
 
 } // Physics namespace

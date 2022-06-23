@@ -206,7 +206,7 @@ int main (int argc, char * argv[])
         time_t tmass;
         tmass = clock();
         dealii::FullMatrix<real> mass(n_dofs);
-        mass = mass_matrix.tensor_product_state(mass_matrix.oneD_vol_operator.m(), mass_matrix.oneD_vol_operator.n(), nstate,
+        mass = mass_matrix.tensor_product_state(nstate,
                                                 mass_matrix.oneD_vol_operator,
                                                 mass_matrix.oneD_vol_operator,mass_matrix.oneD_vol_operator);
         //compute M*u

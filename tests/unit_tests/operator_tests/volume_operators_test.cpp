@@ -128,7 +128,7 @@ int main (int argc, char * argv[])
         const dealii::FESystem<1,1> fe_system(fe_dg, nstate);
         mass_matrix.build_1D_volume_operator(fe_system,quad1D);
         dealii::FullMatrix<real> mass_dim(n_dofs);
-        mass_dim = mass_matrix.tensor_product_state(mass_matrix.oneD_vol_operator.m(),mass_matrix.oneD_vol_operator.n(), nstate,
+        mass_dim = mass_matrix.tensor_product_state(nstate,
                                                     mass_matrix.oneD_vol_operator,
                                                     mass_matrix.oneD_vol_operator,mass_matrix.oneD_vol_operator);
 

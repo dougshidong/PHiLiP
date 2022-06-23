@@ -78,20 +78,18 @@ public:
 
     ///Returns the tensor product of matrices passed.
     dealii::FullMatrix<double> tensor_product(
-                                    const unsigned int rows, const unsigned int columns,
                                     const dealii::FullMatrix<double> &basis_x,
                                     const dealii::FullMatrix<double> &basis_y,
                                     const dealii::FullMatrix<double> &basis_z);
 
     ///Returns the tensor product of matrices passed, but makes it sparse diagonal by state.
-    /* An example for this would be a multi-state mass matrix. When the mass matrix
+    /** An example for this would be a multi-state mass matrix. When the mass matrix
     * is constructed, it is not templated by nstate. Also, if each 1D mass matrix is multi-state
     * then their tensor product does not match the dim multi-state mass matrix.
     * Instead, only if the states match, then do tensor product. This results in a diagonal
     * sparse matrix by state number, with each state's block being a dim-ordered tensor product.
     */
     dealii::FullMatrix<double> tensor_product_state(
-                                    const unsigned int rows, const unsigned int columns,
                                     const int nstate,
                                     const dealii::FullMatrix<double> &basis_x,
                                     const dealii::FullMatrix<double> &basis_y,
@@ -146,7 +144,8 @@ public:
     ///Computes a matrix-vector product using sum-factorization. Pass the one-dimensional basis, where x runs the fastest, then y, and z runs the slowest. Also, assume each one-dimensional basis is the same size.
     /** Uses sum-factorization with BLAS techniques to solve the the matrix-vector multiplication, where the matrix is the tensor product of three one-dimensional matrices. We use the standard notation that x runs the fastest, then y, and z runs the slowest.
     * For an operator \f$\mathbf{A}\f$ of size \f$n^d\f$ with \f$n\f$ the one dimensional dofs
-    * and \f$ d\f$ the dim, we compute \f$\text{output vector}=\mathbf{A}\text{input vector}\f$.
+    * and \f$ d\f$ the dim, for ouput row vector \f$ v \f$ and input row vector \f$ u \f$,
+    * we compute \f$v^T=\mathbf{A}u^T\f$.
     * Lastly, the adding allows the result to add onto the previous output_vect scaled by "factor".
     */
     void matrix_vector_mult(
@@ -158,15 +157,15 @@ public:
             const bool adding = false,
             const double factor = 1.0) override;
     ///Computes the divergence using the sum factorization matrix-vector multiplication.
-    /* Often, we compute a dot product in dim, where each matrix multiplictaion uses
+    /** Often, we compute a dot product in dim, where each matrix multiplictaion uses
     * sum factorization. Example, consider taking the reference divergence of the reference flux:
     * \f[ 
     * \nabla^r \cdot f^r = \frac{\partial f^r}{\partial \xi} + \frac{\partial f^r}{\partial \eta} +
     * \frac{\partial f^r}{\partial \zeta} = 
     *   \left( \frac{d \mathbf{\chi}(\mathbf{\xi})}{d\xi} \otimes \mathbf{\chi}(\mathbf{\eta}) \otimes \mathbf{\chi}(\mathbf{\zeta}) \right) \left(\hat{\mathbf{f}^r}\right)^T
     * + \left( \mathbf{\chi}(\mathbf{\xi}) \otimes \frac{d\mathbf{\chi}(\mathbf{\eta})}{d\eta} \otimes \mathbf{\chi}(\mathbf{\zeta}) \right) \left(\hat{\mathbf{f}^r}\right)^T
-    * + \left( \mathbf{\chi}(\mathbf{\xi}) \otimes \mathbf{\chi}(\mathbf{\eta} \otimes \frac{d\mathbf{\chi}(\mathbf{\zeta})}{d\zeta})\right) \left(\hat{\mathbf{f}^r}\right)^T
-    * \f].
+    * + \left( \mathbf{\chi}(\mathbf{\xi}) \otimes \mathbf{\chi}(\mathbf{\eta} \otimes \frac{d\mathbf{\chi}(\mathbf{\zeta})}{d\zeta})\right) \left(\hat{\mathbf{f}^r}\right)^T,
+    * \f] where we use sum factorization to evaluate each matrix-vector multiplication in each dim direction.
     */
     void divergence_matrix_vector_mult(
             const dealii::Tensor<1,dim,std::vector<double>> &input_vect,
@@ -190,9 +189,25 @@ public:
             const bool adding = false,
             const double factor = 1.0) override;
 
+    ///Computes the Hadamard product ONLY for 2pt flux calculations.
+    /**
+    * The Hadamard product comes up naturally in calculcating 2-point fluxes, so we needed an efficient way to compute it.
+    * Using the commutative property of Hadamard products: \f$ (A \otimes B) \circ ( C \otimes D) = (A\circ C) \otimes (B\circ D) \f$,
+    * we can find a "sum-factorization" type expression for \f$ A \circ U \f$, where here \f$ A = A_x \otimes A_y \otimes A_z \f$
+    * and \f$ U \f$ is an \f$ n \times n \f$ matrix. <br>
+    * We make use of the flux basis being collocated on flux nodes, so the directions that aren't the derivative are identity.
+    * This results in the Hadamard product only needing \f$ \mathcal{O}(n^{d+1})\f$ flops to compute non-zero entries.<br>
+    * This is NOT for GENERAL Hadamard products since those are \f$ \mathcal{O}(n^{2d})\f$ .
+    */
+    void two_pt_flux_Hadamard_product(
+            const dealii::FullMatrix<double> &input_mat,
+            dealii::FullMatrix<double> &output_mat,
+            const dealii::FullMatrix<double> &basis,//the only direction that isn't identity
+            const int direction);//direction for the derivative that corresponds to basis
+
 protected:
     /// Apply the matrix vector operation using the 1D operator in each direction
-    /* This is for the case where the operator of size dim is the dyadic product of
+    /** This is for the case where the operator of size dim is the dyadic product of
     * the same 1D operator in each direction
     */
     void matrix_vector_mult_1D(
@@ -208,6 +223,14 @@ protected:
             const std::vector<double> &weight_vect,
             std::vector<double> &output_vect,
             const dealii::FullMatrix<double> &basis_x);
+    ///Computes a single Hadamard product. 
+    /** For input mat1 \f$ A \f$ and input mat2 \f$ B \f$, this computes
+    * \f$ A \circ B = C \implies \left( C \right)_{ij} = \left( A \right)_{ij}\left( B \right)_{ij}\f$.
+    */
+    void Hadamard_product(
+        const dealii::FullMatrix<double> &input_mat1,
+        const dealii::FullMatrix<double> &input_mat2,
+        dealii::FullMatrix<double> &output_mat);
 
 //protected:
 public:
@@ -403,26 +426,26 @@ public:
             double &c);
 
     ///Evaluates the spectral difference parameter for flux reconstruction.
-    /*Value from Allaneau, Y., and Antony Jameson. "Connections between the filtered discontinuous Galerkin method and the flux reconstruction approach to high order discretizations." Computer Methods in Applied Mechanics and Engineering 200.49-52 (2011): 3628-3636. 
+    /**Value from Allaneau, Y., and Antony Jameson. "Connections between the filtered discontinuous Galerkin method and the flux reconstruction approach to high order discretizations." Computer Methods in Applied Mechanics and Engineering 200.49-52 (2011): 3628-3636. 
     */
     void get_spectral_difference_parameter (
             const unsigned int curr_cell_degree,
             double &c);
     ///Evaluates the flux reconstruction parameter at the bottom limit where the scheme is unstable.
-    /*Value from Allaneau, Y., and Antony Jameson. "Connections between the filtered discontinuous Galerkin method and the flux reconstruction approach to high order discretizations." Computer Methods in Applied Mechanics and Engineering 200.49-52 (2011): 3628-3636. 
+    /**Value from Allaneau, Y., and Antony Jameson. "Connections between the filtered discontinuous Galerkin method and the flux reconstruction approach to high order discretizations." Computer Methods in Applied Mechanics and Engineering 200.49-52 (2011): 3628-3636. 
     */
     void get_c_negative_FR_parameter (
             const unsigned int curr_cell_degree,
             double &c);
     ///Evaluates the flux reconstruction parameter at the bottom limit where the scheme is unstable, divided by 2.
-    /*Value from Allaneau, Y., and Antony Jameson. "Connections between the filtered discontinuous Galerkin method and the flux reconstruction approach to high order discretizations." Computer Methods in Applied Mechanics and Engineering 200.49-52 (2011): 3628-3636. 
+    /**Value from Allaneau, Y., and Antony Jameson. "Connections between the filtered discontinuous Galerkin method and the flux reconstruction approach to high order discretizations." Computer Methods in Applied Mechanics and Engineering 200.49-52 (2011): 3628-3636. 
     * Commonly in the lterature we use this value to show the approach to the bottom limit of stability.
     */
     void get_c_negative_divided_by_two_FR_parameter (
             const unsigned int curr_cell_degree,
             double &c);
     ///Gets the FR correction parameter corresponding to the maximum timestep.
-    /* Note that this parameter is also a good approximation for when the FR scheme begins to
+    /** Note that this parameter is also a good approximation for when the FR scheme begins to
     * lose an order of accuracy, but the original definition is that it corresponds to the maximum timestep.
     * Value from Table 3.4 in Castonguay, Patrice. High-order energy stable flux reconstruction schemes for fluid flow simulations on unstructured grids. Stanford University, 2012.
     */
@@ -605,24 +628,6 @@ public:
 *
 ************************************************************************/
 
-/////Solution basis functions evaluated at facet cubature nodes.
-//template<int dim, int n_faces>
-//class basis_at_facet_cubature : public SumFactorizedOperators<dim,n_faces>
-//{
-//public:
-//    ///Constructor.
-//    basis_at_facet_cubature (
-//        const int nstate_input,
-//        const unsigned int max_degree_input,
-//        const unsigned int grid_degree_input);
-//    ///Destructor.
-//    ~basis_at_facet_cubature ();
-//
-//    ///Assembles the one dimensional operator.
-//    void build_1D_surface_operator(
-//            const dealii::FESystem<1,1> &finite_element,
-//            const dealii::Quadrature<0> &face_quadrature);
-//};
 
 ///The surface integral of test functions.
 /**\f[
@@ -674,7 +679,7 @@ public:
             dealii::FullMatrix<double> &lifting);
 
     ///Assembles the one dimensional norm operator that it is lifted onto.
-    /* Note that the norm is the DG mass matrix in this case. This has to be called before build_1D_surface_operator.
+    /** Note that the norm is the DG mass matrix in this case. This has to be called before build_1D_surface_operator.
     */
     void build_1D_volume_operator(
             const dealii::FESystem<1,1> &finite_element,
@@ -709,7 +714,7 @@ public:
     const Parameters::AllParameters::Flux_Reconstruction FR_param_type;
 
     ///Assembles the one dimensional norm operator that it is lifted onto.
-    /* Note that the norm is the FR mass matrix in this case. This has to be called before build_1D_surface_operator.
+    /** Note that the norm is the FR mass matrix in this case. This has to be called before build_1D_surface_operator.
     */
     void build_1D_volume_operator(
             const dealii::FESystem<1,1> &finite_element,
@@ -753,7 +758,7 @@ public:
     basis_functions<dim,n_faces> mapping_shape_functions_flux_nodes;
 
     ///Constructs the volume operator and gradient operator.
-    /*
+    /**
     * This function assures that the shape
     * functions are collocated on the grid nodes.
     * Also, makes for easier function calls.
@@ -765,7 +770,7 @@ public:
             const dealii::Quadrature<1> &quadrature);
 
     ///Constructs the volume, gradient, surface, and surface gradient operator.
-    /*
+    /**
     * Function builds the 1D operators in mapping_shape_functions_flux_nodes.
     */
     void build_1D_shape_functions_at_flux_nodes(
@@ -773,25 +778,6 @@ public:
             const dealii::Quadrature<1> &quadrature,
             const dealii::Quadrature<0> &face_quadrature);
 
-//    ///Mapping shape functions evaluated at the volume grid nodes.
-//    void build_1D_volume_operator(
-//            const dealii::FESystem<1,1> &finite_element,
-//            const dealii::Quadrature<1> &quadrature);
-//    ///REFERENCE gradient of the the mapping shape functions evaluated at the volume grid nodes.
-//    void build_1D_gradient_operator(
-//            const dealii::FESystem<1,1> &finite_element,
-//            const dealii::Quadrature<1> &quadrature);
-//    ///Mapping shape functions evaluated at the SURFACE flux nodes. 
-//    /**
-//    * The quadrature passed has to be the surface flux nodes
-//    */
-//    void build_1D_surface_operator(
-//            const dealii::FESystem<1,1> &finite_element,
-//            const dealii::Quadrature<0> &face_quadrature);
-//    ///Gradient of mapping shape functions evalutated at surface flux nodes.
-//    void build_1D_surface_gradient_operator(
-//            const dealii::FESystem<1,1> &finite_element,
-//            const dealii::Quadrature<0> &face_quadrature);
 };
 
 /*****************************************************************************
@@ -820,13 +806,14 @@ public:
         const dealii::Tensor<2,dim,real> &metric_cofactor,
         dealii::Tensor<1,dim,real> &ref);
     ///Given a reference tensor, return the physical tensor.
-    void transform_reference_to_physical(
+    void transform_reference_unit_normal_to_physical_unit_normal(
+        const unsigned int n_quad_pts,
         const dealii::Tensor<1,dim,real> &ref,
-        const dealii::Tensor<2,dim,real> &metric_cofactor,
-        dealii::Tensor<1,dim,real> &phys);
+        const dealii::Tensor<2,dim,std::vector<real>> &metric_cofactor,
+        std::vector<dealii::Tensor<1,dim,real>> &phys);
 
     ///Builds the volume metric operators.
-    /* Builds and stores volume metric cofactor and determinant of metric Jacobian
+    /** Builds and stores volume metric cofactor and determinant of metric Jacobian
     * at the volume cubature nodes. If passed flag to store Jacobian when metric
     * operators is constructed, will also store the JAcobian at flux nodes.
     */
@@ -838,7 +825,7 @@ public:
         const bool use_invariant_curl_form = false);
 
     ///Builds the facet metric operators.
-    /* Builds and stores facet metric cofactor and determinant of metric Jacobian
+    /** Builds and stores facet metric cofactor and determinant of metric Jacobian
     * at the facet cubature nodes (one face). If passed flag to store Jacobian when metric
     * operators is constructed, will also store the JAcobian at flux nodes.
     */
@@ -868,7 +855,8 @@ public:
 protected:
 
     ///Builds the metric Jacobian evaluated at a vector of points.
-    /* \f$ \mathbf{J} = [\mathbf{a}_1, \mathbf{a}_2, \mathbf{a}_3]^T \f$.
+    /** \f$ \mathbf{J} = [\mathbf{a}_1, \mathbf{a}_2, \mathbf{a}_3]^T \f$
+    * where \f$\mathbf{a}_i = \mathbf{\nabla}^r x_i \f$ are the physical vector bases.
     */
     void build_metric_Jacobian(
         const unsigned int n_quad_pts,//the dim sized n_quad_pts, NOT the 1D
@@ -882,7 +870,7 @@ protected:
         std::vector<dealii::Tensor<2,dim,real>> &local_Jac);
 
     ///Assembles the determinant of metric Jacobian.
-    /* \f$ \|J^\Omega \| = \mathbf{a}_1 \cdot (\mathbf{a}_2 \otimes \mathbf{a}_3)\f$,
+    /** \f$ \|J^\Omega \| = \mathbf{a}_1 \cdot (\mathbf{a}_2 \otimes \mathbf{a}_3)\f$,
     * where \f$\mathbf{a}_i = \mathbf{\nabla}^r x_i \f$ are the physical vector bases.
     * Pass the 1D mapping shape functions evaluated at flux nodes,
     * and the 1D gradient of mapping shape functions evaluated at flux nodes.
@@ -920,8 +908,15 @@ protected:
 
     ///Computes local 3D cofactor matrix.
     /**
-    *We compute the metric cofactor matrix \f$\mathbf{C}_m\f$ via the oncservative curl form of Abe 2014 and Kopriva 2006 by default. Can use invariant curl form by passing flag. To ensure consistent normals, we consider
+    *We compute the metric cofactor matrix \f$\mathbf{C}_m\f$ via the conservative curl form of Abe 2014 and Kopriva 2006 by default. Can use invariant curl form by passing flag. To ensure consistent normals, we consider
     * the two cubature sets, grid nodes (mapping-support-points), and flux nodes (quadrature nodes). The metric cofactor matrix is thus:
+    * \f[
+    * (\mathbf{C})_{ni} = J(\mathbf{a}^i)_n= -\hat{\mathbf{e}}_i \cdot \nabla^r\times\mathbf{\Theta}(\mathbf{\xi}_{\text{flux nodes}}^r)\Big[
+             \mathbf{\Theta}(\mathbf{\xi}_{\text{grid nodes}}^r)\hat{\mathbf{x}}_l^{c^T}
+       \nabla^r \mathbf{\Theta}(\mathbf{\xi}_{\text{grid nodes}}^r)\hat{\mathbf{x}}_m^{c^T}
+        \Big]
+             \text{, }\\i=1,2,3\text{, }n=1,2,3\text{ }(n,m,l)\text{ cyclic,}
+    * \f] for the conservative curl form, and
     * \f[
     *      (\mathbf{C})_{ni} = J(\mathbf{a}^i)_n= -\frac{1}{2}\hat{\mathbf{e}}_i \cdot \nabla^r\times\mathbf{\Theta}(\mathbf{\xi}_{\text{flux nodes}}^r)\Big[
              \mathbf{\Theta}(\mathbf{\xi}_{\text{grid nodes}}^r)\hat{\mathbf{x}}_l^{c^T}
@@ -929,9 +924,9 @@ protected:
         -
         \mathbf{\Theta}(\mathbf{\xi}_{\text{grid nodes}}^r)\hat{\mathbf{x}}_m^{c^T}
        \nabla^r \mathbf{\Theta}(\mathbf{\xi}_{\text{grid nodes}}^r)\hat{\mathbf{x}}_l^{c^T}\Big]
-             \text{, }\\i=1,2,3\text{, }n=1,2,3\text{ }(n,m,l)\text{ cyclic.}
-    * \f]
-    * where we let \f$\mathbf{\Theta}(\mathbf{\xi}^r)\f$ represent the mapping shape functions.
+             \text{, }\\i=1,2,3\text{, }n=1,2,3\text{ }(n,m,l)\text{ cyclic,}
+    * \f] for the invariant curl form.<br>
+    * We let \f$\mathbf{\Theta}(\mathbf{\xi}^r)\f$ represent the mapping shape functions.
     */
     void compute_local_3D_cofactor(
         const unsigned int n_metric_dofs,
@@ -960,7 +955,7 @@ protected:
 ************************************************************/
 
 ///In order to have all state operators be arrays of array, we template by dim, type, nstate, and number of faces. 
-/*Note that dofs and quad points aren't templated because they are variable with respect to each polynomial degree. 
+/**Note that dofs and quad points aren't templated because they are variable with respect to each polynomial degree. 
 *Also I couldn't template by polynomial degree/grid degree since they aren't compile time constant expressions.
 */
 template <int dim, int nstate, int n_faces>  
@@ -1042,418 +1037,6 @@ public:
             const dealii::FESystem<1,1> &finite_element,//pass the finite element of the TEST FUNCTION
             const dealii::Quadrature<1> &quadrature);
 };
-
-
-
-
-
-
-
-#if 0
-
-
-
-
-public:
-
-    /*
-        * Operators Base to be used in DGBase needs: basis at vol, surf and metric basis at quad nodes.
-        * Mass matrix, Flux_Reconstruction oper and vol det Jac which needs the metric basis grad at vol quad nodes.
-        * Everything else will be in OperatorsBaseState
-        * Also deirvtivep etc, which requires modal derivative oper, which reuiqres local_basis_stiffness
-        * FR_mass_inv
-        * basically everythign except flux lol
-    */
-
-    ///Allocates the volume operators.
-    void allocate_volume_operators ();
-    ///Allocates the surface operators.
-    void allocate_surface_operators ();
-
-     ///Solution basis functions evaluated at volume cubature nodes.
-     std::vector<dealii::FullMatrix<double>> basis_at_vol_cubature;
-     ///\f$ \mathbf{W}*\mathbf{\chi}(\mathbf{\xi}_v^r) \f$  That is Quadrature Weights multiplies with basis_at_vol_cubature.
-     std::vector<dealii::FullMatrix<real>> vol_integral_basis;
-     ///This is the solution basis \f$\mathbf{D}_i\f$, the modal differential opertaor commonly seen in DG defined as \f$\mathbf{D}_i=\mathbf{M}^{-1}*\mathbf{S}_i\f$.
-    std::vector<std::array<dealii::FullMatrix<real>,dim>> modal_basis_differential_operator;
-    ///Local mass matrix without jacobian dependence.
-    std::vector<dealii::FullMatrix<real>> local_mass;
-    ///Local stiffness matrix without jacobian dependence.
-    /**NOTE: this is not used in DG volume integral since that needs to use the derivative of the flux basis and is multiplied by flux at volume cubature nodes this is strictly for consturtcing D operator
-   *\f[
-        (\mathbf{S}_\xi)_{ij}  = \int_\mathbf{{\Omega}_r} \mathbf{\chi}_i(\mathbf{\xi}^r) \frac{\mathbf{\chi}_{j}(\mathbf{\xi}^r)}{\partial \xi} d\mathbf{\Omega}_r
-        \f]
-    */
-    std::vector<std::array<dealii::FullMatrix<real>,dim>> local_basis_stiffness;
-    /// ESFR correction matrix without jac dependence
-    std::vector<dealii::FullMatrix<real>> local_Flux_Reconstruction_operator;
-    ///ESFR c parameter Flux_Reconstruction operator
-    std::vector<real> c_param_FR;//SKIPPED
-   /// ESFR correction matrix for AUX EQUATION without jac dependence
-   /** NOTE Auxiliary equation is a vector in dim, so theres an ESFR correction for each dim -> Flux_Reconstruction_aux also a vector of dim
-   * ie/ local_Flux_Reconstruction_operator_aux[degree_index][dimension_index] = Flux_Reconstruction_operator for AUX eaquation in direction dimension_index for
-   * polynomial degree of degree_index+1
-   */
-    std::vector<std::array<dealii::FullMatrix<real>,dim>> local_Flux_Reconstruction_operator_aux;
-    ///ESFR k parameter Flux_Reconstruction-auxiliary operator
-    std::vector<real> k_param_FR;//SKIPPED
-    ///\f$ p\f$ -th order modal derivative of basis fuctions, ie/\f$ [D_\xi^p, D_\eta^p, D_\zeta^p]\f$
-    std::vector<std::array<dealii::FullMatrix<real>,dim>> derivative_p;
-    /// \f$2p\f$-th order modal derivative of basis fuctions, ie/ \f$[D_\xi^p D_\eta^p, D_\xi^p D_\zeta^p, D_\eta^p D_\zeta^p]\f$
-    std::vector<std::array<dealii::FullMatrix<real>,dim>> derivative_2p;//SKIPPED
-    /// \f$3p\f$-th order modal derivative of basis fuctions \f$[D_\xi^p D_\eta^p D_\zeta^p]\f$
-    std::vector<dealii::FullMatrix<real>> derivative_3p;//SKIPPED
-
-    ///Projection operator corresponding to basis functions onto M-norm (L2).
-    std::vector<dealii::FullMatrix<real>> vol_projection_operator;
-    ///Projection operator corresponding to basis functions onto \f$(M+K)\f$-norm.
-    std::vector<dealii::FullMatrix<real>> vol_projection_operator_FR;
-
-    ///The metric independent inverse of the FR mass matrix \f$(M+K)^{-1}\f$.
-    std::vector<dealii::FullMatrix<real>> FR_mass_inv;
-
-    ///Builds basis and flux functions operators and gradient operator.
-    void create_vol_basis_operators ();
-    ///Constructs a mass matrix on the fly for a single degree NOTE: for Jacobian dependence pass JxW to quad_weights.
-    void build_local_Mass_Matrix (
-                                const std::vector<real> &quad_weights,
-                                const unsigned int n_dofs_cell, const unsigned int n_quad_pts,
-                                const int current_fe_index,
-                                dealii::FullMatrix<real> &Mass_Matrix);
-    ///Constructs local_mass which is a vector of metric Jacobian independent local mass matrices.
-    void build_Mass_Matrix_operators ();
-    ///Constructs local stiffness operator corresponding to the basis. 
-    /**Also it constructs the flux basis stiffness as \f$\int_{\mathbf{\Omega}_r}\chi_i(\mathbf{\xi}^r)\frac{\partial \chi_{\text{FLUX},j}(\mathbf{\xi}^r)}{\partial \xi} d\mathbf{\Omega}_r \f$.
-    *Also builds modal_basis_differential_operator since has the stiffness matrix there.
-    */
-    void build_Stiffness_Matrix_operators ();
-    ///FR specific build operator functions
-    /**builds the \f$ p,\: 2p,\f$ and \f$ 3p \f$ derivative operators to compute broken Sobolev-space.
-    */    
-    void get_higher_derivatives ();
-
-    ///Evaluates Huynh's g2 parameter for flux reconstruction.
-    /* This parameter recovers Huynh, Hung T. "A flux reconstruction approach to high-order schemes including discontinuous Galerkin methods." 18th AIAA computational fluid dynamics conference. 2007.
-    */
-    void get_Huynh_g2_parameter (
-                                const unsigned int curr_cell_degree,
-                                real &c);
-
-    ///Evaluates the spectral difference parameter for flux reconstruction.
-    /*Value from Allaneau, Y., and Antony Jameson. "Connections between the filtered discontinuous Galerkin method and the flux reconstruction approach to high order discretizations." Computer Methods in Applied Mechanics and Engineering 200.49-52 (2011): 3628-3636. 
-    */
-    void get_spectral_difference_parameter (
-                                const unsigned int curr_cell_degree,
-                                real &c);
-    ///Evaluates the flux reconstruction parameter at the bottom limit where the scheme is unstable.
-    /*Value from Allaneau, Y., and Antony Jameson. "Connections between the filtered discontinuous Galerkin method and the flux reconstruction approach to high order discretizations." Computer Methods in Applied Mechanics and Engineering 200.49-52 (2011): 3628-3636. 
-    */
-    void get_c_negative_FR_parameter (
-                                const unsigned int curr_cell_degree,
-                                real &c);
-    ///Evaluates the flux reconstruction parameter at the bottom limit where the scheme is unstable, divided by 2.
-    /*Value from Allaneau, Y., and Antony Jameson. "Connections between the filtered discontinuous Galerkin method and the flux reconstruction approach to high order discretizations." Computer Methods in Applied Mechanics and Engineering 200.49-52 (2011): 3628-3636. 
-    * Commonly in the lterature we use this value to show the approach to the bottom limit of stability.
-    */
-    void get_c_negative_divided_by_two_FR_parameter (
-                                const unsigned int curr_cell_degree,
-                                real &c);
-    ///Gets the FR correction parameter corresponding to the maximum timestep.
-    /* Note that this parameter is also a good approximation for when the FR scheme begins to
-    * lose an order of accuracy, but the original definition is that it corresponds to the maximum timestep.
-    * Value from Table 3.4 in Castonguay, Patrice. High-order energy stable flux reconstruction schemes for fluid flow simulations on unstructured grids. Stanford University, 2012.
-    */
-    void get_c_plus_parameter (
-                                const unsigned int curr_cell_degree,
-                                real &c);
-
-    ///Gets the FR correction parameter for both primary and auxiliary equations and stores for each degree.
-    /**These values are name specified in parameters/all_parameters.h, passed through control file/or test and here converts/stores as value.
-    * Please note that in all the functions within this that evaluate the parameter, we divide the value in the literature by 2.0
-    * because our basis are contructed by an orthonormal Legendre basis rather than the orthogonal basis in the literature. 
-    * Also, we have the additional scaling by pow(pow(2.0,curr_cell_degree),2) because our basis functions are defined on
-    * a reference element between [0,1], whereas the values in the literature are based on [-1,1].
-    * For further details please refer to Cicchino, Alexander, and Siva Nadarajah. "A new norm and stability condition for tensor product flux reconstruction schemes." Journal of Computational Physics 429 (2021): 110025.
-    */
-    void get_FR_correction_parameter (
-                                    const unsigned int curr_cell_degree,
-                                    real &c, real &k);
-    ///Constructs the vector of Flux_Reconstruction operators (ESFR correction operator) for each poly degree.
-    void build_Flux_Reconstruction_operators ();
-
-   ///Computes a single local Flux_Reconstruction operator (ESFR correction operator) on the fly for a local element.
-   /**Note that this is dependent on the Mass Matrix, so for metric Jacobian dependent \f$K_m\f$,
-   *pass the metric Jacobian dependent Mass Matrix \f$M_m\f$.
-    */
-    void build_local_Flux_Reconstruction_operator(
-                                const dealii::FullMatrix<real> &local_Mass_Matrix,
-                                const unsigned int  n_dofs_cell, const unsigned int degree_index, 
-                                dealii::FullMatrix<real> &Flux_Reconstruction_operator);
-//    ///Similar to above but for the local Flux_Reconstruction operator for the Auxiliary equation.
-//    void build_local_Flux_Reconstruction_operator_AUX(
-//                                const dealii::FullMatrix<real> &local_Mass_Matrix,
-//                                const unsigned int  n_dofs_cell, const unsigned int degree_index, 
-//                                std::array<dealii::FullMatrix<real>,dim> &Flux_Reconstruction_operator_aux);
-
-    ///Computes the volume projection operators.
-    void get_vol_projection_operators();
-    ///Computes a single local projection operator on some space (norm).
-    void compute_local_vol_projection_operator(
-                                const dealii::FullMatrix<real> &norm_matrix, 
-                                const dealii::FullMatrix<double> &integral_vol_basis, 
-                                dealii::FullMatrix<real> &volume_projection);
-
-    ///Solution basis functions evaluated at facet cubature nodes.
-    std::vector<std::array<dealii::FullMatrix<real>,n_faces>> basis_at_facet_cubature;
-//    ///Flux basis functions evaluated at facet cubature nodes.
-//   std::vector<std::array<std::array<dealii::FullMatrix<real>,n_faces>,nstate>> flux_basis_at_facet_cubature;
-    ///The surface integral of test functions.
-   /**\f[
-   *     \mathbf{W}_f \mathbf{\chi}(\mathbf{\xi}_f^r) 
-   * \f]
-   *ie/ diag of REFERENCE unit normal times facet quadrature weights times solution basis functions evaluated on that face
-   *in DG surface integral would be transpose(face_integral_basis) times flux_on_face
-   */
-    std::vector<std::array<dealii::FullMatrix<real>,n_faces>> face_integral_basis;
-   /// The DG lifting operator is defined as the operator that lifts inner products of polynomials of some order \f$p\f$ onto the L2-space.
-   /**In DG lifting operator is \f$L=\mathbf{M}^{-1}*(\text{face_integral_basis})^T\f$.
-   *So DG surface is \f$L*\text{flux_interpolated_to_face}\f$.
-   *NOTE this doesn't have metric Jacobian dependence, for DG solver
-   *we build that using the functions below on the fly!
-   */
-    std::vector<std::array<dealii::FullMatrix<real>,n_faces>> lifting_operator;
-   ///The ESFR lifting operator. 
-   /**
-   *Consider the broken Sobolev-space \f$W_{\delta}^{dim*p,2}(\mathbf{\Omega}_r)\f$ (which is the ESFR norm)
-   * for \f$u \in W_{\delta}^{dim*p,2}(\mathbf{\Omega}_r)\f$,
-   * \f[
-   * L_{FR}:\: <L_{FR} u,v>_{\mathbf{\Omega}_r} = <u,v>_{\mathbf{\Gamma}_2}, \forall v\in P^p(\mathbf{\Omega}_r)
-   * \f].
-   */
-    std::vector<std::array<dealii::FullMatrix<real>,n_faces>> lifting_operator_FR;
-
-
-    ///Builds surface basis and flux functions operators and gradient operator.
-    void create_surface_basis_operators ();
-    ///Builds surface lifting operators.
-    void get_surface_lifting_operators ();
-    ///Builds the local lifting operator. 
-    void build_local_surface_lifting_operator (
-                                const unsigned int degree_index, 
-                                const unsigned int n_dofs_cell, 
-                                const unsigned int face_number, 
-                                const dealii::FullMatrix<real> &norm_matrix, 
-                                dealii::FullMatrix<real> &lifting);
-    
-    ///The mapping shape functions evaluated at the volume grid nodes (facet set included in volume grid nodes for consistency).
-    std::vector<dealii::FullMatrix<real>> mapping_shape_functions_grid_nodes; 
-    ///REFERENCE gradient of the the mapping shape functions evaluated at the volume grid nodes.
-    std::vector<std::array<dealii::FullMatrix<real>,dim>> gradient_mapping_shape_functions_grid_nodes; 
-
-    ///Mapping shape functions evaluated at the VOLUME flux nodes (arbitrary, does not have to be on the surface ex/ GL).
-    /** FOR Flux Nodes operators there is the grid degree, then the degree of the cubature set it is applied on
-    * to handle all general cases. 
-    */
-    std::vector<std::vector<dealii::FullMatrix<real>>> mapping_shape_functions_vol_flux_nodes; 
-    ///Mapping shape functions evaluated at the SURFACE flux nodes. 
-    std::vector<std::vector<std::array<dealii::FullMatrix<real>,n_faces>>> mapping_shape_functions_face_flux_nodes; 
-   ///Gradient of mapping shape functions evalutated at VOLUME flux nodes.
-   /**Note that for a single grid degree it can evaluate at varying degree of fluxnodes 
-   *ie allows of sub/super parametric etc and over integration
-   *Vector order goes: [Grid_Degree][Flux_Poly_Degree][Dim][n_quad_pts][n_mapping_shape_functions]
-    */
-    std::vector<std::vector<std::array<dealii::FullMatrix<real>,dim>>> gradient_mapping_shape_functions_vol_flux_nodes; 
-    ///Gradient of mapping shape functions evalutated at surface flux nodes.
-    /**Is a vector of degree->array of n_faces -> array of dim -> Matrix n_face_quad_pts x n_shape_functions.
-    */
-    std::vector<std::vector<std::array<std::array<dealii::FullMatrix<real>,dim>,n_faces>>> gradient_mapping_shape_functions_face_flux_nodes; 
-
-    ///Allocates metric shape functions operators.
-    void allocate_metric_operators(     
-                                    const unsigned int max_grid_degree_local);
-    ///Creates metric shape functions operators.
-    void create_metric_basis_operators(
-                                    const unsigned int max_grid_degree_local);
-
-    ///Builds just the dterminant of the volume metric Jacobian.
-    void build_local_vol_determinant_Jac(
-                                    const unsigned int grid_degree, const unsigned int poly_degree,
-                                    const unsigned int n_quad_pts, 
-                                    const unsigned int n_metric_dofs,
-                                    const std::array<std::vector<real>,dim> &mapping_support_points,
-                                    std::vector<real> &determinant_Jacobian);
-    ///Called on the fly and returns the metric cofactor and determinant of Jacobian at VOLUME cubature nodes.
-    /**
-    *We compute the metric cofactor matrix \f$\mathbf{C}_m\f$ via the invariant curl form of Abe 2014 and Kopriva 2006. To ensure consistent normals, we consider
-    * the two cubature sets, grid nodes (mapping-support-points), and flux nodes (quadrature nodes). The metric cofactor matrix is thus:
-    * \f[
-    *      (\mathbf{C})_{ni} = J(\mathbf{a}^i)_n= -\frac{1}{2}\hat{\mathbf{e}}_i \cdot \nabla^r\times\mathbf{\Theta}(\mathbf{\xi}_{\text{flux nodes}}^r)\Big[
-             \mathbf{\Theta}(\mathbf{\xi}_{\text{grid nodes}}^r)\hat{\mathbf{x}}_l^{c^T}
-       \nabla^r \mathbf{\Theta}(\mathbf{\xi}_{\text{grid nodes}}^r)\hat{\mathbf{x}}_m^{c^T}
-        -
-        \mathbf{\Theta}(\mathbf{\xi}_{\text{grid nodes}}^r)\hat{\mathbf{x}}_m^{c^T}
-       \nabla^r \mathbf{\Theta}(\mathbf{\xi}_{\text{grid nodes}}^r)\hat{\mathbf{x}}_l^{c^T}\Big]
-             \text{, }\\i=1,2,3\text{, }n=1,2,3\text{ }(n,m,l)\text{ cyclic.}
-    * \f]
-    * where we let \f$\mathbf{\Theta}(\mathbf{\xi}^r)\f$ represent the mapping shape functions.
-    */
-    void build_local_vol_metric_cofactor_matrix_and_det_Jac(
-                                    const unsigned int grid_degree, const unsigned int poly_degree,
-                                    const unsigned int n_quad_pts, 
-                                    const unsigned int n_metric_dofs,
-                                    const std::array<std::vector<real>,dim> &mapping_support_points,
-                                    std::vector<real> &determinant_Jacobian,
-                                    std::vector<dealii::FullMatrix<real>> &metric_cofactor);
-    ///Called on the fly and returns the metric cofactor and determinant of Jacobian at face cubature nodes.
-    void build_local_face_metric_cofactor_matrix_and_det_Jac(
-                                    const unsigned int grid_degree, const unsigned int poly_degree,
-                                    const unsigned int iface,
-                                    const unsigned int n_quad_pts, const unsigned int n_metric_dofs,
-                                    const std::array<std::vector<real>,dim> &mapping_support_points,
-                                    std::vector<real> &determinant_Jacobian,
-                                    std::vector<dealii::FullMatrix<real>> &metric_cofactor);
-    ///Computes local 3D cofactor matrix in VOLUME.
-    void compute_local_3D_cofactor_vol(
-                                    const unsigned int grid_degree, const unsigned int poly_degree,
-                                    const unsigned int n_quad_pts,
-                                    const unsigned int n_metric_dofs,
-                                    const std::array<std::vector<real>,dim> &mapping_support_points,
-                                    std::vector<dealii::FullMatrix<real>> &metric_cofactor);
-    ///Computes local 3D cofactor matrix on FACE for consistent normals with water-tight mesh.
-    void compute_local_3D_cofactor_face(
-                                    const unsigned int grid_degree, const unsigned int poly_degree,
-                                    const unsigned int n_quad_pts,
-                                    const unsigned int n_metric_dofs, const unsigned int iface,
-                                    const std::array<std::vector<real>,dim> &mapping_support_points,
-                                    std::vector<dealii::FullMatrix<real>> &metric_cofactor);
-    ///Computes \f$(\mathbf{x}_l * \nabla(\mathbf{x}_m))\f$ at GRID NODES.
-    void compute_Xl_grad_Xm(
-                                    const unsigned int grid_degree,
-                                    const unsigned int n_metric_dofs, 
-                                    const std::array<std::vector<real>,dim> &mapping_support_points,
-                                    std::vector<dealii::DerivativeForm<1,dim,dim>> &Xl_grad_Xm);
-    ///Computes the cyclic curl loop for metric cofactor matrix.
-    /**
-    *      This function is currently no longer used, but left in with the conservative curl form commented out
-    *      incase we want to compare the forms in the future.
-    */
-    void do_curl_loop_metric_cofactor(
-                                    const unsigned int n_quad_pts,
-                                    const std::vector<dealii::DerivativeForm<2,dim,dim>> grad_Xl_grad_Xm,
-                                    std::vector<dealii::FullMatrix<real>> &metric_cofactor);
-
-    ///Given a physical tensor, return the reference tensor.
-    void compute_physical_to_reference(
-                                    const dealii::Tensor<1,dim,real> &phys,
-                                    const dealii::FullMatrix<real> &metric_cofactor,
-                                    dealii::Tensor<1,dim,real> &ref);
-    ///Given a reference tensor, return the physical tensor.
-    void compute_reference_to_physical(
-                                    const dealii::Tensor<1,dim,real> &ref,
-                                    const dealii::FullMatrix<real> &metric_cofactor,
-                                    dealii::Tensor<1,dim,real> &phys);
-    ///Checks on the fly that the grid hasn't been updated with a higher order. If the grid has been updated, then it recreates the appropriate metric basis.
-    void is_the_grid_higher_order_than_initialized(
-                                    const unsigned int grid_degree);
-                                
-    ///Computes a matrix-vector product using sum-factorization. Pass the one-dimensional basis, where x runs the fastest, then y, and z runs the slowest. Also, assume each one-dimensional basis is the same size.
-    /** Uses sum-factorization with BLAS techniques to solve the the matrix-vector multiplication, where the matrix is the tensor product of three one-dimensional matrices. We use the standard notation that x runs the fastest, then y, and z runs the slowest.
-    */
-    void sum_factorization_matrix_vector_mult(
-                                    const std::vector<real> &input_vect,
-                                    std::vector<real> &output_vect,
-                                    const unsigned int rows, const unsigned int columns,
-                                    const unsigned int dimension,
-                                    const dealii::FullMatrix<real> &basis_x,
-                                    const dealii::FullMatrix<real> &basis_y,
-                                    const dealii::FullMatrix<real> &basis_z);
-
-    ///Computes the inner prodct between a matrix and a vector multiplied by some weight function.  
-    /** That is, we compute \f$ \int Awu d\mathbf{\Omega}_r = \mathbf{A}^T \text{diag}(w) \mathbf{u}^T \f$. When using this function, pass \f$ \mathbf{A} \f$ and NOT it's transpose--the function transposes it in the first few lines.
-    */
-    void sum_factorization_inner_product(
-                                    const std::vector<real> &input_vect,
-                                    const std::vector<real> &weight_vect,
-                                    std::vector<real> &output_vect,
-                                    const unsigned int rows, const unsigned int columns,
-                                    const unsigned int dimension,
-                                    const dealii::FullMatrix<real> &basis_x,
-                                    const dealii::FullMatrix<real> &basis_y,
-                                    const dealii::FullMatrix<real> &basis_z);
-};///End operator base class.
-
-
-///In order to have all operators be arrays of array, we template by dim, type, nstate, and number of faces. Note that dofs and quad points aren't templated because they are variable with respect to each polynomial degree. Also I couldn't template by polynomial degree/grid degree since they aren't compile time constant expressions.
-template <int dim, typename real, int nstate, int n_faces>  
-class OperatorsBaseState : public OperatorsBase<dim, real, n_faces>
-{
-public:
-    ///Constructor
-    OperatorsBaseState(
-          const Parameters::AllParameters *const parameters_input,//Parameters.
-          const unsigned int max_degree_input,//max poly degree for operators
-          const unsigned int grid_degree_input);//max grid degree for operators
-    ///Destructor
-    ~OperatorsBaseState();
-
-public:
-
-    ///Allocates the volume operators for state class.
-    void allocate_volume_operators_state ();
-    ///Builds basis and flux functions operators and gradient operator for state class.
-    void create_vol_basis_operators_state ();
-     ///The flux basis functions evaluated at volume cubature nodes.
-    /**Flux (over int) basis functions evaluated at volume cubature nodes (should always be identity).
-    *NOTE THE FLUX BASIS IS COLLOCATED ON FLUX NODES
-    *so it does not have vector state embedded in its degrees of freedom, so we make the operator have a vector by state, ie/ 
-    *\f$\text{n_dofs_for_solution_basis} = \text{nstate} *pow(p+1,dim)\f$
-    *but \f$\text{n_dofs_flux_basis} = pow(p+1,dim)\f$.
-    *Also flux basis has an extra vector by nstate so that we can use .vmult later on with state vectors (in the residuals)
-     *So example flux_basis_at_vol_cubature[poly_degree][state_number][test_functions_for_state_number][flux_basis_shape_functions]
-        */
-     std::vector<std::array<dealii::FullMatrix<real>,nstate>> flux_basis_at_vol_cubature;
-     ///Gradient of flux basis functions evaluated at volume cubature nodes.
-     /**Note that since it is gradient and not derivative, it is a tensor of dim.
-     */
-     std::vector<std::array<std::array<dealii::FullMatrix<real>,dim>,nstate>> gradient_flux_basis;
-    ///"Stiffness" operator used in DG Strong form.
-   /**Since the volume integral in strong form uses the flux basis spanning the flux.
-   *Explicitly, this is integral of basis_functions and the gradient of the flux basis
-   *\f[
-        (\mathbf{S}_{\text{FLUX},\xi})_{ij}  = \int_\mathbf{{\Omega}_r} \mathbf{\chi}_i(\mathbf{\xi}^r) \frac{\mathbf{\chi}_{\text{FLUX},j}(\mathbf{\xi}^r)}{\partial \xi} d\mathbf{\Omega}_r
-        \f]
-    */
-    std::vector<std::array<std::array<dealii::FullMatrix<real>,dim>,nstate>> local_flux_basis_stiffness;
-    ///The integration of gradient of solution basis.
-   /**Please note that for the weak form volume integral with arbitrary integration strength, use the transpose of the following operator.
-   *Note: that it is also a vector of nstate since it will be applied to a flux vector per state.
-   *Lastly its gradient of basis functions NOT flux basis because in the weak form the test function is the basis function not the flux basis (technically the flux is spanned by the flux basis at quadrature nodes).
-    *   \f[
-    *           \mathbf{W}\nabla\Big(\chi_i(\mathbf{\xi}^r)\Big)  
-    *   \f]
-    */
-    std::vector<std::array<std::array<dealii::FullMatrix<real>,dim>,nstate>> vol_integral_gradient_basis;
-    ///Allocates the surface operators for the state class.
-    void allocate_surface_operators_state ();
-    ///Builds surface basis and flux functions operators and gradient operator for the state class.
-    void create_surface_basis_operators_state ();
-    ///Flux basis functions evaluated at facet cubature nodes.
-    std::vector<std::array<std::array<dealii::FullMatrix<real>,n_faces>,nstate>> flux_basis_at_facet_cubature;
-    ///Computes the physical gradient operator scaled by the determinant of the metric Jacobian. 
-    /**By default we should use the skew-symmetric form for curvilinear elements. For the metric split-form, pass "use_curvilinear_split_form" in parameters. Explicitly, the skew-symmetric form's first component is the gradient operator and the second is the divergence operator. 
-    * Using \f$\mathbf{\phi}\f$ as the flux basis collocated on the volume cubature nodes, the output of the function is \f$ D_i = \frac{1}{2} \sum_{j=1}^{d}(J\frac{\partial \xi_j}{\partial x_i})\frac{\partial \phi(\mathbf{\xi}_v^r)}{\partial \xi_j}  + \frac{\partial \phi(\mathbf{\xi}_v^r)}{\partial \xi_j}(J\frac{\partial \xi_j}{\partial x_i})\f$. 
-    * Since this operator can also compute either the divergence or the gradoent, pass the option of whether to compute the conservative divergence operator or the gradient operator. For definitions of gradient and divergence operators, please see Equations (10) and (11) in Cicchino, Alexander, et al. "Provably stable flux reconstruction high-order methods on curvilinear elements." Journal of Computational Physics (2022): 111259. 
-    */
-    void get_Jacobian_scaled_physical_gradient(
-                                    const bool use_conservative_divergence,
-                                    const std::array<std::array<dealii::FullMatrix<real>,dim>,nstate> &ref_gradient,
-                                    const std::vector<dealii::FullMatrix<real>> &metric_cofactor,
-                                    const unsigned int n_quad_pts,
-                                    std::array<std::array<dealii::FullMatrix<real>,dim>,nstate> &physical_gradient);
-
-};///End operator base state class.
-
-#endif
 
 } /// OPERATOR namespace
 } /// PHiLiP namespace

@@ -284,9 +284,6 @@ int main (int argc, char * argv[])
 
     for(unsigned int poly_degree = 2; poly_degree<6; poly_degree++){
         unsigned int grid_degree = poly_degree;
-        //setup operator
-        //OPERATOR::OperatorsBase<dim,real> operators(&all_parameters_new, nstate, poly_degree, poly_degree, grid_degree); 
-        OPERATOR::OperatorsBaseState<dim,real,nstate,2*dim> operators(&all_parameters_new, poly_degree, poly_degree);
         //setup DG
         std::shared_ptr < PHiLiP::DGBase<dim, double> > dg = PHiLiP::DGFactory<dim,double>::create_discontinuous_galerkin(&all_parameters_new, poly_degree, poly_degree, grid_degree, grid);
         dg->allocate_system ();
@@ -326,7 +323,7 @@ int main (int argc, char * argv[])
                 }
             }
 
-            const unsigned int n_quad_face_pts = operators.face_quadrature_collection[poly_degree].size();
+            const unsigned int n_quad_face_pts = dg->face_quadrature_collection[poly_degree].size();
             for (unsigned int iface=0; iface < dealii::GeometryInfo<dim>::faces_per_cell; ++iface) {
                 auto current_face = current_cell->face(iface);
                 if(current_face->at_boundary())
@@ -364,21 +361,11 @@ int main (int argc, char * argv[])
                     mapping_basis,
                     false);
              
-             
                 const dealii::Tensor<1,dim> unit_normal_int = dealii::GeometryInfo<dim>::unit_normal_vector[iface];
                 std::vector<dealii::Tensor<1,dim> > normal_phys_int(n_quad_face_pts);
                 std::vector<dealii::Tensor<1,dim> > normal_phys_ext(n_quad_face_pts);
-                for(unsigned int iquad=0; iquad<n_quad_face_pts; iquad++){
-                  //  operators.compute_reference_to_physical(unit_normal_int, metric_cofactor[iquad], normal_phys_int[iquad]);
-                  //  operators.compute_reference_to_physical(unit_normal_int, metric_cofactor_neigh[iquad], normal_phys_ext[iquad]);
-                    for(int idim=0; idim<dim; idim++){
-                        for(int jdim=0; jdim<dim; jdim++){
-                            normal_phys_int[iquad][idim] += metric_oper.metric_cofactor_surf[idim][jdim][iquad] * unit_normal_int[jdim];
-                            normal_phys_ext[iquad][idim] += metric_oper_neigh.metric_cofactor_surf[idim][jdim][iquad] * unit_normal_int[jdim];
-                        } 
-                    } 
-                }
-             
+                metric_oper.transform_reference_unit_normal_to_physical_unit_normal(n_quad_face_pts, unit_normal_int, metric_oper.metric_cofactor_surf, normal_phys_int);
+                metric_oper_neigh.transform_reference_unit_normal_to_physical_unit_normal(n_quad_face_pts, unit_normal_int, metric_oper_neigh.metric_cofactor_surf, normal_phys_int);
              
                 for(unsigned int iquad=0; iquad<n_quad_face_pts; iquad++){
                     for(int idim=0; idim<dim; idim++){
@@ -388,7 +375,6 @@ int main (int argc, char * argv[])
                         }
                     }
                 }
-                
 
             }//end of face loop
         }//end of cell loop

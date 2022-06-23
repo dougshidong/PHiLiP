@@ -198,12 +198,10 @@ int main (int argc, char * argv[])
         }
         
         dealii::FullMatrix<real> face_int_parts_dim(n_dofs);
-       // face_int_parts_dim = face_int.tensor_product(n_dofs_1D, n_dofs_1D, face_int_parts, lifting.oneD_vol_operator, lifting.oneD_vol_operator); 
-        face_int_parts_dim = face_int.tensor_product_state(n_dofs_1D, n_dofs_1D, nstate, face_int_parts, lifting.oneD_vol_operator, lifting.oneD_vol_operator); 
+        face_int_parts_dim = face_int.tensor_product_state(nstate, face_int_parts, lifting.oneD_vol_operator, lifting.oneD_vol_operator); 
         dealii::FullMatrix<real> vol_int_parts_dim(n_dofs);
         dealii::FullMatrix<real> stiffness_dim(n_dofs);
-       // stiffness_dim = stiffness.tensor_product(n_dofs_1D, n_dofs_1D, stiffness.oneD_vol_operator, lifting.oneD_vol_operator, lifting.oneD_vol_operator);
-        stiffness_dim = stiffness.tensor_product_state(n_dofs_1D, n_dofs_1D, nstate, stiffness.oneD_vol_operator, lifting.oneD_vol_operator, lifting.oneD_vol_operator);
+        stiffness_dim = stiffness.tensor_product_state(nstate, stiffness.oneD_vol_operator, lifting.oneD_vol_operator, lifting.oneD_vol_operator);
         vol_int_parts_dim.add(1.0, stiffness_dim);
         vol_int_parts_dim.Tadd(1.0, stiffness_dim);
         for(unsigned int idof=0; idof<n_dofs; idof++){

@@ -11,7 +11,7 @@ using Eigen::MatrixXd;
 using Eigen::VectorXd;
 using Eigen::RowVectorXd;
 
-/// Nearest neighbors
+/// Scale data between 0 and 1
 class MinMaxScaler
 {
 public:
@@ -22,14 +22,19 @@ public:
     /// Destructor
     ~MinMaxScaler() {};
 
+    /// Fit and transform data
     MatrixXd fit_transform(const MatrixXd& snapshot_parameters);
 
+    /// Transform data to previously fitted dataset
     MatrixXd transform(const MatrixXd& snapshot_parameters);
 
+    /// Unscale data
     MatrixXd inverse_transform(const MatrixXd& snapshot_parameters);
 
+    /// Minimum values
     RowVectorXd min;
 
+    /// Maximum values
     RowVectorXd max;
 
 };

@@ -19,6 +19,7 @@ public:
     /// Function to return basis
     virtual std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> getPODBasis() = 0;
 
+    /// Function to return reference state
     virtual dealii::LinearAlgebra::ReadWriteVector<double> getReferenceState() = 0;
 };
 

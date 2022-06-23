@@ -116,27 +116,17 @@ RowVectorXd AdaptiveSampling<dim, nstate>::getMaxErrorROM() const{
     for(i = 0 ; i < snapshot_parameters.rows() ; i++){
         errors(i) = 0;
         parameters.row(i) = snapshot_parameters.row(i);
-        //this->pcout << i << std::endl;
     }
     this->pcout << i << std::endl;
     for(auto it = rom_locations.begin(); it != rom_locations.end(); ++it){
-        //this->pcout << "Index: " << i << std::endl;
-        //this->pcout << "Parameters: " << it->first << std::endl;
-        //this->pcout << "Parameters array: " << it->first.array() << std::endl;
-        //this->pcout << "Error: " << it->second->total_error << std::endl;
         parameters.row(i) = it->first.array();
         errors(i) = it->second->total_error;
         i++;
     }
 
-    //this->pcout << "Errors:" << std::endl << errors << std::endl;
-
-    //this->pcout << "Parameters:" << std::endl << parameters << std::endl;
-
     //Must scale both axes between [0,1] for the 2d rbf interpolation to work optimally
     ProperOrthogonalDecomposition::MinMaxScaler scaler;
     MatrixXd parameters_scaled = scaler.fit_transform(parameters);
-    //this->pcout << "Parameters scaled:" << std::endl << parameters_scaled << std::endl;
 
     //Construct radial basis function
     std::string kernel = "thin_plate_spline";
@@ -238,16 +228,6 @@ void AdaptiveSampling<dim, nstate>::placeInitialSnapshots() const{
         dealii::LinearAlgebra::distributed::Vector<double> fom_solution = solveSnapshotFOM(snap_param);
         nearest_neighbors->updateSnapshots(snapshot_parameters, fom_solution);
         current_pod->addSnapshot(fom_solution);
-    }
-}
-
-template <int dim, int nstate>
-void AdaptiveSampling<dim, nstate>::placeInitialROMs() const{
-    for(auto rom_param : initial_rom_parameters.rowwise()){
-        this->pcout << "Sampling initial ROM at " << rom_param << std::endl;
-        std::shared_ptr<ProperOrthogonalDecomposition::ROMSolution<dim, nstate>> rom_solution = solveSnapshotROM(rom_param);
-        std::shared_ptr<ProperOrthogonalDecomposition::ROMTestLocation<dim,nstate>> rom_location = std::make_shared<ProperOrthogonalDecomposition::ROMTestLocation<dim, nstate>>(rom_param, rom_solution);
-        rom_locations.emplace_back(std::make_pair(rom_param, rom_location));
     }
 }
 

@@ -23,7 +23,7 @@ namespace ProperOrthogonalDecomposition {
 using Eigen::MatrixXd;
 using Eigen::VectorXd;
 
-/// Class for full Proper Orthogonal Decomposition basis
+/// Class for Offline Proper Orthogonal Decomposition basis
 template <int dim>
 class OfflinePOD: public POD<dim>
 {
@@ -40,18 +40,19 @@ public:
     ///Function to get POD reference state
     dealii::LinearAlgebra::ReadWriteVector<double> getReferenceState() override;
 
-    void addSnapshot(dealii::LinearAlgebra::distributed::Vector<double> snapshot);
-
-    void computeBasis();
-
+    /// Read snapshots to build POD basis
     bool getPODBasisFromSnapshots();
 
+    /// POD basis
     std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> basis;
 
+    /// Reference state
     dealii::LinearAlgebra::ReadWriteVector<double> referenceState;
 
+    /// dg needed for sparsity pattern of system matrix
     std::shared_ptr<DGBase<dim,double>> dg;
 
+    /// LAPACKFullMatrix for nice printing
     dealii::LAPACKFullMatrix<double> fullBasis;
 
     const MPI_Comm mpi_communicator; ///< MPI communicator.

@@ -25,7 +25,7 @@ using Eigen::RowVector2d;
 using Eigen::VectorXd;
 using Eigen::MatrixXd;
 
-/// Burgers Rewienski snapshot
+/// Adaptive Sampling Testing
 template <int dim, int nstate>
 class AdaptiveSamplingTesting: public TestsBase
 {
@@ -37,13 +37,16 @@ public:
     /// Run test
     int run_test () const override;
 
+    /// Reinitialize parameters
     Parameters::AllParameters reinitParams(RowVector2d parameter) const;
 
     /// Parameter handler for storing the .prm file being ran
     const dealii::ParameterHandler &parameter_handler;
 
+    /// Output errors
     void outputErrors(int iteration) const;
 
+    /// Choose functional depending on test case
     std::shared_ptr<Functional<dim,nstate,double>> functionalFactory(std::shared_ptr<DGBase<dim, double>> dg) const;
 };
 

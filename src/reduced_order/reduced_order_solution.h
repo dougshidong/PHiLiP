@@ -28,14 +28,19 @@ public:
     /// Destructor
     ~ROMSolution () {};
 
+    /// Stores system matrix transpose
     const std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> system_matrix_transpose;
 
+    /// Stores residual
     const dealii::LinearAlgebra::distributed::Vector<double> right_hand_side;
 
+    /// Stores POD basis on which solution was computed
     const std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> basis;
 
+    /// Stores functional value
     const double functional_value;
 
+    /// Stores gradient
     const dealii::LinearAlgebra::distributed::Vector<double> gradient;
 
 };

@@ -44,7 +44,7 @@ using Eigen::MatrixXd;
 using Eigen::RowVectorXd;
 using Eigen::VectorXd;
 
-/// Class to hold information about the reduced-order solution
+/// POD adaptive sampling
 template <int dim, int nstate>
 class AdaptiveSampling: public TestsBase
 {
@@ -56,48 +56,70 @@ public:
     /// Destructor
     ~AdaptiveSampling() {};
 
+    /// Parameter 1 range
     mutable RowVectorXd parameter1_range;
+
+    /// Parameter 2 range
     mutable RowVectorXd parameter2_range;
+
+    /// Parameter names
     mutable std::vector<std::string> parameter_names;
+
+    /// Matrix of snapshot parameters
     mutable MatrixXd snapshot_parameters;
+
+    /// Initial ROM parameters
     mutable MatrixXd initial_rom_parameters;
 
+    /// Vector of parameter-ROMTestLocation pairs
     mutable std::vector<std::pair<RowVectorXd, std::shared_ptr<ProperOrthogonalDecomposition::ROMTestLocation<dim,nstate>>>> rom_locations;
 
+    /// Maximum error
     mutable double max_error;
 
     /// Parameter handler for storing the .prm file being ran
     const dealii::ParameterHandler &parameter_handler;
 
+    /// Most up to date POD basis
     std::shared_ptr<ProperOrthogonalDecomposition::OnlinePOD<dim>> current_pod;
 
+    /// Nearest neighbors of snapshots
     std::shared_ptr<ProperOrthogonalDecomposition::NearestNeighbors> nearest_neighbors;
 
+    /// Adaptation tolerance
     double tolerance;
 
     /// Run test
     int run_test () const override;
 
+    /// Placement of initial snapshots
     void placeInitialSnapshots() const;
 
-    void placeInitialROMs() const;
-
+    /// Placement of ROMs
     bool placeTriangulationROMs(const MatrixXd& rom_points) const;
 
+    /// Updates nearest ROM points to snapshot if error discrepancy is above tolerance
     void updateNearestExistingROMs(const RowVectorXd& parameter) const;
 
+    /// Compute RBF and find max error
     RowVectorXd getMaxErrorROM() const;
 
+    /// Solve full-order snapshot
     dealii::LinearAlgebra::distributed::Vector<double> solveSnapshotFOM(const RowVectorXd& parameter) const;
 
+    /// Solve reduced-order solution
     std::shared_ptr<ProperOrthogonalDecomposition::ROMSolution<dim,nstate>> solveSnapshotROM(const RowVectorXd& parameter) const;
 
+    /// Reinitialize parameters
     Parameters::AllParameters reinitParams(const RowVectorXd& parameter) const;
 
+    /// Choose functional depending on test case
     std::shared_ptr<Functional<dim,nstate,double>> functionalFactory(std::shared_ptr<DGBase<dim, double>> dg) const;
 
+    /// Set up parameter space depending on test case
     void configureParameterSpace() const;
 
+    /// Output for each iteration
     void outputErrors(int iteration) const;
 };
 

@@ -1,5 +1,5 @@
 #include "implicit_ode_solver.h"
-
+#include <ctime>
 
 namespace PHiLiP {
 namespace ODE {
@@ -36,7 +36,7 @@ void ImplicitODESolver<dim,real,MeshType>::step_in_time (real dt, const bool pse
     }
 
     std::pair<unsigned int, double> linear_solver_iterations_and_residual;
-    solve_linear (
+    linear_solver_iterations_and_residual = solve_linear (
             this->dg->system_matrix,
             this->dg->right_hand_side,
             this->solution_update,
@@ -48,8 +48,24 @@ void ImplicitODESolver<dim,real,MeshType>::step_in_time (real dt, const bool pse
     step_length = linesearch();
     evaluate_cfl(step_length, initial_residual);
 
+    this->dg->assemble_residual ();
+    const double new_residual = this->dg->get_residual_l2norm();
+
     this->update_norm = this->solution_update.l2_norm();
+
+    std::clock_t cpu_timestamp = std::clock();
+    this->pcout << " Track Convergence: " << 
+	    std::setw(5) << this->current_iteration << 
+	    std::setprecision(10) << std::fixed << "    " << cpu_timestamp << 
+	    std::setprecision(10) << std::scientific << "    " << initial_residual << 
+	    std::setprecision(10) << std::scientific << "    " << new_residual << 
+	    std::setprecision(10) << std::scientific << "    " << this->update_norm << 
+	    std::setw(5) << "    " << linear_solver_iterations_and_residual.first << 
+	    std::setprecision(10) << std::scientific << "    " << linear_solver_iterations_and_residual.second << 
+	    std::endl;
+
     ++(this->current_iteration);
+
 }
 
 template <int dim, typename real, typename MeshType>

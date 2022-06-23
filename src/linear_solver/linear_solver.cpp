@@ -233,9 +233,9 @@ solve_linear (
         solver.SetAztecOption(AZ_reorder, 1); // RCM re-ordering
         const int ilut_fill = param.ilut_fill;
         if (ilut_fill < -99) {
-            // // Jacobi preconditioner.
-            //solver.SetAztecOption(AZ_precond, AZ_Jacobi);
-            //solver.SetAztecOption(AZ_poly_ord, 1);
+            // Jacobi preconditioner.
+            solver.SetAztecOption(AZ_precond, AZ_Jacobi);
+            solver.SetAztecOption(AZ_poly_ord, 1);
 
             // No Preconditioner.
             solver.SetAztecOption(AZ_precond, AZ_none);
@@ -260,7 +260,7 @@ solve_linear (
         }
 
         unsigned int n_iterations = 0;
-        const int n_solves = 2;
+        const int n_solves = 1;
         for (int i_solve = 0; i_solve < n_solves; ++i_solve) {
             solver.Iterate(max_iterations,
                            linear_residual);

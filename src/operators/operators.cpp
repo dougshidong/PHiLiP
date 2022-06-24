@@ -108,6 +108,8 @@ OperatorsBase<dim,real,n_faces>::OperatorsBase(
     pcout<<" done."<<std::endl;
     pcout<<" ... creating metric basis basis operators ..."<<std::flush;
     create_metric_basis_operators(max_grid_degree);
+    pcout<<" done."<<std::endl;
+    pcout<<" done."<<std::endl;
 }
 // Destructor
 template <int dim, typename real, int n_faces>
@@ -1428,6 +1430,7 @@ OperatorsBaseState<dim,real,nstate,n_faces>
     create_surface_basis_operators_state();
     this->pcout<<" done."<<std::endl;
     this->pcout<<" ... allocating surface operators state ..."<<std::flush;
+    this->pcout<<" done."<<std::endl;
     this->pcout<<" done."<<std::endl;
 }
 // Destructor

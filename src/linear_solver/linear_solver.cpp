@@ -232,14 +232,23 @@ solve_linear (
         solver.SetAztecOption(AZ_overlap, 1);
         solver.SetAztecOption(AZ_reorder, 1); // RCM re-ordering
         const int ilut_fill = param.ilut_fill;
-        if (ilut_fill < -99) {
+
+        Parameters::LinearSolverParam::LinearSolverPreconditionerEnum jacobi_precond = Parameters::LinearSolverParam::LinearSolverPreconditionerEnum::jacobi;
+        // Parameters::LinearSolverParam::LinearSolverPreconditionerEnum symmetric_gs_precond = Parameters::LinearSolverParam::LinearSolverPreconditionerEnum::symmetric_gs;
+        Parameters::LinearSolverParam::LinearSolverPreconditionerEnum domain_decomposition_precond = Parameters::LinearSolverParam::LinearSolverPreconditionerEnum::domain_decomposition;
+
+        // if (ilut_fill < -99) {
+        if (param.linear_solver_preconditioner_type == jacobi_precond) {
             // Jacobi preconditioner.
             solver.SetAztecOption(AZ_precond, AZ_Jacobi);
             solver.SetAztecOption(AZ_poly_ord, 1);
 
             // No Preconditioner.
-            solver.SetAztecOption(AZ_precond, AZ_none);
-        } else if (ilut_fill < 1) {
+            // solver.SetAztecOption(AZ_precond, AZ_none);
+        }
+        
+        if (param.linear_solver_preconditioner_type == domain_decomposition_precond) {
+        if (ilut_fill < 1) {
             solver.SetAztecOption(AZ_subdomain_solve, AZ_ilu);
             solver.SetAztecOption(AZ_graph_fill, std::abs(ilut_fill));
 
@@ -257,6 +266,7 @@ solve_linear (
             solver.SetAztecParam(AZ_ilut_fill, ilut_fill);
             solver.SetAztecParam(AZ_athresh, ilut_atol);
             solver.SetAztecParam(AZ_rthresh, ilut_rtol);
+        }
         }
 
         unsigned int n_iterations = 0;

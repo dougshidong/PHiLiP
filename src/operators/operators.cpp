@@ -1427,9 +1427,9 @@ OperatorsBaseState<dim,real,nstate,n_faces>
     this->pcout<<" done."<<std::endl;
     this->pcout<<" ... allocating surface operators state ..."<<std::flush;
     allocate_surface_operators_state();
-    create_surface_basis_operators_state();
     this->pcout<<" done."<<std::endl;
-    this->pcout<<" ... allocating surface operators state ..."<<std::flush;
+    this->pcout<<" ... creating surface basis operators state ..."<<std::flush;
+    create_surface_basis_operators_state();
     this->pcout<<" done."<<std::endl;
     this->pcout<<" done."<<std::endl;
 }

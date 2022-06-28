@@ -33,7 +33,8 @@ set(TESTS_SOURCE
     taylor_green_vortex_energy_check.cpp
     taylor_green_vortex_restart_check.cpp
     flow_solver_cases/naca0012.cpp
-    time_refinement_study.cpp)
+    time_refinement_study.cpp
+    flow_solver_cases/gaussian_bump.cpp)
 
 foreach(dim RANGE 1 3)
     # Output library

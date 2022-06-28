@@ -30,6 +30,7 @@
 #include "flow_solver_cases/1D_burgers_rewienski_snapshot.h"
 #include "flow_solver_cases/1d_burgers_viscous_snapshot.h"
 #include "flow_solver_cases/naca0012.h"
+#include "flow_solver_cases/gaussian_bump.h"
 #include <deal.II/base/table_handler.h>
 #include <string>
 #include <vector>

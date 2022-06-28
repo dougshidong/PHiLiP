@@ -27,6 +27,7 @@ int EulerNACA0012<dim,nstate>
     const unsigned int p_end               = param.manufactured_convergence_study_param.degree_end;
     const unsigned int n_grids_input       = param.manufactured_convergence_study_param.number_of_grids;
 
+
     for (unsigned int poly_degree = p_start; poly_degree <= p_end; ++poly_degree) {
         for (unsigned int igrid=0; igrid<n_grids_input; ++igrid) {
             param.grid_refinement_study_param.poly_degree = poly_degree;

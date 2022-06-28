@@ -1,7 +1,7 @@
 # Listing of Parameters
 # ---------------------
 
-set test_type = euler_gaussian_bump
+set test_type = gaussian_bump
 
 # Number of dimensions
 set dimension = 2
@@ -66,5 +66,10 @@ subsection manufactured solution convergence study
 
   # Number of grids in grid study
   set number_of_grids   = 3
+end
+
+subsection flow_solver
+  set flow_case_type = gaussian_bump
+  set steady_state = true
 end
 

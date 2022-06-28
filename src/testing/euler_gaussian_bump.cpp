@@ -93,10 +93,9 @@ double EulerGaussianBump<dim,nstate>
     std::vector<dealii::ConvergenceTable> convergence_table_vector;
 
     for (unsigned int poly_degree = p_start; poly_degree <= p_end; ++poly_degree) {
-
         // p0 tends to require a finer grid to reach asymptotic region
         unsigned int n_grids = n_grids_input;
-        if (poly_degree <= 1) n_grids = n_grids_input;
+        if (poly_degree <= 1) n_grids = n_grids_input;  // What is the purpose of this statement?
 
         std::vector<double> error(n_grids);
         std::vector<double> grid_size(n_grids);
@@ -128,7 +127,6 @@ double EulerGaussianBump<dim,nstate>
 
         for (unsigned int igrid=0; igrid<n_grids; ++igrid) {
 
-
             //if (igrid!=0) {
             //    dealii::LinearAlgebra::distributed::Vector<double> old_solution(dg->solution);
             //    dealii::parallel::distributed::SolutionTransfer<dim, dealii::LinearAlgebra::distributed::Vector<double>, dealii::hp::DoFHandler<dim>> solution_transfer(dg->dof_handler);
@@ -151,6 +149,7 @@ double EulerGaussianBump<dim,nstate>
 
             const double channel_length = 3.0;
             const double channel_height = 0.8;
+
             Grids::gaussian_bump(*grid, n_subdivisions, channel_length, channel_height);
             grid->refine_global(igrid);
 

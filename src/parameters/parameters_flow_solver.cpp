@@ -19,14 +19,16 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                           " burgers_viscous_snapshot | "
                           " naca0012 | "
                           " burgers_rewienski_snapshot | "
-                          " advection_periodic"),
+                          " advection_periodic | "
+                          " gaussian_bump "),
                           "The type of flow we want to simulate. "
                           "Choices are "
                           " <taylor_green_vortex | "
                           " burgers_viscous_snapshot | "
                           " naca0012 | "
                           " burgers_rewienski_snapshot | "
-                          " advection_periodic>.");
+                          " advection_periodic | "
+                          " gaussian_bump>. ");
 
         prm.declare_entry("final_time", "1",
                           dealii::Patterns::Double(0, dealii::Patterns::Double::max_double_value),
@@ -121,6 +123,7 @@ void FlowSolverParam::parse_parameters(dealii::ParameterHandler &prm)
         else if (flow_case_type_string == "burgers_rewienski_snapshot") {flow_case_type = burgers_rewienski_snapshot;}
         else if (flow_case_type_string == "naca0012")                   {flow_case_type = naca0012;}
         else if (flow_case_type_string == "advection_periodic")         {flow_case_type = advection_periodic;}
+        else if (flow_case_type_string == "gaussian_bump")              {flow_case_type = gaussian_bump;}
 
         final_time = prm.get_double("final_time");
         courant_friedrich_lewy_number = prm.get_double("courant_friedrich_lewy_number");

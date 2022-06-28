@@ -71,23 +71,45 @@ OperatorsBase<dim,real,n_faces>::OperatorsBase(
     //Allocate and construct the base operators.
     pcout<<" Constructing Operators ..."<<std::endl;
     //setup volume operators
+    pcout<<" ... allocating volume operators ..."<<std::flush;
     allocate_volume_operators();
+    pcout<<" done."<<std::endl;
+    pcout<<" ... creating volume basis operators ..."<<std::flush;
     create_vol_basis_operators();
+    pcout<<" done."<<std::endl;
+    pcout<<" ... building mass matrix operators ..."<<std::flush;
     build_Mass_Matrix_operators();
+    pcout<<" done."<<std::endl;
+    pcout<<" ... building stiffness matrix operators ..."<<std::flush;
     build_Stiffness_Matrix_operators ();
+    pcout<<" done."<<std::endl;
+    pcout<<" ... getting higher derivatives ..."<<std::flush;
     get_higher_derivatives();
+    pcout<<" done."<<std::endl;
+    pcout<<" ... building flux reconstruction operators ..."<<std::flush;
     build_Flux_Reconstruction_operators();
+    pcout<<" done."<<std::endl;
+    pcout<<" ... getting volume projection operators ..."<<std::flush;
     get_vol_projection_operators();
-
+    pcout<<" done."<<std::endl;
     //setup surface operators
+    pcout<<" ... allocating surface operators ..."<<std::flush;
     allocate_surface_operators();
+    pcout<<" done."<<std::endl;
+    pcout<<" ... creating surface basis operators ..."<<std::flush;
     create_surface_basis_operators();
+    pcout<<" done."<<std::endl;
+    pcout<<" ... getting surface lifting operators ..."<<std::flush;
     get_surface_lifting_operators ();
-
+    pcout<<" done."<<std::endl;
+    pcout<<" ... allocating metric operators ..."<<std::flush;
     //setup metric operators
     allocate_metric_operators(max_grid_degree);
+    pcout<<" done."<<std::endl;
+    pcout<<" ... creating metric basis basis operators ..."<<std::flush;
     create_metric_basis_operators(max_grid_degree);
-
+    pcout<<" done."<<std::endl;
+    pcout<<" done."<<std::endl;
 }
 // Destructor
 template <int dim, typename real, int n_faces>
@@ -1396,11 +1418,20 @@ OperatorsBaseState<dim,real,nstate,n_faces>
     : OperatorsBase<dim,real,n_faces>::OperatorsBase(parameters_input, nstate, max_degree_input, max_degree_input, grid_degree_input)
 {
     this->pcout<<" Constructing Operators state ..."<<std::endl;
+    this->pcout<<" ... allocating volume operators state ..."<<std::flush;
     allocate_volume_operators_state();
+    this->pcout<<" done."<<std::endl;
+    this->pcout<<" ... creating volume basis operators state ..."<<std::flush;
     create_vol_basis_operators_state();
     //setup surface operators
+    this->pcout<<" done."<<std::endl;
+    this->pcout<<" ... allocating surface operators state ..."<<std::flush;
     allocate_surface_operators_state();
+    this->pcout<<" done."<<std::endl;
+    this->pcout<<" ... creating surface basis operators state ..."<<std::flush;
     create_surface_basis_operators_state();
+    this->pcout<<" done."<<std::endl;
+    this->pcout<<" done."<<std::endl;
 }
 // Destructor
 template <  int dim, typename real, int nstate,

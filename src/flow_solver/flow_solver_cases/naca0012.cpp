@@ -24,8 +24,7 @@ namespace FlowSolver {
 template <int dim, int nstate>
 NACA0012<dim, nstate>::NACA0012(const PHiLiP::Parameters::AllParameters *const parameters_input)
         : FlowSolverCaseBase<dim, nstate>(parameters_input)
-{
-}
+{}
 
 template <int dim, int nstate>
 void NACA0012<dim,nstate>::display_additional_flow_case_specific_parameters() const

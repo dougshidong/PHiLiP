@@ -37,6 +37,12 @@ PhysicsBase<dim,nstate,real>::PhysicsBase(
 }
 
 template <int dim, int nstate, typename real>
+PhysicsBase<dim,nstate,real>::PhysicsBase(
+    std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function_input)
+    : PhysicsBase<dim,nstate,real>(Parameters::ManufacturedSolutionParam::get_default_diffusion_tensor(),manufactured_solution_function_input)
+{ }
+
+template <int dim, int nstate, typename real>
 PhysicsBase<dim,nstate,real>::~PhysicsBase() {}
 /*
 template <int dim, int nstate, typename real>

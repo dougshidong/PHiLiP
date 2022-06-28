@@ -18,8 +18,8 @@ int FiniteDifferenceSensitivity<dim, nstate>::run_test() const
     Parameters::AllParameters params_1 = reinit_params(0);
     Parameters::AllParameters params_2 = reinit_params(h);
 
-    std::unique_ptr<FlowSolver<dim,nstate>> flow_solver_1 = FlowSolverFactory<dim,nstate>::create_FlowSolver(&params_1, parameter_handler);
-    std::unique_ptr<FlowSolver<dim,nstate>> flow_solver_2 = FlowSolverFactory<dim,nstate>::create_FlowSolver(&params_2, parameter_handler);
+    std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver_1 = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(&params_1, parameter_handler);
+    std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver_2 = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(&params_2, parameter_handler);
 
     dealii::TableHandler sensitivity_table;
     dealii::TableHandler solutions_table;
@@ -86,7 +86,7 @@ int FiniteDifferenceSensitivity<dim, nstate>::run_test() const
 }
 
 template <int dim, int nstate>
-Parameters::AllParameters FiniteDifferenceSensitivity<dim, nstate>::reinit_params(double pertubation) const {
+Parameters::AllParameters FiniteDifferenceSensitivity<dim, nstate>::reinit_params(double perturbation) const {
     // copy all parameters
     PHiLiP::Parameters::AllParameters parameters = *(this->all_parameters);
 
@@ -94,10 +94,10 @@ Parameters::AllParameters FiniteDifferenceSensitivity<dim, nstate>::reinit_param
     using FlowCaseEnum = Parameters::FlowSolverParam::FlowCaseType;
     const FlowCaseEnum flow_type = this->all_parameters->flow_solver_param.flow_case_type;
     if (flow_type == FlowCaseEnum::burgers_rewienski_snapshot){
-        parameters.burgers_param.rewienski_b = parameters.burgers_param.rewienski_b + pertubation;
+        parameters.burgers_param.rewienski_b = parameters.burgers_param.rewienski_b + perturbation;
     }
     else if (flow_type == FlowCaseEnum::burgers_viscous_snapshot){
-        parameters.burgers_param.diffusion_coefficient = parameters.burgers_param.diffusion_coefficient + pertubation;
+        parameters.burgers_param.diffusion_coefficient = parameters.burgers_param.diffusion_coefficient + perturbation;
     }
     else{
         std::cout << "Invalid flow case. You probably forgot to add it to the list of flow cases in finite_difference_sensitivity.cpp" << std::endl;

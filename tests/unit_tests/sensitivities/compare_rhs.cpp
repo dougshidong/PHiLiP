@@ -14,9 +14,10 @@
 #include "physics/physics_factory.h"
 #include "numerical_flux/convective_numerical_flux.hpp"
 
-using PDEType  = PHiLiP::Parameters::AllParameters::PartialDifferentialEquation;
-using ConvType = PHiLiP::Parameters::AllParameters::ConvectiveNumericalFlux;
-using DissType = PHiLiP::Parameters::AllParameters::DissipativeNumericalFlux;
+using PDEType   = PHiLiP::Parameters::AllParameters::PartialDifferentialEquation;
+using ConvType  = PHiLiP::Parameters::AllParameters::ConvectiveNumericalFlux;
+using DissType  = PHiLiP::Parameters::AllParameters::DissipativeNumericalFlux;
+using ModelType = PHiLiP::Parameters::AllParameters::ModelType;
 
 #if PHILIP_DIM==1
     using Triangulation = dealii::Triangulation<PHILIP_DIM>;
@@ -148,6 +149,9 @@ int main (int argc, char * argv[])
         PDEType::advection_vector,
         PDEType::euler,
         PDEType::navier_stokes
+#if PHILIP_DIM==3
+        , PDEType::physics_model
+#endif
     };
     std::vector<std::string> pde_name {
         " PDEType::diffusion "
@@ -156,7 +160,13 @@ int main (int argc, char * argv[])
         , " PDEType::advection_vector "
         , " PDEType::euler "
         , " PDEType::navier_stokes "
+#if PHILIP_DIM==3
+        , " PDEType::physics_model "
+#endif
     };
+#if PHILIP_DIM==3
+    ModelType model = ModelType::large_eddy_simulation
+#endif
 
     int ipde = -1;
     for (auto pde = pde_type.begin(); pde != pde_type.end() && error == 0; pde++) {
@@ -198,7 +208,11 @@ int main (int argc, char * argv[])
                 }
 #endif
 
-                if ((*pde==PDEType::euler) || (*pde==PDEType::navier_stokes)) {
+                if ((*pde==PDEType::euler) || (*pde==PDEType::navier_stokes)
+#if PHILIP_DIM==3
+         || ((*pde==PDEType::physics_model) && (model==ModelType::large_eddy_simulation))
+#endif
+                    ) {
                     error = test<dim,dim+2>(poly_degree, grid, all_parameters);
                 } else if (*pde==PDEType::burgers_inviscid) {
                     error = test<dim,dim>(poly_degree, grid, all_parameters);

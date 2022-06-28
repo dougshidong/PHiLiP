@@ -37,6 +37,12 @@ public:
     double time_step_factor_residual; ///< Multiplies initial time-step by time_step_factor_residual*(-log10(residual_norm_decrease))
     double time_step_factor_residual_exp; ///< Scales initial time step by pow(time_step_factor_residual*(-log10(residual_norm_decrease)),time_step_factor_residual_exp)
 
+    /** Set as false by default. 
+      * If true, writes the linear solver convergence data for
+      *  steady state to a file named "ode_solver_steady_state_convergence_data_table.txt"
+      */
+    bool output_ode_solver_steady_state_convergence_table;
+  
     double initial_time; ///< Initial time at which we initialize the ODE solver with.
     unsigned int initial_iteration; ///< Initial iteration at which we initialize the ODE solver with.
     /** Initial desired time for outputting the solution every dt time intervals 

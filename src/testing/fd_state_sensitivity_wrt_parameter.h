@@ -15,7 +15,7 @@
 #include "parameters/all_parameters.h"
 #include "dg/dg_factory.hpp"
 #include "ode_solver/ode_solver_factory.h"
-#include "flow_solver.h"
+#include "flow_solver/flow_solver_factory.h"
 #include <fstream>
 
 namespace PHiLiP {
@@ -38,7 +38,7 @@ public:
     int run_test () const override;
 
     /// Renitialize parameters, necessary because parameters created for the test are constant
-    Parameters::AllParameters reinit_params(double pertubation) const;
+    Parameters::AllParameters reinit_params(double perturbation) const;
 
 };
 

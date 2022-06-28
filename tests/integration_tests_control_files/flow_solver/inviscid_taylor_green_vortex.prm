@@ -3,7 +3,7 @@
 # Number of dimensions
 
 set dimension = 3
-set test_type = flow_solver
+set run_type = flow_simulation
 set pde_type = euler
 
 # DG formulation
@@ -32,17 +32,15 @@ subsection euler
   set mach_infinity = 0.1
 end
 
-# polynomial order and number of cells per direction (i.e. grid_size)
-subsection grid refinement study
-  set poly_degree = 2
-  set grid_size = 4
-  set grid_left = 0.0
-  set grid_right = 6.2831853072
-end
-
 subsection flow_solver
   set flow_case_type = taylor_green_vortex
+  set poly_degree = 2
   set final_time = 20.0
   set courant_friedrich_lewy_number = 0.01
   set unsteady_data_table_filename = tgv_kinetic_energy_vs_time_table
+  subsection grid
+    set grid_left_bound = 0.0
+    set grid_right_bound = 6.28318530717958623200
+    set number_of_grid_elements_per_dimension = 4
+  end
 end

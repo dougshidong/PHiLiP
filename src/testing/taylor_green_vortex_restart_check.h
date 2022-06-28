@@ -47,6 +47,7 @@ protected:
         const double initial_time_input = 0.0,
         const unsigned int initial_iteration_input = 0,
         const double initial_desired_time_for_output_solution_every_dt_time_intervals_input = 0.0,
+        const double initial_time_step_input = 0.0,
         const int restart_file_index = 0) const;
 };
 

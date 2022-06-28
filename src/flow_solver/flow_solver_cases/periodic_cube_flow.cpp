@@ -6,16 +6,16 @@
 
 namespace PHiLiP {
 
-namespace Tests {
+namespace FlowSolver {
 //=========================================================
 // FLOW IN PERIODIC CUBE DOMAIN
 //=========================================================
 template <int dim, int nstate>
 PeriodicCubeFlow<dim, nstate>::PeriodicCubeFlow(const PHiLiP::Parameters::AllParameters *const parameters_input)
         : FlowSolverCaseBase<dim, nstate>(parameters_input)
-        , number_of_cells_per_direction(this->all_param.grid_refinement_study_param.grid_size)
-        , domain_left(this->all_param.grid_refinement_study_param.grid_left)
-        , domain_right(this->all_param.grid_refinement_study_param.grid_right)
+        , number_of_cells_per_direction(this->all_param.flow_solver_param.number_of_grid_elements_per_dimension)
+        , domain_left(this->all_param.flow_solver_param.grid_left_bound)
+        , domain_right(this->all_param.flow_solver_param.grid_right_bound)
         , domain_size(pow(this->domain_right - this->domain_left, dim))
 { }
 
@@ -41,7 +41,7 @@ void PeriodicCubeFlow<dim,nstate>::display_grid_parameters() const
     this->pcout << "- - Domain dimensionality: " << dim << std::endl;
     this->pcout << "- - Domain left: " << this->domain_left << std::endl;
     this->pcout << "- - Domain right: " << this->domain_right << std::endl;
-    this->pcout << "- - Number of cells in each direction: " << number_of_cells_per_direction << std::endl;
+    this->pcout << "- - Number of cells in each direction: " << this->number_of_cells_per_direction << std::endl;
     if constexpr(dim==1) this->pcout << "- - Domain length: " << this->domain_size << std::endl;
     if constexpr(dim==2) this->pcout << "- - Domain area: " << this->domain_size << std::endl;
     if constexpr(dim==3) this->pcout << "- - Domain volume: " << this->domain_size << std::endl;
@@ -58,6 +58,7 @@ template class PeriodicCubeFlow <PHILIP_DIM,PHILIP_DIM+2>;
 #elif PHILIP_DIM==1
 template class PeriodicCubeFlow <PHILIP_DIM,PHILIP_DIM>;
 #endif
-} // Tests namespace
+
+} // FlowSolver namespace
 } // PHiLiP namespace
 

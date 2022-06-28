@@ -564,10 +564,11 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
     const unsigned int poly_degree = i_fele;
 
     //flag to terminate if strong form and implicit
-    if(!this->all_parameters->use_weak_form 
-       && this->all_parameters->ode_solver_param.ode_solver_type == Parameters::ODESolverParam::ODESolverEnum::implicit_solver )//only for strong form explicit
+    if((this->all_parameters->use_weak_form==false) 
+       && (this->all_parameters->ode_solver_param.ode_solver_type
+                    == Parameters::ODESolverParam::ODESolverEnum::implicit_solver))
     {
-        pcout<<"Implicit does not currently work for strong form."<<std::endl;
+        pcout<<"ERROR: Implicit does not currently work for strong form."<<std::endl;
         exit(1);
     }
 
@@ -577,44 +578,43 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
             current_metric_dofs_indices,
             poly_degree, grid_degree,
             current_cell_rhs_aux);
+    } 
+    else if((this->all_parameters->use_weak_form==false)
+            && (this->all_parameters->ode_solver_param.ode_solver_type
+                            == Parameters::ODESolverParam::ODESolverEnum::explicit_solver))//only for strong form explicit
+    {
+        assemble_volume_term_explicit (
+            current_cell,
+            current_cell_index,
+            fe_values_volume,
+            current_dofs_indices,
+            current_metric_dofs_indices,
+            poly_degree, grid_degree,
+            current_cell_rhs,
+            fe_values_lagrange);
     }
-    else{
-        if(!this->all_parameters->use_weak_form 
-           && this->all_parameters->ode_solver_param.ode_solver_type == Parameters::ODESolverParam::ODESolverEnum::explicit_solver )//only for strong form explicit
-        {
-            assemble_volume_term_explicit (
-                current_cell,
-                current_cell_index,
-                fe_values_volume,
-                current_dofs_indices,
-                current_metric_dofs_indices,
-                poly_degree, grid_degree,
-                current_cell_rhs,
-                fe_values_lagrange);
-        }
-        else {
-            //Note the explicit is called first to set the max_dt_cell to a non-zero value.
-            assemble_volume_term_explicit (
-                current_cell,
-                current_cell_index,
-                fe_values_volume,
-                current_dofs_indices,
-                current_metric_dofs_indices,
-                poly_degree, grid_degree,
-                current_cell_rhs,
-                fe_values_lagrange);
-            
-            //set current rhs to zero since the explicit call was just to set the max_dt_cell.
-            current_cell_rhs*=0.0;
-         
-            assemble_volume_term_derivatives (
-                current_cell,
-                current_cell_index,
-                fe_values_volume, current_fe_ref, operators->volume_quadrature_collection[i_quad],
-                current_metric_dofs_indices, current_dofs_indices,
-                current_cell_rhs, fe_values_lagrange,
-                compute_dRdW, compute_dRdX, compute_d2R);
-        }
+    else {
+        //Note the explicit is called first to set the max_dt_cell to a non-zero value.
+        assemble_volume_term_explicit (
+            current_cell,
+            current_cell_index,
+            fe_values_volume,
+            current_dofs_indices,
+            current_metric_dofs_indices,
+            poly_degree, grid_degree,
+            current_cell_rhs,
+            fe_values_lagrange);
+        
+        //set current rhs to zero since the explicit call was just to set the max_dt_cell.
+        current_cell_rhs*=0.0;
+     
+        assemble_volume_term_derivatives (
+            current_cell,
+            current_cell_index,
+            fe_values_volume, current_fe_ref, operators->volume_quadrature_collection[i_quad],
+            current_metric_dofs_indices, current_dofs_indices,
+            current_cell_rhs, fe_values_lagrange,
+            compute_dRdW, compute_dRdX, compute_d2R);
     }
 
     (void) fe_values_collection_face_int;

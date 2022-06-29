@@ -10,10 +10,6 @@ set diss_num_flux = bassi_rebay_2
 
 set use_split_form = false
 
-subsection artificial dissipation
-  set add_artificial_dissipation = true
-end
-
 set overintegration = 0
 
 subsection euler

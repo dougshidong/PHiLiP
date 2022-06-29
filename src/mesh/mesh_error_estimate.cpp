@@ -198,7 +198,6 @@ void DualWeightedResidualError<dim, nstate, real, MeshType>::coarse_to_fine()
     solution_transfer.prepare_for_coarsening_and_refinement(solution_coarse);
 
     this->dg->high_order_grid->prepare_for_coarsening_and_refinement();
-    this->dg->triangulation->prepare_coarsening_and_refinement();
 
     for (auto cell = this->dg->dof_handler.begin_active(); cell != this->dg->dof_handler.end(); ++cell)
     {
@@ -230,7 +229,6 @@ template <int dim, int nstate, typename real, typename MeshType>
 void DualWeightedResidualError<dim, nstate, real, MeshType>::fine_to_coarse()
 {
     this->dg->high_order_grid->prepare_for_coarsening_and_refinement();
-    this->dg->triangulation->prepare_coarsening_and_refinement();
 
     for (auto cell = this->dg->dof_handler.begin_active(); cell != this->dg->dof_handler.end(); ++cell)
     {

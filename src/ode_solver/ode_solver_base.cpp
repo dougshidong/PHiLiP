@@ -5,11 +5,12 @@ namespace ODE{
 
 template <int dim, typename real, typename MeshType>
 ODESolverBase<dim,real,MeshType>::ODESolverBase(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input)
-        : current_time(0.0)
-        , current_iteration(0)
-        , current_desired_time_for_output_solution_every_dt_time_intervals(0.0)
-        , dg(dg_input)
+        : dg(dg_input)
         , all_parameters(dg->all_parameters)
+        , ode_param(all_parameters->ode_solver_param)
+        , current_time(ode_param.initial_time)
+        , current_iteration(ode_param.initial_iteration)
+        , current_desired_time_for_output_solution_every_dt_time_intervals(ode_param.initial_desired_time_for_output_solution_every_dt_time_intervals)
         , mpi_communicator(MPI_COMM_WORLD)
         , mpi_rank(dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD))
         , pcout(std::cout, mpi_rank==0)
@@ -60,7 +61,7 @@ void ODESolverBase<dim,real,MeshType>::valid_initial_conditions () const
 }
 
 template <int dim, typename real, typename MeshType>
-void ODESolverBase<dim,real,MeshType>::write_ode_convergence_data_to_table(
+void ODESolverBase<dim,real,MeshType>::write_ode_solver_steady_state_convergence_data_to_table(
         const unsigned int current_iteration,
         const double current_residual,
         const std::shared_ptr <dealii::TableHandler> data_table) const
@@ -78,7 +79,7 @@ void ODESolverBase<dim,real,MeshType>::write_ode_convergence_data_to_table(
         data_table->set_precision(residual_string, 16);
         data_table->set_scientific(residual_string, true);    
         // Write to file
-	std::string error_filename = "ode_solver_steady_state_convergence_data_table";
+	    std::string error_filename = "ode_solver_steady_state_convergence_data_table";
         std::ofstream data_table_file(error_filename + std::string("_p") + std::to_string(current_polynomial_degree) + std::string(".txt"));
         data_table->write_text(data_table_file);
     }
@@ -94,7 +95,6 @@ int ODESolverBase<dim,real,MeshType>::steady_state ()
         std::abort();
     }
 
-    Parameters::ODESolverParam ode_param = ODESolverBase<dim,real,MeshType>::all_parameters->ode_solver_param;
     pcout << " Performing steady state analysis... " << std::endl;
     allocate_ode_system ();
 
@@ -116,7 +116,7 @@ int ODESolverBase<dim,real,MeshType>::steady_state ()
 
     if (ode_param.output_ode_solver_steady_state_convergence_table == true) {
         // write initial convergence data
-        write_ode_convergence_data_to_table(this->current_iteration, this->residual_norm, ode_solver_steady_state_convergence_table);
+        write_ode_solver_steady_state_convergence_data_to_table(this->current_iteration, this->residual_norm, ode_solver_steady_state_convergence_table);
     }
 
     // Initial Courant-Friedrichs-Lax number
@@ -153,7 +153,7 @@ int ODESolverBase<dim,real,MeshType>::steady_state ()
               << std::endl;
 
         if (ode_param.output_ode_solver_steady_state_convergence_table == true) {
-            write_ode_convergence_data_to_table(this->current_iteration, this->residual_norm, ode_solver_steady_state_convergence_table);
+            write_ode_solver_steady_state_convergence_data_to_table(this->current_iteration, this->residual_norm, ode_solver_steady_state_convergence_table);
         }
 
         if ((ode_param.ode_output) == Parameters::OutputEnum::verbose &&
@@ -267,8 +267,6 @@ int ODESolverBase<dim,real,MeshType>::steady_state ()
 template <int dim, typename real, typename MeshType>
 int ODESolverBase<dim,real,MeshType>::advance_solution_time (double time_advance)
 {
-    Parameters::ODESolverParam ode_param = ODESolverBase<dim,real,MeshType>::all_parameters->ode_solver_param;
-
     const unsigned int number_of_time_steps = static_cast<int>(ceil(time_advance/ode_param.initial_time_step));
     const double constant_time_step = time_advance/number_of_time_steps;
 

@@ -28,6 +28,7 @@
 #include "grid_refinement_study.h"
 
 #include "physics/physics_factory.h"
+#include "physics/model_factory.h"
 #include "physics/manufactured_solution.h"
 
 #include "dg/dg.h"
@@ -80,11 +81,17 @@ int GridRefinementStudy<dim,nstate,MeshType>::run_test() const
 
     const unsigned int num_refinements = grs_param.num_refinements;
 
+    // creating the model object for physics
+    std::shared_ptr< Physics::ModelBase<dim,nstate,double> > model_double
+        = Physics::ModelFactory<dim,nstate,double>::create_Model(&param);
+    std::shared_ptr< Physics::ModelBase<dim,nstate,ADtype> > model_adtype
+        = Physics::ModelFactory<dim,nstate,ADtype>::create_Model(&param);
+
     // creating the physics object
     std::shared_ptr< Physics::PhysicsBase<dim,nstate,double> > physics_double
-        = Physics::PhysicsFactory<dim,nstate,double>::create_Physics(&param);
+        = Physics::PhysicsFactory<dim,nstate,double>::create_Physics(&param,model_double);
     std::shared_ptr< Physics::PhysicsBase<dim,nstate,ADtype> > physics_adtype
-        = Physics::PhysicsFactory<dim,nstate,ADtype>::create_Physics(&param);
+        = Physics::PhysicsFactory<dim,nstate,ADtype>::create_Physics(&param,model_adtype);
 
     // for each of the runs, a seperate refinement table
     std::vector<dealii::ConvergenceTable> convergence_table_vector;

@@ -17,7 +17,9 @@
 #include "parameters/parameters.h"
 #include "physics/physics_factory.h"
 
-using PDEType  = PHiLiP::Parameters::AllParameters::PartialDifferentialEquation;
+using PDEType   = PHiLiP::Parameters::AllParameters::PartialDifferentialEquation;
+using ModelType = PHiLiP::Parameters::AllParameters::ModelType;
+
 
 #if PHILIP_DIM==1
     using Triangulation = dealii::Triangulation<PHILIP_DIM>;
@@ -111,7 +113,7 @@ int test (
 
             const bool local_isnonzero = sparsity_pattern.exists(iw,jnode);
             bool global_isnonzero;
-            MPI_Allreduce(&local_isnonzero, &global_isnonzero, 1, MPI::BOOL, MPI_LOR, MPI_COMM_WORLD);
+            MPI_Allreduce(&local_isnonzero, &global_isnonzero, 1, MPI_C_BOOL, MPI_LOR, MPI_COMM_WORLD);
             if (!global_isnonzero) continue;
 
             const bool iw_relevant = dg->locally_relevant_dofs.is_element(iw);
@@ -317,6 +319,9 @@ int main (int argc, char * argv[])
          // , PDEType::advection_vector
          , PDEType::euler
          , PDEType::navier_stokes
+#if PHILIP_DIM==3
+        , PDEType::physics_model
+#endif
     };
     std::vector<std::string> pde_name {
          " PDEType::diffusion "
@@ -325,7 +330,13 @@ int main (int argc, char * argv[])
         // , " PDEType::advection_vector "
         , " PDEType::euler "
         , " PDEType::navier_stokes "
+#if PHILIP_DIM==3
+        , " PDEType::physics_model "
+#endif
     };
+#if PHILIP_DIM==3
+    ModelType model = ModelType::large_eddy_simulation
+#endif
 
     int ipde = -1;
     for (auto pde = pde_type.begin(); pde != pde_type.end() || error == 1; pde++) {
@@ -354,7 +365,11 @@ int main (int argc, char * argv[])
                     }
                 }
 
-                if ((*pde==PDEType::euler) || (*pde==PDEType::navier_stokes)) {
+                if ((*pde==PDEType::euler) || (*pde==PDEType::navier_stokes)
+#if PHILIP_DIM==3
+         || ((*pde==PDEType::physics_model) && (model==ModelType::large_eddy_simulation))
+#endif
+                    ) {
                     error = test<dim,dim+2>(poly_degree, grid, all_parameters);
                 } else if (*pde==PDEType::burgers_inviscid) {
                     error = test<dim,dim>(poly_degree, grid, all_parameters);

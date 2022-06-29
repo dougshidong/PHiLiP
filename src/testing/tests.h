@@ -2,9 +2,10 @@
 #define __TESTS_H__
 
 #include "parameters/all_parameters.h"
-
+#include <string>
 #include <deal.II/grid/tria.h>
 #include <deal.II/base/conditional_ostream.h>
+#include <deal.II/base/parameter_handler.h>
 
 //#include "dg/dg.h"
 namespace PHiLiP {
@@ -28,8 +29,7 @@ public:
     TestsBase(const Parameters::AllParameters *const parameters_input);
 
     /// Destructor.
-    virtual ~TestsBase()
-    {};
+    virtual ~TestsBase() {};
 
     /// Basically the main and only function of this class.
     /** This will get overloaded by the derived test classes.
@@ -53,6 +53,17 @@ protected:
     // /// Evaluates the number of cells to generate the grids for 1D grid based on input file.
     // void globally_refine_and_interpolate(DGBase<dim, double> &dg) const;
 
+    /// Returns a string describing which PDE is being used
+    std::string get_pde_string(const Parameters::AllParameters *const param) const;
+
+    /// Returns a string describing which convective numerical flux is being used
+    std::string get_conv_num_flux_string(const Parameters::AllParameters *const param) const;
+
+    /// Returns a string describing which dissipative numerical flux is being used
+    std::string get_diss_num_flux_string(const Parameters::AllParameters *const param) const;
+
+    /// Returns a string describing which manufactured solution is being used
+    std::string get_manufactured_solution_string(const Parameters::AllParameters *const param) const;
 };
 
 /// Test factory, that will create the correct test with the right template parameters.
@@ -68,19 +79,25 @@ public:
     /** @param[in] parameters_input Input parameters.
      *  \return                     Smart pointer to the test
      */
-    static std::unique_ptr< TestsBase > create_test(const Parameters::AllParameters *const parameters_input);
+    static std::unique_ptr< TestsBase > create_test(
+        const Parameters::AllParameters *const parameters_input,
+        dealii::ParameterHandler &parameter_handler_input);
 
     /// selects the mesh type to be used in the test
     /** @param[in] parameters_input Input parameters.
      *  \return                     Smart pointer to the test
      */
-    static std::unique_ptr< TestsBase > select_mesh(const Parameters::AllParameters *const parameters_input);
+    static std::unique_ptr< TestsBase > select_mesh(
+        const Parameters::AllParameters *const parameters_input,
+        dealii::ParameterHandler &parameter_handler_input);
 
     /// Selects the actual test such as grid convergence, numerical flux conversation, etc.
     /** @param[in] parameters_input Input parameters.
      *  \return                     Smart pointer to the test
      */
-    static std::unique_ptr< TestsBase > select_test(const Parameters::AllParameters *const parameters_input);
+    static std::unique_ptr< TestsBase > select_test(
+        const Parameters::AllParameters *const parameters_input,
+        dealii::ParameterHandler &parameter_handler_input);
 };
 
 } // Tests namespace

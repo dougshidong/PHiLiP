@@ -40,20 +40,19 @@ subsection navier_stokes
   set reynolds_number_inf = 1600.0
 end
 
-# polynomial order and number of cells per direction (i.e. grid_size)
-subsection grid refinement study
-  set poly_degree = 2
-  set grid_size = 4
-  set grid_left = 0.0
-  set grid_right = 6.2831853072
-end
-
 subsection flow_solver
   set flow_case_type = taylor_green_vortex
-  set final_time = 1.2248096860487504e-02
-  set courant_friedrich_lewy_number = 0.005
+  set poly_degree = 2
+  set final_time = 1.2566370614400000e-02
+  set courant_friedrich_lewy_number = 0.003
   set unsteady_data_table_filename = tgv_kinetic_energy_vs_time_table_for_energy_check
-  subsection taylor_green_vortex_energy_check
-    set expected_kinetic_energy_at_final_time = 1.2074066465958100e-01
+  subsection grid
+    set grid_left_bound = 0.0
+    set grid_right_bound = 6.28318530717958623200
+    set number_of_grid_elements_per_dimension = 4
+  end
+  subsection taylor_green_vortex
+    set expected_kinetic_energy_at_final_time = 1.2073987162682624e-01
+    set expected_theoretical_dissipation_rate_at_final_time = 4.5422264559811485e-04
   end
 end

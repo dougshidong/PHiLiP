@@ -4,6 +4,7 @@
 #include <deal.II/base/tensor.h>
 #include <deal.II/numerics/data_component_interpretation.h>
 #include <deal.II/fe/fe_update_flags.h>
+#include <deal.II/base/types.h>
 
 #include "parameters/all_parameters.h"
 #include "parameters/parameters_manufactured_solution.h"
@@ -37,6 +38,9 @@ public:
         const dealii::Tensor<2,3,double>                          input_diffusion_tensor = Parameters::ManufacturedSolutionParam::get_default_diffusion_tensor(),
         std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function_input = nullptr);
 
+    /// Constructor that will call default constructor.
+    PhysicsBase(std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function_input = nullptr);
+
     /// Virtual destructor required for abstract classes.
     virtual ~PhysicsBase() = 0;
 
@@ -49,7 +53,7 @@ public:
 
     /// Convective Numerical Split Flux for split form
     virtual std::array<dealii::Tensor<1,dim,real>,nstate> convective_numerical_split_flux (
-            const std::array<real,nstate> &soln_const, const std::array<real,nstate> &soln_loop) const = 0;
+        const std::array<real,nstate> &soln_const, const std::array<real,nstate> &soln_loop) const = 0;
 
     /// Spectral radius of convective term Jacobian.
     /** Used for scalar dissipation
@@ -67,18 +71,10 @@ public:
     //     const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_grad) const = 0;
 
     /// Dissipative fluxes that will be differentiated ONCE in space.
-    /** Evaluates the dissipative flux through the linearization F = A(u)*grad(u).
-     */
-    std::array<dealii::Tensor<1,dim,real>,nstate> dissipative_flux_A_gradu (
-        const real scaling,
-        const std::array<real,nstate> &solution,
-        const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient,
-        std::array<dealii::Tensor<1,dim,real>,nstate> &diss_flux) const;
-
-    /// Dissipative fluxes that will be differentiated ONCE in space.
     virtual std::array<dealii::Tensor<1,dim,real>,nstate> dissipative_flux (
         const std::array<real,nstate> &solution,
-        const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient) const = 0;
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient,
+        const dealii::types::global_dof_index cell_index) const = 0;
 
     /// Artificial dissipative fluxes that will be differentiated ONCE in space.
     /** Stems from the Persson2006 paper on subcell shock capturing */
@@ -90,7 +86,8 @@ public:
     /// Source term that does not require differentiation.
     virtual std::array<real,nstate> source_term (
         const dealii::Point<dim,real> &pos,
-        const std::array<real,nstate> &solution) const = 0;
+        const std::array<real,nstate> &solution,
+        const dealii::types::global_dof_index cell_index) const = 0;
 
     /// Artificial source term that does not require differentiation stemming from artificial dissipation.
     virtual std::array<real,nstate> artificial_source_term (

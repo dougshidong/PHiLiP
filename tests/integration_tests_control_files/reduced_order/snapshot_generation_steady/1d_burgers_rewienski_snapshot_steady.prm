@@ -2,7 +2,7 @@
 # ---------------------
 
 set dimension = 1
-set test_type = flow_solver
+set run_type = flow_simulation
 set pde_type = burgers_rewienski
 
 set use_weak_form = true
@@ -10,9 +10,6 @@ set use_collocated_nodes = false
 
 subsection grid refinement study
  set num_refinements = 8
- set poly_degree = 0
- set grid_left = 0.0
- set grid_right = 100.0
 end
 
 #Burgers parameters
@@ -25,6 +22,11 @@ subsection flow_solver
   set flow_case_type = burgers_rewienski_snapshot
   set final_time = 0.5
   set steady_state = true
+  set poly_degree = 0
+  subsection grid
+    set grid_left_bound = 0.0
+    set grid_right_bound = 100.0
+  end
 end
 
 subsection ODE solver

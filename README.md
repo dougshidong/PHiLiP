@@ -1,3 +1,9 @@
+Transonic NACA0012 with adaptive refinement         |  Viscous NACA0012 with Recirculation bubble (Swanson)
+:-------------------------:|:-------------------------:
+<img width="500" src='https://user-images.githubusercontent.com/9758507/162810203-6e5c327d-a22e-4681-8dbd-381e72a8ca46.png'/>  |  <img width="500" src='https://user-images.githubusercontent.com/9758507/163444219-3fc0e375-ebbd-4850-beba-35183f849585.png'/>
+
+
+
 # Table of Contents
 
 - [Parallel High-Order Library for PDEs](#parallel-high-order-library-for-pdes)
@@ -16,6 +22,8 @@
 # Parallel High-Order Library for PDEs
 
 [![Documentation](https://codedocs.xyz/dougshidong/PHiLiP.svg)](https://codedocs.xyz/dougshidong/PHiLiP/)
+[![DOI](https://zenodo.org/badge/162186347.svg)](https://zenodo.org/badge/latestdoi/162186347)
+
 
 The [P]arallel [Hi]gh-Order [Li]brary for [P]DEs (PHiLiP) uses Discontinuous Galerkin methods to solve convection-diffusion problems.
 

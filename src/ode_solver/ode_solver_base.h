@@ -28,24 +28,11 @@ public:
 
     virtual ~ODESolverBase() {}; ///< Destructor.
 
-    /// Useful for accurate time-stepping.
-    /** This variable will change when step_in_time() is called. */
-    double current_time;
-
-    /// Current iteration.
-    /** This variable will change when step_in_time() is called. */
-    unsigned int current_iteration;
-
-    /// Current desired time for output solution every dt time intervals
-    /** This variable will change when advance_solution_time() is called
-     *  if ODE parameter "output_solution_every_dt_time_intervals" > 0. */
-    double current_desired_time_for_output_solution_every_dt_time_intervals;
-
     /// Table used to output solution vector at each time step
     dealii::TableHandler solutions_table;
 
     /// Writes the ode solver steady state convergence data to a file
-    void write_ode_convergence_data_to_table(
+    void write_ode_solver_steady_state_convergence_data_to_table(
         const unsigned int current_iteration,
         const double current_residual,
         const std::shared_ptr <dealii::TableHandler> data_table) const;
@@ -105,12 +92,28 @@ protected:
     /// Input parameters.
     const Parameters::AllParameters *const all_parameters;
 
+    /// Input ODE solver parameters
+    const Parameters::ODESolverParam ode_param;
+
+public:
+    /// Useful for accurate time-stepping.
+    /** This variable will change when step_in_time() is called. */
+    double current_time;
+
+    /// Current iteration.
+    /** This variable will change when step_in_time() is called. */
+    unsigned int current_iteration;
+
+    /// Current desired time for output solution every dt time intervals
+    /** This variable will change when advance_solution_time() is called
+     *  if ODE parameter "output_solution_every_dt_time_intervals" > 0. */
+    double current_desired_time_for_output_solution_every_dt_time_intervals;
+
+protected:
     const MPI_Comm mpi_communicator; ///< MPI communicator.
     const int mpi_rank; ///< MPI rank.
     dealii::ConditionalOStream pcout; ///< Parallel std::cout that only outputs on mpi_rank==0
-
-    /// Flag to perform mesh adaptation in steady state ode solver.
-    bool refine_mesh_in_ode_solver;
+    bool refine_mesh_in_ode_solver; ///< Flag to perform mesh adaptation in steady state ode solver.
 
 };
 } // ODE namespace

@@ -13,15 +13,14 @@ public:
 
     double prandtl_number; ///< Prandtl number
     double reynolds_number_inf; ///< Farfield Reynolds number
-    double isothermal_wall_temperature; ///< Isothermal wall temperature
+    double nondimensionalized_isothermal_wall_temperature; ///< Nondimensionalized isothermal wall temperature
 
-    /// Types of wall temperature boundary conditions available.
-    enum WallTemperatureBoundaryConditionEnum {
-        adiabatic, /// adiabatic
-        isothermal /// isothermal
+    /// Types of thermal boundary conditions available.
+    enum ThermalBoundaryCondition {
+        adiabatic,
+        isothermal
     };
-    /// Wall temperature boundary condition type
-    WallTemperatureBoundaryConditionEnum wall_temperature_boundary_condition_type; ///< adiabatic or isothermal
+    ThermalBoundaryCondition thermal_boundary_condition_type; ///< Store thermal boundary condition type
 
     /// Declares the possible variables and sets the defaults.
     static void declare_parameters (dealii::ParameterHandler &prm);

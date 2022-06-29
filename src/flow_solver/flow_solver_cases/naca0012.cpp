@@ -71,7 +71,7 @@ void NACA0012<dim,nstate>::set_higher_order_grid(std::shared_ptr<DGBase<dim, dou
         dg->high_order_grid->refine_global();
     }
     
-    // MeshSmoothing is set to none as dealii::GridGenerator::Airfoil::create_triangulation() introduces additional mesh smoothing flags.
+    // MeshSmoothing is set to none as PHiLiP::read_gmsh() introduces additional mesh smoothing flags.
     // These mesh smoothing flags refine additional cells when the polynomial order is increased (to compute goal-oriented error indicator). 
     dg->triangulation->set_mesh_smoothing(typename dealii::Triangulation<dim>::MeshSmoothing(dealii::Triangulation<dim>::none));
 }

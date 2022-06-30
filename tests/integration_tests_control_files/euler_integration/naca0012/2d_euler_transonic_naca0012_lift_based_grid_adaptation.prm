@@ -12,6 +12,8 @@ set use_split_form = false
 
 set overintegration = 0
 
+set solution_vtk_files_directory_name = ./lift_transonic
+
 subsection euler
   set reference_length = 1.0
   set mach_infinity = 0.80
@@ -20,7 +22,7 @@ end
 
 subsection mesh adaptation
     set critical_residual = 1.0e-9
-    set total_refinement_cycles = 3
+    set total_refinement_cycles = 10
     set h_refine_fraction = 0.05
     set h_coarsen_fraction = 0.025
     set use_goal_oriented_mesh_adaptation = true

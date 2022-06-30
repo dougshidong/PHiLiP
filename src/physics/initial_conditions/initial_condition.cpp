@@ -218,7 +218,7 @@ InitialConditionFactory<dim,nstate, real>::create_InitialConditionFunction(
         if constexpr (dim==1 && nstate==dim)  return std::make_shared<InitialConditionFunction_BurgersRewienski<dim,nstate,real> > ();
     } else if (flow_type == FlowCaseEnum::burgers_viscous_snapshot) {
         if constexpr (dim==1 && nstate==dim)  return std::make_shared<InitialConditionFunction_BurgersViscous<dim,nstate,real> > ();
-    } else if (flow_type == FlowCaseEnum::naca0012) {
+    } else if (flow_type == FlowCaseEnum::naca0012 || flow_type == FlowCaseEnum::gaussian_bump) {
         if constexpr (dim==2 && nstate==dim+2){
             Physics::Euler<dim,nstate,double> euler_physics_double = Physics::Euler<dim, nstate, double>(
                     param->euler_param.ref_length,
@@ -230,16 +230,6 @@ InitialConditionFactory<dim,nstate, real>::create_InitialConditionFunction(
         }
     } else if (flow_type == FlowCaseEnum::advection_periodic) {
         if constexpr (dim==1 && nstate==dim)  return std::make_shared<InitialConditionFunction_1DSine<dim,nstate,real> > ();
-    } else if (flow_type == FlowCaseEnum::gaussian_bump){
-        if constexpr (dim==2 && nstate==dim+2){
-            Physics::Euler<dim, nstate, double> euler_physics_double = Physics::Euler<dim, nstate, double>(
-                    param->euler_param.ref_length,
-                    param->euler_param.gamma_gas,
-                    param->euler_param.mach_inf,
-                    param->euler_param.angle_of_attack,
-                    param->euler_param.side_slip_angle);
-            return std::make_shared<FreeStreamInitialConditions<dim, nstate, real>>(euler_physics_double);
-        }
     } else {
         std::cout << "Invalid Flow Case Type. You probably forgot to add it to the list of flow cases in initial_condition.cpp" << std::endl;
         std::abort();

@@ -21,6 +21,7 @@
 #include "parameters/parameters_flow_solver.h"
 #include "parameters/parameters_mesh_adaptation.h"
 #include "parameters/parameters_functional.h"
+#include "parameters/parameters_mesh_generation.h"
 
 namespace PHiLiP {
 namespace Parameters {
@@ -58,6 +59,8 @@ public:
     MeshAdaptationParam mesh_adaptation_param;
     /// Contains parameters for functional
     FunctionalParam functional_param;
+    /// Contains parameters for mesh generation
+    MeshGenerationParam mesh_generation_param;
 
     /// Number of dimensions. Note that it has to match the executable PHiLiP_xD
     unsigned int dimension;

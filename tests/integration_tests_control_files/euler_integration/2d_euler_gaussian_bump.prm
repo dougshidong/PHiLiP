@@ -32,7 +32,7 @@ end
 end
 
 subsection ODE solver
-  set output_solution_every_x_steps = 1
+  # set output_solution_every_x_steps = 1
   # Maximum nonlinear solver iterations
   set nonlinear_max_iterations            = 500
 
@@ -52,10 +52,10 @@ end
 
 subsection manufactured solution convergence study
   # Last degree used for convergence study
-  set degree_end        = 0
+  set degree_end        = 3
 
   # Starting degree for convergence study
-  set degree_start      = 0
+  set degree_start      = 1
 
   set grid_progression  = 2
 
@@ -66,5 +66,20 @@ subsection manufactured solution convergence study
 
   # Number of grids in grid study
   set number_of_grids   = 3
+end
+
+subsection flow_solver
+  set flow_case_type = gaussian_bump
+  set steady_state = true
+  set steady_state_polynomial_ramping = true
+end
+
+subsection mesh_generation
+  set mesh_type = gaussian_bump
+
+  subsection gaussian_bump
+    set channel_length = 3.0
+    set channel_height = 0.8
+  end
 end
 

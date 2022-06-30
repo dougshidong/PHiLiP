@@ -104,6 +104,7 @@ protected:
 
     /// Name of the reference copy of inputted parameters file; for restart purposes
     const std::string input_parameters_file_reference_copy_filename;
+
     
 public:
     /// Pointer to dg so it can be accessed externally.

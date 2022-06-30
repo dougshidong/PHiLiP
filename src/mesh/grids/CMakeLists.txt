@@ -25,6 +25,5 @@ foreach(dim RANGE 1 3)
         DEAL_II_SETUP_TARGET(${GridsLib})
     endif()
 
-
     unset(GridsLib)
 endforeach()

@@ -2,40 +2,25 @@
 #include <iostream>
 
 #include <deal.II/base/convergence_table.h>
-
-#include <deal.II/distributed/solution_transfer.h>
-#include <deal.II/dofs/dof_tools.h>
-
-#include <deal.II/grid/grid_generator.h>
-#include <deal.II/grid/grid_refinement.h>
-#include <deal.II/grid/grid_tools.h>
-#include <deal.II/grid/grid_out.h>
-#include <deal.II/grid/grid_in.h>
-
-#include <deal.II/numerics/vector_tools.h>
-
 #include <deal.II/fe/fe_values.h>
 
-#include <deal.II/fe/mapping_q.h>
-#include <deal.II/fe/mapping_manifold.h>
-
 #include "euler_gaussian_bump.h"
-#include "mesh/grids/gaussian_bump.h"
 
-#include "physics/initial_conditions/initial_condition.h"
 #include "physics/euler.h"
-#include "physics/manufactured_solution.h"
-#include "dg/dg_factory.hpp"
-#include "ode_solver/ode_solver_factory.h"
+
+#include "flow_solver/flow_solver_factory.h"
 
 
 namespace PHiLiP {
 namespace Tests {
 
 template <int dim, int nstate>
-EulerGaussianBump<dim,nstate>::EulerGaussianBump(const Parameters::AllParameters *const parameters_input)
+EulerGaussianBump<dim,nstate>::EulerGaussianBump(
+    const Parameters::AllParameters *const parameters_input,
+    const dealii::ParameterHandler &parameter_handler_input)
     :
     TestsBase::TestsBase(parameters_input)
+    , parameter_handler(parameter_handler_input)
 {}
 
 template<int dim, int nstate>
@@ -57,7 +42,7 @@ double EulerGaussianBump<dim,nstate>
 {
     using ManParam = Parameters::ManufacturedConvergenceStudyParam;
     using GridEnum = ManParam::GridEnum;
-    const Parameters::AllParameters param = *(TestsBase::all_parameters);
+    Parameters::AllParameters param = *(TestsBase::all_parameters);
 
     Assert(dim == param.dimension, dealii::ExcDimensionMismatch(dim, param.dimension));
     Assert(dim == 2, dealii::ExcDimensionMismatch(dim, param.dimension));
@@ -69,7 +54,7 @@ double EulerGaussianBump<dim,nstate>
     const unsigned int p_start             = manu_grid_conv_param.degree_start;
     const unsigned int p_end               = manu_grid_conv_param.degree_end;
 
-    const unsigned int n_grids_input       = manu_grid_conv_param.number_of_grids;
+    const unsigned int n_grids      = manu_grid_conv_param.number_of_grids;
 
     Physics::Euler<dim,nstate,double> euler_physics_double
         = Physics::Euler<dim, nstate, double>(
@@ -78,11 +63,6 @@ double EulerGaussianBump<dim,nstate>
                 param.euler_param.mach_inf,
                 param.euler_param.angle_of_attack,
                 param.euler_param.side_slip_angle);
-    FreeStreamInitialConditions<dim,nstate,double> initial_conditions(euler_physics_double);
-    pcout << "Farfield conditions: "<< std::endl;
-    for (int s=0;s<nstate;s++) {
-        pcout << initial_conditions.farfield_conservative[s] << std::endl;
-    }
 
     std::string error_string;
     bool has_residual_converged = true;
@@ -94,90 +74,47 @@ double EulerGaussianBump<dim,nstate>
 
     for (unsigned int poly_degree = p_start; poly_degree <= p_end; ++poly_degree) {
         // p0 tends to require a finer grid to reach asymptotic region
-        unsigned int n_grids = n_grids_input;
-        if (poly_degree <= 1) n_grids = n_grids_input;  // What is the purpose of this statement?
 
         std::vector<double> error(n_grids);
         std::vector<double> grid_size(n_grids);
 
-        const std::vector<int> n_1d_cells = get_number_1d_cells(n_grids);
-
         dealii::ConvergenceTable convergence_table;
 
-        std::vector<unsigned int> n_subdivisions(dim);
-        n_subdivisions[1] = n_1d_cells[0]; // y-direction
-        n_subdivisions[0] = 4*n_subdivisions[1]; // x-direction
-
-        // const double channel_length = 3.0;
-        // const double channel_height = 0.8;
-        // Grids::gaussian_bump(*grid, n_subdivisions, channel_length, channel_height);
-
-        // const double solution_degree = poly_degree;
-        // const double grid_degree = 3;
-        // // Create DG object
-        // std::shared_ptr < DGBase<dim, double> > dg = DGFactory<dim,double>::create_discontinuous_galerkin(&param, solution_degree, solution_degree, grid_degree, &grid);
-
-        // // Initialize coarse grid solution with free-stream
-        // dg->allocate_system ();
-        // dealii::VectorTools::interpolate(dg->dof_handler, initial_conditions, dg->solution);
-
-        // // Create ODE solver and ramp up the solution from p0
-        // std::shared_ptr<ODE::ODESolverBase<dim, double>> ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
-        // ode_solver->initialize_steady_polynomial_ramping (poly_degree);
+        const std::vector<int> n_1d_cells = get_number_1d_cells(n_grids);
+        param.mesh_generation_param.number_of_subdivisions_in_x_direction = n_1d_cells[0] * 4;
+        param.mesh_generation_param.number_of_subdivisions_in_y_direction = n_1d_cells[0];
 
         for (unsigned int igrid=0; igrid<n_grids; ++igrid) {
 
-            //if (igrid!=0) {
-            //    dealii::LinearAlgebra::distributed::Vector<double> old_solution(dg->solution);
-            //    dealii::parallel::distributed::SolutionTransfer<dim, dealii::LinearAlgebra::distributed::Vector<double>, dealii::hp::DoFHandler<dim>> solution_transfer(dg->dof_handler);
-            //    solution_transfer.prepare_for_coarsening_and_refinement(old_solution);
-            //    dg->high_order_grid->prepare_for_coarsening_and_refinement();
-            //    grid->refine_global (1);
-            //    dg->high_order_grid->execute_coarsening_and_refinement(true);
-            //    dg->allocate_system ();
-            //    dg->solution.zero_out_ghosts();
-            //    solution_transfer.interpolate(dg->solution);
-            //    dg->solution.update_ghost_values();
-            //}
-
-            using Triangulation = dealii::parallel::distributed::Triangulation<dim>;
-            std::shared_ptr<Triangulation> grid = std::make_shared<Triangulation>(
-                MPI_COMM_WORLD,
-                typename dealii::Triangulation<dim>::MeshSmoothing(
-                    dealii::Triangulation<dim>::smoothing_on_refinement |
-                    dealii::Triangulation<dim>::smoothing_on_coarsening));
-
-            const double channel_length = 3.0;
-            const double channel_height = 0.8;
-
-            Grids::gaussian_bump(*grid, n_subdivisions, channel_length, channel_height);
-            grid->refine_global(igrid);
-
             const double solution_degree = poly_degree;
             const double grid_degree = solution_degree+1;
-            std::shared_ptr < DGBase<dim, double> > dg = DGFactory<dim,double>::create_discontinuous_galerkin(&param, solution_degree, solution_degree, grid_degree, grid);
 
-            // Initialize coarse grid solution with free-stream
-            dg->allocate_system ();
-            dealii::VectorTools::interpolate(dg->dof_handler, initial_conditions, dg->solution);
+            param.flow_solver_param.poly_degree = solution_degree;
+            param.flow_solver_param.grid_degree = grid_degree;
+            param.grid_refinement_study_param.num_refinements = igrid;
 
-            const unsigned int n_global_active_cells = grid->n_global_active_cells();
-            const unsigned int n_dofs = dg->dof_handler.n_dofs();
-            pcout << "Dimension: " << dim << "\t Polynomial degree p: " << poly_degree << std::endl
+            pcout << "\n" << "************************************" << "\n" << "POLYNOMIAL DEGREE " << solution_degree 
+                  << ", GRID NUMBER " << (igrid+1) << "/" << n_grids << "\n" << "************************************" << std::endl;
+
+            pcout << "\n" << "Creating FlowSolver" << std::endl;
+
+            std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(&param, parameter_handler);
+
+            flow_solver->run();
+
+            std::shared_ptr < DGBase<dim, double> > dg = flow_solver->dg;
+
+            const unsigned int n_global_active_cells = flow_solver->dg->triangulation->n_global_active_cells();
+            const unsigned int n_dofs = flow_solver->dg->dof_handler.n_dofs();
+            pcout << "Dimension: " << dim << "\t Polynomial degree p: " << param.flow_solver_param.poly_degree << std::endl
                  << "Grid number: " << igrid+1 << "/" << n_grids
                  << ". Number of active cells: " << n_global_active_cells
                  << ". Number of degrees of freedom: " << n_dofs
                  << std::endl;
 
-            // Create ODE solver and ramp up the solution from p0
-            std::shared_ptr<ODE::ODESolverBase<dim, double>> ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
-            ode_solver->initialize_steady_polynomial_ramping (poly_degree);
-
             // Overintegrate the error to make sure there is not integration error in the error estimate
             int overintegrate = 10;
             dealii::QGauss<dim> quad_extra(dg->max_degree+1+overintegrate);
-            //dealii::MappingQ<dim> mapping(dg->max_degree+overintegrate);
-            //const dealii::MappingManifold<dim,dim> mapping;
             const dealii::Mapping<dim> &mapping = (*(dg->high_order_grid->mapping_fe_field));
             dealii::FEValues<dim,dim> fe_values_extra(mapping, dg->fe_collection[poly_degree], quad_extra, 
                     dealii::update_values | dealii::update_JxW_values | dealii::update_quadrature_points);
@@ -227,7 +164,6 @@ double EulerGaussianBump<dim,nstate>
 
             // Convergence table
             double dx = 1.0/pow(n_dofs,(1.0/dim));
-            //dx = dealii::GridTools::maximal_cell_diameter(*grid);
             grid_size[igrid] = dx;
             error[igrid] = l2error_mpi_sum;
 
@@ -235,11 +171,10 @@ double EulerGaussianBump<dim,nstate>
             convergence_table.add_value("cells", n_global_active_cells);
             convergence_table.add_value("DoFs", n_dofs);
             convergence_table.add_value("dx", dx);
-           // convergence_table.add_value("L2_error", l2error_mpi_sum);
             convergence_table.add_value(error_string, l2error_mpi_sum);
-            convergence_table.add_value("Residual",ode_solver->residual_norm);
+            convergence_table.add_value("Residual",flow_solver->ode_solver->residual_norm);
             
-            if(ode_solver->residual_norm > 1e-10)
+            if(flow_solver->ode_solver->residual_norm > 1e-10)
             {
                 has_residual_converged = false;
             }
@@ -248,7 +183,7 @@ double EulerGaussianBump<dim,nstate>
 
             pcout << " Grid size h: " << dx 
                  << " L2-error: " << l2error_mpi_sum
-                 << " Residual: " << ode_solver->residual_norm
+                 << " Residual: " << flow_solver->ode_solver->residual_norm
                  << std::endl;
 
             if (igrid > 0) {
@@ -302,12 +237,7 @@ double EulerGaussianBump<dim,nstate>
         {
             last_slope = log(error[n_grids-1]/error[n_grids-2]) / log(grid_size[n_grids-1]/grid_size[n_grids-2]);
         }
-        //double before_last_slope = last_slope;
-        //if ( n_grids > 2 ) {
-        //    before_last_slope = log(error[n_grids-2]/error[n_grids-3])
-        //                        / log(grid_size[n_grids-2]/grid_size[n_grids-3]);
-        //}
-        //const double slope_avg = 0.5*(before_last_slope+last_slope);
+
         const double slope_avg = last_slope;
         const double slope_diff = slope_avg-expected_slope;
 

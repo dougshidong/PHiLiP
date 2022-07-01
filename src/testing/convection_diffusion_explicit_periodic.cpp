@@ -63,16 +63,19 @@ double ConvectionDiffusionPeriodic<dim, nstate>::compute_conservation(std::share
         dealii::LinearAlgebra::distributed::Vector<double> mass_matrix_times_solution(dg->right_hand_side);
         dg->global_mass_matrix.vmult( mass_matrix_times_solution, dg->solution);
 
-        const unsigned int n_dofs_cell = dg->operators->fe_collection_basis[poly_degree].dofs_per_cell;
-        const unsigned int n_quad_pts = dg->operators->volume_quadrature_collection[poly_degree].size();
-        dealii::Vector<double> ones(n_quad_pts);
+        const unsigned int n_dofs_cell = dg->fe_collection[poly_degree].dofs_per_cell;
+        const unsigned int n_quad_pts = dg->volume_quadrature_collection[poly_degree].size();
+        std::vector<double> ones(n_quad_pts);
         for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
             ones[iquad] = 1.0;
         }
         //Porjected vector of ones. That is, the interpolation of ones_hat to the volume nodes is 1.
-        dealii::Vector<double> ones_hat(n_dofs_cell);
+        std::vector<double> ones_hat(n_dofs_cell);
         //We have to project the vector of ones because the mass matrix has an interpolation from solution nodes built into it.
-        dg->operators->vol_projection_operator[poly_degree].vmult(ones_hat, ones);
+        OPERATOR::vol_projection_operator<dim,2*dim> vol_projection(dg->nstate, poly_degree, dg->max_grid_degree);
+        vol_projection.build_1D_volume_operator(dg->oneD_fe_collection[poly_degree], dg->oneD_quadrature_collection[poly_degree]);
+        vol_projection.matrix_vector_mult_1D(ones, ones_hat,
+                                                   vol_projection.oneD_vol_operator);
 
         dealii::LinearAlgebra::distributed::Vector<double> ones_hat_global(dg->right_hand_side);
         std::vector<dealii::types::global_dof_index> dofs_indices (n_dofs_cell);
@@ -237,7 +240,7 @@ int ConvectionDiffusionPeriodic<dim, nstate>::run_test() const
             // Overintegrate the error to make sure there is not integration error in the error estimate
             int overintegrate = 10;
             dealii::QGauss<dim> quad_extra(poly_degree+1+overintegrate);
-            dealii::FEValues<dim,dim> fe_values_extra(*(dg->high_order_grid->mapping_fe_field), dg->operators->fe_collection_basis[poly_degree], quad_extra, 
+            dealii::FEValues<dim,dim> fe_values_extra(*(dg->high_order_grid->mapping_fe_field), dg->fe_collection[poly_degree], quad_extra, 
                     dealii::update_values | dealii::update_JxW_values | dealii::update_quadrature_points);
             const unsigned int n_quad_pts = fe_values_extra.n_quadrature_points;
             std::array<double,nstate> soln_at_q;

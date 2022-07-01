@@ -259,9 +259,9 @@ public:
         const std::array<real,nstate> &conservative_soln2) const;
 
     /// Convective Numerical Split Flux for split form
-    std::array<dealii::Tensor<1,dim,real>,nstate> convective_surface_numerical_split_flux (
-                const std::array< dealii::Tensor<1,dim,real>, nstate > &surface_flux,
-                const std::array< dealii::Tensor<1,dim,real>, nstate > &flux_interp_to_surface) const;
+    real convective_surface_numerical_split_flux (
+                const real &surface_flux,
+                const real &flux_interp_to_surface) const;
 
     /// Mean density given two sets of conservative solutions.
     /** Used in the implementation of the split form.

@@ -90,6 +90,11 @@ public:
      *  DGBase cannot use nstate as a compile-time known.  */
     const unsigned int max_degree;
 
+    /// Maximum grid degree used for hp-refi1nement.
+    /** This is known through the constructor parameters.
+     *  DGBase cannot use nstate as a compile-time known.  */
+    const unsigned int max_grid_degree;
+
     /// Principal constructor that will call delegated constructor.
     /** Will initialize mapping, fe_dg, all_parameters, volume_quadrature, and face_quadrature
      *  from DGBase. The it will new some FEValues that will be used to retrieve the
@@ -117,8 +122,11 @@ public:
         dealii::hp::FECollection<dim>, // Solution FE
         dealii::hp::QCollection<dim>,  // Volume quadrature
         dealii::hp::QCollection<dim-1>, // Face quadrature
-        dealii::hp::QCollection<1>, // 1D quadrature for strong form
-        dealii::hp::FECollection<dim> >;  // Lagrange polynomials for strong form
+        dealii::hp::FECollection<dim>,  // Lagrange polynomials for strong form
+        dealii::hp::FECollection<1>,  // Solution FE 1D
+        dealii::hp::FECollection<1>,  // Solution FE 1D for a single state
+        dealii::hp::FECollection<1>,   // Collocated flux basis 1D for Strong
+        dealii::hp::QCollection<1> >; // 1D quadrature for strong form
 
     /// Delegated constructor that initializes collections.
     /** Since a function is used to generate multiple different objects, a delegated
@@ -185,22 +193,44 @@ public:
     /// cell-wise is taken into account.
     void time_scaled_mass_matrices(const real scale);
 
+    ///Builds needed operators for cell residual loop.
+    void reinit_operators_for_cell_residual_loop(
+        const unsigned int poly_degree_int, 
+        const unsigned int poly_degree_ext, 
+        const unsigned int grid_degree,
+        OPERATOR::basis_functions<dim,2*dim> &soln_basis_int,
+        OPERATOR::basis_functions<dim,2*dim> &soln_basis_ext,
+        OPERATOR::basis_functions<dim,2*dim> &flux_basis_int,
+        OPERATOR::basis_functions<dim,2*dim> &flux_basis_ext,
+        OPERATOR::mapping_shape_functions<dim,2*dim> &mapping_basis);
+
+    ///Builds needed operators to compute mass matrices/inverses efficiently.
+    void reinit_operators_for_mass_matrix(
+        const unsigned int poly_degree, const unsigned int grid_degree,
+        OPERATOR::mapping_shape_functions<dim,2*dim> &mapping_basis,
+        OPERATOR::basis_functions<dim,2*dim> &basis,
+        OPERATOR::local_mass<dim,2*dim> &reference_mass_matrix,
+        OPERATOR::local_Flux_Reconstruction_operator<dim,2*dim> &reference_FR,
+        OPERATOR::local_Flux_Reconstruction_operator_aux<dim,2*dim> &reference_FR_aux,
+        OPERATOR::derivative_p<dim,2*dim> &deriv_p);
+
     /// Allocates and evaluates the mass matrices for the entire grid
-    /** Although straightforward, this has not been tested yet.
-     *  Will be required for accurate time-stepping or nonlinear problems
-     */
     void evaluate_mass_matrices (bool do_inverse_mass_matrix = false);
 
     ///Evaluates the metric dependent local mass matrices and inverses, then sets them in the global matrices.
     void evaluate_local_metric_dependent_mass_matrix_and_set_in_global_mass_matrix(
         const bool do_inverse_mass_matrix, 
-        const unsigned int fe_index_curr_cell, 
+        const unsigned int poly_degree, 
+        const unsigned int curr_grid_degree, 
         const unsigned int n_quad_pts, 
         const unsigned int n_dofs_cell, 
         const std::vector<dealii::types::global_dof_index> dofs_indices, 
-        const std::vector<real> &determinant_Jacobian, 
-        const std::vector<real> &quad_weights, 
-        dealii::FullMatrix<real> &local_mass_matrix);
+        OPERATOR::metric_operators<real,dim,2*dim>                  &metric_oper,
+        OPERATOR::basis_functions<dim,2*dim>                        &basis,
+        OPERATOR::local_mass<dim,2*dim>                             &reference_mass_matrix,
+        OPERATOR::local_Flux_Reconstruction_operator<dim,2*dim>     &reference_FR,
+        OPERATOR::local_Flux_Reconstruction_operator_aux<dim,2*dim> &reference_FR_aux,
+        OPERATOR::derivative_p<dim,2*dim>                           &deriv_p);
 
     /// Evaluates the maximum stable time step
     /** If exact_time_stepping = true, use the same time step for the entire solution
@@ -496,6 +526,11 @@ public:
         dealii::hp::FEFaceValues<dim,dim>    &fe_values_collection_face_ext,
         dealii::hp::FESubfaceValues<dim,dim> &fe_values_collection_subface,
         dealii::hp::FEValues<dim,dim>        &fe_values_collection_volume_lagrange,
+        OPERATOR::basis_functions<dim,2*dim> &soln_basis_int,
+        OPERATOR::basis_functions<dim,2*dim> &soln_basis_ext,
+        OPERATOR::basis_functions<dim,2*dim> &flux_basis_int,
+        OPERATOR::basis_functions<dim,2*dim> &flux_basis_ext,
+        OPERATOR::mapping_shape_functions<dim,2*dim> &mapping_basis,
         const bool compute_Auxiliary_RHS,//flag on whether computing the Auxiliary variable's equations' residuals
         dealii::LinearAlgebra::distributed::Vector<double> &rhs,
         std::array<dealii::LinearAlgebra::distributed::Vector<double>,dim> &rhs_aux);
@@ -516,13 +551,31 @@ public:
     dealii::hp::QCollection<dim>     volume_quadrature_collection;
     /// Quadrature used to evaluate face integrals.
     dealii::hp::QCollection<dim-1>   face_quadrature_collection;
-    /// 1D quadrature to generate Lagrange polynomials for the sake of flux interpolation.
-    dealii::hp::QCollection<1>       oned_quadrature_collection;
 
 protected:
     /// Lagrange basis used in strong form
     /** This is a collection of scalar Lagrange bases */
     const dealii::hp::FECollection<dim>  fe_collection_lagrange;
+
+public:
+
+    /// 1D Finite Element Collection for p-finite-element to represent the solution
+    /** This is a collection of FESystems for 1D. */
+    const dealii::hp::FECollection<1>    oneD_fe_collection;
+
+    /// 1D Finite Element Collection for p-finite-element to represent the solution for a single state.
+    /** This is a collection of FESystems for 1D. 
+    * Since each state is represented by the same polynomial degree, for the RHS,
+    * we only need to store the 1D basis functions for a single state.
+    */
+    const dealii::hp::FECollection<1>    oneD_fe_collection_1state;
+    /// 1D collocated flux basis used in strong form
+    /** This is a collection of collocated Lagrange bases for 1D.*/
+    const dealii::hp::FECollection<1>  oneD_fe_collection_flux;
+    /// 1D quadrature to generate Lagrange polynomials for the sake of flux interpolation.
+    dealii::hp::QCollection<1>       oneD_quadrature_collection;
+    /// 1D surface quadrature is always one single point for all poly degrees.
+    dealii::QGauss<0>                oneD_face_quadrature;
 
     /// Finite Element Collection to represent the high-order grid
     /** This is a collection of FESystems.
@@ -532,7 +585,6 @@ protected:
     //const dealii::hp::FECollection<dim>    fe_collection_grid;
     //const dealii::FESystem<dim>    fe_grid;
 
-public:
     /// Degrees of freedom handler
     /*  Allows us to iterate over the finite elements' degrees of freedom.
      *  Note that since we are not using FESystem, we need to multiply
@@ -546,8 +598,6 @@ public:
     /// High order grid that will provide the MappingFEField
     std::shared_ptr<HighOrderGrid<dim,real,MeshType>> high_order_grid;
 
-    /// Operators base that will provide the Operators
-    std::shared_ptr<OPERATOR::OperatorsBase<dim,real,2*dim>> operators;
     /// Sets the current time within DG to be used for unsteady source terms.
     void set_current_time(const real current_time);
 
@@ -568,28 +618,81 @@ protected:
     ///Evaluate the volume RHS for the auxiliary equation.
     virtual void assemble_volume_term_auxiliary_equation(
         const std::vector<dealii::types::global_dof_index> &current_dofs_indices,
-        const std::vector<dealii::types::global_dof_index> &metric_dof_indices,
-        const unsigned int poly_degree,
-        const unsigned int grid_degree,
-        std::vector<dealii::Tensor<1,dim,double>> &local_auxiliary_RHS)=0;
+        const unsigned int                                 poly_degree,
+        OPERATOR::basis_functions<dim,2*dim>        &soln_basis,
+        OPERATOR::basis_functions<dim,2*dim>        &flux_basis,
+        OPERATOR::metric_operators<real,dim,2*dim>         &metric_oper,
+        std::vector<dealii::Tensor<1,dim,real>>            &local_auxiliary_RHS) = 0;
+
     ///Evaluate the boundary RHS for the auxiliary equation.
     virtual void assemble_boundary_term_auxiliary_equation(
-        const unsigned int poly_degree, const unsigned int grid_degree,
-        const unsigned int iface,
-        const unsigned int boundary_id,
-        const std::vector<dealii::types::global_dof_index> &current_dofs_indices,
-        const std::vector<dealii::types::global_dof_index> &metric_dof_indices,
-        std::vector<dealii::Tensor<1,dim,real>> &local_auxiliary_RHS)=0;
+        const unsigned int                                 iface,
+        const dealii::types::global_dof_index              current_cell_index,
+        const unsigned int                                 poly_degree,
+        const unsigned int                                 boundary_id,
+        const std::vector<dealii::types::global_dof_index> &dofs_indices,
+        OPERATOR::basis_functions<dim,2*dim>        &soln_basis,
+        OPERATOR::metric_operators<real,dim,2*dim>         &metric_oper,
+        std::vector<dealii::Tensor<1,dim,real>>            &local_auxiliary_RHS) = 0;
+
     ///Evaluate the facet RHS for the auxiliary equation.
     virtual void assemble_face_term_auxiliary(
-        const unsigned int iface, const unsigned int neighbor_iface,
-        const unsigned int poly_degree, const unsigned int grid_degree,
-        const std::vector<dealii::types::global_dof_index> &current_dofs_indices,
-        const std::vector<dealii::types::global_dof_index> &neighbor_dofs_indices,
-        const std::vector<dealii::types::global_dof_index> &metric_dof_indices_int,
-        const std::vector<dealii::types::global_dof_index> &metric_dof_indices_ext,
-        std::vector<dealii::Tensor<1,dim,real>> &local_auxiliary_RHS_int,
-        std::vector<dealii::Tensor<1,dim,real>> &local_auxiliary_RHS_ext)=0;
+        const unsigned int                                 iface, 
+        const unsigned int                                 neighbor_iface,
+        const dealii::types::global_dof_index              current_cell_index,
+        const dealii::types::global_dof_index              neighbor_cell_index,
+        const unsigned int                                 poly_degree_int, 
+        const unsigned int                                 poly_degree_ext,
+        const std::vector<dealii::types::global_dof_index> &dof_indices_int,
+        const std::vector<dealii::types::global_dof_index> &dof_indices_ext,
+        OPERATOR::basis_functions<dim,2*dim>        &soln_basis_int,
+        OPERATOR::basis_functions<dim,2*dim>        &soln_basis_ext,
+        OPERATOR::metric_operators<real,dim,2*dim>         &metric_oper_int,
+        std::vector<dealii::Tensor<1,dim,real>>            &local_auxiliary_RHS_int,
+        std::vector<dealii::Tensor<1,dim,real>>            &local_auxiliary_RHS_ext) = 0;
+
+    ///Strong form primary equation's volume right-hand-side.
+    virtual void assemble_volume_term_strong(
+        const dealii::types::global_dof_index              current_cell_index,
+        const std::vector<dealii::types::global_dof_index> &cell_dofs_indices,
+        const unsigned int                                 poly_degree,
+        OPERATOR::basis_functions<dim,2*dim>        &soln_basis,
+        OPERATOR::basis_functions<dim,2*dim>        &flux_basis,
+        OPERATOR::metric_operators<real,dim,2*dim>         &metric_oper,
+        dealii::Vector<real>                               &local_rhs_int_cell) = 0;
+
+    ///Strong form primary equation's boundary right-hand-side.
+    virtual void assemble_boundary_term_strong(
+        const unsigned int                                 iface, 
+        const dealii::types::global_dof_index              current_cell_index,
+        const unsigned int                                 boundary_id,
+        const unsigned int                                 poly_degree, 
+        const real                                         penalty,
+        const std::vector<dealii::types::global_dof_index> &dof_indices,
+        OPERATOR::basis_functions<dim,2*dim>        &soln_basis,
+        OPERATOR::basis_functions<dim,2*dim>        &flux_basis,
+        OPERATOR::metric_operators<real,dim,2*dim>         &metric_oper,
+        dealii::Vector<real>                               &local_rhs_cell) = 0;
+
+    ///Strong form primary equation's facet right-hand-side.
+    virtual void assemble_face_term_strong(
+        const unsigned int                                 iface, 
+        const unsigned int                                 neighbor_iface, 
+        const dealii::types::global_dof_index              current_cell_index,
+        const dealii::types::global_dof_index              neighbor_cell_index,
+        const unsigned int                                 poly_degree_int, 
+        const unsigned int                                 poly_degree_ext, 
+        const real                                         penalty,
+        const std::vector<dealii::types::global_dof_index> &dof_indices_int,
+        const std::vector<dealii::types::global_dof_index> &dof_indices_ext,
+        OPERATOR::basis_functions<dim,2*dim>        &soln_basis_int,
+        OPERATOR::basis_functions<dim,2*dim>        &soln_basis_ext,
+        OPERATOR::basis_functions<dim,2*dim>        &flux_basis_int,
+        OPERATOR::basis_functions<dim,2*dim>        &flux_basis_ext,
+        OPERATOR::metric_operators<real,dim,2*dim>         &metric_oper_int,
+        OPERATOR::metric_operators<real,dim,2*dim>         &metric_oper_ext,
+        dealii::Vector<real>                               &local_rhs_int_cell,
+        dealii::Vector<real>                               &local_rhs_ext_cell) = 0;
 
     /// Evaluate the integral over the cell volume and the specified derivatives.
     /** Compute both the right-hand side and the corresponding block of dRdW, dRdX, and/or d2R. */
@@ -683,6 +786,8 @@ protected:
         const std::vector<dealii::types::global_dof_index> &metric_dof_indices_ext,
         dealii::Vector<real>          &current_cell_rhs,
         dealii::Vector<real>          &neighbor_cell_rhs) = 0;
+
+
 
     /// Update flags needed at volume points.
     const dealii::UpdateFlags volume_update_flags = dealii::update_values | dealii::update_gradients | dealii::update_quadrature_points | dealii::update_JxW_values
@@ -836,10 +941,6 @@ protected:
      */
     void reset_numerical_fluxes();
 
-public:
-    
-    /// Operators base State that will provide the Operators to the DGStrong and DGWeak classes
-    std::shared_ptr<OPERATOR::OperatorsBaseState<dim,real,nstate,2*dim>> operators_state;
 }; // end of DGBaseState class
 
 } // PHiLiP namespace

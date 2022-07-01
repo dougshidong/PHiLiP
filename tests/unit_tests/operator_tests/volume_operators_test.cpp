@@ -52,10 +52,7 @@
 
 #include "parameters/all_parameters.h"
 #include "parameters/parameters.h"
-#include "operators/operators_new.h"
 #include "operators/operators.h"
-//#include "dg/dg.h"
-//#include "dg/dg_factory.hpp"
 
 const double TOLERANCE = 1E-6;
 using namespace std;

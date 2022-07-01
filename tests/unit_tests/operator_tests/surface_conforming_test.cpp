@@ -46,7 +46,7 @@
 #include <deal.II/grid/manifold_lib.h>
 #include <deal.II/fe/mapping_q.h>
 #include "dg/dg_factory.hpp"
-#include "operators/operators_new.h"
+#include "operators/operators.h"
 //#include <GCL_test.h>
 
 const double TOLERANCE = 1E-6;

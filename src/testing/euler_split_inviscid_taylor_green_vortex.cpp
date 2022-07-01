@@ -20,7 +20,7 @@ double EulerTaylorGreen<dim, nstate>::compute_MK_energy(std::shared_ptr < DGBase
     int overintegrate = 0 ;//10;
     dealii::QGauss<dim> quad_extra(dg->max_degree+1+overintegrate);
     const dealii::Mapping<dim> &mapping = (*(dg->high_order_grid->mapping_fe_field));
-    dealii::FEValues<dim,dim> fe_values_extra(mapping, dg->operators->fe_collection_basis[poly_degree], quad_extra, 
+    dealii::FEValues<dim,dim> fe_values_extra(mapping, dg->fe_collection[poly_degree], quad_extra, 
                     dealii::update_values | dealii::update_JxW_values | dealii::update_quadrature_points);
 
     double total_kinetic_energy = 0;
@@ -63,7 +63,7 @@ double EulerTaylorGreen<dim, nstate>::compute_kinetic_energy(std::shared_ptr < D
     int overintegrate = 10 ;
     dealii::QGauss<dim> quad_extra(dg->max_degree+1+overintegrate);
     const dealii::Mapping<dim> &mapping = (*(dg->high_order_grid->mapping_fe_field));
-    dealii::FEValues<dim,dim> fe_values_extra(mapping, dg->operators->fe_collection_basis[poly_degree], quad_extra, 
+    dealii::FEValues<dim,dim> fe_values_extra(mapping, dg->fe_collection[poly_degree], quad_extra, 
                     dealii::update_values | dealii::update_JxW_values | dealii::update_quadrature_points);
     const unsigned int n_quad_pts = fe_values_extra.n_quadrature_points;
     std::array<double,nstate> soln_at_q;

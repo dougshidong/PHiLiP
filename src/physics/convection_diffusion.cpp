@@ -91,12 +91,12 @@ std::array<dealii::Tensor<1,dim,real>,nstate> ConvectionDiffusion<dim,nstate,rea
 }
 
 template <int dim, int nstate, typename real>
-std::array<dealii::Tensor<1,dim,real>,nstate> ConvectionDiffusion<dim,nstate,real>
+real ConvectionDiffusion<dim,nstate,real>
 ::convective_surface_numerical_split_flux (
-                const std::array< dealii::Tensor<1,dim,real>, nstate > &/*surface_flux*/,
-                const std::array< dealii::Tensor<1,dim,real>, nstate > &flux_interp_to_surface) const
+                const real &surface_flux,
+                const real &flux_interp_to_surface) const
 {
-    return flux_interp_to_surface;
+    return 0.5*(flux_interp_to_surface + surface_flux);
 }
 
 template <int dim, int nstate, typename real>

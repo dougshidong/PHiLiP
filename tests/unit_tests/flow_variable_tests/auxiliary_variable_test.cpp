@@ -71,6 +71,7 @@ int main (int argc, char * argv[])
 
     all_parameters_new.use_curvilinear_split_form=true;
     const int dim_check = 0;
+    const int nstate = 1;
 
     double left = 0.0;
     double right = 1.0;
@@ -133,12 +134,20 @@ pcout<<" Grid Index"<<igrid<<std::endl;
     const double pi = atan(1)*4.0;
     const unsigned int max_dofs_per_cell = dg->dof_handler.get_fe_collection().max_dofs_per_cell();
     std::vector<dealii::types::global_dof_index> current_dofs_indices(max_dofs_per_cell);
-    const unsigned int n_dofs_cell = dg->operators->fe_collection_basis[poly_degree].dofs_per_cell;
-    const unsigned int n_quad_pts      = dg->operators->volume_quadrature_collection[poly_degree].size();
+    const unsigned int n_dofs_cell = dg->fe_collection[poly_degree].dofs_per_cell;
+    const unsigned int n_quad_pts      = dg->volume_quadrature_collection[poly_degree].size();
+    const unsigned int n_shape_fns = n_dofs_cell / dg->nstate;
 
     const dealii::FESystem<dim> &fe_metric = (dg->high_order_grid->fe_system);
     const unsigned int n_metric_dofs = fe_metric.dofs_per_cell; 
+    const unsigned int n_grid_nodes = n_metric_dofs / dim;
     auto metric_cell = dg->high_order_grid->dof_handler_grid.begin_active();
+
+    PHiLiP::OPERATOR::mapping_shape_functions<dim,2*dim> mapping_basis(dg->nstate, poly_degree, 1);
+    mapping_basis.build_1D_shape_functions_at_flux_nodes(dg->high_order_grid->oneD_fe_system[1], dg->oneD_quadrature_collection[poly_degree], dg->oneD_face_quadrature);
+    OPERATOR::vol_projection_operator<dim,2*dim> vol_projection(dg->nstate, dg->max_degree, dg->max_grid_degree);
+    vol_projection.build_1D_volume_operator(dg->oneD_fe_collection[dg->max_degree], dg->oneD_quadrature_collection[dg->max_degree]);
+
     for (auto current_cell = dg->dof_handler.begin_active(); current_cell!=dg->dof_handler.end(); ++current_cell, ++metric_cell) {
         if (!current_cell->is_locally_owned()) continue;
     
@@ -151,37 +160,51 @@ pcout<<" Grid Index"<<igrid<<std::endl;
             phys_quad_pts[idim].resize(n_quad_pts);
         }
         dealii::QGaussLobatto<dim> vol_GLL(grid_degree +1);
-        for (unsigned int igrid_node = 0; igrid_node< n_metric_dofs/dim; ++igrid_node) {
-            for (unsigned int idof = 0; idof< n_metric_dofs; ++idof) {
-                const real val = (dg->high_order_grid->volume_nodes[current_metric_dofs_indices[idof]]);
-                const unsigned int istate = fe_metric.system_to_component_index(idof).first; 
-                mapping_support_points[istate][igrid_node] += val * fe_metric.shape_value_component(idof,vol_GLL.point(igrid_node),istate); 
-            }
+        for (unsigned int idof = 0; idof< n_metric_dofs; ++idof) {
+            const real val = (dg->high_order_grid->volume_nodes[current_metric_dofs_indices[idof]]);
+            const unsigned int istate = fe_metric.system_to_component_index(idof).first; 
+            const unsigned int igrid_node = fe_metric.system_to_component_index(idof).second; 
+            mapping_support_points[istate][igrid_node] = val; 
+            //mapping_support_points[istate][igrid_node] += val * fe_metric.shape_value_component(idof,vol_GLL.point(igrid_node),istate); 
         }
+
+        PHiLiP::OPERATOR::metric_operators<double,dim,2*dim> metric_oper(dg->nstate,poly_degree,1,true);
+        metric_oper.build_volume_metric_operators(n_quad_pts, n_grid_nodes,
+                                                  mapping_support_points,
+                                                  mapping_basis);
+
         //interpolate solution
         current_dofs_indices.resize(n_dofs_cell);
         current_cell->get_dof_indices (current_dofs_indices);
-        for(int idim=0; idim<dim; idim++){
-            for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
-                phys_quad_pts[idim][iquad] = 0.0;
-                for(unsigned int jquad=0; jquad<n_metric_dofs/dim; jquad++){
-                    phys_quad_pts[idim][iquad] += dg->operators->mapping_shape_functions_vol_flux_nodes[grid_degree][poly_degree][iquad][jquad]
-                                                * mapping_support_points[idim][jquad];
-                }
-            }
-        }
+//        for(int idim=0; idim<dim; idim++){
+//            for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
+//                phys_quad_pts[idim][iquad] = 0.0;
+//                for(unsigned int jquad=0; jquad<n_metric_dofs/dim; jquad++){
+//                    phys_quad_pts[idim][iquad] += dg->operators->mapping_shape_functions_vol_flux_nodes[grid_degree][poly_degree][iquad][jquad]
+//                                                * mapping_support_points[idim][jquad];
+//                }
+//            }
+//        }
         std::vector<real> soln(n_quad_pts);
-        for(unsigned int idof=0; idof<n_dofs_cell; idof++){
-            dg->solution[current_dofs_indices[idof]]=0.0;
+        std::vector<real> exact(n_quad_pts);
+        for(int istate=0; istate<nstate; istate++){
             for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
-                double exact = 1.0;
+                exact[iquad] = 1.0;
                for (int idim=0; idim<dim; idim++){
                        // exact *= exp(-(phys_quad_pts[idim][iquad])*(phys_quad_pts[idim][iquad]));
-                        exact *= sin(2.0*pi*phys_quad_pts[idim][iquad]) * cos(4.0*pi*phys_quad_pts[idim][iquad]);
+                       // exact *= sin(2.0*pi*phys_quad_pts[idim][iquad]) * cos(4.0*pi*phys_quad_pts[idim][iquad]);
+                    exact[iquad] *= sin(2.0*pi*metric_oper.flux_nodes_vol[idim][iquad]) * cos(4.0*pi*metric_oper.flux_nodes_vol[idim][iquad]);
                 }
-                dg->solution[current_dofs_indices[idof]] += dg->operators->vol_projection_operator[poly_degree][idof][iquad] *exact; 
+                std::vector<double> sol(n_shape_fns);
+                vol_projection.matrix_vector_mult_1D(exact, sol,
+                                                              vol_projection.oneD_vol_operator);
+                for(unsigned int ishape=0; ishape<n_shape_fns; ishape++){
+                    dg->solution[current_dofs_indices[ishape+istate*n_shape_fns]] = sol[ishape];
+                }
             }   
         }
+        
+
         //end interpolated solution
     }
     dg->solution.update_ghost_values();
@@ -198,7 +221,7 @@ pcout<<" Grid Index"<<igrid<<std::endl;
     double linf_error = 0.0;
     int overintegrate = 4;
     dealii::QGauss<dim> quad_extra(poly_degree+1+overintegrate);
-    dealii::FEValues<dim,dim> fe_values_extra(*(dg->high_order_grid->mapping_fe_field), dg->operators->fe_collection_basis[poly_degree], quad_extra, 
+    dealii::FEValues<dim,dim> fe_values_extra(*(dg->high_order_grid->mapping_fe_field), dg->fe_collection[poly_degree], quad_extra, 
                         dealii::update_values | dealii::update_JxW_values | 
                         dealii::update_jacobians |  
                         dealii::update_quadrature_points | dealii::update_inverse_jacobians);

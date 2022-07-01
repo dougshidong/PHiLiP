@@ -372,6 +372,12 @@ public:
     const dealii::FE_Q<dim>     fe_q;
     /// Using system of polynomials to represent the x, y, and z directions.
     const dealii::FESystem<dim> fe_system;
+    /// Use oneD Lagrange polynomial to represent the spatial location.
+    const dealii::FE_Q<1>     oneD_fe_q;
+    /// One-dimensional fe system for each direction.
+    const dealii::FESystem<1> oneD_fe_system;
+    /// One Dimensional grid nodes in reference space.
+    const dealii::QGaussLobatto<1> oneD_grid_nodes;
 
 
     /// MappingFEField that will provide the polynomial-based grid.

@@ -46,7 +46,7 @@
 #include <deal.II/grid/manifold_lib.h>
 #include <deal.II/fe/mapping_q.h>
 #include "dg/dg_factory.hpp"
-#include "operators/operators_new.h"
+#include "operators/operators.h"
 //#include <GCL_test.h>
 
 const double TOLERANCE = 1E-6;
@@ -333,7 +333,7 @@ int main (int argc, char * argv[])
 
             const dealii::FE_DGQArbitraryNodes<1> fe_poly(flux_quad);
             const dealii::FESystem<1,1> fe_sys_poly(fe_poly, nstate);
-            PHiLiP::OPERATOR::flux_basis<dim,nstate,2*dim> flux_basis_quad(poly_degree, 1);
+            PHiLiP::OPERATOR::basis_functions_state<dim,nstate,2*dim> flux_basis_quad(poly_degree, 1);
             flux_basis_quad.build_1D_gradient_state_operator(fe_sys_poly, flux_quad);
             flux_basis_quad.build_1D_volume_state_operator(fe_sys_poly, flux_quad);
             for(int idim=0; idim<dim; idim++){

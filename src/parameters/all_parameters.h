@@ -109,6 +109,9 @@ public:
     /// Scaling of Symmetric Interior Penalty term to ensure coercivity.
     double sipg_penalty_factor;
 
+    /// Flag to use invariant curl form for metric cofactor operator.
+    bool use_invariant_curl_form;
+
     /// Number of state variables. Will depend on PDE
     int nstate;
 

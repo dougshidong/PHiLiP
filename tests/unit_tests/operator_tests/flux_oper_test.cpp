@@ -54,7 +54,7 @@
 
 #include "parameters/all_parameters.h"
 #include "parameters/parameters.h"
-#include "operators/operators_new.h"
+#include "operators/operators.h"
 #include "dg/dg.h"
 #include "dg/dg_factory.hpp"
 
@@ -126,7 +126,8 @@ int main (int argc, char * argv[])
         flux_stiffness.build_1D_gradient_state_operator(fe_system_flux, quad1D);
         flux_stiffness.build_1D_volume_state_operator(fe_system, quad1D);
 
-        PHiLiP::OPERATOR::flux_basis<dim,nstate,2*dim> flux_basis_quad(poly_degree, 1);
+       // PHiLiP::OPERATOR::basis_functions_state<dim,nstate,2*dim> flux_basis_quad(poly_degree, 1);
+        PHiLiP::OPERATOR::flux_basis_functions_state<dim,nstate,2*dim> flux_basis_quad(poly_degree, 1);
         flux_basis_quad.build_1D_volume_state_operator(fe_system_flux, quad1D);
 
         dealii::FullMatrix<real> vol_int_parts(n_dofs_1D);

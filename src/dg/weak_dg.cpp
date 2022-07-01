@@ -4265,37 +4265,94 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_auxiliary_residual ()
 }
 template <int dim, int nstate, typename real, typename MeshType>
 void DGWeak<dim,nstate,real,MeshType>::assemble_volume_term_auxiliary_equation(
-        const std::vector<dealii::types::global_dof_index> &/*current_dofs_indices*/,
-        const std::vector<dealii::types::global_dof_index> &/*metric_dof_indices*/,
-        const unsigned int /*poly_degree*/,
-        const unsigned int /*grid_degree*/,
-        std::vector<dealii::Tensor<1,dim,double>> &/*local_auxiliary_RHS*/)
+    const std::vector<dealii::types::global_dof_index> &/*current_dofs_indices*/,
+    const unsigned int                                 /*poly_degree*/,
+    OPERATOR::basis_functions<dim,2*dim>  &/*soln_basis*/,
+    OPERATOR::basis_functions<dim,2*dim>  &/*flux_basis*/,
+    OPERATOR::metric_operators<real,dim,2*dim>         &/*metric_oper*/,
+    std::vector<dealii::Tensor<1,dim,real>>          &/*local_auxiliary_RHS*/)
 {
     //Do Nothing.
 }
 template <int dim, int nstate, typename real, typename MeshType>
 void DGWeak<dim,nstate,real,MeshType>::assemble_boundary_term_auxiliary_equation(
-        const unsigned int /*poly_degree*/, const unsigned int /*grid_degree*/,
-        const unsigned int /*iface*/,
-        const unsigned int /*boundary_id*/,
-        const std::vector<dealii::types::global_dof_index> &/*current_dofs_indices*/,
-        const std::vector<dealii::types::global_dof_index> &/*metric_dof_indices*/,
-        std::vector<dealii::Tensor<1,dim,real>> &/*local_auxiliary_RHS*/)
+    const unsigned int                                 /*iface*/,
+    const dealii::types::global_dof_index              /*current_cell_index*/,
+    const unsigned int                                 /*poly_degree*/,
+    const unsigned int                                 /*boundary_id*/,
+    const std::vector<dealii::types::global_dof_index> &/*dofs_indices*/,
+    OPERATOR::basis_functions<dim,2*dim>  &/*soln_basis*/,
+    OPERATOR::metric_operators<real,dim,2*dim>         &/*metric_oper*/,
+    std::vector<dealii::Tensor<1,dim,real>>            &/*local_auxiliary_RHS*/)
 {
     //Do Nothing.
 }
 template <int dim, int nstate, typename real, typename MeshType>
 void DGWeak<dim,nstate,real,MeshType>::assemble_face_term_auxiliary(
-        const unsigned int /*iface*/, const unsigned int /*neighbor_iface*/,
-        const unsigned int /*poly_degree*/, const unsigned int /*grid_degree*/,
-        const std::vector<dealii::types::global_dof_index> &/*current_dofs_indices*/,
-        const std::vector<dealii::types::global_dof_index> &/*neighbor_dofs_indices*/,
-        const std::vector<dealii::types::global_dof_index> &/*metric_dof_indices_int*/,
-        const std::vector<dealii::types::global_dof_index> &/*metric_dof_indices_ext*/,
-        std::vector<dealii::Tensor<1,dim,real>> &/*local_auxiliary_RHS_int*/,
-        std::vector<dealii::Tensor<1,dim,real>> &/*local_auxiliary_RHS_ext*/)
+    const unsigned int                                 /*iface*/, 
+    const unsigned int                                 /*neighbor_iface*/,
+    const dealii::types::global_dof_index              /*current_cell_index*/,
+    const dealii::types::global_dof_index              /*neighbor_cell_index*/,
+    const unsigned int                                 /*poly_degree_int*/, 
+    const unsigned int                                 /*poly_degree_ext*/,
+    const std::vector<dealii::types::global_dof_index> &/*dof_indices_int*/,
+    const std::vector<dealii::types::global_dof_index> &/*dof_indices_ext*/,
+    OPERATOR::basis_functions<dim,2*dim> &/*soln_basis_int*/,
+    OPERATOR::basis_functions<dim,2*dim> &/*soln_basis_ext*/,
+    OPERATOR::metric_operators<real,dim,2*dim>             &/*metric_oper_int*/,
+    std::vector<dealii::Tensor<1,dim,real>>            &/*local_auxiliary_RHS_int*/,
+    std::vector<dealii::Tensor<1,dim,real>>            &/*local_auxiliary_RHS_ext*/)
 {
     //Do Nothing.
+}
+template <int dim, int nstate, typename real, typename MeshType>
+void DGWeak<dim,nstate,real,MeshType>::assemble_volume_term_strong(
+    const dealii::types::global_dof_index               /*current_cell_index*/,
+    const std::vector<dealii::types::global_dof_index> &/*cell_dofs_indices*/,
+    const unsigned int                                  /*poly_degree*/,
+    OPERATOR::basis_functions<dim,2*dim>  &/*soln_basis*/,
+    OPERATOR::basis_functions<dim,2*dim>  &/*flux_basis*/,
+    OPERATOR::metric_operators<real,dim,2*dim>         &/*metric_oper*/,
+    dealii::Vector<real>                               &/*local_rhs_int_cell*/)
+{
+    //Do Nothing
+}
+template <int dim, int nstate, typename real, typename MeshType>
+void DGWeak<dim,nstate,real,MeshType>::assemble_boundary_term_strong(
+    const unsigned int                                  /*iface*/, 
+    const dealii::types::global_dof_index               /*current_cell_index*/,
+    const unsigned int                                  /*boundary_id*/,
+    const unsigned int                                  /*poly_degree*/, 
+    const real                                          /*penalty*/,
+    const std::vector<dealii::types::global_dof_index> &/*dof_indices*/,
+    OPERATOR::basis_functions<dim,2*dim>  &/*soln_basis*/,
+    OPERATOR::basis_functions<dim,2*dim>  &/*flux_basis*/,
+    OPERATOR::metric_operators<real,dim,2*dim>         &/*metric_oper*/,
+    dealii::Vector<real>                               &/*local_rhs_cell*/)
+{
+    //Do Nothing
+}
+template <int dim, int nstate, typename real, typename MeshType>
+void DGWeak<dim,nstate,real,MeshType>::assemble_face_term_strong(
+    const unsigned int                                  /*iface*/, 
+    const unsigned int                                  /*neighbor_iface*/, 
+    const dealii::types::global_dof_index               /*current_cell_index*/,
+    const dealii::types::global_dof_index               /*neighbor_cell_index*/,
+    const unsigned int                                  /*poly_degree_int*/, 
+    const unsigned int                                  /*poly_degree_ext*/, 
+    const real                                          /*penalty*/,
+    const std::vector<dealii::types::global_dof_index> &/*dof_indices_int*/,
+    const std::vector<dealii::types::global_dof_index> &/*dof_indices_ext*/,
+    OPERATOR::basis_functions<dim,2*dim>  &/*soln_basis_int*/,
+    OPERATOR::basis_functions<dim,2*dim>  &/*soln_basis_ext*/,
+    OPERATOR::basis_functions<dim,2*dim>  &/*flux_basis_int*/,
+    OPERATOR::basis_functions<dim,2*dim>  &/*flux_basis_ext*/,
+    OPERATOR::metric_operators<real,dim,2*dim>         &/*metric_oper_int*/,
+    OPERATOR::metric_operators<real,dim,2*dim>         &/*metric_oper_ext*/,
+    dealii::Vector<real>                               &/*local_rhs_int_cell*/,
+    dealii::Vector<real>                               &/*local_rhs_ext_cell*/)
+{
+    //Do Nothing
 }
 
 

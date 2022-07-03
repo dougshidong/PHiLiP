@@ -230,7 +230,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_auxiliary_equati
     const unsigned int n_face_quad_pts = this->face_quadrature_collection[poly_degree].size();
     const unsigned int n_dofs          = this->fe_collection[poly_degree].dofs_per_cell;
     const unsigned int n_shape_fns     = n_dofs / nstate;
-    AssertDimension (n_dofs, dof_indices.size());
+    AssertDimension (n_dofs, dofs_indices.size());
 
     //Extract interior modal coefficients of solution
     std::array<std::vector<real>,nstate> soln_coeff;
@@ -646,12 +646,12 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_volume_term_strong(
             source = this->pde_physics_double->source_term (vol_flux_node, soln_state, this->current_time);
         }
 
-        std::array<dealii::Tensor<1,dim,real>,nstate> conv_ref_flux;
-        std::array<dealii::Tensor<1,dim,real>,nstate> diffusive_ref_flux;
         //Write the values in a way that we can use sum-factorization on.
         for(int istate=0; istate<nstate; istate++){
+            dealii::Tensor<1,dim,real> conv_ref_flux;
+            dealii::Tensor<1,dim,real> diffusive_ref_flux;
             //Trnasform to reference fluxes
-            if (this->all_parameters->use_split_form){
+            if (this->all_parameters->use_split_form || this->all_parameters->use_curvilinear_split_form){
                 //Do Nothing. 
                 //I am leaving this block here so the diligent reader
                 //remembers that, for entropy stable schemes, we construct
@@ -663,13 +663,13 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_volume_term_strong(
                 metric_oper.transform_physical_to_reference(
                     conv_phys_flux[istate],
                     metric_cofactor,
-                    conv_ref_flux[istate]);
+                    conv_ref_flux);
             }
             //transform the dissipative flux to reference space
             metric_oper.transform_physical_to_reference(
                 diffusive_phys_flux[istate],
                 metric_cofactor,
-                diffusive_ref_flux[istate]);
+                diffusive_ref_flux);
 
             //Write the data in a way that we can use sum-factorization on.
             //Since sum-factorization improves the speed for matrix-vector multiplications,
@@ -682,17 +682,18 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_volume_term_strong(
                     diffusive_ref_flux_at_q[istate][idim].resize(n_quad_pts);
                 }
                 //write data
-                if (this->all_parameters->use_split_form){
+                if (this->all_parameters->use_split_form || this->all_parameters->use_curvilinear_split_form){
                     for (unsigned int flux_basis=iquad; flux_basis<n_quad_pts; ++flux_basis) {
+                        //Note that the 2pt flux matrix is symmetric so we only computed upper triangular
                         conv_ref_2pt_flux_at_q[istate][idim][iquad][flux_basis] = conv_ref_flux_2pt[flux_basis][istate][idim];
                         conv_ref_2pt_flux_at_q[istate][idim][flux_basis][iquad] = conv_ref_flux_2pt[flux_basis][istate][idim];
                     }
                 }
                 else{
-                    conv_ref_flux_at_q[istate][idim][iquad] = conv_ref_flux[istate][idim];
+                    conv_ref_flux_at_q[istate][idim][iquad] = conv_ref_flux[idim];
                 }
 
-                diffusive_ref_flux_at_q[istate][idim][iquad] = diffusive_ref_flux[istate][idim];
+                diffusive_ref_flux_at_q[istate][idim][iquad] = diffusive_ref_flux[idim];
             }
             if(iquad == 0)
                 source_at_q[istate].resize(n_quad_pts);
@@ -712,7 +713,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_volume_term_strong(
         std::vector<real> conv_flux_divergence(n_quad_pts); 
         std::vector<real> diffusive_flux_divergence(n_quad_pts); 
 
-        if (this->all_parameters->use_split_form){
+        if (this->all_parameters->use_split_form || this->all_parameters->use_curvilinear_split_form){
             //2pt flux Hadamard Product, and then multiply by vector of ones scaled by 2.
             // Same as Eq. (32) in Chan, Jesse, and Lucas C. Wilcox. "On discretely entropy stable weight-adjusted discontinuous Galerkin methods: curvilinear meshes." Journal of Computational Physics 378 (2019): 366-393, but
             // where we use the reference gradient of the flux basis for the D operator and the reference two-point flux.
@@ -728,7 +729,8 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_volume_term_strong(
         flux_basis.divergence_matrix_vector_mult_1D(diffusive_ref_flux_at_q[istate], diffusive_flux_divergence,
                                                     flux_basis.oneD_vol_operator,
                                                     flux_basis.oneD_grad_operator);
-    
+
+
         // Strong form
         // The right-hand side sends all the term to the side of the source term
         // Therefore, 
@@ -749,11 +751,15 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_volume_term_strong(
 
         // Source
         if(this->all_parameters->manufactured_convergence_study_param.manufactured_solution_param.use_manufactured_source_term) {
-            soln_basis.inner_product_1D(source_at_q[istate], vol_quad_weights, rhs, soln_basis.oneD_vol_operator, true, -1.0);
+            std::vector<real> JxW(n_quad_pts);
+            for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
+                JxW[iquad] = vol_quad_weights[iquad] * metric_oper.det_Jac_vol[iquad];
+            }
+            soln_basis.inner_product_1D(source_at_q[istate], JxW, rhs, soln_basis.oneD_vol_operator, true, 1.0);
         }
 
         for(unsigned int ishape=0; ishape<n_shape_fns; ishape++){
-            local_rhs_int_cell(nstate*n_shape_fns + ishape) += rhs[ishape];
+            local_rhs_int_cell(istate*n_shape_fns + ishape) += rhs[ishape];
         }
 
     }
@@ -783,7 +789,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_strong(
     const unsigned int n_shape_fns = n_dofs / nstate; 
     const std::vector<double> &face_quad_weights = this->face_quadrature_collection[poly_degree].get_weights();
 
-    AssertDimension (n_dofs, dofs_indices.size());
+    AssertDimension (n_dofs, dof_indices.size());
 
     //Fetch the modal soln coefficients and the modal auxiliary soln coefficients
     //We immediately separate them by state as to be able to use sum-factorization
@@ -911,7 +917,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_strong(
                                             soln_basis.oneD_vol_operator,
                                             false, -1.0);//adding=false, scaled by factor=-1.0 bc subtract it
         for(unsigned int ishape=0; ishape<n_shape_fns; ishape++){
-            local_rhs_cell(nstate*n_shape_fns + ishape) += rhs[ishape];
+            local_rhs_cell(istate*n_shape_fns + ishape) += rhs[ishape];
         }
     }
 }
@@ -988,6 +994,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_strong(
             aux_soln_coeff_ext[istate][idim][ishape] = DGBase<dim,real,MeshType>::auxiliary_solution[idim](dof_indices_ext[idof]);
         }
     }
+
 
     //Interpolate the modal coefficients to the volume cubature nodes.
     std::array<std::vector<real>,nstate> soln_at_vol_q_int;
@@ -1148,12 +1155,12 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_strong(
         //Write the values in a way that we can use sum-factorization on.
         for(int istate=0; istate<nstate; istate++){
             //transform the conservative convective physical flux to reference space
-            metric_oper_int.transform_physical_to_reference(
+            metric_oper_ext.transform_physical_to_reference(
                 conv_phys_flux[istate],
                 metric_cofactor_vol_ext,
                 conv_ref_flux[istate]);
             //transform the dissipative flux to reference space
-            metric_oper_int.transform_physical_to_reference(
+            metric_oper_ext.transform_physical_to_reference(
                 diffusive_phys_flux[istate],
                 metric_cofactor_vol_ext,
                 diffusive_ref_flux[istate]);
@@ -1365,7 +1372,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_strong(
 
 
         for(unsigned int ishape=0; ishape<n_shape_fns_int; ishape++){
-            local_rhs_int_cell(nstate*n_shape_fns_int + ishape) += rhs_int[ishape];
+            local_rhs_int_cell(istate*n_shape_fns_int + ishape) += rhs_int[ishape];
         }
 
         //exterior RHS
@@ -1400,7 +1407,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_strong(
 
 
         for(unsigned int ishape=0; ishape<n_shape_fns_ext; ishape++){
-            local_rhs_ext_cell(nstate*n_shape_fns_ext + ishape) += rhs_ext[ishape];
+            local_rhs_ext_cell(istate*n_shape_fns_ext + ishape) += rhs_ext[ishape];
         }
 
     }

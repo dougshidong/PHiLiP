@@ -481,28 +481,43 @@ void SumFactorizedOperators<dim,n_faces>::inner_product(
     const unsigned int columns_x = basis_x.n();
     const unsigned int columns_y = basis_y.n();
     const unsigned int columns_z = basis_z.n();
+    //Note the assertion has columns to output and rows to input
+    //bc we transpose the basis inputted for the inner product
     if(dim == 1){
-        assert(rows_x    == output_vect.size());
-        assert(columns_x == input_vect.size());
+        assert(rows_x    == input_vect.size());
+        assert(columns_x == output_vect.size());
     }
     if(dim == 2){
-        assert(rows_x * rows_y       == output_vect.size());
-        assert(columns_x * columns_y == input_vect.size());
+        assert(rows_x * rows_y       == input_vect.size());
+        assert(columns_x * columns_y == output_vect.size());
     }
     if(dim == 3){
-        assert(rows_x * rows_y * rows_z          == output_vect.size());
-        assert(columns_x * columns_y * columns_z == input_vect.size());
+        assert(rows_x * rows_y * rows_z          == input_vect.size());
+        assert(columns_x * columns_y * columns_z == output_vect.size());
     }
-    assert(weight_vect.size() == input_size); 
+    assert(weight_vect.size() == input_vect.size()); 
 
     dealii::FullMatrix<double> basis_x_trans(columns_x, rows_x);
     dealii::FullMatrix<double> basis_y_trans(columns_y, rows_y);
     dealii::FullMatrix<double> basis_z_trans(columns_z, rows_z);
 
     //set as the transpose as inputed basis
-    basis_x_trans.Tadd(1.0, basis_x);
-    basis_y_trans.Tadd(1.0, basis_y);
-    basis_z_trans.Tadd(1.0, basis_z);
+    //found an issue with Tadd for arbitrary size so I manually do it here.
+    for(unsigned int row=0; row<rows_x; row++){
+        for(unsigned int col=0; col<columns_x; col++){
+            basis_x_trans[col][row] = basis_x[row][col];
+        }
+    }
+    for(unsigned int row=0; row<rows_y; row++){
+        for(unsigned int col=0; col<columns_y; col++){
+            basis_y_trans[col][row] = basis_y[row][col];
+        }
+    }
+    for(unsigned int row=0; row<rows_z; row++){
+        for(unsigned int col=0; col<columns_z; col++){
+            basis_z_trans[col][row] = basis_z[row][col];
+        }
+    }
 
     std::vector<double> new_input_vect(input_vect.size());
     for(unsigned int iquad=0; iquad<input_vect.size(); iquad++){
@@ -510,7 +525,6 @@ void SumFactorizedOperators<dim,n_faces>::inner_product(
     }
 
     this->matrix_vector_mult(new_input_vect, output_vect, basis_x_trans, basis_y_trans, basis_z_trans, adding, factor);
-
 }
 template <int dim, int n_faces>  
 void SumFactorizedOperators<dim,n_faces>::inner_product_1D(
@@ -531,13 +545,15 @@ void SumFactorizedOperators<dim,n_faces>::divergence_two_pt_flux_Hadamard_produc
     std::vector<double> &output_vect,
     const dealii::FullMatrix<double> &basis)
 {
-    dealii::FullMatrix<double> output_mat(basis.n());
+    assert(input_mat[0].m() == output_vect.size());
+
+    dealii::FullMatrix<double> output_mat(input_mat[0].m(), input_mat[0].n());
     for(int idim=0; idim<dim; idim++){
         two_pt_flux_Hadamard_product(input_mat[idim], output_mat, basis, idim);
     }
-    for(unsigned int row=0; row<basis.m(); row++){
+    for(unsigned int row=0; row<input_mat[0].m(); row++){
         output_vect[row] = 0.0;
-        for(unsigned int col=0; col<basis.n(); col++){
+        for(unsigned int col=0; col<input_mat[0].n(); col++){
             output_vect[row] += 2.0 * output_mat[row][col];//scaled by 2.0 for 2pt flux
         }
     }
@@ -551,7 +567,6 @@ void SumFactorizedOperators<dim,n_faces>::two_pt_flux_Hadamard_product(
     const int direction)
 {
     assert(input_mat.size() == output_mat.size());
-    assert(input_mat.size() == pow(basis.m(),dim));
     const unsigned int size = basis.m();
 
     if constexpr(dim == 1){
@@ -644,8 +659,8 @@ void SumFactorizedOperators<dim,n_faces>::Hadamard_product(
 {
     const unsigned int rows    = input_mat1.m();
     const unsigned int columns = input_mat1.n();
-    assert(rows    = input_mat2.m());
-    assert(columns = input_mat2.n());
+    assert(rows    == input_mat2.m());
+    assert(columns == input_mat2.n());
     
     for(unsigned int irow=0; irow<rows; irow++){
         for(unsigned int icol=0; icol<columns; icol++){
@@ -1216,7 +1231,6 @@ dealii::FullMatrix<double> local_Flux_Reconstruction_operator<dim,n_faces>::buil
     const int nstate,
     const unsigned int n_dofs)
 {
-    assert(n_dofs == pow(n_dofs_1D, dim));//n_dofs passed has to be the dim sized
     dealii::FullMatrix<double> dim_FR_operator(n_dofs);
     if(dim == 1){
         dim_FR_operator = this->oneD_vol_operator;
@@ -1719,7 +1733,7 @@ void metric_operators<real,dim,n_faces>::transform_reference_to_physical(
     for(int idim=0; idim<dim; idim++){
         phys[idim] = metric_cofactor[idim] * ref;
 //        phys[idim] = 0.0;
-//        for(int idim2; idim2<dim; idim2++){
+//        for(int idim2=0; idim2<dim; idim2++){
 //            phys[idim] += metric_cofactor[idim][idim2] 
 //                               * ref[idim2];
 //        }

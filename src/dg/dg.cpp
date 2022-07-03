@@ -602,7 +602,6 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
     const bool use_strong_form = (!this->all_parameters->use_weak_form 
            && this->all_parameters->ode_solver_param.ode_solver_type == Parameters::ODESolverParam::ODESolverEnum::explicit_solver) ? true : false;
 
-    //if poly degree changes reinit basis
     if(use_strong_form)//only for strong form explicit
     {
         if(poly_degree != soln_basis_int.current_degree){
@@ -622,8 +621,8 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
     }
 
     //Note that for strong form this just writes them to 0
-    const dealii::FEValues<dim,dim> &fe_values_volume = fe_values_collection_volume.get_present_fe_values();
-    const dealii::FEValues<dim,dim> &fe_values_lagrange = fe_values_collection_volume_lagrange.get_present_fe_values();
+//    const dealii::FEValues<dim,dim> &fe_values_volume = fe_values_collection_volume.get_present_fe_values();
+//    const dealii::FEValues<dim,dim> &fe_values_lagrange = fe_values_collection_volume_lagrange.get_present_fe_values();
 
     const unsigned int n_metric_dofs_cell = high_order_grid->fe_system.dofs_per_cell;
     std::vector<dealii::types::global_dof_index> current_metric_dofs_indices(n_metric_dofs_cell);
@@ -662,6 +661,7 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
     const bool store_vol_flux_nodes = all_parameters->manufactured_convergence_study_param.manufactured_solution_param.use_manufactured_source_term;
     //for boundary conditions not periodic we need surface flux nodes
     const bool store_surf_flux_nodes = !all_parameters->use_periodic_bc;
+
     OPERATOR::metric_operators<real,dim,2*dim> metric_oper_int(nstate, poly_degree, grid_degree,
                                                                store_vol_flux_nodes,
                                                                store_surf_flux_nodes);
@@ -671,7 +671,6 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
         mapping_support_points,
         mapping_basis,
         this->all_parameters->use_invariant_curl_form);
-
 
     //flag to terminate if strong form and implicit
     if(!this->all_parameters->use_weak_form 
@@ -703,6 +702,8 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
                 current_cell_rhs);
         }
         else {
+            const dealii::FEValues<dim,dim> &fe_values_volume = fe_values_collection_volume.get_present_fe_values();
+            const dealii::FEValues<dim,dim> &fe_values_lagrange = fe_values_collection_volume_lagrange.get_present_fe_values();
             //Note the explicit is called first to set the max_dt_cell to a non-zero value.
             assemble_volume_term_explicit (
                 current_cell,
@@ -795,7 +796,7 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
                 const dealii::types::global_dof_index neighbor_cell_index = neighbor_cell->active_cell_index();
 
                 const unsigned int poly_degree_ext = fe_index_neigh_cell;
-                const unsigned int grid_degree_ext = metric_neighbor_cell->active_fe_index();
+                const unsigned int grid_degree_ext = this->high_order_grid->fe_system.tensor_degree();
                 //Check if the poly degree or mapping changed order, in which case, then we re-compute the corresponding basis
                 OPERATOR::metric_operators<real,dim,2*dim> metric_oper_ext(nstate, poly_degree_ext, grid_degree_ext,
                                                                store_vol_flux_nodes,
@@ -873,9 +874,6 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
 
             } else {//at boundary and not 1D periodic
 
-        
-                const dealii::FEFaceValues<dim,dim> &fe_values_face_int = fe_values_collection_face_int.get_present_fe_values();
-
                 const real penalty = evaluate_penalty_scaling (current_cell, iface, fe_collection);
 
                 const unsigned int boundary_id = current_face->boundary_id();
@@ -900,14 +898,15 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
                             current_cell_rhs);
                     }
                     else {
-                       const dealii::Quadrature<dim-1> face_quadrature = face_quadrature_collection[i_quad];
-                       assemble_boundary_term_derivatives (
-                           current_cell,
-                           current_cell_index,
-                           iface, boundary_id, fe_values_face_int, penalty,
-                           current_fe_ref, face_quadrature,
-                           current_metric_dofs_indices, current_dofs_indices, current_cell_rhs,
-                           compute_dRdW, compute_dRdX, compute_d2R);
+                        const dealii::FEFaceValues<dim,dim> &fe_values_face_int = fe_values_collection_face_int.get_present_fe_values();
+                        const dealii::Quadrature<dim-1> face_quadrature = face_quadrature_collection[i_quad];
+                        assemble_boundary_term_derivatives (
+                            current_cell,
+                            current_cell_index,
+                            iface, boundary_id, fe_values_face_int, penalty,
+                            current_fe_ref, face_quadrature,
+                            current_metric_dofs_indices, current_dofs_indices, current_cell_rhs,
+                            compute_dRdW, compute_dRdX, compute_d2R);
                     }
                 }
 
@@ -920,7 +919,6 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
             const auto neighbor_cell = current_cell->periodic_neighbor(iface);
             //std::cout << "cell " << current_cell->index() << " at boundary" <<std::endl;
             //std::cout << "periodic neighbour on face " << iface << " is " << neighbor_cell->index() << std::endl;
-
 
             if (!current_cell->periodic_neighbor_is_coarser(iface) && current_cell_should_do_the_work(current_cell, neighbor_cell)) {
 
@@ -936,7 +934,6 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
                 if(!use_strong_form){
                     fe_values_collection_face_int.reinit (current_cell, iface, i_quad, i_mapp, i_fele);
                 }
-                const dealii::FEFaceValues<dim,dim> &fe_values_face_int = fe_values_collection_face_int.get_present_fe_values();
 
                 // Corresponding face of the neighbor.
                 const unsigned int neighbor_iface = current_cell->periodic_neighbor_of_periodic_neighbor(iface);
@@ -945,7 +942,6 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
                 if(!use_strong_form){
                     fe_values_collection_face_ext.reinit (neighbor_cell, neighbor_iface, i_quad_n, i_mapp_n, i_fele_n);
                 }
-                const dealii::FEFaceValues<dim,dim> &fe_values_face_ext = fe_values_collection_face_ext.get_present_fe_values();
 
                 const real penalty1 = evaluate_penalty_scaling (current_cell, iface, fe_collection);
                 const real penalty2 = evaluate_penalty_scaling (neighbor_cell, neighbor_iface, fe_collection);
@@ -955,31 +951,12 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
                 const auto metric_neighbor_cell = current_metric_cell->periodic_neighbor(iface);
                 metric_neighbor_cell->get_dof_indices(neighbor_metric_dofs_indices);
 
-                const dealii::Quadrature<dim-1> &used_face_quadrature = face_quadrature_collection[i_quad_n]; // or i_quad
-
-                std::pair<unsigned int, int> face_subface_int = std::make_pair(iface, -1);
-                std::pair<unsigned int, int> face_subface_ext = std::make_pair(neighbor_iface, -1);
-                const auto face_data_set_int = dealii::QProjector<dim>::DataSetDescriptor::face (
-                                                                                              dealii::ReferenceCell::get_hypercube(dim),
-                                                                                              iface,
-                                                                                              current_cell->face_orientation(iface),
-                                                                                              current_cell->face_flip(iface),
-                                                                                              current_cell->face_rotation(iface),
-                                                                                              used_face_quadrature.size());
-                const auto face_data_set_ext = dealii::QProjector<dim>::DataSetDescriptor::face (
-                                                                                              dealii::ReferenceCell::get_hypercube(dim),
-                                                                                              neighbor_iface,
-                                                                                              neighbor_cell->face_orientation(neighbor_iface),
-                                                                                              neighbor_cell->face_flip(neighbor_iface),
-                                                                                              neighbor_cell->face_rotation(neighbor_iface),
-                                                                                              used_face_quadrature.size());
-
-
                 const unsigned int poly_degree_ext = i_fele_n;
-                const unsigned int grid_degree_ext = metric_neighbor_cell->active_fe_index();    
+                const unsigned int grid_degree_ext = this->high_order_grid->fe_system.tensor_degree();    
+                //constructor doesn't build anything
                 OPERATOR::metric_operators<real,dim,2*dim> metric_oper_ext(nstate, poly_degree_ext, grid_degree_ext,
-                                                               store_vol_flux_nodes,
-                                                               store_surf_flux_nodes);
+                                                                           store_vol_flux_nodes,
+                                                                           store_surf_flux_nodes);
                 if(use_strong_form)//only for strong form explicit
                 {
                     if(poly_degree_ext != soln_basis_ext.current_degree){
@@ -1002,6 +979,7 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
                         const unsigned int ishape = fe_metric.system_to_component_index(idof).second; 
                         mapping_support_points_neigh[istate][ishape] = val;//write the mapping support points at grid nodes
                     }
+                    //build the metric operators for strong form
                     metric_oper_ext.build_volume_metric_operators(
                         volume_quadrature_collection[poly_degree_ext].size(), n_grid_nodes,
                         mapping_support_points_neigh,
@@ -1043,6 +1021,28 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
                             current_cell_rhs, neighbor_cell_rhs);
                     }
                     else {
+                        //only need to compute fevalues for the weak form.
+                        const dealii::FEFaceValues<dim,dim> &fe_values_face_int = fe_values_collection_face_int.get_present_fe_values();
+                        const dealii::FEFaceValues<dim,dim> &fe_values_face_ext = fe_values_collection_face_ext.get_present_fe_values();
+                        const dealii::Quadrature<dim-1> &used_face_quadrature = face_quadrature_collection[i_quad_n]; // or i_quad
+                         
+                        std::pair<unsigned int, int> face_subface_int = std::make_pair(iface, -1);
+                        std::pair<unsigned int, int> face_subface_ext = std::make_pair(neighbor_iface, -1);
+                        const auto face_data_set_int = dealii::QProjector<dim>::DataSetDescriptor::face (
+                                                                                                      dealii::ReferenceCell::get_hypercube(dim),
+                                                                                                      iface,
+                                                                                                      current_cell->face_orientation(iface),
+                                                                                                      current_cell->face_flip(iface),
+                                                                                                      current_cell->face_rotation(iface),
+                                                                                                      used_face_quadrature.size());
+                        const auto face_data_set_ext = dealii::QProjector<dim>::DataSetDescriptor::face (
+                                                                                                      dealii::ReferenceCell::get_hypercube(dim),
+                                                                                                      neighbor_iface,
+                                                                                                      neighbor_cell->face_orientation(neighbor_iface),
+                                                                                                      neighbor_cell->face_flip(neighbor_iface),
+                                                                                                      neighbor_cell->face_rotation(neighbor_iface),
+                                                                                                      used_face_quadrature.size());
+
                         assemble_face_term_derivatives (
                             current_cell,
                             current_cell_index,
@@ -1106,8 +1106,6 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
                 fe_values_collection_subface.reinit (neighbor_cell, neighbor_iface, neighbor_i_subface, i_quad_n, i_mapp_n, i_fele_n);
             }
 
-            const dealii::FEFaceValues<dim,dim> &fe_values_face_int = fe_values_collection_face_int.get_present_fe_values();
-            const dealii::FESubfaceValues<dim,dim> &fe_values_face_ext = fe_values_collection_subface.get_present_fe_values();
 
             const real penalty1 = evaluate_penalty_scaling (current_cell, iface, fe_collection);
             const real penalty2 = evaluate_penalty_scaling (neighbor_cell, neighbor_iface, fe_collection);
@@ -1117,30 +1115,8 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
             const auto metric_neighbor_cell = current_metric_cell->neighbor(iface);
             metric_neighbor_cell->get_dof_indices(neighbor_metric_dofs_indices);
 
-            const dealii::Quadrature<dim-1> &used_face_quadrature = face_quadrature_collection[i_quad_n]; // or i_quad
-            std::pair<unsigned int, int> face_subface_int = std::make_pair(iface, -1);
-            std::pair<unsigned int, int> face_subface_ext = std::make_pair(neighbor_iface, (int)neighbor_i_subface);
-
-            const auto face_data_set_int = dealii::QProjector<dim>::DataSetDescriptor::face( 
-                                                                                             dealii::ReferenceCell::get_hypercube(dim),
-                                                                                             iface,
-                                                                                             current_cell->face_orientation(iface),
-                                                                                             current_cell->face_flip(iface),
-                                                                                             current_cell->face_rotation(iface),
-                                                                                             used_face_quadrature.size());
-            const auto face_data_set_ext = dealii::QProjector<dim>::DataSetDescriptor::subface (
-                                                                                                dealii::ReferenceCell::get_hypercube(dim),
-                                                                                                neighbor_iface,
-                                                                                                neighbor_i_subface,
-                                                                                                neighbor_cell->face_orientation(neighbor_iface),
-                                                                                                neighbor_cell->face_flip(neighbor_iface),
-                                                                                                neighbor_cell->face_rotation(neighbor_iface),
-                                                                                                used_face_quadrature.size(),
-                                                                                                neighbor_cell->subface_case(neighbor_iface));
-
-
             const unsigned int poly_degree_ext = i_fele_n;
-            const unsigned int grid_degree_ext = metric_neighbor_cell->active_fe_index();
+            const unsigned int grid_degree_ext = this->high_order_grid->fe_system.tensor_degree();
             //Check if the poly degree or mapping changed order, in which case, then we re-compute the corresponding basis
             OPERATOR::metric_operators<real,dim,2*dim> metric_oper_ext(nstate, poly_degree_ext, grid_degree_ext,
                                                                store_vol_flux_nodes,
@@ -1207,6 +1183,28 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
                         current_cell_rhs, neighbor_cell_rhs);
                 }
                 else {
+                    const dealii::FEFaceValues<dim,dim> &fe_values_face_int = fe_values_collection_face_int.get_present_fe_values();
+                    const dealii::FESubfaceValues<dim,dim> &fe_values_face_ext = fe_values_collection_subface.get_present_fe_values();
+                    const dealii::Quadrature<dim-1> &used_face_quadrature = face_quadrature_collection[i_quad_n]; // or i_quad
+                    std::pair<unsigned int, int> face_subface_int = std::make_pair(iface, -1);
+                    std::pair<unsigned int, int> face_subface_ext = std::make_pair(neighbor_iface, (int)neighbor_i_subface);
+                     
+                    const auto face_data_set_int = dealii::QProjector<dim>::DataSetDescriptor::face( 
+                                                                                                     dealii::ReferenceCell::get_hypercube(dim),
+                                                                                                     iface,
+                                                                                                     current_cell->face_orientation(iface),
+                                                                                                     current_cell->face_flip(iface),
+                                                                                                     current_cell->face_rotation(iface),
+                                                                                                     used_face_quadrature.size());
+                    const auto face_data_set_ext = dealii::QProjector<dim>::DataSetDescriptor::subface (
+                                                                                                        dealii::ReferenceCell::get_hypercube(dim),
+                                                                                                        neighbor_iface,
+                                                                                                        neighbor_i_subface,
+                                                                                                        neighbor_cell->face_orientation(neighbor_iface),
+                                                                                                        neighbor_cell->face_flip(neighbor_iface),
+                                                                                                        neighbor_cell->face_rotation(neighbor_iface),
+                                                                                                        used_face_quadrature.size(),
+                                                                                                neighbor_cell->subface_case(neighbor_iface));
                     assemble_face_term_derivatives (
                         current_cell,
                         current_cell_index,
@@ -1248,15 +1246,11 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
             neighbor_dofs_indices.resize(n_dofs_neigh_cell);
             neighbor_cell->get_dof_indices (neighbor_dofs_indices);
 
-            fe_values_collection_face_int.reinit (current_cell, iface, i_quad, i_mapp, i_fele);
-            const dealii::FEFaceValues<dim,dim> &fe_values_face_int = fe_values_collection_face_int.get_present_fe_values();
-
             const int i_fele_n = neighbor_cell->active_fe_index(), i_quad_n = i_fele_n, i_mapp_n = 0;
             if(!use_strong_form){
+            fe_values_collection_face_int.reinit (current_cell, iface, i_quad, i_mapp, i_fele);
                 fe_values_collection_face_ext.reinit (neighbor_cell, neighbor_iface, i_quad_n, i_mapp_n, i_fele_n);
             }
-
-            const dealii::FEFaceValues<dim,dim> &fe_values_face_ext = fe_values_collection_face_ext.get_present_fe_values();
 
             const real penalty1 = evaluate_penalty_scaling (current_cell, iface, fe_collection);
             const real penalty2 = evaluate_penalty_scaling (neighbor_cell, neighbor_iface, fe_collection);
@@ -1266,26 +1260,8 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
             const auto metric_neighbor_cell = current_metric_cell->neighbor_or_periodic_neighbor(iface);
             metric_neighbor_cell->get_dof_indices(neighbor_metric_dofs_indices);
 
-            const dealii::Quadrature<dim-1> &used_face_quadrature = face_quadrature_collection[i_quad_n]; // or i_quad
-            std::pair<unsigned int, int> face_subface_int = std::make_pair(iface, -1);
-            std::pair<unsigned int, int> face_subface_ext = std::make_pair(neighbor_iface, -1);
-            const auto face_data_set_int = dealii::QProjector<dim>::DataSetDescriptor::face (
-                                                                                          dealii::ReferenceCell::get_hypercube(dim),
-                                                                                          iface,
-                                                                                          current_cell->face_orientation(iface),
-                                                                                          current_cell->face_flip(iface),
-                                                                                          current_cell->face_rotation(iface),
-                                                                                          used_face_quadrature.size());
-            const auto face_data_set_ext = dealii::QProjector<dim>::DataSetDescriptor::face (
-                                                                                          dealii::ReferenceCell::get_hypercube(dim),
-                                                                                          neighbor_iface,
-                                                                                          neighbor_cell->face_orientation(neighbor_iface),
-                                                                                          neighbor_cell->face_flip(neighbor_iface),
-                                                                                          neighbor_cell->face_rotation(neighbor_iface),
-                                                                                          used_face_quadrature.size());
-
             const unsigned int poly_degree_ext = i_fele_n;
-            const unsigned int grid_degree_ext = metric_neighbor_cell->active_fe_index();
+            const unsigned int grid_degree_ext = this->high_order_grid->fe_system.tensor_degree();
             //Check if the poly degree or mapping changed order, in which case, then we re-compute the corresponding basis
             OPERATOR::metric_operators<real,dim,2*dim> metric_oper_ext(nstate, poly_degree_ext, grid_degree_ext,
                                                                store_vol_flux_nodes,
@@ -1353,6 +1329,27 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
                         current_cell_rhs, neighbor_cell_rhs);
                 }
                 else {
+                    const dealii::FEFaceValues<dim,dim> &fe_values_face_int = fe_values_collection_face_int.get_present_fe_values();
+                    const dealii::FEFaceValues<dim,dim> &fe_values_face_ext = fe_values_collection_face_ext.get_present_fe_values();
+                     
+                    const dealii::Quadrature<dim-1> &used_face_quadrature = face_quadrature_collection[i_quad_n]; // or i_quad
+                    std::pair<unsigned int, int> face_subface_int = std::make_pair(iface, -1);
+                    std::pair<unsigned int, int> face_subface_ext = std::make_pair(neighbor_iface, -1);
+                    const auto face_data_set_int = dealii::QProjector<dim>::DataSetDescriptor::face (
+                                                                                                  dealii::ReferenceCell::get_hypercube(dim),
+                                                                                                  iface,
+                                                                                                  current_cell->face_orientation(iface),
+                                                                                                  current_cell->face_flip(iface),
+                                                                                                  current_cell->face_rotation(iface),
+                                                                                                  used_face_quadrature.size());
+                    const auto face_data_set_ext = dealii::QProjector<dim>::DataSetDescriptor::face (
+                                                                                                  dealii::ReferenceCell::get_hypercube(dim),
+                                                                                                  neighbor_iface,
+                                                                                                  neighbor_cell->face_orientation(neighbor_iface),
+                                                                                                  neighbor_cell->face_flip(neighbor_iface),
+                                                                                                  neighbor_cell->face_rotation(neighbor_iface),
+                                                                                                  used_face_quadrature.size());
+
                     assemble_face_term_derivatives (
                         current_cell,
                         current_cell_index,
@@ -1593,7 +1590,7 @@ template <int dim, typename real, typename MeshType>
 void DGBase<dim,real,MeshType>::reinit_operators_for_cell_residual_loop(
     const unsigned int poly_degree_int, 
     const unsigned int poly_degree_ext, 
-    const unsigned int grid_degree,
+    const unsigned int /*grid_degree*/,
     OPERATOR::basis_functions<dim,2*dim> &soln_basis_int,
     OPERATOR::basis_functions<dim,2*dim> &soln_basis_ext,
     OPERATOR::basis_functions<dim,2*dim> &flux_basis_int,
@@ -1617,8 +1614,8 @@ void DGBase<dim,real,MeshType>::reinit_operators_for_cell_residual_loop(
     flux_basis_ext.build_1D_surface_operator(oneD_fe_collection_flux[poly_degree_ext], oneD_face_quadrature);
 
     //We only need to compute the most recent mapping basis since we compute interior before looping faces
-    mapping_basis.build_1D_shape_functions_at_grid_nodes(high_order_grid->oneD_fe_system[grid_degree], high_order_grid->oneD_grid_nodes);
-    mapping_basis.build_1D_shape_functions_at_flux_nodes(high_order_grid->oneD_fe_system[grid_degree], oneD_quadrature_collection[poly_degree_ext], oneD_face_quadrature);
+    mapping_basis.build_1D_shape_functions_at_grid_nodes(high_order_grid->oneD_fe_system, high_order_grid->oneD_grid_nodes);
+    mapping_basis.build_1D_shape_functions_at_flux_nodes(high_order_grid->oneD_fe_system, oneD_quadrature_collection[poly_degree_ext], oneD_face_quadrature);
 
 }
 
@@ -2600,6 +2597,7 @@ void DGBase<dim,real,MeshType>::reinit_operators_for_mass_matrix(
     const bool use_auxiliary_eq = (this->all_parameters->pde_type == PDE_enum::convection_diffusion || all_parameters->pde_type == PDE_enum::diffusion || all_parameters->pde_type == PDE_enum::navier_stokes) ? true : false;//bool to simplify aux check
     //Note the fe_collection passed for metric mapping operators has to be COLLOCATED ON GRID NODES
     mapping_basis.build_1D_shape_functions_at_volume_flux_nodes(high_order_grid->oneD_fe_system, oneD_quadrature_collection[poly_degree]);
+
     if(grid_degree == 1){//then we can factor out det of Jac and rapidly simplify
         reference_mass_matrix.build_1D_volume_operator(oneD_fe_collection[poly_degree], oneD_quadrature_collection[poly_degree]);
     }
@@ -2684,8 +2682,6 @@ void DGBase<dim,real,MeshType>::evaluate_mass_matrices (bool do_inverse_mass_mat
 
     reinit_operators_for_mass_matrix(max_degree, max_grid_degree, mapping_basis, basis, reference_mass_matrix, reference_FR, reference_FR_aux, deriv_p);
 
-
-
     //Loop over cells and set the matrices.
     auto metric_cell = high_order_grid->dof_handler_grid.begin_active();
     for (auto cell = dof_handler.begin_active(); cell!=dof_handler.end(); ++cell, ++metric_cell) {
@@ -2693,7 +2689,7 @@ void DGBase<dim,real,MeshType>::evaluate_mass_matrices (bool do_inverse_mass_mat
         if (!cell->is_locally_owned()) continue;
 
         const unsigned int fe_index_curr_cell = cell->active_fe_index();
-        const unsigned int curr_grid_degree   = metric_cell->active_fe_index();
+        const unsigned int curr_grid_degree   = high_order_grid->fe_system.tensor_degree();
         //Check if need to recompute the 1D basis for the current degree (if different than previous cell)
         if(fe_index_curr_cell != mapping_basis.current_degree || 
            curr_grid_degree != mapping_basis.current_grid_degree){
@@ -2825,6 +2821,11 @@ void DGBase<dim,real,MeshType>::evaluate_local_metric_dependent_mass_matrix_and_
                                                     nstate,
                                                     n_dofs_cell));
                 }
+            }
+            if(do_inverse_mass_matrix){
+                local_mass_matrix_inv.invert(local_mass_matrix);
+                if(use_auxiliary_eq)
+                    local_mass_matrix_aux_inv.invert(local_mass_matrix_aux);
             }
         }
         //if not a linear grid, we have to build the dim matrices on the fly

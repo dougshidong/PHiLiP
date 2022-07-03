@@ -310,13 +310,11 @@ int main (int argc, char * argv[])
             for(int idim=0; idim<dim; idim++){
                 mapping_support_points[idim].resize(n_metric_dofs/dim);
             }
-            dealii::QGaussLobatto<dim> vol_GLL(grid_degree +1);
-            for (unsigned int igrid_node = 0; igrid_node< n_metric_dofs/dim; ++igrid_node) {
-                for (unsigned int idof = 0; idof< n_metric_dofs; ++idof) {
-                    const real val = (dg->high_order_grid->volume_nodes[current_metric_dofs_indices[idof]]);
-                    const unsigned int istate = fe_metric.system_to_component_index(idof).first; 
-                    mapping_support_points[istate][igrid_node] += val * fe_metric.shape_value_component(idof,vol_GLL.point(igrid_node),istate); 
-                }
+            for (unsigned int idof = 0; idof< n_metric_dofs; ++idof) {
+                const real val = (dg->high_order_grid->volume_nodes[current_metric_dofs_indices[idof]]);
+                const unsigned int istate = fe_metric.system_to_component_index(idof).first; 
+                const unsigned int igrid_node = fe_metric.system_to_component_index(idof).second; 
+                mapping_support_points[istate][igrid_node] = val; 
             }
 
 

@@ -45,7 +45,7 @@ void ODESolverBase<dim,real,MeshType>::initialize_steady_polynomial_ramping (con
         dg->solution.update_ghost_values();
 
         // Solve steady state problem.
-        steady_state();
+        steady_state(false);
     }
 }
 
@@ -82,7 +82,7 @@ void ODESolverBase<dim,real,MeshType>::write_ode_solver_steady_state_convergence
 }
 
 template <int dim, typename real, typename MeshType>
-int ODESolverBase<dim,real,MeshType>::steady_state ()
+int ODESolverBase<dim,real,MeshType>::steady_state (const bool output_solution_files)
 {
     try {
         valid_initial_conditions();
@@ -99,7 +99,10 @@ int ODESolverBase<dim,real,MeshType>::steady_state ()
     this->residual_norm_decrease = 1; // Always do at least 1 iteration
     update_norm = 1; // Always do at least 1 iteration
     this->current_iteration = 0;
-    if (ode_param.output_solution_every_x_steps >= 0) this->dg->output_results_vtk(this->current_iteration);
+    if ((ode_param.output_solution_every_x_steps >= 0) && output_solution_files)
+    {
+        this->dg->output_results_vtk(this->current_iteration);
+    }
 
     pcout << " Evaluating right-hand side and setting system_matrix to Jacobian before starting iterations... " << std::endl;
     this->dg->assemble_residual ();
@@ -175,7 +178,7 @@ int ODESolverBase<dim,real,MeshType>::steady_state ()
 
         this->dg->assemble_residual ();
 
-        if (ode_param.output_solution_every_x_steps > 0) {
+        if ((ode_param.output_solution_every_x_steps > 0) && output_solution_files) {
             const bool is_output_iteration = (this->current_iteration % ode_param.output_solution_every_x_steps == 0);
             if (is_output_iteration) {
                 const int file_number = this->current_iteration / ode_param.output_solution_every_x_steps;
@@ -188,7 +191,7 @@ int ODESolverBase<dim,real,MeshType>::steady_state ()
             && (meshadaptation->current_refinement_cycle < meshadaptation->mesh_adaptation_param->total_refinement_cycles))
         {
             meshadaptation->adapt_mesh();
-            allocate_ode_system ();
+            allocate_ode_system (); // why is this being done here?
         }
 
         old_residual_norm = this->residual_norm;

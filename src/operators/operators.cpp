@@ -877,8 +877,8 @@ dealii::FullMatrix<double> local_mass<dim,n_faces>::build_dim_mass_matrix(
     const std::vector<double> &quad_weights)
 
 {
-    const unsigned int n_shape_fns = basis.oneD_vol_operator.n();
-    assert(nstate*pow(n_shape_fns / nstate, dim) == n_dofs);
+    const unsigned int n_shape_fns = n_dofs / nstate;
+    assert(nstate*pow(basis.oneD_vol_operator.m() / nstate, dim) == n_dofs);
     dealii::FullMatrix<double> mass_matrix_dim(n_dofs);
     dealii::FullMatrix<double> basis_dim(n_dofs);
     basis_dim = basis.tensor_product_state(
@@ -2022,6 +2022,10 @@ void metric_operators<real,dim,n_faces>::build_determinant_metric_Jacobian(
 
     for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
         det_metric_Jac[iquad] = dealii::determinant(Jacobian_flux_nodes[iquad]);
+//        det_metric_Jac[iquad] = Jacobian_flux_nodes[iquad][0][0]
+//                                *Jacobian_flux_nodes[iquad][1][1]
+//                                -Jacobian_flux_nodes[iquad][0][1]
+//                                *Jacobian_flux_nodes[iquad][0][1];
     }
 }
 template <typename real, int dim, int n_faces>  

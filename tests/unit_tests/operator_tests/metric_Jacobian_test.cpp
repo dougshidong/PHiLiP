@@ -268,6 +268,8 @@ int main (int argc, char * argv[])
         grid->refine_global(3);
 
 //Warp the grid
+//        dealii::GridGenerator::hyper_cube(*grid, left, right, true);
+//	grid->refine_global(3);
 //IF WANT NON-WARPED GRID COMMENT UNTIL SAYS "NOT COMMENT"
     dealii::GridTools::transform (&warp<dim>, *grid);
 
@@ -278,8 +280,9 @@ int main (int argc, char * argv[])
     grid->set_all_manifold_ids(manifold_id);
     grid->set_manifold ( manifold_id, curv_manifold );
 //"END COMMENT" TO NOT WARP GRID
-    double max_GCL = 0.0;
-    for(unsigned int poly_degree = 2; poly_degree<5; poly_degree++){
+    bool det_Jac_neg = false;
+    bool det_match = true;
+    for(unsigned int poly_degree = 2; poly_degree<3; poly_degree++){
         unsigned int grid_degree = poly_degree;
 
         std::shared_ptr < PHiLiP::DGBase<dim, double> > dg = PHiLiP::DGFactory<dim,double>::create_discontinuous_galerkin(&all_parameters_new, poly_degree, poly_degree, grid_degree, grid);
@@ -309,6 +312,7 @@ int main (int argc, char * argv[])
             for(int idim=0; idim<dim; idim++){
                 mapping_support_points[idim].resize(n_metric_dofs/dim);
             }
+            
             dealii::QGaussLobatto<dim> vol_GLL(grid_degree +1);
             for (unsigned int igrid_node = 0; igrid_node< n_metric_dofs/dim; ++igrid_node) {
                 for (unsigned int idof = 0; idof< n_metric_dofs; ++idof) {
@@ -318,7 +322,6 @@ int main (int argc, char * argv[])
                 }
             }
 
-
             PHiLiP::OPERATOR::metric_operators<real,dim,2*dim> metric_oper(nstate,poly_degree,grid_degree);
             metric_oper.build_volume_metric_operators(
                 n_quad_pts, n_metric_dofs/dim,
@@ -326,47 +329,33 @@ int main (int argc, char * argv[])
                 mapping_basis,
                 false);
 
-            std::array<std::vector<real>,dim> GCL;
-            for(int idim=0; idim<dim; idim++){
-                GCL[idim].resize(n_quad_pts);
+            for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
+                if(metric_oper.det_Jac_vol[iquad]<0)
+                    det_Jac_neg = true;
+            }
+            dealii::FEValues<dim,dim> fe_values(*(dg->high_order_grid->mapping_fe_field), dg->fe_collection[poly_degree], dg->volume_quadrature_collection[poly_degree], dealii::update_JxW_values);
+            fe_values.reinit(current_cell);
+            const std::vector<double> &quad_weights = dg->volume_quadrature_collection[poly_degree].get_weights();
+            for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
+                if(std::abs(fe_values.JxW(iquad)/quad_weights[iquad] - metric_oper.det_Jac_vol[iquad])>1e-13)
+                    det_match = false;
             }
 
-            const dealii::FE_DGQArbitraryNodes<1> fe_poly(flux_quad);
-            const dealii::FESystem<1,1> fe_sys_poly(fe_poly, nstate);
-            PHiLiP::OPERATOR::basis_functions_state<dim,nstate,2*dim> flux_basis_quad(poly_degree, 1);
-            flux_basis_quad.build_1D_gradient_state_operator(fe_sys_poly, flux_quad);
-            flux_basis_quad.build_1D_volume_state_operator(fe_sys_poly, flux_quad);
-            for(int idim=0; idim<dim; idim++){
-                flux_basis_quad.divergence_matrix_vector_mult(metric_oper.metric_cofactor_vol[idim], GCL[idim],
-                                                              flux_basis_quad.oneD_vol_state_operator[0],
-                                                              flux_basis_quad.oneD_vol_state_operator[0],
-                                                              flux_basis_quad.oneD_vol_state_operator[0],
-                                                              flux_basis_quad.oneD_grad_state_operator[0],
-                                                              flux_basis_quad.oneD_grad_state_operator[0],
-                                                              flux_basis_quad.oneD_grad_state_operator[0]);
-            }
-
-            for(int idim=0; idim<dim; idim++){
-               // printf("\n GCL for derivative x_%d \n", idim);
-                for(unsigned int idof=0; idof<n_quad_pts; idof++){
-                //    printf(" %.16g \n", GCL[idim][idof]);
-                    if( std::abs(GCL[idim][idof]) > max_GCL){
-                        max_GCL = std::abs(GCL[idim][idof]);
-                    }
-                }
-            }
 
         }
 
     }//end poly degree loop
-    const double max_GCL_mpi= (dealii::Utilities::MPI::max(max_GCL, MPI_COMM_WORLD));
 
-    if( max_GCL_mpi > 1e-10){
-        pcout<<" Metrics Do NOT Satisfy GCL Condition\n"<<std::endl;
+    if( det_Jac_neg){
+        pcout<<" Metrics give negative determinant of Jacobian\n"<<std::endl;
+        return 1;
+    }
+    if(!det_match){
+        pcout<<"Determiannt of metric Jacobian not match dealii value"<<std::endl;
         return 1;
     }
     else{
-        pcout<<" Metrics Satisfy GCL Condition\n"<<std::endl;
+        pcout<<" Metrics Satisfy Determinant Jacobian Condition\n"<<std::endl;
         return 0;
     }
 }

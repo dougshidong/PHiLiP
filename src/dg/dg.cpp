@@ -651,11 +651,12 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
     for(int idim=0; idim<dim; idim++){
         mapping_support_points[idim].resize(n_grid_nodes);
     }
-    for (unsigned int idof = 0; idof< n_metric_dofs; ++idof) {
-        const real val = (this->high_order_grid->volume_nodes[current_metric_dofs_indices[idof]]);
-        const unsigned int istate = fe_metric.system_to_component_index(idof).first; 
-        const unsigned int ishape = fe_metric.system_to_component_index(idof).second; 
-        mapping_support_points[istate][ishape] = val;//write the mapping support points at grid nodes
+    for (unsigned int igrid_node = 0; igrid_node< n_metric_dofs/dim; ++igrid_node) {
+        for (unsigned int idof = 0; idof< n_metric_dofs; ++idof) {
+            const real val = (high_order_grid->volume_nodes[current_metric_dofs_indices[idof]]);
+            const unsigned int istate = fe_metric.system_to_component_index(idof).first; 
+            mapping_support_points[istate][igrid_node] += val * fe_metric.shape_value_component(idof,high_order_grid->dim_grid_nodes.point(igrid_node),istate); 
+        }
     }
     //if have source term need to store vol flux nodes.
     const bool store_vol_flux_nodes = all_parameters->manufactured_convergence_study_param.manufactured_solution_param.use_manufactured_source_term;
@@ -816,11 +817,12 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
                     for(int idim=0; idim<dim; idim++){
                         mapping_support_points_neigh[idim].resize(n_grid_nodes);
                     }
-                    for (unsigned int idof = 0; idof< n_metric_dofs; ++idof) {
-                        const real val = (this->high_order_grid->volume_nodes[neighbor_metric_dofs_indices[idof]]);
-                        const unsigned int istate = fe_metric.system_to_component_index(idof).first; 
-                        const unsigned int ishape = fe_metric.system_to_component_index(idof).second; 
-                        mapping_support_points_neigh[istate][ishape] = val;//write the mapping support points at grid nodes
+                    for (unsigned int igrid_node = 0; igrid_node< n_metric_dofs/dim; ++igrid_node) {
+                        for (unsigned int idof = 0; idof< n_metric_dofs; ++idof) {
+                            const real val = (high_order_grid->volume_nodes[neighbor_metric_dofs_indices[idof]]);
+                            const unsigned int istate = fe_metric.system_to_component_index(idof).first; 
+                            mapping_support_points_neigh[istate][igrid_node] += val * fe_metric.shape_value_component(idof,high_order_grid->dim_grid_nodes.point(igrid_node),istate); 
+                        }
                     }
                     //build the volume metric cofactor matrix and the determinant of the volume metric Jacobian
                     metric_oper_ext.build_volume_metric_operators(
@@ -973,11 +975,12 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
                     for(int idim=0; idim<dim; idim++){
                         mapping_support_points_neigh[idim].resize(n_grid_nodes);
                     }
-                    for (unsigned int idof = 0; idof< n_metric_dofs; ++idof) {
-                        const real val = (this->high_order_grid->volume_nodes[neighbor_metric_dofs_indices[idof]]);
-                        const unsigned int istate = fe_metric.system_to_component_index(idof).first; 
-                        const unsigned int ishape = fe_metric.system_to_component_index(idof).second; 
-                        mapping_support_points_neigh[istate][ishape] = val;//write the mapping support points at grid nodes
+                    for (unsigned int igrid_node = 0; igrid_node< n_metric_dofs/dim; ++igrid_node) {
+                        for (unsigned int idof = 0; idof< n_metric_dofs; ++idof) {
+                            const real val = (high_order_grid->volume_nodes[neighbor_metric_dofs_indices[idof]]);
+                            const unsigned int istate = fe_metric.system_to_component_index(idof).first; 
+                            mapping_support_points_neigh[istate][igrid_node] += val * fe_metric.shape_value_component(idof,high_order_grid->dim_grid_nodes.point(igrid_node),istate); 
+                        }
                     }
                     //build the metric operators for strong form
                     metric_oper_ext.build_volume_metric_operators(
@@ -1136,11 +1139,12 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
                 for(int idim=0; idim<dim; idim++){
                     mapping_support_points_neigh[idim].resize(n_grid_nodes);
                 }
-                for (unsigned int idof = 0; idof< n_metric_dofs; ++idof) {
-                    const real val = (this->high_order_grid->volume_nodes[neighbor_metric_dofs_indices[idof]]);
-                    const unsigned int istate = fe_metric.system_to_component_index(idof).first; 
-                    const unsigned int ishape = fe_metric.system_to_component_index(idof).second; 
-                    mapping_support_points_neigh[istate][ishape] = val;//write the mapping support points at grid nodes
+                for (unsigned int igrid_node = 0; igrid_node< n_metric_dofs/dim; ++igrid_node) {
+                    for (unsigned int idof = 0; idof< n_metric_dofs; ++idof) {
+                        const real val = (high_order_grid->volume_nodes[neighbor_metric_dofs_indices[idof]]);
+                        const unsigned int istate = fe_metric.system_to_component_index(idof).first; 
+                        mapping_support_points_neigh[istate][igrid_node] += val * fe_metric.shape_value_component(idof,high_order_grid->dim_grid_nodes.point(igrid_node),istate); 
+                    }
                 }
                 //build the volume metric cofactor matrix and the determinant of the volume metric Jacobian
                 metric_oper_ext.build_volume_metric_operators(
@@ -1281,11 +1285,12 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
                 for(int idim=0; idim<dim; idim++){
                     mapping_support_points_neigh[idim].resize(n_grid_nodes);
                 }
-                for (unsigned int idof = 0; idof< n_metric_dofs; ++idof) {
-                    const real val = (this->high_order_grid->volume_nodes[neighbor_metric_dofs_indices[idof]]);
-                    const unsigned int istate = fe_metric.system_to_component_index(idof).first; 
-                    const unsigned int ishape = fe_metric.system_to_component_index(idof).second; 
-                    mapping_support_points_neigh[istate][ishape] = val;//write the mapping support points at grid nodes
+                for (unsigned int igrid_node = 0; igrid_node< n_metric_dofs/dim; ++igrid_node) {
+                    for (unsigned int idof = 0; idof< n_metric_dofs; ++idof) {
+                        const real val = (high_order_grid->volume_nodes[neighbor_metric_dofs_indices[idof]]);
+                        const unsigned int istate = fe_metric.system_to_component_index(idof).first; 
+                        mapping_support_points_neigh[istate][igrid_node] += val * fe_metric.shape_value_component(idof,high_order_grid->dim_grid_nodes.point(igrid_node),istate); 
+                    }
                 }
                 //build the volume metric cofactor matrix and the determinant of the volume metric Jacobian
                 metric_oper_ext.build_volume_metric_operators(
@@ -2598,7 +2603,7 @@ void DGBase<dim,real,MeshType>::reinit_operators_for_mass_matrix(
     //Note the fe_collection passed for metric mapping operators has to be COLLOCATED ON GRID NODES
     mapping_basis.build_1D_shape_functions_at_volume_flux_nodes(high_order_grid->oneD_fe_system, oneD_quadrature_collection[poly_degree]);
 
-    if(grid_degree == 1){//then we can factor out det of Jac and rapidly simplify
+    if(grid_degree == 1 || this->all_parameters->use_weight_adjusted_mass){//then we can factor out det of Jac and rapidly simplify
         reference_mass_matrix.build_1D_volume_operator(oneD_fe_collection[poly_degree], oneD_quadrature_collection[poly_degree]);
     }
     if(grid_degree > 1){//then we need to construct dim matrices on the fly
@@ -2712,16 +2717,13 @@ void DGBase<dim,real,MeshType>::evaluate_mass_matrices (bool do_inverse_mass_mat
         for(int idim=0; idim<dim; idim++){
             mapping_support_points[idim].resize(n_metric_dofs/dim);
         }
-//        dealii::QGaussLobatto<dim> vol_GLL(curr_grid_degree +1);
-//        for (unsigned int igrid_node = 0; igrid_node< n_grid_nodes; ++igrid_node) {
+        for (unsigned int igrid_node = 0; igrid_node< n_metric_dofs/dim; ++igrid_node) {
             for (unsigned int idof = 0; idof< n_metric_dofs; ++idof) {
                 const real val = (high_order_grid->volume_nodes[metric_dof_indices[idof]]);
                 const unsigned int istate = fe_metric.system_to_component_index(idof).first; 
-                const unsigned int ishape = fe_metric.system_to_component_index(idof).second; 
-                mapping_support_points[istate][ishape] = val;
-//                mapping_support_points[istate][igrid_node] += val * fe_metric.shape_value_component(idof,vol_GLL.point(igrid_node),istate); 
+                mapping_support_points[istate][igrid_node] += val * fe_metric.shape_value_component(idof,high_order_grid->dim_grid_nodes.point(igrid_node),istate); 
             }
-//        }
+        }
 
         //get determinant of Jacobian
         OPERATOR::metric_operators<real, dim, 2*dim> metric_oper(nstate, fe_index_curr_cell, curr_grid_degree);
@@ -2877,22 +2879,25 @@ void DGBase<dim,real,MeshType>::evaluate_local_metric_dependent_mass_matrix_and_
         dealii::FullMatrix<real> local_weighted_mass_matrix(n_dofs_cell);
         dealii::FullMatrix<real> local_weighted_mass_matrix_aux(n_dofs_cell);
         local_weighted_mass_matrix = reference_mass_matrix.build_dim_mass_matrix(
-                                nstate,
-                                n_dofs_cell, n_quad_pts,
-                                basis,
-                                J_inv,
-                                quad_weights);
+                                                                nstate,
+                                                                n_dofs_cell, n_quad_pts,
+                                                                basis,
+                                                                J_inv,
+                                                                quad_weights);
+        if(use_auxiliary_eq)
+            local_weighted_mass_matrix_aux.add(1.0, local_weighted_mass_matrix);
+
         if(FR_Type != FR_enum::cDG){
             dealii::FullMatrix<real> local_FR(n_dofs_cell);
             local_FR = reference_FR.build_dim_Flux_Reconstruction_operator_directly(
-                            nstate,
-                            n_dofs_cell,
-                            deriv_p.oneD_vol_operator,
-                            local_mass_matrix);
+                                        nstate,
+                                        n_dofs_cell,
+                                        deriv_p.oneD_vol_operator,
+                                        local_weighted_mass_matrix);
             local_weighted_mass_matrix.add(1.0, local_FR);
         }
+        //auxiliary weighted not correct and not yet implemented properly...
         if(use_auxiliary_eq){
-            local_mass_matrix_aux.add(1.0, local_mass_matrix);
             if(FR_Type_Aux != FR_Aux_enum::kDG){
                 dealii::FullMatrix<real> local_FR_aux(n_dofs_cell);
                 local_FR_aux = reference_FR_aux.build_dim_Flux_Reconstruction_operator_directly(
@@ -2923,6 +2928,12 @@ void DGBase<dim,real,MeshType>::evaluate_local_metric_dependent_mass_matrix_and_
         ref_mass_dim_inv.mmult(temp, local_weighted_mass_matrix);
         temp.mmult(local_mass_matrix_inv, ref_mass_dim_inv);
         local_mass_matrix.invert(local_mass_matrix_inv);
+        if(use_auxiliary_eq){
+            dealii::FullMatrix<real> temp2(n_dofs_cell);
+            ref_mass_dim_inv.mmult(temp2, local_weighted_mass_matrix_aux);
+            temp2.mmult(local_mass_matrix_aux_inv, ref_mass_dim_inv);
+            local_mass_matrix_aux.invert(local_mass_matrix_aux_inv);
+        }
     }
 
     //set in global matrices

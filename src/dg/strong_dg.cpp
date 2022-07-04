@@ -514,7 +514,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_volume_term_strong(
     const unsigned int poly_degree,
     OPERATOR::basis_functions<dim,2*dim> &soln_basis,
     OPERATOR::basis_functions<dim,2*dim> &flux_basis,
-    OPERATOR::metric_operators<real,dim,2*dim>             &metric_oper,
+    OPERATOR::metric_operators<real,dim,2*dim> &metric_oper,
     dealii::Vector<real> &local_rhs_int_cell)
 {
     (void) current_cell_index;
@@ -1087,20 +1087,20 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_strong(
         std::array<dealii::Tensor<1,dim,real>,nstate> diffusive_phys_flux;
         diffusive_phys_flux = this->pde_physics_double->dissipative_flux(soln_state, aux_soln_state);
 
-        std::array<dealii::Tensor<1,dim,real>,nstate> conv_ref_flux;
-        std::array<dealii::Tensor<1,dim,real>,nstate> diffusive_ref_flux;
         //Write the values in a way that we can use sum-factorization on.
         for(int istate=0; istate<nstate; istate++){
+            dealii::Tensor<1,dim,real> conv_ref_flux;
+            dealii::Tensor<1,dim,real> diffusive_ref_flux;
             //transform the conservative convective physical flux to reference space
             metric_oper_int.transform_physical_to_reference(
                 conv_phys_flux[istate],
                 metric_cofactor_vol_int,
-                conv_ref_flux[istate]);
+                conv_ref_flux);
             //transform the dissipative flux to reference space
             metric_oper_int.transform_physical_to_reference(
                 diffusive_phys_flux[istate],
                 metric_cofactor_vol_int,
-                diffusive_ref_flux[istate]);
+                diffusive_ref_flux);
 
             //Write the data in a way that we can use sum-factorization on.
             //Since sum-factorization improves the speed for matrix-vector multiplications,
@@ -1112,15 +1112,15 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_strong(
                     diffusive_ref_flux_at_vol_q_int[istate][idim].resize(n_quad_pts_vol_int);
                 }
                 //write data
-                conv_ref_flux_at_vol_q_int[istate][idim][iquad] = conv_ref_flux[istate][idim];
+                conv_ref_flux_at_vol_q_int[istate][idim][iquad] = conv_ref_flux[idim];
 
-                diffusive_ref_flux_at_vol_q_int[istate][idim][iquad] = diffusive_ref_flux[istate][idim];
+                diffusive_ref_flux_at_vol_q_int[istate][idim][iquad] = diffusive_ref_flux[idim];
             }
         }
     }
 
     //Next we do exterior volume reference fluxes.
-    //Note we split the quad integrals because the interior and exteriori coul be of different poly basis
+    //Note we split the quad integrals because the interior and exterior could be of different poly basis
     std::array<dealii::Tensor<1,dim,std::vector<real>>,nstate> conv_ref_flux_at_vol_q_ext;
     std::array<dealii::Tensor<1,dim,std::vector<real>>,nstate> diffusive_ref_flux_at_vol_q_ext;
     for (unsigned int iquad=0; iquad<n_quad_pts_vol_ext; ++iquad) {
@@ -1150,20 +1150,20 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_strong(
         std::array<dealii::Tensor<1,dim,real>,nstate> diffusive_phys_flux;
         diffusive_phys_flux = this->pde_physics_double->dissipative_flux(soln_state, aux_soln_state);
 
-        std::array<dealii::Tensor<1,dim,real>,nstate> conv_ref_flux;
-        std::array<dealii::Tensor<1,dim,real>,nstate> diffusive_ref_flux;
         //Write the values in a way that we can use sum-factorization on.
         for(int istate=0; istate<nstate; istate++){
+            dealii::Tensor<1,dim,real> conv_ref_flux;
+            dealii::Tensor<1,dim,real> diffusive_ref_flux;
             //transform the conservative convective physical flux to reference space
             metric_oper_ext.transform_physical_to_reference(
                 conv_phys_flux[istate],
                 metric_cofactor_vol_ext,
-                conv_ref_flux[istate]);
+                conv_ref_flux);
             //transform the dissipative flux to reference space
             metric_oper_ext.transform_physical_to_reference(
                 diffusive_phys_flux[istate],
                 metric_cofactor_vol_ext,
-                diffusive_ref_flux[istate]);
+                diffusive_ref_flux);
 
             //Write the data in a way that we can use sum-factorization on.
             //Since sum-factorization improves the speed for matrix-vector multiplications,
@@ -1175,9 +1175,9 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_strong(
                     diffusive_ref_flux_at_vol_q_ext[istate][idim].resize(n_quad_pts_vol_ext);
                 }
                 //write data
-                conv_ref_flux_at_vol_q_ext[istate][idim][iquad] = conv_ref_flux[istate][idim];
+                conv_ref_flux_at_vol_q_ext[istate][idim][iquad] = conv_ref_flux[idim];
 
-                diffusive_ref_flux_at_vol_q_ext[istate][idim][iquad] = diffusive_ref_flux[istate][idim];
+                diffusive_ref_flux_at_vol_q_ext[istate][idim][iquad] = diffusive_ref_flux[idim];
             }
         }
     }
@@ -1190,7 +1190,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_strong(
     const dealii::Tensor<1,dim,double> unit_ref_normal_int = dealii::GeometryInfo<dim>::unit_normal_vector[iface];
     int dim_not_zero = 0;
     for(int idim=0; idim<dim; idim++){
-        if(unit_ref_normal_int[idim] != 0)//reference unit normal is 0 in all direction and 1 in outward normal direction
+        if(std::abs(unit_ref_normal_int[idim]) >= 1e-11)//reference unit normal is 0 in all direction and 1 in outward normal direction
             dim_not_zero = idim;//this is outward pointing normal reference direction
     }
 
@@ -1214,13 +1214,13 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_strong(
                                                      conv_int_vol_ref_flux_interp_to_face_dot_ref_normal[istate],
                                                      flux_basis_int.oneD_surf_operator,//the flux basis interpolates from the flux nodes
                                                      flux_basis_int.oneD_vol_operator,
-                                                     false, 1.0);//don't add to previous value, unit_normal int is 1.0
+                                                     false, unit_ref_normal_int[dim_not_zero]);//don't add to previous value, scale by unit_normal int
         flux_basis_ext.matrix_vector_mult_surface_1D(neighbor_iface, 
                                                      conv_ref_flux_at_vol_q_ext[istate][dim_not_zero],
                                                      conv_ext_vol_ref_flux_interp_to_face_dot_ref_normal[istate],
                                                      flux_basis_ext.oneD_surf_operator,
                                                      flux_basis_ext.oneD_vol_operator,
-                                                     false, -1.0);//don't add to previous value, unit_normal ext is -1.0
+                                                     false, -unit_ref_normal_int[dim_not_zero]);//don't add to previous value, unit_normal ext is -unit normal int
 
         //interpolate reference volume dissipative flux to the facet, and apply unit reference normal as scaled by 1.0 or -1.0
         flux_basis_int.matrix_vector_mult_surface_1D(iface, 
@@ -1228,13 +1228,13 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_strong(
                                                      diffusive_int_vol_ref_flux_interp_to_face_dot_ref_normal[istate],
                                                      flux_basis_int.oneD_surf_operator,
                                                      flux_basis_int.oneD_vol_operator,
-                                                     false, 1.0);
+                                                     false, unit_ref_normal_int[dim_not_zero]);
         flux_basis_ext.matrix_vector_mult_surface_1D(neighbor_iface, 
                                                      diffusive_ref_flux_at_vol_q_ext[istate][dim_not_zero],
                                                      diffusive_ext_vol_ref_flux_interp_to_face_dot_ref_normal[istate],
                                                      flux_basis_ext.oneD_surf_operator,
                                                      flux_basis_ext.oneD_vol_operator,
-                                                     false, -1.0);
+                                                     false, -unit_ref_normal_int[dim_not_zero]);
     }
 
     //Evaluate reference convective fluxes on the facet and numerical fluxes.
@@ -1263,7 +1263,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_strong(
         std::array<dealii::Tensor<1,dim,real>,nstate> aux_soln_state_ext;
         for(int istate=0; istate<nstate; istate++){
             soln_state_int[istate] = soln_at_surf_q_int[istate][iquad];
-            soln_state_ext[istate] = soln_at_surf_q_int[istate][iquad];
+            soln_state_ext[istate] = soln_at_surf_q_ext[istate][iquad];
             for(int idim=0; idim<dim; idim++){
                 aux_soln_state_int[istate][idim] = aux_soln_at_surf_q_int[istate][idim][iquad];
                 aux_soln_state_ext[istate][idim] = aux_soln_at_surf_q_int[istate][idim][iquad];
@@ -1273,7 +1273,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_strong(
         // Evaluate physical convective flux
         std::array<dealii::Tensor<1,dim,real>,nstate> conv_phys_flux_int;
         std::array<dealii::Tensor<1,dim,real>,nstate> conv_phys_flux_ext;
-        if(this->all_parameters->use_split_form){
+        if(this->all_parameters->use_split_form || this->all_parameters->use_curvilinear_split_form){
             conv_phys_flux_int = this->pde_physics_double->convective_flux (soln_state_int);
             conv_phys_flux_ext = this->pde_physics_double->convective_flux (soln_state_ext);
         }
@@ -1318,16 +1318,16 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_strong(
             conv_num_flux_dot_n[istate][iquad] = face_Jac_norm_scaled * conv_num_flux_dot_n_at_q[istate];
             diss_auxi_num_flux_dot_n[istate][iquad] = face_Jac_norm_scaled * diss_auxi_num_flux_dot_n_at_q[istate];
 
-            if(this->all_parameters->use_split_form){
+            if(this->all_parameters->use_split_form || this->all_parameters->use_curvilinear_split_form){
                 conv_ref_flux_at_surf_q_int_dot_ref_normal[istate][iquad] 
                     = this->pde_physics_double->convective_surface_numerical_split_flux(
-                                conv_int_vol_ref_flux_interp_to_face_dot_ref_normal[istate][iquad], 
-                                conv_phys_flux_int[istate] * unit_phys_normal_int * face_Jac_norm_scaled);
+                                conv_phys_flux_int[istate] * unit_phys_normal_int * face_Jac_norm_scaled,
+                                conv_int_vol_ref_flux_interp_to_face_dot_ref_normal[istate][iquad]);
 
                 conv_ref_flux_at_surf_q_ext_dot_ref_normal[istate][iquad] 
                     = this->pde_physics_double->convective_surface_numerical_split_flux(
-                                conv_ext_vol_ref_flux_interp_to_face_dot_ref_normal[istate][iquad], 
-                                conv_phys_flux_ext[istate] * (-unit_phys_normal_int) * face_Jac_norm_scaled);
+                                conv_phys_flux_ext[istate] * (-unit_phys_normal_int) * face_Jac_norm_scaled,
+                                conv_ext_vol_ref_flux_interp_to_face_dot_ref_normal[istate][iquad]);
             }
             else{
                 //conservative DG uses the reference flux interpolated from the volume to the facet

@@ -61,6 +61,7 @@ HighOrderGrid<dim,real,MeshType,VectorType,DoFHandlerType>::HighOrderGrid(
     , oneD_fe_q(max_degree)
     , oneD_fe_system(oneD_fe_q)
     , oneD_grid_nodes(max_degree+1)
+    , dim_grid_nodes(max_degree+1)
     , solution_transfer(dof_handler_grid)
     , mpi_communicator(MPI_COMM_WORLD)
     , pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(mpi_communicator)==0)

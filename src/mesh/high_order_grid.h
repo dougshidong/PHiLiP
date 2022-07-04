@@ -10,6 +10,7 @@
 #include <deal.II/fe/fe_q.h>
 #include <deal.II/fe/fe_system.h>
 #include <deal.II/fe/mapping_fe_field.h>
+#include <deal.II/fe/fe_dgq.h>
 
 #include <deal.II/dofs/dof_handler.h>
 
@@ -373,11 +374,13 @@ public:
     /// Using system of polynomials to represent the x, y, and z directions.
     const dealii::FESystem<dim> fe_system;
     /// Use oneD Lagrange polynomial to represent the spatial location.
-    const dealii::FE_Q<1>     oneD_fe_q;
+    const dealii::FE_DGQ<1>     oneD_fe_q;
     /// One-dimensional fe system for each direction.
     const dealii::FESystem<1> oneD_fe_system;
     /// One Dimensional grid nodes in reference space.
     const dealii::QGaussLobatto<1> oneD_grid_nodes;
+    /// Dim-Dimensional grid nodes in reference space.
+    const dealii::QGaussLobatto<dim> dim_grid_nodes;
 
 
     /// MappingFEField that will provide the polynomial-based grid.

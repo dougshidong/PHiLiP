@@ -12,6 +12,11 @@ namespace FlowSolver{
 template <int dim, int nstate>
 class GaussianBump : public FlowSolverCaseBase<dim, nstate>
 {
+#if PHILIP_DIM==1
+    using Triangulation = dealii::Triangulation<PHILIP_DIM>;
+#else
+    using Triangulation = dealii::parallel::distributed::Triangulation<PHILIP_DIM>;
+#endif
 public:
     /// Constructor
     GaussianBump(const Parameters::AllParameters *const parameters_input);

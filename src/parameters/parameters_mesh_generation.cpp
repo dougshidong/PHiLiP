@@ -74,6 +74,10 @@ void MeshGenerationParam::declare_parameters(dealii::ParameterHandler &prm)
                             dealii::Patterns::Double(0, dealii::Patterns::Double::max_double_value),
                             "Height of channel for gaussian bump meshes.");
 
+          prm.declare_entry("bump_height", "0.1", 
+                            dealii::Patterns::Double(0, dealii::Patterns::Double::max_double_value),
+                            "Height of the bump for gaussian bump meshes.");
+
           prm.declare_entry("number_of_subdivisions_in_x_direction", "0",
                             dealii::Patterns::Integer(0, dealii::Patterns::Integer::max_int_value),
                             "Number of subdivisions in the x direction for gaussian bump meshes.");
@@ -132,6 +136,7 @@ void MeshGenerationParam::parse_parameters(dealii::ParameterHandler &prm)
           number_of_subdivisions_in_z_direction = prm.get_integer("number_of_subdivisions_in_z_direction");
           channel_length = prm.get_double("channel_length");
           channel_height = prm.get_double("channel_height");
+          bump_height = prm.get_double("bump_height");
         }
         prm.leave_subsection();
     }

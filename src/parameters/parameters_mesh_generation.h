@@ -27,12 +27,15 @@ public:
     std::string input_mesh_filename;
     unsigned int grid_degree; ///< Polynomial degree of the grid
 
+    /// Hyper-cube based cases
     double grid_left_bound; ///< Left bound of domain for hyper_cube mesh based cases
     double grid_right_bound; ///< Right bound of domain for hyper_cube mesh based cases
     unsigned int number_of_grid_elements_per_dimension; ///< Number of grid elements per dimension for hyper_cube mesh based cases
 
+    /// Gaussian bump based cases
     double channel_height; ///< Height of channel for gaussian bump case
     double channel_length; ///< Width of channel for gaussian bump case
+    double bump_height; ///< Height of gaussian bump
     int number_of_subdivisions_in_x_direction; ///< Number of subdivisions in x direction for gaussian bump case
     int number_of_subdivisions_in_y_direction; ///< Number of subdivisions in y direction for gaussian bump case
     int number_of_subdivisions_in_z_direction; ///< Number of subdivisions in z direction for gaussian bump case

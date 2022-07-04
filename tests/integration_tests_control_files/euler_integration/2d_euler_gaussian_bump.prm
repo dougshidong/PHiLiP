@@ -80,6 +80,7 @@ subsection mesh_generation
   subsection gaussian_bump
     set channel_length = 3.0
     set channel_height = 0.8
+    set bump_height = 0.0625
   end
 end
 

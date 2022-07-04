@@ -810,26 +810,28 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
                         mapping_basis.current_degree     = poly_degree_ext; 
                         reinit_operators_for_cell_residual_loop(poly_degree, poly_degree_ext, grid_degree_ext, soln_basis_int, soln_basis_ext, flux_basis_int, flux_basis_ext, mapping_basis);
                     }
-                    //get neighbor metric operator
-                    //Rewrite the high_order_grid->volume_nodes in a way we can use sum-factorization on.
-                    //That is, splitting up the vector by the dimension.
-                    std::array<std::vector<real>,dim> mapping_support_points_neigh;
-                    for(int idim=0; idim<dim; idim++){
-                        mapping_support_points_neigh[idim].resize(n_grid_nodes);
-                    }
-                    for (unsigned int igrid_node = 0; igrid_node< n_metric_dofs/dim; ++igrid_node) {
-                        for (unsigned int idof = 0; idof< n_metric_dofs; ++idof) {
-                            const real val = (high_order_grid->volume_nodes[neighbor_metric_dofs_indices[idof]]);
-                            const unsigned int istate = fe_metric.system_to_component_index(idof).first; 
-                            mapping_support_points_neigh[istate][igrid_node] += val * fe_metric.shape_value_component(idof,high_order_grid->dim_grid_nodes.point(igrid_node),istate); 
+                    if(!compute_Auxiliary_RHS){//only for primary equations
+                        //get neighbor metric operator
+                        //Rewrite the high_order_grid->volume_nodes in a way we can use sum-factorization on.
+                        //That is, splitting up the vector by the dimension.
+                        std::array<std::vector<real>,dim> mapping_support_points_neigh;
+                        for(int idim=0; idim<dim; idim++){
+                            mapping_support_points_neigh[idim].resize(n_grid_nodes);
                         }
+                        for (unsigned int igrid_node = 0; igrid_node< n_metric_dofs/dim; ++igrid_node) {
+                            for (unsigned int idof = 0; idof< n_metric_dofs; ++idof) {
+                                const real val = (high_order_grid->volume_nodes[neighbor_metric_dofs_indices[idof]]);
+                                const unsigned int istate = fe_metric.system_to_component_index(idof).first; 
+                                mapping_support_points_neigh[istate][igrid_node] += val * fe_metric.shape_value_component(idof,high_order_grid->dim_grid_nodes.point(igrid_node),istate); 
+                            }
+                        }
+                        //build the volume metric cofactor matrix and the determinant of the volume metric Jacobian
+                        metric_oper_ext.build_volume_metric_operators(
+                            volume_quadrature_collection[poly_degree_ext].size(), n_grid_nodes,
+                            mapping_support_points_neigh,
+                            mapping_basis,
+                            this->all_parameters->use_invariant_curl_form);
                     }
-                    //build the volume metric cofactor matrix and the determinant of the volume metric Jacobian
-                    metric_oper_ext.build_volume_metric_operators(
-                        volume_quadrature_collection[poly_degree_ext].size(), n_grid_nodes,
-                        mapping_support_points_neigh,
-                        mapping_basis,
-                        this->all_parameters->use_invariant_curl_form);
                 }
 
                     
@@ -968,26 +970,28 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
                         reinit_operators_for_cell_residual_loop(poly_degree, poly_degree_ext, grid_degree_ext, soln_basis_int, soln_basis_ext, flux_basis_int, flux_basis_ext, mapping_basis);
                     }
 
-                    //get neighbor metric operator
-                    //Rewrite the high_order_grid->volume_nodes in a way we can use sum-factorization on.
-                    //That is, splitting up the vector by the dimension.
-                    std::array<std::vector<real>,dim> mapping_support_points_neigh;
-                    for(int idim=0; idim<dim; idim++){
-                        mapping_support_points_neigh[idim].resize(n_grid_nodes);
-                    }
-                    for (unsigned int igrid_node = 0; igrid_node< n_metric_dofs/dim; ++igrid_node) {
-                        for (unsigned int idof = 0; idof< n_metric_dofs; ++idof) {
-                            const real val = (high_order_grid->volume_nodes[neighbor_metric_dofs_indices[idof]]);
-                            const unsigned int istate = fe_metric.system_to_component_index(idof).first; 
-                            mapping_support_points_neigh[istate][igrid_node] += val * fe_metric.shape_value_component(idof,high_order_grid->dim_grid_nodes.point(igrid_node),istate); 
+                    if(!compute_Auxiliary_RHS){//only for primary equations
+                        //get neighbor metric operator
+                        //Rewrite the high_order_grid->volume_nodes in a way we can use sum-factorization on.
+                        //That is, splitting up the vector by the dimension.
+                        std::array<std::vector<real>,dim> mapping_support_points_neigh;
+                        for(int idim=0; idim<dim; idim++){
+                            mapping_support_points_neigh[idim].resize(n_grid_nodes);
                         }
+                        for (unsigned int igrid_node = 0; igrid_node< n_metric_dofs/dim; ++igrid_node) {
+                            for (unsigned int idof = 0; idof< n_metric_dofs; ++idof) {
+                                const real val = (high_order_grid->volume_nodes[neighbor_metric_dofs_indices[idof]]);
+                                const unsigned int istate = fe_metric.system_to_component_index(idof).first; 
+                                mapping_support_points_neigh[istate][igrid_node] += val * fe_metric.shape_value_component(idof,high_order_grid->dim_grid_nodes.point(igrid_node),istate); 
+                            }
+                        }
+                        //build the metric operators for strong form
+                        metric_oper_ext.build_volume_metric_operators(
+                            volume_quadrature_collection[poly_degree_ext].size(), n_grid_nodes,
+                            mapping_support_points_neigh,
+                            mapping_basis,
+                            this->all_parameters->use_invariant_curl_form);
                     }
-                    //build the metric operators for strong form
-                    metric_oper_ext.build_volume_metric_operators(
-                        volume_quadrature_collection[poly_degree_ext].size(), n_grid_nodes,
-                        mapping_support_points_neigh,
-                        mapping_basis,
-                        this->all_parameters->use_invariant_curl_form);
                 }
 
 
@@ -1132,26 +1136,28 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
                     mapping_basis.current_degree     = poly_degree_ext; 
                     reinit_operators_for_cell_residual_loop(poly_degree, poly_degree_ext, grid_degree_ext, soln_basis_int, soln_basis_ext, flux_basis_int, flux_basis_ext, mapping_basis);
                 }
-                //get neighbor metric operator
-                //Rewrite the high_order_grid->volume_nodes in a way we can use sum-factorization on.
-                //That is, splitting up the vector by the dimension.
-                std::array<std::vector<real>,dim> mapping_support_points_neigh;
-                for(int idim=0; idim<dim; idim++){
-                    mapping_support_points_neigh[idim].resize(n_grid_nodes);
-                }
-                for (unsigned int igrid_node = 0; igrid_node< n_metric_dofs/dim; ++igrid_node) {
-                    for (unsigned int idof = 0; idof< n_metric_dofs; ++idof) {
-                        const real val = (high_order_grid->volume_nodes[neighbor_metric_dofs_indices[idof]]);
-                        const unsigned int istate = fe_metric.system_to_component_index(idof).first; 
-                        mapping_support_points_neigh[istate][igrid_node] += val * fe_metric.shape_value_component(idof,high_order_grid->dim_grid_nodes.point(igrid_node),istate); 
+                if(!compute_Auxiliary_RHS){//only for primary equations
+                    //get neighbor metric operator
+                    //Rewrite the high_order_grid->volume_nodes in a way we can use sum-factorization on.
+                    //That is, splitting up the vector by the dimension.
+                    std::array<std::vector<real>,dim> mapping_support_points_neigh;
+                    for(int idim=0; idim<dim; idim++){
+                        mapping_support_points_neigh[idim].resize(n_grid_nodes);
                     }
+                    for (unsigned int igrid_node = 0; igrid_node< n_metric_dofs/dim; ++igrid_node) {
+                        for (unsigned int idof = 0; idof< n_metric_dofs; ++idof) {
+                            const real val = (high_order_grid->volume_nodes[neighbor_metric_dofs_indices[idof]]);
+                            const unsigned int istate = fe_metric.system_to_component_index(idof).first; 
+                            mapping_support_points_neigh[istate][igrid_node] += val * fe_metric.shape_value_component(idof,high_order_grid->dim_grid_nodes.point(igrid_node),istate); 
+                        }
+                    }
+                    //build the volume metric cofactor matrix and the determinant of the volume metric Jacobian
+                    metric_oper_ext.build_volume_metric_operators(
+                        volume_quadrature_collection[poly_degree_ext].size(), n_grid_nodes,
+                        mapping_support_points_neigh,
+                        mapping_basis,
+                        this->all_parameters->use_invariant_curl_form);
                 }
-                //build the volume metric cofactor matrix and the determinant of the volume metric Jacobian
-                metric_oper_ext.build_volume_metric_operators(
-                    volume_quadrature_collection[poly_degree_ext].size(), n_grid_nodes,
-                    mapping_support_points_neigh,
-                    mapping_basis,
-                    this->all_parameters->use_invariant_curl_form);
             }
 
             if(compute_Auxiliary_RHS){
@@ -1278,26 +1284,28 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
                     mapping_basis.current_degree     = poly_degree_ext; 
                     reinit_operators_for_cell_residual_loop(poly_degree, poly_degree_ext, grid_degree_ext, soln_basis_int, soln_basis_ext, flux_basis_int, flux_basis_ext, mapping_basis);
                 }
-                //get neighbor metric operator
-                //Rewrite the high_order_grid->volume_nodes in a way we can use sum-factorization on.
-                //That is, splitting up the vector by the dimension.
-                std::array<std::vector<real>,dim> mapping_support_points_neigh;
-                for(int idim=0; idim<dim; idim++){
-                    mapping_support_points_neigh[idim].resize(n_grid_nodes);
-                }
-                for (unsigned int igrid_node = 0; igrid_node< n_metric_dofs/dim; ++igrid_node) {
-                    for (unsigned int idof = 0; idof< n_metric_dofs; ++idof) {
-                        const real val = (high_order_grid->volume_nodes[neighbor_metric_dofs_indices[idof]]);
-                        const unsigned int istate = fe_metric.system_to_component_index(idof).first; 
-                        mapping_support_points_neigh[istate][igrid_node] += val * fe_metric.shape_value_component(idof,high_order_grid->dim_grid_nodes.point(igrid_node),istate); 
+                if(!compute_Auxiliary_RHS){//only for primary equations
+                    //get neighbor metric operator
+                    //Rewrite the high_order_grid->volume_nodes in a way we can use sum-factorization on.
+                    //That is, splitting up the vector by the dimension.
+                    std::array<std::vector<real>,dim> mapping_support_points_neigh;
+                    for(int idim=0; idim<dim; idim++){
+                        mapping_support_points_neigh[idim].resize(n_grid_nodes);
                     }
+                    for (unsigned int igrid_node = 0; igrid_node< n_metric_dofs/dim; ++igrid_node) {
+                        for (unsigned int idof = 0; idof< n_metric_dofs; ++idof) {
+                            const real val = (high_order_grid->volume_nodes[neighbor_metric_dofs_indices[idof]]);
+                            const unsigned int istate = fe_metric.system_to_component_index(idof).first; 
+                            mapping_support_points_neigh[istate][igrid_node] += val * fe_metric.shape_value_component(idof,high_order_grid->dim_grid_nodes.point(igrid_node),istate); 
+                        }
+                    }
+                    //build the volume metric cofactor matrix and the determinant of the volume metric Jacobian
+                    metric_oper_ext.build_volume_metric_operators(
+                        volume_quadrature_collection[poly_degree_ext].size(), n_grid_nodes,
+                        mapping_support_points_neigh,
+                        mapping_basis,
+                        this->all_parameters->use_invariant_curl_form);
                 }
-                //build the volume metric cofactor matrix and the determinant of the volume metric Jacobian
-                metric_oper_ext.build_volume_metric_operators(
-                    volume_quadrature_collection[poly_degree_ext].size(), n_grid_nodes,
-                    mapping_support_points_neigh,
-                    mapping_basis,
-                    this->all_parameters->use_invariant_curl_form);
             }
 
 

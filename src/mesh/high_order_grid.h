@@ -374,6 +374,14 @@ public:
     /// Using system of polynomials to represent the x, y, and z directions.
     const dealii::FESystem<dim> fe_system;
     /// Use oneD Lagrange polynomial to represent the spatial location.
+    /** We use FE_DGQ instead of FE_Q for this because DGQ orders in a tensor-product way,
+    * with x running fastest, then y, and z the slowest; whereas FE_Q order by the vertices
+    * first, then proceeds to do the edges, then volume. We need it in a tensor product
+    * indexing in order to use sum-factorization on the mapping support nodes.<br>
+    * Lastly, since it is collocated on the 1D Gauss-Legendre-Lobatto quadrature set,
+    * the nodal location recovers the FE_Q nodeal set, but indexed in a way we can use
+    * sum-factorization on.
+    */
     const dealii::FE_DGQ<1>     oneD_fe_q;
     /// One-dimensional fe system for each direction.
     const dealii::FESystem<1> oneD_fe_system;

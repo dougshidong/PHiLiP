@@ -144,7 +144,9 @@ pcout<<" Grid Index"<<igrid<<std::endl;
     auto metric_cell = dg->high_order_grid->dof_handler_grid.begin_active();
 
     PHiLiP::OPERATOR::mapping_shape_functions<dim,2*dim> mapping_basis(dg->nstate, poly_degree, 1);
-    mapping_basis.build_1D_shape_functions_at_flux_nodes(dg->high_order_grid->oneD_fe_system[1], dg->oneD_quadrature_collection[poly_degree], dg->oneD_face_quadrature);
+    mapping_basis.build_1D_shape_functions_at_grid_nodes(dg->high_order_grid->oneD_fe_system, dg->high_order_grid->oneD_grid_nodes);
+    mapping_basis.build_1D_shape_functions_at_flux_nodes(dg->high_order_grid->oneD_fe_system, dg->oneD_quadrature_collection[poly_degree], dg->oneD_face_quadrature);
+
     OPERATOR::vol_projection_operator<dim,2*dim> vol_projection(dg->nstate, dg->max_degree, dg->max_grid_degree);
     vol_projection.build_1D_volume_operator(dg->oneD_fe_collection[dg->max_degree], dg->oneD_quadrature_collection[dg->max_degree]);
 
@@ -154,18 +156,16 @@ pcout<<" Grid Index"<<igrid<<std::endl;
         std::vector<dealii::types::global_dof_index> current_metric_dofs_indices(n_metric_dofs);
         metric_cell->get_dof_indices (current_metric_dofs_indices);
         std::array<std::vector<real>,dim> mapping_support_points;
-        std::vector<std::vector<real>> phys_quad_pts(dim);
         for(int idim=0; idim<dim; idim++){
             mapping_support_points[idim].resize(n_metric_dofs/dim);
-            phys_quad_pts[idim].resize(n_quad_pts);
         }
         dealii::QGaussLobatto<dim> vol_GLL(grid_degree +1);
-        for (unsigned int idof = 0; idof< n_metric_dofs; ++idof) {
-            const real val = (dg->high_order_grid->volume_nodes[current_metric_dofs_indices[idof]]);
-            const unsigned int istate = fe_metric.system_to_component_index(idof).first; 
-            const unsigned int igrid_node = fe_metric.system_to_component_index(idof).second; 
-            mapping_support_points[istate][igrid_node] = val; 
-            //mapping_support_points[istate][igrid_node] += val * fe_metric.shape_value_component(idof,vol_GLL.point(igrid_node),istate); 
+        for (unsigned int igrid_node = 0; igrid_node< n_metric_dofs/dim; ++igrid_node) {
+            for (unsigned int idof = 0; idof< n_metric_dofs; ++idof) {
+                const real val = (dg->high_order_grid->volume_nodes[current_metric_dofs_indices[idof]]);
+                const unsigned int istate = fe_metric.system_to_component_index(idof).first; 
+                mapping_support_points[istate][igrid_node] += val * fe_metric.shape_value_component(idof,vol_GLL.point(igrid_node),istate); 
+            }
         }
 
         PHiLiP::OPERATOR::metric_operators<double,dim,2*dim> metric_oper(dg->nstate,poly_degree,1,true);
@@ -230,6 +230,7 @@ pcout<<" Grid Index"<<igrid<<std::endl;
     dealii::Vector<real> soln_at_q(n_quad_pts_extra);
     for (auto current_cell = dg->dof_handler.begin_active(); current_cell!=dg->dof_handler.end(); ++current_cell) {
         if (!current_cell->is_locally_owned()) continue;
+
         fe_values_extra.reinit(current_cell);
         dofs_indices.resize(fe_values_extra.dofs_per_cell);
         current_cell->get_dof_indices (dofs_indices);
@@ -241,6 +242,7 @@ pcout<<" Grid Index"<<igrid<<std::endl;
                 soln_at_q[iquad] += dg->auxiliary_solution[dim_check][dofs_indices[idof]] * fe_values_extra.shape_value_component(idof, iquad, 0);
                 //soln_at_q[iquad] += dg->solution[dofs_indices[idof]] * fe_values_extra.shape_value_component(idof, iquad, 0);
             }
+
             const dealii::Point<dim> qpoint = (fe_values_extra.quadrature_point(iquad));
             double uexact_x=1.0;
             for(int idim=0; idim<dim; idim++){
@@ -309,7 +311,8 @@ pcout<<" Grid Index"<<igrid<<std::endl;
             exit_grid = igrid;
             break;
         }
-        if(std::abs(slope_soln_err-(poly_degree+1))<0.1 && poly_degree % 2 == 0){
+        //if(std::abs(slope_soln_err-(poly_degree+1))<0.1 && poly_degree % 2 == 0){
+        if(std::abs(slope_soln_err-(poly_degree))<0.1 && poly_degree % 2 == 0){
             exit_grid = igrid;
             break;
         }
@@ -327,7 +330,8 @@ pcout<<" Grid Index"<<igrid<<std::endl;
         pcout<<" wrong order for poly "<<poly_degree<<" and slope "<<slope_soln_err<<std::endl;
         return 1;
     }
-    if(std::abs(slope_soln_err-(poly_degree+1))>0.1 && poly_degree % 2 == 0){
+    //if(std::abs(slope_soln_err-(poly_degree+1))>0.1 && poly_degree % 2 == 0){
+    if(std::abs(slope_soln_err-(poly_degree))>0.1 && poly_degree % 2 == 0){
     //if(std::abs(slope_soln_err-(poly_degree))>0.05 && poly_degree % 2 == 0){
         pcout<<" wrong order for poly "<<poly_degree<<" and slope "<<slope_soln_err<<std::endl;
         return 1;

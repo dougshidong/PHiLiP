@@ -146,7 +146,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_volume_term_auxiliary_equation
     const unsigned int poly_degree,
     OPERATOR::basis_functions<dim,2*dim> &soln_basis,
     OPERATOR::basis_functions<dim,2*dim> &flux_basis,
-    OPERATOR::metric_operators<real,dim,2*dim>             &metric_oper,
+    OPERATOR::metric_operators<real,dim,2*dim> &metric_oper,
     std::vector<dealii::Tensor<1,dim,real>> &local_auxiliary_RHS)
 {
 
@@ -202,7 +202,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_volume_term_auxiliary_equation
             soln_basis.inner_product_1D(phys_gradient_u, quad_weights,
                                         rhs,
                                         soln_basis.oneD_vol_operator,
-                                        false, -1.0);
+                                        false, 1.0);//it's added since auxiliary is EQUAL to the gradient of the soln
 
             //write the the auxiliary rhs for the test function.
             for(unsigned int ishape=0; ishape<n_shape_fns; ishape++){
@@ -222,7 +222,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_auxiliary_equati
     const unsigned int boundary_id,
     const std::vector<dealii::types::global_dof_index> &dofs_indices,
     OPERATOR::basis_functions<dim,2*dim> &soln_basis,
-    OPERATOR::metric_operators<real,dim,2*dim>             &metric_oper,
+    OPERATOR::metric_operators<real,dim,2*dim> &metric_oper,
     std::vector<dealii::Tensor<1,dim,real>> &local_auxiliary_RHS)
 {
     (void) current_cell_index;
@@ -336,7 +336,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_auxiliary_equati
                                                 surf_quad_weights, rhs,
                                                 soln_basis.oneD_surf_operator,
                                                 soln_basis.oneD_vol_operator,
-                                                true, -1.0);
+                                                true, 1.0);//it's added since auxiliary is EQUAL to the gradient of the soln
             for(unsigned int ishape=0; ishape<n_shape_fns; ishape++){
                 local_auxiliary_RHS[istate*n_shape_fns + ishape][idim] += rhs[ishape]; 
             }
@@ -355,7 +355,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_auxiliary(
     const std::vector<dealii::types::global_dof_index> &dof_indices_ext,
     OPERATOR::basis_functions<dim,2*dim> &soln_basis_int,
     OPERATOR::basis_functions<dim,2*dim> &soln_basis_ext,
-    OPERATOR::metric_operators<real,dim,2*dim>             &metric_oper_int,
+    OPERATOR::metric_operators<real,dim,2*dim> &metric_oper_int,
     std::vector<dealii::Tensor<1,dim,real>> &local_auxiliary_RHS_int,
     std::vector<dealii::Tensor<1,dim,real>> &local_auxiliary_RHS_ext)
 {
@@ -389,8 +389,8 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_auxiliary(
     //Extract exterior modal coefficients of solution
     std::array<std::vector<real>,nstate> soln_coeff_ext;
     for (unsigned int idof = 0; idof < n_dofs_ext; ++idof) {
-        const unsigned int istate = this->fe_collection[poly_degree_int].system_to_component_index(idof).first;
-        const unsigned int ishape = this->fe_collection[poly_degree_int].system_to_component_index(idof).second;
+        const unsigned int istate = this->fe_collection[poly_degree_ext].system_to_component_index(idof).first;
+        const unsigned int ishape = this->fe_collection[poly_degree_ext].system_to_component_index(idof).second;
         //allocate
         if(ishape == 0)
             soln_coeff_ext[istate].resize(n_shape_fns_ext);
@@ -479,7 +479,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_auxiliary(
                                                 surf_quad_weights, rhs_int,
                                                 soln_basis_int.oneD_surf_operator,
                                                 soln_basis_int.oneD_vol_operator,
-                                                true, -1.0);
+                                                true, 1.0);//it's added since auxiliary is EQUAL to the gradient of the soln
 
             for(unsigned int ishape=0; ishape<n_shape_fns_int; ishape++){
                 local_auxiliary_RHS_int[istate*n_shape_fns_int + ishape][idim] += rhs_int[ishape]; 
@@ -491,7 +491,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_auxiliary(
                                                 surf_quad_weights, rhs_int,
                                                 soln_basis_ext.oneD_surf_operator,
                                                 soln_basis_ext.oneD_vol_operator,
-                                                true, -1.0);
+                                                true, 1.0);//it's added since auxiliary is EQUAL to the gradient of the soln
 
             for(unsigned int ishape=0; ishape<n_shape_fns_ext; ishape++){
                 local_auxiliary_RHS_ext[istate*n_shape_fns_ext + ishape][idim] += rhs_ext[ishape]; 

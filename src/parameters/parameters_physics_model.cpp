@@ -36,12 +36,12 @@ void PhysicsModelParam::declare_parameters (dealii::ParameterHandler &prm)
                               dealii::Patterns::Double(1e-15, dealii::Patterns::Double::max_double_value),
                               "Smagorinsky model constant (default is 0.1)");
 
-            prm.declare_entry("WALE_model_constant", "0.6",
-                              dealii::Patterns::Double(1e-15, 0.6),
-                              "WALE (Wall-Adapting Local Eddy-viscosity) eddy viscosity model constant (default is 0.6)");
+            prm.declare_entry("WALE_model_constant", "0.325",
+                              dealii::Patterns::Double(1e-15, dealii::Patterns::Double::max_double_value),
+                              "WALE (Wall-Adapting Local Eddy-viscosity) eddy viscosity model constant (default is 0.325)");
 
             prm.declare_entry("vreman_model_constant", "0.025",
-                              dealii::Patterns::Double(1e-15, 0.6),
+                              dealii::Patterns::Double(1e-15, dealii::Patterns::Double::max_double_value),
                               "Vreman eddy viscosity model constant (default is 0.025)");
             
             prm.declare_entry("ratio_of_filter_width_to_cell_size", "1.0",

@@ -549,7 +549,10 @@ void SumFactorizedOperators<dim,n_faces>::divergence_two_pt_flux_Hadamard_produc
 
     dealii::FullMatrix<double> output_mat(input_mat[0].m(), input_mat[0].n());
     for(int idim=0; idim<dim; idim++){
-        two_pt_flux_Hadamard_product(input_mat[idim], output_mat, basis, idim);
+        dealii::FullMatrix<double> output_mat_temp(input_mat[0].m(), input_mat[0].n());
+        two_pt_flux_Hadamard_product(input_mat[idim], output_mat_temp, basis, idim);
+        output_mat.add(1.0, output_mat_temp);//I couldn't put adding capability in the fn called above
+        //due to the use of scattering to the matrix
     }
     for(unsigned int row=0; row<input_mat[0].m(); row++){
         output_vect[row] = 0.0;

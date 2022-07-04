@@ -15,7 +15,7 @@ set use_split_form = false
 
 set use_curvilinear_split_form = true
 
-set use_weight_adjusted_mass = false
+set use_weight_adjusted_mass = true
 
 set use_periodic_bc = true
 

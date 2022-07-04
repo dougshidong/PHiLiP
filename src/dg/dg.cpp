@@ -2609,10 +2609,10 @@ void DGBase<dim,real,MeshType>::reinit_operators_for_mass_matrix(
     if(grid_degree > 1){//then we need to construct dim matrices on the fly
         basis.build_1D_volume_operator(oneD_fe_collection[poly_degree], oneD_quadrature_collection[poly_degree]); 
     }
-    if(FR_Type != FR_enum::cDG && grid_degree == 1){
+    if((FR_Type != FR_enum::cDG && grid_degree == 1) || (FR_Type != FR_enum::cDG && this->all_parameters->use_weight_adjusted_mass)){
         reference_FR.build_1D_volume_operator(oneD_fe_collection[poly_degree], oneD_quadrature_collection[poly_degree]);
     }
-    if(use_auxiliary_eq && FR_Type_Aux != FR_Aux_enum::kDG && grid_degree == 1){
+    if((use_auxiliary_eq && FR_Type_Aux != FR_Aux_enum::kDG && grid_degree == 1) || (FR_Type_Aux != FR_Aux_enum::kDG && this->all_parameters->use_weight_adjusted_mass)){
         reference_FR_aux.build_1D_volume_operator(oneD_fe_collection[poly_degree], oneD_quadrature_collection[poly_degree]);
     }
     if(((FR_Type != FR_enum::cDG) || 

@@ -616,6 +616,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_volume_term_strong(
                 }
                 //Compute the physical flux
                 conv_phys_flux_2pt = this->pde_physics_double->convective_numerical_split_flux(soln_state, soln_state_flux_basis);
+
                 for(int istate=0; istate<nstate; istate++){
                     //For each state, transform the physical flux to a reference flux.
                     metric_oper.transform_physical_to_reference(

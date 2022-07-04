@@ -64,6 +64,7 @@ double AdvectionPeriodic<dim, nstate>::compute_conservation(std::shared_ptr < PH
         const unsigned int n_dofs_cell = dg->fe_collection[poly_degree].dofs_per_cell;
         const unsigned int n_quad_pts = dg->volume_quadrature_collection[poly_degree].size();
         std::vector<double> ones(n_quad_pts, 1.0);
+//        std::vector<double> ones(n_quad_pts);
 //        for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
 //            ones[iquad] = 1.0;
 //        }

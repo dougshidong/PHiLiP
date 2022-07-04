@@ -67,7 +67,7 @@ int main (int argc, char * argv[])
 
     bool different = false;
     bool different_mass = false;
-    const unsigned int poly_max = 16;
+    const unsigned int poly_max = 4;
     const unsigned int poly_min = 2;
     std::array<clock_t,poly_max> time_diff;
     std::array<clock_t,poly_max> time_diff_sum;
@@ -109,6 +109,14 @@ int main (int argc, char * argv[])
         dealii::FullMatrix<real> sol_1D(n_quad_pts);//solution of A*u with sum-factorization
         dealii::FullMatrix<real> basis_dim(n_quad_pts);//solution of A*u with sum-factorization
         basis_dim = basis.tensor_product(basis.oneD_grad_operator, basis.oneD_vol_operator, basis.oneD_vol_operator);
+
+pcout<<"Basis dim for x"<<std::endl;
+        for(unsigned int i=0; i<n_quad_pts; i++){
+        for(unsigned int j=0; j<n_quad_pts; j++){
+printf(" %g ",basis_dim[i][j]);
+        }
+        printf("\n");
+        }
 
         //Compute A*u normally
         clock_t tfirst;
@@ -155,6 +163,13 @@ int main (int argc, char * argv[])
 
         //check the other 2 directions match
         basis_dim = basis.tensor_product(basis.oneD_vol_operator, basis.oneD_grad_operator, basis.oneD_vol_operator);
+pcout<<"Basis dim for y"<<std::endl;
+        for(unsigned int i=0; i<n_quad_pts; i++){
+        for(unsigned int j=0; j<n_quad_pts; j++){
+printf(" %g ",basis_dim[i][j]);
+        }
+        printf("\n");
+        }
 
         clock_t tfirst_dir2;
         tfirst_dir2 = clock();
@@ -201,6 +216,13 @@ int main (int argc, char * argv[])
         if(dim ==3){
             //dir 3
             basis_dim = basis.tensor_product(basis.oneD_vol_operator, basis.oneD_vol_operator, basis.oneD_grad_operator);
+pcout<<"Basis dim for z"<<std::endl;
+        for(unsigned int i=0; i<n_quad_pts; i++){
+        for(unsigned int j=0; j<n_quad_pts; j++){
+printf(" %g ",basis_dim[i][j]);
+        }
+        printf("\n");
+        }
             clock_t tfirst_dir3;
             tfirst_dir3 = clock();
             if(dim==2){

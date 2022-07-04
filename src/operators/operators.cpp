@@ -554,15 +554,56 @@ void SumFactorizedOperators<dim,n_faces>::divergence_two_pt_flux_Hadamard_produc
 
     dealii::FullMatrix<double> output_mat(input_mat[0].m(), input_mat[0].n());
     for(int idim=0; idim<dim; idim++){
-        dealii::FullMatrix<double> output_mat_temp(input_mat[0].m(), input_mat[0].n());
-        two_pt_flux_Hadamard_product(input_mat[idim], output_mat_temp, basis, idim);
-        output_mat.add(1.0, output_mat_temp);//I couldn't put adding capability in the fn called above
-        //due to the use of scattering to the matrix
-    }
-    for(unsigned int row=0; row<input_mat[0].m(); row++){
-        output_vect[row] = 0.0;
-        for(unsigned int col=0; col<input_mat[0].n(); col++){
-            output_vect[row] += 2.0 * output_mat[row][col];//scaled by 2.0 for 2pt flux
+        two_pt_flux_Hadamard_product(input_mat[idim], output_mat, basis, idim);
+        if constexpr(dim==1){
+            for(unsigned int row=0; row<input_mat[0].m(); row++){//n^d rows
+                for(unsigned int col=0; col<basis.m(); col++){//only need to sum n columns
+                    const unsigned int col_index = col; 
+                    output_vect[row] += 2.0 * output_mat[row][col_index];//scaled by 2.0 for 2pt flux
+                }
+            }
+        }
+        if constexpr(dim==2){
+            const unsigned int size_1D = basis.m();
+            for(unsigned int irow=0; irow<size_1D; irow++){
+                for(unsigned int jrow=0; jrow<size_1D; jrow++){
+                    const unsigned int row_index = irow * size_1D + jrow;
+                    for(unsigned int col=0; col<size_1D; col++){
+                        if(idim==0){
+                            const unsigned int col_index = col + irow * size_1D;
+                            output_vect[row_index] += 2.0 * output_mat[row_index][col_index];//scaled by 2.0 for 2pt flux
+                        }
+                        if(idim==1){
+                            const unsigned int col_index = col * size_1D + jrow;
+                            output_vect[row_index] += 2.0 * output_mat[row_index][col_index];//scaled by 2.0 for 2pt flux
+                        }
+                    }
+                }
+            }
+        }
+        if constexpr(dim==3){
+            const unsigned int size_1D = basis.m();
+            for(unsigned int irow=0; irow<size_1D; irow++){
+                for(unsigned int jrow=0; jrow<size_1D; jrow++){
+                    for(unsigned int krow=0; krow<size_1D; krow++){
+                        const unsigned int row_index = irow * size_1D * size_1D + jrow * size_1D + krow;
+                        for(unsigned int col=0; col<size_1D; col++){
+                            if(idim==0){
+                                const unsigned int col_index = col + irow * size_1D * size_1D + jrow * size_1D;
+                                output_vect[row_index] += 2.0 * output_mat[row_index][col_index];//scaled by 2.0 for 2pt flux
+                            }
+                            if(idim==1){
+                                const unsigned int col_index = col * size_1D + krow + irow * size_1D * size_1D;
+                                output_vect[row_index] += 2.0 * output_mat[row_index][col_index];//scaled by 2.0 for 2pt flux
+                            }
+                            if(idim==2){
+                                const unsigned int col_index = col * size_1D * size_1D + krow + jrow * size_1D;
+                                output_vect[row_index] += 2.0 * output_mat[row_index][col_index];//scaled by 2.0 for 2pt flux
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 }

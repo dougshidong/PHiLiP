@@ -20,6 +20,8 @@ set use_periodic_bc = true
 
 set flux_reconstruction = cPlus
 
+set use_inverse_mass_on_the_fly = true
+
 #set use_skew_sym_deriv = false
 
 set pde_type = burgers_inviscid

@@ -2415,6 +2415,7 @@ void DGBase<dim,real,MeshType>::allocate_system (
     // system matrices and vectors.
 
     dof_handler.distribute_dofs(fe_collection);
+    //This Cuthill_McKee renumbering for dof_handlr uses a lot of memory in 3D, is there another way?
     dealii::DoFRenumbering::Cuthill_McKee(dof_handler,true);
     //const bool reversed_numbering = true;
     //dealii::DoFRenumbering::Cuthill_McKee(dof_handler, reversed_numbering);
@@ -2966,6 +2967,313 @@ void DGBase<dim,real,MeshType>::evaluate_local_metric_dependent_mass_matrix_and_
             global_mass_matrix_auxiliary.set (dofs_indices, local_mass_matrix_aux);
         }
     }
+}
+
+template<int dim, typename real, typename MeshType>
+void DGBase<dim,real,MeshType>::apply_inverse_global_mass_matrix(
+        dealii::LinearAlgebra::distributed::Vector<double> &input_vector,
+        dealii::LinearAlgebra::distributed::Vector<double> &output_vector,
+        const bool use_auxiliary_eq)
+{
+        using FR_enum = Parameters::AllParameters::Flux_Reconstruction;
+        using FR_Aux_enum = Parameters::AllParameters::Flux_Reconstruction_Aux;
+        const FR_enum FR_Type = this->all_parameters->flux_reconstruction_type;
+        const FR_Aux_enum FR_Type_Aux = this->all_parameters->flux_reconstruction_aux_type;
+         
+        OPERATOR::mapping_shape_functions<dim,2*dim> mapping_basis(1, max_degree, max_grid_degree);
+         
+        OPERATOR::FR_mass_inv<dim,2*dim> mass_inv(1, max_degree, max_grid_degree, FR_Type);
+        OPERATOR::FR_mass_inv_aux<dim,2*dim> mass_inv_aux(1, max_degree, max_grid_degree, FR_Type_Aux);
+         
+        OPERATOR::vol_projection_operator_FR<dim,2*dim> projection_oper(1, max_degree, max_grid_degree, FR_Type, true);
+        OPERATOR::vol_projection_operator_FR_aux<dim,2*dim> projection_oper_aux(1, max_degree, max_grid_degree, FR_Type_Aux, true);
+         
+        mapping_basis.build_1D_shape_functions_at_volume_flux_nodes(high_order_grid->oneD_fe_system, oneD_quadrature_collection[max_degree]);
+         
+        const unsigned int grid_degree = this->high_order_grid->fe_system.tensor_degree();
+        const dealii::FESystem<dim> &fe_metric = high_order_grid->fe_system;
+        const unsigned int n_metric_dofs = high_order_grid->fe_system.dofs_per_cell;
+        auto metric_cell = high_order_grid->dof_handler_grid.begin_active();
+
+        if(grid_degree == 1){//then we can factor out det of Jac and rapidly simplify
+            if(use_auxiliary_eq)
+                mass_inv_aux.build_1D_volume_operator(oneD_fe_collection_1state[max_degree], oneD_quadrature_collection[max_degree]);
+            else
+                mass_inv.build_1D_volume_operator(oneD_fe_collection_1state[max_degree], oneD_quadrature_collection[max_degree]);
+        }
+        else{//we always use weight-adjusted for curvilinear based off the projection operator
+            if(use_auxiliary_eq)
+                projection_oper_aux.build_1D_volume_operator(oneD_fe_collection_1state[max_degree], oneD_quadrature_collection[max_degree]);
+            else
+                projection_oper.build_1D_volume_operator(oneD_fe_collection_1state[max_degree], oneD_quadrature_collection[max_degree]);
+        }
+
+        for (auto soln_cell = dof_handler.begin_active(); soln_cell != dof_handler.end(); ++soln_cell, ++metric_cell) {
+            if (!soln_cell->is_locally_owned()) continue;
+
+            const unsigned int poly_degree = soln_cell->active_fe_index();
+            const unsigned int n_dofs_cell = fe_collection[poly_degree].n_dofs_per_cell();
+            std::vector<dealii::types::global_dof_index> current_dofs_indices;
+            current_dofs_indices.resize(n_dofs_cell);
+            soln_cell->get_dof_indices (current_dofs_indices);
+
+            //if poly degree changed for this cell, rinitialize
+            if((poly_degree != mass_inv.current_degree && grid_degree == 1 && !use_auxiliary_eq) || 
+                (poly_degree != projection_oper.current_degree && grid_degree > 1 && !use_auxiliary_eq)){
+                    mapping_basis.build_1D_shape_functions_at_volume_flux_nodes(high_order_grid->oneD_fe_system, oneD_quadrature_collection[poly_degree]);
+                    if(grid_degree == 1){//then we can factor out det of Jac and rapidly simplify
+                        mass_inv.build_1D_volume_operator(oneD_fe_collection_1state[poly_degree], oneD_quadrature_collection[poly_degree]);
+                        if(use_auxiliary_eq)
+                            mass_inv_aux.build_1D_volume_operator(oneD_fe_collection_1state[poly_degree], oneD_quadrature_collection[poly_degree]);
+                    }
+                    else{//we always use weight-adjusted for curvilinear based off the projection operator
+                        projection_oper.build_1D_volume_operator(oneD_fe_collection_1state[poly_degree], oneD_quadrature_collection[poly_degree]);
+                        if(use_auxiliary_eq)
+                            projection_oper_aux.build_1D_volume_operator(oneD_fe_collection_1state[poly_degree], oneD_quadrature_collection[poly_degree]);
+                    }
+            }
+
+            //get mapping support points and determinant of Jacobian
+            //setup metric cell
+            std::vector<dealii::types::global_dof_index> metric_dof_indices(n_metric_dofs);
+            metric_cell->get_dof_indices (metric_dof_indices);
+            // get mapping_support points
+            std::array<std::vector<real>,dim> mapping_support_points;
+            for(int idim=0; idim<dim; idim++){
+                mapping_support_points[idim].resize(n_metric_dofs/dim);
+            }
+            for (unsigned int igrid_node = 0; igrid_node< n_metric_dofs/dim; ++igrid_node) {
+                for (unsigned int idof = 0; idof< n_metric_dofs; ++idof) {
+                    const real val = (high_order_grid->volume_nodes[metric_dof_indices[idof]]);
+                    const unsigned int istate = fe_metric.system_to_component_index(idof).first; 
+                    mapping_support_points[istate][igrid_node] += val * fe_metric.shape_value_component(idof,high_order_grid->dim_grid_nodes.point(igrid_node),istate); 
+                }
+            }
+            //get determinant of Jacobian
+            const unsigned int n_quad_pts = volume_quadrature_collection[poly_degree].size();
+            const unsigned int n_grid_nodes = n_metric_dofs / dim;
+            //get determinant of Jacobian
+            OPERATOR::metric_operators<real, dim, 2*dim> metric_oper(1, poly_degree, grid_degree);
+            metric_oper.build_determinant_volume_metric_Jacobian(
+                            n_quad_pts, n_grid_nodes, 
+                            mapping_support_points,
+                            mapping_basis);
+            //solve mass inverse times input vector for each state independently
+            for(int istate=0; istate<nstate; istate++){
+                const unsigned int n_shape_fns = n_dofs_cell / nstate;
+                std::vector<real> local_input_vector(n_shape_fns);
+                std::vector<real> local_output_vector(n_shape_fns);
+
+                for(unsigned int ishape=0; ishape<n_shape_fns; ishape++){
+                    const unsigned int idof = istate * n_shape_fns + ishape;
+                    local_input_vector[ishape] = input_vector[current_dofs_indices[idof]];
+                }
+
+                if(grid_degree == 1){
+                    if(use_auxiliary_eq){
+                        mass_inv_aux.matrix_vector_mult_1D(local_input_vector, local_output_vector,
+                                                           mass_inv_aux.oneD_vol_operator,
+                                                           false, 1.0 / metric_oper.det_Jac_vol[0]);
+                    }
+                    else{
+                        mass_inv.matrix_vector_mult_1D(local_input_vector, local_output_vector,
+                                                       mass_inv.oneD_vol_operator,
+                                                       false, 1.0 / metric_oper.det_Jac_vol[0]);
+                    }
+                }
+                else{
+                    if(use_auxiliary_eq){
+                        std::vector<real> projection_of_input(n_quad_pts);
+                        projection_oper_aux.matrix_vector_mult_1D(local_input_vector, projection_of_input,
+                                                                  projection_oper_aux.oneD_transpose_vol_operator);
+                        const std::vector<double> &quad_weights = volume_quadrature_collection[poly_degree].get_weights();
+                        std::vector<real> JxW_inv(n_quad_pts);
+                        for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
+                            JxW_inv[iquad] = 1.0 / (quad_weights[iquad] * metric_oper.det_Jac_vol[iquad]);
+                        }
+                        projection_oper_aux.inner_product_1D(projection_of_input, JxW_inv,
+                                                             local_output_vector,
+                                                             projection_oper_aux.oneD_transpose_vol_operator);
+                    }
+                    else{
+                        std::vector<real> projection_of_input(n_quad_pts);
+                        projection_oper.matrix_vector_mult_1D(local_input_vector, projection_of_input,
+                                                              projection_oper.oneD_transpose_vol_operator);
+                        const std::vector<double> &quad_weights = volume_quadrature_collection[poly_degree].get_weights();
+                        std::vector<real> JxW_inv(n_quad_pts);
+                        for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
+                            JxW_inv[iquad] = 1.0 / (quad_weights[iquad] * metric_oper.det_Jac_vol[iquad]);
+                        }
+                        projection_oper.inner_product_1D(projection_of_input, JxW_inv,
+                                                         local_output_vector,
+                                                         projection_oper.oneD_transpose_vol_operator);
+                    }
+                }
+                 
+                for(unsigned int ishape=0; ishape<n_shape_fns; ishape++){
+                    const unsigned int idof = istate * n_shape_fns + ishape;
+                    output_vector[current_dofs_indices[idof]] = local_output_vector[ishape];
+                }
+            }//end of state loop
+        }//end of cell loop
+}
+
+template<int dim, typename real, typename MeshType>
+void DGBase<dim,real,MeshType>::apply_global_mass_matrix(
+        dealii::LinearAlgebra::distributed::Vector<double> &input_vector,
+        dealii::LinearAlgebra::distributed::Vector<double> &output_vector,
+        const bool use_auxiliary_eq)
+{
+        using FR_enum = Parameters::AllParameters::Flux_Reconstruction;
+        using FR_Aux_enum = Parameters::AllParameters::Flux_Reconstruction_Aux;
+        const FR_enum FR_Type = this->all_parameters->flux_reconstruction_type;
+        const FR_Aux_enum FR_Type_Aux = this->all_parameters->flux_reconstruction_aux_type;
+         
+        OPERATOR::mapping_shape_functions<dim,2*dim> mapping_basis(1, max_degree, max_grid_degree);
+         
+        OPERATOR::FR_mass<dim,2*dim> mass(1, max_degree, max_grid_degree, FR_Type);
+        OPERATOR::FR_mass_aux<dim,2*dim> mass_aux(1, max_degree, max_grid_degree, FR_Type_Aux);
+         
+        OPERATOR::vol_projection_operator<dim,2*dim> projection_oper(1, max_degree, max_grid_degree);
+         
+        mapping_basis.build_1D_shape_functions_at_volume_flux_nodes(high_order_grid->oneD_fe_system, oneD_quadrature_collection[max_degree]);
+         
+        const unsigned int grid_degree = this->high_order_grid->fe_system.tensor_degree();
+        const dealii::FESystem<dim> &fe_metric = high_order_grid->fe_system;
+        const unsigned int n_metric_dofs = high_order_grid->fe_system.dofs_per_cell;
+        auto metric_cell = high_order_grid->dof_handler_grid.begin_active();
+
+        if(use_auxiliary_eq){
+            mass_aux.build_1D_volume_operator(oneD_fe_collection_1state[max_degree], oneD_quadrature_collection[max_degree]);
+            if(grid_degree>1){
+                projection_oper.build_1D_volume_operator(oneD_fe_collection_1state[max_degree], oneD_quadrature_collection[max_degree]);
+            }
+        }
+        else{
+            mass.build_1D_volume_operator(oneD_fe_collection_1state[max_degree], oneD_quadrature_collection[max_degree]);
+            if(grid_degree>1){
+                projection_oper.build_1D_volume_operator(oneD_fe_collection_1state[max_degree], oneD_quadrature_collection[max_degree]);
+            }
+        }
+
+        for (auto soln_cell = dof_handler.begin_active(); soln_cell != dof_handler.end(); ++soln_cell, ++metric_cell) {
+            if (!soln_cell->is_locally_owned()) continue;
+
+            const unsigned int poly_degree = soln_cell->active_fe_index();
+            const unsigned int n_dofs_cell = fe_collection[poly_degree].n_dofs_per_cell();
+            std::vector<dealii::types::global_dof_index> current_dofs_indices;
+            current_dofs_indices.resize(n_dofs_cell);
+            soln_cell->get_dof_indices (current_dofs_indices);
+
+            //if poly degree changed for this cell, rinitialize
+            if((poly_degree != mass.current_degree && grid_degree == 1 && !use_auxiliary_eq) || 
+                (poly_degree != projection_oper.current_degree && grid_degree > 1 && !use_auxiliary_eq)){
+                    mapping_basis.build_1D_shape_functions_at_volume_flux_nodes(high_order_grid->oneD_fe_system, oneD_quadrature_collection[poly_degree]);
+                    if(use_auxiliary_eq){
+                        mass_aux.build_1D_volume_operator(oneD_fe_collection_1state[poly_degree], oneD_quadrature_collection[poly_degree]);
+                        if(grid_degree>1){
+                            projection_oper.build_1D_volume_operator(oneD_fe_collection_1state[poly_degree], oneD_quadrature_collection[poly_degree]);
+                        }
+                    }
+                    else{
+                        mass.build_1D_volume_operator(oneD_fe_collection_1state[poly_degree], oneD_quadrature_collection[poly_degree]);
+                        if(grid_degree>1){
+                            projection_oper.build_1D_volume_operator(oneD_fe_collection_1state[poly_degree], oneD_quadrature_collection[poly_degree]);
+                        }
+                    }
+            }
+
+            //get mapping support points and determinant of Jacobian
+            //setup metric cell
+            std::vector<dealii::types::global_dof_index> metric_dof_indices(n_metric_dofs);
+            metric_cell->get_dof_indices (metric_dof_indices);
+            // get mapping_support points
+            std::array<std::vector<real>,dim> mapping_support_points;
+            for(int idim=0; idim<dim; idim++){
+                mapping_support_points[idim].resize(n_metric_dofs/dim);
+            }
+            for (unsigned int igrid_node = 0; igrid_node< n_metric_dofs/dim; ++igrid_node) {
+                for (unsigned int idof = 0; idof< n_metric_dofs; ++idof) {
+                    const real val = (high_order_grid->volume_nodes[metric_dof_indices[idof]]);
+                    const unsigned int istate = fe_metric.system_to_component_index(idof).first; 
+                    mapping_support_points[istate][igrid_node] += val * fe_metric.shape_value_component(idof,high_order_grid->dim_grid_nodes.point(igrid_node),istate); 
+                }
+            }
+            //get determinant of Jacobian
+            const unsigned int n_quad_pts = volume_quadrature_collection[poly_degree].size();
+            const unsigned int n_grid_nodes = n_metric_dofs / dim;
+            //get determinant of Jacobian
+            OPERATOR::metric_operators<real, dim, 2*dim> metric_oper(1, poly_degree, grid_degree);
+            metric_oper.build_determinant_volume_metric_Jacobian(
+                            n_quad_pts, n_grid_nodes, 
+                            mapping_support_points,
+                            mapping_basis);
+
+            //solve mass inverse times input vector for each state independently
+            for(int istate=0; istate<nstate; istate++){
+                const unsigned int n_shape_fns = n_dofs_cell / nstate;
+                std::vector<real> local_input_vector(n_shape_fns);
+                std::vector<real> local_output_vector(n_shape_fns);
+
+                for(unsigned int ishape=0; ishape<n_shape_fns; ishape++){
+                    const unsigned int idof = istate * n_shape_fns + ishape;
+                    local_input_vector[ishape] = input_vector[current_dofs_indices[idof]];
+                }
+                if(grid_degree == 1){
+                    if(use_auxiliary_eq){
+                        mass_aux.matrix_vector_mult_1D(local_input_vector, local_output_vector,
+                                                       mass_aux.oneD_vol_operator,
+                                                       false, metric_oper.det_Jac_vol[0]);
+                    }
+                    else{
+                        mass.matrix_vector_mult_1D(local_input_vector, local_output_vector,
+                                                   mass.oneD_vol_operator,
+                                                   false, metric_oper.det_Jac_vol[0]);
+                    }
+                }
+                else{
+                    const unsigned int n_dofs_1D = projection_oper.oneD_vol_operator.n();
+                    const unsigned int n_quad_pts_1D = projection_oper.oneD_vol_operator.m();
+                    if(use_auxiliary_eq){
+                        const std::vector<double> &quad_weights = volume_quadrature_collection[poly_degree].get_weights();
+                        dealii::FullMatrix<double> proj_mass(n_quad_pts_1D, n_dofs_1D);
+                        projection_oper.oneD_vol_operator.Tmmult(proj_mass, mass_aux.oneD_vol_operator);
+                         
+                        std::vector<real> projection_of_input(n_quad_pts);
+                        projection_oper.matrix_vector_mult_1D(local_input_vector, projection_of_input,
+                                                              proj_mass);
+                        std::vector<real> JxW(n_quad_pts);
+                        for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
+                            JxW[iquad] = (quad_weights[iquad] * metric_oper.det_Jac_vol[iquad]);
+                        }
+                        projection_oper.inner_product_1D(projection_of_input, JxW,
+                                                         local_output_vector,
+                                                         proj_mass);
+                    }
+                    else{
+                        const std::vector<double> &quad_weights = volume_quadrature_collection[poly_degree].get_weights();
+                        dealii::FullMatrix<double> proj_mass(n_quad_pts_1D, n_dofs_1D);
+                        projection_oper.oneD_vol_operator.Tmmult(proj_mass, mass.oneD_vol_operator);
+                         
+                        std::vector<real> projection_of_input(n_quad_pts);
+                        projection_oper.matrix_vector_mult_1D(local_input_vector, projection_of_input,
+                                                              proj_mass);
+                        std::vector<real> JxW(n_quad_pts);
+                        for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
+                            JxW[iquad] = (quad_weights[iquad] * metric_oper.det_Jac_vol[iquad]);
+                        }
+                        projection_oper.inner_product_1D(projection_of_input, JxW,
+                                                         local_output_vector,
+                                                         proj_mass);
+                    }
+                }
+                 
+                for(unsigned int ishape=0; ishape<n_shape_fns; ishape++){
+                    const unsigned int idof = istate * n_shape_fns + ishape;
+                    output_vector[current_dofs_indices[idof]] = local_output_vector[ishape];
+                }
+            }//end of state loop
+        }//end of cell loop
 }
 
 template<int dim, typename real, typename MeshType>

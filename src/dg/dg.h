@@ -232,6 +232,24 @@ public:
         OPERATOR::local_Flux_Reconstruction_operator_aux<dim,2*dim> &reference_FR_aux,
         OPERATOR::derivative_p<dim,2*dim>                           &deriv_p);
 
+    ///Applies the inverse of the local metric dependent mass matrices when the global is not stored.
+    /** We use matrix-free methods to apply the inverse of the local mass matrix on-the-fly 
+    * in each cell using sum-factorization techniques.
+    */
+    void apply_inverse_global_mass_matrix(
+        dealii::LinearAlgebra::distributed::Vector<double> &input_vector,
+        dealii::LinearAlgebra::distributed::Vector<double> &output_vector,
+        const bool use_auxiliary_eq = false);
+
+    ///Applies the local metric dependent mass matrices when the global is not stored.
+    /** We use matrix-free methods to apply the local mass matrix on-the-fly 
+    * in each cell using sum-factorization techniques.
+    */
+    void apply_global_mass_matrix(
+        dealii::LinearAlgebra::distributed::Vector<double> &input_vector,
+        dealii::LinearAlgebra::distributed::Vector<double> &output_vector,
+        const bool use_auxiliary_eq = false);
+
     /// Evaluates the maximum stable time step
     /** If exact_time_stepping = true, use the same time step for the entire solution
      *  NOT YET IMPLEMENTED

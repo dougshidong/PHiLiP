@@ -45,7 +45,10 @@ double AdvectionPeriodic<dim, nstate>::compute_energy(std::shared_ptr < PHiLiP::
 {
 	double energy = 0.0;
         dealii::LinearAlgebra::distributed::Vector<double> mass_matrix_times_solution(dg->right_hand_side);
-        dg->global_mass_matrix.vmult( mass_matrix_times_solution, dg->solution);
+        if(dg->all_parameters->use_inverse_mass_on_the_fly)
+            dg->apply_global_mass_matrix(dg->solution,mass_matrix_times_solution);
+        else
+            dg->global_mass_matrix.vmult( mass_matrix_times_solution, dg->solution);
         //Since we normalize the energy later, don't bother scaling by 0.5
         //Energy \f$ = 0.5 * \int u^2 d\Omega_m \f$
         energy = dg->solution * mass_matrix_times_solution;
@@ -59,7 +62,10 @@ double AdvectionPeriodic<dim, nstate>::compute_conservation(std::shared_ptr < PH
         //Conservation \f$ =  \int 1 * u d\Omega_m \f$
 	double conservation = 0.0;
         dealii::LinearAlgebra::distributed::Vector<double> mass_matrix_times_solution(dg->right_hand_side);
-        dg->global_mass_matrix.vmult( mass_matrix_times_solution, dg->solution);
+        if(dg->all_parameters->use_inverse_mass_on_the_fly)
+            dg->apply_global_mass_matrix(dg->solution,mass_matrix_times_solution);
+        else
+            dg->global_mass_matrix.vmult( mass_matrix_times_solution, dg->solution);
 
         const unsigned int n_dofs_cell = dg->fe_collection[poly_degree].dofs_per_cell;
         const unsigned int n_quad_pts = dg->volume_quadrature_collection[poly_degree].size();

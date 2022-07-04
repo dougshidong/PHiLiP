@@ -719,6 +719,40 @@ public:
     dealii::FullMatrix<double> oneD_transpose_vol_operator;
 };
 
+///Projection operator corresponding to basis functions onto \f$(M+K)\f$-norm for auxiliary equation.
+template<int dim, int n_faces>
+class vol_projection_operator_FR_aux : public vol_projection_operator<dim,n_faces>
+{
+public:
+    ///Constructor.
+    vol_projection_operator_FR_aux (
+        const int nstate_input,
+        const unsigned int max_degree_input,
+        const unsigned int grid_degree_input,
+        const Parameters::AllParameters::Flux_Reconstruction_Aux FR_param_input,
+        const bool store_transpose_input = false);
+
+    ///Destructor.
+    ~vol_projection_operator_FR_aux ();
+
+    ///Stores the degree of the current poly degree.
+    unsigned int current_degree;
+
+    ///Flag is store transpose operator.
+    bool store_transpose;
+
+    ///Flux reconstruction parameter type.
+    const Parameters::AllParameters::Flux_Reconstruction_Aux FR_param_type;
+
+    ///Assembles the one dimensional operator.
+    void build_1D_volume_operator(
+            const dealii::FESystem<1,1> &finite_element,
+            const dealii::Quadrature<1> &quadrature);
+
+    ///Stores the transpose of the operator for fast weight-adjusted solves.
+    dealii::FullMatrix<double> oneD_transpose_vol_operator;
+};
+
 ///The metric independent inverse of the FR mass matrix \f$(M+K)^{-1}\f$.
 template<int dim, int n_faces>
 class FR_mass_inv : public SumFactorizedOperators<dim,n_faces>
@@ -739,6 +773,85 @@ public:
 
     ///Flux reconstruction parameter type.
     const Parameters::AllParameters::Flux_Reconstruction FR_param_type;
+
+    ///Assembles the one dimensional operator.
+    void build_1D_volume_operator(
+            const dealii::FESystem<1,1> &finite_element,
+            const dealii::Quadrature<1> &quadrature);
+};
+///The metric independent inverse of the FR mass matrix for auxiliary equation \f$(M+K)^{-1}\f$.
+template<int dim, int n_faces>
+class FR_mass_inv_aux : public SumFactorizedOperators<dim,n_faces>
+{
+public:
+    ///Constructor.
+    FR_mass_inv_aux (
+        const int nstate_input,
+        const unsigned int max_degree_input,
+        const unsigned int grid_degree_input,
+        const Parameters::AllParameters::Flux_Reconstruction_Aux FR_param_input);
+
+    ///Destructor.
+    ~FR_mass_inv_aux ();
+
+    ///Stores the degree of the current poly degree.
+    unsigned int current_degree;
+
+    ///Flux reconstruction parameter type.
+    const Parameters::AllParameters::Flux_Reconstruction_Aux FR_param_type;
+
+    ///Assembles the one dimensional operator.
+    void build_1D_volume_operator(
+            const dealii::FESystem<1,1> &finite_element,
+            const dealii::Quadrature<1> &quadrature);
+};
+///The metric independent FR mass matrix \f$(M+K)\f$.
+template<int dim, int n_faces>
+class FR_mass : public SumFactorizedOperators<dim,n_faces>
+{
+public:
+    ///Constructor.
+    FR_mass (
+        const int nstate_input,
+        const unsigned int max_degree_input,
+        const unsigned int grid_degree_input,
+        const Parameters::AllParameters::Flux_Reconstruction FR_param_input);
+
+    ///Destructor.
+    ~FR_mass ();
+
+    ///Stores the degree of the current poly degree.
+    unsigned int current_degree;
+
+    ///Flux reconstruction parameter type.
+    const Parameters::AllParameters::Flux_Reconstruction FR_param_type;
+
+    ///Assembles the one dimensional operator.
+    void build_1D_volume_operator(
+            const dealii::FESystem<1,1> &finite_element,
+            const dealii::Quadrature<1> &quadrature);
+};
+
+///The metric independent FR mass matrix for auxiliary equation \f$(M+K)\f$.
+template<int dim, int n_faces>
+class FR_mass_aux : public SumFactorizedOperators<dim,n_faces>
+{
+public:
+    ///Constructor.
+    FR_mass_aux (
+        const int nstate_input,
+        const unsigned int max_degree_input,
+        const unsigned int grid_degree_input,
+        const Parameters::AllParameters::Flux_Reconstruction_Aux FR_param_input);
+
+    ///Destructor.
+    ~FR_mass_aux ();
+
+    ///Stores the degree of the current poly degree.
+    unsigned int current_degree;
+
+    ///Flux reconstruction parameter type.
+    const Parameters::AllParameters::Flux_Reconstruction_Aux FR_param_type;
 
     ///Assembles the one dimensional operator.
     void build_1D_volume_operator(

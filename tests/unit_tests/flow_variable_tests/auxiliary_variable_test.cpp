@@ -77,7 +77,7 @@ int main (int argc, char * argv[])
     double right = 1.0;
     dealii::ConvergenceTable convergence_table;
     const unsigned int igrid_start = 2;
-    const unsigned int n_grids = 7;
+    const unsigned int n_grids = 6;
     std::array<double,n_grids> grid_size;
     std::array<double,n_grids> soln_error;
     std::array<double,n_grids> soln_error_inf;
@@ -126,8 +126,6 @@ pcout<<" Grid Index"<<igrid<<std::endl;
     std::shared_ptr < PHiLiP::DGBase<dim, double> > dg = PHiLiP::DGFactory<dim,double>::create_discontinuous_galerkin(&all_parameters_new, poly_degree, poly_degree, grid_degree, grid);
     pcout<<"going in allocate"<<std::endl;
     dg->allocate_system (false,false,false);
-    pcout<<"Evaluating mass matrices"<<std::endl;
-    dg->evaluate_mass_matrices(true);
     
 //Interpolate IC
 
@@ -307,12 +305,12 @@ pcout<<" Grid Index"<<igrid<<std::endl;
              << std::endl;
 
         //if hit correct convergence rates skip to next poly
-        if(std::abs(slope_soln_err-poly_degree)<0.1 && poly_degree % 2 == 1){
+        if(std::abs(slope_soln_err_inf-poly_degree)<0.1 && poly_degree % 2 == 1){
             exit_grid = igrid;
             break;
         }
         //if(std::abs(slope_soln_err-(poly_degree+1))<0.1 && poly_degree % 2 == 0){
-        if(std::abs(slope_soln_err-(poly_degree))<0.1 && poly_degree % 2 == 0){
+        if(std::abs(slope_soln_err_inf-(poly_degree))<0.1 && poly_degree % 2 == 0){
             exit_grid = igrid;
             break;
         }
@@ -322,10 +320,10 @@ pcout<<" Grid Index"<<igrid<<std::endl;
 
     //const int igrid = n_grids-1;
     const unsigned int igrid = exit_grid;
-    const double slope_soln_err = log(soln_error[igrid]/soln_error[igrid-1])
-                          / log(grid_size[igrid]/grid_size[igrid-1]);
-    //const double slope_soln_err = log(soln_error_inf[igrid]/soln_error_inf[igrid-1])
+    //const double slope_soln_err = log(soln_error[igrid]/soln_error[igrid-1])
     //                      / log(grid_size[igrid]/grid_size[igrid-1]);
+    const double slope_soln_err = log(soln_error_inf[igrid]/soln_error_inf[igrid-1])
+                          / log(grid_size[igrid]/grid_size[igrid-1]);
     if(std::abs(slope_soln_err-poly_degree)>0.1 && poly_degree % 2 == 1){
         pcout<<" wrong order for poly "<<poly_degree<<" and slope "<<slope_soln_err<<std::endl;
         return 1;

@@ -1360,6 +1360,7 @@ void vol_projection_operator<dim,n_faces>::build_1D_volume_operator(
     const dealii::Quadrature<1> &quadrature)
 {
     const unsigned int n_dofs     = finite_element.dofs_per_cell;
+    const unsigned int n_quad_pts = quadrature.size();
     vol_integral_basis<dim,n_faces> integral_vol_basis(this->nstate, this->max_degree, this->max_grid_degree);
     integral_vol_basis.build_1D_volume_operator(finite_element, quadrature);
     local_mass<dim,n_faces> local_Mass_Matrix(this->nstate, this->max_degree, this->max_grid_degree);
@@ -1367,7 +1368,7 @@ void vol_projection_operator<dim,n_faces>::build_1D_volume_operator(
     dealii::FullMatrix<double> mass_inv(n_dofs);
     mass_inv.invert(local_Mass_Matrix.oneD_vol_operator);
     //allocate the volume operator
-    this->oneD_vol_operator.reinit(n_dofs, n_dofs);
+    this->oneD_vol_operator.reinit(n_dofs, n_quad_pts);
     //solves
     compute_local_vol_projection_operator(mass_inv, integral_vol_basis.oneD_vol_operator, this->oneD_vol_operator);
 }
@@ -1397,17 +1398,58 @@ void vol_projection_operator_FR<dim,n_faces>::build_1D_volume_operator(
     const dealii::Quadrature<1> &quadrature)
 {
     const unsigned int n_dofs     = finite_element.dofs_per_cell;
+    const unsigned int n_quad_pts = quadrature.size();
     vol_integral_basis<dim,n_faces> integral_vol_basis(this->nstate, this->max_degree, this->max_grid_degree);
     integral_vol_basis.build_1D_volume_operator(finite_element, quadrature);
     FR_mass_inv<dim,n_faces> local_FR_Mass_Matrix_inv(this->nstate, this->max_degree, this->max_grid_degree, FR_param_type);
     local_FR_Mass_Matrix_inv.build_1D_volume_operator(finite_element, quadrature);
     //allocate the volume operator
-    this->oneD_vol_operator.reinit(n_dofs, n_dofs);
+    this->oneD_vol_operator.reinit(n_dofs, n_quad_pts);
     //solves
     this->compute_local_vol_projection_operator(local_FR_Mass_Matrix_inv.oneD_vol_operator, integral_vol_basis.oneD_vol_operator, this->oneD_vol_operator);
     
     if(store_transpose){
-        oneD_transpose_vol_operator.reinit(n_dofs, n_dofs);
+        oneD_transpose_vol_operator.reinit(n_quad_pts, n_dofs);
+        oneD_transpose_vol_operator.Tadd(1.0, this->oneD_vol_operator);
+    }
+}
+template <int dim, int n_faces>  
+vol_projection_operator_FR_aux<dim,n_faces>::vol_projection_operator_FR_aux(
+    const int nstate_input,
+    const unsigned int max_degree_input,
+    const unsigned int grid_degree_input,
+    const Parameters::AllParameters::Flux_Reconstruction_Aux FR_param_input,
+    const bool store_transpose_input)
+    : vol_projection_operator<dim,n_faces>::vol_projection_operator(nstate_input, max_degree_input, grid_degree_input)
+    , store_transpose(store_transpose_input)
+    , FR_param_type(FR_param_input)
+{
+    //Initialize to the max degrees
+    current_degree      = max_degree_input;
+}
+template <int dim, int n_faces>  
+vol_projection_operator_FR_aux<dim,n_faces>::~vol_projection_operator_FR_aux()
+{
+}
+
+template <int dim, int n_faces>  
+void vol_projection_operator_FR_aux<dim,n_faces>::build_1D_volume_operator(
+    const dealii::FESystem<1,1> &finite_element,
+    const dealii::Quadrature<1> &quadrature)
+{
+    const unsigned int n_dofs     = finite_element.dofs_per_cell;
+    const unsigned int n_quad_pts = quadrature.size();
+    vol_integral_basis<dim,n_faces> integral_vol_basis(this->nstate, this->max_degree, this->max_grid_degree);
+    integral_vol_basis.build_1D_volume_operator(finite_element, quadrature);
+    FR_mass_inv_aux<dim,n_faces> local_FR_Mass_Matrix_inv(this->nstate, this->max_degree, this->max_grid_degree, FR_param_type);
+    local_FR_Mass_Matrix_inv.build_1D_volume_operator(finite_element, quadrature);
+    //allocate the volume operator
+    this->oneD_vol_operator.reinit(n_dofs, n_quad_pts);
+    //solves
+    this->compute_local_vol_projection_operator(local_FR_Mass_Matrix_inv.oneD_vol_operator, integral_vol_basis.oneD_vol_operator, this->oneD_vol_operator);
+    
+    if(store_transpose){
+        oneD_transpose_vol_operator.reinit(n_quad_pts, n_dofs);
         oneD_transpose_vol_operator.Tadd(1.0, this->oneD_vol_operator);
     }
 }
@@ -1444,6 +1486,106 @@ void FR_mass_inv<dim,n_faces>::build_1D_volume_operator(
     this->oneD_vol_operator.reinit(n_dofs, n_dofs);
     //solves
     this->oneD_vol_operator.invert(FR_mass_matrix);
+}
+
+template <int dim, int n_faces>  
+FR_mass_inv_aux<dim,n_faces>::FR_mass_inv_aux(
+    const int nstate_input,
+    const unsigned int max_degree_input,
+    const unsigned int grid_degree_input,
+    const Parameters::AllParameters::Flux_Reconstruction_Aux FR_param_input)
+    : SumFactorizedOperators<dim,n_faces>::SumFactorizedOperators(nstate_input, max_degree_input, grid_degree_input)
+    , FR_param_type(FR_param_input)
+{
+    //Initialize to the max degrees
+    current_degree      = max_degree_input;
+}
+template <int dim, int n_faces>  
+FR_mass_inv_aux<dim,n_faces>::~FR_mass_inv_aux()
+{
+}
+template <int dim, int n_faces>  
+void FR_mass_inv_aux<dim,n_faces>::build_1D_volume_operator(
+    const dealii::FESystem<1,1> &finite_element,
+    const dealii::Quadrature<1> &quadrature)
+{
+    const unsigned int n_dofs     = finite_element.dofs_per_cell;
+    local_mass<dim,n_faces> local_Mass_Matrix(this->nstate, this->max_degree, this->max_grid_degree);
+    local_Mass_Matrix.build_1D_volume_operator(finite_element, quadrature);
+    local_Flux_Reconstruction_operator_aux<dim,n_faces> local_FR_oper(this->nstate, this->max_degree, this->max_grid_degree, FR_param_type);
+    local_FR_oper.build_1D_volume_operator(finite_element, quadrature);
+    dealii::FullMatrix<double> FR_mass_matrix(n_dofs);
+    FR_mass_matrix.add(1.0, local_Mass_Matrix.oneD_vol_operator, 1.0, local_FR_oper.oneD_vol_operator);
+    //allocate the volume operator
+    this->oneD_vol_operator.reinit(n_dofs, n_dofs);
+    //solves
+    this->oneD_vol_operator.invert(FR_mass_matrix);
+}
+template <int dim, int n_faces>  
+FR_mass<dim,n_faces>::FR_mass(
+    const int nstate_input,
+    const unsigned int max_degree_input,
+    const unsigned int grid_degree_input,
+    const Parameters::AllParameters::Flux_Reconstruction FR_param_input)
+    : SumFactorizedOperators<dim,n_faces>::SumFactorizedOperators(nstate_input, max_degree_input, grid_degree_input)
+    , FR_param_type(FR_param_input)
+{
+    //Initialize to the max degrees
+    current_degree      = max_degree_input;
+}
+template <int dim, int n_faces>  
+FR_mass<dim,n_faces>::~FR_mass()
+{
+}
+template <int dim, int n_faces>  
+void FR_mass<dim,n_faces>::build_1D_volume_operator(
+    const dealii::FESystem<1,1> &finite_element,
+    const dealii::Quadrature<1> &quadrature)
+{
+    const unsigned int n_dofs     = finite_element.dofs_per_cell;
+    local_mass<dim,n_faces> local_Mass_Matrix(this->nstate, this->max_degree, this->max_grid_degree);
+    local_Mass_Matrix.build_1D_volume_operator(finite_element, quadrature);
+    local_Flux_Reconstruction_operator<dim,n_faces> local_FR_oper(this->nstate, this->max_degree, this->max_grid_degree, FR_param_type);
+    local_FR_oper.build_1D_volume_operator(finite_element, quadrature);
+    dealii::FullMatrix<double> FR_mass_matrix(n_dofs);
+    FR_mass_matrix.add(1.0, local_Mass_Matrix.oneD_vol_operator, 1.0, local_FR_oper.oneD_vol_operator);
+    //allocate the volume operator
+    this->oneD_vol_operator.reinit(n_dofs, n_dofs);
+    //solves
+    this->oneD_vol_operator.add(1.0, FR_mass_matrix);
+}
+template <int dim, int n_faces>  
+FR_mass_aux<dim,n_faces>::FR_mass_aux(
+    const int nstate_input,
+    const unsigned int max_degree_input,
+    const unsigned int grid_degree_input,
+    const Parameters::AllParameters::Flux_Reconstruction_Aux FR_param_input)
+    : SumFactorizedOperators<dim,n_faces>::SumFactorizedOperators(nstate_input, max_degree_input, grid_degree_input)
+    , FR_param_type(FR_param_input)
+{
+    //Initialize to the max degrees
+    current_degree      = max_degree_input;
+}
+template <int dim, int n_faces>  
+FR_mass_aux<dim,n_faces>::~FR_mass_aux()
+{
+}
+template <int dim, int n_faces>  
+void FR_mass_aux<dim,n_faces>::build_1D_volume_operator(
+    const dealii::FESystem<1,1> &finite_element,
+    const dealii::Quadrature<1> &quadrature)
+{
+    const unsigned int n_dofs     = finite_element.dofs_per_cell;
+    local_mass<dim,n_faces> local_Mass_Matrix(this->nstate, this->max_degree, this->max_grid_degree);
+    local_Mass_Matrix.build_1D_volume_operator(finite_element, quadrature);
+    local_Flux_Reconstruction_operator_aux<dim,n_faces> local_FR_oper(this->nstate, this->max_degree, this->max_grid_degree, FR_param_type);
+    local_FR_oper.build_1D_volume_operator(finite_element, quadrature);
+    dealii::FullMatrix<double> FR_mass_matrix(n_dofs);
+    FR_mass_matrix.add(1.0, local_Mass_Matrix.oneD_vol_operator, 1.0, local_FR_oper.oneD_vol_operator);
+    //allocate the volume operator
+    this->oneD_vol_operator.reinit(n_dofs, n_dofs);
+    //solves
+    this->oneD_vol_operator.add(1.0, FR_mass_matrix);
 }
 
 template <int dim, int n_faces>
@@ -2501,7 +2643,11 @@ template class local_Flux_Reconstruction_operator <PHILIP_DIM, 2*PHILIP_DIM>;
 template class local_Flux_Reconstruction_operator_aux <PHILIP_DIM, 2*PHILIP_DIM>;
 template class vol_projection_operator <PHILIP_DIM, 2*PHILIP_DIM>;
 template class vol_projection_operator_FR <PHILIP_DIM, 2*PHILIP_DIM>;
+template class vol_projection_operator_FR_aux <PHILIP_DIM, 2*PHILIP_DIM>;
 template class FR_mass_inv <PHILIP_DIM, 2*PHILIP_DIM>;
+template class FR_mass_inv_aux <PHILIP_DIM, 2*PHILIP_DIM>;
+template class FR_mass <PHILIP_DIM, 2*PHILIP_DIM>;
+template class FR_mass_aux <PHILIP_DIM, 2*PHILIP_DIM>;
 template class vol_integral_gradient_basis <PHILIP_DIM, 2*PHILIP_DIM>;
 
 //template class basis_at_facet_cubature <PHILIP_DIM, 2*PHILIP_DIM>;

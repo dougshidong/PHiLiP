@@ -130,9 +130,14 @@ dealii::FullMatrix<double> OperatorsBase<dim,n_faces>::tensor_product_state(
     const unsigned int rows_1state_z    = rows_z / nstate;
     const unsigned int columns_1state_z = columns_z / nstate;
 
-    const unsigned int rows_all_states    = (dim == 1) ? rows_x * nstate : ( (dim==2) ? rows_x * rows_y * nstate : rows_x * rows_y * rows_z * nstate);
-    const unsigned int columns_all_states = (dim == 1) ? columns_x * nstate : ( (dim==2) ? columns_x * columns_y * nstate : columns_x * columns_y * columns_z * nstate);
+    const unsigned int rows_all_states    = (dim == 1) ? rows_1state_x * nstate : 
+                                                ( (dim == 2) ? rows_1state_x * rows_1state_y * nstate : 
+                                                    rows_1state_x * rows_1state_y * rows_1state_z * nstate);
+    const unsigned int columns_all_states = (dim == 1) ? columns_1state_x * nstate : 
+                                                ( (dim == 2) ? columns_1state_x * columns_1state_y * nstate : 
+                                                    columns_1state_x * columns_1state_y * columns_1state_z * nstate);
     dealii::FullMatrix<double> tens_prod(rows_all_states, columns_all_states);
+
 
     for(int istate=0; istate<nstate; istate++){
         dealii::FullMatrix<double> basis_x_1state(rows_1state_x, columns_1state_x);
@@ -1934,7 +1939,7 @@ void metric_operators<real,dim,n_faces>::build_facet_metric_operators(
             for(int idim=0; idim<dim; idim++){
                 flux_nodes_surf[iface][idim].resize(n_quad_pts);
                 this->matrix_vector_mult(mapping_support_points[idim],
-                                         flux_nodes_vol[idim],
+                                         flux_nodes_surf[iface][idim],
                                          (iface == 0) ? mapping_basis.mapping_shape_functions_flux_nodes.oneD_surf_operator[0] : 
                                              ((iface == 1) ? mapping_basis.mapping_shape_functions_flux_nodes.oneD_surf_operator[1] : 
                                                  mapping_basis.mapping_shape_functions_flux_nodes.oneD_vol_operator),

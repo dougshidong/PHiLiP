@@ -661,7 +661,7 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
     //if have source term need to store vol flux nodes.
     const bool store_vol_flux_nodes = all_parameters->manufactured_convergence_study_param.manufactured_solution_param.use_manufactured_source_term;
     //for boundary conditions not periodic we need surface flux nodes
-    const bool store_surf_flux_nodes = !all_parameters->use_periodic_bc;
+    const bool store_surf_flux_nodes = (all_parameters->use_periodic_bc) ? false : true;
 
     OPERATOR::metric_operators<real,dim,2*dim> metric_oper_int(nstate, poly_degree, grid_degree,
                                                                store_vol_flux_nodes,
@@ -2802,7 +2802,7 @@ void DGBase<dim,real,MeshType>::evaluate_local_metric_dependent_mass_matrix_and_
         //check if linear grid bc we can factor out determinant of Jacobian
         if(curr_grid_degree == 1){
             local_mass_matrix.add(metric_oper.det_Jac_vol[0],
-                                  reference_mass_matrix.tensor_product_state(
+                                    reference_mass_matrix.tensor_product_state(
                                         nstate,
                                         reference_mass_matrix.oneD_vol_operator,
                                         reference_mass_matrix.oneD_vol_operator,

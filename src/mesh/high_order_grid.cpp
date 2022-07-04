@@ -59,7 +59,7 @@ HighOrderGrid<dim,real,MeshType,VectorType,DoFHandlerType>::HighOrderGrid(
     , fe_q(max_degree) // The grid must be at least p1. A p0 solution required a p1 grid.
     , fe_system(dealii::FESystem<dim>(fe_q,dim)) // The grid must be at least p1. A p0 solution required a p1 grid.
     , oneD_fe_q(max_degree)
-    , oneD_fe_system(oneD_fe_q)
+    , oneD_fe_system(oneD_fe_q,1)
     , oneD_grid_nodes(max_degree+1)
     , dim_grid_nodes(max_degree+1)
     , solution_transfer(dof_handler_grid)

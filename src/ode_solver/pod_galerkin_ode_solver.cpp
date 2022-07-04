@@ -14,7 +14,6 @@ template <int dim, typename real, typename MeshType>
 int PODGalerkinODESolver<dim,real,MeshType>::steady_state ()
 {
     this->pcout << " Performing steady state analysis... " << std::endl;
-    //allocate_ode_system ();
 
     this->current_iteration = 0;
 

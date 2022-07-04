@@ -185,6 +185,10 @@ void PODPetrovGalerkinODESolver<dim,real,MeshType>::step_in_time (real /*dt*/, c
     }
     this->pcout << "Full-order residual norm: " << this->dg->get_residual_l2norm() << std::endl;
 
+    if(iline == maxline && new_residual > initial_residual){
+        this->pcout << "No decrease in residual. Maximum line search interations reached." << std::endl;
+    }
+
     this->residual_norm = new_residual;
 
     ++(this->current_iteration);

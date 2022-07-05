@@ -347,7 +347,7 @@ real TargetFunctional<dim, nstate, real>::evaluate_functional(
     const auto mapping = (*(dg->high_order_grid->mapping_fe_field));
     dealii::hp::MappingCollection<dim> mapping_collection(mapping);
 
-    dealii::hp::FEFaceValues<dim,dim> fe_values_collection_face  (mapping_collection, dg->operators->fe_collection_basis, dg->operators->face_quadrature_collection,   this->face_update_flags);
+    dealii::hp::FEFaceValues<dim,dim> fe_values_collection_face  (mapping_collection, dg->fe_collection, dg->face_quadrature_collection,   this->face_update_flags);
 
     this->allocate_derivatives(actually_compute_dIdW, actually_compute_dIdX, actually_compute_d2I);
 
@@ -367,7 +367,7 @@ real TargetFunctional<dim, nstate, real>::evaluate_functional(
         (void) i_mapp;
 
         // Get solution coefficients
-        const dealii::FESystem<dim,dim> &fe_solution = dg->operators->fe_collection_basis[i_fele];
+        const dealii::FESystem<dim,dim> &fe_solution = dg->fe_collection[i_fele];
         const unsigned int n_soln_dofs_cell = fe_solution.n_dofs_per_cell();
         cell_soln_dofs_indices.resize(n_soln_dofs_cell);
         soln_cell->get_dof_indices(cell_soln_dofs_indices);
@@ -417,7 +417,7 @@ real TargetFunctional<dim, nstate, real>::evaluate_functional(
         AssertDimension(i_derivative, n_total_indep);
 
         // Get quadrature point on reference cell
-        const dealii::Quadrature<dim> &volume_quadrature = dg->operators->volume_quadrature_collection[i_quad];
+        const dealii::Quadrature<dim> &volume_quadrature = dg->volume_quadrature_collection[i_quad];
 
         // Evaluate integral on the cell volume
         FadFadType volume_local_sum;
@@ -434,7 +434,7 @@ real TargetFunctional<dim, nstate, real>::evaluate_functional(
 
                 const unsigned int boundary_id = face->boundary_id();
 
-                volume_local_sum += evaluate_boundary_cell_functional(*physics_fad_fad, boundary_id, soln_coeff, target_soln_coeff, fe_solution, coords_coeff, fe_metric, dg->operators->face_quadrature_collection[i_quad], iface);
+                volume_local_sum += evaluate_boundary_cell_functional(*physics_fad_fad, boundary_id, soln_coeff, target_soln_coeff, fe_solution, coords_coeff, fe_metric, dg->face_quadrature_collection[i_quad], iface);
             }
 
         }
@@ -487,8 +487,8 @@ dealii::LinearAlgebra::distributed::Vector<real> TargetFunctional<dim,nstate,rea
     const auto mapping = (*(dg.high_order_grid->mapping_fe_field));
     dealii::hp::MappingCollection<dim> mapping_collection(mapping);
 
-    dealii::hp::FEValues<dim,dim>     fe_values_collection_volume(mapping_collection, dg.operators->fe_collection_basis, dg.operators->volume_quadrature_collection, this->volume_update_flags);
-    dealii::hp::FEFaceValues<dim,dim> fe_values_collection_face  (mapping_collection, dg.operators->fe_collection_basis, dg.operators->face_quadrature_collection,   this->face_update_flags);
+    dealii::hp::FEValues<dim,dim>     fe_values_collection_volume(mapping_collection, dg.fe_collection, dg.volume_quadrature_collection, this->volume_update_flags);
+    dealii::hp::FEFaceValues<dim,dim> fe_values_collection_face  (mapping_collection, dg.fe_collection, dg.face_quadrature_collection,   this->face_update_flags);
 
     dg.solution.update_ghost_values();
     auto metric_cell = dg.high_order_grid->dof_handler_grid.begin_active();
@@ -503,7 +503,7 @@ dealii::LinearAlgebra::distributed::Vector<real> TargetFunctional<dim,nstate,rea
         (void) i_mapp;
 
         // Get solution coefficients
-        const dealii::FESystem<dim,dim> &fe_solution = dg.operators->fe_collection_basis[i_fele];
+        const dealii::FESystem<dim,dim> &fe_solution = dg.fe_collection[i_fele];
         const unsigned int n_soln_dofs_cell = fe_solution.n_dofs_per_cell();
         cell_soln_dofs_indices.resize(n_soln_dofs_cell);
         cell->get_dof_indices(cell_soln_dofs_indices);
@@ -524,7 +524,7 @@ dealii::LinearAlgebra::distributed::Vector<real> TargetFunctional<dim,nstate,rea
             coords_coeff[idof] = dg.high_order_grid->volume_nodes[cell_metric_dofs_indices[idof]];
         }
 
-        const dealii::Quadrature<dim> &volume_quadrature = dg.operators->volume_quadrature_collection[i_quad];
+        const dealii::Quadrature<dim> &volume_quadrature = dg.volume_quadrature_collection[i_quad];
 
         // adding the contribution from the current volume, also need to pass the solution vector on these points
         //local_sum_old = this->evaluate_volume_integrand(physics, fe_values_volume, soln_coeff);
@@ -536,7 +536,7 @@ dealii::LinearAlgebra::distributed::Vector<real> TargetFunctional<dim,nstate,rea
             
             if(face->at_boundary()){
                 const unsigned int boundary_id = face->boundary_id();
-                local_sum_old += evaluate_boundary_cell_functional(physics, boundary_id, soln_coeff, target_soln_coeff, fe_solution, coords_coeff, fe_metric, dg.operators->face_quadrature_collection[i_quad], iface);
+                local_sum_old += evaluate_boundary_cell_functional(physics, boundary_id, soln_coeff, target_soln_coeff, fe_solution, coords_coeff, fe_metric, dg.face_quadrature_collection[i_quad], iface);
             }
 
         }
@@ -560,7 +560,7 @@ dealii::LinearAlgebra::distributed::Vector<real> TargetFunctional<dim,nstate,rea
                 
                 if(face->at_boundary()){
                     const unsigned int boundary_id = face->boundary_id();
-                    local_sum_new += evaluate_boundary_cell_functional(physics, boundary_id, soln_coeff, target_soln_coeff, fe_solution, coords_coeff, fe_metric, dg.operators->face_quadrature_collection[i_quad], iface);
+                    local_sum_new += evaluate_boundary_cell_functional(physics, boundary_id, soln_coeff, target_soln_coeff, fe_solution, coords_coeff, fe_metric, dg.face_quadrature_collection[i_quad], iface);
                 }
 
             }
@@ -601,8 +601,8 @@ dealii::LinearAlgebra::distributed::Vector<real> TargetFunctional<dim,nstate,rea
     const auto mapping = (*(dg.high_order_grid->mapping_fe_field));
     dealii::hp::MappingCollection<dim> mapping_collection(mapping);
 
-    dealii::hp::FEValues<dim,dim>     fe_values_collection_volume(mapping_collection, dg.operators->fe_collection_basis, dg.operators->volume_quadrature_collection, this->volume_update_flags);
-    dealii::hp::FEFaceValues<dim,dim> fe_values_collection_face  (mapping_collection, dg.operators->fe_collection_basis, dg.operators->face_quadrature_collection,   this->face_update_flags);
+    dealii::hp::FEValues<dim,dim>     fe_values_collection_volume(mapping_collection, dg.fe_collection, dg.volume_quadrature_collection, this->volume_update_flags);
+    dealii::hp::FEFaceValues<dim,dim> fe_values_collection_face  (mapping_collection, dg.fe_collection, dg.face_quadrature_collection,   this->face_update_flags);
 
     dg.solution.update_ghost_values();
     auto metric_cell = dg.high_order_grid->dof_handler_grid.begin_active();
@@ -617,7 +617,7 @@ dealii::LinearAlgebra::distributed::Vector<real> TargetFunctional<dim,nstate,rea
         (void) i_mapp;
 
         // Get solution coefficients
-        const dealii::FESystem<dim,dim> &fe_solution = dg.operators->fe_collection_basis[i_fele];
+        const dealii::FESystem<dim,dim> &fe_solution = dg.fe_collection[i_fele];
         const unsigned int n_soln_dofs_cell = fe_solution.n_dofs_per_cell();
         cell_soln_dofs_indices.resize(n_soln_dofs_cell);
         cell->get_dof_indices(cell_soln_dofs_indices);
@@ -638,7 +638,7 @@ dealii::LinearAlgebra::distributed::Vector<real> TargetFunctional<dim,nstate,rea
             coords_coeff[idof] = dg.high_order_grid->volume_nodes[cell_metric_dofs_indices[idof]];
         }
 
-        const dealii::Quadrature<dim> &volume_quadrature = dg.operators->volume_quadrature_collection[i_quad];
+        const dealii::Quadrature<dim> &volume_quadrature = dg.volume_quadrature_collection[i_quad];
 
         // adding the contribution from the current volume, also need to pass the solution vector on these points
         //local_sum_old = this->evaluate_volume_integrand(physics, fe_values_volume, soln_coeff);
@@ -650,7 +650,7 @@ dealii::LinearAlgebra::distributed::Vector<real> TargetFunctional<dim,nstate,rea
             
             if(face->at_boundary()){
                 const unsigned int boundary_id = face->boundary_id();
-                local_sum_old += evaluate_boundary_cell_functional(physics, boundary_id, soln_coeff, target_soln_coeff, fe_solution, coords_coeff, fe_metric, dg.operators->face_quadrature_collection[i_quad], iface);
+                local_sum_old += evaluate_boundary_cell_functional(physics, boundary_id, soln_coeff, target_soln_coeff, fe_solution, coords_coeff, fe_metric, dg.face_quadrature_collection[i_quad], iface);
             }
 
         }
@@ -673,7 +673,7 @@ dealii::LinearAlgebra::distributed::Vector<real> TargetFunctional<dim,nstate,rea
                 
                 if(face->at_boundary()){
                     const unsigned int boundary_id = face->boundary_id();
-                    local_sum_new += evaluate_boundary_cell_functional(physics, boundary_id, soln_coeff, target_soln_coeff, fe_solution, coords_coeff, fe_metric, dg.operators->face_quadrature_collection[i_quad], iface);
+                    local_sum_new += evaluate_boundary_cell_functional(physics, boundary_id, soln_coeff, target_soln_coeff, fe_solution, coords_coeff, fe_metric, dg.face_quadrature_collection[i_quad], iface);
                 }
 
             }

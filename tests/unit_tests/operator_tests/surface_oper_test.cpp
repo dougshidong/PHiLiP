@@ -108,61 +108,129 @@ int main (int argc, char * argv[])
         dealii::GridGenerator::hyper_cube (*grid, left, right, colorize);
         grid->refine_global(igrid);
     double max_dif_int_parts = 0.0;
+    double max_dif_surf_int = 0.0;
+    double max_dif_surf_int_FR = 0.0;
+    double max_dif_int_parts_dim = 0.0;
     for(unsigned int poly_degree=2; poly_degree<6; poly_degree++){
 
+        const unsigned int n_dofs = nstate * pow(poly_degree+1,dim);
+        const unsigned int n_dofs_1D = nstate * (poly_degree+1);
 
-       // OPERATOR::OperatorsBase<dim,real> operators(&all_parameters_new, nstate, poly_degree, poly_degree, poly_degree); 
-        OPERATOR::OperatorsBaseState<dim,real,nstate,2*dim> operators(&all_parameters_new, poly_degree, poly_degree);
+        //build stiffnes 1D
+        PHiLiP::OPERATOR::local_basis_stiffness<dim,2*dim> stiffness(nstate, poly_degree, 1);
+        dealii::QGauss<1> quad1D (poly_degree+1);
+        const dealii::FE_DGQ<1> fe_dg(poly_degree);
+        const dealii::FESystem<1,1> fe_system(fe_dg, nstate);
+        stiffness.build_1D_volume_operator(fe_system,quad1D);
 
-        const unsigned int n_dofs = operators.fe_collection_basis[poly_degree].dofs_per_cell;
-        std::vector<dealii::FullMatrix<real>> vol_int_parts(dim);
-        std::vector<dealii::FullMatrix<real>> face_int_parts(dim);
-        for(int idim=0; idim<dim; idim++){
-            vol_int_parts[idim].reinit(n_dofs, n_dofs);
-            face_int_parts[idim].reinit(n_dofs, n_dofs);
-            vol_int_parts[idim].add(1.0, operators.local_basis_stiffness[poly_degree][idim]);
-            vol_int_parts[idim].Tadd(1.0, operators.local_basis_stiffness[poly_degree][idim]);
-        }
+        //volume integration by parts
+        dealii::FullMatrix<real> vol_int_parts(n_dofs_1D);
+        vol_int_parts.add(1.0, stiffness.oneD_vol_operator);
+        vol_int_parts.Tadd(1.0, stiffness.oneD_vol_operator);
 
-        const unsigned int n_quad_face_pts = operators.face_quadrature_collection[poly_degree].size();
-        for(unsigned int iface=0; iface< dealii::GeometryInfo<dim>::faces_per_cell; iface++){
-            const dealii::Tensor<1,dim,real> unit_normal = dealii::GeometryInfo<dim>::unit_normal_vector[iface];
-            int jdim=0;
-            for(int idim=0; idim<dim; idim++){
-                if(unit_normal[idim] != 0)
-                    jdim = idim;
-            }
-            for(unsigned int itest=0; itest<n_dofs; itest++){
-                const unsigned int istate_test = operators.fe_collection_basis[poly_degree].system_to_component_index(itest).first;
-                for(unsigned int idof=0; idof<n_dofs; idof++){
-                    const unsigned int istate_dof = operators.fe_collection_basis[poly_degree].system_to_component_index(idof).first;
+        //compute surface integral
+        dealii::FullMatrix<real> face_int_parts(n_dofs_1D);
+        dealii::QGauss<0> face_quad1D (poly_degree+1);
+        PHiLiP::OPERATOR::face_integral_basis<dim,2*dim> face_int(nstate, poly_degree, 1);
+        face_int.build_1D_surface_operator(fe_system, face_quad1D);
+        PHiLiP::OPERATOR::basis_functions<dim,2*dim> face_basis(nstate, poly_degree, 1);
+        face_basis.build_1D_surface_operator(fe_system, face_quad1D);
+
+        const unsigned int n_face_quad_pts = face_quad1D.size();
+        for(unsigned int iface=0; iface< dealii::GeometryInfo<1>::faces_per_cell; iface++){
+            const dealii::Tensor<1,1,real> unit_normal = dealii::GeometryInfo<1>::unit_normal_vector[iface];
+            for(unsigned int itest=0; itest<n_dofs_1D; itest++){
+                const unsigned int istate_test = fe_system.system_to_component_index(itest).first;
+                for(unsigned int idof=0; idof<n_dofs_1D; idof++){
+                    const unsigned int istate_dof = fe_system.system_to_component_index(idof).first;
                     double value= 0.0;
-                    for(unsigned int iquad=0; iquad<n_quad_face_pts; iquad++){
-                        value +=        operators.face_integral_basis[poly_degree][iface][iquad][itest] 
-                                *       unit_normal[jdim]
-                                *       operators.basis_at_facet_cubature[poly_degree][iface][iquad][idof];
+                    for(unsigned int iquad=0; iquad<n_face_quad_pts; iquad++){
+                        value +=    face_int.oneD_surf_operator[iface][iquad][itest]
+                                *   unit_normal[0]
+                                *   face_basis.oneD_surf_operator[iface][iquad][idof];
                     }
                     if(istate_test == istate_dof){
-                        face_int_parts[jdim][itest][idof] += value;
+                        face_int_parts[itest][idof] += value;
                     }
                 }
             }
         }
-        for(int idim=0; idim<dim; idim++){
-            for(unsigned int idof=0; idof<n_dofs; idof++){
-                for(unsigned int idof2=0; idof2<n_dofs; idof2++){
-                    if(std::abs(face_int_parts[idim][idof][idof2] - vol_int_parts[idim][idof][idof2])>max_dif_int_parts)
-                        max_dif_int_parts = std::abs(face_int_parts[idim][idof][idof2] - vol_int_parts[idim][idof][idof2]);
+
+
+        for(unsigned int idof=0; idof<n_dofs_1D; idof++){
+            for(unsigned int idof2=0; idof2<n_dofs_1D; idof2++){
+                if(std::abs(face_int_parts[idof][idof2] - vol_int_parts[idof][idof2])>max_dif_int_parts)
+                    max_dif_int_parts = std::abs(face_int_parts[idof][idof2] - vol_int_parts[idof][idof2]);
+            }
+        }
+
+        PHiLiP::OPERATOR::lifting_operator<dim,2*dim> lifting(nstate, poly_degree, 1);
+        lifting.build_1D_volume_operator(fe_system, quad1D);
+        lifting.build_1D_surface_operator(fe_system, face_quad1D);
+        std::array<dealii::FullMatrix<real>,2> surface_int_from_lift;
+        for(unsigned int iface=0; iface<2; iface++){
+            surface_int_from_lift[iface].reinit(n_dofs_1D, n_face_quad_pts);
+            lifting.oneD_vol_operator.mmult(surface_int_from_lift[iface], lifting.oneD_surf_operator[iface]); 
+        }
+        for(unsigned int iface=0; iface<2; iface++){
+            for(unsigned int idof=0; idof<n_dofs_1D; idof++){
+                for(unsigned int iquad=0; iquad<n_face_quad_pts; iquad++){
+                    if(std::abs(face_int.oneD_surf_operator[iface][iquad][idof] - surface_int_from_lift[iface][idof][iquad])>max_dif_surf_int)
+                        max_dif_surf_int = std::abs(face_int.oneD_surf_operator[iface][iquad][idof] - surface_int_from_lift[iface][idof][iquad]);
+                }
+            }
+        }
+        PHiLiP::OPERATOR::lifting_operator_FR<dim,2*dim> lifting_FR(nstate, poly_degree, 1, FR_enum::cPlus);
+        lifting_FR.build_1D_volume_operator(fe_system, quad1D);
+        lifting_FR.build_1D_surface_operator(fe_system, face_quad1D);
+        std::array<dealii::FullMatrix<real>,2> surface_int_from_lift_FR;
+        for(unsigned int iface=0; iface<2; iface++){
+            surface_int_from_lift_FR[iface].reinit(n_dofs_1D, n_face_quad_pts);
+            lifting_FR.oneD_vol_operator.mmult(surface_int_from_lift_FR[iface], lifting_FR.oneD_surf_operator[iface]); 
+        }
+        for(unsigned int iface=0; iface<2; iface++){
+            for(unsigned int idof=0; idof<n_dofs_1D; idof++){
+                for(unsigned int iquad=0; iquad<n_face_quad_pts; iquad++){
+                    if(std::abs(face_int.oneD_surf_operator[iface][iquad][idof] - surface_int_from_lift_FR[iface][idof][iquad])>max_dif_surf_int)
+                        max_dif_surf_int_FR = std::abs(face_int.oneD_surf_operator[iface][iquad][idof] - surface_int_from_lift_FR[iface][idof][iquad]);
                 }
             }
         }
         
+        dealii::FullMatrix<real> face_int_parts_dim(n_dofs);
+        face_int_parts_dim = face_int.tensor_product_state(nstate, face_int_parts, lifting.oneD_vol_operator, lifting.oneD_vol_operator); 
+        dealii::FullMatrix<real> vol_int_parts_dim(n_dofs);
+        dealii::FullMatrix<real> stiffness_dim(n_dofs);
+        stiffness_dim = stiffness.tensor_product_state(nstate, stiffness.oneD_vol_operator, lifting.oneD_vol_operator, lifting.oneD_vol_operator);
+        vol_int_parts_dim.add(1.0, stiffness_dim);
+        vol_int_parts_dim.Tadd(1.0, stiffness_dim);
+        for(unsigned int idof=0; idof<n_dofs; idof++){
+            for(unsigned int idof2=0; idof2<n_dofs; idof2++){
+                if(std::abs(face_int_parts_dim[idof][idof2] - vol_int_parts_dim[idof][idof2])>max_dif_int_parts_dim)
+                    max_dif_int_parts_dim = std::abs(face_int_parts_dim[idof][idof2] - vol_int_parts_dim[idof][idof2]);
+            }
+        }
+
     }//end of poly_degree loop
 
     const double max_dif_int_parts_mpi= (dealii::Utilities::MPI::max(max_dif_int_parts, MPI_COMM_WORLD));
-    if( max_dif_int_parts_mpi >1e-7){
+    const double max_dif_int_parts_dim_mpi= (dealii::Utilities::MPI::max(max_dif_int_parts_dim, MPI_COMM_WORLD));
+    const double max_dif_surf_int_mpi= (dealii::Utilities::MPI::max(max_dif_surf_int, MPI_COMM_WORLD));
+    const double max_dif_surf_int_mpi_FR= (dealii::Utilities::MPI::max(max_dif_surf_int_FR, MPI_COMM_WORLD));
+    if( max_dif_int_parts_mpi >1e-11){
         pcout<<" Surface operator not satisfy integration by parts !"<<std::endl;
-       // printf(" One of the pth order deirvatives is wrong !\n");
+        return 1;
+    }
+    if( max_dif_int_parts_dim_mpi >1e-11){
+        pcout<<" Surface operator tensor product not satisfy integration by parts !"<<std::endl;
+        return 1;
+    }
+    else if( max_dif_surf_int_mpi >1e-11){
+        pcout<<" Surface lifting operator not correct !"<<std::endl;
+        return 1;
+    }
+    else if( max_dif_surf_int_mpi_FR >1e-11){
+        pcout<<" Surface lifting FR operator not correct !"<<std::endl;
         return 1;
     }
     else{

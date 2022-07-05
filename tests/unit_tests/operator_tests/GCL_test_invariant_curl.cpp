@@ -265,7 +265,7 @@ int main (int argc, char * argv[])
             dealii::Triangulation<dim>::smoothing_on_refinement |
             dealii::Triangulation<dim>::smoothing_on_coarsening));
         dealii::GridGenerator::hyper_cube (*grid, left, right, colorize);
-        grid->refine_global(3);
+        grid->refine_global(0);
 
 //Warp the grid
 //IF WANT NON-WARPED GRID COMMENT UNTIL SAYS "NOT COMMENT"
@@ -303,6 +303,7 @@ int main (int argc, char * argv[])
         for (auto current_cell = dg->dof_handler.begin_active(); current_cell!=dg->dof_handler.end(); ++current_cell, ++metric_cell) {
             if (!current_cell->is_locally_owned()) continue;
         
+            pcout<<" degree "<<grid_degree<<" metric dofs "<<n_metric_dofs<<std::endl;
             std::vector<dealii::types::global_dof_index> current_metric_dofs_indices(n_metric_dofs);
             metric_cell->get_dof_indices (current_metric_dofs_indices);
             std::array<std::vector<real>,dim> mapping_support_points;
@@ -318,13 +319,12 @@ int main (int argc, char * argv[])
                 }
             }
 
-
             PHiLiP::OPERATOR::metric_operators<real,dim,2*dim> metric_oper(nstate,poly_degree,grid_degree);
             metric_oper.build_volume_metric_operators(
                 n_quad_pts, n_metric_dofs/dim,
                 mapping_support_points,
                 mapping_basis,
-                false);
+                true);
 
             std::array<std::vector<real>,dim> GCL;
             for(int idim=0; idim<dim; idim++){

@@ -53,8 +53,6 @@
 #include "parameters/all_parameters.h"
 #include "parameters/parameters.h"
 #include "operators/operators.h"
-#include "dg/dg.h"
-#include "dg/dg_factory.hpp"
 
 const double TOLERANCE = 1E-6;
 using namespace std;
@@ -70,6 +68,7 @@ int main (int argc, char * argv[])
     std::cout << std::setprecision(std::numeric_limits<long double>::digits10 + 1) << std::scientific;
     const int dim = PHILIP_DIM;
     const int nstate = 2;
+    //const int nstate = 1;
     dealii::ParameterHandler parameter_handler;
     PHiLiP::Parameters::AllParameters::declare_parameters (parameter_handler);
 
@@ -86,9 +85,6 @@ int main (int argc, char * argv[])
 
    // double skew_sym = 0.0;
     double M_K_HU =0.0;
-    double max_dp1 = 0.0;
-    double deriv3_dif = 0.0;
-    double deriv4_dif = 0.0;
     for(unsigned int poly_degree=2; poly_degree<6; poly_degree++){
     double left = 0.0;
     double right = 1.0;
@@ -116,92 +112,47 @@ int main (int argc, char * argv[])
         dealii::GridGenerator::hyper_cube (*grid, left, right, colorize);
         grid->refine_global(igrid);
 
-       // OPERATOR::OperatorsBase<dim,real> operators(&all_parameters_new, nstate, poly_degree, poly_degree, poly_degree); 
-        OPERATOR::OperatorsBaseState<dim,real,nstate,2*dim> operators(&all_parameters_new, poly_degree, poly_degree);
-
         const unsigned int n_dofs = nstate * pow(poly_degree+1,dim);
        // dealii::QGaussLobatto<dim> vol_quad_GLL (poly_degree+1+overint);
         dealii::QGaussLobatto<dim> vol_quad_GLL (poly_degree+1);
         const std::vector<real> &quad_weights = vol_quad_GLL.get_weights ();
+        const dealii::FE_DGQ<dim> fe_dim(poly_degree);
+        const dealii::FESystem<dim,dim> fe_system_dim(fe_dim, nstate);
+
+        PHiLiP::OPERATOR::local_mass<dim,2*dim> mass_matrix(nstate, poly_degree, 1);
+        dealii::QGauss<1> quad1D (poly_degree+1);
+        const dealii::FE_DGQ<1> fe_dg(poly_degree);
+        const dealii::FESystem<1,1> fe_system(fe_dg, nstate);
+        mass_matrix.build_1D_volume_operator(fe_system,quad1D);
+        dealii::FullMatrix<real> mass_dim(n_dofs);
+        mass_dim = mass_matrix.tensor_product_state(nstate,
+                                                    mass_matrix.oneD_vol_operator,
+                                                    mass_matrix.oneD_vol_operator,mass_matrix.oneD_vol_operator);
+
+        PHiLiP::OPERATOR::local_Flux_Reconstruction_operator<dim,2*dim> local_FR(nstate, poly_degree, 1, FR_enum::cHU);
+        local_FR.build_1D_volume_operator(fe_system,quad1D);
+        dealii::FullMatrix<real> FR_dim(n_dofs);
+        FR_dim = local_FR.build_dim_Flux_Reconstruction_operator(mass_matrix.oneD_vol_operator, nstate, n_dofs);
 
 
         for(unsigned int idof=0; idof<n_dofs; idof++){
             for(unsigned int idof2=0; idof2<n_dofs; idof2++){
+                double sum = mass_dim[idof][idof2] + FR_dim[idof][idof2]; 
                 if(idof == idof2){
-                    const unsigned int ishape = operators.fe_collection_basis[poly_degree].system_to_component_index(idof).second;
-                    if(std::abs(quad_weights[ishape] - operators.local_mass[poly_degree][idof][idof2] -
-                            operators.local_Flux_Reconstruction_operator[poly_degree][idof][idof2]) > 1e-12)
-                        M_K_HU = std::abs(quad_weights[idof] - operators.local_mass[poly_degree][idof][idof2] +
-                            operators.local_Flux_Reconstruction_operator[poly_degree][idof][idof2]);
+                    const unsigned int ishape = fe_system_dim.system_to_component_index(idof).second;
+                    if(std::abs(quad_weights[ishape] - sum) > 1e-12)
+                        M_K_HU = std::abs(quad_weights[idof] - sum);
                 }
                 else{
-                    if(std::abs(operators.local_mass[poly_degree][idof][idof2] +
-                            operators.local_Flux_Reconstruction_operator[poly_degree][idof][idof2]) > 1e-12)
-                        if(std::abs(operators.local_mass[poly_degree][idof][idof2] +
-                            operators.local_Flux_Reconstruction_operator[poly_degree][idof][idof2]) > M_K_HU)
-                            M_K_HU = std::abs(operators.local_mass[poly_degree][idof][idof2] +
-                            operators.local_Flux_Reconstruction_operator[poly_degree][idof][idof2]); 
+                    if(std::abs(sum) > 1e-12)
+                        if(std::abs(sum) > M_K_HU)
+                            M_K_HU = std::abs(sum); 
                 }
             }
-        }
-        
-
-        dealii::FullMatrix<real> Dp(n_dofs);
-        const unsigned int n_quad_pts = operators.volume_quadrature_collection[poly_degree].size();
-        dealii::FullMatrix<real> Dp1(n_quad_pts, n_dofs);
-        dealii::FullMatrix<real> Dp2(n_quad_pts, n_dofs);
-        for(int idim=0; idim<dim; idim++){
-            operators.derivative_p[poly_degree][idim].mmult(Dp,operators.modal_basis_differential_operator[poly_degree][idim]);
-            operators.basis_at_vol_cubature[poly_degree].mmult(Dp1, Dp);
-            operators.basis_at_vol_cubature[poly_degree].mmult(Dp2, operators.derivative_p[poly_degree][idim]);
-        if(poly_degree == 3){
-        for(unsigned int idof=0; idof<n_dofs; idof++){
-            for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
-               const dealii::Point<dim> qpoint  = operators.volume_quadrature_collection[poly_degree].point(iquad);
-                const int istate = operators.fe_collection_basis[poly_degree].system_to_component_index(idof).first;
-                dealii::Tensor<3, dim, real> deriv_3 = operators.fe_collection_basis[poly_degree].shape_3rd_derivative_component(idof,qpoint, istate); 
-                if( std::abs(Dp2[iquad][idof]-deriv_3[idim][idim][idim])> deriv3_dif)
-                    deriv3_dif = std::abs(Dp2[iquad][idof]-deriv_3[idim][idim][idim]);
-            }
-        }
-        }
-        if(poly_degree == 4){
-        for(unsigned int idof=0; idof<n_dofs; idof++){
-            for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
-               const dealii::Point<dim> qpoint  = operators.volume_quadrature_collection[poly_degree].point(iquad);
-                const int istate = operators.fe_collection_basis[poly_degree].system_to_component_index(idof).first;
-                dealii::Tensor<4, dim, real> deriv_4 = operators.fe_collection_basis[poly_degree].shape_4th_derivative_component(idof,qpoint, istate); 
-                if( std::abs(Dp2[iquad][idof]-deriv_4[idim][idim][idim][idim])> deriv4_dif)
-                    deriv4_dif = std::abs(Dp2[iquad][idof]-deriv_4[idim][idim][idim][idim]);
-            }
-        }
-        }
-        for(unsigned int idof=0; idof<n_quad_pts; idof++){
-            for(unsigned int idof2=0; idof2<n_dofs; idof2++){
-                if(std::abs(Dp1[idof][idof2])>max_dp1)
-                    max_dp1 = Dp1[idof][idof2];
-            }
-        }
         }
 
     }//end of poly_degree loop
 
-   //     pcout<<" max p+1 derivative "<<max_dp1<<std::endl;
-   //   pcout<<" deriv 3 dif "<<deriv3_dif<<std::endl;
-   //   pcout<<" deriv 4 dif "<<deriv4_dif<<std::endl;
-   // pcout<<"MGLL "<<M_K_HU<<std::endl;
-    if( max_dp1 >1e-7){
-        pcout<<" One of the pth order derivatives is wrong !"<<std::endl;
-        return 1;
-    }
-    if( deriv3_dif >1e-11){
-        pcout<<" 3rd order derivatives is wrong !"<<std::endl;
-        return 1;
-    }
-    if( deriv4_dif >1e-9){
-        pcout<<" 4th order derivatives is wrong !"<<std::endl;
-        return 1;
-    }
     if( M_K_HU >1e-15){
         pcout<<" KHU does not recover Collocated GLL M+K mass matrix with exact integration !"<<std::endl;
         return 1;

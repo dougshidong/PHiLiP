@@ -188,8 +188,8 @@ template <int dim, int nstate, typename real, typename MeshType>
 void GridRefinement_FixedFraction<dim,nstate,real,MeshType>::anisotropic_h_jump_based()
 {
     const dealii::hp::MappingCollection<dim> mapping_collection(*(this->dg->high_order_grid->mapping_fe_field));
-    const dealii::hp::FECollection<dim>      fe_collection(this->dg->operators->fe_collection_basis);
-    const dealii::hp::QCollection<dim-1>     face_quadrature_collection(this->dg->operators->face_quadrature_collection);
+    const dealii::hp::FECollection<dim>      fe_collection(this->dg->fe_collection);
+    const dealii::hp::QCollection<dim-1>     face_quadrature_collection(this->dg->face_quadrature_collection);
 
     dealii::hp::FEFaceValues<dim,dim> fe_values_collection_face_int(
         mapping_collection, 
@@ -327,8 +327,8 @@ void GridRefinement_FixedFraction<dim,nstate,real,MeshType>::anisotropic_h_recon
     ReconstructPoly<dim,nstate,real> reconstruct_poly(
         this->dg->dof_handler,
         mapping_collection,
-        this->dg->operators->fe_collection_basis,
-        this->dg->operators->volume_quadrature_collection,
+        this->dg->fe_collection,
+        this->dg->volume_quadrature_collection,
         this->volume_update_flags);
     
     // call to reconstruct the derivatives
@@ -415,7 +415,7 @@ void GridRefinement_FixedFraction<dim,nstate,real,MeshType>::error_indicator_err
     int overintegrate = 10;
     int poly_degree =  this->dg->get_max_fe_degree(); 
     dealii::QGauss<dim> quadrature(this->dg->max_degree+overintegrate);
-    dealii::FEValues<dim,dim> fe_values(*(this->dg->high_order_grid->mapping_fe_field), this->dg->operators->fe_collection_basis[poly_degree], quadrature, 
+    dealii::FEValues<dim,dim> fe_values(*(this->dg->high_order_grid->mapping_fe_field), this->dg->fe_collection[poly_degree], quadrature, 
         dealii::update_values | dealii::update_JxW_values | dealii::update_quadrature_points);
 
     const unsigned int n_quad_pts = fe_values.n_quadrature_points;
@@ -468,8 +468,8 @@ void GridRefinement_FixedFraction<dim,nstate,real,MeshType>::error_indicator_hes
     ReconstructPoly<dim,nstate,real> reconstruct_poly(
         this->dg->dof_handler,
         mapping_collection,
-        this->dg->operators->fe_collection_basis,
-        this->dg->operators->volume_quadrature_collection,
+        this->dg->fe_collection,
+        this->dg->volume_quadrature_collection,
         this->volume_update_flags);
 
     reconstruct_poly.reconstruct_directional_derivative(

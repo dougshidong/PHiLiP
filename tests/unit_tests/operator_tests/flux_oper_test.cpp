@@ -71,7 +71,7 @@ int main (int argc, char * argv[])
     using namespace PHiLiP;
     std::cout << std::setprecision(std::numeric_limits<long double>::digits10 + 1) << std::scientific;
     const int dim = PHILIP_DIM;
-    const int nstate = 2;
+    const int nstate = 1;
     dealii::ParameterHandler parameter_handler;
     PHiLiP::Parameters::AllParameters::declare_parameters (parameter_handler);
 
@@ -113,118 +113,52 @@ int main (int argc, char * argv[])
     double max_dif_int_parts = 0.0;
     for(unsigned int poly_degree=2; poly_degree<6; poly_degree++){
 
-      //  OPERATOR::OperatorsBase<dim,real> operators(&all_parameters_new, nstate, poly_degree, poly_degree, poly_degree); 
-       // std::shared_ptr<OPERATOR::OperatorsBaseState<1,real,nstate,2>> operators_1D = std::make_shared< OPERATOR::OperatorsBaseState<1,real,nstate,2> >(&all_parameters_new, poly_degree, poly_degree);
-        OPERATOR::OperatorsBaseState<dim,real,nstate,2*dim> operators(&all_parameters_new, poly_degree, poly_degree);
+        const unsigned int n_dofs_1D = nstate * (poly_degree + 1);
+//        const unsigned int n_dofs    = nstate * pow(poly_degree + 1, dim);
+        dealii::QGauss<1> quad1D (poly_degree+1);
+        const dealii::FE_DGQ<1> fe_dg(poly_degree);
+        const dealii::FESystem<1,1> fe_system(fe_dg, nstate);
+        const dealii::FE_DGQArbitraryNodes<1> fe_dg_flux(quad1D);
+        const dealii::FESystem<1,1> fe_system_flux(fe_dg_flux, nstate);
+        PHiLiP::OPERATOR::vol_integral_gradient_basis<dim,2*dim> vol_int_grad_basis(nstate, poly_degree, 1);
+        vol_int_grad_basis.build_1D_gradient_operator(fe_system, quad1D);
+        PHiLiP::OPERATOR::local_flux_basis_stiffness<dim,nstate,2*dim> flux_stiffness(poly_degree, 1);
+        flux_stiffness.build_1D_gradient_state_operator(fe_system_flux, quad1D);
+        flux_stiffness.build_1D_volume_state_operator(fe_system, quad1D);
 
-        const unsigned int n_dofs = operators.fe_collection_basis[poly_degree].dofs_per_cell;
-        const unsigned int n_dofs_flux = operators.fe_collection_flux_basis[poly_degree].dofs_per_cell;
-        const unsigned int n_quad_pts = operators.volume_quadrature_collection[poly_degree].size();
-        std::vector<dealii::FullMatrix<real>> vol_int_parts(dim);
-        std::vector<dealii::FullMatrix<real>> face_int_parts(dim);
-        for(int idim=0; idim<dim; idim++){
-            vol_int_parts[idim].reinit(n_dofs, nstate * n_dofs_flux);
-            face_int_parts[idim].reinit(n_dofs, nstate * n_dofs_flux);
-        //    vol_int_parts[idim].add(1.0, operators.local_flux_basis_stiffness[poly_degree][idim]);
-            //have to do weak flux basis vol integral
-//    pcout<<"VOL "<<std::endl;
-            for(unsigned int itest=0; itest<n_dofs; itest++){
-                const unsigned int istate_test = operators.fe_collection_basis[poly_degree].system_to_component_index(itest).first;
-                const unsigned int ishape_test = operators.fe_collection_basis[poly_degree].system_to_component_index(itest).second;
-                for(unsigned int idof=0; idof<n_dofs_flux; idof++){
-                    for(unsigned int istate_dof=0; istate_dof<nstate; istate_dof++){
-                       // const unsigned int istate_dof = operators.fe_collection_basis[poly_degree].system_to_component_index(idof).first;
-                       // const unsigned int ishape_dof = operators.fe_collection_basis[poly_degree].system_to_component_index(idof).second;
-                        double value= 0.0;
-                        for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
-                            value +=        operators.vol_integral_gradient_basis[poly_degree][istate_test][idim][iquad][ishape_test] 
-                                    *       operators.flux_basis_at_vol_cubature[poly_degree][istate_dof][iquad][idof];
-                        }
-                        if(istate_test == istate_dof){
-                            unsigned int dof_index = idof + n_dofs_flux * istate_dof;
-                            vol_int_parts[idim][itest][dof_index] += value;
-                            vol_int_parts[idim][itest][dof_index] += operators.local_flux_basis_stiffness[poly_degree][istate_dof][idim][ishape_test][idof];
-                        }
-                    }
-                }
-            }
-//            for(unsigned int itest=0; itest<n_dofs; itest++){
-//                for(unsigned int idof=0; idof<nstate * n_dofs_flux; idof++){
-//pcout<<vol_int_parts[idim][itest][idof]<<" ";
-//}
-//pcout<<std::endl;
-//}
-          //  vol_int_parts[idim].Tadd(1.0, operators.local_basis_stiffness[poly_degree][idim]);
+       // PHiLiP::OPERATOR::basis_functions_state<dim,nstate,2*dim> flux_basis_quad(poly_degree, 1);
+        PHiLiP::OPERATOR::flux_basis_functions_state<dim,nstate,2*dim> flux_basis_quad(poly_degree, 1);
+        flux_basis_quad.build_1D_volume_state_operator(fe_system_flux, quad1D);
+
+        dealii::FullMatrix<real> vol_int_parts(n_dofs_1D);
+        vol_int_grad_basis.oneD_grad_operator.Tmmult(vol_int_parts, flux_basis_quad.oneD_vol_state_operator[0]);
+        vol_int_parts.add(1.0, flux_stiffness.oneD_vol_state_operator[0]);
+
+        //compute surface integral
+        dealii::QGauss<0> face_quad1D (poly_degree+1);
+        dealii::FullMatrix<real> surf_int_parts(n_dofs_1D);
+        flux_basis_quad.build_1D_surface_state_operator(fe_system_flux, face_quad1D);
+        PHiLiP::OPERATOR::face_integral_basis<dim,2*dim> surf_int_basis(nstate, poly_degree, 1);
+        surf_int_basis.build_1D_surface_operator(fe_system, face_quad1D);
+        for(unsigned int iface=0; iface< dealii::GeometryInfo<1>::faces_per_cell; iface++){
+            const dealii::Tensor<1,1,real> unit_normal_1D = dealii::GeometryInfo<1>::unit_normal_vector[iface];
+            dealii::FullMatrix<real> surf_int_face(n_dofs_1D);
+            surf_int_basis.oneD_surf_operator[iface].Tmmult(surf_int_face, flux_basis_quad.oneD_surf_state_operator[0][iface]);
+            surf_int_parts.add(unit_normal_1D[0], surf_int_face);
         }
-        const unsigned int n_quad_face_pts = operators.face_quadrature_collection[poly_degree].size();
-        for(unsigned int iface=0; iface< dealii::GeometryInfo<dim>::faces_per_cell; iface++){
-            const dealii::Tensor<1,dim,real> unit_normal = dealii::GeometryInfo<dim>::unit_normal_vector[iface];
-            int jdim=0;
-            for(int idim=0; idim<dim; idim++){
-                if(unit_normal[idim] != 0)
-                    jdim = idim;
-            }
-//    pcout<<"face "<<std::endl;
-            for(unsigned int itest=0; itest<n_dofs; itest++){
-                const unsigned int istate_test = operators.fe_collection_basis[poly_degree].system_to_component_index(itest).first;
-                for(unsigned int idof=0; idof<n_dofs_flux; idof++){
-                    for(unsigned int istate_dof=0; istate_dof<nstate; istate_dof++){
-                       // const unsigned int istate_dof = operators.fe_collection_basis[poly_degree].system_to_component_index(idof).first;
-                       // const unsigned int ishape_dof = operators.fe_collection_basis[poly_degree].system_to_component_index(idof).second;
-                        double value= 0.0;
-                        for(unsigned int iquad=0; iquad<n_quad_face_pts; iquad++){
-                            value +=        operators.face_integral_basis[poly_degree][iface][iquad][itest] 
-                                    *       unit_normal[jdim]
-                                    *       operators.flux_basis_at_facet_cubature[poly_degree][istate_dof][iface][iquad][idof];
-                        }
-                        if(istate_test == istate_dof){
-                            unsigned int dof_index = idof + n_dofs_flux * istate_dof;
-                            face_int_parts[jdim][itest][dof_index] += value;
-                        }
-                    }
-                }
-            }
-//std::cout<<" SURFACE TERM"<<std::endl;
-//            for(unsigned int itest=0; itest<n_dofs; itest++){
-//                for(unsigned int idof=0; idof<nstate * n_dofs_flux; idof++){
-//pcout<<face_int_parts[jdim][itest][idof]<<" ";
-//}
-//pcout<<std::endl;
-//}
-
-//std::cout<<" basis TERM"<<std::endl;
-//                for(unsigned int idof=0; idof<n_dofs_flux; idof++){
-//for(unsigned int iquad=0; iquad<n_quad_face_pts; iquad++){
-//pcout<<operators.flux_basis_at_facet_cubature[poly_degree][0][iface][iquad][idof]<<" ";
-//}
-//pcout<<std::endl;
-//}
-//std::cout<<" urf integral ERM"<<std::endl;
-//                for(unsigned int idof=0; idof<n_dofs_flux; idof++){
-//for(unsigned int iquad=0; iquad<n_quad_face_pts; iquad++){
-//pcout<<operators.face_integral_basis[poly_degree][iface][iquad][idof]<<" ";
-//}
-//pcout<<std::endl;
-//}
-
-
-        }
-
-        for(int idim=0; idim<dim; idim++){
-            for(unsigned int idof=0; idof<n_dofs; idof++){
-                for(unsigned int idof2=0; idof2<(nstate * n_dofs_flux); idof2++){
-                    if(std::abs(face_int_parts[idim][idof][idof2] - vol_int_parts[idim][idof][idof2])>max_dif_int_parts)
-                        max_dif_int_parts = std::abs(face_int_parts[idim][idof][idof2] - vol_int_parts[idim][idof][idof2]);
-                }
+        //check difference between the two for integration-by-parts
+        for(unsigned int idof=0; idof<n_dofs_1D; idof++){
+            for(unsigned int idof2=0; idof2<n_dofs_1D; idof2++){
+                if(std::abs(surf_int_parts[idof][idof2] - vol_int_parts[idof][idof2])>max_dif_int_parts)
+                    max_dif_int_parts = std::abs(surf_int_parts[idof][idof2] - vol_int_parts[idof][idof2]);
             }
         }
         
     }//end of poly_degree loop
 
     const double max_dif_int_parts_mpi= (dealii::Utilities::MPI::max(max_dif_int_parts, MPI_COMM_WORLD));
-pcout<<"max dif "<<max_dif_int_parts_mpi<<std::endl;
-    if( max_dif_int_parts_mpi >1e-7){
-        pcout<<" Surface operator not satisfy integration by parts !"<<std::endl;
+    if( max_dif_int_parts_mpi >1e-12){
+        pcout<<" Surface operator not satisfy integration by parts !"<<max_dif_int_parts_mpi<<std::endl;
        // printf(" One of the pth order deirvatives is wrong !\n");
         return 1;
     }

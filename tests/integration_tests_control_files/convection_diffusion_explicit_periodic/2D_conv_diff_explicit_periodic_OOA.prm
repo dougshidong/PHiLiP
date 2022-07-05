@@ -23,6 +23,8 @@ set use_energy = false
 
 set flux_reconstruction = cPlus
 
+set use_inverse_mass_on_the_fly = true
+
 set flux_reconstruction_aux = kPlus
 
 set use_classical_FR = false

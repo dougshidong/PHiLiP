@@ -39,7 +39,11 @@ void ExplicitODESolver<dim,real,MeshType>::step_in_time (real dt, const bool pse
         this->dg->set_current_time(this->current_time + this->butcher_tableau_c[i]*dt);
         //solve the system's right hande side
         this->dg->assemble_residual(); //RHS : du/dt = RHS = F(u_n + dt* sum(a_ij*k_j))
-        this->dg->global_inverse_mass_matrix.vmult(this->rk_stage[i], this->dg->right_hand_side); //rk_stage[i] = IMM*RHS = F(u_n + dt*sum(a_ij*k_j))
+
+        if(this->all_parameters->use_inverse_mass_on_the_fly)
+            this->dg->apply_inverse_global_mass_matrix(this->dg->right_hand_side, this->rk_stage[i]); //rk_stage[i] = IMM*RHS = F(u_n + dt*sum(a_ij*k_j))
+        else
+            this->dg->global_inverse_mass_matrix.vmult(this->rk_stage[i], this->dg->right_hand_side); //rk_stage[i] = IMM*RHS = F(u_n + dt*sum(a_ij*k_j))
     }
 
     //assemble solution from stages
@@ -62,9 +66,10 @@ template <int dim, typename real, typename MeshType>
 void ExplicitODESolver<dim,real,MeshType>::allocate_ode_system ()
 {
     this->pcout << "Allocating ODE system and evaluating inverse mass matrix..." << std::endl;
-    const bool do_inverse_mass_matrix = true;
+    const bool do_inverse_mass_matrix = !this->all_parameters->use_inverse_mass_on_the_fly;
     this->solution_update.reinit(this->dg->right_hand_side);
-    this->dg->evaluate_mass_matrices(do_inverse_mass_matrix);
+    if(!this->all_parameters->use_inverse_mass_on_the_fly)
+        this->dg->evaluate_mass_matrices(do_inverse_mass_matrix);
 
     this->rk_stage.resize(rk_order);
     for (int i=0; i<rk_order; i++) {

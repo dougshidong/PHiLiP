@@ -1,6 +1,7 @@
 #include <fstream>
 #include "dg/dg_factory.hpp"
 #include "euler_split_inviscid_taylor_green_vortex.h"
+#include "physics/initial_conditions/initial_condition.h"
 
 namespace PHiLiP {
 namespace Tests {
@@ -124,98 +125,59 @@ int EulerTaylorGreen<dim, nstate>::run_test() const
      
     grid->refine_global(n_refinements);
 
-
     //Create DG
     std::shared_ptr < PHiLiP::DGBase<dim, double> > dg = PHiLiP::DGFactory<dim,double>::create_discontinuous_galerkin(&all_parameters_new, poly_degree, poly_degree, grid_degree, grid);
     dg->allocate_system ();
 
     std::cout << "Implement initial conditions" << std::endl;
-    dealii::FunctionParser<dim> initial_condition(5);
-    std::string variables = "x,y,z";
-    std::map<std::string,double> constants;
-    constants["pi"] = dealii::numbers::PI;
-    std::vector<std::string> expressions(5);
-    expressions[0] = "1";
-    expressions[1] = "sin(x)*cos(y)*cos(z)";
-    expressions[2] = "-cos(x)*sin(y)*cos(z)";
-    expressions[3] = "0";
-//    expressions[4] = "100.0/1.4 + 1.0/16.0 * (cos(2.0*x)*cos(2.0*z) + 2.0*cos(2.0*y) + 2.0*cos(2.0*x) + cos(2.0*y)*cos(2.0*z))";
-    expressions[4] = " (100.0/1.4 + 1.0/16.0 * (cos(2.0*x)*cos(2.0*z) + 2.0*cos(2.0*y) + 2.0*cos(2.0*x) + cos(2.0*y)*cos(2.0*z)) ) / 1.4 + (sin(x)*cos(y)*cos(z))*(sin(x)*cos(y)*cos(z)) + (-cos(x)*sin(y)*cos(z))*(-cos(x)*sin(y)*cos(z)) ";
-    initial_condition.initialize(variables,
-                                 expressions,
-                                 constants);
-     
-    std::cout << "initial condition successfully implemented" << std::endl;
-    dealii::LinearAlgebra::distributed::Vector<double> solution_no_ghost;
-    solution_no_ghost.reinit(dg->locally_owned_dofs, MPI_COMM_WORLD);
-    dealii::VectorTools::interpolate(dg->dof_handler,initial_condition,solution_no_ghost);
-    dg->solution = solution_no_ghost;
-    dg->solution.update_ghost_values();
-   // dealii::VectorTools::interpolate(dg->dof_handler,initial_condition,dg->solution);
-
+    InitialCondition<dim,nstate,double> initial_condition(dg, &all_parameters_new);
 
     const unsigned int n_global_active_cells2 = grid->n_global_active_cells();
-    const double n_dofs_cfl = pow(n_global_active_cells2,dim) * pow(poly_degree+1.0, dim);
-    pcout<<"number dofs locally what we want "<<n_dofs_cfl<<" number of active cells "<<n_global_active_cells2<<std::endl;
-    double delta_x = (right-left)/pow(n_dofs_cfl,(1.0/dim)); 
+    double delta_x = (right-left)/n_global_active_cells2/(poly_degree+1.0);
     pcout<<" delta x "<<delta_x<<std::endl;
 
-    //get max convective eigenvalue
+    //get local CFL
+    const unsigned int n_dofs_cell = nstate*pow(poly_degree+1,dim);
+    const unsigned int n_quad_pts = pow(poly_degree+1,dim);
+    std::vector<dealii::types::global_dof_index> dofs_indices1 (n_dofs_cell);
 
-    std::vector<dealii::types::global_dof_index> dofs_indices (dg->fe_collection[poly_degree].dofs_per_cell);
-    double max_wave_speed = 0.0;
-    for(auto cell = dg->dof_handler.begin_active(); cell != dg->dof_handler.end(); ++cell){
+    double cfl_min = 1e100;
+    std::shared_ptr < Physics::PhysicsBase<dim, nstate, double > > pde_physics_double  = PHiLiP::Physics::PhysicsFactory<dim,nstate,double>::create_Physics(&all_parameters_new);
+    for (auto cell = dg->dof_handler.begin_active(); cell!=dg->dof_handler.end(); ++cell) {
         if (!cell->is_locally_owned()) continue;
 
-        cell->get_dof_indices (dofs_indices);
-        const unsigned int n_quad_pts = dg->volume_quadrature_collection[poly_degree].size();
-        const unsigned int n_dofs_cell = dg->fe_collection[poly_degree].dofs_per_cell;
+        cell->get_dof_indices (dofs_indices1);
+        std::vector< std::array<double,nstate>> soln_at_q(n_quad_pts);
         for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
-            std::array<double,nstate> soln_at_q;
-            for(int istate=0; istate<nstate; istate++)
-                soln_at_q[istate] =0.0;
-
-            dealii::Point<dim> qpoint = dg->volume_quadrature_collection[poly_degree].point(iquad);
-            for (unsigned int idof=0; idof<n_dofs_cell; ++idof) {
-                const unsigned int istate = dg->fe_collection[poly_degree].system_to_component_index(idof).first;
-                soln_at_q[istate] += dg->solution[dofs_indices[idof]] * dg->fe_collection[poly_degree].shape_value_component(idof, qpoint, istate);
+            for (int istate=0; istate<nstate; istate++) {
+                soln_at_q[iquad][istate]      = 0;
             }
-            const double density = soln_at_q[0];
-            dealii::Tensor<1,dim,double> vel;
-            for (int d=0; d<dim; ++d) { vel[d] = soln_at_q[1+d]/density; }
-
-            const double tot_energy  = soln_at_q[nstate-1];
-
-            double vel2 = 0.0;
-            for (int d=0; d<dim; d++) { 
-                vel2 = vel2 + vel[d]*vel[d]; 
-            }    
-            double gam = 1.4;
-            double gamm1 = 1.4-1.0;
-            double pressure = gamm1*(tot_energy - 0.5*density*vel2);
-            const double sound = std::sqrt(pressure*gam/density);
-
-            const double max_eig = sqrt(vel2) + sound;
-
-            if(max_eig > max_wave_speed){
-                max_wave_speed = max_eig;
-                pcout<<max_wave_speed<<std::endl;
-            }
-
         }
+        for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
+          dealii::Point<dim> qpoint = dg->volume_quadrature_collection[poly_degree].point(iquad);
+            for(unsigned int idof=0; idof<n_dofs_cell; idof++){
+                const unsigned int istate = dg->fe_collection[poly_degree].system_to_component_index(idof).first;
+                soln_at_q[iquad][istate] += dg->solution[dofs_indices1[idof]] * dg->fe_collection[poly_degree].shape_value_component(idof, qpoint, istate);
+            }
+        }
+        std::vector< double > convective_eigenvalues(n_quad_pts);
+        for (unsigned int isol = 0; isol < n_quad_pts; ++isol) {
+            convective_eigenvalues[isol] = pde_physics_double->max_convective_eigenvalue (soln_at_q[isol]);
+        }
+        const double max_eig = *(std::max_element(convective_eigenvalues.begin(), convective_eigenvalues.end()));
+        double cfl = 0.1 * delta_x/max_eig;
+        if(cfl < cfl_min)
+            cfl_min = cfl;
+
     }
-
-pcout<<"max_wave_speed final "<<max_wave_speed<<std::endl;
-
-    all_parameters_new.ode_solver_param.initial_time_step =  0.1 * delta_x / max_wave_speed;
-    pcout<<" timestep "<<all_parameters_new.ode_solver_param.initial_time_step<<std::endl;
-
+    all_parameters_new.ode_solver_param.initial_time_step =  cfl_min;
+    pcout<<"The new timestep with eigenval is "<<cfl_min<<" compared to previous "<<0.1 * delta_x<<std::endl;
      
     std::cout << "creating ODE solver" << std::endl;
     std::shared_ptr<ODE::ODESolverBase<dim, double>> ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
     std::cout << "ODE solver successfully created" << std::endl;
     double finalTime = 14.;
-//    finalTime = 0.1;//to speed things up locally in tests, doesn't need full 14seconds to verify.
+    finalTime = 0.1;//to speed things up locally in tests, doesn't need full 14seconds to verify.
     double dt = all_parameters_new.ode_solver_param.initial_time_step;
 
     std::cout<<" number dofs "<<
@@ -231,23 +193,13 @@ pcout<<"max_wave_speed final "<<max_wave_speed<<std::endl;
     std::cout << std::setprecision(16) << std::fixed;
     pcout << "Energy for initial condition " << initialcond_energy_mpi/(8*pow(dealii::numbers::PI,3)) << std::endl;
 
-    //output initial cond solution
-//    for(unsigned int i=0; i<dg->solution.size(); i++){
-//        pcout<<"initial cond solution "<<dg->solution[i]<<std::endl;
-//    }
-
     pcout << "Energy at time " << 0 << " is " << compute_kinetic_energy(dg, poly_degree) << std::endl;
     ode_solver->current_iteration = 0;
 	ode_solver->advance_solution_time(dt/10.0);
 	double initial_energy = compute_kinetic_energy(dg, poly_degree);
 	double initial_energy_mpi = (dealii::Utilities::MPI::sum(initial_energy, mpi_communicator));
         double initial_MK_energy = compute_MK_energy(dg, poly_degree);
-    //output initial cond solution
-//    for(unsigned int i=0; i<dg->solution.size(); i++){
-//        pcout<<"initial cond solution after "<<dg->solution[i]<<std::endl;
-//    }
     
-   // pcout << "Energy at one timestep is " << initial_energy << std::endl;
     std::cout << std::setprecision(16) << std::fixed;
     pcout << "Energy at one timestep is " << initial_energy_mpi/(8*pow(dealii::numbers::PI,3)) << std::endl;
     std::ofstream myfile ("kinetic_energy_3D_TGV.gpl" , std::ios::trunc);

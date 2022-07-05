@@ -105,7 +105,7 @@ private:
     * \mathbf{F}^r\right] \mathbf{1}^T d\mathbf{\Omega}_r
     * ,\:\forall i=1,\dots,N_p,
     * \f]
-    * where \f$ (\mathbf{F})_{ij} = \mathbf{C}_m(\mathbf{\xi}_v^r) \cdot \mathbf{f}_s(\mathbf{u}(\mathbf{\xi}_i^r),\mathbf{u}(\mathbf{\xi}_j^r)) \f$; that is, the 
+    * where \f$ (\mathbf{F})_{ij} = 0.5\left( \mathbf{C}_m(\mathbf{\xi}_i^r)+\mathbf{C}_m(\mathbf{\xi}_j^r) \right) \cdot \mathbf{f}_s(\mathbf{u}(\mathbf{\xi}_i^r),\mathbf{u}(\mathbf{\xi}_j^r)) \f$; that is, the 
     * matrix of REFERENCE two-point entropy conserving fluxes.
     */
     void assemble_volume_term_strong(

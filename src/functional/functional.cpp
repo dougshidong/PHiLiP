@@ -275,6 +275,9 @@ Functional<dim,nstate,real,MeshType>::Functional(
     const bool                                 _uses_solution_values,
     const bool                                 _uses_solution_gradient)
     : dg(_dg)
+    , d2IdWdW(std::make_shared<dealii::TrilinosWrappers::SparseMatrix>())
+    , d2IdWdX(std::make_shared<dealii::TrilinosWrappers::SparseMatrix>())
+    , d2IdXdX(std::make_shared<dealii::TrilinosWrappers::SparseMatrix>())
     , uses_solution_values(_uses_solution_values)
     , uses_solution_gradient(_uses_solution_gradient)
     , pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD)==0)

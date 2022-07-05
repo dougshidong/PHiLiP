@@ -10,6 +10,9 @@ MatrixXd MinMaxScaler::fit_transform(const MatrixXd &parameters){
     for(int j = 0 ; j < parameters.cols() ; j++){
         min(j) = parameters.col(j).minCoeff();
         max(j) = parameters.col(j).maxCoeff();
+        if(max(j) == min(j)){
+            std::cout << "Min and max are equal, causing the MinMaxScaler to divide by zero. Please ensure that min != max." << std::endl;
+        }
         for(int k = 0 ; k < parameters.rows() ; k++){
             parameters_scaled(k, j) = (parameters(k, j) - min(j)) / (max(j) - min(j));
         }

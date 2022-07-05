@@ -45,7 +45,7 @@ void ODESolverBase<dim,real,MeshType>::initialize_steady_polynomial_ramping (con
         dg->solution.update_ghost_values();
 
         // Solve steady state problem.
-        steady_state(false);
+        steady_state(true);
     }
 }
 

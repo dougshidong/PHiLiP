@@ -104,7 +104,7 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
 
     prm.declare_entry("use_inverse_mass_on_the_fly", "false",
                       dealii::Patterns::Bool(),
-                      "Use inverse mass on-the-fly by default for explicit timestepping. Otherwise, build global mass inverse matrix and apply it.");
+                      "Build global mass inverse matrix and apply it. Otherwise, use inverse mass on-the-fly by default for explicit timestepping.");
 
     prm.declare_entry("test_type", "run_control",
                       dealii::Patterns::Selection(

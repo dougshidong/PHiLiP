@@ -50,3 +50,8 @@ end
 subsection euler
   set mach_infinity = 0.1
 end
+
+subsection flow_solver
+    set flow_case_type = taylor_green_vortex
+    set interpolate_initial_condition = true
+end

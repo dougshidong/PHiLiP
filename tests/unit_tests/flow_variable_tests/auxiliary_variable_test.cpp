@@ -123,6 +123,7 @@ pcout<<" Grid Index"<<igrid<<std::endl;
     all_parameters_new.use_weak_form = false;
     all_parameters_new.use_periodic_bc = true;
     all_parameters_new.ode_solver_param.ode_solver_type = ODE_enum::explicit_solver;//auxiliary only works explicit for now
+    all_parameters_new.use_inverse_mass_on_the_fly = true;
     std::shared_ptr < PHiLiP::DGBase<dim, double> > dg = PHiLiP::DGFactory<dim,double>::create_discontinuous_galerkin(&all_parameters_new, poly_degree, poly_degree, grid_degree, grid);
     pcout<<"going in allocate"<<std::endl;
     dg->allocate_system (false,false,false);

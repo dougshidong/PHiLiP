@@ -207,6 +207,7 @@ public:
 
     ///Builds needed operators to compute mass matrices/inverses efficiently.
     void reinit_operators_for_mass_matrix(
+        const bool Cartesian_element,
         const unsigned int poly_degree, const unsigned int grid_degree,
         OPERATOR::mapping_shape_functions<dim,2*dim> &mapping_basis,
         OPERATOR::basis_functions<dim,2*dim> &basis,
@@ -220,6 +221,7 @@ public:
 
     ///Evaluates the metric dependent local mass matrices and inverses, then sets them in the global matrices.
     void evaluate_local_metric_dependent_mass_matrix_and_set_in_global_mass_matrix(
+        const bool Cartesian_element,//Flag if cell is Cartesian
         const bool do_inverse_mass_matrix, 
         const unsigned int poly_degree, 
         const unsigned int curr_grid_degree, 

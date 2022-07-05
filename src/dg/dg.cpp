@@ -2712,6 +2712,7 @@ void DGBase<dim,real,MeshType>::allocate_dRdX ()
 
 template <int dim, typename real, typename MeshType>
 void DGBase<dim,real,MeshType>::reinit_operators_for_mass_matrix(
+    const bool Cartesian_element,
     const unsigned int poly_degree, const unsigned int grid_degree,
     OPERATOR::mapping_shape_functions<dim,2*dim> &mapping_basis,
     OPERATOR::basis_functions<dim,2*dim> &basis,
@@ -2729,20 +2730,20 @@ void DGBase<dim,real,MeshType>::reinit_operators_for_mass_matrix(
     //Note the fe_collection passed for metric mapping operators has to be COLLOCATED ON GRID NODES
     mapping_basis.build_1D_shape_functions_at_volume_flux_nodes(high_order_grid->oneD_fe_system, oneD_quadrature_collection[poly_degree]);
 
-    if(grid_degree == 1 || this->all_parameters->use_weight_adjusted_mass){//then we can factor out det of Jac and rapidly simplify
+    if(Cartesian_element || this->all_parameters->use_weight_adjusted_mass){//then we can factor out det of Jac and rapidly simplify
         reference_mass_matrix.build_1D_volume_operator(oneD_fe_collection_1state[poly_degree], oneD_quadrature_collection[poly_degree]);
     }
-    if(grid_degree > 1){//then we need to construct dim matrices on the fly
+    if(grid_degree > 1 || !Cartesian_element){//then we need to construct dim matrices on the fly
         basis.build_1D_volume_operator(oneD_fe_collection_1state[poly_degree], oneD_quadrature_collection[poly_degree]); 
     }
-    if((FR_Type != FR_enum::cDG && grid_degree == 1) || (FR_Type != FR_enum::cDG && this->all_parameters->use_weight_adjusted_mass)){
+    if((FR_Type != FR_enum::cDG && Cartesian_element) || (FR_Type != FR_enum::cDG && this->all_parameters->use_weight_adjusted_mass)){
         reference_FR.build_1D_volume_operator(oneD_fe_collection_1state[poly_degree], oneD_quadrature_collection[poly_degree]);
     }
-    if((use_auxiliary_eq && FR_Type_Aux != FR_Aux_enum::kDG && grid_degree == 1) || (FR_Type_Aux != FR_Aux_enum::kDG && this->all_parameters->use_weight_adjusted_mass)){
+    if((use_auxiliary_eq && FR_Type_Aux != FR_Aux_enum::kDG && Cartesian_element) || (FR_Type_Aux != FR_Aux_enum::kDG && this->all_parameters->use_weight_adjusted_mass)){
         reference_FR_aux.build_1D_volume_operator(oneD_fe_collection_1state[poly_degree], oneD_quadrature_collection[poly_degree]);
     }
     if(((FR_Type != FR_enum::cDG) || 
-        (use_auxiliary_eq && FR_Type_Aux != FR_Aux_enum::kDG) ) && grid_degree > 1){
+        (use_auxiliary_eq && FR_Type_Aux != FR_Aux_enum::kDG) ) && (grid_degree > 1 || !Cartesian_element)){
         deriv_p.build_1D_volume_operator(oneD_fe_collection_1state[poly_degree], oneD_quadrature_collection[poly_degree]);
     }
 
@@ -2813,7 +2814,10 @@ void DGBase<dim,real,MeshType>::evaluate_mass_matrices (bool do_inverse_mass_mat
     OPERATOR::local_Flux_Reconstruction_operator_aux<dim,2*dim> reference_FR_aux(1, max_degree, init_grid_degree, FR_Type_Aux);
     OPERATOR::derivative_p<dim,2*dim> deriv_p(1, max_degree, init_grid_degree);
 
-    reinit_operators_for_mass_matrix(max_degree, init_grid_degree, mapping_basis, basis, reference_mass_matrix, reference_FR, reference_FR_aux, deriv_p);
+    auto first_cell = dof_handler.begin_active();
+    const bool Cartesian_first_element = (first_cell->manifold_id() == dealii::numbers::flat_manifold_id) ? true : false;
+
+    reinit_operators_for_mass_matrix(Cartesian_first_element, max_degree, init_grid_degree, mapping_basis, basis, reference_mass_matrix, reference_FR, reference_FR_aux, deriv_p);
 
     //Loop over cells and set the matrices.
     auto metric_cell = high_order_grid->dof_handler_grid.begin_active();
@@ -2821,13 +2825,16 @@ void DGBase<dim,real,MeshType>::evaluate_mass_matrices (bool do_inverse_mass_mat
 
         if (!cell->is_locally_owned()) continue;
 
+        const bool Cartesian_element = (cell->manifold_id() == dealii::numbers::flat_manifold_id) ? true : false;
+
         const unsigned int fe_index_curr_cell = cell->active_fe_index();
         const unsigned int curr_grid_degree   = high_order_grid->fe_system.tensor_degree();//in the future the metric cell's should store a local grid degree. currently high_order_grid dof_handler_grid doesn't have that capability
         //Check if need to recompute the 1D basis for the current degree (if different than previous cell)
+        //That is, if the poly_degree, manifold type, or grid degree is different than previous reference operator
         if(fe_index_curr_cell != mapping_basis.current_degree || 
            curr_grid_degree != mapping_basis.current_grid_degree){
 
-            reinit_operators_for_mass_matrix(fe_index_curr_cell, curr_grid_degree, mapping_basis, basis, reference_mass_matrix, reference_FR, reference_FR_aux, deriv_p);
+            reinit_operators_for_mass_matrix(Cartesian_element, fe_index_curr_cell, curr_grid_degree, mapping_basis, basis, reference_mass_matrix, reference_FR, reference_FR_aux, deriv_p);
         }
 
         // Current reference element related to this physical cell
@@ -2865,6 +2872,7 @@ void DGBase<dim,real,MeshType>::evaluate_mass_matrices (bool do_inverse_mass_mat
         cell->get_dof_indices (dofs_indices);
         //Compute local matrices and set them in the global system.
         evaluate_local_metric_dependent_mass_matrix_and_set_in_global_mass_matrix(
+            Cartesian_element,
             do_inverse_mass_matrix, fe_index_curr_cell, curr_grid_degree,
             n_quad_pts, n_dofs_cell, dofs_indices,
             metric_oper, 
@@ -2900,9 +2908,10 @@ void DGBase<dim,real,MeshType>::evaluate_mass_matrices (bool do_inverse_mass_mat
 
 template<int dim, typename real, typename MeshType>
 void DGBase<dim,real,MeshType>::evaluate_local_metric_dependent_mass_matrix_and_set_in_global_mass_matrix(
+    const bool Cartesian_element,
     const bool do_inverse_mass_matrix, 
     const unsigned int poly_degree, 
-    const unsigned int curr_grid_degree, 
+    const unsigned int /*curr_grid_degree*/, 
     const unsigned int n_quad_pts, 
     const unsigned int n_dofs_cell, 
     const std::vector<dealii::types::global_dof_index> dofs_indices, 
@@ -2933,8 +2942,8 @@ void DGBase<dim,real,MeshType>::evaluate_local_metric_dependent_mass_matrix_and_
         dealii::FullMatrix<real> local_mass_matrix_aux_inv_state(n_shape_fns);
     //compute mass matrix and inverse the standard way
         if(this->all_parameters->use_weight_adjusted_mass == false){
-            //check if linear grid bc we can factor out determinant of Jacobian
-            if(curr_grid_degree == 1){
+            //check if Cartesian grid because we can factor out determinant of Jacobian
+            if(Cartesian_element){
                 local_mass_matrix_state.add(metric_oper.det_Jac_vol[0],
                                             reference_mass_matrix.tensor_product_state(
                                             1,
@@ -3143,7 +3152,10 @@ void DGBase<dim,real,MeshType>::apply_inverse_global_mass_matrix(
         const unsigned int n_metric_dofs = high_order_grid->fe_system.dofs_per_cell;
         auto metric_cell = high_order_grid->dof_handler_grid.begin_active();
 
-        if(grid_degree == 1){//then we can factor out det of Jac and rapidly simplify
+        auto first_cell = dof_handler.begin_active();
+        const bool Cartesian_first_element = (first_cell->manifold_id() == dealii::numbers::flat_manifold_id) ? true : false;
+
+        if(Cartesian_first_element){//then we can factor out det of Jac and rapidly simplify
             if(use_auxiliary_eq)
                 mass_inv_aux.build_1D_volume_operator(oneD_fe_collection_1state[max_degree], oneD_quadrature_collection[max_degree]);
             else
@@ -3165,11 +3177,13 @@ void DGBase<dim,real,MeshType>::apply_inverse_global_mass_matrix(
             current_dofs_indices.resize(n_dofs_cell);
             soln_cell->get_dof_indices (current_dofs_indices);
 
-            //if poly degree changed for this cell, rinitialize
-            if((poly_degree != mass_inv.current_degree && grid_degree == 1 && !use_auxiliary_eq) || 
-                (poly_degree != projection_oper.current_degree && grid_degree > 1 && !use_auxiliary_eq)){
+            const bool Cartesian_element = (soln_cell->manifold_id() == dealii::numbers::flat_manifold_id) ? true : false;
+
+            //if poly degree, the element manifold type, or grid degree changed for this cell, rinitialize the reference operator
+            if((poly_degree != mass_inv.current_degree && Cartesian_element && !use_auxiliary_eq) || 
+                (poly_degree != projection_oper.current_degree && (grid_degree > 1 || Cartesian_element) && !use_auxiliary_eq)){
                     mapping_basis.build_1D_shape_functions_at_volume_flux_nodes(high_order_grid->oneD_fe_system, oneD_quadrature_collection[poly_degree]);
-                    if(grid_degree == 1){//then we can factor out det of Jac and rapidly simplify
+                    if(Cartesian_element){//then we can factor out det of Jac and rapidly simplify
                         mass_inv.build_1D_volume_operator(oneD_fe_collection_1state[poly_degree], oneD_quadrature_collection[poly_degree]);
                         if(use_auxiliary_eq)
                             mass_inv_aux.build_1D_volume_operator(oneD_fe_collection_1state[poly_degree], oneD_quadrature_collection[poly_degree]);
@@ -3217,7 +3231,7 @@ void DGBase<dim,real,MeshType>::apply_inverse_global_mass_matrix(
                     local_input_vector[ishape] = input_vector[current_dofs_indices[idof]];
                 }
 
-                if(grid_degree == 1){
+                if(Cartesian_element){
                     if(use_auxiliary_eq){
                         mass_inv_aux.matrix_vector_mult_1D(local_input_vector, local_output_vector,
                                                            mass_inv_aux.oneD_vol_operator,
@@ -3292,15 +3306,18 @@ void DGBase<dim,real,MeshType>::apply_global_mass_matrix(
         const unsigned int n_metric_dofs = high_order_grid->fe_system.dofs_per_cell;
         auto metric_cell = high_order_grid->dof_handler_grid.begin_active();
 
+        auto first_cell = dof_handler.begin_active();
+        const bool Cartesian_first_element = (first_cell->manifold_id() == dealii::numbers::flat_manifold_id) ? true : false;
+
         if(use_auxiliary_eq){
             mass_aux.build_1D_volume_operator(oneD_fe_collection_1state[max_degree], oneD_quadrature_collection[max_degree]);
-            if(grid_degree>1){
+            if(grid_degree>1 || !Cartesian_first_element){
                 projection_oper.build_1D_volume_operator(oneD_fe_collection_1state[max_degree], oneD_quadrature_collection[max_degree]);
             }
         }
         else{
             mass.build_1D_volume_operator(oneD_fe_collection_1state[max_degree], oneD_quadrature_collection[max_degree]);
-            if(grid_degree>1){
+            if(grid_degree>1 || !Cartesian_first_element){
                 projection_oper.build_1D_volume_operator(oneD_fe_collection_1state[max_degree], oneD_quadrature_collection[max_degree]);
             }
         }
@@ -3314,19 +3331,21 @@ void DGBase<dim,real,MeshType>::apply_global_mass_matrix(
             current_dofs_indices.resize(n_dofs_cell);
             soln_cell->get_dof_indices (current_dofs_indices);
 
+            const bool Cartesian_element = (soln_cell->manifold_id() == dealii::numbers::flat_manifold_id) ? true : false;
+
             //if poly degree changed for this cell, rinitialize
-            if((poly_degree != mass.current_degree && grid_degree == 1 && !use_auxiliary_eq) || 
-                (poly_degree != projection_oper.current_degree && grid_degree > 1 && !use_auxiliary_eq)){
+            if((poly_degree != mass.current_degree && (grid_degree == 1 || Cartesian_element) && !use_auxiliary_eq) || 
+                (poly_degree != projection_oper.current_degree && (grid_degree > 1 || !Cartesian_element) && !use_auxiliary_eq)){
                     mapping_basis.build_1D_shape_functions_at_volume_flux_nodes(high_order_grid->oneD_fe_system, oneD_quadrature_collection[poly_degree]);
                     if(use_auxiliary_eq){
                         mass_aux.build_1D_volume_operator(oneD_fe_collection_1state[poly_degree], oneD_quadrature_collection[poly_degree]);
-                        if(grid_degree>1){
+                        if(grid_degree>1 || !Cartesian_element){
                             projection_oper.build_1D_volume_operator(oneD_fe_collection_1state[poly_degree], oneD_quadrature_collection[poly_degree]);
                         }
                     }
                     else{
                         mass.build_1D_volume_operator(oneD_fe_collection_1state[poly_degree], oneD_quadrature_collection[poly_degree]);
-                        if(grid_degree>1){
+                        if(grid_degree>1 || !Cartesian_element){
                             projection_oper.build_1D_volume_operator(oneD_fe_collection_1state[poly_degree], oneD_quadrature_collection[poly_degree]);
                         }
                     }
@@ -3368,7 +3387,7 @@ void DGBase<dim,real,MeshType>::apply_global_mass_matrix(
                     const unsigned int idof = istate * n_shape_fns + ishape;
                     local_input_vector[ishape] = input_vector[current_dofs_indices[idof]];
                 }
-                if(grid_degree == 1){
+                if(Cartesian_element){
                     if(use_auxiliary_eq){
                         mass_aux.matrix_vector_mult_1D(local_input_vector, local_output_vector,
                                                        mass_aux.oneD_vol_operator,

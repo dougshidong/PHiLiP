@@ -176,8 +176,6 @@ public:
         navier_stokes,
         physics_model,
     };
-    /// Store the PDE type to be solved
-    PartialDifferentialEquation pde_type;
 
     /// Types of models available.
     enum ModelType {

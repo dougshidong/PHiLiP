@@ -30,7 +30,7 @@
 #include "reduced_order_pod_adaptation.h"
 #include "reduced_order.h"
 #include "convection_diffusion_explicit_periodic.h"
-#include "flow_solver.h"
+#include "flow_solver/flow_solver.h"
 #include "fd_state_sensitivity_wrt_parameter.h"
 #include "dual_weighted_residual_mesh_adaptation.h"
 #include "taylor_green_vortex_energy_check.h"

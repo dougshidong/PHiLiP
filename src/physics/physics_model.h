@@ -47,7 +47,8 @@ public:
     std::array<real,nstate> source_term (
         const dealii::Point<dim,real> &pos,
         const std::array<real,nstate> &conservative_soln,
-        const dealii::types::global_dof_index cell_index) const;
+        const dealii::types::global_dof_index cell_index,
+        const real current_time) const;
 
     //===========================================================================================
     // All other functions required by PhysicsBase:
@@ -55,6 +56,11 @@ public:
     /// Convective Numerical Split Flux for split form
     std::array<dealii::Tensor<1,dim,real>,nstate> convective_numerical_split_flux (
         const std::array<real,nstate> &soln_const, const std::array<real,nstate> &soln_loop) const;
+
+    /// Convective surface split flux
+    real convective_surface_numerical_split_flux (
+                const real &surface_flux,
+                const real &flux_interp_to_surface) const;
 
     /** Spectral radius of convective term Jacobian.
      *  Used for scalar dissipation

@@ -3,7 +3,7 @@
 
 // for FlowSolver class:
 #include "physics/initial_conditions/initial_condition_function.h"
-#include "tests.h"
+#include "testing/tests.h"
 #include "flow_solver_cases/flow_solver_case_base.h"
 #include "physics/initial_conditions/initial_condition.h"
 #include "physics/physics.h"

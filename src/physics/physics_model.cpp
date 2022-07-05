@@ -97,10 +97,11 @@ std::array<real,nstate> PhysicsModel<dim,nstate,real,nstate_baseline_physics>
 ::source_term (
     const dealii::Point<dim,real> &pos,
     const std::array<real,nstate> &conservative_soln,
-    const dealii::types::global_dof_index cell_index) const
+    const dealii::types::global_dof_index cell_index,
+    const real current_time) const
 {
     // Initialize source_term as the model source term
-    std::array<real,nstate> source_term = model->source_term(pos,conservative_soln,cell_index);
+    std::array<real,nstate> source_term = model->source_term(pos,conservative_soln,cell_index,current_time);
     
     // Get baseline conservative solution with nstate_baseline_physics
     std::array<real,nstate_baseline_physics> baseline_conservative_soln;
@@ -111,7 +112,7 @@ std::array<real,nstate> PhysicsModel<dim,nstate,real,nstate_baseline_physics>
     // Get the baseline physics source term
     /* Note: Even though the physics baseline source term does not depend on cell_index, we pass it 
              anyways to accomodate the pure virtual member function defined in the PhysicsBase class */
-    std::array<real,nstate_baseline_physics> baseline_source_term = physics_baseline->source_term(pos,baseline_conservative_soln,cell_index);
+    std::array<real,nstate_baseline_physics> baseline_source_term = physics_baseline->source_term(pos,baseline_conservative_soln,cell_index,current_time);
 
     // Add the baseline_source_term terms to source_term
     for(int s=0; s<nstate_baseline_physics; ++s){
@@ -135,6 +136,15 @@ std::array<dealii::Tensor<1,dim,real>,nstate> PhysicsModel<dim,nstate,real,nstat
         std::abort();
     }
     return conv_num_split_flux;
+}
+
+template <int dim, int nstate, typename real, int nstate_baseline_physics>
+real PhysicsModel<dim,nstate,real,nstate_baseline_physics>
+::convective_surface_numerical_split_flux (
+                const real &/*surface_flux*/,
+                const real &flux_interp_to_surface) const
+{
+    return flux_interp_to_surface;
 }
 
 template <int dim, int nstate, typename real, int nstate_baseline_physics>

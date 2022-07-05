@@ -5,7 +5,6 @@
 #include "central_numerical_flux.hpp"
 #include "entropy_cons_numerical_flux.hpp"
 #include "physics/physics_model.h"
->>>>>>> 02a1cfcfe7093ef30b7ccb1e569659ef7d256444
 
 namespace PHiLiP {
 namespace NumericalFlux {

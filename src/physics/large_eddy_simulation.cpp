@@ -127,7 +127,8 @@ std::array<real,nstate> LargeEddySimulationBase<dim,nstate,real>
 ::source_term (
         const dealii::Point<dim,real> &pos,
         const std::array<real,nstate> &/*solution*/,
-        const dealii::types::global_dof_index cell_index) const
+        const dealii::types::global_dof_index cell_index,
+        const real /*current_time*/) const
 {
     /* TO DO Note: Since this is only used for the manufactured solution source term, 
              the grid spacing is fixed --> No AD wrt grid --> Can use same computation as NavierStokes

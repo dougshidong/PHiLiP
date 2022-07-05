@@ -12,7 +12,7 @@
 #include "flow_solver_case_base.h"
 
 namespace PHiLiP {
-namespace Tests {
+namespace FlowSolver {
 
 template <int dim, int nstate>
 class NACA0012 : public FlowSolverCaseBase<dim,nstate>
@@ -43,7 +43,7 @@ protected:
     void display_additional_flow_case_specific_parameters() const override;
 };
 
-} // Tests namespace
+} // FlowSolver namespace
 } // PHiLiP namespace
 
 #endif

@@ -11,13 +11,13 @@ void NavierStokesParam::declare_parameters (dealii::ParameterHandler &prm)
     prm.enter_subsection("navier_stokes");
     {
         prm.declare_entry("prandtl_number", "0.72",
-                          dealii::Patterns::Double(1e-15, 10000000),
+                          dealii::Patterns::Double(1e-15, dealii::Patterns::Double::max_double_value),
                           "Prandlt number");
         prm.declare_entry("reynolds_number_inf", "10000000.0",
-                          dealii::Patterns::Double(1e-15, 10000000),
+                          dealii::Patterns::Double(1e-15, dealii::Patterns::Double::max_double_value),
                           "Farfield Reynolds number");
         prm.declare_entry("nondimensionalized_isothermal_wall_temperature", "1.0",
-                          dealii::Patterns::Double(1e-15, 10000000),
+                          dealii::Patterns::Double(1e-15, dealii::Patterns::Double::max_double_value),
                           "Nondimensionalized isothermal wall temperature.");
         prm.declare_entry("thermal_boundary_condition_type", "adiabatic",
                           dealii::Patterns::Selection("adiabatic|isothermal"),

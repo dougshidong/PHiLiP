@@ -30,6 +30,16 @@ template <int dim, int nstate, typename real>
 class Burgers : public PhysicsBase <dim, nstate, real>
 {
 protected:
+    // For overloading the virtual functions defined in PhysicsBase
+    /** Once you overload a function from Base class in Derived class,
+     *  all functions with the same name in the Base class get hidden in Derived class.  
+     *  
+     *  Solution: In order to make the hidden function visible in derived class, 
+     *  we need to add the following:
+    */
+    using PhysicsBase<dim,nstate,real>::dissipative_flux;
+    using PhysicsBase<dim,nstate,real>::source_term;
+protected:
     /// Diffusion scaling coefficient in front of the diffusion tensor.
     double diffusion_scaling_coeff;
 public:
@@ -93,13 +103,25 @@ public:
     /// Dissipative flux: u
     std::array<dealii::Tensor<1,dim,real>,nstate> dissipative_flux (
         const std::array<real,nstate> &solution,
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient,
+        const dealii::types::global_dof_index cell_index) const;
+
+    /// Dissipative flux: u
+    std::array<dealii::Tensor<1,dim,real>,nstate> dissipative_flux (
+        const std::array<real,nstate> &solution,
         const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient) const;
 
     /// Source term is zero or depends on manufactured solution
     std::array<real,nstate> source_term (
         const dealii::Point<dim,real> &pos,
         const std::array<real,nstate> &solution,
+        const dealii::types::global_dof_index cell_index,
         const real current_time) const;
+
+    /// (function overload) Source term is zero or depends on manufactured solution
+    virtual std::array<real,nstate> source_term (
+        const dealii::Point<dim,real> &pos,
+        const std::array<real,nstate> &solution) const;
 
     /// If diffusion is present, assign Dirichlet boundary condition
     /** Using Neumann boundary conditions might need to modify the functional

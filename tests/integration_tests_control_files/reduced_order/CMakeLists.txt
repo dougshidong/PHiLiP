@@ -1,10 +1,5 @@
 set(TEST_OUTPUT_DIR ${CMAKE_CURRENT_BINARY_DIR})
 
-configure_file(naca0012_hopw_ref1.msh naca0012_hopw_ref1.msh COPYONLY)
-configure_file(naca0012_hopw_ref2.msh naca0012_hopw_ref2.msh COPYONLY)
-configure_file(naca0012_hopw_ref3.msh naca0012_hopw_ref3.msh COPYONLY)
-configure_file(naca0012_hopw_ref4.msh naca0012_hopw_ref4.msh COPYONLY)
-
 # =======================================
 # Test Burgers Rewienski Galerkin and Petrov-Galerkin reduced-order solvers
 # =======================================

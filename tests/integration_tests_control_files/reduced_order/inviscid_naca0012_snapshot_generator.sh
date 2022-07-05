@@ -63,7 +63,7 @@ echo "  set flow_case_type = naca0012" >> $file
 echo "  set poly_degree = 0" >> $file
 echo "  set steady_state = true" >> $file
 echo "  subsection grid" >> $file
-echo "    set input_mesh_filename = naca0012_hopw_ref2" >> $file
+echo "    set input_mesh_filename = ../../meshes/naca0012_hopw_ref1" >> $file
 echo "  end" >> $file
 echo "end" >> $file
 

@@ -22,7 +22,7 @@ echo "# Listing of Parameters"                                                  
 echo "# ---------------------"                                                                      >> $file   
 echo " "                                                                                            >> $file   
 echo "set dimension = 1 "                                                                           >> $file   
-echo "set test_type = flow_solver"                                                                  >> $file   
+echo "set run_type = flow_simulation"                                                               >> $file   
 echo "set pde_type = burgers_rewienski"                                                             >> $file   
 echo " "                                                                                            >> $file   
 echo "set use_weak_form = true"                                                                     >> $file   
@@ -30,9 +30,6 @@ echo "set use_collocated_nodes = false"                                         
 echo " "                                                                                            >> $file   
 echo "subsection grid refinement study"                                                             >> $file   
 echo " set num_refinements = 10"                                                                    >> $file
-echo " set poly_degree = 0"                                                                         >> $file   
-echo " set grid_left = 0.0"                                                                         >> $file   
-echo " set grid_right = 100.0"                                                                      >> $file   
 echo "end"                                                                                          >> $file   
 echo " "                                                                                            >> $file   
 echo "#Burgers parameters"                                                                          >> $file
@@ -45,6 +42,11 @@ echo "subsection flow_solver"                                                   
 echo " set flow_case_type = burgers_rewienski_snapshot"                                             >> $file   
 echo " set final_time = 0.5"                                                                        >> $file   
 echo " set steady_state = true"                                                                     >> $file   
+echo " set poly_degree = 0"                                                                         >> $file   
+echo " subsection grid"                                                                             >> $file   
+echo "  set grid_left_bound = 0.0"                                                                  >> $file   
+echo "  set grid_right_bound = 100.0"                                                               >> $file   
+echo " end"                                                                                         >> $file   
 echo "end"                                                                                          >> $file   
 echo " "                                                                                            >> $file   
 echo "subsection ODE solver "                                                                       >> $file   

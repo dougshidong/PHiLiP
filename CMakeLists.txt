@@ -97,9 +97,9 @@ SET(_dimension_targets "#
 #      make 2D             - to build all 2D executables, including tests, allow 'ctest -R 2D'
 #      make 3D             - to build all 3D executables, including tests, allow 'ctest -R 3D' ")
 SET(_philip_targets "#
-#      make PHiLiP_1D      - to build main program (wihtout tests) in 1D
-#      make PHiLiP_2D      - to build main program (wihtout tests) in 2D
-#      make PHiLiP_3D      - to build main program (wihtout tests) in 3D ")
+#      make PHiLiP_1D      - to build main program (without tests) in 1D
+#      make PHiLiP_2D      - to build main program (without tests) in 2D
+#      make PHiLiP_3D      - to build main program (without tests) in 3D ")
 add_custom_target(unit_tests)
 
 add_custom_target(grids)

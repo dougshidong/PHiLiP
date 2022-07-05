@@ -26,6 +26,7 @@
 #include "grid_study.h"
 
 #include "physics/physics_factory.h"
+#include "physics/model_factory.h"
 #include "physics/manufactured_solution.h"
 #include "dg/dg_factory.hpp"
 #include "ode_solver/ode_solver_factory.h"
@@ -115,57 +116,15 @@ double GridStudy<dim,nstate>
 template<int dim, int nstate>
 std::string GridStudy<dim,nstate>::
 get_convergence_tables_baseline_filename(const Parameters::AllParameters *const param) const
-{
-    using ManParam = Parameters::ManufacturedConvergenceStudyParam;
-    ManParam manu_grid_conv_param = param->manufactured_convergence_study_param;
+{    
+    // initial base name
+    std::string error_filename_baseline = "convergence_table";
     
-    // Future code development: create get_pde_string(), get_conv_num_flux_string(), get_manufactured_solution_string() in appropriate classes
-    std::string error_filename_baseline = "convergence_table"; // initial base name
-    using PDE_enum = Parameters::AllParameters::PartialDifferentialEquation;
-    const PDE_enum pde_type = param->pde_type;
-    std::string pde_string;
-    if (pde_type == PDE_enum::advection)            {pde_string = "advection";}
-    if (pde_type == PDE_enum::advection_vector)     {pde_string = "advection_vector";}
-    if (pde_type == PDE_enum::diffusion)            {pde_string = "diffusion";}
-    if (pde_type == PDE_enum::convection_diffusion) {pde_string = "convection_diffusion";}
-    if (pde_type == PDE_enum::burgers_inviscid)     {pde_string = "burgers_inviscid";}
-    if (pde_type == PDE_enum::burgers_rewienski)    {pde_string = "burgers_rewienski";}
-    if (pde_type == PDE_enum::euler)                {pde_string = "euler";}
-    if (pde_type == PDE_enum::navier_stokes)        {pde_string = "navier_stokes";}
-
-    using CNF_enum = Parameters::AllParameters::ConvectiveNumericalFlux;
-    const CNF_enum CNF_type = param->conv_num_flux_type;
-    std::string conv_num_flux_string;
-    if (CNF_type == CNF_enum::lax_friedrichs) {conv_num_flux_string = "lax_friedrichs";}
-    if (CNF_type == CNF_enum::split_form)     {conv_num_flux_string = "split_form";}
-    if (CNF_type == CNF_enum::roe)            {conv_num_flux_string = "roe";}
-    if (CNF_type == CNF_enum::l2roe)          {conv_num_flux_string = "l2roe";}
-
-    using DNF_enum = Parameters::AllParameters::DissipativeNumericalFlux;
-    const DNF_enum DNF_type = param->diss_num_flux_type;
-    std::string diss_num_flux_string;
-    if (DNF_type == DNF_enum::symm_internal_penalty) {diss_num_flux_string = "symm_internal_penalty";}
-    if (DNF_type == DNF_enum::bassi_rebay_2)         {diss_num_flux_string = "bassi_rebay_2";}
-
-    using ManufacturedSolutionEnum = Parameters::ManufacturedSolutionParam::ManufacturedSolutionType;
-    const ManufacturedSolutionEnum MS_type = manu_grid_conv_param.manufactured_solution_param.manufactured_solution_type;
-    std::string manufactured_solution_string;
-    if (MS_type == ManufacturedSolutionEnum::sine_solution)           {manufactured_solution_string = "sine_solution";}
-    if (MS_type == ManufacturedSolutionEnum::cosine_solution)         {manufactured_solution_string = "cosine_solution";}
-    if (MS_type == ManufacturedSolutionEnum::additive_solution)       {manufactured_solution_string = "additive_solution";}
-    if (MS_type == ManufacturedSolutionEnum::exp_solution)            {manufactured_solution_string = "exp_solution";}
-    if (MS_type == ManufacturedSolutionEnum::poly_solution)           {manufactured_solution_string = "poly_solution";}
-    if (MS_type == ManufacturedSolutionEnum::even_poly_solution)      {manufactured_solution_string = "even_poly_solution";}
-    if (MS_type == ManufacturedSolutionEnum::atan_solution)           {manufactured_solution_string = "atan_solution";}
-    if (MS_type == ManufacturedSolutionEnum::boundary_layer_solution) {manufactured_solution_string = "boundary_layer_solution";}
-    if (MS_type == ManufacturedSolutionEnum::s_shock_solution)        {manufactured_solution_string = "s_shock_solution";}
-    if (MS_type == ManufacturedSolutionEnum::quadratic_solution)      {manufactured_solution_string = "quadratic_solution";}
-    if (MS_type == ManufacturedSolutionEnum::navah_solution_1)        {manufactured_solution_string = "navah_solution_1";}
-    if (MS_type == ManufacturedSolutionEnum::navah_solution_2)        {manufactured_solution_string = "navah_solution_2";}
-    if (MS_type == ManufacturedSolutionEnum::navah_solution_3)        {manufactured_solution_string = "navah_solution_3";}
-    if (MS_type == ManufacturedSolutionEnum::navah_solution_4)        {manufactured_solution_string = "navah_solution_4";}
-    if (MS_type == ManufacturedSolutionEnum::navah_solution_5)        {manufactured_solution_string = "navah_solution_5";}
-
+    std::string pde_string = this->get_pde_string(param);
+    std::string conv_num_flux_string = this->get_conv_num_flux_string(param);
+    std::string diss_num_flux_string = this->get_diss_num_flux_string(param);
+    std::string manufactured_solution_string = this->get_manufactured_solution_string(param);
+    
     error_filename_baseline += std::string("_") + std::to_string(dim) + std::string("d");
     error_filename_baseline += std::string("_") + pde_string;
     error_filename_baseline += std::string("_") + conv_num_flux_string;
@@ -209,7 +168,8 @@ int GridStudy<dim,nstate>
 
     const unsigned int n_grids_input       = manu_grid_conv_param.number_of_grids;
 
-    std::shared_ptr <Physics::PhysicsBase<dim,nstate,double>> physics_double = Physics::PhysicsFactory<dim, nstate, double>::create_Physics(&param);
+    std::shared_ptr< Physics::ModelBase<dim,nstate,double> > model_double = Physics::ModelFactory<dim,nstate,double>::create_Model(&param);
+    std::shared_ptr <Physics::PhysicsBase<dim,nstate,double>> physics_double = Physics::PhysicsFactory<dim, nstate, double>::create_Physics(&param,model_double);
 
     // Evaluate solution integral on really fine mesh
     double exact_solution_integral;

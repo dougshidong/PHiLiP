@@ -22,6 +22,8 @@ Transonic NACA0012 with adaptive refinement         |  Viscous NACA0012 with Rec
 # Parallel High-Order Library for PDEs
 
 [![Documentation](https://codedocs.xyz/dougshidong/PHiLiP.svg)](https://codedocs.xyz/dougshidong/PHiLiP/)
+[![DOI](https://zenodo.org/badge/162186347.svg)](https://zenodo.org/badge/latestdoi/162186347)
+
 
 The [P]arallel [Hi]gh-Order [Li]brary for [P]DEs (PHiLiP) uses Discontinuous Galerkin methods to solve convection-diffusion problems.
 

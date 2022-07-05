@@ -20,6 +20,8 @@
 
 #include "physics/physics.h"
 #include "physics/physics_factory.h"
+#include "physics/model.h"
+#include "physics/model_factory.h"
 #include "dg/dg.h"
 #include "functional.h"
 
@@ -279,7 +281,8 @@ Functional<dim,nstate,real,MeshType>::Functional(
 { 
     using FadType = Sacado::Fad::DFad<real>;
     using FadFadType = Sacado::Fad::DFad<FadType>;
-    physics_fad_fad = Physics::PhysicsFactory<dim,nstate,FadFadType>::create_Physics(dg->all_parameters);
+    std::shared_ptr<Physics::ModelBase<dim,nstate,FadFadType>> model_fad_fad = Physics::ModelFactory<dim,nstate,FadFadType>::create_Model(dg->all_parameters);
+    physics_fad_fad = Physics::PhysicsFactory<dim,nstate,FadFadType>::create_Physics(dg->all_parameters,model_fad_fad);
 
     init_vectors();
 }

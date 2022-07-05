@@ -1,7 +1,7 @@
 # Listing of Parameters
 # ---------------------
 
-set test_type = flow_solver
+set run_type = flow_simulation
 set dimension = 2
 set pde_type  = euler
 
@@ -57,13 +57,15 @@ subsection ODE solver
 end
 
 subsection grid refinement study
- set poly_degree = 0
  set num_refinements = 0
 end
 
 subsection flow_solver
   set flow_case_type = naca0012
-  set input_mesh_filename = naca0012_hopw_ref2
+  set poly_degree = 0
   set steady_state = true
+  subsection grid
+    set input_mesh_filename = naca0012_hopw_ref2
+  end
 end
 

@@ -42,6 +42,7 @@
 
 #include "dg.h"
 #include "physics/physics_factory.h"
+#include "physics/model_factory.h"
 #include "post_processor/physics_post_processor.h"
 
 #include <deal.II/numerics/derivative_approximation.h>
@@ -291,13 +292,23 @@ DGBaseState<dim,nstate,real,MeshType>::DGBaseState(
     const std::shared_ptr<Triangulation> triangulation_input)
     : DGBase<dim,real,MeshType>::DGBase(nstate, parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input) // Use DGBase constructor
 {
-    pde_physics_double  = Physics::PhysicsFactory<dim,nstate,real>            ::create_Physics(parameters_input);
-    pde_physics_fad     = Physics::PhysicsFactory<dim,nstate,FadType>         ::create_Physics(parameters_input);
-    pde_physics_rad     = Physics::PhysicsFactory<dim,nstate,RadType>         ::create_Physics(parameters_input);
-    pde_physics_fad_fad = Physics::PhysicsFactory<dim,nstate,FadFadType>      ::create_Physics(parameters_input);
-    pde_physics_rad_fad = Physics::PhysicsFactory<dim,nstate,RadFadType>      ::create_Physics(parameters_input);
     artificial_dissip = ArtificialDissipationFactory<dim,nstate> ::create_artificial_dissipation(parameters_input);
+
+    pde_model_double    = Physics::ModelFactory<dim,nstate,real>::create_Model(parameters_input);
+    pde_physics_double  = Physics::PhysicsFactory<dim,nstate,real>::create_Physics(parameters_input,pde_model_double);
     
+    pde_model_fad       = Physics::ModelFactory<dim,nstate,FadType>::create_Model(parameters_input);
+    pde_physics_fad     = Physics::PhysicsFactory<dim,nstate,FadType>::create_Physics(parameters_input,pde_model_fad);
+    
+    pde_model_rad       = Physics::ModelFactory<dim,nstate,RadType>::create_Model(parameters_input);
+    pde_physics_rad     = Physics::PhysicsFactory<dim,nstate,RadType>::create_Physics(parameters_input,pde_model_rad);
+    
+    pde_model_fad_fad   = Physics::ModelFactory<dim,nstate,FadFadType>::create_Model(parameters_input);
+    pde_physics_fad_fad = Physics::PhysicsFactory<dim,nstate,FadFadType>::create_Physics(parameters_input,pde_model_fad_fad);
+    
+    pde_model_rad_fad   = Physics::ModelFactory<dim,nstate,RadFadType>::create_Model(parameters_input);
+    pde_physics_rad_fad = Physics::PhysicsFactory<dim,nstate,RadFadType>::create_Physics(parameters_input,pde_model_rad_fad);
+
     reset_numerical_fluxes();
 
 }
@@ -305,19 +316,19 @@ DGBaseState<dim,nstate,real,MeshType>::DGBaseState(
 template <int dim, int nstate, typename real, typename MeshType>
 void DGBaseState<dim,nstate,real,MeshType>::reset_numerical_fluxes()
 {
-    conv_num_flux_double = NumericalFlux::NumericalFluxFactory<dim, nstate, real> ::create_convective_numerical_flux (all_parameters->conv_num_flux_type, pde_physics_double);
-    diss_num_flux_double = NumericalFlux::NumericalFluxFactory<dim, nstate, real> ::create_dissipative_numerical_flux (all_parameters->diss_num_flux_type, pde_physics_double, artificial_dissip);
+    conv_num_flux_double  = NumericalFlux::NumericalFluxFactory<dim, nstate, real> ::create_convective_numerical_flux (all_parameters->conv_num_flux_type, all_parameters->pde_type, all_parameters->model_type, pde_physics_double);
+    diss_num_flux_double  = NumericalFlux::NumericalFluxFactory<dim, nstate, real> ::create_dissipative_numerical_flux (all_parameters->diss_num_flux_type, pde_physics_double, artificial_dissip);
 
-    conv_num_flux_fad = NumericalFlux::NumericalFluxFactory<dim, nstate, FadType> ::create_convective_numerical_flux (all_parameters->conv_num_flux_type, pde_physics_fad);
-    diss_num_flux_fad = NumericalFlux::NumericalFluxFactory<dim, nstate, FadType> ::create_dissipative_numerical_flux (all_parameters->diss_num_flux_type, pde_physics_fad, artificial_dissip);
+    conv_num_flux_fad     = NumericalFlux::NumericalFluxFactory<dim, nstate, FadType> ::create_convective_numerical_flux (all_parameters->conv_num_flux_type, all_parameters->pde_type, all_parameters->model_type, pde_physics_fad);
+    diss_num_flux_fad     = NumericalFlux::NumericalFluxFactory<dim, nstate, FadType> ::create_dissipative_numerical_flux (all_parameters->diss_num_flux_type, pde_physics_fad, artificial_dissip);
 
-    conv_num_flux_rad = NumericalFlux::NumericalFluxFactory<dim, nstate, RadType> ::create_convective_numerical_flux (all_parameters->conv_num_flux_type, pde_physics_rad);
-    diss_num_flux_rad = NumericalFlux::NumericalFluxFactory<dim, nstate, RadType> ::create_dissipative_numerical_flux (all_parameters->diss_num_flux_type, pde_physics_rad, artificial_dissip);
+    conv_num_flux_rad     = NumericalFlux::NumericalFluxFactory<dim, nstate, RadType> ::create_convective_numerical_flux (all_parameters->conv_num_flux_type, all_parameters->pde_type, all_parameters->model_type, pde_physics_rad);
+    diss_num_flux_rad     = NumericalFlux::NumericalFluxFactory<dim, nstate, RadType> ::create_dissipative_numerical_flux (all_parameters->diss_num_flux_type, pde_physics_rad, artificial_dissip);
 
-    conv_num_flux_fad_fad = NumericalFlux::NumericalFluxFactory<dim, nstate, FadFadType> ::create_convective_numerical_flux (all_parameters->conv_num_flux_type, pde_physics_fad_fad);
+    conv_num_flux_fad_fad = NumericalFlux::NumericalFluxFactory<dim, nstate, FadFadType> ::create_convective_numerical_flux (all_parameters->conv_num_flux_type, all_parameters->pde_type, all_parameters->model_type, pde_physics_fad_fad);
     diss_num_flux_fad_fad = NumericalFlux::NumericalFluxFactory<dim, nstate, FadFadType> ::create_dissipative_numerical_flux (all_parameters->diss_num_flux_type, pde_physics_fad_fad, artificial_dissip);
 
-    conv_num_flux_rad_fad = NumericalFlux::NumericalFluxFactory<dim, nstate, RadFadType> ::create_convective_numerical_flux (all_parameters->conv_num_flux_type, pde_physics_rad_fad);
+    conv_num_flux_rad_fad = NumericalFlux::NumericalFluxFactory<dim, nstate, RadFadType> ::create_convective_numerical_flux (all_parameters->conv_num_flux_type, all_parameters->pde_type, all_parameters->model_type, pde_physics_rad_fad);
     diss_num_flux_rad_fad = NumericalFlux::NumericalFluxFactory<dim, nstate, RadFadType> ::create_dissipative_numerical_flux (all_parameters->diss_num_flux_type, pde_physics_rad_fad, artificial_dissip);
 }
 
@@ -329,13 +340,107 @@ void DGBaseState<dim,nstate,real,MeshType>::set_physics(
     std::shared_ptr< Physics::PhysicsBase<dim, nstate, FadFadType > > pde_physics_fad_fad_input,
     std::shared_ptr< Physics::PhysicsBase<dim, nstate, RadFadType > > pde_physics_rad_fad_input)
 {
-    pde_physics_double = pde_physics_double_input;
-    pde_physics_fad = pde_physics_fad_input;
-    pde_physics_rad = pde_physics_rad_input;
+    pde_physics_double  = pde_physics_double_input;
+    pde_physics_fad     = pde_physics_fad_input;
+    pde_physics_rad     = pde_physics_rad_input;
     pde_physics_fad_fad = pde_physics_fad_fad_input;
     pde_physics_rad_fad = pde_physics_rad_fad_input;
 
     reset_numerical_fluxes();
+}
+
+template <int dim, int nstate, typename real, typename MeshType>
+void DGBaseState<dim,nstate,real,MeshType>::allocate_model_variables()
+{
+    // allocate all model variables for each ModelBase object
+    // -- double
+    pde_model_double->cellwise_poly_degree.reinit(this->triangulation->n_active_cells(), this->mpi_communicator);
+    pde_model_double->cellwise_volume.reinit(this->triangulation->n_active_cells(), this->mpi_communicator);
+    // -- FadType
+    pde_model_fad->cellwise_poly_degree.reinit(this->triangulation->n_active_cells(), this->mpi_communicator);
+    pde_model_fad->cellwise_volume.reinit(this->triangulation->n_active_cells(), this->mpi_communicator);
+    // -- RadType
+    pde_model_rad->cellwise_poly_degree.reinit(this->triangulation->n_active_cells(), this->mpi_communicator);
+    pde_model_rad->cellwise_volume.reinit(this->triangulation->n_active_cells(), this->mpi_communicator);
+    // -- FadFadType
+    pde_model_fad_fad->cellwise_poly_degree.reinit(this->triangulation->n_active_cells(), this->mpi_communicator);
+    pde_model_fad_fad->cellwise_volume.reinit(this->triangulation->n_active_cells(), this->mpi_communicator);
+    // -- RadFadType
+    pde_model_rad_fad->cellwise_poly_degree.reinit(this->triangulation->n_active_cells(), this->mpi_communicator);
+    pde_model_rad_fad->cellwise_volume.reinit(this->triangulation->n_active_cells(), this->mpi_communicator);
+}
+
+template <int dim, int nstate, typename real, typename MeshType>
+void DGBaseState<dim,nstate,real,MeshType>::update_model_variables()
+{
+    // allocate/reinit the model variables
+    allocate_model_variables();
+
+    // get FEValues of volume
+    const auto mapping = (*(this->high_order_grid->mapping_fe_field));
+    dealii::hp::MappingCollection<dim> mapping_collection(mapping);
+    const dealii::UpdateFlags update_flags = dealii::update_values | dealii::update_JxW_values;
+    dealii::hp::FEValues<dim,dim> fe_values_collection_volume (mapping_collection, 
+                                                               this->fe_collection, 
+                                                               this->volume_quadrature_collection, 
+                                                               update_flags);
+
+    // loop through all cells
+    for (auto cell : this->dof_handler.active_cell_iterators()) {
+        if (!(cell->is_locally_owned() || cell->is_ghost())) continue;
+
+        // get FEValues of volume for current cell
+        const int i_fele = cell->active_fe_index();
+        const int i_quad = i_fele;
+        const int i_mapp = 0;
+        fe_values_collection_volume.reinit(cell, i_quad, i_mapp, i_fele);
+        const dealii::FEValues<dim,dim> &fe_values_volume = fe_values_collection_volume.get_present_fe_values();
+
+        // get cell polynomial degree
+        const dealii::FESystem<dim,dim> &fe_high = this->fe_collection[i_fele];
+        const unsigned int cell_poly_degree = fe_high.tensor_degree();
+
+        // get cell volume
+        const dealii::Quadrature<dim> &quadrature = fe_values_volume.get_quadrature();
+        const unsigned int n_quad_pts = quadrature.size();
+        const std::vector<real> &JxW = fe_values_volume.get_JxW_values();
+        real cell_volume_estimate = 0.0;
+        for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
+            cell_volume_estimate = cell_volume_estimate + JxW[iquad];
+        }
+        const real cell_volume = cell_volume_estimate;
+        
+        // get cell index for assignment
+        const dealii::types::global_dof_index cell_index = cell->active_cell_index();
+        // const dealii::types::global_dof_index cell_index = cell->global_active_cell_index(); // https://www.dealii.org/current/doxygen/deal.II/classCellAccessor.html
+
+        // assign values
+        // -- double
+        pde_model_double->cellwise_poly_degree[cell_index] = cell_poly_degree;
+        pde_model_double->cellwise_volume[cell_index] = cell_volume;
+        // -- FadType
+        pde_model_fad->cellwise_poly_degree[cell_index] = cell_poly_degree;
+        pde_model_fad->cellwise_volume[cell_index] = cell_volume;
+        // -- RadType
+        pde_model_rad->cellwise_poly_degree[cell_index] = cell_poly_degree;
+        pde_model_rad->cellwise_volume[cell_index] = cell_volume;
+        // -- FadFadType
+        pde_model_fad_fad->cellwise_poly_degree[cell_index] = cell_poly_degree;
+        pde_model_fad_fad->cellwise_volume[cell_index] = cell_volume;
+        // -- RadRadType
+        pde_model_rad_fad->cellwise_poly_degree[cell_index] = cell_poly_degree;
+        pde_model_rad_fad->cellwise_volume[cell_index] = cell_volume;
+    }
+    pde_model_double->cellwise_poly_degree.update_ghost_values();
+    pde_model_double->cellwise_volume.update_ghost_values();
+    pde_model_fad->cellwise_poly_degree.update_ghost_values();
+    pde_model_fad->cellwise_volume.update_ghost_values();
+    pde_model_rad->cellwise_poly_degree.update_ghost_values();
+    pde_model_rad->cellwise_volume.update_ghost_values();
+    pde_model_fad_fad->cellwise_poly_degree.update_ghost_values();
+    pde_model_fad_fad->cellwise_volume.update_ghost_values();
+    pde_model_rad_fad->cellwise_poly_degree.update_ghost_values();
+    pde_model_rad_fad->cellwise_volume.update_ghost_values();
 }
 
 template <int dim, int nstate, typename real, typename MeshType>
@@ -1775,8 +1880,12 @@ void DGBase<dim,real,MeshType>::assemble_residual (const bool compute_dRdW, cons
     int assembly_error = 0;
     try {
 
-        update_artificial_dissipation_discontinuity_sensor();
+        // update artificial dissipation discontinuity sensor only if using artificial dissipation
+        if(all_parameters->artificial_dissipation_param.add_artificial_dissipation) update_artificial_dissipation_discontinuity_sensor();
         
+        // updates model variables only if there is a model
+        if(all_parameters->pde_type == Parameters::AllParameters::PartialDifferentialEquation::physics_model) update_model_variables();
+
         //assembles and solves for auxiliary variable if necessary.
         assemble_auxiliary_residual();
 
@@ -2447,6 +2556,10 @@ void DGBase<dim,real,MeshType>::allocate_system (
     ghost_dofs.subtract_set(locally_owned_dofs);
     //dealii::DoFTools::extract_locally_relevant_dofs(dof_handler, locally_relevant_dofs);
 
+    // TO DO: QUESTION FOR PRANSHUL / DOUG:
+    /* Should all these aritifical dissipation variables be allocated here when artificial dissipation
+       isn't being used? If so, consider moving this allocation section to a void function called
+       allocate_artificial_dissipation() */
     dof_handler_artificial_dissipation.distribute_dofs(fe_q_artificial_dissipation);
     const dealii::IndexSet locally_owned_dofs_artificial_dissipation = dof_handler_artificial_dissipation.locally_owned_dofs();
 
@@ -2463,6 +2576,9 @@ void DGBase<dim,real,MeshType>::allocate_system (
     artificial_dissipation_se.reinit(triangulation->n_active_cells());
     max_dt_cell.reinit(triangulation->n_active_cells());
     cell_volume.reinit(triangulation->n_active_cells());
+
+    // allocates model variables only if there is a model
+    if(all_parameters->pde_type == Parameters::AllParameters::PartialDifferentialEquation::physics_model) allocate_model_variables();
 
     solution.reinit(locally_owned_dofs, ghost_dofs, mpi_communicator);
     solution *= 0.0;

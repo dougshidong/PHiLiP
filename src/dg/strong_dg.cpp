@@ -1531,13 +1531,16 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_derivatives(
  
         ADArrayTensor1 diss_soln_jump_int;
         for (int s=0; s<nstate; s++) {
-   for (int d=0; d<dim; d++) {
-    diss_soln_jump_int[s][d] = (diss_soln_num_flux[iquad][s] - soln_int[iquad][s]) * normal_int[d];
-   }
+            for (int d=0; d<dim; d++) {
+                diss_soln_jump_int[s][d] = (diss_soln_num_flux[iquad][s] - soln_int[iquad][s]) * normal_int[d];
+                diss_soln_jump_ext[s][d] = (diss_soln_num_flux[iquad][s] - soln_ext[iquad][s]) * normal_ext[d];
+            }
         }
-        diss_flux_jump_int[iquad] = this->pde_physics_fad->dissipative_flux (soln_int[iquad], diss_soln_jump_int);
- 
+        diss_flux_jump_int[iquad] = this->pde_physics_fad->dissipative_flux (soln_int[iquad], diss_soln_jump_int, current_cell_index);
+        diss_flux_jump_ext[iquad] = this->pde_physics_fad->dissipative_flux (soln_ext[iquad], diss_soln_jump_ext, neighbor_cell_index);
+
         diss_auxi_num_flux_dot_n[iquad] = DGBaseState<dim,nstate,real,MeshType>::diss_num_flux_fad->evaluate_auxiliary_flux(
+            current_cell_index, neighbor_cell_index,
             0.0, 0.0,
             soln_int[iquad], soln_ext[iquad],
             soln_grad_int[iquad], soln_grad_ext[iquad],
@@ -1634,14 +1637,10 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_volume_term_derivatives(
         //if(nstate>1) std::cout << "Momentum " << soln_at_q[iquad][1] << std::endl;
         //std::cout << "Energy " << soln_at_q[iquad][nstate-1] << std::endl;
         // Evaluate physical convective flux and source term
-        conv_phys_flux_at_q[iquad] = this->pde_physics_fad->convective_flux (soln_at_q[iquad]);
-        diss_phys_flux_at_q[iquad] = this->pde_physics_fad->dissipative_flux (soln_at_q[iquad], soln_grad_at_q[iquad]);
-
+        conv_phys_flux_at_q[iquad] = DGBaseState<dim,nstate,real,MeshType>::pde_physics_double->convective_flux (soln_at_q[iquad]);
+        diss_phys_flux_at_q[iquad] = DGBaseState<dim,nstate,real,MeshType>::pde_physics_double->dissipative_flux (soln_at_q[iquad], soln_grad_at_q[iquad], current_cell_index);
         if(this->all_parameters->manufactured_convergence_study_param.manufactured_solution_param.use_manufactured_source_term) {
-            const dealii::Point<dim,real> real_quad_point = fe_values_vol.quadrature_point(iquad);
-            dealii::Point<dim,FadType> ad_point;
-            for (int d=0;d<dim;++d) { ad_point[d] = real_quad_point[d]; }
-            source_at_q[iquad] = this->pde_physics_fad->source_term (ad_point, soln_at_q[iquad], DGBase<dim,real,MeshType>::current_time);
+            source_at_q[iquad] = DGBaseState<dim,nstate,real,MeshType>::pde_physics_double->source_term (fe_values_vol.quadrature_point(iquad), soln_at_q[iquad], current_cell_index, DGBase<dim,real,MeshType>::current_time);
         }
     }
 
@@ -1697,6 +1696,137 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_volume_term_derivatives(
             }
         }
 
+        local_rhs_int_cell(itest) += rhs;
+    }
+}
+
+
+template <int dim, int nstate, typename real, typename MeshType>
+void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_explicit(
+    typename dealii::DoFHandler<dim>::active_cell_iterator /*cell*/,
+    const dealii::types::global_dof_index current_cell_index,
+    const unsigned int boundary_id,
+    const dealii::FEFaceValuesBase<dim,dim> &fe_values_boundary,
+    const real penalty,
+    const std::vector<dealii::types::global_dof_index> &dof_indices_int,
+    dealii::Vector<real> &local_rhs_int_cell)
+{
+    (void) current_cell_index;
+    using ADArray = std::array<FadType,nstate>;
+    using ADArrayTensor1 = std::array< dealii::Tensor<1,dim,FadType>, nstate >;
+
+    const unsigned int n_dofs_cell = fe_values_boundary.dofs_per_cell;
+    const unsigned int n_face_quad_pts = fe_values_boundary.n_quadrature_points;
+
+    AssertDimension (n_dofs_cell, dof_indices_int.size());
+
+    const std::vector<real> &JxW = fe_values_boundary.get_JxW_values ();
+    const std::vector<dealii::Tensor<1,dim>> &normals = fe_values_boundary.get_normal_vectors ();
+
+    std::vector<real> residual_derivatives(n_dofs_cell);
+
+    std::vector<ADArray> soln_int(n_face_quad_pts);
+    std::vector<ADArray> soln_ext(n_face_quad_pts);
+
+    std::vector<ADArrayTensor1> soln_grad_int(n_face_quad_pts);
+    std::vector<ADArrayTensor1> soln_grad_ext(n_face_quad_pts);
+
+    std::vector<ADArray> conv_num_flux_dot_n(n_face_quad_pts);
+    std::vector<ADArray> diss_soln_num_flux(n_face_quad_pts); // u*
+    std::vector<ADArrayTensor1> diss_flux_jump_int(n_face_quad_pts); // u*-u_int
+    std::vector<ADArray> diss_auxi_num_flux_dot_n(n_face_quad_pts); // sigma*
+
+    std::vector<ADArrayTensor1> conv_phys_flux(n_face_quad_pts);
+
+    // AD variable
+    std::vector< FadType > soln_coeff_int(n_dofs_cell);
+    const unsigned int n_total_indep = n_dofs_cell;
+    for (unsigned int idof = 0; idof < n_dofs_cell; ++idof) {
+        soln_coeff_int[idof] = DGBase<dim,real,MeshType>::solution(dof_indices_int[idof]);
+        soln_coeff_int[idof].diff(idof, n_total_indep);
+    }
+
+    for (unsigned int iquad=0; iquad<n_face_quad_pts; ++iquad) {
+        for (int istate=0; istate<nstate; istate++) { 
+            // Interpolate solution to the face quadrature points
+            soln_int[iquad][istate]      = 0;
+            soln_grad_int[iquad][istate] = 0;
+        }
+    }
+    // Interpolate solution to face
+    const std::vector< dealii::Point<dim,real> > quad_pts = fe_values_boundary.get_quadrature_points();
+    for (unsigned int iquad=0; iquad<n_face_quad_pts; ++iquad) {
+
+        const dealii::Tensor<1,dim,FadType> normal_int = normals[iquad];
+        const dealii::Tensor<1,dim,FadType> normal_ext = -normal_int;
+
+        for (unsigned int idof=0; idof<n_dofs_cell; ++idof) {
+            const int istate = fe_values_boundary.get_fe().system_to_component_index(idof).first;
+            soln_int[iquad][istate]      += soln_coeff_int[idof] * fe_values_boundary.shape_value_component(idof, iquad, istate);
+            soln_grad_int[iquad][istate] += soln_coeff_int[idof] * fe_values_boundary.shape_grad_component(idof, iquad, istate);
+        }
+
+        const dealii::Point<dim, real> real_quad_point = quad_pts[iquad];
+        dealii::Point<dim,FadType> ad_point;
+        for (int d=0;d<dim;++d) { ad_point[d] = real_quad_point[d]; }
+        this->pde_physics_fad->boundary_face_values (boundary_id, ad_point, normal_int, soln_int[iquad], soln_grad_int[iquad], soln_ext[iquad], soln_grad_ext[iquad]);
+
+        //
+        // Evaluate physical convective flux, physical dissipative flux
+        // Following the the boundary treatment given by 
+        //      Hartmann, R., Numerical Analysis of Higher Order Discontinuous Galerkin Finite Element Methods,
+        //      Institute of Aerodynamics and Flow Technology, DLR (German Aerospace Center), 2008.
+        //      Details given on page 93
+        //conv_num_flux_dot_n[iquad] = DGBaseState<dim,nstate,real,MeshType>::conv_num_flux_fad->evaluate_flux(soln_ext[iquad], soln_ext[iquad], normal_int);
+
+        // So, I wasn't able to get Euler manufactured solutions to converge when F* = F*(Ubc, Ubc)
+        // Changing it back to the standdard F* = F*(Uin, Ubc)
+        // This is known not be adjoint consistent as per the paper above. Page 85, second to last paragraph.
+        // Losing 2p+1 OOA on functionals for all PDEs.
+        conv_num_flux_dot_n[iquad] = DGBaseState<dim,nstate,real,MeshType>::conv_num_flux_fad->evaluate_flux(soln_int[iquad], soln_ext[iquad], normal_int);
+
+        // Used for strong form
+        // Which physical convective flux to use?
+        conv_phys_flux[iquad] = this->pde_physics_fad->convective_flux (soln_int[iquad]);
+
+        // Notice that the flux uses the solution given by the Dirichlet or Neumann boundary condition
+        diss_soln_num_flux[iquad] = DGBaseState<dim,nstate,real,MeshType>::diss_num_flux_fad->evaluate_solution_flux(soln_ext[iquad], soln_ext[iquad], normal_int);
+
+        ADArrayTensor1 diss_soln_jump_int;
+        for (int s=0; s<nstate; s++) {
+            for (int d=0; d<dim; d++) {
+                diss_soln_jump_int[s][d] = (diss_soln_num_flux[iquad][s] - soln_int[iquad][s]) * normal_int[d];
+            }
+        }
+        diss_flux_jump_int[iquad] = this->pde_physics_fad->dissipative_flux (soln_int[iquad], diss_soln_jump_int, current_cell_index);
+
+        diss_auxi_num_flux_dot_n[iquad] = DGBaseState<dim,nstate,real,MeshType>::diss_num_flux_fad->evaluate_auxiliary_flux(
+            current_cell_index, current_cell_index,
+            0.0, 0.0,
+            soln_int[iquad], soln_ext[iquad],
+            soln_grad_int[iquad], soln_grad_ext[iquad],
+            normal_int, penalty, true);
+    }
+
+    // Boundary integral
+    for (unsigned int itest=0; itest<n_dofs_cell; ++itest) {
+
+        FadType rhs = 0.0;
+
+        const unsigned int istate = fe_values_boundary.get_fe().system_to_component_index(itest).first;
+
+        for (unsigned int iquad=0; iquad<n_face_quad_pts; ++iquad) {
+
+            // Convection
+            const FadType flux_diff = conv_num_flux_dot_n[iquad][istate] - conv_phys_flux[iquad][istate]*normals[iquad];
+            rhs = rhs - fe_values_boundary.shape_value_component(itest,iquad,istate) * flux_diff * JxW[iquad];
+            // Diffusive
+            rhs = rhs - fe_values_boundary.shape_value_component(itest,iquad,istate) * diss_auxi_num_flux_dot_n[iquad][istate] * JxW[iquad];
+            rhs = rhs + fe_values_boundary.shape_grad_component(itest,iquad,istate) * diss_flux_jump_int[iquad][istate] * JxW[iquad];
+        }
+        // *******************
+
+>>>>>>> 02a1cfcfe7093ef30b7ccb1e569659ef7d256444
         local_rhs_int_cell(itest) += rhs.val();
 
         if (this->all_parameters->ode_solver_param.ode_solver_type == Parameters::ODESolverParam::ODESolverEnum::implicit_solver) {
@@ -1832,15 +1962,16 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_derivatives(
 
         ADArrayTensor1 diss_soln_jump_int, diss_soln_jump_ext;
         for (int s=0; s<nstate; s++) {
-   for (int d=0; d<dim; d++) {
-    diss_soln_jump_int[s][d] = (diss_soln_num_flux[iquad][s] - soln_int[iquad][s]) * normal_int[d];
-    diss_soln_jump_ext[s][d] = (diss_soln_num_flux[iquad][s] - soln_ext[iquad][s]) * normal_ext[d];
-   }
+            for (int d=0; d<dim; d++) {
+                diss_soln_jump_int[s][d] = (diss_soln_num_flux[iquad][s] - soln_int[iquad][s]) * normal_int[d];
+                diss_soln_jump_ext[s][d] = (diss_soln_num_flux[iquad][s] - soln_ext[iquad][s]) * normal_ext[d];
+            }
         }
-        diss_flux_jump_int[iquad] = this->pde_physics_fad->dissipative_flux (soln_int[iquad], diss_soln_jump_int);
-        diss_flux_jump_ext[iquad] = this->pde_physics_fad->dissipative_flux (soln_ext[iquad], diss_soln_jump_ext);
+        diss_flux_jump_int[iquad] = this->pde_physics_fad->dissipative_flux (soln_int[iquad], diss_soln_jump_int, current_cell_index);
+        diss_flux_jump_ext[iquad] = this->pde_physics_fad->dissipative_flux (soln_ext[iquad], diss_soln_jump_ext, neighbor_cell_index);
 
         diss_auxi_num_flux_dot_n[iquad] = DGBaseState<dim,nstate,real,MeshType>::diss_num_flux_fad->evaluate_auxiliary_flux(
+            current_cell_index, neighbor_cell_index,
             0.0, 0.0,
             soln_int[iquad], soln_ext[iquad],
             soln_grad_int[iquad], soln_grad_ext[iquad],

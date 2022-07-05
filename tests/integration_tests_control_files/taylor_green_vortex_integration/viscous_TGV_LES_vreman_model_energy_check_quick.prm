@@ -1,0 +1,71 @@
+# Listing of Parameters
+# ---------------------
+# Number of dimensions
+
+set dimension = 3
+set test_type = taylor_green_vortex_energy_check
+set pde_type = physics_model
+set model_type = large_eddy_simulation
+
+# DG formulation
+set use_weak_form = true
+# set use_collocated_nodes = true
+
+# Note: this was added to turn off check_same_coords() -- has no other function when dim!=1
+set use_periodic_bc = true
+
+# numerical fluxes
+set conv_num_flux = roe
+set diss_num_flux = symm_internal_penalty
+
+# ODE solver
+subsection ODE solver
+  set ode_output = quiet
+  set ode_solver_type = explicit
+  subsection explicit solver options
+    set runge_kutta_order = 3
+  end
+end
+
+# Reference for freestream values specified below:
+# Diosady, L., and S. Murman. "Case 3.3: Taylor green vortex evolution." Case Summary for 3rd International Workshop on Higher-Order CFD Methods. 2015.
+
+# freestream Mach number
+subsection euler
+  set mach_infinity = 0.1
+end
+
+# freestream Reynolds number and Prandtl number
+subsection navier_stokes
+  set prandtl_number = 0.71
+  set reynolds_number_inf = 1600.0
+end
+
+subsection physics_model
+  subsection large_eddy_simulation
+    set euler_turbulence = false
+    set SGS_model_type = vreman
+    set turbulent_prandtl_number = 0.6
+    set smagorinsky_model_constant = 0.18
+    set WALE_model_constant = 0.6
+    set vreman_model_constant = 0.081
+    set ratio_of_filter_width_to_cell_size = 1.0
+  end
+end
+
+subsection flow_solver
+  set flow_case_type = taylor_green_vortex
+  set poly_degree = 2
+  set final_time = 1.2566370614400000e-02
+  set courant_friedrich_lewy_number = 0.003
+  set unsteady_data_table_filename = tgv_les_vreman_kinetic_energy_vs_time_table_for_energy_check
+  subsection grid
+    set grid_left_bound = 0.0
+    set grid_right_bound = 6.28318530717958623200
+    set number_of_grid_elements_per_dimension = 4
+  end
+  subsection taylor_green_vortex
+    set expected_kinetic_energy_at_final_time = 1.2073425817822164e-01
+    set expected_theoretical_dissipation_rate_at_final_time = 4.5420093274618566e-04
+  end
+end

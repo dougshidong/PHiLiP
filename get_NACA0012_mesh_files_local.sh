@@ -1,4 +1,4 @@
-TARGET_DIR=tests/integration_tests_control_files/euler_integration/naca0012/
+TARGET_DIR=tests/meshes/
 # get files from GoogleDrive using gdown
 gdown 1rzjT9DH4Cpe92SRTMig9aAKQNbDlQG5c # naca0012_hopw_ref0.msh
 gdown 1c0HUhoTR-ZFE_uy-rtV3ObMBsSlyvCpI # naca0012_hopw_ref1.msh

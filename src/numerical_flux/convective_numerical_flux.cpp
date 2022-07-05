@@ -343,6 +343,101 @@ std::array<real, nstate> RoeBase<dim,nstate,real>
     return numerical_flux_dot_n;
 }
 
+template <int dim, int nstate, typename real>
+std::array<real, nstate> EntropyConsNumFlux<dim,nstate,real>::evaluate_flux(
+ const std::array<real, nstate> &soln_int,
+    const std::array<real, nstate> &soln_ext,
+    const dealii::Tensor<1,dim,real> &normal_int) const
+{
+    using RealArrayVector = std::array<dealii::Tensor<1,dim,real>,nstate>;
+    RealArrayVector conv_phys_split_flux;
+
+    conv_phys_split_flux = pde_physics->convective_numerical_split_flux (soln_int,soln_ext);
+
+    // Scalar dissipation
+    std::array<real, nstate> numerical_flux_dot_n;
+    for (int s=0; s<nstate; s++) {
+        real flux_dot_n = 0.0;
+        for (int d=0; d<dim; ++d) {
+            flux_dot_n += conv_phys_split_flux[s][d] * normal_int[d];
+        }
+        numerical_flux_dot_n[s] = flux_dot_n;
+    }
+    return numerical_flux_dot_n;
+}
+
+template <int dim, int nstate, typename real>
+std::array<real, nstate> CentralNumFlux<dim,nstate,real>::evaluate_flux(
+ const std::array<real, nstate> &soln_int,
+    const std::array<real, nstate> &soln_ext,
+    const dealii::Tensor<1,dim,real> &normal_int) const
+{
+    using RealArrayVector = std::array<dealii::Tensor<1,dim,real>,nstate>;
+    RealArrayVector conv_phys_flux_int;
+    RealArrayVector conv_phys_flux_ext;
+
+    conv_phys_flux_int = pde_physics->convective_flux (soln_int);
+    conv_phys_flux_ext = pde_physics->convective_flux (soln_ext);
+    
+    RealArrayVector flux_avg;
+    for (int s=0; s<nstate; s++) {
+        flux_avg[s] = 0.0;
+        for (int d=0; d<dim; ++d) {
+            flux_avg[s][d] = 0.5*(conv_phys_flux_int[s][d] + conv_phys_flux_ext[s][d]);
+        }
+    }
+
+    std::array<real, nstate> numerical_flux_dot_n;
+    for (int s=0; s<nstate; s++) {
+        real flux_dot_n = 0.0;
+        for (int d=0; d<dim; ++d) {
+            flux_dot_n += flux_avg[s][d]*normal_int[d];
+        }
+        numerical_flux_dot_n[s] = flux_dot_n;
+    }
+
+    return numerical_flux_dot_n;
+
+}
+
+template <int dim, int nstate, typename real>
+std::array<real, nstate> SplitFormNumFlux<dim,nstate,real>::evaluate_flux(
+ const std::array<real, nstate> &soln_int,
+    const std::array<real, nstate> &soln_ext,
+    const dealii::Tensor<1,dim,real> &normal_int) const
+ {
+  //std::cout << "evaluating the split form flux" <<std::endl;
+    using RealArrayVector = std::array<dealii::Tensor<1,dim,real>,nstate>;
+    RealArrayVector conv_phys_split_flux;
+
+    conv_phys_split_flux = pde_physics->convective_numerical_split_flux (soln_int,soln_ext);
+    //std::cout << "done evaluating the conv num split flux" <<std::endl;
+
+    const real conv_max_eig_int = pde_physics->max_convective_eigenvalue(soln_int);
+    // std::cout << "1st eig" << std::endl;
+    const real conv_max_eig_ext = pde_physics->max_convective_eigenvalue(soln_ext);
+    //std::cout << "2nd eig" << std::endl;
+    const real conv_max_eig = std::max(conv_max_eig_int, conv_max_eig_ext);
+
+    // std::cout << "obtained the max eig" <<std::endl;
+     // Scalar dissipation
+    std::array<real, nstate> numerical_flux_dot_n;
+    for (int s=0; s<nstate; s++) {
+        real flux_dot_n = 0.0;
+        for (int d=0; d<dim; ++d) {
+            flux_dot_n += conv_phys_split_flux[s][d] * normal_int[d];
+        }
+        numerical_flux_dot_n[s] = flux_dot_n - 0.5 * conv_max_eig * (soln_ext[s]-soln_int[s]);
+        //Roe Ismail num flux
+        const double pi = atan(1)*4.0;
+        const unsigned int poly_degree = 4;
+        numerical_flux_dot_n[s] = flux_dot_n - (0.25 * abs(soln_int[s]+soln_ext[s]) * (soln_ext[s]-soln_int[s])
+                                + 1.0/12.0 * abs(soln_ext[s]-soln_int[s]) * (soln_ext[s]-soln_int[s]))/(pi*(poly_degree+1.0));
+    }
+    // std::cout << "about to return split num flux" <<std::endl;
+    return numerical_flux_dot_n;
+ }
+
 // Instantiation
 template class NumericalFluxConvective<PHILIP_DIM, 1, double>;
 template class NumericalFluxConvective<PHILIP_DIM, 2, double>;
@@ -414,6 +509,83 @@ template class L2Roe<PHILIP_DIM, PHILIP_DIM+2, RadType >;
 template class L2Roe<PHILIP_DIM, PHILIP_DIM+2, FadFadType >;
 template class L2Roe<PHILIP_DIM, PHILIP_DIM+2, RadFadType >;
 
+template class EntropyConsNumFlux<PHILIP_DIM, 1, double>;
+template class EntropyConsNumFlux<PHILIP_DIM, 2, double>;
+template class EntropyConsNumFlux<PHILIP_DIM, 3, double>;
+template class EntropyConsNumFlux<PHILIP_DIM, 4, double>;
+template class EntropyConsNumFlux<PHILIP_DIM, 5, double>;
+template class EntropyConsNumFlux<PHILIP_DIM, 1, FadType >;
+template class EntropyConsNumFlux<PHILIP_DIM, 2, FadType >;
+template class EntropyConsNumFlux<PHILIP_DIM, 3, FadType >;
+template class EntropyConsNumFlux<PHILIP_DIM, 4, FadType >;
+template class EntropyConsNumFlux<PHILIP_DIM, 5, FadType >;
+template class EntropyConsNumFlux<PHILIP_DIM, 1, RadType >;
+template class EntropyConsNumFlux<PHILIP_DIM, 2, RadType >;
+template class EntropyConsNumFlux<PHILIP_DIM, 3, RadType >;
+template class EntropyConsNumFlux<PHILIP_DIM, 4, RadType >;
+template class EntropyConsNumFlux<PHILIP_DIM, 5, RadType >;
+template class EntropyConsNumFlux<PHILIP_DIM, 1, FadFadType >;
+template class EntropyConsNumFlux<PHILIP_DIM, 2, FadFadType >;
+template class EntropyConsNumFlux<PHILIP_DIM, 3, FadFadType >;
+template class EntropyConsNumFlux<PHILIP_DIM, 4, FadFadType >;
+template class EntropyConsNumFlux<PHILIP_DIM, 5, FadFadType >;
+template class EntropyConsNumFlux<PHILIP_DIM, 1, RadFadType >;
+template class EntropyConsNumFlux<PHILIP_DIM, 2, RadFadType >;
+template class EntropyConsNumFlux<PHILIP_DIM, 3, RadFadType >;
+template class EntropyConsNumFlux<PHILIP_DIM, 4, RadFadType >;
+template class EntropyConsNumFlux<PHILIP_DIM, 5, RadFadType >;
+
+template class CentralNumFlux<PHILIP_DIM, 1, double>;
+template class CentralNumFlux<PHILIP_DIM, 2, double>;
+template class CentralNumFlux<PHILIP_DIM, 3, double>;
+template class CentralNumFlux<PHILIP_DIM, 4, double>;
+template class CentralNumFlux<PHILIP_DIM, 5, double>;
+template class CentralNumFlux<PHILIP_DIM, 1, FadType >;
+template class CentralNumFlux<PHILIP_DIM, 2, FadType >;
+template class CentralNumFlux<PHILIP_DIM, 3, FadType >;
+template class CentralNumFlux<PHILIP_DIM, 4, FadType >;
+template class CentralNumFlux<PHILIP_DIM, 5, FadType >;
+template class CentralNumFlux<PHILIP_DIM, 1, RadType >;
+template class CentralNumFlux<PHILIP_DIM, 2, RadType >;
+template class CentralNumFlux<PHILIP_DIM, 3, RadType >;
+template class CentralNumFlux<PHILIP_DIM, 4, RadType >;
+template class CentralNumFlux<PHILIP_DIM, 5, RadType >;
+template class CentralNumFlux<PHILIP_DIM, 1, FadFadType >;
+template class CentralNumFlux<PHILIP_DIM, 2, FadFadType >;
+template class CentralNumFlux<PHILIP_DIM, 3, FadFadType >;
+template class CentralNumFlux<PHILIP_DIM, 4, FadFadType >;
+template class CentralNumFlux<PHILIP_DIM, 5, FadFadType >;
+template class CentralNumFlux<PHILIP_DIM, 1, RadFadType >;
+template class CentralNumFlux<PHILIP_DIM, 2, RadFadType >;
+template class CentralNumFlux<PHILIP_DIM, 3, RadFadType >;
+template class CentralNumFlux<PHILIP_DIM, 4, RadFadType >;
+template class CentralNumFlux<PHILIP_DIM, 5, RadFadType >;
+
+template class SplitFormNumFlux<PHILIP_DIM, 1, double>;
+template class SplitFormNumFlux<PHILIP_DIM, 2, double>;
+template class SplitFormNumFlux<PHILIP_DIM, 3, double>;
+template class SplitFormNumFlux<PHILIP_DIM, 4, double>;
+template class SplitFormNumFlux<PHILIP_DIM, 5, double>;
+template class SplitFormNumFlux<PHILIP_DIM, 1, FadType >;
+template class SplitFormNumFlux<PHILIP_DIM, 2, FadType >;
+template class SplitFormNumFlux<PHILIP_DIM, 3, FadType >;
+template class SplitFormNumFlux<PHILIP_DIM, 4, FadType >;
+template class SplitFormNumFlux<PHILIP_DIM, 5, FadType >;
+template class SplitFormNumFlux<PHILIP_DIM, 1, RadType >;
+template class SplitFormNumFlux<PHILIP_DIM, 2, RadType >;
+template class SplitFormNumFlux<PHILIP_DIM, 3, RadType >;
+template class SplitFormNumFlux<PHILIP_DIM, 4, RadType >;
+template class SplitFormNumFlux<PHILIP_DIM, 5, RadType >;
+template class SplitFormNumFlux<PHILIP_DIM, 1, FadFadType >;
+template class SplitFormNumFlux<PHILIP_DIM, 2, FadFadType >;
+template class SplitFormNumFlux<PHILIP_DIM, 3, FadFadType >;
+template class SplitFormNumFlux<PHILIP_DIM, 4, FadFadType >;
+template class SplitFormNumFlux<PHILIP_DIM, 5, FadFadType >;
+template class SplitFormNumFlux<PHILIP_DIM, 1, RadFadType >;
+template class SplitFormNumFlux<PHILIP_DIM, 2, RadFadType >;
+template class SplitFormNumFlux<PHILIP_DIM, 3, RadFadType >;
+template class SplitFormNumFlux<PHILIP_DIM, 4, RadFadType >;
+template class SplitFormNumFlux<PHILIP_DIM, 5, RadFadType >;
 
 } // NumericalFlux namespace
 } // PHiLiP namespace

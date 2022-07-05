@@ -1,9 +1,6 @@
 #include "numerical_flux_factory.hpp"
 
 #include "ADTypes.hpp"
-#include "split_form_numerical_flux.hpp"
-#include "central_numerical_flux.hpp"
-#include "entropy_cons_numerical_flux.hpp"
 #include "physics/physics_model.h"
 
 namespace PHiLiP {

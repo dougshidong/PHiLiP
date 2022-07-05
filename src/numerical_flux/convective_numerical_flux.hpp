@@ -166,6 +166,83 @@ protected:
 	    int &ssw_RIGHT) const;
 };
 
+/// Entropy Conserving Numerica Flux currently only for Burgers' split-form 1D.
+template<int dim, int nstate, typename real>
+class EntropyConsNumFlux: public NumericalFluxConvective<dim, nstate, real>
+{
+public:
+
+/// Constructor
+EntropyConsNumFlux(std::shared_ptr <Physics::PhysicsBase<dim, nstate, real>> physics_input)
+:
+pde_physics(physics_input)
+{};
+/// Destructor
+~EntropyConsNumFlux() {};
+
+/// Returns the convective numerical flux at an interface.
+std::array<real, nstate> evaluate_flux (
+    const std::array<real, nstate> &soln_int,
+    const std::array<real, nstate> &soln_ext,
+    const dealii::Tensor<1,dim,real> &normal1) const;
+
+protected:
+/// Numerical flux requires physics to evaluate convective eigenvalues.
+const std::shared_ptr < Physics::PhysicsBase<dim, nstate, real> > pde_physics;
+
+};
+
+/// Central numerical flux. Derived from NumericalFluxConvective.
+template<int dim, int nstate, typename real>
+class CentralNumFlux: public NumericalFluxConvective<dim, nstate, real>
+{
+public:
+
+/// Constructor
+CentralNumFlux(std::shared_ptr <Physics::PhysicsBase<dim, nstate, real>> physics_input)
+:
+pde_physics(physics_input)
+{};
+/// Destructor
+~CentralNumFlux() {};
+
+/// Returns the convective numerical flux at an interface.
+std::array<real, nstate> evaluate_flux (
+    const std::array<real, nstate> &soln_int,
+    const std::array<real, nstate> &soln_ext,
+    const dealii::Tensor<1,dim,real> &normal1) const;
+
+protected:
+/// Numerical flux requires physics to evaluate convective eigenvalues.
+const std::shared_ptr < Physics::PhysicsBase<dim, nstate, real> > pde_physics;
+
+};
+
+/// Lax-Friedrichs numerical flux. Derived from NumericalFluxConvective.
+template<int dim, int nstate, typename real>
+class SplitFormNumFlux: public NumericalFluxConvective<dim, nstate, real>
+{
+public:
+
+/// Constructor
+SplitFormNumFlux(std::shared_ptr <Physics::PhysicsBase<dim, nstate, real>> physics_input)
+:
+pde_physics(physics_input)
+{};
+/// Destructor
+~SplitFormNumFlux() {};
+
+/// Returns the convective numerical flux at an interface.
+std::array<real, nstate> evaluate_flux (
+    const std::array<real, nstate> &soln_int,
+    const std::array<real, nstate> &soln_ext,
+    const dealii::Tensor<1,dim,real> &normal1) const;
+
+protected:
+/// Numerical flux requires physics to evaluate convective eigenvalues.
+const std::shared_ptr < Physics::PhysicsBase<dim, nstate, real> > pde_physics;
+
+};
 
 } /// NumericalFlux namespace
 } /// PHiLiP namespace

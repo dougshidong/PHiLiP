@@ -201,7 +201,7 @@ public:
             const dealii::FullMatrix<double> &basis,
             const dealii::FullMatrix<double> &gradient_basis);
 
-    ///Computes the inner prodct between a matrix and a vector multiplied by some weight function.  
+    ///Computes the inner product between a matrix and a vector multiplied by some weight function.  
     /** That is, we compute \f$ \int Awu d\mathbf{\Omega}_r = \mathbf{A}^T \text{diag}(w) \mathbf{u}^T \f$. When using this function, pass \f$ \mathbf{A} \f$ and NOT it's transpose--the function transposes it in the first few lines.
     */
     void inner_product(
@@ -217,6 +217,8 @@ public:
 
     ///Computes the divergence of the 2pt flux Hadamard products, then sums the rows.
     /** Note that we have the factor of 2.0 definied in this function.
+    * We also make use of the structure of the flux basis to get the matrix vector product after the Hadamard product
+    * to be \f$ \mathcal{O}(n^{d+1})\f$.
     */
     void divergence_two_pt_flux_Hadamard_product(
             const dealii::Tensor<1,dim,dealii::FullMatrix<double>> &input_mat,
@@ -1179,13 +1181,13 @@ public:
     ///The determinant of the metric Jacobian at facet cubature nodes.
     std::vector<real> det_Jac_surf;
 
-    //Stores the metric Jacobian at flux nodes.
+    ///Stores the metric Jacobian at flux nodes.
     dealii::Tensor<2,dim,std::vector<real>> metric_Jacobian_vol_cubature;
 
-    //Stores the physical volume flux nodes.
+    ///Stores the physical volume flux nodes.
     dealii::Tensor<1,dim,std::vector<real>> flux_nodes_vol;
 
-    //Stores the physical facet flux nodes.
+    ///Stores the physical facet flux nodes.
     std::array<dealii::Tensor<1,dim,std::vector<real>>,n_faces> flux_nodes_surf;
 
 protected:

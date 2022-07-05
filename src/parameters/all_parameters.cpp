@@ -20,7 +20,6 @@ AllParameters::AllParameters ()
     , flow_solver_param(FlowSolverParam())
     , mesh_adaptation_param(MeshAdaptationParam())
     , functional_param(FunctionalParam())
-    , mesh_generation_param(MeshGenerationParam())
     , pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD)==0)
 { }
 
@@ -205,32 +204,25 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       "Name of directory for writing solution vtk files. Current directory by default.");
 
     Parameters::LinearSolverParam::declare_parameters (prm);
-
     Parameters::ManufacturedConvergenceStudyParam::declare_parameters (prm);
-
     Parameters::ODESolverParam::declare_parameters (prm);
 
     Parameters::EulerParam::declare_parameters (prm);
-
     Parameters::NavierStokesParam::declare_parameters (prm);
     
     Parameters::PhysicsModelParam::declare_parameters (prm);
 
     Parameters::ReducedOrderModelParam::declare_parameters (prm);
-
     Parameters::BurgersParam::declare_parameters (prm);
 
     Parameters::GridRefinementStudyParam::declare_parameters (prm);
    
     Parameters::ArtificialDissipationParam::declare_parameters (prm);
-
     Parameters::MeshAdaptationParam::declare_parameters (prm);
 
     Parameters::FlowSolverParam::declare_parameters (prm);
     
     Parameters::FunctionalParam::declare_parameters (prm);
-
-    Parameters::MeshGenerationParam::declare_parameters(prm);
 
     pcout << "Done declaring inputs." << std::endl;
 }
@@ -409,9 +401,6 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     
     pcout << "Parsing functional subsection..." << std::endl;
     functional_param.parse_parameters (prm);
-
-    pcout << "Parsing mesh generation subsection..." << std::endl;
-    mesh_generation_param.parse_parameters (prm);
     
     pcout << "Done parsing." << std::endl;
 }

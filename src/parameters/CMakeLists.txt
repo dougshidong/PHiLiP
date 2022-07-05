@@ -15,7 +15,6 @@ set(SOURCE
     parameters_flow_solver.cpp
     parameters_mesh_adaptation.cpp
     parameters_burgers.cpp
-    parameters_mesh_generation.cpp
     all_parameters.cpp)
 
 # Output library

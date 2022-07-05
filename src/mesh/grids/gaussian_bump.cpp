@@ -144,7 +144,7 @@ std::unique_ptr<dealii::Manifold<2,2> > BumpManifold::clone() const
     return std::make_unique<BumpManifold>(channel_height,bump_height);
 }
 
-#if PHILIP_DIM == 2
+#if PHILIP_DIM==2
     template void gaussian_bump<PHILIP_DIM> (
         dealii::parallel::distributed::Triangulation<PHILIP_DIM> &grid,
         const std::vector<unsigned int> n_subdivisions,

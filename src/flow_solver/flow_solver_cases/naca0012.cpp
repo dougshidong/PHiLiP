@@ -68,7 +68,7 @@ void NACA0012<dim,nstate>::set_higher_order_grid(std::shared_ptr<DGBase<dim, dou
     const std::string mesh_filename = this->all_param.flow_solver_param.input_mesh_filename+std::string(".msh");
     std::shared_ptr<HighOrderGrid<dim,double>> naca0012_mesh = read_gmsh<dim, dim> (mesh_filename);
     dg->set_high_order_grid(naca0012_mesh);
-    for (unsigned int i=0; i<this->all_param.grid_refinement_study_param.num_refinements; ++i) {
+    for (int i=0; i<this->all_param.flow_solver_param.num_refinements; ++i) {
         dg->high_order_grid->refine_global();
     }
 }

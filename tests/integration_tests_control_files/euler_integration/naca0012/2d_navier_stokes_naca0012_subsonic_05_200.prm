@@ -115,6 +115,7 @@ end
 subsection flow_solver
   subsection grid
     set input_mesh_filename = naca0012_hopw_ref5
+    set num_refinements = 0
   end
 end
 

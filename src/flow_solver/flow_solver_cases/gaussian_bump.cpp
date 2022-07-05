@@ -25,15 +25,15 @@ std::shared_ptr<Triangulation> GaussianBump<dim,nstate>::generate_grid() const
             dealii::Triangulation<dim>::smoothing_on_refinement |
             dealii::Triangulation<dim>::smoothing_on_coarsening));
 
-    const unsigned int number_of_refinements = this->all_param.grid_refinement_study_param.num_refinements;
-    const double channel_length = this->all_param.mesh_generation_param.channel_length;
-    const double channel_height = this->all_param.mesh_generation_param.channel_height;
-    const double bump_height = this->all_param.mesh_generation_param.bump_height;
+    const unsigned int number_of_refinements = this->all_param.flow_solver_param.num_refinements;
+    const double channel_length = this->all_param.flow_solver_param.channel_length;
+    const double channel_height = this->all_param.flow_solver_param.channel_height;
+    const double bump_height = this->all_param.flow_solver_param.bump_height;
 
     std::vector<unsigned int> n_subdivisions(dim);
-    n_subdivisions[0] = this->all_param.mesh_generation_param.number_of_subdivisions_in_x_direction;
-    n_subdivisions[1] = this->all_param.mesh_generation_param.number_of_subdivisions_in_y_direction;
-    // n_subdivisions[2] = his->all_param.mesh_generation_param.number_of_subdivisions_in_z_direction;
+    n_subdivisions[0] = this->all_param.flow_solver_param.number_of_subdivisions_in_x_direction;
+    n_subdivisions[1] = this->all_param.flow_solver_param.number_of_subdivisions_in_y_direction;
+    // n_subdivisions[2] = this->all_param.flow_solver_param.grid.gaussian_bump.number_of_subdivisions_in_z_direction;
 
     Grids::gaussian_bump<dim>(*grid, n_subdivisions, channel_length, channel_height, bump_height);
     grid->refine_global(number_of_refinements);
@@ -44,8 +44,8 @@ std::shared_ptr<Triangulation> GaussianBump<dim,nstate>::generate_grid() const
 template <int dim, int nstate>
 void GaussianBump<dim,nstate>::display_additional_flow_case_specific_parameters() const
 {
-    this->pcout << "- - Channel length: " << this->all_param.mesh_generation_param.channel_length << std::endl;
-    this->pcout << "- - Channel height: " << this->all_param.mesh_generation_param.channel_height << std::endl;
+    this->pcout << "- - Channel length: " << this->all_param.flow_solver_param.channel_length << std::endl;
+    this->pcout << "- - Channel height: " << this->all_param.flow_solver_param.channel_height << std::endl;
     this->pcout << "- - Courant-Friedrich-Lewy number: " << this->all_param.flow_solver_param.courant_friedrich_lewy_number << std::endl;
     this->pcout << "- - Freestream Mach number: " << this->all_param.euler_param.mach_inf << std::endl;
     const double pi = atan(1.0) * 4.0;

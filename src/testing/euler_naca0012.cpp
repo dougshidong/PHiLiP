@@ -27,11 +27,10 @@ int EulerNACA0012<dim,nstate>
     const unsigned int p_end               = param.manufactured_convergence_study_param.degree_end;
     const unsigned int n_grids_input       = param.manufactured_convergence_study_param.number_of_grids;
 
-
     for (unsigned int poly_degree = p_start; poly_degree <= p_end; ++poly_degree) {
         for (unsigned int igrid=0; igrid<n_grids_input; ++igrid) {
             param.flow_solver_param.poly_degree = poly_degree;
-            param.grid_refinement_study_param.num_refinements = igrid;
+            param.flow_solver_param.num_refinements = igrid;
             std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(&param, parameter_handler);
             flow_solver->run();
         }

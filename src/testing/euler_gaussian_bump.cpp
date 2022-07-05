@@ -54,7 +54,7 @@ double EulerGaussianBump<dim,nstate>
     const unsigned int p_start             = manu_grid_conv_param.degree_start;
     const unsigned int p_end               = manu_grid_conv_param.degree_end;
 
-    const unsigned int n_grids      = manu_grid_conv_param.number_of_grids;
+    const unsigned int n_grids             = manu_grid_conv_param.number_of_grids;
 
     Physics::Euler<dim,nstate,double> euler_physics_double
         = Physics::Euler<dim, nstate, double>(
@@ -81,8 +81,8 @@ double EulerGaussianBump<dim,nstate>
         dealii::ConvergenceTable convergence_table;
 
         const std::vector<int> n_1d_cells = get_number_1d_cells(n_grids);
-        param.mesh_generation_param.number_of_subdivisions_in_x_direction = n_1d_cells[0] * 4;
-        param.mesh_generation_param.number_of_subdivisions_in_y_direction = n_1d_cells[0];
+        param.flow_solver_param.number_of_subdivisions_in_x_direction = n_1d_cells[0] * 4;
+        param.flow_solver_param.number_of_subdivisions_in_y_direction = n_1d_cells[0];
 
         for (unsigned int igrid=0; igrid<n_grids; ++igrid) {
 
@@ -91,7 +91,7 @@ double EulerGaussianBump<dim,nstate>
 
             param.flow_solver_param.poly_degree = solution_degree;
             param.flow_solver_param.grid_degree = grid_degree;
-            param.grid_refinement_study_param.num_refinements = igrid;
+            param.flow_solver_param.num_refinements = igrid;
 
             pcout << "\n" << "************************************" << "\n" << "POLYNOMIAL DEGREE " << solution_degree 
                   << ", GRID NUMBER " << (igrid+1) << "/" << n_grids << "\n" << "************************************" << std::endl;

@@ -1,5 +1,5 @@
-#ifndef PHILIP_EULER_BUMP_H
-#define PHILIP_EULER_BUMP_H
+#ifndef __GAUSSIAN_BUMP__
+#define __GAUSSIAN_BUMP__
 
 #include "flow_solver_case_base.h"
 

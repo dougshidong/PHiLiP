@@ -39,14 +39,6 @@ void ExplicitODESolver<dim,real,MeshType>::step_in_time (real dt, const bool pse
         this->dg->global_inverse_mass_matrix.vmult(this->rk_stage[i], this->dg->right_hand_side); //rk_stage[i] = IMM*RHS = F(u_n + dt*sum(a_ij*k_j))
     }
 
-    
-    Parameters::ODESolverParam ode_param = ODESolverBase<dim,real,MeshType>::all_parameters->ode_solver_param;
-    const bool relaxation_runge_kutta = ode_param.relaxation_runge_kutta;
-    if (relaxation_runge_kutta) {
-        dt = scale_dt_by_relaxation_factor(dt);
-    }
-
-
     //assemble solution from stages
     for (int i = 0; i < rk_order; ++i){
         if (pseudotime){
@@ -63,45 +55,6 @@ void ExplicitODESolver<dim,real,MeshType>::step_in_time (real dt, const bool pse
     this->current_time += dt;
 
 
-}
-
-template <int dim, typename real, typename MeshType>
-real ExplicitODESolver<dim,real,MeshType>::scale_dt_by_relaxation_factor (real dt)
-{
-    //This implementation is only valid for inviscid burgers on collocated nodes
-    //due to method of calculating energy
-    //following check to ensure that a consistent simulation type is being used
-    bool use_collocated_nodes = ODESolverBase<dim,real,MeshType>::all_parameters->use_collocated_nodes;
-    using PDEEnum = Parameters::AllParameters::PartialDifferentialEquation;
-    PDEEnum pde_type = ODESolverBase<dim,real,MeshType>::all_parameters->pde_type;
-    bool use_inviscid_burgers = pde_type == PDEEnum::burgers_inviscid;
-    if (!use_collocated_nodes || !use_inviscid_burgers){
-        this->pcout << "RRK is only implemented for inviscid burgers and collocated nodes." << std::endl;
-        this->pcout << "Parameters are inconsistent with the implementation. Aborting..." << std::flush;
-        std::abort();
-    }
-
-    Parameters::ODESolverParam ode_param = ODESolverBase<dim,real,MeshType>::all_parameters->ode_solver_param;
-    const int rk_order = ode_param.runge_kutta_order;
-    const bool relaxation_runge_kutta = ode_param.relaxation_runge_kutta;
-    double gamma = 1;
-    if (relaxation_runge_kutta){
-        double denominator=0;
-        double numerator=0;
-        for (int i = 0; i < rk_order; ++i){
-            for (int j = 0; j < rk_order; ++j){
-                double dot_product = 0.0;
-                for (unsigned int m = 0; m < this->dg->solution.size(); ++m) {
-                    dot_product += 1./(this->dg->global_inverse_mass_matrix(m,m)) * this->rk_stage[i][m] * this->rk_stage[j][m];
-                }
-                numerator += this->butcher_tableau_b[i] *this-> butcher_tableau_a[i][j] * dot_product; 
-                denominator += this->butcher_tableau_b[i]*this->butcher_tableau_b[j] * dot_product;
-            }
-        }
-        numerator *= 2;
-        gamma = (denominator < 1E-8) ? 1 : numerator/denominator;
-    }
-    return dt * gamma;
 }
 
 template <int dim, typename real, typename MeshType>

@@ -72,7 +72,7 @@ double TimeRefinementStudyReference<dim,nstate>::calculate_L2_error_at_final_tim
         return L2_error;
     }else{
         //recompute reference solution at actual end time
-        //intended to be used when relaxation_runge_kutta = true
+        //intended to be used when using ode_solver = rrk_explicit_solver
 
         pcout << "    -------------------------------------------------------" << std::endl;
         pcout << "    Calculating reference solution at actual final_time = " << final_time_actual << " ..."<<std::endl;
@@ -103,6 +103,7 @@ double TimeRefinementStudyReference<dim, nstate>::compute_energy_collocated(
 template <int dim, int nstate>
 int TimeRefinementStudyReference<dim, nstate>::run_test() const
 {
+    using ODESolverEnum = Parameters::ODESolverParam::ODESolverEnum;
 
     double final_time = this->all_parameters->flow_solver_param.final_time;
     double initial_time_step = this->all_parameters->ode_solver_param.initial_time_step;
@@ -168,7 +169,7 @@ int TimeRefinementStudyReference<dim, nstate>::run_test() const
             convergence_table.set_scientific("energy_end", true);
         }
         
-        if(params.ode_solver_param.relaxation_runge_kutta){
+        if(params.ode_solver_param.ode_solver_type == ODESolverEnum::rrk_explicit_solver){
             //for burgers, this is the average gamma over the runtime
             double gamma_aggregate_m1 = (final_time_actual / final_time_target)-1;
             convergence_table.add_value("gamma_aggregate_m1", gamma_aggregate_m1);

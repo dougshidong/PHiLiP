@@ -4,7 +4,6 @@
 #include "dg/dg.h"
 #include "ode_solver_base.h"
 #include "explicit_ode_solver.h"
-//also include relevant physics
 
 namespace PHiLiP {
 namespace ODE {
@@ -27,7 +26,8 @@ public:
     /// Function to evaluate the solution update 
     /* Same as ExplicitODESolver except modifying timestep size
      * No implementation for pseudotime
-     * Also choose explicit or implicit computation of gamma based on PDE
+     * Currently only explicit formulation for relaxation parameter is implemented 
+     * (i.e. Ketcheson 2019 method but not yet Ranocha 2020)
      */
     void step_in_time(real dt, const bool pseudotime) override;
 
@@ -57,13 +57,7 @@ protected:
     real compute_inner_product(
             dealii::LinearAlgebra::distributed::Vector<double> solution_or_stage_1,
             dealii::LinearAlgebra::distributed::Vector<double> solution_or_stage_2
-            //std::unique_ptr<dealii::LinearAlgebra::distributed::Vector<double>> solution_or_stage_1,
-            //std::unique_ptr<dealii::LinearAlgebra::distributed::Vector<double>> solution_or_stage_2
             );
-
-    //Maybe also store the stage solutions (in which case allocate_ode_system would need override)
-
-
 
 };
 

@@ -18,12 +18,19 @@ BurgersEnergyConservationRRK<dim, nstate>::BurgersEnergyConservationRRK(
 template <int dim, int nstate>
 Parameters::AllParameters BurgersEnergyConservationRRK<dim,nstate>::reinit_params(bool use_rrk, double time_step_size) const
 {
-     PHiLiP::Parameters::AllParameters parameters = *(this->all_parameters);
+    PHiLiP::Parameters::AllParameters parameters = *(this->all_parameters);
+    
+    parameters.ode_solver_param.initial_time_step = time_step_size;
+    
+    using ODESolverEnum = Parameters::ODESolverParam::ODESolverEnum;
+    if (use_rrk){
+        parameters.ode_solver_param.ode_solver_type = ODESolverEnum::rrk_explicit_solver;
+    }
+    else{
+        parameters.ode_solver_param.ode_solver_type = ODESolverEnum::explicit_solver;
+    }
 
-     parameters.ode_solver_param.initial_time_step = time_step_size;
-     parameters.ode_solver_param.relaxation_runge_kutta = use_rrk;
-
-     return parameters;
+    return parameters;
 }
 
 template <int dim, int nstate>

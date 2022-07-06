@@ -24,7 +24,9 @@ set flux_reconstruction_aux           = kDG
 # parallel_shared_triangulation |  parallel_distributed_triangulation>.
 set mesh_type                         = default_triangulation
 
-# Enum of models.Choices are  <large_eddy_simulation>.
+# Enum of physics models (i.e. model equations and/or terms additional to
+# Navier-Stokes or a chosen underlying baseline physics).Choices are
+# <large_eddy_simulation>.
 set model_type                        = large_eddy_simulation
 
 # Number of extra quadrature points to use.If overintegration=0, then we use
@@ -37,6 +39,10 @@ set overintegration                   = 0
 # physics_model>.
 set pde_type                          = navier_stokes                     # default: advection
 
+# Type of run (default is integration_test). Choices are  <integration_test |
+# flow_simulation>.
+set run_type                          = integration_test
+
 # Scaling of Symmetric Interior Penalty term to ensure coercivity.
 set sipg_penalty_factor               = 1.0
 
@@ -44,19 +50,17 @@ set sipg_penalty_factor               = 1.0
 # default.
 set solution_vtk_files_directory_name = .
 
-# The type of test we want to solve. Choices are (only run control has been
-# coded up for now) <run_control |   grid_refinement_study |
-# burgers_energy_stability |   diffusion_exact_adjoint |
-# optimization_inverse_manufactured |   euler_gaussian_bump |
-# euler_gaussian_bump_enthalpy |   euler_gaussian_bump_adjoint |
-# euler_cylinder |   euler_cylinder_adjoint |   euler_vortex |
-# euler_entropy_waves |   euler_split_taylor_green |  euler_bump_optimization
-# |   euler_naca_optimization |   shock_1d |   euler_naca0012 |
-# reduced_order |  POD_adaptation |  finite_difference_sensitivity |
-# advection_periodicity |   flow_solver |
+# The type of test we want to solve. Choices are  <run_control |
+# grid_refinement_study |   burgers_energy_stability |
+# diffusion_exact_adjoint |   optimization_inverse_manufactured |
+# euler_gaussian_bump |   euler_gaussian_bump_enthalpy |
+# euler_gaussian_bump_adjoint |   euler_cylinder |   euler_cylinder_adjoint |
+# euler_vortex |   euler_entropy_waves |   euler_split_taylor_green |
+# euler_bump_optimization |   euler_naca_optimization |   shock_1d |
+# euler_naca0012 |   reduced_order |  POD_adaptation |
+# finite_difference_sensitivity |   advection_periodicity |
 # dual_weighted_residual_mesh_adaptation |   taylor_green_vortex_energy_check
-# |   taylor_green_vortex_restart_check |
-# taylor_green_vortex_large_eddy_simulation_check>.
+# |   taylor_green_vortex_restart_check |   time_refinement_study>.
 set test_type                         = taylor_green_vortex_energy_check # default: run_control
 
 # Not calculate L2 norm by default (M+K). Otherwise, get L2 norm per
@@ -93,10 +97,10 @@ subsection ODE solver
   set initial_iteration                                                = 4
 
   # Initial time at which we initialize the ODE solver with.
-  set initial_time                                                     = 6.2831853072000017e-03
+  set initial_time                                                     = 6.2831853071795875e-03
 
   # Time step used in ODE solver.
-  set initial_time_step                                                = 1.5707963268000004e-03
+  set initial_time_step                                                = 1.5707963267948969e-03
 
   # Maximum nonlinear solver iterations
   set nonlinear_max_iterations                                         = 500000
@@ -213,6 +217,10 @@ end
 
 
 subsection flow_solver
+  # Adapt the time step on the fly for unsteady flow simulations. False by
+  # default (i.e. constant time step by default).
+  set adaptive_time_step                           = false
+
   # Courant-Friedrich-Lewy (CFL) number for constant time step.
   set courant_friedrich_lewy_number                = 0.003                                              # default: 1
 
@@ -220,11 +228,9 @@ subsection flow_solver
   set final_time                                   = 1.2566370614400000e-02                             # default: 1
 
   # The type of flow we want to simulate. Choices are  <taylor_green_vortex |
-  # burgers_viscous_snapshot |  naca0012 |  burgers_rewienski_snapshot>.
+  # burgers_viscous_snapshot |  naca0012 |  burgers_rewienski_snapshot |
+  # advection_periodic>.
   set flow_case_type                               = taylor_green_vortex
-
-  # Filename of the input mesh: input_mesh_filename.msh
-  set input_mesh_filename                          = naca0012
 
   # Output restart files for restarting the computation. False by default.
   set output_restart_files                         = true
@@ -234,6 +240,9 @@ subsection flow_solver
 
   # Outputs the restart files every x steps.
   set output_restart_files_every_x_steps           = 1
+
+  # Polynomial order (P) of the basis functions for DG.
+  set poly_degree                                  = 2                                                  # default: 1
 
   # Restarts the computation from the restart file. False by default.
   set restart_computation_from_file                = true
@@ -250,13 +259,36 @@ subsection flow_solver
   # sensitivity_table_filename.txt.
   set sensitivity_table_filename                   = sensitivity_table
 
-  # Solve steady-state solution. False by default.
+  # Solve steady-state solution. False by default (i.e. unsteady by default).
   set steady_state                                 = false
+
+  # For steady-state cases, does polynomial ramping if set to true. False by
+  # default.
+  set steady_state_polynomial_ramping              = false
 
   # Filename of the unsteady data table output file:
   # unsteady_data_table_filename.txt.
   set unsteady_data_table_filename                 = tgv_kinetic_energy_vs_time_table_for_restart_check # default: unsteady_data_table
 
+
+  subsection grid
+    # Polynomial degree of the grid. Curvilinear grid if set greater than 1;
+    # default is 1.
+    set grid_degree                           = 1
+
+    # Left bound of domain for hyper_cube mesh based cases.
+    set grid_left_bound                       = 0.0
+
+    # Right bound of domain for hyper_cube mesh based cases.
+    set grid_right_bound                      = 6.28318530717958623200 # default: 1.0
+
+    # Filename of the input mesh: input_mesh_filename.msh. For cases that
+    # import a mesh file.
+    set input_mesh_filename                   = naca0012
+
+    # Number of grid elements per dimension for hyper_cube mesh based cases.
+    set number_of_grid_elements_per_dimension = 4
+  end
 
   subsection taylor_green_vortex
     # The type of density initialization. Choices are  <uniform |
@@ -268,7 +300,16 @@ subsection flow_solver
 
     # For integration test purposes, expected theoretical kinetic energy
     # dissipation rate at final time.
-    set expected_theoretical_dissipation_rate_at_final_time = 4.5422264559811485e-04 # default: 1
+    set expected_theoretical_dissipation_rate_at_final_time = 4.5422264559811485e-04
+  end
+
+  subsection time_refinement_study
+    # Number of times to run the flow solver during a time refinement study.
+    set number_of_times_to_solve = 4
+
+    # Ratio between a timestep size and the next in a time refinement study,
+    # 0<r<1.
+    set refinement_ratio         = 0.5
   end
 
 end
@@ -356,7 +397,7 @@ subsection grid refinement study
   set grid_left                    = 0.0
 
   # for grid_type hypercube, right bound of domain.
-  set grid_right                   = 6.2831853072 # default: 1.0
+  set grid_right                   = 1.0
 
   # Initial grid size (number of elements per side).
   set grid_size                    = 4
@@ -406,7 +447,7 @@ subsection grid refinement study
   set output_vtk                   = true
 
   # Polynomial order of starting mesh.
-  set poly_degree                  = 2            # default: 1
+  set poly_degree                  = 1
 
   # Polynomial degree of the grid.
   set poly_degree_grid             = 2
@@ -1427,15 +1468,15 @@ end
 subsection physics_model
   subsection large_eddy_simulation
     # Enum of sub-grid scale models.Choices are  <smagorinsky |
-    # wall_adaptive_local_eddy_viscosity>.
+    # wall_adaptive_local_eddy_viscosity |   vreman>.
     set SGS_model_type                     = smagorinsky
 
     # WALE (Wall-Adapting Local Eddy-viscosity) eddy viscosity model constant
     # (default is 0.6)
     set WALE_model_constant                = 0.6
 
-    # Set as false by default. If true, sets the baseline physics for LES to
-    # the Euler equations.
+    # Set as false by default (i.e. Navier-Stokes is the baseline physics). If
+    # true, sets the baseline physics to the Euler equations.
     set euler_turbulence                   = false
 
     # Ratio of the large eddy simulation filter width to the cell size
@@ -1447,6 +1488,9 @@ subsection physics_model
 
     # Turbulent Prandlt number (default is 0.6)
     set turbulent_prandtl_number           = 0.6
+
+    # Vreman eddy viscosity model constant (default is 0.025)
+    set vreman_model_constant              = 0.025
   end
 
 end

@@ -162,11 +162,11 @@ int ODESolverBase<dim,real,MeshType>::steady_state ()
         }
 
         double ramped_CFL = initial_CFL * CFL_factor;
-        if (this->residual_norm_decrease < 1.0) {
-            ramped_CFL *= pow((1.0-std::log10(this->residual_norm_decrease)*ode_param.time_step_factor_residual), ode_param.time_step_factor_residual_exp);
-        }
+        // if (this->residual_norm_decrease < 1.0) {
+        //     ramped_CFL *= pow((1.0-std::log10(this->residual_norm_decrease)*ode_param.time_step_factor_residual), ode_param.time_step_factor_residual_exp);
+        // }
         // ramped_CFL = initial_CFL*CFL_factor;
-        ramped_CFL = std::max(ramped_CFL,initial_CFL*CFL_factor);
+        // ramped_CFL = std::max(ramped_CFL,initial_CFL*CFL_factor);
         pcout << "Initial CFL = " << initial_CFL << ". CFL Factor = " << CFL_factor << ". Current CFL = " << ramped_CFL << std::endl;
 
         if (this->residual_norm < 1e-12) {
@@ -199,6 +199,8 @@ int ODESolverBase<dim,real,MeshType>::steady_state ()
         old_residual_norm = this->residual_norm;
         this->residual_norm = this->dg->get_residual_l2norm();
         this->residual_norm_decrease = this->residual_norm / this->initial_residual_norm;
+
+        evaluate_cfl(residual_norm, old_residual_norm);
 
         convergence_error = this->residual_norm > ode_param.nonlinear_steady_residual_tolerance
                             && this->residual_norm_decrease > ode_param.nonlinear_steady_residual_tolerance;
@@ -262,6 +264,37 @@ int ODESolverBase<dim,real,MeshType>::steady_state ()
           << std::endl;
 
     return convergence_error;
+}
+
+template <int dim, typename real, typename MeshType>
+void ODESolverBase<dim,real,MeshType>::evaluate_cfl (double residual_norm, double old_residual_norm)
+{
+
+    // Based on:
+    // M. Ceze and K. J. Fidkowski, “Constrained pseudo-transient continuation,” Int. J. Numer. Methods Eng., vol. 102, no. 11, pp. 1683–1703, 2015.
+
+    // double minimum_step_length = 0.01;
+    // this->dg->assemble_residual ();
+    // const double new_residual = this->dg->get_residual_l2norm();
+
+    // if (abs(new_residual) < abs(initial_residual) 
+    //     && step_length == 1. 
+	// && abs(new_residual / initial_residual) <= 0.5 ) {
+    //     this->CFL_factor *= 2.;
+    // } else if (step_length < minimum_step_length) {
+    //     this->CFL_factor *= 0.1;
+    // }     
+
+    double nonlinear_residual_ratio = old_residual_norm/residual_norm;
+    if (nonlinear_residual_ratio > 1.0) {
+        this->CFL_factor *= pow(nonlinear_residual_ratio,0.25);
+    } else {
+        this->CFL_factor *= pow(nonlinear_residual_ratio,0.30);
+    }
+
+    
+
+    return;
 }
 
 template <int dim, typename real, typename MeshType>

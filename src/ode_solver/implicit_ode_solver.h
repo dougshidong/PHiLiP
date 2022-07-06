@@ -49,9 +49,6 @@ public:
     /// Line search algorithm
     double linesearch ();
 
-    /// Evaluate CFL
-    void evaluate_cfl (double step_length, double initial_residual);
-
 };
 
 } // ODE namespace

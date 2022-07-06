@@ -14,6 +14,14 @@ void ODESolverParam::declare_parameters (dealii::ParameterHandler &prm)
                           "State whether output from ODE solver should be printed. "
                           "Choices are <quiet|verbose>.");
 
+        prm.declare_entry("perform_linesearch", "false",
+                          dealii::Patterns::Bool(),
+                          "Perform line search to complete step length for nonlinear update.");
+
+        prm.declare_entry("relaxation_factor", "0.5",
+                          dealii::Patterns::Double(0,dealii::Patterns::Double::max_double_value),
+                          "Relaxation factor for the nonlinear update.");
+
         prm.declare_entry("output_solution_every_x_steps", "-1",
                           dealii::Patterns::Integer(-1,dealii::Patterns::Integer::max_int_value),
                           "Outputs the solution every x steps in .vtk file");
@@ -92,6 +100,9 @@ void ODESolverParam::parse_parameters (dealii::ParameterHandler &prm)
         const std::string output_string = prm.get("ode_output");
         if (output_string == "quiet")   ode_output = OutputEnum::quiet;
         if (output_string == "verbose") ode_output = OutputEnum::verbose;
+
+        perform_linesearch = prm.get_bool("perform_linesearch");
+        relaxation_factor = prm.get_double("relaxation_factor");
 
         output_solution_every_x_steps = prm.get_integer("output_solution_every_x_steps");
         output_solution_every_dt_time_intervals = prm.get_double("output_solution_every_dt_time_intervals");

@@ -49,6 +49,8 @@ public:
      */
     void initialize_steady_polynomial_ramping (const unsigned int global_final_poly_degree);
 
+    /// Evaluate CFL
+    void evaluate_cfl (double step_length, double initial_residual);
 
     /// Checks whether the DG vector has valid values.
     /** By default, the DG solution vector is initialized with the lowest possible value.

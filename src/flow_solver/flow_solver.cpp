@@ -446,8 +446,7 @@ int FlowSolver<dim,nstate>::run() const
         //----------------------------------------------------
         if(flow_solver_param.steady_state_polynomial_ramping) {
             ode_solver->initialize_steady_polynomial_ramping(poly_degree);
-        } 
-        
+        }
         ode_solver->steady_state();
         flow_solver_case->steady_state_postprocessing(dg);
     }

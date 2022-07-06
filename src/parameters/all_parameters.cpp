@@ -214,7 +214,6 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
 
     Parameters::ReducedOrderModelParam::declare_parameters (prm);
     Parameters::BurgersParam::declare_parameters (prm);
-
     Parameters::GridRefinementStudyParam::declare_parameters (prm);
    
     Parameters::ArtificialDissipationParam::declare_parameters (prm);

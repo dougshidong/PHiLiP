@@ -1,2 +1,3 @@
 add_subdirectory(unit_tests)
 add_subdirectory(integration_tests_control_files)
+add_subdirectory(meshes)

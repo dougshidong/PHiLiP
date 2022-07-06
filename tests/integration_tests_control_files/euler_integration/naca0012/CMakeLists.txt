@@ -35,9 +35,6 @@ and place them in
       ${CMAKE_CURRENT_SOURCE_DIR}"
       )
 endif()
-configure_file(naca0012_hopw_ref2.msh naca0012.msh COPYONLY)
-configure_file(naca0012_hopw_ref2.msh naca0012_hopw_ref2.msh COPYONLY)
-configure_file(naca0012_hopw_ref5.msh naca0012_hopw_ref5.msh COPYONLY)
 
 #configure_file(naca0012.geo naca0012.geo COPYONLY)
 #configure_file(naca0012_noTE.geo naca0012_noTE.geo COPYONLY)

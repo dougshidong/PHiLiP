@@ -12,7 +12,7 @@ ImplicitODESolver<dim,real,MeshType>::ImplicitODESolver(std::shared_ptr< DGBase<
 template <int dim, typename real, typename MeshType>
 void ImplicitODESolver<dim,real,MeshType>::step_in_time (real dt, const bool pseudotime)
 {
-    // double step_length = 1.0;
+    double step_length = 1.0;
     const bool compute_dRdW = true;
     this->dg->assemble_residual(compute_dRdW);
     this->current_time += dt;
@@ -45,7 +45,7 @@ void ImplicitODESolver<dim,real,MeshType>::step_in_time (real dt, const bool pse
     const double initial_residual = this->dg->get_residual_l2norm();
 
     if (this->ode_param.perform_linesearch == true) {
-        linesearch();
+        step_length = linesearch();
     } else {
         this->dg->solution.add(this->ode_param.relaxation_factor, this->solution_update);
     }
@@ -53,6 +53,20 @@ void ImplicitODESolver<dim,real,MeshType>::step_in_time (real dt, const bool pse
     this->dg->assemble_residual ();
     const double new_residual = this->dg->get_residual_l2norm();
     this->update_norm = this->solution_update.l2_norm();
+
+    if (this->ode_param.perform_linesearch == true) {
+        double minimum_step_length = 0.01;
+        this->dg->assemble_residual ();
+        const double new_residual = this->dg->get_residual_l2norm();
+
+        if (abs(new_residual) < abs(initial_residual) 
+            && step_length == 1. 
+	        && abs(new_residual / initial_residual) <= 0.5 ) {
+            this->CFL_factor *= 2.;
+        } else if (step_length < minimum_step_length) {
+            this->CFL_factor *= 0.1;
+        }     
+    }
 
     std::clock_t cpu_timestamp = std::clock();
     this->pcout << " Track Convergence: " << 

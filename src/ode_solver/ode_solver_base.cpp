@@ -200,7 +200,7 @@ int ODESolverBase<dim,real,MeshType>::steady_state ()
         this->residual_norm = this->dg->get_residual_l2norm();
         this->residual_norm_decrease = this->residual_norm / this->initial_residual_norm;
 
-        evaluate_cfl(residual_norm, old_residual_norm);
+        // evaluate_cfl(residual_norm, old_residual_norm);
 
         convergence_error = this->residual_norm > ode_param.nonlinear_steady_residual_tolerance
                             && this->residual_norm_decrease > ode_param.nonlinear_steady_residual_tolerance;

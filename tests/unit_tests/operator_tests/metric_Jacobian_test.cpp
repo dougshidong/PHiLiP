@@ -53,6 +53,7 @@ const double TOLERANCE = 1E-6;
 using namespace std;
 //namespace PHiLiP {
 
+
 template <int dim>
 class CurvManifold: public dealii::ChartManifold<dim,dim,dim> {
     virtual dealii::Point<dim> pull_back(const dealii::Point<dim> &space_point) const override; ///< See dealii::Manifold.
@@ -61,7 +62,6 @@ class CurvManifold: public dealii::ChartManifold<dim,dim,dim> {
     
     virtual std::unique_ptr<dealii::Manifold<dim,dim> > clone() const override; ///< See dealii::Manifold.
 };
-
 template<int dim>
 dealii::Point<dim> CurvManifold<dim>::pull_back(const dealii::Point<dim> &space_point) const 
 {
@@ -88,6 +88,8 @@ dealii::Point<dim> CurvManifold<dim>::pull_back(const dealii::Point<dim> &space_
         function[1] = x_ref[1] - x_phys[1] +alpha*exp(1.0-x_ref[1])*(std::sin(pi * x_ref[0]) + std::sin(pi* x_ref[2]));
         function[2] = x_ref[2] - x_phys[2] +1.0/20.0*( std::sin(2.0 * pi * x_ref[0]) + std::sin(2.0 * pi * x_ref[1]));
     }
+
+
     if(dim==2){
         derivative[0][0] = 1.0 - beta* pi/2.0 * std::sin(pi/2.0*x_ref[0])*std::cos(3.0*pi/2.0*x_ref[1]);
         derivative[0][1] =  - beta*3.0 *pi/2.0 * std::cos(pi/2.0*x_ref[0])*std::sin(3.0*pi/2.0*x_ref[1]);
@@ -143,6 +145,7 @@ dealii::Point<dim> CurvManifold<dim>::pull_back(const dealii::Point<dim> &space_
     }
 
     return x_ref;
+
 }
 
 template<int dim>
@@ -236,6 +239,7 @@ static dealii::Point<dim> warp (const dealii::Point<dim> &p)
 
 int main (int argc, char * argv[])
 {
+
     dealii::Utilities::MPI::MPI_InitFinalize mpi_initialization(argc, argv, 1);
     using real = double;
     using namespace PHiLiP;
@@ -249,44 +253,40 @@ int main (int argc, char * argv[])
     PHiLiP::Parameters::AllParameters all_parameters_new;
     all_parameters_new.parse_parameters (parameter_handler);
 
-    // all_parameters_new.use_collocated_nodes=true;
-
-    //unsigned int poly_degree = 3;
     double left = 0.0;
     double right = 1.0;
     const bool colorize = true;
     //Generate a standard grid
+
     using Triangulation = dealii::parallel::distributed::Triangulation<dim>;
     std::shared_ptr<Triangulation> grid = std::make_shared<Triangulation>(
         MPI_COMM_WORLD,
         typename dealii::Triangulation<dim>::MeshSmoothing(
             dealii::Triangulation<dim>::smoothing_on_refinement |
             dealii::Triangulation<dim>::smoothing_on_coarsening));
-    dealii::GridGenerator::hyper_cube (*grid, left, right, colorize);
-    grid->refine_global(0);
+        dealii::GridGenerator::hyper_cube (*grid, left, right, colorize);
+        grid->refine_global(3);
 
-    //Warp the grid
-    //IF WANT NON-WARPED GRID COMMENT UNTIL SAYS "NOT COMMENT"
+//Warp the grid
+//        dealii::GridGenerator::hyper_cube(*grid, left, right, true);
+//	grid->refine_global(3);
+//IF WANT NON-WARPED GRID COMMENT UNTIL SAYS "NOT COMMENT"
     dealii::GridTools::transform (&warp<dim>, *grid);
 
-    // Assign a manifold to have curved geometry
+// Assign a manifold to have curved geometry
     const CurvManifold<dim> curv_manifold;
     unsigned int manifold_id=0; // top face, see GridGenerator::hyper_rectangle, colorize=true
     grid->reset_all_manifolds();
     grid->set_all_manifold_ids(manifold_id);
     grid->set_manifold ( manifold_id, curv_manifold );
-    //"END COMMENT" TO NOT WARP GRID
+//"END COMMENT" TO NOT WARP GRID
+    bool det_Jac_neg = false;
+    bool det_match = true;
+    for(unsigned int poly_degree = 2; poly_degree<3; poly_degree++){
+        unsigned int grid_degree = poly_degree;
 
-    double surf_int = 0.0;
-    for(unsigned int poly_degree = 2; poly_degree<6; poly_degree++){
-        unsigned int grid_degree = poly_degree + 1;
-        //setup DG
         std::shared_ptr < PHiLiP::DGBase<dim, double> > dg = PHiLiP::DGFactory<dim,double>::create_discontinuous_galerkin(&all_parameters_new, poly_degree, poly_degree, grid_degree, grid);
         dg->allocate_system ();
-        
-        const dealii::FESystem<dim> &fe_metric = (dg->high_order_grid->fe_system);
-        const unsigned int n_metric_dofs = fe_metric.dofs_per_cell; 
-        auto metric_cell = dg->high_order_grid->dof_handler_grid.begin_active();
 
         dealii::QGaussLobatto<1> grid_quad(grid_degree +1);
         const dealii::FE_DGQ<1> fe_grid(grid_degree);
@@ -298,8 +298,11 @@ int main (int argc, char * argv[])
         mapping_basis.build_1D_shape_functions_at_grid_nodes(fe_sys_grid, grid_quad);
         mapping_basis.build_1D_shape_functions_at_flux_nodes(fe_sys_grid, flux_quad, flux_quad_face);
 
-        PHiLiP::OPERATOR::metric_operators<real,dim,2*dim> metric_oper(nstate, poly_degree, grid_degree);
-        
+        const unsigned int n_quad_pts = pow(poly_degree+1,dim);
+
+        const dealii::FESystem<dim> &fe_metric = (dg->high_order_grid->fe_system);
+        const unsigned int n_metric_dofs = fe_metric.dofs_per_cell; 
+        auto metric_cell = dg->high_order_grid->dof_handler_grid.begin_active();
         for (auto current_cell = dg->dof_handler.begin_active(); current_cell!=dg->dof_handler.end(); ++current_cell, ++metric_cell) {
             if (!current_cell->is_locally_owned()) continue;
         
@@ -309,6 +312,7 @@ int main (int argc, char * argv[])
             for(int idim=0; idim<dim; idim++){
                 mapping_support_points[idim].resize(n_metric_dofs/dim);
             }
+            
             dealii::QGaussLobatto<dim> vol_GLL(grid_degree +1);
             for (unsigned int igrid_node = 0; igrid_node< n_metric_dofs/dim; ++igrid_node) {
                 for (unsigned int idof = 0; idof< n_metric_dofs; ++idof) {
@@ -318,43 +322,43 @@ int main (int argc, char * argv[])
                 }
             }
 
-            const unsigned int n_quad_face_pts = dg->face_quadrature_collection[poly_degree].size();
-            const std::vector<real> &quad_weights = dg->face_quadrature_collection[poly_degree].get_weights ();
-            for (unsigned int iface=0; iface < dealii::GeometryInfo<dim>::faces_per_cell; ++iface) {
+            PHiLiP::OPERATOR::metric_operators<real,dim,2*dim> metric_oper(nstate,poly_degree,grid_degree);
+            metric_oper.build_volume_metric_operators(
+                n_quad_pts, n_metric_dofs/dim,
+                mapping_support_points,
+                mapping_basis,
+                false);
 
-                metric_oper.build_facet_metric_operators(
-                    iface,
-                    n_quad_face_pts, n_metric_dofs/dim,
-                    mapping_support_points,
-                    mapping_basis,
-                    false);
-         
-                const dealii::Tensor<1,dim,real> unit_normal_int = dealii::GeometryInfo<dim>::unit_normal_vector[iface];
-                std::vector<dealii::Tensor<1,dim,real>> normals_int(n_quad_face_pts);
-                for(unsigned int iquad=0; iquad<n_quad_face_pts; iquad++){
-                    for(unsigned int idim=0; idim<dim; idim++){
-                        normals_int[iquad][idim] =  0.0;
-                        for(int idim2=0; idim2<dim; idim2++){
-                            normals_int[iquad][idim] += unit_normal_int[idim2] * metric_oper.metric_cofactor_surf[idim][idim2][iquad];//\hat{n}^r * C_m^T 
-                        }
-                    }
-                }
-                for(unsigned int iquad=0; iquad<n_quad_face_pts; iquad++){
-                    for(int idim=0; idim<dim; idim++){
-                        surf_int += 1.0 * quad_weights[iquad] * normals_int[iquad][idim] * 1.0;
-                    }
-                }
-            }//end of face loop
-        }//end of cell loop
+            for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
+                if(metric_oper.det_Jac_vol[iquad]<0)
+                    det_Jac_neg = true;
+            }
+            dealii::FEValues<dim,dim> fe_values(*(dg->high_order_grid->mapping_fe_field), dg->fe_collection[poly_degree], dg->volume_quadrature_collection[poly_degree], dealii::update_JxW_values);
+            fe_values.reinit(current_cell);
+            const std::vector<double> &quad_weights = dg->volume_quadrature_collection[poly_degree].get_weights();
+            for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
+                if(std::abs(fe_values.JxW(iquad)/quad_weights[iquad] - metric_oper.det_Jac_vol[iquad])>1e-13)
+                    det_match = false;
+            }
+
+
+        }
+
     }//end poly degree loop
-    const double surf_int_mpi= (dealii::Utilities::MPI::max(surf_int, MPI_COMM_WORLD));
 
-    if(std::abs(surf_int_mpi) > 1e-13){
-        pcout<<" Metrics Do NOT Satisfy GCL Condition\n"<<std::endl;
+    if( det_Jac_neg){
+        pcout<<" Metrics give negative determinant of Jacobian\n"<<std::endl;
+        return 1;
+    }
+    if(!det_match){
+        pcout<<"Determiannt of metric Jacobian not match dealii value"<<std::endl;
         return 1;
     }
     else{
-        pcout<<" Metrics Satisfy GCL Condition\n"<<std::endl;
+        pcout<<" Metrics Satisfy Determinant Jacobian Condition\n"<<std::endl;
         return 0;
     }
-}//end of main
+}
+
+//}//end PHiLiP namespace
+

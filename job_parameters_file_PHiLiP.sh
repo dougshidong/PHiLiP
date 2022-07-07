@@ -13,7 +13,7 @@ SLURM_USER="username"                    ## <-- Enter compute canada username he
 PARAMETERS_FILE="my_parameters_file.prm" ## <-- Enter .prm filename here
 PHiLiP_DIMENSIONS="2"                    ## WARNING: must correspond to the DIM in the .prm file
 NUM_PROCS="40"                           ## WARNING: must correspond to nodes*(ntasks-per-node) above
-RUN_ON_TMPDIR=true                       ## Set as true for fast write speeds (default) -- WARNING: Output files will only be copied to your output file directory once `mpirun` has completed. 
+RUN_ON_TMPDIR=false                      ## Set as true for fast write speeds, however, output files will only be copied to your job submit directory once mpirun has completed.
 
 PHiLiP_EXECUTABLE="/home/${SLURM_USER}/scratch/PHiLiP_${PHiLiP_DIMENSIONS}D"
 

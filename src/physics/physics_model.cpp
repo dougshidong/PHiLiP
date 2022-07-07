@@ -147,13 +147,13 @@ std::array<dealii::Tensor<1,dim,real>,nstate> PhysicsModel<dim,nstate,real,nstat
 }
 
 template <int dim, int nstate, typename real, int nstate_baseline_physics>
-std::array<dealii::Tensor<1,dim,real>,nstate> PhysicsModel<dim,nstate,real,nstate_baseline_physics>
+real PhysicsModel<dim,nstate,real,nstate_baseline_physics>
 ::convective_surface_numerical_split_flux (
-            const std::array< dealii::Tensor<1,dim,real>, nstate > &surface_flux,
-            const std::array< dealii::Tensor<1,dim,real>, nstate > &flux_interp_to_surface) const
+            const real &surface_flux,
+            const real &flux_interp_to_surface) const
 {
     // TO DO: Update for when nstate > nstate_baseline_physics
-    std::array<dealii::Tensor<1,dim,real>,nstate> conv_surf_num_split_flux;
+    real conv_surf_num_split_flux;
     if(nstate==nstate_baseline_physics) {
         conv_surf_num_split_flux = physics_baseline->convective_surface_numerical_split_flux(surface_flux,flux_interp_to_surface);
     } else {

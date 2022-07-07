@@ -424,14 +424,13 @@ std::array<dealii::Tensor<1,dim,real>,nstate> Euler<dim, nstate, real>
 }
 
 template <int dim, int nstate, typename real>
-std::array<dealii::Tensor<1,dim,real>,nstate> Euler<dim, nstate, real>
+real Euler<dim, nstate, real>
 ::convective_surface_numerical_split_flux (
-                const std::array< dealii::Tensor<1,dim,real>, nstate > &/*surface_flux*/,
-                const std::array< dealii::Tensor<1,dim,real>, nstate > &flux_interp_to_surface) const
+                const real &/*surface_flux*/,
+                const real &flux_interp_to_surface) const
 {
     return flux_interp_to_surface;
 }
-
 
 template <int dim, int nstate, typename real>
 inline real Euler<dim,nstate,real>::

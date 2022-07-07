@@ -20,6 +20,10 @@ set use_energy = true
 
 set flux_reconstruction = cDG
 
+set use_inverse_mass_on_the_fly = true
+
+set use_periodic_bc = true
+
 set use_classical_FR = true
 
 subsection ODE solver
@@ -45,4 +49,9 @@ end
 # freestream Mach number
 subsection euler
   set mach_infinity = 0.1
+end
+
+subsection flow_solver
+    set flow_case_type = taylor_green_vortex
+    set interpolate_initial_condition = true
 end

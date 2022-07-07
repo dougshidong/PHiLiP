@@ -110,6 +110,14 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       dealii::Patterns::Double(1.0,1e200),
                       "Scaling of Symmetric Interior Penalty term to ensure coercivity.");
 
+    prm.declare_entry("use_invariant_curl_form", "false",
+                      dealii::Patterns::Bool(),
+                      "Use conservative curl form for metric cofactor by default. If true, then use invariant curl form.");
+
+    prm.declare_entry("use_inverse_mass_on_the_fly", "false",
+                      dealii::Patterns::Bool(),
+                      "Build global mass inverse matrix and apply it. Otherwise, use inverse mass on-the-fly by default for explicit timestepping.");
+
     prm.declare_entry("test_type", "run_control",
                       dealii::Patterns::Selection(
                       " run_control | "
@@ -354,6 +362,8 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     use_L2_norm = prm.get_bool("use_L2_norm");
     use_classical_FR = prm.get_bool("use_classical_FR");
     sipg_penalty_factor = prm.get_double("sipg_penalty_factor");
+    use_invariant_curl_form = prm.get_bool("use_invariant_curl_form");
+    use_inverse_mass_on_the_fly = prm.get_bool("use_inverse_mass_on_the_fly");
 
     const std::string conv_num_flux_string = prm.get("conv_num_flux");
     if (conv_num_flux_string == "lax_friedrichs")          { conv_num_flux_type = lax_friedrichs; }

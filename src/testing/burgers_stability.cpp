@@ -37,11 +37,14 @@ double BurgersEnergyStability<dim, nstate>::compute_energy(std::shared_ptr < PHi
 {
     double energy = 0.0;
     dealii::LinearAlgebra::distributed::Vector<double> mass_matrix_times_solution(dg->right_hand_side);
-    dg->global_mass_matrix.vmult( mass_matrix_times_solution, dg->solution);
+    if(dg->all_parameters->use_inverse_mass_on_the_fly)
+        dg->apply_global_mass_matrix(dg->solution,mass_matrix_times_solution);
+    else
+        dg->global_mass_matrix.vmult( mass_matrix_times_solution, dg->solution);
     //Since we normalize the energy later, don't bother scaling by 0.5
     //Energy \f$ = 0.5 * \int u^2 d\Omega_m \f$
     energy = dg->solution * mass_matrix_times_solution;
-        
+    
     return energy;
 }
 
@@ -51,16 +54,21 @@ double BurgersEnergyStability<dim, nstate>::compute_conservation(std::shared_ptr
     // Conservation \f$ =  \int 1 * u d\Omega_m \f$
     double conservation = 0.0;
     dealii::LinearAlgebra::distributed::Vector<double> mass_matrix_times_solution(dg->right_hand_side);
-    dg->global_mass_matrix.vmult( mass_matrix_times_solution, dg->solution);
+    if(dg->all_parameters->use_inverse_mass_on_the_fly)
+        dg->apply_global_mass_matrix(dg->solution,mass_matrix_times_solution);
+    else
+        dg->global_mass_matrix.vmult( mass_matrix_times_solution, dg->solution);
 
-    const unsigned int n_dofs_cell = dg->operators->fe_collection_basis[poly_degree].dofs_per_cell;
-    const unsigned int n_quad_pts = dg->operators->volume_quadrature_collection[poly_degree].size();
-    dealii::Vector<double> ones(n_quad_pts);
-    ones = 1.0;
+    const unsigned int n_dofs_cell = dg->fe_collection[poly_degree].dofs_per_cell;
+    const unsigned int n_quad_pts = dg->volume_quadrature_collection[poly_degree].size();
+    std::vector<double> ones(n_quad_pts, 1.0);
     //Projected vector of ones. That is, the interpolation of ones_hat to the volume nodes is 1.
-    dealii::Vector<double> ones_hat(n_dofs_cell);
+    std::vector<double> ones_hat(n_dofs_cell);
     //We have to project the vector of ones because the mass matrix has an interpolation from solution nodes built into it.
-    dg->operators->vol_projection_operator[poly_degree].vmult(ones_hat, ones);
+    OPERATOR::vol_projection_operator<dim,2*dim> vol_projection(dg->nstate, poly_degree, dg->max_grid_degree);
+    vol_projection.build_1D_volume_operator(dg->oneD_fe_collection[poly_degree], dg->oneD_quadrature_collection[poly_degree]);
+    vol_projection.matrix_vector_mult_1D(ones, ones_hat,
+                                               vol_projection.oneD_vol_operator);
 
     dealii::LinearAlgebra::distributed::Vector<double> ones_hat_global(dg->right_hand_side);
     std::vector<dealii::types::global_dof_index> dofs_indices (n_dofs_cell);
@@ -141,6 +149,7 @@ int BurgersEnergyStability<dim, nstate>::run_test() const
         std::shared_ptr< InitialConditionFunction<dim,nstate,double> > initial_condition_function = 
             InitialConditionFactory<dim,nstate,double>::create_InitialConditionFunction(&all_parameters_new);
         SetInitialCondition<dim,nstate,double>::set_initial_condition(initial_condition_function, dg, &all_parameters_new);
+
         // Create ODE solver using the factory and providing the DG object
         std::shared_ptr<ODE::ODESolverBase<dim, double>> ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
 
@@ -161,7 +170,7 @@ int BurgersEnergyStability<dim, nstate>::run_test() const
         // also the ode solver output doesn't make sense (says "iteration 1 out of 1")
         // but it works. I'll keep it for now and need to modify the output functions later to account for this.
         std::ofstream myfile ("energy_plot_burgers.gpl" , std::ios::trunc);
-             
+         
         ode_solver->current_iteration = 0;
         for (int i = 0; i < std::ceil(finalTime/dt); ++ i)
         {
@@ -203,7 +212,7 @@ int BurgersEnergyStability<dim, nstate>::run_test() const
             std::ofstream myfile2 ("solution_burgers.gpl" , std::ios::trunc);
              
             dealii::QGaussLobatto<dim> quad_extra(dg->max_degree+1);
-            dealii::FEValues<dim,dim> fe_values_extra(*(dg->high_order_grid->mapping_fe_field), dg->operators->fe_collection_basis[poly_degree], quad_extra, 
+            dealii::FEValues<dim,dim> fe_values_extra(*(dg->high_order_grid->mapping_fe_field), dg->fe_collection[poly_degree], quad_extra, 
                     dealii::update_values | dealii::update_JxW_values | dealii::update_quadrature_points);
             const unsigned int n_quad_pts = fe_values_extra.n_quadrature_points;
             std::array<double,nstate> soln_at_q;
@@ -222,6 +231,7 @@ int BurgersEnergyStability<dim, nstate>::run_test() const
                         soln_at_q[istate] += dg->solution[dofs_indices[idof]] * fe_values_extra.shape_value_component(idof, iquad, istate);
                     }
                     const dealii::Point<dim> qpoint = (fe_values_extra.quadrature_point(iquad));
+
                     std::cout << std::setprecision(16) << std::fixed;
                     myfile2<< std::fixed << std::setprecision(16) << qpoint[0] << std::fixed << std::setprecision(16) <<" " << soln_at_q[0]<< std::endl;
                 }
@@ -247,7 +257,7 @@ int BurgersEnergyStability<dim, nstate>::run_test() const
             // Overintegrate the error to make sure there is not integration error in the error estimate
             int overintegrate = 10;
             dealii::QGauss<dim> quad_extra(poly_degree+1+overintegrate);
-            dealii::FEValues<dim,dim> fe_values_extra(*(dg->high_order_grid->mapping_fe_field), dg->operators->fe_collection_basis[poly_degree], quad_extra, 
+            dealii::FEValues<dim,dim> fe_values_extra(*(dg->high_order_grid->mapping_fe_field), dg->fe_collection[poly_degree], quad_extra, 
                     dealii::update_values | dealii::update_JxW_values | dealii::update_quadrature_points);
             const unsigned int n_quad_pts = fe_values_extra.n_quadrature_points;
             std::array<double,nstate> soln_at_q;

@@ -35,9 +35,12 @@ ConvectionDiffusionPeriodic<dim, nstate>::ConvectionDiffusionPeriodic(const PHiL
 template<int dim, int nstate>
 double ConvectionDiffusionPeriodic<dim, nstate>::compute_energy(std::shared_ptr < PHiLiP::DGBase<dim, double> > &dg) const
 {
-    double energy = 0.0;
+	double energy = 0.0;
     dealii::LinearAlgebra::distributed::Vector<double> mass_matrix_times_solution(dg->right_hand_side);
-    dg->global_mass_matrix.vmult( mass_matrix_times_solution, dg->solution);
+    if(dg->all_parameters->use_inverse_mass_on_the_fly)
+        dg->apply_global_mass_matrix(dg->solution,mass_matrix_times_solution);
+    else
+        dg->global_mass_matrix.vmult(mass_matrix_times_solution, dg->solution);
     //Since we normalize the energy later, don't bother scaling by 0.5
     //Energy \f$ = 0.5 * \int u^2 d\Omega_m \f$
     energy = dg->solution * mass_matrix_times_solution;
@@ -46,7 +49,10 @@ double ConvectionDiffusionPeriodic<dim, nstate>::compute_energy(std::shared_ptr 
     const double diff_coeff = Parameters::ManufacturedSolutionParam::get_default_diffusion_coefficient();
     for(int idim=0; idim<dim; idim++){
         dealii::LinearAlgebra::distributed::Vector<double> mass_matrix_times_auxiliary_variable(dg->right_hand_side);
-        dg->global_mass_matrix_auxiliary.vmult( mass_matrix_times_auxiliary_variable, dg->auxiliary_solution[idim]);
+        if(dg->all_parameters->use_inverse_mass_on_the_fly)
+            dg->apply_global_mass_matrix(dg->auxiliary_solution[idim], mass_matrix_times_auxiliary_variable,true);
+        else
+            dg->global_mass_matrix_auxiliary.vmult(mass_matrix_times_auxiliary_variable, dg->auxiliary_solution[idim]);
         double temp_energy = dg->auxiliary_solution[idim] * mass_matrix_times_auxiliary_variable;
         energy += diff_coeff * temp_energy;
     }
@@ -60,18 +66,23 @@ double ConvectionDiffusionPeriodic<dim, nstate>::compute_conservation(std::share
     // Conservation \f$ =  \int 1 * u d\Omega_m \f$
     double conservation = 0.0;
     dealii::LinearAlgebra::distributed::Vector<double> mass_matrix_times_solution(dg->right_hand_side);
-    dg->global_mass_matrix.vmult( mass_matrix_times_solution, dg->solution);
+    if(dg->all_parameters->use_inverse_mass_on_the_fly)
+        dg->apply_global_mass_matrix(dg->solution,mass_matrix_times_solution);
+    else
+        dg->global_mass_matrix.vmult(mass_matrix_times_solution, dg->solution);
 
-    const unsigned int n_dofs_cell = dg->operators->fe_collection_basis[poly_degree].dofs_per_cell;
-    const unsigned int n_quad_pts = dg->operators->volume_quadrature_collection[poly_degree].size();
-    dealii::Vector<double> ones(n_quad_pts);
+    const unsigned int n_dofs_cell = dg->fe_collection[poly_degree].dofs_per_cell;
+    const unsigned int n_quad_pts = dg->volume_quadrature_collection[poly_degree].size();
+    std::vector<double> ones(n_quad_pts);
     for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
         ones[iquad] = 1.0;
     }
     // Projected vector of ones. That is, the interpolation of ones_hat to the volume nodes is 1.
-    dealii::Vector<double> ones_hat(n_dofs_cell);
+    std::vector<double> ones_hat(n_dofs_cell);
     // We have to project the vector of ones because the mass matrix has an interpolation from solution nodes built into it.
-    dg->operators->vol_projection_operator[poly_degree].vmult(ones_hat, ones);
+    OPERATOR::vol_projection_operator<dim,2*dim> vol_projection(dg->nstate, poly_degree, dg->max_grid_degree);
+    vol_projection.build_1D_volume_operator(dg->oneD_fe_collection[poly_degree], dg->oneD_quadrature_collection[poly_degree]);
+    vol_projection.matrix_vector_mult_1D(ones, ones_hat, vol_projection.oneD_vol_operator);
 
     dealii::LinearAlgebra::distributed::Vector<double> ones_hat_global(dg->right_hand_side);
     std::vector<dealii::types::global_dof_index> dofs_indices (n_dofs_cell);
@@ -89,7 +100,10 @@ double ConvectionDiffusionPeriodic<dim, nstate>::compute_conservation(std::share
     const double diff_coeff = Parameters::ManufacturedSolutionParam::get_default_diffusion_coefficient();
     for(int idim=0; idim<dim; idim++){
         dealii::LinearAlgebra::distributed::Vector<double> mass_matrix_times_auxiliary_variable(dg->right_hand_side);
-        dg->global_mass_matrix_auxiliary.vmult( mass_matrix_times_auxiliary_variable, dg->auxiliary_solution[idim]);
+        if(dg->all_parameters->use_inverse_mass_on_the_fly)
+            dg->apply_global_mass_matrix(dg->auxiliary_solution[idim], mass_matrix_times_auxiliary_variable, true);
+        else
+            dg->global_mass_matrix_auxiliary.vmult(mass_matrix_times_auxiliary_variable, dg->auxiliary_solution[idim]);
         double temp_conservation = ones_hat_global * mass_matrix_times_auxiliary_variable;
         conservation += diff_coeff * temp_conservation;
     }
@@ -130,10 +144,9 @@ int ConvectionDiffusionPeriodic<dim, nstate>::run_test() const
                 dealii::Triangulation<dim>::smoothing_on_refinement |
                 dealii::Triangulation<dim>::smoothing_on_coarsening));
 #endif
-        //straight grid
+        // straight grid
         dealii::GridGenerator::hyper_cube(*grid, left, right, true);
-#if PHILIP_DIM==1
-#else
+#if PHILIP_DIM!=1
         std::vector<dealii::GridTools::PeriodicFacePair<typename dealii::parallel::distributed::Triangulation<PHILIP_DIM>::cell_iterator> > matched_pairs;
         dealii::GridTools::collect_periodic_faces(*grid,0,1,0,matched_pairs);
         if(dim==2) dealii::GridTools::collect_periodic_faces(*grid,2,3,1,matched_pairs);
@@ -142,14 +155,14 @@ int ConvectionDiffusionPeriodic<dim, nstate>::run_test() const
 #endif
         grid->refine_global(igrid);
         this->pcout << "Grid generated and refined" << std::endl;
-        //CFL number
+        // CFL number
         const unsigned int n_global_active_cells2 = grid->n_global_active_cells();
         double n_dofs_cfl = pow(n_global_active_cells2,dim) * pow(poly_degree+1.0, dim);
         double delta_x = (right-left)/pow(n_dofs_cfl,(1.0/dim)); 
         const double diff_coeff2 = 0.1*atan(1)*4.0/exp(1) * 20; 
         all_parameters_new.ode_solver_param.initial_time_step =  0.5*pow(delta_x,2)/diff_coeff2;
              
-        //allocate dg
+        // allocate dg
         std::shared_ptr < PHiLiP::DGBase<dim, double> > dg = PHiLiP::DGFactory<dim,double>::create_discontinuous_galerkin(&all_parameters_new, poly_degree, poly_degree, grid_degree, grid);
         this->pcout << "dg created" <<std::endl;
         dg->allocate_system ();
@@ -233,7 +246,7 @@ int ConvectionDiffusionPeriodic<dim, nstate>::run_test() const
             // Overintegrate the error to make sure there is not integration error in the error estimate
             int overintegrate = 10;
             dealii::QGauss<dim> quad_extra(poly_degree+1+overintegrate);
-            dealii::FEValues<dim,dim> fe_values_extra(*(dg->high_order_grid->mapping_fe_field), dg->operators->fe_collection_basis[poly_degree], quad_extra, 
+            dealii::FEValues<dim,dim> fe_values_extra(*(dg->high_order_grid->mapping_fe_field), dg->fe_collection[poly_degree], quad_extra, 
                     dealii::update_values | dealii::update_JxW_values | dealii::update_quadrature_points);
             const unsigned int n_quad_pts = fe_values_extra.n_quadrature_points;
             std::array<double,nstate> soln_at_q;

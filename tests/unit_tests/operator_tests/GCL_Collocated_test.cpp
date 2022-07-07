@@ -80,34 +80,35 @@ dealii::Point<dim> CurvManifold<dim>::pull_back(const dealii::Point<dim> &space_
     double alpha =1.0/10.0;
     int flag =0;
     while(flag != dim){
-    if(dim==2){
-        function[0] = x_ref[0] - x_phys[0] +beta*std::cos(pi/2.0*x_ref[0])*std::cos(3.0*pi/2.0*x_ref[1]);
-        function[1] = x_ref[1] - x_phys[1] +beta*std::sin(2.0*pi*(x_ref[0]))*std::cos(pi/2.0*x_ref[1]);
-    }
-    else{
-        function[0] = x_ref[0] - x_phys[0] +alpha*(std::cos(pi * x_ref[2]) + std::cos(pi * x_ref[1]));
-        function[1] = x_ref[1] - x_phys[1] +alpha*exp(1.0-x_ref[1])*(std::sin(pi * x_ref[0]) + std::sin(pi* x_ref[2]));
-        function[2] = x_ref[2] - x_phys[2] +1.0/20.0*( std::sin(2.0 * pi * x_ref[0]) + std::sin(2.0 * pi * x_ref[1]));
-    }
-    if(dim==2){
-        derivative[0][0] = 1.0 - beta* pi/2.0 * std::sin(pi/2.0*x_ref[0])*std::cos(3.0*pi/2.0*x_ref[1]);
-        derivative[0][1] =  - beta*3.0 *pi/2.0 * std::cos(pi/2.0*x_ref[0])*std::sin(3.0*pi/2.0*x_ref[1]);
+        if(dim==2){
+            function[0] = x_ref[0] - x_phys[0] +beta*std::cos(pi/2.0*x_ref[0])*std::cos(3.0*pi/2.0*x_ref[1]);
+            function[1] = x_ref[1] - x_phys[1] +beta*std::sin(2.0*pi*(x_ref[0]))*std::cos(pi/2.0*x_ref[1]);
+        }
+        else{
+            function[0] = x_ref[0] - x_phys[0] +alpha*(std::cos(pi * x_ref[2]) + std::cos(pi * x_ref[1]));
+            function[1] = x_ref[1] - x_phys[1] +alpha*exp(1.0-x_ref[1])*(std::sin(pi * x_ref[0]) + std::sin(pi* x_ref[2]));
+            function[2] = x_ref[2] - x_phys[2] +1.0/20.0*( std::sin(2.0 * pi * x_ref[0]) + std::sin(2.0 * pi * x_ref[1]));
+        }
 
-        derivative[1][0] =  beta*2.0*pi*std::cos(2.0*pi*(x_ref[0]))*std::cos(pi/2.0*x_ref[1]);
-        derivative[1][1] =  1.0 -beta*pi/2.0*std::sin(2.0*pi*(x_ref[0]))*std::sin(pi/2.0*x_ref[1]);  
-    }
-    else{
-        derivative[0][0] = 1.0;
-        derivative[0][1] =      - alpha*pi*std::sin(pi*x_ref[1]);
-        derivative[0][2] =   - alpha*pi*std::sin(pi*x_ref[2]);
+        if(dim==2){
+            derivative[0][0] = 1.0 - beta* pi/2.0 * std::sin(pi/2.0*x_ref[0])*std::cos(3.0*pi/2.0*x_ref[1]);
+            derivative[0][1] =  - beta*3.0 *pi/2.0 * std::cos(pi/2.0*x_ref[0])*std::sin(3.0*pi/2.0*x_ref[1]);
 
-        derivative[1][0] =       alpha*pi*exp(1.0-x_ref[1])*std::cos(pi*x_ref[0]);
-        derivative[1][1] =  1.0 -alpha*exp(1.0-x_ref[1])*(std::sin(pi*x_ref[0])+std::sin(pi*x_ref[2]));  
-        derivative[1][2] =  alpha*pi*exp(1.0-x_ref[1])*std::cos(pi*x_ref[2]);
-        derivative[2][0] = 1.0/10.0*pi*std::cos(2.0*pi*x_ref[0]);
-        derivative[2][1] = 1.0/10.0*pi*std::cos(2.0*pi*x_ref[1]);
-        derivative[2][2] = 1.0;
-    }
+            derivative[1][0] =  beta*2.0*pi*std::cos(2.0*pi*(x_ref[0]))*std::cos(pi/2.0*x_ref[1]);
+            derivative[1][1] =  1.0 -beta*pi/2.0*std::sin(2.0*pi*(x_ref[0]))*std::sin(pi/2.0*x_ref[1]);  
+        }
+        else{
+            derivative[0][0] = 1.0;
+            derivative[0][1] =      - alpha*pi*std::sin(pi*x_ref[1]);
+            derivative[0][2] =   - alpha*pi*std::sin(pi*x_ref[2]);
+
+            derivative[1][0] =       alpha*pi*exp(1.0-x_ref[1])*std::cos(pi*x_ref[0]);
+            derivative[1][1] =  1.0 -alpha*exp(1.0-x_ref[1])*(std::sin(pi*x_ref[0])+std::sin(pi*x_ref[2]));  
+            derivative[1][2] =  alpha*pi*exp(1.0-x_ref[1])*std::cos(pi*x_ref[2]);
+            derivative[2][0] = 1.0/10.0*pi*std::cos(2.0*pi*x_ref[0]);
+            derivative[2][1] = 1.0/10.0*pi*std::cos(2.0*pi*x_ref[1]);
+            derivative[2][2] = 1.0;
+        }
 
         dealii::FullMatrix<double> Jacobian_inv(dim);
         Jacobian_inv.invert(derivative);
@@ -252,7 +253,6 @@ int main (int argc, char * argv[])
 
     all_parameters_new.use_collocated_nodes=true;
 
-    //unsigned int poly_degree = 3;
     double left = 0.0;
     double right = 1.0;
     const bool colorize = true;
@@ -284,15 +284,20 @@ int main (int argc, char * argv[])
     for(unsigned int poly_degree = 2; poly_degree<5; poly_degree++){
         unsigned int grid_degree = poly_degree;
 
-        //setup operator
-        // OPERATOR::OperatorsBase<dim,real> operators(&all_parameters_new, nstate, poly_degree, poly_degree, grid_degree); 
-        OPERATOR::OperatorsBaseState<dim,real,nstate,2*dim> operators(&all_parameters_new, poly_degree, poly_degree);
-        //setup DG
-        // std::shared_ptr < PHiLiP::DGBase<dim, double> > dg = PHiLiP::DGFactory<dim,double>::create_discontinuous_galerkin(&all_parameters_new, poly_degree, grid);
         std::shared_ptr < PHiLiP::DGBase<dim, double> > dg = PHiLiP::DGFactory<dim,double>::create_discontinuous_galerkin(&all_parameters_new, poly_degree, poly_degree, grid_degree, grid);
         dg->allocate_system ();
 
-        const unsigned int n_quad_pts = dg->operators->volume_quadrature_collection[poly_degree].size();
+        dealii::QGaussLobatto<1> grid_quad(grid_degree +1);
+        const dealii::FE_DGQ<1> fe_grid(grid_degree);
+        const dealii::FESystem<1,1> fe_sys_grid(fe_grid, nstate);
+        dealii::QGauss<1> flux_quad(poly_degree +1);
+        dealii::QGauss<0> flux_quad_face(poly_degree +1);
+
+        PHiLiP::OPERATOR::mapping_shape_functions<dim,2*dim> mapping_basis(nstate,poly_degree,grid_degree);
+        mapping_basis.build_1D_shape_functions_at_grid_nodes(fe_sys_grid, grid_quad);
+        mapping_basis.build_1D_shape_functions_at_flux_nodes(fe_sys_grid, flux_quad, flux_quad_face);
+
+        const unsigned int n_quad_pts = pow(poly_degree+1,dim);
 
         const dealii::FESystem<dim> &fe_metric = (dg->high_order_grid->fe_system);
         const unsigned int n_metric_dofs = fe_metric.dofs_per_cell; 
@@ -300,6 +305,7 @@ int main (int argc, char * argv[])
         for (auto current_cell = dg->dof_handler.begin_active(); current_cell!=dg->dof_handler.end(); ++current_cell, ++metric_cell) {
             if (!current_cell->is_locally_owned()) continue;
 
+            pcout<<" degree "<<grid_degree<<" metric dofs "<<n_metric_dofs<<std::endl;
             std::vector<dealii::types::global_dof_index> current_metric_dofs_indices(n_metric_dofs);
             metric_cell->get_dof_indices (current_metric_dofs_indices);
             std::array<std::vector<real>,dim> mapping_support_points;
@@ -311,60 +317,42 @@ int main (int argc, char * argv[])
                 for (unsigned int idof = 0; idof< n_metric_dofs; ++idof) {
                     const real val = (dg->high_order_grid->volume_nodes[current_metric_dofs_indices[idof]]);
                     const unsigned int istate = fe_metric.system_to_component_index(idof).first; 
-                    mapping_support_points[istate][igrid_node] += val * fe_metric.shape_value_component(idof,vol_GLL.point(igrid_node),istate); 
-                }
-            }
-            std::vector<dealii::FullMatrix<real>> metric_cofactor(n_quad_pts);
-            std::vector<real> determinant_Jacobian(n_quad_pts);
-            for(unsigned int iquad=0;iquad<n_quad_pts; iquad++){
-                metric_cofactor[iquad].reinit(dim, dim);
-            }
-            operators.build_local_vol_metric_cofactor_matrix_and_det_Jac(grid_degree, poly_degree, n_quad_pts, n_metric_dofs/dim, mapping_support_points, determinant_Jacobian, metric_cofactor);
-
-            std::vector< std::vector<dealii::FullMatrix<real>>>  Gij(dim);
-            for(int idim=0; idim<dim; idim++){
-                Gij[idim].resize(dim);
-                for(int idim2=0; idim2<dim; idim2++){
-                    Gij[idim][idim2].reinit(n_quad_pts, n_quad_pts);
+                    mapping_support_points[istate][igrid_node] += val * fe_metric.shape_value_component(idof,vol_GLL.point(igrid_node),istate);
                 }
             }
 
-            for(int idim=0; idim<dim;idim++){
-                for(int idim2=0; idim2<dim; idim2++){
-                    // pcout << " G i=" << idim << " j=" << idim2 << std::endl;
-                    for(unsigned int idof=0; idof<n_quad_pts; idof++){
-                        for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
-                            if(idof==iquad){
-                                Gij[idim][idim2][idof][iquad] = metric_cofactor[iquad][idim2][idim];
-                                // pcout << Gij[idim][idim2][idof][iquad] << std::endl;
-                            }
-                        }
-                    }
-                }
+            PHiLiP::OPERATOR::metric_operators<real,dim,2*dim> metric_oper(nstate,poly_degree,grid_degree);
+            metric_oper.build_volume_metric_operators(
+                n_quad_pts, n_metric_dofs/dim,
+                mapping_support_points,
+                mapping_basis,
+                false);
+
+            std::array<std::vector<real>,dim> GCL;
+            for(int idim=0; idim<dim; idim++){
+                GCL[idim].resize(n_quad_pts);
             }
 
-            std::vector<dealii::Vector<real>> GCL(dim);
+            const dealii::FE_DGQArbitraryNodes<1> fe_poly(flux_quad);
+            const dealii::FESystem<1,1> fe_sys_poly(fe_poly, nstate);
+            PHiLiP::OPERATOR::basis_functions_state<dim,nstate,2*dim> flux_basis_quad(poly_degree, 1);
+            flux_basis_quad.build_1D_gradient_state_operator(fe_sys_poly, flux_quad);
+            flux_basis_quad.build_1D_volume_state_operator(fe_sys_poly, flux_quad);
             for(int idim=0; idim<dim; idim++){
-                GCL[idim].reinit(n_quad_pts);
+                flux_basis_quad.divergence_matrix_vector_mult(metric_oper.metric_cofactor_vol[idim], GCL[idim],
+                                                              flux_basis_quad.oneD_vol_state_operator[0],
+                                                              flux_basis_quad.oneD_vol_state_operator[0],
+                                                              flux_basis_quad.oneD_vol_state_operator[0],
+                                                              flux_basis_quad.oneD_grad_state_operator[0],
+                                                              flux_basis_quad.oneD_grad_state_operator[0],
+                                                              flux_basis_quad.oneD_grad_state_operator[0]);
             }
-            dealii::Vector<real> ones(n_quad_pts);
-            for(unsigned int idof=0; idof<n_quad_pts; idof++){
-                ones[idof] = 1.0;
-            }
-            for(int idim=0; idim< dim; idim++){
-                for(int idim2=0; idim2<dim;idim2++){
-                    dealii::FullMatrix<real> temp(n_quad_pts);
-                    operators.gradient_flux_basis[poly_degree][0][idim2].mmult(temp, Gij[idim2][idim]);
-                    dealii::Vector<real> temp2(n_quad_pts);
-                    temp.vmult(temp2, ones);
-                    GCL[idim].add(1, temp2);
-                }
-            }
+
             for(int idim=0; idim<dim; idim++){
-                // pcout << "\n GCL for derivative x_" << idim << std::endl; 
+                // printf("\n GCL for derivative x_%d \n", idim);
                 for(unsigned int idof=0; idof<n_quad_pts; idof++){
-                    // pcout << setprecision(16) << GCL[idim][idof] << std::endl;
-                    if( std::abs(GCL[idim][idof]) > max_GCL){
+                    // printf(" %.16g \n", GCL[idim][idof]);
+                    if(std::abs(GCL[idim][idof]) > max_GCL){
                         max_GCL = std::abs(GCL[idim][idof]);
                     }
                 }

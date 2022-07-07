@@ -69,7 +69,7 @@ std::array<dealii::Tensor<1,dim,real>,nstate> Burgers<dim,nstate,real>
 template <int dim, int nstate, typename real>
 std::array<dealii::Tensor<1,dim,real>,nstate> Burgers<dim,nstate,real>::convective_numerical_split_flux (
                 const std::array<real,nstate> &soln_const,
-                const std::array<real,nstate> & soln_loop) const
+                const std::array<real,nstate> &soln_loop) const
 {
     std::array<dealii::Tensor<1,dim,real>,nstate> conv_flux;
         for (int flux_dim=0; flux_dim<dim; ++flux_dim) {
@@ -81,16 +81,12 @@ std::array<dealii::Tensor<1,dim,real>,nstate> Burgers<dim,nstate,real>::convecti
 }
 
 template <int dim, int nstate, typename real>
-std::array<dealii::Tensor<1,dim,real>,nstate> Burgers<dim,nstate,real>::convective_surface_numerical_split_flux (
-                const std::array< dealii::Tensor<1,dim,real>, nstate > &surface_flux,
-                const std::array< dealii::Tensor<1,dim,real>, nstate > &flux_interp_to_surface) const
+real Burgers<dim,nstate,real>::convective_surface_numerical_split_flux (
+                const real &surface_flux,
+                const real &flux_interp_to_surface) const
 {
-    std::array<dealii::Tensor<1,dim,real>,nstate> surface_split_flux;
-        for (int idim=0; idim<dim; ++idim) {
-            for (int s=0; s<nstate; ++s) {
-                surface_split_flux[s][idim] = 2.0/3.0 * flux_interp_to_surface[s][idim] + 1.0/3.0 * surface_flux[s][idim];
-            }
-        }
+    real surface_split_flux;
+    surface_split_flux = 2.0/3.0 * flux_interp_to_surface + 1.0/3.0 * surface_flux;
     return surface_split_flux;
 }
 

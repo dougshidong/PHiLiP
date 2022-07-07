@@ -18,7 +18,7 @@ double EulerTaylorGreen<dim, nstate>::compute_MK_energy(std::shared_ptr < DGBase
     int overintegrate = 0;//10;
     dealii::QGauss<dim> quad_extra(dg->max_degree+1+overintegrate);
     const dealii::Mapping<dim> &mapping = (*(dg->high_order_grid->mapping_fe_field));
-    dealii::FEValues<dim,dim> fe_values_extra(mapping, dg->operators->fe_collection_basis[poly_degree], quad_extra, 
+    dealii::FEValues<dim,dim> fe_values_extra(mapping, dg->fe_collection[poly_degree], quad_extra, 
                     dealii::update_values | dealii::update_JxW_values | dealii::update_quadrature_points);
 
     double total_kinetic_energy = 0;
@@ -62,7 +62,7 @@ double EulerTaylorGreen<dim, nstate>::compute_kinetic_energy(std::shared_ptr < D
     int overintegrate = 10 ;
     dealii::QGauss<dim> quad_extra(dg->max_degree+1+overintegrate);
     const dealii::Mapping<dim> &mapping = (*(dg->high_order_grid->mapping_fe_field));
-    dealii::FEValues<dim,dim> fe_values_extra(mapping, dg->operators->fe_collection_basis[poly_degree], quad_extra, 
+    dealii::FEValues<dim,dim> fe_values_extra(mapping, dg->fe_collection[poly_degree], quad_extra, 
                     dealii::update_values | dealii::update_JxW_values | dealii::update_quadrature_points);
     const unsigned int n_quad_pts = fe_values_extra.n_quadrature_points;
     std::array<double,nstate> soln_at_q;
@@ -121,15 +121,6 @@ int EulerTaylorGreen<dim, nstate>::run_test() const
      
     grid->refine_global(n_refinements);
 
-    // const unsigned int n_global_active_cells2 = grid->n_global_active_cells();
-    const unsigned int n_global_active_cells2 = pow(2,n_refinements);
-    // const double n_dofs_cfl = pow(n_global_active_cells2,dim) * pow(poly_degree+1.0, dim);
-    const double n_dofs_cfl = pow(n_global_active_cells2,dim) * pow(poly_degree+1.0, dim);
-    pcout<<"number dofs locally what we want "<<n_dofs_cfl<<" number of active cells "<<n_global_active_cells2<<std::endl;
-    double delta_x = (right-left)/pow(n_dofs_cfl,(1.0/dim)); 
-    all_parameters_new.ode_solver_param.initial_time_step =  0.1 * delta_x;
-    pcout<<" timestep "<<all_parameters_new.ode_solver_param.initial_time_step<<std::endl;
-
     //Create DG
     std::shared_ptr < PHiLiP::DGBase<dim, double> > dg = PHiLiP::DGFactory<dim,double>::create_discontinuous_galerkin(&all_parameters_new, poly_degree, poly_degree, grid_degree, grid);
     dg->allocate_system ();
@@ -156,8 +147,62 @@ int EulerTaylorGreen<dim, nstate>::run_test() const
     dealii::VectorTools::interpolate(dg->dof_handler,initial_condition,solution_no_ghost);
     dg->solution = solution_no_ghost;
     dg->solution.update_ghost_values();
-    // dealii::VectorTools::interpolate(dg->dof_handler,initial_condition,dg->solution);
-    std::cout << "initial condition interpolated to DG solution" << std::endl;
+
+    const unsigned int n_global_active_cells2 = grid->n_global_active_cells();
+    const double n_dofs_cfl = pow(n_global_active_cells2,dim) * pow(poly_degree+1.0, dim);
+    pcout<<"number dofs locally what we want "<<n_dofs_cfl<<" number of active cells "<<n_global_active_cells2<<std::endl;
+    double delta_x = (right-left)/pow(n_dofs_cfl,(1.0/dim)); 
+    pcout<<" delta x "<<delta_x<<std::endl;
+
+    //get max convective eigenvalue
+
+    std::vector<dealii::types::global_dof_index> dofs_indices (dg->fe_collection[poly_degree].dofs_per_cell);
+    double max_wave_speed = 0.0;
+    for(auto cell = dg->dof_handler.begin_active(); cell != dg->dof_handler.end(); ++cell){
+        if (!cell->is_locally_owned()) continue;
+
+        cell->get_dof_indices (dofs_indices);
+        const unsigned int n_quad_pts = dg->volume_quadrature_collection[poly_degree].size();
+        const unsigned int n_dofs_cell = dg->fe_collection[poly_degree].dofs_per_cell;
+        for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
+            std::array<double,nstate> soln_at_q;
+            for(int istate=0; istate<nstate; istate++)
+                soln_at_q[istate] =0.0;
+
+            dealii::Point<dim> qpoint = dg->volume_quadrature_collection[poly_degree].point(iquad);
+            for (unsigned int idof=0; idof<n_dofs_cell; ++idof) {
+                const unsigned int istate = dg->fe_collection[poly_degree].system_to_component_index(idof).first;
+                soln_at_q[istate] += dg->solution[dofs_indices[idof]] * dg->fe_collection[poly_degree].shape_value_component(idof, qpoint, istate);
+            }
+            const double density = soln_at_q[0];
+            dealii::Tensor<1,dim,double> vel;
+            for (int d=0; d<dim; ++d) { vel[d] = soln_at_q[1+d]/density; }
+
+            const double tot_energy  = soln_at_q[nstate-1];
+
+            double vel2 = 0.0;
+            for (int d=0; d<dim; d++) { 
+                vel2 = vel2 + vel[d]*vel[d]; 
+            }    
+            double gam = 1.4;
+            double gamm1 = 1.4-1.0;
+            double pressure = gamm1*(tot_energy - 0.5*density*vel2);
+            const double sound = std::sqrt(pressure*gam/density);
+
+            const double max_eig = sqrt(vel2) + sound;
+
+            if(max_eig > max_wave_speed){
+                max_wave_speed = max_eig;
+                pcout<<max_wave_speed<<std::endl;
+            }
+
+        }
+    }
+
+    pcout<<"max_wave_speed final "<<max_wave_speed<<std::endl;
+
+    all_parameters_new.ode_solver_param.initial_time_step =  0.1 * delta_x / max_wave_speed;
+    pcout<<" timestep "<<all_parameters_new.ode_solver_param.initial_time_step<<std::endl;
      
     std::cout << "creating ODE solver" << std::endl;
     std::shared_ptr<ODE::ODESolverBase<dim, double>> ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);

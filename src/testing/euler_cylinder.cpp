@@ -221,7 +221,7 @@ int EulerCylinder<dim,nstate>
 
             const auto mapping = (*(dg->high_order_grid->mapping_fe_field));
             dealii::hp::MappingCollection<dim> mapping_collection(mapping);
-            dealii::hp::FEValues<dim,dim> fe_values_collection_volume (mapping_collection, dg->operators->fe_collection_basis, dg->operators->volume_quadrature_collection, dealii::update_values | dealii::update_JxW_values); ///< FEValues of volume.
+            dealii::hp::FEValues<dim,dim> fe_values_collection_volume (mapping_collection, dg->fe_collection, dg->volume_quadrature_collection, dealii::update_values | dealii::update_JxW_values); ///< FEValues of volume.
             // Overintegrate the error to make sure there is not integration error in the error estimate
             //int overintegrate = 0;
             //dealii::QGauss<dim> quad_extra(dg->max_degree+1+overintegrate);

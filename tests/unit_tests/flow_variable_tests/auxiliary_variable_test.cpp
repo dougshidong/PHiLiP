@@ -70,12 +70,13 @@ int main (int argc, char * argv[])
 
     all_parameters_new.use_curvilinear_split_form=true;
     const int dim_check = 0;
+    const int nstate = 1;
 
     double left = 0.0;
     double right = 1.0;
     dealii::ConvergenceTable convergence_table;
     const unsigned int igrid_start = 2;
-    const unsigned int n_grids = 7;
+    const unsigned int n_grids = 6;
     std::array<double,n_grids> grid_size;
     std::array<double,n_grids> soln_error;
     std::array<double,n_grids> soln_error_inf;
@@ -102,11 +103,11 @@ int main (int argc, char * argv[])
             //straight
             dealii::GridGenerator::hyper_cube(*grid, left, right, true);
 #if PHILIP_DIM!=1
-	        std::vector<dealii::GridTools::PeriodicFacePair<typename dealii::parallel::distributed::Triangulation<PHILIP_DIM>::cell_iterator> > matched_pairs;
-    		dealii::GridTools::collect_periodic_faces(*grid,0,1,0,matched_pairs);
+            std::vector<dealii::GridTools::PeriodicFacePair<typename dealii::parallel::distributed::Triangulation<PHILIP_DIM>::cell_iterator> > matched_pairs;
+            dealii::GridTools::collect_periodic_faces(*grid,0,1,0,matched_pairs);
             if(dim >= 2) dealii::GridTools::collect_periodic_faces(*grid,2,3,1,matched_pairs);
             if(dim >= 3) dealii::GridTools::collect_periodic_faces(*grid,4,5,2,matched_pairs);
-    		grid->add_periodicity(matched_pairs);
+            grid->add_periodicity(matched_pairs);
 #endif
             grid->refine_global(igrid);
             pcout<<" made grid for Index"<<igrid<<std::endl;
@@ -118,33 +119,40 @@ int main (int argc, char * argv[])
             all_parameters_new.use_weak_form = false;
             all_parameters_new.use_periodic_bc = true;
             all_parameters_new.ode_solver_param.ode_solver_type = ODE_enum::explicit_solver;//auxiliary only works explicit for now
+            all_parameters_new.use_inverse_mass_on_the_fly = true;
             std::shared_ptr < PHiLiP::DGBase<dim, double> > dg = PHiLiP::DGFactory<dim,double>::create_discontinuous_galerkin(&all_parameters_new, poly_degree, poly_degree, grid_degree, grid);
             pcout<<"going in allocate"<<std::endl;
             dg->allocate_system (false,false,false);
-            pcout<<"Evaluating mass matrices"<<std::endl;
-            dg->evaluate_mass_matrices(true);
     
             //Interpolate IC
 
             const double pi = atan(1)*4.0;
             const unsigned int max_dofs_per_cell = dg->dof_handler.get_fe_collection().max_dofs_per_cell();
             std::vector<dealii::types::global_dof_index> current_dofs_indices(max_dofs_per_cell);
-            const unsigned int n_dofs_cell = dg->operators->fe_collection_basis[poly_degree].dofs_per_cell;
-            const unsigned int n_quad_pts      = dg->operators->volume_quadrature_collection[poly_degree].size();
+            const unsigned int n_dofs_cell = dg->fe_collection[poly_degree].dofs_per_cell;
+            const unsigned int n_quad_pts      = dg->volume_quadrature_collection[poly_degree].size();
+            const unsigned int n_shape_fns = n_dofs_cell / dg->nstate;
 
             const dealii::FESystem<dim> &fe_metric = (dg->high_order_grid->fe_system);
             const unsigned int n_metric_dofs = fe_metric.dofs_per_cell; 
+            const unsigned int n_grid_nodes = n_metric_dofs / dim;
             auto metric_cell = dg->high_order_grid->dof_handler_grid.begin_active();
+
+            PHiLiP::OPERATOR::mapping_shape_functions<dim,2*dim> mapping_basis(dg->nstate, poly_degree, 1);
+            mapping_basis.build_1D_shape_functions_at_grid_nodes(dg->high_order_grid->oneD_fe_system, dg->high_order_grid->oneD_grid_nodes);
+            mapping_basis.build_1D_shape_functions_at_flux_nodes(dg->high_order_grid->oneD_fe_system, dg->oneD_quadrature_collection[poly_degree], dg->oneD_face_quadrature);
+
+            OPERATOR::vol_projection_operator<dim,2*dim> vol_projection(dg->nstate, dg->max_degree, dg->max_grid_degree);
+            vol_projection.build_1D_volume_operator(dg->oneD_fe_collection[dg->max_degree], dg->oneD_quadrature_collection[dg->max_degree]);
+
             for (auto current_cell = dg->dof_handler.begin_active(); current_cell!=dg->dof_handler.end(); ++current_cell, ++metric_cell) {
                 if (!current_cell->is_locally_owned()) continue;
             
                 std::vector<dealii::types::global_dof_index> current_metric_dofs_indices(n_metric_dofs);
                 metric_cell->get_dof_indices (current_metric_dofs_indices);
                 std::array<std::vector<real>,dim> mapping_support_points;
-                std::vector<std::vector<real>> phys_quad_pts(dim);
                 for(int idim=0; idim<dim; idim++){
                     mapping_support_points[idim].resize(n_metric_dofs/dim);
-                    phys_quad_pts[idim].resize(n_quad_pts);
                 }
                 dealii::QGaussLobatto<dim> vol_GLL(grid_degree +1);
                 for (unsigned int igrid_node = 0; igrid_node< n_metric_dofs/dim; ++igrid_node) {
@@ -154,30 +162,41 @@ int main (int argc, char * argv[])
                         mapping_support_points[istate][igrid_node] += val * fe_metric.shape_value_component(idof,vol_GLL.point(igrid_node),istate); 
                     }
                 }
+
+                PHiLiP::OPERATOR::metric_operators<double,dim,2*dim> metric_oper(dg->nstate,poly_degree,1,true);
+                metric_oper.build_volume_metric_operators(n_quad_pts, n_grid_nodes,
+                                                          mapping_support_points,
+                                                          mapping_basis);
+
                 //interpolate solution
                 current_dofs_indices.resize(n_dofs_cell);
                 current_cell->get_dof_indices (current_dofs_indices);
-                for(int idim=0; idim<dim; idim++){
-                    for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
-                        phys_quad_pts[idim][iquad] = 0.0;
-                        for(unsigned int jquad=0; jquad<n_metric_dofs/dim; jquad++){
-                            phys_quad_pts[idim][iquad] += dg->operators->mapping_shape_functions_vol_flux_nodes[grid_degree][poly_degree][iquad][jquad]
-                                                        * mapping_support_points[idim][jquad];
-                        }
-                    }
-                }
+                // for(int idim=0; idim<dim; idim++){
+                //     for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
+                //         phys_quad_pts[idim][iquad] = 0.0;
+                //         for(unsigned int jquad=0; jquad<n_metric_dofs/dim; jquad++){
+                //             phys_quad_pts[idim][iquad] += dg->operators->mapping_shape_functions_vol_flux_nodes[grid_degree][poly_degree][iquad][jquad]
+                //                                         * mapping_support_points[idim][jquad];
+                //         }
+                //     }
+                // }
                 std::vector<real> soln(n_quad_pts);
-                for(unsigned int idof=0; idof<n_dofs_cell; idof++){
-                    dg->solution[current_dofs_indices[idof]]=0.0;
+                std::vector<real> exact(n_quad_pts);
+                for(int istate=0; istate<nstate; istate++){
                     for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
-                        double exact = 1.0;
+                        exact[iquad] = 1.0;
                        for (int idim=0; idim<dim; idim++){
-                                // exact *= exp(-(phys_quad_pts[idim][iquad])*(phys_quad_pts[idim][iquad]));
-                                exact *= sin(2.0*pi*phys_quad_pts[idim][iquad]) * cos(4.0*pi*phys_quad_pts[idim][iquad]);
+                               // exact *= exp(-(phys_quad_pts[idim][iquad])*(phys_quad_pts[idim][iquad]));
+                               // exact *= sin(2.0*pi*phys_quad_pts[idim][iquad]) * cos(4.0*pi*phys_quad_pts[idim][iquad]);
+                            exact[iquad] *= sin(2.0*pi*metric_oper.flux_nodes_vol[idim][iquad]) * cos(4.0*pi*metric_oper.flux_nodes_vol[idim][iquad]);
                         }
-                        dg->solution[current_dofs_indices[idof]] += dg->operators->vol_projection_operator[poly_degree][idof][iquad] *exact; 
+                        std::vector<double> sol(n_shape_fns);
+                        vol_projection.matrix_vector_mult_1D(exact, sol, vol_projection.oneD_vol_operator);
+                        for(unsigned int ishape=0; ishape<n_shape_fns; ishape++){
+                            dg->solution[current_dofs_indices[ishape+istate*n_shape_fns]] = sol[ishape];
+                        }
                     }   
-                }
+                }   
             } //end interpolated solution
             dg->solution.update_ghost_values();
 
@@ -192,7 +211,7 @@ int main (int argc, char * argv[])
             double linf_error = 0.0;
             int overintegrate = 4;
             dealii::QGauss<dim> quad_extra(poly_degree+1+overintegrate);
-            dealii::FEValues<dim,dim> fe_values_extra(*(dg->high_order_grid->mapping_fe_field), dg->operators->fe_collection_basis[poly_degree], quad_extra, 
+            dealii::FEValues<dim,dim> fe_values_extra(*(dg->high_order_grid->mapping_fe_field), dg->fe_collection[poly_degree], quad_extra, 
                                 dealii::update_values | dealii::update_JxW_values | 
                                 dealii::update_jacobians |  
                                 dealii::update_quadrature_points | dealii::update_inverse_jacobians);
@@ -201,6 +220,7 @@ int main (int argc, char * argv[])
             dealii::Vector<real> soln_at_q(n_quad_pts_extra);
             for (auto current_cell = dg->dof_handler.begin_active(); current_cell!=dg->dof_handler.end(); ++current_cell) {
                 if (!current_cell->is_locally_owned()) continue;
+
                 fe_values_extra.reinit(current_cell);
                 dofs_indices.resize(fe_values_extra.dofs_per_cell);
                 current_cell->get_dof_indices (dofs_indices);
@@ -234,6 +254,7 @@ int main (int argc, char * argv[])
             const unsigned int n_global_active_cells = grid->n_global_active_cells();
             const double l2error_mpi_sum = std::sqrt(dealii::Utilities::MPI::sum(l2error, MPI_COMM_WORLD));
             const double linferror_mpi= (dealii::Utilities::MPI::max(linf_error, MPI_COMM_WORLD));
+            
             // Convergence table
             const unsigned int n_dofs = dg->dof_handler.n_dofs();
             const double dx = 1.0/pow(n_dofs,(1.0/dim));
@@ -249,9 +270,9 @@ int main (int argc, char * argv[])
             convergence_table.add_value("soln_Linf_error", linferror_mpi);
 
             pcout << " Grid size h: " << dx 
-                 << " L2-soln_error: " << l2error_mpi_sum
-                 << " Linf-soln_error: " << linferror_mpi
-                 << std::endl;
+                  << " L2-soln_error: " << l2error_mpi_sum
+                  << " Linf-soln_error: " << linferror_mpi
+                  << std::endl;
 
             if (igrid > igrid_start) {
                 const double slope_soln_err = log(soln_error[igrid]/soln_error[igrid-1])
@@ -272,11 +293,11 @@ int main (int argc, char * argv[])
                       << std::endl;
 
                 //if hit correct convergence rates skip to next poly
-                if(std::abs(slope_soln_err-poly_degree)<0.1 && poly_degree % 2 == 1){
+                if(std::abs(slope_soln_err_inf-poly_degree)<0.1 && poly_degree % 2 == 1){
                     exit_grid = igrid;
                     break;
                 }
-                if(std::abs(slope_soln_err-(poly_degree+1))<0.1 && poly_degree % 2 == 0){
+                if(std::abs(slope_soln_err_inf-(poly_degree))<0.1 && poly_degree % 2 == 0){
                     exit_grid = igrid;
                     break;
                 }
@@ -285,26 +306,27 @@ int main (int argc, char * argv[])
 
         // const int igrid = n_grids-1;
         const unsigned int igrid = exit_grid;
-        const double slope_soln_err = log(soln_error[igrid]/soln_error[igrid-1])
+        // const double slope_soln_err = log(soln_error[igrid]/soln_error[igrid-1])
+        //                       / log(grid_size[igrid]/grid_size[igrid-1]);
+        const double slope_soln_err = log(soln_error_inf[igrid]/soln_error_inf[igrid-1])
                               / log(grid_size[igrid]/grid_size[igrid-1]);
-        // const double slope_soln_err = log(soln_error_inf[igrid]/soln_error_inf[igrid-1])
-        //                      / log(grid_size[igrid]/grid_size[igrid-1]);
         if(std::abs(slope_soln_err-poly_degree)>0.1 && poly_degree % 2 == 1){
             pcout<<" wrong order for poly "<<poly_degree<<" and slope "<<slope_soln_err<<std::endl;
             return 1;
         }
-        if(std::abs(slope_soln_err-(poly_degree+1))>0.1 && poly_degree % 2 == 0){
-        // if(std::abs(slope_soln_err-(poly_degree))>0.05 && poly_degree % 2 == 0){
+        //if(std::abs(slope_soln_err-(poly_degree+1))>0.1 && poly_degree % 2 == 0){
+        if(std::abs(slope_soln_err-(poly_degree))>0.1 && poly_degree % 2 == 0){
+        //if(std::abs(slope_soln_err-(poly_degree))>0.05 && poly_degree % 2 == 0){
             pcout<<" wrong order for poly "<<poly_degree<<" and slope "<<slope_soln_err<<std::endl;
             return 1;
         }
     
         pcout << " ********************************************"
-             << std::endl
-             << " Convergence rates for p = " << poly_degree
-             << std::endl
-             << " ********************************************"
-             << std::endl;
+              << std::endl
+              << " Convergence rates for p = " << poly_degree
+              << std::endl
+              << " ********************************************"
+              << std::endl;
         convergence_table.evaluate_convergence_rates("soln_L2_error", "cells", dealii::ConvergenceTable::reduction_rate_log2, dim);
         convergence_table.evaluate_convergence_rates("soln_Linf_error", "cells", dealii::ConvergenceTable::reduction_rate_log2, dim);
         convergence_table.set_scientific("dx", true);

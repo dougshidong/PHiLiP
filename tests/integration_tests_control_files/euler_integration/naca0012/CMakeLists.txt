@@ -27,7 +27,7 @@ add_test(
 #)
 
 set (filename "naca0012_hopw_ref2.msh")
-if(NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${filename})
+if(NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/../../../meshes/${filename})
   message(SEND_ERROR
 "Missing NACA0012 files named ${filename}. Please download them from
     https://drive.google.com/drive/folders/182JusbWV6NAA8ws1-TTg7M2GLc5jt6_r?usp=sharing

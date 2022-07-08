@@ -36,4 +36,4 @@ protected:
 } // FlowSolver namespace
 } // PHiLiP namespace
 
-#endif //PHILIP_EULER_BUMP_H
+#endif

@@ -108,7 +108,6 @@ subsection flow_solver
   set steady_state_polynomial_ramping = true
   subsection grid
     set input_mesh_filename = ../../../meshes/naca0012_hopw_ref2
-    set num_refinements = 0
   end
 end
 

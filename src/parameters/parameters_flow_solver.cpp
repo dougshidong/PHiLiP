@@ -108,21 +108,21 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                               dealii::Patterns::Integer(1, dealii::Patterns::Integer::max_int_value),
                               "Number of grid elements per dimension for hyper_cube mesh based cases.");
 
-            prm.declare_entry("num_refinements", "0",
+            prm.declare_entry("number_of_mesh_refinements", "0",
                               dealii::Patterns::Integer(0, dealii::Patterns::Integer::max_int_value),
-                              "Number of refinements to be performed.");
+                              "Number of mesh refinements for Gaussian bump and naca0012 based cases.");
 
             prm.enter_subsection("gaussian_bump");
             {
-                prm.declare_entry("channel_length", "1.0",
+                prm.declare_entry("channel_length", "3.0",
                                   dealii::Patterns::Double(0, dealii::Patterns::Double::max_double_value),
                                   "Lenght of channel for gaussian bump meshes.");
 
-                prm.declare_entry("channel_height", "1.0",
+                prm.declare_entry("channel_height", "0.8",
                                   dealii::Patterns::Double(0, dealii::Patterns::Double::max_double_value),
                                   "Height of channel for gaussian bump meshes.");
 
-                prm.declare_entry("bump_height", "0.1", 
+                prm.declare_entry("bump_height", "0.0625", 
                                   dealii::Patterns::Double(0, dealii::Patterns::Double::max_double_value),
                                   "Height of the bump for gaussian bump meshes.");
 
@@ -137,10 +137,8 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                 prm.declare_entry("number_of_subdivisions_in_z_direction", "0",
                                   dealii::Patterns::Integer(0, dealii::Patterns::Integer::max_int_value),
                                   "Number of subdivisions in the z direction for gaussian bump meshes.");
-
             }
             prm.leave_subsection();
-
         }
         prm.leave_subsection();
 
@@ -213,7 +211,7 @@ void FlowSolverParam::parse_parameters(dealii::ParameterHandler &prm)
             grid_left_bound = prm.get_double("grid_left_bound");
             grid_right_bound = prm.get_double("grid_right_bound");
             number_of_grid_elements_per_dimension = prm.get_integer("number_of_grid_elements_per_dimension");
-            num_refinements = prm.get_integer("num_refinements");
+            number_of_mesh_refinements = prm.get_integer("number_of_mesh_refinements");
 
             prm.enter_subsection("gaussian_bump");
             {
@@ -225,7 +223,6 @@ void FlowSolverParam::parse_parameters(dealii::ParameterHandler &prm)
                 bump_height = prm.get_double("bump_height");
             }
             prm.leave_subsection();
-
         }       
         prm.leave_subsection();
 

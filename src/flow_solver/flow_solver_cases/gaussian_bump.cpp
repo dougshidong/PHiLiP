@@ -25,7 +25,7 @@ std::shared_ptr<Triangulation> GaussianBump<dim,nstate>::generate_grid() const
             dealii::Triangulation<dim>::smoothing_on_refinement |
             dealii::Triangulation<dim>::smoothing_on_coarsening));
 
-    const unsigned int number_of_refinements = this->all_param.flow_solver_param.num_refinements;
+    const unsigned int number_of_refinements = this->all_param.flow_solver_param.number_of_mesh_refinements;
     const double channel_length = this->all_param.flow_solver_param.channel_length;
     const double channel_height = this->all_param.flow_solver_param.channel_height;
     const double bump_height = this->all_param.flow_solver_param.bump_height;
@@ -44,13 +44,6 @@ std::shared_ptr<Triangulation> GaussianBump<dim,nstate>::generate_grid() const
 template <int dim, int nstate>
 void GaussianBump<dim,nstate>::display_additional_flow_case_specific_parameters() const
 {
-    this->pcout << "- - Channel length: " << this->all_param.flow_solver_param.channel_length << std::endl;
-    this->pcout << "- - Channel height: " << this->all_param.flow_solver_param.channel_height << std::endl;
-    this->pcout << "- - Courant-Friedrich-Lewy number: " << this->all_param.flow_solver_param.courant_friedrich_lewy_number << std::endl;
-    this->pcout << "- - Freestream Mach number: " << this->all_param.euler_param.mach_inf << std::endl;
-    const double pi = atan(1.0) * 4.0;
-    this->pcout << "- - Angle of attack [deg]: " << this->all_param.euler_param.angle_of_attack*180/pi << std::endl;
-    this->pcout << "- - Side-slip angle [deg]: " << this->all_param.euler_param.side_slip_angle*180/pi << std::endl;
     this->pcout << "- - Farfield conditions: " << std::endl;
     const dealii::Point<dim> dummy_point;
     for (int s=0;s<nstate;s++) {

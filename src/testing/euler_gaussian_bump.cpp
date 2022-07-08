@@ -91,7 +91,7 @@ double EulerGaussianBump<dim,nstate>
 
             param.flow_solver_param.poly_degree = solution_degree;
             param.flow_solver_param.grid_degree = grid_degree;
-            param.flow_solver_param.num_refinements = igrid;
+            param.flow_solver_param.number_of_mesh_refinements = igrid;
 
             pcout << "\n" << "************************************" << "\n" << "POLYNOMIAL DEGREE " << solution_degree 
                   << ", GRID NUMBER " << (igrid+1) << "/" << n_grids << "\n" << "************************************" << std::endl;
@@ -102,21 +102,11 @@ double EulerGaussianBump<dim,nstate>
 
             flow_solver->run();
 
-            std::shared_ptr < DGBase<dim, double> > dg = flow_solver->dg;
-
-            const unsigned int n_global_active_cells = flow_solver->dg->triangulation->n_global_active_cells();
-            const unsigned int n_dofs = flow_solver->dg->dof_handler.n_dofs();
-            pcout << "Dimension: " << dim << "\t Polynomial degree p: " << param.flow_solver_param.poly_degree << std::endl
-                 << "Grid number: " << igrid+1 << "/" << n_grids
-                 << ". Number of active cells: " << n_global_active_cells
-                 << ". Number of degrees of freedom: " << n_dofs
-                 << std::endl;
-
             // Overintegrate the error to make sure there is not integration error in the error estimate
             int overintegrate = 10;
-            dealii::QGauss<dim> quad_extra(dg->max_degree+1+overintegrate);
-            const dealii::Mapping<dim> &mapping = (*(dg->high_order_grid->mapping_fe_field));
-            dealii::FEValues<dim,dim> fe_values_extra(mapping, dg->fe_collection[poly_degree], quad_extra, 
+            dealii::QGauss<dim> quad_extra(flow_solver->dg->max_degree+1+overintegrate);
+            const dealii::Mapping<dim> &mapping = (*(flow_solver->dg->high_order_grid->mapping_fe_field));
+            dealii::FEValues<dim,dim> fe_values_extra(mapping, flow_solver->dg->fe_collection[poly_degree], quad_extra, 
                     dealii::update_values | dealii::update_JxW_values | dealii::update_quadrature_points);
             const unsigned int n_quad_pts = fe_values_extra.n_quadrature_points;
             std::array<double,nstate> soln_at_q;
@@ -126,7 +116,7 @@ double EulerGaussianBump<dim,nstate>
             std::vector<dealii::types::global_dof_index> dofs_indices (fe_values_extra.dofs_per_cell);
 
             // Integrate solution error and output error
-            for (auto cell = dg->dof_handler.begin_active(); cell!=dg->dof_handler.end(); ++cell) {
+            for (auto cell = flow_solver->dg->dof_handler.begin_active(); cell!=flow_solver->dg->dof_handler.end(); ++cell) {
 
                 if (!cell->is_locally_owned()) continue;
                 fe_values_extra.reinit (cell);
@@ -137,7 +127,7 @@ double EulerGaussianBump<dim,nstate>
                     std::fill(soln_at_q.begin(), soln_at_q.end(), 0);
                     for (unsigned int idof=0; idof<fe_values_extra.dofs_per_cell; ++idof) {
                         const unsigned int istate = fe_values_extra.get_fe().system_to_component_index(idof).first;
-                        soln_at_q[istate] += dg->solution[dofs_indices[idof]] * fe_values_extra.shape_value_component(idof, iquad, istate);
+                        soln_at_q[istate] += flow_solver->dg->solution[dofs_indices[idof]] * fe_values_extra.shape_value_component(idof, iquad, istate);
                     }
 
                     double unumerical, uexact;
@@ -161,6 +151,8 @@ double EulerGaussianBump<dim,nstate>
             const double l2error_mpi_sum = std::sqrt(dealii::Utilities::MPI::sum(l2error, mpi_communicator));
             last_error = l2error_mpi_sum;
 
+            const unsigned int n_dofs = flow_solver->dg->dof_handler.n_dofs();
+            const unsigned int n_global_active_cells = flow_solver->dg->triangulation->n_global_active_cells();
 
             // Convergence table
             double dx = 1.0/pow(n_dofs,(1.0/dim));
@@ -179,7 +171,7 @@ double EulerGaussianBump<dim,nstate>
                 has_residual_converged = false;
             }
 
-            artificial_dissipation_max_coeff = dg->max_artificial_dissipation_coeff;
+            artificial_dissipation_max_coeff = flow_solver->dg->max_artificial_dissipation_coeff;
 
             pcout << " Grid size h: " << dx 
                  << " L2-error: " << l2error_mpi_sum
@@ -205,7 +197,7 @@ double EulerGaussianBump<dim,nstate>
             {
                 if (param.mesh_adaptation_param.total_refinement_cycles > 0)
                 {
-                    dealii::Point<dim> smallest_cell_coord = dg->coordinates_of_highest_refined_cell();
+                    dealii::Point<dim> smallest_cell_coord = flow_solver->dg->coordinates_of_highest_refined_cell();
                     pcout<<" x = "<<smallest_cell_coord[0]<<" y = "<<smallest_cell_coord[1]<<std::endl;
                     // Check if the mesh is refined near the shock i.e x \in (0.1,0.3) and y \in (0.03, 0.08).
                     if ((smallest_cell_coord[0] > 0.1) && (smallest_cell_coord[0] < 0.3) && (smallest_cell_coord[1] > 0.03) && (smallest_cell_coord[1] < 0.08)) 

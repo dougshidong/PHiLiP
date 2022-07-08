@@ -58,7 +58,7 @@ public:
     double grid_left_bound; ///< Left bound of domain for hyper_cube mesh based cases
     double grid_right_bound; ///< Right bound of domain for hyper_cube mesh based cases
     unsigned int number_of_grid_elements_per_dimension; ///< Number of grid elements per dimension for hyper_cube mesh based cases
-    int num_refinements; ///< Number of refinements to be performed
+    int number_of_mesh_refinements; ///< Number of refinements for naca0012 and Gaussian bump based cases
 
     double channel_height; ///< Height of channel for gaussian bump case
     double channel_length; ///< Width of channel for gaussian bump case

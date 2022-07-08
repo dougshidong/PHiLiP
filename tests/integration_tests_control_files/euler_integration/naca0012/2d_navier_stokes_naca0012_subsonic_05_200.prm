@@ -6,8 +6,7 @@ set test_type = euler_naca0012
 # Number of dimensions
 set dimension = 2
 
-# The PDE we want to solve. Choices are
-# <advection|diffusion|convection_diffusion>.
+# The PDE we want to solve
 set pde_type  = navier_stokes
 
 #set conv_num_flux = lax_friedrichs #roe
@@ -23,8 +22,7 @@ set overintegration = 0
 #set sipg_penalty_factor = 20
 
 # Reference for freestream values:
-# -- R. C. Swanson and E. Turkel. A multistage time-stepping scheme for the Navier-Stokes equa-
-tions. AIAA Paper 85-0035, 1985.
+# -- R. C. Swanson and E. Turkel. A multistage time-stepping scheme for the Navier-Stokes equations. AIAA Paper 85-0035, 1985.
 
 # freestream values in Euler
 subsection euler
@@ -37,7 +35,7 @@ end
 subsection navier_stokes
   set prandtl_number = 0.71
   set reynolds_number_inf = 5000.0
-  set wall_temperature_boundary_condition_type = adiabatic
+  set thermal_boundary_condition_type = adiabatic
 end
 
 subsection linear solver
@@ -61,13 +59,13 @@ subsection linear solver
     set ilut_fill                 = 10
 
     # Linear residual tolerance for convergence of the linear system
-    set linear_residual_tolerance = 1e-13
+    set linear_residual_tolerance = 1e-04
 
     # Maximum number of iterations for linear solver
     set max_iterations            = 2000
 
     # Number of iterations before restarting GMRES
-    set restart_number            = 200
+    set restart_number            = 300
 
   end 
 end
@@ -78,7 +76,7 @@ subsection ODE solver
   set nonlinear_max_iterations            = 2000
 
   # Nonlinear solver residual tolerance
-  set nonlinear_steady_residual_tolerance = 1e-14
+  set nonlinear_steady_residual_tolerance = 1e-10
 
   # Explicit or implicit solverChoices are <explicit|implicit>.
   set ode_solver_type  = implicit
@@ -98,10 +96,10 @@ end
 
 subsection manufactured solution convergence study
   # Last degree used for convergence study
-  set degree_end        = 3
+  set degree_end        = 1
 
   # Starting degree for convergence study
-  set degree_start      = 3
+  set degree_start      = 1
 
   set grid_progression  = 1
 
@@ -112,5 +110,11 @@ subsection manufactured solution convergence study
 
   # Number of grids in grid study
   set number_of_grids   = 1
+end
+
+subsection flow_solver
+  subsection grid
+    set input_mesh_filename = ../../../meshes/naca0012_hopw_ref5
+  end
 end
 

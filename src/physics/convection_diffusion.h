@@ -29,6 +29,16 @@ template <int dim, int nstate, typename real>
 class ConvectionDiffusion : public PhysicsBase <dim, nstate, real>
 {
 protected:
+    // For overloading the virtual functions defined in PhysicsBase
+    /** Once you overload a function from Base class in Derived class,
+     *  all functions with the same name in the Base class get hidden in Derived class.  
+     *  
+     *  Solution: In order to make the hidden function visible in derived class, 
+     *  we need to add the following:
+    */
+    using PhysicsBase<dim,nstate,real>::dissipative_flux;
+    using PhysicsBase<dim,nstate,real>::source_term;
+protected:
     /// Linear advection velocity in x, y, and z directions.
     double linear_advection_velocity[3] = { 1.1, -atan(1)*4.0 / exp(1), exp(1)/(atan(1)*4.0) };
     /// Diffusion scaling coefficient in front of the diffusion tensor.
@@ -80,9 +90,21 @@ public:
     /// Dissipative flux: u
     std::array<dealii::Tensor<1,dim,real>,nstate> dissipative_flux (
         const std::array<real,nstate> &solution,
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient,
+        const dealii::types::global_dof_index cell_index) const;
+
+    /// (function overload) Dissipative flux: u
+    std::array<dealii::Tensor<1,dim,real>,nstate> dissipative_flux (
+        const std::array<real,nstate> &solution,
         const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient) const;
 
     /// Source term is zero or depends on manufactured solution
+    std::array<real,nstate> source_term (
+        const dealii::Point<dim,real> &pos,
+        const std::array<real,nstate> &solution,
+        const dealii::types::global_dof_index cell_index) const;
+
+    /// (function overload) Source term is zero or depends on manufactured solution
     std::array<real,nstate> source_term (
         const dealii::Point<dim,real> &pos,
         const std::array<real,nstate> &solution) const;

@@ -1,4 +1,5 @@
 add_subdirectory(initial_conditions)
+add_subdirectory(exact_solutions)
 
 SET(SOURCE
     physics_factory.cpp
@@ -9,7 +10,11 @@ SET(SOURCE
     manufactured_solution.cpp
     mhd.cpp
     navier_stokes.cpp
-    burgers_rewienski.cpp)
+    burgers_rewienski.cpp
+    physics_model.cpp
+    model.cpp
+    large_eddy_simulation.cpp
+    model_factory.cpp)
 
 foreach(dim RANGE 1 3)
     # Output library

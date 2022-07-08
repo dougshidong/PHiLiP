@@ -8,7 +8,7 @@
 #include <fstream>
 
 #include "testing/tests.h"
-#include "ode_solver/ode_solver_factory.h"
+#include "flow_solver/flow_solver_factory.h"
 #include "parameters/all_parameters.h"
 
 #include "global_counter.hpp"
@@ -44,7 +44,7 @@ int main (int argc, char *argv[])
         std::cout << "********************************************************" << std::endl;
         std::abort();
     }
-    int test_error = 1;
+    int run_error = 1;
     try
     {
         // Declare possible inputs
@@ -61,10 +61,17 @@ int main (int argc, char *argv[])
 
         const int max_dim = PHILIP_DIM;
         const int max_nstate = 5;
-        std::unique_ptr<PHiLiP::Tests::TestsBase> test = PHiLiP::Tests::TestsFactory<max_dim,max_nstate>::create_test(&all_parameters);
-        test_error = test->run_test();
 
-        pcout << "Finished test with test error code: " << test_error << std::endl;
+        if(all_parameters.run_type == PHiLiP::Parameters::AllParameters::RunType::flow_simulation) {
+            std::unique_ptr<PHiLiP::FlowSolver::FlowSolverBase> flow_solver = PHiLiP::FlowSolver::FlowSolverFactory<max_dim,max_nstate>::create_flow_solver(&all_parameters,parameter_handler);
+            run_error = flow_solver->run();
+            pcout << "Flow simulation complete with run error code: " << run_error << std::endl;
+        }
+        else if(all_parameters.run_type == PHiLiP::Parameters::AllParameters::RunType::integration_test) {
+            std::unique_ptr<PHiLiP::Tests::TestsBase> test = PHiLiP::Tests::TestsFactory<max_dim,max_nstate>::create_test(&all_parameters,parameter_handler);
+            run_error = test->run_test();
+            pcout << "Finished integration test with run error code: " << run_error << std::endl;
+        }
     }
     catch (std::exception &exc)
     {
@@ -93,5 +100,5 @@ int main (int argc, char *argv[])
     }
     //std::cout << "MPI process " << mpi_rank+1 << " out of " << n_mpi << "reached end of program." << std::endl;
     pcout << "End of program" << std::endl;
-    return test_error;
+    return run_error;
 }

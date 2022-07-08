@@ -10,7 +10,7 @@
 #include <deal.II/distributed/tria.h>
 
 namespace PHiLiP {
-namespace Tests {
+namespace FlowSolver {
 
 #if PHILIP_DIM==1
 using Triangulation = dealii::Triangulation<PHILIP_DIM>;
@@ -22,34 +22,38 @@ template <int dim, int nstate>
 class FlowSolverCaseBase
 {
 public:
-
     ///Constructor
     FlowSolverCaseBase(const Parameters::AllParameters *const parameters_input);
 
-    /// Destructor
-    virtual ~FlowSolverCaseBase() {};
+    std::shared_ptr<InitialConditionFunction<dim,nstate,double>> initial_condition_function; ///< Initial condition function
 
-public:
+    /// Destructor
+    ~FlowSolverCaseBase() {};
 
     /// Displays the flow setup parameters
-    virtual void display_flow_solver_setup() const;
+    void display_flow_solver_setup(std::shared_ptr<DGBase<dim,double>> dg) const;
 
     /// Pure Virtual function to generate the grid
     virtual std::shared_ptr<Triangulation> generate_grid() const = 0;
+
+    /// Set higher order grid
+    virtual void set_higher_order_grid(std::shared_ptr <DGBase<dim, double>> dg) const;
 
     /// Virtual function to write unsteady snapshot data to table
     virtual void compute_unsteady_data_and_write_to_table(
             const unsigned int current_iteration,
             const double current_time,
             const std::shared_ptr <DGBase<dim, double>> dg,
-            const std::shared_ptr<dealii::TableHandler> unsteady_data_table) const;
+            const std::shared_ptr<dealii::TableHandler> unsteady_data_table);
 
     /// Virtual function to compute the constant time step
     virtual double get_constant_time_step(std::shared_ptr <DGBase<dim, double>> dg) const;
 
+    /// Virtual function to compute the adaptive time step
+    virtual double get_adaptive_time_step(std::shared_ptr <DGBase<dim, double>> dg) const;
+
     /// Virtual function for postprocessing when solving for steady state
     virtual void steady_state_postprocessing(std::shared_ptr <DGBase<dim, double>> dg) const;
-
 
 protected:
     const Parameters::AllParameters all_param; ///< All parameters
@@ -62,9 +66,25 @@ protected:
      */
     dealii::ConditionalOStream pcout;
 
+    /// Add a value to a given data table with scientific format
+    void add_value_to_data_table(
+            const double value,
+            const std::string value_string,
+            const std::shared_ptr <dealii::TableHandler> data_table) const;
+
+    /// Display additional more specific flow case parameters
+    virtual void display_additional_flow_case_specific_parameters() const = 0;
+
+private:
+    /// Returns the pde type string from the all_param class member
+    std::string get_pde_string() const;
+
+    /// Returns the flow case type string from the all_param class member
+    std::string get_flow_case_string() const;
+
 };
 
-} // Tests namespace
+} // FlowSolver namespace
 } // PHiLiP namespace
 
 #endif

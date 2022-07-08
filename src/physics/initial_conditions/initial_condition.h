@@ -9,11 +9,30 @@
 
 namespace PHiLiP {
 
-namespace Physics {
-/// Function used to evaluate farfield conservative solution
-template <int dim, int nstate>
-class FreeStreamInitialConditions : public dealii::Function<dim>
+/// Initial condition function used to initialize a particular flow setup/case
+template <int dim, int nstate, typename real>
+class InitialConditionFunction : public dealii::Function<dim,real>
 {
+protected:
+    using dealii::Function<dim,real>::value; ///< dealii::Function we are templating on
+
+public:
+    /// Constructor
+    InitialConditionFunction();
+    /// Destructor
+    ~InitialConditionFunction() {};
+
+    /// Value of the initial condition
+    virtual real value (const dealii::Point<dim,real> &point, const unsigned int istate = 0) const = 0;
+};
+
+/// Function used to evaluate farfield conservative solution
+template <int dim, int nstate, typename real>
+class FreeStreamInitialConditions : public InitialConditionFunction<dim,nstate,real>
+{
+protected:
+    using dealii::Function<dim,real>::value; ///< dealii::Function we are templating on
+
 public:
     /// Farfield conservative solution
     std::array<double,nstate> farfield_conservative;
@@ -22,7 +41,7 @@ public:
     /** Evaluates the primary farfield solution and converts it into the store farfield_conservative solution
      */
     FreeStreamInitialConditions (const Physics::Euler<dim,nstate,double> euler_physics)
-    : dealii::Function<dim,double>(nstate)
+            : InitialConditionFunction<dim,nstate,real>()
     {
         //const double density_bc = 2.33333*euler_physics.density_inf;
         const double density_bc = euler_physics.density_inf;
@@ -33,51 +52,31 @@ public:
         primitive_boundary_values[nstate-1] = pressure_bc;
         farfield_conservative = euler_physics.convert_primitive_to_conservative(primitive_boundary_values);
     }
-  
+
     /// Returns the istate-th farfield conservative value
     double value (const dealii::Point<dim> &/*point*/, const unsigned int istate) const
     {
         return farfield_conservative[istate];
     }
 };
-} // Physics namespace
 
-/// Initial condition function used to initialize a particular flow setup/case
-template <int dim, typename real>
-class InitialConditionFunction : public dealii::Function<dim,real>
+/// Initial Condition Function: Taylor Green Vortex (uniform density)
+template <int dim, int nstate, typename real>
+class InitialConditionFunction_TaylorGreenVortex : public InitialConditionFunction<dim,nstate,real>
 {
 protected:
     using dealii::Function<dim,real>::value; ///< dealii::Function we are templating on
 
 public:
-    const unsigned int nstate; ///< Corresponds to n_components in the dealii::Function
-    /// Constructor
-    InitialConditionFunction(const unsigned int nstate = 5);
-    /// Destructor
-    ~InitialConditionFunction() {};
-
-    /// Value of the initial condition
-    virtual real value (const dealii::Point<dim,real> &point, const unsigned int istate = 0) const = 0;
-};
-
-/// Initial Condition Function: Taylor Green Vortex
-template <int dim, typename real>
-class InitialConditionFunction_TaylorGreenVortex
-    : public InitialConditionFunction<dim,real>
-{
-protected:
-    using dealii::Function<dim,real>::value; ///< dealii::Function we are templating on
-
-public:
-    /// Constructor for TaylorGreenVortex_InitialCondition
+    /// Constructor for TaylorGreenVortex_InitialCondition with uniform density
     /** Calls the Function(const unsigned int n_components) constructor in deal.II
      *  This sets the public attribute n_components = nstate, which can then be accessed
      *  by all the other functions
-     *  Reference: Gassner2016split, plata2019performance
+     *  Reference: (1) Gassner2016split, 
+     *             (2) de la Llave Plata et al. (2019). "On the performance of a high-order multiscale DG approach to LES at increasing Reynolds number."
      *  These initial conditions are given in nondimensional form (free-stream as reference)
      */
     InitialConditionFunction_TaylorGreenVortex (
-        const unsigned int nstate = 5,
         const double       gamma_gas = 1.4,
         const double       mach_inf = 0.1);
 
@@ -94,12 +93,39 @@ protected:
     
     /// Converts value from: primitive to conservative
     real convert_primitive_to_conversative_value(const dealii::Point<dim,real> &point, const unsigned int istate = 0) const;
+
+    /// Value of initial condition for density
+    virtual real density(const dealii::Point<dim,real> &point) const;
+};
+
+/// Initial Condition Function: Taylor Green Vortex (isothermal density)
+template <int dim, int nstate, typename real>
+class InitialConditionFunction_TaylorGreenVortex_Isothermal
+    : public InitialConditionFunction_TaylorGreenVortex<dim,nstate,real>
+{
+public:
+    /// Constructor for TaylorGreenVortex_InitialCondition with isothermal density
+    /** Calls the Function(const unsigned int n_components) constructor in deal.II
+     *  This sets the public attribute n_components = nstate, which can then be accessed
+     *  by all the other functions
+     *  -- Reference: (1) Cox, Christopher, et al. "Accuracy, stability, and performance comparison 
+     *                    between the spectral difference and flux reconstruction schemes." 
+     *                    Computers & Fluids 221 (2021): 104922.
+     *                (2) Brian Vermeire 2014 Thesis  
+     *  These initial conditions are given in nondimensional form (free-stream as reference)
+     */
+    InitialConditionFunction_TaylorGreenVortex_Isothermal (
+        const double       gamma_gas = 1.4,
+        const double       mach_inf = 0.1);
+
+protected:
+    /// Value of initial condition for density
+    real density(const dealii::Point<dim,real> &point) const override;
 };
 
 /// Initial Condition Function: 1D Burgers Rewienski
-template <int dim, typename real>
-class InitialConditionFunction_BurgersRewienski
-        : public InitialConditionFunction<dim,real>
+template <int dim, int nstate, typename real>
+class InitialConditionFunction_BurgersRewienski: public InitialConditionFunction<dim,nstate,real>
 {
 protected:
     using dealii::Function<dim,real>::value; ///< dealii::Function we are templating on
@@ -107,16 +133,15 @@ protected:
 public:
     /// Constructor for InitialConditionFunction_BurgersRewienski
     /** Calls the Function(const unsigned int n_components) constructor in deal.II*/
-    InitialConditionFunction_BurgersRewienski (const unsigned int nstate = 1);
+    InitialConditionFunction_BurgersRewienski ();
 
     /// Value of initial condition
     real value (const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
 };
 
 /// Initial Condition Function: 1D Burgers Viscous
-template <int dim, typename real>
-class InitialConditionFunction_BurgersViscous
-        : public InitialConditionFunction<dim,real>
+template <int dim, int nstate, typename real>
+class InitialConditionFunction_BurgersViscous: public InitialConditionFunction<dim,nstate,real>
 {
 protected:
     using dealii::Function<dim,real>::value; ///< dealii::Function we are templating on
@@ -124,37 +149,58 @@ protected:
 public:
     /// Constructor for InitialConditionFunction_BurgersRewienski
     /** Calls the Function(const unsigned int n_components) constructor in deal.II*/
-    InitialConditionFunction_BurgersViscous (const unsigned int nstate = 1);
+    InitialConditionFunction_BurgersViscous ();
 
     /// Value of initial condition
     real value (const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
 };
 
+/// Initial Condition Function: 1D Sine Function; used for temporal convergence
+template <int dim, int nstate, typename real>
+class InitialConditionFunction_1DSine
+        : public InitialConditionFunction<dim,nstate,real>
+{
+protected:
+    using dealii::Function<dim,real>::value; ///< dealii::Function we are templating on
+
+public:
+    /// Constructor for InitialConditionFunction_1DSine
+    InitialConditionFunction_1DSine ();
+
+    /// Value of initial condition
+    real value (const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
+};
+
+
 /// Initial condition function factory
-template <int dim, typename real>
+template <int dim, int nstate, typename real>
 class InitialConditionFactory
 {
 protected:    
     /// Enumeration of all flow solver initial conditions types defined in the Parameters class
     using FlowCaseEnum = Parameters::FlowSolverParam::FlowCaseType;
+    /// Enumeration of all taylor green vortex initial condition sub-types defined in the Parameters class
+    using DensityInitialConditionEnum = Parameters::FlowSolverParam::DensityInitialConditionType;
 
 public:
     /// Construct InitialConditionFunction object from global parameter file
-    static std::shared_ptr< InitialConditionFunction<dim,real> > 
+    static std::shared_ptr<InitialConditionFunction<dim,nstate,real>>
     create_InitialConditionFunction(
-        Parameters::AllParameters const *const param, 
-        int                                    nstate);
+        Parameters::AllParameters const *const param);
 };
 
 /// Initial condition 0.
-template <int dim, typename real>
-class InitialConditionFunction_Zero : public dealii::Function<dim>
+template <int dim, int nstate, typename real>
+class InitialConditionFunction_Zero : public InitialConditionFunction<dim,nstate,real>
 {
+protected:
+    using dealii::Function<dim,real>::value; ///< dealii::Function we are templating on
+    
 public:
     /// Constructor to initialize dealii::Function
-    InitialConditionFunction_Zero(const unsigned int nstate) 
-    : dealii::Function<dim,real>(nstate)
-    { }
+    InitialConditionFunction_Zero()
+    : InitialConditionFunction<dim,nstate,real>()
+    {}
 
     /// Returns zero.
     real value(const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;

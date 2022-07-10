@@ -120,7 +120,7 @@ int EulerTaylorGreen<dim, nstate>::run_test() const
     double left = 0.0;
     double right = 2 * dealii::numbers::PI;
 //    const bool colorize = true;
-    const int n_refinements = 3;
+    const int n_refinements = 2;
     unsigned int poly_degree = 3;
     const unsigned int grid_degree = poly_degree;
 
@@ -216,7 +216,8 @@ int EulerTaylorGreen<dim, nstate>::run_test() const
     
     std::cout << std::setprecision(16) << std::fixed;
     pcout << "Energy at one timestep is " << initial_energy_mpi/(8*pow(dealii::numbers::PI,3)) << std::endl;
-    std::ofstream myfile ("kinetic_energy_3D_TGV.gpl" , std::ios::trunc);
+   // std::ofstream myfile ("kinetic_energy_3D_TGV_cdg_curv_grid_4x4.gpl" , std::ios::trunc);
+    std::ofstream myfile (all_parameters_new.energy_file + ".gpl"  , std::ios::trunc);
 
     for (int i = 0; i < std::ceil(finalTime/dt); ++ i)
     {

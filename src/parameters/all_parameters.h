@@ -126,6 +126,9 @@ public:
     /// Flag to use inverse mass matrix on-the-fly for explicit solves.
     bool use_inverse_mass_on_the_fly;
 
+    /// Energy file.
+    std::string energy_file;
+
     /// Number of state variables. Will depend on PDE
     int nstate;
 

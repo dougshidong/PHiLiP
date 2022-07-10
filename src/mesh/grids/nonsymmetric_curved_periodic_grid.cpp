@@ -76,7 +76,7 @@ dealii::Point<spacedim,real> NonsymmetricCurvedGridManifold<dim,spacedim,chartdi
 {
     dealii::Point<dim> q = p;
 
-    const double beta = 1.0/20.0;
+    const double beta = 1.0/5.0;
     if (dim == 1){
         q[dim-1] = p[dim-1] + cos(2.0 * pi* p[dim-1]);
     }
@@ -91,6 +91,9 @@ dealii::Point<spacedim,real> NonsymmetricCurvedGridManifold<dim,spacedim,chartdi
        q[0] = p[0] + beta * std::sin(p[0]) * std::sin(p[1]) * std::sin(2.0*p[2]);
        q[1] = p[1] + beta * std::sin(4.0*p[0]) * std::sin(p[1]) * std::sin(3.0*p[2]);
        q[2] = p[2] + beta * std::sin(2.0*p[0]) * std::sin(5.0*p[1]) * std::sin(p[2]);
+     //  q[0] = p[0] + beta * std::sin(p[0]) * std::sin(p[1]) * std::sin(p[2]);
+     //  q[1] = p[1] + beta * std::sin(p[0]) * std::sin(p[1]) * std::sin(p[2]);
+     //  q[2] = p[2] + beta * std::sin(p[0]) * std::sin(p[1]) * std::sin(p[2]);
     }
 
     return q;
@@ -107,7 +110,7 @@ dealii::Point<chartdim> NonsymmetricCurvedGridManifold<dim,spacedim,chartdim>::p
     }
     dealii::Vector<double> function(dim);
     dealii::FullMatrix<double> derivative(dim);
-    const double beta = 1.0/20.0;
+    const double beta = 1.0/5.0;
     int flag =0;
     while(flag != dim){
         //set function value
@@ -120,7 +123,7 @@ dealii::Point<chartdim> NonsymmetricCurvedGridManifold<dim,spacedim,chartdim>::p
         
         }
         else if(dim==3){
-            function[0] = x_ref[0] - x_phys[0] + beta * std::sin(x_ref[0]) * std::sin(pi*x_ref[1]) * std::sin(2.0*x_ref[2]);
+            function[0] = x_ref[0] - x_phys[0] + beta * std::sin(x_ref[0]) * std::sin(x_ref[1]) * std::sin(2.0*x_ref[2]);
             function[1] = x_ref[1] - x_phys[1] + beta * std::sin(4.0*x_ref[0]) * std::sin(x_ref[1]) * std::sin(3.0*x_ref[2]);
             function[2] = x_ref[2] - x_phys[2] + beta * std::sin(2.0*x_ref[0]) * std::sin(5.0*x_ref[1]) * std::sin(x_ref[2]);
 
@@ -175,7 +178,7 @@ dealii::Point<chartdim> NonsymmetricCurvedGridManifold<dim,spacedim,chartdim>::p
         function_check[1] = x_ref[1] + beta*std::sin(2.0*pi*(x_ref[0]))*std::cos(pi/2.0*x_ref[1]);
     }
     else if(dim==3){
-        function_check[0] = x_ref[0] + beta * std::sin(x_ref[0]) * std::sin(pi*x_ref[1]) * std::sin(2.0*x_ref[2]);
+        function_check[0] = x_ref[0] + beta * std::sin(x_ref[0]) * std::sin(x_ref[1]) * std::sin(2.0*x_ref[2]);
         function_check[1] = x_ref[1] + beta * std::sin(4.0*x_ref[0]) * std::sin(x_ref[1]) * std::sin(3.0*x_ref[2]);
         function_check[2] = x_ref[2] + beta * std::sin(2.0*x_ref[0]) * std::sin(5.0*x_ref[1]) * std::sin(x_ref[2]);
     }
@@ -202,7 +205,7 @@ template<int dim,int spacedim,int chartdim>
 dealii::DerivativeForm<1,chartdim,spacedim> NonsymmetricCurvedGridManifold<dim,spacedim,chartdim>::push_forward_gradient(const dealii::Point<chartdim> &chart_point) const
 {
     dealii::DerivativeForm<1, dim, dim> dphys_dref;
-    const double beta = 1.0/20.0;
+    const double beta = 1.0/5.0;
     dealii::Point<dim> x_ref;
     for(int idim=0; idim<dim; idim++){
         x_ref[idim] = chart_point[idim];

@@ -8,6 +8,7 @@ set(GRIDS_SOURCE
     spline_channel.cpp
     straight_periodic_cube.cpp
     nonsymmetric_curved_periodic_grid.cpp
+    nonsymmetric_curved_nonperiodic_grid.cpp
     skew_symmetric_periodic_grid.cpp
     )
 

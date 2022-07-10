@@ -3,6 +3,8 @@
 #include "euler_split_inviscid_taylor_green_vortex.h"
 #include "physics/initial_conditions/initial_condition.h"
 
+#include "mesh/grids/nonsymmetric_curved_periodic_grid.hpp"
+
 namespace PHiLiP {
 namespace Tests {
 
@@ -103,27 +105,38 @@ double EulerTaylorGreen<dim, nstate>::compute_kinetic_energy(std::shared_ptr < D
 template <int dim, int nstate>
 int EulerTaylorGreen<dim, nstate>::run_test() const
 {
+   // using Triangulation = dealii::parallel::distributed::Triangulation<dim>;
+   // std::shared_ptr<Triangulation> grid = std::make_shared<Triangulation> (mpi_communicator);
     using Triangulation = dealii::parallel::distributed::Triangulation<dim>;
-    std::shared_ptr<Triangulation> grid = std::make_shared<Triangulation> (mpi_communicator);
+    std::shared_ptr<Triangulation> grid = std::make_shared<Triangulation>(
+        MPI_COMM_WORLD,
+        typename dealii::Triangulation<dim>::MeshSmoothing(
+            dealii::Triangulation<dim>::smoothing_on_refinement |
+            dealii::Triangulation<dim>::smoothing_on_coarsening));
 
     using real = double;
 
     PHiLiP::Parameters::AllParameters all_parameters_new = *all_parameters;  
     double left = 0.0;
     double right = 2 * dealii::numbers::PI;
-    const bool colorize = true;
-    int n_refinements = 2;
+//    const bool colorize = true;
+    const int n_refinements = 3;
     unsigned int poly_degree = 3;
-    const unsigned int grid_degree = 1;
-    dealii::GridGenerator::hyper_cube(*grid, left, right, colorize);
+    const unsigned int grid_degree = poly_degree;
+
+    //set the warped grid
+    PHiLiP::Grids::nonsymmetric_curved_grid<dim,Triangulation>(*grid, n_refinements);
+
+
+//    dealii::GridGenerator::hyper_cube(*grid, left, right, colorize);
      
-    std::vector<dealii::GridTools::PeriodicFacePair<typename dealii::Triangulation<PHILIP_DIM>::cell_iterator> > matched_pairs;
-    dealii::GridTools::collect_periodic_faces(*grid,0,1,0,matched_pairs);
-    dealii::GridTools::collect_periodic_faces(*grid,2,3,1,matched_pairs);
-    dealii::GridTools::collect_periodic_faces(*grid,4,5,2,matched_pairs);
-    grid->add_periodicity(matched_pairs);
-     
-    grid->refine_global(n_refinements);
+//    std::vector<dealii::GridTools::PeriodicFacePair<typename dealii::Triangulation<PHILIP_DIM>::cell_iterator> > matched_pairs;
+//    dealii::GridTools::collect_periodic_faces(*grid,0,1,0,matched_pairs);
+//    dealii::GridTools::collect_periodic_faces(*grid,2,3,1,matched_pairs);
+//    dealii::GridTools::collect_periodic_faces(*grid,4,5,2,matched_pairs);
+//    grid->add_periodicity(matched_pairs);
+//     
+//    grid->refine_global(n_refinements);
 
     //Create DG
     std::shared_ptr < PHiLiP::DGBase<dim, double> > dg = PHiLiP::DGFactory<dim,double>::create_discontinuous_galerkin(&all_parameters_new, poly_degree, poly_degree, grid_degree, grid);
@@ -177,9 +190,10 @@ int EulerTaylorGreen<dim, nstate>::run_test() const
     std::shared_ptr<ODE::ODESolverBase<dim, double>> ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
     std::cout << "ODE solver successfully created" << std::endl;
     double finalTime = 14.;
-    finalTime = 0.1;//to speed things up locally in tests, doesn't need full 14seconds to verify.
+//    finalTime = 0.1;//to speed things up locally in tests, doesn't need full 14seconds to verify.
     double dt = all_parameters_new.ode_solver_param.initial_time_step;
-
+//    double dt = all_parameters_new.ode_solver_param.initial_time_step / 10.0;
+ 
     std::cout<<" number dofs "<<
             dg->dof_handler.n_dofs()<<std::endl;
     std::cout << "preparing to advance solution in time" << std::endl;

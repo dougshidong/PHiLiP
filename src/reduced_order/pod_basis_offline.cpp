@@ -39,6 +39,7 @@ bool OfflinePOD<dim>::getPODBasisFromSnapshots() {
             if(!myfile)
             {
                 pcout << "Error opening file." << std::endl;
+                std::abort();
             }
             std::string line;
             int rows = 0;
@@ -58,7 +59,7 @@ bool OfflinePOD<dim>::getPODBasisFromSnapshots() {
                 rows++;
             }
 
-            snapshotMatrix.conservativeResize(rows, snapshotMatrix.cols()+cols); //Subtract 1 from row because of header row
+            snapshotMatrix.conservativeResize(rows, snapshotMatrix.cols()+cols);
 
             int row = 0;
             myfile.clear();

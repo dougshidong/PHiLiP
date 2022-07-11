@@ -1497,34 +1497,8 @@ end
 
 
 subsection reduced order
-  # Number of basis functions to add to coarse basis at each adaptation
-  # iteration. Set to 0 to turn off.
-  set adapt_coarse_basis_constant  = 0
-
   # Tolerance for POD adaptation
   set adaptation_tolerance         = 1
-
-  # Initial dimension of the coarse POD basis
-  set coarse_basis_dimension       = 0
-
-  # Consider the sign of the error estimate from the dual-weighted residual.
-  # False by default.
-  set consider_error_sign          = false
-
-  # Initial dimension of the expanded POD basis
-  set expanded_basis_dimension     = 0
-
-  # Initial dimension of the extrapolated POD basis
-  set extrapolated_basis_dimension = 0
-
-  # Change in parameter from base parameter value
-  set extrapolated_parameter_delta = 0.0
-
-  # Initial dimension of the fine POD basis
-  set fine_basis_dimension         = 0
-
-  # Use the method of snapshots to compute the POD basis. False by default.
-  set method_of_snapshots          = false
 
   # Path to search for saved snapshots or POD basis.
   set path_to_search               = .

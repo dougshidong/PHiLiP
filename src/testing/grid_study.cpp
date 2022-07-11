@@ -531,11 +531,12 @@ int GridStudy<dim,nstate>
             soln_error[igrid] = l2error_mpi_sum;
             output_error[igrid] = std::abs(solution_integral - exact_solution_integral);
 
+            const double l2residual = dg->get_residual_l2norm ();
             convergence_table.add_value("p", poly_degree);
             convergence_table.add_value("cells", n_global_active_cells);
             convergence_table.add_value("DoFs", n_dofs);
             convergence_table.add_value("dx", dx);
-            convergence_table.add_value("residual", dg->get_residual_l2norm ());
+            convergence_table.add_value("residual", l2residual);
             convergence_table.add_value("soln_L2_error", l2error_mpi_sum);
             convergence_table.add_value("output_error", output_error[igrid]);
 
@@ -550,7 +551,7 @@ int GridStudy<dim,nstate>
 
             pcout << " Grid size h: " << dx 
                  << " L2-soln_error: " << l2error_mpi_sum
-                 << " Residual: " << ode_solver->residual_norm
+                 << " Residual: " << l2residual
                  << std::endl;
 
             pcout << " output_exact: " << exact_solution_integral

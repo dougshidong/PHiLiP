@@ -59,6 +59,7 @@ unsigned int dRdW_form;
 unsigned int dRdW_mult;
 unsigned int dRdX_mult;
 unsigned int d2R_mult;
+unsigned int n_design_iterations;
 
 
 namespace PHiLiP {
@@ -954,8 +955,9 @@ void DGBase<dim,real,MeshType>::update_artificial_dissipation_discontinuity_sens
     const unsigned int n_dofs_arti_diss = fe_q_artificial_dissipation.dofs_per_cell;
     std::vector<dealii::types::global_dof_index> dof_indices_artificial_dissipation(n_dofs_arti_diss);
 
-    if (freeze_artificial_dissipation) return;
+    //if (freeze_artificial_dissipation) return;
     artificial_dissipation_c0 *= 0.0;
+    if (n_design_iterations>20) return;
     for (auto cell : dof_handler.active_cell_iterators()) {
         if (!(cell->is_locally_owned() || cell->is_ghost())) continue;
 
@@ -1054,7 +1056,8 @@ void DGBase<dim,real,MeshType>::update_artificial_dissipation_discontinuity_sens
 
         const double mu_scale = all_parameters->artificial_dissipation_param.mu_artificial_dissipation; //1.0
         //const double s_0 = - 4.25*log10(degree);
-        const double s_0 = -0.00 - 4.00*log10(degree);
+        //const double s_0 = -0.00 - 4.00*log10(degree);
+        const double s_0 = 0.50 - 4.00*log10(degree);
         const double kappa = all_parameters->artificial_dissipation_param.kappa_artificial_dissipation; //1.0
         const double low = s_0 - kappa;
         const double upp = s_0 + kappa;
@@ -1110,17 +1113,20 @@ void DGBase<dim,real,MeshType>::update_artificial_dissipation_discontinuity_sens
         //    }
         //}
     }
-    dealii::IndexSet boundary_dofs(dof_handler_artificial_dissipation.n_dofs());
-    dealii::DoFTools::extract_boundary_dofs(dof_handler_artificial_dissipation,
-                                dealii::ComponentMask(),
-                                boundary_dofs);
-    for (unsigned int i = 0; i < dof_handler_artificial_dissipation.n_dofs(); ++i) {
-        if (boundary_dofs.is_element(i)) {
-            artificial_dissipation_c0[i] = 0.0;
-        }
-    }
-    // artificial_dissipation_c0 *= 0.0;
-    // artificial_dissipation_c0.add(1e-1);
+
+    //artificial_dissipation_c0 *= 0.0;
+    //artificial_dissipation_c0.add(1e-1);
+
+    // dealii::IndexSet boundary_dofs(dof_handler_artificial_dissipation.n_dofs());
+    // dealii::DoFTools::extract_boundary_dofs(dof_handler_artificial_dissipation,
+    //                             dealii::ComponentMask(),
+    //                             boundary_dofs);
+    // for (unsigned int i = 0; i < dof_handler_artificial_dissipation.n_dofs(); ++i) {
+    //     if (boundary_dofs.is_element(i)) {
+    //         artificial_dissipation_c0[i] = 0.0;
+    //     }
+    // }
+
     artificial_dissipation_c0.update_ghost_values();
 }
 
@@ -1266,7 +1272,9 @@ void DGBase<dim,real,MeshType>::assemble_residual (const bool compute_dRdW, cons
     bool inconsistent_normals = false;
     try {
 
-        update_artificial_dissipation_discontinuity_sensor();
+        if (!freeze_artificial_dissipation) {
+            update_artificial_dissipation_discontinuity_sensor();
+        }
 
         auto metric_cell = high_order_grid->dof_handler_grid.begin_active();
         for (auto soln_cell = dof_handler.begin_active(); soln_cell != dof_handler.end(); ++soln_cell, ++metric_cell) {
@@ -1450,6 +1458,7 @@ template <int dim, typename real, typename MeshType>
 double DGBase<dim,real,MeshType>::get_residual_l2norm () const
 {
     //return get_residual_linfnorm ();
+    //return right_hand_side.linfty_norm();
     //return right_hand_side.l2_norm();
     //return right_hand_side.l2_norm() / right_hand_side.size();
     //auto scaled_residual = right_hand_side;
@@ -1702,7 +1711,7 @@ void DGBase<dim,real,MeshType>::output_face_results_vtk (const unsigned int cycl
         data_out.add_data_vector(artificial_dissipation_coeffs, std::string("artificial_dissipation_coeffs"), dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim-1,dim>::DataVectorType::type_cell_data);
         data_out.add_data_vector(artificial_dissipation_se, std::string("artificial_dissipation_se"), dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim-1,dim>::DataVectorType::type_cell_data);
     //}
-    data_out.add_data_vector(dof_handler_artificial_dissipation, artificial_dissipation_c0, std::string("artificial_dissipation"));
+    data_out.add_data_vector(dof_handler_artificial_dissipation, artificial_dissipation_c0, std::string("artificial_dissipation_c0"));
 
     data_out.add_data_vector(max_dt_cell, std::string("max_dt_cell"), dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim-1,dim>::DataVectorType::type_cell_data);
 
@@ -1822,7 +1831,7 @@ void DGBase<dim,real,MeshType>::output_results_vtk (const unsigned int cycle)// 
         data_out.add_data_vector(artificial_dissipation_coeffs, "artificial_dissipation_coeffs", dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim>::DataVectorType::type_cell_data);
         data_out.add_data_vector(artificial_dissipation_se, "artificial_dissipation_se", dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim>::DataVectorType::type_cell_data);
     //}
-    data_out.add_data_vector(dof_handler_artificial_dissipation, artificial_dissipation_c0, "artificial_dissipation");
+    data_out.add_data_vector(dof_handler_artificial_dissipation, artificial_dissipation_c0, "artificial_dissipation_c0");
 
     data_out.add_data_vector(max_dt_cell, "max_dt_cell", dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim>::DataVectorType::type_cell_data);
 
@@ -2408,7 +2417,7 @@ real2 DGBase<dim,real,MeshType>::discontinuity_sensor(
 
     const double mu_scale = 2.0 * 1e-0;
     const double s_0 = -0.00 - 4.00*log10(degree);
-    const double kappa = 1.0;
+    const double kappa = 2.0;
     const double low = s_0 - kappa;
     const double upp = s_0 + kappa;
 

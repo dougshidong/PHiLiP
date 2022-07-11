@@ -287,9 +287,10 @@ int EulerCylinder<dim,nstate>
             convergence_table.add_value("area_error", std::abs(area_mpi_sum-exact_area));
 
 
+            const double l2_residual = dg->get_residual_l2norm();
             pcout << " Grid size h: " << dx
                  << " L2-entropy_error: " << l2error_mpi_sum
-                 << " Residual: " << ode_solver->residual_norm
+                 << " Residual: " << l2_residual
                  << std::endl;
 
             if (igrid > 0) {

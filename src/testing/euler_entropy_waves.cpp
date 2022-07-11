@@ -278,9 +278,10 @@ int EulerEntropyWaves<dim,nstate>
             convergence_table.add_value("soln_L2_error", l2error);
 
 
+            const double l2_residual = dg->get_residual_l2norm();
             std::cout   << " Grid size h: " << dx 
                         << " L2-soln_error: " << l2error
-                        << " Residual: " << ode_solver->residual_norm
+                        << " Residual: " << l2_residual
                         << std::endl;
 
             if (igrid > 0) {

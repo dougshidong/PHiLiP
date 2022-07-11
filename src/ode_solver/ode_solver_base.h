@@ -58,7 +58,8 @@ public:
     /// Virtual function to allocate the ODE system
     virtual void allocate_ode_system () = 0;
 
-    double residual_norm; ///< Current residual norm. Only makes sense for steady state
+    double residual_l2norm; ///< Current residual norm. Only makes sense for steady state
+    double residual_linfnorm; ///< Current residual norm. Only makes sense for steady state
     double residual_norm_decrease; ///< Current residual norm normalized by initial residual. Only makes sense for steady state
 
 protected:

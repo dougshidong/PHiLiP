@@ -61,6 +61,8 @@
 #include "optimization/primal_dual_active_set.hpp"
 #include "optimization/dealii_solver_rol_vector.hpp"
 
+#include "global_counter.hpp"
+
 namespace PHiLiP {
 
 class ApproximateJacobianFlowConstraints : public ROL::Constraint_SimOpt<double> {
@@ -208,7 +210,7 @@ PrimalDualActiveSetStep<Real>::PrimalDualActiveSetStep( ROL::ParameterList &parl
     : ROL::Step<Real>::Step(),
       parlist_(parlist),
       krylov_(ROL::nullPtr),
-      iter_Krylov_(0), flag_Krylov_(0), itol_(0),
+      iter_Krylov_(0), flag_Krylov_(0), n_active_(0), itol_(0),
       maxit_(0), iter_PDAS_(0), flag_PDAS_(0), stol_(0), gtol_(0), scale_(0),
       //neps_(-ROL::ROL_EPSILON<Real>()), // Negative epsilon means that x = boundconstraint is INACTIVE when pruneActive occurs
       neps_(ROL::ROL_EPSILON<Real>()), // Positive epsilon means that x = boundconstraint is ACTIVE when pruneActive occurs
@@ -860,7 +862,7 @@ void PrimalDualActiveSetStep<Real>::compute(
     //const Real identity_factor = std::min(std::pow(algo_state.gnorm, 1.0), 0.25) * 100.0;//1000.0;
     //const Real identity_factor_ = std::min(algo_state.gnorm, 0.25) * 300.0;//1000.0;
     Real identity_factor = std::min(std::pow(algo_state.gnorm, 1.0), 0.25) * 10.0;//1000.0;
-    if (!is_full_space_) identity_factor /= 10.0;
+    //if (!is_full_space_) identity_factor /= 10.0;
     identity_factor_ = identity_factor + max_eig_estimate_;
     pcout << "identity_factor = " << identity_factor << std::endl;
     pcout << "identity_factor_ + max_eig_estimate_ = " << identity_factor_ << std::endl;
@@ -1231,6 +1233,7 @@ class PDAS_Lagrangian: public ROL::AugmentedLagrangian<Real>
     using Vector = ROL::Vector<Real>;
     using VectorPtr = ROL::Ptr<Vector>;
     VectorPtr active_des_minus_bnd;
+    VectorPtr des_plus_dual_;
     const Vector &dual_inequality;
     ROL::Ptr<ROL::BoundConstraint<Real> > bound_constraints_;
 
@@ -1253,12 +1256,17 @@ public:
     , penaltyParameter_(penaltyParameter)
     {
         active_des_minus_bnd = optVec.clone();
+        des_plus_dual_ = optVec.clone();
     }
     virtual Real value( const Vector &x, Real &tol ) override
     {
         Real val = ROL::AugmentedLagrangian<Real>::value(x,tol);
         std::cout << " AugmentedLagrangian::value()  " << val << std::endl;
-        get_active_design_minus_bound(*active_des_minus_bnd, x, x, *bound_constraints_);
+        const Real positive_scale = 0.01;
+        des_plus_dual_->set(x);
+        des_plus_dual_->axpy(positive_scale,dual_inequality);
+        get_active_design_minus_bound(*active_des_minus_bnd, x, *des_plus_dual_, *bound_constraints_);
+        //get_active_design_minus_bound(*active_des_minus_bnd, x, x, *bound_constraints_);
         val += dual_inequality.dot(*active_des_minus_bnd);
         std::cout << " dual_inequality.dot(*active_des_minus_bnd) " << dual_inequality.dot(*active_des_minus_bnd) << std::endl;
         std::cout << " AugmentedLagrangian::value() + dual_inequality*(des-bound)" << val << std::endl;
@@ -1277,7 +1285,12 @@ public:
         
         const Real neps = ROL::ROL_EPSILON<Real>();
         bound_constraints_->pruneInactive(*temp_dual_inequality,x,neps);
-        get_active_design_minus_bound(*active_des_minus_bnd, x, x, *bound_constraints_);
+
+        const Real positive_scale = 0.01;
+        des_plus_dual_->set(x);
+        des_plus_dual_->axpy(positive_scale,dual_inequality);
+        get_active_design_minus_bound(*active_des_minus_bnd, x, *des_plus_dual_, *bound_constraints_);
+        //get_active_design_minus_bound(*active_des_minus_bnd, x, x, *bound_constraints_);
         temp_dual_inequality->axpy(penaltyParameter_, *active_des_minus_bnd);
 
         g.plus(*temp_dual_inequality);
@@ -1478,6 +1491,12 @@ void PrimalDualActiveSetStep<Real>::update(
             (void) fold;
             lineSearch_->setMaxitUpdate(step_state->searchSize, merit_function_value, fold);
             std::cout << "Failed the linesearch with the backup BFGS step. Taking minimizing step of " << step_state->searchSize << std::endl;
+            ROL::Ptr<ROL::SecantState<Real>> secant_state = lagrangian_secant_->get_state();
+            secant_state->iterDiff.clear();
+            secant_state->gradDiff.clear();
+            secant_state->product.clear();
+            secant_state->current = -1;
+            std::cout << "Also resetting BFGS approximation" << std::endl;
             //step_state->searchSize = 0.1;
             //std::cout << "Failed the linesearch with the BFGS step. Taking a constant step of 0.1" << std::endl;
         } else if (useSecantHessVec_) {
@@ -1485,13 +1504,25 @@ void PrimalDualActiveSetStep<Real>::update(
             d_force_use_bfgs = false;
             (void) fold;
             lineSearch_->setMaxitUpdate(step_state->searchSize, merit_function_value, fold);
+
             std::cout << "Failed the linesearch with the BFGS step. Taking minimizing step of " << step_state->searchSize << std::endl;
+
+            //ROL::Ptr<ROL::SecantState<Real>> secant_state = lagrangian_secant_->get_state();
+            //secant_state->iterDiff.clear();
+            //secant_state->gradDiff.clear();
+            //secant_state->product.clear();
+            //secant_state->current = -1;
+            //std::cout << "Also resetting BFGS approximation" << std::endl;
         } else {
             // Unsuccessful BFGS
             // Unsuccessful Newton
             std::cout << "Failed the linesearch with the Newton step. Trying again with a BFGS step" << std::endl;
             d_force_use_bfgs = true;
             step_state->searchSize = 0.0;
+            if (DO_DUAL_UPDATE_FIRST) {
+                dual_equality.axpy(-one, *search_dual_equality);
+                dual_inequality_->axpy(-one, *search_dual_inequality);
+            }
             search_dual_equality->scale(step_state->searchSize);
             search_dual_inequality->scale(step_state->searchSize);
         }
@@ -1578,7 +1609,7 @@ void PrimalDualActiveSetStep<Real>::update(
         VectorPtr input_design_control    = (dynamic_cast<ROL::Vector_SimOpt<Real>&>(*input_design_sim_ctl)).get_2();
         flowcnorm_ = flow_constraints.dg_l2_norm(*input_design_simulation, *input_design_control);
         //flowcnorm_ = dynamic_cast<ROL::PartitionedVector<Real>&>(*(step_state->constraintVec)).get(0)->norm();
-        if (flowcnorm_ > 1e-3) {
+        if (flowcnorm_ > 1e-7) {
             flow_constraints.solve( *((dynamic_cast<ROL::PartitionedVector<Real>&>(*(step_state->constraintVec))).get(0)),
                                     *input_design_simulation,
                                     *input_design_control,
@@ -1680,6 +1711,23 @@ void PrimalDualActiveSetStep<Real>::update(
         useSecantHessVec_);
     printSearchDirection("RHS", *rhs_design, *rhs_dual_equality, *rhs_dual_inequality);
 
+    {
+        class SetNonZeroToOne : public ROL::Elementwise::UnaryFunction<Real> {
+        public:
+            Real apply( const Real &x ) const {
+                const Real zero(0);
+                return (x == zero) ? 0 : 1.0;
+            }
+        }; // class SetNonZeroToOne
+        SetNonZeroToOne unary;
+        auto temp_design = design_variables.clone();
+        temp_design->set(design_variables);
+        temp_design->applyUnary(unary);
+        bound_constraints.pruneInactive(*temp_design, *des_plus_dual_, tol);
+        Real difference_norm = temp_design->norm();
+        n_active_ = std::round(difference_norm * difference_norm);
+    }
+
     if (is_full_space_) {
         auto& equality_constraints_partitioned = dynamic_cast<ROL::Constraint_Partitioned<Real>&>(equality_constraints);
         auto& flow_constraints = dynamic_cast<PHiLiP::FlowConstraints<PHILIP_DIM>&>(*equality_constraints_partitioned.get(0));
@@ -1698,7 +1746,7 @@ void PrimalDualActiveSetStep<Real>::update(
         flow_constraints.flow_CFL_ = -std::max(1.0, 1.0/std::pow(flowcnorm_, 1.00)) / 100.0;
         flow_constraints.flow_CFL_ = -std::max(1.0, 1.0/std::pow(flowcnorm_, 1.00)) / algo_state.gnorm * 100.0;
         const double factor = std::pow(flowcnorm_, 1.00) * std::pow(algo_state.gnorm, 1.0) * 1.0;
-        flow_constraints.flow_CFL_ = 1.0/factor;
+        flow_constraints.flow_CFL_ = 1.0/std::min(factor, 0.25) * 10.0;//1000.0;
         flow_cfl_ = flow_constraints.flow_CFL_;
     }
 
@@ -1729,6 +1777,7 @@ void PrimalDualActiveSetStep<Real>::update(
             lagrangian_secant_->updateStorage(*getCtlOpt(design_variables),*getCtlOpt(*(step_state->gradientVec)),*getCtlOpt(*old_gradient_),*getCtlOpt(*search_design),design_snorm,algo_state.iter+1);
         //}
     }
+    n_design_iterations = algo_state.iter;
 
     printDesignDual("After Update", design_variables, bound_constraints, *dual_inequality_, *des_plus_dual_, dual_equality);
 
@@ -1771,6 +1820,12 @@ std::string PrimalDualActiveSetStep<Real>::printHeader( void ) const
     hist << std::setw(11) << std::left << "iterGMRES";
     hist << std::setw(11) << std::left << "flagGMRES";
     hist << std::setw(11) << std::left << "feasible";
+    hist << std::setw(11) << std::left << "n_active_";
+    hist << std::setw(18) << std::left << "n_vmult";
+    hist << std::setw(18) << std::left << "dRdW_form";
+    hist << std::setw(18) << std::left << "dRdW_mult";
+    hist << std::setw(18) << std::left << "dRdX_mult";
+    hist << std::setw(18) << std::left << "d2R_mult";
     hist << "\n";
     return hist.str();
 }
@@ -1831,6 +1886,12 @@ std::string PrimalDualActiveSetStep<Real>::print( ROL::AlgorithmState<Real> &alg
         } else {
             hist << std::setw(10) << std::left << "NO";
         }
+        hist << std::setw(11) << std::left << n_active_;
+        hist << std::setw(18) << std::left << n_vmult;
+        hist << std::setw(18) << std::left << dRdW_form;
+        hist << std::setw(18) << std::left << dRdW_mult;
+        hist << std::setw(18) << std::left << dRdX_mult;
+        hist << std::setw(18) << std::left << d2R_mult;
         hist << "\n";
     }
     return hist.str();

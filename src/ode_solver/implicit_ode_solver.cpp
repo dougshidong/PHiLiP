@@ -20,9 +20,21 @@ void ImplicitODESolver<dim,real,MeshType>::step_in_time (real dt, const bool pse
 
     this->dg->system_matrix *= -1.0;
 
+    auto dRdWinv_mass_R = this->solution_update;
     if (pseudotime) {
+
+        solve_linear (
+                this->dg->system_matrix,
+                this->dg->right_hand_side,
+                this->solution_update,
+                this->ODESolverBase<dim,real,MeshType>::all_parameters->linear_solver_param);
+
         const double CFL = dt;
         this->dg->time_scaled_mass_matrices(CFL);
+
+        this->dg->time_scaled_global_mass_matrix.vmult(dRdWinv_mass_R, this->solution_update);
+        this->dg->right_hand_side.add(1.0,dRdWinv_mass_R);
+
         this->dg->add_time_scaled_mass_matrices();
     } else {
         this->dg->add_mass_matrices(1.0/dt);
@@ -56,38 +68,47 @@ double ImplicitODESolver<dim,real,MeshType>::linesearch ()
     const double reduction_tolerance_1 = 1.0;
     const double reduction_tolerance_2 = 2.0;
 
-    const double initial_residual = this->dg->get_residual_l2norm();
+    const double initial_l2residual = this->dg->get_residual_l2norm();
 
     this->dg->solution.add(step_length, this->solution_update);
     this->dg->assemble_residual ();
-    double new_residual = this->dg->get_residual_l2norm();
-    this->pcout << " Step length " << step_length << ". Old residual: " << initial_residual << " New residual: " << new_residual << std::endl;
+
+    auto mass_dw = this->solution_update;
+    this->dg->time_scaled_global_mass_matrix.vmult(mass_dw, this->solution_update);
+    this->dg->right_hand_side.add(step_length, mass_dw);
+
+    double new_l2residual = this->dg->get_residual_l2norm();
+    this->pcout << " Step length " << step_length << ". Old l2residual: " << initial_l2residual << " New l2residual: " << new_l2residual << std::endl;
 
     int iline = 0;
-    for (iline = 0; iline < maxline && new_residual > initial_residual * reduction_tolerance_1; ++iline) {
+    for (iline = 0; iline < maxline && new_l2residual > initial_l2residual * reduction_tolerance_1; ++iline) {
         step_length = step_length * step_reduction;
         this->dg->solution = old_solution;
         this->dg->solution.add(step_length, this->solution_update);
         this->dg->assemble_residual ();
-        new_residual = this->dg->get_residual_l2norm();
-        this->pcout << " Step length " << step_length << " . Old residual: " << initial_residual << " New residual: " << new_residual << std::endl;
+
+        this->dg->right_hand_side.add(step_length, mass_dw);
+
+        new_l2residual = this->dg->get_residual_l2norm();
+        this->pcout << " Step length " << step_length << " . Old l2residual: " << initial_l2residual << " New l2residual: " << new_l2residual << std::endl;
     }
     if (iline == 0) this->CFL_factor *= 2.0;
 
     if (iline == maxline) {
         step_length = 1.0;
-        this->pcout << " Line search failed. Will accept any valid residual less than " << reduction_tolerance_2 << " times the current " << initial_residual << "residual. " << std::endl;
+        this->pcout << " Line search failed. Will accept any valid l2residual less than " << reduction_tolerance_2 << " times the current " << initial_l2residual << "l2residual. " << std::endl;
         this->dg->solution.add(step_length, this->solution_update);
         this->dg->assemble_residual ();
-        new_residual = this->dg->get_residual_l2norm();
-        this->pcout << " Step length " << step_length << " . Old residual: " << initial_residual << " New residual: " << new_residual << std::endl;
-        for (iline = 0; iline < maxline && new_residual > initial_residual * reduction_tolerance_2 ; ++iline) {
+        new_l2residual = this->dg->get_residual_l2norm();
+        this->pcout << " Step length " << step_length << " . Old l2residual: " << initial_l2residual << " New l2residual: " << new_l2residual << std::endl;
+        for (iline = 0; iline < maxline && new_l2residual > initial_l2residual * reduction_tolerance_2 ; ++iline) {
             step_length = step_length * step_reduction;
             this->dg->solution = old_solution;
             this->dg->solution.add(step_length, this->solution_update);
             this->dg->assemble_residual ();
-            new_residual = this->dg->get_residual_l2norm();
-            this->pcout << " Step length " << step_length << " . Old residual: " << initial_residual << " New residual: " << new_residual << std::endl;
+            this->dg->right_hand_side.add(step_length, mass_dw);
+            new_l2residual = this->dg->get_residual_l2norm();
+            this->pcout << " Step length " << step_length << " . Old l2residual: " << initial_l2residual << " New l2residual: " << new_l2residual << std::endl;
         }
     }
     if (iline == maxline) {
@@ -102,15 +123,17 @@ double ImplicitODESolver<dim,real,MeshType>::linesearch ()
         step_length = -1.0;
         this->dg->solution.add(step_length, this->solution_update);
         this->dg->assemble_residual ();
-        new_residual = this->dg->get_residual_l2norm();
-        this->pcout << " Step length " << step_length << " . Old residual: " << initial_residual << " New residual: " << new_residual << std::endl;
-        for (iline = 0; iline < maxline && new_residual > initial_residual * reduction_tolerance_1 ; ++iline) {
+        this->dg->right_hand_side.add(step_length, mass_dw);
+        new_l2residual = this->dg->get_residual_l2norm();
+        this->pcout << " Step length " << step_length << " . Old l2residual: " << initial_l2residual << " New l2residual: " << new_l2residual << std::endl;
+        for (iline = 0; iline < maxline && new_l2residual > initial_l2residual * reduction_tolerance_1 ; ++iline) {
             step_length = step_length * step_reduction;
             this->dg->solution = old_solution;
             this->dg->solution.add(step_length, this->solution_update);
             this->dg->assemble_residual ();
-            new_residual = this->dg->get_residual_l2norm();
-            this->pcout << " Step length " << step_length << " . Old residual: " << initial_residual << " New residual: " << new_residual << std::endl;
+            this->dg->right_hand_side.add(step_length, mass_dw);
+            new_l2residual = this->dg->get_residual_l2norm();
+            this->pcout << " Step length " << step_length << " . Old l2residual: " << initial_l2residual << " New l2residual: " << new_l2residual << std::endl;
         }
     }
 
@@ -119,15 +142,17 @@ double ImplicitODESolver<dim,real,MeshType>::linesearch ()
         step_length = -1.0;
         this->dg->solution.add(step_length, this->solution_update);
         this->dg->assemble_residual ();
-        new_residual = this->dg->get_residual_l2norm();
-        this->pcout << " Step length " << step_length << " . Old residual: " << initial_residual << " New residual: " << new_residual << std::endl;
-        for (iline = 0; iline < maxline && new_residual > initial_residual * reduction_tolerance_2 ; ++iline) {
+        this->dg->right_hand_side.add(step_length, mass_dw);
+        new_l2residual = this->dg->get_residual_l2norm();
+        this->pcout << " Step length " << step_length << " . Old l2residual: " << initial_l2residual << " New l2residual: " << new_l2residual << std::endl;
+        for (iline = 0; iline < maxline && new_l2residual > initial_l2residual * reduction_tolerance_2 ; ++iline) {
             step_length = step_length * step_reduction;
             this->dg->solution = old_solution;
             this->dg->solution.add(step_length, this->solution_update);
             this->dg->assemble_residual ();
-            new_residual = this->dg->get_residual_l2norm();
-            this->pcout << " Step length " << step_length << " . Old residual: " << initial_residual << " New residual: " << new_residual << std::endl;
+            this->dg->right_hand_side.add(step_length, mass_dw);
+            new_l2residual = this->dg->get_residual_l2norm();
+            this->pcout << " Step length " << step_length << " . Old l2residual: " << initial_l2residual << " New l2residual: " << new_l2residual << std::endl;
         }
         //std::abort();
     }

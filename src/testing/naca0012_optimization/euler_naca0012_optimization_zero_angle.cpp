@@ -71,7 +71,7 @@ const std::vector<OptimizationAlgorithm> opt_list {
 const unsigned int POLY_START = 1;
 const unsigned int POLY_END = 1; // Can do until at least P2
 
-const unsigned int n_des_var_start = 10;//20;
+const unsigned int n_des_var_start = 20;//20;
 const unsigned int n_des_var_end   = 50;//100;
 const unsigned int n_des_var_step  = 10;//20;
 

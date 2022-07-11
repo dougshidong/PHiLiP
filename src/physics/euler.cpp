@@ -702,7 +702,7 @@ void Euler<dim,nstate,real>
     }
 
     for (int istate=0; istate<nstate; ++istate) {
-        soln_grad_bc[istate] = -soln_grad_int[istate];
+        soln_grad_bc[istate] = soln_grad_int[istate];
     }
 }
 

@@ -384,9 +384,10 @@ int Shock1D<dim,nstate>
             convergence_table.add_value("output_error", output_error[igrid]);
 
 
+            const double l2residual = dg->get_residual_l2norm();
             pcout << " Grid size h: " << dx 
                  << " L2-soln_error: " << l2error_mpi_sum
-                 << " Residual: " << ode_solver->residual_norm
+                 << " Residual: " << l2residual
                  << std::endl;
 
             pcout << " output_exact: " << exact_solution_integral

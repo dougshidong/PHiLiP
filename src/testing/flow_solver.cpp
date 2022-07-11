@@ -424,7 +424,7 @@ int FlowSolver<dim,nstate>::run_test() const
         //----------------------------------------------------
         // Steady-state solution
         //----------------------------------------------------
-        ode_solver->steady_state();
+        ode_solver->initialize_steady_polynomial_ramping(poly_degree);
         flow_solver_case->steady_state_postprocessing(dg);
     }
     pcout << "done." << std::endl;

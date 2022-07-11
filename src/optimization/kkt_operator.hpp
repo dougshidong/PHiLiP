@@ -87,11 +87,12 @@ public:
             equal_constraints_->applyAdjointHessian(*temp_design_variables_size_vector_, *lagrange_mult_, *src_design, *design_variables_, tol);
             dst_design->axpy(one, *temp_design_variables_size_vector_);
 
+            //dst_design->set(*src_design);
         } else {
-            //secant_->applyB(*dst_design, *src_design);
+            secant_->applyB(*dst_design, *src_design);
 
             // Pretend Lagrangian Hessian is identity.
-            dst_design->set(*src_design);
+            //dst_design->set(*src_design);
         }
 
         // Top right block times bottom vector

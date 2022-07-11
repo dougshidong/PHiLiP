@@ -147,6 +147,7 @@ private:
     // Krylov Parameters
     int iter_Krylov_;  ///< CR iteration counter
     int flag_Krylov_;  ///< CR termination flag
+    int n_active_;  ///< CR termination flag
     Real itol_;   ///< Inexact CR tolerance
   
     // PDAS Parameters

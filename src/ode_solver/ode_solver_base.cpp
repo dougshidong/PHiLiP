@@ -80,10 +80,12 @@ int ODESolverBase<dim,real,MeshType>::steady_state ()
     pcout << " Evaluating right-hand side and setting system_matrix to Jacobian before starting iterations... " << std::endl;
     this->dg->assemble_residual ();
     initial_residual_norm = this->dg->get_residual_l2norm();
-    this->residual_norm = initial_residual_norm;
+    this->residual_l2norm = initial_residual_norm;
+    this->residual_linfnorm = this->dg->get_residual_linfnorm();
     pcout << " ********************************************************** "
           << std::endl
-          << " Initial absolute residual norm: " << this->residual_norm
+          << " Initial absolute residual l2norm: " << this->residual_l2norm
+          << " residual linfnorm: " << this->residual_linfnorm
           << std::endl;
 
     // Initial Courant-Friedrichs-Lax number
@@ -92,16 +94,17 @@ int ODESolverBase<dim,real,MeshType>::steady_state ()
 
     auto initial_solution = dg->solution;
 
-    double old_residual_norm = this->residual_norm; (void) old_residual_norm;
+    double old_residual_norm = this->residual_l2norm; (void) old_residual_norm;
 
     // Output initial solution
-    int convergence_error = this->residual_norm > ode_param.nonlinear_steady_residual_tolerance;
+    //int convergence_error = this->residual_l2norm > ode_param.nonlinear_steady_residual_tolerance;
+    int convergence_error = this->residual_linfnorm > ode_param.nonlinear_steady_residual_tolerance;
 
     while (    convergence_error
                && this->residual_norm_decrease > ode_param.nonlinear_steady_residual_tolerance
                //&& update_norm             > ode_param.nonlinear_steady_residual_tolerance
                && this->current_iteration < ode_param.nonlinear_max_iterations
-               && this->residual_norm     < 1e5
+               && this->residual_l2norm     < 1e5
                && CFL_factor > 1e-2)
     {
         if ((ode_param.ode_output) == Parameters::OutputEnum::verbose
@@ -115,8 +118,9 @@ int ODESolverBase<dim,real,MeshType>::steady_state ()
         pcout << " ********************************************************** "
               << std::endl
               << " Nonlinear iteration: " << this->current_iteration
-              << " Residual norm (normalized) : " << this->residual_norm
-              << " ( " << this->residual_norm / this->initial_residual_norm << " ) "
+              << " Residual norm (normalized) : " << this->residual_l2norm
+              << " ( " << this->residual_l2norm / this->initial_residual_norm << " ) "
+              << " Residual linfnorm : " << this->residual_linfnorm
               << std::endl;
 
         if ((ode_param.ode_output) == Parameters::OutputEnum::verbose &&
@@ -131,7 +135,7 @@ int ODESolverBase<dim,real,MeshType>::steady_state ()
         ramped_CFL = std::max(ramped_CFL,initial_CFL*CFL_factor);
         pcout << "Initial CFL = " << initial_CFL << ". Current CFL = " << ramped_CFL << std::endl;
 
-        if (this->residual_norm < 1e-12) {
+        if (this->residual_l2norm < 1e-10) {
             this->dg->freeze_artificial_dissipation = true;
         } else {
             this->dg->freeze_artificial_dissipation = false;
@@ -142,6 +146,8 @@ int ODESolverBase<dim,real,MeshType>::steady_state ()
 
         this->dg->assemble_residual ();
 
+        this->dg->freeze_artificial_dissipation = false;
+
         if (ode_param.output_solution_every_x_steps > 0) {
             const bool is_output_iteration = (this->current_iteration % ode_param.output_solution_every_x_steps == 0);
             if (is_output_iteration) {
@@ -150,7 +156,7 @@ int ODESolverBase<dim,real,MeshType>::steady_state ()
             }
         }
         
-        if ((this->residual_norm < meshadaptation->mesh_adaptation_param->critical_residual) 
+        if ((this->residual_l2norm < meshadaptation->mesh_adaptation_param->critical_residual) 
             && (refine_mesh_in_ode_solver) 
             && (meshadaptation->current_refinement_cycle < meshadaptation->mesh_adaptation_param->total_refinement_cycles))
         {
@@ -158,15 +164,16 @@ int ODESolverBase<dim,real,MeshType>::steady_state ()
             allocate_ode_system ();
         }
 
-        old_residual_norm = this->residual_norm;
-        this->residual_norm = this->dg->get_residual_l2norm();
-        this->residual_norm_decrease = this->residual_norm / this->initial_residual_norm;
+        old_residual_norm = this->residual_l2norm;
+        this->residual_l2norm = this->dg->get_residual_l2norm();
+        this->residual_linfnorm = this->dg->get_residual_linfnorm();
+        this->residual_norm_decrease = this->residual_l2norm / this->initial_residual_norm;
 
-        convergence_error = this->residual_norm > ode_param.nonlinear_steady_residual_tolerance
+        convergence_error = this->residual_linfnorm > ode_param.nonlinear_steady_residual_tolerance
                             && this->residual_norm_decrease > ode_param.nonlinear_steady_residual_tolerance;
     }
-    if (this->residual_norm > 1e5
-        || std::isnan(this->residual_norm)
+    if (this->residual_l2norm > 1e5
+        || std::isnan(this->residual_l2norm)
         || CFL_factor <= 1e-2)
     {
         this->dg->solution = initial_solution;
@@ -190,7 +197,8 @@ int ODESolverBase<dim,real,MeshType>::steady_state ()
           << " ODESolver steady_state stopped at"
           << std::endl
           << " Nonlinear iteration: " << this->current_iteration
-          << " residual norm: " << this->residual_norm
+          << " residual l2norm: " << this->residual_l2norm
+          << " residual linfnorm: " << this->residual_linfnorm
           << std::endl
           << " ********************************************************** "
           << std::endl;

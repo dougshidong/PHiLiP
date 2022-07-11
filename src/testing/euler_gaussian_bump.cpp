@@ -232,15 +232,17 @@ double EulerGaussianBump<dim,nstate>
             grid_size[igrid] = dx;
             error[igrid] = l2error_mpi_sum;
 
+
+            const double l2residual = dg->get_residual_l2norm();
             convergence_table.add_value("p", poly_degree);
             convergence_table.add_value("cells", n_global_active_cells);
             convergence_table.add_value("DoFs", n_dofs);
             convergence_table.add_value("dx", dx);
            // convergence_table.add_value("L2_error", l2error_mpi_sum);
             convergence_table.add_value(error_string, l2error_mpi_sum);
-            convergence_table.add_value("Residual",ode_solver->residual_norm);
+            convergence_table.add_value("Residual", l2residual);
             
-            if(ode_solver->residual_norm > 1e-10)
+            if( l2residual > 1e-10)
             {
                 has_residual_converged = false;
             }
@@ -249,7 +251,7 @@ double EulerGaussianBump<dim,nstate>
 
             pcout << " Grid size h: " << dx 
                  << " L2-error: " << l2error_mpi_sum
-                 << " Residual: " << ode_solver->residual_norm
+                 << " Residual: " << l2residual
                  << std::endl;
 
             if (igrid > 0) {

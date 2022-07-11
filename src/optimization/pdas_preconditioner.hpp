@@ -853,8 +853,8 @@ public:
         gmres_setting.sublist("General").sublist("Krylov").set("Absolute Tolerance", 1e-6);
         gmres_setting.sublist("General").sublist("Krylov").set("Relative Tolerance", 1e-4);
         gmres_setting.sublist("General").sublist("Krylov").set("Iteration Limit", 300);
-        gmres_setting.sublist("General").sublist("Krylov").set("Use Initial Guess", true);
-        //gmres_setting.sublist("General").sublist("Krylov").set("Use Initial Guess", false);
+        //gmres_setting.sublist("General").sublist("Krylov").set("Use Initial Guess", true);
+        gmres_setting.sublist("General").sublist("Krylov").set("Use Initial Guess", false);
         ROL::Ptr< ROL::Krylov<Real> > krylov = ROL::KrylovFactory<Real>(gmres_setting);
         auto &gmres = dynamic_cast<ROL::GMRES<Real>&>(*krylov);
         if(dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD)==0) gmres.enableOutput(std::cout);

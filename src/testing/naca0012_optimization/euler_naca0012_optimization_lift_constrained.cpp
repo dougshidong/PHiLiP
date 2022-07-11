@@ -46,6 +46,7 @@
 #include "optimization/sequential_quadratic_programming.hpp"
 
 #include "mesh/gmsh_reader.hpp"
+#include "mesh/grids/half_cylinder.hpp"
 #include "functional/lift_drag.hpp"
 #include "functional/moment.hpp"
 #include "functional/geometric_volume.hpp"
@@ -56,8 +57,14 @@
 namespace {
 enum class OptimizationAlgorithm { full_space_birosghattas, full_space_composite_step, reduced_space_bfgs, reduced_space_newton, reduced_sqp };
 enum class Preconditioner { P2, P2A, P4, P4A, identity };
+enum class GridType {naca0012, cylinder};
 
-const std::vector<Preconditioner> precond_list { Preconditioner::P4 };
+//const GridType grid_type = GridType::cylinder;
+const GridType grid_type = GridType::naca0012;
+const bool DO_DRAG_MINIMIZATION = false;//true;
+//const bool DO_DRAG_MINIMIZATION = true;
+
+const std::vector<Preconditioner> precond_list { Preconditioner::P4A };
 //const std::vector<Preconditioner> precond_list { Preconditioner::P2, Preconditioner::P2A, Preconditioner::P4, Preconditioner::P4A };
 //const std::vector<OptimizationAlgorithm> opt_list { OptimizationAlgorithm::full_space_birosghattas, OptimizationAlgorithm::reduced_space_bfgs, OptimizationAlgorithm::reduced_space_newton };
 //const std::vector<OptimizationAlgorithm> opt_list { OptimizationAlgorithm::reduced_space_bfgs };
@@ -75,7 +82,7 @@ const unsigned int POLY_START = 1;
 const unsigned int POLY_END = 1; // Can do until at least P2
 
 const unsigned int n_des_var_start = 10;//20;
-const unsigned int n_des_var_end   = 20;//100;
+const unsigned int n_des_var_end   = 40;//100;
 const unsigned int n_des_var_step  = 10;//20;
 
 const int max_design_cycle = 1000;
@@ -83,7 +90,6 @@ const int max_design_cycle = 1000;
 const double FD_TOL = 1e-6;
 const double CONSISTENCY_ABS_TOL = 1e-10;
 
-bool USE_BFGS = false;
 const int LINESEARCH_MAX_ITER = 10;
 const double BACKTRACKING_RATE = 0.5;
 const int PDAS_MAX_ITER = 1;
@@ -481,8 +487,14 @@ getDesignBoundConstraint(
         public:
             setUpper() : zero_(0) {}
             double apply(const double &x) const {
-                if(x>zero_) { return 0.1; }//ROL::ROL_INF<double>(); }
-                else { return zero_; }
+                if (grid_type == GridType::cylinder) {
+                    if(x>zero_) { return ROL::ROL_INF<double>(); }
+                    else        { return ROL::ROL_INF<double>(); }
+                    //else { return zero_+0.1; }
+                } else if (grid_type == GridType::naca0012) {
+                    if(x>zero_) { return 0.1; }//ROL::ROL_INF<double>(); }
+                    else { return zero_; }
+                }
             }
     } setupper;
     struct setLower : public ROL::Elementwise::UnaryFunction<double> {
@@ -491,8 +503,15 @@ getDesignBoundConstraint(
         public:
             setLower() : zero_(0) {}
             double apply(const double &x) const {
-                if(x<zero_) { return -1.0*0.1; }//ROL::ROL_INF<double>(); }
-                else { return zero_; }
+                if (grid_type == GridType::cylinder) {
+                    //if(x>zero_) { return zero_-0.1; }
+                    //else { return -ROL::ROL_INF<double>(); }
+                    if(x>zero_) { return -ROL::ROL_INF<double>(); }
+                    else        { return -ROL::ROL_INF<double>(); }
+                } else if (grid_type == GridType::naca0012) {
+                    if(x<zero_) { return -1.0*0.1; }//ROL::ROL_INF<double>(); }
+                    else { return zero_; }
+                }
             }
     } setlower;
 
@@ -547,6 +566,7 @@ getInequalityConstraint(
 		const bool useFDHessian = false;
 		for (unsigned int i = 0; i < constraints_as_objective.size(); ++i) {
 			ROL::Ptr<ROL::Vector<double>> adjoint = simulation_variables->clone();
+			adjoint->setScalar(1.0);
 			auto reduced_objective = ROL::makePtr<ROL::Reduced_Objective_SimOpt<double>>(
 				constraints_as_objective[i], flow_constraints, simulation_variables, control_variables, adjoint, storage, useFDHessian);
 			//const auto state_constraints = ROL::makePtrFromRef<PHiLiP::FlowConstraints<PHILIP_DIM>>(dynamic_cast<PHiLiP::FlowConstraints<PHILIP_DIM>&>(*flow_constraints));
@@ -619,7 +639,7 @@ int EulerNACADragOptimizationLiftConstrained<dim,nstate>
 {
     int test_error = 0;
     std::filebuf filebuffer;
-    if (this->mpi_rank == 0) filebuffer.open ("optimization.log", std::ios::out);
+    if (this->mpi_rank == 2) filebuffer.open ("optimization.log", std::ios::out);
     if (this->mpi_rank == 0) filebuffer.close();
 
     for (unsigned int poly_degree = POLY_START; poly_degree <= POLY_END; ++poly_degree) {
@@ -703,11 +723,11 @@ int EulerNACADragOptimizationLiftConstrained<dim,nstate>
     ROL::nullstream bhs; // outputs nothing
     std::filebuf filebuffer;
     if (this->mpi_rank == 0) filebuffer.open ("optimization_"+opt_output_name+"_"+std::to_string(nx_ffd-2)+".log", std::ios::out);
-    //if (this->mpi_rank == 0) filebuffer.open ("optimization.log", std::ios::out|std::ios::app);
+    if (this->mpi_rank == 2) filebuffer.open ("optimization.log", std::ios::out|std::ios::app);
     std::ostream ostr(&filebuffer);
 
     Teuchos::RCP<std::ostream> outStream;
-    if (this->mpi_rank == 0) outStream = ROL::makePtrFromRef(ostr);
+    if (this->mpi_rank == 0 || this->mpi_rank == 2) outStream = ROL::makePtrFromRef(ostr);
     else if (this->mpi_rank == 1) outStream = ROL::makePtrFromRef(std::cout);
     else outStream = ROL::makePtrFromRef(bhs);
 
@@ -741,8 +761,16 @@ int EulerNACADragOptimizationLiftConstrained<dim,nstate>
             dealii::Triangulation<dim>::smoothing_on_coarsening));
 
 
-    const dealii::Point<dim> ffd_origin(0.0,-0.061);
-    const std::array<double,dim> ffd_rectangle_lengths = {{0.999,0.122}};
+    dealii::Point<dim> ffd_origin;
+    std::array<double,dim> ffd_rectangle_lengths;
+    if (grid_type == GridType::cylinder) {
+        ffd_origin = dealii::Point<dim> (-0.60,-0.51);
+        ffd_rectangle_lengths = std::array<double,dim> {{1.0+0.2,1.0+0.02}};
+    } else if (grid_type == GridType::naca0012) {
+        ffd_origin = dealii::Point<dim> (0.0,-0.061);
+        ffd_rectangle_lengths = std::array<double,dim> {{0.999,0.122}};
+    }
+
     const std::array<unsigned int,dim> ffd_ndim_control_pts = {{nx_ffd,3}};
     FreeFormDeformation<dim> ffd( ffd_origin, ffd_rectangle_lengths, ffd_ndim_control_pts);
 
@@ -777,19 +805,59 @@ int EulerNACADragOptimizationLiftConstrained<dim,nstate>
 
     const auto initial_design_variables = ffd_design_variables;
 
-    // Initial optimization point
-    grid->clear();
-    dealii::GridGenerator::hyper_cube(*grid);
-
     ffd_design_variables = initial_design_variables;
     ffd_design_variables.update_ghost_values();
     ffd.set_design_variables( ffd_design_variables_indices_dim, ffd_design_variables);
 
+    // Initial optimization point
+    grid->clear();
+    dealii::GridGenerator::hyper_cube(*grid);
+
+    if (grid_type == GridType::cylinder) {
+        //int n_cells_circle = 45;
+        //int n_cells_radial = 45;
+        //PHiLiP::Grids::cylinder(*grid, n_cells_circle, n_cells_radial);
+
+        const dealii::Point<dim> center(0.0,0.0);
+        const double        inner_radius = 0.5;
+        const double        outer_radius = 40;
+        const unsigned int  n_shells = 40;
+        const double        skewness = 3.0;
+        const unsigned int  n_cells_per_shell = 40;
+        const bool          colorize = true;
+        dealii::GridGenerator::concentric_hyper_shells(*grid, center, inner_radius, outer_radius, n_shells, skewness, n_cells_per_shell, colorize);
+
+        grid->set_all_manifold_ids(0);
+        grid->set_manifold(0, dealii::SphericalManifold<2>(center));
+
+        // Assign BC
+        for (auto cell = grid->begin_active(); cell != grid->end(); ++cell) {
+            //if (!cell->is_locally_owned()) continue;
+            for (unsigned int face=0; face<dealii::GeometryInfo<2>::faces_per_cell; ++face) {
+                if (cell->face(face)->at_boundary()) {
+                    unsigned int current_id = cell->face(face)->boundary_id();
+                    if (current_id == 0) {
+                        cell->face(face)->set_boundary_id (1001); // Wall
+                    } else if (current_id == 1) {
+                        cell->face(face)->set_boundary_id (1004); // Farfield
+                    } else {
+                        std::abort();
+                    }
+                }
+            }
+        }
+
+    }
+
     std::shared_ptr < DGBase<dim, double> > dg = DGFactory<dim,double>::create_discontinuous_galerkin(&param, poly_degree, grid);
 
-    std::shared_ptr<HighOrderGrid<dim,double>> naca0012_mesh = read_gmsh <dim, dim> ("naca0012.msh");
-	//naca0012_mesh->refine_global();
-    dg->set_high_order_grid(naca0012_mesh);
+    if (grid_type == GridType::naca0012) {
+        std::shared_ptr<HighOrderGrid<dim,double>> naca0012_mesh = read_gmsh <dim, dim> ("naca0012.msh");
+        //std::shared_ptr<HighOrderGrid<dim,double>> naca0012_mesh = read_gmsh <dim, dim> ("naca0012_hopw_ref2.msh");
+        //std::shared_ptr<HighOrderGrid<dim,double>> naca0012_mesh = read_gmsh <dim, dim> ("naca0012_hopw_ref2.msh");
+        //naca0012_mesh->refine_global();
+        dg->set_high_order_grid(naca0012_mesh);
+    }
 
     dg->allocate_system ();
     dealii::VectorTools::interpolate(dg->dof_handler, initial_conditions, dg->solution);
@@ -829,9 +897,21 @@ int EulerNACADragOptimizationLiftConstrained<dim,nstate>
               << ". Current Z-moment = " << moment_functional.evaluate_functional()
               << std::endl;
 
-    double lift_target = lift_functional.evaluate_functional() * 1.50;
-    double volume_target = volume_functional.evaluate_functional() * 1.0;
-    double moment_target = moment_functional.evaluate_functional() * 1.0;
+    double lift_target;
+    double volume_target;
+    double moment_target;
+    if (grid_type == GridType::cylinder) {
+        lift_target = 0.3;
+        volume_target = 0.08;
+        moment_target = 0.04;
+    } else if (grid_type == GridType::naca0012) {
+        lift_target = lift_functional.evaluate_functional() * 2.0;
+        volume_target = volume_functional.evaluate_functional() * 1.0;
+        moment_target = std::abs(moment_functional.evaluate_functional() * 1.0) * 9.0;
+    }
+    if (DO_DRAG_MINIMIZATION) {
+        lift_target = lift_functional.evaluate_functional() * 1.0;
+    }
 
 
     ffd.output_ffd_vtu(8999);
@@ -845,55 +925,53 @@ int EulerNACADragOptimizationLiftConstrained<dim,nstate>
     //                                            drag_adjoint);
     // (void) flow_constraints_check_error;
 
-    //auto drag_objective = ROL::makePtr<ROLObjectiveSimOpt<dim,nstate>>( drag_functional, ffd, ffd_design_variables_indices_dim, &(flow_constraints->dXvdXp) );
-
-    // Constrast lift-target minimization objective
-    auto lift_objective = ROL::makePtr<ROLObjectiveSimOpt<dim,nstate>>( lift_functional, ffd, ffd_design_variables_indices_dim, &(flow_constraints->dXvdXp) );
-    auto lift_target_constraint = ROL::makePtr<PHiLiP::ConstraintFromObjective_SimOpt<double>>( lift_objective, lift_target );
-    const ROL::Ptr<ROL::SingletonVector<double>> lift_constraint_dual = ROL::makePtr<ROL::SingletonVector<double>> (0.0);
-    const ROL::Ptr<ROL::SingletonVector<double>> lift_constraint_value = ROL::makePtr<ROL::SingletonVector<double>> (1.0);
-    const double penaltyParameter = 1.0;
-
-    auto lift_target_quadratic_objective = ROL::makePtr<ROL::QuadraticPenalty_SimOpt<double>>(lift_target_constraint,
-                                                                                              *lift_constraint_dual,
-                                                                                              penaltyParameter,
-                                                                                              *simulation_variables,
-                                                                                              *control_variables,
-                                                                                              *lift_constraint_value);
-
-  //QuadraticPenalty_SimOpt(const ROL::Ptr<Constraint_SimOpt<Real> > &con,
-  //                        const Vector<Real> &multiplier,
-  //                        const Real penaltyParameter,
-  //                        const Vector<Real> &simVec,
-  //                        const Vector<Real> &optVec,
-  //                        const Vector<Real> &conVec,
-  //                        const bool useScaling = false,
-  //                        const int HessianApprox = 0 )
-
     auto volume_objective = ROL::makePtr<ROLObjectiveSimOpt<dim,nstate>>( volume_functional, ffd, ffd_design_variables_indices_dim, &(flow_constraints->dXvdXp) );
     auto moment_objective = ROL::makePtr<ROLObjectiveSimOpt<dim,nstate>>( moment_functional, ffd, ffd_design_variables_indices_dim, &(flow_constraints->dXvdXp) );
-
-	auto objective = lift_target_quadratic_objective;
 	auto constraint1 = volume_objective;
     const double constraint1_lower_bound_dx = -1e-4;
     const double constraint1_upper_bound_dx = 1e-1;
-
 	auto constraint2 = moment_objective;
     const double constraint2_lower_bound_dx = -1e-3;
     const double constraint2_upper_bound_dx = 1e-3;
 
+    ROL::Ptr<ROL::Objective_SimOpt<double>> objective;
     std::vector<ROL::Ptr<ROL::Objective_SimOpt<double>>> nonlinear_inequalities_as_objectives {constraint1, constraint2};//, constraint2};
     std::vector<double> nonlinear_inequality_targets {volume_target, moment_target};
     std::vector<double> constraint_lower_bound_dx {constraint1_lower_bound_dx, constraint2_lower_bound_dx};
     std::vector<double> constraint_upper_bound_dx {constraint1_upper_bound_dx, constraint2_upper_bound_dx};
 
-    const unsigned int n_other_constraints = 1;
-    const dealii::IndexSet constraint_row_part = dealii::Utilities::MPI::create_evenly_distributed_partitioning(MPI_COMM_WORLD,n_other_constraints);
-    dealii::IndexSet constraint_ghost_row_part(n_other_constraints);
-    constraint_ghost_row_part.add_range(0,n_other_constraints);
+    if (DO_DRAG_MINIMIZATION) {
+        auto drag_objective = ROL::makePtr<ROLObjectiveSimOpt<dim,nstate>>( drag_functional, ffd, ffd_design_variables_indices_dim, &(flow_constraints->dXvdXp) );
+
+        objective = drag_objective;
+
+        auto lift_objective = ROL::makePtr<ROLObjectiveSimOpt<dim,nstate>>( lift_functional, ffd, ffd_design_variables_indices_dim, &(flow_constraints->dXvdXp) );
+        auto lift_target_constraint = ROL::makePtr<PHiLiP::ConstraintFromObjective_SimOpt<double>>( lift_objective, 0.0);
+
+        nonlinear_inequality_targets.push_back(lift_target);
+        constraint_lower_bound_dx.push_back(-lift_target*0.05);
+        constraint_upper_bound_dx.push_back(ROL::ROL_INF<double>());
+
+    } else {
+
+        // Constrast lift-target minimization objective
+        auto lift_objective = ROL::makePtr<ROLObjectiveSimOpt<dim,nstate>>( lift_functional, ffd, ffd_design_variables_indices_dim, &(flow_constraints->dXvdXp) );
+        auto lift_target_constraint = ROL::makePtr<PHiLiP::ConstraintFromObjective_SimOpt<double>>( lift_objective, lift_target );
+        const ROL::Ptr<ROL::SingletonVector<double>> lift_constraint_dual = ROL::makePtr<ROL::SingletonVector<double>> (0.0);
+        const ROL::Ptr<ROL::SingletonVector<double>> lift_constraint_value = ROL::makePtr<ROL::SingletonVector<double>> (1.0);
+        const double penaltyParameter = 1.0;
+
+        auto lift_target_quadratic_objective = ROL::makePtr<ROL::QuadraticPenalty_SimOpt<double>>(lift_target_constraint,
+                                                                                                  *lift_constraint_dual,
+                                                                                                  penaltyParameter,
+                                                                                                  *simulation_variables,
+                                                                                                  *control_variables,
+                                                                                                  *lift_constraint_value);
+        objective = lift_target_quadratic_objective;
+    }
 
     double tol = 0.0;
-    std::cout << "Drag value= " << objective->value(*simulation_variables, *control_variables, tol) << std::endl;
+    std::cout << "Objective value= " << objective->value(*simulation_variables, *control_variables, tol) << std::endl;
 
     dg->output_results_vtk(9999);
 
@@ -903,7 +981,7 @@ int EulerNACADragOptimizationLiftConstrained<dim,nstate>
     parlist.sublist("General").set("Print Verbosity", 1);
 
     //parlist.sublist("Status Test").set("Gradient Tolerance", 1e-9);
-    parlist.sublist("Status Test").set("Gradient Tolerance", 1e-7);
+    parlist.sublist("Status Test").set("Gradient Tolerance", 1e-6);
     parlist.sublist("Status Test").set("Iteration Limit", max_design_cycle);
 
     parlist.sublist("Step").sublist("Line Search").set("User Defined Initial Step Size",true);
@@ -920,7 +998,6 @@ int EulerNACADragOptimizationLiftConstrained<dim,nstate>
     //parlist.sublist("General").sublist("Secant").set("Type","Limited-Memory SR1");
     //parlist.sublist("General").sublist("Secant").set("Maximum Storage",(int)n_design_variables);
     parlist.sublist("General").sublist("Secant").set("Maximum Storage", 100);
-    parlist.sublist("General").sublist("Secant").set("Use as Hessian", USE_BFGS);
 
     parlist.sublist("Full Space").set("Preconditioner",preconditioner_string);
 
@@ -930,6 +1007,7 @@ int EulerNACADragOptimizationLiftConstrained<dim,nstate>
     dRdW_mult = 0;
     dRdX_mult = 0;
     d2R_mult = 0;
+    n_design_iterations = 0;
 
     switch (opt_type) {
         case OptimizationAlgorithm::full_space_composite_step: {
@@ -960,10 +1038,12 @@ int EulerNACADragOptimizationLiftConstrained<dim,nstate>
             break;
         }
         case OptimizationAlgorithm::reduced_space_bfgs:
-            USE_BFGS = true;
-            parlist.sublist("General").sublist("Secant").set("Use as Hessian", USE_BFGS);
+            parlist.sublist("General").sublist("Secant").set("Use as Hessian", true);
             [[fallthrough]];
         case OptimizationAlgorithm::reduced_space_newton: {
+            if (opt_type == OptimizationAlgorithm::reduced_space_newton) {
+                parlist.sublist("General").sublist("Secant").set("Use as Hessian", false);
+            }
             *outStream << "Starting optimization with " << n_design_variables << "..." << std::endl;
 
             const bool is_reduced_space = true;
@@ -1059,6 +1139,7 @@ int EulerNACADragOptimizationLiftConstrained<dim,nstate>
 
             *outStream << "Starting optimization with " << n_design_variables << " control variables..." << std::endl;
 
+            parlist.sublist("General").sublist("Secant").set("Use as Hessian", false);
             const bool is_reduced_space = false;
             ROL::Ptr<ROL::Vector<double>>                       design_variables               = getDesignVariables(simulation_variables, control_variables, is_reduced_space);
             ROL::Ptr<ROL::BoundConstraint<double>>              design_bounds                  = getDesignBoundConstraint(simulation_variables, control_variables, is_reduced_space);

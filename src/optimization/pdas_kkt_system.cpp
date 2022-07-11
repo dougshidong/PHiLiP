@@ -138,6 +138,8 @@ void PDAS_KKT_System<Real>::apply( ROL::Vector<Real> &Hv, const ROL::Vector<Real
         //secant_->applyB((*output_design),(*input_design));
         //output_design->set(*input_design);
         //getCtlOpt(*output_design)->axpy(add_identity_,*getCtlOpt(*input_design));
+        //getCtlOpt(*output_design)->set(*getCtlOpt(*input_design));
+        //output_design->scale(1000);
     } else {
         objective_->hessVec(*output_design,*input_design,*design_variables_,tol);
         equality_constraints_->applyAdjointHessian(*temp_design_, *dual_equality_, *input_design, *design_variables_, tol);
@@ -162,6 +164,9 @@ void PDAS_KKT_System<Real>::apply( ROL::Vector<Real> &Hv, const ROL::Vector<Real
             std::cout << "Adding identity matrix of " << identity_plus_eig << std::endl;
             getCtlOpt(*output_design)->axpy(identity_plus_eig,*getCtlOpt(*input_design));
         }
+
+        //getCtlOpt(*output_design)->set(*getCtlOpt(*input_design));
+        //output_design->scale(1000);
     }
     //objective_->hessVec(*output_design,*input_design,*design_variables_, tol);
     //secant_->applyB(*output_design,*input_design);

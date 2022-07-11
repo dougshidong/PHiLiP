@@ -22,6 +22,9 @@
 #define KOPRIVA_METRICS_BOUNDARY
 //#define FADFAD
 
+const bool DO_USE_GEGENBAUER = false;
+const bool DO_USE_C0_ARTIFICIAL_DISSIPATION = true;
+
 /// Code taken directly from deal.II's FullMatrix::gauss_jordan function, but adapted to
 /// handle AD variable.
 template <typename number>
@@ -553,9 +556,14 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_volume_term_explicit(
     const dealii::FEValues<dim,dim> &fe_values_vol,
     const std::vector<dealii::types::global_dof_index> &soln_dof_indices_int,
     dealii::Vector<real> &local_rhs_int_cell,
-    const dealii::FEValues<dim,dim> &/*fe_values_lagrange*/)
+    const dealii::FEValues<dim,dim> &fe_values_lagrange)
 {
-    (void) current_cell_index;
+    (void)cell;
+    (void)current_cell_index;
+    (void)fe_values_vol;
+    (void)soln_dof_indices_int;
+    (void)local_rhs_int_cell;
+    (void)fe_values_lagrange;
     using doubleArray = std::array<real,nstate>;
     using ADArrayTensor1 = std::array< dealii::Tensor<1,dim,real>, nstate >;
 
@@ -685,7 +693,7 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_volume_term_explicit(
 
 template <int dim, int nstate, typename real, typename MeshType>
 void DGWeak<dim,nstate,real,MeshType>::assemble_boundary_term_explicit(
-    typename dealii::DoFHandler<dim>::active_cell_iterator /*cell*/,
+    typename dealii::DoFHandler<dim>::active_cell_iterator cell,
     const dealii::types::global_dof_index current_cell_index,
     const unsigned int boundary_id,
     const dealii::FEFaceValuesBase<dim,dim> &fe_values_boundary,
@@ -693,140 +701,13 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_boundary_term_explicit(
     const std::vector<dealii::types::global_dof_index> &soln_dof_indices_int,
     dealii::Vector<real> &local_rhs_int_cell)
 {
-    (void) current_cell_index;
-    using doubleArray = std::array<real,nstate>;
-    using ADArrayTensor1 = std::array< dealii::Tensor<1,dim,real>, nstate >;
-
-    const unsigned int n_soln_dofs_int = fe_values_boundary.dofs_per_cell;
-    const unsigned int n_face_quad_pts = fe_values_boundary.n_quadrature_points;
-
-    AssertDimension (n_soln_dofs_int, soln_dof_indices_int.size());
-
-    const std::vector<real> &JxW = fe_values_boundary.get_JxW_values ();
-    const std::vector<dealii::Tensor<1,dim>> &normals = fe_values_boundary.get_normal_vectors ();
-
-
-    std::vector<doubleArray> soln_int(n_face_quad_pts);
-    std::vector<doubleArray> soln_ext(n_face_quad_pts);
-
-    std::vector<ADArrayTensor1> soln_grad_int(n_face_quad_pts);
-    std::vector<ADArrayTensor1> soln_grad_ext(n_face_quad_pts);
-
-    std::vector<doubleArray> conv_num_flux_dot_n(n_face_quad_pts);
-    std::vector<doubleArray> diss_soln_num_flux(n_face_quad_pts); // u*
-    std::vector<ADArrayTensor1> diss_flux_jump_int(n_face_quad_pts); // u*-u_int
-    std::vector<doubleArray> diss_auxi_num_flux_dot_n(n_face_quad_pts); // sigma*
-
-    // AD variable
-    std::vector< real > soln_coeff_int(n_soln_dofs_int);
-    for (unsigned int idof = 0; idof < n_soln_dofs_int; ++idof) {
-        soln_coeff_int[idof] = DGBase<dim,real,MeshType>::solution(soln_dof_indices_int[idof]);
-    }
-
-    for (unsigned int iquad=0; iquad<n_face_quad_pts; ++iquad) {
-        for (int istate=0; istate<nstate; istate++) {
-            soln_int[iquad][istate]      = 0;
-            soln_grad_int[iquad][istate] = 0;
-        }
-    }
-
-    //const real cell_diameter = fe_values_boundary.get_cell()->diameter();
-    //const real artificial_diss_coeff = this->all_parameters->artificial_dissipation_param.add_artificial_dissipation ?
-    //                                   this->discontinuity_sensor(cell_diameter, soln_coeff_int, fe_values_boundary.get_fe())
-    //                                   : 0.0;
-    const real artificial_diss_coeff = this->all_parameters->artificial_dissipation_param.add_artificial_dissipation ?
-                                       this->artificial_dissipation_coeffs[current_cell_index]
-                                       : 0.0;
-
-    //typename dealii::DoFHandler<dim>::active_cell_iterator artificial_dissipation_cell(
-    //    this->triangulation.get(), cell->level(), cell->index(), &(this->dof_handler_artificial_dissipation));
-    //const unsigned int n_dofs_arti_diss = this->fe_q_artificial_dissipation.dofs_per_cell;
-    //std::vector<dealii::types::global_dof_index> dof_indices_artificial_dissipation(n_dofs_arti_diss);
-    //artificial_dissipation_cell->get_dof_indices (dof_indices_artificial_dissipation);
-
-    //std::vector<real> artificial_diss_coeff_at_q(n_face_quad_pts);
-    //for (unsigned int iquad=0; iquad<n_face_quad_pts; ++iquad) {
-    //    artificial_diss_coeff_at_q[iquad] = 0.0;
-
-    //    if ( this->all_parameters->artificial_dissipation_param.add_artificial_dissipation ) {
-    //        const dealii::Point<dim,real> point = fe_values_boundary.get_quadrature().point(iquad);
-    //        for (unsigned int idof=0; idof<n_dofs_arti_diss; ++idof) {
-    //            const unsigned int index = dof_indices_artificial_dissipation[idof];
-    //            artificial_diss_coeff_at_q[iquad] += this->artificial_dissipation_c0[index] * this->fe_q_artificial_dissipation.shape_value(idof, point);
-    //        }
-    //    }
-    //}
-
-    // Interpolate solution to face
-    const std::vector< dealii::Point<dim,real> > quad_pts = fe_values_boundary.get_quadrature_points();
-    for (unsigned int iquad=0; iquad<n_face_quad_pts; ++iquad) {
-
-        const dealii::Tensor<1,dim,real> normal_int = normals[iquad];
-
-        for (unsigned int idof=0; idof<n_soln_dofs_int; ++idof) {
-            const int istate = fe_values_boundary.get_fe().system_to_component_index(idof).first;
-            soln_int[iquad][istate]      += soln_coeff_int[idof] * fe_values_boundary.shape_value_component(idof, iquad, istate);
-            soln_grad_int[iquad][istate] += soln_coeff_int[idof] * fe_values_boundary.shape_grad_component(idof, iquad, istate);
-        }
-
-        const dealii::Point<dim, real> real_quad_point = quad_pts[iquad];
-        DGBaseState<dim,nstate,real,MeshType>::pde_physics_double->boundary_face_values (boundary_id, real_quad_point, normal_int, soln_int[iquad], soln_grad_int[iquad], soln_ext[iquad], soln_grad_ext[iquad]);
-
-        // Evaluate physical convective flux, physical dissipative flux
-        // Following the the boundary treatment given by
-        //      Hartmann, R., Numerical Analysis of Higher Order Discontinuous Galerkin Finite Element Methods,
-        //      Institute of Aerodynamics and Flow Technology, DLR (German Aerospace Center), 2008.
-        //      Details given on page 93
-        //conv_num_flux_dot_n[iquad] = conv_num_flux_double->evaluate_flux(soln_ext[iquad], soln_ext[iquad], normal_int);
-
-        // So, I wasn't able to get Euler manufactured solutions to converge when F* = F*(Ubc, Ubc)
-        // Changing it back to the standdard F* = F*(Uin, Ubc)
-        // This is known not be adjoint consistent as per the paper above. Page 85, second to last paragraph.
-        // Losing 2p+1 OOA on functionals for all PDEs.
-        conv_num_flux_dot_n[iquad] = DGBaseState<dim,nstate,real,MeshType>::conv_num_flux_double->evaluate_flux(soln_int[iquad], soln_ext[iquad], normal_int);
-        // Notice that the flux uses the solution given by the Dirichlet or Neumann boundary condition
-        diss_soln_num_flux[iquad] = DGBaseState<dim,nstate,real,MeshType>::diss_num_flux_double->evaluate_solution_flux(soln_ext[iquad], soln_ext[iquad], normal_int);
-
-        ADArrayTensor1 diss_soln_jump_int;
-        for (int s=0; s<nstate; s++) {
-            for (int d=0; d<dim; d++) {
-                diss_soln_jump_int[s][d] = (diss_soln_num_flux[iquad][s] - soln_int[iquad][s]) * normal_int[d];
-            }
-        }
-        diss_flux_jump_int[iquad] = DGBaseState<dim,nstate,real,MeshType>::pde_physics_double->dissipative_flux (soln_int[iquad], diss_soln_jump_int);
-        if (this->all_parameters->artificial_dissipation_param.add_artificial_dissipation) {
-            const ADArrayTensor1 artificial_diss_flux_jump_int = DGBaseState<dim,nstate,real,MeshType>::artificial_dissip->calc_artificial_dissipation_flux(soln_int[iquad], diss_soln_jump_int,artificial_diss_coeff);
-            for (int s=0; s<nstate; s++) {
-                diss_flux_jump_int[iquad][s] += artificial_diss_flux_jump_int[s];
-            }
-        }
-
-        diss_auxi_num_flux_dot_n[iquad] = DGBaseState<dim,nstate,real,MeshType>::diss_num_flux_double->evaluate_auxiliary_flux(
-            artificial_diss_coeff,
-            artificial_diss_coeff,
-            soln_int[iquad], soln_ext[iquad],
-            soln_grad_int[iquad], soln_grad_ext[iquad],
-            normal_int, penalty, true);
-    }
-
-    for (unsigned int itest=0; itest<n_soln_dofs_int; ++itest) {
-
-        real rhs = 0.0;
-
-        const unsigned int istate = fe_values_boundary.get_fe().system_to_component_index(itest).first;
-
-        for (unsigned int iquad=0; iquad<n_face_quad_pts; ++iquad) {
-
-            // Convection
-            rhs = rhs - fe_values_boundary.shape_value_component(itest,iquad,istate) * conv_num_flux_dot_n[iquad][istate] * JxW[iquad];
-            // Diffusive
-            rhs = rhs - fe_values_boundary.shape_value_component(itest,iquad,istate) * diss_auxi_num_flux_dot_n[iquad][istate] * JxW[iquad];
-            rhs = rhs + fe_values_boundary.shape_grad_component(itest,iquad,istate) * diss_flux_jump_int[iquad][istate] * JxW[iquad];
-        }
-        // *******************
-
-        local_rhs_int_cell(itest) += rhs;
-    }
+      (void)cell;
+      (void)current_cell_index;
+      (void)boundary_id;
+      (void)fe_values_boundary;
+      (void)penalty;
+      (void)soln_dof_indices_int;
+      (void)local_rhs_int_cell;
 }
 
 template <int dim, int nstate, typename real, typename MeshType>
@@ -842,177 +723,15 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_face_term_explicit(
     dealii::Vector<real>          &local_rhs_int_cell,
     dealii::Vector<real>          &local_rhs_ext_cell)
 {
-    (void) current_cell_index;
-    (void) neighbor_cell_index;
-    using doubleArray = std::array<real,nstate>;
-    using doubleArrayTensor1 = std::array< dealii::Tensor<1,dim,real>, nstate >;
-
-    // Use quadrature points of neighbor cell
-    // Might want to use the maximum n_quad_pts1 and n_quad_pts2
-    const unsigned int n_face_quad_pts = fe_values_ext.n_quadrature_points;
-
-    const unsigned int n_soln_dofs_int = fe_values_int.dofs_per_cell;
-    const unsigned int n_soln_dofs_ext = fe_values_ext.dofs_per_cell;
-
-    AssertDimension (n_soln_dofs_int, soln_dof_indices_int.size());
-    AssertDimension (n_soln_dofs_ext, soln_dof_indices_ext.size());
-
-    // Jacobian and normal should always be consistent between two elements
-    // In the case of the non-conforming mesh, we should be using the Jacobian
-    // of the smaller face since it would be "half" of the larger one.
-    // This should be consistent with the DGBase decision of which cells is reponsible for
-    // the face.
-    // However, their curvature should match.
-    const std::vector<real> &JxW_int = fe_values_int.get_JxW_values ();
-    const std::vector<dealii::Tensor<1,dim> > &normals_int = fe_values_int.get_normal_vectors ();
-
-    // AD variable
-    std::vector<real> soln_coeff_int(n_soln_dofs_int);
-    std::vector<real> soln_coeff_ext(n_soln_dofs_ext);
-
-    std::vector<doubleArray> conv_num_flux_dot_n(n_face_quad_pts);
-
-    // Interpolate solution to the face quadrature points
-    std::vector< doubleArray > soln_int(n_face_quad_pts);
-    std::vector< doubleArray > soln_ext(n_face_quad_pts);
-
-    std::vector< doubleArrayTensor1 > soln_grad_int(n_face_quad_pts); // Tensor initialize with zeros
-    std::vector< doubleArrayTensor1 > soln_grad_ext(n_face_quad_pts); // Tensor initialize with zeros
-
-    std::vector<doubleArray> diss_soln_num_flux(n_face_quad_pts); // u*
-    std::vector<doubleArray> diss_auxi_num_flux_dot_n(n_face_quad_pts); // sigma*
-
-    std::vector<doubleArrayTensor1> diss_flux_jump_int(n_face_quad_pts); // u*-u_int
-    std::vector<doubleArrayTensor1> diss_flux_jump_ext(n_face_quad_pts); // u*-u_ext
-    // AD variable
-    for (unsigned int idof = 0; idof < n_soln_dofs_int; ++idof) {
-        soln_coeff_int[idof] = DGBase<dim,real,MeshType>::solution(soln_dof_indices_int[idof]);
-    }
-    for (unsigned int idof = 0; idof < n_soln_dofs_ext; ++idof) {
-        soln_coeff_ext[idof] = DGBase<dim,real,MeshType>::solution(soln_dof_indices_ext[idof]);
-    }
-    for (unsigned int iquad=0; iquad<n_face_quad_pts; ++iquad) {
-        for (int istate=0; istate<nstate; istate++) {
-            soln_int[iquad][istate]      = 0;
-            soln_grad_int[iquad][istate] = 0;
-            soln_ext[iquad][istate]      = 0;
-            soln_grad_ext[iquad][istate] = 0;
-        }
-    }
-
-    //const real cell_diameter_int = fe_values_int.get_cell()->diameter();
-    //const real cell_diameter_ext = fe_values_ext.get_cell()->diameter();
-    //const real artificial_diss_coeff_int = this->all_parameters->artificial_dissipation_param.add_artificial_dissipation ?
-    //                                       this->discontinuity_sensor(cell_diameter_int, soln_coeff_int, fe_values_int.get_fe())
-    //                                       : 0.0;
-    //const real artificial_diss_coeff_ext = this->all_parameters->artificial_dissipation_param.add_artificial_dissipation ?
-    //                                       this->discontinuity_sensor(cell_diameter_ext, soln_coeff_ext, fe_values_ext.get_fe())
-    //                                       : 0.0;
-    const real artificial_diss_coeff_int = this->all_parameters->artificial_dissipation_param.add_artificial_dissipation ?
-                                           this->artificial_dissipation_coeffs[current_cell_index]
-                                           : 0.0;
-    const real artificial_diss_coeff_ext = this->all_parameters->artificial_dissipation_param.add_artificial_dissipation ?
-                                           this->artificial_dissipation_coeffs[neighbor_cell_index]
-                                           : 0.0;
-
-    //typename dealii::DoFHandler<dim>::active_cell_iterator artificial_dissipation_cell(
-    //    this->triangulation.get(), cell->level(), cell->index(), &(this->dof_handler_artificial_dissipation));
-    //const unsigned int n_dofs_arti_diss = this->fe_q_artificial_dissipation.dofs_per_cell;
-    //std::vector<dealii::types::global_dof_index> dof_indices_artificial_dissipation(n_dofs_arti_diss);
-    //artificial_dissipation_cell->get_dof_indices (dof_indices_artificial_dissipation);
-
-    //std::vector<real> artificial_diss_coeff_at_q(n_face_quad_pts);
-    //for (unsigned int iquad=0; iquad<n_face_quad_pts; ++iquad) {
-    //    artificial_diss_coeff_at_q[iquad] = 0.0;
-
-    //    if ( this->all_parameters->artificial_dissipation_param.add_artificial_dissipation ) {
-    //        const dealii::Point<dim,real> point = fe_values_int.get_quadrature().point(iquad);
-    //        for (unsigned int idof=0; idof<n_dofs_arti_diss; ++idof) {
-    //            const unsigned int index = dof_indices_artificial_dissipation[idof];
-    //            artificial_diss_coeff_at_q[iquad] += this->artificial_dissipation_c0[index] * this->fe_q_artificial_dissipation.shape_value(idof, point);
-    //        }
-    //    }
-    //}
-
-    for (unsigned int iquad=0; iquad<n_face_quad_pts; ++iquad) {
-
-        const dealii::Tensor<1,dim,real> normal_int = normals_int[iquad];
-        const dealii::Tensor<1,dim,real> normal_ext = -normal_int;
-
-        // Interpolate solution to face
-        for (unsigned int idof=0; idof<n_soln_dofs_int; ++idof) {
-            const unsigned int istate = fe_values_int.get_fe().system_to_component_index(idof).first;
-            soln_int[iquad][istate]      += soln_coeff_int[idof] * fe_values_int.shape_value_component(idof, iquad, istate);
-            soln_grad_int[iquad][istate] += soln_coeff_int[idof] * fe_values_int.shape_grad_component(idof, iquad, istate);
-        }
-        for (unsigned int idof=0; idof<n_soln_dofs_ext; ++idof) {
-            const unsigned int istate = fe_values_ext.get_fe().system_to_component_index(idof).first;
-            soln_ext[iquad][istate]      += soln_coeff_ext[idof] * fe_values_ext.shape_value_component(idof, iquad, istate);
-            soln_grad_ext[iquad][istate] += soln_coeff_ext[idof] * fe_values_ext.shape_grad_component(idof, iquad, istate);
-        }
-
-        // Evaluate physical convective flux, physical dissipative flux, and source term
-        conv_num_flux_dot_n[iquad] = DGBaseState<dim,nstate,real,MeshType>::conv_num_flux_double->evaluate_flux(soln_int[iquad], soln_ext[iquad], normal_int);
-        diss_soln_num_flux[iquad] = DGBaseState<dim,nstate,real,MeshType>::diss_num_flux_double->evaluate_solution_flux(soln_int[iquad], soln_ext[iquad], normal_int);
-
-        doubleArrayTensor1 diss_soln_jump_int, diss_soln_jump_ext;
-        for (int s=0; s<nstate; s++) {
-            for (int d=0; d<dim; d++) {
-                diss_soln_jump_int[s][d] = (diss_soln_num_flux[iquad][s] - soln_int[iquad][s]) * normal_int[d];
-                diss_soln_jump_ext[s][d] = (diss_soln_num_flux[iquad][s] - soln_ext[iquad][s]) * normal_ext[d];
-            }
-        }
-        diss_flux_jump_int[iquad] = DGBaseState<dim,nstate,real,MeshType>::pde_physics_double->dissipative_flux (soln_int[iquad], diss_soln_jump_int);
-        diss_flux_jump_ext[iquad] = DGBaseState<dim,nstate,real,MeshType>::pde_physics_double->dissipative_flux (soln_ext[iquad], diss_soln_jump_ext);
-
-        if (this->all_parameters->artificial_dissipation_param.add_artificial_dissipation) {
-            const doubleArrayTensor1 artificial_diss_flux_jump_int = DGBaseState<dim,nstate,real,MeshType>::artificial_dissip->calc_artificial_dissipation_flux(soln_int[iquad], diss_soln_jump_int, artificial_diss_coeff_int);
-            const doubleArrayTensor1 artificial_diss_flux_jump_ext = DGBaseState<dim,nstate,real,MeshType>::artificial_dissip->calc_artificial_dissipation_flux(soln_ext[iquad], diss_soln_jump_ext, artificial_diss_coeff_ext);
-            for (int s=0; s<nstate; s++) {
-                diss_flux_jump_int[iquad][s] += artificial_diss_flux_jump_int[s];
-                diss_flux_jump_ext[iquad][s] += artificial_diss_flux_jump_ext[s];
-            }
-        }
-
-        diss_auxi_num_flux_dot_n[iquad] = DGBaseState<dim,nstate,real,MeshType>::diss_num_flux_double->evaluate_auxiliary_flux(
-            artificial_diss_coeff_int,
-            artificial_diss_coeff_ext,
-            soln_int[iquad], soln_ext[iquad],
-            soln_grad_int[iquad], soln_grad_ext[iquad],
-            normal_int, penalty);
-    }
-
-    // From test functions associated with interior cell point of view
-    for (unsigned int itest_int=0; itest_int<n_soln_dofs_int; ++itest_int) {
-        real rhs = 0.0;
-        const unsigned int istate = fe_values_int.get_fe().system_to_component_index(itest_int).first;
-
-        for (unsigned int iquad=0; iquad<n_face_quad_pts; ++iquad) {
-            // Convection
-            rhs = rhs - fe_values_int.shape_value_component(itest_int,iquad,istate) * conv_num_flux_dot_n[iquad][istate] * JxW_int[iquad];
-            // Diffusive
-            rhs = rhs - fe_values_int.shape_value_component(itest_int,iquad,istate) * diss_auxi_num_flux_dot_n[iquad][istate] * JxW_int[iquad];
-            rhs = rhs + fe_values_int.shape_grad_component(itest_int,iquad,istate) * diss_flux_jump_int[iquad][istate] * JxW_int[iquad];
-        }
-
-        local_rhs_int_cell(itest_int) += rhs;
-    }
-
-    // From test functions associated with neighbor cell point of view
-    for (unsigned int itest_ext=0; itest_ext<n_soln_dofs_ext; ++itest_ext) {
-        real rhs = 0.0;
-        const unsigned int istate = fe_values_int.get_fe().system_to_component_index(itest_ext).first;
-
-        for (unsigned int iquad=0; iquad<n_face_quad_pts; ++iquad) {
-            // Convection
-            rhs = rhs - fe_values_ext.shape_value_component(itest_ext,iquad,istate) * (-conv_num_flux_dot_n[iquad][istate]) * JxW_int[iquad];
-            // Diffusive
-            rhs = rhs - fe_values_ext.shape_value_component(itest_ext,iquad,istate) * (-diss_auxi_num_flux_dot_n[iquad][istate]) * JxW_int[iquad];
-            rhs = rhs + fe_values_ext.shape_grad_component(itest_ext,iquad,istate) * diss_flux_jump_ext[iquad][istate] * JxW_int[iquad];
-        }
-
-        local_rhs_ext_cell(itest_ext) += rhs;
-    }
+      (void)current_cell_index;
+      (void)neighbor_cell_index;
+      (void)fe_values_int;
+      (void)fe_values_ext;
+      (void)penalty;
+      (void)soln_dof_indices_int;
+      (void)soln_dof_indices_ext;
+      (void)local_rhs_int_cell;
+      (void)local_rhs_ext_cell;
 }
 
 template <int dim, int nstate, typename real2>
@@ -1413,7 +1132,7 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_boundary_term(
     std::vector<dealii::types::global_dof_index> dof_indices_artificial_dissipation(n_dofs_arti_diss);
     artificial_dissipation_cell->get_dof_indices (dof_indices_artificial_dissipation);
 
-    std::vector<real> artificial_diss_coeff_at_q(n_quad_pts);
+    std::vector<real2> artificial_diss_coeff_at_q(n_quad_pts);
     for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
         artificial_diss_coeff_at_q[iquad] = 0.0;
         if ( this->all_parameters->artificial_dissipation_param.add_artificial_dissipation ) {
@@ -1423,7 +1142,7 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_boundary_term(
                 artificial_diss_coeff_at_q[iquad] += this->artificial_dissipation_c0[index] * this->fe_q_artificial_dissipation.shape_value(idof, point);
             }
         }
-        artificial_diss_coeff_at_q[iquad] = 0.0;
+        if (!DO_USE_C0_ARTIFICIAL_DISSIPATION || DO_USE_GEGENBAUER) artificial_diss_coeff_at_q[iquad] = 0.0;
     }
 
     for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
@@ -2122,7 +1841,7 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_face_term(
     std::vector<dealii::types::global_dof_index> dof_indices_artificial_dissipation(n_dofs_arti_diss);
     artificial_dissipation_cell->get_dof_indices (dof_indices_artificial_dissipation);
 
-    std::vector<real> artificial_diss_coeff_at_q(n_face_quad_pts);
+    std::vector<real2> artificial_diss_coeff_at_q(n_face_quad_pts);
     for (unsigned int iquad=0; iquad<n_face_quad_pts; ++iquad) {
         artificial_diss_coeff_at_q[iquad] = 0.0;
 
@@ -2133,7 +1852,7 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_face_term(
                 artificial_diss_coeff_at_q[iquad] += this->artificial_dissipation_c0[index] * this->fe_q_artificial_dissipation.shape_value(idof, point);
             }
         }
-        artificial_diss_coeff_at_q[iquad] = 0.0;
+        if (!DO_USE_C0_ARTIFICIAL_DISSIPATION || DO_USE_GEGENBAUER) artificial_diss_coeff_at_q[iquad] = 0.0;
     }
 
     std::vector<real2> jacobian_determinant_int(n_face_quad_pts);
@@ -3581,25 +3300,26 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_volume_term(
     }
 
 
-    real2 arti_diss = this->discontinuity_sensor(quadrature, soln_coeff, fe_soln, jac_det);
-    const bool USE_GEGENBAUER = true;
-    for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad)
-    {
-        if (USE_GEGENBAUER) {
-            dealii::Point<dim,real> point = unit_quad_pts[iquad];
-            // Rescale over -1,1
-            for (int d=0; d<dim; ++d) {
-                point[d] = point[d]*2 - 1.0;
+    if (!DO_USE_C0_ARTIFICIAL_DISSIPATION) {
+        real2 arti_diss = this->discontinuity_sensor(quadrature, soln_coeff, fe_soln, jac_det);
+        for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad)
+        {
+            if (DO_USE_GEGENBAUER) {
+                dealii::Point<dim,real> point = unit_quad_pts[iquad];
+                // Rescale over -1,1
+                for (int d=0; d<dim; ++d) {
+                    point[d] = point[d]*2 - 1.0;
+                }
+                double gegenbauer_factor = 0.1;
+                double gegenbauer = 1.0;
+                for (int d=0; d<dim; ++d) {
+                    gegenbauer *= std::pow(1-point[d]*point[d], gegenbauer_factor);
+                }
+                artificial_diss_coeff_at_q[iquad] = arti_diss * gegenbauer;
             }
-            double gegenbauer_factor = 0.1;
-            double gegenbauer = 1.0;
-            for (int d=0; d<dim; ++d) {
-                gegenbauer *= std::pow(1-point[d]*point[d], gegenbauer_factor);
+            else {
+                artificial_diss_coeff_at_q[iquad] = arti_diss;
             }
-            artificial_diss_coeff_at_q[iquad] = arti_diss * gegenbauer;
-        }
-        else {
-            artificial_diss_coeff_at_q[iquad] = arti_diss;
         }
     }
 

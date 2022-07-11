@@ -11,6 +11,7 @@
 
 #include "parameters/parameters_euler.h"
 #include "parameters/parameters_navier_stokes.h"
+#include "parameters/parameters_physics_model.h"
 
 #include "parameters/parameters_reduced_order.h"
 #include "parameters/parameters_burgers.h"
@@ -45,6 +46,8 @@ public:
     ReducedOrderModelParam reduced_order_param;
     /// Contains parameters for Burgers equation
     BurgersParam burgers_param;
+    /// Contains parameters for Physics Model
+    PhysicsModelParam physics_model_param;
     /// Contains the parameters for grid refinement study
     GridRefinementStudyParam grid_refinement_study_param;
     /// Contains parameters for artificial dissipation
@@ -59,6 +62,13 @@ public:
     /// Number of dimensions. Note that it has to match the executable PHiLiP_xD
     unsigned int dimension;
 
+    /// Run type
+    enum RunType {
+        integration_test,
+        flow_simulation
+        };
+    RunType run_type; ///< Selected RunType from the input file
+
     /// Mesh type to be used in defining the triangulation
     enum MeshType {
         default_triangulation,
@@ -66,8 +76,9 @@ public:
         parallel_shared_triangulation,
         parallel_distributed_triangulation,
         };
-    MeshType mesh_type; ///< Selected MeshType from the input file
-
+    /// Store selected MeshType from the input file
+    MeshType mesh_type;
+    
     /// Number of additional quadrature points to use.
     /** overintegration = 0 leads to number_quad_points = dg_solution_degree + 1
      */
@@ -103,7 +114,7 @@ public:
     /// Number of state variables. Will depend on PDE
     int nstate;
 
-    /// Currently allows to solve advection, diffusion, convection-diffusion
+    /// Possible integration tests to run
     enum TestType {
         run_control,
         grid_refinement_study,
@@ -129,15 +140,15 @@ public:
         POD_adaptation,
         finite_difference_sensitivity,
         advection_periodicity,
-        flow_solver,
         dual_weighted_residual_mesh_adaptation,
         taylor_green_vortex_energy_check,
         taylor_green_vortex_restart_check,
         time_refinement_study,
     };
-    TestType test_type; ///< Selected TestType from the input file.
+    /// Store selected TestType from the input file.
+    TestType test_type;
 
-    /// Currently allows to solve advection, diffusion, convection-diffusion
+    /// Possible Partial Differential Equations to solve
     enum PartialDifferentialEquation {
         advection,
         diffusion,
@@ -149,7 +160,18 @@ public:
         euler,
         mhd,
         navier_stokes,
+        physics_model,
     };
+    /// Store the PDE type to be solved
+    PartialDifferentialEquation pde_type;
+
+    /// Types of models available.
+    enum ModelType {
+        large_eddy_simulation,
+        //reynolds_averaged_navier_stokes,
+    };
+    /// Store the model type
+    ModelType model_type;
 
     /// Possible boundary types, NOT IMPLEMENTED YET
     enum BoundaryType {
@@ -164,17 +186,13 @@ public:
         manufactured,
     };
 
-    /// Store the PDE type to be solved
-    PartialDifferentialEquation pde_type;
-
-    /// Currently only Lax-Friedrichs, roe, and split_form can be used as an input parameter
+    /// Possible convective numerical flux types
     enum ConvectiveNumericalFlux {
         lax_friedrichs,
         roe,
         l2roe,
         split_form
     };
-
     /// Store convective flux type
     ConvectiveNumericalFlux conv_num_flux_type;
 
@@ -185,14 +203,12 @@ public:
 
     /// Type of correction in Flux Reconstruction
     enum Flux_Reconstruction {cDG, cSD, cHU, cNegative, cNegative2, cPlus, cPlus1D, c10Thousand, cHULumped};
-
     /// Store flux reconstruction type
     Flux_Reconstruction flux_reconstruction_type;
 
     /// Type of correction in Flux Reconstruction for the auxiliary variables
     enum Flux_Reconstruction_Aux {kDG, kSD, kHU, kNegative, kNegative2, kPlus, k10Thousand};
-
-    /// Store flux reconstruction type
+    /// Store flux reconstruction type for the auxiliary variables
     Flux_Reconstruction_Aux flux_reconstruction_aux_type;
 
     /// Name of directory for writing solution vtk files

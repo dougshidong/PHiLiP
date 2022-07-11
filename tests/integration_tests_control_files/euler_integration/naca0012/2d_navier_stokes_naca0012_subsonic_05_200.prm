@@ -113,6 +113,8 @@ subsection manufactured solution convergence study
 end
 
 subsection flow_solver
-  set input_mesh_filename = naca0012_hopw_ref5
+  subsection grid
+    set input_mesh_filename = ../../../meshes/naca0012_hopw_ref5
+  end
 end
 

@@ -25,6 +25,9 @@ public:
     /// Expected kinetic energy at final time
     const double kinetic_energy_expected;
 
+    /// Expected theoretical dissipation rate at final time
+    const double theoretical_dissipation_rate_expected;
+
     /// Run test
     int run_test () const override;
 };

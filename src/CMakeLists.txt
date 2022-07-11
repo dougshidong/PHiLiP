@@ -14,6 +14,7 @@ add_subdirectory(grid_refinement)
 add_subdirectory(optimization)
 add_subdirectory(operators)
 add_subdirectory(reduced_order)
+add_subdirectory(flow_solver)
 add_subdirectory(testing)
 
 foreach(dim RANGE 1 3)

@@ -31,8 +31,11 @@ namespace PHiLiP {
 namespace Tests {
 
 template <int dim, int nstate>
-EulerGaussianBumpEnthalpyCheck<dim,nstate>::EulerGaussianBumpEnthalpyCheck(const Parameters::AllParameters *const parameters_input)
- : TestsBase::TestsBase(parameters_input)
+EulerGaussianBumpEnthalpyCheck<dim,nstate>::EulerGaussianBumpEnthalpyCheck(
+    const Parameters::AllParameters *const parameters_input,
+    const dealii::ParameterHandler &parameter_handler_input)
+    : TestsBase::TestsBase(parameters_input)
+    , parameter_handler(parameter_handler_input)
  {}
 
 template<int dim, int nstate>
@@ -43,8 +46,8 @@ int EulerGaussianBumpEnthalpyCheck<dim,nstate>::run_test () const
     param_subsonic.artificial_dissipation_param.add_artificial_dissipation = false;
     param_subsonic.euler_param.mach_inf = 0.5;
 
-    EulerGaussianBump<dim,nstate> gaussian_bump_transonic(&param_transonic);
-    EulerGaussianBump<dim,nstate> gaussian_bump_subsonic(&param_subsonic);
+    EulerGaussianBump<dim,nstate> gaussian_bump_transonic(&param_transonic, parameter_handler);
+    EulerGaussianBump<dim,nstate> gaussian_bump_subsonic(&param_subsonic, parameter_handler);
 
     const double error_transonic = gaussian_bump_transonic.run_euler_gaussian_bump();
     const double error_subsonic = gaussian_bump_subsonic.run_euler_gaussian_bump();

@@ -21,6 +21,9 @@ subsection burgers
   set rewienski_b = 0.01
 end
 
+subsection functional
+  set functional_type = solution_integral
+end
 
 #Reduced order parameters
 subsection reduced order

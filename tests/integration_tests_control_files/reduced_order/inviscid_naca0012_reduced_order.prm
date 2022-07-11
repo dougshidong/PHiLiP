@@ -69,6 +69,10 @@ subsection flow_solver
   end
 end
 
+subsection functional
+  set functional_type = lift
+end
+
 subsection reduced order
   set path_to_search = .
   set reduced_residual_tolerance = 5e-13

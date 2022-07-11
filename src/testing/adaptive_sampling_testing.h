@@ -45,9 +45,6 @@ public:
 
     /// Output errors
     void outputErrors(int iteration) const;
-
-    /// Choose functional depending on test case
-    std::shared_ptr<Functional<dim,nstate,double>> functionalFactory(std::shared_ptr<DGBase<dim, double>> dg) const;
 };
 
 

@@ -48,6 +48,10 @@ subsection flow_solver
   end
 end
 
+subsection functional
+  set functional_type = lift
+end
+
 #Reduced order parameters
 subsection reduced order
   set adaptation_tolerance = 0.001

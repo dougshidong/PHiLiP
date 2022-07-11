@@ -32,6 +32,10 @@ subsection burgers
  set rewienski_b = 0.04
 end
 
+subsection functional
+  set functional_type = solution_integral
+end
+
 #Reduced order parameters
 subsection reduced order
   set path_to_search = ./rewienski_solutions/conference_convergence

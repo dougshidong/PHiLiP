@@ -320,7 +320,7 @@ std::shared_ptr<ProperOrthogonalDecomposition::ROMSolution<dim,nstate>> Adaptive
     flow_solver->ode_solver->steady_state();
 
     // Create functional
-    std::shared_ptr<Functional<dim,nstate,double>> functional = functionalFactory(flow_solver->dg);
+    std::shared_ptr<Functional<dim,nstate,double>> functional = FunctionalFactory<dim,nstate,double>::create_Functional(params.functional_param, flow_solver->dg);
 
     std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> system_matrix_transpose = std::make_shared<dealii::TrilinosWrappers::SparseMatrix>();
     system_matrix_transpose->copy_from(flow_solver->dg->system_matrix_transpose);
@@ -353,29 +353,6 @@ Parameters::AllParameters AdaptiveSampling<dim, nstate>::reinitParams(const RowV
         std::abort();
     }
     return parameters;
-}
-
-template <int dim, int nstate>
-std::shared_ptr<Functional<dim,nstate,double>> AdaptiveSampling<dim, nstate>::functionalFactory(std::shared_ptr<DGBase<dim, double>> dg) const
-{
-    using FlowCaseEnum = Parameters::FlowSolverParam::FlowCaseType;
-    const FlowCaseEnum flow_type = this->all_parameters->flow_solver_param.flow_case_type;
-    if (flow_type == FlowCaseEnum::burgers_rewienski_snapshot){
-        if constexpr (dim==1 && nstate==dim){
-            std::shared_ptr< DGBaseState<dim,nstate,double>> dg_state = std::dynamic_pointer_cast< DGBaseState<dim,nstate,double>>(dg);
-            return std::make_shared<BurgersRewienskiFunctional<dim,nstate,double>>(dg,dg_state->pde_physics_fad_fad,true,false);
-        }
-    }
-    else if (flow_type == FlowCaseEnum::naca0012){
-        if constexpr (dim==2 && nstate==dim+2){
-            return std::make_shared<LiftDragFunctional<dim,nstate,double>>(dg, LiftDragFunctional<dim,nstate,double>::Functional_types::lift);
-        }
-    }
-    else{
-        this->pcout << "Invalid flow case. You probably forgot to specify a flow case in the prm file." << std::endl;
-        std::abort();
-    }
-    return nullptr;
 }
 
 template <int dim, int nstate>
@@ -465,27 +442,8 @@ void AdaptiveSampling<dim, nstate>::configureParameterSpace() const
     }
 }
 
-template <int dim, int nstate, typename real>
-template <typename real2>
-real2 BurgersRewienskiFunctional<dim,nstate,real>::evaluate_volume_integrand(
-        const PHiLiP::Physics::PhysicsBase<dim,nstate,real2> &/*physics*/,
-        const dealii::Point<dim,real2> &/*phys_coord*/,
-        const std::array<real2,nstate> &soln_at_q,
-        const std::array<dealii::Tensor<1,dim,real2>,nstate> &/*soln_grad_at_q*/) const
-{
-    real2 val = 0;
-
-// integrating over the domain
-    for (int istate=0; istate<nstate; ++istate) {
-        val += soln_at_q[istate];
-    }
-
-    return val;
-}
-
 #if PHILIP_DIM==1
         template class AdaptiveSampling<PHILIP_DIM, PHILIP_DIM>;
-        template class BurgersRewienskiFunctional<PHILIP_DIM, PHILIP_DIM, double>;
 #endif
 
 #if PHILIP_DIM!=1

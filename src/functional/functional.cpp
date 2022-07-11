@@ -24,6 +24,7 @@
 #include "physics/model_factory.h"
 #include "dg/dg.h"
 #include "functional.h"
+#include "lift_drag.hpp"
 
 /// Returns y = Ax.
 /** Had to rewrite this instead of 
@@ -267,6 +268,25 @@ real2 FunctionalErrorNormLpBoundary<dim,nstate,real,MeshType>::evaluate_boundary
     }
 
     return lpnorm_value;
+}
+
+
+template <int dim, int nstate, typename real, typename MeshType>
+template <typename real2>
+real2 SolutionIntegral<dim,nstate,real, MeshType>::evaluate_volume_integrand(
+        const PHiLiP::Physics::PhysicsBase<dim,nstate,real2> &/*physics*/,
+        const dealii::Point<dim,real2> &/*phys_coord*/,
+        const std::array<real2,nstate> &soln_at_q,
+        const std::array<dealii::Tensor<1,dim,real2>,nstate> &/*soln_grad_at_q*/) const
+{
+    real2 val = 0;
+
+// integrating over the domain
+    for (int istate=0; istate<nstate; ++istate) {
+        val += soln_at_q[istate];
+    }
+
+    return val;
 }
 
 template <int dim, int nstate, typename real, typename MeshType>
@@ -1246,14 +1266,25 @@ FunctionalFactory<dim,nstate,real,MeshType>::create_Functional(
             dg,
             true,
             false);
-    }else if(functional_type == FunctionalTypeEnum::error_normLp_boundary){
-        return std::make_shared<FunctionalErrorNormLpBoundary<dim,nstate,real,MeshType>>(
-            normLp,
-            boundary_vector,
-            use_all_boundaries,
-            dg,
-            true,
-            false);
+    }else if(functional_type == FunctionalTypeEnum::error_normLp_boundary) {
+        return std::make_shared<FunctionalErrorNormLpBoundary<dim, nstate, real, MeshType>>(
+                normLp,
+                boundary_vector,
+                use_all_boundaries,
+                dg,
+                true,
+                false);
+    }else if(functional_type == FunctionalTypeEnum::lift) {
+        if constexpr (dim==2 && nstate==dim+2){
+            return std::make_shared<LiftDragFunctional<dim,nstate,double,MeshType>>(dg, LiftDragFunctional<dim,nstate,double,MeshType>::Functional_types::lift);
+        }
+    }else if(functional_type == FunctionalTypeEnum::drag) {
+        if constexpr (dim==2 && nstate==dim+2){
+            return std::make_shared<LiftDragFunctional<dim,nstate,double,MeshType>>(dg, LiftDragFunctional<dim,nstate,double,MeshType>::Functional_types::drag);
+        }
+    }else if(functional_type == FunctionalTypeEnum::solution_integral) {
+        std::shared_ptr< DGBaseState<dim,nstate,double,MeshType>> dg_state = std::dynamic_pointer_cast< DGBaseState<dim,nstate,double, MeshType>>(dg);
+        return std::make_shared<SolutionIntegral<dim,nstate,real,MeshType>>(dg,dg_state->pde_physics_fad_fad,true,false);
     }else{
         std::cout << "Invalid Functional." << std::endl;
     }
@@ -1347,6 +1378,12 @@ template class FunctionalErrorNormLpBoundary <PHILIP_DIM, 3, double, dealii::par
 template class FunctionalErrorNormLpBoundary <PHILIP_DIM, 4, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
 template class FunctionalErrorNormLpBoundary <PHILIP_DIM, 5, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
 
+template class SolutionIntegral<PHILIP_DIM, 1, double, dealii::Triangulation<PHILIP_DIM>>;
+template class SolutionIntegral<PHILIP_DIM, 2, double, dealii::Triangulation<PHILIP_DIM>>;
+template class SolutionIntegral<PHILIP_DIM, 3, double, dealii::Triangulation<PHILIP_DIM>>;
+template class SolutionIntegral<PHILIP_DIM, 4, double, dealii::Triangulation<PHILIP_DIM>>;
+template class SolutionIntegral<PHILIP_DIM, 5, double, dealii::Triangulation<PHILIP_DIM>>;
+
 template class Functional <PHILIP_DIM, 1, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
 template class Functional <PHILIP_DIM, 2, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
 template class Functional <PHILIP_DIM, 3, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
@@ -1396,6 +1433,12 @@ template class FunctionalErrorNormLpBoundary <PHILIP_DIM, 2, double, dealii::par
 template class FunctionalErrorNormLpBoundary <PHILIP_DIM, 3, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
 template class FunctionalErrorNormLpBoundary <PHILIP_DIM, 4, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
 template class FunctionalErrorNormLpBoundary <PHILIP_DIM, 5, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+
+template class SolutionIntegral<PHILIP_DIM, 1, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class SolutionIntegral<PHILIP_DIM, 2, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class SolutionIntegral<PHILIP_DIM, 3, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class SolutionIntegral<PHILIP_DIM, 4, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class SolutionIntegral<PHILIP_DIM, 5, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
 
 template class Functional <PHILIP_DIM, 1, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
 template class Functional <PHILIP_DIM, 2, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;

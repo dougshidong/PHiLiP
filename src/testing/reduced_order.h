@@ -15,6 +15,7 @@
 #include "dg/dg_factory.hpp"
 #include "ode_solver/ode_solver_factory.h"
 #include <iostream>
+#include "functional/functional.h"
 
 namespace PHiLiP {
 namespace Tests {
@@ -33,9 +34,6 @@ public:
 
     /// Dummy parameter handler because flowsolver requires it
     const dealii::ParameterHandler &parameter_handler;
-
-    // Selects functional
-    std::shared_ptr<Functional<dim,nstate,double>> functionalFactory(std::shared_ptr<DGBase<dim, double>> dg) const;
 };
 } // End of Tests namespace
 } // End of PHiLiP namespace

@@ -132,10 +132,9 @@ void PODGalerkinODESolver<dim,real,MeshType>::step_in_time (real /*dt*/, const b
     Epetra_Vector epetra_reduced_solution_update(Epetra_DataAccess::View, epetra_reduced_lhs.DomainMap(), reduced_solution_update.begin());
     Epetra_LinearProblem linearProblem(&epetra_reduced_lhs, &epetra_reduced_solution_update, &epetra_reduced_rhs);
 
-    Amesos_BaseSolver* Solver;
     Amesos Factory;
     std::string SolverType = "Klu";
-    Solver = Factory.Create(SolverType, linearProblem);
+    std::unique_ptr<Amesos_BaseSolver> Solver(Factory.Create(SolverType, linearProblem));
 
     Teuchos::ParameterList List;
     Solver->SetParameters(List);
@@ -190,8 +189,6 @@ void PODGalerkinODESolver<dim,real,MeshType>::step_in_time (real /*dt*/, const b
     this->residual_norm = new_residual;
 
     ++(this->current_iteration);
-
-    delete Solver;
 }
 
 

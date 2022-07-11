@@ -60,10 +60,10 @@ void ROMTestLocation<dim, nstate>::compute_initial_rom_to_final_rom_error(std::s
     epetra_reduced_gradient.Scale(-1);
     Epetra_LinearProblem linearProblem(&epetra_reduced_jacobian_transpose, &epetra_reduced_adjoint, &epetra_reduced_gradient);
 
-    Amesos_BaseSolver* Solver;
     Amesos Factory;
     std::string SolverType = "Klu";
-    Solver = Factory.Create(SolverType, linearProblem);
+    std::unique_ptr<Amesos_BaseSolver> Solver(Factory.Create(SolverType, linearProblem));
+
     Teuchos::ParameterList List;
     Solver->SetParameters(List);
     Solver->SymbolicFactorization();
@@ -80,8 +80,6 @@ void ROMTestLocation<dim, nstate>::compute_initial_rom_to_final_rom_error(std::s
     initial_rom_to_final_rom_error *= -1;
 
     pcout << "Parameter: " << parameter << ". Error estimate between initial ROM and updated ROM: " << initial_rom_to_final_rom_error << std::endl;
-
-    delete Solver;
 }
 
 template <int dim, int nstate>

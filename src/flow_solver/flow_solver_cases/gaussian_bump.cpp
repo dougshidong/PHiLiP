@@ -44,7 +44,9 @@ std::shared_ptr<Triangulation> GaussianBump<dim,nstate>::generate_grid() const
 template <int dim, int nstate>
 void GaussianBump<dim,nstate>::display_additional_flow_case_specific_parameters() const
 {
-    this->pcout << "- - Farfield conditions: " << std::endl;
+    this->pcout << "- - Gaussian bump parameters: " << std::endl;
+    this->pcout << "- - - Channel length: " << this->all_param.flow_solver_param.channel_length << std::endl;
+    this->pcout << "- - - Channel height: " << this->all_param.flow_solver_param.channel_height << std::endl;
     const dealii::Point<dim> dummy_point;
     for (int s=0;s<nstate;s++) {
         this->pcout << "- - - State " << s << "; Value: " << this->initial_condition_function->value(dummy_point, s) << std::endl;

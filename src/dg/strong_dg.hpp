@@ -46,6 +46,10 @@ private:
         std::vector<dealii::LinearAlgebra::distributed::Vector<double>> &rhs);
 
     /// Evaluate the volume RHS for the auxiliary equation.
+    /** \f[
+    * \int_{\mathbf{\Omega}_r} \chi_i(\mathbf{\xi}^r) \left( \nabla^r(u) \right)\mathbf{C}_m(\mathbf{\xi}^r) d\mathbf{\Omega}_r,\:\forall i=1,\dots,N_p.
+    * \f]
+    */
     void assemble_volume_term_auxiliary_equation(
         const std::vector<dealii::types::global_dof_index> &current_dofs_indices,
         const unsigned int                                 poly_degree,
@@ -54,7 +58,7 @@ private:
         OPERATOR::metric_operators<real,dim,2*dim>         &metric_oper,
         std::vector<dealii::Tensor<1,dim,real>>            &local_auxiliary_RHS);
 
-    ///Evaluate the boundary RHS for the auxiliary equation.
+    /// Evaluate the boundary RHS for the auxiliary equation.
     void assemble_boundary_term_auxiliary_equation(
         const unsigned int                                 iface,
         const dealii::types::global_dof_index              current_cell_index,
@@ -65,7 +69,12 @@ private:
         OPERATOR::metric_operators<real,dim,2*dim>         &metric_oper,
         std::vector<dealii::Tensor<1,dim,real>>            &local_auxiliary_RHS);
 
-    ///Evaluate the facet RHS for the auxiliary equation.
+    /// Evaluate the facet RHS for the auxiliary equation.
+    /** \f[
+    * \int_{\mathbf{\Gamma}_r} \chi_i \left( \hat{\mathbf{n}}^r\mathbf{C}_m(\mathbf{\xi}^r)^T\right) \cdot \left[ u^*  
+    * - u\right]d\mathbf{\Gamma}_r,\:\forall i=1,\dots,N_p.
+    * \f]
+    */
     void assemble_face_term_auxiliary(
         const unsigned int                                 iface, 
         const unsigned int                                 neighbor_iface,
@@ -82,7 +91,24 @@ private:
         std::vector<dealii::Tensor<1,dim,real>>            &local_auxiliary_RHS_ext);
 
 
-    ///Strong form primary equation's volume right-hand-side.
+    /// Strong form primary equation's volume right-hand-side.
+    /**  We refer to Cicchino, Alexander, et al. "Provably stable flux reconstruction high-order methods on curvilinear elements." Journal of Computational Physics 463 (2022): 111259.
+    * Conservative form Eq. (17): <br>
+    *\f[ 
+    * \int_{\mathbf{\Omega}_r} \chi_i (\mathbf{\xi}^r) \left(\nabla^r \phi(\mathbf{\xi}^r) \cdot \hat{\mathbf{f}}^r \right) d\mathbf{\Omega}_r
+    * ,\:\forall i=1,\dots,N_p,
+    * \f] 
+    * where \f$ \chi \f$ is the basis function, \f$ \phi \f$ is the flux basis (basis collocated on the volume cubature nodes,
+    * and \f$\hat{\mathbf{f}}^r = \mathbf{\Pi}\left(\mathbf{f}_m\mathbf{C}_m \right) \f$ is the projection of the reference flux.
+    * <br> Entropy stable two-point flux form (extension of Eq. (22))<br>
+    * \f[ 
+    * \mathbf{\chi}(\mathbf{\xi}_v^r)^T \mathbf{W} 2 \left[ \nabla^r\mathbf{\phi}(\mathbf{\xi}_v^r) \circ
+    * \mathbf{F}^r\right] \mathbf{1}^T d\mathbf{\Omega}_r
+    * ,\:\forall i=1,\dots,N_p,
+    * \f]
+    * where \f$ (\mathbf{F})_{ij} = 0.5\left( \mathbf{C}_m(\mathbf{\xi}_i^r)+\mathbf{C}_m(\mathbf{\xi}_j^r) \right) \cdot \mathbf{f}_s(\mathbf{u}(\mathbf{\xi}_i^r),\mathbf{u}(\mathbf{\xi}_j^r)) \f$; that is, the 
+    * matrix of REFERENCE two-point entropy conserving fluxes.
+    */
     void assemble_volume_term_strong(
         const dealii::types::global_dof_index              current_cell_index,
         const std::vector<dealii::types::global_dof_index> &cell_dofs_indices,
@@ -92,7 +118,7 @@ private:
         OPERATOR::metric_operators<real,dim,2*dim>         &metric_oper,
         dealii::Vector<real>                               &local_rhs_int_cell);
 
-    ///Strong form primary equation's boundary right-hand-side.
+    /// Strong form primary equation's boundary right-hand-side.
     void assemble_boundary_term_strong(
         const unsigned int                                 iface, 
         const dealii::types::global_dof_index              current_cell_index,
@@ -105,7 +131,15 @@ private:
         OPERATOR::metric_operators<real,dim,2*dim>         &metric_oper,
         dealii::Vector<real>                               &local_rhs_cell);
 
-    ///Strong form primary equation's facet right-hand-side.
+    /// Strong form primary equation's facet right-hand-side.
+    /**
+    * \f[
+    * \int_{\mathbf{\Gamma}_r}{\chi}_i(\mathbf{\xi}^r) \Big[ 
+    * \hat{\mathbf{n}}^r\mathbf{C}_m^T \cdot \mathbf{f}^*_m - \hat{\mathbf{n}}^r \cdot \mathbf{\chi}(\mathbf{\xi}^r)\mathbf{\hat{f}}^r_m(t)^T
+    * \Big]d \mathbf{\Gamma}_r
+    * ,\:\forall i=1,\dots,N_p.
+    * \f]
+    */
     void assemble_face_term_strong(
         const unsigned int                                 iface, 
         const unsigned int                                 neighbor_iface, 

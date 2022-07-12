@@ -750,33 +750,36 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
     const dealii::FESystem<dim> &fe_metric = this->high_order_grid->fe_system;
     const unsigned int n_metric_dofs = fe_metric.dofs_per_cell;
     const unsigned int n_grid_nodes  = n_metric_dofs / dim;
-    //Rewrite the high_order_grid->volume_nodes in a way we can use sum-factorization on.
-    //That is, splitting up the vector by the dimension.
+
     std::array<std::vector<real>,dim> mapping_support_points;
-    for(int idim=0; idim<dim; idim++){
-        mapping_support_points[idim].resize(n_grid_nodes);
-    }
-    for (unsigned int igrid_node = 0; igrid_node< n_metric_dofs/dim; ++igrid_node) {
-        for (unsigned int idof = 0; idof< n_metric_dofs; ++idof) {
-            const real val = (high_order_grid->volume_nodes[current_metric_dofs_indices[idof]]);
-            const unsigned int istate = fe_metric.system_to_component_index(idof).first; 
-            mapping_support_points[istate][igrid_node] += val * fe_metric.shape_value_component(idof,high_order_grid->dim_grid_nodes.point(igrid_node),istate); 
-        }
-    }
     //if have source term need to store vol flux nodes.
     const bool store_vol_flux_nodes = all_parameters->manufactured_convergence_study_param.manufactured_solution_param.use_manufactured_source_term;
     //for boundary conditions not periodic we need surface flux nodes
     const bool store_surf_flux_nodes = (all_parameters->use_periodic_bc) ? false : true;
-
     OPERATOR::metric_operators<real,dim,2*dim> metric_oper_int(nstate, poly_degree, grid_degree,
                                                                store_vol_flux_nodes,
                                                                store_surf_flux_nodes);
-    //build the volume metric cofactor matrix and the determinant of the volume metric Jacobian
-    metric_oper_int.build_volume_metric_operators(
-        volume_quadrature_collection[poly_degree].size(), n_grid_nodes,
-        mapping_support_points,
-        mapping_basis,
-        this->all_parameters->use_invariant_curl_form);
+    if(use_strong_form){
+        //Rewrite the high_order_grid->volume_nodes in a way we can use sum-factorization on.
+        //That is, splitting up the vector by the dimension.
+        for(int idim=0; idim<dim; idim++){
+            mapping_support_points[idim].resize(n_grid_nodes);
+        }
+        for (unsigned int igrid_node = 0; igrid_node< n_metric_dofs/dim; ++igrid_node) {
+            for (unsigned int idof = 0; idof< n_metric_dofs; ++idof) {
+                const real val = (high_order_grid->volume_nodes[current_metric_dofs_indices[idof]]);
+                const unsigned int istate = fe_metric.system_to_component_index(idof).first; 
+                mapping_support_points[istate][igrid_node] += val * fe_metric.shape_value_component(idof,high_order_grid->dim_grid_nodes.point(igrid_node),istate); 
+            }
+        }
+
+        //build the volume metric cofactor matrix and the determinant of the volume metric Jacobian
+        metric_oper_int.build_volume_metric_operators(
+            volume_quadrature_collection[poly_degree].size(), n_grid_nodes,
+            mapping_support_points,
+            mapping_basis,
+            this->all_parameters->use_invariant_curl_form);
+    }
 
     //flag to terminate if strong form and implicit
     if((this->all_parameters->use_weak_form==false) 
@@ -2838,12 +2841,20 @@ void DGBase<dim,real,MeshType>::evaluate_mass_matrices (bool do_inverse_mass_mat
 
         const unsigned int fe_index_curr_cell = cell->active_fe_index();
         const unsigned int curr_grid_degree   = high_order_grid->fe_system.tensor_degree();//in the future the metric cell's should store a local grid degree. currently high_order_grid dof_handler_grid doesn't have that capability
+
         //Check if need to recompute the 1D basis for the current degree (if different than previous cell)
         //That is, if the poly_degree, manifold type, or grid degree is different than previous reference operator
         if((fe_index_curr_cell != mapping_basis.current_degree) || 
            (curr_grid_degree != mapping_basis.current_grid_degree))
         {
             reinit_operators_for_mass_matrix(Cartesian_element, fe_index_curr_cell, curr_grid_degree, mapping_basis, basis, reference_mass_matrix, reference_FR, reference_FR_aux, deriv_p);
+
+            mapping_basis.current_degree = fe_index_curr_cell;
+            basis.current_degree = fe_index_curr_cell;
+            reference_mass_matrix.current_degree = fe_index_curr_cell;
+            reference_FR.current_degree = fe_index_curr_cell;
+            reference_FR_aux.current_degree = fe_index_curr_cell;
+            deriv_p.current_degree = fe_index_curr_cell;
         }
 
         // Current reference element related to this physical cell

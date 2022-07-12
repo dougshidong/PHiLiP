@@ -32,23 +32,23 @@ add_test(
 # =======================================
 # Burgers Rewienski Adaptive Sampling Testing
 # =======================================
-configure_file(1d_burgers_rewienski_adaptive_sampling_testing.prm 1d_burgers_rewienski_adaptive_sampling_testing.prm COPYONLY)
-add_test(
-        NAME 1D_BURGERS_REWIENSKI_ADAPTIVE_SAMPLING_TESTING
-        COMMAND mpirun -np 1 ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_1D -i ${CMAKE_CURRENT_BINARY_DIR}/1d_burgers_rewienski_adaptive_sampling_testing.prm
-        WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
-)
+#configure_file(1d_burgers_rewienski_adaptive_sampling_testing.prm 1d_burgers_rewienski_adaptive_sampling_testing.prm COPYONLY)
+#add_test(
+#        NAME 1D_BURGERS_REWIENSKI_ADAPTIVE_SAMPLING_TESTING
+#        COMMAND mpirun -np 1 ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_1D -i ${CMAKE_CURRENT_BINARY_DIR}/1d_burgers_rewienski_adaptive_sampling_testing.prm
+#        WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
+#)
 
 # =======================================
 # Burgers Rewienski Snapshot Generator
 # =======================================
-configure_file(burgers_rewienski_snapshot_generator.sh burgers_rewienski_snapshot_generator.sh COPYONLY)
-add_test(
-        NAME 1D_BURGERS_REWIENSKI_GENERATE_SNAPSHOTS
-        COMMAND bash -c
-        "./burgers_rewienski_snapshot_generator.sh ${EXECUTABLE_OUTPUT_PATH}"
-        WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
-)
+#configure_file(burgers_rewienski_snapshot_generator.sh burgers_rewienski_snapshot_generator.sh COPYONLY)
+#add_test(
+#        NAME 1D_BURGERS_REWIENSKI_GENERATE_SNAPSHOTS
+#        COMMAND bash -c
+#        "./burgers_rewienski_snapshot_generator.sh ${EXECUTABLE_OUTPUT_PATH}"
+#        WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
+#)
 
 # =======================================
 # Test Inviscid NACA0012 Galerkin and Petrov-Galerkin reduced-order solvers
@@ -82,23 +82,23 @@ add_test(
 # =======================================
 # Inviscid NACA0012 Adaptive Sampling Testing
 # =======================================
-configure_file(inviscid_naca0012_adaptive_sampling_testing.prm inviscid_naca0012_adaptive_sampling_testing.prm COPYONLY)
-add_test(
-        NAME INVISCID_NACA0012_ADAPTIVE_SAMPLING_TESTING
-        COMMAND mpirun -np ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_2D -i ${CMAKE_CURRENT_BINARY_DIR}/inviscid_naca0012_adaptive_sampling_testing.prm
-        WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
-)
+#configure_file(inviscid_naca0012_adaptive_sampling_testing.prm inviscid_naca0012_adaptive_sampling_testing.prm COPYONLY)
+#add_test(
+#        NAME INVISCID_NACA0012_ADAPTIVE_SAMPLING_TESTING
+#        COMMAND mpirun -np ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_2D -i ${CMAKE_CURRENT_BINARY_DIR}/inviscid_naca0012_adaptive_sampling_testing.prm
+#        WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
+#)
 
 # =======================================
 # Inviscid NACA0012 Snapshot Generator
 # =======================================
-configure_file(inviscid_naca0012_snapshot_generator.sh inviscid_naca0012_snapshot_generator.sh COPYONLY)
-add_test(
-        NAME INVISCID_NACA0012_GENERATE_SNAPSHOTS
-        COMMAND bash -c
-        "./inviscid_naca0012_snapshot_generator.sh ${EXECUTABLE_OUTPUT_PATH}"
-        WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
-)
+#configure_file(inviscid_naca0012_snapshot_generator.sh inviscid_naca0012_snapshot_generator.sh COPYONLY)
+#add_test(
+#        NAME INVISCID_NACA0012_GENERATE_SNAPSHOTS
+#        COMMAND bash -c
+#        "./inviscid_naca0012_snapshot_generator.sh ${EXECUTABLE_OUTPUT_PATH}"
+#        WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
+#)
 
 # =======================================
 # Default manufactured solution

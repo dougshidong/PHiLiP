@@ -3200,7 +3200,7 @@ void DGBase<dim,real,MeshType>::apply_inverse_global_mass_matrix(
         current_dofs_indices.resize(n_dofs_cell);
         soln_cell->get_dof_indices (current_dofs_indices);
 
-        const bool Cartesian_element = (soln_cell->manifold_id() == dealii::numbers::flat_manifold_id) ? true : false;
+        const bool Cartesian_element = (soln_cell->manifold_id() == dealii::numbers::flat_manifold_id);
 
         // if poly degree, the element manifold type, or grid degree changed for this cell, reinitialize the reference operator
         if((poly_degree != mass_inv.current_degree && Cartesian_element && !use_auxiliary_eq) || 
@@ -3333,7 +3333,7 @@ void DGBase<dim,real,MeshType>::apply_global_mass_matrix(
     auto metric_cell = high_order_grid->dof_handler_grid.begin_active();
 
     auto first_cell = dof_handler.begin_active();
-    const bool Cartesian_first_element = (first_cell->manifold_id() == dealii::numbers::flat_manifold_id) ? true : false;
+    const bool Cartesian_first_element = (first_cell->manifold_id() == dealii::numbers::flat_manifold_id);
 
     if(use_auxiliary_eq){
         mass_aux.build_1D_volume_operator(oneD_fe_collection_1state[max_degree], oneD_quadrature_collection[max_degree]);

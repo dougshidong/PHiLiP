@@ -799,14 +799,16 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_strong(
         const unsigned int istate = this->fe_collection[poly_degree].system_to_component_index(idof).first;
         const unsigned int ishape = this->fe_collection[poly_degree].system_to_component_index(idof).second;
         // allocate
-        if(ishape == 0)
+        if(ishape == 0){
             soln_coeff[istate].resize(n_shape_fns);
+        }
         // solve
         soln_coeff[istate][ishape] = DGBase<dim,real,MeshType>::solution(dof_indices[idof]);
         for(int idim=0; idim<dim; idim++){
             //allocate
-            if(ishape == 0)
+            if(ishape == 0){
                 aux_soln_coeff[istate][idim].resize(n_shape_fns);
+            }
             //solve
             aux_soln_coeff[istate][idim][ishape] = DGBase<dim,real,MeshType>::auxiliary_solution[idim](dof_indices[idof]);
         }

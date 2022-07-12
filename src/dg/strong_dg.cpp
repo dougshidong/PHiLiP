@@ -65,7 +65,8 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_auxiliary_residual()
     // use auxiliary equation if PDE has a diffusive term (bool to simplify aux check)
     const bool use_auxiliary_eq = (pde_type == PDE_enum::convection_diffusion || 
                                    pde_type == PDE_enum::diffusion || 
-                                   pde_type == PDE_enum::navier_stokes);
+                                   pde_type == PDE_enum::navier_stokes || 
+                                   pde_type == PDE_enum::physics_model);
 
     if(pde_type == PDE_enum::burgers_viscous){
         pcout << "DG Strong not yet verified for Burgers' viscous." << std::endl;

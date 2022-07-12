@@ -33,7 +33,7 @@ public:
     double radialBasisFunction(double r) const;
 
     /// Evaluate RBF
-    VectorXd evaluate(const RowVectorXd& evaluate_coordinate) const;
+    double evaluate(const RowVectorXd& evaluate_coordinate) const;
 
     /// RBF weights
     VectorXd weights;

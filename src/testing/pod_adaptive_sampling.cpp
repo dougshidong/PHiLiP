@@ -199,7 +199,7 @@ RowVectorXd AdaptiveSampling<dim, nstate>::getMaxErrorROM() const{
 
         this->pcout << "Parameters of optimization convergence: " << rom_unscaled_optim << std::endl;
 
-        double error = std::abs(rbf.evaluate(rom_scaled).value());
+        double error = std::abs(rbf.evaluate(rom_scaled));
         this->pcout << "RBF error at optimization convergence: " << error << std::endl;
         if(error > max_error){
             this->pcout << "RBF error is greater than current max error. Updating max error." << std::endl;

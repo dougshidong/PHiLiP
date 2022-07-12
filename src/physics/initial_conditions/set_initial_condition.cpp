@@ -75,12 +75,11 @@ void SetInitialCondition<dim,nstate,real>::project_initial_condition(
                 exact_value[iquad] = initial_condition_function->value(qpoint, istate);
             }   
             std::vector<double> sol(n_shape_fns);
-            vol_projection.matrix_vector_mult_1D(exact_value, sol,
-                                                          vol_projection.oneD_vol_operator);
+            vol_projection.matrix_vector_mult_1D(exact_value, sol, vol_projection.oneD_vol_operator);
             for(unsigned int ishape=0; ishape<n_shape_fns; ishape++){
                 dg->solution[current_dofs_indices[ishape+istate*n_shape_fns]] = sol[ishape];
             }
-        }                    
+        }
     }
 }
 

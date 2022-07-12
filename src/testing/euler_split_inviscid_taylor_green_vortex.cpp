@@ -1,7 +1,8 @@
 #include <fstream>
 #include "dg/dg_factory.hpp"
 #include "euler_split_inviscid_taylor_green_vortex.h"
-#include "physics/initial_conditions/initial_condition.h"
+#include "physics/initial_conditions/set_initial_condition.h"
+#include "physics/initial_conditions/initial_condition_function.h"
 
 namespace PHiLiP {
 namespace Tests {
@@ -127,7 +128,11 @@ int EulerTaylorGreen<dim, nstate>::run_test() const
     dg->allocate_system ();
 
     std::cout << "Implement initial conditions" << std::endl;
-    InitialCondition<dim,nstate,double> initial_condition(dg, &all_parameters_new);
+
+    std::shared_ptr< InitialConditionFunction<dim,nstate,double> > initial_condition_function = 
+                InitialConditionFactory<dim,nstate,double>::create_InitialConditionFunction(&all_parameters_new);
+    SetInitialCondition<dim,nstate,double>::set_initial_condition(initial_condition_function, dg, &all_parameters_new);
+
 
     const unsigned int n_global_active_cells2 = grid->n_global_active_cells();
     double delta_x = (right-left)/n_global_active_cells2/(poly_degree+1.0);

@@ -147,7 +147,7 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       "  euler_naca_optimization | "
                       "  shock_1d | "
                       "  euler_naca0012 | "
-                      "  reduced_order |"
+                      "  reduced_order | "
                       "  POD_adaptation |"
                       "  POD_adaptive_sampling |"
                       "  adaptive_sampling_testing |"

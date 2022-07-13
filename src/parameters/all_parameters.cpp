@@ -150,7 +150,7 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       "  reduced_order | "
                       "  POD_adaptation |"
                       "  POD_adaptive_sampling |"
-                      "  adaptive_sampling_testing |"
+                      "  adaptive_sampling_testing | "
                       "  finite_difference_sensitivity | "
                       "  advection_periodicity | "
                       "  dual_weighted_residual_mesh_adaptation | "

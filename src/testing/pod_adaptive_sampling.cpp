@@ -379,7 +379,6 @@ void AdaptiveSampling<dim, nstate>::configureParameterSpace() const
         this->pcout << snapshot_parameters << std::endl;
 
 
-
         initial_rom_parameters.resize(4,2);
         initial_rom_parameters << 0.25*(parameter1_range[1] - parameter1_range[0])+parameter1_range[0], 0.25*(parameter1_range[1] - parameter1_range[0])+parameter1_range[0],
                                   0.25*(parameter1_range[1] - parameter1_range[0])+parameter1_range[0], 0.75*(parameter1_range[1] - parameter1_range[0])+parameter1_range[0],

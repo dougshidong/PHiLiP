@@ -194,6 +194,9 @@ int EulerTaylorGreen<dim, nstate>::run_test() const
     double dt = all_parameters_new.ode_solver_param.initial_time_step;
 //    double dt = all_parameters_new.ode_solver_param.initial_time_step / 10.0;
  
+
+    finalTime = dt;
+
     std::cout<<" number dofs "<<
             dg->dof_handler.n_dofs()<<std::endl;
     std::cout << "preparing to advance solution in time" << std::endl;

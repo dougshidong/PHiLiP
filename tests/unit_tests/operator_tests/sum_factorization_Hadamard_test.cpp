@@ -67,10 +67,11 @@ int main (int argc, char * argv[])
 
     bool different = false;
     bool different_mass = false;
-    const unsigned int poly_max = 4;
+    const unsigned int poly_max = 16;
     const unsigned int poly_min = 2;
     std::array<clock_t,poly_max> time_diff;
     std::array<clock_t,poly_max> time_diff_sum;
+    std::array<clock_t,poly_max> time_deriv_sum_cons;
     std::array<clock_t,poly_max> time_diff_dir2;
     std::array<clock_t,poly_max> time_diff_sum_dir2;
     std::array<clock_t,poly_max> time_diff_dir3;
@@ -89,8 +90,9 @@ int main (int argc, char * argv[])
         const unsigned int n_quad_pts_1D = quad1D.size();
         const unsigned int n_quad_pts = pow(n_quad_pts_1D, dim);
 
-        for(unsigned int ielement=0; ielement<6; ielement++){//do several loops as if there were elements
+       // for(unsigned int ielement=0; ielement<6; ielement++){//do several loops as if there were elements
        // for(unsigned int ielement=0; ielement<1000; ielement++){//do several loops as if there were elements
+        for(unsigned int ielement=0; ielement<10; ielement++){//do several loops as if there were elements
 
         std::vector<real> sol_hat(n_dofs);
         for(unsigned int idof=0; idof<n_dofs; idof++){
@@ -110,13 +112,6 @@ int main (int argc, char * argv[])
         dealii::FullMatrix<real> basis_dim(n_quad_pts);//solution of A*u with sum-factorization
         basis_dim = basis.tensor_product(basis.oneD_grad_operator, basis.oneD_vol_operator, basis.oneD_vol_operator);
 
-pcout<<"Basis dim for x"<<std::endl;
-        for(unsigned int i=0; i<n_quad_pts; i++){
-        for(unsigned int j=0; j<n_quad_pts; j++){
-printf(" %g ",basis_dim[i][j]);
-        }
-        printf("\n");
-        }
 
         //Compute A*u normally
         clock_t tfirst;
@@ -161,15 +156,22 @@ printf(" %g ",basis_dim[i][j]);
             }
         }
 
+        //do sum factorization derivative
+        std::vector<real> sol_deriv_time(n_quad_pts);//solution of A*u with sum-factorization
+        time_t tderiv_sum_cons;
+        tderiv_sum_cons = clock();
+        basis.matrix_vector_mult(sol_hat, sol_deriv_time, 
+                                 basis.oneD_vol_operator,
+                                 basis.oneD_vol_operator,
+                                 basis.oneD_grad_operator);
+
+        if(ielement==0)
+            time_deriv_sum_cons[poly_degree] = clock() - tderiv_sum_cons;
+        else
+            time_deriv_sum_cons[poly_degree] += clock() - tderiv_sum_cons;
+
         //check the other 2 directions match
         basis_dim = basis.tensor_product(basis.oneD_vol_operator, basis.oneD_grad_operator, basis.oneD_vol_operator);
-pcout<<"Basis dim for y"<<std::endl;
-        for(unsigned int i=0; i<n_quad_pts; i++){
-        for(unsigned int j=0; j<n_quad_pts; j++){
-printf(" %g ",basis_dim[i][j]);
-        }
-        printf("\n");
-        }
 
         clock_t tfirst_dir2;
         tfirst_dir2 = clock();
@@ -216,13 +218,6 @@ printf(" %g ",basis_dim[i][j]);
         if(dim ==3){
             //dir 3
             basis_dim = basis.tensor_product(basis.oneD_vol_operator, basis.oneD_vol_operator, basis.oneD_grad_operator);
-pcout<<"Basis dim for z"<<std::endl;
-        for(unsigned int i=0; i<n_quad_pts; i++){
-        for(unsigned int j=0; j<n_quad_pts; j++){
-printf(" %g ",basis_dim[i][j]);
-        }
-        printf("\n");
-        }
             clock_t tfirst_dir3;
             tfirst_dir3 = clock();
             if(dim==2){
@@ -345,6 +340,14 @@ printf(" %g ",basis_dim[i][j]);
 
         pcout<<"average slope 1 "<<avg_slope1<<" average slope 2 "<<avg_slope2<<" average slope 3 "<<avg_slope3<<std::endl;
     }
+
+//output sum factorization derivative slope
+    pcout<<"Sum factorization Direct Conservative A*u  | Slope "<<std::endl;
+    for(unsigned int i=poly_min+1; i<poly_max; i++){
+        pcout<<(float)time_deriv_sum_cons[i]/CLOCKS_PER_SEC<<" "<<std::log(((float)time_deriv_sum_cons[i]/CLOCKS_PER_SEC) / ((float)time_deriv_sum_cons[i-1]/CLOCKS_PER_SEC))
+                        / std::log((double)((i)/(i-1.0)))<<std::endl;
+    }
+
 
     if(different==true){
         pcout<<"Sum factorization not recover same vector for A*u."<<std::endl;

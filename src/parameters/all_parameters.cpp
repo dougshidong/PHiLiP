@@ -149,7 +149,7 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       "  euler_naca0012 | "
                       "  reduced_order | "
                       "  POD_adaptation |"
-                      "  POD_adaptive_sampling |"
+                      "  POD_adaptive_sampling | "
                       "  adaptive_sampling_testing | "
                       "  finite_difference_sensitivity | "
                       "  advection_periodicity | "

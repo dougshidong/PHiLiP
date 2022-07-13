@@ -281,7 +281,7 @@ real2 SolutionIntegral<dim,nstate,real, MeshType>::evaluate_volume_integrand(
 {
     real2 val = 0;
 
-// integrating over the domain
+    // integrating over the domain
     for (int istate=0; istate<nstate; ++istate) {
         val += soln_at_q[istate];
     }

@@ -855,7 +855,8 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
         }
 
         // CASE 1: FACE AT BOUNDARY
-        if (current_face->at_boundary() && !current_cell->has_periodic_neighbor(iface) ) {
+        if ((current_face->at_boundary() && !current_cell->has_periodic_neighbor(iface)) ||
+            (current_face->at_boundary() && current_cell->has_periodic_neighbor(iface) && dim == 1) ) {//1D periodic BC hardcoded here and confirmed, whereas dealii has shown issues in 1D periodic bc.
 
             if(!use_strong_form){//don't need to re-evaluate the facet basis in strong form
                 fe_values_collection_face_int.reinit(current_cell, iface, i_quad, i_mapp, i_fele);
@@ -942,8 +943,6 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
                     }
                 }
 
-                    
-
                 if(compute_Auxiliary_RHS){
                     std::vector<dealii::Tensor<1,dim,double>> neighbor_cell_rhs_aux (n_dofs_neigh_cell ); // Defaults to 0.0 initialization
                     assemble_face_term_auxiliary (
@@ -976,7 +975,45 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
                             current_cell_rhs, neighbor_cell_rhs);
                     }
                     else {
-                        //implicit weak 1D periodic BC to be done in future
+                        //only need to compute fevalues for the weak form.
+                        const int i_fele_n = neighbor_cell->active_fe_index(), i_quad_n = i_fele_n;
+                        const unsigned int neighbor_iface = neighbor_face_no;
+                        const dealii::FEFaceValues<dim,dim> &fe_values_face_int = fe_values_collection_face_int.get_present_fe_values();
+                        const dealii::FEFaceValues<dim,dim> &fe_values_face_ext = fe_values_collection_face_ext.get_present_fe_values();
+                        const dealii::Quadrature<dim-1> &used_face_quadrature = face_quadrature_collection[i_quad_n]; // or i_quad
+                         
+                        std::pair<unsigned int, int> face_subface_int = std::make_pair(iface, -1);
+                        std::pair<unsigned int, int> face_subface_ext = std::make_pair(neighbor_iface, -1);
+                        const auto face_data_set_int = dealii::QProjector<dim>::DataSetDescriptor::face (
+                                                                                                      dealii::ReferenceCell::get_hypercube(dim),
+                                                                                                      iface,
+                                                                                                      current_cell->face_orientation(iface),
+                                                                                                      current_cell->face_flip(iface),
+                                                                                                      current_cell->face_rotation(iface),
+                                                                                                      used_face_quadrature.size());
+                        const auto face_data_set_ext = dealii::QProjector<dim>::DataSetDescriptor::face (
+                                                                                                      dealii::ReferenceCell::get_hypercube(dim),
+                                                                                                      neighbor_iface,
+                                                                                                      neighbor_cell->face_orientation(neighbor_iface),
+                                                                                                      neighbor_cell->face_flip(neighbor_iface),
+                                                                                                      neighbor_cell->face_rotation(neighbor_iface),
+                                                                                                      used_face_quadrature.size());
+
+                        assemble_face_term_derivatives (
+                            current_cell,
+                            current_cell_index,
+                            neighbor_cell_index,
+                            face_subface_int, face_subface_ext,
+                            face_data_set_int,
+                            face_data_set_ext,
+                            fe_values_face_int, fe_values_face_ext,
+                            penalty,
+                            fe_collection[i_fele], fe_collection[i_fele_n],
+                            used_face_quadrature,
+                            current_metric_dofs_indices, neighbor_metric_dofs_indices,
+                            current_dofs_indices, neighbor_dofs_indices,
+                            current_cell_rhs, neighbor_cell_rhs,
+                            compute_dRdW, compute_dRdX, compute_d2R);
                     }
                     //store neighbour RHS values
                     for (unsigned int i=0; i<n_dofs_neigh_cell; ++i) {

@@ -10,11 +10,11 @@ namespace ProperOrthogonalDecomposition {
 
 /// Interface for POD
 template <int dim>
-class POD
+class PODBase
 {
 public:
     /// Virtual destructor
-    virtual ~POD() = default;
+    virtual ~PODBase() = default;
 
     /// Function to return basis
     virtual std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> getPODBasis() = 0;

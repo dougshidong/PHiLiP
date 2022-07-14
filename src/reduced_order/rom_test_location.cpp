@@ -51,7 +51,7 @@ void ROMTestLocation<dim, nstate>::compute_FOM_to_initial_ROM_error(){
 }
 
 template <int dim, int nstate>
-void ROMTestLocation<dim, nstate>::compute_initial_rom_to_final_rom_error(std::shared_ptr<ProperOrthogonalDecomposition::POD<dim>> pod_updated){
+void ROMTestLocation<dim, nstate>::compute_initial_rom_to_final_rom_error(std::shared_ptr<ProperOrthogonalDecomposition::PODBase<dim>> pod_updated){
 
     pcout << "Computing adjoint-based error estimate between initial ROM and updated ROM..." << std::endl;
 

@@ -39,7 +39,7 @@ FlowSolver<dim, nstate>::FlowSolver(
     flow_solver_case->set_higher_order_grid(dg);
     dg->allocate_system();
 
-    if(flow_solver_param.reduced_order){
+    if(ode_param.ode_solver_type == Parameters::ODESolverParam::pod_galerkin_solver || ode_param.ode_solver_type == Parameters::ODESolverParam::pod_petrov_galerkin_solver){
         std::shared_ptr<ProperOrthogonalDecomposition::OfflinePOD<dim>> pod = std::make_shared<ProperOrthogonalDecomposition::OfflinePOD<dim>>(dg);
         ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg, pod);
     }

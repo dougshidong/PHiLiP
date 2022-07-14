@@ -18,7 +18,7 @@ using Eigen::VectorXd;
 
 /// Class for Offline Proper Orthogonal Decomposition basis. This class reads some previously computed snapshots stored as files and computes a POD basis.
 template <int dim>
-class OfflinePOD: public POD<dim>
+class OfflinePOD: public PODBase<dim>
 {
 public:
     /// Constructor

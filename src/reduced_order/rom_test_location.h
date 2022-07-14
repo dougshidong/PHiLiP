@@ -25,7 +25,7 @@ public:
     void compute_FOM_to_initial_ROM_error();
 
     /// Compute error between initial ROM and final ROM
-    void compute_initial_rom_to_final_rom_error(std::shared_ptr<ProperOrthogonalDecomposition::POD<dim>> pod_updated);
+    void compute_initial_rom_to_final_rom_error(std::shared_ptr<ProperOrthogonalDecomposition::PODBase<dim>> pod_updated);
 
     /// Compute total error between final ROM and FOM
     void compute_total_error();

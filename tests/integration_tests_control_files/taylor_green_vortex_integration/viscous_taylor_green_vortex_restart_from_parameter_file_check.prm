@@ -128,15 +128,14 @@ subsection ODE solver
   # Outputs the solution every x steps in .vtk file
   set output_solution_every_x_steps                                    = -1
 
-  # Output solution vector every output_solution_vector_modulo iterations of
-  # the nonlinear solver. Set to 0 to disable.
-  set output_solution_vector_modulo                                    = 0
+  # Output final steady state solution. False by default.
+  set output_final_steady_state_solution_to_file                       = false
 
   # Print every print_iteration_modulo iterations of the nonlinear solver
   set print_iteration_modulo                                           = 1
 
-  # Filename to use when outputting solution vectors in a table format.
-  set solutions_table_filename                                         = solutions_table
+  # Filename to use when outputting final steady state solution
+  set steady_state_final_solution_filename                              = solution_snapshot
 
   # Multiplies initial time-step by
   # time_step_factor_residual*(-log10(residual_norm_decrease)).

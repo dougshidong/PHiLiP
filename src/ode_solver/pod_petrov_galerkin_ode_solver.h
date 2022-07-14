@@ -2,7 +2,7 @@
 #define __POD_PETROV_GALERKIN_ODE_SOLVER__
 
 #include "dg/dg.h"
-#include "implicit_ode_solver.h"
+#include "ode_solver_base.h"
 #include "linear_solver/linear_solver.h"
 #include "reduced_order/pod_interface.h"
 #include <deal.II/lac/trilinos_sparsity_pattern.h>
@@ -23,14 +23,14 @@ template <int dim, typename real, typename MeshType = dealii::Triangulation<dim>
 #else
 template <int dim, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
 #endif
-class PODPetrovGalerkinODESolver: public ImplicitODESolver<dim, real, MeshType>
+class PODPetrovGalerkinODESolver: public ODESolverBase<dim, real, MeshType>
 {
 public:
     /// Default constructor that will set the constants.
-    PODPetrovGalerkinODESolver(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input, std::shared_ptr<ProperOrthogonalDecomposition::POD<dim>> pod); ///< Constructor.
+    PODPetrovGalerkinODESolver(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input, std::shared_ptr<ProperOrthogonalDecomposition::PODBase<dim>> pod); ///< Constructor.
 
     ///POD
-    std::shared_ptr<ProperOrthogonalDecomposition::POD<dim>> pod;
+    std::shared_ptr<ProperOrthogonalDecomposition::PODBase<dim>> pod;
 
     /// Destructor
     ~PODPetrovGalerkinODESolver() {};

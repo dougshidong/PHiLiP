@@ -726,8 +726,8 @@ public:
             : PHiLiP::Functional<dim,nstate,real,MeshType>(dg_input,_physics_fad_fad,uses_solution_values,uses_solution_gradient)
     {}
 
-    template <typename real2>
     /// Templated volume integrand
+    template <typename real2>
     real2 evaluate_volume_integrand(
             const PHiLiP::Physics::PhysicsBase<dim,nstate,real2> &physics,
             const dealii::Point<dim,real2> &phys_coord,

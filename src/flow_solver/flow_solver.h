@@ -6,7 +6,6 @@
 #include "physics/initial_conditions/initial_condition.h"
 #include "physics/physics.h"
 #include "parameters/all_parameters.h"
-#include "reduced_order/pod_basis_offline.h"
 
 // for generate_grid
 #include <deal.II/grid/tria.h>

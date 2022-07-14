@@ -207,8 +207,8 @@ int ODESolverBase<dim,real,MeshType>::steady_state ()
         if(CFL_factor <= 1e-2) this->dg->right_hand_side.add(1.0);
     }
 
-    if (ode_param.output_solution_vector_modulo > 0) {
-        std::ofstream out_file(ode_param.solutions_table_filename + ".txt");
+    if (ode_param.output_final_steady_state_solution_to_file) {
+        std::ofstream out_file(ode_param.steady_state_final_solution_filename + ".txt");
         dealii::LinearAlgebra::ReadWriteVector<double> write_dg_solution(this->dg->solution.size());
         write_dg_solution.import(this->dg->solution, dealii::VectorOperation::values::insert);
         for(unsigned int i = 0 ; i < write_dg_solution.size() ; i++){
@@ -290,22 +290,6 @@ int ODESolverBase<dim,real,MeshType>::advance_solution_time (double time_advance
                 this->current_desired_time_for_output_solution_every_dt_time_intervals += ode_param.output_solution_every_dt_time_intervals;
             }
         }
-
-        if (ode_param.output_solution_vector_modulo > 0) {
-            if (this->current_iteration % ode_param.output_solution_vector_modulo == 0) {
-                for (unsigned int i = 0; i < this->dg->solution.size(); ++i) {
-                    solutions_table.add_value(
-                            "Time:" + std::to_string(this->current_time),
-                            this->dg->solution[i]);
-                }
-                solutions_table.set_precision("Time:" + std::to_string(this->current_time), 16);
-            }
-        }
-    }
-
-    if (ode_param.output_solution_vector_modulo > 0) {
-        std::ofstream out_file(ode_param.solutions_table_filename + ".txt");
-        solutions_table.write_text(out_file);
     }
     return 1;
 }

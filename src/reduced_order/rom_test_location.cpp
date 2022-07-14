@@ -1,4 +1,17 @@
 #include "rom_test_location.h"
+#include <iostream>
+#include <filesystem>
+#include <deal.II/base/conditional_ostream.h>
+#include <deal.II/lac/trilinos_sparse_matrix.h>
+#include "parameters/all_parameters.h"
+#include "pod_interface.h"
+#include "reduced_order_solution.h"
+#include "linear_solver/linear_solver.h"
+#include <Epetra_Vector.h>
+#include <EpetraExt_MatrixMatrix.h>
+#include <Epetra_LinearProblem.h>
+#include "Amesos.h"
+#include "Amesos_BaseSolver.h"
 
 namespace PHiLiP {
 namespace ProperOrthogonalDecomposition {

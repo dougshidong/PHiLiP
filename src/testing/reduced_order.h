@@ -2,20 +2,7 @@
 #define __REDUCED_ORDER_H__
 
 #include "tests.h"
-#include "dg/dg.h"
 #include "parameters/all_parameters.h"
-#include "pod_adaptive_sampling.h"
-#include "functional/functional.h"
-#include "functional/lift_drag.hpp"
-#include "parameters/all_parameters.h"
-#include <deal.II/numerics/solution_transfer.h>
-#include "flow_solver/flow_solver.h"
-#include "flow_solver/flow_solver_factory.h"
-#include <deal.II/base/numbers.h>
-#include "dg/dg_factory.hpp"
-#include "ode_solver/ode_solver_factory.h"
-#include <iostream>
-#include "functional/functional.h"
 
 namespace PHiLiP {
 namespace Tests {

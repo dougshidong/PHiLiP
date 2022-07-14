@@ -58,8 +58,8 @@ echo "  set initial_time_step = 1e3" >> $file
 echo "  set time_step_factor_residual = 15.0" >> $file
 echo "  set time_step_factor_residual_exp = 2" >> $file
 echo "  #set print_iteration_modulo              = 1" >> $file
-echo "  set output_solution_vector_modulo       = 1" >> $file
-echo "  set solutions_table_filename = ${mach[i]}_${alpha[i]}_solution_snapshot" >> $file
+echo "  set output_final_steady_state_solution_to_file       = true" >> $file
+echo "  set steady_state_final_solution_filename = ${mach[i]}_${alpha[i]}_solution_snapshot" >> $file
 echo "end" >> $file
 echo "" >> $file
 echo "subsection grid refinement study" >> $file

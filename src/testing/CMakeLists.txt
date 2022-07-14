@@ -25,7 +25,6 @@ set(TESTS_SOURCE
     pod_adaptive_sampling.cpp
     adaptive_sampling_testing.cpp
     reduced_order.cpp
-    taylor_green_vortex_restart_check.cpp
     time_refinement_study.cpp)
 
 foreach(dim RANGE 1 3)

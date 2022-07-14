@@ -1,39 +1,12 @@
 #ifndef __POD_ADAPTIVE_SAMPLING__
 #define __POD_ADAPTIVE_SAMPLING__
 
-#include <fstream>
-#include <iostream>
-#include <filesystem>
-#include "functional/functional.h"
 #include <deal.II/numerics/vector_tools.h>
-#include <deal.II/lac/full_matrix.h>
-#include <deal.II/base/conditional_ostream.h>
-#include <deal.II/lac/trilinos_sparse_matrix.h>
-#include <deal.II/lac/vector_operation.h>
 #include "parameters/all_parameters.h"
-#include "dg/dg.h"
 #include "reduced_order/pod_basis_online.h"
-#include "reduced_order/reduced_order_solution.h"
-#include "linear_solver/linear_solver.h"
-#include "flow_solver/flow_solver.h"
-#include "flow_solver/flow_solver_factory.h"
 #include "reduced_order/rom_test_location.h"
-#include <deal.II/lac/householder.h>
-#include <cmath>
-#include <iostream>
-#include <deal.II/base/function_lib.h>
 #include <eigen/Eigen/Dense>
 #include "reduced_order/nearest_neighbors.h"
-#include "reduced_order/rbf_interpolation.h"
-#include "ROL_Algorithm.hpp"
-#include "ROL_LineSearchStep.hpp"
-#include "ROL_StatusTest.hpp"
-#include "ROL_Stream.hpp"
-#include "ROL_Bounds.hpp"
-#include "functional/lift_drag.hpp"
-#include "functional/functional.h"
-#include "reduced_order/halton.h"
-#include "reduced_order/min_max_scaler.h"
 #include "tests.h"
 
 namespace PHiLiP {

@@ -52,8 +52,8 @@ echo "subsection ODE solver "                                                   
 echo " set nonlinear_max_iterations            = 50"                                               >> $file
 echo " set nonlinear_steady_residual_tolerance = 1e-15"                                             >> $file
 echo " set print_iteration_modulo              = 1"                                                 >> $file
-echo " set output_solution_vector_modulo       = 1"                                                 >> $file
-echo " set solutions_table_filename = ${rewienski_a[i]}_${rewienski_b[i]}_solution_snapshot">> $file
+echo " set output_final_steady_state_solution_to_file       = true"                                 >> $file
+echo " set steady_state_final_solution_filename = ${rewienski_a[i]}_${rewienski_b[i]}_solution_snapshot">> $file
 echo " set ode_solver_type                     = implicit"                                          >> $file
 echo " end"                                                                                         >> $file
 echo " "                                                                                            >> $file

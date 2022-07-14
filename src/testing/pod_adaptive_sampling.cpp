@@ -1,4 +1,28 @@
 #include "pod_adaptive_sampling.h"
+#include <iostream>
+#include <filesystem>
+#include "functional/functional.h"
+#include <deal.II/numerics/vector_tools.h>
+#include <deal.II/lac/trilinos_sparse_matrix.h>
+#include <deal.II/lac/vector_operation.h>
+#include "parameters/all_parameters.h"
+#include "reduced_order/pod_basis_online.h"
+#include "reduced_order/reduced_order_solution.h"
+#include "flow_solver/flow_solver.h"
+#include "flow_solver/flow_solver_factory.h"
+#include "reduced_order/rom_test_location.h"
+#include <cmath>
+#include <eigen/Eigen/Dense>
+#include "reduced_order/nearest_neighbors.h"
+#include "reduced_order/rbf_interpolation.h"
+#include "ROL_Algorithm.hpp"
+#include "ROL_LineSearchStep.hpp"
+#include "ROL_StatusTest.hpp"
+#include "ROL_Stream.hpp"
+#include "ROL_Bounds.hpp"
+#include "reduced_order/halton.h"
+#include "reduced_order/min_max_scaler.h"
+#include "tests.h"
 
 namespace PHiLiP {
 namespace Tests {
@@ -299,7 +323,7 @@ dealii::LinearAlgebra::distributed::Vector<double> AdaptiveSampling<dim, nstate>
     auto ode_solver_type = Parameters::ODESolverParam::ODESolverEnum::implicit_solver;
     flow_solver->ode_solver =  PHiLiP::ODE::ODESolverFactory<dim, double>::create_ODESolver_manual(ode_solver_type, flow_solver->dg);
     flow_solver->ode_solver->allocate_ode_system();
-    flow_solver->ode_solver->steady_state();
+    flow_solver->run();
 
     this->pcout << "Done solving FOM." << std::endl;
     return flow_solver->dg->solution;

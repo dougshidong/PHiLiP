@@ -1,4 +1,15 @@
 #include "adaptive_sampling_testing.h"
+#include "tests.h"
+#include <fstream>
+#include <deal.II/base/numbers.h>
+#include "parameters/all_parameters.h"
+#include "ode_solver/ode_solver_factory.h"
+#include "flow_solver/flow_solver.h"
+#include "flow_solver/flow_solver_factory.h"
+#include "dg/dg.h"
+#include "functional/functional.h"
+#include <eigen/Eigen/Dense>
+#include "reduced_order/pod_basis_offline.h"
 
 namespace PHiLiP {
 namespace Tests {
@@ -75,7 +86,7 @@ int AdaptiveSamplingTesting<dim, nstate>::run_test() const
         flow_solver->ode_solver->allocate_ode_system();
         auto functional = FunctionalFactory<dim,nstate,double>::create_Functional(params.functional_param, flow_solver->dg);
 
-        flow_solver_implicit->ode_solver->steady_state();
+        flow_solver_implicit->run();
         flow_solver->ode_solver->steady_state();
 
         dealii::LinearAlgebra::distributed::Vector<double> standard_solution(flow_solver->dg->solution);

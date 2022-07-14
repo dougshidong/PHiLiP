@@ -50,7 +50,6 @@ subsection ODE solver
  set nonlinear_max_iterations            = 50
  set nonlinear_steady_residual_tolerance = 1e-16
  set print_iteration_modulo              = 1
- set output_solution_vector_modulo       = 1
  set ode_solver_type                     = implicit
  end
 subsection manufactured solution convergence study

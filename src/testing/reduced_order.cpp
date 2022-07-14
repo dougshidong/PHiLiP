@@ -1,4 +1,12 @@
 #include "reduced_order.h"
+#include "reduced_order/pod_basis_offline.h"
+#include "parameters/all_parameters.h"
+#include "functional/functional.h"
+#include "flow_solver/flow_solver.h"
+#include "flow_solver/flow_solver_factory.h"
+#include <deal.II/base/numbers.h>
+#include "ode_solver/ode_solver_factory.h"
+#include <iostream>
 
 namespace PHiLiP {
 namespace Tests {
@@ -33,7 +41,7 @@ int ReducedOrder<dim, nstate>::run_test() const
     flow_solver_petrov_galerkin->ode_solver->allocate_ode_system();
     auto functional_petrov_galerkin = FunctionalFactory<dim,nstate,double>::create_Functional(all_parameters->functional_param, flow_solver_petrov_galerkin->dg);
 
-    flow_solver_implicit->ode_solver->steady_state();
+    flow_solver_implicit->run();
     flow_solver_galerkin->ode_solver->steady_state();
     flow_solver_petrov_galerkin->ode_solver->steady_state();
 

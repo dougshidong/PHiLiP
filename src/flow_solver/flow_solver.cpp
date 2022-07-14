@@ -1,11 +1,11 @@
 #include "flow_solver.h"
-
 #include <iostream>
 #include <fstream>
 #include <string>
 #include <stdlib.h>
 #include <vector>
 #include <sstream>
+#include "reduced_order/pod_basis_offline.h"
 
 
 namespace PHiLiP {

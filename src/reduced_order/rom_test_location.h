@@ -1,27 +1,10 @@
 #ifndef __ROM_TEST_LOCATION__
 #define __ROM_TEST_LOCATION__
 
-#include <fstream>
-#include <iostream>
-#include <filesystem>
-#include "functional/functional.h"
-#include <deal.II/numerics/vector_tools.h>
-#include <deal.II/lac/full_matrix.h>
-#include <deal.II/base/conditional_ostream.h>
-#include <deal.II/lac/trilinos_sparse_matrix.h>
-#include <deal.II/lac/vector_operation.h>
 #include "parameters/all_parameters.h"
-#include "dg/dg.h"
 #include "pod_interface.h"
 #include "reduced_order_solution.h"
-#include "linear_solver/linear_solver.h"
 #include <eigen/Eigen/Dense>
-#include <eigen/Eigen/SparseCore>
-#include <Epetra_Vector.h>
-#include <EpetraExt_MatrixMatrix.h>
-#include <Epetra_LinearProblem.h>
-#include "Amesos.h"
-#include "Amesos_BaseSolver.h"
 
 namespace PHiLiP {
 namespace ProperOrthogonalDecomposition {

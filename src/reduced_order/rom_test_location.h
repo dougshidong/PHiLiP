@@ -2,7 +2,7 @@
 #define __ROM_TEST_LOCATION__
 
 #include "parameters/all_parameters.h"
-#include "pod_interface.h"
+#include "pod_basis_base.h"
 #include "reduced_order_solution.h"
 #include <eigen/Eigen/Dense>
 

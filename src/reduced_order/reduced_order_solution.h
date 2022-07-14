@@ -8,7 +8,7 @@
 #include <deal.II/lac/vector_operation.h>
 #include "parameters/all_parameters.h"
 #include "dg/dg.h"
-#include "pod_interface.h"
+#include "pod_basis_base.h"
 
 namespace PHiLiP {
 namespace ProperOrthogonalDecomposition {

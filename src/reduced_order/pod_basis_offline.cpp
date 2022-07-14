@@ -6,7 +6,7 @@
 #include <deal.II/base/conditional_ostream.h>
 #include <deal.II/lac/trilinos_sparse_matrix.h>
 #include "dg/dg.h"
-#include "pod_interface.h"
+#include "pod_basis_base.h"
 #include <EpetraExt_MatrixMatrix.h>
 #include <Epetra_CrsMatrix.h>
 #include <Epetra_Map.h>

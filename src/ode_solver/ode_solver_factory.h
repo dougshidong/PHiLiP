@@ -3,7 +3,7 @@
 
 #include "parameters/all_parameters.h"
 #include "dg/dg.h"
-#include "reduced_order/pod_interface.h"
+#include "reduced_order/pod_basis_base.h"
 #include "ode_solver_base.h"
 
 namespace PHiLiP {

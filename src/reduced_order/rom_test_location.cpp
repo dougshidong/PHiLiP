@@ -4,7 +4,7 @@
 #include <deal.II/base/conditional_ostream.h>
 #include <deal.II/lac/trilinos_sparse_matrix.h>
 #include "parameters/all_parameters.h"
-#include "pod_interface.h"
+#include "pod_basis_base.h"
 #include "reduced_order_solution.h"
 #include "linear_solver/linear_solver.h"
 #include <Epetra_Vector.h>

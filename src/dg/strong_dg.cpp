@@ -642,7 +642,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_volume_term_strong(
                 vol_flux_node[idim] = metric_oper.flux_nodes_vol[idim][iquad];
             }
             //compute the physical source
-            source = this->pde_physics_double->source_term (vol_flux_node, soln_state, current_cell_index, this->current_time);
+            source = this->pde_physics_double->source_term (vol_flux_node, soln_state, this->current_time, current_cell_index);
         }
 
         //Write the values in a way that we can use sum-factorization on.

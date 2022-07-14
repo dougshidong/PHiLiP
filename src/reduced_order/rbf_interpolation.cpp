@@ -1,8 +1,11 @@
 #include "rbf_interpolation.h"
+#include <eigen/Eigen/Dense>
+#include <eigen/Eigen/LU>
+#include <iostream>
+#include "ROL_StdVector.hpp"
 
 namespace PHiLiP {
 namespace ProperOrthogonalDecomposition {
-
 
 RBFInterpolation::RBFInterpolation(const MatrixXd& data_coordinates, const VectorXd& data_values, std::string kernel)
         : data_coordinates(data_coordinates)

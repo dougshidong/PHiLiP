@@ -2,8 +2,6 @@
 #define __RBF_INTERPOLATION__
 
 #include <eigen/Eigen/Dense>
-#include <eigen/Eigen/LU>
-#include <iostream>
 #include "ROL_OptimizationProblem.hpp"
 #include "ROL_StdVector.hpp"
 

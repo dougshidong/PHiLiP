@@ -1,10 +1,6 @@
 #ifndef __POD_BASIS_ONLINE__
 #define __POD_BASIS_ONLINE__
 
-#include <fstream>
-#include <iostream>
-#include <filesystem>
-
 #include <deal.II/numerics/vector_tools.h>
 #include <deal.II/lac/full_matrix.h>
 #include <deal.II/base/conditional_ostream.h>
@@ -14,12 +10,7 @@
 #include "dg/dg.h"
 #include "pod_interface.h"
 #include <deal.II/lac/la_parallel_vector.h>
-#include <Teuchos_DefaultMpiComm.hpp>
-#include <EpetraExt_MatrixMatrix.h>
-#include <Epetra_CrsMatrix.h>
-#include <Epetra_Map.h>
 #include <eigen/Eigen/Dense>
-#include <eigen/Eigen/SVD>
 
 namespace PHiLiP {
 namespace ProperOrthogonalDecomposition {

@@ -1,13 +1,9 @@
 #ifndef __REDUCED_ORDER_SOLUTION__
 #define __REDUCED_ORDER_SOLUTION__
 
-#include <fstream>
-#include <iostream>
-#include <filesystem>
 #include "functional/functional.h"
 #include <deal.II/numerics/vector_tools.h>
 #include <deal.II/lac/full_matrix.h>
-#include <deal.II/base/conditional_ostream.h>
 #include <deal.II/lac/trilinos_sparse_matrix.h>
 #include <deal.II/lac/vector_operation.h>
 #include "parameters/all_parameters.h"

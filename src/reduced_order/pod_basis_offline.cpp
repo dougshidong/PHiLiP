@@ -1,6 +1,16 @@
 #include "pod_basis_offline.h"
-#include <deal.II/lac/sparse_matrix.h>
 #include <deal.II/fe/mapping_q1_eulerian.h>
+#include <iostream>
+#include <filesystem>
+#include <deal.II/lac/full_matrix.h>
+#include <deal.II/base/conditional_ostream.h>
+#include <deal.II/lac/trilinos_sparse_matrix.h>
+#include "dg/dg.h"
+#include "pod_interface.h"
+#include <EpetraExt_MatrixMatrix.h>
+#include <Epetra_CrsMatrix.h>
+#include <Epetra_Map.h>
+#include <eigen/Eigen/SVD>
 
 namespace PHiLiP {
 namespace ProperOrthogonalDecomposition {

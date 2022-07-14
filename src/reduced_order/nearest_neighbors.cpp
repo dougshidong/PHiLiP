@@ -1,4 +1,7 @@
 #include "nearest_neighbors.h"
+#include <iostream>
+#include <algorithm>
+#include <numeric>
 
 namespace PHiLiP {
 namespace ProperOrthogonalDecomposition {

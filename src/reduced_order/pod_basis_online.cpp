@@ -1,4 +1,16 @@
 #include "pod_basis_online.h"
+#include <iostream>
+#include <filesystem>
+#include <deal.II/numerics/vector_tools.h>
+#include <deal.II/lac/full_matrix.h>
+#include <deal.II/lac/trilinos_sparse_matrix.h>
+#include <deal.II/lac/vector_operation.h>
+#include "dg/dg.h"
+#include <deal.II/lac/la_parallel_vector.h>
+#include <Teuchos_DefaultMpiComm.hpp>
+#include <Epetra_CrsMatrix.h>
+#include <Epetra_Map.h>
+#include <eigen/Eigen/SVD>
 
 namespace PHiLiP {
 namespace ProperOrthogonalDecomposition {

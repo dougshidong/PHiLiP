@@ -2,10 +2,6 @@
 #define __NEAREST_NEIGHBORS__
 
 #include <eigen/Eigen/Dense>
-#include <eigen/Eigen/LU>
-#include <iostream>
-#include <algorithm>
-#include <numeric>
 #include <deal.II/lac/la_parallel_vector.h>
 #include "min_max_scaler.h"
 

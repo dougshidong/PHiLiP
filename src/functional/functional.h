@@ -743,6 +743,7 @@ public:
     {
         return evaluate_volume_integrand<>(physics, phys_coord, soln_at_q, soln_grad_at_q);
     }
+    
     /// Non-template functions to override the template classes
     FadFadType evaluate_volume_integrand(
             const PHiLiP::Physics::PhysicsBase<dim,nstate,FadFadType> &physics,

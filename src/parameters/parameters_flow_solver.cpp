@@ -52,10 +52,6 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                           dealii::Patterns::Bool(),
                           "Adapt the time step on the fly for unsteady flow simulations. False by default (i.e. constant time step by default).");
 
-        prm.declare_entry("reduced_order", "false",
-                          dealii::Patterns::Bool(),
-                          "Solve reduced_order solution. False by default.");
-
         prm.declare_entry("steady_state_polynomial_ramping", "false",
                           dealii::Patterns::Bool(),
                           "For steady-state cases, does polynomial ramping if set to true. False by default.");
@@ -165,7 +161,6 @@ void FlowSolverParam::parse_parameters(dealii::ParameterHandler &prm)
         steady_state = prm.get_bool("steady_state");
         steady_state_polynomial_ramping = prm.get_bool("steady_state_polynomial_ramping");
         adaptive_time_step = prm.get_bool("adaptive_time_step");
-        reduced_order = prm.get_bool("reduced_order");
         sensitivity_table_filename = prm.get("sensitivity_table_filename");
         restart_computation_from_file = prm.get_bool("restart_computation_from_file");
         output_restart_files = prm.get_bool("output_restart_files");

@@ -37,8 +37,6 @@ public:
 
     bool adaptive_time_step; ///< Flag for computing the time step on the fly
 
-    bool reduced_order; ///<Flag for solving reduced order solution
-
     /** Name of the output file for writing the sensitivity data;
      *   will be written to file: sensitivity_table_filename.txt */
     std::string sensitivity_table_filename;

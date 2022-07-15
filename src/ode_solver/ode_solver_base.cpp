@@ -201,14 +201,15 @@ int ODESolverBase<dim,real,MeshType>::steady_state (const bool output_solution_f
         convergence_error = this->residual_norm > ode_param.nonlinear_steady_residual_tolerance
                             && this->residual_norm_decrease > ode_param.nonlinear_steady_residual_tolerance;
     }
-    if (this->residual_norm > 1e5
-        || std::isnan(this->residual_norm)
-        || CFL_factor <= 1e-2)
-    {
-        this->dg->solution = initial_solution;
+    // TO DO: Uncomment this later -- testing
+    // if (this->residual_norm > 1e5
+    //     || std::isnan(this->residual_norm)
+    //     || CFL_factor <= 1e-2)
+    // {
+    //     this->dg->solution = initial_solution;
 
-        if(CFL_factor <= 1e-2) this->dg->right_hand_side.add(1.0);
-    }
+    //     if(CFL_factor <= 1e-2) this->dg->right_hand_side.add(1.0);
+    // }
 
     if (ode_param.output_solution_vector_modulo > 0) {
         for (unsigned int i = 0; i < this->dg->solution.size(); ++i) {

@@ -122,7 +122,7 @@ int ODESolverBase<dim,real,MeshType>::steady_state (const bool output_solution_f
     const double initial_CFL = all_parameters->ode_solver_param.initial_time_step;
     CFL_factor = 1.0;
 
-    auto initial_solution = dg->solution;
+    // auto initial_solution = dg->solution;
 
     double old_residual_norm = this->residual_norm; (void) old_residual_norm;
 

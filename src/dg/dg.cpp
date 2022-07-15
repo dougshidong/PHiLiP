@@ -855,210 +855,42 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
         }
 
         // CASE 1: FACE AT BOUNDARY
-        if ((current_face->at_boundary() && !current_cell->has_periodic_neighbor(iface)) ||
-            (current_face->at_boundary() && current_cell->has_periodic_neighbor(iface) && dim == 1) ) {//1D periodic BC hardcoded here and confirmed, whereas dealii has shown issues in 1D periodic bc.
+        if ((current_face->at_boundary() && !current_cell->has_periodic_neighbor(iface)) ){
 
-            if(!use_strong_form){//don't need to re-evaluate the facet basis in strong form
-                fe_values_collection_face_int.reinit(current_cell, iface, i_quad, i_mapp, i_fele);
+            const real penalty = evaluate_penalty_scaling (current_cell, iface, fe_collection);
+
+            const unsigned int boundary_id = current_face->boundary_id();
+            if(compute_Auxiliary_RHS){
+                assemble_boundary_term_auxiliary_equation (
+                    iface, current_cell_index, poly_degree,
+                    boundary_id, current_dofs_indices, 
+                    soln_basis_int, metric_oper_int,
+                    current_cell_rhs_aux);
             }
-
-            //for 1D periodic
-            if(current_face->at_boundary() && all_parameters->use_periodic_bc == true && dim == 1) //using periodic BCs (for 1d)
-            {
-                int cell_index  = current_cell->index();
-                auto neighbor_cell = dof_handler.begin_active();
-                if (cell_index == (int) triangulation->n_active_cells() - 1 && iface == 1)
-                {
-                    neighbor_cell = dof_handler.begin_active();
-                    neighbor_dofs_indices.resize(n_dofs_curr_cell);
-                    neighbor_cell->get_dof_indices(neighbor_dofs_indices);
-                    const unsigned int fe_index_neigh_cell = neighbor_cell->active_fe_index();
-                    const unsigned int quad_index_neigh_cell = fe_index_neigh_cell;
-                    const unsigned int mapping_index_neigh_cell = 0;
-                    if(!use_strong_form){
-                        fe_values_collection_face_ext.reinit(neighbor_cell,(iface == 1) ? 0 : 1, quad_index_neigh_cell, mapping_index_neigh_cell, fe_index_neigh_cell); //not sure how changing the face number would work in dim!=1-dimensions.
-                    }
-                }
-                else {
-                    continue;
-                }
-
-                const int neighbor_face_no = (iface ==1) ? 0:1;
-                const unsigned int fe_index_neigh_cell = neighbor_cell->active_fe_index();
-
-                //check neighbour cell face on boundary
-                auto neigh_face_check = neighbor_cell->face(neighbor_face_no);
-                if(!neigh_face_check->at_boundary()){
-                    pcout<<"FACE NOT ON BOUNDARY"<<std::endl;
-                    exit(1);
-                } 
-
-                const dealii::FESystem<dim,dim> &neigh_fe_ref = fe_collection[fe_index_neigh_cell];
-                const unsigned int n_dofs_neigh_cell = neigh_fe_ref.n_dofs_per_cell();
-
-                dealii::Vector<double> neighbor_cell_rhs (n_dofs_neigh_cell); // Defaults to 0.0 initialization
-
-                const auto metric_neighbor_cell = high_order_grid->dof_handler_grid.begin_active();
-                metric_neighbor_cell->get_dof_indices(neighbor_metric_dofs_indices);
-
-                const real penalty = evaluate_penalty_scaling (current_cell, iface, fe_collection);
-
-                const dealii::types::global_dof_index neighbor_cell_index = neighbor_cell->active_cell_index();
-
-                const unsigned int poly_degree_ext = fe_index_neigh_cell;
-                const unsigned int grid_degree_ext = this->high_order_grid->fe_system.tensor_degree();
-                //Check if the poly degree or mapping changed order, in which case, then we re-compute the corresponding basis
-                OPERATOR::metric_operators<real,dim,2*dim> metric_oper_ext(nstate, poly_degree_ext, grid_degree_ext,
-                                                               store_vol_flux_nodes,
-                                                               store_surf_flux_nodes);
+            else{
                 if(use_strong_form)//only for strong form explicit
                 {
-                    if(poly_degree_ext != soln_basis_ext.current_degree){
-                        soln_basis_ext.current_degree    = poly_degree_ext; 
-                        flux_basis_ext.current_degree    = poly_degree_ext; 
-                        mapping_basis.current_degree     = poly_degree_ext; 
-                        reinit_operators_for_cell_residual_loop(poly_degree, poly_degree_ext, grid_degree_ext, soln_basis_int, soln_basis_ext, flux_basis_int, flux_basis_ext, mapping_basis);
-                    }
-                    if(!compute_Auxiliary_RHS){//only for primary equations
-                        //get neighbor metric operator
-                        //Rewrite the high_order_grid->volume_nodes in a way we can use sum-factorization on.
-                        //That is, splitting up the vector by the dimension.
-                        std::array<std::vector<real>,dim> mapping_support_points_neigh;
-                        for(int idim=0; idim<dim; idim++){
-                            mapping_support_points_neigh[idim].resize(n_grid_nodes);
-                        }
-                        for (unsigned int igrid_node = 0; igrid_node< n_metric_dofs/dim; ++igrid_node) {
-                            for (unsigned int idof = 0; idof< n_metric_dofs; ++idof) {
-                                const real val = (high_order_grid->volume_nodes[neighbor_metric_dofs_indices[idof]]);
-                                const unsigned int istate = fe_metric.system_to_component_index(idof).first; 
-                                mapping_support_points_neigh[istate][igrid_node] += val * fe_metric.shape_value_component(idof,high_order_grid->dim_grid_nodes.point(igrid_node),istate); 
-                            }
-                        }
-                        //build the volume metric cofactor matrix and the determinant of the volume metric Jacobian
-                        metric_oper_ext.build_volume_metric_operators(
-                            volume_quadrature_collection[poly_degree_ext].size(), n_grid_nodes,
-                            mapping_support_points_neigh,
-                            mapping_basis,
-                            this->all_parameters->use_invariant_curl_form);
-                    }
-                }
-
-                if(compute_Auxiliary_RHS){
-                    std::vector<dealii::Tensor<1,dim,double>> neighbor_cell_rhs_aux (n_dofs_neigh_cell ); // Defaults to 0.0 initialization
-                    assemble_face_term_auxiliary (
-                        iface, neighbor_face_no, 
-                        current_cell_index, neighbor_cell_index,
-                        poly_degree, poly_degree_ext,
-                        current_dofs_indices, neighbor_dofs_indices,
-                        soln_basis_int, soln_basis_ext,
+                    assemble_boundary_term_strong (
+                        iface,
+                        current_cell_index,
+                        boundary_id, poly_degree, penalty, 
+                        current_dofs_indices, 
+                        soln_basis_int,
+                        flux_basis_int,
                         metric_oper_int,
-                        current_cell_rhs_aux, neighbor_cell_rhs_aux);
-                    for (unsigned int i=0; i<n_dofs_neigh_cell; ++i) {
-                        for(int idim=0; idim<dim; idim++){
-                            rhs_aux[idim][neighbor_dofs_indices[i]] += neighbor_cell_rhs_aux[i][idim];
-                        }
-                    }
+                        current_cell_rhs);
                 }
-                else{
-                    if(use_strong_form)//only for strong form explicit
-                    {
-                        assemble_face_term_strong (
-                            iface, neighbor_face_no, 
-                            current_cell_index,
-                            neighbor_cell_index,
-                            poly_degree, poly_degree_ext,
-                            penalty,
-                            current_dofs_indices, neighbor_dofs_indices,
-                            soln_basis_int, soln_basis_ext,
-                            flux_basis_int, flux_basis_ext,
-                            metric_oper_int, metric_oper_ext,
-                            current_cell_rhs, neighbor_cell_rhs);
-                    }
-                    else {
-                        //only need to compute fevalues for the weak form.
-                        const int i_fele_n = neighbor_cell->active_fe_index(), i_quad_n = i_fele_n;
-                        const unsigned int neighbor_iface = neighbor_face_no;
-                        const dealii::FEFaceValues<dim,dim> &fe_values_face_int = fe_values_collection_face_int.get_present_fe_values();
-                        const dealii::FEFaceValues<dim,dim> &fe_values_face_ext = fe_values_collection_face_ext.get_present_fe_values();
-                        const dealii::Quadrature<dim-1> &used_face_quadrature = face_quadrature_collection[i_quad_n]; // or i_quad
-                         
-                        std::pair<unsigned int, int> face_subface_int = std::make_pair(iface, -1);
-                        std::pair<unsigned int, int> face_subface_ext = std::make_pair(neighbor_iface, -1);
-                        const auto face_data_set_int = dealii::QProjector<dim>::DataSetDescriptor::face (
-                                                                                                      dealii::ReferenceCell::get_hypercube(dim),
-                                                                                                      iface,
-                                                                                                      current_cell->face_orientation(iface),
-                                                                                                      current_cell->face_flip(iface),
-                                                                                                      current_cell->face_rotation(iface),
-                                                                                                      used_face_quadrature.size());
-                        const auto face_data_set_ext = dealii::QProjector<dim>::DataSetDescriptor::face (
-                                                                                                      dealii::ReferenceCell::get_hypercube(dim),
-                                                                                                      neighbor_iface,
-                                                                                                      neighbor_cell->face_orientation(neighbor_iface),
-                                                                                                      neighbor_cell->face_flip(neighbor_iface),
-                                                                                                      neighbor_cell->face_rotation(neighbor_iface),
-                                                                                                      used_face_quadrature.size());
-
-                        assemble_face_term_derivatives (
-                            current_cell,
-                            current_cell_index,
-                            neighbor_cell_index,
-                            face_subface_int, face_subface_ext,
-                            face_data_set_int,
-                            face_data_set_ext,
-                            fe_values_face_int, fe_values_face_ext,
-                            penalty,
-                            fe_collection[i_fele], fe_collection[i_fele_n],
-                            used_face_quadrature,
-                            current_metric_dofs_indices, neighbor_metric_dofs_indices,
-                            current_dofs_indices, neighbor_dofs_indices,
-                            current_cell_rhs, neighbor_cell_rhs,
-                            compute_dRdW, compute_dRdX, compute_d2R);
-                    }
-                    //store neighbour RHS values
-                    for (unsigned int i=0; i<n_dofs_neigh_cell; ++i) {
-                        rhs[neighbor_dofs_indices[i]] += neighbor_cell_rhs[i];
-                    }
+                else {
+                    const dealii::FEFaceValues<dim,dim> &fe_values_face_int = fe_values_collection_face_int.get_present_fe_values();
+                    const dealii::Quadrature<dim-1> face_quadrature = face_quadrature_collection[i_quad];
+                    assemble_boundary_term_derivatives (
+                        current_cell,
+                        current_cell_index,
+                        iface, boundary_id, fe_values_face_int, penalty,
+                        current_fe_ref, face_quadrature,
+                        current_metric_dofs_indices, current_dofs_indices, current_cell_rhs,
+                        compute_dRdW, compute_dRdX, compute_d2R);
                 }
-
-            } else {//at boundary and not 1D periodic
-
-                const real penalty = evaluate_penalty_scaling (current_cell, iface, fe_collection);
-
-                const unsigned int boundary_id = current_face->boundary_id();
-                if(compute_Auxiliary_RHS){
-                    assemble_boundary_term_auxiliary_equation (
-                        iface, current_cell_index, poly_degree,
-                        boundary_id, current_dofs_indices, 
-                        soln_basis_int, metric_oper_int,
-                        current_cell_rhs_aux);
-                }
-                else{
-                    if(use_strong_form)//only for strong form explicit
-                    {
-                        assemble_boundary_term_strong (
-                            iface,
-                            current_cell_index,
-                            boundary_id, poly_degree, penalty, 
-                            current_dofs_indices, 
-                            soln_basis_int,
-                            flux_basis_int,
-                            metric_oper_int,
-                            current_cell_rhs);
-                    }
-                    else {
-                        const dealii::FEFaceValues<dim,dim> &fe_values_face_int = fe_values_collection_face_int.get_present_fe_values();
-                        const dealii::Quadrature<dim-1> face_quadrature = face_quadrature_collection[i_quad];
-                        assemble_boundary_term_derivatives (
-                            current_cell,
-                            current_cell_index,
-                            iface, boundary_id, fe_values_face_int, penalty,
-                            current_fe_ref, face_quadrature,
-                            current_metric_dofs_indices, current_dofs_indices, current_cell_rhs,
-                            compute_dRdW, compute_dRdX, compute_d2R);
-                    }
-                }
-
             }
 
         //CASE 2: PERIODIC BOUNDARY CONDITIONS

@@ -104,7 +104,6 @@ pcout<<" Grid Index"<<igrid<<std::endl;
 #endif
 //straight
     dealii::GridGenerator::hyper_cube(*grid, left, right, true);
-#if PHILIP_DIM!=1
 	std::vector<dealii::GridTools::PeriodicFacePair<typename dealii::parallel::distributed::Triangulation<PHILIP_DIM>::cell_iterator> > matched_pairs;
 		dealii::GridTools::collect_periodic_faces(*grid,0,1,0,matched_pairs);
                 if(dim >= 2)
@@ -112,7 +111,6 @@ pcout<<" Grid Index"<<igrid<<std::endl;
                 if(dim>=3)
 		dealii::GridTools::collect_periodic_faces(*grid,4,5,2,matched_pairs);
 		grid->add_periodicity(matched_pairs);
-#endif
     grid->refine_global(igrid);
     pcout<<" made grid for Index"<<igrid<<std::endl;
 

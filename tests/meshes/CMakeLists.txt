@@ -1,0 +1,7 @@
+configure_file(naca0012_hopw_ref2.msh naca0012.msh COPYONLY)
+configure_file(naca0012_hopw_ref0.msh naca0012_hopw_ref0.msh COPYONLY)
+configure_file(naca0012_hopw_ref1.msh naca0012_hopw_ref1.msh COPYONLY)
+configure_file(naca0012_hopw_ref2.msh naca0012_hopw_ref2.msh COPYONLY)
+configure_file(naca0012_hopw_ref3.msh naca0012_hopw_ref3.msh COPYONLY)
+configure_file(naca0012_hopw_ref4.msh naca0012_hopw_ref4.msh COPYONLY)
+configure_file(naca0012_hopw_ref5.msh naca0012_hopw_ref5.msh COPYONLY)

@@ -89,7 +89,6 @@ void InitialCondition<dim,nstate,real>::project_initial_condition(
                 dg->solution[current_dofs_indices[ishape+istate*n_shape_fns]] = sol[ishape];
             }
         }
-                                
     }
 
 }

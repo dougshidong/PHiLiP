@@ -328,7 +328,7 @@ int ConvectionDiffusionPeriodic<dim, nstate>::run_test() const
                      << "  slope " << slope_soln_err
                      << std::endl;
                 if(igrid == n_grids-1){
-                    if(std::abs(slope_soln_err-(poly_degree+1))>0.05){
+                    if(std::abs(slope_soln_err-(poly_degree+1))>0.1){
                         return 1;
                     }
                 }

@@ -491,7 +491,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_auxiliary(
 
             soln_basis_ext.inner_product_surface_1D(neighbor_iface, 
                                                 surf_num_flux_minus_surf_soln_ext_dot_normal[istate][idim],
-                                                surf_quad_weights, rhs_int,
+                                                surf_quad_weights, rhs_ext,
                                                 soln_basis_ext.oneD_surf_operator,
                                                 soln_basis_ext.oneD_vol_operator,
                                                 true, 1.0);//it's added since auxiliary is EQUAL to the gradient of the soln

@@ -2830,6 +2830,9 @@ void DGBase<dim,real,MeshType>::evaluate_local_metric_dependent_mass_matrix_and_
                                             reference_mass_matrix.oneD_vol_operator,
                                             reference_mass_matrix.oneD_vol_operator,
                                             reference_mass_matrix.oneD_vol_operator));
+                if(use_auxiliary_eq){
+                    local_mass_matrix_aux_state.add(1.0, local_mass_matrix_state);
+                }
                 if(FR_Type != FR_enum::cDG){
                     local_mass_matrix_state.add(metric_oper.det_Jac_vol[0],
                                                 reference_FR.build_dim_Flux_Reconstruction_operator(
@@ -2838,7 +2841,6 @@ void DGBase<dim,real,MeshType>::evaluate_local_metric_dependent_mass_matrix_and_
                                                 n_shape_fns));
                 }
                 if(use_auxiliary_eq){
-                    local_mass_matrix_aux_state.add(1.0, local_mass_matrix);
                     if(FR_Type_Aux != FR_Aux_enum::kDG){
                         local_mass_matrix_aux_state.add(metric_oper.det_Jac_vol[0],
                                                         reference_FR_aux.build_dim_Flux_Reconstruction_operator(

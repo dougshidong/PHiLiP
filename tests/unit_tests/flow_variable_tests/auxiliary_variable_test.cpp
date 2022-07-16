@@ -104,6 +104,11 @@ pcout<<" Grid Index"<<igrid<<std::endl;
 #endif
 //straight
     dealii::GridGenerator::hyper_cube(*grid, left, right, true);
+#if PHILIP_DIM==1
+        std::vector<dealii::GridTools::PeriodicFacePair<typename dealii::Triangulation<PHILIP_DIM>::cell_iterator> > matched_pairs;
+        dealii::GridTools::collect_periodic_faces(*grid,0,1,0,matched_pairs);
+        grid->add_periodicity(matched_pairs);
+#else
 	std::vector<dealii::GridTools::PeriodicFacePair<typename dealii::parallel::distributed::Triangulation<PHILIP_DIM>::cell_iterator> > matched_pairs;
 		dealii::GridTools::collect_periodic_faces(*grid,0,1,0,matched_pairs);
                 if(dim >= 2)
@@ -111,6 +116,7 @@ pcout<<" Grid Index"<<igrid<<std::endl;
                 if(dim>=3)
 		dealii::GridTools::collect_periodic_faces(*grid,4,5,2,matched_pairs);
 		grid->add_periodicity(matched_pairs);
+#endif
     grid->refine_global(igrid);
     pcout<<" made grid for Index"<<igrid<<std::endl;
 
@@ -125,6 +131,9 @@ pcout<<" Grid Index"<<igrid<<std::endl;
     std::shared_ptr < PHiLiP::DGBase<dim, double> > dg = PHiLiP::DGFactory<dim,double>::create_discontinuous_galerkin(&all_parameters_new, poly_degree, poly_degree, grid_degree, grid);
     pcout<<"going in allocate"<<std::endl;
     dg->allocate_system (false,false,false);
+    if(!all_parameters_new.use_inverse_mass_on_the_fly){
+        dg->evaluate_mass_matrices(true);
+    }
     
 //Interpolate IC
 

@@ -56,10 +56,6 @@ subsection ODE solver
   set print_iteration_modulo              = 1
 end
 
-subsection grid refinement study
- set num_refinements = 0
-end
-
 subsection flow_solver
   set flow_case_type = naca0012
   set poly_degree = 0
@@ -68,4 +64,3 @@ subsection flow_solver
     set input_mesh_filename = ../../../meshes/naca0012_hopw_ref2
   end
 end
-

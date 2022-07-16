@@ -10,7 +10,12 @@ class EulerGaussianBumpEnthalpyCheck: public TestsBase
 {
     public:
     /// Constructor
-    EulerGaussianBumpEnthalpyCheck(const Parameters::AllParameters *const parameters_input);
+    EulerGaussianBumpEnthalpyCheck(
+        const Parameters::AllParameters *const parameters_input,
+        const dealii::ParameterHandler &parameter_handler_input);
+
+    /// Parameter handler for storing the .prm file being ran
+    const dealii::ParameterHandler &parameter_handler;
     
     /// Checks if enthalpy is conserved by comparing errors in subsonic and transonic runs.
     int run_test() const;

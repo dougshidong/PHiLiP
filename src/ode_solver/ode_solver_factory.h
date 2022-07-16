@@ -32,10 +32,7 @@ public:
     static std::shared_ptr<ODESolverBase<dim,real,MeshType>> create_ODESolver_manual(Parameters::ODESolverParam::ODESolverEnum ode_solver_type, std::shared_ptr< DGBase<dim, real, MeshType> > dg_input, std::shared_ptr<ProperOrthogonalDecomposition::PODBase<dim>> pod);
 
     /// Output error message for Implicit and Explicit solver
-    static void error_implicit_explicit(Parameters::ODESolverParam::ODESolverEnum ode_solver_type);
-
-    /// Output error message for reduced-order solvers
-    static void error_reduced_order(Parameters::ODESolverParam::ODESolverEnum ode_solver_type);
+    static void display_error_ode_solver_factory(Parameters::ODESolverParam::ODESolverEnum ode_solver_type, bool reduced_order);
 };
 
 } // ODE namespace

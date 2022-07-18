@@ -162,7 +162,7 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                               " isothermal>.");
         }
         prm.leave_subsection();
-        
+
         prm.enter_subsection("time_refinement_study");
         {
             prm.declare_entry("number_of_times_to_solve", "4",

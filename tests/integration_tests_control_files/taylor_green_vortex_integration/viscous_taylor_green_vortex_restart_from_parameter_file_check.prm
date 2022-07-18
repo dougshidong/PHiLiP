@@ -128,15 +128,14 @@ subsection ODE solver
   # Outputs the solution every x steps in .vtk file
   set output_solution_every_x_steps                                    = -1
 
-  # Output solution vector every output_solution_vector_modulo iterations of
-  # the nonlinear solver. Set to 0 to disable.
-  set output_solution_vector_modulo                                    = 0
+  # Output final steady state solution. False by default.
+  set output_final_steady_state_solution_to_file                       = false
 
   # Print every print_iteration_modulo iterations of the nonlinear solver
   set print_iteration_modulo                                           = 1
 
-  # Filename to use when outputting solution vectors in a table format.
-  set solutions_table_filename                                         = solutions_table
+  # Filename to use when outputting final steady state solution
+  set steady_state_final_solution_filename                              = solution_snapshot
 
   # Multiplies initial time-step by
   # time_step_factor_residual*(-log10(residual_norm_decrease)).
@@ -1497,34 +1496,8 @@ end
 
 
 subsection reduced order
-  # Number of basis functions to add to coarse basis at each adaptation
-  # iteration. Set to 0 to turn off.
-  set adapt_coarse_basis_constant  = 0
-
   # Tolerance for POD adaptation
   set adaptation_tolerance         = 1
-
-  # Initial dimension of the coarse POD basis
-  set coarse_basis_dimension       = 0
-
-  # Consider the sign of the error estimate from the dual-weighted residual.
-  # False by default.
-  set consider_error_sign          = false
-
-  # Initial dimension of the expanded POD basis
-  set expanded_basis_dimension     = 0
-
-  # Initial dimension of the extrapolated POD basis
-  set extrapolated_basis_dimension = 0
-
-  # Change in parameter from base parameter value
-  set extrapolated_parameter_delta = 0.0
-
-  # Initial dimension of the fine POD basis
-  set fine_basis_dimension         = 0
-
-  # Use the method of snapshots to compute the POD basis. False by default.
-  set method_of_snapshots          = false
 
   # Path to search for saved snapshots or POD basis.
   set path_to_search               = .

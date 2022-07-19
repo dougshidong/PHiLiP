@@ -114,7 +114,7 @@ int ODESolverBase<dim,real,MeshType>::steady_state ()
 
     if (ode_param.output_ode_solver_steady_state_convergence_table == true) {
         // write initial convergence data
-        write_ode_solver_steady_state_convergence_data_to_table(this->current_iteration, this->residual_norm, ode_solver_steady_state_convergence_table);
+        write_ode_solver_steady_state_convergence_data_to_table(this->current_iteration, this->residual_l2norm, ode_solver_steady_state_convergence_table);
     }
 
     // Initial Courant-Friedrichs-Lax number
@@ -153,7 +153,7 @@ int ODESolverBase<dim,real,MeshType>::steady_state ()
               << std::endl;
 
         if (ode_param.output_ode_solver_steady_state_convergence_table == true) {
-            write_ode_solver_steady_state_convergence_data_to_table(this->current_iteration, this->residual_norm, ode_solver_steady_state_convergence_table);
+            write_ode_solver_steady_state_convergence_data_to_table(this->current_iteration, this->residual_l2norm, ode_solver_steady_state_convergence_table);
         }
 
         if ((ode_param.ode_output) == Parameters::OutputEnum::verbose &&
@@ -202,7 +202,9 @@ int ODESolverBase<dim,real,MeshType>::steady_state ()
         this->residual_linfnorm = this->dg->get_residual_linfnorm();
         this->residual_norm_decrease = this->residual_l2norm / this->initial_residual_norm;
 
-        convergence_error = this->residual_linfnorm > ode_param.nonlinear_steady_residual_tolerance
+        //convergence_error = this->residual_linfnorm > ode_param.nonlinear_steady_residual_tolerance
+        //                    && this->residual_norm_decrease > ode_param.nonlinear_steady_residual_tolerance;
+        convergence_error = this->residual_l2norm > ode_param.nonlinear_steady_residual_tolerance
                             && this->residual_norm_decrease > ode_param.nonlinear_steady_residual_tolerance;
     }
     if (this->residual_l2norm > 1e5

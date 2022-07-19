@@ -312,6 +312,7 @@ public:
      *  and has write-access to all locally_owned_dofs
      */
     dealii::LinearAlgebra::distributed::Vector<double> solution;
+    dealii::LinearAlgebra::distributed::Vector<double> solution_temp;
 private:
     /// Modal coefficients of the solution used to compute dRdW last
     /// Will be used to avoid recomputing dRdW.
@@ -367,6 +368,8 @@ public:
         const dealii::Quadrature<dim> &volume_quadrature,
         const std::vector< real2 > &soln_coeff_high,
         const dealii::FiniteElement<dim,dim> &fe_high,
+        const std::vector< real2 > &coords_coeff,
+        const dealii::FESystem<dim,dim> &fe_metric,
         const std::vector<real2> &jac_det);
 
     /// Current optimization dual variables corresponding to the residual constraints also known as the adjoint
@@ -461,7 +464,7 @@ public:
      *
      */
     //void assemble_residual_dRdW ();
-    void assemble_residual (const bool compute_dRdW=false, const bool compute_dRdX=false, const bool compute_d2R=false, const double CFL_mass = 0.0);
+    void assemble_residual (const bool compute_dRdW=false, const bool compute_dRdX=false, const bool compute_d2R=false, const double CFL_mass = 0.0, const bool compute_p0_dRdW=false);
 
     /// Used in assemble_residual().
     /** IMPORTANT: This does not fully compute the cell residual since it might not

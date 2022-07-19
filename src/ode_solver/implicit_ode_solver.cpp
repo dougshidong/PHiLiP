@@ -12,8 +12,23 @@ ImplicitODESolver<dim,real,MeshType>::ImplicitODESolver(std::shared_ptr< DGBase<
 template <int dim, typename real, typename MeshType>
 void ImplicitODESolver<dim,real,MeshType>::step_in_time (real dt, const bool pseudotime)
 {
-    const bool compute_dRdW = true;
-    this->dg->assemble_residual(compute_dRdW);
+    {
+        const bool compute_dRdW = true;
+        //this->dg->assemble_residual(compute_dRdW);
+        const bool compute_dRdX=false;
+        const bool compute_d2R=false;
+        const double CFL_mass = 0.0;
+        const bool compute_p0_dRdW=false;//true;
+        this->dg->assemble_residual(compute_dRdW, compute_dRdX, compute_d2R, CFL_mass, compute_p0_dRdW);
+    }
+    {
+        const bool compute_dRdW =false;
+        const bool compute_dRdX=false;
+        const bool compute_d2R=false;
+        const double CFL_mass = 0.0;
+        const bool compute_p0_dRdW=false;
+        this->dg->assemble_residual(compute_dRdW, compute_dRdX, compute_d2R, CFL_mass, compute_p0_dRdW);
+    }
     this->current_time += dt;
     // Solve (M/dt - dRdW) dw = R
     // w = w + dw
@@ -22,20 +37,26 @@ void ImplicitODESolver<dim,real,MeshType>::step_in_time (real dt, const bool pse
 
     auto dRdWinv_mass_R = this->solution_update;
     if (pseudotime) {
-
-        solve_linear (
-                this->dg->system_matrix,
-                this->dg->right_hand_side,
-                this->solution_update,
-                this->ODESolverBase<dim,real,MeshType>::all_parameters->linear_solver_param);
-
         const double CFL = dt;
         this->dg->time_scaled_mass_matrices(CFL);
-
-        this->dg->time_scaled_global_mass_matrix.vmult(dRdWinv_mass_R, this->solution_update);
-        this->dg->right_hand_side.add(1.0,dRdWinv_mass_R);
-
         this->dg->add_time_scaled_mass_matrices();
+
+        // Pseudo-transient continuation (PTC) residual smoothing procedure
+        // Mavriplis, D. J. “A Residual Smoothing Strategy for Accelerating Newton Method Continuation.”
+        // Computers & Fluids, 2021-02, p. 104859.
+        // https://doi.org/10.1016/j.compfluid.2021.104859.
+        const bool PTC_residual_smoothing = false;
+        if (PTC_residual_smoothing) {
+            solve_linear (
+                    this->dg->system_matrix,
+                    this->dg->right_hand_side,
+                    this->solution_update,
+                    this->ODESolverBase<dim,real,MeshType>::all_parameters->linear_solver_param);
+
+            this->dg->time_scaled_global_mass_matrix.vmult(dRdWinv_mass_R, this->solution_update);
+            this->dg->right_hand_side.add(1.0,dRdWinv_mass_R);
+        }
+
     } else {
         this->dg->add_mass_matrices(1.0/dt);
     }

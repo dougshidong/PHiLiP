@@ -42,6 +42,7 @@
 #include <deal.II/dofs/dof_renumbering.h>
 
 #include "dg.h"
+#include "dg_helper_functions.hpp"
 #include "physics/physics_factory.h"
 #include "physics/model_factory.h"
 #include "post_processor/physics_post_processor.h"
@@ -64,15 +65,6 @@ unsigned int n_design_iterations;
 
 
 namespace PHiLiP {
-
-// Forward declaration.
-template<int dim, typename real>
-std::vector< real > project_function(
-    const std::vector< real > &function_coeff,
-    const dealii::FESystem<dim,dim> &fe_input,
-    const dealii::FESystem<dim,dim> &fe_output,
-    const dealii::QGauss<dim> &projection_quadrature);
-
 
 template <int dim, typename real, typename MeshType>
 DGBase<dim,real,MeshType>::DGBase(
@@ -1060,20 +1052,27 @@ void DGBase<dim,real,MeshType>::update_artificial_dissipation_discontinuity_sens
     const unsigned int n_dofs_arti_diss = fe_q_artificial_dissipation.dofs_per_cell;
     std::vector<dealii::types::global_dof_index> dof_indices_artificial_dissipation(n_dofs_arti_diss);
 
+    const dealii::FESystem<dim> &fe_metric = this->high_order_grid->fe_system;
+    const unsigned int n_metric_dofs = fe_metric.dofs_per_cell;
+    std::vector<dealii::types::global_dof_index> metric_dof_indices(n_metric_dofs);
+
+    std::vector<real> coords_coeff(n_metric_dofs);
+
     //if (freeze_artificial_dissipation) return;
     artificial_dissipation_c0 *= 0.0;
     if (n_design_iterations>20) return;
-    for (auto cell : dof_handler.active_cell_iterators()) {
-        if (!(cell->is_locally_owned() || cell->is_ghost())) continue;
+    //for (auto cell : dof_handler.active_cell_iterators()) {
+    //    if (!(cell->is_locally_owned() || cell->is_ghost())) continue;
 
-        dealii::types::global_dof_index cell_index = cell->active_cell_index();
-        artificial_dissipation_coeffs[cell_index] = 0.0;
-        artificial_dissipation_se[cell_index] = 0.0;
-        //artificial_dissipation_coeffs[cell_index] = 1e-2;
-        //artificial_dissipation_se[cell_index] = 0.0;
-        //continue;
+    for (auto cell = triangulation->begin_active(); cell != triangulation->end(); ++cell) {
+        if (!cell->is_locally_owned()) continue;
 
-        const int i_fele = cell->active_fe_index();
+        const int tria_level = cell->level();
+        const int tria_index = cell->index();
+
+
+        typename dealii::DoFHandler<dim>::active_cell_iterator soln_cell(triangulation.get(), tria_level, tria_index, &dof_handler);
+        const int i_fele = soln_cell->active_fe_index();
         const int i_quad = i_fele;
         const int i_mapp = 0;
 
@@ -1085,16 +1084,29 @@ void DGBase<dim,real,MeshType>::update_artificial_dissipation_discontinuity_sens
         const unsigned int nstate = fe_high.components;
         const unsigned int n_dofs_high = fe_high.dofs_per_cell;
 
-        fe_values_collection_volume.reinit (cell, i_quad, i_mapp, i_fele);
-        const dealii::FEValues<dim,dim> &fe_values_volume = fe_values_collection_volume.get_present_fe_values();
-
         dof_indices.resize(n_dofs_high);
-        cell->get_dof_indices (dof_indices);
-
         soln_coeff_high.resize(n_dofs_high);
+        soln_cell->get_dof_indices (dof_indices);
         for (unsigned int idof=0; idof<n_dofs_high; ++idof) {
             soln_coeff_high[idof] = solution[dof_indices[idof]];
         }
+
+        typename dealii::DoFHandler<dim>::active_cell_iterator metric_cell(triangulation.get(), tria_level, tria_index, &high_order_grid->dof_handler_grid);
+        metric_dof_indices.resize(n_metric_dofs);
+        metric_cell->get_dof_indices (metric_dof_indices);
+        for (unsigned int idof = 0; idof < n_metric_dofs; ++idof) {
+            coords_coeff[idof] = this->high_order_grid->volume_nodes[metric_dof_indices[idof]];
+        }
+
+        typename dealii::DoFHandler<dim>::active_cell_iterator artificial_dissipation_cell(triangulation.get(), tria_level, tria_index, &dof_handler_artificial_dissipation);
+
+        dealii::types::global_dof_index cell_index = soln_cell->active_cell_index();
+        artificial_dissipation_coeffs[cell_index] = 0.0;
+        artificial_dissipation_se[cell_index] = 0.0;
+
+
+        fe_values_collection_volume.reinit (soln_cell, i_quad, i_mapp, i_fele);
+        const dealii::FEValues<dim,dim> &fe_values_volume = fe_values_collection_volume.get_present_fe_values();
 
         // Lower degree basis.
         const unsigned int lower_degree = degree-1;
@@ -1103,7 +1115,7 @@ void DGBase<dim,real,MeshType>::update_artificial_dissipation_discontinuity_sens
 
         // Projection quadrature.
         const dealii::QGauss<dim> projection_quadrature(degree+5);
-        std::vector< double > soln_coeff_lower = project_function<dim,double>( soln_coeff_high, fe_high, fe_lower, projection_quadrature);
+        std::vector< double > soln_coeff_lower = project_function<dim,double>( soln_coeff_high, fe_high, fe_lower, coords_coeff, fe_metric, projection_quadrature);
 
         // Quadrature used for solution difference.
         const dealii::Quadrature<dim> &quadrature = fe_values_volume.get_quadrature();
@@ -1196,9 +1208,6 @@ void DGBase<dim,real,MeshType>::update_artificial_dissipation_discontinuity_sens
         artificial_dissipation_coeffs[cell_index] += eps;
         artificial_dissipation_se[cell_index] = s_e;
 
-        typename dealii::DoFHandler<dim>::active_cell_iterator artificial_dissipation_cell(
-            triangulation.get(), cell->level(), cell->index(), &dof_handler_artificial_dissipation);
-
         dof_indices_artificial_dissipation.resize(n_dofs_arti_diss);
         artificial_dissipation_cell->get_dof_indices (dof_indices_artificial_dissipation);
         for (unsigned int idof=0; idof<n_dofs_arti_diss; ++idof) {
@@ -1237,7 +1246,7 @@ void DGBase<dim,real,MeshType>::update_artificial_dissipation_discontinuity_sens
 
 
 template <int dim, typename real, typename MeshType>
-void DGBase<dim,real,MeshType>::assemble_residual (const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R, const double CFL_mass)
+void DGBase<dim,real,MeshType>::assemble_residual (const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R, const double CFL_mass, const bool compute_p0_dRdW)
 {
     dealii::deal_II_exceptions::disable_abort_on_exception(); // Allows us to catch negative Jacobians.
     Assert( !(compute_dRdW && compute_dRdX)
@@ -1371,6 +1380,64 @@ void DGBase<dim,real,MeshType>::assemble_residual (const bool compute_dRdW, cons
 
     solution.update_ghost_values();
 
+    if ( compute_p0_dRdW ) { 
+        solution_temp = solution;
+        std::vector<dealii::types::global_dof_index> dof_indices;
+        std::vector<double> soln_coeff_high;
+
+        const dealii::FESystem<dim> &fe_metric = this->high_order_grid->fe_system;
+        const unsigned int n_metric_dofs = fe_metric.dofs_per_cell;
+        std::vector<dealii::types::global_dof_index> metric_dof_indices(n_metric_dofs);
+        std::vector<double> coords_coeff(n_metric_dofs);
+        for (auto cell = triangulation->begin_active(); cell != triangulation->end(); ++cell) {
+            if (!(cell->is_locally_owned() || cell->is_ghost())) continue;
+
+            const int tria_level = cell->level();
+            const int tria_index = cell->index();
+            typename dealii::DoFHandler<dim>::active_cell_iterator soln_cell(triangulation.get(), tria_level, tria_index, &dof_handler);
+            typename dealii::DoFHandler<dim>::active_cell_iterator metric_cell(triangulation.get(), tria_level, tria_index, &high_order_grid->dof_handler_grid);
+
+            const int i_fele = soln_cell->active_fe_index();
+
+            const dealii::FESystem<dim,dim> &fe_high = fe_collection[i_fele];
+            const unsigned int degree = fe_high.tensor_degree();
+
+            if (degree == 0) continue;
+
+            const unsigned int nstate = fe_high.components;
+            const unsigned int n_dofs_high = fe_high.dofs_per_cell;
+
+            dof_indices.resize(n_dofs_high);
+            soln_cell->get_dof_indices (dof_indices);
+
+            soln_coeff_high.resize(n_dofs_high);
+            for (unsigned int idof=0; idof<n_dofs_high; ++idof) {
+                soln_coeff_high[idof] = solution[dof_indices[idof]];
+            }
+
+            metric_dof_indices.resize(n_metric_dofs);
+            metric_cell->get_dof_indices (metric_dof_indices);
+            for (unsigned int idof = 0; idof < n_metric_dofs; ++idof) {
+                coords_coeff[idof] = this->high_order_grid->volume_nodes[metric_dof_indices[idof]];
+            }
+
+            // Lower degree basis.
+            const unsigned int lower_degree = 0;
+            const dealii::FE_DGQLegendre<dim> fe_dgq_lower(lower_degree);
+            const dealii::FESystem<dim,dim> fe_lower(fe_dgq_lower, nstate);
+
+            // Projection quadrature.
+            const dealii::QGauss<dim> projection_quadrature(degree+5);
+            std::vector< double > soln_coeff_lower = project_function<dim,double>( soln_coeff_high, fe_high, fe_lower, coords_coeff, fe_metric, projection_quadrature);
+            soln_coeff_high = project_function<dim,double>( soln_coeff_lower, fe_lower, fe_high, coords_coeff, fe_metric, projection_quadrature);
+
+            for (unsigned int idof=0; idof<n_dofs_high; ++idof) {
+                solution[dof_indices[idof]] = soln_coeff_high[idof];
+            }
+        }
+        solution.update_ghost_values();
+    }
+
     int assembly_error = 0;
     bool negative_pressure = false;
     bool negative_density = false;
@@ -1386,21 +1453,13 @@ void DGBase<dim,real,MeshType>::assemble_residual (const bool compute_dRdW, cons
         // updates model variables only if there is a model
         if(all_parameters->pde_type == Parameters::AllParameters::PartialDifferentialEquation::physics_model) update_model_variables();
 
-        auto metric_cell = high_order_grid->dof_handler_grid.begin_active();
-        for (auto soln_cell = dof_handler.begin_active(); soln_cell != dof_handler.end(); ++soln_cell, ++metric_cell) {
-        //for (auto cell = triangulation->begin_active(); cell != triangulation->end(); ++cell) {
-            if (!soln_cell->is_locally_owned()) continue;
+        for (auto cell = triangulation->begin_active(); cell != triangulation->end(); ++cell) {
+            if (!cell->is_locally_owned()) continue;
 
-            //const int tria_level = cell->level();
-            //const int tria_index = cell->index();
-            //dealii::DoFCellAccessor<dim,dim,false> soln_cell(triangulation.get(), tria_level, tria_index, &dof_handler);
-            //dealii::DoFCellAccessor<dim,dim,false> metric_cell(triangulation.get(), tria_level, tria_index, &high_order_grid->dof_handler_grid);
-
-            //dealii::TriaActiveIterator< dealii::DoFCellAccessor<dim,dim,false> >
-
-            //DoFCellAccessor<dim,dim,false> soln_cell(triangulation.get(), tria_level, tria_index, &dof_handler);
-            //dealii::DoFCellAccessor<dim,dim,false> metric_cell(triangulation.get(), tria_level, tria_index, &high_order_grid->dof_handler_grid);
-
+            const int tria_level = cell->level();
+            const int tria_index = cell->index();
+            typename dealii::DoFHandler<dim>::active_cell_iterator soln_cell(triangulation.get(), tria_level, tria_index, &dof_handler);
+            typename dealii::DoFHandler<dim>::active_cell_iterator metric_cell(triangulation.get(), tria_level, tria_index, &high_order_grid->dof_handler_grid);
 
             // Add right-hand side contributions this cell can compute
             assemble_cell_residual (
@@ -1460,6 +1519,11 @@ void DGBase<dim,real,MeshType>::assemble_residual (const bool compute_dRdW, cons
     right_hand_side.update_ghost_values();
     if ( compute_dRdW ) {
         system_matrix.compress(dealii::VectorOperation::add);
+
+        if ( compute_p0_dRdW ) { 
+            solution = solution_temp;
+            solution.update_ghost_values();
+        }
 
         if (global_mass_matrix.m() != system_matrix.m()) {
             const bool do_inverse_mass_matrix = false;
@@ -2091,6 +2155,7 @@ void DGBase<dim,real,MeshType>::allocate_system ()
     if(all_parameters->pde_type == Parameters::AllParameters::PartialDifferentialEquation::physics_model) allocate_model_variables();
 
     solution.reinit(locally_owned_dofs, ghost_dofs, mpi_communicator);
+    solution_temp.reinit(locally_owned_dofs, ghost_dofs, mpi_communicator);
     solution *= 0.0;
     solution.add(std::numeric_limits<real>::lowest());
     //right_hand_side.reinit(locally_owned_dofs, mpi_communicator);
@@ -2383,174 +2448,102 @@ void DGBase<dim,real,MeshType>::time_scaled_mass_matrices(const real dt_scale)
     time_scaled_global_mass_matrix.compress(dealii::VectorOperation::insert);
 }
 
-template<int dim, typename real>
-std::vector< real > project_function(
-    const std::vector< real > &function_coeff,
-    const dealii::FESystem<dim,dim> &fe_input,
-    const dealii::FESystem<dim,dim> &fe_output,
-    const dealii::QGauss<dim> &projection_quadrature)
-{
-    const unsigned int nstate = fe_input.n_components();
-    const unsigned int n_vector_dofs_in = fe_input.dofs_per_cell;
-    const unsigned int n_vector_dofs_out = fe_output.dofs_per_cell;
-    const unsigned int n_dofs_in = n_vector_dofs_in / nstate;
-    const unsigned int n_dofs_out = n_vector_dofs_out / nstate;
-
-    assert(n_vector_dofs_in == function_coeff.size());
-    assert(nstate == fe_output.n_components());
-
-    const unsigned int n_quad_pts = projection_quadrature.size();
-    const std::vector<dealii::Point<dim,double>> &unit_quad_pts = projection_quadrature.get_points();
-
-    std::vector< real > function_coeff_out(n_vector_dofs_out); // output function coefficients.
-    for (unsigned istate = 0; istate < nstate; ++istate) {
-
-        std::vector< real > function_at_quad(n_quad_pts);
-
-        // Output interpolation_operator is V^T in the notes.
-        dealii::FullMatrix<double> interpolation_operator(n_dofs_out,n_quad_pts);
-
-        for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
-            function_at_quad[iquad] = 0.0;
-            for (unsigned int idof=0; idof<n_dofs_in; ++idof) {
-                const unsigned int idof_vector = fe_input.component_to_system_index(istate,idof);
-                function_at_quad[iquad] += function_coeff[idof_vector] * fe_input.shape_value_component(idof_vector,unit_quad_pts[iquad],istate);
-            }
-            function_at_quad[iquad] *= projection_quadrature.weight(iquad);
-
-            for (unsigned int idof=0; idof<n_dofs_out; ++idof) {
-                const unsigned int idof_vector = fe_output.component_to_system_index(istate,idof);
-                interpolation_operator[idof][iquad] = fe_output.shape_value_component(idof_vector,unit_quad_pts[iquad],istate);
-            }
-        }
-
-        std::vector< real > rhs(n_dofs_out);
-        for (unsigned int idof=0; idof<n_dofs_out; ++idof) {
-            rhs[idof] = 0.0;
-            for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
-                rhs[idof] += interpolation_operator[idof][iquad] * function_at_quad[iquad];
-            }
-        }
-
-        dealii::FullMatrix<double> mass(n_dofs_out, n_dofs_out);
-        for(unsigned int row=0; row<n_dofs_out; ++row) {
-            for(unsigned int col=0; col<n_dofs_out; ++col) {
-                mass[row][col] = 0;
-            }
-        }
-        for(unsigned int row=0; row<n_dofs_out; ++row) {
-            for(unsigned int col=0; col<n_dofs_out; ++col) {
-                for(unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
-                    mass[row][col] += interpolation_operator[row][iquad] * interpolation_operator[col][iquad] * projection_quadrature.weight(iquad);
-                }
-            }
-        }
-        dealii::FullMatrix<double> inverse_mass(n_dofs_out, n_dofs_out);
-        inverse_mass.invert(mass);
-
-        for(unsigned int row=0; row<n_dofs_out; ++row) {
-            const unsigned int idof_vector = fe_output.component_to_system_index(istate,row);
-            function_coeff_out[idof_vector] = 0.0;
-            for(unsigned int col=0; col<n_dofs_out; ++col) {
-                function_coeff_out[idof_vector] += inverse_mass[row][col] * rhs[col];
-            }
-        }
-    }
-
-    return function_coeff_out;
-    //
-    //int mpi_rank;
-    //(void) MPI_Comm_rank(MPI_COMM_WORLD, &mpi_rank);
-    //if (mpi_rank==0) mass.print(std::cout);
-
-}
-
 template <int dim, typename real, typename MeshType>
 template <typename real2>
 real2 DGBase<dim,real,MeshType>::discontinuity_sensor(
     const dealii::Quadrature<dim> &volume_quadrature,
     const std::vector< real2 > &soln_coeff_high,
     const dealii::FiniteElement<dim,dim> &fe_high,
+    const std::vector< real2 > &coords_coeff,
+    const dealii::FESystem<dim,dim> &fe_metric,
     const std::vector<real2> &jac_det)
 {
-    const unsigned int degree = fe_high.tensor_degree();
+    (void)volume_quadrature;
+    (void)soln_coeff_high;
+    (void)fe_high;
+    (void)coords_coeff;
+    (void)fe_metric;
+    (void)jac_det;
+    return 0;
 
-    if (degree == 0) return 0;
+    //const unsigned int degree = fe_high.tensor_degree();
 
-    const unsigned int nstate = fe_high.components;
-    const unsigned int n_dofs_high = fe_high.dofs_per_cell;
+    //if (degree == 0) return 0;
 
-    // Lower degree basis.
-    const unsigned int lower_degree = degree-1;
-    const dealii::FE_DGQLegendre<dim> fe_dgq_lower(lower_degree);
-    const dealii::FESystem<dim,dim> fe_lower(fe_dgq_lower, nstate);
+    //const unsigned int nstate = fe_high.components;
+    //const unsigned int n_dofs_high = fe_high.dofs_per_cell;
 
-    // Projection quadrature.
-    const dealii::QGauss<dim> projection_quadrature(degree+5);
-    std::vector< real2 > soln_coeff_lower = project_function<dim,real2>( soln_coeff_high, fe_high, fe_lower, projection_quadrature);
+    //// Lower degree basis.
+    //const unsigned int lower_degree = degree-1;
+    //const dealii::FE_DGQLegendre<dim> fe_dgq_lower(lower_degree);
+    //const dealii::FESystem<dim,dim> fe_lower(fe_dgq_lower, nstate);
 
-    // Quadrature used for solution difference.
-    const std::vector<dealii::Point<dim,double>> &unit_quad_pts = volume_quadrature.get_points();
+    //// Projection quadrature.
+    //const dealii::QGauss<dim> projection_quadrature(degree+5);
+    //std::vector< real2 > soln_coeff_lower = project_function<dim,real2>( soln_coeff_high, fe_high, fe_lower, coords_coeff, fe_metric, projection_quadrature);
 
-    const unsigned int n_quad_pts = volume_quadrature.size();
-    const unsigned int n_dofs_lower = fe_lower.dofs_per_cell;
+    //// Quadrature used for solution difference.
+    //const std::vector<dealii::Point<dim,double>> &unit_quad_pts = volume_quadrature.get_points();
 
-    real2 element_volume = 0.0;
-    real2 error = 0.0;
-    real2 soln_norm = 0.0;
-    std::vector<real2> soln_high(nstate);
-    std::vector<real2> soln_lower(nstate);
-    for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
-        for (unsigned int s=0; s<nstate; ++s) {
-            soln_high[s] = 0.0;
-            soln_lower[s] = 0.0;
-        }
-        // Interpolate solution
-        for (unsigned int idof=0; idof<n_dofs_high; ++idof) {
-              const unsigned int istate = fe_high.system_to_component_index(idof).first;
-              soln_high[istate] += soln_coeff_high[idof] * fe_high.shape_value_component(idof,unit_quad_pts[iquad],istate);
-        }
-        // Interpolate low order solution
-        for (unsigned int idof=0; idof<n_dofs_lower; ++idof) {
-              const unsigned int istate = fe_lower.system_to_component_index(idof).first;
-              soln_lower[istate] += soln_coeff_lower[idof] * fe_lower.shape_value_component(idof,unit_quad_pts[iquad],istate);
-        }
-        // Quadrature
-        const real2 JxW = jac_det[iquad] * volume_quadrature.weight(iquad);
-        element_volume += JxW;
-        // Only integrate over the first state variable.
-        // Persson and Peraire only did density.
-        for (unsigned int s=0; s<1/*nstate*/; ++s) {
-            error += (soln_high[s] - soln_lower[s]) * (soln_high[s] - soln_lower[s]) * JxW;
-            soln_norm += soln_high[s] * soln_high[s] * JxW;
-        }
-    }
+    //const unsigned int n_quad_pts = volume_quadrature.size();
+    //const unsigned int n_dofs_lower = fe_lower.dofs_per_cell;
 
-    if (soln_norm < 1e-12) return 0;
+    //real2 element_volume = 0.0;
+    //real2 error = 0.0;
+    //real2 soln_norm = 0.0;
+    //std::vector<real2> soln_high(nstate);
+    //std::vector<real2> soln_lower(nstate);
+    //for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
+    //    for (unsigned int s=0; s<nstate; ++s) {
+    //        soln_high[s] = 0.0;
+    //        soln_lower[s] = 0.0;
+    //    }
+    //    // Interpolate solution
+    //    for (unsigned int idof=0; idof<n_dofs_high; ++idof) {
+    //          const unsigned int istate = fe_high.system_to_component_index(idof).first;
+    //          soln_high[istate] += soln_coeff_high[idof] * fe_high.shape_value_component(idof,unit_quad_pts[iquad],istate);
+    //    }
+    //    // Interpolate low order solution
+    //    for (unsigned int idof=0; idof<n_dofs_lower; ++idof) {
+    //          const unsigned int istate = fe_lower.system_to_component_index(idof).first;
+    //          soln_lower[istate] += soln_coeff_lower[idof] * fe_lower.shape_value_component(idof,unit_quad_pts[iquad],istate);
+    //    }
+    //    // Quadrature
+    //    const real2 JxW = jac_det[iquad] * volume_quadrature.weight(iquad);
+    //    element_volume += JxW;
+    //    // Only integrate over the first state variable.
+    //    // Persson and Peraire only did density.
+    //    for (unsigned int s=0; s<1/*nstate*/; ++s) {
+    //        error += (soln_high[s] - soln_lower[s]) * (soln_high[s] - soln_lower[s]) * JxW;
+    //        soln_norm += soln_high[s] * soln_high[s] * JxW;
+    //    }
+    //}
 
-    real2 S_e, s_e;
-    S_e = sqrt(error / soln_norm);
-    s_e = log10(S_e);
+    //if (soln_norm < 1e-12) return 0;
 
-    const double mu_scale = 2.0 * 1e-0;
-    const double s_0 = -0.00 - 4.00*log10(degree);
-    const double kappa = 2.0;
-    const double low = s_0 - kappa;
-    const double upp = s_0 + kappa;
+    //real2 S_e, s_e;
+    //S_e = sqrt(error / soln_norm);
+    //s_e = log10(S_e);
 
-    const real2 diameter = pow(element_volume, 1.0/dim);
-    const real2 eps_0 = mu_scale * diameter / (double)degree;
+    //const double mu_scale = 2.0 * 1e-0;
+    //const double s_0 = -0.00 - 4.00*log10(degree);
+    //const double kappa = 2.0;
+    //const double low = s_0 - kappa;
+    //const double upp = s_0 + kappa;
 
-    if ( s_e < low) return 0.0;
+    //const real2 diameter = pow(element_volume, 1.0/dim);
+    //const real2 eps_0 = mu_scale * diameter / (double)degree;
 
-    if ( s_e > upp) {
-        return eps_0;
-    }
+    //if ( s_e < low) return 0.0;
 
-    const double PI = 4*atan(1);
-    real2 eps = 1.0 + sin(PI * (s_e - s_0) * 0.5 / kappa);
-    eps *= eps_0 * 0.5;
-    return eps;
+    //if ( s_e > upp) {
+    //    return eps_0;
+    //}
+
+    //const double PI = 4*atan(1);
+    //real2 eps = 1.0 + sin(PI * (s_e - s_0) * 0.5 / kappa);
+    //eps *= eps_0 * 0.5;
+    //return eps;
 }
 
 // No support for anisotropic mesh refinement with parallel::distributed::Triangulation
@@ -2716,24 +2709,114 @@ template class DGBaseState <PHILIP_DIM, 4, double, dealii::parallel::distributed
 template class DGBaseState <PHILIP_DIM, 5, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
 #endif
 
-template double DGBase<PHILIP_DIM,double,dealii::Triangulation<PHILIP_DIM>>::discontinuity_sensor<double>(const dealii::Quadrature<PHILIP_DIM> &volume_quadrature, const std::vector< double > &soln_coeff_high, const dealii::FiniteElement<PHILIP_DIM,PHILIP_DIM> &fe_high, const std::vector<double>  &jac_det);
-template FadType DGBase<PHILIP_DIM,double,dealii::Triangulation<PHILIP_DIM>>::discontinuity_sensor<FadType>(const dealii::Quadrature<PHILIP_DIM> &volume_quadrature, const std::vector< FadType > &soln_coeff_high, const dealii::FiniteElement<PHILIP_DIM,PHILIP_DIM> &fe_high, const std::vector<FadType>  &jac_det);
-template RadType DGBase<PHILIP_DIM,double,dealii::Triangulation<PHILIP_DIM>>::discontinuity_sensor<RadType>(const dealii::Quadrature<PHILIP_DIM> &volume_quadrature, const std::vector< RadType > &soln_coeff_high, const dealii::FiniteElement<PHILIP_DIM,PHILIP_DIM> &fe_high, const std::vector<RadType>  &jac_det);
-template FadFadType DGBase<PHILIP_DIM,double,dealii::Triangulation<PHILIP_DIM>>::discontinuity_sensor<FadFadType>(const dealii::Quadrature<PHILIP_DIM> &volume_quadrature, const std::vector< FadFadType > &soln_coeff_high, const dealii::FiniteElement<PHILIP_DIM,PHILIP_DIM> &fe_high, const std::vector<FadFadType>  &jac_det);
-template RadFadType DGBase<PHILIP_DIM,double,dealii::Triangulation<PHILIP_DIM>>::discontinuity_sensor<RadFadType>(const dealii::Quadrature<PHILIP_DIM> &volume_quadrature, const std::vector< RadFadType > &soln_coeff_high, const dealii::FiniteElement<PHILIP_DIM,PHILIP_DIM> &fe_high, const std::vector<RadFadType>  &jac_det);
+template double DGBase<PHILIP_DIM,double,dealii::Triangulation<PHILIP_DIM>>::discontinuity_sensor<double>(
+    const dealii::Quadrature<PHILIP_DIM> &volume_quadrature,
+    const std::vector< double > &soln_coeff_high,
+    const dealii::FiniteElement<PHILIP_DIM,PHILIP_DIM> &fe_high,
+    const std::vector< double > &coords_coeff,
+    const dealii::FESystem<PHILIP_DIM,PHILIP_DIM> &fe_metric,
+    const std::vector<double>  &jac_det);
+template FadType DGBase<PHILIP_DIM,double,dealii::Triangulation<PHILIP_DIM>>::discontinuity_sensor<FadType>(
+    const dealii::Quadrature<PHILIP_DIM> &volume_quadrature,
+    const std::vector< FadType > &soln_coeff_high,
+    const dealii::FiniteElement<PHILIP_DIM,PHILIP_DIM> &fe_high,
+    const std::vector< FadType > &coords_coeff,
+    const dealii::FESystem<PHILIP_DIM,PHILIP_DIM> &fe_metric,
+    const std::vector<FadType>  &jac_det);
+template RadType DGBase<PHILIP_DIM,double,dealii::Triangulation<PHILIP_DIM>>::discontinuity_sensor<RadType>(
+    const dealii::Quadrature<PHILIP_DIM> &volume_quadrature,
+    const std::vector< RadType > &soln_coeff_high,
+    const dealii::FiniteElement<PHILIP_DIM,PHILIP_DIM> &fe_high,
+    const std::vector< RadType > &coords_coeff,
+    const dealii::FESystem<PHILIP_DIM,PHILIP_DIM> &fe_metric,
+    const std::vector<RadType>  &jac_det);
+template FadFadType DGBase<PHILIP_DIM,double,dealii::Triangulation<PHILIP_DIM>>::discontinuity_sensor<FadFadType>(
+    const dealii::Quadrature<PHILIP_DIM> &volume_quadrature,
+    const std::vector< FadFadType > &soln_coeff_high,
+    const dealii::FiniteElement<PHILIP_DIM,PHILIP_DIM> &fe_high,
+    const std::vector< FadFadType > &coords_coeff,
+    const dealii::FESystem<PHILIP_DIM,PHILIP_DIM> &fe_metric,
+    const std::vector<FadFadType>  &jac_det);
+template RadFadType DGBase<PHILIP_DIM,double,dealii::Triangulation<PHILIP_DIM>>::discontinuity_sensor<RadFadType>(
+    const dealii::Quadrature<PHILIP_DIM> &volume_quadrature,
+    const std::vector< RadFadType > &soln_coeff_high,
+    const dealii::FiniteElement<PHILIP_DIM,PHILIP_DIM> &fe_high,
+    const std::vector< RadFadType > &coords_coeff,
+    const dealii::FESystem<PHILIP_DIM,PHILIP_DIM> &fe_metric,
+    const std::vector<RadFadType>  &jac_det);
 
 
-template double DGBase<PHILIP_DIM,double,dealii::parallel::distributed::Triangulation<PHILIP_DIM>>::discontinuity_sensor<double>(const dealii::Quadrature<PHILIP_DIM> &volume_quadrature, const std::vector< double > &soln_coeff_high, const dealii::FiniteElement<PHILIP_DIM,PHILIP_DIM> &fe_high, const std::vector<double>  &jac_det);
-template FadType DGBase<PHILIP_DIM,double,dealii::parallel::distributed::Triangulation<PHILIP_DIM>>::discontinuity_sensor<FadType>(const dealii::Quadrature<PHILIP_DIM> &volume_quadrature, const std::vector< FadType > &soln_coeff_high, const dealii::FiniteElement<PHILIP_DIM,PHILIP_DIM> &fe_high, const std::vector<FadType>  &jac_det);
-template RadType DGBase<PHILIP_DIM,double,dealii::parallel::distributed::Triangulation<PHILIP_DIM>>::discontinuity_sensor<RadType>(const dealii::Quadrature<PHILIP_DIM> &volume_quadrature, const std::vector< RadType > &soln_coeff_high, const dealii::FiniteElement<PHILIP_DIM,PHILIP_DIM> &fe_high, const std::vector<RadType>  &jac_det);
-template FadFadType DGBase<PHILIP_DIM,double,dealii::parallel::distributed::Triangulation<PHILIP_DIM>>::discontinuity_sensor<FadFadType>(const dealii::Quadrature<PHILIP_DIM> &volume_quadrature, const std::vector< FadFadType > &soln_coeff_high, const dealii::FiniteElement<PHILIP_DIM,PHILIP_DIM> &fe_high, const std::vector<FadFadType>  &jac_det);
-template RadFadType DGBase<PHILIP_DIM,double,dealii::parallel::distributed::Triangulation<PHILIP_DIM>>::discontinuity_sensor<RadFadType>(const dealii::Quadrature<PHILIP_DIM> &volume_quadrature, const std::vector< RadFadType > &soln_coeff_high, const dealii::FiniteElement<PHILIP_DIM,PHILIP_DIM> &fe_high, const std::vector<RadFadType>  &jac_det);
+template double DGBase<PHILIP_DIM,double,dealii::parallel::distributed::Triangulation<PHILIP_DIM>>::discontinuity_sensor<double>(
+    const dealii::Quadrature<PHILIP_DIM> &volume_quadrature,
+    const std::vector< double > &soln_coeff_high,
+    const dealii::FiniteElement<PHILIP_DIM,PHILIP_DIM> &fe_high,
+    const std::vector< double > &coords_coeff,
+    const dealii::FESystem<PHILIP_DIM,PHILIP_DIM> &fe_metric,
+    const std::vector<double>  &jac_det);
+template FadType DGBase<PHILIP_DIM,double,dealii::parallel::distributed::Triangulation<PHILIP_DIM>>::discontinuity_sensor<FadType>(
+    const dealii::Quadrature<PHILIP_DIM> &volume_quadrature,
+    const std::vector< FadType > &soln_coeff_high,
+    const dealii::FiniteElement<PHILIP_DIM,PHILIP_DIM> &fe_high,
+    const std::vector< FadType > &coords_coeff,
+    const dealii::FESystem<PHILIP_DIM,PHILIP_DIM> &fe_metric,
+    const std::vector<FadType>  &jac_det);
+template RadType DGBase<PHILIP_DIM,double,dealii::parallel::distributed::Triangulation<PHILIP_DIM>>::discontinuity_sensor<RadType>(
+    const dealii::Quadrature<PHILIP_DIM> &volume_quadrature,
+    const std::vector< RadType > &soln_coeff_high,
+    const dealii::FiniteElement<PHILIP_DIM,PHILIP_DIM> &fe_high,
+    const std::vector< RadType > &coords_coeff,
+    const dealii::FESystem<PHILIP_DIM,PHILIP_DIM> &fe_metric,
+    const std::vector<RadType>  &jac_det);
+template FadFadType DGBase<PHILIP_DIM,double,dealii::parallel::distributed::Triangulation<PHILIP_DIM>>::discontinuity_sensor<FadFadType>(
+    const dealii::Quadrature<PHILIP_DIM> &volume_quadrature,
+    const std::vector< FadFadType > &soln_coeff_high,
+    const dealii::FiniteElement<PHILIP_DIM,PHILIP_DIM> &fe_high,
+    const std::vector< FadFadType > &coords_coeff,
+    const dealii::FESystem<PHILIP_DIM,PHILIP_DIM> &fe_metric,
+    const std::vector<FadFadType>  &jac_det);
+template RadFadType DGBase<PHILIP_DIM,double,dealii::parallel::distributed::Triangulation<PHILIP_DIM>>::discontinuity_sensor<RadFadType>(
+    const dealii::Quadrature<PHILIP_DIM> &volume_quadrature,
+    const std::vector< RadFadType > &soln_coeff_high,
+    const dealii::FiniteElement<PHILIP_DIM,PHILIP_DIM> &fe_high,
+    const std::vector< RadFadType > &coords_coeff,
+    const dealii::FESystem<PHILIP_DIM,PHILIP_DIM> &fe_metric,
+    const std::vector<RadFadType>  &jac_det);
 
 
-template double DGBase<PHILIP_DIM,double,dealii::parallel::shared::Triangulation<PHILIP_DIM>>::discontinuity_sensor<double>(const dealii::Quadrature<PHILIP_DIM> &volume_quadrature, const std::vector< double > &soln_coeff_high, const dealii::FiniteElement<PHILIP_DIM,PHILIP_DIM> &fe_high, const std::vector<double>  &jac_det);
-template FadType DGBase<PHILIP_DIM,double,dealii::parallel::shared::Triangulation<PHILIP_DIM>>::discontinuity_sensor<FadType>(const dealii::Quadrature<PHILIP_DIM> &volume_quadrature, const std::vector< FadType > &soln_coeff_high, const dealii::FiniteElement<PHILIP_DIM,PHILIP_DIM> &fe_high, const std::vector<FadType>  &jac_det);
-template RadType DGBase<PHILIP_DIM,double,dealii::parallel::shared::Triangulation<PHILIP_DIM>>::discontinuity_sensor<RadType>(const dealii::Quadrature<PHILIP_DIM> &volume_quadrature, const std::vector< RadType > &soln_coeff_high, const dealii::FiniteElement<PHILIP_DIM,PHILIP_DIM> &fe_high, const std::vector<RadType>  &jac_det);
-template FadFadType DGBase<PHILIP_DIM,double,dealii::parallel::shared::Triangulation<PHILIP_DIM>>::discontinuity_sensor<FadFadType>(const dealii::Quadrature<PHILIP_DIM> &volume_quadrature, const std::vector< FadFadType > &soln_coeff_high, const dealii::FiniteElement<PHILIP_DIM,PHILIP_DIM> &fe_high, const std::vector<FadFadType>  &jac_det);
-template RadFadType DGBase<PHILIP_DIM,double,dealii::parallel::shared::Triangulation<PHILIP_DIM>>::discontinuity_sensor<RadFadType>(const dealii::Quadrature<PHILIP_DIM> &volume_quadrature, const std::vector< RadFadType > &soln_coeff_high, const dealii::FiniteElement<PHILIP_DIM,PHILIP_DIM> &fe_high, const std::vector<RadFadType>  &jac_det);
+template double DGBase<PHILIP_DIM,double,dealii::parallel::shared::Triangulation<PHILIP_DIM>>::discontinuity_sensor<double>(
+    const dealii::Quadrature<PHILIP_DIM> &volume_quadrature,
+    const std::vector< double > &soln_coeff_high,
+    const dealii::FiniteElement<PHILIP_DIM,PHILIP_DIM> &fe_high,
+    const std::vector< double > &coords_coeff,
+    const dealii::FESystem<PHILIP_DIM,PHILIP_DIM> &fe_metric,
+    const std::vector<double>  &jac_det);
+template FadType DGBase<PHILIP_DIM,double,dealii::parallel::shared::Triangulation<PHILIP_DIM>>::discontinuity_sensor<FadType>(
+    const dealii::Quadrature<PHILIP_DIM> &volume_quadrature,
+    const std::vector< FadType > &soln_coeff_high,
+    const dealii::FiniteElement<PHILIP_DIM,PHILIP_DIM> &fe_high,
+    const std::vector< FadType > &coords_coeff,
+    const dealii::FESystem<PHILIP_DIM,PHILIP_DIM> &fe_metric,
+    const std::vector<FadType>  &jac_det);
+template RadType DGBase<PHILIP_DIM,double,dealii::parallel::shared::Triangulation<PHILIP_DIM>>::discontinuity_sensor<RadType>(
+    const dealii::Quadrature<PHILIP_DIM> &volume_quadrature,
+    const std::vector< RadType > &soln_coeff_high,
+    const dealii::FiniteElement<PHILIP_DIM,PHILIP_DIM> &fe_high,
+    const std::vector< RadType > &coords_coeff,
+    const dealii::FESystem<PHILIP_DIM,PHILIP_DIM> &fe_metric,
+    const std::vector<RadType>  &jac_det);
+template FadFadType DGBase<PHILIP_DIM,double,dealii::parallel::shared::Triangulation<PHILIP_DIM>>::discontinuity_sensor<FadFadType>(
+    const dealii::Quadrature<PHILIP_DIM> &volume_quadrature,
+    const std::vector< FadFadType > &soln_coeff_high,
+    const dealii::FiniteElement<PHILIP_DIM,PHILIP_DIM> &fe_high,
+    const std::vector< FadFadType > &coords_coeff,
+    const dealii::FESystem<PHILIP_DIM,PHILIP_DIM> &fe_metric,
+    const std::vector<FadFadType>  &jac_det);
+template RadFadType DGBase<PHILIP_DIM,double,dealii::parallel::shared::Triangulation<PHILIP_DIM>>::discontinuity_sensor<RadFadType>(
+    const dealii::Quadrature<PHILIP_DIM> &volume_quadrature,
+    const std::vector< RadFadType > &soln_coeff_high,
+    const dealii::FiniteElement<PHILIP_DIM,PHILIP_DIM> &fe_high,
+    const std::vector< RadFadType > &coords_coeff,
+    const dealii::FESystem<PHILIP_DIM,PHILIP_DIM> &fe_metric,
+    const std::vector<RadFadType>  &jac_det);
 
 } // PHiLiP namespace

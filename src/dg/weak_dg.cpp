@@ -16,6 +16,7 @@
 #include "ADTypes.hpp"
 
 #include "weak_dg.hpp"
+#include "dg_helper_functions.hpp"
 
 #define KOPRIVA_METRICS_VOL
 #define KOPRIVA_METRICS_FACE
@@ -242,30 +243,6 @@ void automatic_differentiation_indexing_2(
     }
 }
 
-template <int dim, typename real, int n_components>
-void evaluate_finite_element_values (
-    const std::vector<dealii::Point<dim>> &unit_points,
-    const std::vector<real> &coefficients,
-    const dealii::FESystem<dim,dim> &finite_element,
-    std::vector< std::array<real,n_components> > &values)
-{
-    const unsigned int n_dofs = finite_element.dofs_per_cell;
-    const unsigned int n_pts = unit_points.size();
-
-    AssertDimension(n_dofs, coefficients.size());
-
-    for (unsigned int ipoint=0; ipoint<n_pts; ++ipoint) {
-        for (int icomp=0; icomp<n_components; ++icomp) {
-            values[ipoint][icomp] = 0;
-        }
-        for (unsigned int idof = 0; idof < n_dofs; ++idof) {
-            const int icomp = finite_element.system_to_component_index(idof).first;
-            values[ipoint][icomp] += coefficients[idof] * finite_element.shape_value_component(idof, unit_points[ipoint], icomp);
-        }
-    }
-}
-
-
 template <int dim, typename real>
 bool check_same_coords (
     const std::vector<dealii::Point<dim>> &unit_quad_pts_int,
@@ -310,35 +287,6 @@ bool check_same_coords (
     return issame;
 }
 
-template <int dim, typename real, int n_components>
-void evaluate_finite_element_gradients (
-    const std::vector<dealii::Point<dim>> &unit_points,
-    const std::vector<real> &coefficients,
-    const dealii::FESystem<dim,dim> &finite_element,
-    std::vector < std::array< dealii::Tensor<1,dim,real>, n_components > > &gradients)
-{
-    AssertDimension(unit_points.size(), gradients.size());
-    const unsigned int n_dofs = finite_element.dofs_per_cell;
-    const unsigned int n_pts = unit_points.size();
-
-    AssertDimension(n_dofs, coefficients.size());
-    AssertDimension(finite_element.n_components(), n_components);
-
-    for (unsigned int ipoint=0; ipoint<n_pts; ++ipoint) {
-        for (int icomp=0; icomp<n_components; ++icomp) {
-            gradients[ipoint][icomp] = 0;
-        }
-        for (unsigned int idof = 0; idof < n_dofs; ++idof) {
-            const int icomp = finite_element.system_to_component_index(idof).first;
-            dealii::Tensor<1,dim,double> shape_grad = finite_element.shape_grad_component (idof, unit_points[ipoint], icomp);
-            for (int d=0; d<dim; ++d) {
-                gradients[ipoint][icomp][d] += coefficients[idof] * shape_grad[d];
-            }
-        }
-    }
-}
-
-
 template <int dim, typename real>
 std::vector<dealii::Tensor<2,dim,real>> evaluate_metric_jacobian (
     const std::vector<dealii::Point<dim>> &points,
@@ -366,27 +314,6 @@ std::vector<dealii::Tensor<2,dim,real>> evaluate_metric_jacobian (
     return metric_jacobian;
 }
 
-template <int dim, typename real>
-std::vector <real> determinant_ArrayTensor(std::vector < std::array< dealii::Tensor<1,dim,real>, dim > > &coords_gradients)
-{
-    const unsigned int n = coords_gradients.size();
-    std::vector <real> determinants(n);
-    for (unsigned int i=0; i<n; ++i) {
-        if constexpr(dim==1) {
-            determinants[i] =  coords_gradients[i][0][0];
-        }
-        if constexpr(dim==2) {
-            determinants[i] =  coords_gradients[i][0][0] * coords_gradients[i][1][1] - coords_gradients[i][0][1] * coords_gradients[i][1][0];
-        }
-        if constexpr(dim==3) {
-            determinants[i] = +coords_gradients[i][0][0] * (coords_gradients[i][1][1] * coords_gradients[i][2][2] - coords_gradients[i][1][2] * coords_gradients[i][2][1])
-                              -coords_gradients[i][0][1] * (coords_gradients[i][1][0] * coords_gradients[i][2][2] - coords_gradients[i][1][2] * coords_gradients[i][2][0])
-                              +coords_gradients[i][0][2] * (coords_gradients[i][1][0] * coords_gradients[i][2][1] - coords_gradients[i][1][1] * coords_gradients[i][2][0]);
-        }
-    }
-    return determinants;
-}
-
 // Integer root from
 // https://rosettacode.org/wiki/Integer_roots#C.2B.2B
 unsigned int root(unsigned int base, unsigned int n) {
@@ -408,145 +335,6 @@ unsigned int root(unsigned int base, unsigned int n) {
 
     if (d < e) return d;
     return e;
-}
-
-template <int dim, typename real>
-void evaluate_covariant_metric_jacobian (
-    const dealii::Quadrature<dim> &quadrature,
-    const std::vector<real> &coords_coeff,
-    const dealii::FESystem<dim,dim> &fe_metric,
-    std::vector<dealii::Tensor<2,dim,real>> &covariant_metric_jacobian,
-    std::vector<real> &jacobian_determinants)
-{
-    const std::vector< dealii::Point<dim,double> > &unit_quad_pts = quadrature.get_points();
-    const unsigned int n_quad_pts = unit_quad_pts.size();
-
-    //const unsigned int grid_degree = fe_metric.tensor_degree();
-    //const dealii::FE_Q<dim> fe_lagrange_grid(2*grid_degree);
-    const dealii::FiniteElement<dim> &fe_lagrange_grid = fe_metric.base_element(0);
-    const std::vector< dealii::Point<dim,double> > &unit_grid_pts = fe_lagrange_grid.get_unit_support_points();
-    const unsigned int n_grid_pts = unit_grid_pts.size();
-
-    std::vector < std::array< real,dim> > coords(n_grid_pts);
-    evaluate_finite_element_values  <dim, real, dim> (unit_grid_pts, coords_coeff, fe_metric, coords);
-
-    std::vector < std::array< dealii::Tensor<1,dim,real>, dim > > coords_gradients(n_grid_pts);
-    evaluate_finite_element_gradients <dim, real, dim> (unit_grid_pts, coords_coeff, fe_metric, coords_gradients);
-
-    std::vector < std::array< dealii::Tensor<1,dim,real>, dim > > quad_pts_coords_gradients(n_quad_pts);
-    evaluate_finite_element_gradients <dim, real, dim> (unit_quad_pts, coords_coeff, fe_metric, quad_pts_coords_gradients);
-
-    jacobian_determinants = determinant_ArrayTensor<dim,real>(quad_pts_coords_gradients);
-
-    if constexpr (dim==1) {
-        for (unsigned int iquad = 0; iquad<n_quad_pts; ++iquad) {
-            const real invJ = 1.0/jacobian_determinants[iquad];
-            covariant_metric_jacobian[iquad][0][0] = invJ;
-        }
-    }
-
-    if constexpr (dim==2) {
-        // Remark 5 of Kopriva (2006).
-        // Need to interpolate physical coordinates, and then differentiate it
-        // using the derivatives of the collocated Lagrange basis.
-
-        std::vector<dealii::Tensor<2,dim,real>> dphys_dref_quad(n_quad_pts);
-
-        // In 2D Cross-Product Form = Conservative-Curl Form
-        for (unsigned int iquad = 0; iquad<n_quad_pts; ++iquad) {
-
-            dphys_dref_quad[iquad] = 0.0;
-
-            const dealii::Point<dim,double> &quad_point = unit_quad_pts[iquad];
-
-            for (unsigned int igrid = 0; igrid<n_grid_pts; ++igrid) {
-
-                const dealii::Tensor<1,dim,double> shape_grad = fe_lagrange_grid.shape_grad(igrid, quad_point);
-
-                for(int dphys=0; dphys<dim; dphys++) {
-                    for(int dref=0; dref<dim; dref++) {
-                        dphys_dref_quad[iquad][dphys][dref] += coords[igrid][dphys] * shape_grad[dref];
-                    }
-                }
-            }
-        }
-
-        // In 2D Cross-Product Form = Conservative-Curl Form
-        for (unsigned int iquad = 0; iquad<n_quad_pts; ++iquad) {
-
-            const real invJ = 1.0/jacobian_determinants[iquad];
-
-            covariant_metric_jacobian[iquad] = 0.0;
-
-            // inv(A)^T =  [ a  b ]^-T  =  (1/det(A)) [ d -c ]
-            //             [ c  d ]                   [-b  a ]
-            covariant_metric_jacobian[iquad][0][0] =  dphys_dref_quad[iquad][1][1] * invJ;
-            covariant_metric_jacobian[iquad][0][1] = -dphys_dref_quad[iquad][1][0] * invJ;
-            covariant_metric_jacobian[iquad][1][0] = -dphys_dref_quad[iquad][0][1] * invJ;
-            covariant_metric_jacobian[iquad][1][1] =  dphys_dref_quad[iquad][0][0] * invJ;
-
-        }
-
-    }
-    if constexpr (dim == 3) {
-
-        // Evaluate the physical (Y grad Z), (Z grad X), (X grad
-        std::vector<real> Ta(n_grid_pts); 
-        std::vector<real> Tb(n_grid_pts); 
-        std::vector<real> Tc(n_grid_pts);
-
-        std::vector<real> Td(n_grid_pts);
-        std::vector<real> Te(n_grid_pts);
-        std::vector<real> Tf(n_grid_pts);
-
-        std::vector<real> Tg(n_grid_pts);
-        std::vector<real> Th(n_grid_pts);
-        std::vector<real> Ti(n_grid_pts);
-
-        for(unsigned int igrid=0; igrid<n_grid_pts; igrid++) {
-            Ta[igrid] = 0.5*(coords_gradients[igrid][1][1] * coords[igrid][2] - coords_gradients[igrid][2][1] * coords[igrid][1]);
-            Tb[igrid] = 0.5*(coords_gradients[igrid][1][2] * coords[igrid][2] - coords_gradients[igrid][2][2] * coords[igrid][1]);
-            Tc[igrid] = 0.5*(coords_gradients[igrid][1][0] * coords[igrid][2] - coords_gradients[igrid][2][0] * coords[igrid][1]);
-
-            Td[igrid] = 0.5*(coords_gradients[igrid][2][1] * coords[igrid][0] - coords_gradients[igrid][0][1] * coords[igrid][2]);
-            Te[igrid] = 0.5*(coords_gradients[igrid][2][2] * coords[igrid][0] - coords_gradients[igrid][0][2] * coords[igrid][2]);
-            Tf[igrid] = 0.5*(coords_gradients[igrid][2][0] * coords[igrid][0] - coords_gradients[igrid][0][0] * coords[igrid][2]);
-
-            Tg[igrid] = 0.5*(coords_gradients[igrid][0][1] * coords[igrid][1] - coords_gradients[igrid][1][1] * coords[igrid][0]);
-            Th[igrid] = 0.5*(coords_gradients[igrid][0][2] * coords[igrid][1] - coords_gradients[igrid][1][2] * coords[igrid][0]);
-            Ti[igrid] = 0.5*(coords_gradients[igrid][0][0] * coords[igrid][1] - coords_gradients[igrid][1][0] * coords[igrid][0]);
-        }
-
-        for(unsigned int iquad=0; iquad<n_quad_pts; iquad++) {
-
-            covariant_metric_jacobian[iquad] = 0.0;
-
-            const dealii::Point<dim,double> &quad_point  = unit_quad_pts[iquad];
-
-            for(unsigned int igrid=0; igrid<n_grid_pts; igrid++) {
-
-                const dealii::Tensor<1,dim,double> shape_grad = fe_lagrange_grid.shape_grad(igrid, quad_point);
-
-                covariant_metric_jacobian[iquad][0][0] += shape_grad[2] * Ta[igrid] - shape_grad[1] * Tb[igrid];
-                covariant_metric_jacobian[iquad][1][0] += shape_grad[2] * Td[igrid] - shape_grad[1] * Te[igrid];
-                covariant_metric_jacobian[iquad][2][0] += shape_grad[2] * Tg[igrid] - shape_grad[1] * Th[igrid];
-
-                covariant_metric_jacobian[iquad][0][1] += shape_grad[0] * Tb[igrid] - shape_grad[2] * Tc[igrid];
-                covariant_metric_jacobian[iquad][1][1] += shape_grad[0] * Te[igrid] - shape_grad[2] * Tf[igrid];
-                covariant_metric_jacobian[iquad][2][1] += shape_grad[0] * Th[igrid] - shape_grad[2] * Ti[igrid];
-
-                covariant_metric_jacobian[iquad][0][2] += shape_grad[1] * Tc[igrid] - shape_grad[0] * Ta[igrid];
-                covariant_metric_jacobian[iquad][1][2] += shape_grad[1] * Tf[igrid] - shape_grad[0] * Td[igrid];
-                covariant_metric_jacobian[iquad][2][2] += shape_grad[1] * Ti[igrid] - shape_grad[0] * Tg[igrid];
-            }
-
-            const real invJ = 1.0/jacobian_determinants[iquad];
-            covariant_metric_jacobian[iquad] *= invJ;
-
-        }
-
-    }
-
 }
 
 template <int dim, int nstate, typename real, typename MeshType>
@@ -773,32 +561,6 @@ void compute_br2_correction(
         }
     }
     gauss_jordan(vandermonde_inverse);
-
-    // Print Inverse Mass matrix
-    //{
-    //dealii::FullMatrix<real2> vandermonde_inverse_real(n_base_dofs, n_vol_quad);
-
-    //for (unsigned int idof_base=0; idof_base<n_base_dofs; ++idof_base) {
-    //    for (unsigned int iquad=0; iquad<n_vol_quad; ++iquad) {
-    //        vandermonde_inverse_real[idof_base][iquad] = base_fe.shape_value(idof_base, vol_quad.point(iquad));
-    //    }
-    //}
-    //gauss_jordan(vandermonde_inverse);
-    //dealii::FullMatrix<real2> diag_jac(n_base_dofs, n_base_dofs);
-    //diag_jac = 0.0;
-    //for (unsigned int kquad=0; kquad<n_vol_quad; ++kquad) {
-    //    diag_jac[kquad][kquad] = 1.0/(dealii::determinant(volume_metric_jac[kquad]) * vol_quad.weight(kquad));
-    //}
-
-    //dealii::FullMatrix<real2> lifting_operator1(n_base_dofs, n_base_dofs);
-    //diag_jac.mmult(lifting_operator1, vandermonde_inverse_real);
-
-    //dealii::FullMatrix<real2> lifting_operator2(n_base_dofs, n_base_dofs);
-    //vandermonde_inverse_real.Tmmult(lifting_operator2, lifting_operator1);
-
-    //std::cout << "Inverse mass..." << std::endl;
-    //lifting_operator2.print(std::cout);
-    //}
 
     std::vector< std::array<real2,nstate> > vandermonde_inv_rhs(n_vol_quad);
     for (unsigned int kquad=0; kquad<n_vol_quad; ++kquad) {
@@ -3305,7 +3067,7 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_volume_term(
 
 
     if (!DO_USE_C0_ARTIFICIAL_DISSIPATION) {
-        real2 arti_diss = this->discontinuity_sensor(quadrature, soln_coeff, fe_soln, jac_det);
+        real2 arti_diss = this->discontinuity_sensor(quadrature, soln_coeff, fe_soln, coords_coeff, fe_metric, jac_det);
         for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad)
         {
             if (DO_USE_GEGENBAUER) {

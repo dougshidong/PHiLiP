@@ -21,6 +21,11 @@ sudo apt install -y \
 	texlive \
 	liboce-ocaf-lite-dev
 
+### Install pip and gdown
+sudo apt install python3-pip
+pip install gdown
+# Note: If you receive a warning such as: WARNING: The script gdown is installed in '/home/parallels/.local/bin' which is not on PATH, add the path as explained in INSTALL.md.
+
 ### Update gmsh to latest version
 pip install --upgrade gmsh
 

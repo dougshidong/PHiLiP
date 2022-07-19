@@ -881,6 +881,7 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
                         current_cell_rhs);
                 }
                 else {
+                    fe_values_collection_face_int.reinit (current_cell, iface, i_quad, i_mapp, i_fele);
                     const dealii::FEFaceValues<dim,dim> &fe_values_face_int = fe_values_collection_face_int.get_present_fe_values();
                     const dealii::Quadrature<dim-1> face_quadrature = face_quadrature_collection[i_quad];
                     assemble_boundary_term_derivatives (

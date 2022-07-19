@@ -20,7 +20,9 @@ template <int dim, typename real, typename MeshType = dealii::Triangulation<dim>
 template <int dim, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
 #endif
 
-/// Contains functions for mesh adaptation. Currently, it supports residual based mesh adaptation with fixed fraction coarsening and refinement.
+/** Contains functions for mesh adaptation. It supports residual based and goal-oriented hp-adaptation with fixed fraction coarsening and refinement. 
+  * @note Mesh adaptation is currently implemented for steady state test cases. Tests using FlowSolver can use mesh adaptation directly by modifying the parameters file.
+  */
 class MeshAdaptation
 {
 public:
@@ -31,10 +33,10 @@ public:
     /// Destructor
     ~MeshAdaptation(){};
 
-    /// Pointer to the error estimator class
+    /// Pointer to the error estimator class.
     std::unique_ptr<MeshErrorEstimateBase<dim, real, MeshType>> mesh_error;
 
-    /// Pointer to DGBase
+    /// Pointer to DGBase.
     std::shared_ptr<DGBase<dim,real,MeshType>> dg;
 
     /// Function to adapt the mesh based on input parameters.
@@ -43,7 +45,7 @@ public:
     /// Stores the current refinement cycle.
     int current_refinement_cycle;
 
-    /// Holds parameters of mesh adaptation
+    /// Holds parameters of mesh adaptation.
     const Parameters::MeshAdaptationParam *const mesh_adaptation_param;
 
 protected:
@@ -51,10 +53,10 @@ protected:
     /// Performs fixed fraction refinement based on refinement and coarsening fractions.
     void fixed_fraction_isotropic_refinement_and_coarsening();
     
-    /// Stores errors in each cell
+    /// Stores errors in each cell.
     dealii::Vector<real> cellwise_errors;
 
-    /// Parallel std::cout
+    /// Parallel std::cout.
     dealii::ConditionalOStream pcout;
 
 };

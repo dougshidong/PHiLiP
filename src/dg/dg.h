@@ -634,8 +634,7 @@ protected:
     /// Artificial dissipation coefficients
     dealii::LinearAlgebra::distributed::Vector<double> artificial_dissipation_c0;
 
-protected:
-
+public:
     ///Evaluate the volume RHS for the auxiliary equation.
     virtual void assemble_volume_term_auxiliary_equation(
         const std::vector<dealii::types::global_dof_index> &current_dofs_indices,
@@ -671,6 +670,8 @@ protected:
         OPERATOR::metric_operators<real,dim,2*dim>         &metric_oper_int,
         std::vector<dealii::Tensor<1,dim,real>>            &local_auxiliary_RHS_int,
         std::vector<dealii::Tensor<1,dim,real>>            &local_auxiliary_RHS_ext) = 0;
+
+protected:
 
     ///Strong form primary equation's volume right-hand-side.
     virtual void assemble_volume_term_strong(

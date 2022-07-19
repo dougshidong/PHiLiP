@@ -33,13 +33,6 @@ public:
     /// Function to generate the grid
     std::shared_ptr<Triangulation> generate_grid() const override;
 
-    /// Function to write unsteady snapshot data to table
-    void compute_unsteady_data_and_write_to_table(
-            const unsigned int current_iteration,
-            const double current_time,
-            const std::shared_ptr <DGBase<dim, double>> dg,
-            const std::shared_ptr<dealii::TableHandler> unsteady_data_table) override;
-
     /// Function for postprocessing when solving for steady state
     void steady_state_postprocessing(std::shared_ptr <DGBase<dim, double>> dg) const override;
 

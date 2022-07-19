@@ -48,13 +48,12 @@ void ODESolverParam::declare_parameters (dealii::ParameterHandler &prm)
                           dealii::Patterns::Integer(0,dealii::Patterns::Integer::max_int_value),
                           "Print every print_iteration_modulo iterations of "
                           "the nonlinear solver");
-        prm.declare_entry("output_solution_vector_modulo", "0",
-                          dealii::Patterns::Integer(0,dealii::Patterns::Integer::max_int_value),
-                          "Output solution vector every output_solution_vector_modulo iterations of "
-                          "the nonlinear solver. Set to 0 to disable.");
-        prm.declare_entry("solutions_table_filename", "solutions_table",
+        prm.declare_entry("output_final_steady_state_solution_to_file", "false",
+                          dealii::Patterns::Bool(),
+                          "Output final steady state solution to file if set to true");
+        prm.declare_entry("steady_state_final_solution_filename", "solution_snapshot",
                           dealii::Patterns::Anything(),
-                          "Filename to use when outputting solution vectors in a table format.");
+                          "Filename to use when outputting solution to a file.");
         prm.declare_entry("output_ode_solver_steady_state_convergence_table","false",
                           dealii::Patterns::Bool(),
                           "Set as false by default. If true, writes the linear solver convergence data "
@@ -109,8 +108,8 @@ void ODESolverParam::parse_parameters (dealii::ParameterHandler &prm)
         time_step_factor_residual_exp = prm.get_double("time_step_factor_residual_exp");
 
         print_iteration_modulo = prm.get_integer("print_iteration_modulo");
-        output_solution_vector_modulo = prm.get_integer("output_solution_vector_modulo");
-        solutions_table_filename = prm.get("solutions_table_filename");
+        output_final_steady_state_solution_to_file = prm.get_bool("output_final_steady_state_solution_to_file");
+        steady_state_final_solution_filename = prm.get("steady_state_final_solution_filename");
         output_ode_solver_steady_state_convergence_table = prm.get_bool("output_ode_solver_steady_state_convergence_table");
 
         initial_time = prm.get_double("initial_time");

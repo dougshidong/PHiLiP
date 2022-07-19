@@ -6,14 +6,9 @@
 #include <iostream>
 #include <stdlib.h>
 
-#include <deal.II/distributed/solution_transfer.h>
-
-#include "testing/tests.h"
-
 #include<fstream>
 #include <deal.II/base/parameter_handler.h>
 #include <deal.II/base/tensor.h>
-#include <deal.II/numerics/vector_tools.h>
 
 #include <deal.II/grid/grid_generator.h>
 #include <deal.II/grid/grid_refinement.h>
@@ -22,31 +17,11 @@
 #include <deal.II/grid/grid_in.h>
 
 #include <deal.II/dofs/dof_handler.h>
-#include <deal.II/dofs/dof_tools.h>
-#include <deal.II/dofs/dof_renumbering.h>
-
 #include <deal.II/dofs/dof_accessor.h>
-
-#include <deal.II/lac/vector.h>
-#include <deal.II/lac/dynamic_sparsity_pattern.h>
-#include <deal.II/lac/sparse_matrix.h>
-
-#include <deal.II/meshworker/dof_info.h>
-
-#include <deal.II/base/convergence_table.h>
-
-// Finally, we take our exact solution from the library as well as volume_quadrature
-// and additional tools.
-#include <deal.II/numerics/data_out.h>
-#include <deal.II/numerics/data_out_dof_data.h>
-#include <deal.II/numerics/vector_tools.h>
-#include <deal.II/numerics/vector_tools.templates.h>
 
 #include "parameters/all_parameters.h"
 #include "parameters/parameters.h"
 #include "dg/dg.h"
-#include <deal.II/grid/manifold_lib.h>
-#include <deal.II/fe/mapping_q.h>
 #include "dg/dg_factory.hpp"
 #include "operators/operators.h"
 
@@ -276,7 +251,6 @@ int main (int argc, char * argv[])
 
     double left = 0.0;
     double right = 1.0;
-    dealii::ConvergenceTable convergence_table;
     const unsigned int igrid_start = 2;
     const unsigned int n_grids = 3;
     const unsigned int final_poly_degree = 4;

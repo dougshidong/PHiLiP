@@ -8,8 +8,8 @@ namespace PHiLiP {
 /** Target boundary values.
  *  Simply zero out the default volume contribution.
  */
-template <int dim, int nstate, typename real>
-class LiftDragFunctional : public Functional<dim, nstate, real>
+template <int dim, int nstate, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
+class LiftDragFunctional : public Functional<dim, nstate, real, MeshType>
 {
 public:
     /// @brief Switch between lift and drag functional types.
@@ -23,7 +23,7 @@ private:
      *  us, but is a typical bug that other people have. This 'using' imports the base class function
      *  to our derived class even though we don't need it.
      */
-    using Functional<dim,nstate,real>::evaluate_volume_integrand;
+    using Functional<dim,nstate,real,MeshType>::evaluate_volume_integrand;
 
     /// @brief Switches between lift and drag.
     const Functional_types functional_type;
@@ -138,9 +138,9 @@ private:
 public:
     /// Constructor
     LiftDragFunctional(
-        std::shared_ptr<DGBase<dim,real>> dg_input,
+        std::shared_ptr<DGBase<dim,real,MeshType>> dg_input,
         const Functional_types functional_type)
-        : Functional<dim,nstate,real>(dg_input)
+        : Functional<dim,nstate,real,MeshType>(dg_input)
         , functional_type(functional_type)
         , euler_fad_fad(dynamic_cast< Physics::Euler<dim,dim+2,FadFadType> &>(*(this->physics_fad_fad)))
         , angle_of_attack(euler_fad_fad.angle_of_attack)
@@ -158,7 +158,7 @@ public:
 
     real evaluate_functional( const bool compute_dIdW = false, const bool compute_dIdX = false, const bool compute_d2I = false) override
     {
-        double value = Functional<dim,nstate,real>::evaluate_functional( compute_dIdW, compute_dIdX, compute_d2I);
+        double value = Functional<dim,nstate,real,MeshType>::evaluate_functional( compute_dIdW, compute_dIdX, compute_d2I);
 
         if (functional_type == Functional_types::lift) {
             this->pcout << "Lift value: " << value << "\n";

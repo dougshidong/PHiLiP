@@ -1,11 +1,11 @@
 #include "flow_solver.h"
-
 #include <iostream>
 #include <fstream>
 #include <string>
 #include <stdlib.h>
 #include <vector>
 #include <sstream>
+#include "reduced_order/pod_basis_offline.h"
 
 
 namespace PHiLiP {
@@ -35,12 +35,20 @@ FlowSolver<dim, nstate>::FlowSolver(
 , final_time(flow_solver_param.final_time)
 , input_parameters_file_reference_copy_filename(flow_solver_param.restart_files_directory_name + std::string("/") + std::string("input_copy.prm"))
 , dg(DGFactory<dim,double>::create_discontinuous_galerkin(&all_param, poly_degree, poly_degree, grid_degree, flow_solver_case->generate_grid()))
-, ode_solver(ODE::ODESolverFactory<dim, double>::create_ODESolver(dg))
 {
     flow_solver_case->set_higher_order_grid(dg);
     dg->allocate_system();
+
+    if(ode_param.ode_solver_type == Parameters::ODESolverParam::pod_galerkin_solver || ode_param.ode_solver_type == Parameters::ODESolverParam::pod_petrov_galerkin_solver){
+        std::shared_ptr<ProperOrthogonalDecomposition::OfflinePOD<dim>> pod = std::make_shared<ProperOrthogonalDecomposition::OfflinePOD<dim>>(dg);
+        ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg, pod);
+    }
+    else{
+        ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
+    }
+
     flow_solver_case->display_flow_solver_setup(dg);
-    
+
     dealii::LinearAlgebra::distributed::Vector<double> solution_no_ghost;
     solution_no_ghost.reinit(dg->locally_owned_dofs, this->mpi_communicator);
 
@@ -444,7 +452,8 @@ int FlowSolver<dim,nstate>::run() const
         //----------------------------------------------------
         // Steady-state solution
         //----------------------------------------------------
-        if(flow_solver_param.steady_state_polynomial_ramping) {
+        using ODEEnum = Parameters::ODESolverParam::ODESolverEnum;
+        if(flow_solver_param.steady_state_polynomial_ramping && (ode_param.ode_solver_type != ODEEnum::pod_galerkin_solver && ode_param.ode_solver_type != ODEEnum::pod_petrov_galerkin_solver)) {
             ode_solver->initialize_steady_polynomial_ramping(poly_degree);
         }
         ode_solver->steady_state();

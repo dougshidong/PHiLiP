@@ -1,0 +1,60 @@
+# Listing of Parameters
+# ---------------------
+
+set test_type = POD_adaptive_sampling
+set dimension = 2
+set pde_type  = euler
+
+set conv_num_flux = roe
+set diss_num_flux = bassi_rebay_2
+
+set use_split_form = false
+
+subsection artificial dissipation
+	set add_artificial_dissipation = true
+end
+
+set overintegration = 0
+
+subsection euler
+  set reference_length = 1.0
+  set mach_infinity = 0.80
+  set angle_of_attack = 1.25
+end
+
+subsection linear solver
+  set linear_solver_type = direct
+end
+
+subsection ODE solver
+  set nonlinear_max_iterations            = 50
+  set nonlinear_steady_residual_tolerance = 1e-15
+  set ode_solver_type  = implicit
+  set initial_time_step = 1e3
+  set time_step_factor_residual = 15.0
+  set time_step_factor_residual_exp = 2
+end
+
+subsection grid refinement study
+ set num_refinements = 0
+end
+
+subsection flow_solver
+  set flow_case_type = naca0012
+  set poly_degree = 0
+  set steady_state = true
+  subsection grid
+    set input_mesh_filename = ../../meshes/naca0012_hopw_ref1
+  end
+end
+
+subsection functional
+  set functional_type = lift
+end
+
+#Reduced order parameters
+subsection reduced order
+  set adaptation_tolerance = 0.001
+  set path_to_search = .
+  set reduced_residual_tolerance = 5e-13
+end

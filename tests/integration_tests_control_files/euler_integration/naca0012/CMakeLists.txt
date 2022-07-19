@@ -26,16 +26,6 @@ add_test(
 #  WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 #)
 
-set (filename "naca0012_hopw_ref2.msh")
-if(NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/../../../meshes/${filename})
-  message(SEND_ERROR
-"Missing NACA0012 files named ${filename}. Please download them from
-    https://drive.google.com/drive/folders/182JusbWV6NAA8ws1-TTg7M2GLc5jt6_r?usp=sharing
-and place them in
-      ${CMAKE_CURRENT_SOURCE_DIR}"
-      )
-endif()
-
 #configure_file(naca0012.geo naca0012.geo COPYONLY)
 #configure_file(naca0012_noTE.geo naca0012_noTE.geo COPYONLY)
 #set(TAR_NAME naca0012_airfoil_Q3)

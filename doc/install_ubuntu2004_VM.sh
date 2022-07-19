@@ -158,6 +158,7 @@ mkdir -p Codes
     git config submodule.recurse true ;\
     
     # Get mesh files of NACA 0012. Note: Run get_NACA0012_mesh_files_cluster.sh to get files on the cluster.
+    # If not already installed, gdown can be installed as explained in INSTALL.md.  
     sh get_NACA0012_mesh_files_local.sh ;\
 
 	# Release build with all the optimization flags

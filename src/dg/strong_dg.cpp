@@ -1592,7 +1592,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_strong(
             soln_state_ext[istate] = soln_at_surf_q_ext[istate][iquad];
             for(int idim=0; idim<dim; idim++){
                 aux_soln_state_int[istate][idim] = aux_soln_at_surf_q_int[istate][idim][iquad];
-                aux_soln_state_ext[istate][idim] = aux_soln_at_surf_q_int[istate][idim][iquad];
+                aux_soln_state_ext[istate][idim] = aux_soln_at_surf_q_ext[istate][idim][iquad];
             }
         }
 

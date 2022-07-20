@@ -6,7 +6,7 @@
 #include <vector>
 #include <sstream>
 #include "reduced_order/pod_basis_offline.h"
-
+#include "mesh/mesh_adaptation.h"
 
 namespace PHiLiP {
 
@@ -338,6 +338,31 @@ void FlowSolver<dim,nstate>::output_restart_files(
 #endif
 
 template <int dim, int nstate>
+void FlowSolver<dim,nstate>::perform_mesh_adaptation() const
+{
+    std::unique_ptr<MeshAdaptation<dim,double>> meshadaptation = std::make_unique<MeshAdaptation<dim,double>>(dg, &(all_param.mesh_adaptation_param));
+    const int total_adaptation_cycles = all_param.mesh_adaptation_param.total_mesh_adaptation_cycles;
+    double residual_norm = this->dg->get_residual_l2norm();
+    
+    pcout<<"Running mesh adaptation cycles..."<<std::endl;
+    while (meshadaptation->current_mesh_adaptation_cycle < total_adaptation_cycles)
+    {
+        // Check if steady state solution is being used.
+        if(residual_norm > ode_param.nonlinear_steady_residual_tolerance)
+        {
+            pcout<<"Warning: Mesh adaptation is currently implemented for steady state flows and the current residual norm isn't sufficiently low."
+                 <<" Please check if steady_state() has been called before adapting the mesh."<<std::endl;
+        }
+        
+        meshadaptation->adapt_mesh();
+        ode_solver->steady_state();
+        residual_norm = ode_solver->residual_norm;
+    }
+
+    pcout<<"Total mesh adaptation cycles have been completed."<<std::endl; 
+}
+
+template <int dim, int nstate>
 int FlowSolver<dim,nstate>::run() const
 {
     pcout << "Running Flow Solver..." << std::endl;
@@ -457,6 +482,14 @@ int FlowSolver<dim,nstate>::run() const
             ode_solver->initialize_steady_polynomial_ramping(poly_degree);
         }
         ode_solver->steady_state();
+        
+        bool use_mesh_adaptation = (all_param.mesh_adaptation_param.total_mesh_adaptation_cycles > 0);
+        
+        if(use_mesh_adaptation)
+        {
+            perform_mesh_adaptation();
+        }
+
         flow_solver_case->steady_state_postprocessing(dg);
     }
     pcout << "done." << std::endl;

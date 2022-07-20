@@ -85,7 +85,7 @@ int DualWeightedResidualMeshAdaptation<dim, nstate> :: run_test () const
 
             ode_solver->steady_state();
             
-            if (param.mesh_adaptation_param.total_refinement_cycles > 0)
+            if (param.mesh_adaptation_param.total_mesh_adaptation_cycles > 0)
                  {
                     dealii::Point<dim> refined_cell_coord = dg->coordinates_of_highest_refined_cell(check_for_p_refined_cell);
                     pcout<<" x = "<<refined_cell_coord[0]<<" y = "<<refined_cell_coord[1]<<std::endl;

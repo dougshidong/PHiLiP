@@ -195,7 +195,7 @@ double EulerGaussianBump<dim,nstate>
             //output_results (igrid);
             if (igrid == n_grids-1)
             {
-                if (param.mesh_adaptation_param.total_refinement_cycles > 0)
+                if (param.mesh_adaptation_param.total_mesh_adaptation_cycles > 0)
                 {
                     dealii::Point<dim> smallest_cell_coord = flow_solver->dg->coordinates_of_highest_refined_cell();
                     pcout<<" x = "<<smallest_cell_coord[0]<<" y = "<<smallest_cell_coord[1]<<std::endl;

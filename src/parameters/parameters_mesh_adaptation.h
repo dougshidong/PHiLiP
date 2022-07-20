@@ -10,13 +10,10 @@ namespace Parameters {
 class MeshAdaptationParam 
 {
 public:
-
-    /// Total/maximum number of refinement cycles while solving a problem.
-    int total_refinement_cycles;
     
-    /// Critical residual below which refinement begins.
-    double critical_residual;
-
+    /// Total/maximum number of mesh adaptation cycles while solving a problem.
+    int total_mesh_adaptation_cycles;
+    
     /// Fraction of cells to be h-refined
     double h_refine_fraction;
 

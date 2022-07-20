@@ -131,6 +131,9 @@ private:
         const double constant_time_step,
         const std::shared_ptr <dealii::TableHandler> unsteady_data_table) const;
 #endif
+
+    /// Performs mesh adaptation, based on the parameters.
+    void perform_mesh_adaptation() const;
 };
 
 } // FlowSolver namespace

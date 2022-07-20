@@ -42,8 +42,8 @@ public:
     /// Function to adapt the mesh based on input parameters.
     void adapt_mesh();
 
-    /// Stores the current refinement cycle.
-    int current_refinement_cycle;
+    /// Stores the current adaptation cycle.
+    int current_mesh_adaptation_cycle;
 
     /// Holds parameters of mesh adaptation.
     const Parameters::MeshAdaptationParam *const mesh_adaptation_param;

@@ -359,7 +359,7 @@ void FlowSolver<dim,nstate>::perform_mesh_adaptation() const
         residual_norm = ode_solver->residual_norm;
     }
 
-    pcout<<"Total mesh adaptation cycles have been completed."<<std::endl; 
+    pcout<<"Finished running mesh adaptation cycles."<<std::endl; 
 }
 
 template <int dim, int nstate>

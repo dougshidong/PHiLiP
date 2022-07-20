@@ -9,7 +9,7 @@ void MeshAdaptationParam::declare_parameters (dealii::ParameterHandler &prm)
 {
     prm.enter_subsection("mesh adaptation");
     {
-        prm.declare_entry("total_adaptation_cycles","0",
+        prm.declare_entry("total_mesh_adaptation_cycles","0",
                           dealii::Patterns::Integer(),
                           "Maximum adaptation steps for a problem.");
         

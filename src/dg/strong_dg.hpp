@@ -45,7 +45,124 @@ private:
         const DoFCellAccessorType2 &current_metric_cell,
         std::vector<dealii::LinearAlgebra::distributed::Vector<double>> &rhs);
 
-    /// Evaluate the volume RHS for the auxiliary equation.
+    /// Builds the necessary operators and assembles volume residual for either primary or auxiliary.
+    void assemble_volume_term_and_build_operators(
+        typename dealii::DoFHandler<dim>::active_cell_iterator /*cell*/,
+        const dealii::types::global_dof_index                  current_cell_index,
+        const std::vector<dealii::types::global_dof_index>     &cell_dofs_indices,
+        const std::vector<dealii::types::global_dof_index>     &metric_dof_indices,
+        const unsigned int                                     poly_degree,
+        const unsigned int                                     grid_degree,
+        OPERATOR::basis_functions<dim,2*dim>                   &soln_basis,
+        OPERATOR::basis_functions<dim,2*dim>                   &flux_basis,
+        OPERATOR::metric_operators<real,dim,2*dim>             &metric_oper,
+        OPERATOR::mapping_shape_functions<dim,2*dim>           &mapping_basis,
+        std::array<std::vector<real>,dim>                      &mapping_support_points,
+        dealii::hp::FEValues<dim,dim>                          &/*fe_values_collection_volume*/,
+        dealii::hp::FEValues<dim,dim>                          &/*fe_values_collection_volume_lagrange*/,
+        const dealii::FESystem<dim,dim>                        &/*current_fe_ref*/,
+        dealii::Vector<real>                                   &local_rhs_int_cell,
+        std::vector<dealii::Tensor<1,dim,real>>                &local_auxiliary_RHS,
+        const bool                                             compute_Auxiliary_RHS,
+        const bool /*compute_dRdW*/, const bool /*compute_dRdX*/, const bool /*compute_d2R*/);
+
+    /// Builds the necessary operators and assembles boundary residual for either primary or auxiliary.
+    void assemble_boundary_term_and_build_operators(
+        typename dealii::DoFHandler<dim>::active_cell_iterator /*cell*/,
+        const dealii::types::global_dof_index                  current_cell_index,
+        const unsigned int                                     iface,
+        const unsigned int                                     boundary_id,
+        const real                                             penalty,
+        const std::vector<dealii::types::global_dof_index>     &cell_dofs_indices,
+        const std::vector<dealii::types::global_dof_index>     &metric_dof_indices,
+        const unsigned int                                     poly_degree,
+        const unsigned int                                     grid_degree,
+        OPERATOR::basis_functions<dim,2*dim>                   &soln_basis,
+        OPERATOR::basis_functions<dim,2*dim>                   &flux_basis,
+        OPERATOR::metric_operators<real,dim,2*dim>             &metric_oper,
+        OPERATOR::mapping_shape_functions<dim,2*dim>           &mapping_basis,
+        std::array<std::vector<real>,dim>                      &mapping_support_points,
+        dealii::hp::FEFaceValues<dim,dim>                      &/*fe_values_collection_face_int*/,
+        const dealii::FESystem<dim,dim>                        &/*current_fe_ref*/,
+        dealii::Vector<real>                                   &local_rhs_int_cell,
+        std::vector<dealii::Tensor<1,dim,real>>                &local_auxiliary_RHS,
+        const bool                                             compute_Auxiliary_RHS,
+        const bool /*compute_dRdW*/, const bool /*compute_dRdX*/, const bool /*compute_d2R*/);
+
+    /// Builds the necessary operators and assembles face residual.
+    void assemble_face_term_and_build_operators(
+        typename dealii::DoFHandler<dim>::active_cell_iterator /*cell*/,
+        typename dealii::DoFHandler<dim>::active_cell_iterator /*neighbor_cell*/,
+        const dealii::types::global_dof_index                  current_cell_index,
+        const dealii::types::global_dof_index                  neighbor_cell_index,
+        const unsigned int                                     iface,
+        const unsigned int                                     neighbor_iface,
+        const real                                             penalty,
+        const std::vector<dealii::types::global_dof_index>     &current_dofs_indices,
+        const std::vector<dealii::types::global_dof_index>     &neighbor_dofs_indices,
+        const std::vector<dealii::types::global_dof_index>     &current_metric_dofs_indices,
+        const std::vector<dealii::types::global_dof_index>     &neighbor_metric_dofs_indices,
+        const unsigned int                                     poly_degree_int,
+        const unsigned int                                     poly_degree_ext,
+        const unsigned int                                     grid_degree_int,
+        const unsigned int                                     grid_degree_ext,
+        OPERATOR::basis_functions<dim,2*dim>                   &soln_basis_int,
+        OPERATOR::basis_functions<dim,2*dim>                   &soln_basis_ext,
+        OPERATOR::basis_functions<dim,2*dim>                   &flux_basis_int,
+        OPERATOR::basis_functions<dim,2*dim>                   &flux_basis_ext,
+        OPERATOR::metric_operators<real,dim,2*dim>             &metric_oper_int,
+        OPERATOR::metric_operators<real,dim,2*dim>             &metric_oper_ext,
+        OPERATOR::mapping_shape_functions<dim,2*dim>           &mapping_basis,
+        std::array<std::vector<real>,dim>                      &mapping_support_points,
+        dealii::hp::FEFaceValues<dim,dim>                      &/*fe_values_collection_face_int*/,
+        dealii::hp::FEFaceValues<dim,dim>                      &/*fe_values_collection_face_ext*/,
+        dealii::Vector<real>                                   &current_cell_rhs,
+        dealii::Vector<real>                                   &neighbor_cell_rhs,
+        std::vector<dealii::Tensor<1,dim,real>>                &current_cell_rhs_aux,
+        dealii::LinearAlgebra::distributed::Vector<double>     &rhs,
+        std::array<dealii::LinearAlgebra::distributed::Vector<double>,dim> &rhs_aux,
+        const bool                                             compute_Auxiliary_RHS,
+        const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R);
+
+    /// Builds the necessary operators and assembles subface residual.
+    /** Not verified
+    */
+    void assemble_subface_term_and_build_operators(
+        typename dealii::DoFHandler<dim>::active_cell_iterator cell,
+        typename dealii::DoFHandler<dim>::active_cell_iterator neighbor_cell,
+        const dealii::types::global_dof_index                  current_cell_index,
+        const dealii::types::global_dof_index                  neighbor_cell_index,
+        const unsigned int                                     iface,
+        const unsigned int                                     neighbor_iface,
+        const unsigned int                                     /*neighbor_i_subface*/,
+        const real                                             penalty,
+        const std::vector<dealii::types::global_dof_index>     &current_dofs_indices,
+        const std::vector<dealii::types::global_dof_index>     &neighbor_dofs_indices,
+        const std::vector<dealii::types::global_dof_index>     &current_metric_dofs_indices,
+        const std::vector<dealii::types::global_dof_index>     &neighbor_metric_dofs_indices,
+        const unsigned int                                     poly_degree_int,
+        const unsigned int                                     poly_degree_ext,
+        const unsigned int                                     grid_degree_int,
+        const unsigned int                                     grid_degree_ext,
+        OPERATOR::basis_functions<dim,2*dim>                   &soln_basis_int,
+        OPERATOR::basis_functions<dim,2*dim>                   &soln_basis_ext,
+        OPERATOR::basis_functions<dim,2*dim>                   &flux_basis_int,
+        OPERATOR::basis_functions<dim,2*dim>                   &flux_basis_ext,
+        OPERATOR::metric_operators<real,dim,2*dim>             &metric_oper_int,
+        OPERATOR::metric_operators<real,dim,2*dim>             &metric_oper_ext,
+        OPERATOR::mapping_shape_functions<dim,2*dim>           &mapping_basis,
+        std::array<std::vector<real>,dim>                      &mapping_support_points,
+        dealii::hp::FEFaceValues<dim,dim>                      &fe_values_collection_face_int,
+        dealii::hp::FESubfaceValues<dim,dim>                   &/*fe_values_collection_subface*/,
+        dealii::Vector<real>                                   &current_cell_rhs,
+        dealii::Vector<real>                                   &neighbor_cell_rhs,
+        std::vector<dealii::Tensor<1,dim,real>>                &current_cell_rhs_aux,
+        dealii::LinearAlgebra::distributed::Vector<double>     &rhs,
+        std::array<dealii::LinearAlgebra::distributed::Vector<double>,dim> &rhs_aux,
+        const bool                                             compute_Auxiliary_RHS,
+        const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R);
+
+    ///Evaluate the volume RHS for the auxiliary equation.
     /** \f[
     * \int_{\mathbf{\Omega}_r} \chi_i(\mathbf{\xi}^r) \left( \nabla^r(u) \right)\mathbf{C}_m(\mathbf{\xi}^r) d\mathbf{\Omega}_r,\:\forall i=1,\dots,N_p.
     * \f]
@@ -59,6 +176,8 @@ private:
         std::vector<dealii::Tensor<1,dim,real>>            &local_auxiliary_RHS);
 
     /// Evaluate the boundary RHS for the auxiliary equation.
+    /** Not verified
+    */
     void assemble_boundary_term_auxiliary_equation(
         const unsigned int                                 iface,
         const dealii::types::global_dof_index              current_cell_index,
@@ -119,6 +238,8 @@ private:
         dealii::Vector<real>                               &local_rhs_int_cell);
 
     /// Strong form primary equation's boundary right-hand-side.
+    /** Not verified
+    */
     void assemble_boundary_term_strong(
         const unsigned int                                 iface, 
         const dealii::types::global_dof_index              current_cell_index,

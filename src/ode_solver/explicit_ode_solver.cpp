@@ -13,7 +13,7 @@ template <int dim, typename real, typename MeshType>
 void ExplicitODESolver<dim,real,MeshType>::step_in_time (real dt, const bool pseudotime)
 {  
     this->solution_update = this->dg->solution; //storing u_n
-    
+
     //calculating stages **Note that rk_stage[i] stores the RHS at a partial time-step (not solution u)
     for (int i = 0; i < rk_order; ++i){
 
@@ -40,10 +40,11 @@ void ExplicitODESolver<dim,real,MeshType>::step_in_time (real dt, const bool pse
         //solve the system's right hande side
         this->dg->assemble_residual(); //RHS : du/dt = RHS = F(u_n + dt* sum(a_ij*k_j))
 
-        if(this->all_parameters->use_inverse_mass_on_the_fly)
+        if(this->all_parameters->use_inverse_mass_on_the_fly){
             this->dg->apply_inverse_global_mass_matrix(this->dg->right_hand_side, this->rk_stage[i]); //rk_stage[i] = IMM*RHS = F(u_n + dt*sum(a_ij*k_j))
-        else
+        } else{
             this->dg->global_inverse_mass_matrix.vmult(this->rk_stage[i], this->dg->right_hand_side); //rk_stage[i] = IMM*RHS = F(u_n + dt*sum(a_ij*k_j))
+        }
     }
 
     //assemble solution from stages

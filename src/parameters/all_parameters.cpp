@@ -139,7 +139,9 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       " euler_naca0012 | "
                       " reduced_order | "
                       " convection_diffusion_periodicity |"
-                      " POD_adaptation |"
+                      " POD_adaptation | "
+                      " POD_adaptive_sampling | "
+                      " adaptive_sampling_testing | "
                       " finite_difference_sensitivity | "
                       " advection_periodicity | "
                       " dual_weighted_residual_mesh_adaptation | "
@@ -165,9 +167,11 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       "  euler_naca_optimization | "
                       "  shock_1d | "
                       "  euler_naca0012 | "
-                      "  reduced_order |"
                       "  convection_diffusion_periodicity |"
-                      "  POD_adaptation |"
+                      "  reduced_order | "
+                      "  POD_adaptation | "
+                      "  POD_adaptive_sampling | "
+                      "  adaptive_sampling_testing | "
                       "  finite_difference_sensitivity | "
                       "  advection_periodicity | "
                       "  dual_weighted_residual_mesh_adaptation | "
@@ -295,6 +299,8 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     else if (test_string == "shock_1d")                                 { test_type = shock_1d; }
     else if (test_string == "reduced_order")                            { test_type = reduced_order; }
     else if (test_string == "POD_adaptation")                           { test_type = POD_adaptation; }
+    else if (test_string == "POD_adaptive_sampling")                    { test_type = POD_adaptive_sampling; }
+    else if (test_string == "adaptive_sampling_testing")                { test_type = adaptive_sampling_testing; }
     else if (test_string == "finite_difference_sensitivity")            { test_type = finite_difference_sensitivity; }
     else if (test_string == "euler_naca0012")                           { test_type = euler_naca0012; }
     else if (test_string == "optimization_inverse_manufactured")        { test_type = optimization_inverse_manufactured; }
@@ -374,7 +380,7 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     if (conv_num_flux_string == "entropy_conserving_flux") { conv_num_flux_type = entropy_conserving_flux; }
 
     const std::string diss_num_flux_string = prm.get("diss_num_flux");
-    if (diss_num_flux_string == "symm_internal_penalty") {diss_num_flux_type = symm_internal_penalty; }
+    if (diss_num_flux_string == "symm_internal_penalty") { diss_num_flux_type = symm_internal_penalty; }
     if (diss_num_flux_string == "bassi_rebay_2") {
         diss_num_flux_type = bassi_rebay_2;
         sipg_penalty_factor = 0.0;

@@ -1,25 +1,11 @@
 #ifndef __EULER_GAUSSIAN_BUMP_H__
 #define __EULER_GAUSSIAN_BUMP_H__
 
-#include <deal.II/grid/manifold_lib.h>
-
 #include "tests.h"
-#include "dg/dg.h"
-#include "physics/physics.h"
 #include "parameters/all_parameters.h"
 
 namespace PHiLiP {
 namespace Tests {
-
-/// Gaussian bump manifold.
-class BumpManifold: public dealii::ChartManifold<2,2,2> {
-public:
-    virtual dealii::Point<2> pull_back(const dealii::Point<2> &space_point) const override; ///< See dealii::Manifold.
-    virtual dealii::Point<2> push_forward(const dealii::Point<2> &chart_point) const override; ///< See dealii::Manifold.
-    virtual dealii::DerivativeForm<1,2,2> push_forward_gradient(const dealii::Point<2> &chart_point) const override; ///< See dealii::Manifold.
-    
-    virtual std::unique_ptr<dealii::Manifold<2,2> > clone() const override; ///< See dealii::Manifold.
-};
 
 /// Performs grid convergence for various polynomial degrees.
 template <int dim, int nstate>
@@ -31,10 +17,11 @@ public:
     /// Constructor.
     /** Simply calls the TestsBase constructor to set its parameters = parameters_input
      */
-    EulerGaussianBump(const Parameters::AllParameters *const parameters_input);
+    EulerGaussianBump(const Parameters::AllParameters *const parameters_input,
+                      const dealii::ParameterHandler &parameter_handler_input);
 
-    /// Warp grid into Gaussian bump
-    static dealii::Point<dim> warp (const dealii::Point<dim> &p);
+    /// Parameter handler for storing the .prm file being ran
+    const dealii::ParameterHandler &parameter_handler;
 
     /// Returns either the order of convergence or enthalpy, depending on the test type.
     double run_euler_gaussian_bump () const;
@@ -52,12 +39,7 @@ public:
      */
     int run_test () const;
 
-protected:
-
-    //  // Integrate entropy over the entire domain to use as a functional.
-    //  double integrate_entropy_over_domain(DGBase<dim,double> &dg) const;
 };
-
 
 //   /// Manufactured grid convergence
 //   /** Currently the main function as all my test cases simply

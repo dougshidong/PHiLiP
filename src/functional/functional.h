@@ -77,7 +77,7 @@ public:
         const bool _uses_solution_gradient = true);
 
     /// Destructor.
-    ~Functional(){}
+    virtual ~Functional(){};
 
 public:
     /** Set the associated @ref DGBase's solution to @p solution_set. */
@@ -125,11 +125,11 @@ public:
     dealii::LinearAlgebra::distributed::Vector<real> dIdX;
 
     /// Sparse matrix for storing the functional partial second derivatives.
-    dealii::TrilinosWrappers::SparseMatrix d2IdWdW;
+    std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> d2IdWdW;
     /// Sparse matrix for storing the functional partial second derivatives.
-    dealii::TrilinosWrappers::SparseMatrix d2IdWdX;
+    std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> d2IdWdX;
     /// Sparse matrix for storing the functional partial second derivatives.
-    dealii::TrilinosWrappers::SparseMatrix d2IdXdX;
+    std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> d2IdXdX;
 
 private:
     /// Initializes/allocates the vectors used to check if we recompute
@@ -703,6 +703,56 @@ protected:
     std::vector<unsigned int> boundary_vector;
     /// Flag to use all domain boundaries
     const bool                use_all_boundaries;
+};
+
+///Functional to take the integral of the solution
+#if PHILIP_DIM==1
+    template <int dim, int nstate, typename real, typename MeshType = dealii::Triangulation<dim>>
+#else
+    template <int dim, int nstate, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
+#endif
+class SolutionIntegral : public Functional<dim,nstate,real,MeshType>
+{
+public:
+    using FadType = Sacado::Fad::DFad<real>; ///< Sacado AD type for first derivatives.
+    using FadFadType = Sacado::Fad::DFad<FadType>; ///< Sacado AD type that allows 2nd derivatives.
+public:
+    /// Constructor
+    SolutionIntegral(
+            std::shared_ptr<PHiLiP::DGBase<dim,real, MeshType>> dg_input,
+            std::shared_ptr<PHiLiP::Physics::PhysicsBase<dim,nstate,FadFadType>> _physics_fad_fad,
+            const bool uses_solution_values = true,
+            const bool uses_solution_gradient = false)
+            : PHiLiP::Functional<dim,nstate,real,MeshType>(dg_input,_physics_fad_fad,uses_solution_values,uses_solution_gradient)
+    {}
+
+    /// Templated volume integrand
+    template <typename real2>
+    real2 evaluate_volume_integrand(
+            const PHiLiP::Physics::PhysicsBase<dim,nstate,real2> &physics,
+            const dealii::Point<dim,real2> &phys_coord,
+            const std::array<real2,nstate> &soln_at_q,
+            const std::array<dealii::Tensor<1,dim,real2>,nstate> &soln_grad_at_q) const;
+
+    /// Non-template functions to override the template classes
+    real evaluate_volume_integrand(
+            const PHiLiP::Physics::PhysicsBase<dim,nstate,real> &physics,
+            const dealii::Point<dim,real> &phys_coord,
+            const std::array<real,nstate> &soln_at_q,
+            const std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_at_q) const override
+    {
+        return evaluate_volume_integrand<>(physics, phys_coord, soln_at_q, soln_grad_at_q);
+    }
+    
+    /// Non-template functions to override the template classes
+    FadFadType evaluate_volume_integrand(
+            const PHiLiP::Physics::PhysicsBase<dim,nstate,FadFadType> &physics,
+            const dealii::Point<dim,FadFadType> &phys_coord,
+            const std::array<FadFadType,nstate> &soln_at_q,
+            const std::array<dealii::Tensor<1,dim,FadFadType>,nstate> &soln_grad_at_q) const override
+    {
+        return evaluate_volume_integrand<>(physics, phys_coord, soln_at_q, soln_grad_at_q);
+    }
 };
 
 /// Factory class to construct default functional types

@@ -28,8 +28,8 @@ public:
 
     unsigned int nonlinear_max_iterations; ///< Maximum number of iterations.
     unsigned int print_iteration_modulo; ///< If ode_output==verbose, print every print_iteration_modulo iterations.
-    unsigned int output_solution_vector_modulo; ///< Output solution vector every output_solution_vector_modulo iterations of the nonlinear solver
-    std::string solutions_table_filename; ///< Filename to write solutions table to
+    bool output_final_steady_state_solution_to_file; ///< Output final steady state solution to file
+    std::string steady_state_final_solution_filename; ///< Filename to write final steady state solution
 
     double nonlinear_steady_residual_tolerance; ///< Tolerance to determine steady-state convergence.
 

@@ -7,6 +7,7 @@ set(FLOW_SOLVER_SOURCE
     flow_solver_cases/1D_burgers_rewienski_snapshot.cpp
     flow_solver_cases/1d_burgers_viscous_snapshot.cpp
     flow_solver_cases/naca0012.cpp
+    flow_solver_cases/gaussian_bump.cpp
     flow_solver.cpp
     flow_solver_factory.cpp)
 
@@ -24,12 +25,14 @@ foreach(dim RANGE 1 3)
     string(CONCAT FunctionalLib Functional_${dim}D)
     string(CONCAT ODESolverLib ODESolver_${dim}D)
     string(CONCAT InitialConditionsLib InitialConditions_${dim}D)
+    string(CONCAT PODLib POD_${dim}D)
     target_link_libraries(${FlowSolverLib} ${GridsLib})
     target_link_libraries(${FlowSolverLib} ${PhysicsLib})
     target_link_libraries(${FlowSolverLib} ${FunctionalLib})
     target_link_libraries(${FlowSolverLib} ${DiscontinuousGalerkinLib})
     target_link_libraries(${FlowSolverLib} ${ODESolverLib})
     target_link_libraries(${FlowSolverLib} ${InitialConditionsLib})
+    target_link_libraries(${FlowSolverLib} ${PODLib})
     # Setup target with deal.II
     if(NOT DOC_ONLY)
         DEAL_II_SETUP_TARGET(${FlowSolverLib})
@@ -42,4 +45,5 @@ foreach(dim RANGE 1 3)
     unset(ODESolverLib)
     unset(PhysicsLib)
     unset(InitialConditionsLib)
+    unset(PODLib)
 endforeach()

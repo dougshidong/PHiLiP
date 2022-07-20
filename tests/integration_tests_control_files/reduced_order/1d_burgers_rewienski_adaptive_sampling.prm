@@ -1,7 +1,7 @@
 # Listing of Parameters
 # ---------------------
 
-set test_type = POD_adaptation
+set test_type = POD_adaptive_sampling
 
 # Number of dimensions
 set dimension = 1
@@ -11,12 +11,18 @@ set pde_type  = burgers_rewienski
 set use_weak_form = true
 set use_collocated_nodes = false
 
-# use the grid refinement study class to generate the grid
 subsection grid refinement study
  set num_refinements = 10
- set poly_degree = 0
- set grid_left = 0.0
- set grid_right = 100.0
+end
+
+subsection flow_solver
+  set flow_case_type = burgers_rewienski_snapshot
+  set steady_state = true
+  set poly_degree = 0
+  subsection grid
+    set grid_left_bound = 0.0
+    set grid_right_bound = 100.0
+  end
 end
 
 #Burgers parameters
@@ -25,26 +31,28 @@ subsection burgers
  set rewienski_b = 0.04
 end
 
+subsection functional
+  set functional_type = solution_integral
+end
+
 #Reduced order parameters
 subsection reduced order
-  set adaptation_tolerance = 0.00001
-  set adapt_coarse_basis_constant = 0
-  set coarse_basis_dimension = 8
-  set fine_basis_dimension = 18
+  set adaptation_tolerance = 0.001
   set path_to_search = .
-  set method_of_snapshots = false
-  set consider_error_sign = true
+  set reduced_residual_tolerance = 1e-14
 end
 
 subsection linear solver
+  set linear_solver_output = quiet
   set linear_solver_type = direct
 end
 
 subsection ODE solver
+  #set ode_output = quiet
   set nonlinear_max_iterations = 50
-  set nonlinear_steady_residual_tolerance = 1e-12
+  set nonlinear_steady_residual_tolerance = 1e-14
   set print_iteration_modulo  = 1
-  set ode_solver_type = pod_galerkin
+  set ode_solver_type = implicit
 end
 
 subsection manufactured solution convergence study

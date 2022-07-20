@@ -22,7 +22,10 @@ void FunctionalParam::declare_parameters(dealii::ParameterHandler &prm)
                           " weighted_integral_volume | "
                           " weighted_integral_boundary | "
                           " error_normLp_volume | "
-                          " error_normLp_boundary"
+                          " error_normLp_boundary | "
+                          " lift | "
+                          " drag | "
+                          " solution_integral "
                           ),
                           "Functional that we want to use. "
                           "Choice are "
@@ -31,6 +34,9 @@ void FunctionalParam::declare_parameters(dealii::ParameterHandler &prm)
                           "  weighted_integral_volume | "
                           "  weighted_integral_boundary | "
                           "  error_normLp_volume | "
+                          "  lift | "
+                          "  drag | "
+                          "  solution_integral |"
                           "  error_normLp_boundary>.");
 
         prm.declare_entry("normLp", "2.0",
@@ -85,6 +91,9 @@ void FunctionalParam::parse_parameters(dealii::ParameterHandler &prm)
         else if(functional_string == "weighted_integral_boundary") {functional_type = FunctionalType::weighted_integral_boundary;}
         else if(functional_string == "error_normLp_volume")        {functional_type = FunctionalType::error_normLp_volume;}
         else if(functional_string == "error_normLp_boundary")      {functional_type = FunctionalType::error_normLp_boundary;}
+        else if(functional_string == "lift")                       {functional_type = FunctionalType::lift;}
+        else if(functional_string == "drag")                       {functional_type = FunctionalType::drag;}
+        else if(functional_string == "solution_integral")          {functional_type = FunctionalType::solution_integral;}
 
         normLp = prm.get_double("normLp");
 

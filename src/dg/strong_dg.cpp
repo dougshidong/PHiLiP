@@ -36,6 +36,327 @@ DGStrong<dim,nstate,real,MeshType>::~DGStrong()
     pcout << "Destructing DGStrong..." << std::endl;
 }
 
+/***********************************************************
+*
+*       Build operators and solve for RHS
+*
+***********************************************************/
+template <int dim, int nstate, typename real, typename MeshType>
+void DGStrong<dim,nstate,real,MeshType>::assemble_volume_term_and_build_operators(
+    typename dealii::DoFHandler<dim>::active_cell_iterator /*cell*/,
+    const dealii::types::global_dof_index                  current_cell_index,
+    const std::vector<dealii::types::global_dof_index>     &cell_dofs_indices,
+    const std::vector<dealii::types::global_dof_index>     &metric_dof_indices,
+    const unsigned int                                     poly_degree,
+    const unsigned int                                     grid_degree,
+    OPERATOR::basis_functions<dim,2*dim>                   &soln_basis,
+    OPERATOR::basis_functions<dim,2*dim>                   &flux_basis,
+    OPERATOR::metric_operators<real,dim,2*dim>             &metric_oper,
+    OPERATOR::mapping_shape_functions<dim,2*dim>           &mapping_basis,
+    std::array<std::vector<real>,dim>                      &mapping_support_points,
+    dealii::hp::FEValues<dim,dim>                          &/*fe_values_collection_volume*/,
+    dealii::hp::FEValues<dim,dim>                          &/*fe_values_collection_volume_lagrange*/,
+    const dealii::FESystem<dim,dim>                        &/*current_fe_ref*/,
+    dealii::Vector<real>                                   &local_rhs_int_cell,
+    std::vector<dealii::Tensor<1,dim,real>>                &local_auxiliary_RHS,
+    const bool                                             compute_Auxiliary_RHS,
+    const bool /*compute_dRdW*/, const bool /*compute_dRdX*/, const bool /*compute_d2R*/)
+{
+    if(poly_degree != soln_basis.current_degree){
+        soln_basis.current_degree = poly_degree; 
+        flux_basis.current_degree = poly_degree; 
+        mapping_basis.current_degree  = poly_degree; 
+        this->reinit_operators_for_cell_residual_loop(poly_degree, poly_degree, grid_degree, soln_basis, soln_basis, flux_basis, flux_basis, mapping_basis);
+    }
+
+    const dealii::FESystem<dim> &fe_metric = this->high_order_grid->fe_system;
+    const unsigned int n_metric_dofs = fe_metric.dofs_per_cell;
+    const unsigned int n_grid_nodes  = n_metric_dofs / dim;
+    //Rewrite the high_order_grid->volume_nodes in a way we can use sum-factorization on.
+    //That is, splitting up the vector by the dimension.
+    for(int idim=0; idim<dim; idim++){
+        mapping_support_points[idim].resize(n_grid_nodes);
+    }
+    for (unsigned int igrid_node = 0; igrid_node< n_metric_dofs/dim; ++igrid_node) {
+        for (unsigned int idof = 0; idof< n_metric_dofs; ++idof) {
+            const real val = (this->high_order_grid->volume_nodes[metric_dof_indices[idof]]);
+            const unsigned int istate = fe_metric.system_to_component_index(idof).first; 
+            mapping_support_points[istate][igrid_node] += val * fe_metric.shape_value_component(idof,this->high_order_grid->dim_grid_nodes.point(igrid_node),istate); 
+        }
+    }
+
+    //build the volume metric cofactor matrix and the determinant of the volume metric Jacobian
+    metric_oper.build_volume_metric_operators(
+        this->volume_quadrature_collection[poly_degree].size(), n_grid_nodes,
+        mapping_support_points,
+        mapping_basis,
+        this->all_parameters->use_invariant_curl_form);
+
+    if(compute_Auxiliary_RHS){
+        assemble_volume_term_auxiliary_equation (
+            cell_dofs_indices,
+            poly_degree,
+            soln_basis,
+            flux_basis,
+            metric_oper,
+            local_auxiliary_RHS);
+    }
+    else{
+        assemble_volume_term_strong(
+            current_cell_index,
+            cell_dofs_indices,
+            poly_degree,
+            soln_basis,
+            flux_basis,
+            metric_oper,
+            local_rhs_int_cell);
+    }
+}
+template <int dim, int nstate, typename real, typename MeshType>
+void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_and_build_operators(
+    typename dealii::DoFHandler<dim>::active_cell_iterator /*cell*/,
+    const dealii::types::global_dof_index                  current_cell_index,
+    const unsigned int                                     iface,
+    const unsigned int                                     boundary_id,
+    const real                                             penalty,
+    const std::vector<dealii::types::global_dof_index>     &cell_dofs_indices,
+    const std::vector<dealii::types::global_dof_index>     &/*metric_dof_indices*/,
+    const unsigned int                                     poly_degree,
+    const unsigned int                                     /*grid_degree*/,
+    OPERATOR::basis_functions<dim,2*dim>                   &soln_basis,
+    OPERATOR::basis_functions<dim,2*dim>                   &flux_basis,
+    OPERATOR::metric_operators<real,dim,2*dim>             &metric_oper,
+    OPERATOR::mapping_shape_functions<dim,2*dim>           &mapping_basis,
+    std::array<std::vector<real>,dim>                      &mapping_support_points,
+    dealii::hp::FEFaceValues<dim,dim>                      &/*fe_values_collection_face_int*/,
+    const dealii::FESystem<dim,dim>                        &/*current_fe_ref*/,
+    dealii::Vector<real>                                   &local_rhs_int_cell,
+    std::vector<dealii::Tensor<1,dim,real>>                &local_auxiliary_RHS,
+    const bool                                             compute_Auxiliary_RHS,
+    const bool /*compute_dRdW*/, const bool /*compute_dRdX*/, const bool /*compute_d2R*/)
+{
+
+    const dealii::FESystem<dim> &fe_metric = this->high_order_grid->fe_system;
+    const unsigned int n_metric_dofs = fe_metric.dofs_per_cell;
+    const unsigned int n_grid_nodes  = n_metric_dofs / dim;
+    //build the surface metric operators for interior
+    metric_oper.build_facet_metric_operators(
+        iface,
+        this->face_quadrature_collection[poly_degree].size(),
+        n_grid_nodes,
+        mapping_support_points,
+        mapping_basis,
+        this->all_parameters->use_invariant_curl_form);
+
+    if(compute_Auxiliary_RHS){
+        assemble_boundary_term_auxiliary_equation (
+            iface, current_cell_index, poly_degree,
+            boundary_id, cell_dofs_indices, 
+            soln_basis, metric_oper,
+            local_auxiliary_RHS);
+    }
+    else{
+        assemble_boundary_term_strong (
+            iface,
+            current_cell_index,
+            boundary_id, poly_degree, penalty, 
+            cell_dofs_indices, 
+            soln_basis,
+            flux_basis,
+            metric_oper,
+            local_rhs_int_cell);
+    }
+
+}
+
+template <int dim, int nstate, typename real, typename MeshType>
+void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_and_build_operators(
+    typename dealii::DoFHandler<dim>::active_cell_iterator /*cell*/,
+    typename dealii::DoFHandler<dim>::active_cell_iterator neighbor_cell,
+    const dealii::types::global_dof_index                  current_cell_index,
+    const dealii::types::global_dof_index                  neighbor_cell_index,
+    const unsigned int                                     iface,
+    const unsigned int                                     neighbor_iface,
+    const real                                             penalty,
+    const std::vector<dealii::types::global_dof_index>     &current_dofs_indices,
+    const std::vector<dealii::types::global_dof_index>     &neighbor_dofs_indices,
+    const std::vector<dealii::types::global_dof_index>     &/*current_metric_dofs_indices*/,
+    const std::vector<dealii::types::global_dof_index>     &neighbor_metric_dofs_indices,
+    const unsigned int                                     poly_degree_int,
+    const unsigned int                                     poly_degree_ext,
+    const unsigned int                                     /*grid_degree_int*/,
+    const unsigned int                                     grid_degree_ext,
+    OPERATOR::basis_functions<dim,2*dim>                   &soln_basis_int,
+    OPERATOR::basis_functions<dim,2*dim>                   &soln_basis_ext,
+    OPERATOR::basis_functions<dim,2*dim>                   &flux_basis_int,
+    OPERATOR::basis_functions<dim,2*dim>                   &flux_basis_ext,
+    OPERATOR::metric_operators<real,dim,2*dim>             &metric_oper_int,
+    OPERATOR::metric_operators<real,dim,2*dim>             &metric_oper_ext,
+    OPERATOR::mapping_shape_functions<dim,2*dim>           &mapping_basis,
+    std::array<std::vector<real>,dim>                      &mapping_support_points,
+    dealii::hp::FEFaceValues<dim,dim>                      &/*fe_values_collection_face_int*/,
+    dealii::hp::FEFaceValues<dim,dim>                      &/*fe_values_collection_face_ext*/,
+    dealii::Vector<real>                                   &current_cell_rhs,
+    dealii::Vector<real>                                   &neighbor_cell_rhs,
+    std::vector<dealii::Tensor<1,dim,real>>                &current_cell_rhs_aux,
+    dealii::LinearAlgebra::distributed::Vector<double>     &rhs,
+    std::array<dealii::LinearAlgebra::distributed::Vector<double>,dim> &rhs_aux,
+    const bool                                             compute_Auxiliary_RHS,
+    const bool /*compute_dRdW*/, const bool /*compute_dRdX*/, const bool /*compute_d2R*/)
+{
+
+    const dealii::FESystem<dim> &fe_metric = this->high_order_grid->fe_system;
+    const unsigned int n_metric_dofs = fe_metric.dofs_per_cell;
+    const unsigned int n_grid_nodes  = n_metric_dofs / dim;
+    //build the surface metric operators for interior
+    metric_oper_int.build_facet_metric_operators(
+        iface,
+        this->face_quadrature_collection[poly_degree_int].size(),
+        n_grid_nodes,
+        mapping_support_points,
+        mapping_basis,
+        this->all_parameters->use_invariant_curl_form);
+
+    if(poly_degree_ext != soln_basis_ext.current_degree){
+        soln_basis_ext.current_degree    = poly_degree_ext; 
+        flux_basis_ext.current_degree    = poly_degree_ext; 
+        mapping_basis.current_degree     = poly_degree_ext; 
+        this->reinit_operators_for_cell_residual_loop(poly_degree_int, poly_degree_ext, grid_degree_ext, soln_basis_int, soln_basis_ext, flux_basis_int, flux_basis_ext, mapping_basis);
+    }
+
+    if(!compute_Auxiliary_RHS){//only for primary equations
+        //get neighbor metric operator
+        //rewrite the high_order_grid->volume_nodes in a way we can use sum-factorization on.
+        //that is, splitting up the vector by the dimension.
+        std::array<std::vector<real>,dim> mapping_support_points_neigh;
+        for(int idim=0; idim<dim; idim++){
+            mapping_support_points_neigh[idim].resize(n_grid_nodes);
+        }
+        for (unsigned int igrid_node = 0; igrid_node< n_metric_dofs/dim; ++igrid_node) {
+            for (unsigned int idof = 0; idof< n_metric_dofs; ++idof) {
+                const real val = (this->high_order_grid->volume_nodes[neighbor_metric_dofs_indices[idof]]);
+                const unsigned int istate = fe_metric.system_to_component_index(idof).first; 
+                mapping_support_points_neigh[istate][igrid_node] += val * fe_metric.shape_value_component(idof,this->high_order_grid->dim_grid_nodes.point(igrid_node),istate); 
+            }
+        }
+        //build the metric operators for strong form
+        metric_oper_ext.build_volume_metric_operators(
+            this->volume_quadrature_collection[poly_degree_ext].size(), n_grid_nodes,
+            mapping_support_points_neigh,
+            mapping_basis,
+            this->all_parameters->use_invariant_curl_form);
+    }
+
+    if(compute_Auxiliary_RHS){
+        const unsigned int n_dofs_neigh_cell = this->fe_collection[neighbor_cell->active_fe_index()].n_dofs_per_cell();
+        std::vector<dealii::Tensor<1,dim,double>> neighbor_cell_rhs_aux (n_dofs_neigh_cell ); // defaults to 0.0 initialization
+        assemble_face_term_auxiliary (
+            iface, neighbor_iface, 
+            current_cell_index, neighbor_cell_index,
+            poly_degree_int, poly_degree_ext,
+            current_dofs_indices, neighbor_dofs_indices,
+            soln_basis_int, soln_basis_ext,
+            metric_oper_int,
+            current_cell_rhs_aux, neighbor_cell_rhs_aux);
+        // add local contribution from neighbor cell to global vector
+        for (unsigned int i=0; i<n_dofs_neigh_cell; ++i) {
+            for(int idim=0; idim<dim; idim++){
+                rhs_aux[idim][neighbor_dofs_indices[i]] += neighbor_cell_rhs_aux[i][idim];
+            }
+        }
+    }
+    else{
+        assemble_face_term_strong (
+            iface, neighbor_iface, 
+            current_cell_index,
+            neighbor_cell_index,
+            poly_degree_int, poly_degree_ext,
+            penalty,
+            current_dofs_indices, neighbor_dofs_indices,
+            soln_basis_int, soln_basis_ext,
+            flux_basis_int, flux_basis_ext,
+            metric_oper_int, metric_oper_ext,
+            current_cell_rhs, neighbor_cell_rhs);
+        // add local contribution from neighbor cell to global vector
+        const unsigned int n_dofs_neigh_cell = this->fe_collection[neighbor_cell->active_fe_index()].n_dofs_per_cell();
+        for (unsigned int i=0; i<n_dofs_neigh_cell; ++i) {
+            rhs[neighbor_dofs_indices[i]] += neighbor_cell_rhs[i];
+        }
+    }
+
+}
+
+template <int dim, int nstate, typename real, typename MeshType>
+void DGStrong<dim,nstate,real,MeshType>::assemble_subface_term_and_build_operators(
+    typename dealii::DoFHandler<dim>::active_cell_iterator cell,
+    typename dealii::DoFHandler<dim>::active_cell_iterator neighbor_cell,
+    const dealii::types::global_dof_index                  current_cell_index,
+    const dealii::types::global_dof_index                  neighbor_cell_index,
+    const unsigned int                                     iface,
+    const unsigned int                                     neighbor_iface,
+    const unsigned int                                     /*neighbor_i_subface*/,
+    const real                                             penalty,
+    const std::vector<dealii::types::global_dof_index>     &current_dofs_indices,
+    const std::vector<dealii::types::global_dof_index>     &neighbor_dofs_indices,
+    const std::vector<dealii::types::global_dof_index>     &current_metric_dofs_indices,
+    const std::vector<dealii::types::global_dof_index>     &neighbor_metric_dofs_indices,
+    const unsigned int                                     poly_degree_int,
+    const unsigned int                                     poly_degree_ext,
+    const unsigned int                                     grid_degree_int,
+    const unsigned int                                     grid_degree_ext,
+    OPERATOR::basis_functions<dim,2*dim>                   &soln_basis_int,
+    OPERATOR::basis_functions<dim,2*dim>                   &soln_basis_ext,
+    OPERATOR::basis_functions<dim,2*dim>                   &flux_basis_int,
+    OPERATOR::basis_functions<dim,2*dim>                   &flux_basis_ext,
+    OPERATOR::metric_operators<real,dim,2*dim>             &metric_oper_int,
+    OPERATOR::metric_operators<real,dim,2*dim>             &metric_oper_ext,
+    OPERATOR::mapping_shape_functions<dim,2*dim>           &mapping_basis,
+    std::array<std::vector<real>,dim>                      &mapping_support_points,
+    dealii::hp::FEFaceValues<dim,dim>                      &fe_values_collection_face_int,
+    dealii::hp::FESubfaceValues<dim,dim>                   &/*fe_values_collection_subface*/,
+    dealii::Vector<real>                                   &current_cell_rhs,
+    dealii::Vector<real>                                   &neighbor_cell_rhs,
+    std::vector<dealii::Tensor<1,dim,real>>                &current_cell_rhs_aux,
+    dealii::LinearAlgebra::distributed::Vector<double>     &rhs,
+    std::array<dealii::LinearAlgebra::distributed::Vector<double>,dim> &rhs_aux,
+    const bool                                             compute_Auxiliary_RHS,
+    const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R)
+{
+    assemble_face_term_and_build_operators(
+        cell,
+        neighbor_cell,
+        current_cell_index,
+        neighbor_cell_index,
+        iface,
+        neighbor_iface,
+        penalty,
+        current_dofs_indices,
+        neighbor_dofs_indices,
+        current_metric_dofs_indices,
+        neighbor_metric_dofs_indices,
+        poly_degree_int,
+        poly_degree_ext,
+        grid_degree_int,
+        grid_degree_ext,
+        soln_basis_int,
+        soln_basis_ext,
+        flux_basis_int,
+        flux_basis_ext,
+        metric_oper_int,
+        metric_oper_ext,
+        mapping_basis,
+        mapping_support_points,
+        fe_values_collection_face_int,
+        fe_values_collection_face_int,
+        current_cell_rhs,
+        neighbor_cell_rhs,
+        current_cell_rhs_aux,
+        rhs,
+        rhs_aux,
+        compute_Auxiliary_RHS,
+        compute_dRdW, compute_dRdX, compute_d2R);
+
+}
 /*******************************************************************
  *
  *
@@ -488,7 +809,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_auxiliary(
 
             soln_basis_ext.inner_product_surface_1D(neighbor_iface, 
                                                 surf_num_flux_minus_surf_soln_ext_dot_normal[istate][idim],
-                                                surf_quad_weights, rhs_int,
+                                                surf_quad_weights, rhs_ext,
                                                 soln_basis_ext.oneD_surf_operator,
                                                 soln_basis_ext.oneD_vol_operator,
                                                 true, 1.0);//it's added since auxiliary is EQUAL to the gradient of the soln

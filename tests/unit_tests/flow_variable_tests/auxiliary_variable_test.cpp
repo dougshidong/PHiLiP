@@ -56,6 +56,7 @@ using namespace std;
 
 int main (int argc, char * argv[])
 {
+
     dealii::Utilities::MPI::MPI_InitFinalize mpi_initialization(argc, argv, 1);
     using real = double;
     using namespace PHiLiP;
@@ -76,16 +77,18 @@ int main (int argc, char * argv[])
     double right = 1.0;
     dealii::ConvergenceTable convergence_table;
     const unsigned int igrid_start = 2;
-    const unsigned int n_grids = 6;
+    const unsigned int n_grids = 7;
     std::array<double,n_grids> grid_size;
     std::array<double,n_grids> soln_error;
     std::array<double,n_grids> soln_error_inf;
     unsigned int exit_grid=0;
-    for(unsigned int poly_degree = 3; poly_degree<6; poly_degree++){
+    const unsigned int final_poly_degree = (dim==3) ? 5 : 6;
+    for(unsigned int poly_degree = 3; poly_degree<final_poly_degree; poly_degree++){
         const unsigned int grid_degree = 1;
         for(unsigned int igrid=igrid_start; igrid<n_grids; ++igrid){
             pcout<<" Grid Index"<<igrid<<std::endl;
-            //Generate a standard grid
+            // Generate a standard grid
+
 #if PHILIP_DIM==1 // dealii::parallel::distributed::Triangulation<dim> does not work for 1D
             using Triangulation = dealii::Triangulation<dim>;
             std::shared_ptr<Triangulation> grid = std::make_shared<Triangulation>(
@@ -100,9 +103,13 @@ int main (int argc, char * argv[])
                     dealii::Triangulation<dim>::smoothing_on_refinement |
                     dealii::Triangulation<dim>::smoothing_on_coarsening));
 #endif
-            //straight
+            // straight
             dealii::GridGenerator::hyper_cube(*grid, left, right, true);
-#if PHILIP_DIM!=1
+#if PHILIP_DIM==1
+            std::vector<dealii::GridTools::PeriodicFacePair<typename dealii::Triangulation<PHILIP_DIM>::cell_iterator> > matched_pairs;
+            dealii::GridTools::collect_periodic_faces(*grid,0,1,0,matched_pairs);
+            grid->add_periodicity(matched_pairs);
+#else
             std::vector<dealii::GridTools::PeriodicFacePair<typename dealii::parallel::distributed::Triangulation<PHILIP_DIM>::cell_iterator> > matched_pairs;
             dealii::GridTools::collect_periodic_faces(*grid,0,1,0,matched_pairs);
             if(dim >= 2) dealii::GridTools::collect_periodic_faces(*grid,2,3,1,matched_pairs);
@@ -123,8 +130,11 @@ int main (int argc, char * argv[])
             std::shared_ptr < PHiLiP::DGBase<dim, double> > dg = PHiLiP::DGFactory<dim,double>::create_discontinuous_galerkin(&all_parameters_new, poly_degree, poly_degree, grid_degree, grid);
             pcout<<"going in allocate"<<std::endl;
             dg->allocate_system (false,false,false);
+            if(!all_parameters_new.use_inverse_mass_on_the_fly){
+                dg->evaluate_mass_matrices(true);
+            }
     
-            //Interpolate IC
+            // Interpolate IC
 
             const double pi = atan(1)*4.0;
             const unsigned int max_dofs_per_cell = dg->dof_handler.get_fe_collection().max_dofs_per_cell();
@@ -171,33 +181,24 @@ int main (int argc, char * argv[])
                 //interpolate solution
                 current_dofs_indices.resize(n_dofs_cell);
                 current_cell->get_dof_indices (current_dofs_indices);
-                // for(int idim=0; idim<dim; idim++){
-                //     for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
-                //         phys_quad_pts[idim][iquad] = 0.0;
-                //         for(unsigned int jquad=0; jquad<n_metric_dofs/dim; jquad++){
-                //             phys_quad_pts[idim][iquad] += dg->operators->mapping_shape_functions_vol_flux_nodes[grid_degree][poly_degree][iquad][jquad]
-                //                                         * mapping_support_points[idim][jquad];
-                //         }
-                //     }
-                // }
                 std::vector<real> soln(n_quad_pts);
                 std::vector<real> exact(n_quad_pts);
                 for(int istate=0; istate<nstate; istate++){
                     for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
                         exact[iquad] = 1.0;
-                       for (int idim=0; idim<dim; idim++){
-                               // exact *= exp(-(phys_quad_pts[idim][iquad])*(phys_quad_pts[idim][iquad]));
-                               // exact *= sin(2.0*pi*phys_quad_pts[idim][iquad]) * cos(4.0*pi*phys_quad_pts[idim][iquad]);
-                            exact[iquad] *= sin(2.0*pi*metric_oper.flux_nodes_vol[idim][iquad]) * cos(4.0*pi*metric_oper.flux_nodes_vol[idim][iquad]);
+                        for (int idim=0; idim<dim; idim++){
+                            exact[iquad] *= sin(pi*metric_oper.flux_nodes_vol[idim][iquad]) * cos(2.0*pi*metric_oper.flux_nodes_vol[idim][iquad]);
                         }
                         std::vector<double> sol(n_shape_fns);
-                        vol_projection.matrix_vector_mult_1D(exact, sol, vol_projection.oneD_vol_operator);
+                        vol_projection.matrix_vector_mult_1D(exact, sol,
+                                                                      vol_projection.oneD_vol_operator);
                         for(unsigned int ishape=0; ishape<n_shape_fns; ishape++){
                             dg->solution[current_dofs_indices[ishape+istate*n_shape_fns]] = sol[ishape];
                         }
                     }   
-                }   
-            } //end interpolated solution
+                }
+                //end interpolated solution
+            }
             dg->solution.update_ghost_values();
 
             pcout<<"assembling aux residual"<<std::endl;
@@ -206,6 +207,7 @@ int main (int argc, char * argv[])
 
 
             //TEST ERROR OOA
+
             pcout<<"OOA here"<<std::endl;
             double l2error = 0.0;
             double linf_error = 0.0;
@@ -228,33 +230,30 @@ int main (int argc, char * argv[])
                 for (unsigned int iquad=0; iquad<n_quad_pts_extra; ++iquad) {
                     soln_at_q[iquad] = 0.0;
                     for (unsigned int idof=0; idof<fe_values_extra.dofs_per_cell; ++idof) {
-                        // soln_at_q[iquad] += solution_deriv[dofs_indices[idof]] * fe_values_extra.shape_value_component(idof, iquad, 0);
                         soln_at_q[iquad] += dg->auxiliary_solution[dim_check][dofs_indices[idof]] * fe_values_extra.shape_value_component(idof, iquad, 0);
-                        //soln_at_q[iquad] += dg->solution[dofs_indices[idof]] * fe_values_extra.shape_value_component(idof, iquad, 0);
                     }
+
                     const dealii::Point<dim> qpoint = (fe_values_extra.quadrature_point(iquad));
                     double uexact_x=1.0;
                     for(int idim=0; idim<dim; idim++){
-                       // uexact_x *= exp(-((qpoint[idim]) * (qpoint[idim])));
-                       if(idim!=dim_check) uexact_x *= sin(2.0*pi*qpoint[idim]) * cos(4.0*pi*qpoint[idim]);
+                       if(idim!=dim_check)
+                            uexact_x *= sin(pi*qpoint[idim]) * cos(2.0*pi*qpoint[idim]);
                     }
-                    // uexact_x *= - 2.0 * qpoint[dim_check];
-                    uexact_x *= (2.0 * pi*cos(2.0*pi*qpoint[dim_check])*cos(4.0*pi*qpoint[dim_check])
-                                + sin(2.0*pi*qpoint[dim_check])* (-4.0)* pi *sin(4.0*pi*qpoint[dim_check]));
-                    // pcout<<soln_at_q[iquad]<<" exact "<<uexact_x<<std::endl;
+                    uexact_x *=  (pi*cos(pi*qpoint[dim_check])*cos(2.0*pi*qpoint[dim_check])
+                                + sin(pi*qpoint[dim_check])* (-2.0)* pi *sin(2.0*pi*qpoint[dim_check]));
                     l2error += pow(soln_at_q[iquad] - uexact_x, 2) * fe_values_extra.JxW(iquad);
                     double inf_temp = std::abs(soln_at_q[iquad]-uexact_x);
                     if(inf_temp > linf_error){
                         linf_error = inf_temp;
                     }
                 }
-            } // end of cell loop
+
+            }
             pcout<<"got OOA here"<<std::endl;
 
             const unsigned int n_global_active_cells = grid->n_global_active_cells();
             const double l2error_mpi_sum = std::sqrt(dealii::Utilities::MPI::sum(l2error, MPI_COMM_WORLD));
             const double linferror_mpi= (dealii::Utilities::MPI::max(linf_error, MPI_COMM_WORLD));
-            
             // Convergence table
             const unsigned int n_dofs = dg->dof_handler.n_dofs();
             const double dx = 1.0/pow(n_dofs,(1.0/dim));
@@ -274,40 +273,42 @@ int main (int argc, char * argv[])
                   << " Linf-soln_error: " << linferror_mpi
                   << std::endl;
 
+
             if (igrid > igrid_start) {
                 const double slope_soln_err = log(soln_error[igrid]/soln_error[igrid-1])
                                       / log(grid_size[igrid]/grid_size[igrid-1]);
                 const double slope_soln_err_inf = log(soln_error_inf[igrid]/soln_error_inf[igrid-1])
                                       / log(grid_size[igrid]/grid_size[igrid-1]);
                 pcout << "From grid " << igrid-1
-                      << "  to grid " << igrid
-                      << "  dimension: " << dim
-                      << "  polynomial degree p: " << poly_degree
-                      << std::endl
-                      << "  solution_error1 " << soln_error[igrid-1]
-                      << "  solution_error2 " << soln_error[igrid]
-                      << "  slope " << slope_soln_err
-                      << "  solution_error1_inf " << soln_error_inf[igrid-1]
-                      << "  solution_error2_inf " << soln_error_inf[igrid]
-                      << "  slope " << slope_soln_err_inf
-                      << std::endl;
+                     << "  to grid " << igrid
+                     << "  dimension: " << dim
+                     << "  polynomial degree p: " << poly_degree
+                     << std::endl
+                     << "  solution_error1 " << soln_error[igrid-1]
+                     << "  solution_error2 " << soln_error[igrid]
+                     << "  slope " << slope_soln_err
+                     << "  solution_error1_inf " << soln_error_inf[igrid-1]
+                     << "  solution_error2_inf " << soln_error_inf[igrid]
+                     << "  slope " << slope_soln_err_inf
+                     << std::endl;
 
                 //if hit correct convergence rates skip to next poly
                 if(std::abs(slope_soln_err_inf-poly_degree)<0.1 && poly_degree % 2 == 1){
                     exit_grid = igrid;
                     break;
                 }
+                //if(std::abs(slope_soln_err-(poly_degree+1))<0.1 && poly_degree % 2 == 0){
                 if(std::abs(slope_soln_err_inf-(poly_degree))<0.1 && poly_degree % 2 == 0){
                     exit_grid = igrid;
                     break;
                 }
             }
-        } // end grid refinement loop
+        }//end grid refinement loop
 
-        // const int igrid = n_grids-1;
+        //const int igrid = n_grids-1;
         const unsigned int igrid = exit_grid;
-        // const double slope_soln_err = log(soln_error[igrid]/soln_error[igrid-1])
-        //                       / log(grid_size[igrid]/grid_size[igrid-1]);
+        //const double slope_soln_err = log(soln_error[igrid]/soln_error[igrid-1])
+        //                      / log(grid_size[igrid]/grid_size[igrid-1]);
         const double slope_soln_err = log(soln_error_inf[igrid]/soln_error_inf[igrid-1])
                               / log(grid_size[igrid]/grid_size[igrid-1]);
         if(std::abs(slope_soln_err-poly_degree)>0.1 && poly_degree % 2 == 1){
@@ -322,11 +323,11 @@ int main (int argc, char * argv[])
         }
     
         pcout << " ********************************************"
-              << std::endl
-              << " Convergence rates for p = " << poly_degree
-              << std::endl
-              << " ********************************************"
-              << std::endl;
+             << std::endl
+             << " Convergence rates for p = " << poly_degree
+             << std::endl
+             << " ********************************************"
+             << std::endl;
         convergence_table.evaluate_convergence_rates("soln_L2_error", "cells", dealii::ConvergenceTable::reduction_rate_log2, dim);
         convergence_table.evaluate_convergence_rates("soln_Linf_error", "cells", dealii::ConvergenceTable::reduction_rate_log2, dim);
         convergence_table.set_scientific("dx", true);
@@ -334,5 +335,5 @@ int main (int argc, char * argv[])
         convergence_table.set_scientific("soln_Linf_error", true);
         if (pcout.is_active()) convergence_table.write_text(pcout.get_stream());
 
-    } // end poly degree loop
+    }//end poly degree loop
 }

@@ -48,6 +48,7 @@ subsection grid refinement study
   set grid_right = 6.2831853072
 end
 
+
 subsection flow_solver
   set flow_case_type = taylor_green_vortex
   set poly_degree = 2

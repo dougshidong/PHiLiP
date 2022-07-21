@@ -2266,7 +2266,8 @@ void DGBase<dim,real,MeshType>::reinit_operators_for_mass_matrix(
     // use auxiliary equation if PDE has a diffusive term (bool to simplify aux check)
     const bool use_auxiliary_eq = (pde_type == PDE_enum::convection_diffusion || 
                                    pde_type == PDE_enum::diffusion || 
-                                   pde_type == PDE_enum::navier_stokes);
+                                   pde_type == PDE_enum::navier_stokes || 
+                                   pde_type == PDE_enum::physics_model);
     
     using FR_enum = Parameters::AllParameters::Flux_Reconstruction;
     const FR_enum FR_Type = this->all_parameters->flux_reconstruction_type;
@@ -2303,7 +2304,8 @@ void DGBase<dim,real,MeshType>::evaluate_mass_matrices (bool do_inverse_mass_mat
     // use auxiliary equation if PDE has a diffusive term (bool to simplify aux check)
     const bool use_auxiliary_eq = (pde_type == PDE_enum::convection_diffusion || 
                                    pde_type == PDE_enum::diffusion || 
-                                   pde_type == PDE_enum::navier_stokes);
+                                   pde_type == PDE_enum::navier_stokes || 
+                                   pde_type == PDE_enum::physics_model);
     
     using FR_enum = Parameters::AllParameters::Flux_Reconstruction;
     const FR_enum FR_Type = this->all_parameters->flux_reconstruction_type;
@@ -2490,7 +2492,8 @@ void DGBase<dim,real,MeshType>::evaluate_local_metric_dependent_mass_matrix_and_
     // use auxiliary equation if PDE has a diffusive term (bool to simplify aux check)
     const bool use_auxiliary_eq = (pde_type == PDE_enum::convection_diffusion || 
                                    pde_type == PDE_enum::diffusion || 
-                                   pde_type == PDE_enum::navier_stokes);
+                                   pde_type == PDE_enum::navier_stokes || 
+                                   pde_type == PDE_enum::physics_model);
     
     using FR_enum = Parameters::AllParameters::Flux_Reconstruction;
     const FR_enum FR_Type = this->all_parameters->flux_reconstruction_type;

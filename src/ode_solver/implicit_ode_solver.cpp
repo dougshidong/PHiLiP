@@ -70,7 +70,7 @@ void ImplicitODESolver<dim,real,MeshType>::step_in_time (real dt, const bool pse
 template <int dim, typename real, typename MeshType>
 void ImplicitODESolver<dim,real,MeshType>::evaluate_cfl (double step_length, double initial_residual)
 {
-    double minimum_step_length = 0.01;
+    double minimum_step_length = 0.09;
 
     this->dg->assemble_residual ();
     const double new_residual = this->dg->get_residual_l2norm();

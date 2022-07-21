@@ -119,7 +119,9 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       " shock_1d | "
                       " euler_naca0012 | "
                       " reduced_order | "
-                      " POD_adaptation |"
+                      " POD_adaptation | "
+                      " POD_adaptive_sampling | "
+                      " adaptive_sampling_testing | "
                       " finite_difference_sensitivity | "
                       " advection_periodicity | "
                       " dual_weighted_residual_mesh_adaptation | "
@@ -145,8 +147,10 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       "  euler_naca_optimization | "
                       "  shock_1d | "
                       "  euler_naca0012 | "
-                      "  reduced_order |"
-                      "  POD_adaptation |"
+                      "  reduced_order | "
+                      "  POD_adaptation | "
+                      "  POD_adaptive_sampling | "
+                      "  adaptive_sampling_testing | "
                       "  finite_difference_sensitivity | "
                       "  advection_periodicity | "
                       "  dual_weighted_residual_mesh_adaptation | "
@@ -261,6 +265,8 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     else if (test_string == "shock_1d")                                 { test_type = shock_1d; }
     else if (test_string == "reduced_order")                            { test_type = reduced_order; }
     else if (test_string == "POD_adaptation")                           { test_type = POD_adaptation; }
+    else if (test_string == "POD_adaptive_sampling")                    { test_type = POD_adaptive_sampling; }
+    else if (test_string == "adaptive_sampling_testing")                { test_type = adaptive_sampling_testing; }
     else if (test_string == "finite_difference_sensitivity")            { test_type = finite_difference_sensitivity; }
     else if (test_string == "euler_naca0012")                           { test_type = euler_naca0012; }
     else if (test_string == "optimization_inverse_manufactured")        { test_type = optimization_inverse_manufactured; }

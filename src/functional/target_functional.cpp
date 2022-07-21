@@ -454,9 +454,9 @@ real TargetFunctional<dim, nstate, real>::evaluate_functional(
     if (actually_compute_dIdW) dIdw.compress(dealii::VectorOperation::add);
     if (actually_compute_dIdX) dIdX.compress(dealii::VectorOperation::add);
     if (actually_compute_d2I) {
-        d2IdWdW.compress(dealii::VectorOperation::add);
-        d2IdWdX.compress(dealii::VectorOperation::add);
-        d2IdXdX.compress(dealii::VectorOperation::add);
+        d2IdWdW->compress(dealii::VectorOperation::add);
+        d2IdWdX->compress(dealii::VectorOperation::add);
+        d2IdXdX->compress(dealii::VectorOperation::add);
     }
 
     return current_functional_value;

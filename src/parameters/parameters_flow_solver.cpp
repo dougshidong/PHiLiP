@@ -19,14 +19,16 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                           " burgers_viscous_snapshot | "
                           " naca0012 | "
                           " burgers_rewienski_snapshot | "
-                          " advection_periodic"),
+                          " advection_periodic | "
+                          " gaussian_bump "),
                           "The type of flow we want to simulate. "
                           "Choices are "
                           " <taylor_green_vortex | "
                           " burgers_viscous_snapshot | "
                           " naca0012 | "
                           " burgers_rewienski_snapshot | "
-                          " advection_periodic>.");
+                          " advection_periodic | "
+                          " gaussian_bump>. ");
 
         prm.declare_entry("poly_degree", "1",
                           dealii::Patterns::Integer(0, dealii::Patterns::Integer::max_int_value),
@@ -92,25 +94,57 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
 
         prm.enter_subsection("grid");
         {
-          prm.declare_entry("input_mesh_filename", "naca0012",
-                            dealii::Patterns::FileName(dealii::Patterns::FileName::FileType::input),
-                            "Filename of the input mesh: input_mesh_filename.msh. For cases that import a mesh file.");
+            prm.declare_entry("input_mesh_filename", "naca0012",
+                              dealii::Patterns::FileName(dealii::Patterns::FileName::FileType::input),
+                              "Filename of the input mesh: input_mesh_filename.msh. For cases that import a mesh file.");
 
-          prm.declare_entry("grid_degree", "1",
-                            dealii::Patterns::Integer(1, dealii::Patterns::Integer::max_int_value),
-                            "Polynomial degree of the grid. Curvilinear grid if set greater than 1; default is 1.");
+            prm.declare_entry("grid_degree", "1",
+                              dealii::Patterns::Integer(1, dealii::Patterns::Integer::max_int_value),
+                              "Polynomial degree of the grid. Curvilinear grid if set greater than 1; default is 1.");
 
-          prm.declare_entry("grid_left_bound", "0.0",
-                            dealii::Patterns::Double(0, dealii::Patterns::Double::max_double_value),
-                            "Left bound of domain for hyper_cube mesh based cases.");
+            prm.declare_entry("grid_left_bound", "0.0",
+                              dealii::Patterns::Double(0, dealii::Patterns::Double::max_double_value),
+                              "Left bound of domain for hyper_cube mesh based cases.");
 
-          prm.declare_entry("grid_right_bound", "1.0",
-                            dealii::Patterns::Double(0, dealii::Patterns::Double::max_double_value),
-                            "Right bound of domain for hyper_cube mesh based cases.");
+            prm.declare_entry("grid_right_bound", "1.0",
+                              dealii::Patterns::Double(0, dealii::Patterns::Double::max_double_value),
+                              "Right bound of domain for hyper_cube mesh based cases.");
 
-          prm.declare_entry("number_of_grid_elements_per_dimension", "4",
-                            dealii::Patterns::Integer(1, dealii::Patterns::Integer::max_int_value),
-                            "Number of grid elements per dimension for hyper_cube mesh based cases.");
+            prm.declare_entry("number_of_grid_elements_per_dimension", "4",
+                              dealii::Patterns::Integer(1, dealii::Patterns::Integer::max_int_value),
+                              "Number of grid elements per dimension for hyper_cube mesh based cases.");
+
+            prm.declare_entry("number_of_mesh_refinements", "0",
+                              dealii::Patterns::Integer(0, dealii::Patterns::Integer::max_int_value),
+                              "Number of mesh refinements for Gaussian bump and naca0012 based cases.");
+
+            prm.enter_subsection("gaussian_bump");
+            {
+                prm.declare_entry("channel_length", "3.0",
+                                  dealii::Patterns::Double(0, dealii::Patterns::Double::max_double_value),
+                                  "Lenght of channel for gaussian bump meshes.");
+
+                prm.declare_entry("channel_height", "0.8",
+                                  dealii::Patterns::Double(0, dealii::Patterns::Double::max_double_value),
+                                  "Height of channel for gaussian bump meshes.");
+
+                prm.declare_entry("bump_height", "0.0625", 
+                                  dealii::Patterns::Double(0, dealii::Patterns::Double::max_double_value),
+                                  "Height of the bump for gaussian bump meshes.");
+
+                prm.declare_entry("number_of_subdivisions_in_x_direction", "0",
+                                  dealii::Patterns::Integer(0, dealii::Patterns::Integer::max_int_value),
+                                  "Number of subdivisions in the x direction for gaussian bump meshes.");
+
+                prm.declare_entry("number_of_subdivisions_in_y_direction", "0",
+                                  dealii::Patterns::Integer(0, dealii::Patterns::Integer::max_int_value),
+                                  "Number of subdivisions in the y direction for gaussian bump meshes.");
+
+                prm.declare_entry("number_of_subdivisions_in_z_direction", "0",
+                                  dealii::Patterns::Integer(0, dealii::Patterns::Integer::max_int_value),
+                                  "Number of subdivisions in the z direction for gaussian bump meshes.");
+            }
+            prm.leave_subsection();
         }
         prm.leave_subsection();
 
@@ -134,7 +168,7 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                               " isothermal>.");
         }
         prm.leave_subsection();
-        
+
         prm.enter_subsection("time_refinement_study");
         {
             prm.declare_entry("number_of_times_to_solve", "4",
@@ -159,6 +193,7 @@ void FlowSolverParam::parse_parameters(dealii::ParameterHandler &prm)
         else if (flow_case_type_string == "burgers_rewienski_snapshot") {flow_case_type = burgers_rewienski_snapshot;}
         else if (flow_case_type_string == "naca0012")                   {flow_case_type = naca0012;}
         else if (flow_case_type_string == "advection_periodic")         {flow_case_type = advection_periodic;}
+        else if (flow_case_type_string == "gaussian_bump")              {flow_case_type = gaussian_bump;}
 
         poly_degree = prm.get_integer("poly_degree");
         
@@ -183,12 +218,24 @@ void FlowSolverParam::parse_parameters(dealii::ParameterHandler &prm)
 
         prm.enter_subsection("grid");
         {
-          input_mesh_filename = prm.get("input_mesh_filename");
-          grid_degree = prm.get_integer("grid_degree");
-          grid_left_bound = prm.get_double("grid_left_bound");
-          grid_right_bound = prm.get_double("grid_right_bound");
-          number_of_grid_elements_per_dimension = prm.get_integer("number_of_grid_elements_per_dimension");
-        }
+            input_mesh_filename = prm.get("input_mesh_filename");
+            grid_degree = prm.get_integer("grid_degree");
+            grid_left_bound = prm.get_double("grid_left_bound");
+            grid_right_bound = prm.get_double("grid_right_bound");
+            number_of_grid_elements_per_dimension = prm.get_integer("number_of_grid_elements_per_dimension");
+            number_of_mesh_refinements = prm.get_integer("number_of_mesh_refinements");
+
+            prm.enter_subsection("gaussian_bump");
+            {
+                number_of_subdivisions_in_x_direction = prm.get_integer("number_of_subdivisions_in_x_direction");
+                number_of_subdivisions_in_y_direction = prm.get_integer("number_of_subdivisions_in_y_direction");
+                number_of_subdivisions_in_z_direction = prm.get_integer("number_of_subdivisions_in_z_direction");
+                channel_length = prm.get_double("channel_length");
+                channel_height = prm.get_double("channel_height");
+                bump_height = prm.get_double("bump_height");
+            }
+            prm.leave_subsection();
+        }       
         prm.leave_subsection();
 
         prm.enter_subsection("taylor_green_vortex");

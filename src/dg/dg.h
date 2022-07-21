@@ -209,6 +209,7 @@ public:
     void add_time_scaled_mass_matrices();
 
     double get_residual_l2norm () const; ///< Returns the L2-norm of the right_hand_side vector
+
     double get_residual_linfnorm () const; ///< Returns the Linf-norm of the right_hand_side vector
 
     unsigned int n_dofs() const; ///< Number of degrees of freedom

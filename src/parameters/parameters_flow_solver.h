@@ -20,7 +20,8 @@ public:
         burgers_viscous_snapshot,
         naca0012,
         burgers_rewienski_snapshot,
-        advection_periodic
+        advection_periodic,
+        gaussian_bump
         };
     FlowCaseType flow_case_type; ///< Selected FlowCaseType from the input file
 
@@ -53,15 +54,24 @@ public:
     int output_restart_files_every_x_steps; ///< Outputs the restart files every x steps
     double output_restart_files_every_dt_time_intervals; ///< Outputs the restart files at time intervals of dt
 
+    /// Parameters related to mesh generation
     unsigned int grid_degree; ///< Polynomial degree of the grid
     double grid_left_bound; ///< Left bound of domain for hyper_cube mesh based cases
     double grid_right_bound; ///< Right bound of domain for hyper_cube mesh based cases
     unsigned int number_of_grid_elements_per_dimension; ///< Number of grid elements per dimension for hyper_cube mesh based cases
+    int number_of_mesh_refinements; ///< Number of refinements for naca0012 and Gaussian bump based cases
+
+    double channel_height; ///< Height of channel for gaussian bump case
+    double channel_length; ///< Width of channel for gaussian bump case
+    double bump_height; ///< Height of gaussian bump
+    int number_of_subdivisions_in_x_direction; ///< Number of subdivisions in x direction for gaussian bump case
+    int number_of_subdivisions_in_y_direction; ///< Number of subdivisions in y direction for gaussian bump case
+    int number_of_subdivisions_in_z_direction; ///< Number of subdivisions in z direction for gaussian bump case
 
     /** For taylor green vortex integration tests, expected kinetic energy at final time. */
     double expected_kinetic_energy_at_final_time;
 
-    /** For taylor green vortex integration tests, 
+    /** For taylor green vortex integration tests,
      *  expected theoretical kinetic energy dissipation
      *  rate at final time. */
     double expected_theoretical_dissipation_rate_at_final_time;
@@ -73,7 +83,7 @@ public:
         };
     /// Selected DensityInitialConditionType from the input file
     DensityInitialConditionType density_initial_condition_type;
-  
+
     int number_of_times_to_solve; ///<For time refinement study, number of times to run the calculation
     double refinement_ratio; ///<For time refinement study, ratio of next timestep size to current one, 0<r<1
 

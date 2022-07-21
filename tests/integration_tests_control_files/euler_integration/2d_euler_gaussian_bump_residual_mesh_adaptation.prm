@@ -81,3 +81,8 @@ subsection manufactured solution convergence study
   set number_of_grids   = 2 #3
 end
 
+subsection flow_solver
+  set flow_case_type = gaussian_bump
+  set steady_state = true
+  set steady_state_polynomial_ramping = true
+end

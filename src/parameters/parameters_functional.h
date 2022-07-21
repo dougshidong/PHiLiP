@@ -25,6 +25,7 @@ public:
         error_normLp_boundary,
         lift,
         drag,
+        solution_integral
     };
     /// Selection of functinal type
     FunctionalType functional_type;

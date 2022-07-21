@@ -232,19 +232,19 @@ int main(int argc, char *argv[])
     dealii::TrilinosWrappers::SparseMatrix d2IdWdW_transpose;
     {
         Epetra_CrsMatrix *transpose_CrsMatrix;
-        Epetra_RowMatrixTransposer epmt(const_cast<Epetra_CrsMatrix *>(&functional.d2IdWdW.trilinos_matrix()));
+        Epetra_RowMatrixTransposer epmt(const_cast<Epetra_CrsMatrix *>(&functional.d2IdWdW->trilinos_matrix()));
         epmt.CreateTranspose(false, transpose_CrsMatrix);
         d2IdWdW_transpose.reinit(*transpose_CrsMatrix);
-        d2IdWdW_transpose.add(-1.0,functional.d2IdWdW);
+        d2IdWdW_transpose.add(-1.0,*functional.d2IdWdW);
     }
 
     dealii::TrilinosWrappers::SparseMatrix d2IdXdX_transpose;
     {
         Epetra_CrsMatrix *transpose_CrsMatrix;
-        Epetra_RowMatrixTransposer epmt(const_cast<Epetra_CrsMatrix *>(&functional.d2IdXdX.trilinos_matrix()));
+        Epetra_RowMatrixTransposer epmt(const_cast<Epetra_CrsMatrix *>(&functional.d2IdXdX->trilinos_matrix()));
         epmt.CreateTranspose(false, transpose_CrsMatrix);
         d2IdXdX_transpose.reinit(*transpose_CrsMatrix);
-        d2IdXdX_transpose.add(-1.0,functional.d2IdXdX);
+        d2IdXdX_transpose.add(-1.0,*functional.d2IdXdX);
     }
     // {
     //     dealii::FullMatrix<double> fullA(functional.d2IdWdW.m());
@@ -260,14 +260,14 @@ int main(int argc, char *argv[])
     //     if (pcout.is_active()) fullA.print_formatted(pcout.get_stream(), 3, true, 10, "0", 1., 0.);
     // }
 
-    pcout << "functional.d2IdWdW.frobenius_norm()  " << functional.d2IdWdW.frobenius_norm() << std::endl;
-    pcout << "functional.d2IdXdX.frobenius_norm()  " << functional.d2IdXdX.frobenius_norm() << std::endl;
+    pcout << "functional.d2IdWdW.frobenius_norm()  " << functional.d2IdWdW->frobenius_norm() << std::endl;
+    pcout << "functional.d2IdXdX.frobenius_norm()  " << functional.d2IdXdX->frobenius_norm() << std::endl;
 
-    const double d2IdWdW_norm = functional.d2IdWdW.frobenius_norm();
+    const double d2IdWdW_norm = functional.d2IdWdW->frobenius_norm();
     const double d2IdWdW_abs_diff = d2IdWdW_transpose.frobenius_norm();
     const double d2IdWdW_rel_diff = d2IdWdW_abs_diff / d2IdWdW_norm;
 
-    const double d2IdXdX_norm = functional.d2IdXdX.frobenius_norm();
+    const double d2IdXdX_norm = functional.d2IdXdX->frobenius_norm();
     const double d2IdXdX_abs_diff = d2IdXdX_transpose.frobenius_norm();
     const double d2IdXdX_rel_diff = d2IdXdX_abs_diff / d2IdXdX_norm;
 

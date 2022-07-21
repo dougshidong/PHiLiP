@@ -21,7 +21,8 @@ public:
         naca0012,
         burgers_rewienski_snapshot,
         advection_periodic,
-        gaussian_bump
+        gaussian_bump,
+        sshock_dual_weighted_residual_mesh_adaptation
         };
     FlowCaseType flow_case_type; ///< Selected FlowCaseType from the input file
 

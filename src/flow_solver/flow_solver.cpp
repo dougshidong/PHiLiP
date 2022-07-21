@@ -501,7 +501,11 @@ template class FlowSolver <PHILIP_DIM,PHILIP_DIM>;
 #endif
 
 #if PHILIP_DIM!=1
-template class FlowSolver <PHILIP_DIM,PHILIP_DIM+2>;
+template class FlowSolver <PHILIP_DIM,1>;
+template class FlowSolver <PHILIP_DIM,2>;
+template class FlowSolver <PHILIP_DIM,3>;
+template class FlowSolver <PHILIP_DIM,4>;
+template class FlowSolver <PHILIP_DIM,5>;
 #endif
 
 } // FlowSolver namespace

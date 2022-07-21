@@ -22,7 +22,6 @@ subsection linear solver
 end
 
 subsection mesh adaptation
-    set critical_residual = 1.0e-9
     set total_refinement_cycles = 4
     set h_refine_fraction = 0.05
     set h_coarsen_fraction = 0.025

@@ -370,7 +370,7 @@ InitialConditionFactory<dim,nstate, real>::create_InitialConditionFunction(
         if constexpr (dim==1 && nstate==1) return std::make_shared<InitialConditionFunction_BurgersRewienski<dim,nstate,real> > ();
     } else if (flow_type == FlowCaseEnum::burgers_viscous_snapshot) {
         if constexpr (dim==1 && nstate==1) return std::make_shared<InitialConditionFunction_BurgersViscous<dim,nstate,real> > ();
-    } else if (flow_type == FlowCaseEnum::naca0012) {
+    } else if (flow_type == FlowCaseEnum::naca0012  || flow_type == FlowCaseEnum::gaussian_bump) {
         if constexpr (dim==2 && nstate==dim+2) {
             Physics::Euler<dim,nstate,double> euler_physics_double = Physics::Euler<dim, nstate, double>(
                     param->euler_param.ref_length,
@@ -380,13 +380,13 @@ InitialConditionFactory<dim,nstate, real>::create_InitialConditionFunction(
                     param->euler_param.side_slip_angle);
             return std::make_shared<FreeStreamInitialConditions<dim,nstate,real>>(euler_physics_double);
         }
-    } else if (flow_type == FlowCaseEnum::burgers_inviscid && param->use_energy==false ) {
+    } else if (flow_type == FlowCaseEnum::burgers_inviscid && param->use_energy==false) {
         if constexpr (dim==1 && nstate==1) return std::make_shared<InitialConditionFunction_BurgersInviscid<dim,nstate,real> > ();
-    } else if (flow_type == FlowCaseEnum::burgers_inviscid && param->use_energy==true ) {
+    } else if (flow_type == FlowCaseEnum::burgers_inviscid && param->use_energy==true) {
         if constexpr (dim==1 && nstate==1) return std::make_shared<InitialConditionFunction_BurgersInviscidEnergy<dim,nstate,real> > ();
-    } else if (flow_type == FlowCaseEnum::advection && param->use_energy==true ) {
+    } else if (flow_type == FlowCaseEnum::advection && param->use_energy==true) {
         if constexpr (nstate==1) return std::make_shared<InitialConditionFunction_AdvectionEnergy<dim,nstate,real> > ();
-    } else if (flow_type == FlowCaseEnum::advection && param->use_energy==false ) {
+    } else if (flow_type == FlowCaseEnum::advection && param->use_energy==false) {
         if constexpr (nstate==1) return std::make_shared<InitialConditionFunction_Advection<dim,nstate,real> > ();
     } else if (flow_type == FlowCaseEnum::convection_diffusion) {
         if constexpr (nstate==1) return std::make_shared<InitialConditionFunction_ConvDiff<dim,nstate,real> > ();

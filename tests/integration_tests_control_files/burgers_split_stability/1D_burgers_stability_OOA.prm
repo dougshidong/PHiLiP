@@ -28,7 +28,7 @@ set pde_type = burgers_inviscid
 
 set conv_num_flux = lax_friedrichs
 #set conv_num_flux = central_flux
-#set conv_num_flux = split_form
+#set conv_num_flux = entropy_conserving_flux_with_lax_friedrichs_dissipation
 
 subsection ODE solver
 

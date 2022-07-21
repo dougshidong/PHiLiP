@@ -15,7 +15,7 @@ template <int dim, int nstate, typename real>
 class NumericalFluxFactory
 {
 public:
-    /// Creates convective numerical flux based on input.
+    /// Creates convective numerical flux (baseline flux + upwind term) based on input.
     static std::unique_ptr < NumericalFluxConvective<dim,nstate,real> >
         create_convective_numerical_flux(
             const AllParam::ConvectiveNumericalFlux conv_num_flux_type,
@@ -31,7 +31,7 @@ public:
             std::shared_ptr<ArtificialDissipationBase<dim, nstate>>  artificial_dissipation_input);
 
 protected:
-    /// Creates euler based convective numerical flux
+    /// Creates euler-based convective numerical flux (upwind term)
     static std::unique_ptr< NumericalFluxConvective<dim,nstate,real> > 
         create_euler_based_convective_numerical_flux(
             const AllParam::ConvectiveNumericalFlux conv_num_flux_type,

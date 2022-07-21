@@ -107,9 +107,15 @@ std::string TestsBase::get_conv_num_flux_string(const Parameters::AllParameters 
     if (CNF_type == CNF_enum::lax_friedrichs)          {conv_num_flux_string = "lax_friedrichs";}
     if (CNF_type == CNF_enum::roe)                     {conv_num_flux_string = "roe";}
     if (CNF_type == CNF_enum::l2roe)                   {conv_num_flux_string = "l2roe";}
-    if (CNF_type == CNF_enum::split_form)              {conv_num_flux_string = "split_form";}
     if (CNF_type == CNF_enum::central_flux)            {conv_num_flux_string = "central_flux";}
     if (CNF_type == CNF_enum::entropy_conserving_flux) {conv_num_flux_string = "entropy_conserving_flux";}
+    if (CNF_type == CNF_enum::entropy_conserving_flux_with_lax_friedrichs_dissipation) {
+        conv_num_flux_string = "entropy_conserving_flux_with_lax_friedrichs_dissipation";
+    } if (CNF_type == CNF_enum::entropy_conserving_flux_with_roe_dissipation) {
+        conv_num_flux_string = "entropy_conserving_flux_with_roe_dissipation";
+    } if (CNF_type == CNF_enum::entropy_conserving_flux_with_l2roe_dissipation) {
+        conv_num_flux_string = "entropy_conserving_flux_with_l2roe_dissipation";
+    }
     
     return conv_num_flux_string;
 }

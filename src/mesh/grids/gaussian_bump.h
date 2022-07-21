@@ -10,12 +10,14 @@ namespace Grids {
 /// Create a Gaussian bump grid with an associated nonlinear manifold.
 /** Numbers used are the ones from the High-Order Prediction Workshop (HOPW)
  */
+
+template<int dim>
 void gaussian_bump(
-    dealii::parallel::distributed::Triangulation<2> &grid,
+    dealii::parallel::distributed::Triangulation<dim> &grid,
     const std::vector<unsigned int> n_subdivisions,
     const double channel_length,
     const double channel_heigh,
-    const double bump_height = 0.0625);
+    const double bump_height);
 
 /// Gaussian bump manifold.
 class BumpManifold: public dealii::ChartManifold<2,2,2> {

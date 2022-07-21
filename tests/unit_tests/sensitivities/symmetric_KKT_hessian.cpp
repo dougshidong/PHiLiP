@@ -479,16 +479,16 @@ int main(int argc, char *argv[])
     dealii::TrilinosWrappers::SparseMatrix d2IdXdW;
     {
         Epetra_CrsMatrix *transpose_CrsMatrix;
-        Epetra_RowMatrixTransposer epmt(const_cast<Epetra_CrsMatrix *>(&functional.d2IdWdX.trilinos_matrix()));
+        Epetra_RowMatrixTransposer epmt(const_cast<Epetra_CrsMatrix *>(&functional.d2IdWdX->trilinos_matrix()));
         epmt.CreateTranspose(false, transpose_CrsMatrix);
         d2IdXdW.reinit(*transpose_CrsMatrix);
     }
 
     // Form Lagrangian Hessian
-    functional.d2IdWdW.add(1.0,dg->d2RdWdW);
-    functional.d2IdWdX.add(1.0,dg->d2RdWdX);
+    functional.d2IdWdW->add(1.0,dg->d2RdWdW);
+    functional.d2IdWdX->add(1.0,dg->d2RdWdX);
     d2IdXdW.add(1.0,d2RdXdW);
-    functional.d2IdXdX.add(1.0,dg->d2RdXdX);
+    functional.d2IdXdX->add(1.0,dg->d2RdXdX);
 
 
     // Block Sparsity pattern
@@ -513,12 +513,12 @@ int main(int argc, char *argv[])
 
     dealii::TrilinosWrappers::BlockSparseMatrix kkt_hessian;
     kkt_hessian.reinit(3,3);
-    kkt_hessian.block(0, 0).copy_from( functional.d2IdWdW);
-    kkt_hessian.block(0, 1).copy_from( functional.d2IdWdX);
+    kkt_hessian.block(0, 0).copy_from( *functional.d2IdWdW);
+    kkt_hessian.block(0, 1).copy_from( *functional.d2IdWdX);
     kkt_hessian.block(0, 2).copy_from( dRdW_transpose);
 
     kkt_hessian.block(1, 0).copy_from( d2IdXdW);
-    kkt_hessian.block(1, 1).copy_from( functional.d2IdXdX);
+    kkt_hessian.block(1, 1).copy_from( *functional.d2IdXdX);
     kkt_hessian.block(1, 2).copy_from( dRdX_transpose);
 
     kkt_hessian.block(2, 0).copy_from( dg->system_matrix);

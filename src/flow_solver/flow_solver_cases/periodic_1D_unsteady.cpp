@@ -1,15 +1,4 @@
 #include "periodic_1D_unsteady.h"
-#include <deal.II/base/function.h>
-#include <stdlib.h>
-#include <iostream>
-#include <deal.II/dofs/dof_tools.h>
-#include <deal.II/grid/grid_generator.h>
-#include <deal.II/grid/grid_tools.h>
-#include <deal.II/numerics/vector_tools.h>
-#include <deal.II/fe/fe_values.h>
-#include "physics/physics_factory.h"
-#include "dg/dg.h"
-#include "mesh/grids/straight_periodic_cube.hpp"
 
 namespace PHiLiP {
 
@@ -22,10 +11,6 @@ namespace FlowSolver {
 template <int dim, int nstate>
 Periodic1DUnsteady<dim, nstate>::Periodic1DUnsteady(const PHiLiP::Parameters::AllParameters *const parameters_input)
         : PeriodicCubeFlow<dim, nstate>(parameters_input)
-        , number_of_cells_per_direction(this->all_param.flow_solver_param.number_of_grid_elements_per_dimension)
-        , domain_left(this->all_param.flow_solver_param.grid_left_bound)
-        , domain_right(this->all_param.flow_solver_param.grid_right_bound)
-        , domain_size(pow(this->domain_right - this->domain_left, dim))
         , unsteady_data_table_filename_with_extension(this->all_param.flow_solver_param. unsteady_data_table_filename+ ".txt")
 {
 
@@ -33,37 +18,12 @@ Periodic1DUnsteady<dim, nstate>::Periodic1DUnsteady(const PHiLiP::Parameters::Al
 
 
 template <int dim, int nstate>
-std::shared_ptr<Triangulation> Periodic1DUnsteady<dim,nstate>::generate_grid() const
-{
-    std::shared_ptr<Triangulation> grid = std::make_shared<Triangulation> (
-#if PHILIP_DIM!=1
-            this->mpi_communicator
-#endif
-    );
-
-    
-    using FlowCaseEnum = Parameters::FlowSolverParam::FlowCaseType;
-    const FlowCaseEnum flow_case_type = this->all_param.flow_solver_param.flow_case_type;
-    
-    if (flow_case_type == FlowCaseEnum::advection_periodic){
-        Grids::straight_periodic_cube<dim,Triangulation>(grid, domain_left, domain_right, number_of_cells_per_direction);
-    }else if (flow_case_type == FlowCaseEnum::burgers_periodic){
-        const int number_of_refinements = log(number_of_cells_per_direction)/log(2);
-
-        //using hyper_cube and relying on use_periodic_bc flag
-        //necessary due to deal.ii bug with periodic boundaries
-        dealii::GridGenerator::hyper_cube(*grid, domain_left, domain_right, true);//colorize = true
-        grid->refine_global(number_of_refinements);
-    }
-
-    return grid;
-}
-
-template <int dim, int nstate>
 double Periodic1DUnsteady<dim, nstate>::compute_energy_collocated(
         const std::shared_ptr <DGBase<dim, double>> dg
         ) const
 {
+    // Intention is to eventually calculate energy in physics and generalize to arbitrary nodes
+    // For now, using collocated energy calculation
     double energy = 0.0;
     for (unsigned int i = 0; i < dg->solution.size(); ++i)
     {
@@ -110,10 +70,10 @@ void Periodic1DUnsteady<dim, nstate>::compute_unsteady_data_and_write_to_table(
         bool is_reference_solution = (dt < 2 * final_time/number_timesteps_ref);
 
         if(this->mpi_rank==0 && !is_reference_solution) {
+            //omit writing if current calculation is for a reference solution
             unsteady_data_table->add_value("iteration", current_iteration);
             this->add_value_to_data_table(current_time,"time",unsteady_data_table);
             this->add_value_to_data_table(energy,"energy",unsteady_data_table);
-            // Write to file
             std::ofstream unsteady_data_table_file(this->unsteady_data_table_filename_with_extension);
             unsteady_data_table->write_text(unsteady_data_table_file);
         }

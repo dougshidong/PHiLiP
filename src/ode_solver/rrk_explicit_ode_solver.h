@@ -43,20 +43,12 @@ protected:
     // See Ketcheson 2019, Eq. 2.4
     real compute_relaxation_parameter_explicit();
 
-    /// Compute gamma implicitly, using root-finding technique
-    /* To be used if entropy variable is nonlinear
-     * See Ranocha 2020, Eq. 2.4
-     * Not currently implemented
-     */
-    // real compute_gamma_implicit();
-
     /// Compute inner product according to the nodes being used
-    /* Goal is to point to physics, similar to compute_and_update_integrated_quantities() 
-     * in periodic_turbulence.cpp
+    /* This is the same calculation as energy, but using the residual instead of solution
      */
     real compute_inner_product(
-            dealii::LinearAlgebra::distributed::Vector<double> solution_or_stage_1,
-            dealii::LinearAlgebra::distributed::Vector<double> solution_or_stage_2
+            dealii::LinearAlgebra::distributed::Vector<double> stage_i,
+            dealii::LinearAlgebra::distributed::Vector<double> stage_j
             );
 
 };

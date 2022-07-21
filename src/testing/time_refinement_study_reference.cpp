@@ -138,6 +138,7 @@ int TimeRefinementStudyReference<dim, nstate>::run_test() const
 
         const Parameters::AllParameters params = reinit_params_and_refine_timestep(refinement);
         std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(&params, parameter_handler);
+        const double energy_initial = compute_energy_collocated(flow_solver->dg);
         static_cast<void>(flow_solver->run());
 
         double final_time_actual = flow_solver->ode_solver->current_time;
@@ -154,19 +155,20 @@ int TimeRefinementStudyReference<dim, nstate>::run_test() const
         convergence_table.add_value("refinement", refinement);
         convergence_table.add_value("dt", dt );
         convergence_table.set_precision("dt", 16);
+        convergence_table.set_scientific("dt", true);
         convergence_table.add_value("final_time", final_time_actual );
         convergence_table.set_precision("final_time", 16);
-        convergence_table.set_scientific("dt", true);
         convergence_table.add_value("L2_error",L2_error);
         convergence_table.set_precision("L2_error", 16);
         convergence_table.evaluate_convergence_rates("L2_error", "dt", dealii::ConvergenceTable::reduction_rate_log2, 1);
         
         if (params.use_collocated_nodes){
             //current energy calculation is only valid for collocated nodes
-            double energy_end = compute_energy_collocated(flow_solver->dg);
-            convergence_table.add_value("energy_end", energy_end);
-            convergence_table.set_precision("energy_end", 16);
-            convergence_table.set_scientific("energy_end", true);
+            const double energy_end = compute_energy_collocated(flow_solver->dg);
+            const double energy_change = energy_initial - energy_end;
+            convergence_table.add_value("energy_change", energy_change);
+            convergence_table.set_precision("energy_change", 16);
+            convergence_table.evaluate_convergence_rates("energy_change", "dt", dealii::ConvergenceTable::reduction_rate_log2, 1);
         }
         
         if(params.ode_solver_param.ode_solver_type == ODESolverEnum::rrk_explicit_solver){
@@ -192,13 +194,15 @@ int TimeRefinementStudyReference<dim, nstate>::run_test() const
 
     //Printing and writing convergence table
     pcout << std::endl;
-    if (pcout.is_active()) convergence_table.write_text(pcout.get_stream());
+    if (pcout.is_active()) {
+        convergence_table.write_text(pcout.get_stream());
 
-    std::ofstream conv_tab_file;
-    const std::string fname = "temporal_convergence_table.txt";
-    conv_tab_file.open(fname);
-    convergence_table.write_text(conv_tab_file);
-    conv_tab_file.close();
+        std::ofstream conv_tab_file;
+        const std::string fname = "temporal_convergence_table.txt";
+        conv_tab_file.open(fname);
+        convergence_table.write_text(conv_tab_file);
+        conv_tab_file.close();
+    }
 
     return testfail;
 }

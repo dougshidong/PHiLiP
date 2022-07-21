@@ -53,8 +53,6 @@ void ExplicitODESolver<dim,real,MeshType>::step_in_time (real dt, const bool pse
 
     ++(this->current_iteration);
     this->current_time += dt;
-
-
 }
 
 template <int dim, typename real, typename MeshType>

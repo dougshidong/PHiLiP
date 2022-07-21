@@ -49,9 +49,7 @@ void RRKExplicitODESolver<dim,real,MeshType>::step_in_time (real dt, const bool 
     this->dg->solution = this->solution_update; // u_np1 = u_n +gamma*dt* sum(k_i * b_i)
 
     ++(this->current_iteration);
-    this->current_time += dt;
-
-
+    this->current_time += relaxation_parameter * dt;
 }
 
 template <int dim, typename real, typename MeshType>
@@ -74,11 +72,11 @@ real RRKExplicitODESolver<dim,real,MeshType>::compute_relaxation_parameter_expli
 
 template <int dim, typename real, typename MeshType>
 real RRKExplicitODESolver<dim,real,MeshType>::compute_inner_product (
-        dealii::LinearAlgebra::distributed::Vector<double> solution_or_stage_1,
-        dealii::LinearAlgebra::distributed::Vector<double> solution_or_stage_2
+        dealii::LinearAlgebra::distributed::Vector<double> stage_i,
+        dealii::LinearAlgebra::distributed::Vector<double> stage_j
         )
 {
-    // TO DO : mimic structure in flow_solver_cases/periodic_turbulence.cpp for converting to solution for general nodes 
+    // Intention is to point to physics (mimic structure in flow_solver_cases/periodic_turbulence.cpp for converting to solution for general nodes) 
     // For now, only energy on collocated nodes is implemented.
     
     real inner_product = 0;
@@ -86,11 +84,12 @@ real RRKExplicitODESolver<dim,real,MeshType>::compute_inner_product (
     bool use_collocated_nodes = ODESolverBase<dim,real,MeshType>::all_parameters->use_collocated_nodes;
     using PDEEnum = Parameters::AllParameters::PartialDifferentialEquation;
     PDEEnum pde_type = ODESolverBase<dim,real,MeshType>::all_parameters->pde_type;
-    bool use_inviscid_burgers = pde_type == PDEEnum::burgers_inviscid;
+    bool use_inviscid_burgers = (pde_type == PDEEnum::burgers_inviscid);
+    
     if (use_collocated_nodes && use_inviscid_burgers){
         for (unsigned int i = 0; i < this->dg->solution.size(); ++i) {
             inner_product += 1./(this->dg->global_inverse_mass_matrix.diag_element(i))
-                             * solution_or_stage_1[i] * solution_or_stage_2[i];
+                             * stage_i[i] * stage_j[i];
                 }
     }else {
         this->pcout << "RRK is only implemented for inviscid burgers and collocated nodes." << std::endl;

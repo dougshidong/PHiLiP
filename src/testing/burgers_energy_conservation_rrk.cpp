@@ -23,12 +23,8 @@ Parameters::AllParameters BurgersEnergyConservationRRK<dim,nstate>::reinit_param
     parameters.ode_solver_param.initial_time_step = time_step_size;
     
     using ODESolverEnum = Parameters::ODESolverParam::ODESolverEnum;
-    if (use_rrk){
-        parameters.ode_solver_param.ode_solver_type = ODESolverEnum::rrk_explicit_solver;
-    }
-    else{
-        parameters.ode_solver_param.ode_solver_type = ODESolverEnum::explicit_solver;
-    }
+    if (use_rrk)    {parameters.ode_solver_param.ode_solver_type = ODESolverEnum::rrk_explicit_solver;}
+    else            {parameters.ode_solver_param.ode_solver_type = ODESolverEnum::explicit_solver;}
 
     return parameters;
 }
@@ -56,7 +52,7 @@ int BurgersEnergyConservationRRK<dim, nstate>::compare_energy_to_initial(
     }else{
         pcout << "Energy was conserved, but was expected NOT to be conserved." << std::endl;
         pcout << "    Unexpected result! Test failing." << std::endl;
-        return 1; //fail test
+        return 1; //fail test (included for completeness, but not expected to be used)
     }
 }
 
@@ -92,7 +88,7 @@ int BurgersEnergyConservationRRK<dim, nstate>::run_test() const
 
     double final_time = this->all_parameters->flow_solver_param.final_time;
     double time_step_large = this->all_parameters->ode_solver_param.initial_time_step;
-    double time_step_small = time_step_large * 10E-3;
+    double time_step_small = time_step_large * 1E-2;
 
     int n_steps = round(final_time/time_step_large);
     if (n_steps * time_step_large != final_time){
@@ -105,6 +101,7 @@ int BurgersEnergyConservationRRK<dim, nstate>::run_test() const
     int testfail = 0;
     int failed_this_calculation = 0;
     
+    // Get initial energy
     pcout << "\n\n-------------------------------------------------------------" << std::endl;
     pcout << "  Calculating initial energy..." << std::endl;
     pcout << "-------------------------------------------------------------" << std::endl;
@@ -112,7 +109,7 @@ int BurgersEnergyConservationRRK<dim, nstate>::run_test() const
     const double energy_initial = compute_energy_collocated(flow_solver->dg); //no need to run as ode_solver is allocated during construction
     pcout << "   Initial energy : " << energy_initial << std::endl;
 
-    //Run four main tests
+    // Run four main tests
     pcout << "\n\n-------------------------------------------------------------" << std::endl;
     pcout << "  Using large timestep, dt = " << time_step_large << " and RRK" << std::endl;
     pcout << "-------------------------------------------------------------" << std::endl;

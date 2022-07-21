@@ -14,6 +14,7 @@ SET(SOURCE
     physics_model.cpp
     model.cpp
     large_eddy_simulation.cpp
+    reynolds_averaged_navier_stokes.cpp
     model_factory.cpp)
 
 foreach(dim RANGE 1 3)

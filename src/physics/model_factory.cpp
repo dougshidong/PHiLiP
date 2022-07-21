@@ -8,6 +8,7 @@
 #include "model_factory.h"
 #include "manufactured_solution.h"
 #include "large_eddy_simulation.h"
+#include "reynolds_averaged_navier_stokes.h"
 
 namespace PHiLiP {
 namespace Physics {
@@ -106,6 +107,31 @@ ModelFactory<dim,nstate,real>
                 return nullptr;
             }
         } 
+        // -------------------------------------------------------------------------------
+        // Reynolds-Averaged Navier-Stokes (RANS) + one-equation model
+        // -------------------------------------------------------------------------------
+        else if (model_type == Model_enum::reynolds_averaged_navier_stokes_one_equation) {
+            if constexpr ((nstate==dim+3) && (dim==3)) {
+                // Create Reynolds-Averaged Navier-Stokes (RANS) model with one-equation model        
+                return std::make_shared < ReynoldsAveragedNavierStokes_SAneg<dim,nstate,real> > (
+                    parameters_input->euler_param.ref_length,
+                    parameters_input->euler_param.gamma_gas,
+                    parameters_input->euler_param.mach_inf,
+                    parameters_input->euler_param.angle_of_attack,
+                    parameters_input->euler_param.side_slip_angle,
+                    parameters_input->navier_stokes_param.prandtl_number,
+                    parameters_input->navier_stokes_param.reynolds_number_inf,
+                    parameters_input->physics_model_param.turbulent_prandtl_number,
+                    parameters_input->navier_stokes_param.nondimensionalized_isothermal_wall_temperature,
+                    parameters_input->navier_stokes_param.thermal_boundary_condition_type,
+                    manufactured_solution_function);
+            }   
+            else {
+                // Reynolds-Averaged Navier-Stokes (RANS) model with one-equation model does not exist for nstate!=(dim+3) || dim!=3
+                manufactured_solution_function = nullptr;
+                return nullptr;
+            }
+        }       
         else {
             // prevent warnings for dim=3,nstate=4, etc.
             // to avoid "unused variable" warnings
@@ -129,6 +155,7 @@ template class ModelFactory<PHILIP_DIM, 2, double>;
 template class ModelFactory<PHILIP_DIM, 3, double>;
 template class ModelFactory<PHILIP_DIM, 4, double>;
 template class ModelFactory<PHILIP_DIM, 5, double>;
+template class ModelFactory<PHILIP_DIM, 6, double>;
 template class ModelFactory<PHILIP_DIM, 8, double>;
 
 template class ModelFactory<PHILIP_DIM, 1, FadType>;
@@ -136,6 +163,7 @@ template class ModelFactory<PHILIP_DIM, 2, FadType>;
 template class ModelFactory<PHILIP_DIM, 3, FadType>;
 template class ModelFactory<PHILIP_DIM, 4, FadType>;
 template class ModelFactory<PHILIP_DIM, 5, FadType>;
+template class ModelFactory<PHILIP_DIM, 6, FadType>;
 template class ModelFactory<PHILIP_DIM, 8, FadType>;
 
 template class ModelFactory<PHILIP_DIM, 1, RadType>;
@@ -143,6 +171,7 @@ template class ModelFactory<PHILIP_DIM, 2, RadType>;
 template class ModelFactory<PHILIP_DIM, 3, RadType>;
 template class ModelFactory<PHILIP_DIM, 4, RadType>;
 template class ModelFactory<PHILIP_DIM, 5, RadType>;
+template class ModelFactory<PHILIP_DIM, 6, RadType>;
 template class ModelFactory<PHILIP_DIM, 8, RadType>;
 
 template class ModelFactory<PHILIP_DIM, 1, FadFadType>;
@@ -150,6 +179,7 @@ template class ModelFactory<PHILIP_DIM, 2, FadFadType>;
 template class ModelFactory<PHILIP_DIM, 3, FadFadType>;
 template class ModelFactory<PHILIP_DIM, 4, FadFadType>;
 template class ModelFactory<PHILIP_DIM, 5, FadFadType>;
+template class ModelFactory<PHILIP_DIM, 6, FadFadType>;
 template class ModelFactory<PHILIP_DIM, 8, FadFadType>;
 
 template class ModelFactory<PHILIP_DIM, 1, RadFadType>;
@@ -157,6 +187,7 @@ template class ModelFactory<PHILIP_DIM, 2, RadFadType>;
 template class ModelFactory<PHILIP_DIM, 3, RadFadType>;
 template class ModelFactory<PHILIP_DIM, 4, RadFadType>;
 template class ModelFactory<PHILIP_DIM, 5, RadFadType>;
+template class ModelFactory<PHILIP_DIM, 6, RadFadType>;
 template class ModelFactory<PHILIP_DIM, 8, RadFadType>;
 
 } // Physics namespace

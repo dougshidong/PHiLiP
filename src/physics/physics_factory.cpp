@@ -185,7 +185,37 @@ PhysicsFactory<dim,nstate,real>
             (void) baseline_physics_type;
             return nullptr;
         }
-    } else {
+    }
+    // -------------------------------------------------------------------------------
+    // Reynolds-Averaged Navier-Stokes (RANS) + one-equation model
+    // -------------------------------------------------------------------------------
+    else if (model_type == Model_enum::reynolds_averaged_navier_stokes_one_equation) {
+        if constexpr ((nstate==dim+3) && (dim==3)) {
+            // Assign baseline physics type (and corresponding nstates) based on the physics model type
+            // -- Assign nstates for the baseline physics (constexpr because template parameter)
+            constexpr int nstate_baseline_physics = dim+2;
+            // -- Assign baseline physics type
+            if(parameters_input->physics_model_param.euler_turbulence) {
+                baseline_physics_type = PDE_enum::euler;
+            }
+            else {
+                baseline_physics_type = PDE_enum::navier_stokes;
+            }
+
+            // Create the physics model object in physics
+            return std::make_shared < PhysicsModel<dim,nstate,real,nstate_baseline_physics> > (
+                    parameters_input,
+                    baseline_physics_type,
+                    model_input,
+                    manufactured_solution_function);
+        }
+        else {
+            // RANS+one-equation model does not exist for nstate!=(dim+3) || dim!=3
+            (void) baseline_physics_type;
+            return nullptr;
+        }
+    }
+    else {
         // prevent warnings for dim=3,nstate=4, etc.
         (void) baseline_physics_type;
     }    
@@ -199,6 +229,7 @@ template class PhysicsFactory<PHILIP_DIM, 2, double>;
 template class PhysicsFactory<PHILIP_DIM, 3, double>;
 template class PhysicsFactory<PHILIP_DIM, 4, double>;
 template class PhysicsFactory<PHILIP_DIM, 5, double>;
+template class PhysicsFactory<PHILIP_DIM, 6, double>;
 template class PhysicsFactory<PHILIP_DIM, 8, double>;
 
 template class PhysicsFactory<PHILIP_DIM, 1, FadType >;
@@ -206,6 +237,7 @@ template class PhysicsFactory<PHILIP_DIM, 2, FadType >;
 template class PhysicsFactory<PHILIP_DIM, 3, FadType >;
 template class PhysicsFactory<PHILIP_DIM, 4, FadType >;
 template class PhysicsFactory<PHILIP_DIM, 5, FadType >;
+template class PhysicsFactory<PHILIP_DIM, 6, FadType >;
 template class PhysicsFactory<PHILIP_DIM, 8, FadType >;
 
 template class PhysicsFactory<PHILIP_DIM, 1, RadType >;
@@ -213,6 +245,7 @@ template class PhysicsFactory<PHILIP_DIM, 2, RadType >;
 template class PhysicsFactory<PHILIP_DIM, 3, RadType >;
 template class PhysicsFactory<PHILIP_DIM, 4, RadType >;
 template class PhysicsFactory<PHILIP_DIM, 5, RadType >;
+template class PhysicsFactory<PHILIP_DIM, 6, RadType >;
 template class PhysicsFactory<PHILIP_DIM, 8, RadType >;
 
 template class PhysicsFactory<PHILIP_DIM, 1, FadFadType >;
@@ -220,6 +253,7 @@ template class PhysicsFactory<PHILIP_DIM, 2, FadFadType >;
 template class PhysicsFactory<PHILIP_DIM, 3, FadFadType >;
 template class PhysicsFactory<PHILIP_DIM, 4, FadFadType >;
 template class PhysicsFactory<PHILIP_DIM, 5, FadFadType >;
+template class PhysicsFactory<PHILIP_DIM, 6, FadFadType >;
 template class PhysicsFactory<PHILIP_DIM, 8, FadFadType >;
 
 template class PhysicsFactory<PHILIP_DIM, 1, RadFadType >;
@@ -227,6 +261,7 @@ template class PhysicsFactory<PHILIP_DIM, 2, RadFadType >;
 template class PhysicsFactory<PHILIP_DIM, 3, RadFadType >;
 template class PhysicsFactory<PHILIP_DIM, 4, RadFadType >;
 template class PhysicsFactory<PHILIP_DIM, 5, RadFadType >;
+template class PhysicsFactory<PHILIP_DIM, 6, RadFadType >;
 template class PhysicsFactory<PHILIP_DIM, 8, RadFadType >;
 
 

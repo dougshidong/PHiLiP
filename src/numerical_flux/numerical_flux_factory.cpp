@@ -61,10 +61,20 @@ NumericalFluxFactory<dim, nstate, real>
         }
     }
     else if((pde_type==PDE_enum::physics_model && 
-             model_type!=Model_enum::large_eddy_simulation)) 
+        model_type==Model_enum::reynolds_averaged_navier_stokes_one_equation)) 
+    {
+        if constexpr (dim+3==nstate) {
+            std::shared_ptr<Physics::PhysicsModel<dim,dim+3,real,dim+2>> physics_model = std::dynamic_pointer_cast<Physics::PhysicsModel<dim,dim+3,real,dim+2>>(physics_input);
+            std::shared_ptr<Physics::Euler<dim,dim+2,real>> physics_baseline = std::dynamic_pointer_cast<Physics::Euler<dim,dim+2,real>>(physics_model->physics_baseline);
+            euler_based_physics_to_be_passed = physics_baseline;
+        }
+    }
+    else if((pde_type==PDE_enum::physics_model && 
+             model_type!=Model_enum::large_eddy_simulation &&
+             model_type!=Model_enum::reynolds_averaged_navier_stokes_one_equation)) 
     {
         std::cout << "Invalid convective numerical flux for physics_model and/or corresponding baseline_physics_type" << std::endl;
-        if(nstate!=(dim+2)) std::cout << "Error: Cannot create_euler_based_convective_numerical_flux() for nstate_baseline_physics != nstate." << std::endl;
+        if(nstate<(dim+2)) std::cout << "Error: Cannot create_euler_based_convective_numerical_flux() for nstate_baseline_physics < nstate." << std::endl;
         std::abort();
     }
 #endif
@@ -104,26 +114,31 @@ template class NumericalFluxFactory<PHILIP_DIM, 2, double>;
 template class NumericalFluxFactory<PHILIP_DIM, 3, double>;
 template class NumericalFluxFactory<PHILIP_DIM, 4, double>;
 template class NumericalFluxFactory<PHILIP_DIM, 5, double>;
+template class NumericalFluxFactory<PHILIP_DIM, 6, double>;
 template class NumericalFluxFactory<PHILIP_DIM, 1, FadType >;
 template class NumericalFluxFactory<PHILIP_DIM, 2, FadType >;
 template class NumericalFluxFactory<PHILIP_DIM, 3, FadType >;
 template class NumericalFluxFactory<PHILIP_DIM, 4, FadType >;
 template class NumericalFluxFactory<PHILIP_DIM, 5, FadType >;
+template class NumericalFluxFactory<PHILIP_DIM, 6, FadType >;
 template class NumericalFluxFactory<PHILIP_DIM, 1, RadType >;
 template class NumericalFluxFactory<PHILIP_DIM, 2, RadType >;
 template class NumericalFluxFactory<PHILIP_DIM, 3, RadType >;
 template class NumericalFluxFactory<PHILIP_DIM, 4, RadType >;
 template class NumericalFluxFactory<PHILIP_DIM, 5, RadType >;
+template class NumericalFluxFactory<PHILIP_DIM, 6, RadType >;
 template class NumericalFluxFactory<PHILIP_DIM, 1, FadFadType >;
 template class NumericalFluxFactory<PHILIP_DIM, 2, FadFadType >;
 template class NumericalFluxFactory<PHILIP_DIM, 3, FadFadType >;
 template class NumericalFluxFactory<PHILIP_DIM, 4, FadFadType >;
 template class NumericalFluxFactory<PHILIP_DIM, 5, FadFadType >;
+template class NumericalFluxFactory<PHILIP_DIM, 6, FadFadType >;
 template class NumericalFluxFactory<PHILIP_DIM, 1, RadFadType >;
 template class NumericalFluxFactory<PHILIP_DIM, 2, RadFadType >;
 template class NumericalFluxFactory<PHILIP_DIM, 3, RadFadType >;
 template class NumericalFluxFactory<PHILIP_DIM, 4, RadFadType >;
 template class NumericalFluxFactory<PHILIP_DIM, 5, RadFadType >;
+template class NumericalFluxFactory<PHILIP_DIM, 6, RadFadType >;
 
 
 } // NumericalFlux namespace

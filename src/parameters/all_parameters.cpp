@@ -280,7 +280,7 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     // WARNING: Must assign model_type before pde_type
     const std::string model_string = prm.get("model_type");
     if (model_string == "large_eddy_simulation") { model_type = large_eddy_simulation; }
-    //else if (model_string == "reynolds_averaged_navier_stokes") { model_type = reynolds_averaged_navier_stokes; }
+    else if (model_string == "reynolds_averaged_navier_stokes_one_equation") { model_type = reynolds_averaged_navier_stokes_one_equation; }
 
     const std::string pde_string = prm.get("pde_type");
     if (pde_string == "advection") {
@@ -318,10 +318,10 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
         {
             nstate = dimension+2;
         }
-        // else if (model_type == reynolds_averaged_navier_stokes)
-        // {
-        //     nstate = dimension+3;
-        // }
+        else if (model_type == reynolds_averaged_navier_stokes_one_equation)
+        {
+            nstate = dimension+3;
+        }
     }
     
     overintegration = prm.get_integer("overintegration");

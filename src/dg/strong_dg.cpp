@@ -383,18 +383,13 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_auxiliary_residual()
     using PDE_enum = Parameters::AllParameters::PartialDifferentialEquation;
     using ODE_enum = Parameters::ODESolverParam::ODESolverEnum;
     const PDE_enum pde_type = this->all_parameters->pde_type;
-    // use auxiliary equation if PDE has a diffusive term (bool to simplify aux check)
-    const bool use_auxiliary_eq = (pde_type == PDE_enum::convection_diffusion || 
-                                   pde_type == PDE_enum::diffusion || 
-                                   pde_type == PDE_enum::navier_stokes || 
-                                   pde_type == PDE_enum::physics_model);
 
     if(pde_type == PDE_enum::burgers_viscous){
         pcout << "DG Strong not yet verified for Burgers' viscous." << std::endl;
         exit(1);
     }
     // NOTE: auxiliary currently only works explicit time advancement
-    if (use_auxiliary_eq && (this->all_parameters->ode_solver_param.ode_solver_type == ODE_enum::explicit_solver)) {
+    if (this->use_auxiliary_eq && (this->all_parameters->ode_solver_param.ode_solver_type == ODE_enum::explicit_solver)) {
         //set auxiliary rhs to 0
         for(int idim=0; idim<dim; idim++){
             this->auxiliary_RHS[idim] = 0;

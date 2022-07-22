@@ -992,6 +992,10 @@ public:
     virtual void allocate_model_variables() = 0;
     /// Update the necessary variables declared in src/physics/model.h
     virtual void update_model_variables() = 0;
+    /// Flag for using the auxiliary equation
+    bool use_auxiliary_eq;
+    /// Set use_auxiliary_eq flag
+    virtual void set_use_auxiliary_eq() = 0;
 
 }; // end of DGBase class
 
@@ -1082,6 +1086,9 @@ public:
 
     /// Update the necessary variables declared in src/physics/model.h
     void update_model_variables();
+
+    /// Set use_auxiliary_eq flag
+    void set_use_auxiliary_eq();
 
 protected:
     /// Evaluate the time it takes for the maximum wavespeed to cross the cell domain.

@@ -443,6 +443,12 @@ void DGBaseState<dim,nstate,real,MeshType>::update_model_variables()
 }
 
 template <int dim, int nstate, typename real, typename MeshType>
+void DGBaseState<dim,nstate,real,MeshType>::set_use_auxiliary_eq()
+{
+    this->use_auxiliary_eqn = physics_double->has_nonzero_diffusion;
+}
+
+template <int dim, int nstate, typename real, typename MeshType>
 real DGBaseState<dim,nstate,real,MeshType>::evaluate_CFL (
     std::vector< std::array<real,nstate> > soln_at_q,
     const real artificial_dissipation,
@@ -2129,6 +2135,9 @@ void DGBase<dim,real,MeshType>::allocate_system (
     right_hand_side.add(1.0); // Avoid 0 initial residual for output and logarithmic visualization.
     dual.reinit(locally_owned_dofs, ghost_dofs, mpi_communicator);
 
+    // Set use_auxiliary_eq flag
+    set_use_auxiliary_eq();
+
     // Allocate for auxiliary equation only.
     allocate_auxiliary_equation ();
 
@@ -2260,15 +2269,7 @@ void DGBase<dim,real,MeshType>::reinit_operators_for_mass_matrix(
     OPERATOR::local_Flux_Reconstruction_operator<dim,2*dim> &reference_FR,
     OPERATOR::local_Flux_Reconstruction_operator_aux<dim,2*dim> &reference_FR_aux,
     OPERATOR::derivative_p<dim,2*dim> &deriv_p)
-{
-    using PDE_enum = Parameters::AllParameters::PartialDifferentialEquation;
-    const PDE_enum pde_type = all_parameters->pde_type;
-    // use auxiliary equation if PDE has a diffusive term (bool to simplify aux check)
-    const bool use_auxiliary_eq = (pde_type == PDE_enum::convection_diffusion || 
-                                   pde_type == PDE_enum::diffusion || 
-                                   pde_type == PDE_enum::navier_stokes || 
-                                   pde_type == PDE_enum::physics_model);
-    
+{    
     using FR_enum = Parameters::AllParameters::Flux_Reconstruction;
     const FR_enum FR_Type = this->all_parameters->flux_reconstruction_type;
 
@@ -2298,15 +2299,7 @@ void DGBase<dim,real,MeshType>::reinit_operators_for_mass_matrix(
 
 template <int dim, typename real, typename MeshType>
 void DGBase<dim,real,MeshType>::evaluate_mass_matrices (bool do_inverse_mass_matrix)
-{
-    using PDE_enum = Parameters::AllParameters::PartialDifferentialEquation;
-    const PDE_enum pde_type = all_parameters->pde_type;
-    // use auxiliary equation if PDE has a diffusive term (bool to simplify aux check)
-    const bool use_auxiliary_eq = (pde_type == PDE_enum::convection_diffusion || 
-                                   pde_type == PDE_enum::diffusion || 
-                                   pde_type == PDE_enum::navier_stokes || 
-                                   pde_type == PDE_enum::physics_model);
-    
+{   
     using FR_enum = Parameters::AllParameters::Flux_Reconstruction;
     const FR_enum FR_Type = this->all_parameters->flux_reconstruction_type;
     
@@ -2486,15 +2479,7 @@ void DGBase<dim,real,MeshType>::evaluate_local_metric_dependent_mass_matrix_and_
     OPERATOR::local_Flux_Reconstruction_operator<dim,2*dim> &reference_FR,
     OPERATOR::local_Flux_Reconstruction_operator_aux<dim,2*dim> &reference_FR_aux,
     OPERATOR::derivative_p<dim,2*dim> &deriv_p)
-{
-    using PDE_enum = Parameters::AllParameters::PartialDifferentialEquation;
-    const PDE_enum pde_type = all_parameters->pde_type;
-    // use auxiliary equation if PDE has a diffusive term (bool to simplify aux check)
-    const bool use_auxiliary_eq = (pde_type == PDE_enum::convection_diffusion || 
-                                   pde_type == PDE_enum::diffusion || 
-                                   pde_type == PDE_enum::navier_stokes || 
-                                   pde_type == PDE_enum::physics_model);
-    
+{   
     using FR_enum = Parameters::AllParameters::Flux_Reconstruction;
     const FR_enum FR_Type = this->all_parameters->flux_reconstruction_type;
     

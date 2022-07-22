@@ -33,7 +33,6 @@ end
 
 subsection flow_solver
   set flow_case_type = advection_periodic
-  set poly_degree = 5 
   set final_time = 1.0
   set poly_degree = 5
   subsection grid

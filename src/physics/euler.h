@@ -93,7 +93,8 @@ public:
         const double                                              mach_inf,
         const double                                              angle_of_attack,
         const double                                              side_slip_angle,
-        std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function = nullptr);
+        std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function = nullptr,
+        const bool                                                has_nonzero_diffusion = false);
 
     /// Destructor
     // virtual ~Euler() =0;

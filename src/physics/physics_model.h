@@ -19,7 +19,8 @@ public:
         const Parameters::AllParameters                              *const parameters_input,
         Parameters::AllParameters::PartialDifferentialEquation       baseline_physics_type,
         std::shared_ptr< ModelBase<dim,nstate,real> >                model_input,
-        std::shared_ptr< ManufacturedSolutionFunction<dim,real> >    manufactured_solution_function);
+        std::shared_ptr< ManufacturedSolutionFunction<dim,real> >    manufactured_solution_function,
+        const bool                                                   has_nonzero_diffusion);
 
     /// Destructor
     ~PhysicsModel() {};

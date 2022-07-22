@@ -28,7 +28,8 @@ NavierStokes<dim, nstate, real>::NavierStokes(
                              mach_inf, 
                              angle_of_attack, 
                              side_slip_angle, 
-                             manufactured_solution_function)
+                             manufactured_solution_function,
+                             true)
     , viscosity_coefficient_inf(1.0) // Nondimensional - Free stream values
     , prandtl_number(prandtl_number)
     , reynolds_number_inf(reynolds_number_inf)

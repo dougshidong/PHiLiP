@@ -160,10 +160,14 @@ PhysicsFactory<dim,nstate,real>
     // Create baseline physics object
     PDE_enum baseline_physics_type;
 
+    // Flag to signal non-zero diffusion
+    bool has_nonzero_diffusion;
+
     // -------------------------------------------------------------------------------
     // Large Eddy Simulation (LES)
     // -------------------------------------------------------------------------------
     if (model_type == Model_enum::large_eddy_simulation) {
+        has_nonzero_diffusion = true; // because of SGS model term
         if constexpr ((nstate==dim+2) && (dim==3)) {
             // Assign baseline physics type (and corresponding nstates) based on the physics model type
             // -- Assign nstates for the baseline physics (constexpr because template parameter)
@@ -181,16 +185,19 @@ PhysicsFactory<dim,nstate,real>
                     parameters_input,
                     baseline_physics_type,
                     model_input,
-                    manufactured_solution_function);
+                    manufactured_solution_function,
+                    has_nonzero_diffusion);
         }
         else {
             // LES does not exist for nstate!=(dim+2) || dim!=3
             (void) baseline_physics_type;
+            (void) has_nonzero_diffusion;
             return nullptr;
         }
     } else {
         // prevent warnings for dim=3,nstate=4, etc.
         (void) baseline_physics_type;
+        (void) has_nonzero_diffusion;
     }    
     std::cout << "Can't create PhysicsModel, invalid ModelType type: " << model_type << std::endl;
     assert(0==1 && "Can't create PhysicsModel, invalid ModelType type");

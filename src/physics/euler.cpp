@@ -17,8 +17,9 @@ Euler<dim,nstate,real>::Euler (
     const double                                              mach_inf,
     const double                                              angle_of_attack,
     const double                                              side_slip_angle,
-    std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function)
-    : PhysicsBase<dim,nstate,real>(manufactured_solution_function)
+    std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function,
+    const bool                                                has_nonzero_diffusion)
+    : PhysicsBase<dim,nstate,real>(has_nonzero_diffusion,manufactured_solution_function)
     , ref_length(ref_length)
     , gam(gamma_gas)
     , gamm1(gam-1.0)

@@ -59,7 +59,7 @@ public:
         const double                                              input_diffusion_coefficient = Parameters::ManufacturedSolutionParam::get_default_diffusion_coefficient(),
         std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function = nullptr,
         const Parameters::AllParameters::TestType parameters_test = Parameters::AllParameters::TestType::run_control) : 
-            PhysicsBase<dim,nstate,real>(input_diffusion_tensor, manufactured_solution_function), 
+            PhysicsBase<dim,nstate,real>(diffusion, input_diffusion_tensor, manufactured_solution_function), 
             linear_advection_velocity{input_advection_vector[0], input_advection_vector[1], input_advection_vector[2]},
             diffusion_scaling_coeff(input_diffusion_coefficient),
             hasConvection(convection), 

@@ -16,9 +16,9 @@ std::shared_ptr<ODESolverBase<dim,real,MeshType>> ODESolverFactory<dim,real,Mesh
 {
     using ODEEnum = Parameters::ODESolverParam::ODESolverEnum;
     ODEEnum ode_solver_type = dg_input->all_parameters->ode_solver_param.ode_solver_type;
-    if(ode_solver_type == ODEEnum::explicit_solver) return std::make_shared<ExplicitODESolver<dim,real,MeshType>>(dg_input);
-    if(ode_solver_type == ODEEnum::implicit_solver) return std::make_shared<ImplicitODESolver<dim,real,MeshType>>(dg_input);
-    if(ode_solver_type == ODEEnum::rrk_explicit_solver) return std::make_shared<RRKExplicitODESolver<dim,real,MeshType>>(dg_input);
+    if(ode_solver_type == ODEEnum::explicit_solver)      return std::make_shared<ExplicitODESolver<dim,real,MeshType>>(dg_input);
+    if(ode_solver_type == ODEEnum::implicit_solver)      return std::make_shared<ImplicitODESolver<dim,real,MeshType>>(dg_input);
+    if(ode_solver_type == ODEEnum::rrk_explicit_solver)  return std::make_shared<RRKExplicitODESolver<dim,real,MeshType>>(dg_input);
     else {
         display_error_ode_solver_factory(ode_solver_type, false);
         return nullptr;
@@ -42,8 +42,9 @@ template <int dim, typename real, typename MeshType>
 std::shared_ptr<ODESolverBase<dim,real,MeshType>> ODESolverFactory<dim,real,MeshType>::create_ODESolver_manual(Parameters::ODESolverParam::ODESolverEnum ode_solver_type, std::shared_ptr< DGBase<dim,real,MeshType> > dg_input)
 {
     using ODEEnum = Parameters::ODESolverParam::ODESolverEnum;
-    if(ode_solver_type == ODEEnum::explicit_solver) return std::make_shared<ExplicitODESolver<dim,real,MeshType>>(dg_input);
-    if(ode_solver_type == ODEEnum::implicit_solver) return std::make_shared<ImplicitODESolver<dim,real,MeshType>>(dg_input);
+    if(ode_solver_type == ODEEnum::explicit_solver)      return std::make_shared<ExplicitODESolver<dim,real,MeshType>>(dg_input);
+    if(ode_solver_type == ODEEnum::implicit_solver)      return std::make_shared<ImplicitODESolver<dim,real,MeshType>>(dg_input);
+    if(ode_solver_type == ODEEnum::rrk_explicit_solver)  return std::make_shared<RRKExplicitODESolver<dim,real,MeshType>>(dg_input);
     else {
         display_error_ode_solver_factory(ode_solver_type, false);
         return nullptr;

@@ -88,19 +88,6 @@ double TimeRefinementStudyReference<dim,nstate>::calculate_L2_error_at_final_tim
 }
 
 template <int dim, int nstate>
-double TimeRefinementStudyReference<dim, nstate>::compute_energy_collocated(
-        const std::shared_ptr <DGBase<dim, double>> dg
-        ) const
-{
-    double energy = 0.0;
-    for (unsigned int i = 0; i < dg->solution.size(); ++i)
-    {
-        energy += 1./(dg->global_inverse_mass_matrix.diag_element(i)) * dg->solution(i) * dg->solution(i);
-    }
-    return energy;
-}
-
-template <int dim, int nstate>
 int TimeRefinementStudyReference<dim, nstate>::run_test() const
 {
     using ODESolverEnum = Parameters::ODESolverParam::ODESolverEnum;
@@ -118,6 +105,9 @@ int TimeRefinementStudyReference<dim, nstate>::run_test() const
     int testfail = 0;
     double expected_order =(double) this->all_parameters->ode_solver_param.runge_kutta_order;
     double order_tolerance = 0.1;
+
+    //pointer to flow_solver_case for computing energy
+    std::unique_ptr<FlowSolver::Periodic1DUnsteady<dim, nstate>> flow_solver_case = std::make_unique<FlowSolver::Periodic1DUnsteady<dim,nstate>>(this->all_parameters);
 
     pcout << "\n\n-------------------------------------------------------" << std::endl;
     pcout << "Calculating reference solution at target final_time = " << final_time << " ..."<<std::endl;
@@ -138,7 +128,7 @@ int TimeRefinementStudyReference<dim, nstate>::run_test() const
 
         const Parameters::AllParameters params = reinit_params_and_refine_timestep(refinement);
         std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(&params, parameter_handler);
-        const double energy_initial = compute_energy_collocated(flow_solver->dg);
+        const double energy_initial = flow_solver_case->compute_energy_collocated(flow_solver->dg);
         static_cast<void>(flow_solver->run());
 
         double final_time_actual = flow_solver->ode_solver->current_time;
@@ -164,7 +154,7 @@ int TimeRefinementStudyReference<dim, nstate>::run_test() const
         
         if (params.use_collocated_nodes){
             //current energy calculation is only valid for collocated nodes
-            const double energy_end = compute_energy_collocated(flow_solver->dg);
+            const double energy_end = flow_solver_case->compute_energy_collocated(flow_solver->dg);
             const double energy_change = energy_initial - energy_end;
             convergence_table.add_value("energy_change", energy_change);
             convergence_table.set_precision("energy_change", 16);

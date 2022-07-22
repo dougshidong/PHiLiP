@@ -17,6 +17,8 @@ public:
     /// Destructor
     ~Periodic1DUnsteady() {};
 
+    /// Calculate energy
+    double compute_energy_collocated(const std::shared_ptr <DGBase<dim, double>> dg) const;
 protected:
 
     /// Compute the desired unsteady data and write it to a table
@@ -29,8 +31,6 @@ protected:
     /// Filename for unsteady data
     std::string unsteady_data_table_filename_with_extension;
     
-    /// Calculate energy
-    double compute_energy_collocated(const std::shared_ptr <DGBase<dim, double>> dg) const;
 };
 
 

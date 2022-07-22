@@ -48,10 +48,6 @@ protected:
             const Parameters::AllParameters parameters, 
             double final_time_actual,
             dealii::LinearAlgebra::distributed::Vector<double> reference_solution) const;
-
-    /// Compute energy from dg. Only valid for collocated nodes.
-    double compute_energy_collocated(const std::shared_ptr <DGBase<dim, double>> dg) const;
-
 };
 
 } // End of Tests namespace

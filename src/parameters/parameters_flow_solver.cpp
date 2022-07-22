@@ -21,7 +21,7 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                           " burgers_rewienski_snapshot | "
                           " burgers_periodic | "
                           " advection_periodic | "
-                          " gaussian_bump ")
+                          " gaussian_bump "),
                           "The type of flow we want to simulate. "
                           "Choices are "
                           " <taylor_green_vortex | "

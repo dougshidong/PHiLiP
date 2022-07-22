@@ -9,7 +9,7 @@
 #include "flow_solver_cases/1d_burgers_viscous_snapshot.h"
 #include "flow_solver_cases/naca0012.h"
 #include "flow_solver_cases/gaussian_bump.h"
-#include "flow_solver_cases/sshock_dual_weighted_residual_mesh_adaptation.h"
+#include "flow_solver_cases/2D_sshock.h"
 
 namespace PHiLiP {
 
@@ -57,9 +57,9 @@ FlowSolverFactory<dim,nstate>
             std::shared_ptr<FlowSolverCaseBase<dim, nstate>> flow_solver_case = std::make_shared<GaussianBump<dim, nstate>>(parameters_input);
             return std::make_unique<FlowSolver<dim, nstate>>(parameters_input, flow_solver_case, parameter_handler_input);
         }
-    } else if (flow_type == FlowCaseEnum::sshock_dual_weighted_residual_mesh_adaptation){
+    } else if (flow_type == FlowCaseEnum::sshock){
         if constexpr (dim==2 && nstate==1){
-            std::shared_ptr<FlowSolverCaseBase<dim, nstate>> flow_solver_case = std::make_shared<SshockMeshAdaptation<dim, nstate>>(parameters_input);
+            std::shared_ptr<FlowSolverCaseBase<dim, nstate>> flow_solver_case = std::make_shared<SShock<dim, nstate>>(parameters_input);
             return std::make_unique<FlowSolver<dim, nstate>>(parameters_input, flow_solver_case, parameter_handler_input);
         }
     } else {

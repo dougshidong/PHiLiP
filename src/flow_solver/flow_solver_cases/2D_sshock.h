@@ -7,7 +7,7 @@ namespace PHiLiP {
 namespace FlowSolver {
 
 template <int dim, int nstate>
-class SshockMeshAdaptation : public FlowSolverCaseBase<dim, nstate>
+class SShock : public FlowSolverCaseBase<dim, nstate>
 {
 #if PHILIP_DIM==1
      using Triangulation = dealii::Triangulation<PHILIP_DIM>;
@@ -16,13 +16,13 @@ class SshockMeshAdaptation : public FlowSolverCaseBase<dim, nstate>
  #endif
 
  public:
-     SshockMeshAdaptation(const Parameters::AllParameters *const parameters_input);
+     SShock(const Parameters::AllParameters *const parameters_input);
      
-     ~SshockMeshAdaptation() {};
+     ~SShock() {};
  
      std::shared_ptr<Triangulation> generate_grid() const override;
 
-     virtual void display_additional_flow_case_specific_parameters() const override;
+     void display_additional_flow_case_specific_parameters() const override;
 };
 
 } // FlowSolver namespace

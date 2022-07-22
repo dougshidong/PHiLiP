@@ -22,7 +22,7 @@ public:
         burgers_rewienski_snapshot,
         advection_periodic,
         gaussian_bump,
-        sshock_dual_weighted_residual_mesh_adaptation
+        sshock
         };
     FlowCaseType flow_case_type; ///< Selected FlowCaseType from the input file
 

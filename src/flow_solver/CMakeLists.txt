@@ -8,7 +8,7 @@ set(FLOW_SOLVER_SOURCE
     flow_solver_cases/1d_burgers_viscous_snapshot.cpp
     flow_solver_cases/naca0012.cpp
     flow_solver_cases/gaussian_bump.cpp
-    flow_solver_cases/sshock_dual_weighted_residual_mesh_adaptation.cpp
+    flow_solver_cases/2D_sshock.cpp
     flow_solver.cpp
     flow_solver_factory.cpp)
 

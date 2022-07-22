@@ -38,7 +38,7 @@ public:
         const std::shared_ptr <dealii::TableHandler> data_table) const;
 
     /// Evaluate steady state solution.
-    int steady_state ();
+    virtual int steady_state ();
 
     /// Ramps up the solution from p0 all the way up to the given global_final_poly_degree.
     /** This first interpolates the current solution to the P0 space as an initial solution.

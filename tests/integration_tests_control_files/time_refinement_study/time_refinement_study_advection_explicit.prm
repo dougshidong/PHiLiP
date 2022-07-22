@@ -25,6 +25,7 @@ subsection manufactured solution convergence study
   set advection_1 = 0.0
 end
 
+
 subsection time_refinement_study
   set number_of_times_to_solve = 4
   set refinement_ratio = 0.5
@@ -32,6 +33,7 @@ end
 
 subsection flow_solver
   set flow_case_type = advection_periodic
+  set poly_degree = 5 
   set final_time = 1.0
   set poly_degree = 5
   subsection grid

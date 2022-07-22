@@ -24,6 +24,7 @@
 #include "physics/model_factory.h"
 #include "dg/dg.h"
 #include "functional.h"
+#include "lift_drag.hpp"
 
 /// Returns y = Ax.
 /** Had to rewrite this instead of 
@@ -269,12 +270,34 @@ real2 FunctionalErrorNormLpBoundary<dim,nstate,real,MeshType>::evaluate_boundary
     return lpnorm_value;
 }
 
+
+template <int dim, int nstate, typename real, typename MeshType>
+template <typename real2>
+real2 SolutionIntegral<dim,nstate,real, MeshType>::evaluate_volume_integrand(
+        const PHiLiP::Physics::PhysicsBase<dim,nstate,real2> &/*physics*/,
+        const dealii::Point<dim,real2> &/*phys_coord*/,
+        const std::array<real2,nstate> &soln_at_q,
+        const std::array<dealii::Tensor<1,dim,real2>,nstate> &/*soln_grad_at_q*/) const
+{
+    real2 val = 0;
+
+    // integrating over the domain
+    for (int istate=0; istate<nstate; ++istate) {
+        val += soln_at_q[istate];
+    }
+
+    return val;
+}
+
 template <int dim, int nstate, typename real, typename MeshType>
 Functional<dim,nstate,real,MeshType>::Functional(
     std::shared_ptr<DGBase<dim,real,MeshType>> _dg,
     const bool                                 _uses_solution_values,
     const bool                                 _uses_solution_gradient)
     : dg(_dg)
+    , d2IdWdW(std::make_shared<dealii::TrilinosWrappers::SparseMatrix>())
+    , d2IdWdX(std::make_shared<dealii::TrilinosWrappers::SparseMatrix>())
+    , d2IdXdX(std::make_shared<dealii::TrilinosWrappers::SparseMatrix>())
     , uses_solution_values(_uses_solution_values)
     , uses_solution_gradient(_uses_solution_gradient)
     , pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD)==0)
@@ -361,21 +384,21 @@ void Functional<dim,nstate,real,MeshType>::allocate_derivatives(const bool compu
             dealii::SparsityPattern sparsity_pattern_d2IdWdX = dg->get_d2RdWdX_sparsity_pattern ();
             const dealii::IndexSet &row_parallel_partitioning_d2IdWdX = dg->locally_owned_dofs;
             const dealii::IndexSet &col_parallel_partitioning_d2IdWdX = dg->high_order_grid->locally_owned_dofs_grid;
-            d2IdWdX.reinit(row_parallel_partitioning_d2IdWdX, col_parallel_partitioning_d2IdWdX, sparsity_pattern_d2IdWdX, MPI_COMM_WORLD);
+            d2IdWdX->reinit(row_parallel_partitioning_d2IdWdX, col_parallel_partitioning_d2IdWdX, sparsity_pattern_d2IdWdX, MPI_COMM_WORLD);
         }
 
         {
             dealii::SparsityPattern sparsity_pattern_d2IdWdW = dg->get_d2RdWdW_sparsity_pattern ();
             const dealii::IndexSet &row_parallel_partitioning_d2IdWdW = dg->locally_owned_dofs;
             const dealii::IndexSet &col_parallel_partitioning_d2IdWdW = dg->locally_owned_dofs;
-            d2IdWdW.reinit(row_parallel_partitioning_d2IdWdW, col_parallel_partitioning_d2IdWdW, sparsity_pattern_d2IdWdW, MPI_COMM_WORLD);
+            d2IdWdW->reinit(row_parallel_partitioning_d2IdWdW, col_parallel_partitioning_d2IdWdW, sparsity_pattern_d2IdWdW, MPI_COMM_WORLD);
         }
 
         {
             dealii::SparsityPattern sparsity_pattern_d2IdXdX = dg->get_d2RdXdX_sparsity_pattern ();
             const dealii::IndexSet &row_parallel_partitioning_d2IdXdX = dg->high_order_grid->locally_owned_dofs_grid;
             const dealii::IndexSet &col_parallel_partitioning_d2IdXdX = dg->high_order_grid->locally_owned_dofs_grid;
-            d2IdXdX.reinit(row_parallel_partitioning_d2IdXdX, col_parallel_partitioning_d2IdXdX, sparsity_pattern_d2IdXdX, MPI_COMM_WORLD);
+            d2IdXdX->reinit(row_parallel_partitioning_d2IdXdX, col_parallel_partitioning_d2IdXdX, sparsity_pattern_d2IdXdX, MPI_COMM_WORLD);
         }
     }
 }
@@ -426,12 +449,12 @@ void Functional<dim,nstate,real,MeshType>::set_derivatives(
             for (unsigned int jdof=0; jdof<n_soln_dofs_cell; ++jdof) {
                 dWidW[jdof] = dWi.dx(j_derivative++);
             }
-            d2IdWdW.add(cell_soln_dofs_indices[idof], cell_soln_dofs_indices, dWidW);
+            d2IdWdW->add(cell_soln_dofs_indices[idof], cell_soln_dofs_indices, dWidW);
 
             for (unsigned int jdof=0; jdof<n_metric_dofs_cell; ++jdof) {
                 dWidX[jdof] = dWi.dx(j_derivative++);
             }
-            d2IdWdX.add(cell_soln_dofs_indices[idof], cell_metric_dofs_indices, dWidX);
+            d2IdWdX->add(cell_soln_dofs_indices[idof], cell_metric_dofs_indices, dWidX);
         }
 
         for (unsigned int idof=0; idof<n_metric_dofs_cell; ++idof) {
@@ -442,7 +465,7 @@ void Functional<dim,nstate,real,MeshType>::set_derivatives(
             for (unsigned int jdof=0; jdof<n_metric_dofs_cell; ++jdof) {
                 dXidX[jdof] = dXi.dx(j_derivative++);
             }
-            d2IdXdX.add(cell_metric_dofs_indices[idof], cell_metric_dofs_indices, dXidX);
+            d2IdXdX->add(cell_metric_dofs_indices[idof], cell_metric_dofs_indices, dXidX);
         }
     }
     AssertDimension(i_derivative, n_total_indep);
@@ -894,12 +917,12 @@ real Functional<dim, nstate, real, MeshType>::evaluate_functional(
                 for (unsigned int jdof=0; jdof<n_soln_dofs_cell; ++jdof) {
                     dWidW[jdof] = dWi.dx(j_derivative++);
                 }
-                d2IdWdW.add(cell_soln_dofs_indices[idof], cell_soln_dofs_indices, dWidW);
+                d2IdWdW->add(cell_soln_dofs_indices[idof], cell_soln_dofs_indices, dWidW);
 
                 for (unsigned int jdof=0; jdof<n_metric_dofs_cell; ++jdof) {
                     dWidX[jdof] = dWi.dx(j_derivative++);
                 }
-                d2IdWdX.add(cell_soln_dofs_indices[idof], cell_metric_dofs_indices, dWidX);
+                d2IdWdX->add(cell_soln_dofs_indices[idof], cell_metric_dofs_indices, dWidX);
             }
 
             for (unsigned int idof=0; idof<n_metric_dofs_cell; ++idof) {
@@ -910,7 +933,7 @@ real Functional<dim, nstate, real, MeshType>::evaluate_functional(
                 for (unsigned int jdof=0; jdof<n_metric_dofs_cell; ++jdof) {
                     dXidX[jdof] = dXi.dx(j_derivative++);
                 }
-                d2IdXdX.add(cell_metric_dofs_indices[idof], cell_metric_dofs_indices, dXidX);
+                d2IdXdX->add(cell_metric_dofs_indices[idof], cell_metric_dofs_indices, dXidX);
             }
         }
         AssertDimension(i_derivative, n_total_indep);
@@ -921,9 +944,9 @@ real Functional<dim, nstate, real, MeshType>::evaluate_functional(
     if (actually_compute_dIdW) dIdw.compress(dealii::VectorOperation::add);
     if (actually_compute_dIdX) dIdX.compress(dealii::VectorOperation::add);
     if (actually_compute_d2I) {
-        d2IdWdW.compress(dealii::VectorOperation::add);
-        d2IdWdX.compress(dealii::VectorOperation::add);
-        d2IdXdX.compress(dealii::VectorOperation::add);
+        d2IdWdW->compress(dealii::VectorOperation::add);
+        d2IdWdX->compress(dealii::VectorOperation::add);
+        d2IdXdX->compress(dealii::VectorOperation::add);
     }
 
     return current_functional_value;
@@ -1243,14 +1266,25 @@ FunctionalFactory<dim,nstate,real,MeshType>::create_Functional(
             dg,
             true,
             false);
-    }else if(functional_type == FunctionalTypeEnum::error_normLp_boundary){
-        return std::make_shared<FunctionalErrorNormLpBoundary<dim,nstate,real,MeshType>>(
-            normLp,
-            boundary_vector,
-            use_all_boundaries,
-            dg,
-            true,
-            false);
+    }else if(functional_type == FunctionalTypeEnum::error_normLp_boundary) {
+        return std::make_shared<FunctionalErrorNormLpBoundary<dim, nstate, real, MeshType>>(
+                normLp,
+                boundary_vector,
+                use_all_boundaries,
+                dg,
+                true,
+                false);
+    }else if(functional_type == FunctionalTypeEnum::lift) {
+        if constexpr (dim==2 && nstate==dim+2){
+            return std::make_shared<LiftDragFunctional<dim,nstate,double,MeshType>>(dg, LiftDragFunctional<dim,nstate,double,MeshType>::Functional_types::lift);
+        }
+    }else if(functional_type == FunctionalTypeEnum::drag) {
+        if constexpr (dim==2 && nstate==dim+2){
+            return std::make_shared<LiftDragFunctional<dim,nstate,double,MeshType>>(dg, LiftDragFunctional<dim,nstate,double,MeshType>::Functional_types::drag);
+        }
+    }else if(functional_type == FunctionalTypeEnum::solution_integral) {
+        std::shared_ptr< DGBaseState<dim,nstate,double,MeshType>> dg_state = std::dynamic_pointer_cast< DGBaseState<dim,nstate,double, MeshType>>(dg);
+        return std::make_shared<SolutionIntegral<dim,nstate,real,MeshType>>(dg,dg_state->pde_physics_fad_fad,true,false);
     }else{
         std::cout << "Invalid Functional." << std::endl;
     }
@@ -1344,6 +1378,12 @@ template class FunctionalErrorNormLpBoundary <PHILIP_DIM, 3, double, dealii::par
 template class FunctionalErrorNormLpBoundary <PHILIP_DIM, 4, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
 template class FunctionalErrorNormLpBoundary <PHILIP_DIM, 5, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
 
+template class SolutionIntegral<PHILIP_DIM, 1, double, dealii::Triangulation<PHILIP_DIM>>;
+template class SolutionIntegral<PHILIP_DIM, 2, double, dealii::Triangulation<PHILIP_DIM>>;
+template class SolutionIntegral<PHILIP_DIM, 3, double, dealii::Triangulation<PHILIP_DIM>>;
+template class SolutionIntegral<PHILIP_DIM, 4, double, dealii::Triangulation<PHILIP_DIM>>;
+template class SolutionIntegral<PHILIP_DIM, 5, double, dealii::Triangulation<PHILIP_DIM>>;
+
 template class Functional <PHILIP_DIM, 1, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
 template class Functional <PHILIP_DIM, 2, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
 template class Functional <PHILIP_DIM, 3, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
@@ -1393,6 +1433,12 @@ template class FunctionalErrorNormLpBoundary <PHILIP_DIM, 2, double, dealii::par
 template class FunctionalErrorNormLpBoundary <PHILIP_DIM, 3, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
 template class FunctionalErrorNormLpBoundary <PHILIP_DIM, 4, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
 template class FunctionalErrorNormLpBoundary <PHILIP_DIM, 5, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+
+template class SolutionIntegral<PHILIP_DIM, 1, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class SolutionIntegral<PHILIP_DIM, 2, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class SolutionIntegral<PHILIP_DIM, 3, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class SolutionIntegral<PHILIP_DIM, 4, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class SolutionIntegral<PHILIP_DIM, 5, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
 
 template class Functional <PHILIP_DIM, 1, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
 template class Functional <PHILIP_DIM, 2, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;

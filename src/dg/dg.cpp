@@ -1528,6 +1528,7 @@ double DGBase<dim,real,MeshType>::get_residual_linfnorm () const
 template <int dim, typename real, typename MeshType>
 double DGBase<dim,real,MeshType>::get_residual_l2norm () const
 {
+
     //return get_residual_linfnorm ();
     //return right_hand_side.l2_norm();
     //return right_hand_side.l2_norm() / right_hand_side.size();
@@ -1535,6 +1536,7 @@ double DGBase<dim,real,MeshType>::get_residual_l2norm () const
     //global_mass_matrix.vmult(scaled_residual, right_hand_side);
     //return scaled_residual.l2_norm();
     //pcout << "Evaluating residual L2-norm..." << std::endl;
+
     const auto mapping = (*(high_order_grid->mapping_fe_field));
     dealii::hp::MappingCollection<dim> mapping_collection(mapping);
 
@@ -1580,6 +1582,7 @@ double DGBase<dim,real,MeshType>::get_residual_l2norm () const
     const double mpi_domain_volume    = dealii::Utilities::MPI::sum(domain_volume, mpi_communicator);
     return std::sqrt(mpi_residual_l2_norm) / mpi_domain_volume;
 }
+
 template <int dim, typename real, typename MeshType>
 unsigned int DGBase<dim,real,MeshType>::n_dofs () const
 {

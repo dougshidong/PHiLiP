@@ -306,6 +306,33 @@ inline real InitialConditionFunction_ConvDiff<dim,nstate,real>
 
     return value;
 }
+// ========================================================
+// Convection_diffusion Energy -- Initial Condition
+// ========================================================
+template <int dim, int nstate, typename real>
+InitialConditionFunction_ConvDiffEnergy<dim,nstate,real>
+::InitialConditionFunction_ConvDiffEnergy ()
+        : InitialConditionFunction<dim,nstate,real>()
+{
+    // Nothing to do here yet
+}
+
+template <int dim, int nstate, typename real>
+inline real InitialConditionFunction_ConvDiffEnergy<dim,nstate,real>
+::value(const dealii::Point<dim,real> &point, const unsigned int /*istate*/) const
+{
+    real value = 1.0;
+    if(dim >= 1)
+        value *= sin(dealii::numbers::PI*point[0]);
+    if(dim >= 2)
+        value *= sin(dealii::numbers::PI*point[1]);
+    if(dim == 3)
+        value *= sin(dealii::numbers::PI*point[2]);
+
+    value += 0.1;
+
+    return value;
+}
 
 //=========================================================
 // FLOW SOLVER -- Initial Condition Base Class + Factory
@@ -361,7 +388,9 @@ InitialConditionFactory<dim,nstate, real>::create_InitialConditionFunction(
         return std::make_shared<InitialConditionFunction_AdvectionEnergy<dim,nstate,real> > ();
     } else if (flow_type == FlowCaseEnum::advection && param->use_energy==false ) {
         return std::make_shared<InitialConditionFunction_Advection<dim,nstate,real> > ();
-    } else if (flow_type == FlowCaseEnum::convection_diffusion) {
+    } else if (flow_type == FlowCaseEnum::convection_diffusion && param->use_energy) {
+        return std::make_shared<InitialConditionFunction_ConvDiffEnergy<dim,nstate,real> > ();
+    } else if (flow_type == FlowCaseEnum::convection_diffusion && !param->use_energy) {
         return std::make_shared<InitialConditionFunction_ConvDiff<dim,nstate,real> > ();
     } else if (flow_type == FlowCaseEnum::advection_periodic) {
         if constexpr (dim==1 && nstate==dim)  return std::make_shared<InitialConditionFunction_1DSine<dim,nstate,real> > ();
@@ -402,5 +431,6 @@ template class InitialConditionFunction_BurgersInviscidEnergy <PHILIP_DIM,PHILIP
 template class InitialConditionFunction_Advection <PHILIP_DIM,1,double>;
 template class InitialConditionFunction_AdvectionEnergy <PHILIP_DIM,1,double>;
 template class InitialConditionFunction_ConvDiff <PHILIP_DIM,1,double>;
+template class InitialConditionFunction_ConvDiffEnergy <PHILIP_DIM,1,double>;
 
 } // PHiLiP namespace

@@ -158,6 +158,21 @@ real ConvectionDiffusion<dim,nstate,real>
 }
 
 template <int dim, int nstate, typename real>
+real ConvectionDiffusion<dim,nstate,real>
+::max_viscous_eigenvalue (const std::array<real,nstate> &/*soln*/) const
+{
+    const real diff_coeff = this->diffusion_coefficient();
+    real max_eig = 0;
+    for (int i=0; i<dim; i++) {
+        for (int j=0; j<dim; j++) {
+            real abs_visc = abs(diff_coeff * this->diffusion_tensor[i][j]);
+            max_eig = std::max(max_eig,abs_visc);
+        }
+    }
+    return max_eig;
+}
+
+template <int dim, int nstate, typename real>
 std::array<dealii::Tensor<1,dim,real>,nstate> ConvectionDiffusion<dim,nstate,real>
 ::dissipative_flux (
     const std::array<real,nstate> &/*solution*/,

@@ -4537,7 +4537,13 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_subface_term_and_build_operators
 template <int dim, int nstate, typename real, typename MeshType>
 void DGWeak<dim,nstate,real,MeshType>::allocate_auxiliary_equation ()
 {
-    //Do Nothing.
+    for (int idim=0; idim<dim; idim++){
+        this->auxiliary_RHS[idim].reinit(this->locally_owned_dofs, this->ghost_dofs, this->mpi_communicator);
+        this->auxiliary_RHS[idim].add(1.0);
+
+        this->auxiliary_solution[idim].reinit(this->locally_owned_dofs, this->ghost_dofs, this->mpi_communicator);
+        this->auxiliary_solution[idim] *= 0.0;
+    }
 }
 template <int dim, int nstate, typename real, typename MeshType>
 void DGWeak<dim,nstate,real,MeshType>::assemble_auxiliary_residual ()
@@ -4588,6 +4594,7 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_face_term_auxiliary(
 }
 template <int dim, int nstate, typename real, typename MeshType>
 void DGWeak<dim,nstate,real,MeshType>::assemble_volume_term_strong(
+    typename dealii::DoFHandler<dim>::active_cell_iterator /*cell*/,
     const dealii::types::global_dof_index               /*current_cell_index*/,
     const std::vector<dealii::types::global_dof_index> &/*cell_dofs_indices*/,
     const unsigned int                                  /*poly_degree*/,

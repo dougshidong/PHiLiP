@@ -791,6 +791,7 @@ protected:
 
     ///Strong form primary equation's volume right-hand-side.
     virtual void assemble_volume_term_strong(
+        typename dealii::DoFHandler<dim>::active_cell_iterator cell,
         const dealii::types::global_dof_index              current_cell_index,
         const std::vector<dealii::types::global_dof_index> &cell_dofs_indices,
         const unsigned int                                 poly_degree,

@@ -52,12 +52,12 @@ void GridStudy<dim,nstate>
     solution_no_ghost.reinit(dg.locally_owned_dofs, MPI_COMM_WORLD);
     const auto mapping = (*(dg.high_order_grid->mapping_fe_field));
     dealii::VectorTools::interpolate(mapping, dg.dof_handler, *physics.manufactured_solution_function, solution_no_ghost);
-    //solution_no_ghost *= 1.0+1e-3;
-    //solution_no_ghost = 0.0;
-    //int i = 0;
-    //for (auto sol = solution_no_ghost.begin(); sol != solution_no_ghost.end(); ++sol) {
-    //    *sol = (++i) * 0.01;
-    //}
+//    solution_no_ghost *= 1.0+1e-3;
+//    solution_no_ghost = 0.0;
+//    int i = 0;
+//    for (auto sol = solution_no_ghost.begin(); sol != solution_no_ghost.end(); ++sol) {
+//        *sol = (++i) * 0.01;
+//    }
     dg.solution = solution_no_ghost;
 }
 template <int dim, int nstate>

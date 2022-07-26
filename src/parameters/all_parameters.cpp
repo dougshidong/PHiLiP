@@ -223,9 +223,9 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
 
 
     prm.declare_entry("diss_num_flux", "symm_internal_penalty",
-                      dealii::Patterns::Selection("symm_internal_penalty | bassi_rebay_2"),
+                      dealii::Patterns::Selection("symm_internal_penalty | bassi_rebay_2 | central_visc_flux"),
                       "Dissipative numerical flux. "
-                      "Choices are <symm_internal_penalty | bassi_rebay_2>.");
+                      "Choices are <symm_internal_penalty | bassi_rebay_2 | central_visc_flux>.");
 
     prm.declare_entry("solution_vtk_files_directory_name", ".",
                       dealii::Patterns::FileName(dealii::Patterns::FileName::FileType::input),
@@ -377,6 +377,7 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
         diss_num_flux_type = bassi_rebay_2;
         sipg_penalty_factor = 0.0;
     }
+    if (diss_num_flux_string == "central_visc_flux") diss_num_flux_type = central_visc_flux;
 
     const std::string flux_reconstruction_string = prm.get("flux_reconstruction");
     if (flux_reconstruction_string == "cDG")            flux_reconstruction_type = cDG;

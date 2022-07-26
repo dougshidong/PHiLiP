@@ -72,6 +72,9 @@ public:
     /// Maximum convective eigenvalue used in Lax-Friedrichs
     real max_convective_eigenvalue (const std::array<real,nstate> &soln) const;
 
+    /// Maximum viscous eigenvalue.
+    real max_viscous_eigenvalue (const std::array<real,nstate> &soln) const;
+
     /// Evaluates boundary values and gradients on the other side of the face.
     void boundary_face_values (
         const int /*boundary_type*/,

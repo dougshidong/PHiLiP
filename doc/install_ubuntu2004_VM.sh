@@ -21,6 +21,11 @@ sudo apt install -y \
 	texlive \
 	liboce-ocaf-lite-dev
 
+### Install pip and gdown
+sudo apt install python3-pip
+pip install gdown
+# Note: If you receive a warning such as: WARNING: The script gdown is installed in '/home/parallels/.local/bin' which is not on PATH, add the path as explained in INSTALL.md.
+
 ### Update gmsh to latest version
 pip install --upgrade gmsh
 
@@ -155,6 +160,13 @@ mkdir -p Codes
 	cd $Codes/PHiLiP ;\
 	git checkout master ;\
 	git remote add upstream https://github.com/dougshidong/PHiLiP.git ;\
+    git config submodule.recurse true ;\
+    
+    # Get mesh files of NACA 0012. Note: Run get_NACA0012_mesh_files_cluster.sh to get files on the cluster.
+    # If not already installed, gdown can be installed as explained in INSTALL.md. 
+    chmod +x get_NACA0012_mesh_files_local.sh
+    sh get_NACA0012_mesh_files_local.sh ;\
+
 	# Release build with all the optimization flags
 	mkdir -p build_release && cd build_release ;\
 	# MPI_MAX is the number of cores to use by default for tests with MPI

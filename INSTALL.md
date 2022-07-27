@@ -109,6 +109,7 @@ git submodule update
 git config --global http.proxy ""
 git pull --recurse-submodules
 git submodule update --recursive
+git config submodule.recurse true
 ~~~~
 For Beluga, the deal.II library is already installed in `/project/rrg-nadaraja-ac/Libraries/dealii/install`; install paths for other clusters are included in `job_compile_PHiLiP.sh`. The required modules were installed by Bart Oldeman from Compute Canada's team through modules. Therefore, simply put the following line in your .bashrc and source it.
 ~~~~

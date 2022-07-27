@@ -446,7 +446,7 @@ void SumFactorizedOperators<dim,n_faces>::gradient_matrix_vector_mult(
     const dealii::FullMatrix<double> &gradient_basis_z)
 {
     for(int idim=0; idim<dim;idim++){
-        output_vect[idim].resize(input_vect.size());
+//        output_vect[idim].resize(input_vect.size());
         if(idim==0)
             this->matrix_vector_mult(input_vect, output_vect[idim],
                                      gradient_basis_x, 
@@ -2056,7 +2056,7 @@ void metric_operators<real,dim,n_faces>::build_facet_metric_operators(
     mapping_shape_functions<dim,n_faces> &mapping_basis,
     const bool use_invariant_curl_form)
 {
-    det_Jac_vol.resize(n_quad_pts);
+    det_Jac_surf.resize(n_quad_pts);
     for(int idim=0; idim<dim; idim++){
         for(int jdim=0; jdim<dim; jdim++){
             metric_cofactor_surf[idim][jdim].resize(n_quad_pts);
@@ -2084,7 +2084,7 @@ void metric_operators<real,dim,n_faces>::build_facet_metric_operators(
         (iface == 4) ? mapping_basis.mapping_shape_functions_flux_nodes.oneD_surf_grad_operator[0] : 
             ((iface == 5) ? mapping_basis.mapping_shape_functions_flux_nodes.oneD_surf_grad_operator[1] : 
                 mapping_basis.mapping_shape_functions_flux_nodes.oneD_grad_operator),
-        det_Jac_vol);
+        det_Jac_surf);
     //compute the metric cofactor
     build_local_metric_cofactor_matrix(
         n_quad_pts,
@@ -2213,10 +2213,6 @@ void metric_operators<real,dim,n_faces>::build_determinant_metric_Jacobian(
 
     for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
         det_metric_Jac[iquad] = dealii::determinant(Jacobian_flux_nodes[iquad]);
-//        det_metric_Jac[iquad] = Jacobian_flux_nodes[iquad][0][0]
-//                                *Jacobian_flux_nodes[iquad][1][1]
-//                                -Jacobian_flux_nodes[iquad][0][1]
-//                                *Jacobian_flux_nodes[iquad][0][1];
     }
 }
 template <typename real, int dim, int n_faces>  

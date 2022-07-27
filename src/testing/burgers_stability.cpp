@@ -120,6 +120,9 @@ int BurgersEnergyStability<dim, nstate>::run_test() const
         dealii::GridGenerator::hyper_cube(*grid, left, right, true);
         //found the periodicity in dealii doesn't work as expected in 1D so I hard coded the 1D periodic condition in DG
 #if PHILIP_DIM==1
+        std::vector<dealii::GridTools::PeriodicFacePair<typename dealii::Triangulation<PHILIP_DIM>::cell_iterator> > matched_pairs;
+        dealii::GridTools::collect_periodic_faces(*grid,0,1,0,matched_pairs);
+        grid->add_periodicity(matched_pairs);
 #else
         std::vector<dealii::GridTools::PeriodicFacePair<typename dealii::parallel::distributed::Triangulation<PHILIP_DIM>::cell_iterator> > matched_pairs;
                 dealii::GridTools::collect_periodic_faces(*grid,0,1,0,matched_pairs);

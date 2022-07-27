@@ -21,9 +21,9 @@ set use_periodic_bc = true
 
 set use_energy = true
 
-set flux_reconstruction = cPlus
+set flux_reconstruction = cDG
 
-set flux_reconstruction_aux = kPlus
+set flux_reconstruction_aux = kDG
 
 set use_inverse_mass_on_the_fly = true
 
@@ -32,8 +32,9 @@ set use_classical_FR = false
 # The PDE we want to solve
 set pde_type = diffusion
 
-set conv_num_flux = lax_friedrichs
-#set conv_num_flux = central_flux
+#set conv_num_flux = lax_friedrichs
+set conv_num_flux = central_flux
+set diss_num_flux = central_visc_flux
 
 subsection ODE solver
 
@@ -58,9 +59,9 @@ subsection ODE solver
 
 end
 
-subsection manufactured solution convergence study
-  set use_manufactured_source_term = true
-end
+#subsection manufactured solution convergence study
+#  set use_manufactured_source_term = true
+#end
 
 subsection flow_solver
     set flow_case_type = convection_diffusion

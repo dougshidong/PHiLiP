@@ -53,28 +53,6 @@ void BurgersRewienskiSnapshot<dim,nstate>::display_additional_flow_case_specific
 }
 
 template <int dim, int nstate>
-void BurgersRewienskiSnapshot<dim, nstate>::compute_unsteady_data_and_write_to_table(
-    const unsigned int current_iteration,
-    const double current_time,
-    const std::shared_ptr <DGBase<dim, double>> dg,
-    const std::shared_ptr <dealii::TableHandler> unsteady_data_table)
-{
-    if (this->all_param.ode_solver_param.output_solution_vector_modulo > 0) {
-        if (current_iteration % this->all_param.ode_solver_param.output_solution_vector_modulo == 0) {
-            for (unsigned int i = 0; i < dg->solution.size(); ++i) {
-                unsteady_data_table->add_value(
-                        "Time:" + std::to_string(current_time),
-                        dg->solution[i]);
-            }
-            unsteady_data_table->set_precision("Time:" + std::to_string(current_time), 16);
-            // Write to file
-            std::ofstream unsteady_data_table_file(this->all_param.flow_solver_param.unsteady_data_table_filename+".txt");
-            unsteady_data_table->write_text(unsteady_data_table_file);
-        }
-    }
-}
-
-template <int dim, int nstate>
 void BurgersRewienskiSnapshot<dim, nstate>::steady_state_postprocessing(std::shared_ptr <DGBase<dim, double>> dg) const
 {
     this->pcout << "Computing sensitivity to parameter" << std::endl;

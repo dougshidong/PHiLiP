@@ -4,3 +4,6 @@
 [submodule "submodules/joukowski_high_order_mesh"]
 	path = submodules/joukowski_high_order_mesh
 	url = https://github.com/dougshidong/joukowski_high_order_mesh.git
+[submodule "submodules/eigen"]
+	path = submodules/eigen
+	url = https://gitlab.com/libeigen/eigen.git

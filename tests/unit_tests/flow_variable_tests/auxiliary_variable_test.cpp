@@ -77,15 +77,16 @@ int main (int argc, char * argv[])
     double right = 1.0;
     dealii::ConvergenceTable convergence_table;
     const unsigned int igrid_start = 2;
-    const unsigned int n_grids = 6;
+    const unsigned int n_grids = 7;
     std::array<double,n_grids> grid_size;
     std::array<double,n_grids> soln_error;
     std::array<double,n_grids> soln_error_inf;
     unsigned int exit_grid=0;
-    for(unsigned int poly_degree = 3; poly_degree<6; poly_degree++){
+    const unsigned int final_poly_degree = (dim==3) ? 5 : 6;
+    for(unsigned int poly_degree = 3; poly_degree<final_poly_degree; poly_degree++){
         const unsigned int grid_degree = 1;
     for(unsigned int igrid=igrid_start; igrid<n_grids; ++igrid){
-pcout<<" Grid Index"<<igrid<<std::endl;
+    pcout<<" Grid Index"<<igrid<<std::endl;
     //Generate a standard grid
 
 #if PHILIP_DIM==1 // dealii::parallel::distributed::Triangulation<dim> does not work for 1D
@@ -104,7 +105,11 @@ pcout<<" Grid Index"<<igrid<<std::endl;
 #endif
 //straight
     dealii::GridGenerator::hyper_cube(*grid, left, right, true);
-#if PHILIP_DIM!=1
+#if PHILIP_DIM==1
+        std::vector<dealii::GridTools::PeriodicFacePair<typename dealii::Triangulation<PHILIP_DIM>::cell_iterator> > matched_pairs;
+        dealii::GridTools::collect_periodic_faces(*grid,0,1,0,matched_pairs);
+        grid->add_periodicity(matched_pairs);
+#else
 	std::vector<dealii::GridTools::PeriodicFacePair<typename dealii::parallel::distributed::Triangulation<PHILIP_DIM>::cell_iterator> > matched_pairs;
 		dealii::GridTools::collect_periodic_faces(*grid,0,1,0,matched_pairs);
                 if(dim >= 2)
@@ -127,6 +132,9 @@ pcout<<" Grid Index"<<igrid<<std::endl;
     std::shared_ptr < PHiLiP::DGBase<dim, double> > dg = PHiLiP::DGFactory<dim,double>::create_discontinuous_galerkin(&all_parameters_new, poly_degree, poly_degree, grid_degree, grid);
     pcout<<"going in allocate"<<std::endl;
     dg->allocate_system (false,false,false);
+    if(!all_parameters_new.use_inverse_mass_on_the_fly){
+        dg->evaluate_mass_matrices(true);
+    }
     
 //Interpolate IC
 
@@ -175,24 +183,13 @@ pcout<<" Grid Index"<<igrid<<std::endl;
         //interpolate solution
         current_dofs_indices.resize(n_dofs_cell);
         current_cell->get_dof_indices (current_dofs_indices);
-//        for(int idim=0; idim<dim; idim++){
-//            for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
-//                phys_quad_pts[idim][iquad] = 0.0;
-//                for(unsigned int jquad=0; jquad<n_metric_dofs/dim; jquad++){
-//                    phys_quad_pts[idim][iquad] += dg->operators->mapping_shape_functions_vol_flux_nodes[grid_degree][poly_degree][iquad][jquad]
-//                                                * mapping_support_points[idim][jquad];
-//                }
-//            }
-//        }
         std::vector<real> soln(n_quad_pts);
         std::vector<real> exact(n_quad_pts);
         for(int istate=0; istate<nstate; istate++){
             for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
                 exact[iquad] = 1.0;
                for (int idim=0; idim<dim; idim++){
-                       // exact *= exp(-(phys_quad_pts[idim][iquad])*(phys_quad_pts[idim][iquad]));
-                       // exact *= sin(2.0*pi*phys_quad_pts[idim][iquad]) * cos(4.0*pi*phys_quad_pts[idim][iquad]);
-                    exact[iquad] *= sin(2.0*pi*metric_oper.flux_nodes_vol[idim][iquad]) * cos(4.0*pi*metric_oper.flux_nodes_vol[idim][iquad]);
+                    exact[iquad] *= sin(pi*metric_oper.flux_nodes_vol[idim][iquad]) * cos(2.0*pi*metric_oper.flux_nodes_vol[idim][iquad]);
                 }
                 std::vector<double> sol(n_shape_fns);
                 vol_projection.matrix_vector_mult_1D(exact, sol,
@@ -237,22 +234,17 @@ pcout<<" Grid Index"<<igrid<<std::endl;
         for (unsigned int iquad=0; iquad<n_quad_pts_extra; ++iquad) {
             soln_at_q[iquad] = 0.0;
             for (unsigned int idof=0; idof<fe_values_extra.dofs_per_cell; ++idof) {
-               // soln_at_q[iquad] += solution_deriv[dofs_indices[idof]] * fe_values_extra.shape_value_component(idof, iquad, 0);
                 soln_at_q[iquad] += dg->auxiliary_solution[dim_check][dofs_indices[idof]] * fe_values_extra.shape_value_component(idof, iquad, 0);
-                //soln_at_q[iquad] += dg->solution[dofs_indices[idof]] * fe_values_extra.shape_value_component(idof, iquad, 0);
             }
 
             const dealii::Point<dim> qpoint = (fe_values_extra.quadrature_point(iquad));
             double uexact_x=1.0;
             for(int idim=0; idim<dim; idim++){
-               // uexact_x *= exp(-((qpoint[idim]) * (qpoint[idim])));
                if(idim!=dim_check)
-                    uexact_x *= sin(2.0*pi*qpoint[idim]) * cos(4.0*pi*qpoint[idim]);
+                    uexact_x *= sin(pi*qpoint[idim]) * cos(2.0*pi*qpoint[idim]);
             }
-           // uexact_x *= - 2.0 * qpoint[dim_check];
-            uexact_x *=  (2.0 * pi*cos(2.0*pi*qpoint[dim_check])*cos(4.0*pi*qpoint[dim_check])
-                        + sin(2.0*pi*qpoint[dim_check])* (-4.0)* pi *sin(4.0*pi*qpoint[dim_check]));
-//pcoln "<<soln_at_q[iquad]<<" exact "<<uexact_x<<std::endl;
+            uexact_x *=  (pi*cos(pi*qpoint[dim_check])*cos(2.0*pi*qpoint[dim_check])
+                        + sin(pi*qpoint[dim_check])* (-2.0)* pi *sin(2.0*pi*qpoint[dim_check]));
             l2error += pow(soln_at_q[iquad] - uexact_x, 2) * fe_values_extra.JxW(iquad);
             double inf_temp = std::abs(soln_at_q[iquad]-uexact_x);
             if(inf_temp > linf_error){

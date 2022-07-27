@@ -235,7 +235,7 @@ public:
     real value (const dealii::Point<dim,real> &point, const unsigned int istate) const override;
 };
 
-/// Initial Condition Function: Convection Diffusion Energy
+/// Initial Condition Function: Convection Diffusion Orders of Accuracy
 template <int dim, int nstate, typename real>
 class InitialConditionFunction_ConvDiff
         : public InitialConditionFunction<dim,nstate,real>
@@ -244,9 +244,26 @@ protected:
     using dealii::Function<dim,real>::value; ///< dealii::Function we are templating on
 
 public:
-    /// Constructor for InitialConditionFunction_ConvDiff
+    /// Constructor for InitialConditionFunction_ConvDiffEnergy
     /** Calls the Function(const unsigned int n_components) constructor in deal.II*/
     InitialConditionFunction_ConvDiff ();
+
+    /// Value of initial condition
+    real value (const dealii::Point<dim,real> &point, const unsigned int istate) const override;
+};
+
+/// Initial Condition Function: Convection Diffusion Energy
+template <int dim, int nstate, typename real>
+class InitialConditionFunction_ConvDiffEnergy
+        : public InitialConditionFunction<dim,nstate,real>
+{
+protected:
+    using dealii::Function<dim,real>::value; ///< dealii::Function we are templating on
+
+public:
+    /// Constructor for InitialConditionFunction_ConvDiff
+    /** Calls the Function(const unsigned int n_components) constructor in deal.II*/
+    InitialConditionFunction_ConvDiffEnergy ();
 
     /// Value of initial condition
     real value (const dealii::Point<dim,real> &point, const unsigned int istate) const override;

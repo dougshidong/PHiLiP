@@ -70,6 +70,9 @@ public:
     /// Maximum convective eigenvalue used in Lax-Friedrichs
     virtual real max_convective_eigenvalue (const std::array<real,nstate> &soln) const = 0;
 
+    /// Maximum viscous eigenvalue.
+    virtual real max_viscous_eigenvalue (const std::array<real,nstate> &soln) const = 0;
+
     // /// Evaluate the diffusion matrix \f$ A \f$ such that \f$F_v = A \nabla u\f$.
     // virtual std::array<dealii::Tensor<1,dim,real>,nstate> apply_diffusion_matrix (
     //     const std::array<real,nstate> &solution,

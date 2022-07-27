@@ -25,6 +25,8 @@ set flux_reconstruction = cPlus
 
 set use_classical_FR = false
 
+set use_inverse_mass_on_the_fly = true
+
 # The PDE we want to solve
 set pde_type = advection
 

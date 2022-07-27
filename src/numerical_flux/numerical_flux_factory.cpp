@@ -96,6 +96,8 @@ NumericalFluxFactory<dim, nstate, real>
         return std::make_unique < SymmetricInternalPenalty<dim, nstate, real> > (physics_input,artificial_dissipation_input);
     } else if(diss_num_flux_type == AllParam::bassi_rebay_2) {
         return std::make_unique < BassiRebay2<dim, nstate, real> > (physics_input,artificial_dissipation_input);
+    } else if(diss_num_flux_type == AllParam::central_visc_flux) {
+        return std::make_unique < CentralViscousNumericalFlux<dim, nstate, real> > (physics_input,artificial_dissipation_input);
     }
 
     std::cout << "Invalid dissipative flux" << std::endl;

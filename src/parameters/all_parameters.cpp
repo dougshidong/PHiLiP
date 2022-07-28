@@ -115,6 +115,10 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       dealii::Patterns::Bool(),
                       "Build global mass inverse matrix and apply it. Otherwise, use inverse mass on-the-fly by default for explicit timestepping.");
 
+    prm.declare_entry("energy_file", "energy_file",
+                      dealii::Patterns::FileName(dealii::Patterns::FileName::FileType::input),
+                      "Input file for energy test.");
+
     prm.declare_entry("test_type", "run_control",
                       dealii::Patterns::Selection(
                       " run_control | "
@@ -361,6 +365,8 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     sipg_penalty_factor = prm.get_double("sipg_penalty_factor");
     use_invariant_curl_form = prm.get_bool("use_invariant_curl_form");
     use_inverse_mass_on_the_fly = prm.get_bool("use_inverse_mass_on_the_fly");
+
+    energy_file = prm.get("energy_file");
 
     const std::string conv_num_flux_string = prm.get("conv_num_flux");
     if (conv_num_flux_string == "lax_friedrichs")          conv_num_flux_type = lax_friedrichs;

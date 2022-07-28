@@ -2804,8 +2804,6 @@ void DGBase<dim,real,MeshType>::apply_inverse_global_mass_matrix(
                     }
                 }
                 else{
-                    pcout<<"Applying the inverse of the metrid dependent Mass Matrix on-the-fly does not yet work for unstructured/curvilinear grids."<<std::endl;
-                    exit(1);
                     if(use_auxiliary_eq){
                         std::vector<real> projection_of_input(n_quad_pts);
                         projection_oper_aux.matrix_vector_mult_1D(local_input_vector, projection_of_input,
@@ -2974,7 +2972,7 @@ void DGBase<dim,real,MeshType>::apply_global_mass_matrix(
                                                               proj_mass);
                         std::vector<real> JxW(n_quad_pts);
                         for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
-                            JxW[iquad] = (quad_weights[iquad] * metric_oper.det_Jac_vol[iquad]);
+                            JxW[iquad] = (metric_oper.det_Jac_vol[iquad] / quad_weights[iquad]);
                         }
                         projection_oper.inner_product_1D(projection_of_input, JxW,
                                                          local_output_vector,
@@ -2990,7 +2988,7 @@ void DGBase<dim,real,MeshType>::apply_global_mass_matrix(
                                                               proj_mass);
                         std::vector<real> JxW(n_quad_pts);
                         for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
-                            JxW[iquad] = (quad_weights[iquad] * metric_oper.det_Jac_vol[iquad]);
+                            JxW[iquad] = (metric_oper.det_Jac_vol[iquad] / quad_weights[iquad]);
                         }
                         projection_oper.inner_product_1D(projection_of_input, JxW,
                                                          local_output_vector,

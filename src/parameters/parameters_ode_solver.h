@@ -52,6 +52,8 @@ public:
 
     int runge_kutta_order; ///< Order for the Runge-Kutta explicit time advancement scheme.
 
+    bool implicit_rk_flag_testing;
+
     static void declare_parameters (dealii::ParameterHandler &prm); ///< Declares the possible variables and sets the defaults.
     void parse_parameters (dealii::ParameterHandler &prm); ///< Parses input file and sets the variables.
 };

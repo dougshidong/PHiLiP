@@ -128,7 +128,7 @@ std::array<dealii::Tensor<1,dim,real>,nstate> PhysicsModel<dim,nstate,real,nstat
 {
     // TO DO: Update for when nstate > nstate_baseline_physics
     std::array<dealii::Tensor<1,dim,real>,nstate> conv_num_split_flux;
-    if(nstate==nstate_baseline_physics) {
+    if constexpr(nstate==nstate_baseline_physics) {
         conv_num_split_flux = physics_baseline->convective_numerical_split_flux(conservative_soln1,conservative_soln2);
     } else {
         // TO DO, make use of the physics_model object for nstate>nstate_baseline_physics
@@ -145,7 +145,7 @@ std::array<real,nstate> PhysicsModel<dim,nstate,real,nstate_baseline_physics>
 {
     // TO DO: Update for when nstate > nstate_baseline_physics
     std::array<real,nstate> eig;
-    if(nstate==nstate_baseline_physics) {
+    if constexpr(nstate==nstate_baseline_physics) {
         eig = physics_baseline->convective_eigenvalues(conservative_soln, normal);
     } else {
         // TO DO, make use of the physics_model object for nstate>nstate_baseline_physics
@@ -160,7 +160,7 @@ real PhysicsModel<dim,nstate,real,nstate_baseline_physics>
 {
     // TO DO: Update for when nstate > nstate_baseline_physics
     real max_eig;
-    if(nstate==nstate_baseline_physics) {
+    if constexpr(nstate==nstate_baseline_physics) {
         max_eig = physics_baseline->max_convective_eigenvalue(conservative_soln);
     } else {
         // TO DO, make use of the physics_model object for nstate>nstate_baseline_physics
@@ -181,7 +181,7 @@ void PhysicsModel<dim,nstate,real,nstate_baseline_physics>
    std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_bc) const
 {
     // TO DO: Update for when nstate > nstate_baseline_physics
-    if(nstate==nstate_baseline_physics) {
+    if constexpr(nstate==nstate_baseline_physics) {
         physics_baseline->boundary_face_values(
                 boundary_type, pos, normal_int, soln_int, soln_grad_int, 
                 soln_bc, soln_grad_bc);
@@ -259,6 +259,12 @@ template class PhysicsModel < PHILIP_DIM, PHILIP_DIM+2, FadType   , PHILIP_DIM+2
 template class PhysicsModel < PHILIP_DIM, PHILIP_DIM+2, RadType   , PHILIP_DIM+2 >;
 template class PhysicsModel < PHILIP_DIM, PHILIP_DIM+2, FadFadType, PHILIP_DIM+2 >;
 template class PhysicsModel < PHILIP_DIM, PHILIP_DIM+2, RadFadType, PHILIP_DIM+2 >;
+
+template class PhysicsModel < PHILIP_DIM, PHILIP_DIM+3, double    , PHILIP_DIM+2 >;
+template class PhysicsModel < PHILIP_DIM, PHILIP_DIM+3, FadType   , PHILIP_DIM+2 >;
+template class PhysicsModel < PHILIP_DIM, PHILIP_DIM+3, RadType   , PHILIP_DIM+2 >;
+template class PhysicsModel < PHILIP_DIM, PHILIP_DIM+3, FadFadType, PHILIP_DIM+2 >;
+template class PhysicsModel < PHILIP_DIM, PHILIP_DIM+3, RadFadType, PHILIP_DIM+2 >;
 
 } // Physics namespace
 } // PHiLiP namespace

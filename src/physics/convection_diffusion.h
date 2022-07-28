@@ -62,7 +62,7 @@ public:
             hasConvection(convection), 
             hasDiffusion(diffusion)
     {
-        static_assert(nstate<=5, "Physics::ConvectionDiffusion() should be created with nstate<=5");
+        //static_assert(nstate<=5, "Physics::ConvectionDiffusion() should be created with nstate<=5");
     };
 
     /// Destructor

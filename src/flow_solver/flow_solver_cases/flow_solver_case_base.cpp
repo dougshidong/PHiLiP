@@ -164,6 +164,7 @@ template class FlowSolverCaseBase<PHILIP_DIM,PHILIP_DIM>;
 
 #if PHILIP_DIM!=1
 template class FlowSolverCaseBase<PHILIP_DIM,PHILIP_DIM+2>;
+template class FlowSolverCaseBase<PHILIP_DIM,PHILIP_DIM+3>;
 #endif
 
 } // FlowSolver namespace

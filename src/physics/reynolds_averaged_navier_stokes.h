@@ -25,8 +25,6 @@ public:
         const double                                              prandtl_number,
         const double                                              reynolds_number_inf,
         const double                                              turbulent_prandtl_number,
-        //const double                                              ratio_of_filter_width_to_cell_size,
-        //no need for RANS models
         const double                                              isothermal_wall_temperature = 1.0,
         const thermal_boundary_condition_enum                     thermal_boundary_condition_type = thermal_boundary_condition_enum::adiabatic,
         std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function = nullptr);
@@ -38,12 +36,8 @@ public:
     /// Turbulent Prandtl number
     const double turbulent_prandtl_number;
 
-    /// Ratio of filter width to cell size
-    //const double ratio_of_filter_width_to_cell_size;
-    //no need for RANS models
-
     /// Pointer to Navier-Stokes physics object
-    std::unique_ptr< NavierStokes<dim,nstate,real> > navier_stokes_physics;
+    std::unique_ptr< NavierStokes<dim,dim+2,real> > navier_stokes_physics;
 
     /// Convective flux: \f$ \mathbf{F}_{conv} \f$
     std::array<dealii::Tensor<1,dim,real>,nstate> convective_flux (
@@ -61,33 +55,29 @@ public:
         const std::array<real,nstate> &solution,
         const dealii::types::global_dof_index cell_index) const;
 
-    /// Compute the nondimensionalized filter width used by the SGS model given a cell index
-    //double get_filter_width (const dealii::types::global_dof_index cell_index) const;
-    //no need for RANS models
-
     /// Nondimensionalized Reynolds stress tensor, (tau^reynolds)*
     virtual dealii::Tensor<2,dim,real> compute_Reynolds_stress_tensor (
-        const std::array<real,nstate> &primitive_soln,
-        const std::array<dealii::Tensor<1,dim,real>,nstate> &primitive_soln_gradient,
-        const dealii::types::global_dof_index cell_index) const = 0;
+        const std::array<real,dim+2> &primitive_soln_rans,
+        const std::array<dealii::Tensor<1,dim,real>,dim+2> &primitive_soln_gradient_rans,
+        const std::array<real,nstate-(dim+2)> &primitive_soln_turbulence_model) const = 0;
 
     /// Nondimensionalized Reynolds heat flux, (q^reynolds)*
     virtual dealii::Tensor<1,dim,real> compute_Reynolds_heat_flux (
-        const std::array<real,nstate> &primitive_soln,
-        const std::array<dealii::Tensor<1,dim,real>,nstate> &primitive_soln_gradient,
-        const dealii::types::global_dof_index cell_index) const = 0;
+        const std::array<real,dim+2> &primitive_soln_rans,
+        const std::array<dealii::Tensor<1,dim,real>,dim+2> &primitive_soln_gradient_rans,
+        const std::array<real,nstate-(dim+2)> &primitive_soln_turbulence_model) const = 0;
 
     /// Nondimensionalized Reynolds stress tensor, (tau^reynolds)* (Automatic Differentiation Type: FadType)
     virtual dealii::Tensor<2,dim,FadType> compute_Reynolds_stress_tensor_fad (
-        const std::array<FadType,nstate> &primitive_soln,
-        const std::array<dealii::Tensor<1,dim,FadType>,nstate> &primitive_soln_gradient,
-        const dealii::types::global_dof_index cell_index) const = 0;
+        const std::array<FadType,dim+2> &primitive_soln_rans,
+        const std::array<dealii::Tensor<1,dim,FadType>,dim+2> &primitive_soln_gradient_rans,
+        const std::array<FadType,nstate-(dim+2)> &primitive_soln_turbulence_model) const = 0;
 
     /// Nondimensionalized Reynolds heat flux, (q^reynolds)* (Automatic Differentiation Type: FadType)
     virtual dealii::Tensor<1,dim,FadType> compute_Reynolds_heat_flux_fad (
-        const std::array<FadType,nstate> &primitive_soln,
-        const std::array<dealii::Tensor<1,dim,FadType>,nstate> &primitive_soln_gradient,
-        const dealii::types::global_dof_index cell_index) const = 0;
+        const std::array<FadType,dim+2> &primitive_soln_rans,
+        const std::array<dealii::Tensor<1,dim,FadType>,dim+2> &primitive_soln_gradient_rans,
+        const std::array<FadType,nstate-(dim+2)> &primitive_soln_turbulence_model) const = 0;
 
 protected:
     /// Returns the square of the magnitude of the tensor (i.e. the double dot product of a tensor with itself)
@@ -100,6 +90,38 @@ protected:
         const std::array<real2,nstate> &conservative_soln,
         const std::array<dealii::Tensor<1,dim,real2>,nstate> &solution_gradient,
         const dealii::types::global_dof_index cell_index) const;
+
+    template <typename real2>
+    std::array<real2,dim+2> extract_rans_conservative_solution (
+        const std::array<real2,nstate> &conservative_soln) const;
+
+    template <typename real2>
+    std::array<dealii::Tensor<1,dim,real2>,dim+2> extract_rans_solution_gradient (
+        const std::array<dealii::Tensor<1,dim,real2>,nstate> &solution_gradient) const;
+
+/*
+    template <typename real2>
+    std::array<real2,nstate-(dim+2)> extract_turbulence_model_conservative_solution (
+        const std::array<real2,nstate> &conservative_soln) const;
+
+    template <typename real2>
+    std::array<dealii::Tensor<1,dim,real2>,nstate-(dim+2)> extract_turbulence_model_solution_gradient (
+        const std::array<dealii::Tensor<1,dim,real2>,nstate> &solution_gradient) const;
+*/
+
+    template <typename real2>
+    std::array<dealii::Tensor<1,dim,real2>,nstate-(dim+2)> dissipative_flux_turbulence_model (
+        const std::array<real2,nstate-(dim+2)> &primitive_soln_turbulence_model,
+        const std::array<dealii::Tensor<1,dim,real2>,nstate-(dim+2)> &primitive_solution_gradient_turbulence_model) const;
+
+    template <typename real2>
+    std::array<real2,nstate-(dim+2)> convert_conservative_to_primitive_turbulence_model (
+        const std::array<real2,nstate> &conservative_soln) const;
+
+    template <typename real2>
+    std::array<dealii::Tensor<1,dim,real2>,nstate-(dim+2)> convert_conservative_gradient_to_primitive_gradient_turbulence_model (
+        const std::array<real2,nstate> &conservative_soln,
+        const std::array<dealii::Tensor<1,dim,real2>,nstate> &solution_gradient) const;
 
     /** Dissipative flux Jacobian (repeated from NavierStokes)
      *  Note: Only used for computing the manufactured solution source term;
@@ -159,86 +181,71 @@ public:
         const double                                              prandtl_number,
         const double                                              reynolds_number_inf,
         const double                                              turbulent_prandtl_number,
-        //const double                                              ratio_of_filter_width_to_cell_size,
-        //no need for RANS models
-        //const double                                              model_constant,
-        //no need for RANS models
         const double                                              isothermal_wall_temperature = 1.0,
         const thermal_boundary_condition_enum                     thermal_boundary_condition_type = thermal_boundary_condition_enum::adiabatic,
         std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function = nullptr);
 
-    /// SGS model constant
-    //const double model_constant;
-    //no need for RANS models
-
     /// Destructor
     ~ReynoldsAveragedNavierStokes_SAneg() {};
 
-    /// Returns the product of the eddy viscosity model constant and the filter width
-    //double get_model_constant_times_filter_width (const dealii::types::global_dof_index cell_index) const;
-    //no need for RANS models
-
     /// Nondimensionalized Reynolds stress tensor, (tau^reynolds)*
     dealii::Tensor<2,dim,real> compute_Reynolds_stress_tensor (
-        const std::array<real,nstate> &primitive_soln,
-        const std::array<dealii::Tensor<1,dim,real>,nstate> &primitive_soln_gradient,
-        const dealii::types::global_dof_index cell_index) const;
+        const std::array<real,dim+2> &primitive_soln_rans,
+        const std::array<dealii::Tensor<1,dim,real>,dim+2> &primitive_soln_gradient_rans,
+        const std::array<real,nstate-(dim+2)> &primitive_soln_turbulence_model) const;
 
     /// Nondimensionalized Reynolds heat flux, (q^reynolds)*
     dealii::Tensor<1,dim,real> compute_Reynolds_heat_flux (
-        const std::array<real,nstate> &primitive_soln,
-        const std::array<dealii::Tensor<1,dim,real>,nstate> &primitive_soln_gradient,
-        const dealii::types::global_dof_index cell_index) const;
+        const std::array<real,dim+2> &primitive_soln_rans,
+        const std::array<dealii::Tensor<1,dim,real>,dim+2> &primitive_soln_gradient_rans,
+        const std::array<real,nstate-(dim+2)> &primitive_soln_turbulence_model) const;
 
     /// Nondimensionalized Reynolds stress tensor, (tau^reynolds)* (Automatic Differentiation Type: FadType)
     dealii::Tensor<2,dim,FadType> compute_Reynolds_stress_tensor_fad (
-        const std::array<FadType,nstate> &primitive_soln,
-        const std::array<dealii::Tensor<1,dim,FadType>,nstate> &primitive_soln_gradient,
-        const dealii::types::global_dof_index cell_index) const;
+        const std::array<FadType,dim+2> &primitive_soln_rans,
+        const std::array<dealii::Tensor<1,dim,FadType>,dim+2> &primitive_soln_gradient_rans,
+        const std::array<FadType,nstate-(dim+2)> &primitive_soln_turbulence_model) const;
 
     /// Nondimensionalized Reynolds heat flux, (q^reynolds)* (Automatic Differentiation Type: FadType)
     dealii::Tensor<1,dim,FadType> compute_Reynolds_heat_flux_fad (
-        const std::array<FadType,nstate> &primitive_soln,
-        const std::array<dealii::Tensor<1,dim,FadType>,nstate> &primitive_soln_gradient,
-        const dealii::types::global_dof_index cell_index) const;
+        const std::array<FadType,dim+2> &primitive_soln_rans,
+        const std::array<dealii::Tensor<1,dim,FadType>,dim+2> &primitive_soln_gradient_rans,
+        const std::array<FadType,nstate-(dim+2)> &primitive_soln_turbulence_model) const;
 
     /// Nondimensionalized eddy viscosity for the negative SA model
     virtual real compute_eddy_viscosity(
-        const std::array<real,nstate> &primitive_soln,
-        const std::array<dealii::Tensor<1,dim,real>,nstate> &primitive_soln_gradient,
-        const dealii::types::global_dof_index cell_index) const;
+        const std::array<real,dim+2> &primitive_soln_rans,
+        const std::array<real,nstate-(dim+2)> &primitive_soln_turbulence_model) const;
 
     /// Nondimensionalized eddy viscosity for the negative SA model (Automatic Differentiation Type: FadType)
     virtual FadType compute_eddy_viscosity_fad(
-        const std::array<FadType,nstate> &primitive_soln,
-        const std::array<dealii::Tensor<1,dim,FadType>,nstate> &primitive_soln_gradient,
-        const dealii::types::global_dof_index cell_index) const;
+        const std::array<FadType,dim+2> &primitive_soln_rans,
+        const std::array<FadType,nstate-(dim+2)> &primitive_soln_turbulence_model) const;
 
 protected:
     /// Templated nondimensionalized Reynolds stress tensor, (tau^reynolds)*
     template<typename real2> dealii::Tensor<2,dim,real2> compute_Reynolds_stress_tensor_templated (
-        const std::array<real2,nstate> &primitive_soln,
-        const std::array<dealii::Tensor<1,dim,real2>,nstate> &primitive_soln_gradient,
-        const dealii::types::global_dof_index cell_index) const;
+        const std::array<real2,dim+2> &primitive_soln_rans,
+        const std::array<dealii::Tensor<1,dim,real2>,dim+2> &primitive_soln_gradient_rans,
+        const std::array<real2,nstate-(dim+2)> &primitive_soln_turbulence_model) const;
 
     /// Templated nondimensionalized Reynolds heat flux, (q^reynolds)*
     template<typename real2> 
     dealii::Tensor<1,dim,real2> compute_Reynolds_heat_flux_templated (
-        const std::array<real2,nstate> &primitive_soln,
-        const std::array<dealii::Tensor<1,dim,real2>,nstate> &primitive_soln_gradient,
-        const dealii::types::global_dof_index cell_index) const;
+        const std::array<real2,dim+2> &primitive_soln_rans,
+        const std::array<dealii::Tensor<1,dim,real2>,dim+2> &primitive_soln_gradient_rans,
+        const std::array<real2,nstate-(dim+2)> &primitive_soln_turbulence_model) const;
 
     /// Templated scale nondimensionalized eddy viscosity for the negative SA model
     template<typename real2> real2 scale_eddy_viscosity_templated(
-        const std::array<real2,nstate> &primitive_soln,
+        const std::array<real2,dim+2> &primitive_soln_rans,
         const real2 eddy_viscosity) const;
 
 private:
     /// Templated nondimensionalized eddy viscosity for the negative SA model.
     template<typename real2> real2 compute_eddy_viscosity_templated(
-        const std::array<real2,nstate> &primitive_soln,
-        const std::array<dealii::Tensor<1,dim,real2>,nstate> &primitive_soln_gradient,
-        const dealii::types::global_dof_index cell_index) const;
+        const std::array<real2,dim+2> &primitive_soln_rans,
+        const std::array<real2,nstate-(dim+2)> &primitive_soln_turbulence_model) const;
 };
 
 

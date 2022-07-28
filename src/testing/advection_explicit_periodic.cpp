@@ -159,6 +159,7 @@ int AdvectionPeriodic<dim, nstate>::run_test() const
     // Create ODE solver using the factory and providing the DG object
     std::shared_ptr<PHiLiP::ODE::ODESolverBase<dim, double>> ode_solver = PHiLiP::ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
     double finalTime = 2.0;
+    if(dim==3) finalTime = 0.1;//to speed things up locally
 	
     //need to call ode_solver before calculating energy because mass matrix isn't allocated yet.
 

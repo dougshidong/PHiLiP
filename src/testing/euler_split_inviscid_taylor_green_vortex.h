@@ -58,6 +58,8 @@ private:
     /* That is it uses the ESFR mass matrix \f$M+K\f$ in the integral rather than the DG mass matrix
     */
     double compute_MK_energy(std::shared_ptr < DGBase<dim, double> > &dg, unsigned int poly_degree) const;
+    /// Computes the timestep from max eignevector.
+    double get_timestep(std::shared_ptr < DGBase<dim, double> > &dg, unsigned int poly_degree, const double delta_x) const;
 };
 
 

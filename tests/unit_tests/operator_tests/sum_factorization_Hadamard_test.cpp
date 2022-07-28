@@ -302,10 +302,13 @@ int main (int argc, char * argv[])
         (float)time_diff_sum[i]/CLOCKS_PER_SEC<<" "<<std::log(((float)time_diff_sum[i]/CLOCKS_PER_SEC) /( (float)time_diff_sum[i-1]/CLOCKS_PER_SEC))
                         / std::log((double)((i)/(i-1.0)))<<
         std::endl;
-        avg_slope1 += std::log(((float)time_diff_sum[i]/CLOCKS_PER_SEC) /( (float)time_diff_sum[i-1]/CLOCKS_PER_SEC))
+        if(i>poly_max-4){
+            avg_slope1 += std::log(((float)time_diff_sum[i]/CLOCKS_PER_SEC) /( (float)time_diff_sum[i-1]/CLOCKS_PER_SEC))
                         / std::log((double)((i)/(i-1.0)));
+        }
     }
-    avg_slope1 /= (poly_max-1.0 - (poly_min+1.0));
+   // avg_slope1 /= (poly_max-1.0 - (poly_min+1.0));
+    avg_slope1 /= (3);
 
     pcout<<" regular slope "<<first_slope_mpi<<" sum-factorization slope "<<sum_slope_mpi<<std::endl;
 
@@ -318,13 +321,16 @@ int main (int argc, char * argv[])
         (float)time_diff_sum_dir2[i]/CLOCKS_PER_SEC<<" "<<std::log(((float)time_diff_sum_dir2[i]/CLOCKS_PER_SEC) /( (float)time_diff_sum_dir2[i-1]/CLOCKS_PER_SEC))
                         / std::log((double)((i)/(i-1.0)))<<
         std::endl;
-        avg_slope2 += std::log(((float)time_diff_sum_dir2[i]/CLOCKS_PER_SEC) /( (float)time_diff_sum_dir2[i-1]/CLOCKS_PER_SEC))
+        if(i>poly_max-4){
+            avg_slope2 += std::log(((float)time_diff_sum_dir2[i]/CLOCKS_PER_SEC) /( (float)time_diff_sum_dir2[i-1]/CLOCKS_PER_SEC))
                         / std::log((double)((i)/(i-1.0)));
+        }
     }
-    avg_slope2 /= (poly_max-1.0 - (poly_min+1.0));
+   // avg_slope2 /= (poly_max-1.0 - (poly_min+1.0));
+    avg_slope2 /= (3);
 
+    double avg_slope3 = 0.0;
     if(dim==3){
-        double avg_slope3 = 0.0;
         pcout<<"Times for operation A*u in Direction z"<<std::endl;
         pcout<<"Normal operation A*u  | Slope |  "<<"Sum factorization | Slope "<<std::endl;
         for(unsigned int i=poly_min+1; i<poly_max; i++){
@@ -333,13 +339,16 @@ int main (int argc, char * argv[])
             (float)time_diff_sum_dir3[i]/CLOCKS_PER_SEC<<" "<<std::log(((float)time_diff_sum_dir3[i]/CLOCKS_PER_SEC) /( (float)time_diff_sum_dir3[i-1]/CLOCKS_PER_SEC))
                             / std::log((double)((i)/(i-1.0)))<<
             std::endl;
-            avg_slope3 += std::log(((float)time_diff_sum_dir3[i]/CLOCKS_PER_SEC) /( (float)time_diff_sum_dir3[i-1]/CLOCKS_PER_SEC))
+            if(i>poly_max-4){
+                avg_slope3 += std::log(((float)time_diff_sum_dir3[i]/CLOCKS_PER_SEC) /( (float)time_diff_sum_dir3[i-1]/CLOCKS_PER_SEC))
                             / std::log((double)((i)/(i-1.0)));
+            }
         }
-        avg_slope3 /= (poly_max-1.0 - (poly_min+1.0));
+           // avg_slope3 /= (poly_max-1.0 - (poly_min+1.0));
+            avg_slope3 /= (3);
 
-        pcout<<"average slope 1 "<<avg_slope1<<" average slope 2 "<<avg_slope2<<" average slope 3 "<<avg_slope3<<std::endl;
     }
+    pcout<<"average slope 1 "<<avg_slope1<<" average slope 2 "<<avg_slope2<<" average slope 3 "<<avg_slope3<<std::endl;
 
 //output sum factorization derivative slope
     pcout<<"Sum factorization Direct Conservative A*u  | Slope "<<std::endl;
@@ -355,6 +364,10 @@ int main (int argc, char * argv[])
     }
     if(different_mass==true){
         pcout<<"Sum factorization not recover same vector Mass*u."<<std::endl;
+        return 1;
+    }
+    if(avg_slope1 > dim+1.1 || avg_slope2 > dim+1.1 ||avg_slope3 > dim+1.1){
+        pcout<<"Sum factorization not give correct comp cost slope."<<std::endl;
         return 1;
     }
     else{

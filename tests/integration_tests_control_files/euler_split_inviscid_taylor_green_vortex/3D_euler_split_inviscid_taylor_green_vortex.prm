@@ -24,7 +24,7 @@ set use_energy = true
 
 set flux_reconstruction = cDG
 
-set use_inverse_mass_on_the_fly = false
+set use_inverse_mass_on_the_fly = true
 
 set use_weight_adjusted_mass = false
 

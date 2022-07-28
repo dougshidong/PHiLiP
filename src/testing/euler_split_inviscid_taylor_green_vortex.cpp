@@ -102,6 +102,46 @@ double EulerTaylorGreen<dim, nstate>::compute_kinetic_energy(std::shared_ptr < D
     return total_kinetic_energy;
 }
 
+template<int dim, int nstate>
+double EulerTaylorGreen<dim, nstate>::get_timestep(std::shared_ptr < DGBase<dim, double> > &dg, unsigned int poly_degree, const double delta_x) const
+{
+    //get local CFL
+    const unsigned int n_dofs_cell = nstate*pow(poly_degree+1,dim);
+    const unsigned int n_quad_pts = pow(poly_degree+1,dim);
+    std::vector<dealii::types::global_dof_index> dofs_indices1 (n_dofs_cell);
+
+    double cfl_min = 1e100;
+    std::shared_ptr < Physics::PhysicsBase<dim, nstate, double > > pde_physics_double  = PHiLiP::Physics::PhysicsFactory<dim,nstate,double>::create_Physics(dg->all_parameters);
+    for (auto cell = dg->dof_handler.begin_active(); cell!=dg->dof_handler.end(); ++cell) {
+        if (!cell->is_locally_owned()) continue;
+
+        cell->get_dof_indices (dofs_indices1);
+        std::vector< std::array<double,nstate>> soln_at_q(n_quad_pts);
+        for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
+            for (int istate=0; istate<nstate; istate++) {
+                soln_at_q[iquad][istate]      = 0;
+            }
+        }
+        for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
+          dealii::Point<dim> qpoint = dg->volume_quadrature_collection[poly_degree].point(iquad);
+            for(unsigned int idof=0; idof<n_dofs_cell; idof++){
+                const unsigned int istate = dg->fe_collection[poly_degree].system_to_component_index(idof).first;
+                soln_at_q[iquad][istate] += dg->solution[dofs_indices1[idof]] * dg->fe_collection[poly_degree].shape_value_component(idof, qpoint, istate);
+            }
+        }
+        std::vector< double > convective_eigenvalues(n_quad_pts);
+        for (unsigned int isol = 0; isol < n_quad_pts; ++isol) {
+            convective_eigenvalues[isol] = pde_physics_double->max_convective_eigenvalue (soln_at_q[isol]);
+        }
+        const double max_eig = *(std::max_element(convective_eigenvalues.begin(), convective_eigenvalues.end()));
+       // double cfl = 0.1 * delta_x/max_eig;
+        double cfl = 0.05 * delta_x/max_eig;
+        if(cfl < cfl_min)
+            cfl_min = cfl;
+
+    }
+    return cfl_min;
+}
 template <int dim, int nstate>
 int EulerTaylorGreen<dim, nstate>::run_test() const
 {
@@ -129,7 +169,7 @@ int EulerTaylorGreen<dim, nstate>::run_test() const
 
 
 //    dealii::GridGenerator::hyper_cube(*grid, left, right, colorize);
-     
+//   
 //    std::vector<dealii::GridTools::PeriodicFacePair<typename dealii::Triangulation<PHILIP_DIM>::cell_iterator> > matched_pairs;
 //    dealii::GridTools::collect_periodic_faces(*grid,0,1,0,matched_pairs);
 //    dealii::GridTools::collect_periodic_faces(*grid,2,3,1,matched_pairs);
@@ -149,53 +189,18 @@ int EulerTaylorGreen<dim, nstate>::run_test() const
     double delta_x = (right-left)/n_global_active_cells2/(poly_degree+1.0);
     pcout<<" delta x "<<delta_x<<std::endl;
 
-    //get local CFL
-    const unsigned int n_dofs_cell = nstate*pow(poly_degree+1,dim);
-    const unsigned int n_quad_pts = pow(poly_degree+1,dim);
-    std::vector<dealii::types::global_dof_index> dofs_indices1 (n_dofs_cell);
-
-    double cfl_min = 1e100;
-    std::shared_ptr < Physics::PhysicsBase<dim, nstate, double > > pde_physics_double  = PHiLiP::Physics::PhysicsFactory<dim,nstate,double>::create_Physics(&all_parameters_new);
-    for (auto cell = dg->dof_handler.begin_active(); cell!=dg->dof_handler.end(); ++cell) {
-        if (!cell->is_locally_owned()) continue;
-
-        cell->get_dof_indices (dofs_indices1);
-        std::vector< std::array<double,nstate>> soln_at_q(n_quad_pts);
-        for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
-            for (int istate=0; istate<nstate; istate++) {
-                soln_at_q[iquad][istate]      = 0;
-            }
-        }
-        for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
-          dealii::Point<dim> qpoint = dg->volume_quadrature_collection[poly_degree].point(iquad);
-            for(unsigned int idof=0; idof<n_dofs_cell; idof++){
-                const unsigned int istate = dg->fe_collection[poly_degree].system_to_component_index(idof).first;
-                soln_at_q[iquad][istate] += dg->solution[dofs_indices1[idof]] * dg->fe_collection[poly_degree].shape_value_component(idof, qpoint, istate);
-            }
-        }
-        std::vector< double > convective_eigenvalues(n_quad_pts);
-        for (unsigned int isol = 0; isol < n_quad_pts; ++isol) {
-            convective_eigenvalues[isol] = pde_physics_double->max_convective_eigenvalue (soln_at_q[isol]);
-        }
-        const double max_eig = *(std::max_element(convective_eigenvalues.begin(), convective_eigenvalues.end()));
-        double cfl = 0.1 * delta_x/max_eig;
-        if(cfl < cfl_min)
-            cfl_min = cfl;
-
-    }
-    all_parameters_new.ode_solver_param.initial_time_step =  cfl_min;
-    pcout<<"The new timestep with eigenval is "<<cfl_min<<" compared to previous "<<0.1 * delta_x<<std::endl;
+    all_parameters_new.ode_solver_param.initial_time_step =  get_timestep(dg,poly_degree,delta_x);
      
     std::cout << "creating ODE solver" << std::endl;
     std::shared_ptr<ODE::ODESolverBase<dim, double>> ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
     std::cout << "ODE solver successfully created" << std::endl;
     double finalTime = 14.;
+    finalTime = 0.4;
 //    finalTime = 0.1;//to speed things up locally in tests, doesn't need full 14seconds to verify.
     double dt = all_parameters_new.ode_solver_param.initial_time_step;
 //    double dt = all_parameters_new.ode_solver_param.initial_time_step / 10.0;
  
 
-    finalTime = dt;
 
     std::cout<<" number dofs "<<
             dg->dof_handler.n_dofs()<<std::endl;
@@ -244,6 +249,8 @@ int EulerTaylorGreen<dim, nstate>::run_test() const
           std::cout << std::setprecision(16) << std::fixed;
           pcout << "M plus K norm at time " << i * dt << " is " << current_MK_energy<< std::endl;
           myfile << i * dt << " " << std::fixed << std::setprecision(16) << current_MK_energy << std::endl;
+
+        all_parameters_new.ode_solver_param.initial_time_step =  get_timestep(dg,poly_degree, delta_x);
     }
 
     myfile.close();

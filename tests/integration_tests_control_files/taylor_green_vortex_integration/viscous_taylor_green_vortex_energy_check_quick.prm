@@ -20,7 +20,7 @@ set diss_num_flux = symm_internal_penalty
 # ODE solver
 subsection ODE solver
   set ode_output = quiet
-  set ode_solver_type = explicit
+  set ode_solver_type = runge_kutta
   subsection explicit solver options
     set runge_kutta_order = 3
   end

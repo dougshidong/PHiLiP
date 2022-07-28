@@ -1,11 +1,11 @@
-#include "explicit_ode_solver.h"
+#include "runge_kutta_ode_solver.h"
 #include "linear_solver/linear_solver.h"
 
 namespace PHiLiP {
 namespace ODE {
 
 template <int dim, typename real, typename MeshType>
-ExplicitODESolver<dim,real,MeshType>::ExplicitODESolver(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input)
+RungeKuttaODESolver<dim,real,MeshType>::RungeKuttaODESolver(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input)
         : ODESolverBase<dim,real,MeshType>(dg_input)
         , rk_order(this->ode_param.runge_kutta_order)
         , implicit_flag(this->ode_param.implicit_rk_flag_testing)
@@ -13,7 +13,7 @@ ExplicitODESolver<dim,real,MeshType>::ExplicitODESolver(std::shared_ptr< DGBase<
     {}
 
 template <int dim, typename real, typename MeshType>
-void ExplicitODESolver<dim,real,MeshType>::step_in_time (real dt, const bool pseudotime)
+void RungeKuttaODESolver<dim,real,MeshType>::step_in_time (real dt, const bool pseudotime)
 {  
     this->solution_update = this->dg->solution; //storing u_n
     
@@ -102,6 +102,7 @@ void ExplicitODESolver<dim,real,MeshType>::step_in_time (real dt, const bool pse
 }
 
 template <int dim, typename real, typename MeshType>
+<<<<<<< HEAD:src/ode_solver/explicit_ode_solver.cpp
 void ExplicitODESolver<dim,real,MeshType>::modify_time_step(real &/*dt*/)
 {
     //do nothing
@@ -109,6 +110,9 @@ void ExplicitODESolver<dim,real,MeshType>::modify_time_step(real &/*dt*/)
 
 template <int dim, typename real, typename MeshType>
 void ExplicitODESolver<dim,real,MeshType>::allocate_ode_system ()
+=======
+void RungeKuttaODESolver<dim,real,MeshType>::allocate_ode_system ()
+>>>>>>> Renamed explicit --> runge_kutta to reflect addition of implicit capability:src/ode_solver/runge_kutta_ode_solver.cpp
 {
     this->pcout << "Allocating ODE system and evaluating inverse mass matrix..." << std::endl;
     const bool do_inverse_mass_matrix = true;
@@ -157,10 +161,10 @@ void ExplicitODESolver<dim,real,MeshType>::allocate_ode_system ()
     }
 }
 
-template class ExplicitODESolver<PHILIP_DIM, double, dealii::Triangulation<PHILIP_DIM>>;
-template class ExplicitODESolver<PHILIP_DIM, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class RungeKuttaODESolver<PHILIP_DIM, double, dealii::Triangulation<PHILIP_DIM>>;
+template class RungeKuttaODESolver<PHILIP_DIM, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
 #if PHILIP_DIM != 1
-template class ExplicitODESolver<PHILIP_DIM, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+template class RungeKuttaODESolver<PHILIP_DIM, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
 #endif
 
 } // ODESolver namespace

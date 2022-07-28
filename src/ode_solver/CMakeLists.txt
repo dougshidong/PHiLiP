@@ -1,7 +1,7 @@
 set(ODE_SOURCE
     ode_solver_factory.cpp
     ode_solver_base.cpp
-    explicit_ode_solver.cpp
+    runge_kutta_ode_solver.cpp
     implicit_ode_solver.cpp
     pod_galerkin_ode_solver.cpp
     pod_petrov_galerkin_ode_solver.cpp

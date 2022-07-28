@@ -1,7 +1,7 @@
 #include "ode_solver_factory.h"
 #include "parameters/all_parameters.h"
 #include "ode_solver_base.h"
-#include "explicit_ode_solver.h"
+#include "runge_kutta_ode_solver.h"
 #include "implicit_ode_solver.h"
 #include "rrk_explicit_ode_solver.h"
 #include "pod_galerkin_ode_solver.h"
@@ -17,7 +17,7 @@ std::shared_ptr<ODESolverBase<dim,real,MeshType>> ODESolverFactory<dim,real,Mesh
     std::cout << "Creating ODE Solver..." << std::endl;
     using ODEEnum = Parameters::ODESolverParam::ODESolverEnum;
     ODEEnum ode_solver_type = dg_input->all_parameters->ode_solver_param.ode_solver_type;
-    if(ode_solver_type == ODEEnum::explicit_solver)        return std::make_shared<ExplicitODESolver<dim,real,MeshType>>(dg_input);
+    if(ode_solver_type == ODEEnum::runge_kutta_solver)        return std::make_shared<RungeKuttaODESolver<dim,real,MeshType>>(dg_input);
     if(ode_solver_type == ODEEnum::implicit_solver)        return std::make_shared<ImplicitODESolver<dim,real,MeshType>>(dg_input);
     if constexpr(dim==1){
         //RRK is only implemented for Burgers on collocated nodes, 1D
@@ -57,7 +57,7 @@ template <int dim, typename real, typename MeshType>
 std::shared_ptr<ODESolverBase<dim,real,MeshType>> ODESolverFactory<dim,real,MeshType>::create_ODESolver_manual(Parameters::ODESolverParam::ODESolverEnum ode_solver_type, std::shared_ptr< DGBase<dim,real,MeshType> > dg_input)
 {
     using ODEEnum = Parameters::ODESolverParam::ODESolverEnum;
-    if(ode_solver_type == ODEEnum::explicit_solver)        return std::make_shared<ExplicitODESolver<dim,real,MeshType>>(dg_input);
+    if(ode_solver_type == ODEEnum::runge_kutta_solver) return std::make_shared<RungeKuttaODESolver<dim,real,MeshType>>(dg_input);
     if(ode_solver_type == ODEEnum::implicit_solver)        return std::make_shared<ImplicitODESolver<dim,real,MeshType>>(dg_input);
     if constexpr(dim==1){
         //RRK is only implemented for Burgers on collocated nodes, 1D

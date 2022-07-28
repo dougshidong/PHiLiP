@@ -24,14 +24,14 @@ void ODESolverParam::declare_parameters (dealii::ParameterHandler &prm)
 
         prm.declare_entry("ode_solver_type", "implicit",
                           dealii::Patterns::Selection(
-                          " explicit | "
+                          " runge_kutta | "
                           " implicit | "
                           " rrk_explicit | "
                           " pod_galerkin | "
                           " pod_petrov_galerkin"),
                           "Type of ODE solver to use."
                           "Choices are "
-                          " <explicit | "
+                          " <runge_kutta | "
                           " implicit | "
                           " rrk_explicit | "
                           " pod_galerkin | "
@@ -109,7 +109,7 @@ void ODESolverParam::parse_parameters (dealii::ParameterHandler &prm)
         output_solution_every_dt_time_intervals = prm.get_double("output_solution_every_dt_time_intervals");
 
         const std::string solver_string = prm.get("ode_solver_type");
-        if (solver_string == "explicit") ode_solver_type = ODESolverEnum::explicit_solver;
+        if (solver_string == "runge_kutta") ode_solver_type = ODESolverEnum::runge_kutta_solver;
         if (solver_string == "implicit") ode_solver_type = ODESolverEnum::implicit_solver;
         if (solver_string == "rrk_explicit") ode_solver_type = ODESolverEnum::rrk_explicit_solver;
         if (solver_string == "pod_galerkin") ode_solver_type = ODESolverEnum::pod_galerkin_solver;

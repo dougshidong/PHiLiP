@@ -14,7 +14,7 @@ public:
     ODESolverParam (); ///< Constructor.
     /// Types of ODE solver
     enum ODESolverEnum {
-        explicit_solver, /// Explicit RK 
+        runge_kutta_solver, /// Explicit RK 
         implicit_solver,  /// Backward-Euler
         rrk_explicit_solver, /// Explicit RK using the relaxation Runge-Kutta method (Ketcheson, 2019)
         pod_galerkin_solver, ///Proper Orthogonal Decomposition with Galerkin projection

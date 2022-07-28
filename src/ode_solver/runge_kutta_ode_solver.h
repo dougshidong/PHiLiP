@@ -1,5 +1,5 @@
-#ifndef __EXPLICIT_ODESOLVER__
-#define __EXPLICIT_ODESOLVER__
+#ifndef __RUNGE_KUTTA_ODESOLVER__
+#define __RUNGE_KUTTA_ODESOLVER__
 
 #include "dg/dg.h"
 #include "ode_solver_base.h"
@@ -14,14 +14,14 @@ template <int dim, typename real, typename MeshType = dealii::Triangulation<dim>
 #else
 template <int dim, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
 #endif
-class ExplicitODESolver: public ODESolverBase <dim, real, MeshType>
+class RungeKuttaODESolver: public ODESolverBase <dim, real, MeshType>
 {
 public:
     /// Default constructor that will set the constants.
-    ExplicitODESolver(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input); ///< Constructor.
+    RungeKuttaODESolver(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input); ///< Constructor.
 
     /// Destructor
-    ~ExplicitODESolver() {};
+    ~RungeKuttaODESolver() {};
 
     /// Function to evaluate solution update
     void step_in_time(real dt, const bool pseudotime);

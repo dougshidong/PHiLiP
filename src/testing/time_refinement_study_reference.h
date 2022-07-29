@@ -33,7 +33,6 @@ protected:
     /// Ratio to refine by
     const double refine_ratio;
 
-
     /// Reinitialize parameters while refining the timestep. Necessary because all_parameters is constant.
     Parameters::AllParameters reinit_params_and_refine_timestep(int refinement) const;
 

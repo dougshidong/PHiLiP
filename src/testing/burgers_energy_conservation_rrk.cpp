@@ -36,7 +36,10 @@ int BurgersEnergyConservationRRK<dim, nstate>::compare_energy_to_initial(
         bool expect_conservation
         ) const{
     
-    const double final_energy = compute_energy_collocated(dg);
+    //pointer to flow_solver_case for computing energy
+    std::unique_ptr<FlowSolver::Periodic1DUnsteady<dim, nstate>> flow_solver_case = std::make_unique<FlowSolver::Periodic1DUnsteady<dim,nstate>>(this->all_parameters);
+
+    const double final_energy = flow_solver_case->compute_energy_collocated(dg);
     const double energy_change = abs(initial_energy-final_energy);
     pcout << "Energy change at end was " << energy_change <<std::endl;
     if (expect_conservation && (energy_change< 1E-13)){
@@ -57,20 +60,7 @@ int BurgersEnergyConservationRRK<dim, nstate>::compare_energy_to_initial(
 }
 
 template <int dim, int nstate>
-double BurgersEnergyConservationRRK<dim, nstate>::compute_energy_collocated(
-        const std::shared_ptr <DGBase<dim, double>> dg
-        ) const
-{
-    double energy = 0.0;
-    for (unsigned int i = 0; i < dg->solution.size(); ++i)
-    {
-        energy += 1./(dg->global_inverse_mass_matrix.diag_element(i)) * dg->solution(i) * dg->solution(i);
-    }
-    return energy;
-}
-
-template <int dim, int nstate>
-int BurgersEnergyConservationRRK<dim,nstate>::run_flow_solver(
+int BurgersEnergyConservationRRK<dim,nstate>::get_energy_and_compare_to_initial(
         const Parameters::AllParameters params,
         const double energy_initial,
         bool expect_conservation
@@ -101,12 +91,15 @@ int BurgersEnergyConservationRRK<dim, nstate>::run_test() const
     int testfail = 0;
     int failed_this_calculation = 0;
     
+    //pointer to flow_solver_case for computing energy
+    std::unique_ptr<FlowSolver::Periodic1DUnsteady<dim, nstate>> flow_solver_case = std::make_unique<FlowSolver::Periodic1DUnsteady<dim,nstate>>(this->all_parameters);
+
     // Get initial energy
     pcout << "\n\n-------------------------------------------------------------" << std::endl;
     pcout << "  Calculating initial energy..." << std::endl;
     pcout << "-------------------------------------------------------------" << std::endl;
     std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case((this->all_parameters), parameter_handler);
-    const double energy_initial = compute_energy_collocated(flow_solver->dg); //no need to run as ode_solver is allocated during construction
+    const double energy_initial = flow_solver_case->compute_energy_collocated(flow_solver->dg); //no need to run as ode_solver is allocated during construction
     pcout << "   Initial energy : " << energy_initial << std::endl;
 
     // Run four main tests
@@ -115,7 +108,7 @@ int BurgersEnergyConservationRRK<dim, nstate>::run_test() const
     pcout << "-------------------------------------------------------------" << std::endl;
 
     const Parameters::AllParameters params_large_rrk = reinit_params(true, time_step_large);
-    failed_this_calculation = run_flow_solver(params_large_rrk,
+    failed_this_calculation = get_energy_and_compare_to_initial(params_large_rrk,
                                               energy_initial,
                                               true); //expect_conservation = true
 
@@ -126,7 +119,7 @@ int BurgersEnergyConservationRRK<dim, nstate>::run_test() const
     pcout << "-------------------------------------------------------------" << std::endl;
 
     const Parameters::AllParameters params_large_norrk = reinit_params(false, time_step_large);
-    failed_this_calculation = run_flow_solver(params_large_norrk,
+    failed_this_calculation = get_energy_and_compare_to_initial(params_large_norrk,
                                               energy_initial,
                                               false); //expect_conservation = false 
     if (failed_this_calculation) testfail = 1;
@@ -136,7 +129,7 @@ int BurgersEnergyConservationRRK<dim, nstate>::run_test() const
     pcout << "-------------------------------------------------------------" << std::endl;
 
     const Parameters::AllParameters params_small_rrk = reinit_params(true, time_step_small);
-    failed_this_calculation = run_flow_solver(params_small_rrk,
+    failed_this_calculation = get_energy_and_compare_to_initial(params_small_rrk,
                                               energy_initial,
                                               true); //expect_conservation = true
     if (failed_this_calculation) testfail = 1;
@@ -146,7 +139,7 @@ int BurgersEnergyConservationRRK<dim, nstate>::run_test() const
     pcout << "-------------------------------------------------------------" << std::endl;
     
     const Parameters::AllParameters params_small_norrk = reinit_params(false, time_step_small);
-    failed_this_calculation = run_flow_solver(params_small_norrk,
+    failed_this_calculation = get_energy_and_compare_to_initial(params_small_norrk,
                                               energy_initial,
                                               true); //expect_conservation = true
     if (failed_this_calculation) testfail = 1;

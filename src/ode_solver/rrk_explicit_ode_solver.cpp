@@ -80,21 +80,9 @@ real RRKExplicitODESolver<dim,real,MeshType>::compute_inner_product (
     // For now, only energy on collocated nodes is implemented.
     
     real inner_product = 0;
-
-    bool use_collocated_nodes = ODESolverBase<dim,real,MeshType>::all_parameters->use_collocated_nodes;
-    using PDEEnum = Parameters::AllParameters::PartialDifferentialEquation;
-    PDEEnum pde_type = ODESolverBase<dim,real,MeshType>::all_parameters->pde_type;
-    bool use_inviscid_burgers = (pde_type == PDEEnum::burgers_inviscid);
-    
-    if (use_collocated_nodes && use_inviscid_burgers){
-        for (unsigned int i = 0; i < this->dg->solution.size(); ++i) {
-            inner_product += 1./(this->dg->global_inverse_mass_matrix.diag_element(i))
-                             * stage_i[i] * stage_j[i];
-                }
-    }else {
-        this->pcout << "RRK is only implemented for inviscid burgers and collocated nodes." << std::endl;
-        this->pcout << "Parameters are inconsistent with the implementation. Aborting..." << std::flush;
-        std::abort();
+    for (unsigned int i = 0; i < this->dg->solution.size(); ++i) {
+        inner_product += 1./(this->dg->global_inverse_mass_matrix.diag_element(i))
+                         * stage_i[i] * stage_j[i];
     }
     return inner_product;
 }

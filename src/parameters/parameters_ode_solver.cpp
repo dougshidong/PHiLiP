@@ -133,7 +133,6 @@ void ODESolverParam::parse_parameters (dealii::ParameterHandler &prm)
             if (runge_kutta_order_string == "1") runge_kutta_order = 1;
             if (runge_kutta_order_string == "3") runge_kutta_order = 3;
             if (runge_kutta_order_string == "4") runge_kutta_order = 4;
-
         }
         prm.leave_subsection();
     }

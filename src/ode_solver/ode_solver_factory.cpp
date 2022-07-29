@@ -89,20 +89,29 @@ std::shared_ptr<ODESolverBase<dim,real,MeshType>> ODESolverFactory<dim,real,Mesh
 template <int dim, typename real, typename MeshType>
 void ODESolverFactory<dim,real,MeshType>::display_error_ode_solver_factory(Parameters::ODESolverParam::ODESolverEnum ode_solver_type, bool reduced_order) {
     using ODEEnum = Parameters::ODESolverParam::ODESolverEnum;
+
+    std::string solver_string;    
+    if (ode_solver_type == ODEEnum::explicit_solver)               solver_string = "explicit";
+    if (ode_solver_type == ODEEnum::implicit_solver)               solver_string = "implicit";
+    if (ode_solver_type == ODEEnum::rrk_explicit_solver)           solver_string = "rrk_explicit";
+    if (ode_solver_type == ODEEnum::pod_galerkin_solver)           solver_string = "pod_galerkin";
+    if (ode_solver_type == ODEEnum::pod_petrov_galerkin_solver)    solver_string = "pod_petrov_galerkin";
+    else solver_string = "undefined";
+
     dealii::ConditionalOStream pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD)==0);
     pcout << "********************************************************************" << std::endl;
     pcout << "Can't create ODE solver since solver type is not clear." << std::endl;
-    pcout << "Solver type specified: " << ode_solver_type << std::endl;
+    pcout << "Solver type specified: " << solver_string << std::endl;
     pcout << "Solver type possible: " << std::endl;
     if(reduced_order){
-        pcout <<  ODEEnum::pod_galerkin_solver << std::endl;
-        pcout <<  ODEEnum::pod_petrov_galerkin_solver << std::endl;
+        pcout <<  "pod_galerkin" << std::endl;
+        pcout <<  "pod_petrov_galerkin" << std::endl;
     }
     else{
-        pcout <<  ODEEnum::explicit_solver << std::endl;
-        pcout <<  ODEEnum::implicit_solver << std::endl;
-        pcout <<  ODEEnum::rrk_explicit_solver << std::endl;
-        pcout << "    With " << ODEEnum::rrk_explicit_solver << " only being valid for " <<std::endl;
+        pcout <<  "explicit" << std::endl;
+        pcout <<  "implicit" << std::endl;
+        pcout <<  "rrk_explicit" << std::endl;
+        pcout << "    With rrk_explicit only being valid for " <<std::endl;
         pcout << "    pde_type = burgers and use_collocated_nodes = true" <<std::endl;
     }
     pcout << "********************************************************************" << std::endl;

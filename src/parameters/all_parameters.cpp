@@ -197,6 +197,14 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       "(i.e. model equations and/or terms additional to Navier-Stokes or a chosen underlying baseline physics)."
                       "Choices are "
                       " <large_eddy_simulation>.");
+
+    prm.declare_entry("model_type", "reynolds_averaged_navier_stokes",
+                      dealii::Patterns::Selection(
+                      "reynolds_averaged_navier_stokes"),
+                      "Enum of physics models "
+                      "(i.e. model equations and/or terms additional to Navier-Stokes or a chosen underlying baseline physics)."
+                      "Choices are "
+                      " <reynolds_averaged_navier_stokes>.");
     
     prm.declare_entry("conv_num_flux", "lax_friedrichs",
                       dealii::Patterns::Selection("lax_friedrichs | roe | l2roe | split_form"),
@@ -278,51 +286,51 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     else if (test_string == "burgers_energy_conservation_rrk")          { test_type = burgers_energy_conservation_rrk; }
     
     // WARNING: Must assign model_type before pde_type
-    const std::string model_string = prm.get("model_type");
-    if (model_string == "large_eddy_simulation") { model_type = large_eddy_simulation; }
-    else if (model_string == "reynolds_averaged_navier_stokes_one_equation") { model_type = reynolds_averaged_navier_stokes_one_equation; }
-
-    const std::string pde_string = prm.get("pde_type");
-    if (pde_string == "advection") {
-        pde_type = advection;
-        nstate = 1;
-    } else if (pde_string == "advection_vector") {
-        pde_type = advection_vector;
-        nstate = 2;
-    } else if (pde_string == "diffusion") {
-        pde_type = diffusion;
-        nstate = 1;
-    } else if (pde_string == "convection_diffusion") {
-        pde_type = convection_diffusion;
-        nstate = 1;
-    } else if (pde_string == "burgers_inviscid") {
-        pde_type = burgers_inviscid;
-        nstate = dimension;
-    } else if (pde_string == "burgers_viscous") {
-        pde_type = burgers_viscous;
-        nstate = dimension;
-    } else if (pde_string == "burgers_rewienski") {
-        pde_type = burgers_rewienski;
-        nstate = dimension;
-    } else if (pde_string == "euler") {
-        pde_type = euler;
-        nstate = dimension+2;
-    }
-    else if (pde_string == "navier_stokes") {
-        pde_type = navier_stokes;
-        nstate = dimension+2;
-    }
-    else if (pde_string == "physics_model") {
-        pde_type = physics_model;
-        if (model_type == large_eddy_simulation)
-        {
-            nstate = dimension+2;
-        }
-        else if (model_type == reynolds_averaged_navier_stokes_one_equation)
-        {
-            nstate = dimension+3;
-        }
-    }
+    //const std::string model_string = prm.get("model_type");
+    //if (model_string == "large_eddy_simulation") { model_type = large_eddy_simulation; }
+    //else if (model_string == "reynolds_averaged_navier_stokes") { model_type = reynolds_averaged_navier_stokes; }
+//
+    //const std::string pde_string = prm.get("pde_type");
+    //if (pde_string == "advection") {
+    //    pde_type = advection;
+    //    nstate = 1;
+    //} else if (pde_string == "advection_vector") {
+    //    pde_type = advection_vector;
+    //    nstate = 2;
+    //} else if (pde_string == "diffusion") {
+    //    pde_type = diffusion;
+    //    nstate = 1;
+    //} else if (pde_string == "convection_diffusion") {
+    //    pde_type = convection_diffusion;
+    //    nstate = 1;
+    //} else if (pde_string == "burgers_inviscid") {
+    //    pde_type = burgers_inviscid;
+    //    nstate = dimension;
+    //} else if (pde_string == "burgers_viscous") {
+    //    pde_type = burgers_viscous;
+    //    nstate = dimension;
+    //} else if (pde_string == "burgers_rewienski") {
+    //    pde_type = burgers_rewienski;
+    //    nstate = dimension;
+    //} else if (pde_string == "euler") {
+    //    pde_type = euler;
+    //    nstate = dimension+2;
+    //}
+    //else if (pde_string == "navier_stokes") {
+    //    pde_type = navier_stokes;
+    //    nstate = dimension+2;
+    //}
+    //else if (pde_string == "physics_model") {
+    //    pde_type = physics_model;
+    //    if (model_type == large_eddy_simulation)
+    //    {
+    //        nstate = dimension+2;
+    //    }
+    //    else if (model_type == reynolds_averaged_navier_stokes)
+    //    {
+    //        nstate = dimension+3;
+    //    }
+    //}
     
     overintegration = prm.get_integer("overintegration");
 
@@ -408,6 +416,54 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     
     pcout << "Parsing functional subsection..." << std::endl;
     functional_param.parse_parameters (prm);
+
+    // WARNING: Must assign model_type before pde_type
+    const std::string model_string = prm.get("model_type");
+    if (model_string == "large_eddy_simulation") { model_type = large_eddy_simulation; }
+    else if (model_string == "reynolds_averaged_navier_stokes") { model_type = reynolds_averaged_navier_stokes; }
+
+    const std::string pde_string = prm.get("pde_type");
+    if (pde_string == "advection") {
+        pde_type = advection;
+        nstate = 1;
+    } else if (pde_string == "advection_vector") {
+        pde_type = advection_vector;
+        nstate = 2;
+    } else if (pde_string == "diffusion") {
+        pde_type = diffusion;
+        nstate = 1;
+    } else if (pde_string == "convection_diffusion") {
+        pde_type = convection_diffusion;
+        nstate = 1;
+    } else if (pde_string == "burgers_inviscid") {
+        pde_type = burgers_inviscid;
+        nstate = dimension;
+    } else if (pde_string == "burgers_viscous") {
+        pde_type = burgers_viscous;
+        nstate = dimension;
+    } else if (pde_string == "burgers_rewienski") {
+        pde_type = burgers_rewienski;
+        nstate = dimension;
+    } else if (pde_string == "euler") {
+        pde_type = euler;
+        nstate = dimension+2;
+    }
+    else if (pde_string == "navier_stokes") {
+        pde_type = navier_stokes;
+        nstate = dimension+2;
+    }
+    else if (pde_string == "physics_model") {
+        pde_type = physics_model;
+        if (model_type == large_eddy_simulation)
+        {
+            nstate = dimension+2;
+        }
+        else if (model_type == reynolds_averaged_navier_stokes)
+        {
+            if(physics_model_param.RANS_model_type == Parameters::PhysicsModelParam::ReynoldsAveragedNavierStokesModel::SA_negative)
+              nstate = dimension+3;
+        }
+    }
     
     pcout << "Parsing time refinement study subsection..." << std::endl;
     time_refinement_study_param.parse_parameters (prm);

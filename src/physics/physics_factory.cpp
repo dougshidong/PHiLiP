@@ -149,7 +149,10 @@ PhysicsFactory<dim,nstate,real>
 
     using Model_enum = Parameters::AllParameters::ModelType;
     Model_enum model_type = parameters_input->model_type;
-    
+
+    using RANSModel_enum = Parameters::PhysicsModelParam::ReynoldsAveragedNavierStokesModel;
+    RANSModel_enum rans_model_type = parameters_input->physics_model_param.RANS_model_type;
+
     // ===============================================================================
     // Physics Model
     // ===============================================================================
@@ -187,32 +190,35 @@ PhysicsFactory<dim,nstate,real>
         }
     }
     // -------------------------------------------------------------------------------
-    // Reynolds-Averaged Navier-Stokes (RANS) + one-equation model
+    // Reynolds-Averaged Navier-Stokes (RANS) + RANS model
     // -------------------------------------------------------------------------------
-    else if (model_type == Model_enum::reynolds_averaged_navier_stokes_one_equation) {
-        if constexpr ((nstate==dim+3) && (dim==3)) {
-            // Assign baseline physics type (and corresponding nstates) based on the physics model type
-            // -- Assign nstates for the baseline physics (constexpr because template parameter)
-            constexpr int nstate_baseline_physics = dim+2;
-            // -- Assign baseline physics type
-            if(parameters_input->physics_model_param.euler_turbulence) {
-                baseline_physics_type = PDE_enum::euler;
-            }
-            else {
-                baseline_physics_type = PDE_enum::navier_stokes;
-            }
+    else if (model_type == Model_enum::reynolds_averaged_navier_stokes) {
+        if (rans_model_type == RANSModel_enum::SA_negative)
+        {
+            if constexpr ((nstate==dim+3) && (dim==3)) {
+                // Assign baseline physics type (and corresponding nstates) based on the physics model type
+                // -- Assign nstates for the baseline physics (constexpr because template parameter)
+                constexpr int nstate_baseline_physics = dim+2;
+                // -- Assign baseline physics type
+                if(parameters_input->physics_model_param.euler_turbulence) {
+                    baseline_physics_type = PDE_enum::euler;
+                }
+                else {
+                    baseline_physics_type = PDE_enum::navier_stokes;
+                }
 
-            // Create the physics model object in physics
-            return std::make_shared < PhysicsModel<dim,nstate,real,nstate_baseline_physics> > (
+                // Create the physics model object in physics
+                return std::make_shared < PhysicsModel<dim,nstate,real,nstate_baseline_physics> > (
                     parameters_input,
                     baseline_physics_type,
                     model_input,
                     manufactured_solution_function);
-        }
-        else {
-            // RANS+one-equation model does not exist for nstate!=(dim+3) || dim!=3
-            (void) baseline_physics_type;
-            return nullptr;
+            }
+            else {
+                // RANS+one-equation model does not exist for nstate!=(dim+3) || dim!=3
+                (void) baseline_physics_type;
+                return nullptr;
+            }
         }
     }
     else {

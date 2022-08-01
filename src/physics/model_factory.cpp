@@ -108,30 +108,42 @@ ModelFactory<dim,nstate,real>
             }
         } 
         // -------------------------------------------------------------------------------
-        // Reynolds-Averaged Navier-Stokes (RANS) + one-equation model
+        // Reynolds-Averaged Navier-Stokes (RANS) + RANS model
         // -------------------------------------------------------------------------------
-        else if (model_type == Model_enum::reynolds_averaged_navier_stokes_one_equation) {
-            if constexpr ((nstate==dim+3) && (dim==3)) {
-                // Create Reynolds-Averaged Navier-Stokes (RANS) model with one-equation model        
-                return std::make_shared < ReynoldsAveragedNavierStokes_SAneg<dim,nstate,real> > (
-                    parameters_input->euler_param.ref_length,
-                    parameters_input->euler_param.gamma_gas,
-                    parameters_input->euler_param.mach_inf,
-                    parameters_input->euler_param.angle_of_attack,
-                    parameters_input->euler_param.side_slip_angle,
-                    parameters_input->navier_stokes_param.prandtl_number,
-                    parameters_input->navier_stokes_param.reynolds_number_inf,
-                    parameters_input->physics_model_param.turbulent_prandtl_number,
-                    parameters_input->navier_stokes_param.nondimensionalized_isothermal_wall_temperature,
-                    parameters_input->navier_stokes_param.thermal_boundary_condition_type,
-                    manufactured_solution_function);
-            }   
-            else {
-                // Reynolds-Averaged Navier-Stokes (RANS) model with one-equation model does not exist for nstate!=(dim+3) || dim!=3
-                manufactured_solution_function = nullptr;
-                return nullptr;
+        else if (model_type == Model_enum::reynolds_averaged_navier_stokes) {
+            using RANSModel_enum = Parameters::PhysicsModelParam::ReynoldsAveragedNavierStokesModel;
+            RANSModel_enum rans_model_type = parameters_input->physics_model_param.RANS_model_type;  
+            // Create Reynolds-Averaged Navier-Stokes (RANS) model with one-equation model  
+            if(rans_model_type == RANSModel_enum::SA_negative){
+                if constexpr ((nstate==dim+3) && (dim==3)) {
+                    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+                    // SA negative model
+                    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -      
+                    return std::make_shared < ReynoldsAveragedNavierStokes_SAneg<dim,nstate,real> > (
+                        parameters_input->euler_param.ref_length,
+                        parameters_input->euler_param.gamma_gas,
+                        parameters_input->euler_param.mach_inf,
+                        parameters_input->euler_param.angle_of_attack,
+                        parameters_input->euler_param.side_slip_angle,
+                        parameters_input->navier_stokes_param.prandtl_number,
+                        parameters_input->navier_stokes_param.reynolds_number_inf,
+                        parameters_input->physics_model_param.turbulent_prandtl_number,
+                        parameters_input->navier_stokes_param.nondimensionalized_isothermal_wall_temperature,
+                        parameters_input->navier_stokes_param.thermal_boundary_condition_type,
+                        manufactured_solution_function);
+                }
+                else {
+                    // SA negative does not exist for nstate!=(dim+3) || dim!=3
+                    manufactured_solution_function = nullptr;
+                    return nullptr;
+                }   
             }
-        }       
+            else {
+                    std::cout << "Can't create ReynoldsAveragedNavierStokesBase, invalid RANSModelType type: " << rans_model_type << std::endl;
+                    assert(0==1 && "Can't create ReynoldsAveragedNavierStokesBase, invalid RANSModelType type");
+                    return nullptr;
+            }
+        }
         else {
             // prevent warnings for dim=3,nstate=4, etc.
             // to avoid "unused variable" warnings
@@ -139,7 +151,7 @@ ModelFactory<dim,nstate,real>
             assert(0==1 && "Can't create ModelBase, invalid ModelType type");
             manufactured_solution_function = nullptr;
             return nullptr;
-        }
+        }          
     } 
     else {
         return nullptr;

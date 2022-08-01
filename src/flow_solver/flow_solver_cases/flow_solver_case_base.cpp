@@ -16,9 +16,10 @@ FlowSolverCaseBase<dim, nstate>::FlowSolverCaseBase(const PHiLiP::Parameters::Al
 template<int dim, int nstate>
 std::string FlowSolverCaseBase<dim, nstate>::get_pde_string() const
 {
-    using PDE_enum      = Parameters::AllParameters::PartialDifferentialEquation;
-    using Model_enum    = Parameters::AllParameters::ModelType;
-    using SGSModel_enum = Parameters::PhysicsModelParam::SubGridScaleModel;
+    using PDE_enum       = Parameters::AllParameters::PartialDifferentialEquation;
+    using Model_enum     = Parameters::AllParameters::ModelType;
+    using SGSModel_enum  = Parameters::PhysicsModelParam::SubGridScaleModel;
+    using RANSModel_enum = Parameters::PhysicsModelParam::ReynoldsAveragedNavierStokesModel;
     
     const PDE_enum pde_type = this->all_param.pde_type;
     std::string pde_string;
@@ -49,16 +50,15 @@ std::string FlowSolverCaseBase<dim, nstate>::get_pde_string() const
             else if(sgs_model==SGSModel_enum::vreman) sgs_model_string = "vreman";
             pde_string += std::string(" (Model: ") + model_string + std::string(", SGS Model: ") + sgs_model_string + std::string(")");
         }
-        else if(model == Model_enum::reynolds_averaged_navier_stokes_one_equation) {
+        else if(model == Model_enum::reynolds_averaged_navier_stokes) {
             // assign model string
-            model_string = "reynolds_averaged_navier_stokes_one_equation";
-            // one-equation model
-            //const OneEquationModel_enum one_equation_model = this->all_param.physics_model_param.one_equation_model_type;
-            //std::string one_equation_model_string = "WARNING: invalid one-equation model";
-            // assign one-equation model string
-            //if     (one_equation_model==OneEquationModel_enum::negative_SA) one_equation_model_string = "negative_SA";
-            //pde_string += std::string(" (Model: ") + model_string + std::string(", one-equation Model: ") + one_equation_model_string + std::string(")");
-            pde_string += std::string(" (Model: ") + model_string + std::string(")");
+            model_string = "reynolds_averaged_navier_stokes";
+            // reynolds-averaged navier-stokes (RANS)
+            const RANSModel_enum rans_model = this->all_param.physics_model_param.RANS_model_type;
+            std::string rans_model_string = "WARNING: invalid RANS model";
+            // assign RANS model string
+            if     (rans_model==RANSModel_enum::SA_negative) rans_model_string = "SA_negative";
+            pde_string += std::string(" (Model: ") + model_string + std::string(", RANS Model: ") + rans_model_string + std::string(")");
         }
         if(pde_string == "physics_model") pde_string += std::string(" (Model: ") + model_string + std::string(")");
     }

@@ -32,7 +32,7 @@ subsection time_refinement_study
 end
 
 subsection flow_solver
-  set flow_case_type = advection_periodic
+  set flow_case_type = periodic_1D_unsteady
   set final_time = 1.0
   set poly_degree = 5
   subsection grid

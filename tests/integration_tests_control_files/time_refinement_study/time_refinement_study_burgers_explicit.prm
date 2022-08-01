@@ -11,7 +11,7 @@ set use_periodic_bc = true
 
 # for split form & energy-stable flux
 set use_weak_form = false
-set use_collocated_nodes = true
+set use_collocated_nodes = true 
 set use_split_form = true
 set conv_num_flux = split_form #change to entropy_conserving_flux after merging ESFR
 
@@ -32,7 +32,7 @@ subsection time_refinement_study
 end
 
 subsection flow_solver
-  set flow_case_type = burgers_periodic
+  set flow_case_type = periodic_1D_unsteady
   set final_time = 0.1 
   set poly_degree = 5
   set unsteady_data_table_filename = burgers_unsteady_data

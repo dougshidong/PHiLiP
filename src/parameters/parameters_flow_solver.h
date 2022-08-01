@@ -20,8 +20,7 @@ public:
         burgers_viscous_snapshot,
         naca0012,
         burgers_rewienski_snapshot,
-        burgers_periodic,
-        advection_periodic,
+        periodic_1D_unsteady,
         gaussian_bump
         };
     FlowCaseType flow_case_type; ///< Selected FlowCaseType from the input file

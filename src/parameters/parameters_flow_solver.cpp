@@ -19,8 +19,7 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                           " burgers_viscous_snapshot | "
                           " naca0012 | "
                           " burgers_rewienski_snapshot | "
-                          " burgers_periodic | "
-                          " advection_periodic | "
+                          " periodic_1D_unsteady | "
                           " gaussian_bump "),
                           "The type of flow we want to simulate. "
                           "Choices are "
@@ -28,8 +27,7 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                           " burgers_viscous_snapshot | "
                           " naca0012 | "
                           " burgers_rewienski_snapshot | "
-                          " burgers_periodic | "
-                          " advection_periodic | "
+                          " periodic_1D_unsteady | "
                           " gaussian_bump>. ");
 
         prm.declare_entry("poly_degree", "1",
@@ -177,8 +175,7 @@ void FlowSolverParam::parse_parameters(dealii::ParameterHandler &prm)
         else if (flow_case_type_string == "burgers_viscous_snapshot")   {flow_case_type = burgers_viscous_snapshot;}
         else if (flow_case_type_string == "burgers_rewienski_snapshot") {flow_case_type = burgers_rewienski_snapshot;}
         else if (flow_case_type_string == "naca0012")                   {flow_case_type = naca0012;}
-        else if (flow_case_type_string == "burgers_periodic")           {flow_case_type = burgers_periodic;}
-        else if (flow_case_type_string == "advection_periodic")         {flow_case_type = advection_periodic;}
+        else if (flow_case_type_string == "periodic_1D_unsteady")       {flow_case_type = periodic_1D_unsteady;}
         else if (flow_case_type_string == "gaussian_bump")              {flow_case_type = gaussian_bump;}
 
         poly_degree = prm.get_integer("poly_degree");

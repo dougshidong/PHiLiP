@@ -24,7 +24,7 @@ std::shared_ptr<ODESolverBase<dim,real,MeshType>> ODESolverFactory<dim,real,Mesh
         using PDEEnum = Parameters::AllParameters::PartialDifferentialEquation;
         PDEEnum pde_type = dg_input->all_parameters->pde_type;
         bool use_inviscid_burgers = (pde_type == PDEEnum::burgers_inviscid);
-        if (use_collocated_nodes && use_inviscid_burgers)  return std::make_shared<RRKExplicitODESolver<dim,real,MeshType>>(dg_input);
+        if (use_collocated_nodes && use_inviscid_burgers && dim == 1)  return std::make_shared<RRKExplicitODESolver<dim,real,MeshType>>(dg_input);
         else{
             display_error_ode_solver_factory(ode_solver_type, false);
             return nullptr;
@@ -61,7 +61,7 @@ std::shared_ptr<ODESolverBase<dim,real,MeshType>> ODESolverFactory<dim,real,Mesh
         using PDEEnum = Parameters::AllParameters::PartialDifferentialEquation;
         PDEEnum pde_type = dg_input->all_parameters->pde_type;
         bool use_inviscid_burgers = (pde_type == PDEEnum::burgers_inviscid);
-        if (use_collocated_nodes && use_inviscid_burgers)  return std::make_shared<RRKExplicitODESolver<dim,real,MeshType>>(dg_input);
+        if (use_collocated_nodes && use_inviscid_burgers && dim == 1)  return std::make_shared<RRKExplicitODESolver<dim,real,MeshType>>(dg_input);
         else{
             display_error_ode_solver_factory(ode_solver_type, false);
             return nullptr;
@@ -112,7 +112,7 @@ void ODESolverFactory<dim,real,MeshType>::display_error_ode_solver_factory(Param
         pcout <<  "implicit" << std::endl;
         pcout <<  "rrk_explicit" << std::endl;
         pcout << "    With rrk_explicit only being valid for " <<std::endl;
-        pcout << "    pde_type = burgers and use_collocated_nodes = true" <<std::endl;
+        pcout << "    pde_type = burgers, use_collocated_nodes = true and dim = 1" <<std::endl;
     }
     pcout << "********************************************************************" << std::endl;
     std::abort();

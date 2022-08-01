@@ -17,7 +17,7 @@ set conv_num_flux = split_form
 
 # ODE solver
 subsection ODE solver
-  set ode_solver_type = rrk_explicit #this is modified by the test
+  set ode_solver_type = explicit #this is modified by the test
   set output_solution_every_dt_time_intervals = 0.01
   set initial_time_step = 1E-2 #this is modified by the test 
   subsection explicit solver options
@@ -26,7 +26,7 @@ subsection ODE solver
 end
 
 subsection flow_solver
-  set flow_case_type = burgers_periodic
+  set flow_case_type = periodic_1D_unsteady
   set poly_degree = 3 
   set final_time = 0.05 #very small total time, but enough to test energy conservation
   set unsteady_data_table_filename = burgers_unsteady_data

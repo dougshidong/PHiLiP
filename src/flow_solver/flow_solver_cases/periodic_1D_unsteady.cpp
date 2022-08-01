@@ -42,10 +42,10 @@ void Periodic1DUnsteady<dim, nstate>::compute_unsteady_data_and_write_to_table(
     double dt = this->all_param.ode_solver_param.initial_time_step;
     int output_solution_every_n_iterations = round(this->all_param.ode_solver_param.output_solution_every_dt_time_intervals/dt);
  
-    using FlowCaseEnum = Parameters::FlowSolverParam::FlowCaseType;
-    const FlowCaseEnum flow_case_type = this->all_param.flow_solver_param.flow_case_type;
+    using PDEEnum = Parameters::AllParameters::PartialDifferentialEquation;
+    const PDEEnum pde_type = this->all_param.pde_type;
 
-    if (flow_case_type == FlowCaseEnum::advection_periodic){
+    if (pde_type == PDEEnum::advection){
         if ((current_iteration % output_solution_every_n_iterations) == 0){
             this->pcout << "    Iter: " << current_iteration
                         << "    Time: " << current_time
@@ -54,7 +54,7 @@ void Periodic1DUnsteady<dim, nstate>::compute_unsteady_data_and_write_to_table(
         (void) dg;
         (void) unsteady_data_table;
     }
-    else if ((flow_case_type == FlowCaseEnum::burgers_periodic)&&(this->all_param.use_collocated_nodes)){
+    else if ((pde_type == PDEEnum::burgers_inviscid)&&(this->all_param.use_collocated_nodes)){
         double energy = this->compute_energy_collocated(dg);
     
         if ((current_iteration % output_solution_every_n_iterations) == 0){

@@ -355,6 +355,9 @@ public:
     /// Artificial dissipation error ratio sensor in each cell.
     dealii::Vector<double> artificial_dissipation_se;
 
+    /// Smoothness sensor in each cell.
+    dealii::Vector<double> smoothness_sensor;
+
     template <typename real2>
     /** Discontinuity sensor with 4 parameters, based on projecting to p-1. */
     real2 discontinuity_sensor(
@@ -661,6 +664,8 @@ public:
     double max_artificial_dissipation_coeff;
     /// Update discontinuity sensor.
     void update_artificial_dissipation_discontinuity_sensor();
+    /// Update smoothness sensor.
+    void update_smoothness_sensor();
     /// Allocate the necessary variables declared in src/physics/model.h
     virtual void allocate_model_variables() = 0;
     /// Update the necessary variables declared in src/physics/model.h

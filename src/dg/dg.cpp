@@ -1228,6 +1228,104 @@ void DGBase<dim,real,MeshType>::update_artificial_dissipation_discontinuity_sens
     artificial_dissipation_c0.update_ghost_values();
 }
 
+template <int dim, typename real, typename MeshType>
+void DGBase<dim,real,MeshType>::update_smoothness_sensor()
+{
+    const auto mapping = (*(high_order_grid->mapping_fe_field));
+    dealii::hp::MappingCollection<dim> mapping_collection(mapping);
+    const dealii::UpdateFlags update_flags = dealii::update_values | dealii::update_JxW_values;
+    dealii::hp::FEValues<dim,dim> fe_values_collection_volume (mapping_collection, fe_collection, volume_quadrature_collection, update_flags); ///< FEValues of volume.
+
+    std::vector< double > soln_coeff_high;
+    std::vector<dealii::types::global_dof_index> dof_indices;
+
+    for (auto cell : dof_handler.active_cell_iterators()) {
+        if (!(cell->is_locally_owned() || cell->is_ghost())) continue;
+
+        dealii::types::global_dof_index cell_index = cell->active_cell_index();
+        smoothness_sensor[cell_index] = 0.0;
+
+        const int i_fele = cell->active_fe_index();
+        const int i_quad = i_fele;
+        const int i_mapp = 0;
+
+        const dealii::FESystem<dim,dim> &fe_high = fe_collection[i_fele];
+        const unsigned int degree = fe_high.tensor_degree();
+
+        if (degree == 0) 
+        {
+            pcout<<"Degree of the current cell is 0. Cannot compute smoothness indicator as we cannot interpolate to a lower polynomial order"<<std::endl;
+            std::abort();
+        }
+
+        const unsigned int nstate = fe_high.components;
+        const unsigned int n_dofs_high = fe_high.dofs_per_cell;
+
+        fe_values_collection_volume.reinit (cell, i_quad, i_mapp, i_fele);
+        const dealii::FEValues<dim,dim> &fe_values_volume = fe_values_collection_volume.get_present_fe_values();
+
+        dof_indices.resize(n_dofs_high);
+        cell->get_dof_indices (dof_indices);
+
+        soln_coeff_high.resize(n_dofs_high);
+        for (unsigned int idof=0; idof<n_dofs_high; ++idof) {
+            soln_coeff_high[idof] = solution[dof_indices[idof]];
+        }
+
+        // Lower degree basis.
+        const unsigned int lower_degree = degree-1;
+        const dealii::FE_DGQLegendre<dim> fe_dgq_lower(lower_degree);
+        const dealii::FESystem<dim,dim> fe_lower(fe_dgq_lower, nstate);
+
+        // Projection quadrature.
+        const dealii::QGauss<dim> projection_quadrature(degree+5);
+        std::vector< double > soln_coeff_lower = project_function<dim,double>( soln_coeff_high, fe_high, fe_lower, projection_quadrature);
+
+        // Quadrature used for solution difference.
+        const dealii::Quadrature<dim> &quadrature = fe_values_volume.get_quadrature();
+        const std::vector<dealii::Point<dim,double>> &unit_quad_pts = quadrature.get_points();
+
+        const unsigned int n_quad_pts = quadrature.size();
+        const unsigned int n_dofs_lower = fe_lower.dofs_per_cell;
+
+        double element_volume = 0.0;
+        double error = 0.0;
+        double soln_norm = 0.0;
+        std::vector<double> soln_high(nstate);
+        std::vector<double> soln_lower(nstate);
+        for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
+            for (unsigned int s=0; s<nstate; ++s) {
+                soln_high[s] = 0.0;
+                soln_lower[s] = 0.0;
+            }
+            // Interpolate solution
+            for (unsigned int idof=0; idof<n_dofs_high; ++idof) {
+                  const unsigned int istate = fe_high.system_to_component_index(idof).first;
+                  soln_high[istate] += soln_coeff_high[idof] * fe_high.shape_value_component(idof,unit_quad_pts[iquad],istate);
+            }
+            // Interpolate low order solution
+            for (unsigned int idof=0; idof<n_dofs_lower; ++idof) {
+                  const unsigned int istate = fe_lower.system_to_component_index(idof).first;
+                  soln_lower[istate] += soln_coeff_lower[idof] * fe_lower.shape_value_component(idof,unit_quad_pts[iquad],istate);
+            }
+            // Quadrature
+            element_volume += fe_values_volume.JxW(iquad);
+            // Only integrate over the first state variable.
+            for (unsigned int s=0; s<1/*nstate*/; ++s) 
+            {
+                error += (soln_high[s] - soln_lower[s]) * (soln_high[s] - soln_lower[s]) * fe_values_volume.JxW(iquad);
+                soln_norm += soln_high[s] * soln_high[s] * fe_values_volume.JxW(iquad);
+            }
+        }
+
+        if (soln_norm < 1e-12) 
+        {
+            continue;
+        }
+
+        smoothness_sensor[cell_index] = error / soln_norm;
+    }
+}
 
 template <int dim, typename real, typename MeshType>
 void DGBase<dim,real,MeshType>::assemble_residual (const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R, const double CFL_mass)
@@ -2046,6 +2144,7 @@ void DGBase<dim,real,MeshType>::allocate_system ()
 
     artificial_dissipation_coeffs.reinit(triangulation->n_active_cells());
     artificial_dissipation_se.reinit(triangulation->n_active_cells());
+    smoothness_sensor.reinit(triangulation->n_active_cells());
     max_dt_cell.reinit(triangulation->n_active_cells());
     cell_volume.reinit(triangulation->n_active_cells());
 

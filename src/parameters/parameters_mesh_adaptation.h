@@ -11,6 +11,15 @@ class MeshAdaptationParam
 {
 public:
 
+    /// Choices for mesh adaptation to be used
+    enum MeshAdaptationType{
+        h_adaptation,
+        p_adaptation,
+        hp_adaptation
+    };
+    /// Selection of mesh adaptation type
+    MeshAdaptationType mesh_adaptation_type;
+
     /// Total/maximum number of refinement cycles while solving a problem.
     int total_refinement_cycles;
     

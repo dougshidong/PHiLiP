@@ -58,8 +58,8 @@ void MeshAdaptation<dim,real,MeshType>::fixed_fraction_isotropic_refinement_and_
         // Currently, the error indicator to flag p_adaptation is the same as h_adaptation, but it will likely change in future.
         dealii::hp::Refinement::p_adaptivity_fixed_number(dg->dof_handler,
                                                           cellwise_errors,
-                                                          mesh_adaptation_param->p_refine_fraction,
-                                                          mesh_adaptation_param->p_coarsen_fraction);
+                                                          1.0,
+                                                          0.0);
         
         // If a cell is flagged for both h and p adaptation, perform only p adaptation.
         dealii::hp::Refinement::force_p_over_h(dg->dof_handler);

@@ -79,7 +79,29 @@ public:
         const std::array<dealii::Tensor<1,dim,FadType>,dim+2> &primitive_soln_gradient_rans,
         const std::array<FadType,nstate-(dim+2)> &primitive_soln_turbulence_model) const = 0;
 
+    /// Nondimensionalized eddy viscosity for the negative SA model
+    virtual real compute_eddy_viscosity(
+        const std::array<real,dim+2> &primitive_soln_rans,
+        const std::array<real,nstate-(dim+2)> &primitive_soln_turbulence_model) const = 0;
+
+    /// Nondimensionalized eddy viscosity for the negative SA model (Automatic Differentiation Type: FadType)
+    virtual FadType compute_eddy_viscosity_fad(
+        const std::array<FadType,dim+2> &primitive_soln_rans,
+        const std::array<FadType,nstate-(dim+2)> &primitive_soln_turbulence_model) const = 0;
+
+    virtual std::array<real,nstate-(dim+2)> compute_effective_viscosity_turbulence_model (
+        const std::array<real,dim+2> &primitive_soln_rans,
+        const std::array<real,nstate-(dim+2)> &primitive_soln_turbulence_model) const = 0;
+
+    virtual std::array<FadType,nstate-(dim+2)> compute_effective_viscosity_turbulence_model_fad (
+        const std::array<FadType,dim+2> &primitive_soln_rans,
+        const std::array<FadType,nstate-(dim+2)> &primitive_soln_turbulence_model) const = 0;
+
 protected:
+    /// Returns the square of the magnitude of the vector (i.e. the double dot product of a vector with itself)
+    template<typename real2> 
+    real2 get_vector_magnitude_sqr (const dealii::Tensor<1,dim,real2> &vector) const;
+
     /// Returns the square of the magnitude of the tensor (i.e. the double dot product of a tensor with itself)
     template<typename real2> 
     real2 get_tensor_magnitude_sqr (const dealii::Tensor<2,dim,real2> &tensor) const;
@@ -111,6 +133,7 @@ protected:
 
     template <typename real2>
     std::array<dealii::Tensor<1,dim,real2>,nstate-(dim+2)> dissipative_flux_turbulence_model (
+        const std::array<real2,dim+2> &primitive_soln_rans,
         const std::array<real2,nstate-(dim+2)> &primitive_soln_turbulence_model,
         const std::array<dealii::Tensor<1,dim,real2>,nstate-(dim+2)> &primitive_solution_gradient_turbulence_model) const;
 
@@ -213,14 +236,23 @@ public:
         const std::array<FadType,nstate-(dim+2)> &primitive_soln_turbulence_model) const;
 
     /// Nondimensionalized eddy viscosity for the negative SA model
-    virtual real compute_eddy_viscosity(
+    real compute_eddy_viscosity(
         const std::array<real,dim+2> &primitive_soln_rans,
         const std::array<real,nstate-(dim+2)> &primitive_soln_turbulence_model) const;
 
     /// Nondimensionalized eddy viscosity for the negative SA model (Automatic Differentiation Type: FadType)
-    virtual FadType compute_eddy_viscosity_fad(
+    FadType compute_eddy_viscosity_fad(
         const std::array<FadType,dim+2> &primitive_soln_rans,
         const std::array<FadType,nstate-(dim+2)> &primitive_soln_turbulence_model) const;
+
+    std::array<real,nstate-(dim+2)> compute_effective_viscosity_turbulence_model (
+        const std::array<real,dim+2> &primitive_soln_rans,
+        const std::array<real,nstate-(dim+2)> &primitive_soln_turbulence_model) const;
+
+    std::array<FadType,nstate-(dim+2)> compute_effective_viscosity_turbulence_model_fad (
+        const std::array<FadType,dim+2> &primitive_soln_rans,
+        const std::array<FadType,nstate-(dim+2)> &primitive_soln_turbulence_model) const;
+
 
 protected:
     /// Templated nondimensionalized Reynolds stress tensor, (tau^reynolds)*
@@ -246,6 +278,121 @@ private:
     template<typename real2> real2 compute_eddy_viscosity_templated(
         const std::array<real2,dim+2> &primitive_soln_rans,
         const std::array<real2,nstate-(dim+2)> &primitive_soln_turbulence_model) const;
+
+    template<typename real2> std::array<real2,nstate-(dim+2)> compute_effective_viscosity_turbulence_model_templated (
+        const std::array<real2,dim+2> &primitive_soln_rans,
+        const std::array<real2,nstate-(dim+2)> &primitive_soln_turbulence_model) const;
+
+    /// Templated coefficient Chi for the negative SA model.
+    template<typename real2> real2 compute_coefficient_Chi (
+        const real2 &nu_tilde,
+        const real2 &laminar_kinematic_viscosity) const;
+
+    /// Templated coefficient f_v1 for the negative SA model.
+    template<typename real2> real2 compute_coefficient_f_v1 (
+        const real2 &coefficient_Chi) const;
+
+    /// Templated coefficient f_v2 for the negative SA model.
+    template<typename real2> real2 compute_coefficient_f_v2 (
+        const real2 &coefficient_Chi) const;
+
+    /// Templated coefficient f_n for the negative SA model.
+    template<typename real2> real2 compute_coefficient_f_n (
+        const real2 &nu_tilde,
+        const real2 &laminar_kinematic_viscosity) const;
+
+    /// Templated coefficient f_t2 for the negative SA model.
+    template<typename real2> real2 compute_coefficient_f_t2 (
+        const real2 &coefficient_Chi) const;
+
+    /// Templated coefficient f_t2 for the negative SA model.
+    template<typename real2> real2 compute_coefficient_f_w (
+        const real2 &coefficient_g) const;
+
+    /// Templated coefficient r for the negative SA model.
+    template<typename real2> real2 compute_coefficient_r (
+        const real2 &nu_tilde,
+        const real2 &d_wall,
+        const real2 &s_tilde) const;
+
+    /// Templated coefficient g for the negative SA model.
+    template<typename real2> real2 compute_coefficient_g (
+        const real2 &coefficient_r) const;
+
+    /// Templated vorticity magnitude for the negative SA model.
+    template<typename real2> real2 compute_s (
+        const std::array<real,dim+2> &conservative_soln_rans,
+        const std::array<dealii::Tensor<1,dim,real>,dim+2> &conservative_soln_gradient_rans) const;
+
+    /// Templated correction of vorticity magnitude for the negative SA model.
+    template<typename real2> real2 compute_s_bar (
+        const real2 &coefficient_Chi,
+        const real2 &nu_tilde,
+        const real2 &d_wall) const;
+
+    /// Templated modified vorticity magnitude for the negative SA model.
+    template<typename real2> real2 compute_s_tilde (
+        const real2 &coefficient_Chi,
+        const real2 &nu_tilde,
+        const real2 &d_wall,
+        const real2 &s) const;
+
+    template<typename real2> real2 compute_production_source (
+        const real2 &coefficient_f_t2,
+        const real2 &nu_tilde,
+        const real2 &d_wall,
+        const real2 &s,
+        const real2 &s_tilde) const;
+
+    template<typename real2> real2 compute_dissipation_source (
+        const real2 &coefficient_f_t2,
+        const real2 &nu_tilde,
+        const real2 &d_wall,
+        const real2 &s_tilde) const;
+
+    template<typename real2> real2 compute_cross_source (
+        const real2 &density,
+        const real2 &nu_tilde,
+        const real2 &laminar_kinematic_viscosity,
+        const std::array<real2,dim+2> &primitive_soln_rans,
+        const std::array<real2,nstate-(dim+2)> &primitive_soln_turbulence_model,
+        const std::array<dealii::Tensor<1,dim,real2>,dim+2> &primitive_soln_gradient_rans,
+        const std::array<dealii::Tensor<1,dim,real2>,nstate-(dim+2)> &primitive_solution_gradient_turbulence_model) const;
+
+    //constant for negative SA model 
+    const real c_b1  = 0.1355;
+    const real sigma = 2.0/3.0;
+    const real c_b2  = 0.622;
+    const real kappa = 0.41;
+    const real c_w1  = c_b1/(kappa*kappa)+(1+c_b2)/sigma;
+    const real c_w2  = 0.3;
+    const real c_w3  = 2.0;
+    const real c_v1  = 7.1;
+    const real c_v2  = 0.7;
+    const real c_v3  = 0.9;
+    const real c_t1  = 1.0;
+    const real c_t2  = 2.0;
+    const real c_t3  = 1.2;
+    const real c_t4  = 0.5;
+    const real c_n1  = 16.0;
+    const real r_lim = 10.0;
+
+    const FadType c_b1_fad  = 0.1355;
+    const FadType sigma_fad = 2.0/3.0;
+    const FadType c_b2_fad  = 0.622;
+    const FadType kappa_fad = 0.41;
+    const FadType c_w1_fad  = c_b1_fad/(kappa_fad*kappa_fad)+(1+c_b2_fad)/sigma_fad;
+    const FadType c_w2_fad  = 0.3;
+    const FadType c_w3_fad  = 2.0;
+    const FadType c_v1_fad  = 7.1;
+    const FadType c_v2_fad  = 0.7;
+    const FadType c_v3_fad  = 0.9;
+    const FadType c_t1_fad  = 1.0;
+    const FadType c_t2_fad  = 2.0;
+    const FadType c_t3_fad  = 1.2;
+    const FadType c_t4_fad  = 0.5;
+    const FadType c_n1_fad  = 16.0;
+    const FadType r_lim_fad = 10.0;
 };
 
 

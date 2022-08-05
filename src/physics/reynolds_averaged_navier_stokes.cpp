@@ -46,6 +46,22 @@ ReynoldsAveragedNavierStokesBase<dim, nstate, real>::ReynoldsAveragedNavierStoke
 template <int dim, int nstate, typename real>
 template<typename real2>
 real2 ReynoldsAveragedNavierStokesBase<dim,nstate,real>
+::get_vector_magnitude_sqr (
+    const dealii::Tensor<1,dim,real2> &vector) const
+{
+    real2 vector_magnitude_sqr; // complex initializes it as 0+0i
+    if(std::is_same<real2,real>::value){
+        vector_magnitude_sqr = 0.0;
+    }
+    for (int i=0; i<dim; ++i) {
+        vector_magnitude_sqr += vector[i]*vector[i];
+    }
+    return vector_magnitude_sqr;
+}
+//----------------------------------------------------------------
+template <int dim, int nstate, typename real>
+template<typename real2>
+real2 ReynoldsAveragedNavierStokesBase<dim,nstate,real>
 ::get_tensor_magnitude_sqr (
     const dealii::Tensor<2,dim,real2> &tensor) const
 {
@@ -64,16 +80,21 @@ real2 ReynoldsAveragedNavierStokesBase<dim,nstate,real>
 template <int dim, int nstate, typename real>
 std::array<dealii::Tensor<1,dim,real>,nstate> ReynoldsAveragedNavierStokesBase<dim,nstate,real>
 ::convective_flux (
-    const std::array<real,nstate> &/*conservative_soln*/) const
+    const std::array<real,nstate> &conservative_soln) const
 {
+    const std::array<real,dim+2> conservative_soln_rans = extract_rans_conservative_solution(conservative_soln);
+    const std::array<real,dim+2> primitive_soln_rans = this->navier_stokes_physics->convert_conservative_to_primitive(conservative_soln_rans);
+    const dealii::Tensor<1,dim,real> vel = this->navier_stokes_physics->extract_velocities_from_primitive(primitive_soln_rans); // from Euler
     std::array<dealii::Tensor<1,dim,real>,nstate> conv_flux;
-    for (int i=0; i<dim+2; i++) {
-        conv_flux[i] = 0.0; // No additional convective terms for RANS
+
+    for (int flux_dim=0; flux_dim<dim+2; flux_dim++) {
+        conv_flux[flux_dim] = 0.0; // No additional convective terms for RANS
     }
     // convective flux of additional RANS turbulence model
-    for (int i=dim+2; i<nstate-1; i++) {
-        //To do 
-        conv_flux[i] = 0.0; // Additional convective terms for turbulence model
+    for (int flux_dim=dim+2; flux_dim<nstate-1; flux_dim++) {
+        for (int velocity_dim=0; velocity_dim<dim; velocity_dim++) {
+            conv_flux[flux_dim][velocity_dim] = conservative_soln[flux_dim]*vel[velocity_dim]; // Additional convective terms for turbulence model
+        }
     }
     return conv_flux;
 }
@@ -137,16 +158,16 @@ std::array<dealii::Tensor<1,dim,real2>,nstate> ReynoldsAveragedNavierStokesBase<
         = this->navier_stokes_physics->dissipative_flux_given_velocities_viscous_stress_tensor_and_heat_flux(vel,viscous_stress_tensor,heat_flux);
 
     std::array<dealii::Tensor<1,dim,real2>,nstate-(dim+2)> viscous_flux_turbulence_model
-        = this->dissipative_flux_turbulence_model(primitive_soln_turbulence_model,primitive_soln_gradient_turbulence_model);
+        = this->dissipative_flux_turbulence_model(primitive_soln_rans,primitive_soln_turbulence_model,primitive_soln_gradient_turbulence_model);
 
     std::array<dealii::Tensor<1,dim,real2>,nstate> viscous_flux;
-    for(int i=0; i<dim+2; i++)
+    for(int flux_dim=0; flux_dim<dim+2; flux_dim++)
     {
-        viscous_flux[i] = viscous_flux_rans[i];
+        viscous_flux[flux_dim] = viscous_flux_rans[flux_dim];
     }
-    for(int i=dim+2; i<nstate-1; i++)
+    for(int flux_dim=dim+2; flux_dim<nstate-1; flux_dim++)
     {
-        viscous_flux[i] = viscous_flux_turbulence_model[i-(dim+2)];
+        viscous_flux[flux_dim] = viscous_flux_turbulence_model[flux_dim-(dim+2)];
     }
     
     return viscous_flux;
@@ -182,6 +203,7 @@ std::array<dealii::Tensor<1,dim,real2>,dim+2> ReynoldsAveragedNavierStokesBase<d
     return solution_gradient_rans;
 }
 /*
+//may not needed
 //----------------------------------------------------------------
 template <int dim, int nstate, typename real>
 template <typename real2>
@@ -209,32 +231,38 @@ std::array<dealii::Tensor<1,dim,real2>,nstate-(dim+2)> ReynoldsAveragedNavierSto
     return solution_gradient_turbulence_model;
 }
 */
-//To do later
-//get the right viscous flux
 //----------------------------------------------------------------
 template <int dim, int nstate, typename real>
 template <typename real2>
 std::array<dealii::Tensor<1,dim,real2>,nstate-(dim+2)> ReynoldsAveragedNavierStokesBase<dim,nstate,real>
 ::dissipative_flux_turbulence_model (
+    const std::array<real2,dim+2> &primitive_soln_rans,
     const std::array<real2,nstate-(dim+2)> &primitive_soln_turbulence_model,
     const std::array<dealii::Tensor<1,dim,real2>,nstate-(dim+2)> &primitive_solution_gradient_turbulence_model) const
 {   
-    std::array<dealii::Tensor<1,dim,real2>,nstate-(dim+2)> primitive_solution_gradient_turbulence_model_t;
+    std::array<real2,nstate-(dim+2)> effective_viscosity_turbulence_model; 
 
-    //do something to trick compiler
-    primitive_solution_gradient_turbulence_model_t[0] = primitive_solution_gradient_turbulence_model[1];
+    if constexpr(std::is_same<real2,real>::value){ 
+        effective_viscosity_turbulence_model = compute_effective_viscosity_turbulence_model(primitive_soln_rans, primitive_soln_turbulence_model);
+    }
+    else if constexpr(std::is_same<real2,FadType>::value){ 
+        effective_viscosity_turbulence_model = compute_effective_viscosity_turbulence_model_fad(primitive_soln_rans, primitive_soln_turbulence_model);
+    }
+    else{
+        std::cout << "ERROR in physics/reynolds_averaged_navier_stokes.cpp --> dissipative_flux_turbulence_model(): real2!=real || real2!=FadType)" << std::endl;
+        std::abort();
+    }
 
     std::array<dealii::Tensor<1,dim,real2>,nstate-(dim+2)> viscous_flux_turbulence_model;
-    for(int i=0; i<nstate-(dim+2); i++)
-    {
-        //do something to trick compiler
-        viscous_flux_turbulence_model[i] = primitive_soln_turbulence_model[i];
+
+    for(int i=0; i<nstate-(dim+2); i++){
+        for(int j=0; j<dim; j++){
+            viscous_flux_turbulence_model[i][j] = effective_viscosity_turbulence_model[i]*primitive_solution_gradient_turbulence_model[i][j];
+        }
     }
     
     return viscous_flux_turbulence_model;
 }
-//To do later
-//get right primitive variables for turbulence model
 //----------------------------------------------------------------
 template <int dim, int nstate, typename real>
 template <typename real2>
@@ -248,7 +276,6 @@ std::array<real2,nstate-(dim+2)> ReynoldsAveragedNavierStokesBase<dim,nstate,rea
  
     return primitive_soln_turbulence_model;
 }
-//get right primitive variables gradients for turbulence model
 //----------------------------------------------------------------
 template <int dim, int nstate, typename real>
 template <typename real2>
@@ -257,15 +284,14 @@ std::array<dealii::Tensor<1,dim,real2>,nstate-(dim+2)> ReynoldsAveragedNavierSto
     const std::array<real2,nstate> &conservative_soln,
     const std::array<dealii::Tensor<1,dim,real2>,nstate> &solution_gradient) const
 {   
+    const std::array<real2,nstate-(dim+2)> primitive_soln_turbulence_model = this->convert_conservative_to_primitive_turbulence_model(conservative_soln); 
     std::array<dealii::Tensor<1,dim,real2>,nstate-(dim+2)> primitive_soln_gradient_turbulence_model;
 
-    //do something to trick compiler
-    std::array<real2,nstate> conservative_solution;
-    conservative_solution[0]=conservative_soln[1];
-
-    for(int i=0; i<nstate-(dim+2); i++)
-        //do something to trick compiler
-        primitive_soln_gradient_turbulence_model[i] = solution_gradient[i];
+    for(int i=0; i<nstate-(dim+2); i++){
+        for(int j=0; j<dim; j++){
+            primitive_soln_gradient_turbulence_model[i][j] = (solution_gradient[i][j]-primitive_soln_turbulence_model[i]*solution_gradient[0][j])/conservative_soln[0];
+        }
+    }
  
     return primitive_soln_gradient_turbulence_model;
 }
@@ -545,8 +571,6 @@ FadType ReynoldsAveragedNavierStokes_SAneg<dim,nstate,real>
 {
     return compute_eddy_viscosity_templated<FadType>(primitive_soln_rans,primitive_soln_turbulence_model);
 }
-//To do later
-//get the right formula for eddy viscosity
 //----------------------------------------------------------------
 template <int dim, int nstate, typename real>
 template<typename real2>
@@ -555,11 +579,13 @@ real2 ReynoldsAveragedNavierStokes_SAneg<dim,nstate,real>
     const std::array<real2,dim+2> &primitive_soln_rans,
     const std::array<real2,nstate-(dim+2)> &primitive_soln_turbulence_model) const
 {
-    // Compute the eddy viscosity
-    //do something to trick compiler 
-    const real2 eddy_viscosity = primitive_soln_rans[0]+primitive_soln_turbulence_model[0];
+    // Compute needed coefficients
+    const real2 laminar_kinematic_viscosity = this->navier_stokes_physics->compute_viscosity_coefficient(primitive_soln_rans);
+    const real2 Chi = this->compute_coefficient_Chi(primitive_soln_turbulence_model[0],laminar_kinematic_viscosity);
+    const real2 f_v1 = this->compute_coefficient_f_v1(Chi);
+    const real2 kinematic_eddy_viscosity = primitive_soln_turbulence_model[0]*f_v1;
 
-    return eddy_viscosity;
+    return kinematic_eddy_viscosity;
 }
 //----------------------------------------------------------------
 template <int dim, int nstate, typename real>
@@ -573,6 +599,416 @@ real2 ReynoldsAveragedNavierStokes_SAneg<dim,nstate,real>
     const real2 scaled_eddy_viscosity = primitive_soln_rans[0]*eddy_viscosity;
 
     return scaled_eddy_viscosity;
+}
+//----------------------------------------------------------------
+template <int dim, int nstate, typename real>
+std::array<real,nstate-(dim+2)> ReynoldsAveragedNavierStokes_SAneg<dim,nstate,real>
+::compute_effective_viscosity_turbulence_model (
+    const std::array<real,dim+2> &primitive_soln_rans,
+    const std::array<real,nstate-(dim+2)> &primitive_soln_turbulence_model) const
+{   
+    return compute_effective_viscosity_turbulence_model_templated<real>(primitive_soln_rans,primitive_soln_turbulence_model);
+}
+//----------------------------------------------------------------
+template <int dim, int nstate, typename real>
+std::array<FadType,nstate-(dim+2)> ReynoldsAveragedNavierStokes_SAneg<dim,nstate,real>
+::compute_effective_viscosity_turbulence_model_fad (
+    const std::array<FadType,dim+2> &primitive_soln_rans,
+    const std::array<FadType,nstate-(dim+2)> &primitive_soln_turbulence_model) const
+{   
+    return compute_effective_viscosity_turbulence_model_templated<FadType>(primitive_soln_rans,primitive_soln_turbulence_model);
+}
+//----------------------------------------------------------------
+template <int dim, int nstate, typename real>
+template <typename real2>
+std::array<real2,nstate-(dim+2)> ReynoldsAveragedNavierStokes_SAneg<dim,nstate,real>
+::compute_effective_viscosity_turbulence_model_templated (
+    const std::array<real2,dim+2> &primitive_soln_rans,
+    const std::array<real2,nstate-(dim+2)> &primitive_soln_turbulence_model) const
+{   
+    const real2 laminar_kinematic_viscosity = this->navier_stokes_physics->compute_viscosity_coefficient(primitive_soln_rans);
+
+    const real2 coefficient_f_n = this->compute_coefficient_f_n(primitive_soln_turbulence_model[0],laminar_kinematic_viscosity);
+
+    std::array<real2,nstate-(dim+2)> effective_viscosity_turbulence_model;
+
+    for(int i=0; i<nstate-(dim+2); i++){
+        effective_viscosity_turbulence_model[i] = laminar_kinematic_viscosity+coefficient_f_n*primitive_soln_turbulence_model[0];
+    }
+    
+    return effective_viscosity_turbulence_model;
+}
+//----------------------------------------------------------------
+template <int dim, int nstate, typename real>
+template<typename real2>
+real2 ReynoldsAveragedNavierStokes_SAneg<dim,nstate,real>
+::compute_coefficient_Chi (
+    const real2 &nu_tilde,
+    const real2 &laminar_kinematic_viscosity) const
+{
+    // Compute coefficient Chi
+    const real2 Chi = nu_tilde/laminar_kinematic_viscosity;
+
+    return Chi;
+}
+//----------------------------------------------------------------
+template <int dim, int nstate, typename real>
+template<typename real2>
+real2 ReynoldsAveragedNavierStokes_SAneg<dim,nstate,real>
+::compute_coefficient_f_v1 (
+    const real2 &coefficient_Chi) const
+{
+    // Compute coefficient f_v1
+    real2 coefficient_f_v1;
+
+    if constexpr(std::is_same<real2,real>::value){ 
+        coefficient_f_v1 = coefficient_Chi*coefficient_Chi*coefficient_Chi/(coefficient_Chi*coefficient_Chi*coefficient_Chi+c_v1*c_v1*c_v1);
+    }
+    else if constexpr(std::is_same<real2,FadType>::value){ 
+        coefficient_f_v1 = coefficient_Chi*coefficient_Chi*coefficient_Chi/(coefficient_Chi*coefficient_Chi*coefficient_Chi+c_v1_fad*c_v1_fad*c_v1_fad);
+    }
+    else{
+        std::cout << "ERROR in physics/reynolds_averaged_navier_stokes.cpp --> compute_coefficient_f_v1(): real2 != real or FadType" << std::endl;
+        std::abort();
+    }
+
+    return coefficient_f_v1;
+}
+//----------------------------------------------------------------
+template <int dim, int nstate, typename real>
+template<typename real2>
+real2 ReynoldsAveragedNavierStokes_SAneg<dim,nstate,real>
+::compute_coefficient_f_v2 (
+    const real2 &coefficient_Chi) const
+{
+    // Compute coefficient f_v2
+    real2 coefficient_f_v2;
+    const real2 coefficient_f_v1 = this->compute_coefficient_f_v1(coefficient_Chi);
+
+    if constexpr(std::is_same<real2,real>::value){ 
+        coefficient_f_v2 = 1.0-coefficient_Chi/(1.0+coefficient_Chi*coefficient_f_v1);
+    }
+    else if constexpr(std::is_same<real2,FadType>::value){
+        const FadType const_one_fad = 1.0; 
+        coefficient_f_v2 = const_one_fad-coefficient_Chi/(const_one_fad+coefficient_Chi*coefficient_f_v1);
+    }
+    else{
+        std::cout << "ERROR in physics/reynolds_averaged_navier_stokes.cpp --> compute_coefficient_f_v2(): real2 != real or FadType" << std::endl;
+        std::abort();
+    }
+
+    return coefficient_f_v2;
+}
+//----------------------------------------------------------------
+template <int dim, int nstate, typename real>
+template<typename real2>
+real2 ReynoldsAveragedNavierStokes_SAneg<dim,nstate,real>
+::compute_coefficient_f_n (
+    const real2 &nu_tilde,
+    const real2 &laminar_kinematic_viscosity) const
+{
+    // Compute coefficient f_n
+    real2 coefficient_f_n;
+    const real2 coefficient_Chi = this->compute_coefficient_Chi(nu_tilde,laminar_kinematic_viscosity);
+
+    if constexpr(std::is_same<real2,real>::value){ 
+        if (nu_tilde>=0.0)
+            coefficient_f_n = 1.0;
+        else
+            coefficient_f_n = (c_n1+coefficient_Chi*coefficient_Chi*coefficient_Chi)/(c_n1+coefficient_Chi*coefficient_Chi*coefficient_Chi);
+    }
+    else if constexpr(std::is_same<real2,FadType>::value){
+        const FadType const_one_fad = 1.0; 
+        if (nu_tilde>=0.0)
+            coefficient_f_n = const_one_fad;
+        else
+            coefficient_f_n = (c_n1_fad+coefficient_Chi*coefficient_Chi*coefficient_Chi)/(c_n1_fad+coefficient_Chi*coefficient_Chi*coefficient_Chi);
+    }
+    else{
+        std::cout << "ERROR in physics/reynolds_averaged_navier_stokes.cpp --> compute_coefficient_f_n(): real2 != real or FadType" << std::endl;
+        std::abort();
+    }
+
+    return coefficient_f_n;
+}
+//----------------------------------------------------------------
+template <int dim, int nstate, typename real>
+template<typename real2>
+real2 ReynoldsAveragedNavierStokes_SAneg<dim,nstate,real>
+::compute_coefficient_f_t2 (
+    const real2 &coefficient_Chi) const
+{
+    // Compute coefficient f_t2
+    real2 coefficient_f_t2;
+    if constexpr(std::is_same<real2,real>::value){ 
+        coefficient_f_t2 = c_t3*exp(-c_t4*coefficient_Chi*coefficient_Chi);
+    }
+    else if constexpr(std::is_same<real2,FadType>::value){
+        coefficient_f_t2 = c_t3_fad*exp(-c_t4_fad*coefficient_Chi*coefficient_Chi);
+    }
+    else{
+        std::cout << "ERROR in physics/reynolds_averaged_navier_stokes.cpp --> compute_coefficient_f_t2(): real2 != real or FadType" << std::endl;
+        std::abort();
+    }
+
+    return coefficient_f_t2;
+}
+//----------------------------------------------------------------
+template <int dim, int nstate, typename real>
+template<typename real2>
+real2 ReynoldsAveragedNavierStokes_SAneg<dim,nstate,real>
+::compute_coefficient_f_w (
+    const real2 &coefficient_g) const
+{
+    // Compute coefficient f_w
+    real2 coefficient_f_w;
+    if constexpr(std::is_same<real2,real>::value){ 
+        coefficient_f_w = coefficient_g*pow((1.0+pow(c_w3,6.0))/(pow(coefficient_g,6.0)+pow(c_w3,6.0)),1.0/6.0);
+    }
+    else if constexpr(std::is_same<real2,FadType>::value){
+        const FadType const_one_fad = 1.0;
+        coefficient_f_w = coefficient_g*pow((const_one_fad+pow(c_w3_fad,6.0))/(pow(coefficient_g,6.0)+pow(c_w3_fad,6.0)),1.0/6.0);
+    }
+    else{
+        std::cout << "ERROR in physics/reynolds_averaged_navier_stokes.cpp --> compute_coefficient_f_w(): real2 != real or FadType" << std::endl;
+        std::abort();
+    }
+
+    return coefficient_f_w;
+}
+//----------------------------------------------------------------
+template <int dim, int nstate, typename real>
+template<typename real2>
+real2 ReynoldsAveragedNavierStokes_SAneg<dim,nstate,real>
+::compute_coefficient_r (
+    const real2 &nu_tilde,
+    const real2 &d_wall,
+    const real2 &s_tilde) const
+{
+    // Compute coefficient r
+    real2 coefficient_r;
+    if constexpr(std::is_same<real2,real>::value){ 
+        coefficient_r = nu_tilde/(s_tilde*kappa*kappa*d_wall*d_wall); 
+        coefficient_r = coefficient_r <= r_lim ? coefficient_r : r_lim; 
+    }
+    else if constexpr(std::is_same<real2,FadType>::value){
+        coefficient_r = nu_tilde/(s_tilde*kappa_fad*kappa_fad*d_wall*d_wall); 
+        coefficient_r = coefficient_r <= r_lim_fad ? coefficient_r : r_lim_fad; 
+    }
+    else{
+        std::cout << "ERROR in physics/reynolds_averaged_navier_stokes.cpp --> compute_coefficient_r(): real2 != real or FadType" << std::endl;
+        std::abort();
+    }
+
+    return coefficient_r;
+}
+//----------------------------------------------------------------
+template <int dim, int nstate, typename real>
+template<typename real2>
+real2 ReynoldsAveragedNavierStokes_SAneg<dim,nstate,real>
+::compute_coefficient_g (
+    const real2 &coefficient_r) const
+{
+    // Compute coefficient g
+    real2 coefficient_g;
+    if constexpr(std::is_same<real2,real>::value){ 
+        coefficient_g = coefficient_r+c_w2*(pow(coefficient_r,6)-coefficient_r);
+    }
+    else if constexpr(std::is_same<real2,FadType>::value){
+        coefficient_g = coefficient_r+c_w2_fad*(pow(coefficient_r,6)-coefficient_r);
+    }
+    else{
+        std::cout << "ERROR in physics/reynolds_averaged_navier_stokes.cpp --> compute_coefficient_g(): real2 != real or FadType" << std::endl;
+        std::abort();
+    }
+
+    return coefficient_g;
+}
+//----------------------------------------------------------------
+template <int dim, int nstate, typename real>
+template<typename real2>
+real2 ReynoldsAveragedNavierStokes_SAneg<dim,nstate,real>
+::compute_s (
+    const std::array<real,dim+2> &conservative_soln_rans,
+    const std::array<dealii::Tensor<1,dim,real>,dim+2> &conservative_soln_gradient_rans) const
+{
+    // Compute s
+    real2 s;
+
+    // Get vorticity
+    const dealii::Tensor<1,dim,real2> vorticity 
+        = this->navier_stokes_physics->compute_vorticity(conservative_soln_rans,conservative_soln_gradient_rans);
+
+    s = sqrt(get_vector_magnitude_sqr(vorticity));
+
+    return s;
+}
+//----------------------------------------------------------------
+template <int dim, int nstate, typename real>
+template<typename real2>
+real2 ReynoldsAveragedNavierStokes_SAneg<dim,nstate,real>
+::compute_s_bar (
+    const real2 &coefficient_Chi,
+    const real2 &nu_tilde,
+    const real2 &d_wall) const
+{
+    // Compute s_bar
+    real2 s_bar;
+    const real2 f_v2 = this->compute_coefficient_f_v2(coefficient_Chi);
+
+    if constexpr(std::is_same<real2,real>::value){
+        s_bar = nu_tilde*f_v2/(kappa*kappa*d_wall*d_wall);
+    }
+    else if constexpr(std::is_same<real2,FadType>::value){
+        s_bar = nu_tilde*f_v2/(kappa_fad*kappa_fad*d_wall*d_wall);
+    }
+    else{
+        std::cout << "ERROR in physics/reynolds_averaged_navier_stokes.cpp --> compute_coefficient_f_v2(): real2 != real or FadType" << std::endl;
+        std::abort();
+    }
+
+    return s_bar;
+}
+//----------------------------------------------------------------
+template <int dim, int nstate, typename real>
+template<typename real2>
+real2 ReynoldsAveragedNavierStokes_SAneg<dim,nstate,real>
+::compute_s_tilde (
+    const real2 &coefficient_Chi,
+    const real2 &nu_tilde,
+    const real2 &d_wall,
+    const real2 &s) const
+{
+    // Compute s_bar
+    real2 s_tilde;
+    const real2 s_bar = this->compute_s_bar(coefficient_Chi,nu_tilde,d_wall);
+
+    if constexpr(std::is_same<real2,real>::value){
+        const real criteria = -c_v2*s;
+        if(s_bar>=criteria) 
+            s_tilde = s+s_bar;
+        else
+            s_tilde = s+s*(c_v2*c_v2*s+c_v3*s_bar)/((c_v3-2.0*c_v2)*s-s_bar);
+    }
+    else if constexpr(std::is_same<real2,FadType>::value){
+        const real criteria = -c_v2_fad*s;
+        if(s_bar>=criteria) 
+            s_tilde = s+s_bar;
+        else
+            s_tilde = s+s*(c_v2_fad*c_v2_fad*s+c_v3_fad*s_bar)/((c_v3_fad-2.0*c_v2_fad)*s-s_bar);
+    }
+    else{
+        std::cout << "ERROR in physics/reynolds_averaged_navier_stokes.cpp --> compute_s_tilde(): real2 != real or FadType" << std::endl;
+        std::abort();
+    }
+
+    return s_tilde;
+}
+//----------------------------------------------------------------
+template <int dim, int nstate, typename real>
+template<typename real2>
+real2 ReynoldsAveragedNavierStokes_SAneg<dim,nstate,real>
+::compute_production_source (
+    const real2 &coefficient_f_t2,
+    const real2 &nu_tilde,
+    const real2 &d_wall,
+    const real2 &s,
+    const real2 &s_tilde) const
+{
+    real2 production_source;
+
+    if constexpr(std::is_same<real2,real>::value){
+        if(nu_tilde>=0.0)
+            production_source = c_b1*(1.0-coefficient_f_t2)*s_tilde*nu_tilde;
+        else
+            production_source = c_b1*(1.0-c_t3)*s*nu_tilde;
+    }
+    else if constexpr(std::is_same<real2,FadType>::value){
+        const FadType const_one_fad = 1.0; 
+        if(nu_tilde>=0.0)
+            production_source = c_b1_fad*(const_one_fad-coefficient_f_t2)*s_tilde*nu_tilde;
+        else
+            production_source = c_b1_fad*(const_one_fad-c_t3_fad)*s*nu_tilde;
+    }
+    else{
+        std::cout << "ERROR in physics/reynolds_averaged_navier_stokes.cpp --> compute_production_source(): real2 != real or FadType" << std::endl;
+        std::abort();
+    }
+
+    return production_source;
+}
+//----------------------------------------------------------------
+template <int dim, int nstate, typename real>
+template<typename real2>
+real2 ReynoldsAveragedNavierStokes_SAneg<dim,nstate,real>
+::compute_dissipation_source (
+    const real2 &coefficient_f_t2,
+    const real2 &nu_tilde,
+    const real2 &d_wall,
+    const real2 &s_tilde) const
+{
+    const real2 coefficient_r = this->compute_coefficient_r(nu_tilde,d_wall,s_tilde);
+    const real2 coefficient_g = this->compute_coefficient_g(coefficient_r);
+    const real2 coefficient_f_w = this->compute_coefficient_f_w(coefficient_g);
+    real2 dissipation_source;
+
+    if constexpr(std::is_same<real2,real>::value){
+        if(nu_tilde>=0.0)
+            dissipation_source = (c_w1*coefficient_f_w-c_b1*coefficient_f_t2/(kappa*kappa))*nu_tilde*nu_tilde/(d_wall*d_wall);
+        else
+            dissipation_source = -c_w1*nu_tilde*nu_tilde/(d_wall*d_wall);
+    }
+    else if constexpr(std::is_same<real2,FadType>::value){
+        if(nu_tilde>=0.0)
+            dissipation_source = (c_w1_fad*coefficient_f_w-c_b1_fad*coefficient_f_t2/(kappa_fad*kappa_fad))*nu_tilde*nu_tilde/(d_wall*d_wall);
+        else
+            dissipation_source = -c_w1_fad*nu_tilde*nu_tilde/(d_wall*d_wall);
+    }
+    else{
+        std::cout << "ERROR in physics/reynolds_averaged_navier_stokes.cpp --> compute_dissipation_source(): real2 != real or FadType" << std::endl;
+        std::abort();
+    }
+
+    return dissipation_source;
+}
+//----------------------------------------------------------------
+template <int dim, int nstate, typename real>
+template<typename real2>
+real2 ReynoldsAveragedNavierStokes_SAneg<dim,nstate,real>
+::compute_cross_source (
+    const real2 &density,
+    const real2 &nu_tilde,
+    const real2 &laminar_kinematic_viscosity,
+    const std::array<real2,dim+2> &primitive_soln_rans,
+    const std::array<real2,nstate-(dim+2)> &primitive_soln_turbulence_model,
+    const std::array<dealii::Tensor<1,dim,real2>,dim+2> &primitive_soln_gradient_rans,
+    const std::array<dealii::Tensor<1,dim,real2>,nstate-(dim+2)> &primitive_solution_gradient_turbulence_model) const
+{
+    real2 cross_nu_tilde_nu_tilde = 0.0;
+    real2 cross_rho_tilde_nu_tilde = 0.0;
+    real2 cross_source;
+    const real2 coefficient_f_n = this->compute_coefficient_f_n(nu_tilde,laminar_kinematic_viscosity);
+
+    if constexpr(std::is_same<real2,real>::value){
+        for (int i=0;i<dim;i++){
+            cross_nu_tilde_nu_tilde += primitive_solution_gradient_turbulence_model[0][i]*primitive_solution_gradient_turbulence_model[0][i];
+            cross_rho_tilde_nu_tilde += primitive_soln_gradient_rans[0][i]*primitive_solution_gradient_turbulence_model[0][i];
+        }
+        cross_source = (c_b2*density*cross_nu_tilde_nu_tilde-(laminar_kinematic_viscosity+nu_tilde*coefficient_f_n)*cross_rho_tilde_nu_tilde)/sigma;
+    }
+    else if constexpr(std::is_same<real2,FadType>::value){
+        for (int i=0;i<dim;i++){
+            cross_nu_tilde_nu_tilde += primitive_solution_gradient_turbulence_model[0][i]*primitive_solution_gradient_turbulence_model[0][i];
+            cross_rho_tilde_nu_tilde += primitive_soln_gradient_rans[0][i]*primitive_solution_gradient_turbulence_model[0][i];
+        }
+        cross_source = (c_b2_fad*density*cross_nu_tilde_nu_tilde-(laminar_kinematic_viscosity+nu_tilde*coefficient_f_n)*cross_rho_tilde_nu_tilde)/sigma_fad;
+    }
+    else{
+        std::cout << "ERROR in physics/reynolds_averaged_navier_stokes.cpp --> compute_cross_source(): real2 != real or FadType" << std::endl;
+        std::abort();
+    }
+
+    return cross_source;
 }
 //----------------------------------------------------------------
 template <int dim, int nstate, typename real>

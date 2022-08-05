@@ -977,6 +977,17 @@ template dealii::Tensor<1,PHILIP_DIM,FadType   > NavierStokes<PHILIP_DIM,PHILIP_
 template dealii::Tensor<1,PHILIP_DIM,FadType   > NavierStokes<PHILIP_DIM,PHILIP_DIM+2,RadType   >::compute_temperature_gradient<FadType   >(const std::array<FadType   ,PHILIP_DIM+2> &primitive_soln, const std::array<dealii::Tensor<1,PHILIP_DIM,FadType   >,PHILIP_DIM+2> &primitive_soln_gradient) const;
 template dealii::Tensor<1,PHILIP_DIM,FadType   > NavierStokes<PHILIP_DIM,PHILIP_DIM+2,FadFadType>::compute_temperature_gradient<FadType   >(const std::array<FadType   ,PHILIP_DIM+2> &primitive_soln, const std::array<dealii::Tensor<1,PHILIP_DIM,FadType   >,PHILIP_DIM+2> &primitive_soln_gradient) const;
 template dealii::Tensor<1,PHILIP_DIM,FadType   > NavierStokes<PHILIP_DIM,PHILIP_DIM+2,RadFadType>::compute_temperature_gradient<FadType   >(const std::array<FadType   ,PHILIP_DIM+2> &primitive_soln, const std::array<dealii::Tensor<1,PHILIP_DIM,FadType   >,PHILIP_DIM+2> &primitive_soln_gradient) const;
+// -- compute_viscosity_coefficient()
+template double     NavierStokes < PHILIP_DIM, PHILIP_DIM+2, double    >::compute_viscosity_coefficient< double     >(const std::array<double    ,PHILIP_DIM+2> &primitive_soln) const;
+template FadType    NavierStokes < PHILIP_DIM, PHILIP_DIM+2, FadType   >::compute_viscosity_coefficient< FadType    >(const std::array<FadType   ,PHILIP_DIM+2> &primitive_soln) const;
+template RadType    NavierStokes < PHILIP_DIM, PHILIP_DIM+2, RadType   >::compute_viscosity_coefficient< RadType    >(const std::array<RadType   ,PHILIP_DIM+2> &primitive_soln) const;
+template FadFadType NavierStokes < PHILIP_DIM, PHILIP_DIM+2, FadFadType>::compute_viscosity_coefficient< FadFadType >(const std::array<FadFadType,PHILIP_DIM+2> &primitive_soln) const;
+template RadFadType NavierStokes < PHILIP_DIM, PHILIP_DIM+2, RadFadType>::compute_viscosity_coefficient< RadFadType >(const std::array<RadFadType,PHILIP_DIM+2> &primitive_soln) const;
+// -- -- instantiate all the real types with real2 = FadType for automatic differentiation in classes derived from ModelBase
+template FadType NavierStokes < PHILIP_DIM, PHILIP_DIM+2, double    >::compute_viscosity_coefficient< FadType >(const std::array<FadType,PHILIP_DIM+2> &primitive_soln) const;
+template FadType NavierStokes < PHILIP_DIM, PHILIP_DIM+2, RadType   >::compute_viscosity_coefficient< FadType >(const std::array<FadType,PHILIP_DIM+2> &primitive_soln) const;
+template FadType NavierStokes < PHILIP_DIM, PHILIP_DIM+2, FadFadType>::compute_viscosity_coefficient< FadType >(const std::array<FadType,PHILIP_DIM+2> &primitive_soln) const;
+template FadType NavierStokes < PHILIP_DIM, PHILIP_DIM+2, RadFadType>::compute_viscosity_coefficient< FadType >(const std::array<FadType,PHILIP_DIM+2> &primitive_soln) const;
 
 } // Physics namespace
 } // PHiLiP namespace

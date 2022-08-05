@@ -42,7 +42,7 @@ int DualWeightedResidualMeshAdaptation<dim, nstate> :: run_test () const
     const Parameters::AllParameters param = *(TestsBase::all_parameters);
     using ManParam = Parameters::ManufacturedConvergenceStudyParam;
     ManParam manu_grid_conv_param = param.manufactured_convergence_study_param;
-    bool check_for_p_refined_cell = (param.mesh_adaptation_param.p_refine_fraction > 0);
+    bool check_for_p_refined_cell = true;
 
     const unsigned int p_start             = manu_grid_conv_param.degree_start;
     const unsigned int p_end               = manu_grid_conv_param.degree_end;

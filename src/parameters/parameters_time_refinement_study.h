@@ -8,7 +8,7 @@ namespace PHiLiP {
 
 namespace Parameters {
 
-/// Parameters related to the flow solver
+/// Parameters related to time refinement studies
 class TimeRefinementStudyParam
 {
 public:

@@ -42,9 +42,9 @@ protected:
     /** This is the same calculation as energy, but using the residual instead of solution
      */
     real compute_inner_product(
-            dealii::LinearAlgebra::distributed::Vector<double> stage_i,
-            dealii::LinearAlgebra::distributed::Vector<double> stage_j
-            );
+            const dealii::LinearAlgebra::distributed::Vector<double> stage_i,
+            const dealii::LinearAlgebra::distributed::Vector<double> stage_j
+            ) const;
 
 };
 

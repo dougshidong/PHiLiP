@@ -65,9 +65,9 @@ void Periodic1DUnsteady<dim, nstate>::compute_unsteady_data_and_write_to_table(
         }
     
         //detecting if the current run is calculating a reference solution 
-        int number_timesteps_ref = this->all_param.time_refinement_study_param.number_of_timesteps_for_reference_solution;
-        double final_time = this->all_param.flow_solver_param.final_time;
-        bool is_reference_solution = (dt < 2 * final_time/number_timesteps_ref);
+        const int number_timesteps_ref = this->all_param.time_refinement_study_param.number_of_timesteps_for_reference_solution;
+        const double final_time = this->all_param.flow_solver_param.final_time;
+        const bool is_reference_solution = (dt < 2 * final_time/number_timesteps_ref);
 
         if(this->mpi_rank==0 && !is_reference_solution) {
             //omit writing if current calculation is for a reference solution

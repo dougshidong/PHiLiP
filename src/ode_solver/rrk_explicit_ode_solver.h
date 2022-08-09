@@ -33,7 +33,7 @@ protected:
 
     /// Compute relaxation parameter explicitly (i.e. if energy is the entropy variable)
     // See Ketcheson 2019, Eq. 2.4
-    real compute_relaxation_parameter_explicit();
+    real compute_relaxation_parameter_explicit() const;
 
     /// Modify timestep based on relaxation
     void modify_time_step (real &dt) override;

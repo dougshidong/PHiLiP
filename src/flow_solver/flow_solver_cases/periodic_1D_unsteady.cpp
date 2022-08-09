@@ -55,7 +55,7 @@ void Periodic1DUnsteady<dim, nstate>::compute_unsteady_data_and_write_to_table(
         (void) unsteady_data_table;
     }
     else if ((pde_type == PDEEnum::burgers_inviscid)&&(this->all_param.use_collocated_nodes)){
-        double energy = this->compute_energy_collocated(dg);
+        const double energy = this->compute_energy_collocated(dg);
     
         if ((current_iteration % output_solution_every_n_iterations) == 0){
             this->pcout << "    Iter: " << current_iteration

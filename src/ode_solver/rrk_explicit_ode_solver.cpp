@@ -36,7 +36,7 @@ real RRKExplicitODESolver<dim,real,MeshType>::compute_relaxation_parameter_expli
 template <int dim, typename real, typename MeshType>
 real RRKExplicitODESolver<dim,real,MeshType>::compute_inner_product (
         dealii::LinearAlgebra::distributed::Vector<double> stage_i,
-        dealii::LinearAlgebra::distributed::Vector<double> stage_j
+        const dealii::LinearAlgebra::distributed::Vector<double> stage_j
         ) const
 {
     // Intention is to point to physics (mimic structure in flow_solver_cases/periodic_turbulence.cpp for converting to solution for general nodes) 

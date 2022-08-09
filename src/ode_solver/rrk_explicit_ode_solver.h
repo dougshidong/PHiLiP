@@ -38,7 +38,7 @@ protected:
     void modify_time_step (real &dt) override;
 
     /// Compute inner product according to the nodes being used
-    /* This is the same calculation as energy, but using the residual instead of solution
+    /** This is the same calculation as energy, but using the residual instead of solution
      */
     real compute_inner_product(
             dealii::LinearAlgebra::distributed::Vector<double> stage_i,

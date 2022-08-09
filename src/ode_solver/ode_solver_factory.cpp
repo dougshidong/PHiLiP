@@ -14,17 +14,21 @@ namespace ODE {
 template <int dim, typename real, typename MeshType>
 std::shared_ptr<ODESolverBase<dim,real,MeshType>> ODESolverFactory<dim,real,MeshType>::create_ODESolver(std::shared_ptr< DGBase<dim,real,MeshType> > dg_input)
 {
+    std::cout << "Creating ODE Solver..." << std::endl;
     using ODEEnum = Parameters::ODESolverParam::ODESolverEnum;
     ODEEnum ode_solver_type = dg_input->all_parameters->ode_solver_param.ode_solver_type;
     if(ode_solver_type == ODEEnum::explicit_solver)        return std::make_shared<ExplicitODESolver<dim,real,MeshType>>(dg_input);
     if(ode_solver_type == ODEEnum::implicit_solver)        return std::make_shared<ImplicitODESolver<dim,real,MeshType>>(dg_input);
-    if(ode_solver_type == ODEEnum::rrk_explicit_solver)  {
-        //RRK is only implemented for Burgers on collocated nodes    
+    if constexpr(dim==1){
+        //RRK is only implemented for Burgers on collocated nodes, 1D
         const bool use_collocated_nodes = dg_input->all_parameters->use_collocated_nodes;
         using PDEEnum = Parameters::AllParameters::PartialDifferentialEquation;
         const PDEEnum pde_type = dg_input->all_parameters->pde_type;
         const bool use_inviscid_burgers = (pde_type == PDEEnum::burgers_inviscid);
-        if (use_collocated_nodes && use_inviscid_burgers && dim == 1)  return std::make_shared<RRKExplicitODESolver<dim,real,MeshType>>(dg_input);
+        if ((ode_solver_type == ODEEnum::rrk_explicit_solver) && 
+                use_collocated_nodes && use_inviscid_burgers){
+            return std::make_shared<RRKExplicitODESolver<dim,real,MeshType>>(dg_input);
+        }
         else{
             display_error_ode_solver_factory(ode_solver_type, false);
             return nullptr;
@@ -55,13 +59,16 @@ std::shared_ptr<ODESolverBase<dim,real,MeshType>> ODESolverFactory<dim,real,Mesh
     using ODEEnum = Parameters::ODESolverParam::ODESolverEnum;
     if(ode_solver_type == ODEEnum::explicit_solver)        return std::make_shared<ExplicitODESolver<dim,real,MeshType>>(dg_input);
     if(ode_solver_type == ODEEnum::implicit_solver)        return std::make_shared<ImplicitODESolver<dim,real,MeshType>>(dg_input);
-    if(ode_solver_type == ODEEnum::rrk_explicit_solver){
-        //RRK is only implemented for Burgers on collocated nodes    
+    if constexpr(dim==1){
+        //RRK is only implemented for Burgers on collocated nodes, 1D
         const bool use_collocated_nodes = dg_input->all_parameters->use_collocated_nodes;
         using PDEEnum = Parameters::AllParameters::PartialDifferentialEquation;
         const PDEEnum pde_type = dg_input->all_parameters->pde_type;
         const bool use_inviscid_burgers = (pde_type == PDEEnum::burgers_inviscid);
-        if (use_collocated_nodes && use_inviscid_burgers && dim == 1)  return std::make_shared<RRKExplicitODESolver<dim,real,MeshType>>(dg_input);
+        if ((ode_solver_type == ODEEnum::rrk_explicit_solver) && 
+                use_collocated_nodes && use_inviscid_burgers){
+            return std::make_shared<RRKExplicitODESolver<dim,real,MeshType>>(dg_input);
+        }
         else{
             display_error_ode_solver_factory(ode_solver_type, false);
             return nullptr;

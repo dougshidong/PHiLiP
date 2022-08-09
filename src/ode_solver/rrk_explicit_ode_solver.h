@@ -24,7 +24,7 @@ public:
     ~RRKExplicitODESolver() {};
 
     /// Relaxation Runge-Kutta parameter gamma^n
-    /* See:  Ketcheson 2019, "Relaxation Runge--Kutta methods: Conservation and stability for inner-product norms"
+    /** See:  Ketcheson 2019, "Relaxation Runge--Kutta methods: Conservation and stability for inner-product norms"
      *       Ranocha 2020, "Relaxation Runge--Kutta Methods: Fully Discrete Explicit Entropy-Stable Schemes for the Compressible Euler and Navier--Stokes Equations"
      */
     real relaxation_parameter;
@@ -42,8 +42,8 @@ protected:
     /** This is the same calculation as energy, but using the residual instead of solution
      */
     real compute_inner_product(
-            const dealii::LinearAlgebra::distributed::Vector<double> stage_i,
-            const dealii::LinearAlgebra::distributed::Vector<double> stage_j
+            const dealii::LinearAlgebra::distributed::Vector<double> &stage_i,
+            const dealii::LinearAlgebra::distributed::Vector<double> &stage_j
             ) const;
 
 };

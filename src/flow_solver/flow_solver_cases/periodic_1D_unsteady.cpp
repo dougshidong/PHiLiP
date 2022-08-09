@@ -11,7 +11,7 @@ namespace FlowSolver {
 template <int dim, int nstate>
 Periodic1DUnsteady<dim, nstate>::Periodic1DUnsteady(const PHiLiP::Parameters::AllParameters *const parameters_input)
         : PeriodicCubeFlow<dim, nstate>(parameters_input)
-        , unsteady_data_table_filename_with_extension(this->all_param.flow_solver_param. unsteady_data_table_filename+ ".txt")
+        , unsteady_data_table_filename_with_extension(this->all_param.flow_solver_param.unsteady_data_table_filename+".txt")
 {
 
 }

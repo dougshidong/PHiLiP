@@ -35,7 +35,7 @@ protected:
     // See Ketcheson 2019, Eq. 2.4
     real compute_relaxation_parameter_explicit();
 
-    void modify_time_step (real &dt);
+    void modify_time_step (real &dt) override;
 
     /// Compute inner product according to the nodes being used
     /* This is the same calculation as energy, but using the residual instead of solution

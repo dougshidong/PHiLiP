@@ -6,7 +6,6 @@ namespace PHiLiP {
 
 namespace Parameters {
 
-// Flow Solver inputs
 TimeRefinementStudyParam::TimeRefinementStudyParam() {}
 
 void TimeRefinementStudyParam::declare_parameters(dealii::ParameterHandler &prm)

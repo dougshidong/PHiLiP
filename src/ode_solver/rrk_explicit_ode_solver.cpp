@@ -16,7 +16,7 @@ void RRKExplicitODESolver<dim,real,MeshType>::modify_time_step(real &dt)
 }
 
 template <int dim, typename real, typename MeshType>
-real RRKExplicitODESolver<dim,real,MeshType>::compute_relaxation_parameter_explicit()
+real RRKExplicitODESolver<dim,real,MeshType>::compute_relaxation_parameter_explicit() const
 {
     double gamma = 1;
     double denominator = 0;

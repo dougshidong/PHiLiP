@@ -19,6 +19,13 @@ add_test(
         WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )
 
+configure_file(2d_euler_subsonic_naca0012_lift_based_hp_adaptation.prm  2d_euler_subsonic_naca0012_lift_based_hp_adaptation.prm  COPYONLY)
+add_test(
+        NAME INVISCID_EULER_NACA0012_HP_ADAPTATION
+        COMMAND mpirun -np ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_2D -i ${CMAKE_CURRENT_BINARY_DIR}/2d_euler_subsonic_naca0012_lift_based_hp_adaptation.prm 
+        WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
+)
+
 #configure_file(2d_navier_stokes_naca0012_subsonic_05_200.prm 2d_navier_stokes_naca0012_subsonic_05_200.prm COPYONLY)
 #add_test(
 #  NAME 2D_NAVIER_STOKES_INTEGRATION_NACA0012_SUBSONIC_LONG

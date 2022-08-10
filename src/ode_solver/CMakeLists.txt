@@ -4,7 +4,8 @@ set(ODE_SOURCE
     explicit_ode_solver.cpp
     implicit_ode_solver.cpp
     pod_galerkin_ode_solver.cpp
-    pod_petrov_galerkin_ode_solver.cpp)
+    pod_petrov_galerkin_ode_solver.cpp
+    rrk_explicit_ode_solver.cpp)
 
 foreach(dim RANGE 1 3)
     # Output library

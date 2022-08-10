@@ -67,7 +67,7 @@ ExactSolutionFactory<dim,nstate, real>::create_ExactSolutionFunction(
 {
     // Get the flow case type
     const FlowCaseEnum flow_type = flow_solver_parameters.flow_case_type;
-    if (flow_type == FlowCaseEnum::advection_periodic) {
+    if (flow_type == FlowCaseEnum::periodic_1D_unsteady){
         if constexpr (dim==1 && nstate==dim)  return std::make_shared<ExactSolutionFunction_1DSine<dim,nstate,real> > (time_compare);
     } else {
         // Select zero function if there is no exact solution defined

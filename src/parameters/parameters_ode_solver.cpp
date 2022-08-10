@@ -23,9 +23,19 @@ void ODESolverParam::declare_parameters (dealii::ParameterHandler &prm)
                           "Outputs the solution at time intervals of dt in .vtk file");
 
         prm.declare_entry("ode_solver_type", "implicit",
-                          dealii::Patterns::Selection("explicit|implicit|pod_galerkin|pod_petrov_galerkin"),
-                          "Explicit or implicit solver, or reduced-order POD Galerkin or POD Petrov Galerkin solver"
-                          "Choices are <explicit|implicit|pod_galerkin|pod_petrov_galerkin>.");
+                          dealii::Patterns::Selection(
+                          " explicit | "
+                          " implicit | "
+                          " rrk_explicit | "
+                          " pod_galerkin | "
+                          " pod_petrov_galerkin"),
+                          "Type of ODE solver to use."
+                          "Choices are "
+                          " <explicit | "
+                          " implicit | "
+                          " rrk_explicit | "
+                          " pod_galerkin | "
+                          " pod_petrov_galerkin>.");
 
         prm.declare_entry("nonlinear_max_iterations", "500000",
                           dealii::Patterns::Integer(0,dealii::Patterns::Integer::max_int_value),
@@ -98,6 +108,7 @@ void ODESolverParam::parse_parameters (dealii::ParameterHandler &prm)
         const std::string solver_string = prm.get("ode_solver_type");
         if (solver_string == "explicit") ode_solver_type = ODESolverEnum::explicit_solver;
         if (solver_string == "implicit") ode_solver_type = ODESolverEnum::implicit_solver;
+        if (solver_string == "rrk_explicit") ode_solver_type = ODESolverEnum::rrk_explicit_solver;
         if (solver_string == "pod_galerkin") ode_solver_type = ODESolverEnum::pod_galerkin_solver;
         if (solver_string == "pod_petrov_galerkin") ode_solver_type = ODESolverEnum::pod_petrov_galerkin_solver;
 

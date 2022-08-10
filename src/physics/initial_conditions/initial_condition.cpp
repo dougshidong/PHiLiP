@@ -228,7 +228,7 @@ InitialConditionFactory<dim,nstate, real>::create_InitialConditionFunction(
                     param->euler_param.side_slip_angle);
             return std::make_shared<FreeStreamInitialConditions<dim,nstate,real>>(euler_physics_double);
         }
-    } else if (flow_type == FlowCaseEnum::advection_periodic) {
+    } else if (flow_type == FlowCaseEnum::periodic_1D_unsteady){
         if constexpr (dim==1 && nstate==dim)  return std::make_shared<InitialConditionFunction_1DSine<dim,nstate,real> > ();
     } else if (flow_type == FlowCaseEnum::sshock) {
         if constexpr (dim==2 && nstate==1)  return std::make_shared<InitialConditionFunction_Zero<dim,nstate,real> > ();

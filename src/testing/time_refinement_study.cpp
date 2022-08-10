@@ -13,8 +13,8 @@ TimeRefinementStudy<dim, nstate>::TimeRefinementStudy(
         const dealii::ParameterHandler &parameter_handler_input)  
         : TestsBase::TestsBase(parameters_input),
          parameter_handler(parameter_handler_input),
-         n_time_calculations(parameters_input->flow_solver_param.number_of_times_to_solve),
-         refine_ratio(parameters_input->flow_solver_param.refinement_ratio)
+         n_time_calculations(parameters_input->time_refinement_study_param.number_of_times_to_solve),
+         refine_ratio(parameters_input->time_refinement_study_param.refinement_ratio)
 {}
 
 

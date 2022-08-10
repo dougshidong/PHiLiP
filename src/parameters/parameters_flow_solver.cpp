@@ -19,7 +19,7 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                           " burgers_viscous_snapshot | "
                           " naca0012 | "
                           " burgers_rewienski_snapshot | "
-                          " advection_periodic | "
+                          " periodic_1D_unsteady | "
                           " gaussian_bump "),
                           "The type of flow we want to simulate. "
                           "Choices are "
@@ -27,7 +27,7 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                           " burgers_viscous_snapshot | "
                           " naca0012 | "
                           " burgers_rewienski_snapshot | "
-                          " advection_periodic | "
+                          " periodic_1D_unsteady | "
                           " gaussian_bump>. ");
 
         prm.declare_entry("poly_degree", "1",
@@ -162,17 +162,6 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                               " isothermal>.");
         }
         prm.leave_subsection();
-
-        prm.enter_subsection("time_refinement_study");
-        {
-            prm.declare_entry("number_of_times_to_solve", "4",
-                              dealii::Patterns::Integer(1, dealii::Patterns::Integer::max_int_value),
-                              "Number of times to run the flow solver during a time refinement study.");
-            prm.declare_entry("refinement_ratio", "0.5",
-                              dealii::Patterns::Double(0, 1.0),
-                              "Ratio between a timestep size and the next in a time refinement study, 0<r<1.");
-        }
-        prm.leave_subsection();
     }
     prm.leave_subsection();
 }
@@ -186,7 +175,7 @@ void FlowSolverParam::parse_parameters(dealii::ParameterHandler &prm)
         else if (flow_case_type_string == "burgers_viscous_snapshot")   {flow_case_type = burgers_viscous_snapshot;}
         else if (flow_case_type_string == "burgers_rewienski_snapshot") {flow_case_type = burgers_rewienski_snapshot;}
         else if (flow_case_type_string == "naca0012")                   {flow_case_type = naca0012;}
-        else if (flow_case_type_string == "advection_periodic")         {flow_case_type = advection_periodic;}
+        else if (flow_case_type_string == "periodic_1D_unsteady")       {flow_case_type = periodic_1D_unsteady;}
         else if (flow_case_type_string == "gaussian_bump")              {flow_case_type = gaussian_bump;}
 
         poly_degree = prm.get_integer("poly_degree");
@@ -234,12 +223,6 @@ void FlowSolverParam::parse_parameters(dealii::ParameterHandler &prm)
             const std::string density_initial_condition_type_string = prm.get("density_initial_condition_type");
             if      (density_initial_condition_type_string == "uniform")    {density_initial_condition_type = uniform;}
             else if (density_initial_condition_type_string == "isothermal") {density_initial_condition_type = isothermal;}
-        }
-        prm.leave_subsection();
-        prm.enter_subsection("time_refinement_study");
-        {
-            number_of_times_to_solve = prm.get_integer("number_of_times_to_solve");
-            refinement_ratio = prm.get_double("refinement_ratio");
         }
         prm.leave_subsection();
     }

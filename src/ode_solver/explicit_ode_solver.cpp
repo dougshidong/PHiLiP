@@ -39,6 +39,8 @@ void ExplicitODESolver<dim,real,MeshType>::step_in_time (real dt, const bool pse
         this->dg->global_inverse_mass_matrix.vmult(this->rk_stage[i], this->dg->right_hand_side); //rk_stage[i] = IMM*RHS = F(u_n + dt*sum(a_ij*k_j))
     }
 
+    modify_time_step(dt);
+
     //assemble solution from stages
     for (int i = 0; i < rk_order; ++i){
         if (pseudotime){
@@ -53,6 +55,12 @@ void ExplicitODESolver<dim,real,MeshType>::step_in_time (real dt, const bool pse
 
     ++(this->current_iteration);
     this->current_time += dt;
+}
+
+template <int dim, typename real, typename MeshType>
+void ExplicitODESolver<dim,real,MeshType>::modify_time_step(real &/*dt*/)
+{
+    //do nothing
 }
 
 template <int dim, typename real, typename MeshType>

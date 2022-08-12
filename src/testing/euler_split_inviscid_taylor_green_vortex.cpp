@@ -134,8 +134,7 @@ double EulerTaylorGreen<dim, nstate>::get_timestep(std::shared_ptr < DGBase<dim,
             convective_eigenvalues[isol] = pde_physics_double->max_convective_eigenvalue (soln_at_q[isol]);
         }
         const double max_eig = *(std::max_element(convective_eigenvalues.begin(), convective_eigenvalues.end()));
-       // double cfl = 0.1 * delta_x/max_eig;
-        double cfl = 0.05 * delta_x/max_eig;
+        double cfl = 0.1 * delta_x/max_eig;
         if(cfl < cfl_min)
             cfl_min = cfl;
 

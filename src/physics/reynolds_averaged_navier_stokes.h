@@ -52,7 +52,14 @@ public:
     /// Source term for manufactured solution functions
     std::array<real,nstate> source_term (
         const dealii::Point<dim,real> &pos,
-        const std::array<real,nstate> &solution,
+        const std::array<real,nstate> &conservative_solution,
+        const dealii::types::global_dof_index cell_index) const;
+
+    //adding physical source
+    /// Physical source term
+    std::array<real,nstate> physical_source_term (
+        const std::array<real,nstate> &conservative_solution,
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient,
         const dealii::types::global_dof_index cell_index) const;
 
     /// Nondimensionalized Reynolds stress tensor, (tau^reynolds)*

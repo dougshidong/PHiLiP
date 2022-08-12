@@ -38,6 +38,13 @@ public:
     	const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient,
         const dealii::types::global_dof_index cell_index) const = 0;
 
+    //adding physical source 
+    /// Physical source terms 
+    virtual std::array<real,nstate> physical_source_term (
+        const std::array<real,nstate> &solution,
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient,
+        const dealii::types::global_dof_index cell_index) const = 0;
+
     /// Source terms additional to the baseline physics
     virtual std::array<real,nstate> source_term (
         const dealii::Point<dim,real> &pos,

@@ -295,6 +295,21 @@ std::array<dealii::Tensor<1,dim,real2>,nstate-(dim+2)> ReynoldsAveragedNavierSto
  
     return primitive_soln_gradient_turbulence_model;
 }
+//adding physical source 
+//----------------------------------------------------------------
+template <int dim, int nstate, typename real>
+std::array<real,nstate> ReynoldsAveragedNavierStokesBase<dim,nstate,real>
+::physical_source_term (
+        const std::array<real,nstate> &/*solution*/,
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &/*solution_gradient*/,
+        const dealii::types::global_dof_index /*cell_index*/) const
+{
+    std::array<real,nstate> physical_source;
+    for (int i=0; i<nstate; i++) {
+        physical_source[i] = 0;
+    }
+    return physical_source;
+}
 //not sure if it should be changed for RANS
 //----------------------------------------------------------------
 template <int dim, int nstate, typename real>

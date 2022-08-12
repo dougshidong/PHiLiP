@@ -578,6 +578,8 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_volume_term_explicit(
     std::vector< ADArrayTensor1 > conv_phys_flux_at_q(n_quad_pts);
     std::vector< ADArrayTensor1 > diss_phys_flux_at_q(n_quad_pts);
     std::vector< doubleArray > source_at_q(n_quad_pts);
+    //adding physical source
+    std::vector< doubleArray > physical_source_at_q(n_quad_pts);
 
     std::vector< real > soln_coeff(n_soln_dofs_int);
     for (unsigned int idof = 0; idof < n_soln_dofs_int; ++idof) {
@@ -626,6 +628,8 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_volume_term_explicit(
         // Evaluate physical convective flux and source term
         conv_phys_flux_at_q[iquad] = DGBaseState<dim,nstate,real,MeshType>::pde_physics_double->convective_flux (soln_at_q[iquad]);
         diss_phys_flux_at_q[iquad] = DGBaseState<dim,nstate,real,MeshType>::pde_physics_double->dissipative_flux (soln_at_q[iquad], soln_grad_at_q[iquad], current_cell_index);
+        //adding physical source
+        physical_source_at_q[iquad] = DGBaseState<dim,nstate,real,MeshType>::pde_physics_double->physical_source_term (soln_at_q[iquad], soln_grad_at_q[iquad], current_cell_index);
         if(this->all_parameters->artificial_dissipation_param.add_artificial_dissipation) {
             const ADArrayTensor1 artificial_diss_phys_flux_at_q = DGBaseState<dim,nstate,real,MeshType>::artificial_dissip->calc_artificial_dissipation_flux (soln_at_q[iquad], soln_grad_at_q[iquad], artificial_diss_coeff);
             for (int istate=0; istate<nstate; istate++) {
@@ -671,6 +675,8 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_volume_term_explicit(
             //// Diffusive
             //// Note that for diffusion, the negative is defined in the physics_double
             rhs = rhs + fe_values_vol.shape_grad_component(itest,iquad,istate) * diss_phys_flux_at_q[iquad][istate] * JxW[iquad];
+            //adding physical source
+            rhs = rhs + fe_values_vol.shape_value_component(itest,iquad,istate) * physical_source_at_q[iquad][istate] * JxW[iquad];
             // Source
             if(this->all_parameters->manufactured_convergence_study_param.manufactured_solution_param.use_manufactured_source_term) {
                 rhs = rhs + fe_values_vol.shape_value_component(itest,iquad,istate) * source_at_q[iquad][istate] * JxW[iquad];
@@ -3614,6 +3620,8 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_volume_term(
     std::vector< ArrayTensor > conv_phys_flux_at_q(n_quad_pts);
     std::vector< ArrayTensor > diss_phys_flux_at_q(n_quad_pts);
     std::vector< Array > source_at_q(n_quad_pts);
+    //adding physical source
+    std::vector< Array > physical_source_at_q(n_quad_pts);
     for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
         for (int istate=0; istate<nstate; istate++) {
             soln_at_q[iquad][istate]      = 0;
@@ -3628,6 +3636,15 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_volume_term(
         }
         conv_phys_flux_at_q[iquad] = physics.convective_flux (soln_at_q[iquad]);
         diss_phys_flux_at_q[iquad] = physics.dissipative_flux (soln_at_q[iquad], soln_grad_at_q[iquad], current_cell_index);
+
+        //adding physical source
+        dealii::Point<dim,real2> ad_point;
+        for (int d=0;d<dim;++d) { ad_point[d] = 0.0;}
+            for (unsigned int idof = 0; idof < n_metric_dofs; ++idof) {
+                const int iaxis = fe_metric.system_to_component_index(idof).first;
+                ad_point[iaxis] += coords_coeff[idof] * fe_metric.shape_value(idof,unit_quad_pts[iquad]);
+            }
+        physical_source_at_q[iquad] = physics.physical_source_term (soln_at_q[iquad], soln_grad_at_q[iquad], current_cell_index);
 
         if (this->all_parameters->artificial_dissipation_param.add_artificial_dissipation) {
             ArrayTensor artificial_diss_phys_flux_at_q;
@@ -3675,6 +3692,8 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_volume_term(
                 //// Note that for diffusion, the negative is defined in the physics
                 rhs[itest] = rhs[itest] + gradient_operator[d][itest][iquad] * diss_phys_flux_at_q[iquad][istate][d] * JxW_iquad;
             }
+            //adding physical source
+            rhs[itest] = rhs[itest] + interpolation_operator[itest][iquad]* physical_source_at_q[iquad][istate] * JxW_iquad;
             // Source
             if(this->all_parameters->manufactured_convergence_study_param.manufactured_solution_param.use_manufactured_source_term) {
                 rhs[itest] = rhs[itest] + interpolation_operator[itest][iquad]* source_at_q[iquad][istate] * JxW_iquad;

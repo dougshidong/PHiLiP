@@ -121,6 +121,21 @@ std::array<dealii::Tensor<1,dim,real2>,nstate> LargeEddySimulationBase<dim,nstat
     
     return viscous_flux;
 }
+//adding physical source
+//----------------------------------------------------------------
+template <int dim, int nstate, typename real>
+std::array<real,nstate> LargeEddySimulationBase<dim,nstate,real>
+::physical_source_term (
+        const std::array<real,nstate> &/*solution*/,
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &/*solution_gradient*/,
+        const dealii::types::global_dof_index /*cell_index*/) const
+{
+    std::array<real,nstate> physical_source;
+    for (int i=0; i<nstate; i++) {
+        physical_source[i] = 0;
+    }
+    return physical_source;
+}
 //----------------------------------------------------------------
 template <int dim, int nstate, typename real>
 std::array<real,nstate> LargeEddySimulationBase<dim,nstate,real>

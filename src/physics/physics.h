@@ -89,6 +89,13 @@ public:
         const std::array<real,nstate> &solution,
         const dealii::types::global_dof_index cell_index) const = 0;
 
+    //adding physical source
+    /// physical source term that does require differentiation.
+    virtual std::array<real,nstate> physical_source_term (
+        const std::array<real,nstate> &solution,
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient,
+        const dealii::types::global_dof_index cell_index) const = 0;
+
     /// Artificial source term that does not require differentiation stemming from artificial dissipation.
     virtual std::array<real,nstate> artificial_source_term (
         const real viscosity_coefficient,

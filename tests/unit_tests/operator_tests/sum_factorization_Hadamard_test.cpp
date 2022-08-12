@@ -337,7 +337,7 @@ int main (int argc, char * argv[])
         pcout<<"Sum factorization not recover same vector Mass*u."<<std::endl;
         return 1;
     }
-    if(avg_slope1 > dim+1.1 || avg_slope2 > dim+1.1 ||avg_slope3 > dim+1.1){
+    if(avg_slope1 > dim+1.8 || avg_slope2 > dim+1.8 ||avg_slope3 > dim+1.8){
         //check if because of random number generator, take one more value for average since should converge by this order.
         avg_slope1 = 0.0;
         avg_slope2 = 0.0;
@@ -358,7 +358,7 @@ int main (int argc, char * argv[])
             avg_slope3 /= 4.0;
         }
 
-        if(avg_slope1 > dim+1.1 || avg_slope2 > dim+1.1 ||avg_slope3 > dim+1.1){
+        if(avg_slope1 > dim+1.8 || avg_slope2 > dim+1.8 ||avg_slope3 > dim+1.8){
             pcout<<"Sum factorization not give correct comp cost slope."<<std::endl;
             pcout<<"average slope 1 "<<avg_slope1<<" average slope 2 "<<avg_slope2<<" average slope 3 "<<avg_slope3<<std::endl;
             return 1;

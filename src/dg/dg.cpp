@@ -469,8 +469,9 @@ real DGBaseState<dim,nstate,real,MeshType>::evaluate_CFL (
     const real cfl_convective = (cell_diameter / max_eig) / (2*p+1);//(p * p);
     const real cfl_diffusive  = artificial_dissipation != 0.0 ?
                                 (0.5*cell_diameter*cell_diameter / artificial_dissipation) / (p*p*p*p)
-                               // : 1e200;
-                                : (0.5*cell_diameter * cell_diameter / max_diffusive) / (2*p+1);
+                                : ( (this->all_parameters->ode_solver_param.ode_solver_type != Parameters::ODESolverParam::ODESolverEnum::implicit_solver ) ?//if explicit use pseudotime stepping CFL
+                                        (0.5*cell_diameter * cell_diameter / max_diffusive) / (2*p+1)
+                                        : 1e200 );
     real min_cfl = std::min(cfl_convective, cfl_diffusive);
 
     if (min_cfl >= 1e190) min_cfl = cell_diameter / 1;

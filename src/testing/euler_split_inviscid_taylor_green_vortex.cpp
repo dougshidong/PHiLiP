@@ -166,7 +166,6 @@ int EulerTaylorGreen<dim, nstate>::run_test() const
     //set the warped grid
     PHiLiP::Grids::nonsymmetric_curved_grid<dim,Triangulation>(*grid, n_refinements);
 
-
 //    dealii::GridGenerator::hyper_cube(*grid, left, right, colorize);
 //   
 //    std::vector<dealii::GridTools::PeriodicFacePair<typename dealii::Triangulation<PHILIP_DIM>::cell_iterator> > matched_pairs;

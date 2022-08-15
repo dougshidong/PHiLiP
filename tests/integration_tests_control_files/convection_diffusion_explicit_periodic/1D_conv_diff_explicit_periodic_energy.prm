@@ -1,37 +1,41 @@
 # -------------------
 
-set test_type = advection_periodicity
+set test_type = convection_diffusion_periodicity
 
 # Number of dimensions
-set dimension = 2
+set dimension = 1
 
 set use_weak_form = false
 
-set overintegration = 2
+set overintegration = 0
 
-set use_collocated_nodes = true
+set use_collocated_nodes = false
 
 set use_split_form = false
 
-set use_curvilinear_split_form = true
+set use_curvilinear_split_form = false
 
-set use_weight_adjusted_mass = true
+set use_weight_adjusted_mass = false
 
 set use_periodic_bc = true
 
 set use_energy = true
 
-set flux_reconstruction = cPlus
+set flux_reconstruction = cDG
+
+set flux_reconstruction_aux = kDG
+
+set use_inverse_mass_on_the_fly = false
 
 set use_classical_FR = false
 
-set use_inverse_mass_on_the_fly = true
-
 # The PDE we want to solve
-set pde_type = advection
+set pde_type = diffusion
 
 #set conv_num_flux = lax_friedrichs
 set conv_num_flux = central_flux
+set diss_num_flux = central_visc_flux
+#set diss_num_flux = symm_internal_penalty
 
 subsection ODE solver
 
@@ -56,8 +60,10 @@ subsection ODE solver
 
 end
 
-subsection flow_solver
-    set flow_case_type = advection
-    set interpolate_initial_condition = false
-end
+#subsection manufactured solution convergence study
+#    set diffusion_coefficient = 1.0
+#end
 
+subsection flow_solver
+    set flow_case_type = convection_diffusion
+end

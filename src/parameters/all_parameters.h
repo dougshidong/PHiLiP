@@ -126,6 +126,9 @@ public:
     /// Flag to use inverse mass matrix on-the-fly for explicit solves.
     bool use_inverse_mass_on_the_fly;
 
+    /// Energy file.
+    std::string energy_file;
+
     /// Number of state variables. Will depend on PDE
     int nstate;
 
@@ -217,7 +220,7 @@ public:
     ConvectiveNumericalFlux conv_num_flux_type;
 
     /// Possible dissipative numerical flux types
-    enum DissipativeNumericalFlux { symm_internal_penalty, bassi_rebay_2 };
+    enum DissipativeNumericalFlux { symm_internal_penalty, bassi_rebay_2, central_visc_flux };
     /// Store diffusive flux type
     DissipativeNumericalFlux diss_num_flux_type;
 

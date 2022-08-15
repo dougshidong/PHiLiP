@@ -277,23 +277,38 @@ int main (int argc, char * argv[])
 
     pcout<<"Times for operation A*u"<<std::endl;
     pcout<<"Normal operation A*u  | Slope |  "<<"Sum factorization | Slope "<<std::endl;
+    double avg_slope = 0.0;
     for(unsigned int i=poly_min+1; i<poly_max; i++){
         pcout<<(float)time_diff[i]/CLOCKS_PER_SEC<<" "<<std::log(((float)time_diff[i]/CLOCKS_PER_SEC) / ((float)time_diff[i-1]/CLOCKS_PER_SEC))
                         / std::log((double)((i)/(i-1.0)))<<" "<<
         (float)time_diff_sum[i]/CLOCKS_PER_SEC<<" "<<std::log(((float)time_diff_sum[i]/CLOCKS_PER_SEC) /( (float)time_diff_sum[i-1]/CLOCKS_PER_SEC))
                         / std::log((double)((i)/(i-1.0)))<<
         std::endl;
+        if(i>poly_max-4){
+            avg_slope += std::log(((float)time_diff_sum[i]/CLOCKS_PER_SEC) /( (float)time_diff_sum[i-1]/CLOCKS_PER_SEC))
+                        / std::log((double)((i)/(i-1.0)));
+        }
     }
+    avg_slope /= (3);
 
     pcout<<" regular slope "<<first_slope_mpi<<" sum-factorization slope "<<sum_slope_mpi<<std::endl;
+    pcout<<"sum-factorization average slope "<<avg_slope<<std::endl;
 
     pcout<<"Times for operation M*u"<<std::endl;
     pcout<<"Normal operation M*u  |  "<<"Sum factorization "<<std::endl;
+    double avg_slope1 = 0.0;
     for(unsigned int i=poly_min; i<poly_max; i++){
         pcout<<(float)time_diff_mass[i]/CLOCKS_PER_SEC<<" "<<(float)time_diff_mass_sum[i]/CLOCKS_PER_SEC<<std::endl;
+        if(i>poly_max-4){
+            avg_slope1 += std::log(((float)time_diff_mass_sum[i]/CLOCKS_PER_SEC) /( (float)time_diff_mass_sum[i-1]/CLOCKS_PER_SEC))
+                        / std::log((double)((i)/(i-1.0)));
+        }
     }
+    avg_slope1 /= (3);
 
     pcout<<" regular slope "<<first_slope_mpi_mass<<" sum-factorization slope "<<sum_slope_mpi_mass<<std::endl;
+
+    pcout<<"sum-factorization mass average slope "<<avg_slope1<<std::endl;
 
     if(different==true){
         pcout<<"Sum factorization not recover same vector for A*u."<<std::endl;
@@ -301,6 +316,14 @@ int main (int argc, char * argv[])
     }
     if(different_mass==true){
         pcout<<"Sum factorization not recover same vector Mass*u."<<std::endl;
+        return 1;
+    }
+    if(avg_slope > dim+1.1){
+        pcout<<"Sum factorization not give correct comp cost slope."<<std::endl;
+        return 1;
+    }
+    if(avg_slope1 > dim+1.1){
+        pcout<<"Sum factorization not give correct comp cost slope."<<std::endl;
         return 1;
     }
     else{

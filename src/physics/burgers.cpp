@@ -130,6 +130,13 @@ real Burgers<dim,nstate,real>
 }
 
 template <int dim, int nstate, typename real>
+real Burgers<dim,nstate,real>
+::max_viscous_eigenvalue (const std::array<real,nstate> &/*conservative_soln*/) const
+{
+    return 0.0;
+}
+
+template <int dim, int nstate, typename real>
 std::array<dealii::Tensor<1,dim,real>,nstate> Burgers<dim,nstate,real>
 ::dissipative_flux (
     const std::array<real,nstate> &solution,

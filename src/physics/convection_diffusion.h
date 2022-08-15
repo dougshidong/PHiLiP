@@ -92,6 +92,9 @@ public:
     /// Maximum convective eigenvalue used in Lax-Friedrichs
     real max_convective_eigenvalue (const std::array<real,nstate> &soln) const;
 
+    /// Maximum viscous eigenvalue.
+    real max_viscous_eigenvalue (const std::array<real,nstate> &soln) const;
+
     //  /// Diffusion matrix is identity
     //  std::array<dealii::Tensor<1,dim,real>,nstate> apply_diffusion_matrix (
     //      const std::array<real,nstate> &solution,

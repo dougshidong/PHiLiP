@@ -145,6 +145,7 @@ int ODESolverBase<dim,real,MeshType>::steady_state ()
               << std::endl
               << " Nonlinear iteration: " << this->current_iteration
               << " Residual norm (normalized) : " << this->residual_norm
+              << " Residual norm decrease : " << this->residual_norm_decrease
               << " ( " << this->residual_norm / this->initial_residual_norm << " ) "
               << std::endl;
 

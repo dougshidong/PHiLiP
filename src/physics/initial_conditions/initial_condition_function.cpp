@@ -302,6 +302,34 @@ inline real InitialConditionFunction_ConvDiff<dim,nstate,real>
 }
 
 // ========================================================
+// Convection_diffusion Energy -- Initial Condition
+// ========================================================
+template <int dim, int nstate, typename real>
+InitialConditionFunction_ConvDiffEnergy<dim,nstate,real>
+::InitialConditionFunction_ConvDiffEnergy ()
+        : InitialConditionFunction<dim,nstate,real>()
+{
+    // Nothing to do here yet
+}
+
+template <int dim, int nstate, typename real>
+inline real InitialConditionFunction_ConvDiffEnergy<dim,nstate,real>
+::value(const dealii::Point<dim,real> &point, const unsigned int /*istate*/) const
+{
+    real value = 1.0;
+    if constexpr(dim >= 1)
+        value *= sin(dealii::numbers::PI*point[0]);
+    if constexpr(dim >= 2)
+        value *= sin(dealii::numbers::PI*point[1]);
+    if constexpr(dim == 3)
+        value *= sin(dealii::numbers::PI*point[2]);
+
+    value += 0.1;
+
+    return value;
+}
+
+// ========================================================
 // 1D SINE -- Initial Condition for advection_explicit_time_study
 // ========================================================
 template <int dim, int nstate, typename real>
@@ -388,12 +416,14 @@ InitialConditionFactory<dim,nstate, real>::create_InitialConditionFunction(
         if constexpr (nstate==1) return std::make_shared<InitialConditionFunction_AdvectionEnergy<dim,nstate,real> > ();
     } else if (flow_type == FlowCaseEnum::advection && param->use_energy==false) {
         if constexpr (nstate==1) return std::make_shared<InitialConditionFunction_Advection<dim,nstate,real> > ();
-    } else if (flow_type == FlowCaseEnum::convection_diffusion) {
+    } else if (flow_type == FlowCaseEnum::convection_diffusion && !param->use_energy) {
         if constexpr (nstate==1) return std::make_shared<InitialConditionFunction_ConvDiff<dim,nstate,real> > ();
+    } else if (flow_type == FlowCaseEnum::convection_diffusion && param->use_energy) {
+        return std::make_shared<InitialConditionFunction_ConvDiffEnergy<dim,nstate,real> > ();
     } else if (flow_type == FlowCaseEnum::advection_periodic) {
         if constexpr (dim==1 && nstate==1) return std::make_shared<InitialConditionFunction_1DSine<dim,nstate,real> > ();
     } else {
-        std::cout << "Invalid Flow Case Type. You probably forgot to add it to the list of flow cases in initial_condition.cpp" << std::endl;
+        std::cout << "Invalid Flow Case Type. You probably forgot to add it to the list of flow cases in initial_condition_function.cpp" << std::endl;
         std::abort();
     }
     return nullptr;
@@ -423,5 +453,6 @@ template class InitialConditionFunction_Zero <PHILIP_DIM,5, double>;
 template class InitialConditionFunction_Advection <PHILIP_DIM, 1, double>;
 template class InitialConditionFunction_AdvectionEnergy <PHILIP_DIM, 1, double>;
 template class InitialConditionFunction_ConvDiff <PHILIP_DIM, 1, double>;
+template class InitialConditionFunction_ConvDiffEnergy <PHILIP_DIM,1,double>;
 
 } // PHiLiP namespace

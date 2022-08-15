@@ -33,31 +33,23 @@ ConvectionDiffusionPeriodic<dim, nstate>::ConvectionDiffusionPeriodic(const PHiL
 {}
 
 template<int dim, int nstate>
-double ConvectionDiffusionPeriodic<dim, nstate>::compute_energy(std::shared_ptr < PHiLiP::DGBase<dim, double> > &dg) const
+double ConvectionDiffusionPeriodic<dim, nstate>::compute_energy_derivative_norm(std::shared_ptr < PHiLiP::DGBase<dim, double> > &dg) const
 {
 	double energy = 0.0;
-    dealii::LinearAlgebra::distributed::Vector<double> mass_matrix_times_solution(dg->right_hand_side);
-    if(dg->all_parameters->use_inverse_mass_on_the_fly)
-        dg->apply_global_mass_matrix(dg->solution,mass_matrix_times_solution);
-    else
-        dg->global_mass_matrix.vmult(mass_matrix_times_solution, dg->solution);
-    //Since we normalize the energy later, don't bother scaling by 0.5
-    //Energy \f$ = 0.5 * \int u^2 d\Omega_m \f$
-    energy = dg->solution * mass_matrix_times_solution;
+    dg->assemble_residual();
+    energy = dg->solution * dg->right_hand_side;
 
     //diffusion contribution
-    const double diff_coeff = Parameters::ManufacturedSolutionParam::get_default_diffusion_coefficient();
+    const double diff_coeff = dg->all_parameters->manufactured_convergence_study_param.manufactured_solution_param.diffusion_coefficient;
+    const dealii::Tensor<2,3,double> diff_tensor = Parameters::ManufacturedSolutionParam::get_default_diffusion_tensor();
     for(int idim=0; idim<dim; idim++){
-        dealii::LinearAlgebra::distributed::Vector<double> mass_matrix_times_auxiliary_variable(dg->right_hand_side);
-        if(dg->all_parameters->use_inverse_mass_on_the_fly)
-            dg->apply_global_mass_matrix(dg->auxiliary_solution[idim], mass_matrix_times_auxiliary_variable,true);
-        else
-            dg->global_mass_matrix_auxiliary.vmult(mass_matrix_times_auxiliary_variable, dg->auxiliary_solution[idim]);
-        double temp_energy = dg->auxiliary_solution[idim] * mass_matrix_times_auxiliary_variable;
-        energy += diff_coeff * temp_energy;
+        for(int jdim=0; jdim<dim; jdim++){
+            double temp_energy = dg->auxiliary_solution[jdim] * dg->auxiliary_RHS[idim] * diff_tensor[idim][jdim];
+            energy += diff_coeff * temp_energy;
+        }
     }
-        
-    return energy;
+
+	return energy;
 }
 
 template<int dim, int nstate>
@@ -98,14 +90,20 @@ double ConvectionDiffusionPeriodic<dim, nstate>::compute_conservation(std::share
 
     // diffussive contribution to conservation
     const double diff_coeff = Parameters::ManufacturedSolutionParam::get_default_diffusion_coefficient();
+    // const double diff_coeff = 1.0;
+    const dealii::Tensor<2,3,double> diff_tensor = Parameters::ManufacturedSolutionParam::get_default_diffusion_tensor();
     for(int idim=0; idim<dim; idim++){
         dealii::LinearAlgebra::distributed::Vector<double> mass_matrix_times_auxiliary_variable(dg->right_hand_side);
         if(dg->all_parameters->use_inverse_mass_on_the_fly)
-            dg->apply_global_mass_matrix(dg->auxiliary_solution[idim], mass_matrix_times_auxiliary_variable, true);
+            dg->apply_global_mass_matrix(dg->auxiliary_solution[idim], mass_matrix_times_auxiliary_variable,true);
         else
-            dg->global_mass_matrix_auxiliary.vmult(mass_matrix_times_auxiliary_variable, dg->auxiliary_solution[idim]);
-        double temp_conservation = ones_hat_global * mass_matrix_times_auxiliary_variable;
-        conservation += diff_coeff * temp_conservation;
+            dg->global_mass_matrix_auxiliary.vmult( mass_matrix_times_auxiliary_variable, dg->auxiliary_solution[idim]);
+        for(int jdim=0; jdim<dim; jdim++){
+            double temp_cons = ones_hat_global * mass_matrix_times_auxiliary_variable * diff_tensor[idim][jdim];
+            conservation += diff_coeff * temp_cons;
+        }
+        // double temp_conservation = ones_hat_global * mass_matrix_times_auxiliary_variable;
+        // conservation += diff_coeff * temp_conservation;
     }
 
     return conservation;
@@ -146,11 +144,15 @@ int ConvectionDiffusionPeriodic<dim, nstate>::run_test() const
 #endif
         // straight grid
         dealii::GridGenerator::hyper_cube(*grid, left, right, true);
-#if PHILIP_DIM!=1
+#if PHILIP_DIM==1
+        std::vector<dealii::GridTools::PeriodicFacePair<typename dealii::Triangulation<PHILIP_DIM>::cell_iterator> > matched_pairs;
+        dealii::GridTools::collect_periodic_faces(*grid,0,1,0,matched_pairs);
+        grid->add_periodicity(matched_pairs);
+#else
         std::vector<dealii::GridTools::PeriodicFacePair<typename dealii::parallel::distributed::Triangulation<PHILIP_DIM>::cell_iterator> > matched_pairs;
         dealii::GridTools::collect_periodic_faces(*grid,0,1,0,matched_pairs);
-        if(dim==2) dealii::GridTools::collect_periodic_faces(*grid,2,3,1,matched_pairs);
-        if(dim==3) dealii::GridTools::collect_periodic_faces(*grid,4,5,2,matched_pairs);
+        if(dim>=2) dealii::GridTools::collect_periodic_faces(*grid,2,3,1,matched_pairs);
+        if(dim>=3) dealii::GridTools::collect_periodic_faces(*grid,4,5,2,matched_pairs);
         grid->add_periodicity(matched_pairs);
 #endif
         grid->refine_global(igrid);
@@ -159,8 +161,17 @@ int ConvectionDiffusionPeriodic<dim, nstate>::run_test() const
         const unsigned int n_global_active_cells2 = grid->n_global_active_cells();
         double n_dofs_cfl = pow(n_global_active_cells2,dim) * pow(poly_degree+1.0, dim);
         double delta_x = (right-left)/pow(n_dofs_cfl,(1.0/dim)); 
-        const double diff_coeff2 = 0.1*atan(1)*4.0/exp(1) * 20; 
+        const double diff_coeff2 = Parameters::ManufacturedSolutionParam::get_default_diffusion_coefficient();
+        //const double diff_coeff2 = dg->all_parameters->manufactured_convergence_study_param.manufactured_solution_param.diffusion_coefficient;
+        const dealii::Tensor<2,3,double> diff_tensor2 = Parameters::ManufacturedSolutionParam::get_default_diffusion_tensor();
+        double max_diff_tens=0.0;
+        for(int i=0; i<dim; i++){
+            for(int j=0; j<dim; j++){
+                if(std::abs(diff_tensor2[i][j]) > max_diff_tens) max_diff_tens = std::abs(diff_tensor2[i][j]);
+            }
+        }
         all_parameters_new.ode_solver_param.initial_time_step =  0.5*pow(delta_x,2)/diff_coeff2;
+        all_parameters_new.ode_solver_param.initial_time_step =  0.05*pow(delta_x,2)/diff_coeff2 / max_diff_tens;
              
         // allocate dg
         std::shared_ptr < PHiLiP::DGBase<dim, double> > dg = PHiLiP::DGFactory<dim,double>::create_discontinuous_galerkin(&all_parameters_new, poly_degree, poly_degree, grid_degree, grid);
@@ -179,7 +190,7 @@ int ConvectionDiffusionPeriodic<dim, nstate>::run_test() const
         double finalTime = 2.0;
 
         if(all_parameters_new.use_energy == true){//for split form get energy
-            finalTime = 0.001;
+            finalTime = 0.01;
 
             double dt = all_parameters_new.ode_solver_param.initial_time_step;
 
@@ -187,8 +198,9 @@ int ConvectionDiffusionPeriodic<dim, nstate>::run_test() const
 
             ode_solver->current_iteration = 0;
             ode_solver->advance_solution_time(0.000001);
-            double initial_energy = compute_energy(dg);
-            // double initial_conservation = compute_conservation(dg, poly_degree);
+
+    	    double initial_energy = compute_energy_derivative_norm(dg);
+    	    double initial_conservation = compute_conservation(dg, poly_degree);
 
             // currently the only way to calculate energy at each time-step is to advance solution by dt instead of finaltime
             // this causes some issues with outputs (only one file is output, which is overwritten at each time step)
@@ -199,32 +211,41 @@ int ConvectionDiffusionPeriodic<dim, nstate>::run_test() const
             ode_solver->current_iteration = 0;
             for(int i = 0; i < std::ceil(finalTime/dt); ++ i) {
                 ode_solver->advance_solution_time(dt);
-                double current_energy = compute_energy(dg);
-                current_energy /=initial_energy;
+                double current_energy = compute_energy_derivative_norm(dg);
                 std::cout << std::setprecision(16) << std::fixed;
                 this->pcout << "Energy at time " << i * dt << " is " << current_energy << std::endl;
                 myfile << i * dt << " " << std::fixed << std::setprecision(16) << current_energy << std::endl;
-                if (current_energy*initial_energy - initial_energy >= 1.0)/*if (current_energy*initial_energy - initial_energy >= 10000.0)*/ {
-                    this->pcout<<"Energy Fail"<<std::endl;
+                
+                if (current_energy>1e-12)/*if (current_energy*initial_energy - initial_energy >= 10000.0)*/ 
+                {
+                    this->pcout<<"Energy Fail Not montonically decrease with current "<< current_energy<<" vs initial "<<initial_energy<<std::endl;
                     return 1;
                     break;
                 }
-                // Conservation not yet verified so commented out
-                // double current_conservation = compute_conservation(dg, poly_degree);
-                // current_conservation /=initial_conservation;
-                // std::cout << std::setprecision(16) << std::fixed;
-                // this->pcout << "Normalized Conservation at time " << i * dt << " is " << current_conservation<< std::endl;
-                // myfile << i * dt << " " << std::fixed << std::setprecision(16) << current_conservation << std::endl;
-                // if (current_conservation*initial_conservation - initial_conservation >= 10.00)
-                // // if (current_energy - initial_energy >= 10.00)
-                // {
-                //     this->pcout << "Not conserved" << std::endl;
-                //     return 1;
-                //     break;
-                // }
+                
+                if (std::abs(current_energy - initial_energy >= 1.0e-12) && 
+                    (all_parameters_new.diss_num_flux_type == Parameters::AllParameters::DissipativeNumericalFlux::central_visc_flux))
+                {
+                    this->pcout<<"Energy Not conserved with current "<< current_energy<<" vs initial "<<initial_energy<<std::endl;
+                    return 1;
+                    break;
+                }
+                
+                double current_conservation = compute_conservation(dg, poly_degree);
+                current_conservation /=initial_conservation;
+
+                std::cout << std::setprecision(16) << std::fixed;
+                this->pcout << "Normalized Conservation at time " << i * dt << " is " << current_conservation<< std::endl;
+                myfile << i * dt << " " << std::fixed << std::setprecision(16) << current_conservation << std::endl;
+                if (current_conservation*initial_conservation - initial_conservation >= 1e-12)
+                //if (current_energy - initial_energy >= 10.00)
+                {
+                    this->pcout << "Not conserved" << std::endl;
+                    return 1;
+                    break;
+                }
             }
             myfile.close();
-
         }//end of energy
         else {//do OOA
             

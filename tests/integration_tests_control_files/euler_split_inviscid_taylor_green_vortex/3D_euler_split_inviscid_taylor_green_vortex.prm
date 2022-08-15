@@ -10,6 +10,10 @@ set use_collocated_nodes = true
 
 set use_split_form = true
 
+set use_curvilinear_split_form = true
+
+set energy_file = KE_cDG_4x4
+
 # The PDE we want to solve
 set pde_type = euler
 
@@ -21,6 +25,8 @@ set use_energy = true
 set flux_reconstruction = cDG
 
 set use_inverse_mass_on_the_fly = true
+
+set use_weight_adjusted_mass = false
 
 set use_periodic_bc = true
 
@@ -37,6 +43,8 @@ subsection ODE solver
   set ode_solver_type = explicit
 
   set initial_time_step = 0.001
+
+  set output_solution_every_x_steps = 1
 
   subsection explicit solver options
 

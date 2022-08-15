@@ -3,6 +3,7 @@
 #include "euler_split_inviscid_taylor_green_vortex.h"
 #include "physics/initial_conditions/set_initial_condition.h"
 #include "physics/initial_conditions/initial_condition_function.h"
+#include "mesh/grids/nonsymmetric_curved_periodic_grid.hpp"
 
 namespace PHiLiP {
 namespace Tests {
@@ -100,51 +101,16 @@ double EulerTaylorGreen<dim, nstate>::compute_kinetic_energy(std::shared_ptr < D
     return total_kinetic_energy;
 }
 
-template <int dim, int nstate>
-int EulerTaylorGreen<dim, nstate>::run_test() const
+template<int dim, int nstate>
+double EulerTaylorGreen<dim, nstate>::get_timestep(std::shared_ptr < DGBase<dim, double> > &dg, unsigned int poly_degree, const double delta_x) const
 {
-    using Triangulation = dealii::parallel::distributed::Triangulation<dim>;
-    std::shared_ptr<Triangulation> grid = std::make_shared<Triangulation> (mpi_communicator);
-
-    PHiLiP::Parameters::AllParameters all_parameters_new = *all_parameters;  
-    double left = 0.0;
-    double right = 2 * dealii::numbers::PI;
-    const bool colorize = true;
-    int n_refinements = 2;
-    unsigned int poly_degree = 3;
-    const unsigned int grid_degree = 1;
-    dealii::GridGenerator::hyper_cube(*grid, left, right, colorize);
-     
-    std::vector<dealii::GridTools::PeriodicFacePair<typename dealii::Triangulation<PHILIP_DIM>::cell_iterator> > matched_pairs;
-    dealii::GridTools::collect_periodic_faces(*grid,0,1,0,matched_pairs);
-    dealii::GridTools::collect_periodic_faces(*grid,2,3,1,matched_pairs);
-    dealii::GridTools::collect_periodic_faces(*grid,4,5,2,matched_pairs);
-    grid->add_periodicity(matched_pairs);
-     
-    grid->refine_global(n_refinements);
-
-    //Create DG
-    std::shared_ptr < PHiLiP::DGBase<dim, double> > dg = PHiLiP::DGFactory<dim,double>::create_discontinuous_galerkin(&all_parameters_new, poly_degree, poly_degree, grid_degree, grid);
-    dg->allocate_system ();
-
-    std::cout << "Implement initial conditions" << std::endl;
-
-    std::shared_ptr< InitialConditionFunction<dim,nstate,double> > initial_condition_function = 
-                InitialConditionFactory<dim,nstate,double>::create_InitialConditionFunction(&all_parameters_new);
-    SetInitialCondition<dim,nstate,double>::set_initial_condition(initial_condition_function, dg, &all_parameters_new);
-
-
-    const unsigned int n_global_active_cells2 = grid->n_global_active_cells();
-    double delta_x = (right-left)/n_global_active_cells2/(poly_degree+1.0);
-    pcout<<" delta x "<<delta_x<<std::endl;
-
     //get local CFL
     const unsigned int n_dofs_cell = nstate*pow(poly_degree+1,dim);
     const unsigned int n_quad_pts = pow(poly_degree+1,dim);
     std::vector<dealii::types::global_dof_index> dofs_indices1 (n_dofs_cell);
 
     double cfl_min = 1e100;
-    std::shared_ptr < Physics::PhysicsBase<dim, nstate, double > > pde_physics_double  = PHiLiP::Physics::PhysicsFactory<dim,nstate,double>::create_Physics(&all_parameters_new);
+    std::shared_ptr < Physics::PhysicsBase<dim, nstate, double > > pde_physics_double  = PHiLiP::Physics::PhysicsFactory<dim,nstate,double>::create_Physics(dg->all_parameters);
     for (auto cell = dg->dof_handler.begin_active(); cell!=dg->dof_handler.end(); ++cell) {
         if (!cell->is_locally_owned()) continue;
 
@@ -168,28 +134,79 @@ int EulerTaylorGreen<dim, nstate>::run_test() const
             convective_eigenvalues[isol] = pde_physics_double->max_convective_eigenvalue (soln_at_q[isol]);
         }
         const double max_eig = *(std::max_element(convective_eigenvalues.begin(), convective_eigenvalues.end()));
-        double cfl = 0.1 * delta_x/max_eig;
+       // double cfl = 0.1 * delta_x/max_eig;
+        double cfl = 0.05 * delta_x/max_eig;
         if(cfl < cfl_min)
             cfl_min = cfl;
 
     }
-    all_parameters_new.ode_solver_param.initial_time_step =  cfl_min;
-    pcout<<"The new timestep with eigenval is "<<cfl_min<<" compared to previous "<<0.1 * delta_x<<std::endl;
+    return cfl_min;
+}
+
+template <int dim, int nstate>
+int EulerTaylorGreen<dim, nstate>::run_test() const
+{
+    // using Triangulation = dealii::parallel::distributed::Triangulation<dim>;
+    // std::shared_ptr<Triangulation> grid = std::make_shared<Triangulation> (mpi_communicator);
+    using Triangulation = dealii::parallel::distributed::Triangulation<dim>;
+    std::shared_ptr<Triangulation> grid = std::make_shared<Triangulation>(
+        MPI_COMM_WORLD,
+        typename dealii::Triangulation<dim>::MeshSmoothing(
+            dealii::Triangulation<dim>::smoothing_on_refinement |
+            dealii::Triangulation<dim>::smoothing_on_coarsening));
+
+    using real = double;
+
+    PHiLiP::Parameters::AllParameters all_parameters_new = *all_parameters;  
+    double left = 0.0;
+    double right = 2 * dealii::numbers::PI;
+    // const bool colorize = true;
+    const int n_refinements = 2;
+    unsigned int poly_degree = 3;
+    const unsigned int grid_degree = poly_degree;
+
+    // set the warped grid
+    PHiLiP::Grids::nonsymmetric_curved_grid<dim,Triangulation>(*grid, n_refinements);
+
+    // dealii::GridGenerator::hyper_cube(*grid, left, right, colorize);
+    // std::vector<dealii::GridTools::PeriodicFacePair<typename dealii::Triangulation<PHILIP_DIM>::cell_iterator> > matched_pairs;
+    // dealii::GridTools::collect_periodic_faces(*grid,0,1,0,matched_pairs);
+    // dealii::GridTools::collect_periodic_faces(*grid,2,3,1,matched_pairs);
+    // dealii::GridTools::collect_periodic_faces(*grid,4,5,2,matched_pairs);
+    // grid->add_periodicity(matched_pairs);
+    // grid->refine_global(n_refinements);
+
+    // Create DG
+    std::shared_ptr < PHiLiP::DGBase<dim, double> > dg = PHiLiP::DGFactory<dim,double>::create_discontinuous_galerkin(&all_parameters_new, poly_degree, poly_degree, grid_degree, grid);
+    dg->allocate_system ();
+
+    std::cout << "Implement initial conditions" << std::endl;
+    std::shared_ptr< InitialConditionFunction<dim,nstate,double> > initial_condition_function = 
+                InitialConditionFactory<dim,nstate,double>::create_InitialConditionFunction(&all_parameters_new);
+    SetInitialCondition<dim,nstate,double>::set_initial_condition(initial_condition_function, dg, &all_parameters_new);
+
+    const unsigned int n_global_active_cells2 = grid->n_global_active_cells();
+    double delta_x = (right-left)/n_global_active_cells2/(poly_degree+1.0);
+    pcout<<" delta x "<<delta_x<<std::endl;
+
+    all_parameters_new.ode_solver_param.initial_time_step =  get_timestep(dg,poly_degree,delta_x);
      
     std::cout << "creating ODE solver" << std::endl;
     std::shared_ptr<ODE::ODESolverBase<dim, double>> ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
     std::cout << "ODE solver successfully created" << std::endl;
     double finalTime = 14.;
-    finalTime = 0.1;//to speed things up locally in tests, doesn't need full 14seconds to verify.
+    finalTime = 0.4;
+    // finalTime = 0.1;//to speed things up locally in tests, doesn't need full 14seconds to verify.
     double dt = all_parameters_new.ode_solver_param.initial_time_step;
+    // double dt = all_parameters_new.ode_solver_param.initial_time_step / 10.0;
 
-    std::cout<<" number dofs "<< dg->dof_handler.n_dofs()<<std::endl;
+    std::cout << " number dofs " << dg->dof_handler.n_dofs()<<std::endl;
     std::cout << "preparing to advance solution in time" << std::endl;
 
-    //currently the only way to calculate energy at each time-step is to advance solution by dt instead of finaltime
-    //this causes some issues with outputs (only one file is output, which is overwritten at each time step)
-    //also the ode solver output doesn't make sense (says "iteration 1 out of 1")
-    //but it works. I'll keep it for now and need to modify the output functions later to account for this.
+    // Currently the only way to calculate energy at each time-step is to advance solution by dt instead of finaltime
+    // this causes some issues with outputs (only one file is output, which is overwritten at each time step)
+    // also the ode solver output doesn't make sense (says "iteration 1 out of 1")
+    // but it works. I'll keep it for now and need to modify the output functions later to account for this.
     double initialcond_energy = compute_kinetic_energy(dg, poly_degree);
     double initialcond_energy_mpi = (dealii::Utilities::MPI::sum(initialcond_energy, mpi_communicator));
     std::cout << std::setprecision(16) << std::fixed;
@@ -204,7 +221,8 @@ int EulerTaylorGreen<dim, nstate>::run_test() const
 
     std::cout << std::setprecision(16) << std::fixed;
     pcout << "Energy at one timestep is " << initial_energy_mpi/(8*pow(dealii::numbers::PI,3)) << std::endl;
-    std::ofstream myfile ("kinetic_energy_3D_TGV.gpl" , std::ios::trunc);
+    // std::ofstream myfile ("kinetic_energy_3D_TGV_cdg_curv_grid_4x4.gpl" , std::ios::trunc);
+    std::ofstream myfile (all_parameters_new.energy_file + ".gpl"  , std::ios::trunc);
 
     for (int i = 0; i < std::ceil(finalTime/dt); ++ i) {
         ode_solver->advance_solution_time(dt);
@@ -227,6 +245,7 @@ int EulerTaylorGreen<dim, nstate>::run_test() const
         std::cout << std::setprecision(16) << std::fixed;
         pcout << "M plus K norm at time " << i * dt << " is " << current_MK_energy<< std::endl;
         myfile << i * dt << " " << std::fixed << std::setprecision(16) << current_MK_energy << std::endl;
+        all_parameters_new.ode_solver_param.initial_time_step =  get_timestep(dg,poly_degree, delta_x);
     }
 
     myfile.close();

@@ -197,6 +197,13 @@ real PhysicsModel<dim,nstate,real,nstate_baseline_physics>
 }
 
 template <int dim, int nstate, typename real, int nstate_baseline_physics>
+real PhysicsModel<dim,nstate,real,nstate_baseline_physics>
+::max_viscous_eigenvalue (const std::array<real,nstate> &/*conservative_soln*/) const
+{
+    return 0.0;
+}
+
+template <int dim, int nstate, typename real, int nstate_baseline_physics>
 void PhysicsModel<dim,nstate,real,nstate_baseline_physics>
 ::boundary_face_values (
    const int boundary_type,

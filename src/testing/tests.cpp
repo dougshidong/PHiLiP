@@ -214,7 +214,7 @@ std::unique_ptr< TestsBase > TestsFactory<dim,nstate,MeshType>
         (void) parameter_handler_input;
     }
 
-    if(test_type == Test_enum::run_control) {
+    if(test_type == Test_enum::run_control) { // TO DO: rename to grid_study
         return std::make_unique<GridStudy<dim,nstate>>(parameters_input);
     } else if(test_type == Test_enum::grid_refinement_study) {
         return std::make_unique<GridRefinementStudy<dim,nstate,MeshType>>(parameters_input);
@@ -223,7 +223,7 @@ std::unique_ptr< TestsBase > TestsFactory<dim,nstate,MeshType>
     } else if(test_type == Test_enum::diffusion_exact_adjoint) {
         if constexpr (dim>=1 && nstate==1) return std::make_unique<DiffusionExactAdjoint<dim,nstate>>(parameters_input);
     } else if (test_type == Test_enum::advection_periodicity){
-        if constexpr (dim == 2 && nstate == 1) return std::make_unique<AdvectionPeriodic<dim,nstate>> (parameters_input);
+        if constexpr (nstate == 1) return std::make_unique<AdvectionPeriodic<dim,nstate>> (parameters_input);
     } else if (test_type == Test_enum::convection_diffusion_periodicity){
         if constexpr (nstate == 1) return std::make_unique<ConvectionDiffusionPeriodic<dim,nstate>> (parameters_input);
     } else if(test_type == Test_enum::euler_gaussian_bump) {

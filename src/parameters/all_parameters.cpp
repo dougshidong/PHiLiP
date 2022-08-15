@@ -118,6 +118,10 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       dealii::Patterns::Bool(),
                       "Build global mass inverse matrix and apply it. Otherwise, use inverse mass on-the-fly by default for explicit timestepping.");
 
+    prm.declare_entry("energy_file", "energy_file",
+                      dealii::Patterns::FileName(dealii::Patterns::FileName::FileType::input),
+                      "Input file for energy test.");
+
     prm.declare_entry("test_type", "run_control",
                       dealii::Patterns::Selection(
                       " run_control | "
@@ -236,9 +240,9 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       " entropy_conserving_flux_with_l2roe_dissipation>.");
 
     prm.declare_entry("diss_num_flux", "symm_internal_penalty",
-                      dealii::Patterns::Selection("symm_internal_penalty | bassi_rebay_2"),
+                      dealii::Patterns::Selection("symm_internal_penalty | bassi_rebay_2 | central_visc_flux"),
                       "Dissipative numerical flux. "
-                      "Choices are <symm_internal_penalty | bassi_rebay_2>.");
+                      "Choices are <symm_internal_penalty | bassi_rebay_2 | central_visc_flux>.");
 
     prm.declare_entry("solution_vtk_files_directory_name", ".",
                       dealii::Patterns::FileName(dealii::Patterns::FileName::FileType::input),
@@ -375,6 +379,8 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     use_invariant_curl_form = prm.get_bool("use_invariant_curl_form");
     use_inverse_mass_on_the_fly = prm.get_bool("use_inverse_mass_on_the_fly");
 
+    energy_file = prm.get("energy_file");
+
     const std::string conv_num_flux_string = prm.get("conv_num_flux");
     if (conv_num_flux_string == "lax_friedrichs")                                          { conv_num_flux_type = ConvectiveNumericalFlux::lax_friedrichs; }
     if (conv_num_flux_string == "roe")                                                     { conv_num_flux_type = ConvectiveNumericalFlux::roe; }                                        
@@ -391,6 +397,7 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
         diss_num_flux_type = bassi_rebay_2;
         sipg_penalty_factor = 0.0;
     }
+    if (diss_num_flux_string == "central_visc_flux") diss_num_flux_type = central_visc_flux;
 
     const std::string flux_reconstruction_string = prm.get("flux_reconstruction");
     if (flux_reconstruction_string == "cDG")         { flux_reconstruction_type = cDG; }

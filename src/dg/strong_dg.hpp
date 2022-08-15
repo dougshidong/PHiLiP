@@ -47,7 +47,7 @@ private:
 
     /// Builds the necessary operators and assembles volume residual for either primary or auxiliary.
     void assemble_volume_term_and_build_operators(
-        typename dealii::DoFHandler<dim>::active_cell_iterator /*cell*/,
+        typename dealii::DoFHandler<dim>::active_cell_iterator cell,
         const dealii::types::global_dof_index                  current_cell_index,
         const std::vector<dealii::types::global_dof_index>     &cell_dofs_indices,
         const std::vector<dealii::types::global_dof_index>     &metric_dof_indices,
@@ -176,8 +176,6 @@ private:
         std::vector<dealii::Tensor<1,dim,real>>            &local_auxiliary_RHS);
 
     /// Evaluate the boundary RHS for the auxiliary equation.
-    /** Not verified
-    */
     void assemble_boundary_term_auxiliary_equation(
         const unsigned int                                 iface,
         const dealii::types::global_dof_index              current_cell_index,
@@ -229,6 +227,7 @@ private:
     * matrix of REFERENCE two-point entropy conserving fluxes.
     */
     void assemble_volume_term_strong(
+        typename dealii::DoFHandler<dim>::active_cell_iterator cell,
         const dealii::types::global_dof_index              current_cell_index,
         const std::vector<dealii::types::global_dof_index> &cell_dofs_indices,
         const unsigned int                                 poly_degree,
@@ -238,8 +237,6 @@ private:
         dealii::Vector<real>                               &local_rhs_int_cell);
 
     /// Strong form primary equation's boundary right-hand-side.
-    /** Not verified
-    */
     void assemble_boundary_term_strong(
         const unsigned int                                 iface, 
         const dealii::types::global_dof_index              current_cell_index,

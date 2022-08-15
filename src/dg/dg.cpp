@@ -458,11 +458,13 @@ real DGBaseState<dim,nstate,real,MeshType>::evaluate_CFL (
 {
     const unsigned int n_pts = soln_at_q.size();
     std::vector< real > convective_eigenvalues(n_pts);
+    std::vector< real > viscosities(n_pts);
     for (unsigned int isol = 0; isol < n_pts; ++isol) {
         convective_eigenvalues[isol] = pde_physics_double->max_convective_eigenvalue (soln_at_q[isol]);
-        //viscosities[isol] = pde_physics_double->compute_diffusion_coefficient (soln_at_q[isol]);
+        viscosities[isol] = pde_physics_double->max_viscous_eigenvalue (soln_at_q[isol]);
     }
     const real max_eig = *(std::max_element(convective_eigenvalues.begin(), convective_eigenvalues.end()));
+    const real max_diffusive = *(std::max_element(viscosities.begin(), viscosities.end()));
 
     //const real cfl_convective = cell_diameter / max_eig;
     //const real cfl_diffusive  = artificial_dissipation != 0.0 ? 0.5*cell_diameter*cell_diameter / artificial_dissipation : 1e200;
@@ -472,7 +474,8 @@ real DGBaseState<dim,nstate,real,MeshType>::evaluate_CFL (
     const real cfl_convective = (cell_diameter / max_eig) / (2*p+1);//(p * p);
     const real cfl_diffusive  = artificial_dissipation != 0.0 ?
                                 (0.5*cell_diameter*cell_diameter / artificial_dissipation) / (p*p*p*p)
-                                : 1e200;
+                               // : 1e200;
+                                : (0.5*cell_diameter * cell_diameter / max_diffusive) / (2*p+1);
     real min_cfl = std::min(cfl_convective, cfl_diffusive);
 
     if (min_cfl >= 1e190) min_cfl = cell_diameter / 1;
@@ -743,6 +746,7 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
         pcout<<"ERROR: Implicit does not currently work for strong form."<<std::endl;
         exit(1);
     }
+
 
     assemble_volume_term_and_build_operators(
         current_cell,
@@ -1262,20 +1266,24 @@ void DGBase<dim,real,MeshType>::reinit_operators_for_cell_residual_loop(
     OPERATOR::mapping_shape_functions<dim,2*dim> &mapping_basis)
 {
     soln_basis_int.build_1D_volume_operator(oneD_fe_collection_1state[poly_degree_int], oneD_quadrature_collection[poly_degree_int]);
+    soln_basis_int.build_1D_gradient_operator(oneD_fe_collection_1state[poly_degree_int], oneD_quadrature_collection[poly_degree_int]);
     soln_basis_int.build_1D_surface_operator(oneD_fe_collection_1state[poly_degree_int], oneD_face_quadrature);
+    soln_basis_int.build_1D_surface_gradient_operator(oneD_fe_collection_1state[poly_degree_int], oneD_face_quadrature);
 
     soln_basis_ext.build_1D_volume_operator(oneD_fe_collection_1state[poly_degree_ext], oneD_quadrature_collection[poly_degree_ext]);
+    soln_basis_ext.build_1D_gradient_operator(oneD_fe_collection_1state[poly_degree_ext], oneD_quadrature_collection[poly_degree_ext]);
     soln_basis_ext.build_1D_surface_operator(oneD_fe_collection_1state[poly_degree_ext], oneD_face_quadrature);
+    soln_basis_ext.build_1D_surface_gradient_operator(oneD_fe_collection_1state[poly_degree_ext], oneD_face_quadrature);
 
     flux_basis_int.build_1D_volume_operator(oneD_fe_collection_flux[poly_degree_int], oneD_quadrature_collection[poly_degree_int]);
     flux_basis_int.build_1D_gradient_operator(oneD_fe_collection_flux[poly_degree_int], oneD_quadrature_collection[poly_degree_int]);
     flux_basis_int.build_1D_surface_operator(oneD_fe_collection_flux[poly_degree_int], oneD_face_quadrature);
-    flux_basis_int.build_1D_surface_operator(oneD_fe_collection_flux[poly_degree_int], oneD_face_quadrature);
+    flux_basis_int.build_1D_surface_gradient_operator(oneD_fe_collection_flux[poly_degree_int], oneD_face_quadrature);
 
     flux_basis_ext.build_1D_volume_operator(oneD_fe_collection_flux[poly_degree_ext], oneD_quadrature_collection[poly_degree_ext]);
     flux_basis_ext.build_1D_gradient_operator(oneD_fe_collection_flux[poly_degree_ext], oneD_quadrature_collection[poly_degree_ext]);
     flux_basis_ext.build_1D_surface_operator(oneD_fe_collection_flux[poly_degree_ext], oneD_face_quadrature);
-    flux_basis_ext.build_1D_surface_operator(oneD_fe_collection_flux[poly_degree_ext], oneD_face_quadrature);
+    flux_basis_ext.build_1D_surface_gradient_operator(oneD_fe_collection_flux[poly_degree_ext], oneD_face_quadrature);
 
     //We only need to compute the most recent mapping basis since we compute interior before looping faces
     mapping_basis.build_1D_shape_functions_at_grid_nodes(high_order_grid->oneD_fe_system, high_order_grid->oneD_grid_nodes);
@@ -2813,8 +2821,6 @@ void DGBase<dim,real,MeshType>::apply_inverse_global_mass_matrix(
                 }
             }
             else{
-                pcout<<"Applying the inverse of the metrid dependent Mass Matrix on-the-fly does not yet work for unstructured/curvilinear grids."<<std::endl;
-                exit(1);
                 if(use_auxiliary_eq){
                     std::vector<real> projection_of_input(n_quad_pts);
                     projection_oper_aux.matrix_vector_mult_1D(local_input_vector, projection_of_input,
@@ -2983,7 +2989,7 @@ void DGBase<dim,real,MeshType>::apply_global_mass_matrix(
                                                           proj_mass);
                     std::vector<real> JxW(n_quad_pts);
                     for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
-                        JxW[iquad] = (quad_weights[iquad] * metric_oper.det_Jac_vol[iquad]);
+                        JxW[iquad] = (metric_oper.det_Jac_vol[iquad] / quad_weights[iquad]);
                     }
                     projection_oper.inner_product_1D(projection_of_input, JxW,
                                                      local_output_vector,
@@ -2999,7 +3005,7 @@ void DGBase<dim,real,MeshType>::apply_global_mass_matrix(
                                                           proj_mass);
                     std::vector<real> JxW(n_quad_pts);
                     for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
-                        JxW[iquad] = (quad_weights[iquad] * metric_oper.det_Jac_vol[iquad]);
+                        JxW[iquad] = (metric_oper.det_Jac_vol[iquad] / quad_weights[iquad]);
                     }
                     projection_oper.inner_product_1D(projection_of_input, JxW,
                                                      local_output_vector,

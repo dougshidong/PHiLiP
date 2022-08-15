@@ -133,6 +133,9 @@ public:
     /// Maximum convective eigenvalue used in Lax-Friedrichs
     real max_convective_eigenvalue (const std::array<real,nstate> &soln) const;
 
+    /// Maximum viscous eigenvalue.
+    real max_viscous_eigenvalue (const std::array<real,nstate> &soln) const;
+
     /// Dissipative flux: 0
     std::array<dealii::Tensor<1,dim,real>,nstate> dissipative_flux (
         const std::array<real,nstate> &conservative_soln,

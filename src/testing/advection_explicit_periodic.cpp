@@ -160,6 +160,7 @@ int AdvectionPeriodic<dim, nstate>::run_test() const
         // Create ODE solver using the factory and providing the DG object
         std::shared_ptr<PHiLiP::ODE::ODESolverBase<dim, double>> ode_solver = PHiLiP::ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
         double finalTime = 2.0;
+        if constexpr(dim==3) finalTime = 0.1;//to speed things up locally
     	
         // need to call ode_solver before calculating energy because mass matrix isn't allocated yet.
 
@@ -214,7 +215,6 @@ int AdvectionPeriodic<dim, nstate>::run_test() const
                     this->pcout << "Not conserved" << std::endl;
                 	return 1;
                 }
-             
             }
              
             // Close the file
@@ -366,9 +366,7 @@ int AdvectionPeriodic<dim, nstate>::run_test() const
     return 0;//if reaches here mean passed test 
 }
 
-#if PHILIP_DIM==2
 template class AdvectionPeriodic <PHILIP_DIM,1>;
-#endif
 
 } //Tests namespace
 } //PHiLiP namespace

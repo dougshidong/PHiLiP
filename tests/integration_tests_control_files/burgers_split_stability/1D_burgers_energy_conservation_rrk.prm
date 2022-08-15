@@ -17,7 +17,7 @@ set conv_num_flux = split_form
 
 # ODE solver
 subsection ODE solver
-  set ode_solver_type = explicit #this is modified by the test
+  set ode_solver_type = runge_kutta #this is modified by the test
   set output_solution_every_dt_time_intervals = 0.01
   set initial_time_step = 1E-2 #this is modified by the test 
   subsection explicit solver options

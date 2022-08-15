@@ -3,18 +3,18 @@
 
 #include "dg/dg.h"
 #include "ode_solver_base.h"
-#include "explicit_ode_solver.h"
+#include "runge_kutta_ode_solver.h"
 
 namespace PHiLiP {
 namespace ODE {
 
-/// Relaxation Runge-Kutta ODE solver derived from ExplicitODESolver.
+/// Relaxation Runge-Kutta ODE solver derived from RungeKuttaODESolver.
 #if PHILIP_DIM==1
 template <int dim, typename real, typename MeshType = dealii::Triangulation<dim>>
 #else
 template <int dim, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
 #endif
-class RRKExplicitODESolver: public ExplicitODESolver <dim, real, MeshType>
+class RRKExplicitODESolver: public RungeKuttaODESolver <dim, real, MeshType>
 {
 public:
     /// Default constructor that will set the constants.

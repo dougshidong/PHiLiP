@@ -5,7 +5,7 @@ namespace ODE {
 
 template <int dim, typename real, typename MeshType>
 RRKExplicitODESolver<dim,real,MeshType>::RRKExplicitODESolver(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input)
-        : ExplicitODESolver<dim,real,MeshType>(dg_input)
+        : RungeKuttaODESolver<dim,real,MeshType>(dg_input)
         {}
 
 template <int dim, typename real, typename MeshType>

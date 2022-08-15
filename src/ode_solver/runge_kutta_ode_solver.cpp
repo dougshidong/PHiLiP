@@ -102,17 +102,13 @@ void RungeKuttaODESolver<dim,real,MeshType>::step_in_time (real dt, const bool p
 }
 
 template <int dim, typename real, typename MeshType>
-<<<<<<< HEAD:src/ode_solver/explicit_ode_solver.cpp
-void ExplicitODESolver<dim,real,MeshType>::modify_time_step(real &/*dt*/)
+void RungeKuttaODESolver<dim,real,MeshType>::modify_time_step(real &/*dt*/)
 {
     //do nothing
 }
 
 template <int dim, typename real, typename MeshType>
-void ExplicitODESolver<dim,real,MeshType>::allocate_ode_system ()
-=======
 void RungeKuttaODESolver<dim,real,MeshType>::allocate_ode_system ()
->>>>>>> Renamed explicit --> runge_kutta to reflect addition of implicit capability:src/ode_solver/runge_kutta_ode_solver.cpp
 {
     this->pcout << "Allocating ODE system and evaluating inverse mass matrix..." << std::endl;
     const bool do_inverse_mass_matrix = true;

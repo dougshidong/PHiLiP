@@ -98,7 +98,7 @@ void ODESolverFactory<dim,real,MeshType>::display_error_ode_solver_factory(Param
     using ODEEnum = Parameters::ODESolverParam::ODESolverEnum;
 
     std::string solver_string;    
-    if (ode_solver_type == ODEEnum::explicit_solver)               solver_string = "explicit";
+    if (ode_solver_type == ODEEnum::runge_kutta_solver)               solver_string = "runge_kutta";
     if (ode_solver_type == ODEEnum::implicit_solver)               solver_string = "implicit";
     if (ode_solver_type == ODEEnum::rrk_explicit_solver)           solver_string = "rrk_explicit";
     if (ode_solver_type == ODEEnum::pod_galerkin_solver)           solver_string = "pod_galerkin";
@@ -115,7 +115,7 @@ void ODESolverFactory<dim,real,MeshType>::display_error_ode_solver_factory(Param
         pcout <<  "pod_petrov_galerkin" << std::endl;
     }
     else{
-        pcout <<  "explicit" << std::endl;
+        pcout <<  "runge_kutta" << std::endl;
         pcout <<  "implicit" << std::endl;
         pcout <<  "rrk_explicit" << std::endl;
         pcout << "    With rrk_explicit only being valid for " <<std::endl;

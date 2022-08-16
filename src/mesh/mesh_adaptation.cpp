@@ -173,8 +173,8 @@ void MeshAdaptation<dim,real,MeshType>::smoothness_sensor_based_hp_refinement()
         }
         
         real smoothness_sensor = error / soln_norm;
-        real tolerance = 1.0e-6;
-        if(smoothness_sensor < tolerance)
+        
+        if(smoothness_sensor < mesh_adaptation_param->hp_smoothness_tolerance)
         {
             cell->clear_refine_flag();
             cell->set_future_fe_index(cell->active_fe_index()+1);

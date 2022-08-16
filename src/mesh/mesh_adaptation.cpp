@@ -17,7 +17,10 @@ MeshAdaptation<dim,real,MeshType>::MeshAdaptation(std::shared_ptr< DGBase<dim, r
 template <int dim, typename real, typename MeshType>
 void MeshAdaptation<dim,real,MeshType>::adapt_mesh()
 {
+    unsigned int expected_size_of_cellwise_errors = dg->triangulation->n_active_cells();
     cellwise_errors = mesh_error->compute_cellwise_errors();
+    unsigned int actual_size_of_cellwise_errors = cellwise_errors.size();
+    AssertDimension(expected_size_of_cellwise_errors, actual_size_of_cellwise_errors);
 
     fixed_fraction_isotropic_refinement_and_coarsening();
     current_mesh_adaptation_cycle++;

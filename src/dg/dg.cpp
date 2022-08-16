@@ -520,8 +520,9 @@ dealii::Point<dim> DGBase<dim,real,MeshType>::coordinates_of_highest_refined_cel
 
     if(check_for_p_refined_cell)
     {
-        for (auto cell = dof_handler.begin_active(); cell!= dof_handler.end(); ++cell) 
+        for (const auto &cell : dof_handler.active_cell_iterators()) 
         {
+            if(!cell->is_locally_owned())  continue;
             current_cell_polynomial_order = cell->active_fe_index();
             if ((current_cell_polynomial_order > max_cell_polynomial_order) && (cell->is_locally_owned()))
             {
@@ -532,8 +533,9 @@ dealii::Point<dim> DGBase<dim,real,MeshType>::coordinates_of_highest_refined_cel
     }
     else
     {
-        for (auto cell = high_order_grid->dof_handler_grid.begin_active(); cell!= high_order_grid->dof_handler_grid.end(); ++cell) 
+        for (const auto &cell : high_order_grid->dof_handler_grid.active_cell_iterators()) 
         {
+            if(!cell->is_locally_owned())  continue;
             current_cell_diameter = cell->diameter(); // For future dealii version: current_cell_diameter = cell->diameter(*(mapping_fe_field));
             if ((min_diameter_local > current_cell_diameter) && (cell->is_locally_owned()))
             {

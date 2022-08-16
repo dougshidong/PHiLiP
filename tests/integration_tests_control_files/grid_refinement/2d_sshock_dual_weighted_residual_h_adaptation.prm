@@ -77,6 +77,7 @@ subsection flow_solver
   set steady_state = true
   set steady_state_polynomial_ramping = false
   set poly_degree = 2
+  set max_poly_degree_for_adaptation = 3
   subsection grid
     set number_of_mesh_refinements = 4
   end

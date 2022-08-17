@@ -22,14 +22,16 @@ NavierStokes<dim, nstate, real>::NavierStokes(
     const double                                              reynolds_number_inf,
     const double                                              isothermal_wall_temperature,
     const thermal_boundary_condition_enum                     thermal_boundary_condition_type,
-    std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function)
+    std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function,
+    const two_point_num_flux_enum                             two_point_num_flux_type)
     : Euler<dim,nstate,real>(ref_length, 
                              gamma_gas, 
                              mach_inf, 
                              angle_of_attack, 
                              side_slip_angle, 
                              manufactured_solution_function,
-                             true)
+                             true,
+                             two_point_num_flux_type)
     , viscosity_coefficient_inf(1.0) // Nondimensional - Free stream values
     , prandtl_number(prandtl_number)
     , reynolds_number_inf(reynolds_number_inf)

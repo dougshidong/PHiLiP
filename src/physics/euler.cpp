@@ -5,6 +5,7 @@
 
 #include "physics.h"
 #include "euler.h"
+
 const double BIG_NUMBER = 1e100;
 
 namespace PHiLiP {
@@ -18,7 +19,8 @@ Euler<dim,nstate,real>::Euler (
     const double                                              angle_of_attack,
     const double                                              side_slip_angle,
     std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function,
-    const bool                                                has_nonzero_diffusion)
+    const bool                                                has_nonzero_diffusion,
+    const two_point_num_flux_enum                             two_point_num_flux_type_input)
     : PhysicsBase<dim,nstate,real>(has_nonzero_diffusion,manufactured_solution_function)
     , ref_length(ref_length)
     , gam(gamma_gas)
@@ -31,6 +33,7 @@ Euler<dim,nstate,real>::Euler (
     , sound_inf(1.0/(mach_inf))
     , pressure_inf(1.0/(gam*mach_inf_sqr))
     , entropy_inf(pressure_inf*pow(density_inf,-gam))
+    , two_point_num_flux_type(two_point_num_flux_type_input)
     //, internal_energy_inf(1.0/(gam*(gam-1.0)*mach_inf_sqr)) 
     // Note: Eq.(3.11.18) has a typo in internal_energy_inf expression, mach_inf_sqr should be in denominator. 
 {
@@ -403,6 +406,21 @@ std::array<dealii::Tensor<1,dim,real>,nstate> Euler<dim, nstate, real>
                                   const std::array<real,nstate> &conservative_soln2) const
 {
     std::array<dealii::Tensor<1,dim,real>,nstate> conv_num_split_flux;
+    if(two_point_num_flux_type == two_point_num_flux_enum::KG) {
+        conv_num_split_flux = convective_numerical_split_flux_kennedy_gruber(conservative_soln1, conservative_soln2);
+    } else if(two_point_num_flux_type == two_point_num_flux_enum::IR) {
+        conv_num_split_flux = convective_numerical_split_flux_ismail_roe(conservative_soln1, conservative_soln2);
+    }
+
+    return conv_num_split_flux;
+}
+
+template <int dim, int nstate, typename real>
+std::array<dealii::Tensor<1,dim,real>,nstate> Euler<dim, nstate, real>
+::convective_numerical_split_flux_kennedy_gruber(const std::array<real,nstate> &conservative_soln1,
+                                                 const std::array<real,nstate> &conservative_soln2) const
+{
+    std::array<dealii::Tensor<1,dim,real>,nstate> conv_num_split_flux;
     const real mean_density = compute_mean_density(conservative_soln1, conservative_soln2);
     const real mean_pressure = compute_mean_pressure(conservative_soln1, conservative_soln2);
     const dealii::Tensor<1,dim,real> mean_velocities = compute_mean_velocities(conservative_soln1,conservative_soln2);
@@ -411,7 +429,7 @@ std::array<dealii::Tensor<1,dim,real>,nstate> Euler<dim, nstate, real>
     for (int flux_dim = 0; flux_dim < dim; ++flux_dim)
     {
         // Density equation
-        conv_num_split_flux[0][flux_dim] = mean_density * mean_velocities[flux_dim];//conservative_soln[1+flux_dim];
+        conv_num_split_flux[0][flux_dim] = mean_density * mean_velocities[flux_dim];
         // Momentum equation
         for (int velocity_dim=0; velocity_dim<dim; ++velocity_dim){
             conv_num_split_flux[1+velocity_dim][flux_dim] = mean_density*mean_velocities[flux_dim]*mean_velocities[velocity_dim];
@@ -419,6 +437,102 @@ std::array<dealii::Tensor<1,dim,real>,nstate> Euler<dim, nstate, real>
         conv_num_split_flux[1+flux_dim][flux_dim] += mean_pressure; // Add diagonal of pressure
         // Energy equation
         conv_num_split_flux[nstate-1][flux_dim] = mean_density*mean_velocities[flux_dim]*mean_specific_energy + mean_pressure * mean_velocities[flux_dim];
+    }
+
+    return conv_num_split_flux;
+}
+
+template <int dim, int nstate, typename real>
+std::array<real,nstate> Euler<dim, nstate, real>
+::compute_ismail_roe_parameter_vector_from_primitive(const std::array<real,nstate> &primitive_soln) const
+{
+    // Ismail-Roe parameter vector; Eq (3.14) [Gassner, Winters, and Kopriva, 2016, SBP]
+    std::array<real,nstate> ismail_roe_parameter_vector;
+    ismail_roe_parameter_vector[0] = sqrt(primitive_soln[0]/primitive_soln[nstate-1]);
+    for(int d=0; d<dim; ++d){
+        ismail_roe_parameter_vector[1+d] = ismail_roe_parameter_vector[0]*primitive_soln[1+d];
+    }
+    ismail_roe_parameter_vector[nstate-1] = sqrt(primitive_soln[0]*primitive_soln[nstate-1]);
+
+    return ismail_roe_parameter_vector;
+}
+
+template <int dim, int nstate, typename real>
+real Euler<dim, nstate, real>
+::compute_ismail_roe_logarithmic_mean(const real val1, const real val2) const
+{
+    // See Appendix B [Ismail and Roe, 2009, Entropy-Consistent Euler Flux Functions II]
+    // -- Numerically stable algorithm for computing the logarithmic mean
+    const real zeta = val1/val2;
+    const real f = (zeta-1.0)/(zeta+1.0);
+    const real u = f*f;
+    
+    real F;
+    if(u<1.0e-2){ F = 1.0 + u/3.0 + u*u/5.0 + u*u*u/7.0; } 
+    else { 
+        if constexpr(std::is_same<real,double>::value) F = std::log(zeta)/2.0/f; 
+    }
+    
+    const real log_mean_val = (val1+val2)/(2.0*F);
+
+    return log_mean_val;
+}
+
+template <int dim, int nstate, typename real>
+std::array<dealii::Tensor<1,dim,real>,nstate> Euler<dim, nstate, real>
+::convective_numerical_split_flux_ismail_roe(const std::array<real,nstate> &conservative_soln1,
+                                             const std::array<real,nstate> &conservative_soln2) const
+{
+    // Get Ismail Roe parameter vectors
+    const std::array<real,nstate> parameter_vector1 = compute_ismail_roe_parameter_vector_from_primitive(
+                                                        convert_conservative_to_primitive<real>(conservative_soln1));
+    const std::array<real,nstate> parameter_vector2 = compute_ismail_roe_parameter_vector_from_primitive(
+                                                        convert_conservative_to_primitive<real>(conservative_soln2));
+
+    // Compute mean (average) parameter vector
+    std::array<real,nstate> avg_parameter_vector;
+    for(int s=0; s<nstate; ++s){
+        avg_parameter_vector[s] = 0.5*(parameter_vector1[s] + parameter_vector2[s]);
+    }
+
+    // Compute logarithmic mean parameter vector
+    std::array<real,nstate> log_mean_parameter_vector;
+    for(int s=0; s<nstate; ++s){
+        log_mean_parameter_vector[s] = compute_ismail_roe_logarithmic_mean(parameter_vector1[s], parameter_vector2[s]);
+    }
+
+    // Compute Ismail Roe mean primitive variables; Eq (3.15) [Gassner, Winters, and Kopriva, 2016, SBP]
+    std::array<real,dim> mean_velocities;
+    const real mean_density = avg_parameter_vector[0]*log_mean_parameter_vector[nstate-1];
+    for(int d=0; d<dim; ++d){
+        mean_velocities[d] = avg_parameter_vector[1+d]/avg_parameter_vector[0];
+    }
+    const real mean_pressure = avg_parameter_vector[nstate-1]/avg_parameter_vector[0];
+    // -- enthalpy
+    real mean_enthalpy = (gam+1.0)*(log_mean_parameter_vector[nstate-1]/log_mean_parameter_vector[0]) + gamm1*mean_pressure;
+    mean_enthalpy /= 2.0*gam;
+    mean_enthalpy *= gam/(mean_density*gamm1);
+    // -- get sum of mean velocities squared
+    real mean_velocities_sqr_sum = 0.0;
+    for(int d=0; d<dim; ++d){
+        mean_velocities_sqr_sum += mean_velocities[d]*mean_velocities[d];
+    }
+    // -- add to enthalpy
+    mean_enthalpy += 0.5*mean_velocities_sqr_sum;
+
+    // Compute Ismail Roe convective numerical split flux
+    std::array<dealii::Tensor<1,dim,real>,nstate> conv_num_split_flux;
+    for (int flux_dim = 0; flux_dim < dim; ++flux_dim)
+    {
+        // Density equation
+        conv_num_split_flux[0][flux_dim] = mean_density * mean_velocities[flux_dim];
+        // Momentum equation
+        for (int velocity_dim=0; velocity_dim<dim; ++velocity_dim){
+            conv_num_split_flux[1+velocity_dim][flux_dim] = mean_density*mean_velocities[flux_dim]*mean_velocities[velocity_dim];
+        }
+        conv_num_split_flux[1+flux_dim][flux_dim] += mean_pressure; // Add diagonal of pressure
+        // Energy equation
+        conv_num_split_flux[nstate-1][flux_dim] = mean_density*mean_velocities[flux_dim]*mean_enthalpy;
     }
 
     return conv_num_split_flux;

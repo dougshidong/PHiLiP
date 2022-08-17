@@ -69,6 +69,12 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       dealii::Patterns::Bool(),
                       "Use original form by defualt. Otherwise, split the fluxes.");
 
+    prm.declare_entry("two_point_num_flux_type", "KG",
+                      dealii::Patterns::Selection(
+                      "KG | IR"),
+                      "Two point flux type. "
+                      "Choices are <KG | IR>.");
+
     prm.declare_entry("use_curvilinear_split_form", "false",
                       dealii::Patterns::Bool(),
                       "Use original form by defualt. Otherwise, split the curvilinear fluxes.");
@@ -369,6 +375,11 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     use_weak_form = prm.get_bool("use_weak_form");
     use_collocated_nodes = prm.get_bool("use_collocated_nodes");
     use_split_form = prm.get_bool("use_split_form");
+
+    const std::string two_point_num_flux_string = prm.get("two_point_num_flux_type");
+    if (two_point_num_flux_string == "KG") { two_point_num_flux_type = TwoPointNumericalFlux::KG; }
+    if (two_point_num_flux_string == "IR") { two_point_num_flux_type = TwoPointNumericalFlux::IR; }
+
     use_curvilinear_split_form = prm.get_bool("use_curvilinear_split_form");
     use_weight_adjusted_mass = prm.get_bool("use_weight_adjusted_mass");
     use_periodic_bc = prm.get_bool("use_periodic_bc");
@@ -383,7 +394,7 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
 
     const std::string conv_num_flux_string = prm.get("conv_num_flux");
     if (conv_num_flux_string == "lax_friedrichs")                                          { conv_num_flux_type = ConvectiveNumericalFlux::lax_friedrichs; }
-    if (conv_num_flux_string == "roe")                                                     { conv_num_flux_type = ConvectiveNumericalFlux::roe; }                                        
+    if (conv_num_flux_string == "roe")                                                     { conv_num_flux_type = ConvectiveNumericalFlux::roe; }
     if (conv_num_flux_string == "l2roe")                                                   { conv_num_flux_type = ConvectiveNumericalFlux::l2roe; }
     if (conv_num_flux_string == "central_flux")                                            { conv_num_flux_type = ConvectiveNumericalFlux::central_flux; }
     if (conv_num_flux_string == "entropy_conserving_flux")                                 { conv_num_flux_type = ConvectiveNumericalFlux::entropy_conserving_flux; }

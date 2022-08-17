@@ -23,6 +23,7 @@ protected:
     using PhysicsBase<dim,nstate,real>::source_term;
 public:
     using thermal_boundary_condition_enum = Parameters::NavierStokesParam::ThermalBoundaryCondition;
+    using two_point_num_flux_enum = Parameters::AllParameters::TwoPointNumericalFlux;
     /// Constructor
     NavierStokes( 
         const double                                              ref_length,
@@ -34,7 +35,8 @@ public:
         const double                                              reynolds_number_inf,
         const double                                              isothermal_wall_temperature = 1.0,
         const thermal_boundary_condition_enum                     thermal_boundary_condition_type = thermal_boundary_condition_enum::adiabatic,
-        std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function = nullptr);
+        std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function = nullptr,
+        const two_point_num_flux_enum                             two_point_num_flux_type = two_point_num_flux_enum::KG);
 
     /// Nondimensionalized viscosity coefficient at infinity.
     const double viscosity_coefficient_inf;

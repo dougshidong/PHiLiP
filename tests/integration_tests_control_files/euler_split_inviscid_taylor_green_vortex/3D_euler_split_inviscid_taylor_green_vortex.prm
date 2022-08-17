@@ -10,6 +10,8 @@ set use_collocated_nodes = true
 
 set use_split_form = true
 
+set two_point_num_flux_type = KG
+
 set use_curvilinear_split_form = true
 
 set energy_file = KE_cDG_4x4

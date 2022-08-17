@@ -93,6 +93,11 @@ public:
     /// Flag to use split form.
     bool use_split_form;
 
+    /// Two point numerical flux type for split form
+    enum TwoPointNumericalFlux { KG, IR };
+    /// Store selected TwoPointNumericalFlux from the input file
+    TwoPointNumericalFlux two_point_num_flux_type;
+
     /// Flag to use curvilinear metric split form.
     bool use_curvilinear_split_form;
 

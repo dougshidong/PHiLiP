@@ -56,7 +56,8 @@ ModelFactory<dim,nstate,real>
                         parameters_input->physics_model_param.smagorinsky_model_constant,
                         parameters_input->navier_stokes_param.nondimensionalized_isothermal_wall_temperature,
                         parameters_input->navier_stokes_param.thermal_boundary_condition_type,
-                        manufactured_solution_function);
+                        manufactured_solution_function,
+                        parameters_input->two_point_num_flux_type);
                 } else if (sgs_model_type == SGS_enum::wall_adaptive_local_eddy_viscosity) {
                     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
                     // WALE (Wall-Adapting Local Eddy-viscosity) eddy viscosity model
@@ -74,7 +75,8 @@ ModelFactory<dim,nstate,real>
                         parameters_input->physics_model_param.WALE_model_constant,
                         parameters_input->navier_stokes_param.nondimensionalized_isothermal_wall_temperature,
                         parameters_input->navier_stokes_param.thermal_boundary_condition_type,
-                        manufactured_solution_function);
+                        manufactured_solution_function,
+                        parameters_input->two_point_num_flux_type);
                 } else if (sgs_model_type == SGS_enum::vreman) {
                     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
                     // Vreman eddy viscosity model
@@ -92,7 +94,8 @@ ModelFactory<dim,nstate,real>
                         parameters_input->physics_model_param.vreman_model_constant,
                         parameters_input->navier_stokes_param.nondimensionalized_isothermal_wall_temperature,
                         parameters_input->navier_stokes_param.thermal_boundary_condition_type,
-                        manufactured_solution_function);
+                        manufactured_solution_function,
+                        parameters_input->two_point_num_flux_type);
                 } 
                 else {
                     std::cout << "Can't create LargeEddySimulationBase, invalid SGSModelType type: " << sgs_model_type << std::endl;

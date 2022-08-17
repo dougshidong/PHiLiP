@@ -102,7 +102,8 @@ PhysicsFactory<dim,nstate,real>
                 parameters_input->euler_param.mach_inf,
                 parameters_input->euler_param.angle_of_attack,
                 parameters_input->euler_param.side_slip_angle,
-                manufactured_solution_function);
+                manufactured_solution_function,
+                parameters_input->two_point_num_flux_type);
         }
     } else if (pde_type == PDE_enum::mhd) {
         if constexpr (nstate == 8) 
@@ -122,7 +123,8 @@ PhysicsFactory<dim,nstate,real>
                 parameters_input->navier_stokes_param.reynolds_number_inf,
                 parameters_input->navier_stokes_param.nondimensionalized_isothermal_wall_temperature,
                 parameters_input->navier_stokes_param.thermal_boundary_condition_type,
-                manufactured_solution_function);
+                manufactured_solution_function,
+                parameters_input->two_point_num_flux_type);
         }
     } else if (pde_type == PDE_enum::physics_model) {
         if constexpr (nstate>=dim+2) {

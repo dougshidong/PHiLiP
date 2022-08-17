@@ -3,6 +3,7 @@
 
 #include <deal.II/base/tensor.h>
 #include "physics.h"
+#include "parameters/all_parameters.h"
 #include "parameters/parameters_manufactured_solution.h"
 
 namespace PHiLiP {
@@ -86,6 +87,7 @@ protected:
     using PhysicsBase<dim,nstate,real>::dissipative_flux;
     using PhysicsBase<dim,nstate,real>::source_term;
 public:
+    using two_point_num_flux_enum = Parameters::AllParameters::TwoPointNumericalFlux;
     /// Constructor
     Euler ( 
         const double                                              ref_length,
@@ -94,7 +96,8 @@ public:
         const double                                              angle_of_attack,
         const double                                              side_slip_angle,
         std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function = nullptr,
-        const bool                                                has_nonzero_diffusion = false);
+        const bool                                                has_nonzero_diffusion = false,
+        const two_point_num_flux_enum                             two_point_num_flux_type = two_point_num_flux_enum::KG);
 
     /// Destructor
     // virtual ~Euler() =0;
@@ -124,6 +127,7 @@ public:
     const double sound_inf; ///< Non-dimensionalized sound* at infinity
     const double pressure_inf; ///< Non-dimensionalized pressure* at infinity
     const double entropy_inf; ///< Entropy measure at infinity
+    const two_point_num_flux_enum two_point_num_flux_type; ///< Two point numerical flux type (for split form)
     double temperature_inf; ///< Non-dimensionalized temperature* at infinity. Should equal 1/density*(inf)
     double dynamic_pressure_inf; ///< Non-dimensionalized dynamic pressure* at infinity
 
@@ -277,8 +281,7 @@ public:
     /** See the book I do like CFD, sec 4.14.2 */
     real compute_pressure_from_density_temperature ( const real density, const real temperature ) const;
 
-    /// The Euler split form is that of Kennedy & Gruber.
-    /** Refer to Gassner's paper (2016) Eq. 3.10 for more information:  */
+    /// The Euler split form is that of Kennedy & Gruber or Ismail & Roe.
     std::array<dealii::Tensor<1,dim,real>,nstate> convective_numerical_split_flux (
         const std::array<real,nstate> &conservative_soln1,
         const std::array<real,nstate> &conservative_soln2) const;
@@ -401,6 +404,25 @@ protected:
     /// Get manufactured solution gradient
     std::array<dealii::Tensor<1,dim,real>,nstate> get_manufactured_solution_gradient(
         const dealii::Point<dim,real> &pos) const;
+
+    /** Entropy conserving split form flux of Kennedy and Gruber.
+     *  Refer to Gassner's paper (2016) Eq. 3.10  */
+    std::array<dealii::Tensor<1,dim,real>,nstate> convective_numerical_split_flux_kennedy_gruber (
+        const std::array<real,nstate> &conservative_soln1,
+        const std::array<real,nstate> &conservative_soln2) const;
+
+    /// Compute Ismail-Roe parameter vector from primitive solution
+    std::array<real,nstate> compute_ismail_roe_parameter_vector_from_primitive(
+        const std::array<real,nstate> &primitive_soln) const;
+
+    /// Compute Ismail-Roe logarithmic mean
+    real compute_ismail_roe_logarithmic_mean(const real val1, const real val2) const;
+
+    /** Entropy conserving split form flux of Ismail & Roe.
+     *  Refer to Gassner's paper (2016) Eq. 3.17  */
+    std::array<dealii::Tensor<1,dim,real>,nstate> convective_numerical_split_flux_ismail_roe (
+        const std::array<real,nstate> &conservative_soln1,
+        const std::array<real,nstate> &conservative_soln2) const;
 };
 
 } // Physics namespace

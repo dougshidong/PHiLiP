@@ -47,6 +47,8 @@ void ExplicitODESolver<dim,real,MeshType>::step_in_time (real dt, const bool pse
         }
     }
 
+    modify_time_step(dt);
+
     //assemble solution from stages
     for (int i = 0; i < rk_order; ++i){
         if (pseudotime){
@@ -61,6 +63,12 @@ void ExplicitODESolver<dim,real,MeshType>::step_in_time (real dt, const bool pse
 
     ++(this->current_iteration);
     this->current_time += dt;
+}
+
+template <int dim, typename real, typename MeshType>
+void ExplicitODESolver<dim,real,MeshType>::modify_time_step(real &/*dt*/)
+{
+    //do nothing
 }
 
 template <int dim, typename real, typename MeshType>

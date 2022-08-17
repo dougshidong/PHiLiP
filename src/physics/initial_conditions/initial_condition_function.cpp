@@ -420,7 +420,7 @@ InitialConditionFactory<dim,nstate, real>::create_InitialConditionFunction(
         if constexpr (nstate==1) return std::make_shared<InitialConditionFunction_ConvDiff<dim,nstate,real> > ();
     } else if (flow_type == FlowCaseEnum::convection_diffusion && param->use_energy) {
         return std::make_shared<InitialConditionFunction_ConvDiffEnergy<dim,nstate,real> > ();
-    } else if (flow_type == FlowCaseEnum::advection_periodic) {
+    } else if (flow_type == FlowCaseEnum::periodic_1D_unsteady) {
         if constexpr (dim==1 && nstate==1) return std::make_shared<InitialConditionFunction_1DSine<dim,nstate,real> > ();
     } else {
         std::cout << "Invalid Flow Case Type. You probably forgot to add it to the list of flow cases in initial_condition_function.cpp" << std::endl;

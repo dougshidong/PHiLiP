@@ -22,7 +22,7 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                           " burgers_inviscid | "
                           " convection_diffusion | "
                           " advection | "
-                          " advection_periodic | "
+                          " periodic_1D_unsteady | "
                           " gaussian_bump"),
                           "The type of flow we want to simulate. "
                           "Choices are "
@@ -33,7 +33,7 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                           " burgers_inviscid | "
                           " convection_diffusion | "
                           " advection | "
-                          " advection_periodic | "
+                          " periodic_1D_unsteady | "
                           " gaussian_bump>.");
 
         prm.declare_entry("poly_degree", "1",
@@ -172,17 +172,7 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
         prm.declare_entry("interpolate_initial_condition", "true",
                           dealii::Patterns::Bool(),
                           "Interpolate the initial condition function onto the DG solution. If false, then it projects the physical value. True by default.");
-        
-        prm.enter_subsection("time_refinement_study");
-        {
-            prm.declare_entry("number_of_times_to_solve", "4",
-                              dealii::Patterns::Integer(1, dealii::Patterns::Integer::max_int_value),
-                              "Number of times to run the flow solver during a time refinement study.");
-            prm.declare_entry("refinement_ratio", "0.5",
-                              dealii::Patterns::Double(0, 1.0),
-                              "Ratio between a timestep size and the next in a time refinement study, 0<r<1.");
-        }
-        prm.leave_subsection();
+
     }
     prm.leave_subsection();
 }
@@ -199,7 +189,7 @@ void FlowSolverParam::parse_parameters(dealii::ParameterHandler &prm)
         else if (flow_case_type_string == "burgers_inviscid")           {flow_case_type = burgers_inviscid;}
         else if (flow_case_type_string == "convection_diffusion")       {flow_case_type = convection_diffusion;}
         else if (flow_case_type_string == "advection")                  {flow_case_type = advection;}
-        else if (flow_case_type_string == "advection_periodic")         {flow_case_type = advection_periodic;}
+        else if (flow_case_type_string == "periodic_1D_unsteady")       {flow_case_type = periodic_1D_unsteady;}
         else if (flow_case_type_string == "gaussian_bump")              {flow_case_type = gaussian_bump;}
 
         poly_degree = prm.get_integer("poly_degree");
@@ -251,13 +241,7 @@ void FlowSolverParam::parse_parameters(dealii::ParameterHandler &prm)
         prm.leave_subsection();
 
         interpolate_initial_condition = prm.get_bool("interpolate_initial_condition");
-
-        prm.enter_subsection("time_refinement_study");
-        {
-            number_of_times_to_solve = prm.get_integer("number_of_times_to_solve");
-            refinement_ratio = prm.get_double("refinement_ratio");
-        }
-        prm.leave_subsection();
+        
     }
     prm.leave_subsection();
 }

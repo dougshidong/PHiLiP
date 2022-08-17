@@ -21,6 +21,7 @@
 #include "parameters/parameters_flow_solver.h"
 #include "parameters/parameters_mesh_adaptation.h"
 #include "parameters/parameters_functional.h"
+#include "parameters/parameters_time_refinement_study.h"
 
 namespace PHiLiP {
 namespace Parameters {
@@ -58,6 +59,8 @@ public:
     MeshAdaptationParam mesh_adaptation_param;
     /// Contains parameters for functional
     FunctionalParam functional_param;
+    /// Contains the parameters for time refinement study
+    TimeRefinementStudyParam time_refinement_study_param;
 
     /// Number of dimensions. Note that it has to match the executable PHiLiP_xD
     unsigned int dimension;
@@ -168,6 +171,8 @@ public:
         taylor_green_vortex_energy_check,
         taylor_green_vortex_restart_check,
         time_refinement_study,
+        time_refinement_study_reference,
+        burgers_energy_conservation_rrk,
     };
     /// Store selected TestType from the input file.
     TestType test_type;

@@ -43,6 +43,9 @@ protected:
 
     /// Butcher tableau "c"
     dealii::Table<1,double> butcher_tableau_c;
+
+    /// Modify timestep
+    virtual void modify_time_step(real &dt); 
 };
 
 } // ODE namespace

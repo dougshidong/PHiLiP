@@ -1,5 +1,5 @@
-#ifndef __TIME_REFINEMENT_STUDY_ADVECTION__
-#define __TIME_REFINEMENT_STUDY_ADVECTION__
+#ifndef __TIME_REFINEMENT_STUDY__
+#define __TIME_REFINEMENT_STUDY__
 
 #include "tests.h"
 #include <deal.II/base/convergence_table.h>

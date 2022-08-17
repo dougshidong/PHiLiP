@@ -709,7 +709,7 @@ bool get_new_rotated_indices(const dealii::CellAccessor<dim, spacedim>& cell,
 
 template <int dim, int spacedim>
 std::shared_ptr< HighOrderGrid<dim, double> >
-read_gmsh(std::string filename, int requested_grid_order, bool use_mesh_smoothing)
+read_gmsh(std::string filename, int requested_grid_order, const bool use_mesh_smoothing)
 {
 
     //for (unsigned int deg = 1; deg < 7; ++deg) {

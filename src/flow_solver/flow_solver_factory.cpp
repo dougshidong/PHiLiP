@@ -9,7 +9,7 @@
 #include "flow_solver_cases/1d_burgers_viscous_snapshot.h"
 #include "flow_solver_cases/naca0012.h"
 #include "flow_solver_cases/gaussian_bump.h"
-#include "flow_solver_cases/2D_sshock.h"
+#include "flow_solver_cases/non_periodic_cube_flow.h"
 
 namespace PHiLiP {
 
@@ -59,7 +59,7 @@ FlowSolverFactory<dim,nstate>
         }
     } else if (flow_type == FlowCaseEnum::sshock){
         if constexpr (dim==2 && nstate==1){
-            std::shared_ptr<FlowSolverCaseBase<dim, nstate>> flow_solver_case = std::make_shared<SShock<dim, nstate>>(parameters_input);
+            std::shared_ptr<FlowSolverCaseBase<dim, nstate>> flow_solver_case = std::make_shared<NonPeriodicCubeFlow<dim, nstate>>(parameters_input);
             return std::make_unique<FlowSolver<dim, nstate>>(parameters_input, flow_solver_case, parameter_handler_input);
         }
     } else {

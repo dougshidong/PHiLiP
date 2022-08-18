@@ -1,5 +1,5 @@
-#ifndef __SSHOCK_MESH_ADAPTATION__
-#define __SSHOCK_MESH_ADAPTATION__
+#ifndef __NON_PERIODIC_CUBE_FLOW__
+#define __NON_PERIODIC_CUBE_FLOW__
 
 #include "flow_solver_case_base.h"
 
@@ -7,7 +7,7 @@ namespace PHiLiP {
 namespace FlowSolver {
 
 template <int dim, int nstate>
-class SShock : public FlowSolverCaseBase<dim, nstate>
+class NonPeriodicCubeFlow : public FlowSolverCaseBase<dim, nstate>
 {
 #if PHILIP_DIM==1
      using Triangulation = dealii::Triangulation<PHILIP_DIM>;
@@ -16,9 +16,9 @@ class SShock : public FlowSolverCaseBase<dim, nstate>
  #endif
 
  public:
-     SShock(const Parameters::AllParameters *const parameters_input);
+     NonPeriodicCubeFlow(const Parameters::AllParameters *const parameters_input);
      
-     ~SShock() {};
+     ~NonPeriodicCubeFlow() {};
  
      std::shared_ptr<Triangulation> generate_grid() const override;
 

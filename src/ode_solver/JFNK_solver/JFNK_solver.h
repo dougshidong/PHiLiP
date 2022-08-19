@@ -19,14 +19,14 @@ public:
     ~JFNKSolver() {};
 
     /// Solve an implicit Euler step according to Jacobian-free Newton-Krylov method
-    /* Reinitializes Jv for next step
+    /** Reinitializes jacobian_vector_product for next step
      * Consists of outer loop (Newton iteration)
      * Calls solver.solve(...) for inner loop (GMRES iterations)
      * TO DO: how to return ? use pointer maybe ?
      * for now, access public current_solution_estimate
      */
     void solve(real dt,
-               dealii::LinearAlgebra::distributed::Vector<double> previous_step_solution_input);
+               dealii::LinearAlgebra::distributed::Vector<double> &previous_step_solution);
 
     /// current estimate for the solution
     // COULD USE A POINTER HERE
@@ -56,17 +56,13 @@ protected:
     const int max_Newton_iter;
 
     /// Jacobian-vector product utilities
-    JacobianVectorProduct<dim,real,MeshType> Jv;
+    JacobianVectorProduct<dim,real,MeshType> jacobian_vector_product;
 
     /// Solver control object
     dealii::SolverControl solver_control;
     
     /// Solver
     dealii::SolverGMRES<dealii::LinearAlgebra::distributed::Vector<double>> solver_GMRES;
-    
-    /// solution at previous timestep
-    // COULD USE A POINTER HERE
-    dealii::LinearAlgebra::distributed::Vector<double> previous_step_solution;
     
     /// update to solution during Newton iterations
     dealii::LinearAlgebra::distributed::Vector<double> solution_update_newton;

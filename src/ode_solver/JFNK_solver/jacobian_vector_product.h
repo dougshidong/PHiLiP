@@ -18,9 +18,9 @@ public:
 
     void reinit_for_next_timestep(double dt_input,
                 double epsilon_input,
-                dealii::LinearAlgebra::distributed::Vector<double> previous_step_solution_input);
+                dealii::LinearAlgebra::distributed::Vector<double> &previous_step_solution_input);
 
-    void reinit_for_next_Newton_iter(dealii::LinearAlgebra::distributed::Vector<double> current_solution_estimate_input);
+    void reinit_for_next_Newton_iter(dealii::LinearAlgebra::distributed::Vector<double> &current_solution_estimate_input);
 
     // Application of matrix to vector src. Write result into dst.
     void vmult (dealii::LinearAlgebra::distributed::Vector<double> &dst,
@@ -46,9 +46,12 @@ protected:
     
     
     /// current estimate for the solution
+    // NOTE: the same vector is stored in JFNK_solver
+    // Should not be stored twice
+    // Could store in this class, with risk of being counterintuitive
     dealii::LinearAlgebra::distributed::Vector<double> current_solution_estimate;
     
-    /// current estimate for the solution
+    /// residual of current estimate for the solution
     dealii::LinearAlgebra::distributed::Vector<double> current_solution_estimate_residual;
 };
 

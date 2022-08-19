@@ -14,7 +14,7 @@ JacobianVectorProduct<dim,real,MeshType>::JacobianVectorProduct(std::shared_ptr<
 }
 
 template <int dim, typename real, typename MeshType>
-void JacobianVectorProduct<dim,real,MeshType>::reinit_for_next_Newton_iter(dealii::LinearAlgebra::distributed::Vector<double> current_solution_estimate_input)
+void JacobianVectorProduct<dim,real,MeshType>::reinit_for_next_Newton_iter(dealii::LinearAlgebra::distributed::Vector<double> &current_solution_estimate_input)
 {
     current_solution_estimate = current_solution_estimate_input; 
     current_solution_estimate_residual = compute_unsteady_residual(current_solution_estimate);
@@ -23,7 +23,7 @@ void JacobianVectorProduct<dim,real,MeshType>::reinit_for_next_Newton_iter(deali
 template <int dim, typename real, typename MeshType>
 void JacobianVectorProduct<dim,real,MeshType>:: reinit_for_next_timestep(double dt_input,
                 double epsilon_input,
-                dealii::LinearAlgebra::distributed::Vector<double> previous_step_solution_input)
+                dealii::LinearAlgebra::distributed::Vector<double> &previous_step_solution_input)
 {
     dt = dt_input;
     epsilon = epsilon_input;

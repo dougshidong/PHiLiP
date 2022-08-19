@@ -17,6 +17,22 @@ add_test(
 # ----------------------------------------
 
 # =======================================
+# Time Study (Linear Advection Implicit RK)
+# =======================================
+# ----------------------------------------
+# Time refinement study on linear advection using a sinusoidal initial condition
+# L2 error calculated with respect to the exact solution
+# Test will fail if the convergence order is not close to the expected order
+# ----------------------------------------
+configure_file(time_refinement_study_advection_implicit.prm time_refinement_study_advection_implicit.prm COPYONLY)
+add_test(
+    NAME 1D_TIME_REFINEMENT_STUDY_ADVECTION_IMPLICIT
+  COMMAND mpirun -np 1 ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_1D -i ${CMAKE_CURRENT_BINARY_DIR}/time_refinement_study_advection_implicit.prm
+    WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
+)
+# ----------------------------------------
+
+# =======================================
 # Time Study (Inviscid Burgers Explicit RK)
 # =======================================
 # ----------------------------------------

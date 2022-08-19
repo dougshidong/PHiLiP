@@ -11,12 +11,19 @@ set use_periodic_bc = true
 
 # ODE solver
 subsection ODE solver
-  set ode_solver_type = explicit
+  set ode_solver_type = runge_kutta
+  #set ode_solver_type = implicit
   set output_solution_every_dt_time_intervals = 0.1
-  set initial_time_step = 2.5E-3
+  set initial_time_step = 0.01 #5E-3
   subsection explicit solver options
-    set runge_kutta_order = 3
+    set runge_kutta_order = 2
+    set implicit_rk_flag_testing = true
   end
+end
+
+# Linear solver
+subsection linear solver
+  set linear_solver_type = gmres
 end
 
 subsection manufactured solution convergence study 
@@ -25,17 +32,19 @@ subsection manufactured solution convergence study
   set advection_1 = 0.0
 end
 
+
+subsection time_refinement_study
+  set number_of_times_to_solve = 2
+  set refinement_ratio = 0.5
+end
+
 subsection flow_solver
-  set flow_case_type = advection_periodic
-  set poly_degree = 5 
+  set flow_case_type = periodic_1D_unsteady
   set final_time = 1.0
+  set poly_degree = 5
   subsection grid
     set grid_left_bound = 0.0
     set grid_right_bound = 2.0
-    set number_of_grid_elements_per_dimension = 32
-  end
-  subsection time_refinement_study
-    set number_of_times_to_solve = 4
-    set refinement_ratio = 0.5
+    set number_of_grid_elements_per_dimension = 128
   end
 end

@@ -115,7 +115,7 @@ ModelFactory<dim,nstate,real>
             RANSModel_enum rans_model_type = parameters_input->physics_model_param.RANS_model_type;  
             // Create Reynolds-Averaged Navier-Stokes (RANS) model with one-equation model  
             if(rans_model_type == RANSModel_enum::SA_negative){
-                if constexpr ((nstate==dim+3) && (dim==3)) {
+                if constexpr (nstate==dim+3) {
                     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
                     // SA negative model
                     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -      
@@ -133,7 +133,7 @@ ModelFactory<dim,nstate,real>
                         manufactured_solution_function);
                 }
                 else {
-                    // SA negative does not exist for nstate!=(dim+3) || dim!=3
+                    // SA negative does not exist for nstate!=(dim+3)
                     manufactured_solution_function = nullptr;
                     return nullptr;
                 }   

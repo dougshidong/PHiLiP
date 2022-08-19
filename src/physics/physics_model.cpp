@@ -95,6 +95,7 @@ std::array<dealii::Tensor<1,dim,real>,nstate> PhysicsModel<dim,nstate,real,nstat
 template <int dim, int nstate, typename real, int nstate_baseline_physics>
 std::array<real,nstate> PhysicsModel<dim,nstate,real,nstate_baseline_physics>
 ::physical_source_term (
+    const dealii::Point<dim,real> &/*pos*/,
     const std::array<real,nstate> &/*conservative_soln*/,
     const std::array<dealii::Tensor<1,dim,real>,nstate> &/*solution_gradient*/,
     const dealii::types::global_dof_index /*cell_index*/) const

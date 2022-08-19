@@ -203,20 +203,21 @@ dealii::Tensor<1,dim,real2> NavierStokes<dim,nstate,real>
 }
 
 template <int dim, int nstate, typename real>
-dealii::Tensor<1,3,real> NavierStokes<dim,nstate,real>
+template<typename real2>
+dealii::Tensor<1,3,real2> NavierStokes<dim,nstate,real>
 ::compute_vorticity (
-    const std::array<real,nstate> &conservative_soln,
-    const std::array<dealii::Tensor<1,dim,real>,nstate> &conservative_soln_gradient) const
+    const std::array<real2,nstate> &conservative_soln,
+    const std::array<dealii::Tensor<1,dim,real2>,nstate> &conservative_soln_gradient) const
 {
     // Compute the vorticity
-    dealii::Tensor<1,3,real> vorticity;
+    dealii::Tensor<1,3,real2> vorticity;
     for(int d=0; d<3; ++d) {
         vorticity[d] = 0.0;
     }
     if constexpr(dim>1) {
         // Get velocity gradient
-        const std::array<dealii::Tensor<1,dim,real>,nstate> primitive_soln_gradient = convert_conservative_gradient_to_primitive_gradient<real>(conservative_soln, conservative_soln_gradient);
-        const dealii::Tensor<2,dim,real> velocities_gradient = extract_velocities_gradient_from_primitive_solution_gradient<real>(primitive_soln_gradient);
+        const std::array<dealii::Tensor<1,dim,real2>,nstate> primitive_soln_gradient = convert_conservative_gradient_to_primitive_gradient<real2>(conservative_soln, conservative_soln_gradient);
+        const dealii::Tensor<2,dim,real2> velocities_gradient = extract_velocities_gradient_from_primitive_solution_gradient<real2>(primitive_soln_gradient);
         if constexpr(dim==2) {
             // vorticity exists only in z-component
             vorticity[2] = velocities_gradient[1][0] - velocities_gradient[0][1]; // z-component
@@ -988,6 +989,18 @@ template FadType NavierStokes < PHILIP_DIM, PHILIP_DIM+2, double    >::compute_v
 template FadType NavierStokes < PHILIP_DIM, PHILIP_DIM+2, RadType   >::compute_viscosity_coefficient< FadType >(const std::array<FadType,PHILIP_DIM+2> &primitive_soln) const;
 template FadType NavierStokes < PHILIP_DIM, PHILIP_DIM+2, FadFadType>::compute_viscosity_coefficient< FadType >(const std::array<FadType,PHILIP_DIM+2> &primitive_soln) const;
 template FadType NavierStokes < PHILIP_DIM, PHILIP_DIM+2, RadFadType>::compute_viscosity_coefficient< FadType >(const std::array<FadType,PHILIP_DIM+2> &primitive_soln) const;
+// -- compute_vorticity()
+template dealii::Tensor<1,3,double    > NavierStokes < PHILIP_DIM, PHILIP_DIM+2, double    >::compute_vorticity< double     >(const std::array<double    ,PHILIP_DIM+2> &conservative_soln, const std::array<dealii::Tensor<1,PHILIP_DIM,double    >,PHILIP_DIM+2> &conservative_soln_gradient) const;
+template dealii::Tensor<1,3,FadType   > NavierStokes < PHILIP_DIM, PHILIP_DIM+2, FadType   >::compute_vorticity< FadType    >(const std::array<FadType   ,PHILIP_DIM+2> &conservative_soln, const std::array<dealii::Tensor<1,PHILIP_DIM,FadType   >,PHILIP_DIM+2> &conservative_soln_gradient) const;
+template dealii::Tensor<1,3,RadType   > NavierStokes < PHILIP_DIM, PHILIP_DIM+2, RadType   >::compute_vorticity< RadType    >(const std::array<RadType   ,PHILIP_DIM+2> &conservative_soln, const std::array<dealii::Tensor<1,PHILIP_DIM,RadType   >,PHILIP_DIM+2> &conservative_soln_gradient) const;
+template dealii::Tensor<1,3,FadFadType> NavierStokes < PHILIP_DIM, PHILIP_DIM+2, FadFadType>::compute_vorticity< FadFadType >(const std::array<FadFadType,PHILIP_DIM+2> &conservative_soln, const std::array<dealii::Tensor<1,PHILIP_DIM,FadFadType>,PHILIP_DIM+2> &conservative_soln_gradient) const;
+template dealii::Tensor<1,3,RadFadType> NavierStokes < PHILIP_DIM, PHILIP_DIM+2, RadFadType>::compute_vorticity< RadFadType >(const std::array<RadFadType,PHILIP_DIM+2> &conservative_soln, const std::array<dealii::Tensor<1,PHILIP_DIM,RadFadType>,PHILIP_DIM+2> &conservative_soln_gradient) const;
+// -- -- instantiate all the real types with real2 = FadType for automatic differentiation in classes derived from ModelBase
+template dealii::Tensor<1,3,FadType> NavierStokes < PHILIP_DIM, PHILIP_DIM+2, double    >::compute_vorticity< FadType >(const std::array<FadType,PHILIP_DIM+2> &conservative_soln, const std::array<dealii::Tensor<1,PHILIP_DIM,FadType>,PHILIP_DIM+2> &conservative_soln_gradient) const;
+template dealii::Tensor<1,3,FadType> NavierStokes < PHILIP_DIM, PHILIP_DIM+2, RadType   >::compute_vorticity< FadType >(const std::array<FadType,PHILIP_DIM+2> &conservative_soln, const std::array<dealii::Tensor<1,PHILIP_DIM,FadType>,PHILIP_DIM+2> &conservative_soln_gradient) const;
+template dealii::Tensor<1,3,FadType> NavierStokes < PHILIP_DIM, PHILIP_DIM+2, FadFadType>::compute_vorticity< FadType >(const std::array<FadType,PHILIP_DIM+2> &conservative_soln, const std::array<dealii::Tensor<1,PHILIP_DIM,FadType>,PHILIP_DIM+2> &conservative_soln_gradient) const;
+template dealii::Tensor<1,3,FadType> NavierStokes < PHILIP_DIM, PHILIP_DIM+2, RadFadType>::compute_vorticity< FadType >(const std::array<FadType,PHILIP_DIM+2> &conservative_soln, const std::array<dealii::Tensor<1,PHILIP_DIM,FadType>,PHILIP_DIM+2> &conservative_soln_gradient) const;
+
 
 } // Physics namespace
 } // PHiLiP namespace

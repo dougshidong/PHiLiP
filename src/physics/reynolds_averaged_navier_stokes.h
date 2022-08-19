@@ -58,6 +58,7 @@ public:
     //adding physical source
     /// Physical source term
     std::array<real,nstate> physical_source_term (
+        const dealii::Point<dim,real> &pos,
         const std::array<real,nstate> &conservative_solution,
         const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient,
         const dealii::types::global_dof_index cell_index) const;
@@ -104,10 +105,24 @@ public:
         const std::array<FadType,dim+2> &primitive_soln_rans,
         const std::array<FadType,nstate-(dim+2)> &primitive_soln_turbulence_model) const = 0;
 
+    //adding physical source
+    /// Physical source term
+    virtual std::array<real,nstate> compute_production_dissipation_cross_term (
+        const dealii::Point<dim,real> &pos,
+        const std::array<real,nstate> &conservative_solution,
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient) const = 0;
+
+    //adding physical source
+    /// Physical source term
+    virtual std::array<FadType,nstate> compute_production_dissipation_cross_term_fad (
+        const dealii::Point<dim,FadType> &pos,
+        const std::array<FadType,nstate> &conservative_solution,
+        const std::array<dealii::Tensor<1,dim,FadType>,nstate> &solution_gradient) const = 0;
+
 protected:
     /// Returns the square of the magnitude of the vector (i.e. the double dot product of a vector with itself)
     template<typename real2> 
-    real2 get_vector_magnitude_sqr (const dealii::Tensor<1,dim,real2> &vector) const;
+    real2 get_vector_magnitude_sqr (const dealii::Tensor<1,3,real2> &vector) const;
 
     /// Returns the square of the magnitude of the tensor (i.e. the double dot product of a tensor with itself)
     template<typename real2> 
@@ -117,6 +132,15 @@ protected:
     template<typename real2>
     std::array<dealii::Tensor<1,dim,real2>,nstate> dissipative_flux_templated (
         const std::array<real2,nstate> &conservative_soln,
+        const std::array<dealii::Tensor<1,dim,real2>,nstate> &solution_gradient,
+        const dealii::types::global_dof_index cell_index) const;
+
+    //adding physical source
+    /// Physical source term
+    template<typename real2>
+    std::array<real2,nstate> physical_source_term_templated (
+        const dealii::Point<dim,real2> &pos,
+        const std::array<real2,nstate> &conservative_solution,
         const std::array<dealii::Tensor<1,dim,real2>,nstate> &solution_gradient,
         const dealii::types::global_dof_index cell_index) const;
 
@@ -260,6 +284,15 @@ public:
         const std::array<FadType,dim+2> &primitive_soln_rans,
         const std::array<FadType,nstate-(dim+2)> &primitive_soln_turbulence_model) const;
 
+    std::array<real,nstate> compute_production_dissipation_cross_term (
+        const dealii::Point<dim,real> &pos,
+        const std::array<real,nstate> &conservative_solution,
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient) const;
+
+    std::array<FadType,nstate> compute_production_dissipation_cross_term_fad (
+        const dealii::Point<dim,FadType> &pos,
+        const std::array<FadType,nstate> &conservative_solution,
+        const std::array<dealii::Tensor<1,dim,FadType>,nstate> &solution_gradient) const;
 
 protected:
     /// Templated nondimensionalized Reynolds stress tensor, (tau^reynolds)*
@@ -269,8 +302,7 @@ protected:
         const std::array<real2,nstate-(dim+2)> &primitive_soln_turbulence_model) const;
 
     /// Templated nondimensionalized Reynolds heat flux, (q^reynolds)*
-    template<typename real2> 
-    dealii::Tensor<1,dim,real2> compute_Reynolds_heat_flux_templated (
+    template<typename real2> dealii::Tensor<1,dim,real2> compute_Reynolds_heat_flux_templated (
         const std::array<real2,dim+2> &primitive_soln_rans,
         const std::array<dealii::Tensor<1,dim,real2>,dim+2> &primitive_soln_gradient_rans,
         const std::array<real2,nstate-(dim+2)> &primitive_soln_turbulence_model) const;
@@ -279,6 +311,11 @@ protected:
     template<typename real2> real2 scale_eddy_viscosity_templated(
         const std::array<real2,dim+2> &primitive_soln_rans,
         const real2 eddy_viscosity) const;
+
+    template<typename real2> std::array<real2,nstate> compute_production_dissipation_cross_term_templated (
+        const dealii::Point<dim,real2> &pos,
+        const std::array<real2,nstate> &conservative_solution,
+        const std::array<dealii::Tensor<1,dim,real2>,nstate> &solution_gradient) const;
 
 private:
     /// Templated nondimensionalized eddy viscosity for the negative SA model.
@@ -328,8 +365,8 @@ private:
 
     /// Templated vorticity magnitude for the negative SA model.
     template<typename real2> real2 compute_s (
-        const std::array<real,dim+2> &conservative_soln_rans,
-        const std::array<dealii::Tensor<1,dim,real>,dim+2> &conservative_soln_gradient_rans) const;
+        const std::array<real2,dim+2> &conservative_soln_rans,
+        const std::array<dealii::Tensor<1,dim,real2>,dim+2> &conservative_soln_gradient_rans) const;
 
     /// Templated correction of vorticity magnitude for the negative SA model.
     template<typename real2> real2 compute_s_bar (
@@ -344,25 +381,22 @@ private:
         const real2 &d_wall,
         const real2 &s) const;
 
-    template<typename real2> real2 compute_production_source (
+    template<typename real2> std::array<real2,nstate> compute_production_source (
         const real2 &coefficient_f_t2,
         const real2 &nu_tilde,
-        const real2 &d_wall,
         const real2 &s,
         const real2 &s_tilde) const;
 
-    template<typename real2> real2 compute_dissipation_source (
+    template<typename real2> std::array<real2,nstate> compute_dissipation_source (
         const real2 &coefficient_f_t2,
         const real2 &nu_tilde,
         const real2 &d_wall,
         const real2 &s_tilde) const;
 
-    template<typename real2> real2 compute_cross_source (
+    template<typename real2> std::array<real2,nstate> compute_cross_source (
         const real2 &density,
         const real2 &nu_tilde,
         const real2 &laminar_kinematic_viscosity,
-        const std::array<real2,dim+2> &primitive_soln_rans,
-        const std::array<real2,nstate-(dim+2)> &primitive_soln_turbulence_model,
         const std::array<dealii::Tensor<1,dim,real2>,dim+2> &primitive_soln_gradient_rans,
         const std::array<dealii::Tensor<1,dim,real2>,nstate-(dim+2)> &primitive_solution_gradient_turbulence_model) const;
 

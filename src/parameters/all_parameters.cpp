@@ -192,20 +192,12 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
 
     prm.declare_entry("model_type", "large_eddy_simulation",
                       dealii::Patterns::Selection(
-                      "large_eddy_simulation"),
+                      "large_eddy_simulation | reynolds_averaged_navier_stokes"),
                       "Enum of physics models "
                       "(i.e. model equations and/or terms additional to Navier-Stokes or a chosen underlying baseline physics)."
                       "Choices are "
-                      " <large_eddy_simulation>.");
+                      " <large_eddy_simulation | reynolds_averaged_navier_stokes>.");
 
-    prm.declare_entry("model_type", "reynolds_averaged_navier_stokes",
-                      dealii::Patterns::Selection(
-                      "reynolds_averaged_navier_stokes"),
-                      "Enum of physics models "
-                      "(i.e. model equations and/or terms additional to Navier-Stokes or a chosen underlying baseline physics)."
-                      "Choices are "
-                      " <reynolds_averaged_navier_stokes>.");
-    
     prm.declare_entry("conv_num_flux", "lax_friedrichs",
                       dealii::Patterns::Selection("lax_friedrichs | roe | l2roe | split_form"),
                       "Convective numerical flux. "

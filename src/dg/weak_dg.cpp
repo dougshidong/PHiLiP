@@ -629,7 +629,9 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_volume_term_explicit(
         conv_phys_flux_at_q[iquad] = DGBaseState<dim,nstate,real,MeshType>::pde_physics_double->convective_flux (soln_at_q[iquad]);
         diss_phys_flux_at_q[iquad] = DGBaseState<dim,nstate,real,MeshType>::pde_physics_double->dissipative_flux (soln_at_q[iquad], soln_grad_at_q[iquad], current_cell_index);
         //adding physical source
-        physical_source_at_q[iquad] = DGBaseState<dim,nstate,real,MeshType>::pde_physics_double->physical_source_term (soln_at_q[iquad], soln_grad_at_q[iquad], current_cell_index);
+        const dealii::Point<dim,real> points = fe_values_vol.quadrature_point(iquad);
+        physical_source_at_q[iquad] = DGBaseState<dim,nstate,real,MeshType>::pde_physics_double->physical_source_term (points,soln_at_q[iquad], soln_grad_at_q[iquad], current_cell_index);
+
         if(this->all_parameters->artificial_dissipation_param.add_artificial_dissipation) {
             const ADArrayTensor1 artificial_diss_phys_flux_at_q = DGBaseState<dim,nstate,real,MeshType>::artificial_dissip->calc_artificial_dissipation_flux (soln_at_q[iquad], soln_grad_at_q[iquad], artificial_diss_coeff);
             for (int istate=0; istate<nstate; istate++) {
@@ -3638,13 +3640,13 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_volume_term(
         diss_phys_flux_at_q[iquad] = physics.dissipative_flux (soln_at_q[iquad], soln_grad_at_q[iquad], current_cell_index);
 
         //adding physical source
-        dealii::Point<dim,real2> ad_point;
-        for (int d=0;d<dim;++d) { ad_point[d] = 0.0;}
+        dealii::Point<dim,real2> ad_points;
+        for (int d=0;d<dim;++d) { ad_points[d] = 0.0;}
             for (unsigned int idof = 0; idof < n_metric_dofs; ++idof) {
                 const int iaxis = fe_metric.system_to_component_index(idof).first;
-                ad_point[iaxis] += coords_coeff[idof] * fe_metric.shape_value(idof,unit_quad_pts[iquad]);
+                ad_points[iaxis] += coords_coeff[idof] * fe_metric.shape_value(idof,unit_quad_pts[iquad]);
             }
-        physical_source_at_q[iquad] = physics.physical_source_term (soln_at_q[iquad], soln_grad_at_q[iquad], current_cell_index);
+        physical_source_at_q[iquad] = physics.physical_source_term (ad_points, soln_at_q[iquad], soln_grad_at_q[iquad], current_cell_index);
 
         if (this->all_parameters->artificial_dissipation_param.add_artificial_dissipation) {
             ArrayTensor artificial_diss_phys_flux_at_q;

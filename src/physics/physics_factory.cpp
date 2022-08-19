@@ -195,7 +195,7 @@ PhysicsFactory<dim,nstate,real>
     else if (model_type == Model_enum::reynolds_averaged_navier_stokes) {
         if (rans_model_type == RANSModel_enum::SA_negative)
         {
-            if constexpr ((nstate==dim+3) && (dim==3)) {
+            if constexpr (nstate==dim+3) {
                 // Assign baseline physics type (and corresponding nstates) based on the physics model type
                 // -- Assign nstates for the baseline physics (constexpr because template parameter)
                 constexpr int nstate_baseline_physics = dim+2;
@@ -215,7 +215,7 @@ PhysicsFactory<dim,nstate,real>
                     manufactured_solution_function);
             }
             else {
-                // RANS+one-equation model does not exist for nstate!=(dim+3) || dim!=3
+                // RANS+one-equation model does not exist for nstate!=(dim+3)
                 (void) baseline_physics_type;
                 return nullptr;
             }

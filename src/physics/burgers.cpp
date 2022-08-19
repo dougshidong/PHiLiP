@@ -152,6 +152,7 @@ std::array<dealii::Tensor<1,dim,real>,nstate> Burgers<dim,nstate,real>
 template <int dim, int nstate, typename real>
 std::array<real,nstate> Burgers<dim,nstate,real>
 ::physical_source_term (
+    const dealii::Point<dim,real> &/*pos*/,
     const std::array<real,nstate> &/*solution*/,
     const std::array<dealii::Tensor<1,dim,real>,nstate> &/*solution_gradient*/,
     const dealii::types::global_dof_index /*cell_index*/) const

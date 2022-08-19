@@ -48,6 +48,7 @@ dealii::Vector<real> ResidualErrorEstimate<dim, real, MeshType> :: compute_cellw
 {
     std::vector<dealii::types::global_dof_index> dofs_indices;
     dealii::Vector<real> cellwise_errors (this->dg->high_order_grid->triangulation->n_active_cells());
+    this->dg->assemble_residual();
 
     for (const auto &cell : this->dg->dof_handler.active_cell_iterators()) 
     {
@@ -81,6 +82,8 @@ DualWeightedResidualError<dim, nstate, real, MeshType>::DualWeightedResidualErro
     , mpi_communicator(MPI_COMM_WORLD)
     , pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(mpi_communicator)==0)
 {
+    Assert(this->dg->triangulation->get_mesh_smoothing() == typename dealii::Triangulation<dim>::MeshSmoothing(dealii::Triangulation<dim>::none), 
+           dealii::ExcMessage("Mesh smoothing might h-refine cells while computing the dual weighted residual."));
     // storing the original FE degree distribution
     coarse_fe_index.reinit(this->dg->triangulation->n_active_cells());
 
@@ -88,7 +91,7 @@ DualWeightedResidualError<dim, nstate, real, MeshType>::DualWeightedResidualErro
     functional = FunctionalFactory<dim,nstate,real,MeshType>::create_Functional(this->dg->all_parameters->functional_param, this->dg);
 
     // looping over the cells
-    for(auto cell = this->dg->dof_handler.begin_active(); cell != this->dg->dof_handler.end(); ++cell)
+    for (const auto &cell : this->dg->dof_handler.active_cell_iterators()) 
     {
         if(cell->is_locally_owned())
         {
@@ -111,10 +114,13 @@ dealii::Vector<real> DualWeightedResidualError<dim, nstate, real, MeshType>::com
     dealii::Vector<real> cellwise_errors(this->dg->triangulation->n_active_cells());
     reinit();
     convert_dgsolution_to_coarse_or_fine(SolutionRefinementStateEnum::fine);
+    pcout<<"Computing fine grid adjoint..."<<std::endl;
     fine_grid_adjoint();
+    pcout<<"Computing dual weighted residual..."<<std::endl;
     cellwise_errors = dual_weighted_residual();
     convert_dgsolution_to_coarse_or_fine(SolutionRefinementStateEnum::coarse);
 
+    pcout<<"Done computing the goal oriented error indicator."<<std::endl;
     return cellwise_errors;
 }
 
@@ -130,7 +136,7 @@ void DualWeightedResidualError<dim, nstate, real, MeshType>::reinit()
     coarse_fe_index.reinit(this->dg->triangulation->n_active_cells());
     
     // looping over the cells
-    for(auto cell = this->dg->dof_handler.begin_active(); cell != this->dg->dof_handler.end(); ++cell)
+    for (const auto &cell : this->dg->dof_handler.active_cell_iterators()) 
     {
         if(cell->is_locally_owned())
         {
@@ -138,7 +144,7 @@ void DualWeightedResidualError<dim, nstate, real, MeshType>::reinit()
         }
     }
 
-    // for remaining, clearing the values
+    // for remaining, clear the values
     derivative_functional_wrt_solution_fine      = dealii::LinearAlgebra::distributed::Vector<real>();
     derivative_functional_wrt_solution_coarse    = dealii::LinearAlgebra::distributed::Vector<real>();
     adjoint_fine   = dealii::LinearAlgebra::distributed::Vector<real>();
@@ -180,12 +186,13 @@ void DualWeightedResidualError<dim, nstate, real, MeshType>::coarse_to_fine()
         pcout<<"Polynomial degree of DG will exceed the maximum allowable after refinement. Update max_degree in dg"<<std::endl;
         std::abort();
     }
+    
+    unsigned int no_of_cells_before_changing_p = this->dg->triangulation->n_active_cells();
 
     dealii::IndexSet locally_owned_dofs, locally_relevant_dofs;
     locally_owned_dofs =  this->dg->dof_handler.locally_owned_dofs();
     dealii::DoFTools::extract_locally_relevant_dofs(this->dg->dof_handler, locally_relevant_dofs);
 
-    // dealii::LinearAlgebra::distributed::Vector<double> solution_coarse(this->dg->solution);
     solution_coarse.update_ghost_values();
     
     // Solution Transfer to fine grid
@@ -199,7 +206,7 @@ void DualWeightedResidualError<dim, nstate, real, MeshType>::coarse_to_fine()
     this->dg->high_order_grid->prepare_for_coarsening_and_refinement();
     this->dg->triangulation->prepare_coarsening_and_refinement();
 
-    for (auto cell = this->dg->dof_handler.begin_active(); cell != this->dg->dof_handler.end(); ++cell)
+    for (const auto &cell : this->dg->dof_handler.active_cell_iterators()) 
     {
         if (cell->is_locally_owned()) 
         {
@@ -221,6 +228,10 @@ void DualWeightedResidualError<dim, nstate, real, MeshType>::coarse_to_fine()
     }
     
     this->dg->solution.update_ghost_values();
+    
+    unsigned int no_of_cells_after_changing_p = this->dg->triangulation->n_active_cells();
+
+    AssertDimension(no_of_cells_before_changing_p, no_of_cells_after_changing_p);
 
     solution_refinement_state = SolutionRefinementStateEnum::fine;
 }
@@ -228,10 +239,11 @@ void DualWeightedResidualError<dim, nstate, real, MeshType>::coarse_to_fine()
 template <int dim, int nstate, typename real, typename MeshType>
 void DualWeightedResidualError<dim, nstate, real, MeshType>::fine_to_coarse()
 {
+    unsigned int no_of_cells_before_changing_p = this->dg->triangulation->n_active_cells();
     this->dg->high_order_grid->prepare_for_coarsening_and_refinement();
     this->dg->triangulation->prepare_coarsening_and_refinement();
 
-    for (auto cell = this->dg->dof_handler.begin_active(); cell != this->dg->dof_handler.end(); ++cell)
+    for (const auto &cell : this->dg->dof_handler.active_cell_iterators()) 
     {
         if (cell->is_locally_owned()) 
         {
@@ -246,6 +258,10 @@ void DualWeightedResidualError<dim, nstate, real, MeshType>::fine_to_coarse()
     this->dg->solution.zero_out_ghosts();
 
     this->dg->solution = solution_coarse;
+    
+    unsigned int no_of_cells_after_changing_p = this->dg->triangulation->n_active_cells();
+
+    AssertDimension(no_of_cells_before_changing_p, no_of_cells_after_changing_p);
 
     solution_refinement_state = SolutionRefinementStateEnum::coarse;
 }
@@ -282,18 +298,19 @@ dealii::LinearAlgebra::distributed::Vector<real> DualWeightedResidualError<dim, 
     const real functional_value = functional->evaluate_functional(compute_derivative_functional_wrt_solution, compute_derivative_functional_wrt_grid_dofs);
     (void) functional_value;
     derivative_functional_wrt_solution = functional->dIdw;
+    derivative_functional_wrt_solution.update_ghost_values();
 
 
     this->dg->assemble_residual(true);
-    this->dg->system_matrix *= -1.0;
-
-    dealii::TrilinosWrappers::SparseMatrix system_matrix_transpose;
-    Epetra_CrsMatrix *system_matrix_transpose_tril;
-
-    Epetra_RowMatrixTransposer epmt(const_cast<Epetra_CrsMatrix *>(&this->dg->system_matrix.trilinos_matrix()));
-    epmt.CreateTranspose(false, system_matrix_transpose_tril);
-    system_matrix_transpose.reinit(*system_matrix_transpose_tril, true);
-    solve_linear(system_matrix_transpose, derivative_functional_wrt_solution, adjoint_variable, this->dg->all_parameters->linear_solver_param);
+    
+    AssertDimension(derivative_functional_wrt_solution.size(), adjoint_variable.size());
+    AssertDimension(this->dg->system_matrix_transpose.n(), adjoint_variable.size());
+   
+    solve_linear(this->dg->system_matrix_transpose, derivative_functional_wrt_solution, adjoint_variable, this->dg->all_parameters->linear_solver_param);
+    adjoint_variable *= -1.0;
+    
+    adjoint_variable.compress(dealii::VectorOperation::add);
+    adjoint_variable.update_ghost_values();
 
     return adjoint_variable;
 }
@@ -310,7 +327,7 @@ dealii::Vector<real> DualWeightedResidualError<dim, nstate, real, MeshType>::dua
     std::vector<dealii::types::global_dof_index> current_dofs_indices(max_dofs_per_cell);
 
     // compute the error indicator cell-wise by taking the dot product over the DOFs with the residual vector
-    for(auto cell = this->dg->dof_handler.begin_active(); cell != this->dg->dof_handler.end(); ++cell)
+    for (const auto &cell : this->dg->dof_handler.active_cell_iterators()) 
     {
         if(!cell->is_locally_owned())  continue;
         

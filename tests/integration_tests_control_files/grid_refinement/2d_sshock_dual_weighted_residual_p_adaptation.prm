@@ -16,7 +16,7 @@ subsection linear solver
     set linear_residual_tolerance = 1e-4
     set max_iterations = 2000
     set restart_number = 50
-    set ilut_fill = 10
+    set ilut_fill = 1
     # set ilut_drop = 1e-4
   end 
 end

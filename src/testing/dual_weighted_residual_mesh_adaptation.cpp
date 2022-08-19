@@ -33,7 +33,7 @@ int DualWeightedResidualMeshAdaptation<dim, nstate> :: run_test () const
 
     // Check location of the most refined cell
     dealii::Point<dim> refined_cell_coord = flow_solver->dg->coordinates_of_highest_refined_cell(check_for_p_refined_cell);
-    pcout<<" Coordinates of the most refined cell (x,y) = ( "<<refined_cell_coord[0]<<", "<<refined_cell_coord[1]<<")"<<std::endl;
+    pcout<<" Coordinates of the most refined cell (x,y) = ("<<refined_cell_coord[0]<<", "<<refined_cell_coord[1]<<")"<<std::endl;
     // Check if the mesh is refined near the shock i.e x,y in [0.3,0.6].
     if ((refined_cell_coord[0] > 0.3) && (refined_cell_coord[0] < 0.6) && (refined_cell_coord[1] > 0.3) && (refined_cell_coord[1] < 0.6))
     {

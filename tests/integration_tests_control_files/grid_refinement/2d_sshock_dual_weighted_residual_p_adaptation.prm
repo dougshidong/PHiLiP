@@ -13,10 +13,12 @@ set sipg_penalty_factor = 20.0
 subsection linear solver
 #set linear_solver_type = direct
   subsection gmres options
-    set linear_residual_tolerance = 1e-4
+    set linear_residual_tolerance = 1e-8
     set max_iterations = 2000
     set restart_number = 50
     set ilut_fill = 1
+	set ilut_atol = 1.0e-5
+	set ilut_rtol = 0.0
     # set ilut_drop = 1e-4
   end 
 end

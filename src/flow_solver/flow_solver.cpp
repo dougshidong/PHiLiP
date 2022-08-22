@@ -6,7 +6,7 @@
 #include <vector>
 #include <sstream>
 #include "reduced_order/pod_basis_offline.h"
-
+#include "physics/initial_conditions/set_initial_condition.h"
 
 namespace PHiLiP {
 
@@ -49,9 +49,6 @@ FlowSolver<dim, nstate>::FlowSolver(
 
     flow_solver_case->display_flow_solver_setup(dg);
 
-    dealii::LinearAlgebra::distributed::Vector<double> solution_no_ghost;
-    solution_no_ghost.reinit(dg->locally_owned_dofs, this->mpi_communicator);
-
     if(flow_solver_param.restart_computation_from_file == true) {
         if(dim == 1) {
             pcout << "Error: restart_computation_from_file is not possible for 1D. Set to false." << std::endl;
@@ -71,15 +68,17 @@ FlowSolver<dim, nstate>::FlowSolver(
         
         // Note: Future development with hp-capabilities, see section "Note on usage with DoFHandler with hp-capabilities"
         // ----- Ref: https://www.dealii.org/current/doxygen/deal.II/classparallel_1_1distributed_1_1SolutionTransfer.html
+        dealii::LinearAlgebra::distributed::Vector<double> solution_no_ghost;
+        solution_no_ghost.reinit(dg->locally_owned_dofs, this->mpi_communicator);
         dealii::parallel::distributed::SolutionTransfer<dim, dealii::LinearAlgebra::distributed::Vector<double>, dealii::DoFHandler<dim>> solution_transfer(dg->dof_handler);
         solution_transfer.deserialize(solution_no_ghost);
+        dg->solution = solution_no_ghost; //< assignment
 #endif
     } else {
         // Initialize solution from initial_condition_function
         pcout << "Initializing solution with initial condition function... " << std::flush;
-        dealii::VectorTools::interpolate(dg->dof_handler, *(flow_solver_case->initial_condition_function), solution_no_ghost);
+        SetInitialCondition<dim,nstate,double>::set_initial_condition(flow_solver_case->initial_condition_function, dg, &all_param);
     }
-    dg->solution = solution_no_ghost; //< assignment
     dg->solution.update_ghost_values();
     pcout << "done." << std::endl;
     ode_solver->allocate_ode_system();

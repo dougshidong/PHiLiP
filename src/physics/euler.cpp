@@ -442,7 +442,7 @@ std::array<dealii::Tensor<1,dim,real>,nstate> Euler<dim, nstate, real>
 template <int dim, int nstate, typename real>
 inline real Euler<dim,nstate,real>::
 compute_mean_density(const std::array<real,nstate> &conservative_soln1,
-                          const std::array<real,nstate> &conservative_soln2) const
+                     const std::array<real,nstate> &conservative_soln2) const
 {
     return (conservative_soln1[0] + conservative_soln2[0])/2.;
 }

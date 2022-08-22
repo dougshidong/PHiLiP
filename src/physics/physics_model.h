@@ -62,7 +62,8 @@ public:
     //===========================================================================================
     /// Convective Numerical Split Flux for split form
     std::array<dealii::Tensor<1,dim,real>,nstate> convective_numerical_split_flux (
-        const std::array<real,nstate> &soln_const, const std::array<real,nstate> &soln_loop) const;
+        const std::array<real,nstate> &soln_const, 
+        const std::array<real,nstate> &soln_loop) const;
 
     /** Spectral radius of convective term Jacobian.
      *  Used for scalar dissipation

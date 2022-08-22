@@ -95,16 +95,33 @@ std::array<dealii::Tensor<1,dim,real>,nstate> PhysicsModel<dim,nstate,real,nstat
 template <int dim, int nstate, typename real, int nstate_baseline_physics>
 std::array<real,nstate> PhysicsModel<dim,nstate,real,nstate_baseline_physics>
 ::physical_source_term (
-    const dealii::Point<dim,real> &/*pos*/,
-    const std::array<real,nstate> &/*conservative_soln*/,
-    const std::array<dealii::Tensor<1,dim,real>,nstate> &/*solution_gradient*/,
-    const dealii::types::global_dof_index /*cell_index*/) const
+    const dealii::Point<dim,real> &pos,
+    const std::array<real,nstate> &conservative_soln,
+    const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient,
+    const dealii::types::global_dof_index cell_index) const
 {
-    std::array<real,nstate> physical_source;
-    for (int i=0; i<nstate; i++) {
-        physical_source[i] = 0;
+    // Initialize physical_source_term as the model source term
+    std::array<real,nstate> physical_source_term = model->physical_source_term(pos, conservative_soln, solution_gradient, cell_index);
+
+    // Get baseline conservative solution with nstate_baseline_physics
+    std::array<real,nstate_baseline_physics> baseline_conservative_soln;
+    std::array<dealii::Tensor<1,dim,real>,nstate_baseline_physics> baseline_solution_gradient;
+    for(int s=0; s<nstate_baseline_physics; ++s){
+        baseline_conservative_soln[s] = conservative_soln[s];
+        baseline_solution_gradient[s] = solution_gradient[s];
     }
-    return physical_source;
+
+    // Get the baseline physics physical source term
+    /* Note: Even though the physics baseline source term does not depend on cell_index, we pass it 
+             anyways to accomodate the pure virtual member function defined in the PhysicsBase class */
+    std::array<real,nstate_baseline_physics> baseline_physical_source_term = physics_baseline->physical_source_term(pos,baseline_conservative_soln,baseline_solution_gradient,cell_index);
+
+    // Add the baseline_physical_source_term terms to source_term
+    for(int s=0; s<nstate_baseline_physics; ++s){
+        physical_source_term[s] += baseline_physical_source_term[s];
+    }
+
+    return physical_source_term;
 }
 
 template <int dim, int nstate, typename real, int nstate_baseline_physics>
@@ -142,12 +159,30 @@ std::array<dealii::Tensor<1,dim,real>,nstate> PhysicsModel<dim,nstate,real,nstat
                                   const std::array<real,nstate> &conservative_soln2) const
 {
     // TO DO: Update for when nstate > nstate_baseline_physics
+    //std::array<dealii::Tensor<1,dim,real>,nstate> conv_num_split_flux;
+    //if constexpr(nstate==nstate_baseline_physics) {
+    //    conv_num_split_flux = physics_baseline->convective_numerical_split_flux(conservative_soln1,conservative_soln2);
+    //} else {
+    //    // TO DO, make use of the physics_model object for nstate>nstate_baseline_physics
+    //    std::abort();
+    //}
+
     std::array<dealii::Tensor<1,dim,real>,nstate> conv_num_split_flux;
     if constexpr(nstate==nstate_baseline_physics) {
         conv_num_split_flux = physics_baseline->convective_numerical_split_flux(conservative_soln1,conservative_soln2);
     } else {
-        // TO DO, make use of the physics_model object for nstate>nstate_baseline_physics
-        std::abort();
+        conv_num_split_flux = model->convective_numerical_split_flux(conservative_soln1,conservative_soln2);
+
+        std::array<real,nstate_baseline_physics> baseline_conservative_soln1;
+        std::array<real,nstate_baseline_physics> baseline_conservative_soln2;
+        for(int s=0; s<nstate_baseline_physics; ++s){
+            baseline_conservative_soln1[s] = conservative_soln1[s];
+            baseline_conservative_soln2[s] = conservative_soln2[s];
+        }
+        std::array<dealii::Tensor<1,dim,real>,nstate_baseline_physics> baseline_conv_num_split_flux = physics_baseline->convective_numerical_split_flux(baseline_conservative_soln1,baseline_conservative_soln2);
+        for(int s=0; s<nstate_baseline_physics; ++s){
+            conv_num_split_flux[s] += baseline_conv_num_split_flux[s];
+        }      
     }
     return conv_num_split_flux;
 }
@@ -159,13 +194,29 @@ std::array<real,nstate> PhysicsModel<dim,nstate,real,nstate_baseline_physics>
     const dealii::Tensor<1,dim,real> &normal) const
 {
     // TO DO: Update for when nstate > nstate_baseline_physics
+    //std::array<real,nstate> eig;
+    //if constexpr(nstate==nstate_baseline_physics) {
+    //    eig = physics_baseline->convective_eigenvalues(conservative_soln, normal);
+    //} else {
+    //    // TO DO, make use of the physics_model object for nstate>nstate_baseline_physics
+    //    std::abort();
+    //}
+
     std::array<real,nstate> eig;
     if constexpr(nstate==nstate_baseline_physics) {
         eig = physics_baseline->convective_eigenvalues(conservative_soln, normal);
     } else {
-        // TO DO, make use of the physics_model object for nstate>nstate_baseline_physics
-        std::abort();
+        eig = model->convective_eigenvalues(conservative_soln, normal);
+        std::array<real,nstate_baseline_physics> baseline_conservative_soln;
+        for(int s=0; s<nstate_baseline_physics; ++s){
+            baseline_conservative_soln[s] = conservative_soln[s];
+        }
+        std::array<real,nstate_baseline_physics> baseline_eig = physics_baseline->convective_eigenvalues(baseline_conservative_soln, normal);
+        for(int s=0; s<nstate_baseline_physics; ++s){
+            eig[s] += baseline_eig[s];
+        }  
     }
+
     return eig;
 }
 
@@ -174,12 +225,25 @@ real PhysicsModel<dim,nstate,real,nstate_baseline_physics>
 ::max_convective_eigenvalue (const std::array<real,nstate> &conservative_soln) const
 {
     // TO DO: Update for when nstate > nstate_baseline_physics
+    //real max_eig;
+    //if constexpr(nstate==nstate_baseline_physics) {
+    //    max_eig = physics_baseline->max_convective_eigenvalue(conservative_soln);
+    //} else {
+    //    // TO DO, make use of the physics_model object for nstate>nstate_baseline_physics
+    //    std::abort();
+    //}
+
     real max_eig;
     if constexpr(nstate==nstate_baseline_physics) {
         max_eig = physics_baseline->max_convective_eigenvalue(conservative_soln);
     } else {
-        // TO DO, make use of the physics_model object for nstate>nstate_baseline_physics
-        std::abort();
+        max_eig = model->max_convective_eigenvalue(conservative_soln);
+        std::array<real,nstate_baseline_physics> baseline_conservative_soln;
+        for(int s=0; s<nstate_baseline_physics; ++s){
+            baseline_conservative_soln[s] = conservative_soln[s];
+        }
+        real baseline_max_eig = physics_baseline->max_convective_eigenvalue(baseline_conservative_soln);
+        max_eig = max_eig > baseline_max_eig ? max_eig : baseline_max_eig;
     }
     return max_eig;
 }
@@ -196,13 +260,41 @@ void PhysicsModel<dim,nstate,real,nstate_baseline_physics>
    std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_bc) const
 {
     // TO DO: Update for when nstate > nstate_baseline_physics
+    //if constexpr(nstate==nstate_baseline_physics) {
+    //    physics_baseline->boundary_face_values(
+    //            boundary_type, pos, normal_int, soln_int, soln_grad_int, 
+    //            soln_bc, soln_grad_bc);
+    //} else {
+    //    // TO DO, make use of the physics_model object for nstate>nstate_baseline_physics
+    //    std::abort();
+    //}
     if constexpr(nstate==nstate_baseline_physics) {
         physics_baseline->boundary_face_values(
                 boundary_type, pos, normal_int, soln_int, soln_grad_int, 
                 soln_bc, soln_grad_bc);
     } else {
-        // TO DO, make use of the physics_model object for nstate>nstate_baseline_physics
-        std::abort();
+        std::array<real,nstate_baseline_physics> baseline_soln_int;
+        std::array<dealii::Tensor<1,dim,real>,nstate_baseline_physics> baseline_soln_grad_int;
+        for(int s=0; s<nstate_baseline_physics; ++s){
+            baseline_soln_int[s] = soln_int[s];
+            baseline_soln_grad_int[s] = soln_grad_int[s];
+        }
+
+        std::array<real,nstate_baseline_physics> baseline_soln_bc;
+        std::array<dealii::Tensor<1,dim,real>,nstate_baseline_physics> baseline_soln_grad_bc;
+
+        physics_baseline->boundary_face_values(
+                boundary_type, pos, normal_int, baseline_soln_int, baseline_soln_grad_int, 
+                baseline_soln_bc, baseline_soln_grad_bc);
+        
+        model->boundary_face_values(
+                boundary_type, pos, normal_int, soln_int, soln_grad_int, 
+                soln_bc, soln_grad_bc);
+
+        for(int s=0; s<nstate_baseline_physics; ++s){
+            soln_bc[s] += baseline_soln_bc[s];
+            soln_grad_bc[s] += baseline_soln_grad_bc[s];
+        }
     }
 }
 

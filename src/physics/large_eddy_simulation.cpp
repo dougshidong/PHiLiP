@@ -121,6 +121,40 @@ std::array<dealii::Tensor<1,dim,real2>,nstate> LargeEddySimulationBase<dim,nstat
     
     return viscous_flux;
 }
+//----------------------------------------------------------------
+template <int dim, int nstate, typename real>
+std::array<dealii::Tensor<1,dim,real>,nstate> LargeEddySimulationBase<dim,nstate,real>
+::convective_numerical_split_flux(const std::array<real,nstate> &/*conservative_soln1*/,
+                                  const std::array<real,nstate> &/*conservative_soln2*/) const
+{
+    std::array<dealii::Tensor<1,dim,real>,nstate> conv_num_split_flux;
+    for (int i=0;i<nstate;i++)
+    {
+        conv_num_split_flux[i] = 0.0;
+    }
+    return conv_num_split_flux;
+}
+//----------------------------------------------------------------
+template <int dim, int nstate, typename real>
+std::array<real,nstate> LargeEddySimulationBase<dim,nstate,real>
+::convective_eigenvalues (
+    const std::array<real,nstate> &/*conservative_soln*/,
+    const dealii::Tensor<1,dim,real> &/*normal*/) const
+{
+    std::array<real,nstate> eig;
+    for (int i=0; i<dim+2; i++) {
+        eig[i] = 0.0;
+    }
+    return eig;
+}
+//----------------------------------------------------------------
+template <int dim, int nstate, typename real>
+real LargeEddySimulationBase<dim,nstate,real>
+::max_convective_eigenvalue (const std::array<real,nstate> &/*conservative_soln*/) const
+{
+    const real max_eig = 0.0;
+    return max_eig;
+}
 //adding physical source
 //----------------------------------------------------------------
 template <int dim, int nstate, typename real>

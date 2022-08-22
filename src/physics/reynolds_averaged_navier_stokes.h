@@ -49,6 +49,17 @@ public:
         const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient,
         const dealii::types::global_dof_index cell_index) const;
 
+    std::array<dealii::Tensor<1,dim,real>,nstate> convective_numerical_split_flux (
+        const std::array<real,nstate> &conservative_soln1,
+        const std::array<real,nstate> &conservative_soln2) const;
+
+    std::array<real,nstate> convective_eigenvalues (
+        const std::array<real,nstate> &/*conservative_soln*/,
+        const dealii::Tensor<1,dim,real> &/*normal*/) const;
+
+    /// Maximum convective eigenvalue used in Lax-Friedrichs
+    real max_convective_eigenvalue (const std::array<real,nstate> &soln) const;
+
     /// Source term for manufactured solution functions
     std::array<real,nstate> source_term (
         const dealii::Point<dim,real> &pos,
@@ -135,6 +146,10 @@ protected:
         const std::array<dealii::Tensor<1,dim,real2>,nstate> &solution_gradient,
         const dealii::types::global_dof_index cell_index) const;
 
+    template<typename real2>
+    std::array<dealii::Tensor<1,dim,real2>,nstate> convective_flux_templated (
+        const std::array<real2,nstate> &conservative_soln) const;
+
     //adding physical source
     /// Physical source term
     template<typename real2>
@@ -177,6 +192,14 @@ protected:
         const std::array<real2,nstate> &conservative_soln,
         const std::array<dealii::Tensor<1,dim,real2>,nstate> &solution_gradient) const;
 
+    std::array<real,nstate-(dim+2)> compute_mean_turbulence_property (
+        const std::array<real,nstate> &conservative_soln1,
+        const std::array<real,nstate> &conservative_soln2) const;
+
+    dealii::Tensor<2,nstate,real> convective_flux_directional_jacobian (
+        const std::array<real,nstate> &conservative_soln,
+        const dealii::Tensor<1,dim,real> &normal) const;
+
     /** Dissipative flux Jacobian (repeated from NavierStokes)
      *  Note: Only used for computing the manufactured solution source term;
      *        computed using automatic differentiation
@@ -208,6 +231,9 @@ protected:
     /// Get manufactured solution value (repeated from Euler)
     //not sure if it is needed for RANS
     std::array<dealii::Tensor<1,dim,real>,nstate> get_manufactured_solution_gradient (
+        const dealii::Point<dim,real> &pos) const;
+
+    std::array<real,nstate> convective_source_term (
         const dealii::Point<dim,real> &pos) const;
 
     /// Dissipative flux contribution to the source term (repeated from NavierStokes)

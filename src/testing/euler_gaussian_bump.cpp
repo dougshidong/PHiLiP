@@ -199,8 +199,8 @@ double EulerGaussianBump<dim,nstate>
                 {
                     dealii::Point<dim> smallest_cell_coord = flow_solver->dg->coordinates_of_highest_refined_cell();
                     pcout<<" x = "<<smallest_cell_coord[0]<<" y = "<<smallest_cell_coord[1]<<std::endl;
-                    // Check if the mesh is refined near the shock i.e x \in (0.1,0.3) and y \in (0.03, 0.08).
-                    if ((smallest_cell_coord[0] > 0.1) && (smallest_cell_coord[0] < 0.3) && (smallest_cell_coord[1] > 0.03) && (smallest_cell_coord[1] < 0.08)) 
+                    // Check if the mesh is refined near the shock i.e x \in (0.1,0.5) and y \in (0.0, 0.5).
+                    if ((smallest_cell_coord[0] > 0.1) && (smallest_cell_coord[0] < 0.5) && (smallest_cell_coord[1] > 0.0) && (smallest_cell_coord[1] < 0.5)) 
                     {
                         pcout<<"Mesh is refined near the shock. Test passed"<<std::endl;
                         return 0; // Mesh adaptation test passed.

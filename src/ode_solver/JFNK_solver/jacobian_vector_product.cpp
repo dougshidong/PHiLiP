@@ -31,12 +31,18 @@ void JacobianVectorProduct<dim,real,MeshType>:: reinit_for_next_timestep(double 
 }
 
 template <int dim, typename real, typename MeshType>
-dealii::LinearAlgebra::distributed::Vector<double> JacobianVectorProduct<dim,real,MeshType>::compute_unsteady_residual(dealii::LinearAlgebra::distributed::Vector<double> &w, bool do_negate) const
+void JacobianVectorProduct<dim,real,MeshType>::compute_dg_residual(dealii::LinearAlgebra::distributed::Vector<double> &w) const
 {
     dg->solution = w;
     dg->assemble_residual();
     
     dg->global_inverse_mass_matrix.vmult(dg->solution, dg->right_hand_side);//temp = IMM*RHS
+}
+
+template <int dim, typename real, typename MeshType>
+dealii::LinearAlgebra::distributed::Vector<double> JacobianVectorProduct<dim,real,MeshType>::compute_unsteady_residual(dealii::LinearAlgebra::distributed::Vector<double> &w, bool do_negate) const
+{
+    compute_dg_residual(w);
 
     dg->solution*=-1;
 

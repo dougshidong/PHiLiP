@@ -53,6 +53,11 @@ protected:
     
     /// residual of current estimate for the solution
     dealii::LinearAlgebra::distributed::Vector<double> current_solution_estimate_residual;
+    
+    /// Compute residual from dg,  R = IMM * RHS where RHS is evaluated using solution=w
+    // R is stored in dg->solution
+    // NOTE: it's a bit confusing to store in dg->solution, maybe change later
+    void compute_dg_residual(dealii::LinearAlgebra::distributed::Vector<double> &w) const;
 };
 
 }

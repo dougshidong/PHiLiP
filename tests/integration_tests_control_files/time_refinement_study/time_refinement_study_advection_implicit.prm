@@ -41,10 +41,10 @@ end
 subsection flow_solver
   set flow_case_type = periodic_1D_unsteady
   set final_time = 1.0
-  set poly_degree = 6
+  set poly_degree = 3 
   subsection grid
     set grid_left_bound = 0.0
     set grid_right_bound = 2.0
-    set number_of_grid_elements_per_dimension = 32
+    set number_of_grid_elements_per_dimension = 16
   end
 end

@@ -27,8 +27,9 @@ public:
     SubGridScaleModel SGS_model_type;
 
     /// Types of Reynolds-averaged Navier-Stokes (RANS) models that can be used.
-    enum ReynoldsAveragedNavierStokesModel { 
-        SA_negative,
+    enum ReynoldsAveragedNavierStokesModel {
+        SA, 
+        SA_negative
     };
     /// Store the Reynolds-averaged Navier-Stokes (RANS) model type
     ReynoldsAveragedNavierStokesModel RANS_model_type;

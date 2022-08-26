@@ -88,9 +88,6 @@ void ODESolverParam::declare_parameters (dealii::ParameterHandler &prm)
                               dealii::Patterns::Selection("1|2|3|4"),
                               "Order for the Runge-Kutta explicit time advancement scheme."
                               "Choices are <1|2|3|4>.");
-            prm.declare_entry("implicit_rk_flag_testing", "false",
-                              dealii::Patterns::Bool(),
-                              "Testing flag for using implicit RK");
         }
         prm.leave_subsection();
     }
@@ -137,8 +134,6 @@ void ODESolverParam::parse_parameters (dealii::ParameterHandler &prm)
             if (runge_kutta_order_string == "3") runge_kutta_order = 3;
             if (runge_kutta_order_string == "4") runge_kutta_order = 4;
             if (runge_kutta_order_string == "2") runge_kutta_order = 2;
-            
-            implicit_rk_flag_testing = prm.get_bool("implicit_rk_flag_testing");
             
         }
         prm.leave_subsection();

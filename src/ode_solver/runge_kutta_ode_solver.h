@@ -32,9 +32,6 @@ public:
 protected:
     /// Runge-Kutta order
     const int rk_order;
-
-    /// Flag for implicit RK
-    const bool implicit_flag;
     
     /// Solver for JFNK 
     //TO DO: check initialization (storage when not implicit )

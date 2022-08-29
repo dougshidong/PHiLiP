@@ -103,8 +103,6 @@ int TimeRefinementStudyReference<dim, nstate>::run_test() const
     }
 
     int testfail = 0;
-    double expected_order =(double) this->all_parameters->ode_solver_param.runge_kutta_order;
-    double order_tolerance = 0.1;
 
     //pointer to flow_solver_case for computing energy
     std::unique_ptr<FlowSolver::Periodic1DUnsteady<dim, nstate>> flow_solver_case = std::make_unique<FlowSolver::Periodic1DUnsteady<dim,nstate>>(this->all_parameters);
@@ -171,6 +169,9 @@ int TimeRefinementStudyReference<dim, nstate>::run_test() const
         }
 
         //Checking convergence order
+        std::shared_ptr<ODE::RungeKuttaODESolver<dim,double>> rk_ode_solver = std::dynamic_pointer_cast<ODE::RungeKuttaODESolver<dim,double>>(flow_solver->ode_solver);
+        double expected_order = (double) rk_ode_solver->rk_order;
+        double order_tolerance = 0.1;
         if (refinement > 0) {
             L2_error_conv_rate = -log(L2_error_old/L2_error)/log(refine_ratio);
             pcout << "Order at " << refinement << " is " << L2_error_conv_rate << std::endl;

@@ -3,6 +3,7 @@
 #include "flow_solver/flow_solver_cases/periodic_1D_unsteady.h"
 #include "physics/exact_solutions/exact_solution.h"
 #include "cmath"
+#include "ode_solver/runge_kutta_ode_solver.h"
 
 namespace PHiLiP {
 namespace Tests {
@@ -69,8 +70,6 @@ int TimeRefinementStudy<dim, nstate>::run_test() const
     }
 
     int testfail = 0;
-    double expected_order =(double) this->all_parameters->ode_solver_param.runge_kutta_order;
-    double order_tolerance = 0.1;
 
     dealii::ConvergenceTable convergence_table;
     double L2_error_old = 0;
@@ -99,7 +98,10 @@ int TimeRefinementStudy<dim, nstate>::run_test() const
         convergence_table.set_precision("L2_error", 16);
         convergence_table.evaluate_convergence_rates("L2_error", "dt", dealii::ConvergenceTable::reduction_rate_log2, 1);
 
-        //Checking convergence order
+        //Checking convergence order -- check dim
+        std::shared_ptr<ODE::RungeKuttaODESolver<dim,double>> rk_ode_solver = std::dynamic_pointer_cast<ODE::RungeKuttaODESolver<dim,double>>(flow_solver->ode_solver);
+        double expected_order = (double) rk_ode_solver->rk_order;
+        double order_tolerance = 0.1;
         if (refinement > 0) {
             L2_error_conv_rate = -log(L2_error_old/L2_error)/log(refine_ratio);
             pcout << "Order at " << refinement << " is " << L2_error_conv_rate << std::endl;

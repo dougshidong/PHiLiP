@@ -14,9 +14,7 @@ subsection ODE solver
   set ode_solver_type = explicit
   set output_solution_every_dt_time_intervals = 0.1
   set initial_time_step = 2.5E-3
-  subsection explicit solver options
-    set runge_kutta_order = 3
-  end
+  set runge_kutta_method = ssprk3_ex
 end
 
 subsection manufactured solution convergence study 

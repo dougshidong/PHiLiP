@@ -29,13 +29,16 @@ public:
     /// Function to allocate the ODE system
     void allocate_ode_system ();
 
-protected:
     /// Runge-Kutta order
-    const int rk_order;
-    
+    int rk_order;
+
+protected:
     /// Solver for JFNK 
     //TO DO: check initialization (storage when not implicit )
     JFNKSolver<dim,real,MeshType> solver;
+    
+    /// Number of stages in the RK method
+    int number_rk_stages;
 
     /// Storage for the derivative at each Runge-Kutta stage
     std::vector<dealii::LinearAlgebra::distributed::Vector<double>> rk_stage;

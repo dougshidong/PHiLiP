@@ -50,7 +50,14 @@ public:
         at which we initialize the ODE solver with. */
     double initial_desired_time_for_output_solution_every_dt_time_intervals;
 
-    int runge_kutta_order; ///< Order for the Runge-Kutta explicit time advancement scheme.
+    enum RKMethodEnum {
+        rk4_ex,
+        ssprk3_ex,
+        euler_ex,
+        euler_im,
+        dirk_2_im
+    };
+    RKMethodEnum runge_kutta_method;
 
     static void declare_parameters (dealii::ParameterHandler &prm); ///< Declares the possible variables and sets the defaults.
     void parse_parameters (dealii::ParameterHandler &prm); ///< Parses input file and sets the variables.

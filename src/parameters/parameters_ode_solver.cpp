@@ -82,14 +82,21 @@ void ODESolverParam::declare_parameters (dealii::ParameterHandler &prm)
                            "Initial desired time for outputting the solution every dt time intervals "
                            "at which we initialize the ODE solver with.");
 
-        prm.enter_subsection("explicit solver options");
-        {
-            prm.declare_entry("runge_kutta_order", "3",
-                              dealii::Patterns::Selection("1|2|3|4"),
-                              "Order for the Runge-Kutta explicit time advancement scheme."
-                              "Choices are <1|2|3|4>.");
-        }
-        prm.leave_subsection();
+        prm.declare_entry("runge_kutta_method", "ssprk3_ex",
+                          dealii::Patterns::Selection(
+                          " rk4_ex | "
+                          " ssprk3_ex | "
+                          " euler_ex | "
+                          " euler_im | "
+                          " dirk_2_im"),
+                          "Runge-kutta method to use. Methods with _ex are explicit, and with _im are implicit."
+                          "Choices are "
+                          " <rk4_ex | "
+                          " ssprk3_ex | "
+                          " euler_ex | "
+                          " euler_im | "
+                          " dirk_2_im>.");
+
     }
     prm.leave_subsection();
 }
@@ -126,17 +133,14 @@ void ODESolverParam::parse_parameters (dealii::ParameterHandler &prm)
         initial_time = prm.get_double("initial_time");
         initial_iteration = prm.get_integer("initial_iteration");
         initial_desired_time_for_output_solution_every_dt_time_intervals = prm.get_double("initial_desired_time_for_output_solution_every_dt_time_intervals");
+        
+        const std::string rk_method_string = prm.get("runge_kutta_method");
+        if (rk_method_string == "rk4_ex")   runge_kutta_method = RKMethodEnum::rk4_ex;
+        if (rk_method_string == "ssprk3_ex")   runge_kutta_method = RKMethodEnum::ssprk3_ex;
+        if (rk_method_string == "euler_ex")   runge_kutta_method = RKMethodEnum::euler_ex;
+        if (rk_method_string == "euler_im")   runge_kutta_method = RKMethodEnum::euler_im;
+        if (rk_method_string == "dirk_2_im")   runge_kutta_method = RKMethodEnum::dirk_2_im;
 
-        prm.enter_subsection("explicit solver options");
-        {
-            const std::string runge_kutta_order_string = prm.get("runge_kutta_order");
-            if (runge_kutta_order_string == "1") runge_kutta_order = 1;
-            if (runge_kutta_order_string == "3") runge_kutta_order = 3;
-            if (runge_kutta_order_string == "4") runge_kutta_order = 4;
-            if (runge_kutta_order_string == "2") runge_kutta_order = 2;
-            
-        }
-        prm.leave_subsection();
     }
     prm.leave_subsection();
 }

@@ -7,7 +7,6 @@ namespace ODE {
 template <int dim, typename real, typename MeshType>
 RungeKuttaODESolver<dim,real,MeshType>::RungeKuttaODESolver(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input)
         : ODESolverBase<dim,real,MeshType>(dg_input)
-        , rk_order(this->ode_param.runge_kutta_order)
         , solver(dg_input)
     {}
 
@@ -17,7 +16,7 @@ void RungeKuttaODESolver<dim,real,MeshType>::step_in_time (real dt, const bool p
     this->solution_update = this->dg->solution; //storing u_n
     
     //calculating stages **Note that rk_stage[i] stores the RHS at a partial time-step (not solution u)
-    for (int i = 0; i < rk_order; ++i){
+    for (int i = 0; i < number_rk_stages; ++i){
 
         this->rk_stage[i]=0.0; //resets all entries to zero
         
@@ -72,7 +71,7 @@ void RungeKuttaODESolver<dim,real,MeshType>::step_in_time (real dt, const bool p
     modify_time_step(dt);
 
     //assemble solution from stages
-    for (int i = 0; i < rk_order; ++i){
+    for (int i = 0; i < number_rk_stages; ++i){
         if (pseudotime){
             const double CFL = butcher_tableau_b[i] * dt;
             this->dg->time_scale_solution_update(rk_stage[i], CFL);
@@ -101,45 +100,76 @@ void RungeKuttaODESolver<dim,real,MeshType>::allocate_ode_system ()
     this->solution_update.reinit(this->dg->right_hand_side);
     this->dg->evaluate_mass_matrices(do_inverse_mass_matrix);
 
-    this->rk_stage.resize(rk_order);
-    for (int i=0; i<rk_order; i++) {
-        this->rk_stage[i].reinit(this->dg->solution);
-    }
+    using RKMethodEnum = Parameters::ODESolverParam::RKMethodEnum;
+    const RKMethodEnum rk_method = this->ode_param.runge_kutta_method;
 
     // Assigning butcher tableau
-    this->butcher_tableau_a.reinit(rk_order,rk_order);
-    this->butcher_tableau_b.reinit(rk_order);
-    if (rk_order == 3){
+    if (rk_method == RKMethodEnum::ssprk3_ex){
         // RKSSP3 (RK-3 Strong-Stability-Preserving)
+        rk_order = 3;
+        number_rk_stages = 3;
+        this->butcher_tableau_a.reinit(number_rk_stages,number_rk_stages);
+        this->butcher_tableau_b.reinit(number_rk_stages);
         const double butcher_tableau_a_values[9] = {0,0,0,1.0,0,0,0.25,0.25,0};
         this->butcher_tableau_a.fill(butcher_tableau_a_values);
         const double butcher_tableau_b_values[3] = {1.0/6.0, 1.0/6.0, 2.0/3.0};
         this->butcher_tableau_b.fill(butcher_tableau_b_values);
-    } else if (rk_order == 4) {
+    } else if (rk_method == RKMethodEnum::rk4_ex){
         // Standard RK4
+        rk_order = 4;
+        number_rk_stages = 4;
+        this->butcher_tableau_a.reinit(number_rk_stages,number_rk_stages);
+        this->butcher_tableau_b.reinit(number_rk_stages);
         const double butcher_tableau_a_values[16] = {0,0,0,0,0.5,0,0,0,0,0.5,0,0,0,0,1.0,0};
         this->butcher_tableau_a.fill(butcher_tableau_a_values);
         const double butcher_tableau_b_values[4] = {1.0/6.0,1.0/3.0,1.0/3.0,1.0/6.0};
         this->butcher_tableau_b.fill(butcher_tableau_b_values);
-    } else if (rk_order == 1) {
+    } else if (rk_method == RKMethodEnum::euler_ex){
         // Explicit Euler
+        rk_order = 1;
+        number_rk_stages = 1;
+        this->butcher_tableau_a.reinit(number_rk_stages,number_rk_stages);
+        this->butcher_tableau_b.reinit(number_rk_stages);
         const double butcher_tableau_a_values[1] = {0};
         this->butcher_tableau_a.fill(butcher_tableau_a_values);
         const double butcher_tableau_b_values[1] = {1.0};
         this->butcher_tableau_b.fill(butcher_tableau_b_values);
-    }else if (rk_order == 2){
+    } else if (rk_method == RKMethodEnum::euler_im){
+        // Implicit Euler
+        rk_order = 1;
+        number_rk_stages = 1;
+        this->butcher_tableau_a.reinit(number_rk_stages,number_rk_stages);
+        this->butcher_tableau_b.reinit(number_rk_stages);
+        const double butcher_tableau_a_values[1] = {1.0};
+        this->butcher_tableau_a.fill(butcher_tableau_a_values);
+        const double butcher_tableau_b_values[1] = {1.0};
+        this->butcher_tableau_b.fill(butcher_tableau_b_values);
+    } else if (rk_method == RKMethodEnum::dirk_2_im){
         // Pareschi & Russo DIRK, x = 1 - sqrt(2)/2
+        rk_order = 2;
+        number_rk_stages = 2;
+        this->butcher_tableau_a.reinit(number_rk_stages,number_rk_stages);
+        this->butcher_tableau_b.reinit(number_rk_stages);
         const double x = 0.2928932188134525; //=1-sqrt(2)/2
         const double butcher_tableau_a_values[4] = {x,0,(1-2*x),x};
         this->butcher_tableau_a.fill(butcher_tableau_a_values);
         const double butcher_tableau_b_values[2] = {0.5, 0.5};
         this->butcher_tableau_b.fill(butcher_tableau_b_values);
-        //evaluate mass matrix
-        this->dg->evaluate_mass_matrices(false);
+/*
+        const double butcher_tableau_a_values[4] = {0,0,0.5, 0.5};
+        this->butcher_tableau_a.fill(butcher_tableau_a_values);
+        const double butcher_tableau_b_values[2] = {0.5, 0.5};
+        this->butcher_tableau_b.fill(butcher_tableau_b_values);
+*/
     }
     else{
-        this->pcout << "Invalid RK order" << std::endl;
+        this->pcout << "Invalid RK method" << std::endl;
         std::abort();
+    }
+    
+    this->rk_stage.resize(number_rk_stages);
+    for (int i=0; i<rk_order; i++) {
+        this->rk_stage[i].reinit(this->dg->solution);
     }
 }
 

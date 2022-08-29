@@ -829,7 +829,7 @@ void Euler<dim,nstate,real>
 
 template <int dim, int nstate, typename real>
 void Euler<dim,nstate,real>
-::boundary_wall (
+::boundary_slip_wall (
    const dealii::Tensor<1,dim,real> &normal_int,
    const std::array<real,nstate> &soln_int,
    const std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_int,
@@ -873,6 +873,19 @@ void Euler<dim,nstate,real>
     for (int istate=0; istate<nstate; ++istate) {
         soln_grad_bc[istate] = -soln_grad_int[istate];
     }
+}
+
+template <int dim, int nstate, typename real>
+void Euler<dim,nstate,real>
+::boundary_wall (
+   const dealii::Tensor<1,dim,real> &normal_int,
+   const std::array<real,nstate> &soln_int,
+   const std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_int,
+   std::array<real,nstate> &soln_bc,
+   std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_bc) const
+{
+    // Slip wall boundary for Euler
+    boundary_slip_wall(normal_int, soln_int, soln_grad_int, soln_bc, soln_grad_bc);
 }
 
 template <int dim, int nstate, typename real>
@@ -1116,7 +1129,7 @@ void Euler<dim,nstate,real>
         boundary_manufactured_solution (pos, normal_int, soln_int, soln_grad_int, soln_bc, soln_grad_bc);
     } 
     else if (boundary_type == 1001) {
-        // Slip wall boundary condition
+        // Wall boundary condition (slip for Euler, no-slip for Navier-Stokes; done through polymorphism)
         boundary_wall (normal_int, soln_int, soln_grad_int, soln_bc, soln_grad_bc);
     } 
     else if (boundary_type == 1002) {
@@ -1135,6 +1148,10 @@ void Euler<dim,nstate,real>
     else if (boundary_type == 1005) {
         // Simple farfield boundary condition
         boundary_farfield(soln_bc);
+    } 
+    else if (boundary_type == 1006) {
+        // Slip wall boundary condition
+        boundary_slip_wall (normal_int, soln_int, soln_grad_int, soln_bc, soln_grad_bc);
     } 
     else {
         std::cout << "Invalid boundary_type: " << boundary_type << std::endl;

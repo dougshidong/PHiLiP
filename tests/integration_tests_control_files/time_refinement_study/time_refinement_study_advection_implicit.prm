@@ -11,8 +11,8 @@ set use_periodic_bc = true
 # ODE solver
 subsection ODE solver
   set ode_solver_type = runge_kutta
-  set output_solution_every_dt_time_intervals = 0.1
-  set initial_time_step = 0.2 #5E-3
+  set output_solution_every_dt_time_intervals = 0.2
+  set initial_time_step = 0.2 
   subsection explicit solver options
     set runge_kutta_order = 2
   end
@@ -20,7 +20,10 @@ end
 
 # Linear solver
 subsection linear solver
-  set linear_solver_type = gmres
+  set linear_solver_output = verbose
+  subsection gmres options
+    set linear_residual_tolerance = 1e-7
+  end
 end
 
 subsection manufactured solution convergence study 

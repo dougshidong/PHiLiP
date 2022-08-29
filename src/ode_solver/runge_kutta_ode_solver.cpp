@@ -8,7 +8,6 @@ template <int dim, typename real, typename MeshType>
 RungeKuttaODESolver<dim,real,MeshType>::RungeKuttaODESolver(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input)
         : ODESolverBase<dim,real,MeshType>(dg_input)
         , rk_order(this->ode_param.runge_kutta_order)
-        , implicit_flag(this->ode_param.implicit_rk_flag_testing)
         , solver(dg_input)
     {}
 

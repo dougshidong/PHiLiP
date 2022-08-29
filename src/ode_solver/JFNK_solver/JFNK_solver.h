@@ -4,6 +4,7 @@
 #include "dg/dg.h"
 #include <deal.II/lac/solver_gmres.h>
 #include "jacobian_vector_product.h"
+#include <deal.II/base/conditional_ostream.h>
 
 namespace PHiLiP {
 namespace ODE{
@@ -36,7 +37,16 @@ protected:
 
     /// pointer to dg
     std::shared_ptr<DGBase<dim,real,MeshType>> dg;
+
+    /// output on processor 0
+    dealii::ConditionalOStream pcout;
+
+    /// pointer to input parameters
+    const Parameters::AllParameters *const all_parameters;
     
+    /// Input linear solver parameters
+    const Parameters::LinearSolverParam linear_param;
+
     /// small number for finite difference
     const double epsilon_jacobian;
 
@@ -54,6 +64,9 @@ protected:
 
     /// maximum number of Newton iterations
     const int max_Newton_iter;
+
+    /// ODE output (true indicates verbose output)
+    const bool do_output;
 
     /// Jacobian-vector product utilities
     JacobianVectorProduct<dim,real,MeshType> jacobian_vector_product;

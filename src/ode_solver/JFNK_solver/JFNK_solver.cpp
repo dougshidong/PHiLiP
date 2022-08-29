@@ -7,18 +7,22 @@ namespace ODE{
 template <int dim, typename real, typename MeshType>
 JFNKSolver<dim,real,MeshType>::JFNKSolver(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input)
     : dg(dg_input)
-// Initializing in list for now; should use parameters or other
-    , epsilon_jacobian(1.490116119384765625E-8) //sqrt(machine epsilon)
-    , epsilon_Newton(1E-7)
-    , epsilon_GMRES(1E-6)
-    , max_num_temp_vectors(1000) //set high to prevent restart
-    , max_GMRES_iter(1000)
-    , max_Newton_iter(500)
+    , pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD)==0)
+    , all_parameters(dg->all_parameters)
+    , linear_param(all_parameters->linear_solver_param) 
+    , epsilon_jacobian(linear_param.epsilon_jacobian) //sqrt(machine epsilon)
+    , epsilon_Newton(linear_param.newton_residual)
+    , epsilon_GMRES(linear_param.linear_residual)
+    , max_num_temp_vectors(linear_param.restart_number)
+    , max_GMRES_iter(linear_param.max_iterations)
+    , max_Newton_iter(linear_param.newton_max_iterations)
+    , do_output(linear_param.linear_solver_output == Parameters::OutputEnum::verbose)
+
     , jacobian_vector_product(dg)
     , solver_control(max_GMRES_iter, 
                      epsilon_GMRES,
                      false,     //log_history 
-                     true)      //log_result 
+                     do_output)      //log_result 
     , solver_GMRES(solver_control,
             dealii::SolverGMRES<dealii::LinearAlgebra::distributed::Vector<double>>::AdditionalData(max_num_temp_vectors))
 {}
@@ -45,14 +49,13 @@ void JFNKSolver<dim,real,MeshType>::solve (real dt,
         update_norm = solution_update_newton.l2_norm();
         current_solution_estimate += solution_update_newton;
         Newton_iter_counter++;
+        if (do_output)      pcout << "Newton residual : " << update_norm << " step " << Newton_iter_counter << std::endl;
     }
     if (Newton_iter_counter == max_Newton_iter){
-        std::cout << "Maximum number of Newton iterations reached. Aborting..." << std::endl; //later: change to pcout
+        pcout << "Maximum number of Newton iterations reached. Aborting..." << std::endl; //later: change to pcout
         std::abort();
     }
 
-    //Temp - output results
-    std::cout << "Newton residual : " << update_norm << " step " << Newton_iter_counter << std::endl;
 
 }
 

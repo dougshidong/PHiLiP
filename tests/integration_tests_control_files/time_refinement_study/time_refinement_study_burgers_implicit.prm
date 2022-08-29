@@ -18,6 +18,14 @@ subsection ODE solver
     set runge_kutta_order = 2 
   end
 end
+
+# Linear solver
+subsection linear solver
+  set linear_solver_output = verbose
+  subsection gmres options
+    set linear_residual_tolerance = 1e-7
+  end
+end
   
 subsection time_refinement_study
   set number_of_times_to_solve = 2  

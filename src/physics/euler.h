@@ -339,6 +339,14 @@ protected:
      *      “High-order accurate implementation of solid wall boundary conditions in curved geometries,”
      *      Journal of Computational Physics, vol. 211, 2006, pp. 492–512.
      */
+    void boundary_slip_wall (
+        const dealii::Tensor<1,dim,real> &normal_int,
+        const std::array<real,nstate> &soln_int,
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_int,
+        std::array<real,nstate> &soln_bc,
+        std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_bc) const;
+
+    /// Wall boundary condition
     virtual void boundary_wall (
         const dealii::Tensor<1,dim,real> &normal_int,
         const std::array<real,nstate> &soln_int,

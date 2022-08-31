@@ -91,8 +91,13 @@ public:
     /// Parses input file and sets the variables.
     void parse_parameters (dealii::ParameterHandler &prm);
 
-    ///Interpolate or project the initial condition.
-    bool interpolate_initial_condition;
+    /// Selects the method for setting the initial condition
+    enum SetInitialConditionMethod{
+        interpolate_initial_condition_function,
+        project_initial_condition_function,
+        read_values_from_file_and_project
+        };
+    SetInitialConditionMethod set_initial_condition_method; ///< Selected SetInitialConditionMethod from the input file
 };
 
 } // Parameters namespace

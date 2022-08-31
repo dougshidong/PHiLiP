@@ -169,9 +169,16 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
         }
         prm.leave_subsection();
 
-        prm.declare_entry("interpolate_initial_condition", "true",
-                          dealii::Patterns::Bool(),
-                          "Interpolate the initial condition function onto the DG solution. If false, then it projects the physical value. True by default.");
+        prm.declare_entry("set_initial_condition_method", "interpolate_initial_condition_function",
+                          dealii::Patterns::Selection(
+                          " interpolate_initial_condition_function | "
+                          " project_initial_condition_function | "
+                          " read_values_from_file_and_project "),
+                          "The method used for setting the initial condition. "
+                          "Choices are "
+                          " <interpolate_initial_condition_function | "
+                          " project_initial_condition_function | " 
+                          " read_values_from_file_and_project>.");
 
     }
     prm.leave_subsection();
@@ -240,7 +247,10 @@ void FlowSolverParam::parse_parameters(dealii::ParameterHandler &prm)
         }
         prm.leave_subsection();
 
-        interpolate_initial_condition = prm.get_bool("interpolate_initial_condition");
+        const std::string set_initial_condition_method_string = prm.get("set_initial_condition_method");
+        if      (set_initial_condition_method_string == "interpolate_initial_condition_function") {set_initial_condition_method = interpolate_initial_condition_function;}
+        else if (set_initial_condition_method_string == "project_initial_condition_function")     {set_initial_condition_method = project_initial_condition_function;}
+        else if (set_initial_condition_method_string == "read_values_from_file_and_project")      {set_initial_condition_method = read_values_from_file_and_project;}
         
     }
     prm.leave_subsection();

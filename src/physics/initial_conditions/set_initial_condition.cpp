@@ -1,4 +1,5 @@
 #include "set_initial_condition.h"
+#include "parameters/parameters_flow_solver.h"
 #include <deal.II/numerics/vector_tools.h>
 // #include <deal.II/lac/affine_constraints.h>
 
@@ -10,15 +11,21 @@ void SetInitialCondition<dim,nstate,real>::set_initial_condition(
         std::shared_ptr< PHiLiP::DGBase<dim, real> > dg_input,
         const Parameters::AllParameters *const parameters_input)
 {
-    // Apply initial condition depending on the application type
+    // Set initial condition depending on the method
     const bool interpolate_initial_condition = parameters_input->flow_solver_param.interpolate_initial_condition;
-    if(interpolate_initial_condition == true) {
+    using SetInitialConditionMethodEnum = Parameters::FlowSolverParam::SetInitialConditionMethod;
+    const SetInitialConditionMethodEnum set_initial_condition_method = parameters_input->flow_solver_param.set_initial_condition_method;
+
+    if(set_initial_condition_method == SetInitialConditionMethodEnum::interpolate_initial_condition_function) {
         // for non-curvilinear
         SetInitialCondition<dim,nstate,real>::interpolate_initial_condition(initial_condition_function_input, dg_input);
-    } else {
+    } else if(set_initial_condition_method == SetInitialConditionMethodEnum::project_initial_condition_function) {
         // for curvilinear
         SetInitialCondition<dim,nstate,real>::project_initial_condition(initial_condition_function_input, dg_input);
-    }
+    } else if(set_initial_condition_method == SetInitialConditionMethodEnum::read_values_from_file_and_project) {
+        // (void) initial_condition_function_input;
+        SetInitialCondition<dim,nstate,real>::read_values_from_file_and_project(dg_input);
+    } 
 }
 
 template<int dim, int nstate, typename real>

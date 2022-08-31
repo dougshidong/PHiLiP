@@ -58,5 +58,5 @@ end
 
 subsection flow_solver
     set flow_case_type = convection_diffusion
-    set interpolate_initial_condition = false
+    set set_initial_condition_method = project_initial_condition_function
 end

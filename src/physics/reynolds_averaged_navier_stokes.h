@@ -241,6 +241,10 @@ protected:
     std::array<real,nstate> dissipative_source_term (
         const dealii::Point<dim,real> &pos,
         const dealii::types::global_dof_index cell_index) const;
+
+    std::array<real,nstate> physical_source_source_term (
+        const dealii::Point<dim,real> &pos,
+        const dealii::types::global_dof_index cell_index) const;
 };
 
 /// Negative Spalart-Allmaras model. Derived from Reynolds Averaged Navier Stokes.
@@ -334,9 +338,12 @@ protected:
         const std::array<real2,nstate-(dim+2)> &primitive_soln_turbulence_model) const;
 
     /// Templated scale nondimensionalized eddy viscosity for the negative SA model
-    template<typename real2> real2 scale_eddy_viscosity_templated(
-        const std::array<real2,dim+2> &primitive_soln_rans,
-        const real2 eddy_viscosity) const;
+    //template<typename real2> real2 scale_eddy_viscosity_templated(
+    //    const std::array<real2,dim+2> &primitive_soln_rans,
+    //    const real2 eddy_viscosity) const;
+
+    template<typename real2> real2 scale_coefficient(
+        const real2 coefficient) const;
 
     template<typename real2> std::array<real2,nstate> compute_production_dissipation_cross_term_templated (
         const dealii::Point<dim,real2> &pos,
@@ -409,12 +416,14 @@ private:
 
     template<typename real2> std::array<real2,nstate> compute_production_source (
         const real2 &coefficient_f_t2,
+        const real2 &density,
         const real2 &nu_tilde,
         const real2 &s,
         const real2 &s_tilde) const;
 
     template<typename real2> std::array<real2,nstate> compute_dissipation_source (
         const real2 &coefficient_f_t2,
+        const real2 &density,
         const real2 &nu_tilde,
         const real2 &d_wall,
         const real2 &s_tilde) const;

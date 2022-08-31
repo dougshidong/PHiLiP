@@ -8,11 +8,11 @@
 namespace PHiLiP {
 namespace ODE {
 
-/// Explicit ODE solver derived from ODESolver.
+/// Runge-Kutta ODE solver (explicit or implicit) derived from ODESolver.
 #if PHILIP_DIM==1
-template <int dim, typename real, typename MeshType = dealii::Triangulation<dim>>
+template <int dim, typename real, int n_rk_stages, typename MeshType = dealii::Triangulation<dim>>
 #else
-template <int dim, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
+template <int dim, typename real, int n_rk_stages, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
 #endif
 class RungeKuttaODESolver: public ODESolverBase <dim, real, MeshType>
 {
@@ -29,17 +29,11 @@ public:
     /// Function to allocate the ODE system
     void allocate_ode_system ();
 
-    /// Runge-Kutta order
-    int rk_order;
-
 protected:
     /// Solver for JFNK 
     //TO DO: check initialization (storage when not implicit )
     JFNKSolver<dim,real,MeshType> solver;
     
-    /// Number of stages in the RK method
-    int number_rk_stages;
-
     /// Storage for the derivative at each Runge-Kutta stage
     std::vector<dealii::LinearAlgebra::distributed::Vector<double>> rk_stage;
     

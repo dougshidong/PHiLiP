@@ -169,8 +169,7 @@ int TimeRefinementStudyReference<dim, nstate>::run_test() const
         }
 
         //Checking convergence order
-        std::shared_ptr<ODE::RungeKuttaODESolver<dim,double>> rk_ode_solver = std::dynamic_pointer_cast<ODE::RungeKuttaODESolver<dim,double>>(flow_solver->ode_solver);
-        double expected_order = (double) rk_ode_solver->rk_order;
+        double expected_order = params.ode_solver_param.rk_order;
         double order_tolerance = 0.1;
         if (refinement > 0) {
             L2_error_conv_rate = -log(L2_error_old/L2_error)/log(refine_ratio);

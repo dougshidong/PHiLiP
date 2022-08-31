@@ -135,11 +135,31 @@ void ODESolverParam::parse_parameters (dealii::ParameterHandler &prm)
         initial_desired_time_for_output_solution_every_dt_time_intervals = prm.get_double("initial_desired_time_for_output_solution_every_dt_time_intervals");
         
         const std::string rk_method_string = prm.get("runge_kutta_method");
-        if (rk_method_string == "rk4_ex")   runge_kutta_method = RKMethodEnum::rk4_ex;
-        if (rk_method_string == "ssprk3_ex")   runge_kutta_method = RKMethodEnum::ssprk3_ex;
-        if (rk_method_string == "euler_ex")   runge_kutta_method = RKMethodEnum::euler_ex;
-        if (rk_method_string == "euler_im")   runge_kutta_method = RKMethodEnum::euler_im;
-        if (rk_method_string == "dirk_2_im")   runge_kutta_method = RKMethodEnum::dirk_2_im;
+        if (rk_method_string == "rk4_ex"){
+            runge_kutta_method = RKMethodEnum::rk4_ex;
+            n_rk_stages  = 4;
+            rk_order = 4;
+        }
+        if (rk_method_string == "ssprk3_ex"){
+            runge_kutta_method = RKMethodEnum::ssprk3_ex;
+            n_rk_stages  = 3;
+            rk_order = 3;
+        }
+        if (rk_method_string == "euler_ex"){
+            runge_kutta_method = RKMethodEnum::euler_ex;
+            n_rk_stages  = 1;
+            rk_order = 1;
+        }
+        if (rk_method_string == "euler_im"){
+            runge_kutta_method = RKMethodEnum::euler_im;
+            n_rk_stages  = 1;
+            rk_order = 1;
+        }
+        if (rk_method_string == "dirk_2_im"){
+            runge_kutta_method = RKMethodEnum::dirk_2_im;
+            n_rk_stages  = 2;
+            rk_order = 2;
+        }
 
     }
     prm.leave_subsection();

@@ -11,7 +11,7 @@ set use_periodic_bc = true
 
 # ODE solver
 subsection ODE solver
-  set ode_solver_type = explicit
+  set ode_solver_type = runge_kutta
   set output_solution_every_dt_time_intervals = 0.1
   set initial_time_step = 2.5E-3
   set runge_kutta_method = ssprk3_ex

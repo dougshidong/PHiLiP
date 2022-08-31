@@ -33,6 +33,9 @@ public:
 
     /// Output error message for Implicit and Explicit solver
     static void display_error_ode_solver_factory(Parameters::ODESolverParam::ODESolverEnum ode_solver_type, bool reduced_order);
+    
+    /// Creates an ODESolver object based on the specified RK method, including derived classes
+    static std::shared_ptr<ODESolverBase<dim,real,MeshType>> create_RungeKuttaODESolver(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input);
 };
 
 } // ODE namespace

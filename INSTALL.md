@@ -11,11 +11,11 @@ If you are on another OS, the above script still serves as a nice guideline sinc
 Note that some features and tests from a recent pull request only work with Gmsh 4.6. See
 https://github.com/dougshidong/PHiLiP/pull/55
 
-## NACA0012 Mesh Files
+## Mesh Files
 
 **If you are running on the cluster, please see the instructions below in the Compute Canada section.**
 
-If you are running the code **on a local machine** (i.e. not on the cluster), you will need to download the [NACA0012 mesh files](https://drive.google.com/drive/folders/182JusbWV6NAA8ws1-TTg7M2GLc5jt6_r?usp=sharing) that are too large to store on GitHub by clicking the link, and place them in `tests/integration_tests_control_files/euler_integration/naca0012/`. To automate this process using `gdown`, do the following:
+If you are running the code **on a local machine** (i.e. not on the cluster), you will need to download the [NACA0012 mesh files](https://drive.google.com/drive/folders/182JusbWV6NAA8ws1-TTg7M2GLc5jt6_r?usp=sharing) and [3D mesh files](https://drive.google.com/drive/folders/1ZjwSvbrRK5pHvMULfC69n6oierTej2Cv?usp=sharing) that are too large to store on GitHub by clicking the link, and place them in `tests/meshes/`. To automate this process using `gdown`, do the following:
 1. `sudo apt install python3-pip` (if `pip` is not already installed)
 2. `pip install gdown` (if `gdown` is not already installed)
 3. If you receive a warning such as:
@@ -25,8 +25,8 @@ If you are running the code **on a local machine** (i.e. not on the cluster), yo
    and resource:
    `source ~/.bashrc`
 4. Then run the following bash script inside the `PHiLiP` directory:
-   `chmod +x get_NACA0012_mesh_files_local.sh`
-   `./get_NACA0012_mesh_files_local.sh`
+   `chmod +x get_gmsh_mesh_files_local.sh`
+   `./get_gmsh_mesh_files_local.sh`
 
 ## deal.II
 
@@ -92,10 +92,10 @@ The deal.II library has been setup with the following options:
 
 This section is aimed at McGill's group who use the Compute Canada (CC) clusters.
 
-If you have just cloned the code onto the cluster, **you must copy the large NACA0012 mesh files** that cannot be stored on GitHub, this can be done by explicitly running the following:
+If you have just cloned the code onto the cluster, **you must copy the large mesh files** that cannot be stored on GitHub, this can be done by explicitly running the following:
 ~~~~
-chmod +x get_NACA0012_mesh_files_cluster.sh
-./get_NACA0012_mesh_files_cluster.sh
+chmod +x get_gmsh_mesh_files_cluster.sh
+./get_gmsh_mesh_files_cluster.sh
 ~~~~
 If you are a **new user on a CC cluster**, **you must configure git modules** by explicitly running the following on the cluster before proceeding:
 ~~~~

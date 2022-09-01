@@ -162,10 +162,10 @@ mkdir -p Codes
 	git remote add upstream https://github.com/dougshidong/PHiLiP.git ;\
     git config submodule.recurse true ;\
     
-    # Get mesh files of NACA 0012. Note: Run get_NACA0012_mesh_files_cluster.sh to get files on the cluster.
+    # Get mesh files of NACA 0012. Note: Run get_gmsh_mesh_files_cluster.sh to get files on the cluster.
     # If not already installed, gdown can be installed as explained in INSTALL.md. 
-    chmod +x get_NACA0012_mesh_files_local.sh
-    sh get_NACA0012_mesh_files_local.sh ;\
+    chmod +x get_gmsh_mesh_files_local.sh
+    sh get_gmsh_mesh_files_local.sh ;\
 
 	# Release build with all the optimization flags
 	mkdir -p build_release && cd build_release ;\

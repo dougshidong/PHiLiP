@@ -60,13 +60,12 @@ endforeach()
 set (filename "airfoil.msh")
 if(NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${filename})
   message(SEND_ERROR
-"Missing NACA0012 files named ${filename}. Please download them from
+"Missing NACA0012 mesh file named ${filename}. Please download them from
     https://drive.google.com/drive/folders/1EeN4ooMK2awre2O_WBWJNMyO4FGDX_PN?usp=sharing
 and place them in
-      ${CMAKE_CURRENT_SOURCE_DIR}, or simply run get_NACA0012_mesh_files_local.sh"
+      ${CMAKE_CURRENT_SOURCE_DIR}, or simply run get_gmsh_mesh_files_local.sh"
       )
 endif()
-
 configure_file(${filename} ${filename} COPYONLY)
 add_test(
   NAME 2D_GMSH_READER_NACA0012
@@ -74,3 +73,18 @@ add_test(
   WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )
 
+set (filename "SD7003.msh")
+if(NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${filename})
+  message(SEND_ERROR
+"Missing 3D GMSH file named ${filename}. Please download them from
+    https://drive.google.com/drive/folders/1ZjwSvbrRK5pHvMULfC69n6oierTej2Cv?usp=sharing
+and place them in
+      ${CMAKE_CURRENT_SOURCE_DIR}, or simply run get_gmsh_mesh_files_local.sh"
+      )
+endif()
+configure_file(${filename} ${filename} COPYONLY)
+add_test(
+  NAME 3D_GMSH_READER_SD7003
+  COMMAND mpirun -n ${MPIMAX} ${CMAKE_CURRENT_BINARY_DIR}/3D_GMSH_READER --input=${filename}
+  WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
+)

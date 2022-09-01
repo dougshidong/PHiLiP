@@ -1,0 +1,58 @@
+# Listing of Parameters
+# ---------------------
+# Number of dimensions
+
+set dimension = 3
+set run_type = flow_simulation
+set pde_type = navier_stokes
+
+# DG formulation
+set use_weak_form = true
+# set use_collocated_nodes = true
+
+# numerical fluxes
+set conv_num_flux = roe
+set diss_num_flux = symm_internal_penalty
+
+# ODE solver
+subsection ODE solver
+  set ode_output = quiet
+  set ode_solver_type = explicit
+  set output_solution_every_x_steps = 1
+  set initial_time_step = 1.0e-8;
+  subsection explicit solver options
+    set runge_kutta_order = 3
+  end
+end
+
+# ----------------------------------------
+# - References for flow variables:
+# - (1) Uranga et al. 
+# - (2) Garmann et al.
+# ----------------------------------------
+
+# freestream Mach number
+subsection euler
+  set reference_length = 1.0
+  set mach_infinity = 0.2
+  set angle_of_attack = 4.0
+  # set mach_infinity = 0.1
+  # set angle_of_attack = 8.0
+end
+
+# freestream Reynolds number and Prandtl number
+subsection navier_stokes
+  set prandtl_number = 0.71
+  set reynolds_number_inf = 60000.0
+end
+
+subsection flow_solver
+  set flow_case_type = naca0012
+  set poly_degree = 1
+  set final_time = 10.0
+  # set courant_friedrich_lewy_number = 0.01
+  set unsteady_data_table_filename = sd7003_unsteady_data_table
+  subsection grid
+    set input_mesh_filename = ../../../meshes/SD7003
+  end
+end

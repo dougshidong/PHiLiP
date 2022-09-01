@@ -48,3 +48,19 @@ set(TEST_OUTPUT_DIR ${CMAKE_CURRENT_BINARY_DIR})
 #  WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 #)
 # ----------------------------------------
+
+# =======================================
+# SD7003 Airfoil
+# =======================================
+# ----------------------------------------
+# - References:
+# - (1) Uranga et al. 
+# - (2) Garmann et al.
+# ----------------------------------------
+configure_file(unsteady_sd7003.prm unsteady_sd7003.prm COPYONLY)
+add_test(
+  NAME MPI_SD7003_UNSTEADY_FLOW
+  COMMAND mpirun -np ${MPI_MAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_3D -i ${CMAKE_CURRENT_BINARY_DIR}/unsteady_sd7003.prm
+  WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
+)
+# ----------------------------------------

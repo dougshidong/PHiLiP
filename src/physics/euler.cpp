@@ -73,7 +73,7 @@ std::array<real,nstate> Euler<dim,nstate,real>
     std::array<real,nstate> physical_source;
     // No physical source for Euler
     for (int i=0; i<nstate; i++) {
-        physical_source[i] = 0;
+        physical_source[i] = 0.0;
     }
     return physical_source;
 }

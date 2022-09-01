@@ -446,8 +446,8 @@ private:
     const real c_v1  = 7.1;
     const real c_v2  = 0.7;
     const real c_v3  = 0.9;
-    const real c_t1  = 1.0;
-    const real c_t2  = 2.0;
+    //const real c_t1  = 1.0;
+    //const real c_t2  = 2.0;
     const real c_t3  = 1.2;
     const real c_t4  = 0.5;
     const real c_n1  = 16.0;
@@ -463,8 +463,8 @@ private:
     const FadType c_v1_fad  = 7.1;
     const FadType c_v2_fad  = 0.7;
     const FadType c_v3_fad  = 0.9;
-    const FadType c_t1_fad  = 1.0;
-    const FadType c_t2_fad  = 2.0;
+    //const FadType c_t1_fad  = 1.0;
+    //const FadType c_t2_fad  = 2.0;
     const FadType c_t3_fad  = 1.2;
     const FadType c_t4_fad  = 0.5;
     const FadType c_n1_fad  = 16.0;

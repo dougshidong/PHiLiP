@@ -3642,10 +3642,10 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_volume_term(
         //adding physical source
         dealii::Point<dim,real2> ad_points;
         for (int d=0;d<dim;++d) { ad_points[d] = 0.0;}
-            for (unsigned int idof = 0; idof < n_metric_dofs; ++idof) {
-                const int iaxis = fe_metric.system_to_component_index(idof).first;
-                ad_points[iaxis] += coords_coeff[idof] * fe_metric.shape_value(idof,unit_quad_pts[iquad]);
-            }
+        for (unsigned int idof = 0; idof < n_metric_dofs; ++idof) {
+            const int iaxis = fe_metric.system_to_component_index(idof).first;
+            ad_points[iaxis] += coords_coeff[idof] * fe_metric.shape_value(idof,unit_quad_pts[iquad]);
+        }
         physical_source_at_q[iquad] = physics.physical_source_term (ad_points, soln_at_q[iquad], soln_grad_at_q[iquad], current_cell_index);
 
         if (this->all_parameters->artificial_dissipation_param.add_artificial_dissipation) {

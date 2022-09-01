@@ -945,7 +945,7 @@ real2 ReynoldsAveragedNavierStokes_SAneg<dim,nstate,real>
 {
     // Compute coefficient f_v2
     real2 coefficient_f_v2;
-    const real2 coefficient_f_v1 = this->compute_coefficient_f_v1(coefficient_Chi);
+    const real2 coefficient_f_v1 = compute_coefficient_f_v1(coefficient_Chi);
 
     if constexpr(std::is_same<real2,real>::value){ 
         coefficient_f_v2 = 1.0-coefficient_Chi/(1.0+coefficient_Chi*coefficient_f_v1);
@@ -971,7 +971,7 @@ real2 ReynoldsAveragedNavierStokes_SAneg<dim,nstate,real>
 {
     // Compute coefficient f_n
     real2 coefficient_f_n;
-    const real2 coefficient_Chi = this->compute_coefficient_Chi(nu_tilde,laminar_kinematic_viscosity);
+    const real2 coefficient_Chi = compute_coefficient_Chi(nu_tilde,laminar_kinematic_viscosity);
 
     if constexpr(std::is_same<real2,real>::value){ 
         if (nu_tilde>=0.0)
@@ -1076,10 +1076,10 @@ real2 ReynoldsAveragedNavierStokes_SAneg<dim,nstate,real>
     // Compute coefficient g
     real2 coefficient_g;
     if constexpr(std::is_same<real2,real>::value){ 
-        coefficient_g = coefficient_r+c_w2*(pow(coefficient_r,6)-coefficient_r);
+        coefficient_g = coefficient_r+c_w2*(pow(coefficient_r,6.0)-coefficient_r);
     }
     else if constexpr(std::is_same<real2,FadType>::value){
-        coefficient_g = coefficient_r+c_w2_fad*(pow(coefficient_r,6)-coefficient_r);
+        coefficient_g = coefficient_r+c_w2_fad*(pow(coefficient_r,6.0)-coefficient_r);
     }
     else{
         std::cout << "ERROR in physics/reynolds_averaged_navier_stokes.cpp --> compute_coefficient_g(): real2 != real or FadType" << std::endl;
@@ -1118,7 +1118,7 @@ real2 ReynoldsAveragedNavierStokes_SAneg<dim,nstate,real>
 {
     // Compute s_bar
     real2 s_bar;
-    const real2 f_v2 = this->compute_coefficient_f_v2(coefficient_Chi);
+    const real2 f_v2 = compute_coefficient_f_v2(coefficient_Chi);
 
     if constexpr(std::is_same<real2,real>::value){
         s_bar = nu_tilde*f_v2/(kappa*kappa*d_wall*d_wall);
@@ -1145,12 +1145,12 @@ real2 ReynoldsAveragedNavierStokes_SAneg<dim,nstate,real>
 {
     // Compute s_bar
     real2 s_tilde;
-    const real2 s_bar = this->compute_s_bar(coefficient_Chi,nu_tilde,d_wall);
+    const real2 s_bar = compute_s_bar(coefficient_Chi,nu_tilde,d_wall);
     const real2 scaled_s_bar = scale_coefficient(s_bar);
 
     if constexpr(std::is_same<real2,real>::value){
         const real dimensional_s = s*this->navier_stokes_physics->mach_inf/this->navier_stokes_physics->ref_length;
-        const real dimensional_s_bar = s_bar*this->navier_stokes_physics->reynolds_number_inf*this->navier_stokes_physics->mach_inf/this->navier_stokes_physics->ref_length;
+        const real dimensional_s_bar = s_bar*this->navier_stokes_physics->mach_inf/(this->navier_stokes_physics->reynolds_number_inf*this->navier_stokes_physics->ref_length);
         if(dimensional_s_bar>=-c_v2*dimensional_s) 
             s_tilde = s+scaled_s_bar;
         else
@@ -1161,7 +1161,7 @@ real2 ReynoldsAveragedNavierStokes_SAneg<dim,nstate,real>
         const FadType ref_length_fad = this->navier_stokes_physics->ref_length;
         const FadType reynolds_number_inf_fad = this->navier_stokes_physics->reynolds_number_inf;
         const FadType dimensional_s = s*mach_inf_fad/ref_length_fad;
-        const FadType dimensional_s_bar = s_bar*reynolds_number_inf_fad*mach_inf_fad/ref_length_fad;
+        const FadType dimensional_s_bar = s_bar*mach_inf_fad/(reynolds_number_inf_fad*ref_length_fad);
         if(dimensional_s_bar>=-c_v2_fad*dimensional_s) 
             s_tilde = s+scaled_s_bar;
         else

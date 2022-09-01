@@ -186,7 +186,6 @@ void rotate_indices(std::vector<unsigned int> &numbers, const unsigned int n_ind
               break;
               // Flip Cube
           case 'F':
-              pcout << "-- FLIPPING 3D --" << std::endl;
               for (unsigned int iz = 0; iz < n; ++iz)
                   for (unsigned int iy = 0; iy < n; ++iy)
                       for (unsigned int ix = 0; ix < n; ++ix)
@@ -1082,17 +1081,21 @@ bool get_new_rotated_indices_3D(const dealii::CellAccessor<dim, spacedim>& cell,
 
                     //THIS IS JUST TO SEE IF THE HIGHER ORDER NODES ARE FOUND (TECHNICALLY, WE SHOULD BE ONLY TARGETING 2D NODES, NOT THE 1D) -> THIS SHOULD BE FILTERED OUT FROM HIGH_ORDER_VERTEX
                     bool found = false;
-                    for (unsigned int i=0; i < n_vertices; ++i) {
+                    for (unsigned int i = 0; i < n_vertices; ++i) {
                         if (cell.vertex(i) == high_order_vertex) {
                             found = true;
                         }
                     }
+
                     if (!found) {
-                        std::cout << "Wrong cell... High-order nodes do not match the cell's vertices." << std::endl;
+                        std::cout
+                                << "Wrong cell... High order nodes do not match the cell's vertices | "
+                                << "mpi_rank = " << mpi_rank << std::endl;
                         std::abort();
                     }
 
-                    matching[i_vertex] = (high_order_vertex == cell.vertex(i_vertex)) ? '0' : '1';
+                    //THIS IS THE STATEMENT WE NEED TO LOOK FOR (WHETHER THE VERTEX IS AT THE GOOD LOCATION
+                    matching[i_vertex] = (high_order_vertex == cell.vertex(i_vertex)) ? 0 : 1;
                 }
 
                 /**
@@ -1108,7 +1111,7 @@ bool get_new_rotated_indices_3D(const dealii::CellAccessor<dim, spacedim>& cell,
 
                 good_rotation = all_matching;
                 if (good_rotation) {
-//                    pcout << "Found good rotation, now exiting rotation routine" << std::endl;
+//                    pcout << "FOUND GOOD Z-ROTATION, NOT EXITING ROTATION ROUTINE" << std::endl;
                     break;
                 }
 
@@ -1120,7 +1123,7 @@ bool get_new_rotated_indices_3D(const dealii::CellAccessor<dim, spacedim>& cell,
             }
 
             if (good_rotation) {
-//                pcout << "Found good rotation, now exiting rotation routine" << std::endl;
+//                pcout << "FOUND GOOD Y-ROTATION, NOT EXITING ROTATION ROUTINE" << std::endl;
                 break;
             }
 
@@ -1129,11 +1132,10 @@ bool get_new_rotated_indices_3D(const dealii::CellAccessor<dim, spacedim>& cell,
             for (unsigned int i = 0; i < high_order_vertices_id.size(); ++i) {
                 high_order_vertices_id_rotated[i] = high_order_y_id_rotated[rotate_y90degree_3D[i]];
             }
-
         }
 
         if (good_rotation) {
-//            pcout << "Found good rotation, now exiting rotation routine" << std::endl;
+//                pcout << "FOUND GOOD X-ROTATION, NOT EXITING ROTATION ROUTINE" << std::endl;
             break;
         }
 
@@ -1474,6 +1476,30 @@ read_gmsh(std::string filename, int requested_grid_order)
     rotate_indices<dim>(rotate_z90degree, grid_order+1, 'Z');                                               //This is for 2D rotations
 
     /**
+     * For 3D ROTATIONS (INITIATING ONCE HERE, SO WE DON'T RECOMPUTE FOR EACH ROTATION/CELL)
+     */
+    std::vector<unsigned int> rotate_z90degree_3D;
+    std::vector<unsigned int> rotate_y90degree_3D;
+    std::vector<unsigned int> rotate_x90degree_3D;
+    std::vector<unsigned int> rotate_flip_z90degree_3D;
+
+    //Preallocate all indices
+    pcout << "Allocating Rotate Z matrix..." << std::endl;
+    rotate_indices<dim>(rotate_z90degree_3D, grid_order + 1, 'Z');
+    pcout << "Allocating Rotate Y matrix..." << std::endl;
+    rotate_indices<dim>(rotate_y90degree_3D, grid_order + 1, 'Y');
+    pcout << "Allocating Rotate X matrix..." << std::endl;
+    rotate_indices<dim>(rotate_x90degree_3D, grid_order + 1, 'X');
+    pcout << "Allocating Rotate FLIP matrix..." << std::endl;
+    rotate_indices<dim>(rotate_flip_z90degree_3D, grid_order + 1, 'F');
+
+    pcout << " " << std::endl;
+    pcout << "*********************************************************************\n";
+    pcout << "//********************** BEGIN ROTATING CELLS *********************//\n";
+    pcout << "*********************************************************************\n";
+    pcout << " " << std::endl;
+
+    /**
      * Go through all cells and perform rotations to match gmsh with deal.ii
      */
     for (const auto &cell : high_order_grid->dof_handler_grid.active_cell_iterators()) {
@@ -1514,18 +1540,11 @@ read_gmsh(std::string filename, int requested_grid_order)
 
                 pcout << "-- 3D_GRID_ROTATION Initiated -- IPROC 0 - CELL #" << icell << std::endl;
 
-                std::vector<unsigned int> rotate_z90degree_3D;
-                std::vector<unsigned int> rotate_y90degree_3D;
-                std::vector<unsigned int> rotate_x90degree_3D;
-                std::vector<unsigned int> rotate_flip_z90degree_3D;
-
                 bool good_rotation = get_new_rotated_indices_3D(*cell, all_vertices, deal_h2l, rotate_x90degree_3D, rotate_y90degree_3D, rotate_z90degree_3D, high_order_vertices_id_rotated);
                 if (!good_rotation) {
                     pcout << "3D -- Couldn't find rotation... Flipping Z axis and doing it again" << std::endl;
 
                     // Flip Z-axis and do above again
-                    std::vector<unsigned int> flipZ3D;
-                    rotate_indices<dim>(rotate_flip_z90degree_3D, grid_order + 1, 'F');
                     auto high_order_vertices_id_copy = high_order_vertices_id_rotated;
                     for (unsigned int i=0; i<high_order_vertices_id_rotated.size(); ++i) {
                         high_order_vertices_id_rotated[i] = high_order_vertices_id_copy[rotate_flip_z90degree_3D[i]];
@@ -1565,6 +1584,13 @@ read_gmsh(std::string filename, int requested_grid_order)
         }
         icell++;
     }
+
+    pcout << " " << std::endl;
+    pcout << "*********************************************************************\n";
+    pcout << "//********************** DONE ROTATING CELLS **********************//\n";
+    pcout << "*********************************************************************\n";
+    pcout << " " << std::endl;
+
     high_order_grid->volume_nodes.update_ghost_values();
     high_order_grid->ensure_conforming_mesh();
 

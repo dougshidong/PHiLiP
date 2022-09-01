@@ -5,6 +5,7 @@
 #include "dg/dg.h"
 #include "reduced_order/pod_basis_base.h"
 #include "ode_solver_base.h"
+#include "runge_kutta_methods/rk_tableau_base.h"
 
 namespace PHiLiP {
 namespace ODE {
@@ -36,6 +37,10 @@ public:
     
     /// Creates an ODESolver object based on the specified RK method, including derived classes
     static std::shared_ptr<ODESolverBase<dim,real,MeshType>> create_RungeKuttaODESolver(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input);
+
+    /// Creates an RKTableau object based on the specified RK method
+    static std::shared_ptr<RKTableauBase<dim,real,MeshType>> create_RKTableau(std::shared_ptr< DGBase<dim,real,MeshType> > dg_input);
+
 };
 
 } // ODE namespace

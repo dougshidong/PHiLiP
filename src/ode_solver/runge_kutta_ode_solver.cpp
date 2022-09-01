@@ -5,58 +5,12 @@ namespace PHiLiP {
 namespace ODE {
 
 template <int dim, typename real, int n_rk_stages, typename MeshType> 
-RungeKuttaODESolver<dim,real,n_rk_stages, MeshType>::RungeKuttaODESolver(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input)
+RungeKuttaODESolver<dim,real,n_rk_stages, MeshType>::RungeKuttaODESolver(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input,
+        std::shared_ptr<RKTableauBase<dim,real,MeshType>> rk_tableau_input)
         : ODESolverBase<dim,real,MeshType>(dg_input)
+        , butcher_tableau(rk_tableau_input)
         , solver(dg_input)
-{
-    this->butcher_tableau_a.reinit(n_rk_stages,n_rk_stages);
-    this->butcher_tableau_b.reinit(n_rk_stages);
-    
-    using RKMethodEnum = Parameters::ODESolverParam::RKMethodEnum;
-    const RKMethodEnum rk_method = this->ode_param.runge_kutta_method;
-    if (rk_method == RKMethodEnum::ssprk3_ex){
-        // RKSSP3 (RK-3 Strong-Stability-Preserving)
-        const double butcher_tableau_a_values[9] = {0,0,0,1.0,0,0,0.25,0.25,0};
-        this->butcher_tableau_a.fill(butcher_tableau_a_values);
-        const double butcher_tableau_b_values[3] = {1.0/6.0, 1.0/6.0, 2.0/3.0};
-        this->butcher_tableau_b.fill(butcher_tableau_b_values);
-        this->pcout << "Assigned RK method: 3rd order SSP (explicit)" << std::endl;
-    } else if (rk_method == RKMethodEnum::rk4_ex){
-        // Standard RK4
-        const double butcher_tableau_a_values[16] = {0,0,0,0,0.5,0,0,0,0,0.5,0,0,0,0,1.0,0};
-        this->butcher_tableau_a.fill(butcher_tableau_a_values);
-        const double butcher_tableau_b_values[4] = {1.0/6.0,1.0/3.0,1.0/3.0,1.0/6.0};
-        this->butcher_tableau_b.fill(butcher_tableau_b_values);
-        this->pcout << "Assigned RK method: 4th order classical RK (explicit)" << std::endl;
-    } else if (rk_method == RKMethodEnum::euler_ex){
-        // Explicit Euler
-        const double butcher_tableau_a_values[1] = {0};
-        this->butcher_tableau_a.fill(butcher_tableau_a_values);
-        const double butcher_tableau_b_values[1] = {1.0};
-        this->butcher_tableau_b.fill(butcher_tableau_b_values);
-        this->pcout << "Assigned RK method: Forward Euler (explicit)" << std::endl;
-    } else if (rk_method == RKMethodEnum::euler_im){
-        // Implicit Euler
-        const double butcher_tableau_a_values[1] = {1.0};
-        this->butcher_tableau_a.fill(butcher_tableau_a_values);
-        const double butcher_tableau_b_values[1] = {1.0};
-        this->butcher_tableau_b.fill(butcher_tableau_b_values);
-        this->pcout << "Assigned RK method: Implicit Euler (implicit)" << std::endl;
-    } else if (rk_method == RKMethodEnum::dirk_2_im){
-        // Pareschi & Russo DIRK, x = 1 - sqrt(2)/2
-        // see: wikipedia.org/wiki/List_of_Runge%E2%80%93Kutta_methods#Diagonally_Implicit_Runge%E2%80%93Kutta_methods
-        const double x = 0.2928932188134525; //=1-sqrt(2)/2
-        const double butcher_tableau_a_values[4] = {x,0,(1-2*x),x};
-        this->butcher_tableau_a.fill(butcher_tableau_a_values);
-        const double butcher_tableau_b_values[2] = {0.5, 0.5};
-        this->butcher_tableau_b.fill(butcher_tableau_b_values);
-        this->pcout << "Assigned RK method: 2nd-order DIRK (implicit)" << std::endl;
-    } else {
-        this->pcout << "Invalid RK method. Aborting..." << std::endl;
-        std::abort();
-    }
-
-}
+{}
 
 template <int dim, typename real, int n_rk_stages, typename MeshType> 
 void RungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::step_in_time (real dt, const bool pseudotime)
@@ -69,8 +23,8 @@ void RungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::step_in_time (real dt, 
         this->rk_stage[i]=0.0; //resets all entries to zero
         
         for (int j = 0; j < i; ++j){
-            if (this->butcher_tableau_a[i][j] != 0){
-                this->rk_stage[i].add(this->butcher_tableau_a[i][j], this->rk_stage[j]);
+            if (this->butcher_tableau->a(i,j) != 0){
+                this->rk_stage[i].add(this->butcher_tableau->a(i,j), this->rk_stage[j]);
             }
         } //sum(a_ij *k_j), explicit part
 
@@ -85,7 +39,7 @@ void RungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::step_in_time (real dt, 
         this->rk_stage[i].add(1.0,this->solution_update); //u_n + dt * sum(a_ij * k_j)
        
         //implicit solve for diagonal element
-        if (this->butcher_tableau_a[i][i] != 0){
+        if (this->butcher_tableau->a(i,i) != 0){
             /* // AD version
             // Solve (M/dt - dRdW) / a_ii * dw = R
             // w = w + dw
@@ -105,7 +59,7 @@ void RungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::step_in_time (real dt, 
             */
 
             //JFNK version
-            solver.solve(dt*butcher_tableau_a[i][i], rk_stage[i]);
+            solver.solve(dt*butcher_tableau->a(i,i), rk_stage[i]);
             rk_stage[i] = solver.current_solution_estimate;
 
         } // u_n + dt * sum(a_ij * k_j) <explicit> + dt * a_ii * u^(i) <implicit>
@@ -121,11 +75,11 @@ void RungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::step_in_time (real dt, 
     //assemble solution from stages
     for (int i = 0; i < n_rk_stages; ++i){
         if (pseudotime){
-            const double CFL = butcher_tableau_b[i] * dt;
+            const double CFL = butcher_tableau->b(i) * dt;
             this->dg->time_scale_solution_update(rk_stage[i], CFL);
             this->solution_update.add(1.0, this->rk_stage[i]);
         } else {
-            this->solution_update.add(dt* this->butcher_tableau_b[i],this->rk_stage[i]); 
+            this->solution_update.add(dt* this->butcher_tableau->b(i),this->rk_stage[i]); 
         }
     }
     this->dg->solution = this->solution_update; // u_np1 = u_n + dt* sum(k_i * b_i)

@@ -4,6 +4,7 @@
 #include "dg/dg.h"
 #include "ode_solver_base.h"
 #include "JFNK_solver/JFNK_solver.h"
+#include "runge_kutta_methods/rk_tableau_base.h"
 
 namespace PHiLiP {
 namespace ODE {
@@ -17,8 +18,8 @@ template <int dim, typename real, int n_rk_stages, typename MeshType = dealii::p
 class RungeKuttaODESolver: public ODESolverBase <dim, real, MeshType>
 {
 public:
-    /// Default constructor that will set the constants.
-    RungeKuttaODESolver(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input); ///< Constructor.
+    RungeKuttaODESolver(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input,
+            std::shared_ptr<RKTableauBase<dim,real,MeshType>> rk_tableau_input); ///< Constructor.
 
     /// Destructor
     ~RungeKuttaODESolver() {};
@@ -30,19 +31,16 @@ public:
     void allocate_ode_system ();
 
 protected:
-    /// Solver for JFNK 
+    /// Stores Butcher tableau a and b, which specify the RK method
+    std::shared_ptr<RKTableauBase<dim,real,MeshType>> butcher_tableau;
+
+    /// Implicit solver for diagonally-implicit RK methods, using Jacobian-free Newton-Krylov 
     //TO DO: check initialization (storage when not implicit )
     JFNKSolver<dim,real,MeshType> solver;
     
     /// Storage for the derivative at each Runge-Kutta stage
     std::vector<dealii::LinearAlgebra::distributed::Vector<double>> rk_stage;
     
-    /// Butcher tableau "a"
-    dealii::Table<2,double> butcher_tableau_a;
-
-    /// Butcher tableau "b"
-    dealii::Table<1,double> butcher_tableau_b;
-
     /// Modify timestep
     virtual void modify_time_step(real &dt); 
 };

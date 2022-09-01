@@ -18,7 +18,8 @@ class RRKExplicitODESolver: public RungeKuttaODESolver <dim, real, n_rk_stages, 
 {
 public:
     /// Default constructor that will set the constants.
-    RRKExplicitODESolver(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input); ///< Constructor.
+    RRKExplicitODESolver(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input,
+            std::shared_ptr<RKTableauBase<dim,real,MeshType>> rk_tableau_input);
 
     /// Destructor
     ~RRKExplicitODESolver() {};

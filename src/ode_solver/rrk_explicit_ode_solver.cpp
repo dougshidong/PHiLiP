@@ -4,8 +4,9 @@ namespace PHiLiP {
 namespace ODE {
 
 template <int dim, typename real, int n_rk_stages, typename MeshType>
-RRKExplicitODESolver<dim,real,n_rk_stages,MeshType>::RRKExplicitODESolver(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input)
-        : RungeKuttaODESolver<dim,real,n_rk_stages,MeshType>(dg_input)
+RRKExplicitODESolver<dim,real,n_rk_stages,MeshType>::RRKExplicitODESolver(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input,
+            std::shared_ptr<RKTableauBase<dim,real,MeshType>> rk_tableau_input)
+        : RungeKuttaODESolver<dim,real,n_rk_stages,MeshType>(dg_input,rk_tableau_input)
 {
     using RKMethodEnum = Parameters::ODESolverParam::RKMethodEnum;
     const RKMethodEnum rk_method = this->ode_param.runge_kutta_method;
@@ -32,8 +33,8 @@ real RRKExplicitODESolver<dim,real,n_rk_stages,MeshType>::compute_relaxation_par
     for (int i = 0; i < n_rk_stages; ++i){
         for (int j = 0; j < n_rk_stages; ++j){
             real inner_product = compute_inner_product(this->rk_stage[i],this->rk_stage[j]);
-            numerator += this->butcher_tableau_b[i] *this-> butcher_tableau_a[i][j] * inner_product; 
-            denominator += this->butcher_tableau_b[i]*this->butcher_tableau_b[j] * inner_product;
+            numerator += this->butcher_tableau->b(i) *this-> butcher_tableau->a(i,j) * inner_product; 
+            denominator += this->butcher_tableau->b(i)*this->butcher_tableau->b(j) * inner_product;
         }
     }
     numerator *= 2;

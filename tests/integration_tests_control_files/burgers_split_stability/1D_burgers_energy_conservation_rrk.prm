@@ -13,7 +13,7 @@ set use_periodic_bc = true
 set use_weak_form = false
 set use_collocated_nodes = true
 set use_split_form = true
-set conv_num_flux = entropy_conserving_flux
+set conv_num_flux = two_point_flux
 
 # ODE solver
 subsection ODE solver

@@ -235,20 +235,20 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       " roe | "
                       " l2roe | "
                       " central_flux | "
-                      " entropy_conserving_flux | "
-                      " entropy_conserving_flux_with_lax_friedrichs_dissipation | "
-                      " entropy_conserving_flux_with_roe_dissipation | "
-                      " entropy_conserving_flux_with_l2roe_dissipation"),
+                      " two_point_flux | "
+                      " two_point_flux_with_lax_friedrichs_dissipation | "
+                      " two_point_flux_with_roe_dissipation | "
+                      " two_point_flux_with_l2roe_dissipation"),
                       "Convective numerical flux. "
                       "Choices are "
                       " <lax_friedrichs | "
                       " roe | "
                       " l2roe | "
                       " central_flux | "
-                      " entropy_conserving_flux | "
-                      " entropy_conserving_flux_with_lax_friedrichs_dissipation | "
-                      " entropy_conserving_flux_with_roe_dissipation | "
-                      " entropy_conserving_flux_with_l2roe_dissipation>.");
+                      " two_point_flux | "
+                      " two_point_flux_with_lax_friedrichs_dissipation | "
+                      " two_point_flux_with_roe_dissipation | "
+                      " two_point_flux_with_l2roe_dissipation>.");
 
     prm.declare_entry("diss_num_flux", "symm_internal_penalty",
                       dealii::Patterns::Selection("symm_internal_penalty | bassi_rebay_2 | central_visc_flux"),
@@ -399,10 +399,10 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     if (conv_num_flux_string == "roe")                                                     { conv_num_flux_type = ConvectiveNumericalFlux::roe; }
     if (conv_num_flux_string == "l2roe")                                                   { conv_num_flux_type = ConvectiveNumericalFlux::l2roe; }
     if (conv_num_flux_string == "central_flux")                                            { conv_num_flux_type = ConvectiveNumericalFlux::central_flux; }
-    if (conv_num_flux_string == "entropy_conserving_flux")                                 { conv_num_flux_type = ConvectiveNumericalFlux::entropy_conserving_flux; }
-    if (conv_num_flux_string == "entropy_conserving_flux_with_lax_friedrichs_dissipation") { conv_num_flux_type = ConvectiveNumericalFlux::entropy_conserving_flux_with_lax_friedrichs_dissipation; }
-    if (conv_num_flux_string == "entropy_conserving_flux_with_roe_dissipation")            { conv_num_flux_type = ConvectiveNumericalFlux::entropy_conserving_flux_with_roe_dissipation; }
-    if (conv_num_flux_string == "entropy_conserving_flux_with_l2roe_dissipation")          { conv_num_flux_type = ConvectiveNumericalFlux::entropy_conserving_flux_with_l2roe_dissipation; }
+    if (conv_num_flux_string == "two_point_flux")                                 { conv_num_flux_type = ConvectiveNumericalFlux::two_point_flux; }
+    if (conv_num_flux_string == "two_point_flux_with_lax_friedrichs_dissipation") { conv_num_flux_type = ConvectiveNumericalFlux::two_point_flux_with_lax_friedrichs_dissipation; }
+    if (conv_num_flux_string == "two_point_flux_with_roe_dissipation")            { conv_num_flux_type = ConvectiveNumericalFlux::two_point_flux_with_roe_dissipation; }
+    if (conv_num_flux_string == "two_point_flux_with_l2roe_dissipation")          { conv_num_flux_type = ConvectiveNumericalFlux::two_point_flux_with_l2roe_dissipation; }
 
     const std::string diss_num_flux_string = prm.get("diss_num_flux");
     if (diss_num_flux_string == "symm_internal_penalty") { diss_num_flux_type = symm_internal_penalty; }

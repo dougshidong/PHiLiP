@@ -190,7 +190,7 @@ int BurgersEnergyStability<dim, nstate>::run_test() const
                     return 1;
                     break;
                 }
-                if ( (current_energy*initial_energy - initial_energy >= 1.0e-11)&&(all_parameters_new.conv_num_flux_type == Parameters::AllParameters::ConvectiveNumericalFlux::entropy_conserving_flux) )
+                if ( (current_energy*initial_energy - initial_energy >= 1.0e-11)&&(all_parameters_new.conv_num_flux_type == Parameters::AllParameters::ConvectiveNumericalFlux::two_point_flux) )
                 {
                     pcout<<"Energy not conserved"<<std::endl;
                     return 1;

@@ -221,10 +221,10 @@ public:
         roe, 
         l2roe, 
         central_flux,
-        entropy_conserving_flux,
-        entropy_conserving_flux_with_lax_friedrichs_dissipation,
-        entropy_conserving_flux_with_roe_dissipation,
-        entropy_conserving_flux_with_l2roe_dissipation
+        two_point_flux,
+        two_point_flux_with_lax_friedrichs_dissipation,
+        two_point_flux_with_roe_dissipation,
+        two_point_flux_with_l2roe_dissipation
     };
     /// Store convective flux type
     ConvectiveNumericalFlux conv_num_flux_type;

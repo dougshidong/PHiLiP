@@ -16,8 +16,8 @@ void MeshAdaptationParam::declare_parameters (dealii::ParameterHandler &prm)
                           " p_adaptation | "
                           " hp_adaptation "
                           ),
-                          "Functional that we want to use. "
-                          "Choice are "
+                          "Mesh adaptation type that we want to use. "
+                          "Choices are "
                           " <h_adaptation | "
                           "  p_adaptation | "
                           "  hp_adaptation>.");

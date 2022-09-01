@@ -53,8 +53,9 @@ void MeshAdaptation<dim,real,MeshType>::fixed_fraction_isotropic_refinement_and_
     MeshAdaptationTypeEnum mesh_adaptation_type = mesh_adaptation_param->mesh_adaptation_type;
 
 
-    if(mesh_adaptation_type == MeshAdaptationTypeEnum::h_adaptation){}
-    else if(mesh_adaptation_type == MeshAdaptationTypeEnum::p_adaptation){
+    if(mesh_adaptation_type == MeshAdaptationTypeEnum::h_adaptation){
+        // Do nothing, cells are already flagged for h-adaptation
+    } else if(mesh_adaptation_type == MeshAdaptationTypeEnum::p_adaptation){
         // Currently, the error indicator to flag p_adaptation is the same as h_adaptation, but it will likely change in future.
         dealii::hp::Refinement::p_adaptivity_fixed_number(dg->dof_handler,
                                                           cellwise_errors,
@@ -63,7 +64,7 @@ void MeshAdaptation<dim,real,MeshType>::fixed_fraction_isotropic_refinement_and_
         
         // If a cell is flagged for both h and p adaptation, perform only p adaptation.
         dealii::hp::Refinement::force_p_over_h(dg->dof_handler);
-    }else if(mesh_adaptation_type == MeshAdaptationTypeEnum::hp_adaptation){
+    } else if(mesh_adaptation_type == MeshAdaptationTypeEnum::hp_adaptation){
         smoothness_sensor_based_hp_refinement();
     }
 //=========================================================================================================================================================

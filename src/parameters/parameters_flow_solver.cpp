@@ -38,7 +38,7 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                           dealii::Patterns::Integer(0, dealii::Patterns::Integer::max_int_value),
                           "Maxiumum possible polynomial order (P) of the basis functions for DG "
                           "when doing adaptive simulations. Default is 0 which actually sets "
-                          "the value to poly_degree in the code, indicating a no adaptation.");
+                          "the value to poly_degree in the code, indicating no adaptation.");
 
         prm.declare_entry("final_time", "1",
                           dealii::Patterns::Double(0, dealii::Patterns::Double::max_double_value),

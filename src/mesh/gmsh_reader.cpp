@@ -57,6 +57,10 @@ assign_1d_boundary_ids( const std::map<unsigned int, dealii::types::boundary_id>
 template <int dim>
 void rotate_indices(std::vector<unsigned int> &numbers, const unsigned int n_indices_per_direction, const char direction)
 {
+
+    const int mpi_rank = dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD);
+    dealii::ConditionalOStream pcout(std::cout, mpi_rank==0);
+
   const unsigned int n = n_indices_per_direction;
   unsigned int       s = n;
   for (unsigned int i = 1; i < dim; ++i)
@@ -71,8 +75,8 @@ void rotate_indices(std::vector<unsigned int> &numbers, const unsigned int n_ind
       for (unsigned int i = n; i > 0;)
         numbers[l++] = --i;
     }
-  else
-    {
+  else if (dim == 2)
+  {
       switch (direction)
         {
           // Rotate xy-plane
@@ -144,7 +148,56 @@ void rotate_indices(std::vector<unsigned int> &numbers, const unsigned int n_ind
           default:
             Assert(false, dealii::ExcNotImplemented());
         }
-    }
+    } else {
+      switch (direction)                                                      //DIRECTION IS THE LETTER PICKED
+      {
+          // Rotate Cube in Z-Axis
+          case 'Z':
+              for (unsigned int iz = 0; iz < n; ++iz)
+                  for (unsigned int iy = 0; iy < n; ++iy)
+                      for (unsigned int ix = 0; ix < n; ++ix)
+                      {
+                          unsigned int k = (ix) * n + n - (iy + 1) + (n * n * iz);
+//                                std::cout << "k = " << k << std::endl;
+                          numbers[k]     = l++;
+                      }
+              break;
+              // Rotate Cube in X-Axis
+          case 'X':
+              for (unsigned int iz = 0; iz < n; ++iz)
+                  for (unsigned int iy = 0; iy < n; ++iy)
+                      for (unsigned int ix = 0; ix < n; ++ix)
+                      {
+                          unsigned int k = (ix) + (n * (n-1)) + (n * n * iy) - (n * iz);
+//                                std::cout << "k = " << k << std::endl;
+                          numbers[k] = l++;
+                      }
+              break;
+              // Rotate Cube in Y-Axis
+          case 'Y':
+              for (unsigned int iz = 0; iz < n; ++iz)
+                  for (unsigned int iy = 0; iy < n; ++iy)
+                      for (unsigned int ix = 0; ix < n; ++ix)
+                      {
+                          unsigned int k = (ix * n * n) + (n - 1) + (iy * n) - (iz);
+//                                std::cout << "k = " << k << std::endl;
+                          numbers[k] = l++;
+                      }
+              break;
+              // Flip Cube
+          case 'F':
+              pcout << "-- FLIPPING 3D --" << std::endl;
+              for (unsigned int iz = 0; iz < n; ++iz)
+                  for (unsigned int iy = 0; iy < n; ++iy)
+                      for (unsigned int ix = 0; ix < n; ++ix)
+                      {
+                          unsigned int k = (n * (n - 1)) + ix - (iy * n) + (n * n * iz);
+//                                std::cout << "k = " << k << std::endl;
+                          numbers[k] = l++;
+                      }
+              break;
+      }
+  }
 }
 
 template <int dim, int spacedim>
@@ -267,13 +320,18 @@ void read_gmsh_entities(std::ifstream &infile, std::array<std::map<int, int>, 4>
 template<int spacedim>
 void read_gmsh_nodes( std::ifstream &infile, std::vector<dealii::Point<spacedim>> &vertices, std::map<int, int> &vertex_indices )
 {
+
+    const int mpi_rank = dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD);
+    dealii::ConditionalOStream pcout(std::cout, mpi_rank==0);
+
     std::string  line;
     // now read the nodes list
     unsigned int n_entity_blocks, n_vertices;
     int min_node_tag;
     int max_node_tag;
     infile >> n_entity_blocks >> n_vertices >> min_node_tag >> max_node_tag;
-    std::cout << "Reading nodes..." << std::endl;
+//    std::cout << "Reading nodes..." << std::endl;
+    pcout << "Reading nodes..." << std::endl;
     //std::cout << "Number of entity blocks: " << n_entity_blocks << " with a total of " << n_vertices << " vertices." << std::endl;
 
     vertices.resize(n_vertices);
@@ -333,7 +391,7 @@ void read_gmsh_nodes( std::ifstream &infile, std::vector<dealii::Point<spacedim>
         }
     }
     AssertDimension(global_vertex, n_vertices);
-    std::cout << "Finished reading nodes." << std::endl;
+    pcout << "Finished reading nodes." << std::endl;
 }
 
 unsigned int gmsh_cell_type_to_order(unsigned int cell_type)
@@ -374,6 +432,10 @@ unsigned int gmsh_cell_type_to_order(unsigned int cell_type)
 template<int dim>
 unsigned int find_grid_order(std::ifstream &infile)
 {
+
+    const int mpi_rank = dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD);
+    dealii::ConditionalOStream pcout(std::cout, mpi_rank==0);
+
     auto entity_file_position = infile.tellg();
 
     unsigned int grid_order = 0;
@@ -382,8 +444,11 @@ unsigned int find_grid_order(std::ifstream &infile)
     int min_ele_tag, max_ele_tag;
     infile >> n_entity_blocks >> n_cells >> min_ele_tag >> max_ele_tag;
 
-    std::cout << "Finding grid order..." << std::endl;
-    std::cout << n_entity_blocks << " entity blocks with a total of " << n_cells << " cells. " << std::endl;
+//    std::cout << "Finding grid order..." << std::endl;
+//    std::cout << n_entity_blocks << " entity blocks with a total of " << n_cells << " cells. " << std::endl;
+
+    pcout << "Finding grid order..." << std::endl;
+    pcout << n_entity_blocks << " entity blocks with a total of " << n_cells << " cells. " << std::endl;
 
     std::vector<unsigned int> vertices_id;
 
@@ -420,7 +485,7 @@ unsigned int find_grid_order(std::ifstream &infile)
     infile.seekg(entity_file_position);
 
     AssertDimension(global_cell, n_cells);
-    std::cout << "Found grid order = " << grid_order << std::endl;
+    pcout << "Found grid order = " << grid_order << std::endl;
     return grid_order;
 }
 
@@ -438,10 +503,117 @@ unsigned int ij_to_num(const unsigned int i,
     return i + j*n_per_line;
 }
 
+/**
+ * Solely used in the 3D case. Helps finding the face_nodes during recursive call.
+ * @param degree
+ * @return
+ */
+std::vector<unsigned int>
+face_node_finder(const unsigned int degree)
+{
+
+    /**
+    * For Debug output
+    */
+    const int mpi_rank = dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD);
+    dealii::ConditionalOStream pcout(std::cout, mpi_rank==0);
+
+    // number of support points in each direction
+    const unsigned int n = degree + 1;
+
+    const unsigned int dofs_per_cell = dealii::Utilities::fixed_power<2>(n);
+
+    std::vector<unsigned int> h2l_2D(dofs_per_cell);
+    if (degree == 0) {
+        h2l_2D[0] = 0;
+        return h2l_2D;
+    }
+
+    // polynomial degree
+    const unsigned int dofs_per_line = degree - 1;
+
+    pcout << "DOF_PER_CELL = " << dofs_per_cell << std::endl;
+    pcout << "DOF_PER_LINE = " << dofs_per_line << std::endl;
+
+    unsigned int next_index = 0;
+    int subdegree = degree;
+    int square_reduction = 0;
+    while (subdegree > 0) {
+
+        unsigned int start = 0 + square_reduction;
+        unsigned int end = n - square_reduction;
+
+        // First the four vertices
+        {
+            unsigned int i, j;
+            // Bottom left
+            i = start; j = start;
+            h2l_2D[next_index++] = ij_to_num(i,j,n);
+            // Bottom right
+            i = end-1; j = start;
+            h2l_2D[next_index++] = ij_to_num(i,j,n);
+            // Top right
+            i = end-1; j = end-1;
+            h2l_2D[next_index++] = ij_to_num(i,j,n);
+            // Top left
+            i = start; j = end-1;
+            h2l_2D[next_index++] = ij_to_num(i,j,n);
+        }
+
+        // Bottom line
+        {
+            unsigned int j = start;
+            for (unsigned int i = start+1; i < end-1; ++i)
+                h2l_2D[next_index++] = ij_to_num(i,j,n);
+        }
+        // Right line
+        {
+            unsigned int i = end-1;
+            for (unsigned int j = start+1; j < end-1; ++j)
+                h2l_2D[next_index++] = ij_to_num(i,j,n);
+        }
+        // Top line (right to left)
+        {
+            unsigned int j = end-1;
+            //for (unsigned int i = start+1; i < end-1; ++i)
+            // Need signed int otherwise, j=0 followed by --j results in j=UINT_MAX
+            for (int i = end-2; i > (int)start; --i)
+                h2l_2D[next_index++] = ij_to_num(i,j,n);
+        }
+        // Left line (top to bottom order)
+        {
+            unsigned int i = start;
+            //for (unsigned int j = start+1; j < end-1; ++j)
+            // Need signed int otherwise, j=0 followed by --j results in j=UINT_MAX
+            for (int j = end-2; j > (int)start; --j)
+                h2l_2D[next_index++] = ij_to_num(i,j,n);
+        }
+
+        subdegree -= 2;
+        square_reduction += 1;
+
+    }
+    if (subdegree == 0) {
+        const unsigned int middle = (n-1)/2;
+        h2l_2D[next_index++] = ij_to_num(middle, middle, n);
+    }
+
+    Assert(next_index == dofs_per_cell, dealii::ExcInternalError());
+
+    return h2l_2D;
+}
+
 template <int dim>
 std::vector<unsigned int>
 gmsh_hierarchic_to_lexicographic(const unsigned int degree)
 {
+
+    /**
+    * For Debug output
+    */
+    const int mpi_rank = dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD);
+    dealii::ConditionalOStream pcout(std::cout, mpi_rank==0);
+
     // number of support points in each direction
     const unsigned int n = degree + 1;
 
@@ -543,92 +715,250 @@ gmsh_hierarchic_to_lexicographic(const unsigned int degree)
           break;
     } case 3: {
 
-        Assert(false, dealii::ExcNotImplemented());
-
+        //INDEX START AT 0
         unsigned int next_index = 0;
+        std::vector<unsigned int> face_position;
+        std::vector<unsigned int> recursive_3D_position;
+        std::vector<unsigned int> recursive_3D_nodes;
+        std::vector<unsigned int> face_nodes;
+
         // first the eight vertices
-        h2l[next_index++] = 0;                        // 0
-        h2l[next_index++] = (1) * degree;             // 1
-        h2l[next_index++] = (n)*degree;               // 2
-        h2l[next_index++] = (n + 1) * degree;         // 3
-        h2l[next_index++] = (n * n) * degree;         // 4
-        h2l[next_index++] = (n * n + 1) * degree;     // 5
-        h2l[next_index++] = (n * n + n) * degree;     // 6
-        h2l[next_index++] = (n * n + n + 1) * degree; // 7
+        h2l[next_index++] = 0;                          // 0
+        h2l[next_index++] = (1) * degree;               // 1
+        h2l[next_index++] = (n + 1)*degree;             // 2
+        h2l[next_index++] = (n) * degree;               // 3
+        h2l[next_index++] = (n * n) * degree;           // 4
+        h2l[next_index++] = (n * n + 1) * degree;       // 5
+        h2l[next_index++] = (n * n + n + 1) * degree;   // 6
+        h2l[next_index++] = (n * n + n) * degree;       // 7
 
-        // line 0
-        for (unsigned int i = 0; i < dofs_per_line; ++i)
-          h2l[next_index++] = (i + 1) * n;
-        // line 1
-        for (unsigned int i = 0; i < dofs_per_line; ++i)
-          h2l[next_index++] = n - 1 + (i + 1) * n;
-        // line 2
-        for (unsigned int i = 0; i < dofs_per_line; ++i)
-          h2l[next_index++] = 1 + i;
-        // line 3
-        for (unsigned int i = 0; i < dofs_per_line; ++i)
-          h2l[next_index++] = 1 + i + n * (n - 1);
+        if (degree > 1) {
 
-        // line 4
-        for (unsigned int i = 0; i < dofs_per_line; ++i)
-          h2l[next_index++] = (n - 1) * n * n + (i + 1) * n;
-        // line 5
-        for (unsigned int i = 0; i < dofs_per_line; ++i)
-          h2l[next_index++] = (n - 1) * (n * n + 1) + (i + 1) * n;
-        // line 6
-        for (unsigned int i = 0; i < dofs_per_line; ++i)
-          h2l[next_index++] = n * n * (n - 1) + i + 1;
-        // line 7
-        for (unsigned int i = 0; i < dofs_per_line; ++i)
-          h2l[next_index++] = n * n * (n - 1) + i + 1 + n * (n - 1);
+            face_nodes = face_node_finder(degree-2);                     //PHYSICAL INTERPRETATION OF THE NODES
 
-        // line 8
-        for (unsigned int i = 0; i < dofs_per_line; ++i)
-          h2l[next_index++] = (i + 1) * n * n;
-        // line 9
-        for (unsigned int i = 0; i < dofs_per_line; ++i)
-          h2l[next_index++] = n - 1 + (i + 1) * n * n;
-        // line 10
-        for (unsigned int i = 0; i < dofs_per_line; ++i)
-          h2l[next_index++] = (i + 1) * n * n + n * (n - 1);
-        // line 11
-        for (unsigned int i = 0; i < dofs_per_line; ++i)
-          h2l[next_index++] = n - 1 + (i + 1) * n * n + n * (n - 1);
+//            pcout << "DEGREE " << degree << std::endl;
+//            {
+//                unsigned int n = degree - 1;
+//                pcout << "GMSH H2L " << std::endl;
+//                for (int j = n - 1; j >= 0; --j) {
+//                    for (unsigned int i = 0; i < n; ++i) {
+//                        const unsigned int ij = ij_to_num(i, j, n);
+//                        pcout << face_nodes[ij] << " ";
+//                    }
+//                    pcout << std::endl;
+//                }
+//            }
+//
+//            pcout << "" << std::endl;
 
 
-        // inside quads
-        // face 0
-        for (unsigned int i = 0; i < dofs_per_line; ++i)
-          for (unsigned int j = 0; j < dofs_per_line; ++j)
-            h2l[next_index++] = (i + 1) * n * n + n * (j + 1);
-        // face 1
-        for (unsigned int i = 0; i < dofs_per_line; ++i)
-          for (unsigned int j = 0; j < dofs_per_line; ++j)
-            h2l[next_index++] = (i + 1) * n * n + n - 1 + n * (j + 1);
-        // face 2, note the orientation!
-        for (unsigned int i = 0; i < dofs_per_line; ++i)
-          for (unsigned int j = 0; j < dofs_per_line; ++j)
-            h2l[next_index++] = (j + 1) * n * n + i + 1;
-        // face 3, note the orientation!
-        for (unsigned int i = 0; i < dofs_per_line; ++i)
-          for (unsigned int j = 0; j < dofs_per_line; ++j)
-            h2l[next_index++] = (j + 1) * n * n + n * (n - 1) + i + 1;
-        // face 4
-        for (unsigned int i = 0; i < dofs_per_line; ++i)
-          for (unsigned int j = 0; j < dofs_per_line; ++j)
-            h2l[next_index++] = n * (i + 1) + j + 1;
-        // face 5
-        for (unsigned int i = 0; i < dofs_per_line; ++i)
-          for (unsigned int j = 0; j < dofs_per_line; ++j)
-            h2l[next_index++] = (n - 1) * n * n + n * (i + 1) + j + 1;
+            // line 0
+            for (unsigned int i = 0; i < dofs_per_line; ++i) {
+                h2l[next_index++] = i + 1;
+//                pcout << "line 0 - " << i + 1 << std::endl;
+            }
 
-        // inside hex
-        for (unsigned int i = 0; i < dofs_per_line; ++i)
-          for (unsigned int j = 0; j < dofs_per_line; ++j)
-            for (unsigned int k = 0; k < dofs_per_line; ++k)
-              h2l[next_index++] = n * n * (i + 1) + n * (j + 1) + k + 1;
+            // line 1
+            for (unsigned int i = 0; i < dofs_per_line; ++i) {
+                h2l[next_index++] = (i + 1) * n;
+//                pcout << "line 1 - " << (i + 1) * n << std::endl;
+            }
 
-        Assert(next_index == dofs_per_cell, dealii::ExcInternalError());
+            // line 2
+            for (unsigned int i = 0; i < dofs_per_line; ++i) {
+                h2l[next_index++] = (i + 1) * n * n;
+//                pcout << "line 2 - " << (i + 1) * n * n << std::endl;
+            }
+
+            // line 3
+            for (unsigned int i = 0; i < dofs_per_line; ++i) {
+                h2l[next_index++] = (2 + i) * n - 1;
+//                pcout << "line 3 - " << (2 + i) * n - 1 << std::endl;
+            }
+
+            // line 4
+            for (unsigned int i = 0; i < dofs_per_line; ++i) {
+                h2l[next_index++] = (n * n * (i + 1)) + degree;
+//                pcout << "line 4 - " << (n * n * (i + 1)) + degree << std::endl;
+            }
+
+            // line 5
+            for (unsigned int i = 0; i < dofs_per_line; ++i) {
+                h2l[next_index++] = n * n - (i + 1) - 1;
+//                pcout << "line 5 - " << n * n - (i + 1) - 1 << std::endl;
+            }
+
+            // line 6
+            for (unsigned int i = 0; i < dofs_per_line; ++i) {
+                h2l[next_index++] = (degree * n + (n * n * (i+1))) + degree;
+//                pcout << "line 6 - " << (degree * n + (n * n * (i+1))) + degree << std::endl;
+            }
+
+            // line 7
+            for (unsigned int i = 0; i < dofs_per_line; ++i) {
+                h2l[next_index++] = (degree * n + (n * n * (i+1)));
+//                pcout << "line 7 - " << (degree * n + (n * n * (i+1))) << std::endl;
+            }
+
+            // line 8
+            for (unsigned int i = 0; i < dofs_per_line; ++i) {
+                h2l[next_index++] = (n * n) * degree + (i + 1);
+//                pcout << "line 8 - " << (n * n) * degree + (i + 1) << std::endl;
+            }
+
+            // line 9
+            for (unsigned int i = 0; i < dofs_per_line; ++i) {
+                h2l[next_index++] = (i + 1) * n + (n * n) * degree;
+//                pcout << "line 9 - " << (i + 1) * n + (n * n) * degree << std::endl;
+            }
+            // line 10
+            for (unsigned int i = 0; i < dofs_per_line; ++i) {
+                h2l[next_index++] = (2 + i) * n - 1 + (n * n) * degree;
+//                pcout << "line 10 - " << (2 + i) * n - 1 + (n * n) * degree << std::endl;
+            }
+            // line 11
+            for (unsigned int i = 0; i < dofs_per_line; ++i) {
+                h2l[next_index++] = n * n * n - 1 - (i + 1);
+//                pcout << "line 11 - " << n * n * n - 1 - (i + 1) << std::endl;
+            }
+
+            // inside quads
+            // face 0
+            for (unsigned int i = 0; i < dofs_per_line; ++i) {
+                for (unsigned int j = 0; j < dofs_per_line; ++j) {
+//                    pcout << "Face 0 : " << n + 1 + (n * j) + (i) << std::endl;
+                    face_position.push_back(n + 1 + (n * j) + (i));
+                }
+            }
+
+            for (unsigned int i = 0; i < (degree - 1) * (degree - 1); ++i) {
+                h2l[next_index++] = face_position.at(face_nodes[i]);
+            }
+
+            face_position.clear();
+
+            // face 1
+            for (unsigned int i = 0; i < dofs_per_line; ++i) {
+                for (unsigned int j = 0; j < dofs_per_line; ++j) {
+//                    pcout << "Face 1 : " << (n * n * (i + 1)) + (j + 1) << std::endl;
+                    face_position.push_back((n * n * (i + 1)) + (j + 1));
+                }
+            }
+
+            for (unsigned int i = 0; i < (degree - 1) * (degree - 1); ++i) {
+                h2l[next_index++] = face_position.at(face_nodes[i]);
+            }
+
+            face_position.clear();
+
+            // face 2 -> Orientation is changed
+
+            for (unsigned int i = 0; i < dofs_per_line; ++i) {
+                for (unsigned int j = 0; j < dofs_per_line; ++j) {
+//                face_position.push_back((n * n * (i + 1)) + n + n * j);
+//                    pcout << "Face 2 : " << (n * n * (j + 1)) + n + i * n << std::endl;
+                    face_position.push_back((n * n * (j + 1)) + n + i * n);
+                }
+            }
+
+            for (unsigned int i = 0; i < (degree - 1) * (degree - 1); ++i) {
+                h2l[next_index++] = face_position.at(face_nodes[i]);
+            }
+
+            face_position.clear();
+
+            // face 3
+
+            for (unsigned int i = 0; i < dofs_per_line; ++i) {
+                for (unsigned int j = 0; j < dofs_per_line; ++j) {
+//                    pcout << "Face 3 : " << n * (j + 2) - 1 + i * (n * n) + n * n << std::endl;
+                    face_position.push_back(n * (j + 2) - 1 + i * (n * n) + n * n);
+                }
+            }
+
+            for (unsigned int i = 0; i < (degree - 1) * (degree - 1); ++i) {
+                h2l[next_index++] = face_position.at(face_nodes[i]);
+            }
+
+            face_position.clear();
+
+            // face 4
+
+            for (unsigned int i = 0; i < dofs_per_line; ++i) {
+                for (unsigned int j = 0; j < dofs_per_line; ++j) {
+//                    pcout << "Face 4 : " << (n * n * i) + (n * n * 2) - (j + 1) - 1 << std::endl;
+                    face_position.push_back((n * n * i) + (n * n * 2) - (j + 1) - 1);
+                }
+            }
+
+            for (unsigned int i = 0; i < (degree - 1) * (degree - 1); ++i) {
+                h2l[next_index++] = face_position.at(face_nodes[i]);
+            }
+
+            face_position.clear();
+
+            // face 5
+
+            for (unsigned int i = 0; i < dofs_per_line; ++i) {
+                for (unsigned int j = 0; j < dofs_per_line; ++j) {
+//                    pcout << "Face 5 : " << n * n * degree + n + (j + 1)) + i * n << std::endl;
+                    face_position.push_back((n * n * degree + n + (j + 1)) + i * n);
+                }
+            }
+
+            for (unsigned int i = 0; i < (degree - 1) * (degree - 1); ++i) {
+                h2l[next_index++] = face_position.at(face_nodes[i]);
+            }
+
+            //Build the inner 3D structure with global index position
+            for (unsigned int i = 0; i < dofs_per_line; ++i) {
+                for (unsigned int j = 0; j < dofs_per_line; ++j) {
+                    for (unsigned int k = 0; k < dofs_per_line; ++k) {
+//                        recursive_3D_position.push_back(n * n * (degree - i) - n - 2 - (n * k) - j);
+                        recursive_3D_position.push_back(n * n + ((j+1) * n) + (k + 1) + (n * n * i));
+                    }
+                }
+            }
+
+//            pcout << "3D Inner Cube" << std::endl;
+//            for (unsigned int aInt: recursive_3D_position) {
+//                pcout << aInt << std::endl;
+//            }
+
+            /**
+             * Now, we have an inside hex for hex of order 3 and more (2 has a single point)
+             * Idea now is to use recursion and apply the same logic to the inner block
+             */
+            if (degree == 2) {
+                h2l[next_index++] = recursive_3D_position.at(0);
+            } else {
+
+                /**
+                 * Once this is out, we need to do some node processing, since the nodes are not at the correct spots
+                 * Use the global index information to track it, i.e., get the transformed indices, and allocate them
+                 * to the global index. This would make sense since the global index are always true for both GMSH and DEAL.II
+                 */
+
+//                pcout << "Begin recursive call to inner cube" << std::endl;
+                recursive_3D_nodes = gmsh_hierarchic_to_lexicographic<dim>(degree - 2);
+
+//                pcout << "Printing recursive_3D_nodes" << std::endl;
+//                for (unsigned int aInt : recursive_3D_nodes) {
+//                    pcout << aInt << std::endl;
+//                }
+
+//                pcout << "Degree = " << degree << std::endl;
+//                pcout << "Dim = " << dim << std::endl;
+
+                //Apply the recursive_3D_nodes on the recursive_3D_position vector
+                for (unsigned int i = 0; i < pow((degree - 1),3); ++i) {
+                    h2l[next_index++] = recursive_3D_position.at(recursive_3D_nodes[i]);
+                }
+            }
+        }
+
+//        pcout << "Next_index = " << next_index << std::endl;
+//        Assert(next_index == dofs_per_cell, dealii::ExcInternalError());
 
         break;
     } default: {
@@ -706,32 +1036,132 @@ bool get_new_rotated_indices(const dealii::CellAccessor<dim, spacedim>& cell,
     return false;
 }
 
+template <int dim, int spacedim>
+bool get_new_rotated_indices_3D(const dealii::CellAccessor<dim, spacedim>& cell,
+                                const std::vector<dealii::Point<spacedim>>& all_vertices,
+                                const std::vector<unsigned int>& deal_h2l,
+                                const std::vector<unsigned int>& rotate_x90degree_3D,
+                                const std::vector<unsigned int>& rotate_y90degree_3D,
+                                const std::vector<unsigned int>& rotate_z90degree_3D,
+                                std::vector<unsigned int>& high_order_vertices_id_rotated)
+{
+
+    const int mpi_rank = dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD);
+    dealii::ConditionalOStream pcout(std::cout, mpi_rank==0);
+
+    //These are for 3D
+    //auto high_order_vertices_id_rotated = high_order_cells[icell].vertices;
+//        auto high_order_vertices_id_rotated = high_order_vertices_id_lexico;
+    auto high_order_flip_id_rotated = high_order_vertices_id_rotated;
+    auto high_order_x_id_rotated = high_order_vertices_id_rotated;
+    auto high_order_y_id_rotated = high_order_vertices_id_rotated;
+    auto high_order_vertices_id = high_order_vertices_id_rotated;
+
+    const unsigned int n_vertices = cell.n_vertices();
+
+    bool good_rotation;
+
+    for (int xr = 0; xr < 4; ++xr) {                                                                            //Rotate X
+        for (int zr = 0; zr < 4; ++zr) {                                                                        //Rotate Y
+            for (int zr3d = 0; zr3d < 4; ++zr3d) {                                                              //Rotate Z
+
+                std::vector<char> matching(n_vertices);
+
+                for (unsigned int i_vertex = 0; i_vertex < n_vertices; ++i_vertex) {                            //ONLY VERTEX POINTS
+
+                    const unsigned int base_index = i_vertex;
+                    const unsigned int lexicographic_index = deal_h2l[base_index];                                      //MAP IT BACK, THESE ARE POSITIONS INDEX, SO GET THE LEXICOGRAHICAL_INDEX OF DEALII AND MAP IT BACK
+
+                    //const unsigned int gmsh_hierarchical_index = gmsh_l2h[lexicographic_index];
+                    //const unsigned int vertex_id = high_order_vertices_id_rotated[gmsh_hierarchical_index];
+                    const unsigned int vertex_id = high_order_vertices_id_rotated[lexicographic_index];
+                    const dealii::Point<dim, double> high_order_vertex = all_vertices[vertex_id];                        //ALL_VERTICES IS IN HIERARCHICAL ORDER WITH POINTS (SO VERTEX_ID HITS BANG ON)
+                    //std::cout << high_order_vertex << std::endl;
+
+                    //.I.E. 0 4 20 24 5 -> POSITION 1 IS 4, SO FIRST NODE IN DEALII ORDERING WOULD BE AT POSITION 4 IN THE LEXICOGRPAHICAL ORDERING GENERATED BY GMSH
+
+                    //THIS IS JUST TO SEE IF THE HIGHER ORDER NODES ARE FOUND (TECHNICALLY, WE SHOULD BE ONLY TARGETING 2D NODES, NOT THE 1D) -> THIS SHOULD BE FILTERED OUT FROM HIGH_ORDER_VERTEX
+                    bool found = false;
+                    for (unsigned int i=0; i < n_vertices; ++i) {
+                        if (cell.vertex(i) == high_order_vertex) {
+                            found = true;
+                        }
+                    }
+                    if (!found) {
+                        std::cout << "Wrong cell... High-order nodes do not match the cell's vertices." << std::endl;
+                        std::abort();
+                    }
+
+                    matching[i_vertex] = (high_order_vertex == cell.vertex(i_vertex)) ? '0' : '1';
+                }
+
+                /**
+                 * TECHNICALLY, THE MATCHING VECTOR SHOULD BE ALL 0 IF THEY ALL MATCH
+                 */
+
+//              pcout << "********** CELL VERTEX **********" << std::endl;
+
+                bool all_matching = true;
+                for (unsigned int i = 0; i < n_vertices; ++i) {
+                    if (matching[i] == 1) all_matching = false;
+                }
+
+                good_rotation = all_matching;
+                if (good_rotation) {
+//                    pcout << "Found good rotation, now exiting rotation routine" << std::endl;
+                    break;
+                }
+
+                high_order_vertices_id = high_order_vertices_id_rotated;
+
+                for (unsigned int i = 0; i < high_order_vertices_id.size(); ++i) {
+                    high_order_vertices_id_rotated[i] = high_order_vertices_id[rotate_z90degree_3D[i]];
+                }
+            }
+
+            if (good_rotation) {
+//                pcout << "Found good rotation, now exiting rotation routine" << std::endl;
+                break;
+            }
+
+            //If we did not find a good rotation, we rotate in the y-axis
+            high_order_y_id_rotated = high_order_vertices_id_rotated;
+            for (unsigned int i = 0; i < high_order_vertices_id.size(); ++i) {
+                high_order_vertices_id_rotated[i] = high_order_y_id_rotated[rotate_y90degree_3D[i]];
+            }
+
+        }
+
+        if (good_rotation) {
+//            pcout << "Found good rotation, now exiting rotation routine" << std::endl;
+            break;
+        }
+
+        high_order_x_id_rotated = high_order_vertices_id_rotated;
+        for (unsigned int i = 0; i < high_order_vertices_id.size(); ++i) {
+            high_order_vertices_id_rotated[i] = high_order_x_id_rotated[rotate_x90degree_3D[i]];
+        }
+
+    }
+
+    if (good_rotation) {
+        pcout << "-- FOUND LAST GOOD ROTATION, NOW EXITING ROTATION ROUTINE --" << std::endl;
+        return true;
+    }
+
+    return false;
+}
+
 
 template <int dim, int spacedim>
 std::shared_ptr< HighOrderGrid<dim, double> >
 read_gmsh(std::string filename, int requested_grid_order)
 {
 
-    //for (unsigned int deg = 1; deg < 7; ++deg) {
-    //    std::cout << "DEGREE " << deg << std::endl;
-    //    std::vector<unsigned int> h2l = gmsh_hierarchic_to_lexicographic<dim>(deg);
-    //    std::vector<unsigned int> l2h = dealii::Utilities::invert_permutation(h2l);
+    const int mpi_rank = dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD);
+    dealii::ConditionalOStream pcout(std::cout, mpi_rank==0);
 
-    //    unsigned int n = deg+1;
-    //    std::cout << "L2H "  << std::endl;
-    //    for (int j=n-1; j>=0; --j) {
-    //        for (unsigned int i=0; i<n; ++i) {
-    //            const unsigned int ij = ij_to_num(i,j,n);
-    //            std::cout << l2h[ij] << " ";
-    //        }
-    //        std::cout << std::endl;
-    //    }
-
-    //    std::cout << std::endl << std::endl;
-    //}
-    //std::abort();
-
-    Assert(dim==2, dealii::ExcInternalError());
+//    Assert(dim==2, dealii::ExcInternalError());
     std::ifstream infile;
 
     open_file_toRead(filename, infile);
@@ -848,8 +1278,6 @@ read_gmsh(std::string filename, int requested_grid_order)
     dealii::SubCellData                                subcelldata;
     std::map<unsigned int, dealii::types::boundary_id> boundary_ids_1d;
 
-  
-  
     unsigned int global_cell = 0;
     for (unsigned int entity_block = 0; entity_block < n_entity_blocks; ++entity_block) {
         unsigned int  material_id;
@@ -1004,11 +1432,9 @@ read_gmsh(std::string filename, int requested_grid_order)
   
     // check that no forbidden arrays are used
     Assert(subcelldata.check_consistency(dim), dealii::ExcInternalError());
-  
-  
+
     AssertThrow(infile, dealii::ExcIO());
-  
-  
+
     // // check that we actually read some p1_cells.
     // AssertThrow(p1_cells.size() > 0, dealii::ExcGmshNoCellInformation());
   
@@ -1041,68 +1467,18 @@ read_gmsh(std::string filename, int requested_grid_order)
     std::vector<unsigned int> gmsh_h2l = gmsh_hierarchic_to_lexicographic<dim>(grid_order);
     std::vector<unsigned int> gmsh_l2h = dealii::Utilities::invert_permutation(gmsh_h2l);
 
-    // Visualize indexing
-    // for (unsigned int deg = 1; deg < 7; ++deg) {
-    //     std::cout << "DEGREE " << deg << std::endl;
-    //     {
-    //         std::vector<unsigned int> h2l = gmsh_hierarchic_to_lexicographic<dim>(deg);
-    //         std::vector<unsigned int> l2h = dealii::Utilities::invert_permutation(h2l);
-
-    //         unsigned int n = deg+1;
-    //         std::cout << "GMSH L2H "  << std::endl;
-    //         for (int j=n-1; j>=0; --j) {
-    //             for (unsigned int i=0; i<n; ++i) {
-    //                 const unsigned int ij = ij_to_num(i,j,n);
-    //                 std::cout << l2h[ij] << " ";
-    //             }
-    //             std::cout << std::endl;
-    //         }
-
-    //         std::cout << std::endl << std::endl;
-    //     }
-    //     {
-    //         std::vector<unsigned int> h2l = dealii::FETools::hierarchic_to_lexicographic_numbering<dim>(deg);
-    //         std::vector<unsigned int> l2h = dealii::Utilities::invert_permutation(h2l);
-
-    //         unsigned int n = deg+1;
-    //         std::cout << "DEAL L2H "  << std::endl;
-    //         for (int j=n-1; j>=0; --j) {
-    //             for (unsigned int i=0; i<n; ++i) {
-    //                 const unsigned int ij = ij_to_num(i,j,n);
-    //                 std::cout << l2h[ij] << " ";
-    //             }
-    //             std::cout << std::endl;
-    //         }
-
-    //         std::cout << std::endl << std::endl;
-    //     }
-    // }
-    // std::abort();
-
     int icell = 0;
     std::vector<dealii::types::global_dof_index> dof_indices(high_order_grid->fe_system.dofs_per_cell);
 
-    //for (unsigned int i=0; i<all_vertices.size(); ++i) {
-    //    std::cout << " i " << i 
-    //              << " maps to global id " 
-    //              << " vertices high_order_vertices_id[i] << " point " << all_vertices[high_order_vertices_id[i]] << std::endl;
-    //}
     std::vector<unsigned int> rotate_z90degree;
-    rotate_indices<dim>(rotate_z90degree, grid_order+1, 'Z');
+    rotate_indices<dim>(rotate_z90degree, grid_order+1, 'Z');                                               //This is for 2D rotations
 
+    /**
+     * Go through all cells and perform rotations to match gmsh with deal.ii
+     */
     for (const auto &cell : high_order_grid->dof_handler_grid.active_cell_iterators()) {
         if (cell->is_locally_owned()) {
             auto &high_order_vertices_id = high_order_cells[icell].vertices;
-
-            //for (unsigned int i=0; i<high_order_vertices_id.size(); ++i) {
-            //    std::cout << " I " << high_order_vertices_id[i] << " point " << all_vertices[high_order_vertices_id[i]] << std::endl;
-            //}
-
-            //std::cout << " cell " << icell << " with vertices: " << std::endl;
-            //for (unsigned int i=0; i < cell->n_vertices(); ++i) {
-            //    std::cout << cell->vertex(i) << std::endl;
-            //}
-            //std::cout << " highordercell with vertices: " << std::endl;
 
             auto high_order_vertices_id_lexico = high_order_vertices_id;
             for (unsigned int ihierachic=0; ihierachic<high_order_vertices_id.size(); ++ihierachic) {
@@ -1112,25 +1488,60 @@ read_gmsh(std::string filename, int requested_grid_order)
 
             //auto high_order_vertices_id_rotated = high_order_cells[icell].vertices;
             auto high_order_vertices_id_rotated = high_order_vertices_id_lexico;
-            bool good_rotation = get_new_rotated_indices(*cell, all_vertices, deal_h2l, rotate_z90degree, high_order_vertices_id_rotated);
-            if (!good_rotation) {
-                //std::cout << "Couldn't find rotation... Flipping Z axis and doing it again" << std::endl;
 
-                // Flip Z-axis and do above again
-                std::vector<unsigned int> flipZ;
-                rotate_indices<dim>(flipZ, grid_order+1, '3');
-                auto high_order_vertices_id_copy = high_order_vertices_id_rotated;
-                for (unsigned int i=0; i<high_order_vertices_id_rotated.size(); ++i) {
-                    high_order_vertices_id_rotated[i] = high_order_vertices_id_copy[flipZ[i]];
+            if (dim == 2) {
+
+                bool good_rotation = get_new_rotated_indices(*cell, all_vertices, deal_h2l, rotate_z90degree, high_order_vertices_id_rotated);
+                if (!good_rotation) {
+                    //std::cout << "Couldn't find rotation... Flipping Z axis and doing it again" << std::endl;
+
+                    // Flip Z-axis and do above again
+                    std::vector<unsigned int> flipZ;
+                    rotate_indices<dim>(flipZ, grid_order+1, '3');
+                    auto high_order_vertices_id_copy = high_order_vertices_id_rotated;
+                    for (unsigned int i=0; i<high_order_vertices_id_rotated.size(); ++i) {
+                        high_order_vertices_id_rotated[i] = high_order_vertices_id_copy[flipZ[i]];
+                    }
+                    good_rotation = get_new_rotated_indices(*cell, all_vertices, deal_h2l, rotate_z90degree, high_order_vertices_id_rotated);
+                }
+
+                if (!good_rotation) {
+                    std::cout << "Couldn't find rotation after flipping either... Aborting..." << std::endl;
+                    std::abort();
+                }
+
+            } else {    //3D case
+
+                pcout << "-- 3D_GRID_ROTATION Initiated -- IPROC 0 - CELL #" << icell << std::endl;
+
+                std::vector<unsigned int> rotate_z90degree_3D;
+                std::vector<unsigned int> rotate_y90degree_3D;
+                std::vector<unsigned int> rotate_x90degree_3D;
+                std::vector<unsigned int> rotate_flip_z90degree_3D;
+
+                bool good_rotation = get_new_rotated_indices_3D(*cell, all_vertices, deal_h2l, rotate_x90degree_3D, rotate_y90degree_3D, rotate_z90degree_3D, high_order_vertices_id_rotated);
+                if (!good_rotation) {
+                    pcout << "3D -- Couldn't find rotation... Flipping Z axis and doing it again" << std::endl;
+
+                    // Flip Z-axis and do above again
+                    std::vector<unsigned int> flipZ3D;
+                    rotate_indices<dim>(rotate_flip_z90degree_3D, grid_order + 1, 'F');
+                    auto high_order_vertices_id_copy = high_order_vertices_id_rotated;
+                    for (unsigned int i=0; i<high_order_vertices_id_rotated.size(); ++i) {
+                        high_order_vertices_id_rotated[i] = high_order_vertices_id_copy[rotate_flip_z90degree_3D[i]];
+                    }
+
+                    //FLIP BOOLEAN SHOULD BE INCLUDED INSIDE THIS BOOLEAN IF STATEMENT
+                    good_rotation = get_new_rotated_indices_3D(*cell, all_vertices, deal_h2l, rotate_x90degree_3D, rotate_y90degree_3D, rotate_z90degree_3D, high_order_vertices_id_rotated);
+                }
+
+                if (!good_rotation) {
+                    pcout << "3D -- Couldn't find rotation after flipping 3D either... Aborting..." << std::endl;
+                    std::abort();
                 }
             }
-            good_rotation = get_new_rotated_indices(*cell, all_vertices, deal_h2l, rotate_z90degree, high_order_vertices_id_rotated);
-            if (!good_rotation) {
-                std::cout << "Couldn't find rotation after flipping either... Aborting..." << std::endl;
-                std::abort();
-            }
 
-
+            pcout << "CELL CONTAINS GOOD ROTATION... - END" << std::endl;
 
             cell->get_dof_indices(dof_indices);
             for (unsigned int i_vertex = 0; i_vertex < high_order_vertices_id.size(); ++i_vertex) {
@@ -1142,23 +1553,11 @@ read_gmsh(std::string filename, int requested_grid_order)
                 const unsigned int vertex_id = high_order_vertices_id_rotated[lexicographic_index];
                 const dealii::Point<dim,double> vertex = all_vertices[vertex_id];
 
-                //std::cout << "i_vertex " << i_vertex << " point: " << vertex << std::endl;
 
                 for (int d = 0; d < dim; ++d) {
                     const unsigned int comp = d;
                     const unsigned int shape_index = high_order_grid->dof_handler_grid.get_fe().component_to_system_index(comp, base_index);
                     const unsigned int idof_global = dof_indices[shape_index];
-
-                    //std::cout << " icell " << icell
-                    //          << " i_vertex " << i_vertex
-                    //          << " i_dim " << d
-                    //          << " base_index " << base_index
-                    //          << " shape_index " << shape_index 
-                    //          << " idof_global " << idof_global
-                    //          << " lexicographic_index " << lexicographic_index
-                    //          //<< " gmsh_hierarchical_index " << gmsh_hierarchical_index
-                    //          << " vertex_id " << vertex_id
-                    //          << std::endl;
                     high_order_grid->volume_nodes[idof_global] = vertex[d];
                 }
                 //std::cout << std::endl;

@@ -14,29 +14,33 @@ int main (int argc, char * argv[])
 
     using namespace PHiLiP;
 
-    std::string filename;
-    for (int i = 1; i < argc; i++) {
-        std::string s(argv[i]);
-        if (s.rfind("--input=", 0) == 0) {
-            filename = s.substr(std::string("--input=").length());
-            std::ifstream f(filename);
-            std::cout << "File " << filename;
-            if (f.good()) std::cout << " exists" << std::endl;
-            else std::cout << " not found" << std::endl;
-            }
-        else {
-            std::cout << "Unknown: " << s << std::endl;
-        }
-    }
+//    std::string filename;
+//    for (int i = 1; i < argc; i++) {
+//        std::string s(argv[i]);
+//        if (s.rfind("--input=", 0) == 0) {
+//            filename = s.substr(std::string("--input=").length());
+//            std::ifstream f(filename);
+//            std::cout << "File " << filename;
+//            if (f.good()) std::cout << " exists" << std::endl;
+//            else std::cout << " not found" << std::endl;
+//            }
+//        else {
+//            std::cout << "Unknown: " << s << std::endl;
+//        }
+//    }
+
+
+    std::string filename = std::to_string(dim) + "D_square.msh";
+
+//    std::string filename = "SD7003.msh";
+
+//    std::string filename = "3D_CUBE_2ndOrder.msh";
 
     std::shared_ptr< HighOrderGrid<dim, double> > high_order_grid = read_gmsh <dim, dim> (filename);
 
 
     dealii::GridOut gridout;
     gridout.write_mesh_per_processor_as_vtu(*(high_order_grid->triangulation), "tria");
-
-    high_order_grid->output_results_vtk(0);
-
 
     if (fail_bool) {
         pcout << "Test failed. The estimated error should be the same for a given p, even after refinement and translation." << std::endl;

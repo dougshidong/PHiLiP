@@ -17,5 +17,6 @@ gdown 1HQAoa_dS8U91r0oPPuo1NN9ozXOnjymj # airfoil.msh
 # gdown  # 3d_gaussian_bump.msh
 # gdown # 3D_CUBE_2ndOrder.msh
 gdown 1e_vjwogI9CTIBmolbT0EatnuXcfqP_Pi # SD7003.msh
+gdown 1n5g3KOYJgsnzEtZIhPujbKS5sN0ztYWE # naca0012_hopw_ref2.msh
 # move files to appropriate directory
 mv *.msh ${TARGET_DIR}

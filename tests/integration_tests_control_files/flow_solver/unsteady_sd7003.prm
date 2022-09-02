@@ -53,6 +53,6 @@ subsection flow_solver
   # set courant_friedrich_lewy_number = 0.01
   set unsteady_data_table_filename = sd7003_unsteady_data_table
   subsection grid
-    set input_mesh_filename = ../../../meshes/SD7003
+    set input_mesh_filename = ../../meshes/SD7003
   end
 end

@@ -38,24 +38,28 @@ std::shared_ptr<Triangulation> GaussianBump<dim,nstate>::generate_grid() const
 
         Grids::gaussian_bump<dim>(*grid, n_subdivisions, channel_length, channel_height, bump_height);
         grid->refine_global(number_of_refinements);
+        return grid;
     } 
-    
-    // Do nothing for 3D, set_high_order_grid() will accomplish this.
-
-    return grid;
-}
-
-template <int dim, int nstate>
-void GaussianBump<dim,nstate>::set_higher_order_grid(std::shared_ptr<DGBase<dim, double>> dg) const
-{
     if constexpr(dim==3) {
         const std::string mesh_filename = this->all_param.flow_solver_param.input_mesh_filename+std::string(".msh");
         std::shared_ptr<HighOrderGrid<dim,double>> gaussian_bump_mesh = read_gmsh<dim, dim> (mesh_filename);
-        dg->set_high_order_grid(gaussian_bump_mesh);
-        for (int i=0; i<this->all_param.flow_solver_param.number_of_mesh_refinements; ++i) {
-            dg->high_order_grid->refine_global();
-        }
+        return gaussian_bump_mesh->triangulation;
     }
+    
+    // TO DO: Do nothing for 3D, set_high_order_grid() will accomplish this.
+}
+
+template <int dim, int nstate>
+void GaussianBump<dim,nstate>::set_higher_order_grid(std::shared_ptr<DGBase<dim, double>> /*dg*/) const
+{
+    // if constexpr(dim==3) {
+    //     const std::string mesh_filename = this->all_param.flow_solver_param.input_mesh_filename+std::string(".msh");
+    //     std::shared_ptr<HighOrderGrid<dim,double>> gaussian_bump_mesh = read_gmsh<dim, dim> (mesh_filename);
+    //     dg->set_high_order_grid(gaussian_bump_mesh);
+    //     for (int i=0; i<this->all_param.flow_solver_param.number_of_mesh_refinements; ++i) {
+    //         dg->high_order_grid->refine_global();
+    //     }
+    // }
 }
 
 template <int dim, int nstate>

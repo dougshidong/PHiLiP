@@ -51,6 +51,6 @@ subsection flow_solver
   set steady_state = true
   set steady_state_polynomial_ramping = true
   subsection grid
-    set input_mesh_filename = ../../../meshes/3d_gaussian_bump
+    set input_mesh_filename = ../../meshes/3d_gaussian_bump
   end
 end

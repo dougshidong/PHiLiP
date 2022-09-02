@@ -179,6 +179,7 @@ std::shared_ptr<ODESolverBase<dim,real,MeshType>> ODESolverFactory<dim,real,Mesh
 template <int dim, typename real, typename MeshType>
 std::shared_ptr<RKTableauBase<dim,real,MeshType>> ODESolverFactory<dim,real,MeshType>::create_RKTableau(std::shared_ptr< DGBase<dim,real,MeshType> > dg_input)
 {
+    dealii::ConditionalOStream pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD)==0);
     using RKMethodEnum = Parameters::ODESolverParam::RKMethodEnum;
     const RKMethodEnum rk_method = dg_input->all_parameters->ode_solver_param.runge_kutta_method;
 
@@ -187,11 +188,26 @@ std::shared_ptr<RKTableauBase<dim,real,MeshType>> ODESolverFactory<dim,real,Mesh
     if (rk_method == RKMethodEnum::ssprk3_ex)   return std::make_shared<SSPRK3Explicit<dim, real, MeshType>> (n_rk_stages);
     if (rk_method == RKMethodEnum::rk4_ex)      return std::make_shared<RK4Explicit<dim, real, MeshType>>    (n_rk_stages);
     if (rk_method == RKMethodEnum::euler_ex)    return std::make_shared<EulerExplicit<dim, real, MeshType>>  (n_rk_stages);
-    if (rk_method == RKMethodEnum::euler_im)    return std::make_shared<EulerImplicit<dim, real, MeshType>>  (n_rk_stages);
-    if (rk_method == RKMethodEnum::dirk_2_im)   return std::make_shared<DIRK2Implicit<dim, real, MeshType>>  (n_rk_stages);
+    if constexpr(dim==1){
+        //Only tested in 1D with Burgers and advection
+        using PDEEnum = Parameters::AllParameters::PartialDifferentialEquation;
+        const PDEEnum pde_type = dg_input->all_parameters->pde_type;
+        if ((pde_type==PDEEnum::burgers_inviscid) || (pde_type==PDEEnum::advection)){
+            if (rk_method == RKMethodEnum::euler_im)    return std::make_shared<EulerImplicit<dim, real, MeshType>>  (n_rk_stages);
+            if (rk_method == RKMethodEnum::dirk_2_im)   return std::make_shared<DIRK2Implicit<dim, real, MeshType>>  (n_rk_stages);
+            else {
+                pcout << "Invalid RK method. Aborting..." << std::endl;
+                std::abort();
+                return nullptr;
+            }
+        } else {
+            pcout << "Implicit RK only tested for 1D advection and Burgers'. Aborting..."  << std::endl;
+            std::abort();
+            return nullptr;
+        }
+    }
     else {
-        dealii::ConditionalOStream pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD)==0);
-        pcout << "Invalid RK method. Aborting..." << std::endl;
+        pcout << "Invalid RK method, or attempted to use implicit RK with dim > 1. Aborting..." << std::endl;
         std::abort();
         return nullptr;
     }

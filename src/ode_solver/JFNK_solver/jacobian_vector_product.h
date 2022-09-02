@@ -41,23 +41,17 @@ protected:
     double epsilon;
     
     /// solution at previous timestep
-    // POSSIBLY COULD USE A POINTER HERE
     dealii::LinearAlgebra::distributed::Vector<double> previous_step_solution;
     
-    
-    /// current estimate for the solution
-    // NOTE: the same vector is stored in JFNK_solver
-    // Should not be stored twice
-    // Could store in this class, with risk of being counterintuitive
-    dealii::LinearAlgebra::distributed::Vector<double> current_solution_estimate;
+    /// pointer to current estimate for the solution
+    std::unique_ptr<dealii::LinearAlgebra::distributed::Vector<double>> current_solution_estimate;
     
     /// residual of current estimate for the solution
     dealii::LinearAlgebra::distributed::Vector<double> current_solution_estimate_residual;
     
-    /// Compute residual from dg,  R = IMM * RHS where RHS is evaluated using solution=w
-    // R is stored in dg->solution
-    // NOTE: it's a bit confusing to store in dg->solution, maybe change later
-    void compute_dg_residual(dealii::LinearAlgebra::distributed::Vector<double> &w) const;
+    /// Compute residual from dg,  R = IMM * RHS where RHS is evaluated using solution=w, and store in dst
+    void compute_dg_residual(dealii::LinearAlgebra::distributed::Vector<double> &dst,
+            dealii::LinearAlgebra::distributed::Vector<double> &w) const;
 };
 
 }

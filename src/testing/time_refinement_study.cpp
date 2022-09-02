@@ -98,7 +98,7 @@ int TimeRefinementStudy<dim, nstate>::run_test() const
         convergence_table.set_precision("L2_error", 16);
         convergence_table.evaluate_convergence_rates("L2_error", "dt", dealii::ConvergenceTable::reduction_rate_log2, 1);
 
-        //Checking convergence order -- check dim
+        //Checking convergence order
         double expected_order = params.ode_solver_param.rk_order;
         double order_tolerance = 0.1;
         if (refinement > 0) {

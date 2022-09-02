@@ -1,5 +1,4 @@
 #include "runge_kutta_ode_solver.h"
-#include "linear_solver/linear_solver.h"
 
 namespace PHiLiP {
 namespace ODE {
@@ -40,10 +39,11 @@ void RungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::step_in_time (real dt, 
        
         //implicit solve for diagonal element
         if (this->butcher_tableau->a(i,i) != 0){
-            /* // AD version
+            /* // AD version - keeping in comments as it may be useful for future testing
             // Solve (M/dt - dRdW) / a_ii * dw = R
             // w = w + dw
             // Note - need to have assembled residual using this->dg->assemble_residual(true);
+            //        and have mass matrix assembled, and include linear_solver
             dealii::LinearAlgebra::distributed::Vector<double> temp_u(this->dg->solution.size());
 
             this->dg->system_matrix *= -1.0/butcher_tableau_a[i][i]; //system_matrix = -1/a_ii*dRdW

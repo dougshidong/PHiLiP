@@ -35,7 +35,9 @@ protected:
     std::shared_ptr<RKTableauBase<dim,real,MeshType>> butcher_tableau;
 
     /// Implicit solver for diagonally-implicit RK methods, using Jacobian-free Newton-Krylov 
-    //TO DO: check initialization (storage when not implicit )
+    /** This is initialized for any RK method, but solution-sized vectors are 
+     *  only initialized if there is an implicit solve
+     */
     JFNKSolver<dim,real,MeshType> solver;
     
     /// Storage for the derivative at each Runge-Kutta stage

@@ -17,12 +17,11 @@ JFNKSolver<dim,real,MeshType>::JFNKSolver(std::shared_ptr< DGBase<dim, real, Mes
     , max_GMRES_iter(linear_param.max_iterations)
     , max_Newton_iter(linear_param.newton_max_iterations)
     , do_output(linear_param.linear_solver_output == Parameters::OutputEnum::verbose)
-
     , jacobian_vector_product(dg)
     , solver_control(max_GMRES_iter, 
                      epsilon_GMRES,
-                     false,     //log_history 
-                     do_output)      //log_result 
+                     false,         //log_history 
+                     do_output)     //log_result 
     , solver_GMRES(solver_control,
             dealii::SolverGMRES<dealii::LinearAlgebra::distributed::Vector<double>>::AdditionalData(max_num_temp_vectors))
 {}

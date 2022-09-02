@@ -6,18 +6,13 @@ namespace ODE{
 template <int dim, typename real, typename MeshType>
 JacobianVectorProduct<dim,real,MeshType>::JacobianVectorProduct(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input)
     : dg(dg_input)
-{
-    //initialize storage vectors with the same parallel structure as dg->solution
-    //previous_step_solution.reinit(dg->solution);
-    current_solution_estimate.reinit(dg->solution);
-    current_solution_estimate_residual.reinit(dg->solution);
-}
+{}
 
 template <int dim, typename real, typename MeshType>
 void JacobianVectorProduct<dim,real,MeshType>::reinit_for_next_Newton_iter(dealii::LinearAlgebra::distributed::Vector<double> &current_solution_estimate_input)
 {
-    current_solution_estimate = current_solution_estimate_input; 
-    current_solution_estimate_residual = compute_unsteady_residual(current_solution_estimate);
+    current_solution_estimate = std::make_unique<dealii::LinearAlgebra::distributed::Vector<double>>(current_solution_estimate_input);
+    current_solution_estimate_residual = compute_unsteady_residual(*current_solution_estimate);
 }
 
 template <int dim, typename real, typename MeshType>
@@ -31,18 +26,19 @@ void JacobianVectorProduct<dim,real,MeshType>:: reinit_for_next_timestep(double 
 }
 
 template <int dim, typename real, typename MeshType>
-void JacobianVectorProduct<dim,real,MeshType>::compute_dg_residual(dealii::LinearAlgebra::distributed::Vector<double> &w) const
+void JacobianVectorProduct<dim,real,MeshType>::compute_dg_residual(dealii::LinearAlgebra::distributed::Vector<double> &dst, dealii::LinearAlgebra::distributed::Vector<double> &w) const
 {
     dg->solution = w;
     dg->assemble_residual();
     
-    dg->global_inverse_mass_matrix.vmult(dg->solution, dg->right_hand_side);//temp = IMM*RHS
+    dg->global_inverse_mass_matrix.vmult(dg->solution, dg->right_hand_side);//dg->solution = IMM * RHS
+    dst = dg->solution;
 }
 
 template <int dim, typename real, typename MeshType>
 dealii::LinearAlgebra::distributed::Vector<double> JacobianVectorProduct<dim,real,MeshType>::compute_unsteady_residual(dealii::LinearAlgebra::distributed::Vector<double> &w, bool do_negate) const
 {
-    compute_dg_residual(w);
+    compute_dg_residual(dg->solution, w); //assign residual to dg->solution
 
     dg->solution*=-1;
 
@@ -66,7 +62,7 @@ void JacobianVectorProduct<dim,real,MeshType>::vmult (dealii::LinearAlgebra::dis
 {
     dst = src;
     dst *= epsilon; 
-    dst += current_solution_estimate;
+    dst += (*current_solution_estimate);
     dst = compute_unsteady_residual(dst);
     dst -= current_solution_estimate_residual;
     dst *= 1.0/epsilon; // dst = 1/epsilon * (R*(current_soln_estimate + epsilon*src) - R*(curr_sol_est))

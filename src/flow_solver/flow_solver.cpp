@@ -358,6 +358,7 @@ void FlowSolver<dim,nstate>::perform_steady_state_mesh_adaptation() const
         meshadaptation->adapt_mesh();
         ode_solver->steady_state();
         residual_norm = ode_solver->residual_norm;
+        flow_solver_case->steady_state_postprocessing(dg); 
     }
 
     pcout<<"Finished running mesh adaptation cycles."<<std::endl; 
@@ -482,7 +483,9 @@ int FlowSolver<dim,nstate>::run() const
         if(flow_solver_param.steady_state_polynomial_ramping && (ode_param.ode_solver_type != ODEEnum::pod_galerkin_solver && ode_param.ode_solver_type != ODEEnum::pod_petrov_galerkin_solver)) {
             ode_solver->initialize_steady_polynomial_ramping(poly_degree);
         }
+
         ode_solver->steady_state();
+        flow_solver_case->steady_state_postprocessing(dg);
         
         bool use_mesh_adaptation = (all_param.mesh_adaptation_param.total_mesh_adaptation_cycles > 0);
         
@@ -490,8 +493,6 @@ int FlowSolver<dim,nstate>::run() const
         {
             perform_steady_state_mesh_adaptation();
         }
-
-        flow_solver_case->steady_state_postprocessing(dg);
     }
     pcout << "done." << std::endl;
     return 0;

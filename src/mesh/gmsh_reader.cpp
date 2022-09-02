@@ -1473,7 +1473,6 @@ read_gmsh(std::string filename, int requested_grid_order)
     std::vector<dealii::types::global_dof_index> dof_indices(high_order_grid->fe_system.dofs_per_cell);
 
     std::vector<unsigned int> rotate_z90degree;
-    rotate_indices<dim>(rotate_z90degree, grid_order+1, 'Z');                                               //This is for 2D rotations
 
     /**
      * For 3D ROTATIONS (INITIATING ONCE HERE, SO WE DON'T RECOMPUTE FOR EACH ROTATION/CELL)
@@ -1483,15 +1482,21 @@ read_gmsh(std::string filename, int requested_grid_order)
     std::vector<unsigned int> rotate_x90degree_3D;
     std::vector<unsigned int> rotate_flip_z90degree_3D;
 
-    //Preallocate all indices
-    pcout << "Allocating Rotate Z matrix..." << std::endl;
-    rotate_indices<dim>(rotate_z90degree_3D, grid_order + 1, 'Z');
-    pcout << "Allocating Rotate Y matrix..." << std::endl;
-    rotate_indices<dim>(rotate_y90degree_3D, grid_order + 1, 'Y');
-    pcout << "Allocating Rotate X matrix..." << std::endl;
-    rotate_indices<dim>(rotate_x90degree_3D, grid_order + 1, 'X');
-    pcout << "Allocating Rotate FLIP matrix..." << std::endl;
-    rotate_indices<dim>(rotate_flip_z90degree_3D, grid_order + 1, 'F');
+    //2D Rotation matrix (Pre allocate once)
+    if constexpr(dim == 2) {
+        pcout << "Allocating 2D Rotate Z matrix..." << std::endl;
+        rotate_indices<dim>(rotate_z90degree, grid_order+1, 'Z');
+    } else {
+        //3D Rotation matrix (Pre allocate once)
+        pcout << "Allocating 3D Rotate Z matrix..." << std::endl;
+        rotate_indices<dim>(rotate_z90degree_3D, grid_order + 1, 'Z');
+        pcout << "Allocating 3D Rotate Y matrix..." << std::endl;
+        rotate_indices<dim>(rotate_y90degree_3D, grid_order + 1, 'Y');
+        pcout << "Allocating 3D Rotate X matrix..." << std::endl;
+        rotate_indices<dim>(rotate_x90degree_3D, grid_order + 1, 'X');
+        pcout << "Allocating 3D Rotate FLIP matrix..." << std::endl;
+        rotate_indices<dim>(rotate_flip_z90degree_3D, grid_order + 1, 'F');
+    }
 
     pcout << " " << std::endl;
     pcout << "*********************************************************************\n";
@@ -1515,7 +1520,7 @@ read_gmsh(std::string filename, int requested_grid_order)
             //auto high_order_vertices_id_rotated = high_order_cells[icell].vertices;
             auto high_order_vertices_id_rotated = high_order_vertices_id_lexico;
 
-            if (dim == 2) {
+            if constexpr(dim == 2) {
 
                 bool good_rotation = get_new_rotated_indices(*cell, all_vertices, deal_h2l, rotate_z90degree, high_order_vertices_id_rotated);
                 if (!good_rotation) {
@@ -1621,7 +1626,7 @@ read_gmsh(std::string filename, int requested_grid_order)
 
     high_order_grid->update_surface_nodes();
     high_order_grid->update_mapping_fe_field();
-    high_order_grid->output_results_vtk(9999);
+//    high_order_grid->output_results_vtk(9999);                //Removed to save time (especially for large 3D grids) during flow solver test case. Grid will be outputted 'once' inside the gmsh_reader test file.
     high_order_grid->reset_initial_nodes();
     
     //return high_order_grid;
@@ -1655,7 +1660,7 @@ read_gmsh(std::string filename, int requested_grid_order)
         }
         grid->update_surface_nodes();
         grid->update_mapping_fe_field();
-        grid->output_results_vtk(9999);
+//        grid->output_results_vtk(9999);                    //Removed to save time (especially for large 3D grids) during flow solver test case. Grid will be outputted 'once' inside the gmsh_reader test file.
         grid->reset_initial_nodes();
 
         return grid;

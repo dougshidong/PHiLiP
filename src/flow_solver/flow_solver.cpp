@@ -486,7 +486,7 @@ int FlowSolver<dim,nstate>::run() const
         ode_solver->steady_state();
         flow_solver_case->steady_state_postprocessing(dg);
         
-        bool use_mesh_adaptation = (all_param.mesh_adaptation_param.total_mesh_adaptation_cycles > 0);
+        const bool use_mesh_adaptation = (all_param.mesh_adaptation_param.total_mesh_adaptation_cycles > 0);
         
         if(use_mesh_adaptation)
         {

@@ -47,7 +47,8 @@ subsection navier_stokes
 end
 
 subsection flow_solver
-  set flow_case_type = naca0012
+  # set flow_case_type = naca0012
+  set flow_case_type = gaussian_bump
   set poly_degree = 0
   set final_time = 10.0
   # set courant_friedrich_lewy_number = 0.01

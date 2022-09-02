@@ -355,7 +355,7 @@ void FlowSolver<dim,nstate>::perform_steady_state_mesh_adaptation() const
         }
         
         meshadaptation->adapt_mesh();
-        ode_solver->steady_state();
+        this->ode_solver->steady_state();
         residual_norm = ode_solver->residual_norm;
         flow_solver_case->steady_state_postprocessing(dg); 
     }

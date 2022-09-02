@@ -340,8 +340,8 @@ void FlowSolver<dim,nstate>::output_restart_files(
 template <int dim, int nstate>
 void FlowSolver<dim,nstate>::perform_steady_state_mesh_adaptation() const
 {
-    std::unique_ptr<MeshAdaptation<dim,double>> meshadaptation = std::make_unique<MeshAdaptation<dim,double>>(dg, &(all_param.mesh_adaptation_param));
-    const int total_adaptation_cycles = all_param.mesh_adaptation_param.total_mesh_adaptation_cycles;
+    std::unique_ptr<MeshAdaptation<dim,double>> meshadaptation = std::make_unique<MeshAdaptation<dim,double>>(this->dg, &(this->all_param.mesh_adaptation_param));
+    const int total_adaptation_cycles = this->all_param.mesh_adaptation_param.total_mesh_adaptation_cycles;
     double residual_norm = this->dg->get_residual_l2norm();
     
     pcout<<"Running mesh adaptation cycles..."<<std::endl;

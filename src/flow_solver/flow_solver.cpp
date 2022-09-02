@@ -339,7 +339,7 @@ void FlowSolver<dim,nstate>::output_restart_files(
 #endif
 
 template <int dim, int nstate>
-void FlowSolver<dim,nstate>::perform_mesh_adaptation() const
+void FlowSolver<dim,nstate>::perform_steady_state_mesh_adaptation() const
 {
     std::unique_ptr<MeshAdaptation<dim,double>> meshadaptation = std::make_unique<MeshAdaptation<dim,double>>(dg, &(all_param.mesh_adaptation_param));
     const int total_adaptation_cycles = all_param.mesh_adaptation_param.total_mesh_adaptation_cycles;
@@ -488,7 +488,7 @@ int FlowSolver<dim,nstate>::run() const
         
         if(use_mesh_adaptation)
         {
-            perform_mesh_adaptation();
+            perform_steady_state_mesh_adaptation();
         }
 
         flow_solver_case->steady_state_postprocessing(dg);

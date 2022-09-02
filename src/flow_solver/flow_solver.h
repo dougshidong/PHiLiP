@@ -132,8 +132,10 @@ private:
         const std::shared_ptr <dealii::TableHandler> unsteady_data_table) const;
 #endif
 
-    /// Performs mesh adaptation, based on the parameters.
-    void perform_mesh_adaptation() const;
+    /// Performs mesh adaptation.
+    /** Currently implemented for steady state flows.
+     */
+    void perform_steady_state_mesh_adaptation() const;
 };
 
 } // FlowSolver namespace

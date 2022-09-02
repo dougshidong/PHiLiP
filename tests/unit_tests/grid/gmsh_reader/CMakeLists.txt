@@ -120,3 +120,19 @@ add_test(
   COMMAND mpirun -n ${MPIMAX} ${CMAKE_CURRENT_BINARY_DIR}/3D_GMSH_READER --input=${filename}
   WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )
+
+set (filename "3d_gaussian_bump.msh")
+if(NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${filename})
+  message(SEND_ERROR
+"Missing 3D GMSH file named ${filename}. Please download them from
+    https://drive.google.com/drive/folders/1ZjwSvbrRK5pHvMULfC69n6oierTej2Cv?usp=sharing
+and place them in
+      ${CMAKE_CURRENT_SOURCE_DIR}, or simply run get_gmsh_mesh_files_local.sh"
+      )
+endif()
+configure_file(${filename} ${filename} COPYONLY)
+add_test(
+  NAME 3D_GMSH_READER_3D_GAUSSIAN_BUMP
+  COMMAND mpirun -n ${MPIMAX} ${CMAKE_CURRENT_BINARY_DIR}/3D_GMSH_READER --input=${filename}
+  WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
+)

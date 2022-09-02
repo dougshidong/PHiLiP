@@ -48,7 +48,7 @@ end
 
 subsection flow_solver
   set flow_case_type = naca0012
-  set poly_degree = 1
+  set poly_degree = 0
   set final_time = 10.0
   # set courant_friedrich_lewy_number = 0.01
   set unsteady_data_table_filename = sd7003_unsteady_data_table

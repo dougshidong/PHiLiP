@@ -14,7 +14,8 @@ namespace ODE {
 template <int dim, typename real, typename MeshType>
 std::shared_ptr<ODESolverBase<dim,real,MeshType>> ODESolverFactory<dim,real,MeshType>::create_ODESolver(std::shared_ptr< DGBase<dim,real,MeshType> > dg_input)
 {
-    std::cout << "Creating ODE Solver..." << std::endl;
+    dealii::ConditionalOStream pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD)==0);
+    pcout << "Creating ODE Solver..." << std::endl;
     using ODEEnum = Parameters::ODESolverParam::ODESolverEnum;
     ODEEnum ode_solver_type = dg_input->all_parameters->ode_solver_param.ode_solver_type;
     if(ode_solver_type == ODEEnum::explicit_solver)        return std::make_shared<ExplicitODESolver<dim,real,MeshType>>(dg_input);

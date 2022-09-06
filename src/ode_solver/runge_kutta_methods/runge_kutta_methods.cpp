@@ -18,18 +18,6 @@ SSPRK3Explicit<dim,real,MeshType> :: SSPRK3Explicit(int n_rk_stages)
     this->pcout << "Assigned RK method: 3rd order SSP (explicit)" << std::endl;
 }
 
-template <int dim, typename real, typename MeshType>
-double SSPRK3Explicit<dim,real,MeshType> :: a(int i, int j)
-{
-    return butcher_tableau_a[i][j];
-}
-
-template <int dim, typename real, typename MeshType>
-double SSPRK3Explicit<dim,real,MeshType> :: b(int i)
-{
-    return butcher_tableau_b[i];
-}
-
 //##################################################################
 template <int dim, typename real, typename MeshType>
 RK4Explicit<dim,real,MeshType> :: RK4Explicit(int n_rk_stages)
@@ -43,19 +31,6 @@ RK4Explicit<dim,real,MeshType> :: RK4Explicit(int n_rk_stages)
     this->butcher_tableau_b.fill(butcher_tableau_b_values);
     this->pcout << "Assigned RK method: 4th order classical RK (explicit)" << std::endl;
 }
-
-template <int dim, typename real, typename MeshType>
-double RK4Explicit<dim,real,MeshType> :: a(int i, int j)
-{
-    return butcher_tableau_a[i][j];
-}
-
-template <int dim, typename real, typename MeshType>
-double RK4Explicit<dim,real,MeshType> :: b(int i)
-{
-    return butcher_tableau_b[i];
-}
-
 
 //##################################################################
 template <int dim, typename real, typename MeshType>
@@ -71,19 +46,6 @@ EulerExplicit<dim,real,MeshType> :: EulerExplicit(int n_rk_stages)
     this->pcout << "Assigned RK method: Forward Euler (explicit)" << std::endl;
 }
 
-template <int dim, typename real, typename MeshType>
-double EulerExplicit<dim,real,MeshType> :: a(int i, int j)
-{
-    return butcher_tableau_a[i][j];
-}
-
-template <int dim, typename real, typename MeshType>
-double EulerExplicit<dim,real,MeshType> :: b(int i)
-{
-    return butcher_tableau_b[i];
-}
-
-
 //##################################################################
 template <int dim, typename real, typename MeshType>
 EulerImplicit<dim,real,MeshType> :: EulerImplicit(int n_rk_stages)
@@ -97,19 +59,6 @@ EulerImplicit<dim,real,MeshType> :: EulerImplicit(int n_rk_stages)
     this->butcher_tableau_b.fill(butcher_tableau_b_values);
     this->pcout << "Assigned RK method: Implicit Euler (implicit)" << std::endl;
 }
-
-template <int dim, typename real, typename MeshType>
-double EulerImplicit<dim,real,MeshType> :: a(int i, int j)
-{
-    return butcher_tableau_a[i][j];
-}
-
-template <int dim, typename real, typename MeshType>
-double EulerImplicit<dim,real,MeshType> :: b(int i)
-{
-    return butcher_tableau_b[i];
-}
-
 
 //##################################################################
 template <int dim, typename real, typename MeshType>
@@ -126,18 +75,6 @@ DIRK2Implicit<dim,real,MeshType> :: DIRK2Implicit(int n_rk_stages)
     const double butcher_tableau_b_values[2] = {0.5, 0.5};
     this->butcher_tableau_b.fill(butcher_tableau_b_values);
     this->pcout << "Assigned RK method: 2nd-order DIRK (implicit)" << std::endl;
-}
-
-template <int dim, typename real, typename MeshType>
-double DIRK2Implicit<dim,real,MeshType> :: a(int i, int j)
-{
-    return butcher_tableau_a[i][j];
-}
-
-template <int dim, typename real, typename MeshType>
-double DIRK2Implicit<dim,real,MeshType> :: b(int i)
-{
-    return butcher_tableau_b[i];
 }
 
 //##################################################################

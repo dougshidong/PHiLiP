@@ -21,21 +21,6 @@ public:
     /// Destructor
     ~SSPRK3Explicit() {};
     
-    /// Returns Butcher tableau "a" coefficient at position [i][j]
-    double a(int i, int j) override;
-
-    /// Returns Butcher tableau "b" coefficient at position [i]
-    double b(int i) override;
-
-protected:
-    
-    /// Butcher tableau "a"
-    dealii::Table<2,double> butcher_tableau_a;
-
-    /// Butcher tableau "b"
-    dealii::Table<1,double> butcher_tableau_b;
-
-
 };
 
 /// Classical fourth-order explicit RK
@@ -51,20 +36,6 @@ public:
 
     /// Destructor
     ~RK4Explicit() {};
-    
-    /// Returns Butcher tableau "a" coefficient at position [i][j]
-    double a(int i, int j) override;
-
-    /// Returns Butcher tableau "b" coefficient at position [i]
-    double b(int i) override;
-
-protected:
-    
-    /// Butcher tableau "a"
-    dealii::Table<2,double> butcher_tableau_a;
-
-    /// Butcher tableau "b"
-    dealii::Table<1,double> butcher_tableau_b;
 };
 
 /// Forward Euler (explicit) 
@@ -81,19 +52,6 @@ public:
     /// Destructor
     ~EulerExplicit() {};
     
-    /// Returns Butcher tableau "a" coefficient at position [i][j]
-    double a(int i, int j) override;
-
-    /// Returns Butcher tableau "b" coefficient at position [i]
-    double b(int i) override;
-
-protected:
-    
-    /// Butcher tableau "a"
-    dealii::Table<2,double> butcher_tableau_a;
-
-    /// Butcher tableau "b"
-    dealii::Table<1,double> butcher_tableau_b;
 };
 
 
@@ -111,19 +69,6 @@ public:
     /// Destructor
     ~EulerImplicit() {};
     
-    /// Returns Butcher tableau "a" coefficient at position [i][j]
-    double a(int i, int j) override;
-
-    /// Returns Butcher tableau "b" coefficient at position [i]
-    double b(int i) override;
-
-protected:
-    
-    /// Butcher tableau "a"
-    dealii::Table<2,double> butcher_tableau_a;
-
-    /// Butcher tableau "b"
-    dealii::Table<1,double> butcher_tableau_b;
 };
 
 
@@ -141,19 +86,6 @@ public:
     /// Destructor
     ~DIRK2Implicit() {};
     
-    /// Returns Butcher tableau "a" coefficient at position [i][j]
-    double a(int i, int j) override;
-
-    /// Returns Butcher tableau "b" coefficient at position [i]
-    double b(int i) override;
-
-protected:
-    
-    /// Butcher tableau "a"
-    dealii::Table<2,double> butcher_tableau_a;
-
-    /// Butcher tableau "b"
-    dealii::Table<1,double> butcher_tableau_b;
 };
 
 } // ODE namespace

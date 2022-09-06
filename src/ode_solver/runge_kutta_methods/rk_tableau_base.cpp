@@ -10,15 +10,15 @@ RKTableauBase<dim,real, MeshType> :: RKTableauBase ()
 {}
 
 template <int dim, typename real, typename MeshType> 
-double RKTableauBase<dim,real, MeshType> :: a (int /*i*/, int /*j*/)
+double RKTableauBase<dim,real, MeshType> :: a (int i, int j)
 {
-    return -1.0;
+    return butcher_tableau_a[i][j];
 }
 
 template <int dim, typename real, typename MeshType> 
-double RKTableauBase<dim,real, MeshType> :: b (int /*i*/)
+double RKTableauBase<dim,real, MeshType> :: b (int i)
 {
-    return -1.0;
+    return butcher_tableau_b[i];
 }
 
 template class RKTableauBase<PHILIP_DIM, double, dealii::Triangulation<PHILIP_DIM>>;

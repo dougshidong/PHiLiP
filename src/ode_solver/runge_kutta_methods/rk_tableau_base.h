@@ -15,10 +15,11 @@ template <int dim, typename real, typename MeshType = dealii::parallel::distribu
 #endif
 class RKTableauBase
 {
-public:
+protected:
     /// Default constructor that will set the constants.
     RKTableauBase(); 
 
+public:
     /// Destructor
     ~RKTableauBase() {};
 
@@ -31,6 +32,12 @@ public:
 protected:
 
     dealii::ConditionalOStream pcout; ///< Parallel std::cout that only outputs on mpi_rank==0
+    
+    /// Butcher tableau "a"
+    dealii::Table<2,double> butcher_tableau_a;
+
+    /// Butcher tableau "b"
+    dealii::Table<1,double> butcher_tableau_b;
 
 };
 

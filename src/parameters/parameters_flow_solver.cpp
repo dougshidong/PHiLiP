@@ -16,6 +16,7 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
         prm.declare_entry("flow_case_type","taylor_green_vortex",
                           dealii::Patterns::Selection(
                           " taylor_green_vortex | "
+                          " decaying_homogeneous_isotropic_turbulence | "
                           " burgers_viscous_snapshot | "
                           " naca0012 | "
                           " burgers_rewienski_snapshot | "
@@ -27,6 +28,7 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                           "The type of flow we want to simulate. "
                           "Choices are "
                           " <taylor_green_vortex | "
+                          " decaying_homogeneous_isotropic_turbulence | "
                           " burgers_viscous_snapshot | "
                           " naca0012 | "
                           " burgers_rewienski_snapshot | "
@@ -190,6 +192,8 @@ void FlowSolverParam::parse_parameters(dealii::ParameterHandler &prm)
     {
         const std::string flow_case_type_string = prm.get("flow_case_type");
         if      (flow_case_type_string == "taylor_green_vortex")        {flow_case_type = taylor_green_vortex;}
+        else if (flow_case_type_string == "decaying_homogeneous_isotropic_turbulence") 
+                                                                        {flow_case_type = decaying_homogeneous_isotropic_turbulence;}
         else if (flow_case_type_string == "burgers_viscous_snapshot")   {flow_case_type = burgers_viscous_snapshot;}
         else if (flow_case_type_string == "burgers_rewienski_snapshot") {flow_case_type = burgers_rewienski_snapshot;}
         else if (flow_case_type_string == "naca0012")                   {flow_case_type = naca0012;}

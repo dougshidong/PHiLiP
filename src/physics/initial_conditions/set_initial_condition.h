@@ -36,6 +36,10 @@ private:
     static void project_initial_condition(
         std::shared_ptr< InitialConditionFunction<dim,nstate,double> > &initial_condition_function,
         std::shared_ptr < PHiLiP::DGBase<dim,real> > &dg); 
+
+    /// Reads values from file and projects
+    static void read_values_from_file_and_project(
+        std::shared_ptr < PHiLiP::DGBase<dim,real> > &dg);
 };
 
 }//end PHiLiP namespace

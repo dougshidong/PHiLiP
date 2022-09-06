@@ -17,6 +17,7 @@ public:
     /// Selects the flow case to be simulated
     enum FlowCaseType{
         taylor_green_vortex,
+        decaying_homogeneous_isotropic_turbulence,
         burgers_viscous_snapshot,
         naca0012,
         burgers_rewienski_snapshot,

@@ -134,40 +134,42 @@ std::shared_ptr<ODESolverBase<dim,real,MeshType>> ODESolverFactory<dim,real,Mesh
             return nullptr;
         }
     }
-    if constexpr(dim==1){
-        //RRK is only implemented for Burgers on collocated nodes, 1D
-        const bool use_collocated_nodes = dg_input->all_parameters->use_collocated_nodes;
-        using PDEEnum = Parameters::AllParameters::PartialDifferentialEquation;
-        const PDEEnum pde_type = dg_input->all_parameters->pde_type;
-        const bool use_inviscid_burgers = (pde_type == PDEEnum::burgers_inviscid);
-        if ((ode_solver_type == ODEEnum::rrk_explicit_solver) && 
-                use_collocated_nodes && use_inviscid_burgers){
-            pcout << "Creating Relaxation Runge Kutta ODE Solver";
-            if (n_rk_stages == 1){
-                pcout << " with 1 stage..." << std::endl;
-                return std::make_shared<RRKExplicitODESolver<dim,real,1,MeshType>>(dg_input,rk_tableau);
-            }
-            if (n_rk_stages == 2){
-                pcout << " with 2 stages..." << std::endl;
-                return std::make_shared<RRKExplicitODESolver<dim,real,2,MeshType>>(dg_input,rk_tableau);
-            }
-            if (n_rk_stages == 3){
-                pcout << " with 3 stages..." << std::endl;
-                return std::make_shared<RRKExplicitODESolver<dim,real,3,MeshType>>(dg_input,rk_tableau);
-            }
-            if (n_rk_stages == 4){
-                pcout << " with 4 stages..." << std::endl;
-                return std::make_shared<RRKExplicitODESolver<dim,real,4,MeshType>>(dg_input,rk_tableau);
-            }
-            else{
-                pcout << "but number of stages was unclear. Aborting..." << std::endl;
+    if (ode_solver_type == ODEEnum::rrk_explicit_solver){
+        if constexpr(dim==1){
+            const bool use_collocated_nodes = dg_input->all_parameters->use_collocated_nodes;
+            using PDEEnum = Parameters::AllParameters::PartialDifferentialEquation;
+            const PDEEnum pde_type = dg_input->all_parameters->pde_type;
+            const bool use_inviscid_burgers = (pde_type == PDEEnum::burgers_inviscid);
+            if (use_collocated_nodes && use_inviscid_burgers){
+                pcout << "Creating Relaxation Runge Kutta ODE Solver";
+                if (n_rk_stages == 1){
+                    pcout << " with 1 stage..." << std::endl;
+                    return std::make_shared<RRKExplicitODESolver<dim,real,1,MeshType>>(dg_input,rk_tableau);
+                }
+                if (n_rk_stages == 2){
+                    pcout << " with 2 stages..." << std::endl;
+                    return std::make_shared<RRKExplicitODESolver<dim,real,2,MeshType>>(dg_input,rk_tableau);
+                }
+                if (n_rk_stages == 3){
+                    pcout << " with 3 stages..." << std::endl;
+                    return std::make_shared<RRKExplicitODESolver<dim,real,3,MeshType>>(dg_input,rk_tableau);
+                }
+                if (n_rk_stages == 4){
+                    pcout << " with 4 stages..." << std::endl;
+                    return std::make_shared<RRKExplicitODESolver<dim,real,4,MeshType>>(dg_input,rk_tableau);
+                }
+                else{
+                    pcout << "but number of stages was unclear. Aborting..." << std::endl;
+                    std::abort();
+                    return nullptr;
+                }
+            } else {
+                pcout << "RRK has only been tested on collocated nodes with Burgers. Aborting..,"<<std::endl;
                 std::abort();
-                return nullptr;
             }
-        }
-        else {
-            display_error_ode_solver_factory(ode_solver_type, false);
-            return nullptr;
+        } else {
+            pcout << "RRK has only been tested on 1D calculations. Aborting..,"<<std::endl;
+            std::abort();
         }
     }
     else {
@@ -187,7 +189,16 @@ std::shared_ptr<RKTableauBase<dim,real,MeshType>> ODESolverFactory<dim,real,Mesh
 
     if (rk_method == RKMethodEnum::ssprk3_ex)   return std::make_shared<SSPRK3Explicit<dim, real, MeshType>> (n_rk_stages);
     if (rk_method == RKMethodEnum::rk4_ex)      return std::make_shared<RK4Explicit<dim, real, MeshType>>    (n_rk_stages);
-    if (rk_method == RKMethodEnum::euler_ex)    return std::make_shared<EulerExplicit<dim, real, MeshType>>  (n_rk_stages);
+    if (rk_method == RKMethodEnum::euler_ex) {
+        using ODEEnum = Parameters::ODESolverParam::ODESolverEnum;
+        ODEEnum ode_solver_type = dg_input->all_parameters->ode_solver_param.ode_solver_type;
+        if (ode_solver_type == ODEEnum::rrk_explicit_solver) {
+            //forward Euler is invalid for RRK: sum(b_i*a_ij) = 0 (see Lemma 2.1 in Ketcheson 2019)
+            pcout << "RRK is not valid for Forward Euler. Aborting..." << std::endl;
+            std::abort();
+            return nullptr;
+        } else return std::make_shared<EulerExplicit<dim, real, MeshType>>  (n_rk_stages);
+    }
     if constexpr(dim==1){
         //Only tested in 1D with Burgers and advection
         using PDEEnum = Parameters::AllParameters::PartialDifferentialEquation;

@@ -7,15 +7,7 @@ template <int dim, typename real, int n_rk_stages, typename MeshType>
 RRKExplicitODESolver<dim,real,n_rk_stages,MeshType>::RRKExplicitODESolver(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input,
             std::shared_ptr<RKTableauBase<dim,real,MeshType>> rk_tableau_input)
         : RungeKuttaODESolver<dim,real,n_rk_stages,MeshType>(dg_input,rk_tableau_input)
-{
-    using RKMethodEnum = Parameters::ODESolverParam::RKMethodEnum;
-    const RKMethodEnum rk_method = this->ode_param.runge_kutta_method;
-    if (rk_method == RKMethodEnum::euler_ex){
-        //forward Euler is invalid for RRK: sum(b_i*a_ij) = 0 (see Lemma 2.1 in Ketcheson 2019)
-        this->pcout << "RRK is not valid for Forward Euler. Aborting..." << std::endl;
-        std::abort();
-    }
-}
+{}
 
 template <int dim, typename real, int n_rk_stages, typename MeshType>
 void RRKExplicitODESolver<dim,real,n_rk_stages,MeshType>::modify_time_step(real &dt)

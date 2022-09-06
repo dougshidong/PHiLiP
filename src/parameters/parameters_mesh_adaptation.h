@@ -11,6 +11,15 @@ class MeshAdaptationParam
 {
 public:
 
+    /// Choices for mesh adaptation to be used
+    enum MeshAdaptationType{
+        h_adaptation,
+        p_adaptation,
+        hp_adaptation
+    };
+    /// Selection of mesh adaptation type
+    MeshAdaptationType mesh_adaptation_type;
+
     /// Total/maximum number of refinement cycles while solving a problem.
     int total_refinement_cycles;
     
@@ -23,14 +32,11 @@ public:
     /// Fraction of cells to be h-coarsened
     double h_coarsen_fraction;
     
-    /// Fraction of cells to be p-refined
-    double p_refine_fraction;
-
-    /// Fraction of cells to be p-coarsened
-    double p_coarsen_fraction;
-
     /// Flag to use goal oriented mesh adaptation
     bool use_goal_oriented_mesh_adaptation;
+
+    /// Tolerance to decide between h- or p-refinement
+    double hp_smoothness_tolerance;
 
     /// Constructor of mesh adaptation parameters.
     MeshAdaptationParam();

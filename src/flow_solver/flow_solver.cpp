@@ -350,8 +350,10 @@ void FlowSolver<dim,nstate>::perform_steady_state_mesh_adaptation() const
         // Check if steady state solution is being used.
         if(residual_norm > ode_param.nonlinear_steady_residual_tolerance)
         {
-            pcout<<"Warning: Mesh adaptation is currently implemented for steady state flows and the current residual norm isn't sufficiently low."
-                 <<" Please check if steady_state() has been called before adapting the mesh."<<std::endl;
+            pcout<<"Mesh adaptation is currently implemented for steady state flows and the current residual norm isn't sufficiently low."
+                 <<"The solution has not converged. If p or hp adaptation is being used, issues with convergence might occur when integrating face terms with lower quad points at 
+                 <<"the face of adjacent elements with different p. Try increasing overintegration in the parameters file to fix it."<<std::endl;
+            std::abort();
         }
         
         meshadaptation->adapt_mesh();

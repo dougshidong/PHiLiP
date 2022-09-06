@@ -72,7 +72,46 @@ void ModelBase<dim, nstate, real>
         }
     }
 }
-
+//----------------------------------------------------------------
+template <int dim, int nstate, typename real>
+dealii::Vector<double> ModelBase<dim, nstate, real>
+::post_compute_derived_quantities_vector (
+    const dealii::Vector<double>              &uh,
+    const std::vector<dealii::Tensor<1,dim> > &/*duh*/,
+    const std::vector<dealii::Tensor<2,dim> > &/*dduh*/,
+    const dealii::Tensor<1,dim>               &/*normals*/,
+    const dealii::Point<dim>                  &/*evaluation_points*/) const
+{
+    dealii::Vector<double> computed_quantities(nstate-(dim+2));
+    for (unsigned int s=dim+2; s<nstate; ++s) {
+        computed_quantities(s-(dim+2)) = uh(s);
+    }
+    return computed_quantities;
+}
+//----------------------------------------------------------------
+template <int dim, int nstate, typename real>
+std::vector<std::string> ModelBase<dim, nstate, real>
+::post_get_names () const
+{
+    std::vector<std::string> names;
+    for (unsigned int s=dim+2; s<nstate; ++s) {
+        std::string varname = "state" + dealii::Utilities::int_to_string(s,1);
+        names.push_back(varname);
+    }
+    return names;
+}
+//----------------------------------------------------------------
+template <int dim, int nstate, typename real>
+std::vector<dealii::DataComponentInterpretation::DataComponentInterpretation> ModelBase<dim, nstate, real>
+::post_get_data_component_interpretation () const
+{
+    namespace DCI = dealii::DataComponentInterpretation;
+    std::vector<DCI::DataComponentInterpretation> interpretation;
+    for (unsigned int s=dim+2; s<nstate; ++s) {
+        interpretation.push_back (DCI::component_is_scalar);
+    }
+    return interpretation;
+}
 
 //----------------------------------------------------------------
 //----------------------------------------------------------------

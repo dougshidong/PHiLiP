@@ -74,6 +74,8 @@ public:
         const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient,
         const dealii::types::global_dof_index cell_index) const;
 
+    //std::vector<std::string> post_get_names () const;
+
     /// Nondimensionalized Reynolds stress tensor, (tau^reynolds)*
     virtual dealii::Tensor<2,dim,real> compute_Reynolds_stress_tensor (
         const std::array<real,dim+2> &primitive_soln_rans,
@@ -129,6 +131,17 @@ public:
         const dealii::Point<dim,FadType> &pos,
         const std::array<FadType,nstate> &conservative_solution,
         const std::array<dealii::Tensor<1,dim,FadType>,nstate> &solution_gradient) const = 0;
+
+    //virtual dealii::Vector<double> post_compute_derived_quantities_vector (
+    //    const dealii::Vector<double>              &uh,
+    //    const std::vector<dealii::Tensor<1,dim> > &/*duh*/,
+    //    const std::vector<dealii::Tensor<2,dim> > &/*dduh*/,
+    //    const dealii::Tensor<1,dim>               &/*normals*/,
+    //    const dealii::Point<dim>                  &/*evaluation_points*/) const;
+
+    //virtual std::vector<dealii::DataComponentInterpretation::DataComponentInterpretation> post_get_data_component_interpretation () const;
+
+    //virtual std::vector<std::string> post_get_model_names () const;
 
 protected:
     /// Returns the square of the magnitude of the vector (i.e. the double dot product of a vector with itself)
@@ -323,6 +336,19 @@ public:
         const dealii::Point<dim,FadType> &pos,
         const std::array<FadType,nstate> &conservative_solution,
         const std::array<dealii::Tensor<1,dim,FadType>,nstate> &solution_gradient) const;
+
+    dealii::Vector<double> post_compute_derived_quantities_vector (
+        const dealii::Vector<double>              &uh,
+        const std::vector<dealii::Tensor<1,dim> > &/*duh*/,
+        const std::vector<dealii::Tensor<2,dim> > &/*dduh*/,
+        const dealii::Tensor<1,dim>               &/*normals*/,
+        const dealii::Point<dim>                  &/*evaluation_points*/) const override;
+
+    std::vector<dealii::DataComponentInterpretation::DataComponentInterpretation> post_get_data_component_interpretation () const override;
+
+    //std::vector<std::string> post_get_model_names () const;
+
+    std::vector<std::string> post_get_names () const override;
 
 protected:
     /// Templated nondimensionalized Reynolds stress tensor, (tau^reynolds)*

@@ -3,6 +3,7 @@
 
 #include <deal.II/lac/la_parallel_vector.h>
 #include <deal.II/base/tensor.h>
+#include <deal.II/numerics/data_component_interpretation.h>
 #include <deal.II/base/types.h>
 
 #include "parameters/parameters_manufactured_solution.h"
@@ -77,6 +78,17 @@ public:
         const std::array<dealii::Tensor<1,dim,real>,nstate> &/*soln_grad_int*/,
         std::array<real,nstate> &/*soln_bc*/,
         std::array<dealii::Tensor<1,dim,real>,nstate> &/*soln_grad_bc*/) const;
+
+    virtual dealii::Vector<double> post_compute_derived_quantities_vector (
+        const dealii::Vector<double>              &uh,
+        const std::vector<dealii::Tensor<1,dim> > &/*duh*/,
+        const std::vector<dealii::Tensor<2,dim> > &/*dduh*/,
+        const dealii::Tensor<1,dim>               &/*normals*/,
+        const dealii::Point<dim>                  &/*evaluation_points*/) const;
+
+    virtual std::vector<dealii::DataComponentInterpretation::DataComponentInterpretation> post_get_data_component_interpretation () const;
+
+    virtual std::vector<std::string> post_get_names () const;
 
     // Quantities needed to be updated by DG for the model -- accomplished by DGBase update_model_variables()
     dealii::LinearAlgebra::distributed::Vector<int> cellwise_poly_degree; ///< Cellwise polynomial degree

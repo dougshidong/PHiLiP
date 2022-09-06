@@ -307,13 +307,34 @@ dealii::Vector<double> PhysicsModel<dim,nstate,real,nstate_baseline_physics>::po
     const dealii::Point<dim>                  &evaluation_points) const
 {
     // TO DO: Update for when nstate > nstate_baseline_physics
+    //dealii::Vector<double> computed_quantities;
+    //if(nstate==nstate_baseline_physics) {
+    //    computed_quantities = physics_baseline->post_compute_derived_quantities_vector(
+    //                                    uh, duh, dduh, normals, evaluation_points);
+    //} else {
+    //    // TO DO, make use of the physics_model object for nstate>nstate_baseline_physics
+    //    std::abort();
+    //}
     dealii::Vector<double> computed_quantities;
     if(nstate==nstate_baseline_physics) {
         computed_quantities = physics_baseline->post_compute_derived_quantities_vector(
                                         uh, duh, dduh, normals, evaluation_points);
     } else {
-        // TO DO, make use of the physics_model object for nstate>nstate_baseline_physics
-        std::abort();
+        dealii::Vector<double> computed_quantities_model;
+        computed_quantities_model = model->post_compute_derived_quantities_vector(
+                                        uh, duh, dduh, normals, evaluation_points);
+        dealii::Vector<double> computed_quantities_base;
+        computed_quantities_base = physics_baseline->post_compute_derived_quantities_vector(
+                                        uh, duh, dduh, normals, evaluation_points);
+
+        dealii::Vector<double> computed_quantities_total(computed_quantities_base.size()+computed_quantities_model.size());
+        for (unsigned int i=0;i<computed_quantities_base.size();i++){
+            computed_quantities_total(i) = computed_quantities_base(i);
+        }
+        for (unsigned int i=0;i<computed_quantities_model.size();i++){
+            computed_quantities_total(i+computed_quantities_base.size()) = computed_quantities_model(i);
+        }
+        computed_quantities = computed_quantities_total;
     }
     return computed_quantities;
 }
@@ -323,12 +344,21 @@ std::vector<std::string> PhysicsModel<dim,nstate,real,nstate_baseline_physics>
 ::post_get_names () const
 {
     // TO DO: Update for when nstate > nstate_baseline_physics
+    //std::vector<std::string> names;
+    //if(nstate==nstate_baseline_physics) {
+    //    names = physics_baseline->post_get_names();
+    //} else {
+    //    // TO DO, make use of the physics_model object for nstate>nstate_baseline_physics
+    //    std::abort();
+    //}
     std::vector<std::string> names;
     if(nstate==nstate_baseline_physics) {
         names = physics_baseline->post_get_names();
     } else {
-        // TO DO, make use of the physics_model object for nstate>nstate_baseline_physics
-        std::abort();
+        std::vector<std::string> names_model;
+        names = physics_baseline->post_get_names();
+        names_model = model->post_get_names();
+        names.insert(names.end(),names_model.begin(),names_model.end()); 
     }
     return names;
 }
@@ -338,13 +368,23 @@ std::vector<dealii::DataComponentInterpretation::DataComponentInterpretation> Ph
 ::post_get_data_component_interpretation () const
 {
     // TO DO: Update for when nstate > nstate_baseline_physics
+    //namespace DCI = dealii::DataComponentInterpretation;
+    //std::vector<DCI::DataComponentInterpretation> interpretation;
+    //if(nstate==nstate_baseline_physics) {
+    //    interpretation = physics_baseline->post_get_data_component_interpretation();
+    //} else {
+    //    // TO DO, make use of the physics_model object for nstate>nstate_baseline_physics
+    //    std::abort();
+    //}
     namespace DCI = dealii::DataComponentInterpretation;
     std::vector<DCI::DataComponentInterpretation> interpretation;
     if(nstate==nstate_baseline_physics) {
         interpretation = physics_baseline->post_get_data_component_interpretation();
     } else {
-        // TO DO, make use of the physics_model object for nstate>nstate_baseline_physics
-        std::abort();
+        std::vector<DCI::DataComponentInterpretation> interpretation_model;
+        interpretation = physics_baseline->post_get_data_component_interpretation();
+        interpretation_model = model->post_get_data_component_interpretation();
+        interpretation.insert(interpretation.end(),interpretation_model.begin(),interpretation_model.end());
     }
     return interpretation;
 }

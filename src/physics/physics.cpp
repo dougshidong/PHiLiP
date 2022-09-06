@@ -143,7 +143,7 @@ dealii::Vector<double> PhysicsBase<dim,nstate,real>::post_compute_derived_quanti
     const dealii::Vector<double>              &uh,
     const std::vector<dealii::Tensor<1,dim> > &/*duh*/,
     const std::vector<dealii::Tensor<2,dim> > &/*dduh*/,
-    const dealii::Tensor<1,dim>                  &/*normals*/,
+    const dealii::Tensor<1,dim>               &/*normals*/,
     const dealii::Point<dim>                  &/*evaluation_points*/) const
 {
     dealii::Vector<double> computed_quantities(nstate);

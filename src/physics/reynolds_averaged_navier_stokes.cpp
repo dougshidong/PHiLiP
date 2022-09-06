@@ -747,6 +747,15 @@ std::array<real,nstate> ReynoldsAveragedNavierStokesBase<dim,nstate,real>
     return physical_source_source_term;
 }
 //----------------------------------------------------------------
+//template <int dim, int nstate, typename real>
+//std::vector<std::string> ReynoldsAveragedNavierStokesBase<dim,nstate,real>
+//::post_get_names () const
+//{
+//    //std::vector<std::string> something;
+//    //return something;
+//    return post_get_model_names ();    
+//}
+//----------------------------------------------------------------
 //================================================================
 // Negative Spalart-Allmaras model
 //================================================================
@@ -1477,6 +1486,74 @@ std::array<real2,nstate> ReynoldsAveragedNavierStokes_SAneg<dim,nstate,real>
 
     return physical_source_term;
 
+}
+//----------------------------------------------------------------
+template <int dim, int nstate, typename real>
+dealii::Vector<double> ReynoldsAveragedNavierStokes_SAneg<dim,nstate,real>
+::post_compute_derived_quantities_vector (
+    const dealii::Vector<double>              &uh,
+    const std::vector<dealii::Tensor<1,dim> > &duh,
+    const std::vector<dealii::Tensor<2,dim> > &dduh,
+    const dealii::Tensor<1,dim>               &normals,
+    const dealii::Point<dim>                  &evaluation_points) const
+{
+    std::vector<std::string> names = post_get_names ();
+    dealii::Vector<double> computed_quantities = ModelBase<dim,nstate,real>::post_compute_derived_quantities_vector ( uh, duh, dduh, normals, evaluation_points);
+    unsigned int current_data_index = computed_quantities.size() - 1;
+    computed_quantities.grow_or_shrink(names.size());
+    if constexpr (std::is_same<real,double>::value) {
+
+        std::array<double, nstate> conservative_soln;
+        for (unsigned int s=0; s<nstate; ++s) {
+            conservative_soln[s] = uh(s);
+        }
+
+        const std::array<double,nstate-(dim+2)> primitive_soln_turbulence_model = this->convert_conservative_to_primitive_turbulence_model(conservative_soln); 
+
+        computed_quantities(++current_data_index) = primitive_soln_turbulence_model[0];
+    }
+    if (computed_quantities.size()-1 != current_data_index) {
+        std::cout << " Did not assign a value to all the data. Missing " << computed_quantities.size() - current_data_index << " variables."
+                  << " If you added a new output variable, make sure the names and DataComponentInterpretation match the above. "
+                  << std::endl;
+    }
+
+    return computed_quantities;
+}
+//----------------------------------------------------------------
+template <int dim, int nstate, typename real>
+std::vector<dealii::DataComponentInterpretation::DataComponentInterpretation> ReynoldsAveragedNavierStokes_SAneg<dim,nstate,real>
+::post_get_data_component_interpretation () const
+{
+    namespace DCI = dealii::DataComponentInterpretation;
+    std::vector<DCI::DataComponentInterpretation> interpretation = ModelBase<dim,nstate,real>::post_get_data_component_interpretation (); // state variables
+    interpretation.push_back (DCI::component_is_scalar); 
+
+    std::vector<std::string> names = post_get_names();
+    if (names.size() != interpretation.size()) {
+        std::cout << "Number of DataComponentInterpretation is not the same as number of names for output file" << std::endl;
+    }
+    return interpretation;
+}
+//----------------------------------------------------------------
+//template <int dim, int nstate, typename real>
+//std::vector<std::string> ReynoldsAveragedNavierStokes_SAneg<dim,nstate,real>
+//::post_get_model_names () const
+//{
+//    std::vector<std::string> names = ModelBase<dim,nstate,real>::post_get_names ();
+//    names.push_back ("nu_tilde");
+//
+//    return names;    
+//}
+//----------------------------------------------------------------
+template <int dim, int nstate, typename real>
+std::vector<std::string> ReynoldsAveragedNavierStokes_SAneg<dim,nstate,real>
+::post_get_names () const
+{
+    std::vector<std::string> names = ModelBase<dim,nstate,real>::post_get_names ();
+    names.push_back ("nu_tilde");
+
+    return names;    
 }
 //----------------------------------------------------------------
 //----------------------------------------------------------------

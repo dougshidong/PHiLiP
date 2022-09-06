@@ -63,15 +63,6 @@ unsigned int d2R_mult;
 
 namespace PHiLiP {
 
-// Forward declaration.
-template<int dim, typename real>
-std::vector< real > project_function(
-    const std::vector< real > &function_coeff,
-    const dealii::FESystem<dim,dim> &fe_input,
-    const dealii::FESystem<dim,dim> &fe_output,
-    const dealii::QGauss<dim> &projection_quadrature);
-
-
 template <int dim, typename real, typename MeshType>
 DGBase<dim,real,MeshType>::DGBase(
     const int nstate_input,
@@ -1230,7 +1221,6 @@ void DGBase<dim,real,MeshType>::update_artificial_dissipation_discontinuity_sens
     artificial_dissipation_c0.update_ghost_values();
 }
 
-
 template <int dim, typename real, typename MeshType>
 void DGBase<dim,real,MeshType>::assemble_residual (const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R, const double CFL_mass)
 {
@@ -2353,7 +2343,7 @@ void DGBase<dim,real,MeshType>::time_scaled_mass_matrices(const real dt_scale)
     time_scaled_global_mass_matrix.compress(dealii::VectorOperation::insert);
 }
 
-template<int dim, typename real>
+template<int dim, typename real> // To be replaced with operators->projection_operator
 std::vector< real > project_function(
     const std::vector< real > &function_coeff,
     const dealii::FESystem<dim,dim> &fe_input,

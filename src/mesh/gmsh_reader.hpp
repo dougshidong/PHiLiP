@@ -59,7 +59,7 @@ namespace PHiLiP {
       */
     template <int dim, int spacedim>
     std::shared_ptr< HighOrderGrid<dim, double> >
-    read_gmsh(std::string filename, int requested_grid_order = 0, bool set_mesh_smoothing_flags = true);
+    read_gmsh(std::string filename, int requested_grid_order = 0, const bool use_mesh_smoothing = true);
 } // namespace PHiLiP
 #endif
 

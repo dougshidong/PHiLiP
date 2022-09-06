@@ -19,14 +19,23 @@ int DualWeightedResidualMeshAdaptation<dim, nstate> :: run_test () const
 {
     const Parameters::AllParameters param = *(TestsBase::all_parameters);
     bool use_mesh_adaptation = param.mesh_adaptation_param.total_mesh_adaptation_cycles > 0;
+    using ManParam = Parameters::ManufacturedConvergenceStudyParam;
+    ManParam manu_grid_conv_param = param.manufactured_convergence_study_param;
+   
+    bool check_for_p_refined_cell = false;
     
+    using MeshAdaptationTypeEnum = Parameters::MeshAdaptationParam::MeshAdaptationType;
+    MeshAdaptationTypeEnum mesh_adaptation_type = param.mesh_adaptation_param.mesh_adaptation_type;
+    if(mesh_adaptation_type == MeshAdaptationTypeEnum::p_adaptation)
+    {
+        check_for_p_refined_cell = true;
+    }
+
     if(!use_mesh_adaptation)
     {
         pcout<<"This test case checks mesh adaptation. However, total mesh adaptation cycles have been set to 0 in the parameters file. Aborting..."<<std::endl; 
         std::abort();
     }
-
-    bool check_for_p_refined_cell = (param.mesh_adaptation_param.p_refine_fraction > 0);
     
     std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(&param, parameter_handler);
     flow_solver->run();

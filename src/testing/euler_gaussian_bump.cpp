@@ -90,6 +90,7 @@ double EulerGaussianBump<dim,nstate>
             const double grid_degree = solution_degree+1;
 
             param.flow_solver_param.poly_degree = solution_degree;
+            param.flow_solver_param.max_poly_degree_for_adaptation = solution_degree;
             param.flow_solver_param.grid_degree = grid_degree;
             param.flow_solver_param.number_of_mesh_refinements = igrid;
 

@@ -20,8 +20,7 @@ end
 
 subsection mesh adaptation
     set mesh_adaptation_type = hp_adaptation
-    set critical_residual = 1.0e-9
-    set total_refinement_cycles = 3
+    set total_mesh_adaptation_cycles = 3
     set h_refine_fraction = 0.05
     set h_coarsen_fraction = 0.0
     set hp_smoothness_tolerance = 1.0e-6

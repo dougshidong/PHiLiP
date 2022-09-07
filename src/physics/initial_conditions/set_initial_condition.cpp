@@ -100,39 +100,32 @@ void SetInitialCondition<dim,nstate,real>::project_initial_condition(
     }
 }
 
-// template <int dim, int nstate>
-// std::string FlowSolver<dim,nstate>::get_restart_filename_without_extension(const int restart_index_input) const {
-//     // returns the restart file index as a string with appropriate padding
-//     std::string restart_index_string = std::to_string(restart_index_input);
-//     const unsigned int length_of_index_with_padding = 5;
-//     const int number_of_zeros = length_of_index_with_padding - restart_index_string.length();
-//     restart_index_string.insert(0, number_of_zeros, '0');
+std::string get_padded_mpi_rank_string(const int mpi_rank_input) {
+    // returns the mpi rank as a string with appropriate padding
+    std::string mpi_rank_string = std::to_string(mpi_rank_input);
+    const unsigned int length_of_mpi_rank_with_padding = 5;
+    const int number_of_zeros = length_of_mpi_rank_with_padding - mpi_rank_string.length();
+    mpi_rank_string.insert(0, number_of_zeros, '0');
 
-//     const std::string prefix = "restart-";
-//     const std::string restart_filename_without_extension = prefix+restart_index_string;
-
-//     return restart_filename_without_extension;
-// }
+    return mpi_rank_string;
+}
 
 template<int dim, int nstate, typename real>
 void SetInitialCondition<dim,nstate,real>::read_values_from_file_and_project(
         std::shared_ptr < PHiLiP::DGBase<dim,real> > &dg,
-        const std::string filename_with_extension) 
+        const std::string /*filename_with_extension*/) 
 {
     dealii::ConditionalOStream pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD)==0);
-    // // (1) Get filename based on MPI rank
-    // //-------------------------------------------------------------
-    // int mpi_rank = dealii::Utilities::MPI::this_mpi_process(dg->mpi_communicator);
-    // // -- Get padding
-    // std::string mpi_rank_string = std::to_string(mpi_rank);
-    // const unsigned int length_of_index_with_padding = 5;
-    // const int number_of_zeros = length_of_index_with_padding - mpi_rank_string.length();
-    // mpi_rank_string.insert(0, number_of_zeros, '0');
-    // // -- Assemble filename string
-    // const std::string prefix = "setup-";
-    // const std::string filename_without_extension = prefix+mpi_rank_string;
-    // const std::string filename_without_extension = std::string("dhit_setup");
-    const std::string filename = filename_with_extension;//filename_without_extension + std::string(".dat");
+    
+    // (1) Get filename based on MPI rank
+    //-------------------------------------------------------------
+    const int mpi_rank = dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD);
+    // -- Get padding
+    const std::string mpi_rank_string = get_padded_mpi_rank_string(mpi_rank);
+    // -- Assemble filename string
+    const std::string prefix = "/home/julien/Codes/DHIT/example/setup_philip-";
+    const std::string filename_without_extension = prefix+mpi_rank_string;
+    const std::string filename = filename_without_extension + std::string(".dat");
     //-------------------------------------------------------------
 
     // (2) Read file
@@ -204,7 +197,6 @@ void SetInitialCondition<dim,nstate,real>::read_values_from_file_and_project(
                 
                 // -- get point
                 dealii::Point<dim> current_point_read_from_file;
-                // std::vector<double> current_point_read_from_file(dim);
                 std::string dummy_line = line;
                 current_point_read_from_file[0] = std::stod(dummy_line,&sz1);
                 for(int i=1; i<dim; ++i) {
@@ -214,7 +206,7 @@ void SetInitialCondition<dim,nstate,real>::read_values_from_file_and_project(
                 }
                 if(qpoint.distance(current_point_read_from_file) > 1.0e-14) {
                     pcout << "ERROR: Distance between points is " << qpoint.distance(current_point_read_from_file)
-                              << ".\n Aborting..." << std::endl;
+                          << ".\n Aborting..." << std::endl;
                     std::abort();
                 }
 
@@ -223,7 +215,7 @@ void SetInitialCondition<dim,nstate,real>::read_values_from_file_and_project(
                 const int current_state_read_from_file = (int) std::stod(dummy_line,&sz1);
                 if(istate != current_state_read_from_file) {
                     pcout << "ERROR: Expecting to read state " << istate << " but reading state " 
-                              << current_state_read_from_file << ".\n Aborting..." << std::endl;
+                          << current_state_read_from_file << ".\n Aborting..." << std::endl;
                     std::abort();
                 }
                 // -- get initial condition value

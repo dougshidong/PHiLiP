@@ -10,13 +10,13 @@ RKTableauBase<dim,real, MeshType> :: RKTableauBase ()
 {}
 
 template <int dim, typename real, typename MeshType> 
-double RKTableauBase<dim,real, MeshType> :: a (int i, int j)
+double RKTableauBase<dim,real, MeshType> :: a (const int i, const int j) const
 {
     return butcher_tableau_a[i][j];
 }
 
 template <int dim, typename real, typename MeshType> 
-double RKTableauBase<dim,real, MeshType> :: b (int i)
+double RKTableauBase<dim,real, MeshType> :: b (const int i) const
 {
     return butcher_tableau_b[i];
 }

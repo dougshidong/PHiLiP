@@ -17,10 +17,11 @@ template <int dim, typename real, typename MeshType>
 std::shared_ptr<ODESolverBase<dim,real,MeshType>> ODESolverFactory<dim,real,MeshType>::create_ODESolver(std::shared_ptr< DGBase<dim,real,MeshType> > dg_input)
 {
     using ODEEnum = Parameters::ODESolverParam::ODESolverEnum;
-    ODEEnum ode_solver_type = dg_input->all_parameters->ode_solver_param.ode_solver_type;
-    if(ode_solver_type == ODEEnum::runge_kutta_solver)         return create_RungeKuttaODESolver(dg_input);
-    if(ode_solver_type == ODEEnum::rrk_explicit_solver)        return create_RungeKuttaODESolver(dg_input);
-    if(ode_solver_type == ODEEnum::implicit_solver)            return std::make_shared<ImplicitODESolver<dim,real,MeshType>>(dg_input);
+    const ODEEnum ode_solver_type = dg_input->all_parameters->ode_solver_param.ode_solver_type;
+    if((ode_solver_type == ODEEnum::runge_kutta_solver)||(ode_solver_type == ODEEnum::rrk_explicit_solver))     
+        return create_RungeKuttaODESolver(dg_input);
+    if(ode_solver_type == ODEEnum::implicit_solver)         
+        return std::make_shared<ImplicitODESolver<dim,real,MeshType>>(dg_input);
     else {
         display_error_ode_solver_factory(ode_solver_type, false);
         return nullptr;
@@ -31,9 +32,11 @@ template <int dim, typename real, typename MeshType>
 std::shared_ptr<ODESolverBase<dim,real,MeshType>> ODESolverFactory<dim,real,MeshType>::create_ODESolver(std::shared_ptr< DGBase<dim,real,MeshType> > dg_input, std::shared_ptr<ProperOrthogonalDecomposition::PODBase<dim>> pod)
 {
     using ODEEnum = Parameters::ODESolverParam::ODESolverEnum;
-    ODEEnum ode_solver_type = dg_input->all_parameters->ode_solver_param.ode_solver_type;
-    if(ode_solver_type == ODEEnum::pod_galerkin_solver) return std::make_shared<PODGalerkinODESolver<dim,real,MeshType>>(dg_input, pod);
-    if(ode_solver_type == ODEEnum::pod_petrov_galerkin_solver) return std::make_shared<PODPetrovGalerkinODESolver<dim,real,MeshType>>(dg_input, pod);
+    const ODEEnum ode_solver_type = dg_input->all_parameters->ode_solver_param.ode_solver_type;
+    if(ode_solver_type == ODEEnum::pod_galerkin_solver)
+        return std::make_shared<PODGalerkinODESolver<dim,real,MeshType>>(dg_input, pod);
+    if(ode_solver_type == ODEEnum::pod_petrov_galerkin_solver) 
+        return std::make_shared<PODPetrovGalerkinODESolver<dim,real,MeshType>>(dg_input, pod);
     else {
         display_error_ode_solver_factory(ode_solver_type, true);
         return nullptr;
@@ -44,9 +47,10 @@ template <int dim, typename real, typename MeshType>
 std::shared_ptr<ODESolverBase<dim,real,MeshType>> ODESolverFactory<dim,real,MeshType>::create_ODESolver_manual(Parameters::ODESolverParam::ODESolverEnum ode_solver_type, std::shared_ptr< DGBase<dim,real,MeshType> > dg_input)
 {
     using ODEEnum = Parameters::ODESolverParam::ODESolverEnum;
-    if(ode_solver_type == ODEEnum::runge_kutta_solver)         return create_RungeKuttaODESolver(dg_input);
-    if(ode_solver_type == ODEEnum::rrk_explicit_solver)        return create_RungeKuttaODESolver(dg_input);
-    if(ode_solver_type == ODEEnum::implicit_solver)            return std::make_shared<ImplicitODESolver<dim,real,MeshType>>(dg_input);
+    if((ode_solver_type == ODEEnum::runge_kutta_solver)||(ode_solver_type == ODEEnum::rrk_explicit_solver))     
+        return create_RungeKuttaODESolver(dg_input);
+    if(ode_solver_type == ODEEnum::implicit_solver)         
+        return std::make_shared<ImplicitODESolver<dim,real,MeshType>>(dg_input);
     else {
         display_error_ode_solver_factory(ode_solver_type, false);
         return nullptr;
@@ -57,8 +61,10 @@ template <int dim, typename real, typename MeshType>
 std::shared_ptr<ODESolverBase<dim,real,MeshType>> ODESolverFactory<dim,real,MeshType>::create_ODESolver_manual(Parameters::ODESolverParam::ODESolverEnum ode_solver_type, std::shared_ptr< DGBase<dim,real,MeshType> > dg_input, std::shared_ptr<ProperOrthogonalDecomposition::PODBase<dim>> pod)
 {
     using ODEEnum = Parameters::ODESolverParam::ODESolverEnum;
-    if(ode_solver_type == ODEEnum::pod_galerkin_solver) return std::make_shared<PODGalerkinODESolver<dim,real,MeshType>>(dg_input, pod);
-    if(ode_solver_type == ODEEnum::pod_petrov_galerkin_solver) return std::make_shared<PODPetrovGalerkinODESolver<dim,real,MeshType>>(dg_input, pod);
+    if(ode_solver_type == ODEEnum::pod_galerkin_solver) 
+        return std::make_shared<PODGalerkinODESolver<dim,real,MeshType>>(dg_input, pod);
+    if(ode_solver_type == ODEEnum::pod_petrov_galerkin_solver) 
+        return std::make_shared<PODPetrovGalerkinODESolver<dim,real,MeshType>>(dg_input, pod);
     else {
         display_error_ode_solver_factory(ode_solver_type, true);
         return nullptr;
@@ -105,31 +111,27 @@ std::shared_ptr<ODESolverBase<dim,real,MeshType>> ODESolverFactory<dim,real,Mesh
 
     std::shared_ptr<RKTableauBase<dim,real,MeshType>> rk_tableau = create_RKTableau(dg_input);
    
-
     const int n_rk_stages = dg_input->all_parameters->ode_solver_param.n_rk_stages;
     using ODEEnum = Parameters::ODESolverParam::ODESolverEnum;
-    ODEEnum ode_solver_type = dg_input->all_parameters->ode_solver_param.ode_solver_type;
+    const ODEEnum ode_solver_type = dg_input->all_parameters->ode_solver_param.ode_solver_type;
     if (ode_solver_type == ODEEnum::runge_kutta_solver) {
-
-        pcout << "Creating Runge Kutta ODE Solver";
+        // Hard-coded templating of n_rk_stages because it is not known at compile time
+        pcout << "Creating Runge Kutta ODE Solver with " 
+              << n_rk_stages << "stage(s)..." << std::endl;
         if (n_rk_stages == 1){
-            pcout << " with 1 stage..." << std::endl;
             return std::make_shared<RungeKuttaODESolver<dim,real,1,MeshType>>(dg_input,rk_tableau);
         }
         if (n_rk_stages == 2){
-            pcout << " with 2 stages..." << std::endl;
             return std::make_shared<RungeKuttaODESolver<dim,real,2,MeshType>>(dg_input,rk_tableau);
         }
         if (n_rk_stages == 3){
-            pcout << " with 3 stages..." << std::endl;
             return std::make_shared<RungeKuttaODESolver<dim,real,3,MeshType>>(dg_input,rk_tableau);
         }
         if (n_rk_stages == 4){
-            pcout << " with 4 stages..." << std::endl;
             return std::make_shared<RungeKuttaODESolver<dim,real,4,MeshType>>(dg_input,rk_tableau);
         }
         else{
-            pcout << "but number of stages was unclear. Aborting..." << std::endl;
+            pcout << "Error: invalid number of stages. Aborting..." << std::endl;
             std::abort();
             return nullptr;
         }
@@ -141,34 +143,31 @@ std::shared_ptr<ODESolverBase<dim,real,MeshType>> ODESolverFactory<dim,real,Mesh
             const PDEEnum pde_type = dg_input->all_parameters->pde_type;
             const bool use_inviscid_burgers = (pde_type == PDEEnum::burgers_inviscid);
             if (use_collocated_nodes && use_inviscid_burgers){
-                pcout << "Creating Relaxation Runge Kutta ODE Solver";
+                pcout << "Creating Relaxation Runge Kutta ODE Solver with " 
+                      << n_rk_stages << "stage(s)..." << std::endl;
                 if (n_rk_stages == 1){
-                    pcout << " with 1 stage..." << std::endl;
                     return std::make_shared<RRKExplicitODESolver<dim,real,1,MeshType>>(dg_input,rk_tableau);
                 }
                 if (n_rk_stages == 2){
-                    pcout << " with 2 stages..." << std::endl;
                     return std::make_shared<RRKExplicitODESolver<dim,real,2,MeshType>>(dg_input,rk_tableau);
                 }
                 if (n_rk_stages == 3){
-                    pcout << " with 3 stages..." << std::endl;
                     return std::make_shared<RRKExplicitODESolver<dim,real,3,MeshType>>(dg_input,rk_tableau);
                 }
                 if (n_rk_stages == 4){
-                    pcout << " with 4 stages..." << std::endl;
                     return std::make_shared<RRKExplicitODESolver<dim,real,4,MeshType>>(dg_input,rk_tableau);
                 }
                 else{
-                    pcout << "but number of stages was unclear. Aborting..." << std::endl;
+                    pcout << "Error: invalid number of stages. Aborting..." << std::endl;
                     std::abort();
                     return nullptr;
                 }
             } else {
-                pcout << "RRK has only been tested on collocated nodes with Burgers. Aborting..,"<<std::endl;
+                pcout << "Error: RRK has only been tested on collocated nodes with Burgers. Aborting..."<<std::endl;
                 std::abort();
             }
         } else {
-            pcout << "RRK has only been tested on 1D calculations. Aborting..,"<<std::endl;
+            pcout << "Error: RRK has only been tested on 1D calculations. Aborting..."<<std::endl;
             std::abort();
         }
     }
@@ -194,7 +193,7 @@ std::shared_ptr<RKTableauBase<dim,real,MeshType>> ODESolverFactory<dim,real,Mesh
         ODEEnum ode_solver_type = dg_input->all_parameters->ode_solver_param.ode_solver_type;
         if (ode_solver_type == ODEEnum::rrk_explicit_solver) {
             //forward Euler is invalid for RRK: sum(b_i*a_ij) = 0 (see Lemma 2.1 in Ketcheson 2019)
-            pcout << "RRK is not valid for Forward Euler. Aborting..." << std::endl;
+            pcout << "Error: RRK is not valid for Forward Euler. Aborting..." << std::endl;
             std::abort();
             return nullptr;
         } else return std::make_shared<EulerExplicit<dim, real, MeshType>>  (n_rk_stages);
@@ -207,18 +206,18 @@ std::shared_ptr<RKTableauBase<dim,real,MeshType>> ODESolverFactory<dim,real,Mesh
             if (rk_method == RKMethodEnum::euler_im)    return std::make_shared<EulerImplicit<dim, real, MeshType>>  (n_rk_stages);
             if (rk_method == RKMethodEnum::dirk_2_im)   return std::make_shared<DIRK2Implicit<dim, real, MeshType>>  (n_rk_stages);
             else {
-                pcout << "Invalid RK method. Aborting..." << std::endl;
+                pcout << "Error: invalid RK method. Aborting..." << std::endl;
                 std::abort();
                 return nullptr;
             }
         } else {
-            pcout << "Implicit RK only tested for 1D advection and Burgers'. Aborting..."  << std::endl;
+            pcout << "Error: implicit RK only tested for 1D advection and Burgers'. Aborting..."  << std::endl;
             std::abort();
             return nullptr;
         }
     }
     else {
-        pcout << "Invalid RK method, or attempted to use implicit RK with dim > 1. Aborting..." << std::endl;
+        pcout << "Error: invalid RK method, or attempted to use implicit RK with dim > 1. Aborting..." << std::endl;
         std::abort();
         return nullptr;
     }

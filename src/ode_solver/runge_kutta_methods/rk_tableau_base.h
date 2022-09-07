@@ -24,10 +24,10 @@ public:
     ~RKTableauBase() {};
 
     /// Returns Butcher tableau "a" coefficient at position [i][j]
-    virtual double a(int i, int j);
+    double a(const int i, const int j) const;
 
     /// Returns Butcher tableau "b" coefficient at position [i]
-    virtual double b(int i);
+    double b(const int i) const;
 
 protected:
 

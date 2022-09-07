@@ -28,7 +28,9 @@ set(TESTS_SOURCE
     reduced_order.cpp
     time_refinement_study.cpp
     time_refinement_study_reference.cpp
-    burgers_energy_conservation_rrk.cpp)
+    burgers_energy_conservation_rrk.cpp
+    decaying_homogeneous_isotropic_turbulence_init_check.cpp
+    )
 
 foreach(dim RANGE 1 3)
     # Output library

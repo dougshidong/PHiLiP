@@ -1,6 +1,7 @@
 #include "decaying_homogeneous_isotropic_turbulence_init_check.h"
 #include "flow_solver/flow_solver_factory.h"
 #include "flow_solver/flow_solver_cases/periodic_turbulence.h"
+#include "physics/initial_conditions/set_initial_condition.h"
 #include <deal.II/base/table_handler.h>
 #include <algorithm>
 #include <iterator>
@@ -153,9 +154,11 @@ int DecayingHomogeneousIsotropicTurbulenceInitCheck<dim, nstate>::run_test() con
     std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(&parameters, parameter_handler);
 
     // read the setup.dat file; have a condition that checks that the DOFs are the same by reading the first line
-    const std::string dhit_setup_file = "/home/julien/Codes/DHIT/example/setup.dat";
-    read_data_file(dhit_setup_file,flow_solver->dg);
-    // return 0;
+    const std::string dhit_setup_file = "/home/julien/Codes/DHIT/example/setup_philip.dat";
+    // read_data_file(dhit_setup_file,flow_solver->dg);
+    SetInitialCondition<dim,nstate,double>::read_values_from_file_and_project(flow_solver->dg, dhit_setup_file);
+    flow_solver->dg->output_results_vtk(9999);
+    return 0;
 
     // write the reordering to a data table 
 

@@ -33,7 +33,8 @@ void SetInitialCondition<dim,nstate,real>::set_initial_condition(
         //     std::abort();
         // }
         // (void) initial_condition_function_input;
-        SetInitialCondition<dim,nstate,real>::read_values_from_file_and_project(dg_input);
+        const std::string dummy = "dummy_string";
+        SetInitialCondition<dim,nstate,real>::read_values_from_file_and_project(dg_input,dummy);
     } 
 }
 
@@ -115,7 +116,8 @@ void SetInitialCondition<dim,nstate,real>::project_initial_condition(
 
 template<int dim, int nstate, typename real>
 void SetInitialCondition<dim,nstate,real>::read_values_from_file_and_project(
-        std::shared_ptr < PHiLiP::DGBase<dim,real> > &dg) 
+        std::shared_ptr < PHiLiP::DGBase<dim,real> > &dg,
+        const std::string filename_with_extension) 
 {
     dealii::ConditionalOStream pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD)==0);
     // // (1) Get filename based on MPI rank
@@ -129,8 +131,8 @@ void SetInitialCondition<dim,nstate,real>::read_values_from_file_and_project(
     // // -- Assemble filename string
     // const std::string prefix = "setup-";
     // const std::string filename_without_extension = prefix+mpi_rank_string;
-    const std::string filename_without_extension = std::string("dhit_setup");
-    const std::string filename = filename_without_extension + std::string(".dat");
+    // const std::string filename_without_extension = std::string("dhit_setup");
+    const std::string filename = filename_with_extension;//filename_without_extension + std::string(".dat");
     //-------------------------------------------------------------
 
     // (2) Read file

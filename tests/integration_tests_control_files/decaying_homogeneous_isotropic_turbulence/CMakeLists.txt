@@ -12,3 +12,8 @@ add_test(NAME MPI_DHIT_INIT_CHECK
          COMMAND mpirun -np ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_3D -i ${CMAKE_CURRENT_BINARY_DIR}/dhit_init_check.prm
          WORKING_DIRECTORY ${TEST_OUTPUT_DIR})
 # ----------------------------------------
+configure_file(dhit_init_check.prm dhit_init_check.prm COPYONLY)
+add_test(NAME SERIAL_DHIT_INIT_CHECK
+         COMMAND mpirun -np 1 ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_3D -i ${CMAKE_CURRENT_BINARY_DIR}/dhit_init_check.prm
+         WORKING_DIRECTORY ${TEST_OUTPUT_DIR})
+# ----------------------------------------

@@ -7,8 +7,8 @@ set test_type = taylor_green_vortex_restart_check
 set pde_type = navier_stokes
 
 # DG formulation
-set use_weak_form = true
-# set use_collocated_nodes = true
+set use_weak_form = false
+set use_collocated_nodes = true
 
 # Note: this was added to turn off check_same_coords() -- has no other function when dim!=1
 set use_periodic_bc = true
@@ -46,7 +46,7 @@ subsection flow_solver
   set final_time = 1.2566370614400000e-02
   set courant_friedrich_lewy_number = 0.003
   set unsteady_data_table_filename = tgv_kinetic_energy_vs_time_table_for_restart_check
-  set output_restart_files = true
+  set output_restart_files = false
   subsection grid
     set grid_left_bound = 0.0
     set grid_right_bound = 6.28318530717958623200

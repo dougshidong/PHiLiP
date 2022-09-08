@@ -187,7 +187,7 @@ void DualWeightedResidualError<dim, nstate, real, MeshType>::coarse_to_fine()
         std::abort();
     }
     
-    unsigned int no_of_cells_before_changing_p = this->dg->triangulation->n_active_cells();
+    [[maybe_unused]] unsigned int no_of_cells_before_changing_p = this->dg->triangulation->n_active_cells(); // used in debug mode (in assert).  
 
     dealii::IndexSet locally_owned_dofs, locally_relevant_dofs;
     locally_owned_dofs =  this->dg->dof_handler.locally_owned_dofs();
@@ -229,7 +229,7 @@ void DualWeightedResidualError<dim, nstate, real, MeshType>::coarse_to_fine()
     
     this->dg->solution.update_ghost_values();
     
-    unsigned int no_of_cells_after_changing_p = this->dg->triangulation->n_active_cells();
+    [[maybe_unused]] unsigned int no_of_cells_after_changing_p = this->dg->triangulation->n_active_cells(); // It's used when compiled in debug mode (in assert). 
 
     AssertDimension(no_of_cells_before_changing_p, no_of_cells_after_changing_p);
 
@@ -239,7 +239,7 @@ void DualWeightedResidualError<dim, nstate, real, MeshType>::coarse_to_fine()
 template <int dim, int nstate, typename real, typename MeshType>
 void DualWeightedResidualError<dim, nstate, real, MeshType>::fine_to_coarse()
 {
-    unsigned int no_of_cells_before_changing_p = this->dg->triangulation->n_active_cells();
+    [[maybe_unused]] unsigned int no_of_cells_before_changing_p = this->dg->triangulation->n_active_cells(); // Used in assert (i.e remains unused in Release mode).
     this->dg->high_order_grid->prepare_for_coarsening_and_refinement();
     this->dg->triangulation->prepare_coarsening_and_refinement();
 
@@ -259,7 +259,7 @@ void DualWeightedResidualError<dim, nstate, real, MeshType>::fine_to_coarse()
 
     this->dg->solution = solution_coarse;
     
-    unsigned int no_of_cells_after_changing_p = this->dg->triangulation->n_active_cells();
+    [[maybe_unused]] unsigned int no_of_cells_after_changing_p = this->dg->triangulation->n_active_cells(); // Used when compiled in debug mode (in assert).
 
     AssertDimension(no_of_cells_before_changing_p, no_of_cells_after_changing_p);
 

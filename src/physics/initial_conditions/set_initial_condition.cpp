@@ -16,26 +16,27 @@ void SetInitialCondition<dim,nstate,real>::set_initial_condition(
         std::shared_ptr< PHiLiP::DGBase<dim, real> > dg_input,
         const Parameters::AllParameters *const parameters_input)
 {
+    dealii::ConditionalOStream pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD)==0);
+
     // Set initial condition depending on the method
     using SetInitialConditionMethodEnum = Parameters::FlowSolverParam::SetInitialConditionMethod;
     const SetInitialConditionMethodEnum set_initial_condition_method = parameters_input->flow_solver_param.set_initial_condition_method;
-
+    
+    pcout << "Initializing solution by " << std::flush;
     if(set_initial_condition_method == SetInitialConditionMethodEnum::interpolate_initial_condition_function) {
+        pcout << "interpolating the initial condition function... " << std::flush;
         // for non-curvilinear
         SetInitialCondition<dim,nstate,real>::interpolate_initial_condition(initial_condition_function_input, dg_input);
     } else if(set_initial_condition_method == SetInitialConditionMethodEnum::project_initial_condition_function) {
+        pcout << "projecting the initial condition function... " << std::flush;
         // for curvilinear
         SetInitialCondition<dim,nstate,real>::project_initial_condition(initial_condition_function_input, dg_input);
     } else if(set_initial_condition_method == SetInitialConditionMethodEnum::read_values_from_file_and_project) {
-        // if(parameters_input->flow_solver_param.flow_case_type != Parameters::FlowSolverParam::FlowCaseType::decaying_homogeneous_isotropic_turbulence) {
-        //     dg_input->pcout << "ERROR: read_values_from_file_and_project() has only been tested for "
-        //                        "the decaying_homogeneous_isotropic_turbulence flow_case_type.\n Aborting..." << std::endl;
-        //     std::abort();
-        // }
-        // (void) initial_condition_function_input;
-        const std::string dummy = "dummy_string";
-        SetInitialCondition<dim,nstate,real>::read_values_from_file_and_project(dg_input,dummy);
-    } 
+        const std::string input_filename_prefix = parameters_input->flow_solver_param.input_flow_setup_filename_prefix;
+        pcout << "reading values from file prefix  " << input_filename_prefix << " and projecting... " << std::flush;
+        SetInitialCondition<dim,nstate,real>::read_values_from_file_and_project(dg_input,input_filename_prefix);
+    }
+    pcout << "done." << std::endl;
 }
 
 template<int dim, int nstate, typename real>
@@ -113,18 +114,17 @@ std::string get_padded_mpi_rank_string(const int mpi_rank_input) {
 template<int dim, int nstate, typename real>
 void SetInitialCondition<dim,nstate,real>::read_values_from_file_and_project(
         std::shared_ptr < PHiLiP::DGBase<dim,real> > &dg,
-        const std::string /*filename_with_extension*/) 
+        const std::string input_filename_prefix) 
 {
     dealii::ConditionalOStream pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD)==0);
     
     // (1) Get filename based on MPI rank
     //-------------------------------------------------------------
     const int mpi_rank = dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD);
-    // -- Get padding
+    // -- Get padded mpi rank string
     const std::string mpi_rank_string = get_padded_mpi_rank_string(mpi_rank);
     // -- Assemble filename string
-    const std::string prefix = "/home/julien/Codes/DHIT/example/setup_philip-";
-    const std::string filename_without_extension = prefix+mpi_rank_string;
+    const std::string filename_without_extension = input_filename_prefix + std::string("-") + mpi_rank_string;
     const std::string filename = filename_without_extension + std::string(".dat");
     //-------------------------------------------------------------
 

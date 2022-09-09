@@ -3,7 +3,7 @@
 # Number of dimensions
 
 set dimension = 3
-set test_type = taylor_green_vortex_restart_check
+set test_type = homogeneous_isotropic_turbulence_initialization_check
 set pde_type = navier_stokes
 
 # DG formulation
@@ -41,11 +41,11 @@ subsection navier_stokes
 end
 
 subsection flow_solver
-  set flow_case_type = taylor_green_vortex
+  set flow_case_type = decaying_homogeneous_isotropic_turbulence
   set poly_degree = 5
   set final_time = 1.2566370614400000e-02
   set courant_friedrich_lewy_number = 0.003
-  set unsteady_data_table_filename = tgv_kinetic_energy_vs_time_table_for_restart_check
+  set unsteady_data_table_filename = dhit_init_check_mpi
   set output_restart_files = false
   subsection grid
     set grid_left_bound = 0.0
@@ -56,4 +56,6 @@ subsection flow_solver
     set expected_kinetic_energy_at_final_time = 1.2073987162646824e-01
     set expected_theoretical_dissipation_rate_at_final_time = 4.5422264559968770e-04
   end
+  set set_initial_condition_method = read_values_from_file_and_project
+  set input_flow_setup_filename_prefix = setup_files/4proc/setup_philip
 end

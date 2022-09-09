@@ -75,12 +75,12 @@ FlowSolver<dim, nstate>::FlowSolver(
         dg->solution = solution_no_ghost; //< assignment
 #endif
     } else {
-        // Initialize solution from initial_condition_function
-        pcout << "Initializing solution with initial condition function... " << std::flush;
+        // Initialize solution
         SetInitialCondition<dim,nstate,double>::set_initial_condition(flow_solver_case->initial_condition_function, dg, &all_param);
     }
     dg->solution.update_ghost_values();
-    pcout << "done." << std::endl;
+    
+    // Allocate ODE solver after initializing DG
     ode_solver->allocate_ode_system();
 
     // output a copy of the input parameters file

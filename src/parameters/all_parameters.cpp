@@ -158,6 +158,7 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       " dual_weighted_residual_mesh_adaptation | "
                       " taylor_green_vortex_energy_check | "
                       " taylor_green_vortex_restart_check | "
+                      " homogeneous_isotropic_turbulence_initialization_check | "
                       " time_refinement_study | "
                       " time_refinement_study_reference | "
                       " burgers_energy_conservation_rrk"),
@@ -190,6 +191,7 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       "  dual_weighted_residual_mesh_adaptation | "
                       "  taylor_green_vortex_energy_check | "
                       "  taylor_green_vortex_restart_check | "
+                      "  homogeneous_isotropic_turbulence_initialization_check | "
                       "  time_refinement_study | "
                       "  time_refinement_study_reference | "
                       "  burgers_energy_conservation_rrk>.");
@@ -321,6 +323,8 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     else if (test_string == "dual_weighted_residual_mesh_adaptation")   { test_type = dual_weighted_residual_mesh_adaptation; }
     else if (test_string == "taylor_green_vortex_energy_check")         { test_type = taylor_green_vortex_energy_check; }
     else if (test_string == "taylor_green_vortex_restart_check")        { test_type = taylor_green_vortex_restart_check; }
+    else if (test_string == "homogeneous_isotropic_turbulence_initialization_check")
+                                                                        { test_type = homogeneous_isotropic_turbulence_initialization_check; }
     else if (test_string == "time_refinement_study")                    { test_type = time_refinement_study; }
     else if (test_string == "time_refinement_study_reference")          { test_type = time_refinement_study_reference; }
     else if (test_string == "burgers_energy_conservation_rrk")          { test_type = burgers_energy_conservation_rrk; }

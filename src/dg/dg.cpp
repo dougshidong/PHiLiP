@@ -511,8 +511,9 @@ dealii::Point<dim> DGBase<dim,real,MeshType>::coordinates_of_highest_refined_cel
 
     if(check_for_p_refined_cell)
     {
-        for (auto cell = dof_handler.begin_active(); cell!= dof_handler.end(); ++cell) 
+        for (const auto &cell : dof_handler.active_cell_iterators()) 
         {
+            if(!cell->is_locally_owned())  continue;
             current_cell_polynomial_order = cell->active_fe_index();
             if ((current_cell_polynomial_order > max_cell_polynomial_order) && (cell->is_locally_owned()))
             {
@@ -523,8 +524,9 @@ dealii::Point<dim> DGBase<dim,real,MeshType>::coordinates_of_highest_refined_cel
     }
     else
     {
-        for (auto cell = high_order_grid->dof_handler_grid.begin_active(); cell!= high_order_grid->dof_handler_grid.end(); ++cell) 
+        for (const auto &cell : high_order_grid->dof_handler_grid.active_cell_iterators()) 
         {
+            if(!cell->is_locally_owned())  continue;
             current_cell_diameter = cell->diameter(); // For future dealii version: current_cell_diameter = cell->diameter(*(mapping_fe_field));
             if ((min_diameter_local > current_cell_diameter) && (cell->is_locally_owned()))
             {
@@ -779,7 +781,7 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
                 //if ( compute_dRdW || compute_dRdX || compute_d2R ) {
                     const auto metric_neighbor_cell = current_metric_cell->periodic_neighbor(iface);
                     metric_neighbor_cell->get_dof_indices(neighbor_metric_dofs_indices);
-                    const dealii::Quadrature<dim-1> &used_face_quadrature = face_quadrature_collection[i_quad_n]; // or i_quad
+                    const dealii::Quadrature<dim-1> &used_face_quadrature = face_quadrature_collection[(i_quad_n > i_quad) ? i_quad_n : i_quad]; // Use larger quadrature order on the face
 
                     std::pair<unsigned int, int> face_subface_int = std::make_pair(iface, -1);
                     std::pair<unsigned int, int> face_subface_ext = std::make_pair(neighbor_iface, -1);
@@ -884,7 +886,7 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
                 const auto metric_neighbor_cell = current_metric_cell->neighbor(iface);
                 metric_neighbor_cell->get_dof_indices(neighbor_metric_dofs_indices);
 
-                const dealii::Quadrature<dim-1> &used_face_quadrature = face_quadrature_collection[i_quad_n]; // or i_quad
+                const dealii::Quadrature<dim-1> &used_face_quadrature = face_quadrature_collection[(i_quad_n > i_quad) ? i_quad_n : i_quad]; // Use larger quadrature order on the face
                 std::pair<unsigned int, int> face_subface_int = std::make_pair(iface, -1);
                 std::pair<unsigned int, int> face_subface_ext = std::make_pair(neighbor_iface, (int)neighbor_i_subface);
 
@@ -968,7 +970,7 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
             //if ( compute_dRdW || compute_dRdX || compute_d2R ) {
                 const auto metric_neighbor_cell = current_metric_cell->neighbor_or_periodic_neighbor(iface);
                 metric_neighbor_cell->get_dof_indices(neighbor_metric_dofs_indices);
-                const dealii::Quadrature<dim-1> &used_face_quadrature = face_quadrature_collection[i_quad_n]; // or i_quad
+                const dealii::Quadrature<dim-1> &used_face_quadrature = face_quadrature_collection[(i_quad_n > i_quad) ? i_quad_n : i_quad]; // Use larger quadrature order on the face
                 std::pair<unsigned int, int> face_subface_int = std::make_pair(iface, -1);
                 std::pair<unsigned int, int> face_subface_ext = std::make_pair(neighbor_iface, -1);
                 const auto face_data_set_int = dealii::QProjector<dim>::DataSetDescriptor::face (
@@ -1770,11 +1772,11 @@ void DGBase<dim,real,MeshType>::output_face_results_vtk (const unsigned int cycl
     const std::string name = "subdomain";
     data_out.add_data_vector(subdomain, name, dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim-1,dim>::DataVectorType::type_cell_data);
 
-    //if (all_parameters->add_artificial_dissipation) {
+    if (all_parameters->artificial_dissipation_param.add_artificial_dissipation) {
         data_out.add_data_vector(artificial_dissipation_coeffs, std::string("artificial_dissipation_coeffs"), dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim-1,dim>::DataVectorType::type_cell_data);
         data_out.add_data_vector(artificial_dissipation_se, std::string("artificial_dissipation_se"), dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim-1,dim>::DataVectorType::type_cell_data);
-    //}
-    data_out.add_data_vector(dof_handler_artificial_dissipation, artificial_dissipation_c0, std::string("artificial_dissipation"));
+        data_out.add_data_vector(dof_handler_artificial_dissipation, artificial_dissipation_c0, std::string("artificial_dissipation_c0"));
+    }
 
     data_out.add_data_vector(max_dt_cell, std::string("max_dt_cell"), dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim-1,dim>::DataVectorType::type_cell_data);
 
@@ -1890,11 +1892,11 @@ void DGBase<dim,real,MeshType>::output_results_vtk (const unsigned int cycle)// 
     }
     data_out.add_data_vector(subdomain, "subdomain", dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim>::DataVectorType::type_cell_data);
 
-    //if (all_parameters->add_artificial_dissipation) {
+    if (all_parameters->artificial_dissipation_param.add_artificial_dissipation) {
         data_out.add_data_vector(artificial_dissipation_coeffs, "artificial_dissipation_coeffs", dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim>::DataVectorType::type_cell_data);
         data_out.add_data_vector(artificial_dissipation_se, "artificial_dissipation_se", dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim>::DataVectorType::type_cell_data);
-    //}
-    data_out.add_data_vector(dof_handler_artificial_dissipation, artificial_dissipation_c0, "artificial_dissipation");
+        data_out.add_data_vector(dof_handler_artificial_dissipation, artificial_dissipation_c0, "artificial_dissipation_c0");
+    }
 
     data_out.add_data_vector(max_dt_cell, "max_dt_cell", dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim>::DataVectorType::type_cell_data);
 
@@ -2018,24 +2020,11 @@ void DGBase<dim,real,MeshType>::allocate_system ()
     ghost_dofs.subtract_set(locally_owned_dofs);
     //dealii::DoFTools::extract_locally_relevant_dofs(dof_handler, locally_relevant_dofs);
 
-    // TO DO: QUESTION FOR PRANSHUL / DOUG:
-    /* Should all these aritifical dissipation variables be allocated here when artificial dissipation
-       isn't being used? If so, consider moving this allocation section to a void function called
-       allocate_artificial_dissipation() */
     dof_handler_artificial_dissipation.distribute_dofs(fe_q_artificial_dissipation);
-    const dealii::IndexSet locally_owned_dofs_artificial_dissipation = dof_handler_artificial_dissipation.locally_owned_dofs();
 
-    dealii::IndexSet ghost_dofs_artificial_dissipation;
-    dealii::IndexSet locally_relevant_dofs_artificial_dissipation;
-    dealii::DoFTools::extract_locally_relevant_dofs(dof_handler_artificial_dissipation, ghost_dofs_artificial_dissipation);
-    locally_relevant_dofs_artificial_dissipation = ghost_dofs_artificial_dissipation;
-    ghost_dofs_artificial_dissipation.subtract_set(locally_owned_dofs_artificial_dissipation);
-
-    artificial_dissipation_c0.reinit(locally_owned_dofs_artificial_dissipation, ghost_dofs_artificial_dissipation, mpi_communicator);
-    artificial_dissipation_c0.update_ghost_values();
-
-    artificial_dissipation_coeffs.reinit(triangulation->n_active_cells());
-    artificial_dissipation_se.reinit(triangulation->n_active_cells());
+    // Allocates artificial dissipation variables when required.
+    if(all_parameters->artificial_dissipation_param.add_artificial_dissipation) allocate_artificial_dissipation(); 
+    
     max_dt_cell.reinit(triangulation->n_active_cells());
     cell_volume.reinit(triangulation->n_active_cells());
 
@@ -2123,6 +2112,25 @@ void DGBase<dim,real,MeshType>::allocate_system ()
     dual_d2R.reinit(dual);
     dual_d2R *= 0.0;
 }
+
+template <int dim, typename real, typename MeshType>
+void DGBase<dim,real,MeshType>::allocate_artificial_dissipation ()
+{
+    const dealii::IndexSet locally_owned_dofs_artificial_dissipation = dof_handler_artificial_dissipation.locally_owned_dofs();
+
+    dealii::IndexSet ghost_dofs_artificial_dissipation;
+    dealii::IndexSet locally_relevant_dofs_artificial_dissipation;
+    dealii::DoFTools::extract_locally_relevant_dofs(dof_handler_artificial_dissipation, ghost_dofs_artificial_dissipation);
+    locally_relevant_dofs_artificial_dissipation = ghost_dofs_artificial_dissipation;
+    ghost_dofs_artificial_dissipation.subtract_set(locally_owned_dofs_artificial_dissipation);
+
+    artificial_dissipation_c0.reinit(locally_owned_dofs_artificial_dissipation, ghost_dofs_artificial_dissipation, mpi_communicator);
+    artificial_dissipation_c0.update_ghost_values();
+
+    artificial_dissipation_coeffs.reinit(triangulation->n_active_cells());
+    artificial_dissipation_se.reinit(triangulation->n_active_cells());
+}
+
 
 template <int dim, typename real, typename MeshType>
 void DGBase<dim,real,MeshType>::allocate_second_derivatives ()

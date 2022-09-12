@@ -173,15 +173,15 @@ add_test(
 )
 
 # Dual Weighted Residual and Convergence Tests
-configure_file(2d_sshock_dual_weighted_residual_convergence_h_adaptation.prm 2d_sshock_dual_weighted_residual_convergence_h_adaptation.prm  COPYONLY)
+configure_file(2d_sshock_dual_weighted_residual_h_adaptation.prm 2d_sshock_dual_weighted_residual_h_adaptation.prm  COPYONLY)
 add_test(
-  NAME MPI_2D_DUAL_WEIGHTED_RESIDUAL_CONVERGENCE_SSHOCK_H_ADAPTATION
-  COMMAND mpirun -n ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_2D -i ${CMAKE_CURRENT_BINARY_DIR}/2d_sshock_dual_weighted_residual_convergence_h_adaptation.prm 
+  NAME MPI_2D_DUAL_WEIGHTED_RESIDUAL_SSHOCK_H_ADAPTATION
+  COMMAND mpirun -n ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_2D -i ${CMAKE_CURRENT_BINARY_DIR}/2d_sshock_dual_weighted_residual_h_adaptation.prm 
   WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )
-configure_file(2d_sshock_dual_weighted_residual_convergence_p_adaptation.prm 2d_sshock_dual_weighted_residual_convergence_p_adaptation.prm  COPYONLY)
+configure_file(2d_sshock_dual_weighted_residual_p_adaptation.prm 2d_sshock_dual_weighted_residual_p_adaptation.prm  COPYONLY)
 add_test(
-  NAME MPI_2D_DUAL_WEIGHTED_RESIDUAL_CONVERGENCE_SSHOCK_P_ADAPTATION
-  COMMAND mpirun -n ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_2D -i ${CMAKE_CURRENT_BINARY_DIR}/2d_sshock_dual_weighted_residual_convergence_p_adaptation.prm 
+  NAME MPI_2D_DUAL_WEIGHTED_RESIDUAL_SSHOCK_P_ADAPTATION
+  COMMAND mpirun -n ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_2D -i ${CMAKE_CURRENT_BINARY_DIR}/2d_sshock_dual_weighted_residual_p_adaptation.prm 
   WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )

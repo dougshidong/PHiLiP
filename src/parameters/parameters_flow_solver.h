@@ -21,7 +21,8 @@ public:
         naca0012,
         burgers_rewienski_snapshot,
         periodic_1D_unsteady,
-        gaussian_bump
+        gaussian_bump,
+        sshock
         };
     FlowCaseType flow_case_type; ///< Selected FlowCaseType from the input file
 

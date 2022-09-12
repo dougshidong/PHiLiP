@@ -230,6 +230,8 @@ InitialConditionFactory<dim,nstate, real>::create_InitialConditionFunction(
         }
     } else if (flow_type == FlowCaseEnum::periodic_1D_unsteady){
         if constexpr (dim==1 && nstate==dim)  return std::make_shared<InitialConditionFunction_1DSine<dim,nstate,real> > ();
+    } else if (flow_type == FlowCaseEnum::sshock) {
+        if constexpr (dim==2 && nstate==1)  return std::make_shared<InitialConditionFunction_Zero<dim,nstate,real> > ();
     } else {
         std::cout << "Invalid Flow Case Type. You probably forgot to add it to the list of flow cases in initial_condition.cpp" << std::endl;
         std::abort();
@@ -251,8 +253,11 @@ template class InitialConditionFunction <PHILIP_DIM, 2, double>;
 template class InitialConditionFunction <PHILIP_DIM, 3, double>;
 template class InitialConditionFunction <PHILIP_DIM, 4, double>;
 template class InitialConditionFunction <PHILIP_DIM, 5, double>;
-template class InitialConditionFactory <PHILIP_DIM, PHILIP_DIM+2, double>;
-template class InitialConditionFactory <PHILIP_DIM, PHILIP_DIM, double>;
+template class InitialConditionFactory <PHILIP_DIM, 1, double>;
+template class InitialConditionFactory <PHILIP_DIM, 2, double>;
+template class InitialConditionFactory <PHILIP_DIM, 3, double>;
+template class InitialConditionFactory <PHILIP_DIM, 4, double>;
+template class InitialConditionFactory <PHILIP_DIM, 5, double>;
 #if PHILIP_DIM==1
 template class InitialConditionFunction_BurgersViscous<PHILIP_DIM, PHILIP_DIM, double>;
 template class InitialConditionFunction_BurgersRewienski<PHILIP_DIM, PHILIP_DIM, double>;

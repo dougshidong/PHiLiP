@@ -182,6 +182,11 @@ private:
      */
     virtual void allocate_dRdX ();
 
+    /// Allocates variables of artificial dissipation.
+    /** It is called by allocate_system() when artificial dissipation is set
+     *  to true in the parameters file.
+     */
+    void allocate_artificial_dissipation();
 
 public:
 

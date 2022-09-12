@@ -6,7 +6,7 @@
 #include <vector>
 #include <sstream>
 #include "reduced_order/pod_basis_offline.h"
-
+#include "mesh/mesh_adaptation.h"
 
 namespace PHiLiP {
 
@@ -338,6 +338,34 @@ void FlowSolver<dim,nstate>::output_restart_files(
 #endif
 
 template <int dim, int nstate>
+void FlowSolver<dim,nstate>::perform_steady_state_mesh_adaptation() const
+{
+    std::unique_ptr<MeshAdaptation<dim,double>> meshadaptation = std::make_unique<MeshAdaptation<dim,double>>(this->dg, &(this->all_param.mesh_adaptation_param));
+    const int total_adaptation_cycles = this->all_param.mesh_adaptation_param.total_mesh_adaptation_cycles;
+    double residual_norm = this->dg->get_residual_l2norm();
+    
+    pcout<<"Running mesh adaptation cycles..."<<std::endl;
+    while (meshadaptation->current_mesh_adaptation_cycle < total_adaptation_cycles)
+    {
+        // Check if steady state solution is being used.
+        if(residual_norm > ode_param.nonlinear_steady_residual_tolerance)
+        {
+            pcout<<"Mesh adaptation is currently implemented for steady state flows and the current residual norm isn't sufficiently low. "
+                 <<"The solution has not converged. If p or hp adaptation is being used, issues with convergence might occur when integrating face terms with lower quad points at " 
+                 <<"the face of adjacent elements with different p. Try increasing overintegration in the parameters file to fix it."<<std::endl;
+            std::abort();
+        }
+        
+        meshadaptation->adapt_mesh();
+        this->ode_solver->steady_state();
+        residual_norm = this->ode_solver->residual_norm;
+        flow_solver_case->steady_state_postprocessing(dg); 
+    }
+
+    pcout<<"Finished running mesh adaptation cycles."<<std::endl; 
+}
+
+template <int dim, int nstate>
 int FlowSolver<dim,nstate>::run() const
 {
     pcout << "Running Flow Solver..." << std::endl;
@@ -456,8 +484,16 @@ int FlowSolver<dim,nstate>::run() const
         if(flow_solver_param.steady_state_polynomial_ramping && (ode_param.ode_solver_type != ODEEnum::pod_galerkin_solver && ode_param.ode_solver_type != ODEEnum::pod_petrov_galerkin_solver)) {
             ode_solver->initialize_steady_polynomial_ramping(poly_degree);
         }
+
         ode_solver->steady_state();
         flow_solver_case->steady_state_postprocessing(dg);
+        
+        const bool use_mesh_adaptation = (all_param.mesh_adaptation_param.total_mesh_adaptation_cycles > 0);
+        
+        if(use_mesh_adaptation)
+        {
+            perform_steady_state_mesh_adaptation();
+        }
     }
     pcout << "done." << std::endl;
     return 0;
@@ -468,7 +504,11 @@ template class FlowSolver <PHILIP_DIM,PHILIP_DIM>;
 #endif
 
 #if PHILIP_DIM!=1
-template class FlowSolver <PHILIP_DIM,PHILIP_DIM+2>;
+template class FlowSolver <PHILIP_DIM,1>;
+template class FlowSolver <PHILIP_DIM,2>;
+template class FlowSolver <PHILIP_DIM,3>;
+template class FlowSolver <PHILIP_DIM,4>;
+template class FlowSolver <PHILIP_DIM,5>;
 #endif
 
 } // FlowSolver namespace

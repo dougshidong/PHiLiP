@@ -40,7 +40,7 @@ ReynoldsAveragedNavierStokesBase<dim, nstate, real>::ReynoldsAveragedNavierStoke
             thermal_boundary_condition_type,
             manufactured_solution_function))
 {
-    static_assert(nstate>=dim+2, "ModelBase::ReynoldsAveragedNavierStokesBase() should be created with nstate>=dim+2");
+    static_assert(nstate>=dim+3, "ModelBase::ReynoldsAveragedNavierStokesBase() should be created with nstate>=dim+3");
 }
 //----------------------------------------------------------------
 template <int dim, int nstate, typename real>
@@ -127,18 +127,10 @@ std::array<dealii::Tensor<1,dim,real2>,nstate> ReynoldsAveragedNavierStokesBase<
     const std::array<dealii::Tensor<1,dim,real2>,nstate> &solution_gradient,
     const dealii::types::global_dof_index cell_index) const
 {   
-
-    //To do later
-    //do something to trick compiler
-    //should be removed later  
-    int cell_poly_degree = this->cellwise_poly_degree[cell_index];
-    cell_poly_degree++;
+    (void) cell_index;
 
     const std::array<real2,dim+2> conservative_soln_rans = extract_rans_conservative_solution(conservative_soln);
     const std::array<dealii::Tensor<1,dim,real2>,dim+2> solution_gradient_rans = extract_rans_solution_gradient(solution_gradient);
-
-    //const std::array<real2,nstate-(dim+2)> conservative_soln_turbulence_model = extract_turbulence_model_conservative_solution(conservative_soln);
-    //const std::array<dealii::Tensor<1,dim,real2>,nstate-(dim+2)> solution_gradient_turbulence_model = extract_turbulence_model_solution_gradient(solution_gradient);
 
     // Step 1,2: Primitive solution and Gradient of primitive solution
     const std::array<real2,dim+2> primitive_soln_rans = this->navier_stokes_physics->convert_conservative_to_primitive(conservative_soln_rans); // from Euler
@@ -215,35 +207,6 @@ std::array<dealii::Tensor<1,dim,real2>,dim+2> ReynoldsAveragedNavierStokesBase<d
  
     return solution_gradient_rans;
 }
-/*
-//may not needed
-//----------------------------------------------------------------
-template <int dim, int nstate, typename real>
-template <typename real2>
-std::array<real2,nstate-(dim+2)> ReynoldsAveragedNavierStokesBase<dim,nstate,real>
-::extract_turbulence_model_conservative_solution (
-    const std::array<real2,nstate> &conservative_soln) const
-{   
-    std::array<real2,nstate-(dim+2)> conservative_soln_turbulence_model;
-    for(int i=0; i<nstate-(dim+2); i++)
-        conservative_soln_turbulence_model[i] = conservative_soln[dim+2+i];
- 
-    return conservative_soln_turbulence_model;
-}
-//----------------------------------------------------------------
-template <int dim, int nstate, typename real>
-template <typename real2>
-std::array<dealii::Tensor<1,dim,real2>,nstate-(dim+2)> ReynoldsAveragedNavierStokesBase<dim,nstate,real>
-::extract_turbulence_model_solution_gradient (
-    const std::array<dealii::Tensor<1,dim,real2>,nstate> &solution_gradient) const
-{   
-    std::array<dealii::Tensor<1,dim,real2>,nstate-(dim+2)> solution_gradient_turbulence_model;
-    for(int i=0; i<nstate-(dim+2); i++)
-        solution_gradient_turbulence_model[i] = solution_gradient[dim+2+i];
- 
-    return solution_gradient_turbulence_model;
-}
-*/
 //----------------------------------------------------------------
 template <int dim, int nstate, typename real>
 template <typename real2>
@@ -373,7 +336,6 @@ std::array<real,nstate> ReynoldsAveragedNavierStokesBase<dim,nstate,real>
     return eig;
 }
 //----------------------------------------------------------------
-//check latter
 template <int dim, int nstate, typename real>
 real ReynoldsAveragedNavierStokesBase<dim,nstate,real>
 ::max_convective_eigenvalue (const std::array<real,nstate> &conservative_soln) const
@@ -388,7 +350,6 @@ real ReynoldsAveragedNavierStokesBase<dim,nstate,real>
 
     return max_eig;
 }
-//adding physical source 
 //----------------------------------------------------------------
 template <int dim, int nstate, typename real>
 std::array<real,nstate> ReynoldsAveragedNavierStokesBase<dim,nstate,real>
@@ -400,7 +361,6 @@ std::array<real,nstate> ReynoldsAveragedNavierStokesBase<dim,nstate,real>
 {
     return physical_source_term_templated<real>(pos,conservative_soln,solution_gradient,cell_index);
 }
-//adding physical source 
 //----------------------------------------------------------------
 template <int dim, int nstate, typename real>
 template <typename real2>
@@ -411,10 +371,7 @@ std::array<real2,nstate> ReynoldsAveragedNavierStokesBase<dim,nstate,real>
         const std::array<dealii::Tensor<1,dim,real2>,nstate> &solution_gradient,
         const dealii::types::global_dof_index cell_index) const
 {
-    //To do later
-    //do something to trick compiler 
-    int cell_poly_degree = this->cellwise_poly_degree[cell_index];
-    cell_poly_degree++;
+    (void) cell_index;
 
     std::array<real,nstate> physical_source;
     if constexpr(std::is_same<real2,real>::value){ 
@@ -451,6 +408,24 @@ std::array<real,nstate> ReynoldsAveragedNavierStokesBase<dim,nstate,real>
         source_term[s] = conv_source_term[s] + diss_source_term[s] - phys_source_source_term[s];
     }
     return source_term;
+}
+
+//----------------------------------------------------------------
+template <int dim, int nstate, typename real>
+std::array<real,nstate> ReynoldsAveragedNavierStokesBase<dim,nstate,real>
+::convective_dissipative_source_term (
+        const dealii::Point<dim,real> &pos,
+        const std::array<real,nstate> &/*solution*/,
+        const dealii::types::global_dof_index cell_index) const
+{
+    std::array<real,nstate> conv_source_term = convective_source_term(pos);
+    std::array<real,nstate> diss_source_term = dissipative_source_term(pos,cell_index);
+    std::array<real,nstate> convective_dissipative_source_term;
+    for (int s=0; s<nstate; s++)
+    {
+        convective_dissipative_source_term[s] = conv_source_term[s] + diss_source_term[s];
+    }
+    return convective_dissipative_source_term;
 }
 
 // Returns the value from a CoDiPack or Sacado variable.
@@ -747,15 +722,6 @@ std::array<real,nstate> ReynoldsAveragedNavierStokesBase<dim,nstate,real>
     return physical_source_source_term;
 }
 //----------------------------------------------------------------
-//template <int dim, int nstate, typename real>
-//std::vector<std::string> ReynoldsAveragedNavierStokesBase<dim,nstate,real>
-//::post_get_names () const
-//{
-//    //std::vector<std::string> something;
-//    //return something;
-//    return post_get_model_names ();    
-//}
-//----------------------------------------------------------------
 //================================================================
 // Negative Spalart-Allmaras model
 //================================================================
@@ -825,19 +791,6 @@ real2 ReynoldsAveragedNavierStokes_SAneg<dim,nstate,real>
 
     return eddy_viscosity;
 }
-////----------------------------------------------------------------
-//template <int dim, int nstate, typename real>
-//template<typename real2>
-//real2 ReynoldsAveragedNavierStokes_SAneg<dim,nstate,real>
-//::scale_eddy_viscosity_templated (
-//    const std::array<real2,dim+2> &primitive_soln_rans,
-//    const real2 eddy_viscosity) const
-//{
-//    // Scaled non-dimensional eddy viscosity; 
-//    const real2 scaled_eddy_viscosity = eddy_viscosity/reynolds_number_inf;
-//
-//    return scaled_eddy_viscosity;
-//}
 //----------------------------------------------------------------
 template <int dim, int nstate, typename real>
 template<typename real2>
@@ -1350,8 +1303,7 @@ dealii::Tensor<1,dim,real2> ReynoldsAveragedNavierStokes_SAneg<dim,nstate,real>
         std::abort();
     }
 
-    // Scaled non-dimensional eddy viscosity; See Plata 2019, Computers and Fluids, Eq.(12)
-    //const real2 scaled_eddy_viscosity = this->navier_stokes_physics->template scale_viscosity_coefficient<real2>(eddy_viscosity);
+    // Scaled non-dimensional eddy viscosity;
     const real2 scaled_eddy_viscosity = scale_coefficient(eddy_viscosity);
 
     // Compute scaled heat conductivity
@@ -1408,7 +1360,6 @@ dealii::Tensor<2,dim,real2> ReynoldsAveragedNavierStokes_SAneg<dim,nstate,real>
     }
     
     // Scaled non-dimensional eddy viscosity; 
-    //const real2 scaled_eddy_viscosity = this->navier_stokes_physics->template scale_viscosity_coefficient<real2>(eddy_viscosity);
     const real2 scaled_eddy_viscosity = scale_coefficient(eddy_viscosity);
 
     // Get velocity gradients
@@ -1485,7 +1436,6 @@ std::array<real2,nstate> ReynoldsAveragedNavierStokes_SAneg<dim,nstate,real>
     }
 
     return physical_source_term;
-
 }
 //----------------------------------------------------------------
 template <int dim, int nstate, typename real>
@@ -1535,16 +1485,6 @@ std::vector<dealii::DataComponentInterpretation::DataComponentInterpretation> Re
     }
     return interpretation;
 }
-//----------------------------------------------------------------
-//template <int dim, int nstate, typename real>
-//std::vector<std::string> ReynoldsAveragedNavierStokes_SAneg<dim,nstate,real>
-//::post_get_model_names () const
-//{
-//    std::vector<std::string> names = ModelBase<dim,nstate,real>::post_get_names ();
-//    names.push_back ("nu_tilde");
-//
-//    return names;    
-//}
 //----------------------------------------------------------------
 template <int dim, int nstate, typename real>
 std::vector<std::string> ReynoldsAveragedNavierStokes_SAneg<dim,nstate,real>

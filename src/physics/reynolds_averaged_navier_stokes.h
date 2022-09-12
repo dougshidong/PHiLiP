@@ -66,15 +66,17 @@ public:
         const std::array<real,nstate> &conservative_solution,
         const dealii::types::global_dof_index cell_index) const;
 
-    //adding physical source
+    std::array<real,nstate> convective_dissipative_source_term (
+        const dealii::Point<dim,real> &pos,
+        const std::array<real,nstate> &conservative_solution,
+        const dealii::types::global_dof_index cell_index) const;
+
     /// Physical source term
     std::array<real,nstate> physical_source_term (
         const dealii::Point<dim,real> &pos,
         const std::array<real,nstate> &conservative_solution,
         const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient,
         const dealii::types::global_dof_index cell_index) const;
-
-    //std::vector<std::string> post_get_names () const;
 
     /// Nondimensionalized Reynolds stress tensor, (tau^reynolds)*
     virtual dealii::Tensor<2,dim,real> compute_Reynolds_stress_tensor (
@@ -118,30 +120,17 @@ public:
         const std::array<FadType,dim+2> &primitive_soln_rans,
         const std::array<FadType,nstate-(dim+2)> &primitive_soln_turbulence_model) const = 0;
 
-    //adding physical source
     /// Physical source term
     virtual std::array<real,nstate> compute_production_dissipation_cross_term (
         const dealii::Point<dim,real> &pos,
         const std::array<real,nstate> &conservative_solution,
         const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient) const = 0;
 
-    //adding physical source
     /// Physical source term
     virtual std::array<FadType,nstate> compute_production_dissipation_cross_term_fad (
         const dealii::Point<dim,FadType> &pos,
         const std::array<FadType,nstate> &conservative_solution,
         const std::array<dealii::Tensor<1,dim,FadType>,nstate> &solution_gradient) const = 0;
-
-    //virtual dealii::Vector<double> post_compute_derived_quantities_vector (
-    //    const dealii::Vector<double>              &uh,
-    //    const std::vector<dealii::Tensor<1,dim> > &/*duh*/,
-    //    const std::vector<dealii::Tensor<2,dim> > &/*dduh*/,
-    //    const dealii::Tensor<1,dim>               &/*normals*/,
-    //    const dealii::Point<dim>                  &/*evaluation_points*/) const;
-
-    //virtual std::vector<dealii::DataComponentInterpretation::DataComponentInterpretation> post_get_data_component_interpretation () const;
-
-    //virtual std::vector<std::string> post_get_model_names () const;
 
 protected:
     /// Returns the square of the magnitude of the vector (i.e. the double dot product of a vector with itself)
@@ -163,7 +152,6 @@ protected:
     std::array<dealii::Tensor<1,dim,real2>,nstate> convective_flux_templated (
         const std::array<real2,nstate> &conservative_soln) const;
 
-    //adding physical source
     /// Physical source term
     template<typename real2>
     std::array<real2,nstate> physical_source_term_templated (
@@ -179,16 +167,6 @@ protected:
     template <typename real2>
     std::array<dealii::Tensor<1,dim,real2>,dim+2> extract_rans_solution_gradient (
         const std::array<dealii::Tensor<1,dim,real2>,nstate> &solution_gradient) const;
-
-/*
-    template <typename real2>
-    std::array<real2,nstate-(dim+2)> extract_turbulence_model_conservative_solution (
-        const std::array<real2,nstate> &conservative_soln) const;
-
-    template <typename real2>
-    std::array<dealii::Tensor<1,dim,real2>,nstate-(dim+2)> extract_turbulence_model_solution_gradient (
-        const std::array<dealii::Tensor<1,dim,real2>,nstate> &solution_gradient) const;
-*/
 
     template <typename real2>
     std::array<dealii::Tensor<1,dim,real2>,nstate-(dim+2)> dissipative_flux_turbulence_model (
@@ -217,7 +195,6 @@ protected:
      *  Note: Only used for computing the manufactured solution source term;
      *        computed using automatic differentiation
      */
-    //not sure if it is needed for RANS
     dealii::Tensor<2,nstate,real> dissipative_flux_directional_jacobian (
         const std::array<real,nstate> &conservative_soln,
         const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient,
@@ -228,7 +205,6 @@ protected:
      *  Note: Only used for computing the manufactured solution source term;
      *        computed using automatic differentiation
      */
-    //not sure if it is needed for RANS
     dealii::Tensor<2,nstate,real> dissipative_flux_directional_jacobian_wrt_gradient_component (
         const std::array<real,nstate> &conservative_soln,
         const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient,
@@ -237,12 +213,10 @@ protected:
         const dealii::types::global_dof_index cell_index) const;
 
     /// Get manufactured solution value (repeated from Euler)
-    //not sure if it is needed for RANS
     std::array<real,nstate> get_manufactured_solution_value (
         const dealii::Point<dim,real> &pos) const;
 
     /// Get manufactured solution value (repeated from Euler)
-    //not sure if it is needed for RANS
     std::array<dealii::Tensor<1,dim,real>,nstate> get_manufactured_solution_gradient (
         const dealii::Point<dim,real> &pos) const;
 
@@ -250,7 +224,6 @@ protected:
         const dealii::Point<dim,real> &pos) const;
 
     /// Dissipative flux contribution to the source term (repeated from NavierStokes)
-    //not sure if it is needed for RANS
     std::array<real,nstate> dissipative_source_term (
         const dealii::Point<dim,real> &pos,
         const dealii::types::global_dof_index cell_index) const;
@@ -346,8 +319,6 @@ public:
 
     std::vector<dealii::DataComponentInterpretation::DataComponentInterpretation> post_get_data_component_interpretation () const override;
 
-    //std::vector<std::string> post_get_model_names () const;
-
     std::vector<std::string> post_get_names () const override;
 
 protected:
@@ -362,11 +333,6 @@ protected:
         const std::array<real2,dim+2> &primitive_soln_rans,
         const std::array<dealii::Tensor<1,dim,real2>,dim+2> &primitive_soln_gradient_rans,
         const std::array<real2,nstate-(dim+2)> &primitive_soln_turbulence_model) const;
-
-    /// Templated scale nondimensionalized eddy viscosity for the negative SA model
-    //template<typename real2> real2 scale_eddy_viscosity_templated(
-    //    const std::array<real2,dim+2> &primitive_soln_rans,
-    //    const real2 eddy_viscosity) const;
 
     template<typename real2> real2 scale_coefficient(
         const real2 coefficient) const;
@@ -472,8 +438,6 @@ private:
     const real c_v1  = 7.1;
     const real c_v2  = 0.7;
     const real c_v3  = 0.9;
-    //const real c_t1  = 1.0;
-    //const real c_t2  = 2.0;
     const real c_t3  = 1.2;
     const real c_t4  = 0.5;
     const real c_n1  = 16.0;
@@ -489,8 +453,6 @@ private:
     const FadType c_v1_fad  = 7.1;
     const FadType c_v2_fad  = 0.7;
     const FadType c_v3_fad  = 0.9;
-    //const FadType c_t1_fad  = 1.0;
-    //const FadType c_t2_fad  = 2.0;
     const FadType c_t3_fad  = 1.2;
     const FadType c_t4_fad  = 0.5;
     const FadType c_n1_fad  = 16.0;

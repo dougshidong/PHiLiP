@@ -89,7 +89,6 @@ public:
         const std::array<real,nstate> &solution,
         const dealii::types::global_dof_index cell_index) const = 0;
 
-    //adding physical source
     /// physical source term that does require differentiation.
     virtual std::array<real,nstate> physical_source_term (
         const dealii::Point<dim,real> &pos,
@@ -132,18 +131,22 @@ public:
         const dealii::Tensor<2,dim> &/*dduh*/,
         const dealii::Tensor<1,dim> &/*normals*/,
         const dealii::Point<dim>    &/*evaluation_points*/) const;
+
     /// Returns names of the solution to be used by PhysicsPostprocessor to output current solution.
     /** The implementation in this Physics base class simply returns "state0, state1, etc.".
      */
     virtual std::vector<std::string> post_get_names () const;
+
     /// Returns DataComponentInterpretation of the solution to be used by PhysicsPostprocessor to output current solution.
     /** Treats every solution state as an independent scalar.
      */
     virtual std::vector<dealii::DataComponentInterpretation::DataComponentInterpretation> post_get_data_component_interpretation () const;
+
     /// Returns required update flags of the solution to be used by PhysicsPostprocessor to output current solution.
     /** Only update the solution at the output points.
      */
     virtual dealii::UpdateFlags post_get_needed_update_flags () const;
+    
 protected:
     /// Anisotropic diffusion matrix
     /** As long as the diagonal components are positive and diagonally dominant

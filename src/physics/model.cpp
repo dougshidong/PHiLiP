@@ -15,7 +15,12 @@ template <int dim, int nstate, typename real>
 ModelBase<dim, nstate, real>::ModelBase(
     std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function_input):
         manufactured_solution_function(manufactured_solution_function_input)
-{ }
+{ 
+    // if provided with a null ptr, give it the default manufactured solution
+    // currently only necessary for the unit test
+    if(!manufactured_solution_function)
+        manufactured_solution_function = std::make_shared<ManufacturedSolutionSine<dim,real>>(nstate);
+}
 //----------------------------------------------------------------
 template <int dim, int nstate, typename real>
 ModelBase<dim,nstate,real>::~ModelBase() {}
@@ -48,27 +53,11 @@ void ModelBase<dim, nstate, real>
         const bool inflow = (characteristic_dot_n[istate] <= 0.);
 
         if (inflow) { // Dirichlet boundary condition
-            // soln_bc[istate] = boundary_values[istate];
-            // soln_grad_bc[istate] = soln_grad_int[istate];
-
             soln_bc[istate] = boundary_values[istate];
             soln_grad_bc[istate] = soln_grad_int[istate];
-
         } else { // Neumann boundary condition
-            // //soln_bc[istate] = soln_int[istate];
-            // //soln_bc[istate] = boundary_values[istate];
-            // soln_bc[istate] = -soln_int[istate]+2*boundary_values[istate];
-
             soln_bc[istate] = soln_int[istate];
-
-            // **************************************************************************************************************
-            // Note I don't know how to properly impose the soln_grad_bc to obtain an adjoint consistent scheme
-            // Currently, Neumann boundary conditions are only imposed for the linear advection
-            // Therefore, soln_grad_bc does not affect the solution
-            // **************************************************************************************************************
             soln_grad_bc[istate] = soln_grad_int[istate];
-            //soln_grad_bc[istate] = boundary_gradients[istate];
-            //soln_grad_bc[istate] = -soln_grad_int[istate]+2*boundary_gradients[istate];
         }
     }
 }

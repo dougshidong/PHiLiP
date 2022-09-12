@@ -55,7 +55,6 @@ public:
     /// Maximum convective eigenvalue used in Lax-Friedrichs
     virtual real max_convective_eigenvalue (const std::array<real,nstate> &soln) const = 0;
 
-    //adding physical source 
     /// Physical source terms 
     virtual std::array<real,nstate> physical_source_term (
         const dealii::Point<dim,real> &pos,
@@ -63,7 +62,7 @@ public:
         const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient,
         const dealii::types::global_dof_index cell_index) const = 0;
 
-    /// Source terms additional to the baseline physics
+    /// Manufactured source terms additional to the baseline physics
     virtual std::array<real,nstate> source_term (
         const dealii::Point<dim,real> &pos,
         const std::array<real,nstate> &solution,
@@ -79,6 +78,9 @@ public:
         std::array<real,nstate> &/*soln_bc*/,
         std::array<dealii::Tensor<1,dim,real>,nstate> &/*soln_grad_bc*/) const;
 
+    /// Returns current vector solution to be used by PhysicsPostprocessor to output current solution.
+    /** The implementation in this Model base class simply returns the stored solution.
+     */
     virtual dealii::Vector<double> post_compute_derived_quantities_vector (
         const dealii::Vector<double>              &uh,
         const std::vector<dealii::Tensor<1,dim> > &/*duh*/,
@@ -86,12 +88,18 @@ public:
         const dealii::Tensor<1,dim>               &/*normals*/,
         const dealii::Point<dim>                  &/*evaluation_points*/) const;
 
+    /// Returns DataComponentInterpretation of the solution to be used by PhysicsPostprocessor to output current solution.
+    /** Treats every solution state as an independent scalar.
+     */
     virtual std::vector<dealii::DataComponentInterpretation::DataComponentInterpretation> post_get_data_component_interpretation () const;
 
+    /// Returns names of the solution to be used by PhysicsPostprocessor to output current solution.
+    /** The implementation in this Model base class simply returns "state(dim+2+0), state(dim+2+1), etc.".
+     */
     virtual std::vector<std::string> post_get_names () const;
 
     // Quantities needed to be updated by DG for the model -- accomplished by DGBase update_model_variables()
-    dealii::LinearAlgebra::distributed::Vector<int> cellwise_poly_degree; ///< Cellwise polynomial degree
+    dealii::LinearAlgebra::distributed::Vector<double> cellwise_poly_degree; ///< Cellwise polynomial degree
     dealii::LinearAlgebra::distributed::Vector<double> cellwise_volume; ////< Cellwise element volume
 };
 

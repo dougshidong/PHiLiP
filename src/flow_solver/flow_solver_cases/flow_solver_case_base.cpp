@@ -146,6 +146,19 @@ void FlowSolverCaseBase<dim, nstate>::add_value_to_data_table(
     data_table->set_scientific(value_string, true);
 }
 
+template <int dim, int nstate>
+void FlowSolverCaseBase<dim, nstate>::set_time_step(
+    const double time_step_input)
+{
+    this->time_step = time_step_input;
+}
+
+template <int dim, int nstate>
+double FlowSolverCaseBase<dim, nstate>::get_time_step() const
+{
+    return this->time_step;
+}
+
 #if PHILIP_DIM==1
 template class FlowSolverCaseBase<PHILIP_DIM,PHILIP_DIM>;
 #endif

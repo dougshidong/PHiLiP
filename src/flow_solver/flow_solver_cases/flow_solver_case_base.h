@@ -55,6 +55,9 @@ public:
     /// Virtual function for postprocessing when solving for steady state
     virtual void steady_state_postprocessing(std::shared_ptr <DGBase<dim, double>> dg) const;
 
+    /// Setter for time step
+    void set_time_step(const double time_step_input);
+
 protected:
     const Parameters::AllParameters all_param; ///< All parameters
     const MPI_Comm mpi_communicator; ///< MPI communicator.
@@ -75,6 +78,9 @@ protected:
     /// Display additional more specific flow case parameters
     virtual void display_additional_flow_case_specific_parameters() const = 0;
 
+    /// Getter for time step
+    double get_time_step() const;
+
 private:
     /// Returns the pde type string from the all_param class member
     std::string get_pde_string() const;
@@ -82,6 +88,8 @@ private:
     /// Returns the flow case type string from the all_param class member
     std::string get_flow_case_string() const;
 
+    /// Current time step
+    double time_step;
 };
 
 } // FlowSolver namespace

@@ -30,6 +30,7 @@ PeriodicTurbulence<dim, nstate>::PeriodicTurbulence(const PHiLiP::Parameters::Al
 
     // Flow case identifiers
     this->is_taylor_green_vortex = (flow_type == FlowCaseEnum::taylor_green_vortex);
+    this->is_decaying_homogeneous_isotropic_turbulence = (flow_type == FlowCaseEnum::decaying_homogeneous_isotropic_turbulence);
     this->is_viscous_flow = (this->all_param.pde_type != Parameters::AllParameters::PartialDifferentialEquation::euler);
 
     // Navier-Stokes object; create using dynamic_pointer_cast and the create_Physics factory
@@ -50,7 +51,7 @@ void PeriodicTurbulence<dim,nstate>::display_additional_flow_case_specific_param
 {
     this->pcout << "- - Courant-Friedrich-Lewy number: " << this->all_param.flow_solver_param.courant_friedrich_lewy_number << std::endl;
     std::string flow_type_string;
-    if(this->is_taylor_green_vortex) {
+    if(this->is_taylor_green_vortex || this->is_decaying_homogeneous_isotropic_turbulence) {
         this->pcout << "- - Freestream Reynolds number: " << this->all_param.navier_stokes_param.reynolds_number_inf << std::endl;
         this->pcout << "- - Freestream Mach number: " << this->all_param.euler_param.mach_inf << std::endl;
     }
@@ -88,13 +89,15 @@ std::string get_padded_mpi_rank_string(const int mpi_rank_input) {
 }
 
 template<int dim, int nstate>
-void PeriodicTurbulence<dim, nstate>::output_velocity_field(std::shared_ptr<DGBase<dim,double>> dg) const
+void PeriodicTurbulence<dim, nstate>::output_velocity_field(
+    std::shared_ptr<DGBase<dim,double>> dg,
+    const int output_file_index) const
 {
-    dealii::ConditionalOStream pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD)==0);
+    this->pcout << "     ... Writting velocity field ... " << std::flush;
 
     // Same loop from read_values_from_file_and_project() in set_initial_condition.cpp
     // TO DO: Define this variable
-    const std::string input_filename_prefix = "velocity";
+    const std::string input_filename_prefix = "velocity-"+std::to_string(output_file_index);
 
     // (1) Get filename based on MPI rank
     //-------------------------------------------------------------
@@ -112,7 +115,7 @@ void PeriodicTurbulence<dim, nstate>::output_velocity_field(std::shared_ptr<DGBa
     
     // check that the file is open and write DOFs
     if (!FILE.is_open()) {
-        pcout << "ERROR: Cannot open file " << filename << std::endl;
+        this->pcout << "ERROR: Cannot open file " << filename << std::endl;
         std::abort();
     } else {
         const unsigned int number_of_degrees_of_freedom_per_state = dg->dof_handler.n_dofs()/nstate;
@@ -174,6 +177,7 @@ void PeriodicTurbulence<dim, nstate>::output_velocity_field(std::shared_ptr<DGBa
         }
     }
     FILE.close();
+    this->pcout << "done." << std::endl;
 }
 
 template<int dim, int nstate>
@@ -335,6 +339,19 @@ void PeriodicTurbulence<dim, nstate>::compute_unsteady_data_and_write_to_table(
         this->pcout << " ERROR: Kinetic energy at time " << current_time << " is nan." << std::endl;
         this->pcout << "        Consider decreasing the time step / CFL number." << std::endl;
         std::abort();
+    }
+
+    // Output velocity field data (for spectra) at standard output times
+    if(this->is_decaying_homogeneous_isotropic_turbulence) {
+        const double time_step = this->get_time_step();
+        const double next_time = current_time + time_step;
+        if((current_time<=0.0) && (next_time>0.0)) {
+            this->output_velocity_field(dg,0);
+        } else if((current_time<=0.1) && (next_time>0.1)) {
+            this->output_velocity_field(dg,1);
+        } else if((current_time<=0.2) && (next_time>0.2)) {
+            this->output_velocity_field(dg,2);
+        }
     }
 }
 

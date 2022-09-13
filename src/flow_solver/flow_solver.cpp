@@ -375,6 +375,7 @@ int FlowSolver<dim,nstate>::run() const
                 time_step = flow_solver_case->get_adaptive_time_step(dg);
             }
         }
+        flow_solver_case->set_time_step(time_step);
         pcout << "done." << std::endl;
         //----------------------------------------------------
         // dealii::TableHandler and data at initial time
@@ -400,6 +401,7 @@ int FlowSolver<dim,nstate>::run() const
         {
             // update adaptive time step
             if(flow_solver_param.adaptive_time_step == true) time_step = flow_solver_case->get_adaptive_time_step(dg);
+            flow_solver_case->set_time_step(time_step);
 
             // advance solution
             ode_solver->step_in_time(time_step,false); // pseudotime==false

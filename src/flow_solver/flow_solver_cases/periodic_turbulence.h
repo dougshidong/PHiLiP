@@ -63,7 +63,9 @@ public:
     double get_deviatoric_strain_rate_tensor_based_dissipation_rate() const;
 
     /// Output the velocity field to file
-    void output_velocity_field(std::shared_ptr<DGBase<dim,double>> dg) const;
+    void output_velocity_field(
+            std::shared_ptr<DGBase<dim,double>> dg,
+            const int output_file_index=0) const;
 
 protected:
     /// Filename (with extension) for the unsteady data table
@@ -73,6 +75,7 @@ protected:
     std::shared_ptr< Physics::NavierStokes<dim,dim+2,double> > navier_stokes_physics;
 
     bool is_taylor_green_vortex = false; ///< Identifies if taylor green vortex case; initialized as false.
+    bool is_decaying_homogeneous_isotropic_turbulence = false; ///< Identified if DHIT case; initialized as false.
     bool is_viscous_flow = true; ///< Identifies if viscous flow; initialized as true.
 
     /// Display additional more specific flow case parameters

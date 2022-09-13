@@ -90,6 +90,8 @@ std::string get_padded_mpi_rank_string(const int mpi_rank_input) {
 template<int dim, int nstate>
 void PeriodicTurbulence<dim, nstate>::output_velocity_field(std::shared_ptr<DGBase<dim,double>> dg) const
 {
+    dealii::ConditionalOStream pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD)==0);
+
     // Same loop from read_values_from_file_and_project() in set_initial_condition.cpp
     // TO DO: Define this variable
     const std::string input_filename_prefix = "velocity";
@@ -147,7 +149,7 @@ void PeriodicTurbulence<dim, nstate>::output_velocity_field(std::shared_ptr<DGBa
             // write coordinates
             const dealii::Point<dim> qpoint = (fe_values.quadrature_point(iquad));
             for (int d=0; d<dim; ++d) {
-                FILE << set_precision(16) << qpoint[d] << std::string(" ");
+                FILE << std::setprecision(16) << qpoint[d] << std::string(" ");
             }
 
             // get solution at qpoint
@@ -160,13 +162,13 @@ void PeriodicTurbulence<dim, nstate>::output_velocity_field(std::shared_ptr<DGBa
             // for (unsigned int idof=0; idof<fe_values.dofs_per_cell; ++idof) {
             for (unsigned int idof=0; idof<n_dofs_cell; ++idof) {
                 const unsigned int istate = fe_values.get_fe().system_to_component_index(idof).first;
-                soln_at_q[istate] += dg->solution[current_dofs_dofs_indices[idof]] * fe_values.shape_value_component(idof, iquad, istate);
-                // soln_grad_at_q[istate] += dg->solution[current_dofs_dofs_indices[idof]] * fe_values.shape_grad_component(idof,iquad,istate);
+                soln_at_q[istate] += dg->solution[current_dofs_indices[idof]] * fe_values.shape_value_component(idof, iquad, istate);
+                // soln_grad_at_q[istate] += dg->solution[current_dofs_indices[idof]] * fe_values.shape_grad_component(idof,iquad,istate);
             }
-            dealii::Tensor<1,dim,double> velocity = this->navier_stokes_physics->convert_conservative_to_primitive(soln_at_q);
+            dealii::Tensor<1,dim,double> velocity = this->navier_stokes_physics->compute_velocities(soln_at_q);
             // write velocity field
             for (int d=0; d<dim; ++d) {
-                FILE << set_precision(16) << velocity[d] << std::string(" ");
+                FILE << std::setprecision(16) << velocity[d] << std::string(" ");
             }
             FILE << std::string("\n"); // next line
         }

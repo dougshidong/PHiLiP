@@ -31,6 +31,9 @@ protected:
 
     /// Setter for butcher_tableau_b
     void set_b() override;
+
+    /// Setter for butcher_tableau_c
+    void set_c() override;
 };
 
 /// Classical fourth-order explicit RK
@@ -57,6 +60,9 @@ protected:
 
     /// Setter for butcher_tableau_b
     void set_b() override;
+
+    /// Setter for butcher_tableau_c
+    void set_c() override;
 };
 
 /// Forward Euler (explicit) 
@@ -83,6 +89,9 @@ protected:
 
     /// Setter for butcher_tableau_b
     void set_b() override;
+
+    /// Setter for butcher_tableau_c
+    void set_c() override;
 };
 
 
@@ -110,6 +119,9 @@ protected:
 
     /// Setter for butcher_tableau_b
     void set_b() override;
+
+    /// Setter for butcher_tableau_c
+    void set_c() override;
 };
 
 
@@ -137,6 +149,9 @@ protected:
 
     /// Setter for butcher_tableau_b
     void set_b() override;
+
+    /// Setter for butcher_tableau_c
+    void set_c() override;
 };
 
 } // ODE namespace

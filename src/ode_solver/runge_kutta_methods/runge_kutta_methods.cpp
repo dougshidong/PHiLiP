@@ -9,6 +9,8 @@ void SSPRK3Explicit<dim,real,MeshType> :: set_tableau()
 {
     set_a();
     set_b();
+    set_c();
+    this->pcout << "Assigned RK method: 3rd order SSP (explicit)" << std::endl;
 }
 
 template <int dim, typename real, typename MeshType>
@@ -23,7 +25,13 @@ void SSPRK3Explicit<dim,real,MeshType> :: set_b()
 {
     const double butcher_tableau_b_values[3] = {1.0/6.0, 1.0/6.0, 2.0/3.0};
     this->butcher_tableau_b.fill(butcher_tableau_b_values);
-    this->pcout << "Assigned RK method: 3rd order SSP (explicit)" << std::endl;
+}
+
+template <int dim, typename real, typename MeshType>
+void SSPRK3Explicit<dim,real,MeshType> :: set_c()
+{
+    const double butcher_tableau_c_values[3] = {0,1.0,0.5};
+    this->butcher_tableau_c.fill(butcher_tableau_c_values);
 }
 
 //##################################################################
@@ -32,6 +40,8 @@ void RK4Explicit<dim,real,MeshType> :: set_tableau()
 {
     set_a();
     set_b();
+    set_c();
+    this->pcout << "Assigned RK method: 4th order classical RK (explicit)" << std::endl;
 }
 
 template <int dim, typename real, typename MeshType>
@@ -46,7 +56,13 @@ void RK4Explicit<dim,real,MeshType> :: set_b()
 {
     const double butcher_tableau_b_values[4] = {1.0/6.0,1.0/3.0,1.0/3.0,1.0/6.0};
     this->butcher_tableau_b.fill(butcher_tableau_b_values);
-    this->pcout << "Assigned RK method: 4th order classical RK (explicit)" << std::endl;
+}
+
+template <int dim, typename real, typename MeshType>
+void RK4Explicit<dim,real,MeshType> :: set_c()
+{
+    const double butcher_tableau_c_values[4] = {0,0.5,0.5,1.0};
+    this->butcher_tableau_c.fill(butcher_tableau_c_values);
 }
 
 //##################################################################
@@ -55,6 +71,8 @@ void EulerExplicit<dim,real,MeshType> :: set_tableau()
 {
     set_a();
     set_b();
+    set_c();
+    this->pcout << "Assigned RK method: Forward Euler (explicit)" << std::endl;
 }
 
 template <int dim, typename real, typename MeshType>
@@ -69,7 +87,13 @@ void EulerExplicit<dim,real,MeshType> :: set_b()
 {
     const double butcher_tableau_b_values[1] = {1.0};
     this->butcher_tableau_b.fill(butcher_tableau_b_values);
-    this->pcout << "Assigned RK method: Forward Euler (explicit)" << std::endl;
+}
+
+template <int dim, typename real, typename MeshType>
+void EulerExplicit<dim,real,MeshType> :: set_c()
+{
+    const double butcher_tableau_c_values[1] = {0};
+    this->butcher_tableau_c.fill(butcher_tableau_c_values);
 }
 
 //##################################################################
@@ -78,6 +102,8 @@ void EulerImplicit<dim,real,MeshType> :: set_tableau()
 {
     set_a();
     set_b();
+    set_c();
+    this->pcout << "Assigned RK method: Implicit Euler (implicit)" << std::endl;
 }
 
 template <int dim, typename real, typename MeshType>
@@ -92,7 +118,13 @@ void EulerImplicit<dim,real,MeshType> :: set_b()
 {
     const double butcher_tableau_b_values[1] = {1.0};
     this->butcher_tableau_b.fill(butcher_tableau_b_values);
-    this->pcout << "Assigned RK method: Implicit Euler (implicit)" << std::endl;
+}
+
+template <int dim, typename real, typename MeshType>
+void EulerImplicit<dim,real,MeshType> :: set_c()
+{
+    const double butcher_tableau_c_values[1] = {1.0};
+    this->butcher_tableau_c.fill(butcher_tableau_c_values);
 }
 
 //##################################################################
@@ -101,6 +133,8 @@ void DIRK2Implicit<dim,real,MeshType> :: set_tableau()
 {
     set_a();
     set_b();
+    set_c();
+    this->pcout << "Assigned RK method: 2nd-order DIRK (implicit)" << std::endl;
 }
 
 template <int dim, typename real, typename MeshType>
@@ -118,7 +152,14 @@ void DIRK2Implicit<dim,real,MeshType> :: set_b()
 {
     const double butcher_tableau_b_values[2] = {0.5, 0.5};
     this->butcher_tableau_b.fill(butcher_tableau_b_values);
-    this->pcout << "Assigned RK method: 2nd-order DIRK (implicit)" << std::endl;
+}
+
+template <int dim, typename real, typename MeshType>
+void DIRK2Implicit<dim,real,MeshType> :: set_c()
+{
+    const double x = 0.2928932188134525; //=1-sqrt(2)/2
+    const double butcher_tableau_c_values[2] = {x, 1.0-x};
+    this->butcher_tableau_c.fill(butcher_tableau_c_values);
 }
 
 //##################################################################

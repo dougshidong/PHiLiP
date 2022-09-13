@@ -10,6 +10,7 @@ RKTableauBase<dim,real, MeshType> :: RKTableauBase (int n_rk_stages)
 {
     this->butcher_tableau_a.reinit(n_rk_stages,n_rk_stages);
     this->butcher_tableau_b.reinit(n_rk_stages);
+    this->butcher_tableau_c.reinit(n_rk_stages);
 }
 
 template <int dim, typename real, typename MeshType> 
@@ -22,6 +23,12 @@ template <int dim, typename real, typename MeshType>
 double RKTableauBase<dim,real, MeshType> :: get_b (const int i) const
 {
     return butcher_tableau_b[i];
+}
+
+template <int dim, typename real, typename MeshType> 
+double RKTableauBase<dim,real, MeshType> :: get_c (const int i) const
+{
+    return butcher_tableau_c[i];
 }
 
 template class RKTableauBase<PHILIP_DIM, double, dealii::Triangulation<PHILIP_DIM>>;

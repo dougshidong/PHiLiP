@@ -28,6 +28,9 @@ public:
     /// Returns Butcher tableau "b" coefficient at position [i]
     double get_b(const int i) const;
 
+    /// Returns Butcher tableau "c" coefficient at position [i]
+    double get_c(const int i) const;
+
 protected:
 
     dealii::ConditionalOStream pcout; ///< Parallel std::cout that only outputs on mpi_rank==0
@@ -38,6 +41,9 @@ protected:
     /// Butcher tableau "b"
     dealii::Table<1,double> butcher_tableau_b;
     
+    /// Butcher tableau "c"
+    dealii::Table<1,double> butcher_tableau_c;
+    
     /// Setter for butcher tableau
     virtual void set_tableau() = 0;
     
@@ -46,6 +52,9 @@ protected:
 
     /// Setter for butcher_tableau_b
     virtual void set_b() = 0;
+    
+    /// Setter for butcher_tableau_c
+    virtual void set_c() = 0;
 
 };
 

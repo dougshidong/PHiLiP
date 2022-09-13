@@ -15,19 +15,18 @@ template <int dim, typename real, typename MeshType = dealii::parallel::distribu
 #endif
 class RKTableauBase
 {
-protected:
-    /// Default constructor that will set the constants.
-    RKTableauBase(); 
-
 public:
+    /// Default constructor that will set the constants.
+    RKTableauBase(int n_rk_stages); 
+
     /// Destructor
     ~RKTableauBase() {};
 
     /// Returns Butcher tableau "a" coefficient at position [i][j]
-    double a(const int i, const int j) const;
+    double get_a(const int i, const int j) const;
 
     /// Returns Butcher tableau "b" coefficient at position [i]
-    double b(const int i) const;
+    double get_b(const int i) const;
 
 protected:
 
@@ -38,6 +37,15 @@ protected:
 
     /// Butcher tableau "b"
     dealii::Table<1,double> butcher_tableau_b;
+    
+    /// Setter for butcher tableau
+    virtual void set_tableau() = 0;
+    
+    /// Setter for butcher_tableau_a
+    virtual void set_a() = 0;
+
+    /// Setter for butcher_tableau_b
+    virtual void set_b() = 0;
 
 };
 

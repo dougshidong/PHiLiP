@@ -116,7 +116,7 @@ std::shared_ptr<ODESolverBase<dim,real,MeshType>> ODESolverFactory<dim,real,Mesh
     if (ode_solver_type == ODEEnum::runge_kutta_solver) {
         // Hard-coded templating of n_rk_stages because it is not known at compile time
         pcout << "Creating Runge Kutta ODE Solver with " 
-              << n_rk_stages << "stage(s)..." << std::endl;
+              << n_rk_stages << " stage(s)..." << std::endl;
         if (n_rk_stages == 1){
             return std::make_shared<RungeKuttaODESolver<dim,real,1,MeshType>>(dg_input,rk_tableau);
         }
@@ -143,7 +143,7 @@ std::shared_ptr<ODESolverBase<dim,real,MeshType>> ODESolverFactory<dim,real,Mesh
             const bool use_inviscid_burgers = (pde_type == PDEEnum::burgers_inviscid);
             if (use_collocated_nodes && use_inviscid_burgers){
                 pcout << "Creating Relaxation Runge Kutta ODE Solver with " 
-                      << n_rk_stages << "stage(s)..." << std::endl;
+                      << n_rk_stages << " stage(s)..." << std::endl;
                 if (n_rk_stages == 1){
                     return std::make_shared<RRKExplicitODESolver<dim,real,1,MeshType>>(dg_input,rk_tableau);
                 }

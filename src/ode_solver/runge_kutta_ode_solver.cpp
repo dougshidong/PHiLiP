@@ -22,8 +22,8 @@ void RungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::step_in_time (real dt, 
         this->rk_stage[i]=0.0; //resets all entries to zero
         
         for (int j = 0; j < i; ++j){
-            if (this->butcher_tableau->a(i,j) != 0){
-                this->rk_stage[i].add(this->butcher_tableau->a(i,j), this->rk_stage[j]);
+            if (this->butcher_tableau->get_a(i,j) != 0){
+                this->rk_stage[i].add(this->butcher_tableau->get_a(i,j), this->rk_stage[j]);
             }
         } //sum(a_ij *k_j), explicit part
 
@@ -38,7 +38,7 @@ void RungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::step_in_time (real dt, 
         this->rk_stage[i].add(1.0,this->solution_update); //u_n + dt * sum(a_ij * k_j)
        
         //implicit solve for diagonal element
-        if (this->butcher_tableau->a(i,i) != 0){
+        if (this->butcher_tableau->get_a(i,i) != 0){
             /* // AD version - keeping in comments as it may be useful for future testing
             // Solve (M/dt - dRdW) / a_ii * dw = R
             // w = w + dw
@@ -59,7 +59,7 @@ void RungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::step_in_time (real dt, 
             */
 
             //JFNK version
-            solver.solve(dt*butcher_tableau->a(i,i), rk_stage[i]);
+            solver.solve(dt*butcher_tableau->get_a(i,i), rk_stage[i]);
             rk_stage[i] = solver.current_solution_estimate;
 
         } // u_n + dt * sum(a_ij * k_j) <explicit> + dt * a_ii * u^(i) <implicit>
@@ -75,11 +75,11 @@ void RungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::step_in_time (real dt, 
     //assemble solution from stages
     for (int i = 0; i < n_rk_stages; ++i){
         if (pseudotime){
-            const double CFL = butcher_tableau->b(i) * dt;
+            const double CFL = butcher_tableau->get_b(i) * dt;
             this->dg->time_scale_solution_update(rk_stage[i], CFL);
             this->solution_update.add(1.0, this->rk_stage[i]);
         } else {
-            this->solution_update.add(dt* this->butcher_tableau->b(i),this->rk_stage[i]); 
+            this->solution_update.add(dt* this->butcher_tableau->get_b(i),this->rk_stage[i]); 
         }
     }
     this->dg->solution = this->solution_update; // u_np1 = u_n + dt* sum(k_i * b_i)

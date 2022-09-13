@@ -16,11 +16,21 @@ template <int dim, typename real, typename MeshType = dealii::parallel::distribu
 class SSPRK3Explicit: public RKTableauBase <dim, real, MeshType>
 {
 public:
-    SSPRK3Explicit(int n_rk_stages); ///< Constructor.
+    SSPRK3Explicit(int n_rk_stages) : RKTableauBase<dim,real,MeshType>(n_rk_stages) { set_tableau();} ///< Constructor.
 
     /// Destructor
     ~SSPRK3Explicit() {};
+
+protected:
+
+    /// Setter for butcher tableau
+    void set_tableau() override;
     
+    /// Setter for butcher_tableau_a
+    void set_a() override;
+
+    /// Setter for butcher_tableau_b
+    void set_b() override;
 };
 
 /// Classical fourth-order explicit RK
@@ -32,10 +42,21 @@ template <int dim, typename real, typename MeshType = dealii::parallel::distribu
 class RK4Explicit: public RKTableauBase <dim, real, MeshType>
 {
 public:
-    RK4Explicit(int n_rk_stages); ///< Constructor.
+    RK4Explicit(int n_rk_stages) : RKTableauBase<dim,real,MeshType>(n_rk_stages) { set_tableau();} ///< Constructor.
 
     /// Destructor
     ~RK4Explicit() {};
+
+protected:
+
+    /// Setter for butcher tableau
+    void set_tableau() override;
+    
+    /// Setter for butcher_tableau_a
+    void set_a() override;
+
+    /// Setter for butcher_tableau_b
+    void set_b() override;
 };
 
 /// Forward Euler (explicit) 
@@ -47,11 +68,21 @@ template <int dim, typename real, typename MeshType = dealii::parallel::distribu
 class EulerExplicit: public RKTableauBase <dim, real, MeshType>
 {
 public:
-    EulerExplicit(int n_rk_stages); ///< Constructor.
+    EulerExplicit(int n_rk_stages) : RKTableauBase<dim,real,MeshType>(n_rk_stages) { set_tableau();} ///< Constructor.
 
     /// Destructor
     ~EulerExplicit() {};
     
+protected:
+
+    /// Setter for butcher tableau
+    void set_tableau() override;
+    
+    /// Setter for butcher_tableau_a
+    void set_a() override;
+
+    /// Setter for butcher_tableau_b
+    void set_b() override;
 };
 
 
@@ -64,11 +95,21 @@ template <int dim, typename real, typename MeshType = dealii::parallel::distribu
 class EulerImplicit: public RKTableauBase <dim, real, MeshType>
 {
 public:
-    EulerImplicit(int n_rk_stages); ///< Constructor.
+    EulerImplicit(int n_rk_stages) : RKTableauBase<dim,real,MeshType>(n_rk_stages) { set_tableau();} ///< Constructor.
 
     /// Destructor
     ~EulerImplicit() {};
     
+protected:
+
+    /// Setter for butcher tableau
+    void set_tableau() override;
+    
+    /// Setter for butcher_tableau_a
+    void set_a() override;
+
+    /// Setter for butcher_tableau_b
+    void set_b() override;
 };
 
 
@@ -81,11 +122,21 @@ template <int dim, typename real, typename MeshType = dealii::parallel::distribu
 class DIRK2Implicit: public RKTableauBase <dim, real, MeshType>
 {
 public:
-    DIRK2Implicit(int n_rk_stages); ///< Constructor.
+    DIRK2Implicit(int n_rk_stages) : RKTableauBase<dim,real,MeshType>(n_rk_stages) { set_tableau();} ///< Constructor.
 
     /// Destructor
     ~DIRK2Implicit() {};
     
+protected:
+
+    /// Setter for butcher tableau
+    void set_tableau() override;
+    
+    /// Setter for butcher_tableau_a
+    void set_a() override;
+
+    /// Setter for butcher_tableau_b
+    void set_b() override;
 };
 
 } // ODE namespace

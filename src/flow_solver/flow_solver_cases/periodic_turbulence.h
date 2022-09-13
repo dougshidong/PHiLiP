@@ -62,6 +62,9 @@ public:
      * */
     double get_deviatoric_strain_rate_tensor_based_dissipation_rate() const;
 
+    /// Output the velocity field to file
+    void output_velocity_field(std::shared_ptr<DGBase<dim,double>> dg) const;
+
 protected:
     /// Filename (with extension) for the unsteady data table
     const std::string unsteady_data_table_filename_with_extension;

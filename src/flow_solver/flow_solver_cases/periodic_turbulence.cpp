@@ -77,6 +77,103 @@ double PeriodicTurbulence<dim,nstate>::get_adaptive_time_step(std::shared_ptr<DG
     return time_step;
 }
 
+std::string get_padded_mpi_rank_string(const int mpi_rank_input) {
+    // returns the mpi rank as a string with appropriate padding
+    std::string mpi_rank_string = std::to_string(mpi_rank_input);
+    const unsigned int length_of_mpi_rank_with_padding = 5;
+    const int number_of_zeros = length_of_mpi_rank_with_padding - mpi_rank_string.length();
+    mpi_rank_string.insert(0, number_of_zeros, '0');
+
+    return mpi_rank_string;
+}
+
+template<int dim, int nstate>
+void PeriodicTurbulence<dim, nstate>::output_velocity_field(std::shared_ptr<DGBase<dim,double>> dg) const
+{
+    // Same loop from read_values_from_file_and_project() in set_initial_condition.cpp
+    // TO DO: Define this variable
+    const std::string input_filename_prefix = "velocity";
+
+    // (1) Get filename based on MPI rank
+    //-------------------------------------------------------------
+    const int mpi_rank = dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD);
+    // -- Get padded mpi rank string
+    const std::string mpi_rank_string = get_padded_mpi_rank_string(mpi_rank);
+    // -- Assemble filename string
+    const std::string filename_without_extension = input_filename_prefix + std::string("-") + mpi_rank_string;
+    const std::string filename = filename_without_extension + std::string(".dat");
+    //-------------------------------------------------------------
+
+    // (2) Read file
+    //-------------------------------------------------------------
+    std::ofstream FILE (filename);
+    
+    // check that the file is open and write DOFs
+    if (!FILE.is_open()) {
+        pcout << "ERROR: Cannot open file " << filename << std::endl;
+        std::abort();
+    } else {
+        const unsigned int number_of_degrees_of_freedom_per_state = dg->dof_handler.n_dofs()/nstate;
+        FILE << number_of_degrees_of_freedom_per_state << std::string("\n");
+    }
+
+    // write data
+    std::array<double,nstate> soln_at_q;
+    // std::array<dealii::Tensor<1,dim,double>,nstate> soln_grad_at_q;
+
+    const auto mapping = (*(dg->high_order_grid->mapping_fe_field));
+    dealii::hp::MappingCollection<dim> mapping_collection(mapping);
+    dealii::hp::FEValues<dim,dim> fe_values_collection(mapping_collection, dg->fe_collection, dg->volume_quadrature_collection, 
+                                dealii::update_quadrature_points);
+    const unsigned int max_dofs_per_cell = dg->dof_handler.get_fe_collection().max_dofs_per_cell();
+    std::vector<dealii::types::global_dof_index> current_dofs_indices(max_dofs_per_cell);
+    for (auto current_cell = dg->dof_handler.begin_active(); current_cell!=dg->dof_handler.end(); ++current_cell) {
+        if (!current_cell->is_locally_owned()) continue;
+    
+        const int i_fele = current_cell->active_fe_index();
+        const int i_quad = i_fele;
+        const int i_mapp = 0;
+        fe_values_collection.reinit (current_cell, i_quad, i_mapp, i_fele);
+        const dealii::FEValues<dim,dim> &fe_values = fe_values_collection.get_present_fe_values();
+        const unsigned int poly_degree = i_fele;
+        const unsigned int n_quad_pts = dg->volume_quadrature_collection[poly_degree].size();
+        const unsigned int n_dofs_cell = dg->fe_collection[poly_degree].dofs_per_cell;
+
+        current_dofs_indices.resize(n_dofs_cell);
+        current_cell->get_dof_indices (current_dofs_indices);
+
+        for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
+
+            // write coordinates
+            const dealii::Point<dim> qpoint = (fe_values.quadrature_point(iquad));
+            for (int d=0; d<dim; ++d) {
+                FILE << set_precision(16) << qpoint[d] << std::string(" ");
+            }
+
+            // get solution at qpoint
+            std::fill(soln_at_q.begin(), soln_at_q.end(), 0.0);
+            // for (int s=0; s<nstate; ++s) {
+            //     for (int d=0; d<dim; ++d) {
+            //         soln_grad_at_q[s][d] = 0.0;
+            //     }
+            // }
+            // for (unsigned int idof=0; idof<fe_values.dofs_per_cell; ++idof) {
+            for (unsigned int idof=0; idof<n_dofs_cell; ++idof) {
+                const unsigned int istate = fe_values.get_fe().system_to_component_index(idof).first;
+                soln_at_q[istate] += dg->solution[current_dofs_dofs_indices[idof]] * fe_values.shape_value_component(idof, iquad, istate);
+                // soln_grad_at_q[istate] += dg->solution[current_dofs_dofs_indices[idof]] * fe_values.shape_grad_component(idof,iquad,istate);
+            }
+            dealii::Tensor<1,dim,double> velocity = this->navier_stokes_physics->convert_conservative_to_primitive(soln_at_q);
+            // write velocity field
+            for (int d=0; d<dim; ++d) {
+                FILE << set_precision(16) << velocity[d] << std::string(" ");
+            }
+            FILE << std::string("\n"); // next line
+        }
+    }
+    FILE.close();
+}
+
 template<int dim, int nstate>
 void PeriodicTurbulence<dim, nstate>::compute_and_update_integrated_quantities(DGBase<dim, double> &dg)
 {

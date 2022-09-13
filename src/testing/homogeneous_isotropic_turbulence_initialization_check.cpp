@@ -26,6 +26,8 @@ int HomogeneousIsotropicTurbulenceInitializationCheck<dim, nstate>::run_test() c
     // copy all parameters
     PHiLiP::Parameters::AllParameters parameters = *(this->all_parameters);
     std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(&parameters, parameter_handler);
+    std::unique_ptr<FlowSolver::PeriodicTurbulence<dim, nstate>> flow_solver_case = std::make_unique<FlowSolver::PeriodicTurbulence<dim,nstate>>(this->all_parameters);
+    flow_solver_case->output_velocity_field(flow_solver->dg);
     // SetInitialCondition<dim,nstate,double>::set_initial_condition(nullptr,flow_solver->dg,&parameters);
     this->pcout << "Outputting solution files at initialization... " << std::flush;
     flow_solver->dg->output_results_vtk(9999);

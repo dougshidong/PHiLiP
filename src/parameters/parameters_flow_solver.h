@@ -105,6 +105,10 @@ public:
      * For initializing the flow with values from a file. 
      * To be set when set_initial_condition_method is read_values_from_file_and_project. */
     std::string input_flow_setup_filename_prefix;
+
+    bool output_velocity_field_at_fixed_times; ///< Flag for outputting velocity field at fixed times
+    std::string output_velocity_field_times_string; ///< String of velocity field output times
+    int number_of_times_to_output_velocity_field; ///< Number of times to output the velocity field
 };
 
 } // Parameters namespace

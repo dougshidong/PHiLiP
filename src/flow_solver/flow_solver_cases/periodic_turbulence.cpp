@@ -11,6 +11,7 @@
 #include <deal.II/base/table_handler.h>
 #include <deal.II/base/tensor.h>
 #include "math.h"
+#include <string>
 
 namespace PHiLiP {
 
@@ -23,6 +24,8 @@ template <int dim, int nstate>
 PeriodicTurbulence<dim, nstate>::PeriodicTurbulence(const PHiLiP::Parameters::AllParameters *const parameters_input)
         : PeriodicCubeFlow<dim, nstate>(parameters_input)
         , unsteady_data_table_filename_with_extension(this->all_param.flow_solver_param.unsteady_data_table_filename+".txt")
+        , number_of_times_to_output_velocity_field(this->all_param.flow_solver_param.number_of_times_to_output_velocity_field)
+        , output_velocity_field_at_fixed_times(this->all_param.flow_solver_param.output_velocity_field_at_fixed_times)
 {
     // Get the flow case type
     using FlowCaseEnum = Parameters::FlowSolverParam::FlowCaseType;
@@ -44,6 +47,23 @@ PeriodicTurbulence<dim, nstate>::PeriodicTurbulence(const PHiLiP::Parameters::Al
        before a member function of kind get_integrated_quantity() is called
      */
     std::fill(this->integrated_quantities.begin(), this->integrated_quantities.end(), NAN);
+
+    /// For outputting velocity field
+    this->index_of_current_desired_time_to_output_velocity_field = 0;
+    if(output_velocity_field_at_fixed_times && (number_of_times_to_output_velocity_field > 0)) {
+        this->output_velocity_field_times.reinit(number_of_times_to_output_velocity_field);
+        
+        // Get output_velocity_field_times from string
+        const std::string output_velocity_field_times_string = this->all_param.flow_solver_param.output_velocity_field_times_string;
+        std::string line = output_velocity_field_times_string;
+        std::string::size_type sz1;
+        output_velocity_field_times[0] = std::stod(line,&sz1);
+        for(int i=1; i<number_of_times_to_output_velocity_field; ++i) {
+            line = line.substr(sz1);
+            sz1 = 0;
+            output_velocity_field_times[i] = std::stod(line,&sz1);
+        }
+    }
 }
 
 template <int dim, int nstate>
@@ -341,16 +361,21 @@ void PeriodicTurbulence<dim, nstate>::compute_unsteady_data_and_write_to_table(
         std::abort();
     }
 
-    // Output velocity field data (for spectra) at standard output times
-    if(this->is_decaying_homogeneous_isotropic_turbulence) {
+    // Output velocity field for spectra obtaining kinetic energy spectra
+    if(output_velocity_field_at_fixed_times) {
         const double time_step = this->get_time_step();
         const double next_time = current_time + time_step;
-        if((current_time<=0.0) && (next_time>0.0)) {
-            this->output_velocity_field(dg,0);
-        } else if((current_time<=0.1) && (next_time>0.1)) {
-            this->output_velocity_field(dg,1);
-        } else if((current_time<=0.2) && (next_time>0.2)) {
-            this->output_velocity_field(dg,2);
+        const double desired_time = this->output_velocity_field_times[this->index_of_current_desired_time_to_output_velocity_field];
+        // Check if current time is an output time
+        if((current_time<=desired_time) && (next_time>desired_time)) {
+            // Output velocity field for current index
+            this->output_velocity_field(dg,this->index_of_current_desired_time_to_output_velocity_field);
+            
+            // Update index s.t. it never goes out of bounds
+            if(this->index_of_current_desired_time_to_output_velocity_field 
+                < (this->number_of_times_to_output_velocity_field-1)) {
+                this->index_of_current_desired_time_to_output_velocity_field += 1;
+            }
         }
     }
 }

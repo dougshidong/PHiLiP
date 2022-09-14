@@ -4,6 +4,7 @@
 #include "periodic_cube_flow.h"
 #include "dg/dg.h"
 #include "physics/navier_stokes.h"
+#include <deal.II/base/table.h>
 
 namespace PHiLiP {
 namespace FlowSolver {
@@ -71,6 +72,12 @@ protected:
     /// Filename (with extension) for the unsteady data table
     const std::string unsteady_data_table_filename_with_extension;
 
+    /// Number of times to output the velocity field
+    const int number_of_times_to_output_velocity_field;
+
+    /// Flag for outputting velocity field at fixed times
+    const bool output_velocity_field_at_fixed_times;
+
     /// Pointer to Navier-Stokes physics object for computing things on the fly
     std::shared_ptr< Physics::NavierStokes<dim,dim+2,double> > navier_stokes_physics;
 
@@ -106,6 +113,12 @@ protected:
 
     /// Maximum local wave speed (i.e. convective eigenvalue)
     double maximum_local_wave_speed;
+
+    /// Times at which to output the velocity field
+    dealii::Table<1,double> output_velocity_field_times;
+
+    /// Index of current desired time to output velocity field
+    int index_of_current_desired_time_to_output_velocity_field;
 };
 
 } // FlowSolver namespace

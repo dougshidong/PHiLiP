@@ -137,7 +137,7 @@ void PeriodicTurbulence<dim, nstate>::output_velocity_field(
     if (!FILE.is_open()) {
         this->pcout << "ERROR: Cannot open file " << filename << std::endl;
         std::abort();
-    } else {
+    } else if(mpi_rank==0) {
         const unsigned int number_of_degrees_of_freedom_per_state = dg->dof_handler.n_dofs()/nstate;
         FILE << number_of_degrees_of_freedom_per_state << std::string("\n");
     }
@@ -173,7 +173,7 @@ void PeriodicTurbulence<dim, nstate>::output_velocity_field(
             // write coordinates
             const dealii::Point<dim> qpoint = (fe_values.quadrature_point(iquad));
             for (int d=0; d<dim; ++d) {
-                FILE << std::setprecision(16) << qpoint[d] << std::string(" ");
+                FILE << std::setprecision(17) << qpoint[d] << std::string(" ");
             }
 
             // get solution at qpoint
@@ -192,7 +192,7 @@ void PeriodicTurbulence<dim, nstate>::output_velocity_field(
             dealii::Tensor<1,dim,double> velocity = this->navier_stokes_physics->compute_velocities(soln_at_q);
             // write velocity field
             for (int d=0; d<dim; ++d) {
-                FILE << std::setprecision(16) << velocity[d] << std::string(" ");
+                FILE << std::setprecision(17) << velocity[d] << std::string(" ");
             }
             FILE << std::string("\n"); // next line
         }

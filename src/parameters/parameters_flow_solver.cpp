@@ -20,7 +20,8 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                           " naca0012 | "
                           " burgers_rewienski_snapshot | "
                           " periodic_1D_unsteady | "
-                          " gaussian_bump "),
+                          " gaussian_bump | "
+                          " sshock "),
                           "The type of flow we want to simulate. "
                           "Choices are "
                           " <taylor_green_vortex | "
@@ -28,7 +29,8 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                           " naca0012 | "
                           " burgers_rewienski_snapshot | "
                           " periodic_1D_unsteady | "
-                          " gaussian_bump>. ");
+                          " gaussian_bump | "
+                          " sshock>. ");
 
         prm.declare_entry("poly_degree", "1",
                           dealii::Patterns::Integer(0, dealii::Patterns::Integer::max_int_value),
@@ -177,12 +179,13 @@ void FlowSolverParam::parse_parameters(dealii::ParameterHandler &prm)
     prm.enter_subsection("flow_solver");
     {
         const std::string flow_case_type_string = prm.get("flow_case_type");
-        if      (flow_case_type_string == "taylor_green_vortex")        {flow_case_type = taylor_green_vortex;}
-        else if (flow_case_type_string == "burgers_viscous_snapshot")   {flow_case_type = burgers_viscous_snapshot;}
-        else if (flow_case_type_string == "burgers_rewienski_snapshot") {flow_case_type = burgers_rewienski_snapshot;}
-        else if (flow_case_type_string == "naca0012")                   {flow_case_type = naca0012;}
-        else if (flow_case_type_string == "periodic_1D_unsteady")       {flow_case_type = periodic_1D_unsteady;}
-        else if (flow_case_type_string == "gaussian_bump")              {flow_case_type = gaussian_bump;}
+        if      (flow_case_type_string == "taylor_green_vortex")                {flow_case_type = taylor_green_vortex;}
+        else if (flow_case_type_string == "burgers_viscous_snapshot")           {flow_case_type = burgers_viscous_snapshot;}
+        else if (flow_case_type_string == "burgers_rewienski_snapshot")         {flow_case_type = burgers_rewienski_snapshot;}
+        else if (flow_case_type_string == "naca0012")                           {flow_case_type = naca0012;}
+        else if (flow_case_type_string == "periodic_1D_unsteady")                 {flow_case_type = periodic_1D_unsteady;}
+        else if (flow_case_type_string == "gaussian_bump")                      {flow_case_type = gaussian_bump;}
+        else if (flow_case_type_string == "sshock")                             {flow_case_type = sshock;}
 
         poly_degree = prm.get_integer("poly_degree");
         

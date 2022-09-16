@@ -16,22 +16,22 @@ set use_split_form = false
 
 subsection euler
   set reference_length = 1.0
-  set mach_infinity = 0.7
+  set mach_infinity = 0.8
   set angle_of_attack = 0.0
 end
 
 subsection artificial dissipation
 	set add_artificial_dissipation = true
-	set mu_artificial_dissipation = 1.0
-	set kappa_artificial_dissipation = 2.0
+	set mu_artificial_dissipation = 1.0 
+	set kappa_artificial_dissipation = 1.0 
 end
 
 subsection mesh adaptation
+    set total_mesh_adaptation_cycles = 2
     set mesh_adaptation_type = h_adaptation
-    set critical_residual = 1.0e-7  #1.0e-5
-    set total_refinement_cycles = 2  #5
     set h_refine_fraction = 0.05
-    set h_coarsen_fraction = 0.025
+    set h_coarsen_fraction = 0.0
+    set use_goal_oriented_mesh_adaptation = false
 end
 
 subsection linear solver
@@ -76,10 +76,10 @@ subsection manufactured solution convergence study
   set grid_progression_add  = 0
 
   # Initial grid of size (initial_grid_size)^dim
-  set initial_grid_size = 4 #4
+  set initial_grid_size = 6 #4
 
   # Number of grids in grid study
-  set number_of_grids   = 2 #3
+  set number_of_grids   = 1 #3
 end
 
 subsection flow_solver

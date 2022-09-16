@@ -6,7 +6,7 @@ namespace PHiLiP {
 template <int dim, typename real, typename MeshType>
 MeshAdaptation<dim,real,MeshType>::MeshAdaptation(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input, const Parameters::MeshAdaptationParam *const mesh_adaptation_param_input)
     : dg(dg_input)
-    , current_refinement_cycle(0)
+    , current_mesh_adaptation_cycle(0)
     , mesh_adaptation_param(mesh_adaptation_param_input)
     , pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD)==0)
     {
@@ -17,11 +17,14 @@ MeshAdaptation<dim,real,MeshType>::MeshAdaptation(std::shared_ptr< DGBase<dim, r
 template <int dim, typename real, typename MeshType>
 void MeshAdaptation<dim,real,MeshType>::adapt_mesh()
 {
+    [[maybe_unused]] unsigned int expected_size_of_cellwise_errors = dg->triangulation->n_active_cells();
     cellwise_errors = mesh_error->compute_cellwise_errors();
+    [[maybe_unused]] unsigned int actual_size_of_cellwise_errors = cellwise_errors.size();
+    AssertDimension(expected_size_of_cellwise_errors, actual_size_of_cellwise_errors);
 
     fixed_fraction_isotropic_refinement_and_coarsening();
-    current_refinement_cycle++;
-    pcout<<"Refined"<<std::endl;
+    current_mesh_adaptation_cycle++;
+    pcout<<"Mesh has been adapted according to the specified error indicator. Adaptation cycle = "<<current_mesh_adaptation_cycle<<std::endl;
 }
 
 

@@ -158,14 +158,12 @@ void FlowSolverCaseBase<dim, nstate>::add_value_to_data_table(
     data_table->set_scientific(value_string, true);
 }
 
-#if PHILIP_DIM==1
-template class FlowSolverCaseBase<PHILIP_DIM,PHILIP_DIM>;
-#endif
-
-#if PHILIP_DIM!=1
-template class FlowSolverCaseBase<PHILIP_DIM,PHILIP_DIM+2>;
-template class FlowSolverCaseBase<PHILIP_DIM,PHILIP_DIM+3>;
-#endif
+template class FlowSolverCaseBase<PHILIP_DIM,1>;
+template class FlowSolverCaseBase<PHILIP_DIM,2>;
+template class FlowSolverCaseBase<PHILIP_DIM,3>;
+template class FlowSolverCaseBase<PHILIP_DIM,4>;
+template class FlowSolverCaseBase<PHILIP_DIM,5>;
+template class FlowSolverCaseBase<PHILIP_DIM,6>;
 
 } // FlowSolver namespace
 } // PHiLiP namespace

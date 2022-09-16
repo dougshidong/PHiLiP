@@ -16,23 +16,23 @@ subsection linear solver
     set linear_residual_tolerance = 1e-4
     set max_iterations = 2000
     set restart_number = 50
-    set ilut_fill = 10
+    set ilut_fill = 1
+    set ilut_atol = 1.0e-5
     # set ilut_drop = 1e-4
   end 
 end
 
 subsection mesh adaptation
-    set mesh_adaptation_type = p_adaptation
-    set critical_residual = 1.0e-8
-    set total_refinement_cycles = 4
+    set total_mesh_adaptation_cycles = 4
+    set mesh_adaptation_type = h_adaptation
     set h_refine_fraction = 0.05
-    set h_coarsen_fraction = 0.0
+    set h_coarsen_fraction = 0.025
     set use_goal_oriented_mesh_adaptation = true
 end
 
 subsection ODE solver
   #output solution
- #set output_solution_every_x_steps = 1
+  #set output_solution_every_x_steps = 1
 
   # Maximum nonlinear solver iterations
   set nonlinear_max_iterations            = 500
@@ -72,24 +72,15 @@ subsection manufactured solution convergence study
   # setting the advection vector
   set advection_0 = 1.1
   set advection_1 = -1.155727 # -pi/e
+end
 
-  # setting the diffusion coefficient, 0.01*pi/e
-  set diffusion_coefficient = 0.0115573
-  
-  # Last degree used for convergence study
-  set degree_end        = 2
-
-  # Starting degree for convergence study
-  set degree_start      = 2
-
-  set grid_progression  = 2
-
-  set grid_progression_add  = 0
-
-  # Initial grid of size (initial_grid_size)^dim
-  set initial_grid_size = 4 #4
-
-  # Number of grids in grid study
-  set number_of_grids   = 1 #3
-  
+subsection flow_solver
+  set flow_case_type = sshock
+  set steady_state = true
+  set steady_state_polynomial_ramping = false
+  set poly_degree = 2
+  set max_poly_degree_for_adaptation = 3
+  subsection grid
+    set number_of_mesh_refinements = 4
+  end
 end

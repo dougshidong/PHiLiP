@@ -59,7 +59,7 @@ void RungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::step_in_time (real dt, 
             */
 
             //JFNK version
-            solver.solve(dt*butcher_tableau->get_a(i,i), rk_stage[i]);
+            solver.solve(dt*this->butcher_tableau->get_a(i,i), rk_stage[i]);
             rk_stage[i] = solver.current_solution_estimate;
 
         } // u_n + dt * sum(a_ij * k_j) <explicit> + dt * a_ii * u^(i) <implicit>
@@ -75,7 +75,7 @@ void RungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::step_in_time (real dt, 
     //assemble solution from stages
     for (int i = 0; i < n_rk_stages; ++i){
         if (pseudotime){
-            const double CFL = butcher_tableau->get_b(i) * dt;
+            const double CFL = this->butcher_tableau->get_b(i) * dt;
             this->dg->time_scale_solution_update(rk_stage[i], CFL);
             this->solution_update.add(1.0, this->rk_stage[i]);
         } else {
@@ -106,6 +106,8 @@ void RungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::allocate_ode_system ()
     for (int i=0; i<n_rk_stages; ++i) {
         this->rk_stage[i].reinit(this->dg->solution);
     }
+
+    this->butcher_tableau->set_tableau();
 }
 
 template class RungeKuttaODESolver<PHILIP_DIM, double,1, dealii::Triangulation<PHILIP_DIM> >;

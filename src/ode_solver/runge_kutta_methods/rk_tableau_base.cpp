@@ -5,12 +5,23 @@ namespace PHiLiP {
 namespace ODE {
 
 template <int dim, typename real, typename MeshType> 
-RKTableauBase<dim,real, MeshType> :: RKTableauBase (int n_rk_stages)
+RKTableauBase<dim,real, MeshType> :: RKTableauBase (const int n_rk_stages, 
+        const std::string rk_method_string_input)
     : pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD)==0)
+    , rk_method_string(rk_method_string_input)
 {
     this->butcher_tableau_a.reinit(n_rk_stages,n_rk_stages);
     this->butcher_tableau_b.reinit(n_rk_stages);
     this->butcher_tableau_c.reinit(n_rk_stages);
+}
+
+template <int dim, typename real, typename MeshType> 
+void RKTableauBase<dim,real, MeshType> :: set_tableau ()
+{
+    set_a();
+    set_b();
+    set_c();
+    pcout << "Assigned RK method: " << rk_method_string << std::endl;
 }
 
 template <int dim, typename real, typename MeshType> 

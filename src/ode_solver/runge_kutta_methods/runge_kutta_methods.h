@@ -16,16 +16,14 @@ template <int dim, typename real, typename MeshType = dealii::parallel::distribu
 class SSPRK3Explicit: public RKTableauBase <dim, real, MeshType>
 {
 public:
-    SSPRK3Explicit(int n_rk_stages) : RKTableauBase<dim,real,MeshType>(n_rk_stages) { set_tableau();} ///< Constructor.
+    /// Constructor
+    SSPRK3Explicit(const int n_rk_stages, const std::string rk_method_string_input) 
+        : RKTableauBase<dim,real,MeshType>(n_rk_stages, rk_method_string_input) { }
 
     /// Destructor
     ~SSPRK3Explicit() {};
 
 protected:
-
-    /// Setter for butcher tableau
-    void set_tableau() override;
-    
     /// Setter for butcher_tableau_a
     void set_a() override;
 
@@ -45,16 +43,14 @@ template <int dim, typename real, typename MeshType = dealii::parallel::distribu
 class RK4Explicit: public RKTableauBase <dim, real, MeshType>
 {
 public:
-    RK4Explicit(int n_rk_stages) : RKTableauBase<dim,real,MeshType>(n_rk_stages) { set_tableau();} ///< Constructor.
+    /// Constructor
+    RK4Explicit(const int n_rk_stages, const std::string rk_method_string_input) 
+        : RKTableauBase<dim,real,MeshType>(n_rk_stages, rk_method_string_input) { }
 
     /// Destructor
     ~RK4Explicit() {};
 
 protected:
-
-    /// Setter for butcher tableau
-    void set_tableau() override;
-    
     /// Setter for butcher_tableau_a
     void set_a() override;
 
@@ -74,16 +70,14 @@ template <int dim, typename real, typename MeshType = dealii::parallel::distribu
 class EulerExplicit: public RKTableauBase <dim, real, MeshType>
 {
 public:
-    EulerExplicit(int n_rk_stages) : RKTableauBase<dim,real,MeshType>(n_rk_stages) { set_tableau();} ///< Constructor.
+    /// Constructor
+    EulerExplicit(const int n_rk_stages, const std::string rk_method_string_input) 
+        : RKTableauBase<dim,real,MeshType>(n_rk_stages, rk_method_string_input) { }
 
     /// Destructor
     ~EulerExplicit() {};
     
 protected:
-
-    /// Setter for butcher tableau
-    void set_tableau() override;
-    
     /// Setter for butcher_tableau_a
     void set_a() override;
 
@@ -104,16 +98,14 @@ template <int dim, typename real, typename MeshType = dealii::parallel::distribu
 class EulerImplicit: public RKTableauBase <dim, real, MeshType>
 {
 public:
-    EulerImplicit(int n_rk_stages) : RKTableauBase<dim,real,MeshType>(n_rk_stages) { set_tableau();} ///< Constructor.
+    ///Constructor
+    EulerImplicit(const int n_rk_stages, const std::string rk_method_string_input) 
+        : RKTableauBase<dim,real,MeshType>(n_rk_stages, rk_method_string_input) { }
 
     /// Destructor
     ~EulerImplicit() {};
     
 protected:
-
-    /// Setter for butcher tableau
-    void set_tableau() override;
-    
     /// Setter for butcher_tableau_a
     void set_a() override;
 
@@ -134,16 +126,14 @@ template <int dim, typename real, typename MeshType = dealii::parallel::distribu
 class DIRK2Implicit: public RKTableauBase <dim, real, MeshType>
 {
 public:
-    DIRK2Implicit(int n_rk_stages) : RKTableauBase<dim,real,MeshType>(n_rk_stages) { set_tableau();} ///< Constructor.
+    /// Constructor
+    DIRK2Implicit(const int n_rk_stages, const std::string rk_method_string_input) 
+        : RKTableauBase<dim,real,MeshType>(n_rk_stages, rk_method_string_input) { }
 
     /// Destructor
     ~DIRK2Implicit() {};
     
 protected:
-
-    /// Setter for butcher tableau
-    void set_tableau() override;
-    
     /// Setter for butcher_tableau_a
     void set_a() override;
 

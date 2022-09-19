@@ -23,10 +23,11 @@ real RRKExplicitODESolver<dim,real,n_rk_stages,MeshType>::compute_relaxation_par
     double denominator = 0;
     double numerator = 0;
     for (int i = 0; i < n_rk_stages; ++i){
+        const double b_i = this->butcher_tableau->get_b(i);
         for (int j = 0; j < n_rk_stages; ++j){
             real inner_product = compute_inner_product(this->rk_stage[i],this->rk_stage[j]);
-            numerator += this->butcher_tableau->get_b(i) *this-> butcher_tableau->get_a(i,j) * inner_product; 
-            denominator += this->butcher_tableau->get_b(i)*this->butcher_tableau->get_b(j) * inner_product;
+            numerator += b_i * this-> butcher_tableau->get_a(i,j) * inner_product; 
+            denominator += b_i * this->butcher_tableau->get_b(j) * inner_product;
         }
     }
     numerator *= 2;

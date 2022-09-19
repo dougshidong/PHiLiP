@@ -17,7 +17,7 @@ class RKTableauBase
 {
 public:
     /// Default constructor that will set the constants.
-    RKTableauBase(int n_rk_stages); 
+    RKTableauBase(const int n_rk_stages, const std::string rk_method_string_input); 
 
     /// Destructor
     ~RKTableauBase() {};
@@ -31,10 +31,16 @@ public:
     /// Returns Butcher tableau "c" coefficient at position [i]
     double get_c(const int i) const;
 
+    /// Calls setters for butcher tableau
+    void set_tableau();
+    
 protected:
 
     dealii::ConditionalOStream pcout; ///< Parallel std::cout that only outputs on mpi_rank==0
     
+    /// String identifying the RK method
+    const std::string rk_method_string;
+
     /// Butcher tableau "a"
     dealii::Table<2,double> butcher_tableau_a;
 
@@ -44,9 +50,6 @@ protected:
     /// Butcher tableau "c"
     dealii::Table<1,double> butcher_tableau_c;
     
-    /// Setter for butcher tableau
-    virtual void set_tableau() = 0;
-    
     /// Setter for butcher_tableau_a
     virtual void set_a() = 0;
 
@@ -55,6 +58,7 @@ protected:
     
     /// Setter for butcher_tableau_c
     virtual void set_c() = 0;
+
 
 };
 

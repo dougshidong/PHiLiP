@@ -185,8 +185,8 @@ std::shared_ptr<RKTableauBase<dim,real,MeshType>> ODESolverFactory<dim,real,Mesh
 
     const int n_rk_stages = dg_input->all_parameters->ode_solver_param.n_rk_stages;
 
-    if (rk_method == RKMethodEnum::ssprk3_ex)   return std::make_shared<SSPRK3Explicit<dim, real, MeshType>> (n_rk_stages);
-    if (rk_method == RKMethodEnum::rk4_ex)      return std::make_shared<RK4Explicit<dim, real, MeshType>>    (n_rk_stages);
+    if (rk_method == RKMethodEnum::ssprk3_ex)   return std::make_shared<SSPRK3Explicit<dim, real, MeshType>> (n_rk_stages, "3rd order SSP (explicit)");
+    if (rk_method == RKMethodEnum::rk4_ex)      return std::make_shared<RK4Explicit<dim, real, MeshType>>    (n_rk_stages, "4th order classical RK (explicit)");
     if (rk_method == RKMethodEnum::euler_ex) {
         using ODEEnum = Parameters::ODESolverParam::ODESolverEnum;
         ODEEnum ode_solver_type = dg_input->all_parameters->ode_solver_param.ode_solver_type;
@@ -195,15 +195,15 @@ std::shared_ptr<RKTableauBase<dim,real,MeshType>> ODESolverFactory<dim,real,Mesh
             pcout << "Error: RRK is not valid for Forward Euler. Aborting..." << std::endl;
             std::abort();
             return nullptr;
-        } else return std::make_shared<EulerExplicit<dim, real, MeshType>>  (n_rk_stages);
+        } else return std::make_shared<EulerExplicit<dim, real, MeshType>>  (n_rk_stages, "Forward Euler (explicit)");
     }
     if constexpr(dim==1){
         //Only tested in 1D with Burgers and advection
         using PDEEnum = Parameters::AllParameters::PartialDifferentialEquation;
         const PDEEnum pde_type = dg_input->all_parameters->pde_type;
         if ((pde_type==PDEEnum::burgers_inviscid) || (pde_type==PDEEnum::advection)){
-            if (rk_method == RKMethodEnum::euler_im)    return std::make_shared<EulerImplicit<dim, real, MeshType>>  (n_rk_stages);
-            if (rk_method == RKMethodEnum::dirk_2_im)   return std::make_shared<DIRK2Implicit<dim, real, MeshType>>  (n_rk_stages);
+            if (rk_method == RKMethodEnum::euler_im)    return std::make_shared<EulerImplicit<dim, real, MeshType>>  (n_rk_stages, "Implicit Euler (implicit)");
+            if (rk_method == RKMethodEnum::dirk_2_im)   return std::make_shared<DIRK2Implicit<dim, real, MeshType>>  (n_rk_stages, "2nd order diagonally-implicit (implicit)");
             else {
                 pcout << "Error: invalid RK method. Aborting..." << std::endl;
                 std::abort();

@@ -5,15 +5,6 @@ namespace ODE {
 
 //##################################################################
 template <int dim, typename real, typename MeshType>
-void SSPRK3Explicit<dim,real,MeshType> :: set_tableau()
-{
-    set_a();
-    set_b();
-    set_c();
-    this->pcout << "Assigned RK method: 3rd order SSP (explicit)" << std::endl;
-}
-
-template <int dim, typename real, typename MeshType>
 void SSPRK3Explicit<dim,real,MeshType> :: set_a()
 {
     const double butcher_tableau_a_values[9] = {0,0,0,1.0,0,0,0.25,0.25,0};
@@ -35,15 +26,6 @@ void SSPRK3Explicit<dim,real,MeshType> :: set_c()
 }
 
 //##################################################################
-template <int dim, typename real, typename MeshType>
-void RK4Explicit<dim,real,MeshType> :: set_tableau()
-{
-    set_a();
-    set_b();
-    set_c();
-    this->pcout << "Assigned RK method: 4th order classical RK (explicit)" << std::endl;
-}
-
 template <int dim, typename real, typename MeshType>
 void RK4Explicit<dim,real,MeshType> :: set_a()
 {
@@ -67,15 +49,6 @@ void RK4Explicit<dim,real,MeshType> :: set_c()
 
 //##################################################################
 template <int dim, typename real, typename MeshType>
-void EulerExplicit<dim,real,MeshType> :: set_tableau()
-{
-    set_a();
-    set_b();
-    set_c();
-    this->pcout << "Assigned RK method: Forward Euler (explicit)" << std::endl;
-}
-
-template <int dim, typename real, typename MeshType>
 void EulerExplicit<dim,real,MeshType> :: set_a()
 {
     const double butcher_tableau_a_values[1] = {0};
@@ -98,15 +71,6 @@ void EulerExplicit<dim,real,MeshType> :: set_c()
 
 //##################################################################
 template <int dim, typename real, typename MeshType>
-void EulerImplicit<dim,real,MeshType> :: set_tableau()
-{
-    set_a();
-    set_b();
-    set_c();
-    this->pcout << "Assigned RK method: Implicit Euler (implicit)" << std::endl;
-}
-
-template <int dim, typename real, typename MeshType>
 void EulerImplicit<dim,real,MeshType> :: set_a()
 {
     const double butcher_tableau_a_values[1] = {1.0};
@@ -128,15 +92,6 @@ void EulerImplicit<dim,real,MeshType> :: set_c()
 }
 
 //##################################################################
-template <int dim, typename real, typename MeshType>
-void DIRK2Implicit<dim,real,MeshType> :: set_tableau()
-{
-    set_a();
-    set_b();
-    set_c();
-    this->pcout << "Assigned RK method: 2nd-order DIRK (implicit)" << std::endl;
-}
-
 template <int dim, typename real, typename MeshType>
 void DIRK2Implicit<dim,real,MeshType> :: set_a()
 {

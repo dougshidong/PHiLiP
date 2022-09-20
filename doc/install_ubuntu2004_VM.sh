@@ -156,23 +156,23 @@ mkdir -p Codes
 
 ## PHiLiP
 (cd $Codes ;\
-	git clone ${LINK_TO_YOUR_PHiLiP_REPO} ;\
-	cd $Codes/PHiLiP ;\
-	git checkout master ;\
-	git remote add upstream https://github.com/dougshidong/PHiLiP.git ;\
+    git clone ${LINK_TO_YOUR_PHiLiP_REPO} ;\
+    cd $Codes/PHiLiP ;\
+    git checkout master ;\
+    git remote add upstream https://github.com/dougshidong/PHiLiP.git ;\
     git config submodule.recurse true ;\
-    
+
     # Get mesh files of NACA 0012. Note: Run get_NACA0012_mesh_files_cluster.sh to get files on the cluster.
     # If not already installed, gdown can be installed as explained in INSTALL.md. 
     chmod +x get_NACA0012_mesh_files_local.sh
     sh get_NACA0012_mesh_files_local.sh ;\
 
-	# Release build with all the optimization flags
-	mkdir -p build_release && cd build_release ;\
-	# MPI_MAX is the number of cores to use by default for tests with MPI
-	# USE_LD_GOLD uses the ld.gold linker, which is much faster than the default ld linker
-	# 	however, it does not work well on Ubuntu with OpenMPI. Works well with Fedora
-	cmake ../ -DCMAKE_BUILD_TYPE=Release -DMPI_MAX=4 -DUSE_LD_GOLD=OFF ;\
-	make -j4 ;\
-	ctest ;\
+    # Release build with all the optimization flags
+    mkdir -p build_release && cd build_release ;\
+    # MPI_MAX is the number of cores to use by default for tests with MPI
+    # USE_LD_GOLD uses the ld.gold linker, which is much faster than the default ld linker
+    # 	however, it does not work well on Ubuntu with OpenMPI. Works well with Fedora
+    cmake ../ -DCMAKE_BUILD_TYPE=Release -DMPI_MAX=4 -DUSE_LD_GOLD=OFF ;\
+    make -j4 ;\
+    ctest ;\
 )

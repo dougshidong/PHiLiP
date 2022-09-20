@@ -107,7 +107,7 @@ DGBase<dim,real,MeshType>::DGBase(
     , oneD_quadrature_collection(std::get<7>(collection_tuple))
     , oneD_face_quadrature(max_degree)
     , dof_handler(*triangulation, true)
-    , high_order_grid(std::make_shared<HighOrderGrid<dim,real,MeshType>>(grid_degree_input, triangulation))
+    , high_order_grid(std::make_shared<HighOrderGrid<dim,real,MeshType>>(grid_degree_input, triangulation, all_parameters->output_high_order_grid))
     , fe_q_artificial_dissipation(1)
     , dof_handler_artificial_dissipation(*triangulation, false)
     , mpi_communicator(MPI_COMM_WORLD)

@@ -52,7 +52,8 @@ unsigned int HighOrderGrid<dim,real,MeshType,VectorType,DoFHandlerType>::nth_ref
 template <int dim, typename real, typename MeshType, typename VectorType, typename DoFHandlerType>
 HighOrderGrid<dim,real,MeshType,VectorType,DoFHandlerType>::HighOrderGrid(
         const unsigned int max_degree,
-        const std::shared_ptr<MeshType> triangulation_input)
+        const std::shared_ptr<MeshType> triangulation_input,
+        const bool output_high_order_grid)
     : max_degree(max_degree)
     , triangulation(triangulation_input)
     , dof_handler_grid(*triangulation)
@@ -75,7 +76,7 @@ HighOrderGrid<dim,real,MeshType,VectorType,DoFHandlerType>::HighOrderGrid(
         // Do nothing
         // Assume stuff will be read later on.
     } else {
-        initialize_with_triangulation_manifold();
+        initialize_with_triangulation_manifold(output_high_order_grid);
     }
 }
 

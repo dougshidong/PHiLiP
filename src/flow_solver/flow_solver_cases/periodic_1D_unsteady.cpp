@@ -24,12 +24,18 @@ double Periodic1DUnsteady<dim, nstate>::compute_energy_collocated(
 {
     // Intention is to eventually calculate energy in physics and generalize to arbitrary nodes
     // For now, using collocated energy calculation
+/*
     double energy = 0.0;
     for (unsigned int i = 0; i < dg->solution.size(); ++i)
     {
         energy += 1./(dg->global_inverse_mass_matrix.diag_element(i)) * dg->solution(i) * dg->solution(i);
     }
     return energy;
+*/
+    dealii::LinearAlgebra::distributed::Vector<double> temp;
+    temp.reinit(dg->solution);
+    dg->global_mass_matrix.vmult(temp, dg->solution);
+    return temp * dg->solution;
 }
 
 template <int dim, int nstate>
@@ -59,7 +65,7 @@ void Periodic1DUnsteady<dim, nstate>::compute_unsteady_data_and_write_to_table(
     
         if ((current_iteration % output_solution_every_n_iterations) == 0){
             this->pcout << "    Iter: " << current_iteration
-                        << "    Time: " << current_time
+                        << "    Time: " << std::setprecision(16) << current_time
                         << "    Energy: " << energy
                         << std::endl;
         }

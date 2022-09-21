@@ -36,7 +36,16 @@ protected:
     /// Compute relaxation parameter explicitly (i.e. if energy is the entropy variable)
     /// See Ketcheson 2019, Eq. 2.4
     real compute_relaxation_parameter_explicit() const;
+    
+    /// Compute relaxation parameter numerically (i.e. if energy is NOT the entropy variable)
+    /// See Ranocha 2020, Eq. 2.4
+    real compute_relaxation_parameter_implicit(real &dt) const;
 
+    real compute_root_function(
+            const double gamma,
+            const dealii::LinearAlgebra::distributed::Vector<double> &u_n,
+            const dealii::LinearAlgebra::distributed::Vector<double> &d,
+            const double eta_n) const;
     /// Modify timestep based on relaxation
     void modify_time_step (real &dt) override;
 

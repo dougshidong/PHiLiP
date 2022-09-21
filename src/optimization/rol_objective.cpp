@@ -58,7 +58,6 @@ void ROLObjectiveSimOpt<dim,nstate>::update(
     if (l2_norm != 0.0) {
         ffd.set_design_variables( ffd_design_variables_indices_dim, ffd_des_var);
 
-        //ffd.deform_mesh(*(functional.dg->high_order_grid));
         auto dXp = ffd_des_var;
         dXp -= initial_ffd_des_var;
         dXp.update_ghost_values();

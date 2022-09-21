@@ -3,8 +3,6 @@
 
 #include <deal.II/optimization/rol/vector_adaptor.h>
 
-#include "mesh/meshmover_linear_elasticity.hpp"
-
 #include "global_counter.hpp"
 
 namespace PHiLiP {
@@ -12,30 +10,20 @@ namespace PHiLiP {
 template <int dim, int nstate>
 ROLObjectiveSimOpt<dim,nstate>::ROLObjectiveSimOpt(
     Functional<dim,nstate,double> &_functional, 
-    const FreeFormDeformation<dim> &_ffd,
-    std::vector< std::pair< unsigned int, unsigned int > > &_ffd_design_variables_indices_dim,
+    std::shared_ptr<DesignParameterizationBase<dim>> _design_parameterization,
     dealii::TrilinosWrappers::SparseMatrix *precomputed_dXvdXp)
     : functional(_functional)
-    , ffd(_ffd)
-    , ffd_design_variables_indices_dim(_ffd_design_variables_indices_dim)
+    , design_parameterization(_design_parameterization)
 {
-    const unsigned int n_design_variables = ffd_design_variables_indices_dim.size();
-    const dealii::IndexSet row_part = dealii::Utilities::MPI::create_evenly_distributed_partitioning(MPI_COMM_WORLD,n_design_variables);
-    dealii::IndexSet ghost_row_part(n_design_variables);
-    ghost_row_part.add_range(0,n_design_variables);
-    ffd_des_var.reinit(row_part, ghost_row_part, MPI_COMM_WORLD);
-
-    ffd.get_design_variables(ffd_design_variables_indices_dim, ffd_des_var);
-
-    initial_ffd_des_var = ffd_des_var;
-    initial_ffd_des_var.update_ghost_values();
-
+    design_parameterization->initialize_design_variables(design_var);
+    const unsigned int n_design_variables = design_parameterization->n_design_variables;
+    
     if (precomputed_dXvdXp) {
         if (precomputed_dXvdXp->m() == functional.dg->high_order_grid->volume_nodes.size() && precomputed_dXvdXp->n() == n_design_variables) {
             dXvdXp.copy_from(*precomputed_dXvdXp);
         }
     } else {
-        ffd.get_dXvdXp ( *(functional.dg->high_order_grid), ffd_design_variables_indices_dim, dXvdXp);
+        design_parameterization->compute_dXv_dXp(*(functional.dg->high_order_grid), dXvdXp);
     }
 }
 
@@ -48,26 +36,8 @@ void ROLObjectiveSimOpt<dim,nstate>::update(
 {
     functional.set_state(ROL_vector_to_dealii_vector_reference(des_var_sim));
 
-    ffd_des_var =  ROL_vector_to_dealii_vector_reference(des_var_ctl);
-    auto current_ffd_des_var = ffd_des_var;
-    ffd.get_design_variables( ffd_design_variables_indices_dim, current_ffd_des_var);
-
-    auto diff = ffd_des_var;
-    diff -= current_ffd_des_var;
-    const double l2_norm = diff.l2_norm();
-    if (l2_norm != 0.0) {
-        ffd.set_design_variables( ffd_design_variables_indices_dim, ffd_des_var);
-
-        auto dXp = ffd_des_var;
-        dXp -= initial_ffd_des_var;
-        dXp.update_ghost_values();
-        auto dXv = functional.dg->high_order_grid->volume_nodes;
-        dXvdXp.vmult(dXv, dXp);
-        dXv.update_ghost_values();
-        functional.dg->high_order_grid->volume_nodes = functional.dg->high_order_grid->initial_volume_nodes;
-        functional.dg->high_order_grid->volume_nodes += dXv;
-        functional.dg->high_order_grid->volume_nodes.update_ghost_values();
-    }
+    design_var =  ROL_vector_to_dealii_vector_reference(des_var_ctl);
+    design_parameterization->update_mesh_from_design_variables(*(functional.dg->high_order_grid), dXvdXp, design_var);
 }
 
 

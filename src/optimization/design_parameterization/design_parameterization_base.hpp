@@ -22,7 +22,7 @@ public:
     virtual void initialize_design_variables(VectorType &design_var) = 0; 
     
     /// Checks if the design variable has changed and updates volume nodes based on the parameterization. 
-    virtual void update_mesh_from_design_variables(
+    virtual bool update_mesh_from_design_variables(
         HighOrderGrid<dim,double> &high_order_grid, 
         const MatrixType &dXv_dXp,
         const VectorType &design_var) = 0;
@@ -55,7 +55,7 @@ public:
     void compute_dXv_dXp(const HighOrderGrid<dim,double> &high_order_grid, MatrixType &dXv_dXp) override;
     
     /// Checks if the design variable has changed and updates volume nodes based on the parameterization. 
-    void update_mesh_from_design_variables(
+    bool update_mesh_from_design_variables(
         HighOrderGrid<dim,double> &high_order_grid, 
         const MatrixType &dXv_dXp,
         const VectorType &ffd_des_var) override;

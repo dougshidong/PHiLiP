@@ -185,8 +185,9 @@ int test(const unsigned int nx_ffd)
     if (mpi_rank == 0) outStream = ROL::makePtrFromRef(ostr);
     else if (mpi_rank == 1) outStream = ROL::makePtrFromRef(std::cout);
     else outStream = ROL::makePtrFromRef(bhs);
-
-    auto con  = ROL::makePtr<FlowConstraints<dim>>(dg,ffd,ffd_design_variables_indices_dim);
+    
+    std::shared_ptr<DesignParameterizationBase<dim>> design_parameterization = std::make_shared<DesignParameterizationFreeFormDeformation<dim>>(ffd,ffd_design_variables_indices_dim);
+    auto con  = ROL::makePtr<FlowConstraints<dim>>(dg,design_parameterization);
 
     const ROL::Ptr<ROL::Vector_SimOpt<double>> des_var_rol_p = ROL::makePtr<ROL::Vector_SimOpt<double>>(des_var_sim_rol_p, des_var_ctl_rol_p);
 

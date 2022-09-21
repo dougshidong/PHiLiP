@@ -7,6 +7,8 @@
 
 #include "functional/functional.h"
 
+#include "design_parameterization/design_parameterization_base.hpp"
+
 namespace PHiLiP {
 
 using ROL_Vector = ROL::Vector<double>;
@@ -23,17 +25,11 @@ private:
     /// Functional to be evaluated
     Functional<dim,nstate,double> &functional;
 
-    /// Free-form deformation used to parametrize the geometry.
-    FreeFormDeformation<dim> ffd;
-
-    /// List of FFD design variables and axes.
-    const std::vector< std::pair< unsigned int, unsigned int > > ffd_design_variables_indices_dim;
+    /// Design parameterization to link design variables with volume nodes.
+    std::shared_ptr<DesignParameterizationBase<dim>> design_parameterization;
 
     /// Design variables.
-    dealii::LinearAlgebra::distributed::Vector<double> ffd_des_var;
-
-    /// Design variables.
-    dealii::LinearAlgebra::distributed::Vector<double> initial_ffd_des_var;
+    dealii::LinearAlgebra::distributed::Vector<double> design_var;
 
 public:
 
@@ -42,9 +38,8 @@ public:
 
     /// Constructor.
     ROLObjectiveSimOpt(
-        Functional<dim,nstate,double> &_functional, 
-        const FreeFormDeformation<dim> &_ffd,
-        std::vector< std::pair< unsigned int, unsigned int > > &_ffd_design_variables_indices_dim,
+        Functional<dim,nstate,double> &_functional,
+        std::shared_ptr<DesignParameterizationBase<dim>> _design_parameterization,
         dealii::TrilinosWrappers::SparseMatrix *precomputed_dXvdXp = nullptr);
   
     using ROL::Objective_SimOpt<double>::value;

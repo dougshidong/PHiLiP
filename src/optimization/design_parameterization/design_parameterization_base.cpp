@@ -43,7 +43,7 @@ void DesignParameterizationFreeFormDeformation<dim> :: compute_dXv_dXp(
 }
 
 template<int dim>
-void DesignParameterizationFreeFormDeformation<dim> :: update_mesh_from_design_variables(
+bool DesignParameterizationFreeFormDeformation<dim> :: update_mesh_from_design_variables(
     HighOrderGrid<dim,double> &high_order_grid, 
     const MatrixType &dXv_dXp,
     const VectorType &ffd_des_var)
@@ -55,19 +55,26 @@ void DesignParameterizationFreeFormDeformation<dim> :: update_mesh_from_design_v
     VectorType diff = ffd_des_var;
     diff -= current_ffd_des_var;
     const double l2_norm = diff.l2_norm();
-    if (l2_norm != 0.0) {
-        ffd.set_design_variables( ffd_design_variables_indices_dim, ffd_des_var);
-
-        VectorType dXp = ffd_des_var;
-        dXp -= initial_ffd_des_var;
-        dXp.update_ghost_values();
-        VectorType dXv = high_order_grid.volume_nodes;
-        dXv_dXp.vmult(dXv, dXp);
-        dXv.update_ghost_values();
-        high_order_grid.volume_nodes = high_order_grid.initial_volume_nodes;
-        high_order_grid.volume_nodes += dXv;
-        high_order_grid.volume_nodes.update_ghost_values();
+    bool mesh_updated;
+    if(l2_norm == 0.0)
+    {
+        mesh_updated = false;
+        return mesh_updated;
     }
+    // Above if statement not executed -> 
+    ffd.set_design_variables( ffd_design_variables_indices_dim, ffd_des_var);
+
+    VectorType dXp = ffd_des_var;
+    dXp -= initial_ffd_des_var;
+    dXp.update_ghost_values();
+    VectorType dXv = high_order_grid.volume_nodes;
+    dXv_dXp.vmult(dXv, dXp);
+    dXv.update_ghost_values();
+    high_order_grid.volume_nodes = high_order_grid.initial_volume_nodes;
+    high_order_grid.volume_nodes += dXv;
+    high_order_grid.volume_nodes.update_ghost_values();
+    mesh_updated = true;
+    return mesh_updated;
 }
 template<int dim>
 void DesignParameterizationFreeFormDeformation<dim> :: output_design_variables(const unsigned int iteration_no)

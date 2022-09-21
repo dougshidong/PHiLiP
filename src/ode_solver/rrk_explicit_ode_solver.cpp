@@ -58,7 +58,7 @@ real RRKExplicitODESolver<dim,real,MeshType>::compute_relaxation_parameter_impli
     double initial_guess_1 = 1.0 + pow(dt, this->rk_order - 1);
     double residual = 1.0;
     dealii::LinearAlgebra::distributed::Vector<double> u_n = this->solution_update;
-    double eta_n = compute_inner_product(u_n, u_n);
+    double eta_n = compute_numerical_entropy(u_n); //compute_inner_product(u_n, u_n);
     double gamma_k = initial_guess_1;
     double gamma_km1 = initial_guess_0;
     double gamma_kp1; 
@@ -112,10 +112,18 @@ real RRKExplicitODESolver<dim,real,MeshType>::compute_root_function(
 {
     dealii::LinearAlgebra::distributed::Vector<double> temp = u_n;
     temp.add(gamma, d);
-    return compute_inner_product(temp,temp) - eta_n;
+    double eta_np1 = compute_numerical_entropy(temp);
+    return eta_np1 - eta_n;
 }
 
 
+template <int dim, typename real, typename MeshType>
+real RRKExplicitODESolver<dim,real,MeshType>::compute_numerical_entropy(
+        const dealii::LinearAlgebra::distributed::Vector<double> &u) const
+{
+    //For now, return energy (burgers)
+    return compute_inner_product(u,u);
+}
         
 
 template <int dim, typename real, int n_rk_stages, typename MeshType>

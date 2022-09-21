@@ -46,6 +46,11 @@ protected:
             const dealii::LinearAlgebra::distributed::Vector<double> &u_n,
             const dealii::LinearAlgebra::distributed::Vector<double> &d,
             const double eta_n) const;
+    
+    /// Compute numerical entropy based on problem physics & discretization
+    real compute_numerical_entropy(
+            const dealii::LinearAlgebra::distributed::Vector<double> &u) const;
+
     /// Modify timestep based on relaxation
     void modify_time_step (real &dt) override;
 

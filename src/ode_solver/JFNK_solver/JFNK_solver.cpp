@@ -10,7 +10,7 @@ JFNKSolver<dim,real,MeshType>::JFNKSolver(std::shared_ptr< DGBase<dim, real, Mes
     , pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD)==0)
     , all_parameters(dg->all_parameters)
     , linear_param(all_parameters->linear_solver_param) 
-    , epsilon_jacobian(linear_param.epsilon_jacobian) //sqrt(machine epsilon)
+    , epsilon_jacobian(linear_param.epsilon_jacobian) 
     , epsilon_Newton(linear_param.newton_residual)
     , epsilon_GMRES(linear_param.linear_residual)
     , max_num_temp_vectors(linear_param.restart_number)
@@ -51,7 +51,7 @@ void JFNKSolver<dim,real,MeshType>::solve (real dt,
         if (do_output)      pcout << "Newton residual : " << update_norm << " step " << Newton_iter_counter << std::endl;
     }
     if (Newton_iter_counter == max_Newton_iter){
-        pcout << "Maximum number of Newton iterations reached. Aborting..." << std::endl; //later: change to pcout
+        pcout << "Maximum number of Newton iterations reached. Aborting..." << std::endl;
         std::abort();
     }
 

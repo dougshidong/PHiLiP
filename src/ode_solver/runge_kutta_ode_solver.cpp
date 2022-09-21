@@ -59,8 +59,8 @@ void RungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::step_in_time (real dt, 
             */
 
             //JFNK version
-            solver.solve(dt*this->butcher_tableau->get_a(i,i), rk_stage[i]);
-            rk_stage[i] = solver.current_solution_estimate;
+            solver.solve(dt*this->butcher_tableau->get_a(i,i), this->rk_stage[i]);
+            this->rk_stage[i] = solver.current_solution_estimate;
 
         } // u_n + dt * sum(a_ij * k_j) <explicit> + dt * a_ii * u^(i) <implicit>
             
@@ -76,7 +76,7 @@ void RungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::step_in_time (real dt, 
     for (int i = 0; i < n_rk_stages; ++i){
         if (pseudotime){
             const double CFL = this->butcher_tableau->get_b(i) * dt;
-            this->dg->time_scale_solution_update(rk_stage[i], CFL);
+            this->dg->time_scale_solution_update(this->rk_stage[i], CFL);
             this->solution_update.add(1.0, this->rk_stage[i]);
         } else {
             this->solution_update.add(dt* this->butcher_tableau->get_b(i),this->rk_stage[i]); 

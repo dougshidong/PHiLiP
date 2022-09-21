@@ -97,7 +97,7 @@ void DIRK2Implicit<dim,real,MeshType> :: set_a()
 {
     // Pareschi & Russo DIRK, x = 1 - sqrt(2)/2
     // see: wikipedia.org/wiki/List_of_Runge%E2%80%93Kutta_methods#Diagonally_Implicit_Runge%E2%80%93Kutta_methods
-    const double x = 0.2928932188134525; //=1-sqrt(2)/2
+    const double x = 1.0 - sqrt(2.0)/2.0;
     const double butcher_tableau_a_values[4] = {x,0,(1-2*x),x};
     this->butcher_tableau_a.fill(butcher_tableau_a_values);
 }
@@ -112,7 +112,7 @@ void DIRK2Implicit<dim,real,MeshType> :: set_b()
 template <int dim, typename real, typename MeshType>
 void DIRK2Implicit<dim,real,MeshType> :: set_c()
 {
-    const double x = 0.2928932188134525; //=1-sqrt(2)/2
+    const double x = 1.0 - sqrt(2.0)/2.0;
     const double butcher_tableau_c_values[2] = {x, 1.0-x};
     this->butcher_tableau_c.fill(butcher_tableau_c_values);
 }

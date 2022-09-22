@@ -63,7 +63,7 @@ public:
     /// Outputs design variables of FFD.
     void output_design_variables(const unsigned int iteration_no) override;
     
-    /// Returns the number of design variables. To be implemented by derived classes.
+    /// Returns the number of FFD design variables.
     unsigned int get_number_of_design_variables();
 
 private:

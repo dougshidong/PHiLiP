@@ -4,8 +4,9 @@ set(TESTS_SOURCE
     flow_constraints.cpp
     rol_objective.cpp
     full_space_step.cpp
-    design_parameterization/design_parameterization_base.cpp
     )
+
+add_subdirectory(design_parameterization)
 
 foreach(dim RANGE 1 3)
     # Output library
@@ -19,10 +20,12 @@ foreach(dim RANGE 1 3)
     string(CONCAT DiscontinuousGalerkinLib DiscontinuousGalerkin_${dim}D)
     string(CONCAT ODESolverLib ODESolver_${dim}D)
     string(CONCAT LinearSolverLib LinearSolver)
+    string(CONCAT DesginParameterizationLib DesginParameterization_${dim}D)
     target_link_libraries(${OptimizationLib} ${GridsLib})
     target_link_libraries(${OptimizationLib} ${DiscontinuousGalerkinLib})
     target_link_libraries(${OptimizationLib} ${ODESolverLib})
     target_link_libraries(${OptimizationLib} ${LinearSolverLib})
+    target_link_libraries(${OptimizationLib} ${DesginParameterizationLib})
     # Setup target with deal.II
     if(NOT DOC_ONLY)
         DEAL_II_SETUP_TARGET(${OptimizationLib})
@@ -33,6 +36,7 @@ foreach(dim RANGE 1 3)
     unset(DiscontinuousGalerkinLib)
     unset(ODESolverLib)
     unset(LinearSolverLib)
+    unset(DesginParameterizationLib)
 
 endforeach()
 

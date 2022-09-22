@@ -32,12 +32,12 @@ add_test(
 # =======================================
 # Burgers Rewienski Adaptive Sampling Testing
 # =======================================
-#configure_file(1d_burgers_rewienski_adaptive_sampling_testing.prm 1d_burgers_rewienski_adaptive_sampling_testing.prm COPYONLY)
-#add_test(
-#        NAME 1D_BURGERS_REWIENSKI_ADAPTIVE_SAMPLING_TESTING
-#        COMMAND mpirun -np 1 ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_1D -i ${CMAKE_CURRENT_BINARY_DIR}/1d_burgers_rewienski_adaptive_sampling_testing.prm
-#        WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
-#)
+configure_file(1d_burgers_rewienski_adaptive_sampling_testing.prm 1d_burgers_rewienski_adaptive_sampling_testing.prm COPYONLY)
+add_test(
+        NAME 1D_BURGERS_REWIENSKI_ADAPTIVE_SAMPLING_TESTING
+        COMMAND mpirun -np 1 ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_1D -i ${CMAKE_CURRENT_BINARY_DIR}/1d_burgers_rewienski_adaptive_sampling_testing.prm
+        WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
+)
 
 # =======================================
 # Burgers Rewienski Snapshot Generator

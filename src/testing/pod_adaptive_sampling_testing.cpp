@@ -1,4 +1,4 @@
-#include "adaptive_sampling_testing.h"
+#include "pod_adaptive_sampling_testing.h"
 #include "tests.h"
 #include <fstream>
 #include <deal.II/base/numbers.h>
@@ -28,40 +28,11 @@ int AdaptiveSamplingTesting<dim, nstate>::run_test() const
     RowVectorXd params_1 {{4.0000000000000000,
                            2.0000000000000000
                           }};
+    //INPUT AS RADIANS IF ANGLE OF ATTACK
     RowVectorXd params_2 {{0.0325000000000000,
                            0.0100000000000000
                           }};
 
-
-    /*
-    RowVectorXd params_1 {{0.6,
-                                  0.6,
-                                  0.7,
-                                  0.8,
-                                  0.8,
-                                  0.8,
-                                  0.8,
-                                  0.9,
-                                  0.7,
-                                  0.6,
-                                  0.6,
-                                  0.5
-                          }};
-    //INPUT AS RADIANS
-    RowVectorXd params_2 {{0.05235987755983,
-                                  0.046542113386516,
-                                  0.069813170079773,
-                                  0.05235987755983,
-                                  0.046542113386516,
-                                  0.011635528346629,
-                                  0.017453292519943,
-                                  0.034906585039887,
-                                  0.029088820866572,
-                                  0.017453292519943,
-                                  0.011635528346629,
-                                  0.034906585039887
-                          }};
-    */
     std::cout << params_1 << std::endl;
     std::cout << params_2 << std::endl;
 

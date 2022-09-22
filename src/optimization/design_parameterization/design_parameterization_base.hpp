@@ -14,9 +14,9 @@ class DesignParameterizationBase {
 
 public:
     /// Constructor
-    DesignParameterizationBase(const unsigned int _n_design_variables);
+    DesignParameterizationBase();
     /// Destructor
-    ~DesignParameterizationBase(){}
+    virtual ~DesignParameterizationBase(){}
     
     /// Initialize design variables and set locally owned and ghost indices.     
     virtual void initialize_design_variables(VectorType &design_var) = 0; 
@@ -33,8 +33,8 @@ public:
     /// Outputs design variables. Doesn't output anything if not overridden.
     virtual void output_design_variables(const unsigned int /*iteration_no*/) {}
     
-    /// Stores the number of design variables.
-    const unsigned int n_design_variables;
+    /// Returns the number of design variables. To be implemented by derived classes.
+    virtual unsigned int get_number_of_design_variables() = 0;
 };
 
 template<int dim>
@@ -46,7 +46,7 @@ public:
         std::vector< std::pair< unsigned int, unsigned int > > &_ffd_design_variables_indices_dim);
     
     /// Destructor
-    ~DesignParameterizationFreeFormDeformation(){}
+    ~DesignParameterizationFreeFormDeformation(){} 
     
     /// Initialize design variables and set locally owned and ghost indices. Overrides the virtual function in base class.
     void initialize_design_variables(VectorType &ffd_des_var) override;
@@ -62,6 +62,9 @@ public:
 
     /// Outputs design variables of FFD.
     void output_design_variables(const unsigned int iteration_no) override;
+    
+    /// Returns the number of design variables. To be implemented by derived classes.
+    unsigned int get_number_of_design_variables();
 
 private:
     /// Free-form deformation used to parametrize the geometry.

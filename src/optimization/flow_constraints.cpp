@@ -28,7 +28,7 @@ FlowConstraints<dim>
     flow_CFL_ = 0.0;
 
     design_parameterization->initialize_design_variables(design_var);
-    const unsigned int n_design_variables = design_parameterization->n_design_variables;
+    const unsigned int n_design_variables = design_parameterization->get_number_of_design_variables();
     
     if (precomputed_dXvdXp) {
         if (precomputed_dXvdXp->m() == dg->high_order_grid->volume_nodes.size() && precomputed_dXvdXp->n() == n_design_variables) {

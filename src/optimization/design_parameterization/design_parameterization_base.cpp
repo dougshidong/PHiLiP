@@ -3,19 +3,17 @@
 namespace PHiLiP {
 
 template<int dim>
-DesignParameterizationBase<dim> :: DesignParameterizationBase(
-    const unsigned int _n_design_variables)
-    : n_design_variables(_n_design_variables)
-{}
+DesignParameterizationBase<dim> :: DesignParameterizationBase()
+    {}
 
 template<int dim>
 DesignParameterizationFreeFormDeformation<dim> :: DesignParameterizationFreeFormDeformation(
     const FreeFormDeformation<dim> &_ffd,
     std::vector< std::pair< unsigned int, unsigned int > > &_ffd_design_variables_indices_dim)
-    : DesignParameterizationBase<dim>(_ffd_design_variables_indices_dim.size())
+    : DesignParameterizationBase<dim>()
     , ffd(_ffd)
     , ffd_design_variables_indices_dim(_ffd_design_variables_indices_dim)
-{}
+    {}
 
 
 template<int dim>
@@ -76,10 +74,17 @@ bool DesignParameterizationFreeFormDeformation<dim> :: update_mesh_from_design_v
     mesh_updated = true;
     return mesh_updated;
 }
+
 template<int dim>
 void DesignParameterizationFreeFormDeformation<dim> :: output_design_variables(const unsigned int iteration_no)
 {
     ffd.output_ffd_vtu(iteration_no);
+}
+
+template<int dim>
+unsigned int DesignParameterizationFreeFormDeformation<dim> :: get_number_of_design_variables()
+{
+    return ffd_design_variables_indices_dim.size();
 }
 
 

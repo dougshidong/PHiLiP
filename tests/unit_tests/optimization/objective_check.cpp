@@ -228,7 +228,9 @@ int test(const unsigned int nx_ffd)
     else if (mpi_rank == 1) outStream = ROL::makePtrFromRef(std::cout);
     else outStream = ROL::makePtrFromRef(bhs);
 
-    std::shared_ptr<DesignParameterizationBase<dim>> design_parameterization = std::make_shared<DesignParameterizationFreeFormDeformation<dim>>(ffd,ffd_design_variables_indices_dim);
+    std::shared_ptr<DesignParameterizationBase<dim>> design_parameterization = 
+                        std::make_shared<DesignParameterizationFreeFormDeformation<dim>>(dg->high_order_grid, ffd, ffd_design_variables_indices_dim);
+    
     auto obj  = ROL::makePtr<ROLObjectiveSimOpt<dim,nstate>>(functional, design_parameterization);
     auto con  = ROL::makePtr<FlowConstraints<dim>>(dg, design_parameterization);
     const bool storage = false;

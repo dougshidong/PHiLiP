@@ -26,6 +26,9 @@ FlowConstraints<dim>
     , adjoint_jacobian_prec(nullptr)
 {
     flow_CFL_ = 0.0;
+    
+    Assert(dg->high_order_grid == design_parameterization->high_order_grid, 
+           dealii::ExcMessage("DG and DesignParameterization do not point to the same high order grid."));
 
     design_parameterization->initialize_design_variables(design_var);
     const unsigned int n_design_variables = design_parameterization->get_number_of_design_variables();
@@ -35,9 +38,8 @@ FlowConstraints<dim>
             dXvdXp.copy_from(*precomputed_dXvdXp);
         }
     } else {
-        design_parameterization->compute_dXv_dXp(*(dg->high_order_grid), dXvdXp);
+        design_parameterization->compute_dXv_dXp(dXvdXp);
     }
-    //ffd.get_dXvdXp_FD ( *(dg->high_order_grid), ffd_design_variables_indices_dim, dXvdXp, 1e-6);
 
     dealii::ParameterHandler parameter_handler;
     Parameters::LinearSolverParam::declare_parameters (parameter_handler);
@@ -80,7 +82,7 @@ void FlowConstraints<dim>
 {
     (void) flag; (void) iter;
     design_var =  ROL_vector_to_dealii_vector_reference(des_var_ctl);
-    bool mesh_updated = design_parameterization->update_mesh_from_design_variables(*(dg->high_order_grid), dXvdXp, design_var);
+    bool mesh_updated = design_parameterization->update_mesh_from_design_variables(dXvdXp, design_var);
     if(mesh_updated)
     {
         dg->output_results_vtk(iupdate);

@@ -14,27 +14,30 @@ class DesignParameterizationBase {
 
 public:
     /// Constructor
-    DesignParameterizationBase(){}
+    DesignParameterizationBase(std::shared_ptr<HighOrderGrid<dim,double>> _high_order_grid);
+    
     /// Destructor
-    virtual ~DesignParameterizationBase(){}
+    virtual ~DesignParameterizationBase();
     
     /// Initialize design variables and set locally owned and ghost indices.     
     virtual void initialize_design_variables(VectorType &design_var) = 0; 
     
     /// Checks if the design variable has changed and updates volume nodes based on the parameterization. 
-    virtual bool update_mesh_from_design_variables(
-        HighOrderGrid<dim,double> &high_order_grid, 
+    virtual bool update_mesh_from_design_variables( 
         const MatrixType &dXv_dXp,
         const VectorType &design_var) = 0;
 
     /// Computes derivative of volume nodes w.r.t. design parameters.
-    virtual void compute_dXv_dXp(const HighOrderGrid<dim,double> &high_order_grid, MatrixType &dXv_dXp) = 0;
+    virtual void compute_dXv_dXp(MatrixType &dXv_dXp) const = 0;
 
     /// Outputs design variables. Doesn't output anything if not overridden.
-    virtual void output_design_variables(const unsigned int /*iteration_no*/) {}
+    virtual void output_design_variables(const unsigned int /*iteration_no*/) const;
     
     /// Returns the number of design variables. To be implemented by derived classes.
-    virtual unsigned int get_number_of_design_variables() = 0;
+    virtual unsigned int get_number_of_design_variables() const = 0;
+
+    /// Pointer to high order grid
+    std::shared_ptr<HighOrderGrid<dim,double>> high_order_grid;
 };
 
 } // PHiLiP namespace

@@ -15,6 +15,8 @@ ROLObjectiveSimOpt<dim,nstate>::ROLObjectiveSimOpt(
     : functional(_functional)
     , design_parameterization(_design_parameterization)
 {
+    Assert(functional.dg->high_order_grid == design_parameterization->high_order_grid, 
+          dealii::ExcMessage("Functional and DesignParameterization do not point to the same high order grid."));
     design_parameterization->initialize_design_variables(design_var);
     const unsigned int n_design_variables = design_parameterization->get_number_of_design_variables();
     
@@ -23,7 +25,7 @@ ROLObjectiveSimOpt<dim,nstate>::ROLObjectiveSimOpt(
             dXvdXp.copy_from(*precomputed_dXvdXp);
         }
     } else {
-        design_parameterization->compute_dXv_dXp(*(functional.dg->high_order_grid), dXvdXp);
+        design_parameterization->compute_dXv_dXp(dXvdXp);
     }
 }
 
@@ -37,7 +39,7 @@ void ROLObjectiveSimOpt<dim,nstate>::update(
     functional.set_state(ROL_vector_to_dealii_vector_reference(des_var_sim));
 
     design_var =  ROL_vector_to_dealii_vector_reference(des_var_ctl);
-    design_parameterization->update_mesh_from_design_variables(*(functional.dg->high_order_grid), dXvdXp, design_var);
+    design_parameterization->update_mesh_from_design_variables(dXvdXp, design_var);
 }
 
 

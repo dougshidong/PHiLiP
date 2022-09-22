@@ -1,4 +1,5 @@
 set(DESIGN_PARAMETERIZATION_SRC
+    design_parameterization_base.cpp
     design_parameterization_ffd.cpp
     )
 

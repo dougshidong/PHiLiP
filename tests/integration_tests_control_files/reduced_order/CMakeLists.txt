@@ -60,7 +60,7 @@ add_test(
         NAME INVISCID_NACA0012_REDUCED_ORDER_CONSISTENCY
         COMMAND bash -c
         "rm *.txt ;
-        ./inviscid_naca0012_reduced_order_consistency_snapshots.sh ${EXECUTABLE_OUTPUT_PATH}
+        ./inviscid_naca0012_reduced_order_consistency_snapshots.sh ${EXECUTABLE_OUTPUT_PATH} ${MPIMAX}
         return_val1=$? ;
         mpirun -np ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_2D -i ${CMAKE_CURRENT_BINARY_DIR}/inviscid_naca0012_reduced_order.prm
         return_val2=$? ;

@@ -86,8 +86,9 @@ int AdaptiveSamplingTesting<dim, nstate>::run_test() const
         flow_solver->ode_solver->allocate_ode_system();
         auto functional = FunctionalFactory<dim,nstate,double>::create_Functional(params.functional_param, flow_solver->dg);
 
-        flow_solver_implicit->run();
+
         flow_solver->ode_solver->steady_state();
+        flow_solver_implicit->run();
 
         dealii::LinearAlgebra::distributed::Vector<double> standard_solution(flow_solver->dg->solution);
         dealii::LinearAlgebra::distributed::Vector<double> implicit_solution(flow_solver_implicit->dg->solution);

@@ -5,7 +5,6 @@
 #include <deal.II/lac/full_matrix.h>
 #include <deal.II/lac/trilinos_sparse_matrix.h>
 #include <deal.II/lac/vector_operation.h>
-#include "dg/dg.h"
 #include <deal.II/lac/la_parallel_vector.h>
 #include <Teuchos_DefaultMpiComm.hpp>
 #include <Epetra_CrsMatrix.h>
@@ -16,15 +15,13 @@ namespace PHiLiP {
 namespace ProperOrthogonalDecomposition {
 
 template<int dim>
-OnlinePOD<dim>::OnlinePOD(std::shared_ptr<DGBase<dim,double>> &dg_input)
+OnlinePOD<dim>::OnlinePOD(std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> _system_matrix)
         : basis(std::make_shared<dealii::TrilinosWrappers::SparseMatrix>())
-        , dg(dg_input)
+        , system_matrix(_system_matrix)
         , mpi_communicator(MPI_COMM_WORLD)
         , mpi_rank(dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD))
         , pcout(std::cout, mpi_rank==0)
 {
-    const bool compute_dRdW = true;
-    dg_input->assemble_residual(compute_dRdW);
 }
 
 template <int dim>
@@ -64,7 +61,7 @@ void OnlinePOD<dim>::computeBasis() {
     Eigen::BDCSVD<MatrixXd, Eigen::DecompositionOptions::ComputeThinU> svd(snapshotMatrixCentered);
     MatrixXd pod_basis = svd.matrixU();
 
-    const Epetra_CrsMatrix epetra_system_matrix = this->dg->system_matrix.trilinos_matrix();
+    const Epetra_CrsMatrix epetra_system_matrix = system_matrix->trilinos_matrix();
     Epetra_Map system_matrix_map = epetra_system_matrix.RowMap();
     Epetra_CrsMatrix epetra_basis(Epetra_DataAccess::Copy, system_matrix_map, pod_basis.cols());
 

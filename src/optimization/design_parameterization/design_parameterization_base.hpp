@@ -36,8 +36,23 @@ public:
     /// Returns the number of design variables. To be implemented by derived classes.
     virtual unsigned int get_number_of_design_variables() const = 0;
 
+    /// Checks if the design variable has changed.
+    bool has_design_variable_been_updated(const VectorType &current_design_var, const VectorType &updated_design_var) const;
+
     /// Pointer to high order grid
     std::shared_ptr<HighOrderGrid<dim,double>> high_order_grid;
+    
+    /// Alias for MPI_COMM_WORLD
+    MPI_Comm mpi_communicator;
+
+    /// std::cout only on processor #0.
+    dealii::ConditionalOStream pcout;
+
+    /// Processor# of current processor.
+    int mpi_rank;
+
+    /// Total no. of processors
+    int n_mpi;
 };
 
 } // PHiLiP namespace

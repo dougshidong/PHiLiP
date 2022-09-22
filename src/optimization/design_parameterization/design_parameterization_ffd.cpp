@@ -42,17 +42,16 @@ bool DesignParameterizationFreeFormDeformation<dim> :: update_mesh_from_design_v
     AssertDimension(ffd_des_var.size(), initial_ffd_des_var.size());
     VectorType current_ffd_des_var = ffd_des_var;
     ffd.get_design_variables( ffd_design_variables_indices_dim, current_ffd_des_var);
-
-    VectorType diff = ffd_des_var;
-    diff -= current_ffd_des_var;
-    const double l2_norm = diff.l2_norm();
+    
+    bool design_variable_has_changed = this->has_design_variable_been_updated(current_ffd_des_var, ffd_des_var);
+    
     bool mesh_updated;
-    if(l2_norm == 0.0)
+    if(!design_variable_has_changed)
     {
         mesh_updated = false;
         return mesh_updated;
     }
-    // Above if statement not executed -> design variables have changed
+    
     ffd.set_design_variables( ffd_design_variables_indices_dim, ffd_des_var);
 
     VectorType dXp = ffd_des_var;

@@ -33,6 +33,7 @@
 #include "optimization/flow_constraints.hpp"
 #include "optimization/rol_objective.hpp"
 #include "optimization/constraintfromobjective_simopt.hpp"
+#include "optimization/design_parameterization/design_parameterization_ffd.hpp"
 
 #include "optimization/full_space_step.hpp"
 

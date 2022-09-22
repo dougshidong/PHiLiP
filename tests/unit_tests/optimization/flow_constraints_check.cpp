@@ -27,6 +27,7 @@
 #include "optimization/rol_to_dealii_vector.hpp"
 #include "optimization/flow_constraints.hpp"
 #include "optimization/rol_objective.hpp"
+#include "optimization/design_parameterization/design_parameterization_ffd.hpp"
 
 const double FD_TOL = 1e-6;
 const double CONSISTENCY_ABS_TOL = 1e-10;

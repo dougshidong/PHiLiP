@@ -1,10 +1,6 @@
-#include "design_parameterization_base.hpp"
+#include "design_parameterization_ffd.hpp"
 
 namespace PHiLiP {
-
-template<int dim>
-DesignParameterizationBase<dim> :: DesignParameterizationBase()
-    {}
 
 template<int dim>
 DesignParameterizationFreeFormDeformation<dim> :: DesignParameterizationFreeFormDeformation(
@@ -14,7 +10,6 @@ DesignParameterizationFreeFormDeformation<dim> :: DesignParameterizationFreeForm
     , ffd(_ffd)
     , ffd_design_variables_indices_dim(_ffd_design_variables_indices_dim)
     {}
-
 
 template<int dim>
 void DesignParameterizationFreeFormDeformation<dim> :: initialize_design_variables(
@@ -87,8 +82,5 @@ unsigned int DesignParameterizationFreeFormDeformation<dim> :: get_number_of_des
     return ffd_design_variables_indices_dim.size();
 }
 
-
-template class DesignParameterizationBase<PHILIP_DIM>;
 template class DesignParameterizationFreeFormDeformation<PHILIP_DIM>;
-} // namespace PHiLiP
-
+} // PHiLiP namespace

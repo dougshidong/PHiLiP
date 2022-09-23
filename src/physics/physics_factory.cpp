@@ -186,6 +186,7 @@ PhysicsFactory<dim,nstate,real>
         else {
             // LES does not exist for nstate!=(dim+2) || dim!=3
             (void) baseline_physics_type;
+            std::cout << "Can't create LES for nstate!=(dim+2) or dim!=3. " << std::endl;
             return nullptr;
         }
     }
@@ -217,6 +218,7 @@ PhysicsFactory<dim,nstate,real>
             else {
                 // RANS+one-equation model does not exist for nstate!=(dim+3)
                 (void) baseline_physics_type;
+                std::cout << "Can't create RANS + negative SA model for nstate!=(dim+3). " << std::endl;
                 return nullptr;
             }
         }

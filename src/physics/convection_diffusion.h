@@ -38,7 +38,6 @@ protected:
     */
     using PhysicsBase<dim,nstate,real>::dissipative_flux;
     using PhysicsBase<dim,nstate,real>::source_term;
-    //adding physical source
     using PhysicsBase<dim,nstate,real>::physical_source_term;
 protected:
     /// Linear advection velocity in x, y, and z directions.

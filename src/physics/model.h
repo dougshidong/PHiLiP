@@ -27,27 +27,26 @@ public:
     /// Manufactured solution function
     std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function;
 
-    /// Convective flux terms additional to the baseline physics
+    /// Convective flux terms additional to the baseline physics (including convective flux terms in additional PDEs of model)
     virtual std::array<dealii::Tensor<1,dim,real>,nstate> 
     convective_flux (
         const std::array<real,nstate> &conservative_soln) const = 0;
 
-    /// Dissipative flux terms additional to the baseline physics
+    /// Dissipative flux terms additional to the baseline physics (including dissipative flux terms in additional PDEs of model)
 	virtual std::array<dealii::Tensor<1,dim,real>,nstate> 
 	dissipative_flux (
     	const std::array<real,nstate> &conservative_soln,
     	const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient,
         const dealii::types::global_dof_index cell_index) const = 0;
 
-    /// Convective Numerical Split Flux for split form additional to the baseline physics
+    /// Convective Numerical Split Flux for split form additional to the baseline physics (including Convective Numerical Split Flux for split form in additional PDEs of model)
     virtual std::array<dealii::Tensor<1,dim,real>,nstate> 
     convective_numerical_split_flux (
         const std::array<real,nstate> &soln_const, 
         const std::array<real,nstate> &soln_loop) const = 0;
 
     /// Spectral radius of convective term Jacobian.
-    /** Used for scalar dissipation
-     */
+    /** Used for scalar dissipation */
     virtual std::array<real,nstate> convective_eigenvalues (
         const std::array<real,nstate> &/*solution*/,
         const dealii::Tensor<1,dim,real> &/*normal*/) const = 0;
@@ -55,14 +54,14 @@ public:
     /// Maximum convective eigenvalue used in Lax-Friedrichs
     virtual real max_convective_eigenvalue (const std::array<real,nstate> &soln) const = 0;
 
-    /// Physical source terms 
+    /// Physical source terms additional to the baseline physics (including physical source terms in additional PDEs of model)
     virtual std::array<real,nstate> physical_source_term (
         const dealii::Point<dim,real> &pos,
         const std::array<real,nstate> &solution,
         const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient,
         const dealii::types::global_dof_index cell_index) const = 0;
 
-    /// Manufactured source terms additional to the baseline physics
+    /// Manufactured source terms additional to the baseline physics (including manufactured source terms in additional PDEs of model)
     virtual std::array<real,nstate> source_term (
         const dealii::Point<dim,real> &pos,
         const std::array<real,nstate> &solution,

@@ -158,15 +158,6 @@ std::array<dealii::Tensor<1,dim,real>,nstate> PhysicsModel<dim,nstate,real,nstat
 ::convective_numerical_split_flux(const std::array<real,nstate> &conservative_soln1,
                                   const std::array<real,nstate> &conservative_soln2) const
 {
-    // TO DO: Update for when nstate > nstate_baseline_physics
-    //std::array<dealii::Tensor<1,dim,real>,nstate> conv_num_split_flux;
-    //if constexpr(nstate==nstate_baseline_physics) {
-    //    conv_num_split_flux = physics_baseline->convective_numerical_split_flux(conservative_soln1,conservative_soln2);
-    //} else {
-    //    // TO DO, make use of the physics_model object for nstate>nstate_baseline_physics
-    //    std::abort();
-    //}
-
     std::array<dealii::Tensor<1,dim,real>,nstate> conv_num_split_flux;
     if constexpr(nstate==nstate_baseline_physics) {
         conv_num_split_flux = physics_baseline->convective_numerical_split_flux(conservative_soln1,conservative_soln2);
@@ -193,15 +184,6 @@ std::array<real,nstate> PhysicsModel<dim,nstate,real,nstate_baseline_physics>
     const std::array<real,nstate> &conservative_soln,
     const dealii::Tensor<1,dim,real> &normal) const
 {
-    // TO DO: Update for when nstate > nstate_baseline_physics
-    //std::array<real,nstate> eig;
-    //if constexpr(nstate==nstate_baseline_physics) {
-    //    eig = physics_baseline->convective_eigenvalues(conservative_soln, normal);
-    //} else {
-    //    // TO DO, make use of the physics_model object for nstate>nstate_baseline_physics
-    //    std::abort();
-    //}
-
     std::array<real,nstate> eig;
     if constexpr(nstate==nstate_baseline_physics) {
         eig = physics_baseline->convective_eigenvalues(conservative_soln, normal);
@@ -224,15 +206,6 @@ template <int dim, int nstate, typename real, int nstate_baseline_physics>
 real PhysicsModel<dim,nstate,real,nstate_baseline_physics>
 ::max_convective_eigenvalue (const std::array<real,nstate> &conservative_soln) const
 {
-    // TO DO: Update for when nstate > nstate_baseline_physics
-    //real max_eig;
-    //if constexpr(nstate==nstate_baseline_physics) {
-    //    max_eig = physics_baseline->max_convective_eigenvalue(conservative_soln);
-    //} else {
-    //    // TO DO, make use of the physics_model object for nstate>nstate_baseline_physics
-    //    std::abort();
-    //}
-
     real max_eig;
     if constexpr(nstate==nstate_baseline_physics) {
         max_eig = physics_baseline->max_convective_eigenvalue(conservative_soln);
@@ -259,15 +232,6 @@ void PhysicsModel<dim,nstate,real,nstate_baseline_physics>
    std::array<real,nstate> &soln_bc,
    std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_bc) const
 {
-    // TO DO: Update for when nstate > nstate_baseline_physics
-    //if constexpr(nstate==nstate_baseline_physics) {
-    //    physics_baseline->boundary_face_values(
-    //            boundary_type, pos, normal_int, soln_int, soln_grad_int, 
-    //            soln_bc, soln_grad_bc);
-    //} else {
-    //    // TO DO, make use of the physics_model object for nstate>nstate_baseline_physics
-    //    std::abort();
-    //}
     if constexpr(nstate==nstate_baseline_physics) {
         physics_baseline->boundary_face_values(
                 boundary_type, pos, normal_int, soln_int, soln_grad_int, 
@@ -306,15 +270,6 @@ dealii::Vector<double> PhysicsModel<dim,nstate,real,nstate_baseline_physics>::po
     const dealii::Tensor<1,dim>               &normals,
     const dealii::Point<dim>                  &evaluation_points) const
 {
-    // TO DO: Update for when nstate > nstate_baseline_physics
-    //dealii::Vector<double> computed_quantities;
-    //if(nstate==nstate_baseline_physics) {
-    //    computed_quantities = physics_baseline->post_compute_derived_quantities_vector(
-    //                                    uh, duh, dduh, normals, evaluation_points);
-    //} else {
-    //    // TO DO, make use of the physics_model object for nstate>nstate_baseline_physics
-    //    std::abort();
-    //}
     dealii::Vector<double> computed_quantities;
     if(nstate==nstate_baseline_physics) {
         computed_quantities = physics_baseline->post_compute_derived_quantities_vector(
@@ -343,16 +298,8 @@ template <int dim, int nstate, typename real, int nstate_baseline_physics>
 std::vector<std::string> PhysicsModel<dim,nstate,real,nstate_baseline_physics>
 ::post_get_names () const
 {
-    // TO DO: Update for when nstate > nstate_baseline_physics
-    //std::vector<std::string> names;
-    //if(nstate==nstate_baseline_physics) {
-    //    names = physics_baseline->post_get_names();
-    //} else {
-    //    // TO DO, make use of the physics_model object for nstate>nstate_baseline_physics
-    //    std::abort();
-    //}
     std::vector<std::string> names;
-    if(nstate==nstate_baseline_physics) {
+    if constexpr(nstate==nstate_baseline_physics) {
         names = physics_baseline->post_get_names();
     } else {
         std::vector<std::string> names_model;
@@ -367,15 +314,6 @@ template <int dim, int nstate, typename real, int nstate_baseline_physics>
 std::vector<dealii::DataComponentInterpretation::DataComponentInterpretation> PhysicsModel<dim,nstate,real,nstate_baseline_physics>
 ::post_get_data_component_interpretation () const
 {
-    // TO DO: Update for when nstate > nstate_baseline_physics
-    //namespace DCI = dealii::DataComponentInterpretation;
-    //std::vector<DCI::DataComponentInterpretation> interpretation;
-    //if(nstate==nstate_baseline_physics) {
-    //    interpretation = physics_baseline->post_get_data_component_interpretation();
-    //} else {
-    //    // TO DO, make use of the physics_model object for nstate>nstate_baseline_physics
-    //    std::abort();
-    //}
     namespace DCI = dealii::DataComponentInterpretation;
     std::vector<DCI::DataComponentInterpretation> interpretation;
     if(nstate==nstate_baseline_physics) {

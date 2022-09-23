@@ -212,6 +212,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_volume_term_derivatives(
     std::vector< ADArrayTensor1 > conv_phys_flux_at_q(n_quad_pts);
     std::vector< ADArrayTensor1 > diss_phys_flux_at_q(n_quad_pts);
     std::vector< ADArray > source_at_q(n_quad_pts);
+    std::vector< ADArray > physical_source_at_q(n_quad_pts);
 
     // AD variable
     std::vector< FadType > soln_coeff(n_dofs_cell);
@@ -239,6 +240,11 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_volume_term_derivatives(
         // Evaluate physical convective flux and source term
         conv_phys_flux_at_q[iquad] = this->pde_physics_fad->convective_flux (soln_at_q[iquad]);
         diss_phys_flux_at_q[iquad] = this->pde_physics_fad->dissipative_flux (soln_at_q[iquad], soln_grad_at_q[iquad], current_cell_index);
+
+        const dealii::Point<dim,real> real_quad_points = fe_values_vol.quadrature_point(iquad);
+        dealii::Point<dim,FadType> ad_points;
+        for (int d=0;d<dim;++d) { ad_points[d] = real_quad_points[d]; }
+        physical_source_at_q[iquad] = this->pde_physics_fad->physical_source_term (ad_points, soln_at_q[iquad], soln_grad_at_q[iquad], current_cell_index);
 
         if(this->all_parameters->manufactured_convergence_study_param.manufactured_solution_param.use_manufactured_source_term) {
             const dealii::Point<dim,real> real_quad_point = fe_values_vol.quadrature_point(iquad);
@@ -293,8 +299,11 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_volume_term_derivatives(
             //// Diffusive
             //// Note that for diffusion, the negative is defined in the physics
             rhs = rhs + fe_values_vol.shape_grad_component(itest,iquad,istate) * diss_phys_flux_at_q[iquad][istate] * JxW[iquad];
-            // Source
 
+            // Physical source
+            rhs = rhs + fe_values_vol.shape_value_component(itest,iquad,istate) * physical_source_at_q[iquad][istate] * JxW[iquad];
+
+            // Source
             if(this->all_parameters->manufactured_convergence_study_param.manufactured_solution_param.use_manufactured_source_term) {
                 rhs = rhs + fe_values_vol.shape_value_component(itest,iquad,istate) * source_at_q[iquad][istate] * JxW[iquad];
             }
@@ -539,7 +548,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_volume_term_explicit(
     std::vector< realArrayTensor1 > conv_phys_flux_at_q(n_quad_pts);
     std::vector< realArrayTensor1 > diss_phys_flux_at_q(n_quad_pts);
     std::vector< realArray > source_at_q(n_quad_pts);
-
+    std::vector< realArray > physical_source_at_q(n_quad_pts);
 
     // AD variable
     std::vector< realtype > soln_coeff(n_dofs_cell);
@@ -566,6 +575,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_volume_term_explicit(
         // Evaluate physical convective flux and source term
         conv_phys_flux_at_q[iquad] = DGBaseState<dim,nstate,real,MeshType>::pde_physics_double->convective_flux (soln_at_q[iquad]);
         diss_phys_flux_at_q[iquad] = DGBaseState<dim,nstate,real,MeshType>::pde_physics_double->dissipative_flux (soln_at_q[iquad], soln_grad_at_q[iquad], current_cell_index);
+        physical_source_at_q[iquad] = DGBaseState<dim,nstate,real,MeshType>::pde_physics_double->physical_source_term (fe_values_vol.quadrature_point(iquad), soln_at_q[iquad], soln_grad_at_q[iquad], current_cell_index);
         if(this->all_parameters->manufactured_convergence_study_param.manufactured_solution_param.use_manufactured_source_term) {
             source_at_q[iquad] = DGBaseState<dim,nstate,real,MeshType>::pde_physics_double->source_term (fe_values_vol.quadrature_point(iquad), soln_at_q[iquad], current_cell_index);
         }
@@ -620,8 +630,11 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_volume_term_explicit(
             //// Diffusive
             //// Note that for diffusion, the negative is defined in the physics
             rhs = rhs + fe_values_vol.shape_grad_component(itest,iquad,istate) * diss_phys_flux_at_q[iquad][istate] * JxW[iquad];
-            // Source
 
+            // Physical source
+            rhs = rhs + fe_values_vol.shape_value_component(itest,iquad,istate) * physical_source_at_q[iquad][istate] * JxW[iquad];
+
+            // Source
             if(this->all_parameters->manufactured_convergence_study_param.manufactured_solution_param.use_manufactured_source_term) {
                 rhs = rhs + fe_values_vol.shape_value_component(itest,iquad,istate) * source_at_q[iquad][istate] * JxW[iquad];
             }

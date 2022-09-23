@@ -267,8 +267,6 @@ template class InitialConditionFunction_BurgersRewienski<PHILIP_DIM, PHILIP_DIM,
 #if PHILIP_DIM==3
 template class InitialConditionFunction_TaylorGreenVortex <PHILIP_DIM,PHILIP_DIM+2,double>;
 template class InitialConditionFunction_TaylorGreenVortex_Isothermal <PHILIP_DIM,PHILIP_DIM+2,double>;
-template class InitialConditionFunction_TaylorGreenVortex <PHILIP_DIM,PHILIP_DIM+3,double>;
-template class InitialConditionFunction_TaylorGreenVortex_Isothermal <PHILIP_DIM,PHILIP_DIM+3,double>;
 #endif
 template class InitialConditionFunction_Zero <PHILIP_DIM, 1, double>;
 template class InitialConditionFunction_Zero <PHILIP_DIM, 2, double>;

@@ -151,7 +151,7 @@ ModelFactory<dim,nstate,real>
             assert(0==1 && "Can't create ModelBase, invalid ModelType type");
             manufactured_solution_function = nullptr;
             return nullptr;
-        }          
+        }
     } 
     else {
         return nullptr;

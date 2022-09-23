@@ -16,12 +16,10 @@ DGFactory<dim,real,MeshType>
 {
     using PDE_enum   = Parameters::AllParameters::PartialDifferentialEquation;
     const PDE_enum pde_type = parameters_input->pde_type;
-//#if PHILIP_DIM==3
     using Model_enum = Parameters::AllParameters::ModelType;
     const Model_enum model_type = parameters_input->model_type;
     using RANSModel_enum = Parameters::PhysicsModelParam::ReynoldsAveragedNavierStokesModel;
     const RANSModel_enum rans_model_type = parameters_input->physics_model_param.RANS_model_type;
-//#endif
 
     if (parameters_input->use_weak_form) {
         if (pde_type == PDE_enum::advection) {

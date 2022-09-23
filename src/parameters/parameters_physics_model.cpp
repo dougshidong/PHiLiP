@@ -103,7 +103,7 @@ void PhysicsModelParam::parse_parameters (dealii::ParameterHandler &prm)
             const std::string RANS_model_type_string = prm.get("RANS_model_type");
             if(RANS_model_type_string == "SA_negative") RANS_model_type = SA_negative;
 
-            turbulent_prandtl_number           = prm.get_double("turbulent_prandtl_number");
+            turbulent_prandtl_number = prm.get_double("turbulent_prandtl_number");
         }
         prm.leave_subsection();
     }

@@ -57,7 +57,7 @@ std::string FlowSolverCaseBase<dim, nstate>::get_pde_string() const
             const RANSModel_enum rans_model = this->all_param.physics_model_param.RANS_model_type;
             std::string rans_model_string = "WARNING: invalid RANS model";
             // assign RANS model string
-            if     (rans_model==RANSModel_enum::SA_negative) rans_model_string = "SA_negative";
+            if (rans_model==RANSModel_enum::SA_negative) rans_model_string = "SA_negative";
             pde_string += std::string(" (Model: ") + model_string + std::string(", RANS Model: ") + rans_model_string + std::string(")");
         }
         if(pde_string == "physics_model") pde_string += std::string(" (Model: ") + model_string + std::string(")");

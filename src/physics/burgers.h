@@ -39,7 +39,6 @@ protected:
     */
     using PhysicsBase<dim,nstate,real>::dissipative_flux;
     using PhysicsBase<dim,nstate,real>::source_term;
-    //adding physical source
     using PhysicsBase<dim,nstate,real>::physical_source_term;
 protected:
     /// Diffusion scaling coefficient in front of the diffusion tensor.
@@ -101,7 +100,6 @@ public:
         const std::array<real,nstate> &solution,
         const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient) const;
 
-    //adding physical source
     /// Physical source term 
     std::array<real,nstate> physical_source_term (
         const dealii::Point<dim,real> &pos,

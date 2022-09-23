@@ -14,14 +14,16 @@ DesignParameterizationIdentity<dim> :: DesignParameterizationIdentity(
 template<int dim>
 void DesignParameterizationIdentity<dim> :: initialize_design_variables(VectorType &design_var)
 {
-    design_var.reinit(this->high_order_grid->volume_nodes); // Copies both the values and parallel distribution layout.
+    design_var = this->high_order_grid->volume_nodes; // Copies both the values and parallel distribution layout.
     current_volume_nodes = design_var;
+    design_var.update_ghost_values();
+    current_volume_nodes.update_ghost_values();
 }
 
 template<int dim>
 void DesignParameterizationIdentity<dim> :: compute_dXv_dXp(MatrixType &dXv_dXp) const
 {
-    // There might not be the best way to create parallel partitioned Identity matrix. To be updated if found.
+    // This might not be the best way to create parallel partitioned Identity matrix. To be updated if found.
     const dealii::IndexSet &volume_range = this->high_order_grid->volume_nodes.get_partitioner()->locally_owned_range();
     const unsigned int n_vol_nodes = this->high_order_grid->volume_nodes.size();
     dealii::DynamicSparsityPattern dsp(n_vol_nodes, n_vol_nodes, volume_range);
@@ -68,6 +70,7 @@ bool DesignParameterizationIdentity<dim> ::update_mesh_from_design_variables(
 
     current_volume_nodes = design_var;
     dXv_dXp.vmult(this->high_order_grid->volume_nodes, design_var);
+    this->high_order_grid->volume_nodes.update_ghost_values();
     mesh_updated = true;
     return mesh_updated;
 }

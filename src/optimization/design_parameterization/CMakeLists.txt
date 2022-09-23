@@ -2,6 +2,7 @@ set(DESIGN_PARAMETERIZATION_SRC
     design_parameterization_base.cpp
     design_parameterization_ffd.cpp
     design_parameterization_identity.cpp
+    design_parameterization_inner_vol.cpp
     )
 
 foreach(dim RANGE 1 3)

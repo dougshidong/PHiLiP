@@ -29,7 +29,7 @@ public:
         const MatrixType &dXv_dXp,
         const VectorType &design_var) override;
 
-    /// Returns the number of design variables (no. of volume nodes in this case).
+    /// Returns the number of design variables (i.e. total no. of volume nodes on all processors).
     unsigned int get_number_of_design_variables() const override;
 
 private:

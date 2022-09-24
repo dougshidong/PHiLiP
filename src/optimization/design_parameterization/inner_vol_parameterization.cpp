@@ -1,4 +1,4 @@
-#include "design_parameterization_inner_vol.hpp"
+#include "inner_vol_parameterization.hpp"
 #include <deal.II/dofs/dof_tools.h>
 #include <deal.II/lac/dynamic_sparsity_pattern.h>
 #include <deal.II/lac/sparsity_tools.h>

@@ -1,7 +1,7 @@
 #ifndef __DESIGN_PARAMETERIZATION_BASE_H__
 #define __DESIGN_PARAMETERIZATION_BASE_H__
 
-#include "mesh/free_form_deformation.h"
+#include "mesh/high_order_grid.h"
 
 namespace PHiLiP {
     

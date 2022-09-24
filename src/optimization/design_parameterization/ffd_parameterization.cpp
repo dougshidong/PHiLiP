@@ -1,4 +1,4 @@
-#include "design_parameterization_ffd.hpp"
+#include "ffd_parameterization.hpp"
 
 namespace PHiLiP {
 

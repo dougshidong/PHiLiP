@@ -25,7 +25,7 @@
 #include "optimization/rol_to_dealii_vector.hpp"
 #include "optimization/flow_constraints.hpp"
 #include "optimization/rol_objective.hpp"
-#include "optimization/design_parameterization/design_parameterization_ffd.hpp"
+#include "optimization/design_parameterization/ffd_parameterization.hpp"
 
 
 const double TOL = 1e-7;

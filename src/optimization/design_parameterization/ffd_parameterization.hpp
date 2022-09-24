@@ -1,7 +1,8 @@
 #ifndef __DESIGN_PARAMETERIZATION_FFD_H__
 #define __DESIGN_PARAMETERIZATION_FFD_H__
 
-#include "design_parameterization_base.hpp"
+#include "base_parameterization.hpp"
+#include "mesh/free_form_deformation.h"
 
 namespace PHiLiP {
 

@@ -1,4 +1,4 @@
-#include "design_parameterization_base.hpp"
+#include "base_parameterization.hpp"
 
 namespace PHiLiP {
 

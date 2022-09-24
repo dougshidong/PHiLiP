@@ -1,7 +1,7 @@
 #ifndef __DESIGN_PARAMETERIZATION_IDENTITY_H__
 #define __DESIGN_PARAMETERIZATION_IDENTITY_H__
 
-#include "design_parameterization_base.hpp"
+#include "base_parameterization.hpp"
 
 namespace PHiLiP {
 

@@ -7,7 +7,7 @@
 
 #include "functional/functional.h"
 
-#include "design_parameterization/design_parameterization_base.hpp"
+#include "design_parameterization/base_parameterization.hpp"
 
 namespace PHiLiP {
 

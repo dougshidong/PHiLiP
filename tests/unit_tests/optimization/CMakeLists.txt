@@ -106,3 +106,38 @@ add_test(
   WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )
 unset(TEST_TARGET)
+
+
+set(TEST_SRC
+    inner_vol_parameterization_check.cpp
+    )
+
+set (dim 2)
+
+# Output executable
+string(CONCAT TEST_TARGET inner_vol_parameterization_check)
+message("Adding executable " ${TEST_TARGET} " with files " ${TEST_SRC} "\n")
+add_executable(${TEST_TARGET} ${TEST_SRC})
+
+# Compile this executable when 'make unit_tests'
+add_dependencies(unit_tests ${TEST_TARGET})
+add_dependencies(${dim}D ${TEST_TARGET})
+
+target_link_libraries(${TEST_TARGET} ParametersLibrary)
+target_link_libraries(${TEST_TARGET} Grids_${dim}D)
+target_link_libraries(${TEST_TARGET} DiscontinuousGalerkin_${dim}D)
+target_link_libraries(${TEST_TARGET} Optimization_${dim}D)
+
+# Setup target with deal.II
+if(NOT DOC_ONLY)
+    DEAL_II_SETUP_TARGET(${TEST_TARGET})
+endif()
+
+target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_DIM=2)
+set(NMPI ${MPIMAX})
+add_test(
+  NAME ${TEST_TARGET}_nmpi=${NMPI}
+  COMMAND mpirun -n ${NMPI} ${EXECUTABLE_OUTPUT_PATH}/${TEST_TARGET}
+  WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
+)
+unset(TEST_TARGET)

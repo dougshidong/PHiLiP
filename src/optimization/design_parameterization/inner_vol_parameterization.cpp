@@ -138,9 +138,11 @@ bool DesignParameterizationInnerVol<dim> ::update_mesh_from_design_variables(
         mesh_updated = false;
         return mesh_updated;
     }
+    VectorType change_in_des_var = design_var;
+    change_in_des_var -= current_design_var;
 
     current_design_var = design_var;
-    dXv_dXp.vmult(this->high_order_grid->volume_nodes, design_var);
+    dXv_dXp.vmult_add(this->high_order_grid->volume_nodes, change_in_des_var); // Xv = Xv + dXv_dXp*(Xv,new - Xv); Gives Xv for surface nodes and Xv,new for inner vol nodes. 
     mesh_updated = true;
     return mesh_updated;
 }

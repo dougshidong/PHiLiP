@@ -22,7 +22,7 @@ DesignParameterizationBase<dim> :: ~DesignParameterizationBase()
 template<int dim>
 void DesignParameterizationBase<dim> :: output_design_variables(unsigned int /*iteration_no*/) const
 {
-    // Does nothing by default. Overriden in derived classes.
+    // Outputs nothing by default. Overriden in derived classes.
 }
 
 template<int dim>

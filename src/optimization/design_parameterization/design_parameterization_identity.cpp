@@ -57,9 +57,6 @@ bool DesignParameterizationIdentity<dim> ::update_mesh_from_design_variables(
 {
     AssertDimension(dXv_dXp.n(), design_var.size());
     
-    // check if design variables have changed.
-    VectorType diff = design_var;
-    diff -= current_volume_nodes;
     bool design_variable_has_changed = this->has_design_variable_been_updated(current_volume_nodes, design_var);
     bool mesh_updated;
     if(!(design_variable_has_changed))

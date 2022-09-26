@@ -22,7 +22,7 @@ public:
 
     void reinit_for_next_Newton_iter(dealii::LinearAlgebra::distributed::Vector<double> &current_solution_estimate_input);
 
-    // Application of matrix to vector src. Write result into dst.
+    /// Application of matrix to vector src. Write result into dst.
     void vmult (dealii::LinearAlgebra::distributed::Vector<double> &dst,
                 const dealii::LinearAlgebra::distributed::Vector<double> &src) const;
     

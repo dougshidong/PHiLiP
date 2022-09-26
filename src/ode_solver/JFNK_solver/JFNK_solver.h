@@ -47,7 +47,7 @@ protected:
     const Parameters::LinearSolverParam linear_param;
 
     /// small pertubation for finite difference
-    const double epsilon_jacobian;
+    const double perturbation_magnitude;
 
     /// tolerance for Newton iterations 
     const double epsilon_Newton;

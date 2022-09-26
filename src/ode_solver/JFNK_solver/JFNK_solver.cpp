@@ -6,18 +6,17 @@ namespace ODE{
 
 template <int dim, typename real, typename MeshType>
 JFNKSolver<dim,real,MeshType>::JFNKSolver(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input)
-    : dg(dg_input)
-    , pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD)==0)
-    , all_parameters(dg->all_parameters)
+    : pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD)==0)
+    , all_parameters(dg_input->all_parameters)
     , linear_param(all_parameters->linear_solver_param) 
-    , epsilon_jacobian(linear_param.epsilon_jacobian) 
+    , perturbation_magnitude(linear_param.perturbation_magnitude) 
     , epsilon_Newton(linear_param.newton_residual)
     , epsilon_GMRES(linear_param.linear_residual)
     , max_num_temp_vectors(linear_param.restart_number)
     , max_GMRES_iter(linear_param.max_iterations)
     , max_Newton_iter(linear_param.newton_max_iterations)
     , do_output(linear_param.linear_solver_output == Parameters::OutputEnum::verbose)
-    , jacobian_vector_product(dg)
+    , jacobian_vector_product(dg_input)
     , solver_control(max_GMRES_iter, 
                      epsilon_GMRES,
                      false,         //log_history 
@@ -33,7 +32,7 @@ void JFNKSolver<dim,real,MeshType>::solve (real dt,
     double update_norm = 1.0;
     int Newton_iter_counter = 0;
     
-    jacobian_vector_product.reinit_for_next_timestep(dt, epsilon_jacobian, previous_step_solution);
+    jacobian_vector_product.reinit_for_next_timestep(dt, perturbation_magnitude, previous_step_solution);
     current_solution_estimate = previous_step_solution;
     solution_update_newton.reinit(previous_step_solution);
 

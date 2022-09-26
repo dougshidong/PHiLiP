@@ -6,29 +6,32 @@
 namespace PHiLiP {
 namespace ODE{
 
-//template things
-//UPDATE WITH #IF STUFF
+/// Class to store information for the JFNK solver, and interact with dg
 template <int dim, typename real, typename MeshType>
 class JacobianVectorProduct{
 public:
-
+    /// Constructor
     JacobianVectorProduct(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input);
 
+    ///Destructor
     ~JacobianVectorProduct() {};
 
-    void reinit_for_next_timestep(double dt_input,
-                double epsilon_input,
-                dealii::LinearAlgebra::distributed::Vector<double> &previous_step_solution_input);
+    /// Reinitializes the stored data for a new timestep.
+    void reinit_for_next_timestep(const double dt_input,
+                const double fd_perturbation_input,
+                const dealii::LinearAlgebra::distributed::Vector<double> &previous_step_solution_input);
 
-    void reinit_for_next_Newton_iter(dealii::LinearAlgebra::distributed::Vector<double> &current_solution_estimate_input);
+    /// Reinitializes the stored data for the next Newton iteration.
+    void reinit_for_next_Newton_iter(const dealii::LinearAlgebra::distributed::Vector<double> &current_solution_estimate_input);
 
-    /// Application of matrix to vector src. Write result into dst.
-    void vmult (dealii::LinearAlgebra::distributed::Vector<double> &dst,
-                const dealii::LinearAlgebra::distributed::Vector<double> &src) const;
+    /// Returns the product of the Jacobian with vector w, computed with a matrix-free finite difference approximation
+    /** Write the results into destination. */
+    void vmult (dealii::LinearAlgebra::distributed::Vector<double> &destination,
+                const dealii::LinearAlgebra::distributed::Vector<double> &w) const;
     
     /// Unsteady residual = dw/dt - R
-    dealii::LinearAlgebra::distributed::Vector<double> compute_unsteady_residual(dealii::LinearAlgebra::distributed::Vector<double> &solution,
-            bool do_negate = false) const;
+    dealii::LinearAlgebra::distributed::Vector<double> compute_unsteady_residual(const dealii::LinearAlgebra::distributed::Vector<double> &solution,
+            const bool do_negate = false) const;
 protected:
 
     /// pointer to dg
@@ -38,7 +41,7 @@ protected:
     double dt;
     
     /// small number for finite difference
-    double epsilon;
+    double fd_perturbation;
     
     /// solution at previous timestep
     dealii::LinearAlgebra::distributed::Vector<double> previous_step_solution;
@@ -49,9 +52,9 @@ protected:
     /// residual of current estimate for the solution
     dealii::LinearAlgebra::distributed::Vector<double> current_solution_estimate_residual;
     
-    /// Compute residual from dg,  R = IMM * RHS where RHS is evaluated using solution=w, and store in dst
-    void compute_dg_residual(dealii::LinearAlgebra::distributed::Vector<double> &dst,
-            dealii::LinearAlgebra::distributed::Vector<double> &w) const;
+    /// Compute residual from dg,  R(w) = IMM * RHS where RHS is evaluated using solution=w, and store in destination
+    void compute_dg_residual(dealii::LinearAlgebra::distributed::Vector<double> &destination,
+            const dealii::LinearAlgebra::distributed::Vector<double> &w) const;
 };
 
 }

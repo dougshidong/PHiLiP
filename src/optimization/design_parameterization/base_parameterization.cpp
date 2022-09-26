@@ -14,12 +14,6 @@ DesignParameterizationBase<dim> :: DesignParameterizationBase (
 }
 
 template<int dim>
-DesignParameterizationBase<dim> :: ~DesignParameterizationBase()
-{
-    // Does nothing for now. Overriden in derived classes.
-}
-
-template<int dim>
 void DesignParameterizationBase<dim> :: output_design_variables(unsigned int /*iteration_no*/) const
 {
     // Outputs nothing by default. Overriden in derived classes.

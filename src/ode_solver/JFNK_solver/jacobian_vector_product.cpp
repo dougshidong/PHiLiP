@@ -26,7 +26,7 @@ void JacobianVectorProduct<dim,real,MeshType>:: reinit_for_next_timestep(double 
 }
 
 template <int dim, typename real, typename MeshType>
-void JacobianVectorProduct<dim,real,MeshType>::compute_dg_residual(dealii::LinearAlgebra::distributed::Vector<double> &dst, dealii::LinearAlgebra::distributed::Vector<double> &w) const
+void JacobianVectorProduct<dim,real,MeshType>::compute_dg_residual(dealii::LinearAlgebra::distributed::Vector<double> &dst, const dealii::LinearAlgebra::distributed::Vector<double> &w) const
 {
     dg->solution = w;
     dg->assemble_residual();

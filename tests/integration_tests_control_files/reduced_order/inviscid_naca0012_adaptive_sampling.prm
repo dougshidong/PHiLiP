@@ -58,8 +58,8 @@ subsection reduced order
   set adaptation_tolerance = 1E-04
   set path_to_search = .
   set reduced_residual_tolerance = 5e-13
-  set parameter_names = alpha
-  set parameter_min_values = 0
-  set parameter_max_values = 4
+  set parameter_names = mach, alpha
+  set parameter_min_values = 0.5, 0
+  set parameter_max_values = 0.9, 5
   set num_halton = 0
 end

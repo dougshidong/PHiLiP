@@ -13,6 +13,7 @@
 #include "assert_compare_array.h"
 #include "parameters/parameters.h"
 #include "physics/reynolds_averaged_navier_stokes.h"
+#include "physics/negative_spalart_allmaras.h"
 
 const double TOLERANCE = 1E-5;
 
@@ -24,7 +25,7 @@ int main (int /*argc*/, char * /*argv*/[])
     
     //const double ref_length = 1.0, mach_inf=1.0, angle_of_attack = 0.0, side_slip_angle = 0.0, gamma_gas = 1.4;
     //const double prandtl_number = 0.72, reynolds_number_inf=1e-4;
-    //const double prandtl_number = 0.9;
+    //const double turbulent_prandtl_number = 0.9;
     const double a = 1.0 , b = 0.0, c = 1.4, d=0.72, e=1.0e3, f=0.9; // Note: e==Re_inf --> set to small value so that viscous terms dominate
     PHiLiP::Physics::ReynoldsAveragedNavierStokes_SAneg<dim, nstate, double> rans_sa_neg_physics = PHiLiP::Physics::ReynoldsAveragedNavierStokes_SAneg<dim, nstate, double>(a,c,a,b,b,d,e,f);
     

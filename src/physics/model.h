@@ -1,10 +1,10 @@
 #ifndef __MODEL__
 #define __MODEL__
 
-#include <deal.II/lac/la_parallel_vector.h>
-#include <deal.II/base/tensor.h>
-#include <deal.II/numerics/data_component_interpretation.h>
 #include <deal.II/base/types.h>
+#include <deal.II/base/tensor.h>
+#include <deal.II/lac/la_parallel_vector.templates.h>
+#include <deal.II/numerics/data_component_interpretation.h>
 
 #include "parameters/parameters_manufactured_solution.h"
 #include "physics/manufactured_solution.h"
@@ -98,7 +98,7 @@ public:
     virtual std::vector<std::string> post_get_names () const;
 
     // Quantities needed to be updated by DG for the model -- accomplished by DGBase update_model_variables()
-    dealii::LinearAlgebra::distributed::Vector<double> cellwise_poly_degree; ///< Cellwise polynomial degree
+    dealii::LinearAlgebra::distributed::Vector<int> cellwise_poly_degree; ///< Cellwise polynomial degree
     dealii::LinearAlgebra::distributed::Vector<double> cellwise_volume; ////< Cellwise element volume
 };
 

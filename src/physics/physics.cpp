@@ -11,8 +11,10 @@ namespace Physics {
 
 template <int dim, int nstate, typename real>
 PhysicsBase<dim,nstate,real>::PhysicsBase(
+    const bool                                                has_nonzero_physical_source_input,
     const dealii::Tensor<2,3,double>                          input_diffusion_tensor,
     std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function_input):
+        has_nonzero_physical_source(has_nonzero_physical_source_input),
         manufactured_solution_function(manufactured_solution_function_input)
 {
     // if provided with a null ptr, give it the default manufactured solution
@@ -38,8 +40,12 @@ PhysicsBase<dim,nstate,real>::PhysicsBase(
 
 template <int dim, int nstate, typename real>
 PhysicsBase<dim,nstate,real>::PhysicsBase(
+    const bool                                                has_nonzero_physical_source_input,
     std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function_input)
-    : PhysicsBase<dim,nstate,real>(Parameters::ManufacturedSolutionParam::get_default_diffusion_tensor(),manufactured_solution_function_input)
+    : PhysicsBase<dim,nstate,real>(
+        has_nonzero_physical_source_input,
+        Parameters::ManufacturedSolutionParam::get_default_diffusion_tensor(),
+        manufactured_solution_function_input)
 { }
 
 template <int dim, int nstate, typename real>

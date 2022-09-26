@@ -35,14 +35,20 @@ class PhysicsBase
 public:
     /// Default constructor that will set the constants.
     PhysicsBase(
+        const bool                                                has_nonzero_physical_source_input,
         const dealii::Tensor<2,3,double>                          input_diffusion_tensor = Parameters::ManufacturedSolutionParam::get_default_diffusion_tensor(),
         std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function_input = nullptr);
 
     /// Constructor that will call default constructor.
-    PhysicsBase(std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function_input = nullptr);
+    PhysicsBase(
+        const bool                                                has_nonzero_physical_source_input,
+        std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function_input = nullptr);
 
     /// Virtual destructor required for abstract classes.
     virtual ~PhysicsBase() = 0;
+
+    /// Flag to signal that physical source term is non-zero
+    const bool has_nonzero_physical_source;
 
     /// Manufactured solution function
     std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function;

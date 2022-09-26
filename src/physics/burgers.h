@@ -56,8 +56,9 @@ public:
         const bool                                                convection = true, 
         const bool                                                diffusion = true, 
         const dealii::Tensor<2,3,double>                          input_diffusion_tensor = Parameters::ManufacturedSolutionParam::get_default_diffusion_tensor(),
-        std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function = nullptr) : 
-            PhysicsBase<dim,nstate,real>(input_diffusion_tensor, manufactured_solution_function),
+        std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function = nullptr,
+        const bool                                                has_nonzero_physical_source = false) : 
+            PhysicsBase<dim,nstate,real>(has_nonzero_physical_source,input_diffusion_tensor, manufactured_solution_function),
             diffusion_scaling_coeff(diffusion_coefficient),
             hasConvection(convection), 
             hasDiffusion(diffusion)

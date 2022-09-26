@@ -160,10 +160,14 @@ PhysicsFactory<dim,nstate,real>
     // Create baseline physics object
     PDE_enum baseline_physics_type;
 
+    // Flag to signal non-zero physical source
+    bool has_nonzero_physical_source;
+
     // -------------------------------------------------------------------------------
     // Large Eddy Simulation (LES)
     // -------------------------------------------------------------------------------
     if (model_type == Model_enum::large_eddy_simulation) {
+        has_nonzero_physical_source = false; // LES has no physical source terms
         if constexpr ((nstate==dim+2) && (dim==3)) {
             // Assign baseline physics type (and corresponding nstates) based on the physics model type
             // -- Assign nstates for the baseline physics (constexpr because template parameter)
@@ -181,11 +185,13 @@ PhysicsFactory<dim,nstate,real>
                     parameters_input,
                     baseline_physics_type,
                     model_input,
-                    manufactured_solution_function);
+                    manufactured_solution_function,
+                    has_nonzero_physical_source);
         }
         else {
             // LES does not exist for nstate!=(dim+2) || dim!=3
             (void) baseline_physics_type;
+            (void) has_nonzero_physical_source;
             std::cout << "Can't create LES for nstate!=(dim+2) or dim!=3. " << std::endl;
             return nullptr;
         }
@@ -194,6 +200,7 @@ PhysicsFactory<dim,nstate,real>
     // Reynolds-Averaged Navier-Stokes (RANS) + RANS model
     // -------------------------------------------------------------------------------
     else if (model_type == Model_enum::reynolds_averaged_navier_stokes) {
+        has_nonzero_physical_source = true; // RANS (baseline part) has physical source terms
         if (rans_model_type == RANSModel_enum::SA_negative)
         {
             if constexpr (nstate==dim+3) {
@@ -213,11 +220,13 @@ PhysicsFactory<dim,nstate,real>
                     parameters_input,
                     baseline_physics_type,
                     model_input,
-                    manufactured_solution_function);
+                    manufactured_solution_function,
+                    has_nonzero_physical_source);
             }
             else {
                 // RANS+one-equation model does not exist for nstate!=(dim+3)
                 (void) baseline_physics_type;
+                (void) has_nonzero_physical_source;
                 std::cout << "Can't create RANS + negative SA model for nstate!=(dim+3). " << std::endl;
                 return nullptr;
             }
@@ -226,6 +235,7 @@ PhysicsFactory<dim,nstate,real>
     else {
         // prevent warnings for dim=3,nstate=4, etc.
         (void) baseline_physics_type;
+        (void) has_nonzero_physical_source;
     }    
     std::cout << "Can't create PhysicsModel, invalid ModelType type: " << model_type << std::endl;
     assert(0==1 && "Can't create PhysicsModel, invalid ModelType type");

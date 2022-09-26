@@ -20,8 +20,9 @@ PhysicsModel<dim,nstate,real,nstate_baseline_physics>::PhysicsModel(
     const Parameters::AllParameters                              *const parameters_input,
     Parameters::AllParameters::PartialDifferentialEquation       baseline_physics_type,
     std::shared_ptr< ModelBase<dim,nstate,real> >                model_input,
-    std::shared_ptr< ManufacturedSolutionFunction<dim,real> >    manufactured_solution_function)
-    : PhysicsBase<dim,nstate,real>(manufactured_solution_function)
+    std::shared_ptr< ManufacturedSolutionFunction<dim,real> >    manufactured_solution_function,
+    const bool                                                   has_nonzero_physical_source)
+    : PhysicsBase<dim,nstate,real>(has_nonzero_physical_source,manufactured_solution_function)
     , n_model_equations(nstate-nstate_baseline_physics)
     , physics_baseline(PhysicsFactory<dim,nstate_baseline_physics,real>::create_Physics(parameters_input, baseline_physics_type))
     , model(model_input)

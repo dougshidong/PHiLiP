@@ -8,6 +8,10 @@ namespace PHiLiP {
 /// Identity design parameterization. Control variables are all volume nodes.
 template<int dim>
 class DesignParameterizationIdentity : public DesignParameterizationBase<dim> {
+    
+    using VectorType = dealii::LinearAlgebra::distributed::Vector<double>; ///< Alias for dealii's parallel distributed vector.
+    using MatrixType = dealii::TrilinosWrappers::SparseMatrix; ///< Alias for dealii::TrilinosWrappers::SparseMatrix.
+
 public:
     /// Constructor
     DesignParameterizationIdentity(

@@ -9,6 +9,10 @@ namespace PHiLiP {
 /// FFD design parameterization. Holds an object of FreeFormDeformation and uses it to update the mesh when the control variables are updated.
 template<int dim>
 class DesignParameterizationFreeFormDeformation : public DesignParameterizationBase<dim> {
+    
+    using VectorType = dealii::LinearAlgebra::distributed::Vector<double>; ///< Alias for dealii's parallel distributed vector.
+    using MatrixType = dealii::TrilinosWrappers::SparseMatrix; ///< Alias for dealii::TrilinosWrappers::SparseMatrix.
+
 public:
     /// Constructor
     DesignParameterizationFreeFormDeformation(

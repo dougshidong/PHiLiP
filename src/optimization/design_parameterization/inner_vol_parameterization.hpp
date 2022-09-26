@@ -8,6 +8,10 @@ namespace PHiLiP {
 /// Design parameterization w.r.t. inner volume nodes (i.e. volume nodes excluding those on the boundary).
 template<int dim>
 class DesignParameterizationInnerVol : public DesignParameterizationBase<dim> {
+    
+    using VectorType = dealii::LinearAlgebra::distributed::Vector<double>; ///< Alias for dealii's parallel distributed vector.
+    using MatrixType = dealii::TrilinosWrappers::SparseMatrix; ///< Alias for dealii::TrilinosWrappers::SparseMatrix.
+
 public:
     /// Constructor
     DesignParameterizationInnerVol(

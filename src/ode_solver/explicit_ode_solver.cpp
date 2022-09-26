@@ -38,8 +38,8 @@ void RungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::step_in_time (real dt, 
         
         this->rk_stage[i].add(1.0,this->solution_update); //u_n + dt * sum(a_ij * k_j)
        
-        //implicit solve for diagonal element
-        if (this->butcher_tableau->get_a(i,i) != 0){
+        //implicit solve if there is a nonzero diagonal element
+        if (!this->butcher_tableau_aii_is_zero[i]){
             /* // AD version - keeping in comments as it may be useful for future testing
             // Solve (M/dt - dRdW) / a_ii * dw = R
             // w = w + dw
@@ -109,6 +109,14 @@ void RungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::allocate_ode_system ()
     }
 
     this->butcher_tableau->set_tableau();
+    
+    this->butcher_tableau_aii_is_zero.resize(n_rk_stages);
+    std::fill(this->butcher_tableau_aii_is_zero.begin(),
+              this->butcher_tableau_aii_is_zero.end(),
+              false); 
+    for (int i=0; i<n_rk_stages; ++i) {
+        if (this->butcher_tableau->get_a(i,i)==0.0)     this->butcher_tableau_aii_is_zero[i] = true;
+    }
 }
 
 template class RungeKuttaODESolver<PHILIP_DIM, double,1, dealii::Triangulation<PHILIP_DIM> >;

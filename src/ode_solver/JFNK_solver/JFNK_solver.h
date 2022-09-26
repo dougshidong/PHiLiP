@@ -34,9 +34,6 @@ public:
     
 protected:
 
-    /// pointer to dg
-    std::shared_ptr<DGBase<dim,real,MeshType>> dg;
-
     /// output on processor 0
     dealii::ConditionalOStream pcout;
 

@@ -107,17 +107,17 @@ void ODESolverParam::parse_parameters (dealii::ParameterHandler &prm)
     {
         const std::string output_string = prm.get("ode_output");
         if (output_string == "quiet")   ode_output = OutputEnum::quiet;
-        if (output_string == "verbose") ode_output = OutputEnum::verbose;
+        else if (output_string == "verbose") ode_output = OutputEnum::verbose;
 
         output_solution_every_x_steps = prm.get_integer("output_solution_every_x_steps");
         output_solution_every_dt_time_intervals = prm.get_double("output_solution_every_dt_time_intervals");
 
         const std::string solver_string = prm.get("ode_solver_type");
-        if (solver_string == "runge_kutta") ode_solver_type = ODESolverEnum::runge_kutta_solver;
-        if (solver_string == "implicit") ode_solver_type = ODESolverEnum::implicit_solver;
-        if (solver_string == "rrk_explicit") ode_solver_type = ODESolverEnum::rrk_explicit_solver;
-        if (solver_string == "pod_galerkin") ode_solver_type = ODESolverEnum::pod_galerkin_solver;
-        if (solver_string == "pod_petrov_galerkin") ode_solver_type = ODESolverEnum::pod_petrov_galerkin_solver;
+        if (solver_string == "runge_kutta")                 ode_solver_type = ODESolverEnum::runge_kutta_solver;
+        else if (solver_string == "implicit")               ode_solver_type = ODESolverEnum::implicit_solver;
+        else if (solver_string == "rrk_explicit")           ode_solver_type = ODESolverEnum::rrk_explicit_solver;
+        else if (solver_string == "pod_galerkin")           ode_solver_type = ODESolverEnum::pod_galerkin_solver;
+        else if (solver_string == "pod_petrov_galerkin")    ode_solver_type = ODESolverEnum::pod_petrov_galerkin_solver;
 
         nonlinear_steady_residual_tolerance  = prm.get_double("nonlinear_steady_residual_tolerance");
         nonlinear_max_iterations = prm.get_integer("nonlinear_max_iterations");
@@ -140,22 +140,22 @@ void ODESolverParam::parse_parameters (dealii::ParameterHandler &prm)
             n_rk_stages  = 4;
             rk_order = 4;
         }
-        if (rk_method_string == "ssprk3_ex"){
+        else if (rk_method_string == "ssprk3_ex"){
             runge_kutta_method = RKMethodEnum::ssprk3_ex;
             n_rk_stages  = 3;
             rk_order = 3;
         }
-        if (rk_method_string == "euler_ex"){
+        else if (rk_method_string == "euler_ex"){
             runge_kutta_method = RKMethodEnum::euler_ex;
             n_rk_stages  = 1;
             rk_order = 1;
         }
-        if (rk_method_string == "euler_im"){
+        else if (rk_method_string == "euler_im"){
             runge_kutta_method = RKMethodEnum::euler_im;
             n_rk_stages  = 1;
             rk_order = 1;
         }
-        if (rk_method_string == "dirk_2_im"){
+        else if (rk_method_string == "dirk_2_im"){
             runge_kutta_method = RKMethodEnum::dirk_2_im;
             n_rk_stages  = 2;
             rk_order = 2;

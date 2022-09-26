@@ -45,6 +45,9 @@ protected:
     
     /// Modify timestep
     virtual void modify_time_step(real &dt); 
+
+    /// Indicator for zero diagonal elements; used to toggle implicit solve.
+    std::vector<bool> butcher_tableau_aii_is_zero;
 };
 
 } // ODE namespace

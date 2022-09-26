@@ -2,7 +2,6 @@
 #define __RUNGE_KUTTA_METHODS__
 
 #include "rk_tableau_base.h"
-#include "dg/dg.h"
 
 namespace PHiLiP {
 namespace ODE {

@@ -1,8 +1,11 @@
 #ifndef __RK_TABLEAU_BASE__
 #define __RK_TABLEAU_BASE__
 
-#include "dg/dg.h"
 #include <deal.II/base/conditional_ostream.h>
+
+#include <deal.II/grid/tria.h>
+#include <deal.II/distributed/shared_tria.h>
+#include <deal.II/distributed/tria.h>
 
 namespace PHiLiP {
 namespace ODE {

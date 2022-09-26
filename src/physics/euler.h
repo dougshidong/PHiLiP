@@ -85,8 +85,6 @@ protected:
      *  we need to add the following: */
     using PhysicsBase<dim,nstate,real>::dissipative_flux;
     using PhysicsBase<dim,nstate,real>::source_term;
-    //adding physical source
-    using PhysicsBase<dim,nstate,real>::physical_source_term;
 public:
     /// Constructor
     Euler ( 
@@ -169,14 +167,6 @@ public:
     virtual std::array<dealii::Tensor<1,dim,real>,nstate> dissipative_flux (
         const std::array<real,nstate> &conservative_soln,
         const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient) const;
-
-    //adding physical source
-    /// Physical source term 
-    std::array<real,nstate> physical_source_term (
-        const dealii::Point<dim,real> &pos,
-        const std::array<real,nstate> &conservative_soln,
-        const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient,
-        const dealii::types::global_dof_index cell_index) const;
 
     /// Source term is zero or depends on manufactured solution
     std::array<real,nstate> source_term (

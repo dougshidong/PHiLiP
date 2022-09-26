@@ -72,7 +72,7 @@ void LinearSolverParam::declare_parameters (dealii::ParameterHandler &prm)
                               "Maximum number of Newton iterations");
             prm.declare_entry("epsilon_jacobian", "1.490116119384765625e-8",
                               dealii::Patterns::Double(),
-                              "Small pertubation for Jacobian-free methods"
+                              "Small perturbation for Jacobian-free methods."
                               " Default value is the square root of machine epsilon.");
         }
         prm.leave_subsection();

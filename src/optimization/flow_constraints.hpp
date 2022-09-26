@@ -92,7 +92,7 @@ public:
     FlowConstraints(
         std::shared_ptr<DGBase<dim,double>> &_dg,
         std::shared_ptr<DesignParameterizationBase<dim>> _design_parameterization,
-        dealii::TrilinosWrappers::SparseMatrix *precomputed_dXvdXp = nullptr);
+        std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> precomputed_dXvdXp = nullptr);
     ///// Constructor
     //FlowConstraints(
     //    std::shared_ptr<DGBase<dim,double>> &_dg, 

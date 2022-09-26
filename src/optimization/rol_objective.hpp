@@ -40,7 +40,7 @@ public:
     ROLObjectiveSimOpt(
         Functional<dim,nstate,double> &_functional,
         std::shared_ptr<DesignParameterizationBase<dim>> _design_parameterization,
-        dealii::TrilinosWrappers::SparseMatrix *precomputed_dXvdXp = nullptr);
+        std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> precomputed_dXvdXp = nullptr);
   
     using ROL::Objective_SimOpt<double>::value;
     using ROL::Objective_SimOpt<double>::update;

@@ -595,16 +595,16 @@ int EulerNACAOptimization<dim,nstate>
     
     auto con  = ROL::makePtr<FlowConstraints<dim>>(dg, design_parameterization);
     //int flow_constraints_check_error = check_flow_constraints<dim,nstate>( nx_ffd, con, des_var_sim_rol_p, des_var_ctl_rol_p, des_var_adj_rol_p);
-
+    using MatrixType = dealii::TrilinosWrappers::SparseMatrix;
     std::cout << " Constructing lift ROL objective " << std::endl;
-    auto lift_obj = ROL::makePtr<ROLObjectiveSimOpt<dim,nstate>>( lift_functional, design_parameterization, &(con->dXvdXp) );
+    auto lift_obj = ROL::makePtr<ROLObjectiveSimOpt<dim,nstate>>( lift_functional, design_parameterization, std::shared_ptr<MatrixType> (&(con->dXvdXp)) );
     std::cout << " Constructing lift ROL constraint " << std::endl;
     auto lift_con = ROL::makePtr<PHiLiP::ConstraintFromObjective_SimOpt<double>> (lift_obj, lift_target);
 
     //int objective_check_error = check_objective<dim,nstate>( nx_ffd, dg, lift_obj, con, des_var_sim_rol_p, des_var_ctl_rol_p, des_var_adj_rol_p);
 
     std::cout << " Constructing drag ROL objective " << std::endl;
-    auto drag_obj = ROL::makePtr<ROLObjectiveSimOpt<dim,nstate>>( drag_functional, design_parameterization, &(con->dXvdXp) );
+    auto drag_obj = ROL::makePtr<ROLObjectiveSimOpt<dim,nstate>>( drag_functional, design_parameterization, std::shared_ptr<MatrixType> (&(con->dXvdXp)) );
 
     //objective_check_error = check_objective<dim,nstate>( nx_ffd, dg, drag_obj, con, des_var_sim_rol_p, des_var_ctl_rol_p, des_var_adj_rol_p);
 
@@ -616,7 +616,7 @@ int EulerNACAOptimization<dim,nstate>
     //auto drag_quad_penalty_lift = ROL::makePtr<ROL::AugmentedLagrangian_SimOpt<double>> (drag_obj, lift_con, zero_lagrange_mult, lift_penalty, *des_var_sim_rol_p, *des_var_ctl_rol_p, single_contraint, empty_parlist);
     //auto obj = drag_quad_penalty_lift;
 
-    auto pressure_obj = ROL::makePtr<ROLObjectiveSimOpt<dim,nstate>>( target_wall_pressure_functional, design_parameterization, &(con->dXvdXp) );
+    auto pressure_obj = ROL::makePtr<ROLObjectiveSimOpt<dim,nstate>>( target_wall_pressure_functional, design_parameterization, std::shared_ptr<MatrixType> (&(con->dXvdXp)) );
     auto obj = pressure_obj;
 
     //objective_check_error = check_objective<dim,nstate>( nx_ffd, dg, obj, con, des_var_sim_rol_p, des_var_ctl_rol_p, des_var_adj_rol_p);

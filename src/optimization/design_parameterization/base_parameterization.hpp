@@ -17,7 +17,7 @@ public:
     DesignParameterizationBase(std::shared_ptr<HighOrderGrid<dim,double>> _high_order_grid);
     
     /// Destructor
-    virtual ~DesignParameterizationBase() {}
+    virtual ~DesignParameterizationBase() {};
     
     /// Initialize design variables and set locally owned and ghost indices.     
     virtual void initialize_design_variables(VectorType &design_var) = 0; 

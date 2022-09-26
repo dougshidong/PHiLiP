@@ -1,0 +1,44 @@
+# Listing of Parameters
+# ---------------------
+# Number of dimensions
+
+set dimension = 1 
+set test_type = time_refinement_study_reference
+set pde_type = burgers_inviscid
+
+# Note: this is required to correctly calculate energy
+set use_periodic_bc = true
+
+# for split form & energy-stable flux
+set use_weak_form = false
+set use_collocated_nodes = true 
+set use_split_form = true
+set conv_num_flux = split_form #change to entropy_conserving_flux after merging ESFR
+
+# ODE solver
+subsection ODE solver
+  set ode_solver_type = explicit # change to rrk_explicit to use relaxation runge-kutta method
+  set output_solution_every_dt_time_intervals = 0.01
+  set initial_time_step = 2.5E-3 
+  subsection explicit solver options
+    set runge_kutta_order = 3 
+  end
+end
+  
+subsection time_refinement_study
+  set number_of_times_to_solve = 4 
+  set refinement_ratio = 0.5
+  set number_of_timesteps_for_reference_solution = 10000
+end
+
+subsection flow_solver
+  set flow_case_type = periodic_1D_unsteady
+  set final_time = 0.1 
+  set poly_degree = 5
+  set unsteady_data_table_filename = burgers_unsteady_data
+  subsection grid
+    set grid_left_bound = 0.0
+    set grid_right_bound = 2.0
+    set number_of_grid_elements_per_dimension = 16
+  end
+end

@@ -15,9 +15,13 @@ class DualWeightedResidualMeshAdaptation : public TestsBase
 {
 public:
     /// Constructor of DualWeightedResidualConvergence.
-    DualWeightedResidualMeshAdaptation(const Parameters::AllParameters *const parameters_input);
+    DualWeightedResidualMeshAdaptation(const Parameters::AllParameters *const parameters_input,
+                                       const dealii::ParameterHandler &parameter_handler_input);
+    
+    /// Parameter handler.
+    const dealii::ParameterHandler &parameter_handler;
 
-    /// Runs the test to check 2p+1 convergence of the dual weighted residual and goal-oriented mesh adaptation locations.
+    /// Runs the test to check the location of refined cell after performing goal-oriented mesh adaptation.
     int run_test() const;
 }; 
 

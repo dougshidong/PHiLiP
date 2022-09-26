@@ -1,0 +1,38 @@
+# Listing of Parameters
+# ---------------------
+# Number of dimensions
+
+set dimension = 1 
+set test_type = burgers_energy_conservation_rrk 
+set pde_type = burgers_inviscid
+
+# Note: this is required to correctly calculate energy
+set use_periodic_bc = true
+
+# for split form & energy-stable flux
+set use_weak_form = false
+set use_collocated_nodes = true
+set use_split_form = true
+set conv_num_flux = split_form
+
+# ODE solver
+subsection ODE solver
+  set ode_solver_type = explicit #this is modified by the test
+  set output_solution_every_dt_time_intervals = 0.01
+  set initial_time_step = 1E-2 #this is modified by the test 
+  subsection explicit solver options
+    set runge_kutta_order = 4
+  end
+end
+
+subsection flow_solver
+  set flow_case_type = periodic_1D_unsteady
+  set poly_degree = 3 
+  set final_time = 0.05 #very small total time, but enough to test energy conservation
+  set unsteady_data_table_filename = burgers_unsteady_data
+  subsection grid
+    set grid_left_bound = 0.0
+    set grid_right_bound = 2.0
+    set number_of_grid_elements_per_dimension = 8
+  end
+end

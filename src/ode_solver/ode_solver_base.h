@@ -7,7 +7,6 @@
 #include <deal.II/lac/vector.h>
 #include "parameters/all_parameters.h"
 #include "dg/dg.h"
-#include "mesh/mesh_adaptation.h"
 #include <stdexcept>
 
 namespace PHiLiP {
@@ -86,9 +85,6 @@ public:
     std::shared_ptr<DGBase<dim,real,MeshType>> dg;
 
 protected:
-    /// Pointer to MeshAdaptation
-    std::unique_ptr<MeshAdaptation<dim,real,MeshType>> meshadaptation;
-
     /// Input parameters.
     const Parameters::AllParameters *const all_parameters;
 
@@ -113,8 +109,6 @@ protected:
     const MPI_Comm mpi_communicator; ///< MPI communicator.
     const int mpi_rank; ///< MPI rank.
     dealii::ConditionalOStream pcout; ///< Parallel std::cout that only outputs on mpi_rank==0
-    bool refine_mesh_in_ode_solver; ///< Flag to perform mesh adaptation in steady state ode solver.
-
 };
 } // ODE namespace
 } // PHiLiP namespace

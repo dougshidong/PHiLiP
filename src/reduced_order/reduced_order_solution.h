@@ -24,7 +24,7 @@ public:
     /// Destructor
     ~ROMSolution () {};
 
-    /// Stores system matrix transpose
+    /// Stores all parameters
     Parameters::AllParameters params;
 
     /// Stores solution

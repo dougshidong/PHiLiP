@@ -44,6 +44,7 @@ subsection reduced order
   set parameter_min_values = 2, 0.01
   set parameter_max_values = 10, 0.1
   set num_halton = 0
+  set recomputation_coefficient = 5
 end
 
 subsection linear solver

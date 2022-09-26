@@ -31,10 +31,6 @@ void RBFInterpolation::computeWeights() {
     }
 
     weights = A.lu().solve(data_values);
-    //Eigen::HouseholderQR<MatrixXd> qr(A);
-    //weights = qr.solve(data_values);
-
-    //std::cout << weights << std::endl;
 }
 
 double RBFInterpolation::radialBasisFunction(double r) const{

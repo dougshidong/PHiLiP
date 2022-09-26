@@ -76,6 +76,7 @@ subsection reduced order
   set parameter_min_values = 0.1
   set parameter_max_values = 0.55
   set num_halton = 0
+  set recomputation_coefficient = 5
 end
 
 subsection grid refinement study

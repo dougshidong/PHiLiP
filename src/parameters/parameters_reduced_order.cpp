@@ -21,6 +21,9 @@ void ReducedOrderModelParam::declare_parameters (dealii::ParameterHandler &prm)
         prm.declare_entry("num_halton", "0",
                           dealii::Patterns::Integer(0, dealii::Patterns::Integer::max_int_value),
                           "Number of Halton sequence points to add to initial snapshot set");
+        prm.declare_entry("recomputation_coefficient", "5",
+                          dealii::Patterns::Integer(0, dealii::Patterns::Integer::max_int_value),
+                          "Number of Halton sequence points to add to initial snapshot set");
         prm.declare_entry("parameter_names", "mach, alpha",
                           dealii::Patterns::List(dealii::Patterns::Anything(), 0, 10, ","),
                           "Names of parameters for adaptive sampling");
@@ -41,6 +44,7 @@ void ReducedOrderModelParam::parse_parameters (dealii::ParameterHandler &prm)
         adaptation_tolerance = prm.get_double("adaptation_tolerance");
         reduced_residual_tolerance = prm.get_double("reduced_residual_tolerance");
         num_halton = prm.get_integer("num_halton");
+        recomputation_coefficient = prm.get_integer("recomputation_coefficient");
         path_to_search = prm.get("path_to_search");
 
         std::string parameter_names_string = prm.get("parameter_names");

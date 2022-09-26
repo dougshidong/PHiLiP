@@ -315,11 +315,10 @@ void AdaptiveSampling<dim, nstate>::updateNearestExistingROMs(const RowVectorXd&
         pcout << "Searching ROM points near: " << point << std::endl;
         double local_mean_error = 0;
         for (int i = 1; i < rom_points.cols() + 2; i++) {
-            //pcout << "ROM point: " << rom_locations[index[i]]->parameter << " Error: " << rom_locations[index[i]]->total_error << std::endl;
             local_mean_error = local_mean_error + std::abs(rom_locations[index[i]]->total_error);
         }
         local_mean_error = local_mean_error / (rom_points.cols() + 1);
-        if ((std::abs(rom_locations[index[0]]->total_error) > 5 * local_mean_error) || (std::abs(rom_locations[index[0]]->total_error) < 1/5 * local_mean_error)) {
+        if ((std::abs(rom_locations[index[0]]->total_error) > all_parameters->reduced_order_param.recomputation_coefficient * local_mean_error) || (std::abs(rom_locations[index[0]]->total_error) < (1/all_parameters->reduced_order_param.recomputation_coefficient) * local_mean_error)) {
             pcout << "Total error greater than tolerance. Recomputing ROM solution" << std::endl;
             std::unique_ptr<ProperOrthogonalDecomposition::ROMSolution<dim, nstate>> rom_solution = solveSnapshotROM(rom_locations[index[0]]->parameter);
             std::unique_ptr<ProperOrthogonalDecomposition::ROMTestLocation<dim, nstate>> rom_location = std::make_unique<ProperOrthogonalDecomposition::ROMTestLocation<dim, nstate>>(rom_locations[index[0]]->parameter, std::move(rom_solution));

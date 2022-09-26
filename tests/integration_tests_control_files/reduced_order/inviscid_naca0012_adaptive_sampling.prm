@@ -62,4 +62,5 @@ subsection reduced order
   set parameter_min_values = 0.5, 0
   set parameter_max_values = 0.9, 5
   set num_halton = 0
+  set recomputation_coefficient = 5
 end

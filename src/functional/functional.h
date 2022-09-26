@@ -769,6 +769,7 @@ public:
             const bool uses_solution_values = true,
             const bool uses_solution_gradient = false);
 
+    /// Templated boundary integrand
     template <typename real2>
     real2 evaluate_boundary_integrand(
             const PHiLiP::Physics::PhysicsBase<dim,nstate,real2> &physics,
@@ -778,6 +779,7 @@ public:
             const std::array<real2,nstate> &                      soln_at_q,
             const std::array<dealii::Tensor<1,dim,real2>,nstate> &soln_grad_at_q) const;
 
+    /// Non-template functions to override the template classes
     real evaluate_boundary_integrand(
             const PHiLiP::Physics::PhysicsBase<dim,nstate,real> &physics,
             const unsigned int                                   boundary_id,
@@ -789,6 +791,7 @@ public:
         return evaluate_boundary_integrand<>(physics, boundary_id, phys_coord, normal, soln_at_q, soln_grad_at_q);
     }
 
+    /// Non-template functions to override the template classes
     FadFadType evaluate_boundary_integrand(
             const PHiLiP::Physics::PhysicsBase<dim,nstate,FadFadType> &physics,
             const unsigned int                                         boundary_id,

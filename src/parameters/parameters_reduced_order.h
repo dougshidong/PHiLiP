@@ -22,6 +22,9 @@ public:
     /// Number of Halton sequence points to add to initial snapshot set
     int num_halton;
 
+    /// Recomputation parameter for adaptive sampling algorithm
+    int recomputation_coefficient;
+
     /// Names of parameters
     std::vector<std::string> parameter_names;
 

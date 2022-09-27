@@ -89,7 +89,7 @@ int main (int argc, char * argv[])
         else
         {
             if((diff(i) - change_in_val) > 1.0e-16) {
-                pcout<<"Volume node hasn't changed as expected. Should have been changed by change_in_val."<<std::endl;
+                pcout<<"Volume node hasn't changed as expected. Should have changed by change_in_val."<<std::endl;
                 return 1;
             }
         }

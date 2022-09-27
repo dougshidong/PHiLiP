@@ -16,6 +16,10 @@ void RRKExplicitODESolver<dim,real,n_rk_stages,MeshType>::modify_time_step(real 
     //real relaxation_parameter_implicit = compute_relaxation_parameter_implicit(dt);
     //this -> pcout << "______________________________________________________" << std::endl;
     //this->pcout << "gamma explicit = " << std::setprecision(16) << relaxation_parameter << " gamma implicit = " << relaxation_parameter_implicit << std::endl;
+    if (relaxation_parameter < 0.5 ){
+        this->pcout << "RRK failed to find a reasonable relaxation factor. Aborting..." << std::endl;
+        std::abort();
+    }
     dt *= relaxation_parameter;
 }
 

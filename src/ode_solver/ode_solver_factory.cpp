@@ -147,11 +147,10 @@ std::shared_ptr<ODESolverBase<dim,real,MeshType>> ODESolverFactory<dim,real,Mesh
     }
     if (ode_solver_type == ODEEnum::rrk_explicit_solver){
         if constexpr(dim==1){
-            const bool use_collocated_nodes = dg_input->all_parameters->use_collocated_nodes;
             using PDEEnum = Parameters::AllParameters::PartialDifferentialEquation;
             const PDEEnum pde_type = dg_input->all_parameters->pde_type;
             const bool use_inviscid_burgers = (pde_type == PDEEnum::burgers_inviscid);
-            if (use_collocated_nodes && use_inviscid_burgers){
+            if (use_inviscid_burgers){
                 pcout << "Creating Relaxation Runge Kutta ODE Solver with " 
                       << n_rk_stages << " stage(s)..." << std::endl;
                 if (n_rk_stages == 1){

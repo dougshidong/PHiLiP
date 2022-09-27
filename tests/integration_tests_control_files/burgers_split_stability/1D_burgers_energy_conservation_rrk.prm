@@ -11,9 +11,13 @@ set use_periodic_bc = true
 
 # for split form & energy-stable flux
 set use_weak_form = false
-set use_collocated_nodes = true
+set use_collocated_nodes = false # can set to fale now
 set use_split_form = true
 set conv_num_flux = two_point_flux
+
+set flux_reconstruction = cDG # or other
+
+set use_inverse_mass_on_the_fly = true
 
 # ODE solver
 subsection ODE solver

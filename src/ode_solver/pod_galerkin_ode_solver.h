@@ -28,7 +28,7 @@ public:
     ~PODGalerkinODESolver() {};
 
     /// Evaluate steady state solution.
-    int steady_state (const bool output_solution_files = true) override;
+    int steady_state () override;
 
     /// Function to evaluate solution update
     void step_in_time(real dt, const bool pseudotime) override;

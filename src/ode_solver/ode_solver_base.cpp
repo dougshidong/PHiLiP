@@ -40,7 +40,7 @@ void ODESolverBase<dim,real,MeshType>::initialize_steady_polynomial_ramping (con
         dg->solution.update_ghost_values();
 
         // Solve steady state problem.
-        steady_state(true);
+        steady_state();
     }
 }
 
@@ -77,7 +77,7 @@ void ODESolverBase<dim,real,MeshType>::write_ode_solver_steady_state_convergence
 }
 
 template <int dim, typename real, typename MeshType>
-int ODESolverBase<dim,real,MeshType>::steady_state (const bool output_solution_files)
+int ODESolverBase<dim,real,MeshType>::steady_state ()
 {
     try {
         valid_initial_conditions();
@@ -94,10 +94,7 @@ int ODESolverBase<dim,real,MeshType>::steady_state (const bool output_solution_f
     this->residual_norm_decrease = 1; // Always do at least 1 iteration
     update_norm = 1; // Always do at least 1 iteration
     this->current_iteration = 0;
-    if ((ode_param.output_solution_every_x_steps >= 0) && output_solution_files)
-    {
-        this->dg->output_results_vtk(this->current_iteration);
-    }
+    if (ode_param.output_solution_every_x_steps >= 0) this->dg->output_results_vtk(this->current_iteration);
 
     pcout << " Evaluating right-hand side and setting system_matrix to Jacobian before starting iterations... " << std::endl;
     this->dg->assemble_residual ();
@@ -173,7 +170,7 @@ int ODESolverBase<dim,real,MeshType>::steady_state (const bool output_solution_f
 
         this->dg->assemble_residual ();
 
-        if ((ode_param.output_solution_every_x_steps > 0) && output_solution_files) {
+        if (ode_param.output_solution_every_x_steps > 0) {
             const bool is_output_iteration = (this->current_iteration % ode_param.output_solution_every_x_steps == 0);
             if (is_output_iteration) {
                 const int file_number = this->current_iteration / ode_param.output_solution_every_x_steps;

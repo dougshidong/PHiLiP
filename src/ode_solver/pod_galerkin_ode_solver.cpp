@@ -21,7 +21,7 @@ PODGalerkinODESolver<dim,real,MeshType>::PODGalerkinODESolver(std::shared_ptr< D
 {}
 
 template <int dim, typename real, typename MeshType>
-int PODGalerkinODESolver<dim,real,MeshType>::steady_state (const bool output_solution_files)
+int PODGalerkinODESolver<dim,real,MeshType>::steady_state ()
 {
     this->pcout << " Performing steady state analysis... " << std::endl;
 

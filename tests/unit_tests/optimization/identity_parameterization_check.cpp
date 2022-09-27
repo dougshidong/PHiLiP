@@ -1,4 +1,4 @@
-#include "optimization/design_parameterization/inner_vol_parameterization.hpp"
+#include "optimization/design_parameterization/identity_parameterization.hpp"
 #include <deal.II/grid/grid_generator.h>
 #include "dg/dg_factory.hpp"
 
@@ -37,14 +37,33 @@ int main (int argc, char * argv[])
 
     VectorType initial_volume_nodes = dg->high_order_grid->volume_nodes; 
     const dealii::IndexSet &volume_range = dg->high_order_grid->volume_nodes.get_partitioner()->locally_owned_range();
-    const dealii::IndexSet &surface_range = dg->high_order_grid->surface_nodes.get_partitioner()->locally_owned_range();
+    const unsigned int n_global_vol_nodes = dg->high_order_grid->volume_nodes.size();
 
 
     std::unique_ptr<DesignParameterizationBase<dim>> design_parameterization = 
-                        std::make_unique<DesignParameterizationInnerVol<dim>>(dg->high_order_grid);
+                        std::make_unique<DesignParameterizationIdentity<dim>>(dg->high_order_grid);
 
     VectorType design_var;
-    design_parameterization->initialize_design_variables(design_var); // get inner volume nodes
+    design_parameterization->initialize_design_variables(design_var); // expected to get volume nodes.
+    const dealii::IndexSet &design_var_range = design_var.get_partitioner()->locally_owned_range();
+    for(unsigned int i=0; i<n_global_vol_nodes; ++i)
+    {
+        if(volume_range.is_element(i))
+        {
+            if(! design_var_range.is_element(i)) 
+            {
+                pcout<<"Design variable's parallel distribution is not the same as volume node's distribution"<<std::endl;
+                return 1;
+            }
+
+            if(dg->high_order_grid->volume_nodes(i) != design_var(i))
+            {
+                pcout<<"Initialization isn't done well."<<std::endl;
+                return 1;
+            }
+
+        }
+    }
     pcout<<"Initialized design variables."<<std::endl;
     MatrixType dXv_dXp;
     design_parameterization->compute_dXv_dXp(dXv_dXp);
@@ -55,42 +74,20 @@ int main (int argc, char * argv[])
     design_var_updated.add(change_in_val);
 
 
-    design_parameterization->update_mesh_from_design_variables(dXv_dXp, design_var_updated); // Expected to update inner volume nodes by change_in_val.
+    design_parameterization->update_mesh_from_design_variables(dXv_dXp, design_var_updated); // Expected to update all volume nodes by change_in_val.
     pcout<<"Updated mesh."<<std::endl;
 
     VectorType diff = dg->high_order_grid->volume_nodes;
     diff -= initial_volume_nodes;
 
-    VectorType is_a_surface_node; // Stores 1 if the index corresponds to a surface node.
-
-    is_a_surface_node.reinit(initial_volume_nodes);     
-    is_a_surface_node *= 0;
-
-
-    for(unsigned int i=0; i<dg->high_order_grid->surface_nodes.size(); ++i)
-    {
-        if(!surface_range.is_element(i)) continue;
-        const unsigned int vol_index = dg->high_order_grid->surface_to_volume_indices[i];
-        is_a_surface_node(vol_index) = 1;
-    }
-
     pcout<<"Now checking if mesh has been updated as expected..."<<std::endl;
-    for(unsigned int i=0; i<dg->high_order_grid->volume_nodes.size(); ++i)
+    for(unsigned int i=0; i<n_global_vol_nodes; ++i)
     {
         if(!volume_range.is_element(i)) continue;
-        if(is_a_surface_node(i))
-        {
-            if(diff(i) != 0.0) {
-                pcout<<"Surface node has changed. Isn't epected to change as we are updating only the inner nodes."<<std::endl;
-                return 1; 
-            }
-        }
-        else
-        {
-            if((diff(i) - change_in_val) > 1.0e-16) {
-                pcout<<"Volume node hasn't changed as expected. Should have been changed by change_in_val."<<std::endl;
-                return 1;
-            }
+        
+        if((diff(i) - change_in_val) > 1.0e-16) {
+            pcout<<"Volume node hasn't changed as expected. Should have been changed by change_in_val."<<std::endl;
+            return 1;
         }
     }
    

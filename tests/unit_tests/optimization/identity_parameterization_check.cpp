@@ -74,7 +74,8 @@ int main (int argc, char * argv[])
     design_var_updated.add(change_in_val);
 
 
-    design_parameterization->update_mesh_from_design_variables(dXv_dXp, design_var_updated); // Expected to update all volume nodes by change_in_val.
+    const bool is_mesh_updated = design_parameterization->update_mesh_from_design_variables(dXv_dXp, design_var_updated); // Expected to update all volume nodes by change_in_val.
+    if(! is_mesh_updated) {return 1;}
     pcout<<"Updated mesh."<<std::endl;
 
     VectorType diff = dg->high_order_grid->volume_nodes;

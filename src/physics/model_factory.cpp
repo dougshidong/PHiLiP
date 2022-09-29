@@ -9,7 +9,7 @@
 #include "manufactured_solution.h"
 #include "large_eddy_simulation.h"
 #include "reynolds_averaged_navier_stokes.h"
-#include "negative_spalart_allmaras.h"
+#include "negative_spalart_allmaras_rans_model.h"
 
 namespace PHiLiP {
 namespace Physics {

@@ -577,8 +577,8 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_volume_term_explicit(
 
     std::vector< ADArrayTensor1 > conv_phys_flux_at_q(n_quad_pts);
     std::vector< ADArrayTensor1 > diss_phys_flux_at_q(n_quad_pts);
-    std::vector< doubleArray > source_at_q(n_quad_pts);
-    std::vector< doubleArray > physical_source_at_q(n_quad_pts);
+    std::vector< doubleArray > source_at_q;
+    std::vector< doubleArray > physical_source_at_q;
 
     std::vector< real > soln_coeff(n_soln_dofs_int);
     for (unsigned int idof = 0; idof < n_soln_dofs_int; ++idof) {
@@ -628,7 +628,8 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_volume_term_explicit(
         conv_phys_flux_at_q[iquad] = DGBaseState<dim,nstate,real,MeshType>::pde_physics_double->convective_flux (soln_at_q[iquad]);
         diss_phys_flux_at_q[iquad] = DGBaseState<dim,nstate,real,MeshType>::pde_physics_double->dissipative_flux (soln_at_q[iquad], soln_grad_at_q[iquad], current_cell_index);
 
-        if(DGBaseState<dim,nstate,real,MeshType>::pde_physics_double->has_nonzero_physical_source){
+        if(this->pde_physics_double->has_nonzero_physical_source){
+            physical_source_at_q.resize(n_quad_pts);
             const dealii::Point<dim,real> points = fe_values_vol.quadrature_point(iquad);
             physical_source_at_q[iquad] = DGBaseState<dim,nstate,real,MeshType>::pde_physics_double->physical_source_term (points,soln_at_q[iquad], soln_grad_at_q[iquad], current_cell_index);
         }
@@ -639,6 +640,7 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_volume_term_explicit(
             }
         }
         if(this->all_parameters->manufactured_convergence_study_param.manufactured_solution_param.use_manufactured_source_term) {
+            source_at_q.resize(n_quad_pts);
             const dealii::Point<dim,real> point = fe_values_vol.quadrature_point(iquad);
             source_at_q[iquad] = DGBaseState<dim,nstate,real,MeshType>::pde_physics_double->source_term (point, soln_at_q[iquad], current_cell_index);
             //std::array<real,nstate> artificial_source_at_q = DGBaseState<dim,nstate,real,MeshType>::pde_physics_double->artificial_source_term (artificial_diss_coeff, point, soln_at_q[iquad]);
@@ -678,7 +680,7 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_volume_term_explicit(
             //// Note that for diffusion, the negative is defined in the physics_double
             rhs = rhs + fe_values_vol.shape_grad_component(itest,iquad,istate) * diss_phys_flux_at_q[iquad][istate] * JxW[iquad];
             // Physical source
-            if(DGBaseState<dim,nstate,real,MeshType>::pde_physics_double->has_nonzero_physical_source){
+            if(this->pde_physics_double->has_nonzero_physical_source){
                 rhs = rhs + fe_values_vol.shape_value_component(itest,iquad,istate) * physical_source_at_q[iquad][istate] * JxW[iquad];
             }
             // Source
@@ -3623,8 +3625,8 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_volume_term(
 
     std::vector< ArrayTensor > conv_phys_flux_at_q(n_quad_pts);
     std::vector< ArrayTensor > diss_phys_flux_at_q(n_quad_pts);
-    std::vector< Array > source_at_q(n_quad_pts);
-    std::vector< Array > physical_source_at_q(n_quad_pts);
+    std::vector< Array > source_at_q;
+    std::vector< Array > physical_source_at_q;
 
     for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
         for (int istate=0; istate<nstate; istate++) {
@@ -3642,6 +3644,7 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_volume_term(
         diss_phys_flux_at_q[iquad] = physics.dissipative_flux (soln_at_q[iquad], soln_grad_at_q[iquad], current_cell_index);
 
         if(physics.has_nonzero_physical_source){
+            physical_source_at_q.resize(n_quad_pts);
             dealii::Point<dim,real2> ad_points;
             for (int d=0;d<dim;++d) { ad_points[d] = 0.0;}
             for (unsigned int idof = 0; idof < n_metric_dofs; ++idof) {
@@ -3661,6 +3664,7 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_volume_term(
         }
 
         if(this->all_parameters->manufactured_convergence_study_param.manufactured_solution_param.use_manufactured_source_term) {
+            source_at_q.resize(n_quad_pts);
             dealii::Point<dim,real2> ad_point;
             for (int d=0;d<dim;++d) { ad_point[d] = 0.0;}
             for (unsigned int idof = 0; idof < n_metric_dofs; ++idof) {

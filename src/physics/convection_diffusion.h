@@ -62,9 +62,7 @@ public:
             diffusion_scaling_coeff(input_diffusion_coefficient),
             hasConvection(convection), 
             hasDiffusion(diffusion)
-    {
-        //static_assert(nstate<=5, "Physics::ConvectionDiffusion() should be created with nstate<=5");
-    };
+    {};
 
     /// Destructor
     ~ConvectionDiffusion () {};

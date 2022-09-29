@@ -44,37 +44,37 @@ template <int dim, int nstate, typename real>
 void ModelBase<dim, nstate, real>
 ::boundary_face_values (
    const int /*boundary_type*/,
-   const dealii::Point<dim, real> &pos,
-   const dealii::Tensor<1,dim,real> &normal_int,
-   const std::array<real,nstate> &soln_int,
-   const std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_int,
+   const dealii::Point<dim, real> &/*pos*/,
+   const dealii::Tensor<1,dim,real> &/*normal_int*/,
+   const std::array<real,nstate> &/*soln_int*/,
+   const std::array<dealii::Tensor<1,dim,real>,nstate> &/*soln_grad_int*/,
    std::array<real,nstate> &soln_bc,
    std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_bc) const
 {
-    std::array<real,nstate> boundary_values;
-    std::array<dealii::Tensor<1,dim,real>,nstate> boundary_gradients;
-    for (int s=0; s<nstate; s++) {
-        boundary_values[s] = this->manufactured_solution_function->value (pos, s);
-        boundary_gradients[s] = this->manufactured_solution_function->gradient (pos, s);
-    }
+    //std::array<real,nstate> boundary_values;
+    //std::array<dealii::Tensor<1,dim,real>,nstate> boundary_gradients;
+    //for (int s=0; s<nstate; s++) {
+    //    boundary_values[s] = this->manufactured_solution_function->value (pos, s);
+    //    boundary_gradients[s] = this->manufactured_solution_function->gradient (pos, s);
+    //}
 
     for (int istate=0; istate<dim+2; ++istate) {
         soln_bc[istate] = 0.0;
         soln_grad_bc[istate] = 0.0;
     }
-    for (int istate=dim+2; istate<nstate; ++istate) {
-
-        std::array<real,nstate> characteristic_dot_n = convective_eigenvalues(boundary_values, normal_int);
-        const bool inflow = (characteristic_dot_n[istate] <= 0.);
-
-        if (inflow) { // Dirichlet boundary condition
-            soln_bc[istate] = boundary_values[istate];
-            soln_grad_bc[istate] = soln_grad_int[istate];
-        } else { // Neumann boundary condition
-            soln_bc[istate] = soln_int[istate];
-            soln_grad_bc[istate] = soln_grad_int[istate];
-        }
-    }
+    //for (int istate=dim+2; istate<nstate; ++istate) {
+//
+    //    std::array<real,nstate> characteristic_dot_n = convective_eigenvalues(boundary_values, normal_int);
+    //    const bool inflow = (characteristic_dot_n[istate] <= 0.);
+//
+    //    if (inflow) { // Dirichlet boundary condition
+    //        soln_bc[istate] = boundary_values[istate];
+    //        soln_grad_bc[istate] = soln_grad_int[istate];
+    //    } else { // Neumann boundary condition
+    //        soln_bc[istate] = soln_int[istate];
+    //        soln_grad_bc[istate] = soln_grad_int[istate];
+    //    }
+    //}
 }
 //----------------------------------------------------------------
 template <int dim, int nstate, typename real>

@@ -701,6 +701,86 @@ std::array<real,nstate> ReynoldsAveragedNavierStokesBase<dim,nstate,real>
     return physical_source_source_term;
 }
 //----------------------------------------------------------------
+template <int dim, int nstate, typename real>
+void ReynoldsAveragedNavierStokesBase<dim,nstate,real>
+::boundary_manufactured_solution (
+    const dealii::Point<dim, real> &pos,
+    const dealii::Tensor<1,dim,real> &normal_int,
+    const std::array<real,nstate> &soln_int,
+    const std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_int,
+    std::array<real,nstate> &soln_bc,
+    std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_bc) const
+{
+    // Manufactured solution
+    std::array<real,nstate> conservative_boundary_values;
+    std::array<dealii::Tensor<1,dim,real>,nstate> boundary_gradients;
+    for (int s=0; s<nstate; s++) {
+        conservative_boundary_values[s] = this->manufactured_solution_function->value (pos, s);
+        boundary_gradients[s] = this->manufactured_solution_function->gradient (pos, s);
+    }
+
+    for (int istate=dim+2; istate<nstate; ++istate) {
+
+        std::array<real,nstate> characteristic_dot_n = convective_eigenvalues(conservative_boundary_values, normal_int);
+        const bool inflow = (characteristic_dot_n[istate] <= 0.);
+
+        if (inflow) { // Dirichlet boundary condition
+            soln_bc[istate] = conservative_boundary_values[istate];
+            soln_grad_bc[istate] = soln_grad_int[istate];
+        } else { // Neumann boundary condition
+            soln_bc[istate] = soln_int[istate];
+            soln_grad_bc[istate] = soln_grad_int[istate];
+        }
+    }
+}
+//----------------------------------------------------------------
+template <int dim, int nstate, typename real>
+void ReynoldsAveragedNavierStokesBase<dim,nstate,real>
+::boundary_face_values (
+   const int boundary_type,
+   const dealii::Point<dim, real> &pos,
+   const dealii::Tensor<1,dim,real> &normal_int,
+   const std::array<real,nstate> &soln_int,
+   const std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_int,
+   std::array<real,nstate> &soln_bc,
+   std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_bc) const
+{
+    if (boundary_type == 1000) {
+        // Manufactured solution boundary condition
+        boundary_manufactured_solution (pos, normal_int, soln_int, soln_grad_int, soln_bc, soln_grad_bc);
+    } 
+    else if (boundary_type == 1001) {
+        // Wall boundary condition for working variables of RANS turbulence model
+        boundary_wall (soln_bc, soln_grad_bc);
+    } 
+    else if (boundary_type == 1002) {
+        // Outflow boundary condition 
+        boundary_outflow (soln_int, soln_grad_int, soln_bc, soln_grad_bc);
+    } 
+    else if (boundary_type == 1003) {
+        // Inflow boundary condition
+        boundary_inflow (soln_int, soln_grad_int, soln_bc, soln_grad_bc);
+    } 
+    else if (boundary_type == 1004) {
+        // Riemann-based farfield boundary condition
+        std::cout << "Riemann boundary condition is not implemented!" << std::endl;
+        std::abort();
+    } 
+    else if (boundary_type == 1005) {
+        // Simple farfield boundary condition
+        boundary_farfield(soln_bc);
+    } 
+    else if (boundary_type == 1006) {
+        // Slip wall boundary condition
+        std::cout << "Slip wall boundary condition is not implemented!" << std::endl;
+        std::abort();
+    } 
+    else {
+        std::cout << "Invalid boundary_type: " << boundary_type << std::endl;
+        std::abort();
+    }
+}
+//----------------------------------------------------------------
 //----------------------------------------------------------------
 //----------------------------------------------------------------
 // Instantiate explicitly

@@ -1,5 +1,5 @@
-#ifndef __NEGATIVE_SPALART_ALLMARAS__
-#define __NEGATIVE_SPALART_ALLMARAS__
+#ifndef __NEGATIVE_SPALART_ALLMARAS_RANS_MODEL__
+#define __NEGATIVE_SPALART_ALLMARAS_RANS_MODEL__
 
 #include "euler.h"
 #include "navier_stokes.h"
@@ -114,6 +114,35 @@ protected:
     /// Templated nondimensionalized variables scaled by reynolds_number_inf for the negative SA model
     template<typename real2> real2 scale_coefficient(
         const real2 coefficient) const;
+
+    /// Wall boundary condition
+    /** Reference: Steven R. Allmaras. (2012). "Modifications and Clarifications for the Implementation of the Spalart-Allmaras Turbulence Model."
+     *  eq.(7)
+     */ 
+    void boundary_wall (
+        std::array<real,nstate> &soln_bc,
+        std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_bc) const;
+
+    /// Inflow boundary condition
+    void boundary_outflow (
+        const std::array<real,nstate> &soln_int,
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_int,
+        std::array<real,nstate> &soln_bc,
+        std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_bc) const;
+
+    /// Inflow boundary condition
+    void boundary_inflow (
+        const std::array<real,nstate> &soln_int,
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_int,
+        std::array<real,nstate> &soln_bc,
+        std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_bc) const;
+
+    /// Farfield boundary conditions based on freestream values
+    /** Reference: Steven R. Allmaras. (2012). "Modifications and Clarifications for the Implementation of the Spalart-Allmaras Turbulence Model."
+     *  eq.(8)
+     */ 
+    void boundary_farfield (
+        std::array<real,nstate> &soln_bc) const;
 
 private:
     /// Templated nondimensionalized eddy viscosity for the negative SA model.

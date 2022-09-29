@@ -248,6 +248,11 @@ void PhysicsModel<dim,nstate,real,nstate_baseline_physics>
         std::array<real,nstate_baseline_physics> baseline_soln_bc;
         std::array<dealii::Tensor<1,dim,real>,nstate_baseline_physics> baseline_soln_grad_bc;
 
+        for (int istate=0; istate<nstate_baseline_physics; istate++) {
+            baseline_soln_bc[istate]      = 0;
+            baseline_soln_grad_bc[istate] = 0;
+        }
+
         physics_baseline->boundary_face_values(
                 boundary_type, pos, normal_int, baseline_soln_int, baseline_soln_grad_int, 
                 baseline_soln_bc, baseline_soln_grad_bc);

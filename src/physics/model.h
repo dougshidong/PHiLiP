@@ -78,8 +78,7 @@ public:
         std::array<dealii::Tensor<1,dim,real>,nstate> &/*soln_grad_bc*/) const;
 
     /// Returns current vector solution to be used by PhysicsPostprocessor to output current solution.
-    /** The implementation in this Model base class simply returns the stored solution.
-     */
+    /** The implementation in this Model base class simply returns the stored solution. */
     virtual dealii::Vector<double> post_compute_derived_quantities_vector (
         const dealii::Vector<double>              &uh,
         const std::vector<dealii::Tensor<1,dim> > &/*duh*/,
@@ -88,13 +87,11 @@ public:
         const dealii::Point<dim>                  &/*evaluation_points*/) const;
 
     /// Returns DataComponentInterpretation of the solution to be used by PhysicsPostprocessor to output current solution.
-    /** Treats every solution state as an independent scalar.
-     */
+    /** Treats every solution state as an independent scalar. */
     virtual std::vector<dealii::DataComponentInterpretation::DataComponentInterpretation> post_get_data_component_interpretation () const;
 
     /// Returns names of the solution to be used by PhysicsPostprocessor to output current solution.
-    /** The implementation in this Model base class simply returns "state(dim+2+0), state(dim+2+1), etc.".
-     */
+    /** The implementation in this Model base class simply returns "state(dim+2+0), state(dim+2+1), etc.". */
     virtual std::vector<std::string> post_get_names () const;
 
     // Quantities needed to be updated by DG for the model -- accomplished by DGBase update_model_variables()

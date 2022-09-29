@@ -13,7 +13,7 @@
 #include "assert_compare_array.h"
 #include "parameters/parameters.h"
 #include "physics/reynolds_averaged_navier_stokes.h"
-#include "physics/negative_spalart_allmaras.h"
+#include "physics/negative_spalart_allmaras_rans_model.h"
 
 const double TOLERANCE = 1E-5;
 

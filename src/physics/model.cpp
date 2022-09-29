@@ -15,6 +15,8 @@ template <int dim, int nstate, typename real>
 ModelBase<dim, nstate, real>::ModelBase(
     std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function_input):
         manufactured_solution_function(manufactured_solution_function_input)
+        , mpi_communicator(MPI_COMM_WORLD)
+        , pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(mpi_communicator)==0)
 { 
     // if provided with a null ptr, give it the default manufactured solution
     // currently only necessary for the unit test
@@ -41,40 +43,158 @@ std::array<real,nstate> ModelBase<dim, nstate, real>
 }
 //----------------------------------------------------------------
 template <int dim, int nstate, typename real>
-void ModelBase<dim, nstate, real>
-::boundary_face_values (
-   const int /*boundary_type*/,
-   const dealii::Point<dim, real> &/*pos*/,
+void ModelBase<dim,nstate,real>
+::boundary_manufactured_solution (
+    const dealii::Point<dim, real> &/*pos*/,
+    const dealii::Tensor<1,dim,real> &/*normal_int*/,
+    const std::array<real,nstate> &/*soln_int*/,
+    const std::array<dealii::Tensor<1,dim,real>,nstate> &/*soln_grad_int*/,
+    std::array<real,nstate> &/*soln_bc*/,
+    std::array<dealii::Tensor<1,dim,real>,nstate> &/*soln_grad_bc*/) const
+{
+    // Do nothing for nstate==(dim+2)
+    if constexpr(nstate>(dim+2)) {
+        pcout << "Error: boundary_manufactured_solution() not implemented in class derived from ModelBase with nstate>(dim+2)." << std::endl;
+        pcout << "Aborting..." << std::endl;
+        std::abort();
+    }
+}
+//----------------------------------------------------------------
+template <int dim, int nstate, typename real>
+void ModelBase<dim,nstate,real>
+::boundary_wall (
+   std::array<real,nstate> &/*soln_bc*/,
+   std::array<dealii::Tensor<1,dim,real>,nstate> &/*soln_grad_bc*/) const
+{
+    // Do nothing for nstate==(dim+2)
+    if constexpr(nstate>(dim+2)) {
+        pcout << "Error: boundary_wall() not implemented in class derived from ModelBase with nstate>(dim+2)." << std::endl;
+        pcout << "Aborting..." << std::endl;
+        std::abort();
+    }
+}
+//----------------------------------------------------------------
+template <int dim, int nstate, typename real>
+void ModelBase<dim,nstate,real>
+::boundary_outflow (
+   const std::array<real,nstate> &/*soln_int*/,
+   const std::array<dealii::Tensor<1,dim,real>,nstate> &/*soln_grad_int*/,
+   std::array<real,nstate> &/*soln_bc*/,
+   std::array<dealii::Tensor<1,dim,real>,nstate> &/*soln_grad_bc*/) const
+{
+    // Do nothing for nstate==(dim+2)
+    if constexpr(nstate>(dim+2)) {
+        pcout << "Error: boundary_outflow() not implemented in class derived from ModelBase with nstate>(dim+2)." << std::endl;
+        pcout << "Aborting..." << std::endl;
+        std::abort();
+    }
+}
+//----------------------------------------------------------------
+template <int dim, int nstate, typename real>
+void ModelBase<dim,nstate,real>
+::boundary_inflow (
+   const std::array<real,nstate> &/*soln_int*/,
+   const std::array<dealii::Tensor<1,dim,real>,nstate> &/*soln_grad_int*/,
+   std::array<real,nstate> &/*soln_bc*/,
+   std::array<dealii::Tensor<1,dim,real>,nstate> &/*soln_grad_bc*/) const
+{
+    // Do nothing for nstate==(dim+2)
+    if constexpr(nstate>(dim+2)) {
+        pcout << "Error: boundary_inflow() not implemented in class derived from ModelBase with nstate>(dim+2)." << std::endl;
+        pcout << "Aborting..." << std::endl;
+        std::abort();
+    }
+}
+//----------------------------------------------------------------
+template <int dim, int nstate, typename real>
+void ModelBase<dim,nstate,real>
+::boundary_farfield (
+   std::array<real,nstate> &/*soln_bc*/) const
+{
+    // Do nothing for nstate==(dim+2)
+    if constexpr(nstate>(dim+2)) {
+        pcout << "Error: boundary_farfield() not implemented in class derived from ModelBase with nstate>(dim+2)." << std::endl;
+        pcout << "Aborting..." << std::endl;
+        std::abort();
+    }
+}
+//----------------------------------------------------------------
+template <int dim, int nstate, typename real>
+void ModelBase<dim,nstate,real>
+::boundary_slip_wall (
    const dealii::Tensor<1,dim,real> &/*normal_int*/,
    const std::array<real,nstate> &/*soln_int*/,
    const std::array<dealii::Tensor<1,dim,real>,nstate> &/*soln_grad_int*/,
+   std::array<real,nstate> &/*soln_bc*/,
+   std::array<dealii::Tensor<1,dim,real>,nstate> &/*soln_grad_bc*/) const
+{
+    // Do nothing for nstate==(dim+2)
+    if constexpr(nstate>(dim+2)) {
+        pcout << "Error: boundary_slip_wall() not implemented in class derived from ModelBase with nstate>(dim+2)." << std::endl;
+        pcout << "Aborting..." << std::endl;
+        std::abort();
+    }
+}
+//----------------------------------------------------------------
+template <int dim, int nstate, typename real>
+void ModelBase<dim,nstate,real>
+::boundary_riemann (
+   const dealii::Tensor<1,dim,real> &/*normal_int*/,
+   const std::array<real,nstate> &/*soln_int*/,
+   std::array<real,nstate> &/*soln_bc*/) const
+{
+    // Do nothing for nstate==(dim+2)
+    if constexpr(nstate>(dim+2)) {
+        pcout << "Error: boundary_riemann() not implemented in class derived from ModelBase with nstate>(dim+2)." << std::endl;
+        pcout << "Aborting..." << std::endl;
+        std::abort();
+    }
+}
+//----------------------------------------------------------------
+template <int dim, int nstate, typename real>
+void ModelBase<dim,nstate,real>
+::boundary_face_values (
+   const int boundary_type,
+   const dealii::Point<dim, real> &pos,
+   const dealii::Tensor<1,dim,real> &normal_int,
+   const std::array<real,nstate> &soln_int,
+   const std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_int,
    std::array<real,nstate> &soln_bc,
    std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_bc) const
 {
-    //std::array<real,nstate> boundary_values;
-    //std::array<dealii::Tensor<1,dim,real>,nstate> boundary_gradients;
-    //for (int s=0; s<nstate; s++) {
-    //    boundary_values[s] = this->manufactured_solution_function->value (pos, s);
-    //    boundary_gradients[s] = this->manufactured_solution_function->gradient (pos, s);
-    //}
-
-    for (int istate=0; istate<dim+2; ++istate) {
-        soln_bc[istate] = 0.0;
-        soln_grad_bc[istate] = 0.0;
+    if (boundary_type == 1000) {
+        // Manufactured solution boundary condition
+        boundary_manufactured_solution (pos, normal_int, soln_int, soln_grad_int, soln_bc, soln_grad_bc);
+    } 
+    else if (boundary_type == 1001) {
+        // Wall boundary condition for working variables of RANS turbulence model
+        boundary_wall (soln_bc, soln_grad_bc);
+    } 
+    else if (boundary_type == 1002) {
+        // Outflow boundary condition 
+        boundary_outflow (soln_int, soln_grad_int, soln_bc, soln_grad_bc);
+    } 
+    else if (boundary_type == 1003) {
+        // Inflow boundary condition
+        boundary_inflow (soln_int, soln_grad_int, soln_bc, soln_grad_bc);
+    } 
+    else if (boundary_type == 1004) {
+        // Riemann-based farfield boundary condition
+        boundary_riemann (normal_int, soln_int, soln_bc);
+    } 
+    else if (boundary_type == 1005) {
+        // Simple farfield boundary condition
+        boundary_farfield(soln_bc);
+    } 
+    else if (boundary_type == 1006) {
+        // Slip wall boundary condition
+        boundary_slip_wall (normal_int, soln_int, soln_grad_int, soln_bc, soln_grad_bc);
+    } 
+    else {
+        pcout << "Invalid boundary_type: " << boundary_type << " in ModelBase.cpp" << std::endl;
+        std::abort();
     }
-    //for (int istate=dim+2; istate<nstate; ++istate) {
-//
-    //    std::array<real,nstate> characteristic_dot_n = convective_eigenvalues(boundary_values, normal_int);
-    //    const bool inflow = (characteristic_dot_n[istate] <= 0.);
-//
-    //    if (inflow) { // Dirichlet boundary condition
-    //        soln_bc[istate] = boundary_values[istate];
-    //        soln_grad_bc[istate] = soln_grad_int[istate];
-    //    } else { // Neumann boundary condition
-    //        soln_bc[istate] = soln_int[istate];
-    //        soln_grad_bc[istate] = soln_grad_int[istate];
-    //    }
-    //}
+    // Note: this does not get called when nstate==dim+2 since baseline physics takes care of it
 }
 //----------------------------------------------------------------
 template <int dim, int nstate, typename real>

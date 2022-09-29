@@ -120,16 +120,6 @@ public:
         const std::array<real,nstate> &conservative_solution,
         const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient) const = 0;
 
-    /// Boundary condition handler
-    void boundary_face_values (
-        const int /*boundary_type*/,
-        const dealii::Point<dim, real> &/*pos*/,
-        const dealii::Tensor<1,dim,real> &/*normal*/,
-        const std::array<real,nstate> &/*soln_int*/,
-        const std::array<dealii::Tensor<1,dim,real>,nstate> &/*soln_grad_int*/,
-        std::array<real,nstate> &/*soln_bc*/,
-        std::array<dealii::Tensor<1,dim,real>,nstate> &/*soln_grad_bc*/) const override;
-
 protected:
     /// Returns the square of the magnitude of the vector 
     template<typename real2> 
@@ -254,30 +244,7 @@ protected:
         const std::array<real,nstate> &soln_int,
         const std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_int,
         std::array<real,nstate> &soln_bc,
-        std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_bc) const;
-
-    /// Wall boundary condition
-    virtual void boundary_wall (
-        std::array<real,nstate> &soln_bc,
-        std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_bc) const = 0;
-
-    /// Outflow Boundary Condition 
-    virtual void boundary_outflow (
-        const std::array<real,nstate> &soln_int,
-        const std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_int,
-        std::array<real,nstate> &soln_bc,
-        std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_bc) const = 0;
-
-    /// Inflow boundary conditions 
-    virtual void boundary_inflow (
-        const std::array<real,nstate> &soln_int,
-        const std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_int,
-        std::array<real,nstate> &soln_bc,
-        std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_bc) const = 0;
-
-    /// Farfield boundary conditions based on freestream values
-    virtual void boundary_farfield (
-        std::array<real,nstate> &soln_bc) const = 0;
+        std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_bc) const override;
 };
 
 } // Physics namespace

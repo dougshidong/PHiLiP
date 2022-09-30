@@ -36,7 +36,7 @@ subsection ODE solver
   set output_solution_every_x_steps = 1
 
   # Explicit or implicit solverChoices are <explicit|implicit>.
-  set ode_solver_type    = explicit
+  set ode_solver_type    = runge_kutta 
 end
 
 subsection manufactured solution convergence study

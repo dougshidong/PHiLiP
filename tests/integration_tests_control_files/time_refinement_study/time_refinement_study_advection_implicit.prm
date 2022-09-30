@@ -4,17 +4,24 @@
 
 set dimension = 1 
 set test_type = time_refinement_study
-set pde_type = advection
+set pde_type = advection 
 
-# Note: this was added to turn off check_same_coords() -- has no other function when dim!=1
 set use_periodic_bc = true
 
 # ODE solver
 subsection ODE solver
   set ode_solver_type = runge_kutta
-  set output_solution_every_dt_time_intervals = 0.1
-  set initial_time_step = 2.5E-3
-  set runge_kutta_method = ssprk3_ex
+  set output_solution_every_dt_time_intervals = 0.2
+  set initial_time_step = 0.2 
+  set runge_kutta_method = dirk_2_im
+end
+
+# Linear solver
+subsection linear solver
+  set linear_solver_output = verbose
+  subsection gmres options
+    set linear_residual_tolerance = 1e-7
+  end
 end
 
 subsection manufactured solution convergence study 
@@ -25,17 +32,17 @@ end
 
 
 subsection time_refinement_study
-  set number_of_times_to_solve = 4
+  set number_of_times_to_solve = 3 
   set refinement_ratio = 0.5
 end
 
 subsection flow_solver
   set flow_case_type = periodic_1D_unsteady
   set final_time = 1.0
-  set poly_degree = 5
+  set poly_degree = 4 
   subsection grid
     set grid_left_bound = 0.0
     set grid_right_bound = 2.0
-    set number_of_grid_elements_per_dimension = 32
+    set number_of_grid_elements_per_dimension = 16
   end
 end

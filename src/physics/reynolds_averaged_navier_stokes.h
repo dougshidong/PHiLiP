@@ -30,8 +30,7 @@ public:
         std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function = nullptr);
 
     /// Destructor
-    ~ReynoldsAveragedNavierStokesBase
-() {};
+    ~ReynoldsAveragedNavierStokesBase() {};
 
     /// Turbulent Prandtl number
     const double turbulent_prandtl_number;

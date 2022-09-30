@@ -582,7 +582,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_volume_term_explicit(
         diss_phys_flux_at_q[iquad] = DGBaseState<dim,nstate,real,MeshType>::pde_physics_double->dissipative_flux (soln_at_q[iquad], soln_grad_at_q[iquad], current_cell_index);
         if(this->pde_physics_double->has_nonzero_physical_source){
             physical_source_at_q.resize(n_quad_pts);
-            physical_source_at_q[iquad] = DGBaseState<dim,nstate,real,MeshType>::pde_physics_double->physical_source_term (fe_values_vol.quadrature_point(iquad), soln_at_q[iquad], soln_grad_at_q[iquad], current_cell_index);
+            physical_source_at_q[iquad] = this->physical_source_term (fe_values_vol.quadrature_point(iquad), soln_at_q[iquad], soln_grad_at_q[iquad], current_cell_index);
         }
         if(this->all_parameters->manufactured_convergence_study_param.manufactured_solution_param.use_manufactured_source_term) {
             source_at_q.resize(n_quad_pts);

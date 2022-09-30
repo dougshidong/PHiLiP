@@ -1,6 +1,7 @@
 #ifndef __MODEL__
 #define __MODEL__
 
+#include <deal.II/base/conditional_ostream.h>
 #include <deal.II/base/types.h>
 #include <deal.II/base/tensor.h>
 #include <deal.II/lac/la_parallel_vector.templates.h>
@@ -27,6 +28,11 @@ public:
     /// Manufactured solution function
     std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function;
 
+protected:
+    const MPI_Comm mpi_communicator; ///< MPI communicator.
+    dealii::ConditionalOStream pcout; ///< Parallel std::cout that only outputs on mpi_rank==0
+
+public:
     /// Convective flux terms additional to the baseline physics (including convective flux terms in additional PDEs of model)
     virtual std::array<dealii::Tensor<1,dim,real>,nstate> 
     convective_flux (
@@ -67,15 +73,15 @@ public:
         const std::array<real,nstate> &solution,
         const dealii::types::global_dof_index cell_index) const = 0;
 
-    /// Evaluates boundary values and gradients on the other side of the face.
-    virtual void boundary_face_values (
-        const int /*boundary_type*/,
-        const dealii::Point<dim, real> &/*pos*/,
-        const dealii::Tensor<1,dim,real> &/*normal*/,
-        const std::array<real,nstate> &/*soln_int*/,
-        const std::array<dealii::Tensor<1,dim,real>,nstate> &/*soln_grad_int*/,
-        std::array<real,nstate> &/*soln_bc*/,
-        std::array<dealii::Tensor<1,dim,real>,nstate> &/*soln_grad_bc*/) const;
+    /// Boundary condition handler
+    void boundary_face_values (
+        const int boundary_type,
+        const dealii::Point<dim, real> &pos,
+        const dealii::Tensor<1,dim,real> &normal,
+        const std::array<real,nstate> &soln_int,
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_int,
+        std::array<real,nstate> &soln_bc,
+        std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_bc) const;
 
     /// Returns current vector solution to be used by PhysicsPostprocessor to output current solution.
     /** The implementation in this Model base class simply returns the stored solution. */
@@ -97,6 +103,51 @@ public:
     // Quantities needed to be updated by DG for the model -- accomplished by DGBase update_model_variables()
     dealii::LinearAlgebra::distributed::Vector<int> cellwise_poly_degree; ///< Cellwise polynomial degree
     dealii::LinearAlgebra::distributed::Vector<double> cellwise_volume; ////< Cellwise element volume
+
+protected:
+    /// Evaluate the manufactured solution boundary conditions.
+    virtual void boundary_manufactured_solution (
+        const dealii::Point<dim, real> &pos,
+        const dealii::Tensor<1,dim,real> &normal_int,
+        const std::array<real,nstate> &soln_int,
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_int,
+        std::array<real,nstate> &soln_bc,
+        std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_bc) const;
+
+    /// Wall boundary condition
+    virtual void boundary_wall (
+        std::array<real,nstate> &soln_bc,
+        std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_bc) const;
+
+    /// Outflow Boundary Condition 
+    virtual void boundary_outflow (
+        const std::array<real,nstate> &soln_int,
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_int,
+        std::array<real,nstate> &soln_bc,
+        std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_bc) const;
+
+    /// Inflow boundary conditions 
+    virtual void boundary_inflow (
+        const std::array<real,nstate> &soln_int,
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_int,
+        std::array<real,nstate> &soln_bc,
+        std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_bc) const;
+
+    /// Farfield boundary conditions based on freestream values
+    virtual void boundary_farfield (
+        std::array<real,nstate> &soln_bc) const;
+
+    virtual void boundary_riemann (
+        const dealii::Tensor<1,dim,real> &normal_int,
+        const std::array<real,nstate> &soln_int,
+        std::array<real,nstate> &soln_bc) const;
+
+    virtual void boundary_slip_wall (
+        const dealii::Tensor<1,dim,real> &normal_int,
+        const std::array<real,nstate> &soln_int,
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_int,
+        std::array<real,nstate> &soln_bc,
+        std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_bc) const;
 };
 
 } // Physics namespace

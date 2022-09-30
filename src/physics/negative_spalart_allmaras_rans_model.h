@@ -121,28 +121,28 @@ protected:
      */ 
     void boundary_wall (
         std::array<real,nstate> &soln_bc,
-        std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_bc) const;
+        std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_bc) const override;
 
     /// Inflow boundary condition
     void boundary_outflow (
         const std::array<real,nstate> &soln_int,
         const std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_int,
         std::array<real,nstate> &soln_bc,
-        std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_bc) const;
+        std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_bc) const override;
 
     /// Inflow boundary condition
     void boundary_inflow (
         const std::array<real,nstate> &soln_int,
         const std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_int,
         std::array<real,nstate> &soln_bc,
-        std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_bc) const;
+        std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_bc) const override;
 
     /// Farfield boundary conditions based on freestream values
     /** Reference: Steven R. Allmaras. (2012). "Modifications and Clarifications for the Implementation of the Spalart-Allmaras Turbulence Model."
      *  eq.(8)
      */ 
     void boundary_farfield (
-        std::array<real,nstate> &soln_bc) const;
+        std::array<real,nstate> &soln_bc) const override;
 
 private:
     /// Templated nondimensionalized eddy viscosity for the negative SA model.

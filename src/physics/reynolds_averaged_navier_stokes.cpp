@@ -734,53 +734,6 @@ void ReynoldsAveragedNavierStokesBase<dim,nstate,real>
     }
 }
 //----------------------------------------------------------------
-template <int dim, int nstate, typename real>
-void ReynoldsAveragedNavierStokesBase<dim,nstate,real>
-::boundary_face_values (
-   const int boundary_type,
-   const dealii::Point<dim, real> &pos,
-   const dealii::Tensor<1,dim,real> &normal_int,
-   const std::array<real,nstate> &soln_int,
-   const std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_int,
-   std::array<real,nstate> &soln_bc,
-   std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_bc) const
-{
-    if (boundary_type == 1000) {
-        // Manufactured solution boundary condition
-        boundary_manufactured_solution (pos, normal_int, soln_int, soln_grad_int, soln_bc, soln_grad_bc);
-    } 
-    else if (boundary_type == 1001) {
-        // Wall boundary condition for working variables of RANS turbulence model
-        boundary_wall (soln_bc, soln_grad_bc);
-    } 
-    else if (boundary_type == 1002) {
-        // Outflow boundary condition 
-        boundary_outflow (soln_int, soln_grad_int, soln_bc, soln_grad_bc);
-    } 
-    else if (boundary_type == 1003) {
-        // Inflow boundary condition
-        boundary_inflow (soln_int, soln_grad_int, soln_bc, soln_grad_bc);
-    } 
-    else if (boundary_type == 1004) {
-        // Riemann-based farfield boundary condition
-        std::cout << "Riemann boundary condition is not implemented!" << std::endl;
-        std::abort();
-    } 
-    else if (boundary_type == 1005) {
-        // Simple farfield boundary condition
-        boundary_farfield(soln_bc);
-    } 
-    else if (boundary_type == 1006) {
-        // Slip wall boundary condition
-        std::cout << "Slip wall boundary condition is not implemented!" << std::endl;
-        std::abort();
-    } 
-    else {
-        std::cout << "Invalid boundary_type: " << boundary_type << std::endl;
-        std::abort();
-    }
-}
-//----------------------------------------------------------------
 //----------------------------------------------------------------
 //----------------------------------------------------------------
 // Instantiate explicitly

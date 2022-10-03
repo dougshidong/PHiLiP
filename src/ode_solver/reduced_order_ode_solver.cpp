@@ -25,8 +25,7 @@ int ReducedOrderODESolver<dim,real,MeshType>::steady_state ()
     this->pcout << " Performing steady state analysis... " << std::endl;
 
     if ((this->ode_param.ode_output) == Parameters::OutputEnum::verbose
-        && (this->current_iteration%this->ode_param.print_iteration_modulo) == 0
-        && dealii::Utilities::MPI::this_mpi_process(this->mpi_communicator) == 0 )
+        && (this->current_iteration%this->ode_param.print_iteration_modulo) == 0)
     {
         this->pcout.set_condition(true);
     } else {

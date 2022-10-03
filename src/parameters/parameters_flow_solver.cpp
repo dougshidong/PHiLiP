@@ -88,7 +88,7 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
 
         prm.enter_subsection("grid");
         {
-            prm.declare_entry("input_mesh_filename", "naca0012",
+            prm.declare_entry("input_mesh_filename", "",
                               dealii::Patterns::FileName(dealii::Patterns::FileName::FileType::input),
                               "Filename of the input mesh: input_mesh_filename.msh. For cases that import a mesh file.");
 
@@ -111,6 +111,10 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
             prm.declare_entry("number_of_mesh_refinements", "0",
                               dealii::Patterns::Integer(0, dealii::Patterns::Integer::max_int_value),
                               "Number of mesh refinements for Gaussian bump and naca0012 based cases.");
+
+            prm.declare_entry("use_input_mesh", "false",
+                              dealii::Patterns::Bool(),
+                              "Use the input .msh file which calls read_gmsh. False by default.");
 
             prm.enter_subsection("gaussian_bump");
             {
@@ -201,6 +205,7 @@ void FlowSolverParam::parse_parameters(dealii::ParameterHandler &prm)
             grid_right_bound = prm.get_double("grid_right_bound");
             number_of_grid_elements_per_dimension = prm.get_integer("number_of_grid_elements_per_dimension");
             number_of_mesh_refinements = prm.get_integer("number_of_mesh_refinements");
+            use_input_mesh = prm.get_bool("use_input_mesh");
 
             prm.enter_subsection("gaussian_bump");
             {

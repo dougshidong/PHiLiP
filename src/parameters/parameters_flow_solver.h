@@ -45,6 +45,7 @@ public:
     /** Name of the Gmsh file to be read if the flow_solver_case indeed reads a mesh;
      *  will read file: input_mesh_filename.msh */
     std::string input_mesh_filename;
+    bool use_input_mesh;
 
     bool restart_computation_from_file; ///< Restart computation from restart file
     bool output_restart_files; ///< Output the restart files

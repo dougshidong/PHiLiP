@@ -4,6 +4,17 @@
 #include <iostream>
 #include "mesh/grids/straight_periodic_cube.hpp"
 
+#include <deal.II/base/function.h>
+#include <deal.II/dofs/dof_tools.h>
+#include <deal.II/grid/grid_tools.h>
+#include <deal.II/numerics/vector_tools.h>
+#include <deal.II/fe/fe_values.h>
+#include "physics/physics_factory.h"
+#include <deal.II/base/table_handler.h>
+#include <deal.II/base/tensor.h>
+#include "math.h"
+#include "mesh/gmsh_reader.hpp"
+
 namespace PHiLiP {
 
 namespace FlowSolver {
@@ -27,7 +38,41 @@ std::shared_ptr<Triangulation> PeriodicCubeFlow<dim,nstate>::generate_grid() con
             this->mpi_communicator
 #endif
     );
-    Grids::straight_periodic_cube<dim,Triangulation>(grid, domain_left, domain_right, number_of_cells_per_direction);
+
+    if (this->all_param.flow_solver_param.use_input_mesh == false) {
+
+        std::cout << "Using Internal Deal.ii HyperCube Generator." << std::endl;
+
+        Grids::straight_periodic_cube<dim, Triangulation>(grid, domain_left, domain_right,
+                                                          number_of_cells_per_direction);
+
+    } else {
+        if constexpr(dim == 3)
+        {
+
+            std::cout << "Using Input Mesh -- GMSH_READER." << std::endl;
+
+            const std::string mesh_filename =
+                    this->all_param.flow_solver_param.input_mesh_filename + std::string(".msh");
+            std::shared_ptr <HighOrderGrid<dim, double>> Cube_mesh = read_gmsh<dim, dim>(mesh_filename);
+
+            /**
+             * Adding Periodic BC for GMSH (Note that the BC number are dependent on the mesh)
+             * Currently accepted convention is
+             *  -> 2001 & 2002 for periodic faces on the x-axis
+             *  -> 2003 & 2004 for periodic faces on the y-axis
+             *  -> 2005 & 2006 for periodic faces on the z-axis
+             */
+            std::vector <dealii::GridTools::PeriodicFacePair<typename dealii::Triangulation<dim>::cell_iterator>> matched_pairs;
+            dealii::GridTools::collect_periodic_faces(*Cube_mesh->triangulation, 2001, 2002, 0, matched_pairs);
+            dealii::GridTools::collect_periodic_faces(*Cube_mesh->triangulation, 2003, 2004, 1, matched_pairs);
+            dealii::GridTools::collect_periodic_faces(*Cube_mesh->triangulation, 2005, 2006, 2, matched_pairs);
+            Cube_mesh->triangulation->add_periodicity(matched_pairs);
+
+            std::cout << "Finish adding periodic boundary conditions." << std::endl;
+            return Cube_mesh->triangulation;
+        }
+    }
 
     return grid;
 }

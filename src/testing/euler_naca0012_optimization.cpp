@@ -428,6 +428,7 @@ int EulerNACAOptimization<dim,nstate>
 
     using DealiiVector = dealii::LinearAlgebra::distributed::Vector<double>;
     using VectorAdaptor = dealii::Rol::VectorAdaptor<DealiiVector>;
+    using MatrixType = dealii::TrilinosWrappers::SparseMatrix;
     using ManParam = Parameters::ManufacturedConvergenceStudyParam;
     using GridEnum = ManParam::GridEnum;
     Parameters::AllParameters param = *(TestsBase::all_parameters);
@@ -595,7 +596,6 @@ int EulerNACAOptimization<dim,nstate>
     
     auto con  = ROL::makePtr<FlowConstraints<dim>>(dg, design_parameterization);
     //int flow_constraints_check_error = check_flow_constraints<dim,nstate>( nx_ffd, con, des_var_sim_rol_p, des_var_ctl_rol_p, des_var_adj_rol_p);
-    using MatrixType = dealii::TrilinosWrappers::SparseMatrix;
     std::cout << " Constructing lift ROL objective " << std::endl;
     auto lift_obj = ROL::makePtr<ROLObjectiveSimOpt<dim,nstate>>( lift_functional, design_parameterization, std::shared_ptr<MatrixType> (&(con->dXvdXp)) );
     std::cout << " Constructing lift ROL constraint " << std::endl;

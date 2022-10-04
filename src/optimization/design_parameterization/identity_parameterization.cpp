@@ -6,13 +6,13 @@
 namespace PHiLiP {
 
 template<int dim>
-DesignParameterizationIdentity<dim> :: DesignParameterizationIdentity(
+IdentityParameterization<dim> :: IdentityParameterization(
     std::shared_ptr<HighOrderGrid<dim,double>> _high_order_grid)
-    : DesignParameterizationBase<dim>(_high_order_grid)
+    : BaseParameterization<dim>(_high_order_grid)
     {}
 
 template<int dim>
-void DesignParameterizationIdentity<dim> :: initialize_design_variables(VectorType &design_var)
+void IdentityParameterization<dim> :: initialize_design_variables(VectorType &design_var)
 {
     design_var = this->high_order_grid->volume_nodes; // Copies both the values and parallel distribution layout.
     current_volume_nodes = design_var;
@@ -21,7 +21,7 @@ void DesignParameterizationIdentity<dim> :: initialize_design_variables(VectorTy
 }
 
 template<int dim>
-void DesignParameterizationIdentity<dim> :: compute_dXv_dXp(MatrixType &dXv_dXp) const
+void IdentityParameterization<dim> :: compute_dXv_dXp(MatrixType &dXv_dXp) const
 {
     // This might not be the best way to create parallel partitioned Identity matrix. To be updated if found.
     const dealii::IndexSet &volume_range = this->high_order_grid->volume_nodes.get_partitioner()->locally_owned_range();
@@ -51,7 +51,7 @@ void DesignParameterizationIdentity<dim> :: compute_dXv_dXp(MatrixType &dXv_dXp)
 }
 
 template<int dim>
-bool DesignParameterizationIdentity<dim> ::update_mesh_from_design_variables(
+bool IdentityParameterization<dim> ::update_mesh_from_design_variables(
     const MatrixType &dXv_dXp,
     const VectorType &design_var)
 {
@@ -73,10 +73,10 @@ bool DesignParameterizationIdentity<dim> ::update_mesh_from_design_variables(
 }
 
 template<int dim>
-unsigned int DesignParameterizationIdentity<dim> :: get_number_of_design_variables() const
+unsigned int IdentityParameterization<dim> :: get_number_of_design_variables() const
 {
     return this->high_order_grid->volume_nodes.size();
 }
 
-template class DesignParameterizationIdentity<PHILIP_DIM>;
+template class IdentityParameterization<PHILIP_DIM>;
 } // namespace PHiLiP

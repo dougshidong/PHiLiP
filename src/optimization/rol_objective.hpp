@@ -26,7 +26,7 @@ private:
     Functional<dim,nstate,double> &functional;
 
     /// Design parameterization to link design variables with volume nodes.
-    std::shared_ptr<DesignParameterizationBase<dim>> design_parameterization;
+    std::shared_ptr<BaseParameterization<dim>> design_parameterization;
 
     /// Design variables.
     dealii::LinearAlgebra::distributed::Vector<double> design_var;
@@ -39,7 +39,7 @@ public:
     /// Constructor.
     ROLObjectiveSimOpt(
         Functional<dim,nstate,double> &_functional,
-        std::shared_ptr<DesignParameterizationBase<dim>> _design_parameterization,
+        std::shared_ptr<BaseParameterization<dim>> _design_parameterization,
         std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> precomputed_dXvdXp = nullptr);
   
     using ROL::Objective_SimOpt<double>::value;

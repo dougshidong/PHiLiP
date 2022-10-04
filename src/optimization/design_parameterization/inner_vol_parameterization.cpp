@@ -6,15 +6,15 @@
 namespace PHiLiP {
 
 template<int dim>
-DesignParameterizationInnerVol<dim> :: DesignParameterizationInnerVol(
+InnerVolParameterization<dim> :: InnerVolParameterization(
     std::shared_ptr<HighOrderGrid<dim,double>> _high_order_grid)
-    : DesignParameterizationBase<dim>(_high_order_grid)
+    : BaseParameterization<dim>(_high_order_grid)
 {
     compute_inner_vol_index_to_vol_index();
 }
 
 template<int dim>
-void DesignParameterizationInnerVol<dim> :: compute_inner_vol_index_to_vol_index()
+void InnerVolParameterization<dim> :: compute_inner_vol_index_to_vol_index()
 {
     unsigned int n_vol_nodes = this->high_order_grid->volume_nodes.size();
     unsigned int n_surf_nodes = this->high_order_grid->surface_nodes.size();
@@ -73,7 +73,7 @@ void DesignParameterizationInnerVol<dim> :: compute_inner_vol_index_to_vol_index
 }
 
 template<int dim>
-void DesignParameterizationInnerVol<dim> :: initialize_design_variables(VectorType &design_var)
+void InnerVolParameterization<dim> :: initialize_design_variables(VectorType &design_var)
 {
     design_var.reinit(inner_vol_range, this->mpi_communicator);
 
@@ -91,7 +91,7 @@ void DesignParameterizationInnerVol<dim> :: initialize_design_variables(VectorTy
 }
 
 template<int dim>
-void DesignParameterizationInnerVol<dim> :: compute_dXv_dXp(MatrixType &dXv_dXp) const
+void InnerVolParameterization<dim> :: compute_dXv_dXp(MatrixType &dXv_dXp) const
 {
     const dealii::IndexSet &volume_range = this->high_order_grid->volume_nodes.get_partitioner()->locally_owned_range();
     const unsigned int n_vol_nodes = this->high_order_grid->volume_nodes.size();
@@ -123,7 +123,7 @@ void DesignParameterizationInnerVol<dim> :: compute_dXv_dXp(MatrixType &dXv_dXp)
 }
 
 template<int dim>
-bool DesignParameterizationInnerVol<dim> ::update_mesh_from_design_variables(
+bool InnerVolParameterization<dim> ::update_mesh_from_design_variables(
     const MatrixType &dXv_dXp,
     const VectorType &design_var)
 {
@@ -147,10 +147,10 @@ bool DesignParameterizationInnerVol<dim> ::update_mesh_from_design_variables(
 }
 
 template<int dim>
-unsigned int DesignParameterizationInnerVol<dim> :: get_number_of_design_variables() const
+unsigned int InnerVolParameterization<dim> :: get_number_of_design_variables() const
 {
     return n_inner_nodes;
 }
 
-template class DesignParameterizationInnerVol<PHILIP_DIM>;
+template class InnerVolParameterization<PHILIP_DIM>;
 } // namespace PHiLiP

@@ -317,8 +317,8 @@ int EulerBumpOptimization<dim,nstate>
         // Reduced space problem
         const bool functional_uses_solution_values = true, functional_uses_solution_gradient = false;
         TargetBoundaryFunctional<dim,nstate,double> target_bump_functional(dg, target_bump_solution, functional_uses_solution_values, functional_uses_solution_gradient);
-        std::shared_ptr<DesignParameterizationBase<dim>> design_parameterization = 
-                std::make_shared<DesignParameterizationFreeFormDeformation<dim>>(dg->high_order_grid, ffd, ffd_design_variables_indices_dim);
+        std::shared_ptr<BaseParameterization<dim>> design_parameterization = 
+                std::make_shared<FreeFormDeformationParameterization<dim>>(dg->high_order_grid, ffd, ffd_design_variables_indices_dim);
         
         auto obj  = ROL::makePtr<ROLObjectiveSimOpt<dim,nstate>>(target_bump_functional, design_parameterization);
         auto con  = ROL::makePtr<FlowConstraints<dim>>(dg, design_parameterization);
@@ -400,8 +400,8 @@ int EulerBumpOptimization<dim,nstate>
     // Reduced space problem
     const bool functional_uses_solution_values = true, functional_uses_solution_gradient = false;
     TargetBoundaryFunctional<dim,nstate,double> target_ffd_functional(dg, target_ffd_solution, functional_uses_solution_values, functional_uses_solution_gradient);
-    std::shared_ptr<DesignParameterizationBase<dim>> design_parameterization = 
-                std::make_shared<DesignParameterizationFreeFormDeformation<dim>>(dg->high_order_grid, ffd, ffd_design_variables_indices_dim);
+    std::shared_ptr<BaseParameterization<dim>> design_parameterization = 
+                std::make_shared<FreeFormDeformationParameterization<dim>>(dg->high_order_grid, ffd, ffd_design_variables_indices_dim);
     
     auto obj  = ROL::makePtr<ROLObjectiveSimOpt<dim,nstate>>( target_ffd_functional, design_parameterization);
     auto con  = ROL::makePtr<FlowConstraints<dim>>(dg, design_parameterization);

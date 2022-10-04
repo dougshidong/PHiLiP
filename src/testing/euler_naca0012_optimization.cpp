@@ -591,8 +591,8 @@ int EulerNACAOptimization<dim,nstate>
 
 
     ffd.output_ffd_vtu(8999);
-    std::shared_ptr<DesignParameterizationBase<dim>> design_parameterization = 
-                        std::make_shared<DesignParameterizationFreeFormDeformation<dim>>(dg->high_order_grid, ffd, ffd_design_variables_indices_dim);
+    std::shared_ptr<BaseParameterization<dim>> design_parameterization = 
+                        std::make_shared<FreeFormDeformationParameterization<dim>>(dg->high_order_grid, ffd, ffd_design_variables_indices_dim);
     
     auto con  = ROL::makePtr<FlowConstraints<dim>>(dg, design_parameterization);
     //int flow_constraints_check_error = check_flow_constraints<dim,nstate>( nx_ffd, con, des_var_sim_rol_p, des_var_ctl_rol_p, des_var_adj_rol_p);

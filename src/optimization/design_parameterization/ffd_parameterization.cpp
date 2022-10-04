@@ -3,17 +3,17 @@
 namespace PHiLiP {
 
 template<int dim>
-DesignParameterizationFreeFormDeformation<dim> :: DesignParameterizationFreeFormDeformation(
+FreeFormDeformationParameterization<dim> :: FreeFormDeformationParameterization(
     std::shared_ptr<HighOrderGrid<dim,double>> _high_order_grid,
     const FreeFormDeformation<dim> &_ffd,
     std::vector< std::pair< unsigned int, unsigned int > > &_ffd_design_variables_indices_dim)
-    : DesignParameterizationBase<dim>(_high_order_grid)
+    : BaseParameterization<dim>(_high_order_grid)
     , ffd(_ffd)
     , ffd_design_variables_indices_dim(_ffd_design_variables_indices_dim)
     {}
 
 template<int dim>
-void DesignParameterizationFreeFormDeformation<dim> :: initialize_design_variables(
+void FreeFormDeformationParameterization<dim> :: initialize_design_variables(
     VectorType &ffd_des_var) 
 {
     const unsigned int n_design_variables = ffd_design_variables_indices_dim.size();
@@ -29,13 +29,13 @@ void DesignParameterizationFreeFormDeformation<dim> :: initialize_design_variabl
 }
 
 template<int dim>
-void DesignParameterizationFreeFormDeformation<dim> :: compute_dXv_dXp(MatrixType &dXv_dXp) const
+void FreeFormDeformationParameterization<dim> :: compute_dXv_dXp(MatrixType &dXv_dXp) const
 {
     ffd.get_dXvdXp(*(this->high_order_grid), ffd_design_variables_indices_dim, dXv_dXp);
 }
 
 template<int dim>
-bool DesignParameterizationFreeFormDeformation<dim> :: update_mesh_from_design_variables(
+bool FreeFormDeformationParameterization<dim> :: update_mesh_from_design_variables(
     const MatrixType &dXv_dXp,
     const VectorType &ffd_des_var)
 {
@@ -68,16 +68,16 @@ bool DesignParameterizationFreeFormDeformation<dim> :: update_mesh_from_design_v
 }
 
 template<int dim>
-void DesignParameterizationFreeFormDeformation<dim> :: output_design_variables(const unsigned int iteration_no) const
+void FreeFormDeformationParameterization<dim> :: output_design_variables(const unsigned int iteration_no) const
 {
     ffd.output_ffd_vtu(iteration_no);
 }
 
 template<int dim>
-unsigned int DesignParameterizationFreeFormDeformation<dim> :: get_number_of_design_variables() const
+unsigned int FreeFormDeformationParameterization<dim> :: get_number_of_design_variables() const
 {
     return ffd_design_variables_indices_dim.size();
 }
 
-template class DesignParameterizationFreeFormDeformation<PHILIP_DIM>;
+template class FreeFormDeformationParameterization<PHILIP_DIM>;
 } // PHiLiP namespace

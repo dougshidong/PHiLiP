@@ -38,7 +38,7 @@ private:
     std::shared_ptr<DGBase<dim,double>> dg;
 
     /// Parameterization which links design variables to the volume nodes.
-    std::shared_ptr<DesignParameterizationBase<dim>> design_parameterization;
+    std::shared_ptr<BaseParameterization<dim>> design_parameterization;
 
     /// Linear solver parameters.
     /** Currently set such that the linear systems are fully solved
@@ -91,7 +91,7 @@ public:
     /// Constructor
     FlowConstraints(
         std::shared_ptr<DGBase<dim,double>> &_dg,
-        std::shared_ptr<DesignParameterizationBase<dim>> _design_parameterization,
+        std::shared_ptr<BaseParameterization<dim>> _design_parameterization,
         std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> precomputed_dXvdXp = nullptr);
     ///// Constructor
     //FlowConstraints(

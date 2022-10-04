@@ -40,8 +40,8 @@ int main (int argc, char * argv[])
     const unsigned int n_global_vol_nodes = dg->high_order_grid->volume_nodes.size();
 
 
-    std::unique_ptr<DesignParameterizationBase<dim>> design_parameterization = 
-                        std::make_unique<DesignParameterizationIdentity<dim>>(dg->high_order_grid);
+    std::unique_ptr<BaseParameterization<dim>> design_parameterization = 
+                        std::make_unique<IdentityParameterization<dim>>(dg->high_order_grid);
 
     VectorType design_var;
     design_parameterization->initialize_design_variables(design_var); // expected to get volume nodes.

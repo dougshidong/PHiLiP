@@ -10,7 +10,7 @@ namespace PHiLiP {
 template <int dim, int nstate>
 ROLObjectiveSimOpt<dim,nstate>::ROLObjectiveSimOpt(
     Functional<dim,nstate,double> &_functional, 
-    std::shared_ptr<DesignParameterizationBase<dim>> _design_parameterization,
+    std::shared_ptr<BaseParameterization<dim>> _design_parameterization,
     std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> precomputed_dXvdXp)
     : functional(_functional)
     , design_parameterization(_design_parameterization)

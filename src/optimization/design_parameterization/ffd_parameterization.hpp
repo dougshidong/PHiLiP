@@ -8,20 +8,20 @@ namespace PHiLiP {
 
 /// FFD design parameterization. Holds an object of FreeFormDeformation and uses it to update the mesh when the control variables are updated.
 template<int dim>
-class DesignParameterizationFreeFormDeformation : public DesignParameterizationBase<dim> {
+class FreeFormDeformationParameterization : public BaseParameterization<dim> {
     
     using VectorType = dealii::LinearAlgebra::distributed::Vector<double>; ///< Alias for dealii's parallel distributed vector.
     using MatrixType = dealii::TrilinosWrappers::SparseMatrix; ///< Alias for dealii::TrilinosWrappers::SparseMatrix.
 
 public:
     /// Constructor
-    DesignParameterizationFreeFormDeformation(
+    FreeFormDeformationParameterization(
         std::shared_ptr<HighOrderGrid<dim,double>> _high_order_grid,
         const FreeFormDeformation<dim> &_ffd,
         std::vector< std::pair< unsigned int, unsigned int > > &_ffd_design_variables_indices_dim);
     
     /// Destructor
-    ~DesignParameterizationFreeFormDeformation() {}; 
+    ~FreeFormDeformationParameterization() {}; 
     
     /// Initializes FFD design variables and set locally owned and ghost indices. Overrides the virtual function in base class.
     void initialize_design_variables(VectorType &ffd_des_var) override;

@@ -3,7 +3,7 @@
 namespace PHiLiP {
 
 template<int dim>
-DesignParameterizationBase<dim> :: DesignParameterizationBase (
+BaseParameterization<dim> :: BaseParameterization (
     std::shared_ptr<HighOrderGrid<dim,double>> _high_order_grid)
     : high_order_grid(_high_order_grid)
     , mpi_communicator(MPI_COMM_WORLD)
@@ -14,13 +14,13 @@ DesignParameterizationBase<dim> :: DesignParameterizationBase (
 }
 
 template<int dim>
-void DesignParameterizationBase<dim> :: output_design_variables(unsigned int /*iteration_no*/) const
+void BaseParameterization<dim> :: output_design_variables(unsigned int /*iteration_no*/) const
 {
     // Outputs nothing by default. Overriden in derived classes.
 }
 
 template<int dim>
-bool DesignParameterizationBase<dim> :: has_design_variable_been_updated(
+bool BaseParameterization<dim> :: has_design_variable_been_updated(
     const VectorType &current_design_var, 
     const VectorType &updated_design_var) const
 {
@@ -33,5 +33,5 @@ bool DesignParameterizationBase<dim> :: has_design_variable_been_updated(
     return is_design_variable_updated;
 }
 
-template class DesignParameterizationBase<PHILIP_DIM>;
+template class BaseParameterization<PHILIP_DIM>;
 } // PHiLiP namespace

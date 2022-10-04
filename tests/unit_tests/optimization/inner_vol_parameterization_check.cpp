@@ -64,8 +64,7 @@ int main (int argc, char * argv[])
 
     VectorType is_a_surface_node; // Stores 1 if the index corresponds to a surface node.
 
-    is_a_surface_node.reinit(initial_volume_nodes);     
-    is_a_surface_node *= 0;
+    is_a_surface_node.reinit(initial_volume_nodes); // initializes to 0 by default.    
 
 
     for(unsigned int i=0; i<dg->high_order_grid->surface_nodes.size(); ++i)

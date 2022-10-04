@@ -21,8 +21,7 @@ void DesignParameterizationInnerVol<dim> :: compute_inner_vol_index_to_vol_index
     n_inner_nodes = n_vol_nodes - n_surf_nodes;
 
     dealii::LinearAlgebra::distributed::Vector<int> is_a_surface_node;
-    is_a_surface_node.reinit(this->high_order_grid->volume_nodes); // Copies parallel layout, without values.
-    is_a_surface_node *= 0; 
+    is_a_surface_node.reinit(this->high_order_grid->volume_nodes); // Copies parallel layout, without values. Initializes to 0 by default.
 
     // Get locally owned volume and surface ranges of indices held by current processor.
     const dealii::IndexSet &volume_range = this->high_order_grid->volume_nodes.get_partitioner()->locally_owned_range();

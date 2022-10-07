@@ -595,7 +595,9 @@ int EulerNACAOptimization<dim,nstate>
                         std::make_shared<FreeFormDeformationParameterization<dim>>(dg->high_order_grid, ffd, ffd_design_variables_indices_dim);
     
     auto con  = ROL::makePtr<FlowConstraints<dim>>(dg, design_parameterization);
-    std::shared_ptr<MatrixType> precomputed_dXvdXp (&(con->dXvdXp));
+    std::shared_ptr<MatrixType> precomputed_dXvdXp = std::make_shared<MatrixType> ();
+    precomputed_dXvdXp->reinit(con->dXvdXp);
+    precomputed_dXvdXp->copy_from(con->dXvdXp);
     //int flow_constraints_check_error = check_flow_constraints<dim,nstate>( nx_ffd, con, des_var_sim_rol_p, des_var_ctl_rol_p, des_var_adj_rol_p);
     std::cout << " Constructing lift ROL objective " << std::endl;
     auto lift_obj = ROL::makePtr<ROLObjectiveSimOpt<dim,nstate>>( lift_functional, design_parameterization, precomputed_dXvdXp);
@@ -756,8 +758,6 @@ int EulerNACAOptimization<dim,nstate>
     filebuffer.close();
 
     if (opt_type != OptimizationAlgorithm::full_space_birosghattas) break;
-
-    precomputed_dXvdXp = nullptr; // Done to ensure that shared_ptr does not try to delete dXvdXp (it is deleted when con goes out of scope).  
     }
     }
 

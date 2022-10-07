@@ -12,6 +12,7 @@
 #include <deal.II/base/tensor.h>
 #include "math.h"
 #include <string>
+#include <deal.II/base/quadrature_lib.h>
 
 namespace PHiLiP {
 
@@ -164,6 +165,10 @@ void PeriodicTurbulence<dim, nstate>::output_velocity_field(
         const unsigned int poly_degree = i_fele;
         const unsigned int n_quad_pts = dg->volume_quadrature_collection[poly_degree].size();
         const unsigned int n_dofs_cell = dg->fe_collection[poly_degree].dofs_per_cell;
+        const dealii::FESystem<dim,dim> &fe_sys = dg->fe_collection[i_fele];
+
+        dealii::Quadrature<dim> vol_quad_equidistant = dealii::QIterated<dim>(dealii::QTrapez<1>(),poly_degree);
+        const std::vector<dealii::Point<dim,double>> &unit_equidistant_quad_pts = vol_quad_equidistant.get_points(); // all cells have same poly_degree
 
         current_dofs_indices.resize(n_dofs_cell);
         current_cell->get_dof_indices (current_dofs_indices);
@@ -171,7 +176,9 @@ void PeriodicTurbulence<dim, nstate>::output_velocity_field(
         for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
 
             // write coordinates
-            const dealii::Point<dim> qpoint = (fe_values.quadrature_point(iquad));
+            // const dealii::Point<dim> qpoint = (fe_values.quadrature_point(iquad));
+            const dealii::Point<dim> qpoint_equid =  mapping.transform_unit_to_real_cell(current_cell,unit_equidistant_quad_pts[iquad]);
+            const dealii::Point<dim> qpoint = qpoint_equid;
             for (int d=0; d<dim; ++d) {
                 FILE << std::setprecision(17) << qpoint[d] << std::string(" ");
             }
@@ -183,10 +190,16 @@ void PeriodicTurbulence<dim, nstate>::output_velocity_field(
             //         soln_grad_at_q[s][d] = 0.0;
             //     }
             // }
-            // for (unsigned int idof=0; idof<fe_values.dofs_per_cell; ++idof) {
+            
             for (unsigned int idof=0; idof<n_dofs_cell; ++idof) {
                 const unsigned int istate = fe_values.get_fe().system_to_component_index(idof).first;
-                soln_at_q[istate] += dg->solution[current_dofs_indices[idof]] * fe_values.shape_value_component(idof, iquad, istate);
+                // at GL nodes:
+                // soln_at_q[istate] += dg->solution[current_dofs_indices[idof]] * fe_values.shape_value_component(idof, iquad, istate);
+                
+                // at equidistant nodes
+                soln_at_q[istate] += dg->solution[current_dofs_indices[idof]] * fe_sys.shape_value_component(idof, unit_equidistant_quad_pts[iquad], istate);
+                
+                // for the gradient at GL nodes (for equidistant, similar to above):
                 // soln_grad_at_q[istate] += dg->solution[current_dofs_indices[idof]] * fe_values.shape_grad_component(idof,iquad,istate);
             }
             dealii::Tensor<1,dim,double> velocity = this->navier_stokes_physics->compute_velocities(soln_at_q);

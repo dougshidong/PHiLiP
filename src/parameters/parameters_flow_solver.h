@@ -109,6 +109,7 @@ public:
     bool output_velocity_field_at_fixed_times; ///< Flag for outputting velocity field at fixed times
     std::string output_velocity_field_times_string; ///< String of velocity field output times
     int number_of_times_to_output_velocity_field; ///< Number of times to output the velocity field
+    bool output_velocity_field_at_equidistant_nodes; ///< Flag for outputting velocity field at equidistant nodes
 };
 
 } // Parameters namespace

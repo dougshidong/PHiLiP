@@ -78,6 +78,9 @@ protected:
     /// Flag for outputting velocity field at fixed times
     const bool output_velocity_field_at_fixed_times;
 
+    /// Flag for outputting velocity field at equidistant nodes
+    const bool output_velocity_field_at_equidistant_nodes;
+
     /// Pointer to Navier-Stokes physics object for computing things on the fly
     std::shared_ptr< Physics::NavierStokes<dim,dim+2,double> > navier_stokes_physics;
 

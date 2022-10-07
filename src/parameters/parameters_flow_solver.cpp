@@ -202,6 +202,11 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                           dealii::Patterns::Integer(0, dealii::Patterns::Integer::max_int_value),
                           "Number of times to output the velocity field. "
                           "Must correspond to output_velocity_field_times_string.");
+
+        prm.declare_entry("output_velocity_field_at_equidistant_nodes", "false",
+                          dealii::Patterns::Bool(),
+                          "Output velocity field at equidistant nodes. "
+                          "Default is to output velocity field at solution nodes (e.g. Gauss-Lobatto).");
     }
     prm.leave_subsection();
 }

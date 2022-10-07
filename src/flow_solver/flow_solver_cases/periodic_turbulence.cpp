@@ -27,6 +27,7 @@ PeriodicTurbulence<dim, nstate>::PeriodicTurbulence(const PHiLiP::Parameters::Al
         , unsteady_data_table_filename_with_extension(this->all_param.flow_solver_param.unsteady_data_table_filename+".txt")
         , number_of_times_to_output_velocity_field(this->all_param.flow_solver_param.number_of_times_to_output_velocity_field)
         , output_velocity_field_at_fixed_times(this->all_param.flow_solver_param.output_velocity_field_at_fixed_times)
+        , output_velocity_field_at_equidistant_nodes(this->all_param.flow_solver_param.output_velocity_field_at_equidistant_nodes)
 {
     // Get the flow case type
     using FlowCaseEnum = Parameters::FlowSolverParam::FlowCaseType;
@@ -165,20 +166,27 @@ void PeriodicTurbulence<dim, nstate>::output_velocity_field(
         const unsigned int poly_degree = i_fele;
         const unsigned int n_quad_pts = dg->volume_quadrature_collection[poly_degree].size();
         const unsigned int n_dofs_cell = dg->fe_collection[poly_degree].dofs_per_cell;
-        const dealii::FESystem<dim,dim> &fe_sys = dg->fe_collection[i_fele];
-
-        dealii::Quadrature<dim> vol_quad_equidistant = dealii::QIterated<dim>(dealii::QTrapez<1>(),poly_degree);
-        const std::vector<dealii::Point<dim,double>> &unit_equidistant_quad_pts = vol_quad_equidistant.get_points(); // all cells have same poly_degree
-
+        
         current_dofs_indices.resize(n_dofs_cell);
         current_cell->get_dof_indices (current_dofs_indices);
+
+        // for outputting equidistant nodes
+        const dealii::FESystem<dim,dim> &fe_sys = dg->fe_collection[i_fele];
+        dealii::Quadrature<dim> vol_quad_equidistant = dealii::QIterated<dim>(dealii::QTrapez<1>(),poly_degree);
+        const std::vector<dealii::Point<dim>> &unit_equidistant_quad_pts = vol_quad_equidistant.get_points(); // all cells have same poly_degree
 
         for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
 
             // write coordinates
-            // const dealii::Point<dim> qpoint = (fe_values.quadrature_point(iquad));
-            const dealii::Point<dim> qpoint_equid =  mapping.transform_unit_to_real_cell(current_cell,unit_equidistant_quad_pts[iquad]);
-            const dealii::Point<dim> qpoint = qpoint_equid;
+            dealii::Point<dim> qpoint;
+            if(output_velocity_field_at_equidistant_nodes) {
+                // equidistant nodes
+                qpoint = mapping.transform_unit_to_real_cell(current_cell,unit_equidistant_quad_pts[iquad]);
+            } else {
+                // GL nodes
+                qpoint = (fe_values.quadrature_point(iquad));
+            }
+
             for (int d=0; d<dim; ++d) {
                 FILE << std::setprecision(17) << qpoint[d] << std::string(" ");
             }
@@ -193,12 +201,14 @@ void PeriodicTurbulence<dim, nstate>::output_velocity_field(
             
             for (unsigned int idof=0; idof<n_dofs_cell; ++idof) {
                 const unsigned int istate = fe_values.get_fe().system_to_component_index(idof).first;
-                // at GL nodes:
-                // soln_at_q[istate] += dg->solution[current_dofs_indices[idof]] * fe_values.shape_value_component(idof, iquad, istate);
                 
-                // at equidistant nodes
-                soln_at_q[istate] += dg->solution[current_dofs_indices[idof]] * fe_sys.shape_value_component(idof, unit_equidistant_quad_pts[iquad], istate);
-                
+                if(output_velocity_field_at_equidistant_nodes) {
+                    // at equidistant nodes
+                    soln_at_q[istate] += dg->solution[current_dofs_indices[idof]] * fe_sys.shape_value_component(idof, unit_equidistant_quad_pts[iquad], istate);
+                } else {
+                    // at GL nodes:
+                    soln_at_q[istate] += dg->solution[current_dofs_indices[idof]] * fe_values.shape_value_component(idof, iquad, istate);
+                }
                 // for the gradient at GL nodes (for equidistant, similar to above):
                 // soln_grad_at_q[istate] += dg->solution[current_dofs_indices[idof]] * fe_values.shape_grad_component(idof,iquad,istate);
             }

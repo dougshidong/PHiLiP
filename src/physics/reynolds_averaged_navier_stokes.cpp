@@ -124,9 +124,8 @@ std::array<dealii::Tensor<1,dim,real2>,nstate> ReynoldsAveragedNavierStokesBase<
 ::dissipative_flux_templated (
     const std::array<real2,nstate> &conservative_soln,
     const std::array<dealii::Tensor<1,dim,real2>,nstate> &solution_gradient,
-    const dealii::types::global_dof_index cell_index) const
+    const dealii::types::global_dof_index /*cell_index*/) const
 {   
-    (void) cell_index;
 
     const std::array<real2,dim+2> conservative_soln_rans = extract_rans_conservative_solution(conservative_soln);
     const std::array<dealii::Tensor<1,dim,real2>,dim+2> solution_gradient_rans = extract_rans_solution_gradient(solution_gradient);

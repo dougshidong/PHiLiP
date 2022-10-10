@@ -177,7 +177,7 @@ protected:
         const std::array<real,nstate> &conservative_soln1,
         const std::array<real,nstate> &conservative_soln2) const;
 
-    /** convective flux Jacobian 
+    /** Convective flux Jacobian 
      *  Note: Only used for computing the manufactured solution source term;
      *        computed using automatic differentiation
      */

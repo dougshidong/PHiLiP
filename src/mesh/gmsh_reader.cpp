@@ -16,7 +16,6 @@
 
 #include <deal.II/dofs/dof_renumbering.h>
 
-
 #include "high_order_grid.h"
 #include "gmsh_reader.hpp"
 
@@ -1147,7 +1146,7 @@ bool get_new_rotated_indices_3D(const dealii::CellAccessor<dim, spacedim>& cell,
     }
 
     if (good_rotation) {
-        pcout << "-- FOUND LAST GOOD ROTATION, NOW EXITING ROTATION ROUTINE --" << std::endl;
+        // pcout << "-- FOUND LAST GOOD ROTATION, NOW EXITING ROTATION ROUTINE --" << std::endl;
         return true;
     }
 
@@ -1155,9 +1154,13 @@ bool get_new_rotated_indices_3D(const dealii::CellAccessor<dim, spacedim>& cell,
 }
 
 
+// template <int dim, int spacedim>
+// std::shared_ptr< HighOrderGrid<dim, double> >
+// read_gmsh(std::string filename, bool periodic_x, bool periodic_y, bool periodic_z, int x_periodic_1, int x_periodic_2, int y_periodic_1, int y_periodic_2, int z_periodic_1, int z_periodic_2, int requested_grid_order)
+
 template <int dim, int spacedim>
 std::shared_ptr< HighOrderGrid<dim, double> >
-read_gmsh(std::string filename, int requested_grid_order)
+read_gmsh(std::string filename, bool periodic_x, bool periodic_y, bool periodic_z, int x_periodic_1, int x_periodic_2, int y_periodic_1, int y_periodic_2, int z_periodic_1, int z_periodic_2, int requested_grid_order)
 {
 
     const int mpi_rank = dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD);
@@ -1186,7 +1189,6 @@ read_gmsh(std::string filename, int requested_grid_order)
     } else {
       //AssertThrow(false, dealii::ExcInvalidGMSHInput(line));
     }
-  
   
     // if file format is 2.0 or greater then we also have to read the rest of the
     // header
@@ -1543,7 +1545,7 @@ read_gmsh(std::string filename, int requested_grid_order)
 
             } else {    //3D case
 
-                pcout << "-- 3D_GRID_ROTATION Initiated -- IPROC 0 - CELL #" << icell << std::endl;
+//                pcout << "-- 3D_GRID_ROTATION Initiated -- IPROC 0 - CELL #" << icell << std::endl;
 
                 bool good_rotation = get_new_rotated_indices_3D(*cell, all_vertices, deal_h2l, rotate_x90degree_3D, rotate_y90degree_3D, rotate_z90degree_3D, high_order_vertices_id_rotated);
                 if (!good_rotation) {
@@ -1565,7 +1567,7 @@ read_gmsh(std::string filename, int requested_grid_order)
                 }
             }
 
-            pcout << "CELL CONTAINS GOOD ROTATION... - END" << std::endl;
+//            pcout << "CELL CONTAINS GOOD ROTATION... - END" << std::endl;
 
             cell->get_dof_indices(dof_indices);
             for (unsigned int i_vertex = 0; i_vertex < high_order_vertices_id.size(); ++i_vertex) {
@@ -1631,6 +1633,26 @@ read_gmsh(std::string filename, int requested_grid_order)
     
     //return high_order_grid;
 
+    //Check for periodic boundary conditions and apply
+    std::vector<dealii::GridTools::PeriodicFacePair<typename dealii::Triangulation<dim>::cell_iterator> > matched_pairs;
+
+    if (periodic_x) {
+        dealii::GridTools::collect_periodic_faces(*high_order_grid->triangulation, x_periodic_1, x_periodic_2, 0, matched_pairs);
+    }
+
+    if (periodic_y) {
+        dealii::GridTools::collect_periodic_faces(*high_order_grid->triangulation, y_periodic_1, y_periodic_2, 1, matched_pairs);
+    }
+
+    if (periodic_z) {
+        dealii::GridTools::collect_periodic_faces(*high_order_grid->triangulation, z_periodic_1, z_periodic_2, 2, matched_pairs);
+    }
+
+    if (periodic_x || periodic_y || periodic_z) {
+        high_order_grid->triangulation->add_periodicity(matched_pairs);
+    }
+
+
     if (requested_grid_order > 0) {
         auto grid = std::make_shared<HighOrderGrid<dim, double>>(requested_grid_order, triangulation);
         grid->initialize_with_triangulation_manifold();
@@ -1663,16 +1685,37 @@ read_gmsh(std::string filename, int requested_grid_order)
 //        grid->output_results_vtk(9999);                    //Removed to save time (especially for large 3D grids) during flow solver test case. Grid will be outputted 'once' inside the gmsh_reader test file.
         grid->reset_initial_nodes();
 
+        //Check for periodic boundary conditions and apply
+        std::vector<dealii::GridTools::PeriodicFacePair<typename dealii::Triangulation<dim>::cell_iterator> > matched_pairs;
+        
+        if (periodic_x) {
+            dealii::GridTools::collect_periodic_faces(*grid->triangulation, x_periodic_1, x_periodic_2, 0, matched_pairs);
+        }
+
+        if (periodic_y) {
+            dealii::GridTools::collect_periodic_faces(*grid->triangulation, y_periodic_1, y_periodic_2, 1, matched_pairs);
+        }
+
+        if (periodic_z) {
+            dealii::GridTools::collect_periodic_faces(*grid->triangulation, z_periodic_1, z_periodic_2, 2, matched_pairs);
+        }
+
+        if (periodic_x || periodic_y || periodic_z) {
+            grid->triangulation->add_periodicity(matched_pairs);
+        }
+
         return grid;
+
     } else {
         return high_order_grid;
     }
 }
 
-
 #if PHILIP_DIM==1 
 #else
-template std::shared_ptr< HighOrderGrid<PHILIP_DIM, double> > read_gmsh<PHILIP_DIM,PHILIP_DIM>(std::string filename, int requested_grid_order);
+// template std::shared_ptr< HighOrderGrid<PHILIP_DIM, double> > read_gmsh<PHILIP_DIM,PHILIP_DIM>(std::string filename, const PHiLiP::Parameters::AllParameters *const parameters_input, int requested_grid_order);
+template std::shared_ptr< HighOrderGrid<PHILIP_DIM, double> > read_gmsh<PHILIP_DIM,PHILIP_DIM>(std::string filename, bool periodic_x, bool periodic_y, bool periodic_z, int x_periodic_1, int x_periodic_2, int y_periodic_1, int y_periodic_2, int z_periodic_1, int z_periodic_2, int requested_grid_order);
+// template std::shared_ptr< HighOrderGrid<PHILIP_DIM, double> > read_gmsh<PHILIP_DIM,PHILIP_DIM>(std::string filename, int requested_grid_order);
 #endif
 
 } // namespace PHiLiP

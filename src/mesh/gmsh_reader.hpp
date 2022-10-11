@@ -50,6 +50,8 @@
 
 #include <deal.II/base/exceptions.h>
 #include "high_order_grid.h"
+#include "parameters/all_parameters.h"
+
 namespace PHiLiP {
     /// Reads Gmsh grid.
     /** Can request to convert the input grid's order to the 
@@ -58,7 +60,7 @@ namespace PHiLiP {
       */
     template <int dim, int spacedim>
     std::shared_ptr< HighOrderGrid<dim, double> >
-    read_gmsh(std::string filename, int requested_grid_order = 0);
+    read_gmsh(std::string filename, bool periodic_x = false, bool periodic_y = false, bool periodic_z = false, int x_periodic_1 = 0, int x_periodic_2 = 0, int y_periodic_1 = 0, int y_periodic_2 = 0, int z_periodic_1 = 0, int z_periodic_2 = 0, int requested_grid_order = 0);
 } // namespace PHiLiP
 #endif
 

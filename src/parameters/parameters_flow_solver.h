@@ -45,7 +45,28 @@ public:
     /** Name of the Gmsh file to be read if the flow_solver_case indeed reads a mesh;
      *  will read file: input_mesh_filename.msh */
     std::string input_mesh_filename;
-    bool use_input_mesh;
+    bool use_input_mesh;                    //Toggle for using input gmsh mesh
+
+    /** Toggle for specifiying periodic boundary conditions on x, y, or z-direction
+    **/
+    bool use_periodic_BC_in_x;
+    bool use_periodic_BC_in_y;
+    bool use_periodic_BC_in_z;
+
+    /** Custom periodic boundary condition ID in x-direction
+    **/
+    int x_periodic_id_face_1;
+    int x_periodic_id_face_2;
+
+    /** Custom periodic boundary condition ID in y-direction
+    **/
+    int y_periodic_id_face_1;
+    int y_periodic_id_face_2;
+
+    /** Custom periodic boundary condition ID in z-direction
+    **/
+    int z_periodic_id_face_1;
+    int z_periodic_id_face_2;
 
     bool restart_computation_from_file; ///< Restart computation from restart file
     bool output_restart_files; ///< Output the restart files

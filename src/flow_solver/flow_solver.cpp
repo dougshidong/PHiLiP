@@ -82,6 +82,7 @@ FlowSolver<dim, nstate>::FlowSolver(
     }
     dg->solution.update_ghost_values();
     pcout << "done." << std::endl;
+
     ode_solver->allocate_ode_system();
 
     // output a copy of the input parameters file

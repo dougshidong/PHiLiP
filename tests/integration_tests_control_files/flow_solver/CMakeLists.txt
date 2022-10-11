@@ -15,6 +15,20 @@ set(TEST_OUTPUT_DIR ${CMAKE_CURRENT_BINARY_DIR})
 # ----------------------------------------
 
 # =======================================
+# Inviscid Isentropic Vortex -- 3D
+# =======================================
+# ----------------------------------------
+# - details: [if needed]
+# ----------------------------------------
+configure_file(inviscid_isentropic_vortex.prm inviscid_isentropic_vortex.prm COPYONLY)
+add_test(
+  NAME MPI_3D_INVISCID_ISENTROPIC_VORTEX
+  COMMAND mpirun -np ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_3D -i ${CMAKE_CURRENT_BINARY_DIR}/inviscid_isentropic_vortex.prm
+  WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
+)
+# ----------------------------------------
+
+# =======================================
 # Viscous Taylor Green Vortex (TGV)
 # =======================================
 # ----------------------------------------

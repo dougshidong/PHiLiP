@@ -123,7 +123,7 @@ protected:
         std::array<real,nstate> &soln_bc,
         std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_bc) const override;
 
-    /// Inflow boundary condition
+    /// Outflow boundary condition
     void boundary_outflow (
         const std::array<real,nstate> &soln_int,
         const std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_int,

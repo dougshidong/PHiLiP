@@ -25,7 +25,7 @@ public:
         advection,
         periodic_1D_unsteady,
         gaussian_bump,
-        sshock
+        sshock,
         isentropic_vortex
         };
     FlowCaseType flow_case_type; ///< Selected FlowCaseType from the input file

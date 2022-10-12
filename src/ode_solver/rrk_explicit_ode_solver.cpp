@@ -43,23 +43,22 @@ real RRKExplicitODESolver<dim,real,n_rk_stages,MeshType>::compute_relaxation_par
 }
 
 template <int dim, typename real, int n_rk_stages, typename MeshType>
-real RRKExplicitODESolver<dim,real,MeshType>::compute_relaxation_parameter_implicit(real &dt) const
+real RRKExplicitODESolver<dim,real,n_rk_stages,MeshType>::compute_relaxation_parameter_implicit(real &dt) const
 {
     //For now, assume that the entropy variable is energy and discretization is energy-conservative
     // TEMP : Using variable names per Ranocha paper
 
     dealii::LinearAlgebra::distributed::Vector<double> d;
     d.reinit(this->rk_stage[0]);
-    for (int i = 0; i < this->rk_order; ++i){
-        //d += this->butcher_tableau_b[i]*this->rk_stage[i];
-        d.add(this->butcher_tableau_b[i], this->rk_stage[i]);
+    for (int i = 0; i < n_rk_stages; ++i){
+        d.add(this->butcher_tableau->get_b(i), this->rk_stage[i]);
     }
     d *= dt;
     
     //double e = 0; //conservative
 
-    double initial_guess_0 = 1.0;
-    double initial_guess_1 = 1.0 + pow(dt, this->rk_order - 1);
+    double initial_guess_0 = 1.0 - 1E-3;
+    double initial_guess_1 = 1.0 + 1E-3;
     double residual = 1.0;
     dealii::LinearAlgebra::distributed::Vector<double> u_n = this->solution_update;
     double eta_n = compute_numerical_entropy(u_n); //compute_inner_product(u_n, u_n);
@@ -108,7 +107,7 @@ real RRKExplicitODESolver<dim,real,MeshType>::compute_relaxation_parameter_impli
 
 
 template <int dim, typename real, int n_rk_stages, typename MeshType>
-real RRKExplicitODESolver<dim,real,MeshType>::compute_root_function(
+real RRKExplicitODESolver<dim,real,n_rk_stages,MeshType>::compute_root_function(
         const double gamma,
         const dealii::LinearAlgebra::distributed::Vector<double> &u_n,
         const dealii::LinearAlgebra::distributed::Vector<double> &d,
@@ -121,8 +120,8 @@ real RRKExplicitODESolver<dim,real,MeshType>::compute_root_function(
 }
 
 
-template <int dim, typename real, typename MeshType>
-real RRKExplicitODESolver<dim,real,MeshType>::compute_numerical_entropy(
+template <int dim, typename real, int n_rk_stages, typename MeshType>
+real RRKExplicitODESolver<dim,real,n_rk_stages,MeshType>::compute_numerical_entropy(
         const dealii::LinearAlgebra::distributed::Vector<double> &u) const
 {
     //For now, return energy (burgers)
@@ -131,7 +130,7 @@ real RRKExplicitODESolver<dim,real,MeshType>::compute_numerical_entropy(
         
 
 template <int dim, typename real, int n_rk_stages, typename MeshType>
-real RRKExplicitODESolver<dim,real,MeshType>::compute_inner_product (
+real RRKExplicitODESolver<dim,real,n_rk_stages,MeshType>::compute_inner_product (
         const dealii::LinearAlgebra::distributed::Vector<double> &stage_i,
         const dealii::LinearAlgebra::distributed::Vector<double> &stage_j
         ) const

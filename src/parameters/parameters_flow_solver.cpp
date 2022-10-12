@@ -52,7 +52,7 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                           dealii::Patterns::Double(0, dealii::Patterns::Double::max_double_value),
                           "Final solution time.");
 
-        prm.declare_entry("constant_time_step", "-1",
+        prm.declare_entry("constant_time_step", "0",
                           dealii::Patterns::Double(0, dealii::Patterns::Double::max_double_value),
                           "Constant time step.");
 

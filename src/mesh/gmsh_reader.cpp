@@ -709,7 +709,7 @@ bool get_new_rotated_indices(const dealii::CellAccessor<dim, spacedim>& cell,
 
 template <int dim, int spacedim>
 std::shared_ptr< HighOrderGrid<dim, double> >
-read_gmsh(std::string filename, int requested_grid_order)
+read_gmsh(std::string filename, int requested_grid_order, const bool use_mesh_smoothing)
 {
 
     //for (unsigned int deg = 1; deg < 7; ++deg) {
@@ -826,11 +826,19 @@ read_gmsh(std::string filename, int requested_grid_order)
     const unsigned int grid_order = find_grid_order<dim>(infile);
   
     using Triangulation = dealii::parallel::distributed::Triangulation<dim>;
-    std::shared_ptr<Triangulation> triangulation = std::make_shared<Triangulation>(
-        MPI_COMM_WORLD,
-        typename dealii::Triangulation<dim>::MeshSmoothing(
-            dealii::Triangulation<dim>::smoothing_on_refinement |
-            dealii::Triangulation<dim>::smoothing_on_coarsening));
+    std::shared_ptr<Triangulation> triangulation;
+
+    if(use_mesh_smoothing) {
+        triangulation = std::make_shared<Triangulation>(
+            MPI_COMM_WORLD,
+            typename dealii::Triangulation<dim>::MeshSmoothing(
+                dealii::Triangulation<dim>::smoothing_on_refinement |
+                dealii::Triangulation<dim>::smoothing_on_coarsening));
+    }
+    else
+    {
+        triangulation = std::make_shared<Triangulation>(MPI_COMM_WORLD); // Dealii's default mesh smoothing flag is none. 
+    }
 
     auto high_order_grid = std::make_shared<HighOrderGrid<dim, double>>(grid_order, triangulation);
   
@@ -1242,7 +1250,7 @@ read_gmsh(std::string filename, int requested_grid_order)
 
 #if PHILIP_DIM==1 
 #else
-template std::shared_ptr< HighOrderGrid<PHILIP_DIM, double> > read_gmsh<PHILIP_DIM,PHILIP_DIM>(std::string filename, int requested_grid_order);
+template std::shared_ptr< HighOrderGrid<PHILIP_DIM, double> > read_gmsh<PHILIP_DIM,PHILIP_DIM>(std::string filename, int requested_grid_order, const bool use_mesh_smoothing);
 #endif
 
 } // namespace PHiLiP

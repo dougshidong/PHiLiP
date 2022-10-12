@@ -20,10 +20,8 @@ set diss_num_flux = symm_internal_penalty
 # ODE solver
 subsection ODE solver
   set ode_output = quiet
-  set ode_solver_type = explicit
-  subsection explicit solver options
-    set runge_kutta_order = 3
-  end
+  set ode_solver_type = runge_kutta 
+  set runge_kutta_method = ssprk3_ex
 end
 
 # Reference for freestream values specified below:

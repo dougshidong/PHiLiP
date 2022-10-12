@@ -46,6 +46,15 @@
 //extern template class dealii::MappingFEField<PHILIP_DIM,PHILIP_DIM,dealii::LinearAlgebra::distributed::Vector<double>, dealii::DoFHandler<PHILIP_DIM> >;
 namespace PHiLiP {
 
+/// Get the coefficients of a function projected onto a set of basis (to be replaced with operators->projection_operator). 
+template<int dim, typename real>
+std::vector< real > project_function(
+    const std::vector< real > &function_coeff,
+    const dealii::FESystem<dim,dim> &fe_input,
+    const dealii::FESystem<dim,dim> &fe_output,
+    const dealii::QGauss<dim> &projection_quadrature);
+
+
 /// DGBase is independent of the number of state variables.
 /**  This base class allows the use of arrays to efficiently allocate the data structures
   *  through std::array in the derived class DGBaseState.
@@ -183,6 +192,11 @@ private:
      */
     virtual void allocate_dRdX ();
 
+    /// Allocates variables of artificial dissipation.
+    /** It is called by allocate_system() when artificial dissipation is set
+     *  to true in the parameters file.
+     */
+    void allocate_artificial_dissipation();
 
 public:
 
@@ -997,7 +1011,6 @@ public:
     bool use_auxiliary_eq;
     /// Set use_auxiliary_eq flag
     virtual void set_use_auxiliary_eq() = 0;
-
 }; // end of DGBase class
 
 /// Abstract class templated on the number of state variables

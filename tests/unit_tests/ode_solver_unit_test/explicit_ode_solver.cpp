@@ -79,7 +79,7 @@ int main (int argc, char * argv[])
     all_parameters.parse_parameters (parameter_handler); // copies stuff from parameter_handler into all_parameters
 
     //ode solver parameters
-    all_parameters.ode_solver_param.ode_solver_type = PHiLiP::Parameters::ODESolverParam::ODESolverEnum::explicit_solver;
+    all_parameters.ode_solver_param.ode_solver_type = PHiLiP::Parameters::ODESolverParam::ODESolverEnum::runge_kutta_solver;
     all_parameters.ode_solver_param.nonlinear_max_iterations = 500;
     all_parameters.ode_solver_param.print_iteration_modulo = 100;
     all_parameters.use_periodic_bc = true;

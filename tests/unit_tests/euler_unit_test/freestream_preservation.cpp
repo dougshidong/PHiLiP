@@ -198,7 +198,7 @@ int test()
     parameter_handler.set("side_slip_angle", 0.0);
     parameter_handler.leave_subsection();
     parameter_handler.enter_subsection("ODE solver");
-    parameter_handler.set("ode_solver_type", "explicit");
+    parameter_handler.set("ode_solver_type", "runge_kutta");
     parameter_handler.set("nonlinear_max_iterations", (long int) 1);
     double time_step = 1e-8;
     parameter_handler.set("initial_time_step", time_step);

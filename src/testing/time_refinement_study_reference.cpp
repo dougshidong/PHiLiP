@@ -22,7 +22,7 @@ Parameters::AllParameters TimeRefinementStudyReference<dim,nstate>::reinit_param
 {
      PHiLiP::Parameters::AllParameters parameters = *(this->all_parameters);
 
-     double dt = final_time/number_of_timesteps;     
+     const double dt = final_time/number_of_timesteps;     
      parameters.ode_solver_param.initial_time_step = dt;
      
      pcout << "Using timestep size dt = " << dt << " for reference solution." << std::endl;
@@ -44,7 +44,7 @@ template <int dim, int nstate>
 dealii::LinearAlgebra::distributed::Vector<double> TimeRefinementStudyReference<dim,nstate>::calculate_reference_solution(
         double final_time) const
 {
-    int number_of_timesteps_for_reference_solution = this->all_parameters->time_refinement_study_param.number_of_timesteps_for_reference_solution;
+    const int number_of_timesteps_for_reference_solution = this->all_parameters->time_refinement_study_param.number_of_timesteps_for_reference_solution;
     const Parameters::AllParameters params_reference = reinit_params_for_reference_solution(number_of_timesteps_for_reference_solution, final_time);
     std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver_reference = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(&params_reference, parameter_handler);
     static_cast<void>(flow_solver_reference->run());
@@ -68,7 +68,7 @@ double TimeRefinementStudyReference<dim,nstate>::calculate_L2_error_at_final_tim
         //calculate L2 norm of error
         dealii::LinearAlgebra::distributed::Vector<double> cellwise_difference(reference_solution); 
         cellwise_difference.add(-1.0, dg->solution);
-        double L2_error = cellwise_difference.l2_norm();
+        const double L2_error = cellwise_difference.l2_norm();
         return L2_error;
     }else{
         //recompute reference solution at actual end time
@@ -81,7 +81,7 @@ double TimeRefinementStudyReference<dim,nstate>::calculate_L2_error_at_final_tim
 
         dealii::LinearAlgebra::distributed::Vector<double> cellwise_difference(reference_solution_actual); 
         cellwise_difference.add(-1.0, dg->solution);
-        double L2_error = cellwise_difference.l2_norm();
+        const double L2_error = cellwise_difference.l2_norm();
         return L2_error;
     }
     
@@ -92,9 +92,9 @@ int TimeRefinementStudyReference<dim, nstate>::run_test() const
 {
     using ODESolverEnum = Parameters::ODESolverParam::ODESolverEnum;
 
-    double final_time = this->all_parameters->flow_solver_param.final_time;
-    double initial_time_step = this->all_parameters->ode_solver_param.initial_time_step;
-    int n_steps = round(final_time/initial_time_step);
+    const double final_time = this->all_parameters->flow_solver_param.final_time;
+    const double initial_time_step = this->all_parameters->ode_solver_param.initial_time_step;
+    const int n_steps = round(final_time/initial_time_step);
     if (n_steps * initial_time_step != final_time){
         pcout << "Error: final_time is not evenly divisible by initial_time_step!" << std::endl
               << "Remainder is " << fmod(final_time, initial_time_step)
@@ -103,8 +103,6 @@ int TimeRefinementStudyReference<dim, nstate>::run_test() const
     }
 
     int testfail = 0;
-    double expected_order =(double) this->all_parameters->ode_solver_param.runge_kutta_order;
-    double order_tolerance = 0.1;
 
     //pointer to flow_solver_case for computing energy
     std::unique_ptr<FlowSolver::Periodic1DUnsteady<dim, nstate>> flow_solver_case = std::make_unique<FlowSolver::Periodic1DUnsteady<dim,nstate>>(this->all_parameters);
@@ -113,7 +111,7 @@ int TimeRefinementStudyReference<dim, nstate>::run_test() const
     pcout << "Calculating reference solution at target final_time = " << final_time << " ..."<<std::endl;
     pcout << "-------------------------------------------------------" << std::endl;
     
-    double final_time_target = this->all_parameters->flow_solver_param.final_time;
+    const double final_time_target = this->all_parameters->flow_solver_param.final_time;
     const dealii::LinearAlgebra::distributed::Vector<double> reference_solution = calculate_reference_solution(final_time_target);
 
     dealii::ConvergenceTable convergence_table;
@@ -131,10 +129,10 @@ int TimeRefinementStudyReference<dim, nstate>::run_test() const
         const double energy_initial = flow_solver_case->compute_energy_collocated(flow_solver->dg);
         static_cast<void>(flow_solver->run());
 
-        double final_time_actual = flow_solver->ode_solver->current_time;
+        const double final_time_actual = flow_solver->ode_solver->current_time;
 
         //check L2 error
-        double L2_error = calculate_L2_error_at_final_time_wrt_reference(
+        const double L2_error = calculate_L2_error_at_final_time_wrt_reference(
                 flow_solver->dg, 
                 params, 
                 final_time_actual,
@@ -163,7 +161,7 @@ int TimeRefinementStudyReference<dim, nstate>::run_test() const
         
         if(params.ode_solver_param.ode_solver_type == ODESolverEnum::rrk_explicit_solver){
             //for burgers, this is the average gamma over the runtime
-            double gamma_aggregate_m1 = (final_time_actual / final_time_target)-1;
+            const double gamma_aggregate_m1 = (final_time_actual / final_time_target)-1;
             convergence_table.add_value("gamma_aggregate_m1", gamma_aggregate_m1);
             convergence_table.set_precision("gamma_aggregate_m1", 16);
             convergence_table.set_scientific("gamma_aggregate_m1", true);
@@ -171,6 +169,8 @@ int TimeRefinementStudyReference<dim, nstate>::run_test() const
         }
 
         //Checking convergence order
+        const double expected_order = params.ode_solver_param.rk_order;
+        const double order_tolerance = 0.1;
         if (refinement > 0) {
             L2_error_conv_rate = -log(L2_error_old/L2_error)/log(refine_ratio);
             pcout << "Order at " << refinement << " is " << L2_error_conv_rate << std::endl;

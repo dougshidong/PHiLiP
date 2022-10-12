@@ -134,7 +134,8 @@ public:
     /// Principal constructor that will call delegated constructor.
     HighOrderGrid(
         const unsigned int              max_degree, 
-        const std::shared_ptr<MeshType> triangulation_input);
+        const std::shared_ptr<MeshType> triangulation_input,
+        const bool                      output_high_order_grid=true);
 
     /// Reinitialize high_order_grid after a change in triangulation
     void reinit();

@@ -83,10 +83,16 @@ void PeriodicTurbulence<dim,nstate>::display_additional_flow_case_specific_param
 template <int dim, int nstate>
 double PeriodicTurbulence<dim,nstate>::get_constant_time_step(std::shared_ptr<DGBase<dim,double>> dg) const
 {
-    const unsigned int number_of_degrees_of_freedom_per_state = dg->dof_handler.n_dofs()/nstate;
-    const double approximate_grid_spacing = (this->domain_right-this->domain_left)/pow(number_of_degrees_of_freedom_per_state,(1.0/dim));
-    const double constant_time_step = this->all_param.flow_solver_param.courant_friedrich_lewy_number * approximate_grid_spacing;
-    return constant_time_step;
+    if(this->all_param.flow_solver_param.constant_time_step > 0.0) {
+        const double constant_time_step = this->all_param.flow_solver_param.constant_time_step;
+        this->pcout << "- - Using constant time step in FlowSolver parameters: " << constant_time_step << std::endl;
+        return constant_time_step;
+    } else {
+        const unsigned int number_of_degrees_of_freedom_per_state = dg->dof_handler.n_dofs()/nstate;
+        const double approximate_grid_spacing = (this->domain_right-this->domain_left)/pow(number_of_degrees_of_freedom_per_state,(1.0/dim));
+        const double constant_time_step = this->all_param.flow_solver_param.courant_friedrich_lewy_number * approximate_grid_spacing;
+        return constant_time_step;
+    }
 }
 
 template <int dim, int nstate>

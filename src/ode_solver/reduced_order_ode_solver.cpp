@@ -40,7 +40,7 @@ int ReducedOrderODESolver<dim,real,MeshType>::steady_state ()
 
     const Epetra_CrsMatrix epetra_system_matrix = this->dg->system_matrix.trilinos_matrix();
     const Epetra_CrsMatrix epetra_pod_basis = pod->getPODBasis()->trilinos_matrix();
-    std::shared_ptr<Epetra_CrsMatrix> epetra_test_basis = generate_test_basis(std::make_shared<Epetra_CrsMatrix>(epetra_system_matrix), std::make_shared<Epetra_CrsMatrix>(epetra_pod_basis));
+    std::shared_ptr<Epetra_CrsMatrix> epetra_test_basis = generate_test_basis(epetra_system_matrix, epetra_pod_basis);
     Epetra_Vector epetra_right_hand_side(Epetra_DataAccess::Copy, epetra_system_matrix.RowMap(), this->dg->right_hand_side.begin());
     Epetra_Vector epetra_reduced_rhs(epetra_test_basis->DomainMap());
     epetra_test_basis->Multiply(true, epetra_right_hand_side, epetra_reduced_rhs);
@@ -117,12 +117,12 @@ void ReducedOrderODESolver<dim,real,MeshType>::step_in_time (real /*dt*/, const 
 
     const Epetra_CrsMatrix epetra_system_matrix = this->dg->system_matrix.trilinos_matrix();
     const Epetra_CrsMatrix epetra_pod_basis = pod->getPODBasis()->trilinos_matrix();
-    std::shared_ptr<Epetra_CrsMatrix> epetra_test_basis = generate_test_basis(std::make_shared<Epetra_CrsMatrix>(epetra_system_matrix), std::make_shared<Epetra_CrsMatrix>(epetra_pod_basis));
+    std::shared_ptr<Epetra_CrsMatrix> epetra_test_basis = generate_test_basis(epetra_system_matrix, epetra_pod_basis);
 
     Epetra_Vector epetra_right_hand_side(Epetra_DataAccess::View, epetra_system_matrix.RowMap(), this->dg->right_hand_side.begin());
     Epetra_Vector epetra_reduced_rhs(epetra_test_basis->DomainMap());
     epetra_test_basis->Multiply(true, epetra_right_hand_side, epetra_reduced_rhs);
-    std::shared_ptr<Epetra_CrsMatrix> epetra_reduced_lhs = generate_reduced_lhs(std::make_shared<Epetra_CrsMatrix>(epetra_system_matrix), epetra_test_basis);
+    std::shared_ptr<Epetra_CrsMatrix> epetra_reduced_lhs = generate_reduced_lhs(epetra_system_matrix, *epetra_test_basis);
     Epetra_Vector epetra_reduced_solution_update(epetra_reduced_lhs->DomainMap());
     Epetra_LinearProblem linearProblem(epetra_reduced_lhs.get(), &epetra_reduced_solution_update, &epetra_reduced_rhs);
 

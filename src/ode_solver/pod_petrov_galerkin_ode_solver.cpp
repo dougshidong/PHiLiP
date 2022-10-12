@@ -10,20 +10,20 @@ PODPetrovGalerkinODESolver<dim,real,MeshType>::PODPetrovGalerkinODESolver(std::s
 {}
 
 template <int dim, typename real, typename MeshType>
-std::shared_ptr<Epetra_CrsMatrix> PODPetrovGalerkinODESolver<dim,real,MeshType>::generate_test_basis(std::shared_ptr<Epetra_CrsMatrix> system_matrix, std::shared_ptr<Epetra_CrsMatrix> pod_basis)
+std::shared_ptr<Epetra_CrsMatrix> PODPetrovGalerkinODESolver<dim,real,MeshType>::generate_test_basis(const Epetra_CrsMatrix &system_matrix, const Epetra_CrsMatrix &pod_basis)
 {
-    Epetra_Map system_matrix_rowmap = system_matrix->RowMap();
-    Epetra_CrsMatrix petrov_galerkin_basis(Epetra_DataAccess::Copy, system_matrix_rowmap, pod_basis->NumGlobalCols());
-    EpetraExt::MatrixMatrix::Multiply(*system_matrix, false, *pod_basis, false, petrov_galerkin_basis, true);
+    Epetra_Map system_matrix_rowmap = system_matrix.RowMap();
+    Epetra_CrsMatrix petrov_galerkin_basis(Epetra_DataAccess::Copy, system_matrix_rowmap, pod_basis.NumGlobalCols());
+    EpetraExt::MatrixMatrix::Multiply(system_matrix, false, pod_basis, false, petrov_galerkin_basis, true);
 
     return std::make_shared<Epetra_CrsMatrix>(petrov_galerkin_basis);
 }
 
 template <int dim, typename real, typename MeshType>
-std::shared_ptr<Epetra_CrsMatrix> PODPetrovGalerkinODESolver<dim,real,MeshType>::generate_reduced_lhs(std::shared_ptr<Epetra_CrsMatrix> /*system_matrix*/, std::shared_ptr<Epetra_CrsMatrix> test_basis)
+std::shared_ptr<Epetra_CrsMatrix> PODPetrovGalerkinODESolver<dim,real,MeshType>::generate_reduced_lhs(const Epetra_CrsMatrix &/*system_matrix*/, Epetra_CrsMatrix &test_basis)
 {
-    Epetra_CrsMatrix epetra_reduced_lhs(Epetra_DataAccess::Copy, test_basis->DomainMap(), test_basis->NumGlobalCols());
-    EpetraExt::MatrixMatrix::Multiply(*test_basis, true, *test_basis, false, epetra_reduced_lhs);
+    Epetra_CrsMatrix epetra_reduced_lhs(Epetra_DataAccess::Copy, test_basis.DomainMap(), test_basis.NumGlobalCols());
+    EpetraExt::MatrixMatrix::Multiply(test_basis, true, test_basis, false, epetra_reduced_lhs);
 
     return std::make_shared<Epetra_CrsMatrix>(epetra_reduced_lhs);
 }

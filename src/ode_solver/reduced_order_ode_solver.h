@@ -25,7 +25,7 @@ public:
     std::shared_ptr<ProperOrthogonalDecomposition::PODBase<dim>> pod;
 
     /// Destructor
-    ~ReducedOrderODESolver() {};
+    virtual ~ReducedOrderODESolver() {};
 
     /// Evaluate steady state solution.
     int steady_state () override;
@@ -37,10 +37,10 @@ public:
     void allocate_ode_system () override;
 
     /// Generate test basis depending on which projection is used
-    virtual std::shared_ptr<Epetra_CrsMatrix> generate_test_basis(std::shared_ptr<Epetra_CrsMatrix> epetra_system_matrix, std::shared_ptr<Epetra_CrsMatrix> pod_basis) = 0;
+    virtual std::shared_ptr<Epetra_CrsMatrix> generate_test_basis(const Epetra_CrsMatrix &epetra_system_matrix, const Epetra_CrsMatrix &pod_basis) = 0;
 
     /// Generate the reduced left-hand side depending on which projection is used
-    virtual std::shared_ptr<Epetra_CrsMatrix> generate_reduced_lhs(std::shared_ptr<Epetra_CrsMatrix> epetra_system_matrix, std::shared_ptr<Epetra_CrsMatrix> test_basis) = 0;
+    virtual std::shared_ptr<Epetra_CrsMatrix> generate_reduced_lhs(const Epetra_CrsMatrix &epetra_system_matrix, Epetra_CrsMatrix &test_basis) = 0;
 
 };
 

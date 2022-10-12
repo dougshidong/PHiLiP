@@ -157,7 +157,7 @@ public:
     }
 
     /// Destructor
-    virtual ~LiftDragFunctional(){};
+    ~LiftDragFunctional(){};
 
     real evaluate_functional( const bool compute_dIdW = false, const bool compute_dIdX = false, const bool compute_d2I = false) override
     {

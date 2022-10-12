@@ -30,10 +30,10 @@ public:
     PODPetrovGalerkinODESolver(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input, std::shared_ptr<ProperOrthogonalDecomposition::PODBase<dim>> pod); ///< Constructor.
 
     ///Generate test basis
-    std::shared_ptr<Epetra_CrsMatrix> generate_test_basis(std::shared_ptr<Epetra_CrsMatrix> epetra_system_matrix, std::shared_ptr<Epetra_CrsMatrix> pod_basis) override;
+    std::shared_ptr<Epetra_CrsMatrix> generate_test_basis(const Epetra_CrsMatrix &epetra_system_matrix, const Epetra_CrsMatrix &pod_basis) override;
 
     ///Generate reduced LHS
-    std::shared_ptr<Epetra_CrsMatrix> generate_reduced_lhs(std::shared_ptr<Epetra_CrsMatrix> epetra_system_matrix, std::shared_ptr<Epetra_CrsMatrix> test_basis) override;
+    std::shared_ptr<Epetra_CrsMatrix> generate_reduced_lhs(const Epetra_CrsMatrix &epetra_system_matrix, Epetra_CrsMatrix &test_basis) override;
 };
 
 } // ODE namespace

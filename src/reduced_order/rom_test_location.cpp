@@ -47,7 +47,7 @@ void ROMTestLocation<dim, nstate>::compute_FOM_to_initial_ROM_error(){
     dealii::TrilinosWrappers::SparseMatrix system_matrix_transpose = dealii::TrilinosWrappers::SparseMatrix();
     system_matrix_transpose.copy_from(flow_solver->dg->system_matrix_transpose);
 
-    // Initialize with same sparsity pattern as dg->right_hand_side
+    // Initialize with same parallel layout as dg->right_hand_side
     dealii::LinearAlgebra::distributed::Vector<double> adjoint(flow_solver->dg->right_hand_side);
 
     dealii::LinearAlgebra::distributed::Vector<double> gradient(rom_solution->gradient);

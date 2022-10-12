@@ -320,7 +320,7 @@ template<int dim>
 void FreeFormDeformation<dim>
 ::set_design_variables(
     const std::vector< std::pair< unsigned int, unsigned int > > &ffd_design_variables_indices_dim,
-    dealii::LinearAlgebra::distributed::Vector<double> &vector_to_copy_from)
+    const dealii::LinearAlgebra::distributed::Vector<double> &vector_to_copy_from)
 {
     vector_to_copy_from.update_ghost_values();
     AssertDimension(ffd_design_variables_indices_dim.size(), vector_to_copy_from.size())

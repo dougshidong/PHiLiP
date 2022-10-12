@@ -61,6 +61,21 @@ void LinearSolverParam::declare_parameters (dealii::ParameterHandler &prm)
                               "which sometimes can help to get better preconditioners");
         }
         prm.leave_subsection();
+
+        prm.enter_subsection("JFNK options");
+        {
+            prm.declare_entry("newton_residual", "1E-7",
+                              dealii::Patterns::Double(),
+                              "Convergence tolerance for Newton iterations");
+            prm.declare_entry("newton_max_iterations", "100",
+                              dealii::Patterns::Integer(),
+                              "Maximum number of Newton iterations");
+            prm.declare_entry("perturbation_magnitude", "1.490116119384765625e-8",
+                              dealii::Patterns::Double(),
+                              "Small perturbation for Jacobian-free methods."
+                              " Default value is the square root of machine epsilon.");
+        }
+        prm.leave_subsection();
     }
     prm.leave_subsection();
 }
@@ -92,6 +107,14 @@ void LinearSolverParam ::parse_parameters (dealii::ParameterHandler &prm)
             }
             prm.leave_subsection();
         }
+
+        prm.enter_subsection("JFNK options");
+        {
+            newton_residual = prm.get_double("newton_residual");
+            newton_max_iterations = prm.get_integer("newton_max_iterations");
+            perturbation_magnitude = prm.get_double("perturbation_magnitude");
+        }
+        prm.leave_subsection();
     }
     prm.leave_subsection();
 }

@@ -20,11 +20,9 @@ set diss_num_flux = symm_internal_penalty
 # ODE solver
 subsection ODE solver
   set ode_output = quiet
-  set ode_solver_type = explicit
+  set ode_solver_type = runge_kutta
   set output_solution_every_dt_time_intervals = 0.01
-  subsection explicit solver options
-    set runge_kutta_order = 3
-  end
+  set runge_kutta_method = ssprk3_ex
 end
 
 # freestream Mach number

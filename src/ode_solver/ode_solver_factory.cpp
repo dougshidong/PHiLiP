@@ -146,37 +146,25 @@ std::shared_ptr<ODESolverBase<dim,real,MeshType>> ODESolverFactory<dim,real,Mesh
         }
     }
     if (ode_solver_type == ODEEnum::rrk_explicit_solver){
-        if constexpr(dim==1){
-            using PDEEnum = Parameters::AllParameters::PartialDifferentialEquation;
-            const PDEEnum pde_type = dg_input->all_parameters->pde_type;
-            const bool use_inviscid_burgers = (pde_type == PDEEnum::burgers_inviscid);
-            if (use_inviscid_burgers){
-                pcout << "Creating Relaxation Runge Kutta ODE Solver with " 
-                      << n_rk_stages << " stage(s)..." << std::endl;
-                if (n_rk_stages == 1){
-                    return std::make_shared<RRKExplicitODESolver<dim,real,1,MeshType>>(dg_input,rk_tableau);
-                }
-                if (n_rk_stages == 2){
-                    return std::make_shared<RRKExplicitODESolver<dim,real,2,MeshType>>(dg_input,rk_tableau);
-                }
-                if (n_rk_stages == 3){
-                    return std::make_shared<RRKExplicitODESolver<dim,real,3,MeshType>>(dg_input,rk_tableau);
-                }
-                if (n_rk_stages == 4){
-                    return std::make_shared<RRKExplicitODESolver<dim,real,4,MeshType>>(dg_input,rk_tableau);
-                }
-                else{
-                    pcout << "Error: invalid number of stages. Aborting..." << std::endl;
-                    std::abort();
-                    return nullptr;
-                }
-            } else {
-                pcout << "Error: RRK has only been tested on collocated nodes with Burgers. Aborting..."<<std::endl;
-                std::abort();
-            }
-        } else {
-            pcout << "Error: RRK has only been tested on 1D calculations. Aborting..."<<std::endl;
+        // TEMP: add check for permissible PDEs before merging
+        pcout << "Creating Relaxation Runge Kutta ODE Solver with " 
+              << n_rk_stages << " stage(s)..." << std::endl;
+        if (n_rk_stages == 1){
+            return std::make_shared<RRKExplicitODESolver<dim,real,1,MeshType>>(dg_input,rk_tableau);
+        }
+        if (n_rk_stages == 2){
+            return std::make_shared<RRKExplicitODESolver<dim,real,2,MeshType>>(dg_input,rk_tableau);
+        }
+        if (n_rk_stages == 3){
+            return std::make_shared<RRKExplicitODESolver<dim,real,3,MeshType>>(dg_input,rk_tableau);
+        }
+        if (n_rk_stages == 4){
+            return std::make_shared<RRKExplicitODESolver<dim,real,4,MeshType>>(dg_input,rk_tableau);
+        }
+        else{
+            pcout << "Error: invalid number of stages. Aborting..." << std::endl;
             std::abort();
+            return nullptr;
         }
     }
     else {

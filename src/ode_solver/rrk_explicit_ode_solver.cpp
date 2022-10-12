@@ -162,12 +162,10 @@ template class RRKExplicitODESolver<PHILIP_DIM, double,3, dealii::parallel::shar
 template class RRKExplicitODESolver<PHILIP_DIM, double,4, dealii::parallel::shared::Triangulation<PHILIP_DIM> >;
 #if PHILIP_DIM != 1
     // currently only tested in 1D - commenting out higher dimensions
-    /*
     template class RRKExplicitODESolver<PHILIP_DIM, double,1, dealii::parallel::distributed::Triangulation<PHILIP_DIM> >;
     template class RRKExplicitODESolver<PHILIP_DIM, double,2, dealii::parallel::distributed::Triangulation<PHILIP_DIM> >;
     template class RRKExplicitODESolver<PHILIP_DIM, double,3, dealii::parallel::distributed::Triangulation<PHILIP_DIM> >;
     template class RRKExplicitODESolver<PHILIP_DIM, double,4, dealii::parallel::distributed::Triangulation<PHILIP_DIM> >;
-    */
 #endif
 
 } // ODESolver namespace

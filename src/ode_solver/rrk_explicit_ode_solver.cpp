@@ -7,7 +7,9 @@ template <int dim, typename real, int n_rk_stages, typename MeshType>
 RRKExplicitODESolver<dim,real,n_rk_stages,MeshType>::RRKExplicitODESolver(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input,
             std::shared_ptr<RKTableauBase<dim,real,MeshType>> rk_tableau_input)
         : RungeKuttaODESolver<dim,real,n_rk_stages,MeshType>(dg_input,rk_tableau_input)
-{}
+{
+    this->rk_stage_solution.resize(n_rk_stages);
+}
 
 template <int dim, typename real, int n_rk_stages, typename MeshType>
 void RRKExplicitODESolver<dim,real,n_rk_stages,MeshType>::modify_time_step(real &dt)
@@ -21,6 +23,15 @@ void RRKExplicitODESolver<dim,real,n_rk_stages,MeshType>::modify_time_step(real 
         std::abort();
     }
     dt *= relaxation_parameter;
+}
+
+template <int dim, typename real, int n_rk_stages, typename MeshType>
+void RRKExplicitODESolver<dim,real,n_rk_stages,MeshType>::compute_stored_quantities(const int istage)
+{
+    //Store the solution value
+    //This function is called before rk_stage is modified to hold the time-derivative
+    //this->rk_stage_solution[istage].reinit(this->rk_stage[istage], true); // omit_zeroing_entries=true
+    this->rk_stage_solution[istage]=this->rk_stage[istage]; 
 }
 
 template <int dim, typename real, int n_rk_stages, typename MeshType>
@@ -71,13 +82,21 @@ real RRKExplicitODESolver<dim,real,n_rk_stages,MeshType>::compute_relaxation_par
     const int iter_limit = 100;
     const double conv_tol = 1E-15;
     int iter_counter = 0;
-        //output
-        this->pcout << "Iter: " << iter_counter << " (initialization)"
-                    << " gamma_0: " << gamma_km1
-                    << " gamma_1: " << gamma_k
-                    << " residual: " << residual << std::endl;
+    //output
+    this->pcout << "Iter: " << iter_counter << " (initialization)"
+                << " gamma_0: " << gamma_km1
+                << " gamma_1: " << gamma_k
+                << " residual: " << residual << std::endl;
     while ((residual > conv_tol) && (iter_counter < iter_limit)){
-        // For now, secant method
+        while (r_gamma_km1 == r_gamma_k){
+            this->pcout << "    Roots are identical. Multiplying gamma_k by 1.001 and recomputing..." << std::endl;
+            gamma_k *= 1.001;
+            r_gamma_km1 = compute_root_function(gamma_km1, u_n, d, eta_n);
+            r_gamma_k = compute_root_function(gamma_k, u_n, d, eta_n);
+            this->pcout << "Current r_gamma_km1 = " << r_gamma_km1 << " r_gamma_k = " << r_gamma_k << std::endl;
+            this->pcout << "Current gamma_km1 = " << gamma_km1 << " gamma_k = " << gamma_k << std::endl;
+        }
+        // Secant method, as recommended by Rogowski et al. 2022
         // TEMP : will replace with Newton's method when eta' has been defined
         gamma_kp1 = gamma_k - r_gamma_k * (gamma_k - gamma_km1)/(r_gamma_k-r_gamma_km1);
         residual = abs(gamma_kp1 - gamma_k);

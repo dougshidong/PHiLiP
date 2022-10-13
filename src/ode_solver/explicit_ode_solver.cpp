@@ -64,7 +64,9 @@ void RungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::step_in_time (real dt, 
             this->rk_stage[i] = solver.current_solution_estimate;
 
         } // u_n + dt * sum(a_ij * k_j) <explicit> + dt * a_ii * u^(i) <implicit>
-            
+        
+        compute_stored_quantities(i);
+
         this->dg->solution = this->rk_stage[i];
 
         //set the DG current time for unsteady source terms

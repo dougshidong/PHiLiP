@@ -33,6 +33,10 @@ public:
 
 protected:
 
+    /// Storage for the solution at each Runge-Kutta stage
+    /** Note that rk_stage is the time-derivative of the solution */
+    std::vector<dealii::LinearAlgebra::distributed::Vector<double>> rk_stage_solution;
+
     /// Compute relaxation parameter explicitly (i.e. if energy is the entropy variable)
     /// See Ketcheson 2019, Eq. 2.4
     real compute_relaxation_parameter_explicit() const;
@@ -47,12 +51,18 @@ protected:
             const dealii::LinearAlgebra::distributed::Vector<double> &d,
             const double eta_n) const;
     
+    real compute_entropy_change_estimate() const;
+
     /// Compute numerical entropy based on problem physics & discretization
     real compute_numerical_entropy(
             const dealii::LinearAlgebra::distributed::Vector<double> &u) const;
 
     /// Modify timestep based on relaxation
     void modify_time_step (real &dt) override;
+    
+    /// Update stored quantities at the current stage
+    /** Empty in this class; included for relaxation runge-kutta use */
+    void compute_stored_quantities(const int istage) override;
 
     /// Compute inner product according to the nodes being used
     /** This is the same calculation as energy, but using the residual instead of solution

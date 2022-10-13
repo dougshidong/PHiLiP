@@ -55,7 +55,7 @@ echo "  set steady_state_final_solution_filename = ${mach[i]}_${alpha[i]}_soluti
 echo "end" >> $file
 echo "" >> $file
 echo "subsection grid refinement study" >> $file
-echo " set num_refinements = 1" >> $file
+echo " set num_refinements = 0" >> $file
 echo "end" >> $file
 echo "" >> $file
 echo "subsection flow_solver" >> $file

@@ -23,7 +23,7 @@ class OnlinePOD: public PODBase<dim>
 {
 public:
     /// Constructor
-    OnlinePOD(std::shared_ptr<DGBase<dim,double>> &dg_input);
+    OnlinePOD(std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> _system_matrix);
 
     /// Destructor
     ~OnlinePOD () {};
@@ -46,8 +46,8 @@ public:
     /// Reference state
     dealii::LinearAlgebra::ReadWriteVector<double> referenceState;
 
-    /// dg for sparsity pattern of system matrix
-    std::shared_ptr<DGBase<dim,double>> dg;
+    /// For sparsity pattern of system matrix
+    std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> system_matrix;
 
     /// LAPACK matrix of snapshots for nice printing
     dealii::LAPACKFullMatrix<double> dealiiSnapshotMatrix;

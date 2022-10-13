@@ -2,48 +2,36 @@
 #define __POD_GALERKIN_ODE_SOLVER__
 
 #include "dg/dg.h"
-#include "ode_solver_base.h"
+#include "reduced_order_ode_solver.h"
 #include "reduced_order/pod_basis_base.h"
-#include <deal.II/lac/la_parallel_vector.h>
 
 namespace PHiLiP {
 namespace ODE {
 
-/// POD-Galerkin ODE solver derived from ODESolver.
+/// POD-Galerkin ODE solver derived from ReducedOrderODESolver.
+/* Reference for Galerkin projection: Refer to Equation (21) in the following reference:
+"Efficient non-linear model reduction via a least-squares Petrov–Galerkin projection and compressive tensor approximations"
+Kevin Carlberg, Charbel Bou-Mosleh, Charbel Farhat
+International Journal for Numerical Methods in Engineering, 2011
+Galerkin projection, pod_basis = V, system matrix J
+V^T*J*V*p = -V^T*R
+ */
 #if PHILIP_DIM==1
 template <int dim, typename real, typename MeshType = dealii::Triangulation<dim>>
 #else
 template <int dim, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
 #endif
-class PODGalerkinODESolver: public ODESolverBase<dim, real, MeshType>
+class PODGalerkinODESolver: public ReducedOrderODESolver<dim, real, MeshType>
 {
 public:
     /// Default constructor that will set the constants.
     PODGalerkinODESolver(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input, std::shared_ptr<ProperOrthogonalDecomposition::PODBase<dim>> pod); ///< Constructor.
 
-    ///POD
-    std::shared_ptr<ProperOrthogonalDecomposition::PODBase<dim>> pod;
+    ///Generate test basis
+    std::shared_ptr<Epetra_CrsMatrix> generate_test_basis(const Epetra_CrsMatrix &epetra_system_matrix, const Epetra_CrsMatrix &pod_basis) override;
 
-    /// Destructor
-    ~PODGalerkinODESolver() {};
-
-    /// Evaluate steady state solution.
-    int steady_state () override;
-
-    /// Function to evaluate solution update
-    void step_in_time(real dt, const bool pseudotime) override;
-
-    /// Function to allocate the ODE system
-    void allocate_ode_system () override;
-
-    /// Reduced solution update given by the ODE solver
-    dealii::LinearAlgebra::distributed::Vector<double> reduced_solution_update;
-
-    /// Reference solution for consistency
-    dealii::LinearAlgebra::distributed::Vector<double> reference_solution;
-
-    /// Reduced solution
-    dealii::LinearAlgebra::distributed::Vector<double> reduced_solution;
+    ///Generate reduced LHS
+    std::shared_ptr<Epetra_CrsMatrix> generate_reduced_lhs(const Epetra_CrsMatrix &epetra_system_matrix, Epetra_CrsMatrix &test_basis) override;
 };
 
 } // ODE namespace

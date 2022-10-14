@@ -51,11 +51,6 @@ public:
         const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient,
         const dealii::types::global_dof_index cell_index) const;
 
-    /// Convective Numerical Split Flux for split form
-    std::array<dealii::Tensor<1,dim,real>,nstate> convective_numerical_split_flux (
-        const std::array<real,nstate> &conservative_soln1,
-        const std::array<real,nstate> &conservative_soln2) const override;
-    
     /// Spectral radius of convective term Jacobian
     std::array<real,nstate> convective_eigenvalues (
         const std::array<real,nstate> &/*conservative_soln*/,

@@ -267,32 +267,6 @@ std::array<dealii::Tensor<1,dim,real2>,nstate-(dim+2)> ReynoldsAveragedNavierSto
 }
 //----------------------------------------------------------------
 template <int dim, int nstate, typename real>
-std::array<dealii::Tensor<1,dim,real>,nstate> ReynoldsAveragedNavierStokesBase<dim,nstate,real>
-::convective_numerical_split_flux(const std::array<real,nstate> &conservative_soln1,
-                                  const std::array<real,nstate> &conservative_soln2) const
-{
-    std::array<dealii::Tensor<1,dim,real>,nstate> conv_num_split_flux;
-    std::array<real,dim+2> conservative_soln1_rans = extract_rans_conservative_solution(conservative_soln1);
-    std::array<real,dim+2> conservative_soln2_rans = extract_rans_conservative_solution(conservative_soln2);
-
-    const real mean_density = this->navier_stokes_physics->compute_mean_density(conservative_soln1_rans, conservative_soln2_rans);
-    const dealii::Tensor<1,dim,real> mean_velocities = this->navier_stokes_physics->compute_mean_velocities(conservative_soln1_rans,conservative_soln2_rans);
-    const std::array<real,nstate-(dim+2)> mean_turbulence_property = compute_mean_turbulence_property(conservative_soln1, conservative_soln2);
-
-    for (int i=0;i<dim+2;++i){
-        conv_num_split_flux[i] = 0.0;
-    }
-    for (int i=dim+2;i<nstate;++i)
-    {
-        for (int flux_dim = 0; flux_dim < dim; ++flux_dim){
-            conv_num_split_flux[i][flux_dim] = mean_density*mean_velocities[flux_dim]*mean_turbulence_property[i-(dim+2)];
-        }
-    }
-
-    return conv_num_split_flux;
-}
-//----------------------------------------------------------------
-template <int dim, int nstate, typename real>
 std::array<real,nstate-(dim+2)> ReynoldsAveragedNavierStokesBase<dim,nstate,real>
 ::compute_mean_turbulence_property(const std::array<real,nstate> &conservative_soln1,
                                    const std::array<real,nstate> &conservative_soln2) const

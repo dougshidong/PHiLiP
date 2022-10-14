@@ -123,19 +123,6 @@ std::array<dealii::Tensor<1,dim,real2>,nstate> LargeEddySimulationBase<dim,nstat
 }
 //----------------------------------------------------------------
 template <int dim, int nstate, typename real>
-std::array<dealii::Tensor<1,dim,real>,nstate> LargeEddySimulationBase<dim,nstate,real>
-::convective_numerical_split_flux(const std::array<real,nstate> &/*conservative_soln1*/,
-                                  const std::array<real,nstate> &/*conservative_soln2*/) const
-{
-    std::array<dealii::Tensor<1,dim,real>,nstate> conv_num_split_flux;
-    for (int i=0;i<nstate;i++)
-    {
-        conv_num_split_flux[i] = 0.0;
-    }
-    return conv_num_split_flux;
-}
-//----------------------------------------------------------------
-template <int dim, int nstate, typename real>
 std::array<real,nstate> LargeEddySimulationBase<dim,nstate,real>
 ::convective_eigenvalues (
     const std::array<real,nstate> &/*conservative_soln*/,

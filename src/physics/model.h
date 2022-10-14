@@ -45,12 +45,6 @@ public:
     	const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient,
         const dealii::types::global_dof_index cell_index) const = 0;
 
-    /// Convective Numerical Split Flux for split form additional to the baseline physics (including Convective Numerical Split Flux for split form in additional PDEs of model)
-    virtual std::array<dealii::Tensor<1,dim,real>,nstate> 
-    convective_numerical_split_flux (
-        const std::array<real,nstate> &soln_const, 
-        const std::array<real,nstate> &soln_loop) const = 0;
-
     /// Spectral radius of convective term Jacobian.
     /** Used for scalar dissipation */
     virtual std::array<real,nstate> convective_eigenvalues (

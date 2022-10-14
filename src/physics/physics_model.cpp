@@ -162,20 +162,7 @@ std::array<dealii::Tensor<1,dim,real>,nstate> PhysicsModel<dim,nstate,real,nstat
     std::array<dealii::Tensor<1,dim,real>,nstate> conv_num_split_flux;
     if constexpr(nstate==nstate_baseline_physics) {
         conv_num_split_flux = physics_baseline->convective_numerical_split_flux(conservative_soln1,conservative_soln2);
-    } else {
-        conv_num_split_flux = model->convective_numerical_split_flux(conservative_soln1,conservative_soln2);
-
-        std::array<real,nstate_baseline_physics> baseline_conservative_soln1;
-        std::array<real,nstate_baseline_physics> baseline_conservative_soln2;
-        for(int s=0; s<nstate_baseline_physics; ++s){
-            baseline_conservative_soln1[s] = conservative_soln1[s];
-            baseline_conservative_soln2[s] = conservative_soln2[s];
-        }
-        std::array<dealii::Tensor<1,dim,real>,nstate_baseline_physics> baseline_conv_num_split_flux = physics_baseline->convective_numerical_split_flux(baseline_conservative_soln1,baseline_conservative_soln2);
-        for(int s=0; s<nstate_baseline_physics; ++s){
-            conv_num_split_flux[s] += baseline_conv_num_split_flux[s];
-        }      
-    }
+    }    
     return conv_num_split_flux;
 }
 

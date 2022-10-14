@@ -218,21 +218,21 @@ protected:
      *  Note: Only used for computing the manufactured solution source term;
      *        computed using automatic differentiation
      */
-    std::array<real,nstate> convective_source_term (
+    std::array<real,nstate> convective_source_term_computed_from_manufactured_solution (
         const dealii::Point<dim,real> &pos) const;
 
     /** Dissipative flux contribution to the source term
      *  Note: Only used for computing the manufactured solution source term;
      *        computed using automatic differentiation
      */
-    std::array<real,nstate> dissipative_source_term (
+    std::array<real,nstate> dissipative_source_term_computed_from_manufactured_solution (
         const dealii::Point<dim,real> &pos,
         const dealii::types::global_dof_index cell_index) const;
 
     /** Physical source contribution to the source term
      *  Note: Only used for computing the manufactured solution source term;
      */
-    std::array<real,nstate> physical_source_source_term (
+    std::array<real,nstate> physical_source_term_computed_from_manufactured_solution (
         const dealii::Point<dim,real> &pos,
         const dealii::types::global_dof_index cell_index) const;
 

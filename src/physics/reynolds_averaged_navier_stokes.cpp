@@ -363,9 +363,9 @@ std::array<real,nstate> ReynoldsAveragedNavierStokesBase<dim,nstate,real>
         const std::array<real,nstate> &/*solution*/,
         const dealii::types::global_dof_index cell_index) const
 {
-    std::array<real,nstate> conv_source_term = convective_source_term(pos);
-    std::array<real,nstate> diss_source_term = dissipative_source_term(pos,cell_index);
-    std::array<real,nstate> phys_source_source_term = physical_source_source_term(pos,cell_index);
+    std::array<real,nstate> conv_source_term = convective_source_term_computed_from_manufactured_solution(pos);
+    std::array<real,nstate> diss_source_term = dissipative_source_term_computed_from_manufactured_solution(pos,cell_index);
+    std::array<real,nstate> phys_source_source_term = physical_source_term_computed_from_manufactured_solution(pos,cell_index);
     std::array<real,nstate> source_term;
     for (int s=0; s<nstate; ++s)
     {
@@ -382,8 +382,8 @@ std::array<real,nstate> ReynoldsAveragedNavierStokesBase<dim,nstate,real>
         const std::array<real,nstate> &/*solution*/,
         const dealii::types::global_dof_index cell_index) const
 {
-    std::array<real,nstate> conv_source_term = convective_source_term(pos);
-    std::array<real,nstate> diss_source_term = dissipative_source_term(pos,cell_index);
+    std::array<real,nstate> conv_source_term = convective_source_term_computed_from_manufactured_solution(pos);
+    std::array<real,nstate> diss_source_term = dissipative_source_term_computed_from_manufactured_solution(pos,cell_index);
     std::array<real,nstate> convective_dissipative_source_term;
     for (int s=0; s<nstate; ++s)
     {
@@ -562,7 +562,7 @@ std::array<dealii::Tensor<1,dim,real>,nstate> ReynoldsAveragedNavierStokesBase<d
 //----------------------------------------------------------------
 template <int dim, int nstate, typename real>
 std::array<real,nstate> ReynoldsAveragedNavierStokesBase<dim,nstate,real>
-::convective_source_term (
+::convective_source_term_computed_from_manufactured_solution (
     const dealii::Point<dim,real> &pos) const
 {    
     // Get Manufactured Solution values
@@ -586,17 +586,17 @@ std::array<real,nstate> ReynoldsAveragedNavierStokesBase<dim,nstate,real>
             convective_flux_divergence[sr] += jac_grad_row;
         }
     }
-    std::array<real,nstate> convective_source_term;
+    std::array<real,nstate> convective_source_term_computed_from_manufactured_solution;
     for (int s=0; s<nstate; ++s) {
-        convective_source_term[s] = convective_flux_divergence[s];
+        convective_source_term_computed_from_manufactured_solution[s] = convective_flux_divergence[s];
     }
 
-    return convective_source_term;
+    return convective_source_term_computed_from_manufactured_solution;
 }
 //----------------------------------------------------------------
 template <int dim, int nstate, typename real>
 std::array<real,nstate> ReynoldsAveragedNavierStokesBase<dim,nstate,real>
-::dissipative_source_term (
+::dissipative_source_term_computed_from_manufactured_solution (
     const dealii::Point<dim,real> &pos,
     const dealii::types::global_dof_index cell_index) const
 {    
@@ -658,17 +658,17 @@ std::array<real,nstate> ReynoldsAveragedNavierStokesBase<dim,nstate,real>
             dissipative_flux_divergence[sr] += jac_grad_row;
         }
     }
-    std::array<real,nstate> dissipative_source_term;
+    std::array<real,nstate> dissipative_source_term_computed_from_manufactured_solution;
     for (int s=0; s<nstate; ++s) {
-        dissipative_source_term[s] = dissipative_flux_divergence[s];
+        dissipative_source_term_computed_from_manufactured_solution[s] = dissipative_flux_divergence[s];
     }
 
-    return dissipative_source_term;
+    return dissipative_source_term_computed_from_manufactured_solution;
 }
 //----------------------------------------------------------------
 template <int dim, int nstate, typename real>
 std::array<real,nstate> ReynoldsAveragedNavierStokesBase<dim,nstate,real>
-::physical_source_source_term (
+::physical_source_term_computed_from_manufactured_solution (
     const dealii::Point<dim,real> &pos,
     const dealii::types::global_dof_index cell_index) const
 {    
@@ -678,44 +678,34 @@ std::array<real,nstate> ReynoldsAveragedNavierStokesBase<dim,nstate,real>
     // Get Manufactured Solution gradient
     const std::array<dealii::Tensor<1,dim,real>,nstate> manufactured_solution_gradient = get_manufactured_solution_gradient(pos); // from Euler
     
-    std::array<real,nstate> physical_source_source_term;
+    std::array<real,nstate> physical_source_source_term_computed_from_manufactured_solution;
     for (int i=0;i<nstate;++i){
-        physical_source_source_term = physical_source_term(pos, manufactured_solution, manufactured_solution_gradient, cell_index);
+        physical_source_source_term_computed_from_manufactured_solution = physical_source_term(pos, manufactured_solution, manufactured_solution_gradient, cell_index);
     }
 
-    return physical_source_source_term;
+    return physical_source_source_term_computed_from_manufactured_solution;
 }
 //----------------------------------------------------------------
 template <int dim, int nstate, typename real>
 void ReynoldsAveragedNavierStokesBase<dim,nstate,real>
 ::boundary_manufactured_solution (
     const dealii::Point<dim, real> &pos,
-    const dealii::Tensor<1,dim,real> &normal_int,
-    const std::array<real,nstate> &soln_int,
-    const std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_int,
+    const dealii::Tensor<1,dim,real> &/*normal_int*/,
+    const std::array<real,nstate> &/*soln_int*/,
+    const std::array<dealii::Tensor<1,dim,real>,nstate> &/*soln_grad_int*/,
     std::array<real,nstate> &soln_bc,
     std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_bc) const
 {
     // Manufactured solution
-    std::array<real,nstate> conservative_boundary_values;
+    std::array<real,nstate> boundary_values;
     std::array<dealii::Tensor<1,dim,real>,nstate> boundary_gradients;
-    for (int s=0; s<nstate; ++s) {
-        conservative_boundary_values[s] = this->manufactured_solution_function->value (pos, s);
-        boundary_gradients[s] = this->manufactured_solution_function->gradient (pos, s);
+    for (int i=0; i<nstate; ++i) {
+        boundary_values[i] = this->manufactured_solution_function->value (pos, i);
+        boundary_gradients[i] = this->manufactured_solution_function->gradient (pos, i);
     }
-
     for (int istate=dim+2; istate<nstate; ++istate) {
-
-        std::array<real,nstate> characteristic_dot_n = convective_eigenvalues(conservative_boundary_values, normal_int);
-        const bool inflow = (characteristic_dot_n[istate] <= 0.);
-
-        if (inflow) { // Dirichlet boundary condition
-            soln_bc[istate] = conservative_boundary_values[istate];
-            soln_grad_bc[istate] = soln_grad_int[istate];
-        } else { // Neumann boundary condition
-            soln_bc[istate] = soln_int[istate];
-            soln_grad_bc[istate] = soln_grad_int[istate];
-        }
+        soln_bc[istate] = boundary_values[istate];
+        soln_grad_bc[istate] = boundary_gradients[istate];
     }
 }
 //----------------------------------------------------------------

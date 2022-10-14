@@ -309,7 +309,7 @@ std::vector<dealii::DataComponentInterpretation::DataComponentInterpretation> Ph
 {
     namespace DCI = dealii::DataComponentInterpretation;
     std::vector<DCI::DataComponentInterpretation> interpretation;
-    if(nstate==nstate_baseline_physics) {
+    if constexpr(nstate==nstate_baseline_physics) {
         interpretation = physics_baseline->post_get_data_component_interpretation();
     } else {
         std::vector<DCI::DataComponentInterpretation> interpretation_model;

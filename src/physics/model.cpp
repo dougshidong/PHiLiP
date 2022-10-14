@@ -36,9 +36,7 @@ std::array<real,nstate> ModelBase<dim, nstate, real>
     const dealii::types::global_dof_index /*cell_index*/) const
 {
     std::array<real,nstate> physical_source;
-    for (int i=0; i<nstate; i++) {
-        physical_source[i] = 0;
-    }
+    physical_source.fill(0.0);
     return physical_source;
 }
 //----------------------------------------------------------------

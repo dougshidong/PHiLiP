@@ -35,6 +35,7 @@ protected:
     int compare_energy_to_initial(
             const std::shared_ptr <DGBase<dim, double>> dg,
             const double initial_energy,
+            const double final_time_actual,
             bool expect_conservation
             ) const;
 

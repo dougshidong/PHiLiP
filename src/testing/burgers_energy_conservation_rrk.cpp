@@ -33,6 +33,7 @@ template <int dim, int nstate>
 int BurgersEnergyConservationRRK<dim, nstate>::compare_energy_to_initial(
         const std::shared_ptr <DGBase<dim, double>> dg,
         const double initial_energy,
+        const double final_time_actual,
         bool expect_conservation
         ) const{
     
@@ -41,7 +42,7 @@ int BurgersEnergyConservationRRK<dim, nstate>::compare_energy_to_initial(
 
     const double final_energy = flow_solver_case->compute_energy_collocated(dg);
     const double energy_change = abs(initial_energy-final_energy);
-    pcout << "Energy change at end was " << energy_change <<std::endl;
+    pcout << "At end time t = " << final_time_actual << ", Energy change at end was " << std::fixed << std::setprecision(16) << energy_change <<std::endl;
     if (expect_conservation && (energy_change< 1E-13)){
         pcout << "Energy was conserved, as expected." << std::endl;
         return 0; //pass test
@@ -68,7 +69,8 @@ int BurgersEnergyConservationRRK<dim,nstate>::get_energy_and_compare_to_initial(
 {
     std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(&params, parameter_handler);
     static_cast<void>(flow_solver->run());
-    int failed_this_calculation = compare_energy_to_initial(flow_solver->dg, energy_initial, expect_conservation);
+    const double final_time_actual = flow_solver->ode_solver->current_time;
+    int failed_this_calculation = compare_energy_to_initial(flow_solver->dg, energy_initial, final_time_actual, expect_conservation);
     return failed_this_calculation;
 }
 

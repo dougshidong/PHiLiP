@@ -264,7 +264,7 @@ dealii::Vector<double> PhysicsModel<dim,nstate,real,nstate_baseline_physics>::po
     const dealii::Point<dim>                  &evaluation_points) const
 {
     dealii::Vector<double> computed_quantities;
-    if(nstate==nstate_baseline_physics) {
+    if constexpr(nstate==nstate_baseline_physics) {
         computed_quantities = physics_baseline->post_compute_derived_quantities_vector(
                                         uh, duh, dduh, normals, evaluation_points);
     } else {

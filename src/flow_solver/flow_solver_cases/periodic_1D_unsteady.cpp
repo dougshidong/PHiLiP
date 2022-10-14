@@ -128,7 +128,8 @@ double Periodic1DUnsteady<dim, nstate>::compute_entropy(
     }
 
     double entropy = entropy_var_hat_global * mass_matrix_times_solution;
-    return entropy;
+    double entropy_mpi = (dealii::Utilities::MPI::sum(entropy, this->mpi_communicator));
+    return entropy_mpi;
 }
 
 template <int dim, int nstate>

@@ -1,0 +1,84 @@
+# Listing of Parameters
+# ---------------------
+
+set test_type = POD_adaptive_sampling
+
+# Number of dimensions
+set dimension = 2
+
+# The PDE we want to solve. Choices are
+# <advection|diffusion|convection_diffusion>.
+set pde_type  = euler
+
+set conv_num_flux = roe
+
+set use_split_form = false
+
+subsection euler
+  set reference_length = 1.0
+  set mach_infinity = 0.5
+  set angle_of_attack = 0.0
+end
+
+subsection linear solver
+#set linear_solver_type = direct
+  subsection gmres options
+    set linear_residual_tolerance = 1e-8
+    set max_iterations = 2000
+    set restart_number = 100
+    set ilut_fill = 1
+    # set ilut_drop = 1e-4
+end
+end
+
+subsection ODE solver
+  # set output_solution_every_x_steps = 1
+  # Maximum nonlinear solver iterations
+  set nonlinear_max_iterations            = 500
+
+  # Nonlinear solver residual tolerance
+  set nonlinear_steady_residual_tolerance = 1e-14
+
+  set initial_time_step = 50
+  set time_step_factor_residual = 25.0
+  set time_step_factor_residual_exp = 4.0
+
+  # Print every print_iteration_modulo iterations of the nonlinear solver
+  set print_iteration_modulo              = 1
+
+  # Explicit or implicit solverChoices are <explicit|implicit>.
+  set ode_solver_type  = implicit
+end
+
+subsection flow_solver
+  set flow_case_type = gaussian_bump
+  set poly_degree = 2
+  set steady_state = true
+  set steady_state_polynomial_ramping = true
+  subsection grid
+    subsection gaussian_bump
+      set number_of_subdivisions_in_x_direction = 64
+      set number_of_subdivisions_in_y_direction = 16
+      end
+  end
+end
+
+subsection functional
+  set functional_type = outlet_pressure_integral
+end
+
+#Reduced order parameters
+subsection reduced order
+  set adaptation_tolerance = 1E-05
+  set path_to_search = .
+  set reduced_residual_tolerance = 5e-13
+  set parameter_names = mach
+  set parameter_min_values = 0.1
+  set parameter_max_values = 0.55
+  set num_halton = 0
+  set recomputation_coefficient = 5
+end
+
+subsection grid refinement study
+ set num_refinements = 0
+end

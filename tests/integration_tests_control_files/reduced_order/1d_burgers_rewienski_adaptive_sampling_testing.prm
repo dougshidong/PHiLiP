@@ -38,7 +38,7 @@ end
 
 #Reduced order parameters
 subsection reduced order
-  set path_to_search = ./rewienski_solutions/conference_convergence
+  set path_to_search = .
   set reduced_residual_tolerance = 1e-16
 end
 

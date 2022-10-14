@@ -131,6 +131,9 @@ protected:
         std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_bc) const override;
 
     /// Inflow boundary condition
+    /** Reference: Philippe R. Spalart. (2007). "Effective Inflow Conditions for Turbulence Models in Aerodynamc Calculations."
+     *  Section III. Ambient Values: A. Turbulent Reynolds Numbers
+     */ 
     void boundary_inflow (
         const std::array<real,nstate> &soln_int,
         const std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_int,
@@ -166,60 +169,60 @@ private:
      *  eq.(1)
      */ 
     template<typename real2> real2 compute_coefficient_Chi (
-        const real2 &nu_tilde,
-        const real2 &laminar_kinematic_viscosity) const;
+        const real2 nu_tilde,
+        const real2 laminar_kinematic_viscosity) const;
 
     /// Templated coefficient f_v1 for the negative SA model
     /** Reference: Steven R. Allmaras. (2012). "Modifications and Clarifications for the Implementation of the Spalart-Allmaras Turbulence Model."
      *  eq.(1)
      */ 
     template<typename real2> real2 compute_coefficient_f_v1 (
-        const real2 &coefficient_Chi) const;
+        const real2 coefficient_Chi) const;
 
     /// Coefficient f_v2 for the negative SA model
     /** Reference: Steven R. Allmaras. (2012). "Modifications and Clarifications for the Implementation of the Spalart-Allmaras Turbulence Model."
      *  eq.(4)
      */ 
     real compute_coefficient_f_v2 (
-        const real &coefficient_Chi) const;
+        const real coefficient_Chi) const;
 
     /// Templated coefficient f_n for the negative SA model
     /** Reference: Steven R. Allmaras. (2012). "Modifications and Clarifications for the Implementation of the Spalart-Allmaras Turbulence Model."
      *  eq.(21)
      */ 
     template<typename real2> real2 compute_coefficient_f_n (
-        const real2 &nu_tilde,
-        const real2 &laminar_kinematic_viscosity) const;
+        const real2 nu_tilde,
+        const real2 laminar_kinematic_viscosity) const;
 
     /// Coefficient f_t2 for the negative SA model
     /** Reference: Steven R. Allmaras. (2012). "Modifications and Clarifications for the Implementation of the Spalart-Allmaras Turbulence Model."
      *  eq.(6)
      */ 
     real compute_coefficient_f_t2 (
-        const real &coefficient_Chi) const;
+        const real coefficient_Chi) const;
 
     /// Coefficient f_t2 for the negative SA model
     /** Reference: Steven R. Allmaras. (2012). "Modifications and Clarifications for the Implementation of the Spalart-Allmaras Turbulence Model."
      *  eq.(5)
      */ 
     real compute_coefficient_f_w (
-        const real &coefficient_g) const;
+        const real coefficient_g) const;
 
     /// Coefficient r for the negative SA model
     /** Reference: Steven R. Allmaras. (2012). "Modifications and Clarifications for the Implementation of the Spalart-Allmaras Turbulence Model."
      *  eq.(5)
      */ 
     real compute_coefficient_r (
-        const real &nu_tilde,
-        const real &d_wall,
-        const real &s_tilde) const;
+        const real nu_tilde,
+        const real d_wall,
+        const real s_tilde) const;
 
     /// Coefficient g for the negative SA model
     /** Reference: Steven R. Allmaras. (2012). "Modifications and Clarifications for the Implementation of the Spalart-Allmaras Turbulence Model."
      *  eq.(5)
      */ 
     real compute_coefficient_g (
-        const real &coefficient_r) const;
+        const real coefficient_r) const;
 
     /// Vorticity magnitude for the negative SA model, sqrt(vorticity_x^2+vorticity_y^2+vorticity_z^2)
     real compute_s (
@@ -231,19 +234,19 @@ private:
      *  eq.(11)
      */ 
     real compute_s_bar (
-        const real &coefficient_Chi,
-        const real &nu_tilde,
-        const real &d_wall) const;
+        const real coefficient_Chi,
+        const real nu_tilde,
+        const real d_wall) const;
 
     /// Modified vorticity magnitude for the negative SA model
     /** Reference: Steven R. Allmaras. (2012). "Modifications and Clarifications for the Implementation of the Spalart-Allmaras Turbulence Model."
      *  eq.(12)
      */ 
     real compute_s_tilde (
-        const real &coefficient_Chi,
-        const real &nu_tilde,
-        const real &d_wall,
-        const real &s) const;
+        const real coefficient_Chi,
+        const real nu_tilde,
+        const real d_wall,
+        const real s) const;
 
     /// Production source term for the negative SA model
     /** Reference: Steven R. Allmaras. (2012). "Modifications and Clarifications for the Implementation of the Spalart-Allmaras Turbulence Model."
@@ -251,11 +254,11 @@ private:
      *  eq.(22) for negative nu_tilde
      */ 
     std::array<real,nstate> compute_production_source (
-        const real &coefficient_f_t2,
-        const real &density,
-        const real &nu_tilde,
-        const real &s,
-        const real &s_tilde) const;
+        const real coefficient_f_t2,
+        const real density,
+        const real nu_tilde,
+        const real s,
+        const real s_tilde) const;
 
     /// Dissipation source term for the negative SA model
     /** Reference: Steven R. Allmaras. (2012). "Modifications and Clarifications for the Implementation of the Spalart-Allmaras Turbulence Model."
@@ -263,20 +266,20 @@ private:
      *  eq.(22) for negative nu_tilde
      */ 
     std::array<real,nstate> compute_dissipation_source (
-        const real &coefficient_f_t2,
-        const real &density,
-        const real &nu_tilde,
-        const real &d_wall,
-        const real &s_tilde) const;
+        const real coefficient_f_t2,
+        const real density,
+        const real nu_tilde,
+        const real d_wall,
+        const real s_tilde) const;
 
     /// Source term with cross derivatives for the negative SA model
     /** Reference: Steven R. Allmaras. (2012). "Modifications and Clarifications for the Implementation of the Spalart-Allmaras Turbulence Model."
      *  eq.(17) for positive nu_tilde
      */ 
     std::array<real,nstate> compute_cross_source (
-        const real &density,
-        const real &nu_tilde,
-        const real &laminar_kinematic_viscosity,
+        const real density,
+        const real nu_tilde,
+        const real laminar_kinematic_viscosity,
         const std::array<dealii::Tensor<1,dim,real>,dim+2> &primitive_soln_gradient_rans,
         const std::array<dealii::Tensor<1,dim,real>,nstate-(dim+2)> &primitive_solution_gradient_turbulence_model) const;
 

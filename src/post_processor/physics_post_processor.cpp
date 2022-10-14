@@ -11,12 +11,10 @@ std::unique_ptr< dealii::DataPostprocessor<dim> > PostprocessorFactory<dim>
 {
     using PDE_enum = Parameters::AllParameters::PartialDifferentialEquation;
     const PDE_enum pde_type = parameters_input->pde_type;
-//#if PHILIP_DIM==3
     using Model_enum = Parameters::AllParameters::ModelType;
     const Model_enum model_type = parameters_input->model_type;
     using RANSModel_enum = Parameters::PhysicsModelParam::ReynoldsAveragedNavierStokesModel;
     const RANSModel_enum rans_model_type = parameters_input->physics_model_param.RANS_model_type;
-//#endif
 
     if (pde_type == PDE_enum::advection) {
         return std::make_unique< PhysicsPostprocessor<dim,1> >(parameters_input);

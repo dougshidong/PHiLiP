@@ -92,16 +92,15 @@ std::array<dealii::Tensor<1,dim,real2>,nstate> ReynoldsAveragedNavierStokesBase<
     const std::array<real2,nstate> &conservative_soln) const
 {
     const std::array<real2,dim+2> conservative_soln_rans = extract_rans_conservative_solution(conservative_soln);
-    const std::array<real2,dim+2> primitive_soln_rans = this->navier_stokes_physics->convert_conservative_to_primitive(conservative_soln_rans);
-    const dealii::Tensor<1,dim,real2> vel = this->navier_stokes_physics->extract_velocities_from_primitive(primitive_soln_rans); // from Euler
+    const dealii::Tensor<1,dim,real2> vel = this->navier_stokes_physics->template compute_velocities<real2>(conservative_soln_rans); // from Euler
     std::array<dealii::Tensor<1,dim,real2>,nstate> conv_flux;
 
-    for (int flux_dim=0; flux_dim<dim+2; flux_dim++) {
+    for (int flux_dim=0; flux_dim<dim+2; ++flux_dim) {
         conv_flux[flux_dim] = 0.0; // No additional convective terms for RANS
     }
     // convective flux of additional RANS turbulence model
-    for (int flux_dim=dim+2; flux_dim<nstate; flux_dim++) {
-        for (int velocity_dim=0; velocity_dim<dim; velocity_dim++) {
+    for (int flux_dim=dim+2; flux_dim<nstate; ++flux_dim) {
+        for (int velocity_dim=0; velocity_dim<dim; ++velocity_dim) {
             conv_flux[flux_dim][velocity_dim] = conservative_soln[flux_dim]*vel[velocity_dim]; // Convective terms for turbulence model
         }
     }
@@ -162,19 +161,17 @@ std::array<dealii::Tensor<1,dim,real2>,nstate> ReynoldsAveragedNavierStokesBase<
         = this->dissipative_flux_turbulence_model(primitive_soln_rans,primitive_soln_turbulence_model,primitive_soln_gradient_turbulence_model);
 
     std::array<dealii::Tensor<1,dim,real2>,nstate> viscous_flux;
-    for(int flux_dim=0; flux_dim<dim+2; flux_dim++)
+    for(int flux_dim=0; flux_dim<dim+2; ++flux_dim)
     {
         viscous_flux[flux_dim] = viscous_flux_rans[flux_dim];
     }
-    for(int flux_dim=dim+2; flux_dim<nstate; flux_dim++)
+    for(int flux_dim=dim+2; flux_dim<nstate; ++flux_dim)
     {
         viscous_flux[flux_dim] = viscous_flux_turbulence_model[flux_dim-(dim+2)];
     }
     
     return viscous_flux;
 }
-//To do later
-//Introducing new template to build general extract function for RANS and turbulence model
 //----------------------------------------------------------------
 template <int dim, int nstate, typename real>
 template <typename real2>
@@ -183,14 +180,12 @@ std::array<real2,dim+2> ReynoldsAveragedNavierStokesBase<dim,nstate,real>
     const std::array<real2,nstate> &conservative_soln) const
 {   
     std::array<real2,dim+2> conservative_soln_rans;
-    for(int i=0; i<dim+2; i++){
+    for(int i=0; i<dim+2; ++i){
         conservative_soln_rans[i] = conservative_soln[i];
     }
  
     return conservative_soln_rans;
 }
-//To do later
-//Introducing new template to build general extract function for RANS and turbulence model
 //----------------------------------------------------------------
 template <int dim, int nstate, typename real>
 template <typename real2>
@@ -199,7 +194,7 @@ std::array<dealii::Tensor<1,dim,real2>,dim+2> ReynoldsAveragedNavierStokesBase<d
     const std::array<dealii::Tensor<1,dim,real2>,nstate> &solution_gradient) const
 {   
     std::array<dealii::Tensor<1,dim,real2>,dim+2> solution_gradient_rans;
-    for(int i=0; i<dim+2; i++){
+    for(int i=0; i<dim+2; ++i){
         solution_gradient_rans[i] = solution_gradient[i];
     }
  
@@ -229,8 +224,8 @@ std::array<dealii::Tensor<1,dim,real2>,nstate-(dim+2)> ReynoldsAveragedNavierSto
 
     std::array<dealii::Tensor<1,dim,real2>,nstate-(dim+2)> viscous_flux_turbulence_model;
 
-    for(int i=0; i<nstate-(dim+2); i++){
-        for(int j=0; j<dim; j++){
+    for(int i=0; i<nstate-(dim+2); ++i){
+        for(int j=0; j<dim; ++j){
             viscous_flux_turbulence_model[i][j] = -effective_viscosity_turbulence_model[i]*primitive_solution_gradient_turbulence_model[i][j];
         }
     }
@@ -245,7 +240,7 @@ std::array<real2,nstate-(dim+2)> ReynoldsAveragedNavierStokesBase<dim,nstate,rea
     const std::array<real2,nstate> &conservative_soln) const
 {   
     std::array<real2,nstate-(dim+2)> primitive_soln_turbulence_model;
-    for(int i=0; i<nstate-(dim+2); i++){
+    for(int i=0; i<nstate-(dim+2); ++i){
         primitive_soln_turbulence_model[i] = conservative_soln[dim+2+i]/conservative_soln[0];
     }
  
@@ -262,8 +257,8 @@ std::array<dealii::Tensor<1,dim,real2>,nstate-(dim+2)> ReynoldsAveragedNavierSto
     const std::array<real2,nstate-(dim+2)> primitive_soln_turbulence_model = this->convert_conservative_to_primitive_turbulence_model(conservative_soln); 
     std::array<dealii::Tensor<1,dim,real2>,nstate-(dim+2)> primitive_soln_gradient_turbulence_model;
 
-    for(int i=0; i<nstate-(dim+2); i++){
-        for(int j=0; j<dim; j++){
+    for(int i=0; i<nstate-(dim+2); ++i){
+        for(int j=0; j<dim; ++j){
             primitive_soln_gradient_turbulence_model[i][j] = (solution_gradient[dim+2+i][j]-primitive_soln_turbulence_model[i]*solution_gradient[0][j])/conservative_soln[0];
         }
     }
@@ -284,12 +279,12 @@ std::array<dealii::Tensor<1,dim,real>,nstate> ReynoldsAveragedNavierStokesBase<d
     const dealii::Tensor<1,dim,real> mean_velocities = this->navier_stokes_physics->compute_mean_velocities(conservative_soln1_rans,conservative_soln2_rans);
     const std::array<real,nstate-(dim+2)> mean_turbulence_property = compute_mean_turbulence_property(conservative_soln1, conservative_soln2);
 
-    for (int i=0;i<dim+2;i++){
+    for (int i=0;i<dim+2;++i){
         conv_num_split_flux[i] = 0.0;
     }
-    for (int i=dim+2;i<nstate;i++)
+    for (int i=dim+2;i<nstate;++i)
     {
-        for (int flux_dim = 0; flux_dim < dim; flux_dim++){
+        for (int flux_dim = 0; flux_dim < dim; ++flux_dim){
             conv_num_split_flux[i][flux_dim] = mean_density*mean_velocities[flux_dim]*mean_turbulence_property[i-(dim+2)];
         }
     }
@@ -307,7 +302,7 @@ std::array<real,nstate-(dim+2)> ReynoldsAveragedNavierStokesBase<dim,nstate,real
     const std::array<real,nstate-(dim+2)> primitive_soln1_turbulence_model = convert_conservative_to_primitive_turbulence_model(conservative_soln1); 
     const std::array<real,nstate-(dim+2)> primitive_soln2_turbulence_model = convert_conservative_to_primitive_turbulence_model(conservative_soln2); 
 
-    for (int i=0;i<nstate-(dim+2);i++){
+    for (int i=0;i<nstate-(dim+2);++i){
         mean_turbulence_property[i] = (primitive_soln1_turbulence_model[i]+primitive_soln2_turbulence_model[i])/2.0;
     }
 
@@ -320,15 +315,13 @@ std::array<real,nstate> ReynoldsAveragedNavierStokesBase<dim,nstate,real>
     const std::array<real,nstate> &conservative_soln,
     const dealii::Tensor<1,dim,real> &normal) const
 {
-    std::array<real,dim+2> conservative_soln_rans = extract_rans_conservative_solution(conservative_soln);
-    const dealii::Tensor<1,dim,real> vel = this->navier_stokes_physics->template compute_velocities<real>(conservative_soln_rans);
+    const std::array<real,dim+2> conservative_soln_rans = extract_rans_conservative_solution(conservative_soln);
     std::array<real,nstate> eig;
-    real vel_dot_n = 0.0;
-    for (int d=0;d<dim;++d) { vel_dot_n += vel[d]*normal[d]; };
-    for (int i=0; i<dim+2; i++) {
+    const real vel_dot_n = this->navier_stokes_physics->convective_eigenvalues(conservative_soln_rans,normal)[0];
+    for (int i=0; i<dim+2; ++i) {
         eig[i] = 0.0;
     }
-    for (int i=dim+2; i<nstate; i++) {
+    for (int i=dim+2; i<nstate; ++i) {
         eig[i] = vel_dot_n;
     }
     return eig;
@@ -355,10 +348,8 @@ std::array<real,nstate> ReynoldsAveragedNavierStokesBase<dim,nstate,real>
         const dealii::Point<dim,real> &pos,
         const std::array<real,nstate> &conservative_soln,
         const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient,
-        const dealii::types::global_dof_index cell_index) const
+        const dealii::types::global_dof_index /*cell_index*/) const
 {
-    (void) cell_index;
-
     std::array<real,nstate> physical_source;
     physical_source = this->compute_production_dissipation_cross_term(pos, conservative_soln, solution_gradient);
 
@@ -372,16 +363,11 @@ std::array<real,nstate> ReynoldsAveragedNavierStokesBase<dim,nstate,real>
         const std::array<real,nstate> &/*solution*/,
         const dealii::types::global_dof_index cell_index) const
 {
-    /* TO DO Note: Since this is only used for the manufactured solution source term, 
-             the grid spacing is fixed --> No AD wrt grid --> Can use same computation as NavierStokes
-             Acceptable if we can ensure that filter_width is the same everywhere in the domain
-             for the manufacture solution cases chosen
-     */
     std::array<real,nstate> conv_source_term = convective_source_term(pos);
     std::array<real,nstate> diss_source_term = dissipative_source_term(pos,cell_index);
     std::array<real,nstate> phys_source_source_term = physical_source_source_term(pos,cell_index);
     std::array<real,nstate> source_term;
-    for (int s=0; s<nstate; s++)
+    for (int s=0; s<nstate; ++s)
     {
         source_term[s] = conv_source_term[s] + diss_source_term[s] - phys_source_source_term[s];
     }
@@ -399,7 +385,7 @@ std::array<real,nstate> ReynoldsAveragedNavierStokesBase<dim,nstate,real>
     std::array<real,nstate> conv_source_term = convective_source_term(pos);
     std::array<real,nstate> diss_source_term = dissipative_source_term(pos,cell_index);
     std::array<real,nstate> convective_dissipative_source_term;
-    for (int s=0; s<nstate; s++)
+    for (int s=0; s<nstate; ++s)
     {
         convective_dissipative_source_term[s] = conv_source_term[s] + diss_source_term[s];
     }
@@ -436,7 +422,7 @@ dealii::Tensor<2,nstate,real> ReynoldsAveragedNavierStokesBase<dim,nstate,real>
 
     // Initialize AD objects
     std::array<adtype,nstate> AD_conservative_soln;
-    for (int s=0; s<nstate; s++) {
+    for (int s=0; s<nstate; ++s) {
         adtype ADvar(nstate, s, getValue<real>(conservative_soln[s])); // create AD variable
         AD_conservative_soln[s] = ADvar;
     }
@@ -446,11 +432,11 @@ dealii::Tensor<2,nstate,real> ReynoldsAveragedNavierStokesBase<dim,nstate,real>
 
     // Assemble the directional Jacobian
     dealii::Tensor<2,nstate,real> jacobian;
-    for (int sp=0; sp<nstate; sp++) {
+    for (int sp=0; sp<nstate; ++sp) {
         // for each perturbed state (sp) variable
-        for (int s=0; s<nstate; s++) {
+        for (int s=0; s<nstate; ++s) {
             jacobian[s][sp] = 0.0;
-            for (int d=0;d<dim;d++) {
+            for (int d=0;d<dim;++d) {
                 // Compute directional jacobian
                 jacobian[s][sp] += AD_convective_flux[s][d].dx(sp)*normal[d];
             }
@@ -472,10 +458,10 @@ dealii::Tensor<2,nstate,real> ReynoldsAveragedNavierStokesBase<dim,nstate,real>
     // Initialize AD objects
     std::array<adtype,nstate> AD_conservative_soln;
     std::array<dealii::Tensor<1,dim,adtype>,nstate> AD_solution_gradient;
-    for (int s=0; s<nstate; s++) {
+    for (int s=0; s<nstate; ++s) {
         adtype ADvar(nstate, s, getValue<real>(conservative_soln[s])); // create AD variable
         AD_conservative_soln[s] = ADvar;
-        for (int d=0;d<dim;d++) {
+        for (int d=0;d<dim;++d) {
             AD_solution_gradient[s][d] = getValue<real>(solution_gradient[s][d]);
         }
     }
@@ -485,11 +471,11 @@ dealii::Tensor<2,nstate,real> ReynoldsAveragedNavierStokesBase<dim,nstate,real>
 
     // Assemble the directional Jacobian
     dealii::Tensor<2,nstate,real> jacobian;
-    for (int sp=0; sp<nstate; sp++) {
+    for (int sp=0; sp<nstate; ++sp) {
         // for each perturbed state (sp) variable
-        for (int s=0; s<nstate; s++) {
+        for (int s=0; s<nstate; ++s) {
             jacobian[s][sp] = 0.0;
-            for (int d=0;d<dim;d++) {
+            for (int d=0;d<dim;++d) {
                 // Compute directional jacobian
                 jacobian[s][sp] += AD_dissipative_flux[s][d].dx(sp)*normal[d];
             }
@@ -512,9 +498,9 @@ dealii::Tensor<2,nstate,real> ReynoldsAveragedNavierStokesBase<dim,nstate,real>
     // Initialize AD objects
     std::array<adtype,nstate> AD_conservative_soln;
     std::array<dealii::Tensor<1,dim,adtype>,nstate> AD_solution_gradient;
-    for (int s=0; s<nstate; s++) {
+    for (int s=0; s<nstate; ++s) {
         AD_conservative_soln[s] = getValue<real>(conservative_soln[s]);
-        for (int d=0;d<dim;d++) {
+        for (int d=0;d<dim;++d) {
             if(d == d_gradient){
                 adtype ADvar(nstate, s, getValue<real>(solution_gradient[s][d])); // create AD variable
                 AD_solution_gradient[s][d] = ADvar;
@@ -530,11 +516,11 @@ dealii::Tensor<2,nstate,real> ReynoldsAveragedNavierStokesBase<dim,nstate,real>
 
     // Assemble the directional Jacobian
     dealii::Tensor<2,nstate,real> jacobian;
-    for (int sp=0; sp<nstate; sp++) {
+    for (int sp=0; sp<nstate; ++sp) {
         // for each perturbed state (sp) variable
-        for (int s=0; s<nstate; s++) {
+        for (int s=0; s<nstate; ++s) {
             jacobian[s][sp] = 0.0;
-            for (int d=0;d<dim;d++) {
+            for (int d=0;d<dim;++d) {
                 // Compute directional jacobian
                 jacobian[s][sp] += AD_dissipative_flux[s][d].dx(sp)*normal[d];
             }
@@ -549,7 +535,7 @@ std::array<real,nstate> ReynoldsAveragedNavierStokesBase<dim,nstate,real>
     const dealii::Point<dim,real> &pos) const
 {
     std::array<real,nstate> manufactured_solution;
-    for (int s=0; s<nstate; s++) {
+    for (int s=0; s<nstate; ++s) {
         manufactured_solution[s] = this->manufactured_solution_function->value (pos, s);
         if (s==0) {
             assert(manufactured_solution[s] > 0);
@@ -566,8 +552,8 @@ std::array<dealii::Tensor<1,dim,real>,nstate> ReynoldsAveragedNavierStokesBase<d
     std::vector<dealii::Tensor<1,dim,real>> manufactured_solution_gradient_dealii(nstate);
     this->manufactured_solution_function->vector_gradient(pos,manufactured_solution_gradient_dealii);
     std::array<dealii::Tensor<1,dim,real>,nstate> manufactured_solution_gradient;
-    for (int d=0;d<dim;d++) {
-        for (int s=0; s<nstate; s++) {
+    for (int d=0;d<dim;++d) {
+        for (int s=0; s<nstate; ++s) {
             manufactured_solution_gradient[s][d] = manufactured_solution_gradient_dealii[s][d];
         }
     }
@@ -586,7 +572,7 @@ std::array<real,nstate> ReynoldsAveragedNavierStokesBase<dim,nstate,real>
     const std::array<dealii::Tensor<1,dim,real>,nstate> manufactured_solution_gradient = get_manufactured_solution_gradient(pos);
 
     dealii::Tensor<1,nstate,real> convective_flux_divergence;
-    for (int d=0;d<dim;d++) {
+    for (int d=0;d<dim;++d) {
         dealii::Tensor<1,dim,real> normal;
         normal[d] = 1.0;
         const dealii::Tensor<2,nstate,real> jacobian = convective_flux_directional_jacobian(manufactured_solution, normal);
@@ -601,7 +587,7 @@ std::array<real,nstate> ReynoldsAveragedNavierStokesBase<dim,nstate,real>
         }
     }
     std::array<real,nstate> convective_source_term;
-    for (int s=0; s<nstate; s++) {
+    for (int s=0; s<nstate; ++s) {
         convective_source_term[s] = convective_flux_divergence[s];
     }
 
@@ -626,10 +612,10 @@ std::array<real,nstate> ReynoldsAveragedNavierStokesBase<dim,nstate,real>
     
     // Get Manufactured Solution hessian
     std::array<dealii::SymmetricTensor<2,dim,real>,nstate> manufactured_solution_hessian;
-    for (int s=0; s<nstate; s++) {
+    for (int s=0; s<nstate; ++s) {
         dealii::SymmetricTensor<2,dim,real> hessian = this->manufactured_solution_function->hessian(pos,s);
-        for (int dr=0;dr<dim;dr++) {
-            for (int dc=0;dc<dim;dc++) {
+        for (int dr=0;dr<dim;++dr) {
+            for (int dc=0;dc<dim;++dc) {
                 manufactured_solution_hessian[s][dr][dc] = hessian[dr][dc];
             }
         }
@@ -638,14 +624,14 @@ std::array<real,nstate> ReynoldsAveragedNavierStokesBase<dim,nstate,real>
     // First term -- wrt to the conservative variables
     // This is similar, should simply provide this function a flux_directional_jacobian() -- could restructure later
     dealii::Tensor<1,nstate,real> dissipative_flux_divergence;
-    for (int d=0;d<dim;d++) {
+    for (int d=0;d<dim;++d) {
         dealii::Tensor<1,dim,real> normal;
         normal[d] = 1.0;
         const dealii::Tensor<2,nstate,real> jacobian = dissipative_flux_directional_jacobian(manufactured_solution, manufactured_solution_gradient, normal, cell_index);
         
         // get the directional jacobian wrt gradient
         std::array<dealii::Tensor<2,nstate,real>,dim> jacobian_wrt_gradient;
-        for (int d_gradient=0;d_gradient<dim;d_gradient++) {
+        for (int d_gradient=0;d_gradient<dim;++d_gradient) {
             
             // get the directional jacobian wrt gradient component (x,y,z)
             const dealii::Tensor<2,nstate,real> jacobian_wrt_gradient_component = dissipative_flux_directional_jacobian_wrt_gradient_component(manufactured_solution, manufactured_solution_gradient, normal, d_gradient, cell_index);
@@ -665,7 +651,7 @@ std::array<real,nstate> ReynoldsAveragedNavierStokesBase<dim,nstate,real>
                 jac_grad_row += jacobian[sr][sc]*manufactured_solution_gradient[sc][d]; // Euler is the same as this
                 // Second term -- wrt to the gradient of conservative variables
                 // -- add the contribution of each gradient component (e.g. x,y,z for dim==3)
-                for (int d_gradient=0;d_gradient<dim;d_gradient++) {
+                for (int d_gradient=0;d_gradient<dim;++d_gradient) {
                     jac_grad_row += jacobian_wrt_gradient[d_gradient][sr][sc]*manufactured_solution_hessian[sc][d_gradient][d]; // symmetric so d indexing works both ways
                 }
             }
@@ -673,7 +659,7 @@ std::array<real,nstate> ReynoldsAveragedNavierStokesBase<dim,nstate,real>
         }
     }
     std::array<real,nstate> dissipative_source_term;
-    for (int s=0; s<nstate; s++) {
+    for (int s=0; s<nstate; ++s) {
         dissipative_source_term[s] = dissipative_flux_divergence[s];
     }
 
@@ -693,7 +679,7 @@ std::array<real,nstate> ReynoldsAveragedNavierStokesBase<dim,nstate,real>
     const std::array<dealii::Tensor<1,dim,real>,nstate> manufactured_solution_gradient = get_manufactured_solution_gradient(pos); // from Euler
     
     std::array<real,nstate> physical_source_source_term;
-    for (int i=0;i<nstate;i++){
+    for (int i=0;i<nstate;++i){
         physical_source_source_term = physical_source_term(pos, manufactured_solution, manufactured_solution_gradient, cell_index);
     }
 
@@ -713,7 +699,7 @@ void ReynoldsAveragedNavierStokesBase<dim,nstate,real>
     // Manufactured solution
     std::array<real,nstate> conservative_boundary_values;
     std::array<dealii::Tensor<1,dim,real>,nstate> boundary_gradients;
-    for (int s=0; s<nstate; s++) {
+    for (int s=0; s<nstate; ++s) {
         conservative_boundary_values[s] = this->manufactured_solution_function->value (pos, s);
         boundary_gradients[s] = this->manufactured_solution_function->gradient (pos, s);
     }

@@ -7,7 +7,7 @@ set run_type = flow_simulation
 set pde_type = euler
 
 # DG formulation
-set use_weak_form = true
+set use_weak_form = false 
 set use_split_form = true
 set use_collocated_nodes = true
 

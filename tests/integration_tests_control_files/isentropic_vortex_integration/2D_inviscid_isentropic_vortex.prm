@@ -7,7 +7,7 @@ set run_type = flow_simulation
 set pde_type = euler
 
 # DG formulation
-set use_weak_form = true
+set use_weak_form = false
 set use_split_form = true
 set use_collocated_nodes = true
 
@@ -26,7 +26,7 @@ set two_point_num_flux_type = IR
 subsection ODE solver
   set ode_output = quiet
   #set ode_solver_type = runge_kutta 
-  set ode_solver_type = rrk_explicit 
+  set ode_solver_type = rrk_explicit
   set output_solution_every_x_steps = 1 
 end
 

@@ -172,13 +172,14 @@ real2 ReynoldsAveragedNavierStokes_SAneg<dim,nstate,real>
     const real2 coefficient_Chi) const
 {
     // Compute coefficient f_v1
+    const real2 coefficient_Chi_power_3 = pow(coefficient_Chi,3.0);
     real2 coefficient_f_v1;
 
     if constexpr(std::is_same<real2,real>::value){ 
-        coefficient_f_v1 = coefficient_Chi*coefficient_Chi*coefficient_Chi/(coefficient_Chi*coefficient_Chi*coefficient_Chi+c_v1*c_v1*c_v1);
+        coefficient_f_v1 = coefficient_Chi_power_3/(coefficient_Chi_power_3+c_v1*c_v1*c_v1);
     }
     else if constexpr(std::is_same<real2,FadType>::value){ 
-        coefficient_f_v1 = coefficient_Chi*coefficient_Chi*coefficient_Chi/(coefficient_Chi*coefficient_Chi*coefficient_Chi+c_v1_fad*c_v1_fad*c_v1_fad);
+        coefficient_f_v1 = coefficient_Chi_power_3/(coefficient_Chi_power_3+c_v1_fad*c_v1_fad*c_v1_fad);
     }
     else{
         std::cout << "ERROR in physics/negative_spalart_allmaras_rans_model.cpp --> compute_coefficient_f_v1(): real2 != real or FadType" << std::endl;

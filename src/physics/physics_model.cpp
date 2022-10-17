@@ -162,6 +162,10 @@ std::array<dealii::Tensor<1,dim,real>,nstate> PhysicsModel<dim,nstate,real,nstat
     std::array<dealii::Tensor<1,dim,real>,nstate> conv_num_split_flux;
     if constexpr(nstate==nstate_baseline_physics) {
         conv_num_split_flux = physics_baseline->convective_numerical_split_flux(conservative_soln1,conservative_soln2);
+    } else {
+        std::cout << "Error: convective_numerical_split_flux() not implemented for nstate!=nstate_baseline_physics." << std::endl;
+        std::cout << "Aborting..." << std::endl;
+        std::abort();
     }    
     return conv_num_split_flux;
 }

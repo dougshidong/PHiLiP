@@ -129,7 +129,7 @@ std::array<real,nstate> LargeEddySimulationBase<dim,nstate,real>
     const dealii::Tensor<1,dim,real> &/*normal*/) const
 {
     std::array<real,nstate> eig;
-    eig.fill(0.0)
+    eig.fill(0.0);
     return eig;
 }
 //----------------------------------------------------------------

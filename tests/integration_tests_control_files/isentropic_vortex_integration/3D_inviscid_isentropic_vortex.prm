@@ -18,18 +18,16 @@ set use_inverse_mass_on_the_fly = true
 set use_periodic_bc = true
 
 # numerical fluxes
-set conv_num_flux = two_point_flux_with_lax_friedrichs_dissipation
+set conv_num_flux = two_point_flux
 set two_point_num_flux_type = IR
-set diss_num_flux = symm_internal_penalty
+#set diss_num_flux = symm_internal_penalty
 
 # ODE solver
 subsection ODE solver
   set ode_output = quiet
-  set ode_solver_type = explicit
-  set output_solution_every_x_steps = 5 
-  subsection explicit solver options
-    set runge_kutta_order = 3
-  end
+  #set ode_solver_type = runge_kutta 
+  set ode_solver_type = rrk_explicit 
+  set output_solution_every_x_steps = 1 
 end
 
 # freestream Mach number
@@ -41,7 +39,7 @@ subsection flow_solver
   set flow_case_type = isentropic_vortex
   set poly_degree = 3
   set final_time = 25
-  set courant_friedrich_lewy_number = 0.05
+  set courant_friedrich_lewy_number = 0.10
   set unsteady_data_table_filename = isentropic_vortex_time_table
   subsection grid
     set grid_left_bound = -5.0

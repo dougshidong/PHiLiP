@@ -20,14 +20,17 @@ TimeRefinementStudyReference<dim, nstate>::TimeRefinementStudyReference(
 template <int dim, int nstate>
 Parameters::AllParameters TimeRefinementStudyReference<dim,nstate>::reinit_params_for_reference_solution(int number_of_timesteps, double final_time) const
 {
-     PHiLiP::Parameters::AllParameters parameters = *(this->all_parameters);
+    PHiLiP::Parameters::AllParameters parameters = *(this->all_parameters);
 
-     const double dt = final_time/number_of_timesteps;     
-     parameters.ode_solver_param.initial_time_step = dt;
+    const double dt = final_time/number_of_timesteps;     
+    parameters.ode_solver_param.initial_time_step = dt;
+
+    using ODESolverEnum = Parameters::ODESolverParam::ODESolverEnum;
+    parameters.ode_solver_param.ode_solver_type = ODESolverEnum::runge_kutta_solver;
      
-     pcout << "Using timestep size dt = " << dt << " for reference solution." << std::endl;
+    pcout << "Using timestep size dt = " << dt << " for reference solution." << std::endl;
      
-     return parameters;
+    return parameters;
 }
 
 template <int dim, int nstate>

@@ -8,23 +8,25 @@ RRKExplicitODESolver<dim,real,n_rk_stages,MeshType>::RRKExplicitODESolver(std::s
             std::shared_ptr<RKTableauBase<dim,real,MeshType>> rk_tableau_input)
         : RungeKuttaODESolver<dim,real,n_rk_stages,MeshType>(dg_input,rk_tableau_input)
 {
+    relaxation_parameter = 1.0;
     this->rk_stage_solution.resize(n_rk_stages);
 }
 
 template <int dim, typename real, int n_rk_stages, typename MeshType>
 void RRKExplicitODESolver<dim,real,n_rk_stages,MeshType>::modify_time_step(real &dt)
 {
-    relaxation_parameter = compute_relaxation_parameter_explicit();
-    //real relaxation_parameter_implicit = compute_relaxation_parameter_implicit(dt);
+    //relaxation_parameter = compute_relaxation_parameter_explicit();
+    real relaxation_parameter_implicit = compute_relaxation_parameter_implicit(dt);
     //this -> pcout << "______________________________________________________" << std::endl;
     //this->pcout << "gamma explicit = " << std::setprecision(16) << relaxation_parameter << " gamma implicit = " << relaxation_parameter_implicit << std::endl;
-    //this->pcout << " gamma implicit = " << relaxation_parameter_implicit << std::endl;
-    this->pcout << " gamma explicit = " << std::setprecision(16) << std::fixed <<relaxation_parameter << std::endl;
+    this->pcout << " gamma implicit = " << relaxation_parameter_implicit << std::endl;
+    //this->pcout << " gamma explicit = " << std::setprecision(16) << std::fixed <<relaxation_parameter << std::endl;
     if (relaxation_parameter < 0.5 ){
         this->pcout << "RRK failed to find a reasonable relaxation factor. Aborting..." << std::endl;
+        relaxation_parameter=1.0;
         //std::abort();
     }
-    //relaxation_parameter = relaxation_parameter_implicit;
+    relaxation_parameter = relaxation_parameter_implicit;
     dt *= relaxation_parameter;
 }
 
@@ -78,12 +80,12 @@ real RRKExplicitODESolver<dim,real,n_rk_stages,MeshType>::compute_relaxation_par
     const bool use_secant = true;
 
     double gamma_kp1; 
-    const double conv_tol = 10E-13;
+    const double conv_tol = 5E-11;
     int iter_counter = 0;
     const int iter_limit = 1000;
     if (use_secant){
 
-        const double initial_guess_0 = relaxation_parameter;// - 1E-5;
+        const double initial_guess_0 = relaxation_parameter - 1E-5;
         const double initial_guess_1 = relaxation_parameter + 1E-5;
         double residual = 1.0;
         double gamma_k = initial_guess_1;
@@ -124,20 +126,29 @@ real RRKExplicitODESolver<dim,real,n_rk_stages,MeshType>::compute_relaxation_par
         }
     } else {
         //Bisection method
-        double l_limit = 0.99;
-        double u_limit = 1.01;
+        double l_limit = relaxation_parameter - 0.01;
+        double u_limit = relaxation_parameter + 0.01;
+        double root_l_limit = compute_root_function(l_limit, u_n, d, eta_n, e);
+        double root_u_limit = compute_root_function(u_limit, u_n, d, eta_n, e);
 
         double residual = 1.0;
 
         while ((residual > conv_tol) && (iter_counter < iter_limit)){
+            if (root_l_limit * root_u_limit > 0){
+                this->pcout << "No root in the interval. Aborting..." << std::endl;
+                std::abort();
+            }
+
             gamma_kp1 = 0.5 * (l_limit + u_limit);
             this->pcout << "Iter: " << iter_counter;
             this->pcout << " Gamma by bisection is " << gamma_kp1;
             double root_at_gamma = compute_root_function(gamma_kp1, u_n, d, eta_n, e);
             if (root_at_gamma < 0) {
                 l_limit = gamma_kp1;
+                root_l_limit = root_at_gamma;
             } else {
                 u_limit = gamma_kp1;
+                root_u_limit = root_at_gamma;
             }
             residual = abs(root_at_gamma);
             this->pcout << " With residual " << residual << std::endl;
@@ -292,8 +303,10 @@ real RRKExplicitODESolver<dim,real,n_rk_stages,MeshType>::compute_entropy_change
             entropy_change_estimate += 2 * this->butcher_tableau->get_b(istage)
                                        * compute_inner_product(this->rk_stage_solution[istage],this->rk_stage[istage]);
         } else if (this->all_parameters->pde_type == PDEEnum::euler){
-            dealii::LinearAlgebra::distributed::Vector<double> mass_matrix_times_RHS(this->dg->solution);
-            this->dg->global_mass_matrix.vmult(mass_matrix_times_RHS, this->rk_stage[istage]);
+            // Recall rk_stage is IMM * RHS
+            // therefore, RHS = M * rk_stage = M * du/dt
+            dealii::LinearAlgebra::distributed::Vector<double> mass_matrix_times_rk_stage(this->dg->solution);
+            this->dg->global_mass_matrix.vmult(mass_matrix_times_rk_stage, this->rk_stage[istage]);
             
             //copy stage solution into u for better readibility
             dealii::LinearAlgebra::distributed::Vector<double> u;
@@ -381,7 +394,7 @@ real RRKExplicitODESolver<dim,real,n_rk_stages,MeshType>::compute_entropy_change
                 }
             }
 
-        double entropy = entropy_var_hat_global * mass_matrix_times_RHS;
+        double entropy = entropy_var_hat_global * mass_matrix_times_rk_stage;
         // MPI sum
         double entropy_mpi = (dealii::Utilities::MPI::sum(entropy, this->mpi_communicator));
         //this->pcout << "Entropy calculated in RRK is " << entropy_mpi << std::endl;

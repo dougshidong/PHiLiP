@@ -15,8 +15,7 @@ class ReynoldsAveragedNavierStokesBase : public ModelBase <dim, nstate, real>
 public:
     using thermal_boundary_condition_enum = Parameters::NavierStokesParam::ThermalBoundaryCondition;
     /// Constructor
-	ReynoldsAveragedNavierStokesBase
-(
+	ReynoldsAveragedNavierStokesBase(
 	    const double                                              ref_length,
         const double                                              gamma_gas,
         const double                                              mach_inf,
@@ -140,12 +139,12 @@ protected:
     std::array<dealii::Tensor<1,dim,real2>,nstate> convective_flux_templated (
         const std::array<real2,nstate> &conservative_soln) const;
 
-    /// Returns the conservative solutions of Reynolds-averaged Navier-Stokes equations
+    /// Returns the conservative solutions of Reynolds-averaged Navier-Stokes equations (without additional RANS turbulence model)
     template <typename real2>
     std::array<real2,dim+2> extract_rans_conservative_solution (
         const std::array<real2,nstate> &conservative_soln) const;
 
-    /// Returns the conservative solutions gradient of Reynolds-averaged Navier-Stokes equations
+    /// Returns the conservative solutions gradient of Reynolds-averaged Navier-Stokes equations (without additional RANS turbulence model)
     template <typename real2>
     std::array<dealii::Tensor<1,dim,real2>,dim+2> extract_rans_solution_gradient (
         const std::array<dealii::Tensor<1,dim,real2>,nstate> &solution_gradient) const;

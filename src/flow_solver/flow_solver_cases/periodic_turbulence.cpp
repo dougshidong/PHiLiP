@@ -319,7 +319,6 @@ double PeriodicTurbulence<dim, nstate>::get_numerical_entropy(
     dealii::LinearAlgebra::distributed::Vector<double> entropy_var_hat_global(dg->right_hand_side);
     std::vector<dealii::types::global_dof_index> dofs_indices (n_dofs_cell);
 
-
     for (auto cell = dg->dof_handler.begin_active(); cell!=dg->dof_handler.end(); ++cell) {
         if (!cell->is_locally_owned()) continue;
         cell->get_dof_indices (dofs_indices);
@@ -347,7 +346,7 @@ double PeriodicTurbulence<dim, nstate>::get_numerical_entropy(
             }
 
             std::array<double,nstate> entropy_var = this->navier_stokes_physics->convert_conservative_to_entropy(soln_state);
-            
+
             for(int istate=0; istate<nstate; istate++){
                 if(iquad==0)
                     entropy_var_at_q[istate].resize(n_quad_pts);
@@ -408,6 +407,7 @@ void PeriodicTurbulence<dim, nstate>::compute_unsteady_data_and_write_to_table(
     // Print to console
     this->pcout << "    Iter: " << current_iteration
                 << "    Time: " << current_time
+                << "    Num. Entropy: " << std::setprecision(16) << numerical_entropy
                 << "    Energy: " << integrated_kinetic_energy
                 << "    Enstrophy: " << integrated_enstrophy;
     if(is_viscous_flow) {

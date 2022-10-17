@@ -15,18 +15,24 @@ RRKExplicitODESolver<dim,real,n_rk_stages,MeshType>::RRKExplicitODESolver(std::s
 template <int dim, typename real, int n_rk_stages, typename MeshType>
 void RRKExplicitODESolver<dim,real,n_rk_stages,MeshType>::modify_time_step(real &dt)
 {
-    //relaxation_parameter = compute_relaxation_parameter_explicit();
-    real relaxation_parameter_implicit = compute_relaxation_parameter_implicit(dt);
-    //this -> pcout << "______________________________________________________" << std::endl;
-    //this->pcout << "gamma explicit = " << std::setprecision(16) << relaxation_parameter << " gamma implicit = " << relaxation_parameter_implicit << std::endl;
-    this->pcout << " gamma implicit = " << relaxation_parameter_implicit << std::endl;
-    //this->pcout << " gamma explicit = " << std::setprecision(16) << std::fixed <<relaxation_parameter << std::endl;
+    using PDEEnum = Parameters::AllParameters::PartialDifferentialEquation;
+    if (this->all_parameters->pde_type == PDEEnum::burgers_inviscid)    
+    {
+        relaxation_parameter = compute_relaxation_parameter_explicit();
+        this->pcout << " gamma explicit = " << std::setprecision(16) << std::fixed <<relaxation_parameter << std::endl;
+    }
+    else
+    {
+        real relaxation_parameter_implicit = compute_relaxation_parameter_implicit(dt);
+        this->pcout << " gamma implicit = " << relaxation_parameter_implicit << std::endl;
+        relaxation_parameter = relaxation_parameter_implicit;
+    }
+
     if (relaxation_parameter < 0.5 ){
         this->pcout << "RRK failed to find a reasonable relaxation factor. Aborting..." << std::endl;
         relaxation_parameter=1.0;
         //std::abort();
     }
-    relaxation_parameter = relaxation_parameter_implicit;
     dt *= relaxation_parameter;
 }
 

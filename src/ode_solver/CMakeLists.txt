@@ -5,7 +5,9 @@ set(ODE_SOURCE
     explicit_ode_solver.cpp
     runge_kutta_methods/runge_kutta_methods.cpp
     runge_kutta_methods/rk_tableau_base.cpp
-    rrk_explicit_ode_solver.cpp
+    relaxation_runge_kutta/rrk_ode_solver_base.cpp
+    relaxation_runge_kutta/energy_rrk_ode_solver.cpp
+    relaxation_runge_kutta/entropy_rrk_ode_solver.cpp
     implicit_ode_solver.cpp
     pod_galerkin_ode_solver.cpp
     pod_petrov_galerkin_ode_solver.cpp

@@ -4,7 +4,8 @@
 //#include "runge_kutta_ode_solver.h"
 #include "explicit_ode_solver.h"
 #include "implicit_ode_solver.h"
-#include "rrk_explicit_ode_solver.h"
+#include "relaxation_runge_kutta/energy_rrk_ode_solver.h"
+#include "relaxation_runge_kutta/entropy_rrk_ode_solver.h"
 #include "pod_galerkin_ode_solver.h"
 #include "pod_petrov_galerkin_ode_solver.h"
 #include <deal.II/distributed/solution_transfer.h>
@@ -130,13 +131,13 @@ std::shared_ptr<ODESolverBase<dim,real,MeshType>> ODESolverFactory<dim,real,Mesh
         if (n_rk_stages == 1){
             return std::make_shared<RungeKuttaODESolver<dim,real,1,MeshType>>(dg_input,rk_tableau);
         }
-        if (n_rk_stages == 2){
+        else if (n_rk_stages == 2){
             return std::make_shared<RungeKuttaODESolver<dim,real,2,MeshType>>(dg_input,rk_tableau);
         }
-        if (n_rk_stages == 3){
+        else if (n_rk_stages == 3){
             return std::make_shared<RungeKuttaODESolver<dim,real,3,MeshType>>(dg_input,rk_tableau);
         }
-        if (n_rk_stages == 4){
+        else if (n_rk_stages == 4){
             return std::make_shared<RungeKuttaODESolver<dim,real,4,MeshType>>(dg_input,rk_tableau);
         }
         else{
@@ -146,20 +147,56 @@ std::shared_ptr<ODESolverBase<dim,real,MeshType>> ODESolverFactory<dim,real,Mesh
         }
     }
     if (ode_solver_type == ODEEnum::rrk_explicit_solver){
+
+        using PDEEnum = Parameters::AllParameters::PartialDifferentialEquation;
+        const PDEEnum pde_type = dg_input->all_parameters->pde_type;
+        using NumFluxEnum = Parameters::AllParameters::TwoPointNumericalFlux;
+        const NumFluxEnum two_point_num_flux_type = dg_input->all_parameters->two_point_num_flux_type;
+        
+        enum NumEntropyEnum {energy, entropy};
+        NumEntropyEnum numerical_entropy_type;
+        std::string numerical_entropy_string;
+        if (pde_type == PDEEnum::burgers_inviscid){
+            numerical_entropy_type = NumEntropyEnum::energy;
+            numerical_entropy_string = "Energy";
+        } else if (pde_type == PDEEnum::euler && two_point_num_flux_type == NumFluxEnum::IR){
+            numerical_entropy_type = NumEntropyEnum::entropy;
+            numerical_entropy_string = "Entropy";
+        } else{
+            pcout << "PDE type has no assigned numerical entropy variable. Aborting..." << std::endl;
+            std::abort();
+        }
+
         // TEMP: add check for permissible PDEs before merging
-        pcout << "Creating Relaxation Runge Kutta ODE Solver with " 
+        pcout << "Creating " << numerical_entropy_string << " Relaxation Runge Kutta ODE Solver with " 
               << n_rk_stages << " stage(s)..." << std::endl;
         if (n_rk_stages == 1){
-            return std::make_shared<RRKExplicitODESolver<dim,real,1,MeshType>>(dg_input,rk_tableau);
+            if (numerical_entropy_type==NumEntropyEnum::energy)
+                return std::make_shared<EnergyRRKODESolver<dim,real,1,MeshType>>(dg_input,rk_tableau);
+            else if (numerical_entropy_type==NumEntropyEnum::entropy)
+                return std::make_shared<EntropyRRKODESolver<dim,real,1,MeshType>>(dg_input,rk_tableau);
+            else return nullptr; // no need for message as numerical_entropy_type has already been checked
         }
-        if (n_rk_stages == 2){
-            return std::make_shared<RRKExplicitODESolver<dim,real,2,MeshType>>(dg_input,rk_tableau);
+        else if (n_rk_stages == 2){
+            if (numerical_entropy_type==NumEntropyEnum::energy)
+                return std::make_shared<EnergyRRKODESolver<dim,real,2,MeshType>>(dg_input,rk_tableau);
+            else if (numerical_entropy_type==NumEntropyEnum::entropy)
+                return std::make_shared<EntropyRRKODESolver<dim,real,2,MeshType>>(dg_input,rk_tableau);
+            else return nullptr;
         }
-        if (n_rk_stages == 3){
-            return std::make_shared<RRKExplicitODESolver<dim,real,3,MeshType>>(dg_input,rk_tableau);
+        else if (n_rk_stages == 3){
+            if (numerical_entropy_type==NumEntropyEnum::energy)
+                return std::make_shared<EnergyRRKODESolver<dim,real,3,MeshType>>(dg_input,rk_tableau);
+            else if (numerical_entropy_type==NumEntropyEnum::entropy)
+                return std::make_shared<EntropyRRKODESolver<dim,real,3,MeshType>>(dg_input,rk_tableau);
+            else return nullptr;
         }
-        if (n_rk_stages == 4){
-            return std::make_shared<RRKExplicitODESolver<dim,real,4,MeshType>>(dg_input,rk_tableau);
+        else if (n_rk_stages == 4){
+            if (numerical_entropy_type==NumEntropyEnum::energy)
+                return std::make_shared<EnergyRRKODESolver<dim,real,4,MeshType>>(dg_input,rk_tableau);
+            else if (numerical_entropy_type==NumEntropyEnum::entropy)
+                return std::make_shared<EntropyRRKODESolver<dim,real,4,MeshType>>(dg_input,rk_tableau);
+            else return nullptr;
         }
         else{
             pcout << "Error: invalid number of stages. Aborting..." << std::endl;

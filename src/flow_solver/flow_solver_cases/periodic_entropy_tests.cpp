@@ -120,8 +120,8 @@ double PeriodicEntropyTests<dim, nstate>::compute_entropy(
     }
 
     double entropy = entropy_var_hat_global * mass_matrix_times_solution;
-    double entropy_mpi = (dealii::Utilities::MPI::sum(entropy, this->mpi_communicator));
-    return entropy_mpi;
+    //double entropy_mpi = (dealii::Utilities::MPI::sum(entropy, this->mpi_communicator));
+    return entropy;
 }
 
 template <int dim, int nstate>

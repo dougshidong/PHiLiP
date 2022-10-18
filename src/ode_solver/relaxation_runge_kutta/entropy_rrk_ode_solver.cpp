@@ -156,9 +156,8 @@ real EntropyRRKODESolver<dim,real,n_rk_stages,MeshType>::compute_numerical_entro
     dealii::LinearAlgebra::distributed::Vector<double> entropy_var_hat_global = compute_entropy_vars(u);
 
     double entropy = entropy_var_hat_global * mass_matrix_times_solution;
-    // MPI sum
-    double entropy_mpi = (dealii::Utilities::MPI::sum(entropy, this->mpi_communicator));
-    return entropy_mpi;
+    //double entropy_mpi = (dealii::Utilities::MPI::sum(entropy, this->mpi_communicator));
+    return entropy;
 }
 
 template <int dim, typename real, int n_rk_stages, typename MeshType>
@@ -177,8 +176,8 @@ real EntropyRRKODESolver<dim,real,n_rk_stages,MeshType>::compute_entropy_change_
         
         double entropy = entropy_var_hat_global * mass_matrix_times_rk_stage;
         // MPI sum
-        double entropy_mpi = (dealii::Utilities::MPI::sum(entropy, this->mpi_communicator));
-        entropy_change_estimate += this->butcher_tableau->get_b(istage) * entropy_mpi;
+        //double entropy_mpi = (dealii::Utilities::MPI::sum(entropy, this->mpi_communicator));
+        entropy_change_estimate += this->butcher_tableau->get_b(istage) * entropy;
     }
 
     return dt * entropy_change_estimate;

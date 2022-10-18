@@ -159,7 +159,7 @@ std::shared_ptr<ODESolverBase<dim,real,MeshType>> ODESolverFactory<dim,real,Mesh
         if (pde_type == PDEEnum::burgers_inviscid){
             numerical_entropy_type = NumEntropyEnum::energy;
             numerical_entropy_string = "Energy";
-        } else if (pde_type == PDEEnum::euler && two_point_num_flux_type == NumFluxEnum::IR){
+        } else if ((pde_type == PDEEnum::euler) && (two_point_num_flux_type == NumFluxEnum::IR)){
             numerical_entropy_type = NumEntropyEnum::entropy;
             numerical_entropy_string = "Entropy";
         } else{

@@ -52,6 +52,9 @@ protected:
     /// Compute the estimated entropy change during a timestep
     real compute_entropy_change_estimate(real &dt) const;
 
+    /// Return the entropy variables from a solution vector u
+    dealii::LinearAlgebra::distributed::Vector<double> compute_entropy_vars(const dealii::LinearAlgebra::distributed::Vector<double> &u) const;
+
 };
 
 } // ODE namespace

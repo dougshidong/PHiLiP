@@ -115,11 +115,11 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                               "Polynomial degree of the grid. Curvilinear grid if set greater than 1; default is 1.");
 
             prm.declare_entry("grid_left_bound", "0.0",
-                              dealii::Patterns::Double(0, dealii::Patterns::Double::max_double_value),
+                              dealii::Patterns::Double(-dealii::Patterns::Double::max_double_value, dealii::Patterns::Double::max_double_value),
                               "Left bound of domain for hyper_cube mesh based cases.");
 
             prm.declare_entry("grid_right_bound", "1.0",
-                              dealii::Patterns::Double(0, dealii::Patterns::Double::max_double_value),
+                              dealii::Patterns::Double(-dealii::Patterns::Double::max_double_value, dealii::Patterns::Double::max_double_value),
                               "Right bound of domain for hyper_cube mesh based cases.");
 
             prm.declare_entry("number_of_grid_elements_per_dimension", "4",

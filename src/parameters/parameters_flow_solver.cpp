@@ -178,6 +178,10 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                               "Choices are "
                               " <uniform | "
                               " isothermal>.");
+            prm.declare_entry("do_calculate_numerical_entropy", "false",
+                              dealii::Patterns::Bool(),
+                              "Flag to calculate numerical entropy and write to file. By default, do not calculate.");
+
         }
         prm.leave_subsection();
 
@@ -257,6 +261,7 @@ void FlowSolverParam::parse_parameters(dealii::ParameterHandler &prm)
             const std::string density_initial_condition_type_string = prm.get("density_initial_condition_type");
             if      (density_initial_condition_type_string == "uniform")    {density_initial_condition_type = uniform;}
             else if (density_initial_condition_type_string == "isothermal") {density_initial_condition_type = isothermal;}
+            do_calculate_numerical_entropy = prm.get_bool("do_calculate_numerical_entropy");
         }
         prm.leave_subsection();
 

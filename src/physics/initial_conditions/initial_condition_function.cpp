@@ -373,7 +373,7 @@ inline real InitialConditionFunction_IsentropicVortex<dim,nstate,real>
     const double U_infty = 1.0; //this isn't clear from the paper as it is defined U_infty = M_infty * c_infty and c_infty isn't assigned. I will assume unity (i.e., non-dimensionalizing)
     const double epsilon_v = 5;
     const double gamma = 1.4;
-    const double alpha = pi/4; //rad
+    `const double alpha = pi/4; //rad
     const double x0[3] = {0.0, 0.0, 0.0};
 
     const double G = 1 - (pow(point[0]-x0[0] - U_infty * cos(alpha) * 0,2)+pow(point[1]-x0[1] - U_infty * sin(alpha) * 0,2));
@@ -387,14 +387,15 @@ inline real InitialConditionFunction_IsentropicVortex<dim,nstate,real>
 
     const double pi = dealii::numbers::PI;
     const double gamma = 1.4;
-    //const double M_infty = sqrt(2/gamma);
-    const double M_infty = 0.4;
-    const double R = 3/2;
+    const double M_infty = sqrt(2/gamma);
+    //const double M_infty = 0.4;
+    const double R = 1;
+    //const double R = 3/2;
     const double sigma = 1;
-    //const double beta = M_infty * 5 * sqrt(2.0)/4.0/pi * exp(1.0/2.0);
-    const double beta = M_infty * 27 / 4.0 / pi * exp (2.0/9.0);
-    //const double alpha = pi/4; //rad
-    const double alpha = 0; //rad
+    const double beta = M_infty * 5 * sqrt(2.0)/4.0/pi * exp(1.0/2.0);
+    //const double beta = M_infty * 27 / 4.0 / pi * exp (2.0/9.0);
+    const double alpha = pi/4; //rad
+    //const double alpha = 0; //rad
 
     const double x0 = 0.0;
     const double y0 = 0.0;

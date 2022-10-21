@@ -1,5 +1,5 @@
-#ifndef __EULER_ISLAIL_ROE_ENTROPY_CHECK__
-#define __EULER_ISLAIL_ROE_ENTROPY_CHECK__
+#ifndef __EULER_ISMAIL_ROE_ENTROPY_CHECK__
+#define __EULER_ISMAIL_ROE_ENTROPY_CHECK__
 
 #include "tests.h"
 

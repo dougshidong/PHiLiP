@@ -19,12 +19,13 @@ int EulerIsmailRoeEntropyCheck<dim, nstate>::run_test() const
     // Initialize flow_solver
     std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(this->all_parameters, parameter_handler);
 
-    // Compute kinetic energy and theoretical dissipation rate
+    // Compute  initial and final entropy
     std::unique_ptr<FlowSolver::PeriodicTurbulence<dim, nstate>> flow_solver_case = std::make_unique<FlowSolver::PeriodicTurbulence<dim,nstate>>(this->all_parameters);
     const double initial_entropy = flow_solver_case->get_numerical_entropy(flow_solver->dg); 
     static_cast<void>(flow_solver->run());
     const double final_entropy = flow_solver_case->get_numerical_entropy(flow_solver->dg); 
 
+    //Compare initial and final entropy to confirm entropy preservation
     pcout << "Initial num. entropy: " << std::setprecision(16) << initial_entropy 
           << " final: " << final_entropy 
           << " scaled difference " << abs((initial_entropy-final_entropy)/initial_entropy) 

@@ -206,7 +206,7 @@ double PeriodicTurbulence<dim, nstate>::get_numerical_entropy(
 {
     const double poly_degree = this->all_param.flow_solver_param.poly_degree;
     dealii::LinearAlgebra::distributed::Vector<double> mass_matrix_times_solution(dg->right_hand_side);
-    if(dg->all_parameters->use_inverse_mass_on_the_fly)
+    if(this->all_param.use_inverse_mass_on_the_fly)
         dg->apply_global_mass_matrix(dg->solution,mass_matrix_times_solution);
     else
         dg->global_mass_matrix.vmult( mass_matrix_times_solution, dg->solution);
@@ -224,7 +224,6 @@ double PeriodicTurbulence<dim, nstate>::get_numerical_entropy(
     dealii::LinearAlgebra::distributed::Vector<double> entropy_var_hat_global(dg->right_hand_side);
     std::vector<dealii::types::global_dof_index> dofs_indices (n_dofs_cell);
 
-    //std::shared_ptr < Physics::PhysicsBase<dim, nstate, double > > pde_physics_double  = PHiLiP::Physics::PhysicsFactory<dim,nstate,double>::create_Physics(dg->all_parameters);
 
     for (auto cell = dg->dof_handler.begin_active(); cell!=dg->dof_handler.end(); ++cell) {
         if (!cell->is_locally_owned()) continue;
@@ -263,13 +262,11 @@ double PeriodicTurbulence<dim, nstate>::get_numerical_entropy(
             const double pressure = 0.4*(soln_state[nstate-1] - 0.5*density*vel2);
             const double entropy = log(pressure) - 1.4 * log(density);
             
-            //pcout << pressure << " " << entropy << std::endl;        
             entropy_var[0] = (1.4-entropy)/0.4 - 0.5 * density / pressure * vel2;
             for(int idim=0; idim<dim; idim++){
                 entropy_var[idim+1] = soln_state[idim+1] / pressure;
             }
             entropy_var[nstate-1] = - density / pressure;
-            //pcout << entropy_var[0] << " ";
 
             for(int istate=0; istate<nstate; istate++){
                 if(iquad==0)
@@ -287,12 +284,10 @@ double PeriodicTurbulence<dim, nstate>::get_numerical_entropy(
                 const unsigned int idof = istate * n_shape_fns + ishape;
                 entropy_var_hat_global[dofs_indices[idof]] = entropy_var_hat[ishape];
             }
-            //this->pcout << entropy_var_hat_global[0] << " ";
         }
     }
 
     double entropy = entropy_var_hat_global * mass_matrix_times_solution;
-    //double entropy_mpi = (dealii::Utilities::MPI::sum(entropy, this->mpi_communicator));
     return entropy;
 }
 

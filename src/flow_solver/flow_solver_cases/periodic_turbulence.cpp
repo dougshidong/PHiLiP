@@ -287,6 +287,8 @@ double PeriodicTurbulence<dim, nstate>::get_numerical_entropy(
         }
     }
 
+    //Note that dot product accounts for MPI distributed vectors
+    //Therefore, there is no need for an MPI sum.
     double entropy = entropy_var_hat_global * mass_matrix_times_solution;
     return entropy;
 }

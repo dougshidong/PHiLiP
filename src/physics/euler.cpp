@@ -19,8 +19,8 @@ Euler<dim,nstate,real>::Euler (
     const double                                              angle_of_attack,
     const double                                              side_slip_angle,
     std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function,
-    const bool                                                has_nonzero_diffusion,
-    const two_point_num_flux_enum                             two_point_num_flux_type_input)
+    const two_point_num_flux_enum                             two_point_num_flux_type_input,
+    const bool                                                has_nonzero_diffusion)
     : PhysicsBase<dim,nstate,real>(has_nonzero_diffusion,manufactured_solution_function)
     , ref_length(ref_length)
     , gam(gamma_gas)

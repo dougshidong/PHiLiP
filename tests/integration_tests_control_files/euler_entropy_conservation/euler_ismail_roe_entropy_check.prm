@@ -21,7 +21,7 @@ set use_periodic_bc = true
 
 # numerical fluxes
 set conv_num_flux = two_point_flux
-set two_point_num_flux_type = IR
+set two_point_num_flux_type = IR 
 
 # ODE solver
 subsection ODE solver
@@ -49,5 +49,6 @@ subsection flow_solver
   end
   subsection taylor_green_vortex
     set do_calculate_numerical_entropy = true
+    set density_initial_condition_type = isothermal
   end
 end

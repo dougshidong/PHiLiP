@@ -30,8 +30,8 @@ NavierStokes<dim, nstate, real>::NavierStokes(
                              angle_of_attack, 
                              side_slip_angle, 
                              manufactured_solution_function,
-                             true,
-                             two_point_num_flux_type)
+                             two_point_num_flux_type,
+                             true) //has_nonzero_diffusion = true
     , viscosity_coefficient_inf(1.0) // Nondimensional - Free stream values
     , prandtl_number(prandtl_number)
     , reynolds_number_inf(reynolds_number_inf)

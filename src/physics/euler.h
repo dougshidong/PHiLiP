@@ -96,8 +96,8 @@ public:
         const double                                              angle_of_attack,
         const double                                              side_slip_angle,
         std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function = nullptr,
-        const bool                                                has_nonzero_diffusion = false,
-        const two_point_num_flux_enum                             two_point_num_flux_type = two_point_num_flux_enum::KG);
+        const two_point_num_flux_enum                             two_point_num_flux_type = two_point_num_flux_enum::KG,
+        const bool                                                has_nonzero_diffusion = false);
 
     /// Destructor
     // virtual ~Euler() =0;

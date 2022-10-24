@@ -282,6 +282,9 @@ protected:
 
 public:
     /// Constructor for InitialConditionFunction_IsentropicVortex
+    /// Setup according to "A Survey of the Isentropic Euler Vortex Problem using High-Order Methods"
+    ///     Spiegel et al., 2015
+    /// Using "Shu" variant (first row of Table 1)
     InitialConditionFunction_IsentropicVortex ();
 
     /// Value of initial condition

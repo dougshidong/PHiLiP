@@ -353,7 +353,7 @@ inline real InitialConditionFunction_1DSine<dim,nstate,real>
 }
 
 // ========================================================
-// Inviscid Isentropic Vortex - Eq. 4.7 in Ranocha 2020 "Relaxation Runge-Kutta Methods..."
+// Inviscid Isentropic Vortex 
 // ========================================================
 template <int dim, int nstate, typename real>
 InitialConditionFunction_IsentropicVortex<dim,nstate,real>
@@ -367,36 +367,16 @@ template <int dim, int nstate, typename real>
 inline real InitialConditionFunction_IsentropicVortex<dim,nstate,real>
 ::value(const dealii::Point<dim,real> &point, const unsigned int istate) const
 {
-    /*
+    // Setting constants
     const double pi = dealii::numbers::PI;
-    const double M_infty = 0.5;
-    const double U_infty = 1.0; //this isn't clear from the paper as it is defined U_infty = M_infty * c_infty and c_infty isn't assigned. I will assume unity (i.e., non-dimensionalizing)
-    const double epsilon_v = 5;
-    const double gamma = 1.4;
-    `const double alpha = pi/4; //rad
-    const double x0[3] = {0.0, 0.0, 0.0};
-
-    const double G = 1 - (pow(point[0]-x0[0] - U_infty * cos(alpha) * 0,2)+pow(point[1]-x0[1] - U_infty * sin(alpha) * 0,2));
-    const double T = 1 - epsilon_v*epsilon_v*M_infty*M_infty * (gamma-1)/8.0/pi/pi * exp(G);
-    const double rho = pow(T, 1.0/(gamma-1.0));
-    const double p = rho * T / gamma / M_infty;
-    const double Ux = U_infty*cos(alpha) - epsilon_v/2.0/pi * (point[1]-x0[1]-U_infty*sin(alpha))*exp(G/2);
-    const double Uy = U_infty*sin(alpha) - epsilon_v/2.0/pi * (point[0]-x0[0]-U_infty*cos(alpha))*exp(G/2);
-    const double Uz = 0;
-    */
-
-    const double pi = dealii::numbers::PI;
-    const double gamma = 1.4;
-    const double M_infty = sqrt(2/gamma);
-    //const double M_infty = 0.4;
+    const double gam = 1.4;
+    const double M_infty = sqrt(2/gam);
     const double R = 1;
-    //const double R = 3/2;
     const double sigma = 1;
     const double beta = M_infty * 5 * sqrt(2.0)/4.0/pi * exp(1.0/2.0);
-    //const double beta = M_infty * 27 / 4.0 / pi * exp (2.0/9.0);
     const double alpha = pi/4; //rad
-    //const double alpha = 0; //rad
 
+    // Centre of the vortex  at t=0
     const double x0 = 0.0;
     const double y0 = 0.0;
     const double x = point[0]-x0;
@@ -405,18 +385,18 @@ inline real InitialConditionFunction_IsentropicVortex<dim,nstate,real>
     const double Omega = beta * exp(-0.5/sigma/sigma* (x/R * x/R + y/R * y/R));
     const double delta_Ux = -y/R * Omega;
     const double delta_Uy =  x/R * Omega;
-    const double delta_T  = -(gamma-1.0)/2.0 * Omega * Omega;
+    const double delta_T  = -(gam-1.0)/2.0 * Omega * Omega;
 
-    const double rho = pow((1 + delta_T), 1.0/(gamma-1.0));
+    // Primitive
+    const double rho = pow((1 + delta_T), 1.0/(gam-1.0));
     const double Ux = M_infty * cos(alpha) + delta_Ux;
     const double Uy = M_infty * sin(alpha) + delta_Uy;
     const double Uz = 0;
-    const double p = 1.0/gamma*pow(1+delta_T, gamma/(gamma-1.0));
-
+    const double p = 1.0/gam*pow(1+delta_T, gam/(gam-1.0));
 
     //Convert to conservative variables
     if (istate == 0)      return rho;       //density 
-    else if (istate == nstate-1) return p/(gamma-1.0) + 0.5 * rho * (Ux*Ux + Uy*Uy + Uz*Uz);   //total energy
+    else if (istate == nstate-1) return p/(gam-1.0) + 0.5 * rho * (Ux*Ux + Uy*Uy + Uz*Uz);   //total energy
     else if (istate == 1) return rho * Ux;  //x-momentum
     else if (istate == 2) return rho * Uy;  //y-momentum
     else if (istate == 3) return rho * Uz;  //z-momentum

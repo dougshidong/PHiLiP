@@ -192,6 +192,29 @@ inline std::array<real,nstate> Euler<dim,nstate,real>
     return conservative_soln;
 }
 
+template <int dim, int nstate, typename real>
+inline std::array<real,nstate> Euler<dim,nstate,real>
+::convert_conservative_to_entropy ( const std::array<real,nstate> &conservative_soln ) const
+{
+    const real pressure = compute_pressure<real>(conservative_soln);
+    const real density = conservative_soln[0];
+    const real vel2 = compute_velocity_squared(compute_velocities(conservative_soln));
+    // This is a different entropy than the "entropy measure" in compute_entropy_measure()
+    // Therefore, has been hard-coded
+    real entropy;
+    if (pressure * pow(density, -gam) > 0)    entropy = log(pressure * pow(density, -gam));
+    else                                      entropy = BIG_NUMBER;
+
+    std::array<real, nstate> entropy_var;
+    entropy_var[0] = (gam-entropy)/(gamm1) - 0.5 * density / pressure * vel2;
+    for(int idim=0; idim<dim; ++idim) {
+        entropy_var[idim+1] = conservative_soln[idim+1] / pressure;
+    }
+    entropy_var[nstate-1] = -density / pressure;
+
+    return entropy_var;
+}
+
 //template <int dim, int nstate, typename real>
 //inline dealii::Tensor<1,dim,double> Euler<dim,nstate,real>::compute_velocities_inf() const
 //{

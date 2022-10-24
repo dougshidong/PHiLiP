@@ -251,23 +251,8 @@ double PeriodicTurbulence<dim, nstate>::get_numerical_entropy(
                 soln_state[istate] = soln_at_q[istate][iquad];
             }
 
-            std::array<double,nstate> entropy_var;
-            const double density = soln_state[0];
-            dealii::Tensor<1,dim,double> vel;
-            double vel2 = 0.0;
-            for(int idim=0; idim<dim; idim++){
-                vel[idim] = soln_state[idim+1]/soln_state[0];
-                vel2 += vel[idim]*vel[idim];
-            }
-            const double pressure = 0.4*(soln_state[nstate-1] - 0.5*density*vel2);
-            const double entropy = log(pressure) - 1.4 * log(density);
+            std::array<double,nstate> entropy_var = this->navier_stokes_physics->convert_conservative_to_entropy(soln_state);
             
-            entropy_var[0] = (1.4-entropy)/0.4 - 0.5 * density / pressure * vel2;
-            for(int idim=0; idim<dim; idim++){
-                entropy_var[idim+1] = soln_state[idim+1] / pressure;
-            }
-            entropy_var[nstate-1] = - density / pressure;
-
             for(int istate=0; istate<nstate; istate++){
                 if(iquad==0)
                     entropy_var_at_q[istate].resize(n_quad_pts);

@@ -206,11 +206,16 @@ public:
     /// Opposite of convert_primitive_to_conservative
     std::array<real,nstate> convert_primitive_to_conservative ( const std::array<real,nstate> &primitive_soln ) const;
 
+    /// Given conservative variables [density, [momentum], total energy],
+    /// returns entropy variables [(gamma-entropy)/(gamma-1)-0.*density*vel2/pressure, [momentum/pressure], -density/pressure]
+    std::array<real,nstate> convert_conservative_to_entropy ( const std::array<real,nstate> &conservative_soln ) const;
+
     /// Evaluate pressure from conservative variables
     template<typename real2>
     real2 compute_pressure ( const std::array<real2,nstate> &conservative_soln ) const;
 
     /// Evaluate pressure from conservative variables
+    template<typename real2>
     real compute_pressure_from_enthalpy ( const std::array<real,nstate> &conservative_soln ) const;
 
     /// Evaluate pressure from conservative variables

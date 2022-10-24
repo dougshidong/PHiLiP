@@ -215,7 +215,6 @@ public:
     real2 compute_pressure ( const std::array<real2,nstate> &conservative_soln ) const;
 
     /// Evaluate pressure from conservative variables
-    template<typename real2>
     real compute_pressure_from_enthalpy ( const std::array<real,nstate> &conservative_soln ) const;
 
     /// Evaluate pressure from conservative variables

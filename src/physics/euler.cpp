@@ -199,11 +199,10 @@ inline std::array<real,nstate> Euler<dim,nstate,real>
     const real pressure = compute_pressure<real>(conservative_soln);
     const real density = conservative_soln[0];
     const real vel2 = compute_velocity_squared(compute_velocities(conservative_soln));
-    // This is a different entropy than the "entropy measure" in compute_entropy_measure()
-    // Therefore, has been hard-coded
-    real entropy;
-    if (pressure * pow(density, -gam) > 0)    entropy = log(pressure * pow(density, -gam));
-    else                                      entropy = BIG_NUMBER;
+
+    real entropy = pressure * pow(density, -gam);
+    if (entropy > 0)    entropy = log( entropy );
+    else                entropy = BIG_NUMBER;
 
     std::array<real, nstate> entropy_var;
     entropy_var[0] = (gam-entropy)/(gamm1) - 0.5 * density / pressure * vel2;

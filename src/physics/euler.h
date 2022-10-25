@@ -96,8 +96,8 @@ public:
         const double                                              angle_of_attack,
         const double                                              side_slip_angle,
         std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function = nullptr,
-        const bool                                                has_nonzero_diffusion = false,
-        const two_point_num_flux_enum                             two_point_num_flux_type = two_point_num_flux_enum::KG);
+        const two_point_num_flux_enum                             two_point_num_flux_type = two_point_num_flux_enum::KG,
+        const bool                                                has_nonzero_diffusion = false);
 
     /// Destructor
     // virtual ~Euler() =0;
@@ -205,6 +205,10 @@ public:
     ///
     /// Opposite of convert_primitive_to_conservative
     std::array<real,nstate> convert_primitive_to_conservative ( const std::array<real,nstate> &primitive_soln ) const;
+
+    /// Given conservative variables [density, [momentum], total energy],
+    /// returns entropy variables -- see Tadmor 2003 "Entropy stability theory..." 
+    std::array<real,nstate> convert_conservative_to_entropy ( const std::array<real,nstate> &conservative_soln ) const;
 
     /// Evaluate pressure from conservative variables
     template<typename real2>

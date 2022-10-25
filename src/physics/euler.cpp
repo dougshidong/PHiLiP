@@ -19,8 +19,8 @@ Euler<dim,nstate,real>::Euler (
     const double                                              angle_of_attack,
     const double                                              side_slip_angle,
     std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function,
-    const bool                                                has_nonzero_diffusion,
-    const two_point_num_flux_enum                             two_point_num_flux_type_input)
+    const two_point_num_flux_enum                             two_point_num_flux_type_input,
+    const bool                                                has_nonzero_diffusion)
     : PhysicsBase<dim,nstate,real>(has_nonzero_diffusion,manufactured_solution_function)
     , ref_length(ref_length)
     , gam(gamma_gas)
@@ -190,6 +190,28 @@ inline std::array<real,nstate> Euler<dim,nstate,real>
     conservative_soln[nstate-1] = compute_total_energy(primitive_soln);
 
     return conservative_soln;
+}
+
+template <int dim, int nstate, typename real>
+inline std::array<real,nstate> Euler<dim,nstate,real>
+::convert_conservative_to_entropy ( const std::array<real,nstate> &conservative_soln ) const
+{
+    const real pressure = compute_pressure<real>(conservative_soln);
+    const real density = conservative_soln[0];
+    const real vel2 = compute_velocity_squared(compute_velocities(conservative_soln));
+
+    real entropy = pressure * pow(density, -gam);
+    if (entropy > 0)    entropy = log( entropy );
+    else                entropy = BIG_NUMBER;
+
+    std::array<real, nstate> entropy_var;
+    entropy_var[0] = (gam-entropy)/(gamm1) - 0.5 * density / pressure * vel2;
+    for(int idim=0; idim<dim; ++idim) {
+        entropy_var[idim+1] = conservative_soln[idim+1] / pressure;
+    }
+    entropy_var[nstate-1] = -density / pressure;
+
+    return entropy_var;
 }
 
 //template <int dim, int nstate, typename real>

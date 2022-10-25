@@ -28,7 +28,8 @@ set(TESTS_SOURCE
     reduced_order.cpp
     time_refinement_study.cpp
     time_refinement_study_reference.cpp
-    burgers_energy_conservation_rrk.cpp)
+    burgers_energy_conservation_rrk.cpp
+    euler_ismail_roe_entropy_check.cpp)
 
 foreach(dim RANGE 1 3)
     # Output library

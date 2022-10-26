@@ -261,9 +261,9 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       dealii::Patterns::FileName(dealii::Patterns::FileName::FileType::input),
                       "Name of directory for writing solution vtk files. Current directory by default.");
 
-    prm.declare_entry("output_high_order_grid", "true",
+    prm.declare_entry("output_high_order_grid", "false",
                       dealii::Patterns::Bool(),
-                      "Outputs the high-order mesh vtk files. True by default");
+                      "Outputs the high-order mesh vtu files. False by default");
 
     Parameters::LinearSolverParam::declare_parameters (prm);
     Parameters::ManufacturedConvergenceStudyParam::declare_parameters (prm);

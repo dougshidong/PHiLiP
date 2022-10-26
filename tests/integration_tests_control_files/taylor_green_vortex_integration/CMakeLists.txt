@@ -31,7 +31,17 @@ add_test(
 configure_file(viscous_taylor_green_vortex_restart_check.prm viscous_taylor_green_vortex_restart_check.prm COPYONLY)
 add_test(
   NAME MPI_VISCOUS_TAYLOR_GREEN_VORTEX_RESTART_CHECK
-  COMMAND mpirun -np ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_3D -i ${CMAKE_CURRENT_BINARY_DIR}/viscous_taylor_green_vortex_restart_check.prm
+  COMMAND bash -c 
+  "numprocs=1 ;
+  numprocstimestwo=$(( $numprocs * 2 )) ;
+  while [[ $numprocstimestwo -le $MPIMAX ]];
+  do 
+    numprocs=$numprocstimestwo;
+    numprocstimestwo=$(( $numprocs * 2 ));
+  done ;
+  mpirun -np $numprocs ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_3D -i ${CMAKE_CURRENT_BINARY_DIR}/viscous_taylor_green_vortex_restart_check.prm;
+  return_val=$? ;
+  if [ $return_val -ne 0 ]; then exit 1; else exit 0; fi"
   WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )
 # ----------------------------------------
@@ -42,7 +52,14 @@ add_test(
   COMMAND bash -c 
   "./viscous_taylor_green_vortex_restart_from_parameter_file_check.sh ${EXECUTABLE_OUTPUT_PATH}
   return_val1=$? ;
-  mpirun -np ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_3D -i ${CMAKE_CURRENT_BINARY_DIR}/restart-00004.prm;
+  numprocs=1 ;
+  numprocstimestwo=$(( $numprocs * 2 )) ;
+  while [[ $numprocstimestwo -le $MPIMAX ]];
+  do 
+    numprocs=$numprocstimestwo;
+    numprocstimestwo=$(( $numprocs * 2 ));
+  done ;
+  mpirun -np $numprocs ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_3D -i ${CMAKE_CURRENT_BINARY_DIR}/restart-00004.prm;
   return_val2=$? ;
   if [ $return_val1 -ne 0 ] || [ $return_val2 -ne 0 ]; then exit 1; else exit 0; fi"
   WORKING_DIRECTORY ${TEST_OUTPUT_DIR}

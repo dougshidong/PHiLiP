@@ -299,7 +299,7 @@ int main (int argc, char * argv[])
             all_parameters_new.pde_type = PDE_enum::navier_stokes;
             all_parameters_new.use_weak_form = false;
             all_parameters_new.use_periodic_bc = true;
-            all_parameters_new.ode_solver_param.ode_solver_type = ODE_enum::runge_kutta_solver;//auxiliary only works explicit for now
+            all_parameters_new.ode_solver_param.ode_solver_type = ODE_enum::explicit_solver;//auxiliary only works explicit for now
             all_parameters_new.use_inverse_mass_on_the_fly = true;
             std::shared_ptr < PHiLiP::DGBase<dim, double> > dg = PHiLiP::DGFactory<dim,double>::create_discontinuous_galerkin(&all_parameters_new, poly_degree, poly_degree, grid_degree, grid);
             dg->allocate_system (false,false,false);
@@ -308,12 +308,16 @@ int main (int argc, char * argv[])
             }
     
             //set solution as some random number between [1e-8,30] at each dof
-            for(unsigned int i=0;i<dg->solution.size();i++){
-                dg->solution[i] = 1e-8 + static_cast <float> (rand()) / ( static_cast <float> (RAND_MAX/(30-1e-8)));
+            //loop over cells as to write only to local solution indices
+            const unsigned int n_dofs = dg->dof_handler.get_fe_collection().max_dofs_per_cell();
+            std::vector<dealii::types::global_dof_index> current_dofs_indices(n_dofs);
+            for (auto current_cell = dg->dof_handler.begin_active(); current_cell!=dg->dof_handler.end(); ++current_cell) {
+                if (!current_cell->is_locally_owned()) continue;
+                for(unsigned int i=0; i<n_dofs; i++){
+                    dg->solution[current_dofs_indices[i]] = 1e-8 + static_cast <float> (rand()) / ( static_cast <float> (RAND_MAX/(30-1e-8)));
+                }
             }
 
-            const unsigned int max_dofs_per_cell = dg->dof_handler.get_fe_collection().max_dofs_per_cell();
-            std::vector<dealii::types::global_dof_index> current_dofs_indices(max_dofs_per_cell);
             const unsigned int n_dofs_cell = dg->fe_collection[poly_degree].dofs_per_cell;
             const unsigned int n_quad_pts  = dg->volume_quadrature_collection[poly_degree].size();
              
@@ -337,7 +341,6 @@ int main (int argc, char * argv[])
             flux_basis.build_1D_gradient_operator(dg->oneD_fe_collection_flux[dg->max_degree], dg->oneD_quadrature_collection[dg->max_degree]);
             flux_basis.build_1D_surface_operator(dg->oneD_fe_collection_flux[dg->max_degree], dg->oneD_face_quadrature);
              
-
             //loop over cells and compare rhs strong versus rhs weak
             for (auto current_cell = dg->dof_handler.begin_active(); current_cell!=dg->dof_handler.end(); ++current_cell, ++metric_cell) {
                 if (!current_cell->is_locally_owned()) continue;
@@ -462,7 +465,7 @@ int main (int argc, char * argv[])
         }//end of grid loop
 
     }//end poly degree loop
-    pcout<<"The weak and strong auxiliary RHS are equiavlent."<<std::endl;
+    pcout<<"The weak and strong auxiliary RHS are equivalent."<<std::endl;
     return 0;
 }
 

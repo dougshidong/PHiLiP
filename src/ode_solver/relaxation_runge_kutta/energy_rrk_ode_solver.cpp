@@ -37,7 +37,13 @@ real EnergyRRKODESolver<dim,real,n_rk_stages,MeshType>::compute_inner_product (
     // Calculate by matrix-vector product u_i^T M u_j
     dealii::LinearAlgebra::distributed::Vector<double> temp;
     temp.reinit(stage_j);
-    this->dg->global_mass_matrix.vmult(temp, stage_j); //replace stage_j with M*stage_j
+
+    if(this->all_parameters->use_inverse_mass_on_the_fly){
+        this->dg->apply_inverse_global_mass_matrix(stage_j, temp);
+    } else{
+        this->dg->global_inverse_mass_matrix.vmult(temp,stage_j);
+    } //replace stage_j with M*stage_j
+
     const double result = temp * stage_i;
     return result;
 }

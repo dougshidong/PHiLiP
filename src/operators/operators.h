@@ -223,6 +223,7 @@ public:
     void divergence_two_pt_flux_Hadamard_product(
             const dealii::Tensor<1,dim,dealii::FullMatrix<double>> &input_mat,
             std::vector<double> &output_vect,
+            const std::vector<double> &weights,
             const dealii::FullMatrix<double> &basis);//the only direction that isn't identity
 
     ///Computes the Hadamard product ONLY for 2pt flux calculations.
@@ -231,7 +232,7 @@ public:
     * Using the commutative property of Hadamard products: \f$ (A \otimes B) \circ ( C \otimes D) = (A\circ C) \otimes (B\circ D) \f$,
     * we can find a "sum-factorization" type expression for \f$ A \circ U \f$, where here \f$ A = A_x \otimes A_y \otimes A_z \f$
     * and \f$ U \f$ is an \f$ n \times n \f$ matrix. <br>
-    * We make use of the flux basis being collocated on flux nodes, so the directions that aren't the derivative are identity.
+    * We make use of the flux basis being collocated on flux nodes, so the directions that aren't the derivative are identity. (Note that weights can be a diagonal matrix not necessarily identity).
     * This results in the Hadamard product only needing \f$ \mathcal{O}(n^{d+1})\f$ flops to compute non-zero entries.<br>
     * This is NOT for GENERAL Hadamard products since those are \f$ \mathcal{O}(n^{2d})\f$ .
     */
@@ -239,6 +240,7 @@ public:
             const dealii::FullMatrix<double> &input_mat,
             dealii::FullMatrix<double> &output_mat,
             const dealii::FullMatrix<double> &basis,//the only direction that isn't identity
+            const std::vector<double> &weights,//vector storing diagonal entries for case not identity
             const int direction);//direction for the derivative that corresponds to basis
 
     /// Apply the matrix vector operation using the 1D operator in each direction

@@ -1096,7 +1096,10 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_volume_term_strong(
             //2pt flux Hadamard Product, and then multiply by vector of ones scaled by 2.
             // Same as Eq. (32) in Chan, Jesse, and Lucas C. Wilcox. "On discretely entropy stable weight-adjusted discontinuous Galerkin methods: curvilinear meshes." Journal of Computational Physics 378 (2019): 366-393, but
             // where we use the reference gradient of the flux basis for the D operator and the reference two-point flux.
-            flux_basis.divergence_two_pt_flux_Hadamard_product(conv_ref_2pt_flux_at_q[istate], conv_flux_divergence, flux_basis.oneD_grad_operator);
+           // flux_basis.divergence_two_pt_flux_Hadamard_product(conv_ref_2pt_flux_at_q[istate], conv_flux_divergence, flux_basis.oneD_grad_operator);
+           const unsigned int quad_pts_1D = this->oneD_quadrature_collection[poly_degree].size();
+           std::vector<real> ones(quad_pts_1D, 1.0);
+            flux_basis.divergence_two_pt_flux_Hadamard_product(conv_ref_2pt_flux_at_q[istate], conv_flux_divergence, ones, flux_basis.oneD_grad_operator);//to be fixed bc will used stiffness skew-symm form
         }
         else{
             //Reference divergence of the reference convective flux.

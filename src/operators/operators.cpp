@@ -537,13 +537,14 @@ template <int dim, int n_faces>
 void SumFactorizedOperators<dim,n_faces>::divergence_two_pt_flux_Hadamard_product(
     const dealii::Tensor<1,dim,dealii::FullMatrix<double>> &input_mat,
     std::vector<double> &output_vect,
+    const std::vector<double> &weights,
     const dealii::FullMatrix<double> &basis)
 {
     assert(input_mat[0].m() == output_vect.size());
 
     dealii::FullMatrix<double> output_mat(input_mat[0].m(), input_mat[0].n());
     for(int idim=0; idim<dim; idim++){
-        two_pt_flux_Hadamard_product(input_mat[idim], output_mat, basis, idim);
+        two_pt_flux_Hadamard_product(input_mat[idim], output_mat, basis, weights, idim);
         if constexpr(dim==1){
             for(unsigned int row=0; row<input_mat[0].m(); row++){//n^d rows
                 for(unsigned int col=0; col<basis.m(); col++){//only need to sum n columns
@@ -602,10 +603,12 @@ void SumFactorizedOperators<dim,n_faces>::two_pt_flux_Hadamard_product(
     const dealii::FullMatrix<double> &input_mat,
     dealii::FullMatrix<double> &output_mat,
     const dealii::FullMatrix<double> &basis,
+    const std::vector<double> &weights,
     const int direction)
 {
     assert(input_mat.size() == output_mat.size());
     const unsigned int size = basis.m();
+    assert(size == weights.size());
 
     if constexpr(dim == 1){
         Hadamard_product(input_mat, basis, output_mat);  
@@ -623,6 +626,8 @@ void SumFactorizedOperators<dim,n_faces>::two_pt_flux_Hadamard_product(
                 local_block.extract_submatrix_from(input_mat, row_index, col_index);
                 dealii::FullMatrix<double> local_Hadamard(size, size);
                 Hadamard_product(local_block, basis, local_Hadamard);
+                //scale by the diagonal weight from tensor product
+                local_Hadamard *= weights[idiag];
                 //write the values into diagonal block of output
                 local_Hadamard.scatter_matrix_to(row_index, col_index, output_mat);
             }
@@ -634,7 +639,8 @@ void SumFactorizedOperators<dim,n_faces>::two_pt_flux_Hadamard_product(
                     const unsigned int col_index = jdiag * size;
                     for(unsigned int kdiag=0; kdiag<size; kdiag++){
                         output_mat[row_index + kdiag][col_index + kdiag] = basis[idiag][jdiag]
-                                                                         * input_mat[row_index + kdiag][col_index + kdiag];
+                                                                         * input_mat[row_index + kdiag][col_index + kdiag]
+                                                                         * weights[kdiag];
                     }
                 }
             }
@@ -643,7 +649,9 @@ void SumFactorizedOperators<dim,n_faces>::two_pt_flux_Hadamard_product(
     }
     if constexpr(dim == 3){
         if(direction == 0){
+            unsigned int kdiag=0;
             for(unsigned int idiag=0; idiag< size * size; idiag++){
+                if(kdiag==size) kdiag = 0;
                 dealii::FullMatrix<double> local_block(size, size);
                 std::vector<unsigned int> row_index(size);
                 std::vector<unsigned int> col_index(size);
@@ -654,6 +662,11 @@ void SumFactorizedOperators<dim,n_faces>::two_pt_flux_Hadamard_product(
                 local_block.extract_submatrix_from(input_mat, row_index, col_index);
                 dealii::FullMatrix<double> local_Hadamard(size, size);
                 Hadamard_product(local_block, basis, local_Hadamard);
+                //scale by the diagonal weight from tensor product
+                local_Hadamard *= weights[kdiag];
+                kdiag++;
+                const unsigned int jdiag = idiag / size;
+                local_Hadamard *= weights[jdiag];
                 //write the values into diagonal block of output
                 local_Hadamard.scatter_matrix_to(row_index, col_index, output_mat);
             }
@@ -666,7 +679,9 @@ void SumFactorizedOperators<dim,n_faces>::two_pt_flux_Hadamard_product(
                         const unsigned int col_index = zdiag * size * size + jdiag * size;
                         for(unsigned int kdiag=0; kdiag<size; kdiag++){
                             output_mat[row_index + kdiag][col_index + kdiag] = basis[idiag][jdiag]
-                                                                             * input_mat[row_index + kdiag][col_index + kdiag];
+                                                                             * input_mat[row_index + kdiag][col_index + kdiag]
+                                                                             * weights[zdiag]
+                                                                             * weights[kdiag];
                         }
                     }
                 }
@@ -680,7 +695,9 @@ void SumFactorizedOperators<dim,n_faces>::two_pt_flux_Hadamard_product(
                     for(unsigned int jdiag=0; jdiag<size; jdiag++){
                         for(unsigned int kdiag=0; kdiag<size; kdiag++){
                             output_mat[row_index + jdiag * size + kdiag][col_index + jdiag * size  + kdiag] = basis[row_block][col_block]
-                                                                                                            * input_mat[row_index + jdiag * size  + kdiag][col_index + jdiag * size  + kdiag];
+                                                                                                            * input_mat[row_index + jdiag * size  + kdiag][col_index + jdiag * size  + kdiag]
+                                                                                                            * weights[kdiag]
+                                                                                                            * weights[jdiag];
                         }
                     }
                 }

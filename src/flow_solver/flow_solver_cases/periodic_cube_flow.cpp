@@ -34,9 +34,6 @@ template <int dim, int nstate>
 std::shared_ptr<Triangulation> PeriodicCubeFlow<dim,nstate>::generate_grid() const
 {
 
-    const int mpi_rank = dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD);
-    dealii::ConditionalOStream pcout(std::cout, mpi_rank==0);
-
     std::shared_ptr<Triangulation> grid = std::make_shared<Triangulation> (
 #if PHILIP_DIM!=1
             this->mpi_communicator
@@ -45,7 +42,7 @@ std::shared_ptr<Triangulation> PeriodicCubeFlow<dim,nstate>::generate_grid() con
 
     if (!this->all_param.flow_solver_param.use_input_mesh) {
 
-        pcout << "Using Internal Deal.ii HyperCube Generator." << std::endl;
+        this->pcout << "Using Internal Deal.ii HyperCube Generator." << std::endl;
 
         Grids::straight_periodic_cube<dim, Triangulation>(grid, domain_left, domain_right,
                                                           number_of_cells_per_direction);
@@ -54,12 +51,15 @@ std::shared_ptr<Triangulation> PeriodicCubeFlow<dim,nstate>::generate_grid() con
         if constexpr(dim == 3)
         {
 
-            pcout << "Using Input Mesh -- GMSH_READER." << std::endl;
-
             const std::string mesh_filename =
                     this->all_param.flow_solver_param.input_mesh_filename + std::string(".msh");
-            std::shared_ptr <HighOrderGrid<dim, double>> Cube_mesh = read_gmsh<dim, dim>(mesh_filename, this->all_param.flow_solver_param.use_periodic_BC_in_x, this->all_param.flow_solver_param.use_periodic_BC_in_y, this->all_param.flow_solver_param.use_periodic_BC_in_z, this->all_param.flow_solver_param.x_periodic_id_face_1, this->all_param.flow_solver_param.x_periodic_id_face_2, this->all_param.flow_solver_param.y_periodic_id_face_1, this->all_param.flow_solver_param.y_periodic_id_face_2, this->all_param.flow_solver_param.z_periodic_id_face_1, this->all_param.flow_solver_param.z_periodic_id_face_2);
-            return Cube_mesh->triangulation;
+            std::shared_ptr <HighOrderGrid<dim, double>> cube_mesh = read_gmsh<dim, dim>(mesh_filename, this->all_param.flow_solver_param.use_periodic_BC_in_x, 
+                this->all_param.flow_solver_param.use_periodic_BC_in_y, this->all_param.flow_solver_param.use_periodic_BC_in_z, this->all_param.flow_solver_param.x_periodic_id_face_1, 
+                this->all_param.flow_solver_param.x_periodic_id_face_2, this->all_param.flow_solver_param.y_periodic_id_face_1, this->all_param.flow_solver_param.y_periodic_id_face_2, 
+                this->all_param.flow_solver_param.z_periodic_id_face_1, this->all_param.flow_solver_param.z_periodic_id_face_2);
+
+            this->pcout << "Using Input Mesh: " << this->all_param.flow_solver_param.input_mesh_filename << std::endl;
+            return cube_mesh->triangulation;
         }
     }
 

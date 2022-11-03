@@ -116,41 +116,46 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                               dealii::Patterns::Bool(),
                               "Use the input .msh file which calls read_gmsh. False by default.");
 
-            prm.declare_entry("use_periodic_BC_in_x", "false",
-                              dealii::Patterns::Bool(),
-                              "Use periodic boundary condition in the x-direction. False by default.");
+            prm.enter_subsection("boundary_IDs");
+            {
 
-            prm.declare_entry("use_periodic_BC_in_y", "false",
-                              dealii::Patterns::Bool(),
-                              "Use periodic boundary condition in the y-direction. False by default.");
+                prm.declare_entry("use_periodic_BC_in_x", "false",
+                                  dealii::Patterns::Bool(),
+                                  "Use periodic boundary condition in the x-direction. False by default.");
 
-            prm.declare_entry("use_periodic_BC_in_z", "false",
-                              dealii::Patterns::Bool(),
-                              "Use periodic boundary condition in the z-direction. False by default.");
+                prm.declare_entry("use_periodic_BC_in_y", "false",
+                                  dealii::Patterns::Bool(),
+                                  "Use periodic boundary condition in the y-direction. False by default.");
 
-            prm.declare_entry("x_periodic_id_face_1", "2001",
-                              dealii::Patterns::Integer(1, dealii::Patterns::Integer::max_int_value),
-                              "Boundary ID for the first periodic boundary face in the x-direction.");
+                prm.declare_entry("use_periodic_BC_in_z", "false",
+                                  dealii::Patterns::Bool(),
+                                  "Use periodic boundary condition in the z-direction. False by default.");
 
-            prm.declare_entry("x_periodic_id_face_2", "2002",
-                              dealii::Patterns::Integer(1, dealii::Patterns::Integer::max_int_value),
-                              "Boundary ID for the second periodic boundary face in the x-direction.");
+                prm.declare_entry("x_periodic_id_face_1", "2001",
+                                  dealii::Patterns::Integer(1, dealii::Patterns::Integer::max_int_value),
+                                  "Boundary ID for the first periodic boundary face in the x-direction.");
 
-            prm.declare_entry("y_periodic_id_face_1", "2003",
-                              dealii::Patterns::Integer(1, dealii::Patterns::Integer::max_int_value),
-                              "Boundary ID for the first periodic boundary face in the y-direction.");
+                prm.declare_entry("x_periodic_id_face_2", "2002",
+                                  dealii::Patterns::Integer(1, dealii::Patterns::Integer::max_int_value),
+                                  "Boundary ID for the second periodic boundary face in the x-direction.");
 
-            prm.declare_entry("y_periodic_id_face_2", "2004",
-                              dealii::Patterns::Integer(1, dealii::Patterns::Integer::max_int_value),
-                              "Boundary ID for the second periodic boundary face in the y-direction.");
+                prm.declare_entry("y_periodic_id_face_1", "2003",
+                                  dealii::Patterns::Integer(1, dealii::Patterns::Integer::max_int_value),
+                                  "Boundary ID for the first periodic boundary face in the y-direction.");
 
-            prm.declare_entry("z_periodic_id_face_1", "2005",
-                              dealii::Patterns::Integer(1, dealii::Patterns::Integer::max_int_value),
-                              "Boundary ID for the first periodic boundary face in the z-direction.");
+                prm.declare_entry("y_periodic_id_face_2", "2004",
+                                  dealii::Patterns::Integer(1, dealii::Patterns::Integer::max_int_value),
+                                  "Boundary ID for the second periodic boundary face in the y-direction.");
 
-            prm.declare_entry("z_periodic_id_face_2", "2006",
-                              dealii::Patterns::Integer(1, dealii::Patterns::Integer::max_int_value),
-                              "Boundary ID for the second periodic boundary face in the z-direction.");
+                prm.declare_entry("z_periodic_id_face_1", "2005",
+                                  dealii::Patterns::Integer(1, dealii::Patterns::Integer::max_int_value),
+                                  "Boundary ID for the first periodic boundary face in the z-direction.");
+
+                prm.declare_entry("z_periodic_id_face_2", "2006",
+                                  dealii::Patterns::Integer(1, dealii::Patterns::Integer::max_int_value),
+                                  "Boundary ID for the second periodic boundary face in the z-direction.");
+            }
+            prm.leave_subsection();
 
             prm.enter_subsection("gaussian_bump");
             {
@@ -242,15 +247,20 @@ void FlowSolverParam::parse_parameters(dealii::ParameterHandler &prm)
             number_of_grid_elements_per_dimension = prm.get_integer("number_of_grid_elements_per_dimension");
             number_of_mesh_refinements = prm.get_integer("number_of_mesh_refinements");
             use_input_mesh = prm.get_bool("use_input_mesh");
-            use_periodic_BC_in_x = prm.get_bool("use_periodic_BC_in_x");
-            use_periodic_BC_in_y = prm.get_bool("use_periodic_BC_in_y");
-            use_periodic_BC_in_z = prm.get_bool("use_periodic_BC_in_z");
-            x_periodic_id_face_1 = prm.get_integer("x_periodic_id_face_1");
-            x_periodic_id_face_2 = prm.get_integer("x_periodic_id_face_2");
-            y_periodic_id_face_1 = prm.get_integer("y_periodic_id_face_1");
-            y_periodic_id_face_2 = prm.get_integer("y_periodic_id_face_2");
-            z_periodic_id_face_1 = prm.get_integer("z_periodic_id_face_1");
-            z_periodic_id_face_2 = prm.get_integer("z_periodic_id_face_2");
+
+            prm.enter_subsection("boundary_IDs");
+            {
+                use_periodic_BC_in_x = prm.get_bool("use_periodic_BC_in_x");
+                use_periodic_BC_in_y = prm.get_bool("use_periodic_BC_in_y");
+                use_periodic_BC_in_z = prm.get_bool("use_periodic_BC_in_z");
+                x_periodic_id_face_1 = prm.get_integer("x_periodic_id_face_1");
+                x_periodic_id_face_2 = prm.get_integer("x_periodic_id_face_2");
+                y_periodic_id_face_1 = prm.get_integer("y_periodic_id_face_1");
+                y_periodic_id_face_2 = prm.get_integer("y_periodic_id_face_2");
+                z_periodic_id_face_1 = prm.get_integer("z_periodic_id_face_1");
+                z_periodic_id_face_2 = prm.get_integer("z_periodic_id_face_2");
+            }
+            prm.leave_subsection();
 
             prm.enter_subsection("gaussian_bump");
             {

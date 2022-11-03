@@ -45,7 +45,7 @@ real EntropyRRKODESolver<dim,real,n_rk_stages,MeshType>::compute_relaxation_para
     double gamma_kp1; 
     const double conv_tol = 2.4E-10;
     int iter_counter = 0;
-    const int iter_limit = 1000;
+    const int iter_limit = 100;
     if (use_secant){
 
         const double initial_guess_0 = this->relaxation_parameter - 1E-5;
@@ -63,7 +63,7 @@ real EntropyRRKODESolver<dim,real,n_rk_stages,MeshType>::compute_relaxation_para
         //            << " residual: " << residual << std::endl;
 
         while ((residual > conv_tol) && (iter_counter < iter_limit)){
-            while (r_gamma_km1 == r_gamma_k){
+            if (r_gamma_km1 == r_gamma_k){
                 this->pcout << "    Roots are identical. Multiplying gamma_k by 1.001 and recomputing..." << std::endl;
                 gamma_k *= 1.001;
                 r_gamma_km1 = compute_root_function(gamma_km1, u_n, d, eta_n, e);
@@ -92,6 +92,15 @@ real EntropyRRKODESolver<dim,real,n_rk_stages,MeshType>::compute_relaxation_para
             this->pcout << "Iter: " << iter_counter
                         << " gamma_k: " << gamma_k
                         << " residual: " << residual << std::endl;
+            
+            if (isnan(gamma_k) || isnan(gamma_km1)) {
+                this->pcout << "    NaN detected. Restarting iterations from 1.0." << std::endl;
+                gamma_k   = 1.0 - 1E-5;
+                r_gamma_k = compute_root_function(gamma_k, u_n, d, eta_n, e);
+                gamma_km1 = 1.0 + 1E-5;
+                r_gamma_km1 = compute_root_function(gamma_km1, u_n, d, eta_n, e);
+                residual = 1.0;
+            }
         }
     } else {
         //Bisection method

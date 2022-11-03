@@ -22,11 +22,11 @@ public:
     
     /// Calculate entropy by matrix-vector products
     double compute_entropy(const std::shared_ptr <DGBase<dim, double>> dg) const;
-protected:
 
     /// Function to compute the constant time step
     /** Calculates based on CFL for Euler, and from parameters otherwise */
     double get_constant_time_step(std::shared_ptr<DGBase<dim,double>> dg) const override;
+protected:
 
     /// Compute the desired unsteady data and write it to a table
     void compute_unsteady_data_and_write_to_table(
@@ -41,6 +41,9 @@ protected:
     /// Storing entropy at first step
     double initial_entropy;
     
+    /// Last time (for calculating relaxation factor)
+    double previous_time=0;
+
 };
 
 

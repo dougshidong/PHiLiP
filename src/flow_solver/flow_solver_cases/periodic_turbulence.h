@@ -104,6 +104,12 @@ protected:
 
     /// Maximum local wave speed (i.e. convective eigenvalue)
     double maximum_local_wave_speed;
+
+    /// Previous time
+    double previous_time = 0;
+
+    /// Target dt for calculating relaxation parameter
+    double dt_target = 1;
 };
 
 } // FlowSolver namespace

@@ -390,11 +390,18 @@ void PeriodicTurbulence<dim, nstate>::compute_unsteady_data_and_write_to_table(
     
     double numerical_entropy = 0;
     if (do_calculate_numerical_entropy) numerical_entropy = this->get_numerical_entropy(dg);
+    
+    // TEMP - should code gamma storage part this nicer
+    using ODEEnum = Parameters::ODESolverParam::ODESolverEnum;
+    const bool is_rrk = (this->all_param.ode_solver_param.ode_solver_type == ODEEnum::rrk_explicit_solver);
+    const double dt_actual = current_time - previous_time;
+    const double relaxation_parameter = dt_actual/dt_target;
 
     if(this->mpi_rank==0) {
         // Add values to data table
         this->add_value_to_data_table(current_time,"time",unsteady_data_table);
         if(do_calculate_numerical_entropy) this->add_value_to_data_table(numerical_entropy,"numerical_entropy",unsteady_data_table);
+        if(is_rrk) this->add_value_to_data_table(relaxation_parameter, "relaxation_parameter",unsteady_data_table);
         this->add_value_to_data_table(integrated_kinetic_energy,"kinetic_energy",unsteady_data_table);
         this->add_value_to_data_table(integrated_enstrophy,"enstrophy",unsteady_data_table);
         if(is_viscous_flow) this->add_value_to_data_table(vorticity_based_dissipation_rate,"eps_vorticity",unsteady_data_table);
@@ -407,7 +414,6 @@ void PeriodicTurbulence<dim, nstate>::compute_unsteady_data_and_write_to_table(
     // Print to console
     this->pcout << "    Iter: " << current_iteration
                 << "    Time: " << current_time
-                << "    Num. Entropy: " << std::setprecision(16) << numerical_entropy
                 << "    Energy: " << integrated_kinetic_energy
                 << "    Enstrophy: " << integrated_enstrophy;
     if(is_viscous_flow) {
@@ -417,6 +423,9 @@ void PeriodicTurbulence<dim, nstate>::compute_unsteady_data_and_write_to_table(
     if(do_calculate_numerical_entropy){
         this->pcout << "    Num. Entropy: " << std::setprecision(16) << numerical_entropy;
     }
+    if(is_rrk){
+        this->pcout << "    Rel. Param.: " << std::setprecision(16) << relaxation_parameter;
+    }
     this->pcout << std::endl;
 
     // Abort if energy is nan
@@ -425,6 +434,9 @@ void PeriodicTurbulence<dim, nstate>::compute_unsteady_data_and_write_to_table(
         this->pcout << "        Consider decreasing the time step / CFL number." << std::endl;
         std::abort();
     }
+
+    previous_time = current_time;
+    dt_target = this->get_adaptive_time_step(dg);
 }
 
 #if PHILIP_DIM==3

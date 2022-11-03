@@ -131,29 +131,48 @@ void PeriodicEntropyTests<dim, nstate>::compute_unsteady_data_and_write_to_table
         const std::shared_ptr <DGBase<dim, double>> dg ,
         const std::shared_ptr <dealii::TableHandler> unsteady_data_table )
 {
-    const double dt = this->all_param.ode_solver_param.initial_time_step;
+    const double dt = this->get_constant_time_step(dg);
     int output_solution_every_n_iterations = round(this->all_param.ode_solver_param.output_solution_every_dt_time_intervals/dt);
     if (this->all_param.ode_solver_param.output_solution_every_x_steps > output_solution_every_n_iterations)
         output_solution_every_n_iterations = this->all_param.ode_solver_param.output_solution_every_x_steps;
-
+    
+    using ODEEnum = Parameters::ODESolverParam::ODESolverEnum;
+    const bool is_rrk = (this->all_param.ode_solver_param.ode_solver_type == ODEEnum::rrk_explicit_solver);
+    const double dt_actual = current_time - previous_time;
 
     if ((current_iteration % output_solution_every_n_iterations) == 0){
         const double entropy = this->compute_entropy(dg);
         if (current_iteration == 0)  initial_entropy = entropy;
 
+        double relaxation_parameter = 0;
+        if (is_rrk) relaxation_parameter = dt_actual/dt;
+
         this->pcout << "    Iter: " << current_iteration
                     << "    Time: " << std::setprecision(16) << current_time
                     << "    Entropy: " << entropy
-                    << "    U/Uo: " << entropy/initial_entropy
-                    << std::endl;
+                    << "    U/Uo: " << entropy/initial_entropy;
+        if (is_rrk)
+            this->pcout << "    gamma^n: " << relaxation_parameter;
+        this->pcout << std::endl;
     
         unsteady_data_table->add_value("iteration", current_iteration);
+        unsteady_data_table->set_scientific("iteration", false);
         this->add_value_to_data_table(current_time,"time",unsteady_data_table);
+        unsteady_data_table->set_scientific("time", false);
         this->add_value_to_data_table(entropy,"entropy",unsteady_data_table);
+        unsteady_data_table->set_scientific("entropy", false);
         this->add_value_to_data_table(entropy/initial_entropy,"U/Uo",unsteady_data_table);
+        unsteady_data_table->set_scientific("U/Uo", false);
+        if (is_rrk) {
+            this->add_value_to_data_table(relaxation_parameter,"gamma",unsteady_data_table); 
+            unsteady_data_table->set_scientific("gamma", false);
+        }
         std::ofstream unsteady_data_table_file(this->unsteady_data_table_filename_with_extension);
         unsteady_data_table->write_text(unsteady_data_table_file);
     }
+
+    //for next iteration
+    previous_time = current_time;
 
 }
 

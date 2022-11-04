@@ -5,14 +5,14 @@ set(TEST_OUTPUT_DIR ${CMAKE_CURRENT_BINARY_DIR})
 # =======================================
 #Be careful when using bash in cmake, the test will pass if the only last command executed successfully (i.e. if the last command is rm *.txt, the test will always pass)
 configure_file(1d_burgers_rewienski_reduced_order_consistency_snapshots.sh 1d_burgers_rewienski_reduced_order_consistency_snapshots.sh COPYONLY)
-configure_file(1d_burgers_rewienski_reduced_order.prm 1d_burgers_rewienski_reduced_order.prm COPYONLY)
+configure_file(1d_burgers_rewienski_reduced_order_consistency.prm 1d_burgers_rewienski_reduced_order_consistency.prm COPYONLY)
 add_test(
         NAME 1D_BURGERS_REWIENSKI_REDUCED_ORDER_CONSISTENCY
         COMMAND bash -c
         "rm *.txt ;
         ./1d_burgers_rewienski_reduced_order_consistency_snapshots.sh ${EXECUTABLE_OUTPUT_PATH}
         return_val1=$? ;
-        mpirun -np 1 ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_1D -i ${CMAKE_CURRENT_BINARY_DIR}/1d_burgers_rewienski_reduced_order.prm ;
+        mpirun -np 1 ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_1D -i ${CMAKE_CURRENT_BINARY_DIR}/1d_burgers_rewienski_reduced_order_consistency.prm ;
         return_val2=$? ;
         rm *.txt ;
         if [ $return_val1 -ne 0 ] || [ $return_val2 -ne 0 ]; then exit 1; else exit 0; fi"
@@ -55,14 +55,14 @@ add_test(
 # =======================================
 #Be careful when using bash in cmake, the test will pass if the only last command executed successfully (i.e. if the last command is rm *.txt, the test will always pass)
 configure_file(inviscid_naca0012_reduced_order_consistency_snapshots.sh inviscid_naca0012_reduced_order_consistency_snapshots.sh COPYONLY)
-configure_file(inviscid_naca0012_reduced_order.prm inviscid_naca0012_reduced_order.prm COPYONLY)
+configure_file(inviscid_naca0012_reduced_order_consistency.prm inviscid_naca0012_reduced_order_consistency.prm COPYONLY)
 add_test(
         NAME INVISCID_NACA0012_REDUCED_ORDER_CONSISTENCY
         COMMAND bash -c
         "rm *.txt ;
-        ./inviscid_naca0012_reduced_order_consistency_snapshots.sh ${EXECUTABLE_OUTPUT_PATH}
+        ./inviscid_naca0012_reduced_order_consistency_snapshots.sh ${EXECUTABLE_OUTPUT_PATH} ${MPIMAX}
         return_val1=$? ;
-        mpirun -np ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_2D -i ${CMAKE_CURRENT_BINARY_DIR}/inviscid_naca0012_reduced_order.prm
+        mpirun -np ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_2D -i ${CMAKE_CURRENT_BINARY_DIR}/inviscid_naca0012_reduced_order_consistency.prm
         return_val2=$? ;
         rm *.txt ;
         if [ $return_val1 -ne 0 ] || [ $return_val2 -ne 0 ]; then exit 1; else exit 0; fi"
@@ -101,7 +101,7 @@ add_test(
 #)
 
 # =======================================
-# Default manufactured solution
+# Burgers Rewienski manufactured solution
 # =======================================
 configure_file(1d_burgers_rewienski_manufactured.prm 1d_burgers_rewienski_manufactured.prm COPYONLY)
 add_test(

@@ -19,6 +19,21 @@ public:
     /// Tolerance of the reduced-order nonlinear residual
     double reduced_residual_tolerance;
 
+    /// Number of Halton sequence points to add to initial snapshot set
+    int num_halton;
+
+    /// Recomputation parameter for adaptive sampling algorithm
+    int recomputation_coefficient;
+
+    /// Names of parameters
+    std::vector<std::string> parameter_names;
+
+    /// Minimum value of parameters
+    std::vector<double> parameter_min_values;
+
+    /// Maximum value of parameters
+    std::vector<double> parameter_max_values;
+
     ReducedOrderModelParam (); ///< Constructor
 
     /// Declares the possible variables and sets the defaults.

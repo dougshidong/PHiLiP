@@ -84,7 +84,7 @@ subsection ODE solver
   set time_step_factor_residual = 1.0
   set time_step_factor_residual_exp = 2
 
-  # set ode_solver_type  = explicit
+  # set ode_solver_type  = runge_kutta
   # set initial_time_step = 0.1
   # set time_step_factor_residual = 0.0
   # set time_step_factor_residual_exp = 1.0

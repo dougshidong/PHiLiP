@@ -37,6 +37,10 @@ public:
     int max_iterations; ///< Maximum number of linear iteration.
     int restart_number; ///< Number of iterations before restarting GMRES
 
+    double newton_residual; ///< Tolerance for Newton iteration residual (for Jacobian-free Newton-Krylov)
+    int newton_max_iterations; ///< Maximum number of Newton iterations (for Jacobian-free Newton-Krylov)
+    double perturbation_magnitude; ///<Small perturbation magnitude for Jacobian-free methods
+
     /// Declares the possible variables and sets the defaults.
     static void declare_parameters (dealii::ParameterHandler &prm);
     /// Parses input file and sets the variables.

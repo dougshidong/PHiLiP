@@ -76,7 +76,7 @@ echo "  end" >> $file
 echo "end" >> $file
 
 dir=$(pwd)
-mpirun "-n" "4" "$1/PHiLiP_2D" "-i" "${dir}/${file}"
+mpirun "-n" "$2" "$1/PHiLiP_2D" "-i" "${dir}/${file}"
 
 rm ${file}
 done

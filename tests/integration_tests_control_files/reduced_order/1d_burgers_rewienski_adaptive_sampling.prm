@@ -27,7 +27,7 @@ end
 
 #Burgers parameters
 subsection burgers
- set rewienski_a = 5.0
+ set rewienski_a = 2.0
  set rewienski_b = 0.04
 end
 
@@ -37,9 +37,14 @@ end
 
 #Reduced order parameters
 subsection reduced order
-  set adaptation_tolerance = 0.001
+  set adaptation_tolerance = 1e-04
   set path_to_search = .
   set reduced_residual_tolerance = 1e-14
+  set parameter_names = rewienski_a, rewienski_b
+  set parameter_min_values = 2, 0.01
+  set parameter_max_values = 10, 0.1
+  set num_halton = 0
+  set recomputation_coefficient = 5
 end
 
 subsection linear solver

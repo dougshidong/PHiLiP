@@ -16,7 +16,7 @@ class ROMTestLocation
 {
 public:
     /// Constructor
-    ROMTestLocation(const RowVectorXd& parameter, std::shared_ptr<ROMSolution < dim, nstate>> rom_solution);
+    ROMTestLocation(const RowVectorXd& parameter, std::unique_ptr<ROMSolution < dim, nstate>> rom_solution);
 
     /// Destructor
     ~ROMTestLocation() {};
@@ -34,7 +34,7 @@ public:
     RowVectorXd parameter;
 
     /// ROM solution
-    std::shared_ptr<ROMSolution<dim, nstate>> rom_solution;
+    std::unique_ptr<ROMSolution<dim, nstate>> rom_solution;
 
     /// Error between FOM and initial ROM
     double fom_to_initial_rom_error;

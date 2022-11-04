@@ -14,7 +14,7 @@ public:
     ODESolverParam (); ///< Constructor.
     /// Types of ODE solver
     enum ODESolverEnum {
-        explicit_solver, /// Explicit RK 
+        runge_kutta_solver, /// Runge-Kutta (RK), explicit or diagonally implicit 
         implicit_solver,  /// Backward-Euler
         rrk_explicit_solver, /// Explicit RK using the relaxation Runge-Kutta method (Ketcheson, 2019)
         pod_galerkin_solver, ///Proper Orthogonal Decomposition with Galerkin projection
@@ -22,7 +22,7 @@ public:
     };
 
     OutputEnum ode_output; ///< verbose or quiet.
-    ODESolverEnum ode_solver_type; ///< ODE solver type. Note that only implicit has been fully tested for now.
+    ODESolverEnum ode_solver_type; ///< ODE solver type.
 
     int output_solution_every_x_steps; ///< Outputs the solution every x steps to .vtk file
     double output_solution_every_dt_time_intervals; ///< Outputs the solution every dt time intervals to .vtk file
@@ -50,7 +50,18 @@ public:
         at which we initialize the ODE solver with. */
     double initial_desired_time_for_output_solution_every_dt_time_intervals;
 
-    int runge_kutta_order; ///< Order for the Runge-Kutta explicit time advancement scheme.
+    /// Types of RK method (i.e., unique Butcher tableau)
+    enum RKMethodEnum {
+        rk4_ex, ///Classical fourth-order RK
+        ssprk3_ex, ///Third-order strong-stability preserving
+        euler_ex, ///Forward Euler
+        euler_im, ///Implicit Euler
+        dirk_2_im ///Second-order diagonally-implicit RK
+    };
+
+    RKMethodEnum runge_kutta_method; ///< Runge-kutta method.
+    int n_rk_stages; ///< Number of stages for an RK method; assigned based on runge_kutta_method
+    int rk_order; ///< Order of the RK method; assigned based on runge_kutta_method
 
     static void declare_parameters (dealii::ParameterHandler &prm); ///< Declares the possible variables and sets the defaults.
     void parse_parameters (dealii::ParameterHandler &prm); ///< Parses input file and sets the variables.

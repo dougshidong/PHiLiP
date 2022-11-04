@@ -20,7 +20,8 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                           " naca0012 | "
                           " burgers_rewienski_snapshot | "
                           " periodic_1D_unsteady | "
-                          " gaussian_bump "),
+                          " gaussian_bump | "
+                          " sshock "),
                           "The type of flow we want to simulate. "
                           "Choices are "
                           " <taylor_green_vortex | "
@@ -28,11 +29,18 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                           " naca0012 | "
                           " burgers_rewienski_snapshot | "
                           " periodic_1D_unsteady | "
-                          " gaussian_bump>. ");
+                          " gaussian_bump | "
+                          " sshock>. ");
 
         prm.declare_entry("poly_degree", "1",
                           dealii::Patterns::Integer(0, dealii::Patterns::Integer::max_int_value),
                           "Polynomial order (P) of the basis functions for DG.");
+
+        prm.declare_entry("max_poly_degree_for_adaptation", "0",
+                          dealii::Patterns::Integer(0, dealii::Patterns::Integer::max_int_value),
+                          "Maxiumum possible polynomial order (P) of the basis functions for DG "
+                          "when doing adaptive simulations. Default is 0 which actually sets "
+                          "the value to poly_degree in the code, indicating no adaptation.");
 
         prm.declare_entry("final_time", "1",
                           dealii::Patterns::Double(0, dealii::Patterns::Double::max_double_value),
@@ -220,14 +228,21 @@ void FlowSolverParam::parse_parameters(dealii::ParameterHandler &prm)
     prm.enter_subsection("flow_solver");
     {
         const std::string flow_case_type_string = prm.get("flow_case_type");
-        if      (flow_case_type_string == "taylor_green_vortex")        {flow_case_type = taylor_green_vortex;}
-        else if (flow_case_type_string == "burgers_viscous_snapshot")   {flow_case_type = burgers_viscous_snapshot;}
-        else if (flow_case_type_string == "burgers_rewienski_snapshot") {flow_case_type = burgers_rewienski_snapshot;}
-        else if (flow_case_type_string == "naca0012")                   {flow_case_type = naca0012;}
-        else if (flow_case_type_string == "periodic_1D_unsteady")       {flow_case_type = periodic_1D_unsteady;}
-        else if (flow_case_type_string == "gaussian_bump")              {flow_case_type = gaussian_bump;}
+        if      (flow_case_type_string == "taylor_green_vortex")                {flow_case_type = taylor_green_vortex;}
+        else if (flow_case_type_string == "burgers_viscous_snapshot")           {flow_case_type = burgers_viscous_snapshot;}
+        else if (flow_case_type_string == "burgers_rewienski_snapshot")         {flow_case_type = burgers_rewienski_snapshot;}
+        else if (flow_case_type_string == "naca0012")                           {flow_case_type = naca0012;}
+        else if (flow_case_type_string == "periodic_1D_unsteady")                 {flow_case_type = periodic_1D_unsteady;}
+        else if (flow_case_type_string == "gaussian_bump")                      {flow_case_type = gaussian_bump;}
+        else if (flow_case_type_string == "sshock")                             {flow_case_type = sshock;}
 
         poly_degree = prm.get_integer("poly_degree");
+        
+        // get max poly degree for adaptation
+        max_poly_degree_for_adaptation = prm.get_integer("max_poly_degree_for_adaptation");
+        // -- set value to poly_degree if it is the default value
+        if(max_poly_degree_for_adaptation == 0) max_poly_degree_for_adaptation = poly_degree;
+        
         final_time = prm.get_double("final_time");
         courant_friedrich_lewy_number = prm.get_double("courant_friedrich_lewy_number");
         unsteady_data_table_filename = prm.get("unsteady_data_table_filename");

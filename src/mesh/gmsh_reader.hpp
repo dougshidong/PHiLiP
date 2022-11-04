@@ -56,7 +56,8 @@ namespace PHiLiP {
     /// Reads Gmsh grid.
     /** Can request to convert the input grid's order to the 
       * requested_grid_order, which will simply interpolate
-      * the high-order nodes.
+      * the high-order nodes. Dealii's mesh smoothing can be set to none
+      * while using goal oriented mesh adaptation.
       */
     template <int dim, int spacedim>
     std::shared_ptr< HighOrderGrid<dim, double> >
@@ -66,7 +67,13 @@ namespace PHiLiP {
               const int y_periodic_1 = 0, const int y_periodic_2 = 0, 
               const int z_periodic_1 = 0, const int z_periodic_2 = 0, 
               const bool mesh_reader_verbose_output = true,
-              int requested_grid_order = 0);
+              int requested_grid_order = 0,
+              const bool use_mesh_smoothing = true);
+
+    /// Overload
+    template <int dim, int spacedim>
+    std::shared_ptr< HighOrderGrid<dim, double> >
+    read_gmsh(std::string filename, int requested_grid_order = 0, const bool use_mesh_smoothing = true);
 } // namespace PHiLiP
 #endif
 

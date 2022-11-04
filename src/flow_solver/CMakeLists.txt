@@ -2,6 +2,7 @@
 set(FLOW_SOLVER_SOURCE
     flow_solver_cases/flow_solver_case_base.cpp
     flow_solver_cases/periodic_cube_flow.cpp
+    flow_solver_cases/non_periodic_cube_flow.cpp
     flow_solver_cases/periodic_turbulence.cpp
     flow_solver_cases/periodic_1D_unsteady.cpp
     flow_solver_cases/1D_burgers_rewienski_snapshot.cpp

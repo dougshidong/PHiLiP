@@ -21,11 +21,13 @@ public:
         naca0012,
         burgers_rewienski_snapshot,
         periodic_1D_unsteady,
-        gaussian_bump
+        gaussian_bump,
+        sshock
         };
     FlowCaseType flow_case_type; ///< Selected FlowCaseType from the input file
 
     unsigned int poly_degree; ///< Polynomial order (P) of the basis functions for DG.
+    unsigned int max_poly_degree_for_adaptation; ///< Maximum polynomial order of the DG basis functions for adaptation.
     double final_time; ///< Final solution time
     double courant_friedrich_lewy_number; ///< Courant-Friedrich-Lewy (CFL) number for constant time step
 

@@ -51,6 +51,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_volume_term_and_build_operator
     const unsigned int                                     grid_degree,
     OPERATOR::basis_functions<dim,2*dim>                   &soln_basis,
     OPERATOR::basis_functions<dim,2*dim>                   &flux_basis,
+    OPERATOR::local_basis_stiffness<dim,2*dim>             &flux_basis_stiffness,
     OPERATOR::metric_operators<real,dim,2*dim>             &metric_oper,
     OPERATOR::mapping_shape_functions<dim,2*dim>           &mapping_basis,
     std::array<std::vector<real>,dim>                      &mapping_support_points,
@@ -69,7 +70,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_volume_term_and_build_operator
         soln_basis.current_degree = poly_degree; 
         flux_basis.current_degree = poly_degree; 
         mapping_basis.current_degree  = poly_degree; 
-        this->reinit_operators_for_cell_residual_loop(poly_degree, poly_degree, grid_degree, soln_basis, soln_basis, flux_basis, flux_basis, mapping_basis);
+        this->reinit_operators_for_cell_residual_loop(poly_degree, poly_degree, grid_degree, soln_basis, soln_basis, flux_basis, flux_basis, flux_basis_stiffness, mapping_basis);
     }
 
     const dealii::FESystem<dim> &fe_metric = this->high_order_grid->fe_system;
@@ -113,6 +114,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_volume_term_and_build_operator
             poly_degree,
             soln_basis,
             flux_basis,
+            flux_basis_stiffness,
             metric_oper,
             local_rhs_int_cell);
     }
@@ -130,6 +132,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_and_build_operat
     const unsigned int                                     /*grid_degree*/,
     OPERATOR::basis_functions<dim,2*dim>                   &soln_basis,
     OPERATOR::basis_functions<dim,2*dim>                   &flux_basis,
+    OPERATOR::local_basis_stiffness<dim,2*dim>             &/*flux_basis_stiffness*/,
     OPERATOR::metric_operators<real,dim,2*dim>             &metric_oper,
     OPERATOR::mapping_shape_functions<dim,2*dim>           &mapping_basis,
     std::array<std::vector<real>,dim>                      &mapping_support_points,
@@ -195,6 +198,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_and_build_operators(
     OPERATOR::basis_functions<dim,2*dim>                   &soln_basis_ext,
     OPERATOR::basis_functions<dim,2*dim>                   &flux_basis_int,
     OPERATOR::basis_functions<dim,2*dim>                   &flux_basis_ext,
+    OPERATOR::local_basis_stiffness<dim,2*dim>             &flux_basis_stiffness,
     OPERATOR::metric_operators<real,dim,2*dim>             &metric_oper_int,
     OPERATOR::metric_operators<real,dim,2*dim>             &metric_oper_ext,
     OPERATOR::mapping_shape_functions<dim,2*dim>           &mapping_basis,
@@ -226,7 +230,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_and_build_operators(
         soln_basis_ext.current_degree    = poly_degree_ext; 
         flux_basis_ext.current_degree    = poly_degree_ext; 
         mapping_basis.current_degree     = poly_degree_ext; 
-        this->reinit_operators_for_cell_residual_loop(poly_degree_int, poly_degree_ext, grid_degree_ext, soln_basis_int, soln_basis_ext, flux_basis_int, flux_basis_ext, mapping_basis);
+        this->reinit_operators_for_cell_residual_loop(poly_degree_int, poly_degree_ext, grid_degree_ext, soln_basis_int, soln_basis_ext, flux_basis_int, flux_basis_ext, flux_basis_stiffness, mapping_basis);
     }
 
     if(!compute_Auxiliary_RHS){//only for primary equations
@@ -313,6 +317,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_subface_term_and_build_operato
     OPERATOR::basis_functions<dim,2*dim>                   &soln_basis_ext,
     OPERATOR::basis_functions<dim,2*dim>                   &flux_basis_int,
     OPERATOR::basis_functions<dim,2*dim>                   &flux_basis_ext,
+    OPERATOR::local_basis_stiffness<dim,2*dim>             &flux_basis_stiffness,
     OPERATOR::metric_operators<real,dim,2*dim>             &metric_oper_int,
     OPERATOR::metric_operators<real,dim,2*dim>             &metric_oper_ext,
     OPERATOR::mapping_shape_functions<dim,2*dim>           &mapping_basis,
@@ -347,6 +352,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_subface_term_and_build_operato
         soln_basis_ext,
         flux_basis_int,
         flux_basis_ext,
+        flux_basis_stiffness,
         metric_oper_int,
         metric_oper_ext,
         mapping_basis,
@@ -415,10 +421,11 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_auxiliary_residual()
         OPERATOR::basis_functions<dim,2*dim> soln_basis_ext(nstate, this->max_degree, this->max_grid_degree); 
         OPERATOR::basis_functions<dim,2*dim> flux_basis_int(nstate, this->max_degree, this->max_grid_degree); 
         OPERATOR::basis_functions<dim,2*dim> flux_basis_ext(nstate, this->max_degree, this->max_grid_degree); 
+        OPERATOR::local_basis_stiffness<dim,2*dim> flux_basis_stiffness(nstate, this->max_degree, this->max_grid_degree); 
         OPERATOR::mapping_shape_functions<dim,2*dim> mapping_basis(nstate, this->max_degree, this->max_grid_degree);
          
         this->reinit_operators_for_cell_residual_loop(
-            this->max_degree, this->max_degree, this->max_grid_degree, soln_basis_int, soln_basis_ext, flux_basis_int, flux_basis_ext, mapping_basis);
+            this->max_degree, this->max_degree, this->max_grid_degree, soln_basis_int, soln_basis_ext, flux_basis_int, flux_basis_ext, flux_basis_stiffness, mapping_basis);
 
         //loop over cells solving for auxiliary rhs
         auto metric_cell = this->high_order_grid->dof_handler_grid.begin_active();
@@ -438,6 +445,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_auxiliary_residual()
                 soln_basis_ext,
                 flux_basis_int,
                 flux_basis_ext,
+                flux_basis_stiffness,
                 mapping_basis,
                 true,
                 this->right_hand_side,
@@ -851,13 +859,14 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_auxiliary(
 template <int dim, int nstate, typename real, typename MeshType>
 void DGStrong<dim,nstate,real,MeshType>::assemble_volume_term_strong(
     typename dealii::DoFHandler<dim>::active_cell_iterator cell,
-    const dealii::types::global_dof_index current_cell_index,
-    const std::vector<dealii::types::global_dof_index> &cell_dofs_indices,
-    const unsigned int poly_degree,
-    OPERATOR::basis_functions<dim,2*dim> &soln_basis,
-    OPERATOR::basis_functions<dim,2*dim> &flux_basis,
-    OPERATOR::metric_operators<real,dim,2*dim> &metric_oper,
-    dealii::Vector<real> &local_rhs_int_cell)
+    const dealii::types::global_dof_index                  current_cell_index,
+    const std::vector<dealii::types::global_dof_index>     &cell_dofs_indices,
+    const unsigned int                                     poly_degree,
+    OPERATOR::basis_functions<dim,2*dim>                   &soln_basis,
+    OPERATOR::basis_functions<dim,2*dim>                   &flux_basis,
+    OPERATOR::local_basis_stiffness<dim,2*dim>             &flux_basis_stiffness,
+    OPERATOR::metric_operators<real,dim,2*dim>             &metric_oper,
+    dealii::Vector<real>                                   &local_rhs_int_cell)
 {
     (void) current_cell_index;
 
@@ -865,6 +874,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_volume_term_strong(
     const unsigned int n_dofs_cell = this->fe_collection[poly_degree].dofs_per_cell;
     const unsigned int n_shape_fns = n_dofs_cell / nstate; 
     const std::vector<double> &vol_quad_weights = this->volume_quadrature_collection[poly_degree].get_weights();
+    const std::vector<double> &oneD_vol_quad_weights = this->oneD_quadrature_collection[poly_degree].get_weights();
 
     AssertDimension (n_dofs_cell, cell_dofs_indices.size());
 
@@ -1097,9 +1107,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_volume_term_strong(
             // Same as Eq. (32) in Chan, Jesse, and Lucas C. Wilcox. "On discretely entropy stable weight-adjusted discontinuous Galerkin methods: curvilinear meshes." Journal of Computational Physics 378 (2019): 366-393, but
             // where we use the reference gradient of the flux basis for the D operator and the reference two-point flux.
            // flux_basis.divergence_two_pt_flux_Hadamard_product(conv_ref_2pt_flux_at_q[istate], conv_flux_divergence, flux_basis.oneD_grad_operator);
-           const unsigned int quad_pts_1D = this->oneD_quadrature_collection[poly_degree].size();
-           std::vector<real> ones(quad_pts_1D, 1.0);
-            flux_basis.divergence_two_pt_flux_Hadamard_product(conv_ref_2pt_flux_at_q[istate], conv_flux_divergence, ones, flux_basis.oneD_grad_operator);//to be fixed bc will used stiffness skew-symm form
+            flux_basis.divergence_two_pt_flux_Hadamard_product(conv_ref_2pt_flux_at_q[istate], conv_flux_divergence, oneD_vol_quad_weights, flux_basis_stiffness.oneD_vol_operator);
         }
         else{
             //Reference divergence of the reference convective flux.
@@ -1124,7 +1132,13 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_volume_term_strong(
         std::vector<real> rhs(n_shape_fns);
 
         // Convective
-        soln_basis.inner_product_1D(conv_flux_divergence, vol_quad_weights, rhs, soln_basis.oneD_vol_operator, false, -1.0);
+        if (this->all_parameters->use_split_form || this->all_parameters->use_curvilinear_split_form){
+            std::vector<real> ones(n_quad_pts, 1.0);
+            soln_basis.inner_product_1D(conv_flux_divergence, ones, rhs, soln_basis.oneD_vol_operator, false, -1.0);
+        }
+        else {
+            soln_basis.inner_product_1D(conv_flux_divergence, vol_quad_weights, rhs, soln_basis.oneD_vol_operator, false, -1.0);
+        }
 
         // Diffusive
         // Note that for diffusion, the negative is defined in the physics. Since we used the auxiliary

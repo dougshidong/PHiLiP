@@ -224,7 +224,19 @@ public:
             const dealii::Tensor<1,dim,dealii::FullMatrix<double>> &input_mat,
             std::vector<double> &output_vect,
             const std::vector<double> &weights,
-            const dealii::FullMatrix<double> &basis);//the only direction that isn't identity
+            const dealii::FullMatrix<double> &basis,
+            const double scaling = 2.0);//the only direction that isn't identity
+
+
+    /// Computes the surface cross Hadamard products for skew-symmetric form from Eq. (15) in Chan, Jesse. "Skew-symmetric entropy stable modal discontinuous Galerkin formulations." Journal of Scientific Computing 81.1 (2019): 459-485.
+    void surface_two_pt_flux_Hadamard_product(
+            const dealii::FullMatrix<double> &input_mat,
+            std::vector<double> &output_vect_vol,
+            std::vector<double> &output_vect_surf,
+            const std::vector<double> &weights,
+            const dealii::FullMatrix<double> &surf_basis,
+            const unsigned int dim_not_zero,
+            const double scaling = 2.0);
 
     ///Computes the Hadamard product ONLY for 2pt flux calculations.
     /**
@@ -440,7 +452,8 @@ public:
     local_basis_stiffness (
         const int nstate_input,
         const unsigned int max_degree_input,
-        const unsigned int grid_degree_input);
+        const unsigned int grid_degree_input,
+        const bool store_skew_symmetric_form_input = false);
 
     /// Destructor.
     ~local_basis_stiffness () {};
@@ -448,10 +461,16 @@ public:
     /// Stores the degree of the current poly degree.
     unsigned int current_degree;
 
+    /// Flag to store the skew symmetric form \f$S-S^T\f$.
+    const bool store_skew_symmetric_form;
+
     /// Assembles the one dimensional operator.
     void build_1D_volume_operator(
             const dealii::FESystem<1,1> &finite_element,
             const dealii::Quadrature<1> &quadrature);
+
+    /// Skew-symmetric volume operator \f$S-S^T\f$.
+    dealii::FullMatrix<double> oneD_skew_symm_vol_oper;
 };
 
 ///This is the solution basis \f$\mathbf{D}_i\f$, the modal differential opertaor commonly seen in DG defined as \f$\mathbf{D}_i=\mathbf{M}^{-1}*\mathbf{S}_i\f$.

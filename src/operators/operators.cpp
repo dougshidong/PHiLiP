@@ -538,7 +538,8 @@ void SumFactorizedOperators<dim,n_faces>::divergence_two_pt_flux_Hadamard_produc
     const dealii::Tensor<1,dim,dealii::FullMatrix<double>> &input_mat,
     std::vector<double> &output_vect,
     const std::vector<double> &weights,
-    const dealii::FullMatrix<double> &basis)
+    const dealii::FullMatrix<double> &basis,
+    const double scaling)
 {
     assert(input_mat[0].m() == output_vect.size());
 
@@ -549,7 +550,7 @@ void SumFactorizedOperators<dim,n_faces>::divergence_two_pt_flux_Hadamard_produc
             for(unsigned int row=0; row<input_mat[0].m(); row++){//n^d rows
                 for(unsigned int col=0; col<basis.m(); col++){//only need to sum n columns
                     const unsigned int col_index = col; 
-                    output_vect[row] += 2.0 * output_mat[row][col_index];//scaled by 2.0 for 2pt flux
+                    output_vect[row] += scaling * output_mat[row][col_index];//scaled by 2.0 for 2pt flux
                 }
             }
         }
@@ -561,11 +562,11 @@ void SumFactorizedOperators<dim,n_faces>::divergence_two_pt_flux_Hadamard_produc
                     for(unsigned int col=0; col<size_1D; col++){
                         if(idim==0){
                             const unsigned int col_index = col + irow * size_1D;
-                            output_vect[row_index] += 2.0 * output_mat[row_index][col_index];//scaled by 2.0 for 2pt flux
+                            output_vect[row_index] += scaling * output_mat[row_index][col_index];//scaled by 2.0 for 2pt flux
                         }
                         if(idim==1){
                             const unsigned int col_index = col * size_1D + jrow;
-                            output_vect[row_index] += 2.0 * output_mat[row_index][col_index];//scaled by 2.0 for 2pt flux
+                            output_vect[row_index] += scaling * output_mat[row_index][col_index];//scaled by 2.0 for 2pt flux
                         }
                     }
                 }
@@ -580,16 +581,92 @@ void SumFactorizedOperators<dim,n_faces>::divergence_two_pt_flux_Hadamard_produc
                         for(unsigned int col=0; col<size_1D; col++){
                             if(idim==0){
                                 const unsigned int col_index = col + irow * size_1D * size_1D + jrow * size_1D;
-                                output_vect[row_index] += 2.0 * output_mat[row_index][col_index];//scaled by 2.0 for 2pt flux
+                                output_vect[row_index] += scaling * output_mat[row_index][col_index];//scaled by 2.0 for 2pt flux
                             }
                             if(idim==1){
                                 const unsigned int col_index = col * size_1D + krow + irow * size_1D * size_1D;
-                                output_vect[row_index] += 2.0 * output_mat[row_index][col_index];//scaled by 2.0 for 2pt flux
+                                output_vect[row_index] += scaling * output_mat[row_index][col_index];//scaled by 2.0 for 2pt flux
                             }
                             if(idim==2){
                                 const unsigned int col_index = col * size_1D * size_1D + krow + jrow * size_1D;
-                                output_vect[row_index] += 2.0 * output_mat[row_index][col_index];//scaled by 2.0 for 2pt flux
+                                output_vect[row_index] += scaling * output_mat[row_index][col_index];//scaled by 2.0 for 2pt flux
                             }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+template <int dim, int n_faces>  
+void SumFactorizedOperators<dim,n_faces>::surface_two_pt_flux_Hadamard_product(
+    const dealii::FullMatrix<double> &input_mat,
+    std::vector<double> &output_vect_vol,
+    std::vector<double> &output_vect_surf,
+    const std::vector<double> &weights,
+    const dealii::FullMatrix<double> &surf_basis,
+    const unsigned int dim_not_zero,
+    const double scaling)//scaling is unit_ref_normal[dim_not_zero]
+{
+    assert(input_mat.n() == output_vect_vol.size());
+    assert(input_mat.m() == output_vect_surf.size());
+
+    dealii::FullMatrix<double> output_mat(input_mat.m(), input_mat.n());
+    two_pt_flux_Hadamard_product(input_mat, output_mat, surf_basis, weights, dim_not_zero);
+    if constexpr(dim==1){
+        for(unsigned int row=0; row<surf_basis.m(); row++){//n rows
+            for(unsigned int col=0; col<surf_basis.n(); col++){//only need to sum n columns
+                output_vect_vol[col] += scaling 
+                                      * output_mat[row][col];//scaled by 2.0 for 2pt flux
+                output_vect_surf[row] -= scaling //minus because skew-symm form
+                                       * output_mat[row][col];//scaled by 2.0 for 2pt flux
+            }
+        }
+    }
+    if constexpr(dim==2){
+        const unsigned int size_1D_row = surf_basis.m();
+        const unsigned int size_1D_col = surf_basis.n();
+        for(unsigned int irow=0; irow<size_1D_col; irow++){
+            for(unsigned int jrow=0; jrow<size_1D_row; jrow++){
+                const unsigned int row_index = irow * size_1D_row + jrow;
+                for(unsigned int col=0; col<size_1D_col; col++){
+                    if(dim_not_zero==0){
+                        const unsigned int col_index = col + irow * size_1D_col;
+                        output_vect_vol[col_index] += scaling * output_mat[row_index][col_index];//scaled by 2.0 for 2pt flux
+                        output_vect_surf[row_index] -= scaling * output_mat[row_index][col_index];//scaled by 2.0 for 2pt flux
+                    }
+                    if(dim_not_zero==1){
+                        const unsigned int col_index = col * size_1D_col + irow;
+                        output_vect_vol[col_index] += scaling * output_mat[row_index][col_index];//scaled by 2.0 for 2pt flux
+                        output_vect_surf[row_index] -= scaling * output_mat[row_index][col_index];//scaled by 2.0 for 2pt flux
+                    }
+                }
+            }
+        }
+    }
+    if constexpr(dim==3){
+        const unsigned int size_1D_row = surf_basis.m();
+        const unsigned int size_1D_col = surf_basis.n();
+        for(unsigned int irow=0; irow<size_1D_col; irow++){
+            for(unsigned int jrow=0; jrow<size_1D_col; jrow++){
+                for(unsigned int krow=0; krow<size_1D_row; krow++){
+                    const unsigned int row_index = irow * size_1D_row * size_1D_col + jrow * size_1D_row + krow;
+                    for(unsigned int col=0; col<size_1D_col; col++){
+                        if(dim_not_zero==0){
+                            const unsigned int col_index = col + irow * size_1D_col * size_1D_col + jrow * size_1D_col;
+                            output_vect_vol[col_index] += scaling * output_mat[row_index][col_index];//scaled by 2.0 for 2pt flux
+                            output_vect_surf[row_index] -= scaling * output_mat[row_index][col_index];//scaled by 2.0 for 2pt flux
+                        }
+                        if(dim_not_zero==1){
+                            const unsigned int col_index = col * size_1D_col + jrow + irow * size_1D_col * size_1D_col;
+                            output_vect_vol[col_index] += scaling * output_mat[row_index][col_index];//scaled by 2.0 for 2pt flux
+                            output_vect_surf[row_index] -= scaling * output_mat[row_index][col_index];//scaled by 2.0 for 2pt flux
+                        }
+                        if(dim_not_zero==2){
+                            const unsigned int col_index = col * size_1D_col * size_1D_col + jrow + irow * size_1D_col;
+                            output_vect_vol[col_index] += scaling * output_mat[row_index][col_index];//scaled by 2.0 for 2pt flux
+                            output_vect_surf[row_index] -= scaling * output_mat[row_index][col_index];//scaled by 2.0 for 2pt flux
                         }
                     }
                 }
@@ -607,24 +684,28 @@ void SumFactorizedOperators<dim,n_faces>::two_pt_flux_Hadamard_product(
     const int direction)
 {
     assert(input_mat.size() == output_mat.size());
-    const unsigned int size = basis.m();
+    const unsigned int size = basis.n();
     assert(size == weights.size());
 
     if constexpr(dim == 1){
         Hadamard_product(input_mat, basis, output_mat);  
     }
     if constexpr(dim == 2){
+        //In the general case, the basis is non-square (think surface lifting functions).
+        //We assume the other directions are square but variable in the basis of interest. 
+        const unsigned int rows = basis.m();
+        assert(rows == input_mat.m());
         if(direction == 0){
             for(unsigned int idiag=0; idiag<size; idiag++){
-                dealii::FullMatrix<double> local_block(size, size);
-                std::vector<unsigned int> row_index(size);
+                dealii::FullMatrix<double> local_block(rows, size);
+                std::vector<unsigned int> row_index(rows);
                 std::vector<unsigned int> col_index(size);
                 //fill index range for diagonal blocks of rize rows_x x columns_x
-                std::iota(row_index.begin(), row_index.end(), idiag*size);
+                std::iota(row_index.begin(), row_index.end(), idiag*rows);
                 std::iota(col_index.begin(), col_index.end(), idiag*size);
                 //extract diagonal block from input matrix
                 local_block.extract_submatrix_from(input_mat, row_index, col_index);
-                dealii::FullMatrix<double> local_Hadamard(size, size);
+                dealii::FullMatrix<double> local_Hadamard(rows, size);
                 Hadamard_product(local_block, basis, local_Hadamard);
                 //scale by the diagonal weight from tensor product
                 local_Hadamard *= weights[idiag];
@@ -633,9 +714,10 @@ void SumFactorizedOperators<dim,n_faces>::two_pt_flux_Hadamard_product(
             }
         }
         if(direction == 1){
-            for(unsigned int idiag=0; idiag<size; idiag++){
+           // for(unsigned int idiag=0; idiag<size; idiag++){
+            for(unsigned int idiag=0; idiag<rows; idiag++){
+                const unsigned int row_index = idiag * size;
                 for(unsigned int jdiag=0; jdiag<size; jdiag++){
-                    const unsigned int row_index = idiag * size;
                     const unsigned int col_index = jdiag * size;
                     for(unsigned int kdiag=0; kdiag<size; kdiag++){
                         output_mat[row_index + kdiag][col_index + kdiag] = basis[idiag][jdiag]
@@ -648,19 +730,20 @@ void SumFactorizedOperators<dim,n_faces>::two_pt_flux_Hadamard_product(
         }
     }
     if constexpr(dim == 3){
+        const unsigned int rows = basis.m();
         if(direction == 0){
             unsigned int kdiag=0;
             for(unsigned int idiag=0; idiag< size * size; idiag++){
                 if(kdiag==size) kdiag = 0;
-                dealii::FullMatrix<double> local_block(size, size);
-                std::vector<unsigned int> row_index(size);
+                dealii::FullMatrix<double> local_block(rows, size);
+                std::vector<unsigned int> row_index(rows);
                 std::vector<unsigned int> col_index(size);
                 //fill index range for diagonal blocks of rize rows_x x columns_x
-                std::iota(row_index.begin(), row_index.end(), idiag*size);
+                std::iota(row_index.begin(), row_index.end(), idiag*rows);
                 std::iota(col_index.begin(), col_index.end(), idiag*size);
                 //extract diagonal block from input matrix
                 local_block.extract_submatrix_from(input_mat, row_index, col_index);
-                dealii::FullMatrix<double> local_Hadamard(size, size);
+                dealii::FullMatrix<double> local_Hadamard(rows, size);
                 Hadamard_product(local_block, basis, local_Hadamard);
                 //scale by the diagonal weight from tensor product
                 local_Hadamard *= weights[kdiag];
@@ -673,8 +756,8 @@ void SumFactorizedOperators<dim,n_faces>::two_pt_flux_Hadamard_product(
         }
         if(direction == 1){
             for(unsigned int zdiag=0; zdiag<size; zdiag++){ 
-                for(unsigned int idiag=0; idiag<size; idiag++){
-                    const unsigned int row_index = zdiag * size * size + idiag * size;
+                for(unsigned int idiag=0; idiag<rows; idiag++){
+                    const unsigned int row_index = zdiag * size * rows + idiag * size;
                     for(unsigned int jdiag=0; jdiag<size; jdiag++){
                         const unsigned int col_index = zdiag * size * size + jdiag * size;
                         for(unsigned int kdiag=0; kdiag<size; kdiag++){
@@ -688,7 +771,7 @@ void SumFactorizedOperators<dim,n_faces>::two_pt_flux_Hadamard_product(
             }
         }
         if(direction == 2){
-            for(unsigned int row_block=0; row_block<size; row_block++){
+            for(unsigned int row_block=0; row_block<rows; row_block++){
                 for(unsigned int col_block=0; col_block<size; col_block++){
                     const unsigned int row_index = row_block * size * size;
                     const unsigned int col_index = col_block * size * size;
@@ -957,8 +1040,10 @@ template <int dim, int n_faces>
 local_basis_stiffness<dim,n_faces>::local_basis_stiffness(
     const int nstate_input,
     const unsigned int max_degree_input,
-    const unsigned int grid_degree_input)
+    const unsigned int grid_degree_input,
+    const bool store_skew_symmetric_form_input)
     : SumFactorizedOperators<dim,n_faces>::SumFactorizedOperators(nstate_input, max_degree_input, grid_degree_input)
+    , store_skew_symmetric_form(store_skew_symmetric_form_input)
 {
     //Initialize to the max degrees
     current_degree = max_degree_input;
@@ -990,6 +1075,13 @@ void local_basis_stiffness<dim,n_faces>::build_1D_volume_operator(
                 this->oneD_vol_operator[itest][idof] = value; 
             }
         }
+    }
+    if(store_skew_symmetric_form){
+        //allocate
+        oneD_skew_symm_vol_oper.reinit(n_dofs,n_dofs);
+        //solve
+        oneD_skew_symm_vol_oper.add(1.0, this->oneD_vol_operator);
+        oneD_skew_symm_vol_oper.Tadd(-1.0, this->oneD_vol_operator);
     }
 }
 

@@ -42,10 +42,11 @@ public:
      *   will be written to file: sensitivity_table_filename.txt */
     std::string sensitivity_table_filename;
 
-    /** Name of the Gmsh file to be read if the flow_solver_case indeed reads a mesh;
-     *  will read file: input_mesh_filename.msh */
+    /** Name of the Gmsh file to be read if the flow_solver_case reads a mesh file;
+     *  will read the file: input_mesh_filename.msh */
     std::string input_mesh_filename;
-    bool use_input_mesh;                    ///<< Flag for using input gmsh mesh
+    bool use_input_mesh; ///<< Flag for using input mesh file
+    bool mesh_reader_verbose_output;///<< Flag for verbose (true) or quiet (false) mesh reader output
 
     /** Toggle for specifiying periodic boundary conditions on x, y, or z-direction
     **/

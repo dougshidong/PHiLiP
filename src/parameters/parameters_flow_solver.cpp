@@ -116,6 +116,10 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                               dealii::Patterns::Bool(),
                               "Use the input .msh file which calls read_gmsh. False by default.");
 
+            prm.declare_entry("mesh_reader_verbose_output", "false",
+                              dealii::Patterns::Bool(),
+                              "Flag for verbose (true) or quiet (false) mesh reader output.");
+
             prm.enter_subsection("boundary_IDs");
             {
 
@@ -247,6 +251,7 @@ void FlowSolverParam::parse_parameters(dealii::ParameterHandler &prm)
             number_of_grid_elements_per_dimension = prm.get_integer("number_of_grid_elements_per_dimension");
             number_of_mesh_refinements = prm.get_integer("number_of_mesh_refinements");
             use_input_mesh = prm.get_bool("use_input_mesh");
+            mesh_reader_verbose_output = prm.get_bool("mesh_reader_verbose_output");
 
             prm.enter_subsection("boundary_IDs");
             {

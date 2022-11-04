@@ -61,11 +61,12 @@ namespace PHiLiP {
     template <int dim, int spacedim>
     std::shared_ptr< HighOrderGrid<dim, double> >
     read_gmsh(std::string filename, const bool periodic_x = false, 
-    	                 const bool periodic_y = false, const bool periodic_z = false, 
-    	                 const int x_periodic_1 = 0, const int x_periodic_2 = 0, 
-    	                 const int y_periodic_1 = 0, const int y_periodic_2 = 0, 
-    	                 const int z_periodic_1 = 0, const int z_periodic_2 = 0, 
-    	                 int requested_grid_order = 0);
+              const bool periodic_y = false, const bool periodic_z = false, 
+              const int x_periodic_1 = 0, const int x_periodic_2 = 0, 
+              const int y_periodic_1 = 0, const int y_periodic_2 = 0, 
+              const int z_periodic_1 = 0, const int z_periodic_2 = 0, 
+              const bool mesh_reader_verbose_output = true,
+              int requested_grid_order = 0);
 } // namespace PHiLiP
 #endif
 

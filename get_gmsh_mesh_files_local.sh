@@ -14,7 +14,6 @@ mv *.msh ${TARGET_DIR}
 # Mesh files for gmsh_reader unit tests
 TARGET_DIR=tests/unit_tests/grid/gmsh_reader/
 gdown 1HQAoa_dS8U91r0oPPuo1NN9ozXOnjymj # airfoil.msh
-# gdown  # 3d_gaussian_bump.msh
 gdown 1Uqyi_JM6qA_Fk7YLSxOLjANdxNMGXWoi # 3D_CUBE_2ndOrder.msh
 gdown 1e_vjwogI9CTIBmolbT0EatnuXcfqP_Pi # SD7003.msh
 gdown 1n5g3KOYJgsnzEtZIhPujbKS5sN0ztYWE # naca0012_hopw_ref2.msh

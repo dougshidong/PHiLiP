@@ -27,6 +27,9 @@ real EntropyRRKODESolver<dim,real,n_rk_stages,MeshType>::compute_relaxation_para
 {
     // TEMP : Using variable names per Ranocha paper
 
+    // Console output is based on linearsolverparam
+    bool do_output = (this->dg->all_parameters->linear_solver_param.linear_solver_output == Parameters::OutputEnum::verbose); 
+
     dealii::LinearAlgebra::distributed::Vector<double> d;
     d.reinit(this->rk_stage[0]);
     for (int i = 0; i < n_rk_stages; ++i){
@@ -35,7 +38,7 @@ real EntropyRRKODESolver<dim,real,n_rk_stages,MeshType>::compute_relaxation_para
     d *= dt;
     
     const double e = compute_entropy_change_estimate(dt); //calculate
-    this->pcout <<"Entropy change estimate: " << e << std::endl;
+    if (do_output) this->pcout <<"Entropy change estimate: " << e << std::endl;
     
     const dealii::LinearAlgebra::distributed::Vector<double> u_n = this->solution_update;
     const double eta_n = compute_numerical_entropy(u_n); //compute_inner_product(u_n, u_n);
@@ -64,7 +67,7 @@ real EntropyRRKODESolver<dim,real,n_rk_stages,MeshType>::compute_relaxation_para
 
         while ((residual > conv_tol) && (iter_counter < iter_limit)){
             if (r_gamma_km1 == r_gamma_k){
-                this->pcout << "    Roots are identical. Multiplying gamma_k by 1.001 and recomputing..." << std::endl;
+                if (do_output) this->pcout << "    Roots are identical. Multiplying gamma_k by 1.001 and recomputing..." << std::endl;
                 gamma_k *= 1.001;
                 r_gamma_km1 = compute_root_function(gamma_km1, u_n, d, eta_n, e);
                 r_gamma_k = compute_root_function(gamma_k, u_n, d, eta_n, e);
@@ -72,7 +75,7 @@ real EntropyRRKODESolver<dim,real,n_rk_stages,MeshType>::compute_relaxation_para
                 //this->pcout << "Current gamma_km1 = " << gamma_km1 << " gamma_k = " << gamma_k << std::endl;
             }
             if ((gamma_k < 0.5) || (gamma_k > 1.5)) {
-                this->pcout << "    Gamma is far from 1. Setting gamma_k = 1 and contining iterations." << std::endl;
+                if (do_output) this->pcout << "    Gamma is far from 1. Setting gamma_k = 1 and contining iterations." << std::endl;
                 gamma_k = 1.0;
                 r_gamma_k = compute_root_function(gamma_k, u_n, d, eta_n, e);
 
@@ -89,12 +92,14 @@ real EntropyRRKODESolver<dim,real,n_rk_stages,MeshType>::compute_relaxation_para
             r_gamma_k = compute_root_function(gamma_k, u_n, d, eta_n, e);
 
             //output
-            this->pcout << "Iter: " << iter_counter
-                        << " gamma_k: " << gamma_k
-                        << " residual: " << residual << std::endl;
+            if (do_output) {
+                this->pcout << "Iter: " << iter_counter
+                            << " gamma_k: " << gamma_k
+                            << " residual: " << residual << std::endl;
+            }
             
             if (isnan(gamma_k) || isnan(gamma_km1)) {
-                this->pcout << "    NaN detected. Restarting iterations from 1.0." << std::endl;
+                if (do_output) this->pcout << "    NaN detected. Restarting iterations from 1.0." << std::endl;
                 gamma_k   = 1.0 - 1E-5;
                 r_gamma_k = compute_root_function(gamma_k, u_n, d, eta_n, e);
                 gamma_km1 = 1.0 + 1E-5;
@@ -118,8 +123,8 @@ real EntropyRRKODESolver<dim,real,n_rk_stages,MeshType>::compute_relaxation_para
             }
 
             gamma_kp1 = 0.5 * (l_limit + u_limit);
-            this->pcout << "Iter: " << iter_counter;
-            this->pcout << " Gamma by bisection is " << gamma_kp1;
+            if (do_output) this->pcout << "Iter: " << iter_counter;
+            if (do_output) this->pcout << " Gamma by bisection is " << gamma_kp1;
             double root_at_gamma = compute_root_function(gamma_kp1, u_n, d, eta_n, e);
             if (root_at_gamma < 0) {
                 l_limit = gamma_kp1;
@@ -129,7 +134,7 @@ real EntropyRRKODESolver<dim,real,n_rk_stages,MeshType>::compute_relaxation_para
                 root_u_limit = root_at_gamma;
             }
             residual = abs(root_at_gamma);
-            this->pcout << " With residual " << residual << std::endl;
+            if (do_output) this->pcout << " With residual " << residual << std::endl;
             iter_counter++;
         }    
     }
@@ -139,7 +144,7 @@ real EntropyRRKODESolver<dim,real,n_rk_stages,MeshType>::compute_relaxation_para
         std::abort();
         return -1;
     } else {
-        this->pcout << "Convergence reached!" << std::endl;
+        if (do_output) this->pcout << "Convergence reached!" << std::endl;
         return gamma_kp1;
     }
 }

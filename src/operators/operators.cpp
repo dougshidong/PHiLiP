@@ -605,18 +605,20 @@ void SumFactorizedOperators<dim,n_faces>::surface_two_pt_flux_Hadamard_product(
     std::vector<double> &output_vect_vol,
     std::vector<double> &output_vect_surf,
     const std::vector<double> &weights,
-    const dealii::FullMatrix<double> &surf_basis,
+    const std::array<dealii::FullMatrix<double>,2> &surf_basis,
+    const unsigned int iface,
     const unsigned int dim_not_zero,
     const double scaling)//scaling is unit_ref_normal[dim_not_zero]
 {
     assert(input_mat.n() == output_vect_vol.size());
     assert(input_mat.m() == output_vect_surf.size());
+    const unsigned int iface_1D = iface % 2;
 
     dealii::FullMatrix<double> output_mat(input_mat.m(), input_mat.n());
-    two_pt_flux_Hadamard_product(input_mat, output_mat, surf_basis, weights, dim_not_zero);
+    two_pt_flux_Hadamard_product(input_mat, output_mat, surf_basis[iface_1D], weights, dim_not_zero);
     if constexpr(dim==1){
-        for(unsigned int row=0; row<surf_basis.m(); row++){//n rows
-            for(unsigned int col=0; col<surf_basis.n(); col++){//only need to sum n columns
+        for(unsigned int row=0; row<surf_basis[iface_1D].m(); row++){//n rows
+            for(unsigned int col=0; col<surf_basis[iface_1D].n(); col++){//only need to sum n columns
                 output_vect_vol[col] += scaling 
                                       * output_mat[row][col];//scaled by 2.0 for 2pt flux
                 output_vect_surf[row] -= scaling //minus because skew-symm form
@@ -625,8 +627,8 @@ void SumFactorizedOperators<dim,n_faces>::surface_two_pt_flux_Hadamard_product(
         }
     }
     if constexpr(dim==2){
-        const unsigned int size_1D_row = surf_basis.m();
-        const unsigned int size_1D_col = surf_basis.n();
+        const unsigned int size_1D_row = surf_basis[iface_1D].m();
+        const unsigned int size_1D_col = surf_basis[iface_1D].n();
         for(unsigned int irow=0; irow<size_1D_col; irow++){
             for(unsigned int jrow=0; jrow<size_1D_row; jrow++){
                 const unsigned int row_index = irow * size_1D_row + jrow;
@@ -646,8 +648,8 @@ void SumFactorizedOperators<dim,n_faces>::surface_two_pt_flux_Hadamard_product(
         }
     }
     if constexpr(dim==3){
-        const unsigned int size_1D_row = surf_basis.m();
-        const unsigned int size_1D_col = surf_basis.n();
+        const unsigned int size_1D_row = surf_basis[iface_1D].m();
+        const unsigned int size_1D_col = surf_basis[iface_1D].n();
         for(unsigned int irow=0; irow<size_1D_col; irow++){
             for(unsigned int jrow=0; jrow<size_1D_col; jrow++){
                 for(unsigned int krow=0; krow<size_1D_row; krow++){

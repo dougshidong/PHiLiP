@@ -1288,7 +1288,7 @@ void DGBase<dim,real,MeshType>::reinit_operators_for_cell_residual_loop(
     flux_basis_ext.build_1D_surface_gradient_operator(oneD_fe_collection_flux[poly_degree_ext], oneD_face_quadrature);
 
     //flux basis stiffness operator for skew-symmetric form
-    flux_basis_stiffness.build_1D_volume_operator(oneD_fe_collection_flux[poly_degree_ext], oneD_quadrature_collection[poly_degree_ext]);
+    flux_basis_stiffness.build_1D_volume_operator(oneD_fe_collection_flux[poly_degree_int], oneD_quadrature_collection[poly_degree_int]);
 
     //We only need to compute the most recent mapping basis since we compute interior before looping faces
     mapping_basis.build_1D_shape_functions_at_grid_nodes(high_order_grid->oneD_fe_system, high_order_grid->oneD_grid_nodes);

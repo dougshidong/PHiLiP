@@ -234,7 +234,8 @@ public:
             std::vector<double> &output_vect_vol,
             std::vector<double> &output_vect_surf,
             const std::vector<double> &weights,
-            const dealii::FullMatrix<double> &surf_basis,
+            const std::array<dealii::FullMatrix<double>,2> &surf_basis,
+            const unsigned int iface,
             const unsigned int dim_not_zero,
             const double scaling = 2.0);
 

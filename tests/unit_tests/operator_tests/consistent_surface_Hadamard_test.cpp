@@ -129,7 +129,7 @@ int main (int argc, char * argv[])
         //check the summation of 2pt flux
         std::vector<double> sol_vol(n_quad_pts);
         std::vector<double> sol_surf(n_face_quad_pts);
-        basis.surface_two_pt_flux_Hadamard_product(sol_hat_mat, sol_vol, sol_surf, quad_weights_1D, basis.oneD_surf_operator[0], 0, 1.0);
+        basis.surface_two_pt_flux_Hadamard_product(sol_hat_mat, sol_vol, sol_surf, quad_weights_1D, basis.oneD_surf_operator, 0, 0, 1.0);
 
         std::vector<double> sol_vol_exact(n_quad_pts);
         std::vector<double> sol_surf_exact(n_face_quad_pts);
@@ -178,7 +178,7 @@ int main (int argc, char * argv[])
 
             std::fill(sol_vol.begin(), sol_vol.end(), 0.0);
             std::fill(sol_surf.begin(), sol_surf.end(), 0.0);
-            basis.surface_two_pt_flux_Hadamard_product(sol_hat_mat, sol_vol, sol_surf, quad_weights_1D, basis.oneD_surf_operator[0], 1, 1.0);
+            basis.surface_two_pt_flux_Hadamard_product(sol_hat_mat, sol_vol, sol_surf, quad_weights_1D, basis.oneD_surf_operator, 2, 1, 1.0);
             std::fill(sol_vol_exact .begin(), sol_vol_exact .end(), 0.0);
             std::fill(sol_surf_exact .begin(), sol_surf_exact .end(), 0.0);
             for(unsigned int iquad=0; iquad<n_face_quad_pts; iquad++){
@@ -202,7 +202,7 @@ int main (int argc, char * argv[])
 
             if constexpr(dim==3){
                 //dir = 2 (z-direction)
-                surf_oper_dim = basis.tensor_product(mass.oneD_vol_operator, mass.oneD_vol_operator, basis.oneD_surf_operator[0]);
+                surf_oper_dim = basis.tensor_product(mass.oneD_vol_operator, mass.oneD_vol_operator, basis.oneD_surf_operator[1]);
                 for(unsigned int idof=0; idof<n_face_quad_pts; idof++){
                     for(unsigned int idof2=0; idof2<n_quad_pts; idof2++){
                         sol_dim[idof][idof2] = sol_hat_mat[idof][idof2]
@@ -212,7 +212,7 @@ int main (int argc, char * argv[])
                  
                 //use a sum-factorization "type" algorithm with matrix structure for Hadamard product
                 sol_1D.reinit(n_face_quad_pts, n_quad_pts);
-                basis.two_pt_flux_Hadamard_product(sol_hat_mat, sol_1D, basis.oneD_surf_operator[0], quad_weights_1D, 2);
+                basis.two_pt_flux_Hadamard_product(sol_hat_mat, sol_1D, basis.oneD_surf_operator[1], quad_weights_1D, 2);
                  
                 //compare that got same answer
                 for(unsigned int iquad=0; iquad<n_face_quad_pts; iquad++){
@@ -226,7 +226,7 @@ int main (int argc, char * argv[])
                  
                 std::fill(sol_vol.begin(), sol_vol.end(), 0.0);
                 std::fill(sol_surf.begin(), sol_surf.end(), 0.0);
-                basis.surface_two_pt_flux_Hadamard_product(sol_hat_mat, sol_vol, sol_surf, quad_weights_1D, basis.oneD_surf_operator[0], 2, 1.0);
+                basis.surface_two_pt_flux_Hadamard_product(sol_hat_mat, sol_vol, sol_surf, quad_weights_1D, basis.oneD_surf_operator, 5, 2, 1.0);
                 std::fill(sol_vol_exact .begin(), sol_vol_exact .end(), 0.0);
                 std::fill(sol_surf_exact .begin(), sol_surf_exact .end(), 0.0);
                 for(unsigned int iquad=0; iquad<n_face_quad_pts; iquad++){

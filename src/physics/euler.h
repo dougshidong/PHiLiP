@@ -264,10 +264,6 @@ public:
     /// Given conservative variables, returns Mach number
     real compute_mach_number ( const std::array<real,nstate> &conservative_soln ) const;
 
-    /// Given primitive variables, returns DIMENSIONALIZED temperature using the equation of state
-    template<typename real2>
-    real2 compute_dimensional_temperature ( const std::array<real2,nstate> &primitive_soln ) const;
-
     /// Given primitive variables, returns NON-DIMENSIONALIZED temperature using free-stream non-dimensionalization
     /** See the book I do like CFD, sec 4.14.2 */
     template<typename real2>
@@ -316,10 +312,10 @@ public:
         const std::array<real,nstate> &conservative_soln1,
         const std::array<real,nstate> &convervative_soln2) const;
 
-    /// Mean specific energy given two sets of conservative solutions.
+    /// Mean specific total energy given two sets of conservative solutions.
     /** Used in the implementation of the split form.
      */
-    real compute_mean_specific_energy(
+    real compute_mean_specific_total_energy(
         const std::array<real,nstate> &conservative_soln1,
         const std::array<real,nstate> &convervative_soln2) const;
 

@@ -33,6 +33,7 @@ public:
         const double                                              side_slip_angle,
         const double                                              prandtl_number,
         const double                                              reynolds_number_inf,
+        const double                                              temperature_inf = 273.15,
         const double                                              isothermal_wall_temperature = 1.0,
         const thermal_boundary_condition_enum                     thermal_boundary_condition_type = thermal_boundary_condition_enum::adiabatic,
         std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function = nullptr,
@@ -49,6 +50,18 @@ public:
     /// Thermal boundary condition type (adiabatic or isothermal)
     const thermal_boundary_condition_enum thermal_boundary_condition_type;
 
+protected:    
+    ///@{
+    /** Constants for Sutherland's law for viscosity
+     *  Reference: Sutherland, W. (1893), "The viscosity of gases and molecular force", Philosophical Magazine, S. 5, 36, pp. 507-531 (1893)
+     *  Values: https://www.cfd-online.com/Wiki/Sutherland%27s_law
+     */
+    const double sutherlands_temperature; ///< Sutherland's temperature. Units: [K]
+    const double freestream_temperature; ///< Freestream temperature. Units: [K]
+    const double temperature_ratio; ///< Ratio of Sutherland's temperature to freestream temperature
+    //@}
+
+public:
     /// Destructor
     ~NavierStokes() {};
 
@@ -266,16 +279,7 @@ public:
         const dealii::Tensor<2,dim,real2> &viscous_stress_tensor,
         const dealii::Tensor<1,dim,real2> &heat_flux) const;
 
-protected:    
-    ///@{
-    /** Constants for Sutherland's law for viscosity
-     *  Reference: Sutherland, W. (1893), "The viscosity of gases and molecular force", Philosophical Magazine, S. 5, 36, pp. 507-531 (1893)
-     *  Values: https://www.cfd-online.com/Wiki/Sutherland%27s_law
-     */
-    const double free_stream_temperature = 273.15; ///< Free stream temperature. Units: [K]
-    const double sutherlands_temperature = 110.4; ///< Sutherland's temperature. Units: [K]
-    const double temperature_ratio = sutherlands_temperature/free_stream_temperature;
-    //@}
+protected:
 
     /** Nondimensionalized viscous flux (i.e. dissipative flux)
      *  Reference: Masatsuka 2018 "I do like CFD", p.142, eq.(4.12.1-4.12.4)

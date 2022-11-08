@@ -142,6 +142,7 @@ void PeriodicTurbulence<dim, nstate>::compute_and_update_integrated_quantities(D
             }
         }
     }
+    this->maximum_local_wave_speed = dealii::Utilities::MPI::max(this->maximum_local_wave_speed, this->mpi_communicator);
 
     // update integrated quantities
     for(int i_quantity=0; i_quantity<NUMBER_OF_INTEGRATED_QUANTITIES; ++i_quantity) {

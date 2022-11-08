@@ -38,16 +38,12 @@ subsection ODE solver
 
   set print_iteration_modulo = 1000
 
-  set ode_solver_type = explicit
+  set ode_solver_type = runge_kutta
 
   set initial_time_step = 0.0001
   #set initial_time_step = 0.00005
 
-  subsection explicit solver options
-
-    set runge_kutta_order = 4
-
-  end
+  set runge_kutta_method = rk4_ex
 
 end
 

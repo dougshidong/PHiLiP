@@ -96,8 +96,8 @@ public:
         const double                                              angle_of_attack,
         const double                                              side_slip_angle,
         std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function = nullptr,
-        const bool                                                has_nonzero_diffusion = false,
-        const two_point_num_flux_enum                             two_point_num_flux_type = two_point_num_flux_enum::KG);
+        const two_point_num_flux_enum                             two_point_num_flux_type = two_point_num_flux_enum::KG,
+        const bool                                                has_nonzero_diffusion = false);
 
     /// Destructor
     // virtual ~Euler() =0;
@@ -206,6 +206,10 @@ public:
     /// Opposite of convert_primitive_to_conservative
     std::array<real,nstate> convert_primitive_to_conservative ( const std::array<real,nstate> &primitive_soln ) const;
 
+    /// Given conservative variables [density, [momentum], total energy],
+    /// returns entropy variables -- see Tadmor 2003 "Entropy stability theory..." 
+    std::array<real,nstate> convert_conservative_to_entropy ( const std::array<real,nstate> &conservative_soln ) const;
+
     /// Evaluate pressure from conservative variables
     template<typename real2>
     real2 compute_pressure ( const std::array<real2,nstate> &conservative_soln ) const;
@@ -260,10 +264,6 @@ public:
     /// Given conservative variables, returns Mach number
     real compute_mach_number ( const std::array<real,nstate> &conservative_soln ) const;
 
-    /// Given primitive variables, returns DIMENSIONALIZED temperature using the equation of state
-    template<typename real2>
-    real2 compute_dimensional_temperature ( const std::array<real2,nstate> &primitive_soln ) const;
-
     /// Given primitive variables, returns NON-DIMENSIONALIZED temperature using free-stream non-dimensionalization
     /** See the book I do like CFD, sec 4.14.2 */
     template<typename real2>
@@ -312,10 +312,10 @@ public:
         const std::array<real,nstate> &conservative_soln1,
         const std::array<real,nstate> &convervative_soln2) const;
 
-    /// Mean specific energy given two sets of conservative solutions.
+    /// Mean specific total energy given two sets of conservative solutions.
     /** Used in the implementation of the split form.
      */
-    real compute_mean_specific_energy(
+    real compute_mean_specific_total_energy(
         const std::array<real,nstate> &conservative_soln1,
         const std::array<real,nstate> &convervative_soln2) const;
 

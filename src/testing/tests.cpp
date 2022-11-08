@@ -31,12 +31,13 @@
 #include "convection_diffusion_explicit_periodic.h"
 #include "dual_weighted_residual_mesh_adaptation.h"
 #include "pod_adaptive_sampling.h"
-#include "adaptive_sampling_testing.h"
+#include "pod_adaptive_sampling_testing.h"
 #include "taylor_green_vortex_energy_check.h"
 #include "taylor_green_vortex_restart_check.h"
 #include "time_refinement_study.h"
 #include "time_refinement_study_reference.h"
 #include "burgers_energy_conservation_rrk.h"
+#include "euler_ismail_roe_entropy_check.h"
 #include "homogeneous_isotropic_turbulence_initialization_check.h"
 
 namespace PHiLiP {
@@ -262,7 +263,7 @@ std::unique_ptr< TestsBase > TestsFactory<dim,nstate,MeshType>
     } else if(test_type == Test_enum::euler_naca0012) {
         if constexpr (dim==2 && nstate==dim+2) return std::make_unique<EulerNACA0012<dim,nstate>>(parameters_input,parameter_handler_input);
     } else if(test_type == Test_enum::dual_weighted_residual_mesh_adaptation) {
-        if constexpr (dim > 1)  return std::make_unique<DualWeightedResidualMeshAdaptation<dim, nstate>>(parameters_input);
+        if constexpr (dim==2 && nstate==1)  return std::make_unique<DualWeightedResidualMeshAdaptation<dim, nstate>>(parameters_input,parameter_handler_input);
     } else if(test_type == Test_enum::taylor_green_vortex_energy_check) {
         if constexpr (dim==3 && nstate==dim+2) return std::make_unique<TaylorGreenVortexEnergyCheck<dim,nstate>>(parameters_input,parameter_handler_input);
     } else if(test_type == Test_enum::taylor_green_vortex_restart_check) {
@@ -275,6 +276,8 @@ std::unique_ptr< TestsBase > TestsFactory<dim,nstate,MeshType>
         if constexpr (dim==1 && nstate==1)  return std::make_unique<TimeRefinementStudyReference<dim, nstate>>(parameters_input, parameter_handler_input);
     } else if(test_type == Test_enum::burgers_energy_conservation_rrk) {
         if constexpr (dim==1 && nstate==1)  return std::make_unique<BurgersEnergyConservationRRK<dim, nstate>>(parameters_input, parameter_handler_input);
+    } else if(test_type == Test_enum::euler_ismail_roe_entropy_check) {
+        if constexpr (dim==3 && nstate==dim+2)  return std::make_unique<EulerIsmailRoeEntropyCheck<dim, nstate>>(parameters_input, parameter_handler_input);
     } else {
         std::cout << "Invalid test. You probably forgot to add it to the list of tests in tests.cpp" << std::endl;
         std::abort();

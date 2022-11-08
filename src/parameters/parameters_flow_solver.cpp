@@ -24,7 +24,8 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                           " convection_diffusion | "
                           " advection | "
                           " periodic_1D_unsteady | "
-                          " gaussian_bump"),
+                          " gaussian_bump | "
+                          " sshock "),
                           "The type of flow we want to simulate. "
                           "Choices are "
                           " <taylor_green_vortex | "
@@ -36,17 +37,24 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                           " convection_diffusion | "
                           " advection | "
                           " periodic_1D_unsteady | "
-                          " gaussian_bump>.");
+                          " gaussian_bump | "
+                          " sshock>. ");
 
         prm.declare_entry("poly_degree", "1",
                           dealii::Patterns::Integer(0, dealii::Patterns::Integer::max_int_value),
                           "Polynomial order (P) of the basis functions for DG.");
 
+        prm.declare_entry("max_poly_degree_for_adaptation", "0",
+                          dealii::Patterns::Integer(0, dealii::Patterns::Integer::max_int_value),
+                          "Maxiumum possible polynomial order (P) of the basis functions for DG "
+                          "when doing adaptive simulations. Default is 0 which actually sets "
+                          "the value to poly_degree in the code, indicating no adaptation.");
+
         prm.declare_entry("final_time", "1",
                           dealii::Patterns::Double(0, dealii::Patterns::Double::max_double_value),
                           "Final solution time.");
 
-        prm.declare_entry("constant_time_step", "-1",
+        prm.declare_entry("constant_time_step", "0",
                           dealii::Patterns::Double(0, dealii::Patterns::Double::max_double_value),
                           "Constant time step.");
 
@@ -109,11 +117,11 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                               "Polynomial degree of the grid. Curvilinear grid if set greater than 1; default is 1.");
 
             prm.declare_entry("grid_left_bound", "0.0",
-                              dealii::Patterns::Double(0, dealii::Patterns::Double::max_double_value),
+                              dealii::Patterns::Double(-dealii::Patterns::Double::max_double_value, dealii::Patterns::Double::max_double_value),
                               "Left bound of domain for hyper_cube mesh based cases.");
 
             prm.declare_entry("grid_right_bound", "1.0",
-                              dealii::Patterns::Double(0, dealii::Patterns::Double::max_double_value),
+                              dealii::Patterns::Double(-dealii::Patterns::Double::max_double_value, dealii::Patterns::Double::max_double_value),
                               "Right bound of domain for hyper_cube mesh based cases.");
 
             prm.declare_entry("number_of_grid_elements_per_dimension", "4",
@@ -172,6 +180,10 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                               "Choices are "
                               " <uniform | "
                               " isothermal>.");
+            prm.declare_entry("do_calculate_numerical_entropy", "false",
+                              dealii::Patterns::Bool(),
+                              "Flag to calculate numerical entropy and write to file. By default, do not calculate.");
+
         }
         prm.leave_subsection();
 
@@ -231,8 +243,15 @@ void FlowSolverParam::parse_parameters(dealii::ParameterHandler &prm)
         else if (flow_case_type_string == "advection")                  {flow_case_type = advection;}
         else if (flow_case_type_string == "periodic_1D_unsteady")       {flow_case_type = periodic_1D_unsteady;}
         else if (flow_case_type_string == "gaussian_bump")              {flow_case_type = gaussian_bump;}
+        else if (flow_case_type_string == "sshock")                             {flow_case_type = sshock;}
 
         poly_degree = prm.get_integer("poly_degree");
+        
+        // get max poly degree for adaptation
+        max_poly_degree_for_adaptation = prm.get_integer("max_poly_degree_for_adaptation");
+        // -- set value to poly_degree if it is the default value
+        if(max_poly_degree_for_adaptation == 0) max_poly_degree_for_adaptation = poly_degree;
+        
         final_time = prm.get_double("final_time");
         constant_time_step = prm.get_double("constant_time_step");
         courant_friedrich_lewy_number = prm.get_double("courant_friedrich_lewy_number");
@@ -278,6 +297,7 @@ void FlowSolverParam::parse_parameters(dealii::ParameterHandler &prm)
             const std::string density_initial_condition_type_string = prm.get("density_initial_condition_type");
             if      (density_initial_condition_type_string == "uniform")    {density_initial_condition_type = uniform;}
             else if (density_initial_condition_type_string == "isothermal") {density_initial_condition_type = isothermal;}
+            do_calculate_numerical_entropy = prm.get_bool("do_calculate_numerical_entropy");
         }
         prm.leave_subsection();
 

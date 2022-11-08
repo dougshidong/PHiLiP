@@ -24,11 +24,12 @@ set(TESTS_SOURCE
     taylor_green_vortex_energy_check.cpp
     taylor_green_vortex_restart_check.cpp
     pod_adaptive_sampling.cpp
-    adaptive_sampling_testing.cpp
+    pod_adaptive_sampling_testing.cpp
     reduced_order.cpp
     time_refinement_study.cpp
     time_refinement_study_reference.cpp
     burgers_energy_conservation_rrk.cpp
+    euler_ismail_roe_entropy_check.cpp
     homogeneous_isotropic_turbulence_initialization_check.cpp
     )
 

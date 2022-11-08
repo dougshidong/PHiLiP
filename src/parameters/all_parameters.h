@@ -173,6 +173,7 @@ public:
         time_refinement_study,
         time_refinement_study_reference,
         burgers_energy_conservation_rrk,
+        euler_ismail_roe_entropy_check,
         homogeneous_isotropic_turbulence_initialization_check,
     };
     /// Store selected TestType from the input file.

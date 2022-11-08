@@ -4392,7 +4392,7 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_face_term_and_build_operators(
     //only need to compute fevalues for the weak form.
     const dealii::FEFaceValues<dim,dim> &fe_values_face_int = fe_values_collection_face_int.get_present_fe_values();
     const dealii::FEFaceValues<dim,dim> &fe_values_face_ext = fe_values_collection_face_ext.get_present_fe_values();
-    const dealii::Quadrature<dim-1> &used_face_quadrature = this->face_quadrature_collection[i_quad_n]; // or i_quad
+    const dealii::Quadrature<dim-1> &used_face_quadrature = this->face_quadrature_collection[(i_quad_n > i_quad) ? i_quad_n : i_quad]; // Use larger quadrature order on the face
      
     std::pair<unsigned int, int> face_subface_int = std::make_pair(iface, -1);
     std::pair<unsigned int, int> face_subface_ext = std::make_pair(neighbor_iface, -1);
@@ -4481,7 +4481,7 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_subface_term_and_build_operators
 
     const dealii::FEFaceValues<dim,dim> &fe_values_face_int = fe_values_collection_face_int.get_present_fe_values();
     const dealii::FESubfaceValues<dim,dim> &fe_values_face_ext = fe_values_collection_subface.get_present_fe_values();
-    const dealii::Quadrature<dim-1> &used_face_quadrature = this->face_quadrature_collection[i_quad_n]; // or i_quad
+    const dealii::Quadrature<dim-1> &used_face_quadrature = this->face_quadrature_collection[(i_quad_n > i_quad) ? i_quad_n : i_quad]; // Use larger quadrature order on the face
     std::pair<unsigned int, int> face_subface_int = std::make_pair(iface, -1);
     std::pair<unsigned int, int> face_subface_ext = std::make_pair(neighbor_iface, (int)neighbor_i_subface);
      

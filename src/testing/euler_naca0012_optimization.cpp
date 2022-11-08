@@ -33,6 +33,7 @@
 #include "optimization/flow_constraints.hpp"
 #include "optimization/rol_objective.hpp"
 #include "optimization/constraintfromobjective_simopt.hpp"
+#include "optimization/design_parameterization/ffd_parameterization.hpp"
 
 #include "optimization/full_space_step.hpp"
 
@@ -427,6 +428,7 @@ int EulerNACAOptimization<dim,nstate>
 
     using DealiiVector = dealii::LinearAlgebra::distributed::Vector<double>;
     using VectorAdaptor = dealii::Rol::VectorAdaptor<DealiiVector>;
+    using MatrixType = dealii::TrilinosWrappers::SparseMatrix;
     using ManParam = Parameters::ManufacturedConvergenceStudyParam;
     using GridEnum = ManParam::GridEnum;
     Parameters::AllParameters param = *(TestsBase::all_parameters);
@@ -589,18 +591,23 @@ int EulerNACAOptimization<dim,nstate>
 
 
     ffd.output_ffd_vtu(8999);
-    auto con  = ROL::makePtr<FlowConstraints<dim>>(dg,ffd,ffd_design_variables_indices_dim);
+    std::shared_ptr<BaseParameterization<dim>> design_parameterization = 
+                        std::make_shared<FreeFormDeformationParameterization<dim>>(dg->high_order_grid, ffd, ffd_design_variables_indices_dim);
+    
+    auto con  = ROL::makePtr<FlowConstraints<dim>>(dg, design_parameterization);
+    std::shared_ptr<MatrixType> precomputed_dXvdXp = std::make_shared<MatrixType> ();
+    precomputed_dXvdXp->reinit(con->dXvdXp);
+    precomputed_dXvdXp->copy_from(con->dXvdXp);
     //int flow_constraints_check_error = check_flow_constraints<dim,nstate>( nx_ffd, con, des_var_sim_rol_p, des_var_ctl_rol_p, des_var_adj_rol_p);
-
     std::cout << " Constructing lift ROL objective " << std::endl;
-    auto lift_obj = ROL::makePtr<ROLObjectiveSimOpt<dim,nstate>>( lift_functional, ffd, ffd_design_variables_indices_dim, &(con->dXvdXp) );
+    auto lift_obj = ROL::makePtr<ROLObjectiveSimOpt<dim,nstate>>( lift_functional, design_parameterization, precomputed_dXvdXp);
     std::cout << " Constructing lift ROL constraint " << std::endl;
     auto lift_con = ROL::makePtr<PHiLiP::ConstraintFromObjective_SimOpt<double>> (lift_obj, lift_target);
 
     //int objective_check_error = check_objective<dim,nstate>( nx_ffd, dg, lift_obj, con, des_var_sim_rol_p, des_var_ctl_rol_p, des_var_adj_rol_p);
 
     std::cout << " Constructing drag ROL objective " << std::endl;
-    auto drag_obj = ROL::makePtr<ROLObjectiveSimOpt<dim,nstate>>( drag_functional, ffd, ffd_design_variables_indices_dim, &(con->dXvdXp) );
+    auto drag_obj = ROL::makePtr<ROLObjectiveSimOpt<dim,nstate>>( drag_functional, design_parameterization, precomputed_dXvdXp);
 
     //objective_check_error = check_objective<dim,nstate>( nx_ffd, dg, drag_obj, con, des_var_sim_rol_p, des_var_ctl_rol_p, des_var_adj_rol_p);
 
@@ -612,7 +619,7 @@ int EulerNACAOptimization<dim,nstate>
     //auto drag_quad_penalty_lift = ROL::makePtr<ROL::AugmentedLagrangian_SimOpt<double>> (drag_obj, lift_con, zero_lagrange_mult, lift_penalty, *des_var_sim_rol_p, *des_var_ctl_rol_p, single_contraint, empty_parlist);
     //auto obj = drag_quad_penalty_lift;
 
-    auto pressure_obj = ROL::makePtr<ROLObjectiveSimOpt<dim,nstate>>( target_wall_pressure_functional, ffd, ffd_design_variables_indices_dim, &(con->dXvdXp) );
+    auto pressure_obj = ROL::makePtr<ROLObjectiveSimOpt<dim,nstate>>( target_wall_pressure_functional, design_parameterization, precomputed_dXvdXp);
     auto obj = pressure_obj;
 
     //objective_check_error = check_objective<dim,nstate>( nx_ffd, dg, obj, con, des_var_sim_rol_p, des_var_ctl_rol_p, des_var_adj_rol_p);

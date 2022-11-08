@@ -277,6 +277,7 @@ void PeriodicTurbulence<dim, nstate>::compute_and_update_integrated_quantities(D
             integrand_values[IntegratedQuantitiesEnum::enstrophy] = this->navier_stokes_physics->compute_enstrophy(soln_at_q,soln_grad_at_q);
             integrand_values[IntegratedQuantitiesEnum::pressure_dilatation] = this->navier_stokes_physics->compute_pressure_dilatation(soln_at_q,soln_grad_at_q);
             integrand_values[IntegratedQuantitiesEnum::deviatoric_strain_rate_tensor_magnitude_sqr] = this->navier_stokes_physics->compute_deviatoric_strain_rate_tensor_magnitude_sqr(soln_at_q,soln_grad_at_q);
+            integrand_values[IntegratedQuantitiesEnum::strain_rate_tensor_magnitude_sqr] = this->navier_stokes_physics->compute_strain_rate_tensor_magnitude_sqr(soln_at_q,soln_grad_at_q);
 
             for(int i_quantity=0; i_quantity<NUMBER_OF_INTEGRATED_QUANTITIES; ++i_quantity) {
                 integral_values[i_quantity] += integrand_values[i_quantity] * fe_values_extra.JxW(iquad);
@@ -345,6 +346,18 @@ double PeriodicTurbulence<dim, nstate>::get_deviatoric_strain_rate_tensor_based_
             this->navier_stokes_physics->compute_deviatoric_strain_rate_tensor_based_dissipation_rate_from_integrated_deviatoric_strain_rate_tensor_magnitude_sqr(integrated_deviatoric_strain_rate_tensor_magnitude_sqr);
     }
     return deviatoric_strain_rate_tensor_based_dissipation_rate;
+}
+
+template<int dim, int nstate>
+double PeriodicTurbulence<dim, nstate>::get_strain_rate_tensor_based_dissipation_rate() const
+{
+    const double integrated_strain_rate_tensor_magnitude_sqr = this->integrated_quantities[IntegratedQuantitiesEnum::strain_rate_tensor_magnitude_sqr];
+    double strain_rate_tensor_based_dissipation_rate = 0.0;
+    if (is_viscous_flow){
+        strain_rate_tensor_based_dissipation_rate = 
+            this->navier_stokes_physics->compute_strain_rate_tensor_based_dissipation_rate_from_integrated_strain_rate_tensor_magnitude_sqr(integrated_strain_rate_tensor_magnitude_sqr);
+    }
+    return strain_rate_tensor_based_dissipation_rate;
 }
 
 template<int dim, int nstate>
@@ -441,6 +454,7 @@ void PeriodicTurbulence<dim, nstate>::compute_unsteady_data_and_write_to_table(
     const double vorticity_based_dissipation_rate = this->get_vorticity_based_dissipation_rate();
     const double pressure_dilatation_based_dissipation_rate = this->get_pressure_dilatation_based_dissipation_rate();
     const double deviatoric_strain_rate_tensor_based_dissipation_rate = this->get_deviatoric_strain_rate_tensor_based_dissipation_rate();
+    const double strain_rate_tensor_based_dissipation_rate = this->get_strain_rate_tensor_based_dissipation_rate();
     
     double numerical_entropy = 0;
     if (do_calculate_numerical_entropy) numerical_entropy = this->get_numerical_entropy(dg);
@@ -453,7 +467,8 @@ void PeriodicTurbulence<dim, nstate>::compute_unsteady_data_and_write_to_table(
         this->add_value_to_data_table(integrated_enstrophy,"enstrophy",unsteady_data_table);
         if(is_viscous_flow) this->add_value_to_data_table(vorticity_based_dissipation_rate,"eps_vorticity",unsteady_data_table);
         this->add_value_to_data_table(pressure_dilatation_based_dissipation_rate,"eps_pressure",unsteady_data_table);
-        if(is_viscous_flow) this->add_value_to_data_table(deviatoric_strain_rate_tensor_based_dissipation_rate,"eps_strain",unsteady_data_table);
+        if(is_viscous_flow) this->add_value_to_data_table(strain_rate_tensor_based_dissipation_rate,"eps_strain",unsteady_data_table);
+        if(is_viscous_flow) this->add_value_to_data_table(deviatoric_strain_rate_tensor_based_dissipation_rate,"eps_dev_strain",unsteady_data_table);
         // Write to file
         std::ofstream unsteady_data_table_file(this->unsteady_data_table_filename_with_extension);
         unsteady_data_table->write_text(unsteady_data_table_file);
@@ -465,7 +480,7 @@ void PeriodicTurbulence<dim, nstate>::compute_unsteady_data_and_write_to_table(
                 << "    Enstrophy: " << integrated_enstrophy;
     if(is_viscous_flow) {
         this->pcout << "    eps_vorticity: " << vorticity_based_dissipation_rate
-                    << "    eps_p+eps_strain: " << (pressure_dilatation_based_dissipation_rate + deviatoric_strain_rate_tensor_based_dissipation_rate);
+                    << "    eps_p+eps_strain: " << (pressure_dilatation_based_dissipation_rate + strain_rate_tensor_based_dissipation_rate);
     }
     if(do_calculate_numerical_entropy){
         this->pcout << "    Num. Entropy: " << std::setprecision(16) << numerical_entropy;

@@ -135,6 +135,16 @@ public:
         const std::array<real,nstate> &conservative_soln,
         const std::array<dealii::Tensor<1,dim,real>,nstate> &conservative_soln_gradient) const;
 
+    /// Evaluate vorticity magnitude squared from conservative variables and gradient of conservative variables
+    real compute_vorticity_magnitude_sqr (
+        const std::array<real,nstate> &conservative_soln,
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &conservative_soln_gradient) const;
+
+    /// Evaluate vorticity magnitude from conservative variables and gradient of conservative variables
+    real compute_vorticity_magnitude (
+        const std::array<real,nstate> &conservative_soln,
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &conservative_soln_gradient) const;
+
     /// Evaluate enstrophy from conservative variables and gradient of conservative variables
     real compute_enstrophy (
         const std::array<real,nstate> &conservative_soln,
@@ -194,6 +204,21 @@ public:
     dealii::Tensor<2,dim,real2> 
     compute_strain_rate_tensor (
         const dealii::Tensor<2,dim,real2> &vel_gradient) const;
+
+    /// Evaluate the square of the strain-rate tensor magnitude (i.e. double dot product) from conservative variables and gradient of conservative variables
+    real compute_strain_rate_tensor_magnitude_sqr (
+        const std::array<real,nstate> &conservative_soln,
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &conservative_soln_gradient) const;
+
+    /** Evaluate non-dimensional theoretical strain-rate tensor based dissipation rate from integrated
+     *  strain-rate tensor magnitude squared.
+     *  -- Reference: Navah, Farshad, et al. "A High-Order Variational Multiscale Approach 
+     *                to Turbulence for Compact Nodal Schemes." 
+     *  -- Equation (E.9) with free-stream nondimensionalization applied
+     * */
+    real compute_strain_rate_tensor_based_dissipation_rate_from_integrated_strain_rate_tensor_magnitude_sqr (
+        const real integrated_strain_rate_tensor_magnitude_sqr) const;
+
 
     /** Nondimensionalized viscous stress tensor, tau*
      *  Reference: Masatsuka 2018 "I do like CFD", p.148, eq.(4.14.12)

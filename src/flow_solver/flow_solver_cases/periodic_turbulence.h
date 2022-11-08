@@ -15,7 +15,7 @@ class PeriodicTurbulence : public PeriodicCubeFlow<dim,nstate>
     /** Number of different computed quantities
      *  Corresponds to the number of items in IntegratedQuantitiesEnum
      * */
-    static const int NUMBER_OF_INTEGRATED_QUANTITIES = 4;
+    static const int NUMBER_OF_INTEGRATED_QUANTITIES = 5;
 
 public:
     /// Constructor.
@@ -62,6 +62,13 @@ public:
      *                Computers & Fluids 221 (2021): 104922.
      * */
     double get_deviatoric_strain_rate_tensor_based_dissipation_rate() const;
+
+    /** Gets non-dimensional theoretical strain-rate tensor based dissipation rate from integrated
+     *  strain-rate tensor magnitude squared.
+     *  -- Reference: Navah, Farshad, et al. "A High-Order Variational Multiscale Approach 
+     *                to Turbulence for Compact Nodal Schemes." 
+     * */
+    double get_strain_rate_tensor_based_dissipation_rate() const;
 
     /// Output the velocity field to file
     void output_velocity_field(
@@ -113,7 +120,8 @@ protected:
         kinetic_energy,
         enstrophy,
         pressure_dilatation,
-        deviatoric_strain_rate_tensor_magnitude_sqr
+        deviatoric_strain_rate_tensor_magnitude_sqr,
+        strain_rate_tensor_magnitude_sqr
     };
     /// Array for storing the integrated quantities; done for computational efficiency
     std::array<double,NUMBER_OF_INTEGRATED_QUANTITIES> integrated_quantities;

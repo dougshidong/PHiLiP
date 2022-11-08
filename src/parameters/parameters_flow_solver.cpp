@@ -187,12 +187,12 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
         }
         prm.leave_subsection();
 
-        prm.declare_entry("set_initial_condition_method", "interpolate_initial_condition_function",
+        prm.declare_entry("apply_initial_condition_method", "interpolate_initial_condition_function",
                           dealii::Patterns::Selection(
                           " interpolate_initial_condition_function | "
                           " project_initial_condition_function | "
                           " read_values_from_file_and_project "),
-                          "The method used for setting the initial condition. "
+                          "The method used for applying the initial condition. "
                           "Choices are "
                           " <interpolate_initial_condition_function | "
                           " project_initial_condition_function | " 
@@ -203,7 +203,7 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                           "Filename prefix of the input flow setup file. "
                           "Example: 'setup' for files named setup-0000i.dat, where i is the MPI rank. "
                           "For initializing the flow with values from a file. "
-                          "To be set when set_initial_condition_method is read_values_from_file_and_project.");
+                          "To be set when apply_initial_condition_method is read_values_from_file_and_project.");
 
         prm.declare_entry("output_velocity_field_at_fixed_times", "false",
                           dealii::Patterns::Bool(),
@@ -301,10 +301,10 @@ void FlowSolverParam::parse_parameters(dealii::ParameterHandler &prm)
         }
         prm.leave_subsection();
 
-        const std::string set_initial_condition_method_string = prm.get("set_initial_condition_method");
-        if      (set_initial_condition_method_string == "interpolate_initial_condition_function") {set_initial_condition_method = interpolate_initial_condition_function;}
-        else if (set_initial_condition_method_string == "project_initial_condition_function")     {set_initial_condition_method = project_initial_condition_function;}
-        else if (set_initial_condition_method_string == "read_values_from_file_and_project")      {set_initial_condition_method = read_values_from_file_and_project;}
+        const std::string apply_initial_condition_method_string = prm.get("apply_initial_condition_method");
+        if      (apply_initial_condition_method_string == "interpolate_initial_condition_function") {apply_initial_condition_method = interpolate_initial_condition_function;}
+        else if (apply_initial_condition_method_string == "project_initial_condition_function")     {apply_initial_condition_method = project_initial_condition_function;}
+        else if (apply_initial_condition_method_string == "read_values_from_file_and_project")      {apply_initial_condition_method = read_values_from_file_and_project;}
         
         input_flow_setup_filename_prefix = prm.get("input_flow_setup_filename_prefix");
 

@@ -97,18 +97,18 @@ public:
     /// Parses input file and sets the variables.
     void parse_parameters (dealii::ParameterHandler &prm);
 
-    /// Selects the method for setting the initial condition
-    enum SetInitialConditionMethod{
+    /// Selects the method for applying the initial condition
+    enum ApplyInitialConditionMethod{
         interpolate_initial_condition_function,
         project_initial_condition_function,
         read_values_from_file_and_project
         };
-    SetInitialConditionMethod set_initial_condition_method; ///< Selected SetInitialConditionMethod from the input file
+    ApplyInitialConditionMethod apply_initial_condition_method; ///< Selected ApplyInitialConditionMethod from the input file
 
     /** Filename prefix of the input flow setup file. 
      * Example: 'setup' for files named setup-0000i.dat, where i is the MPI rank. 
      * For initializing the flow with values from a file. 
-     * To be set when set_initial_condition_method is read_values_from_file_and_project. */
+     * To be set when apply_initial_condition_method is read_values_from_file_and_project. */
     std::string input_flow_setup_filename_prefix;
 
     bool output_velocity_field_at_fixed_times; ///< Flag for outputting velocity field at fixed times

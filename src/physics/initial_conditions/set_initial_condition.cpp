@@ -19,19 +19,19 @@ void SetInitialCondition<dim,nstate,real>::set_initial_condition(
     dealii::ConditionalOStream pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD)==0);
 
     // Set initial condition depending on the method
-    using SetInitialConditionMethodEnum = Parameters::FlowSolverParam::SetInitialConditionMethod;
-    const SetInitialConditionMethodEnum set_initial_condition_method = parameters_input->flow_solver_param.set_initial_condition_method;
+    using ApplyInitialConditionMethodEnum = Parameters::FlowSolverParam::ApplyInitialConditionMethod;
+    const ApplyInitialConditionMethodEnum apply_initial_condition_method = parameters_input->flow_solver_param.apply_initial_condition_method;
     
     pcout << "Initializing solution by " << std::flush;
-    if(set_initial_condition_method == SetInitialConditionMethodEnum::interpolate_initial_condition_function) {
+    if(apply_initial_condition_method == ApplyInitialConditionMethodEnum::interpolate_initial_condition_function) {
         pcout << "interpolating the initial condition function... " << std::flush;
         // for non-curvilinear
         SetInitialCondition<dim,nstate,real>::interpolate_initial_condition(initial_condition_function_input, dg_input);
-    } else if(set_initial_condition_method == SetInitialConditionMethodEnum::project_initial_condition_function) {
+    } else if(apply_initial_condition_method == ApplyInitialConditionMethodEnum::project_initial_condition_function) {
         pcout << "projecting the initial condition function... " << std::flush;
         // for curvilinear
         SetInitialCondition<dim,nstate,real>::project_initial_condition(initial_condition_function_input, dg_input);
-    } else if(set_initial_condition_method == SetInitialConditionMethodEnum::read_values_from_file_and_project) {
+    } else if(apply_initial_condition_method == ApplyInitialConditionMethodEnum::read_values_from_file_and_project) {
         const std::string input_filename_prefix = parameters_input->flow_solver_param.input_flow_setup_filename_prefix;
         pcout << "reading values from file prefix  " << input_filename_prefix << " and projecting... " << std::flush;
         SetInitialCondition<dim,nstate,real>::read_values_from_file_and_project(dg_input,input_filename_prefix);

@@ -54,6 +54,6 @@ end
 
 subsection flow_solver
     set flow_case_type = advection
-    set set_initial_condition_method = project_initial_condition_function
+    set apply_initial_condition_method = project_initial_condition_function
 end
 

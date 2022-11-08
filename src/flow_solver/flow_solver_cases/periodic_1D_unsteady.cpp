@@ -25,7 +25,11 @@ double Periodic1DUnsteady<dim, nstate>::compute_energy_collocated(
     //Calculating energy via matrix-vector product
     dealii::LinearAlgebra::distributed::Vector<double> temp;
     temp.reinit(dg->solution);
-    dg->global_mass_matrix.vmult(temp, dg->solution);
+    if(this->all_param.use_inverse_mass_on_the_fly){
+        dg->apply_global_mass_matrix(dg->solution, temp);
+    } else{
+        dg->global_mass_matrix.vmult(temp,dg->solution);
+    } //replace stage_j with M*stage_j
     return temp * dg->solution;
 }
 

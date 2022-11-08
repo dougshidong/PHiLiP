@@ -39,9 +39,9 @@ real EnergyRRKODESolver<dim,real,n_rk_stages,MeshType>::compute_inner_product (
     temp.reinit(stage_j);
 
     if(this->all_parameters->use_inverse_mass_on_the_fly){
-        this->dg->apply_inverse_global_mass_matrix(stage_j, temp);
+        this->dg->apply_global_mass_matrix(stage_j, temp);
     } else{
-        this->dg->global_inverse_mass_matrix.vmult(temp,stage_j);
+        this->dg->global_mass_matrix.vmult(temp,stage_j);
     } //replace stage_j with M*stage_j
 
     const double result = temp * stage_i;

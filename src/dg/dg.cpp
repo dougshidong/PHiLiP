@@ -3010,14 +3010,6 @@ void DGBase<dim,real,MeshType>::apply_global_mass_matrix(
                 }
                 else{
                     const std::vector<double> &quad_weights = volume_quadrature_collection[poly_degree].get_weights();
-//                    dealii::FullMatrix<double> proj_mass(n_quad_pts_1D, n_dofs_1D);
-//                    projection_oper.oneD_vol_operator.Tmmult(proj_mass, mass.oneD_vol_operator);
-//                     
-//                     pcout<<"applied proj"<<std::endl;
-//                    std::vector<real> projection_of_input(n_quad_pts);
-//                    projection_oper.matrix_vector_mult_1D(local_input_vector, projection_of_input,
-//                                                          proj_mass);
-
 
                     std::vector<real> proj_mass(n_shape_fns);
                     mass.matrix_vector_mult_1D(local_input_vector, proj_mass,
@@ -3028,14 +3020,9 @@ void DGBase<dim,real,MeshType>::apply_global_mass_matrix(
                                                      projection_oper.oneD_vol_operator);
                     std::vector<real> JxW(n_quad_pts);
                     for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
-                       // JxW[iquad] = (metric_oper.det_Jac_vol[iquad] / quad_weights[iquad]);
                         JxW[iquad] = (metric_oper.det_Jac_vol[iquad] / quad_weights[iquad])
                                    * projection_of_input[iquad];
                     }
-//                    projection_oper.inner_product_1D(projection_of_input, JxW,
-//                                                     local_output_vector,
-//                                                     proj_mass);
-//
                     std::vector<real> temp(n_shape_fns);
                     projection_oper.matrix_vector_mult_1D(JxW,
                                                           temp,

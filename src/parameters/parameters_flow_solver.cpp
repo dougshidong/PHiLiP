@@ -205,24 +205,32 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                           "For initializing the flow with values from a file. "
                           "To be set when apply_initial_condition_method is read_values_from_file_and_project.");
 
-        prm.declare_entry("output_velocity_field_at_fixed_times", "false",
-                          dealii::Patterns::Bool(),
-                          "Output velocity field. False by default.");
+        prm.enter_subsection("output_velocity_field");
+        {
+            prm.declare_entry("output_velocity_field_at_fixed_times", "false",
+                              dealii::Patterns::Bool(),
+                              "Output velocity field. False by default.");
 
-        prm.declare_entry("output_velocity_field_times_string", " ",
-                          dealii::Patterns::FileName(dealii::Patterns::FileName::FileType::input),
-                          "String of the times at which to output the velocity field. "
-                          "Example: '0.0 1.0 2.0 3.0 '");
+            prm.declare_entry("output_velocity_field_times_string", " ",
+                              dealii::Patterns::FileName(dealii::Patterns::FileName::FileType::input),
+                              "String of the times at which to output the velocity field. "
+                              "Example: '0.0 1.0 2.0 3.0 '");
 
-        prm.declare_entry("number_of_times_to_output_velocity_field", "0",
-                          dealii::Patterns::Integer(0, dealii::Patterns::Integer::max_int_value),
-                          "Number of times to output the velocity field. "
-                          "Must correspond to output_velocity_field_times_string.");
+            prm.declare_entry("number_of_times_to_output_velocity_field", "0",
+                              dealii::Patterns::Integer(0, dealii::Patterns::Integer::max_int_value),
+                              "Number of times to output the velocity field. "
+                              "Must correspond to output_velocity_field_times_string.");
 
-        prm.declare_entry("output_velocity_field_at_equidistant_nodes", "false",
-                          dealii::Patterns::Bool(),
-                          "Output velocity field at equidistant nodes. "
-                          "Default is to output velocity field at solution nodes (e.g. Gauss-Lobatto).");
+            prm.declare_entry("output_velocity_field_at_equidistant_nodes", "false",
+                              dealii::Patterns::Bool(),
+                              "Output velocity field at equidistant nodes. "
+                              "Default is to output velocity field at solution nodes (e.g. Gauss-Lobatto).");
+
+            prm.declare_entry("output_vorticity_magnitude_field_in_addition_to_velocity", "false",
+                              dealii::Patterns::Bool(),
+                              "Output vorticity magnitude field in addition to velocity field. False by default.");
+        }
+        prm.leave_subsection();
     }
     prm.leave_subsection();
 }
@@ -308,9 +316,14 @@ void FlowSolverParam::parse_parameters(dealii::ParameterHandler &prm)
         
         input_flow_setup_filename_prefix = prm.get("input_flow_setup_filename_prefix");
 
-        output_velocity_field_at_fixed_times = prm.get_bool("output_velocity_field_at_fixed_times");
-        output_velocity_field_times_string = prm.get("output_velocity_field_times_string");
-        number_of_times_to_output_velocity_field = prm.get_integer("number_of_times_to_output_velocity_field");
+        prm.enter_subsection("output_velocity_field");
+        {
+          output_velocity_field_at_fixed_times = prm.get_bool("output_velocity_field_at_fixed_times");
+          output_velocity_field_times_string = prm.get("output_velocity_field_times_string");
+          number_of_times_to_output_velocity_field = prm.get_integer("number_of_times_to_output_velocity_field");
+          output_vorticity_magnitude_field_in_addition_to_velocity = prm.get_bool("output_vorticity_magnitude_field_in_addition_to_velocity");
+        }
+        prm.leave_subsection();
     }
     prm.leave_subsection();
 }

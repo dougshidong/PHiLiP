@@ -91,6 +91,9 @@ protected:
     /// Flag for outputting velocity field at equidistant nodes
     const bool output_velocity_field_at_equidistant_nodes;
 
+    /// Flag for outputting vorticity magnitude field in addition to velocity field at fixed times
+    const bool output_vorticity_magnitude_field_in_addition_to_velocity;
+
     /// Pointer to Navier-Stokes physics object for computing things on the fly
     std::shared_ptr< Physics::NavierStokes<dim,dim+2,double> > navier_stokes_physics;
 
@@ -134,6 +137,9 @@ protected:
 
     /// Index of current desired time to output velocity field
     int index_of_current_desired_time_to_output_velocity_field;
+
+    /// Flow field quantity filename prefix
+    std::string flow_field_quantity_filename_prefix;
 };
 
 } // FlowSolver namespace

@@ -28,6 +28,7 @@ PeriodicTurbulence<dim, nstate>::PeriodicTurbulence(const PHiLiP::Parameters::Al
         , number_of_times_to_output_velocity_field(this->all_param.flow_solver_param.number_of_times_to_output_velocity_field)
         , output_velocity_field_at_fixed_times(this->all_param.flow_solver_param.output_velocity_field_at_fixed_times)
         , output_velocity_field_at_equidistant_nodes(this->all_param.flow_solver_param.output_velocity_field_at_equidistant_nodes)
+        , output_vorticity_magnitude_field_in_addition_to_velocity(this->all_param.flow_solver_param.output_vorticity_magnitude_field_in_addition_to_velocity)
 {
     // Get the flow case type
     using FlowCaseEnum = Parameters::FlowSolverParam::FlowCaseType;
@@ -65,6 +66,12 @@ PeriodicTurbulence<dim, nstate>::PeriodicTurbulence(const PHiLiP::Parameters::Al
             line = line.substr(sz1);
             sz1 = 0;
             output_velocity_field_times[i] = std::stod(line,&sz1);
+        }
+
+        // Get flow_field_quantity_filename_prefix
+        flow_field_quantity_filename_prefix = "velocity";
+        if(output_vorticity_magnitude_field_in_addition_to_velocity) {
+            flow_field_quantity_filename_prefix += std::string("_vorticity");
         }
     }
 }
@@ -124,9 +131,10 @@ void PeriodicTurbulence<dim, nstate>::output_velocity_field(
 {
     this->pcout << "     ... Writting velocity field ... " << std::flush;
 
-    // Same loop from read_values_from_file_and_project() in set_initial_condition.cpp
-    // TO DO: Define this variable
-    const std::string input_filename_prefix = "velocity-"+std::to_string(output_file_index);
+    // NOTE: Same loop from read_values_from_file_and_project() in set_initial_condition.cpp
+    
+    // Get filename prefix based on output file index and the flow field quantity filename prefix
+    const std::string filename_prefix = flow_field_quantity_filename_prefix + std::string("-") + std::to_string(output_file_index);
 
     // (1) Get filename based on MPI rank
     //-------------------------------------------------------------
@@ -134,7 +142,7 @@ void PeriodicTurbulence<dim, nstate>::output_velocity_field(
     // -- Get padded mpi rank string
     const std::string mpi_rank_string = get_padded_mpi_rank_string(mpi_rank);
     // -- Assemble filename string
-    const std::string filename_without_extension = input_filename_prefix + std::string("-") + mpi_rank_string;
+    const std::string filename_without_extension = filename_prefix + std::string("-") + mpi_rank_string;
     const std::string filename = filename_without_extension + std::string(".dat");
     //-------------------------------------------------------------
 
@@ -153,7 +161,7 @@ void PeriodicTurbulence<dim, nstate>::output_velocity_field(
 
     // write data
     std::array<double,nstate> soln_at_q;
-    // std::array<dealii::Tensor<1,dim,double>,nstate> soln_grad_at_q;
+    std::array<dealii::Tensor<1,dim,double>,nstate> soln_grad_at_q;
 
     const auto mapping = (*(dg->high_order_grid->mapping_fe_field));
     dealii::hp::MappingCollection<dim> mapping_collection(mapping);
@@ -193,18 +201,17 @@ void PeriodicTurbulence<dim, nstate>::output_velocity_field(
                 // GL nodes
                 qpoint = (fe_values.quadrature_point(iquad));
             }
-
             for (int d=0; d<dim; ++d) {
                 FILE << std::setprecision(17) << qpoint[d] << std::string(" ");
             }
 
             // get solution at qpoint
             std::fill(soln_at_q.begin(), soln_at_q.end(), 0.0);
-            // for (int s=0; s<nstate; ++s) {
-            //     for (int d=0; d<dim; ++d) {
-            //         soln_grad_at_q[s][d] = 0.0;
-            //     }
-            // }
+            for (int s=0; s<nstate; ++s) {
+                for (int d=0; d<dim; ++d) {
+                    soln_grad_at_q[s][d] = 0.0;
+                }
+            }
             
             for (unsigned int idof=0; idof<n_dofs_cell; ++idof) {
                 const unsigned int istate = fe_values.get_fe().system_to_component_index(idof).first;
@@ -212,17 +219,22 @@ void PeriodicTurbulence<dim, nstate>::output_velocity_field(
                 if(output_velocity_field_at_equidistant_nodes) {
                     // at equidistant nodes
                     soln_at_q[istate] += dg->solution[current_dofs_indices[idof]] * fe_sys.shape_value_component(idof, unit_equidistant_quad_pts[iquad], istate);
+                    soln_grad_at_q[istate] += dg->solution[current_dofs_indices[idof]] * fe_sys.shape_grad_component(idof, unit_equidistant_quad_pts[iquad], istate);
                 } else {
-                    // at GL nodes:
+                    // at GL nodes
                     soln_at_q[istate] += dg->solution[current_dofs_indices[idof]] * fe_values.shape_value_component(idof, iquad, istate);
+                    soln_grad_at_q[istate] += dg->solution[current_dofs_indices[idof]] * fe_values.shape_grad_component(idof, iquad, istate);
                 }
-                // for the gradient at GL nodes (for equidistant, similar to above):
-                // soln_grad_at_q[istate] += dg->solution[current_dofs_indices[idof]] * fe_values.shape_grad_component(idof,iquad,istate);
             }
-            dealii::Tensor<1,dim,double> velocity = this->navier_stokes_physics->compute_velocities(soln_at_q);
             // write velocity field
+            const dealii::Tensor<1,dim,double> velocity = this->navier_stokes_physics->compute_velocities(soln_at_q);
             for (int d=0; d<dim; ++d) {
                 FILE << std::setprecision(17) << velocity[d] << std::string(" ");
+            }
+            // write vorticity magnitude field if desired
+            if(output_vorticity_magnitude_field_in_addition_to_velocity) {
+                const double vorticity_magnitude = this->navier_stokes_physics->compute_vorticity_magnitude(soln_at_q, soln_grad_at_q);
+                FILE << std::setprecision(17) << vorticity_magnitude << std::string(" ");
             }
             FILE << std::string("\n"); // next line
         }

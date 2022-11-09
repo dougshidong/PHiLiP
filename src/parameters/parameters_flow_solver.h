@@ -115,6 +115,7 @@ public:
     std::string output_velocity_field_times_string; ///< String of velocity field output times
     int number_of_times_to_output_velocity_field; ///< Number of times to output the velocity field
     bool output_velocity_field_at_equidistant_nodes; ///< Flag for outputting velocity field at equidistant nodes
+    bool output_vorticity_magnitude_field_in_addition_to_velocity; ///< Flag for outputting vorticity magnitude field in addition to velocity field
 };
 
 } // Parameters namespace

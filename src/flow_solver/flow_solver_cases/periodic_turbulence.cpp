@@ -243,6 +243,7 @@ void PeriodicTurbulence<dim, nstate>::compute_and_update_integrated_quantities(D
         this->integrated_quantities[i_quantity] = dealii::Utilities::MPI::sum(integral_values[i_quantity], this->mpi_communicator);
         this->integrated_quantities[i_quantity] /= this->domain_size; // divide by total domain volume
     }
+
 }
 
 template<int dim, int nstate>
@@ -408,6 +409,7 @@ void PeriodicTurbulence<dim, nstate>::compute_unsteady_data_and_write_to_table(
         this->add_value_to_data_table(pressure_dilatation_based_dissipation_rate,"eps_pressure",unsteady_data_table);
         if(is_viscous_flow) this->add_value_to_data_table(deviatoric_strain_rate_tensor_based_dissipation_rate,"eps_strain",unsteady_data_table);
         // Write to file
+        this->add_value_to_data_table(maximum_local_wave_speed, "maximum_local_wave_speed", unsteady_data_table);
         std::ofstream unsteady_data_table_file(this->unsteady_data_table_filename_with_extension);
         unsteady_data_table->write_text(unsteady_data_table_file);
     }

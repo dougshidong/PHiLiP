@@ -291,6 +291,14 @@ public:
                 const real &surface_flux,
                 const real &flux_interp_to_surface) const;
 
+    /// Computes the entropy variables.
+    std::array<real,nstate> compute_entropy_variables (
+                const std::array<real,nstate> &conservative_soln) const;
+
+    /// Computes the conservative variables from the entropy variables.
+    std::array<real,nstate> compute_conservative_variables_from_entropy_variables (
+                const std::array<real,nstate> &entropy_var) const;
+
     /// Mean density given two sets of conservative solutions.
     /** Used in the implementation of the split form.
      */
@@ -429,6 +437,11 @@ protected:
     /** Entropy conserving split form flux of Ismail & Roe.
      *  Refer to Gassner's paper (2016) Eq. 3.17  */
     std::array<dealii::Tensor<1,dim,real>,nstate> convective_numerical_split_flux_ismail_roe (
+        const std::array<real,nstate> &conservative_soln1,
+        const std::array<real,nstate> &conservative_soln2) const;
+
+    /// Chandrashekar entropy conserving flux.
+    std::array<dealii::Tensor<1,dim,real>,nstate> convective_numerical_split_flux_chandrashekar (
         const std::array<real,nstate> &conservative_soln1,
         const std::array<real,nstate> &conservative_soln2) const;
 };

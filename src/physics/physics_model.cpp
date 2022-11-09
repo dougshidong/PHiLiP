@@ -165,6 +165,29 @@ real PhysicsModel<dim,nstate,real,nstate_baseline_physics>
 }
 
 template <int dim, int nstate, typename real, int nstate_baseline_physics>
+std::array<real,nstate> PhysicsModel<dim, nstate, real, nstate_baseline_physics>
+::compute_entropy_variables (
+    const std::array<real,nstate> &conservative_soln) const
+{
+    std::array<real,nstate> entropy_var;
+    if(nstate==nstate_baseline_physics) {
+        entropy_var = physics_baseline->compute_entropy_variables(conservative_soln);
+    } else {
+        // TO DO, make use of the physics_model object for nstate>nstate_baseline_physics
+        std::abort();
+    }
+    return entropy_var;
+}
+
+template <int dim, int nstate, typename real, int nstate_baseline_physics>
+std::array<real,nstate> PhysicsModel<dim, nstate, real, nstate_baseline_physics>
+::compute_conservative_variables_from_entropy_variables (
+    const std::array<real,nstate> &entropy_var) const
+{
+    return entropy_var;
+}
+
+template <int dim, int nstate, typename real, int nstate_baseline_physics>
 std::array<real,nstate> PhysicsModel<dim,nstate,real,nstate_baseline_physics>
 ::convective_eigenvalues (
     const std::array<real,nstate> &conservative_soln,

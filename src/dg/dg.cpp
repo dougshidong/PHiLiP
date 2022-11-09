@@ -679,6 +679,7 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
     OPERATOR::basis_functions<dim,2*dim> &soln_basis_ext,
     OPERATOR::basis_functions<dim,2*dim> &flux_basis_int,
     OPERATOR::basis_functions<dim,2*dim> &flux_basis_ext,
+    OPERATOR::local_basis_stiffness<dim,2*dim> &flux_basis_stiffness,
     OPERATOR::mapping_shape_functions<dim,2*dim> &mapping_basis,
     const bool compute_Auxiliary_RHS,
     dealii::LinearAlgebra::distributed::Vector<double> &rhs,
@@ -752,6 +753,7 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
         grid_degree,
         soln_basis_int,
         flux_basis_int,
+        flux_basis_stiffness,
         metric_oper_int,
         mapping_basis,
         mapping_support_points,
@@ -789,6 +791,7 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
                 grid_degree,
                 soln_basis_int,
                 flux_basis_int,
+                flux_basis_stiffness,
                 metric_oper_int,
                 mapping_basis,
                 mapping_support_points,
@@ -859,6 +862,7 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
                     soln_basis_ext,
                     flux_basis_int,
                     flux_basis_ext,
+                    flux_basis_stiffness,
                     metric_oper_int,
                     metric_oper_ext,
                     mapping_basis,
@@ -948,6 +952,7 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
                 soln_basis_ext,
                 flux_basis_int,
                 flux_basis_ext,
+                flux_basis_stiffness,
                 metric_oper_int,
                 metric_oper_ext,
                 mapping_basis,
@@ -1023,6 +1028,7 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
                 soln_basis_ext,
                 flux_basis_int,
                 flux_basis_ext,
+                flux_basis_stiffness,
                 metric_oper_int,
                 metric_oper_ext,
                 mapping_basis,
@@ -1258,6 +1264,7 @@ void DGBase<dim,real,MeshType>::reinit_operators_for_cell_residual_loop(
     OPERATOR::basis_functions<dim,2*dim> &soln_basis_ext,
     OPERATOR::basis_functions<dim,2*dim> &flux_basis_int,
     OPERATOR::basis_functions<dim,2*dim> &flux_basis_ext,
+    OPERATOR::local_basis_stiffness<dim,2*dim> &flux_basis_stiffness,
     OPERATOR::mapping_shape_functions<dim,2*dim> &mapping_basis)
 {
     soln_basis_int.build_1D_volume_operator(oneD_fe_collection_1state[poly_degree_int], oneD_quadrature_collection[poly_degree_int]);
@@ -1279,6 +1286,9 @@ void DGBase<dim,real,MeshType>::reinit_operators_for_cell_residual_loop(
     flux_basis_ext.build_1D_gradient_operator(oneD_fe_collection_flux[poly_degree_ext], oneD_quadrature_collection[poly_degree_ext]);
     flux_basis_ext.build_1D_surface_operator(oneD_fe_collection_flux[poly_degree_ext], oneD_face_quadrature);
     flux_basis_ext.build_1D_surface_gradient_operator(oneD_fe_collection_flux[poly_degree_ext], oneD_face_quadrature);
+
+    //flux basis stiffness operator for skew-symmetric form
+    flux_basis_stiffness.build_1D_volume_operator(oneD_fe_collection_flux[poly_degree_int], oneD_quadrature_collection[poly_degree_int]);
 
     //We only need to compute the most recent mapping basis since we compute interior before looping faces
     mapping_basis.build_1D_shape_functions_at_grid_nodes(high_order_grid->oneD_fe_system, high_order_grid->oneD_grid_nodes);
@@ -1413,14 +1423,15 @@ void DGBase<dim,real,MeshType>::assemble_residual (const bool compute_dRdW, cons
     dealii::hp::FEValues<dim,dim>        fe_values_collection_volume_lagrange (mapping_collection, fe_collection_lagrange, volume_quadrature_collection, this->volume_update_flags);
 
     const unsigned int init_grid_degree = high_order_grid->fe_system.tensor_degree();
-    OPERATOR::basis_functions<dim,2*dim> soln_basis_int(nstate, max_degree, init_grid_degree); 
-    OPERATOR::basis_functions<dim,2*dim> soln_basis_ext(nstate, max_degree, init_grid_degree); 
-    OPERATOR::basis_functions<dim,2*dim> flux_basis_int(nstate, max_degree, init_grid_degree); 
-    OPERATOR::basis_functions<dim,2*dim> flux_basis_ext(nstate, max_degree, init_grid_degree); 
-    OPERATOR::mapping_shape_functions<dim,2*dim> mapping_basis(nstate, max_degree, init_grid_degree);
+    OPERATOR::basis_functions<dim,2*dim> soln_basis_int(1, max_degree, init_grid_degree); 
+    OPERATOR::basis_functions<dim,2*dim> soln_basis_ext(1, max_degree, init_grid_degree); 
+    OPERATOR::basis_functions<dim,2*dim> flux_basis_int(1, max_degree, init_grid_degree); 
+    OPERATOR::basis_functions<dim,2*dim> flux_basis_ext(1, max_degree, init_grid_degree); 
+    OPERATOR::local_basis_stiffness<dim,2*dim> flux_basis_stiffness(1, max_degree, init_grid_degree, true); 
+    OPERATOR::mapping_shape_functions<dim,2*dim> mapping_basis(1, max_degree, init_grid_degree);
 
     reinit_operators_for_cell_residual_loop(
-        max_degree, max_degree, init_grid_degree, soln_basis_int, soln_basis_ext, flux_basis_int, flux_basis_ext, mapping_basis);
+        max_degree, max_degree, init_grid_degree, soln_basis_int, soln_basis_ext, flux_basis_int, flux_basis_ext, flux_basis_stiffness, mapping_basis);
 
     solution.update_ghost_values();
 
@@ -1466,6 +1477,7 @@ void DGBase<dim,real,MeshType>::assemble_residual (const bool compute_dRdW, cons
                 soln_basis_ext,
                 flux_basis_int,
                 flux_basis_ext,
+                flux_basis_stiffness,
                 mapping_basis,
                 false,
                 right_hand_side,
@@ -2998,19 +3010,40 @@ void DGBase<dim,real,MeshType>::apply_global_mass_matrix(
                 }
                 else{
                     const std::vector<double> &quad_weights = volume_quadrature_collection[poly_degree].get_weights();
-                    dealii::FullMatrix<double> proj_mass(n_quad_pts_1D, n_dofs_1D);
-                    projection_oper.oneD_vol_operator.Tmmult(proj_mass, mass.oneD_vol_operator);
-                     
+//                    dealii::FullMatrix<double> proj_mass(n_quad_pts_1D, n_dofs_1D);
+//                    projection_oper.oneD_vol_operator.Tmmult(proj_mass, mass.oneD_vol_operator);
+//                     
+//                     pcout<<"applied proj"<<std::endl;
+//                    std::vector<real> projection_of_input(n_quad_pts);
+//                    projection_oper.matrix_vector_mult_1D(local_input_vector, projection_of_input,
+//                                                          proj_mass);
+
+
+                    std::vector<real> proj_mass(n_shape_fns);
+                    mass.matrix_vector_mult_1D(local_input_vector, proj_mass,
+                                               mass.oneD_vol_operator);
                     std::vector<real> projection_of_input(n_quad_pts);
-                    projection_oper.matrix_vector_mult_1D(local_input_vector, projection_of_input,
-                                                          proj_mass);
+                    std::vector<real> ones(n_shape_fns, 1.0);
+                    projection_oper.inner_product_1D(proj_mass, ones, projection_of_input,
+                                                     projection_oper.oneD_vol_operator);
                     std::vector<real> JxW(n_quad_pts);
                     for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
-                        JxW[iquad] = (metric_oper.det_Jac_vol[iquad] / quad_weights[iquad]);
+                       // JxW[iquad] = (metric_oper.det_Jac_vol[iquad] / quad_weights[iquad]);
+                        JxW[iquad] = (metric_oper.det_Jac_vol[iquad] / quad_weights[iquad])
+                                   * projection_of_input[iquad];
                     }
-                    projection_oper.inner_product_1D(projection_of_input, JxW,
-                                                     local_output_vector,
-                                                     proj_mass);
+//                    projection_oper.inner_product_1D(projection_of_input, JxW,
+//                                                     local_output_vector,
+//                                                     proj_mass);
+//
+                    std::vector<real> temp(n_shape_fns);
+                    projection_oper.matrix_vector_mult_1D(JxW,
+                                                          temp,
+                                                          projection_oper.oneD_vol_operator);
+                    mass.inner_product_1D(temp, ones,
+                                          local_output_vector,
+                                          mass.oneD_vol_operator);
+
                 }
             }
              

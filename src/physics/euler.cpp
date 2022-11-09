@@ -422,6 +422,8 @@ std::array<dealii::Tensor<1,dim,real>,nstate> Euler<dim, nstate, real>
         conv_num_split_flux = convective_numerical_split_flux_kennedy_gruber(conservative_soln1, conservative_soln2);
     } else if(two_point_num_flux_type == two_point_num_flux_enum::IR) {
         conv_num_split_flux = convective_numerical_split_flux_ismail_roe(conservative_soln1, conservative_soln2);
+    } else if(two_point_num_flux_type == two_point_num_flux_enum::CH) {
+        conv_num_split_flux = convective_numerical_split_flux_chandrashekar(conservative_soln1, conservative_soln2);
     }
 
     return conv_num_split_flux;
@@ -467,6 +469,56 @@ std::array<real,nstate> Euler<dim, nstate, real>
     ismail_roe_parameter_vector[nstate-1] = sqrt(primitive_soln[0]*primitive_soln[nstate-1]);
 
     return ismail_roe_parameter_vector;
+}
+
+template <int dim, int nstate, typename real>
+std::array<dealii::Tensor<1,dim,real>,nstate> Euler<dim, nstate, real>
+::convective_numerical_split_flux_chandrashekar(const std::array<real,nstate> &conservative_soln1,
+                                                const std::array<real,nstate> &conservative_soln2) const
+{
+
+    std::array<dealii::Tensor<1,dim,real>,nstate> conv_num_split_flux;
+    const real rho_log = compute_ismail_roe_logarithmic_mean(conservative_soln1[0], conservative_soln2[0]);
+    const real pressure1 = compute_pressure<real>(conservative_soln1);
+    const real pressure2 = compute_pressure<real>(conservative_soln2);
+
+    const real beta1 = conservative_soln1[0]/(2.0*pressure1);
+    const real beta2 = conservative_soln2[0]/(2.0*pressure2);
+
+    const real beta_log = compute_ismail_roe_logarithmic_mean(beta1, beta2);
+    const dealii::Tensor<1,dim,real> vel1 = compute_velocities<real>(conservative_soln1);
+    const dealii::Tensor<1,dim,real> vel2 = compute_velocities<real>(conservative_soln2);
+
+    const real pressure_hat = 0.5*(conservative_soln1[0] + conservative_soln2[0])/(2.0*0.5*(beta1+beta2));
+
+    dealii::Tensor<1,dim,real> vel_avg;
+    real vel_square_avg = 0.0;;
+    for(int idim=0; idim<dim; idim++){
+        vel_avg[idim] = 0.5*(vel1[idim]+vel2[idim]);
+        vel_square_avg += (0.5 *(vel1[idim]+vel2[idim])) * (0.5 *(vel1[idim]+vel2[idim]));
+    }
+
+    real enthalpy_hat = 1.0/(2.0*beta_log*gamm1) + vel_square_avg + pressure_hat/rho_log;
+
+    for(int idim=0; idim<dim; idim++){
+        enthalpy_hat -= 0.5*(0.5*(vel1[idim]*vel1[idim] + vel2[idim]*vel2[idim]));
+    }
+
+    for(int flux_dim=0; flux_dim<dim; flux_dim++){
+        // Density equation
+        conv_num_split_flux[0][flux_dim] = rho_log * vel_avg[flux_dim];
+        // Momentum equation
+        for (int velocity_dim=0; velocity_dim<dim; ++velocity_dim){
+            conv_num_split_flux[1+velocity_dim][flux_dim] = rho_log*vel_avg[flux_dim]*vel_avg[velocity_dim];
+        }
+        conv_num_split_flux[1+flux_dim][flux_dim] += pressure_hat; // Add diagonal of pressure
+
+        // Energy equation
+        conv_num_split_flux[nstate-1][flux_dim] = rho_log * vel_avg[flux_dim] * enthalpy_hat;
+    }
+
+   return conv_num_split_flux; 
+
 }
 
 template <int dim, int nstate, typename real>
@@ -557,6 +609,77 @@ real Euler<dim, nstate, real>
                 const real &flux_interp_to_surface) const
 {
     return flux_interp_to_surface;
+}
+
+template <int dim, int nstate, typename real>
+std::array<real,nstate> Euler<dim, nstate, real>
+::compute_entropy_variables (
+    const std::array<real,nstate> &conservative_soln) const
+{
+    std::array<real,nstate> entropy_var;
+    const real density = conservative_soln[0];
+    const real pressure = compute_pressure<real>(conservative_soln);
+    const dealii::Tensor<1,dim,real> vel = compute_velocities<real>(conservative_soln);
+    const real vel2 = compute_velocity_squared<real>(vel);
+    const real entropy = log(pressure) - gam * log(density);
+    const real rho_theta = conservative_soln[nstate-1] - 0.5 * density * vel2;
+
+   // entropy_var[0] = (gam-entropy)/gamm1 - 0.5 * density / pressure * vel2;
+    entropy_var[0] = (rho_theta *(gam + 1.0 - entropy) - conservative_soln[nstate-1])/rho_theta;
+//    std::cout<<"entropy var 1 first "<<entropy_var[0]<<std::endl;
+    for(int idim=0; idim<dim; idim++){
+       // entropy_var[idim+1] = conservative_soln[idim+1] / pressure;
+        entropy_var[idim+1] = conservative_soln[idim+1] / rho_theta;
+//    std::cout<<"entropy var 2 first "<<entropy_var[1]<<std::endl;
+    }
+   // entropy_var[nstate-1] = - density / pressure;
+    entropy_var[nstate-1] = - density / rho_theta;
+//    std::cout<<"entropy var 3 first "<<entropy_var[2]<<std::endl;
+
+//    const real rhoe = conservative_soln[nstate-1] - 0.5*density*vel2;
+//    entropy_var[0] = (conservative_soln[nstate-1] - rhoe * ( gam + 1 - entropy))/rhoe;
+//    std::cout<<"entropy var 1 second "<<entropy_var[0]<<std::endl;
+//    for(int idim=0; idim<dim; idim++){
+//        entropy_var[idim+1] = conservative_soln[idim+1] / rhoe;
+//    std::cout<<"entropy var 2 second "<<entropy_var[1]<<std::endl;
+//    }
+//    entropy_var[nstate-1] = - density / rhoe;
+//    std::cout<<"entropy var 3 second "<<entropy_var[2]<<std::endl;
+
+    //kinetic energy entropy variables
+//    entropy_var[0] = 0.0;
+//    for(int idim=0; idim<dim; idim++){
+//        entropy_var[0] += 0.5 * vel[idim] * vel[idim];
+//        entropy_var[idim+1] = vel[idim];
+//    }
+//   // entropy_var[nstate-1] = dim + 1;
+//    entropy_var[nstate-1] = 0.0;
+
+    return entropy_var;
+}
+
+template <int dim, int nstate, typename real>
+std::array<real,nstate> Euler<dim, nstate, real>
+::compute_conservative_variables_from_entropy_variables (
+    const std::array<real,nstate> &entropy_var) const
+{
+    //Eq. 119 and 120 from Chan, Jesse. "On discretely entropy conservative and entropy stable discontinuous Galerkin methods." Journal of Computational Physics 362 (2018): 346-374.
+    //Extrapolated for 3D
+    std::array<real,nstate> conservative_var;
+    real entropy_var_vel_squared = 0.0;
+    for(int idim=0; idim<dim; idim++){
+        entropy_var_vel_squared += entropy_var[idim + 1] * entropy_var[idim + 1];
+    }
+    const real entropy = gam - entropy_var[0] + 0.5 * entropy_var_vel_squared / entropy_var[nstate-1];
+    const real rho_theta = pow( (gamm1/ pow(- entropy_var[nstate-1], gam)), 1.0 /gamm1)
+                         * exp( - entropy / gamm1);
+
+    conservative_var[0] = - rho_theta * entropy_var[nstate-1];
+    for(int idim=0; idim<dim; idim++){
+        conservative_var[idim+1] = rho_theta * entropy_var[idim+1];
+    }
+    conservative_var[nstate-1] = rho_theta * (1.0 - 0.5 * entropy_var_vel_squared / entropy_var[nstate-1]);
+    return conservative_var;
 }
 
 template <int dim, int nstate, typename real>

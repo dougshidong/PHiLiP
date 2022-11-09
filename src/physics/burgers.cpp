@@ -91,6 +91,22 @@ real Burgers<dim,nstate,real>::convective_surface_numerical_split_flux (
 }
 
 template <int dim, int nstate, typename real>
+std::array<real,nstate> Burgers<dim, nstate, real>
+::compute_entropy_variables (
+    const std::array<real,nstate> &conservative_soln) const
+{
+    return conservative_soln;
+}
+
+template <int dim, int nstate, typename real>
+std::array<real,nstate> Burgers<dim, nstate, real>
+::compute_conservative_variables_from_entropy_variables (
+    const std::array<real,nstate> &entropy_var) const
+{
+    return entropy_var;
+}
+
+template <int dim, int nstate, typename real>
 real Burgers<dim,nstate,real>
 ::diffusion_coefficient () const
 {

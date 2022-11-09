@@ -6,15 +6,15 @@ set test_type = euler_split_taylor_green
 
 set use_weak_form = false
 
-set use_collocated_nodes = true
+set use_collocated_nodes = false
 
 set use_split_form = true
 
-set two_point_num_flux_type = IR
+set two_point_num_flux_type = CH
 
 set use_curvilinear_split_form = true
 
-set energy_file = IR_cDG_4x4
+set energy_file = CH_cDG_4x4
 
 # The PDE we want to solve
 set pde_type = euler
@@ -24,7 +24,7 @@ set conv_num_flux = two_point_flux
 
 set use_energy = true
 
-set flux_reconstruction = cDG
+set flux_reconstruction = cPlus
 
 set use_inverse_mass_on_the_fly = true
 

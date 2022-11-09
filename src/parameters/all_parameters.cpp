@@ -72,9 +72,9 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
 
     prm.declare_entry("two_point_num_flux_type", "KG",
                       dealii::Patterns::Selection(
-                      "KG | IR"),
+                      "KG | IR | CH"),
                       "Two point flux type. "
-                      "Choices are <KG | IR>.");
+                      "Choices are <KG | IR | CH>.");
 
     prm.declare_entry("use_curvilinear_split_form", "false",
                       dealii::Patterns::Bool(),
@@ -388,6 +388,7 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     const std::string two_point_num_flux_string = prm.get("two_point_num_flux_type");
     if (two_point_num_flux_string == "KG") { two_point_num_flux_type = TwoPointNumericalFlux::KG; }
     if (two_point_num_flux_string == "IR") { two_point_num_flux_type = TwoPointNumericalFlux::IR; }
+    if (two_point_num_flux_string == "CH") { two_point_num_flux_type = TwoPointNumericalFlux::CH; }
 
     use_curvilinear_split_form = prm.get_bool("use_curvilinear_split_form");
     use_weight_adjusted_mass = prm.get_bool("use_weight_adjusted_mass");

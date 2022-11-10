@@ -64,6 +64,7 @@ inline real ExactSolutionFunction_IsentropicVortex<dim,nstate,real>
 ::value(const dealii::Point<dim,real> &point, const unsigned int istate) const
 {
     // Setting constants
+    const double L = 5.0; // half-width of domain
     const double pi = dealii::numbers::PI;
     const double gam = 1.4;
     const double M_infty = sqrt(2/gam);
@@ -73,10 +74,12 @@ inline real ExactSolutionFunction_IsentropicVortex<dim,nstate,real>
     const double alpha = pi/4; //rad
 
     // Centre of the vortex  at t
-    const double x0 = 0.0 + M_infty * t * cos(alpha);
-    const double y0 = 0.0 + M_infty * t * sin(alpha);
-    const double x = point[0]-x0;
-    const double y = point[1] - y0;
+    const double x_travel = M_infty * t * cos(alpha);
+    const double x0 = 0.0 + x_travel;
+    const double y_travel = M_infty * t * sin(alpha);
+    const double y0 = 0.0 + y_travel;
+    const double x = std::fmod(point[0] - x0-L, 2*L)+L;
+    const double y = std::fmod(point[1] - y0-L, 2*L)+L;
 
     const double Omega = beta * exp(-0.5/sigma/sigma* (x/R * x/R + y/R * y/R));
     const double delta_Ux = -y/R * Omega;

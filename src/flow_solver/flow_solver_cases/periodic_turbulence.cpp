@@ -115,7 +115,7 @@ double PeriodicTurbulence<dim,nstate>::get_adaptive_time_step(std::shared_ptr<DG
 }
 
 template <int dim, int nstate>
-double PeriodicTurbulence<dim,nstate>::get_adaptive_time_step_initial(std::shared_ptr<DGBase<dim,double>> dg) const
+double PeriodicTurbulence<dim,nstate>::get_adaptive_time_step_initial(std::shared_ptr<DGBase<dim,double>> dg)
 {
     // initialize the maximum local wave speed
     update_maximum_local_wave_speed(*dg);

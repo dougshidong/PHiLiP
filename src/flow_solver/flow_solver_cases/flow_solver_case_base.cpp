@@ -126,7 +126,7 @@ double FlowSolverCaseBase<dim,nstate>::get_adaptive_time_step(std::shared_ptr<DG
 }
 
 template <int dim, int nstate>
-double FlowSolverCaseBase<dim,nstate>::get_adaptive_time_step_initial(std::shared_ptr<DGBase<dim,double>> /*dg*/) const
+double FlowSolverCaseBase<dim,nstate>::get_adaptive_time_step_initial(std::shared_ptr<DGBase<dim,double>> /*dg*/)
 {
     pcout << "ERROR: Base definition for get_adaptive_time_step_initial() has not yet been implemented. " <<std::flush;
     std::abort();

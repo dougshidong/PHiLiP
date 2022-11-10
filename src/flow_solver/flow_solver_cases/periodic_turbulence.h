@@ -114,7 +114,7 @@ protected:
     double get_adaptive_time_step(std::shared_ptr<DGBase<dim,double>> dg) const override;
 
     /// Function to compute the initial adaptive time step
-    double get_adaptive_time_step_initial(std::shared_ptr<DGBase<dim,double>> dg) const override;
+    double get_adaptive_time_step_initial(std::shared_ptr<DGBase<dim,double>> dg) override;
 
     /// Updates the maximum local wave speed
     void update_maximum_local_wave_speed(DGBase<dim, double> &dg);

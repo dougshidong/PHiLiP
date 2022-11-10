@@ -52,6 +52,9 @@ public:
     /// Virtual function to compute the adaptive time step
     virtual double get_adaptive_time_step(std::shared_ptr <DGBase<dim, double>> dg) const;
 
+    /// Virtual function to compute the initial adaptive time step
+    virtual double get_adaptive_time_step_initial(std::shared_ptr <DGBase<dim, double>> dg) const;
+
     /// Virtual function for postprocessing when solving for steady state
     virtual void steady_state_postprocessing(std::shared_ptr <DGBase<dim, double>> dg) const;
 

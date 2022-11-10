@@ -401,7 +401,7 @@ int FlowSolver<dim,nstate>::run() const
                 time_step = flow_solver_case->get_constant_time_step(dg);
             } else {
                 pcout << "Setting initial adaptive time step... " << std::flush;
-                time_step = flow_solver_case->get_adaptive_time_step(dg);
+                time_step = flow_solver_case->get_adaptive_time_step_initial(dg);
             }
         }
         flow_solver_case->set_time_step(time_step);
@@ -429,8 +429,10 @@ int FlowSolver<dim,nstate>::run() const
         while((ode_solver->current_time) < (final_time - 1E-13)) //comparing to 1E-13 to avoid taking an extra timestep
         {
             // update adaptive time step
-            if(flow_solver_param.adaptive_time_step == true) time_step = flow_solver_case->get_adaptive_time_step(dg);
-            flow_solver_case->set_time_step(time_step);
+            if(flow_solver_param.adaptive_time_step == true) {
+                time_step = flow_solver_case->get_adaptive_time_step(dg);
+                flow_solver_case->set_time_step(time_step);
+            }
 
             // advance solution
             ode_solver->step_in_time(time_step,false); // pseudotime==false

@@ -1989,6 +1989,14 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_strong(
         std::array<real,nstate> soln_state_ext;
         soln_state_ext = this->pde_physics_double->compute_conservative_variables_from_entropy_variables (entropy_var_face_ext);
 
+
+        if(!this->all_parameters->use_split_form && !this->all_parameters->use_curvilinear_split_form){
+            for(int istate=0; istate<nstate; istate++){
+                soln_state_int[istate] = soln_at_surf_q_int[istate][iquad];
+                soln_state_ext[istate] = soln_at_surf_q_ext[istate][iquad];
+            }
+        }
+
         // numerical fluxes
         dealii::Tensor<1,dim,real> unit_phys_normal_int;
         metric_oper_int.transform_reference_to_physical(unit_ref_normal_int,

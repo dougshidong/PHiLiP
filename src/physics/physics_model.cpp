@@ -184,7 +184,14 @@ std::array<real,nstate> PhysicsModel<dim, nstate, real, nstate_baseline_physics>
 ::compute_conservative_variables_from_entropy_variables (
     const std::array<real,nstate> &entropy_var) const
 {
-    return entropy_var;
+    std::array<real,nstate> conservative_soln;
+    if(nstate==nstate_baseline_physics) {
+        conservative_soln = physics_baseline->compute_conservative_variables_from_entropy_variables(entropy_var);
+    } else {
+        // TO DO, make use of the physics_model object for nstate>nstate_baseline_physics
+        std::abort();
+    }
+    return conservative_soln;
 }
 
 template <int dim, int nstate, typename real, int nstate_baseline_physics>

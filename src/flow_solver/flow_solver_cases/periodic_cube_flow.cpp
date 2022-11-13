@@ -3,16 +3,6 @@
 #include <stdlib.h>
 #include <iostream>
 #include "mesh/grids/straight_periodic_cube.hpp"
-
-#include <deal.II/base/function.h>
-#include <deal.II/dofs/dof_tools.h>
-#include <deal.II/grid/grid_tools.h>
-#include <deal.II/numerics/vector_tools.h>
-#include <deal.II/fe/fe_values.h>
-#include "physics/physics_factory.h"
-#include <deal.II/base/table_handler.h>
-#include <deal.II/base/tensor.h>
-#include "math.h"
 #include "mesh/gmsh_reader.hpp"
 
 namespace PHiLiP {

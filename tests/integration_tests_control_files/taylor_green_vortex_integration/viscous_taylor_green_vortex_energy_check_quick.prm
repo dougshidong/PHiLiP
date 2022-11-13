@@ -49,9 +49,6 @@ subsection flow_solver
   subsection grid
     set grid_left_bound = 0.0
     set grid_right_bound = 6.28318530717958623200
-    set number_of_grid_elements_per_dimension = 4
-    set input_mesh_filename = ../../meshes/3D_CUBE_Periodic
-    set use_input_mesh = true
   end
   subsection taylor_green_vortex
     set expected_kinetic_energy_at_final_time = 1.2073987162682624e-01

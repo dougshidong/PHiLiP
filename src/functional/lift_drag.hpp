@@ -156,6 +156,9 @@ public:
         }
     }
 
+    /// Destructor
+    ~LiftDragFunctional(){};
+
     real evaluate_functional( const bool compute_dIdW = false, const bool compute_dIdX = false, const bool compute_d2I = false) override
     {
         double value = Functional<dim,nstate,real,MeshType>::evaluate_functional( compute_dIdW, compute_dIdX, compute_d2I);

@@ -20,6 +20,7 @@
 #include "physics/physics_factory.h"
 #include "dg/dg.h"
 #include "dg/dg_factory.hpp"
+//#include "ode_solver/runge_kutta_ode_solver.h"
 #include "ode_solver/explicit_ode_solver.h"
 #include "ode_solver/ode_solver_factory.h"
 #include <deal.II/base/table_handler.h>
@@ -131,6 +132,11 @@ private:
         const double constant_time_step,
         const std::shared_ptr <dealii::TableHandler> unsteady_data_table) const;
 #endif
+
+    /// Performs mesh adaptation.
+    /** Currently implemented for steady state flows.
+     */
+    void perform_steady_state_mesh_adaptation() const;
 };
 
 } // FlowSolver namespace

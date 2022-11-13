@@ -1,0 +1,44 @@
+# Listing of Parameters
+# ---------------------
+# Number of dimensions
+
+set dimension = 1 
+set test_type = time_refinement_study_reference
+set pde_type = burgers_inviscid
+
+# Note: this is only used to turn off printing messages
+set use_periodic_bc = true
+
+# ODE solver
+subsection ODE solver
+  set ode_solver_type = runge_kutta
+  set output_solution_every_dt_time_intervals = 0.05
+  set initial_time_step = 0.05 
+  set runge_kutta_method = dirk_2_im
+end
+
+# Linear solver
+subsection linear solver
+  set linear_solver_output = verbose
+  subsection gmres options
+    set linear_residual_tolerance = 1e-7
+  end
+end
+  
+subsection time_refinement_study
+  set number_of_times_to_solve = 2  
+  set refinement_ratio = 0.5
+  set number_of_timesteps_for_reference_solution = 1200 #small number for faster computation
+end
+
+subsection flow_solver
+  set flow_case_type = periodic_1D_unsteady
+  set final_time = 0.4
+  set poly_degree = 4
+  set unsteady_data_table_filename = burgers_unsteady_data
+  subsection grid
+    set grid_left_bound = 0.0
+    set grid_right_bound = 2.0
+    set number_of_grid_elements_per_dimension = 16
+  end
+end

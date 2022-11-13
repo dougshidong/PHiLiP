@@ -9,12 +9,11 @@
 
 #include "parameters/all_parameters.h"
 
-#include "mesh/free_form_deformation.h"
-#include "mesh/meshmover_linear_elasticity.hpp"
-
 #include "dg/dg.h"
 
 #include "Ifpack.h"
+
+#include "design_parameterization/base_parameterization.hpp"
 
 namespace PHiLiP {
 
@@ -38,21 +37,16 @@ private:
     /// Smart pointer to DGBase
     std::shared_ptr<DGBase<dim,double>> dg;
 
-    /// FFD used to parametrize the grid and used as design variables.
-    FreeFormDeformation<dim> ffd;
+    /// Parameterization which links design variables to the volume nodes.
+    std::shared_ptr<BaseParameterization<dim>> design_parameterization;
 
     /// Linear solver parameters.
     /** Currently set such that the linear systems are fully solved
      */
     Parameters::LinearSolverParam linear_solver_param;
 
-    /// Set of indices and axes that point to the FFD values that are design variables.
-    const std::vector< std::pair< unsigned int, unsigned int > > ffd_design_variables_indices_dim;
     /// Design variables values.
-    dealii::LinearAlgebra::distributed::Vector<double> ffd_des_var;
-
-    /// Used to store initial FFD design to compute FFD point displacements.
-    dealii::LinearAlgebra::distributed::Vector<double> initial_ffd_des_var;
+    dealii::LinearAlgebra::distributed::Vector<double> design_var;
 
     /// Jacobian preconditioner.
     /** Currently uses ILUT */
@@ -96,10 +90,9 @@ public:
 
     /// Constructor
     FlowConstraints(
-        std::shared_ptr<DGBase<dim,double>> &_dg, 
-        const FreeFormDeformation<dim> &_ffd,
-        std::vector< std::pair< unsigned int, unsigned int > > &_ffd_design_variables_indices_dim,
-        dealii::TrilinosWrappers::SparseMatrix *precomputed_dXvdXp = nullptr);
+        std::shared_ptr<DGBase<dim,double>> &_dg,
+        std::shared_ptr<BaseParameterization<dim>> _design_parameterization,
+        std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> precomputed_dXvdXp = nullptr);
     ///// Constructor
     //FlowConstraints(
     //    std::shared_ptr<DGBase<dim,double>> &_dg, 

@@ -21,11 +21,13 @@ public:
         naca0012,
         burgers_rewienski_snapshot,
         periodic_1D_unsteady,
-        gaussian_bump
+        gaussian_bump,
+        sshock
         };
     FlowCaseType flow_case_type; ///< Selected FlowCaseType from the input file
 
     unsigned int poly_degree; ///< Polynomial order (P) of the basis functions for DG.
+    unsigned int max_poly_degree_for_adaptation; ///< Maximum polynomial order of the DG basis functions for adaptation.
     double final_time; ///< Final solution time
     double courant_friedrich_lewy_number; ///< Courant-Friedrich-Lewy (CFL) number for constant time step
 
@@ -42,10 +44,11 @@ public:
      *   will be written to file: sensitivity_table_filename.txt */
     std::string sensitivity_table_filename;
 
-    /** Name of the Gmsh file to be read if the flow_solver_case indeed reads a mesh;
-     *  will read file: input_mesh_filename.msh */
+    /** Name of the Gmsh file to be read if the flow_solver_case reads a mesh file;
+     *  will read the file: input_mesh_filename.msh */
     std::string input_mesh_filename;
-    bool use_input_mesh;                    ///<< Flag for using input gmsh mesh
+    bool use_input_mesh; ///<< Flag for using input mesh file
+    bool mesh_reader_verbose_output;///<< Flag for verbose (true) or quiet (false) mesh reader output
 
     /** Toggle for specifiying periodic boundary conditions on x, y, or z-direction
     **/

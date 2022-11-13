@@ -290,6 +290,38 @@ real2 SolutionIntegral<dim,nstate,real, MeshType>::evaluate_volume_integrand(
 }
 
 template <int dim, int nstate, typename real, typename MeshType>
+OutletPressureIntegral<dim,nstate,real,MeshType>::OutletPressureIntegral(
+        std::shared_ptr<PHiLiP::DGBase<dim,real, MeshType>> dg_input,
+        const bool uses_solution_values,
+        const bool uses_solution_gradient)
+        : Functional<dim,nstate,real,MeshType>::Functional(dg_input,uses_solution_values,uses_solution_gradient)
+{}
+
+template <int dim, int nstate, typename real, typename MeshType>
+template <typename real2>
+real2 OutletPressureIntegral<dim,nstate,real,MeshType>::evaluate_boundary_integrand(
+        const PHiLiP::Physics::PhysicsBase<dim,nstate,real2> &physics,
+        const unsigned int                                    boundary_id,
+        const dealii::Point<dim,real2> &                      /*phys_coord*/,
+        const dealii::Tensor<1,dim,real2> &                    /*normal*/ ,
+        const std::array<real2,nstate> &                      soln_at_q,
+        const std::array<dealii::Tensor<1,dim,real2>,nstate> & /*soln_grad_at_q*/ ) const
+{
+    real2 pressure = 0;
+
+    if(boundary_id == 1002){
+        // casting it to a physics euler as it is needed for the pressure computation
+        const Physics::Euler<dim,nstate,real2>& euler_physics = dynamic_cast<const Physics::Euler<dim,nstate,real2>&>(physics);
+
+        // converting the state vector to the point pressure
+        pressure = euler_physics.compute_pressure(soln_at_q);
+    }
+
+    return pressure;
+}
+
+
+template <int dim, int nstate, typename real, typename MeshType>
 Functional<dim,nstate,real,MeshType>::Functional(
     std::shared_ptr<DGBase<dim,real,MeshType>> _dg,
     const bool                                 _uses_solution_values,
@@ -1285,6 +1317,10 @@ FunctionalFactory<dim,nstate,real,MeshType>::create_Functional(
     }else if(functional_type == FunctionalTypeEnum::solution_integral) {
         std::shared_ptr< DGBaseState<dim,nstate,double,MeshType>> dg_state = std::dynamic_pointer_cast< DGBaseState<dim,nstate,double, MeshType>>(dg);
         return std::make_shared<SolutionIntegral<dim,nstate,real,MeshType>>(dg,dg_state->pde_physics_fad_fad,true,false);
+    }else if(functional_type == FunctionalTypeEnum::outlet_pressure_integral) {
+        if constexpr (dim==2 && nstate==dim+2){
+            return std::make_shared<OutletPressureIntegral<dim,nstate,real,MeshType>>(dg, true,false);
+        }
     }else{
         std::cout << "Invalid Functional." << std::endl;
     }
@@ -1451,6 +1487,11 @@ template class FunctionalFactory <PHILIP_DIM, 2, double, dealii::parallel::distr
 template class FunctionalFactory <PHILIP_DIM, 3, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
 template class FunctionalFactory <PHILIP_DIM, 4, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
 template class FunctionalFactory <PHILIP_DIM, 5, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+
+#endif
+
+#if PHILIP_DIM == 2
+template class OutletPressureIntegral<PHILIP_DIM, PHILIP_DIM+2, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
 #endif
 
 } // PHiLiP namespace

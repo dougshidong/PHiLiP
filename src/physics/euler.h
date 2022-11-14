@@ -299,6 +299,10 @@ public:
     std::array<real,nstate> compute_conservative_variables_from_entropy_variables (
                 const std::array<real,nstate> &entropy_var) const;
 
+    /// Computes the kinetic energy variables.
+    std::array<real,nstate> compute_kinetic_energy_variables (
+                const std::array<real,nstate> &conservative_soln) const;
+
     /// Mean density given two sets of conservative solutions.
     /** Used in the implementation of the split form.
      */
@@ -442,6 +446,11 @@ protected:
 
     /// Chandrashekar entropy conserving flux.
     std::array<dealii::Tensor<1,dim,real>,nstate> convective_numerical_split_flux_chandrashekar (
+        const std::array<real,nstate> &conservative_soln1,
+        const std::array<real,nstate> &conservative_soln2) const;
+
+    /// Ranocha pressure equilibrium preserving, entropy and energy conserving flux.
+    std::array<dealii::Tensor<1,dim,real>,nstate> convective_numerical_split_flux_ranocha (
         const std::array<real,nstate> &conservative_soln1,
         const std::array<real,nstate> &conservative_soln2) const;
 };

@@ -8,13 +8,15 @@ set use_weak_form = false
 
 set use_collocated_nodes = false
 
+set overintegration = 0
+
 set use_split_form = true
 
-set two_point_num_flux_type = CH
+set two_point_num_flux_type = Ra
 
 set use_curvilinear_split_form = true
 
-set energy_file = CH_cDG_4x4
+set energy_file = testing_4x4
 
 # The PDE we want to solve
 set pde_type = euler

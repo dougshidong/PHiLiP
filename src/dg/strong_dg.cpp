@@ -81,12 +81,13 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_volume_term_and_build_operator
     for(int idim=0; idim<dim; idim++){
         mapping_support_points[idim].resize(n_grid_nodes);
     }
-    for (unsigned int igrid_node = 0; igrid_node< n_metric_dofs/dim; ++igrid_node) {
-        for (unsigned int idof = 0; idof< n_metric_dofs; ++idof) {
-            const real val = (this->high_order_grid->volume_nodes[metric_dof_indices[idof]]);
-            const unsigned int istate = fe_metric.system_to_component_index(idof).first; 
-            mapping_support_points[istate][igrid_node] += val * fe_metric.shape_value_component(idof,this->high_order_grid->dim_grid_nodes.point(igrid_node),istate); 
-        }
+    const std::vector<unsigned int > &index_renumbering = dealii::FETools::hierarchic_to_lexicographic_numbering<dim>(grid_degree);
+    for (unsigned int idof = 0; idof< n_metric_dofs; ++idof) {
+        const real val = (this->high_order_grid->volume_nodes[metric_dof_indices[idof]]);
+        const unsigned int istate = fe_metric.system_to_component_index(idof).first; 
+        const unsigned int ishape = fe_metric.system_to_component_index(idof).second; 
+        const unsigned int igrid_node = index_renumbering[ishape];
+        mapping_support_points[istate][igrid_node] = val; 
     }
 
     //build the volume metric cofactor matrix and the determinant of the volume metric Jacobian
@@ -241,12 +242,13 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_and_build_operators(
         for(int idim=0; idim<dim; idim++){
             mapping_support_points_neigh[idim].resize(n_grid_nodes);
         }
-        for (unsigned int igrid_node = 0; igrid_node< n_metric_dofs/dim; ++igrid_node) {
-            for (unsigned int idof = 0; idof< n_metric_dofs; ++idof) {
-                const real val = (this->high_order_grid->volume_nodes[neighbor_metric_dofs_indices[idof]]);
-                const unsigned int istate = fe_metric.system_to_component_index(idof).first; 
-                mapping_support_points_neigh[istate][igrid_node] += val * fe_metric.shape_value_component(idof,this->high_order_grid->dim_grid_nodes.point(igrid_node),istate); 
-            }
+        const std::vector<unsigned int > &index_renumbering = dealii::FETools::hierarchic_to_lexicographic_numbering<dim>(grid_degree_ext);
+        for (unsigned int idof = 0; idof< n_metric_dofs; ++idof) {
+            const real val = (this->high_order_grid->volume_nodes[neighbor_metric_dofs_indices[idof]]);
+            const unsigned int istate = fe_metric.system_to_component_index(idof).first; 
+            const unsigned int ishape = fe_metric.system_to_component_index(idof).second; 
+            const unsigned int igrid_node = index_renumbering[ishape];
+            mapping_support_points_neigh[istate][igrid_node] = val; 
         }
         //build the metric operators for strong form
         metric_oper_ext.build_volume_metric_operators(

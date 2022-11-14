@@ -13,7 +13,7 @@ EulerTaylorGreen<dim, nstate>::EulerTaylorGreen(const Parameters::AllParameters 
     : TestsBase::TestsBase(parameters_input)
 {}
 template<int dim, int nstate>
-double EulerTaylorGreen<dim, nstate>::compute_change_in_entropy(std::shared_ptr < DGBase<dim, double> > &dg, unsigned int poly_degree) const
+std::array<double,2> EulerTaylorGreen<dim, nstate>::compute_change_in_entropy(std::shared_ptr < DGBase<dim, double> > &dg, unsigned int poly_degree) const
 {
     const unsigned int n_dofs_cell = dg->fe_collection[poly_degree].dofs_per_cell;
     const unsigned int n_quad_pts = dg->volume_quadrature_collection[poly_degree].size();
@@ -26,9 +26,10 @@ double EulerTaylorGreen<dim, nstate>::compute_change_in_entropy(std::shared_ptr 
     soln_basis.build_1D_volume_operator(dg->oneD_fe_collection_1state[poly_degree], dg->oneD_quadrature_collection[poly_degree]);
 
     dealii::LinearAlgebra::distributed::Vector<double> entropy_var_hat_global(dg->right_hand_side);
+    dealii::LinearAlgebra::distributed::Vector<double> energy_var_hat_global(dg->right_hand_side);
     std::vector<dealii::types::global_dof_index> dofs_indices (n_dofs_cell);
 
-    std::shared_ptr < Physics::PhysicsBase<dim, nstate, double > > pde_physics_double  = PHiLiP::Physics::PhysicsFactory<dim,nstate,double>::create_Physics(dg->all_parameters);
+    std::shared_ptr < Physics::Euler<dim, nstate, double > > euler_double  = std::dynamic_pointer_cast<Physics::Euler<dim,dim+2,double>>(PHiLiP::Physics::PhysicsFactory<dim,nstate,double>::create_Physics(dg->all_parameters));
 
     for (auto cell = dg->dof_handler.begin_active(); cell!=dg->dof_handler.end(); ++cell) {
         if (!cell->is_locally_owned()) continue;
@@ -50,15 +51,20 @@ double EulerTaylorGreen<dim, nstate>::compute_change_in_entropy(std::shared_ptr 
                                              soln_basis.oneD_vol_operator);
         }
         std::array<std::vector<double>,nstate> entropy_var_at_q;
+        std::array<std::vector<double>,nstate> energy_var_at_q;
         for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
             std::array<double,nstate> soln_state;
             for(int istate=0; istate<nstate; istate++){
                 soln_state[istate] = soln_at_q[istate][iquad];
             }
-            std::array<double,nstate> entropy_var_state = pde_physics_double->compute_entropy_variables(soln_state);
+            std::array<double,nstate> entropy_var_state = euler_double->compute_entropy_variables(soln_state);
+            std::array<double,nstate> kin_energy_state = euler_double->compute_kinetic_energy_variables(soln_state);
             for(int istate=0; istate<nstate; istate++){
-                if(iquad==0)
+                if(iquad==0){
                     entropy_var_at_q[istate].resize(n_quad_pts);
+                    energy_var_at_q[istate].resize(n_quad_pts);
+                }
+                energy_var_at_q[istate][iquad] = kin_energy_state[istate];
                 entropy_var_at_q[istate][iquad] = entropy_var_state[istate];
             }
         }
@@ -67,17 +73,23 @@ double EulerTaylorGreen<dim, nstate>::compute_change_in_entropy(std::shared_ptr 
             std::vector<double> entropy_var_hat(n_shape_fns);
             vol_projection.matrix_vector_mult_1D(entropy_var_at_q[istate], entropy_var_hat,
                                                  vol_projection.oneD_vol_operator);
+            std::vector<double> energy_var_hat(n_shape_fns);
+            vol_projection.matrix_vector_mult_1D(energy_var_at_q[istate], energy_var_hat,
+                                                 vol_projection.oneD_vol_operator);
 
             for(unsigned int ishape=0; ishape<n_shape_fns; ishape++){
                 const unsigned int idof = istate * n_shape_fns + ishape;
                 entropy_var_hat_global[dofs_indices[idof]] = entropy_var_hat[ishape];
+                energy_var_hat_global[dofs_indices[idof]] = energy_var_hat[ishape];
             }
         }
     }
 
     dg->assemble_residual();
-    double change_in_entropy = entropy_var_hat_global * dg->right_hand_side;
-    return change_in_entropy;
+    std::array<double,2> change_entropy_and_energy;
+    change_entropy_and_energy[0] = entropy_var_hat_global * dg->right_hand_side;
+    change_entropy_and_energy[1] = energy_var_hat_global * dg->right_hand_side;
+    return change_entropy_and_energy;
 }
 
 template<int dim, int nstate>
@@ -297,6 +309,7 @@ int EulerTaylorGreen<dim, nstate>::run_test() const
     // finalTime = 0.1;//to speed things up locally in tests, doesn't need full 14seconds to verify.
     double dt = all_parameters_new.ode_solver_param.initial_time_step;
     // double dt = all_parameters_new.ode_solver_param.initial_time_step / 10.0;
+//    finalTime = 14.0;
 
     std::cout << " number dofs " << dg->dof_handler.n_dofs()<<std::endl;
     std::cout << "preparing to advance solution in time" << std::endl;
@@ -315,9 +328,10 @@ int EulerTaylorGreen<dim, nstate>::run_test() const
     ode_solver->advance_solution_time(dt/10.0);
     double initial_energy = compute_kinetic_energy(dg, poly_degree);
     double initial_entropy = compute_entropy(dg, poly_degree);
-    double initial_change_entropy = compute_change_in_entropy(dg, poly_degree);
     pcout<<"Initial MK Entropy "<<initial_entropy<<std::endl;
-    pcout<<"Initial change in Entropy "<<initial_change_entropy<<std::endl;
+    std::array<double,2> initial_change_entropy = compute_change_in_entropy(dg, poly_degree);
+    pcout<<"Initial change in Entropy "<<initial_change_entropy[0]<<std::endl;
+    pcout<<"Initial change in kinetic Energy "<<initial_change_entropy[1]<<std::endl;
 
     std::cout << std::setprecision(16) << std::fixed;
     pcout << "Energy at one timestep is " << initial_energy/(8*pow(dealii::numbers::PI,3)) << std::endl;
@@ -340,14 +354,16 @@ int EulerTaylorGreen<dim, nstate>::run_test() const
         pcout << "M plus K norm Entropy at time " << i * dt << " is " << current_entropy / initial_entropy<< std::endl;
         myfile << i * dt << " " << std::fixed << std::setprecision(16) << current_entropy / initial_entropy<< std::endl;
 
-        double current_change_entropy = compute_change_in_entropy(dg, poly_degree);
+        std::array<double,2> current_change_entropy = compute_change_in_entropy(dg, poly_degree);
         std::cout << std::setprecision(16) << std::fixed;
-        pcout << "M plus K norm Chnage in Entropy at time " << i * dt << " is " << current_change_entropy<< std::endl;
-        if(abs(current_change_entropy) > 1e-12 && (dg->all_parameters->two_point_num_flux_type == Parameters::AllParameters::TwoPointNumericalFlux::IR || dg->all_parameters->two_point_num_flux_type == Parameters::AllParameters::TwoPointNumericalFlux::CH )){
+        pcout << "M plus K norm Change in Entropy at time " << i * dt << " is " << current_change_entropy[0]<< std::endl;
+        pcout << "M plus K norm Change in Kinetic Energy at time " << i * dt << " is " << current_change_entropy[1]<< std::endl;
+        if(abs(current_change_entropy[0]) > 1e-12 && (dg->all_parameters->two_point_num_flux_type == Parameters::AllParameters::TwoPointNumericalFlux::IR || dg->all_parameters->two_point_num_flux_type == Parameters::AllParameters::TwoPointNumericalFlux::CH || dg->all_parameters->two_point_num_flux_type == Parameters::AllParameters::TwoPointNumericalFlux::Ra)){
           pcout << " Entropy was not monotonically decreasing" << std::endl;
           return 1;
         }
-        myfile << i * dt << " " << std::fixed << std::setprecision(16) << current_change_entropy<< std::endl;
+        myfile << i * dt << " " << std::fixed << std::setprecision(16) << current_change_entropy[0]<< std::endl;
+        myfile << i * dt << " " << std::fixed << std::setprecision(16) << current_change_entropy[1]<< std::endl;
         all_parameters_new.ode_solver_param.initial_time_step =  get_timestep(dg,poly_degree, delta_x);
     }
 

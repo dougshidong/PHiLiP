@@ -55,6 +55,7 @@ PeriodicTurbulence<dim, nstate>::PeriodicTurbulence(const PHiLiP::Parameters::Al
     /// For outputting velocity field
     this->index_of_current_desired_time_to_output_velocity_field = 0;
     if(output_velocity_field_at_fixed_times && (number_of_times_to_output_velocity_field > 0)) {
+        exact_output_times_of_velocity_field_files_table = std::make_shared<dealii::TableHandler>();//(mpi_communicator) ?;
         this->output_velocity_field_times.reinit(number_of_times_to_output_velocity_field);
         
         // Get output_velocity_field_times from string
@@ -137,7 +138,8 @@ std::string get_padded_mpi_rank_string(const int mpi_rank_input) {
 template<int dim, int nstate>
 void PeriodicTurbulence<dim, nstate>::output_velocity_field(
     std::shared_ptr<DGBase<dim,double>> dg,
-    const int output_file_index) const
+    const int output_file_index,
+    const double current_time) const
 {
     this->pcout << "     ... Writting velocity field ... " << std::flush;
 
@@ -148,12 +150,23 @@ void PeriodicTurbulence<dim, nstate>::output_velocity_field(
 
     // (1) Get filename based on MPI rank
     //-------------------------------------------------------------
-    const int mpi_rank = dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD);
     // -- Get padded mpi rank string
-    const std::string mpi_rank_string = get_padded_mpi_rank_string(mpi_rank);
+    const std::string mpi_rank_string = get_padded_mpi_rank_string(this->mpi_rank);
     // -- Assemble filename string
     const std::string filename_without_extension = filename_prefix + std::string("-") + mpi_rank_string;
     const std::string filename = filename_without_extension + std::string(".dat");
+    //-------------------------------------------------------------
+
+    // (1.5) Write the exact output time for the file to the table 
+    //-------------------------------------------------------------
+    if(this->mpi_rank==0) {
+        // Add values to data table
+        this->add_value_to_data_table(output_file_index,"output_file_index",this->exact_output_times_of_velocity_field_files_table);
+        this->add_value_to_data_table(current_time,"time",this->exact_output_times_of_velocity_field_files_table);
+        // Write to file
+        std::ofstream data_table_file("exact_output_times_of_velocity_field_files.txt");
+        this->exact_output_times_of_velocity_field_files_table->write_text(data_table_file);
+    }
     //-------------------------------------------------------------
 
     // (2) Read file
@@ -164,7 +177,7 @@ void PeriodicTurbulence<dim, nstate>::output_velocity_field(
     if (!FILE.is_open()) {
         this->pcout << "ERROR: Cannot open file " << filename << std::endl;
         std::abort();
-    } else if(mpi_rank==0) {
+    } else if(this->mpi_rank==0) {
         const unsigned int number_of_degrees_of_freedom_per_state = dg->dof_handler.n_dofs()/nstate;
         FILE << number_of_degrees_of_freedom_per_state << std::string("\n");
     }
@@ -561,7 +574,7 @@ void PeriodicTurbulence<dim, nstate>::compute_unsteady_data_and_write_to_table(
         // Check if current time is an output time
         if((current_time<=desired_time) && (next_time>desired_time)) {
             // Output velocity field for current index
-            this->output_velocity_field(dg,this->index_of_current_desired_time_to_output_velocity_field);
+            this->output_velocity_field(dg, this->index_of_current_desired_time_to_output_velocity_field, current_time);
             
             // Update index s.t. it never goes out of bounds
             if(this->index_of_current_desired_time_to_output_velocity_field 

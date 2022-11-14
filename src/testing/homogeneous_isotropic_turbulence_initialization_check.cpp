@@ -33,7 +33,7 @@ int HomogeneousIsotropicTurbulenceInitializationCheck<dim, nstate>::run_test() c
     this->pcout << "done." << std::endl;
 
     std::unique_ptr<FlowSolver::PeriodicTurbulence<dim, nstate>> flow_solver_case = std::make_unique<FlowSolver::PeriodicTurbulence<dim,nstate>>(this->all_parameters);
-    flow_solver_case->output_velocity_field(flow_solver->dg);
+    flow_solver_case->output_velocity_field(flow_solver->dg,0,0.0);
 
     return 0;
 }

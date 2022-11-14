@@ -75,7 +75,8 @@ public:
     /// Output the velocity field to file
     void output_velocity_field(
             std::shared_ptr<DGBase<dim,double>> dg,
-            const int output_file_index=0) const;
+            const int output_file_index,
+            const double current_time) const;
 
     /// Calculate numerical entropy by matrix-vector product
     double get_numerical_entropy(const std::shared_ptr <DGBase<dim, double>> dg) const;
@@ -148,6 +149,9 @@ protected:
 
     /// Flow field quantity filename prefix
     std::string flow_field_quantity_filename_prefix;
+
+    /// Data table storing the exact output times for the velocity field files
+    std::shared_ptr<dealii::TableHandler> exact_output_times_of_velocity_field_files_table;
 };
 
 } // FlowSolver namespace

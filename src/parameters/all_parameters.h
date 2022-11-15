@@ -172,6 +172,7 @@ public:
         taylor_green_vortex_restart_check,
         time_refinement_study,
         time_refinement_study_reference,
+        h_refinement_study_isentropic_vortex,
         burgers_energy_conservation_rrk,
         euler_ismail_roe_entropy_check,
     };

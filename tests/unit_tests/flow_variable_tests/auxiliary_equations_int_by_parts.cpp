@@ -313,6 +313,7 @@ int main (int argc, char * argv[])
             std::vector<dealii::types::global_dof_index> current_dofs_indices(n_dofs);
             for (auto current_cell = dg->dof_handler.begin_active(); current_cell!=dg->dof_handler.end(); ++current_cell) {
                 if (!current_cell->is_locally_owned()) continue;
+                current_cell->get_dof_indices (current_dofs_indices);
                 for(unsigned int i=0; i<n_dofs; i++){
                     dg->solution[current_dofs_indices[i]] = 1e-8 + static_cast <float> (rand()) / ( static_cast <float> (RAND_MAX/(30-1e-8)));
                 }

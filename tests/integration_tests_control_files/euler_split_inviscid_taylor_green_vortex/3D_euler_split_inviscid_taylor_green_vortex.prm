@@ -34,7 +34,7 @@ set use_weight_adjusted_mass = true
 
 set use_periodic_bc = true
 
-set use_classical_FR = true
+set use_classical_FR = false
 
 subsection ODE solver
 

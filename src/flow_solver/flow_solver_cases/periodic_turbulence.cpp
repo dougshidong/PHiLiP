@@ -95,34 +95,128 @@ void PeriodicTurbulence<dim, nstate>::compute_and_update_integrated_quantities(D
 
     // Overintegrate the error to make sure there is not integration error in the error estimate
     int overintegrate = 10;
+
+    // Set the quadrature of size dim and 1D for sum-factorization.
     dealii::QGauss<dim> quad_extra(dg.max_degree+1+overintegrate);
-    dealii::FEValues<dim,dim> fe_values_extra(*(dg.high_order_grid->mapping_fe_field), dg.fe_collection[dg.max_degree], quad_extra,
-                                              dealii::update_values | dealii::update_gradients | dealii::update_JxW_values | dealii::update_quadrature_points);
+    dealii::QGauss<1> quad_extra_1D(dg.max_degree+1+overintegrate);
 
-    const unsigned int n_quad_pts = fe_values_extra.n_quadrature_points;
-    std::array<double,nstate> soln_at_q;
-    std::array<dealii::Tensor<1,dim,double>,nstate> soln_grad_at_q;
+    const unsigned int n_quad_pts = quad_extra.size();
+    const unsigned int grid_degree = dg.high_order_grid->fe_system.tensor_degree();
+    const unsigned int poly_degree = dg.max_degree;
+    // Construct the basis functions and mapping shape functions.
+    OPERATOR::basis_functions<dim,2*dim> soln_basis(1, poly_degree, grid_degree); 
+    OPERATOR::mapping_shape_functions<dim,2*dim> mapping_basis(1, poly_degree, grid_degree);
+    // Build basis function volume operator and gradient operator from 1D finite element for 1 state.
+    soln_basis.build_1D_volume_operator(dg.oneD_fe_collection_1state[poly_degree], quad_extra_1D);
+    soln_basis.build_1D_gradient_operator(dg.oneD_fe_collection_1state[poly_degree], quad_extra_1D);
+    // Build mapping shape functions operators using the oneD high_ordeR_grid finite element
+    mapping_basis.build_1D_shape_functions_at_grid_nodes(dg.high_order_grid->oneD_fe_system, dg.high_order_grid->oneD_grid_nodes);
+    mapping_basis.build_1D_shape_functions_at_flux_nodes(dg.high_order_grid->oneD_fe_system, quad_extra_1D, dg.oneD_face_quadrature);
+    const std::vector<double> &quad_weights = quad_extra.get_weights();
+    // If in the future we need the physical quadrature node location, turn these flags to true and the constructor will
+    // automatically compute it for you. Currently set to false as to not compute extra unused terms.
+    const bool store_vol_flux_nodes = false;//currently doesn't need the volume physical nodal position
+    const bool store_surf_flux_nodes = false;//currently doesn't need the surface physical nodal position
 
-    std::vector<dealii::types::global_dof_index> dofs_indices (fe_values_extra.dofs_per_cell);
-    for (auto cell : dg.dof_handler.active_cell_iterators()) {
+    const unsigned int n_dofs = dg.fe_collection[poly_degree].n_dofs_per_cell();
+    const unsigned int n_shape_fns = n_dofs / nstate;
+    std::vector<dealii::types::global_dof_index> dofs_indices (n_dofs);
+    auto metric_cell = dg.high_order_grid->dof_handler_grid.begin_active();
+    // Changed for loop to update metric_cell.
+    for (auto cell = dg.dof_handler.begin_active(); cell!= dg.dof_handler.end(); ++cell, ++metric_cell) {
         if (!cell->is_locally_owned()) continue;
-        fe_values_extra.reinit (cell);
         cell->get_dof_indices (dofs_indices);
 
-        for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
+        // We first need to extract the mapping support points (grid nodes) from high_order_grid.
+        const dealii::FESystem<dim> &fe_metric = dg.high_order_grid->fe_system;
+        const unsigned int n_metric_dofs = fe_metric.dofs_per_cell;
+        const unsigned int n_grid_nodes  = n_metric_dofs / dim;
+        std::vector<dealii::types::global_dof_index> metric_dof_indices(n_metric_dofs);
+        metric_cell->get_dof_indices (metric_dof_indices);
+        std::array<std::vector<double>,dim> mapping_support_points;
+        for(int idim=0; idim<dim; idim++){
+            mapping_support_points[idim].resize(n_grid_nodes);
+        }
+        // Get the mapping support points (physical grid nodes) from high_order_grid.
+        // Store it in such a way we can use sum-factorization on it with the mapping basis functions.
+        const std::vector<unsigned int > &index_renumbering = dealii::FETools::hierarchic_to_lexicographic_numbering<dim>(grid_degree);
+        for (unsigned int idof = 0; idof< n_metric_dofs; ++idof) {
+            const double val = (dg.high_order_grid->volume_nodes[metric_dof_indices[idof]]);
+            const unsigned int istate = fe_metric.system_to_component_index(idof).first; 
+            const unsigned int ishape = fe_metric.system_to_component_index(idof).second; 
+            const unsigned int igrid_node = index_renumbering[ishape];
+            mapping_support_points[istate][igrid_node] = val; 
+        }
+        // Construct the metric operators.
+        OPERATOR::metric_operators<double, dim, 2*dim> metric_oper(nstate, poly_degree, grid_degree, store_vol_flux_nodes, store_surf_flux_nodes);
+        // Build the metric terms to compute the gradient and volume node positions.
+        // This functions will compute the determinant of the metric Jacobian and metric cofactor matrix. 
+        // If flags store_vol_flux_nodes and store_surf_flux_nodes set as true it will also compute the physical quadrature positions.
+        metric_oper.build_volume_metric_operators(
+            n_quad_pts, n_grid_nodes,
+            mapping_support_points,
+            mapping_basis,
+            dg.all_parameters->use_invariant_curl_form);
 
-            std::fill(soln_at_q.begin(), soln_at_q.end(), 0.0);
-            for (int s=0; s<nstate; ++s) {
-                for (int d=0; d<dim; ++d) {
-                    soln_grad_at_q[s][d] = 0.0;
+        // Fetch the modal soln coefficients
+        // We immediately separate them by state as to be able to use sum-factorization
+        // in the interpolation operator. If we left it by n_dofs_cell, then the matrix-vector
+        // mult would sum the states at the quadrature point.
+        // That is why the basis functions are based off the 1state oneD fe_collection.
+        std::array<std::vector<double>,nstate> soln_coeff;
+        for (unsigned int idof = 0; idof < n_dofs; ++idof) {
+            const unsigned int istate = dg.fe_collection[poly_degree].system_to_component_index(idof).first;
+            const unsigned int ishape = dg.fe_collection[poly_degree].system_to_component_index(idof).second;
+            if(ishape == 0){
+                soln_coeff[istate].resize(n_shape_fns);
+            }
+         
+            soln_coeff[istate][ishape] = dg.solution(dofs_indices[idof]);
+        }
+        // Interpolate each state to the quadrature points using sum-factorization
+        // with the basis functions in each reference direction.
+        std::array<std::vector<double>,nstate> soln_at_q_vect;
+        std::array<dealii::Tensor<1,dim,std::vector<double>>,nstate> soln_grad_at_q_vect;
+        for(int istate=0; istate<nstate; istate++){
+            soln_at_q_vect[istate].resize(n_quad_pts);
+            // Interpolate soln coeff to volume cubature nodes.
+            soln_basis.matrix_vector_mult_1D(soln_coeff[istate], soln_at_q_vect[istate],
+                                             soln_basis.oneD_vol_operator);
+            // We need to first compute the reference gradient of the solution, then transform that to a physical gradient.
+            dealii::Tensor<1,dim,std::vector<double>> ref_gradient_basis_fns_times_soln;
+            for(int idim=0; idim<dim; idim++){
+                ref_gradient_basis_fns_times_soln[idim].resize(n_quad_pts);
+                soln_grad_at_q_vect[istate][idim].resize(n_quad_pts);
+            }
+            // Apply gradient of reference basis functions on the solution at volume cubature nodes.}
+            soln_basis.gradient_matrix_vector_mult_1D(soln_coeff[istate], ref_gradient_basis_fns_times_soln,
+                                                      soln_basis.oneD_vol_operator,
+                                                      soln_basis.oneD_grad_operator);
+            // Transform the reference gradient into a physical gradient operator.
+            for(int idim=0; idim<dim; idim++){
+                for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
+                    for(int jdim=0; jdim<dim; jdim++){
+                        //transform into the physical gradient
+                        soln_grad_at_q_vect[istate][idim][iquad] += metric_oper.metric_cofactor_vol[idim][jdim][iquad]
+                                                                  * ref_gradient_basis_fns_times_soln[jdim][iquad]
+                                                                  / metric_oper.det_Jac_vol[iquad];
+                    }
                 }
             }
-            for (unsigned int idof=0; idof<fe_values_extra.dofs_per_cell; ++idof) {
-                const unsigned int istate = fe_values_extra.get_fe().system_to_component_index(idof).first;
-                soln_at_q[istate] += dg.solution[dofs_indices[idof]] * fe_values_extra.shape_value_component(idof, iquad, istate);
-                soln_grad_at_q[istate] += dg.solution[dofs_indices[idof]] * fe_values_extra.shape_grad_component(idof,iquad,istate);
+        }
+
+        // Loop over quadrature nodes, compute quantities to be integrated, and integrate them.
+        for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
+
+            std::array<double,nstate> soln_at_q;
+            std::array<dealii::Tensor<1,dim,double>,nstate> soln_grad_at_q;
+            // Extract solution and gradient in a way that the physics ca n use them.
+            for(int istate=0; istate<nstate; istate++){
+                soln_at_q[istate] = soln_at_q_vect[istate][iquad];
+                for(int idim=0; idim<dim; idim++){
+                    soln_grad_at_q[istate][idim] = soln_grad_at_q_vect[istate][idim][iquad];
+                }
             }
-            // const dealii::Point<dim> qpoint = (fe_values_extra.quadrature_point(iquad));
 
             std::array<double,NUMBER_OF_INTEGRATED_QUANTITIES> integrand_values;
             std::fill(integrand_values.begin(), integrand_values.end(), 0.0);
@@ -132,7 +226,7 @@ void PeriodicTurbulence<dim, nstate>::compute_and_update_integrated_quantities(D
             integrand_values[IntegratedQuantitiesEnum::deviatoric_strain_rate_tensor_magnitude_sqr] = this->navier_stokes_physics->compute_deviatoric_strain_rate_tensor_magnitude_sqr(soln_at_q,soln_grad_at_q);
 
             for(int i_quantity=0; i_quantity<NUMBER_OF_INTEGRATED_QUANTITIES; ++i_quantity) {
-                integral_values[i_quantity] += integrand_values[i_quantity] * fe_values_extra.JxW(iquad);
+                integral_values[i_quantity] += integrand_values[i_quantity] * quad_weights[iquad] * metric_oper.det_Jac_vol[iquad];
             }
 
             // Update the maximum local wave speed (i.e. convective eigenvalue) if using an adaptive time step

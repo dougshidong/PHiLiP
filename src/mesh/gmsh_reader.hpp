@@ -61,19 +61,36 @@ namespace PHiLiP {
       */
     template <int dim, int spacedim>
     std::shared_ptr< HighOrderGrid<dim, double> >
-    read_gmsh(std::string filename, const bool periodic_x = false, 
-              const bool periodic_y = false, const bool periodic_z = false, 
-              const int x_periodic_1 = 0, const int x_periodic_2 = 0, 
-              const int y_periodic_1 = 0, const int y_periodic_2 = 0, 
-              const int z_periodic_1 = 0, const int z_periodic_2 = 0, 
-              const bool mesh_reader_verbose_output = true,
-              int requested_grid_order = 0,
-              const bool use_mesh_smoothing = true);
+    read_gmsh(std::string filename, const bool periodic_x, 
+              const bool periodic_y, const bool periodic_z, 
+              const int x_periodic_1, const int x_periodic_2, 
+              const int y_periodic_1, const int y_periodic_2, 
+              const int z_periodic_1, const int z_periodic_2, 
+              const bool mesh_reader_verbose_output,
+              int requested_grid_order,
+              const bool use_mesh_smoothing);
 
-    /// Overload
+    /// Reads Gmsh grid (Overload)
     template <int dim, int spacedim>
     std::shared_ptr< HighOrderGrid<dim, double> >
-    read_gmsh(std::string filename, int requested_grid_order = 0, const bool use_mesh_smoothing = true);
+    read_gmsh(std::string filename);
+
+    /// Reads Gmsh grid (Overload)
+    template <int dim, int spacedim>
+    std::shared_ptr< HighOrderGrid<dim, double> >
+    read_gmsh(std::string filename, int requested_grid_order, const bool use_mesh_smoothing);
+
+    /// Reads Gmsh grid (Overload)
+    template <int dim, int spacedim>
+    std::shared_ptr< HighOrderGrid<dim, double> >
+    read_gmsh(std::string filename, const bool periodic_x, 
+              const bool periodic_y, const bool periodic_z, 
+              const int x_periodic_1, const int x_periodic_2, 
+              const int y_periodic_1, const int y_periodic_2, 
+              const int z_periodic_1, const int z_periodic_2, 
+              const bool mesh_reader_verbose_output);
+
+    
 } // namespace PHiLiP
 #endif
 

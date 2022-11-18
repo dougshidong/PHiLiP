@@ -29,6 +29,7 @@ PeriodicTurbulence<dim, nstate>::PeriodicTurbulence(const PHiLiP::Parameters::Al
         , output_velocity_field_at_fixed_times(this->all_param.flow_solver_param.output_velocity_field_at_fixed_times)
         , output_velocity_field_at_equidistant_nodes(this->all_param.flow_solver_param.output_velocity_field_at_equidistant_nodes)
         , output_vorticity_magnitude_field_in_addition_to_velocity(this->all_param.flow_solver_param.output_vorticity_magnitude_field_in_addition_to_velocity)
+        , output_flow_field_files_directory_name(this->all_param.flow_solver_param.output_flow_field_files_directory_name)
 {
     // Get the flow case type
     using FlowCaseEnum = Parameters::FlowSolverParam::FlowCaseType;
@@ -154,17 +155,18 @@ void PeriodicTurbulence<dim, nstate>::output_velocity_field(
     const std::string mpi_rank_string = get_padded_mpi_rank_string(this->mpi_rank);
     // -- Assemble filename string
     const std::string filename_without_extension = filename_prefix + std::string("-") + mpi_rank_string;
-    const std::string filename = filename_without_extension + std::string(".dat");
+    const std::string filename = output_flow_field_files_directory_name + std::string("/") + filename_without_extension + std::string(".dat");
     //-------------------------------------------------------------
 
     // (1.5) Write the exact output time for the file to the table 
     //-------------------------------------------------------------
     if(this->mpi_rank==0) {
+        const std::string filename_for_time_table = output_flow_field_files_directory_name + std::string("/") + std::string("exact_output_times_of_velocity_field_files.txt");
         // Add values to data table
         this->add_value_to_data_table(output_file_index,"output_file_index",this->exact_output_times_of_velocity_field_files_table);
         this->add_value_to_data_table(current_time,"time",this->exact_output_times_of_velocity_field_files_table);
         // Write to file
-        std::ofstream data_table_file("exact_output_times_of_velocity_field_files.txt");
+        std::ofstream data_table_file(filename_for_time_table);
         this->exact_output_times_of_velocity_field_files_table->write_text(data_table_file);
     }
     //-------------------------------------------------------------

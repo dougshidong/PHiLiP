@@ -116,6 +116,7 @@ public:
     int number_of_times_to_output_velocity_field; ///< Number of times to output the velocity field
     bool output_velocity_field_at_equidistant_nodes; ///< Flag for outputting velocity field at equidistant nodes
     bool output_vorticity_magnitude_field_in_addition_to_velocity; ///< Flag for outputting vorticity magnitude field in addition to velocity field
+    std::string output_flow_field_files_directory_name; ///< Name of directory for writing flow field files
 };
 
 } // Parameters namespace

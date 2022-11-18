@@ -28,6 +28,7 @@ Parameters::AllParameters HRefinementStudyIsentropicVortex<dim,nstate>::reinit_p
      PHiLiP::Parameters::AllParameters parameters = *(this->all_parameters);
      
      parameters.flow_solver_param.number_of_grid_elements_per_dimension *= pow(2, refinement);
+     parameters.flow_solver_param.unsteady_data_table_filename += std::to_string(parameters.flow_solver_param.number_of_grid_elements_per_dimension);
      return parameters;
 }
 

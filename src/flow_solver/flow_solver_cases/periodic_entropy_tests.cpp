@@ -1,4 +1,5 @@
 #include "periodic_entropy_tests.h"
+#include "physics/physics_factory.h"
 
 namespace PHiLiP {
 
@@ -13,6 +14,8 @@ PeriodicEntropyTests<dim, nstate>::PeriodicEntropyTests(const PHiLiP::Parameters
         : PeriodicCubeFlow<dim, nstate>(parameters_input)
         , unsteady_data_table_filename_with_extension(this->all_param.flow_solver_param.unsteady_data_table_filename+".txt")
 {
+    std::shared_ptr < Physics::Euler<dim, nstate, double > > euler_physics = std::dynamic_pointer_cast<Physics::Euler<dim,dim+2,double>>(PHiLiP::Physics::PhysicsFactory<dim,nstate,double>::create_Physics(&this->all_param));
+    std::cout << euler_physics->compute_sound(3.0,2.0);
 }
 
 template <int dim, int nstate>
@@ -31,6 +34,111 @@ double PeriodicEntropyTests<dim, nstate>::compute_entropy(
         ) const
 {
     const double poly_degree = this->all_param.flow_solver_param.poly_degree;
+
+    const unsigned int n_dofs_cell = dg->fe_collection[poly_degree].dofs_per_cell;
+    const unsigned int n_quad_pts = dg->volume_quadrature_collection[poly_degree].size();
+    const unsigned int n_shape_fns = n_dofs_cell / nstate;
+
+    OPERATOR::vol_projection_operator<dim,2*dim> vol_projection(1, poly_degree, dg->max_grid_degree);
+    vol_projection.build_1D_volume_operator(dg->oneD_fe_collection_1state[poly_degree], dg->oneD_quadrature_collection[poly_degree]);
+
+    // Construct the basis functions and mapping shape functions.
+    OPERATOR::basis_functions<dim,2*dim> soln_basis(1, poly_degree, dg->max_grid_degree); 
+    soln_basis.build_1D_volume_operator(dg->oneD_fe_collection_1state[poly_degree], dg->oneD_quadrature_collection[poly_degree]);
+
+    OPERATOR::mapping_shape_functions<dim,2*dim> mapping_basis(1, poly_degree, dg->max_grid_degree);
+    mapping_basis.build_1D_shape_functions_at_grid_nodes(dg->high_order_grid->oneD_fe_system, dg->high_order_grid->oneD_grid_nodes);
+    mapping_basis.build_1D_shape_functions_at_flux_nodes(dg->high_order_grid->oneD_fe_system, dg->oneD_quadrature_collection[poly_degree], dg->oneD_face_quadrature);
+
+    std::vector<dealii::types::global_dof_index> dofs_indices (n_dofs_cell);
+    
+    double integrand_numerical_entropy_function=0;
+    double integral_numerical_entropy_function=0;
+    const std::vector<double> &quad_weights = dg->volume_quadrature_collection[poly_degree].get_weights();
+    std::shared_ptr < Physics::Euler<dim, nstate, double > > euler_physics = std::dynamic_pointer_cast<Physics::Euler<dim,dim+2,double>>(PHiLiP::Physics::PhysicsFactory<dim,nstate,double>::create_Physics(dg->all_parameters));
+
+    auto metric_cell = dg->high_order_grid->dof_handler_grid.begin_active();
+    // Changed for loop to update metric_cell.
+    for (auto cell = dg->dof_handler.begin_active(); cell!= dg->dof_handler.end(); ++cell, ++metric_cell) {
+        if (!cell->is_locally_owned()) continue;
+        cell->get_dof_indices (dofs_indices);
+        
+        // We first need to extract the mapping support points (grid nodes) from high_order_grid.
+        const dealii::FESystem<dim> &fe_metric = dg->high_order_grid->fe_system;
+        const unsigned int n_metric_dofs = fe_metric.dofs_per_cell;
+        const unsigned int n_grid_nodes  = n_metric_dofs / dim;
+        std::vector<dealii::types::global_dof_index> metric_dof_indices(n_metric_dofs);
+        metric_cell->get_dof_indices (metric_dof_indices);
+        std::array<std::vector<double>,dim> mapping_support_points;
+        for(int idim=0; idim<dim; idim++){
+            mapping_support_points[idim].resize(n_grid_nodes);
+        }
+        // Get the mapping support points (physical grid nodes) from high_order_grid.
+        // Store it in such a way we can use sum-factorization on it with the mapping basis functions.
+        const std::vector<unsigned int > &index_renumbering = dealii::FETools::hierarchic_to_lexicographic_numbering<dim>(dg->max_grid_degree);
+        for (unsigned int idof = 0; idof< n_metric_dofs; ++idof) {
+            const double val = (dg->high_order_grid->volume_nodes[metric_dof_indices[idof]]);
+            const unsigned int istate = fe_metric.system_to_component_index(idof).first; 
+            const unsigned int ishape = fe_metric.system_to_component_index(idof).second; 
+            const unsigned int igrid_node = index_renumbering[ishape];
+            mapping_support_points[istate][igrid_node] = val; 
+        }
+        // Construct the metric operators.
+        OPERATOR::metric_operators<double, dim, 2*dim> metric_oper(nstate, poly_degree, dg->max_grid_degree, false, false);
+        // Build the metric terms to compute the gradient and volume node positions.
+        // This functions will compute the determinant of the metric Jacobian and metric cofactor matrix. 
+        // If flags store_vol_flux_nodes and store_surf_flux_nodes set as true it will also compute the physical quadrature positions.
+        metric_oper.build_volume_metric_operators(
+            n_quad_pts, n_grid_nodes,
+            mapping_support_points,
+            mapping_basis,
+            dg->all_parameters->use_invariant_curl_form);
+
+        // Fetch the modal soln coefficients
+        // We immediately separate them by state as to be able to use sum-factorization
+        // in the interpolation operator. If we left it by n_dofs_cell, then the matrix-vector
+        // mult would sum the states at the quadrature point.
+        // That is why the basis functions are based off the 1state oneD fe_collection.
+        std::array<std::vector<double>,nstate> soln_coeff;
+        for (unsigned int idof = 0; idof < n_dofs_cell; ++idof) {
+            const unsigned int istate = dg->fe_collection[poly_degree].system_to_component_index(idof).first;
+            const unsigned int ishape = dg->fe_collection[poly_degree].system_to_component_index(idof).second;
+            if(ishape == 0){
+                soln_coeff[istate].resize(n_shape_fns);
+            }
+            soln_coeff[istate][ishape] = dg->solution(dofs_indices[idof]);
+        }
+        // Interpolate each state to the quadrature points using sum-factorization
+        // with the basis functions in each reference direction.
+        std::array<std::vector<double>,nstate> soln_at_q;
+        for(int istate=0; istate<nstate; istate++){
+            soln_at_q[istate].resize(n_quad_pts);
+            // Interpolate soln coeff to volume cubature nodes.
+            soln_basis.matrix_vector_mult_1D(soln_coeff[istate], soln_at_q[istate],
+                                             soln_basis.oneD_vol_operator);
+        }
+
+        // Loop over quadrature nodes, compute quantities to be integrated, and integrate them.
+        for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
+
+            std::array<double,nstate> soln_state;
+            // Extract solution and gradient in a way that the physics ca n use them.
+            for(int istate=0; istate<nstate; istate++){
+                soln_state[istate] = soln_at_q[istate][iquad];
+            }
+            const double density = soln_state[0];                                                                                                                                                              
+            const double pressure = euler_physics->compute_pressure(soln_state);
+            const double entropy = log(pressure) - 1.4* log(density);
+            const double quadrature_entropy = -density*entropy/0.4;
+            //integrand_numerical_entropy_function = this->euler_physics->compute_numerical_entropy_function(soln_state); //SOMEHOW NOT REACHING PHYSICS
+            integrand_numerical_entropy_function = quadrature_entropy;
+            integral_numerical_entropy_function += integrand_numerical_entropy_function * quad_weights[iquad] * metric_oper.det_Jac_vol[iquad];
+        }
+    }
+    // update integrated quantities and return
+    return dealii::Utilities::MPI::sum(integral_numerical_entropy_function, this->mpi_communicator);
+}
+    /*
     dealii::LinearAlgebra::distributed::Vector<double> mass_matrix_times_solution(dg->right_hand_side);
     if(dg->all_parameters->use_inverse_mass_on_the_fly)
         dg->apply_global_mass_matrix(dg->solution,mass_matrix_times_solution);
@@ -121,7 +229,7 @@ double PeriodicEntropyTests<dim, nstate>::compute_entropy(
     //double entropy_mpi = (dealii::Utilities::MPI::sum(entropy, this->mpi_communicator));
     return entropy;
 }
-
+*/
 template <int dim, int nstate>
 void PeriodicEntropyTests<dim, nstate>::compute_unsteady_data_and_write_to_table(
        const unsigned int current_iteration,

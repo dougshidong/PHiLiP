@@ -220,6 +220,8 @@ public:
     /// Evaluate pressure from conservative variables
     real compute_specific_enthalpy ( const std::array<real,nstate> &conservative_soln, const real pressure) const;
 
+    real compute_numerical_entropy_function(const std::array<real,nstate> &conservative_soln) const;
+
     /// Evaluate speed of sound from conservative variables
     real compute_sound ( const std::array<real,nstate> &conservative_soln ) const;
     /// Evaluate speed of sound from density and pressure

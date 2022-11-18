@@ -2,6 +2,7 @@
 #define __PERIODIC_ENTROPY_TESTS_H__
 
 #include "periodic_cube_flow.h"
+#include "physics/euler.h"
 
 namespace PHiLiP {
 namespace FlowSolver {
@@ -43,6 +44,9 @@ protected:
     
     /// Last time (for calculating relaxation factor)
     double previous_time=0;
+
+    // euler physics
+    std::shared_ptr < Physics::Euler<dim, nstate, double > > euler_physics;
 
 };
 

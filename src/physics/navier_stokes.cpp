@@ -20,6 +20,8 @@ NavierStokes<dim, nstate, real>::NavierStokes(
     const double                                              side_slip_angle,
     const double                                              prandtl_number,
     const double                                              reynolds_number_inf,
+    const bool                                                use_constant_viscosity,
+    const double                                              constant_viscosity,
     const double                                              temperature_inf,
     const double                                              isothermal_wall_temperature,
     const thermal_boundary_condition_enum                     thermal_boundary_condition_type,
@@ -33,7 +35,8 @@ NavierStokes<dim, nstate, real>::NavierStokes(
                              manufactured_solution_function,
                              two_point_num_flux_type,
                              true) //has_nonzero_diffusion = true
-    , viscosity_coefficient_inf(1.0) // Nondimensional - Free stream values
+    , use_constant_viscosity(use_constant_viscosity)
+    , constant_viscosity(constant_viscosity) // Nondimensional - Free stream values
     , prandtl_number(prandtl_number)
     , reynolds_number_inf(reynolds_number_inf)
     , isothermal_wall_temperature(isothermal_wall_temperature) // Nondimensional - Free stream values
@@ -115,6 +118,22 @@ template <int dim, int nstate, typename real>
 template<typename real2>
 inline real2 NavierStokes<dim,nstate,real>
 ::compute_viscosity_coefficient (const std::array<real2,nstate> &primitive_soln) const
+{   
+    // Use either Sutherland's law or constant viscosity
+    real2 viscosity_coefficient;
+    if(use_constant_viscosity){
+        viscosity_coefficient = 1.0*constant_viscosity;
+    } else {
+        viscosity_coefficient = compute_viscosity_coefficient_sutherlands_law<real2>(primitive_soln);
+    }
+
+    return viscosity_coefficient;
+}
+
+template <int dim, int nstate, typename real>
+template<typename real2>
+inline real2 NavierStokes<dim,nstate,real>
+::compute_viscosity_coefficient_sutherlands_law (const std::array<real2,nstate> &primitive_soln) const
 {
     /* Nondimensionalized viscosity coefficient, \mu^{*}
      * Reference: Masatsuka 2018 "I do like CFD", p.148, eq.(4.14.16)

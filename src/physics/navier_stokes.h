@@ -33,14 +33,18 @@ public:
         const double                                              side_slip_angle,
         const double                                              prandtl_number,
         const double                                              reynolds_number_inf,
+        const bool                                                use_constant_viscosity,
+        const double                                              constant_viscosity,
         const double                                              temperature_inf = 273.15,
         const double                                              isothermal_wall_temperature = 1.0,
         const thermal_boundary_condition_enum                     thermal_boundary_condition_type = thermal_boundary_condition_enum::adiabatic,
         std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function = nullptr,
         const two_point_num_flux_enum                             two_point_num_flux_type = two_point_num_flux_enum::KG);
 
-    /// Nondimensionalized viscosity coefficient at infinity.
-    const double viscosity_coefficient_inf;
+    /// Flag to use constant viscosity instead of Sutherland's law of viscosity
+    const bool use_constant_viscosity;
+    /// Nondimensionalized constant viscosity
+    const double constant_viscosity;
     /// Prandtl number
     const double prandtl_number;
     /// Farfield (free stream) Reynolds number
@@ -79,6 +83,14 @@ public:
         const std::array<dealii::Tensor<1,dim,real2>,nstate> &primitive_soln_gradient) const;
 
     /** Nondimensionalized viscosity coefficient, mu*
+     *  Based on the use_constant_viscosity flag, it returns a value based on either:
+     *  (1) Sutherland's viscosity law, or
+     *  (2) Constant nondimensionalized viscosity value
+     */
+    template<typename real2>
+    real2 compute_viscosity_coefficient (const std::array<real2,nstate> &primitive_soln) const;
+
+    /** Nondimensionalized viscosity coefficient, mu*
      *  Reference: Masatsuka 2018 "I do like CFD", p.148, eq.(4.14.16)
      * 
      *  Based on Sutherland's law for viscosity
@@ -86,7 +98,7 @@ public:
      * * Values: https://www.cfd-online.com/Wiki/Sutherland%27s_law
      */
     template<typename real2>
-    real2 compute_viscosity_coefficient (const std::array<real2,nstate> &primitive_soln) const;
+    real2 compute_viscosity_coefficient_sutherlands_law (const std::array<real2,nstate> &primitive_soln) const;
 
     /** Scaled nondimensionalized viscosity coefficient, hat{mu*}, given nondimensionalized viscosity coefficient
      *  Reference: Masatsuka 2018 "I do like CFD", p.148, eq.(4.14.14)

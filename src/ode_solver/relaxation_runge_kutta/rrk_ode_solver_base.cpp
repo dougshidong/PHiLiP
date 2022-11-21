@@ -14,6 +14,8 @@ RRKODESolverBase<dim,real,n_rk_stages,MeshType>::RRKODESolverBase(std::shared_pt
 template <int dim, typename real, int n_rk_stages, typename MeshType>
 void RRKODESolverBase<dim,real,n_rk_stages,MeshType>::modify_time_step(real &dt)
 {
+    this->dg->solution = this->solution_update;
+    this->dg->assemble_residual();
     relaxation_parameter = compute_relaxation_parameter(dt);
     if (this->all_parameters->ode_solver_param.ode_output == Parameters::OutputEnum::verbose) 
         this->pcout << "time = " << this->current_time << " relaxation parameter = " << relaxation_parameter << std::endl;

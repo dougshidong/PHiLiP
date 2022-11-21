@@ -162,8 +162,8 @@ inline std::array<real2,nstate> Euler<dim,nstate,real>
 
     //if (density < 0.0) density = density_inf;
     //if (pressure < 0.0) pressure = pressure_inf;
-    if (density < 0.0) density = BIG_NUMBER;
-    if (pressure < 0.0) pressure = BIG_NUMBER;
+    if (density < 0.0) {std::cout << "WARNING: Negative density encountered! Setting density as BIG_NUMBER." << std::endl; density = BIG_NUMBER;}
+    if (pressure < 0.0) {std::cout << "WARNING: Negative pressure encountered! Setting pressure as BIG_NUMBER." << std::endl; pressure = BIG_NUMBER;}
 
     primitive_soln[0] = density;
     for (int d=0; d<dim; ++d) {
@@ -202,7 +202,7 @@ inline std::array<real,nstate> Euler<dim,nstate,real>
 
     real entropy = pressure * pow(density, -gam);
     if (entropy > 0)    entropy = log( entropy );
-    else                entropy = BIG_NUMBER;
+    else                {std::cout << "WARNING: Negative entropy encountered! Setting entropy as BIG_NUMBER." << std::endl; entropy = BIG_NUMBER;}
 
     std::array<real, nstate> entropy_var;
     entropy_var[0] = (gam-entropy)/(gamm1) - 0.5 * density / pressure * vel2;
@@ -300,6 +300,7 @@ inline real Euler<dim,nstate,real>
 ::compute_entropy_measure ( const real density, const real pressure ) const
 {
     if (density < 0.0) {
+        std::cout << "WARNING: Negative density encountered! Returning BIG_NUMBER as entropy measure." << std::endl;
         return BIG_NUMBER;
     } else {
         return pressure*pow(density,-gam);
@@ -367,6 +368,7 @@ inline real2 Euler<dim,nstate,real>
     real2 pressure = gamm1*(tot_energy - 0.5*density*vel2);
     
     if(pressure<0.0) {
+        std::cout << "WARNING: Negative pressure encountered! Setting pressure to BIG_NUMBER." << std::endl;
         //pressure = pressure_inf;
         pressure = BIG_NUMBER;
     }
@@ -381,6 +383,7 @@ inline real Euler<dim,nstate,real>
 {
     real density = conservative_soln[0];
     if(density<0.0) {
+        std::cout << "WARNING: Negative density encountered! Setting density to BIG_NUMBER." << std::endl;
         //density = density_inf;
         density = BIG_NUMBER;
     }

@@ -71,6 +71,28 @@ void EulerExplicit<dim,real,MeshType> :: set_c()
 
 //##################################################################
 template <int dim, typename real, typename MeshType>
+void HeunExplicit<dim,real,MeshType> :: set_a()
+{
+    const double butcher_tableau_a_values[4] = {0,0,1.0,0};
+    this->butcher_tableau_a.fill(butcher_tableau_a_values);
+}
+
+template <int dim, typename real, typename MeshType>
+void HeunExplicit<dim,real,MeshType> :: set_b()
+{
+    const double butcher_tableau_b_values[2] = {0.5, 0.5};
+    this->butcher_tableau_b.fill(butcher_tableau_b_values);
+}
+
+template <int dim, typename real, typename MeshType>
+void HeunExplicit<dim,real,MeshType> :: set_c()
+{
+    const double butcher_tableau_c_values[2] = {0,1.0};
+    this->butcher_tableau_c.fill(butcher_tableau_c_values);
+}
+
+//##################################################################
+template <int dim, typename real, typename MeshType>
 void EulerImplicit<dim,real,MeshType> :: set_a()
 {
     const double butcher_tableau_a_values[1] = {1.0};
@@ -134,6 +156,12 @@ template class EulerExplicit<PHILIP_DIM, double, dealii::Triangulation<PHILIP_DI
 template class EulerExplicit<PHILIP_DIM, double, dealii::parallel::shared::Triangulation<PHILIP_DIM> >;
 #if PHILIP_DIM != 1
     template class EulerExplicit<PHILIP_DIM, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM> >;
+#endif
+
+template class HeunExplicit<PHILIP_DIM, double, dealii::Triangulation<PHILIP_DIM> >;
+template class HeunExplicit<PHILIP_DIM, double, dealii::parallel::shared::Triangulation<PHILIP_DIM> >;
+#if PHILIP_DIM != 1
+    template class HeunExplicit<PHILIP_DIM, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM> >;
 #endif
 
 template class EulerImplicit<PHILIP_DIM, double, dealii::Triangulation<PHILIP_DIM> >;

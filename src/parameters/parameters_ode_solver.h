@@ -54,6 +54,7 @@ public:
     enum RKMethodEnum {
         rk4_ex, ///Classical fourth-order RK
         ssprk3_ex, ///Third-order strong-stability preserving
+        heun2_ex, ///Heun's method (second order explicit trapezoidal; SSP)
         euler_ex, ///Forward Euler
         euler_im, ///Implicit Euler
         dirk_2_im ///Second-order diagonally-implicit RK

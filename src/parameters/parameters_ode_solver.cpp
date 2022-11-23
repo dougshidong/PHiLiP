@@ -86,6 +86,7 @@ void ODESolverParam::declare_parameters (dealii::ParameterHandler &prm)
                           dealii::Patterns::Selection(
                           " rk4_ex | "
                           " ssprk3_ex | "
+                          " heun2_ex | "
                           " euler_ex | "
                           " euler_im | "
                           " dirk_2_im"),
@@ -93,6 +94,7 @@ void ODESolverParam::declare_parameters (dealii::ParameterHandler &prm)
                           "Choices are "
                           " <rk4_ex | "
                           " ssprk3_ex | "
+                          " heun2_ex | "
                           " euler_ex | "
                           " euler_im | "
                           " dirk_2_im>.");
@@ -144,6 +146,11 @@ void ODESolverParam::parse_parameters (dealii::ParameterHandler &prm)
             runge_kutta_method = RKMethodEnum::ssprk3_ex;
             n_rk_stages  = 3;
             rk_order = 3;
+        }
+        else if (rk_method_string == "heun2_ex"){
+            runge_kutta_method = RKMethodEnum::heun2_ex;
+            n_rk_stages  = 2;
+            rk_order = 2;
         }
         else if (rk_method_string == "euler_ex"){
             runge_kutta_method = RKMethodEnum::euler_ex;

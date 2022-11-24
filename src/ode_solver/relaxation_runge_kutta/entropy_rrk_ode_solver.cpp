@@ -43,6 +43,7 @@ real EntropyRRKODESolver<dim,real,n_rk_stages,MeshType>::compute_relaxation_para
     const double eta_n = compute_numerical_entropy(u_n); //compute_inner_product(u_n, u_n);
     
     const bool use_secant = true;
+    bool secant_failed = false;
 
     double gamma_kp1; 
     const double conv_tol = 1E-8; //2.4E-10;
@@ -108,10 +109,15 @@ real EntropyRRKODESolver<dim,real,n_rk_stages,MeshType>::compute_relaxation_para
                 residual = 1.0;
             }
         }
-    } else {
+        if (iter_limit == iter_counter) secant_failed = true;
+    }
+    if (!use_secant || secant_failed) {
         //Bisection method
-        double l_limit = this->relaxation_parameter - 0.5;
-        double u_limit = this->relaxation_parameter + 0.5;
+
+        iter_counter = 0;
+
+        double l_limit = this->relaxation_parameter - 0.01;
+        double u_limit = this->relaxation_parameter + 0.01;
         double root_l_limit = compute_root_function(l_limit, u_n, d, eta_n, e);
         double root_u_limit = compute_root_function(u_limit, u_n, d, eta_n, e);
 
@@ -143,6 +149,7 @@ real EntropyRRKODESolver<dim,real,n_rk_stages,MeshType>::compute_relaxation_para
 
     if (iter_limit == iter_counter) {
         this->pcout << "Error: Iteration limit reached and secant method has not converged" << std::endl;
+        secant_failed = true;
         std::abort();
         return -1;
     } else {

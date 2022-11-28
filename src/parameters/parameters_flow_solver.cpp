@@ -325,6 +325,7 @@ void FlowSolverParam::parse_parameters(dealii::ParameterHandler &prm)
           output_velocity_field_at_fixed_times = prm.get_bool("output_velocity_field_at_fixed_times");
           output_velocity_field_times_string = prm.get("output_velocity_field_times_string");
           number_of_times_to_output_velocity_field = prm.get_integer("number_of_times_to_output_velocity_field");
+          output_velocity_field_at_equidistant_nodes = prm.get_bool("output_velocity_field_at_equidistant_nodes");
           output_vorticity_magnitude_field_in_addition_to_velocity = prm.get_bool("output_vorticity_magnitude_field_in_addition_to_velocity");
           output_flow_field_files_directory_name = prm.get("output_flow_field_files_directory_name");
         }

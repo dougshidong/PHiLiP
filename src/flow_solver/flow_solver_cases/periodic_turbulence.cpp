@@ -55,7 +55,6 @@ PeriodicTurbulence<dim, nstate>::PeriodicTurbulence(const PHiLiP::Parameters::Al
     std::fill(this->integrated_quantities.begin(), this->integrated_quantities.end(), NAN);
 
     /// For outputting velocity field
-    this->index_of_current_desired_time_to_output_velocity_field = 0;
     if(output_velocity_field_at_fixed_times && (number_of_times_to_output_velocity_field > 0)) {
         exact_output_times_of_velocity_field_files_table = std::make_shared<dealii::TableHandler>();//(mpi_communicator) ?;
         this->output_velocity_field_times.reinit(number_of_times_to_output_velocity_field);
@@ -75,6 +74,17 @@ PeriodicTurbulence<dim, nstate>::PeriodicTurbulence(const PHiLiP::Parameters::Al
         flow_field_quantity_filename_prefix = "velocity";
         if(output_vorticity_magnitude_field_in_addition_to_velocity) {
             flow_field_quantity_filename_prefix += std::string("_vorticity");
+        }
+    }
+
+    this->index_of_current_desired_time_to_output_velocity_field = 0;
+    if(this->all_param.flow_solver_param.restart_computation_from_file) {
+        // If restarting, get the index of the current desired time to output velocity field based on the initial time
+        const double initial_simulation_time = this->all_param.ode_solver_param.initial_time;
+        for(unsigned int i=1; i<number_of_times_to_output_velocity_field; ++i) {
+            if((output_velocity_field_times[i-1] < initial_simulation_time) && (initial_simulation_time < output_velocity_field_times[i])) {
+                this->index_of_current_desired_time_to_output_velocity_field = i;
+            }
         }
     }
 }

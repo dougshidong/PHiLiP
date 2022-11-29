@@ -30,7 +30,7 @@ PeriodicTurbulence<dim, nstate>::PeriodicTurbulence(const PHiLiP::Parameters::Al
         , output_velocity_field_at_equidistant_nodes(this->all_param.flow_solver_param.output_velocity_field_at_equidistant_nodes)
         , output_vorticity_magnitude_field_in_addition_to_velocity(this->all_param.flow_solver_param.output_vorticity_magnitude_field_in_addition_to_velocity)
         , output_flow_field_files_directory_name(this->all_param.flow_solver_param.output_flow_field_files_directory_name)
-        , output_solution_files_at_velocity_field_output_times(this->all_param.output_solution_files_at_velocity_field_output_times)
+        , output_solution_files_at_velocity_field_output_times(this->all_param.flow_solver_param.output_solution_files_at_velocity_field_output_times)
 {
     // Get the flow case type
     using FlowCaseEnum = Parameters::FlowSolverParam::FlowCaseType;
@@ -65,7 +65,7 @@ PeriodicTurbulence<dim, nstate>::PeriodicTurbulence(const PHiLiP::Parameters::Al
         std::string line = output_velocity_field_times_string;
         std::string::size_type sz1;
         output_velocity_field_times[0] = std::stod(line,&sz1);
-        for(int i=1; i<number_of_times_to_output_velocity_field; ++i) {
+        for(unsigned int i=1; i<number_of_times_to_output_velocity_field; ++i) {
             line = line.substr(sz1);
             sz1 = 0;
             output_velocity_field_times[i] = std::stod(line,&sz1);
@@ -140,7 +140,7 @@ std::string get_padded_mpi_rank_string(const int mpi_rank_input) {
 template<int dim, int nstate>
 void PeriodicTurbulence<dim, nstate>::output_velocity_field(
     std::shared_ptr<DGBase<dim,double>> dg,
-    const int output_file_index,
+    const unsigned int output_file_index,
     const double current_time) const
 {
     this->pcout << "     ... Writting velocity field ... " << std::flush;
@@ -580,7 +580,7 @@ void PeriodicTurbulence<dim, nstate>::compute_unsteady_data_and_write_to_table(
             this->output_velocity_field(dg, this->index_of_current_desired_time_to_output_velocity_field, current_time);
             
             // Output solution files
-            if(output_solution_files_at_velocity_field_output_times) dg->output_results_vtk(this->index_of_current_desired_time_to_output_velocity_field);
+            if(output_solution_files_at_velocity_field_output_times) dg->output_results_vtk(this->index_of_current_desired_time_to_output_velocity_field, current_time);
             
             // Update index s.t. it never goes out of bounds
             if(this->index_of_current_desired_time_to_output_velocity_field 

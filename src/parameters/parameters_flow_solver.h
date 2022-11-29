@@ -56,7 +56,7 @@ public:
     bool restart_computation_from_file; ///< Restart computation from restart file
     bool output_restart_files; ///< Output the restart files
     std::string restart_files_directory_name; ///< Name of directory for writing and reading restart files
-    int restart_file_index; ///< Index of desired restart file for restarting the computation from
+    unsigned int restart_file_index; ///< Index of desired restart file for restarting the computation from
     int output_restart_files_every_x_steps; ///< Outputs the restart files every x steps
     double output_restart_files_every_dt_time_intervals; ///< Outputs the restart files at time intervals of dt
 
@@ -113,7 +113,7 @@ public:
 
     bool output_velocity_field_at_fixed_times; ///< Flag for outputting velocity field at fixed times
     std::string output_velocity_field_times_string; ///< String of velocity field output times
-    int number_of_times_to_output_velocity_field; ///< Number of times to output the velocity field
+    unsigned int number_of_times_to_output_velocity_field; ///< Number of times to output the velocity field
     bool output_velocity_field_at_equidistant_nodes; ///< Flag for outputting velocity field at equidistant nodes
     bool output_vorticity_magnitude_field_in_addition_to_velocity; ///< Flag for outputting vorticity magnitude field in addition to velocity field
     std::string output_flow_field_files_directory_name; ///< Name of directory for writing flow field files

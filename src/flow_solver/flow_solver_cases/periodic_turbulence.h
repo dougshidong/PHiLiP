@@ -75,7 +75,7 @@ public:
     /// Output the velocity field to file
     void output_velocity_field(
             std::shared_ptr<DGBase<dim,double>> dg,
-            const int output_file_index,
+            const unsigned int output_file_index,
             const double current_time) const;
 
     /// Calculate numerical entropy by matrix-vector product
@@ -86,7 +86,7 @@ protected:
     const std::string unsteady_data_table_filename_with_extension;
 
     /// Number of times to output the velocity field
-    const int number_of_times_to_output_velocity_field;
+    const unsigned int number_of_times_to_output_velocity_field;
 
     /// Flag for outputting velocity field at fixed times
     const bool output_velocity_field_at_fixed_times;
@@ -151,7 +151,7 @@ protected:
     dealii::Table<1,double> output_velocity_field_times;
 
     /// Index of current desired time to output velocity field
-    int index_of_current_desired_time_to_output_velocity_field;
+    unsigned int index_of_current_desired_time_to_output_velocity_field;
 
     /// Flow field quantity filename prefix
     std::string flow_field_quantity_filename_prefix;

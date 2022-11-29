@@ -85,7 +85,7 @@ public:
         const std::shared_ptr <dealii::TableHandler> data_table) const;
 
     /// Returns the restart filename without extension given a restart index (adds padding appropriately)
-    std::string get_restart_filename_without_extension(const int restart_index_input) const;
+    std::string get_restart_filename_without_extension(const unsigned int restart_index_input) const;
 
 protected:
     const MPI_Comm mpi_communicator; ///< MPI communicator.
@@ -118,7 +118,7 @@ private:
     std::vector<std::string> get_data_table_column_names(const std::string string_input) const;
 
     /// Writes a parameter file (.prm) for restarting the computation with
-    void write_restart_parameter_file(const int restart_index_input,
+    void write_restart_parameter_file(const unsigned int restart_index_input,
                                       const double constant_time_step_input) const;
 
     /// Converts a double to a string with scientific format and with full precision
@@ -127,7 +127,7 @@ private:
 #if PHILIP_DIM>1
     /// Outputs all the necessary restart files
     void output_restart_files(
-        const int current_restart_index,
+        const unsigned int current_restart_index,
         const double constant_time_step,
         const std::shared_ptr <dealii::TableHandler> unsteady_data_table) const;
 #endif

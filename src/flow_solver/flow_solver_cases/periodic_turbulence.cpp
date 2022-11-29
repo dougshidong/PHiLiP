@@ -30,6 +30,7 @@ PeriodicTurbulence<dim, nstate>::PeriodicTurbulence(const PHiLiP::Parameters::Al
         , output_velocity_field_at_equidistant_nodes(this->all_param.flow_solver_param.output_velocity_field_at_equidistant_nodes)
         , output_vorticity_magnitude_field_in_addition_to_velocity(this->all_param.flow_solver_param.output_vorticity_magnitude_field_in_addition_to_velocity)
         , output_flow_field_files_directory_name(this->all_param.flow_solver_param.output_flow_field_files_directory_name)
+        , output_solution_files_at_velocity_field_output_times(this->all_param.output_solution_files_at_velocity_field_output_times)
 {
     // Get the flow case type
     using FlowCaseEnum = Parameters::FlowSolverParam::FlowCaseType;
@@ -577,6 +578,9 @@ void PeriodicTurbulence<dim, nstate>::compute_unsteady_data_and_write_to_table(
         if((current_time<=desired_time) && (next_time>desired_time)) {
             // Output velocity field for current index
             this->output_velocity_field(dg, this->index_of_current_desired_time_to_output_velocity_field, current_time);
+            
+            // Output solution files
+            if(output_solution_files_at_velocity_field_output_times) dg->output_results_vtk(this->index_of_current_desired_time_to_output_velocity_field);
             
             // Update index s.t. it never goes out of bounds
             if(this->index_of_current_desired_time_to_output_velocity_field 

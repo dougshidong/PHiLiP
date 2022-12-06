@@ -34,10 +34,10 @@ add_test(
 # ----------------------------------------
 # - details: [if needed]
 # ----------------------------------------
-configure_file(2D_inviscid_isentropic_vortex_time_refinement.prm 2D_inviscid_isentropic_vortex_time_refinement.prm COPYONLY)
+configure_file(2D_inviscid_isentropic_vortex_h_refinement.prm 2D_inviscid_isentropic_vortex_h_refinement.prm COPYONLY)
 add_test(
-  NAME MPI_2D_INVISCID_ISENTROPIC_VORTEX_TIME_REFINEMENT
-  COMMAND mpirun -np ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_2D -i ${CMAKE_CURRENT_BINARY_DIR}/2D_inviscid_isentropic_vortex_time_refinement.prm
+    NAME MPI_2D_H_REFINEMENT_INVISCID_ISENTROPIC_VORTEX
+  COMMAND mpirun -np ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_2D -i ${CMAKE_CURRENT_BINARY_DIR}/2D_inviscid_isentropic_vortex_h_refinement.prm
   WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )
 # ----------------------------------------

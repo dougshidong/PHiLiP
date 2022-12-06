@@ -64,7 +64,7 @@ inline real ExactSolutionFunction_IsentropicVortex<dim,nstate,real>
 ::value(const dealii::Point<dim,real> &point, const unsigned int istate) const
 {
     // Setting constants
-    const double L = 5.0; // half-width of domain
+    const double L = 10.0; // half-width of domain
     const double pi = dealii::numbers::PI;
     const double gam = 1.4;
     const double M_infty = sqrt(2/gam);

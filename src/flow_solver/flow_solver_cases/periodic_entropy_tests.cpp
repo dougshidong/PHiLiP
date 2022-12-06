@@ -15,7 +15,6 @@ PeriodicEntropyTests<dim, nstate>::PeriodicEntropyTests(const PHiLiP::Parameters
         , unsteady_data_table_filename_with_extension(this->all_param.flow_solver_param.unsteady_data_table_filename+".txt")
 {
     std::shared_ptr < Physics::Euler<dim, nstate, double > > euler_physics = std::dynamic_pointer_cast<Physics::Euler<dim,dim+2,double>>(PHiLiP::Physics::PhysicsFactory<dim,nstate,double>::create_Physics(&this->all_param));
-    std::cout << euler_physics->compute_sound(3.0,2.0);
 }
 
 template <int dim, int nstate>
@@ -24,7 +23,8 @@ double PeriodicEntropyTests<dim,nstate>::get_constant_time_step(std::shared_ptr<
     // For Euler simulations, use CFL
     const unsigned int number_of_degrees_of_freedom_per_state = dg->dof_handler.n_dofs()/nstate;
     const double approximate_grid_spacing = (this->domain_right-this->domain_left)/pow(number_of_degrees_of_freedom_per_state,(1.0/dim));
-    const double constant_time_step = this->all_param.flow_solver_param.courant_friedrich_lewy_number * approximate_grid_spacing;
+    // U_infinity is initialized as M_infinity
+    const double constant_time_step = this->all_param.flow_solver_param.courant_friedrich_lewy_number * approximate_grid_spacing / this->all_param.euler_param.mach_inf;
     return constant_time_step;
 }
 

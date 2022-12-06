@@ -46,7 +46,7 @@ real EntropyRRKODESolver<dim,real,n_rk_stages,MeshType>::compute_relaxation_para
     bool secant_failed = false;
 
     double gamma_kp1; 
-    const double conv_tol = 1E-8; //2.4E-10;
+    const double conv_tol = 5E-10; 
     int iter_counter = 0;
     const int iter_limit = 100;
     if (use_secant){

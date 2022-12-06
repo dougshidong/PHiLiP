@@ -25,6 +25,8 @@ Parameters::AllParameters TimeRefinementStudyReference<dim,nstate>::reinit_param
     const double dt = final_time/number_of_timesteps;     
     parameters.ode_solver_param.initial_time_step = dt;
 
+    parameters.flow_solver_param.final_time = final_time;
+
     using ODESolverEnum = Parameters::ODESolverParam::ODESolverEnum;
     parameters.ode_solver_param.ode_solver_type = ODESolverEnum::runge_kutta_solver;
      
@@ -51,6 +53,8 @@ dealii::LinearAlgebra::distributed::Vector<double> TimeRefinementStudyReference<
     const Parameters::AllParameters params_reference = reinit_params_for_reference_solution(number_of_timesteps_for_reference_solution, final_time);
     std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver_reference = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(&params_reference, parameter_handler);
     static_cast<void>(flow_solver_reference->run());
+    
+    pcout << "   Actual final time: " << flow_solver_reference->ode_solver->current_time << std::endl;
 
     return flow_solver_reference->dg->solution;
 }
@@ -133,6 +137,7 @@ int TimeRefinementStudyReference<dim, nstate>::run_test() const
         static_cast<void>(flow_solver->run());
 
         const double final_time_actual = flow_solver->ode_solver->current_time;
+        pcout << "   Actual final time: " << final_time_actual << std::endl;
 
         //check L2 error
         const double L2_error = calculate_L2_error_at_final_time_wrt_reference(

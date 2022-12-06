@@ -615,51 +615,6 @@ std::array<dealii::Tensor<1,dim,real>,nstate> Euler<dim, nstate, real>
 ::convective_numerical_split_flux_ismail_roe(const std::array<real,nstate> &conservative_soln1,
                                              const std::array<real,nstate> &conservative_soln2) const
 {
-/*  
-   //Chandrashekar flux
-    std::array<dealii::Tensor<1,dim,real>,nstate> conv_num_split_flux;
-    const real rho_log = compute_ismail_roe_logarithmic_mean(conservative_soln1[0], conservative_soln2[0]);
-    const real pressure1 = compute_pressure<real>(conservative_soln1);
-    const real pressure2 = compute_pressure<real>(conservative_soln2);
-
-   const real beta1 = conservative_soln1[0]/(2.0*pressure1);
-   const real beta2 = conservative_soln2[0]/(2.0*pressure2);
-
-    const real beta_log = compute_ismail_roe_logarithmic_mean(beta1, beta2);
-    const dealii::Tensor<1,dim,real> vel1 = compute_velocities<real>(conservative_soln1);
-    const dealii::Tensor<1,dim,real> vel2 = compute_velocities<real>(conservative_soln2);
-
-    const real pressure_hat = 0.5*(conservative_soln1[0] + conservative_soln2[0])/(2.0*0.5*(beta1+beta2));
-
-    dealii::Tensor<1,dim,real> vel_avg;
-    real vel_square_avg = 0.0;;
-    for(int idim=0; idim<dim; idim++){
-        vel_avg[idim] = 0.5*(vel1[idim]+vel2[idim]);
-        vel_square_avg += (0.5 *(vel1[idim]+vel2[idim])) * (0.5 *(vel1[idim]+vel2[idim]));
-    }
-
-    real enthalpy_hat = 1.0/(2.0*beta_log*gamm1) + vel_square_avg + pressure_hat/rho_log;
-
-    for(int idim=0; idim<dim; idim++){
-        enthalpy_hat -= 0.5*(0.5*(vel1[idim]*vel1[idim] + vel2[idim]*vel2[idim]));
-    }
-
-    for(int flux_dim=0; flux_dim<dim; flux_dim++){
-        // Density equation
-        conv_num_split_flux[0][flux_dim] = rho_log * vel_avg[flux_dim];
-        // Momentum equation
-        for (int velocity_dim=0; velocity_dim<dim; ++velocity_dim){
-            conv_num_split_flux[1+velocity_dim][flux_dim] = rho_log*vel_avg[flux_dim]*vel_avg[velocity_dim];
-        }
-        conv_num_split_flux[1+flux_dim][flux_dim] += pressure_hat; // Add diagonal of pressure
-
-        // Energy equation
-        conv_num_split_flux[nstate-1][flux_dim] = rho_log * vel_avg[flux_dim] * enthalpy_hat;
-        
-    }
-
-   return conv_num_split_flux; 
-*/
     // Get Ismail Roe parameter vectors
     const std::array<real,nstate> parameter_vector1 = compute_ismail_roe_parameter_vector_from_primitive(
                                                         convert_conservative_to_primitive<real>(conservative_soln1));

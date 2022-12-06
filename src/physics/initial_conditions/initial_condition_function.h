@@ -285,6 +285,8 @@ public:
     /// Setup according to "A Survey of the Isentropic Euler Vortex Problem using High-Order Methods"
     ///     Spiegel et al., 2015
     /// Using "Shu" variant (first row of Table 1)
+    /// Non-dimensional initialization
+    /// Increased domain from L=5 -> L=10 per recommendation of Spiegel et al
     InitialConditionFunction_IsentropicVortex ();
 
     /// Value of initial condition

@@ -54,9 +54,10 @@ void PeriodicCubeFlow<dim,nstate>::display_additional_flow_case_specific_paramet
     this->display_grid_parameters();
 }
 
-template class PeriodicCubeFlow <PHILIP_DIM,PHILIP_DIM+2>;
 #if PHILIP_DIM==1
 template class PeriodicCubeFlow <PHILIP_DIM,PHILIP_DIM>;
+#else
+template class PeriodicCubeFlow <PHILIP_DIM,PHILIP_DIM+2>;
 #endif
 
 } // FlowSolver namespace

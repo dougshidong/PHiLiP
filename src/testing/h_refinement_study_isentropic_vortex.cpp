@@ -238,7 +238,8 @@ int HRefinementStudyIsentropicVortex<dim, nstate>::run_test() const
 
     return testfail;
 }
-
-template class HRefinementStudyIsentropicVortex<PHILIP_DIM,PHILIP_DIM+2>;
+#if PHILIP_DIM!=1
+    template class HRefinementStudyIsentropicVortex<PHILIP_DIM,PHILIP_DIM+2>;
+#endif
 } // Tests namespace
 } // PHiLiP namespace

@@ -219,6 +219,9 @@ public:
     /// Name of directory for writing solution vtk files
     std::string solution_vtk_files_directory_name;
 
+    /// Enable writing of higher-order vtk results
+    bool enable_higher_order_vtk_output;
+
     /// Declare parameters that can be set as inputs and set up the default options
     /** This subroutine should call the sub-parameter classes static declare_parameters()
       * such that each sub-parameter class is responsible to declare their own parameters.

@@ -48,15 +48,15 @@ void ReducedOrderModelParam::parse_parameters (dealii::ParameterHandler &prm)
         path_to_search = prm.get("path_to_search");
 
         std::string parameter_names_string = prm.get("parameter_names");
-        std::unique_ptr<dealii::Patterns::PatternBase> ListPatternNames(new dealii::Patterns::List(dealii::Patterns::Anything(), 0, 10, ",")); //Note, in a future version of dealii, this may change from a unique_ptr to simply the object. Will need to use std::move(ListPattern) in next line.
+        const dealii::Patterns::List ListPatternNames = dealii::Patterns::List(dealii::Patterns::Anything(), 0, 10, ",");
         parameter_names = dealii::Patterns::Tools::Convert<decltype(parameter_names)>::to_value(parameter_names_string, ListPatternNames);
 
         std::string parameter_min_string = prm.get("parameter_min_values");
-        std::unique_ptr<dealii::Patterns::PatternBase> ListPatternMin(new dealii::Patterns::List(dealii::Patterns::Double(), 0, 10, ",")); //Note, in a future version of dealii, this may change from a unique_ptr to simply the object. Will need to use std::move(ListPattern) in next line.
+        const dealii::Patterns::List ListPatternMin = dealii::Patterns::List(dealii::Patterns::Double(), 0, 10, ","); 
         parameter_min_values = dealii::Patterns::Tools::Convert<decltype(parameter_min_values)>::to_value(parameter_min_string, ListPatternMin);
 
         std::string parameter_max_string = prm.get("parameter_max_values");
-        std::unique_ptr<dealii::Patterns::PatternBase> ListPatternMax(new dealii::Patterns::List(dealii::Patterns::Double(), 0, 10, ",")); //Note, in a future version of dealii, this may change from a unique_ptr to simply the object. Will need to use std::move(ListPattern) in next line.
+        const dealii::Patterns::List ListPatternMax = dealii::Patterns::List(dealii::Patterns::Double(), 0, 10, ","); 
         parameter_max_values = dealii::Patterns::Tools::Convert<decltype(parameter_max_values)>::to_value(parameter_max_string, ListPatternMax);
     }
     prm.leave_subsection();

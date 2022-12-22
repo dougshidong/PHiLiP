@@ -67,9 +67,9 @@ template <int dim, typename real, typename MeshType>
 DGBase<dim,real,MeshType>::DGBase(
     const int nstate_input,
     const Parameters::AllParameters *const parameters_input,
-    const unsigned int degree,
-    const unsigned int max_degree_input,
-    const unsigned int grid_degree_input,
+    const dealii::types::fe_index degree,
+    const dealii::types::fe_index max_degree_input,
+    const dealii::types::fe_index grid_degree_input,
     const std::shared_ptr<Triangulation> triangulation_input)
     : DGBase<dim,real,MeshType>(nstate_input, parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input, this->create_collection_tuple(max_degree_input, nstate_input, parameters_input))
 { }
@@ -78,9 +78,9 @@ template <int dim, typename real, typename MeshType>
 DGBase<dim,real,MeshType>::DGBase(
     const int nstate_input,
     const Parameters::AllParameters *const parameters_input,
-    const unsigned int degree,
-    const unsigned int max_degree_input,
-    const unsigned int grid_degree_input,
+    const dealii::types::fe_index degree,
+    const dealii::types::fe_index max_degree_input,
+    const dealii::types::fe_index grid_degree_input,
     const std::shared_ptr<Triangulation> triangulation_input,
     const MassiveCollectionTuple collection_tuple)
     : all_parameters(parameters_input)
@@ -246,9 +246,9 @@ DGBase<dim,real,MeshType>::create_collection_tuple(
 template <int dim, int nstate, typename real, typename MeshType>
 DGBaseState<dim,nstate,real,MeshType>::DGBaseState(
     const Parameters::AllParameters *const parameters_input,
-    const unsigned int degree,
-    const unsigned int max_degree_input,
-    const unsigned int grid_degree_input,
+    const dealii::types::fe_index degree,
+    const dealii::types::fe_index max_degree_input,
+    const dealii::types::fe_index grid_degree_input,
     const std::shared_ptr<Triangulation> triangulation_input)
     : DGBase<dim,real,MeshType>::DGBase(nstate, parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input) // Use DGBase constructor
 {
@@ -475,9 +475,9 @@ void DGBase<dim,real,MeshType>::set_all_cells_fe_degree ( const unsigned int deg
 }
 
 template <int dim, typename real, typename MeshType>
-unsigned int DGBase<dim,real,MeshType>::get_max_fe_degree()
+dealii::types::fe_index DGBase<dim,real,MeshType>::get_max_fe_degree()
 {
-    unsigned int max_fe_degree = 0;
+    dealii::types::fe_index max_fe_degree = 0;
 
     for(auto cell = dof_handler.begin_active(); cell != dof_handler.end(); ++cell)
         if(cell->is_locally_owned() && cell->active_fe_index() > max_fe_degree)
@@ -487,9 +487,9 @@ unsigned int DGBase<dim,real,MeshType>::get_max_fe_degree()
 }
 
 template <int dim, typename real, typename MeshType>
-unsigned int DGBase<dim,real,MeshType>::get_min_fe_degree()
+dealii::types::fe_index DGBase<dim,real,MeshType>::get_min_fe_degree()
 {
-    unsigned int min_fe_degree = max_degree;
+    dealii::types::fe_index min_fe_degree = max_degree;
 
     for(auto cell = dof_handler.begin_active(); cell != dof_handler.end(); ++cell)
         if(cell->is_locally_owned() && cell->active_fe_index() < min_fe_degree)
@@ -786,14 +786,14 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
                     std::pair<unsigned int, int> face_subface_int = std::make_pair(iface, -1);
                     std::pair<unsigned int, int> face_subface_ext = std::make_pair(neighbor_iface, -1);
                     const auto face_data_set_int = dealii::QProjector<dim>::DataSetDescriptor::face (
-                                                                                                  dealii::ReferenceCell::get_hypercube(dim),
+                                                                                                  dealii::ReferenceCells::get_hypercube<dim>(),
                                                                                                   iface,
                                                                                                   current_cell->face_orientation(iface),
                                                                                                   current_cell->face_flip(iface),
                                                                                                   current_cell->face_rotation(iface),
                                                                                                   used_face_quadrature.size());
                     const auto face_data_set_ext = dealii::QProjector<dim>::DataSetDescriptor::face (
-                                                                                                  dealii::ReferenceCell::get_hypercube(dim),
+                                                                                                  dealii::ReferenceCells::get_hypercube<dim>(),
                                                                                                   neighbor_iface,
                                                                                                   neighbor_cell->face_orientation(neighbor_iface),
                                                                                                   neighbor_cell->face_flip(neighbor_iface),
@@ -891,14 +891,14 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
                 std::pair<unsigned int, int> face_subface_ext = std::make_pair(neighbor_iface, (int)neighbor_i_subface);
 
                 const auto face_data_set_int = dealii::QProjector<dim>::DataSetDescriptor::face( 
-                                                                                                 dealii::ReferenceCell::get_hypercube(dim),
+                                                                                                 dealii::ReferenceCells::get_hypercube<dim>(),
                                                                                                  iface,
                                                                                                  current_cell->face_orientation(iface),
                                                                                                  current_cell->face_flip(iface),
                                                                                                  current_cell->face_rotation(iface),
                                                                                                  used_face_quadrature.size());
                 const auto face_data_set_ext = dealii::QProjector<dim>::DataSetDescriptor::subface (
-                                                                                                    dealii::ReferenceCell::get_hypercube(dim),
+                                                                                                    dealii::ReferenceCells::get_hypercube<dim>(),
                                                                                                     neighbor_iface,
                                                                                                     neighbor_i_subface,
                                                                                                     neighbor_cell->face_orientation(neighbor_iface),
@@ -974,14 +974,14 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
                 std::pair<unsigned int, int> face_subface_int = std::make_pair(iface, -1);
                 std::pair<unsigned int, int> face_subface_ext = std::make_pair(neighbor_iface, -1);
                 const auto face_data_set_int = dealii::QProjector<dim>::DataSetDescriptor::face (
-                                                                                              dealii::ReferenceCell::get_hypercube(dim),
+                                                                                              dealii::ReferenceCells::get_hypercube<dim>(),
                                                                                               iface,
                                                                                               current_cell->face_orientation(iface),
                                                                                               current_cell->face_flip(iface),
                                                                                               current_cell->face_rotation(iface),
                                                                                               used_face_quadrature.size());
                 const auto face_data_set_ext = dealii::QProjector<dim>::DataSetDescriptor::face (
-                                                                                              dealii::ReferenceCell::get_hypercube(dim),
+                                                                                              dealii::ReferenceCells::get_hypercube<dim>(),
                                                                                               neighbor_iface,
                                                                                               neighbor_cell->face_orientation(neighbor_iface),
                                                                                               neighbor_cell->face_flip(neighbor_iface),

@@ -92,7 +92,7 @@ public:
     const int nstate;
 
     /// Initial polynomial degree assigned during constructor
-    const unsigned int initial_degree;
+    const dealii::types::fe_index initial_degree;
 
     /// Maximum degree used for p-refi1nement.
     /** This is known through the constructor parameters.
@@ -109,9 +109,9 @@ public:
      */
     DGBase(const int nstate_input,
            const Parameters::AllParameters *const parameters_input,
-           const unsigned int degree,
+           const dealii::types::fe_index degree,
            const dealii::types::fe_index max_degree_input,
-           const unsigned int grid_degree_input,
+           const dealii::types::fe_index grid_degree_input,
            const std::shared_ptr<Triangulation> triangulation_input);
 
 
@@ -137,9 +137,9 @@ public:
      *  The tuple is built from create_collection_tuple(). */
     DGBase( const int nstate_input,
             const Parameters::AllParameters *const parameters_input,
-            const unsigned int degree,
+            const dealii::types::fe_index degree,
             const dealii::types::fe_index max_degree_input,
-            const unsigned int grid_degree_input,
+            const dealii::types::fe_index grid_degree_input,
             const std::shared_ptr<Triangulation> triangulation_input,
             const MassiveCollectionTuple collection_tuple);
 
@@ -157,10 +157,10 @@ public:
     void set_all_cells_fe_degree ( const unsigned int degree );
 
     /// Gets the maximum value of currently active FE degree
-    unsigned int get_max_fe_degree();
+    dealii::types::fe_index get_max_fe_degree();
 
     /// Gets the minimum value of currently active FE degree
-    unsigned int get_min_fe_degree();
+    dealii::types::fe_index get_min_fe_degree();
     
     /// Returns the coordinates of the most refined cell.
     dealii::Point<dim> coordinates_of_highest_refined_cell(bool check_for_p_refined_cell = false);
@@ -665,7 +665,7 @@ private:
      *  need to be looped with the various p-orders. This function allows us to do this in a
      *  single function instead of having like 6 different functions to initialize each of them.
      */
-    MassiveCollectionTuple create_collection_tuple(const dealii::types::fe_index max_degree, const int nstate, const Parameters::AllParameters *const parameters_input) const;
+    MassiveCollectionTuple create_collection_tuple(const unsigned int max_degree, const int nstate, const Parameters::AllParameters *const parameters_input) const;
 
 public:
     /// Flag to freeze artificial dissipation.
@@ -700,9 +700,9 @@ public:
     /// Constructor.
     DGBaseState(
         const Parameters::AllParameters *const parameters_input,
-        const unsigned int degree,
+        const dealii::types::fe_index degree,
         const dealii::types::fe_index max_degree_input,
-        const unsigned int grid_degree_input,
+        const dealii::types::fe_index grid_degree_input,
         const std::shared_ptr<Triangulation> triangulation_input);
 
     /// Contains the physics of the PDE with real type

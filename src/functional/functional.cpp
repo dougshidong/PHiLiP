@@ -17,6 +17,7 @@
 #include <deal.II/fe/fe_values.h>
 
 #include <deal.II/dofs/dof_tools.h>
+#include <deal.II/grid/reference_cell.h>
 
 #include "physics/physics.h"
 #include "physics/physics_factory.h"
@@ -580,7 +581,7 @@ real2 Functional<dim,nstate,real,MeshType>::evaluate_boundary_cell_functional(
     const unsigned int n_soln_dofs_cell = soln_coeff.size();
     const unsigned int n_metric_dofs_cell = coords_coeff.size();
 
-    const dealii::Quadrature<dim> face_quadrature = dealii::QProjector<dim>::project_to_face( dealii::ReferenceCell::get_hypercube(dim),
+    const dealii::Quadrature<dim> face_quadrature = dealii::QProjector<dim>::project_to_face( dealii::ReferenceCells::get_hypercube<dim>(),
                                                                                               fquadrature,
                                                                                               face_number);
     const dealii::Tensor<1,dim,real> surface_unit_normal = dealii::GeometryInfo<dim>::unit_normal_vector[face_number];

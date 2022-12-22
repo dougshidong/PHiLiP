@@ -35,7 +35,7 @@ void GridRefinement_FixedFraction<dim,nstate,real,MeshType>::refine_grid()
 
     using VectorType       = typename dealii::LinearAlgebra::distributed::Vector<double>;
     using DoFHandlerType   = typename dealii::DoFHandler<dim>;
-    using SolutionTransfer = typename MeshTypeHelper<MeshType>::template SolutionTransfer<dim,VectorType,DoFHandlerType>;
+    using SolutionTransfer = typename MeshTypeHelper<MeshType>::template SolutionTransfer<dim,VectorType>;
 
     SolutionTransfer solution_transfer(this->dg->dof_handler);
     solution_transfer.prepare_for_coarsening_and_refinement(solution_old);
@@ -68,9 +68,9 @@ void GridRefinement_FixedFraction<dim,nstate,real,MeshType>::refine_grid()
 
     // transfering the solution from solution_old
     this->dg->allocate_system();
-    this->dg->solution.zero_out_ghosts();
+    this->dg->solution.zero_out_ghost_values();
 
-    if constexpr (std::is_same_v<typename dealii::SolutionTransfer<dim,VectorType,DoFHandlerType>, 
+    if constexpr (std::is_same_v<typename dealii::SolutionTransfer<dim,VectorType>, 
                                  decltype(solution_transfer)>){
         solution_transfer.interpolate(solution_old, this->dg->solution);
     }else{
@@ -233,7 +233,7 @@ void GridRefinement_FixedFraction<dim,nstate,real,MeshType>::anisotropic_h_jump_
 
             if(face->has_children()){
                 unsigned int neig2 = cell->neighbor_face_no(iface);
-                for(unsigned int subface = 0; subface < face->number_of_children(); ++subface){
+                for(unsigned int subface = 0; subface < face->n_active_descendants(); ++subface){
                     const auto neig_child = cell->neighbor_child_on_subface(iface, subface);
                     Assert(!neig_child->has_children(), dealii::ExcInternalError());
 
@@ -276,7 +276,7 @@ void GridRefinement_FixedFraction<dim,nstate,real,MeshType>::anisotropic_h_jump_
                     std::pair<unsigned int, unsigned int> neig_face_subface = cell->neighbor_of_coarser_neighbor(iface);
                     Assert(neig_face_subface.first < dealii::GeometryInfo<dim>::faces_per_cell,
                            dealii::ExcInternalError());
-                    Assert(neig_face_subface.second < neig->face(neig_face_subface.first)->number_of_children(),
+                    Assert(neig_face_subface.second < neig->face(neig_face_subface.first)->n_active_descendants(),
                            dealii::ExcInternalError());
                     Assert(neig->neighbor_child_on_subface(neig_face_subface.first, neig_face_subface.second) == cell,
                            dealii::ExcInternalError());

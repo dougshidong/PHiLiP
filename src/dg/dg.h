@@ -97,7 +97,7 @@ public:
     /// Maximum degree used for p-refi1nement.
     /** This is known through the constructor parameters.
      *  DGBase cannot use nstate as a compile-time known.  */
-    const unsigned int max_degree;
+    const dealii::types::fe_index max_degree;
 
 
     /// Principal constructor that will call delegated constructor.
@@ -110,7 +110,7 @@ public:
     DGBase(const int nstate_input,
            const Parameters::AllParameters *const parameters_input,
            const unsigned int degree,
-           const unsigned int max_degree_input,
+           const dealii::types::fe_index max_degree_input,
            const unsigned int grid_degree_input,
            const std::shared_ptr<Triangulation> triangulation_input);
 
@@ -138,7 +138,7 @@ public:
     DGBase( const int nstate_input,
             const Parameters::AllParameters *const parameters_input,
             const unsigned int degree,
-            const unsigned int max_degree_input,
+            const dealii::types::fe_index max_degree_input,
             const unsigned int grid_degree_input,
             const std::shared_ptr<Triangulation> triangulation_input,
             const MassiveCollectionTuple collection_tuple);
@@ -665,7 +665,7 @@ private:
      *  need to be looped with the various p-orders. This function allows us to do this in a
      *  single function instead of having like 6 different functions to initialize each of them.
      */
-    MassiveCollectionTuple create_collection_tuple(const unsigned int max_degree, const int nstate, const Parameters::AllParameters *const parameters_input) const;
+    MassiveCollectionTuple create_collection_tuple(const dealii::types::fe_index max_degree, const int nstate, const Parameters::AllParameters *const parameters_input) const;
 
 public:
     /// Flag to freeze artificial dissipation.
@@ -701,7 +701,7 @@ public:
     DGBaseState(
         const Parameters::AllParameters *const parameters_input,
         const unsigned int degree,
-        const unsigned int max_degree_input,
+        const dealii::types::fe_index max_degree_input,
         const unsigned int grid_degree_input,
         const std::shared_ptr<Triangulation> triangulation_input);
 

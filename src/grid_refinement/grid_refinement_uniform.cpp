@@ -44,7 +44,7 @@ void GridRefinement_Uniform<dim,nstate,real,MeshType>::refine_grid()
 
     // transfering the solution from solution_old
     this->dg->allocate_system();
-    this->dg->solution.zero_out_ghosts();
+    this->dg->solution.zero_out_ghost_values();
     solution_transfer.interpolate(this->dg->solution);
     this->dg->solution.update_ghost_values();
 

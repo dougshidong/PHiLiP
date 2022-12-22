@@ -33,6 +33,8 @@
 #include "ROL_StatusTest.hpp"
 #include "Teuchos_GlobalMPISession.hpp"
 
+#include<Sacado.hpp>
+
 // This test is used to check that the dealii::LinearAlgebra::distributed::Vector<double>
 // is working properly with ROL. This is done by performing an unconstrained optimization
 // of the Rosenbrock function.

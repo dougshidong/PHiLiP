@@ -105,7 +105,7 @@ namespace Step10
             triangulation.set_all_manifold_ids(0);
             triangulation.set_manifold ( manifold_id, manifold );
             
-            const MappingQ<dim> mapping (degree+1, true);
+            const MappingQ<dim> mapping (degree+1);
             //const MappingManifold<dim> mapping ();
             const QGauss<dim> quadrature(degree+1);
             

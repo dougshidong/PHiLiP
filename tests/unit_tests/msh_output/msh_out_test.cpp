@@ -362,7 +362,7 @@ int main(int argc, char *argv[])
 
     // initializing the dof_handler
     dealii::DoFHandler<dim> dof_handler(grid);
-    dof_handler.initialize(grid, get_fe_collection<dim>(degree, nstate, use_collocated_nodes));
+    dof_handler.distribute_dofs(get_fe_collection<dim>(degree, nstate, use_collocated_nodes));
 
     // setting the cell fe_degree
     grid.prepare_coarsening_and_refinement();

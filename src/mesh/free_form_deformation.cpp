@@ -728,7 +728,7 @@ void FreeFormDeformation<dim>
         }
     } // switch(dim)
  
-    dealii::GridReordering<dim>::reorder_cells(cells, true);
+    dealii::GridTools::consistently_order_cells<dim>(cells);
     dealii::Triangulation<dim,dim> tria;
     tria.create_triangulation(control_pts, cells, dealii::SubCellData());
     std::string nffd_string[3];

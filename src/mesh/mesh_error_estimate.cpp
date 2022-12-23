@@ -198,7 +198,7 @@ void DualWeightedResidualError<dim, nstate, real, MeshType>::coarse_to_fine()
     // Solution Transfer to fine grid
     using VectorType       = typename dealii::LinearAlgebra::distributed::Vector<double>;
     using DoFHandlerType   = typename dealii::DoFHandler<dim>;
-    using SolutionTransfer = typename MeshTypeHelper<MeshType>::template SolutionTransfer<dim,VectorType,DoFHandlerType>;
+    using SolutionTransfer = typename MeshTypeHelper<MeshType>::template SolutionTransfer<dim,VectorType>;
 
     SolutionTransfer solution_transfer(this->dg->dof_handler);
     solution_transfer.prepare_for_coarsening_and_refinement(solution_coarse);
@@ -218,9 +218,9 @@ void DualWeightedResidualError<dim, nstate, real, MeshType>::coarse_to_fine()
     this->dg->high_order_grid->execute_coarsening_and_refinement();
 
     this->dg->allocate_system();
-    this->dg->solution.zero_out_ghosts();
+    this->dg->solution.zero_out_ghost_values();
 
-    if constexpr (std::is_same_v<typename dealii::SolutionTransfer<dim,VectorType,DoFHandlerType>, 
+    if constexpr (std::is_same_v<typename dealii::SolutionTransfer<dim,VectorType>, 
                                  decltype(solution_transfer)>) {
         solution_transfer.interpolate(solution_coarse, this->dg->solution);
     } else {
@@ -255,7 +255,7 @@ void DualWeightedResidualError<dim, nstate, real, MeshType>::fine_to_coarse()
     this->dg->high_order_grid->execute_coarsening_and_refinement();
 
     this->dg->allocate_system();
-    this->dg->solution.zero_out_ghosts();
+    this->dg->solution.zero_out_ghost_values();
 
     this->dg->solution = solution_coarse;
     

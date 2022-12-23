@@ -32,7 +32,7 @@ template <int dim, typename real, typename MeshType>
 void MeshAdaptation<dim,real,MeshType>::fixed_fraction_isotropic_refinement_and_coarsening()
 {
     dealii::LinearAlgebra::distributed::Vector<real> old_solution(dg->solution);
-    dealii::parallel::distributed::SolutionTransfer<dim, dealii::LinearAlgebra::distributed::Vector<real>, dealii::DoFHandler<dim>> solution_transfer(dg->dof_handler);
+    dealii::parallel::distributed::SolutionTransfer<dim, dealii::LinearAlgebra::distributed::Vector<real>> solution_transfer(dg->dof_handler);
     solution_transfer.prepare_for_coarsening_and_refinement(old_solution);
     dg->high_order_grid->prepare_for_coarsening_and_refinement();
 
@@ -75,7 +75,7 @@ void MeshAdaptation<dim,real,MeshType>::fixed_fraction_isotropic_refinement_and_
     dg->high_order_grid->execute_coarsening_and_refinement();
     
     dg->allocate_system ();
-    dg->solution.zero_out_ghosts();
+    dg->solution.zero_out_ghost_values();
     solution_transfer.interpolate(dg->solution);
     dg->solution.update_ghost_values();
     dg->assemble_residual ();

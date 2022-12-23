@@ -176,7 +176,7 @@ template <int dim, typename real, typename MeshType, typename VectorType, typena
 void 
 HighOrderGrid<dim,real,MeshType,VectorType,DoFHandlerType>::allocate() 
 {
-    dof_handler_grid.initialize(*triangulation, fe_system);
+    dof_handler_grid.reinit(*triangulation);
     dof_handler_grid.distribute_dofs(fe_system);
     dealii::DoFRenumbering::Cuthill_McKee(dof_handler_grid);
 
@@ -1013,7 +1013,7 @@ void HighOrderGrid<dim,real,MeshType,VectorType,DoFHandlerType>::prepare_for_coa
 template <int dim, typename real, typename MeshType, typename VectorType, typename DoFHandlerType>
 void HighOrderGrid<dim,real,MeshType,VectorType,DoFHandlerType>::execute_coarsening_and_refinement(const bool output_mesh) {
     allocate();
-    if constexpr (std::is_same_v<typename dealii::SolutionTransfer<dim,VectorType,DoFHandlerType>,
+    if constexpr (std::is_same_v<typename dealii::SolutionTransfer<dim,VectorType>,
                                  decltype(solution_transfer)>){
         solution_transfer.interpolate(old_volume_nodes, volume_nodes);
     } else {
@@ -1365,7 +1365,7 @@ void HighOrderGrid<dim,real,MeshType,VectorType,DoFHandlerType>::output_results_
     master_fn += dealii::Utilities::int_to_string(cycle, 4) + ".pvtu";
     pcout << "Outputting grid: " << master_fn << " ... " << std::endl;
 
-    dealii::DataOut<dim, dealii::DoFHandler<dim>> data_out;
+    dealii::DataOut<dim> data_out;
     data_out.attach_dof_handler (dof_handler_grid);
 
     std::vector<std::string> solution_names;
@@ -1381,7 +1381,7 @@ void HighOrderGrid<dim,real,MeshType,VectorType,DoFHandlerType>::output_results_
     for (unsigned int i = 0; i < subdomain.size(); ++i) {
         subdomain[i] = triangulation->locally_owned_subdomain();
     }
-    data_out.add_data_vector(subdomain, "subdomain", dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim>::DataVectorType::type_cell_data);
+    data_out.add_data_vector(subdomain, "subdomain", dealii::DataOut_DoFData<dim,dim>::DataVectorType::type_cell_data);
 
     // const GridPostprocessor<dim> grid_post_processor;
     // data_out.add_data_vector (volume_nodes, grid_post_processor);
@@ -1417,7 +1417,7 @@ void HighOrderGrid<dim,real,MeshType,VectorType,DoFHandlerType>::output_results_
     const int n_subdivisions = max_degree;;//+30; // if write_higher_order_cells, n_subdivisions represents the order of the cell
     data_out.build_patches(mapping, n_subdivisions, curved);
     const bool write_higher_order_cells = (dim>1) ? true : false;
-    dealii::DataOutBase::VtkFlags vtkflags(0.0,cycle,true,dealii::DataOutBase::VtkFlags::ZlibCompressionLevel::best_compression,write_higher_order_cells);
+    dealii::DataOutBase::VtkFlags vtkflags(0.0,cycle,true,dealii::DataOutBase::CompressionLevel::best_compression,write_higher_order_cells);
     data_out.set_flags(vtkflags);
 
     const int iproc = dealii::Utilities::MPI::this_mpi_process(mpi_communicator);

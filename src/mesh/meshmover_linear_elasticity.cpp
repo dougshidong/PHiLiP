@@ -54,7 +54,7 @@ namespace MeshMover {
     template <int dim, typename real>
     LinearElasticity<dim,real>::LinearElasticity(
         const Triangulation &_triangulation,
-        const std::shared_ptr<dealii::MappingFEField<dim,dim,VectorType,DoFHandlerType>> mapping_fe_field,
+        const std::shared_ptr<dealii::MappingFEField<dim,dim,VectorType>> mapping_fe_field,
         const DoFHandlerType &_dof_handler,
         const dealii::LinearAlgebra::distributed::Vector<int> &_boundary_ids_vector,
         const dealii::LinearAlgebra::distributed::Vector<double> &_boundary_displacements_vector)

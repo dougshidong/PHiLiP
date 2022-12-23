@@ -53,6 +53,27 @@ std::vector< real > project_function(
     const dealii::FESystem<dim,dim> &fe_output,
     const dealii::QGauss<dim> &projection_quadrature);
 
+/// Written because dealii::FullMatrix no longer supports AD variables
+template<typename real2>
+class FullMatrix
+{
+    std::vector<std::vector<real2>> matrix;
+public:
+    void reinit(const unsigned int n_rows, const unsigned int n_cols)
+    {
+        matrix.resize(n_rows);
+        for (unsigned int i = 0; i < n_rows; ++i) 
+        {
+            matrix.at(i).resize(n_cols);
+        }
+    }
+
+    real2& operator() (unsigned int i, unsigned int j)
+    {
+        return matrix.at(i).at(j);
+    }
+};
+
 
 /// DGBase is independent of the number of state variables.
 /**  This base class allows the use of arrays to efficiently allocate the data structures

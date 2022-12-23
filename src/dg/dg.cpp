@@ -1214,10 +1214,8 @@ void DGBase<dim,real,MeshType>::update_artificial_dissipation_discontinuity_sens
         //    }
         //}
     }
-    dealii::IndexSet boundary_dofs(dof_handler_artificial_dissipation.n_dofs());
-    dealii::DoFTools::extract_boundary_dofs(dof_handler_artificial_dissipation,
-                                dealii::ComponentMask(),
-                                boundary_dofs);
+    dealii::IndexSet boundary_dofs = dealii::DoFTools::extract_boundary_dofs(dof_handler_artificial_dissipation, dealii::ComponentMask());
+    
     for (unsigned int i = 0; i < dof_handler_artificial_dissipation.n_dofs(); ++i) {
         if (boundary_dofs.is_element(i)) {
             artificial_dissipation_c0[i] = 0.0;

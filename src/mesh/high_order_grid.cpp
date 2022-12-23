@@ -168,8 +168,8 @@ void HighOrderGrid<dim,real,MeshType,VectorType,DoFHandlerType>::ensure_conformi
 template <int dim, typename real, typename MeshType, typename VectorType, typename DoFHandlerType>
 void HighOrderGrid<dim,real,MeshType,VectorType,DoFHandlerType>::update_mapping_fe_field() {
     const dealii::ComponentMask mask(dim, true);
-    mapping_fe_field = std::make_shared< dealii::MappingFEField<dim,dim,VectorType,DoFHandlerType> > (dof_handler_grid,volume_nodes,mask);
-    initial_mapping_fe_field = std::make_shared< dealii::MappingFEField<dim,dim,VectorType,DoFHandlerType> > (dof_handler_grid,initial_volume_nodes,mask);
+    mapping_fe_field = std::make_shared< dealii::MappingFEField<dim,dim,VectorType> > (dof_handler_grid,volume_nodes,mask);
+    initial_mapping_fe_field = std::make_shared< dealii::MappingFEField<dim,dim,VectorType> > (dof_handler_grid,initial_volume_nodes,mask);
 }
 
 template <int dim, typename real, typename MeshType, typename VectorType, typename DoFHandlerType>

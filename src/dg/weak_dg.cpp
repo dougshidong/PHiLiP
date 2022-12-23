@@ -3,8 +3,7 @@
 
 #include <deal.II/base/qprojector.h>
 
-#include <deal.II/lac/full_matrix.templates.h>
-//#include <deal.II/lac/full_matrix.h>
+#include <deal.II/lac/full_matrix.h>
 
 #include <deal.II/fe/fe_values.h>
 
@@ -24,9 +23,13 @@
 
 /// Code taken directly from deal.II's FullMatrix::gauss_jordan function, but adapted to
 /// handle AD variable.
-template <typename number>
-void gauss_jordan(dealii::FullMatrix<number> &input_matrix)
+/// Currently, dealii::FullMatrix doesn't support AD. Since gauss_jordan() isn't being used with AD, its hardcoded to double for now. 
+/// We will need to update it using std::vector<std::vector>> in future.
+
+//template <typename number>
+void gauss_jordan(dealii::FullMatrix<double> &input_matrix)
 {
+    using number = double; // Change this hard-coded line if AD is used 
     Assert(!input_matrix.empty(), dealii::ExcMessage("Empty matrix"))
     Assert(input_matrix.n_cols() == input_matrix.n_rows(), dealii::ExcMessage("Non quadratic matrix"));
   
@@ -1061,7 +1064,7 @@ void compute_br2_correction(
 
     // Print Inverse Mass matrix
     //{
-    //dealii::FullMatrix<real2> vandermonde_inverse_real(n_base_dofs, n_vol_quad);
+    //PHiLiP::FullMatrix<real2> vandermonde_inverse_real(n_base_dofs, n_vol_quad);
 
     //for (unsigned int idof_base=0; idof_base<n_base_dofs; ++idof_base) {
     //    for (unsigned int iquad=0; iquad<n_vol_quad; ++iquad) {
@@ -1069,16 +1072,16 @@ void compute_br2_correction(
     //    }
     //}
     //gauss_jordan(vandermonde_inverse);
-    //dealii::FullMatrix<real2> diag_jac(n_base_dofs, n_base_dofs);
+    //PHiLiP::FullMatrix<real2> diag_jac(n_base_dofs, n_base_dofs);
     //diag_jac = 0.0;
     //for (unsigned int kquad=0; kquad<n_vol_quad; ++kquad) {
     //    diag_jac[kquad][kquad] = 1.0/(dealii::determinant(volume_metric_jac[kquad]) * vol_quad.weight(kquad));
     //}
 
-    //dealii::FullMatrix<real2> lifting_operator1(n_base_dofs, n_base_dofs);
+    //PHiLiP::FullMatrix<real2> lifting_operator1(n_base_dofs, n_base_dofs);
     //diag_jac.mmult(lifting_operator1, vandermonde_inverse_real);
 
-    //dealii::FullMatrix<real2> lifting_operator2(n_base_dofs, n_base_dofs);
+    //PHiLiP::FullMatrix<real2> lifting_operator2(n_base_dofs, n_base_dofs);
     //vandermonde_inverse_real.Tmmult(lifting_operator2, lifting_operator1);
 
     //std::cout << "Inverse mass..." << std::endl;
@@ -1117,7 +1120,7 @@ void correct_the_gradient(
     const dealii::FESystem<dim,dim>                                      &fe_soln,
     const std::vector<std::array<dealii::Tensor<1,dim,real2>, nstate>>   &soln_jump,
     const dealii::FullMatrix<double>                                     &interpolation_operator,
-    const std::array<dealii::FullMatrix<real2>,dim>                      &gradient_operator,
+    const std::array<PHiLiP::FullMatrix<real2>,dim>                      &gradient_operator,
     std::vector<std::array< dealii::Tensor<1,dim,real2>, nstate >>       &soln_grad)
 {
     (void) soln_jump;
@@ -1283,9 +1286,9 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_boundary_term(
             interpolation_operator[idof][iquad] = fe_soln.shape_value(idof,unit_quad_pts[iquad]);
         }
     }
-    std::array<dealii::FullMatrix<real2>,dim> gradient_operator;
+    std::array<PHiLiP::FullMatrix<real2>,dim> gradient_operator;
     for (int d=0;d<dim;++d) {
-        gradient_operator[d].reinit(dealii::TableIndices<2>(n_soln_dofs, n_quad_pts));
+        gradient_operator[d].reinit(n_soln_dofs, n_quad_pts);
     }
     for (unsigned int idof=0; idof<n_soln_dofs; ++idof) {
         for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
@@ -1293,7 +1296,7 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_boundary_term(
                 const dealii::Tensor<1,dim,real> ref_shape_grad = fe_soln.shape_grad(idof,unit_quad_pts[iquad]);
                 const dealii::Tensor<1,dim,real2> phys_shape_grad = vmult(jac_inv_tran[iquad], ref_shape_grad);
                 for (int d=0;d<dim;++d) {
-                    gradient_operator[d][idof][iquad] = phys_shape_grad[d];
+                    gradient_operator[d](idof, iquad) = phys_shape_grad[d];
                 }
 
                 // Exact mapping
@@ -1304,7 +1307,7 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_boundary_term(
             } else {
                 for (int d=0;d<dim;++d) {
                     const unsigned int istate = fe_soln.system_to_component_index(idof).first;
-                    gradient_operator[d][idof][iquad] = fe_values_boundary.shape_grad_component(idof, iquad, istate)[d];
+                    gradient_operator[d](idof, iquad) = fe_values_boundary.shape_grad_component(idof, iquad, istate)[d];
                 }
             }
         }
@@ -1324,7 +1327,7 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_boundary_term(
         for (unsigned int idof=0; idof<n_soln_dofs; ++idof) {
             const int istate = fe_values_boundary.get_fe().system_to_component_index(idof).first;
             for (int d=0;d<dim;++d) {
-                soln_grad_int[iquad][istate][d] += soln_coeff[idof] * gradient_operator[d][idof][iquad];
+                soln_grad_int[iquad][istate][d] += soln_coeff[idof] * gradient_operator[d](idof,iquad);
             }
         }
     }
@@ -1492,7 +1495,7 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_boundary_term(
             // Diffusive
             rhs_val = rhs_val - interpolation_operator[itest][iquad] * diss_auxi_num_flux_dot_n[iquad][istate] * JxW_iquad;
             for (int d=0;d<dim;++d) {
-                rhs_val = rhs_val + gradient_operator[d][itest][iquad] * diss_flux_jump_int[iquad][istate][d] * JxW_iquad;
+                rhs_val = rhs_val + gradient_operator[d](itest, iquad) * diss_flux_jump_int[iquad][istate][d] * JxW_iquad;
             }
         }
 
@@ -2216,10 +2219,10 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_face_term(
 
     dealii::FullMatrix<real> interpolation_operator_int(n_soln_dofs_int, n_face_quad_pts);
     dealii::FullMatrix<real> interpolation_operator_ext(n_soln_dofs_ext, n_face_quad_pts);
-    std::array<dealii::FullMatrix<real2>,dim> gradient_operator_int, gradient_operator_ext;
+    std::array<PHiLiP::FullMatrix<real2>,dim> gradient_operator_int, gradient_operator_ext;
     for (int d=0;d<dim;++d) {
-        gradient_operator_int[d].reinit(dealii::TableIndices<2>(n_soln_dofs_int, n_face_quad_pts));
-        gradient_operator_ext[d].reinit(dealii::TableIndices<2>(n_soln_dofs_ext, n_face_quad_pts));
+        gradient_operator_int[d].reinit(n_soln_dofs_int, n_face_quad_pts);
+        gradient_operator_ext[d].reinit(n_soln_dofs_ext, n_face_quad_pts);
     }
 
     for (unsigned int iquad=0; iquad<n_face_quad_pts; ++iquad) {
@@ -2308,7 +2311,7 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_face_term(
                 dealii::Tensor<1,dim,real> ref_shape_grad = fe_int.shape_grad(idof,unit_quad_pts_int[iquad]);
                 const Tensor1D phys_shape_grad = vmult(jac_inv_tran_int, ref_shape_grad);
                 for (int d=0;d<dim;++d) {
-                    gradient_operator_int[d][idof][iquad] = phys_shape_grad[d];
+                    gradient_operator_int[d](idof,iquad) = phys_shape_grad[d];
                 }
             }
             for (unsigned int idof=0; idof<n_soln_dofs_ext; ++idof) {
@@ -2316,7 +2319,7 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_face_term(
                 dealii::Tensor<1,dim,real> ref_shape_grad = fe_ext.shape_grad(idof,unit_quad_pts_ext[iquad]);
                 const Tensor1D phys_shape_grad = vmult(jac_inv_tran_ext, ref_shape_grad);
                 for (int d=0;d<dim;++d) {
-                    gradient_operator_ext[d][idof][iquad] = phys_shape_grad[d];
+                    gradient_operator_ext[d](idof,iquad) = phys_shape_grad[d];
                 }
             }
 
@@ -2330,11 +2333,11 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_face_term(
             for (int d=0;d<dim;++d) {
                 for (unsigned int idof=0; idof<n_soln_dofs_int; ++idof) {
                     const unsigned int istate = fe_int.system_to_component_index(idof).first;
-                    gradient_operator_int[d][idof][iquad] = fe_values_int.shape_grad_component(idof, iquad, istate)[d];
+                    gradient_operator_int[d](idof,iquad) = fe_values_int.shape_grad_component(idof, iquad, istate)[d];
                 }
                 for (unsigned int idof=0; idof<n_soln_dofs_ext; ++idof) {
                     const unsigned int istate = fe_ext.system_to_component_index(idof).first;
-                    gradient_operator_ext[d][idof][iquad] = fe_values_ext.shape_grad_component(idof, iquad, istate)[d];
+                    gradient_operator_ext[d](idof,iquad) = fe_values_ext.shape_grad_component(idof, iquad, istate)[d];
                 }
             }
             surface_jac_det_int = fe_values_int.JxW(iquad)/face_quadrature_int.weight(iquad);
@@ -2382,13 +2385,13 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_face_term(
         for (unsigned int idof=0; idof<n_soln_dofs_int; ++idof) {
             const unsigned int istate = fe_int.system_to_component_index(idof).first;
             for (int d=0;d<dim;++d) {
-                soln_grad_int[iquad][istate][d] += soln_coeff_int[idof] * gradient_operator_int[d][idof][iquad];
+                soln_grad_int[iquad][istate][d] += soln_coeff_int[idof] * gradient_operator_int[d](idof,iquad);
             }
         }
         for (unsigned int idof=0; idof<n_soln_dofs_ext; ++idof) {
             const unsigned int istate = fe_ext.system_to_component_index(idof).first;
             for (int d=0;d<dim;++d) {
-                soln_grad_ext[iquad][istate][d] += soln_coeff_ext[idof] * gradient_operator_ext[d][idof][iquad];
+                soln_grad_ext[iquad][istate][d] += soln_coeff_ext[idof] * gradient_operator_ext[d](idof,iquad);
             }
         }
     }
@@ -2522,7 +2525,7 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_face_term(
             // Diffusive
             rhs = rhs - interpolation_operator_int[itest_int][iquad] * diss_auxi_num_flux_dot_n[istate] * JxW_iquad;
             for (int d=0;d<dim;++d) {
-                rhs = rhs + gradient_operator_int[d][itest_int][iquad] * diss_flux_jump_int[istate][d] * JxW_iquad;
+                rhs = rhs + gradient_operator_int[d](itest_int,iquad) * diss_flux_jump_int[istate][d] * JxW_iquad;
             }
 
             rhs_int[itest_int] += rhs;
@@ -2540,7 +2543,7 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_face_term(
             // Diffusive
             rhs = rhs - interpolation_operator_ext[itest_ext][iquad] * (-diss_auxi_num_flux_dot_n[istate]) * JxW_iquad;
             for (int d=0;d<dim;++d) {
-                rhs = rhs + gradient_operator_ext[d][itest_ext][iquad] * diss_flux_jump_ext[istate][d] * JxW_iquad;
+                rhs = rhs + gradient_operator_ext[d](itest_ext,iquad) * diss_flux_jump_ext[istate][d] * JxW_iquad;
             }
 
             rhs_ext[itest_ext] += rhs;
@@ -3510,13 +3513,13 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_volume_term(
     }
     // Might want to have the dimension as the innermost index
     // Need a contiguous 2d-array structure
-    // std::array<dealii::FullMatrix<real2>,dim> gradient_operator;
+    // std::array<PHiLiP::FullMatrix<real2>,dim> gradient_operator;
     // for (int d=0;d<dim;++d) {
     //     gradient_operator[d].reinit(n_soln_dofs, n_quad_pts);
     // }
-    std::array<dealii::FullMatrix<real2>,dim> gradient_operator;
+    std::array<PHiLiP::FullMatrix<real2>,dim> gradient_operator;
     for (int d=0;d<dim;++d) {
-        gradient_operator[d].reinit(dealii::TableIndices<2>(n_soln_dofs, n_quad_pts));
+        gradient_operator[d].reinit(n_soln_dofs, n_quad_pts);
     }
     for (unsigned int idof=0; idof<n_soln_dofs; ++idof) {
          for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
@@ -3531,7 +3534,7 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_volume_term(
                      }
                  }
                  for (int d=0;d<dim;++d) {
-                     gradient_operator[d][idof][iquad] = phys_shape_grad[d];
+                     gradient_operator[d](idof,iquad) = phys_shape_grad[d];
                  }
 
                  // Exact mapping
@@ -3542,7 +3545,7 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_volume_term(
              } else {
                  for (int d=0;d<dim;++d) {
                      const unsigned int istate = fe_soln.system_to_component_index(idof).first;
-                     gradient_operator[d][idof][iquad] = fe_values_vol.shape_grad_component(idof, iquad, istate)[d];
+                     gradient_operator[d](idof, iquad) = fe_values_vol.shape_grad_component(idof, iquad, istate)[d];
                  }
              }
          }
@@ -3623,7 +3626,7 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_volume_term(
             const unsigned int istate = fe_soln.system_to_component_index(idof).first;
             soln_at_q[iquad][istate]      += soln_coeff[idof] * interpolation_operator[idof][iquad];
             for (int d=0;d<dim;++d) {
-                soln_grad_at_q[iquad][istate][d] += soln_coeff[idof] * gradient_operator[d][idof][iquad];
+                soln_grad_at_q[iquad][istate][d] += soln_coeff[idof] * gradient_operator[d](idof,iquad);
             }
         }
         conv_phys_flux_at_q[iquad] = physics.convective_flux (soln_at_q[iquad]);
@@ -3670,10 +3673,10 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_volume_term(
 
             for (int d=0;d<dim;++d) {
                 // Convective
-                rhs[itest] = rhs[itest] + gradient_operator[d][itest][iquad] * conv_phys_flux_at_q[iquad][istate][d] * JxW_iquad;
+                rhs[itest] = rhs[itest] + gradient_operator[d](itest, iquad) * conv_phys_flux_at_q[iquad][istate][d] * JxW_iquad;
                 //// Diffusive
                 //// Note that for diffusion, the negative is defined in the physics
-                rhs[itest] = rhs[itest] + gradient_operator[d][itest][iquad] * diss_phys_flux_at_q[iquad][istate][d] * JxW_iquad;
+                rhs[itest] = rhs[itest] + gradient_operator[d](itest,iquad) * diss_phys_flux_at_q[iquad][istate][d] * JxW_iquad;
             }
             // Source
             if(this->all_parameters->manufactured_convergence_study_param.manufactured_solution_param.use_manufactured_source_term) {

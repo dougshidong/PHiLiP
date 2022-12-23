@@ -132,7 +132,7 @@ class HighOrderGrid
 public:
     /// Principal constructor that will call delegated constructor.
     HighOrderGrid(
-        const unsigned int              max_degree, 
+        const dealii::types::fe_index   max_degree, 
         const std::shared_ptr<MeshType> triangulation_input);
 
     /// Reinitialize high_order_grid after a change in triangulation
@@ -157,7 +157,7 @@ public:
     dealii::MappingFEField<dim,dim,VectorType> get_MappingFEField();
 
     /// Maximum degree of the geometry polynomial representing the grid.
-    const unsigned int max_degree;
+    const dealii::types::fe_index max_degree;
 
     const std::shared_ptr<MeshType> triangulation; ///< Mesh
 

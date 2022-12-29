@@ -51,7 +51,7 @@ public:
         const std::array<real,nstate> &/*solution*/,
         const dealii::Tensor<1,dim,real> &/*normal*/) const = 0;
 
-    /// Maximum convective eigenvalue used in Lax-Friedrichs
+    /// Maximum convective eigenvalue for the total convective flux (i.e. that which includes both the baseline physics terms and additional terms from the model)
     virtual real max_convective_eigenvalue (const std::array<real,nstate> &soln) const = 0;
 
     /// Physical source terms additional to the baseline physics (including physical source terms in additional PDEs of model)

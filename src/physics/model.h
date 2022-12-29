@@ -45,7 +45,7 @@ public:
     	const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient,
         const dealii::types::global_dof_index cell_index) const = 0;
 
-    /// Spectral radius of convective term Jacobian.
+    /// Convective eigenvalues of the total convective flux (i.e. that which includes both the baseline physics terms and additional terms from the model)
     /** Used for scalar dissipation */
     virtual std::array<real,nstate> convective_eigenvalues (
         const std::array<real,nstate> &/*solution*/,

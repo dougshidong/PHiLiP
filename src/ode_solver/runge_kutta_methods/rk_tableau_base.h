@@ -6,6 +6,7 @@
 #include <deal.II/grid/tria.h>
 #include <deal.II/distributed/shared_tria.h>
 #include <deal.II/distributed/tria.h>
+#include <deal.II/base/table.h>
 
 namespace PHiLiP {
 namespace ODE {

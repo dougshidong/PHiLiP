@@ -63,7 +63,7 @@ template <int dim, int nstate, typename real, typename MeshType>
 void GridRefinement_Uniform<dim,nstate,real,MeshType>::refine_grid_p()
 {
     for(auto cell = this->dg->dof_handler.begin_active(); cell != this->dg->dof_handler.end(); ++cell)
-        if(cell->is_locally_owned() && cell->active_fe_index()+1 <= this->dg->max_degree)
+        if(cell->is_locally_owned() && (unsigned int)cell->active_fe_index()+1 <= this->dg->max_degree)
             cell->set_future_fe_index(cell->active_fe_index()+1);
     
 }

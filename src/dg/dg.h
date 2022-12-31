@@ -53,7 +53,7 @@ std::vector< real > project_function(
     const dealii::FESystem<dim,dim> &fe_output,
     const dealii::QGauss<dim> &projection_quadrature);
 
-/// Written because dealii::FullMatrix no longer supports AD variables
+/// FullMatrix using std::vector. It replaces dealii::FullMatrix to store AD variables.
 template<typename real2>
 class FullMatrix
 {
@@ -113,12 +113,12 @@ public:
     const int nstate;
 
     /// Initial polynomial degree assigned during constructor
-    const dealii::types::fe_index initial_degree;
+    const unsigned int initial_degree;
 
     /// Maximum degree used for p-refi1nement.
     /** This is known through the constructor parameters.
      *  DGBase cannot use nstate as a compile-time known.  */
-    const dealii::types::fe_index max_degree;
+    const unsigned int max_degree;
 
 
     /// Principal constructor that will call delegated constructor.
@@ -130,9 +130,9 @@ public:
      */
     DGBase(const int nstate_input,
            const Parameters::AllParameters *const parameters_input,
-           const dealii::types::fe_index degree,
-           const dealii::types::fe_index max_degree_input,
-           const dealii::types::fe_index grid_degree_input,
+           const unsigned int degree,
+           const unsigned int max_degree_input,
+           const unsigned int grid_degree_input,
            const std::shared_ptr<Triangulation> triangulation_input);
 
 
@@ -158,9 +158,9 @@ public:
      *  The tuple is built from create_collection_tuple(). */
     DGBase( const int nstate_input,
             const Parameters::AllParameters *const parameters_input,
-            const dealii::types::fe_index degree,
-            const dealii::types::fe_index max_degree_input,
-            const dealii::types::fe_index grid_degree_input,
+            const unsigned int degree,
+            const unsigned int max_degree_input,
+            const unsigned int grid_degree_input,
             const std::shared_ptr<Triangulation> triangulation_input,
             const MassiveCollectionTuple collection_tuple);
 
@@ -178,10 +178,10 @@ public:
     void set_all_cells_fe_degree ( const unsigned int degree );
 
     /// Gets the maximum value of currently active FE degree
-    dealii::types::fe_index get_max_fe_degree();
+    unsigned int get_max_fe_degree();
 
     /// Gets the minimum value of currently active FE degree
-    dealii::types::fe_index get_min_fe_degree();
+    unsigned int get_min_fe_degree();
     
     /// Returns the coordinates of the most refined cell.
     dealii::Point<dim> coordinates_of_highest_refined_cell(bool check_for_p_refined_cell = false);
@@ -721,9 +721,9 @@ public:
     /// Constructor.
     DGBaseState(
         const Parameters::AllParameters *const parameters_input,
-        const dealii::types::fe_index degree,
-        const dealii::types::fe_index max_degree_input,
-        const dealii::types::fe_index grid_degree_input,
+        const unsigned int degree,
+        const unsigned int max_degree_input,
+        const unsigned int grid_degree_input,
         const std::shared_ptr<Triangulation> triangulation_input);
 
     /// Contains the physics of the PDE with real type

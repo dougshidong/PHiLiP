@@ -353,7 +353,7 @@ dealii::Vector<real> DualWeightedResidualError<dim, nstate, real, MeshType>::dua
 template <int dim, int nstate, typename real, typename MeshType>
 void DualWeightedResidualError<dim, nstate, real, MeshType>::output_results_vtk(const unsigned int cycle)
 {
-    dealii::DataOut<dim, dealii::DoFHandler<dim>> data_out;
+    dealii::DataOut<dim> data_out;
     data_out.attach_dof_handler(this->dg->dof_handler);
 
     const std::unique_ptr< dealii::DataPostprocessor<dim> > post_processor = Postprocess::PostprocessorFactory<dim>::create_Postprocessor(this->dg->all_parameters);
@@ -364,7 +364,7 @@ void DualWeightedResidualError<dim, nstate, real, MeshType>::output_results_vtk(
     {
         subdomain(i) = this->dg->triangulation->locally_owned_subdomain();
     }
-    data_out.add_data_vector(subdomain, "subdomain", dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim>::DataVectorType::type_cell_data);
+    data_out.add_data_vector(subdomain, "subdomain", dealii::DataOut_DoFData<dim,dim>::DataVectorType::type_cell_data);
 
     // Output the polynomial degree in each cell
     std::vector<unsigned int> active_fe_indices;
@@ -372,7 +372,7 @@ void DualWeightedResidualError<dim, nstate, real, MeshType>::output_results_vtk(
     dealii::Vector<double> active_fe_indices_dealiivector(active_fe_indices.begin(), active_fe_indices.end());
     dealii::Vector<double> cell_poly_degree = active_fe_indices_dealiivector;
 
-    data_out.add_data_vector(active_fe_indices_dealiivector, "PolynomialDegree", dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim>::DataVectorType::type_cell_data);
+    data_out.add_data_vector(active_fe_indices_dealiivector, "PolynomialDegree", dealii::DataOut_DoFData<dim,dim>::DataVectorType::type_cell_data);
 
     std::vector<std::string> residual_names;
     for(int s=0;s<nstate;++s) 
@@ -381,7 +381,7 @@ void DualWeightedResidualError<dim, nstate, real, MeshType>::output_results_vtk(
         residual_names.push_back(varname);
     }
 
-    data_out.add_data_vector(this->dg->right_hand_side, residual_names, dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim>::DataVectorType::type_dof_data);
+    data_out.add_data_vector(this->dg->right_hand_side, residual_names, dealii::DataOut_DoFData<dim,dim>::DataVectorType::type_dof_data);
 
     // set names of data to be output in the vtu file.
     std::vector<std::string> derivative_functional_wrt_solution_names;
@@ -400,19 +400,19 @@ void DualWeightedResidualError<dim, nstate, real, MeshType>::output_results_vtk(
 
     // add the data structures specific to this class, check if currently fine or coarse
     if(solution_refinement_state == SolutionRefinementStateEnum::fine) {
-        data_out.add_data_vector(derivative_functional_wrt_solution_fine, derivative_functional_wrt_solution_names, dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim>::DataVectorType::type_dof_data);
-        data_out.add_data_vector(adjoint_fine, adjoint_names, dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim>::DataVectorType::type_dof_data);
+        data_out.add_data_vector(derivative_functional_wrt_solution_fine, derivative_functional_wrt_solution_names, dealii::DataOut_DoFData<dim,dim>::DataVectorType::type_dof_data);
+        data_out.add_data_vector(adjoint_fine, adjoint_names, dealii::DataOut_DoFData<dim,dim>::DataVectorType::type_dof_data);
 
-        data_out.add_data_vector(dual_weighted_residual_fine, "DWR", dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim>::DataVectorType::type_cell_data);
+        data_out.add_data_vector(dual_weighted_residual_fine, "DWR", dealii::DataOut_DoFData<dim,dim>::DataVectorType::type_cell_data);
     } else if(solution_refinement_state == SolutionRefinementStateEnum::coarse) {
-        data_out.add_data_vector(derivative_functional_wrt_solution_coarse, derivative_functional_wrt_solution_names, dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim>::DataVectorType::type_dof_data);
-        data_out.add_data_vector(adjoint_coarse, adjoint_names, dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim>::DataVectorType::type_dof_data);
+        data_out.add_data_vector(derivative_functional_wrt_solution_coarse, derivative_functional_wrt_solution_names, dealii::DataOut_DoFData<dim,dim>::DataVectorType::type_dof_data);
+        data_out.add_data_vector(adjoint_coarse, adjoint_names, dealii::DataOut_DoFData<dim,dim>::DataVectorType::type_dof_data);
     }
 
     const int iproc = dealii::Utilities::MPI::this_mpi_process(mpi_communicator);
     //data_out.build_patches (mapping_collection[mapping_collection.size()-1]);
     data_out.build_patches();
-    // data_out.build_patches(*(this->dg->high_order_grid.mapping_fe_field), this->dg->max_degree, dealii::DataOut<dim, dealii::DoFHandler<dim>>::CurvedCellRegion::curved_inner_cells);
+    // data_out.build_patches(*(this->dg->high_order_grid.mapping_fe_field), this->dg->max_degree, dealii::DataOut<dim>::CurvedCellRegion::curved_inner_cells);
     //data_out.build_patches(*(high_order_grid.mapping_fe_field), fe_collection.size(), dealii::DataOut<dim>::CurvedCellRegion::curved_inner_cells);
     std::string filename = "adjoint-" ;
     if(solution_refinement_state == SolutionRefinementStateEnum::fine)

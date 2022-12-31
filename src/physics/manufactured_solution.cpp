@@ -1,13 +1,7 @@
 #include <CoDiPack/include/codi.hpp>
 #include <Sacado.hpp>
-#include <deal.II/base/function.h>
-#include <deal.II/base/function.templates.h> // Needed to instantiate dealii::Function<PHILIP_DIM,Sacado::Fad::DFad<double>>
-#include <deal.II/base/function_time.templates.h> // Needed to instantiate dealii::Function<PHILIP_DIM,Sacado::Fad::DFad<double>>
 
 #include "manufactured_solution.h"
-
-template class dealii::FunctionTime<Sacado::Fad::DFad<double>>; // Needed by Function
-template class dealii::Function<PHILIP_DIM,Sacado::Fad::DFad<double>>;
 
 namespace PHiLiP {
 
@@ -1067,9 +1061,7 @@ inline dealii::SymmetricTensor<2,dim,real> ManufacturedSolutionNavahBase<dim,rea
 template <int dim, typename real>
 ManufacturedSolutionFunction<dim,real>
 ::ManufacturedSolutionFunction (const unsigned int nstate)
-    :
-    dealii::Function<dim,real>(nstate)
-    , nstate(nstate)
+    : nstate(nstate)
     , base_values(nstate)
     , amplitudes(nstate)
     , frequencies(nstate)

@@ -3,12 +3,6 @@
 
 #include <deal.II/lac/vector.h>
 
-#include <deal.II/base/function.h>
-
-//#include <Sacado.hpp>
-//
-//#include "physics/physics.h"
-//#include "numerical_flux/numerical_flux.h"
 #include "parameters/all_parameters.h"
 
 
@@ -16,26 +10,15 @@ namespace PHiLiP {
 
 
 /// Manufactured solution used for grid studies to check convergence orders.
-/** This class also provides derivatives necessary  to evaluate source terms.
+/** This class also provides derivatives necessary to evaluate source terms.
  */
 template <int dim, typename real>
-class ManufacturedSolutionFunction : public dealii::Function<dim,real>
+class ManufacturedSolutionFunction
 {
-// We want the Point to be templated on the type,
-// however, dealii does not template that part of the Function.
-// Therefore, we end up overloading the functions and need to "import"
-// those non-overloaded functions to avoid the warning -Woverloaded-virtual
-// See: https://stackoverflow.com/questions/18515183/c-overloaded-virtual-function-warning-by-clang
-protected:
-    using dealii::Function<dim,real>::value;
-    using dealii::Function<dim,real>::gradient;
-    using dealii::Function<dim,real>::hessian;
-    using dealii::Function<dim,real>::vector_gradient;
-
 public:
     const unsigned int nstate; ///< Corresponds to n_components in the dealii::Function
     /// Constructor that initializes base_values, amplitudes, frequencies.
-    /** Calls the Function(const unsigned int n_components) constructor in deal.II
+    /** 
      *  This sets the public attribute n_components = nstate, which can then be accessed
      *  by all the other functions
      */
@@ -93,40 +76,9 @@ public:
     void vector_gradient (const dealii::Point<dim,real> &p,
                           std::vector<dealii::Tensor<1,dim, real> > &gradients) const;
 
-    // Virtual functions inherited from dealii::Function
-    //
-    // virtual real value (const Point<dim,real> &p,
-    //                               const unsigned int  component = 0) const;
-  
-    // virtual void vector_value (const Point<dim,real> &p,
-    //                           Vector<real> &values) const;
-  
-    // virtual void value_list (const std::vector<Point<dim,real> > &points,
-    //                         std::vector<real> &values,
-    //                         const unsigned int              component = 0) const;
-  
-    // virtual void vector_value_list (const std::vector<Point<dim,real> > &points,
-    //                                std::vector<Vector<real> > &values) const;
-  
-    // virtual void vector_values (const std::vector<Point<dim,real> > &points,
-    //                            std::vector<std::vector<real> > &values) const;
-  
-    // virtual Tensor<1,dim, real> gradient (const Point<dim,real> &p,
-    //                                                 const unsigned int  component = 0) const;
-  
-    // virtual void gradient_list (const std::vector<Point<dim,real> > &points,
-    //                            std::vector<Tensor<1,dim, real> > &gradients,
-    //                            const unsigned int              component = 0) const;
-  
-    // virtual void vector_gradients (const std::vector<Point<dim,real> > &points,
-    //                               std::vector<std::vector<Tensor<1,dim, real> > > &gradients) const;
-  
-    // virtual void vector_gradient_list (const std::vector<Point<dim,real> > &points,
-    //                                   std::vector<std::vector<Tensor<1,dim, real> > > &gradients) const;
-
 protected:
     ///@{
-    /** Constants used to manufactured solution.
+    /** Constants used in manufactured solution.
      */
     std::vector<double> base_values;
     std::vector<double> amplitudes;
@@ -139,16 +91,6 @@ template <int dim, typename real>
 class ManufacturedSolutionZero
         : public ManufacturedSolutionFunction<dim, real>
 {
-// We want the Point to be templated on the type,
-// however, dealii does not template that part of the Function.
-// Therefore, we end up overloading the functions and need to "import"
-// those non-overloaded functions to avoid the warning -Woverloaded-virtual
-// See: https://stackoverflow.com/questions/18515183/c-overloaded-virtual-function-warning-by-clang
-protected:
-    using dealii::Function<dim,real>::value;
-    using dealii::Function<dim,real>::gradient;
-    using dealii::Function<dim,real>::hessian;
-
 public:
     /// Constructor
     ManufacturedSolutionZero(const unsigned int nstate = 1)
@@ -166,16 +108,6 @@ template <int dim, typename real>
 class ManufacturedSolutionSine 
     : public ManufacturedSolutionFunction<dim, real>
 {
-// We want the Point to be templated on the type,
-// however, dealii does not template that part of the Function.
-// Therefore, we end up overloading the functions and need to "import"
-// those non-overloaded functions to avoid the warning -Woverloaded-virtual
-// See: https://stackoverflow.com/questions/18515183/c-overloaded-virtual-function-warning-by-clang
-protected:
-    using dealii::Function<dim,real>::value;
-    using dealii::Function<dim,real>::gradient;
-    using dealii::Function<dim,real>::hessian;
-
 public:
     /// Constructor
     ManufacturedSolutionSine(const unsigned int nstate = 1)
@@ -193,15 +125,6 @@ template <int dim, typename real>
 class ManufacturedSolutionCosine 
     : public ManufacturedSolutionFunction<dim, real>
 {
-// We want the Point to be templated on the type,
-// however, dealii does not template that part of the Function.
-// Therefore, we end up overloading the functions and need to "import"
-// those non-overloaded functions to avoid the warning -Woverloaded-virtual
-// See: https://stackoverflow.com/questions/18515183/c-overloaded-virtual-function-warning-by-clang
-protected:
-    using dealii::Function<dim,real>::value;
-    using dealii::Function<dim,real>::gradient;
-    using dealii::Function<dim,real>::hessian;
 public:
     /// Constructor
     ManufacturedSolutionCosine(const unsigned int nstate = 1)
@@ -219,15 +142,6 @@ template <int dim, typename real>
 class ManufacturedSolutionAdd 
     : public ManufacturedSolutionFunction<dim, real>
 {
-// We want the Point to be templated on the type,
-// however, dealii does not template that part of the Function.
-// Therefore, we end up overloading the functions and need to "import"
-// those non-overloaded functions to avoid the warning -Woverloaded-virtual
-// See: https://stackoverflow.com/questions/18515183/c-overloaded-virtual-function-warning-by-clang
-protected:
-    using dealii::Function<dim,real>::value;
-    using dealii::Function<dim,real>::gradient;
-    using dealii::Function<dim,real>::hessian;
 public:
     /// Constructor
     ManufacturedSolutionAdd(const unsigned int nstate = 1)
@@ -245,15 +159,6 @@ template <int dim, typename real>
 class ManufacturedSolutionExp
     : public ManufacturedSolutionFunction<dim, real>
 {
-// We want the Point to be templated on the type,
-// however, dealii does not template that part of the Function.
-// Therefore, we end up overloading the functions and need to "import"
-// those non-overloaded functions to avoid the warning -Woverloaded-virtual
-// See: https://stackoverflow.com/questions/18515183/c-overloaded-virtual-function-warning-by-clang
-protected:
-    using dealii::Function<dim,real>::value;
-    using dealii::Function<dim,real>::gradient;
-    using dealii::Function<dim,real>::hessian;
 public:
     /// Constructor
     ManufacturedSolutionExp(const unsigned int nstate = 1)
@@ -271,15 +176,6 @@ template <int dim, typename real>
 class ManufacturedSolutionPoly 
     : public ManufacturedSolutionFunction<dim, real>
 {
-// We want the Point to be templated on the type,
-// however, dealii does not template that part of the Function.
-// Therefore, we end up overloading the functions and need to "import"
-// those non-overloaded functions to avoid the warning -Woverloaded-virtual
-// See: https://stackoverflow.com/questions/18515183/c-overloaded-virtual-function-warning-by-clang
-protected:
-    using dealii::Function<dim,real>::value;
-    using dealii::Function<dim,real>::gradient;
-    using dealii::Function<dim,real>::hessian;
 public:
     /// Constructor
     ManufacturedSolutionPoly(const unsigned int nstate = 1)
@@ -297,15 +193,6 @@ template <int dim, typename real>
 class ManufacturedSolutionEvenPoly 
     : public ManufacturedSolutionFunction<dim, real>
 {
-// We want the Point to be templated on the type,
-// however, dealii does not template that part of the Function.
-// Therefore, we end up overloading the functions and need to "import"
-// those non-overloaded functions to avoid the warning -Woverloaded-virtual
-// See: https://stackoverflow.com/questions/18515183/c-overloaded-virtual-function-warning-by-clang
-protected:
-    using dealii::Function<dim,real>::value;
-    using dealii::Function<dim,real>::gradient;
-    using dealii::Function<dim,real>::hessian;
 public:
     /// Constructor
     ManufacturedSolutionEvenPoly(const unsigned int nstate = 1)
@@ -323,15 +210,6 @@ template <int dim, typename real>
 class ManufacturedSolutionAtan
     : public ManufacturedSolutionFunction<dim, real>
 {
-// We want the Point to be templated on the type,
-// however, dealii does not template that part of the Function.
-// Therefore, we end up overloading the functions and need to "import"
-// those non-overloaded functions to avoid the warning -Woverloaded-virtual
-// See: https://stackoverflow.com/questions/18515183/c-overloaded-virtual-function-warning-by-clang
-protected:
-    using dealii::Function<dim,real>::value;
-    using dealii::Function<dim,real>::gradient;
-    using dealii::Function<dim,real>::hessian;
 public:
     /// Constructor
     ManufacturedSolutionAtan(const unsigned int nstate = 1)
@@ -378,15 +256,6 @@ template <int dim, typename real>
 class ManufacturedSolutionBoundaryLayer
     : public ManufacturedSolutionFunction<dim, real>
 {
-// We want the Point to be templated on the type,
-// however, dealii does not template that part of the Function.
-// Therefore, we end up overloading the functions and need to "import"
-// those non-overloaded functions to avoid the warning -Woverloaded-virtual
-// See: https://stackoverflow.com/questions/18515183/c-overloaded-virtual-function-warning-by-clang
-protected:
-    using dealii::Function<dim,real>::value;
-    using dealii::Function<dim,real>::gradient;
-    using dealii::Function<dim,real>::hessian;
 public:
     /// Constructor
     ManufacturedSolutionBoundaryLayer(const unsigned int nstate = 1)
@@ -417,15 +286,6 @@ template <int dim, typename real>
 class ManufacturedSolutionSShock 
     : public ManufacturedSolutionFunction<dim, real>
 {
-// We want the Point to be templated on the type,
-// however, dealii does not template that part of the Function.
-// Therefore, we end up overloading the functions and need to "import"
-// those non-overloaded functions to avoid the warning -Woverloaded-virtual
-// See: https://stackoverflow.com/questions/18515183/c-overloaded-virtual-function-warning-by-clang
-protected:
-    using dealii::Function<dim,real>::value;
-    using dealii::Function<dim,real>::gradient;
-    using dealii::Function<dim,real>::hessian;
 public:
     /// Constructor
     ManufacturedSolutionSShock(const unsigned int nstate = 1)
@@ -472,15 +332,6 @@ template <int dim, typename real>
 class ManufacturedSolutionQuadratic
     : public ManufacturedSolutionFunction<dim, real>
 {
-// We want the Point to be templated on the type,
-// however, dealii does not template that part of the Function.
-// Therefore, we end up overloading the functions and need to "import"
-// those non-overloaded functions to avoid the warning -Woverloaded-virtual
-// See: https://stackoverflow.com/questions/18515183/c-overloaded-virtual-function-warning-by-clang
-protected:
-    using dealii::Function<dim,real>::value;
-    using dealii::Function<dim,real>::gradient;
-    using dealii::Function<dim,real>::hessian;
 public:
     /// Constructor
     ManufacturedSolutionQuadratic(const unsigned int nstate = 1)
@@ -509,15 +360,6 @@ template <int dim, typename real>
 class ManufacturedSolutionNavahBase
     : public ManufacturedSolutionFunction<dim, real>
 {
-// We want the Point to be templated on the type,
-// however, dealii does not template that part of the Function.
-// Therefore, we end up overloading the functions and need to "import"
-// those non-overloaded functions to avoid the warning -Woverloaded-virtual
-// See: https://stackoverflow.com/questions/18515183/c-overloaded-virtual-function-warning-by-clang
-protected:
-    using dealii::Function<dim,real>::value;
-    using dealii::Function<dim,real>::gradient;
-    using dealii::Function<dim,real>::hessian;
 public:
     /// Constructor
     ManufacturedSolutionNavahBase(const unsigned int nstate = 4)

@@ -51,7 +51,7 @@ unsigned int HighOrderGrid<dim,real,MeshType,VectorType,DoFHandlerType>::nth_ref
 
 template <int dim, typename real, typename MeshType, typename VectorType, typename DoFHandlerType>
 HighOrderGrid<dim,real,MeshType,VectorType,DoFHandlerType>::HighOrderGrid(
-        const dealii::types::fe_index max_degree,
+        const unsigned int max_degree,
         const std::shared_ptr<MeshType> triangulation_input)
     : max_degree(max_degree)
     , triangulation(triangulation_input)

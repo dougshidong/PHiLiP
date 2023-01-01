@@ -39,11 +39,6 @@ namespace Tests {
 template <int dim, typename real>
 class Shocked1D1State : public ManufacturedSolutionFunction<dim,real>
 {
-protected:
-    using dealii::Function<dim,real>::value;
-    using dealii::Function<dim,real>::gradient;
-    using dealii::Function<dim,real>::hessian;
-    using dealii::Function<dim,real>::vector_gradient;
 public:
     /// Constructor that initializes base_values, amplitudes, frequencies.
     /** Calls the Function(const unsigned int n_components) constructor in deal.II

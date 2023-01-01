@@ -317,7 +317,8 @@ void initialize_perturbed_solution(PHiLiP::DGBase<dim,double> &dg, const PHiLiP:
 {
     dealii::LinearAlgebra::distributed::Vector<double> solution_no_ghost;
     solution_no_ghost.reinit(dg.locally_owned_dofs, MPI_COMM_WORLD);
-    dealii::VectorTools::interpolate(dg.dof_handler, *physics.manufactured_solution_function, solution_no_ghost);
+    ManufacturedSolutionFunctiondealii<dim> manufactured_solution_dealii(physics.manufactured_solution_function);
+    dealii::VectorTools::interpolate(dg.dof_handler, manufactured_solution_dealii, solution_no_ghost);
     dg.solution = solution_no_ghost;
 }
 

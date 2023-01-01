@@ -598,7 +598,7 @@ int DiffusionExactAdjoint<dim,nstate>::run_test() const
             if(dim == 1){
                 const std::string filename_u = "sol-u-" + std::to_string(igrid) + ".gnuplot";
                 std::ofstream gnuplot_output_u(filename_u);
-                dealii::DataOut<dim, dealii::DoFHandler<dim>> data_out_u;
+                dealii::DataOut<dim> data_out_u;
                 data_out_u.attach_dof_handler(dg_u->dof_handler);
                 data_out_u.add_data_vector(dg_u->solution, "u");
                 data_out_u.build_patches();
@@ -606,7 +606,7 @@ int DiffusionExactAdjoint<dim,nstate>::run_test() const
 
                 const std::string filename_v = "sol-v-" + std::to_string(igrid) + ".gnuplot";
                 std::ofstream gnuplot_output_v(filename_v);
-                dealii::DataOut<dim, dealii::DoFHandler<dim>> data_out_v;
+                dealii::DataOut<dim> data_out_v;
                 data_out_v.attach_dof_handler(dg_v->dof_handler);
                 data_out_v.add_data_vector(dg_v->solution, "u");
                 data_out_v.build_patches();
@@ -625,7 +625,7 @@ int DiffusionExactAdjoint<dim,nstate>::run_test() const
                 // need to add a dof-wise loop to output these quantities. Haven't figured out how yet that doesn't rely on interpolation of a dealii::Function
 
                 // setting up dataout and outputing results
-                dealii::DataOut<dim, dealii::DoFHandler<dim>> data_out;
+                dealii::DataOut<dim> data_out;
                 data_out.attach_dof_handler(dg_u->dof_handler);
 
                 // // can't use this post processor as it gives them the same name
@@ -638,14 +638,14 @@ int DiffusionExactAdjoint<dim,nstate>::run_test() const
                 for (unsigned int i = 0; i < subdomain.size(); ++i) {
                     subdomain(i) = dg_u->triangulation->locally_owned_subdomain();
                 }
-                data_out.add_data_vector(subdomain, "subdomain", dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim>::DataVectorType::type_cell_data);
+                data_out.add_data_vector(subdomain, "subdomain", dealii::DataOut_DoFData<dim,dim>::DataVectorType::type_cell_data);
 
                 std::vector<unsigned int> active_fe_indices;
                 dg_u->dof_handler.get_active_fe_indices(active_fe_indices);
                 dealii::Vector<double> active_fe_indices_dealiivector(active_fe_indices.begin(), active_fe_indices.end());
                 dealii::Vector<double> cell_poly_degree = active_fe_indices_dealiivector;
 
-                data_out.add_data_vector(active_fe_indices_dealiivector, "PolynomialDegree", dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim>::DataVectorType::type_cell_data);
+                data_out.add_data_vector(active_fe_indices_dealiivector, "PolynomialDegree", dealii::DataOut_DoFData<dim,dim>::DataVectorType::type_cell_data);
 
                 std::vector<std::string> solution_names_u;
                 std::vector<std::string> solution_names_v;
@@ -675,19 +675,19 @@ int DiffusionExactAdjoint<dim,nstate>::run_test() const
                     adjoint_names_v.push_back(varname3_v);
                 }
 
-                data_out.add_data_vector(dg_u->solution, solution_names_u, dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim>::DataVectorType::type_dof_data);
-                data_out.add_data_vector(dg_v->solution, solution_names_v, dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim>::DataVectorType::type_dof_data);
-                data_out.add_data_vector(dg_u->right_hand_side, residual_names_u, dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim>::DataVectorType::type_dof_data);
-                data_out.add_data_vector(dg_v->right_hand_side, residual_names_v, dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim>::DataVectorType::type_dof_data);
-                data_out.add_data_vector(adj_u.dIdw_coarse, dIdw_names_u, dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim>::DataVectorType::type_dof_data);
-                data_out.add_data_vector(adj_v.dIdw_coarse, dIdw_names_v, dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim>::DataVectorType::type_dof_data);
-                data_out.add_data_vector(adj_u.adjoint_coarse, adjoint_names_u, dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim>::DataVectorType::type_dof_data);
-                data_out.add_data_vector(adj_v.adjoint_coarse, adjoint_names_v, dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim>::DataVectorType::type_dof_data);
+                data_out.add_data_vector(dg_u->solution, solution_names_u, dealii::DataOut_DoFData<dim,dim>::DataVectorType::type_dof_data);
+                data_out.add_data_vector(dg_v->solution, solution_names_v, dealii::DataOut_DoFData<dim,dim>::DataVectorType::type_dof_data);
+                data_out.add_data_vector(dg_u->right_hand_side, residual_names_u, dealii::DataOut_DoFData<dim,dim>::DataVectorType::type_dof_data);
+                data_out.add_data_vector(dg_v->right_hand_side, residual_names_v, dealii::DataOut_DoFData<dim,dim>::DataVectorType::type_dof_data);
+                data_out.add_data_vector(adj_u.dIdw_coarse, dIdw_names_u, dealii::DataOut_DoFData<dim,dim>::DataVectorType::type_dof_data);
+                data_out.add_data_vector(adj_v.dIdw_coarse, dIdw_names_v, dealii::DataOut_DoFData<dim,dim>::DataVectorType::type_dof_data);
+                data_out.add_data_vector(adj_u.adjoint_coarse, adjoint_names_u, dealii::DataOut_DoFData<dim,dim>::DataVectorType::type_dof_data);
+                data_out.add_data_vector(adj_v.adjoint_coarse, adjoint_names_v, dealii::DataOut_DoFData<dim,dim>::DataVectorType::type_dof_data);
 
-                data_out.add_data_vector(cellError_soln_u, "soln_u_err", dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim>::DataVectorType::type_cell_data);
-                data_out.add_data_vector(cellError_soln_v, "soln_v_err", dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim>::DataVectorType::type_cell_data);
-                data_out.add_data_vector(cellError_adj_u, "adj_u_err", dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim>::DataVectorType::type_cell_data);
-                data_out.add_data_vector(cellError_adj_v, "adj_v_err", dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim>::DataVectorType::type_cell_data);
+                data_out.add_data_vector(cellError_soln_u, "soln_u_err", dealii::DataOut_DoFData<dim,dim>::DataVectorType::type_cell_data);
+                data_out.add_data_vector(cellError_soln_v, "soln_v_err", dealii::DataOut_DoFData<dim,dim>::DataVectorType::type_cell_data);
+                data_out.add_data_vector(cellError_adj_u, "adj_u_err", dealii::DataOut_DoFData<dim,dim>::DataVectorType::type_cell_data);
+                data_out.add_data_vector(cellError_adj_v, "adj_v_err", dealii::DataOut_DoFData<dim,dim>::DataVectorType::type_cell_data);
 
                 const int iproc = dealii::Utilities::MPI::this_mpi_process(mpi_communicator);
                 data_out.build_patches();

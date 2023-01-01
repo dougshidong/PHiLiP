@@ -54,10 +54,6 @@ namespace Tests {
 template <int dim, typename real>
 class ManufacturedSolutionU : public ManufacturedSolutionFunction <dim, real>
 {
-protected:
-    using dealii::Function<dim,real>::value;
-    using dealii::Function<dim,real>::gradient;
-    using dealii::Function<dim,real>::hessian;
 public:
     /// constructor
     ManufacturedSolutionU(){}
@@ -79,10 +75,6 @@ public:
 template <int dim, typename real>
 class ManufacturedSolutionV : public ManufacturedSolutionFunction <dim, real>
 {
-protected:
-    using dealii::Function<dim,real>::value;
-    using dealii::Function<dim,real>::gradient;
-    using dealii::Function<dim,real>::hessian;
 public:
     /// constructor
     ManufacturedSolutionV(){}

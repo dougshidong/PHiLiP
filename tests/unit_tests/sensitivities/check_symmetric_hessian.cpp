@@ -63,7 +63,8 @@ int test (
     std::shared_ptr <Physics::PhysicsBase<dim,nstate,double>> physics_double = Physics::PhysicsFactory<dim, nstate, double>::create_Physics(&all_parameters);
     dealii::LinearAlgebra::distributed::Vector<double> solution_no_ghost;
     solution_no_ghost.reinit(dg->locally_owned_dofs, MPI_COMM_WORLD);
-    dealii::VectorTools::interpolate(*(dg->high_order_grid->mapping_fe_field), dg->dof_handler, *(physics_double->manufactured_solution_function), solution_no_ghost);
+    ManufacturedSolutionFunctiondealii<dim> manufactured_solution_dealii(physics_double->manufactured_solution_function);
+    dealii::VectorTools::interpolate(*(dg->high_order_grid->mapping_fe_field), dg->dof_handler, manufactured_solution_dealii, solution_no_ghost);
     dg->solution = solution_no_ghost;
 
     bool compute_dRdW, compute_dRdX, compute_d2R;

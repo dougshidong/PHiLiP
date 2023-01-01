@@ -120,14 +120,14 @@ int main (int argc, char * argv[])
                         std::cout << "Previous matrix given by "<< path << "  did not match current one." << std::endl;
 
                         if (nrows < 15) {
-                            FullMatrix<double> fullA(nrows);
+                            dealii::FullMatrix<double> fullA(nrows);
                             fullA.copy_from(dg->system_matrix);
                             std::cout<<"CURRENT MATRIX:"<<std::endl;
                             fullA.print_formatted(std::cout, 3, true, 10, "0", 1., 0.);
                             std::cout<<std::endl;
                             std::cout<<std::endl;
 
-                            FullMatrix<double> fullB(nrows);
+                            dealii::FullMatrix<double> fullB(nrows);
                             fullB.copy_from(sparse_mat_from_file);
                             std::cout<<"MATRIX FROM FILE:"<<std::endl;
                             fullB.print_formatted(std::cout, 3, true, 10, "0", 1., 0.);

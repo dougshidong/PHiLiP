@@ -1319,4 +1319,6 @@ template class ManufacturedSolutionFactory<PHILIP_DIM,FadType>;
 template class ManufacturedSolutionFactory<PHILIP_DIM,RadType>;
 template class ManufacturedSolutionFactory<PHILIP_DIM,FadFadType>;
 template class ManufacturedSolutionFactory<PHILIP_DIM,RadFadType>;
+
+template class ManufacturedSolutionFunctiondealii<PHILIP_DIM>;
 }

@@ -2,9 +2,9 @@
 #define __MANUFACTUREDSOLUTIONFUNCTION_H__
 
 #include <deal.II/lac/vector.h>
+#include <deal.II/base/function.h>
 
 #include "parameters/all_parameters.h"
-
 
 namespace PHiLiP {
 
@@ -550,6 +550,27 @@ public:
         ManufacturedSolutionEnum solution_type,
         int                      nstate);
 
+};
+
+/// Manufactured solution function derived from dealii::Function.
+/** Objects of this class can be passed to dealii functions (such as dealii::VectorTools::interpolate()) when needed.
+ *  @note As deal.II's Function cannot be compiled with an AD type, this class is hardcoded to double. 
+ */
+template <int dim>
+class ManufacturedSolutionFunctiondealii : public dealii::Function<dim, double>
+{
+    /// Pointer to ManufacturedSolutionFunction
+    std::shared_ptr<ManufacturedSolutionFunction<dim,double>> manufactured_solution_function;
+public:
+    /// Constructor
+    ManufacturedSolutionFunctiondealii(std::shared_ptr<ManufacturedSolutionFunction<dim,double>> _manufactured_solution_function)
+    : manufactured_solution_function(_manufactured_solution_function)
+    {}
+    /// Returns value of a component of manufactured solution at a point. Overrides dealii::Function::value().
+    double value (const dealii::Point<dim,double> &point, const unsigned int istate = 0) const override
+    {
+        return manufactured_solution_function->value(point, istate);
+    }
 };
 
 } // namespace PHiLiP

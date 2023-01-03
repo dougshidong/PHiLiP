@@ -3,6 +3,7 @@
 #include "flow_solver/flow_solver_cases/periodic_1D_unsteady.h"
 #include "physics/exact_solutions/exact_solution.h"
 #include "cmath"
+//#include "ode_solver/runge_kutta_ode_solver.h"
 
 namespace PHiLiP {
 namespace Tests {
@@ -58,9 +59,9 @@ template <int dim, int nstate>
 int TimeRefinementStudy<dim, nstate>::run_test() const
 {
 
-    double final_time = this->all_parameters->flow_solver_param.final_time;
-    double initial_time_step = this->all_parameters->ode_solver_param.initial_time_step;
-    int n_steps = round(final_time/initial_time_step);
+    const double final_time = this->all_parameters->flow_solver_param.final_time;
+    const double initial_time_step = this->all_parameters->ode_solver_param.initial_time_step;
+    const int n_steps = round(final_time/initial_time_step);
     if (n_steps * initial_time_step != final_time){
         pcout << "Error: final_time is not evenly divisible by initial_time_step!" << std::endl
               << "Remainder is " << fmod(final_time, initial_time_step)
@@ -69,8 +70,6 @@ int TimeRefinementStudy<dim, nstate>::run_test() const
     }
 
     int testfail = 0;
-    double expected_order =(double) this->all_parameters->ode_solver_param.runge_kutta_order;
-    double order_tolerance = 0.1;
 
     dealii::ConvergenceTable convergence_table;
     double L2_error_old = 0;
@@ -87,7 +86,7 @@ int TimeRefinementStudy<dim, nstate>::run_test() const
         static_cast<void>(flow_solver->run());
         
         //check L2 error
-        double L2_error = calculate_L2_error_at_final_time_wrt_function(flow_solver->dg, params, flow_solver->ode_solver->current_time);
+        const double L2_error = calculate_L2_error_at_final_time_wrt_function(flow_solver->dg, params, flow_solver->ode_solver->current_time);
         pcout << "Computed error is " << L2_error << std::endl;
 
         const double dt =  params.ode_solver_param.initial_time_step;
@@ -100,6 +99,8 @@ int TimeRefinementStudy<dim, nstate>::run_test() const
         convergence_table.evaluate_convergence_rates("L2_error", "dt", dealii::ConvergenceTable::reduction_rate_log2, 1);
 
         //Checking convergence order
+        const double expected_order = params.ode_solver_param.rk_order;
+        const double order_tolerance = 0.1;
         if (refinement > 0) {
             L2_error_conv_rate = -log(L2_error_old/L2_error)/log(refine_ratio);
             pcout << "Order at " << refinement << " is " << L2_error_conv_rate << std::endl;

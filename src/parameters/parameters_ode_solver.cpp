@@ -24,14 +24,14 @@ void ODESolverParam::declare_parameters (dealii::ParameterHandler &prm)
 
         prm.declare_entry("ode_solver_type", "implicit",
                           dealii::Patterns::Selection(
-                          " explicit | "
+                          " runge_kutta | "
                           " implicit | "
                           " rrk_explicit | "
                           " pod_galerkin | "
                           " pod_petrov_galerkin"),
                           "Type of ODE solver to use."
                           "Choices are "
-                          " <explicit | "
+                          " <runge_kutta | "
                           " implicit | "
                           " rrk_explicit | "
                           " pod_galerkin | "
@@ -82,14 +82,21 @@ void ODESolverParam::declare_parameters (dealii::ParameterHandler &prm)
                            "Initial desired time for outputting the solution every dt time intervals "
                            "at which we initialize the ODE solver with.");
 
-        prm.enter_subsection("explicit solver options");
-        {
-            prm.declare_entry("runge_kutta_order", "3",
-                              dealii::Patterns::Selection("1|3|4"),
-                              "Order for the Runge-Kutta explicit time advancement scheme."
-                              "Choices are <1|3|4>.");
-        }
-        prm.leave_subsection();
+        prm.declare_entry("runge_kutta_method", "ssprk3_ex",
+                          dealii::Patterns::Selection(
+                          " rk4_ex | "
+                          " ssprk3_ex | "
+                          " euler_ex | "
+                          " euler_im | "
+                          " dirk_2_im"),
+                          "Runge-kutta method to use. Methods with _ex are explicit, and with _im are implicit."
+                          "Choices are "
+                          " <rk4_ex | "
+                          " ssprk3_ex | "
+                          " euler_ex | "
+                          " euler_im | "
+                          " dirk_2_im>.");
+
     }
     prm.leave_subsection();
 }
@@ -100,17 +107,17 @@ void ODESolverParam::parse_parameters (dealii::ParameterHandler &prm)
     {
         const std::string output_string = prm.get("ode_output");
         if (output_string == "quiet")   ode_output = OutputEnum::quiet;
-        if (output_string == "verbose") ode_output = OutputEnum::verbose;
+        else if (output_string == "verbose") ode_output = OutputEnum::verbose;
 
         output_solution_every_x_steps = prm.get_integer("output_solution_every_x_steps");
         output_solution_every_dt_time_intervals = prm.get_double("output_solution_every_dt_time_intervals");
 
         const std::string solver_string = prm.get("ode_solver_type");
-        if (solver_string == "explicit") ode_solver_type = ODESolverEnum::explicit_solver;
-        if (solver_string == "implicit") ode_solver_type = ODESolverEnum::implicit_solver;
-        if (solver_string == "rrk_explicit") ode_solver_type = ODESolverEnum::rrk_explicit_solver;
-        if (solver_string == "pod_galerkin") ode_solver_type = ODESolverEnum::pod_galerkin_solver;
-        if (solver_string == "pod_petrov_galerkin") ode_solver_type = ODESolverEnum::pod_petrov_galerkin_solver;
+        if (solver_string == "runge_kutta")                 ode_solver_type = ODESolverEnum::runge_kutta_solver;
+        else if (solver_string == "implicit")               ode_solver_type = ODESolverEnum::implicit_solver;
+        else if (solver_string == "rrk_explicit")           ode_solver_type = ODESolverEnum::rrk_explicit_solver;
+        else if (solver_string == "pod_galerkin")           ode_solver_type = ODESolverEnum::pod_galerkin_solver;
+        else if (solver_string == "pod_petrov_galerkin")    ode_solver_type = ODESolverEnum::pod_petrov_galerkin_solver;
 
         nonlinear_steady_residual_tolerance  = prm.get_double("nonlinear_steady_residual_tolerance");
         nonlinear_max_iterations = prm.get_integer("nonlinear_max_iterations");
@@ -126,15 +133,34 @@ void ODESolverParam::parse_parameters (dealii::ParameterHandler &prm)
         initial_time = prm.get_double("initial_time");
         initial_iteration = prm.get_integer("initial_iteration");
         initial_desired_time_for_output_solution_every_dt_time_intervals = prm.get_double("initial_desired_time_for_output_solution_every_dt_time_intervals");
-
-        prm.enter_subsection("explicit solver options");
-        {
-            const std::string runge_kutta_order_string = prm.get("runge_kutta_order");
-            if (runge_kutta_order_string == "1") runge_kutta_order = 1;
-            if (runge_kutta_order_string == "3") runge_kutta_order = 3;
-            if (runge_kutta_order_string == "4") runge_kutta_order = 4;
+        
+        const std::string rk_method_string = prm.get("runge_kutta_method");
+        if (rk_method_string == "rk4_ex"){
+            runge_kutta_method = RKMethodEnum::rk4_ex;
+            n_rk_stages  = 4;
+            rk_order = 4;
         }
-        prm.leave_subsection();
+        else if (rk_method_string == "ssprk3_ex"){
+            runge_kutta_method = RKMethodEnum::ssprk3_ex;
+            n_rk_stages  = 3;
+            rk_order = 3;
+        }
+        else if (rk_method_string == "euler_ex"){
+            runge_kutta_method = RKMethodEnum::euler_ex;
+            n_rk_stages  = 1;
+            rk_order = 1;
+        }
+        else if (rk_method_string == "euler_im"){
+            runge_kutta_method = RKMethodEnum::euler_im;
+            n_rk_stages  = 1;
+            rk_order = 1;
+        }
+        else if (rk_method_string == "dirk_2_im"){
+            runge_kutta_method = RKMethodEnum::dirk_2_im;
+            n_rk_stages  = 2;
+            rk_order = 2;
+        }
+
     }
     prm.leave_subsection();
 }

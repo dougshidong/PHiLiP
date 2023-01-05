@@ -34,49 +34,53 @@ public:
     /// Destructor
     ~ReynoldsAveragedNavierStokes_SAneg() {};
 
+    static const int nstate_navier_stokes = dim+2;
+
+    static const int nstate_turbulence_model = nstate-(dim+2);
+
     /// Nondimensionalized Reynolds stress tensor, (tau^reynolds)*, for the negative SA model
     dealii::Tensor<2,dim,real> compute_Reynolds_stress_tensor (
-        const std::array<real,dim+2> &primitive_soln_rans,
-        const std::array<dealii::Tensor<1,dim,real>,dim+2> &primitive_soln_gradient_rans,
-        const std::array<real,nstate-(dim+2)> &primitive_soln_turbulence_model) const;
+        const std::array<real,nstate_navier_stokes> &primitive_soln_rans,
+        const std::array<dealii::Tensor<1,dim,real>,nstate_navier_stokes> &primitive_soln_gradient_rans,
+        const std::array<real,nstate_turbulence_model> &primitive_soln_turbulence_model) const;
 
     /// Nondimensionalized Reynolds heat flux, (q^reynolds)*, for the negative SA model
     dealii::Tensor<1,dim,real> compute_Reynolds_heat_flux (
-        const std::array<real,dim+2> &primitive_soln_rans,
-        const std::array<dealii::Tensor<1,dim,real>,dim+2> &primitive_soln_gradient_rans,
-        const std::array<real,nstate-(dim+2)> &primitive_soln_turbulence_model) const;
+        const std::array<real,nstate_navier_stokes> &primitive_soln_rans,
+        const std::array<dealii::Tensor<1,dim,real>,nstate_navier_stokes> &primitive_soln_gradient_rans,
+        const std::array<real,nstate_turbulence_model> &primitive_soln_turbulence_model) const;
 
     /// Nondimensionalized Reynolds stress tensor, (tau^reynolds)* (Automatic Differentiation Type: FadType), for the negative SA model
     dealii::Tensor<2,dim,FadType> compute_Reynolds_stress_tensor_fad (
-        const std::array<FadType,dim+2> &primitive_soln_rans,
-        const std::array<dealii::Tensor<1,dim,FadType>,dim+2> &primitive_soln_gradient_rans,
-        const std::array<FadType,nstate-(dim+2)> &primitive_soln_turbulence_model) const;
+        const std::array<FadType,nstate_navier_stokes> &primitive_soln_rans,
+        const std::array<dealii::Tensor<1,dim,FadType>,nstate_navier_stokes> &primitive_soln_gradient_rans,
+        const std::array<FadType,nstate_turbulence_model> &primitive_soln_turbulence_model) const;
 
     /// Nondimensionalized Reynolds heat flux, (q^reynolds)* (Automatic Differentiation Type: FadType), for the negative SA model
     dealii::Tensor<1,dim,FadType> compute_Reynolds_heat_flux_fad (
-        const std::array<FadType,dim+2> &primitive_soln_rans,
-        const std::array<dealii::Tensor<1,dim,FadType>,dim+2> &primitive_soln_gradient_rans,
-        const std::array<FadType,nstate-(dim+2)> &primitive_soln_turbulence_model) const;
+        const std::array<FadType,nstate_navier_stokes> &primitive_soln_rans,
+        const std::array<dealii::Tensor<1,dim,FadType>,nstate_navier_stokes> &primitive_soln_gradient_rans,
+        const std::array<FadType,nstate_turbulence_model> &primitive_soln_turbulence_model) const;
 
     /// Nondimensionalized eddy viscosity for the negative SA model
     real compute_eddy_viscosity(
-        const std::array<real,dim+2> &primitive_soln_rans,
-        const std::array<real,nstate-(dim+2)> &primitive_soln_turbulence_model) const;
+        const std::array<real,nstate_navier_stokes> &primitive_soln_rans,
+        const std::array<real,nstate_turbulence_model> &primitive_soln_turbulence_model) const;
 
     /// Nondimensionalized eddy viscosity for the negative SA model (Automatic Differentiation Type: FadType)
     FadType compute_eddy_viscosity_fad(
-        const std::array<FadType,dim+2> &primitive_soln_rans,
-        const std::array<FadType,nstate-(dim+2)> &primitive_soln_turbulence_model) const;
+        const std::array<FadType,nstate_navier_stokes> &primitive_soln_rans,
+        const std::array<FadType,nstate_turbulence_model> &primitive_soln_turbulence_model) const;
 
     /// Nondimensionalized effective (total) viscosities for the negative SA model
     std::array<real,nstate-(dim+2)> compute_effective_viscosity_turbulence_model (
-        const std::array<real,dim+2> &primitive_soln_rans,
-        const std::array<real,nstate-(dim+2)> &primitive_soln_turbulence_model) const;
+        const std::array<real,nstate_navier_stokes> &primitive_soln_rans,
+        const std::array<real,nstate_turbulence_model> &primitive_soln_turbulence_model) const;
 
     /// Nondimensionalized effective (total) viscosities for the negative SA model (Automatic Differentiation Type: FadType)
     std::array<FadType,nstate-(dim+2)> compute_effective_viscosity_turbulence_model_fad (
-        const std::array<FadType,dim+2> &primitive_soln_rans,
-        const std::array<FadType,nstate-(dim+2)> &primitive_soln_turbulence_model) const;
+        const std::array<FadType,nstate_navier_stokes> &primitive_soln_rans,
+        const std::array<FadType,nstate_turbulence_model> &primitive_soln_turbulence_model) const;
 
     /// Physical source term (production, dissipation source terms and source term with cross derivatives) for the negative SA model
     std::array<real,nstate> compute_production_dissipation_cross_term (
@@ -101,15 +105,15 @@ public:
 protected:
     /// Templated nondimensionalized Reynolds stress tensor, (tau^reynolds)* for the negative SA model
     template<typename real2> dealii::Tensor<2,dim,real2> compute_Reynolds_stress_tensor_templated (
-        const std::array<real2,dim+2> &primitive_soln_rans,
-        const std::array<dealii::Tensor<1,dim,real2>,dim+2> &primitive_soln_gradient_rans,
-        const std::array<real2,nstate-(dim+2)> &primitive_soln_turbulence_model) const;
+        const std::array<real2,nstate_navier_stokes> &primitive_soln_rans,
+        const std::array<dealii::Tensor<1,dim,real2>,nstate_navier_stokes> &primitive_soln_gradient_rans,
+        const std::array<real2,nstate_turbulence_model> &primitive_soln_turbulence_model) const;
 
     /// Templated nondimensionalized Reynolds heat flux, (q^reynolds)* for the negative SA model
     template<typename real2> dealii::Tensor<1,dim,real2> compute_Reynolds_heat_flux_templated (
-        const std::array<real2,dim+2> &primitive_soln_rans,
-        const std::array<dealii::Tensor<1,dim,real2>,dim+2> &primitive_soln_gradient_rans,
-        const std::array<real2,nstate-(dim+2)> &primitive_soln_turbulence_model) const;
+        const std::array<real2,nstate_navier_stokes> &primitive_soln_rans,
+        const std::array<dealii::Tensor<1,dim,real2>,nstate_navier_stokes> &primitive_soln_gradient_rans,
+        const std::array<real2,nstate_turbulence_model> &primitive_soln_turbulence_model) const;
 
     /// Templated nondimensionalized variables scaled by reynolds_number_inf for the negative SA model
     template<typename real2> real2 scale_coefficient(
@@ -153,16 +157,16 @@ private:
      *  eq.(1)
      */ 
     template<typename real2> real2 compute_eddy_viscosity_templated(
-        const std::array<real2,dim+2> &primitive_soln_rans,
-        const std::array<real2,nstate-(dim+2)> &primitive_soln_turbulence_model) const;
+        const std::array<real2,nstate_navier_stokes> &primitive_soln_rans,
+        const std::array<real2,nstate_turbulence_model> &primitive_soln_turbulence_model) const;
 
     /// Templated nondimensionalized effective (total) viscosities for the negative SA model
     /** Reference: Steven R. Allmaras. (2012). "Modifications and Clarifications for the Implementation of the Spalart-Allmaras Turbulence Model."
      *  eq.(14)
      */ 
     template<typename real2> std::array<real2,nstate-(dim+2)> compute_effective_viscosity_turbulence_model_templated (
-        const std::array<real2,dim+2> &primitive_soln_rans,
-        const std::array<real2,nstate-(dim+2)> &primitive_soln_turbulence_model) const;
+        const std::array<real2,nstate_navier_stokes> &primitive_soln_rans,
+        const std::array<real2,nstate_turbulence_model> &primitive_soln_turbulence_model) const;
 
     /// Templated coefficient Chi for the negative SA model
     /** Reference: Steven R. Allmaras. (2012). "Modifications and Clarifications for the Implementation of the Spalart-Allmaras Turbulence Model."
@@ -226,8 +230,8 @@ private:
 
     /// Vorticity magnitude for the negative SA model, sqrt(vorticity_x^2+vorticity_y^2+vorticity_z^2)
     real compute_s (
-        const std::array<real,dim+2> &conservative_soln_rans,
-        const std::array<dealii::Tensor<1,dim,real>,dim+2> &conservative_soln_gradient_rans) const;
+        const std::array<real,nstate_navier_stokes> &conservative_soln_rans,
+        const std::array<dealii::Tensor<1,dim,real>,nstate_navier_stokes> &conservative_soln_gradient_rans) const;
 
     /// Correction of vorticity magnitude for the negative SA model
     /** Reference: Steven R. Allmaras. (2012). "Modifications and Clarifications for the Implementation of the Spalart-Allmaras Turbulence Model."
@@ -280,8 +284,8 @@ private:
         const real density,
         const real nu_tilde,
         const real laminar_kinematic_viscosity,
-        const std::array<dealii::Tensor<1,dim,real>,dim+2> &primitive_soln_gradient_rans,
-        const std::array<dealii::Tensor<1,dim,real>,nstate-(dim+2)> &primitive_solution_gradient_turbulence_model) const;
+        const std::array<dealii::Tensor<1,dim,real>,nstate_navier_stokes> &primitive_soln_gradient_rans,
+        const std::array<dealii::Tensor<1,dim,real>,nstate_turbulence_model> &primitive_solution_gradient_turbulence_model) const;
 
     /** Constant coefficients for the negative SA model
      *  Reference: Steven R. Allmaras. (2012). "Modifications and Clarifications for the Implementation of the Spalart-Allmaras Turbulence Model."

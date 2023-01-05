@@ -31,11 +31,15 @@ public:
     /// Destructor
     ~ReynoldsAveragedNavierStokesBase() {};
 
+    static const int nstate_navier_stokes = dim+2;
+
+    static const int nstate_turbulence_model = nstate-(dim+2);
+
     /// Turbulent Prandtl number
     const double turbulent_prandtl_number;
 
     /// Pointer to Navier-Stokes physics object
-    std::unique_ptr< NavierStokes<dim,dim+2,real> > navier_stokes_physics;
+    std::unique_ptr< NavierStokes<dim,nstate_navier_stokes,real> > navier_stokes_physics;
 
     /// Additional convective flux of RANS + convective flux of turbulence model
     std::array<dealii::Tensor<1,dim,real>,nstate> convective_flux (
@@ -76,37 +80,37 @@ public:
 
     /// Nondimensionalized Reynolds stress tensor, (tau^reynolds)*
     virtual dealii::Tensor<2,dim,real> compute_Reynolds_stress_tensor (
-        const std::array<real,dim+2> &primitive_soln_rans,
-        const std::array<dealii::Tensor<1,dim,real>,dim+2> &primitive_soln_gradient_rans,
-        const std::array<real,nstate-(dim+2)> &primitive_soln_turbulence_model) const = 0;
+        const std::array<real,nstate_navier_stokes> &primitive_soln_rans,
+        const std::array<dealii::Tensor<1,dim,real>,nstate_navier_stokes> &primitive_soln_gradient_rans,
+        const std::array<real,nstate_turbulence_model> &primitive_soln_turbulence_model) const = 0;
 
     /// Nondimensionalized Reynolds heat flux, (q^reynolds)*
     virtual dealii::Tensor<1,dim,real> compute_Reynolds_heat_flux (
-        const std::array<real,dim+2> &primitive_soln_rans,
-        const std::array<dealii::Tensor<1,dim,real>,dim+2> &primitive_soln_gradient_rans,
-        const std::array<real,nstate-(dim+2)> &primitive_soln_turbulence_model) const = 0;
+        const std::array<real,nstate_navier_stokes> &primitive_soln_rans,
+        const std::array<dealii::Tensor<1,dim,real>,nstate_navier_stokes> &primitive_soln_gradient_rans,
+        const std::array<real,nstate_turbulence_model> &primitive_soln_turbulence_model) const = 0;
 
     /// Nondimensionalized Reynolds stress tensor, (tau^reynolds)* (Automatic Differentiation Type: FadType)
     virtual dealii::Tensor<2,dim,FadType> compute_Reynolds_stress_tensor_fad (
-        const std::array<FadType,dim+2> &primitive_soln_rans,
-        const std::array<dealii::Tensor<1,dim,FadType>,dim+2> &primitive_soln_gradient_rans,
-        const std::array<FadType,nstate-(dim+2)> &primitive_soln_turbulence_model) const = 0;
+        const std::array<FadType,nstate_navier_stokes> &primitive_soln_rans,
+        const std::array<dealii::Tensor<1,dim,FadType>,nstate_navier_stokes> &primitive_soln_gradient_rans,
+        const std::array<FadType,nstate_turbulence_model> &primitive_soln_turbulence_model) const = 0;
 
     /// Nondimensionalized Reynolds heat flux, (q^reynolds)* (Automatic Differentiation Type: FadType)
     virtual dealii::Tensor<1,dim,FadType> compute_Reynolds_heat_flux_fad (
-        const std::array<FadType,dim+2> &primitive_soln_rans,
-        const std::array<dealii::Tensor<1,dim,FadType>,dim+2> &primitive_soln_gradient_rans,
-        const std::array<FadType,nstate-(dim+2)> &primitive_soln_turbulence_model) const = 0;
+        const std::array<FadType,nstate_navier_stokes> &primitive_soln_rans,
+        const std::array<dealii::Tensor<1,dim,FadType>,nstate_navier_stokes> &primitive_soln_gradient_rans,
+        const std::array<FadType,nstate_turbulence_model> &primitive_soln_turbulence_model) const = 0;
 
     /// Nondimensionalized effective (total) viscosities for the turbulence model
-    virtual std::array<real,nstate-(dim+2)> compute_effective_viscosity_turbulence_model (
-        const std::array<real,dim+2> &primitive_soln_rans,
-        const std::array<real,nstate-(dim+2)> &primitive_soln_turbulence_model) const = 0;
+    virtual std::array<real,nstate_turbulence_model> compute_effective_viscosity_turbulence_model (
+        const std::array<real,nstate_navier_stokes> &primitive_soln_rans,
+        const std::array<real,nstate_turbulence_model> &primitive_soln_turbulence_model) const = 0;
 
     /// Nondimensionalized effective (total) viscosities for the turbulence model (Automatic Differentiation Type: FadType)
-    virtual std::array<FadType,nstate-(dim+2)> compute_effective_viscosity_turbulence_model_fad (
-        const std::array<FadType,dim+2> &primitive_soln_rans,
-        const std::array<FadType,nstate-(dim+2)> &primitive_soln_turbulence_model) const = 0;
+    virtual std::array<FadType,nstate_turbulence_model> compute_effective_viscosity_turbulence_model_fad (
+        const std::array<FadType,nstate_navier_stokes> &primitive_soln_rans,
+        const std::array<FadType,nstate_turbulence_model> &primitive_soln_turbulence_model) const = 0;
 
     /// Physical source term (production, dissipation source terms and source term with cross derivatives) in the turbulence model
     virtual std::array<real,nstate> compute_production_dissipation_cross_term (
@@ -148,9 +152,9 @@ protected:
     /// Templated Additional viscous flux of RANS + viscous flux of turbulence model
     template <typename real2>
     std::array<dealii::Tensor<1,dim,real2>,nstate-(dim+2)> dissipative_flux_turbulence_model (
-        const std::array<real2,dim+2> &primitive_soln_rans,
-        const std::array<real2,nstate-(dim+2)> &primitive_soln_turbulence_model,
-        const std::array<dealii::Tensor<1,dim,real2>,nstate-(dim+2)> &primitive_solution_gradient_turbulence_model) const;
+        const std::array<real2,nstate_navier_stokes> &primitive_soln_rans,
+        const std::array<real2,nstate_turbulence_model> &primitive_soln_turbulence_model,
+        const std::array<dealii::Tensor<1,dim,real2>,nstate_turbulence_model> &primitive_solution_gradient_turbulence_model) const;
 
     /// Given conservative variables of turbulence model
     /// Return primitive variables of turbulence model

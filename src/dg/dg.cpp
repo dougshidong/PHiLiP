@@ -1842,7 +1842,7 @@ void DGBase<dim,real,MeshType>::output_face_results_vtk (const unsigned int cycl
     data_out.build_patches(mapping, n_subdivisions);
     //const bool write_higher_order_cells = (dim>1 && max_degree > 1) ? true : false;
     const bool write_higher_order_cells = false;//(dim>1 && grid_degree > 1) ? true : false;
-    dealii::DataOutBase::VtkFlags vtkflags(current_time,cycle,true,dealii::DataOutBase::CompressionLevel::best_compression,write_higher_order_cells);
+    dealii::DataOutBase::VtkFlags vtkflags(current_time,cycle,true,dealii::DataOutBase::VtkFlags::ZlibCompressionLevel::best_compression,write_higher_order_cells);
     data_out.set_flags(vtkflags);
 
     const int iproc = dealii::Utilities::MPI::this_mpi_process(mpi_communicator);
@@ -1958,7 +1958,7 @@ void DGBase<dim,real,MeshType>::output_results_vtk (const unsigned int cycle, co
     const int n_subdivisions = (enable_higher_order_vtk_output) ? std::max(grid_degree,get_max_fe_degree()) : 0;
     data_out.build_patches(mapping, n_subdivisions, curved);
     const bool write_higher_order_cells = (n_subdivisions>1) ? true : false;
-    dealii::DataOutBase::VtkFlags vtkflags(current_time,cycle,true,dealii::DataOutBase::CompressionLevel::best_compression,write_higher_order_cells);
+    dealii::DataOutBase::VtkFlags vtkflags(current_time,cycle,true,dealii::DataOutBase::VtkFlags::ZlibCompressionLevel::best_compression,write_higher_order_cells);
     data_out.set_flags(vtkflags);
 
     const int iproc = dealii::Utilities::MPI::this_mpi_process(mpi_communicator);

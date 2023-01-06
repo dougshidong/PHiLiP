@@ -51,8 +51,7 @@ void GridStudy<dim,nstate>
     dealii::LinearAlgebra::distributed::Vector<double> solution_no_ghost;
     solution_no_ghost.reinit(dg.locally_owned_dofs, MPI_COMM_WORLD);
     const auto mapping = (*(dg.high_order_grid->mapping_fe_field));
-    ManufacturedSolutionFunctiondealii<dim> manufactured_solution_dealii(physics.manufactured_solution_function);
-    dealii::VectorTools::interpolate(mapping, dg.dof_handler, manufactured_solution_dealii, solution_no_ghost);
+    dealii::VectorTools::interpolate(mapping, dg.dof_handler, *physics.manufactured_solution_function, solution_no_ghost);
     //solution_no_ghost *= 1.0+1e-3;
     //solution_no_ghost = 0.0;
     //int i = 0;

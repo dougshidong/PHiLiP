@@ -206,8 +206,7 @@ int GridRefinementStudy<dim,nstate,MeshType>::run_test() const
             }else{
                 dealii::LinearAlgebra::distributed::Vector<double> solution_no_ghost;
                 solution_no_ghost.reinit(dg->locally_owned_dofs, MPI_COMM_WORLD);
-                ManufacturedSolutionFunctiondealii<dim> manufactured_solution_dealii(physics_double->manufactured_solution_function);
-                dealii::VectorTools::interpolate(dg->dof_handler, manufactured_solution_dealii, solution_no_ghost);
+                dealii::VectorTools::interpolate(dg->dof_handler, *(physics_double->manufactured_solution_function), solution_no_ghost);
                 dg->solution = solution_no_ghost;
             }
             auto solve_end = std::chrono::steady_clock::now();
@@ -498,8 +497,7 @@ double GridRefinementStudy<dim,nstate,MeshType>::approximate_exact_functional(
     std::cout << "Performing solution transfer." << std::endl;
     dealii::LinearAlgebra::distributed::Vector<double> solution_no_ghost;
     solution_no_ghost.reinit(dg_fine->locally_owned_dofs, MPI_COMM_WORLD);
-    ManufacturedSolutionFunctiondealii<dim> manufactured_solution_dealii(physics_double->manufactured_solution_function);
-    dealii::VectorTools::interpolate(dg_fine->dof_handler, manufactured_solution_dealii, solution_no_ghost);
+    dealii::VectorTools::interpolate(dg_fine->dof_handler, *(physics_double->manufactured_solution_function), solution_no_ghost);
     dg_fine->solution = solution_no_ghost;
 
     // creating a functional

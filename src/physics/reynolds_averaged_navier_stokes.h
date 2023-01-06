@@ -51,12 +51,15 @@ public:
         const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient,
         const dealii::types::global_dof_index cell_index) const;
 
-    /// Convective eigenvalues
+    /// Convective eigenvalues of the additional models' PDEs
+    /** For RANS model, all entries of the baseline physics are assigned to be zero 
+     *                  all entries of the turbulence model are assigned to be the corresponding eigenvalues*/
     std::array<real,nstate> convective_eigenvalues (
         const std::array<real,nstate> &/*conservative_soln*/,
         const dealii::Tensor<1,dim,real> &/*normal*/) const;
 
-    /// Maximum convective eigenvalue used in Lax-Friedrichs
+    /// Maximum convective eigenvalue of the additional models' PDEs
+    /** For RANS model, this value is assigned to be the maximum eigenvalues of the turbulence model */
     real max_convective_eigenvalue (const std::array<real,nstate> &soln) const;
 
     /// Source term for manufactured solution functions

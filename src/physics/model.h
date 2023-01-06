@@ -45,13 +45,15 @@ public:
     	const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient,
         const dealii::types::global_dof_index cell_index) const = 0;
 
-    /// Convective eigenvalues of the total convective flux (i.e. that which includes both the baseline physics terms and additional terms from the model)
-    /** Used for scalar dissipation */
+    /// Convective eigenvalues of the additional models' PDEs
+    /** Note: Only support for zero convective term additional to the baseline physics 
+      *       The entries of the baseline physics are assigned to be zero */
     virtual std::array<real,nstate> convective_eigenvalues (
         const std::array<real,nstate> &/*solution*/,
         const dealii::Tensor<1,dim,real> &/*normal*/) const = 0;
 
-    /// Maximum convective eigenvalue for the total convective flux (i.e. that which includes both the baseline physics terms and additional terms from the model)
+    /// Maximum convective eigenvalue of the additional models' PDEs
+    /** Note: Only support for zero convective term additional to the baseline physics */
     virtual real max_convective_eigenvalue (const std::array<real,nstate> &soln) const = 0;
 
     /// Physical source terms additional to the baseline physics (including physical source terms in additional PDEs of model)

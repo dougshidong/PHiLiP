@@ -51,12 +51,14 @@ public:
         const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient,
         const dealii::types::global_dof_index cell_index) const;
 
-    /// Spectral radius of convective term Jacobian
+    /// Convective eigenvalues of the additional models' PDEs
+    /** For LES model, all entries are assigned to be zero */
     std::array<real,nstate> convective_eigenvalues (
         const std::array<real,nstate> &/*conservative_soln*/,
         const dealii::Tensor<1,dim,real> &/*normal*/) const override;
 
-    /// Maximum convective eigenvalue used in Lax-Friedrichs
+    /// Maximum convective eigenvalue of the additional models' PDEs
+    /** For LES model, this value is assigned to be zero */
     real max_convective_eigenvalue (const std::array<real,nstate> &soln) const;
 
     /// Source term for manufactured solution functions

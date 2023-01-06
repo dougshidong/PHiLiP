@@ -111,7 +111,7 @@ void GridRefinement_FixedFraction<dim,nstate,real,MeshType>::refine_grid_p()
         if(cell->is_locally_owned())
             if(cell->refine_flag_set()){
                 cell->clear_refine_flag();
-                if((unsigned int)cell->active_fe_index()+1 <= this->dg->max_degree)
+                if(cell->active_fe_index()+1 <= this->dg->max_degree)
                     cell->set_active_fe_index(cell->active_fe_index()+1);
             }
 }
@@ -125,7 +125,7 @@ void GridRefinement_FixedFraction<dim,nstate,real,MeshType>::refine_grid_hp()
     // will start with an h_refinement call and then looping over flags
     refine_grid_h();
     for(auto cell = this->dg->dof_handler.begin_active(); cell != this->dg->dof_handler.end(); ++cell)
-        if(cell->is_locally_owned() && (unsigned int)cell->active_fe_index()+1 <= this->dg->max_degree)
+        if(cell->is_locally_owned() && cell->active_fe_index()+1 <= this->dg->max_degree)
             if(cell->refine_flag_set()){
                 
                 // perform the h/p decision making

@@ -47,7 +47,7 @@ public:
 
     /// Convective eigenvalues of the additional models' PDEs
     /** Note: Only support for zero convective term additional to the baseline physics 
-      *       The entries of the baseline physics are assigned to be zero */
+      *       The entries associated with baseline physics are assigned to be zero */
     virtual std::array<real,nstate> convective_eigenvalues (
         const std::array<real,nstate> &/*solution*/,
         const dealii::Tensor<1,dim,real> &/*normal*/) const = 0;

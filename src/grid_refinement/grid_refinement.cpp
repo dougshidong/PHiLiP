@@ -52,7 +52,7 @@ template <int dim, int nstate, typename real, typename MeshType>
 void GridRefinementBase<dim,nstate,real,MeshType>::output_results_vtk(const unsigned int iref)
 {
     // creating the data out stream
-    dealii::DataOut<dim, dealii::DoFHandler<dim>> data_out;
+    dealii::DataOut<dim> data_out;
     data_out.attach_dof_handler(dg->dof_handler);
 
     // dg should always be valid
@@ -97,7 +97,7 @@ void GridRefinementBase<dim,nstate,real,MeshType>::output_results_vtk(const unsi
         data_out.add_data_vector(
             data_out_vector[index].first,
             data_out_vector[index].second,
-            dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim>::DataVectorType::type_cell_data);
+            dealii::DataOut_DoFData<dim,dim>::DataVectorType::type_cell_data);
     }
 
     // performing the ouput on each core
@@ -107,8 +107,8 @@ void GridRefinementBase<dim,nstate,real,MeshType>::output_results_vtk(const unsi
     data_out.build_patches();
 
     // curved
-    // typename dealii::DataOut<dim,dealii::DoFHandler<dim>>::CurvedCellRegion curved 
-    //     = dealii::DataOut<dim,dealii::DoFHandler<dim>>::CurvedCellRegion::curved_inner_cells;
+    // typename dealii::DataOut<dim>::CurvedCellRegion curved 
+    //     = dealii::DataOut<dim>::CurvedCellRegion::curved_inner_cells;
     // const dealii::Mapping<dim> &mapping = (*(dg->high_order_grid.mapping_fe_field));
     // const int n_subdivisions = dg->max_degree;
     // data_out.build_patches(mapping, n_subdivisions, curved);
@@ -148,7 +148,7 @@ void GridRefinementBase<dim,nstate,real,MeshType>::output_results_vtk(const unsi
 
 template <int dim, int nstate, typename real, typename MeshType>
 void GridRefinementBase<dim,nstate,real,MeshType>::output_results_vtk_dg(
-    dealii::DataOut<dim, dealii::DoFHandler<dim>> &    data_out,
+    dealii::DataOut<dim> &    data_out,
     std::shared_ptr< dealii::DataPostprocessor<dim> > &post_processor,
     dealii::Vector<float> &                            subdomain,
     std::vector<unsigned int> &                        active_fe_indices,
@@ -162,26 +162,26 @@ void GridRefinementBase<dim,nstate,real,MeshType>::output_results_vtk_dg(
     for (unsigned int i = 0; i < subdomain.size(); ++i) {
         subdomain(i) = dg->triangulation->locally_owned_subdomain();
     }
-    data_out.add_data_vector(subdomain, "subdomain", dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim>::DataVectorType::type_cell_data);
+    data_out.add_data_vector(subdomain, "subdomain", dealii::DataOut_DoFData<dim,dim>::DataVectorType::type_cell_data);
 
     // Output the polynomial degree in each cell
     dg->dof_handler.get_active_fe_indices(active_fe_indices);
     dealii::Vector<double> active_fe_indices_dealiivector(active_fe_indices.begin(), active_fe_indices.end());
     cell_poly_degree = active_fe_indices_dealiivector;
 
-    data_out.add_data_vector(cell_poly_degree, "PolynomialDegree", dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim>::DataVectorType::type_cell_data);
+    data_out.add_data_vector(cell_poly_degree, "PolynomialDegree", dealii::DataOut_DoFData<dim,dim>::DataVectorType::type_cell_data);
 
     for(int s=0;s<nstate;++s) {
         std::string varname = "residual" + dealii::Utilities::int_to_string(s,1);
         residual_names.push_back(varname);
     }
 
-    data_out.add_data_vector(dg->right_hand_side, residual_names, dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim>::DataVectorType::type_dof_data);
+    data_out.add_data_vector(dg->right_hand_side, residual_names, dealii::DataOut_DoFData<dim,dim>::DataVectorType::type_dof_data);
 }
 
 template <int dim, int nstate, typename real, typename MeshType>
 void GridRefinementBase<dim,nstate,real,MeshType>::output_results_vtk_functional(
-    dealii::DataOut<dim, dealii::DoFHandler<dim>> &data_out)
+    dealii::DataOut<dim> &data_out)
 {
     // nothing here for now, could plot the contributions or weighting function
     (void) data_out;
@@ -189,7 +189,7 @@ void GridRefinementBase<dim,nstate,real,MeshType>::output_results_vtk_functional
 
 template <int dim, int nstate, typename real, typename MeshType>
 void GridRefinementBase<dim,nstate,real,MeshType>::output_results_vtk_physics(
-    dealii::DataOut<dim, dealii::DoFHandler<dim>> &data_out)
+    dealii::DataOut<dim> &data_out)
 {
     // TODO: plot the function value, gradient, tensor, etc.
     (void) data_out;
@@ -197,7 +197,7 @@ void GridRefinementBase<dim,nstate,real,MeshType>::output_results_vtk_physics(
 
 template <int dim, int nstate, typename real, typename MeshType>
 void GridRefinementBase<dim,nstate,real,MeshType>::output_results_vtk_adjoint(
-    dealii::DataOut<dim, dealii::DoFHandler<dim>> &data_out,
+    dealii::DataOut<dim> &data_out,
     std::vector<std::string> &                     dIdw_names_coarse,
     std::vector<std::string> &                     adjoint_names_coarse,
     std::vector<std::string> &                     dIdw_names_fine,
@@ -211,13 +211,13 @@ void GridRefinementBase<dim,nstate,real,MeshType>::output_results_vtk_adjoint(
         std::string varname = "dIdw" + dealii::Utilities::int_to_string(s,1) + "_coarse";
         dIdw_names_coarse.push_back(varname);
     }
-    data_out.add_data_vector(adjoint->dIdw_coarse, dIdw_names_coarse, dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim>::DataVectorType::type_dof_data);
+    data_out.add_data_vector(adjoint->dIdw_coarse, dIdw_names_coarse, dealii::DataOut_DoFData<dim,dim>::DataVectorType::type_dof_data);
 
     for(int s=0;s<nstate;++s) {
         std::string varname = "psi" + dealii::Utilities::int_to_string(s,1) + "_coarse";
         adjoint_names_coarse.push_back(varname);
     }
-    data_out.add_data_vector(adjoint->adjoint_coarse, adjoint_names_coarse, dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim>::DataVectorType::type_dof_data);
+    data_out.add_data_vector(adjoint->adjoint_coarse, adjoint_names_coarse, dealii::DataOut_DoFData<dim,dim>::DataVectorType::type_dof_data);
 
     // next for fine grid results
     adjoint->fine_grid_adjoint();
@@ -227,15 +227,15 @@ void GridRefinementBase<dim,nstate,real,MeshType>::output_results_vtk_adjoint(
         std::string varname = "dIdw" + dealii::Utilities::int_to_string(s,1) + "_fine";
         dIdw_names_fine.push_back(varname);
     }
-    // data_out.add_data_vector(adjoint->dIdw_fine, dIdw_names_fine, dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim>::DataVectorType::type_dof_data);
+    // data_out.add_data_vector(adjoint->dIdw_fine, dIdw_names_fine, dealii::DataOut_DoFData<dim,dim>::DataVectorType::type_dof_data);
 
     for(int s=0;s<nstate;++s) {
         std::string varname = "psi" + dealii::Utilities::int_to_string(s,1) + "_fine";
         adjoint_names_fine.push_back(varname);
     }
-    // data_out.add_data_vector(adjoint->adjoint_fine, adjoint_names_fine, dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim>::DataVectorType::type_dof_data);
+    // data_out.add_data_vector(adjoint->adjoint_fine, adjoint_names_fine, dealii::DataOut_DoFData<dim,dim>::DataVectorType::type_dof_data);
     
-    data_out.add_data_vector(adjoint->dual_weighted_residual_fine, "DWR", dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim>::DataVectorType::type_cell_data);
+    data_out.add_data_vector(adjoint->dual_weighted_residual_fine, "DWR", dealii::DataOut_DoFData<dim,dim>::DataVectorType::type_cell_data);
 
     // returning to original state
     adjoint->convert_to_state(PHiLiP::Adjoint<dim,nstate,double,MeshType>::AdjointStateEnum::coarse);
@@ -243,7 +243,7 @@ void GridRefinementBase<dim,nstate,real,MeshType>::output_results_vtk_adjoint(
 
 template <int dim, int nstate, typename real, typename MeshType>
 void GridRefinementBase<dim,nstate,real,MeshType>::output_results_vtk_error(
-    dealii::DataOut<dim, dealii::DoFHandler<dim>> &data_out,
+    dealii::DataOut<dim> &data_out,
     dealii::Vector<real> &                             l2_error_vec)
 {
     int overintegrate = 10;
@@ -283,7 +283,7 @@ void GridRefinementBase<dim,nstate,real,MeshType>::output_results_vtk_error(
         l2_error_vec[cell->active_cell_index()] += cell_l2_error;
     }
 
-    data_out.add_data_vector(l2_error_vec, "l2_error", dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim>::DataVectorType::type_cell_data);
+    data_out.add_data_vector(l2_error_vec, "l2_error", dealii::DataOut_DoFData<dim,dim>::DataVectorType::type_cell_data);
 }
 
 // constructors for GridRefinementBase

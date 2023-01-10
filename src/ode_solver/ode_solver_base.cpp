@@ -31,11 +31,11 @@ void ODESolverBase<dim,real,MeshType>::initialize_steady_polynomial_ramping (con
         // Transfer solution to current degree.
         dealii::LinearAlgebra::distributed::Vector<double> old_solution(dg->solution);
         old_solution.update_ghost_values();
-        dealii::parallel::distributed::SolutionTransfer<dim, dealii::LinearAlgebra::distributed::Vector<double>, dealii::DoFHandler<dim>> solution_transfer(dg->dof_handler);
+        dealii::parallel::distributed::SolutionTransfer<dim, dealii::LinearAlgebra::distributed::Vector<double>> solution_transfer(dg->dof_handler);
         solution_transfer.prepare_for_coarsening_and_refinement(old_solution);
         dg->set_all_cells_fe_degree(degree);
         dg->allocate_system ();
-        dg->solution.zero_out_ghosts();
+        dg->solution.zero_out_ghost_values();
         solution_transfer.interpolate(dg->solution);
         dg->solution.update_ghost_values();
 

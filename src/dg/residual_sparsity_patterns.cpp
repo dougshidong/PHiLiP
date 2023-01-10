@@ -77,7 +77,7 @@ dealii::SparsityPattern DGBase<dim,real,MeshType>::get_dRdX_sparsity_pattern ()
             } else if (current_face->has_children()) {
             // Finer neighbor
             // Loop over them and add their DoF to dependencies
-                for (unsigned int subface_no=0; subface_no < current_face->number_of_children(); ++subface_no) {
+                for (unsigned int subface_no=0; subface_no < current_face->n_active_descendants(); ++subface_no) {
                     const auto neighbor_metric_cell = metric_cell->neighbor_child_on_subface (iface, subface_no);
                     neighbor_metric_cell->get_dof_indices (node_indices);
                     for (auto resi_row = resi_indices.begin(); resi_row!=resi_indices.end(); ++resi_row) {

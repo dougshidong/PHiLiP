@@ -2,7 +2,6 @@
 #include <deal.II/fe/mapping_q1_eulerian.h>
 #include <iostream>
 #include <filesystem>
-#include <deal.II/lac/full_matrix.h>
 #include <deal.II/base/conditional_ostream.h>
 #include <deal.II/lac/trilinos_sparse_matrix.h>
 #include "dg/dg.h"

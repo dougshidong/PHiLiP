@@ -71,7 +71,7 @@ FlowSolver<dim, nstate>::FlowSolver(
         
         // Note: Future development with hp-capabilities, see section "Note on usage with DoFHandler with hp-capabilities"
         // ----- Ref: https://www.dealii.org/current/doxygen/deal.II/classparallel_1_1distributed_1_1SolutionTransfer.html
-        dealii::parallel::distributed::SolutionTransfer<dim, dealii::LinearAlgebra::distributed::Vector<double>, dealii::DoFHandler<dim>> solution_transfer(dg->dof_handler);
+        dealii::parallel::distributed::SolutionTransfer<dim, dealii::LinearAlgebra::distributed::Vector<double>> solution_transfer(dg->dof_handler);
         solution_transfer.deserialize(solution_no_ghost);
 #endif
     } else {
@@ -319,7 +319,7 @@ void FlowSolver<dim,nstate>::output_restart_files(
     const std::string restart_filename_without_extension = get_restart_filename_without_extension(current_restart_index);
 
     // solution files
-    dealii::parallel::distributed::SolutionTransfer<dim, dealii::LinearAlgebra::distributed::Vector<double>, dealii::DoFHandler<dim>> solution_transfer(dg->dof_handler);
+    dealii::parallel::distributed::SolutionTransfer<dim, dealii::LinearAlgebra::distributed::Vector<double>> solution_transfer(dg->dof_handler);
     // Note: Future development with hp-capabilities, see section "Note on usage with DoFHandler with hp-capabilities"
     // ----- Ref: https://www.dealii.org/current/doxygen/deal.II/classparallel_1_1distributed_1_1SolutionTransfer.html
     solution_transfer.prepare_for_serialization(dg->solution);

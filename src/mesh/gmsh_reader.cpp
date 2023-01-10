@@ -1025,10 +1025,10 @@ read_gmsh(std::string filename, int requested_grid_order, const bool use_mesh_sm
     dealii::GridTools::delete_unused_vertices(vertices, p1_cells, subcelldata);
     // ... and p1_cells
     if (dim == spacedim) {
-      dealii::GridReordering<dim, spacedim>::invert_all_cells_of_negative_grid(vertices, p1_cells);
+      dealii::GridTools::invert_all_negative_measure_cells(vertices, p1_cells);
     }
-    dealii::GridReordering<dim, spacedim>::reorder_cells(p1_cells);
-    triangulation->create_triangulation_compatibility(vertices, p1_cells, subcelldata);
+    dealii::GridTools::consistently_order_cells(p1_cells);
+    triangulation->create_triangulation(vertices, p1_cells, subcelldata);
 
     triangulation->repartition();
 
@@ -1190,7 +1190,6 @@ read_gmsh(std::string filename, int requested_grid_order, const bool use_mesh_sm
         dealii::FESystem<dim> fe_system_equidistant(fe_q_equidistant, dim);
         dealii::DoFHandler<dim> dof_handler_equidistant(*triangulation);
 
-        dof_handler_equidistant.initialize(*triangulation, fe_system_equidistant);
         dof_handler_equidistant.distribute_dofs(fe_system_equidistant);
         dealii::DoFRenumbering::Cuthill_McKee(dof_handler_equidistant);
 
@@ -1225,7 +1224,6 @@ read_gmsh(std::string filename, int requested_grid_order, const bool use_mesh_sm
             dealii::FESystem<dim> fe_system_equidistant(fe_q_equidistant, dim);
             dealii::DoFHandler<dim> dof_handler_equidistant(*triangulation);
 
-            dof_handler_equidistant.initialize(*triangulation, fe_system_equidistant);
             dof_handler_equidistant.distribute_dofs(fe_system_equidistant);
             dealii::DoFRenumbering::Cuthill_McKee(dof_handler_equidistant);
 

@@ -7,7 +7,7 @@
 #include <deal.II/base/symmetric_tensor.h>
 #include <deal.II/lac/vector.h>
 #include <deal.II/base/geometry_info.h>
-#include <deal.II/hp/dof_handler.h>
+#include <deal.II/dofs/dof_handler.h>
 
 namespace PHiLiP {
 

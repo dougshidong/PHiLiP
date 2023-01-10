@@ -1179,7 +1179,7 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_boundary_term(
 
     const dealii::Quadrature<dim> face_quadrature
         = dealii::QProjector<dim>::project_to_face(
-            dealii::ReferenceCell::get_hypercube(dim),
+            dealii::ReferenceCells::get_hypercube<dim>(),
             quadrature,
             face_number);
     const std::vector<dealii::Point<dim,real>> &unit_quad_pts = face_quadrature.get_points();
@@ -2044,30 +2044,30 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_face_term(
     dealii::Quadrature<dim> face_quadrature_int, face_quadrature_ext;
     if constexpr (dim < 3) {
         face_quadrature_int = face_subface_int.second == -1 ?
-                              dealii::QProjector<dim>::project_to_face(dealii::ReferenceCell::get_hypercube(dim),
+                              dealii::QProjector<dim>::project_to_face(dealii::ReferenceCells::get_hypercube<dim>(),
                                                                        face_quadrature,
                                                                        face_subface_int.first):
-                              dealii::QProjector<dim>::project_to_subface(dealii::ReferenceCell::get_hypercube(dim),
+                              dealii::QProjector<dim>::project_to_subface(dealii::ReferenceCells::get_hypercube<dim>(),
                                                                        face_quadrature,
                                                                        face_subface_int.first,
                                                                        face_subface_int.second,
                                                                        dealii::RefinementCase<dim-1>::isotropic_refinement);
         face_quadrature_ext = face_subface_ext.second == -1 ?
-                              dealii::QProjector<dim>::project_to_face(dealii::ReferenceCell::get_hypercube(dim),
+                              dealii::QProjector<dim>::project_to_face(dealii::ReferenceCells::get_hypercube<dim>(),
                                                                        face_quadrature,
                                                                        face_subface_ext.first):
-                              dealii::QProjector<dim>::project_to_subface(dealii::ReferenceCell::get_hypercube(dim),
+                              dealii::QProjector<dim>::project_to_subface(dealii::ReferenceCells::get_hypercube<dim>(),
                                                                        face_quadrature,
                                                                        face_subface_ext.first,
                                                                        face_subface_ext.second,
                                                                        dealii::RefinementCase<dim-1>::isotropic_refinement);
     } else {
         const dealii::Quadrature<dim> all_faces_quad_int = face_subface_int.second == -1 ?
-                                                           dealii::QProjector<dim>::project_to_all_faces (dealii::ReferenceCell::get_hypercube(dim), face_quadrature) :
-                                                           dealii::QProjector<dim>::project_to_all_subfaces (dealii::ReferenceCell::get_hypercube(dim), face_quadrature);
+                                                           dealii::QProjector<dim>::project_to_all_faces (dealii::ReferenceCells::get_hypercube<dim>(), face_quadrature) :
+                                                           dealii::QProjector<dim>::project_to_all_subfaces (dealii::ReferenceCells::get_hypercube<dim>(), face_quadrature);
         const dealii::Quadrature<dim> all_faces_quad_ext = face_subface_ext.second == -1 ?
-                                                           dealii::QProjector<dim>::project_to_all_faces (dealii::ReferenceCell::get_hypercube(dim), face_quadrature) :
-                                                           dealii::QProjector<dim>::project_to_all_subfaces (dealii::ReferenceCell::get_hypercube(dim), face_quadrature);
+                                                           dealii::QProjector<dim>::project_to_all_faces (dealii::ReferenceCells::get_hypercube<dim>(), face_quadrature) :
+                                                           dealii::QProjector<dim>::project_to_all_subfaces (dealii::ReferenceCells::get_hypercube<dim>(), face_quadrature);
         std::vector< dealii::Point< dim >> points(n_face_quad_pts);
         std::vector< double > weights(n_face_quad_pts);
         for (unsigned int iquad = 0; iquad < n_face_quad_pts; ++iquad) {

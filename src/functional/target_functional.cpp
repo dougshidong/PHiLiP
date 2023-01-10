@@ -212,7 +212,7 @@ real2 TargetFunctional<dim, nstate, real>::evaluate_boundary_cell_functional(
     const dealii::Quadrature<dim-1> &fquadrature,
     const unsigned int face_number) const
 {
-    const dealii::Quadrature<dim> face_quadrature = dealii::QProjector<dim>::project_to_face( dealii::ReferenceCell::get_hypercube(dim), fquadrature, face_number);
+    const dealii::Quadrature<dim> face_quadrature = dealii::QProjector<dim>::project_to_face( dealii::ReferenceCells::get_hypercube<dim>(), fquadrature, face_number);
     const dealii::Tensor<1,dim,real> ref_unit_normal = dealii::GeometryInfo<dim>::unit_normal_vector[face_number];
 
     const unsigned int n_face_quad_pts = face_quadrature.size();

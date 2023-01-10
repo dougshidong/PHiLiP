@@ -93,18 +93,21 @@ DGBase<dim,real,MeshType>::DGBase(
     , face_quadrature_collection(std::get<2>(collection_tuple))
     , oned_quadrature_collection(std::get<3>(collection_tuple))
     , fe_collection_lagrange(std::get<4>(collection_tuple))
-    , dof_handler(*triangulation, true)
+    , dof_handler(*triangulation)
     , high_order_grid(std::make_shared<HighOrderGrid<dim,real,MeshType>>(grid_degree_input, triangulation))
     , fe_q_artificial_dissipation(1)
-    , dof_handler_artificial_dissipation(*triangulation, false)
+    , dof_handler_artificial_dissipation(*triangulation)
     , mpi_communicator(MPI_COMM_WORLD)
     , pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(mpi_communicator)==0)
     , freeze_artificial_dissipation(false)
     , max_artificial_dissipation_coeff(0.0)
 {
 
-    dof_handler.initialize(*triangulation, fe_collection);
-    dof_handler_artificial_dissipation.initialize(*triangulation, fe_q_artificial_dissipation);
+    dof_handler.reinit(*triangulation);
+    dof_handler.distribute_dofs(fe_collection);
+    
+    dof_handler_artificial_dissipation.reinit(*triangulation);
+    dof_handler_artificial_dissipation.distribute_dofs(fe_q_artificial_dissipation);
 
     set_all_cells_fe_degree(degree);
 
@@ -115,7 +118,9 @@ void DGBase<dim,real,MeshType>::reinit()
 {
     high_order_grid->reinit();
 
-    dof_handler.initialize(*triangulation, fe_collection);
+    dof_handler.reinit(*triangulation);
+    dof_handler.distribute_dofs(fe_collection);
+    
     set_all_cells_fe_degree(initial_degree);
 }
 
@@ -124,8 +129,10 @@ void DGBase<dim,real,MeshType>::set_high_order_grid(std::shared_ptr<HighOrderGri
 {
     high_order_grid = new_high_order_grid;
     triangulation = high_order_grid->triangulation;
-    dof_handler.initialize(*triangulation, fe_collection);
-    dof_handler_artificial_dissipation.initialize(*triangulation, fe_q_artificial_dissipation);
+    dof_handler.reinit(*triangulation);
+    dof_handler.distribute_dofs(fe_collection);
+    dof_handler_artificial_dissipation.reinit(*triangulation);
+    dof_handler_artificial_dissipation.distribute_dofs(fe_q_artificial_dissipation);
     set_all_cells_fe_degree(max_degree);
 }
 
@@ -786,14 +793,14 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
                     std::pair<unsigned int, int> face_subface_int = std::make_pair(iface, -1);
                     std::pair<unsigned int, int> face_subface_ext = std::make_pair(neighbor_iface, -1);
                     const auto face_data_set_int = dealii::QProjector<dim>::DataSetDescriptor::face (
-                                                                                                  dealii::ReferenceCell::get_hypercube(dim),
+                                                                                                  dealii::ReferenceCells::get_hypercube<dim>(),
                                                                                                   iface,
                                                                                                   current_cell->face_orientation(iface),
                                                                                                   current_cell->face_flip(iface),
                                                                                                   current_cell->face_rotation(iface),
                                                                                                   used_face_quadrature.size());
                     const auto face_data_set_ext = dealii::QProjector<dim>::DataSetDescriptor::face (
-                                                                                                  dealii::ReferenceCell::get_hypercube(dim),
+                                                                                                  dealii::ReferenceCells::get_hypercube<dim>(),
                                                                                                   neighbor_iface,
                                                                                                   neighbor_cell->face_orientation(neighbor_iface),
                                                                                                   neighbor_cell->face_flip(neighbor_iface),
@@ -891,14 +898,14 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
                 std::pair<unsigned int, int> face_subface_ext = std::make_pair(neighbor_iface, (int)neighbor_i_subface);
 
                 const auto face_data_set_int = dealii::QProjector<dim>::DataSetDescriptor::face( 
-                                                                                                 dealii::ReferenceCell::get_hypercube(dim),
+                                                                                                 dealii::ReferenceCells::get_hypercube<dim>(),
                                                                                                  iface,
                                                                                                  current_cell->face_orientation(iface),
                                                                                                  current_cell->face_flip(iface),
                                                                                                  current_cell->face_rotation(iface),
                                                                                                  used_face_quadrature.size());
                 const auto face_data_set_ext = dealii::QProjector<dim>::DataSetDescriptor::subface (
-                                                                                                    dealii::ReferenceCell::get_hypercube(dim),
+                                                                                                    dealii::ReferenceCells::get_hypercube<dim>(),
                                                                                                     neighbor_iface,
                                                                                                     neighbor_i_subface,
                                                                                                     neighbor_cell->face_orientation(neighbor_iface),
@@ -974,14 +981,14 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
                 std::pair<unsigned int, int> face_subface_int = std::make_pair(iface, -1);
                 std::pair<unsigned int, int> face_subface_ext = std::make_pair(neighbor_iface, -1);
                 const auto face_data_set_int = dealii::QProjector<dim>::DataSetDescriptor::face (
-                                                                                              dealii::ReferenceCell::get_hypercube(dim),
+                                                                                              dealii::ReferenceCells::get_hypercube<dim>(),
                                                                                               iface,
                                                                                               current_cell->face_orientation(iface),
                                                                                               current_cell->face_flip(iface),
                                                                                               current_cell->face_rotation(iface),
                                                                                               used_face_quadrature.size());
                 const auto face_data_set_ext = dealii::QProjector<dim>::DataSetDescriptor::face (
-                                                                                              dealii::ReferenceCell::get_hypercube(dim),
+                                                                                              dealii::ReferenceCells::get_hypercube<dim>(),
                                                                                               neighbor_iface,
                                                                                               neighbor_cell->face_orientation(neighbor_iface),
                                                                                               neighbor_cell->face_flip(neighbor_iface),
@@ -1207,10 +1214,8 @@ void DGBase<dim,real,MeshType>::update_artificial_dissipation_discontinuity_sens
         //    }
         //}
     }
-    dealii::IndexSet boundary_dofs(dof_handler_artificial_dissipation.n_dofs());
-    dealii::DoFTools::extract_boundary_dofs(dof_handler_artificial_dissipation,
-                                dealii::ComponentMask(),
-                                boundary_dofs);
+    dealii::IndexSet boundary_dofs = dealii::DoFTools::extract_boundary_dofs(dof_handler_artificial_dissipation, dealii::ComponentMask());
+    
     for (unsigned int i = 0; i < dof_handler_artificial_dissipation.n_dofs(); ++i) {
         if (boundary_dofs.is_element(i)) {
             artificial_dissipation_c0[i] = 0.0;
@@ -1584,11 +1589,11 @@ unsigned int DGBase<dim,real,MeshType>::n_dofs () const
 
 #if PHILIP_DIM > 1
 template <int dim, typename DoFHandlerType = dealii::DoFHandler<dim>>
-class DataOutEulerFaces : public dealii::DataOutFaces<dim, DoFHandlerType>
+class DataOutEulerFaces : public dealii::DataOutFaces<dim>
 {
     static const unsigned int dimension = DoFHandlerType::dimension;
     static const unsigned int space_dimension = DoFHandlerType::space_dimension;
-    using cell_iterator = typename dealii::DataOut_DoFData<DoFHandlerType, dimension - 1, dimension>::cell_iterator;
+    using cell_iterator = typename dealii::DataOut_DoFData<dimension, dimension - 1, dimension, dimension>::cell_iterator;
 
     using FaceDescriptor = typename std::pair<cell_iterator, unsigned int>;
     /**
@@ -1770,17 +1775,17 @@ void DGBase<dim,real,MeshType>::output_face_results_vtk (const unsigned int cycl
         subdomain(i) = triangulation->locally_owned_subdomain();
     }
     const std::string name = "subdomain";
-    data_out.add_data_vector(subdomain, name, dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim-1,dim>::DataVectorType::type_cell_data);
+    data_out.add_data_vector(subdomain, name, dealii::DataOut_DoFData<dim,dim-1,dim,dim>::DataVectorType::type_cell_data);
 
     if (all_parameters->artificial_dissipation_param.add_artificial_dissipation) {
-        data_out.add_data_vector(artificial_dissipation_coeffs, std::string("artificial_dissipation_coeffs"), dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim-1,dim>::DataVectorType::type_cell_data);
-        data_out.add_data_vector(artificial_dissipation_se, std::string("artificial_dissipation_se"), dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim-1,dim>::DataVectorType::type_cell_data);
+        data_out.add_data_vector(artificial_dissipation_coeffs, std::string("artificial_dissipation_coeffs"), dealii::DataOut_DoFData<dim,dim-1,dim,dim>::DataVectorType::type_cell_data);
+        data_out.add_data_vector(artificial_dissipation_se, std::string("artificial_dissipation_se"), dealii::DataOut_DoFData<dim,dim-1,dim,dim>::DataVectorType::type_cell_data);
         data_out.add_data_vector(dof_handler_artificial_dissipation, artificial_dissipation_c0, std::string("artificial_dissipation_c0"));
     }
 
-    data_out.add_data_vector(max_dt_cell, std::string("max_dt_cell"), dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim-1,dim>::DataVectorType::type_cell_data);
+    data_out.add_data_vector(max_dt_cell, std::string("max_dt_cell"), dealii::DataOut_DoFData<dim,dim-1,dim,dim>::DataVectorType::type_cell_data);
 
-    data_out.add_data_vector(cell_volume, std::string("cell_volume"), dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim-1,dim>::DataVectorType::type_cell_data);
+    data_out.add_data_vector(cell_volume, std::string("cell_volume"), dealii::DataOut_DoFData<dim,dim-1,dim,dim>::DataVectorType::type_cell_data);
 
 
     // Let the physics post-processor determine what to output.
@@ -1796,7 +1801,7 @@ void DGBase<dim,real,MeshType>::output_face_results_vtk (const unsigned int cycl
     dealii::Vector<double> active_fe_indices_dealiivector(active_fe_indices.begin(), active_fe_indices.end());
     dealii::Vector<double> cell_poly_degree = active_fe_indices_dealiivector;
 
-    data_out.add_data_vector (active_fe_indices_dealiivector, "PolynomialDegree", dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim-1,dim>::DataVectorType::type_cell_data);
+    data_out.add_data_vector (active_fe_indices_dealiivector, "PolynomialDegree", dealii::DataOut_DoFData<dim,dim-1,dim,dim>::DataVectorType::type_cell_data);
 
     // Output absolute value of the residual so that we can visualize it on a logscale.
     std::vector<std::string> residual_names;
@@ -1810,7 +1815,7 @@ void DGBase<dim,real,MeshType>::output_face_results_vtk (const unsigned int cycl
         if (rhs_value == 0.0) rhs_value = std::numeric_limits<double>::min();
     }
     residual.update_ghost_values();
-    data_out.add_data_vector (residual, residual_names, dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim-1,dim>::DataVectorType::type_dof_data);
+    data_out.add_data_vector (residual, residual_names, dealii::DataOut_DoFData<dim,dim-1,dim,dim>::DataVectorType::type_dof_data);
 
     //for(int s=0;s<nstate;++s) {
     //    residual_names[s] = "scaled_" + residual_names[s];
@@ -1821,10 +1826,10 @@ void DGBase<dim,real,MeshType>::output_face_results_vtk (const unsigned int cycl
     //    if (rhs_value == 0.0) rhs_value = std::numeric_limits<double>::min();
     //}
     //residual.update_ghost_values();
-    //data_out.add_data_vector (residual, residual_names, dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim-1,dim>::DataVectorType::type_dof_data);
+    //data_out.add_data_vector (residual, residual_names, dealii::DataOut_DoFData<dim,dim-1,dim,dim>::DataVectorType::type_dof_data);
 
 
-    //typename dealii::DataOut<dim,dealii::DoFHandler<dim>>::CurvedCellRegion curved = dealii::DataOut<dim,dealii::DoFHandler<dim>>::CurvedCellRegion::curved_inner_cells;
+    //typename dealii::DataOut<dim>::CurvedCellRegion curved = dealii::DataOut<dim>::CurvedCellRegion::curved_inner_cells;
     //typename dealii::DataOut<dim>::CurvedCellRegion curved = dealii::DataOut<dim>::CurvedCellRegion::curved_boundary;
     //typename dealii::DataOut<dim>::CurvedCellRegion curved = dealii::DataOut<dim>::CurvedCellRegion::no_curved_cells;
 
@@ -1874,7 +1879,7 @@ void DGBase<dim,real,MeshType>::output_results_vtk (const unsigned int cycle, co
 #endif
 
     const bool enable_higher_order_vtk_output = this->all_parameters->enable_higher_order_vtk_output;
-    dealii::DataOut<dim, dealii::DoFHandler<dim>> data_out;
+    dealii::DataOut<dim> data_out;
 
     data_out.attach_dof_handler (dof_handler);
 
@@ -1891,17 +1896,17 @@ void DGBase<dim,real,MeshType>::output_results_vtk (const unsigned int cycle, co
     for (unsigned int i = 0; i < subdomain.size(); ++i) {
         subdomain(i) = triangulation->locally_owned_subdomain();
     }
-    data_out.add_data_vector(subdomain, "subdomain", dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim>::DataVectorType::type_cell_data);
+    data_out.add_data_vector(subdomain, "subdomain", dealii::DataOut_DoFData<dim,dim>::DataVectorType::type_cell_data);
 
     if (all_parameters->artificial_dissipation_param.add_artificial_dissipation) {
-        data_out.add_data_vector(artificial_dissipation_coeffs, "artificial_dissipation_coeffs", dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim>::DataVectorType::type_cell_data);
-        data_out.add_data_vector(artificial_dissipation_se, "artificial_dissipation_se", dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim>::DataVectorType::type_cell_data);
+        data_out.add_data_vector(artificial_dissipation_coeffs, "artificial_dissipation_coeffs", dealii::DataOut_DoFData<dim,dim>::DataVectorType::type_cell_data);
+        data_out.add_data_vector(artificial_dissipation_se, "artificial_dissipation_se", dealii::DataOut_DoFData<dim,dim>::DataVectorType::type_cell_data);
         data_out.add_data_vector(dof_handler_artificial_dissipation, artificial_dissipation_c0, "artificial_dissipation_c0");
     }
 
-    data_out.add_data_vector(max_dt_cell, "max_dt_cell", dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim>::DataVectorType::type_cell_data);
+    data_out.add_data_vector(max_dt_cell, "max_dt_cell", dealii::DataOut_DoFData<dim,dim>::DataVectorType::type_cell_data);
 
-    data_out.add_data_vector(cell_volume, "cell_volume", dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim>::DataVectorType::type_cell_data);
+    data_out.add_data_vector(cell_volume, "cell_volume", dealii::DataOut_DoFData<dim,dim>::DataVectorType::type_cell_data);
 
 
     // Let the physics post-processor determine what to output.
@@ -1914,7 +1919,7 @@ void DGBase<dim,real,MeshType>::output_results_vtk (const unsigned int cycle, co
     dealii::Vector<double> active_fe_indices_dealiivector(active_fe_indices.begin(), active_fe_indices.end());
     dealii::Vector<double> cell_poly_degree = active_fe_indices_dealiivector;
 
-    data_out.add_data_vector (active_fe_indices_dealiivector, "PolynomialDegree", dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim>::DataVectorType::type_cell_data);
+    data_out.add_data_vector (active_fe_indices_dealiivector, "PolynomialDegree", dealii::DataOut_DoFData<dim,dim>::DataVectorType::type_cell_data);
 
     // Output absolute value of the residual so that we can visualize it on a logscale.
     std::vector<std::string> residual_names;
@@ -1928,7 +1933,7 @@ void DGBase<dim,real,MeshType>::output_results_vtk (const unsigned int cycle, co
         if (rhs_value == 0.0) rhs_value = std::numeric_limits<double>::min();
     }
     residual.update_ghost_values();
-    data_out.add_data_vector (residual, residual_names, dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim>::DataVectorType::type_dof_data);
+    data_out.add_data_vector (residual, residual_names, dealii::DataOut_DoFData<dim,dim>::DataVectorType::type_dof_data);
 
     //for(int s=0;s<nstate;++s) {
     //    residual_names[s] = "scaled_" + residual_names[s];
@@ -1939,10 +1944,10 @@ void DGBase<dim,real,MeshType>::output_results_vtk (const unsigned int cycle, co
     //    if (rhs_value == 0.0) rhs_value = std::numeric_limits<double>::min();
     //}
     //residual.update_ghost_values();
-    //data_out.add_data_vector (residual, residual_names, dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim>::DataVectorType::type_dof_data);
+    //data_out.add_data_vector (residual, residual_names, dealii::DataOut_DoFData<dim,dim>::DataVectorType::type_dof_data);
 
 
-    typename dealii::DataOut<dim,dealii::DoFHandler<dim>>::CurvedCellRegion curved = dealii::DataOut<dim,dealii::DoFHandler<dim>>::CurvedCellRegion::curved_inner_cells;
+    typename dealii::DataOut<dim>::CurvedCellRegion curved = dealii::DataOut<dim>::CurvedCellRegion::curved_inner_cells;
     //typename dealii::DataOut<dim>::CurvedCellRegion curved = dealii::DataOut<dim>::CurvedCellRegion::curved_boundary;
     //typename dealii::DataOut<dim>::CurvedCellRegion curved = dealii::DataOut<dim>::CurvedCellRegion::no_curved_cells;
 

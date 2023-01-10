@@ -843,7 +843,7 @@ void OperatorBase<dim,nstate,real>::create_surface_basis_operators ()
         unsigned int n_quad_face_pts = face_quadrature_collection[idegree].size();
         const std::vector<real> &quad_weights = face_quadrature_collection[idegree].get_weights ();
         for(unsigned int iface=0; iface<n_faces; iface++){ 
-            const dealii::Quadrature<dim> quadrature = dealii::QProjector<dim>::project_to_face(dealii::ReferenceCell::get_hypercube(dim),
+            const dealii::Quadrature<dim> quadrature = dealii::QProjector<dim>::project_to_face(dealii::ReferenceCells::get_hypercube<dim>(),
                                                                                                 face_quadrature_collection[idegree],
                                                                                                 iface);
         
@@ -995,7 +995,7 @@ void OperatorBase<dim,nstate,real>::create_metric_basis_operators ()
     }
     unsigned int n_faces1 = 2.0*dim;
     for(unsigned int iface=0; iface<n_faces1; iface++){
-        const dealii::Quadrature<dim> quadrature1 = dealii::QProjector<dim>::project_to_face(dealii::ReferenceCell::get_hypercube(dim),
+        const dealii::Quadrature<dim> quadrature1 = dealii::QProjector<dim>::project_to_face(dealii::ReferenceCells::get_hypercube<dim>(),
                                                                                             face_quadrature_collection[0],
                                                                                             iface);
         const unsigned int n_quad_face_pts1 = face_quadrature_collection[0].size();
@@ -1042,7 +1042,7 @@ void OperatorBase<dim,nstate,real>::create_metric_basis_operators ()
             }
             unsigned int n_faces = dealii::GeometryInfo<dim>::faces_per_cell;
             for(unsigned int iface=0; iface<n_faces; iface++){
-                const dealii::Quadrature<dim> quadrature = dealii::QProjector<dim>::project_to_face(dealii::ReferenceCell::get_hypercube(dim),
+                const dealii::Quadrature<dim> quadrature = dealii::QProjector<dim>::project_to_face(dealii::ReferenceCells::get_hypercube<dim>(),
                                                                                                     face_quadrature_collection[ipoly],
                                                                                                     iface);
             const unsigned int n_quad_face_pts = face_quadrature_collection[ipoly].size();

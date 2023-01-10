@@ -25,9 +25,7 @@ void GridRefinement_Uniform<dim,nstate,real,MeshType>::refine_grid()
     dealii::LinearAlgebra::distributed::Vector<real> solution_old(this->dg->solution);
     solution_old.update_ghost_values();
 
-    dealii::parallel::distributed::SolutionTransfer< 
-        dim, dealii::LinearAlgebra::distributed::Vector<real>, dealii::DoFHandler<dim> 
-        > solution_transfer(this->dg->dof_handler);
+    dealii::parallel::distributed::SolutionTransfer<dim, dealii::LinearAlgebra::distributed::Vector<real>> solution_transfer(this->dg->dof_handler);
     solution_transfer.prepare_for_coarsening_and_refinement(solution_old);
 
     this->dg->high_order_grid->prepare_for_coarsening_and_refinement();
@@ -46,7 +44,7 @@ void GridRefinement_Uniform<dim,nstate,real,MeshType>::refine_grid()
 
     // transfering the solution from solution_old
     this->dg->allocate_system();
-    this->dg->solution.zero_out_ghosts();
+    this->dg->solution.zero_out_ghost_values();
     solution_transfer.interpolate(this->dg->solution);
     this->dg->solution.update_ghost_values();
 

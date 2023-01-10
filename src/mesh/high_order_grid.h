@@ -43,7 +43,7 @@ public:
     using DoFHandlerType = dealii::DoFHandler<PHILIP_DIM>;
 
     template <int dim = PHILIP_DIM, typename Vector = VectorType, typename DoFHandler = DoFHandlerType>
-    using SolutionTransfer = dealii::SolutionTransfer<dim, Vector, DoFHandler>;
+    using SolutionTransfer = dealii::SolutionTransfer<dim, Vector>;
 
     // reinitialize vector based on parralel Dofhandler
     static void reinit_vector(
@@ -65,7 +65,7 @@ public:
     using DoFHandlerType = dealii::DoFHandler<PHILIP_DIM>;
     
     template <int dim = PHILIP_DIM, typename Vector = VectorType, typename DoFHandler = DoFHandlerType>
-    using SolutionTransfer = dealii::parallel::distributed::SolutionTransfer<dim, Vector, DoFHandler>;
+    using SolutionTransfer = dealii::parallel::distributed::SolutionTransfer<dim, Vector>;
 
     // reinitialize vector based on parralel Dofhandler
     static void reinit_vector(
@@ -88,7 +88,7 @@ public:
     using DoFHandlerType = dealii::DoFHandler<PHILIP_DIM>;
 
     template <int dim = PHILIP_DIM, typename Vector = VectorType, typename DoFHandler = DoFHandlerType>
-    using SolutionTransfer = dealii::SolutionTransfer<dim, Vector, DoFHandler>;
+    using SolutionTransfer = dealii::SolutionTransfer<dim, Vector>;
 
     // reinitialize vector based on parralel Dofhandler
     static void reinit_vector(
@@ -132,7 +132,7 @@ class HighOrderGrid
 public:
     /// Principal constructor that will call delegated constructor.
     HighOrderGrid(
-        const unsigned int              max_degree, 
+        const unsigned int   max_degree, 
         const std::shared_ptr<MeshType> triangulation_input);
 
     /// Reinitialize high_order_grid after a change in triangulation
@@ -154,7 +154,7 @@ public:
     void allocate();
 
     /// Return a MappingFEField that corresponds to the current node locations
-    dealii::MappingFEField<dim,dim,VectorType,DoFHandlerType> get_MappingFEField();
+    dealii::MappingFEField<dim,dim,VectorType> get_MappingFEField();
 
     /// Maximum degree of the geometry polynomial representing the grid.
     const unsigned int max_degree;
@@ -379,7 +379,7 @@ public:
      *  See discussion in the following
      *  <a href=" https://stackoverflow.com/questions/7557153/defining-an-object-without-calling-its-constructor-in-c">thread</a>.
      */
-    std::shared_ptr<dealii::MappingFEField<dim,dim,VectorType,DoFHandlerType>> mapping_fe_field;
+    std::shared_ptr<dealii::MappingFEField<dim,dim,VectorType>> mapping_fe_field;
 
     /// MappingFEField that will provide the polynomial-based grid for the initial volume_nodes.
     /** Will likely be used for deformations based on initial grids.
@@ -387,7 +387,7 @@ public:
      *  See discussion in the following
      *  <a href=" https://stackoverflow.com/questions/7557153/defining-an-object-without-calling-its-constructor-in-c">thread</a>.
      */
-    std::shared_ptr<dealii::MappingFEField<dim,dim,VectorType,DoFHandlerType>> initial_mapping_fe_field;
+    std::shared_ptr<dealii::MappingFEField<dim,dim,VectorType>> initial_mapping_fe_field;
 
     dealii::IndexSet locally_owned_dofs_grid; ///< Locally own degrees of freedom for the grid
     dealii::IndexSet ghost_dofs_grid; ///< Locally relevant ghost degrees of freedom for the grid

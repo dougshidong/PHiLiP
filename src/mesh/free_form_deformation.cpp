@@ -10,6 +10,7 @@
 #include <deal.II/grid/grid_out.h>
 
 #include <deal.II/grid/grid_reordering.h>
+#include <deal.II/grid/grid_tools.h>
 
 // For FD
 #include <deal.II/dofs/dof_tools.h>
@@ -728,7 +729,7 @@ void FreeFormDeformation<dim>
         }
     } // switch(dim)
  
-    dealii::GridReordering<dim>::reorder_cells(cells, true);
+    dealii::GridTools::consistently_order_cells(cells);
     dealii::Triangulation<dim,dim> tria;
     tria.create_triangulation(control_pts, cells, dealii::SubCellData());
     std::string nffd_string[3];

@@ -1776,7 +1776,6 @@ void DGBase<dim,real,MeshType>::output_face_results_vtk (const unsigned int cycl
     }
     const std::string name = "subdomain";
     data_out.add_data_vector(subdomain, name, dealii::DataOut_DoFData<dim,dim-1,dim,dim>::DataVectorType::type_cell_data);
-    data_out.add_data_vector(subdomain, name, dealii::DataOut_DoFData<dim,dim-1,dim,dim>::DataVectorType::type_cell_data);
 
     if (all_parameters->artificial_dissipation_param.add_artificial_dissipation) {
         data_out.add_data_vector(artificial_dissipation_coeffs, std::string("artificial_dissipation_coeffs"), dealii::DataOut_DoFData<dim,dim-1,dim,dim>::DataVectorType::type_cell_data);

@@ -187,7 +187,13 @@ std::array<real,nstate> PhysicsModel<dim,nstate,real,nstate_baseline_physics>
         }
         std::array<real,nstate_baseline_physics> baseline_eig = physics_baseline->convective_eigenvalues(baseline_conservative_soln, normal);
         for(int s=0; s<nstate_baseline_physics; ++s){
-            eig[s] += baseline_eig[s];
+            if(eig[s]!=0.0){
+                std::cout << "Error: PhysicsModel does not currently support additional convective flux terms." << std::endl; 
+                std::cout << "Aborting..." << std::endl;
+                std::abort();
+            } else {
+                eig[s] += baseline_eig[s];
+            }
         }  
     }
 

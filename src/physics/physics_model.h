@@ -109,6 +109,15 @@ public:
     /** Only update the solution at the output points.
      */
     dealii::UpdateFlags post_get_needed_update_flags () const; 
+
+protected:
+    const MPI_Comm mpi_communicator; ///< MPI communicator.
+    const int mpi_rank; ///< MPI rank.
+    const int n_mpi; ///< Number of MPI processes.
+    /// ConditionalOStream.
+    /** Used as std::cout, but only prints if mpi_rank == 0
+     */
+    dealii::ConditionalOStream pcout;
 };
 
 } // Physics namespace

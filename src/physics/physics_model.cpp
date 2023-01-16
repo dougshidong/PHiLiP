@@ -26,6 +26,10 @@ PhysicsModel<dim,nstate,real,nstate_baseline_physics>::PhysicsModel(
     , n_model_equations(nstate-nstate_baseline_physics)
     , physics_baseline(PhysicsFactory<dim,nstate_baseline_physics,real>::create_Physics(parameters_input, baseline_physics_type))
     , model(model_input)
+    , mpi_communicator(MPI_COMM_WORLD)
+    , mpi_rank(dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD))
+    , n_mpi(dealii::Utilities::MPI::n_mpi_processes(MPI_COMM_WORLD))
+    , pcout(std::cout, mpi_rank==0)
 { }
 
 template <int dim, int nstate, typename real, int nstate_baseline_physics>
@@ -163,8 +167,8 @@ std::array<dealii::Tensor<1,dim,real>,nstate> PhysicsModel<dim,nstate,real,nstat
     if constexpr(nstate==nstate_baseline_physics) {
         conv_num_split_flux = physics_baseline->convective_numerical_split_flux(conservative_soln1,conservative_soln2);
     } else {
-        std::cout << "Error: convective_numerical_split_flux() not implemented for nstate!=nstate_baseline_physics." << std::endl;
-        std::cout << "Aborting..." << std::endl;
+        pcout << "Error: convective_numerical_split_flux() not implemented for nstate!=nstate_baseline_physics." << std::endl;
+        pcout << "Aborting..." << std::endl;
         std::abort();
     }    
     return conv_num_split_flux;
@@ -188,8 +192,8 @@ std::array<real,nstate> PhysicsModel<dim,nstate,real,nstate_baseline_physics>
         std::array<real,nstate_baseline_physics> baseline_eig = physics_baseline->convective_eigenvalues(baseline_conservative_soln, normal);
         for(int s=0; s<nstate_baseline_physics; ++s){
             if(eig[s]!=0.0){
-                std::cout << "Error: PhysicsModel does not currently support additional convective flux terms." << std::endl; 
-                std::cout << "Aborting..." << std::endl;
+                pcout << "Error: PhysicsModel does not currently support additional convective flux terms." << std::endl; 
+                pcout << "Aborting..." << std::endl;
                 std::abort();
             } else {
                 eig[s] += baseline_eig[s];

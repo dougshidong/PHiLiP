@@ -175,7 +175,8 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       " euler |"
                       " mhd |"
                       " navier_stokes |"
-                      " physics_model"),
+                      " physics_model |"
+                      " p_poisson"),
                       "The PDE we want to solve. "
                       "Choices are " 
                       " <advection | " 
@@ -188,7 +189,8 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       "  euler | "
                       "  mhd |"
                       "  navier_stokes |"
-                      "  physics_model>.");
+                      "  physics_model |"
+                      "  p_poisson>.");
 
     prm.declare_entry("model_type", "large_eddy_simulation",
                       dealii::Patterns::Selection(
@@ -417,6 +419,9 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
             if(physics_model_param.RANS_model_type == Parameters::PhysicsModelParam::ReynoldsAveragedNavierStokesModel::SA_negative)
               nstate = dimension+3;
         }
+    } else if (pde_string == "p_poisson") {
+        pde_type = p_poisson;
+        nstate = 1;
     }
     
     pcout << "Parsing time refinement study subsection..." << std::endl;

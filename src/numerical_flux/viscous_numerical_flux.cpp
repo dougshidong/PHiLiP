@@ -82,8 +82,8 @@ std::array<real, nstate> SymmetricInternalPenalty<dim,nstate,real>
         // Hartmann, R., Numerical Analysis of Higher Order Discontinuous Galerkin Finite Element Methods, Institute of Aerodynamics and Flow Technology, DLR (German Aerospace Center), 2008.
         // Details given on page 93
         const std::array<real, nstate> soln_bc = soln_ext;
-        const std::array<dealii::Tensor<1,dim,real>, nstate> soln_grad_bc = soln_grad_int;
-        //const std::array<dealii::Tensor<1,dim,real>, nstate> soln_grad_bc = soln_grad_ext;
+        //const std::array<dealii::Tensor<1,dim,real>, nstate> soln_grad_bc = soln_grad_int;
+        const std::array<dealii::Tensor<1,dim,real>, nstate> soln_grad_bc = soln_grad_ext;
         real artificial_diss_coeff_bc = artificial_diss_coeff_int;
         const dealii::types::global_dof_index boundary_cell_index = current_cell_index;
 

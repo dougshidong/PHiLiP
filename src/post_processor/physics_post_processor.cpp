@@ -36,7 +36,9 @@ std::unique_ptr< dealii::DataPostprocessor<dim> > PostprocessorFactory<dim>
         return std::make_unique< PhysicsPostprocessor<dim,dim+2> >(parameters_input);
     } else if ((pde_type == PDE_enum::physics_model) && (model_type == Model_enum::reynolds_averaged_navier_stokes) && (rans_model_type == RANSModel_enum::SA_negative)) {
         return std::make_unique< PhysicsPostprocessor<dim,dim+3> >(parameters_input);
-    } 
+    } else if (pde_type == PDE_enum::p_poisson) {
+        return std::make_unique< PhysicsPostprocessor<dim,1> >(parameters_input);
+    }  
 #if PHILIP_DIM==3
     else if ((pde_type == PDE_enum::physics_model) && (model_type == Model_enum::large_eddy_simulation)) {
         return std::make_unique< PhysicsPostprocessor<dim,dim+2> >(parameters_input);

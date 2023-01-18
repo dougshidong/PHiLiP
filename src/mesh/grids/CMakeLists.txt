@@ -7,6 +7,7 @@ set(GRIDS_SOURCE
     naca_airfoil_grid.cpp
     spline_channel.cpp
     straight_periodic_cube.cpp
+    straight_bounded_cube.cpp
     )
 
 foreach(dim RANGE 1 3)

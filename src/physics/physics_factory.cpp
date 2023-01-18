@@ -15,6 +15,7 @@
 #include "mhd.h"
 #include "navier_stokes.h"
 #include "physics_model.h"
+#include "p_poisson.h"
 
 namespace PHiLiP {
 namespace Physics {
@@ -127,6 +128,10 @@ PhysicsFactory<dim,nstate,real>
                                         manufactured_solution_function,
                                         model_input);
         }
+    } else if (pde_type == PDE_enum::p_poisson) {
+        if constexpr (nstate == 1) 
+            return std::make_shared < p_Poisson<dim,nstate,real> > (
+                manufactured_solution_function);
     } else {
         // prevent warnings for dim=3,nstate=4, etc.
         (void) diffusion_tensor;

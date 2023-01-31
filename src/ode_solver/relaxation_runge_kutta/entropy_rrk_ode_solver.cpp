@@ -27,24 +27,26 @@ real EntropyRRKODESolver<dim,real,n_rk_stages,MeshType>::compute_relaxation_para
     // TEMP : Using variable names per Ranocha paper
 
     // Console output is based on linearsolverparam
-    bool do_output = (this->dg->all_parameters->linear_solver_param.linear_solver_output == Parameters::OutputEnum::verbose); 
+    const bool do_output = (this->dg->all_parameters->linear_solver_param.linear_solver_output == Parameters::OutputEnum::verbose); 
 
-    dealii::LinearAlgebra::distributed::Vector<double> d;
-    d.reinit(this->rk_stage[0]);
+    dealii::LinearAlgebra::distributed::Vector<double> step_direction;
+    step_direction.reinit(this->rk_stage[0]);
     for (int i = 0; i < n_rk_stages; ++i){
-        d.add(this->butcher_tableau->get_b(i), this->rk_stage[i]);
+        step_direction.add(this->butcher_tableau->get_b(i), this->rk_stage[i]);
     }
-    d *= dt;
+    step_direction *= dt;
     
-    const double e = compute_entropy_change_estimate(dt); //calculate
-    if (do_output) this->pcout <<"Entropy change estimate: " << e << std::endl;
-    
+    const double entropy_change_est = compute_entropy_change_estimate(dt); //calculate
+    if (do_output) this->pcout <<"Entropy change estimate: " << entropy_change_est << std::endl;
+
+    // n and np1 denote timestep indices
     const dealii::LinearAlgebra::distributed::Vector<double> u_n = this->solution_update;
-    const double eta_n = compute_numerical_entropy(u_n); //compute_inner_product(u_n, u_n);
+    const double num_entropy_n = compute_numerical_entropy(u_n);
     
     const bool use_secant = true;
     bool secant_failed = false;
 
+    // k, kp1, km1 denote iteration indices of secant or bisection solvers
     double gamma_kp1; 
     const double conv_tol = 5E-10; 
     int iter_counter = 0;
@@ -56,28 +58,20 @@ real EntropyRRKODESolver<dim,real,n_rk_stages,MeshType>::compute_relaxation_para
         double residual = 1.0;
         double gamma_k = initial_guess_1;
         double gamma_km1 = initial_guess_0;
-        double r_gamma_k = compute_root_function(gamma_k, u_n, d, eta_n, e);
-        double r_gamma_km1 = compute_root_function(gamma_km1, u_n, d, eta_n,e);
-
-        //output
-        //this->pcout << "Iter: " << iter_counter << " (initialization)"
-        //            << " gamma_0: " << gamma_km1
-        //            << " gamma_1: " << gamma_k
-        //            << " residual: " << residual << std::endl;
+        double r_gamma_k = compute_root_function(gamma_k, u_n, step_direction, num_entropy_n, entropy_change_est);
+        double r_gamma_km1 = compute_root_function(gamma_km1, u_n, step_direction, num_entropy_n,entropy_change_est);
 
         while ((residual > conv_tol) && (iter_counter < iter_limit)){
             if (r_gamma_km1 == r_gamma_k){
                 if (do_output) this->pcout << "    Roots are identical. Multiplying gamma_k by 1.001 and recomputing..." << std::endl;
                 gamma_k *= 1.001;
-                r_gamma_km1 = compute_root_function(gamma_km1, u_n, d, eta_n, e);
-                r_gamma_k = compute_root_function(gamma_k, u_n, d, eta_n, e);
-                //this->pcout << "Current r_gamma_km1 = " << r_gamma_km1 << " r_gamma_k = " << r_gamma_k << std::endl;
-                //this->pcout << "Current gamma_km1 = " << gamma_km1 << " gamma_k = " << gamma_k << std::endl;
+                r_gamma_km1 = compute_root_function(gamma_km1, u_n, step_direction, num_entropy_n, entropy_change_est);
+                r_gamma_k = compute_root_function(gamma_k, u_n, step_direction, num_entropy_n, entropy_change_est);
             }
             if ((gamma_k < 0.5) || (gamma_k > 1.5)) {
                 if (do_output) this->pcout << "    Gamma is far from 1. Setting gamma_k = 1 and contining iterations." << std::endl;
                 gamma_k = 1.0;
-                r_gamma_k = compute_root_function(gamma_k, u_n, d, eta_n, e);
+                r_gamma_k = compute_root_function(gamma_k, u_n, step_direction, num_entropy_n, entropy_change_est);
 
             }
             // Secant method, as recommended by Rogowski et al. 2022
@@ -89,10 +83,8 @@ real EntropyRRKODESolver<dim,real,n_rk_stages,MeshType>::compute_relaxation_para
             gamma_km1 = gamma_k;
             gamma_k = gamma_kp1;
             r_gamma_km1 = r_gamma_k;
-            r_gamma_k = compute_root_function(gamma_k, u_n, d, eta_n, e);
+            r_gamma_k = compute_root_function(gamma_k, u_n, step_direction, num_entropy_n, entropy_change_est);
             
-            //residual = abs(r_gamma_k); 
-
             //output
             if (do_output) {
                 this->pcout << "Iter: " << iter_counter
@@ -103,13 +95,18 @@ real EntropyRRKODESolver<dim,real,n_rk_stages,MeshType>::compute_relaxation_para
             if (isnan(gamma_k) || isnan(gamma_km1)) {
                 if (do_output) this->pcout << "    NaN detected. Restarting iterations from 1.0." << std::endl;
                 gamma_k   = 1.0 - 1E-5;
-                r_gamma_k = compute_root_function(gamma_k, u_n, d, eta_n, e);
+                r_gamma_k = compute_root_function(gamma_k, u_n, step_direction, num_entropy_n, entropy_change_est);
                 gamma_km1 = 1.0 + 1E-5;
-                r_gamma_km1 = compute_root_function(gamma_km1, u_n, d, eta_n, e);
+                r_gamma_km1 = compute_root_function(gamma_km1, u_n, step_direction, num_entropy_n, entropy_change_est);
                 residual = 1.0;
             }
         }
-        if (iter_limit == iter_counter) secant_failed = true;
+
+        // If secant method fails to find a root within the specified number of iterations, fall back on bisection method.
+        if (iter_limit == iter_counter) {
+            this->pcout << "Secant method failed to find a root within the iteration limit. Restarting with bisection method." << std::endl;
+            secant_failed = true;
+        }
     }
     if (!use_secant || secant_failed) {
         //Bisection method
@@ -118,21 +115,21 @@ real EntropyRRKODESolver<dim,real,n_rk_stages,MeshType>::compute_relaxation_para
 
         double l_limit = this->relaxation_parameter - 0.01;
         double u_limit = this->relaxation_parameter + 0.01;
-        double root_l_limit = compute_root_function(l_limit, u_n, d, eta_n, e);
-        double root_u_limit = compute_root_function(u_limit, u_n, d, eta_n, e);
+        double root_l_limit = compute_root_function(l_limit, u_n, step_direction, num_entropy_n, entropy_change_est);
+        double root_u_limit = compute_root_function(u_limit, u_n, step_direction, num_entropy_n, entropy_change_est);
 
         double residual = 1.0;
 
         while ((residual > conv_tol) && (iter_counter < iter_limit)){
             if (root_l_limit * root_u_limit > 0){
-                this->pcout << "No root in the interval. Aborting..." << std::endl;
+                this->pcout << "Bisection solver: No root in the interval. Aborting..." << std::endl;
                 std::abort();
             }
 
             gamma_kp1 = 0.5 * (l_limit + u_limit);
             if (do_output) this->pcout << "Iter: " << iter_counter;
             if (do_output) this->pcout << " Gamma by bisection is " << gamma_kp1;
-            double root_at_gamma = compute_root_function(gamma_kp1, u_n, d, eta_n, e);
+            double root_at_gamma = compute_root_function(gamma_kp1, u_n, step_direction, num_entropy_n, entropy_change_est);
             if (root_at_gamma < 0) {
                 l_limit = gamma_kp1;
                 root_l_limit = root_at_gamma;
@@ -148,7 +145,7 @@ real EntropyRRKODESolver<dim,real,n_rk_stages,MeshType>::compute_relaxation_para
     }
 
     if (iter_limit == iter_counter) {
-        this->pcout << "Error: Iteration limit reached and secant method has not converged" << std::endl;
+        this->pcout << "Error: Iteration limit reached and root finding was not successful." << std::endl;
         secant_failed = true;
         std::abort();
         return -1;
@@ -163,14 +160,14 @@ template <int dim, typename real, int n_rk_stages, typename MeshType>
 real EntropyRRKODESolver<dim,real,n_rk_stages,MeshType>::compute_root_function(
         const double gamma,
         const dealii::LinearAlgebra::distributed::Vector<double> &u_n,
-        const dealii::LinearAlgebra::distributed::Vector<double> &d,
-        const double eta_n,
-        const double e) const
+        const dealii::LinearAlgebra::distributed::Vector<double> &step_direction,
+        const double num_entropy_n,
+        const double entropy_change_est) const
 {
     dealii::LinearAlgebra::distributed::Vector<double> temp = u_n;
-    temp.add(gamma, d);
-    double eta_np1 = compute_numerical_entropy(temp);
-    return eta_np1 - eta_n - gamma * e;
+    temp.add(gamma, step_direction);
+    double num_entropy_np1 = compute_numerical_entropy(temp);
+    return num_entropy_np1 - num_entropy_n - gamma * entropy_change_est;
 }
 
 
@@ -179,21 +176,8 @@ real EntropyRRKODESolver<dim,real,n_rk_stages,MeshType>::compute_numerical_entro
         const dealii::LinearAlgebra::distributed::Vector<double> &u) const
 {
     real num_entropy = compute_integrated_numerical_entropy(u);
-    //this->pcout << num_entropy << " ";
     return num_entropy;
     
-    /*dealii::LinearAlgebra::distributed::Vector<double> mass_matrix_times_solution(this->dg->right_hand_side);
-    if(this->dg->all_parameters->use_inverse_mass_on_the_fly)
-        this->dg->apply_global_mass_matrix(u,mass_matrix_times_solution);
-    else
-        this->dg->global_mass_matrix.vmult( mass_matrix_times_solution, u);
-
-    dealii::LinearAlgebra::distributed::Vector<double> entropy_var_hat_global = compute_entropy_vars(u);
-
-    double entropy = entropy_var_hat_global * mass_matrix_times_solution;
-    //double entropy_mpi = (dealii::Utilities::MPI::sum(entropy, this->mpi_communicator));
-    return entropy;
-    */
 }
 
 

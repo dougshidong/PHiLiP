@@ -510,8 +510,8 @@ public:
 
     void initialize_manufactured_solution (); ///< Virtual function defined in DG
 
-    void output_results_vtk (const unsigned int ith_grid, const double time=0.0); ///< Output solution
-    void output_face_results_vtk (const unsigned int ith_grid, const double time=0.0); ///< Output Euler face solution
+    void output_results_vtk (const unsigned int ith_grid); ///< Output solution
+    void output_face_results_vtk (const unsigned int ith_grid); ///< Output Euler face solution
     void output_paraview_results (std::string filename); ///< Outputs a paraview file to view the solution
 
     bool update_artificial_diss;

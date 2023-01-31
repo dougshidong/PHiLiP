@@ -8,6 +8,7 @@
 #include "reduced_order/pod_basis_offline.h"
 #include "physics/initial_conditions/set_initial_condition.h"
 #include "mesh/mesh_adaptation.h"
+#include <deal.II/base/timer.h>
 
 namespace PHiLiP {
 
@@ -426,6 +427,8 @@ int FlowSolver<dim,nstate>::run() const
         // Time advancement loop with on-the-fly post-processing
         //----------------------------------------------------
         pcout << "Advancing solution in time... " << std::endl;
+        dealii::Timer timer(this->mpi_communicator,false);
+        timer.start();
         while((ode_solver->current_time) < (final_time - 1E-13)) //comparing to 1E-13 to avoid taking an extra timestep
         {
             // update adaptive time step
@@ -480,6 +483,10 @@ int FlowSolver<dim,nstate>::run() const
                 }
             }
         } // close while
+        timer.stop();
+        const double max_wall_time = dealii::Utilities::MPI::max(timer.wall_time(), this->mpi_communicator);
+        pcout << "Elapsed wall time (mpi max): " << max_wall_time << " seconds." << std::endl;
+        pcout << "Elapsed CPU time: " << timer.cpu_time() << " seconds." << std::endl;
     } else {
         //----------------------------------------------------
         // Steady-state solution

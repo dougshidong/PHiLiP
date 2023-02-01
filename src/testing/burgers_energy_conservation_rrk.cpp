@@ -24,7 +24,7 @@ Parameters::AllParameters BurgersEnergyConservationRRK<dim,nstate>::reinit_param
     
     using ODESolverEnum = Parameters::ODESolverParam::ODESolverEnum;
     if (use_rrk)    {parameters.ode_solver_param.ode_solver_type = ODESolverEnum::rrk_explicit_solver;}
-    else            {parameters.ode_solver_param.ode_solver_type = ODESolverEnum::explicit_solver;}
+    else            {parameters.ode_solver_param.ode_solver_type = ODESolverEnum::runge_kutta_solver;}
 
     return parameters;
 }

@@ -1750,7 +1750,7 @@ public:
 
 
 template <int dim, typename real, typename MeshType>
-void DGBase<dim,real,MeshType>::output_face_results_vtk (const unsigned int cycle)// const
+void DGBase<dim,real,MeshType>::output_face_results_vtk (const unsigned int cycle, const double current_time)// const
 {
 
     DataOutEulerFaces<dim, dealii::DoFHandler<dim>> data_out;
@@ -1837,7 +1837,7 @@ void DGBase<dim,real,MeshType>::output_face_results_vtk (const unsigned int cycl
     data_out.build_patches(mapping, n_subdivisions);
     //const bool write_higher_order_cells = (dim>1 && max_degree > 1) ? true : false;
     const bool write_higher_order_cells = false;//(dim>1 && grid_degree > 1) ? true : false;
-    dealii::DataOutBase::VtkFlags vtkflags(0.0,cycle,true,dealii::DataOutBase::VtkFlags::ZlibCompressionLevel::best_compression,write_higher_order_cells);
+    dealii::DataOutBase::VtkFlags vtkflags(current_time,cycle,true,dealii::DataOutBase::VtkFlags::ZlibCompressionLevel::best_compression,write_higher_order_cells);
     data_out.set_flags(vtkflags);
 
     const int iproc = dealii::Utilities::MPI::this_mpi_process(mpi_communicator);
@@ -1868,12 +1868,13 @@ void DGBase<dim,real,MeshType>::output_face_results_vtk (const unsigned int cycl
 #endif
 
 template <int dim, typename real, typename MeshType>
-void DGBase<dim,real,MeshType>::output_results_vtk (const unsigned int cycle)// const
+void DGBase<dim,real,MeshType>::output_results_vtk (const unsigned int cycle, const double current_time)// const
 {
 #if PHILIP_DIM>1
-    output_face_results_vtk (cycle);
+    output_face_results_vtk (cycle, current_time);
 #endif
 
+    const bool enable_higher_order_vtk_output = this->all_parameters->enable_higher_order_vtk_output;
     dealii::DataOut<dim, dealii::DoFHandler<dim>> data_out;
 
     data_out.attach_dof_handler (dof_handler);
@@ -1947,14 +1948,12 @@ void DGBase<dim,real,MeshType>::output_results_vtk (const unsigned int cycle)// 
     //typename dealii::DataOut<dim>::CurvedCellRegion curved = dealii::DataOut<dim>::CurvedCellRegion::no_curved_cells;
 
     const dealii::Mapping<dim> &mapping = (*(high_order_grid->mapping_fe_field));
-    const int grid_degree = high_order_grid->max_degree;
-    //const int n_subdivisions = max_degree+1;//+30; // if write_higher_order_cells, n_subdivisions represents the order of the cell
-    //const int n_subdivisions = 1;//+30; // if write_higher_order_cells, n_subdivisions represents the order of the cell
-    const int n_subdivisions = grid_degree;
+    const unsigned int grid_degree = high_order_grid->max_degree;
+    // If higher-order vtk output is not enabled, passing 0 will be interpreted as DataOutInterface::default_subdivisions
+    const int n_subdivisions = (enable_higher_order_vtk_output) ? std::max(grid_degree,get_max_fe_degree()) : 0;
     data_out.build_patches(mapping, n_subdivisions, curved);
-    //const bool write_higher_order_cells = (dim>1 && max_degree > 1) ? true : false;
-    const bool write_higher_order_cells = (dim>1 && grid_degree > 1) ? true : false;
-    dealii::DataOutBase::VtkFlags vtkflags(0.0,cycle,true,dealii::DataOutBase::VtkFlags::ZlibCompressionLevel::best_compression,write_higher_order_cells);
+    const bool write_higher_order_cells = (n_subdivisions>1) ? true : false;
+    dealii::DataOutBase::VtkFlags vtkflags(current_time,cycle,true,dealii::DataOutBase::VtkFlags::ZlibCompressionLevel::best_compression,write_higher_order_cells);
     data_out.set_flags(vtkflags);
 
     const int iproc = dealii::Utilities::MPI::this_mpi_process(mpi_communicator);

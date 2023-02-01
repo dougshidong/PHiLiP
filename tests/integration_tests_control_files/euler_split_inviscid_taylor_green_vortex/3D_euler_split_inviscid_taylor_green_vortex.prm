@@ -23,7 +23,7 @@ subsection ODE solver
 
   set print_iteration_modulo = 10
 
-  set ode_solver_type = explicit
+  set ode_solver_type = runge_kutta
 
   set initial_time_step = 0.001
 

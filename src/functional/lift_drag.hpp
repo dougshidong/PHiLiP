@@ -81,7 +81,6 @@ public:
     LiftDragFunctional(
         std::shared_ptr<DGBase<dim,real,MeshType>> dg_input,
         const Functional_types functional_type);
-
     /// Destructor
     ~LiftDragFunctional(){};
 

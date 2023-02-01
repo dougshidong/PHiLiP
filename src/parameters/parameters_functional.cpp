@@ -25,7 +25,8 @@ void FunctionalParam::declare_parameters(dealii::ParameterHandler &prm)
                           " error_normLp_boundary | "
                           " lift | "
                           " drag | "
-                          " solution_integral "
+                          " solution_integral | "
+                          " outlet_pressure_integral | "
                           ),
                           "Functional that we want to use. "
                           "Choice are "
@@ -37,7 +38,9 @@ void FunctionalParam::declare_parameters(dealii::ParameterHandler &prm)
                           "  error_normLp_boundary | "
                           "  lift | "
                           "  drag | "
-                          "  solution_integral>.");
+                          "  solution_integral |"
+                          "  outlet_pressure_integral |"
+                          "  error_normLp_boundary>.");
 
         prm.declare_entry("normLp", "2.0",
                           dealii::Patterns::Double(1.0,dealii::Patterns::Double::max_double_value),
@@ -94,6 +97,7 @@ void FunctionalParam::parse_parameters(dealii::ParameterHandler &prm)
         else if(functional_string == "lift")                       {functional_type = FunctionalType::lift;}
         else if(functional_string == "drag")                       {functional_type = FunctionalType::drag;}
         else if(functional_string == "solution_integral")          {functional_type = FunctionalType::solution_integral;}
+        else if(functional_string == "outlet_pressure_integral")   {functional_type = FunctionalType::outlet_pressure_integral;}
 
         normLp = prm.get_double("normLp");
 

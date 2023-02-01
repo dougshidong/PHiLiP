@@ -25,6 +25,7 @@
 #include "optimization/rol_to_dealii_vector.hpp"
 #include "optimization/flow_constraints.hpp"
 #include "optimization/rol_objective.hpp"
+#include "optimization/design_parameterization/ffd_parameterization.hpp"
 
 
 const double TOL = 1e-7;
@@ -227,8 +228,11 @@ int test(const unsigned int nx_ffd)
     else if (mpi_rank == 1) outStream = ROL::makePtrFromRef(std::cout);
     else outStream = ROL::makePtrFromRef(bhs);
 
-    auto obj  = ROL::makePtr<ROLObjectiveSimOpt<dim,nstate>>( functional, ffd, ffd_design_variables_indices_dim );
-    auto con  = ROL::makePtr<FlowConstraints<dim>>(dg,ffd,ffd_design_variables_indices_dim);
+    std::shared_ptr<BaseParameterization<dim>> design_parameterization = 
+                        std::make_shared<FreeFormDeformationParameterization<dim>>(dg->high_order_grid, ffd, ffd_design_variables_indices_dim);
+    
+    auto obj  = ROL::makePtr<ROLObjectiveSimOpt<dim,nstate>>(functional, design_parameterization);
+    auto con  = ROL::makePtr<FlowConstraints<dim>>(dg, design_parameterization);
     const bool storage = false;
     const bool useFDHessian = false;
     auto robj = ROL::makePtr<ROL::Reduced_Objective_SimOpt<double>>( obj, con, des_var_sim_rol_p, des_var_ctl_rol_p, des_var_adj_rol_p, storage, useFDHessian);

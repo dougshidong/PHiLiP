@@ -21,7 +21,7 @@ end
 subsection mesh adaptation
     set mesh_adaptation_type = hp_adaptation
     set total_mesh_adaptation_cycles = 3
-    set h_refine_fraction = 0.05
+    set refine_fraction = 0.05
     set h_coarsen_fraction = 0.0
     set hp_smoothness_tolerance = 1.0e-6
     set use_goal_oriented_mesh_adaptation = true
@@ -56,7 +56,7 @@ subsection linear solver
 end
 
 subsection ODE solver
-  set output_solution_every_x_steps = 1
+  #set output_solution_every_x_steps = 1
   set nonlinear_max_iterations            = 2000
   set nonlinear_steady_residual_tolerance = 1e-15
   set ode_solver_type  = implicit

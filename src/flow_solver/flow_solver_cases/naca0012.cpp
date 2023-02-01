@@ -71,10 +71,6 @@ void NACA0012<dim,nstate>::set_higher_order_grid(std::shared_ptr<DGBase<dim, dou
     for (int i=0; i<this->all_param.flow_solver_param.number_of_mesh_refinements; ++i) {
         dg->high_order_grid->refine_global();
     }
-    
-    // MeshSmoothing is set to none as PHiLiP::read_gmsh() introduces additional mesh smoothing flags.
-    // These mesh smoothing flags refine additional cells when the polynomial order is increased (to compute goal-oriented error indicator). 
-    dg->triangulation->set_mesh_smoothing(typename dealii::Triangulation<dim>::MeshSmoothing(dealii::Triangulation<dim>::none));
 }
 
 template <int dim, int nstate>

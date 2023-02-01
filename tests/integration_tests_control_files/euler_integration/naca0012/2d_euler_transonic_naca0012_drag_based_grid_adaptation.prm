@@ -12,8 +12,6 @@ set use_split_form = false
 
 set overintegration = 0
 
-set solution_vtk_files_directory_name = ./drag_transonic
-
 subsection euler
   set reference_length = 1.0
   set mach_infinity = 0.80

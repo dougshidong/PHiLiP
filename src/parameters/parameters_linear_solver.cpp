@@ -22,6 +22,11 @@ void LinearSolverParam::declare_parameters (dealii::ParameterHandler &prm)
 
         prm.enter_subsection("gmres options");
         {
+            prm.declare_entry("linear_solver_preconditioner_type", "domain_decomposition",
+                              dealii::Patterns::Selection("jacobi|symmetric_gs|domain_decomposition"),
+                              "Enum of preconditioner for linear solver"
+                              "Choices are <jacobi|symmetric_gs|domain_decomposition>.");
+
             prm.declare_entry("linear_residual_tolerance", "1e-4",
                               dealii::Patterns::Double(),
                               "Linear residual tolerance for convergence of the linear system");
@@ -96,6 +101,11 @@ void LinearSolverParam ::parse_parameters (dealii::ParameterHandler &prm)
             linear_solver_type = LinearSolverEnum::gmres;
             prm.enter_subsection("gmres options");
             {
+                const std::string preconditioner_string = prm.get("linear_solver_preconditioner_type");
+                if (preconditioner_string == "jacobi") linear_solver_preconditioner_type = LinearSolverPreconditionerEnum::jacobi;
+                if (preconditioner_string == "symmetric_gs") linear_solver_preconditioner_type = LinearSolverPreconditionerEnum::symmetric_gs;
+                if (preconditioner_string == "domain_decomposition") linear_solver_preconditioner_type = LinearSolverPreconditionerEnum::domain_decomposition;
+
                 max_iterations  = prm.get_integer("max_iterations");
                 restart_number  = prm.get_integer("restart_number");
                 linear_residual = prm.get_double("linear_residual_tolerance");

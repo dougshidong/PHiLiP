@@ -20,11 +20,19 @@ public:
         gmres   /// GMRES.
     };
 
+    /// Types of preconditioners for linear solvers.
+    enum LinearSolverPreconditionerEnum {
+        jacobi,                 /// Block Jacobi.
+        symmetric_gs,           /// Symmetric Gauss-Siedel.
+        domain_decomposition    /// Domain Decomposition with a Subdomain Solver (ILU, ILUT)
+    };
+
     /// Can either be verbose or quiet.
     /** Verbose will print the full dense matrix. Will not work for large matrices
      */
     OutputEnum linear_solver_output; ///< quiet or verbose.
     LinearSolverEnum linear_solver_type; ///< direct or gmres.
+    LinearSolverPreconditionerEnum linear_solver_preconditioner_type; ///< jacobi or symmetric_gs or domain_decomposition
 
     // GMRES options
     double ilut_drop; ///< Threshold to drop terms close to zero.

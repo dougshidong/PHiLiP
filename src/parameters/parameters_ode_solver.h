@@ -24,9 +24,13 @@ public:
     OutputEnum ode_output; ///< verbose or quiet.
     ODESolverEnum ode_solver_type; ///< ODE solver type.
 
+    bool perform_linesearch; ///< Perform line search to complete step length for nonlinear update. 
+    bool perform_cfl_ramping; ///< Perform CFL ramping
+
     int output_solution_every_x_steps; ///< Outputs the solution every x steps to .vtk file
     double output_solution_every_dt_time_intervals; ///< Outputs the solution every dt time intervals to .vtk file
 
+    double relaxation_factor; //< Relaxation factor for the nonlinear update.
     unsigned int nonlinear_max_iterations; ///< Maximum number of iterations.
     unsigned int print_iteration_modulo; ///< If ode_output==verbose, print every print_iteration_modulo iterations.
     bool output_final_steady_state_solution_to_file; ///< Output final steady state solution to file

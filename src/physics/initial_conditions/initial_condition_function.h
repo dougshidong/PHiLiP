@@ -272,6 +272,24 @@ public:
     real value (const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
 };
 
+/// Kelvin-Helmholtz Instability, parametrized by Atwood number
+/// See Chan et al., On the entropy projection..., 2022, Pg. 15
+template <int dim, int nstate, typename real>
+class InitialConditionFunction_KHI : public InitialConditionFunction<dim,nstate,real>
+{
+protected:
+    using dealii::Function<dim,real>::value; ///< dealii::Function we are templating on
+    
+public:
+    /// Constructor
+    InitialConditionFunction_KHI(const double atwood_number_input);
+
+    /// Returns zero.
+    real value(const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
+
+    const real atwood_number;
+};
+
 /// Initial condition 0.
 template <int dim, int nstate, typename real>
 class InitialConditionFunction_Zero : public InitialConditionFunction<dim,nstate,real>

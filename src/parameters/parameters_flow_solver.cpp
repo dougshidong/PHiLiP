@@ -24,6 +24,7 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                           " advection | "
                           " periodic_1D_unsteady | "
                           " gaussian_bump | "
+                          " kelvin_helmholtz_instability | "
                           " sshock "),
                           "The type of flow we want to simulate. "
                           "Choices are "
@@ -36,6 +37,7 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                           " advection | "
                           " periodic_1D_unsteady | "
                           " gaussian_bump | "
+                          " kelvin_helmholtz_instability | "
                           " sshock>. ");
 
         prm.declare_entry("poly_degree", "1",
@@ -185,6 +187,15 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
         }
         prm.leave_subsection();
 
+        prm.enter_subsection("kelvin_helmholtz_instability");
+        {
+            prm.declare_entry("atwood_number", "0.5",
+                              dealii::Patterns::Double(0.0, 1.0),
+                              "Atwood number, which characterizes the density difference "
+                              "between the layers of fluid.");
+        }
+        prm.leave_subsection();
+
         prm.declare_entry("interpolate_initial_condition", "true",
                           dealii::Patterns::Bool(),
                           "Interpolate the initial condition function onto the DG solution. If false, then it projects the physical value. True by default.");
@@ -207,6 +218,7 @@ void FlowSolverParam::parse_parameters(dealii::ParameterHandler &prm)
         else if (flow_case_type_string == "advection")                  {flow_case_type = advection;}
         else if (flow_case_type_string == "periodic_1D_unsteady")       {flow_case_type = periodic_1D_unsteady;}
         else if (flow_case_type_string == "gaussian_bump")              {flow_case_type = gaussian_bump;}
+        else if (flow_case_type_string == "kelvin_helmholtz_instability")   {flow_case_type = kelvin_helmholtz_instability;}
         else if (flow_case_type_string == "sshock")                             {flow_case_type = sshock;}
 
         poly_degree = prm.get_integer("poly_degree");
@@ -262,6 +274,12 @@ void FlowSolverParam::parse_parameters(dealii::ParameterHandler &prm)
             if      (density_initial_condition_type_string == "uniform")    {density_initial_condition_type = uniform;}
             else if (density_initial_condition_type_string == "isothermal") {density_initial_condition_type = isothermal;}
             do_calculate_numerical_entropy = prm.get_bool("do_calculate_numerical_entropy");
+        }
+        prm.leave_subsection();
+
+        prm.enter_subsection("kelvin_helmholtz_instability");
+        {
+            atwood_number = prm.get_double("atwood_number");
         }
         prm.leave_subsection();
 

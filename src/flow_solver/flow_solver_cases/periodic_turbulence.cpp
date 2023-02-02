@@ -425,7 +425,7 @@ void PeriodicTurbulence<dim, nstate>::compute_unsteady_data_and_write_to_table(
     }
 }
 
-#if PHILIP_DIM==3
+#if PHILIP_DIM>1
 template class PeriodicTurbulence <PHILIP_DIM,PHILIP_DIM+2>;
 #endif
 

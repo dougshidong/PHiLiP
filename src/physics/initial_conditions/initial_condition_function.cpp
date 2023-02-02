@@ -353,6 +353,51 @@ inline real InitialConditionFunction_1DSine<dim,nstate,real>
 }
 
 // ========================================================
+// KELVIN-HELMHOLTZ INSTABILITY
+// See Chan et al., On the entropy projection..., 2022, Pg. 15
+// ========================================================
+template <int dim, int nstate, typename real>
+InitialConditionFunction_KHI<dim,nstate,real>
+::InitialConditionFunction_KHI (const double atwood_number_input)
+        : InitialConditionFunction<dim,nstate,real>()
+        , atwood_number(atwood_number_input)
+{
+    // Nothing to do here yet
+}
+
+template <int dim, int nstate, typename real>
+inline real InitialConditionFunction_KHI<dim,nstate,real>
+::value(const dealii::Point<dim,real> &point, const unsigned int istate) const
+{
+    //TO DO : Make A a parameter
+    const double pi = dealii::numbers::PI;
+    const double gam = 1.4;
+    
+    const double B = tanh(15*point[1] + 7.5) - tanh(15*point[1] - 7.5);
+
+    const double rho1 = 1;
+    const double rho2 = rho1 * (1 + atwood_number) / (1 - atwood_number);
+
+    const double density = rho1 + B * (rho2-rho1);
+    const double pressure = 1;
+    const double x_velocity = B - 0.5;
+    const double y_velocity = 0.1 * sin(2 * pi * point[0]);
+    const double z_velocity = 0; //Chan gives in 2D, here generalizing to 3D
+    const double vel2 = x_velocity*x_velocity + y_velocity*y_velocity + z_velocity*z_velocity;
+
+    //Convert to conservative variables
+    if (istate == 0)      return density;       //density 
+    else if (istate == nstate-1) return pressure/(gam-1.0) 
+        + 0.5 * density * vel2;   //total energy
+    else if (istate == 1) return density * x_velocity;  //x-momentum
+    else if (istate == 2) return density * y_velocity;  //y-momentum
+    else if (istate == 3) return density * z_velocity;  //z-momentum
+    else return 0;
+    
+
+}
+
+// ========================================================
 // ZERO INITIAL CONDITION
 // ========================================================
 template <int dim, int nstate, typename real>
@@ -422,6 +467,8 @@ InitialConditionFactory<dim,nstate, real>::create_InitialConditionFunction(
         return std::make_shared<InitialConditionFunction_ConvDiffEnergy<dim,nstate,real> > ();
     } else if (flow_type == FlowCaseEnum::periodic_1D_unsteady) {
         if constexpr (dim==1 && nstate==1) return std::make_shared<InitialConditionFunction_1DSine<dim,nstate,real> > ();
+    } else if (flow_type == FlowCaseEnum::kelvin_helmholtz_instability) {
+        if constexpr (dim>1 && nstate==dim+2) return std::make_shared<InitialConditionFunction_KHI<dim,nstate,real> > (param->flow_solver_param.atwood_number);
     } else if (flow_type == FlowCaseEnum::sshock) {
         if constexpr (dim==2 && nstate==1)  return std::make_shared<InitialConditionFunction_Zero<dim,nstate,real> > ();
     } else {

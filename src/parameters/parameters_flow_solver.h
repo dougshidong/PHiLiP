@@ -25,6 +25,7 @@ public:
         advection,
         periodic_1D_unsteady,
         gaussian_bump,
+        kelvin_helmholtz_instability,
         sshock
         };
     FlowCaseType flow_case_type; ///< Selected FlowCaseType from the input file
@@ -89,6 +90,9 @@ public:
     DensityInitialConditionType density_initial_condition_type;
     /// For TGV, flag to calculate and write numerical entropy
     bool do_calculate_numerical_entropy;
+
+    /// For KHI, the atwood number
+    double atwood_number;
 
     /// Declares the possible variables and sets the defaults.
     static void declare_parameters (dealii::ParameterHandler &prm);

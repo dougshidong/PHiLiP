@@ -81,6 +81,9 @@ FlowSolver<dim, nstate>::FlowSolver(
         SetInitialCondition<dim,nstate,double>::set_initial_condition(flow_solver_case->initial_condition_function, dg, &all_param);
     }
     dg->solution.update_ghost_values();
+
+    // Update model variables
+    update_model_variables();
     
     // Allocate ODE solver after initializing DG
     ode_solver->allocate_ode_system();
@@ -93,6 +96,12 @@ FlowSolver<dim, nstate>::FlowSolver(
         }
         pcout << "done." << std::endl;
     }
+}
+
+template <int dim, int nstate>
+void FlowSolver<dim,nstate>::update_model_variables()
+{
+    // Do nothing by default
 }
 
 template <int dim, int nstate>
@@ -439,6 +448,9 @@ int FlowSolver<dim,nstate>::run() const
 
             // advance solution
             ode_solver->step_in_time(time_step,false); // pseudotime==false
+
+            // Update model variables
+            update_model_variables();
 
             // Compute the unsteady quantities, write to the dealii table, and output to file
             flow_solver_case->compute_unsteady_data_and_write_to_table(ode_solver->current_iteration, ode_solver->current_time, dg, unsteady_data_table);

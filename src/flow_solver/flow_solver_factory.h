@@ -3,6 +3,7 @@
 
 #include "parameters/all_parameters.h"
 #include "flow_solver.h"
+#include "flow_solver_channel_flow.h"
 
 namespace PHiLiP {
 namespace FlowSolver {

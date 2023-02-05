@@ -25,6 +25,7 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                           " advection | "
                           " periodic_1D_unsteady | "
                           " gaussian_bump | "
+                          " channel_flow | "
                           " sshock "),
                           "The type of flow we want to simulate. "
                           "Choices are "
@@ -38,6 +39,7 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                           " advection | "
                           " periodic_1D_unsteady | "
                           " gaussian_bump | "
+                          " channel_flow | "
                           " sshock>. ");
 
         prm.declare_entry("poly_degree", "1",
@@ -187,6 +189,18 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
         }
         prm.leave_subsection();
 
+        prm.enter_subsection("channel_flow");
+        {
+            prm.declare_entry("channel_height", "1",
+                              dealii::Patterns::Double(0, dealii::Patterns::Double::max_double_value),
+                              "Channel height. Default is 1.");
+
+            prm.declare_entry("channel_bulk_reynolds_number", "590",
+                              dealii::Patterns::Double(0, dealii::Patterns::Double::max_double_value),
+                              "Channel Reynolds number based on bulk velocity. Default is 590.");
+        }
+        prm.leave_subsection();
+
         prm.declare_entry("apply_initial_condition_method", "interpolate_initial_condition_function",
                           dealii::Patterns::Selection(
                           " interpolate_initial_condition_function | "
@@ -259,6 +273,7 @@ void FlowSolverParam::parse_parameters(dealii::ParameterHandler &prm)
         else if (flow_case_type_string == "advection")                  {flow_case_type = advection;}
         else if (flow_case_type_string == "periodic_1D_unsteady")       {flow_case_type = periodic_1D_unsteady;}
         else if (flow_case_type_string == "gaussian_bump")              {flow_case_type = gaussian_bump;}
+        else if (flow_case_type_string == "channel_flow")               {flow_case_type = channel_flow;}
         else if (flow_case_type_string == "sshock")                             {flow_case_type = sshock;}
 
         poly_degree = prm.get_integer("poly_degree");
@@ -314,6 +329,13 @@ void FlowSolverParam::parse_parameters(dealii::ParameterHandler &prm)
             if      (density_initial_condition_type_string == "uniform")    {density_initial_condition_type = uniform;}
             else if (density_initial_condition_type_string == "isothermal") {density_initial_condition_type = isothermal;}
             do_calculate_numerical_entropy = prm.get_bool("do_calculate_numerical_entropy");
+        }
+        prm.leave_subsection();
+
+        prm.enter_subsection("channel_flow");
+        {
+            turbulent_channel_height = prm.get_double("channel_height");
+            turbulent_channel_bulk_reynolds_number = prm.get_double("channel_bulk_reynolds_number");
         }
         prm.leave_subsection();
 

@@ -26,6 +26,7 @@ public:
         advection,
         periodic_1D_unsteady,
         gaussian_bump,
+        channel_flow,
         sshock
         };
     FlowCaseType flow_case_type; ///< Selected FlowCaseType from the input file
@@ -96,6 +97,9 @@ public:
 
     /// Parses input file and sets the variables.
     void parse_parameters (dealii::ParameterHandler &prm);
+
+    double turbulent_channel_height; ///< For channel flow, channel height
+    double turbulent_channel_bulk_reynolds_number; ///< For channel flow, channel Reynolds number based on bulk velocity
 
     /// Selects the method for applying the initial condition
     enum ApplyInitialConditionMethod{

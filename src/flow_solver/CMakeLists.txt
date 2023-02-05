@@ -9,8 +9,8 @@ set(FLOW_SOLVER_SOURCE
     flow_solver_cases/1d_burgers_viscous_snapshot.cpp
     flow_solver_cases/naca0012.cpp
     flow_solver_cases/gaussian_bump.cpp
+    flow_solver_cases/channel_flow.cpp
     flow_solver.cpp
-    flow_solver_channel_flow.cpp
     flow_solver_factory.cpp)
 
 foreach(dim RANGE 1 3)

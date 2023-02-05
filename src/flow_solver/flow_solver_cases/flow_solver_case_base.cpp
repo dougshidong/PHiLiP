@@ -140,6 +140,12 @@ void FlowSolverCaseBase<dim, nstate>::steady_state_postprocessing(std::shared_pt
 }
 
 template <int dim, int nstate>
+void FlowSolverCaseBase<dim,nstate>::update_model_variables(std::shared_ptr<DGBase<dim, double>> /*dg*/) const
+{
+    // do nothing by default
+}
+
+template <int dim, int nstate>
 void FlowSolverCaseBase<dim, nstate>::compute_unsteady_data_and_write_to_table(
         const unsigned int /*current_iteration*/,
         const double /*current_time*/,

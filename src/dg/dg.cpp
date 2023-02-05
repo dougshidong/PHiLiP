@@ -435,6 +435,42 @@ void DGBaseState<dim,nstate,real,MeshType>::update_model_variables()
 }
 
 template <int dim, int nstate, typename real, typename MeshType>
+void DGBaseState<dim,nstate,real,MeshType>::set_model_variables(
+        const double integrated_density_over_domain,
+        const double channel_height,
+        const double channel_bulk_reynolds_number,
+        const double time_step)
+{
+    // integrated_density_over_domain
+    pde_model_double->integrated_density_over_domain  = integrated_density_over_domain;
+    pde_model_fad->integrated_density_over_domain     = integrated_density_over_domain;
+    pde_model_rad->integrated_density_over_domain     = integrated_density_over_domain;
+    pde_model_fad_fad->integrated_density_over_domain = integrated_density_over_domain;
+    pde_model_rad_fad->integrated_density_over_domain = integrated_density_over_domain;
+
+    // channel_height
+    pde_model_double->channel_height  = channel_height;
+    pde_model_fad->channel_height     = channel_height;
+    pde_model_rad->channel_height     = channel_height;
+    pde_model_fad_fad->channel_height = channel_height;
+    pde_model_rad_fad->channel_height = channel_height;
+
+    // channel_bulk_reynolds_number
+    pde_model_double->channel_bulk_reynolds_number  = channel_bulk_reynolds_number;
+    pde_model_fad->channel_bulk_reynolds_number     = channel_bulk_reynolds_number;
+    pde_model_rad->channel_bulk_reynolds_number     = channel_bulk_reynolds_number;
+    pde_model_fad_fad->channel_bulk_reynolds_number = channel_bulk_reynolds_number;
+    pde_model_rad_fad->channel_bulk_reynolds_number = channel_bulk_reynolds_number;
+
+    // time_step
+    pde_model_double->time_step  = time_step;
+    pde_model_fad->time_step     = time_step;
+    pde_model_rad->time_step     = time_step;
+    pde_model_fad_fad->time_step = time_step;
+    pde_model_rad_fad->time_step = time_step;
+}
+
+template <int dim, int nstate, typename real, typename MeshType>
 void DGBaseState<dim,nstate,real,MeshType>::set_use_auxiliary_eq()
 {
     this->use_auxiliary_eq = pde_physics_double->has_nonzero_diffusion;

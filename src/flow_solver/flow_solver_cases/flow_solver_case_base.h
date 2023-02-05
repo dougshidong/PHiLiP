@@ -58,6 +58,9 @@ public:
     /// Virtual function for postprocessing when solving for steady state
     virtual void steady_state_postprocessing(std::shared_ptr <DGBase<dim, double>> dg) const;
 
+    /// Virtual function for update model variables
+    virtual void update_model_variables(std::shared_ptr<DGBase<dim, double>> dg) const;
+
     /// Setter for time step
     void set_time_step(const double time_step_input);
 

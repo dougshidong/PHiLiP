@@ -22,4 +22,6 @@ build*/
 .vscode/settings.json
 src/.vscode/settings.json
 src/dummy/*
+tests/unit_tests/grid/gmsh_reader/*.msh
+tests/meshes/*.msh
 

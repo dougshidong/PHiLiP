@@ -152,16 +152,13 @@ double LargeEddySimulationBase<dim,nstate,real>
 ::get_filter_width (const dealii::types::global_dof_index cell_index) const
 { 
     // Compute the LES filter width
-    /** Reference: Flad, David, and Gregor Gassner. "On the use of kinetic
-     *  energy preserving DG-schemes for large eddy simulation."
-     *  Journal of Computational Physics 350 (2017): 782-795.
+    /** Reference: Marta de la Llave Plata, et al. "On the performance of a 
+     *  high-order multiscale DG approach to LES at increasing Reynolds number."
+     *  Computers and Fluids 194 (2019), Page 4, Eq.(14).
      * */
     const int cell_poly_degree = this->cellwise_poly_degree[cell_index];
     const double cell_volume = this->cellwise_volume[cell_index];
-    double filter_width = cell_volume;
-    for(int i=0; i<dim; ++i) {
-        filter_width /= (cell_poly_degree+1);
-    }
+    double filter_width = pow(cell_volume, (1.0/3.0))/(cell_poly_degree+1);
     // Resize given the ratio of filter width to cell size
     filter_width *= ratio_of_filter_width_to_cell_size;
 

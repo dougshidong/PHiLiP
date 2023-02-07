@@ -17,12 +17,7 @@ ModelBase<dim, nstate, real>::ModelBase(
         manufactured_solution_function(manufactured_solution_function_input)
         , mpi_communicator(MPI_COMM_WORLD)
         , pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(mpi_communicator)==0)
-{ 
-    // if provided with a null ptr, give it the default manufactured solution
-    // currently only necessary for the unit test
-    if(!manufactured_solution_function)
-        manufactured_solution_function = std::make_shared<ManufacturedSolutionSine<dim,real>>(nstate);
-}
+{}
 //----------------------------------------------------------------
 template <int dim, int nstate, typename real>
 ModelBase<dim,nstate,real>::~ModelBase() {}

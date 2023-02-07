@@ -14,6 +14,7 @@
 #include "parameters/parameters.h"
 #include "physics/reynolds_averaged_navier_stokes.h"
 #include "physics/negative_spalart_allmaras_rans_model.h"
+#include "physics/manufactured_solution.h"
 
 const double TOLERANCE = 1E-5;
 
@@ -64,6 +65,10 @@ int main (int /*argc*/, char * /*argv*/[])
     std::array<dealii::Tensor<1,dim,double>,nstate> soln_gradient_plus2;
     std::array<dealii::Tensor<1,dim,double>,nstate> soln_gradient_mins2;
     
+    // Create ManufacturedSolutionFunction
+    std::shared_ptr< PHiLiP::ManufacturedSolutionFunction<dim,double> > 
+        manufactured_solution_function = std::make_shared<PHiLiP::ManufacturedSolutionSine<dim,double>>(nstate);
+
     for (auto cell : grid.active_cell_iterators()) {
         for (unsigned int v=0; v < dealii::GeometryInfo<dim>::vertices_per_cell; ++v) {
     
@@ -87,36 +92,36 @@ int main (int /*argc*/, char * /*argv*/[])
                 
                 // Get manufactured solution value
                 for (int s=0; s<nstate; s++) {
-                    soln_plus[s] = rans_sa_neg_physics.manufactured_solution_function->value(vertex_plus, s);
-                    soln_mins[s] = rans_sa_neg_physics.manufactured_solution_function->value(vertex_mins, s);
-                    soln_plus2[s] = rans_sa_neg_physics.manufactured_solution_function->value(vertex_plus2, s);
-                    soln_mins2[s] = rans_sa_neg_physics.manufactured_solution_function->value(vertex_mins2, s);
+                    soln_plus[s] = manufactured_solution_function->value(vertex_plus, s);
+                    soln_mins[s] = manufactured_solution_function->value(vertex_mins, s);
+                    soln_plus2[s] = manufactured_solution_function->value(vertex_plus2, s);
+                    soln_mins2[s] = manufactured_solution_function->value(vertex_mins2, s);
                 }
     
                 // Get manufactured solution gradients
                 // - compute gradient @ vertex_plus
-                rans_sa_neg_physics.manufactured_solution_function->vector_gradient(vertex_plus, manufactured_solution_gradient_dealii);
+                manufactured_solution_function->vector_gradient(vertex_plus, manufactured_solution_gradient_dealii);
                 for (int d=0;d<dim;d++) {
                     for (int s=0; s<nstate; s++) {
                         soln_gradient_plus[s][d] = manufactured_solution_gradient_dealii[s][d];
                     }
                 }
                 // - compute gradient @ vertex_mins
-                rans_sa_neg_physics.manufactured_solution_function->vector_gradient(vertex_mins, manufactured_solution_gradient_dealii);
+                manufactured_solution_function->vector_gradient(vertex_mins, manufactured_solution_gradient_dealii);
                 for (int d=0;d<dim;d++) {
                     for (int s=0; s<nstate; s++) {
                         soln_gradient_mins[s][d] = manufactured_solution_gradient_dealii[s][d];
                     }
                 }
                 // - compute gradient @ vertex_plus2
-                rans_sa_neg_physics.manufactured_solution_function->vector_gradient(vertex_plus2, manufactured_solution_gradient_dealii);
+                manufactured_solution_function->vector_gradient(vertex_plus2, manufactured_solution_gradient_dealii);
                 for (int d=0;d<dim;d++) {
                     for (int s=0; s<nstate; s++) {
                         soln_gradient_plus2[s][d] = manufactured_solution_gradient_dealii[s][d];
                     }
                 }
                 // - compute gradient @ vertex_mins2
-                rans_sa_neg_physics.manufactured_solution_function->vector_gradient(vertex_mins2, manufactured_solution_gradient_dealii);
+                manufactured_solution_function->vector_gradient(vertex_mins2, manufactured_solution_gradient_dealii);
                 for (int d=0;d<dim;d++) {
                     for (int s=0; s<nstate; s++) {
                         soln_gradient_mins2[s][d] = manufactured_solution_gradient_dealii[s][d];

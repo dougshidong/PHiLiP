@@ -961,10 +961,10 @@ protected:
 
 
 public:
-    ///To allocate the auxiliary equation, primarily for Strong form diffusive.
+    /// To allocate the auxiliary equation, primarily for Strong form diffusive.
     virtual void allocate_auxiliary_equation ()=0;
 
-    ///Asembles the auxiliary equations' residuals and solves.
+    /// Asembles the auxiliary equations' residuals and solves.
     virtual void assemble_auxiliary_residual ()=0;
  
 

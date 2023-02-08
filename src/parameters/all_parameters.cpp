@@ -265,6 +265,14 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       dealii::Patterns::Bool(),
                       "Outputs the high-order mesh vtu files. False by default");
 
+    prm.declare_entry("enable_higher_order_vtk_output", "false",
+                      dealii::Patterns::Bool(),
+                      "Enable writing of higher-order vtk files."
+                      "False by default. If modified to true,"
+                      "number of subdivisions will be chosen"
+                      "according to the max of grid_degree"
+                      "and poly_degree.");
+
     Parameters::LinearSolverParam::declare_parameters (prm);
     Parameters::ManufacturedConvergenceStudyParam::declare_parameters (prm);
     Parameters::ODESolverParam::declare_parameters (prm);
@@ -441,8 +449,8 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     if (flux_reconstruction_aux_string == "k10Thousand") { flux_reconstruction_aux_type = k10Thousand; }
 
     solution_vtk_files_directory_name = prm.get("solution_vtk_files_directory_name");
-
     output_high_order_grid = prm.get_bool("output_high_order_grid");
+    enable_higher_order_vtk_output = prm.get_bool("enable_higher_order_vtk_output");
 
     pcout << "Parsing linear solver subsection..." << std::endl;
     linear_solver_param.parse_parameters (prm);

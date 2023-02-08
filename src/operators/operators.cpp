@@ -64,9 +64,9 @@ dealii::FullMatrix<double> OperatorsBase<dim,n_faces>::tensor_product(
     const unsigned int rows_z    = basis_z.m();
     const unsigned int columns_z = basis_z.n();
 
-    if(dim==1)
+    if constexpr (dim==1)
         return basis_x;
-    if(dim==2){
+    if constexpr (dim==2){
         dealii::FullMatrix<double> tens_prod(rows_x * rows_y, columns_x * columns_y);
         for(unsigned int jdof=0; jdof<rows_y; jdof++){
             for(unsigned int kdof=0; kdof<rows_x; kdof++){
@@ -81,7 +81,7 @@ dealii::FullMatrix<double> OperatorsBase<dim,n_faces>::tensor_product(
         }
         return tens_prod;
     }
-    if(dim==3){
+    if constexpr (dim==3){
         dealii::FullMatrix<double> tens_prod(rows_x * rows_y * rows_z, columns_x * columns_y * columns_z);
         for(unsigned int idof=0; idof<rows_z; idof++){
             for(unsigned int jdof=0; jdof<rows_y; jdof++){
@@ -142,14 +142,14 @@ dealii::FullMatrix<double> OperatorsBase<dim,n_faces>::tensor_product_state(
                 basis_x_1state[r][c] = basis_x[istate*rows_1state_x + r][istate*columns_1state_x + c];
             }
         }
-        if(dim>=2){
+        if constexpr(dim>=2){
             for(unsigned int r=0; r<rows_1state_y; r++){
                 for(unsigned int c=0; c<columns_1state_y; c++){
                     basis_y_1state[r][c] = basis_y[istate*rows_1state_y + r][istate*columns_1state_y + c];
                 }
             }
         }
-        if(dim>=3){
+        if constexpr(dim>=3){
             for(unsigned int r=0; r<rows_1state_z; r++){
                 for(unsigned int c=0; c<columns_1state_z; c++){
                     basis_z_1state[r][c] = basis_z[istate*rows_1state_z + r][istate*columns_1state_z + c];
@@ -209,20 +209,20 @@ void SumFactorizedOperators<dim,n_faces>::matrix_vector_mult(
     const unsigned int columns_x = basis_x.n();
     const unsigned int columns_y = basis_y.n();
     const unsigned int columns_z = basis_z.n();
-    if(dim == 1){
+    if constexpr (dim == 1){
         assert(rows_x    == output_vect.size());
         assert(columns_x == input_vect.size());
     }
-    if(dim == 2){
+    if constexpr (dim == 2){
         assert(rows_x * rows_y       == output_vect.size());
         assert(columns_x * columns_y == input_vect.size());
     }
-    if(dim == 3){
+    if constexpr (dim == 3){
         assert(rows_x * rows_y * rows_z          == output_vect.size());
         assert(columns_x * columns_y * columns_z == input_vect.size());
     }
 
-    if(dim==1){
+    if constexpr (dim==1){
         for(unsigned int iquad=0; iquad<rows_x; iquad++){
             if(!adding)
                 output_vect[iquad] = 0.0;
@@ -231,7 +231,7 @@ void SumFactorizedOperators<dim,n_faces>::matrix_vector_mult(
             }
         }
     }
-    if(dim==2){
+    if constexpr (dim==2){
         //convert the input vector to matrix
         dealii::FullMatrix<double> input_mat(columns_x, columns_y);
         for(unsigned int idof=0; idof<columns_y; idof++){ 
@@ -254,7 +254,7 @@ void SumFactorizedOperators<dim,n_faces>::matrix_vector_mult(
         }
 
     }
-    if(dim==3){
+    if constexpr (dim==3){
         //convert vect to mat first
         dealii::FullMatrix<double> input_mat(columns_x, columns_y * columns_z);
         for(unsigned int idof=0; idof<columns_z; idof++){ 
@@ -477,15 +477,15 @@ void SumFactorizedOperators<dim,n_faces>::inner_product(
     const unsigned int columns_z = basis_z.n();
     //Note the assertion has columns to output and rows to input
     //bc we transpose the basis inputted for the inner product
-    if(dim == 1){
+    if constexpr (dim == 1){
         assert(rows_x    == input_vect.size());
         assert(columns_x == output_vect.size());
     }
-    if(dim == 2){
+    if constexpr (dim == 2){
         assert(rows_x * rows_y       == input_vect.size());
         assert(columns_x * columns_y == output_vect.size());
     }
-    if(dim == 3){
+    if constexpr (dim == 3){
         assert(rows_x * rows_y * rows_z          == input_vect.size());
         assert(columns_x * columns_y * columns_z == output_vect.size());
     }
@@ -1318,7 +1318,7 @@ dealii::FullMatrix<double> local_Flux_Reconstruction_operator<dim,n_faces>::buil
         derivative_p_temp.Tmmult(Flux_Reconstruction_operator_temp, mass_matrix);
         Flux_Reconstruction_operator_temp.mmult(Flux_Reconstruction_operator, pth_deriv_dim, true);
     }
-    if(dim>=2){
+    if constexpr (dim>=2){
         const int deriv_2p_loop = (dim==2) ? 1 : dim; 
         double FR_param_sqrd = pow(FR_param,2.0);
         for(int idim=0; idim<deriv_2p_loop; idim++){
@@ -1339,7 +1339,7 @@ dealii::FullMatrix<double> local_Flux_Reconstruction_operator<dim,n_faces>::buil
             Flux_Reconstruction_operator_temp.mmult(Flux_Reconstruction_operator, pth_deriv_dim, true);
         }
     }
-    if(dim == 3){
+    if constexpr (dim == 3){
         double FR_param_cubed = pow(FR_param,3.0);
         dealii::FullMatrix<double> pth_deriv_dim(n_dofs);
         pth_deriv_dim = this->tensor_product_state(nstate, pth_deriv, pth_deriv, pth_deriv);
@@ -1360,10 +1360,10 @@ dealii::FullMatrix<double> local_Flux_Reconstruction_operator<dim,n_faces>::buil
     const unsigned int n_dofs)
 {
     dealii::FullMatrix<double> dim_FR_operator(n_dofs);
-    if(dim == 1){
+    if constexpr (dim == 1){
         dim_FR_operator = this->oneD_vol_operator;
     }
-    if(dim >= 2){
+    if (dim >= 2){
         dealii::FullMatrix<double> FR1(n_dofs);
         FR1 = this->tensor_product_state(nstate, this->oneD_vol_operator, local_Mass_Matrix, local_Mass_Matrix);
         dealii::FullMatrix<double> FR2(n_dofs);
@@ -1372,7 +1372,7 @@ dealii::FullMatrix<double> local_Flux_Reconstruction_operator<dim,n_faces>::buil
         FR_cross1 = this->tensor_product_state(nstate, this->oneD_vol_operator, this->oneD_vol_operator, local_Mass_Matrix);
         dim_FR_operator.add(1.0, FR1, 1.0, FR2, 1.0, FR_cross1);
     }
-    if(dim == 3){
+    if constexpr (dim == 3){
         dealii::FullMatrix<double> FR3(n_dofs);
         FR3 = this->tensor_product_state(nstate, local_Mass_Matrix, local_Mass_Matrix, this->oneD_vol_operator);
         dealii::FullMatrix<double> FR_cross2(n_dofs);
@@ -2269,10 +2269,10 @@ void metric_operators<real,dim,n_faces>::build_local_metric_cofactor_matrix(
 {
     //mapping support points must be passed as a vector[dim][n_metric_dofs]
     //Solve for Cofactor
-    if(dim == 1){//constant for 1D
+    if (dim == 1){//constant for 1D
         std::fill(metric_cofactor[0][0].begin(), metric_cofactor[0][0].end(), 1.0);
     }
-    if(dim == 2){
+    if (dim == 2){
         std::vector<dealii::Tensor<2,dim,double>> Jacobian_flux_nodes(n_quad_pts);
         this->build_metric_Jacobian(n_quad_pts,
                                     mapping_support_points, 
@@ -2290,7 +2290,7 @@ void metric_operators<real,dim,n_faces>::build_local_metric_cofactor_matrix(
             metric_cofactor[1][1][iquad] =   Jacobian_flux_nodes[iquad][0][0];
         }
     }
-    if(dim == 3){
+    if (dim == 3){
         compute_local_3D_cofactor(n_metric_dofs, 
                                   n_quad_pts,
                                   mapping_support_points, 

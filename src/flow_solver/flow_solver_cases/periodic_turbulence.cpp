@@ -295,21 +295,20 @@ double PeriodicTurbulence<dim, nstate>::get_deviatoric_strain_rate_tensor_based_
 }
 
 template<int dim, int nstate>
-double PeriodicTurbulence<dim, nstate>::get_numerical_entropy(
-        const std::shared_ptr <DGBase<dim, double>> dg
-        ) const
+double PeriodicTurbulence<dim, nstate>::get_numerical_entropy(const std::shared_ptr <DGBase<dim, double>> dg) const
 {
     const double poly_degree = this->all_param.flow_solver_param.poly_degree;
     dealii::LinearAlgebra::distributed::Vector<double> mass_matrix_times_solution(dg->right_hand_side);
-    if(this->all_param.use_inverse_mass_on_the_fly)
-        dg->apply_global_mass_matrix(dg->solution,mass_matrix_times_solution);
-    else
+    if(this->all_param.use_inverse_mass_on_the_fly){
+            dg->apply_global_mass_matrix(dg->solution,mass_matrix_times_solution);
+    } else {
         dg->global_mass_matrix.vmult( mass_matrix_times_solution, dg->solution);
+    }
 
     const unsigned int n_dofs_cell = dg->fe_collection[poly_degree].dofs_per_cell;
     const unsigned int n_quad_pts = dg->volume_quadrature_collection[poly_degree].size();
     const unsigned int n_shape_fns = n_dofs_cell / nstate;
-    //We have to project the vector of entropy variables because the mass matrix has an interpolation from solution nodes built into it.
+    // We have to project the vector of entropy variables because the mass matrix has an interpolation from solution nodes built into it.
     OPERATOR::vol_projection_operator<dim,2*dim> vol_projection(1, poly_degree, dg->max_grid_degree);
     vol_projection.build_1D_volume_operator(dg->oneD_fe_collection_1state[poly_degree], dg->oneD_quadrature_collection[poly_degree]);
 
@@ -318,7 +317,6 @@ double PeriodicTurbulence<dim, nstate>::get_numerical_entropy(
 
     dealii::LinearAlgebra::distributed::Vector<double> entropy_var_hat_global(dg->right_hand_side);
     std::vector<dealii::types::global_dof_index> dofs_indices (n_dofs_cell);
-
 
     for (auto cell = dg->dof_handler.begin_active(); cell!=dg->dof_handler.end(); ++cell) {
         if (!cell->is_locally_owned()) continue;
@@ -367,8 +365,8 @@ double PeriodicTurbulence<dim, nstate>::get_numerical_entropy(
         }
     }
 
-    //Note that dot product accounts for MPI distributed vectors
-    //Therefore, there is no need for an MPI sum.
+    // Note that dot product accounts for MPI distributed vectors
+    // Therefore, there is no need for an MPI sum.
     double entropy = entropy_var_hat_global * mass_matrix_times_solution;
     return entropy;
 }

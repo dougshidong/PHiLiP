@@ -108,10 +108,10 @@ template <int dim, typename real, int n_rk_stages, typename MeshType>
 void RungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::allocate_ode_system ()
 {
     this->pcout << "Allocating ODE system and evaluating inverse mass matrix..." << std::endl;
-    const bool do_inverse_mass_matrix = !this->all_parameters->use_inverse_mass_on_the_fly;
     this->solution_update.reinit(this->dg->right_hand_side);
-    if(!this->all_parameters->use_inverse_mass_on_the_fly)
-        this->dg->evaluate_mass_matrices(do_inverse_mass_matrix);
+    if(this->all_parameters->use_inverse_mass_on_the_fly == false) {
+        this->dg->evaluate_mass_matrices(true); // creates and stores global inverse mass matrix
+    }
 
     this->rk_stage.resize(n_rk_stages);
     for (int i=0; i<n_rk_stages; ++i) {

@@ -640,7 +640,7 @@ public:
     void set_current_time(const real current_time_input);
 
 protected:
-    ///The current time for explicit solves
+    /// The current time set in set_current_time()
     real current_time;
     /// Continuous distribution of artificial dissipation.
     const dealii::FE_Q<dim> fe_q_artificial_dissipation;

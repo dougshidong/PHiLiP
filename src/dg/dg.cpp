@@ -2353,7 +2353,7 @@ void DGBase<dim,real,MeshType>::evaluate_mass_matrices (bool do_inverse_mass_mat
             }
         }
     }
-    //Initialize gloabl matrices to 0.
+    // Initialize global matrices to 0.
     dealii::SparsityTools::distribute_sparsity_pattern(dsp, dof_handler.locally_owned_dofs(), mpi_communicator, locally_owned_dofs);
     mass_sparsity_pattern.copy_from(dsp);
     if (do_inverse_mass_matrix) {

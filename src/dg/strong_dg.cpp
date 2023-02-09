@@ -389,8 +389,8 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_auxiliary_residual()
         pcout << "DG Strong not yet verified for Burgers' viscous. Aborting..." << std::endl;
         std::abort();
     }
-    // NOTE: auxiliary currently only works explicit time advancement
-    if (this->use_auxiliary_eq && (this->all_parameters->ode_solver_param.ode_solver_type == ODE_enum::runge_kutta_solver)) {
+    // NOTE: auxiliary currently only works explicit time advancement - not implicit
+    if (this->use_auxiliary_eq && !(this->all_parameters->ode_solver_param.ode_solver_type == ODE_enum::implicit_solver)) {
         //set auxiliary rhs to 0
         for(int idim=0; idim<dim; idim++){
             this->auxiliary_right_hand_side[idim] = 0;
@@ -458,8 +458,8 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_auxiliary_residual()
             this->auxiliary_solution[idim].update_ghost_values();
         }
     }//end of if statement for diffusive
-    else if (this->use_auxiliary_eq && !(this->all_parameters->ode_solver_param.ode_solver_type == ODE_enum::runge_kutta_solver)) {
-        pcout << "ERROR: " << "auxiliary currently only works explicit time advancement. Aborting..." << std::endl;
+    else if (this->use_auxiliary_eq && (this->all_parameters->ode_solver_param.ode_solver_type == ODE_enum::implicit_solver)) {
+        pcout << "ERROR: " << "auxiliary currently only works for explicit time advancement. Aborting..." << std::endl;
         std::abort();
     } else {
         // Do nothing

@@ -470,9 +470,11 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_auxiliary_residual()
             this->auxiliary_solution[idim].update_ghost_values();
         }
     }//end of if statement for diffusive
-    else {
+    else if (this->use_auxiliary_eq && !(this->all_parameters->ode_solver_param.ode_solver_type == ODE_enum::runge_kutta_solver)) {
         pcout << "ERROR: " << "auxiliary currently only works explicit time advancement. Aborting..." << std::endl;
         std::abort();
+    } else {
+        // Do nothing
     }
 }
 

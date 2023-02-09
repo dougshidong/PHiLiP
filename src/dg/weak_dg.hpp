@@ -150,12 +150,13 @@ private:
         const bool                                             /*compute_Auxiliary_RHS*/,
         const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R);
 
-    ///Allocates the auxiliary equations' variables and RHS.
+    /// Allocates the auxiliary equations' variables and RHS.
     void allocate_auxiliary_equation ();
 
-    ///Assembles the auxiliary equations' residuals and solves for the auxiliary variables.
+    /// Assembles the auxiliary equations' residuals and solves for the auxiliary variables.
     void assemble_auxiliary_residual ();
-    ///Evaluate the volume RHS for the auxiliary equation.
+    
+    /// Evaluate the volume RHS for the auxiliary equation.
     void assemble_volume_term_auxiliary_equation(
         const std::vector<dealii::types::global_dof_index> &current_dofs_indices,
         const unsigned int                                 poly_degree,
@@ -163,7 +164,8 @@ private:
         OPERATOR::basis_functions<dim,2*dim>               &flux_basis,
         OPERATOR::metric_operators<real,dim,2*dim>         &metric_oper,
         std::vector<dealii::Tensor<1,dim,real>>            &local_auxiliary_RHS);
-    ///Evaluate the boundary RHS for the auxiliary equation.
+    
+    /// Evaluate the boundary RHS for the auxiliary equation.
     void assemble_boundary_term_auxiliary_equation(
         const unsigned int                                 iface,
         const dealii::types::global_dof_index              current_cell_index,
@@ -173,7 +175,8 @@ private:
         OPERATOR::basis_functions<dim,2*dim>               &soln_basis,
         OPERATOR::metric_operators<real,dim,2*dim>         &metric_oper,
         std::vector<dealii::Tensor<1,dim,real>>            &local_auxiliary_RHS);
-    ///Evaluate the facet RHS for the auxiliary equation.
+    
+    /// Evaluate the facet RHS for the auxiliary equation.
     void assemble_face_term_auxiliary(
         const unsigned int                                 iface, 
         const unsigned int                                 neighbor_iface,
@@ -188,7 +191,8 @@ private:
         OPERATOR::metric_operators<real,dim,2*dim>         &metric_oper_int,
         std::vector<dealii::Tensor<1,dim,real>>            &local_auxiliary_RHS_int,
         std::vector<dealii::Tensor<1,dim,real>>            &local_auxiliary_RHS_ext);
-    ///Strong form primary equation's volume right-hand-side.
+    
+    /// Strong form primary equation's volume right-hand-side.
     void assemble_volume_term_strong(
         typename dealii::DoFHandler<dim>::active_cell_iterator cell,
         const dealii::types::global_dof_index              current_cell_index,
@@ -199,7 +203,8 @@ private:
         OPERATOR::local_basis_stiffness<dim,2*dim>         &flux_basis_stiffness,
         OPERATOR::metric_operators<real,dim,2*dim>         &metric_oper,
         dealii::Vector<real>                               &local_rhs_int_cell);
-    ///Strong form primary equation's boundary right-hand-side.
+    
+    /// Strong form primary equation's boundary right-hand-side.
     void assemble_boundary_term_strong(
         const unsigned int                                 iface, 
         const dealii::types::global_dof_index              current_cell_index,
@@ -211,7 +216,8 @@ private:
         OPERATOR::basis_functions<dim,2*dim>               &flux_basis,
         OPERATOR::metric_operators<real,dim,2*dim>         &metric_oper,
         dealii::Vector<real>                               &local_rhs_cell);
-    ///Strong form primary equation's facet right-hand-side.
+    
+    /// Strong form primary equation's facet right-hand-side.
     void assemble_face_term_strong(
         const unsigned int                                 iface, 
         const unsigned int                                 neighbor_iface, 

@@ -739,8 +739,8 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
        && (this->all_parameters->ode_solver_param.ode_solver_type
                     == Parameters::ODESolverParam::ODESolverEnum::implicit_solver))
     {
-        pcout<<"ERROR: Implicit does not currently work for strong form."<<std::endl;
-        exit(1);
+        pcout<<"ERROR: Implicit does not currently work for strong form. Aborting..."<<std::endl;
+        std::abort();
     }
 
 

@@ -9,6 +9,7 @@ gdown 1qxWlxhqK3_OrPUe9gcBpUMdny_dfrrBy # naca0012_hopw_ref5.msh
 gdown 1wpQ_uJcGqkqISiUpim-2kIujurYc2u4R # 3d_gaussian_bump.msh
 gdown 1e_vjwogI9CTIBmolbT0EatnuXcfqP_Pi # SD7003.msh
 gdown 1MqYCsClOlcm1fVRT0JOSBBzZ1YtB0vZE # 3d_cube_periodic.msh
+gdown 13cjiEOov0tJZGA1DNmq5B36Qycdyakl0 # SD7003_periodic.msh
 # move files to appropriate directory
 mv *.msh ${TARGET_DIR}
 

@@ -34,4 +34,4 @@ template class PODGalerkinODESolver<PHILIP_DIM, double, dealii::parallel::distri
 #endif
 
 } // ODE namespace
-} // PHiLiP namespace//
+} // PHiLiP namespace

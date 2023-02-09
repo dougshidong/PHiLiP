@@ -19,6 +19,13 @@ add_test(
         WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )
 
+configure_file(2d_euler_transonic_naca0012_drag_based_grid_adaptation.prm 2d_euler_transonic_naca0012_drag_based_grid_adaptation.prm COPYONLY)
+add_test(
+        NAME INVISCID_TRANSONIC_STEADY_STATE_NACA0012_DRAG_BASED_GRID_ADAPTATION
+        COMMAND mpirun -np ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_2D -i ${CMAKE_CURRENT_BINARY_DIR}/2d_euler_transonic_naca0012_drag_based_grid_adaptation.prm
+        WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
+)
+
 configure_file(2d_euler_subsonic_naca0012_lift_based_hp_adaptation.prm  2d_euler_subsonic_naca0012_lift_based_hp_adaptation.prm  COPYONLY)
 add_test(
         NAME INVISCID_SUBSONIC_NACA0012_LIFT_BASED_HP_ADAPTATION

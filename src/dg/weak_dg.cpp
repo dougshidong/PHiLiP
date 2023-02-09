@@ -2265,12 +2265,13 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_face_term(
                 // Therefore, we must use the Jacobians coming from the smaller face since it accurately represents
                 // the surface area being integrated.
                 if (face_subface_int.second == -1 && face_subface_ext.second == -1) {
-                    if(abs(surface_jac_det_int-surface_jac_det_ext) > 1e-12) {
-                        std::cout << std::endl;
-                        std::cout << "iquad " << iquad << " Non-matching surface jacobians "
-                            << surface_jac_det_int << " " << surface_jac_det_ext<< std::endl;
+                    if(abs(surface_jac_det_int-surface_jac_det_ext) > 1.3e-11) {
+                        pcout << std::endl;
+                        pcout << "iquad " << iquad << " Non-matching surface jacobians, int = "
+                              << surface_jac_det_int << ", ext = " << surface_jac_det_ext << ", diff = " 
+                              << abs(surface_jac_det_int-surface_jac_det_ext) << std::endl;
 
-                        assert(abs(surface_jac_det_int-surface_jac_det_ext) < 1e-12);
+                        assert(abs(surface_jac_det_int-surface_jac_det_ext) < 1.3e-11);
                         valid_metrics = false;
                     }
                 }

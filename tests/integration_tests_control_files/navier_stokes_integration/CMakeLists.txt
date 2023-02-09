@@ -135,3 +135,31 @@ add_test(
   COMMAND mpirun -np ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_2D -i ${CMAKE_CURRENT_BINARY_DIR}/2d_navier_stokes_l2roe_manufactured_navah_3.prm
   WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )
+# ----------------------------------------
+
+# =======================================
+# Navah's MS-4
+# =======================================
+# ----------------------------------------
+# - conv_num_flux = LxF; diss_num_flux = SIP (default)
+# ----------------------------------------
+configure_file(2d_rans_sa_laxfriedrichs_manufactured_navah_4.prm 2d_rans_sa_laxfriedrichs_manufactured_navah_4.prm COPYONLY)
+add_test(
+  NAME MPI_2D_RANS_SA_LAXFRIEDRICHS_MANUFACTURED_SOLUTION_NAVAH_4
+  COMMAND mpirun -np ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_2D -i ${CMAKE_CURRENT_BINARY_DIR}/2d_rans_sa_laxfriedrichs_manufactured_navah_4.prm
+  WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
+)
+# ----------------------------------------
+
+# =======================================
+# Navah's MS-5
+# =======================================
+# ----------------------------------------
+# - conv_num_flux = LxF; diss_num_flux = SIP (default)
+# ----------------------------------------
+configure_file(2d_rans_sa_laxfriedrichs_manufactured_navah_5.prm 2d_rans_sa_laxfriedrichs_manufactured_navah_5.prm COPYONLY)
+add_test(
+  NAME MPI_2D_RANS_SA_LAXFRIEDRICHS_MANUFACTURED_SOLUTION_NAVAH_5
+  COMMAND mpirun -np ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_2D -i ${CMAKE_CURRENT_BINARY_DIR}/2d_rans_sa_laxfriedrichs_manufactured_navah_5.prm
+  WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
+)

@@ -17,8 +17,9 @@
 
 const double TOLERANCE = 1E-5;
 
-int main (int /*argc*/, char * /*argv*/[])
+int main (int argc, char * argv[])
 {
+    MPI_Init(&argc, &argv);
     std::cout << std::setprecision(std::numeric_limits<long double>::digits10 + 1) << std::scientific;
     const int dim = PHILIP_DIM;
     const int nstate = dim+3;
@@ -141,5 +142,6 @@ int main (int /*argc*/, char * /*argv*/[])
             assert_compare_array<nstate> ( divergence_finite_differences, convective_dissipative_source_term, 1.0, TOLERANCE);
         }
     }
+    MPI_Finalize();
     return 0;
 }

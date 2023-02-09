@@ -344,7 +344,7 @@ double PeriodicTurbulence<dim, nstate>::get_numerical_entropy(const std::shared_
                 soln_state[istate] = soln_at_q[istate][iquad];
             }
 
-            std::array<double,nstate> entropy_var = this->navier_stokes_physics->convert_conservative_to_entropy(soln_state);
+            std::array<double,nstate> entropy_var = this->navier_stokes_physics->compute_entropy_variables(soln_state);
             
             for(int istate=0; istate<nstate; istate++){
                 if(iquad==0)

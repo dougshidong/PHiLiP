@@ -22,8 +22,8 @@ public:
     /// Total/maximum number of mesh adaptation cycles while solving a problem.
     int total_mesh_adaptation_cycles;
     
-    /// Fraction of cells to be h-refined
-    double h_refine_fraction;
+    /// Fraction of cells to be h or p-refined
+    double refine_fraction;
 
     /// Fraction of cells to be h-coarsened
     double h_coarsen_fraction;

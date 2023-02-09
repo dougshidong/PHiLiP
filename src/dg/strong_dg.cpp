@@ -398,8 +398,8 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_auxiliary_residual()
     const PDE_enum pde_type = this->all_parameters->pde_type;
 
     if(pde_type == PDE_enum::burgers_viscous){
-        pcout << "DG Strong not yet verified for Burgers' viscous." << std::endl;
-        exit(1);
+        pcout << "DG Strong not yet verified for Burgers' viscous. Aborting..." << std::endl;
+        std::abort();
     }
     // NOTE: auxiliary currently only works explicit time advancement
     if (this->use_auxiliary_eq && (this->all_parameters->ode_solver_param.ode_solver_type == ODE_enum::runge_kutta_solver)) {
@@ -470,6 +470,10 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_auxiliary_residual()
             this->auxiliary_solution[idim].update_ghost_values();
         }
     }//end of if statement for diffusive
+    else {
+        pcout << "ERROR: " << "auxiliary currently only works explicit time advancement. Aborting..." << std::endl;
+        std::abort();
+    }
 }
 
 /**************************************************

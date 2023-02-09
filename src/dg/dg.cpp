@@ -1481,7 +1481,7 @@ void DGBase<dim,real,MeshType>::assemble_residual (const bool compute_dRdW, cons
                 mapping_basis,
                 false,
                 right_hand_side,
-                auxiliary_RHS);
+                auxiliary_right_hand_side);
         } // end of cell loop
     } catch(...) {
         assembly_error = 1;

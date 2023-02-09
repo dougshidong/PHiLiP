@@ -261,7 +261,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_and_build_operators(
     if(compute_Auxiliary_RHS){
         const unsigned int n_dofs_neigh_cell = this->fe_collection[neighbor_cell->active_fe_index()].n_dofs_per_cell();
         std::vector<dealii::Tensor<1,dim,double>> neighbor_cell_rhs_aux (n_dofs_neigh_cell ); // defaults to 0.0 initialization
-        assemble_face_term_auxiliary (
+        assemble_face_term_auxiliary_equation (
             iface, neighbor_iface, 
             current_cell_index, neighbor_cell_index,
             poly_degree_int, poly_degree_ext,
@@ -382,8 +382,8 @@ template <int dim, int nstate, typename real, typename MeshType>
 void DGStrong<dim,nstate,real,MeshType>::allocate_auxiliary_equation()
 {
     for (int idim=0; idim<dim; idim++) {
-        this->auxiliary_RHS[idim].reinit(this->locally_owned_dofs, this->ghost_dofs, this->mpi_communicator);
-        this->auxiliary_RHS[idim].add(1.0);
+        this->auxiliary_right_hand_side[idim].reinit(this->locally_owned_dofs, this->ghost_dofs, this->mpi_communicator);
+        this->auxiliary_right_hand_side[idim].add(1.0);
 
         this->auxiliary_solution[idim].reinit(this->locally_owned_dofs, this->ghost_dofs, this->mpi_communicator);
         this->auxiliary_solution[idim] *= 0.0;
@@ -405,7 +405,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_auxiliary_residual()
     if (this->use_auxiliary_eq && (this->all_parameters->ode_solver_param.ode_solver_type == ODE_enum::runge_kutta_solver)) {
         //set auxiliary rhs to 0
         for(int idim=0; idim<dim; idim++){
-            this->auxiliary_RHS[idim] = 0;
+            this->auxiliary_right_hand_side[idim] = 0;
         }
         //initialize this to use DG cell residual loop. Note, FEValues to be deprecated in future.
         const auto mapping = (*(this->high_order_grid->mapping_fe_field));
@@ -451,20 +451,20 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_auxiliary_residual()
                 mapping_basis,
                 true,
                 this->right_hand_side,
-                this->auxiliary_RHS);
+                this->auxiliary_right_hand_side);
         } // end of cell loop
 
         for(int idim=0; idim<dim; idim++){
             //compress auxiliary rhs for solution transfer across mpi ranks
-            this->auxiliary_RHS[idim].compress(dealii::VectorOperation::add);
+            this->auxiliary_right_hand_side[idim].compress(dealii::VectorOperation::add);
             //update ghost values
-            this->auxiliary_RHS[idim].update_ghost_values();
+            this->auxiliary_right_hand_side[idim].update_ghost_values();
 
             //solve for auxiliary solution for each dimension
             if(this->all_parameters->use_inverse_mass_on_the_fly)
-                this->apply_inverse_global_mass_matrix(this->auxiliary_RHS[idim], this->auxiliary_solution[idim], true);
+                this->apply_inverse_global_mass_matrix(this->auxiliary_right_hand_side[idim], this->auxiliary_solution[idim], true);
             else
-                this->global_inverse_mass_matrix_auxiliary.vmult(this->auxiliary_solution[idim], this->auxiliary_RHS[idim]);
+                this->global_inverse_mass_matrix_auxiliary.vmult(this->auxiliary_solution[idim], this->auxiliary_right_hand_side[idim]);
 
             //update ghost values of auxiliary solution
             this->auxiliary_solution[idim].update_ghost_values();
@@ -707,7 +707,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_auxiliary_equati
 }
 /*********************************************************************************/
 template <int dim, int nstate, typename real, typename MeshType>
-void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_auxiliary(
+void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_auxiliary_equation(
     const unsigned int iface, const unsigned int neighbor_iface,
     const dealii::types::global_dof_index current_cell_index,
     const dealii::types::global_dof_index neighbor_cell_index,

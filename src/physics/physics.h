@@ -119,7 +119,7 @@ public:
         const std::array<real,nstate> &/*soln_int*/,
         const std::array<dealii::Tensor<1,dim,real>,nstate> &/*soln_grad_int*/,
         std::array<real,nstate> &/*soln_bc*/,
-        std::array<dealii::Tensor<1,dim,real>,nstate> &/*soln_grad_bc*/) const;
+        std::array<dealii::Tensor<1,dim,real>,nstate> &/*soln_grad_bc*/) const = 0;
 
     /// Returns current vector solution to be used by PhysicsPostprocessor to output current solution.
     /** The implementation in this Physics base class simply returns the stored solution.

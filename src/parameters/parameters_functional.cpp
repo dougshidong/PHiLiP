@@ -35,6 +35,7 @@ void FunctionalParam::declare_parameters(dealii::ParameterHandler &prm)
                           "  weighted_integral_volume | "
                           "  weighted_integral_boundary | "
                           "  error_normLp_volume | "
+                          "  error_normLp_boundary | "
                           "  lift | "
                           "  drag | "
                           "  solution_integral |"

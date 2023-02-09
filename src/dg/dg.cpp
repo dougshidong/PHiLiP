@@ -681,7 +681,7 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
     OPERATOR::basis_functions<dim,2*dim> &flux_basis_ext,
     OPERATOR::local_basis_stiffness<dim,2*dim> &flux_basis_stiffness,
     OPERATOR::mapping_shape_functions<dim,2*dim> &mapping_basis,
-    const bool compute_Auxiliary_RHS,
+    const bool compute_auxiliary_right_hand_side,
     dealii::LinearAlgebra::distributed::Vector<double> &rhs,
     std::array<dealii::LinearAlgebra::distributed::Vector<double>,dim> &rhs_aux)
 {
@@ -762,7 +762,7 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
         current_fe_ref,
         current_cell_rhs,
         current_cell_rhs_aux,
-        compute_Auxiliary_RHS,
+        compute_auxiliary_right_hand_side,
         compute_dRdW, compute_dRdX, compute_d2R);
 
     (void) fe_values_collection_face_int;
@@ -799,7 +799,7 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
                 current_fe_ref,
                 current_cell_rhs,
                 current_cell_rhs_aux,
-                compute_Auxiliary_RHS,
+                compute_auxiliary_right_hand_side,
                 compute_dRdW, compute_dRdX, compute_d2R);
 
         }
@@ -874,7 +874,7 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
                     current_cell_rhs_aux,
                     rhs,
                     rhs_aux,
-                    compute_Auxiliary_RHS,
+                    compute_auxiliary_right_hand_side,
                     compute_dRdW, compute_dRdX, compute_d2R);
             }
         }
@@ -964,7 +964,7 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
                 current_cell_rhs_aux,
                 rhs,
                 rhs_aux,
-                compute_Auxiliary_RHS,
+                compute_auxiliary_right_hand_side,
                 compute_dRdW, compute_dRdX, compute_d2R);
         }
         // CASE 5: NEIGHBOR CELL HAS SAME COARSENESS
@@ -1040,7 +1040,7 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
                 current_cell_rhs_aux,
                 rhs,
                 rhs_aux,
-                compute_Auxiliary_RHS,
+                compute_auxiliary_right_hand_side,
                 compute_dRdW, compute_dRdX, compute_d2R);
         } 
         else {
@@ -1049,7 +1049,7 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
         }
     } // end of face loop
 
-    if(compute_Auxiliary_RHS) {
+    if(compute_auxiliary_right_hand_side) {
         // Add local contribution from current cell to global vector
         for (unsigned int i=0; i<n_dofs_curr_cell; ++i) {
             for(int idim=0; idim<dim; idim++){
@@ -2075,6 +2075,18 @@ void DGBase<dim,real,MeshType>::output_results_vtk (const unsigned int cycle, co
         data_out.write_pvtu_record(master_output, filenames);
     }
 
+}
+
+template <int dim, typename real, typename MeshType>
+void DGBase<dim,real,MeshType>::allocate_auxiliary_equation()
+{
+    for (int idim=0; idim<dim; idim++) {
+        auxiliary_right_hand_side[idim].reinit(locally_owned_dofs, ghost_dofs, mpi_communicator);
+        auxiliary_right_hand_side[idim].add(1.0);
+
+        auxiliary_solution[idim].reinit(locally_owned_dofs, ghost_dofs, mpi_communicator);
+        auxiliary_solution[idim] *= 0.0;
+    }
 }
 
 template <int dim, typename real, typename MeshType>

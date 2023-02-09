@@ -50,7 +50,7 @@ private:
         const dealii::FESystem<dim,dim>                        &current_fe_ref,
         dealii::Vector<real>                                   &local_rhs_int_cell,
         std::vector<dealii::Tensor<1,dim,real>>                &/*local_auxiliary_RHS*/,
-        const bool                                             /*compute_Auxiliary_RHS*/,
+        const bool                                             /*compute_auxiliary_right_hand_side*/,
         const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R);
 
     /// Builds the necessary fe values and assembles boundary residual.
@@ -74,7 +74,7 @@ private:
         const dealii::FESystem<dim,dim>                        &current_fe_ref,
         dealii::Vector<real>                                   &local_rhs_int_cell,
         std::vector<dealii::Tensor<1,dim,real>>                &/*local_auxiliary_RHS*/,
-        const bool                                             /*compute_Auxiliary_RHS*/,
+        const bool                                             /*compute_auxiliary_right_hand_side*/,
         const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R);
 
     /// Builds the necessary fe values and assembles face residual.
@@ -110,7 +110,7 @@ private:
         std::vector<dealii::Tensor<1,dim,real>>                &/*current_cell_rhs_aux*/,
         dealii::LinearAlgebra::distributed::Vector<double>     &rhs,
         std::array<dealii::LinearAlgebra::distributed::Vector<double>,dim> &/*rhs_aux*/,
-        const bool                                             /*compute_Auxiliary_RHS*/,
+        const bool                                             /*compute_auxiliary_right_hand_side*/,
         const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R);
 
     /// Builds the necessary fe values and assembles subface residual.
@@ -147,11 +147,8 @@ private:
         std::vector<dealii::Tensor<1,dim,real>>                &/*current_cell_rhs_aux*/,
         dealii::LinearAlgebra::distributed::Vector<double>     &rhs,
         std::array<dealii::LinearAlgebra::distributed::Vector<double>,dim> &/*rhs_aux*/,
-        const bool                                             /*compute_Auxiliary_RHS*/,
+        const bool                                             /*compute_auxiliary_right_hand_side*/,
         const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R);
-
-    /// Allocates the auxiliary equations' variables and RHS.
-    void allocate_auxiliary_equation ();
 
     /// Assembles the auxiliary equations' residuals and solves for the auxiliary variables.
     void assemble_auxiliary_residual ();

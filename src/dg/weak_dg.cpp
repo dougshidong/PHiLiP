@@ -4272,7 +4272,7 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_volume_term_and_build_operators(
     const dealii::FESystem<dim,dim>                        &current_fe_ref,
     dealii::Vector<real>                                   &local_rhs_int_cell,
     std::vector<dealii::Tensor<1,dim,real>>                &/*local_auxiliary_RHS*/,
-    const bool                                             /*compute_Auxiliary_RHS*/,
+    const bool                                             /*compute_auxiliary_right_hand_side*/,
     const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R)
 {
     // Current reference element related to this physical cell
@@ -4328,7 +4328,7 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_boundary_term_and_build_operator
     const dealii::FESystem<dim,dim>                        &current_fe_ref,
     dealii::Vector<real>                                   &local_rhs_int_cell,
     std::vector<dealii::Tensor<1,dim,real>>                &/*local_auxiliary_RHS*/,
-    const bool                                             /*compute_Auxiliary_RHS*/,
+    const bool                                             /*compute_auxiliary_right_hand_side*/,
     const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R)
 {
     // Current reference element related to this physical cell
@@ -4381,7 +4381,7 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_face_term_and_build_operators(
     std::vector<dealii::Tensor<1,dim,real>>                &/*current_cell_rhs_aux*/,
     dealii::LinearAlgebra::distributed::Vector<double>     &rhs,
     std::array<dealii::LinearAlgebra::distributed::Vector<double>,dim> &/*rhs_aux*/,
-    const bool                                             /*compute_Auxiliary_RHS*/,
+    const bool                                             /*compute_auxiliary_right_hand_side*/,
     const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R)
 {
     // Current reference element related to this physical cell
@@ -4472,7 +4472,7 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_subface_term_and_build_operators
     std::vector<dealii::Tensor<1,dim,real>>                &/*current_cell_rhs_aux*/,
     dealii::LinearAlgebra::distributed::Vector<double>     &rhs,
     std::array<dealii::LinearAlgebra::distributed::Vector<double>,dim> &/*rhs_aux*/,
-    const bool                                             /*compute_Auxiliary_RHS*/,
+    const bool                                             /*compute_auxiliary_right_hand_side*/,
     const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R)
 {
     // Current reference element related to this physical cell
@@ -4529,18 +4529,6 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_subface_term_and_build_operators
         rhs[neighbor_dofs_indices[i]] += neighbor_cell_rhs[i];
     }
 
-}
-
-template <int dim, int nstate, typename real, typename MeshType>
-void DGWeak<dim,nstate,real,MeshType>::allocate_auxiliary_equation ()
-{
-    for (int idim=0; idim<dim; idim++){
-        this->auxiliary_right_hand_side[idim].reinit(this->locally_owned_dofs, this->ghost_dofs, this->mpi_communicator);
-        this->auxiliary_right_hand_side[idim].add(1.0);
-
-        this->auxiliary_solution[idim].reinit(this->locally_owned_dofs, this->ghost_dofs, this->mpi_communicator);
-        this->auxiliary_solution[idim] *= 0.0;
-    }
 }
 
 template <int dim, int nstate, typename real, typename MeshType>

@@ -569,7 +569,7 @@ public:
         OPERATOR::basis_functions<dim,2*dim> &flux_basis_ext,
         OPERATOR::local_basis_stiffness<dim,2*dim> &flux_basis_stiffness,
         OPERATOR::mapping_shape_functions<dim,2*dim> &mapping_basis,
-        const bool compute_Auxiliary_RHS,//flag on whether computing the Auxiliary variable's equations' residuals
+        const bool compute_auxiliary_right_hand_side,//flag on whether computing the Auxiliary variable's equations' residuals
         dealii::LinearAlgebra::distributed::Vector<double> &rhs,
         std::array<dealii::LinearAlgebra::distributed::Vector<double>,dim> &rhs_aux);
 
@@ -670,7 +670,7 @@ protected:
         const dealii::FESystem<dim,dim>                        &current_fe_ref,
         dealii::Vector<real>                                   &local_rhs_int_cell,
         std::vector<dealii::Tensor<1,dim,real>>                &local_auxiliary_RHS,
-        const bool                                             compute_Auxiliary_RHS,
+        const bool                                             compute_auxiliary_right_hand_side,
         const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R) = 0;
 
     /// Builds the necessary operators/fe values and assembles boundary residual.
@@ -694,7 +694,7 @@ protected:
         const dealii::FESystem<dim,dim>                        &current_fe_ref,
         dealii::Vector<real>                                   &local_rhs_int_cell,
         std::vector<dealii::Tensor<1,dim,real>>                &local_auxiliary_RHS,
-        const bool                                             compute_Auxiliary_RHS,
+        const bool                                             compute_auxiliary_right_hand_side,
         const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R) = 0;
 
     /// Builds the necessary operators/fe values and assembles face residual.
@@ -730,7 +730,7 @@ protected:
         std::vector<dealii::Tensor<1,dim,real>>                &current_cell_rhs_aux,
         dealii::LinearAlgebra::distributed::Vector<double>     &rhs,
         std::array<dealii::LinearAlgebra::distributed::Vector<double>,dim> &rhs_aux,
-        const bool                                             compute_Auxiliary_RHS,
+        const bool                                             compute_auxiliary_right_hand_side,
         const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R) = 0;
 
     /// Builds the necessary operators/fe values and assembles subface residual.
@@ -767,7 +767,7 @@ protected:
         std::vector<dealii::Tensor<1,dim,real>>                &current_cell_rhs_aux,
         dealii::LinearAlgebra::distributed::Vector<double>     &rhs,
         std::array<dealii::LinearAlgebra::distributed::Vector<double>,dim> &rhs_aux,
-        const bool                                             compute_Auxiliary_RHS,
+        const bool                                             compute_auxiliary_right_hand_side,
         const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R) = 0;
 
 protected:
@@ -876,8 +876,8 @@ protected:
 
 
 public:
-    /// To allocate the auxiliary equation, primarily for Strong form diffusive.
-    virtual void allocate_auxiliary_equation () = 0;
+    /// Allocates the auxiliary equations' variables and right hand side (primarily for Strong form diffusive)
+    void allocate_auxiliary_equation ();
 
     /// Asembles the auxiliary equations' residuals and solves.
     virtual void assemble_auxiliary_residual () = 0;

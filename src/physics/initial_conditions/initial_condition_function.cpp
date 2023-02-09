@@ -369,13 +369,12 @@ template <int dim, int nstate, typename real>
 inline real InitialConditionFunction_KHI<dim,nstate,real>
 ::value(const dealii::Point<dim,real> &point, const unsigned int istate) const
 {
-    //TO DO : Make A a parameter
     const double pi = dealii::numbers::PI;
     const double gam = 1.4;
     
-    const double B = tanh(15*point[1] + 7.5) - tanh(15*point[1] - 7.5);
+    const double B = 0.5 * (tanh(15*point[1] + 7.5) - tanh(15*point[1] - 7.5));
 
-    const double rho1 = 1;
+    const double rho1 = 0.5;
     const double rho2 = rho1 * (1 + atwood_number) / (1 - atwood_number);
 
     const double density = rho1 + B * (rho2-rho1);

@@ -29,7 +29,7 @@ void MeshAdaptationParam::declare_parameters (dealii::ParameterHandler &prm)
                           dealii::Patterns::Bool(),
                           "Flag to use goal oriented mesh adaptation. False by default.");
 
-        prm.declare_entry("h_refine_fraction","0.0",
+        prm.declare_entry("refine_fraction","0.0",
                           dealii::Patterns::Double(0.0,1.0),
                           "Fraction of cells to be h-refined.");
 
@@ -56,7 +56,7 @@ void MeshAdaptationParam::parse_parameters (dealii::ParameterHandler &prm)
         else if(mesh_adaptation_string == "hp_adaptation") {mesh_adaptation_type = MeshAdaptationType::hp_adaptation;}
         
         use_goal_oriented_mesh_adaptation = prm.get_bool("use_goal_oriented_mesh_adaptation");
-        h_refine_fraction = prm.get_double("h_refine_fraction");
+        refine_fraction = prm.get_double("refine_fraction");
         h_coarsen_fraction = prm.get_double("h_coarsen_fraction");
         hp_smoothness_tolerance = prm.get_double("hp_smoothness_tolerance");
     }

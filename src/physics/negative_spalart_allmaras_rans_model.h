@@ -34,8 +34,10 @@ public:
     /// Destructor
     ~ReynoldsAveragedNavierStokes_SAneg() {};
 
+    /// Number of PDEs for RANS equations
     static const int nstate_navier_stokes = dim+2;
 
+    /// Number of PDEs for RANS turbulence model
     static const int nstate_turbulence_model = nstate-(dim+2);
 
     /// Nondimensionalized Reynolds stress tensor, (tau^reynolds)*, for the negative SA model
@@ -287,8 +289,8 @@ private:
         const std::array<dealii::Tensor<1,dim,real>,nstate_navier_stokes> &primitive_soln_gradient_rans,
         const std::array<dealii::Tensor<1,dim,real>,nstate_turbulence_model> &primitive_solution_gradient_turbulence_model) const;
 
-    /** Constant coefficients for the negative SA model
-     *  Reference: Steven R. Allmaras. (2012). "Modifications and Clarifications for the Implementation of the Spalart-Allmaras Turbulence Model."
+    /// Constant coefficients for the negative SA model
+    /** Reference: Steven R. Allmaras. (2012). "Modifications and Clarifications for the Implementation of the Spalart-Allmaras Turbulence Model."
      */ 
     const real c_b1  = 0.1355;
     const real sigma = 2.0/3.0;

@@ -8,7 +8,7 @@
 namespace PHiLiP {
 namespace Physics {
 
-/// Reynolds-Averaged Navier-Stokes equations. Derived from Navier-Stokes for modifying the stress tensor and heat flux, which is derived from PhysicsBase. 
+/// Reynolds-Averaged Navier-Stokes (RANS) equations. Derived from Navier-Stokes for modifying the stress tensor and heat flux, which is derived from PhysicsBase. 
 template <int dim, int nstate, typename real>
 class ReynoldsAveragedNavierStokesBase : public ModelBase <dim, nstate, real>
 {
@@ -31,8 +31,10 @@ public:
     /// Destructor
     ~ReynoldsAveragedNavierStokesBase() {};
 
+    /// Number of PDEs for RANS equations
     static const int nstate_navier_stokes = dim+2;
 
+    /// Number of PDEs for RANS turbulence model
     static const int nstate_turbulence_model = nstate-(dim+2);
 
     /// Turbulent Prandtl number

@@ -2,7 +2,7 @@
 #define __1D_BURGERS_REWIENSKI_SNAPSHOT__
 
 // for FlowSolver class:
-#include "physics/initial_conditions/initial_condition.h"
+#include "physics/initial_conditions/initial_condition_function.h"
 #include "dg/dg.h"
 #include "physics/physics.h"
 #include "parameters/all_parameters.h"

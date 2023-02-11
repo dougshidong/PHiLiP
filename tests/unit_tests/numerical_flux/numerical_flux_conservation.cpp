@@ -329,7 +329,12 @@ int main (int argc, char * argv[])
     std::vector<ConvType> conv_type {
         ConvType::lax_friedrichs,
         ConvType::roe,
-        ConvType::l2roe
+        ConvType::l2roe,
+        ConvType::central_flux,
+        ConvType::two_point_flux,
+        ConvType::two_point_flux_with_lax_friedrichs_dissipation,
+        ConvType::two_point_flux_with_roe_dissipation,
+        ConvType::two_point_flux_with_l2roe_dissipation
     };
     std::vector<DissType> diss_type {
         DissType::symm_internal_penalty
@@ -366,13 +371,21 @@ int main (int argc, char * argv[])
         for (auto conv = conv_type.begin(); conv != conv_type.end() && success == 0; conv++) {
 
             // Roe-type fluxes are defined only for the Euler and Navier-Stokes equations
-            if(((*conv == ConvType::roe) || (*conv == ConvType::l2roe)) && ((*pde!=PDEType::euler) && (*pde!=PDEType::navier_stokes) && (*pde!=PDEType::physics_model))) continue;
+            if(((*conv == ConvType::roe) || (*conv == ConvType::l2roe) ||
+                (*conv == ConvType::two_point_flux_with_roe_dissipation) || 
+                (*conv == ConvType::two_point_flux_with_l2roe_dissipation))
+               && ((*pde!=PDEType::euler) && (*pde!=PDEType::navier_stokes) && (*pde!=PDEType::physics_model))) continue;
             all_parameters.conv_num_flux_type = *conv;
 
             std::string conv_string;
-            if(*conv==ConvType::lax_friedrichs) conv_string = "lax_friedrichs";
-            if(*conv==ConvType::roe)            conv_string = "roe";
-            if(*conv==ConvType::l2roe)          conv_string = "l2roe";
+            if(*conv==ConvType::lax_friedrichs)    conv_string = "lax_friedrichs";
+            if(*conv==ConvType::roe)               conv_string = "roe";
+            if(*conv==ConvType::l2roe)             conv_string = "l2roe";
+            if(*conv==ConvType::central_flux)      conv_string = "central_flux";
+            if(*conv==ConvType::two_point_flux) conv_string = "two_point_flux";
+            if(*conv==ConvType::two_point_flux_with_lax_friedrichs_dissipation) conv_string = "two_point_flux_with_lax_friedrichs_dissipation";
+            if(*conv==ConvType::two_point_flux_with_roe_dissipation) conv_string = "two_point_flux_with_roe_dissipation";
+            if(*conv==ConvType::two_point_flux_with_l2roe_dissipation) conv_string = "two_point_flux_with_l2roe_dissipation";
 
             std::cout << "============================================================================" << std::endl;
             std::cout << "PDE Type: " << pde_string << "\t Convective Flux Type: " << conv_string << std::endl;

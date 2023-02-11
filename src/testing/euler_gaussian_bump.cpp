@@ -6,6 +6,7 @@
 
 #include "euler_gaussian_bump.h"
 
+#include "physics/initial_conditions/initial_condition_function.h"
 #include "physics/euler.h"
 
 #include "flow_solver/flow_solver_factory.h"

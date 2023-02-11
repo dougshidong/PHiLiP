@@ -62,6 +62,7 @@ class CurvManifold: public dealii::ChartManifold<dim,dim,dim> {
     
     virtual std::unique_ptr<dealii::Manifold<dim,dim> > clone() const override; ///< See dealii::Manifold.
 };
+
 template<int dim>
 dealii::Point<dim> CurvManifold<dim>::pull_back(const dealii::Point<dim> &space_point) const 
 {
@@ -79,111 +80,35 @@ dealii::Point<dim> CurvManifold<dim>::pull_back(const dealii::Point<dim> &space_
     double alpha =1.0/10.0;
     int flag =0;
     while(flag != dim){
-#if 0
-        for(int idim=0;idim<dim;idim++){
-            function[idim] = 1.0/20.0; 
-            for(int idim2=0;idim2<dim;idim2++){
-                function[idim] *= std::cos(2.0 * pi* x_ref[idim2]);
-            }
-            function[idim] += x_ref[idim] - x_phys[idim];
+        if(dim==2){
+            function[0] = x_ref[0] - x_phys[0] +beta*std::cos(pi/2.0*x_ref[0])*std::cos(3.0*pi/2.0*x_ref[1]);
+            function[1] = x_ref[1] - x_phys[1] +beta*std::sin(2.0*pi*(x_ref[0]))*std::cos(pi/2.0*x_ref[1]);
         }
-#endif
-
-//#if 0
-    if(dim==2){
-        function[0] = x_ref[0] - x_phys[0] +beta*std::cos(pi/2.0*x_ref[0])*std::cos(3.0*pi/2.0*x_ref[1]);
-        function[1] = x_ref[1] - x_phys[1] +beta*std::sin(2.0*pi*(x_ref[0]))*std::cos(pi/2.0*x_ref[1]);
-    }
-    else{
-    #if 0
-        function[0] = x_ref[0] - x_phys[0] +alpha*std::cos(pi/2.0*x_ref[0])*std::cos(3.0*pi/2.0*x_ref[1])*std::sin(2.0*pi*(x_ref[2]));
-        function[1] = x_ref[1] - x_phys[1] +alpha*std::sin(2.0*pi*(x_ref[0]))*std::cos(pi/2.0*x_ref[1])*std::sin(3.0*pi/2.0*(x_ref[2]));
-        function[2] = x_ref[2] - x_phys[2] +alpha*std::sin(2.0*pi*(x_ref[0]))*std::cos(3.0*pi/2.0*x_ref[1])*std::sin(5.0*pi/2.0*(x_ref[2]));
-    #endif
-    //heavily warped
-   // #if 0
-      // function[0] = x_ref[0] - x_phys[0] +alpha*std::sin(pi * x_ref[0]) * std::sin(pi * x_ref[1]);
-      // function[1] = x_ref[1] - x_phys[1] +alpha*exp(1.0-x_ref[1])*std::sin(pi * x_ref[0]) * std::sin(pi* x_ref[1]);
-      // double x_temp = x_ref[0] +alpha*std::sin(pi * x_ref[0]) * std::sin(pi * x_ref[1]);
-      // double y_temp = x_ref[1] +alpha*exp(1.0-x_ref[1])*std::sin(pi * x_ref[0]) * std::sin(pi* x_ref[1]);
-       // function[2] = x_ref[2] - x_phys[2] +1.0/20.0*( std::sin(2.0 * pi * x_temp) + std::sin(2.0 * pi * y_temp));
-   // #endif
-        function[0] = x_ref[0] - x_phys[0] +alpha*(std::cos(pi * x_ref[2]) + std::cos(pi * x_ref[1]));
-        function[1] = x_ref[1] - x_phys[1] +alpha*exp(1.0-x_ref[1])*(std::sin(pi * x_ref[0]) + std::sin(pi* x_ref[2]));
-        function[2] = x_ref[2] - x_phys[2] +1.0/20.0*( std::sin(2.0 * pi * x_ref[0]) + std::sin(2.0 * pi * x_ref[1]));
-    }
-//#endif
-
-
-    #if 0
-        for(int idim=0; idim<dim; idim++){
-            for(int idim2=0; idim2<dim;idim2++){
-                derivative[idim][idim2] = - 1.0/20.0*2.0 * pi;
-                for(int idim3 =0;idim3<dim; idim3++){
-                    if(idim2 == idim3)
-                        derivative[idim][idim2] *=std::sin(2.0 * pi * x_ref[idim3]);
-                    else
-                        derivative[idim][idim2] *=std::cos(2.0 * pi* x_ref[idim3]);
-                }
-                if(idim == idim2)
-                    derivative[idim][idim2] += 1.0;
-            }
+        else{
+            function[0] = x_ref[0] - x_phys[0] +alpha*(std::cos(pi * x_ref[2]) + std::cos(pi * x_ref[1]));
+            function[1] = x_ref[1] - x_phys[1] +alpha*exp(1.0-x_ref[1])*(std::sin(pi * x_ref[0]) + std::sin(pi* x_ref[2]));
+            function[2] = x_ref[2] - x_phys[2] +1.0/20.0*( std::sin(2.0 * pi * x_ref[0]) + std::sin(2.0 * pi * x_ref[1]));
         }
-#endif
-//#if 0
-    if(dim==2){
-        derivative[0][0] = 1.0 - beta* pi/2.0 * std::sin(pi/2.0*x_ref[0])*std::cos(3.0*pi/2.0*x_ref[1]);
-        derivative[0][1] =  - beta*3.0 *pi/2.0 * std::cos(pi/2.0*x_ref[0])*std::sin(3.0*pi/2.0*x_ref[1]);
 
-        derivative[1][0] =  beta*2.0*pi*std::cos(2.0*pi*(x_ref[0]))*std::cos(pi/2.0*x_ref[1]);
-        derivative[1][1] =  1.0 -beta*pi/2.0*std::sin(2.0*pi*(x_ref[0]))*std::sin(pi/2.0*x_ref[1]);  
-    }
-    else{
-    #if 0
-        derivative[0][0] = 1.0  - alpha* pi/2.0 * std::sin(pi/2.0*x_ref[0])*std::cos(3.0*pi/2.0*x_ref[1])*std::sin(2.0*pi*(x_ref[2]));
-        derivative[0][1] =      - alpha*3.0 *pi/2.0 * std::cos(pi/2.0*x_ref[0])*std::sin(3.0*pi/2.0*x_ref[1])*std::sin(2.0*pi*(x_ref[2]));
-        derivative[0][2] =        alpha*2.0*pi * std::cos(pi/2.0*x_ref[0])*std::cos(3.0*pi/2.0*x_ref[1])*std::cos(2.0*pi*(x_ref[2]));
+        if(dim==2){
+            derivative[0][0] = 1.0 - beta* pi/2.0 * std::sin(pi/2.0*x_ref[0])*std::cos(3.0*pi/2.0*x_ref[1]);
+            derivative[0][1] =  - beta*3.0 *pi/2.0 * std::cos(pi/2.0*x_ref[0])*std::sin(3.0*pi/2.0*x_ref[1]);
 
-        derivative[1][0] =       alpha*2.0*pi*std::cos(2.0*pi*(x_ref[0]))*std::cos(pi/2.0*x_ref[1])*std::sin(3.0*pi/2.0*(x_ref[2]));
-        derivative[1][1] =  1.0 -alpha*pi/2.0*std::sin(2.0*pi*(x_ref[0]))*std::sin(pi/2.0*x_ref[1])*std::sin(3.0*pi/2.0*(x_ref[2]));  
-        derivative[1][2] =       alpha*3.0*pi/2.0*std::sin(2.0*pi*(x_ref[0]))*std::cos(pi/2.0*x_ref[1])*std::cos(3.0*pi/2.0*(x_ref[2]));
+            derivative[1][0] =  beta*2.0*pi*std::cos(2.0*pi*(x_ref[0]))*std::cos(pi/2.0*x_ref[1]);
+            derivative[1][1] =  1.0 -beta*pi/2.0*std::sin(2.0*pi*(x_ref[0]))*std::sin(pi/2.0*x_ref[1]);  
+        }
+        else{
+            derivative[0][0] = 1.0;
+            derivative[0][1] =      - alpha*pi*std::sin(pi*x_ref[1]);
+            derivative[0][2] =   - alpha*pi*std::sin(pi*x_ref[2]);
 
-        derivative[2][0] =       alpha*2.0*pi*std::cos(2.0*pi*(x_ref[0]))*std::cos(3.0*pi/2.0*x_ref[1])*std::sin(5.0*pi/2.0*(x_ref[2]));
-        derivative[2][1] =     - alpha*3.0*pi/2.0*std::sin(2.0*pi*(x_ref[0]))*std::sin(3.0*pi/2.0*x_ref[1])*std::sin(5.0*pi/2.0*(x_ref[2]));
-        derivative[2][2] = 1.0 + alpha*5.0*pi/2.0*std::sin(2.0*pi*(x_ref[0]))*std::cos(3.0*pi/2.0*x_ref[1])*std::cos(5.0*pi/2.0*(x_ref[2]));
-    #endif
-    //heavily warped
-   // #if 0
-     //  derivative[0][0] = 1.0 + alpha*pi*std::cos(pi*x_ref[0])*std::sin(pi*x_ref[1]);
-     //  derivative[0][1] =       alpha*pi*std::cos(pi*x_ref[1])*std::sin(pi*x_ref[0]);
-     //  derivative[0][2] =  0.0;
-
-     //  derivative[1][0] =       alpha*pi*exp(1.0-x_ref[1])*std::cos(pi*x_ref[0])*std::sin(pi*x_ref[1]);
-     //  derivative[1][1] =  1.0 -alpha*exp(1.0-x_ref[1])*std::sin(pi*x_ref[0])*std::sin(pi*x_ref[1])
-     //                          +alpha*pi*exp(1.0-x_ref[1])*std::sin(pi*x_ref[0])*std::cos(pi*x_ref[1]);  
-     //  derivative[1][2] =  0.0;
-
-      //  double x_temp = x_ref[0] + alpha*std::sin(pi * x_ref[0]) * std::sin(pi * x_ref[1]);
-     //  double y_temp = x_ref[1] + alpha*exp(1.0-x_ref[1])*std::sin(pi * x_ref[0]) * std::sin(pi* x_ref[1]);
-     //  derivative[2][0] = 1.0/10.0*pi*std::cos(2.0*pi*x_temp)*derivative[0][0] 
-     //                    +1.0/10.0*pi*std::cos(2.0*pi*y_temp)*derivative[1][0];
-     //  derivative[2][1] = 1.0/10.0*pi*std::cos(2.0*pi*x_temp)*derivative[0][1]
-     //                    +1.0/10.0*pi*std::cos(2.0*pi*y_temp)*derivative[1][1];
-     //
-     //
-        derivative[0][0] = 1.0;
-        derivative[0][1] =      - alpha*pi*std::sin(pi*x_ref[1]);
-        derivative[0][2] =   - alpha*pi*std::sin(pi*x_ref[2]);
-
-        derivative[1][0] =       alpha*pi*exp(1.0-x_ref[1])*std::cos(pi*x_ref[0]);
-        derivative[1][1] =  1.0 -alpha*exp(1.0-x_ref[1])*(std::sin(pi*x_ref[0])+std::sin(pi*x_ref[2]));  
-        derivative[1][2] =  alpha*pi*exp(1.0-x_ref[1])*std::cos(pi*x_ref[2]);
-        derivative[2][0] = 1.0/10.0*pi*std::cos(2.0*pi*x_ref[0]);
-        derivative[2][1] = 1.0/10.0*pi*std::cos(2.0*pi*x_ref[1]);
-        derivative[2][2] = 1.0;
-   // #endif
-    }
-//#endif
+            derivative[1][0] =       alpha*pi*exp(1.0-x_ref[1])*std::cos(pi*x_ref[0]);
+            derivative[1][1] =  1.0 -alpha*exp(1.0-x_ref[1])*(std::sin(pi*x_ref[0])+std::sin(pi*x_ref[2]));  
+            derivative[1][2] =  alpha*pi*exp(1.0-x_ref[1])*std::cos(pi*x_ref[2]);
+            derivative[2][0] = 1.0/10.0*pi*std::cos(2.0*pi*x_ref[0]);
+            derivative[2][1] = 1.0/10.0*pi*std::cos(2.0*pi*x_ref[1]);
+            derivative[2][2] = 1.0;
+        }
 
         dealii::FullMatrix<double> Jacobian_inv(dim);
         Jacobian_inv.invert(derivative);
@@ -201,39 +126,15 @@ dealii::Point<dim> CurvManifold<dim>::pull_back(const dealii::Point<dim> &space_
             break;
     }
     std::vector<double> function_check(dim);
-#if 0
-    for(int idim=0;idim<dim; idim++){
-        function_check[idim] = 1.0/20.0;
-        for(int idim2=0; idim2<dim; idim2++){
-            function_check[idim] *= std::cos(2.0 * pi * x_ref[idim2]);
-        }
-        function_check[idim] += x_ref[idim];
-    }
-#endif
-//#if 0
     if(dim==2){
         function_check[0] = x_ref[0] + beta*std::cos(pi/2.0*x_ref[0])*std::cos(3.0*pi/2.0*x_ref[1]);
         function_check[1] = x_ref[1] + beta*std::sin(2.0*pi*(x_ref[0]))*std::cos(pi/2.0*x_ref[1]);
     }
     else{
-    #if 0
-        function_check[0] = x_ref[0] + alpha*std::cos(pi/2.0*x_ref[0])*std::cos(3.0*pi/2.0*x_ref[1])*std::sin(2.0*pi*(x_ref[2]));
-        function_check[1] = x_ref[1] + alpha*std::sin(2.0*pi*(x_ref[0]))*std::cos(pi/2.0*x_ref[1])*std::sin(3.0*pi/2.0*(x_ref[2]));
-        function_check[2] = x_ref[2] + alpha*std::sin(2.0*pi*(x_ref[0]))*std::cos(3.0*pi/2.0*x_ref[1])*std::sin(5.0*pi/2.0*(x_ref[2]));
-    #endif
-    //heavily warped
-    //#if 0
-      // function_check[0] = x_ref[0] +alpha*std::sin(pi * x_ref[0]) * std::sin(pi * x_ref[1]);
-      // function_check[1] = x_ref[1] +alpha*exp(1.0-x_ref[1])*std::sin(pi * x_ref[0]) * std::sin(pi* x_ref[1]);
-      //  double x_temp = x_ref[0] + alpha*std::sin(pi * x_ref[0]) * std::sin(pi * x_ref[1]);
-      // double y_temp = x_ref[1] + alpha*exp(1.0-x_ref[1])*std::sin(pi * x_ref[0]) * std::sin(pi* x_ref[1]);
-      // function_check[2] = x_ref[2] +1.0/20.0*( std::sin(2.0 * pi * x_temp) + std::sin(2.0 * pi * y_temp));
-   // #endif
         function_check[0] = x_ref[0] +alpha*(std::cos(pi * x_ref[2]) + std::cos(pi * x_ref[1]));
         function_check[1] = x_ref[1] +alpha*exp(1.0-x_ref[1])*(std::sin(pi * x_ref[0]) + std::sin(pi* x_ref[2]));
         function_check[2] = x_ref[2] +1.0/20.0*( std::sin(2.0 * pi * x_ref[0]) + std::sin(2.0 * pi * x_ref[1]));
     }
-//#endif
     std::vector<double> error(dim);
     for(int idim=0; idim<dim; idim++) 
         error[idim] = std::abs(function_check[idim] - x_phys[idim]);
@@ -244,7 +145,6 @@ dealii::Point<dim> CurvManifold<dim>::pull_back(const dealii::Point<dim> &space_
     }
 
     return x_ref;
-
 }
 
 template<int dim>
@@ -256,39 +156,17 @@ dealii::Point<dim> CurvManifold<dim>::push_forward(const dealii::Point<dim> &cha
     dealii::Point<dim> x_phys;
     for(int idim=0; idim<dim; idim++)
         x_ref[idim] = chart_point[idim];
-#if 0
-    for(int idim=0; idim<dim; idim++){
-        x_phys[idim] = 1.0/20.0;
-        for(int idim2=0;idim2<dim; idim2++){
-           x_phys[idim] *= std::cos( 2.0 * pi * x_ref[idim2]);
-        }
-        x_phys[idim] += x_ref[idim];
-    }
-#endif
     double beta = 1.0/10.0;
     double alpha = 1.0/10.0;
-//#if 0
     if(dim==2){
         x_phys[0] = x_ref[0] + beta*std::cos(pi/2.0*x_ref[0])*std::cos(3.0*pi/2.0*x_ref[1]);
         x_phys[1] = x_ref[1] + beta*std::sin(2.0*pi*(x_ref[0]))*std::cos(pi/2.0*x_ref[1]);
     }
     else{
-    #if 0
-        x_phys[0] = x_ref[0] + alpha*std::cos(pi/2.0*x_ref[0])*std::cos(3.0*pi/2.0*x_ref[1])*std::sin(2.0*pi*(x_ref[2]));
-        x_phys[1] = x_ref[1] + alpha*std::sin(2.0*pi*(x_ref[0]))*std::cos(pi/2.0*x_ref[1])*std::sin(3.0*pi/2.0*(x_ref[2]));
-        x_phys[2] = x_ref[2] + alpha*std::sin(2.0*pi*(x_ref[0]))*std::cos(3.0*pi/2.0*x_ref[1])*std::sin(5.0*pi/2.0*(x_ref[2]));
-    #endif
-    //heavily warped
-    //#if 0
-      // x_phys[0] =x_ref[0] +  alpha*std::sin(pi * x_ref[0]) * std::sin(pi * x_ref[1]);
-      // x_phys[1] =x_ref[1] +  alpha*exp(1.0-x_ref[1])*std::sin(pi * x_ref[0]) * std::sin(pi* x_ref[1]);
-       // x_phys[2] =x_ref[2] +  1.0/20.0*( std::sin(2.0 * pi * x_phys[0]) + std::sin(2.0 * pi * x_phys[1]));
-    //#endif
         x_phys[0] =x_ref[0] +  alpha*(std::cos(pi * x_ref[2]) + std::cos(pi * x_ref[1]));
         x_phys[1] =x_ref[1] +  alpha*exp(1.0-x_ref[1])*(std::sin(pi * x_ref[0]) + std::sin(pi* x_ref[2]));
         x_phys[2] =x_ref[2] +  1.0/20.0*( std::sin(2.0 * pi * x_ref[0]) + std::sin(2.0 * pi * x_ref[1]));
     }
-//#endif
     return dealii::Point<dim> (x_phys); // Trigonometric
 }
 
@@ -297,25 +175,6 @@ dealii::DerivativeForm<1,dim,dim> CurvManifold<dim>::push_forward_gradient(const
 {
     const double pi = atan(1)*4.0;
     dealii::DerivativeForm<1, dim, dim> dphys_dref;
-#if 0
-    dealii::Point<dim> x;
-    for(int idim=0; idim<dim; idim++)
-        x[idim] = chart_point[idim];
-    for(int idim=0; idim<dim; idim++){
-        for(int idim2=0; idim2<dim;idim2++){
-            dphys_dref[idim][idim2] = - 1.0/20.0*2.0 * pi;
-            for(int idim3 =0;idim3<dim; idim3++){
-                if(idim2 == idim3)
-                    dphys_dref[idim][idim2] *=std::sin(2.0 * pi * x[idim3]);
-                else
-                     dphys_dref[idim][idim2] *=std::cos(2.0 * pi* x[idim3]);
-            }     
-            if(idim == idim2)
-                dphys_dref[idim][idim2] += 1.0;
-        }
-    }
-#endif
-//#if 0
     double beta = 1.0/10.0;
     double alpha = 1.0/10.0;
     dealii::Point<dim> x_ref;
@@ -331,37 +190,6 @@ dealii::DerivativeForm<1,dim,dim> CurvManifold<dim>::push_forward_gradient(const
         dphys_dref[1][1] =  1.0 -beta*pi/2.0*std::sin(2.0*pi*(x_ref[0]))*std::sin(pi/2.0*x_ref[1]);  
     }
     else{
-    #if 0
-        dphys_dref[0][0] = 1.0 - alpha*pi/2.0 * std::sin(pi/2.0*x_ref[0])*std::cos(3.0*pi/2.0*x_ref[1])*std::sin(2.0*pi*(x_ref[2]));
-        dphys_dref[0][1] =     - alpha*3.0*pi/2.0 * std::cos(pi/2.0*x_ref[0])*std::sin(3.0*pi/2.0*x_ref[1])*std::sin(2.0*pi*(x_ref[2]));
-        dphys_dref[0][2] =       alpha*2.0*pi * std::cos(pi/2.0*x_ref[0])*std::cos(3.0*pi/2.0*x_ref[1])*std::cos(2.0*pi*(x_ref[2]));
-
-        dphys_dref[1][0] =       alpha*2.0*pi*std::cos(2.0*pi*(x_ref[0]))*std::cos(pi/2.0*x_ref[1])*std::sin(3.0*pi/2.0*(x_ref[2]));
-        dphys_dref[1][1] =  1.0 -alpha*pi/2.0*std::sin(2.0*pi*(x_ref[0]))*std::sin(pi/2.0*x_ref[1])*std::sin(3.0*pi/2.0*(x_ref[2]));  
-        dphys_dref[1][2] =       alpha*3.0*pi/2.0*std::sin(2.0*pi*(x_ref[0]))*std::cos(pi/2.0*x_ref[1])*std::cos(3.0*pi/2.0*(x_ref[2]));
-
-        dphys_dref[2][0] =       alpha*2.0*pi*std::cos(2.0*pi*(x_ref[0]))*std::cos(3.0*pi/2.0*x_ref[1])*std::sin(5.0*pi/2.0*(x_ref[2]));
-        dphys_dref[2][1] =     - alpha*3.0*pi/2.0*std::sin(2.0*pi*(x_ref[0]))*std::sin(3.0*pi/2.0*x_ref[1])*std::sin(5.0*pi/2.0*(x_ref[2]));
-        dphys_dref[2][2] = 1.0 + alpha*5.0*pi/2.0*std::sin(2.0*pi*(x_ref[0]))*std::cos(3.0*pi/2.0*x_ref[1])*std::cos(5.0*pi/2.0*(x_ref[2]));
-    #endif
-    //heavily warped
-   // #if 0
-     //  dphys_dref[0][0] = 1.0 + alpha*pi*std::cos(pi*x_ref[0])*std::sin(pi*x_ref[1]);
-     //  dphys_dref[0][1] =       alpha*pi*std::cos(pi*x_ref[1])*std::sin(pi*x_ref[0]);
-     //  dphys_dref[0][2] =  0.0;
-
-     //  dphys_dref[1][0] =       alpha*pi*exp(1.0-x_ref[1])*std::cos(pi*x_ref[0])*std::sin(pi*x_ref[1]);
-     //  dphys_dref[1][1] =  1.0 -alpha*exp(1.0-x_ref[1])*std::sin(pi*x_ref[0])*std::sin(pi*x_ref[1])
-     //                          +alpha*pi*exp(1.0-x_ref[1])*std::sin(pi*x_ref[0])*std::cos(pi*x_ref[1]);  
-     //  dphys_dref[1][2] =  0.0;
-
-      //  double x_phys = x_ref[0] + alpha*std::sin(pi*x_ref[0])*std::sin(pi*x_ref[1]);
-     //  double y_phys = x_ref[1] + alpha*exp(1.0-x_ref[1])*std::sin(pi*x_ref[0])*std::sin(pi*x_ref[1]);
-     //  dphys_dref[2][0] = 1.0/10.0*pi*std::cos(2.0*pi*x_phys)*dphys_dref[0][0] 
-     //                    +1.0/10.0*pi*std::cos(2.0*pi*y_phys)*dphys_dref[1][0];
-     //  dphys_dref[2][1] = 1.0/10.0*pi*std::cos(2.0*pi*x_phys)*dphys_dref[0][1]
-     //                    +1.0/10.0*pi*std::cos(2.0*pi*y_phys)*dphys_dref[1][1];
-    //#endif
         dphys_dref[0][0] = 1.0;
         dphys_dref[0][1] =      - alpha*pi*std::sin(pi*x_ref[1]);
         dphys_dref[0][2] =   - alpha*pi*std::sin(pi*x_ref[2]);
@@ -373,7 +201,6 @@ dealii::DerivativeForm<1,dim,dim> CurvManifold<dim>::push_forward_gradient(const
         dphys_dref[2][1] = 1.0/10.0*pi*std::cos(2.0*pi*x_ref[1]);
         dphys_dref[2][2] = 1.0;
     }
-//#endif
 
     return dphys_dref;
 }
@@ -397,17 +224,6 @@ static dealii::Point<dim> warp (const dealii::Point<dim> &p)
         q[dim-1] =p[dim-1] +  beta*std::sin(2.0 * pi * (p[dim-2])) * std::cos(pi /2.0 * p[dim-1]);
     }
     if(dim==3){
-    #if 0
-        q[0] =p[0] +  alpha*std::cos(pi/2.0 * p[0]) * std::cos(3.0 * pi/2.0 * p[1]) * std::sin(2.0 * pi * (p[2]));
-        q[1] =p[1] +  alpha*std::sin(2.0 * pi * (p[0])) * std::cos(pi /2.0 * p[1]) * std::sin(3.0 * pi /2.0 * p[2]);
-        q[2] =p[2] +  alpha*std::sin(2.0 * pi * (p[0])) * std::cos(3.0 * pi/2.0 * p[1]) * std::cos(5.0 * pi/2.0 * p[2]);
-    #endif
-    //heavily warped
-   // #if 0
-       // q[0] =p[0] +  alpha*std::sin(pi * p[0]) * std::sin(pi * p[1]);
-       // q[1] =p[1] +  alpha*exp(1.0-p[1])*std::sin(pi * p[0]) * std::sin(pi* p[1]);
-       // q[2] =p[2] +  1.0/20.0*( std::sin(2.0 * pi * q[0]) + std::sin(2.0 * pi * q[1]));
-   // #endif
         q[0] =p[0] +  alpha*(std::cos(pi * p[2]) + std::cos(pi * p[1]));
         q[1] =p[1] +  alpha*exp(1.0-p[1])*(std::sin(pi * p[0]) + std::sin(pi* p[2]));
         q[2] =p[2] +  1.0/20.0*( std::sin(2.0 * pi * p[0]) + std::sin(2.0 * pi * p[1]));
@@ -422,7 +238,6 @@ static dealii::Point<dim> warp (const dealii::Point<dim> &p)
 
 int main (int argc, char * argv[])
 {
-
     dealii::Utilities::MPI::MPI_InitFinalize mpi_initialization(argc, argv, 1);
     using real = double;
     using namespace PHiLiP;
@@ -438,7 +253,6 @@ int main (int argc, char * argv[])
 
     all_parameters_new.use_collocated_nodes=true;
 
-    //unsigned int poly_degree = 3;
     double left = 0.0;
     double right = 1.0;
     const bool colorize = true;
@@ -450,127 +264,110 @@ int main (int argc, char * argv[])
         typename dealii::Triangulation<dim>::MeshSmoothing(
             dealii::Triangulation<dim>::smoothing_on_refinement |
             dealii::Triangulation<dim>::smoothing_on_coarsening));
-        dealii::GridGenerator::hyper_cube (*grid, left, right, colorize);
-        grid->refine_global(0);
+    dealii::GridGenerator::hyper_cube (*grid, left, right, colorize);
+    grid->refine_global(0);
 
-//Warp the grid
-//IF WANT NON-WARPED GRID COMMENT UNTIL SAYS "NOT COMMENT"
-//#if 0
+    //Warp the grid
+    //IF WANT NON-WARPED GRID COMMENT UNTIL SAYS "NOT COMMENT"
     dealii::GridTools::transform (&warp<dim>, *grid);
 
-// Assign a manifold to have curved geometry
+    // Assign a manifold to have curved geometry
     const CurvManifold<dim> curv_manifold;
     unsigned int manifold_id=0; // top face, see GridGenerator::hyper_rectangle, colorize=true
     grid->reset_all_manifolds();
     grid->set_all_manifold_ids(manifold_id);
     grid->set_manifold ( manifold_id, curv_manifold );
-//#endif
-//"END COMMENT" TO NOT WARP GRID
+    //"END COMMENT" TO NOT WARP GRID
     double max_GCL = 0.0;
+    
+    // Loop through poly degree
     for(unsigned int poly_degree = 2; poly_degree<5; poly_degree++){
         unsigned int grid_degree = poly_degree;
 
-    //setup operator
-    OPERATOR::OperatorBase<dim,nstate,real> operators(&all_parameters_new, poly_degree, poly_degree, grid_degree); 
-//setup DG
-   // std::shared_ptr < PHiLiP::DGBase<dim, double> > dg = PHiLiP::DGFactory<dim,double>::create_discontinuous_galerkin(&all_parameters_new, poly_degree, grid);
-    std::shared_ptr < PHiLiP::DGBase<dim, double> > dg = PHiLiP::DGFactory<dim,double>::create_discontinuous_galerkin(&all_parameters_new, poly_degree, poly_degree, grid_degree, grid);
-    dg->allocate_system ();
-    
+        std::shared_ptr < PHiLiP::DGBase<dim, double> > dg = PHiLiP::DGFactory<dim,double>::create_discontinuous_galerkin(&all_parameters_new, poly_degree, poly_degree, grid_degree, grid);
+        dg->allocate_system ();
 
-    const unsigned int n_quad_pts      = dg->volume_quadrature_collection[poly_degree].size();
+        dealii::QGaussLobatto<1> grid_quad(grid_degree +1);
+        const dealii::FE_DGQ<1> fe_grid(grid_degree);
+        const dealii::FESystem<1,1> fe_sys_grid(fe_grid, nstate);
+        dealii::QGauss<1> flux_quad(poly_degree +1);
+        dealii::QGauss<0> flux_quad_face(poly_degree +1);
 
-            const dealii::FESystem<dim> &fe_metric = (dg->high_order_grid->fe_system);
-            const unsigned int n_metric_dofs = fe_metric.dofs_per_cell; 
-            auto metric_cell = dg->high_order_grid->dof_handler_grid.begin_active();
-            for (auto current_cell = dg->dof_handler.begin_active(); current_cell!=dg->dof_handler.end(); ++current_cell, ++metric_cell) {
-                if (!current_cell->is_locally_owned()) continue;
-	
-                std::vector<dealii::types::global_dof_index> current_metric_dofs_indices(n_metric_dofs);
-                metric_cell->get_dof_indices (current_metric_dofs_indices);
-                std::vector<std::vector<real>> mapping_support_points(dim);
-                for(int idim=0; idim<dim; idim++){
-                    mapping_support_points[idim].resize(n_metric_dofs);
-                }
-                for (unsigned int idof = 0; idof < n_metric_dofs; ++idof) {
+        PHiLiP::OPERATOR::mapping_shape_functions<dim,2*dim> mapping_basis(nstate,poly_degree,grid_degree);
+        mapping_basis.build_1D_shape_functions_at_grid_nodes(fe_sys_grid, grid_quad);
+        mapping_basis.build_1D_shape_functions_at_flux_nodes(fe_sys_grid, flux_quad, flux_quad_face);
+
+        const unsigned int n_quad_pts = pow(poly_degree+1,dim);
+
+        const dealii::FESystem<dim> &fe_metric = (dg->high_order_grid->fe_system);
+        const unsigned int n_metric_dofs = fe_metric.dofs_per_cell; 
+        auto metric_cell = dg->high_order_grid->dof_handler_grid.begin_active();
+        for (auto current_cell = dg->dof_handler.begin_active(); current_cell!=dg->dof_handler.end(); ++current_cell, ++metric_cell) {
+            if (!current_cell->is_locally_owned()) continue;
+
+            pcout<<" degree "<<grid_degree<<" metric dofs "<<n_metric_dofs<<std::endl;
+            std::vector<dealii::types::global_dof_index> current_metric_dofs_indices(n_metric_dofs);
+            metric_cell->get_dof_indices (current_metric_dofs_indices);
+            std::array<std::vector<real>,dim> mapping_support_points;
+            for(int idim=0; idim<dim; idim++){
+                mapping_support_points[idim].resize(n_metric_dofs/dim);
+            }
+            dealii::QGaussLobatto<dim> vol_GLL(grid_degree +1);
+            for (unsigned int igrid_node = 0; igrid_node< n_metric_dofs/dim; ++igrid_node) {
+                for (unsigned int idof = 0; idof< n_metric_dofs; ++idof) {
                     const real val = (dg->high_order_grid->volume_nodes[current_metric_dofs_indices[idof]]);
                     const unsigned int istate = fe_metric.system_to_component_index(idof).first; 
-                    const unsigned int ishape = fe_metric.system_to_component_index(idof).second; 
-                    mapping_support_points[istate][ishape] = val; 
+                    mapping_support_points[istate][igrid_node] += val * fe_metric.shape_value_component(idof,vol_GLL.point(igrid_node),istate);
                 }
-                std::vector<dealii::FullMatrix<real>> metric_cofactor(n_quad_pts);
-                std::vector<real> determinant_Jacobian(n_quad_pts);
-                for(unsigned int iquad=0;iquad<n_quad_pts; iquad++){
-                    metric_cofactor[iquad].reinit(dim, dim);
-                }
-                operators.build_local_vol_metric_cofactor_matrix_and_det_Jac(grid_degree, poly_degree, n_quad_pts, n_metric_dofs/dim, mapping_support_points, determinant_Jacobian, metric_cofactor);
-
-                std::vector< std::vector<dealii::FullMatrix<real>>>  Gij(dim);
-                for(int idim=0; idim<dim; idim++){
-                    Gij[idim].resize(dim);
-                    for(int idim2=0; idim2<dim; idim2++){
-                        Gij[idim][idim2].reinit(n_quad_pts, n_quad_pts);
-                    }
-                }
-
-                for(int idim=0; idim<dim;idim++){
-                    for(int idim2=0; idim2<dim; idim2++){
-//printf(" G i=%d j =%d\n",idim,idim2);
-                        for(unsigned int idof=0; idof<n_quad_pts; idof++){
-                            for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
-                                if(idof==iquad){
-                                    Gij[idim][idim2][idof][iquad] = metric_cofactor[iquad][idim2][idim];
-//printf("%g \n",Gij[idim][idim2][idof][iquad]);
-                                }
-                            }
-                        }
-                    }
-                }
-
-                std::vector<dealii::Vector<real>> GCL(dim);
-                for(int idim=0; idim<dim; idim++){
-                    GCL[idim].reinit(n_quad_pts);
-                }
-                dealii::Vector<real> ones(n_quad_pts);
-                for(unsigned int idof=0; idof<n_quad_pts; idof++){
-                    ones[idof] = 1.0;
-                }
-
-                for(int idim=0; idim< dim; idim++){
-                    for(int idim2=0; idim2<dim;idim2++){
-                        dealii::FullMatrix<real> temp(n_quad_pts);
-                        operators.gradient_flux_basis[poly_degree][0][idim2].mmult(temp, Gij[idim2][idim]);
-                        dealii::Vector<real> temp2(n_quad_pts);
-                        temp.vmult(temp2, ones);
-                        GCL[idim].add(1, temp2);
-                    }
-                }
-
-                for(int idim=0; idim<dim; idim++){
-                //    printf("\n GCL for derivative x_%d \n", idim);
-                    for(unsigned int idof=0; idof<n_quad_pts; idof++){
-                 //       printf(" %.16g \n", GCL[idim][idof]);
-                        if( std::abs(GCL[idim][idof]) > max_GCL){
-                            max_GCL = std::abs(GCL[idim][idof]);
-                        }
-                    }
-                }
-
             }
 
-    }//end poly degree loop
+            PHiLiP::OPERATOR::metric_operators<real,dim,2*dim> metric_oper(nstate,poly_degree,grid_degree);
+            metric_oper.build_volume_metric_operators(
+                n_quad_pts, n_metric_dofs/dim,
+                mapping_support_points,
+                mapping_basis,
+                false);
+
+            std::array<std::vector<real>,dim> GCL;
+            for(int idim=0; idim<dim; idim++){
+                GCL[idim].resize(n_quad_pts);
+            }
+
+            const dealii::FE_DGQArbitraryNodes<1> fe_poly(flux_quad);
+            const dealii::FESystem<1,1> fe_sys_poly(fe_poly, nstate);
+            PHiLiP::OPERATOR::basis_functions_state<dim,nstate,2*dim> flux_basis_quad(poly_degree, 1);
+            flux_basis_quad.build_1D_gradient_state_operator(fe_sys_poly, flux_quad);
+            flux_basis_quad.build_1D_volume_state_operator(fe_sys_poly, flux_quad);
+            for(int idim=0; idim<dim; idim++){
+                flux_basis_quad.divergence_matrix_vector_mult(metric_oper.metric_cofactor_vol[idim], GCL[idim],
+                                                              flux_basis_quad.oneD_vol_state_operator[0],
+                                                              flux_basis_quad.oneD_vol_state_operator[0],
+                                                              flux_basis_quad.oneD_vol_state_operator[0],
+                                                              flux_basis_quad.oneD_grad_state_operator[0],
+                                                              flux_basis_quad.oneD_grad_state_operator[0],
+                                                              flux_basis_quad.oneD_grad_state_operator[0]);
+            }
+
+            for(int idim=0; idim<dim; idim++){
+                // printf("\n GCL for derivative x_%d \n", idim);
+                for(unsigned int idof=0; idof<n_quad_pts; idof++){
+                    // printf(" %.16g \n", GCL[idim][idof]);
+                    if(std::abs(GCL[idim][idof]) > max_GCL){
+                        max_GCL = std::abs(GCL[idim][idof]);
+                    }
+                }
+            }
+        } //end cell loop
+    } //end poly degree loop
+    
     const double max_GCL_mpi= (dealii::Utilities::MPI::max(max_GCL, MPI_COMM_WORLD));
 
-    if( max_GCL_mpi > 1e-10){
-//        printf(" Metrics Do NOT Satisfy GCL Condition\n");
+    if(max_GCL_mpi > 1e-10){
         pcout<<" Metrics Do NOT Satisfy GCL Condition\n"<<std::endl;
         return 1;
     }
     else{
-//        printf(" Metrics Satisfy GCL Condition\n");
         pcout<<" Metrics Satisfy GCL Condition\n"<<std::endl;
         return 0;
     }
-}
-
-//}//end PHiLiP namespace
+} // end of main

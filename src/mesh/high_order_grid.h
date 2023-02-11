@@ -10,6 +10,7 @@
 #include <deal.II/fe/fe_q.h>
 #include <deal.II/fe/fe_system.h>
 #include <deal.II/fe/mapping_fe_field.h>
+#include <deal.II/fe/fe_dgq.h>
 
 #include <deal.II/dofs/dof_handler.h>
 
@@ -133,7 +134,8 @@ public:
     /// Principal constructor that will call delegated constructor.
     HighOrderGrid(
         const unsigned int              max_degree, 
-        const std::shared_ptr<MeshType> triangulation_input);
+        const std::shared_ptr<MeshType> triangulation_input,
+        const bool                      output_high_order_grid=true);
 
     /// Reinitialize high_order_grid after a change in triangulation
     void reinit();
@@ -148,7 +150,7 @@ public:
     void ensure_conforming_mesh();
 
     /// Sets the volume_nodes to the interpolated position of the Manifold associated to the triangulation.
-    void initialize_with_triangulation_manifold(const bool output_mesh = false);
+    void initialize_with_triangulation_manifold(const bool output_mesh = true);
 
     /// Needed to allocate the correct number of volume_nodes when initializing and after the mesh is refined
     void allocate();
@@ -372,6 +374,22 @@ public:
     const dealii::FE_Q<dim>     fe_q;
     /// Using system of polynomials to represent the x, y, and z directions.
     const dealii::FESystem<dim> fe_system;
+    /// Use oneD Lagrange polynomial to represent the spatial location.
+    /** We use FE_DGQ instead of FE_Q for this because DGQ orders in a tensor-product way,
+    * with x running fastest, then y, and z the slowest; whereas FE_Q order by the vertices
+    * first, then proceeds to do the edges, then volume. We need it in a tensor product
+    * indexing in order to use sum-factorization on the mapping support nodes.<br>
+    * Lastly, since it is collocated on the 1D Gauss-Legendre-Lobatto quadrature set,
+    * the nodal location recovers the FE_Q nodeal set, but indexed in a way we can use
+    * sum-factorization on.
+    */
+    const dealii::FE_DGQ<1>     oneD_fe_q;
+    /// One-dimensional fe system for each direction.
+    const dealii::FESystem<1> oneD_fe_system;
+    /// One Dimensional grid nodes in reference space.
+    const dealii::QGaussLobatto<1> oneD_grid_nodes;
+    /// Dim-Dimensional grid nodes in reference space.
+    const dealii::QGaussLobatto<dim> dim_grid_nodes;
 
 
     /// MappingFEField that will provide the polynomial-based grid.

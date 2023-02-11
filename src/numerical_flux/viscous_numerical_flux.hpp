@@ -44,6 +44,48 @@ const std::shared_ptr < Physics::PhysicsBase<dim, nstate, real> > pde_physics; /
 const std::shared_ptr < ArtificialDissipationBase<dim, nstate> > artificial_dissip;  ///< Link to artificial dissipation
 };
 
+/// Central Flux method.
+template<int dim, int nstate, typename real>
+class CentralViscousNumericalFlux: public NumericalFluxDissipative<dim, nstate, real>
+{
+using NumericalFluxDissipative<dim,nstate,real>::pde_physics;
+using NumericalFluxDissipative<dim,nstate,real>::artificial_dissip;
+public:
+/// Constructor
+CentralViscousNumericalFlux(std::shared_ptr<Physics::PhysicsBase<dim, nstate, real>> physics_input, std::shared_ptr < ArtificialDissipationBase<dim, nstate>> artificial_dissipation_input)
+: NumericalFluxDissipative<dim,nstate,real>(physics_input,artificial_dissipation_input)
+{};
+
+/// Evaluate solution flux at the interface
+/** \f[\hat{u} = {u_h} \f]
+ */
+std::array<real, nstate> evaluate_solution_flux (
+    const std::array<real, nstate> &soln_int,
+    const std::array<real, nstate> &soln_ext,
+    const dealii::Tensor<1,dim,real> &normal_int) const override;
+
+/// Evaluate auxiliary flux at the interface
+/** \f[ \hat{A} = {{ A \nabla u_h }} - \mu {{ A }} [[ u_h ]] \f]
+ *  
+ *  Note that \f$\mu\f$ must be chosen to have a stable scheme.
+ *
+ *
+ */
+std::array<real, nstate> evaluate_auxiliary_flux (
+    const dealii::types::global_dof_index current_cell_index,
+    const dealii::types::global_dof_index neighbor_cell_index,
+    const real artificial_diss_coeff_int,
+    const real artificial_diss_coeff_ext,
+    const std::array<real, nstate> &soln_int,
+    const std::array<real, nstate> &soln_ext,
+    const std::array<dealii::Tensor<1,dim,real>, nstate> &soln_grad_int,
+    const std::array<dealii::Tensor<1,dim,real>, nstate> &soln_grad_ext,
+    const dealii::Tensor<1,dim,real> &normal_int,
+    const real &penalty,
+    const bool on_boundary = false) const override;
+    
+};
+
 /// Symmetric interior penalty method.
 template<int dim, int nstate, typename real>
 class SymmetricInternalPenalty: public NumericalFluxDissipative<dim, nstate, real>

@@ -262,7 +262,6 @@ void evaluate_finite_element_values (
     }
 }
 
-
 template <int dim, typename real>
 bool check_same_coords (
     const std::vector<dealii::Point<dim>> &unit_quad_pts_int,
@@ -552,6 +551,9 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_volume_term_explicit(
     const dealii::types::global_dof_index current_cell_index,
     const dealii::FEValues<dim,dim> &fe_values_vol,
     const std::vector<dealii::types::global_dof_index> &soln_dof_indices_int,
+    const std::vector<dealii::types::global_dof_index> &/*metric_dof_indices*/,
+    const unsigned int /*poly_degree*/,
+    const unsigned int /*grid_degree*/,
     dealii::Vector<real> &local_rhs_int_cell,
     const dealii::FEValues<dim,dim> &/*fe_values_lagrange*/)
 {
@@ -624,8 +626,8 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_volume_term_explicit(
               soln_grad_at_q[iquad][istate] += soln_coeff[idof] * fe_values_vol.shape_grad_component(idof, iquad, istate);
         }
         // Evaluate physical convective flux and source term
-        conv_phys_flux_at_q[iquad] = DGBaseState<dim,nstate,real,MeshType>::pde_physics_double->convective_flux (soln_at_q[iquad]);
-        diss_phys_flux_at_q[iquad] = DGBaseState<dim,nstate,real,MeshType>::pde_physics_double->dissipative_flux (soln_at_q[iquad], soln_grad_at_q[iquad], current_cell_index);
+        conv_phys_flux_at_q[iquad] = this->pde_physics_double->convective_flux (soln_at_q[iquad]);
+        diss_phys_flux_at_q[iquad] = this->pde_physics_double->dissipative_flux (soln_at_q[iquad], soln_grad_at_q[iquad], current_cell_index);
         if(this->all_parameters->artificial_dissipation_param.add_artificial_dissipation) {
             const ADArrayTensor1 artificial_diss_phys_flux_at_q = DGBaseState<dim,nstate,real,MeshType>::artificial_dissip->calc_artificial_dissipation_flux (soln_at_q[iquad], soln_grad_at_q[iquad], artificial_diss_coeff);
             for (int istate=0; istate<nstate; istate++) {
@@ -634,7 +636,7 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_volume_term_explicit(
         }
         if(this->all_parameters->manufactured_convergence_study_param.manufactured_solution_param.use_manufactured_source_term) {
             const dealii::Point<dim,real> point = fe_values_vol.quadrature_point(iquad);
-            source_at_q[iquad] = DGBaseState<dim,nstate,real,MeshType>::pde_physics_double->source_term (point, soln_at_q[iquad], current_cell_index);
+            source_at_q[iquad] = this->pde_physics_double->source_term (point, soln_at_q[iquad], this->current_time, current_cell_index);
             //std::array<real,nstate> artificial_source_at_q = DGBaseState<dim,nstate,real,MeshType>::pde_physics_double->artificial_source_term (artificial_diss_coeff, point, soln_at_q[iquad]);
             //for (int s=0;s<nstate;++s) source_at_q[iquad][s] += artificial_source_at_q[s];
         }
@@ -793,9 +795,9 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_boundary_term_explicit(
                 diss_soln_jump_int[s][d] = (diss_soln_num_flux[iquad][s] - soln_int[iquad][s]) * normal_int[d];
             }
         }
-        diss_flux_jump_int[iquad] = DGBaseState<dim,nstate,real,MeshType>::pde_physics_double->dissipative_flux (soln_int[iquad], diss_soln_jump_int, current_cell_index);
+        diss_flux_jump_int[iquad] = this->pde_physics_double->dissipative_flux (soln_int[iquad], diss_soln_jump_int, current_cell_index);
         if (this->all_parameters->artificial_dissipation_param.add_artificial_dissipation) {
-            const ADArrayTensor1 artificial_diss_flux_jump_int = DGBaseState<dim,nstate,real,MeshType>::artificial_dissip->calc_artificial_dissipation_flux(soln_int[iquad], diss_soln_jump_int,artificial_diss_coeff);
+            const ADArrayTensor1 artificial_diss_flux_jump_int = this->artificial_dissip->calc_artificial_dissipation_flux(soln_int[iquad], diss_soln_jump_int,artificial_diss_coeff);
             for (int s=0; s<nstate; s++) {
                 diss_flux_jump_int[iquad][s] += artificial_diss_flux_jump_int[s];
             }
@@ -833,14 +835,20 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_boundary_term_explicit(
 
 template <int dim, int nstate, typename real, typename MeshType>
 void DGWeak<dim,nstate,real,MeshType>::assemble_face_term_explicit(
+    const unsigned int /*iface*/, 
+    const unsigned int /*neighbor_iface*/,
     typename dealii::DoFHandler<dim>::active_cell_iterator /*cell*/,
     const dealii::types::global_dof_index current_cell_index,
     const dealii::types::global_dof_index neighbor_cell_index,
+    const unsigned int /*poly_degree*/, 
+    const unsigned int /*grid_degree*/,
     const dealii::FEFaceValuesBase<dim,dim>     &fe_values_int,
     const dealii::FEFaceValuesBase<dim,dim>     &fe_values_ext,
     const real penalty,
     const std::vector<dealii::types::global_dof_index> &soln_dof_indices_int,
     const std::vector<dealii::types::global_dof_index> &soln_dof_indices_ext,
+    const std::vector<dealii::types::global_dof_index> &/*metric_dof_indices_int*/,
+    const std::vector<dealii::types::global_dof_index> &/*metric_dof_indices_ext*/,
     dealii::Vector<real>          &local_rhs_int_cell,
     dealii::Vector<real>          &local_rhs_ext_cell)
 {
@@ -3632,7 +3640,7 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_volume_term(
         if (this->all_parameters->artificial_dissipation_param.add_artificial_dissipation) {
             ArrayTensor artificial_diss_phys_flux_at_q;
             //artificial_diss_phys_flux_at_q = physics.artificial_dissipative_flux (artificial_diss_coeff, soln_at_q[iquad], soln_grad_at_q[iquad]);
-            artificial_diss_phys_flux_at_q = DGBaseState<dim,nstate,real,MeshType>::artificial_dissip->calc_artificial_dissipation_flux(soln_at_q[iquad], soln_grad_at_q[iquad],artificial_diss_coeff_at_q[iquad]);
+            artificial_diss_phys_flux_at_q = this->artificial_dissip->calc_artificial_dissipation_flux(soln_at_q[iquad], soln_grad_at_q[iquad],artificial_diss_coeff_at_q[iquad]);
             for (int s=0; s<nstate; s++) {
                 diss_phys_flux_at_q[iquad][s] += artificial_diss_phys_flux_at_q[s];
             }
@@ -3645,7 +3653,7 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_volume_term(
                 const int iaxis = fe_metric.system_to_component_index(idof).first;
                 ad_point[iaxis] += coords_coeff[idof] * fe_metric.shape_value(idof,unit_quad_pts[iquad]);
             }
-            source_at_q[iquad] = physics.source_term (ad_point, soln_at_q[iquad], current_cell_index);
+            source_at_q[iquad] = physics.source_term (ad_point, soln_at_q[iquad], this->current_time, current_cell_index);
             //Array artificial_source_at_q = physics.artificial_source_term (artificial_diss_coeff, ad_point, soln_at_q[iquad]);
             //Array artificial_source_at_q = physics.artificial_source_term (artificial_diss_coeff_at_q[iquad], ad_point, soln_at_q[iquad]);
             //for (int s=0;s<nstate;++s) source_at_q[iquad][s] += artificial_source_at_q[s];
@@ -3680,11 +3688,8 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_volume_term(
                 rhs[itest] = rhs[itest] + interpolation_operator[itest][iquad]* source_at_q[iquad][istate] * JxW_iquad;
             }
         }
-
         dual_dot_residual += local_dual[itest]*rhs[itest];
-
     }
-
 }
 
 #ifdef FADFAD
@@ -4141,8 +4146,6 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_volume_term_derivatives(
             *(DGBaseState<dim,nstate,real,MeshType>::pde_physics_double),
             compute_dRdW, compute_dRdX, compute_d2R);
     }
-
-    return;
 }
 
 template <int dim, int nstate, typename real, typename MeshType>
@@ -4246,14 +4249,297 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_face_term_derivatives(
             local_rhs_ext_cell,
             compute_dRdW, compute_dRdX, compute_d2R);
     }
-
-    return;
 }
 #endif
 
+
+template <int dim, int nstate, typename real, typename MeshType>
+void DGWeak<dim,nstate,real,MeshType>::assemble_volume_term_and_build_operators(
+    typename dealii::DoFHandler<dim>::active_cell_iterator cell,
+    const dealii::types::global_dof_index                  current_cell_index,
+    const std::vector<dealii::types::global_dof_index>     &cell_dofs_indices,
+    const std::vector<dealii::types::global_dof_index>     &metric_dof_indices,
+    const unsigned int                                     poly_degree,
+    const unsigned int                                     grid_degree,
+    OPERATOR::basis_functions<dim,2*dim>                   &/*soln_basis*/,
+    OPERATOR::basis_functions<dim,2*dim>                   &/*flux_basis*/,
+    OPERATOR::local_basis_stiffness<dim,2*dim>             &/*flux_basis_stiffness*/,
+    OPERATOR::metric_operators<real,dim,2*dim>             &/*metric_oper*/,
+    OPERATOR::mapping_shape_functions<dim,2*dim>           &/*mapping_basis*/,
+    std::array<std::vector<real>,dim>                      &/*mapping_support_points*/,
+    dealii::hp::FEValues<dim,dim>                          &fe_values_collection_volume,
+    dealii::hp::FEValues<dim,dim>                          &fe_values_collection_volume_lagrange,
+    const dealii::FESystem<dim,dim>                        &current_fe_ref,
+    dealii::Vector<real>                                   &local_rhs_int_cell,
+    std::vector<dealii::Tensor<1,dim,real>>                &/*local_auxiliary_RHS*/,
+    const bool                                             /*compute_auxiliary_right_hand_side*/,
+    const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R)
+{
+    // Current reference element related to this physical cell
+    const int i_fele = cell->active_fe_index();
+    const int i_quad = i_fele;
+    const int i_mapp = 0;
+    fe_values_collection_volume.reinit (cell, i_quad, i_mapp, i_fele);
+    dealii::TriaIterator<dealii::CellAccessor<dim,dim>> cell_iterator = static_cast<dealii::TriaIterator<dealii::CellAccessor<dim,dim>> > (cell);
+    fe_values_collection_volume_lagrange.reinit (cell_iterator, i_quad, i_mapp, i_fele);
+
+    const dealii::FEValues<dim,dim> &fe_values_volume = fe_values_collection_volume.get_present_fe_values();
+    const dealii::FEValues<dim,dim> &fe_values_lagrange = fe_values_collection_volume_lagrange.get_present_fe_values();
+    //Note the explicit is called first to set the max_dt_cell to a non-zero value.
+    assemble_volume_term_explicit (
+        cell,
+        current_cell_index,
+        fe_values_volume,
+        cell_dofs_indices,
+        metric_dof_indices,
+        poly_degree, grid_degree,
+        local_rhs_int_cell,
+        fe_values_lagrange);
+    //set current rhs to zero since the explicit call was just to set the max_dt_cell.
+    local_rhs_int_cell*=0.0;
+    
+    assemble_volume_term_derivatives (
+        cell,
+        current_cell_index,
+        fe_values_volume, current_fe_ref, this->volume_quadrature_collection[i_quad],
+        metric_dof_indices, cell_dofs_indices,
+        local_rhs_int_cell, fe_values_lagrange,
+        compute_dRdW, compute_dRdX, compute_d2R);
+}
+
+template <int dim, int nstate, typename real, typename MeshType>
+void DGWeak<dim,nstate,real,MeshType>::assemble_boundary_term_and_build_operators(
+    typename dealii::DoFHandler<dim>::active_cell_iterator cell,
+    const dealii::types::global_dof_index                  current_cell_index,
+    const unsigned int                                     iface,
+    const unsigned int                                     boundary_id,
+    const real                                             penalty,
+    const std::vector<dealii::types::global_dof_index>     &cell_dofs_indices,
+    const std::vector<dealii::types::global_dof_index>     &metric_dof_indices,
+    const unsigned int                                     /*poly_degree*/,
+    const unsigned int                                     /*grid_degree*/,
+    OPERATOR::basis_functions<dim,2*dim>                   &/*soln_basis*/,
+    OPERATOR::basis_functions<dim,2*dim>                   &/*flux_basis*/,
+    OPERATOR::local_basis_stiffness<dim,2*dim>             &/*flux_basis_stiffness*/,
+    OPERATOR::metric_operators<real,dim,2*dim>             &/*metric_oper*/,
+    OPERATOR::mapping_shape_functions<dim,2*dim>           &/*mapping_basis*/,
+    std::array<std::vector<real>,dim>                      &/*mapping_support_points*/,
+    dealii::hp::FEFaceValues<dim,dim>                      &fe_values_collection_face_int,
+    const dealii::FESystem<dim,dim>                        &current_fe_ref,
+    dealii::Vector<real>                                   &local_rhs_int_cell,
+    std::vector<dealii::Tensor<1,dim,real>>                &/*local_auxiliary_RHS*/,
+    const bool                                             /*compute_auxiliary_right_hand_side*/,
+    const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R)
+{
+    // Current reference element related to this physical cell
+    const int i_fele = cell->active_fe_index();
+    const int i_quad = i_fele;
+    const int i_mapp = 0;
+
+    fe_values_collection_face_int.reinit (cell, iface, i_quad, i_mapp, i_fele);
+    const dealii::FEFaceValues<dim,dim> &fe_values_face_int = fe_values_collection_face_int.get_present_fe_values();
+    const dealii::Quadrature<dim-1> face_quadrature = this->face_quadrature_collection[i_quad];
+    assemble_boundary_term_derivatives (
+        cell,
+        current_cell_index,
+        iface, boundary_id, fe_values_face_int, penalty,
+        current_fe_ref, face_quadrature,
+        metric_dof_indices, cell_dofs_indices, local_rhs_int_cell,
+        compute_dRdW, compute_dRdX, compute_d2R);
+}
+
+template <int dim, int nstate, typename real, typename MeshType>
+void DGWeak<dim,nstate,real,MeshType>::assemble_face_term_and_build_operators(
+    typename dealii::DoFHandler<dim>::active_cell_iterator cell,
+    typename dealii::DoFHandler<dim>::active_cell_iterator neighbor_cell,
+    const dealii::types::global_dof_index                  current_cell_index,
+    const dealii::types::global_dof_index                  neighbor_cell_index,
+    const unsigned int                                     iface,
+    const unsigned int                                     neighbor_iface,
+    const real                                             penalty,
+    const std::vector<dealii::types::global_dof_index>     &current_dofs_indices,
+    const std::vector<dealii::types::global_dof_index>     &neighbor_dofs_indices,
+    const std::vector<dealii::types::global_dof_index>     &current_metric_dofs_indices,
+    const std::vector<dealii::types::global_dof_index>     &neighbor_metric_dofs_indices,
+    const unsigned int                                     /*poly_degree_int*/,
+    const unsigned int                                     /*poly_degree_ext*/,
+    const unsigned int                                     /*grid_degree_int*/,
+    const unsigned int                                     /*grid_degree_ext*/,
+    OPERATOR::basis_functions<dim,2*dim>                   &/*soln_basis_int*/,
+    OPERATOR::basis_functions<dim,2*dim>                   &/*soln_basis_ext*/,
+    OPERATOR::basis_functions<dim,2*dim>                   &/*flux_basis_int*/,
+    OPERATOR::basis_functions<dim,2*dim>                   &/*flux_basis_ext*/,
+    OPERATOR::local_basis_stiffness<dim,2*dim>             &/*flux_basis_stiffness*/,
+    OPERATOR::metric_operators<real,dim,2*dim>             &/*metric_oper_int*/,
+    OPERATOR::metric_operators<real,dim,2*dim>             &/*metric_oper_ext*/,
+    OPERATOR::mapping_shape_functions<dim,2*dim>           &/*mapping_basis*/,
+    std::array<std::vector<real>,dim>                      &/*mapping_support_points*/,
+    dealii::hp::FEFaceValues<dim,dim>                      &fe_values_collection_face_int,
+    dealii::hp::FEFaceValues<dim,dim>                      &fe_values_collection_face_ext,
+    dealii::Vector<real>                                   &current_cell_rhs,
+    dealii::Vector<real>                                   &neighbor_cell_rhs,
+    std::vector<dealii::Tensor<1,dim,real>>                &/*current_cell_rhs_aux*/,
+    dealii::LinearAlgebra::distributed::Vector<double>     &rhs,
+    std::array<dealii::LinearAlgebra::distributed::Vector<double>,dim> &/*rhs_aux*/,
+    const bool                                             /*compute_auxiliary_right_hand_side*/,
+    const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R)
+{
+    // Current reference element related to this physical cell
+    const int i_fele = cell->active_fe_index();
+    const int i_quad = i_fele;
+    const int i_mapp = 0;
+    const int i_fele_n = neighbor_cell->active_fe_index(), i_quad_n = i_fele_n, i_mapp_n = 0;
+
+    fe_values_collection_face_int.reinit (cell, iface, i_quad, i_mapp, i_fele);
+    fe_values_collection_face_ext.reinit (neighbor_cell, neighbor_iface, i_quad_n, i_mapp_n, i_fele_n);
+
+    //only need to compute fevalues for the weak form.
+    const dealii::FEFaceValues<dim,dim> &fe_values_face_int = fe_values_collection_face_int.get_present_fe_values();
+    const dealii::FEFaceValues<dim,dim> &fe_values_face_ext = fe_values_collection_face_ext.get_present_fe_values();
+    const dealii::Quadrature<dim-1> &used_face_quadrature = this->face_quadrature_collection[(i_quad_n > i_quad) ? i_quad_n : i_quad]; // Use larger quadrature order on the face
+     
+    std::pair<unsigned int, int> face_subface_int = std::make_pair(iface, -1);
+    std::pair<unsigned int, int> face_subface_ext = std::make_pair(neighbor_iface, -1);
+    const auto face_data_set_int = dealii::QProjector<dim>::DataSetDescriptor::face (
+                                                                                  dealii::ReferenceCell::get_hypercube(dim),
+                                                                                  iface,
+                                                                                  cell->face_orientation(iface),
+                                                                                  cell->face_flip(iface),
+                                                                                  cell->face_rotation(iface),
+                                                                                  used_face_quadrature.size());
+    const auto face_data_set_ext = dealii::QProjector<dim>::DataSetDescriptor::face (
+                                                                                  dealii::ReferenceCell::get_hypercube(dim),
+                                                                                  neighbor_iface,
+                                                                                  neighbor_cell->face_orientation(neighbor_iface),
+                                                                                  neighbor_cell->face_flip(neighbor_iface),
+                                                                                  neighbor_cell->face_rotation(neighbor_iface),
+                                                                                  used_face_quadrature.size());
+
+    assemble_face_term_derivatives (
+        cell,
+        current_cell_index,
+        neighbor_cell_index,
+        face_subface_int, face_subface_ext,
+        face_data_set_int,
+        face_data_set_ext,
+        fe_values_face_int, fe_values_face_ext,
+        penalty,
+        this->fe_collection[i_fele], this->fe_collection[i_fele_n],
+        used_face_quadrature,
+        current_metric_dofs_indices, neighbor_metric_dofs_indices,
+        current_dofs_indices, neighbor_dofs_indices,
+        current_cell_rhs, neighbor_cell_rhs,
+        compute_dRdW, compute_dRdX, compute_d2R);
+
+    // Add local contribution from neighbor cell to global vector
+    const unsigned int n_dofs_neigh_cell = this->fe_collection[neighbor_cell->active_fe_index()].n_dofs_per_cell();
+    for (unsigned int i=0; i<n_dofs_neigh_cell; ++i) {
+        rhs[neighbor_dofs_indices[i]] += neighbor_cell_rhs[i];
+    }
+}
+
+template <int dim, int nstate, typename real, typename MeshType>
+void DGWeak<dim,nstate,real,MeshType>::assemble_subface_term_and_build_operators(
+    typename dealii::DoFHandler<dim>::active_cell_iterator cell,
+    typename dealii::DoFHandler<dim>::active_cell_iterator neighbor_cell,
+    const dealii::types::global_dof_index                  current_cell_index,
+    const dealii::types::global_dof_index                  neighbor_cell_index,
+    const unsigned int                                     iface,
+    const unsigned int                                     neighbor_iface,
+    const unsigned int                                     neighbor_i_subface,
+    const real                                             penalty,
+    const std::vector<dealii::types::global_dof_index>     &current_dofs_indices,
+    const std::vector<dealii::types::global_dof_index>     &neighbor_dofs_indices,
+    const std::vector<dealii::types::global_dof_index>     &current_metric_dofs_indices,
+    const std::vector<dealii::types::global_dof_index>     &neighbor_metric_dofs_indices,
+    const unsigned int                                     /*poly_degree_int*/,
+    const unsigned int                                     /*poly_degree_ext*/,
+    const unsigned int                                     /*grid_degree_int*/,
+    const unsigned int                                     /*grid_degree_ext*/,
+    OPERATOR::basis_functions<dim,2*dim>                   &/*soln_basis_int*/,
+    OPERATOR::basis_functions<dim,2*dim>                   &/*soln_basis_ext*/,
+    OPERATOR::basis_functions<dim,2*dim>                   &/*flux_basis_int*/,
+    OPERATOR::basis_functions<dim,2*dim>                   &/*flux_basis_ext*/,
+    OPERATOR::local_basis_stiffness<dim,2*dim>             &/*flux_basis_stiffness*/,
+    OPERATOR::metric_operators<real,dim,2*dim>             &/*metric_oper_int*/,
+    OPERATOR::metric_operators<real,dim,2*dim>             &/*metric_oper_ext*/,
+    OPERATOR::mapping_shape_functions<dim,2*dim>           &/*mapping_basis*/,
+    std::array<std::vector<real>,dim>                      &/*mapping_support_points*/,
+    dealii::hp::FEFaceValues<dim,dim>                      &fe_values_collection_face_int,
+    dealii::hp::FESubfaceValues<dim,dim>                   &fe_values_collection_subface,
+    dealii::Vector<real>                                   &current_cell_rhs,
+    dealii::Vector<real>                                   &neighbor_cell_rhs,
+    std::vector<dealii::Tensor<1,dim,real>>                &/*current_cell_rhs_aux*/,
+    dealii::LinearAlgebra::distributed::Vector<double>     &rhs,
+    std::array<dealii::LinearAlgebra::distributed::Vector<double>,dim> &/*rhs_aux*/,
+    const bool                                             /*compute_auxiliary_right_hand_side*/,
+    const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R)
+{
+    // Current reference element related to this physical cell
+    const int i_fele = cell->active_fe_index();
+    const int i_quad = i_fele;
+    const int i_mapp = 0;
+    const int i_fele_n = neighbor_cell->active_fe_index(), i_quad_n = i_fele_n, i_mapp_n = 0;
+
+    fe_values_collection_face_int.reinit (cell, iface, i_quad, i_mapp, i_fele);
+    fe_values_collection_subface.reinit (neighbor_cell, neighbor_iface, neighbor_i_subface, i_quad_n, i_mapp_n, i_fele_n);
+
+    const dealii::FEFaceValues<dim,dim> &fe_values_face_int = fe_values_collection_face_int.get_present_fe_values();
+    const dealii::FESubfaceValues<dim,dim> &fe_values_face_ext = fe_values_collection_subface.get_present_fe_values();
+    const dealii::Quadrature<dim-1> &used_face_quadrature = this->face_quadrature_collection[(i_quad_n > i_quad) ? i_quad_n : i_quad]; // Use larger quadrature order on the face
+    std::pair<unsigned int, int> face_subface_int = std::make_pair(iface, -1);
+    std::pair<unsigned int, int> face_subface_ext = std::make_pair(neighbor_iface, (int)neighbor_i_subface);
+     
+    const auto face_data_set_int = dealii::QProjector<dim>::DataSetDescriptor::face( 
+                                                                                     dealii::ReferenceCell::get_hypercube(dim),
+                                                                                     iface,
+                                                                                     cell->face_orientation(iface),
+                                                                                     cell->face_flip(iface),
+                                                                                     cell->face_rotation(iface),
+                                                                                     used_face_quadrature.size());
+    const auto face_data_set_ext = dealii::QProjector<dim>::DataSetDescriptor::subface (
+                                                                                        dealii::ReferenceCell::get_hypercube(dim),
+                                                                                        neighbor_iface,
+                                                                                        neighbor_i_subface,
+                                                                                        neighbor_cell->face_orientation(neighbor_iface),
+                                                                                        neighbor_cell->face_flip(neighbor_iface),
+                                                                                        neighbor_cell->face_rotation(neighbor_iface),
+                                                                                        used_face_quadrature.size(),
+                                                                                neighbor_cell->subface_case(neighbor_iface));
+
+    assemble_face_term_derivatives (
+        cell,
+        current_cell_index,
+        neighbor_cell_index,
+        face_subface_int, face_subface_ext,
+        face_data_set_int,
+        face_data_set_ext,
+        fe_values_face_int, fe_values_face_ext,
+        penalty,
+        this->fe_collection[i_fele], this->fe_collection[i_fele_n],
+        used_face_quadrature,
+        current_metric_dofs_indices, neighbor_metric_dofs_indices,
+        current_dofs_indices, neighbor_dofs_indices,
+        current_cell_rhs, neighbor_cell_rhs,
+        compute_dRdW, compute_dRdX, compute_d2R);
+
+    // Add local contribution from neighbor cell to global vector
+    const unsigned int n_dofs_neigh_cell = this->fe_collection[neighbor_cell->active_fe_index()].n_dofs_per_cell();
+    for (unsigned int i=0; i<n_dofs_neigh_cell; ++i) {
+        rhs[neighbor_dofs_indices[i]] += neighbor_cell_rhs[i];
+    }
+
+}
+
+template <int dim, int nstate, typename real, typename MeshType>
+void DGWeak<dim,nstate,real,MeshType>::assemble_auxiliary_residual ()
+{
+    //Do Nothing.
+}
+
 // using default MeshType = Triangulation
 // 1D: dealii::Triangulation<dim>;
-// OW: dealii::parallel::distributed::Triangulation<dim>;
+// Otherwise: dealii::parallel::distributed::Triangulation<dim>;
 template class DGWeak <PHILIP_DIM, 1, double, dealii::Triangulation<PHILIP_DIM>>;
 template class DGWeak <PHILIP_DIM, 2, double, dealii::Triangulation<PHILIP_DIM>>;
 template class DGWeak <PHILIP_DIM, 3, double, dealii::Triangulation<PHILIP_DIM>>;
@@ -4275,4 +4561,3 @@ template class DGWeak <PHILIP_DIM, 5, double, dealii::parallel::distributed::Tri
 #endif
 
 } // PHiLiP namespace
-

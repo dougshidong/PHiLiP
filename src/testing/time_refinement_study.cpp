@@ -39,7 +39,7 @@ double TimeRefinementStudy<dim,nstate>::calculate_L2_error_at_final_time_wrt_fun
     exact_solution_function = ExactSolutionFactory<dim,nstate,double>::create_ExactSolutionFunction(parameters.flow_solver_param, final_time);
     int poly_degree = parameters.grid_refinement_study_param.poly_degree;
     dealii::Vector<double> difference_per_cell(dg->solution.size());
-    
+
     dealii::VectorTools::integrate_difference(dg->dof_handler,    
                                               dg->solution,
                                               *exact_solution_function,
@@ -50,6 +50,7 @@ double TimeRefinementStudy<dim,nstate>::calculate_L2_error_at_final_time_wrt_fun
     double L2_error = dealii::VectorTools::compute_global_error(*dg->triangulation,
                                                               difference_per_cell,
                                                               dealii::VectorTools::L2_norm);
+
     return L2_error;    
 
 }

@@ -13,6 +13,7 @@ public:
 
     double prandtl_number; ///< Prandtl number
     double reynolds_number_inf; ///< Farfield Reynolds number
+    double temperature_inf; ///< Farfield temperature in degree Kelvin [K]
     double nondimensionalized_isothermal_wall_temperature; ///< Nondimensionalized isothermal wall temperature
 
     /// Types of thermal boundary conditions available.

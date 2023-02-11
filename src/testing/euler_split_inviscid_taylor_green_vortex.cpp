@@ -1,253 +1,380 @@
 #include <fstream>
 #include "dg/dg_factory.hpp"
 #include "euler_split_inviscid_taylor_green_vortex.h"
+#include "physics/initial_conditions/set_initial_condition.h"
+#include "physics/initial_conditions/initial_condition_function.h"
+#include "mesh/grids/nonsymmetric_curved_periodic_grid.hpp"
 
 namespace PHiLiP {
 namespace Tests {
 
 template <int dim, int nstate>
 EulerTaylorGreen<dim, nstate>::EulerTaylorGreen(const Parameters::AllParameters *const parameters_input)
-:
-TestsBase::TestsBase(parameters_input)
+    : TestsBase::TestsBase(parameters_input)
 {}
+template<int dim, int nstate>
+std::array<double,2> EulerTaylorGreen<dim, nstate>::compute_change_in_entropy(std::shared_ptr < DGBase<dim, double> > &dg, unsigned int poly_degree) const
+{
+    const unsigned int n_dofs_cell = dg->fe_collection[poly_degree].dofs_per_cell;
+    const unsigned int n_quad_pts = dg->volume_quadrature_collection[poly_degree].size();
+    const unsigned int n_shape_fns = n_dofs_cell / nstate;
+    //We have to project the vector of entropy variables because the mass matrix has an interpolation from solution nodes built into it.
+    OPERATOR::vol_projection_operator<dim,2*dim> vol_projection(1, poly_degree, dg->max_grid_degree);
+    vol_projection.build_1D_volume_operator(dg->oneD_fe_collection_1state[poly_degree], dg->oneD_quadrature_collection[poly_degree]);
 
-//template <int dim, int nstate>
-//double EulerTaylorGreen<dim,nstate>::compute_quadrature_kinetic_energy(std::array<double,nstate> soln_at_q) const
-//{
-// const double density = soln_at_q[0];
-//
-// const double quad_kin_energ =  0.5*(soln_at_q[1]*soln_at_q[1] +
-//          soln_at_q[2]*soln_at_q[2] +
-//          soln_at_q[3]*soln_at_q[3] )/density;
-// return quad_kin_energ;
-//}
+    OPERATOR::basis_functions<dim,2*dim> soln_basis(1, poly_degree, dg->max_grid_degree);
+    soln_basis.build_1D_volume_operator(dg->oneD_fe_collection_1state[poly_degree], dg->oneD_quadrature_collection[poly_degree]);
+
+    dealii::LinearAlgebra::distributed::Vector<double> entropy_var_hat_global(dg->right_hand_side);
+    dealii::LinearAlgebra::distributed::Vector<double> energy_var_hat_global(dg->right_hand_side);
+    std::vector<dealii::types::global_dof_index> dofs_indices (n_dofs_cell);
+
+    std::shared_ptr < Physics::Euler<dim, nstate, double > > euler_double  = std::dynamic_pointer_cast<Physics::Euler<dim,dim+2,double>>(PHiLiP::Physics::PhysicsFactory<dim,nstate,double>::create_Physics(dg->all_parameters));
+
+    for (auto cell = dg->dof_handler.begin_active(); cell!=dg->dof_handler.end(); ++cell) {
+        if (!cell->is_locally_owned()) continue;
+        cell->get_dof_indices (dofs_indices);
+
+        std::array<std::vector<double>,nstate> soln_coeff;
+        for(unsigned int idof=0; idof<n_dofs_cell; idof++){
+            const unsigned int istate = dg->fe_collection[poly_degree].system_to_component_index(idof).first;
+            const unsigned int ishape = dg->fe_collection[poly_degree].system_to_component_index(idof).second;
+            if(ishape == 0)
+                soln_coeff[istate].resize(n_shape_fns);
+            soln_coeff[istate][ishape] = dg->solution(dofs_indices[idof]);
+        }
+
+        std::array<std::vector<double>,nstate> soln_at_q;
+        for(int istate=0; istate<nstate; istate++){
+            soln_at_q[istate].resize(n_quad_pts);
+            soln_basis.matrix_vector_mult_1D(soln_coeff[istate], soln_at_q[istate],
+                                             soln_basis.oneD_vol_operator);
+        }
+        std::array<std::vector<double>,nstate> entropy_var_at_q;
+        std::array<std::vector<double>,nstate> energy_var_at_q;
+        for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
+            std::array<double,nstate> soln_state;
+            for(int istate=0; istate<nstate; istate++){
+                soln_state[istate] = soln_at_q[istate][iquad];
+            }
+            std::array<double,nstate> entropy_var_state = euler_double->compute_entropy_variables(soln_state);
+            std::array<double,nstate> kin_energy_state = euler_double->compute_kinetic_energy_variables(soln_state);
+            for(int istate=0; istate<nstate; istate++){
+                if(iquad==0){
+                    entropy_var_at_q[istate].resize(n_quad_pts);
+                    energy_var_at_q[istate].resize(n_quad_pts);
+                }
+                energy_var_at_q[istate][iquad] = kin_energy_state[istate];
+                entropy_var_at_q[istate][iquad] = entropy_var_state[istate];
+            }
+        }
+        for(int istate=0; istate<nstate; istate++){
+            //Projected vector of entropy variables.
+            std::vector<double> entropy_var_hat(n_shape_fns);
+            vol_projection.matrix_vector_mult_1D(entropy_var_at_q[istate], entropy_var_hat,
+                                                 vol_projection.oneD_vol_operator);
+            std::vector<double> energy_var_hat(n_shape_fns);
+            vol_projection.matrix_vector_mult_1D(energy_var_at_q[istate], energy_var_hat,
+                                                 vol_projection.oneD_vol_operator);
+
+            for(unsigned int ishape=0; ishape<n_shape_fns; ishape++){
+                const unsigned int idof = istate * n_shape_fns + ishape;
+                entropy_var_hat_global[dofs_indices[idof]] = entropy_var_hat[ishape];
+                energy_var_hat_global[dofs_indices[idof]] = energy_var_hat[ishape];
+            }
+        }
+    }
+
+    dg->assemble_residual();
+    std::array<double,2> change_entropy_and_energy;
+    change_entropy_and_energy[0] = entropy_var_hat_global * dg->right_hand_side;
+    change_entropy_and_energy[1] = energy_var_hat_global * dg->right_hand_side;
+    return change_entropy_and_energy;
+}
+
+template<int dim, int nstate>
+double EulerTaylorGreen<dim, nstate>::compute_entropy(std::shared_ptr < DGBase<dim, double> > &dg, unsigned int poly_degree) const
+{
+    //returns the entropy evaluated in the broken Sobolev-norm rather than L2-norm
+    dealii::LinearAlgebra::distributed::Vector<double> mass_matrix_times_solution(dg->right_hand_side);
+    if(dg->all_parameters->use_inverse_mass_on_the_fly)
+        dg->apply_global_mass_matrix(dg->solution,mass_matrix_times_solution);
+    else
+        dg->global_mass_matrix.vmult( mass_matrix_times_solution, dg->solution);
+
+    const unsigned int n_dofs_cell = dg->fe_collection[poly_degree].dofs_per_cell;
+    const unsigned int n_quad_pts = dg->volume_quadrature_collection[poly_degree].size();
+    const unsigned int n_shape_fns = n_dofs_cell / nstate;
+    //We have to project the vector of entropy variables because the mass matrix has an interpolation from solution nodes built into it.
+    OPERATOR::vol_projection_operator<dim,2*dim> vol_projection(1, poly_degree, dg->max_grid_degree);
+    vol_projection.build_1D_volume_operator(dg->oneD_fe_collection_1state[poly_degree], dg->oneD_quadrature_collection[poly_degree]);
+
+    OPERATOR::basis_functions<dim,2*dim> soln_basis(1, poly_degree, dg->max_grid_degree);
+    soln_basis.build_1D_volume_operator(dg->oneD_fe_collection_1state[poly_degree], dg->oneD_quadrature_collection[poly_degree]);
+
+    dealii::LinearAlgebra::distributed::Vector<double> entropy_var_hat_global(dg->right_hand_side);
+    std::vector<dealii::types::global_dof_index> dofs_indices (n_dofs_cell);
+
+    std::shared_ptr < Physics::PhysicsBase<dim, nstate, double > > pde_physics_double  = PHiLiP::Physics::PhysicsFactory<dim,nstate,double>::create_Physics(dg->all_parameters);
+
+    for (auto cell = dg->dof_handler.begin_active(); cell!=dg->dof_handler.end(); ++cell) {
+        if (!cell->is_locally_owned()) continue;
+        cell->get_dof_indices (dofs_indices);
+
+        std::array<std::vector<double>,nstate> soln_coeff;
+        for(unsigned int idof=0; idof<n_dofs_cell; idof++){
+            const unsigned int istate = dg->fe_collection[poly_degree].system_to_component_index(idof).first;
+            const unsigned int ishape = dg->fe_collection[poly_degree].system_to_component_index(idof).second;
+            if(ishape == 0)
+                soln_coeff[istate].resize(n_shape_fns);
+            soln_coeff[istate][ishape] = dg->solution(dofs_indices[idof]);
+        }
+
+        std::array<std::vector<double>,nstate> soln_at_q;
+        for(int istate=0; istate<nstate; istate++){
+            soln_at_q[istate].resize(n_quad_pts);
+            soln_basis.matrix_vector_mult_1D(soln_coeff[istate], soln_at_q[istate],
+                                             soln_basis.oneD_vol_operator);
+        }
+        std::array<std::vector<double>,nstate> entropy_var_at_q;
+        for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
+            std::array<double,nstate> soln_state;
+            for(int istate=0; istate<nstate; istate++){
+                soln_state[istate] = soln_at_q[istate][iquad];
+            }
+            std::array<double,nstate> entropy_var_state = pde_physics_double->compute_entropy_variables(soln_state);
+            for(int istate=0; istate<nstate; istate++){
+                if(iquad==0)
+                    entropy_var_at_q[istate].resize(n_quad_pts);
+                entropy_var_at_q[istate][iquad] = entropy_var_state[istate];
+            }
+        }
+        for(int istate=0; istate<nstate; istate++){
+            //Projected vector of entropy variables.
+            std::vector<double> entropy_var_hat(n_shape_fns);
+            vol_projection.matrix_vector_mult_1D(entropy_var_at_q[istate], entropy_var_hat,
+                                                 vol_projection.oneD_vol_operator);
+
+            for(unsigned int ishape=0; ishape<n_shape_fns; ishape++){
+                const unsigned int idof = istate * n_shape_fns + ishape;
+                entropy_var_hat_global[dofs_indices[idof]] = entropy_var_hat[ishape];
+            }
+        }
+    }
+
+    double entropy = entropy_var_hat_global * mass_matrix_times_solution;
+    return entropy;
+}
 
 template<int dim, int nstate>
 double EulerTaylorGreen<dim, nstate>::compute_kinetic_energy(std::shared_ptr < DGBase<dim, double> > &dg, unsigned int poly_degree) const
 {
- // Overintegrate the error to make sure there is not integration error in the error estimate
- int overintegrate = 10 ;//10;
- dealii::QGauss<dim> quad_extra(dg->max_degree+1+overintegrate);
-             dealii::FEValues<dim,dim> fe_values_extra(dealii::MappingQ<dim>(dg->max_degree+overintegrate), dg->fe_collection[poly_degree], quad_extra,
-             dealii::update_values | dealii::update_JxW_values | dealii::update_quadrature_points);
-// dealii::QGauss<dim> quad_extra(dg->fe_system.tensor_degree()+overintegrate);
-// dealii::FEValues<dim,dim> fe_values_extra(dg->mapping, dg->fe_system, quad_extra,
-//       dealii::update_values | dealii::update_JxW_values | dealii::update_quadrature_points);
- const unsigned int n_quad_pts = fe_values_extra.n_quadrature_points;
- std::array<double,nstate> soln_at_q;
+    //returns the energy in the L2-norm (physically relevant)
+    int overintegrate = 10 ;
+    dealii::QGauss<dim> quad_extra(dg->max_degree+1+overintegrate);
+    const dealii::Mapping<dim> &mapping = (*(dg->high_order_grid->mapping_fe_field));
+    dealii::FEValues<dim,dim> fe_values_extra(mapping, dg->fe_collection[poly_degree], quad_extra, 
+                    dealii::update_values | dealii::update_JxW_values | dealii::update_quadrature_points);
+    const unsigned int n_quad_pts = fe_values_extra.n_quadrature_points;
+    std::array<double,nstate> soln_at_q;
 
- double total_kinetic_energy = 0;
+    double total_kinetic_energy = 0;
 
- // Integrate solution error and output error
- typename dealii::DoFHandler<dim>::active_cell_iterator
- cell = dg->dof_handler.begin_active(),
- endc = dg->dof_handler.end();
+    std::vector<dealii::types::global_dof_index> dofs_indices (fe_values_extra.dofs_per_cell);
 
- std::vector<dealii::types::global_dof_index> dofs_indices (fe_values_extra.dofs_per_cell);
+    for (auto cell = dg->dof_handler.begin_active(); cell!=dg->dof_handler.end(); ++cell) {
+        if (!cell->is_locally_owned()) continue;
 
-             //const double gam = euler_physics_double.gam;
-             //const double mach_inf = euler_physics_double.mach_inf;
-             //const double tot_temperature_inf = 1.0;
-             //const double tot_pressure_inf = 1.0;
-             //// Assuming a tank at rest, velocity = 0, therefore, static pressure and temperature are same as total
-             //const double density_inf = gam*tot_pressure_inf/tot_temperature_inf * mach_inf * mach_inf;
-             //const double entropy_inf = tot_pressure_inf*pow(density_inf,-gam);
- //const double entropy_inf = euler_physics_double.entropy_inf;
+        fe_values_extra.reinit (cell);
+        cell->get_dof_indices (dofs_indices);
 
- for (; cell!=endc; ++cell) {
-
-  fe_values_extra.reinit (cell);
-  //std::cout << "sitting on cell " << cell->index() << std::endl;
-     cell->get_dof_indices (dofs_indices);
+        //Please see Eq. 3.21 in Gassner, Gregor J., Andrew R. Winters, and David A. Kopriva. "Split form nodal discontinuous Galerkin schemes with summation-by-parts property for the compressible Euler equations." Journal of Computational Physics 327 (2016): 39-66.
         for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
 
-         std::fill(soln_at_q.begin(), soln_at_q.end(), 0);
-         for (unsigned int idof=0; idof<fe_values_extra.dofs_per_cell; ++idof) {
-          const unsigned int istate = fe_values_extra.get_fe().system_to_component_index(idof).first;
-             soln_at_q[istate] += dg->solution[dofs_indices[idof]] * fe_values_extra.shape_value_component(idof, iquad, istate);
-         }
+            std::fill(soln_at_q.begin(), soln_at_q.end(), 0);
+            for (unsigned int idof=0; idof<fe_values_extra.dofs_per_cell; ++idof) {
+             const unsigned int istate = fe_values_extra.get_fe().system_to_component_index(idof).first;
+                soln_at_q[istate] += dg->solution[dofs_indices[idof]] * fe_values_extra.shape_value_component(idof, iquad, istate);
+            }
 
-         const double density = soln_at_q[0];
+            const double density = soln_at_q[0];
 
-         const double quadrature_kinetic_energy =  0.5*(soln_at_q[1]*soln_at_q[1] +
-                   soln_at_q[2]*soln_at_q[2] +
-                   soln_at_q[3]*soln_at_q[3] )/density;
+            const double quadrature_kinetic_energy =  0.5*(soln_at_q[1]*soln_at_q[1]
+                                                    + soln_at_q[2]*soln_at_q[2]
+                                                    + soln_at_q[3]*soln_at_q[3])/density;
 
-         //const double quadrature_kinetic_energy = compute_quadrature_kinetic_energy(soln_at_q);
-
-         total_kinetic_energy += quadrature_kinetic_energy * fe_values_extra.JxW(iquad);
+            total_kinetic_energy += quadrature_kinetic_energy * fe_values_extra.JxW(iquad);
         }
- }
- return total_kinetic_energy;
+    }
+    return total_kinetic_energy;
+}
+
+template<int dim, int nstate>
+double EulerTaylorGreen<dim, nstate>::get_timestep(std::shared_ptr < DGBase<dim, double> > &dg, unsigned int poly_degree, const double delta_x) const
+{
+    //get local CFL
+    const unsigned int n_dofs_cell = nstate*pow(poly_degree+1,dim);
+    const unsigned int n_quad_pts = pow(poly_degree+1,dim);
+    std::vector<dealii::types::global_dof_index> dofs_indices1 (n_dofs_cell);
+
+    double cfl_min = 1e100;
+    std::shared_ptr < Physics::PhysicsBase<dim, nstate, double > > pde_physics_double  = PHiLiP::Physics::PhysicsFactory<dim,nstate,double>::create_Physics(dg->all_parameters);
+    for (auto cell = dg->dof_handler.begin_active(); cell!=dg->dof_handler.end(); ++cell) {
+        if (!cell->is_locally_owned()) continue;
+
+        cell->get_dof_indices (dofs_indices1);
+        std::vector< std::array<double,nstate>> soln_at_q(n_quad_pts);
+        for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
+            for (int istate=0; istate<nstate; istate++) {
+                soln_at_q[iquad][istate]      = 0;
+            }
+        }
+        for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
+          dealii::Point<dim> qpoint = dg->volume_quadrature_collection[poly_degree].point(iquad);
+            for(unsigned int idof=0; idof<n_dofs_cell; idof++){
+                const unsigned int istate = dg->fe_collection[poly_degree].system_to_component_index(idof).first;
+                soln_at_q[iquad][istate] += dg->solution[dofs_indices1[idof]] * dg->fe_collection[poly_degree].shape_value_component(idof, qpoint, istate);
+            }
+        }
+
+        std::vector< double > convective_eigenvalues(n_quad_pts);
+        for (unsigned int isol = 0; isol < n_quad_pts; ++isol) {
+            convective_eigenvalues[isol] = pde_physics_double->max_convective_eigenvalue (soln_at_q[isol]);
+        }
+        const double max_eig = *(std::max_element(convective_eigenvalues.begin(), convective_eigenvalues.end()));
+
+        const double max_eig_mpi = dealii::Utilities::MPI::max(max_eig, mpi_communicator);
+        double cfl = 0.1 * delta_x/max_eig_mpi;
+        if(cfl < cfl_min)
+            cfl_min = cfl;
+
+    }
+    return cfl_min;
 }
 
 template <int dim, int nstate>
 int EulerTaylorGreen<dim, nstate>::run_test() const
 {
- //dealii::Triangulation<dim> grid;
+    // using Triangulation = dealii::parallel::distributed::Triangulation<dim>;
+    // std::shared_ptr<Triangulation> grid = std::make_shared<Triangulation> (mpi_communicator);
     using Triangulation = dealii::parallel::distributed::Triangulation<dim>;
- std::shared_ptr<Triangulation> grid = std::make_shared<Triangulation> (mpi_communicator);
+    std::shared_ptr<Triangulation> grid = std::make_shared<Triangulation>(
+        MPI_COMM_WORLD,
+        typename dealii::Triangulation<dim>::MeshSmoothing(
+            dealii::Triangulation<dim>::smoothing_on_refinement |
+            dealii::Triangulation<dim>::smoothing_on_coarsening));
 
- double left = 0.0;
- double right = 2 * dealii::numbers::PI;
- const bool colorize = true;
- int n_refinements = 2;
- unsigned int poly_degree = 1;
- dealii::GridGenerator::hyper_cube(*grid, left, right, colorize);
+    using real = double;
 
- std::vector<dealii::GridTools::PeriodicFacePair<typename dealii::Triangulation<PHILIP_DIM>::cell_iterator> > matched_pairs;
- dealii::GridTools::collect_periodic_faces(*grid,0,1,0,matched_pairs);
- dealii::GridTools::collect_periodic_faces(*grid,2,3,1,matched_pairs);
- dealii::GridTools::collect_periodic_faces(*grid,4,5,2,matched_pairs);
- grid->add_periodicity(matched_pairs);
+    PHiLiP::Parameters::AllParameters all_parameters_new = *all_parameters;  
+    double left = 0.0;
+    double right = 2 * dealii::numbers::PI;
+    const int n_refinements = 2;
+    unsigned int poly_degree = 3;
 
- grid->refine_global(n_refinements);
+    // set the warped grid
+    const unsigned int grid_degree = poly_degree;
+    PHiLiP::Grids::nonsymmetric_curved_grid<dim,Triangulation>(*grid, n_refinements);
 
- std::shared_ptr < PHiLiP::DGBase<dim, double> > dg = PHiLiP::DGFactory<dim,double>::create_discontinuous_galerkin(all_parameters, poly_degree, grid);
- dg->allocate_system ();
+//    const unsigned int grid_degree = 1;
+//    const bool colorize = true;
+//    dealii::GridGenerator::hyper_cube(*grid, left, right, colorize);
+//    std::vector<dealii::GridTools::PeriodicFacePair<typename dealii::Triangulation<PHILIP_DIM>::cell_iterator> > matched_pairs;
+//    dealii::GridTools::collect_periodic_faces(*grid,0,1,0,matched_pairs);
+//    dealii::GridTools::collect_periodic_faces(*grid,2,3,1,matched_pairs);
+//    dealii::GridTools::collect_periodic_faces(*grid,4,5,2,matched_pairs);
+//    grid->add_periodicity(matched_pairs);
+//    grid->refine_global(n_refinements);
 
- std::cout << "Implement initial conditions" << std::endl;
- dealii::FunctionParser<PHILIP_DIM> initial_condition(5);
- std::string variables = "x,y,z";
- std::map<std::string,double> constants;
- constants["pi"] = dealii::numbers::PI;
- std::vector<std::string> expressions(5);
- expressions[0] = "1";
- expressions[1] = "sin(x)*cos(y)*cos(z)";
- expressions[2] = "-cos(x)*sin(y)*cos(z)";
- expressions[3] = "0";
- expressions[4] = "250.0/1.4 + 2.5/16.0 * (cos(2.0*x)*cos(2.0*z) + 2.0*cos(2.0*y) + 2.0*cos(2.0*x) + cos(2.0*y)*cos(2.0*z)) + 0.5 * pow(cos(z),2.0) * (pow(cos(x),2.0) * pow(sin(y),2.0) +pow(sin(x),2.0) * pow(cos(y),2.0))";
- initial_condition.initialize(variables,
-                              expressions,
-                              constants);
-// dealii::Point<3> point (0.0,1.0,1.0);
-// dealii::Vector<double> result(5);
-// initial_condition.vector_value(point,result);
-// dealii::deallog << result;
+    // Create DG
+    std::shared_ptr < PHiLiP::DGBase<dim, double> > dg = PHiLiP::DGFactory<dim,double>::create_discontinuous_galerkin(&all_parameters_new, poly_degree, poly_degree, grid_degree, grid);
+    dg->allocate_system ();
 
- std::cout << "initial condition successfully implemented" << std::endl;
- dealii::VectorTools::interpolate(dg->dof_handler,initial_condition,dg->solution);
- std::cout << "initial condition interpolated to DG solution" << std::endl;
- // Create ODE solver using the factory and providing the DG object
+    std::cout << "Implement initial conditions" << std::endl;
+    std::shared_ptr< InitialConditionFunction<dim,nstate,double> > initial_condition_function = 
+                InitialConditionFactory<dim,nstate,double>::create_InitialConditionFunction(&all_parameters_new);
+    SetInitialCondition<dim,nstate,double>::set_initial_condition(initial_condition_function, dg, &all_parameters_new);
 
- std::cout << "creating ODE solver" << std::endl;
- std::shared_ptr<ODE::ODESolverBase<dim, double>> ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
- std::cout << "ODE solver successfully created" << std::endl;
- double finalTime = 14.;
- double dt = all_parameters->ode_solver_param.initial_time_step;
+    const unsigned int n_global_active_cells2 = grid->n_global_active_cells();
+    double delta_x = (right-left)/n_global_active_cells2/(poly_degree+1.0);
+    pcout<<" delta x "<<delta_x<<std::endl;
 
- //double dt = all_parameters->ode_solver_param.initial_time_step;
- //need to call ode_solver before calculating energy because mass matrix isn't allocated yet.
- //ode_solver->advance_solution_time(0.000001);
- //double initial_energy = compute_energy(dg);
+    all_parameters_new.ode_solver_param.initial_time_step =  get_timestep(dg,poly_degree,delta_x);
+     
+    std::cout << "creating ODE solver" << std::endl;
+    std::shared_ptr<ODE::ODESolverBase<dim, double>> ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
+    std::cout << "ODE solver successfully created" << std::endl;
+    double finalTime = 14.;
+    finalTime = 0.4;
+    // finalTime = 0.1;//to speed things up locally in tests, doesn't need full 14seconds to verify.
+    double dt = all_parameters_new.ode_solver_param.initial_time_step;
+    // double dt = all_parameters_new.ode_solver_param.initial_time_step / 10.0;
+//    finalTime = 14.0;
 
- std::cout << "preparing to advance solution in time" << std::endl;
-// //(void) finalTime;
-// std::cout << "kinetic energy is" << compute_kinetic_energy(dg) <<std::endl;
-// ode_solver->advance_solution_time(finalTime);
-// //std::cout << "kinetic energy is" << compute_kinetic_energy(dg) <<std::endl;
-// std::cout << "kinetic energy is" << compute_kinetic_energy(dg) <<std::endl;
+    std::cout << " number dofs " << dg->dof_handler.n_dofs()<<std::endl;
+    std::cout << "preparing to advance solution in time" << std::endl;
 
+    // Currently the only way to calculate energy at each time-step is to advance solution by dt instead of finaltime
+    // this causes some issues with outputs (only one file is output, which is overwritten at each time step)
+    // also the ode solver output doesn't make sense (says "iteration 1 out of 1")
+    // but it works. I'll keep it for now and need to modify the output functions later to account for this.
+    double initialcond_energy = compute_kinetic_energy(dg, poly_degree);
+    double initialcond_energy_mpi = (dealii::Utilities::MPI::sum(initialcond_energy, mpi_communicator));
+    std::cout << std::setprecision(16) << std::fixed;
+    pcout << "Energy for initial condition " << initialcond_energy_mpi/(8*pow(dealii::numbers::PI,3)) << std::endl;
 
- //currently the only way to calculate energy at each time-step is to advance solution by dt instead of finaltime
- //this causes some issues with outputs (only one file is output, which is overwritten at each time step)
- //also the ode solver output doesn't make sense (says "iteration 1 out of 1")
- //but it works. I'll keep it for now and need to modify the output functions later to account for this.
+    pcout << "Energy at time " << 0 << " is " << compute_kinetic_energy(dg, poly_degree) << std::endl;
+    ode_solver->current_iteration = 0;
+    ode_solver->advance_solution_time(dt/10.0);
+    double initial_energy = compute_kinetic_energy(dg, poly_degree);
+    double initial_entropy = compute_entropy(dg, poly_degree);
+    pcout<<"Initial MK Entropy "<<initial_entropy<<std::endl;
+    std::array<double,2> initial_change_entropy = compute_change_in_entropy(dg, poly_degree);
+    pcout<<"Initial change in Entropy "<<initial_change_entropy[0]<<std::endl;
+    pcout<<"Initial change in kinetic Energy "<<initial_change_entropy[1]<<std::endl;
 
- std::ofstream myfile ("kinetic_energy_plot.gpl" , std::ios::trunc);
+    std::cout << std::setprecision(16) << std::fixed;
+    pcout << "Energy at one timestep is " << initial_energy/(8*pow(dealii::numbers::PI,3)) << std::endl;
+    // std::ofstream myfile ("kinetic_energy_3D_TGV_cdg_curv_grid_4x4.gpl" , std::ios::trunc);
+    std::ofstream myfile (all_parameters_new.energy_file + ".gpl"  , std::ios::trunc);
 
- for (int i = 0; i < std::ceil(finalTime/dt); ++ i)
- {
-  ode_solver->advance_solution_time(dt);
-  double current_energy = compute_kinetic_energy(dg,poly_degree);
-  std::cout << "Energy at time " << i * dt << " is " << current_energy << std::endl;
-  myfile << i * dt << " " << current_energy << std::endl;
+    for (int i = 0; i < std::ceil(finalTime/dt); ++ i) {
+        ode_solver->advance_solution_time(dt);
+        double current_energy = compute_kinetic_energy(dg,poly_degree);
+        std::cout << std::setprecision(16) << std::fixed;
+        pcout << "Energy at time " << i * dt << " is " << current_energy / initial_energy << std::endl;
+        pcout << "Actual Energy Divided by volume at time " << i * dt << " is " << current_energy/(8*pow(dealii::numbers::PI,3)) << std::endl;
+        if (current_energy - initial_energy >= 1.00)
+        {
+          pcout << " Energy was not monotonically decreasing" << std::endl;
+          return 1;
+        }
+        double current_entropy = compute_entropy(dg, poly_degree);
+        std::cout << std::setprecision(16) << std::fixed;
+        pcout << "M plus K norm Entropy at time " << i * dt << " is " << current_entropy / initial_entropy<< std::endl;
+        myfile << i * dt << " " << std::fixed << std::setprecision(16) << current_entropy / initial_entropy<< std::endl;
 
- }
+        std::array<double,2> current_change_entropy = compute_change_in_entropy(dg, poly_degree);
+        std::cout << std::setprecision(16) << std::fixed;
+        pcout << "M plus K norm Change in Entropy at time " << i * dt << " is " << current_change_entropy[0]<< std::endl;
+        pcout << "M plus K norm Change in Kinetic Energy at time " << i * dt << " is " << current_change_entropy[1]<< std::endl;
+        if(abs(current_change_entropy[0]) > 1e-12 && (dg->all_parameters->two_point_num_flux_type == Parameters::AllParameters::TwoPointNumericalFlux::IR || dg->all_parameters->two_point_num_flux_type == Parameters::AllParameters::TwoPointNumericalFlux::CH || dg->all_parameters->two_point_num_flux_type == Parameters::AllParameters::TwoPointNumericalFlux::Ra)){
+          pcout << " Entropy was not monotonically decreasing" << std::endl;
+          return 1;
+        }
+        myfile << i * dt << " " << std::fixed << std::setprecision(16) << current_change_entropy[0]<< std::endl;
+        myfile << i * dt << " " << std::fixed << std::setprecision(16) << current_change_entropy[1]<< std::endl;
+        all_parameters_new.ode_solver_param.initial_time_step =  get_timestep(dg,poly_degree, delta_x);
+    }
 
- myfile.close();
+    myfile.close();
 
-// ode_solver->advance_solution_time(finalTime);
-// (void) dt;
- return 0; //need to change
+    return 0;
 }
-
-//int main (int argc, char * argv[])
-//{
-// //parse parameters first
-// feenableexcept(FE_INVALID | FE_OVERFLOW); // catch nan
-// dealii::deallog.depth_console(99);
-//  dealii::Utilities::MPI::MPI_InitFinalize mpi_initialization(argc, argv, 1);
-//  const int n_mpi = dealii::Utilities::MPI::n_mpi_processes(MPI_COMM_WORLD);
-//  const int mpi_rank = dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD);
-//  dealii::ConditionalOStream pcout(std::cout, mpi_rank==0);
-//  pcout << "Starting program with " << n_mpi << " processors..." << std::endl;
-//  if ((PHILIP_DIM==1) && !(n_mpi==1)) {
-//   std::cout << "********************************************************" << std::endl;
-//   std::cout << "Can't use mpirun -np X, where X>1, for 1D." << std::endl
-//       << "Currently using " << n_mpi << " processors." << std::endl
-//       << "Aborting..." << std::endl;
-//   std::cout << "********************************************************" << std::endl;
-//   std::abort();
-//  }
-// int test_error = 1;
-// try
-// {
-//        // Declare possible inputs
-//        dealii::ParameterHandler parameter_handler;
-//        Parameters::AllParameters::declare_parameters (parameter_handler);
-//        Parameters::parse_command_line (argc, argv, parameter_handler);
-//
-//        // Read inputs from parameter file and set those values in AllParameters object
-//        Parameters::AllParameters all_parameters;
-//        std::cout << "Reading input..." << std::endl;
-//        all_parameters.parse_parameters (parameter_handler);
-//
-//        AssertDimension(all_parameters.dimension, PHILIP_DIM);
-//
-//        std::cout << "Starting program..." << std::endl;
-//
-//  using namespace PHiLiP;
-//  //const Parameters::AllParameters parameters_input;
-//  EulerTaylorGreen<PHILIP_DIM, PHILIP_DIM+2> euler_test(&all_parameters);
-//  int i = euler_test.run_test();
-//  return i;
-// }
-// catch (std::exception &exc)
-// {
-//  std::cerr << std::endl << std::endl
-//      << "----------------------------------------------------"
-//      << std::endl
-//      << "Exception on processing: " << std::endl
-//              << exc.what() << std::endl
-//              << "Aborting!" << std::endl
-//              << "----------------------------------------------------"
-//              << std::endl;
-//  return 1;
-// }
-//
-// catch (...)
-// {
-//     std::cerr << std::endl
-//               << std::endl
-//               << "----------------------------------------------------"
-//               << std::endl
-//               << "Unknown exception!" << std::endl
-//               << "Aborting!" << std::endl
-//               << "----------------------------------------------------"
-//               << std::endl;
-//     return 1;
-// }
-// std::cout << "End of program." << std::endl;
-// return test_error;
-//}
 
 #if PHILIP_DIM==3
     template class EulerTaylorGreen <PHILIP_DIM,PHILIP_DIM+2>;
 #endif
 
-}
-}
-
-
-
+} // Tests namespace
+} // PHiLiP namespace

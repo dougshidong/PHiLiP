@@ -24,8 +24,7 @@ namespace FlowSolver {
 template <int dim, int nstate>
 NACA0012<dim, nstate>::NACA0012(const PHiLiP::Parameters::AllParameters *const parameters_input)
         : FlowSolverCaseBase<dim, nstate>(parameters_input)
-{
-}
+{}
 
 template <int dim, int nstate>
 void NACA0012<dim,nstate>::display_additional_flow_case_specific_parameters() const
@@ -77,10 +76,10 @@ void NACA0012<dim,nstate>::set_higher_order_grid(std::shared_ptr<DGBase<dim, dou
 template <int dim, int nstate>
 void NACA0012<dim,nstate>::steady_state_postprocessing(std::shared_ptr<DGBase<dim, double>> dg) const
 {
-    LiftDragFunctional<dim,dim+2,double> lift_functional(dg, LiftDragFunctional<dim,dim+2,double>::Functional_types::lift);
+    LiftDragFunctional<dim,dim+2,double,Triangulation> lift_functional(dg, LiftDragFunctional<dim,dim+2,double,Triangulation>::Functional_types::lift);
     double lift = lift_functional.evaluate_functional();
 
-    LiftDragFunctional<dim,dim+2,double> drag_functional(dg, LiftDragFunctional<dim,dim+2,double>::Functional_types::drag);
+    LiftDragFunctional<dim,dim+2,double,Triangulation> drag_functional(dg, LiftDragFunctional<dim,dim+2,double,Triangulation>::Functional_types::drag);
     double drag = drag_functional.evaluate_functional();
 
     this->pcout << " Resulting lift : " << lift << std::endl;

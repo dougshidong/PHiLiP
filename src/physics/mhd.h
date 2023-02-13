@@ -235,6 +235,14 @@ public:
     real convective_surface_numerical_split_flux (
                 const real &surface_flux,
                 const real &flux_interp_to_surface) const;
+    
+    /// Computes the entropy variables.
+    std::array<real,nstate> compute_entropy_variables (
+                const std::array<real,nstate> &conservative_soln) const;
+
+    /// Computes the conservative variables from the entropy variables.
+    std::array<real,nstate> compute_conservative_variables_from_entropy_variables (
+                const std::array<real,nstate> &entropy_var) const;
 
     /// Mean density given two sets of conservative solutions.
     /** Used in the implementation of the split form.
@@ -263,6 +271,16 @@ public:
     real compute_mean_specific_energy(
         const std::array<real,nstate> &conservative_soln1,
         const std::array<real,nstate> &convervative_soln2) const;
+
+    /// Evaluates boundary values and gradients on the other side of the face.
+    void boundary_face_values (
+        const int /*boundary_type*/,
+        const dealii::Point<dim, real> &/*pos*/,
+        const dealii::Tensor<1,dim,real> &/*normal*/,
+        const std::array<real,nstate> &/*soln_int*/,
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &/*soln_grad_int*/,
+        std::array<real,nstate> &/*soln_bc*/,
+        std::array<dealii::Tensor<1,dim,real>,nstate> &/*soln_grad_bc*/) const;
 
 //    void boundary_face_values (
 //        const int /*boundary_type*/,

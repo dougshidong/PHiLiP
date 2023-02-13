@@ -90,6 +90,8 @@ int main (int argc, char * argv[])
         const unsigned int n_quad_pts_1D = quad1D.size();
         const unsigned int n_quad_pts = pow(n_quad_pts_1D, dim);
 
+        std::vector<double> ones(n_quad_pts_1D, 1.0);//to be used as the weights
+
         for(unsigned int ielement=0; ielement<10; ielement++){//do several loops as if there were elements
 
             std::vector<real> sol_hat(n_dofs);
@@ -136,7 +138,7 @@ int main (int argc, char * argv[])
             //compute A*u using sum-factorization
             time_t tsum;
             tsum = clock();
-            basis.two_pt_flux_Hadamard_product(sol_hat_mat, sol_1D, basis.oneD_grad_operator,0);
+            basis.two_pt_flux_Hadamard_product(sol_hat_mat, sol_1D, basis.oneD_grad_operator, ones, 0);
              
             if(ielement==0)
                 time_diff_sum[poly_degree] = clock() - tsum;
@@ -196,7 +198,7 @@ int main (int argc, char * argv[])
              
             time_t tsum_dir2;
             tsum_dir2 = clock();
-            basis.two_pt_flux_Hadamard_product(sol_hat_mat, sol_1D, basis.oneD_grad_operator,1);
+            basis.two_pt_flux_Hadamard_product(sol_hat_mat, sol_1D, basis.oneD_grad_operator, ones, 1);
             if(ielement==0)
                 time_diff_sum_dir2[poly_degree] = clock() - tsum_dir2;
             else
@@ -241,7 +243,7 @@ int main (int argc, char * argv[])
                  
                 time_t tsum_dir3;
                 tsum_dir3 = clock();
-                basis.two_pt_flux_Hadamard_product(sol_hat_mat, sol_1D, basis.oneD_grad_operator, 2);
+                basis.two_pt_flux_Hadamard_product(sol_hat_mat, sol_1D, basis.oneD_grad_operator, ones, 2);
                 if(ielement==0)
                     time_diff_sum_dir3[poly_degree] = clock() - tsum_dir3;
                 else

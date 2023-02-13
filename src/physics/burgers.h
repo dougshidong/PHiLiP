@@ -58,7 +58,7 @@ public:
         const bool                                                diffusion = true, 
         const dealii::Tensor<2,3,double>                          input_diffusion_tensor = Parameters::ManufacturedSolutionParam::get_default_diffusion_tensor(),
         std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function = nullptr,
-        const Parameters::AllParameters::TestType parameters_test = Parameters::AllParameters::TestType::run_control) : 
+        const Parameters::AllParameters::TestType                 parameters_test = Parameters::AllParameters::TestType::run_control) : 
             PhysicsBase<dim,nstate,real>(diffusion, input_diffusion_tensor, manufactured_solution_function), 
             diffusion_scaling_coeff(diffusion_coefficient),
             hasConvection(convection), 
@@ -82,6 +82,14 @@ public:
     real convective_surface_numerical_split_flux (
                 const real &surface_flux,
                 const real &flux_interp_to_surface) const;
+
+    /// Computes the entropy variables.
+    std::array<real,nstate> compute_entropy_variables (
+                const std::array<real,nstate> &conservative_soln) const;
+
+    /// Computes the conservative variables from the entropy variables.
+    std::array<real,nstate> compute_conservative_variables_from_entropy_variables (
+                const std::array<real,nstate> &entropy_var) const;
 
     /// Spectral radius of convective term Jacobian is 'c'
     std::array<real,nstate> convective_eigenvalues (

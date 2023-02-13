@@ -21,8 +21,7 @@
 
 #include "parameters/all_parameters.h"
 #include "parameters/parameters.h"
-#include "dg/dg.h"
-#include "dg/dg_factory.hpp"
+#include "dg/strong_dg.hpp"
 #include "operators/operators.h"
 
 const double TOLERANCE = 1E-6;
@@ -31,7 +30,7 @@ using namespace std;
 
 template <int dim, int nstate>
 void assemble_weak_auxiliary_volume(
-    std::shared_ptr < PHiLiP::DGBase<dim, double> > &dg,
+    std::shared_ptr < PHiLiP::DGStrong<dim,nstate,double> > &dg,
     const std::vector<dealii::types::global_dof_index> &current_dofs_indices,
     const unsigned int poly_degree,
     PHiLiP::OPERATOR::basis_functions<dim,2*dim> &soln_basis,
@@ -90,7 +89,7 @@ void assemble_weak_auxiliary_volume(
 }
 template <int dim, int nstate>
 void assemble_face_term_auxiliary_weak(
-    std::shared_ptr < PHiLiP::DGBase<dim, double> > &dg,
+    std::shared_ptr < PHiLiP::DGStrong<dim,nstate,double> > &dg,
     const unsigned int iface, const unsigned int neighbor_iface,
     const dealii::types::global_dof_index /*current_cell_index*/,
     const dealii::types::global_dof_index /*neighbor_cell_index*/,
@@ -301,7 +300,7 @@ int main (int argc, char * argv[])
             all_parameters_new.use_periodic_bc = true;
             all_parameters_new.ode_solver_param.ode_solver_type = ODE_enum::runge_kutta_solver;//auxiliary only works explicit for now
             all_parameters_new.use_inverse_mass_on_the_fly = true;
-            std::shared_ptr < PHiLiP::DGBase<dim, double> > dg = PHiLiP::DGFactory<dim,double>::create_discontinuous_galerkin(&all_parameters_new, poly_degree, poly_degree, grid_degree, grid);
+            std::shared_ptr < PHiLiP::DGStrong<dim,dim+2,double> > dg = std::make_shared< PHiLiP::DGStrong<dim,dim+2,real,Triangulation> >(&all_parameters_new, poly_degree, poly_degree, grid_degree, grid);
             dg->allocate_system (false,false,false);
             if(!all_parameters_new.use_inverse_mass_on_the_fly){
                 dg->evaluate_mass_matrices(true);
@@ -313,6 +312,7 @@ int main (int argc, char * argv[])
             std::vector<dealii::types::global_dof_index> current_dofs_indices(n_dofs);
             for (auto current_cell = dg->dof_handler.begin_active(); current_cell!=dg->dof_handler.end(); ++current_cell) {
                 if (!current_cell->is_locally_owned()) continue;
+                current_cell->get_dof_indices (current_dofs_indices);
                 for(unsigned int i=0; i<n_dofs; i++){
                     dg->solution[current_dofs_indices[i]] = 1e-8 + static_cast <float> (rand()) / ( static_cast <float> (RAND_MAX/(30-1e-8)));
                 }
@@ -414,7 +414,7 @@ int main (int argc, char * argv[])
                     const dealii::types::global_dof_index neighbor_cell_index = neighbor_cell->active_cell_index();
                      
                     //evaluate facet auxiliary RHS
-                    dg->assemble_face_term_auxiliary (
+                    dg->assemble_face_term_auxiliary_equation (
                         iface, neighbor_iface, 
                         current_cell_index, neighbor_cell_index,
                         poly_degree, poly_degree,

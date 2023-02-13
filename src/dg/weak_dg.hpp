@@ -41,6 +41,7 @@ private:
         const unsigned int                                     grid_degree,
         OPERATOR::basis_functions<dim,2*dim>                   &/*soln_basis*/,
         OPERATOR::basis_functions<dim,2*dim>                   &/*flux_basis*/,
+        OPERATOR::local_basis_stiffness<dim,2*dim>             &/*flux_basis_stiffness*/,
         OPERATOR::metric_operators<real,dim,2*dim>             &/*metric_oper*/,
         OPERATOR::mapping_shape_functions<dim,2*dim>           &/*mapping_basis*/,
         std::array<std::vector<real>,dim>                      &/*mapping_support_points*/,
@@ -49,7 +50,7 @@ private:
         const dealii::FESystem<dim,dim>                        &current_fe_ref,
         dealii::Vector<real>                                   &local_rhs_int_cell,
         std::vector<dealii::Tensor<1,dim,real>>                &/*local_auxiliary_RHS*/,
-        const bool                                             /*compute_Auxiliary_RHS*/,
+        const bool                                             /*compute_auxiliary_right_hand_side*/,
         const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R);
 
     /// Builds the necessary fe values and assembles boundary residual.
@@ -65,6 +66,7 @@ private:
         const unsigned int                                     grid_degree,
         OPERATOR::basis_functions<dim,2*dim>                   &/*soln_basis*/,
         OPERATOR::basis_functions<dim,2*dim>                   &/*flux_basis*/,
+        OPERATOR::local_basis_stiffness<dim,2*dim>             &/*flux_basis_stiffness*/,
         OPERATOR::metric_operators<real,dim,2*dim>             &/*metric_oper*/,
         OPERATOR::mapping_shape_functions<dim,2*dim>           &/*mapping_basis*/,
         std::array<std::vector<real>,dim>                      &/*mapping_support_points*/,
@@ -72,7 +74,7 @@ private:
         const dealii::FESystem<dim,dim>                        &current_fe_ref,
         dealii::Vector<real>                                   &local_rhs_int_cell,
         std::vector<dealii::Tensor<1,dim,real>>                &/*local_auxiliary_RHS*/,
-        const bool                                             /*compute_Auxiliary_RHS*/,
+        const bool                                             /*compute_auxiliary_right_hand_side*/,
         const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R);
 
     /// Builds the necessary fe values and assembles face residual.
@@ -96,6 +98,7 @@ private:
         OPERATOR::basis_functions<dim,2*dim>                   &/*soln_basis_ext*/,
         OPERATOR::basis_functions<dim,2*dim>                   &/*flux_basis_int*/,
         OPERATOR::basis_functions<dim,2*dim>                   &/*flux_basis_ext*/,
+        OPERATOR::local_basis_stiffness<dim,2*dim>             &/*flux_basis_stiffness*/,
         OPERATOR::metric_operators<real,dim,2*dim>             &/*metric_oper_int*/,
         OPERATOR::metric_operators<real,dim,2*dim>             &/*metric_oper_ext*/,
         OPERATOR::mapping_shape_functions<dim,2*dim>           &/*mapping_basis*/,
@@ -107,7 +110,7 @@ private:
         std::vector<dealii::Tensor<1,dim,real>>                &/*current_cell_rhs_aux*/,
         dealii::LinearAlgebra::distributed::Vector<double>     &rhs,
         std::array<dealii::LinearAlgebra::distributed::Vector<double>,dim> &/*rhs_aux*/,
-        const bool                                             /*compute_Auxiliary_RHS*/,
+        const bool                                             /*compute_auxiliary_right_hand_side*/,
         const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R);
 
     /// Builds the necessary fe values and assembles subface residual.
@@ -132,6 +135,7 @@ private:
         OPERATOR::basis_functions<dim,2*dim>                   &/*soln_basis_ext*/,
         OPERATOR::basis_functions<dim,2*dim>                   &/*flux_basis_int*/,
         OPERATOR::basis_functions<dim,2*dim>                   &/*flux_basis_ext*/,
+        OPERATOR::local_basis_stiffness<dim,2*dim>             &/*flux_basis_stiffness*/,
         OPERATOR::metric_operators<real,dim,2*dim>             &/*metric_oper_int*/,
         OPERATOR::metric_operators<real,dim,2*dim>             &/*metric_oper_ext*/,
         OPERATOR::mapping_shape_functions<dim,2*dim>           &/*mapping_basis*/,
@@ -143,88 +147,11 @@ private:
         std::vector<dealii::Tensor<1,dim,real>>                &/*current_cell_rhs_aux*/,
         dealii::LinearAlgebra::distributed::Vector<double>     &rhs,
         std::array<dealii::LinearAlgebra::distributed::Vector<double>,dim> &/*rhs_aux*/,
-        const bool                                             /*compute_Auxiliary_RHS*/,
+        const bool                                             /*compute_auxiliary_right_hand_side*/,
         const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R);
 
-    ///Allocates the auxiliary equations' variables and RHS.
-    void allocate_auxiliary_equation ();
-
-    ///Assembles the auxiliary equations' residuals and solves for the auxiliary variables.
+    /// Assembles the auxiliary equations' residuals and solves for the auxiliary variables.
     void assemble_auxiliary_residual ();
-    ///Evaluate the volume RHS for the auxiliary equation.
-    void assemble_volume_term_auxiliary_equation(
-        const std::vector<dealii::types::global_dof_index> &current_dofs_indices,
-        const unsigned int                                 poly_degree,
-        OPERATOR::basis_functions<dim,2*dim>               &soln_basis,
-        OPERATOR::basis_functions<dim,2*dim>               &flux_basis,
-        OPERATOR::metric_operators<real,dim,2*dim>         &metric_oper,
-        std::vector<dealii::Tensor<1,dim,real>>            &local_auxiliary_RHS);
-    ///Evaluate the boundary RHS for the auxiliary equation.
-    void assemble_boundary_term_auxiliary_equation(
-        const unsigned int                                 iface,
-        const dealii::types::global_dof_index              current_cell_index,
-        const unsigned int                                 poly_degree,
-        const unsigned int                                 boundary_id,
-        const std::vector<dealii::types::global_dof_index> &dofs_indices,
-        OPERATOR::basis_functions<dim,2*dim>               &soln_basis,
-        OPERATOR::metric_operators<real,dim,2*dim>         &metric_oper,
-        std::vector<dealii::Tensor<1,dim,real>>            &local_auxiliary_RHS);
-    ///Evaluate the facet RHS for the auxiliary equation.
-    void assemble_face_term_auxiliary(
-        const unsigned int                                 iface, 
-        const unsigned int                                 neighbor_iface,
-        const dealii::types::global_dof_index              current_cell_index,
-        const dealii::types::global_dof_index              neighbor_cell_index,
-        const unsigned int                                 poly_degree_int, 
-        const unsigned int                                 poly_degree_ext,
-        const std::vector<dealii::types::global_dof_index> &dof_indices_int,
-        const std::vector<dealii::types::global_dof_index> &dof_indices_ext,
-        OPERATOR::basis_functions<dim,2*dim>               &soln_basis_int,
-        OPERATOR::basis_functions<dim,2*dim>               &soln_basis_ext,
-        OPERATOR::metric_operators<real,dim,2*dim>         &metric_oper_int,
-        std::vector<dealii::Tensor<1,dim,real>>            &local_auxiliary_RHS_int,
-        std::vector<dealii::Tensor<1,dim,real>>            &local_auxiliary_RHS_ext);
-    ///Strong form primary equation's volume right-hand-side.
-    void assemble_volume_term_strong(
-        typename dealii::DoFHandler<dim>::active_cell_iterator cell,
-        const dealii::types::global_dof_index              current_cell_index,
-        const std::vector<dealii::types::global_dof_index> &cell_dofs_indices,
-        const unsigned int                                 poly_degree,
-        OPERATOR::basis_functions<dim,2*dim>               &soln_basis,
-        OPERATOR::basis_functions<dim,2*dim>               &flux_basis,
-        OPERATOR::metric_operators<real,dim,2*dim>         &metric_oper,
-        dealii::Vector<real>                               &local_rhs_int_cell);
-    ///Strong form primary equation's boundary right-hand-side.
-    void assemble_boundary_term_strong(
-        const unsigned int                                 iface, 
-        const dealii::types::global_dof_index              current_cell_index,
-        const unsigned int                                 boundary_id,
-        const unsigned int                                 poly_degree, 
-        const real                                         penalty,
-        const std::vector<dealii::types::global_dof_index> &dof_indices,
-        OPERATOR::basis_functions<dim,2*dim>               &soln_basis,
-        OPERATOR::basis_functions<dim,2*dim>               &flux_basis,
-        OPERATOR::metric_operators<real,dim,2*dim>         &metric_oper,
-        dealii::Vector<real>                               &local_rhs_cell);
-    ///Strong form primary equation's facet right-hand-side.
-    void assemble_face_term_strong(
-        const unsigned int                                 iface, 
-        const unsigned int                                 neighbor_iface, 
-        const dealii::types::global_dof_index              current_cell_index,
-        const dealii::types::global_dof_index              neighbor_cell_index,
-        const unsigned int                                 poly_degree_int, 
-        const unsigned int                                 poly_degree_ext, 
-        const real                                         penalty,
-        const std::vector<dealii::types::global_dof_index> &dof_indices_int,
-        const std::vector<dealii::types::global_dof_index> &dof_indices_ext,
-        OPERATOR::basis_functions<dim,2*dim>               &soln_basis_int,
-        OPERATOR::basis_functions<dim,2*dim>               &soln_basis_ext,
-        OPERATOR::basis_functions<dim,2*dim>               &flux_basis_int,
-        OPERATOR::basis_functions<dim,2*dim>               &flux_basis_ext,
-        OPERATOR::metric_operators<real,dim,2*dim>         &metric_oper_int,
-        OPERATOR::metric_operators<real,dim,2*dim>         &metric_oper_ext,
-        dealii::Vector<real>                               &local_rhs_int_cell,
-        dealii::Vector<real>                               &local_rhs_ext_cell);
 
     /// Main function responsible for evaluating the integral over the cell volume and the specified derivatives.
     /** This function templates the solution and metric coefficients in order to possible AD the residual.

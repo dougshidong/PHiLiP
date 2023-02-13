@@ -185,7 +185,6 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
             prm.declare_entry("do_calculate_numerical_entropy", "false",
                               dealii::Patterns::Bool(),
                               "Flag to calculate numerical entropy and write to file. By default, do not calculate.");
-
         }
         prm.leave_subsection();
 
@@ -274,7 +273,7 @@ void FlowSolverParam::parse_parameters(dealii::ParameterHandler &prm)
         else if (flow_case_type_string == "periodic_1D_unsteady")       {flow_case_type = periodic_1D_unsteady;}
         else if (flow_case_type_string == "gaussian_bump")              {flow_case_type = gaussian_bump;}
         else if (flow_case_type_string == "channel_flow")               {flow_case_type = channel_flow;}
-        else if (flow_case_type_string == "sshock")                             {flow_case_type = sshock;}
+        else if (flow_case_type_string == "sshock")                     {flow_case_type = sshock;}
 
         poly_degree = prm.get_integer("poly_degree");
         

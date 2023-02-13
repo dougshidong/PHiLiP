@@ -44,7 +44,7 @@ double ConvectionDiffusionPeriodic<dim, nstate>::compute_energy_derivative_norm(
     const dealii::Tensor<2,3,double> diff_tensor = Parameters::ManufacturedSolutionParam::get_default_diffusion_tensor();
     for(int idim=0; idim<dim; idim++){
         for(int jdim=0; jdim<dim; jdim++){
-            double temp_energy = dg->auxiliary_solution[jdim] * dg->auxiliary_RHS[idim] * diff_tensor[idim][jdim];
+            double temp_energy = dg->auxiliary_solution[jdim] * dg->auxiliary_right_hand_side[idim] * diff_tensor[idim][jdim];
             energy += diff_coeff * temp_energy;
         }
     }

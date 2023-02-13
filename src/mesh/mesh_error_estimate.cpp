@@ -204,7 +204,6 @@ void DualWeightedResidualError<dim, nstate, real, MeshType>::coarse_to_fine()
     solution_transfer.prepare_for_coarsening_and_refinement(solution_coarse);
 
     this->dg->high_order_grid->prepare_for_coarsening_and_refinement();
-    this->dg->triangulation->prepare_coarsening_and_refinement();
 
     for (const auto &cell : this->dg->dof_handler.active_cell_iterators()) 
     {
@@ -241,7 +240,6 @@ void DualWeightedResidualError<dim, nstate, real, MeshType>::fine_to_coarse()
 {
     [[maybe_unused]] unsigned int no_of_cells_before_changing_p = this->dg->triangulation->n_active_cells(); // Used in assert (i.e remains unused in Release mode).
     this->dg->high_order_grid->prepare_for_coarsening_and_refinement();
-    this->dg->triangulation->prepare_coarsening_and_refinement();
 
     for (const auto &cell : this->dg->dof_handler.active_cell_iterators()) 
     {

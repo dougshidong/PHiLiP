@@ -715,8 +715,9 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
     OPERATOR::basis_functions<dim,2*dim> &soln_basis_ext,
     OPERATOR::basis_functions<dim,2*dim> &flux_basis_int,
     OPERATOR::basis_functions<dim,2*dim> &flux_basis_ext,
+    OPERATOR::local_basis_stiffness<dim,2*dim> &flux_basis_stiffness,
     OPERATOR::mapping_shape_functions<dim,2*dim> &mapping_basis,
-    const bool compute_Auxiliary_RHS,
+    const bool compute_auxiliary_right_hand_side,
     dealii::LinearAlgebra::distributed::Vector<double> &rhs,
     std::array<dealii::LinearAlgebra::distributed::Vector<double>,dim> &rhs_aux)
 {
@@ -774,8 +775,8 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
        && (this->all_parameters->ode_solver_param.ode_solver_type
                     == Parameters::ODESolverParam::ODESolverEnum::implicit_solver))
     {
-        pcout<<"ERROR: Implicit does not currently work for strong form."<<std::endl;
-        exit(1);
+        pcout<<"ERROR: Implicit does not currently work for strong form. Aborting..."<<std::endl;
+        std::abort();
     }
 
 
@@ -788,6 +789,7 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
         grid_degree,
         soln_basis_int,
         flux_basis_int,
+        flux_basis_stiffness,
         metric_oper_int,
         mapping_basis,
         mapping_support_points,
@@ -796,7 +798,7 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
         current_fe_ref,
         current_cell_rhs,
         current_cell_rhs_aux,
-        compute_Auxiliary_RHS,
+        compute_auxiliary_right_hand_side,
         compute_dRdW, compute_dRdX, compute_d2R);
 
     (void) fe_values_collection_face_int;
@@ -825,6 +827,7 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
                 grid_degree,
                 soln_basis_int,
                 flux_basis_int,
+                flux_basis_stiffness,
                 metric_oper_int,
                 mapping_basis,
                 mapping_support_points,
@@ -832,7 +835,7 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
                 current_fe_ref,
                 current_cell_rhs,
                 current_cell_rhs_aux,
-                compute_Auxiliary_RHS,
+                compute_auxiliary_right_hand_side,
                 compute_dRdW, compute_dRdX, compute_d2R);
 
         }
@@ -895,6 +898,7 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
                     soln_basis_ext,
                     flux_basis_int,
                     flux_basis_ext,
+                    flux_basis_stiffness,
                     metric_oper_int,
                     metric_oper_ext,
                     mapping_basis,
@@ -906,7 +910,7 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
                     current_cell_rhs_aux,
                     rhs,
                     rhs_aux,
-                    compute_Auxiliary_RHS,
+                    compute_auxiliary_right_hand_side,
                     compute_dRdW, compute_dRdX, compute_d2R);
             }
         }
@@ -984,6 +988,7 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
                 soln_basis_ext,
                 flux_basis_int,
                 flux_basis_ext,
+                flux_basis_stiffness,
                 metric_oper_int,
                 metric_oper_ext,
                 mapping_basis,
@@ -995,7 +1000,7 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
                 current_cell_rhs_aux,
                 rhs,
                 rhs_aux,
-                compute_Auxiliary_RHS,
+                compute_auxiliary_right_hand_side,
                 compute_dRdW, compute_dRdX, compute_d2R);
         }
         // CASE 5: NEIGHBOR CELL HAS SAME COARSENESS
@@ -1059,6 +1064,7 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
                 soln_basis_ext,
                 flux_basis_int,
                 flux_basis_ext,
+                flux_basis_stiffness,
                 metric_oper_int,
                 metric_oper_ext,
                 mapping_basis,
@@ -1070,7 +1076,7 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
                 current_cell_rhs_aux,
                 rhs,
                 rhs_aux,
-                compute_Auxiliary_RHS,
+                compute_auxiliary_right_hand_side,
                 compute_dRdW, compute_dRdX, compute_d2R);
         } 
         else {
@@ -1079,7 +1085,7 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
         }
     } // end of face loop
 
-    if(compute_Auxiliary_RHS) {
+    if(compute_auxiliary_right_hand_side) {
         // Add local contribution from current cell to global vector
         for (unsigned int i=0; i<n_dofs_curr_cell; ++i) {
             for(int idim=0; idim<dim; idim++){
@@ -1294,6 +1300,7 @@ void DGBase<dim,real,MeshType>::reinit_operators_for_cell_residual_loop(
     OPERATOR::basis_functions<dim,2*dim> &soln_basis_ext,
     OPERATOR::basis_functions<dim,2*dim> &flux_basis_int,
     OPERATOR::basis_functions<dim,2*dim> &flux_basis_ext,
+    OPERATOR::local_basis_stiffness<dim,2*dim> &flux_basis_stiffness,
     OPERATOR::mapping_shape_functions<dim,2*dim> &mapping_basis)
 {
     soln_basis_int.build_1D_volume_operator(oneD_fe_collection_1state[poly_degree_int], oneD_quadrature_collection[poly_degree_int]);
@@ -1315,6 +1322,9 @@ void DGBase<dim,real,MeshType>::reinit_operators_for_cell_residual_loop(
     flux_basis_ext.build_1D_gradient_operator(oneD_fe_collection_flux[poly_degree_ext], oneD_quadrature_collection[poly_degree_ext]);
     flux_basis_ext.build_1D_surface_operator(oneD_fe_collection_flux[poly_degree_ext], oneD_face_quadrature);
     flux_basis_ext.build_1D_surface_gradient_operator(oneD_fe_collection_flux[poly_degree_ext], oneD_face_quadrature);
+
+    //flux basis stiffness operator for skew-symmetric form
+    flux_basis_stiffness.build_1D_volume_operator(oneD_fe_collection_flux[poly_degree_int], oneD_quadrature_collection[poly_degree_int]);
 
     //We only need to compute the most recent mapping basis since we compute interior before looping faces
     mapping_basis.build_1D_shape_functions_at_grid_nodes(high_order_grid->oneD_fe_system, high_order_grid->oneD_grid_nodes);
@@ -1449,14 +1459,15 @@ void DGBase<dim,real,MeshType>::assemble_residual (const bool compute_dRdW, cons
     dealii::hp::FEValues<dim,dim>        fe_values_collection_volume_lagrange (mapping_collection, fe_collection_lagrange, volume_quadrature_collection, this->volume_update_flags);
 
     const unsigned int init_grid_degree = high_order_grid->fe_system.tensor_degree();
-    OPERATOR::basis_functions<dim,2*dim> soln_basis_int(nstate, max_degree, init_grid_degree); 
-    OPERATOR::basis_functions<dim,2*dim> soln_basis_ext(nstate, max_degree, init_grid_degree); 
-    OPERATOR::basis_functions<dim,2*dim> flux_basis_int(nstate, max_degree, init_grid_degree); 
-    OPERATOR::basis_functions<dim,2*dim> flux_basis_ext(nstate, max_degree, init_grid_degree); 
-    OPERATOR::mapping_shape_functions<dim,2*dim> mapping_basis(nstate, max_degree, init_grid_degree);
+    OPERATOR::basis_functions<dim,2*dim> soln_basis_int(1, max_degree, init_grid_degree); 
+    OPERATOR::basis_functions<dim,2*dim> soln_basis_ext(1, max_degree, init_grid_degree); 
+    OPERATOR::basis_functions<dim,2*dim> flux_basis_int(1, max_degree, init_grid_degree); 
+    OPERATOR::basis_functions<dim,2*dim> flux_basis_ext(1, max_degree, init_grid_degree); 
+    OPERATOR::local_basis_stiffness<dim,2*dim> flux_basis_stiffness(1, max_degree, init_grid_degree, true); 
+    OPERATOR::mapping_shape_functions<dim,2*dim> mapping_basis(1, max_degree, init_grid_degree);
 
     reinit_operators_for_cell_residual_loop(
-        max_degree, max_degree, init_grid_degree, soln_basis_int, soln_basis_ext, flux_basis_int, flux_basis_ext, mapping_basis);
+        max_degree, max_degree, init_grid_degree, soln_basis_int, soln_basis_ext, flux_basis_int, flux_basis_ext, flux_basis_stiffness, mapping_basis);
 
     solution.update_ghost_values();
 
@@ -1502,10 +1513,11 @@ void DGBase<dim,real,MeshType>::assemble_residual (const bool compute_dRdW, cons
                 soln_basis_ext,
                 flux_basis_int,
                 flux_basis_ext,
+                flux_basis_stiffness,
                 mapping_basis,
                 false,
                 right_hand_side,
-                auxiliary_RHS);
+                auxiliary_right_hand_side);
         } // end of cell loop
     } catch(...) {
         assembly_error = 1;
@@ -1993,6 +2005,7 @@ void DGBase<dim,real,MeshType>::output_results_vtk (const unsigned int cycle, co
     output_face_results_vtk (cycle, current_time);
 #endif
 
+    const bool enable_higher_order_vtk_output = this->all_parameters->enable_higher_order_vtk_output;
     dealii::DataOut<dim, dealii::DoFHandler<dim>> data_out;
 
     data_out.attach_dof_handler (dof_handler);
@@ -2067,7 +2080,8 @@ void DGBase<dim,real,MeshType>::output_results_vtk (const unsigned int cycle, co
 
     const dealii::Mapping<dim> &mapping = (*(high_order_grid->mapping_fe_field));
     const unsigned int grid_degree = high_order_grid->max_degree;
-    const int n_subdivisions = std::max(grid_degree,get_max_fe_degree());
+    // If higher-order vtk output is not enabled, passing 0 will be interpreted as DataOutInterface::default_subdivisions
+    const int n_subdivisions = (enable_higher_order_vtk_output) ? std::max(grid_degree,get_max_fe_degree()) : 0;
     data_out.build_patches(mapping, n_subdivisions, curved);
     const bool write_higher_order_cells = (n_subdivisions>1) ? true : false;
     dealii::DataOutBase::VtkFlags vtkflags(current_time,cycle,true,dealii::DataOutBase::VtkFlags::ZlibCompressionLevel::best_compression,write_higher_order_cells);
@@ -2097,6 +2111,18 @@ void DGBase<dim,real,MeshType>::output_results_vtk (const unsigned int cycle, co
         data_out.write_pvtu_record(master_output, filenames);
     }
 
+}
+
+template <int dim, typename real, typename MeshType>
+void DGBase<dim,real,MeshType>::allocate_auxiliary_equation()
+{
+    for (int idim=0; idim<dim; idim++) {
+        auxiliary_right_hand_side[idim].reinit(locally_owned_dofs, ghost_dofs, mpi_communicator);
+        auxiliary_right_hand_side[idim].add(1.0);
+
+        auxiliary_solution[idim].reinit(locally_owned_dofs, ghost_dofs, mpi_communicator);
+        auxiliary_solution[idim] *= 0.0;
+    }
 }
 
 template <int dim, typename real, typename MeshType>
@@ -2375,7 +2401,7 @@ void DGBase<dim,real,MeshType>::evaluate_mass_matrices (bool do_inverse_mass_mat
             }
         }
     }
-    //Initialize gloabl matrices to 0.
+    // Initialize global matrices to 0.
     dealii::SparsityTools::distribute_sparsity_pattern(dsp, dof_handler.locally_owned_dofs(), mpi_communicator, locally_owned_dofs);
     mass_sparsity_pattern.copy_from(dsp);
     if (do_inverse_mass_matrix) {
@@ -2451,12 +2477,13 @@ void DGBase<dim,real,MeshType>::evaluate_mass_matrices (bool do_inverse_mass_mat
         for(int idim=0; idim<dim; idim++){
             mapping_support_points[idim].resize(n_metric_dofs/dim);
         }
-        for (unsigned int igrid_node = 0; igrid_node< n_metric_dofs/dim; ++igrid_node) {
-            for (unsigned int idof = 0; idof< n_metric_dofs; ++idof) {
-                const real val = (high_order_grid->volume_nodes[metric_dof_indices[idof]]);
-                const unsigned int istate = fe_metric.system_to_component_index(idof).first; 
-                mapping_support_points[istate][igrid_node] += val * fe_metric.shape_value_component(idof,high_order_grid->dim_grid_nodes.point(igrid_node),istate); 
-            }
+        const std::vector<unsigned int > &index_renumbering = dealii::FETools::hierarchic_to_lexicographic_numbering<dim>(curr_grid_degree);
+        for (unsigned int idof = 0; idof< n_metric_dofs; ++idof) {
+            const real val = (high_order_grid->volume_nodes[metric_dof_indices[idof]]);
+            const unsigned int istate = fe_metric.system_to_component_index(idof).first; 
+            const unsigned int ishape = fe_metric.system_to_component_index(idof).second; 
+            const unsigned int igrid_node = index_renumbering[ishape];
+            mapping_support_points[istate][igrid_node] = val; 
         }
 
         //get determinant of Jacobian
@@ -2815,12 +2842,13 @@ void DGBase<dim,real,MeshType>::apply_inverse_global_mass_matrix(
         for(int idim=0; idim<dim; idim++){
             mapping_support_points[idim].resize(n_metric_dofs/dim);
         }
-        for (unsigned int igrid_node = 0; igrid_node< n_metric_dofs/dim; ++igrid_node) {
-            for (unsigned int idof = 0; idof< n_metric_dofs; ++idof) {
-                const real val = (high_order_grid->volume_nodes[metric_dof_indices[idof]]);
-                const unsigned int istate = fe_metric.system_to_component_index(idof).first; 
-                mapping_support_points[istate][igrid_node] += val * fe_metric.shape_value_component(idof,high_order_grid->dim_grid_nodes.point(igrid_node),istate); 
-            }
+        const std::vector<unsigned int > &index_renumbering = dealii::FETools::hierarchic_to_lexicographic_numbering<dim>(grid_degree);
+        for (unsigned int idof = 0; idof< n_metric_dofs; ++idof) {
+            const real val = (high_order_grid->volume_nodes[metric_dof_indices[idof]]);
+            const unsigned int istate = fe_metric.system_to_component_index(idof).first; 
+            const unsigned int ishape = fe_metric.system_to_component_index(idof).second; 
+            const unsigned int igrid_node = index_renumbering[ishape];
+            mapping_support_points[istate][igrid_node] = val; 
         }
         //get determinant of Jacobian
         const unsigned int n_quad_pts = volume_quadrature_collection[poly_degree].size();
@@ -2971,12 +2999,13 @@ void DGBase<dim,real,MeshType>::apply_global_mass_matrix(
         for(int idim=0; idim<dim; idim++){
             mapping_support_points[idim].resize(n_metric_dofs/dim);
         }
-        for (unsigned int igrid_node = 0; igrid_node< n_metric_dofs/dim; ++igrid_node) {
-            for (unsigned int idof = 0; idof< n_metric_dofs; ++idof) {
-                const real val = (high_order_grid->volume_nodes[metric_dof_indices[idof]]);
-                const unsigned int istate = fe_metric.system_to_component_index(idof).first; 
-                mapping_support_points[istate][igrid_node] += val * fe_metric.shape_value_component(idof,high_order_grid->dim_grid_nodes.point(igrid_node),istate); 
-            }
+        const std::vector<unsigned int > &index_renumbering = dealii::FETools::hierarchic_to_lexicographic_numbering<dim>(grid_degree);
+        for (unsigned int idof = 0; idof< n_metric_dofs; ++idof) {
+            const real val = (high_order_grid->volume_nodes[metric_dof_indices[idof]]);
+            const unsigned int istate = fe_metric.system_to_component_index(idof).first; 
+            const unsigned int ishape = fe_metric.system_to_component_index(idof).second; 
+            const unsigned int igrid_node = index_renumbering[ishape];
+            mapping_support_points[istate][igrid_node] = val; 
         }
         //get determinant of Jacobian
         const unsigned int n_quad_pts = volume_quadrature_collection[poly_degree].size();
@@ -3031,19 +3060,27 @@ void DGBase<dim,real,MeshType>::apply_global_mass_matrix(
                 }
                 else{
                     const std::vector<double> &quad_weights = volume_quadrature_collection[poly_degree].get_weights();
-                    dealii::FullMatrix<double> proj_mass(n_quad_pts_1D, n_dofs_1D);
-                    projection_oper.oneD_vol_operator.Tmmult(proj_mass, mass.oneD_vol_operator);
-                     
+
+                    std::vector<real> proj_mass(n_shape_fns);
+                    mass.matrix_vector_mult_1D(local_input_vector, proj_mass,
+                                               mass.oneD_vol_operator);
                     std::vector<real> projection_of_input(n_quad_pts);
-                    projection_oper.matrix_vector_mult_1D(local_input_vector, projection_of_input,
-                                                          proj_mass);
+                    std::vector<real> ones(n_shape_fns, 1.0);
+                    projection_oper.inner_product_1D(proj_mass, ones, projection_of_input,
+                                                     projection_oper.oneD_vol_operator);
                     std::vector<real> JxW(n_quad_pts);
                     for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
-                        JxW[iquad] = (metric_oper.det_Jac_vol[iquad] / quad_weights[iquad]);
+                        JxW[iquad] = (metric_oper.det_Jac_vol[iquad] / quad_weights[iquad])
+                                   * projection_of_input[iquad];
                     }
-                    projection_oper.inner_product_1D(projection_of_input, JxW,
-                                                     local_output_vector,
-                                                     proj_mass);
+                    std::vector<real> temp(n_shape_fns);
+                    projection_oper.matrix_vector_mult_1D(JxW,
+                                                          temp,
+                                                          projection_oper.oneD_vol_operator);
+                    mass.inner_product_1D(temp, ones,
+                                          local_output_vector,
+                                          mass.oneD_vol_operator);
+
                 }
             }
              

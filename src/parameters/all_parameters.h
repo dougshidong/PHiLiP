@@ -97,7 +97,7 @@ public:
     bool use_split_form;
 
     /// Two point numerical flux type for split form
-    enum TwoPointNumericalFlux { KG, IR };
+    enum TwoPointNumericalFlux { KG, IR, CH, Ra };
     /// Store selected TwoPointNumericalFlux from the input file
     TwoPointNumericalFlux two_point_num_flux_type;
 
@@ -252,6 +252,8 @@ public:
     /// Flag for outputting the high-order grid vtk files
     bool output_high_order_grid;
 
+    /// Enable writing of higher-order vtk results
+    bool enable_higher_order_vtk_output;
     /// Declare parameters that can be set as inputs and set up the default options
     /** This subroutine should call the sub-parameter classes static declare_parameters()
       * such that each sub-parameter class is responsible to declare their own parameters.

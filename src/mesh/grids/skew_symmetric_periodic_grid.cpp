@@ -59,7 +59,9 @@ dealii::Point<spacedim,real> SkewsymmetricCurvedGridManifold<dim,spacedim,chartd
     dealii::Point<dim> q = p;
 
     if constexpr(dim >= 2){
-        //Gassner skew symmetric
+        /* Ref: G. Gassner, "A Skew-Symmetric Discontinuous Galerkin Spectral Element
+         Discretization and Its Relation to SBP-SAT Finite Difference Methods",
+         SIAM J. Sci. Comput., 2013. */
         q[0] =p[0] - 0.1*std::sin(2.0*pi*p[1]); 
         q[1] =p[1] + 0.1*std::sin(2.0*pi*p[0]);
     }

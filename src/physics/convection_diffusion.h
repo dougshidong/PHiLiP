@@ -58,7 +58,7 @@ public:
         const dealii::Tensor<1,3,double>                          input_advection_vector = Parameters::ManufacturedSolutionParam::get_default_advection_vector(),
         const double                                              input_diffusion_coefficient = Parameters::ManufacturedSolutionParam::get_default_diffusion_coefficient(),
         std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function = nullptr,
-        const Parameters::AllParameters::TestType parameters_test = Parameters::AllParameters::TestType::run_control) : 
+        const Parameters::AllParameters::TestType                 parameters_test = Parameters::AllParameters::TestType::run_control) : 
             PhysicsBase<dim,nstate,real>(diffusion, input_diffusion_tensor, manufactured_solution_function), 
             linear_advection_velocity{input_advection_vector[0], input_advection_vector[1], input_advection_vector[2]},
             diffusion_scaling_coeff(input_diffusion_coefficient),
@@ -83,6 +83,14 @@ public:
     real convective_surface_numerical_split_flux (
                 const real &surface_flux,
                 const real &flux_interp_to_surface) const;
+
+    /// Computes the entropy variables.
+    std::array<real,nstate> compute_entropy_variables (
+                const std::array<real,nstate> &conservative_soln) const;
+
+    /// Computes the conservative variables from the entropy variables.
+    std::array<real,nstate> compute_conservative_variables_from_entropy_variables (
+                const std::array<real,nstate> &entropy_var) const;
 
     /// Spectral radius of convective term Jacobian is 'c'
     std::array<real,nstate> convective_eigenvalues (

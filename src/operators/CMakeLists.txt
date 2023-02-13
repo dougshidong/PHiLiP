@@ -8,13 +8,10 @@ foreach(dim RANGE 1 3)
     string(CONCAT OperatorsLib Operator_Lib_${dim}D)
     add_library(${OperatorsLib} STATIC ${OPERSOURCE})
 
-
     target_compile_definitions(${OperatorsLib} PRIVATE PHILIP_DIM=${dim})
     # Library dependency
     string(CONCAT ParameterLib ParametersLibrary)
-    target_link_libraries(${PhysicsLib} ${ParameterLib})
-#    string(CONCAT DiscontinuousGalerkinLib DiscontinuousGalerkin_${dim}D)
-#    target_link_libraries(${OperatorsLib} ${DiscontinuousGalerkinLib})
+    target_link_libraries(${ParameterLib})
 
     # Setup target with deal.II
     if(NOT DOC_ONLY)
@@ -22,6 +19,5 @@ foreach(dim RANGE 1 3)
     endif()
 
     unset(OperatorsLib)
-#    unset(DiscontinuousGalerkinLib)
 
 endforeach()

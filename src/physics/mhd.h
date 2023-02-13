@@ -235,6 +235,14 @@ public:
     real convective_surface_numerical_split_flux (
                 const real &surface_flux,
                 const real &flux_interp_to_surface) const;
+    
+    /// Computes the entropy variables.
+    std::array<real,nstate> compute_entropy_variables (
+                const std::array<real,nstate> &conservative_soln) const;
+
+    /// Computes the conservative variables from the entropy variables.
+    std::array<real,nstate> compute_conservative_variables_from_entropy_variables (
+                const std::array<real,nstate> &entropy_var) const;
 
     /// Mean density given two sets of conservative solutions.
     /** Used in the implementation of the split form.

@@ -99,6 +99,22 @@ real ConvectionDiffusion<dim,nstate,real>
 }
 
 template <int dim, int nstate, typename real>
+std::array<real,nstate> ConvectionDiffusion<dim, nstate, real>
+::compute_entropy_variables (
+    const std::array<real,nstate> &conservative_soln) const
+{
+    return conservative_soln;
+}
+
+template <int dim, int nstate, typename real>
+std::array<real,nstate> ConvectionDiffusion<dim, nstate, real>
+::compute_conservative_variables_from_entropy_variables (
+    const std::array<real,nstate> &entropy_var) const
+{
+    return entropy_var;
+}
+
+template <int dim, int nstate, typename real>
 dealii::Tensor<1,dim,real> ConvectionDiffusion<dim,nstate,real>
 ::advection_speed () const
 {

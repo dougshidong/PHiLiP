@@ -183,7 +183,6 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
             prm.declare_entry("do_calculate_numerical_entropy", "false",
                               dealii::Patterns::Bool(),
                               "Flag to calculate numerical entropy and write to file. By default, do not calculate.");
-
         }
         prm.leave_subsection();
 
@@ -239,6 +238,11 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                               "Output solution files (.vtu) at velocity field output times. False by default.");
         }
         prm.leave_subsection();
+
+        prm.declare_entry("interpolate_initial_condition", "true",
+                          dealii::Patterns::Bool(),
+                          "Interpolate the initial condition function onto the DG solution. If false, then it projects the physical value. True by default.");
+
     }
     prm.leave_subsection();
 }
@@ -259,7 +263,7 @@ void FlowSolverParam::parse_parameters(dealii::ParameterHandler &prm)
         else if (flow_case_type_string == "advection")                  {flow_case_type = advection;}
         else if (flow_case_type_string == "periodic_1D_unsteady")       {flow_case_type = periodic_1D_unsteady;}
         else if (flow_case_type_string == "gaussian_bump")              {flow_case_type = gaussian_bump;}
-        else if (flow_case_type_string == "sshock")                             {flow_case_type = sshock;}
+        else if (flow_case_type_string == "sshock")                     {flow_case_type = sshock;}
 
         poly_degree = prm.get_integer("poly_degree");
         
@@ -335,6 +339,9 @@ void FlowSolverParam::parse_parameters(dealii::ParameterHandler &prm)
           output_solution_files_at_velocity_field_output_times = prm.get_bool("output_solution_files_at_velocity_field_output_times");
         }
         prm.leave_subsection();
+
+        interpolate_initial_condition = prm.get_bool("interpolate_initial_condition");
+        
     }
     prm.leave_subsection();
 }

@@ -361,6 +361,26 @@ real MHD<dim, nstate, real>
 }
 
 template <int dim, int nstate, typename real>
+std::array<real,nstate> MHD<dim, nstate, real>
+::compute_entropy_variables (
+    const std::array<real,nstate> &conservative_soln) const
+{
+    std::cout<<"Entropy variables for MHD hasn't been done yet."<<std::endl;
+    std::abort();
+    return conservative_soln;
+}
+
+template <int dim, int nstate, typename real>
+std::array<real,nstate> MHD<dim, nstate, real>
+::compute_conservative_variables_from_entropy_variables (
+    const std::array<real,nstate> &entropy_var) const
+{
+    std::cout<<"Entropy variables for MHD hasn't been done yet."<<std::endl;
+    std::abort();
+    return entropy_var;
+}
+
+template <int dim, int nstate, typename real>
 std::array<real,nstate> MHD<dim,nstate,real>
 ::convective_normal_flux (const std::array<real,nstate> &conservative_soln, const dealii::Tensor<1,dim,real> &normal) const
 {

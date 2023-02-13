@@ -5,7 +5,7 @@
 #SBATCH --output=%x-%j.out
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=16                          ## <-- refer to https://docs.computecanada.ca/wiki/Advanced_MPI_scheduling
-#SBATCH --mem=63G                                       ## <-- total shared memory; --mem=0 means to reserve all the available memory on each node assigned to the job
+#SBATCH --mem=63G                                     ## <-- total shared memory per node; refer to https://docs.computecanada.ca/wiki/Advanced_MPI_scheduling
 #SBATCH --mail-user=firstname.lastname@mail.mcgill.ca ## <-- for receiving job updates via email
 #SBATCH --mail-type=ALL                               ## <-- what kind of updates to receive by email
 

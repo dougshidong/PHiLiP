@@ -206,10 +206,6 @@ public:
     /// Opposite of convert_primitive_to_conservative
     std::array<real,nstate> convert_primitive_to_conservative ( const std::array<real,nstate> &primitive_soln ) const;
 
-    /// Given conservative variables [density, [momentum], total energy],
-    /// returns entropy variables -- see Tadmor 2003 "Entropy stability theory..." 
-    std::array<real,nstate> convert_conservative_to_entropy ( const std::array<real,nstate> &conservative_soln ) const;
-
     /// Evaluate pressure from conservative variables
     template<typename real2>
     real2 compute_pressure ( const std::array<real2,nstate> &conservative_soln ) const;
@@ -290,6 +286,21 @@ public:
     real convective_surface_numerical_split_flux (
                 const real &surface_flux,
                 const real &flux_interp_to_surface) const;
+
+    /// Computes the entropy variables.
+    /// Given conservative variables [density, [momentum], total energy],
+    /// Computes entropy variables according to Chan 2018, eq. 119
+    std::array<real,nstate> compute_entropy_variables (
+                const std::array<real,nstate> &conservative_soln) const;
+
+    /// Computes the conservative variables [density, [momentum], total energy
+    /// from the entropy variables according to Chan 2018, eq. 120
+    std::array<real,nstate> compute_conservative_variables_from_entropy_variables (
+                const std::array<real,nstate> &entropy_var) const;
+
+    /// Computes the kinetic energy variables.
+    std::array<real,nstate> compute_kinetic_energy_variables (
+                const std::array<real,nstate> &conservative_soln) const;
 
     /// Mean density given two sets of conservative solutions.
     /** Used in the implementation of the split form.
@@ -429,6 +440,16 @@ protected:
     /** Entropy conserving split form flux of Ismail & Roe.
      *  Refer to Gassner's paper (2016) Eq. 3.17  */
     std::array<dealii::Tensor<1,dim,real>,nstate> convective_numerical_split_flux_ismail_roe (
+        const std::array<real,nstate> &conservative_soln1,
+        const std::array<real,nstate> &conservative_soln2) const;
+
+    /// Chandrashekar entropy conserving flux.
+    std::array<dealii::Tensor<1,dim,real>,nstate> convective_numerical_split_flux_chandrashekar (
+        const std::array<real,nstate> &conservative_soln1,
+        const std::array<real,nstate> &conservative_soln2) const;
+
+    /// Ranocha pressure equilibrium preserving, entropy and energy conserving flux.
+    std::array<dealii::Tensor<1,dim,real>,nstate> convective_numerical_split_flux_ranocha (
         const std::array<real,nstate> &conservative_soln1,
         const std::array<real,nstate> &conservative_soln2) const;
 };

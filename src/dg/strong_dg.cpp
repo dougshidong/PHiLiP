@@ -60,7 +60,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_volume_term_and_build_operator
     const dealii::FESystem<dim,dim>                        &/*current_fe_ref*/,
     dealii::Vector<real>                                   &local_rhs_int_cell,
     std::vector<dealii::Tensor<1,dim,real>>                &local_auxiliary_RHS,
-    const bool                                             compute_Auxiliary_RHS,
+    const bool                                             compute_auxiliary_right_hand_side,
     const bool /*compute_dRdW*/, const bool /*compute_dRdX*/, const bool /*compute_d2R*/)
 {
     // Check if the current cell's poly degree etc is different then previous cell's.
@@ -98,7 +98,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_volume_term_and_build_operator
         mapping_basis,
         this->all_parameters->use_invariant_curl_form);
 
-    if(compute_Auxiliary_RHS){
+    if(compute_auxiliary_right_hand_side){
         assemble_volume_term_auxiliary_equation (
             cell_dofs_indices,
             poly_degree,
@@ -141,7 +141,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_and_build_operat
     const dealii::FESystem<dim,dim>                        &/*current_fe_ref*/,
     dealii::Vector<real>                                   &local_rhs_int_cell,
     std::vector<dealii::Tensor<1,dim,real>>                &local_auxiliary_RHS,
-    const bool                                             compute_Auxiliary_RHS,
+    const bool                                             compute_auxiliary_right_hand_side,
     const bool /*compute_dRdW*/, const bool /*compute_dRdX*/, const bool /*compute_d2R*/)
 {
 
@@ -157,7 +157,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_and_build_operat
         mapping_basis,
         this->all_parameters->use_invariant_curl_form);
 
-    if(compute_Auxiliary_RHS){
+    if(compute_auxiliary_right_hand_side){
         assemble_boundary_term_auxiliary_equation (
             iface, current_cell_index, poly_degree,
             boundary_id, cell_dofs_indices, 
@@ -211,7 +211,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_and_build_operators(
     std::vector<dealii::Tensor<1,dim,real>>                &current_cell_rhs_aux,
     dealii::LinearAlgebra::distributed::Vector<double>     &rhs,
     std::array<dealii::LinearAlgebra::distributed::Vector<double>,dim> &rhs_aux,
-    const bool                                             compute_Auxiliary_RHS,
+    const bool                                             compute_auxiliary_right_hand_side,
     const bool /*compute_dRdW*/, const bool /*compute_dRdX*/, const bool /*compute_d2R*/)
 {
 
@@ -234,7 +234,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_and_build_operators(
         this->reinit_operators_for_cell_residual_loop(poly_degree_int, poly_degree_ext, grid_degree_ext, soln_basis_int, soln_basis_ext, flux_basis_int, flux_basis_ext, flux_basis_stiffness, mapping_basis);
     }
 
-    if(!compute_Auxiliary_RHS){//only for primary equations
+    if(!compute_auxiliary_right_hand_side){//only for primary equations
         //get neighbor metric operator
         //rewrite the high_order_grid->volume_nodes in a way we can use sum-factorization on.
         //that is, splitting up the vector by the dimension.
@@ -258,10 +258,10 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_and_build_operators(
             this->all_parameters->use_invariant_curl_form);
     }
 
-    if(compute_Auxiliary_RHS){
+    if(compute_auxiliary_right_hand_side){
         const unsigned int n_dofs_neigh_cell = this->fe_collection[neighbor_cell->active_fe_index()].n_dofs_per_cell();
         std::vector<dealii::Tensor<1,dim,double>> neighbor_cell_rhs_aux (n_dofs_neigh_cell ); // defaults to 0.0 initialization
-        assemble_face_term_auxiliary (
+        assemble_face_term_auxiliary_equation (
             iface, neighbor_iface, 
             current_cell_index, neighbor_cell_index,
             poly_degree_int, poly_degree_ext,
@@ -331,7 +331,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_subface_term_and_build_operato
     std::vector<dealii::Tensor<1,dim,real>>                &current_cell_rhs_aux,
     dealii::LinearAlgebra::distributed::Vector<double>     &rhs,
     std::array<dealii::LinearAlgebra::distributed::Vector<double>,dim> &rhs_aux,
-    const bool                                             compute_Auxiliary_RHS,
+    const bool                                             compute_auxiliary_right_hand_side,
     const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R)
 {
     assemble_face_term_and_build_operators(
@@ -366,7 +366,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_subface_term_and_build_operato
         current_cell_rhs_aux,
         rhs,
         rhs_aux,
-        compute_Auxiliary_RHS,
+        compute_auxiliary_right_hand_side,
         compute_dRdW, compute_dRdX, compute_d2R);
 
 }
@@ -379,18 +379,6 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_subface_term_and_build_operato
  *******************************************************************/
 
 template <int dim, int nstate, typename real, typename MeshType>
-void DGStrong<dim,nstate,real,MeshType>::allocate_auxiliary_equation()
-{
-    for (int idim=0; idim<dim; idim++) {
-        this->auxiliary_RHS[idim].reinit(this->locally_owned_dofs, this->ghost_dofs, this->mpi_communicator);
-        this->auxiliary_RHS[idim].add(1.0);
-
-        this->auxiliary_solution[idim].reinit(this->locally_owned_dofs, this->ghost_dofs, this->mpi_communicator);
-        this->auxiliary_solution[idim] *= 0.0;
-    }
-}
-
-template <int dim, int nstate, typename real, typename MeshType>
 void DGStrong<dim,nstate,real,MeshType>::assemble_auxiliary_residual()
 {
     using PDE_enum = Parameters::AllParameters::PartialDifferentialEquation;
@@ -398,14 +386,14 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_auxiliary_residual()
     const PDE_enum pde_type = this->all_parameters->pde_type;
 
     if(pde_type == PDE_enum::burgers_viscous){
-        pcout << "DG Strong not yet verified for Burgers' viscous." << std::endl;
-        exit(1);
+        pcout << "DG Strong not yet verified for Burgers' viscous. Aborting..." << std::endl;
+        std::abort();
     }
-    // NOTE: auxiliary currently only works explicit time advancement
-    if (this->use_auxiliary_eq && (this->all_parameters->ode_solver_param.ode_solver_type == ODE_enum::runge_kutta_solver)) {
+    // NOTE: auxiliary currently only works explicit time advancement - not implicit
+    if (this->use_auxiliary_eq && !(this->all_parameters->ode_solver_param.ode_solver_type == ODE_enum::implicit_solver)) {
         //set auxiliary rhs to 0
         for(int idim=0; idim<dim; idim++){
-            this->auxiliary_RHS[idim] = 0;
+            this->auxiliary_right_hand_side[idim] = 0;
         }
         //initialize this to use DG cell residual loop. Note, FEValues to be deprecated in future.
         const auto mapping = (*(this->high_order_grid->mapping_fe_field));
@@ -451,25 +439,31 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_auxiliary_residual()
                 mapping_basis,
                 true,
                 this->right_hand_side,
-                this->auxiliary_RHS);
+                this->auxiliary_right_hand_side);
         } // end of cell loop
 
         for(int idim=0; idim<dim; idim++){
             //compress auxiliary rhs for solution transfer across mpi ranks
-            this->auxiliary_RHS[idim].compress(dealii::VectorOperation::add);
+            this->auxiliary_right_hand_side[idim].compress(dealii::VectorOperation::add);
             //update ghost values
-            this->auxiliary_RHS[idim].update_ghost_values();
+            this->auxiliary_right_hand_side[idim].update_ghost_values();
 
             //solve for auxiliary solution for each dimension
             if(this->all_parameters->use_inverse_mass_on_the_fly)
-                this->apply_inverse_global_mass_matrix(this->auxiliary_RHS[idim], this->auxiliary_solution[idim], true);
+                this->apply_inverse_global_mass_matrix(this->auxiliary_right_hand_side[idim], this->auxiliary_solution[idim], true);
             else
-                this->global_inverse_mass_matrix_auxiliary.vmult(this->auxiliary_solution[idim], this->auxiliary_RHS[idim]);
+                this->global_inverse_mass_matrix_auxiliary.vmult(this->auxiliary_solution[idim], this->auxiliary_right_hand_side[idim]);
 
             //update ghost values of auxiliary solution
             this->auxiliary_solution[idim].update_ghost_values();
         }
     }//end of if statement for diffusive
+    else if (this->use_auxiliary_eq && (this->all_parameters->ode_solver_param.ode_solver_type == ODE_enum::implicit_solver)) {
+        pcout << "ERROR: " << "auxiliary currently only works for explicit time advancement. Aborting..." << std::endl;
+        std::abort();
+    } else {
+        // Do nothing
+    }
 }
 
 /**************************************************
@@ -701,7 +695,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_auxiliary_equati
 }
 /*********************************************************************************/
 template <int dim, int nstate, typename real, typename MeshType>
-void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_auxiliary(
+void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_auxiliary_equation(
     const unsigned int iface, const unsigned int neighbor_iface,
     const dealii::types::global_dof_index current_cell_index,
     const dealii::types::global_dof_index neighbor_cell_index,

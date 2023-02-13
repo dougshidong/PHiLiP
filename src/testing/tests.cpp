@@ -108,10 +108,10 @@ std::string TestsBase::get_conv_num_flux_string(const Parameters::AllParameters 
     using CNF_enum = Parameters::AllParameters::ConvectiveNumericalFlux;
     const CNF_enum CNF_type = param->conv_num_flux_type;
     std::string conv_num_flux_string;
-    if (CNF_type == CNF_enum::lax_friedrichs)          {conv_num_flux_string = "lax_friedrichs";}
-    if (CNF_type == CNF_enum::roe)                     {conv_num_flux_string = "roe";}
-    if (CNF_type == CNF_enum::l2roe)                   {conv_num_flux_string = "l2roe";}
-    if (CNF_type == CNF_enum::central_flux)            {conv_num_flux_string = "central_flux";}
+    if (CNF_type == CNF_enum::lax_friedrichs) {conv_num_flux_string = "lax_friedrichs";}
+    if (CNF_type == CNF_enum::roe)            {conv_num_flux_string = "roe";}
+    if (CNF_type == CNF_enum::l2roe)          {conv_num_flux_string = "l2roe";}
+    if (CNF_type == CNF_enum::central_flux)   {conv_num_flux_string = "central_flux";}
     if (CNF_type == CNF_enum::two_point_flux) {conv_num_flux_string = "two_point_flux";}
     if (CNF_type == CNF_enum::two_point_flux_with_lax_friedrichs_dissipation) {
         conv_num_flux_string = "two_point_flux_with_lax_friedrichs_dissipation";

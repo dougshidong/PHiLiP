@@ -40,14 +40,14 @@ void MeshAdaptation<dim,real,MeshType>::fixed_fraction_isotropic_refinement_and_
     {
         dealii::GridRefinement::refine_and_coarsen_fixed_number(*(dg->high_order_grid->triangulation),
                                                                 cellwise_errors,
-                                                                mesh_adaptation_param->h_refine_fraction,
+                                                                mesh_adaptation_param->refine_fraction,
                                                                 mesh_adaptation_param->h_coarsen_fraction);
     } 
     else 
     {
         dealii::parallel::distributed::GridRefinement::refine_and_coarsen_fixed_number(*(dg->high_order_grid->triangulation),
                                                                                         cellwise_errors,
-                                                                                        mesh_adaptation_param->h_refine_fraction,
+                                                                                        mesh_adaptation_param->refine_fraction,
                                                                                         mesh_adaptation_param->h_coarsen_fraction);
     }
 

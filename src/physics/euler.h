@@ -206,10 +206,6 @@ public:
     /// Opposite of convert_primitive_to_conservative
     std::array<real,nstate> convert_primitive_to_conservative ( const std::array<real,nstate> &primitive_soln ) const;
 
-    /// Given conservative variables [density, [momentum], total energy],
-    /// returns entropy variables -- see Tadmor 2003 "Entropy stability theory..." 
-    std::array<real,nstate> convert_conservative_to_entropy ( const std::array<real,nstate> &conservative_soln ) const;
-
     /// Evaluate pressure from conservative variables
     template<typename real2>
     real2 compute_pressure ( const std::array<real2,nstate> &conservative_soln ) const;
@@ -294,10 +290,13 @@ public:
                 const real &flux_interp_to_surface) const;
 
     /// Computes the entropy variables.
+    /// Given conservative variables [density, [momentum], total energy],
+    /// Computes entropy variables according to Chan 2018, eq. 119
     std::array<real,nstate> compute_entropy_variables (
                 const std::array<real,nstate> &conservative_soln) const;
 
-    /// Computes the conservative variables from the entropy variables.
+    /// Computes the conservative variables [density, [momentum], total energy
+    /// from the entropy variables according to Chan 2018, eq. 120
     std::array<real,nstate> compute_conservative_variables_from_entropy_variables (
                 const std::array<real,nstate> &entropy_var) const;
 

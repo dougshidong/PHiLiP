@@ -369,7 +369,7 @@ dealii::LinearAlgebra::distributed::Vector<double> EntropyRRKODESolver<dim,real,
                 soln_state[istate] = soln_at_q[istate][iquad];
             }
 
-            std::array<double,nstate> entropy_var = euler_physics->convert_conservative_to_entropy(soln_state);
+            std::array<double,nstate> entropy_var = euler_physics->compute_entropy_variables(soln_state);
 
             for(unsigned int istate=0; istate<nstate; istate++){
                 if(iquad==0)

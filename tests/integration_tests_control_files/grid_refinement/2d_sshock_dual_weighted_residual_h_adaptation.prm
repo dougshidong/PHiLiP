@@ -25,7 +25,7 @@ end
 subsection mesh adaptation
     set total_mesh_adaptation_cycles = 4
     set mesh_adaptation_type = h_adaptation
-    set h_refine_fraction = 0.05
+    set refine_fraction = 0.05
     set h_coarsen_fraction = 0.025
     set use_goal_oriented_mesh_adaptation = true
 end

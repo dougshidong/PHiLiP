@@ -31,9 +31,6 @@ public:
     /// Destructor
     ~DGStrong();
 
-    /// Allocates the auxiliary equations' variables and RHS.
-    void allocate_auxiliary_equation ();
-
     /// Assembles the auxiliary equations' residuals and solves for the auxiliary variables.
     void assemble_auxiliary_residual ();
 
@@ -45,6 +42,7 @@ private:
         const DoFCellAccessorType2 &current_metric_cell,
         std::vector<dealii::LinearAlgebra::distributed::Vector<double>> &rhs);
 
+protected:
     /// Builds the necessary operators and assembles volume residual for either primary or auxiliary.
     void assemble_volume_term_and_build_operators(
         typename dealii::DoFHandler<dim>::active_cell_iterator cell,
@@ -64,7 +62,7 @@ private:
         const dealii::FESystem<dim,dim>                        &/*current_fe_ref*/,
         dealii::Vector<real>                                   &local_rhs_int_cell,
         std::vector<dealii::Tensor<1,dim,real>>                &local_auxiliary_RHS,
-        const bool                                             compute_Auxiliary_RHS,
+        const bool                                             compute_auxiliary_right_hand_side,
         const bool /*compute_dRdW*/, const bool /*compute_dRdX*/, const bool /*compute_d2R*/);
 
     /// Builds the necessary operators and assembles boundary residual for either primary or auxiliary.
@@ -88,7 +86,7 @@ private:
         const dealii::FESystem<dim,dim>                        &/*current_fe_ref*/,
         dealii::Vector<real>                                   &local_rhs_int_cell,
         std::vector<dealii::Tensor<1,dim,real>>                &local_auxiliary_RHS,
-        const bool                                             compute_Auxiliary_RHS,
+        const bool                                             compute_auxiliary_right_hand_side,
         const bool /*compute_dRdW*/, const bool /*compute_dRdX*/, const bool /*compute_d2R*/);
 
     /// Builds the necessary operators and assembles face residual.
@@ -124,7 +122,7 @@ private:
         std::vector<dealii::Tensor<1,dim,real>>                &current_cell_rhs_aux,
         dealii::LinearAlgebra::distributed::Vector<double>     &rhs,
         std::array<dealii::LinearAlgebra::distributed::Vector<double>,dim> &rhs_aux,
-        const bool                                             compute_Auxiliary_RHS,
+        const bool                                             compute_auxiliary_right_hand_side,
         const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R);
 
     /// Builds the necessary operators and assembles subface residual.
@@ -163,9 +161,10 @@ private:
         std::vector<dealii::Tensor<1,dim,real>>                &current_cell_rhs_aux,
         dealii::LinearAlgebra::distributed::Vector<double>     &rhs,
         std::array<dealii::LinearAlgebra::distributed::Vector<double>,dim> &rhs_aux,
-        const bool                                             compute_Auxiliary_RHS,
+        const bool                                             compute_auxiliary_right_hand_side,
         const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R);
 
+public:
     ///Evaluate the volume RHS for the auxiliary equation.
     /** \f[
     * \int_{\mathbf{\Omega}_r} \chi_i(\mathbf{\xi}^r) \left( \nabla^r(u) \right)\mathbf{C}_m(\mathbf{\xi}^r) d\mathbf{\Omega}_r,\:\forall i=1,\dots,N_p.
@@ -179,6 +178,7 @@ private:
         OPERATOR::metric_operators<real,dim,2*dim>         &metric_oper,
         std::vector<dealii::Tensor<1,dim,real>>            &local_auxiliary_RHS);
 
+protected:
     /// Evaluate the boundary RHS for the auxiliary equation.
     void assemble_boundary_term_auxiliary_equation(
         const unsigned int                                 iface,
@@ -190,13 +190,14 @@ private:
         OPERATOR::metric_operators<real,dim,2*dim>         &metric_oper,
         std::vector<dealii::Tensor<1,dim,real>>            &local_auxiliary_RHS);
 
+public:
     /// Evaluate the facet RHS for the auxiliary equation.
     /** \f[
     * \int_{\mathbf{\Gamma}_r} \chi_i \left( \hat{\mathbf{n}}^r\mathbf{C}_m(\mathbf{\xi}^r)^T\right) \cdot \left[ u^*  
     * - u\right]d\mathbf{\Gamma}_r,\:\forall i=1,\dots,N_p.
     * \f]
     */
-    void assemble_face_term_auxiliary(
+    void assemble_face_term_auxiliary_equation(
         const unsigned int                                 iface, 
         const unsigned int                                 neighbor_iface,
         const dealii::types::global_dof_index              current_cell_index,
@@ -211,7 +212,7 @@ private:
         std::vector<dealii::Tensor<1,dim,real>>            &local_auxiliary_RHS_int,
         std::vector<dealii::Tensor<1,dim,real>>            &local_auxiliary_RHS_ext);
 
-
+protected:
     /// Strong form primary equation's volume right-hand-side.
     /**  We refer to Cicchino, Alexander, et al. "Provably stable flux reconstruction high-order methods on curvilinear elements." Journal of Computational Physics 463 (2022): 111259.
     * Conservative form Eq. (17): <br>
@@ -282,9 +283,10 @@ private:
         dealii::Vector<real>                               &local_rhs_int_cell,
         dealii::Vector<real>                               &local_rhs_ext_cell);
 
+protected:
     /// Evaluate the integral over the cell volume and the specified derivatives.
     /** Compute both the right-hand side and the corresponding block of dRdW, dRdX, and/or d2R. */
-    virtual void assemble_volume_term_derivatives(
+    void assemble_volume_term_derivatives(
         typename dealii::DoFHandler<dim>::active_cell_iterator cell,
         const dealii::types::global_dof_index current_cell_index,
         const dealii::FEValues<dim,dim> &,//fe_values_vol,

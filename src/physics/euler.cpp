@@ -192,28 +192,6 @@ inline std::array<real,nstate> Euler<dim,nstate,real>
     return conservative_soln;
 }
 
-template <int dim, int nstate, typename real>
-inline std::array<real,nstate> Euler<dim,nstate,real>
-::convert_conservative_to_entropy ( const std::array<real,nstate> &conservative_soln ) const
-{
-    const real pressure = compute_pressure<real>(conservative_soln);
-    const real density = conservative_soln[0];
-    const real vel2 = compute_velocity_squared(compute_velocities(conservative_soln));
-
-    real entropy = pressure * pow(density, -gam);
-    if (entropy > 0)    entropy = log( entropy );
-    else                entropy = BIG_NUMBER;
-
-    std::array<real, nstate> entropy_var;
-    entropy_var[0] = (gam-entropy)/(gamm1) - 0.5 * density / pressure * vel2;
-    for(int idim=0; idim<dim; ++idim) {
-        entropy_var[idim+1] = conservative_soln[idim+1] / pressure;
-    }
-    entropy_var[nstate-1] = -density / pressure;
-
-    return entropy_var;
-}
-
 //template <int dim, int nstate, typename real>
 //inline dealii::Tensor<1,dim,double> Euler<dim,nstate,real>::compute_velocities_inf() const
 //{
@@ -535,7 +513,7 @@ std::array<dealii::Tensor<1,dim,real>,nstate> Euler<dim, nstate, real>
         conv_num_split_flux[nstate-1][flux_dim] = rho_log * vel_avg[flux_dim] * enthalpy_hat;
     }
 
-   return conv_num_split_flux; 
+   return conv_num_split_flux;
 
 }
 template <int dim, int nstate, typename real>
@@ -585,7 +563,7 @@ std::array<dealii::Tensor<1,dim,real>,nstate> Euler<dim, nstate, real>
         conv_num_split_flux[nstate-1][flux_dim] -= ( 0.5 *(pressure1*vel1[flux_dim] + pressure2*vel2[flux_dim]));
     }
 
-   return conv_num_split_flux; 
+   return conv_num_split_flux;
 
 }
 
@@ -598,13 +576,13 @@ real Euler<dim, nstate, real>
     const real zeta = val1/val2;
     const real f = (zeta-1.0)/(zeta+1.0);
     const real u = f*f;
-    
+
     real F;
-    if(u<1.0e-2){ F = 1.0 + u/3.0 + u*u/5.0 + u*u*u/7.0; } 
-    else { 
-        if constexpr(std::is_same<real,double>::value) F = std::log(zeta)/2.0/f; 
+    if(u<1.0e-2){ F = 1.0 + u/3.0 + u*u/5.0 + u*u*u/7.0; }
+    else {
+        if constexpr(std::is_same<real,double>::value) F = std::log(zeta)/2.0/f;
     }
-    
+
     const real log_mean_val = (val1+val2)/(2.0*F);
 
     return log_mean_val;
@@ -687,7 +665,11 @@ std::array<real,nstate> Euler<dim, nstate, real>
     std::array<real,nstate> entropy_var;
     const real density = conservative_soln[0];
     const real pressure = compute_pressure<real>(conservative_soln);
-    const real entropy = log(pressure) - gam * log(density);
+
+    real entropy = pressure * pow(density, -gam);
+    if (entropy > 0)    entropy = log( entropy );
+    else                entropy = BIG_NUMBER;
+
     const real rho_theta = pressure / gamm1;
 
     entropy_var[0] = (rho_theta *(gam + 1.0 - entropy) - conservative_soln[nstate-1])/rho_theta;
@@ -1156,7 +1138,7 @@ void Euler<dim,nstate,real>
         for (int istate=0; istate<nstate; ++istate) {
             soln_bc[istate] = soln_int[istate];
         }
-    } 
+    }
     else {
         const std::array<real,nstate> primitive_interior_values = convert_conservative_to_primitive<real>(soln_int);
         const real pressure_int = primitive_interior_values[nstate-1];
@@ -1257,7 +1239,7 @@ void Euler<dim,nstate,real>
 
       //std::cout << " entropy_bc " << compute_entropy_measure(soln_bc) << "entropy_inf" << entropy_inf << std::endl;
 
-   } 
+   }
    else {
       // Supersonic inflow, sec 2.9
 
@@ -1321,32 +1303,32 @@ void Euler<dim,nstate,real>
     if (boundary_type == 1000) {
         // Manufactured solution boundary condition
         boundary_manufactured_solution (pos, normal_int, soln_int, soln_grad_int, soln_bc, soln_grad_bc);
-    } 
+    }
     else if (boundary_type == 1001) {
         // Wall boundary condition (slip for Euler, no-slip for Navier-Stokes; done through polymorphism)
         boundary_wall (normal_int, soln_int, soln_grad_int, soln_bc, soln_grad_bc);
-    } 
+    }
     else if (boundary_type == 1002) {
         // Pressure outflow boundary condition (back pressure)
         const real back_pressure = 0.99;
         boundary_pressure_outflow (total_inlet_pressure, back_pressure, soln_int, soln_bc);
-    } 
+    }
     else if (boundary_type == 1003) {
         // Inflow boundary condition
         boundary_inflow (total_inlet_pressure, total_inlet_temperature, normal_int, soln_int, soln_bc);
-    } 
+    }
     else if (boundary_type == 1004) {
         // Riemann-based farfield boundary condition
         boundary_riemann (normal_int, soln_int, soln_bc);
-    } 
+    }
     else if (boundary_type == 1005) {
         // Simple farfield boundary condition
         boundary_farfield(soln_bc);
-    } 
+    }
     else if (boundary_type == 1006) {
         // Slip wall boundary condition
         boundary_slip_wall (normal_int, soln_int, soln_grad_int, soln_bc, soln_grad_bc);
-    } 
+    }
     else {
         std::cout << "Invalid boundary_type: " << boundary_type << std::endl;
         std::abort();

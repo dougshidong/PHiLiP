@@ -582,8 +582,8 @@ std::array<dealii::Tensor<1,dim,real>,nstate> Euler<dim, nstate, real>
     }
 
    return conv_num_split_flux; 
-
 }
+
 template <int dim, int nstate, typename real>
 std::array<dealii::Tensor<1,dim,real>,nstate> Euler<dim, nstate, real>
 ::convective_numerical_split_flux_ranocha(const std::array<real,nstate> &conservative_soln1,

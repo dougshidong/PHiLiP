@@ -2,6 +2,8 @@
 #include <cmath>
 #include <vector>
 #include <stdlib.h>
+#include <deal.II/base/utilities.h>
+#include <deal.II/base/mpi.h>
 
 #include "ADTypes.hpp"
 
@@ -52,12 +54,13 @@ PhysicsBase<dim,nstate,real>::PhysicsBase(
 
 template <int dim, int nstate, typename real>
 std::array<dealii::Tensor<1,dim,real>,nstate> PhysicsBase<dim,nstate,real>::convective_numerical_split_flux (
-    const std::array<real,nstate> &conservative_soln1,
+    const std::array<real,nstate> &/*conservative_soln1*/,
     const std::array<real,nstate> &/*conservative_soln2*/) const
 {
     pcout << "ERROR: convective_numerical_split_flux() has not yet been implemented. Aborting..." <<std::flush;
     std::abort();
-    return conservative_soln1;
+    std::array<dealii::Tensor<1,dim,real>,nstate> dummy;
+    return dummy;
 }
 
 template <int dim, int nstate, typename real>

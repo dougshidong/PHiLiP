@@ -5,6 +5,7 @@
 #include <deal.II/numerics/data_component_interpretation.h>
 #include <deal.II/fe/fe_update_flags.h>
 #include <deal.II/base/types.h>
+#include <deal.II/base/conditional_ostream.h>
 
 #include "parameters/all_parameters.h"
 #include "parameters/parameters_manufactured_solution.h"
@@ -161,13 +162,16 @@ public:
      */
     virtual dealii::UpdateFlags post_get_needed_update_flags () const;
 protected:
+    /// ConditionalOStream.
+    /** Used as std::cout, but only prints if mpi_rank == 0
+     */
+    dealii::ConditionalOStream pcout;
+
     /// Anisotropic diffusion matrix
     /** As long as the diagonal components are positive and diagonally dominant
      *  we should have a stable diffusive system
      */
     dealii::Tensor<2,dim,double> diffusion_tensor;
-
-    const MPI_Comm mpi_communicator; ///< MPI communicator.
 };
 } // Physics namespace
 } // PHiLiP namespace

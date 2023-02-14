@@ -325,42 +325,6 @@ std::array<dealii::Tensor<1,dim,real>,nstate> MHD<dim,nstate,real>
 }
 
 template <int dim, int nstate, typename real>
-std::array<dealii::Tensor<1,dim,real>,nstate> MHD<dim, nstate, real>
-::convective_numerical_split_flux(const std::array<real,nstate> &soln_const,
-                                  const std::array<real,nstate> &soln_loop) const
-{
-    std::array<dealii::Tensor<1,dim,real>,nstate> conv_num_split_flux;
-    const real mean_density = compute_mean_density(soln_const, soln_loop);
-    const real mean_pressure = compute_mean_pressure(soln_const, soln_loop);
-    const dealii::Tensor<1,dim,real> mean_velocities = compute_mean_velocities(soln_const,soln_loop);
-    const real mean_specific_energy = compute_mean_specific_energy(soln_const, soln_loop);
-
-    for (int flux_dim = 0; flux_dim < dim; ++flux_dim)
-    {
-        // Density equation
-        conv_num_split_flux[0][flux_dim] = mean_density * mean_velocities[flux_dim];//conservative_soln[1+flux_dim];
-        // Momentum equation
-        for (int velocity_dim=0; velocity_dim<dim; ++velocity_dim){
-            conv_num_split_flux[1+velocity_dim][flux_dim] = mean_density*mean_velocities[flux_dim]*mean_velocities[velocity_dim];
-        }
-        conv_num_split_flux[1+flux_dim][flux_dim] += mean_pressure; // Add diagonal of pressure
-        // Energy equation
-        conv_num_split_flux[nstate-1][flux_dim] = mean_density*mean_velocities[flux_dim]*mean_specific_energy + mean_pressure * mean_velocities[flux_dim];
-    }
-
-    return conv_num_split_flux;
-}
-
-template <int dim, int nstate, typename real>
-real MHD<dim, nstate, real>
-::convective_surface_numerical_split_flux (
-                const real &/*surface_flux*/,
-                const real &flux_interp_to_surface) const
-{
-    return flux_interp_to_surface;
-}
-
-template <int dim, int nstate, typename real>
 std::array<real,nstate> MHD<dim, nstate, real>
 ::compute_entropy_variables (
     const std::array<real,nstate> &conservative_soln) const

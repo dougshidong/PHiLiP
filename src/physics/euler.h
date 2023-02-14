@@ -280,12 +280,12 @@ public:
     /// The Euler split form is that of Kennedy & Gruber or Ismail & Roe.
     std::array<dealii::Tensor<1,dim,real>,nstate> convective_numerical_split_flux (
         const std::array<real,nstate> &conservative_soln1,
-        const std::array<real,nstate> &conservative_soln2) const;
+        const std::array<real,nstate> &conservative_soln2) const override;
 
     /// Convective Numerical Split Flux for split form
     real convective_surface_numerical_split_flux (
                 const real &surface_flux,
-                const real &flux_interp_to_surface) const;
+                const real &flux_interp_to_surface) const override;
 
     /// Computes the entropy variables.
     /// Given conservative variables [density, [momentum], total energy],

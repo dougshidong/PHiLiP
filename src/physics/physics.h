@@ -60,12 +60,12 @@ public:
     /// Convective Numerical Split Flux for split form
     virtual std::array<dealii::Tensor<1,dim,real>,nstate> convective_numerical_split_flux (
         const std::array<real,nstate> &conservative_soln1,
-        const std::array<real,nstate> &conservative_soln2) const = 0;
+        const std::array<real,nstate> &conservative_soln2) const;
 
     /// Convective Numerical Split Flux for split form
     virtual real convective_surface_numerical_split_flux (
                 const real &surface_flux,
-                const real &flux_interp_to_surface) const = 0;
+                const real &flux_interp_to_surface) const;
 
     /// Computes the entropy variables.
     virtual std::array<real,nstate> compute_entropy_variables (
@@ -167,6 +167,7 @@ protected:
      */
     dealii::Tensor<2,dim,double> diffusion_tensor;
 
+    const MPI_Comm mpi_communicator; ///< MPI communicator.
 };
 } // Physics namespace
 } // PHiLiP namespace

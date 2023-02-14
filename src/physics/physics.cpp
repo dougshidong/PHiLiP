@@ -1,6 +1,7 @@
 #include <assert.h>
 #include <cmath>
 #include <vector>
+#include <stdlib.h>
 
 #include "ADTypes.hpp"
 
@@ -16,6 +17,7 @@ PhysicsBase<dim,nstate,real>::PhysicsBase(
     std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function_input)
     : has_nonzero_diffusion(has_nonzero_diffusion_input)
     , manufactured_solution_function(manufactured_solution_function_input)
+    , pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD)==0)
 {
     // if provided with a null ptr, give it the default manufactured solution
     // currently only necessary for the unit test
@@ -47,6 +49,26 @@ PhysicsBase<dim,nstate,real>::PhysicsBase(
         Parameters::ManufacturedSolutionParam::get_default_diffusion_tensor(),
         manufactured_solution_function_input)
 { }
+
+template <int dim, int nstate, typename real>
+std::array<dealii::Tensor<1,dim,real>,nstate> PhysicsBase<dim,nstate,real>::convective_numerical_split_flux (
+    const std::array<real,nstate> &conservative_soln1,
+    const std::array<real,nstate> &/*conservative_soln2*/) const
+{
+    pcout << "ERROR: convective_numerical_split_flux() has not yet been implemented. Aborting..." <<std::flush;
+    std::abort();
+    return conservative_soln1;
+}
+
+template <int dim, int nstate, typename real>
+real PhysicsBase<dim,nstate,real>::convective_surface_numerical_split_flux (
+    const real &surface_flux,
+    const real &/*flux_interp_to_surface*/) const
+{
+    pcout << "ERROR: convective_surface_numerical_split_flux() has not yet been implemented. Aborting..." <<std::flush;
+    std::abort();
+    return surface_flux;
+}
 
 /*
 template <int dim, int nstate, typename real>

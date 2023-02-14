@@ -9,10 +9,10 @@ namespace Parameters {
 void print_usage_message (dealii::ParameterHandler &prm);
 
 void parse_command_line (const int argc, char *const *argv,
-                         dealii::ParameterHandler &parameter_handler)
+                         std::vector<dealii::ParameterHandler> &parameter_handler)
 {
     if (argc < 2) {
-        print_usage_message (parameter_handler);
+        print_usage_message (parameter_handler[0]);
         exit (1);
     }
     std::list<std::string> args;
@@ -27,30 +27,33 @@ void parse_command_line (const int argc, char *const *argv,
                 std::cerr << "Error: flag '-i' must be followed by the "
                           << "name of a parameter file."
                           << std::endl;
-                print_usage_message (parameter_handler);
+                print_usage_message (parameter_handler[0]);
                 exit (1);
             }
             args.pop_front ();
-            const std::string input_file_name = args.front ();
-            args.pop_front ();
-            try {
-                parameter_handler.parse_input(input_file_name);
-            }
-            catch (std::exception &exc)
-            {
-                std::cerr << std::endl << std::endl
-                          << "----------------------------------------------------"
-                          << std::endl;
-                std::cerr << "Error: unable to parse parameter file named "
-                          << input_file_name
-                          << std::endl;
-                std::cerr << "Exception on processing: " << std::endl
-                          << exc.what() << std::endl
-                          << "Aborting!" << std::endl
-                          << "----------------------------------------------------"
-                          << std::endl;
-                print_usage_message (parameter_handler);
-                exit (1);
+            const int number_of_parameter_file = args.size();
+            for (int i=0;i<number_of_parameter_file;++i){
+                const std::string input_file_name = args.front ();
+                args.pop_front ();
+                try {
+                    parameter_handler[i].parse_input(input_file_name);
+                }
+                catch (std::exception &exc)
+                {
+                    std::cerr << std::endl << std::endl
+                              << "----------------------------------------------------"
+                              << std::endl;
+                    std::cerr << "Error: unable to parse parameter file named "
+                              << input_file_name
+                              << std::endl;
+                    std::cerr << "Exception on processing: " << std::endl
+                              << exc.what() << std::endl
+                              << "Aborting!" << std::endl
+                              << "----------------------------------------------------"
+                              << std::endl;
+                    print_usage_message (parameter_handler[i]);
+                    exit (1);
+                }
             }
 
         } else {
@@ -58,7 +61,7 @@ void parse_command_line (const int argc, char *const *argv,
                      << args.front()
                      << "'"
                      << std::endl;
-            print_usage_message (parameter_handler);
+            print_usage_message (parameter_handler[0]);
             exit (1);
         }
 

@@ -22,52 +22,52 @@ namespace FlowSolver {
 template <int dim, int nstate>
 std::unique_ptr < FlowSolver<dim,nstate> >
 FlowSolverFactory<dim,nstate>
-::select_flow_case(const Parameters::AllParameters *const parameters_input,
-                   const dealii::ParameterHandler &parameter_handler_input)
+::select_flow_case(const std::vector<Parameters::AllParameters*> parameters_input,
+                   const std::vector<dealii::ParameterHandler> &parameter_handler_input)
 {
     // Get the flow case type
     using FlowCaseEnum = Parameters::FlowSolverParam::FlowCaseType;
-    const FlowCaseEnum flow_type = parameters_input->flow_solver_param.flow_case_type;
+    const FlowCaseEnum flow_type = parameters_input[0]->flow_solver_param.flow_case_type;
     if (flow_type == FlowCaseEnum::taylor_green_vortex){
         if constexpr (dim==3 && nstate==dim+2){
-            std::shared_ptr<FlowSolverCaseBase<dim, nstate>> flow_solver_case = std::make_shared<PeriodicTurbulence<dim,nstate>>(parameters_input);
-            return std::make_unique<FlowSolver<dim,nstate>>(parameters_input, flow_solver_case, parameter_handler_input);
+            std::shared_ptr<FlowSolverCaseBase<dim, nstate>> flow_solver_case = std::make_shared<PeriodicTurbulence<dim,nstate>>(parameters_input[0]);
+            return std::make_unique<FlowSolver<dim,nstate>>(parameters_input[0], flow_solver_case, parameter_handler_input[0]);
         }
     } else if (flow_type == FlowCaseEnum::burgers_viscous_snapshot){
         if constexpr (dim==1 && nstate==dim) {
-            std::shared_ptr<FlowSolverCaseBase<dim, nstate>> flow_solver_case = std::make_shared<BurgersViscousSnapshot<dim,nstate>>(parameters_input);
-            return std::make_unique<FlowSolver<dim,nstate>>(parameters_input, flow_solver_case, parameter_handler_input);
+            std::shared_ptr<FlowSolverCaseBase<dim, nstate>> flow_solver_case = std::make_shared<BurgersViscousSnapshot<dim,nstate>>(parameters_input[0]);
+            return std::make_unique<FlowSolver<dim,nstate>>(parameters_input[0], flow_solver_case, parameter_handler_input[0]);
         }
     } else if (flow_type == FlowCaseEnum::burgers_rewienski_snapshot){
         if constexpr (dim==1 && nstate==dim){
-            std::shared_ptr<FlowSolverCaseBase<dim, nstate>> flow_solver_case = std::make_shared<BurgersRewienskiSnapshot<dim,nstate>>(parameters_input);
-            return std::make_unique<FlowSolver<dim,nstate>>(parameters_input, flow_solver_case, parameter_handler_input);
+            std::shared_ptr<FlowSolverCaseBase<dim, nstate>> flow_solver_case = std::make_shared<BurgersRewienskiSnapshot<dim,nstate>>(parameters_input[0]);
+            return std::make_unique<FlowSolver<dim,nstate>>(parameters_input[0], flow_solver_case, parameter_handler_input[0]);
         }
     } else if (flow_type == FlowCaseEnum::naca0012){
         if constexpr (dim==2 && nstate==dim+2){
-            std::shared_ptr<FlowSolverCaseBase<dim, nstate>> flow_solver_case = std::make_shared<NACA0012<dim,nstate>>(parameters_input);
-            return std::make_unique<FlowSolver<dim,nstate>>(parameters_input, flow_solver_case, parameter_handler_input);
+            std::shared_ptr<FlowSolverCaseBase<dim, nstate>> flow_solver_case = std::make_shared<NACA0012<dim,nstate>>(parameters_input[0]);
+            return std::make_unique<FlowSolver<dim,nstate>>(parameters_input[0], flow_solver_case, parameter_handler_input[0]);
         }
     } else if (flow_type == FlowCaseEnum::periodic_1D_unsteady){
         if constexpr (dim==1 && nstate==dim){
-            std::shared_ptr<FlowSolverCaseBase<dim, nstate>> flow_solver_case = std::make_shared<Periodic1DUnsteady<dim,nstate>>(parameters_input);
-            return std::make_unique<FlowSolver<dim,nstate>>(parameters_input, flow_solver_case, parameter_handler_input);
+            std::shared_ptr<FlowSolverCaseBase<dim, nstate>> flow_solver_case = std::make_shared<Periodic1DUnsteady<dim,nstate>>(parameters_input[0]);
+            return std::make_unique<FlowSolver<dim,nstate>>(parameters_input[0], flow_solver_case, parameter_handler_input[0]);
         }
     } else if (flow_type == FlowCaseEnum::gaussian_bump){
         if constexpr (dim==2 && nstate==dim+2){
-            std::shared_ptr<FlowSolverCaseBase<dim, nstate>> flow_solver_case = std::make_shared<GaussianBump<dim, nstate>>(parameters_input);
-            return std::make_unique<FlowSolver<dim, nstate>>(parameters_input, flow_solver_case, parameter_handler_input);
+            std::shared_ptr<FlowSolverCaseBase<dim, nstate>> flow_solver_case = std::make_shared<GaussianBump<dim, nstate>>(parameters_input[0]);
+            return std::make_unique<FlowSolver<dim, nstate>>(parameters_input[0], flow_solver_case, parameter_handler_input[0]);
         }
     } else if (flow_type == FlowCaseEnum::sshock){
         if constexpr (dim==2 && nstate==1){
-            std::shared_ptr<FlowSolverCaseBase<dim, nstate>> flow_solver_case = std::make_shared<NonPeriodicCubeFlow<dim, nstate>>(parameters_input);
-            return std::make_unique<FlowSolver<dim, nstate>>(parameters_input, flow_solver_case, parameter_handler_input);
+            std::shared_ptr<FlowSolverCaseBase<dim, nstate>> flow_solver_case = std::make_shared<NonPeriodicCubeFlow<dim, nstate>>(parameters_input[0]);
+            return std::make_unique<FlowSolver<dim, nstate>>(parameters_input[0], flow_solver_case, parameter_handler_input[0]);
         }
     } else if (flow_type == FlowCaseEnum::wall_distance_evaluation){
         if constexpr (dim==2 && nstate==1){
-            std::shared_ptr<FlowSolverCaseBase<dim, nstate>> flow_solver_case = std::make_shared<WallCube<dim, nstate>>(parameters_input);
-            //std::shared_ptr<FlowSolverCaseBase<dim, nstate>> flow_solver_case = std::make_shared<NACA0012<dim,nstate>>(parameters_input);
-            return std::make_unique<FlowSolver<dim, nstate>>(parameters_input, flow_solver_case, parameter_handler_input);
+            std::shared_ptr<FlowSolverCaseBase<dim, nstate>> flow_solver_case = std::make_shared<WallCube<dim, nstate>>(parameters_input[0]);
+            //std::shared_ptr<FlowSolverCaseBase<dim, nstate>> flow_solver_case = std::make_shared<NACA0012<dim,nstate>>(parameters_input[0]);
+            return std::make_unique<FlowSolver<dim, nstate>>(parameters_input[0], flow_solver_case, parameter_handler_input[0]);
         }
     } else {
         std::cout << "Invalid flow case. You probably forgot to add it to the list of flow cases in flow_solver.cpp" << std::endl;
@@ -78,18 +78,18 @@ FlowSolverFactory<dim,nstate>
 
 template<int dim, int nstate>
 std::unique_ptr< FlowSolverBase > FlowSolverFactory<dim,nstate>
-::create_flow_solver(const Parameters::AllParameters *const parameters_input,
-                     const dealii::ParameterHandler &parameter_handler_input)
+::create_flow_solver(const std::vector<Parameters::AllParameters*> &parameters_input,
+                     const std::vector<dealii::ParameterHandler> &parameter_handler_input)
 {
     // Recursive templating required because template parameters must be compile time constants
     // As a results, this recursive template initializes all possible dimensions with all possible nstate
     // without having 15 different if-else statements
-    if(dim == parameters_input->dimension)
+    if(dim == parameters_input[0]->dimension)
     {
         // This template parameters dim and nstate match the runtime parameters
         // then create the selected flow case with template parameters dim and nstate
         // Otherwise, keep decreasing nstate and dim until it matches
-        if(nstate == parameters_input->nstate) 
+        if(nstate == parameters_input[0]->nstate) 
             return FlowSolverFactory<dim,nstate>::select_flow_case(parameters_input,parameter_handler_input);
         else if constexpr (nstate > 1)
             return FlowSolverFactory<dim,nstate-1>::create_flow_solver(parameters_input,parameter_handler_input);

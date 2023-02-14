@@ -295,80 +295,109 @@ double PeriodicTurbulence<dim, nstate>::get_deviatoric_strain_rate_tensor_based_
 }
 
 template<int dim, int nstate>
-double PeriodicTurbulence<dim, nstate>::get_numerical_entropy(const std::shared_ptr <DGBase<dim, double>> dg) const
+double PeriodicTurbulence<dim, nstate>::get_numerical_entropy(
+        const std::shared_ptr <DGBase<dim, double>> dg
+        ) const
 {
     const double poly_degree = this->all_param.flow_solver_param.poly_degree;
-    dealii::LinearAlgebra::distributed::Vector<double> mass_matrix_times_solution(dg->right_hand_side);
-    if(this->all_param.use_inverse_mass_on_the_fly){
-            dg->apply_global_mass_matrix(dg->solution,mass_matrix_times_solution);
-    } else {
-        dg->global_mass_matrix.vmult( mass_matrix_times_solution, dg->solution);
-    }
 
     const unsigned int n_dofs_cell = dg->fe_collection[poly_degree].dofs_per_cell;
     const unsigned int n_quad_pts = dg->volume_quadrature_collection[poly_degree].size();
     const unsigned int n_shape_fns = n_dofs_cell / nstate;
-    // We have to project the vector of entropy variables because the mass matrix has an interpolation from solution nodes built into it.
+
     OPERATOR::vol_projection_operator<dim,2*dim> vol_projection(1, poly_degree, dg->max_grid_degree);
     vol_projection.build_1D_volume_operator(dg->oneD_fe_collection_1state[poly_degree], dg->oneD_quadrature_collection[poly_degree]);
 
+    // Construct the basis functions and mapping shape functions.
     OPERATOR::basis_functions<dim,2*dim> soln_basis(1, poly_degree, dg->max_grid_degree); 
     soln_basis.build_1D_volume_operator(dg->oneD_fe_collection_1state[poly_degree], dg->oneD_quadrature_collection[poly_degree]);
 
-    dealii::LinearAlgebra::distributed::Vector<double> entropy_var_hat_global(dg->right_hand_side);
-    std::vector<dealii::types::global_dof_index> dofs_indices (n_dofs_cell);
+    OPERATOR::mapping_shape_functions<dim,2*dim> mapping_basis(1, poly_degree, dg->max_grid_degree);
+    mapping_basis.build_1D_shape_functions_at_grid_nodes(dg->high_order_grid->oneD_fe_system, dg->high_order_grid->oneD_grid_nodes);
+    mapping_basis.build_1D_shape_functions_at_flux_nodes(dg->high_order_grid->oneD_fe_system, dg->oneD_quadrature_collection[poly_degree], dg->oneD_face_quadrature);
 
-    for (auto cell = dg->dof_handler.begin_active(); cell!=dg->dof_handler.end(); ++cell) {
+    std::vector<dealii::types::global_dof_index> dofs_indices (n_dofs_cell);
+    
+    double integrand_numerical_entropy_function=0;
+    double integral_numerical_entropy_function=0;
+    const std::vector<double> &quad_weights = dg->volume_quadrature_collection[poly_degree].get_weights();
+    std::shared_ptr < Physics::Euler<dim, nstate, double > > euler_physics = std::dynamic_pointer_cast<Physics::Euler<dim,dim+2,double>>(PHiLiP::Physics::PhysicsFactory<dim,nstate,double>::create_Physics(dg->all_parameters));
+
+    auto metric_cell = dg->high_order_grid->dof_handler_grid.begin_active();
+    // Changed for loop to update metric_cell.
+    for (auto cell = dg->dof_handler.begin_active(); cell!= dg->dof_handler.end(); ++cell, ++metric_cell) {
         if (!cell->is_locally_owned()) continue;
         cell->get_dof_indices (dofs_indices);
+        
+        // We first need to extract the mapping support points (grid nodes) from high_order_grid.
+        const dealii::FESystem<dim> &fe_metric = dg->high_order_grid->fe_system;
+        const unsigned int n_metric_dofs = fe_metric.dofs_per_cell;
+        const unsigned int n_grid_nodes  = n_metric_dofs / dim;
+        std::vector<dealii::types::global_dof_index> metric_dof_indices(n_metric_dofs);
+        metric_cell->get_dof_indices (metric_dof_indices);
+        std::array<std::vector<double>,dim> mapping_support_points;
+        for(int idim=0; idim<dim; idim++){
+            mapping_support_points[idim].resize(n_grid_nodes);
+        }
+        // Get the mapping support points (physical grid nodes) from high_order_grid.
+        // Store it in such a way we can use sum-factorization on it with the mapping basis functions.
+        const std::vector<unsigned int > &index_renumbering = dealii::FETools::hierarchic_to_lexicographic_numbering<dim>(dg->max_grid_degree);
+        for (unsigned int idof = 0; idof< n_metric_dofs; ++idof) {
+            const double val = (dg->high_order_grid->volume_nodes[metric_dof_indices[idof]]);
+            const unsigned int istate = fe_metric.system_to_component_index(idof).first; 
+            const unsigned int ishape = fe_metric.system_to_component_index(idof).second; 
+            const unsigned int igrid_node = index_renumbering[ishape];
+            mapping_support_points[istate][igrid_node] = val; 
+        }
+        // Construct the metric operators.
+        OPERATOR::metric_operators<double, dim, 2*dim> metric_oper(nstate, poly_degree, dg->max_grid_degree, false, false);
+        // Build the metric terms to compute the gradient and volume node positions.
+        // This functions will compute the determinant of the metric Jacobian and metric cofactor matrix. 
+        // If flags store_vol_flux_nodes and store_surf_flux_nodes set as true it will also compute the physical quadrature positions.
+        metric_oper.build_volume_metric_operators(
+            n_quad_pts, n_grid_nodes,
+            mapping_support_points,
+            mapping_basis,
+            dg->all_parameters->use_invariant_curl_form);
 
+        // Fetch the modal soln coefficients
+        // We immediately separate them by state as to be able to use sum-factorization
+        // in the interpolation operator. If we left it by n_dofs_cell, then the matrix-vector
+        // mult would sum the states at the quadrature point.
+        // That is why the basis functions are based off the 1state oneD fe_collection.
         std::array<std::vector<double>,nstate> soln_coeff;
-        for(unsigned int idof=0; idof<n_dofs_cell; idof++){
+        for (unsigned int idof = 0; idof < n_dofs_cell; ++idof) {
             const unsigned int istate = dg->fe_collection[poly_degree].system_to_component_index(idof).first;
             const unsigned int ishape = dg->fe_collection[poly_degree].system_to_component_index(idof).second;
-            if(ishape == 0)
+            if(ishape == 0){
                 soln_coeff[istate].resize(n_shape_fns);
+            }
             soln_coeff[istate][ishape] = dg->solution(dofs_indices[idof]);
         }
-
+        // Interpolate each state to the quadrature points using sum-factorization
+        // with the basis functions in each reference direction.
         std::array<std::vector<double>,nstate> soln_at_q;
         for(int istate=0; istate<nstate; istate++){
             soln_at_q[istate].resize(n_quad_pts);
+            // Interpolate soln coeff to volume cubature nodes.
             soln_basis.matrix_vector_mult_1D(soln_coeff[istate], soln_at_q[istate],
                                              soln_basis.oneD_vol_operator);
         }
-        std::array<std::vector<double>,nstate> entropy_var_at_q;
-        for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
+
+        // Loop over quadrature nodes, compute quantities to be integrated, and integrate them.
+        for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
+
             std::array<double,nstate> soln_state;
+            // Extract solution and gradient in a way that the physics ca n use them.
             for(int istate=0; istate<nstate; istate++){
                 soln_state[istate] = soln_at_q[istate][iquad];
             }
-
-            std::array<double,nstate> entropy_var = this->navier_stokes_physics->compute_entropy_variables(soln_state);
-            
-            for(int istate=0; istate<nstate; istate++){
-                if(iquad==0)
-                    entropy_var_at_q[istate].resize(n_quad_pts);
-                entropy_var_at_q[istate][iquad] = entropy_var[istate];
-            }
-        }
-        for(int istate=0; istate<nstate; istate++){
-            //Projected vector of entropy variables.
-            std::vector<double> entropy_var_hat(n_shape_fns);
-            vol_projection.matrix_vector_mult_1D(entropy_var_at_q[istate], entropy_var_hat,
-                                                 vol_projection.oneD_vol_operator);
-                                                
-            for(unsigned int ishape=0; ishape<n_shape_fns; ishape++){
-                const unsigned int idof = istate * n_shape_fns + ishape;
-                entropy_var_hat_global[dofs_indices[idof]] = entropy_var_hat[ishape];
-            }
+            integrand_numerical_entropy_function = this->navier_stokes_physics->compute_numerical_entropy_function(soln_state);
+            integral_numerical_entropy_function += integrand_numerical_entropy_function * quad_weights[iquad] * metric_oper.det_Jac_vol[iquad];
         }
     }
-
-    // Note that dot product accounts for MPI distributed vectors
-    // Therefore, there is no need for an MPI sum.
-    double entropy = entropy_var_hat_global * mass_matrix_times_solution;
-    return entropy;
+    // update integrated quantities and return
+    return dealii::Utilities::MPI::sum(integral_numerical_entropy_function, this->mpi_communicator);
 }
 
 template <int dim, int nstate>

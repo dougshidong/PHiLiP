@@ -148,6 +148,30 @@ std::array<real,nstate> LargeEddySimulationBase<dim,nstate,real>
 }
 //----------------------------------------------------------------
 template <int dim, int nstate, typename real>
+std::array<real,nstate> LargeEddySimulationBase<dim,nstate,real>
+::channel_flow_source_term (
+    const std::array<real,nstate> &conservative_soln) const
+{
+    std::array<real,nstate> source_term;
+    std::fill(source_term.begin(), source_term.end(), 0.0);
+
+    // get bulk velocity
+    const real density = conservative_soln[0];
+    const std::array<real,nstate> primitive_soln = this->navier_stokes_physics->convert_conservative_to_primitive(conservative_soln);
+    const real viscosity_coefficient = this->navier_stokes_physics->compute_viscosity_coefficient(primitive_soln);
+    const real bulk_velocity = viscosity_coefficient*this->channel_bulk_reynolds_number/(density*this->half_channel_height);
+    
+    // x-momentum term
+    source_term[1] = (this->integrated_density_over_domain*bulk_velocity - conservative_soln[1])/this->time_step;
+    
+    // energy term
+    const real x_velocity = primitive_soln[1];
+    source_term[nstate-1] = x_velocity*source_term[1];
+    
+    return source_term;
+}
+//----------------------------------------------------------------
+template <int dim, int nstate, typename real>
 double LargeEddySimulationBase<dim,nstate,real>
 ::get_filter_width (const dealii::types::global_dof_index cell_index) const
 { 

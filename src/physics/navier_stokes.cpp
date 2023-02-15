@@ -972,6 +972,12 @@ template RadFadType NavierStokes < PHILIP_DIM, PHILIP_DIM+2, RadFadType>::comput
 //------------------------------------------------------------------------------
 // -->Required templated member functions by classes derived from ModelBase
 //------------------------------------------------------------------------------
+// -- compute_viscosity_coefficient()
+template double     NavierStokes < PHILIP_DIM, PHILIP_DIM+2, double    >::compute_viscosity_coefficient< double     >(const std::array<double    ,PHILIP_DIM+2> &primitive_soln) const;
+template FadType    NavierStokes < PHILIP_DIM, PHILIP_DIM+2, FadType   >::compute_viscosity_coefficient< FadType    >(const std::array<FadType   ,PHILIP_DIM+2> &primitive_soln) const;
+template RadType    NavierStokes < PHILIP_DIM, PHILIP_DIM+2, RadType   >::compute_viscosity_coefficient< RadType    >(const std::array<RadType   ,PHILIP_DIM+2> &primitive_soln) const;
+template FadFadType NavierStokes < PHILIP_DIM, PHILIP_DIM+2, FadFadType>::compute_viscosity_coefficient< FadFadType >(const std::array<FadFadType,PHILIP_DIM+2> &primitive_soln) const;
+template RadFadType NavierStokes < PHILIP_DIM, PHILIP_DIM+2, RadFadType>::compute_viscosity_coefficient< RadFadType >(const std::array<RadFadType,PHILIP_DIM+2> &primitive_soln) const;
 // -- convert_conservative_gradient_to_primitive_gradient()
 template std::array<dealii::Tensor<1,PHILIP_DIM,double    >,PHILIP_DIM+2> NavierStokes<PHILIP_DIM,PHILIP_DIM+2,double    >::convert_conservative_gradient_to_primitive_gradient<double    >(const std::array<double    ,PHILIP_DIM+2> &conservative_soln, const std::array<dealii::Tensor<1,PHILIP_DIM,double    >,PHILIP_DIM+2> &conservative_soln_gradient) const;
 template std::array<dealii::Tensor<1,PHILIP_DIM,FadType   >,PHILIP_DIM+2> NavierStokes<PHILIP_DIM,PHILIP_DIM+2,FadType   >::convert_conservative_gradient_to_primitive_gradient<FadType   >(const std::array<FadType   ,PHILIP_DIM+2> &conservative_soln, const std::array<dealii::Tensor<1,PHILIP_DIM,FadType   >,PHILIP_DIM+2> &conservative_soln_gradient) const;

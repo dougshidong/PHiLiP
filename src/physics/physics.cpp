@@ -57,7 +57,7 @@ std::array<dealii::Tensor<1,dim,real>,nstate> PhysicsBase<dim,nstate,real>::conv
     const std::array<real,nstate> &/*conservative_soln1*/,
     const std::array<real,nstate> &/*conservative_soln2*/) const
 {
-    pcout << "ERROR: convective_numerical_split_flux() has not yet been implemented. Aborting..." <<std::flush;
+    pcout << "ERROR: convective_numerical_split_flux() has not yet been implemented for (overridden by) the selected PDE. Aborting..." <<std::flush;
     std::abort();
     std::array<dealii::Tensor<1,dim,real>,nstate> dummy;
     return dummy;
@@ -68,7 +68,7 @@ real PhysicsBase<dim,nstate,real>::convective_surface_numerical_split_flux (
     const real &surface_flux,
     const real &/*flux_interp_to_surface*/) const
 {
-    pcout << "ERROR: convective_surface_numerical_split_flux() has not yet been implemented. Aborting..." <<std::flush;
+    pcout << "ERROR: convective_surface_numerical_split_flux() has not yet been implemented for (overridden by) the selected PDE. Aborting..." <<std::flush;
     std::abort();
     return surface_flux;
 }

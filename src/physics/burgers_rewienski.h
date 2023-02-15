@@ -47,7 +47,8 @@ public:
     /// PDE Source term. If rewienski_manufactured_solution==true then the manufactured solution source term is also included.
     std::array<real,nstate> source_term (
             const dealii::Point<dim,real> &pos,
-            const std::array<real,nstate> &solution) const override;
+            const std::array<real,nstate> &solution,
+            const real current_time) const override;
 
     /// If diffusion is present, assign Dirichlet boundary condition
     void boundary_face_values (

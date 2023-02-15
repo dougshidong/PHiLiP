@@ -28,6 +28,7 @@
 #include "shock_1d.h"
 #include "euler_naca0012.hpp"
 #include "reduced_order.h"
+#include "convection_diffusion_explicit_periodic.h"
 #include "dual_weighted_residual_mesh_adaptation.h"
 #include "pod_adaptive_sampling.h"
 #include "pod_adaptive_sampling_testing.h"
@@ -36,6 +37,7 @@
 #include "time_refinement_study.h"
 #include "time_refinement_study_reference.h"
 #include "burgers_energy_conservation_rrk.h"
+#include "euler_ismail_roe_entropy_check.h"
 
 namespace PHiLiP {
 namespace Tests {
@@ -106,9 +108,18 @@ std::string TestsBase::get_conv_num_flux_string(const Parameters::AllParameters 
     const CNF_enum CNF_type = param->conv_num_flux_type;
     std::string conv_num_flux_string;
     if (CNF_type == CNF_enum::lax_friedrichs) {conv_num_flux_string = "lax_friedrichs";}
-    if (CNF_type == CNF_enum::split_form)     {conv_num_flux_string = "split_form";}
     if (CNF_type == CNF_enum::roe)            {conv_num_flux_string = "roe";}
     if (CNF_type == CNF_enum::l2roe)          {conv_num_flux_string = "l2roe";}
+    if (CNF_type == CNF_enum::central_flux)   {conv_num_flux_string = "central_flux";}
+    if (CNF_type == CNF_enum::two_point_flux) {conv_num_flux_string = "two_point_flux";}
+    if (CNF_type == CNF_enum::two_point_flux_with_lax_friedrichs_dissipation) {
+        conv_num_flux_string = "two_point_flux_with_lax_friedrichs_dissipation";
+    } if (CNF_type == CNF_enum::two_point_flux_with_roe_dissipation) {
+        conv_num_flux_string = "two_point_flux_with_roe_dissipation";
+    } if (CNF_type == CNF_enum::two_point_flux_with_l2roe_dissipation) {
+        conv_num_flux_string = "two_point_flux_with_l2roe_dissipation";
+    }
+    
     return conv_num_flux_string;
 }
 
@@ -139,6 +150,7 @@ std::string TestsBase::get_manufactured_solution_string(const Parameters::AllPar
     if (MS_type == ManufacturedSolutionEnum::boundary_layer_solution) {manufactured_solution_string = "boundary_layer_solution";}
     if (MS_type == ManufacturedSolutionEnum::s_shock_solution)        {manufactured_solution_string = "s_shock_solution";}
     if (MS_type == ManufacturedSolutionEnum::quadratic_solution)      {manufactured_solution_string = "quadratic_solution";}
+    if (MS_type == ManufacturedSolutionEnum::example_solution)        {manufactured_solution_string = "example_solution";}
     if (MS_type == ManufacturedSolutionEnum::navah_solution_1)        {manufactured_solution_string = "navah_solution_1";}
     if (MS_type == ManufacturedSolutionEnum::navah_solution_2)        {manufactured_solution_string = "navah_solution_2";}
     if (MS_type == ManufacturedSolutionEnum::navah_solution_3)        {manufactured_solution_string = "navah_solution_3";}
@@ -205,7 +217,7 @@ std::unique_ptr< TestsBase > TestsFactory<dim,nstate,MeshType>
         (void) parameter_handler_input;
     }
 
-    if(test_type == Test_enum::run_control) {
+    if(test_type == Test_enum::run_control) { // TO DO: rename to grid_study
         return std::make_unique<GridStudy<dim,nstate>>(parameters_input);
     } else if(test_type == Test_enum::grid_refinement_study) {
         return std::make_unique<GridRefinementStudy<dim,nstate,MeshType>>(parameters_input);
@@ -214,7 +226,9 @@ std::unique_ptr< TestsBase > TestsFactory<dim,nstate,MeshType>
     } else if(test_type == Test_enum::diffusion_exact_adjoint) {
         if constexpr (dim>=1 && nstate==1) return std::make_unique<DiffusionExactAdjoint<dim,nstate>>(parameters_input);
     } else if (test_type == Test_enum::advection_periodicity){
-        if constexpr (dim == 2 && nstate == 1) return std::make_unique<AdvectionPeriodic<dim,nstate>> (parameters_input);
+        if constexpr (nstate == 1) return std::make_unique<AdvectionPeriodic<dim,nstate>> (parameters_input);
+    } else if (test_type == Test_enum::convection_diffusion_periodicity){
+        if constexpr (nstate == 1) return std::make_unique<ConvectionDiffusionPeriodic<dim,nstate>> (parameters_input);
     } else if(test_type == Test_enum::euler_gaussian_bump) {
         if constexpr (dim==2 && nstate==dim+2) return std::make_unique<EulerGaussianBump<dim,nstate>>(parameters_input,parameter_handler_input);
     } else if(test_type == Test_enum::euler_gaussian_bump_enthalpy) {
@@ -230,7 +244,7 @@ std::unique_ptr< TestsBase > TestsFactory<dim,nstate,MeshType>
     } else if(test_type == Test_enum::euler_entropy_waves) {
         if constexpr (dim>=2 && nstate==PHILIP_DIM+2) return std::make_unique<EulerEntropyWaves<dim,nstate>>(parameters_input);
     } else if(test_type == Test_enum::euler_split_taylor_green) {
-     if constexpr (dim==3 && nstate == dim+2) return std::make_unique<EulerTaylorGreen<dim,nstate>>(parameters_input);
+        if constexpr (dim==3 && nstate == dim+2) return std::make_unique<EulerTaylorGreen<dim,nstate>>(parameters_input);
     } else if(test_type == Test_enum::optimization_inverse_manufactured) {
         return std::make_unique<OptimizationInverseManufactured<dim,nstate>>(parameters_input);
     } else if(test_type == Test_enum::euler_bump_optimization) {
@@ -259,6 +273,8 @@ std::unique_ptr< TestsBase > TestsFactory<dim,nstate,MeshType>
         if constexpr (dim==1 && nstate==1)  return std::make_unique<TimeRefinementStudyReference<dim, nstate>>(parameters_input, parameter_handler_input);
     } else if(test_type == Test_enum::burgers_energy_conservation_rrk) {
         if constexpr (dim==1 && nstate==1)  return std::make_unique<BurgersEnergyConservationRRK<dim, nstate>>(parameters_input, parameter_handler_input);
+    } else if(test_type == Test_enum::euler_ismail_roe_entropy_check) {
+        if constexpr (dim==3 && nstate==dim+2)  return std::make_unique<EulerIsmailRoeEntropyCheck<dim, nstate>>(parameters_input, parameter_handler_input);
     } else {
         std::cout << "Invalid test. You probably forgot to add it to the list of tests in tests.cpp" << std::endl;
         std::abort();

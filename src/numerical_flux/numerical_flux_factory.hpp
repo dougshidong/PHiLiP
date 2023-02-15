@@ -1,5 +1,5 @@
-#ifndef __PHILIP_NUMERICAL_FLUX_FACTORY__
-#define __PHILIP_NUMERICAL_FLUX_FACTORY__
+#ifndef __NUMERICAL_FLUX_FACTORY__
+#define __NUMERICAL_FLUX_FACTORY__
 
 #include "physics/physics.h"
 #include "dg/artificial_dissipation.h"
@@ -9,12 +9,13 @@
 
 namespace PHiLiP {
 namespace NumericalFlux {
+
 /// Creates a NumericalFluxConvective or NumericalFluxDissipative based on input.
 template <int dim, int nstate, typename real>
 class NumericalFluxFactory
 {
 public:
-    /// Creates convective numerical flux based on input.
+    /// Creates convective numerical flux (baseline flux + upwind term) based on input.
     static std::unique_ptr < NumericalFluxConvective<dim,nstate,real> >
         create_convective_numerical_flux(
             const AllParam::ConvectiveNumericalFlux conv_num_flux_type,
@@ -30,6 +31,7 @@ public:
             std::shared_ptr<ArtificialDissipationBase<dim, nstate>>  artificial_dissipation_input);
 
 protected:
+    /// Creates euler-based convective numerical flux (upwind term)
     static std::unique_ptr< NumericalFluxConvective<dim,nstate,real> > 
         create_euler_based_convective_numerical_flux(
             const AllParam::ConvectiveNumericalFlux conv_num_flux_type,
@@ -37,7 +39,6 @@ protected:
             const AllParam::ModelType model_type,
             std::shared_ptr<Physics::PhysicsBase<dim, nstate, real>> physics_input);
 };
-
 
 } // NumericalFlux namespace
 } // PHiLiP namespace

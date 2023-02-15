@@ -52,12 +52,17 @@ unsigned int HighOrderGrid<dim,real,MeshType,VectorType,DoFHandlerType>::nth_ref
 template <int dim, typename real, typename MeshType, typename VectorType, typename DoFHandlerType>
 HighOrderGrid<dim,real,MeshType,VectorType,DoFHandlerType>::HighOrderGrid(
         const unsigned int max_degree,
-        const std::shared_ptr<MeshType> triangulation_input)
+        const std::shared_ptr<MeshType> triangulation_input,
+        const bool output_high_order_grid)
     : max_degree(max_degree)
     , triangulation(triangulation_input)
     , dof_handler_grid(*triangulation)
     , fe_q(max_degree) // The grid must be at least p1. A p0 solution required a p1 grid.
     , fe_system(dealii::FESystem<dim>(fe_q,dim)) // The grid must be at least p1. A p0 solution required a p1 grid.
+    , oneD_fe_q(max_degree)
+    , oneD_fe_system(oneD_fe_q,1)
+    , oneD_grid_nodes(max_degree+1)
+    , dim_grid_nodes(max_degree+1)
     , solution_transfer(dof_handler_grid)
     , mpi_communicator(MPI_COMM_WORLD)
     , pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(mpi_communicator)==0)
@@ -71,7 +76,7 @@ HighOrderGrid<dim,real,MeshType,VectorType,DoFHandlerType>::HighOrderGrid(
         // Do nothing
         // Assume stuff will be read later on.
     } else {
-        initialize_with_triangulation_manifold();
+        initialize_with_triangulation_manifold(output_high_order_grid);
     }
 }
 

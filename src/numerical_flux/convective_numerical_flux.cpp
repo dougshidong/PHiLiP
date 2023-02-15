@@ -20,14 +20,107 @@ std::array<real_tensor, nstate> array_average(
     return array_average;
 }
 
-
 template <int dim, int nstate, typename real>
-NumericalFluxConvective<dim,nstate,real>::~NumericalFluxConvective() {}
+NumericalFluxConvective<dim, nstate, real>::NumericalFluxConvective(
+    std::unique_ptr< BaselineNumericalFluxConvective<dim,nstate,real> > baseline_input,
+    std::unique_ptr< RiemannSolverDissipation<dim,nstate,real> >   riemann_solver_dissipation_input)
+    : baseline(std::move(baseline_input))
+    , riemann_solver_dissipation(std::move(riemann_solver_dissipation_input))
+{ }
 
 template<int dim, int nstate, typename real>
-std::array<real, nstate> LaxFriedrichs<dim,nstate,real>
+std::array<real, nstate> NumericalFluxConvective<dim,nstate,real>
 ::evaluate_flux (
     const std::array<real, nstate> &soln_int,
+    const std::array<real, nstate> &soln_ext,
+    const dealii::Tensor<1,dim,real> &normal_int) const
+{
+    // baseline flux (without upwind dissipation)
+    const std::array<real, nstate> baseline_flux_dot_n 
+        = this->baseline->evaluate_flux(soln_int, soln_ext, normal_int);
+
+    // Riemann solver dissipation
+    const std::array<real, nstate> riemann_solver_dissipation_dot_n 
+        = this->riemann_solver_dissipation->evaluate_riemann_solver_dissipation(soln_int, soln_ext, normal_int);
+
+    // convective numerical flux: sum of baseline and Riemann solver dissipation term
+    std::array<real, nstate> numerical_flux_dot_n;
+    for (int s=0; s<nstate; s++) {
+        numerical_flux_dot_n[s] = baseline_flux_dot_n[s] + riemann_solver_dissipation_dot_n[s];
+    }
+    return numerical_flux_dot_n;
+}
+
+template <int dim, int nstate, typename real>
+LaxFriedrichs<dim, nstate, real>::LaxFriedrichs(
+    std::shared_ptr<Physics::PhysicsBase<dim, nstate, real>> physics_input)
+    : NumericalFluxConvective<dim,nstate,real>(
+        std::make_unique< CentralBaselineNumericalFluxConvective<dim, nstate, real> > (physics_input), 
+        std::make_unique< LaxFriedrichsRiemannSolverDissipation<dim, nstate, real> > (physics_input))
+{}
+
+template <int dim, int nstate, typename real>
+RoePike<dim, nstate, real>::RoePike(
+    std::shared_ptr<Physics::PhysicsBase<dim, nstate, real>> physics_input)
+    : NumericalFluxConvective<dim,nstate,real>(
+        std::make_unique< CentralBaselineNumericalFluxConvective<dim, nstate, real> > (physics_input), 
+        std::make_unique< RoePikeRiemannSolverDissipation<dim, nstate, real> > (physics_input))
+{}
+
+template <int dim, int nstate, typename real>
+L2Roe<dim, nstate, real>::L2Roe(
+    std::shared_ptr<Physics::PhysicsBase<dim, nstate, real>> physics_input)
+    : NumericalFluxConvective<dim,nstate,real>(
+        std::make_unique< CentralBaselineNumericalFluxConvective<dim, nstate, real> > (physics_input), 
+        std::make_unique< L2RoeRiemannSolverDissipation<dim, nstate, real> > (physics_input))
+{}
+
+template <int dim, int nstate, typename real>
+Central<dim, nstate, real>::Central(
+    std::shared_ptr<Physics::PhysicsBase<dim, nstate, real>> physics_input)
+    : NumericalFluxConvective<dim,nstate,real>(
+        std::make_unique< CentralBaselineNumericalFluxConvective<dim, nstate, real> > (physics_input), 
+        std::make_unique< ZeroRiemannSolverDissipation<dim, nstate, real> > ())
+{}
+
+template <int dim, int nstate, typename real>
+EntropyConserving<dim, nstate, real>::EntropyConserving(
+    std::shared_ptr<Physics::PhysicsBase<dim, nstate, real>> physics_input)
+    : NumericalFluxConvective<dim,nstate,real>(
+        std::make_unique< EntropyConservingBaselineNumericalFluxConvective<dim, nstate, real> > (physics_input), 
+        std::make_unique< ZeroRiemannSolverDissipation<dim, nstate, real> > ())
+{}
+
+template <int dim, int nstate, typename real>
+EntropyConservingWithLaxFriedrichsDissipation<dim, nstate, real>::EntropyConservingWithLaxFriedrichsDissipation(
+    std::shared_ptr<Physics::PhysicsBase<dim, nstate, real>> physics_input)
+    : NumericalFluxConvective<dim,nstate,real>(
+        std::make_unique< EntropyConservingBaselineNumericalFluxConvective<dim, nstate, real> > (physics_input), 
+        std::make_unique< LaxFriedrichsRiemannSolverDissipation<dim, nstate, real> > (physics_input))
+{}
+
+template <int dim, int nstate, typename real>
+EntropyConservingWithRoeDissipation<dim, nstate, real>::EntropyConservingWithRoeDissipation(
+    std::shared_ptr<Physics::PhysicsBase<dim, nstate, real>> physics_input)
+    : NumericalFluxConvective<dim,nstate,real>(
+        std::make_unique< EntropyConservingBaselineNumericalFluxConvective<dim, nstate, real> > (physics_input), 
+        std::make_unique< RoePikeRiemannSolverDissipation<dim, nstate, real> > (physics_input))
+{}
+
+template <int dim, int nstate, typename real>
+EntropyConservingWithL2RoeDissipation<dim, nstate, real>::EntropyConservingWithL2RoeDissipation(
+    std::shared_ptr<Physics::PhysicsBase<dim, nstate, real>> physics_input)
+    : NumericalFluxConvective<dim,nstate,real>(
+        std::make_unique< EntropyConservingBaselineNumericalFluxConvective<dim, nstate, real> > (physics_input), 
+        std::make_unique< L2RoeRiemannSolverDissipation<dim, nstate, real> > (physics_input))
+{}
+
+template <int dim, int nstate, typename real>
+BaselineNumericalFluxConvective<dim,nstate,real>::~BaselineNumericalFluxConvective() {}
+
+template <int dim, int nstate, typename real>
+std::array<real, nstate> CentralBaselineNumericalFluxConvective<dim,nstate,real>::evaluate_flux(
+ const std::array<real, nstate> &soln_int,
     const std::array<real, nstate> &soln_ext,
     const dealii::Tensor<1,dim,real> &normal_int) const
 {
@@ -38,7 +131,6 @@ std::array<real, nstate> LaxFriedrichs<dim,nstate,real>
     conv_phys_flux_int = pde_physics->convective_flux (soln_int);
     conv_phys_flux_ext = pde_physics->convective_flux (soln_ext);
     
-    //RealArrayVector flux_avg = array_average<nstate, dealii::Tensor<1,dim,real>> (conv_phys_flux_int, conv_phys_flux_ext);
     RealArrayVector flux_avg;
     for (int s=0; s<nstate; s++) {
         flux_avg[s] = 0.0;
@@ -47,6 +139,63 @@ std::array<real, nstate> LaxFriedrichs<dim,nstate,real>
         }
     }
 
+    std::array<real, nstate> numerical_flux_dot_n;
+    for (int s=0; s<nstate; s++) {
+        real flux_dot_n = 0.0;
+        for (int d=0; d<dim; ++d) {
+            flux_dot_n += flux_avg[s][d]*normal_int[d];
+        }
+        numerical_flux_dot_n[s] = flux_dot_n;
+    }
+    return numerical_flux_dot_n;
+}
+
+template <int dim, int nstate, typename real>
+std::array<real, nstate> EntropyConservingBaselineNumericalFluxConvective<dim,nstate,real>::evaluate_flux(
+ const std::array<real, nstate> &soln_int,
+    const std::array<real, nstate> &soln_ext,
+    const dealii::Tensor<1,dim,real> &normal_int) const
+{
+    using RealArrayVector = std::array<dealii::Tensor<1,dim,real>,nstate>;
+    RealArrayVector conv_phys_split_flux;
+
+    conv_phys_split_flux = pde_physics->convective_numerical_split_flux (soln_int,soln_ext);
+
+    // Scalar dissipation
+    std::array<real, nstate> numerical_flux_dot_n;
+    for (int s=0; s<nstate; s++) {
+        real flux_dot_n = 0.0;
+        for (int d=0; d<dim; ++d) {
+            flux_dot_n += conv_phys_split_flux[s][d] * normal_int[d];
+        }
+        numerical_flux_dot_n[s] = flux_dot_n;
+    }
+    return numerical_flux_dot_n;
+}
+
+template <int dim, int nstate, typename real>
+RiemannSolverDissipation<dim,nstate,real>::~RiemannSolverDissipation() {}
+
+template<int dim, int nstate, typename real>
+std::array<real, nstate> ZeroRiemannSolverDissipation<dim,nstate,real>
+::evaluate_riemann_solver_dissipation (
+    const std::array<real, nstate> &/*soln_int*/,
+    const std::array<real, nstate> &/*soln_ext*/,
+    const dealii::Tensor<1,dim,real> &/*normal_int*/) const
+{
+    // zero upwind dissipation
+    std::array<real, nstate> numerical_flux_dot_n;
+    numerical_flux_dot_n.fill(0.0);
+    return numerical_flux_dot_n;
+}
+
+template<int dim, int nstate, typename real>
+std::array<real, nstate> LaxFriedrichsRiemannSolverDissipation<dim,nstate,real>
+::evaluate_riemann_solver_dissipation (
+    const std::array<real, nstate> &soln_int,
+    const std::array<real, nstate> &soln_ext,
+    const dealii::Tensor<1,dim,real> &/*normal_int*/) const
+{
     const real conv_max_eig_int = pde_physics->max_convective_eigenvalue(soln_int);
     const real conv_max_eig_ext = pde_physics->max_convective_eigenvalue(soln_ext);
     // Replaced the std::max with an if-statement for the AD to work properly.
@@ -61,19 +210,14 @@ std::array<real, nstate> LaxFriedrichs<dim,nstate,real>
     // Scalar dissipation
     std::array<real, nstate> numerical_flux_dot_n;
     for (int s=0; s<nstate; s++) {
-        //numerical_flux_dot_n[s] = flux_avg[s]*normal_int - 0.5 * conv_max_eig * (soln_ext[s]-soln_int[s]);
-        real flux_dot_n = 0.0;
-        for (int d=0; d<dim; ++d) {
-            flux_dot_n += flux_avg[s][d]*normal_int[d];
-        }
-        numerical_flux_dot_n[s] = flux_dot_n - 0.5 * conv_max_eig * (soln_ext[s]-soln_int[s]);
+        numerical_flux_dot_n[s] = - 0.5 * conv_max_eig * (soln_ext[s]-soln_int[s]);
     }
 
     return numerical_flux_dot_n;
 }
 
 template <int dim, int nstate, typename real>
-void RoePike<dim,nstate,real>
+void RoePikeRiemannSolverDissipation<dim,nstate,real>
 ::evaluate_entropy_fix (
     const std::array<real, 3> &eig_L,
     const std::array<real, 3> &eig_R,
@@ -92,7 +236,7 @@ void RoePike<dim,nstate,real>
 }
 
 template <int dim, int nstate, typename real>
-void RoePike<dim,nstate,real>
+void RoePikeRiemannSolverDissipation<dim,nstate,real>
 ::evaluate_additional_modifications (
     const std::array<real, nstate> &/*soln_int*/,
     const std::array<real, nstate> &/*soln_ext*/,
@@ -106,7 +250,7 @@ void RoePike<dim,nstate,real>
 }
 
 template <int dim, int nstate, typename real>
-void L2Roe<dim,nstate,real>
+void L2RoeRiemannSolverDissipation<dim,nstate,real>
 ::evaluate_shock_indicator (
     const std::array<real, 3> &eig_L,
     const std::array<real, 3> &eig_R,
@@ -130,7 +274,7 @@ void L2Roe<dim,nstate,real>
 }
 
 template <int dim, int nstate, typename real>
-void L2Roe<dim,nstate,real>
+void L2RoeRiemannSolverDissipation<dim,nstate,real>
 ::evaluate_entropy_fix (
     const std::array<real, 3> &eig_L,
     const std::array<real, 3> &eig_R,
@@ -160,7 +304,7 @@ void L2Roe<dim,nstate,real>
 }
 
 template <int dim, int nstate, typename real>
-void L2Roe<dim,nstate,real>
+void L2RoeRiemannSolverDissipation<dim,nstate,real>
 ::evaluate_additional_modifications  (
     const std::array<real, nstate> &soln_int,
     const std::array<real, nstate> &soln_ext,
@@ -189,8 +333,8 @@ void L2Roe<dim,nstate,real>
 }
 
 template <int dim, int nstate, typename real>
-std::array<real, nstate> RoeBase<dim,nstate,real>
-::evaluate_flux (
+std::array<real, nstate> RoeBaseRiemannSolverDissipation<dim,nstate,real>
+::evaluate_riemann_solver_dissipation (
     const std::array<real, nstate> &soln_int,
     const std::array<real, nstate> &soln_ext,
     const dealii::Tensor<1,dim,real> &normal_int) const
@@ -291,10 +435,6 @@ std::array<real, nstate> RoeBase<dim,nstate,real>
     // Evaluate additional modifications to the Roe-Pike scheme (if applicable)
     evaluate_additional_modifications (soln_int, soln_ext, eig_L, eig_R, dVn, dVt);
 
-    // Physical fluxes
-    const std::array<real,nstate> normal_flux_int = euler_physics->convective_normal_flux (soln_int, normal_int);
-    const std::array<real,nstate> normal_flux_ext = euler_physics->convective_normal_flux (soln_ext, normal_int);
-
     // Product of eigenvalues and wave strengths
     real coeff[4];
     coeff[0] = eig_ravg[0]*(dp-density_ravg*sound_ravg*dVn)/(2.0*sound2_ravg);
@@ -337,7 +477,7 @@ std::array<real, nstate> RoeBase<dim,nstate,real>
 
     std::array<real, nstate> numerical_flux_dot_n;
     for (int s=0; s<nstate; s++) {
-        numerical_flux_dot_n[s] = 0.5*(normal_flux_int[s]+normal_flux_ext[s] - AdW[s]);
+        numerical_flux_dot_n[s] = - 0.5 * AdW[s];
     }
 
     return numerical_flux_dot_n;
@@ -359,7 +499,6 @@ template class NumericalFluxConvective<PHILIP_DIM, 2, RadType >;
 template class NumericalFluxConvective<PHILIP_DIM, 3, RadType >;
 template class NumericalFluxConvective<PHILIP_DIM, 4, RadType >;
 template class NumericalFluxConvective<PHILIP_DIM, 5, RadType >;
-
 template class NumericalFluxConvective<PHILIP_DIM, 1, FadFadType >;
 template class NumericalFluxConvective<PHILIP_DIM, 2, FadFadType >;
 template class NumericalFluxConvective<PHILIP_DIM, 3, FadFadType >;
@@ -397,12 +536,6 @@ template class LaxFriedrichs<PHILIP_DIM, 3, RadFadType >;
 template class LaxFriedrichs<PHILIP_DIM, 4, RadFadType >;
 template class LaxFriedrichs<PHILIP_DIM, 5, RadFadType >;
 
-template class RoeBase<PHILIP_DIM, PHILIP_DIM+2, double>;
-template class RoeBase<PHILIP_DIM, PHILIP_DIM+2, FadType >;
-template class RoeBase<PHILIP_DIM, PHILIP_DIM+2, RadType >;
-template class RoeBase<PHILIP_DIM, PHILIP_DIM+2, FadFadType >;
-template class RoeBase<PHILIP_DIM, PHILIP_DIM+2, RadFadType >;
-
 template class RoePike<PHILIP_DIM, PHILIP_DIM+2, double>;
 template class RoePike<PHILIP_DIM, PHILIP_DIM+2, FadType >;
 template class RoePike<PHILIP_DIM, PHILIP_DIM+2, RadType >;
@@ -414,6 +547,269 @@ template class L2Roe<PHILIP_DIM, PHILIP_DIM+2, RadType >;
 template class L2Roe<PHILIP_DIM, PHILIP_DIM+2, FadFadType >;
 template class L2Roe<PHILIP_DIM, PHILIP_DIM+2, RadFadType >;
 
+template class Central<PHILIP_DIM, 1, double>;
+template class Central<PHILIP_DIM, 2, double>;
+template class Central<PHILIP_DIM, 3, double>;
+template class Central<PHILIP_DIM, 4, double>;
+template class Central<PHILIP_DIM, 5, double>;
+template class Central<PHILIP_DIM, 1, FadType >;
+template class Central<PHILIP_DIM, 2, FadType >;
+template class Central<PHILIP_DIM, 3, FadType >;
+template class Central<PHILIP_DIM, 4, FadType >;
+template class Central<PHILIP_DIM, 5, FadType >;
+template class Central<PHILIP_DIM, 1, RadType >;
+template class Central<PHILIP_DIM, 2, RadType >;
+template class Central<PHILIP_DIM, 3, RadType >;
+template class Central<PHILIP_DIM, 4, RadType >;
+template class Central<PHILIP_DIM, 5, RadType >;
+template class Central<PHILIP_DIM, 1, FadFadType >;
+template class Central<PHILIP_DIM, 2, FadFadType >;
+template class Central<PHILIP_DIM, 3, FadFadType >;
+template class Central<PHILIP_DIM, 4, FadFadType >;
+template class Central<PHILIP_DIM, 5, FadFadType >;
+template class Central<PHILIP_DIM, 1, RadFadType >;
+template class Central<PHILIP_DIM, 2, RadFadType >;
+template class Central<PHILIP_DIM, 3, RadFadType >;
+template class Central<PHILIP_DIM, 4, RadFadType >;
+template class Central<PHILIP_DIM, 5, RadFadType >;
+
+template class EntropyConserving<PHILIP_DIM, 1, double>;
+template class EntropyConserving<PHILIP_DIM, 2, double>;
+template class EntropyConserving<PHILIP_DIM, 3, double>;
+template class EntropyConserving<PHILIP_DIM, 4, double>;
+template class EntropyConserving<PHILIP_DIM, 5, double>;
+template class EntropyConserving<PHILIP_DIM, 1, FadType >;
+template class EntropyConserving<PHILIP_DIM, 2, FadType >;
+template class EntropyConserving<PHILIP_DIM, 3, FadType >;
+template class EntropyConserving<PHILIP_DIM, 4, FadType >;
+template class EntropyConserving<PHILIP_DIM, 5, FadType >;
+template class EntropyConserving<PHILIP_DIM, 1, RadType >;
+template class EntropyConserving<PHILIP_DIM, 2, RadType >;
+template class EntropyConserving<PHILIP_DIM, 3, RadType >;
+template class EntropyConserving<PHILIP_DIM, 4, RadType >;
+template class EntropyConserving<PHILIP_DIM, 5, RadType >;
+template class EntropyConserving<PHILIP_DIM, 1, FadFadType >;
+template class EntropyConserving<PHILIP_DIM, 2, FadFadType >;
+template class EntropyConserving<PHILIP_DIM, 3, FadFadType >;
+template class EntropyConserving<PHILIP_DIM, 4, FadFadType >;
+template class EntropyConserving<PHILIP_DIM, 5, FadFadType >;
+template class EntropyConserving<PHILIP_DIM, 1, RadFadType >;
+template class EntropyConserving<PHILIP_DIM, 2, RadFadType >;
+template class EntropyConserving<PHILIP_DIM, 3, RadFadType >;
+template class EntropyConserving<PHILIP_DIM, 4, RadFadType >;
+template class EntropyConserving<PHILIP_DIM, 5, RadFadType >;
+
+template class EntropyConservingWithLaxFriedrichsDissipation<PHILIP_DIM, 1, double>;
+template class EntropyConservingWithLaxFriedrichsDissipation<PHILIP_DIM, 2, double>;
+template class EntropyConservingWithLaxFriedrichsDissipation<PHILIP_DIM, 3, double>;
+template class EntropyConservingWithLaxFriedrichsDissipation<PHILIP_DIM, 4, double>;
+template class EntropyConservingWithLaxFriedrichsDissipation<PHILIP_DIM, 5, double>;
+template class EntropyConservingWithLaxFriedrichsDissipation<PHILIP_DIM, 1, FadType >;
+template class EntropyConservingWithLaxFriedrichsDissipation<PHILIP_DIM, 2, FadType >;
+template class EntropyConservingWithLaxFriedrichsDissipation<PHILIP_DIM, 3, FadType >;
+template class EntropyConservingWithLaxFriedrichsDissipation<PHILIP_DIM, 4, FadType >;
+template class EntropyConservingWithLaxFriedrichsDissipation<PHILIP_DIM, 5, FadType >;
+template class EntropyConservingWithLaxFriedrichsDissipation<PHILIP_DIM, 1, RadType >;
+template class EntropyConservingWithLaxFriedrichsDissipation<PHILIP_DIM, 2, RadType >;
+template class EntropyConservingWithLaxFriedrichsDissipation<PHILIP_DIM, 3, RadType >;
+template class EntropyConservingWithLaxFriedrichsDissipation<PHILIP_DIM, 4, RadType >;
+template class EntropyConservingWithLaxFriedrichsDissipation<PHILIP_DIM, 5, RadType >;
+template class EntropyConservingWithLaxFriedrichsDissipation<PHILIP_DIM, 1, FadFadType >;
+template class EntropyConservingWithLaxFriedrichsDissipation<PHILIP_DIM, 2, FadFadType >;
+template class EntropyConservingWithLaxFriedrichsDissipation<PHILIP_DIM, 3, FadFadType >;
+template class EntropyConservingWithLaxFriedrichsDissipation<PHILIP_DIM, 4, FadFadType >;
+template class EntropyConservingWithLaxFriedrichsDissipation<PHILIP_DIM, 5, FadFadType >;
+template class EntropyConservingWithLaxFriedrichsDissipation<PHILIP_DIM, 1, RadFadType >;
+template class EntropyConservingWithLaxFriedrichsDissipation<PHILIP_DIM, 2, RadFadType >;
+template class EntropyConservingWithLaxFriedrichsDissipation<PHILIP_DIM, 3, RadFadType >;
+template class EntropyConservingWithLaxFriedrichsDissipation<PHILIP_DIM, 4, RadFadType >;
+template class EntropyConservingWithLaxFriedrichsDissipation<PHILIP_DIM, 5, RadFadType >;
+
+template class EntropyConservingWithRoeDissipation<PHILIP_DIM, PHILIP_DIM+2, double>;
+template class EntropyConservingWithRoeDissipation<PHILIP_DIM, PHILIP_DIM+2, FadType >;
+template class EntropyConservingWithRoeDissipation<PHILIP_DIM, PHILIP_DIM+2, RadType >;
+template class EntropyConservingWithRoeDissipation<PHILIP_DIM, PHILIP_DIM+2, FadFadType >;
+template class EntropyConservingWithRoeDissipation<PHILIP_DIM, PHILIP_DIM+2, RadFadType >;
+
+template class EntropyConservingWithL2RoeDissipation<PHILIP_DIM, PHILIP_DIM+2, double>;
+template class EntropyConservingWithL2RoeDissipation<PHILIP_DIM, PHILIP_DIM+2, FadType >;
+template class EntropyConservingWithL2RoeDissipation<PHILIP_DIM, PHILIP_DIM+2, RadType >;
+template class EntropyConservingWithL2RoeDissipation<PHILIP_DIM, PHILIP_DIM+2, FadFadType >;
+template class EntropyConservingWithL2RoeDissipation<PHILIP_DIM, PHILIP_DIM+2, RadFadType >;
+
+template class BaselineNumericalFluxConvective<PHILIP_DIM, 1, double>;
+template class BaselineNumericalFluxConvective<PHILIP_DIM, 2, double>;
+template class BaselineNumericalFluxConvective<PHILIP_DIM, 3, double>;
+template class BaselineNumericalFluxConvective<PHILIP_DIM, 4, double>;
+template class BaselineNumericalFluxConvective<PHILIP_DIM, 5, double>;
+template class BaselineNumericalFluxConvective<PHILIP_DIM, 1, FadType >;
+template class BaselineNumericalFluxConvective<PHILIP_DIM, 2, FadType >;
+template class BaselineNumericalFluxConvective<PHILIP_DIM, 3, FadType >;
+template class BaselineNumericalFluxConvective<PHILIP_DIM, 4, FadType >;
+template class BaselineNumericalFluxConvective<PHILIP_DIM, 5, FadType >;
+template class BaselineNumericalFluxConvective<PHILIP_DIM, 1, RadType >;
+template class BaselineNumericalFluxConvective<PHILIP_DIM, 2, RadType >;
+template class BaselineNumericalFluxConvective<PHILIP_DIM, 3, RadType >;
+template class BaselineNumericalFluxConvective<PHILIP_DIM, 4, RadType >;
+template class BaselineNumericalFluxConvective<PHILIP_DIM, 5, RadType >;
+template class BaselineNumericalFluxConvective<PHILIP_DIM, 1, FadFadType >;
+template class BaselineNumericalFluxConvective<PHILIP_DIM, 2, FadFadType >;
+template class BaselineNumericalFluxConvective<PHILIP_DIM, 3, FadFadType >;
+template class BaselineNumericalFluxConvective<PHILIP_DIM, 4, FadFadType >;
+template class BaselineNumericalFluxConvective<PHILIP_DIM, 5, FadFadType >;
+template class BaselineNumericalFluxConvective<PHILIP_DIM, 1, RadFadType >;
+template class BaselineNumericalFluxConvective<PHILIP_DIM, 2, RadFadType >;
+template class BaselineNumericalFluxConvective<PHILIP_DIM, 3, RadFadType >;
+template class BaselineNumericalFluxConvective<PHILIP_DIM, 4, RadFadType >;
+template class BaselineNumericalFluxConvective<PHILIP_DIM, 5, RadFadType >;
+
+template class CentralBaselineNumericalFluxConvective<PHILIP_DIM, 1, double>;
+template class CentralBaselineNumericalFluxConvective<PHILIP_DIM, 2, double>;
+template class CentralBaselineNumericalFluxConvective<PHILIP_DIM, 3, double>;
+template class CentralBaselineNumericalFluxConvective<PHILIP_DIM, 4, double>;
+template class CentralBaselineNumericalFluxConvective<PHILIP_DIM, 5, double>;
+template class CentralBaselineNumericalFluxConvective<PHILIP_DIM, 1, FadType >;
+template class CentralBaselineNumericalFluxConvective<PHILIP_DIM, 2, FadType >;
+template class CentralBaselineNumericalFluxConvective<PHILIP_DIM, 3, FadType >;
+template class CentralBaselineNumericalFluxConvective<PHILIP_DIM, 4, FadType >;
+template class CentralBaselineNumericalFluxConvective<PHILIP_DIM, 5, FadType >;
+template class CentralBaselineNumericalFluxConvective<PHILIP_DIM, 1, RadType >;
+template class CentralBaselineNumericalFluxConvective<PHILIP_DIM, 2, RadType >;
+template class CentralBaselineNumericalFluxConvective<PHILIP_DIM, 3, RadType >;
+template class CentralBaselineNumericalFluxConvective<PHILIP_DIM, 4, RadType >;
+template class CentralBaselineNumericalFluxConvective<PHILIP_DIM, 5, RadType >;
+template class CentralBaselineNumericalFluxConvective<PHILIP_DIM, 1, FadFadType >;
+template class CentralBaselineNumericalFluxConvective<PHILIP_DIM, 2, FadFadType >;
+template class CentralBaselineNumericalFluxConvective<PHILIP_DIM, 3, FadFadType >;
+template class CentralBaselineNumericalFluxConvective<PHILIP_DIM, 4, FadFadType >;
+template class CentralBaselineNumericalFluxConvective<PHILIP_DIM, 5, FadFadType >;
+template class CentralBaselineNumericalFluxConvective<PHILIP_DIM, 1, RadFadType >;
+template class CentralBaselineNumericalFluxConvective<PHILIP_DIM, 2, RadFadType >;
+template class CentralBaselineNumericalFluxConvective<PHILIP_DIM, 3, RadFadType >;
+template class CentralBaselineNumericalFluxConvective<PHILIP_DIM, 4, RadFadType >;
+template class CentralBaselineNumericalFluxConvective<PHILIP_DIM, 5, RadFadType >;
+
+template class EntropyConservingBaselineNumericalFluxConvective<PHILIP_DIM, 1, double>;
+template class EntropyConservingBaselineNumericalFluxConvective<PHILIP_DIM, 2, double>;
+template class EntropyConservingBaselineNumericalFluxConvective<PHILIP_DIM, 3, double>;
+template class EntropyConservingBaselineNumericalFluxConvective<PHILIP_DIM, 4, double>;
+template class EntropyConservingBaselineNumericalFluxConvective<PHILIP_DIM, 5, double>;
+template class EntropyConservingBaselineNumericalFluxConvective<PHILIP_DIM, 1, FadType >;
+template class EntropyConservingBaselineNumericalFluxConvective<PHILIP_DIM, 2, FadType >;
+template class EntropyConservingBaselineNumericalFluxConvective<PHILIP_DIM, 3, FadType >;
+template class EntropyConservingBaselineNumericalFluxConvective<PHILIP_DIM, 4, FadType >;
+template class EntropyConservingBaselineNumericalFluxConvective<PHILIP_DIM, 5, FadType >;
+template class EntropyConservingBaselineNumericalFluxConvective<PHILIP_DIM, 1, RadType >;
+template class EntropyConservingBaselineNumericalFluxConvective<PHILIP_DIM, 2, RadType >;
+template class EntropyConservingBaselineNumericalFluxConvective<PHILIP_DIM, 3, RadType >;
+template class EntropyConservingBaselineNumericalFluxConvective<PHILIP_DIM, 4, RadType >;
+template class EntropyConservingBaselineNumericalFluxConvective<PHILIP_DIM, 5, RadType >;
+template class EntropyConservingBaselineNumericalFluxConvective<PHILIP_DIM, 1, FadFadType >;
+template class EntropyConservingBaselineNumericalFluxConvective<PHILIP_DIM, 2, FadFadType >;
+template class EntropyConservingBaselineNumericalFluxConvective<PHILIP_DIM, 3, FadFadType >;
+template class EntropyConservingBaselineNumericalFluxConvective<PHILIP_DIM, 4, FadFadType >;
+template class EntropyConservingBaselineNumericalFluxConvective<PHILIP_DIM, 5, FadFadType >;
+template class EntropyConservingBaselineNumericalFluxConvective<PHILIP_DIM, 1, RadFadType >;
+template class EntropyConservingBaselineNumericalFluxConvective<PHILIP_DIM, 2, RadFadType >;
+template class EntropyConservingBaselineNumericalFluxConvective<PHILIP_DIM, 3, RadFadType >;
+template class EntropyConservingBaselineNumericalFluxConvective<PHILIP_DIM, 4, RadFadType >;
+template class EntropyConservingBaselineNumericalFluxConvective<PHILIP_DIM, 5, RadFadType >;
+
+template class RiemannSolverDissipation<PHILIP_DIM, 1, double>;
+template class RiemannSolverDissipation<PHILIP_DIM, 2, double>;
+template class RiemannSolverDissipation<PHILIP_DIM, 3, double>;
+template class RiemannSolverDissipation<PHILIP_DIM, 4, double>;
+template class RiemannSolverDissipation<PHILIP_DIM, 5, double>;
+template class RiemannSolverDissipation<PHILIP_DIM, 1, FadType >;
+template class RiemannSolverDissipation<PHILIP_DIM, 2, FadType >;
+template class RiemannSolverDissipation<PHILIP_DIM, 3, FadType >;
+template class RiemannSolverDissipation<PHILIP_DIM, 4, FadType >;
+template class RiemannSolverDissipation<PHILIP_DIM, 5, FadType >;
+template class RiemannSolverDissipation<PHILIP_DIM, 1, RadType >;
+template class RiemannSolverDissipation<PHILIP_DIM, 2, RadType >;
+template class RiemannSolverDissipation<PHILIP_DIM, 3, RadType >;
+template class RiemannSolverDissipation<PHILIP_DIM, 4, RadType >;
+template class RiemannSolverDissipation<PHILIP_DIM, 5, RadType >;
+template class RiemannSolverDissipation<PHILIP_DIM, 1, FadFadType >;
+template class RiemannSolverDissipation<PHILIP_DIM, 2, FadFadType >;
+template class RiemannSolverDissipation<PHILIP_DIM, 3, FadFadType >;
+template class RiemannSolverDissipation<PHILIP_DIM, 4, FadFadType >;
+template class RiemannSolverDissipation<PHILIP_DIM, 5, FadFadType >;
+template class RiemannSolverDissipation<PHILIP_DIM, 1, RadFadType >;
+template class RiemannSolverDissipation<PHILIP_DIM, 2, RadFadType >;
+template class RiemannSolverDissipation<PHILIP_DIM, 3, RadFadType >;
+template class RiemannSolverDissipation<PHILIP_DIM, 4, RadFadType >;
+template class RiemannSolverDissipation<PHILIP_DIM, 5, RadFadType >;
+
+template class ZeroRiemannSolverDissipation<PHILIP_DIM, 1, double>;
+template class ZeroRiemannSolverDissipation<PHILIP_DIM, 2, double>;
+template class ZeroRiemannSolverDissipation<PHILIP_DIM, 3, double>;
+template class ZeroRiemannSolverDissipation<PHILIP_DIM, 4, double>;
+template class ZeroRiemannSolverDissipation<PHILIP_DIM, 5, double>;
+template class ZeroRiemannSolverDissipation<PHILIP_DIM, 1, FadType >;
+template class ZeroRiemannSolverDissipation<PHILIP_DIM, 2, FadType >;
+template class ZeroRiemannSolverDissipation<PHILIP_DIM, 3, FadType >;
+template class ZeroRiemannSolverDissipation<PHILIP_DIM, 4, FadType >;
+template class ZeroRiemannSolverDissipation<PHILIP_DIM, 5, FadType >;
+template class ZeroRiemannSolverDissipation<PHILIP_DIM, 1, RadType >;
+template class ZeroRiemannSolverDissipation<PHILIP_DIM, 2, RadType >;
+template class ZeroRiemannSolverDissipation<PHILIP_DIM, 3, RadType >;
+template class ZeroRiemannSolverDissipation<PHILIP_DIM, 4, RadType >;
+template class ZeroRiemannSolverDissipation<PHILIP_DIM, 5, RadType >;
+template class ZeroRiemannSolverDissipation<PHILIP_DIM, 1, FadFadType >;
+template class ZeroRiemannSolverDissipation<PHILIP_DIM, 2, FadFadType >;
+template class ZeroRiemannSolverDissipation<PHILIP_DIM, 3, FadFadType >;
+template class ZeroRiemannSolverDissipation<PHILIP_DIM, 4, FadFadType >;
+template class ZeroRiemannSolverDissipation<PHILIP_DIM, 5, FadFadType >;
+template class ZeroRiemannSolverDissipation<PHILIP_DIM, 1, RadFadType >;
+template class ZeroRiemannSolverDissipation<PHILIP_DIM, 2, RadFadType >;
+template class ZeroRiemannSolverDissipation<PHILIP_DIM, 3, RadFadType >;
+template class ZeroRiemannSolverDissipation<PHILIP_DIM, 4, RadFadType >;
+template class ZeroRiemannSolverDissipation<PHILIP_DIM, 5, RadFadType >;
+
+template class LaxFriedrichsRiemannSolverDissipation<PHILIP_DIM, 1, double>;
+template class LaxFriedrichsRiemannSolverDissipation<PHILIP_DIM, 2, double>;
+template class LaxFriedrichsRiemannSolverDissipation<PHILIP_DIM, 3, double>;
+template class LaxFriedrichsRiemannSolverDissipation<PHILIP_DIM, 4, double>;
+template class LaxFriedrichsRiemannSolverDissipation<PHILIP_DIM, 5, double>;
+template class LaxFriedrichsRiemannSolverDissipation<PHILIP_DIM, 1, FadType >;
+template class LaxFriedrichsRiemannSolverDissipation<PHILIP_DIM, 2, FadType >;
+template class LaxFriedrichsRiemannSolverDissipation<PHILIP_DIM, 3, FadType >;
+template class LaxFriedrichsRiemannSolverDissipation<PHILIP_DIM, 4, FadType >;
+template class LaxFriedrichsRiemannSolverDissipation<PHILIP_DIM, 5, FadType >;
+template class LaxFriedrichsRiemannSolverDissipation<PHILIP_DIM, 1, RadType >;
+template class LaxFriedrichsRiemannSolverDissipation<PHILIP_DIM, 2, RadType >;
+template class LaxFriedrichsRiemannSolverDissipation<PHILIP_DIM, 3, RadType >;
+template class LaxFriedrichsRiemannSolverDissipation<PHILIP_DIM, 4, RadType >;
+template class LaxFriedrichsRiemannSolverDissipation<PHILIP_DIM, 5, RadType >;
+template class LaxFriedrichsRiemannSolverDissipation<PHILIP_DIM, 1, FadFadType >;
+template class LaxFriedrichsRiemannSolverDissipation<PHILIP_DIM, 2, FadFadType >;
+template class LaxFriedrichsRiemannSolverDissipation<PHILIP_DIM, 3, FadFadType >;
+template class LaxFriedrichsRiemannSolverDissipation<PHILIP_DIM, 4, FadFadType >;
+template class LaxFriedrichsRiemannSolverDissipation<PHILIP_DIM, 5, FadFadType >;
+template class LaxFriedrichsRiemannSolverDissipation<PHILIP_DIM, 1, RadFadType >;
+template class LaxFriedrichsRiemannSolverDissipation<PHILIP_DIM, 2, RadFadType >;
+template class LaxFriedrichsRiemannSolverDissipation<PHILIP_DIM, 3, RadFadType >;
+template class LaxFriedrichsRiemannSolverDissipation<PHILIP_DIM, 4, RadFadType >;
+template class LaxFriedrichsRiemannSolverDissipation<PHILIP_DIM, 5, RadFadType >;
+
+template class RoeBaseRiemannSolverDissipation<PHILIP_DIM, PHILIP_DIM+2, double>;
+template class RoeBaseRiemannSolverDissipation<PHILIP_DIM, PHILIP_DIM+2, FadType >;
+template class RoeBaseRiemannSolverDissipation<PHILIP_DIM, PHILIP_DIM+2, RadType >;
+template class RoeBaseRiemannSolverDissipation<PHILIP_DIM, PHILIP_DIM+2, FadFadType >;
+template class RoeBaseRiemannSolverDissipation<PHILIP_DIM, PHILIP_DIM+2, RadFadType >;
+
+template class RoePikeRiemannSolverDissipation<PHILIP_DIM, PHILIP_DIM+2, double>;
+template class RoePikeRiemannSolverDissipation<PHILIP_DIM, PHILIP_DIM+2, FadType >;
+template class RoePikeRiemannSolverDissipation<PHILIP_DIM, PHILIP_DIM+2, RadType >;
+template class RoePikeRiemannSolverDissipation<PHILIP_DIM, PHILIP_DIM+2, FadFadType >;
+template class RoePikeRiemannSolverDissipation<PHILIP_DIM, PHILIP_DIM+2, RadFadType >;
+
+template class L2RoeRiemannSolverDissipation<PHILIP_DIM, PHILIP_DIM+2, double>;
+template class L2RoeRiemannSolverDissipation<PHILIP_DIM, PHILIP_DIM+2, FadType >;
+template class L2RoeRiemannSolverDissipation<PHILIP_DIM, PHILIP_DIM+2, RadType >;
+template class L2RoeRiemannSolverDissipation<PHILIP_DIM, PHILIP_DIM+2, FadFadType >;
+template class L2RoeRiemannSolverDissipation<PHILIP_DIM, PHILIP_DIM+2, RadFadType >;
 
 } // NumericalFlux namespace
 } // PHiLiP namespace

@@ -1,4 +1,4 @@
-# This file quickly generates the job paramters file
+# This file quickly generates the job parameters file
 
 filename="my_job_parameters_file.sh"
 walltime="2:00:00" # wall time

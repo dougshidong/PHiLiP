@@ -17,6 +17,7 @@ set(TESTS_SOURCE
     euler_vortex.cpp
     euler_entropy_waves.cpp
     advection_explicit_periodic.cpp
+    convection_diffusion_explicit_periodic.cpp
     euler_split_inviscid_taylor_green_vortex.cpp
     optimization_inverse_manufactured/optimization_inverse_manufactured.cpp
     dual_weighted_residual_mesh_adaptation.cpp
@@ -27,7 +28,8 @@ set(TESTS_SOURCE
     reduced_order.cpp
     time_refinement_study.cpp
     time_refinement_study_reference.cpp
-    burgers_energy_conservation_rrk.cpp)
+    burgers_energy_conservation_rrk.cpp
+    euler_ismail_roe_entropy_check.cpp)
 
 foreach(dim RANGE 1 3)
     # Output library

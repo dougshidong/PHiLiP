@@ -14,6 +14,7 @@ class LargeEddySimulationBase : public ModelBase <dim, nstate, real>
 {
 public:
     using thermal_boundary_condition_enum = Parameters::NavierStokesParam::ThermalBoundaryCondition;
+    using two_point_num_flux_enum = Parameters::AllParameters::TwoPointNumericalFlux;
     /// Constructor
 	LargeEddySimulationBase(
 	    const double                                              ref_length,
@@ -23,11 +24,13 @@ public:
         const double                                              side_slip_angle,
         const double                                              prandtl_number,
         const double                                              reynolds_number_inf,
+        const double                                              temperature_inf,
         const double                                              turbulent_prandtl_number,
         const double                                              ratio_of_filter_width_to_cell_size,
         const double                                              isothermal_wall_temperature = 1.0,
         const thermal_boundary_condition_enum                     thermal_boundary_condition_type = thermal_boundary_condition_enum::adiabatic,
-        std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function = nullptr);
+        std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function = nullptr,
+        const two_point_num_flux_enum                             two_point_num_flux_type = two_point_num_flux_enum::KG);
 
     /// Destructor
     ~LargeEddySimulationBase() {};
@@ -55,6 +58,7 @@ public:
     std::array<real,nstate> source_term (
         const dealii::Point<dim,real> &pos,
         const std::array<real,nstate> &solution,
+        const real current_time,
         const dealii::types::global_dof_index cell_index) const;
 
     /// Compute the nondimensionalized filter width used by the SGS model given a cell index
@@ -137,6 +141,7 @@ class LargeEddySimulation_Smagorinsky : public LargeEddySimulationBase <dim, nst
 {
 public:
     using thermal_boundary_condition_enum = Parameters::NavierStokesParam::ThermalBoundaryCondition;
+    using two_point_num_flux_enum = Parameters::AllParameters::TwoPointNumericalFlux;
     /** Constructor for the sub-grid scale (SGS) model: Smagorinsky
      *  Reference: de la Llave Plata et al. (2019). "On the performance of a high-order multiscale DG approach to LES at increasing Reynolds number."
      */
@@ -148,12 +153,14 @@ public:
         const double                                              side_slip_angle,
         const double                                              prandtl_number,
         const double                                              reynolds_number_inf,
+        const double                                              temperature_inf,
         const double                                              turbulent_prandtl_number,
         const double                                              ratio_of_filter_width_to_cell_size,
         const double                                              model_constant,
         const double                                              isothermal_wall_temperature = 1.0,
         const thermal_boundary_condition_enum                     thermal_boundary_condition_type = thermal_boundary_condition_enum::adiabatic,
-        std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function = nullptr);
+        std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function = nullptr,
+        const two_point_num_flux_enum                             two_point_num_flux_type = two_point_num_flux_enum::KG);
 
     /// SGS model constant
     const double model_constant;
@@ -233,6 +240,7 @@ class LargeEddySimulation_WALE : public LargeEddySimulation_Smagorinsky <dim, ns
 {
 public:
     using thermal_boundary_condition_enum = Parameters::NavierStokesParam::ThermalBoundaryCondition;
+    using two_point_num_flux_enum = Parameters::AllParameters::TwoPointNumericalFlux;
     /** Constructor for the sub-grid scale (SGS) model: WALE
      *  Reference 1: de la Llave Plata et al. (2019). "On the performance of a high-order multiscale DG approach to LES at increasing Reynolds number."
      *  Reference 2: Nicoud & Ducros (1999) "Subgrid-scale stress modelling based on the square of the velocity gradient tensor"
@@ -245,12 +253,14 @@ public:
         const double                                              side_slip_angle,
         const double                                              prandtl_number,
         const double                                              reynolds_number_inf,
+        const double                                              temperature_inf,
         const double                                              turbulent_prandtl_number,
         const double                                              ratio_of_filter_width_to_cell_size,
         const double                                              model_constant,
         const double                                              isothermal_wall_temperature = 1.0,
         const thermal_boundary_condition_enum                     thermal_boundary_condition_type = thermal_boundary_condition_enum::adiabatic,
-        std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function = nullptr);
+        std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function = nullptr,
+        const two_point_num_flux_enum                             two_point_num_flux_type = two_point_num_flux_enum::KG);
 
     /// Destructor
     ~LargeEddySimulation_WALE() {};
@@ -287,6 +297,7 @@ class LargeEddySimulation_Vreman : public LargeEddySimulation_Smagorinsky <dim, 
 {
 public:
     using thermal_boundary_condition_enum = Parameters::NavierStokesParam::ThermalBoundaryCondition;
+    using two_point_num_flux_enum = Parameters::AllParameters::TwoPointNumericalFlux;
     /** Constructor for the sub-grid scale (SGS) model: Vreman
      *  Reference: Vreman, A. W. (2004) "An eddy-viscosity subgrid-scale model for turbulent shear flow: Algebraic theory and applications."
      */
@@ -298,12 +309,14 @@ public:
         const double                                              side_slip_angle,
         const double                                              prandtl_number,
         const double                                              reynolds_number_inf,
+        const double                                              temperature_inf,
         const double                                              turbulent_prandtl_number,
         const double                                              ratio_of_filter_width_to_cell_size,
         const double                                              model_constant,
         const double                                              isothermal_wall_temperature = 1.0,
         const thermal_boundary_condition_enum                     thermal_boundary_condition_type = thermal_boundary_condition_enum::adiabatic,
-        std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function = nullptr);
+        std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function = nullptr,
+        const two_point_num_flux_enum                             two_point_num_flux_type = two_point_num_flux_enum::KG);
 
     /// Destructor
     ~LargeEddySimulation_Vreman() {};

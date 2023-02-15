@@ -49,7 +49,8 @@ int main (int /*argc*/, char * /*argv*/[])
         for (unsigned int v=0; v < dealii::GeometryInfo<dim>::vertices_per_cell; ++v) {
 
             const dealii::Point<dim,double> vertex = cell->vertex(v);
-            std::array<double, dim+2> source_term = euler_physics.source_term(vertex, soln_plus);
+            constexpr double dummy_time = 0;
+            std::array<double, dim+2> source_term = euler_physics.source_term(vertex, soln_plus, dummy_time);
 
             std::array<double, dim+2> divergence_finite_differences;
             divergence_finite_differences.fill(0.0);

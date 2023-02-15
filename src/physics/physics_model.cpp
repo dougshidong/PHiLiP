@@ -20,8 +20,9 @@ PhysicsModel<dim,nstate,real,nstate_baseline_physics>::PhysicsModel(
     const Parameters::AllParameters                              *const parameters_input,
     Parameters::AllParameters::PartialDifferentialEquation       baseline_physics_type,
     std::shared_ptr< ModelBase<dim,nstate,real> >                model_input,
-    std::shared_ptr< ManufacturedSolutionFunction<dim,real> >    manufactured_solution_function)
-    : PhysicsBase<dim,nstate,real>(manufactured_solution_function)
+    std::shared_ptr< ManufacturedSolutionFunction<dim,real> >    manufactured_solution_function,
+    const bool                                                   has_nonzero_diffusion)
+    : PhysicsBase<dim,nstate,real>(has_nonzero_diffusion, manufactured_solution_function)
     , n_model_equations(nstate-nstate_baseline_physics)
     , physics_baseline(PhysicsFactory<dim,nstate_baseline_physics,real>::create_Physics(parameters_input, baseline_physics_type))
     , model(model_input)
@@ -97,10 +98,15 @@ std::array<real,nstate> PhysicsModel<dim,nstate,real,nstate_baseline_physics>
 ::source_term (
     const dealii::Point<dim,real> &pos,
     const std::array<real,nstate> &conservative_soln,
+    const real current_time,
     const dealii::types::global_dof_index cell_index) const
 {
     // Initialize source_term as the model source term
-    std::array<real,nstate> source_term = model->source_term(pos,conservative_soln,cell_index);
+    std::array<real,nstate> source_term = model->source_term(
+        pos,
+        conservative_soln,
+        current_time,
+        cell_index);
     
     // Get baseline conservative solution with nstate_baseline_physics
     std::array<real,nstate_baseline_physics> baseline_conservative_soln;
@@ -111,7 +117,11 @@ std::array<real,nstate> PhysicsModel<dim,nstate,real,nstate_baseline_physics>
     // Get the baseline physics source term
     /* Note: Even though the physics baseline source term does not depend on cell_index, we pass it 
              anyways to accomodate the pure virtual member function defined in the PhysicsBase class */
-    std::array<real,nstate_baseline_physics> baseline_source_term = physics_baseline->source_term(pos,baseline_conservative_soln,cell_index);
+    std::array<real,nstate_baseline_physics> baseline_source_term = physics_baseline->source_term(
+        pos,
+        baseline_conservative_soln,
+        current_time,
+        cell_index);
 
     // Add the baseline_source_term terms to source_term
     for(int s=0; s<nstate_baseline_physics; ++s){
@@ -135,6 +145,53 @@ std::array<dealii::Tensor<1,dim,real>,nstate> PhysicsModel<dim,nstate,real,nstat
         std::abort();
     }
     return conv_num_split_flux;
+}
+
+template <int dim, int nstate, typename real, int nstate_baseline_physics>
+real PhysicsModel<dim,nstate,real,nstate_baseline_physics>
+::convective_surface_numerical_split_flux (
+            const real &surface_flux,
+            const real &flux_interp_to_surface) const
+{
+    // TO DO: Update for when nstate > nstate_baseline_physics
+    real conv_surf_num_split_flux;
+    if(nstate==nstate_baseline_physics) {
+        conv_surf_num_split_flux = physics_baseline->convective_surface_numerical_split_flux(surface_flux,flux_interp_to_surface);
+    } else {
+        // TO DO, make use of the physics_model object for nstate>nstate_baseline_physics
+        std::abort();
+    }
+    return conv_surf_num_split_flux;
+}
+
+template <int dim, int nstate, typename real, int nstate_baseline_physics>
+std::array<real,nstate> PhysicsModel<dim, nstate, real, nstate_baseline_physics>
+::compute_entropy_variables (
+    const std::array<real,nstate> &conservative_soln) const
+{
+    std::array<real,nstate> entropy_var;
+    if(nstate==nstate_baseline_physics) {
+        entropy_var = physics_baseline->compute_entropy_variables(conservative_soln);
+    } else {
+        // TO DO, make use of the physics_model object for nstate>nstate_baseline_physics
+        std::abort();
+    }
+    return entropy_var;
+}
+
+template <int dim, int nstate, typename real, int nstate_baseline_physics>
+std::array<real,nstate> PhysicsModel<dim, nstate, real, nstate_baseline_physics>
+::compute_conservative_variables_from_entropy_variables (
+    const std::array<real,nstate> &entropy_var) const
+{
+    std::array<real,nstate> conservative_soln;
+    if(nstate==nstate_baseline_physics) {
+        conservative_soln = physics_baseline->compute_conservative_variables_from_entropy_variables(entropy_var);
+    } else {
+        // TO DO, make use of the physics_model object for nstate>nstate_baseline_physics
+        std::abort();
+    }
+    return conservative_soln;
 }
 
 template <int dim, int nstate, typename real, int nstate_baseline_physics>
@@ -167,6 +224,13 @@ real PhysicsModel<dim,nstate,real,nstate_baseline_physics>
         std::abort();
     }
     return max_eig;
+}
+
+template <int dim, int nstate, typename real, int nstate_baseline_physics>
+real PhysicsModel<dim,nstate,real,nstate_baseline_physics>
+::max_viscous_eigenvalue (const std::array<real,nstate> &/*conservative_soln*/) const
+{
+    return 0.0;
 }
 
 template <int dim, int nstate, typename real, int nstate_baseline_physics>

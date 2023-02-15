@@ -79,7 +79,7 @@ int main (int argc, char * argv[])
     all_parameters.parse_parameters (parameter_handler); // copies stuff from parameter_handler into all_parameters
 
     //ode solver parameters
-    all_parameters.ode_solver_param.ode_solver_type = PHiLiP::Parameters::ODESolverParam::ODESolverEnum::explicit_solver;
+    all_parameters.ode_solver_param.ode_solver_type = PHiLiP::Parameters::ODESolverParam::ODESolverEnum::runge_kutta_solver;
     all_parameters.ode_solver_param.nonlinear_max_iterations = 500;
     all_parameters.ode_solver_param.print_iteration_modulo = 100;
     all_parameters.use_periodic_bc = true;
@@ -87,7 +87,6 @@ int main (int argc, char * argv[])
     const int rk_order = 3;
     double expected_order = -double(rk_order);
     double order_tolerance = 0.1; 
-    all_parameters.ode_solver_param.runge_kutta_order = rk_order;
 
     const double adv_speed_x = 1.0, adv_speed_y = 0.0;
     all_parameters.manufactured_convergence_study_param.manufactured_solution_param.advection_vector[0] = adv_speed_x; //x-velocity

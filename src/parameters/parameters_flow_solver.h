@@ -20,6 +20,9 @@ public:
         burgers_viscous_snapshot,
         naca0012,
         burgers_rewienski_snapshot,
+        burgers_inviscid,
+        convection_diffusion,
+        advection,
         periodic_1D_unsteady,
         gaussian_bump,
         sshock
@@ -29,6 +32,7 @@ public:
     unsigned int poly_degree; ///< Polynomial order (P) of the basis functions for DG.
     unsigned int max_poly_degree_for_adaptation; ///< Maximum polynomial order of the DG basis functions for adaptation.
     double final_time; ///< Final solution time
+    double constant_time_step; ///< Constant time step
     double courant_friedrich_lewy_number; ///< Courant-Friedrich-Lewy (CFL) number for constant time step
 
     /** Name of the output file for writing the unsteady data;
@@ -84,7 +88,6 @@ public:
     double grid_right_bound; ///< Right bound of domain for hyper_cube mesh based cases
     unsigned int number_of_grid_elements_per_dimension; ///< Number of grid elements per dimension for hyper_cube mesh based cases
     int number_of_mesh_refinements; ///< Number of refinements for naca0012 and Gaussian bump based cases
-
     double channel_height; ///< Height of channel for gaussian bump case
     double channel_length; ///< Width of channel for gaussian bump case
     double bump_height; ///< Height of gaussian bump
@@ -107,12 +110,17 @@ public:
         };
     /// Selected DensityInitialConditionType from the input file
     DensityInitialConditionType density_initial_condition_type;
+    /// For TGV, flag to calculate and write numerical entropy
+    bool do_calculate_numerical_entropy;
 
     /// Declares the possible variables and sets the defaults.
     static void declare_parameters (dealii::ParameterHandler &prm);
 
     /// Parses input file and sets the variables.
     void parse_parameters (dealii::ParameterHandler &prm);
+
+    ///Interpolate or project the initial condition.
+    bool interpolate_initial_condition;
 };
 
 } // Parameters namespace

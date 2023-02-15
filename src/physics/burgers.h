@@ -48,7 +48,8 @@ public:
     const bool hasConvection;
     /// Turns on diffusive part of the Burgers problem.
     const bool hasDiffusion;
-
+    ///Allows Burgers to distinguish between different unsteady test types.
+    const Parameters::AllParameters::TestType test_type; ///< Pointer to all parameters
 
     /// Constructor
     Burgers(
@@ -56,11 +57,13 @@ public:
         const bool                                                convection = true, 
         const bool                                                diffusion = true, 
         const dealii::Tensor<2,3,double>                          input_diffusion_tensor = Parameters::ManufacturedSolutionParam::get_default_diffusion_tensor(),
-        std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function = nullptr) : 
-            PhysicsBase<dim,nstate,real>(input_diffusion_tensor, manufactured_solution_function),
+        std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function = nullptr,
+        const Parameters::AllParameters::TestType                 parameters_test = Parameters::AllParameters::TestType::run_control) : 
+            PhysicsBase<dim,nstate,real>(diffusion, input_diffusion_tensor, manufactured_solution_function), 
             diffusion_scaling_coeff(diffusion_coefficient),
             hasConvection(convection), 
-            hasDiffusion(diffusion)
+            hasDiffusion(diffusion),
+            test_type(parameters_test)
     {
         static_assert(nstate==dim, "Physics::Burgers() should be created with nstate==dim");
     };
@@ -72,8 +75,21 @@ public:
 
     /// Convective split flux
     std::array<dealii::Tensor<1,dim,real>,nstate> convective_numerical_split_flux (
-                const std::array<real,nstate> &soln_const,
-                const std::array<real,nstate> & soln_loop) const;
+                const std::array<real,nstate> &conservative_soln1,
+                const std::array<real,nstate> &conservative_soln2) const;
+
+    /// Convective surface split flux
+    real convective_surface_numerical_split_flux (
+                const real &surface_flux,
+                const real &flux_interp_to_surface) const;
+
+    /// Computes the entropy variables.
+    std::array<real,nstate> compute_entropy_variables (
+                const std::array<real,nstate> &conservative_soln) const;
+
+    /// Computes the conservative variables from the entropy variables.
+    std::array<real,nstate> compute_conservative_variables_from_entropy_variables (
+                const std::array<real,nstate> &entropy_var) const;
 
     /// Spectral radius of convective term Jacobian is 'c'
     std::array<real,nstate> convective_eigenvalues (
@@ -82,6 +98,9 @@ public:
 
     /// Maximum convective eigenvalue used in Lax-Friedrichs
     real max_convective_eigenvalue (const std::array<real,nstate> &soln) const;
+
+    /// Maximum viscous eigenvalue.
+    real max_viscous_eigenvalue (const std::array<real,nstate> &soln) const;
 
     //  /// Diffusion matrix is identity
     //  std::array<dealii::Tensor<1,dim,real>,nstate> apply_diffusion_matrix (
@@ -103,12 +122,14 @@ public:
     std::array<real,nstate> source_term (
         const dealii::Point<dim,real> &pos,
         const std::array<real,nstate> &solution,
+        const real current_time,
         const dealii::types::global_dof_index cell_index) const;
 
     /// (function overload) Source term is zero or depends on manufactured solution
     virtual std::array<real,nstate> source_term (
         const dealii::Point<dim,real> &pos,
-        const std::array<real,nstate> &solution) const;
+        const std::array<real,nstate> &solution,
+        const real current_time) const;
 
     /// If diffusion is present, assign Dirichlet boundary condition
     /** Using Neumann boundary conditions might need to modify the functional

@@ -14,7 +14,9 @@ SET(SOURCE
     physics_model.cpp
     model.cpp
     large_eddy_simulation.cpp
-    model_factory.cpp)
+    model_factory.cpp
+    navier_stokes_model.cpp
+    )
 
 foreach(dim RANGE 1 3)
     # Output library

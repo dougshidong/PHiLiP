@@ -20,6 +20,7 @@ template <int dim, int nstate>
 ChannelFlow<dim, nstate>::ChannelFlow(const PHiLiP::Parameters::AllParameters *const parameters_input)
         : FlowSolverCaseBase<dim, nstate>(parameters_input)
         , channel_height(this->all_param.flow_solver_param.turbulent_channel_height)
+        , half_channel_height(0.5*channel_height)
         , channel_bulk_reynolds_number(this->all_param.flow_solver_param.turbulent_channel_bulk_reynolds_number)
 { }
 
@@ -59,14 +60,21 @@ void ChannelFlow<dim,nstate>::set_higher_order_grid(std::shared_ptr<DGBase<dim, 
 }
 
 template <int dim, int nstate>
+void ChannelFlow<dim,nstate>::initialize_model_variables(std::shared_ptr<DGBase<dim, double>> dg) const
+{
+    dg->set_constant_model_variables(
+        this->channel_height,
+        this->half_channel_height,
+        this->channel_bulk_reynolds_number);
+}
+
+template <int dim, int nstate>
 void ChannelFlow<dim,nstate>::update_model_variables(std::shared_ptr<DGBase<dim, double>> dg) const
 {
     const double integrated_density_over_domain = get_integrated_density_over_domain(*dg);
 
-    dg->set_model_variables(
+    dg->set_unsteady_model_variables(
         integrated_density_over_domain,
-        this->channel_height,
-        this->channel_bulk_reynolds_number,
         this->get_time_step());
 }
 

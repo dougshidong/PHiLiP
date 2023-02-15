@@ -50,6 +50,7 @@ public:
     dealii::LinearAlgebra::distributed::Vector<double> cellwise_volume; ////< Cellwise element volume
     double integrated_density_over_domain; ///< Integrated density over domain
     double channel_height; ///< Channel height
+    double half_channel_height; ///< Half channel height
     double channel_bulk_reynolds_number; ///< Channel bulk Reynolds number
     double time_step; ///< Current time step
 };

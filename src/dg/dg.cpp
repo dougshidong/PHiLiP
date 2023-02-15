@@ -435,10 +435,36 @@ void DGBaseState<dim,nstate,real,MeshType>::update_model_variables()
 }
 
 template <int dim, int nstate, typename real, typename MeshType>
-void DGBaseState<dim,nstate,real,MeshType>::set_model_variables(
-        const double integrated_density_over_domain,
+void DGBaseState<dim,nstate,real,MeshType>::set_constant_model_variables(
         const double channel_height,
-        const double channel_bulk_reynolds_number,
+        const double half_channel_height,
+        const double channel_bulk_reynolds_number)
+{
+    // channel_height
+    pde_model_double->channel_height  = channel_height;
+    pde_model_fad->channel_height     = channel_height;
+    pde_model_rad->channel_height     = channel_height;
+    pde_model_fad_fad->channel_height = channel_height;
+    pde_model_rad_fad->channel_height = channel_height;
+
+    // half_channel_height
+    pde_model_double->half_channel_height  = half_channel_height;
+    pde_model_fad->half_channel_height     = half_channel_height;
+    pde_model_rad->half_channel_height     = half_channel_height;
+    pde_model_fad_fad->half_channel_height = half_channel_height;
+    pde_model_rad_fad->half_channel_height = half_channel_height;
+
+    // channel_bulk_reynolds_number
+    pde_model_double->channel_bulk_reynolds_number  = channel_bulk_reynolds_number;
+    pde_model_fad->channel_bulk_reynolds_number     = channel_bulk_reynolds_number;
+    pde_model_rad->channel_bulk_reynolds_number     = channel_bulk_reynolds_number;
+    pde_model_fad_fad->channel_bulk_reynolds_number = channel_bulk_reynolds_number;
+    pde_model_rad_fad->channel_bulk_reynolds_number = channel_bulk_reynolds_number;
+}
+
+template <int dim, int nstate, typename real, typename MeshType>
+void DGBaseState<dim,nstate,real,MeshType>::set_unsteady_model_variables(
+        const double integrated_density_over_domain,
         const double time_step)
 {
     // integrated_density_over_domain
@@ -447,20 +473,6 @@ void DGBaseState<dim,nstate,real,MeshType>::set_model_variables(
     pde_model_rad->integrated_density_over_domain     = integrated_density_over_domain;
     pde_model_fad_fad->integrated_density_over_domain = integrated_density_over_domain;
     pde_model_rad_fad->integrated_density_over_domain = integrated_density_over_domain;
-
-    // channel_height
-    pde_model_double->channel_height  = channel_height;
-    pde_model_fad->channel_height     = channel_height;
-    pde_model_rad->channel_height     = channel_height;
-    pde_model_fad_fad->channel_height = channel_height;
-    pde_model_rad_fad->channel_height = channel_height;
-
-    // channel_bulk_reynolds_number
-    pde_model_double->channel_bulk_reynolds_number  = channel_bulk_reynolds_number;
-    pde_model_fad->channel_bulk_reynolds_number     = channel_bulk_reynolds_number;
-    pde_model_rad->channel_bulk_reynolds_number     = channel_bulk_reynolds_number;
-    pde_model_fad_fad->channel_bulk_reynolds_number = channel_bulk_reynolds_number;
-    pde_model_rad_fad->channel_bulk_reynolds_number = channel_bulk_reynolds_number;
 
     // time_step
     pde_model_double->time_step  = time_step;

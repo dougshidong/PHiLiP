@@ -56,7 +56,7 @@ PeriodicTurbulence<dim, nstate>::PeriodicTurbulence(const PHiLiP::Parameters::Al
 
     /// For outputting velocity field
     if(output_velocity_field_at_fixed_times && (number_of_times_to_output_velocity_field > 0)) {
-        exact_output_times_of_velocity_field_files_table = std::make_shared<dealii::TableHandler>();//(mpi_communicator) ?;
+        exact_output_times_of_velocity_field_files_table = std::make_shared<dealii::TableHandler>();
         this->output_velocity_field_times.reinit(number_of_times_to_output_velocity_field);
         
         // Get output_velocity_field_times from string
@@ -182,7 +182,7 @@ void PeriodicTurbulence<dim, nstate>::output_velocity_field(
     }
     //-------------------------------------------------------------
 
-    // (2) Read file
+    // (2) Write file
     //-------------------------------------------------------------
     std::ofstream FILE (filename);
     
@@ -195,7 +195,7 @@ void PeriodicTurbulence<dim, nstate>::output_velocity_field(
         FILE << number_of_degrees_of_freedom_per_state << std::string("\n");
     }
 
-    // write data
+    // write the velocity field
     std::array<double,nstate> soln_at_q;
     std::array<dealii::Tensor<1,dim,double>,nstate> soln_grad_at_q;
 

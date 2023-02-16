@@ -56,4 +56,9 @@ subsection flow_solver
   end
   set apply_initial_condition_method = read_values_from_file_and_project
   set input_flow_setup_filename_prefix = setup_files/1proc/setup_philip
+  subsection output_velocity_field
+    set output_velocity_field_at_fixed_times = true
+    set output_velocity_field_times_string = 0.0
+    set number_of_times_to_output_velocity_field = 1
+  end
 end

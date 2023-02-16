@@ -420,7 +420,7 @@ int FlowSolver<dim,nstate>::run() const
         //----------------------------------------------------
         // dealii::TableHandler and data at initial time
         //----------------------------------------------------
-        std::shared_ptr<dealii::TableHandler> unsteady_data_table = std::make_shared<dealii::TableHandler>();//(mpi_communicator) ?;
+        std::shared_ptr<dealii::TableHandler> unsteady_data_table = std::make_shared<dealii::TableHandler>();
         if(flow_solver_param.restart_computation_from_file == true) {
             pcout << "Initializing data table from corresponding restart file... " << std::flush;
             const std::string restart_filename_without_extension = get_restart_filename_without_extension(flow_solver_param.restart_file_index);
@@ -437,6 +437,7 @@ int FlowSolver<dim,nstate>::run() const
         // Time advancement loop with on-the-fly post-processing
         //----------------------------------------------------
         pcout << "Advancing solution in time... " << std::endl;
+        pcout << "Timer starting. " << std::endl;
         dealii::Timer timer(this->mpi_communicator,false);
         timer.start();
         while((ode_solver->current_time) < (final_time - 1E-13)) //comparing to 1E-13 to avoid taking an extra timestep
@@ -497,6 +498,7 @@ int FlowSolver<dim,nstate>::run() const
             }
         } // close while
         timer.stop();
+        pcout << "Timer stopped. " << std::endl;
         const double max_wall_time = dealii::Utilities::MPI::max(timer.wall_time(), this->mpi_communicator);
         pcout << "Elapsed wall time (mpi max): " << max_wall_time << " seconds." << std::endl;
         pcout << "Elapsed CPU time: " << timer.cpu_time() << " seconds." << std::endl;

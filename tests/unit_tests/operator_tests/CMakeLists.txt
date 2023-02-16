@@ -470,7 +470,7 @@ set(TEST_SRC
 
 foreach(dim RANGE 2 3)
     # Output executable
-    string(CONCAT TEST_TARGET ${dim}SURFACE_CONFORMING_TEST)
+    string(CONCAT TEST_TARGET ${dim}D_SURFACE_CONFORMING_TEST)
     message("Adding executable " ${TEST_TARGET} " with files " ${TEST_SRC} "\n")
     add_executable(${TEST_TARGET} ${TEST_SRC})
     # Replace occurences of PHILIP_DIM with 1, 2, or 3 in the code

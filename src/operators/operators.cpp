@@ -1992,7 +1992,7 @@ void metric_operators<real,dim,n_faces>::transform_reference_unit_normal_to_phys
     for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
         for(int idim=0; idim<dim; idim++){
             phys[iquad][idim] = 0.0;
-            for(int idim2; idim2<dim; idim2++){
+            for(int idim2=0; idim2<dim; idim2++){
                 phys[iquad][idim] += metric_cofactor[idim][idim2][iquad] 
                                    * ref[idim2];
             }

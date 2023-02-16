@@ -6,18 +6,23 @@
 namespace PHiLiP {
 namespace Tests {
 
-/// Euler Ismail-Roe Entropy Check
+/// Euler Entropy Check for Split Forms
+/** This test verifies behaviour for the split forms currently implemented.
+ * Entropy should be conserved for IR, CH, Ra fluxes.
+ * Entropy is not conserved by KG, but a tolerance has been set based on the 
+ * expected behaviour of the test.
+ */
 template <int dim, int nstate>
-class EulerIsmailRoeEntropyCheck: public TestsBase
+class EulerSplitEntropyCheck: public TestsBase
 {
 public:
     /// Constructor
-    EulerIsmailRoeEntropyCheck(
+    EulerSplitEntropyCheck(
         const Parameters::AllParameters *const parameters_input,
         const dealii::ParameterHandler &parameter_handler_input);
 
     /// Destructor
-    ~EulerIsmailRoeEntropyCheck() {};
+    ~EulerSplitEntropyCheck() {};
 
     /// Parameter handler for storing the .prm file being ran
     const dealii::ParameterHandler &parameter_handler;

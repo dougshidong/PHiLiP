@@ -1,4 +1,4 @@
-#include "euler_ismail_roe_entropy_check.h"
+#include "euler_entropy_conserving_split_forms_check.h"
 #include "flow_solver/flow_solver_factory.h"
 #include "flow_solver/flow_solver_cases/periodic_turbulence.h"
 
@@ -6,7 +6,7 @@ namespace PHiLiP {
 namespace Tests {
 
 template <int dim, int nstate>
-EulerIsmailRoeEntropyCheck<dim, nstate>::EulerIsmailRoeEntropyCheck(
+EulerSplitEntropyCheck<dim, nstate>::EulerSplitEntropyCheck(
     const PHiLiP::Parameters::AllParameters *const parameters_input,
     const dealii::ParameterHandler &parameter_handler_input)
         : TestsBase::TestsBase(parameters_input)
@@ -14,9 +14,9 @@ EulerIsmailRoeEntropyCheck<dim, nstate>::EulerIsmailRoeEntropyCheck(
 {}
 
 template <int dim, int nstate>
-int EulerIsmailRoeEntropyCheck<dim, nstate>::run_test() const
+int EulerSplitEntropyCheck<dim, nstate>::run_test() const
 {
-    int testfail = 1;
+    int testfail = 0;
     const unsigned int n_fluxes = 4;
 
     using TwoPtFluxEnum = Parameters::AllParameters::TwoPointNumericalFlux;
@@ -61,26 +61,17 @@ int EulerIsmailRoeEntropyCheck<dim, nstate>::run_test() const
               << "Scaled difference:      " << abs((initial_KE-final_KE)/initial_KE) 
               << std::endl << std::endl;
 
-        if (flux == TwoPtFluxEnum::KG){
-            // should conserve KE
-            if (abs((initial_KE-final_KE)/initial_KE) > tol){
-                pcout << "Energy change is not within allowable tolerance. Test failing." << std::endl;
-                testfail = 1;
-            } else pcout << "Energy change is allowable." << std::endl;
-        }
-        else {
-            if (abs((initial_entropy-final_entropy)/initial_entropy) > tol){
-                pcout << "Entropy change is not within allowable tolerance. Test failing." << std::endl;
-                testfail = 1;
-            } else pcout << "Entropy change is allowable." << std::endl;
-        }
+        if (abs((initial_entropy-final_entropy)/initial_entropy) > tol){
+            pcout << "Entropy change is not within allowable tolerance. Test failing." << std::endl;
+            testfail = 1;
+        } else pcout << "Entropy change is allowable." << std::endl;
     }
 
     return testfail;
 }
 
 #if PHILIP_DIM==3
-    template class EulerIsmailRoeEntropyCheck<PHILIP_DIM,PHILIP_DIM+2>;
+    template class EulerSplitEntropyCheck<PHILIP_DIM,PHILIP_DIM+2>;
 #endif
 } // Tests namespace
 } // PHiLiP namespace

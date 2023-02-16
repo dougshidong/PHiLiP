@@ -173,7 +173,7 @@ public:
         time_refinement_study,
         time_refinement_study_reference,
         burgers_energy_conservation_rrk,
-        euler_ismail_roe_entropy_check,
+        euler_entropy_conserving_split_forms_check,
     };
     /// Store selected TestType from the input file.
     TestType test_type;

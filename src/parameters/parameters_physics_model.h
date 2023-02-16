@@ -13,7 +13,7 @@ public:
     PhysicsModelParam ();
 
     /** Set as false by default. 
-      * If true, sets the baseline physics to the Euler equations for Large Eddy Simulation.
+      * If true, sets the baseline physics to the Euler equations
       */
     bool euler_turbulence;
 

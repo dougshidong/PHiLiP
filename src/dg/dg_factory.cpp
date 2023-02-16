@@ -42,7 +42,7 @@ DGFactory<dim,real,MeshType>
             return std::make_shared< DGWeak<dim,dim+2,real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
         }
 #if PHILIP_DIM==3
-        else if ((pde_type == PDE_enum::physics_model) && (model_type == Model_enum::large_eddy_simulation)) {
+        else if ((pde_type == PDE_enum::physics_model) && (model_type == Model_enum::large_eddy_simulation || model_type == Model_enum::navier_stokes_model)) {
             return std::make_shared< DGWeak<dim,dim+2,real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
         }
 #endif
@@ -67,7 +67,7 @@ DGFactory<dim,real,MeshType>
             return std::make_shared< DGStrong<dim,dim+2,real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
         } 
 #if PHILIP_DIM==3
-        else if ((pde_type == PDE_enum::physics_model) && (model_type == Model_enum::large_eddy_simulation)) {
+        else if ((pde_type == PDE_enum::physics_model) && (model_type == Model_enum::large_eddy_simulation || model_type == Model_enum::navier_stokes_model)) {
             return std::make_shared< DGStrong<dim,dim+2,real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
         }
 #endif

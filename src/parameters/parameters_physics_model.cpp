@@ -10,13 +10,13 @@ void PhysicsModelParam::declare_parameters (dealii::ParameterHandler &prm)
 {
     prm.enter_subsection("physics_model");
     {
-        prm.enter_subsection("large_eddy_simulation");
-        {
-            prm.declare_entry("euler_turbulence","false",
+        prm.declare_entry("euler_turbulence","false",
                               dealii::Patterns::Bool(),
                               "Set as false by default (i.e. Navier-Stokes is the baseline physics). " 
                               "If true, sets the baseline physics to the Euler equations.");
 
+        prm.enter_subsection("large_eddy_simulation");
+        {
             prm.declare_entry("SGS_model_type", "smagorinsky",
                               dealii::Patterns::Selection(
                               " smagorinsky | "
@@ -58,10 +58,10 @@ void PhysicsModelParam::parse_parameters (dealii::ParameterHandler &prm)
 {
     prm.enter_subsection("physics_model");
     {
+        euler_turbulence = prm.get_bool("euler_turbulence");
+
         prm.enter_subsection("large_eddy_simulation");
         {
-            euler_turbulence = prm.get_bool("euler_turbulence");
-
             const std::string SGS_model_type_string = prm.get("SGS_model_type");
             if(SGS_model_type_string == "smagorinsky")                        SGS_model_type = smagorinsky;
             if(SGS_model_type_string == "wall_adaptive_local_eddy_viscosity") SGS_model_type = wall_adaptive_local_eddy_viscosity;

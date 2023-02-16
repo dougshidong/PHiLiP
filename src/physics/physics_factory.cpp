@@ -171,8 +171,8 @@ PhysicsFactory<dim,nstate,real>
     // -------------------------------------------------------------------------------
     // Large Eddy Simulation (LES)
     // -------------------------------------------------------------------------------
-    if (model_type == Model_enum::large_eddy_simulation) {
-        has_nonzero_diffusion = true; // because of SGS model term
+    if (model_type==Model_enum::large_eddy_simulation || model_type==Model_enum::navier_stokes_model) {
+        has_nonzero_diffusion = true; // because of SGS model term (initialized as true)
         if constexpr ((nstate==dim+2) && (dim==3)) {
             // Assign baseline physics type (and corresponding nstates) based on the physics model type
             // -- Assign nstates for the baseline physics (constexpr because template parameter)
@@ -180,6 +180,7 @@ PhysicsFactory<dim,nstate,real>
             // -- Assign baseline physics type
             if(parameters_input->physics_model_param.euler_turbulence) {
                 baseline_physics_type = PDE_enum::euler;
+                if(model_type==Model_enum::navier_stokes_model) has_nonzero_diffusion = false; // no additional diffusion terms
             }
             else {
                 baseline_physics_type = PDE_enum::navier_stokes;

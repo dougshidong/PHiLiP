@@ -8,6 +8,7 @@
 #include "model_factory.h"
 #include "manufactured_solution.h"
 #include "large_eddy_simulation.h"
+#include "navier_stokes_model.h"
 
 namespace PHiLiP {
 namespace Physics {
@@ -114,6 +115,35 @@ ModelFactory<dim,nstate,real>
             } 
             else {
                 // LES does not exist for nstate!=(dim+2) || dim!=3
+                manufactured_solution_function = nullptr;
+                return nullptr;
+            }
+        }
+        // -------------------------------------------------------------------------------
+        // Navier-Stokes model
+        // -------------------------------------------------------------------------------
+        else if (model_type == Model_enum::navier_stokes_model) {
+            if constexpr ((nstate==dim+2) && (dim==3)) {
+                // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+                // Navier-Stokes with model source terms (e.g. channel flow)
+                // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+                return std::make_shared < NavierStokesWithModelSourceTerms<dim,nstate,real> > (
+                    parameters_input->euler_param.ref_length,
+                    parameters_input->euler_param.gamma_gas,
+                    parameters_input->euler_param.mach_inf,
+                    parameters_input->euler_param.angle_of_attack,
+                    parameters_input->euler_param.side_slip_angle,
+                    parameters_input->navier_stokes_param.prandtl_number,
+                    parameters_input->navier_stokes_param.reynolds_number_inf,
+                    parameters_input->navier_stokes_param.use_constant_viscosity,
+                    parameters_input->navier_stokes_param.nondimensionalized_constant_viscosity,
+                    parameters_input->navier_stokes_param.temperature_inf,
+                    parameters_input->navier_stokes_param.nondimensionalized_isothermal_wall_temperature,
+                    parameters_input->navier_stokes_param.thermal_boundary_condition_type,
+                    manufactured_solution_function,
+                    parameters_input->two_point_num_flux_type);
+            } else {
+                // Navier-Stokes model does not exist for nstate!=(dim+2) || dim!=3
                 manufactured_solution_function = nullptr;
                 return nullptr;
             }

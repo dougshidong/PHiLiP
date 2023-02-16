@@ -196,11 +196,11 @@ public:
 protected:
     /// Check positive density
     template<typename real2>
-    void check_positive_density(real2 &density);
+    void check_positive_density(real2 &density) const;
 
     /// Check positive pressure
     template<typename real2>
-    void check_positive_pressure(real2 &pressure);
+    void check_positive_pressure(real2 &pressure) const;
 
 public:
     /// Given conservative variables [density, [momentum], total energy],

@@ -151,7 +151,7 @@ std::array<real,nstate> Euler<dim,nstate,real>
 
 template <int dim, int nstate, typename real>
 template<typename real2>
-void Euler<dim,nstate,real>::check_positive_density(real2 &density) {
+void Euler<dim,nstate,real>::check_positive_density(real2 &density) const {
     if (density < 0.0) {
         this->pcout << "WARNING: Negative density encountered! Setting density as BIG_NUMBER." << std::endl;
         density = BIG_NUMBER;
@@ -160,7 +160,7 @@ void Euler<dim,nstate,real>::check_positive_density(real2 &density) {
 
 template <int dim, int nstate, typename real>
 template<typename real2>
-void Euler<dim,nstate,real>::check_positive_pressure(real2 &pressure) {
+void Euler<dim,nstate,real>::check_positive_pressure(real2 &pressure) const {
     if (pressure < 0.0) {
         this->pcout << "WARNING: Negative pressure encountered! Setting pressure as BIG_NUMBER." << std::endl;
         pressure = BIG_NUMBER;
@@ -642,87 +642,6 @@ std::array<dealii::Tensor<1,dim,real>,nstate> Euler<dim, nstate, real>
 
    return conv_num_split_flux; 
 
-}
-
-template <int dim, int nstate, typename real>
-real Euler<dim, nstate, real>
-::compute_ismail_roe_logarithmic_mean(const real val1, const real val2) const
-{
-    // See Appendix B [Ismail and Roe, 2009, Entropy-Consistent Euler Flux Functions II]
-    // -- Numerically stable algorithm for computing the logarithmic mean
-    const real zeta = val1/val2;
-    const real f = (zeta-1.0)/(zeta+1.0);
-    const real u = f*f;
-    
-    real F;
-    if(u<1.0e-2){ F = 1.0 + u/3.0 + u*u/5.0 + u*u*u/7.0; } 
-    else { 
-        if constexpr(std::is_same<real,double>::value) F = std::log(zeta)/2.0/f; 
-    }
-    
-    const real log_mean_val = (val1+val2)/(2.0*F);
-
-    return log_mean_val;
-}
-
-template <int dim, int nstate, typename real>
-std::array<dealii::Tensor<1,dim,real>,nstate> Euler<dim, nstate, real>
-::convective_numerical_split_flux_ismail_roe(const std::array<real,nstate> &conservative_soln1,
-                                             const std::array<real,nstate> &conservative_soln2) const
-{
-    // Get Ismail Roe parameter vectors
-    const std::array<real,nstate> parameter_vector1 = compute_ismail_roe_parameter_vector_from_primitive(
-                                                        convert_conservative_to_primitive<real>(conservative_soln1));
-    const std::array<real,nstate> parameter_vector2 = compute_ismail_roe_parameter_vector_from_primitive(
-                                                        convert_conservative_to_primitive<real>(conservative_soln2));
-
-    // Compute mean (average) parameter vector
-    std::array<real,nstate> avg_parameter_vector;
-    for(int s=0; s<nstate; ++s){
-        avg_parameter_vector[s] = 0.5*(parameter_vector1[s] + parameter_vector2[s]);
-    }
-
-    // Compute logarithmic mean parameter vector
-    std::array<real,nstate> log_mean_parameter_vector;
-    for(int s=0; s<nstate; ++s){
-        log_mean_parameter_vector[s] = compute_ismail_roe_logarithmic_mean(parameter_vector1[s], parameter_vector2[s]);
-    }
-
-    // Compute Ismail Roe mean primitive variables; Eq (3.15) [Gassner, Winters, and Kopriva, 2016, SBP]
-    std::array<real,dim> mean_velocities;
-    const real mean_density = avg_parameter_vector[0]*log_mean_parameter_vector[nstate-1];
-    for(int d=0; d<dim; ++d){
-        mean_velocities[d] = avg_parameter_vector[1+d]/avg_parameter_vector[0];
-    }
-    const real mean_pressure = avg_parameter_vector[nstate-1]/avg_parameter_vector[0];
-    // -- enthalpy
-    real mean_enthalpy = (gam+1.0)*(log_mean_parameter_vector[nstate-1]/log_mean_parameter_vector[0]) + gamm1*mean_pressure;
-    mean_enthalpy /= 2.0*gam;
-    mean_enthalpy *= gam/(mean_density*gamm1);
-    // -- get sum of mean velocities squared
-    real mean_velocities_sqr_sum = 0.0;
-    for(int d=0; d<dim; ++d){
-        mean_velocities_sqr_sum += mean_velocities[d]*mean_velocities[d];
-    }
-    // -- add to enthalpy
-    mean_enthalpy += 0.5*mean_velocities_sqr_sum;
-
-    // Compute Ismail Roe convective numerical split flux
-    std::array<dealii::Tensor<1,dim,real>,nstate> conv_num_split_flux;
-    for (int flux_dim = 0; flux_dim < dim; ++flux_dim)
-    {
-        // Density equation
-        conv_num_split_flux[0][flux_dim] = mean_density * mean_velocities[flux_dim];
-        // Momentum equation
-        for (int velocity_dim=0; velocity_dim<dim; ++velocity_dim){
-            conv_num_split_flux[1+velocity_dim][flux_dim] = mean_density*mean_velocities[flux_dim]*mean_velocities[velocity_dim];
-        }
-        conv_num_split_flux[1+flux_dim][flux_dim] += mean_pressure; // Add diagonal of pressure
-        // Energy equation
-        conv_num_split_flux[nstate-1][flux_dim] = mean_density*mean_velocities[flux_dim]*mean_enthalpy;
-    }
-
-    return conv_num_split_flux;
 }
 
 template <int dim, int nstate, typename real>
@@ -1527,6 +1446,28 @@ template class Euler < PHILIP_DIM, PHILIP_DIM+2, RadFadType >;
 //==============================================================================
 // -> Templated member functions: // could be automated later on using Boost MPL
 //------------------------------------------------------------------------------
+// -- check_positive_density
+template void Euler < PHILIP_DIM, PHILIP_DIM+2, double     >::check_positive_density< double     >(double     &density) const;
+template void Euler < PHILIP_DIM, PHILIP_DIM+2, FadType    >::check_positive_density< FadType    >(FadType    &density) const;
+template void Euler < PHILIP_DIM, PHILIP_DIM+2, RadType    >::check_positive_density< RadType    >(RadType    &density) const;
+template void Euler < PHILIP_DIM, PHILIP_DIM+2, FadFadType >::check_positive_density< FadFadType >(FadFadType &density) const;
+template void Euler < PHILIP_DIM, PHILIP_DIM+2, RadFadType >::check_positive_density< RadFadType >(RadFadType &density) const;
+// -- -- instantiate all the real types with real2 = FadType for automatic differentiation in NavierStokes::dissipative_flux_directional_jacobian()
+template void Euler < PHILIP_DIM, PHILIP_DIM+2, double     >::check_positive_density< FadType    >(FadType    &density) const;
+template void Euler < PHILIP_DIM, PHILIP_DIM+2, RadType    >::check_positive_density< FadType    >(FadType    &density) const;
+template void Euler < PHILIP_DIM, PHILIP_DIM+2, FadFadType >::check_positive_density< FadType    >(FadType    &density) const;
+template void Euler < PHILIP_DIM, PHILIP_DIM+2, RadFadType >::check_positive_density< FadType    >(FadType    &density) const;
+// -- check_positive_pressure
+template void Euler < PHILIP_DIM, PHILIP_DIM+2, double     >::check_positive_pressure< double     >(double     &pressure) const;
+template void Euler < PHILIP_DIM, PHILIP_DIM+2, FadType    >::check_positive_pressure< FadType    >(FadType    &pressure) const;
+template void Euler < PHILIP_DIM, PHILIP_DIM+2, RadType    >::check_positive_pressure< RadType    >(RadType    &pressure) const;
+template void Euler < PHILIP_DIM, PHILIP_DIM+2, FadFadType >::check_positive_pressure< FadFadType >(FadFadType &pressure) const;
+template void Euler < PHILIP_DIM, PHILIP_DIM+2, RadFadType >::check_positive_pressure< RadFadType >(RadFadType &pressure) const;
+// -- -- instantiate all the real types with real2 = FadType for automatic differentiation in NavierStokes::dissipative_flux_directional_jacobian()
+template void Euler < PHILIP_DIM, PHILIP_DIM+2, double     >::check_positive_pressure< FadType    >(FadType    &pressure) const;
+template void Euler < PHILIP_DIM, PHILIP_DIM+2, RadType    >::check_positive_pressure< FadType    >(FadType    &pressure) const;
+template void Euler < PHILIP_DIM, PHILIP_DIM+2, FadFadType >::check_positive_pressure< FadType    >(FadType    &pressure) const;
+template void Euler < PHILIP_DIM, PHILIP_DIM+2, RadFadType >::check_positive_pressure< FadType    >(FadType    &pressure) const;
 // -- compute_pressure()
 template double     Euler < PHILIP_DIM, PHILIP_DIM+2, double     >::compute_pressure< double     >(const std::array<double,    PHILIP_DIM+2> &conservative_soln) const;
 template FadType    Euler < PHILIP_DIM, PHILIP_DIM+2, FadType    >::compute_pressure< FadType    >(const std::array<FadType,   PHILIP_DIM+2> &conservative_soln) const;

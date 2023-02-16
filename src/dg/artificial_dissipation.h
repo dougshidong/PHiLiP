@@ -151,11 +151,61 @@ class PhysicalArtificialDissipation: public ArtificialDissipationBase <dim, nsta
     public:
     /// Constructor of PhysicalArtificialDissipation.
     PhysicalArtificialDissipation(const Parameters::AllParameters *const parameters_input): //input_parameters(parameters_input) {}
-    navier_stokes_double(parameters_input->euler_param.ref_length,parameters_input->euler_param.gamma_gas,parameters_input->euler_param.mach_inf,parameters_input->euler_param.angle_of_attack, parameters_input->euler_param.side_slip_angle,0.75,1.0,parameters_input->navier_stokes_param.use_constant_viscosity,parameters_input->navier_stokes_param.nondimensionalized_constant_viscosity,parameters_input->navier_stokes_param.temperature_inf),
-    navier_stokes_FadType(parameters_input->euler_param.ref_length,parameters_input->euler_param.gamma_gas,parameters_input->euler_param.mach_inf,parameters_input->euler_param.angle_of_attack, parameters_input->euler_param.side_slip_angle,0.75,1.0,parameters_input->navier_stokes_param.use_constant_viscosity,parameters_input->navier_stokes_param.nondimensionalized_constant_viscosity,parameters_input->navier_stokes_param.temperature_inf),
-    navier_stokes_RadType(parameters_input->euler_param.ref_length,parameters_input->euler_param.gamma_gas,parameters_input->euler_param.mach_inf,parameters_input->euler_param.angle_of_attack, parameters_input->euler_param.side_slip_angle,0.75,1.0,parameters_input->navier_stokes_param.use_constant_viscosity,parameters_input->navier_stokes_param.nondimensionalized_constant_viscosity,parameters_input->navier_stokes_param.temperature_inf),
-    navier_stokes_FadFadType(parameters_input->euler_param.ref_length,parameters_input->euler_param.gamma_gas,parameters_input->euler_param.mach_inf,parameters_input->euler_param.angle_of_attack, parameters_input->euler_param.side_slip_angle,0.75,1.0,parameters_input->navier_stokes_param.use_constant_viscosity,parameters_input->navier_stokes_param.nondimensionalized_constant_viscosity,parameters_input->navier_stokes_param.temperature_inf),
-    navier_stokes_RadFadType(parameters_input->euler_param.ref_length,parameters_input->euler_param.gamma_gas,parameters_input->euler_param.mach_inf,parameters_input->euler_param.angle_of_attack, parameters_input->euler_param.side_slip_angle,0.75,1.0,parameters_input->navier_stokes_param.use_constant_viscosity,parameters_input->navier_stokes_param.nondimensionalized_constant_viscosity,parameters_input->navier_stokes_param.temperature_inf)
+    navier_stokes_double(
+        parameters_input->euler_param.ref_length,
+        parameters_input->euler_param.gamma_gas,
+        parameters_input->euler_param.mach_inf,
+        parameters_input->euler_param.angle_of_attack,
+        parameters_input->euler_param.side_slip_angle,
+        0.75,
+        1.0,
+        parameters_input->navier_stokes_param.use_constant_viscosity,
+        parameters_input->navier_stokes_param.nondimensionalized_constant_viscosity,
+        parameters_input->navier_stokes_param.temperature_inf),
+    navier_stokes_FadType(
+        parameters_input->euler_param.ref_length,
+        parameters_input->euler_param.gamma_gas,
+        parameters_input->euler_param.mach_inf,
+        parameters_input->euler_param.angle_of_attack,
+        parameters_input->euler_param.side_slip_angle,
+        0.75,
+        1.0,
+        parameters_input->navier_stokes_param.use_constant_viscosity,
+        parameters_input->navier_stokes_param.nondimensionalized_constant_viscosity,
+        parameters_input->navier_stokes_param.temperature_inf),
+    navier_stokes_RadType(
+        parameters_input->euler_param.ref_length,
+        parameters_input->euler_param.gamma_gas,
+        parameters_input->euler_param.mach_inf,
+        parameters_input->euler_param.angle_of_attack,
+        parameters_input->euler_param.side_slip_angle,
+        0.75,
+        1.0,
+        parameters_input->navier_stokes_param.use_constant_viscosity,
+        parameters_input->navier_stokes_param.nondimensionalized_constant_viscosity,
+        parameters_input->navier_stokes_param.temperature_inf),
+    navier_stokes_FadFadType(
+        parameters_input->euler_param.ref_length,
+        parameters_input->euler_param.gamma_gas,
+        parameters_input->euler_param.mach_inf,
+        parameters_input->euler_param.angle_of_attack,
+        parameters_input->euler_param.side_slip_angle,
+        0.75,
+        1.0,
+        parameters_input->navier_stokes_param.use_constant_viscosity,
+        parameters_input->navier_stokes_param.nondimensionalized_constant_viscosity,
+        parameters_input->navier_stokes_param.temperature_inf),
+    navier_stokes_RadFadType(
+        parameters_input->euler_param.ref_length,
+        parameters_input->euler_param.gamma_gas,
+        parameters_input->euler_param.mach_inf,
+        parameters_input->euler_param.angle_of_attack,
+        parameters_input->euler_param.side_slip_angle,
+        0.75,
+        1.0,
+        parameters_input->navier_stokes_param.use_constant_viscosity,
+        parameters_input->navier_stokes_param.nondimensionalized_constant_viscosity,
+        parameters_input->navier_stokes_param.temperature_inf)
     {}
 
     /// Destructor of PhysicalArtificialDissipation
@@ -217,11 +267,61 @@ class EnthalpyConservingArtificialDissipation: public ArtificialDissipationBase 
     public:
     /// Constructor of EnthalpyConservingArtificialDissipation
     EnthalpyConservingArtificialDissipation(const Parameters::AllParameters *const parameters_input): //input_parameters(parameters_input) {}
-    navier_stokes_double(parameters_input->euler_param.ref_length,parameters_input->euler_param.gamma_gas,parameters_input->euler_param.mach_inf,parameters_input->euler_param.angle_of_attack, parameters_input->euler_param.side_slip_angle,0.75,1.0,parameters_input->navier_stokes_param.use_constant_viscosity,parameters_input->navier_stokes_param.nondimensionalized_constant_viscosity,parameters_input->navier_stokes_param.temperature_inf),
-    navier_stokes_FadType(parameters_input->euler_param.ref_length,parameters_input->euler_param.gamma_gas,parameters_input->euler_param.mach_inf,parameters_input->euler_param.angle_of_attack, parameters_input->euler_param.side_slip_angle,0.75,1.0,parameters_input->navier_stokes_param.use_constant_viscosity,parameters_input->navier_stokes_param.nondimensionalized_constant_viscosity,parameters_input->navier_stokes_param.temperature_inf),
-    navier_stokes_RadType(parameters_input->euler_param.ref_length,parameters_input->euler_param.gamma_gas,parameters_input->euler_param.mach_inf,parameters_input->euler_param.angle_of_attack, parameters_input->euler_param.side_slip_angle,0.75,1.0,parameters_input->navier_stokes_param.use_constant_viscosity,parameters_input->navier_stokes_param.nondimensionalized_constant_viscosity,parameters_input->navier_stokes_param.temperature_inf),
-    navier_stokes_FadFadType(parameters_input->euler_param.ref_length,parameters_input->euler_param.gamma_gas,parameters_input->euler_param.mach_inf,parameters_input->euler_param.angle_of_attack, parameters_input->euler_param.side_slip_angle,0.75,1.0,parameters_input->navier_stokes_param.use_constant_viscosity,parameters_input->navier_stokes_param.nondimensionalized_constant_viscosity,parameters_input->navier_stokes_param.temperature_inf),
-    navier_stokes_RadFadType(parameters_input->euler_param.ref_length,parameters_input->euler_param.gamma_gas,parameters_input->euler_param.mach_inf,parameters_input->euler_param.angle_of_attack, parameters_input->euler_param.side_slip_angle,0.75,1.0,parameters_input->navier_stokes_param.use_constant_viscosity,parameters_input->navier_stokes_param.nondimensionalized_constant_viscosity,parameters_input->navier_stokes_param.temperature_inf)
+    navier_stokes_double(
+        parameters_input->euler_param.ref_length,
+        parameters_input->euler_param.gamma_gas,
+        parameters_input->euler_param.mach_inf,
+        parameters_input->euler_param.angle_of_attack,
+        parameters_input->euler_param.side_slip_angle,
+        0.75,
+        1.0,
+        parameters_input->navier_stokes_param.use_constant_viscosity,
+        parameters_input->navier_stokes_param.nondimensionalized_constant_viscosity,
+        parameters_input->navier_stokes_param.temperature_inf),
+    navier_stokes_FadType(
+        parameters_input->euler_param.ref_length,
+        parameters_input->euler_param.gamma_gas,
+        parameters_input->euler_param.mach_inf,
+        parameters_input->euler_param.angle_of_attack,
+        parameters_input->euler_param.side_slip_angle,
+        0.75,
+        1.0,
+        parameters_input->navier_stokes_param.use_constant_viscosity,
+        parameters_input->navier_stokes_param.nondimensionalized_constant_viscosity,
+        parameters_input->navier_stokes_param.temperature_inf),
+    navier_stokes_RadType(
+        parameters_input->euler_param.ref_length,
+        parameters_input->euler_param.gamma_gas,
+        parameters_input->euler_param.mach_inf,
+        parameters_input->euler_param.angle_of_attack,
+        parameters_input->euler_param.side_slip_angle,
+        0.75,
+        1.0,
+        parameters_input->navier_stokes_param.use_constant_viscosity,
+        parameters_input->navier_stokes_param.nondimensionalized_constant_viscosity,
+        parameters_input->navier_stokes_param.temperature_inf),
+    navier_stokes_FadFadType(
+        parameters_input->euler_param.ref_length,
+        parameters_input->euler_param.gamma_gas,
+        parameters_input->euler_param.mach_inf,
+        parameters_input->euler_param.angle_of_attack,
+        parameters_input->euler_param.side_slip_angle,
+        0.75,
+        1.0,
+        parameters_input->navier_stokes_param.use_constant_viscosity,
+        parameters_input->navier_stokes_param.nondimensionalized_constant_viscosity,
+        parameters_input->navier_stokes_param.temperature_inf),
+    navier_stokes_RadFadType(
+        parameters_input->euler_param.ref_length,
+        parameters_input->euler_param.gamma_gas,
+        parameters_input->euler_param.mach_inf,
+        parameters_input->euler_param.angle_of_attack,
+        parameters_input->euler_param.side_slip_angle,
+        0.75,
+        1.0,
+        parameters_input->navier_stokes_param.use_constant_viscosity,
+        parameters_input->navier_stokes_param.nondimensionalized_constant_viscosity,
+        parameters_input->navier_stokes_param.temperature_inf)
     {}
 
     /// Destructor of EnthalpyConservingArtificialDissipation

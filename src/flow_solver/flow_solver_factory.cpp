@@ -69,6 +69,12 @@ FlowSolverFactory<dim,nstate>
             //std::shared_ptr<FlowSolverCaseBase<dim, nstate>> flow_solver_case = std::make_shared<NACA0012<dim,nstate>>(parameters_input[0]);
             return std::make_unique<FlowSolver<dim, nstate>>(parameters_input[0], flow_solver_case, parameter_handler_input[0]);
         }
+    } else if (flow_type == FlowCaseEnum::rans_flat_plate){
+        if constexpr (dim==2 && nstate==1){
+            std::shared_ptr<FlowSolverCaseBase<dim, nstate>> flow_solver_case = std::make_shared<WallCube<dim, nstate>>(parameters_input[0]);
+            //std::shared_ptr<FlowSolverCaseBase<dim, nstate>> flow_solver_case = std::make_shared<NACA0012<dim,nstate>>(parameters_input[0]);
+            return std::make_unique<FlowSolver<dim, nstate>>(parameters_input[0], flow_solver_case, parameter_handler_input[0]);
+        }
     } else {
         std::cout << "Invalid flow case. You probably forgot to add it to the list of flow cases in flow_solver.cpp" << std::endl;
         std::abort();

@@ -15,7 +15,7 @@ void print_usage_message (dealii::ParameterHandler &prm);
 /// Parses command line for input line and reads parameters
 /// into the dealii::ParameterHandler object
 void parse_command_line ( const int argc, char *const *argv,
-                          dealii::ParameterHandler &parameter_handler);
+                          std::vector<dealii::ParameterHandler> &parameter_handler);
 
 } // Parameters namespace
 } // PHiLiP namespace

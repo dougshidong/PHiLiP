@@ -78,7 +78,7 @@ int main (int argc, char *argv[])
             pcout << "Flow simulation complete with run error code: " << run_error << std::endl;
         }
         else if(all_parameters[0].run_type == PHiLiP::Parameters::AllParameters::RunType::integration_test) {
-            std::unique_ptr<PHiLiP::Tests::TestsBase> test = PHiLiP::Tests::TestsFactory<max_dim,max_nstate>::create_test(&all_parameters[0],parameter_handler);
+            std::unique_ptr<PHiLiP::Tests::TestsBase> test = PHiLiP::Tests::TestsFactory<max_dim,max_nstate>::create_test(&all_parameters[0],parameter_handler[0]);
             run_error = test->run_test();
             pcout << "Finished integration test with run error code: " << run_error << std::endl;
         }

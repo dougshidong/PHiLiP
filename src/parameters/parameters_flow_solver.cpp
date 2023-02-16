@@ -22,7 +22,8 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                           " periodic_1D_unsteady | "
                           " gaussian_bump | "
                           " sshock | "
-                          " wall_distance_evaluation"),
+                          " wall_distance_evaluation | "
+                          " rans_flat_plate"),
                           "The type of flow we want to simulate. "
                           "Choices are "
                           " <taylor_green_vortex | "
@@ -32,7 +33,8 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                           " periodic_1D_unsteady | "
                           " gaussian_bump | "
                           " sshock | "
-                          " wall_distance_evaluation>. ");
+                          " wall_distance_evaluation | "
+                          " rans_flat_plate>. ");
 
         prm.declare_entry("poly_degree", "1",
                           dealii::Patterns::Integer(0, dealii::Patterns::Integer::max_int_value),

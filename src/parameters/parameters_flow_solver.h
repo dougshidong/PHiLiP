@@ -23,7 +23,8 @@ public:
         periodic_1D_unsteady,
         gaussian_bump,
         sshock,
-        wall_distance_evaluation
+        wall_distance_evaluation,
+        rans_flat_plate
         };
     FlowCaseType flow_case_type; ///< Selected FlowCaseType from the input file
 

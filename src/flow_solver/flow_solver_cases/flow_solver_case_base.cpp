@@ -119,8 +119,13 @@ void FlowSolverCaseBase<dim,nstate>::set_higher_order_grid(std::shared_ptr<DGBas
 template <int dim, int nstate>
 double FlowSolverCaseBase<dim,nstate>::get_constant_time_step(std::shared_ptr<DGBase<dim,double>> /*dg*/) const
 {
-    pcout << "Using initial time step in ODE parameters." <<std::endl;
-    return all_param.ode_solver_param.initial_time_step;
+    if(all_param.flow_solver_param.constant_time_step > 0.0) {
+        pcout << "Using constant time step in FlowSolver parameters." << std::endl;
+        return all_param.flow_solver_param.constant_time_step;
+    } else {
+        pcout << "Using initial time step in ODE parameters." <<std::endl;
+        return all_param.ode_solver_param.initial_time_step;
+    }
 }
 
 template <int dim, int nstate>

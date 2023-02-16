@@ -20,22 +20,28 @@ NavierStokes<dim, nstate, real>::NavierStokes(
     const double                                              side_slip_angle,
     const double                                              prandtl_number,
     const double                                              reynolds_number_inf,
+    const double                                              temperature_inf,
     const double                                              isothermal_wall_temperature,
     const thermal_boundary_condition_enum                     thermal_boundary_condition_type,
     std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function,
-    const bool                                                has_nonzero_physical_source)
+    const two_point_num_flux_enum                             two_point_num_flux_type)
     : Euler<dim,nstate,real>(ref_length, 
                              gamma_gas, 
                              mach_inf, 
                              angle_of_attack, 
                              side_slip_angle, 
                              manufactured_solution_function,
-                             has_nonzero_physical_source)
+                             two_point_num_flux_type,
+                             true,  //has_nonzero_diffusion = true
+                             false) //has_nonzero_physical_source = false
     , viscosity_coefficient_inf(1.0) // Nondimensional - Free stream values
     , prandtl_number(prandtl_number)
     , reynolds_number_inf(reynolds_number_inf)
     , isothermal_wall_temperature(isothermal_wall_temperature) // Nondimensional - Free stream values
     , thermal_boundary_condition_type(thermal_boundary_condition_type)
+    , sutherlands_temperature(110.4) // Sutherland's temperature. Units: [K]
+    , freestream_temperature(temperature_inf) // Freestream temperature. Units: [K]
+    , temperature_ratio(sutherlands_temperature/freestream_temperature)
 {
     static_assert(nstate==dim+2, "Physics::NavierStokes() should be created with nstate=dim+2");
     // Nothing to do here so far
@@ -56,7 +62,6 @@ std::array<dealii::Tensor<1,dim,real2>,nstate> NavierStokes<dim,nstate,real>
     // extract from primitive solution
     const real2 density = primitive_soln[0];
     const dealii::Tensor<1,dim,real2> vel = this->template extract_velocities_from_primitive<real2>(primitive_soln); // from Euler
-    const real2 vel2 = this->template compute_velocity_squared<real2>(vel); // from Euler
 
     // density gradient
     for (int d=0; d<dim; d++) {
@@ -69,10 +74,21 @@ std::array<dealii::Tensor<1,dim,real2>,nstate> NavierStokes<dim,nstate,real>
         }        
     }
     // pressure gradient
+    // -- formulation 1:
+    // const real2 vel2 = this->template compute_velocity_squared<real2>(vel); // from Euler
+    // for (int d1=0; d1<dim; d1++) {
+    //     primitive_soln_gradient[nstate-1][d1] = conservative_soln_gradient[nstate-1][d1] - 0.5*vel2*conservative_soln_gradient[0][d1];
+    //     for (int d2=0; d2<dim; d2++) {
+    //         primitive_soln_gradient[nstate-1][d1] -= conservative_soln[1+d2]*primitive_soln_gradient[1+d2][d1];
+    //     }
+    //     primitive_soln_gradient[nstate-1][d1] *= this->gamm1;
+    // }
+    // -- formulation 2 (equivalent to formulation 1):
     for (int d1=0; d1<dim; d1++) {
-        primitive_soln_gradient[nstate-1][d1] = conservative_soln_gradient[nstate-1][d1] - 0.5*vel2*conservative_soln_gradient[0][d1];
+        primitive_soln_gradient[nstate-1][d1] = conservative_soln_gradient[nstate-1][d1];
         for (int d2=0; d2<dim; d2++) {
-            primitive_soln_gradient[nstate-1][d1] -= conservative_soln[1+d2]*primitive_soln_gradient[1+d2][d1];
+            primitive_soln_gradient[nstate-1][d1] -= 0.5*(primitive_soln[1+d2]*conservative_soln_gradient[1+d2][d1]  
+                                                           + conservative_soln[1+d2]*primitive_soln_gradient[1+d2][d1]);
         }
         primitive_soln_gradient[nstate-1][d1] *= this->gamm1;
     }
@@ -644,7 +660,8 @@ template <int dim, int nstate, typename real>
 std::array<real,nstate> NavierStokes<dim,nstate,real>
 ::source_term (
     const dealii::Point<dim,real> &pos,
-    const std::array<real,nstate> &/*conservative_soln*/) const
+    const std::array<real,nstate> &/*conservative_soln*/,
+    const real /*current_time*/) const
 {
     // will probably have to change this line: -- modify so we only need to provide a jacobian
     const std::array<real,nstate> conv_source_term = this->convective_source_term(pos);

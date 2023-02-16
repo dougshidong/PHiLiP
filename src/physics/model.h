@@ -67,6 +67,7 @@ public:
     virtual std::array<real,nstate> source_term (
         const dealii::Point<dim,real> &pos,
         const std::array<real,nstate> &solution,
+        const real current_time,
         const dealii::types::global_dof_index cell_index) const = 0;
 
     /// Boundary condition handler

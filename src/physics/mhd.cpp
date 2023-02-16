@@ -15,16 +15,18 @@ std::array<real,nstate> MHD<dim,nstate,real>
 ::source_term (
     const dealii::Point<dim,real> &pos,
     const std::array<real,nstate> &conservative_soln,
+    const real current_time,
     const dealii::types::global_dof_index /*cell_index*/) const
 {
-    return source_term(pos,conservative_soln);
+    return source_term(pos,conservative_soln,current_time);
 }
 
 template <int dim, int nstate, typename real>
 std::array<real,nstate> MHD<dim,nstate,real>
 ::source_term (
     const dealii::Point<dim,real> &/*pos*/,
-    const std::array<real,nstate> &/*conservative_soln*/) const
+    const std::array<real,nstate> &/*conservative_soln*/,
+    const real /*current_time*/) const
 {
     std::array<real,nstate> source_term;
     for (int s=0; s<nstate; s++) {
@@ -350,6 +352,35 @@ std::array<dealii::Tensor<1,dim,real>,nstate> MHD<dim, nstate, real>
 }
 
 template <int dim, int nstate, typename real>
+real MHD<dim, nstate, real>
+::convective_surface_numerical_split_flux (
+                const real &/*surface_flux*/,
+                const real &flux_interp_to_surface) const
+{
+    return flux_interp_to_surface;
+}
+
+template <int dim, int nstate, typename real>
+std::array<real,nstate> MHD<dim, nstate, real>
+::compute_entropy_variables (
+    const std::array<real,nstate> &conservative_soln) const
+{
+    std::cout<<"Entropy variables for MHD hasn't been done yet."<<std::endl;
+    std::abort();
+    return conservative_soln;
+}
+
+template <int dim, int nstate, typename real>
+std::array<real,nstate> MHD<dim, nstate, real>
+::compute_conservative_variables_from_entropy_variables (
+    const std::array<real,nstate> &entropy_var) const
+{
+    std::cout<<"Entropy variables for MHD hasn't been done yet."<<std::endl;
+    std::abort();
+    return entropy_var;
+}
+
+template <int dim, int nstate, typename real>
 std::array<real,nstate> MHD<dim,nstate,real>
 ::convective_normal_flux (const std::array<real,nstate> &conservative_soln, const dealii::Tensor<1,dim,real> &normal) const
 {
@@ -462,6 +493,13 @@ real MHD<dim,nstate,real>
     //std::cout << "max eig calculated" << std::endl;
 
     return max_eig;
+}
+
+template <int dim, int nstate, typename real>
+real MHD<dim,nstate,real>
+::max_viscous_eigenvalue (const std::array<real,nstate> &/*conservative_soln*/) const
+{
+    return 0.0;
 }
 
 template <int dim, int nstate, typename real>

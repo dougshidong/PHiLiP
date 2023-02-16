@@ -68,16 +68,42 @@ std::array<dealii::Tensor<1,dim,real>,nstate> Burgers<dim,nstate,real>
 
 template <int dim, int nstate, typename real>
 std::array<dealii::Tensor<1,dim,real>,nstate> Burgers<dim,nstate,real>::convective_numerical_split_flux (
-                const std::array<real,nstate> &soln_const,
-                const std::array<real,nstate> & soln_loop) const
+                const std::array<real,nstate> &conservative_soln1,
+                const std::array<real,nstate> &conservative_soln2) const
 {
     std::array<dealii::Tensor<1,dim,real>,nstate> conv_flux;
         for (int flux_dim=0; flux_dim<dim; ++flux_dim) {
             for (int s=0; s<nstate; ++s) {
-                conv_flux[s][flux_dim] = 1./6. * (soln_const[flux_dim]*soln_const[flux_dim] + soln_const[flux_dim]*soln_loop[s] + soln_loop[s]*soln_loop[s]);
+                conv_flux[s][flux_dim] = 1./6. * (conservative_soln1[flux_dim]*conservative_soln1[flux_dim] + conservative_soln1[flux_dim]*conservative_soln2[s] + conservative_soln2[s]*conservative_soln2[s]);
             }
         }
         return conv_flux;
+}
+
+template <int dim, int nstate, typename real>
+real Burgers<dim,nstate,real>::convective_surface_numerical_split_flux (
+                const real &surface_flux,
+                const real &flux_interp_to_surface) const
+{
+    real surface_split_flux;
+    surface_split_flux = 2.0/3.0 * flux_interp_to_surface + 1.0/3.0 * surface_flux;
+    return surface_split_flux;
+}
+
+template <int dim, int nstate, typename real>
+std::array<real,nstate> Burgers<dim, nstate, real>
+::compute_entropy_variables (
+    const std::array<real,nstate> &conservative_soln) const
+{
+    return conservative_soln;
+}
+
+template <int dim, int nstate, typename real>
+std::array<real,nstate> Burgers<dim, nstate, real>
+::compute_conservative_variables_from_entropy_variables (
+    const std::array<real,nstate> &entropy_var) const
+{
+    return entropy_var;
 }
 
 template <int dim, int nstate, typename real>
@@ -120,6 +146,13 @@ real Burgers<dim,nstate,real>
 }
 
 template <int dim, int nstate, typename real>
+real Burgers<dim,nstate,real>
+::max_viscous_eigenvalue (const std::array<real,nstate> &/*conservative_soln*/) const
+{
+    return 0.0;
+}
+
+template <int dim, int nstate, typename real>
 std::array<dealii::Tensor<1,dim,real>,nstate> Burgers<dim,nstate,real>
 ::dissipative_flux (
     const std::array<real,nstate> &solution,
@@ -153,18 +186,36 @@ std::array<real,nstate> Burgers<dim,nstate,real>
 ::source_term (
     const dealii::Point<dim,real> &pos,
     const std::array<real,nstate> &solution,
+    const real current_time,
     const dealii::types::global_dof_index /*cell_index*/) const
 {
-    return source_term(pos,solution);
+    return source_term(pos,solution,current_time);
 }
 
 template <int dim, int nstate, typename real>
 std::array<real,nstate> Burgers<dim,nstate,real>
 ::source_term (
     const dealii::Point<dim,real> &pos,
-    const std::array<real,nstate> &/*solution*/) const
+    const std::array<real,nstate> &/*solution*/,
+    const real current_time) const
 {
     std::array<real,nstate> source;
+
+    using TestType = Parameters::AllParameters::TestType;
+
+    if(this->test_type == TestType::burgers_energy_stability){
+        for(int istate =0; istate<nstate; istate++){
+            source[istate] = 0.0;
+            const double pi = atan(1)*4.0;
+            for(int idim=0; idim< dim; idim++){
+              // source[istate] += pi * cos(pi*(pos[idim] - current_time))
+              //                     *(-0.99 + sin(pi * (pos[idim] - current_time)));
+               source[istate] += pi * sin(pi*(pos[idim] - current_time))
+                                   *(1.0 - cos(pi * (pos[idim] - current_time)));
+            }
+        }
+    }
+    else{
     const real diff_coeff = diffusion_coefficient();
     // for (int istate=0; istate<nstate; istate++) {
     //     dealii::Tensor<1,dim,real> manufactured_gradient = this->manufactured_solution_function.gradient (pos, istate);
@@ -203,6 +254,7 @@ std::array<real,nstate> Burgers<dim,nstate,real>
         source[istate] += 0.5*manufactured_solution*divergence;
     }
 
+    }
     // for (int istate=0; istate<nstate; istate++) {
     //     source[istate] = 0.0;
     //     for (int d=0;d<dim;++d) {
@@ -231,6 +283,7 @@ template class Burgers < PHILIP_DIM, PHILIP_DIM, RadFadType >;
 
 } // Physics namespace
 } // PHiLiP namespace
+
 
 
 

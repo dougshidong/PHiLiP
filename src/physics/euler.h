@@ -3,6 +3,7 @@
 
 #include <deal.II/base/tensor.h>
 #include "physics.h"
+#include "parameters/all_parameters.h"
 #include "parameters/parameters_manufactured_solution.h"
 
 namespace PHiLiP {
@@ -86,6 +87,7 @@ protected:
     using PhysicsBase<dim,nstate,real>::dissipative_flux;
     using PhysicsBase<dim,nstate,real>::source_term;
 public:
+    using two_point_num_flux_enum = Parameters::AllParameters::TwoPointNumericalFlux;
     /// Constructor
     Euler ( 
         const double                                              ref_length,
@@ -94,6 +96,8 @@ public:
         const double                                              angle_of_attack,
         const double                                              side_slip_angle,
         std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function = nullptr,
+        const two_point_num_flux_enum                             two_point_num_flux_type = two_point_num_flux_enum::KG,
+        const bool                                                has_nonzero_diffusion = false,
         const bool                                                has_nonzero_physical_source = false);
 
     /// Destructor
@@ -124,6 +128,7 @@ public:
     const double sound_inf; ///< Non-dimensionalized sound* at infinity
     const double pressure_inf; ///< Non-dimensionalized pressure* at infinity
     const double entropy_inf; ///< Entropy measure at infinity
+    const two_point_num_flux_enum two_point_num_flux_type; ///< Two point numerical flux type (for split form)
     double temperature_inf; ///< Non-dimensionalized temperature* at infinity. Should equal 1/density*(inf)
     double dynamic_pressure_inf; ///< Non-dimensionalized dynamic pressure* at infinity
 
@@ -158,6 +163,9 @@ public:
     /// Maximum convective eigenvalue used in Lax-Friedrichs
     real max_convective_eigenvalue (const std::array<real,nstate> &soln) const;
 
+    /// Maximum viscous eigenvalue.
+    real max_viscous_eigenvalue (const std::array<real,nstate> &soln) const;
+
     /// Dissipative flux: 0
     std::array<dealii::Tensor<1,dim,real>,nstate> dissipative_flux (
         const std::array<real,nstate> &conservative_soln,
@@ -173,12 +181,14 @@ public:
     std::array<real,nstate> source_term (
         const dealii::Point<dim,real> &pos,
         const std::array<real,nstate> &conservative_soln,
+        const real current_time,
         const dealii::types::global_dof_index cell_index) const;
 
     /// (function overload) Source term is zero or depends on manufactured solution
     virtual std::array<real,nstate> source_term (
         const dealii::Point<dim,real> &pos,
-        const std::array<real,nstate> &conservative_soln) const;
+        const std::array<real,nstate> &conservative_soln,
+        const real current_time) const;
 
     /// Convective flux contribution to the source term
     std::array<real,nstate> convective_source_term (
@@ -251,10 +261,6 @@ public:
     /// Given conservative variables, returns Mach number
     real compute_mach_number ( const std::array<real,nstate> &conservative_soln ) const;
 
-    /// Given primitive variables, returns DIMENSIONALIZED temperature using the equation of state
-    template<typename real2>
-    real2 compute_dimensional_temperature ( const std::array<real2,nstate> &primitive_soln ) const;
-
     /// Given primitive variables, returns NON-DIMENSIONALIZED temperature using free-stream non-dimensionalization
     /** See the book I do like CFD, sec 4.14.2 */
     template<typename real2>
@@ -272,11 +278,30 @@ public:
     /** See the book I do like CFD, sec 4.14.2 */
     real compute_pressure_from_density_temperature ( const real density, const real temperature ) const;
 
-    /// The Euler split form is that of Kennedy & Gruber.
-    /** Refer to Gassner's paper (2016) Eq. 3.10 for more information:  */
+    /// The Euler split form is that of Kennedy & Gruber or Ismail & Roe.
     std::array<dealii::Tensor<1,dim,real>,nstate> convective_numerical_split_flux (
         const std::array<real,nstate> &conservative_soln1,
         const std::array<real,nstate> &conservative_soln2) const;
+
+    /// Convective Numerical Split Flux for split form
+    real convective_surface_numerical_split_flux (
+                const real &surface_flux,
+                const real &flux_interp_to_surface) const;
+
+    /// Computes the entropy variables.
+    /// Given conservative variables [density, [momentum], total energy],
+    /// Computes entropy variables according to Chan 2018, eq. 119
+    std::array<real,nstate> compute_entropy_variables (
+                const std::array<real,nstate> &conservative_soln) const;
+
+    /// Computes the conservative variables [density, [momentum], total energy
+    /// from the entropy variables according to Chan 2018, eq. 120
+    std::array<real,nstate> compute_conservative_variables_from_entropy_variables (
+                const std::array<real,nstate> &entropy_var) const;
+
+    /// Computes the kinetic energy variables.
+    std::array<real,nstate> compute_kinetic_energy_variables (
+                const std::array<real,nstate> &conservative_soln) const;
 
     /// Mean density given two sets of conservative solutions.
     /** Used in the implementation of the split form.
@@ -299,10 +324,10 @@ public:
         const std::array<real,nstate> &conservative_soln1,
         const std::array<real,nstate> &convervative_soln2) const;
 
-    /// Mean specific energy given two sets of conservative solutions.
+    /// Mean specific total energy given two sets of conservative solutions.
     /** Used in the implementation of the split form.
      */
-    real compute_mean_specific_energy(
+    real compute_mean_specific_total_energy(
         const std::array<real,nstate> &conservative_soln1,
         const std::array<real,nstate> &convervative_soln2) const;
 
@@ -399,6 +424,35 @@ protected:
     /// Get manufactured solution gradient
     std::array<dealii::Tensor<1,dim,real>,nstate> get_manufactured_solution_gradient(
         const dealii::Point<dim,real> &pos) const;
+
+    /** Entropy conserving split form flux of Kennedy and Gruber.
+     *  Refer to Gassner's paper (2016) Eq. 3.10  */
+    std::array<dealii::Tensor<1,dim,real>,nstate> convective_numerical_split_flux_kennedy_gruber (
+        const std::array<real,nstate> &conservative_soln1,
+        const std::array<real,nstate> &conservative_soln2) const;
+
+    /// Compute Ismail-Roe parameter vector from primitive solution
+    std::array<real,nstate> compute_ismail_roe_parameter_vector_from_primitive(
+        const std::array<real,nstate> &primitive_soln) const;
+
+    /// Compute Ismail-Roe logarithmic mean
+    real compute_ismail_roe_logarithmic_mean(const real val1, const real val2) const;
+
+    /** Entropy conserving split form flux of Ismail & Roe.
+     *  Refer to Gassner's paper (2016) Eq. 3.17  */
+    std::array<dealii::Tensor<1,dim,real>,nstate> convective_numerical_split_flux_ismail_roe (
+        const std::array<real,nstate> &conservative_soln1,
+        const std::array<real,nstate> &conservative_soln2) const;
+
+    /// Chandrashekar entropy conserving flux.
+    std::array<dealii::Tensor<1,dim,real>,nstate> convective_numerical_split_flux_chandrashekar (
+        const std::array<real,nstate> &conservative_soln1,
+        const std::array<real,nstate> &conservative_soln2) const;
+
+    /// Ranocha pressure equilibrium preserving, entropy and energy conserving flux.
+    std::array<dealii::Tensor<1,dim,real>,nstate> convective_numerical_split_flux_ranocha (
+        const std::array<real,nstate> &conservative_soln1,
+        const std::array<real,nstate> &conservative_soln2) const;
 };
 
 } // Physics namespace

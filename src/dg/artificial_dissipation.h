@@ -86,11 +86,11 @@ class LaplacianArtificialDissipation: public ArtificialDissipationBase <dim, nst
     public:
     /// Constructor of LaplacianArtificialDissipation.
     LaplacianArtificialDissipation(): 
-    convection_diffusion_double(false,true,this->diffusion_tensor,Parameters::ManufacturedSolutionParam::get_default_advection_vector(),1.0),
-    convection_diffusion_FadType(false,true,this->diffusion_tensor,Parameters::ManufacturedSolutionParam::get_default_advection_vector(),1.0),
-    convection_diffusion_RadType(false,true,this->diffusion_tensor,Parameters::ManufacturedSolutionParam::get_default_advection_vector(),1.0),
-    convection_diffusion_FadFadType(false,true,this->diffusion_tensor,Parameters::ManufacturedSolutionParam::get_default_advection_vector(),1.0),
-    convection_diffusion_RadFadType(false,true,this->diffusion_tensor,Parameters::ManufacturedSolutionParam::get_default_advection_vector(),1.0)
+    convection_diffusion_double(false,true,false,this->diffusion_tensor,Parameters::ManufacturedSolutionParam::get_default_advection_vector(),1.0),
+    convection_diffusion_FadType(false,true,false,this->diffusion_tensor,Parameters::ManufacturedSolutionParam::get_default_advection_vector(),1.0),
+    convection_diffusion_RadType(false,true,false,this->diffusion_tensor,Parameters::ManufacturedSolutionParam::get_default_advection_vector(),1.0),
+    convection_diffusion_FadFadType(false,true,false,this->diffusion_tensor,Parameters::ManufacturedSolutionParam::get_default_advection_vector(),1.0),
+    convection_diffusion_RadFadType(false,true,false,this->diffusion_tensor,Parameters::ManufacturedSolutionParam::get_default_advection_vector(),1.0)
     {}
 
     /// Destructor of LaplacianArtificialDissipation

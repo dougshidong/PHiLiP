@@ -5,6 +5,7 @@
 
 #include "physics.h"
 #include "euler.h"
+
 const double BIG_NUMBER = 1e100;
 
 namespace PHiLiP {
@@ -18,8 +19,10 @@ Euler<dim,nstate,real>::Euler (
     const double                                              angle_of_attack,
     const double                                              side_slip_angle,
     std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function,
+    const two_point_num_flux_enum                             two_point_num_flux_type_input,
+    const bool                                                has_nonzero_diffusion,
     const bool                                                has_nonzero_physical_source)
-    : PhysicsBase<dim,nstate,real>(has_nonzero_physical_source,manufactured_solution_function)
+    : PhysicsBase<dim,nstate,real>(has_nonzero_diffusion,has_nonzero_physical_source,manufactured_solution_function)
     , ref_length(ref_length)
     , gam(gamma_gas)
     , gamm1(gam-1.0)
@@ -31,6 +34,7 @@ Euler<dim,nstate,real>::Euler (
     , sound_inf(1.0/(mach_inf))
     , pressure_inf(1.0/(gam*mach_inf_sqr))
     , entropy_inf(pressure_inf*pow(density_inf,-gam))
+    , two_point_num_flux_type(two_point_num_flux_type_input)
     //, internal_energy_inf(1.0/(gam*(gam-1.0)*mach_inf_sqr)) 
     // Note: Eq.(3.11.18) has a typo in internal_energy_inf expression, mach_inf_sqr should be in denominator. 
 {
@@ -67,16 +71,18 @@ std::array<real,nstate> Euler<dim,nstate,real>
 ::source_term (
     const dealii::Point<dim,real> &pos,
     const std::array<real,nstate> &conservative_soln,
+    const real current_time,
     const dealii::types::global_dof_index /*cell_index*/) const
 {
-    return source_term(pos,conservative_soln);
+    return source_term(pos,conservative_soln,current_time);
 }
 
 template <int dim, int nstate, typename real>
 std::array<real,nstate> Euler<dim,nstate,real>
 ::source_term (
     const dealii::Point<dim,real> &pos,
-    const std::array<real,nstate> &/*conservative_soln*/) const
+    const std::array<real,nstate> &/*conservative_soln*/,
+    const real /*current_time*/) const
 {
     std::array<real,nstate> source_term = convective_source_term(pos);
     return source_term;
@@ -293,21 +299,11 @@ inline real Euler<dim,nstate,real>
 template <int dim, int nstate, typename real>
 template<typename real2>
 inline real2 Euler<dim,nstate,real>
-::compute_dimensional_temperature ( const std::array<real2,nstate> &primitive_soln ) const
+::compute_temperature ( const std::array<real2,nstate> &primitive_soln ) const
 {
     const real2 density = primitive_soln[0];
     const real2 pressure = primitive_soln[nstate-1];
-    const real2 temperature = gam*pressure/density;
-    return temperature;
-}
-
-template <int dim, int nstate, typename real>
-template<typename real2>
-inline real2 Euler<dim,nstate,real>
-::compute_temperature ( const std::array<real2,nstate> &primitive_soln ) const
-{
-    const real2 dimensional_temperature = compute_dimensional_temperature<real2>(primitive_soln);
-    const real2 temperature = dimensional_temperature * mach_inf_sqr;
+    const real2 temperature = gam*mach_inf_sqr*(pressure/density);
     return temperature;
 }
 
@@ -315,7 +311,7 @@ template <int dim, int nstate, typename real>
 inline real Euler<dim,nstate,real>
 ::compute_density_from_pressure_temperature ( const real pressure, const real temperature ) const
 {
-    const real density = gam*pressure/temperature * mach_inf_sqr;
+    const real density = gam*mach_inf_sqr*(pressure/temperature);
     return density;
 }
 
@@ -323,7 +319,7 @@ template <int dim, int nstate, typename real>
 inline real Euler<dim,nstate,real>
 ::compute_temperature_from_density_pressure ( const real density, const real pressure ) const
 {
-    const real temperature = gam*pressure/density * mach_inf_sqr;
+    const real temperature = gam*mach_inf_sqr*(pressure/density);
     return temperature;
 }
 
@@ -401,27 +397,316 @@ std::array<dealii::Tensor<1,dim,real>,nstate> Euler<dim, nstate, real>
                                   const std::array<real,nstate> &conservative_soln2) const
 {
     std::array<dealii::Tensor<1,dim,real>,nstate> conv_num_split_flux;
+    if(two_point_num_flux_type == two_point_num_flux_enum::KG) {
+        conv_num_split_flux = convective_numerical_split_flux_kennedy_gruber(conservative_soln1, conservative_soln2);
+    } else if(two_point_num_flux_type == two_point_num_flux_enum::IR) {
+        conv_num_split_flux = convective_numerical_split_flux_ismail_roe(conservative_soln1, conservative_soln2);
+    } else if(two_point_num_flux_type == two_point_num_flux_enum::CH) {
+        conv_num_split_flux = convective_numerical_split_flux_chandrashekar(conservative_soln1, conservative_soln2);
+    } else if(two_point_num_flux_type == two_point_num_flux_enum::Ra) {
+        conv_num_split_flux = convective_numerical_split_flux_ranocha(conservative_soln1, conservative_soln2);
+    }
+
+    return conv_num_split_flux;
+}
+
+template <int dim, int nstate, typename real>
+std::array<dealii::Tensor<1,dim,real>,nstate> Euler<dim, nstate, real>
+::convective_numerical_split_flux_kennedy_gruber(const std::array<real,nstate> &conservative_soln1,
+                                                 const std::array<real,nstate> &conservative_soln2) const
+{
+    std::array<dealii::Tensor<1,dim,real>,nstate> conv_num_split_flux;
     const real mean_density = compute_mean_density(conservative_soln1, conservative_soln2);
     const real mean_pressure = compute_mean_pressure(conservative_soln1, conservative_soln2);
     const dealii::Tensor<1,dim,real> mean_velocities = compute_mean_velocities(conservative_soln1,conservative_soln2);
-    const real mean_specific_energy = compute_mean_specific_energy(conservative_soln1, conservative_soln2);
+    const real mean_specific_total_energy = compute_mean_specific_total_energy(conservative_soln1, conservative_soln2);
 
     for (int flux_dim = 0; flux_dim < dim; ++flux_dim)
     {
         // Density equation
-        conv_num_split_flux[0][flux_dim] = mean_density * mean_velocities[flux_dim];//conservative_soln[1+flux_dim];
+        conv_num_split_flux[0][flux_dim] = mean_density * mean_velocities[flux_dim];
         // Momentum equation
         for (int velocity_dim=0; velocity_dim<dim; ++velocity_dim){
             conv_num_split_flux[1+velocity_dim][flux_dim] = mean_density*mean_velocities[flux_dim]*mean_velocities[velocity_dim];
         }
         conv_num_split_flux[1+flux_dim][flux_dim] += mean_pressure; // Add diagonal of pressure
         // Energy equation
-        conv_num_split_flux[nstate-1][flux_dim] = mean_density*mean_velocities[flux_dim]*mean_specific_energy + mean_pressure * mean_velocities[flux_dim];
+        conv_num_split_flux[nstate-1][flux_dim] = mean_density*mean_velocities[flux_dim]*mean_specific_total_energy + mean_pressure * mean_velocities[flux_dim];
     }
 
     return conv_num_split_flux;
 }
 
+template <int dim, int nstate, typename real>
+std::array<real,nstate> Euler<dim, nstate, real>
+::compute_ismail_roe_parameter_vector_from_primitive(const std::array<real,nstate> &primitive_soln) const
+{
+    // Ismail-Roe parameter vector; Eq (3.14) [Gassner, Winters, and Kopriva, 2016, SBP]
+    std::array<real,nstate> ismail_roe_parameter_vector;
+    ismail_roe_parameter_vector[0] = sqrt(primitive_soln[0]/primitive_soln[nstate-1]);
+    for(int d=0; d<dim; ++d){
+        ismail_roe_parameter_vector[1+d] = ismail_roe_parameter_vector[0]*primitive_soln[1+d];
+    }
+    ismail_roe_parameter_vector[nstate-1] = sqrt(primitive_soln[0]*primitive_soln[nstate-1]);
+
+    return ismail_roe_parameter_vector;
+}
+
+template <int dim, int nstate, typename real>
+std::array<dealii::Tensor<1,dim,real>,nstate> Euler<dim, nstate, real>
+::convective_numerical_split_flux_chandrashekar(const std::array<real,nstate> &conservative_soln1,
+                                                const std::array<real,nstate> &conservative_soln2) const
+{
+
+    std::array<dealii::Tensor<1,dim,real>,nstate> conv_num_split_flux;
+    const real rho_log = compute_ismail_roe_logarithmic_mean(conservative_soln1[0], conservative_soln2[0]);
+    const real pressure1 = compute_pressure<real>(conservative_soln1);
+    const real pressure2 = compute_pressure<real>(conservative_soln2);
+
+    const real beta1 = conservative_soln1[0]/(2.0*pressure1);
+    const real beta2 = conservative_soln2[0]/(2.0*pressure2);
+
+    const real beta_log = compute_ismail_roe_logarithmic_mean(beta1, beta2);
+    const dealii::Tensor<1,dim,real> vel1 = compute_velocities<real>(conservative_soln1);
+    const dealii::Tensor<1,dim,real> vel2 = compute_velocities<real>(conservative_soln2);
+
+    const real pressure_hat = 0.5*(conservative_soln1[0] + conservative_soln2[0])/(2.0*0.5*(beta1+beta2));
+
+    dealii::Tensor<1,dim,real> vel_avg;
+    real vel_square_avg = 0.0;;
+    for(int idim=0; idim<dim; idim++){
+        vel_avg[idim] = 0.5*(vel1[idim]+vel2[idim]);
+        vel_square_avg += (0.5 *(vel1[idim]+vel2[idim])) * (0.5 *(vel1[idim]+vel2[idim]));
+    }
+
+    real enthalpy_hat = 1.0/(2.0*beta_log*gamm1) + vel_square_avg + pressure_hat/rho_log;
+
+    for(int idim=0; idim<dim; idim++){
+        enthalpy_hat -= 0.5*(0.5*(vel1[idim]*vel1[idim] + vel2[idim]*vel2[idim]));
+    }
+
+    for(int flux_dim=0; flux_dim<dim; flux_dim++){
+        // Density equation
+        conv_num_split_flux[0][flux_dim] = rho_log * vel_avg[flux_dim];
+        // Momentum equation
+        for (int velocity_dim=0; velocity_dim<dim; ++velocity_dim){
+            conv_num_split_flux[1+velocity_dim][flux_dim] = rho_log*vel_avg[flux_dim]*vel_avg[velocity_dim];
+        }
+        conv_num_split_flux[1+flux_dim][flux_dim] += pressure_hat; // Add diagonal of pressure
+
+        // Energy equation
+        conv_num_split_flux[nstate-1][flux_dim] = rho_log * vel_avg[flux_dim] * enthalpy_hat;
+    }
+
+   return conv_num_split_flux; 
+
+}
+template <int dim, int nstate, typename real>
+std::array<dealii::Tensor<1,dim,real>,nstate> Euler<dim, nstate, real>
+::convective_numerical_split_flux_ranocha(const std::array<real,nstate> &conservative_soln1,
+                                                const std::array<real,nstate> &conservative_soln2) const
+{
+
+    std::array<dealii::Tensor<1,dim,real>,nstate> conv_num_split_flux;
+    const real rho_log = compute_ismail_roe_logarithmic_mean(conservative_soln1[0], conservative_soln2[0]);
+    const real pressure1 = compute_pressure<real>(conservative_soln1);
+    const real pressure2 = compute_pressure<real>(conservative_soln2);
+
+    const real beta1 = conservative_soln1[0]/(pressure1);
+    const real beta2 = conservative_soln2[0]/(pressure2);
+
+    const real beta_log = compute_ismail_roe_logarithmic_mean(beta1, beta2);
+    const dealii::Tensor<1,dim,real> vel1 = compute_velocities<real>(conservative_soln1);
+    const dealii::Tensor<1,dim,real> vel2 = compute_velocities<real>(conservative_soln2);
+
+    const real pressure_hat = 0.5*(pressure1+pressure2);
+
+    dealii::Tensor<1,dim,real> vel_avg;
+    real vel_square_avg = 0.0;;
+    for(int idim=0; idim<dim; idim++){
+        vel_avg[idim] = 0.5*(vel1[idim]+vel2[idim]);
+        vel_square_avg += (0.5 *(vel1[idim]+vel2[idim])) * (0.5 *(vel1[idim]+vel2[idim]));
+    }
+
+    real enthalpy_hat = 1.0/(beta_log*gamm1) + vel_square_avg + 2.0*pressure_hat/rho_log;
+
+    for(int idim=0; idim<dim; idim++){
+        enthalpy_hat -= 0.5*(0.5*(vel1[idim]*vel1[idim] + vel2[idim]*vel2[idim]));
+    }
+
+    for(int flux_dim=0; flux_dim<dim; flux_dim++){
+        // Density equation
+        conv_num_split_flux[0][flux_dim] = rho_log * vel_avg[flux_dim];
+        // Momentum equation
+        for (int velocity_dim=0; velocity_dim<dim; ++velocity_dim){
+            conv_num_split_flux[1+velocity_dim][flux_dim] = rho_log*vel_avg[flux_dim]*vel_avg[velocity_dim];
+        }
+        conv_num_split_flux[1+flux_dim][flux_dim] += pressure_hat; // Add diagonal of pressure
+
+        // Energy equation
+        conv_num_split_flux[nstate-1][flux_dim] = rho_log * vel_avg[flux_dim] * enthalpy_hat;
+        conv_num_split_flux[nstate-1][flux_dim] -= ( 0.5 *(pressure1*vel1[flux_dim] + pressure2*vel2[flux_dim]));
+    }
+
+   return conv_num_split_flux; 
+
+}
+
+template <int dim, int nstate, typename real>
+real Euler<dim, nstate, real>
+::compute_ismail_roe_logarithmic_mean(const real val1, const real val2) const
+{
+    // See Appendix B [Ismail and Roe, 2009, Entropy-Consistent Euler Flux Functions II]
+    // -- Numerically stable algorithm for computing the logarithmic mean
+    const real zeta = val1/val2;
+    const real f = (zeta-1.0)/(zeta+1.0);
+    const real u = f*f;
+    
+    real F;
+    if(u<1.0e-2){ F = 1.0 + u/3.0 + u*u/5.0 + u*u*u/7.0; } 
+    else { 
+        if constexpr(std::is_same<real,double>::value) F = std::log(zeta)/2.0/f; 
+    }
+    
+    const real log_mean_val = (val1+val2)/(2.0*F);
+
+    return log_mean_val;
+}
+
+template <int dim, int nstate, typename real>
+std::array<dealii::Tensor<1,dim,real>,nstate> Euler<dim, nstate, real>
+::convective_numerical_split_flux_ismail_roe(const std::array<real,nstate> &conservative_soln1,
+                                             const std::array<real,nstate> &conservative_soln2) const
+{
+    // Get Ismail Roe parameter vectors
+    const std::array<real,nstate> parameter_vector1 = compute_ismail_roe_parameter_vector_from_primitive(
+                                                        convert_conservative_to_primitive<real>(conservative_soln1));
+    const std::array<real,nstate> parameter_vector2 = compute_ismail_roe_parameter_vector_from_primitive(
+                                                        convert_conservative_to_primitive<real>(conservative_soln2));
+
+    // Compute mean (average) parameter vector
+    std::array<real,nstate> avg_parameter_vector;
+    for(int s=0; s<nstate; ++s){
+        avg_parameter_vector[s] = 0.5*(parameter_vector1[s] + parameter_vector2[s]);
+    }
+
+    // Compute logarithmic mean parameter vector
+    std::array<real,nstate> log_mean_parameter_vector;
+    for(int s=0; s<nstate; ++s){
+        log_mean_parameter_vector[s] = compute_ismail_roe_logarithmic_mean(parameter_vector1[s], parameter_vector2[s]);
+    }
+
+    // Compute Ismail Roe mean primitive variables; Eq (3.15) [Gassner, Winters, and Kopriva, 2016, SBP]
+    std::array<real,dim> mean_velocities;
+    const real mean_density = avg_parameter_vector[0]*log_mean_parameter_vector[nstate-1];
+    for(int d=0; d<dim; ++d){
+        mean_velocities[d] = avg_parameter_vector[1+d]/avg_parameter_vector[0];
+    }
+    const real mean_pressure = avg_parameter_vector[nstate-1]/avg_parameter_vector[0];
+    // -- enthalpy
+    real mean_enthalpy = (gam+1.0)*(log_mean_parameter_vector[nstate-1]/log_mean_parameter_vector[0]) + gamm1*mean_pressure;
+    mean_enthalpy /= 2.0*gam;
+    mean_enthalpy *= gam/(mean_density*gamm1);
+    // -- get sum of mean velocities squared
+    real mean_velocities_sqr_sum = 0.0;
+    for(int d=0; d<dim; ++d){
+        mean_velocities_sqr_sum += mean_velocities[d]*mean_velocities[d];
+    }
+    // -- add to enthalpy
+    mean_enthalpy += 0.5*mean_velocities_sqr_sum;
+
+    // Compute Ismail Roe convective numerical split flux
+    std::array<dealii::Tensor<1,dim,real>,nstate> conv_num_split_flux;
+    for (int flux_dim = 0; flux_dim < dim; ++flux_dim)
+    {
+        // Density equation
+        conv_num_split_flux[0][flux_dim] = mean_density * mean_velocities[flux_dim];
+        // Momentum equation
+        for (int velocity_dim=0; velocity_dim<dim; ++velocity_dim){
+            conv_num_split_flux[1+velocity_dim][flux_dim] = mean_density*mean_velocities[flux_dim]*mean_velocities[velocity_dim];
+        }
+        conv_num_split_flux[1+flux_dim][flux_dim] += mean_pressure; // Add diagonal of pressure
+        // Energy equation
+        conv_num_split_flux[nstate-1][flux_dim] = mean_density*mean_velocities[flux_dim]*mean_enthalpy;
+    }
+
+    return conv_num_split_flux;
+}
+
+template <int dim, int nstate, typename real>
+real Euler<dim, nstate, real>
+::convective_surface_numerical_split_flux (
+                const real &/*surface_flux*/,
+                const real &flux_interp_to_surface) const
+{
+    return flux_interp_to_surface;
+}
+
+template <int dim, int nstate, typename real>
+std::array<real,nstate> Euler<dim, nstate, real>
+::compute_entropy_variables (
+    const std::array<real,nstate> &conservative_soln) const
+{
+    std::array<real,nstate> entropy_var;
+    const real density = conservative_soln[0];
+    const real pressure = compute_pressure<real>(conservative_soln);
+    
+    real entropy = pressure * pow(density, -gam);
+    if (entropy > 0)    entropy = log( entropy );
+    else                entropy = BIG_NUMBER;
+
+    const real rho_theta = pressure / gamm1;
+
+    entropy_var[0] = (rho_theta *(gam + 1.0 - entropy) - conservative_soln[nstate-1])/rho_theta;
+    for(int idim=0; idim<dim; idim++){
+        entropy_var[idim+1] = conservative_soln[idim+1] / rho_theta;
+    }
+    entropy_var[nstate-1] = - density / rho_theta;
+
+    return entropy_var;
+}
+
+template <int dim, int nstate, typename real>
+std::array<real,nstate> Euler<dim, nstate, real>
+::compute_conservative_variables_from_entropy_variables (
+    const std::array<real,nstate> &entropy_var) const
+{
+    //Eq. 119 and 120 from Chan, Jesse. "On discretely entropy conservative and entropy stable discontinuous Galerkin methods." Journal of Computational Physics 362 (2018): 346-374.
+    //Extrapolated for 3D
+    std::array<real,nstate> conservative_var;
+    real entropy_var_vel_squared = 0.0;
+    for(int idim=0; idim<dim; idim++){
+        entropy_var_vel_squared += entropy_var[idim + 1] * entropy_var[idim + 1];
+    }
+    const real entropy = gam - entropy_var[0] + 0.5 * entropy_var_vel_squared / entropy_var[nstate-1];
+    const real rho_theta = pow( (gamm1/ pow(- entropy_var[nstate-1], gam)), 1.0 /gamm1)
+                         * exp( - entropy / gamm1);
+
+    conservative_var[0] = - rho_theta * entropy_var[nstate-1];
+    for(int idim=0; idim<dim; idim++){
+        conservative_var[idim+1] = rho_theta * entropy_var[idim+1];
+    }
+    conservative_var[nstate-1] = rho_theta * (1.0 - 0.5 * entropy_var_vel_squared / entropy_var[nstate-1]);
+    return conservative_var;
+}
+
+template <int dim, int nstate, typename real>
+std::array<real,nstate> Euler<dim, nstate, real>
+::compute_kinetic_energy_variables (
+    const std::array<real,nstate> &conservative_soln) const
+{
+    std::array<real,nstate> kin_energy_var;
+    const dealii::Tensor<1,dim,real> vel = compute_velocities<real>(conservative_soln);
+    const real vel2 = compute_velocity_squared<real>(vel);
+
+    kin_energy_var[0] = - 0.5 * vel2;
+    for(int idim=0; idim<dim; idim++){
+        kin_energy_var[idim+1] = vel[idim];
+    }
+    kin_energy_var[nstate-1] = 0;
+
+    return kin_energy_var;
+}
 
 template <int dim, int nstate, typename real>
 inline real Euler<dim,nstate,real>::
@@ -457,7 +742,7 @@ compute_mean_velocities(const std::array<real,nstate> &conservative_soln1,
 
 template <int dim, int nstate, typename real>
 inline real Euler<dim,nstate,real>::
-compute_mean_specific_energy(const std::array<real,nstate> &conservative_soln1,
+compute_mean_specific_total_energy(const std::array<real,nstate> &conservative_soln1,
                              const std::array<real,nstate> &conservative_soln2) const
 {
     return ((conservative_soln1[nstate-1]/conservative_soln1[0]) + (conservative_soln2[nstate-1]/conservative_soln2[0]))/2.;
@@ -596,6 +881,13 @@ real Euler<dim,nstate,real>
     const real max_eig = sqrt(vel2) + sound;
 
     return max_eig;
+}
+
+template <int dim, int nstate, typename real>
+real Euler<dim,nstate,real>
+::max_viscous_eigenvalue (const std::array<real,nstate> &/*conservative_soln*/) const
+{
+    return 0.0;
 }
 
 template <int dim, int nstate, typename real>
@@ -1163,17 +1455,6 @@ template FadType    Euler < PHILIP_DIM, PHILIP_DIM+2, double     >::compute_pres
 template FadType    Euler < PHILIP_DIM, PHILIP_DIM+2, RadType    >::compute_pressure< FadType    >(const std::array<FadType,   PHILIP_DIM+2> &conservative_soln) const;
 template FadType    Euler < PHILIP_DIM, PHILIP_DIM+2, FadFadType >::compute_pressure< FadType    >(const std::array<FadType,   PHILIP_DIM+2> &conservative_soln) const;
 template FadType    Euler < PHILIP_DIM, PHILIP_DIM+2, RadFadType >::compute_pressure< FadType    >(const std::array<FadType,   PHILIP_DIM+2> &conservative_soln) const;
-// -- compute_dimensional_temperature()
-template double     Euler < PHILIP_DIM, PHILIP_DIM+2, double     >::compute_dimensional_temperature< double     >(const std::array<double,    PHILIP_DIM+2> &primitive_soln) const;
-template FadType    Euler < PHILIP_DIM, PHILIP_DIM+2, FadType    >::compute_dimensional_temperature< FadType    >(const std::array<FadType,   PHILIP_DIM+2> &primitive_soln) const;
-template RadType    Euler < PHILIP_DIM, PHILIP_DIM+2, RadType    >::compute_dimensional_temperature< RadType    >(const std::array<RadType,   PHILIP_DIM+2> &primitive_soln) const;
-template FadFadType Euler < PHILIP_DIM, PHILIP_DIM+2, FadFadType >::compute_dimensional_temperature< FadFadType >(const std::array<FadFadType,PHILIP_DIM+2> &primitive_soln) const;
-template RadFadType Euler < PHILIP_DIM, PHILIP_DIM+2, RadFadType >::compute_dimensional_temperature< RadFadType >(const std::array<RadFadType,PHILIP_DIM+2> &primitive_soln) const;
-// -- -- instantiate all the real types with real2 = FadType for automatic differentiation in NavierStokes::dissipative_flux_directional_jacobian()
-template FadType    Euler < PHILIP_DIM, PHILIP_DIM+2, double     >::compute_dimensional_temperature< FadType    >(const std::array<FadType,   PHILIP_DIM+2> &primitive_soln) const;
-template FadType    Euler < PHILIP_DIM, PHILIP_DIM+2, RadType    >::compute_dimensional_temperature< FadType    >(const std::array<FadType,   PHILIP_DIM+2> &primitive_soln) const;
-template FadType    Euler < PHILIP_DIM, PHILIP_DIM+2, FadFadType >::compute_dimensional_temperature< FadType    >(const std::array<FadType,   PHILIP_DIM+2> &primitive_soln) const;
-template FadType    Euler < PHILIP_DIM, PHILIP_DIM+2, RadFadType >::compute_dimensional_temperature< FadType    >(const std::array<FadType,   PHILIP_DIM+2> &primitive_soln) const;
 // -- compute_temperature()
 template double     Euler < PHILIP_DIM, PHILIP_DIM+2, double     >::compute_temperature< double     >(const std::array<double,    PHILIP_DIM+2> &primitive_soln) const;
 template FadType    Euler < PHILIP_DIM, PHILIP_DIM+2, FadType    >::compute_temperature< FadType    >(const std::array<FadType,   PHILIP_DIM+2> &primitive_soln) const;
@@ -1233,5 +1514,4 @@ template dealii::Tensor<1,PHILIP_DIM,FadType   > Euler < PHILIP_DIM, PHILIP_DIM+
 
 } // Physics namespace
 } // PHiLiP namespace
-
 

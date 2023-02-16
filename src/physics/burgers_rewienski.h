@@ -27,6 +27,7 @@ public:
             const bool                                                rewienski_manufactured_solution,
             const bool                                                convection,
             const bool                                                diffusion,
+            const bool                                                has_nonzero_physical_source,
             const dealii::Tensor<2,3,double>                          input_diffusion_tensor = Parameters::ManufacturedSolutionParam::get_default_diffusion_tensor(),
             std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function = nullptr);
 
@@ -47,7 +48,8 @@ public:
     /// PDE Source term. If rewienski_manufactured_solution==true then the manufactured solution source term is also included.
     std::array<real,nstate> source_term (
             const dealii::Point<dim,real> &pos,
-            const std::array<real,nstate> &solution) const override;
+            const std::array<real,nstate> &solution,
+            const real current_time) const override;
 
     /// If diffusion is present, assign Dirichlet boundary condition
     void boundary_face_values (

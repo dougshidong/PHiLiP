@@ -15,6 +15,7 @@ class ReynoldsAveragedNavierStokes_SAneg : public ReynoldsAveragedNavierStokesBa
 {
 public:
     using thermal_boundary_condition_enum = Parameters::NavierStokesParam::ThermalBoundaryCondition;
+    using two_point_num_flux_enum = Parameters::AllParameters::TwoPointNumericalFlux;
     /** Constructor for the Reynolds-averaged Navier-Stokes model: negative SA
      *  Reference: Steven R. Allmaras. (2012). "Modifications and Clarifications for the Implementation of the Spalart-Allmaras Turbulence Model."
      */
@@ -27,9 +28,11 @@ public:
         const double                                              prandtl_number,
         const double                                              reynolds_number_inf,
         const double                                              turbulent_prandtl_number,
+        const double                                              temperature_inf = 273.15,
         const double                                              isothermal_wall_temperature = 1.0,
         const thermal_boundary_condition_enum                     thermal_boundary_condition_type = thermal_boundary_condition_enum::adiabatic,
-        std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function = nullptr);
+        std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function = nullptr,
+        const two_point_num_flux_enum                             two_point_num_flux_type = two_point_num_flux_enum::KG);
 
     /// Destructor
     ~ReynoldsAveragedNavierStokes_SAneg() {};

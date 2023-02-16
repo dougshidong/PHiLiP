@@ -14,6 +14,7 @@ class ReynoldsAveragedNavierStokesBase : public ModelBase <dim, nstate, real>
 {
 public:
     using thermal_boundary_condition_enum = Parameters::NavierStokesParam::ThermalBoundaryCondition;
+    using two_point_num_flux_enum = Parameters::AllParameters::TwoPointNumericalFlux;
     /// Constructor
 	ReynoldsAveragedNavierStokesBase(
 	    const double                                              ref_length,
@@ -24,9 +25,11 @@ public:
         const double                                              prandtl_number,
         const double                                              reynolds_number_inf,
         const double                                              turbulent_prandtl_number,
+        const double                                              temperature_inf = 273.15,
         const double                                              isothermal_wall_temperature = 1.0,
         const thermal_boundary_condition_enum                     thermal_boundary_condition_type = thermal_boundary_condition_enum::adiabatic,
-        std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function = nullptr);
+        std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function = nullptr,
+        const two_point_num_flux_enum                             two_point_num_flux_type = two_point_num_flux_enum::KG);
 
     /// Destructor
     ~ReynoldsAveragedNavierStokesBase() {};
@@ -69,6 +72,7 @@ public:
     std::array<real,nstate> source_term (
         const dealii::Point<dim,real> &pos,
         const std::array<real,nstate> &conservative_solution,
+        const real current_time,
         const dealii::types::global_dof_index cell_index) const;
 
     /// Convective and dissipative source term for manufactured solution functions

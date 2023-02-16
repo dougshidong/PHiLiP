@@ -70,6 +70,20 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       dealii::Patterns::Bool(),
                       "Use original form by defualt. Otherwise, split the fluxes.");
 
+    prm.declare_entry("two_point_num_flux_type", "KG",
+                      dealii::Patterns::Selection(
+                      "KG | IR | CH | Ra"),
+                      "Two point flux type. "
+                      "Choices are <KG | IR | CH | Ra>.");
+
+    prm.declare_entry("use_curvilinear_split_form", "false",
+                      dealii::Patterns::Bool(),
+                      "Use original form by defualt. Otherwise, split the curvilinear fluxes.");
+
+    prm.declare_entry("use_weight_adjusted_mass", "false",
+                      dealii::Patterns::Bool(),
+                      "Use original form by defualt. Otherwise, use the weight adjusted low storage mass matrix for curvilinear.");
+
     prm.declare_entry("use_periodic_bc", "false",
                       dealii::Patterns::Bool(),
                       "Use other boundary conditions by default. Otherwise use periodic (for 1d burgers only");
@@ -82,23 +96,38 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       dealii::Patterns::Bool(),
                       "Not calculate L2 norm by default (M+K). Otherwise, get L2 norm per iteration.");
 
-    prm.declare_entry("use_classical_Flux_Reconstruction", "false",
+    prm.declare_entry("use_classical_FR", "false",
                       dealii::Patterns::Bool(),
                       "Not use Classical Flux Reconstruction by default. Otherwise, use Classical Flux Reconstruction.");
 
     prm.declare_entry("flux_reconstruction", "cDG",
-                      dealii::Patterns::Selection("cDG | cSD | cHU | cNegative | cNegative2 | cPlus | cPlus1D |c10Thousand | cHULumped"),
+                      dealii::Patterns::Selection(
+                      "cDG | cSD | cHU | cNegative | cNegative2 | cPlus | c10Thousand | cHULumped"),
                       "Flux Reconstruction. "
-                      "Choices are <cDG | cSD | cHU | cNegative | cNegative2 | cPlus | cPlus1D | c10Thousand | cHULumped>.");
+                      "Choices are "
+                      " <cDG | cSD | cHU | cNegative | cNegative2 | cPlus | c10Thousand | cHULumped>.");
 
     prm.declare_entry("flux_reconstruction_aux", "kDG",
-                      dealii::Patterns::Selection("kDG | kSD | kHU | kNegative | kNegative2 | kPlus | k10Thousand"),
+                      dealii::Patterns::Selection(
+                      "kDG | kSD | kHU | kNegative | kNegative2 | kPlus | k10Thousand"),
                       "Flux Reconstruction for Auxiliary Equation. "
                       "Choices are <kDG | kSD | kHU | kNegative | kNegative2 | kPlus | k10Thousand>.");
 
     prm.declare_entry("sipg_penalty_factor", "1.0",
                       dealii::Patterns::Double(1.0,1e200),
                       "Scaling of Symmetric Interior Penalty term to ensure coercivity.");
+
+    prm.declare_entry("use_invariant_curl_form", "false",
+                      dealii::Patterns::Bool(),
+                      "Use conservative curl form for metric cofactor by default. If true, then use invariant curl form.");
+
+    prm.declare_entry("use_inverse_mass_on_the_fly", "false",
+                      dealii::Patterns::Bool(),
+                      "Build global mass inverse matrix and apply it. Otherwise, use inverse mass on-the-fly by default for explicit timestepping.");
+
+    prm.declare_entry("energy_file", "energy_file",
+                      dealii::Patterns::FileName(dealii::Patterns::FileName::FileType::input),
+                      "Input file for energy test.");
 
     prm.declare_entry("test_type", "run_control",
                       dealii::Patterns::Selection(
@@ -120,6 +149,7 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       " shock_1d | "
                       " euler_naca0012 | "
                       " reduced_order | "
+                      " convection_diffusion_periodicity |"
                       " POD_adaptation | "
                       " POD_adaptive_sampling | "
                       " adaptive_sampling_testing | "
@@ -130,7 +160,8 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       " taylor_green_vortex_restart_check | "
                       " time_refinement_study | "
                       " time_refinement_study_reference | "
-                      " burgers_energy_conservation_rrk"),
+                      " burgers_energy_conservation_rrk | "
+                      " euler_ismail_roe_entropy_check"),
                       "The type of test we want to solve. "
                       "Choices are " 
                       " <run_control | " 
@@ -150,6 +181,7 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       "  euler_naca_optimization | "
                       "  shock_1d | "
                       "  euler_naca0012 | "
+                      "  convection_diffusion_periodicity |"
                       "  reduced_order | "
                       "  POD_adaptation | "
                       "  POD_adaptive_sampling | "
@@ -161,7 +193,8 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       "  taylor_green_vortex_restart_check | "
                       "  time_refinement_study | "
                       "  time_refinement_study_reference | "
-                      "  burgers_energy_conservation_rrk>.");
+                      "  burgers_energy_conservation_rrk | "
+                      "  euler_ismail_roe_entropy_check>.");
 
     prm.declare_entry("pde_type", "advection",
                       dealii::Patterns::Selection(
@@ -199,18 +232,38 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       " <large_eddy_simulation | reynolds_averaged_navier_stokes>.");
 
     prm.declare_entry("conv_num_flux", "lax_friedrichs",
-                      dealii::Patterns::Selection("lax_friedrichs | roe | l2roe | split_form"),
+                      dealii::Patterns::Selection(
+                      " lax_friedrichs | "
+                      " roe | "
+                      " l2roe | "
+                      " central_flux | "
+                      " two_point_flux | "
+                      " two_point_flux_with_lax_friedrichs_dissipation | "
+                      " two_point_flux_with_roe_dissipation | "
+                      " two_point_flux_with_l2roe_dissipation"),
                       "Convective numerical flux. "
-                      "Choices are <lax_friedrichs | roe | l2roe | split_form>.");
+                      "Choices are "
+                      " <lax_friedrichs | "
+                      " roe | "
+                      " l2roe | "
+                      " central_flux | "
+                      " two_point_flux | "
+                      " two_point_flux_with_lax_friedrichs_dissipation | "
+                      " two_point_flux_with_roe_dissipation | "
+                      " two_point_flux_with_l2roe_dissipation>.");
 
     prm.declare_entry("diss_num_flux", "symm_internal_penalty",
-                      dealii::Patterns::Selection("symm_internal_penalty | bassi_rebay_2"),
+                      dealii::Patterns::Selection("symm_internal_penalty | bassi_rebay_2 | central_visc_flux"),
                       "Dissipative numerical flux. "
-                      "Choices are <symm_internal_penalty | bassi_rebay_2>.");
+                      "Choices are <symm_internal_penalty | bassi_rebay_2 | central_visc_flux>.");
 
     prm.declare_entry("solution_vtk_files_directory_name", ".",
                       dealii::Patterns::FileName(dealii::Patterns::FileName::FileType::input),
                       "Name of directory for writing solution vtk files. Current directory by default.");
+
+    prm.declare_entry("output_high_order_grid", "false",
+                      dealii::Patterns::Bool(),
+                      "Outputs the high-order mesh vtu files. False by default");
 
     prm.declare_entry("enable_higher_order_vtk_output", "false",
                       dealii::Patterns::Bool(),
@@ -267,6 +320,7 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     else if (test_string == "euler_vortex")                             { test_type = euler_vortex; }
     else if (test_string == "euler_entropy_waves")                      { test_type = euler_entropy_waves; }
     else if (test_string == "advection_periodicity")                    { test_type = advection_periodicity; }
+    else if (test_string == "convection_diffusion_periodicity")         { test_type = convection_diffusion_periodicity; }
     else if (test_string == "euler_split_taylor_green")                 { test_type = euler_split_taylor_green; }
     else if (test_string == "euler_bump_optimization")                  { test_type = euler_bump_optimization; }
     else if (test_string == "euler_naca_optimization")                  { test_type = euler_naca_optimization; }
@@ -284,52 +338,71 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     else if (test_string == "time_refinement_study")                    { test_type = time_refinement_study; }
     else if (test_string == "time_refinement_study_reference")          { test_type = time_refinement_study_reference; }
     else if (test_string == "burgers_energy_conservation_rrk")          { test_type = burgers_energy_conservation_rrk; }
+    else if (test_string == "euler_ismail_roe_entropy_check")           { test_type = euler_ismail_roe_entropy_check; }
     
     overintegration = prm.get_integer("overintegration");
 
     use_weak_form = prm.get_bool("use_weak_form");
     use_collocated_nodes = prm.get_bool("use_collocated_nodes");
     use_split_form = prm.get_bool("use_split_form");
+
+    const std::string two_point_num_flux_string = prm.get("two_point_num_flux_type");
+    if (two_point_num_flux_string == "KG") { two_point_num_flux_type = TwoPointNumericalFlux::KG; }
+    if (two_point_num_flux_string == "IR") { two_point_num_flux_type = TwoPointNumericalFlux::IR; }
+    if (two_point_num_flux_string == "CH") { two_point_num_flux_type = TwoPointNumericalFlux::CH; }
+    if (two_point_num_flux_string == "Ra") { two_point_num_flux_type = TwoPointNumericalFlux::Ra; }
+
+    use_curvilinear_split_form = prm.get_bool("use_curvilinear_split_form");
+    use_weight_adjusted_mass = prm.get_bool("use_weight_adjusted_mass");
     use_periodic_bc = prm.get_bool("use_periodic_bc");
     use_energy = prm.get_bool("use_energy");
     use_L2_norm = prm.get_bool("use_L2_norm");
-    use_classical_FR = prm.get_bool("use_classical_Flux_Reconstruction");
+    use_classical_FR = prm.get_bool("use_classical_FR");
     sipg_penalty_factor = prm.get_double("sipg_penalty_factor");
+    use_invariant_curl_form = prm.get_bool("use_invariant_curl_form");
+    use_inverse_mass_on_the_fly = prm.get_bool("use_inverse_mass_on_the_fly");
+
+    energy_file = prm.get("energy_file");
 
     const std::string conv_num_flux_string = prm.get("conv_num_flux");
-    if (conv_num_flux_string == "lax_friedrichs") conv_num_flux_type = lax_friedrichs;
-    if (conv_num_flux_string == "split_form")     conv_num_flux_type = split_form;
-    if (conv_num_flux_string == "roe")            conv_num_flux_type = roe;
-    if (conv_num_flux_string == "l2roe")            conv_num_flux_type = l2roe;
+    if (conv_num_flux_string == "lax_friedrichs")                                          { conv_num_flux_type = ConvectiveNumericalFlux::lax_friedrichs; }
+    if (conv_num_flux_string == "roe")                                                     { conv_num_flux_type = ConvectiveNumericalFlux::roe; }
+    if (conv_num_flux_string == "l2roe")                                                   { conv_num_flux_type = ConvectiveNumericalFlux::l2roe; }
+    if (conv_num_flux_string == "central_flux")                                            { conv_num_flux_type = ConvectiveNumericalFlux::central_flux; }
+    if (conv_num_flux_string == "two_point_flux")                                 { conv_num_flux_type = ConvectiveNumericalFlux::two_point_flux; }
+    if (conv_num_flux_string == "two_point_flux_with_lax_friedrichs_dissipation") { conv_num_flux_type = ConvectiveNumericalFlux::two_point_flux_with_lax_friedrichs_dissipation; }
+    if (conv_num_flux_string == "two_point_flux_with_roe_dissipation")            { conv_num_flux_type = ConvectiveNumericalFlux::two_point_flux_with_roe_dissipation; }
+    if (conv_num_flux_string == "two_point_flux_with_l2roe_dissipation")          { conv_num_flux_type = ConvectiveNumericalFlux::two_point_flux_with_l2roe_dissipation; }
 
     const std::string diss_num_flux_string = prm.get("diss_num_flux");
-    if (diss_num_flux_string == "symm_internal_penalty") diss_num_flux_type = symm_internal_penalty;
+    if (diss_num_flux_string == "symm_internal_penalty") { diss_num_flux_type = symm_internal_penalty; }
     if (diss_num_flux_string == "bassi_rebay_2") {
         diss_num_flux_type = bassi_rebay_2;
         sipg_penalty_factor = 0.0;
     }
+    if (diss_num_flux_string == "central_visc_flux") diss_num_flux_type = central_visc_flux;
 
     const std::string flux_reconstruction_string = prm.get("flux_reconstruction");
-    if (flux_reconstruction_string == "cDG") flux_reconstruction_type = cDG;
-    if (flux_reconstruction_string == "cSD") flux_reconstruction_type = cSD;
-    if (flux_reconstruction_string == "cHU") flux_reconstruction_type = cHU;
-    if (flux_reconstruction_string == "cNegative") flux_reconstruction_type = cNegative;
-    if (flux_reconstruction_string == "cNegative2") flux_reconstruction_type = cNegative2;
-    if (flux_reconstruction_string == "cPlus") flux_reconstruction_type = cPlus;
-    if (flux_reconstruction_string == "cPlus1D") flux_reconstruction_type = cPlus1D;
-    if (flux_reconstruction_string == "c10Thousand") flux_reconstruction_type = c10Thousand;
-    if (flux_reconstruction_string == "cHULumped") flux_reconstruction_type = cHULumped;
+    if (flux_reconstruction_string == "cDG")         { flux_reconstruction_type = cDG; }
+    if (flux_reconstruction_string == "cSD")         { flux_reconstruction_type = cSD; }
+    if (flux_reconstruction_string == "cHU")         { flux_reconstruction_type = cHU; }
+    if (flux_reconstruction_string == "cNegative")   { flux_reconstruction_type = cNegative; }
+    if (flux_reconstruction_string == "cNegative2")  { flux_reconstruction_type = cNegative2; }
+    if (flux_reconstruction_string == "cPlus")       { flux_reconstruction_type = cPlus; }
+    if (flux_reconstruction_string == "c10Thousand") { flux_reconstruction_type = c10Thousand; }
+    if (flux_reconstruction_string == "cHULumped")   { flux_reconstruction_type = cHULumped; }
 
     const std::string flux_reconstruction_aux_string = prm.get("flux_reconstruction_aux");
-    if (flux_reconstruction_aux_string == "kDG") flux_reconstruction_aux_type = kDG;
-    if (flux_reconstruction_aux_string == "kSD") flux_reconstruction_aux_type = kSD;
-    if (flux_reconstruction_aux_string == "kHU") flux_reconstruction_aux_type = kHU;
-    if (flux_reconstruction_aux_string == "kNegative") flux_reconstruction_aux_type = kNegative;
-    if (flux_reconstruction_aux_string == "kNegative2") flux_reconstruction_aux_type = kNegative2;
-    if (flux_reconstruction_aux_string == "kPlus") flux_reconstruction_aux_type = kPlus;
-    if (flux_reconstruction_aux_string == "k10Thousand") flux_reconstruction_aux_type = k10Thousand;
+    if (flux_reconstruction_aux_string == "kDG")         { flux_reconstruction_aux_type = kDG; }
+    if (flux_reconstruction_aux_string == "kSD")         { flux_reconstruction_aux_type = kSD; }
+    if (flux_reconstruction_aux_string == "kHU")         { flux_reconstruction_aux_type = kHU; }
+    if (flux_reconstruction_aux_string == "kNegative")   { flux_reconstruction_aux_type = kNegative; }
+    if (flux_reconstruction_aux_string == "kNegative2")  { flux_reconstruction_aux_type = kNegative2; }
+    if (flux_reconstruction_aux_string == "kPlus")       { flux_reconstruction_aux_type = kPlus; }
+    if (flux_reconstruction_aux_string == "k10Thousand") { flux_reconstruction_aux_type = k10Thousand; }
 
     solution_vtk_files_directory_name = prm.get("solution_vtk_files_directory_name");
+    output_high_order_grid = prm.get_bool("output_high_order_grid");
     enable_higher_order_vtk_output = prm.get_bool("enable_higher_order_vtk_output");
 
     pcout << "Parsing linear solver subsection..." << std::endl;

@@ -513,7 +513,7 @@ void Implicit_ODESolver<dim,real,MeshType>::allocate_ode_system ()
 //std::shared_ptr<ODESolver<dim,real,MeshType>> ODESolverFactory<dim,real,MeshType>::create_ODESolver(Parameters::ODESolverParam::ODESolverEnum ode_solver_type)
 //{
 //    using ODEEnum = Parameters::ODESolverParam::ODESolverEnum;
-//    if(ode_solver_type == ODEEnum::explicit_solver) return std::make_shared<Explicit_ODESolver<dim,real>>();
+//    if(ode_solver_type == ODEEnum::runge_kutta_solver) return std::make_shared<Explicit_ODESolver<dim,real>>();
 //    if(ode_solver_type == ODEEnum::implicit_solver) return std::make_shared<Implicit_ODESolver<dim,real>>();
 //    else {
 //        pcout << "Can't create ODE solver since explicit/implicit solver is not clear." << std::endl;
@@ -525,7 +525,7 @@ std::shared_ptr<ODESolver<dim,real,MeshType>> ODESolverFactory<dim,real,MeshType
 {
     using ODEEnum = Parameters::ODESolverParam::ODESolverEnum;
     ODEEnum ode_solver_type = dg_input->all_parameters->ode_solver_param.ode_solver_type;
-    if(ode_solver_type == ODEEnum::explicit_solver) return std::make_shared<Explicit_ODESolver<dim,real,MeshType>>(dg_input);
+    if(ode_solver_type == ODEEnum::runge_kutta_solver) return std::make_shared<Explicit_ODESolver<dim,real,MeshType>>(dg_input);
     if(ode_solver_type == ODEEnum::implicit_solver) return std::make_shared<Implicit_ODESolver<dim,real,MeshType>>(dg_input);
     else {
         dealii::ConditionalOStream pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD)==0);
@@ -533,7 +533,7 @@ std::shared_ptr<ODESolver<dim,real,MeshType>> ODESolverFactory<dim,real,MeshType
         pcout << "Can't create ODE solver since explicit/implicit solver is not clear." << std::endl;
         pcout << "Solver type specified: " << ode_solver_type << std::endl;
         pcout << "Solver type possible: " << std::endl;
-        pcout <<  ODEEnum::explicit_solver << std::endl;
+        pcout <<  ODEEnum::runge_kutta_solver << std::endl;
         pcout <<  ODEEnum::implicit_solver << std::endl;
         pcout << "********************************************************************" << std::endl;
         std::abort();

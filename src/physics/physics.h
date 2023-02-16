@@ -35,17 +35,22 @@ class PhysicsBase
 public:
     /// Default constructor that will set the constants.
     PhysicsBase(
+        const bool                                                has_nonzero_diffusion_input,
         const bool                                                has_nonzero_physical_source_input,
         const dealii::Tensor<2,3,double>                          input_diffusion_tensor = Parameters::ManufacturedSolutionParam::get_default_diffusion_tensor(),
         std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function_input = nullptr);
 
     /// Constructor that will call default constructor.
     PhysicsBase(
+        const bool                                                has_nonzero_diffusion_input,
         const bool                                                has_nonzero_physical_source_input,
         std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function_input = nullptr);
 
     /// Virtual destructor required for abstract classes.
-    virtual ~PhysicsBase() = 0;
+    virtual ~PhysicsBase() {};
+
+    /// Flag to signal that diffusion term is non-zero
+    const bool has_nonzero_diffusion;
 
     /// Flag to signal that physical source term is non-zero
     const bool has_nonzero_physical_source;
@@ -59,7 +64,21 @@ public:
 
     /// Convective Numerical Split Flux for split form
     virtual std::array<dealii::Tensor<1,dim,real>,nstate> convective_numerical_split_flux (
-        const std::array<real,nstate> &soln_const, const std::array<real,nstate> &soln_loop) const = 0;
+        const std::array<real,nstate> &conservative_soln1,
+        const std::array<real,nstate> &conservative_soln2) const = 0;
+
+    /// Convective Numerical Split Flux for split form
+    virtual real convective_surface_numerical_split_flux (
+                const real &surface_flux,
+                const real &flux_interp_to_surface) const = 0;
+
+    /// Computes the entropy variables.
+    virtual std::array<real,nstate> compute_entropy_variables (
+                const std::array<real,nstate> &conservative_soln) const = 0;
+
+    /// Computes the conservative variables from the entropy variables.
+    virtual std::array<real,nstate> compute_conservative_variables_from_entropy_variables (
+                const std::array<real,nstate> &entropy_var) const = 0;
 
     /// Spectral radius of convective term Jacobian.
     /** Used for scalar dissipation
@@ -70,6 +89,9 @@ public:
 
     /// Maximum convective eigenvalue used in Lax-Friedrichs
     virtual real max_convective_eigenvalue (const std::array<real,nstate> &soln) const = 0;
+
+    /// Maximum viscous eigenvalue.
+    virtual real max_viscous_eigenvalue (const std::array<real,nstate> &soln) const = 0;
 
     // /// Evaluate the diffusion matrix \f$ A \f$ such that \f$F_v = A \nabla u\f$.
     // virtual std::array<dealii::Tensor<1,dim,real>,nstate> apply_diffusion_matrix (
@@ -93,6 +115,7 @@ public:
     virtual std::array<real,nstate> source_term (
         const dealii::Point<dim,real> &pos,
         const std::array<real,nstate> &solution,
+        const real current_time,
         const dealii::types::global_dof_index cell_index) const = 0;
 
     /// Physical source term that does require differentiation.

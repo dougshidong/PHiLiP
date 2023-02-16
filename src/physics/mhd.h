@@ -92,8 +92,9 @@ public:
         const double                                              gamma_gas, 
         const dealii::Tensor<2,3,double>                          input_diffusion_tensor = Parameters::ManufacturedSolutionParam::get_default_diffusion_tensor(),
         std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function = nullptr,
+        const bool                                                has_nonzero_diffusion = false,
         const bool                                                has_nonzero_physical_source = false)
-    : PhysicsBase<dim,nstate,real>(has_nonzero_physical_source, input_diffusion_tensor, manufactured_solution_function)
+    : PhysicsBase<dim,nstate,real>(has_nonzero_diffusion, has_nonzero_physical_source, input_diffusion_tensor, manufactured_solution_function)
     , gam(gamma_gas)
     , gamm1(gam-1.0)
     {
@@ -133,6 +134,9 @@ public:
     /// Maximum convective eigenvalue used in Lax-Friedrichs
     real max_convective_eigenvalue (const std::array<real,nstate> &soln) const;
 
+    /// Maximum viscous eigenvalue.
+    real max_viscous_eigenvalue (const std::array<real,nstate> &soln) const;
+
     /// Dissipative flux: 0
     std::array<dealii::Tensor<1,dim,real>,nstate> dissipative_flux (
         const std::array<real,nstate> &conservative_soln,
@@ -148,12 +152,14 @@ public:
     std::array<real,nstate> source_term (
         const dealii::Point<dim,real> &pos,
         const std::array<real,nstate> &conservative_soln,
+        const real current_time,
         const dealii::types::global_dof_index cell_index) const;
 
     /// (function overload) Source term is zero or depends on manufactured solution
     std::array<real,nstate> source_term (
         const dealii::Point<dim,real> &pos,
-        const std::array<real,nstate> &conservative_soln) const;
+        const std::array<real,nstate> &conservative_soln,
+        const real current_time) const;
 
     /// Given conservative variables [density, [momentum], total energy],
     /// returns primitive variables [density, [velocities], pressure].
@@ -225,6 +231,19 @@ public:
     std::array<dealii::Tensor<1,dim,real>,nstate> convective_numerical_split_flux (
         const std::array<real,nstate> &conservative_soln1,
         const std::array<real,nstate> &conservative_soln2) const;
+
+    /// Convective surface split flux
+    real convective_surface_numerical_split_flux (
+                const real &surface_flux,
+                const real &flux_interp_to_surface) const;
+    
+    /// Computes the entropy variables.
+    std::array<real,nstate> compute_entropy_variables (
+                const std::array<real,nstate> &conservative_soln) const;
+
+    /// Computes the conservative variables from the entropy variables.
+    std::array<real,nstate> compute_conservative_variables_from_entropy_variables (
+                const std::array<real,nstate> &entropy_var) const;
 
     /// Mean density given two sets of conservative solutions.
     /** Used in the implementation of the split form.

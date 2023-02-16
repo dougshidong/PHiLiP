@@ -47,21 +47,25 @@ public:
     const bool hasConvection; ///< Turns ON/OFF convection term.
 
     const bool hasDiffusion; ///< Turns ON/OFF diffusion term.
+    ///Allows convection diffusion to distinguish between different unsteady test types.
+    const Parameters::AllParameters::TestType test_type; ///< Pointer to all parameters
 
     /// Constructor
     ConvectionDiffusion (
         const bool                                                convection = true, 
-        const bool                                                diffusion = true, 
+        const bool                                                diffusion = true,
+        const bool                                                has_nonzero_physical_source = false,
         const dealii::Tensor<2,3,double>                          input_diffusion_tensor = Parameters::ManufacturedSolutionParam::get_default_diffusion_tensor(),
         const dealii::Tensor<1,3,double>                          input_advection_vector = Parameters::ManufacturedSolutionParam::get_default_advection_vector(),
         const double                                              input_diffusion_coefficient = Parameters::ManufacturedSolutionParam::get_default_diffusion_coefficient(),
         std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function = nullptr,
-        const bool                                                has_nonzero_physical_source = false) : 
-            PhysicsBase<dim,nstate,real>(has_nonzero_physical_source, input_diffusion_tensor, manufactured_solution_function), 
+        const Parameters::AllParameters::TestType                 parameters_test = Parameters::AllParameters::TestType::run_control) : 
+            PhysicsBase<dim,nstate,real>(diffusion, has_nonzero_physical_source, input_diffusion_tensor, manufactured_solution_function), 
             linear_advection_velocity{input_advection_vector[0], input_advection_vector[1], input_advection_vector[2]},
             diffusion_scaling_coeff(input_diffusion_coefficient),
             hasConvection(convection), 
-            hasDiffusion(diffusion)
+            hasDiffusion(diffusion),
+            test_type(parameters_test)
     {};
 
     /// Destructor
@@ -69,9 +73,23 @@ public:
     /// Convective flux: \f$ \mathbf{F}_{conv} =  u \f$
     std::array<dealii::Tensor<1,dim,real>,nstate> convective_flux (const std::array<real,nstate> &solution) const;
 
+    /// Convective numerical split flux for split form
     std::array<dealii::Tensor<1,dim,real>,nstate> convective_numerical_split_flux (
         const std::array<real,nstate> &soln1,
         const std::array<real,nstate> &soln2) const;
+
+    /// Convective surface numerical split flux for split form
+    real convective_surface_numerical_split_flux (
+                const real &surface_flux,
+                const real &flux_interp_to_surface) const;
+
+    /// Computes the entropy variables.
+    std::array<real,nstate> compute_entropy_variables (
+                const std::array<real,nstate> &conservative_soln) const;
+
+    /// Computes the conservative variables from the entropy variables.
+    std::array<real,nstate> compute_conservative_variables_from_entropy_variables (
+                const std::array<real,nstate> &entropy_var) const;
 
     /// Spectral radius of convective term Jacobian is 'c'
     std::array<real,nstate> convective_eigenvalues (
@@ -80,6 +98,9 @@ public:
 
     /// Maximum convective eigenvalue used in Lax-Friedrichs
     real max_convective_eigenvalue (const std::array<real,nstate> &soln) const;
+
+    /// Maximum viscous eigenvalue.
+    real max_viscous_eigenvalue (const std::array<real,nstate> &soln) const;
 
     //  /// Diffusion matrix is identity
     //  std::array<dealii::Tensor<1,dim,real>,nstate> apply_diffusion_matrix (
@@ -101,12 +122,14 @@ public:
     std::array<real,nstate> source_term (
         const dealii::Point<dim,real> &pos,
         const std::array<real,nstate> &solution,
+        const real current_time,
         const dealii::types::global_dof_index cell_index) const;
 
     /// (function overload) Source term is zero or depends on manufactured solution
     std::array<real,nstate> source_term (
         const dealii::Point<dim,real> &pos,
-        const std::array<real,nstate> &solution) const;
+        const std::array<real,nstate> &solution,
+        const real current_time) const;
 
     /// If diffusion is present, assign Dirichlet boundary condition
     /** Using Neumann boundary conditions might need to modify the functional

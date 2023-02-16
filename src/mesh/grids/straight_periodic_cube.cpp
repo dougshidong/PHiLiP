@@ -22,6 +22,20 @@ void straight_periodic_cube(std::shared_ptr<TriangulationType> &grid,
     // Get equivalent number of refinements
     const int number_of_refinements = log(number_of_cells_per_direction)/log(2);
 
+    // Check that number_of_cells_per_direction is a power of 2 if number_of_refinements is non-zero
+    if(number_of_refinements >= 0){
+        int val_check = number_of_cells_per_direction;
+        while(val_check > 1) {
+            if(val_check % 2 == 0) val_check /= 2;
+            else{
+                std::cout << "ERROR: number_of_cells_per_direction is not a power of 2. " 
+                          << "Current value is " << number_of_cells_per_direction << ". "
+                          << "Change value of number_of_grid_elements_per_dimension in .prm file." << std::endl;
+                std::abort();
+            }
+        }
+    }
+    
     // Definition for each type of grid
     std::string grid_type_string;
     const bool colorize = true;

@@ -51,7 +51,7 @@ subsection flow_solver
     set number_of_grid_elements_per_dimension = 4
   end
   subsection taylor_green_vortex
-    set expected_kinetic_energy_at_final_time = 1.2073987162682624e-01
-    set expected_theoretical_dissipation_rate_at_final_time = 4.5422264559811485e-04
+    set expected_kinetic_energy_at_final_time = 1.2073987162646824e-01
+    set expected_theoretical_dissipation_rate_at_final_time = 4.5422264559968770e-04
   end
 end

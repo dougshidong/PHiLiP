@@ -20,6 +20,7 @@ public:
         Parameters::AllParameters::PartialDifferentialEquation       baseline_physics_type,
         std::shared_ptr< ModelBase<dim,nstate,real> >                model_input,
         std::shared_ptr< ManufacturedSolutionFunction<dim,real> >    manufactured_solution_function,
+        const bool                                                   has_nonzero_diffusion,
         const bool                                                   has_nonzero_physical_source);
 
     /// Destructor
@@ -55,6 +56,7 @@ public:
     std::array<real,nstate> source_term (
         const dealii::Point<dim,real> &pos,
         const std::array<real,nstate> &conservative_soln,
+        const real current_time,
         const dealii::types::global_dof_index cell_index) const;
 
     //===========================================================================================
@@ -62,8 +64,21 @@ public:
     //===========================================================================================
     /// Convective Numerical Split Flux for split form
     std::array<dealii::Tensor<1,dim,real>,nstate> convective_numerical_split_flux (
-        const std::array<real,nstate> &soln_const, 
-        const std::array<real,nstate> &soln_loop) const;
+        const std::array<real,nstate> &conservative_soln1,
+        const std::array<real,nstate> &conservative_soln2) const;
+
+    /// Convective surface split flux
+    real convective_surface_numerical_split_flux (
+                const real &surface_flux,
+                const real &flux_interp_to_surface) const;
+
+    /// Computes the entropy variables.
+    std::array<real,nstate> compute_entropy_variables (
+                const std::array<real,nstate> &conservative_soln) const;
+
+    /// Computes the conservative variables from the entropy variables.
+    std::array<real,nstate> compute_conservative_variables_from_entropy_variables (
+                const std::array<real,nstate> &entropy_var) const;
 
     /** Spectral radius of convective term Jacobian.
      *  Used for scalar dissipation
@@ -74,6 +89,9 @@ public:
 
     /// Maximum convective eigenvalue used in Lax-Friedrichs
     real max_convective_eigenvalue (const std::array<real,nstate> &soln) const;
+
+    /// Maximum viscous eigenvalue.
+    real max_viscous_eigenvalue (const std::array<real,nstate> &soln) const;
 
     /// Evaluates boundary values and gradients on the other side of the face.
     void boundary_face_values (

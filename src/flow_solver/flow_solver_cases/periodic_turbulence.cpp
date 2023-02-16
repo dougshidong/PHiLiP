@@ -182,7 +182,7 @@ void PeriodicTurbulence<dim, nstate>::output_velocity_field(
     }
     //-------------------------------------------------------------
 
-    // (2) Read file
+    // (2) Write file
     //-------------------------------------------------------------
     std::ofstream FILE (filename);
     
@@ -194,8 +194,8 @@ void PeriodicTurbulence<dim, nstate>::output_velocity_field(
         const unsigned int number_of_degrees_of_freedom_per_state = dg->dof_handler.n_dofs()/nstate;
         FILE << number_of_degrees_of_freedom_per_state << std::string("\n");
     }
-
-    // write data
+    
+    // write the velocity field
     std::array<double,nstate> soln_at_q;
     std::array<dealii::Tensor<1,dim,double>,nstate> soln_grad_at_q;
 

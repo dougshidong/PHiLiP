@@ -77,12 +77,7 @@ public:
     /// Convective numerical split flux for split form
     std::array<dealii::Tensor<1,dim,real>,nstate> convective_numerical_split_flux (
         const std::array<real,nstate> &soln1,
-        const std::array<real,nstate> &soln2) const;
-
-    /// Convective surface numerical split flux for split form
-    real convective_surface_numerical_split_flux (
-                const real &surface_flux,
-                const real &flux_interp_to_surface) const;
+        const std::array<real,nstate> &soln2) const override;
 
     /// Computes the entropy variables.
     std::array<real,nstate> compute_entropy_variables (

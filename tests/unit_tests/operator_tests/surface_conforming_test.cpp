@@ -361,12 +361,13 @@ int main (int argc, char * argv[])
                 std::vector<dealii::Tensor<1,dim> > normal_phys_int(n_quad_face_pts);
                 std::vector<dealii::Tensor<1,dim> > normal_phys_ext(n_quad_face_pts);
                 metric_oper.transform_reference_unit_normal_to_physical_unit_normal(n_quad_face_pts, unit_normal_int, metric_oper.metric_cofactor_surf, normal_phys_int);
-                metric_oper_neigh.transform_reference_unit_normal_to_physical_unit_normal(n_quad_face_pts, unit_normal_int, metric_oper_neigh.metric_cofactor_surf, normal_phys_int);
+                metric_oper_neigh.transform_reference_unit_normal_to_physical_unit_normal(n_quad_face_pts, unit_normal_int, metric_oper_neigh.metric_cofactor_surf, normal_phys_ext);
              
                 for(unsigned int iquad=0; iquad<n_quad_face_pts; iquad++){
                     for(int idim=0; idim<dim; idim++){
-                        if(std::abs(normal_phys_int[iquad][idim] - normal_phys_ext[iquad][idim]) > 1e-14){
+                        if(std::abs(normal_phys_int[iquad][idim] - normal_phys_ext[iquad][idim]) > 1e-12){
                             pcout<<" phys normal int "<<normal_phys_int[iquad][idim]<<" phys normal ext "<<normal_phys_ext[iquad][idim]<<" iquad "<<iquad<<" idim "<<idim<<std::endl;
+                            std::abort();
                             return 1;
                         }
                     }

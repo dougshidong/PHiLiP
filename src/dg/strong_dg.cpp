@@ -1717,7 +1717,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_strong(
     int dim_not_zero_probe;
     if constexpr(dim==1){
       dim_not_zero_probe = abs(unit_ref_normal_int[0]) >= 1e-11 ? 0 : 1000;
-    }else if(dim==2){
+    }else if constexpr(dim==2){
       dim_not_zero_probe = abs(unit_ref_normal_int[0]) >= 1e-11 ? 0 
                      : (abs(unit_ref_normal_int[1]) >= 1e-11 ? 1 : 1000);
     }else if(dim==3){

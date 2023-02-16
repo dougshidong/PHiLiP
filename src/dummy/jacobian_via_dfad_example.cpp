@@ -38,6 +38,7 @@
 
 #include <iostream>
 #include <iomanip>
+#include <array>
 
 #include "Sacado.hpp"
 

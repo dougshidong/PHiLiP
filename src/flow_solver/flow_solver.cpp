@@ -410,7 +410,7 @@ int FlowSolver<dim,nstate>::run() const
         //----------------------------------------------------
         // dealii::TableHandler and data at initial time
         //----------------------------------------------------
-        std::shared_ptr<dealii::TableHandler> unsteady_data_table = std::make_shared<dealii::TableHandler>();//(mpi_communicator) ?;
+        std::shared_ptr<dealii::TableHandler> unsteady_data_table = std::make_shared<dealii::TableHandler>();
         if(flow_solver_param.restart_computation_from_file == true) {
             pcout << "Initializing data table from corresponding restart file... " << std::flush;
             const std::string restart_filename_without_extension = get_restart_filename_without_extension(flow_solver_param.restart_file_index);

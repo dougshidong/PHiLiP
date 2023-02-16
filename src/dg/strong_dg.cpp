@@ -1730,7 +1730,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_strong(
     }
     const int dim_not_zero = dim_not_zero_probe;
     if(dim_not_zero == 1000){
-        pcout<<"Error with normals. Normal direction is not defined."<<std::endl;
+        pcout<<"Error with normals. Normal direction is not defined. Aborting..."<<std::endl;
         std::abort();
     }
 

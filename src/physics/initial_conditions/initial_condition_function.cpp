@@ -353,6 +353,58 @@ inline real InitialConditionFunction_1DSine<dim,nstate,real>
 }
 
 // ========================================================
+// Inviscid Isentropic Vortex
+// ========================================================
+template <int dim, int nstate, typename real>
+InitialConditionFunction_IsentropicVortex<dim,nstate,real>
+::InitialConditionFunction_IsentropicVortex()
+        : InitialConditionFunction<dim,nstate,real>()
+{
+    // Nothing to do here yet
+}
+
+template <int dim, int nstate, typename real>
+inline real InitialConditionFunction_IsentropicVortex<dim,nstate,real>
+::value(const dealii::Point<dim,real> &point, const unsigned int istate) const
+{
+    // Setting constants
+    const double pi = dealii::numbers::PI;
+    const double gam = 1.4;
+    const double M_infty = sqrt(2/gam);
+    const double R = 1;
+    const double sigma = 1;
+    const double beta = M_infty * 5 * sqrt(2.0)/4.0/pi * exp(1.0/2.0);
+    const double alpha = pi/4; //rad
+
+    // Centre of the vortex  at t=0
+    const double x0 = 0.0;
+    const double y0 = 0.0;
+    const double x = point[0]-x0;
+    const double y = point[1] - y0;
+
+    const double Omega = beta * exp(-0.5/sigma/sigma* (x/R * x/R + y/R * y/R));
+    const double delta_Ux = -y/R * Omega;
+    const double delta_Uy =  x/R * Omega;
+    const double delta_T  = -(gam-1.0)/2.0 * Omega * Omega;
+
+    // Primitive
+    const double rho = pow((1 + delta_T), 1.0/(gam-1.0));
+    const double Ux = M_infty * cos(alpha) + delta_Ux;
+    const double Uy = M_infty * sin(alpha) + delta_Uy;
+    const double Uz = 0;
+    const double p = 1.0/gam*pow(1+delta_T, gam/(gam-1.0));
+
+    //Convert to conservative variables
+    if (istate == 0)      return rho;       //density
+    else if (istate == nstate-1) return p/(gam-1.0) + 0.5 * rho * (Ux*Ux + Uy*Uy + Uz*Uz);   //total energy
+    else if (istate == 1) return rho * Ux;  //x-momentum
+    else if (istate == 2) return rho * Uy;  //y-momentum
+    else if (istate == 3) return rho * Uz;  //z-momentum
+    else return 0;
+
+}
+
+// ========================================================
 // KELVIN-HELMHOLTZ INSTABILITY
 // See Chan et al., On the entropy projection..., 2022, Pg. 15
 // ========================================================
@@ -466,6 +518,8 @@ InitialConditionFactory<dim,nstate, real>::create_InitialConditionFunction(
         return std::make_shared<InitialConditionFunction_ConvDiffEnergy<dim,nstate,real> > ();
     } else if (flow_type == FlowCaseEnum::periodic_1D_unsteady) {
         if constexpr (dim==1 && nstate==1) return std::make_shared<InitialConditionFunction_1DSine<dim,nstate,real> > ();
+    } else if (flow_type == FlowCaseEnum::isentropic_vortex) {
+        if constexpr (dim>1 && nstate==dim+2) return std::make_shared<InitialConditionFunction_IsentropicVortex<dim,nstate,real> > ();
     } else if (flow_type == FlowCaseEnum::kelvin_helmholtz_instability) {
         if constexpr (dim>1 && nstate==dim+2) return std::make_shared<InitialConditionFunction_KHI<dim,nstate,real> > (param->flow_solver_param.atwood_number);
     } else if (flow_type == FlowCaseEnum::sshock) {

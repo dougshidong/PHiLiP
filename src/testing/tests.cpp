@@ -36,6 +36,7 @@
 #include "taylor_green_vortex_restart_check.h"
 #include "time_refinement_study.h"
 #include "time_refinement_study_reference.h"
+#include "h_refinement_study_isentropic_vortex.h"
 #include "burgers_energy_conservation_rrk.h"
 #include "euler_ismail_roe_entropy_check.h"
 
@@ -269,6 +270,8 @@ std::unique_ptr< TestsBase > TestsFactory<dim,nstate,MeshType>
         if constexpr (dim==3 && nstate==dim+2) return std::make_unique<TaylorGreenVortexRestartCheck<dim,nstate>>(parameters_input,parameter_handler_input);
     } else if(test_type == Test_enum::time_refinement_study) {
         if constexpr (dim==1 && nstate==1)  return std::make_unique<TimeRefinementStudy<dim, nstate>>(parameters_input, parameter_handler_input);
+    } else if(test_type == Test_enum::h_refinement_study_isentropic_vortex) {
+        if constexpr (dim+2==nstate && dim!=1)  return std::make_unique<HRefinementStudyIsentropicVortex<dim, nstate>>(parameters_input, parameter_handler_input);
     } else if(test_type == Test_enum::time_refinement_study_reference) {
         if constexpr (dim==1 && nstate==1)  return std::make_unique<TimeRefinementStudyReference<dim, nstate>>(parameters_input, parameter_handler_input);
     } else if(test_type == Test_enum::burgers_energy_conservation_rrk) {

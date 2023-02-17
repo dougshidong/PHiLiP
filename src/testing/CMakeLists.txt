@@ -28,6 +28,7 @@ set(TESTS_SOURCE
     reduced_order.cpp
     time_refinement_study.cpp
     time_refinement_study_reference.cpp
+    h_refinement_study_isentropic_vortex.cpp
     burgers_energy_conservation_rrk.cpp
     euler_ismail_roe_entropy_check.cpp)
 

@@ -25,6 +25,7 @@ public:
         advection,
         periodic_1D_unsteady,
         gaussian_bump,
+        isentropic_vortex,
         kelvin_helmholtz_instability,
         sshock
         };

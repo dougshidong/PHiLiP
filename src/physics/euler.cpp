@@ -302,9 +302,7 @@ inline real Euler<dim,nstate,real>
     const real pressure = compute_pressure<real>(conservative_soln);
     const real density = conservative_soln[0];
 
-    real entropy = pressure * pow(density, -gam);
-    if (entropy > 0)    entropy = log( entropy );
-    else                entropy = BIG_NUMBER;
+    const real entropy = compute_entropy<real>(density, pressure);
 
     const real numerical_entropy_function = - density * entropy;
 
@@ -367,6 +365,25 @@ inline real2 Euler<dim,nstate,real>
     //assert(pressure>0.0);
     
     return pressure;
+}
+
+
+template <int dim, int nstate, typename real>
+template<typename real2>
+inline real2 Euler<dim,nstate,real>
+:: compute_entropy (const real2 density, const real2 pressure) const
+{
+    real2 entropy = pressure * pow(density, -gam);
+    if (entropy > 0){
+        entropy = log( entropy );
+    } else {
+        entropy = BIG_NUMBER;
+        this->pcout << "WARNING: Entropy is not defined because " << std::endl 
+                    << "    pressure * pow(density, -gam) < 0 ." << std::endl
+                    << "    Setting entropy = BIG_NUMBER." << std::endl;
+    }
+    return entropy;
+
 }
 
 template <int dim, int nstate, typename real>
@@ -657,9 +674,7 @@ std::array<real,nstate> Euler<dim, nstate, real>
     const real density = conservative_soln[0];
     const real pressure = compute_pressure<real>(conservative_soln);
     
-    real entropy = pressure * pow(density, -gam);
-    if (entropy > 0)    entropy = log( entropy );
-    else                entropy = BIG_NUMBER;
+    const real entropy = compute_entropy<real>(density, pressure);
 
     const real rho_theta = pressure / gamm1;
 

@@ -20,13 +20,12 @@ set use_periodic_bc = true
 
 # numerical fluxes
 set conv_num_flux = two_point_flux
-set two_point_num_flux_type = IR  # this is changed by the test
+# two_point_num_flux_type is set by the test
 
 # ODE solver
 subsection ODE solver
   set ode_output = quiet
   set ode_solver_type = runge_kutta
-  set output_solution_every_x_steps = -1
   set runge_kutta_method = rk4_ex
 end
 

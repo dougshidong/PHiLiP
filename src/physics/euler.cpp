@@ -649,15 +649,6 @@ std::array<dealii::Tensor<1,dim,real>,nstate> Euler<dim, nstate, real>
 }
 
 template <int dim, int nstate, typename real>
-real Euler<dim, nstate, real>
-::convective_surface_numerical_split_flux (
-                const real &/*surface_flux*/,
-                const real &flux_interp_to_surface) const
-{
-    return flux_interp_to_surface;
-}
-
-template <int dim, int nstate, typename real>
 std::array<real,nstate> Euler<dim, nstate, real>
 ::compute_entropy_variables (
     const std::array<real,nstate> &conservative_soln) const

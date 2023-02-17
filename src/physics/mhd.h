@@ -224,17 +224,6 @@ public:
     /// Given density and pressure, returns NON-DIMENSIONALIZED temperature using free-stream non-dimensionalization
     /** See the book I do like CFD, sec 4.14.2 */
     real compute_temperature_from_density_pressure ( const real density, const real pressure ) const;
-
-    /// The Euler split form is that of Kennedy & Gruber.
-    /** Refer to Gassner's paper (2016) Eq. 3.10 for more information:  */
-    std::array<dealii::Tensor<1,dim,real>,nstate> convective_numerical_split_flux (
-        const std::array<real,nstate> &conservative_soln1,
-        const std::array<real,nstate> &conservative_soln2) const;
-
-    /// Convective surface split flux
-    real convective_surface_numerical_split_flux (
-                const real &surface_flux,
-                const real &flux_interp_to_surface) const;
     
     /// Computes the entropy variables.
     std::array<real,nstate> compute_entropy_variables (

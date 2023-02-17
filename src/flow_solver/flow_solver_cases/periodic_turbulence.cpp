@@ -321,7 +321,6 @@ double PeriodicTurbulence<dim, nstate>::get_numerical_entropy(
     double integrand_numerical_entropy_function=0;
     double integral_numerical_entropy_function=0;
     const std::vector<double> &quad_weights = dg->volume_quadrature_collection[poly_degree].get_weights();
-    std::shared_ptr < Physics::Euler<dim, nstate, double > > euler_physics = std::dynamic_pointer_cast<Physics::Euler<dim,dim+2,double>>(PHiLiP::Physics::PhysicsFactory<dim,nstate,double>::create_Physics(dg->all_parameters));
 
     auto metric_cell = dg->high_order_grid->dof_handler_grid.begin_active();
     // Changed for loop to update metric_cell.

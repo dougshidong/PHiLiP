@@ -278,15 +278,10 @@ public:
     /** See the book I do like CFD, sec 4.14.2 */
     real compute_pressure_from_density_temperature ( const real density, const real temperature ) const;
 
-    /// The Euler split form is that of Kennedy & Gruber or Ismail & Roe.
+    ///  Evaluates convective flux based on the chosen split form.
     std::array<dealii::Tensor<1,dim,real>,nstate> convective_numerical_split_flux (
         const std::array<real,nstate> &conservative_soln1,
-        const std::array<real,nstate> &conservative_soln2) const;
-
-    /// Convective Numerical Split Flux for split form
-    real convective_surface_numerical_split_flux (
-                const real &surface_flux,
-                const real &flux_interp_to_surface) const;
+        const std::array<real,nstate> &conservative_soln2) const override;
 
     /// Computes the entropy variables.
     /// Given conservative variables [density, [momentum], total energy],

@@ -90,15 +90,6 @@ std::array<dealii::Tensor<1,dim,real>,nstate> ConvectionDiffusion<dim,nstate,rea
 }
 
 template <int dim, int nstate, typename real>
-real ConvectionDiffusion<dim,nstate,real>
-::convective_surface_numerical_split_flux (
-                const real &surface_flux,
-                const real &flux_interp_to_surface) const
-{
-    return 0.5*(flux_interp_to_surface + surface_flux);
-}
-
-template <int dim, int nstate, typename real>
 std::array<real,nstate> ConvectionDiffusion<dim, nstate, real>
 ::compute_entropy_variables (
     const std::array<real,nstate> &conservative_soln) const

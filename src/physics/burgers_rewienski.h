@@ -27,7 +27,6 @@ public:
             const bool                                                rewienski_manufactured_solution,
             const bool                                                convection,
             const bool                                                diffusion,
-            const bool                                                has_nonzero_physical_source,
             const dealii::Tensor<2,3,double>                          input_diffusion_tensor = Parameters::ManufacturedSolutionParam::get_default_diffusion_tensor(),
             std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function = nullptr);
 

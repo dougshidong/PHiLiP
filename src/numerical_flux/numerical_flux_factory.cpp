@@ -25,7 +25,9 @@ NumericalFluxFactory<dim, nstate, real>
                                  (conv_num_flux_type == AllParam::ConvectiveNumericalFlux::two_point_flux_with_l2roe_dissipation));
 
     if (conv_num_flux_type == AllParam::ConvectiveNumericalFlux::central_flux) {
-        return std::make_unique< Central<dim, nstate, real> > (physics_input);
+        if constexpr (nstate<=5) {
+            return std::make_unique< Central<dim, nstate, real> > (physics_input);
+        }
     }
     else if(conv_num_flux_type == AllParam::ConvectiveNumericalFlux::lax_friedrichs) {
         return std::make_unique< LaxFriedrichs<dim, nstate, real> > (physics_input);
@@ -36,10 +38,14 @@ NumericalFluxFactory<dim, nstate, real>
         }
     }
     else if (conv_num_flux_type == AllParam::ConvectiveNumericalFlux::two_point_flux) {
-        return std::make_unique< EntropyConserving<dim, nstate, real> > (physics_input);
+        if constexpr (nstate<=5) {
+            return std::make_unique< EntropyConserving<dim, nstate, real> > (physics_input);
+        }
     } 
     else if (conv_num_flux_type == AllParam::ConvectiveNumericalFlux::two_point_flux_with_lax_friedrichs_dissipation) {
-        return std::make_unique< EntropyConservingWithLaxFriedrichsDissipation<dim, nstate, real> > (physics_input);
+        if constexpr (nstate<=5) {
+            return std::make_unique< EntropyConservingWithLaxFriedrichsDissipation<dim, nstate, real> > (physics_input);
+        }
     } 
     else {
         (void) pde_type;

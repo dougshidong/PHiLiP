@@ -81,16 +81,6 @@ std::array<dealii::Tensor<1,dim,real>,nstate> Burgers<dim,nstate,real>::convecti
 }
 
 template <int dim, int nstate, typename real>
-real Burgers<dim,nstate,real>::convective_surface_numerical_split_flux (
-                const real &surface_flux,
-                const real &flux_interp_to_surface) const
-{
-    real surface_split_flux;
-    surface_split_flux = 2.0/3.0 * flux_interp_to_surface + 1.0/3.0 * surface_flux;
-    return surface_split_flux;
-}
-
-template <int dim, int nstate, typename real>
 std::array<real,nstate> Burgers<dim, nstate, real>
 ::compute_entropy_variables (
     const std::array<real,nstate> &conservative_soln) const

@@ -185,23 +185,6 @@ std::array<dealii::Tensor<1,dim,real>,nstate> PhysicsModel<dim,nstate,real,nstat
 }
 
 template <int dim, int nstate, typename real, int nstate_baseline_physics>
-real PhysicsModel<dim,nstate,real,nstate_baseline_physics>
-::convective_surface_numerical_split_flux (
-            const real &surface_flux,
-            const real &flux_interp_to_surface) const
-{
-    // TO DO: Update for when nstate > nstate_baseline_physics
-    real conv_surf_num_split_flux;
-    if constexpr(nstate==nstate_baseline_physics) {
-        conv_surf_num_split_flux = physics_baseline->convective_surface_numerical_split_flux(surface_flux,flux_interp_to_surface);
-    } else {
-        // TO DO, make use of the physics_model object for nstate>nstate_baseline_physics
-        std::abort();
-    }
-    return conv_surf_num_split_flux;
-}
-
-template <int dim, int nstate, typename real, int nstate_baseline_physics>
 std::array<real,nstate> PhysicsModel<dim, nstate, real, nstate_baseline_physics>
 ::compute_entropy_variables (
     const std::array<real,nstate> &conservative_soln) const

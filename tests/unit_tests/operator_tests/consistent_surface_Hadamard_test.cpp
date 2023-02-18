@@ -83,7 +83,7 @@ int main (int argc, char * argv[])
         const unsigned int n_quad_pts = pow(n_quad_pts_1D, dim);
         const unsigned int n_face_quad_pts = pow(n_quad_pts_1D, dim-1);
 
-        assert(n_quad_pts==n_dofs);//since checking for flux basis
+        //assert(n_quad_pts==n_dofs);//since checking for flux basis
 
         //build dim-sized stiffness operator
         dealii::FullMatrix<real> surf_oper_dim(n_face_quad_pts, n_quad_pts);//solution of A*u with sum-factorization

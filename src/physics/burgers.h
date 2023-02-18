@@ -55,11 +55,11 @@ public:
     Burgers(
         const double                                              diffusion_coefficient,
         const bool                                                convection = true, 
-        const bool                                                diffusion = true, 
-        const bool                                                has_nonzero_physical_source = false,
+        const bool                                                diffusion = true,
         const dealii::Tensor<2,3,double>                          input_diffusion_tensor = Parameters::ManufacturedSolutionParam::get_default_diffusion_tensor(),
         std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function = nullptr,
-        const Parameters::AllParameters::TestType                 parameters_test = Parameters::AllParameters::TestType::run_control) : 
+        const Parameters::AllParameters::TestType                 parameters_test = Parameters::AllParameters::TestType::run_control,
+        const bool                                                has_nonzero_physical_source = false) : 
             PhysicsBase<dim,nstate,real>(diffusion, has_nonzero_physical_source, input_diffusion_tensor, manufactured_solution_function), 
             diffusion_scaling_coeff(diffusion_coefficient),
             hasConvection(convection), 
@@ -77,12 +77,7 @@ public:
     /// Convective split flux
     std::array<dealii::Tensor<1,dim,real>,nstate> convective_numerical_split_flux (
                 const std::array<real,nstate> &conservative_soln1,
-                const std::array<real,nstate> &conservative_soln2) const;
-
-    /// Convective surface split flux
-    real convective_surface_numerical_split_flux (
-                const real &surface_flux,
-                const real &flux_interp_to_surface) const;
+                const std::array<real,nstate> &conservative_soln2) const override;
 
     /// Computes the entropy variables.
     std::array<real,nstate> compute_entropy_variables (

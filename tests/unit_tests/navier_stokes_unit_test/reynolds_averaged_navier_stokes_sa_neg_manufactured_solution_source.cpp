@@ -12,6 +12,7 @@
 #include "physics/model.h"
 #include "assert_compare_array.h"
 #include "parameters/parameters.h"
+#include "parameters/parameters_navier_stokes.h"
 #include "physics/reynolds_averaged_navier_stokes.h"
 #include "physics/negative_spalart_allmaras_rans_model.h"
 #include "physics/manufactured_solution.h"
@@ -24,12 +25,19 @@ int main (int argc, char * argv[])
     std::cout << std::setprecision(std::numeric_limits<long double>::digits10 + 1) << std::scientific;
     const int dim = PHILIP_DIM;
     const int nstate = dim+3;
+
+    // Create ManufacturedSolutionFunction
+    std::shared_ptr< PHiLiP::ManufacturedSolutionFunction<dim,double> > 
+        manufactured_solution_function = std::make_shared<PHiLiP::ManufacturedSolutionSine<dim,double>>(nstate);
     
-    //const double ref_length = 1.0, mach_inf=1.0, angle_of_attack = 0.0, side_slip_angle = 0.0, gamma_gas = 1.4;
-    //const double prandtl_number = 0.72, reynolds_number_inf=1e-4;
-    //const double turbulent_prandtl_number = 0.9;
+    //const double ref_length=1.0, mach_inf=1.0, angle_of_attack = 0.0, side_slip_angle = 0.0, gamma_gas = 1.4;
+    //const double prandtl_number=0.72, reynolds_number_inf=1e-4;
+    //const double turbulent_prandtl_number=0.9;
+    //const double temperature_inf=1.0, isothermal_wall_temperature=1.0;
     const double a = 1.0 , b = 0.0, c = 1.4, d=0.72, e=1.0e3, f=0.9; // Note: e==Re_inf --> set to small value so that viscous terms dominate
-    PHiLiP::Physics::ReynoldsAveragedNavierStokes_SAneg<dim, nstate, double> rans_sa_neg_physics = PHiLiP::Physics::ReynoldsAveragedNavierStokes_SAneg<dim, nstate, double>(a,c,a,b,b,d,e,f);
+    using thermal_boundary_condition_enum = PHiLiP::Parameters::NavierStokesParam::ThermalBoundaryCondition;
+    const thermal_boundary_condition_enum g = thermal_boundary_condition_enum::adiabatic;
+    PHiLiP::Physics::ReynoldsAveragedNavierStokes_SAneg<dim, nstate, double> rans_sa_neg_physics = PHiLiP::Physics::ReynoldsAveragedNavierStokes_SAneg<dim, nstate, double>(a,c,a,b,b,d,e,f,a,a,g,manufactured_solution_function);
     
     const double min = 0.0;
     const double max = 1.0;
@@ -65,10 +73,6 @@ int main (int argc, char * argv[])
     std::array<dealii::Tensor<1,dim,double>,nstate> soln_gradient_mins;
     std::array<dealii::Tensor<1,dim,double>,nstate> soln_gradient_plus2;
     std::array<dealii::Tensor<1,dim,double>,nstate> soln_gradient_mins2;
-    
-    // Create ManufacturedSolutionFunction
-    std::shared_ptr< PHiLiP::ManufacturedSolutionFunction<dim,double> > 
-        manufactured_solution_function = std::make_shared<PHiLiP::ManufacturedSolutionSine<dim,double>>(nstate);
 
     for (auto cell : grid.active_cell_iterators()) {
         for (unsigned int v=0; v < dealii::GeometryInfo<dim>::vertices_per_cell; ++v) {

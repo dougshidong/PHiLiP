@@ -5,6 +5,7 @@
 #include <deal.II/numerics/data_component_interpretation.h>
 #include <deal.II/fe/fe_update_flags.h>
 #include <deal.II/base/types.h>
+#include <deal.II/base/conditional_ostream.h>
 
 #include "parameters/all_parameters.h"
 #include "parameters/parameters_manufactured_solution.h"
@@ -65,12 +66,7 @@ public:
     /// Convective Numerical Split Flux for split form
     virtual std::array<dealii::Tensor<1,dim,real>,nstate> convective_numerical_split_flux (
         const std::array<real,nstate> &conservative_soln1,
-        const std::array<real,nstate> &conservative_soln2) const = 0;
-
-    /// Convective Numerical Split Flux for split form
-    virtual real convective_surface_numerical_split_flux (
-                const real &surface_flux,
-                const real &flux_interp_to_surface) const = 0;
+        const std::array<real,nstate> &conservative_soln2) const;
 
     /// Computes the entropy variables.
     virtual std::array<real,nstate> compute_entropy_variables (
@@ -177,12 +173,16 @@ public:
     virtual dealii::UpdateFlags post_get_needed_update_flags () const;
     
 protected:
+    /// ConditionalOStream.
+    /** Used as std::cout, but only prints if mpi_rank == 0
+     */
+    dealii::ConditionalOStream pcout;
+
     /// Anisotropic diffusion matrix
     /** As long as the diagonal components are positive and diagonally dominant
      *  we should have a stable diffusive system
      */
     dealii::Tensor<2,dim,double> diffusion_tensor;
-
 };
 } // Physics namespace
 } // PHiLiP namespace

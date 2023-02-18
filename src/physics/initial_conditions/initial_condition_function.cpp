@@ -431,15 +431,6 @@ InitialConditionFactory<dim,nstate, real>::create_InitialConditionFunction(
     return nullptr;
 }
 
-// ========================================================
-// ZERO INITIAL CONDITION
-// ========================================================
-template <int dim, int nstate, typename real>
-real InitialConditionFunction_Zero<dim, nstate, real> :: value(const dealii::Point<dim,real> &/*point*/, const unsigned int /*istate*/) const
-{
-    return 0.0;
-}
-
 template class InitialConditionFunction <PHILIP_DIM, 1, double>;
 template class InitialConditionFunction <PHILIP_DIM, 2, double>;
 template class InitialConditionFunction <PHILIP_DIM, 3, double>;

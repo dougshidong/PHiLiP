@@ -88,5 +88,6 @@ template class SetInitialCondition<PHILIP_DIM, 2, double>;
 template class SetInitialCondition<PHILIP_DIM, 3, double>;
 template class SetInitialCondition<PHILIP_DIM, 4, double>;
 template class SetInitialCondition<PHILIP_DIM, 5, double>;
+template class SetInitialCondition<PHILIP_DIM, 6, double>;
 
 }//end of namespace PHILIP

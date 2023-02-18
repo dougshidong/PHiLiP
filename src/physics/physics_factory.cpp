@@ -52,20 +52,20 @@ PhysicsFactory<dim,nstate,real>
     if (pde_type == PDE_enum::advection || pde_type == PDE_enum::advection_vector) {
         if constexpr (nstate<=2) 
             return std::make_shared < ConvectionDiffusion<dim,nstate,real> >(
-                true, false, false,
+                true, false,
                 diffusion_tensor, advection_vector, diffusion_coefficient,
                 manufactured_solution_function);
     } else if (pde_type == PDE_enum::diffusion) {
         if constexpr (nstate==1) 
             return std::make_shared < ConvectionDiffusion<dim,nstate,real> >(
-                false, true, false,
+                false, true,
                 diffusion_tensor, advection_vector, diffusion_coefficient,
                 manufactured_solution_function,
                 parameters_input->test_type);
     } else if (pde_type == PDE_enum::convection_diffusion) {
         if constexpr (nstate==1) 
             return std::make_shared < ConvectionDiffusion<dim,nstate,real> >(
-                true, true, false,
+                true, true,
                 diffusion_tensor, advection_vector, diffusion_coefficient,
                 manufactured_solution_function,
                 parameters_input->test_type);
@@ -73,7 +73,7 @@ PhysicsFactory<dim,nstate,real>
         if constexpr (nstate==dim) 
             return std::make_shared < Burgers<dim,nstate,real> >(
                 parameters_input->burgers_param.diffusion_coefficient,
-                true, false, false,
+                true, false,
                 diffusion_tensor, 
                 manufactured_solution_function,
                 parameters_input->test_type);
@@ -81,7 +81,7 @@ PhysicsFactory<dim,nstate,real>
         if constexpr (nstate==dim)
             return std::make_shared < Burgers<dim,nstate,real> >(
                     parameters_input->burgers_param.diffusion_coefficient,
-                    true, true, false,
+                    true, true,
                     diffusion_tensor,
                     manufactured_solution_function);
     } else if (pde_type == PDE_enum::burgers_rewienski) {
@@ -91,7 +91,6 @@ PhysicsFactory<dim,nstate,real>
                     parameters_input->burgers_param.rewienski_b,
                     parameters_input->burgers_param.rewienski_manufactured_solution,
                     true,
-                    false,
                     false,
                     diffusion_tensor,
                     manufactured_solution_function);

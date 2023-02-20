@@ -24,9 +24,11 @@ ReynoldsAveragedNavierStokes_SAneg<dim, nstate, real>::ReynoldsAveragedNavierSto
     const double                                              prandtl_number,
     const double                                              reynolds_number_inf,
     const double                                              turbulent_prandtl_number,
+    const double                                              temperature_inf,
     const double                                              isothermal_wall_temperature,
     const thermal_boundary_condition_enum                     thermal_boundary_condition_type,
-    std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function)
+    std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function,
+    const two_point_num_flux_enum                             two_point_num_flux_type)
     : ReynoldsAveragedNavierStokesBase<dim,nstate,real>(ref_length,
                                                         gamma_gas,
                                                         mach_inf,
@@ -35,9 +37,11 @@ ReynoldsAveragedNavierStokes_SAneg<dim, nstate, real>::ReynoldsAveragedNavierSto
                                                         prandtl_number,
                                                         reynolds_number_inf,
                                                         turbulent_prandtl_number,
+                                                        temperature_inf,
                                                         isothermal_wall_temperature,
                                                         thermal_boundary_condition_type,
-                                                        manufactured_solution_function)
+                                                        manufactured_solution_function,
+                                                        two_point_num_flux_type)
 { }
 //----------------------------------------------------------------
 template <int dim, int nstate, typename real>

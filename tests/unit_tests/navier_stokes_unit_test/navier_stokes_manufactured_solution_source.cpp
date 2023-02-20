@@ -13,8 +13,9 @@
 
 const double TOLERANCE = 1E-5;
 
-int main (int /*argc*/, char * /*argv*/[])
+int main (int argc, char * argv[])
 {
+    MPI_Init(&argc, &argv);
     std::cout << std::setprecision(std::numeric_limits<long double>::digits10 + 1) << std::scientific;
     const int dim = PHILIP_DIM;
     const int nstate = dim+2;
@@ -61,7 +62,8 @@ int main (int /*argc*/, char * /*argv*/[])
         for (unsigned int v=0; v < dealii::GeometryInfo<dim>::vertices_per_cell; ++v) {
 
             const dealii::Point<dim,double> vertex = cell->vertex(v);
-            std::array<double, nstate> source_term = navier_stokes_physics.source_term(vertex, soln_plus);
+            constexpr double dummy_time = 0;
+            std::array<double, nstate> source_term = navier_stokes_physics.source_term(vertex, soln_plus, dummy_time);
 
             std::array<double, nstate> divergence_finite_differences;
             divergence_finite_differences.fill(0.0);
@@ -134,6 +136,7 @@ int main (int /*argc*/, char * /*argv*/[])
             assert_compare_array<nstate> ( divergence_finite_differences, source_term, 1.0, TOLERANCE);
         }
     }
+    MPI_Finalize();
     return 0;
 }
 

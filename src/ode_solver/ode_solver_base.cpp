@@ -140,6 +140,7 @@ int ODESolverBase<dim,real,MeshType>::steady_state ()
               << std::endl
               << " Nonlinear iteration: " << this->current_iteration
               << " Residual norm (normalized) : " << this->residual_norm
+              << " Residual norm decrease : " << this->residual_norm_decrease
               << " ( " << this->residual_norm / this->initial_residual_norm << " ) "
               << std::endl;
 
@@ -223,8 +224,9 @@ int ODESolverBase<dim,real,MeshType>::steady_state ()
 template <int dim, typename real, typename MeshType>
 int ODESolverBase<dim,real,MeshType>::advance_solution_time (double time_advance)
 {
-    const unsigned int number_of_time_steps = static_cast<int>(ceil(time_advance/ode_param.initial_time_step));
-    const double constant_time_step = time_advance/number_of_time_steps;
+
+    const unsigned int number_of_time_steps = (!this->all_parameters->use_energy) ? static_cast<int>(ceil(time_advance/ode_param.initial_time_step)) : this->current_iteration+1;
+    const double constant_time_step = time_advance/static_cast<int>(ceil(time_advance/ode_param.initial_time_step));
 
     try {
         valid_initial_conditions();
@@ -233,12 +235,13 @@ int ODESolverBase<dim,real,MeshType>::advance_solution_time (double time_advance
         std::abort();
     }
 
-    pcout
-            << " Advancing solution by " << time_advance << " time units, using "
-            << number_of_time_steps << " iterations of size dt=" << constant_time_step << " ... " << std::endl;
-    allocate_ode_system ();
+    pcout << " Advancing solution by " << time_advance << " time units, using "
+          << number_of_time_steps << " iterations of size dt=" << constant_time_step << " ... " << std::endl;
+    
+    if(!this->all_parameters->use_energy) this->current_iteration = 0;
 
-    this->current_iteration = 0;
+    if(this->current_iteration == 0) allocate_ode_system ();
+
     if (ode_param.output_solution_every_x_steps >= 0) {
         this->dg->output_results_vtk(this->current_iteration);  
     } else if (ode_param.output_solution_every_dt_time_intervals > 0.0) {

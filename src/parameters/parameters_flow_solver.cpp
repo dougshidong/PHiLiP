@@ -19,6 +19,9 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                           " burgers_viscous_snapshot | "
                           " naca0012 | "
                           " burgers_rewienski_snapshot | "
+                          " burgers_inviscid | "
+                          " convection_diffusion | "
+                          " advection | "
                           " periodic_1D_unsteady | "
                           " gaussian_bump | "
                           " sshock | "
@@ -30,6 +33,9 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                           " burgers_viscous_snapshot | "
                           " naca0012 | "
                           " burgers_rewienski_snapshot | "
+                          " burgers_inviscid | "
+                          " convection_diffusion | "
+                          " advection | "
                           " periodic_1D_unsteady | "
                           " gaussian_bump | "
                           " sshock | "
@@ -49,6 +55,10 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
         prm.declare_entry("final_time", "1",
                           dealii::Patterns::Double(0, dealii::Patterns::Double::max_double_value),
                           "Final solution time.");
+
+        prm.declare_entry("constant_time_step", "0",
+                          dealii::Patterns::Double(0, dealii::Patterns::Double::max_double_value),
+                          "Constant time step.");
 
         prm.declare_entry("courant_friedrich_lewy_number", "1",
                           dealii::Patterns::Double(0, dealii::Patterns::Double::max_double_value),
@@ -109,11 +119,11 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                               "Polynomial degree of the grid. Curvilinear grid if set greater than 1; default is 1.");
 
             prm.declare_entry("grid_left_bound", "0.0",
-                              dealii::Patterns::Double(0, dealii::Patterns::Double::max_double_value),
+                              dealii::Patterns::Double(-dealii::Patterns::Double::max_double_value, dealii::Patterns::Double::max_double_value),
                               "Left bound of domain for hyper_cube mesh based cases.");
 
             prm.declare_entry("grid_right_bound", "1.0",
-                              dealii::Patterns::Double(0, dealii::Patterns::Double::max_double_value),
+                              dealii::Patterns::Double(-dealii::Patterns::Double::max_double_value, dealii::Patterns::Double::max_double_value),
                               "Right bound of domain for hyper_cube mesh based cases.");
 
             prm.declare_entry("number_of_grid_elements_per_dimension", "4",
@@ -172,8 +182,17 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                               "Choices are "
                               " <uniform | "
                               " isothermal>.");
+            prm.declare_entry("do_calculate_numerical_entropy", "false",
+                              dealii::Patterns::Bool(),
+                              "Flag to calculate numerical entropy and write to file. By default, do not calculate.");
+
         }
         prm.leave_subsection();
+
+        prm.declare_entry("interpolate_initial_condition", "true",
+                          dealii::Patterns::Bool(),
+                          "Interpolate the initial condition function onto the DG solution. If false, then it projects the physical value. True by default.");
+
     }
     prm.leave_subsection();
 }
@@ -183,12 +202,15 @@ void FlowSolverParam::parse_parameters(dealii::ParameterHandler &prm)
     prm.enter_subsection("flow_solver");
     {
         const std::string flow_case_type_string = prm.get("flow_case_type");
-        if      (flow_case_type_string == "taylor_green_vortex")                {flow_case_type = taylor_green_vortex;}
-        else if (flow_case_type_string == "burgers_viscous_snapshot")           {flow_case_type = burgers_viscous_snapshot;}
-        else if (flow_case_type_string == "burgers_rewienski_snapshot")         {flow_case_type = burgers_rewienski_snapshot;}
-        else if (flow_case_type_string == "naca0012")                           {flow_case_type = naca0012;}
-        else if (flow_case_type_string == "periodic_1D_unsteady")                 {flow_case_type = periodic_1D_unsteady;}
-        else if (flow_case_type_string == "gaussian_bump")                      {flow_case_type = gaussian_bump;}
+        if      (flow_case_type_string == "taylor_green_vortex")        {flow_case_type = taylor_green_vortex;}
+        else if (flow_case_type_string == "burgers_viscous_snapshot")   {flow_case_type = burgers_viscous_snapshot;}
+        else if (flow_case_type_string == "burgers_rewienski_snapshot") {flow_case_type = burgers_rewienski_snapshot;}
+        else if (flow_case_type_string == "naca0012")                   {flow_case_type = naca0012;}
+        else if (flow_case_type_string == "burgers_inviscid")           {flow_case_type = burgers_inviscid;}
+        else if (flow_case_type_string == "convection_diffusion")       {flow_case_type = convection_diffusion;}
+        else if (flow_case_type_string == "advection")                  {flow_case_type = advection;}
+        else if (flow_case_type_string == "periodic_1D_unsteady")       {flow_case_type = periodic_1D_unsteady;}
+        else if (flow_case_type_string == "gaussian_bump")              {flow_case_type = gaussian_bump;}
         else if (flow_case_type_string == "sshock")                             {flow_case_type = sshock;}
         else if (flow_case_type_string == "wall_distance_evaluation")           {flow_case_type = wall_distance_evaluation;}
 
@@ -200,6 +222,7 @@ void FlowSolverParam::parse_parameters(dealii::ParameterHandler &prm)
         if(max_poly_degree_for_adaptation == 0) max_poly_degree_for_adaptation = poly_degree;
         
         final_time = prm.get_double("final_time");
+        constant_time_step = prm.get_double("constant_time_step");
         courant_friedrich_lewy_number = prm.get_double("courant_friedrich_lewy_number");
         unsteady_data_table_filename = prm.get("unsteady_data_table_filename");
         steady_state = prm.get_bool("steady_state");
@@ -243,12 +266,15 @@ void FlowSolverParam::parse_parameters(dealii::ParameterHandler &prm)
             const std::string density_initial_condition_type_string = prm.get("density_initial_condition_type");
             if      (density_initial_condition_type_string == "uniform")    {density_initial_condition_type = uniform;}
             else if (density_initial_condition_type_string == "isothermal") {density_initial_condition_type = isothermal;}
+            do_calculate_numerical_entropy = prm.get_bool("do_calculate_numerical_entropy");
         }
         prm.leave_subsection();
+
+        interpolate_initial_condition = prm.get_bool("interpolate_initial_condition");
+        
     }
     prm.leave_subsection();
 }
 
 } // Parameters namespace
-
 } // PHiLiP namespace

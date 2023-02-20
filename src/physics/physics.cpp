@@ -1,6 +1,9 @@
 #include <assert.h>
 #include <cmath>
 #include <vector>
+#include <stdlib.h>
+#include <deal.II/base/utilities.h>
+#include <deal.II/base/mpi.h>
 
 #include "ADTypes.hpp"
 
@@ -11,11 +14,14 @@ namespace Physics {
 
 template <int dim, int nstate, typename real>
 PhysicsBase<dim,nstate,real>::PhysicsBase(
+    const bool                                                has_nonzero_diffusion_input,
     const bool                                                has_nonzero_physical_source_input,
     const dealii::Tensor<2,3,double>                          input_diffusion_tensor,
-    std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function_input):
-        has_nonzero_physical_source(has_nonzero_physical_source_input),
-        manufactured_solution_function(manufactured_solution_function_input)
+    std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function_input)
+    : has_nonzero_diffusion(has_nonzero_diffusion_input)
+    , has_nonzero_physical_source(has_nonzero_physical_source_input)
+    , manufactured_solution_function(manufactured_solution_function_input)
+    , pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD)==0)
 {
     // if provided with a null ptr, give it the default manufactured solution
     // currently only necessary for the unit test
@@ -40,16 +46,27 @@ PhysicsBase<dim,nstate,real>::PhysicsBase(
 
 template <int dim, int nstate, typename real>
 PhysicsBase<dim,nstate,real>::PhysicsBase(
+    const bool                                                has_nonzero_diffusion_input,
     const bool                                                has_nonzero_physical_source_input,
     std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function_input)
     : PhysicsBase<dim,nstate,real>(
+        has_nonzero_diffusion_input,
         has_nonzero_physical_source_input,
         Parameters::ManufacturedSolutionParam::get_default_diffusion_tensor(),
         manufactured_solution_function_input)
 { }
 
 template <int dim, int nstate, typename real>
-PhysicsBase<dim,nstate,real>::~PhysicsBase() {}
+std::array<dealii::Tensor<1,dim,real>,nstate> PhysicsBase<dim,nstate,real>::convective_numerical_split_flux (
+    const std::array<real,nstate> &/*conservative_soln1*/,
+    const std::array<real,nstate> &/*conservative_soln2*/) const
+{
+    pcout << "ERROR: convective_numerical_split_flux() has not yet been implemented for (overridden by) the selected PDE. Aborting..." <<std::flush;
+    std::abort();
+    std::array<dealii::Tensor<1,dim,real>,nstate> dummy;
+    return dummy;
+}
+
 /*
 template <int dim, int nstate, typename real>
 std::array<dealii::Tensor<1,dim,real>,nstate> PhysicsBase<dim,nstate,real>

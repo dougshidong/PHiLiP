@@ -23,6 +23,7 @@ protected:
     using PhysicsBase<dim,nstate,real>::source_term;
 public:
     using thermal_boundary_condition_enum = Parameters::NavierStokesParam::ThermalBoundaryCondition;
+    using two_point_num_flux_enum = Parameters::AllParameters::TwoPointNumericalFlux;
     /// Constructor
     NavierStokes( 
         const double                                              ref_length,
@@ -32,10 +33,11 @@ public:
         const double                                              side_slip_angle,
         const double                                              prandtl_number,
         const double                                              reynolds_number_inf,
+        const double                                              temperature_inf = 273.15,
         const double                                              isothermal_wall_temperature = 1.0,
         const thermal_boundary_condition_enum                     thermal_boundary_condition_type = thermal_boundary_condition_enum::adiabatic,
         std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function = nullptr,
-        const bool                                                has_nonzero_physical_source = false);
+        const two_point_num_flux_enum                             two_point_num_flux_type = two_point_num_flux_enum::KG);
 
     /// Nondimensionalized viscosity coefficient at infinity.
     const double viscosity_coefficient_inf;
@@ -48,6 +50,18 @@ public:
     /// Thermal boundary condition type (adiabatic or isothermal)
     const thermal_boundary_condition_enum thermal_boundary_condition_type;
 
+protected:    
+    ///@{
+    /** Constants for Sutherland's law for viscosity
+     *  Reference: Sutherland, W. (1893), "The viscosity of gases and molecular force", Philosophical Magazine, S. 5, 36, pp. 507-531 (1893)
+     *  Values: https://www.cfd-online.com/Wiki/Sutherland%27s_law
+     */
+    const double sutherlands_temperature; ///< Sutherland's temperature. Units: [K]
+    const double freestream_temperature; ///< Freestream temperature. Units: [K]
+    const double temperature_ratio; ///< Ratio of Sutherland's temperature to freestream temperature
+    //@}
+
+public:
     /// Destructor
     ~NavierStokes() {};
 
@@ -241,7 +255,8 @@ public:
     /// Source term is zero or depends on manufactured solution
     std::array<real,nstate> source_term (
         const dealii::Point<dim,real> &pos,
-        const std::array<real,nstate> &conservative_soln) const override;
+        const std::array<real,nstate> &conservative_soln,
+        const real current_time) const override;
 
     /// Convective flux Jacobian computed via dfad (automatic differentiation)
     /// -- Only used for verifying the dfad procedure used in dissipative flux jacobian
@@ -265,16 +280,7 @@ public:
         const dealii::Tensor<2,dim,real2> &viscous_stress_tensor,
         const dealii::Tensor<1,dim,real2> &heat_flux) const;
 
-protected:    
-    ///@{
-    /** Constants for Sutherland's law for viscosity
-     *  Reference: Sutherland, W. (1893), "The viscosity of gases and molecular force", Philosophical Magazine, S. 5, 36, pp. 507-531 (1893)
-     *  Values: https://www.cfd-online.com/Wiki/Sutherland%27s_law
-     */
-    const double free_stream_temperature = 273.15; ///< Free stream temperature. Units: [K]
-    const double sutherlands_temperature = 110.4; ///< Sutherland's temperature. Units: [K]
-    const double temperature_ratio = sutherlands_temperature/free_stream_temperature;
-    //@}
+protected:
 
     /** Nondimensionalized viscous flux (i.e. dissipative flux)
      *  Reference: Masatsuka 2018 "I do like CFD", p.142, eq.(4.12.1-4.12.4)

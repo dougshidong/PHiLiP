@@ -22,11 +22,13 @@ LargeEddySimulationBase<dim, nstate, real>::LargeEddySimulationBase(
     const double                                              side_slip_angle,
     const double                                              prandtl_number,
     const double                                              reynolds_number_inf,
+    const double                                              temperature_inf,
     const double                                              turbulent_prandtl_number,
     const double                                              ratio_of_filter_width_to_cell_size,
     const double                                              isothermal_wall_temperature,
     const thermal_boundary_condition_enum                     thermal_boundary_condition_type,
-    std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function)
+    std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function,
+    const two_point_num_flux_enum                             two_point_num_flux_type)
     : ModelBase<dim,nstate,real>(manufactured_solution_function) 
     , turbulent_prandtl_number(turbulent_prandtl_number)
     , ratio_of_filter_width_to_cell_size(ratio_of_filter_width_to_cell_size)
@@ -38,9 +40,11 @@ LargeEddySimulationBase<dim, nstate, real>::LargeEddySimulationBase(
             side_slip_angle,
             prandtl_number,
             reynolds_number_inf,
+            temperature_inf,
             isothermal_wall_temperature,
             thermal_boundary_condition_type,
-            manufactured_solution_function))
+            manufactured_solution_function,
+            two_point_num_flux_type))
 {
     static_assert(nstate==dim+2, "ModelBase::LargeEddySimulationBase() should be created with nstate=dim+2");
 }
@@ -146,6 +150,7 @@ std::array<real,nstate> LargeEddySimulationBase<dim,nstate,real>
 ::source_term (
         const dealii::Point<dim,real> &pos,
         const std::array<real,nstate> &/*solution*/,
+        const real /*current_time*/,
         const dealii::types::global_dof_index cell_index) const
 {
     /* TO DO Note: Since this is only used for the manufactured solution source term, 
@@ -397,12 +402,14 @@ LargeEddySimulation_Smagorinsky<dim, nstate, real>::LargeEddySimulation_Smagorin
     const double                                              side_slip_angle,
     const double                                              prandtl_number,
     const double                                              reynolds_number_inf,
+    const double                                              temperature_inf,
     const double                                              turbulent_prandtl_number,
     const double                                              ratio_of_filter_width_to_cell_size,
     const double                                              model_constant,
     const double                                              isothermal_wall_temperature,
     const thermal_boundary_condition_enum                     thermal_boundary_condition_type,
-    std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function)
+    std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function,
+    const two_point_num_flux_enum                             two_point_num_flux_type)
     : LargeEddySimulationBase<dim,nstate,real>(ref_length,
                                                gamma_gas,
                                                mach_inf,
@@ -410,11 +417,13 @@ LargeEddySimulation_Smagorinsky<dim, nstate, real>::LargeEddySimulation_Smagorin
                                                side_slip_angle,
                                                prandtl_number,
                                                reynolds_number_inf,
+                                               temperature_inf,
                                                turbulent_prandtl_number,
                                                ratio_of_filter_width_to_cell_size,
                                                isothermal_wall_temperature,
                                                thermal_boundary_condition_type,
-                                               manufactured_solution_function)
+                                               manufactured_solution_function,
+                                               two_point_num_flux_type)
     , model_constant(model_constant)
 { }
 //----------------------------------------------------------------
@@ -615,12 +624,14 @@ LargeEddySimulation_WALE<dim, nstate, real>::LargeEddySimulation_WALE(
     const double                                              side_slip_angle,
     const double                                              prandtl_number,
     const double                                              reynolds_number_inf,
+    const double                                              temperature_inf,
     const double                                              turbulent_prandtl_number,
     const double                                              ratio_of_filter_width_to_cell_size,
     const double                                              model_constant,
     const double                                              isothermal_wall_temperature,
     const thermal_boundary_condition_enum                     thermal_boundary_condition_type,
-    std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function)
+    std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function,
+    const two_point_num_flux_enum                             two_point_num_flux_type)
     : LargeEddySimulation_Smagorinsky<dim,nstate,real>(ref_length,
                                                        gamma_gas,
                                                        mach_inf,
@@ -628,12 +639,14 @@ LargeEddySimulation_WALE<dim, nstate, real>::LargeEddySimulation_WALE(
                                                        side_slip_angle,
                                                        prandtl_number,
                                                        reynolds_number_inf,
+                                                       temperature_inf,
                                                        turbulent_prandtl_number,
                                                        ratio_of_filter_width_to_cell_size,
                                                        model_constant,
                                                        isothermal_wall_temperature,
                                                        thermal_boundary_condition_type,
-                                                       manufactured_solution_function)
+                                                       manufactured_solution_function,
+                                                       two_point_num_flux_type)
 { }
 //----------------------------------------------------------------
 template <int dim, int nstate, typename real>
@@ -734,12 +747,14 @@ LargeEddySimulation_Vreman<dim, nstate, real>::LargeEddySimulation_Vreman(
     const double                                              side_slip_angle,
     const double                                              prandtl_number,
     const double                                              reynolds_number_inf,
+    const double                                              temperature_inf,
     const double                                              turbulent_prandtl_number,
     const double                                              ratio_of_filter_width_to_cell_size,
     const double                                              model_constant,
     const double                                              isothermal_wall_temperature,
     const thermal_boundary_condition_enum                     thermal_boundary_condition_type,
-    std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function)
+    std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function,
+    const two_point_num_flux_enum                             two_point_num_flux_type)
     : LargeEddySimulation_Smagorinsky<dim,nstate,real>(ref_length,
                                                        gamma_gas,
                                                        mach_inf,
@@ -747,12 +762,14 @@ LargeEddySimulation_Vreman<dim, nstate, real>::LargeEddySimulation_Vreman(
                                                        side_slip_angle,
                                                        prandtl_number,
                                                        reynolds_number_inf,
+                                                       temperature_inf,
                                                        turbulent_prandtl_number,
                                                        ratio_of_filter_width_to_cell_size,
                                                        model_constant,
                                                        isothermal_wall_temperature,
                                                        thermal_boundary_condition_type,
-                                                       manufactured_solution_function)
+                                                       manufactured_solution_function,
+                                                       two_point_num_flux_type)
 { }
 //----------------------------------------------------------------
 template <int dim, int nstate, typename real>

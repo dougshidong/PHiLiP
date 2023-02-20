@@ -23,9 +23,11 @@ ReynoldsAveragedNavierStokesBase<dim, nstate, real>::ReynoldsAveragedNavierStoke
     const double                                              prandtl_number,
     const double                                              reynolds_number_inf,
     const double                                              turbulent_prandtl_number,
+    const double                                              temperature_inf,
     const double                                              isothermal_wall_temperature,
     const thermal_boundary_condition_enum                     thermal_boundary_condition_type,
-    std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function)
+    std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function,
+    const two_point_num_flux_enum                             two_point_num_flux_type)
     : ModelBase<dim,nstate,real>(manufactured_solution_function) 
     , turbulent_prandtl_number(turbulent_prandtl_number)
     , navier_stokes_physics(std::make_unique < NavierStokes<dim,nstate_navier_stokes,real> > (
@@ -36,9 +38,11 @@ ReynoldsAveragedNavierStokesBase<dim, nstate, real>::ReynoldsAveragedNavierStoke
             side_slip_angle,
             prandtl_number,
             reynolds_number_inf,
+            temperature_inf,
             isothermal_wall_temperature,
             thermal_boundary_condition_type,
-            manufactured_solution_function))
+            manufactured_solution_function,
+            two_point_num_flux_type))
 {
     static_assert(nstate>=dim+3, "ModelBase::ReynoldsAveragedNavierStokesBase() should be created with nstate>=dim+3");
 }
@@ -335,6 +339,7 @@ std::array<real,nstate> ReynoldsAveragedNavierStokesBase<dim,nstate,real>
 ::source_term (
         const dealii::Point<dim,real> &pos,
         const std::array<real,nstate> &/*solution*/,
+        const real /*current_time*/,
         const dealii::types::global_dof_index cell_index) const
 {
     std::array<real,nstate> conv_source_term = convective_source_term_computed_from_manufactured_solution(pos);

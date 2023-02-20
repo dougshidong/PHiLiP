@@ -61,20 +61,23 @@ PhysicsFactory<dim,nstate,real>
             return std::make_shared < ConvectionDiffusion<dim,nstate,real> >(
                 false, true,
                 diffusion_tensor, advection_vector, diffusion_coefficient,
-                manufactured_solution_function);
+                manufactured_solution_function,
+                parameters_input->test_type);
     } else if (pde_type == PDE_enum::convection_diffusion) {
         if constexpr (nstate==1) 
             return std::make_shared < ConvectionDiffusion<dim,nstate,real> >(
                 true, true,
                 diffusion_tensor, advection_vector, diffusion_coefficient,
-                manufactured_solution_function);
+                manufactured_solution_function,
+                parameters_input->test_type);
     } else if (pde_type == PDE_enum::burgers_inviscid) {
         if constexpr (nstate==dim) 
             return std::make_shared < Burgers<dim,nstate,real> >(
                 parameters_input->burgers_param.diffusion_coefficient,
                 true, false,
                 diffusion_tensor, 
-                manufactured_solution_function);
+                manufactured_solution_function,
+                parameters_input->test_type);
     } else if (pde_type == PDE_enum::burgers_viscous) {
         if constexpr (nstate==dim)
             return std::make_shared < Burgers<dim,nstate,real> >(
@@ -100,7 +103,8 @@ PhysicsFactory<dim,nstate,real>
                 parameters_input->euler_param.mach_inf,
                 parameters_input->euler_param.angle_of_attack,
                 parameters_input->euler_param.side_slip_angle,
-                manufactured_solution_function);
+                manufactured_solution_function,
+                parameters_input->two_point_num_flux_type);
         }
     } else if (pde_type == PDE_enum::mhd) {
         if constexpr (nstate == 8) 
@@ -118,9 +122,11 @@ PhysicsFactory<dim,nstate,real>
                 parameters_input->euler_param.side_slip_angle,
                 parameters_input->navier_stokes_param.prandtl_number,
                 parameters_input->navier_stokes_param.reynolds_number_inf,
+                parameters_input->navier_stokes_param.temperature_inf,
                 parameters_input->navier_stokes_param.nondimensionalized_isothermal_wall_temperature,
                 parameters_input->navier_stokes_param.thermal_boundary_condition_type,
-                manufactured_solution_function);
+                manufactured_solution_function,
+                parameters_input->two_point_num_flux_type);
         }
     } else if (pde_type == PDE_enum::physics_model) {
         if constexpr (nstate>=dim+2) {
@@ -165,6 +171,9 @@ PhysicsFactory<dim,nstate,real>
     // Create baseline physics object
     PDE_enum baseline_physics_type;
 
+    // Flag to signal non-zero diffusion
+    bool has_nonzero_diffusion;
+
     // Flag to signal non-zero physical source
     bool has_nonzero_physical_source;
 
@@ -172,6 +181,7 @@ PhysicsFactory<dim,nstate,real>
     // Large Eddy Simulation (LES)
     // -------------------------------------------------------------------------------
     if (model_type == Model_enum::large_eddy_simulation) {
+        has_nonzero_diffusion = true; // because of SGS model term
         has_nonzero_physical_source = false; // LES has no physical source terms
         if constexpr ((nstate==dim+2) && (dim==3)) {
             // Assign baseline physics type (and corresponding nstates) based on the physics model type
@@ -191,13 +201,14 @@ PhysicsFactory<dim,nstate,real>
                     baseline_physics_type,
                     model_input,
                     manufactured_solution_function,
+                    has_nonzero_diffusion,
                     has_nonzero_physical_source);
         }
         else {
             // LES does not exist for nstate!=(dim+2) || dim!=3
             (void) baseline_physics_type;
+            (void) has_nonzero_diffusion;
             (void) has_nonzero_physical_source;
-            std::cout << "Can't create LES for nstate!=(dim+2) or dim!=3. " << std::endl;
             return nullptr;
         }
     }
@@ -205,6 +216,7 @@ PhysicsFactory<dim,nstate,real>
     // Reynolds-Averaged Navier-Stokes (RANS) + RANS model
     // -------------------------------------------------------------------------------
     else if (model_type == Model_enum::reynolds_averaged_navier_stokes) {
+        has_nonzero_diffusion = true; // RANS (baseline part) has diffusion terms
         has_nonzero_physical_source = true; // RANS (baseline part) has physical source terms
         if (rans_model_type == RANSModel_enum::SA_negative)
         {
@@ -226,6 +238,7 @@ PhysicsFactory<dim,nstate,real>
                     baseline_physics_type,
                     model_input,
                     manufactured_solution_function,
+                    has_nonzero_diffusion,
                     has_nonzero_physical_source);
             }
             else {
@@ -240,6 +253,7 @@ PhysicsFactory<dim,nstate,real>
     else {
         // prevent warnings for dim=3,nstate=4, etc.
         (void) baseline_physics_type;
+        (void) has_nonzero_diffusion;
         (void) has_nonzero_physical_source;
     }    
     std::cout << "Can't create PhysicsModel, invalid ModelType type: " << model_type << std::endl;

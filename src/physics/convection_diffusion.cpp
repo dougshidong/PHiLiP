@@ -84,9 +84,25 @@ std::array<dealii::Tensor<1,dim,real>,nstate> ConvectionDiffusion<dim,nstate,rea
 {
     std::array<real,nstate> arr_avg;
     for (int i = 0 ; i < nstate; ++i) {
-        arr_avg[i] = (soln1[i] + soln2[i])/2.;
+        arr_avg[i] = (soln1[i] + soln2[i])/2.0;
     }
     return convective_flux(arr_avg);
+}
+
+template <int dim, int nstate, typename real>
+std::array<real,nstate> ConvectionDiffusion<dim, nstate, real>
+::compute_entropy_variables (
+    const std::array<real,nstate> &conservative_soln) const
+{
+    return conservative_soln;
+}
+
+template <int dim, int nstate, typename real>
+std::array<real,nstate> ConvectionDiffusion<dim, nstate, real>
+::compute_conservative_variables_from_entropy_variables (
+    const std::array<real,nstate> &entropy_var) const
+{
+    return entropy_var;
 }
 
 template <int dim, int nstate, typename real>
@@ -148,6 +164,21 @@ real ConvectionDiffusion<dim,nstate,real>
 }
 
 template <int dim, int nstate, typename real>
+real ConvectionDiffusion<dim,nstate,real>
+::max_viscous_eigenvalue (const std::array<real,nstate> &/*soln*/) const
+{
+    const real diff_coeff = this->diffusion_coefficient();
+    real max_eig = 0;
+    for (int i=0; i<dim; i++) {
+        for (int j=0; j<dim; j++) {
+            real abs_visc = abs(diff_coeff * this->diffusion_tensor[i][j]);
+            max_eig = std::max(max_eig,abs_visc);
+        }
+    }
+    return max_eig;
+}
+
+template <int dim, int nstate, typename real>
 std::array<dealii::Tensor<1,dim,real>,nstate> ConvectionDiffusion<dim,nstate,real>
 ::dissipative_flux (
     const std::array<real,nstate> &/*solution*/,
@@ -181,53 +212,88 @@ std::array<real,nstate> ConvectionDiffusion<dim,nstate,real>
 ::source_term (
     const dealii::Point<dim,real> &pos,
     const std::array<real,nstate> &solution,
+    const real current_time,
     const dealii::types::global_dof_index /*cell_index*/) const
 {
-    return source_term(pos,solution);
+    return source_term(pos,solution,current_time);
 }
 
 template <int dim, int nstate, typename real>
 std::array<real,nstate> ConvectionDiffusion<dim,nstate,real>
 ::source_term (
     const dealii::Point<dim,real> &pos,
-    const std::array<real,nstate> &/*solution*/) const
+    const std::array<real,nstate> &/*solution*/,
+    const real current_time) const
 {
     std::array<real,nstate> source;
     const dealii::Tensor<1,dim,real> velocity_field = this->advection_speed();
     const real diff_coeff = diffusion_coefficient();
 
-    for (int istate=0; istate<nstate; istate++) {
-        dealii::Tensor<1,dim,real> manufactured_gradient = this->manufactured_solution_function->gradient (pos, istate);
-            // dealii::Tensor<1,dim,real> manufactured_gradient_fd = this->manufactured_solution_function.gradient_fd (pos, istate);
-            // std::cout<<"FD" <<std::endl;
-            // std::cout<<manufactured_gradient_fd <<std::endl;
-            // std::cout<<"AN" <<std::endl;
-            // std::cout<<manufactured_gradient <<std::endl;
-            // std::cout<<"DIFF" <<std::endl;
-            // std::cout<<manufactured_gradient - manufactured_gradient_fd <<std::endl;
-        dealii::SymmetricTensor<2,dim,real> manufactured_hessian = this->manufactured_solution_function->hessian (pos, istate);
-            // dealii::SymmetricTensor<2,dim,real> manufactured_hessian_fd = this->manufactured_solution_function.hessian_fd (pos, istate);
-            // std::cout<<"FD" <<std::endl;
-            // std::cout<<manufactured_hessian_fd <<std::endl;
-            // std::cout<<"AN" <<std::endl;
-            // std::cout<<manufactured_hessian <<std::endl;
-            // std::cout<<"DIFF" <<std::endl;
-            // std::cout<<manufactured_hessian - manufactured_hessian_fd <<std::endl;
 
-        //source[istate] = velocity_field*manufactured_gradient;
-        real grad = 0.0;
-        for (int d=0; d<dim; ++d) {
-            grad += velocity_field[d] * manufactured_gradient[d];
-        }
-        source[istate] = grad;
+    using TestType = Parameters::AllParameters::TestType;
 
-        real hess = 0.0;
-        for (int dr=0; dr<dim; ++dr) {
-            for (int dc=0; dc<dim; ++dc) {
-                hess += (this->diffusion_tensor)[dr][dc] * manufactured_hessian[dr][dc];
+    if(this->test_type == TestType::convection_diffusion_periodicity){
+        for(int istate =0; istate<nstate; istate++){
+            source[istate] = 0.0;
+            const double pi = atan(1)*4.0;
+            real sine_term = 1.0;
+            for(int idim=0; idim<dim; idim++){
+                sine_term *= sin(pi * pos[idim]);
             }
+            source[istate] += (- diff_coeff) * exp(-diff_coeff * current_time) * sine_term;//the unsteady term
+            for(int idim=0; idim<dim; idim++){//laplacian term
+                source[istate] += diff_coeff * pow(pi,2) * exp(-diff_coeff * current_time)
+                                * this->diffusion_tensor[idim][idim] * sine_term;
+            }
+            for(int idim=0; idim<dim; idim++){//cross terms
+                for(int jdim=0; jdim<dim; jdim++){
+                    if(idim != jdim){
+                        real cross_term = cos(pi*pos[idim]) * cos(pi*pos[jdim]);
+                        if(dim == 3){
+                            int kdim = 3 - idim - jdim;  
+                            cross_term *= sin(pi*pos[kdim]);
+                        }
+                        source[istate] += - diff_coeff * pow(pi,2) * exp(-diff_coeff * current_time)
+                                        * this->diffusion_tensor[idim][jdim] * cross_term;
+                    }
+                }
+            } 
         }
-        source[istate] += -diff_coeff*hess;
+    }
+    else{
+        for (int istate=0; istate<nstate; istate++) {
+            dealii::Tensor<1,dim,real> manufactured_gradient = this->manufactured_solution_function->gradient (pos, istate);
+                // dealii::Tensor<1,dim,real> manufactured_gradient_fd = this->manufactured_solution_function.gradient_fd (pos, istate);
+                // std::cout<<"FD" <<std::endl;
+                // std::cout<<manufactured_gradient_fd <<std::endl;
+                // std::cout<<"AN" <<std::endl;
+                // std::cout<<manufactured_gradient <<std::endl;
+                // std::cout<<"DIFF" <<std::endl;
+                // std::cout<<manufactured_gradient - manufactured_gradient_fd <<std::endl;
+            dealii::SymmetricTensor<2,dim,real> manufactured_hessian = this->manufactured_solution_function->hessian (pos, istate);
+                // dealii::SymmetricTensor<2,dim,real> manufactured_hessian_fd = this->manufactured_solution_function.hessian_fd (pos, istate);
+                // std::cout<<"FD" <<std::endl;
+                // std::cout<<manufactured_hessian_fd <<std::endl;
+                // std::cout<<"AN" <<std::endl;
+                // std::cout<<manufactured_hessian <<std::endl;
+                // std::cout<<"DIFF" <<std::endl;
+                // std::cout<<manufactured_hessian - manufactured_hessian_fd <<std::endl;
+         
+            //source[istate] = velocity_field*manufactured_gradient;
+            real grad = 0.0;
+            for (int d=0; d<dim; ++d) {
+                grad += velocity_field[d] * manufactured_gradient[d];
+            }
+            source[istate] = grad;
+         
+            real hess = 0.0;
+            for (int dr=0; dr<dim; ++dr) {
+                for (int dc=0; dc<dim; ++dc) {
+                    hess += (this->diffusion_tensor)[dr][dc] * manufactured_hessian[dr][dc];
+                }
+            }
+            source[istate] += -diff_coeff*hess;
+        }
     }
     return source;
 }

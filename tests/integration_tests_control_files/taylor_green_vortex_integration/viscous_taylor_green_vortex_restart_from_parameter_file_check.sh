@@ -1,7 +1,6 @@
 #!/bin/bash
 
 # Assign the filename
-# filename="/home/julien/Codes/2022-06-15/PHiLiP/build_release/tests/integration_tests_control_files/taylor_green_vortex_integration/restart-00004.prm"
 filename="restart-00004.prm"
 
 if [[ ! -f "${filename}" ]]; then

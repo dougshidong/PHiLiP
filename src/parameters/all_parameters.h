@@ -96,6 +96,17 @@ public:
     /// Flag to use split form.
     bool use_split_form;
 
+    /// Two point numerical flux type for split form
+    enum TwoPointNumericalFlux { KG, IR, CH, Ra };
+    /// Store selected TwoPointNumericalFlux from the input file
+    TwoPointNumericalFlux two_point_num_flux_type;
+
+    /// Flag to use curvilinear metric split form.
+    bool use_curvilinear_split_form;
+
+    /// Flag to use weight-adjusted Mass Matrix for curvilinear elements.
+    bool use_weight_adjusted_mass;
+
     /// Flag to use periodic BC.
     /** Not fully tested.
      */
@@ -111,8 +122,20 @@ public:
     //The default ESFR scheme is the Nonlinearly Stable FR where the volume is also reconstructed
     bool use_classical_FR;
 
+    ///Flag to store global mass matrix
+    bool store_global_mass_matrix;
+
     /// Scaling of Symmetric Interior Penalty term to ensure coercivity.
     double sipg_penalty_factor;
+
+    /// Flag to use invariant curl form for metric cofactor operator.
+    bool use_invariant_curl_form;
+
+    /// Flag to use inverse mass matrix on-the-fly for explicit solves.
+    bool use_inverse_mass_on_the_fly;
+
+    /// Energy file.
+    std::string energy_file;
 
     /// Number of state variables. Will depend on PDE
     int nstate;
@@ -138,6 +161,7 @@ public:
         shock_1d,
         euler_naca0012,
         reduced_order,
+        convection_diffusion_periodicity,
         POD_adaptation,
         POD_adaptive_sampling,
         adaptive_sampling_testing,
@@ -149,6 +173,7 @@ public:
         time_refinement_study,
         time_refinement_study_reference,
         burgers_energy_conservation_rrk,
+        euler_ismail_roe_entropy_check,
     };
     /// Store selected TestType from the input file.
     TestType test_type;
@@ -193,22 +218,26 @@ public:
     };
 
     /// Possible convective numerical flux types
-    enum ConvectiveNumericalFlux {
-        lax_friedrichs,
-        roe,
-        l2roe,
-        split_form
+    enum ConvectiveNumericalFlux { 
+        lax_friedrichs, 
+        roe, 
+        l2roe, 
+        central_flux,
+        two_point_flux,
+        two_point_flux_with_lax_friedrichs_dissipation,
+        two_point_flux_with_roe_dissipation,
+        two_point_flux_with_l2roe_dissipation
     };
     /// Store convective flux type
     ConvectiveNumericalFlux conv_num_flux_type;
 
-    /// Currently only symmetric internal penalty can be used as an input parameter
-    enum DissipativeNumericalFlux { symm_internal_penalty, bassi_rebay_2 };
+    /// Possible dissipative numerical flux types
+    enum DissipativeNumericalFlux { symm_internal_penalty, bassi_rebay_2, central_visc_flux };
     /// Store diffusive flux type
     DissipativeNumericalFlux diss_num_flux_type;
 
     /// Type of correction in Flux Reconstruction
-    enum Flux_Reconstruction {cDG, cSD, cHU, cNegative, cNegative2, cPlus, cPlus1D, c10Thousand, cHULumped};
+    enum Flux_Reconstruction {cDG, cSD, cHU, cNegative, cNegative2, cPlus, c10Thousand, cHULumped};
     /// Store flux reconstruction type
     Flux_Reconstruction flux_reconstruction_type;
 
@@ -219,6 +248,9 @@ public:
 
     /// Name of directory for writing solution vtk files
     std::string solution_vtk_files_directory_name;
+
+    /// Flag for outputting the high-order grid vtk files
+    bool output_high_order_grid;
 
     /// Enable writing of higher-order vtk results
     bool enable_higher_order_vtk_output;

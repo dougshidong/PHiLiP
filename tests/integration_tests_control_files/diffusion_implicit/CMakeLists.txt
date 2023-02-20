@@ -25,6 +25,13 @@ add_test(
   COMMAND mpirun -n 1 ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_1D -i ${CMAKE_CURRENT_BINARY_DIR}/1d_diffusion_br2_implicit.prm
   WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )
+
+configure_file(1d_diffusion_sipg_explicit_strong.prm 1d_diffusion_sipg_explicit_strong.prm COPYONLY)
+add_test(
+  NAME 1D_DIFFUSION_SIPG_EXPLICIT_MANUFACTURED_SOLUTION_STRONG_LONG
+  COMMAND mpirun -n 1 ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_1D -i ${CMAKE_CURRENT_BINARY_DIR}/1d_diffusion_sipg_explicit_strong.prm
+  WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
+)
 configure_file(2d_diffusion_br2_implicit.prm 2d_diffusion_br2_implicit.prm COPYONLY)
 add_test(
   NAME 2D_DIFFUSION_BR2_IMPLICIT_MANUFACTURED_SOLUTION

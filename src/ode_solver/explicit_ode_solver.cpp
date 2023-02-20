@@ -16,7 +16,7 @@ template <int dim, typename real, int n_rk_stages, typename MeshType>
 void RungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::step_in_time (real dt, const bool pseudotime)
 {  
     this->solution_update = this->dg->solution; //storing u_n
-    
+
     //calculating stages **Note that rk_stage[i] stores the RHS at a partial time-step (not solution u)
     for (int i = 0; i < n_rk_stages; ++i){
 
@@ -66,9 +66,18 @@ void RungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::step_in_time (real dt, 
         } // u_n + dt * sum(a_ij * k_j) <explicit> + dt * a_ii * u^(i) <implicit>
             
         this->dg->solution = this->rk_stage[i];
+
+        //set the DG current time for unsteady source terms
+        this->dg->set_current_time(this->current_time + this->butcher_tableau->get_c(i)*dt);
+        
+        //solve the system's right hande side
         this->dg->assemble_residual(); //RHS : du/dt = RHS = F(u_n + dt* sum(a_ij*k_j) + dt * a_ii * u^(i)))
 
-        this->dg->global_inverse_mass_matrix.vmult(this->rk_stage[i], this->dg->right_hand_side); //rk_stage[i] = IMM*RHS = F(u_n + dt*sum(a_ij*k_j))
+        if(this->all_parameters->use_inverse_mass_on_the_fly){
+            this->dg->apply_inverse_global_mass_matrix(this->dg->right_hand_side, this->rk_stage[i]); //rk_stage[i] = IMM*RHS = F(u_n + dt*sum(a_ij*k_j))
+        } else{
+            this->dg->global_inverse_mass_matrix.vmult(this->rk_stage[i], this->dg->right_hand_side); //rk_stage[i] = IMM*RHS = F(u_n + dt*sum(a_ij*k_j))
+        }
     }
 
     modify_time_step(dt);
@@ -99,9 +108,10 @@ template <int dim, typename real, int n_rk_stages, typename MeshType>
 void RungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::allocate_ode_system ()
 {
     this->pcout << "Allocating ODE system and evaluating inverse mass matrix..." << std::endl;
-    const bool do_inverse_mass_matrix = true;
     this->solution_update.reinit(this->dg->right_hand_side);
-    this->dg->evaluate_mass_matrices(do_inverse_mass_matrix);
+    if(this->all_parameters->use_inverse_mass_on_the_fly == false) {
+        this->dg->evaluate_mass_matrices(true); // creates and stores global inverse mass matrix
+    }
 
     this->rk_stage.resize(n_rk_stages);
     for (int i=0; i<n_rk_stages; ++i) {

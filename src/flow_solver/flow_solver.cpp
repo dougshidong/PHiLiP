@@ -95,6 +95,93 @@ FlowSolver<dim, nstate>::FlowSolver(
 }
 
 template <int dim, int nstate>
+FlowSolver<dim, nstate>::FlowSolver(
+    const std::vector<PHiLiP::Parameters::AllParameters*> &parameters_input, 
+    std::shared_ptr<FlowSolverCaseBase<dim, nstate>> flow_solver_case_input,
+    const std::vecotr<dealii::ParameterHandler> &parameter_handler_input)
+: FlowSolver<dim, nstate>(parameters_input[0],
+                          flow_solver_case_input,
+                          parameter_handler_input[0])
+
+//, flow_solver_case(flow_solver_case_input)
+//, parameter_handler(parameter_handler_input)
+//, mpi_communicator(MPI_COMM_WORLD)
+//, mpi_rank(dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD))
+//, n_mpi(dealii::Utilities::MPI::n_mpi_processes(MPI_COMM_WORLD))
+//, pcout(std::cout, mpi_rank==0)
+, sub_all_param(*(parameters_input[1]))
+, sub_flow_solver_param(sub_all_param.flow_solver_param)
+, sub_ode_param(sub_all_param.ode_solver_param)
+, sub_poly_degree(sub_flow_solver_param.poly_degree)
+, sub_grid_degree(sub_flow_solver_param.grid_degree)
+//, final_time(flow_solver_param.final_time)
+//, input_parameters_file_reference_copy_filename(flow_solver_param.restart_files_directory_name + std::string("/") + std::string("input_copy.prm"))
+
+, dg(DGFactory<dim,double>::create_discontinuous_galerkin(&all_param, poly_degree, flow_solver_param.max_poly_degree_for_adaptation, grid_degree, flow_solver_case->generate_grid()))
+
+, sub_dg(DGFactory<dim,double>::create_discontinuous_galerkin(&sub_all_param, 
+                                                              sub_poly_degree, 
+                                                              sub_flow_solver_param.max_poly_degree_for_adaptation, 
+                                                              sub_grid_degree, 
+                                                              dg->triangulation))
+{
+    sub_dg->allocate_system();
+
+    if(sub_ode_param.ode_solver_type == Parameters::ODESolverParam::pod_galerkin_solver || sub_ode_param.ode_solver_type == Parameters::ODESolverParam::pod_petrov_galerkin_solver){
+        std::shared_ptr<ProperOrthogonalDecomposition::OfflinePOD<dim>> pod = std::make_shared<ProperOrthogonalDecomposition::OfflinePOD<dim>>(sub_dg);
+        sub_ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(sub_dg, pod);
+    }
+    else{
+        sub_ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(sub_dg);
+    }
+
+    //flow_solver_case->display_flow_solver_setup(dg);
+
+//    if(flow_solver_param.restart_computation_from_file == true) {
+//        if(dim == 1) {
+//            pcout << "Error: restart_computation_from_file is not possible for 1D. Set to false." << std::endl;
+//            std::abort();
+//        }
+//
+//        if (flow_solver_param.steady_state == true) {
+//            pcout << "Error: Restart capability has not been fully implemented / tested for steady state computations." << std::endl;
+//            std::abort();
+//        }
+//
+//        // Initialize solution from restart file
+//        pcout << "Initializing solution from restart file..." << std::flush;
+//        const std::string restart_filename_without_extension = get_restart_filename_without_extension(flow_solver_param.restart_file_index);
+//#if PHILIP_DIM>1
+//        dg->triangulation->load(flow_solver_param.restart_files_directory_name + std::string("/") + restart_filename_without_extension);
+//        
+//        // Note: Future development with hp-capabilities, see section "Note on usage with DoFHandler with hp-capabilities"
+//        // ----- Ref: https://www.dealii.org/current/doxygen/deal.II/classparallel_1_1distributed_1_1SolutionTransfer.html
+//        dealii::LinearAlgebra::distributed::Vector<double> solution_no_ghost;
+//        solution_no_ghost.reinit(dg->locally_owned_dofs, this->mpi_communicator);
+//        dealii::parallel::distributed::SolutionTransfer<dim, dealii::LinearAlgebra::distributed::Vector<double>, dealii::DoFHandler<dim>> solution_transfer(dg->dof_handler);
+//        solution_transfer.deserialize(solution_no_ghost);
+//        dg->solution = solution_no_ghost; //< assignment
+//#endif
+//    } else {
+        // Initialize solution from initial_condition_function
+//        pcout << "Initializing solution with initial condition function... " << std::flush;
+        SetInitialCondition<dim,nstate,double>::set_initial_condition(flow_solver_case->initial_condition_function, dg, &all_param);
+//   }
+    dg->solution.update_ghost_values();
+    pcout << "done." << std::endl;
+    ode_solver->allocate_ode_system();
+
+    // output a copy of the input parameters file
+    if(flow_solver_param.output_restart_files == true) {
+        pcout << "Writing a reference copy of the inputted parameters (.prm) file... " << std::flush;
+        if(mpi_rank==0) {
+            parameter_handler.print_parameters(input_parameters_file_reference_copy_filename);    
+        }
+        pcout << "done." << std::endl;
+    }
+}
+
+template <int dim, int nstate>
 std::vector<std::string> FlowSolver<dim,nstate>::get_data_table_column_names(const std::string string_input) const
 {
     /* returns the column names of a dealii::TableHandler object

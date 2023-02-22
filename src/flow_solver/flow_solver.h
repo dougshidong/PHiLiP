@@ -66,6 +66,12 @@ public:
         const Parameters::AllParameters *const parameters_input, 
         std::shared_ptr<FlowSolverCaseBase<dim, nstate>> flow_solver_case_input,
         const dealii::ParameterHandler &parameter_handler_input);
+
+    /// Constructor with a vector of parameters input.
+    FlowSolver(
+        const std::vector<Parameters::AllParameters*> &parameters_input, 
+        std::shared_ptr<FlowSolverCaseBase<dim, nstate>> flow_solver_case_input,
+        const std::vector<dealii::ParameterHandler> &parameter_handler_input);
     
     /// Destructor
     ~FlowSolver() {};
@@ -96,10 +102,15 @@ protected:
      */
     dealii::ConditionalOStream pcout;
     const Parameters::AllParameters all_param; ///< All parameters
+    const Parameters::AllParameters sub_all_param; ///< Sub all parameters
     const Parameters::FlowSolverParam flow_solver_param; ///< Flow solver parameters
+    const Parameters::FlowSolverParam sub_flow_solver_param; ///< Sub flow solver parameters
     const Parameters::ODESolverParam ode_param; ///< ODE solver parameters
+    const Parameters::ODESolverParam sub_ode_param; ///< Sub ODE solver parameters
     const unsigned int poly_degree; ///< Polynomial order
+    const unsigned int sub_poly_degree; ///< Sub polynomial order
     const unsigned int grid_degree; ///< Polynomial order of the grid
+    const unsigned int sub_grid_degree; ///< Sub polynomial order of the grid
     const double final_time; ///< Final time of solution
 
     /// Name of the reference copy of inputted parameters file; for restart purposes
@@ -109,7 +120,13 @@ public:
     /// Pointer to dg so it can be accessed externally.
     std::shared_ptr<DGBase<dim, double>> dg;
 
+    /// Pointer to sub dg so it can be accessed externally.
+    std::shared_ptr<DGBase<dim, double>> sub_dg;
+
     /// Pointer to ode solver so it can be accessed externally.
+    std::shared_ptr<ODE::ODESolverBase<dim, double>> ode_solver;
+
+    /// Pointer to sub ode solver so it can be accessed externally.
     std::shared_ptr<ODE::ODESolverBase<dim, double>> ode_solver;
 
 private:

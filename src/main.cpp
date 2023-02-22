@@ -47,7 +47,10 @@ int main (int argc, char *argv[])
     int run_error = 1;
     const int number_of_parameter_file = argc-2;
     if (number_of_parameter_file<=0) {
-        pout << "Input file is required..." << std::endl;
+        pout << "Input file is required...Aborting..." << std::endl;
+        std::abort();
+    } else if(number_of_parameter_file>2){
+        pout << "Maximum 2 input files can be taken...Aborting..." << std::endl;
         std::abort();
     }
     try

@@ -221,11 +221,15 @@ public:
     template<typename real2>
     real2 compute_pressure ( const std::array<real2,nstate> &conservative_soln ) const;
 
-    /// Evaluate pressure from conservative variables
-    real compute_pressure_from_enthalpy ( const std::array<real,nstate> &conservative_soln ) const;
+    /// Evaluate physical entropy = log(p \rho^{-\gamma}) from pressure and density
+    template<typename real2>
+    real2 compute_entropy (const real2 density, const real2 pressure) const;
 
     /// Evaluate pressure from conservative variables
     real compute_specific_enthalpy ( const std::array<real,nstate> &conservative_soln, const real pressure) const;
+
+    /// Compute numerical entropy function -rho s 
+    real compute_numerical_entropy_function(const std::array<real,nstate> &conservative_soln) const;
 
     /// Evaluate speed of sound from conservative variables
     real compute_sound ( const std::array<real,nstate> &conservative_soln ) const;

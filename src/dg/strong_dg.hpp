@@ -32,6 +32,10 @@ public:
     ~DGStrong();
 
     /// Assembles the auxiliary equations' residuals and solves for the auxiliary variables.
+    /** For information regarding auxiliary vs. primary quations, see 
+     *  Quaegebeur, Nadarajah, Navah and Zwanenburg 2019: Stability of Energy Stable Flux 
+     *                Reconstruction for the Diffusion Problem Using Compact Numerical Fluxes
+     */
     void assemble_auxiliary_residual ();
 
 private:

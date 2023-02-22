@@ -15,9 +15,11 @@ namespace Physics {
 template <int dim, int nstate, typename real>
 PhysicsBase<dim,nstate,real>::PhysicsBase(
     const bool                                                has_nonzero_diffusion_input,
+    const bool                                                has_nonzero_physical_source_input,
     const dealii::Tensor<2,3,double>                          input_diffusion_tensor,
     std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function_input)
     : has_nonzero_diffusion(has_nonzero_diffusion_input)
+    , has_nonzero_physical_source(has_nonzero_physical_source_input)
     , manufactured_solution_function(manufactured_solution_function_input)
     , pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD)==0)
 {
@@ -45,9 +47,11 @@ PhysicsBase<dim,nstate,real>::PhysicsBase(
 template <int dim, int nstate, typename real>
 PhysicsBase<dim,nstate,real>::PhysicsBase(
     const bool                                                has_nonzero_diffusion_input,
+    const bool                                                has_nonzero_physical_source_input,
     std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function_input)
     : PhysicsBase<dim,nstate,real>(
         has_nonzero_diffusion_input,
+        has_nonzero_physical_source_input,
         Parameters::ManufacturedSolutionParam::get_default_diffusion_tensor(),
         manufactured_solution_function_input)
 { }
@@ -109,11 +113,26 @@ std::array<real,nstate> PhysicsBase<dim,nstate,real>
 }
 
 template <int dim, int nstate, typename real>
+std::array<real,nstate> PhysicsBase<dim,nstate,real>
+::physical_source_term (
+    const dealii::Point<dim,real> &/*pos*/,
+    const std::array<real,nstate> &/*solution*/,
+    const std::array<dealii::Tensor<1,dim,real>,nstate> &/*solution_gradient*/,
+    const dealii::types::global_dof_index /*cell_index*/) const
+{
+    std::array<real,nstate> physical_source;
+    for (int i=0; i<nstate; i++) {
+        physical_source[i] = 0;
+    }
+    return physical_source;
+}
+
+template <int dim, int nstate, typename real>
 dealii::Vector<double> PhysicsBase<dim,nstate,real>::post_compute_derived_quantities_vector (
     const dealii::Vector<double>              &uh,
     const std::vector<dealii::Tensor<1,dim> > &/*duh*/,
     const std::vector<dealii::Tensor<2,dim> > &/*dduh*/,
-    const dealii::Tensor<1,dim>                  &/*normals*/,
+    const dealii::Tensor<1,dim>               &/*normals*/,
     const dealii::Point<dim>                  &/*evaluation_points*/) const
 {
     dealii::Vector<double> computed_quantities(nstate);
@@ -174,6 +193,7 @@ template class PhysicsBase < PHILIP_DIM, 2, double >;
 template class PhysicsBase < PHILIP_DIM, 3, double >;
 template class PhysicsBase < PHILIP_DIM, 4, double >;
 template class PhysicsBase < PHILIP_DIM, 5, double >;
+template class PhysicsBase < PHILIP_DIM, 6, double >;
 template class PhysicsBase < PHILIP_DIM, 8, double >;
 
 template class PhysicsBase < PHILIP_DIM, 1, FadType >;
@@ -181,6 +201,7 @@ template class PhysicsBase < PHILIP_DIM, 2, FadType >;
 template class PhysicsBase < PHILIP_DIM, 3, FadType >;
 template class PhysicsBase < PHILIP_DIM, 4, FadType >;
 template class PhysicsBase < PHILIP_DIM, 5, FadType >;
+template class PhysicsBase < PHILIP_DIM, 6, FadType >;
 template class PhysicsBase < PHILIP_DIM, 8, FadType >;
 
 template class PhysicsBase < PHILIP_DIM, 1, RadType >;
@@ -188,6 +209,7 @@ template class PhysicsBase < PHILIP_DIM, 2, RadType >;
 template class PhysicsBase < PHILIP_DIM, 3, RadType >;
 template class PhysicsBase < PHILIP_DIM, 4, RadType >;
 template class PhysicsBase < PHILIP_DIM, 5, RadType >;
+template class PhysicsBase < PHILIP_DIM, 6, RadType >;
 template class PhysicsBase < PHILIP_DIM, 8, RadType >;
 
 template class PhysicsBase < PHILIP_DIM, 1, FadFadType >;
@@ -195,6 +217,7 @@ template class PhysicsBase < PHILIP_DIM, 2, FadFadType >;
 template class PhysicsBase < PHILIP_DIM, 3, FadFadType >;
 template class PhysicsBase < PHILIP_DIM, 4, FadFadType >;
 template class PhysicsBase < PHILIP_DIM, 5, FadFadType >;
+template class PhysicsBase < PHILIP_DIM, 6, FadFadType >;
 template class PhysicsBase < PHILIP_DIM, 8, FadFadType >;
 
 template class PhysicsBase < PHILIP_DIM, 1, RadFadType >;
@@ -202,6 +225,7 @@ template class PhysicsBase < PHILIP_DIM, 2, RadFadType >;
 template class PhysicsBase < PHILIP_DIM, 3, RadFadType >;
 template class PhysicsBase < PHILIP_DIM, 4, RadFadType >;
 template class PhysicsBase < PHILIP_DIM, 5, RadFadType >;
+template class PhysicsBase < PHILIP_DIM, 6, RadFadType >;
 template class PhysicsBase < PHILIP_DIM, 8, RadFadType >;
 
 } // Physics namespace

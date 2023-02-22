@@ -20,8 +20,9 @@ Euler<dim,nstate,real>::Euler (
     const double                                              side_slip_angle,
     std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function,
     const two_point_num_flux_enum                             two_point_num_flux_type_input,
-    const bool                                                has_nonzero_diffusion)
-    : PhysicsBase<dim,nstate,real>(has_nonzero_diffusion,manufactured_solution_function)
+    const bool                                                has_nonzero_diffusion,
+    const bool                                                has_nonzero_physical_source)
+    : PhysicsBase<dim,nstate,real>(has_nonzero_diffusion,has_nonzero_physical_source,manufactured_solution_function)
     , ref_length(ref_length)
     , gam(gamma_gas)
     , gamm1(gam-1.0)
@@ -701,7 +702,7 @@ std::array<real,nstate> Euler<dim, nstate, real>
 template <int dim, int nstate, typename real>
 inline real Euler<dim,nstate,real>::
 compute_mean_density(const std::array<real,nstate> &conservative_soln1,
-                          const std::array<real,nstate> &conservative_soln2) const
+                     const std::array<real,nstate> &conservative_soln2) const
 {
     return (conservative_soln1[0] + conservative_soln2[0])/2.;
 }

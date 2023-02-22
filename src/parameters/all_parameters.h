@@ -198,7 +198,7 @@ public:
     /// Types of models available.
     enum ModelType {
         large_eddy_simulation,
-        //reynolds_averaged_navier_stokes,
+        reynolds_averaged_navier_stokes,
     };
     /// Store the model type
     ModelType model_type;

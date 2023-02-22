@@ -60,5 +60,6 @@ subsection flow_solver
     set output_velocity_field_at_fixed_times = true
     set output_velocity_field_times_string = 0.0
     set number_of_times_to_output_velocity_field = 1
+    set output_velocity_field_at_equidistant_nodes = true
   end
 end

@@ -295,7 +295,7 @@ void PeriodicTurbulence<dim, nstate>::update_maximum_local_wave_speed(DGBase<dim
     std::array<double,nstate> soln_at_q;
 
     std::vector<dealii::types::global_dof_index> dofs_indices (fe_values_extra.dofs_per_cell);
-    for (auto cell : dg.dof_handler.active_cell_iterators()) {
+    for (auto cell = dg->dof_handler.begin_active(); cell!=dg->dof_handler.end(); ++cell) {
         if (!cell->is_locally_owned()) continue;
         fe_values_extra.reinit (cell);
         cell->get_dof_indices (dofs_indices);

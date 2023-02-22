@@ -175,6 +175,7 @@ public:
         h_refinement_study_isentropic_vortex,
         burgers_energy_conservation_rrk,
         euler_ismail_roe_entropy_check,
+        khi_robustness,
     };
     /// Store selected TestType from the input file.
     TestType test_type;

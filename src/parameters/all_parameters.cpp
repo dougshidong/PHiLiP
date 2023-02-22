@@ -162,7 +162,8 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       " time_refinement_study_reference | "
                       " h_refinement_study_isentropic_vortex | "
                       " burgers_energy_conservation_rrk | "
-                      " euler_ismail_roe_entropy_check"),
+                      " euler_ismail_roe_entropy_check | "
+                      " khi_robustness"),
                       "The type of test we want to solve. "
                       "Choices are " 
                       " <run_control | " 
@@ -196,7 +197,8 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       "  time_refinement_study_reference | "
                       "  h_refinement_study_isentropic_vortex | "
                       "  burgers_energy_conservation_rrk | "
-                      "  euler_ismail_roe_entropy_check>.");
+                      "  euler_ismail_roe_entropy_check | "
+                      "  khi_robustness"),
 
     prm.declare_entry("pde_type", "advection",
                       dealii::Patterns::Selection(
@@ -342,6 +344,7 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     else if (test_string == "h_refinement_study_isentropic_vortex")     { test_type = h_refinement_study_isentropic_vortex; }
     else if (test_string == "burgers_energy_conservation_rrk")          { test_type = burgers_energy_conservation_rrk; }
     else if (test_string == "euler_ismail_roe_entropy_check")           { test_type = euler_ismail_roe_entropy_check; }
+    else if (test_string == "khi_robustness")                           { test_type = khi_robustness; }
     
     // WARNING: Must assign model_type before pde_type
     const std::string model_string = prm.get("model_type");

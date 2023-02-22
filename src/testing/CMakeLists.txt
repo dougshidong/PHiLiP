@@ -30,7 +30,8 @@ set(TESTS_SOURCE
     time_refinement_study_reference.cpp
     h_refinement_study_isentropic_vortex.cpp
     burgers_energy_conservation_rrk.cpp
-    euler_ismail_roe_entropy_check.cpp)
+    euler_ismail_roe_entropy_check.cpp
+    khi_robustness.cpp)
 
 foreach(dim RANGE 1 3)
     # Output library

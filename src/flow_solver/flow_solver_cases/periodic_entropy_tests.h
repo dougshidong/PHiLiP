@@ -18,9 +18,6 @@ public:
     /// Destructor
     ~PeriodicEntropyTests() {};
 
-    /// Calculate energy
-    double compute_energy_collocated(const std::shared_ptr <DGBase<dim, double>> dg) const;
-    
     /// Calculate entropy by matrix-vector products
     double compute_entropy(const std::shared_ptr <DGBase<dim, double>> dg) const;
 
@@ -28,6 +25,18 @@ public:
     /** Calculates based on CFL for Euler, and from parameters otherwise */
     double get_constant_time_step(std::shared_ptr<DGBase<dim,double>> dg) const override;
 protected:
+
+    /// Enum of integrated quantities to calculate
+    enum IntegratedQuantityEnum { kinetic_energy, max_wave_speed };
+
+    /// Integrated KE
+//    double integrated_KE;
+
+    /// Maximum wavespeed
+//    double max_wave_speed;
+
+    /// Compute and update overintegrated quantities
+    double compute_overintegrated_quantities(DGBase<dim, double> &dg, IntegratedQuantityEnum quantity) const;
 
     /// Compute the desired unsteady data and write it to a table
     void compute_unsteady_data_and_write_to_table(

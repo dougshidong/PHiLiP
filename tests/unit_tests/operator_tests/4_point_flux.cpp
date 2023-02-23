@@ -79,7 +79,7 @@ int main (int argc, char * argv[])
 
     using FR_enum = Parameters::AllParameters::Flux_Reconstruction;
     all_parameters_new.flux_reconstruction_type = FR_enum::cHU;
-    // all_parameters_new.use_collocated_nodes=true;
+    // all_parameters_new.flux_nodes_type=Parameters::AllParameters::FluxNodes::GLL;
     all_parameters_new.overintegration = 0;
 
     for(unsigned int poly_degree=2; poly_degree<3; poly_degree++){

@@ -161,11 +161,12 @@ DGBase<dim,real,MeshType>::create_collection_tuple(
     dealii::hp::FECollection<dim>      fe_coll_lagr;
     dealii::hp::FECollection<1>        fe_coll_lagr_1D;
 
-    const bool use_collocated_nodes = parameters_input->use_collocated_nodes;
     const unsigned int overintegration = parameters_input->overintegration;
-    
-    // for p=0, we use a p=1 FE for collocation, since there's no p=0 quadrature for Gauss Lobatto
-    if (use_collocated_nodes==true)
+    using FluxNodes = Parameters::AllParameters::FluxNodes;
+    const FluxNodes flux_nodes_type = parameters_input->flux_nodes_type;
+
+    // for p=0, we use a p=1 FE for collocation, since there's no p=0 quadrature for Gauss Lobatto (GLL)
+    if (flux_nodes_type==FluxNodes::GLL)
     {
         int degree = 1;
         const unsigned int integration_strength = degree+1+overintegration;
@@ -184,27 +185,17 @@ DGBase<dim,real,MeshType>::create_collection_tuple(
         dealii::Quadrature<dim>   volume_quad(integration_strength);
         dealii::Quadrature<dim-1> face_quad(integration_strength); //removed const
 
-        if (parameters_input->use_collocated_nodes) {
+        dealii::QGaussLobatto<1> oneD_quad_Gauss_Lobatto (integration_strength);
+        dealii::QGaussLobatto<dim> vol_quad_Gauss_Lobatto (integration_strength);
+        oneD_quad = oneD_quad_Gauss_Lobatto;
+        volume_quad = vol_quad_Gauss_Lobatto;
 
-            dealii::QGaussLobatto<1> oneD_quad_Gauss_Lobatto (integration_strength);
-            dealii::QGaussLobatto<dim> vol_quad_Gauss_Lobatto (integration_strength);
-            oneD_quad = oneD_quad_Gauss_Lobatto;
-            volume_quad = vol_quad_Gauss_Lobatto;
-
-            if(dim == 1) {
-                dealii::QGauss<dim-1> face_quad_Gauss_Legendre (integration_strength);
-                face_quad = face_quad_Gauss_Legendre;
-            } else {
-                dealii::QGaussLobatto<dim-1> face_quad_Gauss_Lobatto (integration_strength);
-                face_quad = face_quad_Gauss_Lobatto;
-            }
-        } else {
-            dealii::QGauss<1> oneD_quad_Gauss_Legendre (integration_strength);
-            dealii::QGauss<dim> vol_quad_Gauss_Legendre (integration_strength);
+        if(dim == 1) {
             dealii::QGauss<dim-1> face_quad_Gauss_Legendre (integration_strength);
-            oneD_quad = oneD_quad_Gauss_Legendre;
-            volume_quad = vol_quad_Gauss_Legendre;
             face_quad = face_quad_Gauss_Legendre;
+        } else {
+            dealii::QGaussLobatto<dim-1> face_quad_Gauss_Lobatto (integration_strength);
+            face_quad = face_quad_Gauss_Lobatto;
         }
 
         volume_quad_coll.push_back (volume_quad);
@@ -218,7 +209,7 @@ DGBase<dim,real,MeshType>::create_collection_tuple(
         fe_coll_lagr_1D.push_back (lagrange_poly_1D);
     }
 
-    int minimum_degree = (use_collocated_nodes==true) ?  1 :  0;
+    int minimum_degree = (flux_nodes_type==FluxNodes::GLL) ?  1 :  0;
     for (unsigned int degree=minimum_degree; degree<=max_degree; ++degree) {
 
         // Solution FECollection
@@ -242,7 +233,7 @@ DGBase<dim,real,MeshType>::create_collection_tuple(
         dealii::Quadrature<dim>   volume_quad(integration_strength);
         dealii::Quadrature<dim-1> face_quad(integration_strength); //removed const
 
-        if (parameters_input->use_collocated_nodes) {
+        if (flux_nodes_type==FluxNodes::GLL) {
             dealii::QGaussLobatto<1> oneD_quad_Gauss_Lobatto (integration_strength);
             dealii::QGaussLobatto<dim> vol_quad_Gauss_Lobatto (integration_strength);
             oneD_quad = oneD_quad_Gauss_Lobatto;
@@ -258,7 +249,7 @@ DGBase<dim,real,MeshType>::create_collection_tuple(
                 dealii::QGaussLobatto<dim-1> face_quad_Gauss_Lobatto (integration_strength);
                 face_quad = face_quad_Gauss_Lobatto;
             }
-        } else {
+        } else if(flux_nodes_type==FluxNodes::GL) {
             dealii::QGauss<1> oneD_quad_Gauss_Legendre (integration_strength);
             dealii::QGauss<dim> vol_quad_Gauss_Legendre (integration_strength);
             dealii::QGauss<dim-1> face_quad_Gauss_Legendre (integration_strength);
@@ -2115,7 +2106,8 @@ void DGBase<dim,real,MeshType>::allocate_system (
     //dealii::MappingFEField<dim,dim,dealii::LinearAlgebra::distributed::Vector<double>, dealii::DoFHandler<dim>> mapping = high_order_grid->get_MappingFEField();
     //dealii::MappingFEField<dim,dim,dealii::LinearAlgebra::distributed::Vector<double>, dealii::DoFHandler<dim>> mapping = *(high_order_grid->mapping_fe_field);
 
-    //int minimum_degree = (all_parameters->use_collocated_nodes==true) ?  1 :  0;
+    // const bool use_collocated_nodes = (all_parameters->flux_nodes_type==Parameters::AllParameters::FluxNodes::GLL) && (all_parameters->overintegration==0);
+    //int minimum_degree = (use_collocated_nodes==true) ?  1 :  0;
     //int current_fe_index = 0;
     //for (unsigned int degree=minimum_degree; degree<=max_degree; ++degree) {
     //    //mapping_collection.push_back(mapping);

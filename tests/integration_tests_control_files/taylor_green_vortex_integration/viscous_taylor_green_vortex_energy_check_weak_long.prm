@@ -8,7 +8,7 @@ set pde_type = navier_stokes
 
 # DG formulation
 set use_weak_form = true
-# set use_collocated_nodes = true
+# set flux_nodes_type = GLL
 
 # Note: this was added to turn off check_same_coords() -- has no other function when dim!=1
 set use_periodic_bc = true

@@ -128,6 +128,25 @@ std::array<dealii::Tensor<1,dim,real2>,nstate> LargeEddySimulationBase<dim,nstat
 //----------------------------------------------------------------
 template <int dim, int nstate, typename real>
 std::array<real,nstate> LargeEddySimulationBase<dim,nstate,real>
+::convective_eigenvalues (
+    const std::array<real,nstate> &/*conservative_soln*/,
+    const dealii::Tensor<1,dim,real> &/*normal*/) const
+{
+    std::array<real,nstate> eig;
+    eig.fill(0.0);
+    return eig;
+}
+//----------------------------------------------------------------
+template <int dim, int nstate, typename real>
+real LargeEddySimulationBase<dim,nstate,real>
+::max_convective_eigenvalue (const std::array<real,nstate> &/*conservative_soln*/) const
+{
+    const real max_eig = 0.0;
+    return max_eig;
+}
+//----------------------------------------------------------------
+template <int dim, int nstate, typename real>
+std::array<real,nstate> LargeEddySimulationBase<dim,nstate,real>
 ::source_term (
         const dealii::Point<dim,real> &pos,
         const std::array<real,nstate> &/*solution*/,

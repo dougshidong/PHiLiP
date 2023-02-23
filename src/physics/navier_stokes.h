@@ -131,9 +131,10 @@ public:
         const dealii::Tensor<1,dim,real2> &temperature_gradient) const;
 
     /// Evaluate vorticity from conservative variables and gradient of conservative variables
-    dealii::Tensor<1,3,real> compute_vorticity (
-        const std::array<real,nstate> &conservative_soln,
-        const std::array<dealii::Tensor<1,dim,real>,nstate> &conservative_soln_gradient) const;
+    template<typename real2>
+    dealii::Tensor<1,3,real2> compute_vorticity (
+        const std::array<real2,nstate> &conservative_soln,
+        const std::array<dealii::Tensor<1,dim,real2>,nstate> &conservative_soln_gradient) const;
 
     /// Evaluate enstrophy from conservative variables and gradient of conservative variables
     real compute_enstrophy (

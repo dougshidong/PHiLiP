@@ -155,7 +155,10 @@ PhysicsFactory<dim,nstate,real>
 
     using Model_enum = Parameters::AllParameters::ModelType;
     Model_enum model_type = parameters_input->model_type;
-    
+
+    using RANSModel_enum = Parameters::PhysicsModelParam::ReynoldsAveragedNavierStokesModel;
+    RANSModel_enum rans_model_type = parameters_input->physics_model_param.RANS_model_type;
+
     // ===============================================================================
     // Physics Model
     // ===============================================================================
@@ -166,11 +169,15 @@ PhysicsFactory<dim,nstate,real>
     // Flag to signal non-zero diffusion
     bool has_nonzero_diffusion;
 
+    // Flag to signal non-zero physical source
+    bool has_nonzero_physical_source;
+
     // -------------------------------------------------------------------------------
     // Large Eddy Simulation (LES)
     // -------------------------------------------------------------------------------
     if (model_type == Model_enum::large_eddy_simulation) {
         has_nonzero_diffusion = true; // because of SGS model term
+        has_nonzero_physical_source = false; // LES has no physical source terms
         if constexpr ((nstate==dim+2) && (dim==3)) {
             // Assign baseline physics type (and corresponding nstates) based on the physics model type
             // -- Assign nstates for the baseline physics (constexpr because template parameter)
@@ -189,18 +196,60 @@ PhysicsFactory<dim,nstate,real>
                     baseline_physics_type,
                     model_input,
                     manufactured_solution_function,
-                    has_nonzero_diffusion);
+                    has_nonzero_diffusion,
+                    has_nonzero_physical_source);
         }
         else {
             // LES does not exist for nstate!=(dim+2) || dim!=3
             (void) baseline_physics_type;
             (void) has_nonzero_diffusion;
+            (void) has_nonzero_physical_source;
             return nullptr;
         }
-    } else {
+    }
+    // -------------------------------------------------------------------------------
+    // Reynolds-Averaged Navier-Stokes (RANS) + RANS model
+    // -------------------------------------------------------------------------------
+    else if (model_type == Model_enum::reynolds_averaged_navier_stokes) {
+        has_nonzero_diffusion = true; // RANS (baseline part) has diffusion terms
+        has_nonzero_physical_source = true; // RANS (baseline part) has physical source terms
+        if (rans_model_type == RANSModel_enum::SA_negative)
+        {
+            if constexpr (nstate==dim+3) {
+                // Assign baseline physics type (and corresponding nstates) based on the physics model type
+                // -- Assign nstates for the baseline physics (constexpr because template parameter)
+                constexpr int nstate_baseline_physics = dim+2;
+                // -- Assign baseline physics type
+                if(parameters_input->physics_model_param.euler_turbulence) {
+                    baseline_physics_type = PDE_enum::euler;
+                }
+                else {
+                    baseline_physics_type = PDE_enum::navier_stokes;
+                }
+
+                // Create the physics model object in physics
+                return std::make_shared < PhysicsModel<dim,nstate,real,nstate_baseline_physics> > (
+                    parameters_input,
+                    baseline_physics_type,
+                    model_input,
+                    manufactured_solution_function,
+                    has_nonzero_diffusion,
+                    has_nonzero_physical_source);
+            }
+            else {
+                // RANS+one-equation model does not exist for nstate!=(dim+3)
+                (void) baseline_physics_type;
+                (void) has_nonzero_physical_source;
+                std::cout << "Can't create RANS + negative SA model for nstate!=(dim+3). " << std::endl;
+                return nullptr;
+            }
+        }
+    }
+    else {
         // prevent warnings for dim=3,nstate=4, etc.
         (void) baseline_physics_type;
         (void) has_nonzero_diffusion;
+        (void) has_nonzero_physical_source;
     }    
     std::cout << "Can't create PhysicsModel, invalid ModelType type: " << model_type << std::endl;
     assert(0==1 && "Can't create PhysicsModel, invalid ModelType type");
@@ -212,6 +261,7 @@ template class PhysicsFactory<PHILIP_DIM, 2, double>;
 template class PhysicsFactory<PHILIP_DIM, 3, double>;
 template class PhysicsFactory<PHILIP_DIM, 4, double>;
 template class PhysicsFactory<PHILIP_DIM, 5, double>;
+template class PhysicsFactory<PHILIP_DIM, 6, double>;
 template class PhysicsFactory<PHILIP_DIM, 8, double>;
 
 template class PhysicsFactory<PHILIP_DIM, 1, FadType >;
@@ -219,6 +269,7 @@ template class PhysicsFactory<PHILIP_DIM, 2, FadType >;
 template class PhysicsFactory<PHILIP_DIM, 3, FadType >;
 template class PhysicsFactory<PHILIP_DIM, 4, FadType >;
 template class PhysicsFactory<PHILIP_DIM, 5, FadType >;
+template class PhysicsFactory<PHILIP_DIM, 6, FadType >;
 template class PhysicsFactory<PHILIP_DIM, 8, FadType >;
 
 template class PhysicsFactory<PHILIP_DIM, 1, RadType >;
@@ -226,6 +277,7 @@ template class PhysicsFactory<PHILIP_DIM, 2, RadType >;
 template class PhysicsFactory<PHILIP_DIM, 3, RadType >;
 template class PhysicsFactory<PHILIP_DIM, 4, RadType >;
 template class PhysicsFactory<PHILIP_DIM, 5, RadType >;
+template class PhysicsFactory<PHILIP_DIM, 6, RadType >;
 template class PhysicsFactory<PHILIP_DIM, 8, RadType >;
 
 template class PhysicsFactory<PHILIP_DIM, 1, FadFadType >;
@@ -233,6 +285,7 @@ template class PhysicsFactory<PHILIP_DIM, 2, FadFadType >;
 template class PhysicsFactory<PHILIP_DIM, 3, FadFadType >;
 template class PhysicsFactory<PHILIP_DIM, 4, FadFadType >;
 template class PhysicsFactory<PHILIP_DIM, 5, FadFadType >;
+template class PhysicsFactory<PHILIP_DIM, 6, FadFadType >;
 template class PhysicsFactory<PHILIP_DIM, 8, FadFadType >;
 
 template class PhysicsFactory<PHILIP_DIM, 1, RadFadType >;
@@ -240,6 +293,7 @@ template class PhysicsFactory<PHILIP_DIM, 2, RadFadType >;
 template class PhysicsFactory<PHILIP_DIM, 3, RadFadType >;
 template class PhysicsFactory<PHILIP_DIM, 4, RadFadType >;
 template class PhysicsFactory<PHILIP_DIM, 5, RadFadType >;
+template class PhysicsFactory<PHILIP_DIM, 6, RadFadType >;
 template class PhysicsFactory<PHILIP_DIM, 8, RadFadType >;
 
 

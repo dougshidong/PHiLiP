@@ -174,7 +174,7 @@ public:
         time_refinement_study_reference,
         h_refinement_study_isentropic_vortex,
         burgers_energy_conservation_rrk,
-        euler_ismail_roe_entropy_check,
+        euler_entropy_conserving_split_forms_check,
         khi_robustness,
     };
     /// Store selected TestType from the input file.
@@ -200,7 +200,7 @@ public:
     /// Types of models available.
     enum ModelType {
         large_eddy_simulation,
-        //reynolds_averaged_navier_stokes,
+        reynolds_averaged_navier_stokes,
     };
     /// Store the model type
     ModelType model_type;

@@ -97,7 +97,8 @@ public:
         const double                                              side_slip_angle,
         std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function = nullptr,
         const two_point_num_flux_enum                             two_point_num_flux_type = two_point_num_flux_enum::KG,
-        const bool                                                has_nonzero_diffusion = false);
+        const bool                                                has_nonzero_diffusion = false,
+        const bool                                                has_nonzero_physical_source = false);
 
     /// Destructor
     // virtual ~Euler() =0;
@@ -210,11 +211,15 @@ public:
     template<typename real2>
     real2 compute_pressure ( const std::array<real2,nstate> &conservative_soln ) const;
 
-    /// Evaluate pressure from conservative variables
-    real compute_pressure_from_enthalpy ( const std::array<real,nstate> &conservative_soln ) const;
+    /// Evaluate physical entropy = log(p \rho^{-\gamma}) from pressure and density
+    template<typename real2>
+    real2 compute_entropy (const real2 density, const real2 pressure) const;
 
     /// Evaluate pressure from conservative variables
     real compute_specific_enthalpy ( const std::array<real,nstate> &conservative_soln, const real pressure) const;
+
+    /// Compute numerical entropy function -rho s 
+    real compute_numerical_entropy_function(const std::array<real,nstate> &conservative_soln) const;
 
     /// Evaluate speed of sound from conservative variables
     real compute_sound ( const std::array<real,nstate> &conservative_soln ) const;

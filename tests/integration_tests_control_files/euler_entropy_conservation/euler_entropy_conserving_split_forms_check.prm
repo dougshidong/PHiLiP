@@ -4,7 +4,7 @@
 
 set dimension = 3
 set run_type = integration_test
-set test_type = euler_ismail_roe_entropy_check
+set test_type = euler_entropy_conserving_split_forms_check
 set pde_type = euler
 
 # DG formulation
@@ -14,20 +14,18 @@ set use_collocated_nodes = true
 
 set flux_reconstruction = cDG
 set use_inverse_mass_on_the_fly = true
-# set use_collocated_nodes = true
 
 # Note: this was added to turn off check_same_coords() -- has no other function when dim!=1
 set use_periodic_bc = true
 
 # numerical fluxes
 set conv_num_flux = two_point_flux
-set two_point_num_flux_type = IR 
+# two_point_num_flux_type is set by the test
 
 # ODE solver
 subsection ODE solver
   set ode_output = quiet
   set ode_solver_type = runge_kutta
-  set output_solution_every_x_steps = 10
   set runge_kutta_method = rk4_ex
 end
 

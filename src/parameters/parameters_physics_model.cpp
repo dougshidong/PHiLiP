@@ -50,6 +50,27 @@ void PhysicsModelParam::declare_parameters (dealii::ParameterHandler &prm)
 
         }
         prm.leave_subsection();
+
+        prm.enter_subsection("reynolds_averaged_navier_stokes");
+        {
+            prm.declare_entry("euler_turbulence","false",
+                              dealii::Patterns::Bool(),
+                              "Set as false by default (i.e. Navier-Stokes is the baseline physics). " 
+                              "If true, sets the baseline physics to the Euler equations.");
+
+            prm.declare_entry("RANS_model_type", "SA_negative",
+                              dealii::Patterns::Selection(
+                              " SA_negative "),
+                              "Enum of reynolds_averaged_navier_stokes models."
+                              "Choices are "
+                              " <SA_negative>");
+
+            prm.declare_entry("turbulent_prandtl_number", "0.6",
+                              dealii::Patterns::Double(1e-15, dealii::Patterns::Double::max_double_value),
+                              "Turbulent Prandlt number (default is 0.6)");
+
+        }
+        prm.leave_subsection();
     }
     prm.leave_subsection();
 }
@@ -72,6 +93,17 @@ void PhysicsModelParam::parse_parameters (dealii::ParameterHandler &prm)
             WALE_model_constant                = prm.get_double("WALE_model_constant");
             vreman_model_constant              = prm.get_double("vreman_model_constant");
             ratio_of_filter_width_to_cell_size = prm.get_double("ratio_of_filter_width_to_cell_size");
+        }
+        prm.leave_subsection();
+
+        prm.enter_subsection("reynolds_averaged_navier_stokes");
+        {
+            euler_turbulence = prm.get_bool("euler_turbulence");
+
+            const std::string RANS_model_type_string = prm.get("RANS_model_type");
+            if(RANS_model_type_string == "SA_negative") RANS_model_type = SA_negative;
+
+            turbulent_prandtl_number = prm.get_double("turbulent_prandtl_number");
         }
         prm.leave_subsection();
     }

@@ -37,12 +37,14 @@ public:
     /// Default constructor that will set the constants.
     PhysicsBase(
         const bool                                                has_nonzero_diffusion_input,
+        const bool                                                has_nonzero_physical_source_input,
         const dealii::Tensor<2,3,double>                          input_diffusion_tensor = Parameters::ManufacturedSolutionParam::get_default_diffusion_tensor(),
         std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function_input = nullptr);
 
     /// Constructor that will call default constructor.
     PhysicsBase(
         const bool                                                has_nonzero_diffusion_input,
+        const bool                                                has_nonzero_physical_source_input,
         std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function_input = nullptr);
 
     /// Virtual destructor required for abstract classes.
@@ -50,6 +52,9 @@ public:
 
     /// Flag to signal that diffusion term is non-zero
     const bool has_nonzero_diffusion;
+
+    /// Flag to signal that physical source term is non-zero
+    const bool has_nonzero_physical_source;
 
     /// Manufactured solution function
     std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function;
@@ -109,6 +114,13 @@ public:
         const real current_time,
         const dealii::types::global_dof_index cell_index) const = 0;
 
+    /// Physical source term that does require differentiation.
+    virtual std::array<real,nstate> physical_source_term (
+        const dealii::Point<dim,real> &pos,
+        const std::array<real,nstate> &solution,
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient,
+        const dealii::types::global_dof_index cell_index) const;
+
     /// Artificial source term that does not require differentiation stemming from artificial dissipation.
     virtual std::array<real,nstate> artificial_source_term (
         const real viscosity_coefficient,
@@ -144,18 +156,22 @@ public:
         const dealii::Tensor<2,dim> &/*dduh*/,
         const dealii::Tensor<1,dim> &/*normals*/,
         const dealii::Point<dim>    &/*evaluation_points*/) const;
+
     /// Returns names of the solution to be used by PhysicsPostprocessor to output current solution.
     /** The implementation in this Physics base class simply returns "state0, state1, etc.".
      */
     virtual std::vector<std::string> post_get_names () const;
+
     /// Returns DataComponentInterpretation of the solution to be used by PhysicsPostprocessor to output current solution.
     /** Treats every solution state as an independent scalar.
      */
     virtual std::vector<dealii::DataComponentInterpretation::DataComponentInterpretation> post_get_data_component_interpretation () const;
+
     /// Returns required update flags of the solution to be used by PhysicsPostprocessor to output current solution.
     /** Only update the solution at the output points.
      */
     virtual dealii::UpdateFlags post_get_needed_update_flags () const;
+    
 protected:
     /// ConditionalOStream.
     /** Used as std::cout, but only prints if mpi_rank == 0

@@ -11,10 +11,10 @@ std::unique_ptr< dealii::DataPostprocessor<dim> > PostprocessorFactory<dim>
 {
     using PDE_enum = Parameters::AllParameters::PartialDifferentialEquation;
     const PDE_enum pde_type = parameters_input->pde_type;
-#if PHILIP_DIM==3
     using Model_enum = Parameters::AllParameters::ModelType;
     const Model_enum model_type = parameters_input->model_type;
-#endif
+    using RANSModel_enum = Parameters::PhysicsModelParam::ReynoldsAveragedNavierStokesModel;
+    const RANSModel_enum rans_model_type = parameters_input->physics_model_param.RANS_model_type;
 
     if (pde_type == PDE_enum::advection) {
         return std::make_unique< PhysicsPostprocessor<dim,1> >(parameters_input);
@@ -34,7 +34,9 @@ std::unique_ptr< dealii::DataPostprocessor<dim> > PostprocessorFactory<dim>
         return std::make_unique< PhysicsPostprocessor<dim,dim+2> >(parameters_input);
     } else if (pde_type == PDE_enum::navier_stokes) {
         return std::make_unique< PhysicsPostprocessor<dim,dim+2> >(parameters_input);
-    }
+    } else if ((pde_type == PDE_enum::physics_model) && (model_type == Model_enum::reynolds_averaged_navier_stokes) && (rans_model_type == RANSModel_enum::SA_negative)) {
+        return std::make_unique< PhysicsPostprocessor<dim,dim+3> >(parameters_input);
+    } 
 #if PHILIP_DIM==3
     else if ((pde_type == PDE_enum::physics_model) && (model_type==Model_enum::large_eddy_simulation || model_type==Model_enum::navier_stokes_model)) {
         return std::make_unique< PhysicsPostprocessor<dim,dim+2> >(parameters_input);
@@ -109,6 +111,7 @@ template class PhysicsPostprocessor < PHILIP_DIM, 2 >;
 template class PhysicsPostprocessor < PHILIP_DIM, 3 >;
 template class PhysicsPostprocessor < PHILIP_DIM, 4 >;
 template class PhysicsPostprocessor < PHILIP_DIM, 5 >;
+template class PhysicsPostprocessor < PHILIP_DIM, 6 >;
 
 } // Postprocess namespace
 } // PHiLiP namespace

@@ -14,6 +14,8 @@ SET(SOURCE
     physics_model.cpp
     model.cpp
     large_eddy_simulation.cpp
+    reynolds_averaged_navier_stokes.cpp
+    negative_spalart_allmaras_rans_model.cpp
     model_factory.cpp
     navier_stokes_model.cpp
     )

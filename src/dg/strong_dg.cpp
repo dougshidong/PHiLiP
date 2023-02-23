@@ -573,7 +573,6 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_auxiliary_equati
         //allocate
         if(ishape == 0)
             soln_coeff[istate].resize(n_shape_fns);
-
         //solve
         soln_coeff[istate][ishape] = DGBase<dim,real,MeshType>::solution(dofs_indices[idof]);
     }
@@ -618,7 +617,6 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_auxiliary_equati
                                                      soln_basis.oneD_vol_operator);
         }
     }
-
 
     //evaluate physical facet fluxes dot product with physical unit normal scaled by determinant of metric facet Jacobian
     //the outward reference normal dircetion.
@@ -951,6 +949,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_volume_term_strong(
     std::array<dealii::Tensor<1,dim,std::vector<real>>,nstate> conv_ref_flux_at_q;
     std::array<dealii::Tensor<1,dim,std::vector<real>>,nstate> diffusive_ref_flux_at_q;
     std::array<std::vector<real>,nstate> source_at_q;
+    std::array<std::vector<real>,nstate> physical_source_at_q;
 
     // The matrix of two-pt fluxes for Hadamard products
     std::array<dealii::Tensor<1,dim,dealii::FullMatrix<real>>,nstate> conv_ref_2pt_flux_at_q;
@@ -1020,15 +1019,26 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_volume_term_strong(
         //Compute the physical dissipative flux
         diffusive_phys_flux = this->pde_physics_double->dissipative_flux(soln_state, aux_soln_state, current_cell_index);
 
-        // Source
-        std::array<real,nstate> source;
+        // Manufactured source
+        std::array<real,nstate> manufactured_source;
         if(this->all_parameters->manufactured_convergence_study_param.manufactured_solution_param.use_manufactured_source_term) {
             dealii::Point<dim,real> vol_flux_node;
             for(int idim=0; idim<dim; idim++){
                 vol_flux_node[idim] = metric_oper.flux_nodes_vol[idim][iquad];
             }
+            //compute the manufactured source
+            manufactured_source = this->pde_physics_double->source_term (vol_flux_node, soln_state, this->current_time, current_cell_index);
+        }
+
+        // Physical source
+        std::array<real,nstate> physical_source;
+        if(this->pde_physics_double->has_nonzero_physical_source) {
+            dealii::Point<dim,real> vol_flux_node;
+            for(int idim=0; idim<dim; idim++){
+                vol_flux_node[idim] = metric_oper.flux_nodes_vol[idim][iquad];
+            }
             //compute the physical source
-            source = this->pde_physics_double->source_term (vol_flux_node, soln_state, this->current_time, current_cell_index);
+            physical_source = this->pde_physics_double->physical_source_term (vol_flux_node, soln_state, aux_soln_state, current_cell_index);
         }
 
         //Write the values in a way that we can use sum-factorization on.
@@ -1080,10 +1090,17 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_volume_term_strong(
 
                 diffusive_ref_flux_at_q[istate][idim][iquad] = diffusive_ref_flux[idim];
             }
-            if(iquad == 0)
-                source_at_q[istate].resize(n_quad_pts);
             if(this->all_parameters->manufactured_convergence_study_param.manufactured_solution_param.use_manufactured_source_term) {
-                source_at_q[istate][iquad] = source[istate];
+                if(iquad == 0){
+                    source_at_q[istate].resize(n_quad_pts);
+                }
+                source_at_q[istate][iquad] = manufactured_source[istate];
+            }
+            if(this->pde_physics_double->has_nonzero_physical_source) {
+                if(iquad == 0){
+                    physical_source_at_q[istate].resize(n_quad_pts);
+                }
+                physical_source_at_q[istate][iquad] = physical_source[istate];
             }
         }
     }
@@ -1141,13 +1158,22 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_volume_term_strong(
         // variable, put a negative here.
         soln_basis.inner_product_1D(diffusive_flux_divergence, vol_quad_weights, rhs, soln_basis.oneD_vol_operator, true, -1.0);
 
-        // Source
+        // Manufactured source
         if(this->all_parameters->manufactured_convergence_study_param.manufactured_solution_param.use_manufactured_source_term) {
             std::vector<real> JxW(n_quad_pts);
             for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
                 JxW[iquad] = vol_quad_weights[iquad] * metric_oper.det_Jac_vol[iquad];
             }
             soln_basis.inner_product_1D(source_at_q[istate], JxW, rhs, soln_basis.oneD_vol_operator, true, 1.0);
+        }
+
+        // Physical source
+        if(this->pde_physics_double->has_nonzero_physical_source) {
+            std::vector<real> JxW(n_quad_pts);
+            for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
+                JxW[iquad] = vol_quad_weights[iquad] * metric_oper.det_Jac_vol[iquad];
+            }
+            soln_basis.inner_product_1D(physical_source_at_q[istate], JxW, rhs, soln_basis.oneD_vol_operator, true, 1.0);
         }
 
         for(unsigned int ishape=0; ishape<n_shape_fns; ishape++){
@@ -2707,12 +2733,14 @@ template class DGStrong <PHILIP_DIM, 2, double, dealii::Triangulation<PHILIP_DIM
 template class DGStrong <PHILIP_DIM, 3, double, dealii::Triangulation<PHILIP_DIM>>;
 template class DGStrong <PHILIP_DIM, 4, double, dealii::Triangulation<PHILIP_DIM>>;
 template class DGStrong <PHILIP_DIM, 5, double, dealii::Triangulation<PHILIP_DIM>>;
+template class DGStrong <PHILIP_DIM, 6, double, dealii::Triangulation<PHILIP_DIM>>;
 
 template class DGStrong <PHILIP_DIM, 1, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
 template class DGStrong <PHILIP_DIM, 2, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
 template class DGStrong <PHILIP_DIM, 3, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
 template class DGStrong <PHILIP_DIM, 4, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
 template class DGStrong <PHILIP_DIM, 5, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class DGStrong <PHILIP_DIM, 6, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
 
 #if PHILIP_DIM!=1
 template class DGStrong <PHILIP_DIM, 1, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
@@ -2720,6 +2748,7 @@ template class DGStrong <PHILIP_DIM, 2, double, dealii::parallel::distributed::T
 template class DGStrong <PHILIP_DIM, 3, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
 template class DGStrong <PHILIP_DIM, 4, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
 template class DGStrong <PHILIP_DIM, 5, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+template class DGStrong <PHILIP_DIM, 6, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
 #endif
 
 } // PHiLiP namespace

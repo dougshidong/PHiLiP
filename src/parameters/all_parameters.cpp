@@ -162,7 +162,7 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       " time_refinement_study | "
                       " time_refinement_study_reference | "
                       " burgers_energy_conservation_rrk | "
-                      " euler_ismail_roe_entropy_check"),
+                      " euler_entropy_conserving_split_forms_check"),
                       "The type of test we want to solve. "
                       "Choices are " 
                       " <run_control | " 
@@ -196,7 +196,7 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       "  time_refinement_study | "
                       "  time_refinement_study_reference | "
                       "  burgers_energy_conservation_rrk | "
-                      "  euler_ismail_roe_entropy_check>.");
+                      "  euler_entropy_conserving_split_forms_check>.");
 
     prm.declare_entry("pde_type", "advection",
                       dealii::Patterns::Selection(
@@ -228,12 +228,13 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
     prm.declare_entry("model_type", "large_eddy_simulation",
                       dealii::Patterns::Selection(
                       " large_eddy_simulation |"
+                      " reynolds_averaged_navier_stokes |"
                       " navier_stokes_model"),
                       "Enum of physics models "
                       "(i.e. model equations and/or terms additional to Navier-Stokes or a chosen underlying baseline physics)."
                       "Choices are "
-                      " <large_eddy_simulation | navier_stokes_model>.");
-    
+                      " <large_eddy_simulation | reynolds_averaged_navier_stokes | navier_stokes_model>.");
+
     prm.declare_entry("conv_num_flux", "lax_friedrichs",
                       dealii::Patterns::Selection(
                       " lax_friedrichs | "
@@ -340,7 +341,8 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     else if (test_string == "time_refinement_study")                    { test_type = time_refinement_study; }
     else if (test_string == "time_refinement_study_reference")          { test_type = time_refinement_study_reference; }
     else if (test_string == "burgers_energy_conservation_rrk")          { test_type = burgers_energy_conservation_rrk; }
-    else if (test_string == "euler_ismail_roe_entropy_check")           { test_type = euler_ismail_roe_entropy_check; }
+    else if (test_string == "euler_entropy_conserving_split_forms_check") 
+                                                                        { test_type = euler_entropy_conserving_split_forms_check; }
     
     // WARNING: Must assign model_type before pde_type
     const std::string model_string = prm.get("model_type");
@@ -380,14 +382,13 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     }
     else if (pde_string == "physics_model") {
         pde_type = physics_model;
-        if (model_type == large_eddy_simulation || model_type == navier_stokes_model)
-        {
+        if (model_type == large_eddy_simulation || model_type == navier_stokes_model) {
             nstate = dimension+2;
+        } else if (model_type == reynolds_averaged_navier_stokes) {
+            if(physics_model_param.RANS_model_type == Parameters::PhysicsModelParam::ReynoldsAveragedNavierStokesModel::SA_negative) {
+              nstate = dimension+3;
+            }
         }
-        // else if (model_type == reynolds_averaged_navier_stokes)
-        // {
-        //     nstate = dimension+3;
-        // }
     }
     
     overintegration = prm.get_integer("overintegration");

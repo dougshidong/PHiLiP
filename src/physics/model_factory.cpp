@@ -8,6 +8,8 @@
 #include "model_factory.h"
 #include "manufactured_solution.h"
 #include "large_eddy_simulation.h"
+#include "reynolds_averaged_navier_stokes.h"
+#include "negative_spalart_allmaras_rans_model.h"
 #include "navier_stokes_model.h"
 
 namespace PHiLiP {
@@ -148,6 +150,47 @@ ModelFactory<dim,nstate,real>
                 return nullptr;
             }
         } 
+        // -------------------------------------------------------------------------------
+        // Reynolds-Averaged Navier-Stokes (RANS) + RANS model
+        // -------------------------------------------------------------------------------
+        else if (model_type == Model_enum::reynolds_averaged_navier_stokes) {
+            using RANSModel_enum = Parameters::PhysicsModelParam::ReynoldsAveragedNavierStokesModel;
+            RANSModel_enum rans_model_type = parameters_input->physics_model_param.RANS_model_type;  
+            // Create Reynolds-Averaged Navier-Stokes (RANS) model with one-equation model  
+            if(rans_model_type == RANSModel_enum::SA_negative){
+                if constexpr (nstate==dim+3) {
+                    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+                    // SA negative model
+                    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -      
+                    return std::make_shared < ReynoldsAveragedNavierStokes_SAneg<dim,nstate,real> > (
+                        parameters_input->euler_param.ref_length,
+                        parameters_input->euler_param.gamma_gas,
+                        parameters_input->euler_param.mach_inf,
+                        parameters_input->euler_param.angle_of_attack,
+                        parameters_input->euler_param.side_slip_angle,
+                        parameters_input->navier_stokes_param.prandtl_number,
+                        parameters_input->navier_stokes_param.reynolds_number_inf,
+                        parameters_input->navier_stokes_param.use_constant_viscosity,
+                        parameters_input->navier_stokes_param.nondimensionalized_constant_viscosity,
+                        parameters_input->physics_model_param.turbulent_prandtl_number,
+                        parameters_input->navier_stokes_param.temperature_inf,
+                        parameters_input->navier_stokes_param.nondimensionalized_isothermal_wall_temperature,
+                        parameters_input->navier_stokes_param.thermal_boundary_condition_type,
+                        manufactured_solution_function,
+                        parameters_input->two_point_num_flux_type);
+                }
+                else {
+                    // SA negative does not exist for nstate!=(dim+3)
+                    manufactured_solution_function = nullptr;
+                    return nullptr;
+                }   
+            }
+            else {
+                    std::cout << "Can't create ReynoldsAveragedNavierStokesBase, invalid RANSModelType type: " << rans_model_type << std::endl;
+                    assert(0==1 && "Can't create ReynoldsAveragedNavierStokesBase, invalid RANSModelType type");
+                    return nullptr;
+            }
+        }
         else {
             // prevent warnings for dim=3,nstate=4, etc.
             // to avoid "unused variable" warnings
@@ -171,6 +214,7 @@ template class ModelFactory<PHILIP_DIM, 2, double>;
 template class ModelFactory<PHILIP_DIM, 3, double>;
 template class ModelFactory<PHILIP_DIM, 4, double>;
 template class ModelFactory<PHILIP_DIM, 5, double>;
+template class ModelFactory<PHILIP_DIM, 6, double>;
 template class ModelFactory<PHILIP_DIM, 8, double>;
 
 template class ModelFactory<PHILIP_DIM, 1, FadType>;
@@ -178,6 +222,7 @@ template class ModelFactory<PHILIP_DIM, 2, FadType>;
 template class ModelFactory<PHILIP_DIM, 3, FadType>;
 template class ModelFactory<PHILIP_DIM, 4, FadType>;
 template class ModelFactory<PHILIP_DIM, 5, FadType>;
+template class ModelFactory<PHILIP_DIM, 6, FadType>;
 template class ModelFactory<PHILIP_DIM, 8, FadType>;
 
 template class ModelFactory<PHILIP_DIM, 1, RadType>;
@@ -185,6 +230,7 @@ template class ModelFactory<PHILIP_DIM, 2, RadType>;
 template class ModelFactory<PHILIP_DIM, 3, RadType>;
 template class ModelFactory<PHILIP_DIM, 4, RadType>;
 template class ModelFactory<PHILIP_DIM, 5, RadType>;
+template class ModelFactory<PHILIP_DIM, 6, RadType>;
 template class ModelFactory<PHILIP_DIM, 8, RadType>;
 
 template class ModelFactory<PHILIP_DIM, 1, FadFadType>;
@@ -192,6 +238,7 @@ template class ModelFactory<PHILIP_DIM, 2, FadFadType>;
 template class ModelFactory<PHILIP_DIM, 3, FadFadType>;
 template class ModelFactory<PHILIP_DIM, 4, FadFadType>;
 template class ModelFactory<PHILIP_DIM, 5, FadFadType>;
+template class ModelFactory<PHILIP_DIM, 6, FadFadType>;
 template class ModelFactory<PHILIP_DIM, 8, FadFadType>;
 
 template class ModelFactory<PHILIP_DIM, 1, RadFadType>;
@@ -199,6 +246,7 @@ template class ModelFactory<PHILIP_DIM, 2, RadFadType>;
 template class ModelFactory<PHILIP_DIM, 3, RadFadType>;
 template class ModelFactory<PHILIP_DIM, 4, RadFadType>;
 template class ModelFactory<PHILIP_DIM, 5, RadFadType>;
+template class ModelFactory<PHILIP_DIM, 6, RadFadType>;
 template class ModelFactory<PHILIP_DIM, 8, RadFadType>;
 
 } // Physics namespace

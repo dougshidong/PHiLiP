@@ -173,7 +173,7 @@ public:
         time_refinement_study,
         time_refinement_study_reference,
         burgers_energy_conservation_rrk,
-        euler_ismail_roe_entropy_check,
+        euler_entropy_conserving_split_forms_check,
         homogeneous_isotropic_turbulence_initialization_check,
     };
     /// Store selected TestType from the input file.
@@ -199,8 +199,8 @@ public:
     /// Types of models available.
     enum ModelType {
         large_eddy_simulation,
+        reynolds_averaged_navier_stokes,
         navier_stokes_model,
-        //reynolds_averaged_navier_stokes,
     };
     /// Store the model type
     ModelType model_type;

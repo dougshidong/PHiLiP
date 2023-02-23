@@ -16,9 +16,10 @@ FlowSolverCaseBase<dim, nstate>::FlowSolverCaseBase(const PHiLiP::Parameters::Al
 template<int dim, int nstate>
 std::string FlowSolverCaseBase<dim, nstate>::get_pde_string() const
 {
-    using PDE_enum      = Parameters::AllParameters::PartialDifferentialEquation;
-    using Model_enum    = Parameters::AllParameters::ModelType;
-    using SGSModel_enum = Parameters::PhysicsModelParam::SubGridScaleModel;
+    using PDE_enum       = Parameters::AllParameters::PartialDifferentialEquation;
+    using Model_enum     = Parameters::AllParameters::ModelType;
+    using SGSModel_enum  = Parameters::PhysicsModelParam::SubGridScaleModel;
+    using RANSModel_enum = Parameters::PhysicsModelParam::ReynoldsAveragedNavierStokesModel;
     
     const PDE_enum pde_type = this->all_param.pde_type;
     std::string pde_string;
@@ -50,6 +51,16 @@ std::string FlowSolverCaseBase<dim, nstate>::get_pde_string() const
             pde_string += std::string(" (Model: ") + model_string + std::string(", SGS Model: ") + sgs_model_string + std::string(")");
         } else if(model == Model_enum::navier_stokes_model) {
             model_string = "navier_stokes_model";
+        }
+        else if(model == Model_enum::reynolds_averaged_navier_stokes) {
+            // assign model string
+            model_string = "reynolds_averaged_navier_stokes";
+            // reynolds-averaged navier-stokes (RANS)
+            const RANSModel_enum rans_model = this->all_param.physics_model_param.RANS_model_type;
+            std::string rans_model_string = "WARNING: invalid RANS model";
+            // assign RANS model string
+            if (rans_model==RANSModel_enum::SA_negative) rans_model_string = "SA_negative";
+            pde_string += std::string(" (Model: ") + model_string + std::string(", RANS Model: ") + rans_model_string + std::string(")");
         }
         if(pde_string == "physics_model") pde_string += std::string(" (Model: ") + model_string + std::string(")");
     }
@@ -192,6 +203,7 @@ template class FlowSolverCaseBase<PHILIP_DIM,2>;
 template class FlowSolverCaseBase<PHILIP_DIM,3>;
 template class FlowSolverCaseBase<PHILIP_DIM,4>;
 template class FlowSolverCaseBase<PHILIP_DIM,5>;
+template class FlowSolverCaseBase<PHILIP_DIM,6>;
 
 } // FlowSolver namespace
 } // PHiLiP namespace

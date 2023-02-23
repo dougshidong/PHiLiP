@@ -11,8 +11,9 @@
 
 const double TOLERANCE = 1E-6;
 
-int main (int /*argc*/, char * /*argv*/[])
+int main (int argc, char * argv[])
 {
+    MPI_Init(&argc, &argv);
     std::cout << std::setprecision(std::numeric_limits<long double>::digits10 + 1) << std::scientific;
     const int dim = PHILIP_DIM;
     const int nstate = dim+2;
@@ -105,6 +106,7 @@ int main (int /*argc*/, char * /*argv*/[])
             }
         }
     }
+    MPI_Finalize();
     return 0;
 }
 

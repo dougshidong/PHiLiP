@@ -163,7 +163,7 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       " time_refinement_study | "
                       " time_refinement_study_reference | "
                       " burgers_energy_conservation_rrk | "
-                      " euler_ismail_roe_entropy_check"),
+                      " euler_entropy_conserving_split_forms_check"),
                       "The type of test we want to solve. "
                       "Choices are " 
                       " <run_control | " 
@@ -196,7 +196,7 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       "  time_refinement_study | "
                       "  time_refinement_study_reference | "
                       "  burgers_energy_conservation_rrk | "
-                      "  euler_ismail_roe_entropy_check>.");
+                      "  euler_entropy_conserving_split_forms_check>.");
 
     prm.declare_entry("pde_type", "advection",
                       dealii::Patterns::Selection(
@@ -340,7 +340,7 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     else if (test_string == "time_refinement_study")                    { test_type = time_refinement_study; }
     else if (test_string == "time_refinement_study_reference")          { test_type = time_refinement_study_reference; }
     else if (test_string == "burgers_energy_conservation_rrk")          { test_type = burgers_energy_conservation_rrk; }
-    else if (test_string == "euler_ismail_roe_entropy_check")           { test_type = euler_ismail_roe_entropy_check; }
+    else if (test_string == "euler_entropy_conserving_split_forms_check")           { test_type = euler_entropy_conserving_split_forms_check; }
     
     overintegration = prm.get_integer("overintegration");
 

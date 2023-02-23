@@ -53,5 +53,6 @@ template class ArtificialDissipationFactory<PHILIP_DIM,2>;
 template class ArtificialDissipationFactory<PHILIP_DIM,3>; 
 template class ArtificialDissipationFactory<PHILIP_DIM,4>; 
 template class ArtificialDissipationFactory<PHILIP_DIM,5>; 
+template class ArtificialDissipationFactory<PHILIP_DIM,6>; 
 
 } // namespace PHiLiP

@@ -55,11 +55,12 @@ public:
     Burgers(
         const double                                              diffusion_coefficient,
         const bool                                                convection = true, 
-        const bool                                                diffusion = true, 
+        const bool                                                diffusion = true,
         const dealii::Tensor<2,3,double>                          input_diffusion_tensor = Parameters::ManufacturedSolutionParam::get_default_diffusion_tensor(),
         std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function = nullptr,
-        const Parameters::AllParameters::TestType                 parameters_test = Parameters::AllParameters::TestType::run_control) : 
-            PhysicsBase<dim,nstate,real>(diffusion, input_diffusion_tensor, manufactured_solution_function), 
+        const Parameters::AllParameters::TestType                 parameters_test = Parameters::AllParameters::TestType::run_control,
+        const bool                                                has_nonzero_physical_source = false) : 
+            PhysicsBase<dim,nstate,real>(diffusion, has_nonzero_physical_source, input_diffusion_tensor, manufactured_solution_function), 
             diffusion_scaling_coeff(diffusion_coefficient),
             hasConvection(convection), 
             hasDiffusion(diffusion),

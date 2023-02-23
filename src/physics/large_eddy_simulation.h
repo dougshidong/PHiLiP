@@ -73,6 +73,13 @@ public:
         const real current_time,
         const dealii::types::global_dof_index cell_index) const;
 
+    /// Physical source term
+    std::array<real,nstate> physical_source_term (
+        const dealii::Point<dim,real> &pos,
+        const std::array<real,nstate> &conservative_solution,
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient,
+        const dealii::types::global_dof_index cell_index) const override;
+
     /// Compute the nondimensionalized filter width used by the SGS model given a cell index
     double get_filter_width (const dealii::types::global_dof_index cell_index) const;
 

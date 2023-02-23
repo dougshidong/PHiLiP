@@ -75,6 +75,23 @@ std::array<dealii::Tensor<1,dim,real>,nstate> NavierStokesWithModelSourceTerms<d
 //----------------------------------------------------------------
 template <int dim, int nstate, typename real>
 std::array<real,nstate> NavierStokesWithModelSourceTerms<dim,nstate,real>
+::convective_eigenvalues (
+    const std::array<real,nstate> &/*conservative_soln*/,
+    const dealii::Tensor<1,dim,real> &/*normal*/) const
+{
+    return this->zero_array;
+}
+//----------------------------------------------------------------
+template <int dim, int nstate, typename real>
+real NavierStokesWithModelSourceTerms<dim,nstate,real>
+::max_convective_eigenvalue (const std::array<real,nstate> &/*conservative_soln*/) const
+{
+    const real max_eig = 0.0;
+    return max_eig;
+}
+//----------------------------------------------------------------
+template <int dim, int nstate, typename real>
+std::array<real,nstate> NavierStokesWithModelSourceTerms<dim,nstate,real>
 ::source_term (
         const dealii::Point<dim,real> &/*pos*/,
         const std::array<real,nstate> &/*solution*/,
@@ -82,6 +99,20 @@ std::array<real,nstate> NavierStokesWithModelSourceTerms<dim,nstate,real>
         const dealii::types::global_dof_index /*cell_index*/) const
 {
     return this->zero_array;
+}
+//----------------------------------------------------------------
+template <int dim, int nstate, typename real>
+std::array<real,nstate> NavierStokesWithModelSourceTerms<dim,nstate,real>
+::physical_source_term (
+        const dealii::Point<dim,real> &/*pos*/,
+        const std::array<real,nstate> &conservative_soln,
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &/*solution_gradient*/,
+        const dealii::types::global_dof_index /*cell_index*/) const
+{
+    std::array<real,nstate> physical_source;
+    physical_source = this->channel_flow_source_term(conservative_soln);
+
+    return physical_source;
 }
 //----------------------------------------------------------------
 template <int dim, int nstate, typename real>

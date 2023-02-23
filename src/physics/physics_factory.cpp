@@ -156,10 +156,13 @@ PhysicsFactory<dim,nstate,real>
     using PDE_enum = Parameters::AllParameters::PartialDifferentialEquation;
 
     using Model_enum = Parameters::AllParameters::ModelType;
-    Model_enum model_type = parameters_input->model_type;
+    const Model_enum model_type = parameters_input->model_type;
 
     using RANSModel_enum = Parameters::PhysicsModelParam::ReynoldsAveragedNavierStokesModel;
-    RANSModel_enum rans_model_type = parameters_input->physics_model_param.RANS_model_type;
+    const RANSModel_enum rans_model_type = parameters_input->physics_model_param.RANS_model_type;
+
+    using FlowCase_enum = Parameters::FlowSolverParam::FlowCaseType;
+    const FlowCase_enum flow_case_type = parameters_input->flow_solver_param.flow_case_type;
 
     // ===============================================================================
     // Physics Model
@@ -179,7 +182,10 @@ PhysicsFactory<dim,nstate,real>
     // -------------------------------------------------------------------------------
     if (model_type==Model_enum::large_eddy_simulation || model_type==Model_enum::navier_stokes_model) {
         has_nonzero_diffusion = true; // because of SGS model term (initialized as true)
-        has_nonzero_physical_source = false; // LES has no physical source terms
+        has_nonzero_physical_source = false; // no physical source terms by default
+        if(flow_case_type==FlowCase_enum::channel_flow) {
+            has_nonzero_physical_source = true; // forcing function
+        }
         if constexpr ((nstate==dim+2) && (dim==3)) {
             // Assign baseline physics type (and corresponding nstates) based on the physics model type
             // -- Assign nstates for the baseline physics (constexpr because template parameter)

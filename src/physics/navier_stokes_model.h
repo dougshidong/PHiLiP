@@ -48,12 +48,29 @@ public:
         const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient,
         const dealii::types::global_dof_index cell_index) const;
 
+    /// Convective eigenvalues of the additional models' PDEs
+    /** For NS model, all entries are assigned to be zero */
+    std::array<real,nstate> convective_eigenvalues (
+        const std::array<real,nstate> &/*conservative_soln*/,
+        const dealii::Tensor<1,dim,real> &/*normal*/) const override;
+
+    /// Maximum convective eigenvalue of the additional models' PDEs
+    /** For NS model, this value is assigned to be zero */
+    real max_convective_eigenvalue (const std::array<real,nstate> &soln) const;
+
     /// Source term for manufactured solution functions
     std::array<real,nstate> source_term (
         const dealii::Point<dim,real> &pos,
         const std::array<real,nstate> &solution,
         const real current_time,
         const dealii::types::global_dof_index cell_index) const;
+
+    /// Physical source term
+    std::array<real,nstate> physical_source_term (
+        const dealii::Point<dim,real> &pos,
+        const std::array<real,nstate> &conservative_solution,
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient,
+        const dealii::types::global_dof_index cell_index) const override;
 
 protected:
     std::array<real,nstate> zero_array; ///< Array of zeros

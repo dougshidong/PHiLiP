@@ -43,7 +43,7 @@ subsection flow_solver
   set flow_case_type = isentropic_vortex
   set poly_degree = 3
   set final_time = 23.66431913239 #=20 * sqrt(1.4) # 11.83215956619 #= 10 * sqrt(1.4), time for vortex to advect around the domain
-  set courant_friedrich_lewy_number = 0.1
+  set courant_friedrichs_lewy_number = 0.1
   set unsteady_data_table_filename = isentropic_vortex_time_table
   subsection grid
     set grid_left_bound = -10.0

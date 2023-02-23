@@ -60,7 +60,7 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                           dealii::Patterns::Double(0, dealii::Patterns::Double::max_double_value),
                           "Constant time step.");
 
-        prm.declare_entry("courant_friedrich_lewy_number", "1",
+        prm.declare_entry("courant_friedrichs_lewy_number", "1",
                           dealii::Patterns::Double(0, dealii::Patterns::Double::max_double_value),
                           "Courant-Friedrich-Lewy (CFL) number for constant time step.");
 
@@ -233,7 +233,7 @@ void FlowSolverParam::parse_parameters(dealii::ParameterHandler &prm)
         
         final_time = prm.get_double("final_time");
         constant_time_step = prm.get_double("constant_time_step");
-        courant_friedrich_lewy_number = prm.get_double("courant_friedrich_lewy_number");
+        courant_friedrichs_lewy_number = prm.get_double("courant_friedrichs_lewy_number");
         unsteady_data_table_filename = prm.get("unsteady_data_table_filename");
         steady_state = prm.get_bool("steady_state");
         steady_state_polynomial_ramping = prm.get_bool("steady_state_polynomial_ramping");

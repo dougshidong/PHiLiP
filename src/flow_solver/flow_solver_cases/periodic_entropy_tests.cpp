@@ -26,7 +26,7 @@ double PeriodicEntropyTests<dim,nstate>::get_constant_time_step(std::shared_ptr<
 
     using FlowCaseEnum = Parameters::FlowSolverParam::FlowCaseType;
     const FlowCaseEnum flow_case = this->all_param.flow_solver_param.flow_case_type;
-    const double CFL = this->all_param.flow_solver_param.courant_friedrich_lewy_number;
+    const double CFL = this->all_param.flow_solver_param.courant_friedrichs_lewy_number;
     // For Euler simulations, use CFL
     const unsigned int number_of_degrees_of_freedom_per_state = dg->dof_handler.n_dofs()/nstate;
     const double approximate_grid_spacing = (this->domain_right-this->domain_left)/pow(number_of_degrees_of_freedom_per_state,(1.0/dim));
@@ -43,7 +43,7 @@ double PeriodicEntropyTests<dim,nstate>::get_constant_time_step(std::shared_ptr<
         // TEMP using same as is defined in periodic turbulence
         const unsigned int number_of_degrees_of_freedom_per_state = dg->dof_handler.n_dofs()/nstate;
         const double approximate_grid_spacing = (this->domain_right-this->domain_left)/pow(number_of_degrees_of_freedom_per_state,(1.0/dim));
-        const double constant_time_step = this->all_param.flow_solver_param.courant_friedrich_lewy_number * approximate_grid_spacing;
+        const double constant_time_step = this->all_param.flow_solver_param.courant_friedrichs_lewy_number * approximate_grid_spacing;
         return constant_time_step;
     }
     return constant_time_step;

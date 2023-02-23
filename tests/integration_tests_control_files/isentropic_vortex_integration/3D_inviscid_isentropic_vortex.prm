@@ -39,7 +39,7 @@ subsection flow_solver
   set flow_case_type = isentropic_vortex
   set poly_degree = 3
   set final_time = 25
-  set courant_friedrich_lewy_number = 0.10
+  set courant_friedrichs_lewy_number = 0.10
   set unsteady_data_table_filename = isentropic_vortex_time_table
   subsection grid
     set grid_left_bound = -5.0

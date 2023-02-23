@@ -49,7 +49,7 @@ PeriodicTurbulence<dim, nstate>::PeriodicTurbulence(const PHiLiP::Parameters::Al
 template <int dim, int nstate>
 void PeriodicTurbulence<dim,nstate>::display_additional_flow_case_specific_parameters() const
 {
-    this->pcout << "- - Courant-Friedrich-Lewy number: " << this->all_param.flow_solver_param.courant_friedrich_lewy_number << std::endl;
+    this->pcout << "- - Courant-Friedrichs-Lewy number: " << this->all_param.flow_solver_param.courant_friedrichs_lewy_number << std::endl;
     std::string flow_type_string;
     if(this->is_taylor_green_vortex) {
         this->pcout << "- - Freestream Reynolds number: " << this->all_param.navier_stokes_param.reynolds_number_inf << std::endl;
@@ -68,7 +68,7 @@ double PeriodicTurbulence<dim,nstate>::get_constant_time_step(std::shared_ptr<DG
     } else {
         const unsigned int number_of_degrees_of_freedom_per_state = dg->dof_handler.n_dofs()/nstate;
         const double approximate_grid_spacing = (this->domain_right-this->domain_left)/pow(number_of_degrees_of_freedom_per_state,(1.0/dim));
-        const double constant_time_step = this->all_param.flow_solver_param.courant_friedrich_lewy_number * approximate_grid_spacing;
+        const double constant_time_step = this->all_param.flow_solver_param.courant_friedrichs_lewy_number * approximate_grid_spacing;
         return constant_time_step;
     }
 }
@@ -79,7 +79,7 @@ double PeriodicTurbulence<dim,nstate>::get_adaptive_time_step(std::shared_ptr<DG
     // compute time step based on advection speed (i.e. maximum local wave speed)
     const unsigned int number_of_degrees_of_freedom_per_state = dg->dof_handler.n_dofs()/nstate;
     const double approximate_grid_spacing = (this->domain_right-this->domain_left)/pow(number_of_degrees_of_freedom_per_state,(1.0/dim));
-    const double cfl_number = this->all_param.flow_solver_param.courant_friedrich_lewy_number;
+    const double cfl_number = this->all_param.flow_solver_param.courant_friedrichs_lewy_number;
     const double time_step = cfl_number * approximate_grid_spacing / this->maximum_local_wave_speed;
     return time_step;
 }

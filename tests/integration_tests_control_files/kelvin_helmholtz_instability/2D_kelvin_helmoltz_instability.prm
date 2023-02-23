@@ -44,7 +44,7 @@ subsection flow_solver
   set flow_case_type = kelvin_helmholtz_instability
   set poly_degree = 7 
   set final_time = 10
-  set courant_friedrich_lewy_number = 0.05
+  set courant_friedrichs_lewy_number = 0.05
   set unsteady_data_table_filename = isentropic_vortex_time_table
   subsection grid
     set grid_left_bound = -1.0

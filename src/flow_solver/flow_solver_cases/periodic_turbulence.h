@@ -91,9 +91,6 @@ protected:
     /// Flag for outputting velocity field at fixed times
     const bool output_velocity_field_at_fixed_times;
 
-    /// Flag for outputting velocity field at equidistant nodes
-    const bool output_velocity_field_at_equidistant_nodes;
-
     /// Flag for outputting vorticity magnitude field in addition to velocity field at fixed times
     const bool output_vorticity_magnitude_field_in_addition_to_velocity;
 

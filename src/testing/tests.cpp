@@ -38,6 +38,7 @@
 #include "time_refinement_study_reference.h"
 #include "burgers_energy_conservation_rrk.h"
 #include "euler_entropy_conserving_split_forms_check.h"
+#include "homogeneous_isotropic_turbulence_initialization_check.h"
 
 namespace PHiLiP {
 namespace Tests {
@@ -278,6 +279,8 @@ std::unique_ptr< TestsBase > TestsFactory<dim,nstate,MeshType>
         if constexpr (dim==3 && nstate==dim+2) return std::make_unique<TaylorGreenVortexEnergyCheck<dim,nstate>>(parameters_input,parameter_handler_input);
     } else if(test_type == Test_enum::taylor_green_vortex_restart_check) {
         if constexpr (dim==3 && nstate==dim+2) return std::make_unique<TaylorGreenVortexRestartCheck<dim,nstate>>(parameters_input,parameter_handler_input);
+    } else if(test_type == Test_enum::homogeneous_isotropic_turbulence_initialization_check){
+        if constexpr (dim==3 && nstate==dim+2) return std::make_unique<HomogeneousIsotropicTurbulenceInitializationCheck<dim,nstate>>(parameters_input,parameter_handler_input);
     } else if(test_type == Test_enum::time_refinement_study) {
         if constexpr (dim==1 && nstate==1)  return std::make_unique<TimeRefinementStudy<dim, nstate>>(parameters_input, parameter_handler_input);
     } else if(test_type == Test_enum::time_refinement_study_reference) {

@@ -167,6 +167,11 @@ mkdir -p Codes
         chmod +x get_NACA0012_mesh_files_local.sh
         sh get_NACA0012_mesh_files_local.sh ;\
 
+        # Get flow initialization files. Note: Run get_flow_initialization_files_cluster.sh to get files on the cluster.
+        # If not already installed, gdown can be installed as explained in INSTALL.md. 
+        chmod +x get_flow_initialization_files_local.sh
+        sh get_flow_initialization_files_local.sh ;\
+
         # Release build with all the optimization flags
         mkdir -p build_release && cd build_release ;\
         # MPI_MAX is the number of cores to use by default for tests with MPI

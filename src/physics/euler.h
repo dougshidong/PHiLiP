@@ -194,6 +194,16 @@ public:
     std::array<real,nstate> convective_source_term (
         const dealii::Point<dim,real> &pos) const;
 
+protected:
+    /// Check positive density
+    template<typename real2>
+    void check_positive_density(real2 &density) const;
+
+    /// Check positive pressure
+    template<typename real2>
+    void check_positive_pressure(real2 &pressure) const;
+
+public:
     /// Given conservative variables [density, [momentum], total energy],
     /// returns primitive variables [density, [velocities], pressure].
     ///

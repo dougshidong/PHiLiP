@@ -30,15 +30,6 @@ public:
     /// Run test
     int run_test () const override;
 protected:
-    double compare_solutions(
-        DGBase<dim, double> &dg,
-        const dealii::LinearAlgebra::distributed::Vector<double> solution_reference,
-        const dealii::LinearAlgebra::distributed::Vector<double> solution_to_be_checked) const;
-
-    double integrate_solution_over_domain(
-        DGBase<dim, double> &dg,
-        const dealii::LinearAlgebra::distributed::Vector<double> solution_input) const;
-
     /// Renitialize parameters, necessary because parameters created for the test are constant
     Parameters::AllParameters reinit_params(
         const bool output_restart_files_input,

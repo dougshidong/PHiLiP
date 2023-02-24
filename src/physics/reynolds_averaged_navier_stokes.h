@@ -24,6 +24,8 @@ public:
         const double                                              side_slip_angle,
         const double                                              prandtl_number,
         const double                                              reynolds_number_inf,
+        const bool                                                use_constant_viscosity,
+        const double                                              constant_viscosity,
         const double                                              turbulent_prandtl_number,
         const double                                              temperature_inf = 273.15,
         const double                                              isothermal_wall_temperature = 1.0,

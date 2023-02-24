@@ -160,6 +160,7 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       " dual_weighted_residual_mesh_adaptation | "
                       " taylor_green_vortex_energy_check | "
                       " taylor_green_vortex_restart_check | "
+                      " homogeneous_isotropic_turbulence_initialization_check | "
                       " time_refinement_study | "
                       " time_refinement_study_reference | "
                       " burgers_energy_conservation_rrk | "
@@ -193,6 +194,7 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       "  dual_weighted_residual_mesh_adaptation | "
                       "  taylor_green_vortex_energy_check | "
                       "  taylor_green_vortex_restart_check | "
+                      "  homogeneous_isotropic_turbulence_initialization_check | "
                       "  time_refinement_study | "
                       "  time_refinement_study_reference | "
                       "  burgers_energy_conservation_rrk | "
@@ -269,11 +271,8 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
 
     prm.declare_entry("enable_higher_order_vtk_output", "false",
                       dealii::Patterns::Bool(),
-                      "Enable writing of higher-order vtk files."
-                      "False by default. If modified to true,"
-                      "number of subdivisions will be chosen"
-                      "according to the max of grid_degree"
-                      "and poly_degree.");
+                      "Enable writing of higher-order vtk files. False by default. If modified to true,"
+                      "number of subdivisions will be chosen according to the max of grid_degree and poly_degree.");
 
     Parameters::LinearSolverParam::declare_parameters (prm);
     Parameters::ManufacturedConvergenceStudyParam::declare_parameters (prm);
@@ -337,6 +336,8 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     else if (test_string == "dual_weighted_residual_mesh_adaptation")   { test_type = dual_weighted_residual_mesh_adaptation; }
     else if (test_string == "taylor_green_vortex_energy_check")         { test_type = taylor_green_vortex_energy_check; }
     else if (test_string == "taylor_green_vortex_restart_check")        { test_type = taylor_green_vortex_restart_check; }
+    else if (test_string == "homogeneous_isotropic_turbulence_initialization_check")
+                                                                        { test_type = homogeneous_isotropic_turbulence_initialization_check; }
     else if (test_string == "time_refinement_study")                    { test_type = time_refinement_study; }
     else if (test_string == "time_refinement_study_reference")          { test_type = time_refinement_study_reference; }
     else if (test_string == "burgers_energy_conservation_rrk")          { test_type = burgers_energy_conservation_rrk; }
@@ -412,6 +413,8 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     solution_vtk_files_directory_name = prm.get("solution_vtk_files_directory_name");
     output_high_order_grid = prm.get_bool("output_high_order_grid");
     enable_higher_order_vtk_output = prm.get_bool("enable_higher_order_vtk_output");
+
+    output_high_order_grid = prm.get_bool("output_high_order_grid");
 
     pcout << "Parsing linear solver subsection..." << std::endl;
     linear_solver_param.parse_parameters (prm);

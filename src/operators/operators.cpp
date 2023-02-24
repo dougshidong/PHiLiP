@@ -302,7 +302,6 @@ void SumFactorizedOperators<dim,n_faces>::matrix_vector_mult(
             }
         }
     }
-
 }
 
 template <int dim, int n_faces>  

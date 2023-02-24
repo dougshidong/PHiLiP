@@ -10,7 +10,7 @@ set pde_type = euler
 # DG formulation
 set use_weak_form = false
 set use_split_form = true
-set use_collocated_nodes = false
+set flux_nodes_type = GL
 
 set flux_reconstruction = cDG
 set use_inverse_mass_on_the_fly = true

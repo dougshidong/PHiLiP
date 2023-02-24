@@ -9,7 +9,7 @@ set dimension = 1
 # The PDE we want to solve.
 set pde_type  = burgers_rewienski
 set use_weak_form = true
-set use_collocated_nodes = false
+set flux_nodes_type = GL
 
 subsection grid refinement study
  set num_refinements = 10

@@ -108,7 +108,7 @@ void ODESolverFactory<dim,real,MeshType>::display_error_ode_solver_factory(Param
         pcout <<  "implicit" << std::endl;
         pcout <<  "rrk_explicit" << std::endl;
         pcout << "    With rrk_explicit only being valid for " <<std::endl;
-        pcout << "    pde_type = burgers, use_collocated_nodes = true and dim = 1" <<std::endl;
+        pcout << "    pde_type = burgers, flux_nodes_type = GLL, overintegration = 0, and dim = 1" <<std::endl;
     }
     pcout << "********************************************************************" << std::endl;
     std::abort();
@@ -147,7 +147,7 @@ std::shared_ptr<ODESolverBase<dim,real,MeshType>> ODESolverFactory<dim,real,Mesh
     }
     if (ode_solver_type == ODEEnum::rrk_explicit_solver){
         if constexpr(dim==1){
-            const bool use_collocated_nodes = dg_input->all_parameters->use_collocated_nodes;
+            const bool use_collocated_nodes = (dg_input->all_parameters->flux_nodes_type==Parameters::AllParameters::FluxNodes::GLL) && (dg_input->all_parameters->overintegration==0);
             using PDEEnum = Parameters::AllParameters::PartialDifferentialEquation;
             const PDEEnum pde_type = dg_input->all_parameters->pde_type;
             const bool use_inviscid_burgers = (pde_type == PDEEnum::burgers_inviscid);

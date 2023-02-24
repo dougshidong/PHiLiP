@@ -62,9 +62,11 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       dealii::Patterns::Bool(),
                       "Use weak form by default. If false, use strong form.");
 
-    prm.declare_entry("use_collocated_nodes", "false",
-                      dealii::Patterns::Bool(),
-                      "Use Gauss-Legendre by default. Otherwise, use Gauss-Lobatto to collocate.");
+    prm.declare_entry("flux_nodes_type", "GL",
+                      dealii::Patterns::Selection(
+                      "GL | GLL"),
+                      "Flux nodes type, default is GL for uncollocated. NOTE: Solution nodes are type GLL."
+                      "Choices are <GL | GLL>.");
 
     prm.declare_entry("use_split_form", "false",
                       dealii::Patterns::Bool(),
@@ -344,7 +346,13 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     overintegration = prm.get_integer("overintegration");
 
     use_weak_form = prm.get_bool("use_weak_form");
-    use_collocated_nodes = prm.get_bool("use_collocated_nodes");
+    
+    const std::string flux_nodes_string = prm.get("flux_nodes_type");
+    if (flux_nodes_string == "GL") { flux_nodes_type = FluxNodes::GL; }
+    if (flux_nodes_string == "GLL") { flux_nodes_type = FluxNodes::GLL; }
+
+    use_collocated_nodes = (flux_nodes_type==FluxNodes::GLL) && (overintegration==0);
+
     use_split_form = prm.get_bool("use_split_form");
 
     const std::string two_point_num_flux_string = prm.get("two_point_num_flux_type");

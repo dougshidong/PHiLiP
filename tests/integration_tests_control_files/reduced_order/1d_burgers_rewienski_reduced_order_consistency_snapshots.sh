@@ -24,7 +24,7 @@ echo "set run_type = flow_simulation"                                           
 echo "set pde_type = burgers_rewienski"                                                             >> $file
 echo " "                                                                                            >> $file
 echo "set use_weak_form = true"                                                                     >> $file
-echo "set use_collocated_nodes = false"                                                             >> $file
+echo "set flux_nodes_type = GL"                                                             >> $file
 echo " "                                                                                            >> $file
 echo "subsection grid refinement study"                                                             >> $file
 echo " set num_refinements = 10"                                                                    >> $file

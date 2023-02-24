@@ -249,7 +249,7 @@ int main (int argc, char * argv[])
     PHiLiP::Parameters::AllParameters all_parameters_new;
     all_parameters_new.parse_parameters (parameter_handler);
 
-    // all_parameters_new.use_collocated_nodes=true;
+    // all_parameters_new.flux_nodes_type = Parameters::AllParameters::FluxNodes::GLL;
 
     //unsigned int poly_degree = 3;
     double left = 0.0;

@@ -3,7 +3,7 @@
 # Number of dimensions
 set dimension = 2
 
-set use_collocated_nodes = true
+set flux_nodes_type = GLL
 
 # The PDE we want to solve. Choices are
 # <advection|diffusion|convection_diffusion>.

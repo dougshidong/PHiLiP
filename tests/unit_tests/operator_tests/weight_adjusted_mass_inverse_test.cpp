@@ -318,7 +318,7 @@ int main (int argc, char * argv[])
     PHiLiP::Parameters::AllParameters all_parameters_new;
     all_parameters_new.parse_parameters (parameter_handler);
 
-    // all_parameters_new.use_collocated_nodes=true;
+    // all_parameters_new.flux_nodes_type = Parameters::AllParameters::FluxNodes::GLL;
     all_parameters_new.use_curvilinear_split_form=true;
     all_parameters_new.flux_reconstruction_type = Parameters::AllParameters::Flux_Reconstruction::cPlus; 
 

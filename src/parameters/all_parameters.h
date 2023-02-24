@@ -90,7 +90,12 @@ public:
     /// Flag to use weak or strong form of DG
     bool use_weak_form;
 
-    /// Flag to use Gauss-Lobatto Nodes;
+    /// Flux nodes type
+    enum FluxNodes { GL, GLL };
+    /// Store selected FluxNodes from the input file
+    FluxNodes flux_nodes_type;
+
+    /// Flag for using collocated nodes; determined based on flux_nodes_type and overintegration input parameters
     bool use_collocated_nodes;
 
     /// Flag to use split form.

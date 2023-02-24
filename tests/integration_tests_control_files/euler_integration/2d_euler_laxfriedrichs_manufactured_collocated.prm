@@ -9,7 +9,7 @@ set conv_num_flux  = lax_friedrichs
 
 set use_weak_form = true
 
-set use_collocated_nodes = true
+set flux_nodes_type = GLL
 
 subsection ODE solver
   # Maximum nonlinear solver iterations

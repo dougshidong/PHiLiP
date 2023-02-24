@@ -6,7 +6,7 @@ set use_weak_form = false
 
 set overintegration = 2
 
-set use_collocated_nodes = false
+set flux_nodes_type = GL
 
 set use_split_form = true
 

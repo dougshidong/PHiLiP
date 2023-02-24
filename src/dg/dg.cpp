@@ -161,10 +161,15 @@ DGBase<dim,real,MeshType>::create_collection_tuple(
     dealii::hp::FECollection<dim>      fe_coll_lagr;
     dealii::hp::FECollection<1>        fe_coll_lagr_1D;
 
-    // for p=0, we use a p=1 FE for collocation, since there's no p=0 quadrature for Gauss Lobatto
-    if (parameters_input->use_collocated_nodes==true)
+    const unsigned int overintegration = parameters_input->overintegration;
+    using FluxNodes = Parameters::AllParameters::FluxNodes;
+    const FluxNodes flux_nodes_type = parameters_input->flux_nodes_type;
+
+    // for p=0, we use a p=1 FE for collocation, since there's no p=0 quadrature for Gauss Lobatto (GLL)
+    if (flux_nodes_type==FluxNodes::GLL)
     {
         int degree = 1;
+        const unsigned int integration_strength = degree+1+overintegration;
 
         const dealii::FE_DGQ<dim> fe_dg(degree);
         const dealii::FESystem<dim,dim> fe_system(fe_dg, nstate);
@@ -176,31 +181,21 @@ DGBase<dim,real,MeshType>::create_collection_tuple(
         const dealii::FESystem<1,1> fe_system_1D_1state(fe_dg_1D, 1);
         fe_coll_1D_1state.push_back (fe_system_1D_1state);
 
-        dealii::Quadrature<1>     oneD_quad(degree+1);
-        dealii::Quadrature<dim>   volume_quad(degree+1);
-        dealii::Quadrature<dim-1> face_quad(degree+1); //removed const
+        dealii::Quadrature<1>     oneD_quad(integration_strength);
+        dealii::Quadrature<dim>   volume_quad(integration_strength);
+        dealii::Quadrature<dim-1> face_quad(integration_strength); //removed const
 
-        if (parameters_input->use_collocated_nodes) {
+        dealii::QGaussLobatto<1> oneD_quad_Gauss_Lobatto (integration_strength);
+        dealii::QGaussLobatto<dim> vol_quad_Gauss_Lobatto (integration_strength);
+        oneD_quad = oneD_quad_Gauss_Lobatto;
+        volume_quad = vol_quad_Gauss_Lobatto;
 
-            dealii::QGaussLobatto<1> oneD_quad_Gauss_Lobatto (degree+1);
-            dealii::QGaussLobatto<dim> vol_quad_Gauss_Lobatto (degree+1);
-            oneD_quad = oneD_quad_Gauss_Lobatto;
-            volume_quad = vol_quad_Gauss_Lobatto;
-
-            if(dim == 1) {
-                dealii::QGauss<dim-1> face_quad_Gauss_Legendre (degree+1);
-                face_quad = face_quad_Gauss_Legendre;
-            } else {
-                dealii::QGaussLobatto<dim-1> face_quad_Gauss_Lobatto (degree+1);
-                face_quad = face_quad_Gauss_Lobatto;
-            }
-        } else {
-            dealii::QGauss<1> oneD_quad_Gauss_Legendre (degree+1);
-            dealii::QGauss<dim> vol_quad_Gauss_Legendre (degree+1);
-            dealii::QGauss<dim-1> face_quad_Gauss_Legendre (degree+1);
-            oneD_quad = oneD_quad_Gauss_Legendre;
-            volume_quad = vol_quad_Gauss_Legendre;
+        if(dim == 1) {
+            dealii::QGauss<dim-1> face_quad_Gauss_Legendre (integration_strength);
             face_quad = face_quad_Gauss_Legendre;
+        } else {
+            dealii::QGaussLobatto<dim-1> face_quad_Gauss_Lobatto (integration_strength);
+            face_quad = face_quad_Gauss_Lobatto;
         }
 
         volume_quad_coll.push_back (volume_quad);
@@ -214,7 +209,7 @@ DGBase<dim,real,MeshType>::create_collection_tuple(
         fe_coll_lagr_1D.push_back (lagrange_poly_1D);
     }
 
-    int minimum_degree = (parameters_input->use_collocated_nodes==true) ?  1 :  0;
+    int minimum_degree = (flux_nodes_type==FluxNodes::GLL) ?  1 :  0;
     for (unsigned int degree=minimum_degree; degree<=max_degree; ++degree) {
 
         // Solution FECollection
@@ -232,31 +227,32 @@ DGBase<dim,real,MeshType>::create_collection_tuple(
         const dealii::FESystem<1,1> fe_system_1D_1state(fe_dg_1D, 1);
         fe_coll_1D_1state.push_back (fe_system_1D_1state);
 
-        dealii::Quadrature<1>     oneD_quad(degree+1);
-        dealii::Quadrature<dim>   volume_quad(degree+1);
-        dealii::Quadrature<dim-1> face_quad(degree+1); //removed const
+        const unsigned int integration_strength = degree+1+overintegration;
 
-        if (parameters_input->use_collocated_nodes) {
-            dealii::QGaussLobatto<1> oneD_quad_Gauss_Lobatto (degree+1);
-            dealii::QGaussLobatto<dim> vol_quad_Gauss_Lobatto (degree+1);
+        dealii::Quadrature<1>     oneD_quad(integration_strength);
+        dealii::Quadrature<dim>   volume_quad(integration_strength);
+        dealii::Quadrature<dim-1> face_quad(integration_strength); //removed const
+
+        if (flux_nodes_type==FluxNodes::GLL) {
+            dealii::QGaussLobatto<1> oneD_quad_Gauss_Lobatto (integration_strength);
+            dealii::QGaussLobatto<dim> vol_quad_Gauss_Lobatto (integration_strength);
             oneD_quad = oneD_quad_Gauss_Lobatto;
             volume_quad = vol_quad_Gauss_Lobatto;
 
             if(dim == 1)
             {
-                dealii::QGauss<dim-1> face_quad_Gauss_Legendre (degree+1);
+                dealii::QGauss<dim-1> face_quad_Gauss_Legendre (integration_strength);
                 face_quad = face_quad_Gauss_Legendre;
             }
             else
             {
-                dealii::QGaussLobatto<dim-1> face_quad_Gauss_Lobatto (degree+1);
+                dealii::QGaussLobatto<dim-1> face_quad_Gauss_Lobatto (integration_strength);
                 face_quad = face_quad_Gauss_Lobatto;
             }
-        } else {
-            const unsigned int overintegration = parameters_input->overintegration;
-            dealii::QGauss<1> oneD_quad_Gauss_Legendre (degree+1+overintegration);
-            dealii::QGauss<dim> vol_quad_Gauss_Legendre (degree+1+overintegration);
-            dealii::QGauss<dim-1> face_quad_Gauss_Legendre (degree+1+overintegration);
+        } else if(flux_nodes_type==FluxNodes::GL) {
+            dealii::QGauss<1> oneD_quad_Gauss_Legendre (integration_strength);
+            dealii::QGauss<dim> vol_quad_Gauss_Legendre (integration_strength);
+            dealii::QGauss<dim-1> face_quad_Gauss_Legendre (integration_strength);
             oneD_quad = oneD_quad_Gauss_Legendre;
             volume_quad = vol_quad_Gauss_Legendre;
             face_quad = face_quad_Gauss_Legendre;
@@ -2158,7 +2154,8 @@ void DGBase<dim,real,MeshType>::allocate_system (
     //dealii::MappingFEField<dim,dim,dealii::LinearAlgebra::distributed::Vector<double>, dealii::DoFHandler<dim>> mapping = high_order_grid->get_MappingFEField();
     //dealii::MappingFEField<dim,dim,dealii::LinearAlgebra::distributed::Vector<double>, dealii::DoFHandler<dim>> mapping = *(high_order_grid->mapping_fe_field);
 
-    //int minimum_degree = (all_parameters->use_collocated_nodes==true) ?  1 :  0;
+    // const bool use_collocated_nodes = (all_parameters->flux_nodes_type==Parameters::AllParameters::FluxNodes::GLL) && (all_parameters->overintegration==0);
+    //int minimum_degree = (use_collocated_nodes==true) ?  1 :  0;
     //int current_fe_index = 0;
     //for (unsigned int degree=minimum_degree; degree<=max_degree; ++degree) {
     //    //mapping_collection.push_back(mapping);

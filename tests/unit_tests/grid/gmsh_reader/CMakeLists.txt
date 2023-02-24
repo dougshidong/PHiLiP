@@ -136,3 +136,35 @@ add_test(
   COMMAND mpirun -n ${MPIMAX} ${CMAKE_CURRENT_BINARY_DIR}/3D_GMSH_READER --input=${filename}
   WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )
+
+set (filename "3d_cube_periodic.msh")
+if(NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${filename})
+  message(SEND_ERROR
+"Missing 3D GMSH file named ${filename}. Please download it from
+    https://drive.google.com/uc?id=1MqYCsClOlcm1fVRT0JOSBBzZ1YtB0vZE
+and place them in
+      ${CMAKE_CURRENT_SOURCE_DIR}, or simply run get_gmsh_mesh_files_local.sh"
+      )
+endif()
+configure_file(${filename} ${filename} COPYONLY)
+add_test(
+  NAME 3D_GMSH_READER_3D_CUBE_PERIODIC
+  COMMAND mpirun -n ${MPIMAX} ${CMAKE_CURRENT_BINARY_DIR}/3D_GMSH_READER --input=${filename}
+  WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
+)
+
+set (filename "SD7003_periodic.msh")
+if(NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${filename})
+  message(SEND_ERROR
+"Missing 3D GMSH file named ${filename}. Please download it from
+    https://drive.google.com/uc?id=13cjiEOov0tJZGA1DNmq5B36Qycdyakl0
+and place them in
+      ${CMAKE_CURRENT_SOURCE_DIR}, or simply run get_gmsh_mesh_files_local.sh"
+      )
+endif()
+configure_file(${filename} ${filename} COPYONLY)
+add_test(
+  NAME 3D_GMSH_READER_SD7003_PERIODIC
+  COMMAND mpirun -n ${MPIMAX} ${CMAKE_CURRENT_BINARY_DIR}/3D_GMSH_READER --input=${filename}
+  WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
+)

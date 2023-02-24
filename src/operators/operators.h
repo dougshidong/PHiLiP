@@ -130,7 +130,6 @@ protected:
 template<int dim, int n_faces>
 class SumFactorizedOperators : public OperatorsBase<dim,n_faces>
 {
-
 public:
     /// Precompute 1D operator in constructor
     SumFactorizedOperators(

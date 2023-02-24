@@ -22,6 +22,9 @@ public:
         isothermal
     };
     ThermalBoundaryCondition thermal_boundary_condition_type; ///< Store thermal boundary condition type
+    
+    bool use_constant_viscosity; /// Flag for using constant viscosity
+    double nondimensionalized_constant_viscosity; ///< Nondimensionalized constant viscosity value
 
     /// Declares the possible variables and sets the defaults.
     static void declare_parameters (dealii::ParameterHandler &prm);

@@ -16,6 +16,7 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
         prm.declare_entry("flow_case_type","taylor_green_vortex",
                           dealii::Patterns::Selection(
                           " taylor_green_vortex | "
+                          " decaying_homogeneous_isotropic_turbulence | "
                           " burgers_viscous_snapshot | "
                           " naca0012 | "
                           " burgers_rewienski_snapshot | "
@@ -30,6 +31,7 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                           "The type of flow we want to simulate. "
                           "Choices are "
                           " <taylor_green_vortex | "
+                          " decaying_homogeneous_isotropic_turbulence | "
                           " burgers_viscous_snapshot | "
                           " naca0012 | "
                           " burgers_rewienski_snapshot | "
@@ -185,7 +187,6 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
             prm.declare_entry("do_calculate_numerical_entropy", "false",
                               dealii::Patterns::Bool(),
                               "Flag to calculate numerical entropy and write to file. By default, do not calculate.");
-
         }
         prm.leave_subsection();
 
@@ -198,10 +199,53 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
         }
         prm.leave_subsection();
 
-        prm.declare_entry("interpolate_initial_condition", "true",
-                          dealii::Patterns::Bool(),
-                          "Interpolate the initial condition function onto the DG solution. If false, then it projects the physical value. True by default.");
+        prm.declare_entry("apply_initial_condition_method", "interpolate_initial_condition_function",
+                          dealii::Patterns::Selection(
+                          " interpolate_initial_condition_function | "
+                          " project_initial_condition_function | "
+                          " read_values_from_file_and_project "),
+                          "The method used for applying the initial condition. "
+                          "Choices are "
+                          " <interpolate_initial_condition_function | "
+                          " project_initial_condition_function | " 
+                          " read_values_from_file_and_project>.");
 
+        prm.declare_entry("input_flow_setup_filename_prefix", "setup",
+                          dealii::Patterns::FileName(dealii::Patterns::FileName::FileType::input),
+                          "Filename prefix of the input flow setup file. "
+                          "Example: 'setup' for files named setup-0000i.dat, where i is the MPI rank. "
+                          "For initializing the flow with values from a file. "
+                          "To be set when apply_initial_condition_method is read_values_from_file_and_project.");
+
+        prm.enter_subsection("output_velocity_field");
+        {
+            prm.declare_entry("output_velocity_field_at_fixed_times", "false",
+                              dealii::Patterns::Bool(),
+                              "Output velocity field (at equidistant nodes). False by default.");
+
+            prm.declare_entry("output_velocity_field_times_string", " ",
+                              dealii::Patterns::FileName(dealii::Patterns::FileName::FileType::input),
+                              "String of the times at which to output the velocity field. "
+                              "Example: '0.0 1.0 2.0 3.0 '");
+
+            prm.declare_entry("number_of_times_to_output_velocity_field", "0",
+                              dealii::Patterns::Integer(0, dealii::Patterns::Integer::max_int_value),
+                              "Number of times to output the velocity field. "
+                              "Must correspond to output_velocity_field_times_string.");
+
+            prm.declare_entry("output_vorticity_magnitude_field_in_addition_to_velocity", "false",
+                              dealii::Patterns::Bool(),
+                              "Output vorticity magnitude field in addition to velocity field. False by default.");
+
+            prm.declare_entry("output_flow_field_files_directory_name", ".",
+                              dealii::Patterns::FileName(dealii::Patterns::FileName::FileType::input),
+                              "Name of directory for writing flow field files. Current directory by default.");
+
+            prm.declare_entry("output_solution_files_at_velocity_field_output_times", "false",
+                              dealii::Patterns::Bool(),
+                              "Output solution files (.vtu) at velocity field output times. False by default.");
+        }
+        prm.leave_subsection();
     }
     prm.leave_subsection();
 }
@@ -212,6 +256,8 @@ void FlowSolverParam::parse_parameters(dealii::ParameterHandler &prm)
     {
         const std::string flow_case_type_string = prm.get("flow_case_type");
         if      (flow_case_type_string == "taylor_green_vortex")        {flow_case_type = taylor_green_vortex;}
+        else if (flow_case_type_string == "decaying_homogeneous_isotropic_turbulence") 
+                                                                        {flow_case_type = decaying_homogeneous_isotropic_turbulence;}
         else if (flow_case_type_string == "burgers_viscous_snapshot")   {flow_case_type = burgers_viscous_snapshot;}
         else if (flow_case_type_string == "burgers_rewienski_snapshot") {flow_case_type = burgers_rewienski_snapshot;}
         else if (flow_case_type_string == "naca0012")                   {flow_case_type = naca0012;}
@@ -221,8 +267,9 @@ void FlowSolverParam::parse_parameters(dealii::ParameterHandler &prm)
         else if (flow_case_type_string == "periodic_1D_unsteady")       {flow_case_type = periodic_1D_unsteady;}
         else if (flow_case_type_string == "gaussian_bump")              {flow_case_type = gaussian_bump;}
         else if (flow_case_type_string == "isentropic_vortex")          {flow_case_type = isentropic_vortex;}
-        else if (flow_case_type_string == "kelvin_helmholtz_instability")   {flow_case_type = kelvin_helmholtz_instability;}
-        else if (flow_case_type_string == "sshock")                             {flow_case_type = sshock;}
+        else if (flow_case_type_string == "kelvin_helmholtz_instability")   
+                                                                        {flow_case_type = kelvin_helmholtz_instability;}
+        else if (flow_case_type_string == "sshock")                     {flow_case_type = sshock;}
 
         poly_degree = prm.get_integer("poly_degree");
         
@@ -286,8 +333,23 @@ void FlowSolverParam::parse_parameters(dealii::ParameterHandler &prm)
         }
         prm.leave_subsection();
 
-        interpolate_initial_condition = prm.get_bool("interpolate_initial_condition");
+        const std::string apply_initial_condition_method_string = prm.get("apply_initial_condition_method");
+        if      (apply_initial_condition_method_string == "interpolate_initial_condition_function") {apply_initial_condition_method = interpolate_initial_condition_function;}
+        else if (apply_initial_condition_method_string == "project_initial_condition_function")     {apply_initial_condition_method = project_initial_condition_function;}
+        else if (apply_initial_condition_method_string == "read_values_from_file_and_project")      {apply_initial_condition_method = read_values_from_file_and_project;}
         
+        input_flow_setup_filename_prefix = prm.get("input_flow_setup_filename_prefix");
+
+        prm.enter_subsection("output_velocity_field");
+        {
+          output_velocity_field_at_fixed_times = prm.get_bool("output_velocity_field_at_fixed_times");
+          output_velocity_field_times_string = prm.get("output_velocity_field_times_string");
+          number_of_times_to_output_velocity_field = prm.get_integer("number_of_times_to_output_velocity_field");
+          output_vorticity_magnitude_field_in_addition_to_velocity = prm.get_bool("output_vorticity_magnitude_field_in_addition_to_velocity");
+          output_flow_field_files_directory_name = prm.get("output_flow_field_files_directory_name");
+          output_solution_files_at_velocity_field_output_times = prm.get_bool("output_solution_files_at_velocity_field_output_times");
+        }
+        prm.leave_subsection();
     }
     prm.leave_subsection();
 }

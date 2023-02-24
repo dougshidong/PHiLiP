@@ -28,6 +28,13 @@ void NavierStokesParam::declare_parameters (dealii::ParameterHandler &prm)
                           dealii::Patterns::Selection("adiabatic|isothermal"),
                           "Type of thermal boundary conditions to be imposed. "
                           "Choices are <adiabatic|isothermal>.");
+        prm.declare_entry("use_constant_viscosity","false",
+                          dealii::Patterns::Bool(),
+                          "Set as false by default (i.e. use Sutherland's law of viscosity). " 
+                          "If true, uses a constant viscosity.");
+        prm.declare_entry("nondimensionalized_constant_viscosity","1.0",
+                          dealii::Patterns::Double(1e-15, dealii::Patterns::Double::max_double_value),
+                          "Nondimensionalized constant viscosity value. Default is 1.0.");
     }
     prm.leave_subsection();
 }
@@ -44,6 +51,9 @@ void NavierStokesParam::parse_parameters (dealii::ParameterHandler &prm)
         const std::string thermal_boundary_condition_type_string = prm.get("thermal_boundary_condition_type");
         if (thermal_boundary_condition_type_string == "adiabatic")  thermal_boundary_condition_type = ThermalBoundaryCondition::adiabatic;
         if (thermal_boundary_condition_type_string == "isothermal") thermal_boundary_condition_type = ThermalBoundaryCondition::isothermal;
+    
+        use_constant_viscosity = prm.get_bool("use_constant_viscosity");
+        nondimensionalized_constant_viscosity = prm.get_double("nondimensionalized_constant_viscosity");
     }
     prm.leave_subsection();
 }

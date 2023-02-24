@@ -77,7 +77,7 @@ int main (int argc, char * argv[])
     all_parameters_new.flux_reconstruction_type = FR_enum::cHU;
     // all_parameters_new.overintegration = 2;
     // const unsigned int overint= all_parameters_new.overintegration;
-    // all_parameters_new.use_collocated_nodes = true;
+    // all_parameters_new.flux_nodes_type = Parameters::AllParameters::FluxNodes::GLL;
 
     // double skew_sym = 0.0;
     double M_K_HU =0.0;

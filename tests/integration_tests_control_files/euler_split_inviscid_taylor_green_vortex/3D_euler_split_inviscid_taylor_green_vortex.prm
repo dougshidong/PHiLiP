@@ -6,7 +6,7 @@ set test_type = euler_split_taylor_green
 
 set use_weak_form = false
 
-set use_collocated_nodes = false
+set flux_nodes_type = GL
 
 set overintegration = 0
 
@@ -61,5 +61,5 @@ end
 
 subsection flow_solver
     set flow_case_type = taylor_green_vortex
-    set interpolate_initial_condition = false
+    set apply_initial_condition_method = project_initial_condition_function
 end

@@ -8,6 +8,7 @@
 #include "reduced_order/pod_basis_offline.h"
 #include "physics/initial_conditions/set_initial_condition.h"
 #include "mesh/mesh_adaptation.h"
+#include <deal.II/base/timer.h>
 
 namespace PHiLiP {
 
@@ -76,12 +77,12 @@ FlowSolver<dim, nstate>::FlowSolver(
         dg->solution = solution_no_ghost; //< assignment
 #endif
     } else {
-        // Initialize solution from initial_condition_function
-        pcout << "Initializing solution with initial condition function... " << std::flush;
+        // Initialize solution
         SetInitialCondition<dim,nstate,double>::set_initial_condition(flow_solver_case->initial_condition_function, dg, &all_param);
     }
     dg->solution.update_ghost_values();
-    pcout << "done." << std::endl;
+    
+    // Allocate ODE solver after initializing DG
     ode_solver->allocate_ode_system();
 
     // output a copy of the input parameters file
@@ -113,11 +114,11 @@ std::vector<std::string> FlowSolver<dim,nstate>::get_data_table_column_names(con
 }
 
 template <int dim, int nstate>
-std::string FlowSolver<dim,nstate>::get_restart_filename_without_extension(const int restart_index_input) const {
+std::string FlowSolver<dim,nstate>::get_restart_filename_without_extension(const unsigned int restart_index_input) const {
     // returns the restart file index as a string with appropriate padding
     std::string restart_index_string = std::to_string(restart_index_input);
     const unsigned int length_of_index_with_padding = 5;
-    const int number_of_zeros = length_of_index_with_padding - restart_index_string.length();
+    const unsigned int number_of_zeros = length_of_index_with_padding - restart_index_string.length();
     restart_index_string.insert(0, number_of_zeros, '0');
 
     const std::string prefix = "restart-";
@@ -188,7 +189,7 @@ std::string FlowSolver<dim,nstate>::double_to_string(const double value_input) c
 
 template <int dim, int nstate>
 void FlowSolver<dim,nstate>::write_restart_parameter_file(
-    const int restart_index_input,
+    const unsigned int restart_index_input,
     const double time_step_input) const {
     // write the restart parameter file
     if(mpi_rank==0) {
@@ -311,7 +312,7 @@ void FlowSolver<dim,nstate>::write_restart_parameter_file(
 #if PHILIP_DIM>1
 template <int dim, int nstate>
 void FlowSolver<dim,nstate>::output_restart_files(
-    const int current_restart_index,
+    const unsigned int current_restart_index,
     const double time_step_input,
     const std::shared_ptr <dealii::TableHandler> unsteady_data_table) const
 {
@@ -401,14 +402,15 @@ int FlowSolver<dim,nstate>::run() const
                 time_step = flow_solver_case->get_constant_time_step(dg);
             } else {
                 pcout << "Setting initial adaptive time step... " << std::flush;
-                time_step = flow_solver_case->get_adaptive_time_step(dg);
+                time_step = flow_solver_case->get_adaptive_time_step_initial(dg);
             }
         }
+        flow_solver_case->set_time_step(time_step);
         pcout << "done." << std::endl;
         //----------------------------------------------------
         // dealii::TableHandler and data at initial time
         //----------------------------------------------------
-        std::shared_ptr<dealii::TableHandler> unsteady_data_table = std::make_shared<dealii::TableHandler>();//(mpi_communicator) ?;
+        std::shared_ptr<dealii::TableHandler> unsteady_data_table = std::make_shared<dealii::TableHandler>();
         if(flow_solver_param.restart_computation_from_file == true) {
             pcout << "Initializing data table from corresponding restart file... " << std::flush;
             const std::string restart_filename_without_extension = get_restart_filename_without_extension(flow_solver_param.restart_file_index);
@@ -425,10 +427,16 @@ int FlowSolver<dim,nstate>::run() const
         // Time advancement loop with on-the-fly post-processing
         //----------------------------------------------------
         pcout << "Advancing solution in time... " << std::endl;
+        pcout << "Timer starting. " << std::endl;
+        dealii::Timer timer(this->mpi_communicator,false);
+        timer.start();
         while((ode_solver->current_time) < (final_time - 1E-13)) //comparing to 1E-13 to avoid taking an extra timestep
         {
             // update adaptive time step
-            if(flow_solver_param.adaptive_time_step == true) time_step = flow_solver_case->get_adaptive_time_step(dg);
+            if(flow_solver_param.adaptive_time_step == true) {
+                time_step = flow_solver_case->get_adaptive_time_step(dg);
+                flow_solver_case->set_time_step(time_step);
+            }
 
             // advance solution
             ode_solver->step_in_time(time_step,false); // pseudotime==false
@@ -443,14 +451,14 @@ int FlowSolver<dim,nstate>::run() const
                     const bool is_output_time = ((ode_solver->current_time <= current_desired_time_for_output_restart_files_every_dt_time_intervals) && 
                                                 ((ode_solver->current_time + time_step) > current_desired_time_for_output_restart_files_every_dt_time_intervals));
                     if (is_output_time) {
-                        const int file_number = current_desired_time_for_output_restart_files_every_dt_time_intervals / flow_solver_param.output_restart_files_every_dt_time_intervals;
+                        const unsigned int file_number = current_desired_time_for_output_restart_files_every_dt_time_intervals / flow_solver_param.output_restart_files_every_dt_time_intervals;
                         output_restart_files(file_number, time_step, unsteady_data_table);
                         current_desired_time_for_output_restart_files_every_dt_time_intervals += flow_solver_param.output_restart_files_every_dt_time_intervals;
                     }
                 } else /*if (flow_solver_param.output_restart_files_every_x_steps > 0)*/ {
                     const bool is_output_iteration = (ode_solver->current_iteration % flow_solver_param.output_restart_files_every_x_steps == 0);
                     if (is_output_iteration) {
-                        const int file_number = ode_solver->current_iteration / flow_solver_param.output_restart_files_every_x_steps;
+                        const unsigned int file_number = ode_solver->current_iteration / flow_solver_param.output_restart_files_every_x_steps;
                         output_restart_files(file_number, time_step, unsteady_data_table);
                     }
                 }
@@ -476,6 +484,11 @@ int FlowSolver<dim,nstate>::run() const
                 }
             }
         } // close while
+        timer.stop();
+        pcout << "Timer stopped. " << std::endl;
+        const double max_wall_time = dealii::Utilities::MPI::max(timer.wall_time(), this->mpi_communicator);
+        pcout << "Elapsed wall time (mpi max): " << max_wall_time << " seconds." << std::endl;
+        pcout << "Elapsed CPU time: " << timer.cpu_time() << " seconds." << std::endl;
     } else {
         //----------------------------------------------------
         // Steady-state solution

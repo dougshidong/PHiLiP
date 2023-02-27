@@ -294,15 +294,12 @@ double PeriodicEntropyTests<dim, nstate>::compute_entropy(
             }
             const double density = soln_state[0];                                                                                                                                                              
             if (density < 0) this->pcout << "WARNING: Negative density detected at a node!!" << std::endl;
-            const double pressure = euler_physics->compute_pressure(soln_state);
+            const double pressure = this->euler_physics->compute_pressure(soln_state);
             if (pressure < 0) this->pcout << "WARNING: Negative pressure detected at a node!!" << std::endl;
             // TEMP THIS SHOULD GO THROUGH PHYSICS WHEN PR#197 GOES THROUGH 
-            const double entropy = log(pressure) - 1.4* log(density);
-            const double quadrature_entropy = -density*entropy;
-            //integrand_numerical_entropy_function = this->euler_physics->compute_numerical_entropy_function(soln_state); //SOMEHOW NOT REACHING PHYSICS
+            const double quadrature_entropy = this->euler_physics->compute_numerical_entropy_function(soln_state);
             integrand_numerical_entropy_function = quadrature_entropy;
             integral_numerical_entropy_function += integrand_numerical_entropy_function * quad_weights[iquad] * metric_oper.det_Jac_vol[iquad];
-            //integrand_numerical_entropy_function = this->euler_physics->compute_numerical_entropy_function(soln_state); //SOMEHOW NOT REACHING PHYSICS
         }
     }
     // update integrated quantities and return
@@ -327,6 +324,9 @@ void PeriodicEntropyTests<dim, nstate>::compute_unsteady_data_and_write_to_table
 
     const double entropy = this->compute_entropy(dg);
     if (std::isnan(entropy)){
+        // Note that this throws an exception rather than using abort()
+        // such that the test khi_robustness can start a test after
+        // an expected crash.
         this->pcout << "Entropy is nan. Ending flow simulation by throwing an exception..." << std::endl << std::flush;
         throw current_time;
     }
@@ -341,7 +341,7 @@ void PeriodicEntropyTests<dim, nstate>::compute_unsteady_data_and_write_to_table
         throw current_time;
     }
 
-    //if ((current_iteration % output_solution_every_n_iterations) == 0){
+    if ((current_iteration % output_solution_every_n_iterations) == 0){
 
         this->pcout << "    Iter: " << current_iteration
                     << "    Time: " << std::setprecision(16) << current_time
@@ -351,7 +351,7 @@ void PeriodicEntropyTests<dim, nstate>::compute_unsteady_data_and_write_to_table
         if (is_rrk)
             this->pcout << "    gamma^n: " << relaxation_parameter;
         this->pcout << std::endl;
-    //}
+    }
     unsteady_data_table->add_value("iteration", current_iteration);
     unsteady_data_table->set_scientific("iteration", false);
     this->add_value_to_data_table(current_time,"time",unsteady_data_table);
@@ -375,7 +375,9 @@ void PeriodicEntropyTests<dim, nstate>::compute_unsteady_data_and_write_to_table
 }
 
 //Only template for Euler/NS
-template class PeriodicEntropyTests <PHILIP_DIM,PHILIP_DIM+2>;
+#if PHILIP_DIM>1
+    template class PeriodicEntropyTests <PHILIP_DIM,PHILIP_DIM+2>;
+#endif
 
 } // FlowSolver namespace
 } // PHiLiP namespace

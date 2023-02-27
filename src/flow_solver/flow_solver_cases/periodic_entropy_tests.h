@@ -29,13 +29,14 @@ protected:
     /// Enum of integrated quantities to calculate
     enum IntegratedQuantityEnum { kinetic_energy, max_wave_speed };
 
-    /// Integrated KE
-//    double integrated_KE;
-
-    /// Maximum wavespeed
-//    double max_wave_speed;
-
     /// Compute and update overintegrated quantities
+    /** Same function as in periodic_turbulence. Has some computational inefficiency
+     * due to inclusion of solution gradient, but leaving to make it easier to add
+     * other integrated quantities if needed in the future.
+     * This only returns one quantity, specified by the second argument
+     * Will need to be modified in the future if multiple quantites are needed
+     * See structure in periodic_turbulence
+     */
     double compute_overintegrated_quantities(DGBase<dim, double> &dg, IntegratedQuantityEnum quantity) const;
 
     /// Compute the desired unsteady data and write it to a table

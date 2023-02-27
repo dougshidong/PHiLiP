@@ -297,6 +297,9 @@ public:
 
 /// Kelvin-Helmholtz Instability, parametrized by Atwood number
 /// See Chan et al., On the entropy projection..., 2022, Pg. 15
+///     Note that some equations are not typed correctly
+///     See github.com/trixi-framework/paper-2022-robustness-entropy-projection
+///     for initial condition which is implemented herein
 template <int dim, int nstate, typename real>
 class InitialConditionFunction_KHI : public InitialConditionFunction<dim,nstate,real>
 {

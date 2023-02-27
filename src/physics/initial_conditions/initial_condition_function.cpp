@@ -407,6 +407,9 @@ inline real InitialConditionFunction_IsentropicVortex<dim,nstate,real>
 // ========================================================
 // KELVIN-HELMHOLTZ INSTABILITY
 // See Chan et al., On the entropy projection..., 2022, Pg. 15
+//     Note that some equations are not typed correctly
+//     See github.com/trixi-framework/paper-2022-robustness-entropy-projection
+//     for initial condition which is implemented herein
 // ========================================================
 template <int dim, int nstate, typename real>
 InitialConditionFunction_KHI<dim,nstate,real>
@@ -433,8 +436,7 @@ inline real InitialConditionFunction_KHI<dim,nstate,real>
     const double pressure = 1;
     const double x_velocity = B - 0.5;
     const double y_velocity = 0.1 * sin(2 * pi * point[0]);
-    const double z_velocity = 0; //Chan gives in 2D, here generalizing to 3D
-    const double vel2 = x_velocity*x_velocity + y_velocity*y_velocity + z_velocity*z_velocity;
+    const double vel2 = x_velocity*x_velocity + y_velocity*y_velocity;
 
     //Convert to conservative variables
     if (istate == 0)      return density;       //density 
@@ -442,7 +444,6 @@ inline real InitialConditionFunction_KHI<dim,nstate,real>
         + 0.5 * density * vel2;   //total energy
     else if (istate == 1) return density * x_velocity;  //x-momentum
     else if (istate == 2) return density * y_velocity;  //y-momentum
-    else if (istate == 3) return density * z_velocity;  //z-momentum
     else return 0;
     
 
@@ -554,6 +555,12 @@ template class InitialConditionFunction_BurgersInviscidEnergy <PHILIP_DIM, 1, do
 #if PHILIP_DIM==3
 template class InitialConditionFunction_TaylorGreenVortex <PHILIP_DIM, PHILIP_DIM+2, double>;
 template class InitialConditionFunction_TaylorGreenVortex_Isothermal <PHILIP_DIM, PHILIP_DIM+2, double>;
+#endif
+#if PHILIP_DIM>1
+template class InitialConditionFunction_IsentropicVortex <PHILIP_DIM, PHILIP_DIM+2, double>;
+#endif
+#if PHILIP_DIM==2
+template class InitialConditionFunction_KHI <PHILIP_DIM, PHILIP_DIM+2, double>;
 #endif
 // functions instantiated for all dim
 template class InitialConditionFunction_Zero <PHILIP_DIM,1, double>;

@@ -175,12 +175,12 @@ public:
         dual_weighted_residual_mesh_adaptation,
         taylor_green_vortex_energy_check,
         taylor_green_vortex_restart_check,
+        homogeneous_isotropic_turbulence_initialization_check,
         time_refinement_study,
         time_refinement_study_reference,
-        h_refinement_study_isentropic_vortex,
         burgers_energy_conservation_rrk,
         euler_entropy_conserving_split_forms_check,
-        homogeneous_isotropic_turbulence_initialization_check,
+        h_refinement_study_isentropic_vortex,
         khi_robustness,
     };
     /// Store selected TestType from the input file.

@@ -163,9 +163,9 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       " homogeneous_isotropic_turbulence_initialization_check | "
                       " time_refinement_study | "
                       " time_refinement_study_reference | "
-                      " h_refinement_study_isentropic_vortex | "
                       " burgers_energy_conservation_rrk | "
                       " euler_entropy_conserving_split_forms_check | "
+                      " h_refinement_study_isentropic_vortex | "
                       " khi_robustness"),
                       "The type of test we want to solve. "
                       "Choices are " 
@@ -199,10 +199,10 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       "  homogeneous_isotropic_turbulence_initialization_check | "
                       "  time_refinement_study | "
                       "  time_refinement_study_reference | "
-                      "  h_refinement_study_isentropic_vortex | "
                       "  burgers_energy_conservation_rrk | "
                       "  euler_entropy_conserving_split_forms_check | "
-                      "  khi_robustness>."),
+                      "  h_refinement_study_isentropic_vortex | "
+                      "  khi_robustness>.");
 
     prm.declare_entry("pde_type", "advection",
                       dealii::Patterns::Selection(
@@ -344,11 +344,11 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
                                                                         { test_type = homogeneous_isotropic_turbulence_initialization_check; }
     else if (test_string == "time_refinement_study")                    { test_type = time_refinement_study; }
     else if (test_string == "time_refinement_study_reference")          { test_type = time_refinement_study_reference; }
-    else if (test_string == "h_refinement_study_isentropic_vortex")     { test_type = h_refinement_study_isentropic_vortex; }
     else if (test_string == "burgers_energy_conservation_rrk")          { test_type = burgers_energy_conservation_rrk; }
-    else if (test_string == "euler_entropy_conserving_split_forms_check")           { test_type = euler_entropy_conserving_split_forms_check; }
+    else if (test_string == "euler_entropy_conserving_split_forms_check") 
+                                                                        { test_type = euler_entropy_conserving_split_forms_check; }
+    else if (test_string == "h_refinement_study_isentropic_vortex")     { test_type = h_refinement_study_isentropic_vortex; }
     else if (test_string == "khi_robustness")                           { test_type = khi_robustness; }
-    else if (test_string == "euler_entropy_conserving_split_forms_check")           { test_type = euler_entropy_conserving_split_forms_check; }
     
     overintegration = prm.get_integer("overintegration");
 

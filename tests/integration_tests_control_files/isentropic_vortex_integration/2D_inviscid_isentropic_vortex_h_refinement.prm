@@ -26,9 +26,6 @@ set two_point_num_flux_type = IR
 subsection ODE solver
   set ode_output = quiet 
   set ode_solver_type = runge_kutta 
-  #set ode_solver_type = rrk_explicit # currently not available
-  set output_solution_every_x_steps = -1
-  set output_solution_every_dt_time_intervals = 100.0 
   set runge_kutta_method = rk4_ex
 end
 
@@ -42,14 +39,15 @@ subsection euler
 end
 
 subsection time_refinement_study
-  set number_of_times_to_solve = 5
+  set number_of_times_to_solve = 2
   set refinement_ratio = 0.5
 end
 
 subsection flow_solver
   set flow_case_type = isentropic_vortex
   set poly_degree = 3
-  set final_time = 23.66431913239 #=20 * sqrt(1.4), time for vortex to advect around the domain
+  #set final_time = 23.66431913239 #=20 * sqrt(1.4), time for vortex to advect around the domain
+  set final_time = 5.9160797831 #1/4 cycle to make ctest faster. Full cycle is recommended for better results.
   set courant_friedrichs_lewy_number = 0.1
   set unsteady_data_table_filename = isentropic_vortex_time_table
   subsection grid
@@ -57,5 +55,4 @@ subsection flow_solver
     set grid_right_bound = 10.0
     set number_of_grid_elements_per_dimension = 8
   end
-  set interpolate_initial_condition = true
 end

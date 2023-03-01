@@ -341,16 +341,20 @@ void PeriodicEntropyTests<dim, nstate>::compute_unsteady_data_and_write_to_table
         throw current_time;
     }
 
-    if ((current_iteration % output_solution_every_n_iterations) == 0){
+    if (output_solution_every_n_iterations > 0){
+        //Need to check that output_solution_every_n_iterations is nonzero to avoid
+        //floating point exception
+        if ((current_iteration % output_solution_every_n_iterations) == 0){
 
-        this->pcout << "    Iter: " << current_iteration
-                    << "    Time: " << std::setprecision(16) << current_time
-                    << "    Entropy: " << entropy
-                    << "    U/Uo: " << entropy/initial_entropy
-                    << "    Kinetic energy: " << kinetic_energy;
-        if (is_rrk)
-            this->pcout << "    gamma^n: " << relaxation_parameter;
-        this->pcout << std::endl;
+            this->pcout << "    Iter: " << current_iteration
+                        << "    Time: " << std::setprecision(16) << current_time
+                        << "    Entropy: " << entropy
+                        << "    U/Uo: " << entropy/initial_entropy
+                        << "    Kinetic energy: " << kinetic_energy;
+            if (is_rrk)
+                this->pcout << "    gamma^n: " << relaxation_parameter;
+            this->pcout << std::endl;
+        }
     }
     unsteady_data_table->add_value("iteration", current_iteration);
     unsteady_data_table->set_scientific("iteration", false);

@@ -14,10 +14,8 @@ PeriodicEntropyTests<dim, nstate>::PeriodicEntropyTests(const PHiLiP::Parameters
         : PeriodicCubeFlow<dim, nstate>(parameters_input)
         , unsteady_data_table_filename_with_extension(this->all_param.flow_solver_param.unsteady_data_table_filename+".txt")
 {
-    PHiLiP::Parameters::AllParameters parameters_euler = this->all_param;
-    parameters_euler.pde_type = Parameters::AllParameters::PartialDifferentialEquation::euler;
     this->euler_physics = std::dynamic_pointer_cast<Physics::Euler<dim,dim+2,double>>(
-            PHiLiP::Physics::PhysicsFactory<dim,nstate,double>::create_Physics(&parameters_euler));
+            PHiLiP::Physics::PhysicsFactory<dim,nstate,double>::create_Physics(&(this->all_param)));
 }
 
 template <int dim, int nstate>
@@ -33,11 +31,12 @@ double PeriodicEntropyTests<dim,nstate>::get_constant_time_step(std::shared_ptr<
 
     double constant_time_step=0;
     if (flow_case == FlowCaseEnum::isentropic_vortex){
+        // Using dt = CFL * delta_x/U_infinity, consistent with Ranocha's choice (Relaxation Runge Kutta methods... 2020)
         // U_infinity is initialized as M_infinity
         constant_time_step = CFL * approximate_grid_spacing / this->all_param.euler_param.mach_inf;
     } else if (flow_case == FlowCaseEnum::kelvin_helmholtz_instability){
         /*
-        const double max_wave_speed = this->compute_overintegrated_quantities(*dg, IntegratedQuantityEnum::max_wave_speed);
+        const double max_wave_speed = this->compute_integrated_quantities(*dg, IntegratedQuantityEnum::max_wave_speed);
         constant_time_step = CFL * approximate_grid_spacing / max_wave_speed;
         */
         // TEMP using same as is defined in periodic turbulence
@@ -45,18 +44,21 @@ double PeriodicEntropyTests<dim,nstate>::get_constant_time_step(std::shared_ptr<
         const double approximate_grid_spacing = (this->domain_right-this->domain_left)/pow(number_of_degrees_of_freedom_per_state,(1.0/dim));
         const double constant_time_step = this->all_param.flow_solver_param.courant_friedrichs_lewy_number * approximate_grid_spacing;
         return constant_time_step;
+    } else{
+        this->pcout << "Timestep size has not been defined in periodic_entropy_tests for this flow_case_type. Aborting..." << std::endl;
+        std::abort();
     }
+
     return constant_time_step;
 }
 
 template<int dim, int nstate>
-double PeriodicEntropyTests<dim, nstate>::compute_overintegrated_quantities(DGBase<dim, double> &dg, IntegratedQuantityEnum quantity) const
+double PeriodicEntropyTests<dim, nstate>::compute_integrated_quantities(DGBase<dim, double> &dg, IntegratedQuantityEnum quantity, const int overintegrate) const
 {
-    double integrated_KE = 0;
-    double max_wave_speed = 0;
-
-    // Overintegrate the error to make sure there is not integration error in the error estimate
-    int overintegrate = 10;
+    //double integrated_KE = 0;
+    //double max_wave_speed = 0;
+    //double integrated_numerical_entropy = 0;
+    double integrated_quantity = 0.0;
 
     // Set the quadrature of size dim and 1D for sum-factorization.
     dealii::QGauss<dim> quad_extra(dg.max_degree+1+overintegrate);
@@ -179,19 +181,37 @@ double PeriodicEntropyTests<dim, nstate>::compute_overintegrated_quantities(DGBa
                     soln_grad_at_q[istate][idim] = soln_grad_at_q_vect[istate][idim][iquad];
                 }
             }
+            
+            //#####################################################################
+            // Compute integrated quantities here
+            //#####################################################################
+            if (quantity == IntegratedQuantityEnum::kinetic_energy) { 
+                const double KE_integrand = this->euler_physics->compute_kinetic_energy_from_conservative_solution(soln_at_q);
+                integrated_quantity += KE_integrand * quad_weights[iquad] * metric_oper.det_Jac_vol[iquad];
+            } else if (quantity == IntegratedQuantityEnum::numerical_entropy) {
+                
+                const double quadrature_entropy = this->euler_physics->compute_numerical_entropy_function(soln_at_q);
+                if (isnan(quadrature_entropy))  this->pcout << "WARNING: NaN entropy detected at a node!"  << std::endl;
+                integrated_quantity += quadrature_entropy * quad_weights[iquad] * metric_oper.det_Jac_vol[iquad];
+            } else if (quantity == IntegratedQuantityEnum::max_wave_speed) {
 
-            double KE_integrand = this->euler_physics->compute_kinetic_energy_from_conservative_solution(soln_at_q);
-            integrated_KE += KE_integrand * quad_weights[iquad] * metric_oper.det_Jac_vol[iquad];
-            double local_wave_speed = this->euler_physics->max_convective_eigenvalue(soln_at_q);
-            if(local_wave_speed > max_wave_speed) max_wave_speed= local_wave_speed;
+                const double local_wave_speed = this->euler_physics->max_convective_eigenvalue(soln_at_q);
+                if(local_wave_speed > integrated_quantity) integrated_quantity = local_wave_speed;
+            } else {
+                this->pcout << "Integrated quantity is not correctly defined." << std::endl;
+            }
+            //#####################################################################
         }
     }
-    integrated_KE = dealii::Utilities::MPI::sum(integrated_KE, this->mpi_communicator);
-    max_wave_speed= dealii::Utilities::MPI::max(max_wave_speed, this->mpi_communicator);
 
-    if (quantity == IntegratedQuantityEnum::max_wave_speed) return max_wave_speed;
-    else if (quantity == IntegratedQuantityEnum::kinetic_energy) return integrated_KE;
-    else return 0;
+    //MPI
+    if (quantity == max_wave_speed) {
+        integrated_quantity = dealii::Utilities::MPI::max(integrated_quantity, this->mpi_communicator);
+    } else {
+        integrated_quantity = dealii::Utilities::MPI::sum(integrated_quantity, this->mpi_communicator);
+    }
+
+    return integrated_quantity;
 }
 
 
@@ -200,110 +220,7 @@ double PeriodicEntropyTests<dim, nstate>::compute_entropy(
         const std::shared_ptr <DGBase<dim, double>> dg
         ) const
 {
-    const double poly_degree = this->all_param.flow_solver_param.poly_degree;
-
-    const unsigned int n_dofs_cell = dg->fe_collection[poly_degree].dofs_per_cell;
-    const unsigned int n_quad_pts = dg->volume_quadrature_collection[poly_degree].size();
-    const unsigned int n_shape_fns = n_dofs_cell / nstate;
-
-    OPERATOR::vol_projection_operator<dim,2*dim> vol_projection(1, poly_degree, dg->max_grid_degree);
-    vol_projection.build_1D_volume_operator(dg->oneD_fe_collection_1state[poly_degree], dg->oneD_quadrature_collection[poly_degree]);
-
-    // Construct the basis functions and mapping shape functions.
-    OPERATOR::basis_functions<dim,2*dim> soln_basis(1, poly_degree, dg->max_grid_degree); 
-    soln_basis.build_1D_volume_operator(dg->oneD_fe_collection_1state[poly_degree], dg->oneD_quadrature_collection[poly_degree]);
-
-    OPERATOR::mapping_shape_functions<dim,2*dim> mapping_basis(1, poly_degree, dg->max_grid_degree);
-    mapping_basis.build_1D_shape_functions_at_grid_nodes(dg->high_order_grid->oneD_fe_system, dg->high_order_grid->oneD_grid_nodes);
-    mapping_basis.build_1D_shape_functions_at_flux_nodes(dg->high_order_grid->oneD_fe_system, dg->oneD_quadrature_collection[poly_degree], dg->oneD_face_quadrature);
-
-    std::vector<dealii::types::global_dof_index> dofs_indices (n_dofs_cell);
-    
-    double integrand_numerical_entropy_function=0;
-    double integral_numerical_entropy_function=0;
-    const std::vector<double> &quad_weights = dg->volume_quadrature_collection[poly_degree].get_weights();
-
-    auto metric_cell = dg->high_order_grid->dof_handler_grid.begin_active();
-    // Changed for loop to update metric_cell.
-    for (auto cell = dg->dof_handler.begin_active(); cell!= dg->dof_handler.end(); ++cell, ++metric_cell) {
-        if (!cell->is_locally_owned()) continue;
-        cell->get_dof_indices (dofs_indices);
-        
-        // We first need to extract the mapping support points (grid nodes) from high_order_grid.
-        const dealii::FESystem<dim> &fe_metric = dg->high_order_grid->fe_system;
-        const unsigned int n_metric_dofs = fe_metric.dofs_per_cell;
-        const unsigned int n_grid_nodes  = n_metric_dofs / dim;
-        std::vector<dealii::types::global_dof_index> metric_dof_indices(n_metric_dofs);
-        metric_cell->get_dof_indices (metric_dof_indices);
-        std::array<std::vector<double>,dim> mapping_support_points;
-        for(int idim=0; idim<dim; idim++){
-            mapping_support_points[idim].resize(n_grid_nodes);
-        }
-        // Get the mapping support points (physical grid nodes) from high_order_grid.
-        // Store it in such a way we can use sum-factorization on it with the mapping basis functions.
-        const std::vector<unsigned int > &index_renumbering = dealii::FETools::hierarchic_to_lexicographic_numbering<dim>(dg->max_grid_degree);
-        for (unsigned int idof = 0; idof< n_metric_dofs; ++idof) {
-            const double val = (dg->high_order_grid->volume_nodes[metric_dof_indices[idof]]);
-            const unsigned int istate = fe_metric.system_to_component_index(idof).first; 
-            const unsigned int ishape = fe_metric.system_to_component_index(idof).second; 
-            const unsigned int igrid_node = index_renumbering[ishape];
-            mapping_support_points[istate][igrid_node] = val; 
-        }
-        // Construct the metric operators.
-        OPERATOR::metric_operators<double, dim, 2*dim> metric_oper(nstate, poly_degree, dg->max_grid_degree, false, false);
-        // Build the metric terms to compute the gradient and volume node positions.
-        // This functions will compute the determinant of the metric Jacobian and metric cofactor matrix. 
-        // If flags store_vol_flux_nodes and store_surf_flux_nodes set as true it will also compute the physical quadrature positions.
-        metric_oper.build_volume_metric_operators(
-            n_quad_pts, n_grid_nodes,
-            mapping_support_points,
-            mapping_basis,
-            dg->all_parameters->use_invariant_curl_form);
-
-        // Fetch the modal soln coefficients
-        // We immediately separate them by state as to be able to use sum-factorization
-        // in the interpolation operator. If we left it by n_dofs_cell, then the matrix-vector
-        // mult would sum the states at the quadrature point.
-        // That is why the basis functions are based off the 1state oneD fe_collection.
-        std::array<std::vector<double>,nstate> soln_coeff;
-        for (unsigned int idof = 0; idof < n_dofs_cell; ++idof) {
-            const unsigned int istate = dg->fe_collection[poly_degree].system_to_component_index(idof).first;
-            const unsigned int ishape = dg->fe_collection[poly_degree].system_to_component_index(idof).second;
-            if(ishape == 0){
-                soln_coeff[istate].resize(n_shape_fns);
-            }
-            soln_coeff[istate][ishape] = dg->solution(dofs_indices[idof]);
-        }
-        // Interpolate each state to the quadrature points using sum-factorization
-        // with the basis functions in each reference direction.
-        std::array<std::vector<double>,nstate> soln_at_q;
-        for(int istate=0; istate<nstate; istate++){
-            soln_at_q[istate].resize(n_quad_pts);
-            // Interpolate soln coeff to volume cubature nodes.
-            soln_basis.matrix_vector_mult_1D(soln_coeff[istate], soln_at_q[istate],
-                                             soln_basis.oneD_vol_operator);
-        }
-
-        // Loop over quadrature nodes, compute quantities to be integrated, and integrate them.
-        for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
-
-            std::array<double,nstate> soln_state;
-            // Extract solution and gradient in a way that the physics ca n use them.
-            for(int istate=0; istate<nstate; istate++){
-                soln_state[istate] = soln_at_q[istate][iquad];
-            }
-            const double density = soln_state[0];                                                                                                                                                              
-            if (density < 0) this->pcout << "WARNING: Negative density detected at a node!!" << std::endl;
-            const double pressure = this->euler_physics->compute_pressure(soln_state);
-            if (pressure < 0) this->pcout << "WARNING: Negative pressure detected at a node!!" << std::endl;
-            // TEMP THIS SHOULD GO THROUGH PHYSICS WHEN PR#197 GOES THROUGH 
-            const double quadrature_entropy = this->euler_physics->compute_numerical_entropy_function(soln_state);
-            integrand_numerical_entropy_function = quadrature_entropy;
-            integral_numerical_entropy_function += integrand_numerical_entropy_function * quad_weights[iquad] * metric_oper.det_Jac_vol[iquad];
-        }
-    }
-    // update integrated quantities and return
-    return dealii::Utilities::MPI::sum(integral_numerical_entropy_function, this->mpi_communicator);
+     return compute_integrated_quantities(*dg, IntegratedQuantityEnum::numerical_entropy, 0);
 }
 
 template <int dim, int nstate>
@@ -322,10 +239,12 @@ void PeriodicEntropyTests<dim, nstate>::compute_unsteady_data_and_write_to_table
     const bool is_rrk = (this->all_param.ode_solver_param.ode_solver_type == ODEEnum::rrk_explicit_solver);
     const double dt_actual = current_time - previous_time;
 
-    const double entropy = this->compute_entropy(dg);
+    // All discrete proofs use solution nodes, therefore it is best to report 
+    // entropy on the solution nodes rather than by overintegrating.
+    const double entropy = this->compute_integrated_quantities(*dg, IntegratedQuantityEnum::numerical_entropy, 0); //do not overintegrate
     if (std::isnan(entropy)){
         // Note that this throws an exception rather than using abort()
-        // such that the test khi_robustness can start a test after
+        // such that the test khi_robustness can start another test after
         // an expected crash.
         this->pcout << "Entropy is nan. Ending flow simulation by throwing an exception..." << std::endl << std::flush;
         throw current_time;
@@ -335,7 +254,7 @@ void PeriodicEntropyTests<dim, nstate>::compute_unsteady_data_and_write_to_table
     double relaxation_parameter = 0;
     if (is_rrk) relaxation_parameter = dt_actual/dt;
 
-    const double kinetic_energy = this->compute_overintegrated_quantities(*dg, IntegratedQuantityEnum::kinetic_energy);
+    const double kinetic_energy = this->compute_integrated_quantities(*dg, IntegratedQuantityEnum::kinetic_energy);
     if (std::isnan(kinetic_energy)){
         this->pcout << "Kinetic energy is nan. Ending flow simulation by throwing an exception..." << std::endl << std::flush;
         throw current_time;
@@ -378,7 +297,6 @@ void PeriodicEntropyTests<dim, nstate>::compute_unsteady_data_and_write_to_table
 
 }
 
-//Only template for Euler/NS
 #if PHILIP_DIM>1
     template class PeriodicEntropyTests <PHILIP_DIM,PHILIP_DIM+2>;
 #endif

@@ -18,7 +18,8 @@ public:
     /// Destructor
     ~PeriodicEntropyTests() {};
 
-    /// Calculate entropy by matrix-vector products
+    /// Calculate numerical entropy
+    /// Calls compute_integrated_quantities
     double compute_entropy(const std::shared_ptr <DGBase<dim, double>> dg) const;
 
     /// Function to compute the constant time step
@@ -27,7 +28,7 @@ public:
 protected:
 
     /// Enum of integrated quantities to calculate
-    enum IntegratedQuantityEnum { kinetic_energy, max_wave_speed };
+    enum IntegratedQuantityEnum { kinetic_energy, max_wave_speed, numerical_entropy};
 
     /// Compute and update overintegrated quantities
     /** Same function as in periodic_turbulence. Has some computational inefficiency
@@ -37,7 +38,7 @@ protected:
      * Will need to be modified in the future if multiple quantites are needed
      * See structure in periodic_turbulence
      */
-    double compute_overintegrated_quantities(DGBase<dim, double> &dg, IntegratedQuantityEnum quantity) const;
+    double compute_integrated_quantities(DGBase<dim, double> &dg, IntegratedQuantityEnum quantity, const int overintegrate=10) const;
 
     /// Compute the desired unsteady data and write it to a table
     void compute_unsteady_data_and_write_to_table(

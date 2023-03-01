@@ -58,7 +58,7 @@ int KHIRobustness<dim, nstate>::run_test() const
         this->pcout << std::endl << std::endl;
     }
 
-    return 0;
+    return 0; //Always pass as the flow_solver runs are expected to crash
 }
 
 #if PHILIP_DIM==2

@@ -26,8 +26,6 @@ set two_point_num_flux_type = Ra
 subsection ODE solver
   set ode_output = verbose 
   set ode_solver_type = runge_kutta 
-  #set ode_solver_type = rrk_explicit
-  #set output_solution_every_x_steps = 3
   set runge_kutta_method = rk4_ex
 end
 
@@ -35,14 +33,10 @@ subsection linear solver
   set linear_solver_output = quiet
 end
 
-# freestream Mach number
-#subsection euler
-  #set mach_infinity = 1.195228609334 #=sqrt(2/1.4)
-#end
-
 subsection flow_solver
   set flow_case_type = kelvin_helmholtz_instability
-  set poly_degree = 7 
+  #set poly_degree = 7 # To match Chan 2022 Fig. 7 b
+  set poly_degree = 3 # For faster run time during ctest
   set final_time = 10
   set courant_friedrichs_lewy_number = 0.05
   set unsteady_data_table_filename = isentropic_vortex_time_table
@@ -52,6 +46,6 @@ subsection flow_solver
     set number_of_grid_elements_per_dimension = 16
   end
   subsection kelvin_helmholtz_instability
-    set atwood_number = 0.9
+    set atwood_number = 0.9 # This is modified by khi_robustness test
   end
 end

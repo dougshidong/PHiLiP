@@ -1,7 +1,8 @@
 set(MESH_ADAPTATION_SRC
 	mesh_error_factory.cpp
 	mesh_error_estimate.cpp
-	mesh_adaptation.cpp)
+	mesh_adaptation.cpp
+	anisotropic_mesh_adaptation.cpp)
 
 foreach(dim RANGE 1 3)
 

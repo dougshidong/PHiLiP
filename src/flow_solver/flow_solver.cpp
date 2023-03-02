@@ -7,7 +7,7 @@
 #include <sstream>
 #include "reduced_order/pod_basis_offline.h"
 #include "physics/initial_conditions/set_initial_condition.h"
-#include "mesh/mesh_adaptation.h"
+#include "mesh/mesh_adaptation/mesh_adaptation.h"
 #include <deal.II/base/timer.h>
 
 namespace PHiLiP {

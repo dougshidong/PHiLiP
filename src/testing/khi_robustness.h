@@ -6,7 +6,11 @@
 namespace PHiLiP {
 namespace Tests {
 
-/// Euler Ismail-Roe Entropy Check
+/// KHI Robustness test
+/** Runs the Kelvin-Helmholtz Instability (KHI) test case
+ * until a crash is detected, then restart a new 
+ * simulation with a different Atwood number.
+ */
 template <int dim, int nstate>
 class KHIRobustness: public TestsBase
 {
@@ -25,6 +29,11 @@ public:
     /// Run test
     int run_test () const override;
 protected:
+
+    /// Reinit parameters based on a specified Atwood number
+    /** Atwood number quantifies the density difference
+     * A = \frac{\rho_2-\rho1}{\rho_1+\rho_2}
+     */
     Parameters::AllParameters reinit_params(double atwood_number) const;
 };
 

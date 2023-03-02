@@ -310,7 +310,7 @@ public:
     /// Constructor
     InitialConditionFunction_KHI(const double atwood_number_input);
 
-    /// Returns zero.
+    /// value of initial condition 
     real value(const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
 
     const real atwood_number;

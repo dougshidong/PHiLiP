@@ -16,14 +16,14 @@ HRefinementStudyIsentropicVortex<dim, nstate>::HRefinementStudyIsentropicVortex(
         const dealii::ParameterHandler &parameter_handler_input)  
         : TestsBase::TestsBase(parameters_input),
          parameter_handler(parameter_handler_input),
-         n_time_calculations(parameters_input->time_refinement_study_param.number_of_times_to_solve),
+         n_calculations(parameters_input->time_refinement_study_param.number_of_times_to_solve),
          refine_ratio(parameters_input->time_refinement_study_param.refinement_ratio)
 {}
 
 
 
 template <int dim, int nstate>
-Parameters::AllParameters HRefinementStudyIsentropicVortex<dim,nstate>::reinit_params_and_refine_timestep(int refinement) const
+Parameters::AllParameters HRefinementStudyIsentropicVortex<dim,nstate>::reinit_params_and_refine(int refinement) const
 {
      PHiLiP::Parameters::AllParameters parameters = *(this->all_parameters);
      
@@ -134,13 +134,13 @@ int HRefinementStudyIsentropicVortex<dim, nstate>::run_test() const
     double L2_error_pressure_conv_rate=0;
 
 
-    for (int refinement = 0; refinement < n_time_calculations; ++refinement){
+    for (int refinement = 0; refinement < n_calculations; ++refinement){
         
         pcout << "\n\n---------------------------------------------" << std::endl;
-        pcout << "Refinement number " << refinement << " of " << n_time_calculations - 1 << std::endl;
+        pcout << "Refinement number " << refinement << " of " << n_calculations - 1 << std::endl;
         pcout << "---------------------------------------------" << std::endl;
 
-        const Parameters::AllParameters params = reinit_params_and_refine_timestep(refinement);
+        const Parameters::AllParameters params = reinit_params_and_refine(refinement);
         std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(&params, parameter_handler);
         std::unique_ptr<FlowSolver::PeriodicEntropyTests<dim, nstate>> flow_solver_case = std::make_unique<FlowSolver::PeriodicEntropyTests<dim,nstate>>(&params);
     
@@ -209,8 +209,8 @@ int HRefinementStudyIsentropicVortex<dim, nstate>::run_test() const
 
         //Checking convergence order
         const double expected_order = params.flow_solver_param.poly_degree + 1; 
-        //set tolerance to make test pass for ctest note that the grids are very coarse (not in asymptotic range)
-        const double order_tolerance = 1.0; //set to make test pass for ctest note that the grids are very coarse (not in asymptotic range)
+        //set tolerance to make test pass for ctest. Note that the grids are very coarse (not in asymptotic range)
+        const double order_tolerance = 1.0; 
         if (refinement > 0) {
             L2_error_pressure_conv_rate = -log(L2_error_pressure_old/L2_error_pressure)/log(refine_ratio);
             pcout << "Order for L2 pressure at " << refinement << " is " << L2_error_pressure_conv_rate << std::endl;
@@ -218,7 +218,7 @@ int HRefinementStudyIsentropicVortex<dim, nstate>::run_test() const
                 testfail = 1;
                 pcout << "Expected convergence order for L2 pressure  was not reached at refinement " << refinement <<std::endl;
             }
-            if (refinement < n_time_calculations-1 && pcout.is_active()){
+            if (refinement < n_calculations-1 && pcout.is_active()){
                 // Print current convergence results for solution monitoring
                 convergence_table_density.write_text(pcout.get_stream());
                 convergence_table_pressure.write_text(pcout.get_stream());

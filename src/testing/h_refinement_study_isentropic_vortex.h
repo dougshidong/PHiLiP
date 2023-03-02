@@ -8,7 +8,7 @@
 namespace PHiLiP {
 namespace Tests {
 
-/// Advection time refinement study 
+/// h refinement test for the isentropic vortex advection test case. 
 template <int dim, int nstate>
 class HRefinementStudyIsentropicVortex: public TestsBase
 {
@@ -28,7 +28,7 @@ public:
     int run_test () const override;
 protected:
     /// Number of times to solve for convergence summary
-    const int n_time_calculations;
+    const int n_calculations;
 
     /// Ratio to refine by
     const double refine_ratio;
@@ -45,7 +45,7 @@ protected:
             int norm_p) const;
 
     /// Reinitialize parameters while refining the timestep. Necessary because all_parameters is constant.
-    Parameters::AllParameters reinit_params_and_refine_timestep(int refinement) const;
+    Parameters::AllParameters reinit_params_and_refine(int refinement) const;
 
 };
 

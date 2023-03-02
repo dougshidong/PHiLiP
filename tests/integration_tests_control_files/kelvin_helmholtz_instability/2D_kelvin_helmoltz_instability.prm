@@ -39,7 +39,7 @@ subsection flow_solver
   set poly_degree = 3 # For faster run time during ctest
   set final_time = 10
   set courant_friedrichs_lewy_number = 0.05
-  set unsteady_data_table_filename = isentropic_vortex_time_table
+  set unsteady_data_table_filename = khi_time_table
   subsection grid
     set grid_left_bound = -1.0
     set grid_right_bound = 1.0

@@ -39,7 +39,7 @@ double PeriodicEntropyTests<dim,nstate>::get_constant_time_step(std::shared_ptr<
         const double max_wave_speed = this->compute_integrated_quantities(*dg, IntegratedQuantityEnum::max_wave_speed);
         constant_time_step = CFL * approximate_grid_spacing / max_wave_speed;
         */
-        // TEMP using same as is defined in periodic turbulence
+        // TEMP using same as is defined in periodic turbulence for consistency with some existing results
         const unsigned int number_of_degrees_of_freedom_per_state = dg->dof_handler.n_dofs()/nstate;
         const double approximate_grid_spacing = (this->domain_right-this->domain_left)/pow(number_of_degrees_of_freedom_per_state,(1.0/dim));
         const double constant_time_step = this->all_param.flow_solver_param.courant_friedrichs_lewy_number * approximate_grid_spacing;
@@ -55,9 +55,6 @@ double PeriodicEntropyTests<dim,nstate>::get_constant_time_step(std::shared_ptr<
 template<int dim, int nstate>
 double PeriodicEntropyTests<dim, nstate>::compute_integrated_quantities(DGBase<dim, double> &dg, IntegratedQuantityEnum quantity, const int overintegrate) const
 {
-    //double integrated_KE = 0;
-    //double max_wave_speed = 0;
-    //double integrated_numerical_entropy = 0;
     double integrated_quantity = 0.0;
 
     // Set the quadrature of size dim and 1D for sum-factorization.
@@ -189,12 +186,10 @@ double PeriodicEntropyTests<dim, nstate>::compute_integrated_quantities(DGBase<d
                 const double KE_integrand = this->euler_physics->compute_kinetic_energy_from_conservative_solution(soln_at_q);
                 integrated_quantity += KE_integrand * quad_weights[iquad] * metric_oper.det_Jac_vol[iquad];
             } else if (quantity == IntegratedQuantityEnum::numerical_entropy) {
-                
                 const double quadrature_entropy = this->euler_physics->compute_numerical_entropy_function(soln_at_q);
                 if (isnan(quadrature_entropy))  this->pcout << "WARNING: NaN entropy detected at a node!"  << std::endl;
                 integrated_quantity += quadrature_entropy * quad_weights[iquad] * metric_oper.det_Jac_vol[iquad];
             } else if (quantity == IntegratedQuantityEnum::max_wave_speed) {
-
                 const double local_wave_speed = this->euler_physics->max_convective_eigenvalue(soln_at_q);
                 if(local_wave_speed > integrated_quantity) integrated_quantity = local_wave_speed;
             } else {
@@ -205,7 +200,7 @@ double PeriodicEntropyTests<dim, nstate>::compute_integrated_quantities(DGBase<d
     }
 
     //MPI
-    if (quantity == max_wave_speed) {
+    if (quantity == IntegratedQuantityEnum::max_wave_speed) {
         integrated_quantity = dealii::Utilities::MPI::max(integrated_quantity, this->mpi_communicator);
     } else {
         integrated_quantity = dealii::Utilities::MPI::sum(integrated_quantity, this->mpi_communicator);
@@ -231,9 +226,6 @@ void PeriodicEntropyTests<dim, nstate>::compute_unsteady_data_and_write_to_table
         const std::shared_ptr <dealii::TableHandler> unsteady_data_table )
 {
     const double dt = this->get_constant_time_step(dg);
-    int output_solution_every_n_iterations = round(this->all_param.ode_solver_param.output_solution_every_dt_time_intervals/dt);
-    if (this->all_param.ode_solver_param.output_solution_every_x_steps > output_solution_every_n_iterations)
-        output_solution_every_n_iterations = this->all_param.ode_solver_param.output_solution_every_x_steps;
     
     using ODEEnum = Parameters::ODESolverParam::ODESolverEnum;
     const bool is_rrk = (this->all_param.ode_solver_param.ode_solver_type == ODEEnum::rrk_explicit_solver);
@@ -260,6 +252,10 @@ void PeriodicEntropyTests<dim, nstate>::compute_unsteady_data_and_write_to_table
         throw current_time;
     }
 
+    // Output solution to console according to output_solution_every_n_iterations
+    int output_solution_every_n_iterations = round(this->all_param.ode_solver_param.output_solution_every_dt_time_intervals/dt);
+    if (this->all_param.ode_solver_param.output_solution_every_x_steps > output_solution_every_n_iterations)
+        output_solution_every_n_iterations = this->all_param.ode_solver_param.output_solution_every_x_steps;
     if (output_solution_every_n_iterations > 0){
         //Need to check that output_solution_every_n_iterations is nonzero to avoid
         //floating point exception
@@ -275,6 +271,8 @@ void PeriodicEntropyTests<dim, nstate>::compute_unsteady_data_and_write_to_table
             this->pcout << std::endl;
         }
     }
+
+    // Write to file at every iteration
     unsteady_data_table->add_value("iteration", current_iteration);
     unsteady_data_table->set_scientific("iteration", false);
     this->add_value_to_data_table(current_time,"time",unsteady_data_table);

@@ -14,11 +14,12 @@ AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: AnisotropicMeshAdaptat
     , normLp(_norm_Lp)
     , complexity(_complexity)
     , mpi_communicator(MPI_COMM_WORLD)
-    , pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(mpi_communicator)==0) 
+    , pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(mpi_communicator)==0)
+	, initial_poly_degree(dg->get_min_fe_degree())
 {
     MPI_Comm_rank(mpi_communicator, &mpi_rank);
     MPI_Comm_size(mpi_communicator, &n_mpi);
-
+	
     if(use_goal_oriented_approach)
     {
         if(normLp != 1)
@@ -27,6 +28,19 @@ AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: AnisotropicMeshAdaptat
             std::abort();
         }
     }
+	if(dg->get_min_fe_degree() != dg->get_max_fe_degree())
+	{
+		pcout<<"This class is currently coded assuming a constant poly degree. To be changed in future if required."<<std::endl;
+		std::abort();
+	}
+	if(initial_poly_degree != 1)
+	{
+		pcout<<"Warning: The optimal metric used by this class has been derived for p1."
+			 <<" For any other p, it might be a good apprximation but will not not optimal"<<std::endl; 
+	}
+
+	Assert(this->dg->triangulation->get_mesh_smoothing() == typename dealii::Triangulation<dim>::MeshSmoothing(dealii::Triangulation<dim>::none),
+           dealii::ExcMessage("Mesh smoothing might h-refine cells while changing p order."));
 }
 
 template<int dim, int nstate, typename real, typename MeshType>
@@ -145,6 +159,7 @@ void AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: compute_optimal_m
 template<int dim, int nstate, typename real, typename MeshType>
 void AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: compute_abs_hessian()
 {
+	change_p_degree_and_interpolate_solution(2); // Change to p2
 	if(use_goal_oriented_approach)
 	{
 		compute_goal_oriented_hessian();
@@ -153,6 +168,7 @@ void AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: compute_abs_hessi
 	{
 		compute_feature_based_hessian();
 	}
+	change_p_degree_and_interpolate_solution(initial_poly_degree);
 
 	// Get absolute values of the hessians (i.e. by taking abs of eigenvalues).
 	for(const auto &cell : dg->dof_handler.active_cell_iterators())
@@ -166,8 +182,35 @@ void AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: compute_abs_hessi
 }
 
 template<int dim, int nstate, typename real, typename MeshType>
+void AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: change_p_degree_and_interpolate_solution(const unsigned int poly_degree)
+{
+	VectorType solution_coarse = dg->solution;
+	solution_coarse.update_ghost_values();
+
+	using DoFHandlerType   = typename dealii::DoFHandler<dim>;
+	using SolutionTransfer = typename MeshTypeHelper<MeshType>::template SolutionTransfer<dim,VectorType,DoFHandlerType>;
+	
+	SolutionTransfer solution_transfer(this->dg->dof_handler);
+	solution_transfer.prepare_for_coarsening_and_refinement(solution_coarse);
+	
+	dg->set_all_cells_fe_degree(poly_degree);
+	dg->allocate_system();
+	dg->solution.zero_out_ghosts();
+	
+	if constexpr (std::is_same_v<typename dealii::SolutionTransfer<dim,VectorType,DoFHandlerType>,
+                                 decltype(solution_transfer)>) {
+        solution_transfer.interpolate(solution_coarse, this->dg->solution);
+    } else {
+        solution_transfer.interpolate(this->dg->solution);
+    }
+
+    this->dg->solution.update_ghost_values();
+}
+
+template<int dim, int nstate, typename real, typename MeshType>
 void AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: compute_feature_based_hessian()
 {
+	// Compute hessian of the solution for now.
 }
 
 template<int dim, int nstate, typename real, typename MeshType>

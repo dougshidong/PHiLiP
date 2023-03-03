@@ -55,6 +55,9 @@ private:
 	/// Computes pseudo Hessian for the goal oriented approach.
 	void compute_goal_oriented_hessian();
 
+	/// Change the polynomial order and interpolate solution. 
+	void change_p_degree_and_interpolate_solution(const unsigned int poly_degree);
+
     /// Shared pointer to DGBase.
     std::shared_ptr<DGBase<dim,real,MeshType>> dg;
 
@@ -84,6 +87,9 @@ private:
 
     /// Total no. of processors
     int n_mpi;
+
+	/// Stores initial polynomial degree
+	const unsigned int initial_poly_degree;
 };
 
 } // PHiLiP namepsace

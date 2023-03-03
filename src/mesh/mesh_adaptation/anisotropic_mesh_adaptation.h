@@ -49,6 +49,12 @@ private:
 	/// Initializes cellwise metric and hessian to zero tensors.
 	void initialize_cellwise_metric_and_hessians();
 
+	/// Computes feature based hessian (i.e. hessian of the solution).
+	void compute_feature_based_hessian();
+
+	/// Computes pseudo Hessian for the goal oriented approach.
+	void compute_goal_oriented_hessian();
+
     /// Shared pointer to DGBase.
     std::shared_ptr<DGBase<dim,real,MeshType>> dg;
 

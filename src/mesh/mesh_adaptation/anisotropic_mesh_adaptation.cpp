@@ -34,7 +34,7 @@ dealii::Tensor<2, dim, real> AnisotropicMeshAdaptation<dim, nstate, real, MeshTy
     :: get_positive_definite_tensor(const dealii::Tensor<2, dim, real> &input_tensor) const
 {
     const real min_eigenvalue = 1.0e-5;
-    dealii::SymmetricTensor symmetric_input_tensor(input_tensor); // Checks if input_tensor is symmetric in debug. It has to be symmetric because we are passing the Hessian.
+    dealii::SymmetricTensor<2,dim,real> symmetric_input_tensor(input_tensor); // Checks if input_tensor is symmetric in debug. It has to be symmetric because we are passing the Hessian.
     std::array<std::pair<real, dealii::Tensor<1, dim, real>>, dim> eigen_pair = dealii::eigenvectors(symmetric_input_tensor);
 
     std::array<real, dim> abs_eignevalues;
@@ -54,7 +54,7 @@ dealii::Tensor<2, dim, real> AnisotropicMeshAdaptation<dim, nstate, real, MeshTy
     for(unsigned int i=0; i<dim; ++i)
     {
         dealii::Tensor<1, dim, real> eigenvector_i = eigen_pair[i].second;
-        dealii::Tensor<2, dim, real> outer_product_i = dealii::Tensor<2,dim,real>::outer_product(eigenvector_i, eigenvector_i);
+        dealii::Tensor<2, dim, real> outer_product_i = dealii::outer_product(eigenvector_i, eigenvector_i);
         outer_product_i *= abs_eignevalues[i];
         positive_definite_tensor += outer_product_i;
     }
@@ -142,4 +142,57 @@ void AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: compute_optimal_m
 	}
 }
 
+template<int dim, int nstate, typename real, typename MeshType>
+void AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: compute_abs_hessian()
+{
+	if(use_goal_oriented_approach)
+	{
+		compute_goal_oriented_hessian();
+	}
+	else
+	{
+		compute_feature_based_hessian();
+	}
+
+	// Get absolute values of the hessians (i.e. by taking abs of eigenvalues).
+	for(const auto &cell : dg->dof_handler.active_cell_iterators())
+	{
+		if(! cell->is_locally_owned()) {continue;}
+		
+		const unsigned int cell_index = cell->active_cell_index();
+		cellwise_hessian[cell_index] = get_positive_definite_tensor(cellwise_hessian[cell_index]);
+	}
+
+}
+
+template<int dim, int nstate, typename real, typename MeshType>
+void AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: compute_feature_based_hessian()
+{
+}
+
+template<int dim, int nstate, typename real, typename MeshType>
+void AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: compute_goal_oriented_hessian()
+{
+}
+
+// Instantiations
+template class AnisotropicMeshAdaptation <PHILIP_DIM, 1, double, dealii::Triangulation<PHILIP_DIM>>;
+template class AnisotropicMeshAdaptation <PHILIP_DIM, 2, double, dealii::Triangulation<PHILIP_DIM>>;
+template class AnisotropicMeshAdaptation <PHILIP_DIM, 3, double, dealii::Triangulation<PHILIP_DIM>>;
+template class AnisotropicMeshAdaptation <PHILIP_DIM, 4, double, dealii::Triangulation<PHILIP_DIM>>;
+template class AnisotropicMeshAdaptation <PHILIP_DIM, 5, double, dealii::Triangulation<PHILIP_DIM>>;
+
+template class AnisotropicMeshAdaptation <PHILIP_DIM, 1, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class AnisotropicMeshAdaptation <PHILIP_DIM, 2, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class AnisotropicMeshAdaptation <PHILIP_DIM, 3, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class AnisotropicMeshAdaptation <PHILIP_DIM, 4, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class AnisotropicMeshAdaptation <PHILIP_DIM, 5, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+
+#if PHILIP_DIM!=1
+template class AnisotropicMeshAdaptation <PHILIP_DIM, 1, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+template class AnisotropicMeshAdaptation <PHILIP_DIM, 2, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+template class AnisotropicMeshAdaptation <PHILIP_DIM, 3, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+template class AnisotropicMeshAdaptation <PHILIP_DIM, 4, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+template class AnisotropicMeshAdaptation <PHILIP_DIM, 5, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+#endif
 } // PHiLiP namespace

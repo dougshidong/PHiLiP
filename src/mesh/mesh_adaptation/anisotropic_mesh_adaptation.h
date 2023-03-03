@@ -2,7 +2,6 @@
 #define __ANISOTROPIC_MESH_ADAPTATION__
 
 #include "dg/dg.h"
-#include <deal.II/base/symmetric_tensor.h>
 
 namespace PHiLiP {
 
@@ -25,13 +24,16 @@ class AnisotropicMeshAdaptation {
 
 public:
 	/// Constructor
-	AnisotropicMeshAdaptation(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input, const bool _use_goal_oriented_approach = false);
+	AnisotropicMeshAdaptation(
+        std::shared_ptr< DGBase<dim, real, MeshType> > dg_input, 
+        const real _norm_Lp,
+        const bool _use_goal_oriented_approach = false);
 
 	/// Destructor
 	~AnisotropicMeshAdaptation(){};
 
-	/// Returns positive tensor from an input tensor, by taking absolute eigenvalues.
-	dealii::SymmetricTensor<2, dim, real> get_positive_definite_tensor(const dealii::Tensor<2, dim, real> &input_tensor);
+	/// Returns positive tensor from an input tensor by taking absolute of eigenvalues.
+	dealii::Tensor<2, dim, real> get_positive_definite_tensor(const dealii::Tensor<2, dim, real> &input_tensor);
 
 	/// Computes optimal metric depending on goal oriented or feature based approach. 
 	void compute_optimal_metric();
@@ -41,7 +43,7 @@ protected:
 	/// Computes hessian using the input coefficients, which can be a solution sensor or (for goal oriented approach) convective flux.
 	/** This function is called by compute_optimal_metric(). 
 	 */
-	void compute_hessian(const VectorType & sensor_coeffs);
+	void compute_hessian();
 
     /// Shared pointer to DGBase.
     std::shared_ptr<DGBase<dim,real,MeshType>> dg;
@@ -54,6 +56,21 @@ protected:
 	
 	/// Stores hessian in each cell
 	std::vector<dealii::Tensor<2, dim, real>> cellwise_hessian;
+
+    /// Lp Norm w.r.t. which the anlytical optimization is done.
+    const real normLp;
+    
+    /// Alias for MPI_COMM_WORLD
+    MPI_Comm mpi_communicator;
+    
+    /// std::cout only on processor #0.
+    dealii::ConditionalOStream pcout;
+
+    /// Processor# of current processor.
+    int mpi_rank;
+
+    /// Total no. of processors
+    int n_mpi;
 };
 
 } // PHiLiP namepsace

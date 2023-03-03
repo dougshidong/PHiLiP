@@ -67,7 +67,7 @@ void AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: initialize_cellwi
 {
 	cellwise_optimal_metric.clear();
 	cellwise_hessian.clear();
-	unsigned int n_active_cells = dg->triangulation->n_active_cells();
+	const unsigned int n_active_cells = dg->triangulation->n_active_cells();
 	
 	dealii::Tensor<2, dim, real> zero_tensor; // initialized to 0 by default.
 	for(unsigned int i=0; i<n_active_cells; ++i)
@@ -80,7 +80,66 @@ void AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: initialize_cellwi
 template<int dim, int nstate, typename real, typename MeshType>
 void AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: compute_optimal_metric()
 {
-   initialize_cellwise_metric_and_hessians();
+	initialize_cellwise_metric_and_hessians();
+	compute_abs_hessian(); // computes hessian according to goal oriented or feature based approach.
 
+	const unsigned int n_active_cells = dg->triangulation->n_active_cells();
+	dealii::Vector<real> abs_hessian_determinant(n_active_cells);
+	
+	// Compute hessian determinants
+	for(const auto &cell : dg->dof_handler.active_cell_iterators())
+	{
+		if(! cell->is_locally_owned()) {continue;}
+		
+		const unsigned int cell_index = cell->active_cell_index();
+		abs_hessian_determinant[cell_index] = dealii::determinant(cellwise_hessian[cell_index]);	
+	}
+
+	// Using Eq 4.40, page 153 in Dervieux, Alain, et al. Mesh Adaptation for Computational Fluid Dynamics 1. 2023.
+	const auto mapping = (*(dg->high_order_grid->mapping_fe_field));
+	dealii::hp::MappingCollection<dim> mapping_collection(mapping);
+	const dealii::UpdateFlags update_flags = dealii::update_JxW_values;
+	dealii::hp::FEValues<dim,dim>   fe_values_collection_volume (mapping_collection, dg->fe_collection, dg->volume_quadrature_collection, update_flags);
+	
+	real integral_val = 0;
+	for(const auto &cell : dg->dof_handler.active_cell_iterators())
+	{
+		if(! cell->is_locally_owned()) {continue;}
+		
+		const unsigned int cell_index = cell->active_cell_index();
+		const unsigned int i_fele = cell->active_fe_index();
+		const unsigned int i_quad = i_fele;
+		const unsigned int i_mapp = 0;
+		fe_values_collection_volume.reinit(cell, i_quad, i_mapp, i_fele);
+		const dealii::FEValues<dim,dim> &fe_values_volume = fe_values_collection_volume.get_present_fe_values();
+
+		const real exponent = normLp/(2.0*normLp + dim);
+		const real integrand = pow(abs_hessian_determinant[cell_index], exponent);
+		
+		for(unsigned int iquad = 0; iquad<fe_values_volume.n_quadrature_points; ++iquad)
+		{
+			integral_val += integrand * fe_values_volume.JxW(iquad);
+		}
+	}
+
+	const real integral_val_global = dealii::Utilities::MPI::sum(integral_val, mpi_communicator);
+	const real exponent = 2.0/dim;
+	const real scaling_factor = pow(complexity, exponent) * pow(integral_val_global, -exponent); // Factor by which the metric is scaled to get a mesh of required complexity/# of elements.
+
+	// Now loop over to fill in the optimal metric.
+	for(const auto &cell : dg->dof_handler.active_cell_iterators())
+	{
+		if(! cell->is_locally_owned()) {continue;}
+		
+		const unsigned int cell_index = cell->active_cell_index();
+		
+		const real exponent2 = -1.0/(2.0*normLp + dim);
+		const real scaling_factor2 = pow(abs_hessian_determinant[cell_index], exponent2);
+		const real scaling_factor_this_cell = scaling_factor * scaling_factor2;
+
+		cellwise_optimal_metric[cell_index] = cellwise_hessian[cell_index];
+		cellwise_optimal_metric[cell_index] *= scaling_factor_this_cell;
+	}
 }
+
 } // PHiLiP namespace

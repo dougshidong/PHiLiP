@@ -44,7 +44,7 @@ private:
 	/// Computes hessian using the input coefficients, which can be a solution sensor or (for goal oriented approach) convective flux.
 	/** This function is called by compute_optimal_metric(). 
 	 */
-	void compute_hessian();
+	void compute_abs_hessian();
 
 	/// Initializes cellwise metric and hessian to zero tensors.
 	void initialize_cellwise_metric_and_hessians();

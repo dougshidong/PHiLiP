@@ -27,13 +27,14 @@ public:
 	AnisotropicMeshAdaptation(
         std::shared_ptr< DGBase<dim, real, MeshType> > dg_input, 
         const real _norm_Lp,
+        const real _complexity,
         const bool _use_goal_oriented_approach = false);
 
 	/// Destructor
 	~AnisotropicMeshAdaptation(){};
 
 	/// Returns positive tensor from an input tensor by taking absolute of eigenvalues.
-	dealii::Tensor<2, dim, real> get_positive_definite_tensor(const dealii::Tensor<2, dim, real> &input_tensor);
+	dealii::Tensor<2, dim, real> get_positive_definite_tensor(const dealii::Tensor<2, dim, real> &input_tensor) const;
 
 	/// Computes optimal metric depending on goal oriented or feature based approach. 
 	void compute_optimal_metric();
@@ -59,6 +60,9 @@ protected:
 
     /// Lp Norm w.r.t. which the anlytical optimization is done.
     const real normLp;
+
+    /// Analogue of number of vertices/elements in continuous mesh framework.
+    const real complexity;
     
     /// Alias for MPI_COMM_WORLD
     MPI_Comm mpi_communicator;

@@ -7,10 +7,12 @@ template <int dim, int nstate, typename real, typename MeshType>
 AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: AnisotropicMeshAdaptation(
 	std::shared_ptr< DGBase<dim, real, MeshType> > dg_input, 
     const real _norm_Lp,
+    const real _complexity,
 	const bool _use_goal_oriented_approach)
 	: dg(dg_input)
 	, use_goal_oriented_approach(_use_goal_oriented_approach)
     , normLp(_norm_Lp)
+    , complexity(_complexity)
     , mpi_communicator(MPI_COMM_WORLD)
     , pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(mpi_communicator)==0) 
 {
@@ -29,7 +31,7 @@ AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: AnisotropicMeshAdaptat
 
 template<int dim, int nstate, typename real, typename MeshType>
 dealii::Tensor<2, dim, real> AnisotropicMeshAdaptation<dim, nstate, real, MeshType> 
-    :: get_positive_definite_tensor(const dealii::Tensor<2, dim, real> &input_tensor)
+    :: get_positive_definite_tensor(const dealii::Tensor<2, dim, real> &input_tensor) const
 {
     const real min_eigenvalue = 1.0e-5;
     dealii::SymmetricTensor symmetric_input_tensor(input_tensor); // Checks if input_tensor is symmetric in debug. It has to be symmetric because we are passing the Hessian.
@@ -60,4 +62,9 @@ dealii::Tensor<2, dim, real> AnisotropicMeshAdaptation<dim, nstate, real, MeshTy
     return positive_definite_tensor;
 }
 
+template<int dim, int nstate, typename real, typename MeshType>
+void AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: compute_optimal_metric()
+{
+    
+}
 } // PHiLiP namespace

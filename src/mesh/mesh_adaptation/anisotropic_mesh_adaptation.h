@@ -2,6 +2,7 @@
 #define __ANISOTROPIC_MESH_ADAPTATION__
 
 #include "dg/dg.h"
+#include <deal.II/base/symmetric_tensor.h>
 
 namespace PHiLiP {
 
@@ -30,7 +31,7 @@ public:
 	~AnisotropicMeshAdaptation(){};
 
 	/// Returns positive tensor from an input tensor, by taking absolute eigenvalues.
-	dealii::Tensor<2, dim, real> get_positive_definite_tensor(const dealii::Tensor<2, dim, real> &input_tensor);
+	dealii::SymmetricTensor<2, dim, real> get_positive_definite_tensor(const dealii::Tensor<2, dim, real> &input_tensor);
 
 	/// Computes optimal metric depending on goal oriented or feature based approach. 
 	void compute_optimal_metric();

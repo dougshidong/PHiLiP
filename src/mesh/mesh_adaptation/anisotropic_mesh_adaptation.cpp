@@ -63,8 +63,24 @@ dealii::Tensor<2, dim, real> AnisotropicMeshAdaptation<dim, nstate, real, MeshTy
 }
 
 template<int dim, int nstate, typename real, typename MeshType>
+void AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: initialize_cellwise_metric_and_hessians()
+{
+	cellwise_optimal_metric.clear();
+	cellwise_hessian.clear();
+	unsigned int n_active_cells = dg->triangulation->n_active_cells();
+	
+	dealii::Tensor<2, dim, real> zero_tensor; // initialized to 0 by default.
+	for(unsigned int i=0; i<n_active_cells; ++i)
+	{
+		cellwise_optimal_metric.push_back(zero_tensor);
+		cellwise_hessian.push_back(zero_tensor);
+	}
+}
+
+template<int dim, int nstate, typename real, typename MeshType>
 void AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: compute_optimal_metric()
 {
-    
+   initialize_cellwise_metric_and_hessians();
+
 }
 } // PHiLiP namespace

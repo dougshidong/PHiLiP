@@ -40,11 +40,14 @@ public:
 	void compute_optimal_metric();
 
 
-protected:
+private:
 	/// Computes hessian using the input coefficients, which can be a solution sensor or (for goal oriented approach) convective flux.
 	/** This function is called by compute_optimal_metric(). 
 	 */
 	void compute_hessian();
+
+	/// Initializes cellwise metric and hessian to zero tensors.
+	void initialize_cellwise_metric_and_hessians();
 
     /// Shared pointer to DGBase.
     std::shared_ptr<DGBase<dim,real,MeshType>> dg;

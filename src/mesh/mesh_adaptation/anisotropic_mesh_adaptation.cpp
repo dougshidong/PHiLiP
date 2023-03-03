@@ -1,5 +1,6 @@
 #include "anisotropic_mesh_adaptation.h"
 #include <deal.II/base/symmetric_tensor.h>
+#include "linear_solver/linear_solver.h"
 
 namespace PHiLiP {
 
@@ -159,7 +160,10 @@ void AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: compute_optimal_m
 template<int dim, int nstate, typename real, typename MeshType>
 void AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: compute_abs_hessian()
 {
+	VectorType solution_old = dg->solution;
+	solution_old.update_ghost_values();
 	change_p_degree_and_interpolate_solution(2); // Change to p2
+	reconstruct_p2_solution();
 	if(use_goal_oriented_approach)
 	{
 		compute_goal_oriented_hessian();
@@ -169,6 +173,7 @@ void AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: compute_abs_hessi
 		compute_feature_based_hessian();
 	}
 	change_p_degree_and_interpolate_solution(initial_poly_degree);
+	dg->solution = solution_old; // reset solution
 
 	// Get absolute values of the hessians (i.e. by taking abs of eigenvalues).
 	for(const auto &cell : dg->dof_handler.active_cell_iterators())
@@ -208,9 +213,22 @@ void AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: change_p_degree_a
 }
 
 template<int dim, int nstate, typename real, typename MeshType>
+void AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: reconstruct_p2_solution()
+{
+	assert(dg->get_min_fe_degree() == 2);
+	dg->assemble_residual(true);
+	VectorType delU = dg->solution;
+	solve_linear(dg->system_matrix, dg->right_hand_side, delU, dg->all_parameters->linear_solver_param);
+	delU *= -1.0;
+	delU.update_ghost_values();
+	dg->solution += delU;
+	dg->solution.update_ghost_values();
+}
+
+template<int dim, int nstate, typename real, typename MeshType>
 void AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: compute_feature_based_hessian()
 {
-	// Compute hessian of the solution for now.
+	// Compute Hessian of the solution for now.
 }
 
 template<int dim, int nstate, typename real, typename MeshType>

@@ -58,6 +58,11 @@ private:
 	/// Change the polynomial order and interpolate solution. 
 	void change_p_degree_and_interpolate_solution(const unsigned int poly_degree);
 
+	/// Reconstructs p2 solution after interpolation.
+	/** Currenlty done using 1 linear solve of the implicit system.
+	 */
+	void reconstruct_p2_solution();
+
     /// Shared pointer to DGBase.
     std::shared_ptr<DGBase<dim,real,MeshType>> dg;
 

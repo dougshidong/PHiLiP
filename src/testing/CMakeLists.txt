@@ -21,6 +21,7 @@ set(TESTS_SOURCE
     euler_split_inviscid_taylor_green_vortex.cpp
     optimization_inverse_manufactured/optimization_inverse_manufactured.cpp
     dual_weighted_residual_mesh_adaptation.cpp
+    anisotropic_mesh_adaptation_cases.cpp
     taylor_green_vortex_energy_check.cpp
     taylor_green_vortex_restart_check.cpp
     pod_adaptive_sampling.cpp
@@ -54,6 +55,7 @@ foreach(dim RANGE 1 3)
     string(CONCAT InitialConditionsLib InitialConditions_${dim}D)
     string(CONCAT FlowSolverLib FlowSolver_${dim}D)
     string(CONCAT ExactSolutionsLib ExactSolutions_${dim}D)
+	string(CONCAT MeshAdaptationLib MeshAdaptation_${dim}D)
     target_link_libraries(${TestsLib} ${GridsLib})
     target_link_libraries(${TestsLib} ${NumericalFluxLib})
     target_link_libraries(${TestsLib} ${PhysicsLib})
@@ -67,6 +69,7 @@ foreach(dim RANGE 1 3)
     target_link_libraries(${TestsLib} ${InitialConditionsLib})
     target_link_libraries(${TestsLib} ${FlowSolverLib})
     target_link_libraries(${TestsLib} ${ExactSolutionsLib})
+    target_link_libraries(${TestsLib} ${MeshAdaptationLib})
     # Setup target with deal.II
     if(NOT DOC_ONLY)
         DEAL_II_SETUP_TARGET(${TestsLib})
@@ -86,4 +89,5 @@ foreach(dim RANGE 1 3)
     unset(InitialConditionsLib)
     unset(FlowSolverLib)
     unset(ExactSolutionsLib)
+	unset(MeshAdaptationLib)
 endforeach()

@@ -228,7 +228,40 @@ void AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: reconstruct_p2_so
 template<int dim, int nstate, typename real, typename MeshType>
 void AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: compute_feature_based_hessian()
 {
-	// Compute Hessian of the solution for now.
+	// Compute Hessian of the solution at state 0 for now. It can be changed to Mach number or some other sensor later if required.
+	//const auto mapping = (*(dg->high_order_grid->mapping_fe_field)); // CHANGE IT BACK
+	dealii::MappingQGeneric<dim, dim> mapping(dg->high_order_grid->dof_handler_grid.get_fe().degree);
+	dealii::hp::MappingCollection<dim> mapping_collection(mapping);
+	const dealii::UpdateFlags update_flags = dealii::update_values | dealii::update_gradients | dealii::update_hessians | dealii::update_quadrature_points | dealii::update_JxW_values
+        | dealii::update_inverse_jacobians;
+	dealii::hp::FEValues<dim,dim>   fe_values_collection_volume (mapping_collection, dg->fe_collection, dg->volume_quadrature_collection, update_flags);
+	
+	std::vector<dealii::types::global_dof_index> dof_indices;
+
+	for(const auto &cell : dg->dof_handler.active_cell_iterators())
+	{
+		if(! cell->is_locally_owned()) {continue;}
+		
+		const unsigned int cell_index = cell->active_cell_index();
+		const unsigned int i_fele = cell->active_fe_index();
+		const unsigned int i_quad = i_fele;
+		const unsigned int i_mapp = 0;
+		fe_values_collection_volume.reinit(cell, i_quad, i_mapp, i_fele);
+		const dealii::FEValues<dim,dim> &fe_values_volume = fe_values_collection_volume.get_present_fe_values();
+		
+		const unsigned int n_dofs_cell = fe_values_volume.dofs_per_cell; 
+		dof_indices.resize(n_dofs_cell);
+		cell->get_dof_indices(dof_indices);
+		
+		// Since Hessian is constant in the cell for a p2 solution, we compute it at just one quadrature point.
+		unsigned int iquad = fe_values_volume.n_quadrature_points/2;
+		for(unsigned int idof = 0; idof<n_dofs_cell; ++iquad)
+		{
+			const unsigned int icomp = fe_values_volume.get_fe().system_to_component_index(idof).first;
+			// Adding hesssians of all components. Might need to change it later as required.
+			cellwise_hessian[cell_index] += dg->solution(dof_indices[idof])*fe_values_volume.shape_hessian_component(idof, iquad, icomp); 
+		}
+	}
 }
 
 template<int dim, int nstate, typename real, typename MeshType>

@@ -42,7 +42,7 @@ subsection flow_solver
   set flow_case_type = decaying_homogeneous_isotropic_turbulence
   set poly_degree = 5
   set final_time = 1.2566370614400000e-02
-  set courant_friedrich_lewy_number = 0.003
+  set courant_friedrichs_lewy_number = 0.003
   set unsteady_data_table_filename = dhit_init_check_mpi
   set output_restart_files = false
   subsection grid

@@ -255,9 +255,9 @@ void AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: compute_feature_b
 		cell->get_dof_indices(dof_indices);
 	
         cellwise_hessian[cell_index] = 0;
-		// Since Hessian is constant in the cell for a p2 solution, we compute it at just one quadrature point.
-		unsigned int iquad = fe_values_volume.n_quadrature_points/2;
-		for(unsigned int idof = 0; idof<n_dofs_cell; ++iquad)
+		const unsigned int iquad = get_iquad_near_cellcenter(fe_values_volume.get_quadrature());
+		
+        for(unsigned int idof = 0; idof<n_dofs_cell; ++idof)
 		{
 			const unsigned int icomp = fe_values_volume.get_fe().system_to_component_index(idof).first;
 			// Adding hesssians of all components. Might need to change it later as required.
@@ -306,7 +306,8 @@ void AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: compute_goal_orie
 		dof_indices.resize(n_dofs_cell);
 		cell->get_dof_indices(dof_indices);
 
-		unsigned int iquad = fe_values_volume.n_quadrature_points/2;
+        //const unsigned int n_quad_points = fe_values_volume.n_quadrature_points;
+		const unsigned int iquad = get_iquad_near_cellcenter(fe_values_volume.get_quadrature());
 
         // Compute adjoint gradient at iquad
         std::array< dealii::Tensor<1, dim, real>, nstate> adjoint_gradient;
@@ -316,8 +317,51 @@ void AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: compute_goal_orie
             adjoint_gradient[istate] += adjoint(dof_indices[idof])*fe_values_volume.shape_grad_component(idof, iquad, istate);
         }
 
+        // Get absolute values of adjoint gradient
+        for(unsigned int istate = 0; istate < nstate; ++istate)
+        {
+            for(unsigned int idim = 0; idim < dim; ++idim)
+            {
+                adjoint_gradient[istate][idim] = abs(adjoint_gradient[istate][idim]);
+            }
+        }
+
+        // Compute flux hessian
+        if( ! fe_values_volume.get_fe().has_support_points() )
+        {
+            pcout<<"The code here treats flux at support points as flux coeff at idof "
+                 <<"which requires an interpolatory FE with support points. Aborting.."<<std::endl;
+            std::abort();
+        }
+        
+        // Obtain flux coeffs
+
     }
 
+}
+
+template<int dim, int nstate, typename real, typename MeshType>
+
+unsigned int AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: get_iquad_near_cellcenter(const dealii::Quadrature<dim> &volume_quadrature)
+{
+    dealii::Point<dim,real> ref_center;
+    for(unsigned int idim =0; idim < dim; ++idim) 
+        {ref_center[idim] = 0.5;}
+
+    unsigned int iquad_center = 0;
+    real min_distance = 10000.0;
+    for(unsigned int iquad = 0; iquad<volume_quadrature.size(); ++iquad)
+    {
+        const dealii::Point<dim, real> &ref_point = volume_quadrature.point(iquad);
+        const real ref_distance = ref_point.distance(ref_center); 
+        if(min_distance > ref_distance)
+        {
+            min_distance = ref_distance;
+            iquad_center = iquad;
+        }
+    }
+
+    return iquad_center;
 }
 
 // Instantiations

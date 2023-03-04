@@ -63,6 +63,9 @@ private:
 	 */
 	void reconstruct_p2_solution();
 
+    /// Returns quadrature number of a point which is closest to the reference cell's center.
+    unsigned int get_iquad_near_cellcenter(const dealii::Quadrature<dim> &volume_quadrature);
+
     /// Shared pointer to DGBase.
     std::shared_ptr<DGBase<dim,real,MeshType>> dg;
 

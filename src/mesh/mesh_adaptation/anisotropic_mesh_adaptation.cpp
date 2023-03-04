@@ -2,6 +2,8 @@
 #include <deal.II/base/symmetric_tensor.h>
 #include "linear_solver/linear_solver.h"
 #include "functional/functional.h"
+#include "physics/physics_factory.h"
+#include "physics/model_factory.h"
 
 namespace PHiLiP {
 
@@ -29,12 +31,17 @@ AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: AnisotropicMeshAdaptat
             pcout<<"Optimal metric for the goal oriented approach has been derived w.r.t the error in L1 norm. Aborting..."<<std::flush;
             std::abort();
         }
+        
+        std::shared_ptr<Physics::ModelBase<dim,nstate,real>> pde_model_double    = Physics::ModelFactory<dim,nstate,real>::create_Model(dg->all_parameters);
+        pde_physics_double  = Physics::PhysicsFactory<dim,nstate,real>::create_Physics(dg->all_parameters, pde_model_double);
     }
+
 	if(dg->get_min_fe_degree() != dg->get_max_fe_degree())
 	{
 		pcout<<"This class is currently coded assuming a constant poly degree. To be changed in future if required."<<std::endl;
 		std::abort();
 	}
+
 	if(initial_poly_degree != 1)
 	{
 		pcout<<"Warning: The optimal metric used by this class has been derived for p1."
@@ -306,7 +313,6 @@ void AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: compute_goal_orie
 		dof_indices.resize(n_dofs_cell);
 		cell->get_dof_indices(dof_indices);
 
-        //const unsigned int n_quad_points = fe_values_volume.n_quadrature_points;
 		const unsigned int iquad = get_iquad_near_cellcenter(fe_values_volume.get_quadrature());
 
         // Compute adjoint gradient at iquad
@@ -326,22 +332,18 @@ void AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: compute_goal_orie
             }
         }
 
-        // Compute flux hessian
-        if( ! fe_values_volume.get_fe().has_support_points() )
-        {
-            pcout<<"The code here treats flux at support points as flux coeff at idof "
-                 <<"which requires an interpolatory FE with support points. Aborting.."<<std::endl;
-            std::abort();
-        }
-        
         // Obtain flux coeffs
+        std::vector<std::array<dealii::Tensor<1,dim,real>,nstate>> flux_coeffs;
+        flux_coeffs.resize(n_dofs_cell);
+        get_flux_coeffs(flux_coeffs, fe_values_volume, dof_indices, cell);
+        
+        // Compute flux hessian
 
     }
 
 }
 
 template<int dim, int nstate, typename real, typename MeshType>
-
 unsigned int AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: get_iquad_near_cellcenter(const dealii::Quadrature<dim> &volume_quadrature)
 {
     dealii::Point<dim,real> ref_center;
@@ -364,6 +366,43 @@ unsigned int AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: get_iquad
     return iquad_center;
 }
 
+// Flux referenced by flux[idof][istate][idim]
+template<int dim, int nstate, typename real, typename MeshType>
+void AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: get_flux_coeffs(
+            std::vector<std::array<dealii::Tensor<1,dim,real>,nstate>> &flux_coeffs, 
+            const dealii::FEValues<dim,dim> &fe_values_input,
+            const std::vector<dealii::types::global_dof_index> &dof_indices,
+            typename dealii::DoFHandler<dim>::active_cell_iterator cell)
+{
+    if( ! fe_values_input.get_fe().has_support_points() )
+    {
+        pcout<<"The code here treats flux at support points as flux coeff at idof "
+             <<"which requires an interpolatory FE with support points. Aborting.."<<std::endl;
+        std::abort();
+    }
+        
+    const unsigned int n_dofs_cell = dof_indices.size();
+    dealii::Quadrature<dim> support_pts = fe_values_input.get_fe().get_unit_support_points();
+    dealii::FEValues<dim, dim> fe_values_support_pts(fe_values_input.get_mapping(), fe_values_input.get_fe(),
+                                                     support_pts, dealii::update_values);
+    fe_values_support_pts.reinit(cell);
+    const unsigned int n_quad_pts = fe_values_support_pts.n_quadrature_points;
+    Assert(n_quad_pts == n_dofs_cell, dealii::ExcMessage("n_quad_pts != n_dofs_cell"));
+
+    for(unsigned int iquad = 0; iquad<n_quad_pts; ++iquad)
+    {
+        std::array< real, nstate > soln_at_q;
+        for(unsigned int idof = 0; idof < n_dofs_cell; ++idof)
+        {
+            const unsigned int istate = fe_values_support_pts.get_fe().system_to_component_index(idof).first;
+            soln_at_q[istate] += dg->solution(dof_indices[idof]) * fe_values_support_pts.shape_value_component(idof, iquad, istate);
+        }
+        
+        // Here we assume flux_coeffs[idof] = flux_at_iquad.
+        flux_coeffs[iquad] = pde_physics_double->convective_flux(soln_at_q);
+    }
+
+}
 // Instantiations
 template class AnisotropicMeshAdaptation <PHILIP_DIM, 1, double, dealii::Triangulation<PHILIP_DIM>>;
 template class AnisotropicMeshAdaptation <PHILIP_DIM, 2, double, dealii::Triangulation<PHILIP_DIM>>;

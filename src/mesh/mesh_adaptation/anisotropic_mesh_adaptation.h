@@ -66,6 +66,15 @@ private:
     /// Returns quadrature number of a point which is closest to the reference cell's center.
     unsigned int get_iquad_near_cellcenter(const dealii::Quadrature<dim> &volume_quadrature);
 
+    /// Returns flux coeffs by evaluating flux at support points of fe. 
+    /** Referenced by flux[idof][istate][idim]
+     */
+    void get_flux_coeffs(
+            std::vector<std::array<dealii::Tensor<1,dim,real>,nstate>> &flux_coeffs, 
+            const dealii::FEValues<dim,dim> &fe_values_input,
+            const std::vector<dealii::types::global_dof_index> &dof_indices,
+            typename dealii::DoFHandler<dim>::active_cell_iterator cell);
+
     /// Shared pointer to DGBase.
     std::shared_ptr<DGBase<dim,real,MeshType>> dg;
 
@@ -98,6 +107,9 @@ private:
 
 	/// Stores initial polynomial degree
 	const unsigned int initial_poly_degree;
+
+    /// Contains the physics of the PDE with real type
+    std::shared_ptr < Physics::PhysicsBase<dim, nstate, real > > pde_physics_double;
 };
 
 } // PHiLiP namepsace

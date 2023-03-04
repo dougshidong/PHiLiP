@@ -183,16 +183,6 @@ void AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: compute_abs_hessi
 	change_p_degree_and_interpolate_solution(initial_poly_degree);
 	dg->solution = solution_old; // reset solution
     dg->solution.update_ghost_values();
-
-	// Get absolute values of the hessians (i.e. by taking abs of eigenvalues).
-	for(const auto &cell : dg->dof_handler.active_cell_iterators())
-	{
-		if(! cell->is_locally_owned()) {continue;}
-		
-		const unsigned int cell_index = cell->active_cell_index();
-		cellwise_hessian[cell_index] = get_positive_definite_tensor(cellwise_hessian[cell_index]);
-	}
-
 }
 
 template<int dim, int nstate, typename real, typename MeshType>
@@ -270,6 +260,7 @@ void AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: compute_feature_b
 			// Adding hesssians of all components. Might need to change it later as required.
 			cellwise_hessian[cell_index] += dg->solution(dof_indices[idof])*fe_values_volume.shape_hessian_component(idof, iquad, icomp); 
 		}
+		cellwise_hessian[cell_index] = get_positive_definite_tensor(cellwise_hessian[cell_index]);
 	}
 }
 
@@ -302,7 +293,7 @@ void AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: compute_goal_orie
 	{
 		if(! cell->is_locally_owned()) {continue;}
 		
-		//const unsigned int cell_index = cell->active_cell_index();
+		const unsigned int cell_index = cell->active_cell_index();
 		const unsigned int i_fele = cell->active_fe_index();
 		const unsigned int i_quad = i_fele;
 		const unsigned int i_mapp = 0;
@@ -323,23 +314,32 @@ void AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: compute_goal_orie
             adjoint_gradient[istate] += adjoint(dof_indices[idof])*fe_values_volume.shape_grad_component(idof, iquad, istate);
         }
 
-        // Get absolute values of adjoint gradient
-        for(unsigned int istate = 0; istate < nstate; ++istate)
-        {
-            for(unsigned int idim = 0; idim < dim; ++idim)
-            {
-                adjoint_gradient[istate][idim] = abs(adjoint_gradient[istate][idim]);
-            }
-        }
-
         // Obtain flux coeffs
         std::vector<std::array<dealii::Tensor<1,dim,real>,nstate>> flux_coeffs;
         flux_coeffs.resize(n_dofs_cell);
         get_flux_coeffs(flux_coeffs, fe_values_volume, dof_indices, cell);
         
-        // Compute flux hessian
-
-    }
+        // Compute Hessian
+        cellwise_hessian[cell_index] = 0;
+        for(unsigned int istate = 0; istate < nstate; ++istate)
+        {
+            for(unsigned int idim = 0; idim < dim; ++idim)
+            {
+                dealii::Tensor<2,dim,real> flux_hessian_at_istate_idim;
+                for(unsigned int idof = 0; idof<n_dofs_cell; ++idof)
+                {
+                    const unsigned int icomp = fe_values_volume.get_fe().system_to_component_index(idof).first;
+                    if(icomp == istate)
+                    {
+                        flux_hessian_at_istate_idim += flux_coeffs[idof][istate][idim]*fe_values_volume.shape_hessian_component(idof, iquad, icomp);
+                    }
+                } // idof
+                flux_hessian_at_istate_idim = get_positive_definite_tensor(flux_hessian_at_istate_idim);
+                flux_hessian_at_istate_idim *= abs(adjoint_gradient[istate][idim]);
+                cellwise_hessian[cell_index] += flux_hessian_at_istate_idim;
+            } //idim
+        } //istate
+    } // cell loop ends
 
 }
 

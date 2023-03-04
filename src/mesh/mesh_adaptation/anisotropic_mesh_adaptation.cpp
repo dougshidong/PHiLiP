@@ -1,6 +1,7 @@
 #include "anisotropic_mesh_adaptation.h"
 #include <deal.II/base/symmetric_tensor.h>
 #include "linear_solver/linear_solver.h"
+#include "functional/functional.h"
 
 namespace PHiLiP {
 
@@ -37,7 +38,7 @@ AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: AnisotropicMeshAdaptat
 	if(initial_poly_degree != 1)
 	{
 		pcout<<"Warning: The optimal metric used by this class has been derived for p1."
-			 <<" For any other p, it might be a good apprximation but will not not optimal"<<std::endl; 
+			 <<" For any other p, it might be a good approximation but will not be optimal."<<std::endl; 
 	}
 
 	Assert(this->dg->triangulation->get_mesh_smoothing() == typename dealii::Triangulation<dim>::MeshSmoothing(dealii::Triangulation<dim>::none),
@@ -62,7 +63,7 @@ dealii::Tensor<2, dim, real> AnisotropicMeshAdaptation<dim, nstate, real, MeshTy
 
     dealii::Tensor<2, dim, real> positive_definite_tensor; // all entries are 0 by default.
 
-    // Form the matrix again with the updated eigenvalues
+    // Form the matrix again with updated eigenvalues
     // If matrix of eigenvectors = [v1 v2 vdim], the new matrix would be
     // [v1 v2 vdim] * diag(eig1, eig2, eigdim) * [v1 v2 vdim]^T
     // = eig1*v1*v1^T + eig2*v2*v2^T + eigdim*vdim*vdim^T with vi*vi^T coming from dealii's outer product.
@@ -110,7 +111,7 @@ void AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: compute_optimal_m
 		abs_hessian_determinant[cell_index] = dealii::determinant(cellwise_hessian[cell_index]);	
 	}
 
-	// Using Eq 4.40, page 153 in Dervieux, Alain, et al. Mesh Adaptation for Computational Fluid Dynamics 1. 2023.
+	// Using Eq 4.40, page 153 in Dervieux, A. et al. Mesh Adaptation for Computational Fluid Dynamics 1. 2022.
 	const auto mapping = (*(dg->high_order_grid->mapping_fe_field));
 	dealii::hp::MappingCollection<dim> mapping_collection(mapping);
 	const dealii::UpdateFlags update_flags = dealii::update_JxW_values;
@@ -162,7 +163,7 @@ void AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: compute_abs_hessi
 {
 	VectorType solution_old = dg->solution;
 	solution_old.update_ghost_values();
-	change_p_degree_and_interpolate_solution(2); // Change to p2
+	change_p_degree_and_interpolate_solution(2); // Interpolate to p2
 	reconstruct_p2_solution();
 	if(use_goal_oriented_approach)
 	{
@@ -174,6 +175,7 @@ void AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: compute_abs_hessi
 	}
 	change_p_degree_and_interpolate_solution(initial_poly_degree);
 	dg->solution = solution_old; // reset solution
+    dg->solution.update_ghost_values();
 
 	// Get absolute values of the hessians (i.e. by taking abs of eigenvalues).
 	for(const auto &cell : dg->dof_handler.active_cell_iterators())
@@ -228,12 +230,11 @@ void AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: reconstruct_p2_so
 template<int dim, int nstate, typename real, typename MeshType>
 void AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: compute_feature_based_hessian()
 {
-	// Compute Hessian of the solution at state 0 for now. It can be changed to Mach number or some other sensor later if required.
+	// Compute Hessian of the solution for now (can be changed to Mach number or some other sensor when required).
 	//const auto mapping = (*(dg->high_order_grid->mapping_fe_field)); // CHANGE IT BACK
 	dealii::MappingQGeneric<dim, dim> mapping(dg->high_order_grid->dof_handler_grid.get_fe().degree);
 	dealii::hp::MappingCollection<dim> mapping_collection(mapping);
-	const dealii::UpdateFlags update_flags = dealii::update_values | dealii::update_gradients | dealii::update_hessians | dealii::update_quadrature_points | dealii::update_JxW_values
-        | dealii::update_inverse_jacobians;
+	const dealii::UpdateFlags update_flags = dealii::update_values | dealii::update_gradients | dealii::update_hessians | dealii::update_quadrature_points | dealii::update_JxW_values;
 	dealii::hp::FEValues<dim,dim>   fe_values_collection_volume (mapping_collection, dg->fe_collection, dg->volume_quadrature_collection, update_flags);
 	
 	std::vector<dealii::types::global_dof_index> dof_indices;
@@ -252,7 +253,8 @@ void AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: compute_feature_b
 		const unsigned int n_dofs_cell = fe_values_volume.dofs_per_cell; 
 		dof_indices.resize(n_dofs_cell);
 		cell->get_dof_indices(dof_indices);
-		
+	
+        cellwise_hessian[cell_index] = 0;
 		// Since Hessian is constant in the cell for a p2 solution, we compute it at just one quadrature point.
 		unsigned int iquad = fe_values_volume.n_quadrature_points/2;
 		for(unsigned int idof = 0; idof<n_dofs_cell; ++iquad)
@@ -267,6 +269,55 @@ void AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: compute_feature_b
 template<int dim, int nstate, typename real, typename MeshType>
 void AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: compute_goal_oriented_hessian()
 {
+    // Compute the adjoint
+    VectorType adjoint(dg->solution); 
+    std::shared_ptr< Functional<dim, nstate, real, MeshType> > functional = 
+                                    FunctionalFactory<dim,nstate,real,MeshType>::create_Functional(dg->all_parameters->functional_param, dg);
+    dg->assemble_residual(true);
+    functional->evaluate_functional(true);
+    solve_linear(dg->system_matrix, functional->dIdw, adjoint, dg->all_parameters->linear_solver_param);
+    adjoint *= -1.0;
+    adjoint.update_ghost_values();
+    //==================================
+    // Compute goal oriented pseudo hessian.
+    // From Eq. 28 in Loseille, A., Dervieux, A., and Alauzet, F. "Fully anisotropic goal-oriented mesh adaptation for 3D steady Euler equations.", 2010.
+    // Also, as suggested in the footnote on page 78 in Dervieux, A. et al. Mesh Adaptation for Computational Fluid Dynamics 2. 2022, metric terms related to 
+    // faces do not make a difference and hence are not included.
+	//const auto mapping = (*(dg->high_order_grid->mapping_fe_field)); // CHANGE IT BACK
+	dealii::MappingQGeneric<dim, dim> mapping(dg->high_order_grid->dof_handler_grid.get_fe().degree);
+	dealii::hp::MappingCollection<dim> mapping_collection(mapping);
+	const dealii::UpdateFlags update_flags = dealii::update_values | dealii::update_gradients | dealii::update_hessians | dealii::update_quadrature_points | dealii::update_JxW_values;
+	dealii::hp::FEValues<dim,dim>   fe_values_collection_volume (mapping_collection, dg->fe_collection, dg->volume_quadrature_collection, update_flags);
+	
+	std::vector<dealii::types::global_dof_index> dof_indices;
+
+	for(const auto &cell : dg->dof_handler.active_cell_iterators())
+	{
+		if(! cell->is_locally_owned()) {continue;}
+		
+		//const unsigned int cell_index = cell->active_cell_index();
+		const unsigned int i_fele = cell->active_fe_index();
+		const unsigned int i_quad = i_fele;
+		const unsigned int i_mapp = 0;
+		fe_values_collection_volume.reinit(cell, i_quad, i_mapp, i_fele);
+		const dealii::FEValues<dim,dim> &fe_values_volume = fe_values_collection_volume.get_present_fe_values();
+		
+		const unsigned int n_dofs_cell = fe_values_volume.dofs_per_cell; 
+		dof_indices.resize(n_dofs_cell);
+		cell->get_dof_indices(dof_indices);
+
+		unsigned int iquad = fe_values_volume.n_quadrature_points/2;
+
+        // Compute adjoint gradient at iquad
+        std::array< dealii::Tensor<1, dim, real>, nstate> adjoint_gradient;
+        for(unsigned int idof = 0; idof < n_dofs_cell; ++idof)
+        { 
+			const unsigned int istate = fe_values_volume.get_fe().system_to_component_index(idof).first;
+            adjoint_gradient[istate] += adjoint(dof_indices[idof])*fe_values_volume.shape_grad_component(idof, iquad, istate);
+        }
+
+    }
+
 }
 
 // Instantiations

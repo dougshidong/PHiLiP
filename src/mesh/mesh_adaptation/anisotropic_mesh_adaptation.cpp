@@ -257,8 +257,11 @@ void AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: compute_feature_b
         for(unsigned int idof = 0; idof<n_dofs_cell; ++idof)
 		{
 			const unsigned int icomp = fe_values_volume.get_fe().system_to_component_index(idof).first;
-			// Adding hesssians of all components. Might need to change it later as required.
-			cellwise_hessian[cell_index] += dg->solution(dof_indices[idof])*fe_values_volume.shape_hessian_component(idof, iquad, icomp); 
+			// Computing hesssian of solution at state 0. Might need to change it later
+            if(icomp == 0)
+            {
+			    cellwise_hessian[cell_index] += dg->solution(dof_indices[idof])*fe_values_volume.shape_hessian_component(idof, iquad, icomp); 
+            }
 		}
 		cellwise_hessian[cell_index] = get_positive_definite_tensor(cellwise_hessian[cell_index]);
 	}

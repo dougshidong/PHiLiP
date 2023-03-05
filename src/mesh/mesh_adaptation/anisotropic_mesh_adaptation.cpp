@@ -105,6 +105,8 @@ void AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: compute_optimal_m
 {
 	initialize_cellwise_metric_and_hessians();
 	compute_abs_hessian(); // computes hessian according to goal oriented or feature based approach.
+    
+    pcout<<"Computing optimal metric field."<<std::endl;
 
 	const unsigned int n_active_cells = dg->triangulation->n_active_cells();
 	dealii::Vector<real> abs_hessian_determinant(n_active_cells);
@@ -169,7 +171,15 @@ void AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: compute_optimal_m
     {
         if(! cell->is_locally_owned()) {continue;}
         const unsigned int cell_index = cell->active_cell_index();
-        std::cout<<"cell index = "<<cell_index<<"  Processor# = "<<mpi_rank<<"\n"<<"Metric = \n"<<cellwise_optimal_metric[cell_index];
+        std::cout<<"cell index = "<<cell_index<<"  Processor# = "<<mpi_rank<<"\n"<<"Metric = "<<std::endl;
+        for(unsigned int i = 0; i<dim; ++i)
+        {
+            for(unsigned int j=0; j<dim; ++j)
+            {
+                std::cout<<cellwise_optimal_metric[cell_index][i][j]<<" ";
+            }
+            std::cout<<std::endl;
+        }
     }
 }
 
@@ -196,6 +206,7 @@ void AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: compute_abs_hessi
 template<int dim, int nstate, typename real, typename MeshType>
 void AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: change_p_degree_and_interpolate_solution(const unsigned int poly_degree)
 {
+    pcout<<"Changing poly degree to "<<poly_degree<<" and interpolating solution."<<std::endl;
 	VectorType solution_coarse = dg->solution;
 	solution_coarse.update_ghost_values();
 
@@ -223,6 +234,7 @@ template<int dim, int nstate, typename real, typename MeshType>
 void AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: reconstruct_p2_solution()
 {
 	assert(dg->get_min_fe_degree() == 2);
+    pcout<<"Reconstructing p2 solution."<<std::endl;
 	dg->assemble_residual(true);
 	VectorType delU = dg->solution;
 	solve_linear(dg->system_matrix, dg->right_hand_side, delU, dg->all_parameters->linear_solver_param);
@@ -235,6 +247,7 @@ void AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: reconstruct_p2_so
 template<int dim, int nstate, typename real, typename MeshType>
 void AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: compute_feature_based_hessian()
 {
+    pcout<<"Computing feature based Hessian."<<std::endl;
 	// Compute Hessian of the solution for now (can be changed to Mach number or some other sensor when required).
 	//const auto mapping = (*(dg->high_order_grid->mapping_fe_field)); // CHANGE IT BACK
 	dealii::MappingQGeneric<dim, dim> mapping(dg->high_order_grid->dof_handler_grid.get_fe().degree);
@@ -278,6 +291,7 @@ void AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: compute_feature_b
 template<int dim, int nstate, typename real, typename MeshType>
 void AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: compute_goal_oriented_hessian()
 {
+    pcout<<"Computing goal-oriented Hessian."<<std::endl;
     // Compute the adjoint
     VectorType adjoint(dg->solution); 
     std::shared_ptr< Functional<dim, nstate, real, MeshType> > functional = 

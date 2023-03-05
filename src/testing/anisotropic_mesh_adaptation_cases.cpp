@@ -22,7 +22,7 @@ int AnisotropicMeshAdaptationCases<dim, nstate> :: run_test () const
     
     std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(&param, parameter_handler);
     flow_solver->run();
-    const bool use_goal_oriented_approach = false;
+    const bool use_goal_oriented_approach = true;
     const double complexity = 300;
     double normLp = 2.0;
     if(use_goal_oriented_approach) {normLp = 1.0;}

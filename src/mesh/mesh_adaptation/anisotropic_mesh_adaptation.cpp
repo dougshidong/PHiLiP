@@ -163,6 +163,14 @@ void AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: compute_optimal_m
 		cellwise_optimal_metric[cell_index] = cellwise_hessian[cell_index];
 		cellwise_optimal_metric[cell_index] *= scaling_factor_this_cell;
 	}
+
+    // Output metric
+    for(const auto &cell : dg->dof_handler.active_cell_iterators())
+    {
+        if(! cell->is_locally_owned()) {continue;}
+        const unsigned int cell_index = cell->active_cell_index();
+        std::cout<<"cell index = "<<cell_index<<"  Processor# = "<<mpi_rank<<"\n"<<"Metric = \n"<<cellwise_optimal_metric[cell_index];
+    }
 }
 
 template<int dim, int nstate, typename real, typename MeshType>
@@ -257,7 +265,7 @@ void AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: compute_feature_b
         for(unsigned int idof = 0; idof<n_dofs_cell; ++idof)
 		{
 			const unsigned int icomp = fe_values_volume.get_fe().system_to_component_index(idof).first;
-			// Computing hesssian of solution at state 0. Might need to change it later
+			// Computing hesssian of solution at state 0. Might need to change it later.
             if(icomp == 0)
             {
 			    cellwise_hessian[cell_index] += dg->solution(dof_indices[idof])*fe_values_volume.shape_hessian_component(idof, iquad, icomp); 

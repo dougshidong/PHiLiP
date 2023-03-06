@@ -75,6 +75,9 @@ private:
             const std::vector<dealii::types::global_dof_index> &dof_indices,
             typename dealii::DoFHandler<dim>::active_cell_iterator cell);
 
+	/// Interpolates cellwise metric field to vertices.
+	void interpolate_metric_to_vertices();
+
     /// Shared pointer to DGBase.
     std::shared_ptr<DGBase<dim,real,MeshType>> dg;
 
@@ -86,6 +89,9 @@ private:
 	
 	/// Stores hessian in each cell
 	std::vector<dealii::Tensor<2, dim, real>> cellwise_hessian;
+	
+	/// Stores optimal metric at vertices
+	std::vector<dealii::Tensor<2, dim, real>> optimal_metric_at_vertices;
 
     /// Lp Norm w.r.t. which the anlytical optimization is done.
     const real normLp;

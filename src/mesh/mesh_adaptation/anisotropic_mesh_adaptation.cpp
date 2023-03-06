@@ -4,6 +4,7 @@
 #include "functional/functional.h"
 #include "physics/physics_factory.h"
 #include "physics/model_factory.h"
+#include <deal.II/dofs/dof_renumbering.h>
 
 namespace PHiLiP {
 
@@ -166,6 +167,8 @@ void AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: compute_optimal_m
 		cellwise_optimal_metric[cell_index] *= scaling_factor_this_cell;
 	}
 
+	interpolate_metric_to_vertices();
+/*
     // Output metric
     for(const auto &cell : dg->dof_handler.active_cell_iterators())
     {
@@ -181,6 +184,7 @@ void AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: compute_optimal_m
             std::cout<<std::endl;
         }
     }
+*/
 }
 
 template<int dim, int nstate, typename real, typename MeshType>
@@ -428,6 +432,75 @@ void AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: get_flux_coeffs(
     }
 
 }
+
+template<int dim, int nstate, typename real, typename MeshType>
+void AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: interpolate_metric_to_vertices()
+{
+	pcout<<"Interpolating metric at cells to vertices"<<std::endl;
+	// Using Eq. 2.56 in Dolejší, V. and May, G. (2022). Anisotropic Hp-Mesh Adaptation Methods: Theory, Implementation and Applications.
+	
+	if(n_mpi != 1)
+	{
+		pcout<<"Error: interpolate_metric_to_vertices() works with only 1 processor. Need to update it in future."<<std::flush;
+		std::abort();
+	}
+
+	dealii::FE_Q<dim> fe_q(1);
+	dealii::FESystem<dim> fe_system(fe_q,1); 
+	dealii::DoFHandler<dim>	dof_handler_vertices(*dg->triangulation);
+	dof_handler_vertices.initialize(*dg->triangulation, fe_system);
+	dof_handler_vertices.distribute_dofs(fe_system);
+	dealii::DoFRenumbering::Cuthill_McKee(dof_handler_vertices);
+
+	// Store vertices in each cell with global dof.
+	const unsigned int n_vertices = dof_handler_vertices.n_dofs();
+
+	std::vector<dealii::Point<dim>> all_vertices;
+	all_vertices.resize(n_vertices);
+
+	dealii::Quadrature<dim> quadrature = fe_system.get_unit_support_points();
+	dealii::FEValues<dim, dim> fe_values_vertices(*(dg->high_order_grid->mapping_fe_field), fe_system, quadrature, dealii::update_quadrature_points);
+	std::vector<dealii::types::global_dof_index> dof_indices(fe_system.dofs_per_cell);
+
+	for(const auto &cell: dof_handler_vertices.active_cell_iterators())
+	{
+		if(! cell->is_locally_owned()) {continue;}
+
+		fe_values_vertices.reinit(cell);
+		cell->get_dof_indices(dof_indices);
+
+		const std::vector<dealii::Point<dim>> &cell_vertices = fe_values_vertices.get_quadrature_points();
+
+		for(unsigned int idof = 0; idof < cell_vertices.size(); ++idof)
+		{
+			const unsigned int iquad = idof;
+			all_vertices[dof_indices[idof]] = cell_vertices[iquad];
+		}
+		
+		if(cell_vertices.size() != dealii::GeometryInfo<dim>::vertices_per_cell) 
+		{
+			std::cout<<"Size of cell_vertices needs to be equal to vertices per cell. Aborting.."<<std::flush;
+			std::abort();
+		}
+		// Check if vertices are in the same order.
+		for(unsigned int idof = 0; idof < cell_vertices.size(); ++idof)
+		{
+			const dealii::Point<dim> expected_vertex = cell->vertex(idof);
+			const real error_in_vertex = expected_vertex.distance(all_vertices[dof_indices[idof]]);
+			//std::cout<<"Expected vertex = "<<cell->vertex(idof)<<"     "<<"Actual vertex = "<<all_vertices[dof_indices[idof]]<<std::endl;
+			if(error_in_vertex > 1.0e-10)
+			{
+				std::cout<<"Error in ordering of vertices. Aborting.."<<std::flush;
+				std::abort();
+			}
+			
+		}
+		
+	} // cell loop ends
+
+}
+
+
 // Instantiations
 template class AnisotropicMeshAdaptation <PHILIP_DIM, 1, double, dealii::Triangulation<PHILIP_DIM>>;
 template class AnisotropicMeshAdaptation <PHILIP_DIM, 2, double, dealii::Triangulation<PHILIP_DIM>>;

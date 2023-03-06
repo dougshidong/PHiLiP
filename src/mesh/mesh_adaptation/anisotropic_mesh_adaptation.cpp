@@ -169,6 +169,7 @@ void AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: compute_optimal_m
 
 	interpolate_metric_to_vertices();
 /*
+	pcout<<"Cellwise metric = "<<std::endl;
     // Output metric
     for(const auto &cell : dg->dof_handler.active_cell_iterators())
     {
@@ -444,7 +445,7 @@ void AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: interpolate_metri
 		pcout<<"Error: interpolate_metric_to_vertices() works with only 1 processor. Need to update it in future."<<std::flush;
 		std::abort();
 	}
-
+//====================== Store vertices =============================================================================
 	dealii::FE_Q<dim> fe_q(1);
 	dealii::FESystem<dim> fe_system(fe_q,1); 
 	dealii::DoFHandler<dim>	dof_handler_vertices(*dg->triangulation);
@@ -460,7 +461,8 @@ void AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: interpolate_metri
 
 	dealii::Quadrature<dim> quadrature = fe_system.get_unit_support_points();
 	dealii::FEValues<dim, dim> fe_values_vertices(*(dg->high_order_grid->mapping_fe_field), fe_system, quadrature, dealii::update_quadrature_points);
-	std::vector<dealii::types::global_dof_index> dof_indices(fe_system.dofs_per_cell);
+	const unsigned int n_dofs_cell = fe_system.dofs_per_cell;
+	std::vector<dealii::types::global_dof_index> dof_indices(n_dofs_cell);
 
 	for(const auto &cell: dof_handler_vertices.active_cell_iterators())
 	{
@@ -492,11 +494,93 @@ void AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: interpolate_metri
 			{
 				std::cout<<"Error in ordering of vertices. Aborting.."<<std::flush;
 				std::abort();
+			}	
+		}
+	} // cell loop ends
+
+//================================ Interpolate metric field ================================================
+	optimal_metric_at_vertices.resize(n_vertices); // initialized to 0
+
+	std::vector<real> metric_count; // initialized to 0
+	metric_count.resize(n_vertices);
+
+	for(const auto &cell: dof_handler_vertices.active_cell_iterators())
+	{
+		if(! cell->is_locally_owned()) {continue;}
+
+		cell->get_dof_indices(dof_indices);
+		const unsigned int cell_index = cell->active_cell_index();
+		
+		for(unsigned int idof = 0; idof<n_dofs_cell; ++idof)
+		{
+			const unsigned int idof_global = dof_indices[idof];
+			optimal_metric_at_vertices[idof_global] += cellwise_optimal_metric[cell_index];
+			++metric_count[idof_global]; 
+		}
+
+	} // cell loop ends
+	
+	for(const auto &cell: dof_handler_vertices.active_cell_iterators())
+	{
+		if(! cell->is_locally_owned()) {continue;}
+
+		cell->get_dof_indices(dof_indices);
+		
+		for(unsigned int idof = 0; idof<n_dofs_cell; ++idof)
+		{
+			const unsigned int idof_global = dof_indices[idof];
+			optimal_metric_at_vertices[idof_global] /= metric_count[idof_global]; 
+		}
+
+	} // cell loop ends
+
+	// output optimal metric at vertices for verifying.
+    // Output metric
+	pcout<<"Optimal metric at vertices = "<<std::endl;
+    for(const auto &cell : dof_handler_vertices.active_cell_iterators())
+    {
+        if(! cell->is_locally_owned()) {continue;}
+		cell->get_dof_indices(dof_indices);
+		
+		std::cout<<"Cell index = "<<cell->active_cell_index()<<std::endl;
+		std::cout<<"Vertices in this cell = "<<std::endl;
+		for(unsigned int idof = 0; idof<n_dofs_cell; ++idof)
+		{
+			const unsigned int idof_global = dof_indices[idof];
+			std::cout<<"Vertex = "<<all_vertices[idof_global]<<std::endl;
+			std::cout<<"metric count = "<<metric_count[idof_global]<<std::endl;
+		}
+		std::cout<<"Metric at vertex = "<<std::endl;
+	
+		for(unsigned int idof = 0; idof<n_dofs_cell; ++idof)
+		{
+			std::cout<<"Metric at vertex "<<idof<<" :"<<std::endl;
+			const unsigned int idof_global = dof_indices[idof];
+        
+			for(unsigned int i = 0; i<dim; ++i)
+			{
+				for(unsigned int j=0; j<dim; ++j)
+				{
+					std::cout<<optimal_metric_at_vertices[idof_global][i][j]<<" ";
+				}
+				std::cout<<std::endl;
 			}
-			
+		}
+
+		std::cout<<"Metric at cell = "<<std::endl;
+		for(unsigned int i = 0; i<dim; ++i)
+		{
+			for(unsigned int j=0; j<dim; ++j)
+			{
+				std::cout<<cellwise_optimal_metric[cell->active_cell_index()][i][j]<<" ";
+			}
+			std::cout<<std::endl;
 		}
 		
-	} // cell loop ends
+		std::cout<<std::endl;
+	
+    } // cell loop ends
+
 
 }
 

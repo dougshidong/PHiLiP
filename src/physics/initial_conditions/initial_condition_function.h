@@ -24,6 +24,14 @@ public:
 
     /// Value of the initial condition
     virtual real value (const dealii::Point<dim,real> &point, const unsigned int istate = 0) const = 0;
+
+protected:
+
+    /// For Euler or Navier-Stokes-based initial conditions, convert the
+    /** primitive variables to conservative variables */
+    real convert_primitive_to_conversative_euler( const std::array<real,nstate> primitive_value,
+            const real gamma_gas,
+            const unsigned int istate) const;
 };
 
 /// Function used to evaluate farfield conservative solution

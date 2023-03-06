@@ -14,6 +14,43 @@ InitialConditionFunction<dim,nstate,real>
     // Nothing to do here yet
 }
 
+template <int dim, int nstate, typename real>
+real InitialConditionFunction<dim,nstate,real>
+::convert_primitive_to_conversative_euler(const std::array<real,nstate> primitive_value,
+            const real gamma_gas,
+            const unsigned int istate) const
+{
+    real value = 0.0;
+    if constexpr(dim == 3) {
+        const double rho = primitive_value[0], u = primitive_value[1],
+                     v = primitive_value[2], w = primitive_value[3],
+                     p = primitive_value[4];
+        // convert primitive to conservative solution
+        if(istate==0) value = rho; // density
+        if(istate==1) value = rho*u; // x-momentum
+        if(istate==2) value = rho*v; // y-momentum
+        if(istate==3) value = rho*w; // z-momentum
+        if(istate==4) value = p/(gamma_gas-1.0) + 0.5*rho*(u*u + v*v + w*w); // total energy
+    }else if constexpr(dim==2) {
+        const double rho = primitive_value[0], u = primitive_value[1],
+                     v = primitive_value[2], p = primitive_value[3];
+        // convert primitive to conservative solution
+        if(istate==0) value = rho; // density
+        if(istate==1) value = rho*u; // x-momentum
+        if(istate==2) value = rho*v; // y-momentum
+        if(istate==3) value = p/(gamma_gas-1.0) + 0.5*rho*(u*u + v*v); // total energy
+    }else if constexpr(dim==1) {
+        const double rho = primitive_value[0], u = primitive_value[1],
+                     p = primitive_value[2];
+        // convert primitive to conservative solution
+        if(istate==0) value = rho; // density
+        if(istate==1) value = rho*u; // x-momentum
+        if(istate==2) value = p/(gamma_gas-1.0) + 0.5*rho*(u*u); // total energy
+    }
+
+    return value;
+}
+
 // ========================================================
 // TAYLOR GREEN VORTEX -- Initial Condition (Uniform density)
 // ========================================================
@@ -67,7 +104,17 @@ real InitialConditionFunction_TaylorGreenVortex<dim,nstate,real>
     const dealii::Point<dim,real> &point, const unsigned int istate) const
 {
     real value = 0.0;
-    if (dim == 3) {
+    if constexpr(dim == 3) {
+        std::array<real,nstate> soln_primitive;
+
+        soln_primitive[0] = primitive_value(point,0);
+        soln_primitive[1] = primitive_value(point,1);
+        soln_primitive[2] = primitive_value(point,2);
+        soln_primitive[3] = primitive_value(point,3);
+        soln_primitive[4] = primitive_value(point,4);
+
+        value = this->convert_primitive_to_conversative_euler(soln_primitive, this->gamma_gas, istate);
+/*
         const real rho = primitive_value(point,0);
         const real u   = primitive_value(point,1);
         const real v   = primitive_value(point,2);
@@ -80,6 +127,7 @@ real InitialConditionFunction_TaylorGreenVortex<dim,nstate,real>
         if(istate==2) value = rho*v; // y-momentum
         if(istate==3) value = rho*w; // z-momentum
         if(istate==4) value = p/(this->gamma_gas-1.0) + 0.5*rho*(u*u + v*v + w*w); // total energy
+*/
     }
 
     return value;
@@ -388,20 +436,16 @@ inline real InitialConditionFunction_IsentropicVortex<dim,nstate,real>
     const double delta_T  = -(gam-1.0)/2.0 * Omega * Omega;
 
     // Primitive
-    const double rho = pow((1 + delta_T), 1.0/(gam-1.0));
-    const double Ux = M_infty * cos(alpha) + delta_Ux;
-    const double Uy = M_infty * sin(alpha) + delta_Uy;
-    const double Uz = 0;
-    const double p = 1.0/gam*pow(1+delta_T, gam/(gam-1.0));
+    std::array<real,nstate> soln_primitive;
+    soln_primitive[0] = pow((1 + delta_T), 1.0/(gam-1.0));
+    soln_primitive[1] = M_infty * cos(alpha) + delta_Ux;
+    soln_primitive[2] = M_infty * sin(alpha) + delta_Uy;
+    #if PHILIP_DIM==3
+    soln_primitive[3] = 0;
+    #endif
+    soln_primitive[nstate-1] = 1.0/gam*pow(1+delta_T, gam/(gam-1.0));
 
-    //Convert to conservative variables
-    if (istate == 0)      return rho;       //density
-    else if (istate == nstate-1) return p/(gam-1.0) + 0.5 * rho * (Ux*Ux + Uy*Uy + Uz*Uz);   //total energy
-    else if (istate == 1) return rho * Ux;  //x-momentum
-    else if (istate == 2) return rho * Uy;  //y-momentum
-    else if (istate == 3) return rho * Uz;  //z-momentum
-    else return 0;
-
+    return this->convert_primitive_to_conversative_euler(soln_primitive, gam, istate);
 }
 
 // ========================================================
@@ -432,21 +476,13 @@ inline real InitialConditionFunction_KHI<dim,nstate,real>
     const double rho1 = 0.5;
     const double rho2 = rho1 * (1 + atwood_number) / (1 - atwood_number);
 
-    const double density = rho1 + B * (rho2-rho1);
-    const double pressure = 1;
-    const double x_velocity = B - 0.5;
-    const double y_velocity = 0.1 * sin(2 * pi * point[0]);
-    const double vel2 = x_velocity*x_velocity + y_velocity*y_velocity;
+    std::array<real,nstate> soln_primitive;
+    soln_primitive[0] = rho1 + B * (rho2-rho1);
+    soln_primitive[nstate-1] = 1;
+    soln_primitive[1] = B - 0.5;
+    soln_primitive[2] = 0.1 * sin(2 * pi * point[0]);
 
-    //Convert to conservative variables
-    if (istate == 0)      return density;       //density 
-    else if (istate == nstate-1) return pressure/(gam-1.0) 
-        + 0.5 * density * vel2;   //total energy
-    else if (istate == 1) return density * x_velocity;  //x-momentum
-    else if (istate == 2) return density * y_velocity;  //y-momentum
-    else return 0;
-    
-
+    return this->convert_primitive_to_conversative_euler(soln_primitive, gam, istate);
 }
 
 // ========================================================

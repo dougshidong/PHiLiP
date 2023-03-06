@@ -282,11 +282,12 @@ protected:
 
 public:
     /// Constructor for InitialConditionFunction_IsentropicVortex
-    /// Setup according to "A Survey of the Isentropic Euler Vortex Problem using High-Order Methods"
-    ///     Spiegel et al., 2015
-    /// Using "Shu" variant (first row of Table 1)
-    /// Non-dimensional initialization
-    /// Increased domain from L=5 -> L=10 per recommendation of Spiegel et al
+    /** Setup according to "A Survey of the Isentropic Euler Vortex Problem using High-Order Methods"
+     *     Spiegel et al., 2015
+     *  Using "Shu" variant (first row of Table 1)
+     *  Non-dimensional initialization, i.e. directly using Table 1
+     *  Increased domain from L=5 -> L=10 per recommendation of Spiegel et al
+     */
     InitialConditionFunction_IsentropicVortex ();
 
     /// Value of initial condition
@@ -296,10 +297,11 @@ public:
 
 
 /// Kelvin-Helmholtz Instability, parametrized by Atwood number
-/// See Chan et al., On the entropy projection..., 2022, Pg. 15
-///     Note that some equations are not typed correctly
-///     See github.com/trixi-framework/paper-2022-robustness-entropy-projection
-///     for initial condition which is implemented herein
+/** See Chan et al., On the entropy projection..., 2022, Pg. 15
+ *      Note that some equations are not typed correctly
+ *      See github.com/trixi-framework/paper-2022-robustness-entropy-projection
+ *      for initial condition which is implemented herein
+ */
 template <int dim, int nstate, typename real>
 class InitialConditionFunction_KHI : public InitialConditionFunction<dim,nstate,real>
 {
@@ -310,7 +312,7 @@ public:
     /// Constructor
     InitialConditionFunction_KHI(const double atwood_number_input);
 
-    /// value of initial condition 
+    /// Value of initial condition
     real value(const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
 
     const real atwood_number;

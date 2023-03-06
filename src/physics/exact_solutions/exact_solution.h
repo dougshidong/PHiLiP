@@ -38,7 +38,7 @@ public:
     ExactSolutionFunction_Zero (double time_compare);
 
     /// Time at which to compute the exact solution
-    double t; 
+    const double t; 
 
     /// Value of the exact solution at a point 
     real value (const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
@@ -58,7 +58,7 @@ public:
     ExactSolutionFunction_1DSine (double time_compare);
 
     /// Time at which to compute the exact solution
-    double t; 
+    const double t; 
 
     /// Value of the exact solution at a point 
     real value (const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
@@ -78,7 +78,7 @@ public:
     ExactSolutionFunction_IsentropicVortex (double time_compare);
 
     /// Time at which to compute the exact solution
-    double t; 
+    const double t; 
 
     /// Value of the exact solution at a point 
     real value (const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;

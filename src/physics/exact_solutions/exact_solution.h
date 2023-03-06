@@ -89,7 +89,7 @@ template <int dim, int nstate, typename real>
 class ExactSolutionFactory
 {
 protected:    
-    /// Enumeration of all flow solver initial solutions types defined in the Parameters class
+    /// Enumeration of all flow solver exact solutions types defined in the Parameters class
     using FlowCaseEnum = Parameters::FlowSolverParam::FlowCaseType;
 
 public:

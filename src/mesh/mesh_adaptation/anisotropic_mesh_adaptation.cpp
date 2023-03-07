@@ -499,9 +499,15 @@ void AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: interpolate_metri
 	} // cell loop ends
 
 //================================ Interpolate metric field ================================================
-	optimal_metric_at_vertices.resize(n_vertices); // initialized to 0
+	optimal_metric_at_vertices.clear();
+	
+    dealii::Tensor<2, dim, real> zero_tensor; // initialized to 0 by default.
+	for(unsigned int i=0; i<n_vertices; ++i)
+	{
+		optimal_metric_at_vertices.push_back(zero_tensor);
+	}
 
-	std::vector<real> metric_count; // initialized to 0
+	std::vector<int> metric_count; // initialized to 0
 	metric_count.resize(n_vertices);
 
 	for(const auto &cell: dof_handler_vertices.active_cell_iterators())
@@ -529,7 +535,14 @@ void AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: interpolate_metri
 		for(unsigned int idof = 0; idof<n_dofs_cell; ++idof)
 		{
 			const unsigned int idof_global = dof_indices[idof];
-			optimal_metric_at_vertices[idof_global] /= metric_count[idof_global]; 
+            const real scaling_factor = 1.0/metric_count[idof_global];
+            for(unsigned int i=0; i<dim; ++i)
+            {
+                for(unsigned int j=0; j<dim; ++j)
+                {
+			        optimal_metric_at_vertices[idof_global][i][j] *= scaling_factor; 
+                }
+            }
 		}
 
 	} // cell loop ends

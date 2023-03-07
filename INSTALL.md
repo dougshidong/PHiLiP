@@ -27,6 +27,9 @@ If you are running the code **on a local machine** (i.e. not on the cluster), yo
 4. Then run the following bash script inside the `PHiLiP` directory:
    `chmod +x get_gmsh_mesh_files_local.sh`
    `./get_gmsh_mesh_files_local.sh`
+5. Download flow initialization files by running the following bash script inside the `PHiLiP` directory:
+   `chmod +x get_flow_initialization_files_local.sh`
+   `./get_flow_initialization_files_local.sh`
 
 ## deal.II
 
@@ -92,10 +95,19 @@ The deal.II library has been setup with the following options:
 
 This section is aimed at McGill's group who use the Compute Canada (CC) clusters.
 
+<<<<<<< HEAD
 If you have just cloned the code onto the cluster, **you must copy the large mesh files** that cannot be stored on GitHub, this can be done by explicitly running the following:
 ~~~~
 chmod +x get_gmsh_mesh_files_cluster.sh
 ./get_gmsh_mesh_files_cluster.sh
+=======
+If you have just cloned the code onto the cluster, **you must copy the large NACA0012 mesh files and flow initialization files** that cannot be stored on GitHub, this can be done by explicitly running the following:
+~~~~
+chmod +x get_NACA0012_mesh_files_cluster.sh
+./get_NACA0012_mesh_files_cluster.sh
+chmod +x get_flow_initialization_files_cluster.sh
+./get_flow_initialization_files_cluster.sh
+>>>>>>> origin/master
 ~~~~
 If you are a **new user on a CC cluster**, **you must configure git modules** by explicitly running the following on the cluster before proceeding:
 ~~~~

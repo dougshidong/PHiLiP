@@ -394,6 +394,8 @@ InitialConditionFactory<dim,nstate, real>::create_InitialConditionFunction(
                     param->euler_param.mach_inf);
             }
         }
+    } else if (flow_type == FlowCaseEnum::decaying_homogeneous_isotropic_turbulence) {
+        if constexpr (dim==3 && nstate==dim+2) return nullptr; // nullptr since DHIT case initializes values from file
     } else if (flow_type == FlowCaseEnum::burgers_rewienski_snapshot) {
         if constexpr (dim==1 && nstate==1) return std::make_shared<InitialConditionFunction_BurgersRewienski<dim,nstate,real> > ();
     } else if (flow_type == FlowCaseEnum::burgers_viscous_snapshot) {

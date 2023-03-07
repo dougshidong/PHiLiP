@@ -3,13 +3,12 @@
 # Number of dimensions
 
 set dimension = 3
-set test_type = taylor_green_vortex_energy_check
-set pde_type = physics_model
-set model_type = large_eddy_simulation
+set test_type = homogeneous_isotropic_turbulence_initialization_check
+set pde_type = navier_stokes
 
 # DG formulation
-set use_weak_form = true
-# set flux_nodes_type = GLL
+set use_weak_form = false
+set flux_nodes_type = GLL
 
 # Note: this was added to turn off check_same_coords() -- has no other function when dim!=1
 set use_periodic_bc = true
@@ -39,29 +38,28 @@ subsection navier_stokes
   set reynolds_number_inf = 1600.0
 end
 
-subsection physics_model
-  subsection large_eddy_simulation
-    set euler_turbulence = false
-    set SGS_model_type = smagorinsky
-    set turbulent_prandtl_number = 0.6
-    set smagorinsky_model_constant = 0.18
-    set ratio_of_filter_width_to_cell_size = 0.27415567780803773
-  end
-end
-
 subsection flow_solver
-  set flow_case_type = taylor_green_vortex
-  set poly_degree = 2
+  set flow_case_type = decaying_homogeneous_isotropic_turbulence
+  set poly_degree = 5
   set final_time = 1.2566370614400000e-02
   set courant_friedrich_lewy_number = 0.003
-  set unsteady_data_table_filename = tgv_les_smagorinsky_kinetic_energy_vs_time_table_for_energy_check
+  set unsteady_data_table_filename = dhit_init_check_mpi
+  set output_restart_files = false
   subsection grid
     set grid_left_bound = 0.0
     set grid_right_bound = 6.28318530717958623200
     set number_of_grid_elements_per_dimension = 4
   end
   subsection taylor_green_vortex
-    set expected_kinetic_energy_at_final_time = 1.2073308075876210e-01
-    set expected_theoretical_dissipation_rate_at_final_time = 4.5420154490646516e-04
+    set expected_kinetic_energy_at_final_time = 1.2073987162646824e-01
+    set expected_theoretical_dissipation_rate_at_final_time = 4.5422264559968770e-04
+  end
+  set apply_initial_condition_method = read_values_from_file_and_project
+  set input_flow_setup_filename_prefix = setup_files/4proc/setup_philip
+  subsection output_velocity_field
+    set output_velocity_field_at_fixed_times = true
+    set output_velocity_field_times_string = 0.0
+    set number_of_times_to_output_velocity_field = 1
+    set output_vorticity_magnitude_field_in_addition_to_velocity = true
   end
 end

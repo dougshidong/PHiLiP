@@ -29,7 +29,9 @@ set(TESTS_SOURCE
     time_refinement_study.cpp
     time_refinement_study_reference.cpp
     burgers_energy_conservation_rrk.cpp
-    euler_entropy_conserving_split_forms_check.cpp)
+    euler_entropy_conserving_split_forms_check.cpp
+    homogeneous_isotropic_turbulence_initialization_check.cpp
+    )
 
 foreach(dim RANGE 1 3)
     # Output library

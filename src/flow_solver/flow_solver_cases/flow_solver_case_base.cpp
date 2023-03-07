@@ -137,6 +137,14 @@ double FlowSolverCaseBase<dim,nstate>::get_adaptive_time_step(std::shared_ptr<DG
 }
 
 template <int dim, int nstate>
+double FlowSolverCaseBase<dim,nstate>::get_adaptive_time_step_initial(std::shared_ptr<DGBase<dim,double>> /*dg*/)
+{
+    pcout << "ERROR: Base definition for get_adaptive_time_step_initial() has not yet been implemented. " <<std::flush;
+    std::abort();
+    return 0.0;
+}
+
+template <int dim, int nstate>
 void FlowSolverCaseBase<dim, nstate>::steady_state_postprocessing(std::shared_ptr <DGBase<dim, double>> /*dg*/) const
 {
     // do nothing by default
@@ -161,6 +169,19 @@ void FlowSolverCaseBase<dim, nstate>::add_value_to_data_table(
     data_table->add_value(value_string, value);
     data_table->set_precision(value_string, 16);
     data_table->set_scientific(value_string, true);
+}
+
+template <int dim, int nstate>
+void FlowSolverCaseBase<dim, nstate>::set_time_step(
+    const double time_step_input)
+{
+    this->time_step = time_step_input;
+}
+
+template <int dim, int nstate>
+double FlowSolverCaseBase<dim, nstate>::get_time_step() const
+{
+    return this->time_step;
 }
 
 template class FlowSolverCaseBase<PHILIP_DIM,1>;

@@ -179,6 +179,7 @@ public:
         time_refinement_study_reference,
         burgers_energy_conservation_rrk,
         euler_entropy_conserving_split_forms_check,
+        homogeneous_isotropic_turbulence_initialization_check,
     };
     /// Store selected TestType from the input file.
     TestType test_type;
@@ -258,7 +259,6 @@ public:
 
     /// Enable writing of higher-order vtk results
     bool enable_higher_order_vtk_output;
-
     /// Declare parameters that can be set as inputs and set up the default options
     /** This subroutine should call the sub-parameter classes static declare_parameters()
       * such that each sub-parameter class is responsible to declare their own parameters.

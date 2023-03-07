@@ -507,8 +507,8 @@ void AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: interpolate_metri
 		optimal_metric_at_vertices.push_back(zero_tensor);
 	}
 
-	std::vector<int> metric_count; // initialized to 0
-	metric_count.resize(n_vertices);
+	std::vector<int> metric_count_at_vertices; // initialized to 0
+	metric_count_at_vertices.resize(n_vertices);
 
 	for(const auto &cell: dof_handler_vertices.active_cell_iterators())
 	{
@@ -521,31 +521,16 @@ void AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: interpolate_metri
 		{
 			const unsigned int idof_global = dof_indices[idof];
 			optimal_metric_at_vertices[idof_global] += cellwise_optimal_metric[cell_index];
-			++metric_count[idof_global]; 
+			++metric_count_at_vertices[idof_global]; 
 		}
 
 	} // cell loop ends
 	
-	for(const auto &cell: dof_handler_vertices.active_cell_iterators())
-	{
-		if(! cell->is_locally_owned()) {continue;}
-
-		cell->get_dof_indices(dof_indices);
-		
-		for(unsigned int idof = 0; idof<n_dofs_cell; ++idof)
-		{
-			const unsigned int idof_global = dof_indices[idof];
-            const real scaling_factor = 1.0/metric_count[idof_global];
-            for(unsigned int i=0; i<dim; ++i)
-            {
-                for(unsigned int j=0; j<dim; ++j)
-                {
-			        optimal_metric_at_vertices[idof_global][i][j] *= scaling_factor; 
-                }
-            }
-		}
-
-	} // cell loop ends
+    // Compute average
+    for(unsigned int i=0; i<n_vertices; ++i)
+    {
+        optimal_metric_at_vertices[i] /= metric_count_at_vertices[i];
+    }
 
 	// output optimal metric at vertices for verifying.
     // Output metric
@@ -561,7 +546,7 @@ void AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: interpolate_metri
 		{
 			const unsigned int idof_global = dof_indices[idof];
 			std::cout<<"Vertex = "<<all_vertices[idof_global]<<std::endl;
-			std::cout<<"metric count = "<<metric_count[idof_global]<<std::endl;
+			std::cout<<"metric count = "<<metric_count_at_vertices[idof_global]<<std::endl;
 		}
 		std::cout<<"Metric at vertex = "<<std::endl;
 	

@@ -446,7 +446,7 @@ void AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: interpolate_metri
 		std::abort();
 	}
 //====================== Store vertices =============================================================================
-	dealii::FE_Q<dim> fe_q(1);
+	dealii::FE_Q<dim> fe_q(1); // continuous FE because vertices need to be continuous.
 	dealii::FESystem<dim> fe_system(fe_q,1); 
 	dealii::DoFHandler<dim>	dof_handler_vertices(*dg->triangulation);
 	dof_handler_vertices.initialize(*dg->triangulation, fe_system);

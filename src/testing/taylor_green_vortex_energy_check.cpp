@@ -19,7 +19,7 @@ template <int dim, int nstate>
 int TaylorGreenVortexEnergyCheck<dim, nstate>::run_test() const
 {
     // Integrate to final time
-    std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(this->all_parameters, parameter_handler);
+    std::unique_ptr<FlowSolver::FlowSolver<dim,nstate,1>> flow_solver = FlowSolver::FlowSolverFactory<dim,nstate,1>::select_flow_case(this->all_parameters, parameter_handler);
     static_cast<void>(flow_solver->run());
 
     // Compute kinetic energy and theoretical dissipation rate

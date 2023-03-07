@@ -13,6 +13,8 @@
 
 #include "global_counter.hpp"
 
+#include "parameters/all_parameters.h"
+
 int main (int argc, char *argv[])
 {
 // #if !defined(__APPLE__)
@@ -45,38 +47,44 @@ int main (int argc, char *argv[])
         std::abort();
     }
     int run_error = 1;
-    const int number_of_parameter_file = argc-2;
-    if (number_of_parameter_file<=0) {
-        pout << "Input file is required...Aborting..." << std::endl;
+    const int number_of_parameters_file = argc-2;
+    if (number_of_parameters_file<=0) {
+        pcout << "Error: At least one input file is required..." << std::endl;
+        pcout << "Aborting..." << std::endl;
         std::abort();
-    } else if(number_of_parameter_file>2){
-        pout << "Maximum 2 input files can be taken...Aborting..." << std::endl;
+    } else if(number_of_parameters_file>2){
+        pcout << "Error: Maximum two input files can be taken..." << std::endl;
+        pcout << "Aborting..." << std::endl;
         std::abort();
+    } else {
+        pcout << "Received " << number_of_parameters_file << " input file(s)." << std::endl;
     }
     try
     {
         // Declare possible inputs
-        std::vector<dealii::ParameterHandler> parameter_handler(number_of_parameter_file);
-        for (int i=0;i<number_of_parameter_file;++i){
-            PHiLiP::Parameters::AllParameters::declare_parameters (parameter_handler[i]);
+        std::vector<dealii::ParameterHandler> parameter_handler(number_of_parameters_file);
+        for (int i=0;i<number_of_parameters_file;++i){
+            PHiLiP::Parameters::AllParameters::declare_parameters(parameter_handler[i]);
         }
         PHiLiP::Parameters::parse_command_line (argc, argv, parameter_handler);
 
         // Read inputs from parameter files and set those values in AllParameters objects
-        std::vector<PHiLiP::Parameters::AllParameters> all_parameters(number_of_parameter_file);
-        std::vector<PHiLiP::Parameters::AllParameters*> all_parameters_pointer(number_of_parameter_file);
+        std::vector<PHiLiP::Parameters::AllParameters> all_parameters(number_of_parameters_file);
+        // To do : change it to std::array which supports const pointer
+        std::vector<PHiLiP::Parameters::AllParameters*> all_parameters_pointer(number_of_parameters_file);
         pcout << "Reading input..." << std::endl;
-        for (int i=0;i<number_of_parameter_file;++i){
-            all_parameters[i].parse_parameters (parameter_handler[i]); 
+        for (int i=0;i<number_of_parameters_file;++i){
+            all_parameters[i].parse_parameters(parameter_handler[i]); 
             AssertDimension(all_parameters[i].dimension, PHILIP_DIM);
             all_parameters_pointer[i] = &all_parameters[i];
         }
 
         const int max_dim = PHILIP_DIM;
         const int max_nstate = 5;
+        const int max_sub_nstate = 1;
 
         if(all_parameters[0].run_type == PHiLiP::Parameters::AllParameters::RunType::flow_simulation) {
-            std::unique_ptr<PHiLiP::FlowSolver::FlowSolverBase> flow_solver = PHiLiP::FlowSolver::FlowSolverFactory<max_dim,max_nstate>::create_flow_solver(all_parameters_pointer,parameter_handler);
+            std::unique_ptr<PHiLiP::FlowSolver::FlowSolverBase> flow_solver = PHiLiP::FlowSolver::FlowSolverFactory<max_dim,max_nstate,max_sub_nstate>::create_flow_solver(all_parameters_pointer,parameter_handler);
             run_error = flow_solver->run();
             pcout << "Flow simulation complete with run error code: " << run_error << std::endl;
         }

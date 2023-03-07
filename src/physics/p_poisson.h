@@ -25,6 +25,7 @@ public:
     /// Constructor
     p_Poisson (
         std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function = nullptr,
+        const bool                                                has_nonzero_diffusion_input = true,
         const bool                                                has_nonzero_physical_source = true);
 
     /// Destructor
@@ -51,6 +52,7 @@ public:
     std::array<real,nstate> source_term (
         const dealii::Point<dim,real> &pos,
         const std::array<real,nstate> &conservative_soln,
+        const real current_time,
         const dealii::types::global_dof_index cell_index) const;
 
     /** Convective flux contribution to the source term
@@ -114,6 +116,17 @@ public:
     /// Maximum convective eigenvalue used in Lax-Friedrichs
     real max_convective_eigenvalue (const std::array<real,nstate> &soln) const;
 
+    /// Maximum viscous eigenvalue
+    real max_viscous_eigenvalue (const std::array<real,nstate> &soln) const;
+
+    /// Computes the entropy variables.
+    std::array<real,nstate> compute_entropy_variables (
+                const std::array<real,nstate> &conservative_soln) const;
+
+    /// Computes the conservative variables from the entropy variables. 
+    std::array<real,nstate> compute_conservative_variables_from_entropy_variables (
+                const std::array<real,nstate> &entropy_var) const;
+
     /// Boundary condition handler
     void boundary_face_values (
         const int /*boundary_type*/,
@@ -169,7 +182,7 @@ protected:
         std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_bc) const;
 
     /// Symmetric boundary condition
-    void boundary_symmetric (
+    void boundary_slip_wall (
         const std::array<real,nstate> &soln_int,
         const std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_int,
         std::array<real,nstate> &soln_bc,

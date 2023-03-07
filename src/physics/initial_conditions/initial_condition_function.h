@@ -287,6 +287,21 @@ public:
     real value(const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
 };
 
+/// Initial condition positive constant.
+template <int dim, int nstate, typename real>
+class InitialConditionFunction_PositiveConstant : public InitialConditionFunction<dim,nstate,real>
+{
+protected:
+    using dealii::Function<dim,real>::value; ///< dealii::Function we are templating on
+    
+public:
+    /// Constructor
+    InitialConditionFunction_PositiveConstant();
+
+    /// Returns a positive constant value.
+    real value(const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
+};
+
 /// Initial condition function factory
 template <int dim, int nstate, typename real>
 class InitialConditionFactory

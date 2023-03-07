@@ -16,8 +16,8 @@ namespace FlowSolver {
 //=========================================================
 // FLOW SOLVER CLASS
 //=========================================================
-template <int dim, int nstate>
-FlowSolver<dim, nstate>::FlowSolver(
+template <int dim, int nstate, int sub_nstate>
+FlowSolver<dim, nstate, sub_nstate>::FlowSolver(
     const PHiLiP::Parameters::AllParameters *const parameters_input, 
     std::shared_ptr<FlowSolverCaseBase<dim, nstate>> flow_solver_case_input,
     const dealii::ParameterHandler &parameter_handler_input)
@@ -36,6 +36,55 @@ FlowSolver<dim, nstate>::FlowSolver(
 , final_time(flow_solver_param.final_time)
 , input_parameters_file_reference_copy_filename(flow_solver_param.restart_files_directory_name + std::string("/") + std::string("input_copy.prm"))
 , dg(DGFactory<dim,double>::create_discontinuous_galerkin(&all_param, poly_degree, flow_solver_param.max_poly_degree_for_adaptation, grid_degree, flow_solver_case->generate_grid()))
+{
+    main_flow_solver_setup();
+}
+
+template <int dim, int nstate, int sub_nstate>
+FlowSolver<dim, nstate, sub_nstate>::FlowSolver(
+    const std::vector<PHiLiP::Parameters::AllParameters*> &parameters_input, 
+    std::shared_ptr<FlowSolverCaseBase<dim, nstate>> flow_solver_case_input,
+    std::shared_ptr<FlowSolverCaseBase<dim, sub_nstate>> sub_flow_solver_case_input,
+    const std::vector<dealii::ParameterHandler> &parameter_handler_input)
+: FlowSolverBase()
+, flow_solver_case(flow_solver_case_input)
+, parameter_handler(parameter_handler_input[0])
+, mpi_communicator(MPI_COMM_WORLD)
+, mpi_rank(dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD))
+, n_mpi(dealii::Utilities::MPI::n_mpi_processes(MPI_COMM_WORLD))
+, pcout(std::cout, mpi_rank==0)
+, all_param(*parameters_input[0])
+, flow_solver_param(all_param.flow_solver_param)
+, ode_param(all_param.ode_solver_param)
+, poly_degree(flow_solver_param.poly_degree)
+, grid_degree(flow_solver_param.grid_degree)
+, final_time(flow_solver_param.final_time)
+, input_parameters_file_reference_copy_filename(flow_solver_param.restart_files_directory_name + std::string("/") + std::string("input_copy.prm"))
+, dg(DGFactory<dim,double>::create_discontinuous_galerkin(&all_param, 
+                                                          poly_degree,
+                                                          flow_solver_param.max_poly_degree_for_adaptation, 
+                                                          grid_degree, 
+                                                          flow_solver_case->generate_grid()))
+, sub_flow_solver_case(sub_flow_solver_case_input)
+, sub_all_param(*(parameters_input[1]))
+, sub_flow_solver_param(sub_all_param.flow_solver_param)
+, sub_ode_param(sub_all_param.ode_solver_param)
+, sub_poly_degree(sub_flow_solver_param.poly_degree)
+, sub_grid_degree(sub_flow_solver_param.grid_degree)
+, sub_dg(DGFactory<dim,double>::create_discontinuous_galerkin(&sub_all_param, 
+                                                              sub_poly_degree, 
+                                                              sub_flow_solver_param.max_poly_degree_for_adaptation, 
+                                                              sub_grid_degree, 
+                                                              sub_flow_solver_case->generate_grid()))
+{
+    pcout << "Set up main flow solver." << std::endl;
+    main_flow_solver_setup();
+    pcout << "Set up sub flow solver." << std::endl;
+    sub_flow_solver_setup();
+}
+
+template <int dim, int nstate, int sub_nstate>
+void FlowSolver<dim,nstate,sub_nstate>::main_flow_solver_setup()
 {
     flow_solver_case->set_higher_order_grid(dg);
     dg->allocate_system();
@@ -94,36 +143,8 @@ FlowSolver<dim, nstate>::FlowSolver(
     }
 }
 
-template <int dim, int nstate>
-FlowSolver<dim, nstate>::FlowSolver(
-    const std::vector<PHiLiP::Parameters::AllParameters*> &parameters_input, 
-    std::shared_ptr<FlowSolverCaseBase<dim, nstate>> flow_solver_case_input,
-    const std::vecotr<dealii::ParameterHandler> &parameter_handler_input)
-: FlowSolver<dim, nstate>(parameters_input[0],
-                          flow_solver_case_input,
-                          parameter_handler_input[0])
-
-//, flow_solver_case(flow_solver_case_input)
-//, parameter_handler(parameter_handler_input)
-//, mpi_communicator(MPI_COMM_WORLD)
-//, mpi_rank(dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD))
-//, n_mpi(dealii::Utilities::MPI::n_mpi_processes(MPI_COMM_WORLD))
-//, pcout(std::cout, mpi_rank==0)
-, sub_all_param(*(parameters_input[1]))
-, sub_flow_solver_param(sub_all_param.flow_solver_param)
-, sub_ode_param(sub_all_param.ode_solver_param)
-, sub_poly_degree(sub_flow_solver_param.poly_degree)
-, sub_grid_degree(sub_flow_solver_param.grid_degree)
-//, final_time(flow_solver_param.final_time)
-//, input_parameters_file_reference_copy_filename(flow_solver_param.restart_files_directory_name + std::string("/") + std::string("input_copy.prm"))
-
-, dg(DGFactory<dim,double>::create_discontinuous_galerkin(&all_param, poly_degree, flow_solver_param.max_poly_degree_for_adaptation, grid_degree, flow_solver_case->generate_grid()))
-
-, sub_dg(DGFactory<dim,double>::create_discontinuous_galerkin(&sub_all_param, 
-                                                              sub_poly_degree, 
-                                                              sub_flow_solver_param.max_poly_degree_for_adaptation, 
-                                                              sub_grid_degree, 
-                                                              dg->triangulation))
+template <int dim, int nstate, int sub_nstate>
+void FlowSolver<dim,nstate,sub_nstate>::sub_flow_solver_setup()
 {
     sub_dg->allocate_system();
 
@@ -135,54 +156,16 @@ FlowSolver<dim, nstate>::FlowSolver(
         sub_ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(sub_dg);
     }
 
-    //flow_solver_case->display_flow_solver_setup(dg);
+    pcout << "Initializing sub solution with initial condition function... " << std::flush;
+    SetInitialCondition<dim,sub_nstate,double>::set_initial_condition(sub_flow_solver_case->initial_condition_function, sub_dg, &sub_all_param);
 
-//    if(flow_solver_param.restart_computation_from_file == true) {
-//        if(dim == 1) {
-//            pcout << "Error: restart_computation_from_file is not possible for 1D. Set to false." << std::endl;
-//            std::abort();
-//        }
-//
-//        if (flow_solver_param.steady_state == true) {
-//            pcout << "Error: Restart capability has not been fully implemented / tested for steady state computations." << std::endl;
-//            std::abort();
-//        }
-//
-//        // Initialize solution from restart file
-//        pcout << "Initializing solution from restart file..." << std::flush;
-//        const std::string restart_filename_without_extension = get_restart_filename_without_extension(flow_solver_param.restart_file_index);
-//#if PHILIP_DIM>1
-//        dg->triangulation->load(flow_solver_param.restart_files_directory_name + std::string("/") + restart_filename_without_extension);
-//        
-//        // Note: Future development with hp-capabilities, see section "Note on usage with DoFHandler with hp-capabilities"
-//        // ----- Ref: https://www.dealii.org/current/doxygen/deal.II/classparallel_1_1distributed_1_1SolutionTransfer.html
-//        dealii::LinearAlgebra::distributed::Vector<double> solution_no_ghost;
-//        solution_no_ghost.reinit(dg->locally_owned_dofs, this->mpi_communicator);
-//        dealii::parallel::distributed::SolutionTransfer<dim, dealii::LinearAlgebra::distributed::Vector<double>, dealii::DoFHandler<dim>> solution_transfer(dg->dof_handler);
-//        solution_transfer.deserialize(solution_no_ghost);
-//        dg->solution = solution_no_ghost; //< assignment
-//#endif
-//    } else {
-        // Initialize solution from initial_condition_function
-//        pcout << "Initializing solution with initial condition function... " << std::flush;
-        SetInitialCondition<dim,nstate,double>::set_initial_condition(flow_solver_case->initial_condition_function, dg, &all_param);
-//   }
-    dg->solution.update_ghost_values();
+    sub_dg->solution.update_ghost_values();
     pcout << "done." << std::endl;
-    ode_solver->allocate_ode_system();
-
-    // output a copy of the input parameters file
-    if(flow_solver_param.output_restart_files == true) {
-        pcout << "Writing a reference copy of the inputted parameters (.prm) file... " << std::flush;
-        if(mpi_rank==0) {
-            parameter_handler.print_parameters(input_parameters_file_reference_copy_filename);    
-        }
-        pcout << "done." << std::endl;
-    }
+    sub_ode_solver->allocate_ode_system();
 }
 
-template <int dim, int nstate>
-std::vector<std::string> FlowSolver<dim,nstate>::get_data_table_column_names(const std::string string_input) const
+template <int dim, int nstate, int sub_nstate>
+std::vector<std::string> FlowSolver<dim,nstate,sub_nstate>::get_data_table_column_names(const std::string string_input) const
 {
     /* returns the column names of a dealii::TableHandler object
        given the first line of the file */
@@ -199,8 +182,8 @@ std::vector<std::string> FlowSolver<dim,nstate>::get_data_table_column_names(con
     return names;
 }
 
-template <int dim, int nstate>
-std::string FlowSolver<dim,nstate>::get_restart_filename_without_extension(const int restart_index_input) const {
+template <int dim, int nstate, int sub_nstate>
+std::string FlowSolver<dim,nstate,sub_nstate>::get_restart_filename_without_extension(const int restart_index_input) const {
     // returns the restart file index as a string with appropriate padding
     std::string restart_index_string = std::to_string(restart_index_input);
     const unsigned int length_of_index_with_padding = 5;
@@ -213,8 +196,8 @@ std::string FlowSolver<dim,nstate>::get_restart_filename_without_extension(const
     return restart_filename_without_extension;
 }
 
-template <int dim, int nstate>
-void FlowSolver<dim,nstate>::initialize_data_table_from_file(
+template <int dim, int nstate, int sub_nstate>
+void FlowSolver<dim,nstate,sub_nstate>::initialize_data_table_from_file(
     std::string data_table_filename,
     const std::shared_ptr <dealii::TableHandler> data_table) const
 {
@@ -264,8 +247,8 @@ void FlowSolver<dim,nstate>::initialize_data_table_from_file(
     }
 }
 
-template <int dim, int nstate>
-std::string FlowSolver<dim,nstate>::double_to_string(const double value_input) const {
+template <int dim, int nstate, int sub_nstate>
+std::string FlowSolver<dim,nstate,sub_nstate>::double_to_string(const double value_input) const {
     // converts a double to a string with full precision
     std::stringstream ss;
     ss << std::scientific << std::setprecision(16) << value_input;
@@ -273,8 +256,8 @@ std::string FlowSolver<dim,nstate>::double_to_string(const double value_input) c
     return double_to_string;
 }
 
-template <int dim, int nstate>
-void FlowSolver<dim,nstate>::write_restart_parameter_file(
+template <int dim, int nstate, int sub_nstate>
+void FlowSolver<dim,nstate,sub_nstate>::write_restart_parameter_file(
     const int restart_index_input,
     const double time_step_input) const {
     // write the restart parameter file
@@ -396,8 +379,8 @@ void FlowSolver<dim,nstate>::write_restart_parameter_file(
 }
 
 #if PHILIP_DIM>1
-template <int dim, int nstate>
-void FlowSolver<dim,nstate>::output_restart_files(
+template <int dim, int nstate, int sub_nstate>
+void FlowSolver<dim,nstate,sub_nstate>::output_restart_files(
     const int current_restart_index,
     const double time_step_input,
     const std::shared_ptr <dealii::TableHandler> unsteady_data_table) const
@@ -424,8 +407,8 @@ void FlowSolver<dim,nstate>::output_restart_files(
 }
 #endif
 
-template <int dim, int nstate>
-void FlowSolver<dim,nstate>::perform_steady_state_mesh_adaptation() const
+template <int dim, int nstate, int sub_nstate>
+void FlowSolver<dim,nstate,sub_nstate>::perform_steady_state_mesh_adaptation() const
 {
     std::unique_ptr<MeshAdaptation<dim,double>> meshadaptation = std::make_unique<MeshAdaptation<dim,double>>(this->dg, &(this->all_param.mesh_adaptation_param));
     const int total_adaptation_cycles = this->all_param.mesh_adaptation_param.total_mesh_adaptation_cycles;
@@ -452,8 +435,8 @@ void FlowSolver<dim,nstate>::perform_steady_state_mesh_adaptation() const
     pcout<<"Finished running mesh adaptation cycles."<<std::endl; 
 }
 
-template <int dim, int nstate>
-int FlowSolver<dim,nstate>::run() const
+template <int dim, int nstate, int sub_nstate>
+int FlowSolver<dim,nstate,sub_nstate>::run() const
 {
     pcout << "Running Flow Solver..." << std::endl;
     if (ode_param.output_solution_every_x_steps > 0) {
@@ -572,6 +555,13 @@ int FlowSolver<dim,nstate>::run() const
             ode_solver->initialize_steady_polynomial_ramping(poly_degree);
         }
 
+        if(sub_dg){
+            pcout << "Start calculation for the sub ODE solver..." << std::endl;
+            sub_ode_solver->steady_state();
+            sub_flow_solver_case->steady_state_postprocessing(sub_dg);
+            pcout << "End calculation for the sub ODE solver..." << std::endl;
+        }
+        
         ode_solver->steady_state();
         flow_solver_case->steady_state_postprocessing(dg);
         
@@ -587,16 +577,16 @@ int FlowSolver<dim,nstate>::run() const
 }
 
 #if PHILIP_DIM==1
-template class FlowSolver <PHILIP_DIM,PHILIP_DIM>;
+template class FlowSolver <PHILIP_DIM,PHILIP_DIM,1>;
 #endif
 
 #if PHILIP_DIM!=1
-template class FlowSolver <PHILIP_DIM,1>;
-template class FlowSolver <PHILIP_DIM,2>;
-template class FlowSolver <PHILIP_DIM,3>;
-template class FlowSolver <PHILIP_DIM,4>;
-template class FlowSolver <PHILIP_DIM,5>;
-template class FlowSolver <PHILIP_DIM,6>;
+template class FlowSolver <PHILIP_DIM,1,1>;
+template class FlowSolver <PHILIP_DIM,2,1>;
+template class FlowSolver <PHILIP_DIM,3,1>;
+template class FlowSolver <PHILIP_DIM,4,1>;
+template class FlowSolver <PHILIP_DIM,5,1>;
+template class FlowSolver <PHILIP_DIM,6,1>;
 #endif
 
 } // FlowSolver namespace

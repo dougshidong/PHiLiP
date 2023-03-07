@@ -83,7 +83,7 @@ int TimeRefinementStudy<dim, nstate>::run_test() const
         pcout << "---------------------------------------------" << std::endl;
 
         const Parameters::AllParameters params = reinit_params_and_refine_timestep(refinement);
-        std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(&params, parameter_handler);
+        std::unique_ptr<FlowSolver::FlowSolver<dim,nstate,1>> flow_solver = FlowSolver::FlowSolverFactory<dim,nstate,1>::select_flow_case(&params, parameter_handler);
         static_cast<void>(flow_solver->run());
         
         //check L2 error

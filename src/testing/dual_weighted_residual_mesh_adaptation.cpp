@@ -37,7 +37,7 @@ int DualWeightedResidualMeshAdaptation<dim, nstate> :: run_test () const
         std::abort();
     }
     
-    std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(&param, parameter_handler);
+    std::unique_ptr<FlowSolver::FlowSolver<dim,nstate,1>> flow_solver = FlowSolver::FlowSolverFactory<dim,nstate,1>::select_flow_case(&param, parameter_handler);
     flow_solver->run();
 
     // Check location of the most refined cell

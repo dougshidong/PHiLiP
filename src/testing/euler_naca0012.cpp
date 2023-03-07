@@ -32,7 +32,7 @@ int EulerNACA0012<dim,nstate>
             param.flow_solver_param.poly_degree = poly_degree;
             param.flow_solver_param.max_poly_degree_for_adaptation = poly_degree;
             param.flow_solver_param.number_of_mesh_refinements = igrid;
-            std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(&param, parameter_handler);
+            std::unique_ptr<FlowSolver::FlowSolver<dim,nstate,1>> flow_solver = FlowSolver::FlowSolverFactory<dim,nstate,1>::select_flow_case(&param, parameter_handler);
             flow_solver->run();
         }
     }

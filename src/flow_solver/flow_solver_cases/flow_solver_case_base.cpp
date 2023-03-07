@@ -82,6 +82,7 @@ std::string FlowSolverCaseBase<dim, nstate>::get_flow_case_string() const
     if (flow_case_type == FlowCaseEnum::periodic_1D_unsteady)       {flow_case_string = "periodic_1D_unsteady";}
     if (flow_case_type == FlowCaseEnum::gaussian_bump)              {flow_case_string = "gaussian_bump";}
     if (flow_case_type == FlowCaseEnum::wall_distance_evaluation)   {flow_case_string = "wall_distance_evaluation";}
+    if (flow_case_type == FlowCaseEnum::flat_plate_2D)              {flow_case_string = "flat_plate_2D";}
     
     return flow_case_string;
 }

@@ -46,11 +46,11 @@ int AdaptiveSamplingTesting<dim, nstate>::run_test() const
         RowVector2d parameter = {params_1(i), params_2(i)};
         Parameters::AllParameters params = reinitParams(parameter);
 
-        std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver_implicit = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(&params, parameter_handler);
+        std::unique_ptr<FlowSolver::FlowSolver<dim,nstate,1>> flow_solver_implicit = FlowSolver::FlowSolverFactory<dim,nstate,1>::select_flow_case(&params, parameter_handler);
 
         auto functional_implicit = FunctionalFactory<dim,nstate,double>::create_Functional(params.functional_param, flow_solver_implicit->dg);
 
-        std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(&params, parameter_handler);
+        std::unique_ptr<FlowSolver::FlowSolver<dim,nstate,1>> flow_solver = FlowSolver::FlowSolverFactory<dim,nstate,1>::select_flow_case(&params, parameter_handler);
         auto ode_solver_type = Parameters::ODESolverParam::ODESolverEnum::pod_petrov_galerkin_solver;
         std::shared_ptr<ProperOrthogonalDecomposition::OfflinePOD<dim>> pod_standard = std::make_shared<ProperOrthogonalDecomposition::OfflinePOD<dim>>(flow_solver->dg);
         flow_solver->ode_solver =  PHiLiP::ODE::ODESolverFactory<dim, double>::create_ODESolver_manual(ode_solver_type, flow_solver->dg, pod_standard);

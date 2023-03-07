@@ -84,7 +84,7 @@ int TaylorGreenVortexRestartCheck<dim, nstate>::run_test() const
     Parameters::AllParameters params_incomplete_run = reinit_params(true,false,time_at_which_we_stop_the_run);
 
     // Integrate to time at which we stop the run
-    std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver_incomplete_run = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(&params_incomplete_run, parameter_handler);
+    std::unique_ptr<FlowSolver::FlowSolver<dim,nstate,1>> flow_solver_incomplete_run = FlowSolver::FlowSolverFactory<dim,nstate,1>::select_flow_case(&params_incomplete_run, parameter_handler);
     static_cast<void>(flow_solver_incomplete_run->run());
 
     const double time_step_at_stop_time = flow_solver_incomplete_run->flow_solver_case->get_constant_time_step(flow_solver_incomplete_run->dg);
@@ -117,7 +117,7 @@ int TaylorGreenVortexRestartCheck<dim, nstate>::run_test() const
     } // END
 
     // Integrate to final time by restarting from where we stopped
-    std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver_restart_to_complete_run = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(&params_restart_to_complete_run, parameter_handler);
+    std::unique_ptr<FlowSolver::FlowSolver<dim,nstate,1>> flow_solver_restart_to_complete_run = FlowSolver::FlowSolverFactory<dim,nstate,1>::select_flow_case(&params_restart_to_complete_run, parameter_handler);
     static_cast<void>(flow_solver_restart_to_complete_run->run());
 
     // Compute kinetic energy at final time achieved by restarting the computation

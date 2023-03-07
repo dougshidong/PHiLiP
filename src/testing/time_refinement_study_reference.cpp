@@ -46,7 +46,7 @@ dealii::LinearAlgebra::distributed::Vector<double> TimeRefinementStudyReference<
 {
     const int number_of_timesteps_for_reference_solution = this->all_parameters->time_refinement_study_param.number_of_timesteps_for_reference_solution;
     const Parameters::AllParameters params_reference = reinit_params_for_reference_solution(number_of_timesteps_for_reference_solution, final_time);
-    std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver_reference = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(&params_reference, parameter_handler);
+    std::unique_ptr<FlowSolver::FlowSolver<dim,nstate,1>> flow_solver_reference = FlowSolver::FlowSolverFactory<dim,nstate,1>::select_flow_case(&params_reference, parameter_handler);
     static_cast<void>(flow_solver_reference->run());
 
     return flow_solver_reference->dg->solution;
@@ -125,7 +125,7 @@ int TimeRefinementStudyReference<dim, nstate>::run_test() const
         pcout << "-------------------------------------------------------" << std::endl;
 
         const Parameters::AllParameters params = reinit_params_and_refine_timestep(refinement);
-        std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(&params, parameter_handler);
+        std::unique_ptr<FlowSolver::FlowSolver<dim,nstate,1>> flow_solver = FlowSolver::FlowSolverFactory<dim,nstate,1>::select_flow_case(&params, parameter_handler);
         const double energy_initial = flow_solver_case->compute_energy_collocated(flow_solver->dg);
         static_cast<void>(flow_solver->run());
 

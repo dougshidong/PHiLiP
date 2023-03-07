@@ -596,6 +596,10 @@ void ReynoldsAveragedNavierStokes_SAneg<dim,nstate,real>
    std::array<real,nstate> &soln_bc,
    std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_bc) const
 {
+    for (int istate=0; istate<nstate_navier_stokes; ++istate) {
+        soln_bc[istate] = 0.0;
+        soln_grad_bc[istate] = 0.0;
+    }
     // Wall boundary condition for nu_tilde (working variable of negative SA model)
     // nu_tilde = 0
     for (int istate=nstate_navier_stokes; istate<nstate; ++istate) {
@@ -612,6 +616,10 @@ void ReynoldsAveragedNavierStokes_SAneg<dim,nstate,real>
    std::array<real,nstate> &soln_bc,
    std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_bc) const
 {
+    for (int istate=0; istate<nstate_navier_stokes; ++istate) {
+        soln_bc[istate] = 0.0;
+        soln_grad_bc[istate] = 0.0;
+    }
     for (int istate=nstate_navier_stokes; istate<nstate; ++istate) {
         soln_bc[istate] = soln_int[istate];
         soln_grad_bc[istate] = soln_grad_int[istate];
@@ -626,9 +634,14 @@ void ReynoldsAveragedNavierStokes_SAneg<dim,nstate,real>
    std::array<real,nstate> &soln_bc,
    std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_bc) const
 {
+    for (int istate=0; istate<nstate_navier_stokes; ++istate) {
+        soln_bc[istate] = 0.0;
+        soln_grad_bc[istate] = 0.0;
+    }
     const real density_bc = this->navier_stokes_physics->density_inf;
     const real dynamic_viscosity_coefficient_bc = this->navier_stokes_physics->viscosity_coefficient_inf;
     const real kinematic_viscosity_coefficient_bc = dynamic_viscosity_coefficient_bc/density_bc;
+
     for (int istate=nstate_navier_stokes; istate<nstate; ++istate) {
         soln_bc[istate] = density_bc*3.0*kinematic_viscosity_coefficient_bc;
         soln_grad_bc[istate] = soln_grad_int[istate];
@@ -640,15 +653,37 @@ void ReynoldsAveragedNavierStokes_SAneg<dim,nstate,real>
 ::boundary_farfield (
    std::array<real,nstate> &soln_bc) const
 {
-   const real density_bc = this->navier_stokes_physics->density_inf;
-   const real dynamic_viscosity_coefficient_bc = this->navier_stokes_physics->viscosity_coefficient_inf;
-   const real kinematic_viscosity_coefficient_bc = dynamic_viscosity_coefficient_bc/density_bc;
+    for (int istate=0; istate<nstate_navier_stokes; ++istate) {
+        soln_bc[istate] = 0.0;
+    }
+    const real density_bc = this->navier_stokes_physics->density_inf;
+    const real dynamic_viscosity_coefficient_bc = this->navier_stokes_physics->viscosity_coefficient_inf;
+    const real kinematic_viscosity_coefficient_bc = dynamic_viscosity_coefficient_bc/density_bc;
    
-   // Farfield boundary condition for nu_tilde (working variable of negative SA model)
-   // nu_tilde = 3.0*kinematic_viscosity_inf to 5.0*kinematic_viscosity_inf
-   for (int istate=nstate_navier_stokes; istate<nstate; ++istate) {
-      soln_bc[istate] = density_bc*3.0*kinematic_viscosity_coefficient_bc;
-   }
+    // Farfield boundary condition for nu_tilde (working variable of negative SA model)
+    // nu_tilde = 3.0*kinematic_viscosity_inf to 5.0*kinematic_viscosity_inf
+    for (int istate=nstate_navier_stokes; istate<nstate; ++istate) {
+        soln_bc[istate] = density_bc*3.0*kinematic_viscosity_coefficient_bc;
+    }
+}
+//----------------------------------------------------------------
+template <int dim, int nstate, typename real>
+void ReynoldsAveragedNavierStokes_SAneg<dim,nstate,real>
+::boundary_slip_wall (
+   const dealii::Tensor<1,dim,real> &/*normal_int*/,
+   const std::array<real,nstate> &soln_int,
+   const std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_int,
+   std::array<real,nstate> &soln_bc,
+   std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_bc) const
+{
+    for (int istate=0; istate<nstate_navier_stokes; ++istate) {
+        soln_bc[istate] = 0.0;
+        soln_grad_bc[istate] = 0.0;
+    }
+    for (int istate=nstate_navier_stokes; istate<nstate; ++istate) {
+        soln_bc[istate] = soln_int[istate];
+        soln_grad_bc[istate] = soln_grad_int[istate];
+    }
 }
 //----------------------------------------------------------------
 template <int dim, int nstate, typename real>

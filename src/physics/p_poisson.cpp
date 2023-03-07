@@ -15,8 +15,9 @@ namespace Physics {
 template <int dim, int nstate, typename real>
 p_Poisson<dim,nstate,real>::p_Poisson ( 
     std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function,
+    const bool                                                has_nonzero_diffusion_input,
     const bool                                                has_nonzero_physical_source)
-    : PhysicsBase<dim,nstate,real>(has_nonzero_physical_source,manufactured_solution_function)
+    : PhysicsBase<dim,nstate,real>(has_nonzero_diffusion_input,has_nonzero_physical_source,manufactured_solution_function)
 {
     static_assert(nstate==1, "Physics::p_Poisson() should be created with nstate==dim");
 }
@@ -115,6 +116,7 @@ std::array<real,nstate> p_Poisson<dim,nstate,real>
 ::source_term (
     const dealii::Point<dim,real> &pos,
     const std::array<real,nstate> &/*conservative_soln*/,
+    const real /*current_time*/,
     const dealii::types::global_dof_index cell_index) const
 {
     std::array<real,nstate> conv_source_term = convective_source_term_computed_from_manufactured_solution(pos);
@@ -449,6 +451,34 @@ real p_Poisson<dim,nstate,real>
 }
 //----------------------------------------------------------------
 template <int dim, int nstate, typename real>
+real p_Poisson<dim,nstate,real>
+::max_viscous_eigenvalue (const std::array<real,nstate> &/*conservative_soln*/) const
+{
+    // To do : correct it as the max viscous eigenvalues for p-Poisson model
+    const real max_eig = 0.0;
+
+    return max_eig;
+}
+//----------------------------------------------------------------
+template <int dim, int nstate, typename real>
+std::array<real,nstate> p_Poisson<dim,nstate,real>
+::compute_entropy_variables (const std::array<real,nstate> &conservative_soln) const
+{
+    std::cout<<"Entropy variables for p-Poisson hasn't been done yet."<<std::endl;
+    std::abort();
+    return conservative_soln;
+}
+//----------------------------------------------------------------
+template <int dim, int nstate, typename real>
+std::array<real,nstate> p_Poisson<dim,nstate,real>
+::compute_conservative_variables_from_entropy_variables (const std::array<real,nstate> &entropy_var) const
+{
+    std::cout<<"Entropy variables for p-Poisson hasn't been done yet."<<std::endl;
+    std::abort();
+    return entropy_var;
+}
+//----------------------------------------------------------------
+template <int dim, int nstate, typename real>
 void p_Poisson<dim,nstate,real>
 ::boundary_wall (
    const std::array<real,nstate> &/*soln_int*/,
@@ -478,7 +508,7 @@ void p_Poisson<dim,nstate,real>
 //----------------------------------------------------------------
 template <int dim, int nstate, typename real>
 void p_Poisson<dim,nstate,real>
-::boundary_symmetric (
+::boundary_slip_wall (
    const std::array<real,nstate> &soln_int,
    const std::array<dealii::Tensor<1,dim,real>,nstate> &/*soln_grad_int*/,
    std::array<real,nstate> &soln_bc,
@@ -531,12 +561,12 @@ void p_Poisson<dim,nstate,real>
     } 
     else if (boundary_type == 1006) {
         // Slip wall boundary condition
-        std::cout << "Slip wall boundary condition is not implemented!" << std::endl;
-        std::abort();
+        boundary_slip_wall(soln_int,soln_grad_int,soln_bc,soln_grad_bc);
     }
     else if (boundary_type == 1007) {
         // Symmetric boundary condition
-        boundary_symmetric(soln_int,soln_grad_int,soln_bc,soln_grad_bc);
+        std::cout << "Symmetric boundary condition is not implemented!" << std::endl;
+        std::abort();
     }  
     else {
         std::cout << "Invalid boundary_type: " << boundary_type << std::endl;

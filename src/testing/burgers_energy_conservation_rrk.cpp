@@ -66,7 +66,7 @@ int BurgersEnergyConservationRRK<dim,nstate>::get_energy_and_compare_to_initial(
         bool expect_conservation
         ) const
 {
-    std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(&params, parameter_handler);
+    std::unique_ptr<FlowSolver::FlowSolver<dim,nstate,1>> flow_solver = FlowSolver::FlowSolverFactory<dim,nstate,1>::select_flow_case(&params, parameter_handler);
     static_cast<void>(flow_solver->run());
     int failed_this_calculation = compare_energy_to_initial(flow_solver->dg, energy_initial, expect_conservation);
     return failed_this_calculation;
@@ -98,7 +98,7 @@ int BurgersEnergyConservationRRK<dim, nstate>::run_test() const
     pcout << "\n\n-------------------------------------------------------------" << std::endl;
     pcout << "  Calculating initial energy..." << std::endl;
     pcout << "-------------------------------------------------------------" << std::endl;
-    std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case((this->all_parameters), parameter_handler);
+    std::unique_ptr<FlowSolver::FlowSolver<dim,nstate,1>> flow_solver = FlowSolver::FlowSolverFactory<dim,nstate,1>::select_flow_case((this->all_parameters), parameter_handler);
     const double energy_initial = flow_solver_case->compute_energy_collocated(flow_solver->dg); //no need to run as ode_solver is allocated during construction
     pcout << "   Initial energy : " << energy_initial << std::endl;
 

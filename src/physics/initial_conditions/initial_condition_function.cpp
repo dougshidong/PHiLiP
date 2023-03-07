@@ -370,6 +370,24 @@ real InitialConditionFunction_Zero<dim, nstate, real>
     return 0.0;
 }
 
+// ========================================================
+// POSITIVE CONSTANT INITIAL CONDITION
+// ========================================================
+template <int dim, int nstate, typename real>
+InitialConditionFunction_PositiveConstant<dim,nstate,real>
+::InitialConditionFunction_PositiveConstant()
+    : InitialConditionFunction<dim,nstate,real>()
+{
+    // Nothing to do here yet
+}
+
+template <int dim, int nstate, typename real>
+real InitialConditionFunction_PositiveConstant<dim, nstate, real>
+::value(const dealii::Point<dim,real> &/*point*/, const unsigned int /*istate*/) const
+{
+    return 0.1;
+}
+
 // =========================================================
 // Initial Condition Factory
 // =========================================================
@@ -426,6 +444,9 @@ InitialConditionFactory<dim,nstate, real>::create_InitialConditionFunction(
         if constexpr (dim==2 && nstate==1)  return std::make_shared<InitialConditionFunction_Zero<dim,nstate,real> > ();
     } else if (flow_type == FlowCaseEnum::wall_distance_evaluation) {
         if constexpr (dim==2 && nstate==1)  return std::make_shared<InitialConditionFunction_Zero<dim,nstate,real> > ();
+    } else if (flow_type == FlowCaseEnum::flat_plate_2D) {
+        if constexpr (dim==2 && nstate==1)  return std::make_shared<InitialConditionFunction_PositiveConstant<dim,nstate,real> > ();
+        if constexpr (dim==2 && nstate==dim+3)  return std::make_shared<InitialConditionFunction_PositiveConstant<dim,nstate,real> > ();
     } else {
         std::cout << "Invalid Flow Case Type. You probably forgot to add it to the list of flow cases in initial_condition_function.cpp" << std::endl;
         std::abort();

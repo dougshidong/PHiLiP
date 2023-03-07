@@ -17,7 +17,7 @@ template <int dim, int nstate>
 int EulerIsmailRoeEntropyCheck<dim, nstate>::run_test() const
 {
     // Initialize flow_solver
-    std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(this->all_parameters, parameter_handler);
+    std::unique_ptr<FlowSolver::FlowSolver<dim,nstate,1>> flow_solver = FlowSolver::FlowSolverFactory<dim,nstate,1>::select_flow_case(this->all_parameters, parameter_handler);
 
     // Compute  initial and final entropy
     std::unique_ptr<FlowSolver::PeriodicTurbulence<dim, nstate>> flow_solver_case = std::make_unique<FlowSolver::PeriodicTurbulence<dim,nstate>>(this->all_parameters);

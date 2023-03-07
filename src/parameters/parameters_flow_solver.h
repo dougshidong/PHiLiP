@@ -27,7 +27,7 @@ public:
         gaussian_bump,
         sshock,
         wall_distance_evaluation,
-        rans_flat_plate
+        flat_plate_2D
         };
     FlowCaseType flow_case_type; ///< Selected FlowCaseType from the input file
 

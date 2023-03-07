@@ -39,8 +39,13 @@ template <int dim, int nstate>
 void ROMTestLocation<dim, nstate>::compute_FOM_to_initial_ROM_error(){
     pcout << "Computing adjoint-based error estimate between ROM and FOM..." << std::endl;
 
-    dealii::ParameterHandler dummy_handler;
-    std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(&rom_solution->params, dummy_handler);
+    std::vector<Parameters::AllParameters*> parameters_input;
+    std::vector<dealii::ParameterHandler> parameter_handler_input(1);
+
+    //dealii::ParameterHandler dummy_handler;
+
+    parameters_input.push_back(&rom_solution->params);
+    std::unique_ptr<FlowSolver::FlowSolver<dim,nstate,1>> flow_solver = FlowSolver::FlowSolverFactory<dim,nstate,1>::select_flow_case(parameters_input, parameter_handler_input);
     flow_solver->dg->solution = rom_solution->solution;
     const bool compute_dRdW = true;
     flow_solver->dg->assemble_residual(compute_dRdW);
@@ -79,8 +84,13 @@ void ROMTestLocation<dim, nstate>::compute_initial_rom_to_final_rom_error(std::s
 
     pcout << "Computing adjoint-based error estimate between initial ROM and updated ROM..." << std::endl;
 
-    dealii::ParameterHandler dummy_handler;
-    std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(&rom_solution->params, dummy_handler);
+    std::vector<Parameters::AllParameters*> parameters_input;
+    std::vector<dealii::ParameterHandler> parameter_handler_input(1);
+
+    //dealii::ParameterHandler dummy_handler;
+
+    parameters_input.push_back(&rom_solution->params);
+    std::unique_ptr<FlowSolver::FlowSolver<dim,nstate,1>> flow_solver = FlowSolver::FlowSolverFactory<dim,nstate,1>::select_flow_case(parameters_input, parameter_handler_input);
     flow_solver->dg->solution = rom_solution->solution;
     const bool compute_dRdW = true;
     flow_solver->dg->assemble_residual(compute_dRdW);

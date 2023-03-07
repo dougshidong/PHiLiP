@@ -57,7 +57,7 @@ public:
 
 
 /// Selects which flow case to simulate.
-template <int dim, int nstate>
+template <int dim, int nstate, int sub_nstate>
 class FlowSolver : public FlowSolverBase
 {
 public:
@@ -71,6 +71,7 @@ public:
     FlowSolver(
         const std::vector<Parameters::AllParameters*> &parameters_input, 
         std::shared_ptr<FlowSolverCaseBase<dim, nstate>> flow_solver_case_input,
+        std::shared_ptr<FlowSolverCaseBase<dim, sub_nstate>> sub_flow_solver_case_input,
         const std::vector<dealii::ParameterHandler> &parameter_handler_input);
     
     /// Destructor
@@ -84,6 +85,12 @@ public:
 
     /// Simply runs the flow solver and returns 0 upon completion
     int run () const override;
+
+    /// Setup for main flow solver
+    void main_flow_solver_setup ();
+
+    /// Setup for sub flow solver
+    void sub_flow_solver_setup ();
 
     /// Initializes the data table from an existing file
     void initialize_data_table_from_file(
@@ -102,15 +109,10 @@ protected:
      */
     dealii::ConditionalOStream pcout;
     const Parameters::AllParameters all_param; ///< All parameters
-    const Parameters::AllParameters sub_all_param; ///< Sub all parameters
     const Parameters::FlowSolverParam flow_solver_param; ///< Flow solver parameters
-    const Parameters::FlowSolverParam sub_flow_solver_param; ///< Sub flow solver parameters
     const Parameters::ODESolverParam ode_param; ///< ODE solver parameters
-    const Parameters::ODESolverParam sub_ode_param; ///< Sub ODE solver parameters
     const unsigned int poly_degree; ///< Polynomial order
-    const unsigned int sub_poly_degree; ///< Sub polynomial order
     const unsigned int grid_degree; ///< Polynomial order of the grid
-    const unsigned int sub_grid_degree; ///< Sub polynomial order of the grid
     const double final_time; ///< Final time of solution
 
     /// Name of the reference copy of inputted parameters file; for restart purposes
@@ -120,13 +122,7 @@ public:
     /// Pointer to dg so it can be accessed externally.
     std::shared_ptr<DGBase<dim, double>> dg;
 
-    /// Pointer to sub dg so it can be accessed externally.
-    std::shared_ptr<DGBase<dim, double>> sub_dg;
-
     /// Pointer to ode solver so it can be accessed externally.
-    std::shared_ptr<ODE::ODESolverBase<dim, double>> ode_solver;
-
-    /// Pointer to sub ode solver so it can be accessed externally.
     std::shared_ptr<ODE::ODESolverBase<dim, double>> ode_solver;
 
 private:
@@ -153,6 +149,25 @@ private:
     /** Currently implemented for steady state flows.
      */
     void perform_steady_state_mesh_adaptation() const;
+
+public:
+    /// Pointer to Sub Flow Solver Case
+    std::shared_ptr<FlowSolverCaseBase<dim, sub_nstate>> sub_flow_solver_case;
+
+protected:
+    Parameters::AllParameters sub_all_param; ///< Sub all parameters
+    Parameters::FlowSolverParam sub_flow_solver_param; ///< Sub flow solver parameters
+    Parameters::ODESolverParam sub_ode_param; ///< Sub ODE solver parameters
+    unsigned int sub_poly_degree; ///< Sub polynomial order
+    unsigned int sub_grid_degree; ///< Sub polynomial order of the grid
+
+public:
+    /// Pointer to sub dg so it can be accessed externally.
+    std::shared_ptr<DGBase<dim, double>> sub_dg = nullptr;
+
+    /// Pointer to sub ode solver so it can be accessed externally.
+    std::shared_ptr<ODE::ODESolverBase<dim, double>> sub_ode_solver = nullptr;
+
 };
 
 } // FlowSolver namespace

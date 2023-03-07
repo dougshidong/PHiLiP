@@ -40,8 +40,6 @@ double PeriodicEntropyTests<dim,nstate>::get_constant_time_step(std::shared_ptr<
         constant_time_step = CFL * approximate_grid_spacing / max_wave_speed;
         */
         // TEMP using same as is defined in periodic turbulence for consistency with some existing results
-        const unsigned int number_of_degrees_of_freedom_per_state = dg->dof_handler.n_dofs()/nstate;
-        const double approximate_grid_spacing = (this->domain_right-this->domain_left)/pow(number_of_degrees_of_freedom_per_state,(1.0/dim));
         const double constant_time_step = this->all_param.flow_solver_param.courant_friedrichs_lewy_number * approximate_grid_spacing;
         return constant_time_step;
     } else{
@@ -55,6 +53,13 @@ double PeriodicEntropyTests<dim,nstate>::get_constant_time_step(std::shared_ptr<
 template<int dim, int nstate>
 double PeriodicEntropyTests<dim, nstate>::compute_integrated_quantities(DGBase<dim, double> &dg, IntegratedQuantityEnum quantity, const int overintegrate) const
 {
+    // Check that poly_degree is uniform everywhere
+    if (dg.get_max_fe_degree() != dg.get_min_fe_degree()) {
+        // Note: This function may have issues with nonuniform p. Should test in debug mode if developing in the future.
+        this->pcout << "ERROR: compute_integrated_quantities() is untested for nonuniform p. Aborting..." << std::endl;
+        std::abort();
+    }
+
     double integrated_quantity = 0.0;
 
     // Set the quadrature of size dim and 1D for sum-factorization.
@@ -187,13 +192,14 @@ double PeriodicEntropyTests<dim, nstate>::compute_integrated_quantities(DGBase<d
                 integrated_quantity += KE_integrand * quad_weights[iquad] * metric_oper.det_Jac_vol[iquad];
             } else if (quantity == IntegratedQuantityEnum::numerical_entropy) {
                 const double quadrature_entropy = this->euler_physics->compute_numerical_entropy_function(soln_at_q);
-                if (isnan(quadrature_entropy))  this->pcout << "WARNING: NaN entropy detected at a node!"  << std::endl;
+                //Using std::cout because of cell->is_locally_owned check 
+                if (isnan(quadrature_entropy))  std::cout << "WARNING: NaN entropy detected at a node!"  << std::endl;
                 integrated_quantity += quadrature_entropy * quad_weights[iquad] * metric_oper.det_Jac_vol[iquad];
             } else if (quantity == IntegratedQuantityEnum::max_wave_speed) {
                 const double local_wave_speed = this->euler_physics->max_convective_eigenvalue(soln_at_q);
                 if(local_wave_speed > integrated_quantity) integrated_quantity = local_wave_speed;
             } else {
-                this->pcout << "Integrated quantity is not correctly defined." << std::endl;
+                std::cout << "Integrated quantity is not correctly defined." << std::endl;
             }
             //#####################################################################
         }

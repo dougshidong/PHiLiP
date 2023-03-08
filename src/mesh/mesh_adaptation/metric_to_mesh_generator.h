@@ -39,6 +39,15 @@ public:
 	/// Interpolates cellwise metric field to vertices.
 	void interpolate_metric_to_vertices(const std::vector<dealii::Tensor<2, dim, real>> &cellwise_optimal_metric);
 
+	/// Writes .geo file
+	void write_geo_file();
+
+	/// Writes .pos file.
+	void write_pos_file();
+	
+	/// Runs gmsh on command line.
+	void run_gmsh();
+
 private:
 	/// Reinitialize dof handler vertices after updating triangulation.
 	void reinit();
@@ -61,6 +70,9 @@ private:
 	/// Stores optimal metric at vertices
 	std::vector<dealii::Tensor<2, dim, real>> optimal_metric_at_vertices;
 
+	/// Stores all vertices
+	std::vector<dealii::Point<dim>> all_vertices;
+
     /// Alias for MPI_COMM_WORLD
     MPI_Comm mpi_communicator;
     
@@ -72,6 +84,12 @@ private:
 
     /// Total no. of processors
     int n_mpi;
+	/// Name of the file.
+	const std::string filename;
+	/// .pos file.
+	const std::string filename_pos;
+	/// .geo file
+	const std::string filename_geo;
 	
 }; // class ends
 

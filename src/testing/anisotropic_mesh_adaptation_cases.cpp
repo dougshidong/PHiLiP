@@ -38,6 +38,9 @@ int AnisotropicMeshAdaptationCases<dim, nstate> :: run_test () const
 
 	metric_to_mesh_generator->interpolate_metric_to_vertices(anisotropic_mesh_adaptation->cellwise_optimal_metric);
 
+	metric_to_mesh_generator->write_pos_file();
+	metric_to_mesh_generator->write_geo_file();
+
     return 0;
 }
 

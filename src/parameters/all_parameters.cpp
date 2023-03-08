@@ -98,10 +98,6 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       dealii::Patterns::Bool(),
                       "Not calculate L2 norm by default (M+K). Otherwise, get L2 norm per iteration.");
 
-    prm.declare_entry("use_classical_FR", "false",
-                      dealii::Patterns::Bool(),
-                      "Not use Classical Flux Reconstruction by default. Otherwise, use Classical Flux Reconstruction.");
-
     prm.declare_entry("flux_reconstruction", "cDG",
                       dealii::Patterns::Selection(
                       "cDG | cSD | cHU | cNegative | cNegative2 | cPlus | c10Thousand | cHULumped"),
@@ -416,7 +412,6 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     use_periodic_bc = prm.get_bool("use_periodic_bc");
     use_energy = prm.get_bool("use_energy");
     use_L2_norm = prm.get_bool("use_L2_norm");
-    use_classical_FR = prm.get_bool("use_classical_FR");
     sipg_penalty_factor = prm.get_double("sipg_penalty_factor");
     use_invariant_curl_form = prm.get_bool("use_invariant_curl_form");
     use_inverse_mass_on_the_fly = prm.get_bool("use_inverse_mass_on_the_fly");

@@ -141,8 +141,8 @@ void MetricToMeshGenerator<dim, nstate, real, MeshType> :: interpolate_metric_to
 	
 		for(unsigned int idof = 0; idof<n_dofs_cell; ++idof)
 		{
-			std::cout<<"Metric at vertex "<<idof<<" :"<<std::endl;
 			const unsigned int idof_global = dof_indices[idof];
+			std::cout<<"Metric at vertex "<<all_vertices[idof_global]<<" :"<<std::endl;
         
 			for(unsigned int i = 0; i<dim; ++i)
 			{

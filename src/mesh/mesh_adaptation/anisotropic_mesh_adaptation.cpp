@@ -372,7 +372,8 @@ void AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: compute_goal_orie
 }
 
 template<int dim, int nstate, typename real, typename MeshType>
-unsigned int AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: get_iquad_near_cellcenter(const dealii::Quadrature<dim> &volume_quadrature)
+unsigned int AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: get_iquad_near_cellcenter(
+	const dealii::Quadrature<dim> &volume_quadrature) const
 {
     dealii::Point<dim,real> ref_center;
     for(unsigned int idim =0; idim < dim; ++idim) 
@@ -397,10 +398,10 @@ unsigned int AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: get_iquad
 // Flux referenced by flux[idof][istate][idim]
 template<int dim, int nstate, typename real, typename MeshType>
 void AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: get_flux_coeffs(
-            std::vector<std::array<dealii::Tensor<1,dim,real>,nstate>> &flux_coeffs, 
-            const dealii::FEValues<dim,dim> &fe_values_input,
-            const std::vector<dealii::types::global_dof_index> &dof_indices,
-            typename dealii::DoFHandler<dim>::active_cell_iterator cell)
+	std::vector<std::array<dealii::Tensor<1,dim,real>,nstate>> &flux_coeffs, 
+	const dealii::FEValues<dim,dim> &fe_values_input,
+	const std::vector<dealii::types::global_dof_index> &dof_indices,
+	typename dealii::DoFHandler<dim>::active_cell_iterator cell) const
 {
     if( ! fe_values_input.get_fe().has_support_points() )
     {

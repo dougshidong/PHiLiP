@@ -64,7 +64,7 @@ private:
 	void reconstruct_p2_solution();
 
     /// Returns quadrature number of a point which is closest to the reference cell's center.
-    unsigned int get_iquad_near_cellcenter(const dealii::Quadrature<dim> &volume_quadrature);
+    unsigned int get_iquad_near_cellcenter(const dealii::Quadrature<dim> &volume_quadrature) const;
 
     /// Returns flux coeffs by evaluating flux at support points of fe. 
     /** Referenced by flux[idof][istate][idim]
@@ -73,7 +73,7 @@ private:
             std::vector<std::array<dealii::Tensor<1,dim,real>,nstate>> &flux_coeffs, 
             const dealii::FEValues<dim,dim> &fe_values_input,
             const std::vector<dealii::types::global_dof_index> &dof_indices,
-            typename dealii::DoFHandler<dim>::active_cell_iterator cell);
+            typename dealii::DoFHandler<dim>::active_cell_iterator cell) const;
 
     /// Shared pointer to DGBase.
     std::shared_ptr<DGBase<dim,real,MeshType>> dg;

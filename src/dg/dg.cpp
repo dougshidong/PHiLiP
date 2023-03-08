@@ -485,6 +485,14 @@ void DGBaseState<dim,nstate,real,MeshType>::set_use_auxiliary_eq()
 }
 
 template <int dim, int nstate, typename real, typename MeshType>
+void DGBaseState<dim,nstate,real,MeshType>::set_store_vol_flux_nodes()
+{
+    //if have source term need to store vol flux nodes.
+    this->store_vol_flux_nodes = (this->all_parameters->manufactured_convergence_study_param.manufactured_solution_param.use_manufactured_source_term
+                                     || pde_physics_double->has_nonzero_physical_source);
+}
+
+template <int dim, int nstate, typename real, typename MeshType>
 real DGBaseState<dim,nstate,real,MeshType>::evaluate_CFL (
     std::vector< std::array<real,nstate> > soln_at_q,
     const real artificial_dissipation,
@@ -769,8 +777,6 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
     const dealii::types::global_dof_index current_cell_index = current_cell->active_cell_index();
 
     std::array<std::vector<real>,dim> mapping_support_points;
-    //if have source term need to store vol flux nodes.
-    const bool store_vol_flux_nodes = all_parameters->manufactured_convergence_study_param.manufactured_solution_param.use_manufactured_source_term;
     //for boundary conditions not periodic we need surface flux nodes
     //should change this flag to something like if have face on boundary not periodic in the future
     const bool store_surf_flux_nodes = (all_parameters->use_periodic_bc) ? false : true;
@@ -2195,6 +2201,9 @@ void DGBase<dim,real,MeshType>::allocate_system (
 
     // Set use_auxiliary_eq flag
     set_use_auxiliary_eq();
+
+    // Set store_vol_flux_nodes flag
+    set_store_vol_flux_nodes();
 
     // Allocate for auxiliary equation only.
     allocate_auxiliary_equation ();

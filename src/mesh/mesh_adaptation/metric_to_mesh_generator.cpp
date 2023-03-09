@@ -4,6 +4,7 @@
 #include <ostream>
 #include <fstream>
 #include "grid_refinement/gmsh_out.h"
+#include  <cstdlib>
 
 namespace PHiLiP {
 
@@ -273,6 +274,7 @@ void MetricToMeshGenerator<dim, nstate, real, MeshType> :: write_pos_file()
 	} // cell loop ends
 
 	outfile<<"};"<<'\n';
+	outfile<<std::flush;
 	outfile.close();
 }
 
@@ -297,16 +299,30 @@ void MetricToMeshGenerator<dim, nstate, real, MeshType> :: write_geo_file()
 	outfile<<"Background Mesh View[0];"<<'\n';
 	
 	// Use BAMG (Algorithm 7) to generate mesh.
-	outfile<<"Mesh.SmoothRatio = 0;"<<'\n'; // No smoothing for now.
-	outfile<<"Mesh.AnisoMax = 1e30;"<<'\n';
+	outfile<<"Mesh.SmoothRatio = 3;"<<'\n'; // No smoothing for now.
+	outfile<<"Mesh.AnisoMax = 1000;"<<'\n';
 	outfile<<"Mesh.Algorithm = 7;"<<'\n';
 
 	// Recombine triangles into quads.
 	outfile<<"Mesh.RecombinationAlgorithm = 2;"<<'\n';
+	//outfile<<"RecombineMesh;"<<'\n';
 	outfile<<"Mesh.RecombineAll = 1;"<<'\n';
+	//outfile<<"Mesh.RecombinationAlgorithm = 0;"<<'\n';
+	//outfile<<"Mesh.SubdivisionAlgorithm = 1;"<<'\n';
+	outfile<<std::flush;
 	outfile.close();
 }
 
+template<int dim, int nstate, typename real, typename MeshType>
+void MetricToMeshGenerator<dim, nstate, real, MeshType> :: generate_mesh_from_metric()
+{
+	const std::string filename_msh = filename + ".msh";
+	//std::string command_str = "gmsh -2 -algo bamg " + filename_geo + " -o " + filename_msh;
+	std::string command_str = "gmsh -2 " + filename_geo + " -o " + filename_msh;
+	int val = std::system(command_str.c_str());
+	(void) val;
+	pcout<<"Generated new mesh."<<std::endl;
+}
 // Instantiations
 template class MetricToMeshGenerator <PHILIP_DIM, 1, double, dealii::Triangulation<PHILIP_DIM>>;
 template class MetricToMeshGenerator <PHILIP_DIM, 2, double, dealii::Triangulation<PHILIP_DIM>>;

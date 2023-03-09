@@ -46,7 +46,7 @@ public:
 	void write_pos_file();
 	
 	/// Runs gmsh on command line.
-	void run_gmsh();
+	void generate_mesh_from_metric();
 
 private:
 	/// Reinitialize dof handler vertices after updating triangulation.

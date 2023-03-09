@@ -4,6 +4,8 @@
 #include "flow_solver/flow_solver_factory.h"
 #include "mesh/mesh_adaptation/anisotropic_mesh_adaptation.h"
 #include "mesh/mesh_adaptation/metric_to_mesh_generator.h"
+#include "mesh/gmsh_reader.hpp"
+#include <deal.II/grid/grid_in.h>
 
 namespace PHiLiP {
 namespace Tests {
@@ -24,7 +26,7 @@ int AnisotropicMeshAdaptationCases<dim, nstate> :: run_test () const
     std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(&param, parameter_handler);
     flow_solver->run();
     const bool use_goal_oriented_approach = true;
-    const double complexity = 300;
+    const double complexity = 100;
     double normLp = 2.0;
     if(use_goal_oriented_approach) {normLp = 1.0;}
 
@@ -40,13 +42,32 @@ int AnisotropicMeshAdaptationCases<dim, nstate> :: run_test () const
 
 	metric_to_mesh_generator->write_pos_file();
 	metric_to_mesh_generator->write_geo_file();
+	metric_to_mesh_generator->generate_mesh_from_metric();
 
+	const std::string filename_msh = "mesh_to_be_generated.msh";
+
+	std::shared_ptr<HighOrderGrid<dim,double>> high_order_mesh = read_gmsh <dim, dim> ("mesh_to_be_generated.msh");
+	flow_solver->dg->set_high_order_grid(high_order_mesh);
+	flow_solver->dg->allocate_system();
+	flow_solver->run();
+	flow_solver->dg->output_results_vtk(876);
+
+/*
+	dealii::GridIn<dim> gridin;
+	flow_solver->dg->triangulation->clear();
+	gridin.attach_triangulation(*flow_solver->dg->triangulation);
+	std::ifstream f(filename_msh);
+	gridin.read_msh(f);
+	flow_solver->dg->reinit();
+	flow_solver->run();
+	flow_solver->dg->output_results_vtk(876);
+*/
     return 0;
 }
 
-#if PHILIP_DIM==1
-template class AnisotropicMeshAdaptationCases <PHILIP_DIM,PHILIP_DIM>;
-#endif
+//#if PHILIP_DIM==1
+//template class AnisotropicMeshAdaptationCases <PHILIP_DIM,PHILIP_DIM>;
+//#endif
 
 #if PHILIP_DIM==2
 template class AnisotropicMeshAdaptationCases <PHILIP_DIM, 1>;

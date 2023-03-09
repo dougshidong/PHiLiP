@@ -243,13 +243,16 @@ double EulerTaylorGreen<dim, nstate>::get_timestep(std::shared_ptr < DGBase<dim,
         }
         const double max_eig = *(std::max_element(convective_eigenvalues.begin(), convective_eigenvalues.end()));
 
-        const double max_eig_mpi = dealii::Utilities::MPI::max(max_eig, mpi_communicator);
-        double cfl = 0.1 * delta_x/max_eig_mpi;
+        double cfl = 0.1 * delta_x/max_eig;
+
         if(cfl < cfl_min)
             cfl_min = cfl;
 
     }
-    return cfl_min;
+
+    const double cfl_min_mpi = dealii::Utilities::MPI::min(cfl_min, mpi_communicator);
+
+    return cfl_min_mpi;
 }
 
 template <int dim, int nstate>
@@ -296,7 +299,7 @@ int EulerTaylorGreen<dim, nstate>::run_test() const
     SetInitialCondition<dim,nstate,double>::set_initial_condition(initial_condition_function, dg, &all_parameters_new);
 
     const unsigned int n_global_active_cells2 = grid->n_global_active_cells();
-    double delta_x = (right-left)/n_global_active_cells2/(poly_degree+1.0);
+    double delta_x = (right-left)/pow(n_global_active_cells2,1.0/dim)/(poly_degree+1.0);
     pcout<<" delta x "<<delta_x<<std::endl;
 
     all_parameters_new.ode_solver_param.initial_time_step =  get_timestep(dg,poly_degree,delta_x);
@@ -306,10 +309,7 @@ int EulerTaylorGreen<dim, nstate>::run_test() const
     std::cout << "ODE solver successfully created" << std::endl;
     double finalTime = 14.;
     finalTime = 0.4;
-    // finalTime = 0.1;//to speed things up locally in tests, doesn't need full 14seconds to verify.
     double dt = all_parameters_new.ode_solver_param.initial_time_step;
-    // double dt = all_parameters_new.ode_solver_param.initial_time_step / 10.0;
-//    finalTime = 14.0;
 
     std::cout << " number dofs " << dg->dof_handler.n_dofs()<<std::endl;
     std::cout << "preparing to advance solution in time" << std::endl;
@@ -365,6 +365,7 @@ int EulerTaylorGreen<dim, nstate>::run_test() const
         myfile << i * dt << " " << std::fixed << std::setprecision(16) << current_change_entropy[0]<< std::endl;
         myfile << i * dt << " " << std::fixed << std::setprecision(16) << current_change_entropy[1]<< std::endl;
         all_parameters_new.ode_solver_param.initial_time_step =  get_timestep(dg,poly_degree, delta_x);
+        dt = all_parameters_new.ode_solver_param.initial_time_step;
     }
 
     myfile.close();

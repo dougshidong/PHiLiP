@@ -49,7 +49,10 @@ int AnisotropicMeshAdaptationCases<dim, nstate> :: run_test () const
 	std::shared_ptr<HighOrderGrid<dim,double>> high_order_mesh = read_gmsh <dim, dim> ("mesh_to_be_generated.msh");
 	flow_solver->dg->set_high_order_grid(high_order_mesh);
 	flow_solver->dg->allocate_system();
+	flow_solver->dg->solution = 0;
 	flow_solver->run();
+	//std::shared_ptr<ODE::ODESolverBase<dim, double>> ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(flow_solver->dg);
+	//ode_solver->steady_state();
 	flow_solver->dg->output_results_vtk(876);
 
 /*

@@ -413,6 +413,8 @@ void GmshOut<dim,real>::write_geo_hyper_cube(
             out << "Physical Curve (0) = {4};" << '\n';
             out << '\n';
         }
+
+		out<<"Physical Surface(\"surf1\", 5) = {1};"<<'\n';
     }
 
 }

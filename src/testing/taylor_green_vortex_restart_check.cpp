@@ -99,7 +99,7 @@ int TaylorGreenVortexRestartCheck<dim, nstate>::run_test() const
 
     // INLINE SUB-TEST: Check whether the initialize_data_table_from_file() function in flow solver is working correctly
     if(this->mpi_rank==0) {
-        std::shared_ptr<dealii::TableHandler> unsteady_data_table = std::make_shared<dealii::TableHandler>();//(this->mpi_communicator) ?;
+        std::shared_ptr<dealii::TableHandler> unsteady_data_table = std::make_shared<dealii::TableHandler>();
         const std::string file_read = params_incomplete_run.flow_solver_param.restart_files_directory_name+std::string("/")+params_incomplete_run.flow_solver_param.unsteady_data_table_filename+std::string("-")+flow_solver_incomplete_run->get_restart_filename_without_extension(restart_file_index)+std::string(".txt");
         flow_solver_incomplete_run->initialize_data_table_from_file(file_read,unsteady_data_table);
         const std::string file_write = "read_table_check.txt";

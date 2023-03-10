@@ -9,7 +9,7 @@ set pde_type = euler
 # DG formulation
 set use_weak_form = false
 set use_split_form = true
-set use_collocated_nodes = true 
+set flux_nodes_type = GLL
 
 set flux_reconstruction = cDG
 set use_inverse_mass_on_the_fly = true
@@ -24,9 +24,7 @@ set two_point_num_flux_type = IR
 # ODE solver
 subsection ODE solver
   set ode_output = verbose 
-  #set ode_solver_type = runge_kutta 
-  set ode_solver_type = rrk_explicit
-  set output_solution_every_x_steps = 3
+  set ode_solver_type = runge_kutta 
   set runge_kutta_method = rk4_ex
 end
 
@@ -42,8 +40,8 @@ end
 subsection flow_solver
   set flow_case_type = isentropic_vortex
   set poly_degree = 3
-  set final_time = 23.66431913239 #=20 * sqrt(1.4) # 11.83215956619 #= 10 * sqrt(1.4), time for vortex to advect around the domain
-  set courant_friedrich_lewy_number = 0.1
+  set final_time = 23.66431913239 #=20 * sqrt(1.4), time for vortex to advect around the domain
+  set courant_friedrichs_lewy_number = 0.1
   set unsteady_data_table_filename = isentropic_vortex_time_table
   subsection grid
     set grid_left_bound = -10.0

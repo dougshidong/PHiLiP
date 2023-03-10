@@ -22,6 +22,8 @@ LargeEddySimulationBase<dim, nstate, real>::LargeEddySimulationBase(
     const double                                              side_slip_angle,
     const double                                              prandtl_number,
     const double                                              reynolds_number_inf,
+    const bool                                                use_constant_viscosity,
+    const double                                              constant_viscosity,
     const double                                              temperature_inf,
     const double                                              turbulent_prandtl_number,
     const double                                              ratio_of_filter_width_to_cell_size,
@@ -40,6 +42,8 @@ LargeEddySimulationBase<dim, nstate, real>::LargeEddySimulationBase(
             side_slip_angle,
             prandtl_number,
             reynolds_number_inf,
+            use_constant_viscosity,
+            constant_viscosity,
             temperature_inf,
             isothermal_wall_temperature,
             thermal_boundary_condition_type,
@@ -128,6 +132,25 @@ std::array<dealii::Tensor<1,dim,real2>,nstate> LargeEddySimulationBase<dim,nstat
 //----------------------------------------------------------------
 template <int dim, int nstate, typename real>
 std::array<real,nstate> LargeEddySimulationBase<dim,nstate,real>
+::convective_eigenvalues (
+    const std::array<real,nstate> &/*conservative_soln*/,
+    const dealii::Tensor<1,dim,real> &/*normal*/) const
+{
+    std::array<real,nstate> eig;
+    eig.fill(0.0);
+    return eig;
+}
+//----------------------------------------------------------------
+template <int dim, int nstate, typename real>
+real LargeEddySimulationBase<dim,nstate,real>
+::max_convective_eigenvalue (const std::array<real,nstate> &/*conservative_soln*/) const
+{
+    const real max_eig = 0.0;
+    return max_eig;
+}
+//----------------------------------------------------------------
+template <int dim, int nstate, typename real>
+std::array<real,nstate> LargeEddySimulationBase<dim,nstate,real>
 ::source_term (
         const dealii::Point<dim,real> &pos,
         const std::array<real,nstate> &/*solution*/,
@@ -148,16 +171,13 @@ double LargeEddySimulationBase<dim,nstate,real>
 ::get_filter_width (const dealii::types::global_dof_index cell_index) const
 { 
     // Compute the LES filter width
-    /** Reference: Flad, David, and Gregor Gassner. "On the use of kinetic
-     *  energy preserving DG-schemes for large eddy simulation."
-     *  Journal of Computational Physics 350 (2017): 782-795.
+    /** Reference: Marta de la Llave Plata, et al. "On the performance of a 
+     *  high-order multiscale DG approach to LES at increasing Reynolds number."
+     *  Computers and Fluids 194 (2019), Page 4, Eq.(14).
      * */
     const int cell_poly_degree = this->cellwise_poly_degree[cell_index];
     const double cell_volume = this->cellwise_volume[cell_index];
-    double filter_width = cell_volume;
-    for(int i=0; i<dim; ++i) {
-        filter_width /= (cell_poly_degree+1);
-    }
+    double filter_width = pow(cell_volume, (1.0/3.0))/(cell_poly_degree+1);
     // Resize given the ratio of filter width to cell size
     filter_width *= ratio_of_filter_width_to_cell_size;
 
@@ -383,6 +403,8 @@ LargeEddySimulation_Smagorinsky<dim, nstate, real>::LargeEddySimulation_Smagorin
     const double                                              side_slip_angle,
     const double                                              prandtl_number,
     const double                                              reynolds_number_inf,
+    const bool                                                use_constant_viscosity,
+    const double                                              constant_viscosity,
     const double                                              temperature_inf,
     const double                                              turbulent_prandtl_number,
     const double                                              ratio_of_filter_width_to_cell_size,
@@ -398,6 +420,8 @@ LargeEddySimulation_Smagorinsky<dim, nstate, real>::LargeEddySimulation_Smagorin
                                                side_slip_angle,
                                                prandtl_number,
                                                reynolds_number_inf,
+                                               use_constant_viscosity,
+                                               constant_viscosity,
                                                temperature_inf,
                                                turbulent_prandtl_number,
                                                ratio_of_filter_width_to_cell_size,
@@ -605,6 +629,8 @@ LargeEddySimulation_WALE<dim, nstate, real>::LargeEddySimulation_WALE(
     const double                                              side_slip_angle,
     const double                                              prandtl_number,
     const double                                              reynolds_number_inf,
+    const bool                                                use_constant_viscosity,
+    const double                                              constant_viscosity,
     const double                                              temperature_inf,
     const double                                              turbulent_prandtl_number,
     const double                                              ratio_of_filter_width_to_cell_size,
@@ -620,6 +646,8 @@ LargeEddySimulation_WALE<dim, nstate, real>::LargeEddySimulation_WALE(
                                                        side_slip_angle,
                                                        prandtl_number,
                                                        reynolds_number_inf,
+                                                       use_constant_viscosity,
+                                                       constant_viscosity,
                                                        temperature_inf,
                                                        turbulent_prandtl_number,
                                                        ratio_of_filter_width_to_cell_size,
@@ -728,6 +756,8 @@ LargeEddySimulation_Vreman<dim, nstate, real>::LargeEddySimulation_Vreman(
     const double                                              side_slip_angle,
     const double                                              prandtl_number,
     const double                                              reynolds_number_inf,
+    const bool                                                use_constant_viscosity,
+    const double                                              constant_viscosity,
     const double                                              temperature_inf,
     const double                                              turbulent_prandtl_number,
     const double                                              ratio_of_filter_width_to_cell_size,
@@ -743,6 +773,8 @@ LargeEddySimulation_Vreman<dim, nstate, real>::LargeEddySimulation_Vreman(
                                                        side_slip_angle,
                                                        prandtl_number,
                                                        reynolds_number_inf,
+                                                       use_constant_viscosity,
+                                                       constant_viscosity,
                                                        temperature_inf,
                                                        turbulent_prandtl_number,
                                                        ratio_of_filter_width_to_cell_size,

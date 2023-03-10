@@ -8,15 +8,16 @@
 const double TOLERANCE = 1E-12;
 
 
-int main (int /*argc*/, char * /*argv*/[])
+int main (int argc, char * argv[])
 {
+    MPI_Init(&argc, &argv);
     const int dim = PHILIP_DIM;
     const int nstate = dim+2;
 
     //const double ref_length = 1.0, mach_inf=1.0, angle_of_attack = 0.0, side_slip_angle = 0.0, gamma_gas = 1.4;
     //const double prandtl_number = 0.72, reynolds_number_inf=50000.0;
     const double a = 1.0 , b = 0.0, c = 1.4, d=0.72, e=1.0;
-    PHiLiP::Physics::NavierStokes<dim, nstate, double> navier_stokes_physics = PHiLiP::Physics::NavierStokes<dim, nstate, double>(a,c,a,b,b,d,e);
+    PHiLiP::Physics::NavierStokes<dim, nstate, double> navier_stokes_physics = PHiLiP::Physics::NavierStokes<dim, nstate, double>(a,c,a,b,b,d,e,false,1.0);
 
     const double min = 0.0;
     const double max = 1.0;
@@ -58,6 +59,7 @@ int main (int /*argc*/, char * /*argv*/[])
 
         }
     }
+    MPI_Finalize();
     return 0;
 }
 

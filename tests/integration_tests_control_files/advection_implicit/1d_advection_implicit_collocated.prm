@@ -7,7 +7,7 @@ set dimension = 1
 # <advection|diffusion|convection_diffusion>.
 set pde_type  = advection
 
-set use_collocated_nodes = true
+set flux_nodes_type = GLL
 
 set conv_num_flux = lax_friedrichs
 

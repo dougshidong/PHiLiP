@@ -20,7 +20,8 @@ public:
         Parameters::AllParameters::PartialDifferentialEquation       baseline_physics_type,
         std::shared_ptr< ModelBase<dim,nstate,real> >                model_input,
         std::shared_ptr< ManufacturedSolutionFunction<dim,real> >    manufactured_solution_function,
-        const bool                                                   has_nonzero_diffusion);
+        const bool                                                   has_nonzero_diffusion,
+        const bool                                                   has_nonzero_physical_source);
 
     /// Destructor
     ~PhysicsModel() {};
@@ -44,6 +45,13 @@ public:
         const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient,
         const dealii::types::global_dof_index cell_index) const;
 
+    /// Physical source term
+    std::array<real,nstate> physical_source_term (
+        const dealii::Point<dim,real> &pos,
+        const std::array<real,nstate> &conservative_soln,
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient,
+        const dealii::types::global_dof_index cell_index) const;
+
     /// Source term that does not require differentiation.
     std::array<real,nstate> source_term (
         const dealii::Point<dim,real> &pos,
@@ -58,11 +66,6 @@ public:
     std::array<dealii::Tensor<1,dim,real>,nstate> convective_numerical_split_flux (
         const std::array<real,nstate> &conservative_soln1,
         const std::array<real,nstate> &conservative_soln2) const;
-
-    /// Convective surface split flux
-    real convective_surface_numerical_split_flux (
-                const real &surface_flux,
-                const real &flux_interp_to_surface) const;
 
     /// Computes the entropy variables.
     std::array<real,nstate> compute_entropy_variables (
@@ -119,6 +122,15 @@ public:
     /** Only update the solution at the output points.
      */
     dealii::UpdateFlags post_get_needed_update_flags () const; 
+
+protected:
+    const MPI_Comm mpi_communicator; ///< MPI communicator.
+    const int mpi_rank; ///< MPI rank.
+    const int n_mpi; ///< Number of MPI processes.
+    /// ConditionalOStream.
+    /** Used as std::cout, but only prints if mpi_rank == 0
+     */
+    dealii::ConditionalOStream pcout;
 };
 
 } // Physics namespace

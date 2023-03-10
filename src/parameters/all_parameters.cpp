@@ -62,9 +62,11 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       dealii::Patterns::Bool(),
                       "Use weak form by default. If false, use strong form.");
 
-    prm.declare_entry("use_collocated_nodes", "false",
-                      dealii::Patterns::Bool(),
-                      "Use Gauss-Legendre by default. Otherwise, use Gauss-Lobatto to collocate.");
+    prm.declare_entry("flux_nodes_type", "GL",
+                      dealii::Patterns::Selection(
+                      "GL | GLL"),
+                      "Flux nodes type, default is GL for uncollocated. NOTE: Solution nodes are type GLL."
+                      "Choices are <GL | GLL>.");
 
     prm.declare_entry("use_split_form", "false",
                       dealii::Patterns::Bool(),
@@ -158,11 +160,14 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       " dual_weighted_residual_mesh_adaptation | "
                       " taylor_green_vortex_energy_check | "
                       " taylor_green_vortex_restart_check | "
+                      " homogeneous_isotropic_turbulence_initialization_check | "
                       " time_refinement_study | "
                       " time_refinement_study_reference | "
                       " h_refinement_study_isentropic_vortex | "
                       " burgers_energy_conservation_rrk | "
-                      " euler_ismail_roe_entropy_check"),
+                      " euler_entropy_conserving_split_forms_check | "
+                      " h_refinement_study_isentropic_vortex | "
+                      " khi_robustness"),
                       "The type of test we want to solve. "
                       "Choices are " 
                       " <run_control | " 
@@ -192,11 +197,14 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       "  dual_weighted_residual_mesh_adaptation | "
                       "  taylor_green_vortex_energy_check | "
                       "  taylor_green_vortex_restart_check | "
+                      "  homogeneous_isotropic_turbulence_initialization_check | "
                       "  time_refinement_study | "
                       "  time_refinement_study_reference | "
                       "  h_refinement_study_isentropic_vortex | "
                       "  burgers_energy_conservation_rrk | "
-                      "  euler_ismail_roe_entropy_check>.");
+                      "  euler_entropy_conserving_split_forms_check | "
+                      "  h_refinement_study_isentropic_vortex | "
+                      "  khi_robustness>.");
 
     prm.declare_entry("pde_type", "advection",
                       dealii::Patterns::Selection(
@@ -227,12 +235,12 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
 
     prm.declare_entry("model_type", "large_eddy_simulation",
                       dealii::Patterns::Selection(
-                      "large_eddy_simulation"),
+                      "large_eddy_simulation | reynolds_averaged_navier_stokes"),
                       "Enum of physics models "
                       "(i.e. model equations and/or terms additional to Navier-Stokes or a chosen underlying baseline physics)."
                       "Choices are "
-                      " <large_eddy_simulation>.");
-    
+                      " <large_eddy_simulation | reynolds_averaged_navier_stokes>.");
+
     prm.declare_entry("conv_num_flux", "lax_friedrichs",
                       dealii::Patterns::Selection(
                       " lax_friedrichs | "
@@ -269,11 +277,8 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
 
     prm.declare_entry("enable_higher_order_vtk_output", "false",
                       dealii::Patterns::Bool(),
-                      "Enable writing of higher-order vtk files."
-                      "False by default. If modified to true,"
-                      "number of subdivisions will be chosen"
-                      "according to the max of grid_degree"
-                      "and poly_degree.");
+                      "Enable writing of higher-order vtk files. False by default. If modified to true,"
+                      "number of subdivisions will be chosen according to the max of grid_degree and poly_degree.");
 
     Parameters::LinearSolverParam::declare_parameters (prm);
     Parameters::ManufacturedConvergenceStudyParam::declare_parameters (prm);
@@ -337,63 +342,27 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     else if (test_string == "dual_weighted_residual_mesh_adaptation")   { test_type = dual_weighted_residual_mesh_adaptation; }
     else if (test_string == "taylor_green_vortex_energy_check")         { test_type = taylor_green_vortex_energy_check; }
     else if (test_string == "taylor_green_vortex_restart_check")        { test_type = taylor_green_vortex_restart_check; }
+    else if (test_string == "homogeneous_isotropic_turbulence_initialization_check")
+                                                                        { test_type = homogeneous_isotropic_turbulence_initialization_check; }
     else if (test_string == "time_refinement_study")                    { test_type = time_refinement_study; }
     else if (test_string == "time_refinement_study_reference")          { test_type = time_refinement_study_reference; }
     else if (test_string == "h_refinement_study_isentropic_vortex")     { test_type = h_refinement_study_isentropic_vortex; }
     else if (test_string == "burgers_energy_conservation_rrk")          { test_type = burgers_energy_conservation_rrk; }
-    else if (test_string == "euler_ismail_roe_entropy_check")           { test_type = euler_ismail_roe_entropy_check; }
-    
-    // WARNING: Must assign model_type before pde_type
-    const std::string model_string = prm.get("model_type");
-    if (model_string == "large_eddy_simulation") { model_type = large_eddy_simulation; }
-    //else if (model_string == "reynolds_averaged_navier_stokes") { model_type = reynolds_averaged_navier_stokes; }
-
-    const std::string pde_string = prm.get("pde_type");
-    if (pde_string == "advection") {
-        pde_type = advection;
-        nstate = 1;
-    } else if (pde_string == "advection_vector") {
-        pde_type = advection_vector;
-        nstate = 2;
-    } else if (pde_string == "diffusion") {
-        pde_type = diffusion;
-        nstate = 1;
-    } else if (pde_string == "convection_diffusion") {
-        pde_type = convection_diffusion;
-        nstate = 1;
-    } else if (pde_string == "burgers_inviscid") {
-        pde_type = burgers_inviscid;
-        nstate = dimension;
-    } else if (pde_string == "burgers_viscous") {
-        pde_type = burgers_viscous;
-        nstate = dimension;
-    } else if (pde_string == "burgers_rewienski") {
-        pde_type = burgers_rewienski;
-        nstate = dimension;
-    } else if (pde_string == "euler") {
-        pde_type = euler;
-        nstate = dimension+2;
-    }
-    else if (pde_string == "navier_stokes") {
-        pde_type = navier_stokes;
-        nstate = dimension+2;
-    }
-    else if (pde_string == "physics_model") {
-        pde_type = physics_model;
-        if (model_type == large_eddy_simulation)
-        {
-            nstate = dimension+2;
-        }
-        // else if (model_type == reynolds_averaged_navier_stokes)
-        // {
-        //     nstate = dimension+3;
-        // }
-    }
+    else if (test_string == "euler_entropy_conserving_split_forms_check") 
+                                                                        { test_type = euler_entropy_conserving_split_forms_check; }
+    else if (test_string == "h_refinement_study_isentropic_vortex")     { test_type = h_refinement_study_isentropic_vortex; }
+    else if (test_string == "khi_robustness")                           { test_type = khi_robustness; }
     
     overintegration = prm.get_integer("overintegration");
 
     use_weak_form = prm.get_bool("use_weak_form");
-    use_collocated_nodes = prm.get_bool("use_collocated_nodes");
+    
+    const std::string flux_nodes_string = prm.get("flux_nodes_type");
+    if (flux_nodes_string == "GL") { flux_nodes_type = FluxNodes::GL; }
+    if (flux_nodes_string == "GLL") { flux_nodes_type = FluxNodes::GLL; }
+
+    use_collocated_nodes = (flux_nodes_type==FluxNodes::GLL) && (overintegration==0);
+
     use_split_form = prm.get_bool("use_split_form");
 
     const std::string two_point_num_flux_string = prm.get("two_point_num_flux_type");
@@ -495,6 +464,54 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     
     pcout << "Parsing functional subsection..." << std::endl;
     functional_param.parse_parameters (prm);
+
+    // WARNING: Must assign model_type before pde_type
+    const std::string model_string = prm.get("model_type");
+    if (model_string == "large_eddy_simulation") { model_type = large_eddy_simulation; }
+    else if (model_string == "reynolds_averaged_navier_stokes") { model_type = reynolds_averaged_navier_stokes; }
+
+    const std::string pde_string = prm.get("pde_type");
+    if (pde_string == "advection") {
+        pde_type = advection;
+        nstate = 1;
+    } else if (pde_string == "advection_vector") {
+        pde_type = advection_vector;
+        nstate = 2;
+    } else if (pde_string == "diffusion") {
+        pde_type = diffusion;
+        nstate = 1;
+    } else if (pde_string == "convection_diffusion") {
+        pde_type = convection_diffusion;
+        nstate = 1;
+    } else if (pde_string == "burgers_inviscid") {
+        pde_type = burgers_inviscid;
+        nstate = dimension;
+    } else if (pde_string == "burgers_viscous") {
+        pde_type = burgers_viscous;
+        nstate = dimension;
+    } else if (pde_string == "burgers_rewienski") {
+        pde_type = burgers_rewienski;
+        nstate = dimension;
+    } else if (pde_string == "euler") {
+        pde_type = euler;
+        nstate = dimension+2;
+    }
+    else if (pde_string == "navier_stokes") {
+        pde_type = navier_stokes;
+        nstate = dimension+2;
+    }
+    else if (pde_string == "physics_model") {
+        pde_type = physics_model;
+        if (model_type == large_eddy_simulation)
+        {
+            nstate = dimension+2;
+        }
+        else if (model_type == reynolds_averaged_navier_stokes)
+        {
+            if(physics_model_param.RANS_model_type == Parameters::PhysicsModelParam::ReynoldsAveragedNavierStokesModel::SA_negative)
+              nstate = dimension+3;
+        }
+    }
     
     pcout << "Parsing time refinement study subsection..." << std::endl;
     time_refinement_study_param.parse_parameters (prm);

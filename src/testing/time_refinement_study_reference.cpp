@@ -158,7 +158,7 @@ int TimeRefinementStudyReference<dim, nstate>::run_test() const
         convergence_table.set_precision("L2_error", 16);
         convergence_table.evaluate_convergence_rates("L2_error", "dt", dealii::ConvergenceTable::reduction_rate_log2, 1);
         
-        if (params.use_collocated_nodes){
+        if (params.flux_nodes_type==Parameters::AllParameters::FluxNodes::GLL && params.overintegration==0) {
             //current energy calculation is only valid for collocated nodes
             const double energy_end = flow_solver_case->compute_energy_collocated(flow_solver->dg);
             const double energy_change = energy_initial - energy_end;

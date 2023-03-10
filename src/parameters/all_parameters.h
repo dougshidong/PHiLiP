@@ -90,7 +90,12 @@ public:
     /// Flag to use weak or strong form of DG
     bool use_weak_form;
 
-    /// Flag to use Gauss-Lobatto Nodes;
+    /// Flux nodes type
+    enum FluxNodes { GL, GLL };
+    /// Store selected FluxNodes from the input file
+    FluxNodes flux_nodes_type;
+
+    /// Flag for using collocated nodes; determined based on flux_nodes_type and overintegration input parameters
     bool use_collocated_nodes;
 
     /// Flag to use split form.
@@ -172,9 +177,11 @@ public:
         taylor_green_vortex_restart_check,
         time_refinement_study,
         time_refinement_study_reference,
-        h_refinement_study_isentropic_vortex,
         burgers_energy_conservation_rrk,
-        euler_ismail_roe_entropy_check,
+        euler_entropy_conserving_split_forms_check,
+        h_refinement_study_isentropic_vortex,
+        khi_robustness,
+        homogeneous_isotropic_turbulence_initialization_check,
     };
     /// Store selected TestType from the input file.
     TestType test_type;
@@ -199,7 +206,7 @@ public:
     /// Types of models available.
     enum ModelType {
         large_eddy_simulation,
-        //reynolds_averaged_navier_stokes,
+        reynolds_averaged_navier_stokes,
     };
     /// Store the model type
     ModelType model_type;
@@ -254,7 +261,6 @@ public:
 
     /// Enable writing of higher-order vtk results
     bool enable_higher_order_vtk_output;
-
     /// Declare parameters that can be set as inputs and set up the default options
     /** This subroutine should call the sub-parameter classes static declare_parameters()
       * such that each sub-parameter class is responsible to declare their own parameters.

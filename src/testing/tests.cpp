@@ -38,7 +38,9 @@
 #include "time_refinement_study_reference.h"
 #include "h_refinement_study_isentropic_vortex.h"
 #include "burgers_energy_conservation_rrk.h"
-#include "euler_ismail_roe_entropy_check.h"
+#include "euler_entropy_conserving_split_forms_check.h"
+#include "homogeneous_isotropic_turbulence_initialization_check.h"
+#include "khi_robustness.h"
 
 namespace PHiLiP {
 namespace Tests {
@@ -66,9 +68,10 @@ std::vector<int> TestsBase::get_number_1d_cells(const int n_grids) const
 
 std::string TestsBase::get_pde_string(const Parameters::AllParameters *const param) const
 {
-    using PDE_enum      = Parameters::AllParameters::PartialDifferentialEquation;
-    using Model_enum    = PHiLiP::Parameters::AllParameters::ModelType;
-    using SGSModel_enum = PHiLiP::Parameters::PhysicsModelParam::SubGridScaleModel;
+    using PDE_enum       = Parameters::AllParameters::PartialDifferentialEquation;
+    using Model_enum     = PHiLiP::Parameters::AllParameters::ModelType;
+    using SGSModel_enum  = PHiLiP::Parameters::PhysicsModelParam::SubGridScaleModel;
+    using RANSModel_enum = PHiLiP::Parameters::PhysicsModelParam::ReynoldsAveragedNavierStokesModel;
     
     const PDE_enum pde_type = param->pde_type;
     std::string pde_string;
@@ -97,6 +100,16 @@ std::string TestsBase::get_pde_string(const Parameters::AllParameters *const par
             else if(sgs_model==SGSModel_enum::wall_adaptive_local_eddy_viscosity) sgs_model_string = "wall_adaptive_local_eddy_viscosity";
             else if(sgs_model==SGSModel_enum::vreman) sgs_model_string = "vreman";
             pde_string += std::string(" (Model: ") + model_string + std::string(", SGS Model: ") + sgs_model_string + std::string(")");
+        }
+        else if(model == Model_enum::reynolds_averaged_navier_stokes) {
+            // assign model string
+            model_string = "reynolds_averaged_navier_stokes";
+            // reynolds-averaged navier-stokes (RANS)
+            const RANSModel_enum rans_model = param->physics_model_param.RANS_model_type;
+            std::string rans_model_string = "WARNING: invalid RANS model";
+            // assign RANS model string
+            if     (rans_model==RANSModel_enum::SA_negative) rans_model_string = "SA_negative";
+            pde_string += std::string(" (Model: ") + model_string + std::string(", RANS Model: ") + rans_model_string + std::string(")");
         }
         if(pde_string == "physics_model") pde_string += std::string(" (Model: ") + model_string + std::string(")");
     }
@@ -268,6 +281,8 @@ std::unique_ptr< TestsBase > TestsFactory<dim,nstate,MeshType>
         if constexpr (dim==3 && nstate==dim+2) return std::make_unique<TaylorGreenVortexEnergyCheck<dim,nstate>>(parameters_input,parameter_handler_input);
     } else if(test_type == Test_enum::taylor_green_vortex_restart_check) {
         if constexpr (dim==3 && nstate==dim+2) return std::make_unique<TaylorGreenVortexRestartCheck<dim,nstate>>(parameters_input,parameter_handler_input);
+    } else if(test_type == Test_enum::homogeneous_isotropic_turbulence_initialization_check){
+        if constexpr (dim==3 && nstate==dim+2) return std::make_unique<HomogeneousIsotropicTurbulenceInitializationCheck<dim,nstate>>(parameters_input,parameter_handler_input);
     } else if(test_type == Test_enum::time_refinement_study) {
         if constexpr (dim==1 && nstate==1)  return std::make_unique<TimeRefinementStudy<dim, nstate>>(parameters_input, parameter_handler_input);
     } else if(test_type == Test_enum::h_refinement_study_isentropic_vortex) {
@@ -276,8 +291,10 @@ std::unique_ptr< TestsBase > TestsFactory<dim,nstate,MeshType>
         if constexpr (dim==1 && nstate==1)  return std::make_unique<TimeRefinementStudyReference<dim, nstate>>(parameters_input, parameter_handler_input);
     } else if(test_type == Test_enum::burgers_energy_conservation_rrk) {
         if constexpr (dim==1 && nstate==1)  return std::make_unique<BurgersEnergyConservationRRK<dim, nstate>>(parameters_input, parameter_handler_input);
-    } else if(test_type == Test_enum::euler_ismail_roe_entropy_check) {
-        if constexpr (dim==3 && nstate==dim+2)  return std::make_unique<EulerIsmailRoeEntropyCheck<dim, nstate>>(parameters_input, parameter_handler_input);
+    } else if(test_type == Test_enum::euler_entropy_conserving_split_forms_check) {
+        if constexpr (dim==3 && nstate==dim+2)  return std::make_unique<EulerSplitEntropyCheck<dim, nstate>>(parameters_input, parameter_handler_input);
+    } else if(test_type == Test_enum::khi_robustness) {
+        if constexpr (dim==2 && nstate==dim+2)  return std::make_unique<KHIRobustness<dim, nstate>>(parameters_input, parameter_handler_input);
     } else {
         std::cout << "Invalid test. You probably forgot to add it to the list of tests in tests.cpp" << std::endl;
         std::abort();

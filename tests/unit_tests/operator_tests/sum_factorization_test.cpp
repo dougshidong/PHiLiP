@@ -99,7 +99,7 @@ int main (int argc, char * argv[])
     PHiLiP::Parameters::AllParameters all_parameters_new;
     all_parameters_new.parse_parameters (parameter_handler);
     all_parameters_new.nstate = nstate;
-    // all_parameters_new.use_collocated_nodes = true;
+    // all_parameters_new.flux_nodes_type = Parameters::AllParameters::FluxNodes::GLL;
     dealii::ConditionalOStream pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD)==0);
 
     bool different = false;

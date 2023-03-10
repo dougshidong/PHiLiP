@@ -125,7 +125,7 @@ ExactSolutionFactory<dim,nstate, real>::create_ExactSolutionFunction(
     if (flow_type == FlowCaseEnum::periodic_1D_unsteady){
         if constexpr (dim==1 && nstate==dim)  return std::make_shared<ExactSolutionFunction_1DSine<dim,nstate,real> > (time_compare);
     } else if (flow_type == FlowCaseEnum::isentropic_vortex){
-        if constexpr (nstate==dim+2)  return std::make_shared<ExactSolutionFunction_IsentropicVortex<dim,nstate,real> > (time_compare);
+        if constexpr (dim>1 && nstate==dim+2)  return std::make_shared<ExactSolutionFunction_IsentropicVortex<dim,nstate,real> > (time_compare);
     } else {
         // Select zero function if there is no exact solution defined
         return std::make_shared<ExactSolutionFunction_Zero<dim,nstate,real>> (time_compare);
@@ -143,4 +143,7 @@ template class ExactSolutionFunction_Zero <PHILIP_DIM,3, double>;
 template class ExactSolutionFunction_Zero <PHILIP_DIM,4, double>;
 template class ExactSolutionFunction_Zero <PHILIP_DIM,5, double>;
 
+#if PHILIP_DIM>1
+template class ExactSolutionFunction_IsentropicVortex <PHILIP_DIM,PHILIP_DIM+2, double>;
+#endif
 } // PHiLiP namespace

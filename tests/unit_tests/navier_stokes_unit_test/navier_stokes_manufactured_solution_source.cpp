@@ -13,8 +13,9 @@
 
 const double TOLERANCE = 1E-5;
 
-int main (int /*argc*/, char * /*argv*/[])
+int main (int argc, char * argv[])
 {
+    MPI_Init(&argc, &argv);
     std::cout << std::setprecision(std::numeric_limits<long double>::digits10 + 1) << std::scientific;
     const int dim = PHILIP_DIM;
     const int nstate = dim+2;
@@ -22,7 +23,7 @@ int main (int /*argc*/, char * /*argv*/[])
     //const double ref_length = 1.0, mach_inf=1.0, angle_of_attack = 0.0, side_slip_angle = 0.0, gamma_gas = 1.4;
     //const double prandtl_number = 0.72, reynolds_number_inf=1e-4;
     const double a = 1.0 , b = 0.0, c = 1.4, d=0.72, e=1.0e-4; // Note: e==Re_inf --> set to small value so that viscous terms dominate
-    PHiLiP::Physics::NavierStokes<dim, nstate, double> navier_stokes_physics = PHiLiP::Physics::NavierStokes<dim, nstate, double>(a,c,a,b,b,d,e);
+    PHiLiP::Physics::NavierStokes<dim, nstate, double> navier_stokes_physics = PHiLiP::Physics::NavierStokes<dim, nstate, double>(a,c,a,b,b,d,e,false,1.0);
 
     const double min = 0.0;
     const double max = 1.0;
@@ -135,6 +136,7 @@ int main (int /*argc*/, char * /*argv*/[])
             assert_compare_array<nstate> ( divergence_finite_differences, source_term, 1.0, TOLERANCE);
         }
     }
+    MPI_Finalize();
     return 0;
 }
 

@@ -97,7 +97,8 @@ public:
         const double                                              side_slip_angle,
         std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function = nullptr,
         const two_point_num_flux_enum                             two_point_num_flux_type = two_point_num_flux_enum::KG,
-        const bool                                                has_nonzero_diffusion = false);
+        const bool                                                has_nonzero_diffusion = false,
+        const bool                                                has_nonzero_physical_source = false);
 
     /// Destructor
     // virtual ~Euler() =0;
@@ -193,6 +194,16 @@ public:
     std::array<real,nstate> convective_source_term (
         const dealii::Point<dim,real> &pos) const;
 
+protected:
+    /// Check positive density
+    template<typename real2>
+    void check_positive_density(real2 &density) const;
+
+    /// Check positive pressure
+    template<typename real2>
+    void check_positive_pressure(real2 &pressure) const;
+
+public:
     /// Given conservative variables [density, [momentum], total energy],
     /// returns primitive variables [density, [velocities], pressure].
     ///
@@ -210,12 +221,14 @@ public:
     template<typename real2>
     real2 compute_pressure ( const std::array<real2,nstate> &conservative_soln ) const;
 
-    /// Evaluate pressure from conservative variables
-    real compute_pressure_from_enthalpy ( const std::array<real,nstate> &conservative_soln ) const;
+    /// Evaluate physical entropy = log(p \rho^{-\gamma}) from pressure and density
+    template<typename real2>
+    real2 compute_entropy (const real2 density, const real2 pressure) const;
 
     /// Evaluate pressure from conservative variables
     real compute_specific_enthalpy ( const std::array<real,nstate> &conservative_soln, const real pressure) const;
 
+    /// Compute numerical entropy function -rho s 
     real compute_numerical_entropy_function(const std::array<real,nstate> &conservative_soln) const;
 
     /// Evaluate speed of sound from conservative variables
@@ -279,15 +292,10 @@ public:
     /** See the book I do like CFD, sec 4.14.2 */
     real compute_pressure_from_density_temperature ( const real density, const real temperature ) const;
 
-    /// The Euler split form is that of Kennedy & Gruber or Ismail & Roe.
+    ///  Evaluates convective flux based on the chosen split form.
     std::array<dealii::Tensor<1,dim,real>,nstate> convective_numerical_split_flux (
         const std::array<real,nstate> &conservative_soln1,
-        const std::array<real,nstate> &conservative_soln2) const;
-
-    /// Convective Numerical Split Flux for split form
-    real convective_surface_numerical_split_flux (
-                const real &surface_flux,
-                const real &flux_interp_to_surface) const;
+        const std::array<real,nstate> &conservative_soln2) const override;
 
     /// Computes the entropy variables.
     /// Given conservative variables [density, [momentum], total energy],

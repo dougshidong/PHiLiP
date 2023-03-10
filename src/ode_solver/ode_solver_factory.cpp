@@ -109,7 +109,7 @@ void ODESolverFactory<dim,real,MeshType>::display_error_ode_solver_factory(Param
         pcout <<  "implicit" << std::endl;
         pcout <<  "rrk_explicit" << std::endl;
         pcout << "    With rrk_explicit only being valid for " <<std::endl;
-        pcout << "    pde_type = burgers, use_collocated_nodes = true and dim = 1" <<std::endl;
+        pcout << "    pde_type = burgers, flux_nodes_type = GLL, overintegration = 0, and dim = 1" <<std::endl;
     }
     pcout << "********************************************************************" << std::endl;
     std::abort();

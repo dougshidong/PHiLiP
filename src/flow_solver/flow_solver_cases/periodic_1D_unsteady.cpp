@@ -47,6 +47,7 @@ void Periodic1DUnsteady<dim, nstate>::compute_unsteady_data_and_write_to_table(
  
     using PDEEnum = Parameters::AllParameters::PartialDifferentialEquation;
     const PDEEnum pde_type = this->all_param.pde_type;
+    const bool use_collocated_nodes = (this->all_param.flux_nodes_type==Parameters::AllParameters::FluxNodes::GLL) && (this->all_param.overintegration==0);
 
     if (pde_type == PDEEnum::advection){
         if ((current_iteration % output_solution_every_n_iterations) == 0){
@@ -57,7 +58,7 @@ void Periodic1DUnsteady<dim, nstate>::compute_unsteady_data_and_write_to_table(
         (void) dg;
         (void) unsteady_data_table;
     }
-    else if ((pde_type == PDEEnum::burgers_inviscid)&&(this->all_param.use_collocated_nodes)){
+    else if ((pde_type == PDEEnum::burgers_inviscid)&&(use_collocated_nodes)){
         const double energy = this->compute_energy_collocated(dg);
     
         if ((current_iteration % output_solution_every_n_iterations) == 0){

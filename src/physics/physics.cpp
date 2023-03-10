@@ -1,6 +1,9 @@
 #include <assert.h>
 #include <cmath>
 #include <vector>
+#include <stdlib.h>
+#include <deal.II/base/utilities.h>
+#include <deal.II/base/mpi.h>
 
 #include "ADTypes.hpp"
 
@@ -12,10 +15,13 @@ namespace Physics {
 template <int dim, int nstate, typename real>
 PhysicsBase<dim,nstate,real>::PhysicsBase(
     const bool                                                has_nonzero_diffusion_input,
+    const bool                                                has_nonzero_physical_source_input,
     const dealii::Tensor<2,3,double>                          input_diffusion_tensor,
     std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function_input)
     : has_nonzero_diffusion(has_nonzero_diffusion_input)
+    , has_nonzero_physical_source(has_nonzero_physical_source_input)
     , manufactured_solution_function(manufactured_solution_function_input)
+    , pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD)==0)
 {
     // if provided with a null ptr, give it the default manufactured solution
     // currently only necessary for the unit test
@@ -41,12 +47,25 @@ PhysicsBase<dim,nstate,real>::PhysicsBase(
 template <int dim, int nstate, typename real>
 PhysicsBase<dim,nstate,real>::PhysicsBase(
     const bool                                                has_nonzero_diffusion_input,
+    const bool                                                has_nonzero_physical_source_input,
     std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function_input)
     : PhysicsBase<dim,nstate,real>(
         has_nonzero_diffusion_input,
+        has_nonzero_physical_source_input,
         Parameters::ManufacturedSolutionParam::get_default_diffusion_tensor(),
         manufactured_solution_function_input)
 { }
+
+template <int dim, int nstate, typename real>
+std::array<dealii::Tensor<1,dim,real>,nstate> PhysicsBase<dim,nstate,real>::convective_numerical_split_flux (
+    const std::array<real,nstate> &/*conservative_soln1*/,
+    const std::array<real,nstate> &/*conservative_soln2*/) const
+{
+    pcout << "ERROR: convective_numerical_split_flux() has not yet been implemented for (overridden by) the selected PDE. Aborting..." <<std::flush;
+    std::abort();
+    std::array<dealii::Tensor<1,dim,real>,nstate> dummy;
+    return dummy;
+}
 
 /*
 template <int dim, int nstate, typename real>
@@ -94,52 +113,18 @@ std::array<real,nstate> PhysicsBase<dim,nstate,real>
 }
 
 template <int dim, int nstate, typename real>
-void PhysicsBase<dim,nstate,real>
-::boundary_face_values (
-   const int /*boundary_type*/,
-   const dealii::Point<dim, real> &pos,
-   const dealii::Tensor<1,dim,real> &normal_int,
-   const std::array<real,nstate> &soln_int,
-   const std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_int,
-   std::array<real,nstate> &soln_bc,
-   std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_bc) const
+std::array<real,nstate> PhysicsBase<dim,nstate,real>
+::physical_source_term (
+    const dealii::Point<dim,real> &/*pos*/,
+    const std::array<real,nstate> &/*solution*/,
+    const std::array<dealii::Tensor<1,dim,real>,nstate> &/*solution_gradient*/,
+    const dealii::types::global_dof_index /*cell_index*/) const
 {
-    std::array<real,nstate> boundary_values;
-    std::array<dealii::Tensor<1,dim,real>,nstate> boundary_gradients;
-    for (int s=0; s<nstate; s++) {
-        boundary_values[s] = this->manufactured_solution_function->value (pos, s);
-        boundary_gradients[s] = this->manufactured_solution_function->gradient (pos, s);
+    std::array<real,nstate> physical_source;
+    for (int i=0; i<nstate; i++) {
+        physical_source[i] = 0;
     }
-
-    for (int istate=0; istate<nstate; ++istate) {
-
-        std::array<real,nstate> characteristic_dot_n = convective_eigenvalues(boundary_values, normal_int);
-        const bool inflow = (characteristic_dot_n[istate] <= 0.);
-
-        if (inflow) { // Dirichlet boundary condition
-            // soln_bc[istate] = boundary_values[istate];
-            // soln_grad_bc[istate] = soln_grad_int[istate];
-
-            soln_bc[istate] = boundary_values[istate];
-            soln_grad_bc[istate] = soln_grad_int[istate];
-
-        } else { // Neumann boundary condition
-            // //soln_bc[istate] = soln_int[istate];
-            // //soln_bc[istate] = boundary_values[istate];
-            // soln_bc[istate] = -soln_int[istate]+2*boundary_values[istate];
-
-            soln_bc[istate] = soln_int[istate];
-
-            // **************************************************************************************************************
-            // Note I don't know how to properly impose the soln_grad_bc to obtain an adjoint consistent scheme
-            // Currently, Neumann boundary conditions are only imposed for the linear advection
-            // Therefore, soln_grad_bc does not affect the solution
-            // **************************************************************************************************************
-            soln_grad_bc[istate] = soln_grad_int[istate];
-            //soln_grad_bc[istate] = boundary_gradients[istate];
-            //soln_grad_bc[istate] = -soln_grad_int[istate]+2*boundary_gradients[istate];
-        }
-    }
+    return physical_source;
 }
 
 template <int dim, int nstate, typename real>
@@ -147,7 +132,7 @@ dealii::Vector<double> PhysicsBase<dim,nstate,real>::post_compute_derived_quanti
     const dealii::Vector<double>              &uh,
     const std::vector<dealii::Tensor<1,dim> > &/*duh*/,
     const std::vector<dealii::Tensor<2,dim> > &/*dduh*/,
-    const dealii::Tensor<1,dim>                  &/*normals*/,
+    const dealii::Tensor<1,dim>               &/*normals*/,
     const dealii::Point<dim>                  &/*evaluation_points*/) const
 {
     dealii::Vector<double> computed_quantities(nstate);
@@ -208,6 +193,7 @@ template class PhysicsBase < PHILIP_DIM, 2, double >;
 template class PhysicsBase < PHILIP_DIM, 3, double >;
 template class PhysicsBase < PHILIP_DIM, 4, double >;
 template class PhysicsBase < PHILIP_DIM, 5, double >;
+template class PhysicsBase < PHILIP_DIM, 6, double >;
 template class PhysicsBase < PHILIP_DIM, 8, double >;
 
 template class PhysicsBase < PHILIP_DIM, 1, FadType >;
@@ -215,6 +201,7 @@ template class PhysicsBase < PHILIP_DIM, 2, FadType >;
 template class PhysicsBase < PHILIP_DIM, 3, FadType >;
 template class PhysicsBase < PHILIP_DIM, 4, FadType >;
 template class PhysicsBase < PHILIP_DIM, 5, FadType >;
+template class PhysicsBase < PHILIP_DIM, 6, FadType >;
 template class PhysicsBase < PHILIP_DIM, 8, FadType >;
 
 template class PhysicsBase < PHILIP_DIM, 1, RadType >;
@@ -222,6 +209,7 @@ template class PhysicsBase < PHILIP_DIM, 2, RadType >;
 template class PhysicsBase < PHILIP_DIM, 3, RadType >;
 template class PhysicsBase < PHILIP_DIM, 4, RadType >;
 template class PhysicsBase < PHILIP_DIM, 5, RadType >;
+template class PhysicsBase < PHILIP_DIM, 6, RadType >;
 template class PhysicsBase < PHILIP_DIM, 8, RadType >;
 
 template class PhysicsBase < PHILIP_DIM, 1, FadFadType >;
@@ -229,6 +217,7 @@ template class PhysicsBase < PHILIP_DIM, 2, FadFadType >;
 template class PhysicsBase < PHILIP_DIM, 3, FadFadType >;
 template class PhysicsBase < PHILIP_DIM, 4, FadFadType >;
 template class PhysicsBase < PHILIP_DIM, 5, FadFadType >;
+template class PhysicsBase < PHILIP_DIM, 6, FadFadType >;
 template class PhysicsBase < PHILIP_DIM, 8, FadFadType >;
 
 template class PhysicsBase < PHILIP_DIM, 1, RadFadType >;
@@ -236,6 +225,7 @@ template class PhysicsBase < PHILIP_DIM, 2, RadFadType >;
 template class PhysicsBase < PHILIP_DIM, 3, RadFadType >;
 template class PhysicsBase < PHILIP_DIM, 4, RadFadType >;
 template class PhysicsBase < PHILIP_DIM, 5, RadFadType >;
+template class PhysicsBase < PHILIP_DIM, 6, RadFadType >;
 template class PhysicsBase < PHILIP_DIM, 8, RadFadType >;
 
 } // Physics namespace

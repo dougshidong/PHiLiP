@@ -325,42 +325,6 @@ std::array<dealii::Tensor<1,dim,real>,nstate> MHD<dim,nstate,real>
 }
 
 template <int dim, int nstate, typename real>
-std::array<dealii::Tensor<1,dim,real>,nstate> MHD<dim, nstate, real>
-::convective_numerical_split_flux(const std::array<real,nstate> &soln_const,
-                                  const std::array<real,nstate> &soln_loop) const
-{
-    std::array<dealii::Tensor<1,dim,real>,nstate> conv_num_split_flux;
-    const real mean_density = compute_mean_density(soln_const, soln_loop);
-    const real mean_pressure = compute_mean_pressure(soln_const, soln_loop);
-    const dealii::Tensor<1,dim,real> mean_velocities = compute_mean_velocities(soln_const,soln_loop);
-    const real mean_specific_energy = compute_mean_specific_energy(soln_const, soln_loop);
-
-    for (int flux_dim = 0; flux_dim < dim; ++flux_dim)
-    {
-        // Density equation
-        conv_num_split_flux[0][flux_dim] = mean_density * mean_velocities[flux_dim];//conservative_soln[1+flux_dim];
-        // Momentum equation
-        for (int velocity_dim=0; velocity_dim<dim; ++velocity_dim){
-            conv_num_split_flux[1+velocity_dim][flux_dim] = mean_density*mean_velocities[flux_dim]*mean_velocities[velocity_dim];
-        }
-        conv_num_split_flux[1+flux_dim][flux_dim] += mean_pressure; // Add diagonal of pressure
-        // Energy equation
-        conv_num_split_flux[nstate-1][flux_dim] = mean_density*mean_velocities[flux_dim]*mean_specific_energy + mean_pressure * mean_velocities[flux_dim];
-    }
-
-    return conv_num_split_flux;
-}
-
-template <int dim, int nstate, typename real>
-real MHD<dim, nstate, real>
-::convective_surface_numerical_split_flux (
-                const real &/*surface_flux*/,
-                const real &flux_interp_to_surface) const
-{
-    return flux_interp_to_surface;
-}
-
-template <int dim, int nstate, typename real>
 std::array<real,nstate> MHD<dim, nstate, real>
 ::compute_entropy_variables (
     const std::array<real,nstate> &conservative_soln) const
@@ -524,6 +488,55 @@ std::array<dealii::Tensor<1,dim,real>,nstate> MHD<dim,nstate,real>
         diss_flux[i] = 0;
     }
     return diss_flux;
+}
+
+template <int dim, int nstate, typename real>
+void MHD<dim,nstate,real>
+::boundary_face_values (
+   const int /*boundary_type*/,
+   const dealii::Point<dim, real> &pos,
+   const dealii::Tensor<1,dim,real> &normal_int,
+   const std::array<real,nstate> &soln_int,
+   const std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_int,
+   std::array<real,nstate> &soln_bc,
+   std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_bc) const
+{
+    std::array<real,nstate> boundary_values;
+    std::array<dealii::Tensor<1,dim,real>,nstate> boundary_gradients;
+    for (int s=0; s<nstate; s++) {
+        boundary_values[s] = this->manufactured_solution_function->value (pos, s);
+        boundary_gradients[s] = this->manufactured_solution_function->gradient (pos, s);
+    }
+
+    for (int istate=0; istate<nstate; ++istate) {
+
+        std::array<real,nstate> characteristic_dot_n = convective_eigenvalues(boundary_values, normal_int);
+        const bool inflow = (characteristic_dot_n[istate] <= 0.);
+
+        if (inflow) { // Dirichlet boundary condition
+            // soln_bc[istate] = boundary_values[istate];
+            // soln_grad_bc[istate] = soln_grad_int[istate];
+
+            soln_bc[istate] = boundary_values[istate];
+            soln_grad_bc[istate] = soln_grad_int[istate];
+
+        } else { // Neumann boundary condition
+            // //soln_bc[istate] = soln_int[istate];
+            // //soln_bc[istate] = boundary_values[istate];
+            // soln_bc[istate] = -soln_int[istate]+2*boundary_values[istate];
+
+            soln_bc[istate] = soln_int[istate];
+
+            // **************************************************************************************************************
+            // Note I don't know how to properly impose the soln_grad_bc to obtain an adjoint consistent scheme
+            // Currently, Neumann boundary conditions are only imposed for the linear advection
+            // Therefore, soln_grad_bc does not affect the solution
+            // **************************************************************************************************************
+            soln_grad_bc[istate] = soln_grad_int[istate];
+            //soln_grad_bc[istate] = boundary_gradients[istate];
+            //soln_grad_bc[istate] = -soln_grad_int[istate]+2*boundary_gradients[istate];
+        }
+    }
 }
 
 //template <int dim, int nstate, typename real>

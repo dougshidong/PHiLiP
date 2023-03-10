@@ -53,21 +53,20 @@ public:
     /// Constructor
     ConvectionDiffusion (
         const bool                                                convection = true, 
-        const bool                                                diffusion = true, 
+        const bool                                                diffusion = true,
         const dealii::Tensor<2,3,double>                          input_diffusion_tensor = Parameters::ManufacturedSolutionParam::get_default_diffusion_tensor(),
         const dealii::Tensor<1,3,double>                          input_advection_vector = Parameters::ManufacturedSolutionParam::get_default_advection_vector(),
         const double                                              input_diffusion_coefficient = Parameters::ManufacturedSolutionParam::get_default_diffusion_coefficient(),
         std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function = nullptr,
-        const Parameters::AllParameters::TestType                 parameters_test = Parameters::AllParameters::TestType::run_control) : 
-            PhysicsBase<dim,nstate,real>(diffusion, input_diffusion_tensor, manufactured_solution_function), 
+        const Parameters::AllParameters::TestType                 parameters_test = Parameters::AllParameters::TestType::run_control,
+        const bool                                                has_nonzero_physical_source = false) : 
+            PhysicsBase<dim,nstate,real>(diffusion, has_nonzero_physical_source, input_diffusion_tensor, manufactured_solution_function), 
             linear_advection_velocity{input_advection_vector[0], input_advection_vector[1], input_advection_vector[2]},
             diffusion_scaling_coeff(input_diffusion_coefficient),
             hasConvection(convection), 
             hasDiffusion(diffusion),
             test_type(parameters_test)
-    {
-        static_assert(nstate<=5, "Physics::ConvectionDiffusion() should be created with nstate<=5");
-    };
+    {};
 
     /// Destructor
     ~ConvectionDiffusion () {};
@@ -77,12 +76,7 @@ public:
     /// Convective numerical split flux for split form
     std::array<dealii::Tensor<1,dim,real>,nstate> convective_numerical_split_flux (
         const std::array<real,nstate> &soln1,
-        const std::array<real,nstate> &soln2) const;
-
-    /// Convective surface numerical split flux for split form
-    real convective_surface_numerical_split_flux (
-                const real &surface_flux,
-                const real &flux_interp_to_surface) const;
+        const std::array<real,nstate> &soln2) const override;
 
     /// Computes the entropy variables.
     std::array<real,nstate> compute_entropy_variables (

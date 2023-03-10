@@ -17,6 +17,7 @@ public:
     /// Selects the flow case to be simulated
     enum FlowCaseType{
         taylor_green_vortex,
+        decaying_homogeneous_isotropic_turbulence,
         burgers_viscous_snapshot,
         naca0012,
         burgers_rewienski_snapshot,
@@ -25,8 +26,9 @@ public:
         advection,
         periodic_1D_unsteady,
         gaussian_bump,
-        sshock,
-        isentropic_vortex
+        isentropic_vortex,
+        kelvin_helmholtz_instability,
+        sshock
         };
     FlowCaseType flow_case_type; ///< Selected FlowCaseType from the input file
 
@@ -34,7 +36,7 @@ public:
     unsigned int max_poly_degree_for_adaptation; ///< Maximum polynomial order of the DG basis functions for adaptation.
     double final_time; ///< Final solution time
     double constant_time_step; ///< Constant time step
-    double courant_friedrich_lewy_number; ///< Courant-Friedrich-Lewy (CFL) number for constant time step
+    double courant_friedrichs_lewy_number; ///< Courant-Friedrich-Lewy (CFL) number for constant time step
 
     /** Name of the output file for writing the unsteady data;
      *  will be written to file: unsteady_data_table_filename.txt */
@@ -56,7 +58,7 @@ public:
     bool restart_computation_from_file; ///< Restart computation from restart file
     bool output_restart_files; ///< Output the restart files
     std::string restart_files_directory_name; ///< Name of directory for writing and reading restart files
-    int restart_file_index; ///< Index of desired restart file for restarting the computation from
+    unsigned int restart_file_index; ///< Index of desired restart file for restarting the computation from
     int output_restart_files_every_x_steps; ///< Outputs the restart files every x steps
     double output_restart_files_every_dt_time_intervals; ///< Outputs the restart files at time intervals of dt
 
@@ -91,14 +93,35 @@ public:
     /// For TGV, flag to calculate and write numerical entropy
     bool do_calculate_numerical_entropy;
 
+    /// For KHI, the atwood number
+    double atwood_number;
+
     /// Declares the possible variables and sets the defaults.
     static void declare_parameters (dealii::ParameterHandler &prm);
 
     /// Parses input file and sets the variables.
     void parse_parameters (dealii::ParameterHandler &prm);
 
-    ///Interpolate or project the initial condition.
-    bool interpolate_initial_condition;
+    /// Selects the method for applying the initial condition
+    enum ApplyInitialConditionMethod{
+        interpolate_initial_condition_function,
+        project_initial_condition_function,
+        read_values_from_file_and_project
+        };
+    ApplyInitialConditionMethod apply_initial_condition_method; ///< Selected ApplyInitialConditionMethod from the input file
+
+    /** Filename prefix of the input flow setup file. 
+     * Example: 'setup' for files named setup-0000i.dat, where i is the MPI rank. 
+     * For initializing the flow with values from a file. 
+     * To be set when apply_initial_condition_method is read_values_from_file_and_project. */
+    std::string input_flow_setup_filename_prefix;
+
+    bool output_velocity_field_at_fixed_times; ///< Flag for outputting velocity field at fixed times
+    std::string output_velocity_field_times_string; ///< String of velocity field output times
+    unsigned int number_of_times_to_output_velocity_field; ///< Number of times to output the velocity field
+    bool output_vorticity_magnitude_field_in_addition_to_velocity; ///< Flag for outputting vorticity magnitude field in addition to velocity field
+    std::string output_flow_field_files_directory_name; ///< Name of directory for writing flow field files
+    bool output_solution_files_at_velocity_field_output_times; ///< Flag for outputting solution files at the velocity field output times
 };
 
 } // Parameters namespace

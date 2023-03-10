@@ -90,15 +90,6 @@ std::array<dealii::Tensor<1,dim,real>,nstate> ConvectionDiffusion<dim,nstate,rea
 }
 
 template <int dim, int nstate, typename real>
-real ConvectionDiffusion<dim,nstate,real>
-::convective_surface_numerical_split_flux (
-                const real &surface_flux,
-                const real &flux_interp_to_surface) const
-{
-    return 0.5*(flux_interp_to_surface + surface_flux);
-}
-
-template <int dim, int nstate, typename real>
 std::array<real,nstate> ConvectionDiffusion<dim, nstate, real>
 ::compute_entropy_variables (
     const std::array<real,nstate> &conservative_soln) const
@@ -312,30 +303,35 @@ template class ConvectionDiffusion < PHILIP_DIM, 2, double >;
 template class ConvectionDiffusion < PHILIP_DIM, 3, double >;
 template class ConvectionDiffusion < PHILIP_DIM, 4, double >;
 template class ConvectionDiffusion < PHILIP_DIM, 5, double >;
+template class ConvectionDiffusion < PHILIP_DIM, 6, double >;
 
 template class ConvectionDiffusion < PHILIP_DIM, 1, FadType>;
 template class ConvectionDiffusion < PHILIP_DIM, 2, FadType>;
 template class ConvectionDiffusion < PHILIP_DIM, 3, FadType>;
 template class ConvectionDiffusion < PHILIP_DIM, 4, FadType>;
 template class ConvectionDiffusion < PHILIP_DIM, 5, FadType>;
+template class ConvectionDiffusion < PHILIP_DIM, 6, FadType>;
 
 template class ConvectionDiffusion < PHILIP_DIM, 1, RadType>;
 template class ConvectionDiffusion < PHILIP_DIM, 2, RadType>;
 template class ConvectionDiffusion < PHILIP_DIM, 3, RadType>;
 template class ConvectionDiffusion < PHILIP_DIM, 4, RadType>;
 template class ConvectionDiffusion < PHILIP_DIM, 5, RadType>;
+template class ConvectionDiffusion < PHILIP_DIM, 6, RadType>;
 
 template class ConvectionDiffusion < PHILIP_DIM, 1, FadFadType>;
 template class ConvectionDiffusion < PHILIP_DIM, 2, FadFadType>;
 template class ConvectionDiffusion < PHILIP_DIM, 3, FadFadType>;
 template class ConvectionDiffusion < PHILIP_DIM, 4, FadFadType>;
 template class ConvectionDiffusion < PHILIP_DIM, 5, FadFadType>;
+template class ConvectionDiffusion < PHILIP_DIM, 6, FadFadType>;
 
 template class ConvectionDiffusion < PHILIP_DIM, 1, RadFadType>;
 template class ConvectionDiffusion < PHILIP_DIM, 2, RadFadType>;
 template class ConvectionDiffusion < PHILIP_DIM, 3, RadFadType>;
 template class ConvectionDiffusion < PHILIP_DIM, 4, RadFadType>;
 template class ConvectionDiffusion < PHILIP_DIM, 5, RadFadType>;
+template class ConvectionDiffusion < PHILIP_DIM, 6, RadFadType>;
 
 } // Physics namespace
 } // PHiLiP namespace

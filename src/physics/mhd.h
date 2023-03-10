@@ -92,8 +92,9 @@ public:
         const double                                              gamma_gas, 
         const dealii::Tensor<2,3,double>                          input_diffusion_tensor = Parameters::ManufacturedSolutionParam::get_default_diffusion_tensor(),
         std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function = nullptr,
-        const bool                                                has_nonzero_diffusion = false)
-    : PhysicsBase<dim,nstate,real>(has_nonzero_diffusion, input_diffusion_tensor, manufactured_solution_function)
+        const bool                                                has_nonzero_diffusion = false,
+        const bool                                                has_nonzero_physical_source = false)
+    : PhysicsBase<dim,nstate,real>(has_nonzero_diffusion, has_nonzero_physical_source, input_diffusion_tensor, manufactured_solution_function)
     , gam(gamma_gas)
     , gamm1(gam-1.0)
     {
@@ -224,17 +225,6 @@ public:
     /// Given density and pressure, returns NON-DIMENSIONALIZED temperature using free-stream non-dimensionalization
     /** See the book I do like CFD, sec 4.14.2 */
     real compute_temperature_from_density_pressure ( const real density, const real pressure ) const;
-
-    /// The Euler split form is that of Kennedy & Gruber.
-    /** Refer to Gassner's paper (2016) Eq. 3.10 for more information:  */
-    std::array<dealii::Tensor<1,dim,real>,nstate> convective_numerical_split_flux (
-        const std::array<real,nstate> &conservative_soln1,
-        const std::array<real,nstate> &conservative_soln2) const;
-
-    /// Convective surface split flux
-    real convective_surface_numerical_split_flux (
-                const real &surface_flux,
-                const real &flux_interp_to_surface) const;
     
     /// Computes the entropy variables.
     std::array<real,nstate> compute_entropy_variables (
@@ -271,6 +261,16 @@ public:
     real compute_mean_specific_energy(
         const std::array<real,nstate> &conservative_soln1,
         const std::array<real,nstate> &convervative_soln2) const;
+
+    /// Evaluates boundary values and gradients on the other side of the face.
+    void boundary_face_values (
+        const int /*boundary_type*/,
+        const dealii::Point<dim, real> &/*pos*/,
+        const dealii::Tensor<1,dim,real> &/*normal*/,
+        const std::array<real,nstate> &/*soln_int*/,
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &/*soln_grad_int*/,
+        std::array<real,nstate> &/*soln_bc*/,
+        std::array<dealii::Tensor<1,dim,real>,nstate> &/*soln_grad_bc*/) const;
 
 //    void boundary_face_values (
 //        const int /*boundary_type*/,

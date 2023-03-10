@@ -190,13 +190,25 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
 
         prm.enter_subsection("channel_flow");
         {
-            prm.declare_entry("channel_height", "1",
+            prm.declare_entry("channel_height", "2",
                               dealii::Patterns::Double(0, dealii::Patterns::Double::max_double_value),
-                              "Channel height. Default is 1.");
+                              "Channel height. Default is 2 for a half channel height of 1.");
 
             prm.declare_entry("channel_friction_velocity_reynolds_number", "590",
                               dealii::Patterns::Double(0, dealii::Patterns::Double::max_double_value),
                               "Channel Reynolds number based on wall friction velocity. Default is 590.");
+
+            prm.declare_entry("turbulent_channel_number_of_cells_x_direction","4",
+                              dealii::Patterns::Integer(0, dealii::Patterns::Integer::max_int_value),
+                              "Number of cells in the x-direction for channel flow case.");
+
+            prm.declare_entry("turbulent_channel_number_of_cells_y_direction","16",
+                              dealii::Patterns::Integer(0, dealii::Patterns::Integer::max_int_value),
+                              "Number of cells in the y-direction for channel flow case.");
+
+            prm.declare_entry("turbulent_channel_number_of_cells_z_direction","2",
+                              dealii::Patterns::Integer(0, dealii::Patterns::Integer::max_int_value),
+                              "Number of cells in the z-direction for channel flow case.");
         }
         prm.leave_subsection();
 
@@ -330,6 +342,9 @@ void FlowSolverParam::parse_parameters(dealii::ParameterHandler &prm)
         {
             turbulent_channel_height = prm.get_double("channel_height");
             turbulent_channel_friction_velocity_reynolds_number = prm.get_double("channel_friction_velocity_reynolds_number");
+            turbulent_channel_number_of_cells_x_direction = prm.get_integer("turbulent_channel_number_of_cells_x_direction");
+            turbulent_channel_number_of_cells_y_direction = prm.get_integer("turbulent_channel_number_of_cells_y_direction");
+            turbulent_channel_number_of_cells_z_direction = prm.get_integer("turbulent_channel_number_of_cells_z_direction");
         }
         prm.leave_subsection();
 

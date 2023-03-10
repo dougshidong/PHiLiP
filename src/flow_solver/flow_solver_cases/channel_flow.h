@@ -39,6 +39,9 @@ protected:
     const double channel_height; ///< Channel height
     const double half_channel_height; ///< Half channel height
     const double channel_friction_velocity_reynolds_number; ///< Channel Reynolds number based on wall friction velocity
+    const int number_of_cells_x_direction; ///< Number of cells in x-direction
+    const int number_of_cells_y_direction; ///< Number of cells in y-direction
+    const int number_of_cells_z_direction; ///< Number of cells in z-direction
 
     /// Display additional more specific flow case parameters
     void display_additional_flow_case_specific_parameters() const override;

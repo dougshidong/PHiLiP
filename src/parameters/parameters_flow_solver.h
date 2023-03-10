@@ -94,7 +94,9 @@ public:
 
     double turbulent_channel_height; ///< For channel flow, channel height
     double turbulent_channel_friction_velocity_reynolds_number; ///< For channel flow, channel Reynolds number based on wall friction velocity
-
+    int turbulent_channel_number_of_cells_x_direction; ///< For channel flow, number of cells in x-direction
+    int turbulent_channel_number_of_cells_y_direction; ///< For channel flow, number of cells in y-direction
+    int turbulent_channel_number_of_cells_z_direction; ///< For channel flow, number of cells in z-direction
     /// Selects the method for applying the initial condition
     enum ApplyInitialConditionMethod{
         interpolate_initial_condition_function,

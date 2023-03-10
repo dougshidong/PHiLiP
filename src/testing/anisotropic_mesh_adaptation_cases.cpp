@@ -22,7 +22,7 @@ int AnisotropicMeshAdaptationCases<dim, nstate> :: run_test () const
     const Parameters::AllParameters param = *(TestsBase::all_parameters);
     
     std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(&param, parameter_handler);
-    const bool use_goal_oriented_approach = false;
+    const bool use_goal_oriented_approach = true;
     const double complexity = 100;
     double normLp = 2.0;
     if(use_goal_oriented_approach) {normLp = 1.0;}
@@ -31,7 +31,7 @@ int AnisotropicMeshAdaptationCases<dim, nstate> :: run_test () const
                         std::make_unique<AnisotropicMeshAdaptation<dim, nstate, double>> (flow_solver->dg, normLp, complexity, use_goal_oriented_approach);
 
     flow_solver->run();
-	const unsigned int n_adaptation_cycles = 3;
+	const unsigned int n_adaptation_cycles = 4;
 	
 	for(unsigned int cycle = 0; cycle < n_adaptation_cycles; ++cycle)
 	{

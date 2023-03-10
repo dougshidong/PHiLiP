@@ -61,16 +61,13 @@ template<int dim, int nstate, typename real, typename MeshType>
 void MetricToMeshGenerator<dim, nstate, real, MeshType> :: interpolate_metric_to_vertices(
 	const std::vector<dealii::Tensor<2, dim, real>> &cellwise_optimal_metric)
 {
-	pcout<<"Here 1"<<std::endl;	
 	reinit();
-	pcout<<"Here 2"<<std::endl;	
 	const unsigned int n_vertices = dof_handler_vertices.n_dofs();
 
 	dealii::Quadrature<dim> quadrature = fe_system.get_unit_support_points();
 	dealii::FEValues<dim, dim> fe_values_vertices(*volume_nodes_mapping, fe_system, quadrature, dealii::update_quadrature_points);
 	const unsigned int n_dofs_cell = fe_system.dofs_per_cell;
 	std::vector<dealii::types::global_dof_index> dof_indices(n_dofs_cell);
-	pcout<<"Here 3"<<std::endl;	
 
 	// Store vertices in each cell with global dof.
 	for(const auto &cell: dof_handler_vertices.active_cell_iterators())
@@ -106,7 +103,6 @@ void MetricToMeshGenerator<dim, nstate, real, MeshType> :: interpolate_metric_to
 			}	
 		}
 	} // cell loop ends
-	pcout<<"Here 4"<<std::endl;	
 
 //================================ Interpolate metric field ================================================
 
@@ -129,13 +125,11 @@ void MetricToMeshGenerator<dim, nstate, real, MeshType> :: interpolate_metric_to
 
 	} // cell loop ends
 	
-	pcout<<"Here 5"<<std::endl;	
     // Compute average
     for(unsigned int i=0; i<n_vertices; ++i)
     {
         optimal_metric_at_vertices[i] /= metric_count_at_vertices[i];
     }
-	pcout<<"Here 6"<<std::endl;	
 /*
 	// Output optimal metric at vertices for verifying.
 	pcout<<"Optimal metric at vertices = "<<std::endl;
@@ -329,9 +323,8 @@ void MetricToMeshGenerator<dim, nstate, real, MeshType> :: generate_mesh_from_ce
 	write_pos_file();
 	write_geo_file();
 	// Run this on command line:
-	// For 2D: gmsh -dim -algo bamg -smooth_ratio val -aniso_max val filename.geo -o filename.msh
+	// For 2D: gmsh -dim filename.geo -o filename.msh
 	// For 3D: gmsh -dim -algo mmg3d filename.geo -o filename.msh
-	//std::string command_str = "gmsh -2 -algo bamg -smooth_ratio 0 -aniso_max 1e30 " + filename_geo + " -o " + filename_msh;
 	std::string command_str = "gmsh -2 " + filename_geo + " -o " + filename_msh;
 	int val = std::system(command_str.c_str());
 	(void) val;

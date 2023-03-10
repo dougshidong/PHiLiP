@@ -175,6 +175,8 @@ public:
         time_refinement_study_reference,
         burgers_energy_conservation_rrk,
         euler_entropy_conserving_split_forms_check,
+        h_refinement_study_isentropic_vortex,
+        khi_robustness,
         homogeneous_isotropic_turbulence_initialization_check,
     };
     /// Store selected TestType from the input file.

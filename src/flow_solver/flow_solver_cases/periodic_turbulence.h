@@ -27,7 +27,7 @@ public:
     /** Computes the integrated quantities over the domain simultaneously and updates the array storing them
      *  Note: For efficiency, this also simultaneously updates the local maximum wave speed
      * */
-    void compute_and_update_integrated_quantities(DGBase<dim, double> &dg);
+    virtual void compute_and_update_integrated_quantities(DGBase<dim, double> &dg);
 
     /** Gets the nondimensional integrated kinetic energy given a DG object from dg->solution
      *  -- Reference: Cox, Christopher, et al. "Accuracy, stability, and performance comparison 
@@ -109,16 +109,16 @@ protected:
     bool do_calculate_numerical_entropy = false; ///< Identifies if numerical entropy should be calculated; initialized as false.
 
     /// Display additional more specific flow case parameters
-    void display_additional_flow_case_specific_parameters() const override;
+    virtual void display_additional_flow_case_specific_parameters() const override;
 
     /// Function to compute the constant time step
     double get_constant_time_step(std::shared_ptr<DGBase<dim,double>> dg) const override;
 
     /// Function to compute the adaptive time step
-    double get_adaptive_time_step(std::shared_ptr<DGBase<dim,double>> dg) const override;
+    virtual double get_adaptive_time_step(std::shared_ptr<DGBase<dim,double>> dg) const override;
 
     /// Function to compute the initial adaptive time step
-    double get_adaptive_time_step_initial(std::shared_ptr<DGBase<dim,double>> dg) override;
+    virtual double get_adaptive_time_step_initial(std::shared_ptr<DGBase<dim,double>> dg) override;
 
     /// Updates the maximum local wave speed
     void update_maximum_local_wave_speed(DGBase<dim, double> &dg);

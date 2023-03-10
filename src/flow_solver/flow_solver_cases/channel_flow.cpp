@@ -8,7 +8,7 @@
 #include <deal.II/base/quadrature_lib.h>
 #include <deal.II/grid/grid_generator.h>
 #include <deal.II/grid/grid_tools.h>
-// #include "mesh/gmsh_reader.hpp"
+// #include "mesh/gmsh_reader.hpp" // uncomment this to use the gmsh reader
 
 namespace PHiLiP {
 
@@ -19,31 +19,88 @@ namespace FlowSolver {
 //=========================================================
 template <int dim, int nstate>
 ChannelFlow<dim, nstate>::ChannelFlow(const PHiLiP::Parameters::AllParameters *const parameters_input)
-        : FlowSolverCaseBase<dim, nstate>(parameters_input)
+        : PeriodicTurbulence<dim, nstate>(parameters_input)
         , channel_height(this->all_param.flow_solver_param.turbulent_channel_height)
         , half_channel_height(0.5*channel_height)
         , channel_friction_velocity_reynolds_number(this->all_param.flow_solver_param.turbulent_channel_friction_velocity_reynolds_number)
         , number_of_cells_x_direction(this->all_param.flow_solver_param.turbulent_channel_number_of_cells_x_direction)
         , number_of_cells_y_direction(this->all_param.flow_solver_param.turbulent_channel_number_of_cells_y_direction)
         , number_of_cells_z_direction(this->all_param.flow_solver_param.turbulent_channel_number_of_cells_z_direction)
+        , pi_val(3.141592653589793238)
+        , domain_length_x(2.0*pi_val*half_channel_height)
+        , domain_length_y(2.0*half_channel_height)
+        , domain_length_z(pi_val*half_channel_height)
 { }
+
+template<int dim, int nstate>
+void ChannelFlow<dim, nstate>::compute_and_update_integrated_quantities(DGBase<dim, double> &dg)
+{
+    this->update_maximum_local_wave_speed(dg);
+}
 
 template <int dim, int nstate>
 void ChannelFlow<dim,nstate>::display_additional_flow_case_specific_parameters() const
 {
-    this->pcout << "- - Courant-Friedrichs-Lewy number: " << this->all_param.flow_solver_param.courant_friedrich_lewy_number << std::endl;
-    std::string flow_type_string;
-    // if(this->is_taylor_green_vortex || this->is_decaying_homogeneous_isotropic_turbulence) {
-        this->pcout << "- - Freestream Reynolds number: " << this->all_param.navier_stokes_param.reynolds_number_inf << std::endl;
-        this->pcout << "- - Freestream Mach number: " << this->all_param.euler_param.mach_inf << std::endl;
-        this->pcout << "- - Reynolds number based on wall friction velocity: " << this->all_param.flow_solver_param.turbulent_channel_friction_velocity_reynolds_number << std::endl;
-        this->pcout << "- - Channel height: " << this->all_param.flow_solver_param.turbulent_channel_height << std::endl;
-    // }
+    this->pcout << "- - Courant-Friedrichs-Lewy number: " << this->all_param.flow_solver_param.courant_friedrichs_lewy_number << std::endl;
+    this->pcout << "- - Freestream Reynolds number: " << this->all_param.navier_stokes_param.reynolds_number_inf << std::endl;
+    this->pcout << "- - Freestream Mach number: " << this->all_param.euler_param.mach_inf << std::endl;
+    this->pcout << "- - Reynolds number based on wall friction velocity: " << this->all_param.flow_solver_param.turbulent_channel_friction_velocity_reynolds_number << std::endl;
+    this->pcout << "- - Channel height: " << this->all_param.flow_solver_param.turbulent_channel_height << std::endl;
+}
+
+template <int dim, int nstate>
+void ChannelFlow<dim,nstate>::display_grid_parameters() const
+{
+    const std::string grid_type_string = "subdivided_hyper_rectangle_for_channel_flow";
+    // Display the information about the grid
+    this->pcout << "- Grid type: " << grid_type_string << std::endl;
+    this->pcout << "- - Grid degree: " << this->all_param.flow_solver_param.grid_degree << std::endl;
+    this->pcout << "- - Domain dimensionality: " << dim << std::endl;
+    this->pcout << "- - Domain length x: " << this->domain_length_x << std::endl;
+    this->pcout << "- - Domain length y: " << this->domain_length_y << std::endl;
+    this->pcout << "- - Domain length z: " << this->domain_length_z << std::endl;
+    this->pcout << "- - Number of cells in x-direction: " << this->number_of_cells_x_direction << std::endl;
+    this->pcout << "- - Number of cells in y-direction: " << this->number_of_cells_y_direction << std::endl;
+    this->pcout << "- - Number of cells in z-direction: " << this->number_of_cells_z_direction << std::endl;
+}
+
+template <int dim, int nstate>
+double ChannelFlow<dim,nstate>::get_adaptive_time_step(std::shared_ptr<DGBase<dim,double>> /*dg*/) const
+{
+    // compute time step based on advection speed (i.e. maximum local wave speed)
+    const double cfl_number = this->all_param.flow_solver_param.courant_friedrichs_lewy_number;
+    const double time_step = cfl_number * this->minimum_approximate_grid_spacing / this->maximum_local_wave_speed;
+    return time_step;
+}
+
+template <int dim, int nstate>
+double ChannelFlow<dim,nstate>::get_adaptive_time_step_initial(std::shared_ptr<DGBase<dim,double>> dg)
+{
+    // initialize the maximum local wave speed
+    this->update_maximum_local_wave_speed(*dg);
+    // set the minimum approximate grid spacing
+    const double minimum_element_size = get_stretched_mesh_size(0)*domain_length_y;
+    this->minimum_approximate_grid_spacing = minimum_element_size/double(this->all_param.flow_solver_param.poly_degree+1);
+    // compute time step based on advection speed (i.e. maximum local wave speed)
+    const double time_step = get_adaptive_time_step(dg);
+    return time_step;
+}
+
+template <int dim, int nstate>
+double ChannelFlow<dim,nstate>::get_stretched_mesh_size(const int i) const
+{
+    // - Note: This stretching function comes from the structured GMSH .geo file obtained from https://how5.cenaero.be/content/ws2-les-plane-channel-ret550
+    const double N_streching_param = 1.0;
+    const double r_streching_param = pow(1.2,N_streching_param/2.0);
+    const double num_cells_y = (double)number_of_cells_y_direction;
+    const double h0_streching_param = 0.5*(1.0-r_streching_param)/(1.0-pow(r_streching_param,(num_cells_y/2.0)));
+    return h0_streching_param*pow(r_streching_param,(double)i);
 }
 
 template <int dim, int nstate>
 std::shared_ptr<Triangulation> ChannelFlow<dim,nstate>::generate_grid() const
 {
+    // // uncomment this to use the gmsh reader
     // // Dummy triangulation
     // // TO DO: Avoid reading the mesh twice (here and in set_high_order_grid -- need a default dummy triangulation)
     // const std::string mesh_filename = this->all_param.flow_solver_param.input_mesh_filename+std::string(".msh");
@@ -52,10 +109,6 @@ std::shared_ptr<Triangulation> ChannelFlow<dim,nstate>::generate_grid() const
     // std::shared_ptr<HighOrderGrid<dim,double>> mesh = read_gmsh<dim, dim> (mesh_filename, grid_order, use_mesh_smoothing);
     // return mesh->triangulation;
 
-    const double pi_val = 3.141592653589793238;
-    const double domain_length_x = 2.0*pi_val*half_channel_height;
-    const double domain_length_y = 2.0*half_channel_height;
-    const double domain_length_z = pi_val*half_channel_height;
     // define domain to be centered about x and z axis
     // and start domain from y=0 for the convenience of computing wall distance
     const dealii::Point<dim> p1(-0.5*domain_length_x, 0.0, -0.5*domain_length_z);
@@ -69,15 +122,12 @@ std::shared_ptr<Triangulation> ChannelFlow<dim,nstate>::generate_grid() const
     const int number_of_edges_y_direction = number_of_cells_y_direction+1;
     std::vector<double> element_edges_y_direction(number_of_edges_y_direction);
     // - Note: This stretching function comes from the structured GMSH .geo file obtained from https://how5.cenaero.be/content/ws2-les-plane-channel-ret550
-    const double N_streching_param = 1.0;
-    const double r_streching_param = pow(1.2,N_streching_param/2.0);
     const double num_cells_y = (double)number_of_cells_y_direction;
     const int max_loop_index = (int)((num_cells_y-2.0)/2.0);
-    const double h0_streching_param = 0.5*(1.0-r_streching_param)/(1.0-pow(r_streching_param,(num_cells_y/2.0)));
     double h_streching_param = 0.0;
     element_edges_y_direction[0] = h_streching_param;
     for (int i=0; i<max_loop_index; i++) {
-        h_streching_param += h0_streching_param*pow(r_streching_param,(double)i);
+        h_streching_param += get_stretched_mesh_size(i);
         element_edges_y_direction[i+1] = h_streching_param;
         element_edges_y_direction[number_of_cells_y_direction-i-1] = 1.0-h_streching_param;
     }
@@ -137,6 +187,7 @@ std::shared_ptr<Triangulation> ChannelFlow<dim,nstate>::generate_grid() const
 template <int dim, int nstate>
 void ChannelFlow<dim,nstate>::set_higher_order_grid(std::shared_ptr<DGBase<dim, double>> /*dg*/) const
 {
+    // // uncomment this to use the gmsh reader
     // const std::string mesh_filename = this->all_param.flow_solver_param.input_mesh_filename+std::string(".msh");
     // const bool use_mesh_smoothing = false;
     // const int grid_order = this->all_param.flow_solver_param.grid_degree;

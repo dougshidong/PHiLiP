@@ -22,6 +22,7 @@ MetricToMeshGenerator<dim, nstate, real, MeshType> :: MetricToMeshGenerator(
 	, filename("mesh_to_be_generated")
 	, filename_pos(filename + ".pos")
 	, filename_geo(filename + ".geo")
+	, filename_msh(filename + ".msh")
 {
     MPI_Comm_rank(mpi_communicator, &mpi_rank);
     MPI_Comm_size(mpi_communicator, &n_mpi);
@@ -60,12 +61,16 @@ template<int dim, int nstate, typename real, typename MeshType>
 void MetricToMeshGenerator<dim, nstate, real, MeshType> :: interpolate_metric_to_vertices(
 	const std::vector<dealii::Tensor<2, dim, real>> &cellwise_optimal_metric)
 {
+	pcout<<"Here 1"<<std::endl;	
+	reinit();
+	pcout<<"Here 2"<<std::endl;	
 	const unsigned int n_vertices = dof_handler_vertices.n_dofs();
 
 	dealii::Quadrature<dim> quadrature = fe_system.get_unit_support_points();
 	dealii::FEValues<dim, dim> fe_values_vertices(*volume_nodes_mapping, fe_system, quadrature, dealii::update_quadrature_points);
 	const unsigned int n_dofs_cell = fe_system.dofs_per_cell;
 	std::vector<dealii::types::global_dof_index> dof_indices(n_dofs_cell);
+	pcout<<"Here 3"<<std::endl;	
 
 	// Store vertices in each cell with global dof.
 	for(const auto &cell: dof_handler_vertices.active_cell_iterators())
@@ -101,6 +106,7 @@ void MetricToMeshGenerator<dim, nstate, real, MeshType> :: interpolate_metric_to
 			}	
 		}
 	} // cell loop ends
+	pcout<<"Here 4"<<std::endl;	
 
 //================================ Interpolate metric field ================================================
 
@@ -123,12 +129,14 @@ void MetricToMeshGenerator<dim, nstate, real, MeshType> :: interpolate_metric_to
 
 	} // cell loop ends
 	
+	pcout<<"Here 5"<<std::endl;	
     // Compute average
     for(unsigned int i=0; i<n_vertices; ++i)
     {
         optimal_metric_at_vertices[i] /= metric_count_at_vertices[i];
     }
-
+	pcout<<"Here 6"<<std::endl;	
+/*
 	// Output optimal metric at vertices for verifying.
 	pcout<<"Optimal metric at vertices = "<<std::endl;
     for(const auto &cell : dof_handler_vertices.active_cell_iterators())
@@ -174,11 +182,11 @@ void MetricToMeshGenerator<dim, nstate, real, MeshType> :: interpolate_metric_to
 		std::cout<<std::endl;
 	
     } // cell loop ends
-	
+*/	
 }
 
 template<int dim, int nstate, typename real, typename MeshType>
-void MetricToMeshGenerator<dim, nstate, real, MeshType> :: write_pos_file()
+void MetricToMeshGenerator<dim, nstate, real, MeshType> :: write_pos_file() const
 {
 	if(dim != 2)
 	{
@@ -187,8 +195,8 @@ void MetricToMeshGenerator<dim, nstate, real, MeshType> :: write_pos_file()
 	}
 	AssertDimension(fe_system.dofs_per_cell, dealii::GeometryInfo<dim>::vertices_per_cell);
 	
-	// Based on gmsh/tutorials/t17_bgmesh.pos.
-	// Adapted from GridRefinement::Gmsh_Out::write_pos_anisotropic() to use metric field at nodes.
+	// Based on gmsh/tutorials/t17_bgmesh.pos in GMSH4.11.1.
+	// Adapted from GridRefinement::Gmsh_Out::write_pos_anisotropic() to use metric field at nodes. Might need to figure out a way to link it with GridRefinement in future.
 	const std::string quotes = "\"";
 	std::ofstream outfile(filename_pos);
 	outfile<<"// Background mesh with containing optimal metric field."<<'\n'; 
@@ -279,9 +287,9 @@ void MetricToMeshGenerator<dim, nstate, real, MeshType> :: write_pos_file()
 }
 
 template<int dim, int nstate, typename real, typename MeshType>
-void MetricToMeshGenerator<dim, nstate, real, MeshType> :: write_geo_file()
+void MetricToMeshGenerator<dim, nstate, real, MeshType> :: write_geo_file() const
 {
-	// Based on gmsh/tutorials/t17.geo
+	// Based on gmsh/tutorials/t17.geo in GMSH 4.11.1.
 	std::ofstream outfile(filename_geo);
 	// Header
 	outfile<<" // GEO file "<<'\n'<<'\n';
@@ -299,8 +307,8 @@ void MetricToMeshGenerator<dim, nstate, real, MeshType> :: write_geo_file()
 	outfile<<"Background Mesh View[0];"<<'\n';
 	
 	// Use BAMG (Algorithm 7) to generate mesh.
-	outfile<<"Mesh.SmoothRatio = 3;"<<'\n'; // No smoothing for now.
-	outfile<<"Mesh.AnisoMax = 1000;"<<'\n';
+	outfile<<"Mesh.SmoothRatio = 0;"<<'\n'; // No smoothing for now.
+	outfile<<"Mesh.AnisoMax = 1e30;"<<'\n';
 	outfile<<"Mesh.Algorithm = 7;"<<'\n';
 
 	// Recombine triangles into quads.
@@ -314,28 +322,39 @@ void MetricToMeshGenerator<dim, nstate, real, MeshType> :: write_geo_file()
 }
 
 template<int dim, int nstate, typename real, typename MeshType>
-void MetricToMeshGenerator<dim, nstate, real, MeshType> :: generate_mesh_from_metric()
+void MetricToMeshGenerator<dim, nstate, real, MeshType> :: generate_mesh_from_cellwise_metric(
+	const std::vector<dealii::Tensor<2, dim, real>> &cellwise_optimal_metric)
 {
-	const std::string filename_msh = filename + ".msh";
-	//std::string command_str = "gmsh -2 -algo bamg " + filename_geo + " -o " + filename_msh;
+	interpolate_metric_to_vertices(cellwise_optimal_metric);
+	write_pos_file();
+	write_geo_file();
+	// Run this on command line:
+	// For 2D: gmsh -dim -algo bamg -smooth_ratio val -aniso_max val filename.geo -o filename.msh
+	// For 3D: gmsh -dim -algo mmg3d filename.geo -o filename.msh
+	//std::string command_str = "gmsh -2 -algo bamg -smooth_ratio 0 -aniso_max 1e30 " + filename_geo + " -o " + filename_msh;
 	std::string command_str = "gmsh -2 " + filename_geo + " -o " + filename_msh;
 	int val = std::system(command_str.c_str());
 	(void) val;
 	pcout<<"Generated new mesh."<<std::endl;
 }
+
+template<int dim, int nstate, typename real, typename MeshType>
+std::string MetricToMeshGenerator<dim, nstate, real, MeshType> :: get_generated_mesh_filename() const
+{
+	return filename_msh;
+}
+
+template<int dim, int nstate, typename real, typename MeshType>
+void MetricToMeshGenerator<dim, nstate, real, MeshType> :: delete_generated_files() const
+{
+	// Running this on command lune:
+	// rm filename_geo filename_pos filename_msh
+	std::string command_str = "rm " + filename_geo + " " + filename_pos + " " + filename_msh;
+	int val = std::system(command_str.c_str());
+	(void) val;
+}
+
 // Instantiations
-template class MetricToMeshGenerator <PHILIP_DIM, 1, double, dealii::Triangulation<PHILIP_DIM>>;
-template class MetricToMeshGenerator <PHILIP_DIM, 2, double, dealii::Triangulation<PHILIP_DIM>>;
-template class MetricToMeshGenerator <PHILIP_DIM, 3, double, dealii::Triangulation<PHILIP_DIM>>;
-template class MetricToMeshGenerator <PHILIP_DIM, 4, double, dealii::Triangulation<PHILIP_DIM>>;
-template class MetricToMeshGenerator <PHILIP_DIM, 5, double, dealii::Triangulation<PHILIP_DIM>>;
-
-template class MetricToMeshGenerator <PHILIP_DIM, 1, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-template class MetricToMeshGenerator <PHILIP_DIM, 2, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-template class MetricToMeshGenerator <PHILIP_DIM, 3, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-template class MetricToMeshGenerator <PHILIP_DIM, 4, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-template class MetricToMeshGenerator <PHILIP_DIM, 5, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-
 #if PHILIP_DIM!=1
 template class MetricToMeshGenerator <PHILIP_DIM, 1, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
 template class MetricToMeshGenerator <PHILIP_DIM, 2, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;

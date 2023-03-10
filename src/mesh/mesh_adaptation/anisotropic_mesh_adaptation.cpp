@@ -4,6 +4,8 @@
 #include "functional/functional.h"
 #include "physics/physics_factory.h"
 #include "physics/model_factory.h"
+#include "mesh/gmsh_reader.hpp"
+#include "metric_to_mesh_generator.h"
 #include <deal.II/dofs/dof_renumbering.h>
 
 namespace PHiLiP {
@@ -51,6 +53,7 @@ AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: AnisotropicMeshAdaptat
 
 	Assert(this->dg->triangulation->get_mesh_smoothing() == typename dealii::Triangulation<dim>::MeshSmoothing(dealii::Triangulation<dim>::none),
            dealii::ExcMessage("Mesh smoothing might h-refine cells while changing p order."));
+
 }
 
 template<int dim, int nstate, typename real, typename MeshType>
@@ -166,6 +169,8 @@ void AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: compute_cellwise_
 		cellwise_optimal_metric[cell_index] = cellwise_hessian[cell_index];
 		cellwise_optimal_metric[cell_index] *= scaling_factor_this_cell;
 	}
+
+	pcout<<"Done computing optimal metric."<<std::endl;
 /*
 	pcout<<"Cellwise metric = "<<std::endl;
     // Output metric
@@ -433,20 +438,28 @@ void AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: get_flux_coeffs(
 
 }
 
+template<int dim, int nstate, typename real, typename MeshType>
+void AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: adapt_mesh()
+{
+	compute_cellwise_optimal_metric();
+	
+	std::unique_ptr<MetricToMeshGenerator<dim, nstate, real>> metric_to_mesh_generator
+		= std::make_unique<MetricToMeshGenerator<dim, nstate, real>> (dg->high_order_grid->mapping_fe_field, dg->triangulation);
+	metric_to_mesh_generator->generate_mesh_from_cellwise_metric(cellwise_optimal_metric);
+	
+	std::shared_ptr<HighOrderGrid<dim,double,MeshType>> new_high_order_mesh = read_gmsh <dim, dim> (
+																	metric_to_mesh_generator->get_generated_mesh_filename());
+	dg->set_high_order_grid(new_high_order_mesh);
+	dg->allocate_system();
+
+	// Need to either interpolate or initialize solution on the new mesh. Currently just set it to 0.
+	dg->solution = 0;
+	dg->solution.update_ghost_values();
+
+	metric_to_mesh_generator->delete_generated_files();
+}
 
 // Instantiations
-template class AnisotropicMeshAdaptation <PHILIP_DIM, 1, double, dealii::Triangulation<PHILIP_DIM>>;
-template class AnisotropicMeshAdaptation <PHILIP_DIM, 2, double, dealii::Triangulation<PHILIP_DIM>>;
-template class AnisotropicMeshAdaptation <PHILIP_DIM, 3, double, dealii::Triangulation<PHILIP_DIM>>;
-template class AnisotropicMeshAdaptation <PHILIP_DIM, 4, double, dealii::Triangulation<PHILIP_DIM>>;
-template class AnisotropicMeshAdaptation <PHILIP_DIM, 5, double, dealii::Triangulation<PHILIP_DIM>>;
-
-template class AnisotropicMeshAdaptation <PHILIP_DIM, 1, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-template class AnisotropicMeshAdaptation <PHILIP_DIM, 2, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-template class AnisotropicMeshAdaptation <PHILIP_DIM, 3, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-template class AnisotropicMeshAdaptation <PHILIP_DIM, 4, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-template class AnisotropicMeshAdaptation <PHILIP_DIM, 5, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-
 #if PHILIP_DIM!=1
 template class AnisotropicMeshAdaptation <PHILIP_DIM, 1, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
 template class AnisotropicMeshAdaptation <PHILIP_DIM, 2, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;

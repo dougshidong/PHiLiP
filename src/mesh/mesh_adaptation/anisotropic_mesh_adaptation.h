@@ -33,6 +33,11 @@ public:
 	/// Destructor
 	~AnisotropicMeshAdaptation(){};
 
+	/// Function which adapts mesh and loads in new mesh.
+	void adapt_mesh();
+
+private:
+	
 	/// Returns positive tensor from an input tensor by taking absolute of eigenvalues.
 	dealii::Tensor<2, dim, real> get_positive_definite_tensor(const dealii::Tensor<2, dim, real> &input_tensor) const;
 
@@ -40,7 +45,6 @@ public:
 	void compute_cellwise_optimal_metric();
 
 
-private:
 	/// Computes hessian using the input coefficients, which can be a solution sensor or (for goal oriented approach) convective flux.
 	/** This function is called by compute_optimal_metric(). 
 	 */
@@ -108,7 +112,6 @@ private:
     /// Contains the physics of the PDE with real type
     std::shared_ptr < Physics::PhysicsBase<dim, nstate, real > > pde_physics_double;
 
-public:
 	/// Stores optimal metric in each cell
 	std::vector<dealii::Tensor<2, dim, real>> cellwise_optimal_metric;
 };

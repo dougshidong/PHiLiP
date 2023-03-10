@@ -36,21 +36,28 @@ public:
 	/// Destructor
 	~MetricToMeshGenerator(){};
 	
-	/// Interpolates cellwise metric field to vertices.
-	void interpolate_metric_to_vertices(const std::vector<dealii::Tensor<2, dim, real>> &cellwise_optimal_metric);
+	/// Generates mesh from the input cellwise metric.
+	void generate_mesh_from_cellwise_metric(const std::vector<dealii::Tensor<2, dim, real>> &cellwise_optimal_metric);
 
-	/// Writes .geo file
-	void write_geo_file();
+	/// Returns name of the .msh file
+	std::string get_generated_mesh_filename() const;
 
-	/// Writes .pos file.
-	void write_pos_file();
-	
-	/// Runs gmsh on command line.
-	void generate_mesh_from_metric();
+	/// Deletes the .pos, .geo and .msh files that have been generated. Needs to be called after the new mesh is read in.
+	void delete_generated_files() const;
 
 private:
 	/// Reinitialize dof handler vertices after updating triangulation.
 	void reinit();
+	
+	/// Interpolates cellwise metric field to vertices.
+	void interpolate_metric_to_vertices(const std::vector<dealii::Tensor<2, dim, real>> &cellwise_optimal_metric);
+
+	/// Writes .geo file
+	void write_geo_file() const;
+
+	/// Writes .pos file.
+	void write_pos_file() const;
+	
 	
 	/// Mapping field to update physical quadrature points, jacobians etc with the movement of volume nodes.
 	std::shared_ptr<dealii::MappingFEField<dim,dim,VectorType,DoFHandlerType>> volume_nodes_mapping;
@@ -90,6 +97,8 @@ private:
 	const std::string filename_pos;
 	/// .geo file
 	const std::string filename_geo;
+	/// .geo file
+	const std::string filename_msh;
 	
 }; // class ends
 

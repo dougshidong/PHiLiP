@@ -83,7 +83,6 @@ real InitialConditionFunction_TaylorGreenVortex<dim,nstate,real>
         soln_primitive[3] = primitive_value(point,3);
         soln_primitive[4] = primitive_value(point,4);
 
-        //value = this->convert_primitive_to_conversative_euler(soln_primitive, this->gamma_gas, istate);
         const std::array<real,nstate> soln_conservative = this->euler_physics->convert_primitive_to_conservative(soln_primitive);
         value = soln_conservative[istate];
     }

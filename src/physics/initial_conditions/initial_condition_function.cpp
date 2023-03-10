@@ -1,5 +1,7 @@
 #include <deal.II/base/function.h>
 #include "initial_condition_function.h"
+// For initial conditions which need to refer to physics
+#include "physics/physics_factory.h"
 
 namespace PHiLiP {
 
@@ -14,57 +16,25 @@ InitialConditionFunction<dim,nstate,real>
     // Nothing to do here yet
 }
 
-template <int dim, int nstate, typename real>
-real InitialConditionFunction<dim,nstate,real>
-::convert_primitive_to_conversative_euler(const std::array<real,nstate> primitive_value,
-            const real gamma_gas,
-            const unsigned int istate) const
-{
-    real value = 0.0;
-    if constexpr(dim == 3) {
-        const double rho = primitive_value[0], u = primitive_value[1],
-                     v = primitive_value[2], w = primitive_value[3],
-                     p = primitive_value[4];
-        // convert primitive to conservative solution
-        if(istate==0) value = rho; // density
-        if(istate==1) value = rho*u; // x-momentum
-        if(istate==2) value = rho*v; // y-momentum
-        if(istate==3) value = rho*w; // z-momentum
-        if(istate==4) value = p/(gamma_gas-1.0) + 0.5*rho*(u*u + v*v + w*w); // total energy
-    }else if constexpr(dim==2) {
-        const double rho = primitive_value[0], u = primitive_value[1],
-                     v = primitive_value[2], p = primitive_value[3];
-        // convert primitive to conservative solution
-        if(istate==0) value = rho; // density
-        if(istate==1) value = rho*u; // x-momentum
-        if(istate==2) value = rho*v; // y-momentum
-        if(istate==3) value = p/(gamma_gas-1.0) + 0.5*rho*(u*u + v*v); // total energy
-    }else if constexpr(dim==1) {
-        const double rho = primitive_value[0], u = primitive_value[1],
-                     p = primitive_value[2];
-        // convert primitive to conservative solution
-        if(istate==0) value = rho; // density
-        if(istate==1) value = rho*u; // x-momentum
-        if(istate==2) value = p/(gamma_gas-1.0) + 0.5*rho*(u*u); // total energy
-    }
-
-    return value;
-}
-
 // ========================================================
 // TAYLOR GREEN VORTEX -- Initial Condition (Uniform density)
 // ========================================================
 template <int dim, int nstate, typename real>
 InitialConditionFunction_TaylorGreenVortex<dim,nstate,real>
 ::InitialConditionFunction_TaylorGreenVortex (
-    const double       gamma_gas,
-    const double       mach_inf)
+        Parameters::AllParameters const *const param)
     : InitialConditionFunction<dim,nstate,real>()
-    , gamma_gas(gamma_gas)
-    , mach_inf(mach_inf)
+    , gamma_gas(param->euler_param.gamma_gas)
+    , mach_inf(param->euler_param.mach_inf)
     , mach_inf_sqr(mach_inf*mach_inf)
-{}
-
+{
+    // Euler object; create using dynamic_pointer_cast and the create_Physics factory
+    // Note that Euler primitive/conservative vars are the same as NS
+    PHiLiP::Parameters::AllParameters parameters_euler = *param;
+    parameters_euler.pde_type = Parameters::AllParameters::PartialDifferentialEquation::euler;
+    this->euler_physics = std::dynamic_pointer_cast<Physics::Euler<dim,dim+2,double>>(
+                Physics::PhysicsFactory<dim,dim+2,double>::create_Physics(&parameters_euler));
+}
 template <int dim, int nstate, typename real>
 real InitialConditionFunction_TaylorGreenVortex<dim,nstate,real>
 ::primitive_value(const dealii::Point<dim,real> &point, const unsigned int istate) const
@@ -113,21 +83,9 @@ real InitialConditionFunction_TaylorGreenVortex<dim,nstate,real>
         soln_primitive[3] = primitive_value(point,3);
         soln_primitive[4] = primitive_value(point,4);
 
-        value = this->convert_primitive_to_conversative_euler(soln_primitive, this->gamma_gas, istate);
-/*
-        const real rho = primitive_value(point,0);
-        const real u   = primitive_value(point,1);
-        const real v   = primitive_value(point,2);
-        const real w   = primitive_value(point,3);
-        const real p   = primitive_value(point,4);
-
-        // convert primitive to conservative solution
-        if(istate==0) value = rho; // density
-        if(istate==1) value = rho*u; // x-momentum
-        if(istate==2) value = rho*v; // y-momentum
-        if(istate==3) value = rho*w; // z-momentum
-        if(istate==4) value = p/(this->gamma_gas-1.0) + 0.5*rho*(u*u + v*v + w*w); // total energy
-*/
+        //value = this->convert_primitive_to_conversative_euler(soln_primitive, this->gamma_gas, istate);
+        const std::array<real,nstate> soln_conservative = this->euler_physics->convert_primitive_to_conservative(soln_primitive);
+        value = soln_conservative[istate];
     }
 
     return value;
@@ -159,9 +117,8 @@ real InitialConditionFunction_TaylorGreenVortex<dim,nstate,real>
 template <int dim, int nstate, typename real>
 InitialConditionFunction_TaylorGreenVortex_Isothermal<dim,nstate,real>
 ::InitialConditionFunction_TaylorGreenVortex_Isothermal (
-    const double       gamma_gas,
-    const double       mach_inf)
-    : InitialConditionFunction_TaylorGreenVortex<dim,nstate,real>(gamma_gas,mach_inf)
+        Parameters::AllParameters const *const param)
+    : InitialConditionFunction_TaylorGreenVortex<dim,nstate,real>(param)
 {}
 
 template <int dim, int nstate, typename real>
@@ -405,10 +362,14 @@ inline real InitialConditionFunction_1DSine<dim,nstate,real>
 // ========================================================
 template <int dim, int nstate, typename real>
 InitialConditionFunction_IsentropicVortex<dim,nstate,real>
-::InitialConditionFunction_IsentropicVortex()
+::InitialConditionFunction_IsentropicVortex(
+        Parameters::AllParameters const *const param)
         : InitialConditionFunction<dim,nstate,real>()
 {
-    // Nothing to do here yet
+    // Euler object; create using dynamic_pointer_cast and the create_Physics factory
+    // This test should only be used for Euler
+    this->euler_physics = std::dynamic_pointer_cast<Physics::Euler<dim,dim+2,double>>(
+                Physics::PhysicsFactory<dim,dim+2,double>::create_Physics(param));
 }
 
 template <int dim, int nstate, typename real>
@@ -427,7 +388,7 @@ inline real InitialConditionFunction_IsentropicVortex<dim,nstate,real>
     // Centre of the vortex  at t=0
     const double x0 = 0.0;
     const double y0 = 0.0;
-    const double x = point[0]-x0;
+    const double x = point[0] - x0;
     const double y = point[1] - y0;
 
     const double Omega = beta * exp(-0.5/sigma/sigma* (x/R * x/R + y/R * y/R));
@@ -445,7 +406,8 @@ inline real InitialConditionFunction_IsentropicVortex<dim,nstate,real>
     #endif
     soln_primitive[nstate-1] = 1.0/gam*pow(1+delta_T, gam/(gam-1.0));
 
-    return this->convert_primitive_to_conversative_euler(soln_primitive, gam, istate);
+    const std::array<real,nstate> soln_conservative = this->euler_physics->convert_primitive_to_conservative(soln_primitive);
+    return soln_conservative[istate];
 }
 
 // ========================================================
@@ -457,11 +419,15 @@ inline real InitialConditionFunction_IsentropicVortex<dim,nstate,real>
 // ========================================================
 template <int dim, int nstate, typename real>
 InitialConditionFunction_KHI<dim,nstate,real>
-::InitialConditionFunction_KHI (const double atwood_number_input)
-        : InitialConditionFunction<dim,nstate,real>()
-        , atwood_number(atwood_number_input)
+::InitialConditionFunction_KHI (
+        Parameters::AllParameters const *const param)
+    : InitialConditionFunction<dim,nstate,real>()
+    , atwood_number(param->flow_solver_param.atwood_number)
 {
-    // Nothing to do here yet
+    // Euler object; create using dynamic_pointer_cast and the create_Physics factory
+    // This test should only be used for Euler
+    this->euler_physics = std::dynamic_pointer_cast<Physics::Euler<dim,dim+2,double>>(
+                Physics::PhysicsFactory<dim,dim+2,double>::create_Physics(param));
 }
 
 template <int dim, int nstate, typename real>
@@ -469,7 +435,6 @@ inline real InitialConditionFunction_KHI<dim,nstate,real>
 ::value(const dealii::Point<dim,real> &point, const unsigned int istate) const
 {
     const double pi = dealii::numbers::PI;
-    const double gam = 1.4;
     
     const double B = 0.5 * (tanh(15*point[1] + 7.5) - tanh(15*point[1] - 7.5));
 
@@ -482,7 +447,8 @@ inline real InitialConditionFunction_KHI<dim,nstate,real>
     soln_primitive[1] = B - 0.5;
     soln_primitive[2] = 0.1 * sin(2 * pi * point[0]);
 
-    return this->convert_primitive_to_conversative_euler(soln_primitive, gam, istate);
+    const std::array<real,nstate> soln_conservative = this->euler_physics->convert_primitive_to_conservative(soln_primitive);
+    return soln_conservative[istate];
 }
 
 // ========================================================
@@ -519,12 +485,10 @@ InitialConditionFactory<dim,nstate, real>::create_InitialConditionFunction(
             const DensityInitialConditionEnum density_initial_condition_type = param->flow_solver_param.density_initial_condition_type;
             if(density_initial_condition_type == DensityInitialConditionEnum::uniform) {
                 return std::make_shared<InitialConditionFunction_TaylorGreenVortex<dim,nstate,real> >(
-                    param->euler_param.gamma_gas,
-                    param->euler_param.mach_inf);
+                        param);
             } else if (density_initial_condition_type == DensityInitialConditionEnum::isothermal) {
                 return std::make_shared<InitialConditionFunction_TaylorGreenVortex_Isothermal<dim,nstate,real> >(
-                    param->euler_param.gamma_gas,
-                    param->euler_param.mach_inf);
+                        param);
             }
         }
     } else if (flow_type == FlowCaseEnum::decaying_homogeneous_isotropic_turbulence) {
@@ -558,9 +522,9 @@ InitialConditionFactory<dim,nstate, real>::create_InitialConditionFunction(
     } else if (flow_type == FlowCaseEnum::periodic_1D_unsteady) {
         if constexpr (dim==1 && nstate==1) return std::make_shared<InitialConditionFunction_1DSine<dim,nstate,real> > ();
     } else if (flow_type == FlowCaseEnum::isentropic_vortex) {
-        if constexpr (dim>1 && nstate==dim+2) return std::make_shared<InitialConditionFunction_IsentropicVortex<dim,nstate,real> > ();
+        if constexpr (dim>1 && nstate==dim+2) return std::make_shared<InitialConditionFunction_IsentropicVortex<dim,nstate,real> > (param);
     } else if (flow_type == FlowCaseEnum::kelvin_helmholtz_instability) {
-        if constexpr (dim>1 && nstate==dim+2) return std::make_shared<InitialConditionFunction_KHI<dim,nstate,real> > (param->flow_solver_param.atwood_number);
+        if constexpr (dim>1 && nstate==dim+2) return std::make_shared<InitialConditionFunction_KHI<dim,nstate,real> > (param);
     } else if (flow_type == FlowCaseEnum::sshock) {
         if constexpr (dim==2 && nstate==1)  return std::make_shared<InitialConditionFunction_Zero<dim,nstate,real> > ();
     } else {

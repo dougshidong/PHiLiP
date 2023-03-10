@@ -25,13 +25,6 @@ public:
     /// Value of the initial condition
     virtual real value (const dealii::Point<dim,real> &point, const unsigned int istate = 0) const = 0;
 
-protected:
-
-    /// For Euler or Navier-Stokes-based initial conditions, convert the
-    /** primitive variables to conservative variables */
-    real convert_primitive_to_conversative_euler( const std::array<real,nstate> primitive_value,
-            const real gamma_gas,
-            const unsigned int istate) const;
 };
 
 /// Function used to evaluate farfield conservative solution
@@ -85,8 +78,7 @@ public:
      *  These initial conditions are given in nondimensional form (free-stream as reference)
      */
     InitialConditionFunction_TaylorGreenVortex (
-        const double       gamma_gas = 1.4,
-        const double       mach_inf = 0.1);
+            Parameters::AllParameters const *const param);
 
     const double gamma_gas; ///< Constant heat capacity ratio of fluid.
     const double mach_inf; ///< Farfield Mach number.
@@ -101,6 +93,9 @@ protected:
     
     /// Converts value from: primitive to conservative
     real convert_primitive_to_conversative_value(const dealii::Point<dim,real> &point, const unsigned int istate = 0) const;
+
+    // Euler physics pointer. Used to convert primitive to conservative.
+    std::shared_ptr < Physics::Euler<dim, nstate, double > > euler_physics;
 
     /// Value of initial condition for density
     virtual real density(const dealii::Point<dim,real> &point) const;
@@ -123,8 +118,7 @@ public:
      *  These initial conditions are given in nondimensional form (free-stream as reference)
      */
     InitialConditionFunction_TaylorGreenVortex_Isothermal (
-        const double       gamma_gas = 1.4,
-        const double       mach_inf = 0.1);
+            Parameters::AllParameters const *const param);
 
 protected:
     /// Value of initial condition for density
@@ -296,10 +290,17 @@ public:
      *  Non-dimensional initialization, i.e. directly using Table 1
      *  Increased domain from L=5 -> L=10 per recommendation of Spiegel et al
      */
-    InitialConditionFunction_IsentropicVortex ();
+    InitialConditionFunction_IsentropicVortex (
+            Parameters::AllParameters const *const param);
 
     /// Value of initial condition
     real value (const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
+
+protected:
+
+    // Euler physics pointer. Used to convert primitive to conservative.
+    std::shared_ptr < Physics::Euler<dim, nstate, double > > euler_physics;
+
 };
 
 
@@ -318,12 +319,20 @@ protected:
     
 public:
     /// Constructor
-    InitialConditionFunction_KHI(const double atwood_number_input);
+    InitialConditionFunction_KHI(
+            Parameters::AllParameters const *const param);
 
     /// Value of initial condition
     real value(const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
 
+protected:
+    
+    /// Atwood number: quantifies density difference.
     const real atwood_number;
+
+    // Euler physics pointer. Used to convert primitive to conservative.
+    std::shared_ptr < Physics::Euler<dim, nstate, double > > euler_physics;
+
 };
 
 /// Initial condition 0.

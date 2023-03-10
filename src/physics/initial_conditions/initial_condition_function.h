@@ -24,6 +24,7 @@ public:
 
     /// Value of the initial condition
     virtual real value (const dealii::Point<dim,real> &point, const unsigned int istate = 0) const = 0;
+
 };
 
 /// Function used to evaluate farfield conservative solution
@@ -77,8 +78,7 @@ public:
      *  These initial conditions are given in nondimensional form (free-stream as reference)
      */
     InitialConditionFunction_TaylorGreenVortex (
-        const double       gamma_gas = 1.4,
-        const double       mach_inf = 0.1);
+            Parameters::AllParameters const *const param);
 
     const double gamma_gas; ///< Constant heat capacity ratio of fluid.
     const double mach_inf; ///< Farfield Mach number.
@@ -93,6 +93,9 @@ protected:
     
     /// Converts value from: primitive to conservative
     real convert_primitive_to_conversative_value(const dealii::Point<dim,real> &point, const unsigned int istate = 0) const;
+
+    // Euler physics pointer. Used to convert primitive to conservative.
+    std::shared_ptr < Physics::Euler<dim, nstate, double > > euler_physics;
 
     /// Value of initial condition for density
     virtual real density(const dealii::Point<dim,real> &point) const;
@@ -115,8 +118,7 @@ public:
      *  These initial conditions are given in nondimensional form (free-stream as reference)
      */
     InitialConditionFunction_TaylorGreenVortex_Isothermal (
-        const double       gamma_gas = 1.4,
-        const double       mach_inf = 0.1);
+            Parameters::AllParameters const *const param);
 
 protected:
     /// Value of initial condition for density
@@ -270,6 +272,67 @@ public:
 
     /// Value of initial condition
     real value (const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
+};
+
+/// Initial Condition Function: Isentropic vortex
+template <int dim, int nstate, typename real>
+class InitialConditionFunction_IsentropicVortex
+        : public InitialConditionFunction<dim,nstate,real>
+{
+protected:
+    using dealii::Function<dim,real>::value; ///< dealii::Function we are templating on
+
+public:
+    /// Constructor for InitialConditionFunction_IsentropicVortex
+    /** Setup according to "A Survey of the Isentropic Euler Vortex Problem using High-Order Methods"
+     *     Spiegel et al., 2015
+     *  Using "Shu" variant (first row of Table 1)
+     *  Non-dimensional initialization, i.e. directly using Table 1
+     *  Increased domain from L=5 -> L=10 per recommendation of Spiegel et al
+     */
+    InitialConditionFunction_IsentropicVortex (
+            Parameters::AllParameters const *const param);
+
+    /// Value of initial condition
+    real value (const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
+
+protected:
+
+    // Euler physics pointer. Used to convert primitive to conservative.
+    std::shared_ptr < Physics::Euler<dim, nstate, double > > euler_physics;
+
+};
+
+
+
+/// Kelvin-Helmholtz Instability, parametrized by Atwood number
+/** See Chan et al., On the entropy projection..., 2022, Pg. 15
+ *      Note that some equations are not typed correctly
+ *      See github.com/trixi-framework/paper-2022-robustness-entropy-projection
+ *      for initial condition which is implemented herein
+ */
+template <int dim, int nstate, typename real>
+class InitialConditionFunction_KHI : public InitialConditionFunction<dim,nstate,real>
+{
+protected:
+    using dealii::Function<dim,real>::value; ///< dealii::Function we are templating on
+    
+public:
+    /// Constructor
+    InitialConditionFunction_KHI(
+            Parameters::AllParameters const *const param);
+
+    /// Value of initial condition
+    real value(const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
+
+protected:
+    
+    /// Atwood number: quantifies density difference.
+    const real atwood_number;
+
+    // Euler physics pointer. Used to convert primitive to conservative.
+    std::shared_ptr < Physics::Euler<dim, nstate, double > > euler_physics;
+
 };
 
 /// Initial condition 0.

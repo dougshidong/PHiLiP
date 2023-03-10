@@ -21,18 +21,18 @@ ChannelFlow<dim, nstate>::ChannelFlow(const PHiLiP::Parameters::AllParameters *c
         : FlowSolverCaseBase<dim, nstate>(parameters_input)
         , channel_height(this->all_param.flow_solver_param.turbulent_channel_height)
         , half_channel_height(0.5*channel_height)
-        , channel_bulk_reynolds_number(this->all_param.flow_solver_param.turbulent_channel_bulk_reynolds_number)
+        , channel_friction_velocity_reynolds_number(this->all_param.flow_solver_param.turbulent_channel_friction_velocity_reynolds_number)
 { }
 
 template <int dim, int nstate>
 void ChannelFlow<dim,nstate>::display_additional_flow_case_specific_parameters() const
 {
-    this->pcout << "- - Courant-Friedrich-Lewy number: " << this->all_param.flow_solver_param.courant_friedrich_lewy_number << std::endl;
+    this->pcout << "- - Courant-Friedrichs-Lewy number: " << this->all_param.flow_solver_param.courant_friedrich_lewy_number << std::endl;
     std::string flow_type_string;
     // if(this->is_taylor_green_vortex || this->is_decaying_homogeneous_isotropic_turbulence) {
         this->pcout << "- - Freestream Reynolds number: " << this->all_param.navier_stokes_param.reynolds_number_inf << std::endl;
         this->pcout << "- - Freestream Mach number: " << this->all_param.euler_param.mach_inf << std::endl;
-        this->pcout << "- - Reynolds number based on bulk flow: " << this->all_param.flow_solver_param.turbulent_channel_bulk_reynolds_number << std::endl;
+        this->pcout << "- - Reynolds number based on wall friction velocity: " << this->all_param.flow_solver_param.turbulent_channel_friction_velocity_reynolds_number << std::endl;
         this->pcout << "- - Channel height: " << this->all_param.flow_solver_param.turbulent_channel_height << std::endl;
     // }
 }
@@ -65,7 +65,7 @@ void ChannelFlow<dim,nstate>::initialize_model_variables(std::shared_ptr<DGBase<
     dg->set_constant_model_variables(
         this->channel_height,
         this->half_channel_height,
-        this->channel_bulk_reynolds_number);
+        this->channel_friction_velocity_reynolds_number);
 }
 
 template <int dim, int nstate>

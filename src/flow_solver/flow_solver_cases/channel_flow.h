@@ -38,7 +38,7 @@ public:
 protected:
     const double channel_height; ///< Channel height
     const double half_channel_height; ///< Half channel height
-    const double channel_bulk_reynolds_number; ///< Channel Reynolds number based on bulk velocity
+    const double channel_friction_velocity_reynolds_number; ///< Channel Reynolds number based on wall friction velocity
 
     /// Display additional more specific flow case parameters
     void display_additional_flow_case_specific_parameters() const override;

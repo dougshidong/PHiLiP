@@ -103,7 +103,7 @@ public:
     double integrated_density_over_domain; ///< Integrated density over domain
     double channel_height; ///< Channel height
     double half_channel_height; ///< Half channel height
-    double channel_bulk_reynolds_number; ///< Channel bulk Reynolds number
+    double channel_friction_velocity_reynolds_number; ///< Channel Reynolds number based on the wall friction velocity
     double time_step; ///< Current time step
 
 protected:

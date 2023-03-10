@@ -93,6 +93,14 @@ public:
     real2 compute_viscosity_coefficient (const std::array<real2,nstate> &primitive_soln) const;
 
     /** Nondimensionalized viscosity coefficient, mu*
+     *  Based on the use_constant_viscosity flag, it returns a value based on either:
+     *  (1) Sutherland's viscosity law, or
+     *  (2) Constant nondimensionalized viscosity value
+     */
+    template<typename real2>
+    real2 compute_viscosity_coefficient_from_temperature (const real2 temperature) const;
+
+    /** Nondimensionalized viscosity coefficient, mu*
      *  Reference: Masatsuka 2018 "I do like CFD", p.148, eq.(4.14.16)
      * 
      *  Based on Sutherland's law for viscosity
@@ -101,6 +109,16 @@ public:
      */
     template<typename real2>
     real2 compute_viscosity_coefficient_sutherlands_law (const std::array<real2,nstate> &primitive_soln) const;
+
+    /** Nondimensionalized viscosity coefficient, mu*
+     *  Reference: Masatsuka 2018 "I do like CFD", p.148, eq.(4.14.16)
+     * 
+     *  Based on Sutherland's law for viscosity
+     * * Reference: Sutherland, W. (1893), "The viscosity of gases and molecular force", Philosophical Magazine, S. 5, 36, pp. 507-531 (1893)
+     * * Values: https://www.cfd-online.com/Wiki/Sutherland%27s_law
+     */
+    template<typename real2>
+    real2 compute_viscosity_coefficient_sutherlands_law_from_temperature (const real2 temperature) const;
 
     /** Scaled nondimensionalized viscosity coefficient, hat{mu*}, given nondimensionalized viscosity coefficient
      *  Reference: Masatsuka 2018 "I do like CFD", p.148, eq.(4.14.14)

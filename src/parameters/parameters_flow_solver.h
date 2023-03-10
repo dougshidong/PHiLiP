@@ -93,7 +93,7 @@ public:
     bool do_calculate_numerical_entropy;
 
     double turbulent_channel_height; ///< For channel flow, channel height
-    double turbulent_channel_bulk_reynolds_number; ///< For channel flow, channel Reynolds number based on bulk velocity
+    double turbulent_channel_friction_velocity_reynolds_number; ///< For channel flow, channel Reynolds number based on wall friction velocity
 
     /// Selects the method for applying the initial condition
     enum ApplyInitialConditionMethod{

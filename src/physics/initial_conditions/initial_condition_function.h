@@ -6,6 +6,7 @@
 #include <deal.II/base/function.h>
 #include "parameters/all_parameters.h"
 #include "../euler.h" // for FreeStreamInitialConditions
+#include "../navier_stokes.h" // for InitialConditionFunction_TurbulentChannelFlow
 
 namespace PHiLiP {
 
@@ -58,6 +59,32 @@ public:
     {
         return farfield_conservative[istate];
     }
+};
+
+/// Function used to evaluate turbulent channel conservative solution
+template <int dim, int nstate, typename real>
+class InitialConditionFunction_TurbulentChannelFlow : public InitialConditionFunction<dim,nstate,real>
+{
+protected:
+    using dealii::Function<dim,real>::value; ///< dealii::Function we are templating on
+
+public:
+    /// Constructor.
+    /** Initial condition based on the Reichardt function
+     *  Reference: https://how4.cenaero.be/sites/how4.cenaero.be/files/BS2_ChannelFlowRe590.pdf
+     */
+    InitialConditionFunction_TurbulentChannelFlow (
+        const Physics::NavierStokes<dim,nstate,double> navier_stokes_physics_,
+        const double channel_height_,
+        const double channel_friction_velocity_reynolds_number_);
+
+    const Physics::NavierStokes<dim,nstate,double> navier_stokes_physics; ///< Navier-Stokes physics object
+    const double channel_height; ///< Channel height
+    const double half_channel_height; ///< Half channel height
+    const double channel_friction_velocity_reynolds_number; ///< Channel Reynolds number based on wall friction velocity
+
+    /// Value of initial condition expressed in terms of conservative variables
+    real value (const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
 };
 
 /// Initial Condition Function: Taylor Green Vortex (uniform density)

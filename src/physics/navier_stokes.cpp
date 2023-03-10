@@ -135,6 +135,22 @@ inline real2 NavierStokes<dim,nstate,real>
 template <int dim, int nstate, typename real>
 template<typename real2>
 inline real2 NavierStokes<dim,nstate,real>
+::compute_viscosity_coefficient_from_temperature (const real2 temperature) const
+{   
+    // Use either Sutherland's law or constant viscosity
+    real2 viscosity_coefficient;
+    if(use_constant_viscosity){
+        viscosity_coefficient = 1.0*constant_viscosity;
+    } else {
+        viscosity_coefficient = compute_viscosity_coefficient_sutherlands_law_from_temperature<real2>(temperature);
+    }
+
+    return viscosity_coefficient;
+}
+
+template <int dim, int nstate, typename real>
+template<typename real2>
+inline real2 NavierStokes<dim,nstate,real>
 ::compute_viscosity_coefficient_sutherlands_law (const std::array<real2,nstate> &primitive_soln) const
 {
     /* Nondimensionalized viscosity coefficient, \mu^{*}
@@ -146,6 +162,23 @@ inline real2 NavierStokes<dim,nstate,real>
      */
     const real2 temperature = this->template compute_temperature<real2>(primitive_soln); // from Euler
 
+    const real2 viscosity_coefficient = compute_viscosity_coefficient_sutherlands_law_from_temperature<real2>(temperature);
+    
+    return viscosity_coefficient;
+}
+
+template <int dim, int nstate, typename real>
+template<typename real2>
+inline real2 NavierStokes<dim,nstate,real>
+::compute_viscosity_coefficient_sutherlands_law_from_temperature (const real2 temperature) const
+{
+    /* Nondimensionalized viscosity coefficient, \mu^{*}
+     * Reference: Masatsuka 2018 "I do like CFD", p.148, eq.(4.14.16)
+     * 
+     * Based on Sutherland's law for viscosity
+     * * Reference: Sutherland, W. (1893), "The viscosity of gases and molecular force", Philosophical Magazine, S. 5, 36, pp. 507-531 (1893)
+     * * Values: https://www.cfd-online.com/Wiki/Sutherland%27s_law
+     */
     const real2 viscosity_coefficient = ((1.0 + temperature_ratio)/(temperature + temperature_ratio))*pow(temperature,1.5);
     
     return viscosity_coefficient;
@@ -1076,6 +1109,17 @@ template FadType NavierStokes < PHILIP_DIM, PHILIP_DIM+2, double    >::compute_v
 template FadType NavierStokes < PHILIP_DIM, PHILIP_DIM+2, RadType   >::compute_viscosity_coefficient< FadType >(const std::array<FadType,PHILIP_DIM+2> &primitive_soln) const;
 template FadType NavierStokes < PHILIP_DIM, PHILIP_DIM+2, FadFadType>::compute_viscosity_coefficient< FadType >(const std::array<FadType,PHILIP_DIM+2> &primitive_soln) const;
 template FadType NavierStokes < PHILIP_DIM, PHILIP_DIM+2, RadFadType>::compute_viscosity_coefficient< FadType >(const std::array<FadType,PHILIP_DIM+2> &primitive_soln) const;
+// -- compute_viscosity_coefficient_from_temperature()
+template double     NavierStokes < PHILIP_DIM, PHILIP_DIM+2, double    >::compute_viscosity_coefficient_from_temperature< double     >(const double     temperature) const;
+template FadType    NavierStokes < PHILIP_DIM, PHILIP_DIM+2, FadType   >::compute_viscosity_coefficient_from_temperature< FadType    >(const FadType    temperature) const;
+template RadType    NavierStokes < PHILIP_DIM, PHILIP_DIM+2, RadType   >::compute_viscosity_coefficient_from_temperature< RadType    >(const RadType    temperature) const;
+template FadFadType NavierStokes < PHILIP_DIM, PHILIP_DIM+2, FadFadType>::compute_viscosity_coefficient_from_temperature< FadFadType >(const FadFadType temperature) const;
+template RadFadType NavierStokes < PHILIP_DIM, PHILIP_DIM+2, RadFadType>::compute_viscosity_coefficient_from_temperature< RadFadType >(const RadFadType temperature) const;
+// -- -- instantiate all the real types with real2 = FadType for automatic differentiation in classes derived from ModelBase
+template FadType NavierStokes < PHILIP_DIM, PHILIP_DIM+2, double    >::compute_viscosity_coefficient_from_temperature< FadType >(const FadType temperature) const;
+template FadType NavierStokes < PHILIP_DIM, PHILIP_DIM+2, RadType   >::compute_viscosity_coefficient_from_temperature< FadType >(const FadType temperature) const;
+template FadType NavierStokes < PHILIP_DIM, PHILIP_DIM+2, FadFadType>::compute_viscosity_coefficient_from_temperature< FadType >(const FadType temperature) const;
+template FadType NavierStokes < PHILIP_DIM, PHILIP_DIM+2, RadFadType>::compute_viscosity_coefficient_from_temperature< FadType >(const FadType temperature) const;
 // -- compute_vorticity()
 template dealii::Tensor<1,3,double    > NavierStokes < PHILIP_DIM, PHILIP_DIM+2, double    >::compute_vorticity< double     >(const std::array<double    ,PHILIP_DIM+2> &conservative_soln, const std::array<dealii::Tensor<1,PHILIP_DIM,double    >,PHILIP_DIM+2> &conservative_soln_gradient) const;
 template dealii::Tensor<1,3,FadType   > NavierStokes < PHILIP_DIM, PHILIP_DIM+2, FadType   >::compute_vorticity< FadType    >(const std::array<FadType   ,PHILIP_DIM+2> &conservative_soln, const std::array<dealii::Tensor<1,PHILIP_DIM,FadType   >,PHILIP_DIM+2> &conservative_soln_gradient) const;

@@ -15,6 +15,77 @@ InitialConditionFunction<dim,nstate,real>
 }
 
 // ========================================================
+// Turbulent Channel Flow -- Initial Condition
+// ========================================================
+template <int dim, int nstate, typename real>
+InitialConditionFunction_TurbulentChannelFlow<dim,nstate,real>
+::InitialConditionFunction_TurbulentChannelFlow (
+    const Physics::NavierStokes<dim,nstate,double> navier_stokes_physics_,
+    const double channel_height_,
+    const double channel_friction_velocity_reynolds_number_)
+    : InitialConditionFunction<dim,nstate,real>()
+    , navier_stokes_physics(navier_stokes_physics_)
+    , channel_height(channel_height_)
+    , half_channel_height(0.5*channel_height)
+    , channel_friction_velocity_reynolds_number(channel_friction_velocity_reynolds_number_)
+{}
+
+template <int dim, int nstate, typename real>
+inline real InitialConditionFunction_TurbulentChannelFlow<dim, nstate, real>
+::value(const dealii::Point<dim,real> &point, const unsigned int istate) const
+{
+    const real density = 1.0; // freestream non-dimensionalized -- TO DO: Confirm / update this
+    
+    /// Conservative solution
+    std::array<real,nstate> primitive_soln;
+    primitive_soln[0] = density;
+    primitive_soln[2] = 0.0; // assuming y-velocity is zero
+    primitive_soln[3] = 0.0; // assuming z-velocity is zero
+
+    // for efficiency, we do not compute the Reichart law of the wall for states that do not require it
+    if(istate!=1 || istate!=5) {
+        return primitive_soln[istate]; // same as conservative_solution for these states
+    } else {
+        const real temperature = 1.0; // freestream non-dimensionalized -- TO DO: Confirm / update this
+
+        // Get closest wall normal distance
+        real y = point[1]; // represents distance normal to top/bottom wall (which ever is closer); y-domain bounds are [0, channel_height]
+        // -- apply initial condition symmetrically w.r.t. the top/bottom walls of the channel
+        if(y > half_channel_height){
+            // top wall
+            y = channel_height - y; // distance from wall
+        }
+
+        // Get friction velocity
+        const real viscosity_coefficient = navier_stokes_physics.compute_viscosity_coefficient_from_temperature(temperature);
+        const real friction_velocity = viscosity_coefficient*channel_friction_velocity_reynolds_number/(density*this->half_channel_height);
+
+        // Reichardt law of the wall (provides a smoothing between the linear and the log regions)
+        // References: 
+        /*  Frere, Carton de Wiart, Hillewaert, Chatelain, and Winckelmans 
+            "Application of wall-models to discontinuous Galerkin LES", Phys. Fluids 29, 2017
+
+            (Original paper) J. M.  ̈Osterlund, A. V. Johansson, H. M. Nagib, and M. H. Hites, “A note
+            on the overlap region in turbulent boundary layers,” Phys. Fluids 12, 1–4
+            (2000).
+        */
+        const real kappa = 0.38; // von Karman's constant
+        const real C = 4.1;
+        const real y_plus = density*friction_velocity*y/viscosity_coefficient;
+        const real u_plus = (1.0/kappa)*log(1.0+kappa*y_plus) + (C - (1.0/kappa)*log(kappa))*(1.0 - exp(-y_plus/11.0) - (y_plus/11.0)*exp(-y_plus/3.0));
+        const real x_velocity = u_plus*friction_velocity;
+        
+        // set x-velocity
+        primitive_soln[1] = x_velocity;
+
+        // set pressure
+        primitive_soln[5] = navier_stokes_physics.compute_pressure_from_density_temperature(density, temperature);
+        std::array<real,nstate> conservative_soln = navier_stokes_physics.convert_primitive_to_conservative(primitive_soln);
+
+        return conservative_soln[istate];
+    }
+}
+// ========================================================
 // TAYLOR GREEN VORTEX -- Initial Condition (Uniform density)
 // ========================================================
 template <int dim, int nstate, typename real>
@@ -426,6 +497,28 @@ InitialConditionFactory<dim,nstate, real>::create_InitialConditionFunction(
         if constexpr (dim==1 && nstate==1) return std::make_shared<InitialConditionFunction_1DSine<dim,nstate,real> > ();
     } else if (flow_type == FlowCaseEnum::sshock) {
         if constexpr (dim==2 && nstate==1)  return std::make_shared<InitialConditionFunction_Zero<dim,nstate,real> > ();
+    } else if (flow_type == FlowCaseEnum::channel_flow) {
+        if constexpr (dim==3 && nstate==dim+2) {
+            Physics::NavierStokes<dim,nstate,double> navier_stokes_physics_double = Physics::NavierStokes<dim, nstate, double>(
+                    param->euler_param.ref_length,
+                    param->euler_param.gamma_gas,
+                    param->euler_param.mach_inf,
+                    param->euler_param.angle_of_attack,
+                    param->euler_param.side_slip_angle,
+                    param->navier_stokes_param.prandtl_number,
+                    param->navier_stokes_param.reynolds_number_inf,
+                    param->navier_stokes_param.use_constant_viscosity,
+                    param->navier_stokes_param.nondimensionalized_constant_viscosity,
+                    param->navier_stokes_param.temperature_inf,
+                    param->navier_stokes_param.nondimensionalized_isothermal_wall_temperature,
+                    param->navier_stokes_param.thermal_boundary_condition_type,
+                    nullptr,
+                    param->two_point_num_flux_type);
+            return std::make_shared<InitialConditionFunction_TurbulentChannelFlow<dim,nstate,real>>(
+                navier_stokes_physics_double,
+                param->flow_solver_param.turbulent_channel_height,
+                param->flow_solver_param.turbulent_channel_friction_velocity_reynolds_number);
+        }
     } else {
         std::cout << "Invalid Flow Case Type. You probably forgot to add it to the list of flow cases in initial_condition_function.cpp" << std::endl;
         std::abort();
@@ -454,6 +547,7 @@ template class InitialConditionFunction_BurgersInviscidEnergy <PHILIP_DIM, 1, do
 #if PHILIP_DIM==3
 template class InitialConditionFunction_TaylorGreenVortex <PHILIP_DIM, PHILIP_DIM+2, double>;
 template class InitialConditionFunction_TaylorGreenVortex_Isothermal <PHILIP_DIM, PHILIP_DIM+2, double>;
+template class InitialConditionFunction_TurbulentChannelFlow <PHILIP_DIM, PHILIP_DIM+2, double>;
 #endif
 // functions instantiated for all dim
 template class InitialConditionFunction_Zero <PHILIP_DIM,1, double>;

@@ -194,9 +194,9 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                               dealii::Patterns::Double(0, dealii::Patterns::Double::max_double_value),
                               "Channel height. Default is 1.");
 
-            prm.declare_entry("channel_bulk_reynolds_number", "590",
+            prm.declare_entry("channel_friction_velocity_reynolds_number", "590",
                               dealii::Patterns::Double(0, dealii::Patterns::Double::max_double_value),
-                              "Channel Reynolds number based on bulk velocity. Default is 590.");
+                              "Channel Reynolds number based on wall friction velocity. Default is 590.");
         }
         prm.leave_subsection();
 
@@ -329,7 +329,7 @@ void FlowSolverParam::parse_parameters(dealii::ParameterHandler &prm)
         prm.enter_subsection("channel_flow");
         {
             turbulent_channel_height = prm.get_double("channel_height");
-            turbulent_channel_bulk_reynolds_number = prm.get_double("channel_bulk_reynolds_number");
+            turbulent_channel_friction_velocity_reynolds_number = prm.get_double("channel_friction_velocity_reynolds_number");
         }
         prm.leave_subsection();
 

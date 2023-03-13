@@ -64,8 +64,8 @@ dealii::Tensor<2, dim, real> AnisotropicMeshAdaptation<dim, nstate, real, MeshTy
     std::array<std::pair<real, dealii::Tensor<1, dim, real>>, dim> eigen_pair = dealii::eigenvectors(symmetric_input_tensor);
 
     std::array<real, dim> abs_eignevalues;
-    const real min_eigenvalue = 1.0e-7;
-	const real max_eigenvalue = 1.0e7;
+	const real min_eigenvalue = 1.0e-8;
+	const real max_eigenvalue = 1.0e8;
     // Get absolute values of eigenvalues
     for(unsigned int i = 0; i<dim; ++i)
     {

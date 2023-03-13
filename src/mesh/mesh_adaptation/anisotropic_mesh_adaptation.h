@@ -2,6 +2,7 @@
 #define __ANISOTROPIC_MESH_ADAPTATION__
 
 #include "dg/dg.h"
+#include "functional/functional.h"
 
 namespace PHiLiP {
 
@@ -111,6 +112,9 @@ private:
 
     /// Contains the physics of the PDE with real type
     std::shared_ptr < Physics::PhysicsBase<dim, nstate, real > > pde_physics_double;
+    
+	/// Functional to evaluate the adjoint for goal oriented anisotropic meshing.
+    std::shared_ptr< Functional<dim, nstate, real, MeshType> > functional;
 
 	/// Stores optimal metric in each cell
 	std::vector<dealii::Tensor<2, dim, real>> cellwise_optimal_metric;

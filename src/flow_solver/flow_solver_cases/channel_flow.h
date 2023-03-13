@@ -23,11 +23,6 @@ public:
     /// Destructor
     ~ChannelFlow() {};
 
-    /** Computes the integrated quantities over the domain simultaneously and updates the array storing them
-     *  Note: For efficiency, this also simultaneously updates the local maximum wave speed
-     * */
-    void compute_and_update_integrated_quantities(DGBase<dim, double> &dg) override;
-
     /// Function to generate the grid
     std::shared_ptr<Triangulation> generate_grid() const override;
 
@@ -59,11 +54,19 @@ protected:
     /// Display grid parameters
     void display_grid_parameters() const override;
 
+public:
     /// Function to compute the adaptive time step
     double get_adaptive_time_step(std::shared_ptr<DGBase<dim,double>> dg) const override;
 
     /// Function to compute the initial adaptive time step
     double get_adaptive_time_step_initial(std::shared_ptr<DGBase<dim,double>> dg) override;
+
+    /// Compute the desired unsteady data and write it to a table
+    void compute_unsteady_data_and_write_to_table(
+            const unsigned int current_iteration,
+            const double current_time,
+            const std::shared_ptr <DGBase<dim, double>> dg,
+            const std::shared_ptr<dealii::TableHandler> unsteady_data_table) override;
 
 private:
     /// Get the stretched mesh size

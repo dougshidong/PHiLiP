@@ -27,7 +27,7 @@ public:
     /** Computes the integrated quantities over the domain simultaneously and updates the array storing them
      *  Note: For efficiency, this also simultaneously updates the local maximum wave speed
      * */
-    virtual void compute_and_update_integrated_quantities(DGBase<dim, double> &dg);
+    void compute_and_update_integrated_quantities(DGBase<dim, double> &dg);
 
     /** Gets the nondimensional integrated kinetic energy given a DG object from dg->solution
      *  -- Reference: Cox, Christopher, et al. "Accuracy, stability, and performance comparison 
@@ -111,6 +111,7 @@ protected:
     /// Display additional more specific flow case parameters
     virtual void display_additional_flow_case_specific_parameters() const override;
 
+public:
     /// Function to compute the constant time step
     double get_constant_time_step(std::shared_ptr<DGBase<dim,double>> dg) const override;
 
@@ -120,16 +121,19 @@ protected:
     /// Function to compute the initial adaptive time step
     virtual double get_adaptive_time_step_initial(std::shared_ptr<DGBase<dim,double>> dg) override;
 
+protected:
     /// Updates the maximum local wave speed
     void update_maximum_local_wave_speed(DGBase<dim, double> &dg);
 
+public:
     /// Compute the desired unsteady data and write it to a table
-    void compute_unsteady_data_and_write_to_table(
+    virtual void compute_unsteady_data_and_write_to_table(
             const unsigned int current_iteration,
             const double current_time,
             const std::shared_ptr <DGBase<dim, double>> dg,
             const std::shared_ptr<dealii::TableHandler> unsteady_data_table) override;
 
+protected:
     /// List of possible integrated quantities over the domain
     enum IntegratedQuantitiesEnum {
         kinetic_energy,

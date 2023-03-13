@@ -32,10 +32,15 @@ ChannelFlow<dim, nstate>::ChannelFlow(const PHiLiP::Parameters::AllParameters *c
         , domain_length_z(pi_val*half_channel_height)
 { }
 
-template<int dim, int nstate>
-void ChannelFlow<dim, nstate>::compute_and_update_integrated_quantities(DGBase<dim, double> &dg)
+template <int dim, int nstate>
+void ChannelFlow<dim, nstate>::compute_unsteady_data_and_write_to_table(
+        const unsigned int /*current_iteration*/,
+        const double /*current_time*/,
+        const std::shared_ptr <DGBase<dim, double>> dg,
+        const std::shared_ptr <dealii::TableHandler> /*unsteady_data_table*/)
 {
-    this->update_maximum_local_wave_speed(dg);
+    // Update maximum local wave speed for adaptive time_step
+    this->update_maximum_local_wave_speed(*dg);
 }
 
 template <int dim, int nstate>

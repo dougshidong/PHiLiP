@@ -304,6 +304,8 @@ void AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: compute_feature_b
 template<int dim, int nstate, typename real, typename MeshType>
 void AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: compute_goal_oriented_hessian()
 {
+    // I am not sure if the adjoint gradient is to be evaluated on coarse or fine space.
+    // From INRIA's paper, it looks like they are evaluating adjoint at p1, so it is being evaluated at coarse space here.
     // Compute the adjoint ===================================================================
     VectorType adjoint(dg->solution); 
     dg->assemble_residual(true);

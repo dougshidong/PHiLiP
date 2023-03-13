@@ -11,22 +11,22 @@ namespace PHiLiP {
 
 template <int dim, int nstate, typename real, typename MeshType>
 AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: AnisotropicMeshAdaptation(
-	std::shared_ptr< DGBase<dim, real, MeshType> > dg_input, 
+    std::shared_ptr< DGBase<dim, real, MeshType> > dg_input, 
     const real _norm_Lp,
     const real _complexity,
-	const bool _use_goal_oriented_approach)
-	: dg(dg_input)
-	, use_goal_oriented_approach(_use_goal_oriented_approach)
+    const bool _use_goal_oriented_approach)
+    : dg(dg_input)
+    , use_goal_oriented_approach(_use_goal_oriented_approach)
     , normLp(_norm_Lp)
     , complexity(_complexity)
     , mpi_communicator(MPI_COMM_WORLD)
     , pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(mpi_communicator)==0)
-	, initial_poly_degree(dg->get_min_fe_degree())
-	, max_dofs_per_cell(dg->dof_handler.get_fe_collection().max_dofs_per_cell())
+    , initial_poly_degree(dg->get_min_fe_degree())
+    , max_dofs_per_cell(dg->dof_handler.get_fe_collection().max_dofs_per_cell())
 {
     MPI_Comm_rank(mpi_communicator, &mpi_rank);
     MPI_Comm_size(mpi_communicator, &n_mpi);
-	
+    
     if(use_goal_oriented_approach)
     {
         if(normLp != 1)
@@ -37,22 +37,22 @@ AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: AnisotropicMeshAdaptat
         
         std::shared_ptr<Physics::ModelBase<dim,nstate,real>> pde_model_double    = Physics::ModelFactory<dim,nstate,real>::create_Model(dg->all_parameters);
         pde_physics_double  = Physics::PhysicsFactory<dim,nstate,real>::create_Physics(dg->all_parameters, pde_model_double);
-		functional = FunctionalFactory<dim,nstate,real,MeshType>::create_Functional(dg->all_parameters->functional_param, dg);
+        functional = FunctionalFactory<dim,nstate,real,MeshType>::create_Functional(dg->all_parameters->functional_param, dg);
     }
 
-	if(dg->get_min_fe_degree() != dg->get_max_fe_degree())
-	{
-		pcout<<"This class is currently coded assuming a constant poly degree. To be changed in future if required."<<std::endl;
-		std::abort();
-	}
+    if(dg->get_min_fe_degree() != dg->get_max_fe_degree())
+    {
+        pcout<<"This class is currently coded assuming a constant poly degree. To be changed in future if required."<<std::endl;
+        std::abort();
+    }
 
-	if(initial_poly_degree != 1)
-	{
-		pcout<<"Warning: The optimal metric used by this class has been derived for p1."
-			 <<" For any other p, it might be a good approximation but will not be optimal."<<std::endl; 
-	}
+    if(initial_poly_degree != 1)
+    {
+        pcout<<"Warning: The optimal metric used by this class has been derived for p1."
+             <<" For any other p, it might be a good approximation but will not be optimal."<<std::endl; 
+    }
 
-	Assert(this->dg->triangulation->get_mesh_smoothing() == typename dealii::Triangulation<dim>::MeshSmoothing(dealii::Triangulation<dim>::none),
+    Assert(this->dg->triangulation->get_mesh_smoothing() == typename dealii::Triangulation<dim>::MeshSmoothing(dealii::Triangulation<dim>::none),
            dealii::ExcMessage("Mesh smoothing might h-refine cells while changing p order."));
 
 }
@@ -65,8 +65,8 @@ dealii::Tensor<2, dim, real> AnisotropicMeshAdaptation<dim, nstate, real, MeshTy
     std::array<std::pair<real, dealii::Tensor<1, dim, real>>, dim> eigen_pair = dealii::eigenvectors(symmetric_input_tensor);
 
     std::array<real, dim> abs_eignevalues;
-	const real min_eigenvalue = 1.0e-8;
-	const real max_eigenvalue = 1.0e8;
+    const real min_eigenvalue = 1.0e-8;
+    const real max_eigenvalue = 1.0e8;
     // Get absolute values of eigenvalues
     for(unsigned int i = 0; i<dim; ++i)
     {
@@ -95,87 +95,87 @@ dealii::Tensor<2, dim, real> AnisotropicMeshAdaptation<dim, nstate, real, MeshTy
 template<int dim, int nstate, typename real, typename MeshType>
 void AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: initialize_cellwise_metric_and_hessians()
 {
-	cellwise_optimal_metric.clear();
-	cellwise_hessian.clear();
-	const unsigned int n_active_cells = dg->triangulation->n_active_cells();
-	
-	dealii::Tensor<2, dim, real> zero_tensor; // initialized to 0 by default.
-	for(unsigned int i=0; i<n_active_cells; ++i)
-	{
-		cellwise_optimal_metric.push_back(zero_tensor);
-		cellwise_hessian.push_back(zero_tensor);
-	}
+    cellwise_optimal_metric.clear();
+    cellwise_hessian.clear();
+    const unsigned int n_active_cells = dg->triangulation->n_active_cells();
+    
+    dealii::Tensor<2, dim, real> zero_tensor; // initialized to 0 by default.
+    for(unsigned int i=0; i<n_active_cells; ++i)
+    {
+        cellwise_optimal_metric.push_back(zero_tensor);
+        cellwise_hessian.push_back(zero_tensor);
+    }
 }
 
 template<int dim, int nstate, typename real, typename MeshType>
 void AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: compute_cellwise_optimal_metric()
 {
-	initialize_cellwise_metric_and_hessians();
-	compute_abs_hessian(); // computes hessian according to goal oriented or feature based approach.
+    initialize_cellwise_metric_and_hessians();
+    compute_abs_hessian(); // computes hessian according to goal oriented or feature based approach.
     
     pcout<<"Computing optimal metric field."<<std::endl;
 
-	const unsigned int n_active_cells = dg->triangulation->n_active_cells();
-	dealii::Vector<real> abs_hessian_determinant(n_active_cells);
-	
-	// Compute hessian determinants
-	for(const auto &cell : dg->dof_handler.active_cell_iterators())
-	{
-		if(! cell->is_locally_owned()) {continue;}
-		
-		const unsigned int cell_index = cell->active_cell_index();
-		abs_hessian_determinant[cell_index] = dealii::determinant(cellwise_hessian[cell_index]);	
-	}
+    const unsigned int n_active_cells = dg->triangulation->n_active_cells();
+    dealii::Vector<real> abs_hessian_determinant(n_active_cells);
+    
+    // Compute hessian determinants
+    for(const auto &cell : dg->dof_handler.active_cell_iterators())
+    {
+        if(! cell->is_locally_owned()) {continue;}
+        
+        const unsigned int cell_index = cell->active_cell_index();
+        abs_hessian_determinant[cell_index] = dealii::determinant(cellwise_hessian[cell_index]);    
+    }
 
-	// Using Eq 4.40, page 153 in Dervieux, A. et al. Mesh Adaptation for Computational Fluid Dynamics 1. 2022.
-	const auto mapping = (*(dg->high_order_grid->mapping_fe_field));
-	dealii::hp::MappingCollection<dim> mapping_collection(mapping);
-	const dealii::UpdateFlags update_flags = dealii::update_JxW_values;
-	dealii::hp::FEValues<dim,dim>   fe_values_collection_volume (mapping_collection, dg->fe_collection, dg->volume_quadrature_collection, update_flags);
-	
-	real integral_val = 0;
-	for(const auto &cell : dg->dof_handler.active_cell_iterators())
-	{
-		if(! cell->is_locally_owned()) {continue;}
-		
-		const unsigned int cell_index = cell->active_cell_index();
-		const unsigned int i_fele = cell->active_fe_index();
-		const unsigned int i_quad = i_fele;
-		const unsigned int i_mapp = 0;
-		fe_values_collection_volume.reinit(cell, i_quad, i_mapp, i_fele);
-		const dealii::FEValues<dim,dim> &fe_values_volume = fe_values_collection_volume.get_present_fe_values();
+    // Using Eq 4.40, page 153 in Dervieux, A. et al. Mesh Adaptation for Computational Fluid Dynamics 1. 2022.
+    const auto mapping = (*(dg->high_order_grid->mapping_fe_field));
+    dealii::hp::MappingCollection<dim> mapping_collection(mapping);
+    const dealii::UpdateFlags update_flags = dealii::update_JxW_values;
+    dealii::hp::FEValues<dim,dim>   fe_values_collection_volume (mapping_collection, dg->fe_collection, dg->volume_quadrature_collection, update_flags);
+    
+    real integral_val = 0;
+    for(const auto &cell : dg->dof_handler.active_cell_iterators())
+    {
+        if(! cell->is_locally_owned()) {continue;}
+        
+        const unsigned int cell_index = cell->active_cell_index();
+        const unsigned int i_fele = cell->active_fe_index();
+        const unsigned int i_quad = i_fele;
+        const unsigned int i_mapp = 0;
+        fe_values_collection_volume.reinit(cell, i_quad, i_mapp, i_fele);
+        const dealii::FEValues<dim,dim> &fe_values_volume = fe_values_collection_volume.get_present_fe_values();
 
-		const real exponent = normLp/(2.0*normLp + dim);
-		const real integrand = pow(abs_hessian_determinant[cell_index], exponent);
-		
-		for(unsigned int iquad = 0; iquad<fe_values_volume.n_quadrature_points; ++iquad)
-		{
-			integral_val += integrand * fe_values_volume.JxW(iquad);
-		}
-	}
+        const real exponent = normLp/(2.0*normLp + dim);
+        const real integrand = pow(abs_hessian_determinant[cell_index], exponent);
+        
+        for(unsigned int iquad = 0; iquad<fe_values_volume.n_quadrature_points; ++iquad)
+        {
+            integral_val += integrand * fe_values_volume.JxW(iquad);
+        }
+    }
 
-	const real integral_val_global = dealii::Utilities::MPI::sum(integral_val, mpi_communicator);
-	const real exponent = 2.0/dim;
-	const real scaling_factor = pow(complexity, exponent) * pow(integral_val_global, -exponent); // Factor by which the metric is scaled to get a mesh of required complexity/# of elements.
+    const real integral_val_global = dealii::Utilities::MPI::sum(integral_val, mpi_communicator);
+    const real exponent = 2.0/dim;
+    const real scaling_factor = pow(complexity, exponent) * pow(integral_val_global, -exponent); // Factor by which the metric is scaled to get a mesh of required complexity/# of elements.
 
-	// Now loop over to fill in the optimal metric.
-	for(const auto &cell : dg->dof_handler.active_cell_iterators())
-	{
-		if(! cell->is_locally_owned()) {continue;}
-		
-		const unsigned int cell_index = cell->active_cell_index();
-		
-		const real exponent2 = -1.0/(2.0*normLp + dim);
-		const real scaling_factor2 = pow(abs_hessian_determinant[cell_index], exponent2);
-		const real scaling_factor_this_cell = scaling_factor * scaling_factor2;
+    // Now loop over to fill in the optimal metric.
+    for(const auto &cell : dg->dof_handler.active_cell_iterators())
+    {
+        if(! cell->is_locally_owned()) {continue;}
+        
+        const unsigned int cell_index = cell->active_cell_index();
+        
+        const real exponent2 = -1.0/(2.0*normLp + dim);
+        const real scaling_factor2 = pow(abs_hessian_determinant[cell_index], exponent2);
+        const real scaling_factor_this_cell = scaling_factor * scaling_factor2;
 
-		cellwise_optimal_metric[cell_index] = cellwise_hessian[cell_index];
-		cellwise_optimal_metric[cell_index] *= scaling_factor_this_cell;
-	}
+        cellwise_optimal_metric[cell_index] = cellwise_hessian[cell_index];
+        cellwise_optimal_metric[cell_index] *= scaling_factor_this_cell;
+    }
 
-	pcout<<"Done computing optimal metric."<<std::endl;
+    pcout<<"Done computing optimal metric."<<std::endl;
 /*
-	pcout<<"Cellwise metric = "<<std::endl;
+    pcout<<"Cellwise metric = "<<std::endl;
     // Output metric
     for(const auto &cell : dg->dof_handler.active_cell_iterators())
     {
@@ -197,34 +197,34 @@ void AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: compute_cellwise_
 template<int dim, int nstate, typename real, typename MeshType>
 void AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: compute_abs_hessian()
 {
-	if(use_goal_oriented_approach)
-	{
-		compute_goal_oriented_hessian();
-	}
-	else
-	{
-		compute_feature_based_hessian();
-	}
+    if(use_goal_oriented_approach)
+    {
+        compute_goal_oriented_hessian();
+    }
+    else
+    {
+        compute_feature_based_hessian();
+    }
 }
 
 template<int dim, int nstate, typename real, typename MeshType>
 void AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: change_p_degree_and_interpolate_solution(const unsigned int poly_degree)
 {
     pcout<<"Changing poly degree to "<<poly_degree<<" and interpolating solution."<<std::endl;
-	VectorType solution_coarse = dg->solution;
-	solution_coarse.update_ghost_values();
+    VectorType solution_coarse = dg->solution;
+    solution_coarse.update_ghost_values();
 
-	using DoFHandlerType   = typename dealii::DoFHandler<dim>;
-	using SolutionTransfer = typename MeshTypeHelper<MeshType>::template SolutionTransfer<dim,VectorType,DoFHandlerType>;
-	
-	SolutionTransfer solution_transfer(this->dg->dof_handler);
-	solution_transfer.prepare_for_coarsening_and_refinement(solution_coarse);
-	
-	dg->set_all_cells_fe_degree(poly_degree);
-	dg->allocate_system();
-	dg->solution.zero_out_ghosts();
-	
-	if constexpr (std::is_same_v<typename dealii::SolutionTransfer<dim,VectorType,DoFHandlerType>,
+    using DoFHandlerType   = typename dealii::DoFHandler<dim>;
+    using SolutionTransfer = typename MeshTypeHelper<MeshType>::template SolutionTransfer<dim,VectorType,DoFHandlerType>;
+    
+    SolutionTransfer solution_transfer(this->dg->dof_handler);
+    solution_transfer.prepare_for_coarsening_and_refinement(solution_coarse);
+    
+    dg->set_all_cells_fe_degree(poly_degree);
+    dg->allocate_system();
+    dg->solution.zero_out_ghosts();
+    
+    if constexpr (std::is_same_v<typename dealii::SolutionTransfer<dim,VectorType,DoFHandlerType>,
                                  decltype(solution_transfer)>) {
         solution_transfer.interpolate(solution_coarse, this->dg->solution);
     } else {
@@ -237,67 +237,67 @@ void AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: change_p_degree_a
 template<int dim, int nstate, typename real, typename MeshType>
 void AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: reconstruct_p2_solution()
 {
-	assert(dg->get_min_fe_degree() == 2);
+    assert(dg->get_min_fe_degree() == 2);
     pcout<<"Reconstructing p2 solution."<<std::endl;
-	dg->assemble_residual(true);
-	VectorType delU = dg->solution;
-	solve_linear(dg->system_matrix, dg->right_hand_side, delU, dg->all_parameters->linear_solver_param);
-	delU *= -1.0;
-	delU.update_ghost_values();
-	dg->solution += delU;
-	dg->solution.update_ghost_values();
+    dg->assemble_residual(true);
+    VectorType delU = dg->solution;
+    solve_linear(dg->system_matrix, dg->right_hand_side, delU, dg->all_parameters->linear_solver_param);
+    delU *= -1.0;
+    delU.update_ghost_values();
+    dg->solution += delU;
+    dg->solution.update_ghost_values();
 }
 
 template<int dim, int nstate, typename real, typename MeshType>
 void AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: compute_feature_based_hessian()
 {
-	VectorType solution_old = dg->solution;
-	solution_old.update_ghost_values();
-	change_p_degree_and_interpolate_solution(2); // Interpolate to p2
-	reconstruct_p2_solution();
+    VectorType solution_old = dg->solution;
+    solution_old.update_ghost_values();
+    change_p_degree_and_interpolate_solution(2); // Interpolate to p2
+    reconstruct_p2_solution();
     
-	pcout<<"Computing feature based Hessian."<<std::endl;
-	// Compute Hessian of the solution for now (can be changed to Mach number or some other sensor when required).
-	//const auto mapping = (*(dg->high_order_grid->mapping_fe_field)); // CHANGE IT BACK
-	dealii::MappingQGeneric<dim, dim> mapping(dg->high_order_grid->dof_handler_grid.get_fe().degree);
-	dealii::hp::MappingCollection<dim> mapping_collection(mapping);
-	const dealii::UpdateFlags update_flags = dealii::update_values | dealii::update_gradients | dealii::update_hessians | dealii::update_quadrature_points | dealii::update_JxW_values;
-	dealii::hp::FEValues<dim,dim>   fe_values_collection_volume (mapping_collection, dg->fe_collection, dg->volume_quadrature_collection, update_flags);
-	
-	std::vector<dealii::types::global_dof_index> dof_indices(max_dofs_per_cell);
+    pcout<<"Computing feature based Hessian."<<std::endl;
+    // Compute Hessian of the solution for now (can be changed to Mach number or some other sensor when required).
+    //const auto mapping = (*(dg->high_order_grid->mapping_fe_field)); // CHANGE IT BACK
+    dealii::MappingQGeneric<dim, dim> mapping(dg->high_order_grid->dof_handler_grid.get_fe().degree);
+    dealii::hp::MappingCollection<dim> mapping_collection(mapping);
+    const dealii::UpdateFlags update_flags = dealii::update_values | dealii::update_gradients | dealii::update_hessians | dealii::update_quadrature_points | dealii::update_JxW_values;
+    dealii::hp::FEValues<dim,dim>   fe_values_collection_volume (mapping_collection, dg->fe_collection, dg->volume_quadrature_collection, update_flags);
+    
+    std::vector<dealii::types::global_dof_index> dof_indices(max_dofs_per_cell);
 
-	for(const auto &cell : dg->dof_handler.active_cell_iterators())
-	{
-		if(! cell->is_locally_owned()) {continue;}
-		
-		const unsigned int cell_index = cell->active_cell_index();
-		const unsigned int i_fele = cell->active_fe_index();
-		const unsigned int i_quad = i_fele;
-		const unsigned int i_mapp = 0;
-		fe_values_collection_volume.reinit(cell, i_quad, i_mapp, i_fele);
-		const dealii::FEValues<dim,dim> &fe_values_volume = fe_values_collection_volume.get_present_fe_values();
-		
-		const unsigned int n_dofs_cell = fe_values_volume.dofs_per_cell; 
-		dof_indices.resize(n_dofs_cell);
-		cell->get_dof_indices(dof_indices);
-	
+    for(const auto &cell : dg->dof_handler.active_cell_iterators())
+    {
+        if(! cell->is_locally_owned()) {continue;}
+        
+        const unsigned int cell_index = cell->active_cell_index();
+        const unsigned int i_fele = cell->active_fe_index();
+        const unsigned int i_quad = i_fele;
+        const unsigned int i_mapp = 0;
+        fe_values_collection_volume.reinit(cell, i_quad, i_mapp, i_fele);
+        const dealii::FEValues<dim,dim> &fe_values_volume = fe_values_collection_volume.get_present_fe_values();
+        
+        const unsigned int n_dofs_cell = fe_values_volume.dofs_per_cell; 
+        dof_indices.resize(n_dofs_cell);
+        cell->get_dof_indices(dof_indices);
+    
         cellwise_hessian[cell_index] = 0;
-		const unsigned int iquad = get_iquad_near_cellcenter(fe_values_volume.get_quadrature());
-		
+        const unsigned int iquad = get_iquad_near_cellcenter(fe_values_volume.get_quadrature());
+        
         for(unsigned int idof = 0; idof<n_dofs_cell; ++idof)
-		{
-			const unsigned int icomp = fe_values_volume.get_fe().system_to_component_index(idof).first;
-			// Computing hesssian of solution at state 0. Might need to change it later.
+        {
+            const unsigned int icomp = fe_values_volume.get_fe().system_to_component_index(idof).first;
+            // Computing hesssian of solution at state 0. Might need to change it later.
             if(icomp == 0)
             {
-			    cellwise_hessian[cell_index] += dg->solution(dof_indices[idof])*fe_values_volume.shape_hessian_component(idof, iquad, icomp); 
+                cellwise_hessian[cell_index] += dg->solution(dof_indices[idof])*fe_values_volume.shape_hessian_component(idof, iquad, icomp); 
             }
-		}
-		cellwise_hessian[cell_index] = get_positive_definite_tensor(cellwise_hessian[cell_index]);
-	}
-	
-	change_p_degree_and_interpolate_solution(initial_poly_degree);
-	dg->solution = solution_old; // reset solution
+        }
+        cellwise_hessian[cell_index] = get_positive_definite_tensor(cellwise_hessian[cell_index]);
+    }
+    
+    change_p_degree_and_interpolate_solution(initial_poly_degree);
+    dg->solution = solution_old; // reset solution
     dg->solution.update_ghost_values();
 }
 
@@ -314,77 +314,77 @@ void AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: compute_goal_orie
     adjoint *= -1.0;
     adjoint.update_ghost_values();
     //==========================================================================================
-	// Compute adjoint gradient
-	std::vector<std::array<dealii::Tensor<1, dim, real>, nstate>> adjoint_gradient(dg->triangulation->n_active_cells());
-	{
-		const auto mapping = (*(dg->high_order_grid->mapping_fe_field));
-		dealii::hp::MappingCollection<dim> mapping_collection(mapping);
-		const dealii::UpdateFlags update_flags = dealii::update_values | dealii::update_gradients | dealii::update_quadrature_points | dealii::update_JxW_values;
-		dealii::hp::FEValues<dim,dim>   fe_values_collection_volume (mapping_collection, dg->fe_collection, dg->volume_quadrature_collection, update_flags);
-		
-		std::vector<dealii::types::global_dof_index> dof_indices(max_dofs_per_cell);
+    // Compute adjoint gradient
+    std::vector<std::array<dealii::Tensor<1, dim, real>, nstate>> adjoint_gradient(dg->triangulation->n_active_cells());
+    {
+        const auto mapping = (*(dg->high_order_grid->mapping_fe_field));
+        dealii::hp::MappingCollection<dim> mapping_collection(mapping);
+        const dealii::UpdateFlags update_flags = dealii::update_values | dealii::update_gradients | dealii::update_quadrature_points | dealii::update_JxW_values;
+        dealii::hp::FEValues<dim,dim>   fe_values_collection_volume (mapping_collection, dg->fe_collection, dg->volume_quadrature_collection, update_flags);
+        
+        std::vector<dealii::types::global_dof_index> dof_indices(max_dofs_per_cell);
 
-		for(const auto &cell : dg->dof_handler.active_cell_iterators())
-		{
-			if(! cell->is_locally_owned()) {continue;}
-			
-			const unsigned int cell_index = cell->active_cell_index();
-			const unsigned int i_fele = cell->active_fe_index();
-			const unsigned int i_quad = i_fele;
-			const unsigned int i_mapp = 0;
-			fe_values_collection_volume.reinit(cell, i_quad, i_mapp, i_fele);
-			const dealii::FEValues<dim,dim> &fe_values_volume = fe_values_collection_volume.get_present_fe_values();
-			
-			const unsigned int n_dofs_cell = fe_values_volume.dofs_per_cell; 
-			dof_indices.resize(n_dofs_cell);
-			cell->get_dof_indices(dof_indices);
-			const unsigned int iquad = get_iquad_near_cellcenter(fe_values_volume.get_quadrature());
-			for(unsigned int istate = 0; istate<nstate; ++istate)
-			{
-				adjoint_gradient[cell_index][istate] = 0;
-			}
-			for(unsigned int idof = 0; idof < n_dofs_cell; ++idof)
-			{ 
-				const unsigned int istate = fe_values_volume.get_fe().system_to_component_index(idof).first;
-				adjoint_gradient[cell_index][istate] += adjoint(dof_indices[idof])*fe_values_volume.shape_grad_component(idof, iquad, istate);
-			}
-		} // cell loop ends
-	}
-	//=========================================================================================
-	dg->solution.update_ghost_values();
-	const VectorType solution_old = dg->solution;
-	change_p_degree_and_interpolate_solution(2); // Interpolate to p2
-	reconstruct_p2_solution();
+        for(const auto &cell : dg->dof_handler.active_cell_iterators())
+        {
+            if(! cell->is_locally_owned()) {continue;}
+            
+            const unsigned int cell_index = cell->active_cell_index();
+            const unsigned int i_fele = cell->active_fe_index();
+            const unsigned int i_quad = i_fele;
+            const unsigned int i_mapp = 0;
+            fe_values_collection_volume.reinit(cell, i_quad, i_mapp, i_fele);
+            const dealii::FEValues<dim,dim> &fe_values_volume = fe_values_collection_volume.get_present_fe_values();
+            
+            const unsigned int n_dofs_cell = fe_values_volume.dofs_per_cell; 
+            dof_indices.resize(n_dofs_cell);
+            cell->get_dof_indices(dof_indices);
+            const unsigned int iquad = get_iquad_near_cellcenter(fe_values_volume.get_quadrature());
+            for(unsigned int istate = 0; istate<nstate; ++istate)
+            {
+                adjoint_gradient[cell_index][istate] = 0;
+            }
+            for(unsigned int idof = 0; idof < n_dofs_cell; ++idof)
+            { 
+                const unsigned int istate = fe_values_volume.get_fe().system_to_component_index(idof).first;
+                adjoint_gradient[cell_index][istate] += adjoint(dof_indices[idof])*fe_values_volume.shape_grad_component(idof, iquad, istate);
+            }
+        } // cell loop ends
+    }
+    //=========================================================================================
+    dg->solution.update_ghost_values();
+    const VectorType solution_old = dg->solution;
+    change_p_degree_and_interpolate_solution(2); // Interpolate to p2
+    reconstruct_p2_solution();
   
-	pcout<<"Computing goal-oriented Hessian."<<std::endl;
+    pcout<<"Computing goal-oriented Hessian."<<std::endl;
     // Compute goal oriented pseudo hessian.
     // From Eq. 28 in Loseille, A., Dervieux, A., and Alauzet, F. "Fully anisotropic goal-oriented mesh adaptation for 3D steady Euler equations.", 2010.
     // Also, as suggested in the footnote on page 78 in Dervieux, A. et al. Mesh Adaptation for Computational Fluid Dynamics 2. 2022, metric terms related to 
     // faces do not make a difference and hence are not included.
-	//const auto mapping = (*(dg->high_order_grid->mapping_fe_field)); // CHANGE IT BACK
-	dealii::MappingQGeneric<dim, dim> mapping(dg->high_order_grid->dof_handler_grid.get_fe().degree);
-	dealii::hp::MappingCollection<dim> mapping_collection(mapping);
-	const dealii::UpdateFlags update_flags = dealii::update_values | dealii::update_gradients | dealii::update_hessians | dealii::update_quadrature_points | dealii::update_JxW_values;
-	dealii::hp::FEValues<dim,dim>   fe_values_collection_volume (mapping_collection, dg->fe_collection, dg->volume_quadrature_collection, update_flags);
-	
-	std::vector<dealii::types::global_dof_index> dof_indices(max_dofs_per_cell);
+    //const auto mapping = (*(dg->high_order_grid->mapping_fe_field)); // CHANGE IT BACK
+    dealii::MappingQGeneric<dim, dim> mapping(dg->high_order_grid->dof_handler_grid.get_fe().degree);
+    dealii::hp::MappingCollection<dim> mapping_collection(mapping);
+    const dealii::UpdateFlags update_flags = dealii::update_values | dealii::update_gradients | dealii::update_hessians | dealii::update_quadrature_points | dealii::update_JxW_values;
+    dealii::hp::FEValues<dim,dim>   fe_values_collection_volume (mapping_collection, dg->fe_collection, dg->volume_quadrature_collection, update_flags);
+    
+    std::vector<dealii::types::global_dof_index> dof_indices(max_dofs_per_cell);
 
-	for(const auto &cell : dg->dof_handler.active_cell_iterators())
-	{
-		if(! cell->is_locally_owned()) {continue;}
-		
-		const unsigned int cell_index = cell->active_cell_index();
-		const unsigned int i_fele = cell->active_fe_index();
-		const unsigned int i_quad = i_fele;
-		const unsigned int i_mapp = 0;
-		fe_values_collection_volume.reinit(cell, i_quad, i_mapp, i_fele);
-		const dealii::FEValues<dim,dim> &fe_values_volume = fe_values_collection_volume.get_present_fe_values();
-		
-		const unsigned int n_dofs_cell = fe_values_volume.dofs_per_cell; 
-		dof_indices.resize(n_dofs_cell);
-		cell->get_dof_indices(dof_indices);
+    for(const auto &cell : dg->dof_handler.active_cell_iterators())
+    {
+        if(! cell->is_locally_owned()) {continue;}
+        
+        const unsigned int cell_index = cell->active_cell_index();
+        const unsigned int i_fele = cell->active_fe_index();
+        const unsigned int i_quad = i_fele;
+        const unsigned int i_mapp = 0;
+        fe_values_collection_volume.reinit(cell, i_quad, i_mapp, i_fele);
+        const dealii::FEValues<dim,dim> &fe_values_volume = fe_values_collection_volume.get_present_fe_values();
+        
+        const unsigned int n_dofs_cell = fe_values_volume.dofs_per_cell; 
+        dof_indices.resize(n_dofs_cell);
+        cell->get_dof_indices(dof_indices);
 
-		const unsigned int iquad = get_iquad_near_cellcenter(fe_values_volume.get_quadrature());
+        const unsigned int iquad = get_iquad_near_cellcenter(fe_values_volume.get_quadrature());
 
         // Obtain flux coeffs
         std::vector<std::array<dealii::Tensor<1,dim,real>,nstate>> flux_coeffs(n_dofs_cell);
@@ -412,14 +412,14 @@ void AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: compute_goal_orie
         } //istate
     } // cell loop ends
 
-	change_p_degree_and_interpolate_solution(initial_poly_degree);
-	dg->solution = solution_old; // reset solution
+    change_p_degree_and_interpolate_solution(initial_poly_degree);
+    dg->solution = solution_old; // reset solution
     dg->solution.update_ghost_values();
 }
 
 template<int dim, int nstate, typename real, typename MeshType>
 unsigned int AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: get_iquad_near_cellcenter(
-	const dealii::Quadrature<dim> &volume_quadrature) const
+    const dealii::Quadrature<dim> &volume_quadrature) const
 {
     dealii::Point<dim,real> ref_center;
     for(unsigned int idim =0; idim < dim; ++idim) 
@@ -444,10 +444,10 @@ unsigned int AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: get_iquad
 // Flux referenced by flux[idof][istate][idim]
 template<int dim, int nstate, typename real, typename MeshType>
 void AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: get_flux_coeffs(
-	std::vector<std::array<dealii::Tensor<1,dim,real>,nstate>> &flux_coeffs, 
-	const dealii::FEValues<dim,dim> &fe_values_input,
-	const std::vector<dealii::types::global_dof_index> &dof_indices,
-	typename dealii::DoFHandler<dim>::active_cell_iterator cell) const
+    std::vector<std::array<dealii::Tensor<1,dim,real>,nstate>> &flux_coeffs, 
+    const dealii::FEValues<dim,dim> &fe_values_input,
+    const std::vector<dealii::types::global_dof_index> &dof_indices,
+    typename dealii::DoFHandler<dim>::active_cell_iterator cell) const
 {
     if( ! fe_values_input.get_fe().has_support_points() )
     {
@@ -467,7 +467,7 @@ void AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: get_flux_coeffs(
     for(unsigned int iquad = 0; iquad<n_quad_pts; ++iquad)
     {
         std::array< real, nstate > soln_at_q;
-		soln_at_q.fill(0.0);
+        soln_at_q.fill(0.0);
         for(unsigned int idof = 0; idof < n_dofs_cell; ++idof)
         {
             const unsigned int istate = fe_values_support_pts.get_fe().system_to_component_index(idof).first;
@@ -483,22 +483,22 @@ void AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: get_flux_coeffs(
 template<int dim, int nstate, typename real, typename MeshType>
 void AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: adapt_mesh()
 {
-	compute_cellwise_optimal_metric();
-	
-	std::unique_ptr<MetricToMeshGenerator<dim, nstate, real>> metric_to_mesh_generator
-		= std::make_unique<MetricToMeshGenerator<dim, nstate, real>> (dg->high_order_grid->mapping_fe_field, dg->triangulation);
-	metric_to_mesh_generator->generate_mesh_from_cellwise_metric(cellwise_optimal_metric);
-	
-	std::shared_ptr<HighOrderGrid<dim,double,MeshType>> new_high_order_mesh = read_gmsh <dim, dim> (
-																	metric_to_mesh_generator->get_generated_mesh_filename());
-	dg->set_high_order_grid(new_high_order_mesh);
-	dg->allocate_system();
+    compute_cellwise_optimal_metric();
+    
+    std::unique_ptr<MetricToMeshGenerator<dim, nstate, real>> metric_to_mesh_generator
+        = std::make_unique<MetricToMeshGenerator<dim, nstate, real>> (dg->high_order_grid->mapping_fe_field, dg->triangulation);
+    metric_to_mesh_generator->generate_mesh_from_cellwise_metric(cellwise_optimal_metric);
+    
+    std::shared_ptr<HighOrderGrid<dim,double,MeshType>> new_high_order_mesh = read_gmsh <dim, dim> (
+                                                                    metric_to_mesh_generator->get_generated_mesh_filename());
+    dg->set_high_order_grid(new_high_order_mesh);
+    dg->allocate_system();
 
-	// Need to either interpolate or initialize solution on the new mesh. Currently just set it to 0.
-	dg->solution = 0;
-	dg->solution.update_ghost_values();
+    // Need to either interpolate or initialize solution on the new mesh. Currently just set it to 0.
+    dg->solution = 0;
+    dg->solution.update_ghost_values();
 
-	metric_to_mesh_generator->delete_generated_files();
+    metric_to_mesh_generator->delete_generated_files();
 }
 
 // Instantiations

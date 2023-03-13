@@ -24,61 +24,61 @@ template <int dim, int nstate, typename real, typename MeshType = dealii::parall
 #endif
 class MetricToMeshGenerator {
 
-	using VectorType = dealii::LinearAlgebra::distributed::Vector<double>; ///< Alias for dealii's parallel distributed vector.
-	using DoFHandlerType = dealii::DoFHandler<dim>; ///< Alias for declaring DofHandler
+    using VectorType = dealii::LinearAlgebra::distributed::Vector<double>; ///< Alias for dealii's parallel distributed vector.
+    using DoFHandlerType = dealii::DoFHandler<dim>; ///< Alias for declaring DofHandler
 
 public:
-	/// Constructor.
-	MetricToMeshGenerator(
-		std::shared_ptr<dealii::MappingFEField<dim,dim,VectorType,DoFHandlerType>> _volume_nodes_mapping,
-		std::shared_ptr<MeshType> _triangulation);
+    /// Constructor.
+    MetricToMeshGenerator(
+        std::shared_ptr<dealii::MappingFEField<dim,dim,VectorType,DoFHandlerType>> _volume_nodes_mapping,
+        std::shared_ptr<MeshType> _triangulation);
 
-	/// Destructor
-	~MetricToMeshGenerator(){};
-	
-	/// Generates mesh from the input cellwise metric.
-	void generate_mesh_from_cellwise_metric(const std::vector<dealii::Tensor<2, dim, real>> &cellwise_optimal_metric);
+    /// Destructor
+    ~MetricToMeshGenerator(){};
+    
+    /// Generates mesh from the input cellwise metric.
+    void generate_mesh_from_cellwise_metric(const std::vector<dealii::Tensor<2, dim, real>> &cellwise_optimal_metric);
 
-	/// Returns name of the .msh file
-	std::string get_generated_mesh_filename() const;
+    /// Returns name of the .msh file
+    std::string get_generated_mesh_filename() const;
 
-	/// Deletes the .pos, .geo and .msh files that have been generated. Needs to be called after the new mesh is read in.
-	void delete_generated_files() const;
+    /// Deletes the .pos, .geo and .msh files that have been generated. Needs to be called after the new mesh is read in.
+    void delete_generated_files() const;
 
 private:
-	/// Reinitialize dof handler vertices after updating triangulation.
-	void reinit();
-	
-	/// Interpolates cellwise metric field to vertices.
-	void interpolate_metric_to_vertices(const std::vector<dealii::Tensor<2, dim, real>> &cellwise_optimal_metric);
+    /// Reinitialize dof handler vertices after updating triangulation.
+    void reinit();
+    
+    /// Interpolates cellwise metric field to vertices.
+    void interpolate_metric_to_vertices(const std::vector<dealii::Tensor<2, dim, real>> &cellwise_optimal_metric);
 
-	/// Writes .geo file
-	void write_geo_file() const;
+    /// Writes .geo file
+    void write_geo_file() const;
 
-	/// Writes .pos file.
-	void write_pos_file() const;
-	
-	
-	/// Mapping field to update physical quadrature points, jacobians etc with the movement of volume nodes.
-	std::shared_ptr<dealii::MappingFEField<dim,dim,VectorType,DoFHandlerType>> volume_nodes_mapping;
+    /// Writes .pos file.
+    void write_pos_file() const;
+    
+    
+    /// Mapping field to update physical quadrature points, jacobians etc with the movement of volume nodes.
+    std::shared_ptr<dealii::MappingFEField<dim,dim,VectorType,DoFHandlerType>> volume_nodes_mapping;
 
-	/// Stores triangulation currently in use.
-	std::shared_ptr<MeshType> triangulation;
-	
-	/// DoFHandler to get global index of vertices.
-	dealii::DoFHandler<dim> dof_handler_vertices;
+    /// Stores triangulation currently in use.
+    std::shared_ptr<MeshType> triangulation;
+    
+    /// DoFHandler to get global index of vertices.
+    dealii::DoFHandler<dim> dof_handler_vertices;
 
-	/// Continuous FE of degree 1. 
-	const dealii::FE_Q<dim> fe_q;
+    /// Continuous FE of degree 1. 
+    const dealii::FE_Q<dim> fe_q;
 
-	///FESystem for vertices, created with nstate = 1 to relate an entire vertex of size dim by a single dof.
-	const dealii::FESystem<dim> fe_system;
-	
-	/// Stores optimal metric at vertices
-	std::vector<dealii::Tensor<2, dim, real>> optimal_metric_at_vertices;
+    ///FESystem for vertices, created with nstate = 1 to relate an entire vertex of size dim by a single dof.
+    const dealii::FESystem<dim> fe_system;
+    
+    /// Stores optimal metric at vertices
+    std::vector<dealii::Tensor<2, dim, real>> optimal_metric_at_vertices;
 
-	/// Stores all vertices
-	std::vector<dealii::Point<dim>> all_vertices;
+    /// Stores all vertices
+    std::vector<dealii::Point<dim>> all_vertices;
 
     /// Alias for MPI_COMM_WORLD
     MPI_Comm mpi_communicator;
@@ -91,15 +91,15 @@ private:
 
     /// Total no. of processors
     int n_mpi;
-	/// Name of the file.
-	const std::string filename;
-	/// .pos file.
-	const std::string filename_pos;
-	/// .geo file
-	const std::string filename_geo;
-	/// .geo file
-	const std::string filename_msh;
-	
+    /// Name of the file.
+    const std::string filename;
+    /// .pos file.
+    const std::string filename_pos;
+    /// .geo file
+    const std::string filename_geo;
+    /// .geo file
+    const std::string filename_msh;
+    
 }; // class ends
 
 } // PHiLiP namespace

@@ -8,7 +8,7 @@
 
 namespace PHiLiP {
 
-/// Initial condition function used to initialize a particular flow setup/case
+/// Exact solution function used for a particular flow setup/case
 template <int dim, int nstate, typename real>
 class ExactSolutionFunction : public dealii::Function<dim,real>
 {
@@ -21,11 +21,11 @@ public:
     /// Destructor
     ~ExactSolutionFunction() {};
 
-    /// Value of the initial condition
+    /// Value of the exact solution at a point 
     virtual real value (const dealii::Point<dim,real> &point, const unsigned int istate = 0) const = 0;
 };
 
-/// Initial Condition Function: Zero Function; used as a placeholder when there is no exact solution
+/// Exact Solution Function: Zero Function; used as a placeholder when there is no exact solution
 template <int dim, int nstate, typename real>
 class ExactSolutionFunction_Zero
         : public ExactSolutionFunction<dim,nstate,real>
@@ -34,17 +34,17 @@ protected:
     using dealii::Function<dim,real>::value; ///< dealii::Function we are templating on
 
 public:
-    /// Constructor for InitialConditionFunction_Zero
+    /// Constructor for ExactSolutionFunction_Zero
     ExactSolutionFunction_Zero (double time_compare);
 
     /// Time at which to compute the exact solution
-    double t; 
+    const double t; 
 
-    /// Value of initial condition
+    /// Value of the exact solution at a point 
     real value (const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
 };
 
-/// Initial Condition Function: 1D Sine Function; used for temporal convergence
+/// Exact Solution Function: 1D Sine Function; used for temporal convergence
 template <int dim, int nstate, typename real>
 class ExactSolutionFunction_1DSine
         : public ExactSolutionFunction<dim,nstate,real>
@@ -53,28 +53,47 @@ protected:
     using dealii::Function<dim,real>::value; ///< dealii::Function we are templating on
 
 public:
-    /// Constructor for InitialConditionFunction_1DSine
+    /// Constructor for ExactSolutionFunction_1DSine
     /** Calls the Function(const unsigned int n_components) constructor in deal.II*/
     ExactSolutionFunction_1DSine (double time_compare);
 
     /// Time at which to compute the exact solution
-    double t; 
+    const double t; 
 
-    /// Value of initial condition
+    /// Value of the exact solution at a point 
     real value (const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
 };
 
+/// Exact Solution Function: Isentropic vortex 
+template <int dim, int nstate, typename real>
+class ExactSolutionFunction_IsentropicVortex
+        : public ExactSolutionFunction<dim,nstate,real>
+{
+protected:
+    using dealii::Function<dim,real>::value; ///< dealii::Function we are templating on
 
-/// Initial condition function factory
+public:
+    /// Constructor for ExactSolutionFunction_IsentropicVortex
+    /** Calls the Function(const unsigned int n_components) constructor in deal.II*/
+    ExactSolutionFunction_IsentropicVortex (double time_compare);
+
+    /// Time at which to compute the exact solution
+    const double t; 
+
+    /// Value of the exact solution at a point 
+    real value (const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
+};
+
+/// Exact solution function factory
 template <int dim, int nstate, typename real>
 class ExactSolutionFactory
 {
 protected:    
-    /// Enumeration of all flow solver initial conditions types defined in the Parameters class
+    /// Enumeration of all flow solver exact solutions types defined in the Parameters class
     using FlowCaseEnum = Parameters::FlowSolverParam::FlowCaseType;
 
 public:
-    /// Construct InitialConditionFunction object from global parameter file
+    /// Construct ExactSolutionFunction object from global parameter file
     static std::shared_ptr<ExactSolutionFunction<dim,nstate,real>>
         create_ExactSolutionFunction(const Parameters::FlowSolverParam& flow_solver_parameters, const double time_compare);
 };

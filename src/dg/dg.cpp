@@ -2043,7 +2043,7 @@ void DGBase<dim,real,MeshType>::output_results_vtk (const unsigned int cycle, co
     // If higher-order vtk output is not enabled, passing 0 will be interpreted as DataOutInterface::default_subdivisions
     const int n_subdivisions = (enable_higher_order_vtk_output) ? std::max(grid_degree,get_max_fe_degree()) : 0;
     data_out.build_patches(mapping, n_subdivisions, curved);
-    const bool write_higher_order_cells = (n_subdivisions>1) ? true : false;
+    const bool write_higher_order_cells = (n_subdivisions>1 && dim>1) ? true : false;
     dealii::DataOutBase::VtkFlags vtkflags(current_time,cycle,true,dealii::DataOutBase::VtkFlags::ZlibCompressionLevel::best_compression,write_higher_order_cells);
     data_out.set_flags(vtkflags);
 

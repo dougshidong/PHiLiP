@@ -105,7 +105,7 @@ void MetricToMeshGenerator<dim, nstate, real, MeshType> :: interpolate_metric_to
     } // cell loop ends
 
 //================================ Interpolate metric field ================================================
-
+//  Using Eq. 2.56 in Dolejší, Vít, and Georg May (2022). Anisotropic hp-Mesh Adaptation Methods: Theory, implementation and applications.
     std::vector<int> metric_count_at_vertices; // initialized to 0
     metric_count_at_vertices.resize(n_vertices);
 
@@ -190,7 +190,7 @@ void MetricToMeshGenerator<dim, nstate, real, MeshType> :: write_pos_file() cons
     AssertDimension(fe_system.dofs_per_cell, dealii::GeometryInfo<dim>::vertices_per_cell);
     
     // Based on gmsh/tutorials/t17_bgmesh.pos in GMSH4.11.1.
-    // Adapted from GridRefinement::Gmsh_Out::write_pos_anisotropic() to use metric field at nodes. Might need to figure out a way to link it with GridRefinement in future.
+    // Adapted from GridRefinement::Gmsh_Out::write_pos_anisotropic() and modified to use metric field at nodes. 
     const std::string quotes = "\"";
     std::ofstream outfile(filename_pos);
     outfile<<"// Background mesh with containing optimal metric field."<<'\n'; 

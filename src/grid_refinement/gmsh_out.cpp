@@ -414,7 +414,7 @@ void GmshOut<dim,real>::write_geo_hyper_cube(
             out << '\n';
         }
 
-		out<<"Physical Surface(\"surf1\", 5) = {1};"<<'\n';
+        out<<"Physical Surface(\"surf1\", 5) = {1};"<<'\n';
     }
 
 }

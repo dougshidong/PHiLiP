@@ -336,7 +336,7 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     else if (test_string == "euler_naca0012")                           { test_type = euler_naca0012; }
     else if (test_string == "optimization_inverse_manufactured")        { test_type = optimization_inverse_manufactured; }
     else if (test_string == "dual_weighted_residual_mesh_adaptation")   { test_type = dual_weighted_residual_mesh_adaptation; }
-    else if (test_string == "anisotropic_mesh_adaptation")				{ test_type = anisotropic_mesh_adaptation; }
+    else if (test_string == "anisotropic_mesh_adaptation")              { test_type = anisotropic_mesh_adaptation; }
     else if (test_string == "taylor_green_vortex_energy_check")         { test_type = taylor_green_vortex_energy_check; }
     else if (test_string == "taylor_green_vortex_restart_check")        { test_type = taylor_green_vortex_restart_check; }
     else if (test_string == "homogeneous_isotropic_turbulence_initialization_check")

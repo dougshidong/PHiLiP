@@ -5,7 +5,9 @@
 #include <deal.II/lac/vector.h>
 #include <deal.II/base/function.h>
 #include "parameters/all_parameters.h"
+#include "ADTypes.hpp"
 #include "../euler.h" // for FreeStreamInitialConditions
+#include "../negative_spalart_allmaras_rans_model.h" // for FreeStreamInitialConditions_RANS_SA_negative
 
 namespace PHiLiP {
 
@@ -57,6 +59,51 @@ public:
     double value (const dealii::Point<dim> &/*point*/, const unsigned int istate) const
     {
         return farfield_conservative[istate];
+    }
+};
+
+/// Function used to evaluate farfield conservative solution for Reynolds-averaged Navier-Stokes (RANS) with SA negative turbulence model
+template <int dim, int nstate, typename real>
+class FreeStreamInitialConditions_RANS_SA_negative : public InitialConditionFunction<dim,nstate,real>
+{
+protected:
+    using dealii::Function<dim,real>::value; ///< dealii::Function we are templating on
+
+public:
+    /// Farfield RANS with SA negative model conservative solution
+    std::array<double,nstate> RANS_SA_neg_farfield_conservative;
+
+    /// Constructor.
+    /** Evaluates the primary farfield solution and converts it into the store RANS_SA_neg_farfield_conservative solution
+     */
+    FreeStreamInitialConditions_RANS_SA_negative (const Physics::NavierStokes<dim,dim+2,double> &rans_physics)
+            : InitialConditionFunction<dim,nstate,real>()
+    {
+        std::array<double,dim+2> RANS_farfield_conservative;
+
+        const double density_ic = rans_physics.density_inf;
+        const double pressure_ic = 1.0/(rans_physics.gam*rans_physics.mach_inf_sqr);
+        std::array<double,dim+2> primitive_rans_initial_values;
+        primitive_rans_initial_values[0] = density_ic;
+        for (int d=0;d<dim;d++) { primitive_rans_initial_values[1+d] = rans_physics.velocities_inf[d]; }
+        primitive_rans_initial_values[1+dim] = pressure_ic;
+        RANS_farfield_conservative = rans_physics.convert_primitive_to_conservative(primitive_rans_initial_values);
+
+        const double sa_viscosity_ic = 3.0*rans_physics.viscosity_coefficient_inf;
+        const double SA_neg_farfield_conservative = density_ic*sa_viscosity_ic;
+        for (int i=0;i<dim+2;++i){
+            RANS_SA_neg_farfield_conservative[i] = RANS_farfield_conservative[i];
+        }
+        for (int i=dim+2;i<nstate;++i){
+            RANS_SA_neg_farfield_conservative[i] = SA_neg_farfield_conservative;
+        }
+    }
+
+    /// Returns the istate-th farfield conservative value
+    double value (const dealii::Point<dim> &/*point*/, const unsigned int istate) const
+    {
+
+        return RANS_SA_neg_farfield_conservative[istate];
     }
 };
 

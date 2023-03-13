@@ -34,13 +34,13 @@ void flat_plate_cube(std::shared_ptr<TriangulationType> &grid,
             for (unsigned int face=0; face<dealii::GeometryInfo<dim>::faces_per_cell; ++face) {
                 if (cell->face(face)->at_boundary()) {
                     unsigned int current_id = cell->face(face)->boundary_id();
-                    if (current_id == 0) cell->face(face)->set_boundary_id (1005);
-                    if (current_id == 1) cell->face(face)->set_boundary_id (1005);
+                    if (current_id == 0) cell->face(face)->set_boundary_id (1003);
+                    if (current_id == 1) cell->face(face)->set_boundary_id (1002);
                     if (current_id == 2) {
                         if (cell->face(face)->center()[0]<=0.0){
-                            cell->face(face)->set_boundary_id (1006);
+                            cell->face(face)->set_boundary_id (1005);
                         }else{
-                            cell->face(face)->set_boundary_id (1001);
+                            cell->face(face)->set_boundary_id (1006);
                         }
                     }
                     if (current_id == 3) cell->face(face)->set_boundary_id (1005);

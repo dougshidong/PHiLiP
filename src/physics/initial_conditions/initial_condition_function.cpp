@@ -446,7 +446,26 @@ InitialConditionFactory<dim,nstate, real>::create_InitialConditionFunction(
         if constexpr (dim==2 && nstate==1)  return std::make_shared<InitialConditionFunction_Zero<dim,nstate,real> > ();
     } else if (flow_type == FlowCaseEnum::flat_plate_2D) {
         if constexpr (dim==2 && nstate==1)  return std::make_shared<InitialConditionFunction_PositiveConstant<dim,nstate,real> > ();
-        if constexpr (dim==2 && nstate==dim+3)  return std::make_shared<InitialConditionFunction_PositiveConstant<dim,nstate,real> > ();
+        if constexpr (dim==2 && nstate==dim+3) {
+            Physics::NavierStokes<dim,dim+2,double> rans_double = Physics::NavierStokes<dim, dim+2, double>(
+                    param->euler_param.ref_length,
+                    param->euler_param.gamma_gas,
+                    param->euler_param.mach_inf,
+                    param->euler_param.angle_of_attack,
+                    param->euler_param.side_slip_angle,
+                    param->navier_stokes_param.prandtl_number,
+                    param->navier_stokes_param.reynolds_number_inf);
+            //Physics::ReynoldsAveragedNavierStokes_SAneg<dim,nstate,double> rans_sa_neg_double = Physics::ReynoldsAveragedNavierStokes_SAneg<dim, nstate, double>(
+            //        param->euler_param.ref_length,
+            //        param->euler_param.gamma_gas,
+            //        param->euler_param.mach_inf,
+            //        param->euler_param.angle_of_attack,
+            //        param->euler_param.side_slip_angle,
+            //        param->navier_stokes_param.prandtl_number,
+            //        param->navier_stokes_param.reynolds_number_inf,
+            //        param->physics_model_param.turbulent_prandtl_number);
+            return std::make_shared<FreeStreamInitialConditions_RANS_SA_negative<dim,nstate,real> > (rans_double);
+        }
     } else {
         std::cout << "Invalid Flow Case Type. You probably forgot to add it to the list of flow cases in initial_condition_function.cpp" << std::endl;
         std::abort();

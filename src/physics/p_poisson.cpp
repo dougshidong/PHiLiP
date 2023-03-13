@@ -494,27 +494,13 @@ void p_Poisson<dim,nstate,real>
 //----------------------------------------------------------------
 template <int dim, int nstate, typename real>
 void p_Poisson<dim,nstate,real>
-::boundary_farfield (
+::boundary_zero_gradient (
    const std::array<real,nstate> &soln_int,
    const std::array<dealii::Tensor<1,dim,real>,nstate> &/*soln_grad_int*/,
    std::array<real,nstate> &soln_bc,
    std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_bc) const
 {
    for (int istate=0; istate<nstate; ++istate) {
-        soln_bc[istate] = soln_int[istate];
-        soln_grad_bc[istate] = 0.0;
-    }
-}
-//----------------------------------------------------------------
-template <int dim, int nstate, typename real>
-void p_Poisson<dim,nstate,real>
-::boundary_slip_wall (
-   const std::array<real,nstate> &soln_int,
-   const std::array<dealii::Tensor<1,dim,real>,nstate> &/*soln_grad_int*/,
-   std::array<real,nstate> &soln_bc,
-   std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_bc) const
-{
-    for (int istate=0; istate<nstate; ++istate) {
         soln_bc[istate] = soln_int[istate];
         soln_grad_bc[istate] = 0.0;
     }
@@ -542,26 +528,23 @@ void p_Poisson<dim,nstate,real>
     } 
     else if (boundary_type == 1002) {
         // Pressure outflow boundary condition 
-        std::cout << "Pressure outflow boundary condition is not implemented!" << std::endl;
-        std::abort();
+        boundary_zero_gradient(soln_int,soln_grad_int,soln_bc,soln_grad_bc);
     } 
     else if (boundary_type == 1003) {
         // Inflow boundary condition
-        std::cout << "Inflow boundary condition is not implemented!" << std::endl;
-        std::abort();
+        boundary_zero_gradient(soln_int,soln_grad_int,soln_bc,soln_grad_bc);
     } 
     else if (boundary_type == 1004) {
         // Riemann-based farfield boundary condition
-        std::cout << "Riemann boundary condition is not implemented!" << std::endl;
-        std::abort();
+        boundary_zero_gradient(soln_int,soln_grad_int,soln_bc,soln_grad_bc);
     } 
     else if (boundary_type == 1005) {
         // Simple farfield boundary condition
-        boundary_farfield(soln_int,soln_grad_int,soln_bc,soln_grad_bc);
+        boundary_zero_gradient(soln_int,soln_grad_int,soln_bc,soln_grad_bc);
     } 
     else if (boundary_type == 1006) {
         // Slip wall boundary condition
-        boundary_slip_wall(soln_int,soln_grad_int,soln_bc,soln_grad_bc);
+        boundary_wall (soln_int,soln_grad_int,soln_bc,soln_grad_bc);
     }
     else if (boundary_type == 1007) {
         // Symmetric boundary condition

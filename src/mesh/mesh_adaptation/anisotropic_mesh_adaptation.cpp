@@ -22,6 +22,7 @@ AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: AnisotropicMeshAdaptat
     , mpi_communicator(MPI_COMM_WORLD)
     , pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(mpi_communicator)==0)
 	, initial_poly_degree(dg->get_min_fe_degree())
+	, max_dofs_per_cell(dg->dof_handler.get_fe_collection().max_dofs_per_cell())
 {
     MPI_Comm_rank(mpi_communicator, &mpi_rank);
     MPI_Comm_size(mpi_communicator, &n_mpi);
@@ -263,7 +264,7 @@ void AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: compute_feature_b
 	const dealii::UpdateFlags update_flags = dealii::update_values | dealii::update_gradients | dealii::update_hessians | dealii::update_quadrature_points | dealii::update_JxW_values;
 	dealii::hp::FEValues<dim,dim>   fe_values_collection_volume (mapping_collection, dg->fe_collection, dg->volume_quadrature_collection, update_flags);
 	
-	std::vector<dealii::types::global_dof_index> dof_indices;
+	std::vector<dealii::types::global_dof_index> dof_indices(max_dofs_per_cell);
 
 	for(const auto &cell : dg->dof_handler.active_cell_iterators())
 	{
@@ -319,7 +320,7 @@ void AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: compute_goal_orie
 		const dealii::UpdateFlags update_flags = dealii::update_values | dealii::update_gradients | dealii::update_quadrature_points | dealii::update_JxW_values;
 		dealii::hp::FEValues<dim,dim>   fe_values_collection_volume (mapping_collection, dg->fe_collection, dg->volume_quadrature_collection, update_flags);
 		
-		std::vector<dealii::types::global_dof_index> dof_indices;
+		std::vector<dealii::types::global_dof_index> dof_indices(max_dofs_per_cell);
 
 		for(const auto &cell : dg->dof_handler.active_cell_iterators())
 		{
@@ -364,7 +365,7 @@ void AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: compute_goal_orie
 	const dealii::UpdateFlags update_flags = dealii::update_values | dealii::update_gradients | dealii::update_hessians | dealii::update_quadrature_points | dealii::update_JxW_values;
 	dealii::hp::FEValues<dim,dim>   fe_values_collection_volume (mapping_collection, dg->fe_collection, dg->volume_quadrature_collection, update_flags);
 	
-	std::vector<dealii::types::global_dof_index> dof_indices;
+	std::vector<dealii::types::global_dof_index> dof_indices(max_dofs_per_cell);
 
 	for(const auto &cell : dg->dof_handler.active_cell_iterators())
 	{

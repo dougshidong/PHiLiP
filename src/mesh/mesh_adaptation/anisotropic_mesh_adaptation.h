@@ -118,6 +118,9 @@ private:
 
 	/// Stores optimal metric in each cell
 	std::vector<dealii::Tensor<2, dim, real>> cellwise_optimal_metric;
+	
+	/// Stores max dofs per cell to initialize dof_indices.
+	const unsigned int max_dofs_per_cell;
 };
 
 } // PHiLiP namepsace

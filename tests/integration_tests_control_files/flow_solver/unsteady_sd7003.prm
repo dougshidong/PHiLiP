@@ -49,7 +49,7 @@ subsection flow_solver
   set flow_case_type = gaussian_bump
   set poly_degree = 0
   set final_time = 10.0
-  # set courant_friedrich_lewy_number = 0.01
+  # set courant_friedrichs_lewy_number = 0.01
   set unsteady_data_table_filename = sd7003_unsteady_data_table
   subsection grid
     set input_mesh_filename = ../../meshes/SD7003

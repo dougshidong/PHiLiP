@@ -304,8 +304,11 @@ void AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: compute_feature_b
 template<int dim, int nstate, typename real, typename MeshType>
 void AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: compute_goal_oriented_hessian()
 {
-    // I am not sure if the adjoint gradient is to be evaluated on coarse or fine space.
-    // From INRIA's paper, it looks like they are evaluating adjoint at p1, so it is being evaluated at coarse space here.
+    // Compute goal oriented pseudo hessian.
+    // From Eq. 28 in Loseille, A., Dervieux, A., and Alauzet, F. "Fully anisotropic goal-oriented mesh adaptation for 3D steady Euler equations.", 2010.
+    // Also, as suggested in the footnote on page 78 in Dervieux, A. et al. Mesh Adaptation for Computational Fluid Dynamics 2. 2022, metric terms related to 
+    // faces do not make a difference and hence are not included.
+    
     // Compute the adjoint ===================================================================
     VectorType adjoint(dg->solution); 
     dg->assemble_residual(true);
@@ -314,6 +317,9 @@ void AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: compute_goal_orie
     adjoint *= -1.0;
     adjoint.update_ghost_values();
     //==========================================================================================
+
+    // I am not sure if the adjoint gradient is to be evaluated on coarse or fine space.
+    // From INRIA's paper, it looks like they are evaluating adjoint at p1, so it is being evaluated at coarse space here.
     // Compute adjoint gradient
     std::vector<std::array<dealii::Tensor<1, dim, real>, nstate>> adjoint_gradient(dg->triangulation->n_active_cells());
     {
@@ -357,10 +363,6 @@ void AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: compute_goal_orie
     reconstruct_p2_solution();
   
     pcout<<"Computing goal-oriented Hessian."<<std::endl;
-    // Compute goal oriented pseudo hessian.
-    // From Eq. 28 in Loseille, A., Dervieux, A., and Alauzet, F. "Fully anisotropic goal-oriented mesh adaptation for 3D steady Euler equations.", 2010.
-    // Also, as suggested in the footnote on page 78 in Dervieux, A. et al. Mesh Adaptation for Computational Fluid Dynamics 2. 2022, metric terms related to 
-    // faces do not make a difference and hence are not included.
     //const auto mapping = (*(dg->high_order_grid->mapping_fe_field)); // CHANGE IT BACK
     dealii::MappingQGeneric<dim, dim> mapping(dg->high_order_grid->dof_handler_grid.get_fe().degree);
     dealii::hp::MappingCollection<dim> mapping_collection(mapping);

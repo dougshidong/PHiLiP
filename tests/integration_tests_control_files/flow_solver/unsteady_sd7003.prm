@@ -7,8 +7,8 @@ set run_type = flow_simulation
 set pde_type = navier_stokes
 
 # DG formulation
-set use_weak_form = true
-# set use_collocated_nodes = true
+set use_weak_form = false
+set flux_nodes_type = GLL
 
 # numerical fluxes
 set conv_num_flux = roe
@@ -19,7 +19,7 @@ subsection ODE solver
   set ode_output = quiet
   set ode_solver_type = runge_kutta
   set output_solution_every_x_steps = 1
-  set initial_time_step = 1e-8
+  set initial_time_step = 1.0e-5
   set runge_kutta_method = ssprk3_ex
 end
 
@@ -27,27 +27,30 @@ end
 # - References for flow variables:
 # - (1) Uranga et al. 
 # - (2) Garmann et al.
+# - (3) Vermeire, Witherden, and Vincent (JCP, 2017)
 # ----------------------------------------
 
 # freestream Mach number
 subsection euler
   set reference_length = 1.0
   set mach_infinity = 0.2
-  set angle_of_attack = 4.0
-  # set mach_infinity = 0.1
-  # set angle_of_attack = 8.0
+  set angle_of_attack = 8.0
+  # note: remove this AoA parameter once the airfoil in the mesh is actually 8 degree AoA
 end
 
 # freestream Reynolds number and Prandtl number
 subsection navier_stokes
-  set prandtl_number = 0.71
+  set prandtl_number = 0.72
   set reynolds_number_inf = 60000.0
+  set thermal_boundary_condition_type = adiabatic
+  set use_constant_viscosity = true
+  set nondimensionalized_constant_viscosity = 1.0
 end
 
 subsection flow_solver
-  # set flow_case_type = naca0012
-  set flow_case_type = gaussian_bump
-  set poly_degree = 0
+  set flow_case_type = naca0012
+  set steady_state = false
+  set poly_degree = 1
   set final_time = 10.0
   # set courant_friedrichs_lewy_number = 0.01
   set unsteady_data_table_filename = sd7003_unsteady_data_table

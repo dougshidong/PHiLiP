@@ -25,6 +25,8 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                           " advection | "
                           " periodic_1D_unsteady | "
                           " gaussian_bump | "
+                          " isentropic_vortex | "
+                          " kelvin_helmholtz_instability | "
                           " sshock "),
                           "The type of flow we want to simulate. "
                           "Choices are "
@@ -38,6 +40,8 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                           " advection | "
                           " periodic_1D_unsteady | "
                           " gaussian_bump | "
+                          " isentropic_vortex | "
+                          " kelvin_helmholtz_instability | "
                           " sshock>. ");
 
         prm.declare_entry("poly_degree", "1",
@@ -58,7 +62,7 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                           dealii::Patterns::Double(0, dealii::Patterns::Double::max_double_value),
                           "Constant time step.");
 
-        prm.declare_entry("courant_friedrich_lewy_number", "1",
+        prm.declare_entry("courant_friedrichs_lewy_number", "1",
                           dealii::Patterns::Double(0, dealii::Patterns::Double::max_double_value),
                           "Courant-Friedrich-Lewy (CFL) number for constant time step.");
 
@@ -235,6 +239,15 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
         }
         prm.leave_subsection();
 
+        prm.enter_subsection("kelvin_helmholtz_instability");
+        {
+            prm.declare_entry("atwood_number", "0.5",
+                              dealii::Patterns::Double(0.0, 1.0),
+                              "Atwood number, which characterizes the density difference "
+                              "between the layers of fluid.");
+        }
+        prm.leave_subsection();
+
         prm.declare_entry("apply_initial_condition_method", "interpolate_initial_condition_function",
                           dealii::Patterns::Selection(
                           " interpolate_initial_condition_function | "
@@ -302,6 +315,9 @@ void FlowSolverParam::parse_parameters(dealii::ParameterHandler &prm)
         else if (flow_case_type_string == "advection")                  {flow_case_type = advection;}
         else if (flow_case_type_string == "periodic_1D_unsteady")       {flow_case_type = periodic_1D_unsteady;}
         else if (flow_case_type_string == "gaussian_bump")              {flow_case_type = gaussian_bump;}
+        else if (flow_case_type_string == "isentropic_vortex")          {flow_case_type = isentropic_vortex;}
+        else if (flow_case_type_string == "kelvin_helmholtz_instability")   
+                                                                        {flow_case_type = kelvin_helmholtz_instability;}
         else if (flow_case_type_string == "sshock")                     {flow_case_type = sshock;}
 
         poly_degree = prm.get_integer("poly_degree");
@@ -313,7 +329,7 @@ void FlowSolverParam::parse_parameters(dealii::ParameterHandler &prm)
         
         final_time = prm.get_double("final_time");
         constant_time_step = prm.get_double("constant_time_step");
-        courant_friedrich_lewy_number = prm.get_double("courant_friedrich_lewy_number");
+        courant_friedrichs_lewy_number = prm.get_double("courant_friedrichs_lewy_number");
         unsteady_data_table_filename = prm.get("unsteady_data_table_filename");
         steady_state = prm.get_bool("steady_state");
         steady_state_polynomial_ramping = prm.get_bool("steady_state_polynomial_ramping");
@@ -373,6 +389,12 @@ void FlowSolverParam::parse_parameters(dealii::ParameterHandler &prm)
             if      (density_initial_condition_type_string == "uniform")    {density_initial_condition_type = uniform;}
             else if (density_initial_condition_type_string == "isothermal") {density_initial_condition_type = isothermal;}
             do_calculate_numerical_entropy = prm.get_bool("do_calculate_numerical_entropy");
+        }
+        prm.leave_subsection();
+
+        prm.enter_subsection("kelvin_helmholtz_instability");
+        {
+            atwood_number = prm.get_double("atwood_number");
         }
         prm.leave_subsection();
 

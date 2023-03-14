@@ -28,9 +28,11 @@ set(TESTS_SOURCE
     reduced_order.cpp
     time_refinement_study.cpp
     time_refinement_study_reference.cpp
+    h_refinement_study_isentropic_vortex.cpp
     burgers_energy_conservation_rrk.cpp
     euler_entropy_conserving_split_forms_check.cpp
     homogeneous_isotropic_turbulence_initialization_check.cpp
+    khi_robustness.cpp
     )
 
 foreach(dim RANGE 1 3)

@@ -26,6 +26,8 @@ public:
         advection,
         periodic_1D_unsteady,
         gaussian_bump,
+        isentropic_vortex,
+        kelvin_helmholtz_instability,
         sshock
         };
     FlowCaseType flow_case_type; ///< Selected FlowCaseType from the input file
@@ -34,7 +36,7 @@ public:
     unsigned int max_poly_degree_for_adaptation; ///< Maximum polynomial order of the DG basis functions for adaptation.
     double final_time; ///< Final solution time
     double constant_time_step; ///< Constant time step
-    double courant_friedrich_lewy_number; ///< Courant-Friedrich-Lewy (CFL) number for constant time step
+    double courant_friedrichs_lewy_number; ///< Courant-Friedrich-Lewy (CFL) number for constant time step
 
     /** Name of the output file for writing the unsteady data;
      *  will be written to file: unsteady_data_table_filename.txt */
@@ -113,6 +115,9 @@ public:
     DensityInitialConditionType density_initial_condition_type;
     /// For TGV, flag to calculate and write numerical entropy
     bool do_calculate_numerical_entropy;
+
+    /// For KHI, the atwood number
+    double atwood_number;
 
     /// Declares the possible variables and sets the defaults.
     static void declare_parameters (dealii::ParameterHandler &prm);

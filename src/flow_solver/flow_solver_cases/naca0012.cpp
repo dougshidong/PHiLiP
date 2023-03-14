@@ -35,7 +35,7 @@ void NACA0012<dim,nstate>::display_additional_flow_case_specific_parameters() co
     if (pde_type == PDE_enum::navier_stokes){
         this->pcout << "- - Freestream Reynolds number: " << this->all_param.navier_stokes_param.reynolds_number_inf << std::endl;
     }
-    this->pcout << "- - Courant-Friedrich-Lewy number: " << this->all_param.flow_solver_param.courant_friedrich_lewy_number << std::endl;
+    this->pcout << "- - Courant-Friedrichs-Lewy number: " << this->all_param.flow_solver_param.courant_friedrichs_lewy_number << std::endl;
     this->pcout << "- - Freestream Mach number: " << this->all_param.euler_param.mach_inf << std::endl;
     const double pi = atan(1.0) * 4.0;
     this->pcout << "- - Angle of attack [deg]: " << this->all_param.euler_param.angle_of_attack*180/pi << std::endl;

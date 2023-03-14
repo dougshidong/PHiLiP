@@ -127,7 +127,8 @@ void AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: compute_cellwise_
         abs_hessian_determinant[cell_index] = dealii::determinant(cellwise_hessian[cell_index]);    
     }
 
-    // Using Eq 4.40, page 153 in Dervieux, A. et al. Mesh Adaptation for Computational Fluid Dynamics 1. 2022.
+    // Using Eq 4.40, page 153 in Dervieux, A., Alauzet, F., Loseille, A., Koobus, B. (2022). Mesh Adaptation for 
+    // Computational Fluid Dynamics 1. ISTE Ltd, London, and John Wiley and Sons, New York. (ISBN: 9-781-78630-831-3).
     const auto mapping = (*(dg->high_order_grid->mapping_fe_field));
     dealii::hp::MappingCollection<dim> mapping_collection(mapping);
     const dealii::UpdateFlags update_flags = dealii::update_JxW_values;
@@ -306,8 +307,9 @@ void AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: compute_goal_orie
 {
     // Compute goal oriented pseudo hessian.
     // From Eq. 28 in Loseille, A., Dervieux, A., and Alauzet, F. "Fully anisotropic goal-oriented mesh adaptation for 3D steady Euler equations.", 2010.
-    // Also, as suggested in the footnote on page 78 in Dervieux, A. et al. Mesh Adaptation for Computational Fluid Dynamics 2. 2022, metric terms related to 
-    // faces do not make a difference and hence are not included.
+    // Also, metric terms related to faces do not make a difference and hence are not included (ref: footnote on page 78 in  
+    // Dervieux, A., Alauzet, F., Loseille, A., Koobus, B. (2022). Mesh Adaptation for 
+    // Computational Fluid Dynamics 2. ISTE Ltd, London, and John Wiley and Sons, New York. (ISBN: 9-781-78630-832-0).
     
     // Compute the adjoint ===================================================================
     VectorType adjoint(dg->solution); 

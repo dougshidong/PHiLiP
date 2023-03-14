@@ -59,6 +59,9 @@ protected:
     /// Return the entropy variables from a solution vector u
     dealii::LinearAlgebra::distributed::Vector<double> compute_entropy_vars(const dealii::LinearAlgebra::distributed::Vector<double> &u) const;
 
+    // Euler physics pointer
+    std::shared_ptr < Physics::Euler<dim, dim+2, double > > euler_physics;
+
 };
 
 } // ODE namespace

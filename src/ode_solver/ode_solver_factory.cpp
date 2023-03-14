@@ -159,7 +159,8 @@ std::shared_ptr<ODESolverBase<dim,real,MeshType>> ODESolverFactory<dim,real,Mesh
         if (pde_type == PDEEnum::burgers_inviscid){
             numerical_entropy_type = NumEntropyEnum::energy;
             numerical_entropy_string = "Energy";
-        } else if ((pde_type == PDEEnum::euler) && (two_point_num_flux_type == NumFluxEnum::IR) || two_point_num_flux_type == NumFluxEnum::Ra){
+        } else if ((pde_type == PDEEnum::euler || pde_type == PDEEnum::navier_stokes)
+                    && (two_point_num_flux_type != NumFluxEnum::KG)){
             numerical_entropy_type = NumEntropyEnum::entropy;
             numerical_entropy_string = "Entropy";
         } else{
@@ -167,7 +168,6 @@ std::shared_ptr<ODESolverBase<dim,real,MeshType>> ODESolverFactory<dim,real,Mesh
             std::abort();
         }
 
-        // TEMP: add check for permissible PDEs before merging
         pcout << "Creating " << numerical_entropy_string << " Relaxation Runge Kutta ODE Solver with " 
               << n_rk_stages << " stage(s)..." << std::endl;
         if (n_rk_stages == 1){
@@ -233,7 +233,7 @@ std::shared_ptr<RKTableauBase<dim,real,MeshType>> ODESolverFactory<dim,real,Mesh
         } else return std::make_shared<EulerExplicit<dim, real, MeshType>>  (n_rk_stages, "Forward Euler (explicit)");
     }
     if constexpr(dim==1){
-        //Only tested in 1D with Burgers and advection
+        // Implicit only tested in 1D with Burgers and advection
         using PDEEnum = Parameters::AllParameters::PartialDifferentialEquation;
         const PDEEnum pde_type = dg_input->all_parameters->pde_type;
         if ((pde_type==PDEEnum::burgers_inviscid) || (pde_type==PDEEnum::advection)){

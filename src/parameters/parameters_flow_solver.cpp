@@ -194,9 +194,9 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
 
         prm.enter_subsection("channel_flow");
         {
-            prm.declare_entry("channel_height", "2",
+            prm.declare_entry("half_channel_height", "1",
                               dealii::Patterns::Double(0, dealii::Patterns::Double::max_double_value),
-                              "Channel height. Default is 2 for a half channel height of 1.");
+                              "Half channel height. Default is 1.");
 
             prm.declare_entry("channel_friction_velocity_reynolds_number", "590",
                               dealii::Patterns::Double(0, dealii::Patterns::Double::max_double_value),
@@ -356,7 +356,7 @@ void FlowSolverParam::parse_parameters(dealii::ParameterHandler &prm)
 
         prm.enter_subsection("channel_flow");
         {
-            turbulent_channel_height = prm.get_double("channel_height");
+            turbulent_channel_half_channel_height = prm.get_double("half_channel_height");
             turbulent_channel_friction_velocity_reynolds_number = prm.get_double("channel_friction_velocity_reynolds_number");
             turbulent_channel_number_of_cells_x_direction = prm.get_integer("turbulent_channel_number_of_cells_x_direction");
             turbulent_channel_number_of_cells_y_direction = prm.get_integer("turbulent_channel_number_of_cells_y_direction");

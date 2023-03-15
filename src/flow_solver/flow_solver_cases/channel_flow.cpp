@@ -20,17 +20,18 @@ namespace FlowSolver {
 template <int dim, int nstate>
 ChannelFlow<dim, nstate>::ChannelFlow(const PHiLiP::Parameters::AllParameters *const parameters_input)
         : PeriodicTurbulence<dim, nstate>(parameters_input)
-        , channel_height(this->all_param.flow_solver_param.turbulent_channel_height)
-        , half_channel_height(0.5*channel_height)
+        , half_channel_height(this->all_param.flow_solver_param.turbulent_channel_half_channel_height)
+        , channel_height(2.0*half_channel_height)
         , channel_friction_velocity_reynolds_number(this->all_param.flow_solver_param.turbulent_channel_friction_velocity_reynolds_number)
         , number_of_cells_x_direction(this->all_param.flow_solver_param.turbulent_channel_number_of_cells_x_direction)
         , number_of_cells_y_direction(this->all_param.flow_solver_param.turbulent_channel_number_of_cells_y_direction)
         , number_of_cells_z_direction(this->all_param.flow_solver_param.turbulent_channel_number_of_cells_z_direction)
         , pi_val(3.141592653589793238)
         , domain_length_x(2.0*pi_val*half_channel_height)
-        , domain_length_y(2.0*half_channel_height)
+        , domain_length_y(channel_height)
         , domain_length_z(pi_val*half_channel_height)
         , channel_bulk_velocity_reynolds_number(pow(0.073, -4.0/7.0)*pow(2.0, 5.0/7.0)*pow(channel_friction_velocity_reynolds_number, 8.0/7.0))
+        , channel_centerline_velocity_reynolds_number(1.28*pow(2.0, -0.0116)*pow(channel_bulk_velocity_reynolds_number,1.0-0.0116));
 { }
 
 template <int dim, int nstate>
@@ -49,9 +50,10 @@ void ChannelFlow<dim,nstate>::display_additional_flow_case_specific_parameters()
 {
     this->pcout << "- - Courant-Friedrichs-Lewy number: " << this->all_param.flow_solver_param.courant_friedrichs_lewy_number << std::endl;
     this->pcout << "- - Freestream Mach number: " << this->all_param.euler_param.mach_inf << std::endl;
-    this->pcout << "- - Freestream (i.e. centerline) Reynolds number: " << this->all_param.navier_stokes_param.reynolds_number_inf << std::endl;
+    this->pcout << "- - Freestream Reynolds number: " << this->all_param.navier_stokes_param.reynolds_number_inf << std::endl;
     this->pcout << "- - Reynolds number based on wall friction velocity: " << this->channel_friction_velocity_reynolds_number << std::endl;
     this->pcout << "- - Reynolds number based on bulk velocity: " << this->channel_bulk_velocity_reynolds_number << std::endl;
+    this->pcout << "- - Reynolds number based on centerline velocity: " << this->channel_centerline_velocity_reynolds_number << std::endl;
     this->pcout << "- - Half channel height: " << this->half_channel_height << std::endl;
     this->display_grid_parameters();
 }

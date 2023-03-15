@@ -274,6 +274,9 @@ public:
       */
     void parse_parameters (dealii::ParameterHandler &prm);
 
+    /// Modify parameters after parsing for certain cases
+    void modify_parameters ();
+
     //FunctionParser<dim> initial_conditions;
     //BoundaryConditions  boundary_conditions[max_n_boundaries];
 protected:

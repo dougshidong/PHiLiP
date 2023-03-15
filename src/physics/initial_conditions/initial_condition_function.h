@@ -76,12 +76,12 @@ public:
      */
     InitialConditionFunction_TurbulentChannelFlow (
         const Physics::NavierStokes<dim,nstate,double> navier_stokes_physics_,
-        const double channel_height_,
+        const double half_channel_height_,
         const double channel_friction_velocity_reynolds_number_);
 
     const Physics::NavierStokes<dim,nstate,double> navier_stokes_physics; ///< Navier-Stokes physics object
-    const double channel_height; ///< Channel height
     const double half_channel_height; ///< Half channel height
+    const double channel_height; ///< Channel height
     const double channel_friction_velocity_reynolds_number; ///< Channel Reynolds number based on wall friction velocity
 
     /// Value of initial condition expressed in terms of conservative variables

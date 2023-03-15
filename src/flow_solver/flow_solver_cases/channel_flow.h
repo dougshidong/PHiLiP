@@ -36,8 +36,8 @@ public:
     void update_model_variables(std::shared_ptr<DGBase<dim, double>> dg) const override;
 
 protected:
-    const double channel_height; ///< Channel height
     const double half_channel_height; ///< Half channel height
+    const double channel_height; ///< Channel height
     const double channel_friction_velocity_reynolds_number; ///< Channel Reynolds number based on wall friction velocity
     const int number_of_cells_x_direction; ///< Number of cells in x-direction
     const int number_of_cells_y_direction; ///< Number of cells in y-direction
@@ -55,6 +55,15 @@ protected:
      *    Journal of Fluids Engineering, 1978 
      * */
     const double channel_bulk_velocity_reynolds_number;
+
+    /** 
+     * Centerline velocity Reynolds number computed from friction velocity based Reynolds numbers (Empirical relation)
+     * Reference:
+     *  - R. B. Dean, "Reynolds Number Dependence of Skin Friction and Other Bulk
+     *    Flow Variables in Two-Dimensional Rectangular Duct Flow", 
+     *    Journal of Fluids Engineering, 1978 
+     * */
+    const double channel_centerline_velocity_reynolds_number;
 
     double minimum_approximate_grid_spacing; ///< Minimum approximate grid spacing
 

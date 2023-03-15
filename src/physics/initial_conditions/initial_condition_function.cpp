@@ -23,12 +23,12 @@ template <int dim, int nstate, typename real>
 InitialConditionFunction_TurbulentChannelFlow<dim,nstate,real>
 ::InitialConditionFunction_TurbulentChannelFlow (
     const Physics::NavierStokes<dim,nstate,double> navier_stokes_physics_,
-    const double channel_height_,
+    const double half_channel_height_,
     const double channel_friction_velocity_reynolds_number_)
     : InitialConditionFunction<dim,nstate,real>()
     , navier_stokes_physics(navier_stokes_physics_)
-    , channel_height(channel_height_) // Note this must be nondimensional; OK if reference_length (L_inf from freestream Reynolds number) is half_channel_height
-    , half_channel_height(0.5*channel_height) // Note this must be nondimensional; OK if reference_length (L_inf from freestream Reynolds number) is half_channel_height
+    , half_channel_height(half_channel_height_)
+    , channel_height(2.0*half_channel_height)
     , channel_friction_velocity_reynolds_number(channel_friction_velocity_reynolds_number_)
 {}
 
@@ -616,7 +616,7 @@ InitialConditionFactory<dim,nstate, real>::create_InitialConditionFunction(
                     param->two_point_num_flux_type);
             return std::make_shared<InitialConditionFunction_TurbulentChannelFlow<dim,nstate,real>>(
                 navier_stokes_physics_double,
-                param->flow_solver_param.turbulent_channel_height,
+                param->flow_solver_param.turbulent_channel_half_channel_height,
                 param->flow_solver_param.turbulent_channel_friction_velocity_reynolds_number);
         }
     } else {

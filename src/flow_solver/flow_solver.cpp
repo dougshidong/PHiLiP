@@ -429,7 +429,7 @@ int FlowSolver<dim,nstate>::run() const
             pcout << "done." << std::endl;
         } else {
             // no restart:
-            pcout << "Writing unsteady data computed at initial time... " << std::endl;
+            pcout << "Writing unsteady data computed at initial time... " << std::flush;
             flow_solver_case->compute_unsteady_data_and_write_to_table(ode_solver->current_iteration, ode_solver->current_time, dg, unsteady_data_table);
             pcout << "done." << std::endl;
         }

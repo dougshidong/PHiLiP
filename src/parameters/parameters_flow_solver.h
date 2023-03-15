@@ -100,6 +100,14 @@ public:
     int turbulent_channel_number_of_cells_y_direction; ///< For channel flow, number of cells in y-direction
     int turbulent_channel_number_of_cells_z_direction; ///< For channel flow, number of cells in z-direction
 
+    /// For turbulent channel flow, selects the type of mesh stretching function
+    enum TurbulentChannelMeshStretchingFunctionType{
+        gullbrand,
+        hopw,
+        };
+    /// Selected DensityInitialConditionType from the input file
+    TurbulentChannelMeshStretchingFunctionType turbulent_channel_mesh_stretching_function_type;
+
     /// For KHI, the atwood number
     double atwood_number;
 

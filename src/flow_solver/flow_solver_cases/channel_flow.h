@@ -73,6 +73,19 @@ protected:
     /// Display grid parameters
     void display_grid_parameters() const override;
 
+    /// Return a vector of mesh step sizes in the y-direction based on the desired stretching function
+    std::vector<double> get_mesh_step_size_y_direction() const;
+
+    /** Return a vector of mesh step sizes in the y-direction based on the High-Order Prediction Workshop (HOPW) case
+     *  Reference: This stretching function comes from the structured GMSH .geo file obtained from https://how5.cenaero.be/content/ws2-les-plane-channel-ret550
+     **/
+    std::vector<double> get_mesh_step_size_y_direction_HOPW() const;
+
+    /** Return a vector of mesh step sizes in the y-direction based on Gullbrand's stretching function
+     *  Reference: Gullbrand, "Grid-independent large-eddy simulation in turbulent channel flow using three-dimensional explicit filtering", 2003.
+     **/
+    std::vector<double> get_mesh_step_size_y_direction_Gullbrand() const;
+
 public:
     /// Function to compute the adaptive time step
     double get_adaptive_time_step(std::shared_ptr<DGBase<dim,double>> dg) const override;

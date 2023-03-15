@@ -213,6 +213,15 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
             prm.declare_entry("turbulent_channel_number_of_cells_z_direction","2",
                               dealii::Patterns::Integer(0, dealii::Patterns::Integer::max_int_value),
                               "Number of cells in the z-direction for channel flow case.");
+
+            prm.declare_entry("turbulent_channel_mesh_stretching_function_type", "gullbrand",
+                              dealii::Patterns::Selection(
+                              " gullbrand | "
+                              " hopw "),
+                              "The type of mesh stretching function for channel flow case. "
+                              "Choices are "
+                              " <gullbrand | "
+                              " hopw>.");
         }
         prm.leave_subsection();
 
@@ -361,6 +370,9 @@ void FlowSolverParam::parse_parameters(dealii::ParameterHandler &prm)
             turbulent_channel_number_of_cells_x_direction = prm.get_integer("turbulent_channel_number_of_cells_x_direction");
             turbulent_channel_number_of_cells_y_direction = prm.get_integer("turbulent_channel_number_of_cells_y_direction");
             turbulent_channel_number_of_cells_z_direction = prm.get_integer("turbulent_channel_number_of_cells_z_direction");
+            const std::string turbulent_channel_mesh_stretching_function_type_string = prm.get("turbulent_channel_mesh_stretching_function_type");
+            if      (turbulent_channel_mesh_stretching_function_type_string == "gullbrand") {turbulent_channel_mesh_stretching_function_type = gullbrand;}
+            else if (turbulent_channel_mesh_stretching_function_type_string == "hopw")      {turbulent_channel_mesh_stretching_function_type = hopw;}
         }
         prm.leave_subsection();
 

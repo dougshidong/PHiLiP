@@ -89,7 +89,7 @@ double ChannelFlow<dim,nstate>::get_adaptive_time_step_initial(std::shared_ptr<D
     // initialize the maximum local wave speed
     this->update_maximum_local_wave_speed(*dg);
     // set the minimum approximate grid spacing
-    const double minimum_element_size = get_stretched_mesh_size(0)*domain_length_y;
+    const double minimum_element_size = get_mesh_step_size_y_direction()[0]; // smallest spacing occurs next to wall (i.e. first/last element)
     this->minimum_approximate_grid_spacing = minimum_element_size/double(this->all_param.flow_solver_param.poly_degree+1);
     // compute time step based on advection speed (i.e. maximum local wave speed)
     const double time_step = get_adaptive_time_step(dg);
@@ -97,14 +97,81 @@ double ChannelFlow<dim,nstate>::get_adaptive_time_step_initial(std::shared_ptr<D
 }
 
 template <int dim, int nstate>
-double ChannelFlow<dim,nstate>::get_stretched_mesh_size(const int i) const
+std::vector<double> ChannelFlow<dim,nstate>::get_mesh_step_size_y_direction() const 
 {
+    using turbulent_channel_mesh_stretching_function_enum = Parameters::FlowSolverParam::TurbulentChannelMeshStretchingFunctionType;
+    const turbulent_channel_mesh_stretching_function_enum turbulent_channel_mesh_stretching_function_type = this->all_param.flow_solver_param.turbulent_channel_mesh_stretching_function_type;
+    
+    if(turbulent_channel_mesh_stretching_function_type == turbulent_channel_mesh_stretching_function_enum::gullbrand){
+        return get_mesh_step_size_y_direction_Gullbrand();
+    } else if(turbulent_channel_mesh_stretching_function_type == turbulent_channel_mesh_stretching_function_enum::hopw){
+        return get_mesh_step_size_y_direction_HOPW();
+    }
+}
+
+template <int dim, int nstate>
+std::vector<double> ChannelFlow<dim,nstate>::get_mesh_step_size_y_direction_HOPW() const 
+{
+    const int number_of_edges_y_direction = number_of_cells_y_direction+1;
+    std::vector<double> element_edges_y_direction(number_of_edges_y_direction);
     // - Note: This stretching function comes from the structured GMSH .geo file obtained from https://how5.cenaero.be/content/ws2-les-plane-channel-ret550
     const double N_streching_param = 1.0;
     const double r_streching_param = pow(1.2,N_streching_param/2.0);
     const double num_cells_y = (double)number_of_cells_y_direction;
     const double h0_streching_param = 0.5*(1.0-r_streching_param)/(1.0-pow(r_streching_param,(num_cells_y/2.0)));
-    return h0_streching_param*pow(r_streching_param,(double)i);
+    const int max_loop_index = (int)((num_cells_y-2.0)/2.0);
+    double h_streching_param = 0.0;
+    element_edges_y_direction[0] = h_streching_param;
+    for (int i=0; i<max_loop_index; i++) {
+        h_streching_param += h0_streching_param*pow(r_streching_param,(double)i);
+        element_edges_y_direction[i+1] = h_streching_param;
+        element_edges_y_direction[number_of_cells_y_direction-i-1] = 1.0-h_streching_param;
+    }
+    element_edges_y_direction[(int)(num_cells_y/2.0)] = 0.5;
+    element_edges_y_direction[number_of_cells_y_direction] = 1.0;
+    // - now multiply these defined for $y\in[0,1]$ by the length of the domain in the y-direction
+    for (int j=0; j<number_of_edges_y_direction; j++) {
+        element_edges_y_direction[j] *= domain_length_y;
+    }
+    // - compute the step size in y-direction as the difference between element edges in y-direction
+    std::vector<double> step_size_y_direction(number_of_cells_y_direction);
+    for (int j=0; j<number_of_cells_y_direction; j++) {
+        step_size_y_direction[j] = element_edges_y_direction[j+1] - element_edges_y_direction[j];
+    }
+    return step_size_y_direction;
+}
+
+template <int dim, int nstate>
+std::vector<double> ChannelFlow<dim,nstate>::get_mesh_step_size_y_direction_Gullbrand() const 
+{
+    // Domain lower bound in y-direction
+    const double desired_domain_lower_bound_y = 0.0; // for convenient wall distance calculation
+    const double domain_shift = desired_domain_lower_bound_y+1.0; // +1 since domain lower bound from original function is -1
+    // - get stretched spacing for y-direction to capture boundary layer
+    const int number_of_edges_y_direction = number_of_cells_y_direction+1;
+    std::vector<double> element_edges_y_direction(number_of_edges_y_direction);
+    /**
+     * Reference: Gullbrand, "Grid-independent large-eddy simulation in turbulent channel flow using three-dimensional explicit filtering", 2003.
+     **/
+    const double num_cells_y = (double)number_of_cells_y_direction;
+    const double stretching_parameter = 2.75;
+    const double tanh_stretching_parameter = tanh(stretching_parameter);
+    for (int j=0; j<number_of_edges_y_direction; j++) {
+        element_edges_y_direction[j] = -1.0*tanh(stretching_parameter*(1.0 - 2.0*((double)j)/num_cells_y))/tanh_stretching_parameter;
+    }
+    // - now apply the domain shift since these are currently defined in the domain $y\in[-1,1]$
+    //   (NOTE: this has no affect on the returned vector of step sizes, but is included for completeness)
+    for (int j=0; j<number_of_edges_y_direction; j++) {
+        element_edges_y_direction[j] += domain_shift;
+        element_edges_y_direction[j] /= 2.0;
+        element_edges_y_direction[j] *= domain_length_y;
+    }
+    // - compute the step size in y-direction as the difference between element edges in y-direction
+    std::vector<double> step_size_y_direction(number_of_cells_y_direction);
+    for (int j=0; j<number_of_cells_y_direction; j++) {
+        step_size_y_direction[j] = element_edges_y_direction[j+1] - element_edges_y_direction[j];
+    }
+    return step_size_y_direction;
 }
 
 template <int dim, int nstate>
@@ -129,29 +196,7 @@ std::shared_ptr<Triangulation> ChannelFlow<dim,nstate>::generate_grid() const
     const double uniform_spacing_x = domain_length_x/double(number_of_cells_x_direction);
     const double uniform_spacing_z = domain_length_z/double(number_of_cells_z_direction);
     // - get stretched spacing for y-direction to capture boundary layer
-    const int number_of_edges_y_direction = number_of_cells_y_direction+1;
-    std::vector<double> element_edges_y_direction(number_of_edges_y_direction);
-    // - Note: This stretching function comes from the structured GMSH .geo file obtained from https://how5.cenaero.be/content/ws2-les-plane-channel-ret550
-    const double num_cells_y = (double)number_of_cells_y_direction;
-    const int max_loop_index = (int)((num_cells_y-2.0)/2.0);
-    double h_streching_param = 0.0;
-    element_edges_y_direction[0] = h_streching_param;
-    for (int i=0; i<max_loop_index; i++) {
-        h_streching_param += get_stretched_mesh_size(i);
-        element_edges_y_direction[i+1] = h_streching_param;
-        element_edges_y_direction[number_of_cells_y_direction-i-1] = 1.0-h_streching_param;
-    }
-    element_edges_y_direction[(int)(num_cells_y/2.0)] = 0.5;
-    element_edges_y_direction[number_of_cells_y_direction] = 1.0;
-    // - now multiply these defined for $y\in[0,1]$ by the length of the domain in the y-direction
-    for (int j=0; j<number_of_edges_y_direction; j++) {
-        element_edges_y_direction[j] *= domain_length_y;
-    }
-    // - compute the step size in y-direction as the difference between element edges in y-direction
-    std::vector<double> step_size_y_direction(number_of_cells_y_direction);
-    for (int j=0; j<number_of_cells_y_direction; j++) {
-        step_size_y_direction[j] = element_edges_y_direction[j+1] - element_edges_y_direction[j];
-    }
+    std::vector<double> step_size_y_direction = get_mesh_step_size_y_direction();
 
     std::vector<std::vector<double> > step_sizes(dim);
     // x-direction

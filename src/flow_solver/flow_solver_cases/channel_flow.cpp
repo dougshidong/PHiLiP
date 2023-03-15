@@ -101,12 +101,16 @@ std::vector<double> ChannelFlow<dim,nstate>::get_mesh_step_size_y_direction() co
 {
     using turbulent_channel_mesh_stretching_function_enum = Parameters::FlowSolverParam::TurbulentChannelMeshStretchingFunctionType;
     const turbulent_channel_mesh_stretching_function_enum turbulent_channel_mesh_stretching_function_type = this->all_param.flow_solver_param.turbulent_channel_mesh_stretching_function_type;
-    
+    std::vector<double> step_size_y_direction;
     if(turbulent_channel_mesh_stretching_function_type == turbulent_channel_mesh_stretching_function_enum::gullbrand){
-        return get_mesh_step_size_y_direction_Gullbrand();
+        step_size_y_direction = get_mesh_step_size_y_direction_Gullbrand();
     } else if(turbulent_channel_mesh_stretching_function_type == turbulent_channel_mesh_stretching_function_enum::hopw){
-        return get_mesh_step_size_y_direction_HOPW();
+        step_size_y_direction = get_mesh_step_size_y_direction_HOPW();
+    } else {
+        this->pcout << "ERROR: Invalid turbulent_channel_mesh_stretching_function_type. Aborting..." << std::endl;
+        std::abort();
     }
+    return step_size_y_direction;
 }
 
 template <int dim, int nstate>

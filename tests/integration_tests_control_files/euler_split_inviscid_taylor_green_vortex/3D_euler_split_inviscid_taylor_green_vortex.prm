@@ -32,7 +32,8 @@ set use_inverse_mass_on_the_fly = true
 
 set use_weight_adjusted_mass = true
 
-set use_periodic_bc = true
+set all_boundaries_are_periodic = true
+set check_same_coords_in_weak_dg = false
 
 subsection ODE solver
 

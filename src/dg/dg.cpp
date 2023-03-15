@@ -501,6 +501,15 @@ void DGBaseState<dim,nstate,real,MeshType>::set_store_vol_flux_nodes()
 }
 
 template <int dim, int nstate, typename real, typename MeshType>
+void DGBaseState<dim,nstate,real,MeshType>::set_store_surf_flux_nodes()
+{
+    //if all boundaries are periodic, we do not need to store surf flux nodes.
+    //for boundary conditions not periodic we need surface flux nodes
+    //should change this flag to something like if have face on boundary not periodic in the future
+    this->store_surf_flux_nodes = (this->all_parameters->all_boundaries_are_periodic) ? false : true;
+}
+
+template <int dim, int nstate, typename real, typename MeshType>
 real DGBaseState<dim,nstate,real,MeshType>::evaluate_CFL (
     std::vector< std::array<real,nstate> > soln_at_q,
     const real artificial_dissipation,
@@ -785,9 +794,6 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
     const dealii::types::global_dof_index current_cell_index = current_cell->active_cell_index();
 
     std::array<std::vector<real>,dim> mapping_support_points;
-    //for boundary conditions not periodic we need surface flux nodes
-    //should change this flag to something like if have face on boundary not periodic in the future
-    const bool store_surf_flux_nodes = (all_parameters->use_periodic_bc) ? false : true;
     OPERATOR::metric_operators<real,dim,2*dim> metric_oper_int(nstate, poly_degree, grid_degree,
                                                                store_vol_flux_nodes,
                                                                store_surf_flux_nodes);
@@ -2212,6 +2218,9 @@ void DGBase<dim,real,MeshType>::allocate_system (
 
     // Set store_vol_flux_nodes flag
     set_store_vol_flux_nodes();
+
+    // Set store_surf_flux_nodes flag
+    set_store_surf_flux_nodes();
 
     // Allocate for auxiliary equation only.
     allocate_auxiliary_equation ();

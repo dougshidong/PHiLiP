@@ -14,7 +14,8 @@ set use_energy = true
 
 set use_L2_norm = false
 
-set use_periodic_bc = true
+set all_boundaries_are_periodic = true
+set check_same_coords_in_weak_dg = false
 
 set flux_reconstruction = cPlus
 

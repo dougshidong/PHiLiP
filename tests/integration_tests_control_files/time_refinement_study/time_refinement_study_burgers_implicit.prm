@@ -6,8 +6,8 @@ set dimension = 1
 set test_type = time_refinement_study_reference
 set pde_type = burgers_inviscid
 
-# Note: this is only used to turn off printing messages
-set use_periodic_bc = true
+set all_boundaries_are_periodic = true
+set check_same_coords_in_weak_dg = false
 
 # ODE solver
 subsection ODE solver

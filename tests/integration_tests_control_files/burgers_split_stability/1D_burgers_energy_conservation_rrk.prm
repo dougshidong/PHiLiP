@@ -7,7 +7,8 @@ set test_type = burgers_energy_conservation_rrk
 set pde_type = burgers_inviscid
 
 # Note: this is required to correctly calculate energy
-set use_periodic_bc = true
+set all_boundaries_are_periodic = true
+set check_same_coords_in_weak_dg = false
 
 # for split form & energy-stable flux
 set use_weak_form = false

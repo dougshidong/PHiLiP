@@ -943,8 +943,12 @@ public:
     virtual void set_use_auxiliary_eq() = 0;
     /// Flag for storing volume flux nodes
     bool store_vol_flux_nodes;
-    /// Set store_vol_flux_node flag
+    /// Set store_vol_flux_nodes flag
     virtual void set_store_vol_flux_nodes() = 0;
+    /// Flag for storing surface flux nodes
+    bool store_surf_flux_nodes;
+    /// Set store_surf_flux_nodes flag
+    virtual void set_store_surf_flux_nodes() = 0;
 }; // end of DGBase class
 
 /// Abstract class templated on the number of state variables
@@ -1050,8 +1054,11 @@ public:
     /// Set use_auxiliary_eq flag
     void set_use_auxiliary_eq();
 
-    /// Set store_vol_flux_node flag
+    /// Set store_vol_flux_nodes flag
     void set_store_vol_flux_nodes();
+
+    /// Set store_surf_flux_nodes flag
+    void set_store_surf_flux_nodes();
 
 protected:
     /// Evaluate the time it takes for the maximum wavespeed to cross the cell domain.

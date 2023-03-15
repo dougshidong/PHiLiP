@@ -86,9 +86,15 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       dealii::Patterns::Bool(),
                       "Use original form by defualt. Otherwise, use the weight adjusted low storage mass matrix for curvilinear.");
 
-    prm.declare_entry("use_periodic_bc", "false",
+    prm.declare_entry("all_boundaries_are_periodic", "false",
                       dealii::Patterns::Bool(),
-                      "Use other boundary conditions by default. Otherwise use periodic (for 1d burgers only");
+                      "Flag to signal that all boundaries are periodic; if true surface flux nodes will not be stored for efficiency. "
+                      "Default is false; hence surface flux nodes are indeed stored by default.");
+
+    prm.declare_entry("check_same_coords_in_weak_dg", "true",
+                      dealii::Patterns::Bool(),
+                      "Flag to check if the coordinates of two points are same where expected in weak DG."
+                      "Default is true; set to false if you have periodic boundaries in your domain since it currently does not consider that case and will print large warning messages.");
 
     prm.declare_entry("use_energy", "false",
                       dealii::Patterns::Bool(),
@@ -415,7 +421,8 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
 
     use_curvilinear_split_form = prm.get_bool("use_curvilinear_split_form");
     use_weight_adjusted_mass = prm.get_bool("use_weight_adjusted_mass");
-    use_periodic_bc = prm.get_bool("use_periodic_bc");
+    all_boundaries_are_periodic = prm.get_bool("all_boundaries_are_periodic");
+    check_same_coords_in_weak_dg = prm.get_bool("check_same_coords_in_weak_dg");
     use_energy = prm.get_bool("use_energy");
     use_L2_norm = prm.get_bool("use_L2_norm");
     sipg_penalty_factor = prm.get_double("sipg_penalty_factor");

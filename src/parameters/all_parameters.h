@@ -112,10 +112,14 @@ public:
     /// Flag to use weight-adjusted Mass Matrix for curvilinear elements.
     bool use_weight_adjusted_mass;
 
-    /// Flag to use periodic BC.
-    /** Not fully tested.
-     */
-    bool use_periodic_bc;
+    /// Flag to signal that all boundaries are periodic; if true surface flux nodes will not be stored for efficiency.
+    bool all_boundaries_are_periodic;
+
+    /** Flag to check if the coordinates of two points are same where expected in weak DG.
+        Default is true; set to false if you have periodic boundaries in your domain since 
+        it currently does not consider that case and will print large warning messages.
+     **/
+    bool check_same_coords_in_weak_dg;
 
     ///Flag to use an energy monotonicity test
     bool use_energy;

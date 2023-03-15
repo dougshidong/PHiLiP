@@ -46,6 +46,16 @@ protected:
     const double domain_length_x; ///< Domain length in x-direction
     const double domain_length_y; ///< Domain length in y-direction
     const double domain_length_z; ///< Domain length in z-direction
+
+    /** 
+     * Bulk velocity Reynolds number computed from friction velocity based Reynolds numbers (Empirical relation)
+     * Reference:
+     *  - R. B. Dean, "Reynolds Number Dependence of Skin Friction and Other Bulk
+     *    Flow Variables in Two-Dimensional Rectangular Duct Flow", 
+     *    Journal of Fluids Engineering, 1978 
+     * */
+    const double channel_bulk_velocity_reynolds_number;
+
     double minimum_approximate_grid_spacing; ///< Minimum approximate grid spacing
 
     /// Display additional more specific flow case parameters

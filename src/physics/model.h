@@ -104,6 +104,7 @@ public:
     double channel_height; ///< Channel height
     double half_channel_height; ///< Half channel height
     double channel_friction_velocity_reynolds_number; ///< Channel Reynolds number based on the wall friction velocity
+    double channel_bulk_velocity_reynolds_number; ///< Channel Reynolds number based on the bulk velocity
     double time_step; ///< Current time step
 
 protected:

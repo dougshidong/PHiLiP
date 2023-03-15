@@ -124,17 +124,10 @@ std::array<real,nstate> NavierStokesWithModelSourceTerms<dim,nstate,real>
     std::fill(source_term.begin(), source_term.end(), 0.0);
 
     // Get bulk velocity
-    // Reference: 
-    /** R. B. Dean. Reynolds number dependence of skin friction and other bulk flow variables in two-dimensional
-     *  rectangular duct flow. Journal of Fluids Engineering, 100(2):215–223, June 1978.
-     *  Using relation: channel_friction_velocity_reynolds_number = 0.175*pow(channel_bulk_velocity_reynolds_number,0.175)
-     *  to get channel_bulk_velocity_reynolds_number from channel_friction_velocity_reynolds_number
-     * */
     const real density = conservative_soln[0];
     const std::array<real,nstate> primitive_soln = this->navier_stokes_physics->convert_conservative_to_primitive(conservative_soln);
     const real viscosity_coefficient = this->navier_stokes_physics->compute_viscosity_coefficient(primitive_soln);
-    const real channel_bulk_velocity_reynolds_number = exp(log(this->channel_friction_velocity_reynolds_number/0.175)/0.175); // from Dean (1978)
-    const real bulk_velocity = viscosity_coefficient*channel_bulk_velocity_reynolds_number/(density*this->half_channel_height);
+    const real bulk_velocity = viscosity_coefficient*(this->channel_bulk_velocity_reynolds_number)/(density*this->half_channel_height);
     
     // x-momentum term
     source_term[1] = (this->integrated_density_over_domain*bulk_velocity - conservative_soln[1])/this->time_step;

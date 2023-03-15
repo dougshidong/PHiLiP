@@ -27,8 +27,8 @@ InitialConditionFunction_TurbulentChannelFlow<dim,nstate,real>
     const double channel_friction_velocity_reynolds_number_)
     : InitialConditionFunction<dim,nstate,real>()
     , navier_stokes_physics(navier_stokes_physics_)
-    , channel_height(channel_height_)
-    , half_channel_height(0.5*channel_height)
+    , channel_height(channel_height_) // Note this must be nondimensional; OK if reference_length (L_inf from freestream Reynolds number) is half_channel_height
+    , half_channel_height(0.5*channel_height) // Note this must be nondimensional; OK if reference_length (L_inf from freestream Reynolds number) is half_channel_height
     , channel_friction_velocity_reynolds_number(channel_friction_velocity_reynolds_number_)
 {}
 
@@ -58,9 +58,9 @@ inline real InitialConditionFunction_TurbulentChannelFlow<dim, nstate, real>
             y = channel_height - y; // distance from wall
         }
 
-        // Get friction velocity
+        // Get the nondimensional (w.r.t. freestream) friction velocity
         const real viscosity_coefficient = navier_stokes_physics.compute_viscosity_coefficient_from_temperature(temperature);
-        const real friction_velocity = viscosity_coefficient*channel_friction_velocity_reynolds_number/(density*this->half_channel_height);
+        const real friction_velocity = viscosity_coefficient*channel_friction_velocity_reynolds_number/(density*this->half_channel_height*navier_stokes_physics.reynolds_number_inf);
 
         // Reichardt law of the wall (provides a smoothing between the linear and the log regions)
         // References: 

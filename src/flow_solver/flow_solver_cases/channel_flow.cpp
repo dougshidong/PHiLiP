@@ -53,6 +53,7 @@ void ChannelFlow<dim,nstate>::display_additional_flow_case_specific_parameters()
     this->pcout << "- - Reynolds number based on wall friction velocity: " << this->channel_friction_velocity_reynolds_number << std::endl;
     this->pcout << "- - Reynolds number based on bulk velocity: " << this->channel_bulk_velocity_reynolds_number << std::endl;
     this->pcout << "- - Half channel height: " << this->half_channel_height << std::endl;
+    this->display_grid_parameters();
 }
 
 template <int dim, int nstate>

@@ -1039,7 +1039,8 @@ public:
     void set_constant_model_variables(
         const double channel_height,
         const double half_channel_height,
-        const double channel_friction_velocity_reynolds_number);
+        const double channel_friction_velocity_reynolds_number,
+        const double channel_bulk_velocity_reynolds_number);
     
     /// Set the necessary unsteady variables declared in src/physics/model.h
     void set_unsteady_model_variables(

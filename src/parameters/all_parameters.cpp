@@ -508,6 +508,21 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     
     pcout << "Parsing time refinement study subsection..." << std::endl;
     time_refinement_study_param.parse_parameters (prm);
+
+    if(flow_solver_param.flow_case_type == flow_solver_param.FlowCaseType::channel_flow) {
+      /** 
+       * Centerline velocity Reynolds number computed from friction velocity based Reynolds numbers (Empirical relation)
+       * Reference:
+       *  - R. B. Dean, "Reynolds Number Dependence of Skin Friction and Other Bulk
+       *    Flow Variables in Two-Dimensional Rectangular Duct Flow", 
+       *    Journal of Fluids Engineering, 1978 
+       * */
+      pcout << "Setting freestream Reynolds number to channel flow centerline Reynolds number based on friction Reynolds number... " << std::flush;
+      const double channel_bulk_velocity_reynolds_number = pow(0.073, -4.0/7.0)*pow(2.0, 5.0/7.0)*pow(flow_solver_param.turbulent_channel_friction_velocity_reynolds_number, 8.0/7.0);
+      const double channel_centerline_velocity_reynolds_number = 1.28*pow(2.0, -0.0116)*pow(channel_bulk_velocity_reynolds_number,1.0-0.0116);
+      navier_stokes_param.reynolds_number_inf = channel_centerline_velocity_reynolds_number;
+      pcout << "done." << std::endl;
+    }
     
     pcout << "Done parsing." << std::endl;
 }

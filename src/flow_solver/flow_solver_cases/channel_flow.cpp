@@ -48,11 +48,11 @@ template <int dim, int nstate>
 void ChannelFlow<dim,nstate>::display_additional_flow_case_specific_parameters() const
 {
     this->pcout << "- - Courant-Friedrichs-Lewy number: " << this->all_param.flow_solver_param.courant_friedrichs_lewy_number << std::endl;
-    this->pcout << "- - Freestream Reynolds number: " << this->all_param.navier_stokes_param.reynolds_number_inf << std::endl;
     this->pcout << "- - Freestream Mach number: " << this->all_param.euler_param.mach_inf << std::endl;
-    this->pcout << "- - Reynolds number based on wall friction velocity: " << this->all_param.flow_solver_param.turbulent_channel_friction_velocity_reynolds_number << std::endl;
-    this->pcout << "- - Reynolds number based on bulk velocity: " << this->all_param.flow_solver_param.turbulent_channel_bulk_velocity_reynolds_number << std::endl;
-    this->pcout << "- - Channel height: " << this->all_param.flow_solver_param.turbulent_channel_height << std::endl;
+    this->pcout << "- - Freestream (i.e. centerline) Reynolds number: " << this->all_param.navier_stokes_param.reynolds_number_inf << std::endl;
+    this->pcout << "- - Reynolds number based on wall friction velocity: " << this->channel_friction_velocity_reynolds_number << std::endl;
+    this->pcout << "- - Reynolds number based on bulk velocity: " << this->channel_bulk_velocity_reynolds_number << std::endl;
+    this->pcout << "- - Half channel height: " << this->half_channel_height << std::endl;
 }
 
 template <int dim, int nstate>

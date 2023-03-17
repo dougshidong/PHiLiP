@@ -106,6 +106,8 @@ std::vector<double> ChannelFlow<dim,nstate>::get_mesh_step_size_y_direction() co
         step_size_y_direction = get_mesh_step_size_y_direction_Gullbrand();
     } else if(turbulent_channel_mesh_stretching_function_type == turbulent_channel_mesh_stretching_function_enum::hopw){
         step_size_y_direction = get_mesh_step_size_y_direction_HOPW();
+    } else if(turbulent_channel_mesh_stretching_function_type == turbulent_channel_mesh_stretching_function_enum::carton_de_wiart_et_al){
+        step_size_y_direction = get_mesh_step_size_y_direction_carton_de_wiart_et_al();
     } else {
         this->pcout << "ERROR: Invalid turbulent_channel_mesh_stretching_function_type. Aborting..." << std::endl;
         std::abort();
@@ -169,6 +171,29 @@ std::vector<double> ChannelFlow<dim,nstate>::get_mesh_step_size_y_direction_Gull
         element_edges_y_direction[j] += domain_shift;
         element_edges_y_direction[j] /= 2.0;
         element_edges_y_direction[j] *= domain_length_y;
+    }
+    // - compute the step size in y-direction as the difference between element edges in y-direction
+    std::vector<double> step_size_y_direction(number_of_cells_y_direction);
+    for (int j=0; j<number_of_cells_y_direction; j++) {
+        step_size_y_direction[j] = element_edges_y_direction[j+1] - element_edges_y_direction[j];
+    }
+    return step_size_y_direction;
+}
+
+template <int dim, int nstate>
+std::vector<double> ChannelFlow<dim,nstate>::get_mesh_step_size_y_direction_carton_de_wiart_et_al() const 
+{
+    // - get stretched spacing for y-direction to capture boundary layer
+    const int number_of_edges_y_direction = number_of_cells_y_direction+1;
+    std::vector<double> element_edges_y_direction(number_of_edges_y_direction);
+    /**
+     * Reference: C. CARTON DE WIARTET. AL, "Implicit LES of free and wall-bounded turbulent flows based onthe discontinuous Galerkin/symmetric interior penalty method", 2015.
+     **/
+    const double num_cells_y = (double)number_of_cells_y_direction;
+    const double uniform_spacing = domain_length_y/num_cells_y;
+    for (int j=0; j<(number_of_cells_y_direction/2+1); j++) {
+        element_edges_y_direction[j] = 1.0 - cos(this->pi_val*((double)j)*uniform_spacing/2.0);
+        element_edges_y_direction[number_of_cells_y_direction-j] = domain_length_y-element_edges_y_direction[j];
     }
     // - compute the step size in y-direction as the difference between element edges in y-direction
     std::vector<double> step_size_y_direction(number_of_cells_y_direction);

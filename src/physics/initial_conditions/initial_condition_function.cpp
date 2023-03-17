@@ -34,58 +34,138 @@ InitialConditionFunction_TurbulentChannelFlow<dim,nstate,real>
 
 template <int dim, int nstate, typename real>
 inline real InitialConditionFunction_TurbulentChannelFlow<dim, nstate, real>
+::x_velocity_turbulent_profile(const dealii::Point<dim,real> &point, const real density, const real temperature) const
+{
+    // Turbulent velocity profile using Reichart's law of the wall
+    // Get closest wall normal distance
+    real y = point[1]; // represents distance normal to top/bottom wall (which ever is closer); y-domain bounds are [0, channel_height]
+    // -- apply initial condition symmetrically w.r.t. the top/bottom walls of the channel
+    if(y > half_channel_height){
+        // top wall
+        y = channel_height - y; // distance from wall
+    }
+
+    // Get the nondimensional (w.r.t. freestream) friction velocity
+    const real viscosity_coefficient = navier_stokes_physics.compute_viscosity_coefficient_from_temperature(temperature);
+    const real friction_velocity = viscosity_coefficient*channel_friction_velocity_reynolds_number/(density*this->half_channel_height*navier_stokes_physics.reynolds_number_inf);
+
+    // Reichardt law of the wall (provides a smoothing between the linear and the log regions)
+    // References: 
+    /*  Frere, Carton de Wiart, Hillewaert, Chatelain, and Winckelmans 
+        "Application of wall-models to discontinuous Galerkin LES", Phys. Fluids 29, 2017
+
+        (Original paper) J. M.  Osterlund, A. V. Johansson, H. M. Nagib, and M. H. Hites, “A note
+        on the overlap region in turbulent boundary layers,” Phys. Fluids 12, 1–4, (2000).
+    */
+    const real kappa = 0.38; // von Karman's constant
+    const real C = 4.1;
+    const real y_plus = density*friction_velocity*y/viscosity_coefficient;
+    const real u_plus = (1.0/kappa)*log(1.0+kappa*y_plus) + (C - (1.0/kappa)*log(kappa))*(1.0 - exp(-y_plus/11.0) - (y_plus/11.0)*exp(-y_plus/3.0));
+    const real x_velocity = u_plus*friction_velocity;
+    return x_velocity;
+}
+
+template <int dim, int nstate, typename real>
+inline real InitialConditionFunction_TurbulentChannelFlow<dim, nstate, real>
+::x_velocity_laminar_profile(const dealii::Point<dim,real> &point, const real /*density*/, const real /*temperature*/) const
+{
+    // Laminar velocity profile
+    // Get closest wall normal distance
+    real y = point[1]; // represents distance normal to top/bottom wall (which ever is closer); y-domain bounds are [0, channel_height]
+    // -- apply initial condition symmetrically w.r.t. the top/bottom walls of the channel
+    if(y > half_channel_height){
+        // top wall
+        y = channel_height - y; // distance from wall
+    }
+
+    // Reference: G. LODATO, P. CASTONGUAY AND A. JAMESON, "Discrete filter operators for large-eddy simulation using high-order spectral difference methods", Int. J. Numer. Meth. Fluids (2012)
+    const real x_velocity = (15.0/8.0)*pow(1.0-pow((y-1.0)/half_channel_height,2.0),2.0); // y-1.0 because this expression is given for when y\in[-1,1], we currently have y\in[0,2]
+    return x_velocity;
+}
+
+template <int dim, int nstate, typename real>
+inline real InitialConditionFunction_TurbulentChannelFlow<dim, nstate, real>
+::x_velocity(const dealii::Point<dim,real> &point, const real density, const real temperature) const
+{
+    // return x_velocity_turbulent_profile(point, density, temperature);
+    return x_velocity_laminar_profile(point, density, temperature);
+}
+
+template <int dim, int nstate, typename real>
+inline real InitialConditionFunction_TurbulentChannelFlow<dim, nstate, real>
+::y_velocity(const dealii::Point<dim,real> &point) const
+{
+    // Setup domain lengths -- copied from FlowSolverCase
+    const real pi_val = 3.141592653589793238;
+    const real domain_length_x = 2.0*pi_val*half_channel_height;
+    const real domain_length_y = channel_height;
+    // const real domain_length_z = pi_val*half_channel_height;
+    const real domain_center_x = 0.0;
+    const real domain_center_y = domain_length_y/2.0;
+
+    // Setup perturbed velocity
+    const real C = 0.1; // Reference: G. LODATO, P. CASTONGUAY AND A. JAMESON, "Discrete filter operators for large-eddy simulation using high-order spectral difference methods", Int. J. Numer. Meth. Fluids (2012)
+    const real x_loc = domain_center_x; // x-point at which to center the disturbance <-- Reference: R. Rossi / Journal of Computational Physics 228 (2009) 1639–1657
+    const real y_loc = domain_center_y; // y-point at which to center the disturbance <-- Reference: R. Rossi / Journal of Computational Physics 228 (2009) 1639–1657
+    // const real beta = 4.0*pi_val; // Reference: G. LODATO, P. CASTONGUAY AND A. JAMESON, "Discrete filter operators for large-eddy simulation using high-order spectral difference methods", Int. J. Numer. Meth. Fluids (2012)
+    const real beta = 4.0; // Reference: R. Rossi / Journal of Computational Physics 228 (2009) 1639–1657
+    const real x_scale = domain_length_x;
+    const real y_scale = domain_length_y;
+
+    // extract coordinates
+    const real x = point[0];
+    const real y = point[1];
+    const real z = point[2];
+    // const real z = point[2]/this->domain_length_z; // normalize z w.r.t. domain length in z-direction -- uncomment if using LODATO et al.'s beta value
+
+    // return perturbed vertical velocity component
+    // Reference: Eq.(2.30) -- P. Andersson, L. Brandt, A. Bottaro and D. S. Henningson, "On the breakdown of boundary layer streaks"
+    const real F = C*exp(-pow((x-x_loc)/x_scale,2.0))*exp(-pow((y-y_loc)/y_scale,2.0))*cos(beta*z);
+    return F;
+}
+
+template <int dim, int nstate, typename real>
+inline real InitialConditionFunction_TurbulentChannelFlow<dim, nstate, real>
 ::value(const dealii::Point<dim,real> &point, const unsigned int istate) const
 {
-    const real density = 1.0; // freestream non-dimensionalized -- TO DO: Confirm / update this
-    
-    /// Conservative solution
     std::array<real,nstate> primitive_soln;
+
+    //------------------------------------------------------
+    // density
+    //------------------------------------------------------
+    // Reference: L. Wei, A. Pollard / Computers & Fluids 47 (2011) 85–100
+    const real density = 1.0; // freestream non-dimensionalized
     primitive_soln[0] = density;
-    primitive_soln[2] = 0.0; // assuming y-velocity is zero
-    primitive_soln[3] = 0.0; // assuming z-velocity is zero
+    
+    //------------------------------------------------------
+    // x-velocity
+    //------------------------------------------------------
+    // Reference: L. Wei, A. Pollard / Computers & Fluids 47 (2011) 85–100
+    const real temperature = navier_stokes_physics.isothermal_wall_temperature;
+    primitive_soln[1] = x_velocity(point,density,temperature);
 
-    // for efficiency, we do not compute the Reichart law of the wall for states that do not require it
-    if(istate!=1 || istate!=5) {
-        return primitive_soln[istate]; // same as conservative_solution for these states
-    } else {
-        const real temperature = 1.0; // freestream non-dimensionalized -- TO DO: Confirm / update this
+    //------------------------------------------------------
+    // y-velocity
+    //------------------------------------------------------
+    primitive_soln[2] = y_velocity(point);
 
-        // Get closest wall normal distance
-        real y = point[1]; // represents distance normal to top/bottom wall (which ever is closer); y-domain bounds are [0, channel_height]
-        // -- apply initial condition symmetrically w.r.t. the top/bottom walls of the channel
-        if(y > half_channel_height){
-            // top wall
-            y = channel_height - y; // distance from wall
-        }
+    //------------------------------------------------------
+    // z-velocity
+    //------------------------------------------------------
+    // Reference: R. Rossi / Journal of Computational Physics 228 (2009) 1639–1657
+    primitive_soln[3] = 0.0;
 
-        // Get the nondimensional (w.r.t. freestream) friction velocity
-        const real viscosity_coefficient = navier_stokes_physics.compute_viscosity_coefficient_from_temperature(temperature);
-        const real friction_velocity = viscosity_coefficient*channel_friction_velocity_reynolds_number/(density*this->half_channel_height*navier_stokes_physics.reynolds_number_inf);
+    //------------------------------------------------------
+    // pressure
+    //------------------------------------------------------
+    primitive_soln[4] = navier_stokes_physics.compute_pressure_from_density_temperature(density, temperature);
 
-        // Reichardt law of the wall (provides a smoothing between the linear and the log regions)
-        // References: 
-        /*  Frere, Carton de Wiart, Hillewaert, Chatelain, and Winckelmans 
-            "Application of wall-models to discontinuous Galerkin LES", Phys. Fluids 29, 2017
+    //------------------------------------------------------
+    // --> Get conservative solution
+    //------------------------------------------------------
+    std::array<real,nstate> conservative_soln = navier_stokes_physics.convert_primitive_to_conservative(primitive_soln);
 
-            (Original paper) J. M.  ̈Osterlund, A. V. Johansson, H. M. Nagib, and M. H. Hites, “A note
-            on the overlap region in turbulent boundary layers,” Phys. Fluids 12, 1–4
-            (2000).
-        */
-        const real kappa = 0.38; // von Karman's constant
-        const real C = 4.1;
-        const real y_plus = density*friction_velocity*y/viscosity_coefficient;
-        const real u_plus = (1.0/kappa)*log(1.0+kappa*y_plus) + (C - (1.0/kappa)*log(kappa))*(1.0 - exp(-y_plus/11.0) - (y_plus/11.0)*exp(-y_plus/3.0));
-        const real x_velocity = u_plus*friction_velocity;
-        
-        // set x-velocity
-        primitive_soln[1] = x_velocity;
-
-        // set pressure
-        primitive_soln[5] = navier_stokes_physics.compute_pressure_from_density_temperature(density, temperature);
-        std::array<real,nstate> conservative_soln = navier_stokes_physics.convert_primitive_to_conservative(primitive_soln);
-
-        return conservative_soln[istate];
-    }
+    return conservative_soln[istate];
 }
 // ========================================================
 // TAYLOR GREEN VORTEX -- Initial Condition (Uniform density)

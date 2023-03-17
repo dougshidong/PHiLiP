@@ -217,10 +217,12 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
             prm.declare_entry("turbulent_channel_mesh_stretching_function_type", "gullbrand",
                               dealii::Patterns::Selection(
                               " gullbrand | "
+                              " carton_de_wiart_et_al | "
                               " hopw "),
                               "The type of mesh stretching function for channel flow case. "
                               "Choices are "
                               " <gullbrand | "
+                              " carton_de_wiart_et_al | "
                               " hopw>.");
         }
         prm.leave_subsection();
@@ -373,6 +375,7 @@ void FlowSolverParam::parse_parameters(dealii::ParameterHandler &prm)
             const std::string turbulent_channel_mesh_stretching_function_type_string = prm.get("turbulent_channel_mesh_stretching_function_type");
             if      (turbulent_channel_mesh_stretching_function_type_string == "gullbrand") {turbulent_channel_mesh_stretching_function_type = gullbrand;}
             else if (turbulent_channel_mesh_stretching_function_type_string == "hopw")      {turbulent_channel_mesh_stretching_function_type = hopw;}
+            else if (turbulent_channel_mesh_stretching_function_type_string == "carton_de_wiart_et_al") {turbulent_channel_mesh_stretching_function_type = carton_de_wiart_et_al;}
         }
         prm.leave_subsection();
 

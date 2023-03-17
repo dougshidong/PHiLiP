@@ -104,6 +104,7 @@ public:
     enum TurbulentChannelMeshStretchingFunctionType{
         gullbrand,
         hopw,
+        carton_de_wiart_et_al,
         };
     /// Selected DensityInitialConditionType from the input file
     TurbulentChannelMeshStretchingFunctionType turbulent_channel_mesh_stretching_function_type;

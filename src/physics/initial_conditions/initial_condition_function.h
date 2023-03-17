@@ -86,6 +86,16 @@ public:
 
     /// Value of initial condition expressed in terms of conservative variables
     real value (const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
+
+protected:
+    /// x-velocity
+    real x_velocity (const dealii::Point<dim,real> &point, const real density, const real temperature) const;
+    /// x-velocity laminar profile
+    real x_velocity_laminar_profile (const dealii::Point<dim,real> &point, const real density, const real temperature) const;
+    /// x-velocity turbulent profile
+    real x_velocity_turbulent_profile (const dealii::Point<dim,real> &point, const real density, const real temperature) const;
+    /// y-velocity
+    real y_velocity (const dealii::Point<dim,real> &point) const;
 };
 
 /// Initial Condition Function: Taylor Green Vortex (uniform density)

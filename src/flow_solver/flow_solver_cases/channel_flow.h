@@ -86,6 +86,11 @@ protected:
      **/
     std::vector<double> get_mesh_step_size_y_direction_Gullbrand() const;
 
+    /** Return a vector of mesh step sizes in the y-direction based on C. CARTON DE WIARTET. AL's stretching function
+     *  Reference: C. CARTON DE WIARTET. AL, "Implicit LES of free and wall-bounded turbulent flows based onthe discontinuous Galerkin/symmetric interior penalty method", 2015.
+     **/
+    std::vector<double> get_mesh_step_size_y_direction_carton_de_wiart_et_al() const;
+
 public:
     /// Function to compute the adaptive time step
     double get_adaptive_time_step(std::shared_ptr<DGBase<dim,double>> dg) const override;

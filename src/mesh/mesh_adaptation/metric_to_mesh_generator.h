@@ -74,8 +74,8 @@ private:
     ///FESystem for vertices, created with nstate = 1 to relate an entire vertex of size dim by a single dof.
     const dealii::FESystem<dim> fe_system;
     
-    /// Stores optimal metric at vertices
-    std::vector<dealii::Tensor<2, dim, real>> optimal_metric_at_vertices;
+    /// Stores optimal metric at vertices. Accessed by optimal_metric_at_vertices[position_in_metric_tensor][global_vertex_dof].
+    std::array<VectorType, dim*dim> optimal_metric_at_vertices;
 
     /// Stores all vertices
     std::vector<dealii::Point<dim>> all_vertices;
@@ -91,6 +91,7 @@ private:
 
     /// Total no. of processors
     int n_mpi;
+
     /// Name of the file.
     const std::string filename;
     /// .pos file.
@@ -99,6 +100,10 @@ private:
     const std::string filename_geo;
     /// .geo file
     const std::string filename_msh;
+    
+    dealii::IndexSet locally_owned_vertex_dofs; ///< Dofs owned by current processor.
+    dealii::IndexSet ghost_vertex_dofs; ///< Dofs not owned by current processor (but it can still access them).
+    dealii::IndexSet locally_relevant_vertex_dofs; ///< Union of locally owned degrees of freedom and ghost degrees of freedom.
     
 }; // class ends
 

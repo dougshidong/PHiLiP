@@ -1,6 +1,7 @@
 #include "metric_to_mesh_generator.h"
 #include <deal.II/dofs/dof_renumbering.h>
 #include <deal.II/distributed/shared_tria.h>
+#include <deal.II/dofs/dof_tools.h>
 #include <ostream>
 #include <fstream>
 #include "grid_refinement/gmsh_out.h"
@@ -27,12 +28,6 @@ MetricToMeshGenerator<dim, nstate, real, MeshType> :: MetricToMeshGenerator(
     MPI_Comm_rank(mpi_communicator, &mpi_rank);
     MPI_Comm_size(mpi_communicator, &n_mpi);
 
-    if(n_mpi != 1)
-    {
-        pcout<<"Error: MetricToMeshGenerator currently works with only 1 processor. Need to update it in future."<<std::flush;
-        std::abort();
-    }
-
     reinit();
 }
 
@@ -42,16 +37,18 @@ void MetricToMeshGenerator<dim, nstate, real, MeshType> :: reinit()
     dof_handler_vertices.initialize(*triangulation, fe_system);
     dof_handler_vertices.distribute_dofs(fe_system);
     dealii::DoFRenumbering::Cuthill_McKee(dof_handler_vertices);
+    
+    locally_owned_vertex_dofs = dof_handler_vertices.locally_owned_dofs();
+    dealii::DoFTools::extract_locally_relevant_dofs(dof_handler_vertices, locally_relevant_vertex_dofs);
+    ghost_vertex_dofs = locally_relevant_vertex_dofs;
+    ghost_vertex_dofs.subtract_set(locally_owned_vertex_dofs);
 
     const unsigned int n_vertices = dof_handler_vertices.n_dofs();
     
-    optimal_metric_at_vertices.clear();
-    
-    dealii::Tensor<2, dim, real> zero_tensor; // initialized to 0 by default.
-    for(unsigned int i=0; i<n_vertices; ++i)
+    for(unsigned int i=0; i<dim*dim; ++i)
     {
-        optimal_metric_at_vertices.push_back(zero_tensor);
-    }
+        optimal_metric_at_vertices[i].reinit(locally_owned_vertex_dofs, ghost_vertex_dofs, mpi_communicator);
+    } 
 
     all_vertices.clear();
     all_vertices.resize(n_vertices);
@@ -62,7 +59,7 @@ void MetricToMeshGenerator<dim, nstate, real, MeshType> :: interpolate_metric_to
     const std::vector<dealii::Tensor<2, dim, real>> &cellwise_optimal_metric)
 {
     reinit();
-    const unsigned int n_vertices = dof_handler_vertices.n_dofs();
+    AssertDimension(cellwise_optimal_metric.size(), triangulation->n_active_cells());
 
     dealii::Quadrature<dim> quadrature = fe_system.get_unit_support_points();
     dealii::FEValues<dim, dim> fe_values_vertices(*volume_nodes_mapping, fe_system, quadrature, dealii::update_quadrature_points);
@@ -85,19 +82,17 @@ void MetricToMeshGenerator<dim, nstate, real, MeshType> :: interpolate_metric_to
             all_vertices[dof_indices[idof]] = cell_vertices[iquad];
         }
         
-        if(cell_vertices.size() != dealii::GeometryInfo<dim>::vertices_per_cell) 
-        {
-            std::cout<<"Size of cell_vertices needs to be equal to vertices per cell. Aborting.."<<std::flush;
-            std::abort();
-        }
+        AssertDimension(cell_vertices.size(), dealii::GeometryInfo<dim>::vertices_per_cell); 
+        
         // Check if vertices are in the same order.
         for(unsigned int idof = 0; idof < cell_vertices.size(); ++idof)
         {
-            const dealii::Point<dim> expected_vertex = cell->vertex(idof);
+            const dealii::Point<dim> &ref_vertex = dealii::GeometryInfo<dim>::unit_cell_vertex(idof);
+            const dealii::Point<dim> expected_vertex = volume_nodes_mapping->transform_unit_to_real_cell(cell, ref_vertex);
             const real error_in_vertex = expected_vertex.distance(all_vertices[dof_indices[idof]]);
-            //std::cout<<"Expected vertex = "<<cell->vertex(idof)<<"     "<<"Actual vertex = "<<all_vertices[dof_indices[idof]]<<std::endl;
             if(error_in_vertex > 1.0e-10)
             {
+                std::cout<<"Expected vertex = "<<cell->vertex(idof)<<"     "<<"Actual vertex = "<<all_vertices[dof_indices[idof]]<<std::endl;
                 std::cout<<"Error in ordering of vertices. Aborting.."<<std::flush;
                 std::abort();
             }   
@@ -106,8 +101,9 @@ void MetricToMeshGenerator<dim, nstate, real, MeshType> :: interpolate_metric_to
 
 //================================ Interpolate metric field ================================================
 //  Using Eq. 2.56 in Dolejší, Vít, and Georg May (2022). Anisotropic hp-Mesh Adaptation Methods: Theory, implementation and applications.
-    std::vector<int> metric_count_at_vertices; // initialized to 0
-    metric_count_at_vertices.resize(n_vertices);
+    dealii::LinearAlgebra::distributed::Vector<int> metric_count_at_vertices;
+    metric_count_at_vertices.reinit(locally_owned_vertex_dofs, ghost_vertex_dofs, mpi_communicator);
+    metric_count_at_vertices *= 0;
 
     for(const auto &cell: dof_handler_vertices.active_cell_iterators())
     {
@@ -119,16 +115,33 @@ void MetricToMeshGenerator<dim, nstate, real, MeshType> :: interpolate_metric_to
         for(unsigned int idof = 0; idof<n_dofs_cell; ++idof)
         {
             const unsigned int idof_global = dof_indices[idof];
-            optimal_metric_at_vertices[idof_global] += cellwise_optimal_metric[cell_index];
-            ++metric_count_at_vertices[idof_global]; 
+            metric_count_at_vertices[idof_global] += 1;
+            for(unsigned int i=0; i<dim; ++i)
+            {
+                for(unsigned int j=0; j<dim; ++j)
+                {
+                    optimal_metric_at_vertices[i*dim + j][idof_global] += cellwise_optimal_metric[cell_index][i][j];
+                }
+            }
         }
 
     } // cell loop ends
     
-    // Compute average
-    for(unsigned int i=0; i<n_vertices; ++i)
+    // Add contribution from all processsors at common idofs_global.
+    metric_count_at_vertices.compress(dealii::VectorOperation::add);
+    for(unsigned int i=0; i<dim*dim; ++i)
     {
-        optimal_metric_at_vertices[i] /= metric_count_at_vertices[i];
+        optimal_metric_at_vertices[i].compress(dealii::VectorOperation::add);
+    }
+
+    // Compute average
+    for(unsigned int idof=0; idof<locally_owned_vertex_dofs.n_elements(); ++idof)
+    {
+        const unsigned int idof_global = locally_owned_vertex_dofs.nth_index_in_set(idof);
+        for(unsigned int i=0; i<dim*dim; ++i)
+        {
+            optimal_metric_at_vertices[i][idof_global] /= metric_count_at_vertices[idof_global];
+        }
     }
 /*
     // Output optimal metric at vertices for verifying.
@@ -157,7 +170,7 @@ void MetricToMeshGenerator<dim, nstate, real, MeshType> :: interpolate_metric_to
             {
                 for(unsigned int j=0; j<dim; ++j)
                 {
-                    std::cout<<optimal_metric_at_vertices[idof_global][i][j]<<" ";
+                    std::cout<<optimal_metric_at_vertices[i*dim+j][idof_global]<<" ";
                 }
                 std::cout<<std::endl;
             }
@@ -190,10 +203,11 @@ void MetricToMeshGenerator<dim, nstate, real, MeshType> :: write_pos_file() cons
     AssertDimension(fe_system.dofs_per_cell, dealii::GeometryInfo<dim>::vertices_per_cell);
     
     // Based on gmsh/tutorials/t17_bgmesh.pos in GMSH4.11.1.
-    // Adapted from GridRefinement::Gmsh_Out::write_pos_anisotropic() and modified to use metric field at nodes. 
+    // Adapted from GridRefinement::Gmsh_Out::write_pos_anisotropic() and modified to use metric field at nodes.
+    // Might need to figure out a way to link GridRefinement::Gmsh_Out and this class in future.
     const std::string quotes = "\"";
     std::ofstream outfile(filename_pos);
-    outfile<<"// Background mesh with containing optimal metric field."<<'\n'; 
+    outfile<<"// Background mesh with containing optimal metric field at nodes."<<'\n'; 
     outfile<< "View "<<quotes<<"nodalMetric"<<quotes<<" {"<<'\n';
     
     //  DEAL.II's default quad numbering: 
@@ -247,7 +261,14 @@ void MetricToMeshGenerator<dim, nstate, real, MeshType> :: write_pos_file() cons
                 const unsigned int idof = tri[i];
                 const unsigned int idof_global = dof_indices[idof];
                 
-                const dealii::Tensor<2,dim,real> &vertex_metric = optimal_metric_at_vertices[idof_global];
+                dealii::Tensor<2,dim,real> vertex_metric; 
+                for(unsigned int idim =0; idim < dim; ++idim)
+                {
+                    for(unsigned int jdim =0; jdim < dim; ++jdim)
+                    {
+                        vertex_metric[idim][jdim] = optimal_metric_at_vertices[idim*dim + jdim][idof_global];
+                    }
+                }
 
                 for(unsigned int idim =0; idim < 3; ++idim)
                 {
@@ -322,7 +343,7 @@ void MetricToMeshGenerator<dim, nstate, real, MeshType> :: generate_mesh_from_ce
     interpolate_metric_to_vertices(cellwise_optimal_metric);
     write_pos_file();
     write_geo_file();
-    // Run this on command line:
+    // Running this on command line:
     // For 2D: gmsh -dim filename.geo -o filename.msh
     // For 3D: gmsh -dim -algo mmg3d filename.geo -o filename.msh
     std::string command_str = "gmsh -2 " + filename_geo + " -o " + filename_msh;
@@ -340,8 +361,6 @@ std::string MetricToMeshGenerator<dim, nstate, real, MeshType> :: get_generated_
 template<int dim, int nstate, typename real, typename MeshType>
 void MetricToMeshGenerator<dim, nstate, real, MeshType> :: delete_generated_files() const
 {
-    // Running this on command lune:
-    // rm filename_geo filename_pos filename_msh
     std::string command_str = "rm " + filename_geo + " " + filename_pos + " " + filename_msh;
     int val = std::system(command_str.c_str());
     (void) val;

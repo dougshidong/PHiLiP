@@ -31,7 +31,7 @@ int AnisotropicMeshAdaptationCases<dim, nstate> :: run_test () const
                         std::make_unique<AnisotropicMeshAdaptation<dim, nstate, double>> (flow_solver->dg, normLp, complexity, use_goal_oriented_approach);
 
     flow_solver->run();
-    const unsigned int n_adaptation_cycles = 5;
+    const unsigned int n_adaptation_cycles = 1;
     
     for(unsigned int cycle = 0; cycle < n_adaptation_cycles; ++cycle)
     {

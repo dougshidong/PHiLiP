@@ -2,6 +2,7 @@
 #include <deal.II/dofs/dof_renumbering.h>
 #include <deal.II/distributed/shared_tria.h>
 #include <deal.II/dofs/dof_tools.h>
+#include <deal.II/lac/la_parallel_vector.h>
 #include <ostream>
 #include <fstream>
 #include "grid_refinement/gmsh_out.h"
@@ -27,6 +28,12 @@ MetricToMeshGenerator<dim, nstate, real, MeshType> :: MetricToMeshGenerator(
 {
     MPI_Comm_rank(mpi_communicator, &mpi_rank);
     MPI_Comm_size(mpi_communicator, &n_mpi);
+    
+    if(dim != 2)
+    {
+        pcout<<"This class is currently hardcoded for dim = 2. To be updated later when required."<<std::endl<<std::flush;
+        std::abort();
+    }
 
     reinit();
 }
@@ -65,6 +72,7 @@ void MetricToMeshGenerator<dim, nstate, real, MeshType> :: interpolate_metric_to
     dealii::FEValues<dim, dim> fe_values_vertices(*volume_nodes_mapping, fe_system, quadrature, dealii::update_quadrature_points);
     const unsigned int n_dofs_cell = fe_system.dofs_per_cell;
     std::vector<dealii::types::global_dof_index> dof_indices(n_dofs_cell);
+    AssertDimension(n_dofs_cell, dealii::GeometryInfo<dim>::vertices_per_cell)
 
     // Store vertices in each cell with global dof.
     for(const auto &cell: dof_handler_vertices.active_cell_iterators())
@@ -92,7 +100,7 @@ void MetricToMeshGenerator<dim, nstate, real, MeshType> :: interpolate_metric_to
             const real error_in_vertex = expected_vertex.distance(all_vertices[dof_indices[idof]]);
             if(error_in_vertex > 1.0e-10)
             {
-                std::cout<<"Expected vertex = "<<cell->vertex(idof)<<"     "<<"Actual vertex = "<<all_vertices[dof_indices[idof]]<<std::endl;
+                std::cout<<"Expected vertex = "<<expected_vertex<<"     "<<"Actual vertex = "<<all_vertices[dof_indices[idof]]<<std::endl;
                 std::cout<<"Error in ordering of vertices. Aborting.."<<std::flush;
                 std::abort();
             }   
@@ -101,9 +109,8 @@ void MetricToMeshGenerator<dim, nstate, real, MeshType> :: interpolate_metric_to
 
 //================================ Interpolate metric field ================================================
 //  Using Eq. 2.56 in Dolejší, Vít, and Georg May (2022). Anisotropic hp-Mesh Adaptation Methods: Theory, implementation and applications.
-    dealii::LinearAlgebra::distributed::Vector<int> metric_count_at_vertices;
-    metric_count_at_vertices.reinit(locally_owned_vertex_dofs, ghost_vertex_dofs, mpi_communicator);
-    metric_count_at_vertices *= 0;
+    dealii::LinearAlgebra::distributed::Vector<real> metric_count_at_vertices(locally_owned_vertex_dofs, ghost_vertex_dofs, mpi_communicator);
+    metric_count_at_vertices = 0;
 
     for(const auto &cell: dof_handler_vertices.active_cell_iterators())
     {
@@ -111,27 +118,40 @@ void MetricToMeshGenerator<dim, nstate, real, MeshType> :: interpolate_metric_to
 
         cell->get_dof_indices(dof_indices);
         const unsigned int cell_index = cell->active_cell_index();
+        //std::vector<real> local_ones(n_dofs_cell);
+        //std::fill(local_ones.begin(),local_ones.end(),1.0);
+        //metric_count_at_vertices.add(dof_indices, local_ones);
         
         for(unsigned int idof = 0; idof<n_dofs_cell; ++idof)
         {
             const unsigned int idof_global = dof_indices[idof];
-            metric_count_at_vertices[idof_global] += 1;
+            std::cout<<"Processor# = "<<mpi_rank<<" |  dof_index_global = "<<idof_global<<" |  Vertex = "<<all_vertices[idof_global]<<std::endl;
+            metric_count_at_vertices(idof_global) += 1;
             for(unsigned int i=0; i<dim; ++i)
             {
                 for(unsigned int j=0; j<dim; ++j)
                 {
-                    optimal_metric_at_vertices[i*dim + j][idof_global] += cellwise_optimal_metric[cell_index][i][j];
+                    optimal_metric_at_vertices[i*dim + j](idof_global) += cellwise_optimal_metric[cell_index][i][j];
                 }
             }
         }
-
     } // cell loop ends
     
+    if((mpi_rank ==2) || (mpi_rank==0) )
+    {
+        std::cout<<"Metric count at 65 before = "<<metric_count_at_vertices(65)<<"  from processor "<<mpi_rank<<std::endl;
+    }
+
     // Add contribution from all processsors at common idofs_global.
     metric_count_at_vertices.compress(dealii::VectorOperation::add);
     for(unsigned int i=0; i<dim*dim; ++i)
     {
-        optimal_metric_at_vertices[i].compress(dealii::VectorOperation::add);
+       optimal_metric_at_vertices[i].compress(dealii::VectorOperation::add);
+    }
+    
+    if((mpi_rank ==2) || (mpi_rank==0) )
+    {
+        std::cout<<"Metric count at 65 after = "<<metric_count_at_vertices(65)<<"  from processor "<<mpi_rank<<std::endl;
     }
 
     // Compute average
@@ -140,15 +160,16 @@ void MetricToMeshGenerator<dim, nstate, real, MeshType> :: interpolate_metric_to
         const unsigned int idof_global = locally_owned_vertex_dofs.nth_index_in_set(idof);
         for(unsigned int i=0; i<dim*dim; ++i)
         {
-            optimal_metric_at_vertices[i][idof_global] /= metric_count_at_vertices[idof_global];
+            optimal_metric_at_vertices[i](idof_global) /= metric_count_at_vertices(idof_global);
         }
     }
-/*
+
     // Output optimal metric at vertices for verifying.
     pcout<<"Optimal metric at vertices = "<<std::endl;
     for(const auto &cell : dof_handler_vertices.active_cell_iterators())
     {
         if(! cell->is_locally_owned()) {continue;}
+        if(mpi_rank != 2) {continue;}
         cell->get_dof_indices(dof_indices);
         
         std::cout<<"Cell index = "<<cell->active_cell_index()<<std::endl;
@@ -159,12 +180,11 @@ void MetricToMeshGenerator<dim, nstate, real, MeshType> :: interpolate_metric_to
             std::cout<<"Vertex = "<<all_vertices[idof_global]<<std::endl;
             std::cout<<"metric count = "<<metric_count_at_vertices[idof_global]<<std::endl;
         }
-        std::cout<<"Metric at vertex = "<<std::endl;
     
         for(unsigned int idof = 0; idof<n_dofs_cell; ++idof)
         {
             const unsigned int idof_global = dof_indices[idof];
-            std::cout<<"Metric at vertex "<<all_vertices[idof_global]<<" :"<<std::endl;
+            std::cout<<"Metric at vertex "<<all_vertices[idof_global]<<" : idof_global = "<<idof_global<<std::endl;
         
             for(unsigned int i = 0; i<dim; ++i)
             {
@@ -186,29 +206,24 @@ void MetricToMeshGenerator<dim, nstate, real, MeshType> :: interpolate_metric_to
             std::cout<<std::endl;
         }
         
-        std::cout<<std::endl;
+        std::cout<<std::flush<<std::endl;
     
     } // cell loop ends
-*/  
+    MPI_Barrier(mpi_communicator);
+    std::abort();
 }
 
 template<int dim, int nstate, typename real, typename MeshType>
 void MetricToMeshGenerator<dim, nstate, real, MeshType> :: write_pos_file() const
 {
-    if(dim != 2)
-    {
-        pcout<<"This function is currently hardcoded for dim = 2. Might change it later when required."<<std::endl<<std::flush;
-        std::abort();
-    }
     AssertDimension(fe_system.dofs_per_cell, dealii::GeometryInfo<dim>::vertices_per_cell);
     
     // Based on gmsh/tutorials/t17_bgmesh.pos in GMSH4.11.1.
     // Adapted from GridRefinement::Gmsh_Out::write_pos_anisotropic() and modified to use metric field at nodes.
     // Might need to figure out a way to link GridRefinement::Gmsh_Out and this class in future.
     const std::string quotes = "\"";
-    std::ofstream outfile(filename_pos);
-    outfile<<"// Background mesh with containing optimal metric field at nodes."<<'\n'; 
-    outfile<< "View "<<quotes<<"nodalMetric"<<quotes<<" {"<<'\n';
+    const std::string filename_this_processor = filename + std::to_string(mpi_rank) + ".pos";
+    std::ofstream outfile(filename_this_processor);
     
     //  DEAL.II's default quad numbering: 
     // 2 * * 3
@@ -295,10 +310,31 @@ void MetricToMeshGenerator<dim, nstate, real, MeshType> :: write_pos_file() cons
 
         } //loop on tri : std::array<std::array>> ends
     } // cell loop ends
-
-    outfile<<"};"<<'\n';
     outfile<<std::flush;
     outfile.close();
+    MPI_Barrier(mpi_communicator);
+    
+    // Now that all processors have output their files, processor#0 can access and recombine them all in a single file. 
+    if(mpi_rank == 0)
+    {
+        std::ofstream outfile0(filename_pos);
+
+        outfile0<<"// Background mesh containing optimal metric field at nodes."<<'\n'; 
+        outfile0<< "View "<<quotes<<"nodalMetric"<<quotes<<" {"<<'\n';
+
+        for(int iproc = 0; iproc < n_mpi; ++iproc)
+        {
+            const std::string input_filename = filename + std::to_string(iproc) + ".pos"; 
+            std::ifstream inputfile (input_filename);
+            outfile0<<inputfile.rdbuf();
+        }
+
+        outfile0<<"};"<<'\n';
+        outfile0.close();
+    }
+
+    // Wait for proc#0 to be done.
+    MPI_Barrier(mpi_communicator);
 }
 
 template<int dim, int nstate, typename real, typename MeshType>
@@ -342,14 +378,18 @@ void MetricToMeshGenerator<dim, nstate, real, MeshType> :: generate_mesh_from_ce
 {
     interpolate_metric_to_vertices(cellwise_optimal_metric);
     write_pos_file();
-    write_geo_file();
-    // Running this on command line:
-    // For 2D: gmsh -dim filename.geo -o filename.msh
-    // For 3D: gmsh -dim -algo mmg3d filename.geo -o filename.msh
-    std::string command_str = "gmsh -2 " + filename_geo + " -o " + filename_msh;
-    int val = std::system(command_str.c_str());
-    (void) val;
-    pcout<<"Generated new mesh."<<std::endl;
+    if(mpi_rank == 0)
+    {
+        write_geo_file();
+        // Running this on command line:
+        // For 2D: gmsh -dim filename.geo -o filename.msh
+        // For 3D: gmsh -dim -algo mmg3d filename.geo -o filename.msh
+        std::string command_str = "gmsh -2 " + filename_geo + " -o " + filename_msh;
+        int val = std::system(command_str.c_str());
+        (void) val;
+        pcout<<"Generated new mesh."<<std::endl;
+    }
+    MPI_Barrier(mpi_communicator);
 }
 
 template<int dim, int nstate, typename real, typename MeshType>
@@ -361,9 +401,11 @@ std::string MetricToMeshGenerator<dim, nstate, real, MeshType> :: get_generated_
 template<int dim, int nstate, typename real, typename MeshType>
 void MetricToMeshGenerator<dim, nstate, real, MeshType> :: delete_generated_files() const
 {
+/*
     std::string command_str = "rm " + filename_geo + " " + filename_pos + " " + filename_msh;
     int val = std::system(command_str.c_str());
     (void) val;
+*/
 }
 
 // Instantiations

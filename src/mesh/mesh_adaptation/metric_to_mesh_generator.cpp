@@ -144,9 +144,11 @@ void MetricToMeshGenerator<dim, nstate, real, MeshType> :: interpolate_metric_to
 
     // Add contribution from all processsors at common idofs_global.
     metric_count_at_vertices.compress(dealii::VectorOperation::add);
+    metric_count_at_vertices.update_ghost_values();;
     for(unsigned int i=0; i<dim*dim; ++i)
     {
        optimal_metric_at_vertices[i].compress(dealii::VectorOperation::add);
+       optimal_metric_at_vertices[i].update_ghost_values();
     }
     
     if((mpi_rank ==2) || (mpi_rank==0) )

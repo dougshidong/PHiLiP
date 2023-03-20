@@ -61,7 +61,24 @@ template<int dim, int nstate, typename real, typename MeshType>
 dealii::Tensor<2, dim, real> AnisotropicMeshAdaptation<dim, nstate, real, MeshType> 
     :: get_positive_definite_tensor(const dealii::Tensor<2, dim, real> &input_tensor) const
 {
-    dealii::SymmetricTensor<2,dim,real> symmetric_input_tensor(input_tensor); // Checks if input_tensor is symmetric in debug. It has to be symmetric because we are passing the Hessian.
+    // Check if the tensor is symmetric.
+    dealii::Tensor<2, dim, real> input_tensor_copy = input_tensor;
+    for(int i=0; i<dim; ++i)
+    {
+        for(int j=0; j<dim-i; ++j)
+        {
+            if(abs(input_tensor_copy[i][j] - input_tensor_copy[j][i]) > 1.0e-11)
+            {
+                pcout<<"Input tensor needs to be symmetric. Aborting.."<<std::endl<<std::flush;
+                std::abort();
+            }
+            else 
+            {
+                input_tensor_copy[j][i] = input_tensor_copy[i][j];
+            }
+        }
+    }
+    dealii::SymmetricTensor<2,dim,real> symmetric_input_tensor(input_tensor_copy); 
     std::array<std::pair<real, dealii::Tensor<1, dim, real>>, dim> eigen_pair = dealii::eigenvectors(symmetric_input_tensor);
 
     std::array<real, dim> abs_eignevalues;

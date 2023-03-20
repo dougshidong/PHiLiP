@@ -54,7 +54,7 @@ real EntropyRRKODESolver<dim,real,n_rk_stages,MeshType>::compute_relaxation_para
     // k, kp1, km1 denote iteration indices of secant or bisection solvers
     double gamma_kp1; 
     // TEMP should have a parameter here
-    const double conv_tol = 1E-11; 
+    const double conv_tol = 5E-12; 
     int iter_counter = 0;
     const int iter_limit = 100;
     if (use_secant){
@@ -192,14 +192,51 @@ template <int dim, typename real, int n_rk_stages, typename MeshType>
 real EntropyRRKODESolver<dim,real,n_rk_stages,MeshType>::compute_integrated_numerical_entropy(
         const dealii::LinearAlgebra::distributed::Vector<double> &u) const
 {
-    // This function is reproduced from flow_solver_cases/periodic_entropy_tests
+    // This function is reproduced from flow_solver_cases/periodic_turbulence
     // Check that poly_degree is uniform everywhere
     if (this->dg->get_max_fe_degree() != this->dg->get_min_fe_degree()) {
         // Note: This function may have issues with nonuniform p. Should test in debug mode if developing in the future.
         this->pcout << "ERROR: compute_integrated_quantities() is untested for nonuniform p. Aborting..." << std::endl;
         std::abort();
     }
+    
+    const int nstate = dim+2;
+    double integrated_quantity = 0.0;
 
+    const double poly_degree = this->dg->all_parameters->flow_solver_param.poly_degree;
+
+    const unsigned int n_dofs_cell = this->dg->fe_collection[poly_degree].dofs_per_cell;
+    const unsigned int n_quad_pts = this->dg->volume_quadrature_collection[poly_degree].size();
+    const unsigned int n_shape_fns = n_dofs_cell / nstate;
+
+    OPERATOR::vol_projection_operator<dim,2*dim> vol_projection(1, poly_degree, this->dg->max_grid_degree);
+    vol_projection.build_1D_volume_operator(this->dg->oneD_fe_collection_1state[poly_degree], 
+                                            this->dg->oneD_quadrature_collection[poly_degree]);
+
+    // Construct the basis functions and mapping shape functions.
+    OPERATOR::basis_functions<dim,2*dim> soln_basis(1, poly_degree, this->dg->max_grid_degree); 
+    soln_basis.build_1D_volume_operator(this->dg->oneD_fe_collection_1state[poly_degree], 
+                                        this->dg->oneD_quadrature_collection[poly_degree]);
+
+    OPERATOR::mapping_shape_functions<dim,2*dim> mapping_basis(1, poly_degree, this->dg->max_grid_degree);
+    mapping_basis.build_1D_shape_functions_at_grid_nodes(this->dg->high_order_grid->oneD_fe_system, 
+                                                         this->dg->high_order_grid->oneD_grid_nodes);
+    mapping_basis.build_1D_shape_functions_at_flux_nodes(this->dg->high_order_grid->oneD_fe_system, 
+                                                         this->dg->oneD_quadrature_collection[poly_degree], 
+                                                         this->dg->oneD_face_quadrature);
+
+    std::vector<dealii::types::global_dof_index> dofs_indices (n_dofs_cell);
+    
+    const std::vector<double> &quad_weights = this->dg->volume_quadrature_collection[poly_degree].get_weights();
+
+    // If in the future we need the physical quadrature node location, turn these flags to true and the constructor will
+    // automatically compute it for you. Currently set to false as to not compute extra unused terms.
+    const bool store_vol_flux_nodes = false;//currently doesn't need the volume physical nodal position
+    const bool store_surf_flux_nodes = false;//currently doesn't need the surface physical nodal position
+
+    auto metric_cell = this->dg->high_order_grid->dof_handler_grid.begin_active();
+    
+/*
     const int overintegrate = 0;
     const int nstate = dim+2;
 
@@ -231,6 +268,7 @@ real EntropyRRKODESolver<dim,real,n_rk_stages,MeshType>::compute_integrated_nume
     const unsigned int n_shape_fns = n_dofs / nstate;
     std::vector<dealii::types::global_dof_index> dofs_indices (n_dofs);
     auto metric_cell = this->dg->high_order_grid->dof_handler_grid.begin_active();
+*/
     // Changed for loop to update metric_cell.
     for (auto cell = this->dg->dof_handler.begin_active(); cell!= this->dg->dof_handler.end(); ++cell, ++metric_cell) {
         if (!cell->is_locally_owned()) continue;
@@ -248,7 +286,7 @@ real EntropyRRKODESolver<dim,real,n_rk_stages,MeshType>::compute_integrated_nume
         }
         // Get the mapping support points (physical grid nodes) from high_order_grid.
         // Store it in such a way we can use sum-factorization on it with the mapping basis functions.
-        const std::vector<unsigned int > &index_renumbering = dealii::FETools::hierarchic_to_lexicographic_numbering<dim>(grid_degree);
+        const std::vector<unsigned int > &index_renumbering = dealii::FETools::hierarchic_to_lexicographic_numbering<dim>(this->dg->max_grid_degree);
         for (unsigned int idof = 0; idof< n_metric_dofs; ++idof) {
             const double val = (this->dg->high_order_grid->volume_nodes[metric_dof_indices[idof]]);
             const unsigned int istate = fe_metric.system_to_component_index(idof).first; 
@@ -257,7 +295,7 @@ real EntropyRRKODESolver<dim,real,n_rk_stages,MeshType>::compute_integrated_nume
             mapping_support_points[istate][igrid_node] = val; 
         }
         // Construct the metric operators.
-        OPERATOR::metric_operators<double, dim, 2*dim> metric_oper(nstate, poly_degree, grid_degree, store_vol_flux_nodes, store_surf_flux_nodes);
+        OPERATOR::metric_operators<double, dim, 2*dim> metric_oper(nstate, poly_degree, this->dg->max_grid_degree, store_vol_flux_nodes, store_surf_flux_nodes);
         // Build the metric terms to compute the gradient and volume node positions.
         // This functions will compute the determinant of the metric Jacobian and metric cofactor matrix. 
         // If flags store_vol_flux_nodes and store_surf_flux_nodes set as true it will also compute the physical quadrature positions.
@@ -273,7 +311,7 @@ real EntropyRRKODESolver<dim,real,n_rk_stages,MeshType>::compute_integrated_nume
         // mult would sum the states at the quadrature point.
         // That is why the basis functions are based off the 1state oneD fe_collection.
         std::array<std::vector<double>,nstate> soln_coeff;
-        for (unsigned int idof = 0; idof < n_dofs; ++idof) {
+        for (unsigned int idof = 0; idof < n_dofs_cell; ++idof) {
             const unsigned int istate = this->dg->fe_collection[poly_degree].system_to_component_index(idof).first;
             const unsigned int ishape = this->dg->fe_collection[poly_degree].system_to_component_index(idof).second;
             if(ishape == 0){

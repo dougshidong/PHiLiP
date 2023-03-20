@@ -31,7 +31,7 @@ int AnisotropicMeshAdaptationCases<dim, nstate> :: run_test () const
                         std::make_unique<AnisotropicMeshAdaptation<dim, nstate, double>> (flow_solver->dg, normLp, complexity, use_goal_oriented_approach);
 
     flow_solver->run();
-    const unsigned int n_adaptation_cycles = 2;
+    const unsigned int n_adaptation_cycles = 0;
     
     for(unsigned int cycle = 0; cycle < n_adaptation_cycles; ++cycle)
     {
@@ -39,6 +39,47 @@ int AnisotropicMeshAdaptationCases<dim, nstate> :: run_test () const
         flow_solver->run();
         flow_solver->dg->output_results_vtk(1000 + cycle);
     }
+
+    
+    const auto mapping = (*(flow_solver->dg->high_order_grid->mapping_fe_field)); // CHANGE IT BACK
+    dealii::MappingQGeneric<dim, dim> mapping2(flow_solver->dg->high_order_grid->dof_handler_grid.get_fe().degree);
+    dealii::hp::MappingCollection<dim> mapping_collection(mapping);
+    dealii::hp::MappingCollection<dim> mapping_collection2(mapping2);
+    const dealii::UpdateFlags update_flags = dealii::update_values | dealii::update_gradients |dealii::update_jacobians| dealii::update_jacobian_pushed_forward_grads | dealii::update_inverse_jacobians | dealii::update_jacobian_grads 
+                                            | dealii::update_quadrature_points | dealii::update_JxW_values;
+    dealii::hp::FEValues<dim,dim>   fe_values_collection_volume (mapping_collection, flow_solver->dg->fe_collection, flow_solver->dg->volume_quadrature_collection, update_flags);
+    dealii::hp::FEValues<dim,dim>   fe_values_collection_volume2 (mapping_collection2, flow_solver->dg->fe_collection, flow_solver->dg->volume_quadrature_collection, dealii::update_hessians);
+
+    for(const auto &cell : flow_solver->dg->dof_handler.active_cell_iterators())
+    {
+        if(! cell->is_locally_owned()) {continue;}
+        
+        const unsigned int i_fele = cell->active_fe_index();
+        const unsigned int i_quad = i_fele;
+        const unsigned int i_mapp = 0;
+        fe_values_collection_volume.reinit(cell, i_quad, i_mapp, i_fele);
+        fe_values_collection_volume2.reinit(cell, i_quad, i_mapp, i_fele);
+        const dealii::FEValues<dim,dim> &fe_values_volume = fe_values_collection_volume.get_present_fe_values();
+        const dealii::FEValues<dim,dim> &fe_values_volume2 = fe_values_collection_volume2.get_present_fe_values();
+       
+        const unsigned int iquad = 0;
+        const dealii::Tensor<2,dim,double> jacobian_inverse = dealii::Tensor<2,dim,double>(fe_values_volume.inverse_jacobian(iquad));
+        const dealii::Tensor<2,dim,double> jacobian = dealii::Tensor<2,dim,double>(fe_values_volume.jacobian(iquad));
+        const dealii::Tensor<3,dim,double> jacobian_grad = dealii::Tensor<3,dim,double>(fe_values_volume.jacobian_grad(iquad));
+        const dealii::Tensor<3,dim,double> jacobian_pushed_forward_grad = fe_values_volume.jacobian_pushed_forward_grad(iquad);
+        std::cout<<"Jacobian = "<<jacobian<<std::endl;
+        std::cout<<"Inverse jacobian = "<<jacobian_inverse<<std::endl;
+        std::cout<<"Jacobian grad = "<<jacobian_grad<<std::endl;
+        std::cout<<"Jacobian pushed forward grad = "<<jacobian_pushed_forward_grad<<std::endl;
+        std::cout<<"FEValues shape_hessian = "<<fe_values_volume2.shape_hessian_component(0, iquad, 0)<<std::endl;
+
+        //
+        const auto &fe_ref = fe_values_volume.get_fe();
+        const dealii::Quadrature<dim> &volume_quadrature = flow_solver->dg->volume_quadrature_collection[i_quad];
+        const dealii::Point<dim> ref_point = volume_quadrature.point(iquad);
+        const dealii::Tensor<2,dim,double> shape_hessian_ref = fe_ref.shape_grad_grad_component(0, ref_point, 0);
+        std::cout<<"Shape_hessian ref = "<<shape_hessian_ref<<std::endl<<std::endl;
+    } // cell loop ends
 
     return 0;
 }

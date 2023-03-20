@@ -493,16 +493,14 @@ void AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: adapt_mesh()
         = std::make_unique<MetricToMeshGenerator<dim, nstate, real>> (dg->high_order_grid->mapping_fe_field, dg->triangulation);
     metric_to_mesh_generator->generate_mesh_from_cellwise_metric(cellwise_optimal_metric);
     
-    std::shared_ptr<HighOrderGrid<dim,double,MeshType>> new_high_order_mesh = read_gmsh <dim, dim> (
-                                                                    metric_to_mesh_generator->get_generated_mesh_filename());
+    std::shared_ptr<HighOrderGrid<dim,double,MeshType>> new_high_order_mesh = 
+                                                        read_gmsh <dim, dim> (metric_to_mesh_generator->get_generated_mesh_filename());
     dg->set_high_order_grid(new_high_order_mesh);
     dg->allocate_system();
 
     // Need to either interpolate or initialize solution on the new mesh. Currently just set it to 0.
     dg->solution = 0;
     dg->solution.update_ghost_values();
-
-    metric_to_mesh_generator->delete_generated_files();
 }
 
 // Instantiations

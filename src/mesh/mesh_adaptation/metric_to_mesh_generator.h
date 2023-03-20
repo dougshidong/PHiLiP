@@ -42,9 +42,6 @@ public:
     /// Returns name of the .msh file
     std::string get_generated_mesh_filename() const;
 
-    /// Deletes the .pos, .geo and .msh files that have been generated. Needs to be called after the new mesh is read in.
-    void delete_generated_files() const;
-
 private:
     /// Reinitialize dof handler vertices after updating triangulation.
     void reinit();

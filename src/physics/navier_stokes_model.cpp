@@ -131,8 +131,7 @@ std::array<real,nstate> NavierStokesWithModelSourceTerms<dim,nstate,real>
     // const real bulk_velocity = 1.0; // since we nondimensionalize w.r.t. freestream values, which are set at the bulk values, this value is simply 1.0
     
     // x-momentum term
-    // const real bulk_density = this->integrated_density_over_domain;
-    const real bulk_density = 1.0; // for testing, i should be computing the integrated average density
+    const real bulk_density = this->bulk_density;
     source_term[1] = (bulk_density*bulk_velocity - conservative_soln[1])/this->time_step;
     
     // energy term

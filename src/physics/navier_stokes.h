@@ -84,6 +84,13 @@ public:
         const std::array<real2,nstate> &primitive_soln,
         const std::array<dealii::Tensor<1,dim,real2>,nstate> &primitive_soln_gradient) const;
 
+    /** Nondimensionalized wall shear stress */
+    template<typename real2>
+    real2 compute_wall_shear_stress (
+        const std::array<real2,nstate> &conservative_soln,
+        const std::array<dealii::Tensor<1,dim,real2>,nstate> &conservative_soln_gradient,
+        const dealii::Tensor<1,dim,real2> &normal_vector) const;
+
     /** Nondimensionalized viscosity coefficient, mu*
      *  Based on the use_constant_viscosity flag, it returns a value based on either:
      *  (1) Sutherland's viscosity law, or

@@ -935,7 +935,7 @@ public:
         const double channel_bulk_velocity_reynolds_number) = 0;
     /// Set the necessary unsteady variables declared in src/physics/model.h
     virtual void set_unsteady_model_variables(
-        const double integrated_density_over_domain,
+        const double bulk_density,
         const double time_step) = 0;
     /// Flag for using the auxiliary equation
     bool use_auxiliary_eq;
@@ -1048,7 +1048,7 @@ public:
     
     /// Set the necessary unsteady variables declared in src/physics/model.h
     void set_unsteady_model_variables(
-        const double integrated_density_over_domain,
+        const double bulk_density,
         const double time_step);
 
     /// Set use_auxiliary_eq flag

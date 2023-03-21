@@ -468,15 +468,15 @@ void DGBaseState<dim,nstate,real,MeshType>::set_constant_model_variables(
 
 template <int dim, int nstate, typename real, typename MeshType>
 void DGBaseState<dim,nstate,real,MeshType>::set_unsteady_model_variables(
-        const double integrated_density_over_domain,
+        const double bulk_density,
         const double time_step)
 {
-    // integrated_density_over_domain
-    pde_model_double->integrated_density_over_domain  = integrated_density_over_domain;
-    pde_model_fad->integrated_density_over_domain     = integrated_density_over_domain;
-    pde_model_rad->integrated_density_over_domain     = integrated_density_over_domain;
-    pde_model_fad_fad->integrated_density_over_domain = integrated_density_over_domain;
-    pde_model_rad_fad->integrated_density_over_domain = integrated_density_over_domain;
+    // bulk_density
+    pde_model_double->bulk_density  = bulk_density;
+    pde_model_fad->bulk_density     = bulk_density;
+    pde_model_rad->bulk_density     = bulk_density;
+    pde_model_fad_fad->bulk_density = bulk_density;
+    pde_model_rad_fad->bulk_density = bulk_density;
 
     // time_step
     pde_model_double->time_step  = time_step;

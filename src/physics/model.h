@@ -100,7 +100,7 @@ public:
     // Quantities needed to be updated by DG for the model -- accomplished by DGBase update_model_variables()
     dealii::LinearAlgebra::distributed::Vector<int> cellwise_poly_degree; ///< Cellwise polynomial degree
     dealii::LinearAlgebra::distributed::Vector<double> cellwise_volume; ////< Cellwise element volume
-    double integrated_density_over_domain; ///< Integrated density over domain
+    double bulk_density; ///< bulk density
     double channel_height; ///< Channel height
     double half_channel_height; ///< Half channel height
     double channel_friction_velocity_reynolds_number; ///< Channel Reynolds number based on the wall friction velocity

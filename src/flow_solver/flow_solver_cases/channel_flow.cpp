@@ -36,13 +36,37 @@ ChannelFlow<dim, nstate>::ChannelFlow(const PHiLiP::Parameters::AllParameters *c
 
 template <int dim, int nstate>
 void ChannelFlow<dim, nstate>::compute_unsteady_data_and_write_to_table(
-        const unsigned int /*current_iteration*/,
-        const double /*current_time*/,
+        const unsigned int current_iteration,
+        const double current_time,
         const std::shared_ptr <DGBase<dim, double>> dg,
-        const std::shared_ptr <dealii::TableHandler> /*unsteady_data_table*/)
+        const std::shared_ptr <dealii::TableHandler> unsteady_data_table)
 {
     // Update maximum local wave speed for adaptive time_step
     this->update_maximum_local_wave_speed(*dg);
+    // get averaged wall shear stress
+    const double average_wall_shear_stress = get_average_wall_shear_stress(*dg);
+
+    if(this->mpi_rank==0) {
+        // Add values to data table
+        this->add_value_to_data_table(current_time,"time",unsteady_data_table);
+        this->add_value_to_data_table(average_wall_shear_stress,"tau_w",unsteady_data_table);
+        // Write to file
+        std::ofstream unsteady_data_table_file(this->unsteady_data_table_filename_with_extension);
+        unsteady_data_table->write_text(unsteady_data_table_file);
+    }
+
+    // Print to console
+    this->pcout << "    Iter: " << current_iteration
+                << "    Time: " << current_time
+                << "    tau_w: " << average_wall_shear_stress
+                << std::endl;
+
+    // Abort if average_wall_shear_stress is nan
+    if(std::isnan(average_wall_shear_stress)) {
+        this->pcout << " ERROR: Wall shear stress at time " << current_time << " is nan." << std::endl;
+        this->pcout << "        Consider decreasing the time step / CFL number." << std::endl;
+        std::abort();
+    }
 }
 
 template <int dim, int nstate>
@@ -294,17 +318,18 @@ void ChannelFlow<dim,nstate>::initialize_model_variables(std::shared_ptr<DGBase<
 template <int dim, int nstate>
 void ChannelFlow<dim,nstate>::update_model_variables(std::shared_ptr<DGBase<dim, double>> dg) const
 {
-    const double integrated_density_over_domain = get_integrated_density_over_domain(*dg);
+    const double bulk_density = get_bulk_density(*dg);
 
     dg->set_unsteady_model_variables(
-        integrated_density_over_domain,
+        bulk_density,
         this->get_time_step());
 }
 
 template<int dim, int nstate>
-double ChannelFlow<dim, nstate>::get_integrated_density_over_domain(DGBase<dim, double> &dg) const
+double ChannelFlow<dim, nstate>::get_bulk_density(DGBase<dim, double> &dg) const
 {
     double integral_value = 0.0;
+    double integral_area_value = 0.0;
 
     // Overintegrate the error to make sure there is not integration error in the error estimate
     int overintegrate = 10;
@@ -339,10 +364,73 @@ double ChannelFlow<dim, nstate>::get_integrated_density_over_domain(DGBase<dim, 
 
             double integrand_value = soln_at_q[0]; // density
             integral_value += integrand_value * fe_values_extra.JxW(iquad);
+            integral_area_value += fe_values_extra.JxW(iquad);
         }
     }
     const double mpi_sum_integral_value = dealii::Utilities::MPI::sum(integral_value, this->mpi_communicator);
-    return mpi_sum_integral_value;
+    const double mpi_sum_integral_area_value = dealii::Utilities::MPI::sum(integral_area_value, this->mpi_communicator);
+    const double averaged_value = mpi_sum_integral_value/mpi_sum_integral_area_value;
+    return averaged_value;
+}
+
+template<int dim, int nstate>
+double ChannelFlow<dim, nstate>::get_average_wall_shear_stress(DGBase<dim, double> &dg) const
+{
+    /// Update flags needed at face points.
+    const dealii::UpdateFlags face_update_flags = dealii::update_values | dealii::update_gradients | dealii::update_quadrature_points | dealii::update_JxW_values | dealii::update_normal_vectors;
+    double integral_value = 0.0;
+    double integral_area_value = 0.0;
+
+    // Overintegrate the error to make sure there is not integration error in the error estimate
+    int overintegrate = 10;
+    dealii::QGauss<dim-1> quad_extra(dg.max_degree+1+overintegrate);
+    dealii::FEFaceValues<dim,dim> fe_face_values_extra(*(dg.high_order_grid->mapping_fe_field), dg.fe_collection[dg.max_degree], quad_extra, 
+                                                  face_update_flags);
+
+    
+    std::array<double,nstate> soln_at_q;
+    std::array<dealii::Tensor<1,dim,double>,nstate> soln_grad_at_q;
+
+    std::vector<dealii::types::global_dof_index> dofs_indices (fe_face_values_extra.dofs_per_cell);
+    for (auto cell : dg.dof_handler.active_cell_iterators()) {
+        if (!cell->is_locally_owned()) continue;
+        
+        cell->get_dof_indices (dofs_indices);
+
+        for(unsigned int iface = 0; iface < dealii::GeometryInfo<dim>::faces_per_cell; ++iface){
+            auto face = cell->face(iface);
+            
+            if(face->at_boundary()){
+                const unsigned int boundary_id = face->boundary_id();
+                if(boundary_id==1001){
+                    fe_face_values_extra.reinit (cell,iface);
+                    const unsigned int n_quad_pts = fe_face_values_extra.n_quadrature_points;
+                    for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
+                        std::fill(soln_at_q.begin(), soln_at_q.end(), 0.0);
+                        for (int s=0; s<nstate; ++s) {
+                            for (int d=0; d<dim; ++d) {
+                                soln_grad_at_q[s][d] = 0.0;
+                            }
+                        }
+                        for (unsigned int idof=0; idof<fe_face_values_extra.dofs_per_cell; ++idof) {
+                            const unsigned int istate = fe_face_values_extra.get_fe().system_to_component_index(idof).first;
+                            soln_at_q[istate] += dg.solution[dofs_indices[idof]] * fe_face_values_extra.shape_value_component(idof, iquad, istate);
+                            soln_grad_at_q[istate] += dg.solution[dofs_indices[idof]] * fe_face_values_extra.shape_grad_component(idof,iquad,istate);
+                        }
+                        // const dealii::Point<dim> qpoint = (fe_face_values_extra.quadrature_point(iquad));
+                        const dealii::Tensor<1,dim,double> normal_vector = fe_face_values_extra.normal_vector(iquad);
+                        double integrand_value = this->navier_stokes_physics->compute_wall_shear_stress(soln_at_q,soln_grad_at_q,normal_vector);
+                        integral_value += integrand_value * fe_face_values_extra.JxW(iquad);
+                        integral_area_value += fe_face_values_extra.JxW(iquad);
+                    }
+                }
+            }
+        }
+    }
+    const double mpi_sum_integral_value = dealii::Utilities::MPI::sum(integral_value, this->mpi_communicator);
+    const double mpi_sum_integral_area_value = dealii::Utilities::MPI::sum(integral_area_value, this->mpi_communicator);
+    const double averaged_value = mpi_sum_integral_value/mpi_sum_integral_area_value;
+    return averaged_value;
 }
 
 #if PHILIP_DIM==3

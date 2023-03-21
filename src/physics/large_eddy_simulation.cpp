@@ -196,7 +196,7 @@ std::array<real,nstate> LargeEddySimulationBase<dim,nstate,real>
     const real bulk_velocity = 1.0; // since we nondimensionalize w.r.t. freestream values, which are set at the bulk values, this value is simply 1.0
     
     // x-momentum term
-    source_term[1] = (this->integrated_density_over_domain*bulk_velocity - conservative_soln[1])/this->time_step;
+    source_term[1] = (this->bulk_density*bulk_velocity - conservative_soln[1])/this->time_step;
     
     // energy term
     const real x_velocity = primitive_soln[1];

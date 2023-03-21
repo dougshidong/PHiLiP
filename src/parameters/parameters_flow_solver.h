@@ -101,6 +101,14 @@ public:
     double turbulent_channel_domain_length_x_direction; ///< For channel flow, domain length in x-direction
     double turbulent_channel_domain_length_y_direction; ///< For channel flow, domain length in y-direction
     double turbulent_channel_domain_length_z_direction; ///< For channel flow, domain length in z-direction
+    
+    /// For turbulent channel flow, selects the type of x-velocity initialization
+    enum XVelocityInitialConditionType{
+        laminar,
+        turbulent,
+        };
+    /// Selected XVelocityInitialConditionType from the input file
+    XVelocityInitialConditionType xvelocity_initial_condition_type;
 
     /// For turbulent channel flow, selects the type of mesh stretching function
     enum TurbulentChannelMeshStretchingFunctionType{

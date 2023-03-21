@@ -62,7 +62,7 @@ public:
     }
 };
 
-/// Function used to evaluate turbulent channel conservative solution
+/// Function used to evaluate initial turbulent channel conservative solution
 template <int dim, int nstate, typename real>
 class InitialConditionFunction_TurbulentChannelFlow : public InitialConditionFunction<dim,nstate,real>
 {
@@ -71,9 +71,6 @@ protected:
 
 public:
     /// Constructor.
-    /** Initial condition based on the Reichardt function
-     *  Reference: https://how4.cenaero.be/sites/how4.cenaero.be/files/BS2_ChannelFlowRe590.pdf
-     */
     InitialConditionFunction_TurbulentChannelFlow (
         const Physics::NavierStokes<dim,nstate,double> navier_stokes_physics_,
         const double channel_friction_velocity_reynolds_number_,
@@ -96,13 +93,29 @@ protected:
     /// distance from closest wall
     real get_distance_from_wall(const dealii::Point<dim,real> &point) const;
     /// x-velocity
-    real x_velocity (const dealii::Point<dim,real> &point, const real density, const real temperature) const;
-    /// x-velocity laminar profile
-    real x_velocity_laminar_profile (const dealii::Point<dim,real> &point, const real density, const real temperature) const;
-    /// x-velocity turbulent profile
-    real x_velocity_turbulent_profile (const dealii::Point<dim,real> &point, const real density, const real temperature) const;
+    virtual real x_velocity (const dealii::Point<dim,real> &point, const real density, const real temperature) const;
     /// y-velocity
     real y_velocity (const dealii::Point<dim,real> &point) const;
+};
+
+template <int dim, int nstate, typename real>
+class InitialConditionFunction_TurbulentChannelFlow_Turbulent : public InitialConditionFunction_TurbulentChannelFlow<dim,nstate,real>
+{
+public:
+    /// Constructor.
+    /** Initial condition based on the Reichardt function
+     *  Reference: https://how4.cenaero.be/sites/how4.cenaero.be/files/BS2_ChannelFlowRe590.pdf
+     */
+    InitialConditionFunction_TurbulentChannelFlow_Turbulent (
+        const Physics::NavierStokes<dim,nstate,double> navier_stokes_physics_,
+        const double channel_friction_velocity_reynolds_number_,
+        const double domain_length_x_,
+        const double domain_length_y_,
+        const double domain_length_z_);
+
+protected:
+    /// x-velocity
+    real x_velocity (const dealii::Point<dim,real> &point, const real density, const real temperature) const override;
 };
 
 /// Initial Condition Function: Taylor Green Vortex (uniform density)
@@ -403,6 +416,8 @@ protected:
     using FlowCaseEnum = Parameters::FlowSolverParam::FlowCaseType;
     /// Enumeration of all taylor green vortex initial condition sub-types defined in the Parameters class
     using DensityInitialConditionEnum = Parameters::FlowSolverParam::DensityInitialConditionType;
+    /// Enumeration of all turbulent channel flow inition condition sub-types defined in the Parameters class
+    using XVelocityInitialConditionEnum = Parameters::FlowSolverParam::XVelocityInitialConditionType;
 
 public:
     /// Construct InitialConditionFunction object from global parameter file

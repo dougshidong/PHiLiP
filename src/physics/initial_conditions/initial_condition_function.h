@@ -76,18 +76,25 @@ public:
      */
     InitialConditionFunction_TurbulentChannelFlow (
         const Physics::NavierStokes<dim,nstate,double> navier_stokes_physics_,
-        const double half_channel_height_,
-        const double channel_friction_velocity_reynolds_number_);
+        const double channel_friction_velocity_reynolds_number_,
+        const double domain_length_x_,
+        const double domain_length_y_,
+        const double domain_length_z_);
 
     const Physics::NavierStokes<dim,nstate,double> navier_stokes_physics; ///< Navier-Stokes physics object
-    const double half_channel_height; ///< Half channel height
-    const double channel_height; ///< Channel height
     const double channel_friction_velocity_reynolds_number; ///< Channel Reynolds number based on wall friction velocity
+    const double domain_length_x; ///< Domain length in x-direction
+    const double domain_length_y; ///< Domain length in y-direction
+    const double domain_length_z; ///< Domain length in z-direction
+    const double channel_height; ///< Channel height
+    const double half_channel_height; ///< Half channel height
 
     /// Value of initial condition expressed in terms of conservative variables
     real value (const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
 
 protected:
+    /// distance from closest wall
+    real get_distance_from_wall(const dealii::Point<dim,real> &point) const;
     /// x-velocity
     real x_velocity (const dealii::Point<dim,real> &point, const real density, const real temperature) const;
     /// x-velocity laminar profile

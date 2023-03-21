@@ -36,8 +36,8 @@ public:
     void update_model_variables(std::shared_ptr<DGBase<dim, double>> dg) const override;
 
 protected:
-    const double half_channel_height; ///< Half channel height
     const double channel_height; ///< Channel height
+    const double half_channel_height; ///< Half channel height
     const double channel_friction_velocity_reynolds_number; ///< Channel Reynolds number based on wall friction velocity
     const int number_of_cells_x_direction; ///< Number of cells in x-direction
     const int number_of_cells_y_direction; ///< Number of cells in y-direction
@@ -46,6 +46,7 @@ protected:
     const double domain_length_x; ///< Domain length in x-direction
     const double domain_length_y; ///< Domain length in y-direction
     const double domain_length_z; ///< Domain length in z-direction
+    const double domain_volume; ///< Domain volume
 
     /** 
      * Bulk velocity Reynolds number computed from friction velocity based Reynolds numbers (Empirical relation)

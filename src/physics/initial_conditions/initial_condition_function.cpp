@@ -23,27 +23,43 @@ template <int dim, int nstate, typename real>
 InitialConditionFunction_TurbulentChannelFlow<dim,nstate,real>
 ::InitialConditionFunction_TurbulentChannelFlow (
     const Physics::NavierStokes<dim,nstate,double> navier_stokes_physics_,
-    const double half_channel_height_,
-    const double channel_friction_velocity_reynolds_number_)
+    const double channel_friction_velocity_reynolds_number_,
+    const double domain_length_x_,
+    const double domain_length_y_,
+    const double domain_length_z_)
     : InitialConditionFunction<dim,nstate,real>()
     , navier_stokes_physics(navier_stokes_physics_)
-    , half_channel_height(half_channel_height_)
-    , channel_height(2.0*half_channel_height)
     , channel_friction_velocity_reynolds_number(channel_friction_velocity_reynolds_number_)
+    , domain_length_x(domain_length_x_)
+    , domain_length_y(domain_length_y_)
+    , domain_length_z(domain_length_z_)
+    , channel_height(domain_length_y)
+    , half_channel_height(0.5*channel_height)
 {}
+
+template <int dim, int nstate, typename real>
+inline real InitialConditionFunction_TurbulentChannelFlow<dim, nstate, real>
+::get_distance_from_wall(const dealii::Point<dim,real> &point) const
+{
+    // Get closest wall normal distance
+    real y = point[1]; // y-coordinate of position
+    real dist_from_wall = 0.0; // represents distance normal to top/bottom wall (which ever is closer); y-domain bounds are [-half_channel_height, half_channel_height]
+    if(y > 0.0){
+        // top wall
+        dist_from_wall = half_channel_height - y; // distance from top wall
+    } else if(y < 0.0) {
+        dist_from_wall = y - half_channel_height; // distance from bottom wall
+    }
+    return dist_from_wall;
+}
 
 template <int dim, int nstate, typename real>
 inline real InitialConditionFunction_TurbulentChannelFlow<dim, nstate, real>
 ::x_velocity_turbulent_profile(const dealii::Point<dim,real> &point, const real density, const real temperature) const
 {
     // Turbulent velocity profile using Reichart's law of the wall
-    // Get closest wall normal distance
-    real y = point[1]; // represents distance normal to top/bottom wall (which ever is closer); y-domain bounds are [0, channel_height]
     // -- apply initial condition symmetrically w.r.t. the top/bottom walls of the channel
-    if(y > half_channel_height){
-        // top wall
-        y = channel_height - y; // distance from wall
-    }
+    const real dist_from_wall = get_distance_from_wall(point);
 
     // Get the nondimensional (w.r.t. freestream) friction velocity
     const real viscosity_coefficient = navier_stokes_physics.compute_viscosity_coefficient_from_temperature(temperature);
@@ -59,7 +75,7 @@ inline real InitialConditionFunction_TurbulentChannelFlow<dim, nstate, real>
     */
     const real kappa = 0.38; // von Karman's constant
     const real C = 4.1;
-    const real y_plus = density*friction_velocity*y/viscosity_coefficient;
+    const real y_plus = density*friction_velocity*dist_from_wall/viscosity_coefficient;
     const real u_plus = (1.0/kappa)*log(1.0+kappa*y_plus) + (C - (1.0/kappa)*log(kappa))*(1.0 - exp(-y_plus/11.0) - (y_plus/11.0)*exp(-y_plus/3.0));
     const real x_velocity = u_plus*friction_velocity;
     return x_velocity;
@@ -70,16 +86,8 @@ inline real InitialConditionFunction_TurbulentChannelFlow<dim, nstate, real>
 ::x_velocity_laminar_profile(const dealii::Point<dim,real> &point, const real /*density*/, const real /*temperature*/) const
 {
     // Laminar velocity profile
-    // Get closest wall normal distance
-    real y = point[1]; // represents distance normal to top/bottom wall (which ever is closer); y-domain bounds are [0, channel_height]
-    // -- apply initial condition symmetrically w.r.t. the top/bottom walls of the channel
-    if(y > half_channel_height){
-        // top wall
-        y = channel_height - y; // distance from wall
-    }
-
     // Reference: G. LODATO, P. CASTONGUAY AND A. JAMESON, "Discrete filter operators for large-eddy simulation using high-order spectral difference methods", Int. J. Numer. Meth. Fluids (2012)
-    const real x_velocity = (15.0/8.0)*pow(1.0-pow((y-1.0)/half_channel_height,2.0),2.0); // y-1.0 because this expression is given for when y\in[-1,1], we currently have y\in[0,2]
+    const real x_velocity = (15.0/8.0)*pow(1.0-pow(point[1]/half_channel_height,2.0),2.0);
     return x_velocity;
 }
 
@@ -95,32 +103,26 @@ template <int dim, int nstate, typename real>
 inline real InitialConditionFunction_TurbulentChannelFlow<dim, nstate, real>
 ::y_velocity(const dealii::Point<dim,real> &point) const
 {
-    // Setup domain lengths -- copied from FlowSolverCase
-    const real pi_val = 3.141592653589793238;
-    const real domain_length_x = 2.0*pi_val*half_channel_height;
-    const real domain_length_y = channel_height;
-    // const real domain_length_z = pi_val*half_channel_height;
-    const real domain_center_x = 0.0;
-    const real domain_center_y = domain_length_y/2.0;
-
     // Setup perturbed velocity
     const real C = 0.1; // Reference: G. LODATO, P. CASTONGUAY AND A. JAMESON, "Discrete filter operators for large-eddy simulation using high-order spectral difference methods", Int. J. Numer. Meth. Fluids (2012)
-    const real x_loc = domain_center_x; // x-point at which to center the disturbance <-- Reference: R. Rossi / Journal of Computational Physics 228 (2009) 1639–1657
-    const real y_loc = domain_center_y; // y-point at which to center the disturbance <-- Reference: R. Rossi / Journal of Computational Physics 228 (2009) 1639–1657
-    // const real beta = 4.0*pi_val; // Reference: G. LODATO, P. CASTONGUAY AND A. JAMESON, "Discrete filter operators for large-eddy simulation using high-order spectral difference methods", Int. J. Numer. Meth. Fluids (2012)
-    const real beta = 4.0; // Reference: R. Rossi / Journal of Computational Physics 228 (2009) 1639–1657
+    const real x_loc = 0.0; // x-point at which to center the disturbance <-- Reference: R. Rossi / Journal of Computational Physics 228 (2009) 1639–1657
+    const real y_loc = 0.0; // y-point at which to center the disturbance <-- Reference: R. Rossi / Journal of Computational Physics 228 (2009) 1639–1657
+    const real pi_val = 3.141592653589793238;
+    const real beta = 4.0*pi_val; // Reference: G. LODATO, P. CASTONGUAY AND A. JAMESON, "Discrete filter operators for large-eddy simulation using high-order spectral difference methods", Int. J. Numer. Meth. Fluids (2012)
     const real x_scale = domain_length_x;
     const real y_scale = domain_length_y;
+    const real z_scale = domain_length_z;
+    const real half_domain_length_z = 0.5*domain_length_z;
 
     // extract coordinates
     const real x = point[0];
     const real y = point[1];
     const real z = point[2];
-    // const real z = point[2]/this->domain_length_z; // normalize z w.r.t. domain length in z-direction -- uncomment if using LODATO et al.'s beta value
 
     // return perturbed vertical velocity component
     // Reference: Eq.(2.30) -- P. Andersson, L. Brandt, A. Bottaro and D. S. Henningson, "On the breakdown of boundary layer streaks"
-    const real F = C*exp(-pow((x-x_loc)/x_scale,2.0))*exp(-pow((y-y_loc)/y_scale,2.0))*cos(beta*z);
+    // Reference for z_scale term: G. LODATO, P. CASTONGUAY AND A. JAMESON, "Discrete filter operators for large-eddy simulation using high-order spectral difference methods", Int. J. Numer. Meth. Fluids (2012)
+    /*const */real F = C*exp(-pow((x-x_loc)/x_scale,2.0))*exp(-pow((y-y_loc)/y_scale,2.0))*cos(beta*(z+half_domain_length_z)/z_scale); // we do (z+half_domain_length_z) because reference has z\in[0,domain_length_z], whereas we center about the z-axis
     return F;
 }
 
@@ -696,8 +698,10 @@ InitialConditionFactory<dim,nstate, real>::create_InitialConditionFunction(
                     param->two_point_num_flux_type);
             return std::make_shared<InitialConditionFunction_TurbulentChannelFlow<dim,nstate,real>>(
                 navier_stokes_physics_double,
-                param->flow_solver_param.turbulent_channel_half_channel_height,
-                param->flow_solver_param.turbulent_channel_friction_velocity_reynolds_number);
+                param->flow_solver_param.turbulent_channel_friction_velocity_reynolds_number,
+                param->flow_solver_param.turbulent_channel_domain_length_x_direction,
+                param->flow_solver_param.turbulent_channel_domain_length_y_direction,
+                param->flow_solver_param.turbulent_channel_domain_length_z_direction);
         }
     } else {
         std::cout << "Invalid Flow Case Type. You probably forgot to add it to the list of flow cases in initial_condition_function.cpp" << std::endl;

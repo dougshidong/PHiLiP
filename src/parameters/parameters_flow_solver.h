@@ -94,11 +94,13 @@ public:
     /// For TGV, flag to calculate and write numerical entropy
     bool do_calculate_numerical_entropy;
 
-    double turbulent_channel_half_channel_height; ///< For channel flow, half channel height
     double turbulent_channel_friction_velocity_reynolds_number; ///< For channel flow, channel Reynolds number based on wall friction velocity
     int turbulent_channel_number_of_cells_x_direction; ///< For channel flow, number of cells in x-direction
     int turbulent_channel_number_of_cells_y_direction; ///< For channel flow, number of cells in y-direction
     int turbulent_channel_number_of_cells_z_direction; ///< For channel flow, number of cells in z-direction
+    double turbulent_channel_domain_length_x_direction; ///< For channel flow, domain length in x-direction
+    double turbulent_channel_domain_length_y_direction; ///< For channel flow, domain length in y-direction
+    double turbulent_channel_domain_length_z_direction; ///< For channel flow, domain length in z-direction
 
     /// For turbulent channel flow, selects the type of mesh stretching function
     enum TurbulentChannelMeshStretchingFunctionType{

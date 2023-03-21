@@ -535,7 +535,7 @@ void AllParameters::modify_parameters () {
       // - Freestream Reynolds number
       navier_stokes_param.reynolds_number_inf = channel_bulk_velocity_reynolds_number;
       // - Reference length
-      euler_param.ref_length = flow_solver_param.turbulent_channel_half_channel_height;
+      euler_param.ref_length = flow_solver_param.turbulent_channel_domain_length_y_direction/2.0; // corresponds to half channel height
       
       pcout << "done." << std::endl;
     }

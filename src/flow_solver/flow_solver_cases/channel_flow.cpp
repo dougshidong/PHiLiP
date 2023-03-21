@@ -20,16 +20,17 @@ namespace FlowSolver {
 template <int dim, int nstate>
 ChannelFlow<dim, nstate>::ChannelFlow(const PHiLiP::Parameters::AllParameters *const parameters_input)
         : PeriodicTurbulence<dim, nstate>(parameters_input)
-        , half_channel_height(this->all_param.flow_solver_param.turbulent_channel_half_channel_height)
-        , channel_height(2.0*half_channel_height)
+        , channel_height(this->all_param.flow_solver_param.turbulent_channel_domain_length_y_direction)
+        , half_channel_height(channel_height/2.0)
         , channel_friction_velocity_reynolds_number(this->all_param.flow_solver_param.turbulent_channel_friction_velocity_reynolds_number)
         , number_of_cells_x_direction(this->all_param.flow_solver_param.turbulent_channel_number_of_cells_x_direction)
         , number_of_cells_y_direction(this->all_param.flow_solver_param.turbulent_channel_number_of_cells_y_direction)
         , number_of_cells_z_direction(this->all_param.flow_solver_param.turbulent_channel_number_of_cells_z_direction)
         , pi_val(3.141592653589793238)
-        , domain_length_x(2.0*pi_val*half_channel_height)
+        , domain_length_x(this->all_param.flow_solver_param.turbulent_channel_domain_length_x_direction)
         , domain_length_y(channel_height)
-        , domain_length_z(pi_val*half_channel_height)
+        , domain_length_z(this->all_param.flow_solver_param.turbulent_channel_domain_length_z_direction)
+        , domain_volume(domain_length_x*domain_length_y*domain_length_z)
         , channel_bulk_velocity_reynolds_number(pow(0.073, -4.0/7.0)*pow(2.0, 5.0/7.0)*pow(channel_friction_velocity_reynolds_number, 8.0/7.0))
         , channel_centerline_velocity_reynolds_number(1.28*pow(2.0, -0.0116)*pow(channel_bulk_velocity_reynolds_number,1.0-0.0116))
 { }
@@ -239,10 +240,9 @@ std::shared_ptr<Triangulation> ChannelFlow<dim,nstate>::generate_grid() const
     // std::shared_ptr<HighOrderGrid<dim,double>> mesh = read_gmsh<dim, dim> (mesh_filename, grid_order, use_mesh_smoothing);
     // return mesh->triangulation;
 
-    // define domain to be centered about x and z axis
-    // and start domain from y=0 for the convenience of computing wall distance
-    const dealii::Point<dim> p1(-0.5*domain_length_x, 0.0, -0.5*domain_length_z);
-    const dealii::Point<dim> p2(0.5*domain_length_x, domain_length_y, 0.5*domain_length_z);
+    // define domain to be centered about x, y, and z axes
+    const dealii::Point<dim> p1(-0.5*domain_length_x, -0.5*domain_length_y, -0.5*domain_length_z);
+    const dealii::Point<dim> p2(0.5*domain_length_x, 0.5*domain_length_y, 0.5*domain_length_z);
 
     // get step size for each cell
     // - uniform spacing in x and z
@@ -329,7 +329,6 @@ template<int dim, int nstate>
 double ChannelFlow<dim, nstate>::get_bulk_density(DGBase<dim, double> &dg) const
 {
     double integral_value = 0.0;
-    double integral_area_value = 0.0;
 
     // Overintegrate the error to make sure there is not integration error in the error estimate
     int overintegrate = 10;
@@ -364,12 +363,10 @@ double ChannelFlow<dim, nstate>::get_bulk_density(DGBase<dim, double> &dg) const
 
             double integrand_value = soln_at_q[0]; // density
             integral_value += integrand_value * fe_values_extra.JxW(iquad);
-            integral_area_value += fe_values_extra.JxW(iquad);
         }
     }
     const double mpi_sum_integral_value = dealii::Utilities::MPI::sum(integral_value, this->mpi_communicator);
-    const double mpi_sum_integral_area_value = dealii::Utilities::MPI::sum(integral_area_value, this->mpi_communicator);
-    const double averaged_value = mpi_sum_integral_value/mpi_sum_integral_area_value;
+    const double averaged_value = mpi_sum_integral_value/domain_volume;
     return averaged_value;
 }
 

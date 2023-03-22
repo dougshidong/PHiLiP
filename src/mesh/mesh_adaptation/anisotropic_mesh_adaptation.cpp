@@ -468,7 +468,7 @@ unsigned int AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: get_iquad
 // Flux referenced by flux[idof][istate][idim]
 template<int dim, int nstate, typename real, typename MeshType>
 void AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: get_flux_coeffs(
-    std::vector<std::array<dealii::Tensor<1,dim,real>,nstate>> &flux_coeffs, 
+    std::vector<std::array<dealii::Tensor<1,dim,real>,nstate>> &flux_at_quads, 
     const dealii::FEValues<dim,dim> &fe_values_input,
     const std::vector<dealii::types::global_dof_index> &dof_indices,
     typename dealii::DoFHandler<dim>::active_cell_iterator cell) const
@@ -498,8 +498,7 @@ void AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: get_flux_coeffs(
             soln_at_q[istate] += dg->solution(dof_indices[idof]) * fe_values_support_pts.shape_value_component(idof, iquad, istate);
         }
         
-        // Here we assume flux_coeffs[idof] = flux_at_iquad.
-        flux_coeffs[iquad] = pde_physics_double->convective_flux(soln_at_q);
+        flux_at_quads[iquad] = pde_physics_double->convective_flux(soln_at_q);
     }
 
 }

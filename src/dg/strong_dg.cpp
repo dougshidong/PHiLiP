@@ -2053,7 +2053,6 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_strong(
         diss_auxi_num_flux_dot_n_at_q = this->diss_num_flux_double->evaluate_auxiliary_flux(
             current_cell_index, neighbor_cell_index,
             0.0, 0.0,
-           // soln_state_int, soln_state_ext,
             soln_interp_to_face_int, soln_interp_to_face_ext,
             aux_soln_state_int, aux_soln_state_ext,
             unit_phys_normal_int, penalty, false);

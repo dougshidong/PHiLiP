@@ -1,0 +1,52 @@
+# Listing of Parameters
+# ---------------------
+# Number of dimensions
+
+set dimension = 2 
+set run_type = flow_simulation
+set pde_type = euler
+
+# DG formulation
+set use_weak_form = false
+set use_split_form = true
+set flux_nodes_type = GLL
+
+set flux_reconstruction = cDG
+set use_inverse_mass_on_the_fly = true
+
+# Note: this was added to turn off check_same_coords() -- has no other function when dim!=1
+set use_periodic_bc = true
+
+# numerical fluxes
+set conv_num_flux = two_point_flux
+set two_point_num_flux_type = IR
+
+# ODE solver
+subsection ODE solver
+  set ode_output = verbose 
+  set ode_solver_type = runge_kutta 
+  set runge_kutta_method = rk4_ex
+end
+
+subsection linear solver
+  set linear_solver_output = quiet
+end
+
+# freestream Mach number
+subsection euler
+  set mach_infinity = 1.195228609334 #=sqrt(2/1.4)
+end
+
+subsection flow_solver
+  set flow_case_type = isentropic_vortex
+  set poly_degree = 3
+  set final_time = 23.66431913239 #=20 * sqrt(1.4), time for vortex to advect around the domain
+  set courant_friedrichs_lewy_number = 0.1
+  set unsteady_data_table_filename = isentropic_vortex_time_table
+  subsection grid
+    set grid_left_bound = -10.0
+    set grid_right_bound = 10.0
+    set number_of_grid_elements_per_dimension = 32
+  end
+  set interpolate_initial_condition = true
+end

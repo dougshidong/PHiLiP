@@ -15,7 +15,52 @@
 #include "primal_dual_active_set.hpp"
 #include "optimization/dealii_solver_rol_vector.hpp"
 
+//#define REPLACE_INVERSE_WITH_IDENTITY
 namespace PHiLiP {
+
+template<typename Real = double>
+class Dealii_LinearOperator_From_ROL_LinearOperator
+{
+    ROL::Ptr<ROL::LinearOperator<Real>> rol_linear_operator;
+public:
+    Dealii_LinearOperator_From_ROL_LinearOperator(ROL::Ptr<ROL::LinearOperator<Real>> rol_linear_operator)
+    : rol_linear_operator(rol_linear_operator)
+    { };
+
+    void vmult (dealiiSolverVectorWrappingROL<Real>       &dst,
+                const dealiiSolverVectorWrappingROL<Real> &src) const
+    {
+        const ROL::Ptr<const ROL::Vector<Real>> src_rol = src.getVector();
+        ROL::Ptr<ROL::Vector<Real>> dst_rol = dst.getVector();
+
+        double tol = 1e-15;
+        rol_linear_operator->apply(*dst_rol, *src_rol, tol);
+    }
+
+    
+};
+
+template<typename Real = double>
+class Dealii_Preconditioner_From_ROL_LinearOperator
+{
+    ROL::Ptr<ROL::LinearOperator<Real>> rol_linear_operator;
+public:
+    Dealii_Preconditioner_From_ROL_LinearOperator(ROL::Ptr<ROL::LinearOperator<Real>> rol_linear_operator)
+    : rol_linear_operator(rol_linear_operator)
+    { };
+
+    void vmult (dealiiSolverVectorWrappingROL<Real>       &dst,
+                const dealiiSolverVectorWrappingROL<Real> &src) const
+    {
+        const ROL::Ptr<const ROL::Vector<Real>> src_rol = src.getVector();
+        ROL::Ptr<ROL::Vector<Real>> dst_rol = dst.getVector();
+
+        double tol = 1e-15;
+        rol_linear_operator->applyInverse(*dst_rol, *src_rol, tol);
+    }
+
+    
+};
 
 /// Preconditioners from Biros & Ghattas 2005 with additional constraints.
 /** Option to use or ignore second-order term to obtain P4 or P2 preconditioners
@@ -139,6 +184,7 @@ public:
 
                 for (unsigned int ieq = 0; ieq < neq; ++ieq) {
                     x4_adj_equ_var[ieq] = x4_partitioned.get(ith_x4_partition++);
+                    //std::cout << "x4_adj_equ_var " << ieq << " norm: " << x4_adj_equ_var[ieq]->norm() << std::endl;
                 }
                 x4_adj_sim_ctl_bnd = x4_partitioned.get(ith_x4_partition++);
                 for (unsigned int ieq = 0; ieq < neq; ++ieq) {
@@ -302,6 +348,7 @@ public:
                     y3_ctl->axpy(x4_adj_equ_var_singleton.getValue(), *C[ieq]);
                 }
                 y3_ctl->axpy(one, x4_active_ctl_dual_inequality);
+                (void)x4_active_ctl_dual_inequality;
 
                 for (unsigned int ieq = 0; ieq < neq; ++ieq) {
                     y3_slk_vec[ieq]->set(*x4_adj_equ_var[ieq]);
@@ -389,8 +436,8 @@ public:
         std::vector<ROL::Ptr<ROL::Vector<Real>>> slack_vecs;
         const unsigned int n_vec = design_variables.numVectors();
         for (unsigned int i_vec = 1; i_vec < n_vec; ++i_vec) {
-            slack_vecs.push_back( design_variables_->get(i_vec)->clone() );
-            slack_vecs[i_vec-1]->set( *(design_variables_->get(i_vec)) );
+            slack_vecs.push_back( design_variables.get(i_vec)->clone() );
+            slack_vecs[i_vec-1]->set( *(design_variables.get(i_vec)) );
         }
         ROL::Ptr<const ROL::PartitionedVector<Real>> slack_variables_partitioned = ROL::makePtr<const ROL::PartitionedVector<Real>> (slack_vecs);
         return slack_variables_partitioned;
@@ -419,8 +466,8 @@ public:
 
         const unsigned int n_vec = design_variables.numVectors();
         for (unsigned int i_vec = 1; i_vec < n_vec; ++i_vec) {
-            slack_vecs.push_back( design_variables_->get(i_vec)->clone() );
-            slack_vecs[i_vec]->set( *(design_variables_->get(i_vec)) );
+            slack_vecs.push_back( design_variables.get(i_vec)->clone() );
+            slack_vecs[i_vec]->set( *(design_variables.get(i_vec)) );
         }
         ROL::Ptr<const ROL::PartitionedVector<Real>> slack_variables_partitioned = ROL::makePtr<const ROL::PartitionedVector<Real>> (slack_vecs);
         return slack_variables_partitioned;
@@ -450,8 +497,8 @@ public:
 
         const unsigned int n_vec = design_variables.numVectors();
         for (unsigned int i_vec = 1; i_vec < n_vec; ++i_vec) {
-            slack_vecs.push_back( design_variables_->get(i_vec)->clone() );
-            slack_vecs[i_vec]->set( *(design_variables_->get(i_vec)) );
+            slack_vecs.push_back( design_variables.get(i_vec)->clone() );
+            slack_vecs[i_vec]->set( *(design_variables.get(i_vec)) );
         }
         ROL::Ptr<ROL::PartitionedVector<Real>> slack_variables_partitioned = ROL::makePtr<ROL::PartitionedVector<Real>> (slack_vecs);
         return slack_variables_partitioned;
@@ -601,6 +648,9 @@ public:
             cs[i]->set(*i_cs);
 
             state_constraints_->applyInverseAdjointJacobian_1(*i_cs, *(cs[i]), *simulation_variables_, *control_variables_, tol);
+#ifdef REPLACE_INVERSE_WITH_IDENTITY
+            i_cs->set(*(cs[i]));
+#endif
 
             cs_Rsinv[i] = i_cs->clone();
             cs_Rsinv[i]->set(*i_cs);
@@ -722,6 +772,13 @@ public:
         const ROL::Ptr< const ROL::PartitionedVector<Real> > z2 = extract_control_and_slacks(dynamic_cast<const ROL::PartitionedVector<Real> &> (*input_design));
         const ROL::Ptr< const ROL::Vector<Real> >            z3 = input_simdual_equality;
         const ROL::Ptr< const ROL::PartitionedVector<Real> > z4 = input_nonsimdual;
+        //std::cout << " after extract control and slacks " << input.norm() << std::endl;
+        //std::cout << " input.norm() " << input.norm() << std::endl;
+        //std::cout << " output.norm() " << output.norm() << std::endl;
+        //std::cout << " z1->norm() " << z1->norm() << std::endl;
+        //std::cout << " z2->norm() " << z2->norm() << std::endl;
+        //std::cout << " z3->norm() " << z3->norm() << std::endl;
+        //std::cout << " z4->norm() " << z4->norm() << std::endl;
 
         const ROL::Ptr< ROL::Vector<Real> >                  x1 = output_design_simulation;
         const ROL::Ptr< ROL::PartitionedVector<Real> >       x2 = extract_control_and_slacks(dynamic_cast<ROL::PartitionedVector<Real> &> (*output_design));
@@ -738,8 +795,14 @@ public:
 
         // y2
         const ROL::Ptr< ROL::Vector<Real> > Rsinv_y1 = y1->clone();
-        //state_constraints_->applyInverseJacobian_1(*Rsinv_y1, *y1, *simulation_variables_, *control_variables_, tol);
-        state_constraints_->applyInverseJacobianPreconditioner_1(*Rsinv_y1, *y1, *simulation_variables_, *control_variables_, tol);
+        if (use_approximate_preconditioner_) {
+            state_constraints_->applyInverseJacobianPreconditioner_1(*Rsinv_y1, *y1, *simulation_variables_, *control_variables_, tol);
+        } else {
+            state_constraints_->applyInverseJacobian_1(*Rsinv_y1, *y1, *simulation_variables_, *control_variables_, tol);
+        }
+#ifdef REPLACE_INVERSE_WITH_IDENTITY
+        Rsinv_y1->set(*y1);
+#endif
 
         y2->set(*z4);
         const ROL::Ptr< ROL::Vector<Real> > cs_Rsinv_y1 = y2->clone();
@@ -805,8 +868,14 @@ public:
         y3->set(*z2);
 
         const ROL::Ptr< ROL::Vector<Real> > RsTinv_y4 = y4->clone();
-        //state_constraints_->applyInverseAdjointJacobian_1(*RsTinv_y4, *y4, *simulation_variables_, *control_variables_, tol);
-        state_constraints_->applyInverseAdjointJacobianPreconditioner_1(*RsTinv_y4, *y4, *simulation_variables_, *control_variables_, tol);
+        if (use_approximate_preconditioner_) {
+            state_constraints_->applyInverseAdjointJacobianPreconditioner_1(*RsTinv_y4, *y4, *simulation_variables_, *control_variables_, tol);
+        } else {
+            state_constraints_->applyInverseAdjointJacobian_1(*RsTinv_y4, *y4, *simulation_variables_, *control_variables_, tol);
+        }
+#ifdef REPLACE_INVERSE_WITH_IDENTITY
+        RsTinv_y4->set(*y4);
+#endif
 
         //const ROL::Ptr< ROL::Vector<Real> > RxT_RsTinv_y4 = y3->clone();
         const ROL::Ptr< ROL::Vector<Real> > RxT_RsTinv_y4 = control_variables_->clone();
@@ -825,39 +894,49 @@ public:
         // std::cout << " C_Lzz_Ct_inv.m() " << C_Lzz_Ct_inv.m() << std::endl;
         // std::cout << " C_Lzz_Ct_inv.n() " << C_Lzz_Ct_inv.n() << std::endl;
 
-        // std::cout << " x1->dimension() " << x1->dimension() << std::endl;
-        // std::cout << " x2->dimension() " << x2->dimension() << std::endl;
-        // std::cout << " x3->dimension() " << x3->dimension() << std::endl;
-        // std::cout << " x4->dimension() " << x4->dimension() << std::endl;
-        // std::cout << " y1->dimension() " << y1->dimension() << std::endl;
-        // std::cout << " y2->dimension() " << y2->dimension() << std::endl;
-        // std::cout << " y3->dimension() " << y3->dimension() << std::endl;
-        // std::cout << " y4->dimension() " << y4->dimension() << std::endl;
+        //std::cout << " z1->dimension() " << z1->dimension() << std::endl;
+        //std::cout << " z2->dimension() " << z2->dimension() << std::endl;
+        //std::cout << " z3->dimension() " << z3->dimension() << std::endl;
+        //std::cout << " z4->dimension() " << z4->dimension() << std::endl;
+        //std::cout << " y1->dimension() " << y1->dimension() << std::endl;
+        //std::cout << " y2->dimension() " << y2->dimension() << std::endl;
+        //std::cout << " y3->dimension() " << y3->dimension() << std::endl;
+        //std::cout << " y4->dimension() " << y4->dimension() << std::endl;
+        //std::cout << " x1->dimension() " << x1->dimension() << std::endl;
+        //std::cout << " x2->dimension() " << x2->dimension() << std::endl;
+        //std::cout << " x3->dimension() " << x3->dimension() << std::endl;
+        //std::cout << " x4->dimension() " << x4->dimension() << std::endl;
 
-        // std::cout << " input.norm() " << input.norm() << std::endl;
-        // std::cout << " output.norm() " << output.norm() << std::endl;
-        // std::cout << " x1->norm() " << x1->norm() << std::endl;
-        // std::cout << " x2->norm() " << x2->norm() << std::endl;
-        // std::cout << " x3->norm() " << x3->norm() << std::endl;
-        // std::cout << " x4->norm() " << x4->norm() << std::endl;
-        // std::cout << " y1->norm() " << y1->norm() << std::endl;
-        // std::cout << " y2->norm() " << y2->norm() << std::endl;
-        // std::cout << " y3->norm() " << y3->norm() << std::endl;
-        // std::cout << " y4->norm() " << y4->norm() << std::endl;
+        //std::cout << " input.norm() " << input.norm() << std::endl;
+        //std::cout << " output.norm() " << output.norm() << std::endl;
+        //std::cout << " z1->norm() " << z1->norm() << std::endl;
+        //std::cout << " z2->norm() " << z2->norm() << std::endl;
+        //std::cout << " z3->norm() " << z3->norm() << std::endl;
+        //std::cout << " z4->norm() " << z4->norm() << std::endl;
+        //std::cout << " y1->norm() " << y1->norm() << std::endl;
+        //std::cout << " y2->norm() " << y2->norm() << std::endl;
+        //std::cout << " y3->norm() " << y3->norm() << std::endl;
+        //std::cout << " y4->norm() " << y4->norm() << std::endl;
+        //std::cout << " x1->norm() " << x1->norm() << std::endl;
+        //std::cout << " x2->norm() " << x2->norm() << std::endl;
+        //std::cout << " x3->norm() " << x3->norm() << std::endl;
+        //std::cout << " x4->norm() " << x4->norm() << std::endl;
         //std::abort();
 
         // Need to solve for x2 and x4 simultaneously
         // [ (cx - cs Rsinv Rx)          0              ]    [x2]   =   [y2]
         // [        Lzz          (cx - cs Rsinv Rx)^T   ]    [x4]   =   [y3]
         Teuchos::ParameterList gmres_setting;
-        gmres_setting.sublist("General").sublist("Krylov").set("Absolute Tolerance", 1e-6);
-        gmres_setting.sublist("General").sublist("Krylov").set("Relative Tolerance", 1e-4);
+        //gmres_setting.sublist("General").sublist("Krylov").set("Absolute Tolerance", 1e-6);
+        //gmres_setting.sublist("General").sublist("Krylov").set("Relative Tolerance", 1e-4);
+        gmres_setting.sublist("General").sublist("Krylov").set("Absolute Tolerance", 1e-26);
+        gmres_setting.sublist("General").sublist("Krylov").set("Relative Tolerance", 1e-12);
         gmres_setting.sublist("General").sublist("Krylov").set("Iteration Limit", 300);
         //gmres_setting.sublist("General").sublist("Krylov").set("Use Initial Guess", true);
         gmres_setting.sublist("General").sublist("Krylov").set("Use Initial Guess", false);
         ROL::Ptr< ROL::Krylov<Real> > krylov = ROL::KrylovFactory<Real>(gmres_setting);
         auto &gmres = dynamic_cast<ROL::GMRES<Real>&>(*krylov);
-        if(dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD)==0) gmres.enableOutput(std::cout);
+        //if(dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD)==0) gmres.enableOutput(std::cout);
 
 
         int iter_Krylov_;  ///< GMRES iteration counter
@@ -872,6 +951,7 @@ public:
 
         const ROL::Ptr<ROL::Secant<Real> > Lzz = secant_;
         ROL::Ptr<ROL::LinearOperator<Real> > CLzzC_block_operator = ROL::makePtr<CLzzC_block>(C, Lzz, bound_constraints_, des_plus_dual_, bounded_constraint_tolerance_);
+        //ROL::Ptr<ROL::LinearOperator<Real> > CLzzC_block_operator = ROL::makePtr<Identity_Preconditioner_FlipVectors>();
         ROL::Ptr<ROL::LinearOperator<Real> > precond_identity = ROL::makePtr<Identity_Preconditioner_FlipVectors>();
         gmres.run(*x2_x4,*CLzzC_block_operator,*y2_y3,*precond_identity,iter_Krylov_,flag_Krylov_);
 
@@ -881,8 +961,14 @@ public:
         ROL::Ptr<ROL::Vector<Real>> y1_minus_Rx_x2 = y1->clone();
         y1_minus_Rx_x2->set(*y1);
         y1_minus_Rx_x2->axpy(-one, *Rx_x2);
-        //state_constraints_->applyInverseJacobian_1(*x1, *y1_minus_Rx_x2, *simulation_variables_, *control_variables_, tol);
-        state_constraints_->applyInverseJacobianPreconditioner_1(*x1, *y1_minus_Rx_x2, *simulation_variables_, *control_variables_, tol);
+        if (use_approximate_preconditioner_) {
+            state_constraints_->applyInverseJacobianPreconditioner_1(*x1, *y1_minus_Rx_x2, *simulation_variables_, *control_variables_, tol);
+        } else {
+            state_constraints_->applyInverseJacobian_1(*x1, *y1_minus_Rx_x2, *simulation_variables_, *control_variables_, tol);
+        }
+#ifdef REPLACE_INVERSE_WITH_IDENTITY
+        x1->set(*y1_minus_Rx_x2);
+#endif
 
         // Solve for x3
         x3->set(*RsTinv_y4);

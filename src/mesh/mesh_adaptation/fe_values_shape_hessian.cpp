@@ -6,13 +6,7 @@ template<int dim>
 void FEValuesShapeHessian<dim> ::  reinit(const dealii::FEValues<dim,dim> &fe_values_volume, const unsigned int iquad)
 {
     jacobian_inverse = dealii::Tensor<2,dim,double>(fe_values_volume.inverse_jacobian(iquad));
-    jacobian_inverse_transpose = dealii::transpose(jacobian_inverse);
-    const dealii::Tensor<2,dim,double> jacobian = dealii::Tensor<2,dim,double>(fe_values_volume.jacobian(iquad));
     const dealii::Tensor<3,dim,double> jacobian_pushed_forward_grad = fe_values_volume.jacobian_pushed_forward_grad(iquad);
-    std::cout<<"Jacobian = "<<jacobian<<std::endl;
-    std::cout<<"Inverse jacobian = "<<jacobian_inverse<<std::endl;
-    std::cout<<"Inverse jacobian transpose = "<<jacobian_inverse_transpose<<std::endl;
-    std::cout<<"Jacobian pushed forward grad = "<<jacobian_pushed_forward_grad<<std::endl;
     
     ref_point = fe_values_volume.get_quadrature().point(iquad);
 
@@ -27,7 +21,7 @@ void FEValuesShapeHessian<dim> ::  reinit(const dealii::FEValues<dim,dim> &fe_va
             {
                 for(unsigned int n=0; n<dim; ++n)
                 {
-                    derivative_jacobian_inverse_wrt_phys_q[i][j][k] -= jacobian_pushed_forward_grad[n][i][k]*jacobian_inverse[n][j];
+                    derivative_jacobian_inverse_wrt_phys_q[j][i][k] -= jacobian_pushed_forward_grad[n][i][k]*jacobian_inverse[j][n];
                 }
             }
         }

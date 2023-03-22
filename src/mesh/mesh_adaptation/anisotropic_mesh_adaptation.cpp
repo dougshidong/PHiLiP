@@ -228,7 +228,9 @@ void AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: compute_abs_hessi
 template<int dim, int nstate, typename real, typename MeshType>
 void AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: change_p_degree_and_interpolate_solution(const unsigned int poly_degree)
 {
-    pcout<<"Changing poly degree to "<<poly_degree<<" and interpolating solution."<<std::endl;
+    assert(dg->get_min_fe_degree() == dg->get_max_fe_degree());
+    const unsigned int current_poly_degree = dg->get_min_fe_degree();
+    pcout<<"Changing poly degree from "<<current_poly_degree<< " to "<<poly_degree<<" and interpolating solution."<<std::endl;
     VectorType solution_coarse = dg->solution;
     solution_coarse.update_ghost_values();
 
@@ -275,6 +277,7 @@ void AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: compute_feature_b
     reconstruct_p2_solution();
     
     pcout<<"Computing feature based Hessian."<<std::endl;
+    // Based on Loseille, A. and Alauzet, F. "Continuous mesh framework part II.", 2011. 
     // Compute Hessian of the solution for now (can be changed to Mach number or some other sensor when required).
     //const auto mapping = (*(dg->high_order_grid->mapping_fe_field)); // CHANGE IT BACK
     dealii::MappingQGeneric<dim, dim> mapping(dg->high_order_grid->dof_handler_grid.get_fe().degree);
@@ -325,8 +328,7 @@ void AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: compute_goal_orie
     // Compute goal oriented pseudo hessian.
     // From Eq. 28 in Loseille, A., Dervieux, A., and Alauzet, F. "Fully anisotropic goal-oriented mesh adaptation for 3D steady Euler equations.", 2010.
     // Also, metric terms related to faces do not make a difference and hence are not included (ref: footnote on page 78 in  
-    // Dervieux, A., Alauzet, F., Loseille, A., Koobus, B. (2022). Mesh Adaptation for 
-    // Computational Fluid Dynamics 2. ISTE Ltd, London, and John Wiley and Sons, New York. (ISBN: 9-781-78630-832-0).
+    // Dervieux, A., Alauzet, F., Loseille, A., Koobus, B. (2022). Mesh Adaptation for Computational Fluid Dynamics 2.
     
     // Compute the adjoint ===================================================================
     VectorType adjoint(dg->solution); 
@@ -338,7 +340,8 @@ void AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: compute_goal_orie
     //==========================================================================================
 
     // I am not sure if the adjoint gradient is to be evaluated on coarse or fine space.
-    // From INRIA's paper, it looks like they are evaluating adjoint at p1, so it is being evaluated at coarse space here.
+    // From INRIA's paper (Loseille, A., Dervieux, A., and Alauzet, F. "Fully anisotropic goal-oriented mesh adaptation for 3D steady Euler equations.", 2010), 
+    // it looks like they are evaluating adjoint at p1, so it is being evaluated at coarse space here.
     // Compute adjoint gradient
     std::vector<std::array<dealii::Tensor<1, dim, real>, nstate>> adjoint_gradient(dg->triangulation->n_active_cells());
     {

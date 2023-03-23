@@ -17,13 +17,15 @@ void MeshAdaptationParam::declare_parameters (dealii::ParameterHandler &prm)
                           dealii::Patterns::Selection(
                           " h_adaptation | "
                           " p_adaptation | "
-                          " hp_adaptation "
+                          " hp_adaptation | "
+                          " anisotropic_adaptation "
                           ),
                           "Mesh adaptation type that we want to use. "
                           "Choices are "
                           " <h_adaptation | "
                           "  p_adaptation | "
-                          "  hp_adaptation>.");
+                          "  hp_adaptation  "
+                          "  anisotropic_adaptation>.");
         
         prm.declare_entry("use_goal_oriented_mesh_adaptation","false",
                           dealii::Patterns::Bool(),
@@ -40,6 +42,14 @@ void MeshAdaptationParam::declare_parameters (dealii::ParameterHandler &prm)
         prm.declare_entry("hp_smoothness_tolerance","1.0e-6",
                           dealii::Patterns::Double(0.0,1.0e5),
                           "Tolerance to decide between h- or p-refinement.");
+        
+        prm.declare_entry("mesh_complexity_anisotropic_adaptation","50.0",
+                          dealii::Patterns::Double(0.0,1.0e5),
+                          "Continuous equivalent of number of vertices/elements.");
+        
+        prm.declare_entry("norm_Lp_anisotropic_adaptation","2.0",
+                          dealii::Patterns::Double(0.0,1.0e5),
+                          "Lp norm w.r.t. which the optimization is performed in the continuous mesh framework.");
     }
     prm.leave_subsection();
 
@@ -51,14 +61,17 @@ void MeshAdaptationParam::parse_parameters (dealii::ParameterHandler &prm)
     {
         total_mesh_adaptation_cycles = prm.get_integer("total_mesh_adaptation_cycles");
         const std::string mesh_adaptation_string = prm.get("mesh_adaptation_type");
-        if(mesh_adaptation_string == "h_adaptation")       {mesh_adaptation_type = MeshAdaptationType::h_adaptation;}
-        else if(mesh_adaptation_string == "p_adaptation")  {mesh_adaptation_type = MeshAdaptationType::p_adaptation;}
-        else if(mesh_adaptation_string == "hp_adaptation") {mesh_adaptation_type = MeshAdaptationType::hp_adaptation;}
+        if(mesh_adaptation_string == "h_adaptation")                {mesh_adaptation_type = MeshAdaptationType::h_adaptation;}
+        else if(mesh_adaptation_string == "p_adaptation")           {mesh_adaptation_type = MeshAdaptationType::p_adaptation;}
+        else if(mesh_adaptation_string == "hp_adaptation")          {mesh_adaptation_type = MeshAdaptationType::hp_adaptation;}
+        else if(mesh_adaptation_string == "anisotropic_adaptation") {mesh_adaptation_type = MeshAdaptationType::anisotropic_adaptation;}
         
         use_goal_oriented_mesh_adaptation = prm.get_bool("use_goal_oriented_mesh_adaptation");
         refine_fraction = prm.get_double("refine_fraction");
         h_coarsen_fraction = prm.get_double("h_coarsen_fraction");
         hp_smoothness_tolerance = prm.get_double("hp_smoothness_tolerance");
+        mesh_complexity_anisotropic_adaptation = prm.get_double("mesh_complexity_anisotropic_adaptation");
+        norm_Lp_anisotropic_adaptation = prm.get_double("norm_Lp_anisotropic_adaptation");
     }
     prm.leave_subsection();
 }

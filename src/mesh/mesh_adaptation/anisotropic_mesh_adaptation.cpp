@@ -6,6 +6,7 @@
 #include "mesh/gmsh_reader.hpp"
 #include "metric_to_mesh_generator.h"
 #include <deal.II/dofs/dof_renumbering.h>
+#include "fe_values_shape_hessian.h"
 
 namespace PHiLiP {
 
@@ -144,8 +145,7 @@ void AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: compute_cellwise_
         abs_hessian_determinant[cell_index] = dealii::determinant(cellwise_hessian[cell_index]);    
     }
 
-    // Using Eq 4.40, page 153 in Dervieux, A., Alauzet, F., Loseille, A., Koobus, B. (2022). Mesh Adaptation for 
-    // Computational Fluid Dynamics 1. ISTE Ltd, London, and John Wiley and Sons, New York. (ISBN: 9-781-78630-831-3).
+    // Using Eq 4.40, page 153 in Dervieux, A., Alauzet, F., Loseille, A., Koobus, B. (2022). Mesh Adaptation for Computational Fluid Dynamics 1.
     const auto mapping = (*(dg->high_order_grid->mapping_fe_field));
     dealii::hp::MappingCollection<dim> mapping_collection(mapping);
     const dealii::UpdateFlags update_flags = dealii::update_JxW_values;
@@ -279,11 +279,11 @@ void AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: compute_feature_b
     pcout<<"Computing feature based Hessian."<<std::endl;
     // Based on Loseille, A. and Alauzet, F. "Continuous mesh framework part II.", 2011. 
     // Compute Hessian of the solution for now (can be changed to Mach number or some other sensor when required).
-    //const auto mapping = (*(dg->high_order_grid->mapping_fe_field)); // CHANGE IT BACK
-    dealii::MappingQGeneric<dim, dim> mapping(dg->high_order_grid->dof_handler_grid.get_fe().degree);
+    const auto mapping = (*(dg->high_order_grid->mapping_fe_field));
     dealii::hp::MappingCollection<dim> mapping_collection(mapping);
-    const dealii::UpdateFlags update_flags = dealii::update_values | dealii::update_gradients | dealii::update_hessians | dealii::update_quadrature_points | dealii::update_JxW_values;
+    const dealii::UpdateFlags update_flags = dealii::update_jacobian_pushed_forward_grads | dealii::update_inverse_jacobians;
     dealii::hp::FEValues<dim,dim>   fe_values_collection_volume (mapping_collection, dg->fe_collection, dg->volume_quadrature_collection, update_flags);
+    PHiLiP::FEValuesShapeHessian<dim> fe_values_shape_hessian;
     
     std::vector<dealii::types::global_dof_index> dof_indices(max_dofs_per_cell);
 
@@ -304,6 +304,8 @@ void AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: compute_feature_b
     
         cellwise_hessian[cell_index] = 0;
         const unsigned int iquad = get_iquad_near_cellcenter(fe_values_volume.get_quadrature());
+        fe_values_shape_hessian.reinit(fe_values_volume, iquad);
+        const dealii::FESystem<dim,dim> &fe_ref = fe_values_volume.get_fe();
         
         for(unsigned int idof = 0; idof<n_dofs_cell; ++idof)
         {
@@ -311,7 +313,7 @@ void AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: compute_feature_b
             // Computing hesssian of solution at state 0. Might need to change it later.
             if(icomp == 0)
             {
-                cellwise_hessian[cell_index] += dg->solution(dof_indices[idof])*fe_values_volume.shape_hessian_component(idof, iquad, icomp); 
+                cellwise_hessian[cell_index] += dg->solution(dof_indices[idof])*fe_values_shape_hessian.shape_hessian_component(idof, iquad, icomp, fe_ref);
             }
         }
         cellwise_hessian[cell_index] = get_positive_definite_tensor(cellwise_hessian[cell_index]);
@@ -347,7 +349,7 @@ void AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: compute_goal_orie
     {
         const auto mapping = (*(dg->high_order_grid->mapping_fe_field));
         dealii::hp::MappingCollection<dim> mapping_collection(mapping);
-        const dealii::UpdateFlags update_flags = dealii::update_values | dealii::update_gradients | dealii::update_quadrature_points | dealii::update_JxW_values;
+        const dealii::UpdateFlags update_flags = dealii::update_gradients;
         dealii::hp::FEValues<dim,dim>   fe_values_collection_volume (mapping_collection, dg->fe_collection, dg->volume_quadrature_collection, update_flags);
         
         std::vector<dealii::types::global_dof_index> dof_indices(max_dofs_per_cell);
@@ -385,11 +387,11 @@ void AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: compute_goal_orie
     reconstruct_p2_solution();
   
     pcout<<"Computing goal-oriented Hessian."<<std::endl;
-    //const auto mapping = (*(dg->high_order_grid->mapping_fe_field)); // CHANGE IT BACK
-    dealii::MappingQGeneric<dim, dim> mapping(dg->high_order_grid->dof_handler_grid.get_fe().degree);
+    const auto mapping = (*(dg->high_order_grid->mapping_fe_field));
     dealii::hp::MappingCollection<dim> mapping_collection(mapping);
-    const dealii::UpdateFlags update_flags = dealii::update_values | dealii::update_gradients | dealii::update_hessians | dealii::update_quadrature_points | dealii::update_JxW_values;
+    const dealii::UpdateFlags update_flags = dealii::update_values | dealii::update_jacobian_pushed_forward_grads | dealii::update_inverse_jacobians;
     dealii::hp::FEValues<dim,dim>   fe_values_collection_volume (mapping_collection, dg->fe_collection, dg->volume_quadrature_collection, update_flags);
+    PHiLiP::FEValuesShapeHessian<dim> fe_values_shape_hessian;
     
     std::vector<dealii::types::global_dof_index> dof_indices(max_dofs_per_cell);
 
@@ -409,6 +411,8 @@ void AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: compute_goal_orie
         cell->get_dof_indices(dof_indices);
 
         const unsigned int iquad = get_iquad_near_cellcenter(fe_values_volume.get_quadrature());
+        fe_values_shape_hessian.reinit(fe_values_volume, iquad);
+        const dealii::FESystem<dim,dim> &fe_ref = fe_values_volume.get_fe();
 
         // Obtain flux coeffs
         std::vector<std::array<dealii::Tensor<1,dim,real>,nstate>> flux_coeffs(n_dofs_cell);
@@ -426,7 +430,7 @@ void AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: compute_goal_orie
                     const unsigned int icomp = fe_values_volume.get_fe().system_to_component_index(idof).first;
                     if(icomp == istate)
                     {
-                        flux_hessian_at_istate_idim += flux_coeffs[idof][istate][idim]*fe_values_volume.shape_hessian_component(idof, iquad, icomp);
+                        flux_hessian_at_istate_idim += flux_coeffs[idof][istate][idim]*fe_values_shape_hessian.shape_hessian_component(idof, iquad, istate, fe_ref);
                     }
                 } // idof
                 flux_hessian_at_istate_idim = get_positive_definite_tensor(flux_hessian_at_istate_idim);

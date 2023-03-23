@@ -29,18 +29,21 @@ void FEValuesShapeHessian<dim> ::  reinit(const dealii::FEValues<dim,dim> &fe_va
 
 }
 
+// Had to code this up because shape_hessian_component() hasn't been implemented yet by dealii's MappingFEField.
 template<int dim>
 dealii::Tensor<2,dim,double> FEValuesShapeHessian<dim> :: shape_hessian_component(
         const unsigned int idof, 
         const unsigned int /*iquad*/, 
         const unsigned int istate, 
-        const dealii::FESystem<dim,dim> &fe_ref)
+        const dealii::FESystem<dim,dim> &fe_ref) const
 {
-    dealii::Tensor<1,dim,double> shape_grad_ref = fe_ref.shape_grad_component(idof, ref_point, istate);
-    dealii::Tensor<2,dim,double> shape_hessian_ref = fe_ref.shape_grad_grad_component(idof, ref_point, istate);
+    dealii::Tensor<1,dim,double> shape_grad_ref = fe_ref.shape_grad_component(idof, ref_point, istate); // \varphi_{\epsilon}
+    dealii::Tensor<2,dim,double> shape_hessian_ref = fe_ref.shape_grad_grad_component(idof, ref_point, istate); // \varphi_{\epsilon \epsilon}
+    
+    // Shape hessian w.r.t. physical x = \varphi_{xx} = J^{-T} \varphi_{\epsilon \epsilon} J^{-1} + \varphi_{\epsilon}^T * d/dx( J^{-1} );
 
-    // Compute first term: J^{-T} \varphi_{\epsilon \epsilon} J^{-1}.
-    // Using (A^T*B*A)_{i,j} = a_{ki} * b_{kl} * a_{lj} (in index notation).
+    // Computing first term: J^{-T} \varphi_{\epsilon \epsilon} J^{-1}.
+    // Using (A^T*B*A)_{i,j} = a_{ki} * b_{kl} * a_{lj}
     dealii::Tensor<2,dim,double> phys_hessian_term1; // initialized to 0
     for(unsigned int i=0; i<dim; ++i)
     {
@@ -56,8 +59,8 @@ dealii::Tensor<2,dim,double> FEValuesShapeHessian<dim> :: shape_hessian_componen
         }
     }
 
-    // Compute second term: \varphi_{\epsilon}^T * (J^{-1})_x
-    // Using v^T*E_xx (i,j)  =  v_k (d^2 E_k/(dx_i dx_j) = v_k E_xx(k,i,j), with E_xx a third order tensor and v a vector.
+    // Computing second term: \varphi_{\epsilon}^T * d/dx( J^{-1} )
+    // Using v^T*E_xx (i,j)  =  v_k E_xx(k,i,j) = v_k (d^2 E_k/(dx_i dx_j), with E_xx a third order tensor and v a vector.
     dealii::Tensor<2,dim,double> phys_hessian_term2; // initilized to 0
     for(unsigned int i=0; i<dim; ++i)
     {

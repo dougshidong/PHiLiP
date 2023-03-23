@@ -6,6 +6,8 @@
 
 namespace PHiLiP {
 /// Class to evaluate hessians of shape functions w.r.t. physical quadrature points.
+/** This class is designed for computing shape hessians w.r.t. the physical domain defined by MappingFEField (with volume nodes vector in HighOrderGrid). 
+ */
 template<int dim>
 class FEValuesShapeHessian {
 
@@ -26,19 +28,16 @@ public:
         const unsigned int idof, 
         const unsigned int iquad, 
         const unsigned int istate, 
-        const dealii::FESystem<dim,dim> &fe_ref);
+        const dealii::FESystem<dim,dim> &fe_ref) const;
 
 private:
-    /// Stores inverse jacobian of mapping betwenn reference and physical cell.
+    /// Stores inverse jacobian of mapping between reference and physical cell.
     dealii::Tensor<2,dim,double> jacobian_inverse;
     
-    /// Stores transpose of inverse jacobian of mapping betwenn reference and physical cell.
-    dealii::Tensor<2,dim,double> jacobian_inverse_transpose;
-
-    /// Stores derivative of the jacobian inverse w.r.t. physical quadrature point.
+    /// Derivative of the jacobian inverse w.r.t. physical quadrature point.
     dealii::Tensor<3,dim,double> derivative_jacobian_inverse_wrt_phys_q;
     
-    /// Stores reference quadrature point.
+    /// Stores quadrature point in the reference domain.
     dealii::Point<dim> ref_point;
 };
 } // PHiLiP namespace

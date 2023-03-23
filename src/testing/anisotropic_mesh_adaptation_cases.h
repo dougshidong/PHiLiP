@@ -23,6 +23,8 @@ public:
 
     /// Runs the test related to anisotropic mesh adaptation.
     int run_test() const;
+
+    void verify_fe_values_shape_hessian(const DGBase<dim, double> &dg) const;
 }; 
 
 } // Tests namespace

@@ -86,3 +86,17 @@ add_test(
   WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )
 # ----------------------------------------
+configure_file(viscous_taylor_green_vortex_energy_check_nsfr_gll_flux_nodes_quick.prm viscous_taylor_green_vortex_energy_check_nsfr_gll_flux_nodes_quick.prm COPYONLY)
+add_test(
+  NAME MPI_VISCOUS_TGV_iLES_cDG_NSFR_GLL_FLUX_NODES_ENERGY_CHECK_QUICK
+  COMMAND mpirun -np ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_3D -i ${CMAKE_CURRENT_BINARY_DIR}/viscous_taylor_green_vortex_energy_check_nsfr_gll_flux_nodes_quick.prm
+  WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
+)
+# ----------------------------------------
+configure_file(viscous_taylor_green_vortex_energy_check_nsfr_gl_flux_nodes_quick.prm viscous_taylor_green_vortex_energy_check_nsfr_gl_flux_nodes_quick.prm COPYONLY)
+add_test(
+  NAME MPI_VISCOUS_TGV_iLES_cDG_NSFR_GL_FLUX_NODES_ENERGY_CHECK_QUICK
+  COMMAND mpirun -np ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_3D -i ${CMAKE_CURRENT_BINARY_DIR}/viscous_taylor_green_vortex_energy_check_nsfr_gl_flux_nodes_quick.prm
+  WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
+)
+# ----------------------------------------

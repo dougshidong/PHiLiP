@@ -88,7 +88,7 @@ int AnisotropicMeshAdaptationCases<dim, nstate> :: run_test () const
                         std::make_unique<AnisotropicMeshAdaptation<dim, nstate, double>> (flow_solver->dg, normLp, complexity, use_goal_oriented_approach);
 
     flow_solver->run();
-    const unsigned int n_adaptation_cycles = 1;
+    const unsigned int n_adaptation_cycles = 5;
     
     for(unsigned int cycle = 0; cycle < n_adaptation_cycles; ++cycle)
     {
@@ -99,7 +99,9 @@ int AnisotropicMeshAdaptationCases<dim, nstate> :: run_test () const
 
     verify_fe_values_shape_hessian(*(flow_solver->dg));
 
-    
+    const dealii::Point<dim> coordinates_of_highest_refined_cell = flow_solver->dg->coordinates_of_highest_refined_cell(false);
+
+    pcout<<"Coordinates of highest refined cell = "<<coordinates_of_highest_refined_cell<<std::endl;
     return 0;
 }
 

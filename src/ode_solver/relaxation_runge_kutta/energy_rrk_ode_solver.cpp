@@ -12,6 +12,7 @@ EnergyRRKODESolver<dim,real,n_rk_stages,MeshType>::EnergyRRKODESolver(std::share
 template <int dim, typename real, int n_rk_stages, typename MeshType>
 real EnergyRRKODESolver<dim,real,n_rk_stages,MeshType>::compute_relaxation_parameter(real & /*dt*/) const
 {
+    //See Ketcheson 2019, Eq. 2.4
     double gamma = 1;
     double denominator = 0;
     double numerator = 0;

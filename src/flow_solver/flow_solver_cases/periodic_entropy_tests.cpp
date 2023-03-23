@@ -286,7 +286,7 @@ void PeriodicEntropyTests<dim, nstate>::compute_unsteady_data_and_write_to_table
                         << "    U/Uo: " << entropy/initial_entropy
                         << "    Kinetic energy: " << kinetic_energy;
             if (is_rrk)
-                this->pcout << "    gamma^n: " << relaxation_parameter;
+                this->pcout << "    Relaxation Parameter: " << relaxation_parameter;
             this->pcout << std::endl;
         }
     }

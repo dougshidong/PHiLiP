@@ -22,6 +22,14 @@ subsection linear solver
   end 
 end
 
+subsection mesh adaptation
+    set total_mesh_adaptation_cycles = 5
+    set mesh_adaptation_type = anisotropic_adaptation
+    set use_goal_oriented_mesh_adaptation = true
+    set mesh_complexity_anisotropic_adaptation = 50.0
+    set norm_Lp_anisotropic_adaptation = 1.0
+end
+
 subsection ODE solver
   #output solution
   #set output_solution_every_x_steps = 1

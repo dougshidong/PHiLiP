@@ -215,6 +215,11 @@ void AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: compute_cellwise_
 template<int dim, int nstate, typename real, typename MeshType>
 void AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: compute_abs_hessian()
 {
+    VectorType solution_old = dg->solution;
+    solution_old.update_ghost_values();
+    change_p_degree_and_interpolate_solution(2); // Interpolate to p2
+    reconstruct_p2_solution();
+    
     if(use_goal_oriented_approach)
     {
         compute_goal_oriented_hessian();
@@ -223,6 +228,10 @@ void AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: compute_abs_hessi
     {
         compute_feature_based_hessian();
     }
+    
+    change_p_degree_and_interpolate_solution(initial_poly_degree);
+    dg->solution = solution_old; // reset solution
+    dg->solution.update_ghost_values();
 }
 
 template<int dim, int nstate, typename real, typename MeshType>
@@ -271,11 +280,8 @@ void AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: reconstruct_p2_so
 template<int dim, int nstate, typename real, typename MeshType>
 void AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: compute_feature_based_hessian()
 {
-    VectorType solution_old = dg->solution;
-    solution_old.update_ghost_values();
-    change_p_degree_and_interpolate_solution(2); // Interpolate to p2
-    reconstruct_p2_solution();
-    
+    assert(dg->get_min_fe_degree() == dg->get_max_fe_degree());
+    assert(dg->get_min_fe_degree() == 2);
     pcout<<"Computing feature based Hessian."<<std::endl;
     // Based on Loseille, A. and Alauzet, F. "Continuous mesh framework part II.", 2011. 
     // Compute Hessian of the solution for now (can be changed to Mach number or some other sensor when required).
@@ -318,18 +324,17 @@ void AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: compute_feature_b
         }
         cellwise_hessian[cell_index] = get_positive_definite_tensor(cellwise_hessian[cell_index]);
     }
-    
-    change_p_degree_and_interpolate_solution(initial_poly_degree);
-    dg->solution = solution_old; // reset solution
-    dg->solution.update_ghost_values();
 }
 
 template<int dim, int nstate, typename real, typename MeshType>
 void AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: compute_goal_oriented_hessian()
 {
+    assert(dg->get_min_fe_degree() == dg->get_max_fe_degree());
+    assert(dg->get_min_fe_degree() == 2);
+    
     // Compute goal oriented pseudo hessian.
     // From Eq. 28 in Loseille, A., Dervieux, A., and Alauzet, F. "Fully anisotropic goal-oriented mesh adaptation for 3D steady Euler equations.", 2010.
-    // Also, metric terms related to faces do not make a difference and hence are not included (ref: footnote on page 78 in  
+    // Also, metric terms related to faces do not make a difference and hence are not included (cf. footnote on page 78 in  
     // Dervieux, A., Alauzet, F., Loseille, A., Koobus, B. (2022). Mesh Adaptation for Computational Fluid Dynamics 2.
     
     // Compute the adjoint ===================================================================
@@ -341,55 +346,10 @@ void AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: compute_goal_orie
     adjoint.update_ghost_values();
     //==========================================================================================
 
-    // I am not sure if the adjoint gradient is to be evaluated on coarse or fine space.
-    // From INRIA's paper (Loseille, A., Dervieux, A., and Alauzet, F. "Fully anisotropic goal-oriented mesh adaptation for 3D steady Euler equations.", 2010), 
-    // it looks like they are evaluating adjoint at p1, so it is being evaluated at coarse space here.
-    // Compute adjoint gradient
-    std::vector<std::array<dealii::Tensor<1, dim, real>, nstate>> adjoint_gradient(dg->triangulation->n_active_cells());
-    {
-        const auto mapping = (*(dg->high_order_grid->mapping_fe_field));
-        dealii::hp::MappingCollection<dim> mapping_collection(mapping);
-        const dealii::UpdateFlags update_flags = dealii::update_gradients;
-        dealii::hp::FEValues<dim,dim>   fe_values_collection_volume (mapping_collection, dg->fe_collection, dg->volume_quadrature_collection, update_flags);
-        
-        std::vector<dealii::types::global_dof_index> dof_indices(max_dofs_per_cell);
-
-        for(const auto &cell : dg->dof_handler.active_cell_iterators())
-        {
-            if(! cell->is_locally_owned()) {continue;}
-            
-            const unsigned int cell_index = cell->active_cell_index();
-            const unsigned int i_fele = cell->active_fe_index();
-            const unsigned int i_quad = i_fele;
-            const unsigned int i_mapp = 0;
-            fe_values_collection_volume.reinit(cell, i_quad, i_mapp, i_fele);
-            const dealii::FEValues<dim,dim> &fe_values_volume = fe_values_collection_volume.get_present_fe_values();
-            
-            const unsigned int n_dofs_cell = fe_values_volume.dofs_per_cell; 
-            dof_indices.resize(n_dofs_cell);
-            cell->get_dof_indices(dof_indices);
-            const unsigned int iquad = get_iquad_near_cellcenter(fe_values_volume.get_quadrature());
-            for(unsigned int istate = 0; istate<nstate; ++istate)
-            {
-                adjoint_gradient[cell_index][istate] = 0;
-            }
-            for(unsigned int idof = 0; idof < n_dofs_cell; ++idof)
-            { 
-                const unsigned int istate = fe_values_volume.get_fe().system_to_component_index(idof).first;
-                adjoint_gradient[cell_index][istate] += adjoint(dof_indices[idof])*fe_values_volume.shape_grad_component(idof, iquad, istate);
-            }
-        } // cell loop ends
-    }
-    //=========================================================================================
-    dg->solution.update_ghost_values();
-    const VectorType solution_old = dg->solution;
-    change_p_degree_and_interpolate_solution(2); // Interpolate to p2
-    reconstruct_p2_solution();
-  
     pcout<<"Computing goal-oriented Hessian."<<std::endl;
     const auto mapping = (*(dg->high_order_grid->mapping_fe_field));
     dealii::hp::MappingCollection<dim> mapping_collection(mapping);
-    const dealii::UpdateFlags update_flags = dealii::update_values | dealii::update_jacobian_pushed_forward_grads | dealii::update_inverse_jacobians;
+    const dealii::UpdateFlags update_flags = dealii::update_values | dealii::update_gradients | dealii::update_jacobian_pushed_forward_grads | dealii::update_inverse_jacobians;
     dealii::hp::FEValues<dim,dim>   fe_values_collection_volume (mapping_collection, dg->fe_collection, dg->volume_quadrature_collection, update_flags);
     PHiLiP::FEValuesShapeHessian<dim> fe_values_shape_hessian;
     
@@ -414,6 +374,14 @@ void AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: compute_goal_orie
         fe_values_shape_hessian.reinit(fe_values_volume, iquad);
         const dealii::FESystem<dim,dim> &fe_ref = fe_values_volume.get_fe();
 
+        // Compute adjoint gradient
+        std::array<dealii::Tensor<1,dim,real>,nstate> adjoint_gradient; // initialized to 0 by default.
+        for(unsigned int idof = 0; idof<n_dofs_cell; ++idof)
+        {
+            const unsigned int istate = fe_ref.system_to_component_index(idof).first;
+            adjoint_gradient[istate] += adjoint(dof_indices[idof]) * fe_values_volume.shape_grad_component(idof,iquad,istate);
+        }
+
         // Obtain flux coeffs
         std::vector<std::array<dealii::Tensor<1,dim,real>,nstate>> flux_coeffs(n_dofs_cell);
         get_flux_coeffs(flux_coeffs, fe_values_volume, dof_indices, cell);
@@ -434,15 +402,11 @@ void AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: compute_goal_orie
                     }
                 } // idof
                 flux_hessian_at_istate_idim = get_positive_definite_tensor(flux_hessian_at_istate_idim);
-                flux_hessian_at_istate_idim *= abs(adjoint_gradient[cell_index][istate][idim]);
+                flux_hessian_at_istate_idim *= abs(adjoint_gradient[istate][idim]);
                 cellwise_hessian[cell_index] += flux_hessian_at_istate_idim;
             } //idim
         } //istate
     } // cell loop ends
-
-    change_p_degree_and_interpolate_solution(initial_poly_degree);
-    dg->solution = solution_old; // reset solution
-    dg->solution.update_ghost_values();
 }
 
 template<int dim, int nstate, typename real, typename MeshType>
@@ -450,8 +414,8 @@ unsigned int AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: get_iquad
     const dealii::Quadrature<dim> &volume_quadrature) const
 {
     dealii::Point<dim,real> ref_center;
-    for(unsigned int idim =0; idim < dim; ++idim) 
-        {ref_center[idim] = 0.5;}
+    for(unsigned int idim = 0; idim < dim; ++idim){
+        ref_center[idim] = 0.5;}
 
     unsigned int iquad_center = 0;
     real min_distance = 10000.0;

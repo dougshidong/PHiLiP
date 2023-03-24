@@ -356,16 +356,16 @@ public:
         const std::vector<dealii::Tensor<1,dim> > &duh,
         const std::vector<dealii::Tensor<2,dim> > &dduh,
         const dealii::Tensor<1,dim>               &normals,
-        const dealii::Point<dim>                  &evaluation_points) const;
+        const dealii::Point<dim>                  &evaluation_points) const override;
     
     /// For post processing purposes, sets the base names (with no prefix or suffix) of the computed quantities
-    virtual std::vector<std::string> post_get_names () const;
+    virtual std::vector<std::string> post_get_names () const override;
     
     /// For post processing purposes, sets the interpretation of each computed quantity as either scalar or vector
-    virtual std::vector<dealii::DataComponentInterpretation::DataComponentInterpretation> post_get_data_component_interpretation () const;
+    virtual std::vector<dealii::DataComponentInterpretation::DataComponentInterpretation> post_get_data_component_interpretation () const override;
     
     /// For post processing purposes (update comment later)
-    virtual dealii::UpdateFlags post_get_needed_update_flags () const;
+    virtual dealii::UpdateFlags post_get_needed_update_flags () const override;
 
 protected:
     /** Slip wall boundary conditions (No penetration)

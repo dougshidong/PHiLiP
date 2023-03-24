@@ -1028,6 +1028,153 @@ void NavierStokes<dim,nstate,real>
     }
 }
 
+template <int dim, int nstate, typename real>
+dealii::Vector<double> NavierStokes<dim,nstate,real>::post_compute_derived_quantities_vector (
+    const dealii::Vector<double>              &uh,
+    const std::vector<dealii::Tensor<1,dim> > &duh,
+    const std::vector<dealii::Tensor<2,dim> > &dduh,
+    const dealii::Tensor<1,dim>               &normals,
+    const dealii::Point<dim>                  &evaluation_points) const
+{
+    std::vector<std::string> names = post_get_names ();
+    dealii::Vector<double> computed_quantities = PhysicsBase<dim,nstate,real>::post_compute_derived_quantities_vector ( uh, duh, dduh, normals, evaluation_points);
+    unsigned int current_data_index = computed_quantities.size() - 1;
+    computed_quantities.grow_or_shrink(names.size());
+    if constexpr (std::is_same<real,double>::value) {
+
+        std::array<double, nstate> conservative_soln;
+        for (unsigned int s=0; s<nstate; ++s) {
+            conservative_soln[s] = uh(s);
+        }
+        const std::array<double, nstate> primitive_soln = this->template convert_conservative_to_primitive<real>(conservative_soln);
+        // if (primitive_soln[0] < 0) this->pcout << evaluation_points << std::endl;
+
+        std::array<dealii::Tensor<1,dim,double>,nstate> conservative_soln_gradient;
+        for (unsigned int s=0; s<nstate; ++s) {
+            for (unsigned int d=0; d<dim; ++d) {
+                conservative_soln_gradient[s][d] = duh[s][d];
+            }
+        }
+
+        // Density
+        computed_quantities(++current_data_index) = primitive_soln[0];
+        // Velocities
+        for (unsigned int d=0; d<dim; ++d) {
+            computed_quantities(++current_data_index) = primitive_soln[1+d];
+        }
+        // Momentum
+        for (unsigned int d=0; d<dim; ++d) {
+            computed_quantities(++current_data_index) = conservative_soln[1+d];
+        }
+        // Total Energy
+        computed_quantities(++current_data_index) = conservative_soln[nstate-1];
+        // Pressure
+        computed_quantities(++current_data_index) = primitive_soln[nstate-1];
+        // Pressure coefficient
+        computed_quantities(++current_data_index) = (primitive_soln[nstate-1] - this->pressure_inf) / this->dynamic_pressure_inf;
+        // Temperature
+        computed_quantities(++current_data_index) = this->template compute_temperature<real>(primitive_soln);
+        // Entropy generation
+        computed_quantities(++current_data_index) = this->compute_entropy_measure(conservative_soln) - this->entropy_inf;
+        // Mach Number
+        computed_quantities(++current_data_index) = this->compute_mach_number(conservative_soln);
+        if constexpr(dim==3) {
+            // Vorticity
+            dealii::Tensor<1,3,double> vorticity = compute_vorticity<double>(conservative_soln,conservative_soln_gradient);
+            for (unsigned int d=0; d<3; ++d) {
+                computed_quantities(++current_data_index) = vorticity[d];
+            }
+        }
+        // Vorticity magnitude
+        computed_quantities(++current_data_index) = compute_vorticity_magnitude(conservative_soln,conservative_soln_gradient);
+        // Enstrophy
+        computed_quantities(++current_data_index) = compute_enstrophy(conservative_soln,conservative_soln_gradient);
+
+    }
+    if (computed_quantities.size()-1 != current_data_index) {
+        this->pcout << " Did not assign a value to all the data. Missing " << computed_quantities.size() - current_data_index << " variables."
+                  << " If you added a new output variable, make sure the names and DataComponentInterpretation match the above. "
+                  << std::endl;
+    }
+
+    return computed_quantities;
+}
+
+template <int dim, int nstate, typename real>
+std::vector<dealii::DataComponentInterpretation::DataComponentInterpretation> NavierStokes<dim,nstate,real>
+::post_get_data_component_interpretation () const
+{
+    namespace DCI = dealii::DataComponentInterpretation;
+    std::vector<DCI::DataComponentInterpretation> interpretation = PhysicsBase<dim,nstate,real>::post_get_data_component_interpretation (); // state variables
+    interpretation.push_back (DCI::component_is_scalar); // Density
+    for (unsigned int d=0; d<dim; ++d) {
+        interpretation.push_back (DCI::component_is_part_of_vector); // Velocity
+    }
+    for (unsigned int d=0; d<dim; ++d) {
+        interpretation.push_back (DCI::component_is_part_of_vector); // Momentum
+    }
+    interpretation.push_back (DCI::component_is_scalar); // Total Energy
+    interpretation.push_back (DCI::component_is_scalar); // Pressure
+    interpretation.push_back (DCI::component_is_scalar); // Pressure coefficient
+    interpretation.push_back (DCI::component_is_scalar); // Temperature
+    interpretation.push_back (DCI::component_is_scalar); // Entropy generation
+    interpretation.push_back (DCI::component_is_scalar); // Mach number
+    if constexpr(dim==3) {
+        for (unsigned int d=0; d<3; ++d) {
+            interpretation.push_back (DCI::component_is_part_of_vector); // Vorticity
+        }
+    }
+    interpretation.push_back (DCI::component_is_scalar); // Vorticity magnitude
+    interpretation.push_back (DCI::component_is_scalar); // Enstrophy
+
+    std::vector<std::string> names = post_get_names();
+    if (names.size() != interpretation.size()) {
+        this->pcout << "Number of DataComponentInterpretation is not the same as number of names for output file" << std::endl;
+    }
+    return interpretation;
+}
+
+
+template <int dim, int nstate, typename real>
+std::vector<std::string> NavierStokes<dim,nstate,real>
+::post_get_names () const
+{
+    std::vector<std::string> names = PhysicsBase<dim,nstate,real>::post_get_names ();
+    names.push_back ("density");
+    for (unsigned int d=0; d<dim; ++d) {
+      names.push_back ("velocity");
+    }
+    for (unsigned int d=0; d<dim; ++d) {
+      names.push_back ("momentum");
+    }
+    names.push_back ("total_energy");
+    names.push_back ("pressure");
+    names.push_back ("pressure_coeffcient");
+    names.push_back ("temperature");
+
+    names.push_back ("entropy_generation");
+    names.push_back ("mach_number");
+    if constexpr(dim==3) {
+        for (unsigned int d=0; d<3; ++d) {
+            names.push_back ("vorticity");
+        }
+    }
+    names.push_back ("vorticity_magnitude");
+    names.push_back ("enstrophy");
+    return names;
+}
+
+template <int dim, int nstate, typename real>
+dealii::UpdateFlags NavierStokes<dim,nstate,real>
+::post_get_needed_update_flags () const
+{
+    //return update_values | update_gradients;
+    return dealii::update_values
+           | dealii::update_quadrature_points
+           | dealii::update_gradients
+           ;
+}
+
 // Instantiate explicitly
 template class NavierStokes < PHILIP_DIM, PHILIP_DIM+2, double >;
 template class NavierStokes < PHILIP_DIM, PHILIP_DIM+2, FadType  >;

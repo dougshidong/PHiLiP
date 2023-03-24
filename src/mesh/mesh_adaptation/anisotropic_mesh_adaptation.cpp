@@ -192,24 +192,6 @@ void AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: compute_cellwise_
     }
 
     pcout<<"Done computing optimal metric."<<std::endl;
-/*
-    pcout<<"Cellwise metric = "<<std::endl;
-    // Output metric
-    for(const auto &cell : dg->dof_handler.active_cell_iterators())
-    {
-        if(! cell->is_locally_owned()) {continue;}
-        const unsigned int cell_index = cell->active_cell_index();
-        std::cout<<"cell index = "<<cell_index<<"  Processor# = "<<mpi_rank<<"\n"<<"Metric = "<<std::endl;
-        for(unsigned int i = 0; i<dim; ++i)
-        {
-            for(unsigned int j=0; j<dim; ++j)
-            {
-                std::cout<<cellwise_optimal_metric[cell_index][i][j]<<" ";
-            }
-            std::cout<<std::endl;
-        }
-    }
-*/
 }
 
 template<int dim, int nstate, typename real, typename MeshType>

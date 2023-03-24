@@ -68,7 +68,7 @@ private:
     /// Continuous FE of degree 1. 
     const dealii::FE_Q<dim> fe_q;
 
-    ///FESystem for vertices, created with nstate = 1 to relate an entire vertex of size dim by a single dof.
+    /// FESystem for vertices, created with nstate = 1 to relate an entire vertex of size dim by a single dof.
     const dealii::FESystem<dim> fe_system;
     
     /// Stores optimal metric at vertices. Accessed by optimal_metric_at_vertices[position_in_metric_tensor][global_vertex_dof].

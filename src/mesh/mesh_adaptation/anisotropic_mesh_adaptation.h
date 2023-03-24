@@ -6,7 +6,7 @@
 
 namespace PHiLiP {
 
-/** Performs anisotropic mesh adaptation with an optimal metric for P1 solution approximation.
+/** Performs anisotropic mesh adaptation with an optimal metric for P1 solution.
  *  Implements the optimal metric field derived from continuous optimization framework. 
  *  See papers from INRIA for further details: 
  *  Feature based : Loseille, A. and Alauzet, F. "Continuous mesh framework part I: well-posed continuous interpolation error.", 2011.

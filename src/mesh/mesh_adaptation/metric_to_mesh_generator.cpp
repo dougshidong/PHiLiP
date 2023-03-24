@@ -156,52 +156,6 @@ void MetricToMeshGenerator<dim, nstate, real, MeshType> :: interpolate_metric_to
     {
        optimal_metric_at_vertices[i].update_ghost_values();
     }
-/*
-    // Output optimal metric at vertices for verifying.
-    pcout<<"Optimal metric at vertices = "<<std::endl;
-    for(const auto &cell : dof_handler_vertices.active_cell_iterators())
-    {
-        if(! cell->is_locally_owned()) {continue;}
-        cell->get_dof_indices(dof_indices);
-        
-        std::cout<<"Cell index = "<<cell->active_cell_index()<<std::endl;
-        std::cout<<"Vertices in this cell = "<<std::endl;
-        for(unsigned int idof = 0; idof<n_dofs_cell; ++idof)
-        {
-            const unsigned int idof_global = dof_indices[idof];
-            std::cout<<"Vertex = "<<all_vertices[idof_global]<<std::endl;
-            std::cout<<"metric count = "<<metric_count_at_vertices[idof_global]<<std::endl;
-        }
-    
-        for(unsigned int idof = 0; idof<n_dofs_cell; ++idof)
-        {
-            const unsigned int idof_global = dof_indices[idof];
-            std::cout<<"Metric at vertex "<<all_vertices[idof_global]<<" : idof_global = "<<idof_global<<std::endl;
-        
-            for(unsigned int i = 0; i<dim; ++i)
-            {
-                for(unsigned int j=0; j<dim; ++j)
-                {
-                    std::cout<<optimal_metric_at_vertices[i*dim+j][idof_global]<<" ";
-                }
-                std::cout<<std::endl;
-            }
-        }
-
-        std::cout<<"Metric at cell = "<<std::endl;
-        for(unsigned int i = 0; i<dim; ++i)
-        {
-            for(unsigned int j=0; j<dim; ++j)
-            {
-                std::cout<<cellwise_optimal_metric[cell->active_cell_index()][i][j]<<" ";
-            }
-            std::cout<<std::endl;
-        }
-        
-        std::cout<<std::flush<<std::endl;
-    
-    } // cell loop ends
-*/
 }
 
 template<int dim, int nstate, typename real, typename MeshType>
@@ -324,7 +278,7 @@ void MetricToMeshGenerator<dim, nstate, real, MeshType> :: write_pos_file() cons
         outfile0.close();
     }
 
-    // Wait for proc#0 to be done.
+    // Wait for processor#0 to be done.
     MPI_Barrier(mpi_communicator);
 }
 

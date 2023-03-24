@@ -14,7 +14,7 @@ template <int dim, int nstate>
 class AnisotropicMeshAdaptationCases : public TestsBase
 {
 public:
-    /// Constructor of DualWeightedResidualConvergence.
+    /// Constructor
     AnisotropicMeshAdaptationCases(const Parameters::AllParameters *const parameters_input,
                                        const dealii::ParameterHandler &parameter_handler_input);
     
@@ -24,6 +24,7 @@ public:
     /// Runs the test related to anisotropic mesh adaptation.
     int run_test() const;
 
+    /// Checks PHiLiP::FEValuesShapeHessian for MappingFEField with dealii's shape hessian for MappingQGeneric.
     void verify_fe_values_shape_hessian(const DGBase<dim, double> &dg) const;
 }; 
 

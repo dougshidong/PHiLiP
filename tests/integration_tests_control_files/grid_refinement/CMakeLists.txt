@@ -189,7 +189,7 @@ add_test(
 # Anisotropic mesh adaptation tests
 configure_file(anisotropic_mesh_adaptation_sshock.prm anisotropic_mesh_adaptation_sshock.prm  COPYONLY)
 add_test(
-  NAME ANISOTROPIC_MESH_ADAPTATION
+  NAME ANISOTROPIC_MESH_ADAPTATION_SSHOCK
   COMMAND mpirun -n ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_2D -i ${CMAKE_CURRENT_BINARY_DIR}/anisotropic_mesh_adaptation_sshock.prm
   WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )

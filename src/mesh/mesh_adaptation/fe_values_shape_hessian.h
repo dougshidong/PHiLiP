@@ -19,11 +19,11 @@ public:
     ~FEValuesShapeHessian() {};
     
     /// Store inverse jacobian and 3rd order tensors which will be the same for a combination of cell/physical quadrature point.
-    /** @note Currently, this class is designed to compute hessians at only one quadrature point, as required for computing hessians to get optimal metric field.
-     */
     void reinit(const dealii::FEValues<dim,dim> &fe_values_volume, const unsigned int iquad); 
 
     /// Evaluates hessian of shape functions w.r.t. phyical quadrature points.
+    /** @note This function should be called after FEValuesShapeHessian::reinit().
+     */
     dealii::Tensor<2,dim,double> shape_hessian_component(
         const unsigned int idof, 
         const unsigned int iquad, 

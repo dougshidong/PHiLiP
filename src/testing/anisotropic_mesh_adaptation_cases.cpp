@@ -37,7 +37,7 @@ int AnisotropicMeshAdaptationCases<dim, nstate> :: run_test () const
     {
         anisotropic_mesh_adaptation->adapt_mesh();
         flow_solver->run();
-        flow_solver->dg->output_results_vtk(1000 + cycle);
+        //flow_solver->dg->output_results_vtk(1000 + cycle);
     }
 
     verify_fe_values_shape_hessian(*(flow_solver->dg));

@@ -30,6 +30,7 @@ void FEValuesShapeHessian<dim> ::  reinit(const dealii::FEValues<dim,dim> &fe_va
 }
 
 // Had to code this up because shape_hessian_component() hasn't been implemented yet by dealii's MappingFEField.
+// This class can be deprecated in future once dealii's shape hessian with MappingFEField works.
 template<int dim>
 dealii::Tensor<2,dim,double> FEValuesShapeHessian<dim> :: shape_hessian_component(
         const unsigned int idof, 

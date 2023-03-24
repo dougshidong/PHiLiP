@@ -18,7 +18,7 @@ Periodic1DUnsteady<dim, nstate>::Periodic1DUnsteady(const PHiLiP::Parameters::Al
 
 
 template <int dim, int nstate>
-double Periodic1DUnsteady<dim, nstate>::compute_energy_collocated(
+double Periodic1DUnsteady<dim, nstate>::compute_energy(
         const std::shared_ptr <DGBase<dim, double>> dg
         ) const
 {
@@ -47,7 +47,6 @@ void Periodic1DUnsteady<dim, nstate>::compute_unsteady_data_and_write_to_table(
  
     using PDEEnum = Parameters::AllParameters::PartialDifferentialEquation;
     const PDEEnum pde_type = this->all_param.pde_type;
-    const bool use_collocated_nodes = (this->all_param.flux_nodes_type==Parameters::AllParameters::FluxNodes::GLL) && (this->all_param.overintegration==0);
 
     if (pde_type == PDEEnum::advection){
         if ((current_iteration % output_solution_every_n_iterations) == 0){
@@ -58,8 +57,8 @@ void Periodic1DUnsteady<dim, nstate>::compute_unsteady_data_and_write_to_table(
         (void) dg;
         (void) unsteady_data_table;
     }
-    else if ((pde_type == PDEEnum::burgers_inviscid)&&(use_collocated_nodes)){
-        const double energy = this->compute_energy_collocated(dg);
+    else if (pde_type == PDEEnum::burgers_inviscid){
+        const double energy = this->compute_energy(dg);
     
         if ((current_iteration % output_solution_every_n_iterations) == 0){
             this->pcout << "    Iter: " << current_iteration

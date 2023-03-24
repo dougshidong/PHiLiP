@@ -82,15 +82,15 @@ dealii::Tensor<2, dim, real> AnisotropicMeshAdaptation<dim, nstate, real, MeshTy
     dealii::SymmetricTensor<2,dim,real> symmetric_input_tensor(input_tensor_copy); 
     std::array<std::pair<real, dealii::Tensor<1, dim, real>>, dim> eigen_pair = dealii::eigenvectors(symmetric_input_tensor);
 
-    std::array<real, dim> abs_eignevalues;
+    std::array<real, dim> abs_eigenvalues;
     const real min_eigenvalue = 1.0e-8;
     const real max_eigenvalue = 1.0e8;
     // Get absolute values of eigenvalues
     for(unsigned int i = 0; i<dim; ++i)
     {
-        abs_eignevalues[i] = abs(eigen_pair[i].first);
-        if(abs_eignevalues[i] < min_eigenvalue) {abs_eignevalues[i] = min_eigenvalue;}
-        if(abs_eignevalues[i] > max_eigenvalue) {abs_eignevalues[i] = max_eigenvalue;}
+        abs_eigenvalues[i] = abs(eigen_pair[i].first);
+        if(abs_eigenvalues[i] < min_eigenvalue) {abs_eigenvalues[i] = min_eigenvalue;}
+        if(abs_eigenvalues[i] > max_eigenvalue) {abs_eigenvalues[i] = max_eigenvalue;}
     }
 
     dealii::Tensor<2, dim, real> positive_definite_tensor; // all entries are 0 by default.
@@ -103,7 +103,7 @@ dealii::Tensor<2, dim, real> AnisotropicMeshAdaptation<dim, nstate, real, MeshTy
     {
         dealii::Tensor<1, dim, real> eigenvector_i = eigen_pair[i].second;
         dealii::Tensor<2, dim, real> outer_product_i = dealii::outer_product(eigenvector_i, eigenvector_i);
-        outer_product_i *= abs_eignevalues[i];
+        outer_product_i *= abs_eigenvalues[i];
         positive_definite_tensor += outer_product_i;
     }
 

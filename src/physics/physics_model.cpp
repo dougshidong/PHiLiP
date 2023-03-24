@@ -385,11 +385,11 @@ template <int dim, int nstate, typename real, int nstate_baseline_physics>
 dealii::UpdateFlags PhysicsModel<dim,nstate,real,nstate_baseline_physics>
 ::post_get_needed_update_flags () const
 {
-    // Note: This is the exact same function as in the class PhysicsBase::Euler
-    //return update_values | update_gradients;
-    return dealii::update_values
-           | dealii::update_quadrature_points
-           ;
+    if constexpr(nstate==nstate_baseline_physics) {
+        return physics_baseline->post_get_needed_update_flags();
+    } else {
+        return dealii::update_values | dealii::update_quadrature_points | dealii::update_gradients;
+    }
 }
 
 // Instantiate explicitly

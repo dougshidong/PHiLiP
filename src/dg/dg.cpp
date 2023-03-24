@@ -2030,7 +2030,7 @@ template <int dim, typename real, typename MeshType>
 void DGBase<dim,real,MeshType>::output_results_vtk (const unsigned int cycle, const double current_time)// const
 {
 #if PHILIP_DIM>1
-    output_face_results_vtk (cycle, current_time);
+    if(this->all_parameters->output_face_results_vtk) output_face_results_vtk (cycle, current_time);
 #endif
 
     const bool enable_higher_order_vtk_output = this->all_parameters->enable_higher_order_vtk_output;

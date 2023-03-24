@@ -262,6 +262,10 @@ public:
 
     /// Enable writing of higher-order vtk results
     bool enable_higher_order_vtk_output;
+
+    /// Flag for outputting the surface solution vtk files
+    bool output_face_results_vtk;
+    
     /// Declare parameters that can be set as inputs and set up the default options
     /** This subroutine should call the sub-parameter classes static declare_parameters()
       * such that each sub-parameter class is responsible to declare their own parameters.

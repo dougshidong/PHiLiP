@@ -273,10 +273,14 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       dealii::Patterns::Bool(),
                       "Outputs the high-order mesh vtu files. False by default");
 
-    prm.declare_entry("enable_higher_order_vtk_output", "false",
+    prm.declare_entry("enable_higher_order_vtk_output", "true",
                       dealii::Patterns::Bool(),
-                      "Enable writing of higher-order vtk files. False by default. If modified to true,"
-                      "number of subdivisions will be chosen according to the max of grid_degree and poly_degree.");
+                      "Enable writing of higher-order vtk files. True by default; "
+                      "number of subdivisions is chosen according to the max of grid_degree and poly_degree.");
+
+    prm.declare_entry("output_face_results_vtk", "false",
+                      dealii::Patterns::Bool(),
+                      "Outputs the surface solution vtk files. False by default");
 
     Parameters::LinearSolverParam::declare_parameters (prm);
     Parameters::ManufacturedConvergenceStudyParam::declare_parameters (prm);
@@ -420,6 +424,7 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     solution_vtk_files_directory_name = prm.get("solution_vtk_files_directory_name");
     output_high_order_grid = prm.get_bool("output_high_order_grid");
     enable_higher_order_vtk_output = prm.get_bool("enable_higher_order_vtk_output");
+    output_face_results_vtk = prm.get_bool("output_face_results_vtk");
 
     output_high_order_grid = prm.get_bool("output_high_order_grid");
 

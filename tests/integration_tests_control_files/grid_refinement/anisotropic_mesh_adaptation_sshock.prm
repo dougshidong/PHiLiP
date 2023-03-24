@@ -23,7 +23,7 @@ subsection linear solver
 end
 
 subsection mesh adaptation
-    set total_mesh_adaptation_cycles = 5
+    set total_mesh_adaptation_cycles = 4
     set mesh_adaptation_type = anisotropic_adaptation
     set use_goal_oriented_mesh_adaptation = true
     set mesh_complexity_anisotropic_adaptation = 50.0
@@ -69,7 +69,7 @@ subsection manufactured solution convergence study
 end
 
 subsection flow_solver
-  set flow_case_type = sshock
+  set flow_case_type = non_periodic_cube_flow
   set steady_state = true
   set steady_state_polynomial_ramping = false
   set poly_degree = 1

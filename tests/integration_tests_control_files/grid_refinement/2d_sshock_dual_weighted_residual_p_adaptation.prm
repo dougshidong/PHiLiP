@@ -76,7 +76,7 @@ subsection manufactured solution convergence study
 end
 
 subsection flow_solver
-  set flow_case_type = sshock
+  set flow_case_type = non_periodic_cube_flow
   set steady_state = true
   set steady_state_polynomial_ramping = false
   set poly_degree = 2

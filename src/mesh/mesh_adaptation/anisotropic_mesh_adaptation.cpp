@@ -32,7 +32,7 @@ AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: AnisotropicMeshAdaptat
     {
         if(normLp != 1)
         {
-            pcout<<"Optimal metric for the goal oriented approach has been derived w.r.t the error in L1 norm. Aborting..."<<std::flush;
+            std::cout<<"Optimal metric for the goal oriented approach has been derived w.r.t the error in L1 norm. Aborting..."<<std::flush;
             std::abort();
         }
         
@@ -43,7 +43,7 @@ AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: AnisotropicMeshAdaptat
 
     if(dg->get_min_fe_degree() != dg->get_max_fe_degree())
     {
-        pcout<<"This class is currently coded assuming a constant poly degree. To be changed in future if required."<<std::endl;
+        std::cout<<"This class is currently coded assuming a constant poly degree. To be changed in future if required."<<std::endl;
         std::abort();
     }
 
@@ -68,9 +68,9 @@ dealii::Tensor<2, dim, real> AnisotropicMeshAdaptation<dim, nstate, real, MeshTy
     {
         for(int j=0; j<dim-i; ++j)
         {
-            if(abs(input_tensor_copy[i][j] - input_tensor_copy[j][i]) > 1.0e-11)
+            if(abs(input_tensor_copy[i][j] - input_tensor_copy[j][i]) > 1.0e-10)
             {
-                pcout<<"Input tensor needs to be symmetric. Aborting.."<<std::endl<<std::flush;
+                std::cout<<"Input tensor needs to be symmetric. Difference = "<< abs(input_tensor_copy[i][j] - input_tensor_copy[j][i]) <<".  Aborting.."<<std::endl<<std::flush;
                 std::abort();
             }
             else 

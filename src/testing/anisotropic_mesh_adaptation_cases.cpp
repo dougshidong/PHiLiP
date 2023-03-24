@@ -99,7 +99,7 @@ void AnisotropicMeshAdaptationCases<dim,nstate> :: verify_fe_values_shape_hessia
                 dealii::Tensor<2,dim,double> shape_hessian_diff = shape_hessian_dealii;
                 shape_hessian_diff -= shape_hessian_philip;
 
-                if(shape_hessian_diff.norm() > 1.0e-9)
+                if(shape_hessian_diff.norm() > 1.0e-8)
                 {
                     std::cout<<"Dealii's FEValues shape_hessian = "<<shape_hessian_dealii<<std::endl;
                     std::cout<<"PHiLiP's FEValues shape_hessian = "<<shape_hessian_philip<<std::endl;

@@ -26,6 +26,9 @@ public:
 
     int output_solution_every_x_steps; ///< Outputs the solution every x steps to .vtk file
     double output_solution_every_dt_time_intervals; ///< Outputs the solution every dt time intervals to .vtk file
+    bool output_solution_at_fixed_times; ///< Flag for outputting solution at fixed times
+    std::string output_solution_fixed_times_string; ///< String of fixed solution output times
+    unsigned int number_of_fixed_times_to_output_solution; ///< Number of fixed times to output the solution
 
     unsigned int nonlinear_max_iterations; ///< Maximum number of iterations.
     unsigned int print_iteration_modulo; ///< If ode_output==verbose, print every print_iteration_modulo iterations.

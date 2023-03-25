@@ -36,6 +36,8 @@ FlowSolver<dim, nstate>::FlowSolver(
 , grid_degree(flow_solver_param.grid_degree)
 , final_time(flow_solver_param.final_time)
 , input_parameters_file_reference_copy_filename(flow_solver_param.restart_files_directory_name + std::string("/") + std::string("input_copy.prm"))
+, do_output_solution_at_fixed_times(ode_param.output_solution_at_fixed_times)
+, number_of_fixed_times_to_output_solution(ode_param.number_of_fixed_times_to_output_solution)
 , dg(DGFactory<dim,double>::create_discontinuous_galerkin(&all_param, poly_degree, flow_solver_param.max_poly_degree_for_adaptation, grid_degree, flow_solver_case->generate_grid()))
 {
     flow_solver_case->set_higher_order_grid(dg);
@@ -92,6 +94,22 @@ FlowSolver<dim, nstate>::FlowSolver(
             parameter_handler.print_parameters(input_parameters_file_reference_copy_filename);    
         }
         pcout << "done." << std::endl;
+    }
+
+    // For outputting solution at fixed times
+    if(this->do_output_solution_at_fixed_times && (this->number_of_fixed_times_to_output_solution > 0)) {
+        this->output_solution_fixed_times.reinit(this->number_of_fixed_times_to_output_solution);
+        
+        // Get output_solution_fixed_times from string
+        const std::string output_solution_fixed_times_string = this->ode_param.output_solution_fixed_times_string;
+        std::string line = output_solution_fixed_times_string;
+        std::string::size_type sz1;
+        this->output_solution_fixed_times[0] = std::stod(line,&sz1);
+        for(unsigned int i=1; i<this->number_of_fixed_times_to_output_solution; ++i) {
+            line = line.substr(sz1);
+            sz1 = 0;
+            this->output_solution_fixed_times[i] = std::stod(line,&sz1);
+        }
     }
 }
 
@@ -370,11 +388,32 @@ template <int dim, int nstate>
 int FlowSolver<dim,nstate>::run() const
 {
     pcout << "Running Flow Solver..." << std::endl;
-    if (ode_param.output_solution_every_x_steps > 0) {
-        dg->output_results_vtk(ode_solver->current_iteration);
-    } else if (ode_param.output_solution_every_dt_time_intervals > 0.0) {
-        dg->output_results_vtk(ode_solver->current_iteration);
-        ode_solver->current_desired_time_for_output_solution_every_dt_time_intervals += ode_param.output_solution_every_dt_time_intervals;
+    if(flow_solver_param.restart_computation_from_file == false) {
+        if (ode_param.output_solution_every_x_steps > 0) {
+            pcout << "  ... Writing vtk solution file at initial time ..." << std::endl;
+            dg->output_results_vtk(ode_solver->current_iteration);
+        } else if (ode_param.output_solution_every_dt_time_intervals > 0.0) {
+            pcout << "  ... Writing vtk solution file at initial time ..." << std::endl;
+            dg->output_results_vtk(ode_solver->current_iteration);
+            ode_solver->current_desired_time_for_output_solution_every_dt_time_intervals += ode_param.output_solution_every_dt_time_intervals;
+        } else if (this->do_output_solution_at_fixed_times && (this->number_of_fixed_times_to_output_solution > 0)) {
+            pcout << "  ... Writing vtk solution file at initial time ..." << std::endl;
+            dg->output_results_vtk(ode_solver->current_iteration);
+        }
+    }
+
+    // Index of current desired fixed time to output solution
+    unsigned int index_of_current_desired_fixed_time_to_output_solution = 0;
+    
+    // determine index_of_current_desired_fixed_time_to_output_solution if restarting solution
+    if(flow_solver_param.restart_computation_from_file == true) {
+        // use current_time to determine if restarting the computation from a non-zero initial time
+        for(unsigned int i=0; i<this->number_of_fixed_times_to_output_solution; ++i) {
+            if(this->ode_solver->current_time < this->output_solution_fixed_times[i]) {
+                index_of_current_desired_fixed_time_to_output_solution = i;
+                break;
+            }
+        }
     }
 
     //----------------------------------------------------
@@ -432,14 +471,23 @@ int FlowSolver<dim,nstate>::run() const
         timer.start();
         while((ode_solver->current_time) < (final_time - 1E-13)) //comparing to 1E-13 to avoid taking an extra timestep
         {
-            // update adaptive time step
-            if(flow_solver_param.adaptive_time_step == true) {
-                time_step = flow_solver_case->get_adaptive_time_step(dg);
+            if(flow_solver_param.adaptive_time_step == false) {
+                // reset time step to target if using a constant time step
+                time_step = flow_solver_case->get_constant_time_step(dg);// NOTE: add a test for restart with adaptive time step
                 flow_solver_case->set_time_step(time_step);
             }
 
             // advance solution
             ode_solver->step_in_time(time_step,false); // pseudotime==false
+            time_step = ode_solver->get_modified_time_step(); // only important for when we output files
+
+            // update adaptive time step for next step in time
+            if(flow_solver_param.adaptive_time_step == true) {
+                time_step = flow_solver_case->get_adaptive_time_step(dg);
+            }
+
+            // update time step in flow_solver_case
+            flow_solver_case->set_time_step(time_step);
 
             // Compute the unsteady quantities, write to the dealii table, and output to file
             flow_solver_case->compute_unsteady_data_and_write_to_table(ode_solver->current_iteration, ode_solver->current_time, dg, unsteady_data_table);
@@ -452,14 +500,14 @@ int FlowSolver<dim,nstate>::run() const
                                                 ((ode_solver->current_time + time_step) > current_desired_time_for_output_restart_files_every_dt_time_intervals));
                     if (is_output_time) {
                         const unsigned int file_number = current_desired_time_for_output_restart_files_every_dt_time_intervals / flow_solver_param.output_restart_files_every_dt_time_intervals;
-                        output_restart_files(file_number, time_step, unsteady_data_table);
+                        output_restart_files(file_number, ode_solver->get_original_time_step(), unsteady_data_table);
                         current_desired_time_for_output_restart_files_every_dt_time_intervals += flow_solver_param.output_restart_files_every_dt_time_intervals;
                     }
                 } else /*if (flow_solver_param.output_restart_files_every_x_steps > 0)*/ {
                     const bool is_output_iteration = (ode_solver->current_iteration % flow_solver_param.output_restart_files_every_x_steps == 0);
                     if (is_output_iteration) {
                         const unsigned int file_number = ode_solver->current_iteration / flow_solver_param.output_restart_files_every_x_steps;
-                        output_restart_files(file_number, time_step, unsteady_data_table);
+                        output_restart_files(file_number, ode_solver->get_original_time_step(), unsteady_data_table);
                     }
                 }
             }
@@ -481,6 +529,22 @@ int FlowSolver<dim,nstate>::run() const
                     const int file_number = ode_solver->current_desired_time_for_output_solution_every_dt_time_intervals / ode_param.output_solution_every_dt_time_intervals;
                     dg->output_results_vtk(file_number,ode_solver->current_time);
                     ode_solver->current_desired_time_for_output_solution_every_dt_time_intervals += ode_param.output_solution_every_dt_time_intervals;
+                }
+            } else if (this->do_output_solution_at_fixed_times && (this->number_of_fixed_times_to_output_solution > 0)) {
+                const double next_time = ode_solver->current_time + time_step;
+                const double desired_time = this->output_solution_fixed_times[index_of_current_desired_fixed_time_to_output_solution];
+                // Check if current time is an output time
+                const bool is_output_time = ((ode_solver->current_time<=desired_time) && (next_time>desired_time));
+                if(is_output_time) {
+                    pcout << "  ... Writing vtk solution file ..." << std::endl;
+                    const int file_number = index_of_current_desired_fixed_time_to_output_solution+1; // +1 because initial time is 0
+                    dg->output_results_vtk(file_number,ode_solver->current_time);
+                    
+                    // Update index s.t. it never goes out of bounds
+                    if(index_of_current_desired_fixed_time_to_output_solution 
+                        < (this->number_of_fixed_times_to_output_solution-1)) {
+                        index_of_current_desired_fixed_time_to_output_solution += 1;
+                    }
                 }
             }
         } // close while

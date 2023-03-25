@@ -104,6 +104,9 @@ protected:
 
     /// Name of the reference copy of inputted parameters file; for restart purposes
     const std::string input_parameters_file_reference_copy_filename;
+
+    const bool do_output_solution_at_fixed_times; ///< Flag for outputting solution at fixed times
+    const unsigned int number_of_fixed_times_to_output_solution; ///< Number of fixed times to output the solution
     
 public:
     /// Pointer to dg so it can be accessed externally.
@@ -136,6 +139,9 @@ private:
     /** Currently implemented for steady state flows.
      */
     void perform_steady_state_mesh_adaptation() const;
+
+    /// Fixed times at which to output the solution
+    dealii::Table<1,double> output_solution_fixed_times;
 };
 
 } // FlowSolver namespace

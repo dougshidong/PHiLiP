@@ -105,6 +105,16 @@ public:
      *  if ODE parameter "output_solution_every_dt_time_intervals" > 0. */
     double current_desired_time_for_output_solution_every_dt_time_intervals;
 
+    /// Getter for original_time_step
+    double get_original_time_step() const;
+
+    /// Getter for modified_time_step
+    double get_modified_time_step() const;
+
+protected:
+    double original_time_step;///< Original time step before calling step_in_time
+    double modified_time_step;///< Modified time step after calling step_in_time
+
 protected:
     const MPI_Comm mpi_communicator; ///< MPI communicator.
     const int mpi_rank; ///< MPI rank.

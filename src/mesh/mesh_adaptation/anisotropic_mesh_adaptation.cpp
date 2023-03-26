@@ -358,36 +358,54 @@ void AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: compute_goal_orie
 
         // Compute adjoint gradient
         std::array<dealii::Tensor<1,dim,real>,nstate> adjoint_gradient; // initialized to 0 by default.
+        std::array< real, nstate > adjoint_at_q;
+        adjoint_at_q.fill(0.0);
         for(unsigned int idof = 0; idof<n_dofs_cell; ++idof)
         {
             const unsigned int istate = fe_ref.system_to_component_index(idof).first;
+            adjoint_at_q[istate] += adjoint(dof_indices[idof]) * fe_values_volume.shape_value_component(idof,iquad,istate);
             adjoint_gradient[istate] += adjoint(dof_indices[idof]) * fe_values_volume.shape_grad_component(idof,iquad,istate);
         }
 
-        // Obtain flux coeffs
+        // Obtain flux and source coeffs
         std::vector<std::array<dealii::Tensor<1,dim,real>,nstate>> flux_at_support_pts(n_dofs_cell);
-        get_flux_at_support_pts(flux_at_support_pts, fe_values_volume, dof_indices, cell);
+        std::vector<std::array< real, nstate>> source_at_support_pts(n_dofs_cell);
+        get_flux_and_source_at_support_pts(flux_at_support_pts, source_at_support_pts, fe_values_volume, dof_indices, cell);
         
         // Compute Hessian
         cellwise_hessian[cell_index] = 0;
+        // Hessian of source
+        std::array<dealii::Tensor<2,dim,real>,nstate> source_hessian; // 0 by default
+        for(unsigned int idof = 0; idof<n_dofs_cell; ++idof)
+        {
+            const unsigned int istate = fe_values_volume.get_fe().system_to_component_index(idof).first;
+            source_hessian[istate] += source_at_support_pts[idof][istate]*fe_values_shape_hessian.shape_hessian_component(idof, iquad, istate, fe_ref);
+        }
+        for(unsigned int istate = 0; istate < nstate; ++istate)
+        {
+            dealii::Tensor<2,dim,real> abs_hessian_source = get_positive_definite_tensor(source_hessian[istate]);
+            abs_hessian_source *= abs(adjoint_at_q[istate]);
+            cellwise_hessian[cell_index] += abs_hessian_source;
+        }
+        // Hessian of flux
+        std::array<std::array<dealii::Tensor<2,dim,real>,dim>,nstate> flux_hessian;
+        for(unsigned int idof = 0; idof<n_dofs_cell; ++idof)
+        {
+            const unsigned int istate = fe_values_volume.get_fe().system_to_component_index(idof).first;
+            for(unsigned int idim = 0; idim < dim; ++idim)
+            {
+                flux_hessian[istate][idim] += flux_at_support_pts[idof][istate][idim]*fe_values_shape_hessian.shape_hessian_component(idof, iquad, istate, fe_ref);
+            }
+        }
         for(unsigned int istate = 0; istate < nstate; ++istate)
         {
             for(unsigned int idim = 0; idim < dim; ++idim)
             {
-                dealii::Tensor<2,dim,real> flux_hessian_at_istate_idim;
-                for(unsigned int idof = 0; idof<n_dofs_cell; ++idof)
-                {
-                    const unsigned int icomp = fe_values_volume.get_fe().system_to_component_index(idof).first;
-                    if(icomp == istate)
-                    {
-                        flux_hessian_at_istate_idim += flux_at_support_pts[idof][istate][idim]*fe_values_shape_hessian.shape_hessian_component(idof, iquad, istate, fe_ref);
-                    }
-                } // idof
-                flux_hessian_at_istate_idim = get_positive_definite_tensor(flux_hessian_at_istate_idim);
-                flux_hessian_at_istate_idim *= abs(adjoint_gradient[istate][idim]);
-                cellwise_hessian[cell_index] += flux_hessian_at_istate_idim;
-            } //idim
-        } //istate
+                dealii::Tensor<2,dim,real> abs_flux_hessian = get_positive_definite_tensor(flux_hessian[istate][idim]);
+                abs_flux_hessian *= abs(adjoint_gradient[istate][idim]);
+                cellwise_hessian[cell_index] += abs_flux_hessian;
+            }
+        }
     } // cell loop ends
 }
 
@@ -417,15 +435,16 @@ unsigned int AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: get_iquad
 
 // Flux referenced by flux[idof][istate][idim]
 template<int dim, int nstate, typename real, typename MeshType>
-void AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: get_flux_at_support_pts(
+void AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: get_flux_and_source_at_support_pts(
     std::vector<std::array<dealii::Tensor<1,dim,real>,nstate>> &flux_at_support_pts, 
+    std::vector<std::array< real, nstate>> &source_at_support_pts,
     const dealii::FEValues<dim,dim> &fe_values_input,
     const std::vector<dealii::types::global_dof_index> &dof_indices,
     typename dealii::DoFHandler<dim>::active_cell_iterator cell) const
 {
     if( ! fe_values_input.get_fe().has_support_points() )
     {
-        pcout<<"The code here treats flux at support points as flux coeff at idof "
+        pcout<<"The code here treats flux at support points as flux coeff at idof (i.e. uses collocated GLL) "
              <<"which requires an interpolatory FE with support points. Aborting.."<<std::endl;
         std::abort();
     }
@@ -433,7 +452,7 @@ void AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: get_flux_at_suppo
     const unsigned int n_dofs_cell = dof_indices.size();
     dealii::Quadrature<dim> support_pts = fe_values_input.get_fe().get_unit_support_points();
     dealii::FEValues<dim, dim> fe_values_support_pts(fe_values_input.get_mapping(), fe_values_input.get_fe(),
-                                                     support_pts, dealii::update_values);
+                                                     support_pts, dealii::update_values | dealii::update_quadrature_points);
     fe_values_support_pts.reinit(cell);
     const unsigned int n_quad_pts = fe_values_support_pts.n_quadrature_points;
     Assert(n_quad_pts == n_dofs_cell, dealii::ExcMessage("n_quad_pts != n_dofs_cell"));
@@ -449,6 +468,7 @@ void AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: get_flux_at_suppo
         }
         
         flux_at_support_pts[iquad] = pde_physics_double->convective_flux(soln_at_q);
+        source_at_support_pts[iquad] = pde_physics_double->source_term(fe_values_support_pts.quadrature_point(iquad), soln_at_q, 0, cell->active_cell_index());
     }
 
 }

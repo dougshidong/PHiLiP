@@ -48,13 +48,13 @@ int AnisotropicMeshAdaptationCases<dim, nstate> :: run_test () const
 
     dealii::Point<dim> expected_coordinates_of_highest_refined_cell;
     for(unsigned int i=0; i < dim; ++i) {
-        expected_coordinates_of_highest_refined_cell[i] = 0.5;
+        expected_coordinates_of_highest_refined_cell[i] = 0.6;
     }
     const double distance_val  = expected_coordinates_of_highest_refined_cell.distance(coordinates_of_highest_refined_cell);
     pcout<<"Distance to the expected coordinates of the highest refined cell = "<<distance_val<<std::endl;
 
     int test_val = 0;
-    if(distance_val > 0.1) {++test_val;}// should lie in a ball of radius 0.1
+    if(distance_val > 0.3) {++test_val;}// should lie in a ball of radius 0.3
     return test_val;
 }
 

@@ -365,8 +365,8 @@ void AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: compute_goal_orie
         }
 
         // Obtain flux coeffs
-        std::vector<std::array<dealii::Tensor<1,dim,real>,nstate>> flux_coeffs(n_dofs_cell);
-        get_flux_coeffs(flux_coeffs, fe_values_volume, dof_indices, cell);
+        std::vector<std::array<dealii::Tensor<1,dim,real>,nstate>> flux_at_support_pts(n_dofs_cell);
+        get_flux_at_support_pts(flux_at_support_pts, fe_values_volume, dof_indices, cell);
         
         // Compute Hessian
         cellwise_hessian[cell_index] = 0;
@@ -380,7 +380,7 @@ void AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: compute_goal_orie
                     const unsigned int icomp = fe_values_volume.get_fe().system_to_component_index(idof).first;
                     if(icomp == istate)
                     {
-                        flux_hessian_at_istate_idim += flux_coeffs[idof][istate][idim]*fe_values_shape_hessian.shape_hessian_component(idof, iquad, istate, fe_ref);
+                        flux_hessian_at_istate_idim += flux_at_support_pts[idof][istate][idim]*fe_values_shape_hessian.shape_hessian_component(idof, iquad, istate, fe_ref);
                     }
                 } // idof
                 flux_hessian_at_istate_idim = get_positive_definite_tensor(flux_hessian_at_istate_idim);
@@ -417,8 +417,8 @@ unsigned int AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: get_iquad
 
 // Flux referenced by flux[idof][istate][idim]
 template<int dim, int nstate, typename real, typename MeshType>
-void AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: get_flux_coeffs(
-    std::vector<std::array<dealii::Tensor<1,dim,real>,nstate>> &flux_at_quads, 
+void AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: get_flux_at_support_pts(
+    std::vector<std::array<dealii::Tensor<1,dim,real>,nstate>> &flux_at_support_pts, 
     const dealii::FEValues<dim,dim> &fe_values_input,
     const std::vector<dealii::types::global_dof_index> &dof_indices,
     typename dealii::DoFHandler<dim>::active_cell_iterator cell) const
@@ -448,7 +448,7 @@ void AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: get_flux_coeffs(
             soln_at_q[istate] += dg->solution(dof_indices[idof]) * fe_values_support_pts.shape_value_component(idof, iquad, istate);
         }
         
-        flux_at_quads[iquad] = pde_physics_double->convective_flux(soln_at_q);
+        flux_at_support_pts[iquad] = pde_physics_double->convective_flux(soln_at_q);
     }
 
 }

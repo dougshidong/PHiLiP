@@ -74,8 +74,8 @@ private:
     /// Returns flux coeffs by evaluating flux at support points of fe. 
     /** Referenced by flux[idof][istate][idim]
      */
-    void get_flux_coeffs(
-            std::vector<std::array<dealii::Tensor<1,dim,real>,nstate>> &flux_coeffs, 
+    void get_flux_at_support_pts(
+            std::vector<std::array<dealii::Tensor<1,dim,real>,nstate>> &flux_at_support_pts, 
             const dealii::FEValues<dim,dim> &fe_values_input,
             const std::vector<dealii::types::global_dof_index> &dof_indices,
             typename dealii::DoFHandler<dim>::active_cell_iterator cell) const;

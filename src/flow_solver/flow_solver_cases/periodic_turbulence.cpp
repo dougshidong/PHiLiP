@@ -29,6 +29,7 @@ PeriodicTurbulence<dim, nstate>::PeriodicTurbulence(const PHiLiP::Parameters::Al
         , output_velocity_field_at_fixed_times(this->all_param.flow_solver_param.output_velocity_field_at_fixed_times)
         , output_vorticity_magnitude_field_in_addition_to_velocity(this->all_param.flow_solver_param.output_vorticity_magnitude_field_in_addition_to_velocity)
         , output_flow_field_files_directory_name(this->all_param.flow_solver_param.output_flow_field_files_directory_name)
+        , output_solution_at_exact_fixed_times(this->all_param.ode_solver_param.output_solution_at_exact_fixed_times)
 {
     // Get the flow case type
     using FlowCaseEnum = Parameters::FlowSolverParam::FlowCaseType;
@@ -151,7 +152,7 @@ void PeriodicTurbulence<dim, nstate>::output_velocity_field(
     const unsigned int output_file_index,
     const double current_time) const
 {
-    this->pcout << "     ... Writting velocity field ... " << std::flush;
+    this->pcout << "  ... Writting velocity field ... " << std::flush;
 
     // NOTE: Same loop from read_values_from_file_and_project() in set_initial_condition.cpp
     
@@ -766,7 +767,13 @@ void PeriodicTurbulence<dim, nstate>::compute_unsteady_data_and_write_to_table(
         const double next_time = current_time + time_step;
         const double desired_time = this->output_velocity_field_times[this->index_of_current_desired_time_to_output_velocity_field];
         // Check if current time is an output time
-        if((current_time<=desired_time) && (next_time>desired_time)) {
+        bool is_output_time = false; // default initialization
+        if(this->output_solution_at_exact_fixed_times) {
+            is_output_time = current_time == desired_time;
+        } else {
+            is_output_time = ((current_time<=desired_time) && (next_time>desired_time));
+        }
+        if(is_output_time) {
             // Output velocity field for current index
             this->output_velocity_field(dg, this->index_of_current_desired_time_to_output_velocity_field, current_time);
             

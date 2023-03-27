@@ -29,6 +29,7 @@ public:
     bool output_solution_at_fixed_times; ///< Flag for outputting solution at fixed times
     std::string output_solution_fixed_times_string; ///< String of fixed solution output times
     unsigned int number_of_fixed_times_to_output_solution; ///< Number of fixed times to output the solution
+    bool output_solution_at_exact_fixed_times; ///< Flag for outputting the solution at exact fixed times by decreasing the time step on the fly
 
     unsigned int nonlinear_max_iterations; ///< Maximum number of iterations.
     unsigned int print_iteration_modulo; ///< If ode_output==verbose, print every print_iteration_modulo iterations.

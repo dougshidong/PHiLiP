@@ -36,6 +36,11 @@ void ODESolverParam::declare_parameters (dealii::ParameterHandler &prm)
                           "Number of fixed times to output the solution. "
                           "Must correspond to output_solution_fixed_times_string.");
 
+        prm.declare_entry("output_solution_at_exact_fixed_times", "false",
+                          dealii::Patterns::Bool(),
+                          "Output solution at exact fixed times by decreasing the time step on the fly. False by default. "
+                          "NOTE: Should be set to false if doing stability studies so that the time step is never influenced by solution file soutput times.");
+
         prm.declare_entry("ode_solver_type", "implicit",
                           dealii::Patterns::Selection(
                           " runge_kutta | "
@@ -128,6 +133,7 @@ void ODESolverParam::parse_parameters (dealii::ParameterHandler &prm)
         output_solution_at_fixed_times = prm.get_bool("output_solution_at_fixed_times");
         output_solution_fixed_times_string = prm.get("output_solution_fixed_times_string");
         number_of_fixed_times_to_output_solution = prm.get_integer("number_of_fixed_times_to_output_solution");
+        output_solution_at_exact_fixed_times = prm.get_bool("output_solution_at_exact_fixed_times");
 
         const std::string solver_string = prm.get("ode_solver_type");
         if (solver_string == "runge_kutta")                 ode_solver_type = ODESolverEnum::runge_kutta_solver;

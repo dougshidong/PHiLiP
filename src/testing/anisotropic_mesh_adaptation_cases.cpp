@@ -18,47 +18,6 @@ AnisotropicMeshAdaptationCases<dim, nstate> :: AnisotropicMeshAdaptationCases(
 {}
 
 template <int dim, int nstate>
-int AnisotropicMeshAdaptationCases<dim, nstate> :: run_test () const
-{
-    const Parameters::AllParameters param = *(TestsBase::all_parameters);
-    
-    std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(&param, parameter_handler);
-    const bool use_goal_oriented_approach = param.mesh_adaptation_param.use_goal_oriented_mesh_adaptation;
-    const double complexity = param.mesh_adaptation_param.mesh_complexity_anisotropic_adaptation;
-    const double normLp = param.mesh_adaptation_param.norm_Lp_anisotropic_adaptation;
-
-    std::unique_ptr<AnisotropicMeshAdaptation<dim, nstate, double>> anisotropic_mesh_adaptation =
-                        std::make_unique<AnisotropicMeshAdaptation<dim, nstate, double>> (flow_solver->dg, normLp, complexity, use_goal_oriented_approach);
-
-    flow_solver->run();
-    const unsigned int n_adaptation_cycles = param.mesh_adaptation_param.total_mesh_adaptation_cycles;
-    
-    for(unsigned int cycle = 0; cycle < n_adaptation_cycles; ++cycle)
-    {
-        anisotropic_mesh_adaptation->adapt_mesh();
-        flow_solver->run();
-        //flow_solver->dg->output_results_vtk(1000 + cycle);
-    }
-
-    verify_fe_values_shape_hessian(*(flow_solver->dg));
-
-    const dealii::Point<dim> coordinates_of_highest_refined_cell = flow_solver->dg->coordinates_of_highest_refined_cell(false);
-
-    pcout<<"Coordinates of highest refined cell = "<<coordinates_of_highest_refined_cell<<std::endl;
-
-    dealii::Point<dim> expected_coordinates_of_highest_refined_cell;
-    for(unsigned int i=0; i < dim; ++i) {
-        expected_coordinates_of_highest_refined_cell[i] = 0.5;
-    }
-    const double distance_val  = expected_coordinates_of_highest_refined_cell.distance(coordinates_of_highest_refined_cell);
-    pcout<<"Distance to the expected coordinates of the highest refined cell = "<<distance_val<<std::endl;
-
-    int test_val = 0;
-    if(distance_val > 0.1) {++test_val;}// should lie in a ball of radius 0.1
-    return test_val;
-}
-
-template <int dim, int nstate>
 void AnisotropicMeshAdaptationCases<dim,nstate> :: verify_fe_values_shape_hessian(const DGBase<dim, double> &dg) const
 {
     const auto mapping = (*(dg.high_order_grid->mapping_fe_field));
@@ -112,6 +71,46 @@ void AnisotropicMeshAdaptationCases<dim,nstate> :: verify_fe_values_shape_hessia
     } // cell loop ends
 
     pcout<<"PHiLiP's physical shape hessian matches that computed by dealii."<<std::endl;
+}
+
+template <int dim, int nstate>
+int AnisotropicMeshAdaptationCases<dim, nstate> :: run_test () const
+{
+    const Parameters::AllParameters param = *(TestsBase::all_parameters);
+    
+    std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(&param, parameter_handler);
+    const bool use_goal_oriented_approach = param.mesh_adaptation_param.use_goal_oriented_mesh_adaptation;
+    const double complexity = param.mesh_adaptation_param.mesh_complexity_anisotropic_adaptation;
+    const double normLp = param.mesh_adaptation_param.norm_Lp_anisotropic_adaptation;
+
+    std::unique_ptr<AnisotropicMeshAdaptation<dim, nstate, double>> anisotropic_mesh_adaptation =
+                        std::make_unique<AnisotropicMeshAdaptation<dim, nstate, double>> (flow_solver->dg, normLp, complexity, use_goal_oriented_approach);
+
+    flow_solver->run();
+    const unsigned int n_adaptation_cycles = param.mesh_adaptation_param.total_mesh_adaptation_cycles;
+    
+    for(unsigned int cycle = 0; cycle < n_adaptation_cycles; ++cycle)
+    {
+        anisotropic_mesh_adaptation->adapt_mesh();
+        flow_solver->run();
+    }
+
+    verify_fe_values_shape_hessian(*(flow_solver->dg));
+
+    const dealii::Point<dim> coordinates_of_highest_refined_cell = flow_solver->dg->coordinates_of_highest_refined_cell(false);
+
+    pcout<<"Coordinates of highest refined cell = "<<coordinates_of_highest_refined_cell<<std::endl;
+
+    dealii::Point<dim> expected_coordinates_of_highest_refined_cell;
+    for(unsigned int i=0; i < dim; ++i) {
+        expected_coordinates_of_highest_refined_cell[i] = 0.5;
+    }
+    const double distance_val  = expected_coordinates_of_highest_refined_cell.distance(coordinates_of_highest_refined_cell);
+    pcout<<"Distance to the expected coordinates of the highest refined cell = "<<distance_val<<std::endl;
+
+    int test_val = 0;
+    if(distance_val > 0.1) {++test_val;}// should lie in a ball of radius 0.1
+    return test_val;
 }
 
 //#if PHILIP_DIM==1

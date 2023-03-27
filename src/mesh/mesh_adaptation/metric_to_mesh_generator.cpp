@@ -309,7 +309,6 @@ void MetricToMeshGenerator<dim, nstate, real, MeshType> :: write_geo_file() cons
 
     // Recombine triangles into quads.
     outfile<<"Mesh.RecombinationAlgorithm = 2;"<<'\n';
-    //outfile<<"RecombineMesh;"<<'\n';
     outfile<<"Mesh.RecombineAll = 1;"<<'\n';
     outfile<<std::flush;
     outfile.close();

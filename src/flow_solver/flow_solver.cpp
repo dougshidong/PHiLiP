@@ -489,7 +489,7 @@ int FlowSolver<dim,nstate>::run() const
                 const double next_time = ode_solver->current_time + time_step;
                 const double desired_time = this->output_solution_fixed_times[index_of_current_desired_fixed_time_to_output_solution];
                 // // Check if current time is an output time
-                const bool is_output_time = ((ode_solver->current_time<desired_time) && (next_time>desired_time)); // make sure velocity field output logic is the same
+                const bool is_output_time = ((ode_solver->current_time<desired_time) && (next_time>desired_time));
                 if(is_output_time) time_step = desired_time - ode_solver->current_time;
             }
 
@@ -558,7 +558,7 @@ int FlowSolver<dim,nstate>::run() const
                 if(this->output_solution_at_exact_fixed_times) {
                     is_output_time = ode_solver->current_time == desired_time;
                 } else {
-                    is_output_time = ((ode_solver->current_time<=desired_time) && (next_time>desired_time)); // make sure velocity field output logic is the same
+                    is_output_time = ((ode_solver->current_time<=desired_time) && (next_time>desired_time));
                 }
                 if(is_output_time) {
                     pcout << "  ... Writing vtk solution file ..." << std::endl;

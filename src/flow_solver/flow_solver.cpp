@@ -479,11 +479,17 @@ int FlowSolver<dim,nstate>::run() const
         pcout << "Timer starting. " << std::endl;
         dealii::Timer timer(this->mpi_communicator,false);
         timer.start();
-        while((ode_solver->current_time) < (final_time - 1E-13)) //comparing to 1E-13 to avoid taking an extra timestep
+        while(ode_solver->current_time < final_time)
         {
             if(flow_solver_param.adaptive_time_step == false) {
                 // reset time step to target if using a constant time step
                 time_step = flow_solver_case->get_constant_time_step(dg);// NOTE: add a test for restart with adaptive time step
+                flow_solver_case->set_time_step(time_step);
+            }
+
+            if((ode_solver->current_time+time_step) > final_time) {
+                // decrease time step to finish exactly at specified final time
+                time_step = final_time - ode_solver->current_time;
                 flow_solver_case->set_time_step(time_step);
             }
 

@@ -496,9 +496,6 @@ int FlowSolver<dim,nstate>::run() const
             // update time step in flow_solver_case
             flow_solver_case->set_time_step(time_step);
 
-            // update model variables
-            flow_solver_case->update_model_variables(dg);
-
             // advance solution
             ode_solver->step_in_time(time_step,false); // pseudotime==false
 

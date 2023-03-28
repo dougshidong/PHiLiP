@@ -122,10 +122,10 @@ template <int dim, int nstate>
 double FlowSolverCaseBase<dim,nstate>::get_constant_time_step(std::shared_ptr<DGBase<dim,double>> /*dg*/) const
 {
     if(all_param.flow_solver_param.constant_time_step > 0.0) {
-        pcout << "Using constant time step in FlowSolver parameters." << std::endl;
+        // Using constant time step in FlowSolver parameters.
         return all_param.flow_solver_param.constant_time_step;
     } else {
-        pcout << "Using initial time step in ODE parameters." <<std::endl;
+        // Using initial time step in ODE parameters.
         return all_param.ode_solver_param.initial_time_step;
     }
 }

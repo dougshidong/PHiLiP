@@ -31,6 +31,7 @@ public:
         const double                                              mach_inf,
         const double                                              angle_of_attack,
         const double                                              side_slip_angle,
+        const bool                                                do_output_nan_warnings,
         const double                                              prandtl_number,
         const double                                              reynolds_number_inf,
         const bool                                                use_constant_viscosity,

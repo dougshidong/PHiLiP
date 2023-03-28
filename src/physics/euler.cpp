@@ -18,6 +18,7 @@ Euler<dim,nstate,real>::Euler (
     const double                                              mach_inf,
     const double                                              angle_of_attack,
     const double                                              side_slip_angle,
+    const bool                                                do_output_nan_warnings,
     std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function,
     const two_point_num_flux_enum                             two_point_num_flux_type_input,
     const bool                                                has_nonzero_diffusion,
@@ -35,6 +36,7 @@ Euler<dim,nstate,real>::Euler (
     , pressure_inf(1.0/(gam*mach_inf_sqr))
     , entropy_inf(pressure_inf*pow(density_inf,-gam))
     , two_point_num_flux_type(two_point_num_flux_type_input)
+    , do_output_nan_warnings(do_output_nan_warnings)
     //, internal_energy_inf(1.0/(gam*(gam-1.0)*mach_inf_sqr)) 
     // Note: Eq.(3.11.18) has a typo in internal_energy_inf expression, mach_inf_sqr should be in denominator. 
 {
@@ -154,7 +156,8 @@ template <int dim, int nstate, typename real>
 template<typename real2>
 void Euler<dim,nstate,real>::check_positive_density(real2 &density) const {
     if (density < 0.0) {
-        this->pcout << "WARNING: Negative density encountered! Setting density as BIG_NUMBER." << std::endl;
+        //Need to use std::cout because the problematic cell may not be on the primary processor
+        if (do_output_nan_warnings) std::cout << "WARNING: Negative density encountered! Setting density as BIG_NUMBER." << std::endl;
         density = BIG_NUMBER;
     }
 }
@@ -163,7 +166,7 @@ template <int dim, int nstate, typename real>
 template<typename real2>
 void Euler<dim,nstate,real>::check_positive_pressure(real2 &pressure) const {
     if (pressure < 0.0) {
-        this->pcout << "WARNING: Negative pressure encountered! Setting pressure as BIG_NUMBER." << std::endl;
+        if (do_output_nan_warnings) std::cout << "WARNING: Negative pressure encountered! Setting pressure as BIG_NUMBER." << std::endl;
         pressure = BIG_NUMBER;
     }
 }
@@ -297,7 +300,7 @@ inline real Euler<dim,nstate,real>
 ::compute_entropy_measure ( const real density, const real pressure ) const
 {
     if (density < 0.0) {
-        this->pcout << "WARNING: Negative density encountered! Returning BIG_NUMBER as entropy measure." << std::endl;
+        if (do_output_nan_warnings) std::cout << "WARNING: Negative density encountered! Returning BIG_NUMBER as entropy measure." << std::endl;
         return BIG_NUMBER;
     } else {
         return pressure*pow(density,-gam);
@@ -395,9 +398,10 @@ inline real2 Euler<dim,nstate,real>
         entropy = log( entropy );
     } else {
         entropy = BIG_NUMBER;
-        this->pcout << "WARNING: Entropy is not defined because " << std::endl 
-                    << "    pressure * pow(density, -gam) < 0 ." << std::endl
-                    << "    Setting entropy = BIG_NUMBER." << std::endl;
+        if (do_output_nan_warnings) 
+            std::cout  << "WARNING: Entropy is not defined because " << std::endl 
+                       << "    pressure * pow(density, -gam) < 0 ." << std::endl
+                       << "    Setting entropy = BIG_NUMBER." << std::endl;
     }
     return entropy;
 

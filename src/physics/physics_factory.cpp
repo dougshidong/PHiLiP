@@ -102,6 +102,7 @@ PhysicsFactory<dim,nstate,real>
                 parameters_input->euler_param.mach_inf,
                 parameters_input->euler_param.angle_of_attack,
                 parameters_input->euler_param.side_slip_angle,
+                parameters_input->euler_param.do_output_nan_warnings,
                 manufactured_solution_function,
                 parameters_input->two_point_num_flux_type);
         }
@@ -119,6 +120,7 @@ PhysicsFactory<dim,nstate,real>
                 parameters_input->euler_param.mach_inf,
                 parameters_input->euler_param.angle_of_attack,
                 parameters_input->euler_param.side_slip_angle,
+                parameters_input->euler_param.do_output_nan_warnings,
                 parameters_input->navier_stokes_param.prandtl_number,
                 parameters_input->navier_stokes_param.reynolds_number_inf,
                 parameters_input->navier_stokes_param.use_constant_viscosity,

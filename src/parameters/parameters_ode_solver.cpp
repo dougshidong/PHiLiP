@@ -29,12 +29,7 @@ void ODESolverParam::declare_parameters (dealii::ParameterHandler &prm)
         prm.declare_entry("output_solution_fixed_times_string", " ",
                           dealii::Patterns::FileName(dealii::Patterns::FileName::FileType::input),
                           "String of the times at which to output the velocity field. "
-                          "Example: '0.0 1.0 2.0 3.0 '");
-
-        prm.declare_entry("number_of_fixed_times_to_output_solution", "0",
-                          dealii::Patterns::Integer(0, dealii::Patterns::Integer::max_int_value),
-                          "Number of fixed times to output the solution. "
-                          "Must correspond to output_solution_fixed_times_string.");
+                          "Example: '0.0 1.0 2.0 3.0 ' or '0.0 1.0 2.0 3.0'");
 
         prm.declare_entry("output_solution_at_exact_fixed_times", "false",
                           dealii::Patterns::Bool(),
@@ -132,7 +127,7 @@ void ODESolverParam::parse_parameters (dealii::ParameterHandler &prm)
         output_solution_every_dt_time_intervals = prm.get_double("output_solution_every_dt_time_intervals");
         output_solution_at_fixed_times = prm.get_bool("output_solution_at_fixed_times");
         output_solution_fixed_times_string = prm.get("output_solution_fixed_times_string");
-        number_of_fixed_times_to_output_solution = prm.get_integer("number_of_fixed_times_to_output_solution");
+        number_of_fixed_times_to_output_solution = get_number_of_values_in_string(output_solution_fixed_times_string);
         output_solution_at_exact_fixed_times = prm.get_bool("output_solution_at_exact_fixed_times");
 
         const std::string solver_string = prm.get("ode_solver_type");

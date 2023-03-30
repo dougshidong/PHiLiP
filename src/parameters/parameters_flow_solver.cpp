@@ -226,12 +226,7 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
             prm.declare_entry("output_velocity_field_times_string", " ",
                               dealii::Patterns::FileName(dealii::Patterns::FileName::FileType::input),
                               "String of the times at which to output the velocity field. "
-                              "Example: '0.0 1.0 2.0 3.0 '");
-
-            prm.declare_entry("number_of_times_to_output_velocity_field", "0",
-                              dealii::Patterns::Integer(0, dealii::Patterns::Integer::max_int_value),
-                              "Number of fixed times to output the velocity field. "
-                              "Must correspond to output_velocity_field_times_string.");
+                              "Example: '0.0 1.0 2.0 3.0 ' or '0.0 1.0 2.0 3.0'");
 
             prm.declare_entry("output_vorticity_magnitude_field_in_addition_to_velocity", "false",
                               dealii::Patterns::Bool(),
@@ -340,7 +335,7 @@ void FlowSolverParam::parse_parameters(dealii::ParameterHandler &prm)
         {
           output_velocity_field_at_fixed_times = prm.get_bool("output_velocity_field_at_fixed_times");
           output_velocity_field_times_string = prm.get("output_velocity_field_times_string");
-          number_of_times_to_output_velocity_field = prm.get_integer("number_of_times_to_output_velocity_field");
+          number_of_times_to_output_velocity_field = get_number_of_values_in_string(output_velocity_field_times_string);
           output_vorticity_magnitude_field_in_addition_to_velocity = prm.get_bool("output_vorticity_magnitude_field_in_addition_to_velocity");
           output_flow_field_files_directory_name = prm.get("output_flow_field_files_directory_name");
         }

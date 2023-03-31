@@ -928,7 +928,7 @@ real Euler<dim,nstate,real>
     const real sound = compute_sound (conservative_soln);
     real vel_dot_n = 0.0;
     for (int d=0;d<dim;++d) { vel_dot_n += vel[d]*normal[d]; };
-    const real max_normal_eig = sqrt(vel_dot_n*vel_dot_n) + sound;
+    const real max_normal_eig = abs(vel_dot_n) + sound;
 
     return max_normal_eig;
 }

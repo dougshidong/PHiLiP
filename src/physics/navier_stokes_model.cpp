@@ -91,6 +91,16 @@ real NavierStokesWithModelSourceTerms<dim,nstate,real>
 }
 //----------------------------------------------------------------
 template <int dim, int nstate, typename real>
+real NavierStokesWithModelSourceTerms<dim,nstate,real>
+::max_convective_normal_eigenvalue (
+    const std::array<real,nstate> &/*conservative_soln*/,
+    const dealii::Tensor<1,dim,real> &/*normal*/) const
+{
+    const real max_eig = 0.0;
+    return max_eig;
+}
+//----------------------------------------------------------------
+template <int dim, int nstate, typename real>
 std::array<real,nstate> NavierStokesWithModelSourceTerms<dim,nstate,real>
 ::source_term (
         const dealii::Point<dim,real> &/*pos*/,

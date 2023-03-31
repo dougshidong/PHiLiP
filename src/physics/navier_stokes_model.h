@@ -58,6 +58,12 @@ public:
     /** For NS model, this value is assigned to be zero */
     real max_convective_eigenvalue (const std::array<real,nstate> &soln) const;
 
+    /// Maximum convective normal eigenvalue (used in Lax-Friedrichs) of the additional models' PDEs
+    /** For NS model, this value is assigned to be zero */
+    real max_convective_normal_eigenvalue (
+        const std::array<real,nstate> &soln,
+        const dealii::Tensor<1,dim,real> &normal) const;
+
     /// Source term for manufactured solution functions
     std::array<real,nstate> source_term (
         const dealii::Point<dim,real> &pos,

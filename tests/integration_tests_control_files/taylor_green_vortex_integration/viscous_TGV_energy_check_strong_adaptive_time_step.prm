@@ -3,12 +3,12 @@
 # Number of dimensions
 
 set dimension = 3
-set test_type = homogeneous_isotropic_turbulence_initialization_check
+set test_type = taylor_green_vortex_energy_check
 set pde_type = navier_stokes
 
 # DG formulation
 set use_weak_form = false
-set flux_nodes_type = GLL
+# set flux_nodes_type = GLL
 
 # Note: this was added to turn off check_same_coords() -- has no other function when dim!=1
 set use_periodic_bc = true
@@ -20,6 +20,9 @@ set diss_num_flux = symm_internal_penalty
 # ODE solver
 subsection ODE solver
   set ode_output = quiet
+  set output_solution_at_fixed_times = true
+  set output_solution_fixed_times_string = 0.001 0.003 0.005 0.007 0.008 
+  set output_solution_at_exact_fixed_times = true
   set ode_solver_type = runge_kutta
   set runge_kutta_method = ssprk3_ex
 end
@@ -39,26 +42,24 @@ subsection navier_stokes
 end
 
 subsection flow_solver
-  set flow_case_type = decaying_homogeneous_isotropic_turbulence
-  set poly_degree = 5
+  set flow_case_type = taylor_green_vortex
+  set poly_degree = 2
   set final_time = 1.2566370614400000e-02
-  set courant_friedrichs_lewy_number = 0.003
-  set unsteady_data_table_filename = dhit_init_check_serial
-  set output_restart_files = false
+  set courant_friedrichs_lewy_number = 0.03
+  set adaptive_time_step = true
+  set unsteady_data_table_filename = tgv_strong_adaptive_time_step
+  set output_restart_files = true
   subsection grid
     set grid_left_bound = 0.0
     set grid_right_bound = 6.28318530717958623200
     set number_of_grid_elements_per_dimension = 4
   end
   subsection taylor_green_vortex
-    set expected_kinetic_energy_at_final_time = 1.2073987162646824e-01
-    set expected_theoretical_dissipation_rate_at_final_time = 4.5422264559968770e-04
+    set expected_kinetic_energy_at_final_time = 1.2073987159956494e-01
+    set expected_theoretical_dissipation_rate_at_final_time = 4.5422270072100499e-04
   end
-  set apply_initial_condition_method = read_values_from_file_and_project
-  set input_flow_setup_filename_prefix = setup_files/1proc/setup_philip
   subsection output_velocity_field
     set output_velocity_field_at_fixed_times = true
-    set output_velocity_field_times_string = 0.0
-    set output_vorticity_magnitude_field_in_addition_to_velocity = true
+    set output_velocity_field_times_string = 0.005 0.007 0.008 
   end
 end

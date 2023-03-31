@@ -489,7 +489,7 @@ int FlowSolver<dim,nstate>::run() const
             } else if (this->output_solution_at_exact_fixed_times && (this->do_output_solution_at_fixed_times && (this->number_of_fixed_times_to_output_solution > 0))) { // change this to some parameter
                 const double next_time = ode_solver->current_time + time_step;
                 const double desired_time = this->output_solution_fixed_times[index_of_current_desired_fixed_time_to_output_solution];
-                // // Check if current time is an output time
+                // Check if current time is an output time
                 const bool is_output_time = ((ode_solver->current_time<desired_time) && (next_time>desired_time));
                 if(is_output_time) time_step = desired_time - ode_solver->current_time;
             }

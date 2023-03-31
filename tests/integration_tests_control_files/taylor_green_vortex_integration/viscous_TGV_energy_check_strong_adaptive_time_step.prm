@@ -22,7 +22,6 @@ subsection ODE solver
   set ode_output = quiet
   set output_solution_at_fixed_times = true
   set output_solution_fixed_times_string = 0.001 0.003 0.005 0.007 0.008 
-  set number_of_fixed_times_to_output_solution = 5
   set output_solution_at_exact_fixed_times = true
   set ode_solver_type = runge_kutta
   set runge_kutta_method = ssprk3_ex
@@ -62,6 +61,5 @@ subsection flow_solver
   subsection output_velocity_field
     set output_velocity_field_at_fixed_times = true
     set output_velocity_field_times_string = 0.005 0.007 0.008 
-    set number_of_times_to_output_velocity_field = 3
   end
 end

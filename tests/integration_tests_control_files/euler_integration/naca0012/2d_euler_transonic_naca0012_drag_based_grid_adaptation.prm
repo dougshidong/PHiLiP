@@ -12,6 +12,8 @@ set use_split_form = false
 
 set overintegration = 0
 
+set output_face_results_vtk = true
+
 subsection euler
   set reference_length = 1.0
   set mach_infinity = 0.80

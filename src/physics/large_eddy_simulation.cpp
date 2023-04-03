@@ -15,6 +15,7 @@ namespace Physics {
 //================================================================
 template <int dim, int nstate, typename real>
 LargeEddySimulationBase<dim, nstate, real>::LargeEddySimulationBase(
+    const Parameters::AllParameters *const                    parameters_input,
     const double                                              ref_length,
     const double                                              gamma_gas,
     const double                                              mach_inf,
@@ -35,6 +36,7 @@ LargeEddySimulationBase<dim, nstate, real>::LargeEddySimulationBase(
     , turbulent_prandtl_number(turbulent_prandtl_number)
     , ratio_of_filter_width_to_cell_size(ratio_of_filter_width_to_cell_size)
     , navier_stokes_physics(std::make_unique < NavierStokes<dim,nstate,real> > (
+            parameters_input,
             ref_length,
             gamma_gas,
             mach_inf,
@@ -396,6 +398,7 @@ std::array<real,nstate> LargeEddySimulationBase<dim,nstate,real>
 //================================================================
 template <int dim, int nstate, typename real>
 LargeEddySimulation_Smagorinsky<dim, nstate, real>::LargeEddySimulation_Smagorinsky(
+    const Parameters::AllParameters *const                    parameters_input,
     const double                                              ref_length,
     const double                                              gamma_gas,
     const double                                              mach_inf,
@@ -413,7 +416,8 @@ LargeEddySimulation_Smagorinsky<dim, nstate, real>::LargeEddySimulation_Smagorin
     const thermal_boundary_condition_enum                     thermal_boundary_condition_type,
     std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function,
     const two_point_num_flux_enum                             two_point_num_flux_type)
-    : LargeEddySimulationBase<dim,nstate,real>(ref_length,
+    : LargeEddySimulationBase<dim,nstate,real>(parameters_input,
+                                               ref_length,
                                                gamma_gas,
                                                mach_inf,
                                                angle_of_attack,
@@ -622,6 +626,7 @@ dealii::Tensor<2,dim,real2> LargeEddySimulation_Smagorinsky<dim,nstate,real>
 //================================================================
 template <int dim, int nstate, typename real>
 LargeEddySimulation_WALE<dim, nstate, real>::LargeEddySimulation_WALE(
+    const Parameters::AllParameters *const                    parameters_input,
     const double                                              ref_length,
     const double                                              gamma_gas,
     const double                                              mach_inf,
@@ -639,7 +644,8 @@ LargeEddySimulation_WALE<dim, nstate, real>::LargeEddySimulation_WALE(
     const thermal_boundary_condition_enum                     thermal_boundary_condition_type,
     std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function,
     const two_point_num_flux_enum                             two_point_num_flux_type)
-    : LargeEddySimulation_Smagorinsky<dim,nstate,real>(ref_length,
+    : LargeEddySimulation_Smagorinsky<dim,nstate,real>(parameters_input,
+                                                       ref_length,
                                                        gamma_gas,
                                                        mach_inf,
                                                        angle_of_attack,
@@ -749,6 +755,7 @@ real2 LargeEddySimulation_WALE<dim,nstate,real>
 //================================================================
 template <int dim, int nstate, typename real>
 LargeEddySimulation_Vreman<dim, nstate, real>::LargeEddySimulation_Vreman(
+    const Parameters::AllParameters *const                    parameters_input,
     const double                                              ref_length,
     const double                                              gamma_gas,
     const double                                              mach_inf,
@@ -766,7 +773,8 @@ LargeEddySimulation_Vreman<dim, nstate, real>::LargeEddySimulation_Vreman(
     const thermal_boundary_condition_enum                     thermal_boundary_condition_type,
     std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function,
     const two_point_num_flux_enum                             two_point_num_flux_type)
-    : LargeEddySimulation_Smagorinsky<dim,nstate,real>(ref_length,
+    : LargeEddySimulation_Smagorinsky<dim,nstate,real>(parameters_input,
+                                                       ref_length,
                                                        gamma_gas,
                                                        mach_inf,
                                                        angle_of_attack,

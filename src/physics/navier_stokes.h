@@ -26,12 +26,12 @@ public:
     using two_point_num_flux_enum = Parameters::AllParameters::TwoPointNumericalFlux;
     /// Constructor
     NavierStokes( 
+        const Parameters::AllParameters *const                    parameters_input,
         const double                                              ref_length,
         const double                                              gamma_gas,
         const double                                              mach_inf,
         const double                                              angle_of_attack,
         const double                                              side_slip_angle,
-        const bool                                                do_output_nan_warnings,
         const double                                              prandtl_number,
         const double                                              reynolds_number_inf,
         const bool                                                use_constant_viscosity,

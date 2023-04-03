@@ -14,6 +14,7 @@ namespace Physics {
 
 template <int dim, int nstate, typename real>
 PhysicsBase<dim,nstate,real>::PhysicsBase(
+    const Parameters::AllParameters *const                    parameters_input,
     const bool                                                has_nonzero_diffusion_input,
     const bool                                                has_nonzero_physical_source_input,
     const dealii::Tensor<2,3,double>                          input_diffusion_tensor,
@@ -22,6 +23,7 @@ PhysicsBase<dim,nstate,real>::PhysicsBase(
     , has_nonzero_physical_source(has_nonzero_physical_source_input)
     , manufactured_solution_function(manufactured_solution_function_input)
     , pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD)==0)
+    , all_parameters(parameters_input)
 {
     // if provided with a null ptr, give it the default manufactured solution
     // currently only necessary for the unit test
@@ -46,10 +48,12 @@ PhysicsBase<dim,nstate,real>::PhysicsBase(
 
 template <int dim, int nstate, typename real>
 PhysicsBase<dim,nstate,real>::PhysicsBase(
+    const Parameters::AllParameters *const                    parameters_input,
     const bool                                                has_nonzero_diffusion_input,
     const bool                                                has_nonzero_physical_source_input,
     std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function_input)
     : PhysicsBase<dim,nstate,real>(
+        parameters_input,
         has_nonzero_diffusion_input,
         has_nonzero_physical_source_input,
         Parameters::ManufacturedSolutionParam::get_default_diffusion_tensor(),

@@ -52,12 +52,14 @@ PhysicsFactory<dim,nstate,real>
     if (pde_type == PDE_enum::advection || pde_type == PDE_enum::advection_vector) {
         if constexpr (nstate<=2) 
             return std::make_shared < ConvectionDiffusion<dim,nstate,real> >(
+                parameters_input,
                 true, false,
                 diffusion_tensor, advection_vector, diffusion_coefficient,
                 manufactured_solution_function);
     } else if (pde_type == PDE_enum::diffusion) {
         if constexpr (nstate==1) 
             return std::make_shared < ConvectionDiffusion<dim,nstate,real> >(
+                parameters_input,
                 false, true,
                 diffusion_tensor, advection_vector, diffusion_coefficient,
                 manufactured_solution_function,
@@ -65,6 +67,7 @@ PhysicsFactory<dim,nstate,real>
     } else if (pde_type == PDE_enum::convection_diffusion) {
         if constexpr (nstate==1) 
             return std::make_shared < ConvectionDiffusion<dim,nstate,real> >(
+                parameters_input,
                 true, true,
                 diffusion_tensor, advection_vector, diffusion_coefficient,
                 manufactured_solution_function,
@@ -72,6 +75,7 @@ PhysicsFactory<dim,nstate,real>
     } else if (pde_type == PDE_enum::burgers_inviscid) {
         if constexpr (nstate==dim) 
             return std::make_shared < Burgers<dim,nstate,real> >(
+                parameters_input,
                 parameters_input->burgers_param.diffusion_coefficient,
                 true, false,
                 diffusion_tensor, 
@@ -80,47 +84,50 @@ PhysicsFactory<dim,nstate,real>
     } else if (pde_type == PDE_enum::burgers_viscous) {
         if constexpr (nstate==dim)
             return std::make_shared < Burgers<dim,nstate,real> >(
-                    parameters_input->burgers_param.diffusion_coefficient,
-                    true, true,
-                    diffusion_tensor,
-                    manufactured_solution_function);
+                parameters_input,
+                parameters_input->burgers_param.diffusion_coefficient,
+                true, true,
+                diffusion_tensor,
+                manufactured_solution_function);
     } else if (pde_type == PDE_enum::burgers_rewienski) {
         if constexpr (nstate==dim)
             return std::make_shared < BurgersRewienski<dim,nstate,real> >(
-                    parameters_input->burgers_param.rewienski_a,
-                    parameters_input->burgers_param.rewienski_b,
-                    parameters_input->burgers_param.rewienski_manufactured_solution,
-                    true,
-                    false,
-                    diffusion_tensor,
-                    manufactured_solution_function);
+                parameters_input,
+                parameters_input->burgers_param.rewienski_a,
+                parameters_input->burgers_param.rewienski_b,
+                parameters_input->burgers_param.rewienski_manufactured_solution,
+                true,
+                false,
+                diffusion_tensor,
+                manufactured_solution_function);
     } else if (pde_type == PDE_enum::euler) {
         if constexpr (nstate==dim+2) {
             return std::make_shared < Euler<dim,nstate,real> > (
+                parameters_input,
                 parameters_input->euler_param.ref_length,
                 parameters_input->euler_param.gamma_gas,
                 parameters_input->euler_param.mach_inf,
                 parameters_input->euler_param.angle_of_attack,
                 parameters_input->euler_param.side_slip_angle,
-                parameters_input->euler_param.do_output_nan_warnings,
                 manufactured_solution_function,
                 parameters_input->two_point_num_flux_type);
         }
     } else if (pde_type == PDE_enum::mhd) {
         if constexpr (nstate == 8) 
             return std::make_shared < MHD<dim,nstate,real> > (
+                parameters_input,
                 parameters_input->euler_param.gamma_gas,
                 diffusion_tensor, 
                 manufactured_solution_function);
     } else if (pde_type == PDE_enum::navier_stokes) {
         if constexpr (nstate==dim+2) {
             return std::make_shared < NavierStokes<dim,nstate,real> > (
+                parameters_input,
                 parameters_input->euler_param.ref_length,
                 parameters_input->euler_param.gamma_gas,
                 parameters_input->euler_param.mach_inf,
                 parameters_input->euler_param.angle_of_attack,
                 parameters_input->euler_param.side_slip_angle,
-                parameters_input->euler_param.do_output_nan_warnings,
                 parameters_input->navier_stokes_param.prandtl_number,
                 parameters_input->navier_stokes_param.reynolds_number_inf,
                 parameters_input->navier_stokes_param.use_constant_viscosity,

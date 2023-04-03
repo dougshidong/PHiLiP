@@ -15,6 +15,7 @@ namespace Physics {
 //================================================================
 template <int dim, int nstate, typename real>
 ReynoldsAveragedNavierStokesBase<dim, nstate, real>::ReynoldsAveragedNavierStokesBase(
+    const Parameters::AllParameters *const                    parameters_input,
     const double                                              ref_length,
     const double                                              gamma_gas,
     const double                                              mach_inf,
@@ -33,6 +34,7 @@ ReynoldsAveragedNavierStokesBase<dim, nstate, real>::ReynoldsAveragedNavierStoke
     : ModelBase<dim,nstate,real>(manufactured_solution_function) 
     , turbulent_prandtl_number(turbulent_prandtl_number)
     , navier_stokes_physics(std::make_unique < NavierStokes<dim,nstate_navier_stokes,real> > (
+            parameters_input,
             ref_length,
             gamma_gas,
             mach_inf,

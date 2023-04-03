@@ -13,17 +13,17 @@ namespace Physics {
 
 template <int dim, int nstate, typename real>
 Euler<dim,nstate,real>::Euler ( 
+    const Parameters::AllParameters *const                    parameters_input,
     const double                                              ref_length,
     const double                                              gamma_gas,
     const double                                              mach_inf,
     const double                                              angle_of_attack,
     const double                                              side_slip_angle,
-    const bool                                                do_output_nan_warnings,
     std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function,
     const two_point_num_flux_enum                             two_point_num_flux_type_input,
     const bool                                                has_nonzero_diffusion,
     const bool                                                has_nonzero_physical_source)
-    : PhysicsBase<dim,nstate,real>(has_nonzero_diffusion,has_nonzero_physical_source,manufactured_solution_function)
+    : PhysicsBase<dim,nstate,real>(parameters_input, has_nonzero_diffusion,has_nonzero_physical_source,manufactured_solution_function)
     , ref_length(ref_length)
     , gam(gamma_gas)
     , gamm1(gam-1.0)
@@ -36,7 +36,6 @@ Euler<dim,nstate,real>::Euler (
     , pressure_inf(1.0/(gam*mach_inf_sqr))
     , entropy_inf(pressure_inf*pow(density_inf,-gam))
     , two_point_num_flux_type(two_point_num_flux_type_input)
-    , do_output_nan_warnings(do_output_nan_warnings)
     //, internal_energy_inf(1.0/(gam*(gam-1.0)*mach_inf_sqr)) 
     // Note: Eq.(3.11.18) has a typo in internal_energy_inf expression, mach_inf_sqr should be in denominator. 
 {
@@ -156,8 +155,7 @@ template <int dim, int nstate, typename real>
 template<typename real2>
 void Euler<dim,nstate,real>::check_positive_density(real2 &density) const {
     if (density < 0.0) {
-        //Need to use std::cout because the problematic cell may not be on the primary processor
-        if (do_output_nan_warnings) std::cout << "WARNING: Negative density encountered! Setting density as BIG_NUMBER." << std::endl;
+        this->pcout << "WARNING: Negative density encountered! Setting density as BIG_NUMBER." << std::endl;
         density = BIG_NUMBER;
     }
 }
@@ -166,7 +164,7 @@ template <int dim, int nstate, typename real>
 template<typename real2>
 void Euler<dim,nstate,real>::check_positive_pressure(real2 &pressure) const {
     if (pressure < 0.0) {
-        if (do_output_nan_warnings) std::cout << "WARNING: Negative pressure encountered! Setting pressure as BIG_NUMBER." << std::endl;
+        this->pcout << "WARNING: Negative pressure encountered! Setting pressure as BIG_NUMBER." << std::endl;
         pressure = BIG_NUMBER;
     }
 }
@@ -300,7 +298,7 @@ inline real Euler<dim,nstate,real>
 ::compute_entropy_measure ( const real density, const real pressure ) const
 {
     if (density < 0.0) {
-        if (do_output_nan_warnings) std::cout << "WARNING: Negative density encountered! Returning BIG_NUMBER as entropy measure." << std::endl;
+        this->pcout << "WARNING: Negative density encountered! Returning BIG_NUMBER as entropy measure." << std::endl;
         return BIG_NUMBER;
     } else {
         return pressure*pow(density,-gam);
@@ -398,10 +396,9 @@ inline real2 Euler<dim,nstate,real>
         entropy = log( entropy );
     } else {
         entropy = BIG_NUMBER;
-        if (do_output_nan_warnings) 
-            std::cout  << "WARNING: Entropy is not defined because " << std::endl 
-                       << "    pressure * pow(density, -gam) < 0 ." << std::endl
-                       << "    Setting entropy = BIG_NUMBER." << std::endl;
+        this->pcout << "WARNING: Entropy is not defined because " << std::endl 
+                    << "    pressure * pow(density, -gam) < 0 ." << std::endl
+                    << "    Setting entropy = BIG_NUMBER." << std::endl;
     }
     return entropy;
 

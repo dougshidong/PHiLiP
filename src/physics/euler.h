@@ -90,12 +90,12 @@ public:
     using two_point_num_flux_enum = Parameters::AllParameters::TwoPointNumericalFlux;
     /// Constructor
     Euler ( 
+        const Parameters::AllParameters *const                    parameters_input,
         const double                                              ref_length,
         const double                                              gamma_gas,
         const double                                              mach_inf,
         const double                                              angle_of_attack,
         const double                                              side_slip_angle,
-        const bool                                                do_output_nan_warnings,
         std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function = nullptr,
         const two_point_num_flux_enum                             two_point_num_flux_type = two_point_num_flux_enum::KG,
         const bool                                                has_nonzero_diffusion = false,
@@ -130,9 +130,6 @@ public:
     const double pressure_inf; ///< Non-dimensionalized pressure* at infinity
     const double entropy_inf; ///< Entropy measure at infinity
     const two_point_num_flux_enum two_point_num_flux_type; ///< Two point numerical flux type (for split form)
-    
-    const bool do_output_nan_warnings; ///< Toggle outputting warnings when nonphyiscal values are detected.
-
     double temperature_inf; ///< Non-dimensionalized temperature* at infinity. Should equal 1/density*(inf)
     double dynamic_pressure_inf; ///< Non-dimensionalized dynamic pressure* at infinity
 

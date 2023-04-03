@@ -36,6 +36,7 @@ class PhysicsBase
 public:
     /// Default constructor that will set the constants.
     PhysicsBase(
+        const Parameters::AllParameters *const                    parameters_input,
         const bool                                                has_nonzero_diffusion_input,
         const bool                                                has_nonzero_physical_source_input,
         const dealii::Tensor<2,3,double>                          input_diffusion_tensor = Parameters::ManufacturedSolutionParam::get_default_diffusion_tensor(),
@@ -43,6 +44,7 @@ public:
 
     /// Constructor that will call default constructor.
     PhysicsBase(
+        const Parameters::AllParameters *const                    parameters_input,
         const bool                                                has_nonzero_diffusion_input,
         const bool                                                has_nonzero_physical_source_input,
         std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function_input = nullptr);
@@ -183,6 +185,9 @@ protected:
      *  we should have a stable diffusive system
      */
     dealii::Tensor<2,dim,double> diffusion_tensor;
+
+    /// Pointer to parameters object
+    const Parameters::AllParameters *const all_parameters;
 };
 } // Physics namespace
 } // PHiLiP namespace

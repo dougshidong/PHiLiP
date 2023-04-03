@@ -22,7 +22,7 @@ int main (int argc, char * argv[])
 
     //const double ref_length = 1.0, mach_inf=1.0, angle_of_attack = 0.0, side_slip_angle = 0.0, gamma_gas = 1.4;
     const double a = 1.0 , b = 0.0, c = 1.4;
-    PHiLiP::Physics::Euler<dim, nstate, double> euler_physics = PHiLiP::Physics::Euler<dim, nstate, double>(a,c,a,b,b);
+    PHiLiP::Physics::Euler<dim, nstate, double> euler_physics = PHiLiP::Physics::Euler<dim, nstate, double>(nullptr,a,c,a,b,b);
 
     const double min = 0.0;
     const double max = 1.0;

@@ -121,6 +121,7 @@ public:
         const bool                                              diffusion,
         std::shared_ptr<ManufacturedSolutionFunction<dim,real>> manufactured_solution_function): 
             Physics::ConvectionDiffusion<dim,nstate,real>::ConvectionDiffusion(
+                this->all_parameters,
                 convection, 
                 diffusion,
                 default_diffusion_tensor(),

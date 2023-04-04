@@ -21,10 +21,10 @@ PhysicsBase<dim,nstate,real>::PhysicsBase(
     std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function_input)
     : has_nonzero_diffusion(has_nonzero_diffusion_input)
     , has_nonzero_physical_source(has_nonzero_physical_source_input)
-    , manufactured_solution_function(manufactured_solution_function_input)
-    , pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD)==0)
     , all_parameters(parameters_input)
     , non_physical_behavior_type(all_parameters->non_physical_behavior_type)
+    , manufactured_solution_function(manufactured_solution_function_input)
+    , pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD)==0)
 {
     // if provided with a null ptr, give it the default manufactured solution
     // currently only necessary for the unit test

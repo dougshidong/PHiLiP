@@ -91,5 +91,19 @@ void print_usage_message (dealii::ParameterHandler &prm)
     if (pcout.is_active()) prm.print_parameters (pcout.get_stream(), dealii::ParameterHandler::Text);
 }
 
+unsigned int get_number_of_values_in_string(const std::string string_of_values)
+{
+    std::string line = string_of_values;
+    unsigned int count = 0;
+    std::string::size_type sz1;
+    while(line!="" && line!=" ") {
+        count += 1;
+        std::stod(line,&sz1);
+        line = line.substr(sz1);
+        sz1 = 0;
+    }
+    return count;
+}
+
 } // Parameters namespace
 } // PHiLiP namespace

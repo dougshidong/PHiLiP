@@ -15,6 +15,7 @@ RungeKuttaODESolver<dim,real,n_rk_stages, MeshType>::RungeKuttaODESolver(std::sh
 template <int dim, typename real, int n_rk_stages, typename MeshType> 
 void RungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::step_in_time (real dt, const bool pseudotime)
 {  
+    this->original_time_step = dt;
     this->solution_update = this->dg->solution; //storing u_n
 
     //calculating stages **Note that rk_stage[i] stores the RHS at a partial time-step (not solution u)
@@ -83,6 +84,7 @@ void RungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::step_in_time (real dt, 
     }
 
     modify_time_step(dt);
+    this->modified_time_step = dt;
 
     //assemble solution from stages
     for (int i = 0; i < n_rk_stages; ++i){

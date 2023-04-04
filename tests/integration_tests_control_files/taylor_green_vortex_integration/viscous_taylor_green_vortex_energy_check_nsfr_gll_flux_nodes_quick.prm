@@ -3,18 +3,23 @@
 # Number of dimensions
 
 set dimension = 3
-set test_type = homogeneous_isotropic_turbulence_initialization_check
+set test_type = taylor_green_vortex_energy_check
 set pde_type = navier_stokes
 
 # DG formulation
 set use_weak_form = false
+set use_split_form = true
+set flux_reconstruction = cDG
 set flux_nodes_type = GLL
+set use_inverse_mass_on_the_fly = true
+set use_periodic_bc = true
 
 # Note: this was added to turn off check_same_coords() -- has no other function when dim!=1
 set use_periodic_bc = true
 
 # numerical fluxes
-set conv_num_flux = roe
+set two_point_num_flux_type = IR
+set conv_num_flux = two_point_flux
 set diss_num_flux = symm_internal_penalty
 
 # ODE solver
@@ -39,26 +44,18 @@ subsection navier_stokes
 end
 
 subsection flow_solver
-  set flow_case_type = decaying_homogeneous_isotropic_turbulence
-  set poly_degree = 5
+  set flow_case_type = taylor_green_vortex
+  set poly_degree = 2
   set final_time = 1.2566370614400000e-02
   set courant_friedrichs_lewy_number = 0.003
-  set unsteady_data_table_filename = dhit_init_check_serial
-  set output_restart_files = false
+  set unsteady_data_table_filename = turbulent_quantities_for_nsfr_cdg_gll_energy_check_quick
   subsection grid
     set grid_left_bound = 0.0
     set grid_right_bound = 6.28318530717958623200
     set number_of_grid_elements_per_dimension = 4
   end
   subsection taylor_green_vortex
-    set expected_kinetic_energy_at_final_time = 1.2073987162646824e-01
-    set expected_theoretical_dissipation_rate_at_final_time = 4.5422264559968770e-04
-  end
-  set apply_initial_condition_method = read_values_from_file_and_project
-  set input_flow_setup_filename_prefix = setup_files/1proc/setup_philip
-  subsection output_velocity_field
-    set output_velocity_field_at_fixed_times = true
-    set output_velocity_field_times_string = 0.0
-    set output_vorticity_magnitude_field_in_addition_to_velocity = true
+    set expected_kinetic_energy_at_final_time = 1.2071670877794241e-01
+    set expected_theoretical_dissipation_rate_at_final_time = 4.5392245903930087e-04
   end
 end

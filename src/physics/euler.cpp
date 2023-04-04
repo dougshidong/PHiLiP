@@ -153,19 +153,11 @@ std::array<real,nstate> Euler<dim,nstate,real>
 
 template <int dim, int nstate, typename real>
 template<typename real2>
-void Euler<dim,nstate,real>::check_positive_density(real2 &density) const {
-    if (density < 0.0) {
-        this->pcout << "WARNING: Negative density encountered! Setting density as BIG_NUMBER." << std::endl;
-        density = BIG_NUMBER;
-    }
-}
-
-template <int dim, int nstate, typename real>
-template<typename real2>
-void Euler<dim,nstate,real>::check_positive_pressure(real2 &pressure) const {
-    if (pressure < 0.0) {
-        this->pcout << "WARNING: Negative pressure encountered! Setting pressure as BIG_NUMBER." << std::endl;
-        pressure = BIG_NUMBER;
+void Euler<dim,nstate,real>::check_positive_quantity(real2 &qty) const {
+    if (qty < 0.0) {
+        // Refer to base class for non-physical results handling
+        // Compiler complains unless explicitly specify "template"
+        qty = this->template handle_non_physical_result<real2>();
     }
 }
 
@@ -182,8 +174,8 @@ inline std::array<real2,nstate> Euler<dim,nstate,real>
 
     //if (density < 0.0) density = density_inf;
     //if (pressure < 0.0) pressure = pressure_inf;
-    check_positive_density<real2>(density);
-    check_positive_pressure<real2>(pressure);
+    check_positive_quantity<real2>(density);
+    check_positive_quantity<real2>(pressure);
 
     primitive_soln[0] = density;
     for (int d=0; d<dim; ++d) {
@@ -288,7 +280,7 @@ inline real Euler<dim,nstate,real>
 ::compute_entropy_measure ( const std::array<real,nstate> &conservative_soln ) const
 {
     real density = conservative_soln[0];
-    //if (density < 0.0) density = density_inf;//BIG_NUMBER;
+    check_positive_quantity<real>(density);
     const real pressure = compute_pressure<real>(conservative_soln);
     return compute_entropy_measure(density, pressure);
 }
@@ -297,12 +289,7 @@ template <int dim, int nstate, typename real>
 inline real Euler<dim,nstate,real>
 ::compute_entropy_measure ( const real density, const real pressure ) const
 {
-    if (density < 0.0) {
-        this->pcout << "WARNING: Negative density encountered! Returning BIG_NUMBER as entropy measure." << std::endl;
-        return BIG_NUMBER;
-    } else {
-        return pressure*pow(density,-gam);
-    }
+    return pressure*pow(density,-gam);
 }
 
 
@@ -379,8 +366,7 @@ inline real2 Euler<dim,nstate,real>
     const real2 vel2 = compute_velocity_squared<real2>(vel);
     real2 pressure = gamm1*(tot_energy - 0.5*density*vel2);
     
-    check_positive_pressure<real2>(pressure);
-    //assert(pressure>0.0);
+    check_positive_quantity<real2>(pressure);
     
     return pressure;
 }
@@ -392,14 +378,8 @@ inline real2 Euler<dim,nstate,real>
 :: compute_entropy (const real2 density, const real2 pressure) const
 {
     real2 entropy = pressure * pow(density, -gam);
-    if (entropy > 0){
-        entropy = log( entropy );
-    } else {
-        entropy = BIG_NUMBER;
-        this->pcout << "WARNING: Entropy is not defined because " << std::endl 
-                    << "    pressure * pow(density, -gam) < 0 ." << std::endl
-                    << "    Setting entropy = BIG_NUMBER." << std::endl;
-    }
+    check_positive_quantity<real2>(entropy);
+    entropy = log(entropy);
     return entropy;
 
 }
@@ -409,7 +389,7 @@ inline real Euler<dim,nstate,real>
 ::compute_sound ( const std::array<real,nstate> &conservative_soln ) const
 {
     real density = conservative_soln[0];
-    check_positive_density<real>(density);
+    check_positive_quantity<real>(density);
     const real pressure = compute_pressure<real>(conservative_soln);
     const real sound = sqrt(pressure*gam/density);
     return sound;
@@ -1479,28 +1459,17 @@ template class Euler < PHILIP_DIM, PHILIP_DIM+2, RadFadType >;
 //==============================================================================
 // -> Templated member functions: // could be automated later on using Boost MPL
 //------------------------------------------------------------------------------
-// -- check_positive_density
-template void Euler < PHILIP_DIM, PHILIP_DIM+2, double     >::check_positive_density< double     >(double     &density) const;
-template void Euler < PHILIP_DIM, PHILIP_DIM+2, FadType    >::check_positive_density< FadType    >(FadType    &density) const;
-template void Euler < PHILIP_DIM, PHILIP_DIM+2, RadType    >::check_positive_density< RadType    >(RadType    &density) const;
-template void Euler < PHILIP_DIM, PHILIP_DIM+2, FadFadType >::check_positive_density< FadFadType >(FadFadType &density) const;
-template void Euler < PHILIP_DIM, PHILIP_DIM+2, RadFadType >::check_positive_density< RadFadType >(RadFadType &density) const;
+// -- check_positive_quantity
+template void Euler < PHILIP_DIM, PHILIP_DIM+2, double     >::check_positive_quantity< double     >(double     &density) const;
+template void Euler < PHILIP_DIM, PHILIP_DIM+2, FadType    >::check_positive_quantity< FadType    >(FadType    &density) const;
+template void Euler < PHILIP_DIM, PHILIP_DIM+2, RadType    >::check_positive_quantity< RadType    >(RadType    &density) const;
+template void Euler < PHILIP_DIM, PHILIP_DIM+2, FadFadType >::check_positive_quantity< FadFadType >(FadFadType &density) const;
+template void Euler < PHILIP_DIM, PHILIP_DIM+2, RadFadType >::check_positive_quantity< RadFadType >(RadFadType &density) const;
 // -- -- instantiate all the real types with real2 = FadType for automatic differentiation in NavierStokes::dissipative_flux_directional_jacobian()
-template void Euler < PHILIP_DIM, PHILIP_DIM+2, double     >::check_positive_density< FadType    >(FadType    &density) const;
-template void Euler < PHILIP_DIM, PHILIP_DIM+2, RadType    >::check_positive_density< FadType    >(FadType    &density) const;
-template void Euler < PHILIP_DIM, PHILIP_DIM+2, FadFadType >::check_positive_density< FadType    >(FadType    &density) const;
-template void Euler < PHILIP_DIM, PHILIP_DIM+2, RadFadType >::check_positive_density< FadType    >(FadType    &density) const;
-// -- check_positive_pressure
-template void Euler < PHILIP_DIM, PHILIP_DIM+2, double     >::check_positive_pressure< double     >(double     &pressure) const;
-template void Euler < PHILIP_DIM, PHILIP_DIM+2, FadType    >::check_positive_pressure< FadType    >(FadType    &pressure) const;
-template void Euler < PHILIP_DIM, PHILIP_DIM+2, RadType    >::check_positive_pressure< RadType    >(RadType    &pressure) const;
-template void Euler < PHILIP_DIM, PHILIP_DIM+2, FadFadType >::check_positive_pressure< FadFadType >(FadFadType &pressure) const;
-template void Euler < PHILIP_DIM, PHILIP_DIM+2, RadFadType >::check_positive_pressure< RadFadType >(RadFadType &pressure) const;
-// -- -- instantiate all the real types with real2 = FadType for automatic differentiation in NavierStokes::dissipative_flux_directional_jacobian()
-template void Euler < PHILIP_DIM, PHILIP_DIM+2, double     >::check_positive_pressure< FadType    >(FadType    &pressure) const;
-template void Euler < PHILIP_DIM, PHILIP_DIM+2, RadType    >::check_positive_pressure< FadType    >(FadType    &pressure) const;
-template void Euler < PHILIP_DIM, PHILIP_DIM+2, FadFadType >::check_positive_pressure< FadType    >(FadType    &pressure) const;
-template void Euler < PHILIP_DIM, PHILIP_DIM+2, RadFadType >::check_positive_pressure< FadType    >(FadType    &pressure) const;
+template void Euler < PHILIP_DIM, PHILIP_DIM+2, double     >::check_positive_quantity< FadType    >(FadType    &density) const;
+template void Euler < PHILIP_DIM, PHILIP_DIM+2, RadType    >::check_positive_quantity< FadType    >(FadType    &density) const;
+template void Euler < PHILIP_DIM, PHILIP_DIM+2, FadFadType >::check_positive_quantity< FadType    >(FadType    &density) const;
+template void Euler < PHILIP_DIM, PHILIP_DIM+2, RadFadType >::check_positive_quantity< FadType    >(FadType    &density) const;
 // -- compute_pressure()
 template double     Euler < PHILIP_DIM, PHILIP_DIM+2, double     >::compute_pressure< double     >(const std::array<double,    PHILIP_DIM+2> &conservative_soln) const;
 template FadType    Euler < PHILIP_DIM, PHILIP_DIM+2, FadType    >::compute_pressure< FadType    >(const std::array<FadType,   PHILIP_DIM+2> &conservative_soln) const;

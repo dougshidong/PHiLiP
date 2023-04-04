@@ -16,8 +16,6 @@ public:
     double angle_of_attack;
     /// Input file provides in degrees, but the value stored here is in radians
     double side_slip_angle;
-    /// Toggle warnings upon nonphysical values (negative or nan).
-    bool do_output_nan_warnings;
 
     EulerParam (); ///< Constructor
 

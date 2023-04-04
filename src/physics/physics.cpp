@@ -24,6 +24,7 @@ PhysicsBase<dim,nstate,real>::PhysicsBase(
     , manufactured_solution_function(manufactured_solution_function_input)
     , pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD)==0)
     , all_parameters(parameters_input)
+    , non_physical_behavior_type(all_parameters->non_physical_behavior_type)
 {
     // if provided with a null ptr, give it the default manufactured solution
     // currently only necessary for the unit test
@@ -192,6 +193,24 @@ dealii::UpdateFlags PhysicsBase<dim,nstate,real>
     return dealii::update_values;
 }
 
+template <int dim, int nstate, typename real>
+template<typename real2>
+real2 PhysicsBase<dim,nstate,real>
+::handle_non_physical_result() const
+{
+    if (this->non_physical_behavior_type == NonPhysicalBehaviorEnum::abort_run) {
+        this->pcout << "ERROR: Non-physical result has been detected. Aborting... " << std::endl << std::flush;
+        std::abort();
+    } else if (this->non_physical_behavior_type == NonPhysicalBehaviorEnum::print_warning) {
+        this->pcout << "WARNING: Non-physical result has been detected at a node." << std::endl;
+    } else if (this->non_physical_behavior_type == NonPhysicalBehaviorEnum::do_nothing) {
+        // do nothing -- assume that the test or iterative solver can handle this.
+    }
+        
+    const real2 BIG_NUMBER = 1e100;
+    return BIG_NUMBER;
+}
+
 template class PhysicsBase < PHILIP_DIM, 1, double >;
 template class PhysicsBase < PHILIP_DIM, 2, double >;
 template class PhysicsBase < PHILIP_DIM, 3, double >;
@@ -231,6 +250,82 @@ template class PhysicsBase < PHILIP_DIM, 4, RadFadType >;
 template class PhysicsBase < PHILIP_DIM, 5, RadFadType >;
 template class PhysicsBase < PHILIP_DIM, 6, RadFadType >;
 template class PhysicsBase < PHILIP_DIM, 8, RadFadType >;
+
+//==============================================================================
+// -> Templated member functions: // could be automated later on using Boost MPL
+//------------------------------------------------------------------------------
+// -- handle_non_physical_result
+template double PhysicsBase < PHILIP_DIM, 1, double >::handle_non_physical_result<double>() const;
+template double PhysicsBase < PHILIP_DIM, 2, double >::handle_non_physical_result<double>() const;
+template double PhysicsBase < PHILIP_DIM, 3, double >::handle_non_physical_result<double>() const;
+template double PhysicsBase < PHILIP_DIM, 4, double >::handle_non_physical_result<double>() const;
+template double PhysicsBase < PHILIP_DIM, 5, double >::handle_non_physical_result<double>() const;
+template double PhysicsBase < PHILIP_DIM, 6, double >::handle_non_physical_result<double>() const;
+template double PhysicsBase < PHILIP_DIM, 8, double >::handle_non_physical_result<double>() const;
+
+template FadType PhysicsBase < PHILIP_DIM, 1, FadType >::handle_non_physical_result<FadType>() const;
+template FadType PhysicsBase < PHILIP_DIM, 2, FadType >::handle_non_physical_result<FadType>() const;
+template FadType PhysicsBase < PHILIP_DIM, 3, FadType >::handle_non_physical_result<FadType>() const;
+template FadType PhysicsBase < PHILIP_DIM, 4, FadType >::handle_non_physical_result<FadType>() const;
+template FadType PhysicsBase < PHILIP_DIM, 5, FadType >::handle_non_physical_result<FadType>() const;
+template FadType PhysicsBase < PHILIP_DIM, 6, FadType >::handle_non_physical_result<FadType>() const;
+template FadType PhysicsBase < PHILIP_DIM, 8, FadType >::handle_non_physical_result<FadType>() const;
+
+template RadType PhysicsBase < PHILIP_DIM, 1, RadType >::handle_non_physical_result<RadType>() const;
+template RadType PhysicsBase < PHILIP_DIM, 2, RadType >::handle_non_physical_result<RadType>() const;
+template RadType PhysicsBase < PHILIP_DIM, 3, RadType >::handle_non_physical_result<RadType>() const;
+template RadType PhysicsBase < PHILIP_DIM, 4, RadType >::handle_non_physical_result<RadType>() const;
+template RadType PhysicsBase < PHILIP_DIM, 5, RadType >::handle_non_physical_result<RadType>() const;
+template RadType PhysicsBase < PHILIP_DIM, 6, RadType >::handle_non_physical_result<RadType>() const;
+template RadType PhysicsBase < PHILIP_DIM, 8, RadType >::handle_non_physical_result<RadType>() const;
+
+template FadFadType PhysicsBase < PHILIP_DIM, 1, FadFadType >::handle_non_physical_result<FadFadType>() const;
+template FadFadType PhysicsBase < PHILIP_DIM, 2, FadFadType >::handle_non_physical_result<FadFadType>() const;
+template FadFadType PhysicsBase < PHILIP_DIM, 3, FadFadType >::handle_non_physical_result<FadFadType>() const;
+template FadFadType PhysicsBase < PHILIP_DIM, 4, FadFadType >::handle_non_physical_result<FadFadType>() const;
+template FadFadType PhysicsBase < PHILIP_DIM, 5, FadFadType >::handle_non_physical_result<FadFadType>() const;
+template FadFadType PhysicsBase < PHILIP_DIM, 6, FadFadType >::handle_non_physical_result<FadFadType>() const;
+template FadFadType PhysicsBase < PHILIP_DIM, 8, FadFadType >::handle_non_physical_result<FadFadType>() const;
+
+template RadFadType PhysicsBase < PHILIP_DIM, 1, RadFadType >::handle_non_physical_result<RadFadType>() const;
+template RadFadType PhysicsBase < PHILIP_DIM, 2, RadFadType >::handle_non_physical_result<RadFadType>() const;
+template RadFadType PhysicsBase < PHILIP_DIM, 3, RadFadType >::handle_non_physical_result<RadFadType>() const;
+template RadFadType PhysicsBase < PHILIP_DIM, 4, RadFadType >::handle_non_physical_result<RadFadType>() const;
+template RadFadType PhysicsBase < PHILIP_DIM, 5, RadFadType >::handle_non_physical_result<RadFadType>() const;
+template RadFadType PhysicsBase < PHILIP_DIM, 6, RadFadType >::handle_non_physical_result<RadFadType>() const;
+template RadFadType PhysicsBase < PHILIP_DIM, 8, RadFadType >::handle_non_physical_result<RadFadType>() const;
+ // -- -- instantiate all the real types with real2 = FadType for automatic differentiation in NavierStokes::dissipative_flux_directional_jacobian() 
+template FadType PhysicsBase < PHILIP_DIM, 1, double >::handle_non_physical_result<FadType>() const;
+template FadType PhysicsBase < PHILIP_DIM, 2, double >::handle_non_physical_result<FadType>() const;
+template FadType PhysicsBase < PHILIP_DIM, 3, double >::handle_non_physical_result<FadType>() const;
+template FadType PhysicsBase < PHILIP_DIM, 4, double >::handle_non_physical_result<FadType>() const;
+template FadType PhysicsBase < PHILIP_DIM, 5, double >::handle_non_physical_result<FadType>() const;
+template FadType PhysicsBase < PHILIP_DIM, 6, double >::handle_non_physical_result<FadType>() const;
+template FadType PhysicsBase < PHILIP_DIM, 8, double >::handle_non_physical_result<FadType>() const;
+
+template FadType PhysicsBase < PHILIP_DIM, 1, RadType >::handle_non_physical_result<FadType>() const;
+template FadType PhysicsBase < PHILIP_DIM, 2, RadType >::handle_non_physical_result<FadType>() const;
+template FadType PhysicsBase < PHILIP_DIM, 3, RadType >::handle_non_physical_result<FadType>() const;
+template FadType PhysicsBase < PHILIP_DIM, 4, RadType >::handle_non_physical_result<FadType>() const;
+template FadType PhysicsBase < PHILIP_DIM, 5, RadType >::handle_non_physical_result<FadType>() const;
+template FadType PhysicsBase < PHILIP_DIM, 6, RadType >::handle_non_physical_result<FadType>() const;
+template FadType PhysicsBase < PHILIP_DIM, 8, RadType >::handle_non_physical_result<FadType>() const;
+
+template FadType PhysicsBase < PHILIP_DIM, 1, FadFadType >::handle_non_physical_result<FadType>() const;
+template FadType PhysicsBase < PHILIP_DIM, 2, FadFadType >::handle_non_physical_result<FadType>() const;
+template FadType PhysicsBase < PHILIP_DIM, 3, FadFadType >::handle_non_physical_result<FadType>() const;
+template FadType PhysicsBase < PHILIP_DIM, 4, FadFadType >::handle_non_physical_result<FadType>() const;
+template FadType PhysicsBase < PHILIP_DIM, 5, FadFadType >::handle_non_physical_result<FadType>() const;
+template FadType PhysicsBase < PHILIP_DIM, 6, FadFadType >::handle_non_physical_result<FadType>() const;
+template FadType PhysicsBase < PHILIP_DIM, 8, FadFadType >::handle_non_physical_result<FadType>() const;
+
+template FadType PhysicsBase < PHILIP_DIM, 1, RadFadType >::handle_non_physical_result<FadType>() const;
+template FadType PhysicsBase < PHILIP_DIM, 2, RadFadType >::handle_non_physical_result<FadType>() const;
+template FadType PhysicsBase < PHILIP_DIM, 3, RadFadType >::handle_non_physical_result<FadType>() const;
+template FadType PhysicsBase < PHILIP_DIM, 4, RadFadType >::handle_non_physical_result<FadType>() const;
+template FadType PhysicsBase < PHILIP_DIM, 5, RadFadType >::handle_non_physical_result<FadType>() const;
+template FadType PhysicsBase < PHILIP_DIM, 6, RadFadType >::handle_non_physical_result<FadType>() const;
+template FadType PhysicsBase < PHILIP_DIM, 8, RadFadType >::handle_non_physical_result<FadType>() const;
 
 } // Physics namespace
 } // PHiLiP namespace

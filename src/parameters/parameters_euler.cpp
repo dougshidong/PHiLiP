@@ -25,10 +25,6 @@ void EulerParam::declare_parameters (dealii::ParameterHandler &prm)
         prm.declare_entry("side_slip_angle", "0.0",
                           dealii::Patterns::Double(-180, 180),
                           "Side slip angle in degrees. Required for 3D");
-        prm.declare_entry("do_output_nan_warnings", "true",
-                          dealii::Patterns::Bool(),
-                          "Print warnings when density or pressure are "
-                          "negative, or when entropy is NaN.");
     }
     prm.leave_subsection();
 }
@@ -37,13 +33,12 @@ void EulerParam ::parse_parameters (dealii::ParameterHandler &prm)
 {
     prm.enter_subsection("euler");
     {
-        ref_length             = prm.get_double("reference_length");
-        mach_inf               = prm.get_double("mach_infinity");
-        gamma_gas              = prm.get_double("gamma_gas");
-        const double pi        = atan(1.0) * 4.0;
-        angle_of_attack        = prm.get_double("angle_of_attack") * pi/180.0;
-        side_slip_angle        = prm.get_double("side_slip_angle") * pi/180.0;
-        do_output_nan_warnings = prm.get_bool("do_output_nan_warnings");
+        ref_length      = prm.get_double("reference_length");
+        mach_inf        = prm.get_double("mach_infinity");
+        gamma_gas       = prm.get_double("gamma_gas");
+        const double pi = atan(1.0) * 4.0;
+        angle_of_attack = prm.get_double("angle_of_attack") * pi/180.0;
+        side_slip_angle = prm.get_double("side_slip_angle") * pi/180.0;
     }
     prm.leave_subsection();
 }

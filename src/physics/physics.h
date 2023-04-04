@@ -34,6 +34,9 @@ template <int dim, int nstate, typename real>
 class PhysicsBase
 {
 public:
+
+    using NonPhysicalBehaviorEnum = Parameters::AllParameters::NonPhysicalBehaviorEnum;
+
     /// Default constructor that will set the constants.
     PhysicsBase(
         const Parameters::AllParameters *const                    parameters_input,
@@ -173,6 +176,18 @@ public:
     /** Only update the solution at the output points.
      */
     virtual dealii::UpdateFlags post_get_needed_update_flags () const;
+
+    /// Function to handle nonphysical results
+    /** This is to be called by derived physics classes
+     *  when a nonphysical quantity is detected there.
+     *  e.g., negative density in Euler.
+     *  The behavior is determined by the value of
+     *  non_physical_behavior_type.
+     *  Returns BIG_NUMBER.
+     */
+    template<typename real2> 
+    real2 handle_non_physical_result () const;
+
     
 protected:
     /// ConditionalOStream.
@@ -188,6 +203,9 @@ protected:
 
     /// Pointer to parameters object
     const Parameters::AllParameters *const all_parameters;
+    
+    /// Determines type of nonphysical behavior
+    const NonPhysicalBehaviorEnum non_physical_behavior_type;    
 };
 } // Physics namespace
 } // PHiLiP namespace

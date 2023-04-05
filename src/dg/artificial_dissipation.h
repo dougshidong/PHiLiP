@@ -85,15 +85,13 @@ class LaplacianArtificialDissipation: public ArtificialDissipationBase <dim, nst
  
     public:
     /// Constructor of LaplacianArtificialDissipation.
-    LaplacianArtificialDissipation(): 
-    convection_diffusion_double(nullptr,false,true,this->diffusion_tensor,Parameters::ManufacturedSolutionParam::get_default_advection_vector(),1.0),
-    convection_diffusion_FadType(nullptr,false,true,this->diffusion_tensor,Parameters::ManufacturedSolutionParam::get_default_advection_vector(),1.0),
-    convection_diffusion_RadType(nullptr,false,true,this->diffusion_tensor,Parameters::ManufacturedSolutionParam::get_default_advection_vector(),1.0),
-    convection_diffusion_FadFadType(nullptr,false,true,this->diffusion_tensor,Parameters::ManufacturedSolutionParam::get_default_advection_vector(),1.0),
-    convection_diffusion_RadFadType(nullptr,false,true,this->diffusion_tensor,Parameters::ManufacturedSolutionParam::get_default_advection_vector(),1.0)
+    LaplacianArtificialDissipation(const Parameters::AllParameters *const parameters_input): 
+    convection_diffusion_double(parameters_input,false,true,this->diffusion_tensor,Parameters::ManufacturedSolutionParam::get_default_advection_vector(),1.0),
+    convection_diffusion_FadType(parameters_input,false,true,this->diffusion_tensor,Parameters::ManufacturedSolutionParam::get_default_advection_vector(),1.0),
+    convection_diffusion_RadType(parameters_input,false,true,this->diffusion_tensor,Parameters::ManufacturedSolutionParam::get_default_advection_vector(),1.0),
+    convection_diffusion_FadFadType(parameters_input,false,true,this->diffusion_tensor,Parameters::ManufacturedSolutionParam::get_default_advection_vector(),1.0),
+    convection_diffusion_RadFadType(parameters_input,false,true,this->diffusion_tensor,Parameters::ManufacturedSolutionParam::get_default_advection_vector(),1.0)
     {}
-    //ABOVE IS PROBABLY VERY DANGEROUS AND SHOULD BE CHANGED BEFORE MERGING
-    //Can I declare a default params if I don't want to pass one?
 
     /// Destructor of LaplacianArtificialDissipation
     ~LaplacianArtificialDissipation() {};

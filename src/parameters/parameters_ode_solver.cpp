@@ -103,7 +103,8 @@ void ODESolverParam::declare_parameters (dealii::ParameterHandler &prm)
                           " heun2_ex | "
                           " euler_ex | "
                           " euler_im | "
-                          " dirk_2_im"),
+                          " dirk_2_im | "
+                          " dirk_3_im"),
                           "Runge-kutta method to use. Methods with _ex are explicit, and with _im are implicit."
                           "Choices are "
                           " <rk4_ex | "
@@ -111,7 +112,8 @@ void ODESolverParam::declare_parameters (dealii::ParameterHandler &prm)
                           " heun2_ex | "
                           " euler_ex | "
                           " euler_im | "
-                          " dirk_2_im>.");
+                          " dirk_2_im | "
+                          " dirk_3_im>.");
 
     }
     prm.leave_subsection();
@@ -184,6 +186,11 @@ void ODESolverParam::parse_parameters (dealii::ParameterHandler &prm)
             runge_kutta_method = RKMethodEnum::dirk_2_im;
             n_rk_stages  = 2;
             rk_order = 2;
+        }
+        else if (rk_method_string == "dirk_3_im"){
+            runge_kutta_method = RKMethodEnum::dirk_3_im;
+            n_rk_stages  = 3;
+            rk_order = 3;
         }
 
     }

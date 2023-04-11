@@ -143,7 +143,6 @@ protected:
     void set_c() override;
 };
 
-
 /// Second-order diagonally-implicit RK
 #if PHILIP_DIM==1
 template <int dim, typename real, typename MeshType = dealii::Triangulation<dim>>
@@ -161,6 +160,40 @@ public:
     ~DIRK2Implicit() {};
     
 protected:
+    /// Setter for butcher_tableau_a
+    void set_a() override;
+
+    /// Setter for butcher_tableau_b
+    void set_b() override;
+
+    /// Setter for butcher_tableau_c
+    void set_c() override;
+};
+
+/// Third-order diagonally-implicit RK
+#if PHILIP_DIM==1
+template <int dim, typename real, typename MeshType = dealii::Triangulation<dim>>
+#else
+template <int dim, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
+#endif
+class DIRK3Implicit: public RKTableauBase <dim, real, MeshType>
+{
+public:
+    /// Constructor
+    DIRK3Implicit(const int n_rk_stages, const std::string rk_method_string_input) 
+        : RKTableauBase<dim,real,MeshType>(n_rk_stages, rk_method_string_input) { }
+
+    /// Destructor
+    ~DIRK3Implicit() {};
+    
+protected:
+
+    const double gam = 0.435866521508458999416019; ///< Constant "gamma" given by Kennedy & Carpenter
+    const double alpha = 1 - 4*gam + 2*gam*gam; ///< Constant "alpha" given by Kennedy & Carpenter
+    const double beta = -1 + 6*gam - 9*gam*gam + 3*gam*gam*gam; ///< Constant "beta" given by Kennedy & Carpenter
+    const double b2 = -3*alpha*alpha / 4.0 / beta; ///< Constant "b2" given by Kennedy & Carpenter
+    const double c2 = (2 - 9*gam + 6*gam*gam) / 3.0 / alpha; ///< Constant "c2" given by Kennedy & Carpenter
+
     /// Setter for butcher_tableau_a
     void set_a() override;
 

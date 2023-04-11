@@ -61,7 +61,8 @@ public:
         heun2_ex, ///Heun's method (second order explicit trapezoidal; SSP)
         euler_ex, ///Forward Euler
         euler_im, ///Implicit Euler
-        dirk_2_im ///Second-order diagonally-implicit RK
+        dirk_2_im, ///Second-order diagonally-implicit RK
+        dirk_3_im ///Third-order diagonally-implicit RK
     };
 
     RKMethodEnum runge_kutta_method; ///< Runge-kutta method.

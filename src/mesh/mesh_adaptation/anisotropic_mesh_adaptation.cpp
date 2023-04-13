@@ -199,6 +199,8 @@ void AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: compute_abs_hessi
 {
     VectorType solution_old = dg->solution;
     solution_old.update_ghost_values();
+    // This class is based on INRIA's work in which the exact solution is assumed to be quadratic while the numerical solution is p1.
+    // Future work could consider the (p+1)th order directional derivative from GridRefinement::ReconstructPoly.
     change_p_degree_and_interpolate_solution(2); // Interpolate to p2
     reconstruct_p2_solution();
     

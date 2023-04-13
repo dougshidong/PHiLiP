@@ -13,15 +13,15 @@ void FEValuesShapeHessian<dim> ::  reinit(const dealii::FEValues<dim,dim> &fe_va
     // Compute derivative of jacobian inverse w.r.t. physical coordinates.
     // Using equation from dealii's documentation on Mapping, https://www.dealii.org/current/doxygen/deal.II/classMapping.html.
     derivative_jacobian_inverse_wrt_phys_q = 0;
-    for(unsigned int i=0; i<dim; ++i)
+    for(unsigned int i_phys=0; i_phys<dim; ++i_phys)
     {
-        for(unsigned int j=0; j<dim; ++j)
+        for(unsigned int j_ref=0; j_ref<dim; ++j_ref)
         {
-            for(unsigned int k=0; k<dim; ++k)
+            for(unsigned int k_phys=0; k_phys<dim; ++k_phys)
             {
-                for(unsigned int n=0; n<dim; ++n)
+                for(unsigned int n_phys=0; n_phys<dim; ++n_phys)
                 {
-                    derivative_jacobian_inverse_wrt_phys_q[j][i][k] -= jacobian_pushed_forward_grad[n][i][k]*jacobian_inverse[j][n];
+                    derivative_jacobian_inverse_wrt_phys_q[j_ref][i_phys][k_phys] -= jacobian_pushed_forward_grad[n_phys][i_phys][k_phys]*jacobian_inverse[j_ref][n_phys];
                 }
             }
         }
@@ -46,15 +46,15 @@ dealii::Tensor<2,dim,double> FEValuesShapeHessian<dim> :: shape_hessian_componen
     // Computing first term: J^{-T} \varphi_{\epsilon \epsilon} J^{-1}.
     // Using (A^T*B*A)_{i,j} = a_{ki} * b_{kl} * a_{lj}
     dealii::Tensor<2,dim,double> phys_hessian_term1; // initialized to 0
-    for(unsigned int i=0; i<dim; ++i)
+    for(unsigned int i_phys=0; i_phys<dim; ++i_phys)
     {
-        for(unsigned int j=0; j<dim; ++j)
+        for(unsigned int j_phys=0; j_phys<dim; ++j_phys)
         {
-            for(unsigned int k=0; k<dim; ++k)
+            for(unsigned int k_ref=0; k_ref<dim; ++k_ref)
             {
-                for(unsigned int l=0; l<dim; ++l)
+                for(unsigned int l_ref=0; l_ref<dim; ++l_ref)
                 {
-                    phys_hessian_term1[i][j] += jacobian_inverse[k][i] * shape_hessian_ref[k][l] * jacobian_inverse[l][j];
+                    phys_hessian_term1[i_phys][j_phys] += jacobian_inverse[k_ref][i_phys] * shape_hessian_ref[k_ref][l_ref] * jacobian_inverse[l_ref][j_phys];
                 }
             }
         }
@@ -63,13 +63,13 @@ dealii::Tensor<2,dim,double> FEValuesShapeHessian<dim> :: shape_hessian_componen
     // Computing second term: \varphi_{\epsilon}^T * d/dx( J^{-1} )
     // Using v^T*E_xx (i,j)  =  v_k E_xx(k,i,j) = v_k (d^2 E_k/(dx_i dx_j), with E_xx a third order tensor and v a vector.
     dealii::Tensor<2,dim,double> phys_hessian_term2; // initilized to 0
-    for(unsigned int i=0; i<dim; ++i)
+    for(unsigned int i_phys=0; i_phys<dim; ++i_phys)
     {
-        for(unsigned int j=0; j<dim; ++j)
+        for(unsigned int j_phys=0; j_phys<dim; ++j_phys)
         {
-            for(unsigned int k=0; k<dim; ++k)
+            for(unsigned int k_ref=0; k_ref<dim; ++k_ref)
             {
-                phys_hessian_term2[i][j] += shape_grad_ref[k] * derivative_jacobian_inverse_wrt_phys_q[k][i][j];
+                phys_hessian_term2[i_phys][j_phys] += shape_grad_ref[k_ref] * derivative_jacobian_inverse_wrt_phys_q[k_ref][i_phys][j_phys];
             }
         }
     }

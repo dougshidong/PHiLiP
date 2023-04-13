@@ -22,6 +22,8 @@ end
 
 set overintegration = 0
 
+set output_face_results_vtk = true
+
 set sipg_penalty_factor = 20
 
 subsection euler

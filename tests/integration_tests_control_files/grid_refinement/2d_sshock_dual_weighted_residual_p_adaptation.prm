@@ -25,10 +25,12 @@ end
 
 subsection mesh adaptation
     set total_mesh_adaptation_cycles = 4
-    set mesh_adaptation_type = p_adaptation
-    set refine_fraction = 0.05
-    set h_coarsen_fraction = 0.0
     set use_goal_oriented_mesh_adaptation = true
+    set mesh_adaptation_type = p_adaptation
+    subsection fixed-fraction
+      set refine_fraction = 0.05
+      set h_coarsen_fraction = 0.0
+    end
 end
 
 subsection ODE solver

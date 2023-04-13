@@ -237,6 +237,11 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                               "Name of directory for writing flow field files. Current directory by default.");
         }
         prm.leave_subsection();
+
+        prm.declare_entry("end_exactly_at_final_time", "true",
+                          dealii::Patterns::Bool(),
+                          "Flag to adjust the last timestep such that the simulation "
+                          "ends exactly at final_time. True by default.");
     }
     prm.leave_subsection();
 }
@@ -340,6 +345,8 @@ void FlowSolverParam::parse_parameters(dealii::ParameterHandler &prm)
           output_flow_field_files_directory_name = prm.get("output_flow_field_files_directory_name");
         }
         prm.leave_subsection();
+
+        end_exactly_at_final_time = prm.get_bool("end_exactly_at_final_time");
     }
     prm.leave_subsection();
 }

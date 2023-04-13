@@ -37,6 +37,12 @@ Parameters::AllParameters TimeRefinementStudyReference<dim,nstate>::reinit_param
      
      parameters.ode_solver_param.initial_time_step *= pow(refine_ratio,refinement);
      
+     //For RRK, do not end at exact time because of how relaxation parameter convergence is calculatd
+     using ODESolverEnum = Parameters::ODESolverParam::ODESolverEnum;
+     if (parameters.ode_solver_param.ode_solver_type == ODESolverEnum::rrk_explicit_solver){
+        parameters.flow_solver_param.end_exactly_at_final_time = false;
+     }
+     
      return parameters;
 }
 

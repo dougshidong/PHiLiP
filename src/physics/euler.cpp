@@ -156,6 +156,8 @@ void Euler<dim,nstate,real>::check_positive_density(real2 &density) const {
     if (density < 0.0) {
         this->pcout << "WARNING: Negative density encountered! Setting density as BIG_NUMBER." << std::endl;
         density = BIG_NUMBER;
+        this->pcout << "Aborting..." << std::endl;
+        std::abort();
     }
 }
 
@@ -165,6 +167,8 @@ void Euler<dim,nstate,real>::check_positive_pressure(real2 &pressure) const {
     if (pressure < 0.0) {
         this->pcout << "WARNING: Negative pressure encountered! Setting pressure as BIG_NUMBER." << std::endl;
         pressure = BIG_NUMBER;
+        this->pcout << "Aborting..." << std::endl;
+        std::abort();
     }
 }
 
@@ -299,6 +303,8 @@ inline real Euler<dim,nstate,real>
     if (density < 0.0) {
         this->pcout << "WARNING: Negative density encountered! Returning BIG_NUMBER as entropy measure." << std::endl;
         return BIG_NUMBER;
+        this->pcout << "Aborting..." << std::endl;
+        std::abort();
     } else {
         return pressure*pow(density,-gam);
     }
@@ -398,6 +404,8 @@ inline real2 Euler<dim,nstate,real>
         this->pcout << "WARNING: Entropy is not defined because " << std::endl 
                     << "    pressure * pow(density, -gam) < 0 ." << std::endl
                     << "    Setting entropy = BIG_NUMBER." << std::endl;
+        this->pcout << "Aborting..." << std::endl;
+        std::abort();
     }
     return entropy;
 

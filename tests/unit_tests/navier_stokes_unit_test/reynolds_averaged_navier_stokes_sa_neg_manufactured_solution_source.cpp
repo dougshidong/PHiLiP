@@ -35,9 +35,14 @@ int main (int argc, char * argv[])
     //const double turbulent_prandtl_number=0.9;
     //const double temperature_inf=1.0, isothermal_wall_temperature=1.0;
     const double a = 1.0 , b = 0.0, c = 1.4, d=0.72, e=1.0e3, f=0.9; // Note: e==Re_inf --> set to small value so that viscous terms dominate
+    //default parameters
+    dealii::ParameterHandler parameter_handler;
+    PHiLiP::Parameters::AllParameters::declare_parameters (parameter_handler); // default fills options
+    PHiLiP::Parameters::AllParameters all_parameters;
+    all_parameters.parse_parameters (parameter_handler);
     using thermal_boundary_condition_enum = PHiLiP::Parameters::NavierStokesParam::ThermalBoundaryCondition;
     const thermal_boundary_condition_enum g = thermal_boundary_condition_enum::adiabatic;
-    PHiLiP::Physics::ReynoldsAveragedNavierStokes_SAneg<dim, nstate, double> rans_sa_neg_physics = PHiLiP::Physics::ReynoldsAveragedNavierStokes_SAneg<dim, nstate, double>(nullptr,a,c,a,b,b,d,e,false,1.0,f,a,a,g,manufactured_solution_function);
+    PHiLiP::Physics::ReynoldsAveragedNavierStokes_SAneg<dim, nstate, double> rans_sa_neg_physics = PHiLiP::Physics::ReynoldsAveragedNavierStokes_SAneg<dim, nstate, double>(&all_parameters,a,c,a,b,b,d,e,false,1.0,f,a,a,g,manufactured_solution_function);
     
     const double min = 0.0;
     const double max = 1.0;

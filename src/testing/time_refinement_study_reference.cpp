@@ -38,11 +38,13 @@ Parameters::AllParameters TimeRefinementStudyReference<dim,nstate>::reinit_param
 template <int dim, int nstate>
 Parameters::AllParameters TimeRefinementStudyReference<dim,nstate>::reinit_params_and_refine_timestep(int refinement) const
 {
-     PHiLiP::Parameters::AllParameters parameters = *(this->all_parameters);
+    PHiLiP::Parameters::AllParameters parameters = *(this->all_parameters);
      
-     parameters.ode_solver_param.initial_time_step *= pow(refine_ratio,refinement);
+    parameters.ode_solver_param.initial_time_step *= pow(refine_ratio,refinement);
+    
+    parameters.flow_solver_param.unsteady_data_table_filename += std::to_string(refinement);
      
-     return parameters;
+    return parameters;
 }
 
 template <int dim, int nstate>
@@ -103,10 +105,9 @@ int TimeRefinementStudyReference<dim, nstate>::run_test() const
     const double initial_time_step = this->all_parameters->ode_solver_param.initial_time_step;
     const int n_steps = round(final_time/initial_time_step);
     if (n_steps * initial_time_step != final_time){
-        pcout << "Error: final_time is not evenly divisible by initial_time_step!" << std::endl
+        pcout << "WARNING: final_time is not evenly divisible by initial_time_step!" << std::endl
               << "Remainder is " << fmod(final_time, initial_time_step)
-              << ". Modify parameters to run this test." << std::endl;
-        std::abort();
+              << ". Consider modifying parameters." << std::endl;
     }
 
     int testfail = 0;
@@ -138,6 +139,8 @@ int TimeRefinementStudyReference<dim, nstate>::run_test() const
 
         const double final_time_actual = flow_solver->ode_solver->current_time;
         pcout << "   Actual final time: " << final_time_actual << std::endl;
+        
+        const int n_timesteps= flow_solver->ode_solver->current_iteration;
 
         //check L2 error
         const double L2_error = calculate_L2_error_at_final_time_wrt_reference(
@@ -154,6 +157,7 @@ int TimeRefinementStudyReference<dim, nstate>::run_test() const
         convergence_table.set_scientific("dt", true);
         convergence_table.add_value("final_time", final_time_actual );
         convergence_table.set_precision("final_time", 16);
+        convergence_table.add_value("n_timesteps", n_timesteps);
         convergence_table.add_value("L2_error",L2_error);
         convergence_table.set_precision("L2_error", 16);
         convergence_table.evaluate_convergence_rates("L2_error", "dt", dealii::ConvergenceTable::reduction_rate_log2, 1);
@@ -166,7 +170,7 @@ int TimeRefinementStudyReference<dim, nstate>::run_test() const
         
         if(params.ode_solver_param.ode_solver_type == ODESolverEnum::rrk_explicit_solver){
             //for burgers, this is the average gamma over the runtime
-            const double gamma_aggregate_m1 = (final_time_actual / final_time_target)-1;
+            const double gamma_aggregate_m1 = final_time_actual/(n_timesteps*dt)-1;
             convergence_table.add_value("gamma_aggregate_m1", gamma_aggregate_m1);
             convergence_table.set_precision("gamma_aggregate_m1", 16);
             convergence_table.set_scientific("gamma_aggregate_m1", true);

@@ -20,6 +20,7 @@
 #include "parameters/parameters_artificial_dissipation.h"
 #include "parameters/parameters_flow_solver.h"
 #include "parameters/parameters_mesh_adaptation.h"
+#include "parameters/parameters_optimization.h"
 #include "parameters/parameters_functional.h"
 #include "parameters/parameters_time_refinement_study.h"
 
@@ -55,8 +56,10 @@ public:
     ArtificialDissipationParam artificial_dissipation_param;
     /// Contains the parameters for simulation cases (flow solver test)
     FlowSolverParam flow_solver_param;
-    /// Constains parameters for mesh adaptation
+    /// Contains parameters for mesh adaptation
     MeshAdaptationParam mesh_adaptation_param;
+    /// Contains parameters for optimization.
+    OptimizationParam optimization_param;
     /// Contains parameters for functional
     FunctionalParam functional_param;
     /// Contains the parameters for time refinement study

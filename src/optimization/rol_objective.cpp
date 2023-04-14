@@ -53,7 +53,17 @@ double ROLObjectiveSimOpt<dim,nstate>::value(
     // In that scenario, tol is the constraint norm.
     // If the flow has not converged (>1e-5 or is nan), simply return a high functional.
     // This is likely happening in the linesearch while optimizing in the reduced-space.
-    if (tol > 1e-5 || std::isnan(tol)) return 1e200;
+    double big_number = 1.0e10;
+    if (tol > 1e-5 || std::isnan(tol)) {return big_number;}
+
+    // If design variable distors the mesh, return a high value to tell the optimizer to reduce step size. 
+    const int mesh_will_be_invalid = design_parameterization->is_design_variable_valid(dXvdXp, ROL_vector_to_dealii_vector_reference(des_var_ctl));
+    if(mesh_will_be_invalid) 
+    {
+        std::cout<<"Returning big_number from ROLObjectiveSimOpt::value()."<<std::endl;
+        return big_number;
+    }
+
     update(des_var_sim, des_var_ctl);
 
     const bool compute_dIdW = false;
@@ -137,7 +147,7 @@ void ROLObjectiveSimOpt<dim,nstate>::hessVec_11(
     const auto &dealii_input = ROL_vector_to_dealii_vector_reference(input_vector);
     auto &hv = ROL_vector_to_dealii_vector_reference(output_vector);
 
-    functional.d2IdWdW->vmult(hv, dealii_input);
+    functional.d2IdWdW_vmult(hv, dealii_input);
 
     //n_vmult += 1;
 }
@@ -187,7 +197,7 @@ void ROLObjectiveSimOpt<dim,nstate>::hessVec_12(
     {
         const bool compute_dIdW = false, compute_dIdX = false, compute_d2I = true;
         functional.evaluate_functional( compute_dIdW, compute_dIdX, compute_d2I );
-        functional.d2IdWdX->vmult(dealii_output, dXvdXp_input);
+        functional.d2IdWdX_vmult(dealii_output, dXvdXp_input);
     }
 
     //n_vmult += 2;
@@ -212,7 +222,7 @@ void ROLObjectiveSimOpt<dim,nstate>::hessVec_21(
     const auto &dealii_input = ROL_vector_to_dealii_vector_reference(input_vector);
 
     auto d2IdXdW_input = functional.dg->high_order_grid->volume_nodes;
-    functional.d2IdWdX->Tvmult(d2IdXdW_input, dealii_input);
+    functional.d2IdWdX_Tvmult(d2IdXdW_input, dealii_input);
 
     // auto d2IdXvsdW_input = functional.dg->high_order_grid->volume_nodes;
     // {
@@ -279,7 +289,7 @@ void ROLObjectiveSimOpt<dim,nstate>::hessVec_22(
     {
         const bool compute_dIdW = false, compute_dIdX = false, compute_d2I = true;
         functional.evaluate_functional( compute_dIdW, compute_dIdX, compute_d2I );
-        functional.d2IdXdX->vmult(d2IdXdXp_input, dXvdXp_input);
+        functional.d2IdXdX_vmult(d2IdXdXp_input, dXvdXp_input);
     }
 
     //auto d2IdXvsdXp_input = functional.dg->high_order_grid->volume_nodes;

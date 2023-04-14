@@ -100,6 +100,13 @@ void FlowConstraints<dim>
     double& tol
     )
 {
+    // If design variable distors the mesh, return a high value to tell optimizer to reduce step size. 
+    const int mesh_will_be_invalid = design_parameterization->is_design_variable_valid(dXvdXp, ROL_vector_to_dealii_vector_reference(des_var_ctl));
+    if(mesh_will_be_invalid) 
+    {
+        std::cout<<"Mesh is invalid. Returning without solving the flow."<<std::endl;
+        return;
+    }
 
     update_2(des_var_ctl);
 
@@ -125,13 +132,25 @@ void FlowConstraints<dim>
     double &/*tol*/
     )
 {
-
-    update_1(des_var_sim);
-    update_2(des_var_ctl);
-
-    dg->assemble_residual();
     auto &constraint = ROL_vector_to_dealii_vector_reference(constraint_values);
-    constraint = dg->right_hand_side;
+    
+    double big_number = 1.0e10;
+    // If design variable distorts the mesh, return a high value to tell optimizer to reduce step size. 
+    const int mesh_will_be_invalid = design_parameterization->is_design_variable_valid(dXvdXp, ROL_vector_to_dealii_vector_reference(des_var_ctl));
+    if(mesh_will_be_invalid)
+    {
+        std::cout<<"Returning big_number from FlowConstraints::value()."<<std::endl;
+        constraint = 0;
+        constraint.add(big_number);
+        constraint.update_ghost_values();
+    }
+    else
+    {
+        update_1(des_var_sim);
+        update_2(des_var_ctl);
+        dg->assemble_residual();
+        constraint = dg->right_hand_side;
+    }
 }
     
 template<int dim>
@@ -840,6 +859,12 @@ void FlowConstraints<dim>
 //     const ROL::Vector<double> &b1_ctl = *(b1_simctl.get_2());
 // }
 
+template<int dim>
+void FlowConstraints<dim>
+::output_results_vtk (const unsigned int output_number) const
+{
+    dg->output_results_vtk(output_number);
+}
 template class FlowConstraints<PHILIP_DIM>;
 
 } // PHiLiP namespace

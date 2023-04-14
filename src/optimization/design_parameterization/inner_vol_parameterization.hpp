@@ -36,6 +36,9 @@ public:
     /// Returns the number of design variables (i.e. no. of inner volume nodes).
     unsigned int get_number_of_design_variables() const override;
     
+    /// Checks if the updated design variable doesn't distort the mesh (which is possible when backtracking with high initial step length). Returns 0 if everything is good.
+    int is_design_variable_valid(const MatrixType &dXv_dXp, const VectorType &design_var) const override;
+    
     /// Computes inner_vol_range IndexSet on each processor, along with n_inner_nodes and inner_vol_index_to_vol_index. 
     /** Called by the constructor of the class. These variables are expected to be constant throughtout the optimization for now (as no new nodes are being added).
      */

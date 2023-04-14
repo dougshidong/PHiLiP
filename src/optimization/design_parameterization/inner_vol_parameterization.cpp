@@ -142,6 +142,7 @@ bool InnerVolParameterization<dim> ::update_mesh_from_design_variables(
 
     current_design_var = design_var;
     dXv_dXp.vmult_add(this->high_order_grid->volume_nodes, change_in_des_var); // Xv = Xv + dXv_dXp*(Xp,new - Xp); Gives Xv for surface nodes and Xp,new for inner vol nodes. 
+    this->high_order_grid->volume_nodes.update_ghost_values();
     mesh_updated = true;
     return mesh_updated;
 }
@@ -150,6 +151,46 @@ template<int dim>
 unsigned int InnerVolParameterization<dim> :: get_number_of_design_variables() const
 {
     return n_inner_nodes;
+}
+
+template<int dim>
+int InnerVolParameterization<dim> :: is_design_variable_valid(
+    const MatrixType &dXv_dXp, 
+    const VectorType &design_var) const
+{
+    this->pcout<<"Checking if mesh is valid before updating variables..."<<std::endl;
+    VectorType vol_nodes_from_design_var = this->high_order_grid->volume_nodes;
+    VectorType change_in_des_var = design_var;
+    change_in_des_var -= current_design_var;
+    change_in_des_var.update_ghost_values();
+
+    dXv_dXp.vmult_add(vol_nodes_from_design_var, change_in_des_var); // Xv = Xv + dXv_dXp*(Xp,new - Xp); Gives Xv for surface nodes and Xp,new for inner vol nodes. 
+    vol_nodes_from_design_var.update_ghost_values();
+    
+    int mesh_error_this_processor = 0;
+    const dealii::FESystem<dim,dim> &fe_metric = this->high_order_grid->fe_system;
+    const unsigned int n_dofs_per_cell = fe_metric.n_dofs_per_cell();
+    const std::vector< dealii::Point<dim> > &ref_points = fe_metric.get_unit_support_points();
+    for (const auto &cell : this->high_order_grid->dof_handler_grid.active_cell_iterators()) 
+    {
+        if (! cell->is_locally_owned()) {continue;}
+
+        const std::vector<double> jac_det = this->high_order_grid->evaluate_jacobian_at_points(vol_nodes_from_design_var, cell, ref_points);
+        for (unsigned int i=0; i<n_dofs_per_cell; ++i) 
+        {
+            if(jac_det[i] < 1.0e-12)
+            {
+                std::cout<<"Cell is distorted"<<std::endl;
+                ++mesh_error_this_processor;
+                break;
+            }
+        }
+
+        if(mesh_error_this_processor > 0) {break;}
+    }
+
+    const int mesh_error_mpi = dealii::Utilities::MPI::sum(mesh_error_this_processor, this->mpi_communicator);
+    return mesh_error_mpi;
 }
 
 template class InnerVolParameterization<PHILIP_DIM>;

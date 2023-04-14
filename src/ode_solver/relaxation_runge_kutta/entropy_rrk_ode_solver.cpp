@@ -29,8 +29,6 @@ void EntropyRRKODESolver<dim,real,n_rk_stages,MeshType>::compute_stored_quantiti
 template <int dim, typename real, int n_rk_stages, typename MeshType>
 real EntropyRRKODESolver<dim,real,n_rk_stages,MeshType>::compute_relaxation_parameter(real &dt) const
 {
-    // TEMP : Using variable names per Ranocha paper
-
     // Console output is based on linearsolverparam
     const bool do_output = (this->dg->all_parameters->linear_solver_param.linear_solver_output == Parameters::OutputEnum::verbose); 
 
@@ -90,7 +88,6 @@ real EntropyRRKODESolver<dim,real,n_rk_stages,MeshType>::compute_relaxation_para
             gamma_k = gamma_kp1;
             r_gamma_km1 = r_gamma_k;
             r_gamma_k = compute_root_function(gamma_k, u_n, step_direction, num_entropy_n, entropy_change_est);
-            //residual = abs(abs(r_gamma_km1) - abs(r_gamma_k));
             
             //output
             if (do_output) {
@@ -129,8 +126,9 @@ real EntropyRRKODESolver<dim,real,n_rk_stages,MeshType>::compute_relaxation_para
 
         while ((residual > conv_tol) && (iter_counter < iter_limit)){
             if (root_l_limit * root_u_limit > 0){
-                this->pcout << "Bisection solver: No root in the interval. Aborting..." << std::endl;
-                std::abort();
+                this->pcout << "Bisection solver: No root in the interval. Increasing interval size..." << std::endl;
+                l_limit -= 0.1;
+                u_limit += 0.1;
             }
 
             gamma_kp1 = 0.5 * (l_limit + u_limit);
@@ -158,6 +156,11 @@ real EntropyRRKODESolver<dim,real,n_rk_stages,MeshType>::compute_relaxation_para
         return -1;
     } else {
         if (do_output) this->pcout << "Convergence reached!" << std::endl;
+        dealii::LinearAlgebra::distributed::Vector<double> temp = u_n;
+        temp.add(gamma_kp1, step_direction);
+        if (do_output) this->pcout << "    Estimate entropy change: " << entropy_change_est
+                                   << "    Actual entropy change:   " << compute_numerical_entropy(u_n) - compute_numerical_entropy(temp)
+                                   << std::endl;
         return gamma_kp1;
     }
 }

@@ -47,6 +47,8 @@ class Functional
 {
     using FadType = Sacado::Fad::DFad<real>; ///< Sacado AD type for first derivatives.
     using FadFadType = Sacado::Fad::DFad<FadType>; ///< Sacado AD type that allows 2nd derivatives.
+   
+    using VectorType = dealii::LinearAlgebra::distributed::Vector<real>; ///< Parallel distributed vector 
 
 public:
     /// Smart pointer to DGBase
@@ -115,6 +117,15 @@ public:
         DGBase<dim,real,MeshType> &dg, 
         const PHiLiP::Physics::PhysicsBase<dim,nstate,real> &physics,
         const double stepsize);
+
+    /// Computes \f[ out_vector = d2IdWdW*in_vector \f]. 
+    virtual void d2IdWdW_vmult(VectorType &out_vector, const VectorType &in_vector) const;
+    /// Computes \f[ out_vector = d2IdWdX*in_vector \f]. 
+    virtual void d2IdWdX_vmult(VectorType &out_vector, const VectorType &in_vector) const;
+    /// Computes \f[ out_vector = d2IdWdX^T*in_vector \f]. 
+    virtual void d2IdWdX_Tvmult(VectorType &out_vector, const VectorType &in_vector) const;
+    /// Computes \f[ out_vector = d2IdXdX*in_vector \f]. 
+    virtual void d2IdXdX_vmult(VectorType &out_vector, const VectorType &in_vector) const;
 
     /// Store the functional value from the last time evaluate_functional() was called.
     real current_functional_value;

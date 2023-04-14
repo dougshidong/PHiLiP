@@ -33,5 +33,13 @@ bool BaseParameterization<dim> :: has_design_variable_been_updated(
     return is_design_variable_updated;
 }
 
+template<int dim>
+int BaseParameterization<dim> :: is_design_variable_valid(
+    const MatrixType & /*dXv_dXp*/, 
+    const VectorType & /*design_var*/) const
+{
+    return 0;
+}
+
 template class BaseParameterization<PHILIP_DIM>;
 } // PHiLiP namespace

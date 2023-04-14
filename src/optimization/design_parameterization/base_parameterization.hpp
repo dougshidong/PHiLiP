@@ -39,6 +39,9 @@ public:
     /// Checks if the design variable has changed.
     bool has_design_variable_been_updated(const VectorType &current_design_var, const VectorType &updated_design_var) const;
 
+    /// Checks if the updated design variable doesn't distort the mesh (which is possible when backtracking with high initial step length). Returns 0 if everything is good.
+    virtual int is_design_variable_valid(const MatrixType &dXv_dXp, const VectorType &design_var) const;
+
     /// Pointer to high order grid
     std::shared_ptr<HighOrderGrid<dim,double>> high_order_grid;
     

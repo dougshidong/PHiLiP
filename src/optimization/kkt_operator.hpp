@@ -27,6 +27,8 @@ private:
 
     /// Used to perform the Lagrangian Hessian in two steps.
     const ROL::Ptr<ROL::Vector<Real>> temp_design_variables_size_vector_;
+    /// Regularization parameter
+    const Real regularization_parameter;
 
 public:
     /// Constructor.
@@ -34,12 +36,14 @@ public:
         const ROL::Ptr<ROL::Objective<Real>> objective,
         const ROL::Ptr<ROL::Constraint<Real>> equal_constraints,
         const ROL::Ptr<const ROL::Vector<Real>> design_variables,
-        const ROL::Ptr<const ROL::Vector<Real>> lagrange_mult)
+        const ROL::Ptr<const ROL::Vector<Real>> lagrange_mult,
+        const Real _regularization_parameter = 0.0)
         : objective_(objective)
         , equal_constraints_(equal_constraints)
         , design_variables_(design_variables)
         , lagrange_mult_(lagrange_mult)
         , temp_design_variables_size_vector_(design_variables->clone())
+        , regularization_parameter(_regularization_parameter)
     { };
 
     /// Returns the size of the KKT system.
@@ -82,6 +86,10 @@ public:
 
         }
         {
+            // Add regularization parameter times identity
+            ROL::Ptr<ROL::Vector<Real>> dst_control = dynamic_cast<ROL::Vector_SimOpt<Real>&>(*dst_design).get_2();
+            const ROL::Ptr<const ROL::Vector<Real>> src_control = dynamic_cast<const ROL::Vector_SimOpt<Real>&>(*src_design).get_2();
+            dst_control->axpy(regularization_parameter, *src_control);
             // Pretend Lagrangian Hessian is identity.
             //dst_design->set(*src_design);
         }

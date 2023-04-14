@@ -47,6 +47,11 @@ FullSpace_BirosGhattas(
     esec_ = StringToESecant(secantName_);
     secant_ = SecantFactory<Real>(parlist);
 
+    regularization_parameter = parlist.sublist("Full Space").get("regularization_parameter",1.0);
+    regularization_scaling = parlist.sublist("Full Space").get("regularization_scaling",10.0);
+    regularization_tol_low = parlist.sublist("Full Space").get("regularization_tol_low",1.0e-2);
+    regularization_tol_high = parlist.sublist("Full Space").get("regularization_tol_high",1.0e-1);
+    linear_iteration_limit = parlist.sublist("Full Space").get("Linear iteration Limit", 2000); 
 }
 
 template <class Real>
@@ -211,7 +216,8 @@ void FullSpace_BirosGhattas<Real>::initialize(
     //flow_constraint.flow_CFL_ = 1.0/std::pow(lagrangian_gradient->norm(), 1.00);
     //flow_constraint.flow_CFL_ = -std::max(1.0/std::pow(algo_state.cnorm, 2.0), 100.0);
     //flow_constraint.flow_CFL_ = -1e-0;
-    flow_constraint.flow_CFL_ = -100;
+    //flow_constraint.flow_CFL_ = -100;
+    flow_constraint.flow_CFL_ = 0;
 
     // // Not sure why this is done in ROL_Step.hpp
     // if ( bound_constraints.isActivated() ) {
@@ -347,7 +353,7 @@ std::vector<double> FullSpace_BirosGhattas<Real>::solve_linear (
     // Used for almost all the results:
     const double tolerance = std::min(1e-4, std::max(1e-6 * rhs_norm, 1e-11));
 
-    dealii::SolverControl solver_control(2000, tolerance, true, true);
+    dealii::SolverControl solver_control(linear_iteration_limit, tolerance, true, true);
     solver_control.enable_history_data();
 
     (void) preconditioner;
@@ -435,7 +441,8 @@ std::vector<Real> FullSpace_BirosGhattas<Real>::solve_KKT_system(
         makePtrFromRef<Objective<Real>>(objective),
         makePtrFromRef<Constraint<Real>>(equal_constraints),
         makePtrFromRef<const Vector<Real>>(design_variables),
-        makePtrFromRef<const Vector<Real>>(lagrange_mult));
+        makePtrFromRef<const Vector<Real>>(lagrange_mult),
+        regularization_parameter);
 
 
     std::shared_ptr<BirosGhattasPreconditioner<Real>> kkt_precond =
@@ -577,6 +584,23 @@ void FullSpace_BirosGhattas<Real>::compute(
         search_direction.set(*lhs1);
         lagrange_mult_search_direction_->set(*lhs2);
     }
+    {
+        // Update regularization parameter.
+        const Real ctl_norm = ((dynamic_cast<const Vector_SimOpt<Real>&>(search_direction)).get_2())->norm();
+        if(ctl_norm < regularization_tol_low)
+        {
+            regularization_parameter /= regularization_scaling;
+        }
+        else if(ctl_norm > regularization_tol_high)
+        {
+            regularization_parameter *= regularization_scaling;
+        }
+        else
+        {
+            regularization_parameter = regularization_parameter; // Remains unchanged.
+        }
+    }
+    pcout<<"Regularization parameter for the next iteration = "<<regularization_parameter<<std::endl;
     // std::cout
     //     << "search_direction.norm(): "
     //     << search_direction.norm()
@@ -608,7 +632,7 @@ void FullSpace_BirosGhattas<Real>::compute(
 
     //#pen_ = parlist.sublist("Step").sublist("Augmented Lagrangian").get("Initial Penalty Parameter",ten);
     /* Create merit function based on augmented Lagrangian */
-    const Real penalty_offset = 10;//1e-4;
+    const Real penalty_offset = 1.0e-4;//1e-4;
     penalty_value_ = computeAugmentedLagrangianPenalty(
         search_direction,
         *lagrange_mult_search_direction_,
@@ -803,7 +827,8 @@ void FullSpace_BirosGhattas<Real>::update(
     //flow_constraint.flow_CFL_ = 1.0/std::pow(algo_state.cnorm, 0.5);
     //flow_constraint.flow_CFL_ = 10 + 1.0/std::pow(algo_state.cnorm, 2.0);
     //flow_constraint.flow_CFL_ = 1.0/std::pow(algo_state.cnorm, 2.0);
-    flow_constraint.flow_CFL_ = -10000*std::max(1.0, 1.0/std::pow(algo_state.cnorm, 2.00));
+    //flow_constraint.flow_CFL_ = -10000*std::max(1.0, 1.0/std::pow(algo_state.cnorm, 2.00));
+    flow_constraint.flow_CFL_ = 0;
     //flow_constraint.flow_CFL_ = 0.0;
     //flow_constraint.flow_CFL_ = 1e-6;
 
@@ -840,6 +865,7 @@ void FullSpace_BirosGhattas<Real>::update(
         ;
     }
     MPI_Barrier(MPI_COMM_WORLD);
+    flow_constraint.output_results_vtk(output_count++);
 }
 
 template <class Real>

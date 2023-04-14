@@ -97,6 +97,9 @@ private:
 
     /// Number of line searches used in the last design cycle.
     int n_linesearches;
+
+    /// Number of the output file. Mesh and solution are output in update(), after updating the variables.   
+    unsigned int output_count = 2000;
 public:
   
     using Step<Real>::initialize; ///< See base class.
@@ -280,6 +283,11 @@ public:
 
 private:
     dealii::ConditionalOStream pcout; ///< Parallel std::cout that only outputs on mpi_rank==0
+    unsigned int linear_iteration_limit; ///< Linear iteration limit
+    Real regularization_parameter; ///< Factor multiplied by identity to be added to the control hessian.
+    Real regularization_scaling; ///< Scaling of regularization parameter depending on control variable's search direction.
+    Real regularization_tol_low; ///< Tolerance below which regularization parameter is decreased.
+    Real regularization_tol_high; ///< Control search direction tolerance above which the regularization parameter is increased.
 
 }; // class FullSpace_BirosGhattas
 

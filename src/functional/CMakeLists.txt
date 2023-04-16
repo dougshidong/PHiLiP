@@ -7,6 +7,7 @@ SET(SOURCE
     target_wall_pressure.cpp
     dual_weighted_residual_obj_func1.cpp
     dual_weighted_residual_obj_func2.cpp
+    cell_distortion_functional.cpp
     )
 
 foreach(dim RANGE 1 3)

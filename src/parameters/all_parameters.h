@@ -173,6 +173,7 @@ public:
         finite_difference_sensitivity,
         advection_periodicity,
         dual_weighted_residual_mesh_adaptation,
+        anisotropic_mesh_adaptation,
         taylor_green_vortex_energy_check,
         taylor_green_vortex_restart_check,
         time_refinement_study,

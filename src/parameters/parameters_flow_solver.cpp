@@ -27,7 +27,7 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                           " gaussian_bump | "
                           " isentropic_vortex | "
                           " kelvin_helmholtz_instability | "
-                          " sshock "),
+                          " non_periodic_cube_flow "),
                           "The type of flow we want to simulate. "
                           "Choices are "
                           " <taylor_green_vortex | "
@@ -42,7 +42,7 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                           " gaussian_bump | "
                           " isentropic_vortex | "
                           " kelvin_helmholtz_instability | "
-                          " sshock>. ");
+                          " non_periodic_cube_flow>. ");
 
         prm.declare_entry("poly_degree", "1",
                           dealii::Patterns::Integer(0, dealii::Patterns::Integer::max_int_value),
@@ -260,7 +260,7 @@ void FlowSolverParam::parse_parameters(dealii::ParameterHandler &prm)
         else if (flow_case_type_string == "isentropic_vortex")          {flow_case_type = isentropic_vortex;}
         else if (flow_case_type_string == "kelvin_helmholtz_instability")   
                                                                         {flow_case_type = kelvin_helmholtz_instability;}
-        else if (flow_case_type_string == "sshock")                     {flow_case_type = sshock;}
+        else if (flow_case_type_string == "non_periodic_cube_flow")     {flow_case_type = non_periodic_cube_flow;}
 
         poly_degree = prm.get_integer("poly_degree");
         

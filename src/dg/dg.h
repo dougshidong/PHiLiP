@@ -173,6 +173,9 @@ public:
     /// Returns the coordinates of the most refined cell.
     dealii::Point<dim> coordinates_of_highest_refined_cell(bool check_for_p_refined_cell = false);
 
+    /// Set polynomial degree and interpolate solution.
+    void set_p_degree_and_interpolate_solution(const unsigned int poly_degree);
+    
     /// Allocates the system.
     /** Must be done after setting the mesh and before assembling the system. */
     virtual void allocate_system (const bool compute_dRdW = true, 

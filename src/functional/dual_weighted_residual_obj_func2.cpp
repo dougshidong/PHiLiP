@@ -16,8 +16,16 @@ DualWeightedResidualObjFunc2<dim, nstate, real> :: DualWeightedResidualObjFunc2(
     , use_coarse_residual(_use_coarse_residual)
 //    , mesh_weight(this->dg->all_parameters->optimization_param.mesh_weight_factor)
 //    , initial_vol_nodes(this->dg->high_order_grid->volume_nodes)
+    , coarse_poly_degree(this->dg->get_min_fe_degree())
+    , fine_poly_degree(coarse_poly_degree + 1)
 {
     AssertDimension(this->dg->high_order_grid->max_degree, 1);
+    if(this->dg->get_min_fe_degree() != this->dg->get_max_fe_degree())
+    {
+        std::cout<<"This class is currently coded assuming a constant poly degree. To be changed in future if required."<<std::endl;
+        std::abort();
+    }
+    
     compute_interpolation_matrix(); // also stores cellwise_dofs_fine, vector coarse and vector fine.
     functional = FunctionalFactory<dim,nstate,real>::create_Functional(this->dg->all_parameters->functional_param, this->dg);
     cell_distortion_functional = std::make_unique<CellDistortion<dim, nstate, real>> (this->dg);
@@ -37,13 +45,13 @@ void DualWeightedResidualObjFunc2<dim, nstate, real> :: compute_interpolation_ma
     vector_coarse = this->dg->solution; // copies values and parallel layout
     vector_vol_nodes = this->dg->high_order_grid->volume_nodes;
     unsigned int n_dofs_coarse = this->dg->n_dofs();
-    this->dg->change_cells_fe_degree_by_deltadegree_and_interpolate_solution(1);
+    this->dg->set_p_degree_and_interpolate_solution(fine_poly_degree);
     vector_fine = this->dg->solution;
     unsigned int n_dofs_fine = this->dg->n_dofs();
     const dealii::IndexSet dofs_fine_locally_relevant_range = this->dg->locally_relevant_dofs;
     cellwise_dofs_fine = get_cellwise_dof_indices();
 
-    this->dg->change_cells_fe_degree_by_deltadegree_and_interpolate_solution(-1);
+    this->dg->set_p_degree_and_interpolate_solution(coarse_poly_degree);
     AssertDimension(vector_coarse.size(), this->dg->solution.size());     
 
     // Get all possible interpolation matrices for available poly order combinations.
@@ -250,7 +258,7 @@ real DualWeightedResidualObjFunc2<dim, nstate, real> :: evaluate_objective_funct
     dwr_error = 0;
     // Evaluate adjoint and residual fine
     const VectorType solution_coarse_stored = this->dg->solution;
-    this->dg->change_cells_fe_degree_by_deltadegree_and_interpolate_solution(1);
+    this->dg->set_p_degree_and_interpolate_solution(fine_poly_degree);
     const bool compute_dRdW = true;
     this->dg->assemble_residual(compute_dRdW);
     
@@ -264,7 +272,7 @@ real DualWeightedResidualObjFunc2<dim, nstate, real> :: evaluate_objective_funct
     adjoint *= -1.0;
     adjoint.update_ghost_values();
 
-    this->dg->change_cells_fe_degree_by_deltadegree_and_interpolate_solution(-1);
+    this->dg->set_p_degree_and_interpolate_solution(coarse_poly_degree);
     /* Interpolating one poly order up and then down changes solution by ~1.0e-12, which causes functional to be re-evaluated when the solution-node configuration is the same. 
     Resetting of solution to stored coarse solution prevents this issue.     */
     this->dg->solution = solution_coarse_stored; 
@@ -317,7 +325,7 @@ template<int dim, int nstate, typename real>
 void DualWeightedResidualObjFunc2<dim, nstate, real> :: compute_common_vectors_and_matrices()
 {
     const VectorType solution_coarse_stored = this->dg->solution;
-    this->dg->change_cells_fe_degree_by_deltadegree_and_interpolate_solution(1);
+    this->dg->set_p_degree_and_interpolate_solution(fine_poly_degree);
     
     // Store derivatives related to the residual
     bool compute_dRdW = true, compute_dRdX=false, compute_d2R=false;
@@ -362,7 +370,7 @@ void DualWeightedResidualObjFunc2<dim, nstate, real> :: compute_common_vectors_a
     dwr_dwr_R_times_Ruu.copy_from(this->dg->d2RdWdW);
 
 
-    this->dg->change_cells_fe_degree_by_deltadegree_and_interpolate_solution(-1);
+    this->dg->set_p_degree_and_interpolate_solution(coarse_poly_degree);
     
     /* Interpolating one poly order up and then down changes solution by ~1.0e-12, which causes functional to be re-evaluated when the solution-node configuration is the same. 
     Resetting of solution to stored coarse solution prevents this issue.     */

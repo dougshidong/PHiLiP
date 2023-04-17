@@ -226,6 +226,12 @@ private:
 
     /// Stores initial volume nodes for implementing mesh weight.
     const VectorType initial_vol_nodes;
+    
+    /// Stores the coarse poly degree.
+    const unsigned int coarse_poly_degree;
+    
+    /// Stores the fine poly degree.
+    const unsigned int fine_poly_degree;
 
     /// Functional used to evaluate cell distortion.
 //    std::unique_ptr< Functional<dim, nstate, real> > cell_distortion_functional;

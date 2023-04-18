@@ -113,10 +113,10 @@ int TimeRefinementStudy<dim, nstate>::run_test() const
               << "    L2:      " << L2_error << std::endl
               << "    Linfty:  " << Linfty_error << std::endl;
 
-        pcout << " at dt = " << dt << std::endl;
-        
         const double dt =  params.ode_solver_param.initial_time_step;
         const int n_timesteps= flow_solver->ode_solver->current_iteration;
+        pcout << " at dt = " << dt << std::endl;
+        
         convergence_table.add_value("refinement", refinement);
         convergence_table.add_value("dt", dt );
         convergence_table.set_precision("dt", 16);

@@ -78,7 +78,7 @@ FlowSolverFactory<dim,nstate>
             std::shared_ptr<FlowSolverCaseBase<dim, nstate>> flow_solver_case = std::make_shared<PeriodicEntropyTests<dim,nstate>>(parameters_input);
             return std::make_unique<FlowSolver<dim,nstate>>(parameters_input, flow_solver_case, parameter_handler_input);
         }
-    } else if (flow_type == FlowCaseEnum::sshock){
+    } else if (flow_type == FlowCaseEnum::non_periodic_cube_flow){
         if constexpr (dim==2 && nstate==1){
             std::shared_ptr<FlowSolverCaseBase<dim, nstate>> flow_solver_case = std::make_shared<NonPeriodicCubeFlow<dim, nstate>>(parameters_input);
             return std::make_unique<FlowSolver<dim, nstate>>(parameters_input, flow_solver_case, parameter_handler_input);

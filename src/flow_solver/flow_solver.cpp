@@ -7,7 +7,7 @@
 #include <sstream>
 #include "reduced_order/pod_basis_offline.h"
 #include "physics/initial_conditions/set_initial_condition.h"
-#include "mesh/mesh_adaptation.h"
+#include "mesh/mesh_adaptation/mesh_adaptation.h"
 #include <deal.II/base/timer.h>
 
 namespace PHiLiP {
@@ -482,7 +482,7 @@ int FlowSolver<dim,nstate>::run() const
             time_step = next_time_step; // update time step
 
             // check if we need to decrease the time step
-            if((ode_solver->current_time+time_step) > final_time) {
+            if((ode_solver->current_time+time_step) > final_time && flow_solver_param.end_exactly_at_final_time) {
                 // decrease time step to finish exactly at specified final time
                 time_step = final_time - ode_solver->current_time;
             } else if (this->output_solution_at_exact_fixed_times && (this->do_output_solution_at_fixed_times && (this->number_of_fixed_times_to_output_solution > 0))) { // change this to some parameter
@@ -586,9 +586,10 @@ int FlowSolver<dim,nstate>::run() const
         ode_solver->steady_state();
         flow_solver_case->steady_state_postprocessing(dg);
         
-        const bool use_mesh_adaptation = (all_param.mesh_adaptation_param.total_mesh_adaptation_cycles > 0);
+        const bool use_isotropic_mesh_adaptation = (all_param.mesh_adaptation_param.total_mesh_adaptation_cycles > 0) 
+                                        && (all_param.mesh_adaptation_param.mesh_adaptation_type != Parameters::MeshAdaptationParam::MeshAdaptationType::anisotropic_adaptation);
         
-        if(use_mesh_adaptation)
+        if(use_isotropic_mesh_adaptation)
         {
             perform_steady_state_mesh_adaptation();
         }

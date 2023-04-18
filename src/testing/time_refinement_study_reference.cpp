@@ -24,14 +24,15 @@ Parameters::AllParameters TimeRefinementStudyReference<dim,nstate>::reinit_param
 
     const double dt = final_time/number_of_timesteps;     
     parameters.ode_solver_param.initial_time_step = dt;
-
+    
     parameters.flow_solver_param.final_time = final_time;
 
+    //Change to RK because at small dt RRK is more costly but doesn't impact solution much
     using ODESolverEnum = Parameters::ODESolverParam::ODESolverEnum;
     parameters.ode_solver_param.ode_solver_type = ODESolverEnum::runge_kutta_solver;
-     
+
     pcout << "Using timestep size dt = " << dt << " for reference solution." << std::endl;
-     
+
     return parameters;
 }
 
@@ -39,11 +40,17 @@ template <int dim, int nstate>
 Parameters::AllParameters TimeRefinementStudyReference<dim,nstate>::reinit_params_and_refine_timestep(int refinement) const
 {
     PHiLiP::Parameters::AllParameters parameters = *(this->all_parameters);
-     
-    parameters.ode_solver_param.initial_time_step *= pow(refine_ratio,refinement);
     
     parameters.flow_solver_param.unsteady_data_table_filename += std::to_string(refinement);
      
+    parameters.ode_solver_param.initial_time_step *= pow(refine_ratio,refinement);
+
+    //For RRK, do not end at exact time because of how relaxation parameter convergence is calculatd
+    using ODESolverEnum = Parameters::ODESolverParam::ODESolverEnum;
+    if (parameters.ode_solver_param.ode_solver_type == ODESolverEnum::rrk_explicit_solver){
+        parameters.flow_solver_param.end_exactly_at_final_time = false;
+    }
+
     return parameters;
 }
 
@@ -116,7 +123,7 @@ int TimeRefinementStudyReference<dim, nstate>::run_test() const
     std::unique_ptr<FlowSolver::Periodic1DUnsteady<dim, nstate>> flow_solver_case = std::make_unique<FlowSolver::Periodic1DUnsteady<dim,nstate>>(this->all_parameters);
 
     pcout << "\n\n-------------------------------------------------------" << std::endl;
-    pcout << "Calculating reference solution at target final_time = " << final_time << " ..."<<std::endl;
+    pcout << "Calculating reference solution at target final_time = " << std::setprecision(16) << final_time << " ..."<<std::endl;
     pcout << "-------------------------------------------------------" << std::endl;
     
     const double final_time_target = this->all_parameters->flow_solver_param.final_time;
@@ -170,7 +177,7 @@ int TimeRefinementStudyReference<dim, nstate>::run_test() const
         
         if(params.ode_solver_param.ode_solver_type == ODESolverEnum::rrk_explicit_solver){
             //for burgers, this is the average gamma over the runtime
-            const double gamma_aggregate_m1 = final_time_actual/(n_timesteps*dt)-1;
+            const double gamma_aggregate_m1 = final_time_actual / (n_timesteps * dt)-1;
             convergence_table.add_value("gamma_aggregate_m1", gamma_aggregate_m1);
             convergence_table.set_precision("gamma_aggregate_m1", 16);
             convergence_table.set_scientific("gamma_aggregate_m1", true);

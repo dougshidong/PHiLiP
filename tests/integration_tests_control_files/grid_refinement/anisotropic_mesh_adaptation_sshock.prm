@@ -6,31 +6,30 @@ set dimension = 2
 # The PDE we want to solve. Choices are
 # <advection|diffusion|convection_diffusion>.
 set pde_type  = advection      
-set test_type = dual_weighted_residual_mesh_adaptation
+set test_type = anisotropic_mesh_adaptation
 
 set sipg_penalty_factor = 20.0
 
 subsection linear solver
 #set linear_solver_type = direct
   subsection gmres options
-    set linear_residual_tolerance = 1e-8
+    set linear_residual_tolerance = 1e-13
     set max_iterations = 2000
     set restart_number = 50
     set ilut_fill = 1
-	set ilut_atol = 1.0e-5
-	set ilut_rtol = 0.0
+    set ilut_atol = 1.0e-5
     # set ilut_drop = 1e-4
   end 
 end
 
 subsection mesh adaptation
-    set total_mesh_adaptation_cycles = 4
-    set use_goal_oriented_mesh_adaptation = true
-    set mesh_adaptation_type = p_adaptation
-    subsection fixed-fraction
-      set refine_fraction = 0.05
-      set h_coarsen_fraction = 0.0
-    end
+  set total_mesh_adaptation_cycles = 4
+  set mesh_adaptation_type = anisotropic_adaptation
+  set use_goal_oriented_mesh_adaptation = true
+  subsection anisotropic
+    set mesh_complexity_anisotropic_adaptation = 50.0
+    set norm_Lp_anisotropic_adaptation = 1.0
+  end
 end
 
 subsection ODE solver
@@ -66,12 +65,6 @@ subsection manufactured solution convergence study
   set use_manufactured_source_term = true
   set manufactured_solution_type   = s_shock_solution
 
-  # setting the default diffusion tensor
-  set diffusion_00 = 12
-  set diffusion_01 = 3
-  set diffusion_10 = 3
-  set diffusion_11 = 20
-
   # setting the advection vector
   set advection_0 = 1.1
   set advection_1 = -1.155727 # -pi/e
@@ -81,8 +74,8 @@ subsection flow_solver
   set flow_case_type = non_periodic_cube_flow
   set steady_state = true
   set steady_state_polynomial_ramping = false
-  set poly_degree = 2
-  set max_poly_degree_for_adaptation = 7
+  set poly_degree = 1
+  set max_poly_degree_for_adaptation = 2
   subsection grid
     set number_of_mesh_refinements = 4
   end

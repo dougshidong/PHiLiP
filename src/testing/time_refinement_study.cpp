@@ -23,11 +23,17 @@ TimeRefinementStudy<dim, nstate>::TimeRefinementStudy(
 template <int dim, int nstate>
 Parameters::AllParameters TimeRefinementStudy<dim,nstate>::reinit_params_and_refine_timestep(int refinement) const
 {
-     PHiLiP::Parameters::AllParameters parameters = *(this->all_parameters);
-     
-     parameters.ode_solver_param.initial_time_step *= pow(refine_ratio,refinement);
-     
-     return parameters;
+    PHiLiP::Parameters::AllParameters parameters = *(this->all_parameters);
+
+    parameters.ode_solver_param.initial_time_step *= pow(refine_ratio,refinement);
+
+    //For RRK, do not end at exact time because of how relaxation parameter convergence is calculated
+    using ODESolverEnum = Parameters::ODESolverParam::ODESolverEnum;
+    if (parameters.ode_solver_param.ode_solver_type == ODESolverEnum::rrk_explicit_solver){
+        parameters.flow_solver_param.end_exactly_at_final_time = false;
+    }
+
+    return parameters;
 }
 
 template <int dim, int nstate>
@@ -91,6 +97,7 @@ int TimeRefinementStudy<dim, nstate>::run_test() const
         pcout << "Computed error is " << L2_error << std::endl;
 
         const double dt =  params.ode_solver_param.initial_time_step;
+        const int n_timesteps= flow_solver->ode_solver->current_iteration;
         convergence_table.add_value("refinement", refinement);
         convergence_table.add_value("dt", dt );
         convergence_table.set_precision("dt", 16);
@@ -98,6 +105,17 @@ int TimeRefinementStudy<dim, nstate>::run_test() const
         convergence_table.add_value("L2_error",L2_error);
         convergence_table.set_precision("L2_error", 16);
         convergence_table.evaluate_convergence_rates("L2_error", "dt", dealii::ConvergenceTable::reduction_rate_log2, 1);
+        
+        using ODESolverEnum = Parameters::ODESolverParam::ODESolverEnum;
+        if(params.ode_solver_param.ode_solver_type == ODESolverEnum::rrk_explicit_solver){
+            //for burgers, this is the average gamma over the runtime
+            const double final_time_actual = flow_solver->ode_solver->current_time;
+            const double gamma_aggregate_m1 = final_time_actual / (n_timesteps * dt)-1;
+            convergence_table.add_value("gamma_aggregate_m1", gamma_aggregate_m1);
+            convergence_table.set_precision("gamma_aggregate_m1", 16);
+            convergence_table.set_scientific("gamma_aggregate_m1", true);
+            convergence_table.evaluate_convergence_rates("gamma_aggregate_m1", "dt", dealii::ConvergenceTable::reduction_rate_log2, 1);
+        }
 
         //Checking convergence order
         const double expected_order = params.ode_solver_param.rk_order;

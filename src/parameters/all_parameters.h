@@ -265,6 +265,9 @@ public:
 
     /// Flag for outputting the surface solution vtk files
     bool output_face_results_vtk;
+
+    /// Flag for renumbering DOFs
+    bool do_renumber_dofs;
     
     /// Declare parameters that can be set as inputs and set up the default options
     /** This subroutine should call the sub-parameter classes static declare_parameters()

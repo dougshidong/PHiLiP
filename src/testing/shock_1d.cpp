@@ -247,7 +247,7 @@ int Shock1D<dim,nstate>
                 dealii::Triangulation<dim>::smoothing_on_refinement |
                 dealii::Triangulation<dim>::smoothing_on_coarsening));
         dealii::GridGenerator::subdivided_hyper_cube(*grid_super_fine, n_1d_cells[n_grids_input-1]);
-        std::shared_ptr dg_super_fine = std::make_shared< DGWeak<dim,1,double> > (&param, p_end, p_end, p_end+1, grid_super_fine);
+        std::shared_ptr dg_super_fine = std::make_shared< DGWeak<dim,1,double> > (&param, nullptr, p_end, p_end, p_end+1, grid_super_fine);
         dg_super_fine->set_physics(physics_double, physics_fad, physics_rad, physics_fad_fad, physics_rad_fad);
         dg_super_fine->allocate_system ();
 
@@ -299,7 +299,7 @@ int Shock1D<dim,nstate>
 
             // Create DG object using the factory
             //std::shared_ptr < DGBase<dim, double> > dg = DGFactory<dim,double>::create_discontinuous_galerkin(&param, poly_degree, grid);
-            std::shared_ptr dg = std::make_shared< DGWeak<dim,1,double> > (&param, poly_degree, poly_degree, poly_degree+1, grid);
+            std::shared_ptr dg = std::make_shared< DGWeak<dim,1,double> > (&param, nullptr, poly_degree, poly_degree, poly_degree+1, grid);
             dg->set_physics(physics_double, physics_fad, physics_rad, physics_fad_fad, physics_rad_fad);
             dg->allocate_system ();
 

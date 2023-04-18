@@ -21,6 +21,14 @@ class DGFactory
      */
     using Triangulation = MeshType;
 public:
+    static std::shared_ptr< DGBase<dim,real,MeshType> >
+        create_discontinuous_galerkin(
+        const Parameters::AllParameters *const parameters_input,
+        const Parameters::AllParameters *const sub_parameters_input,
+        const unsigned int degree,
+        const unsigned int max_degree_input,
+        const unsigned int grid_degree_input,
+        const std::shared_ptr<Triangulation> triangulation_input);
     /// Creates a derived object DG, but returns it as DGBase.
     /** That way, the caller is agnostic to the number of state variables */
     static std::shared_ptr< DGBase<dim,real,MeshType> >

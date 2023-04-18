@@ -300,7 +300,7 @@ int main (int argc, char * argv[])
             all_parameters_new.use_periodic_bc = true;
             all_parameters_new.ode_solver_param.ode_solver_type = ODE_enum::runge_kutta_solver;//auxiliary only works explicit for now
             all_parameters_new.use_inverse_mass_on_the_fly = true;
-            std::shared_ptr < PHiLiP::DGStrong<dim,dim+2,double> > dg = std::make_shared< PHiLiP::DGStrong<dim,dim+2,real,Triangulation> >(&all_parameters_new, poly_degree, poly_degree, grid_degree, grid);
+            std::shared_ptr < PHiLiP::DGStrong<dim,dim+2,double> > dg = std::make_shared< PHiLiP::DGStrong<dim,dim+2,real,Triangulation> >(&all_parameters_new, nullptr, poly_degree, poly_degree, grid_degree, grid);
             dg->allocate_system (false,false,false);
             if(!all_parameters_new.use_inverse_mass_on_the_fly){
                 dg->evaluate_mass_matrices(true);

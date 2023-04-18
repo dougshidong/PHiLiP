@@ -65,22 +65,20 @@ std::array<dealii::Tensor<1,dim,real2>,nstate> p_Poisson<dim,nstate,real>
 
     real2 p_poisson_factor;
     if constexpr(std::is_same<real2,real>::value){
-        const real factor_p = 2.0;
         const real const_two = 2.0;
         real sum_grad_square = 0.0;
         for(int i=0;i<dim;++i){
             sum_grad_square+=solution_gradient[0][i]*solution_gradient[0][i];
         }
-        p_poisson_factor = pow(sum_grad_square,(factor_p-const_two)/const_two);
+        p_poisson_factor = pow(sum_grad_square,(factor_p-const_two)/const_two)+stable_factor;
     }
     else if constexpr(std::is_same<real2,FadType>::value){
-        const FadType factor_p = 2.0;
         const FadType const_two_fad = 2.0;
         FadType sum_grad_square = 0.0;
         for(int i=0;i<dim;++i){
             sum_grad_square+=solution_gradient[0][i]*solution_gradient[0][i];
         }
-        p_poisson_factor = pow(sum_grad_square,(factor_p-const_two_fad)/const_two_fad);
+        p_poisson_factor = pow(sum_grad_square,(factor_p_fad-const_two_fad)/const_two_fad)+stable_factor_fad;
     }
     else{
         std::cout << "ERROR in physics/p_poisson.cpp --> dissipative_flux_templated(): real2 != real or FadType" << std::endl;
@@ -89,7 +87,7 @@ std::array<dealii::Tensor<1,dim,real2>,nstate> p_Poisson<dim,nstate,real>
 
     for (int s=0; s<nstate; ++s) {
         for (int flux_dim=0; flux_dim<dim; ++flux_dim){
-            diss_flux[s][flux_dim] = (p_poisson_factor+0.2)*solution_gradient[s][flux_dim];
+            diss_flux[s][flux_dim] = (p_poisson_factor)*solution_gradient[s][flux_dim];
         }
     }
 
@@ -102,7 +100,8 @@ std::array<real,nstate> p_Poisson<dim,nstate,real>
     const dealii::Point<dim,real> &/*pos*/,
     const std::array<real,nstate> &/*conservative_soln*/,
     const std::array<dealii::Tensor<1,dim,real>,nstate> &/*solution_gradient*/,
-    const dealii::types::global_dof_index /*cell_index*/) const
+    const dealii::types::global_dof_index /*cell_index*/,
+    const real /*post_processed_scalar*/) const
 {
     std::array<real,nstate> physical_source;
     for (int s=0; s<nstate; ++s) {
@@ -409,7 +408,8 @@ std::array<real,nstate> p_Poisson<dim,nstate,real>
     const std::array<dealii::Tensor<1,dim,real>,nstate> manufactured_solution_gradient = get_manufactured_solution_gradient(pos); // from Euler
 
     std::array<real,nstate> physical_source_term_computed_from_manufactured_solution;
-    physical_source_term_computed_from_manufactured_solution = physical_source_term(pos, manufactured_solution, manufactured_solution_gradient, cell_index);
+    const real dummy_sub_physics_post_processed_scalar = 0.0;
+    physical_source_term_computed_from_manufactured_solution = physical_source_term(pos, manufactured_solution, manufactured_solution_gradient, cell_index, dummy_sub_physics_post_processed_scalar);
 
     return physical_source_term_computed_from_manufactured_solution;
 }
@@ -544,7 +544,8 @@ void p_Poisson<dim,nstate,real>
     } 
     else if (boundary_type == 1006) {
         // Slip wall boundary condition
-        boundary_wall (soln_int,soln_grad_int,soln_bc,soln_grad_bc);
+        //boundary_wall (soln_int,soln_grad_int,soln_bc,soln_grad_bc);
+        boundary_zero_gradient(soln_int,soln_grad_int,soln_bc,soln_grad_bc);
     }
     else if (boundary_type == 1007) {
         // Symmetric boundary condition
@@ -571,40 +572,9 @@ dealii::Vector<double> p_Poisson<dim,nstate,real>
     unsigned int current_data_index = computed_quantities.size() - 1;
     computed_quantities.grow_or_shrink(names.size());
     if constexpr (std::is_same<real,double>::value) {
-
-        double wall_distance_0;
-        double wall_distance_1;
-        double wall_distance_2;
-        double wall_distance_3;
-        double wall_distance_4;
-        double sum_grad_square=0.0;
-        double sum_grad_absolute=0.0;
-        const double p_poisson_factor=2.0;
-
-        for(int i=0;i<dim;++i){
-            sum_grad_square+=duh[i]*duh[i];
-            sum_grad_absolute+=std::abs(duh[i]);
-        }
-
-        wall_distance_0=sqrt(sum_grad_square)+sqrt(sum_grad_square+2.0*uh);
-
-        wall_distance_1=-sqrt(sum_grad_square)+sqrt(sum_grad_square+2.0*uh);
-
-        wall_distance_2=-(sum_grad_absolute)+sqrt(sum_grad_absolute*sum_grad_absolute+2.0*uh);
-
-        wall_distance_3=-(sum_grad_absolute)-sqrt(sum_grad_absolute*sum_grad_absolute+2.0*uh);
-
-        wall_distance_4=pow(p_poisson_factor/(p_poisson_factor-1.0)*uh+pow(sum_grad_square,p_poisson_factor/2.0),(p_poisson_factor-1.0)/p_poisson_factor)-pow(sum_grad_square,(p_poisson_factor-1.0)/2.0);
-
-        computed_quantities(++current_data_index) = wall_distance_0;
-
-        computed_quantities(++current_data_index) = wall_distance_1;
-
-        computed_quantities(++current_data_index) = wall_distance_2;
-
-        computed_quantities(++current_data_index) = wall_distance_3;
-
-        computed_quantities(++current_data_index) = wall_distance_4;
+        double wall_distance;
+        wall_distance = wall_distance_post_processing(uh,duh);
+        computed_quantities(++current_data_index) = wall_distance;
     }
     if (computed_quantities.size()-1 != current_data_index) {
         std::cout << " Did not assign a value to all the data. Missing " << computed_quantities.size() - current_data_index << " variables."
@@ -620,11 +590,7 @@ std::vector<std::string> p_Poisson<dim,nstate,real>
 ::post_get_names () const
 {
     std::vector<std::string> names = PhysicsBase<dim,nstate,real>::post_get_names ();
-    names.push_back ("wall_distance_0");
-    names.push_back ("wall_distance_1");
-    names.push_back ("wall_distance_2");
-    names.push_back ("wall_distance_3");
-    names.push_back ("wall_distance_4");
+    names.push_back ("wall_distance");
 
     return names;
 }
@@ -635,10 +601,6 @@ std::vector<dealii::DataComponentInterpretation::DataComponentInterpretation> p_
 {
     namespace DCI = dealii::DataComponentInterpretation;
     std::vector<DCI::DataComponentInterpretation> interpretation = PhysicsBase<dim,nstate,real>::post_get_data_component_interpretation (); // state variables
-    interpretation.push_back (DCI::component_is_scalar);
-    interpretation.push_back (DCI::component_is_scalar);
-    interpretation.push_back (DCI::component_is_scalar);
-    interpretation.push_back (DCI::component_is_scalar);
     interpretation.push_back (DCI::component_is_scalar);
 
     std::vector<std::string> names = this->post_get_names();
@@ -657,6 +619,34 @@ dealii::UpdateFlags p_Poisson<dim,nstate,real>
            | dealii::update_gradients
            | dealii::update_quadrature_points
            ;
+}
+//----------------------------------------------------------------
+template <int dim, int nstate, typename real>
+real p_Poisson<dim,nstate,real>
+::post_processed_scalar (
+    const std::array<real,nstate> &solution,
+    const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient) const
+{
+    return wall_distance_post_processing(solution[0],solution_gradient[0]);
+}
+//----------------------------------------------------------------
+template <int dim, int nstate, typename real>
+real p_Poisson<dim,nstate,real>
+::wall_distance_post_processing (
+    const real &solution,
+    const dealii::Tensor<1,dim,real> &solution_gradient) const
+{
+    real wall_distance;
+    real sum_grad_square;
+
+    sum_grad_square = 0.0;
+    for(int i=0;i<dim;++i){
+        sum_grad_square+=solution_gradient[i]*solution_gradient[i];
+    }
+
+    wall_distance = pow(factor_p/(factor_p-1.0)*solution+pow(sum_grad_square,factor_p/2.0),(factor_p-1.0)/factor_p)-pow(sum_grad_square,(factor_p-1.0)/2.0);
+
+    return wall_distance;
 }
 
 // Instantiate explicitly

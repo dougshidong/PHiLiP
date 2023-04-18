@@ -446,6 +446,15 @@ InitialConditionFactory<dim,nstate, real>::create_InitialConditionFunction(
         if constexpr (dim==2 && nstate==1)  return std::make_shared<InitialConditionFunction_Zero<dim,nstate,real> > ();
     } else if (flow_type == FlowCaseEnum::flat_plate_2D) {
         if constexpr (dim==2 && nstate==1)  return std::make_shared<InitialConditionFunction_PositiveConstant<dim,nstate,real> > ();
+        if constexpr (dim==2 && nstate==dim+2) {
+            Physics::Euler<dim,nstate,double> euler_physics_double = Physics::Euler<dim, nstate, double>(
+                    param->euler_param.ref_length,
+                    param->euler_param.gamma_gas,
+                    param->euler_param.mach_inf,
+                    param->euler_param.angle_of_attack,
+                    param->euler_param.side_slip_angle);
+            return std::make_shared<FreeStreamInitialConditions<dim,nstate,real>>(euler_physics_double);
+        }
         if constexpr (dim==2 && nstate==dim+3) {
             Physics::NavierStokes<dim,dim+2,double> rans_double = Physics::NavierStokes<dim, dim+2, double>(
                     param->euler_param.ref_length,

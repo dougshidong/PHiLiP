@@ -161,6 +161,54 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                                   "Number of subdivisions in the z direction for gaussian bump meshes.");
             }
             prm.leave_subsection();
+
+            prm.enter_subsection("flat_plate_2D");
+            {
+                prm.declare_entry("free_length", "0.5",
+                                  dealii::Patterns::Double(0, dealii::Patterns::Double::max_double_value),
+                                  "Lenght of free area upwind to the flat plate.");
+
+                prm.declare_entry("free_height", "1.0",
+                                  dealii::Patterns::Double(0, dealii::Patterns::Double::max_double_value),
+                                  "Height of free area above of the flat plate.");
+
+                prm.declare_entry("plate_length", "2.0", 
+                                  dealii::Patterns::Double(0, dealii::Patterns::Double::max_double_value),
+                                  "Lenght of the flat plate.");
+
+                prm.declare_entry("skewness_x_free", "1.0", 
+                                  dealii::Patterns::Double(0, dealii::Patterns::Double::max_double_value),
+                                  "Skewness of the meshes in the x direction.");
+
+                prm.declare_entry("skewness_x_plate", "1.0", 
+                                  dealii::Patterns::Double(0, dealii::Patterns::Double::max_double_value),
+                                  "Skewness of the meshes in the x direction.");
+
+                prm.declare_entry("skewness_y", "1.0", 
+                                  dealii::Patterns::Double(0, dealii::Patterns::Double::max_double_value),
+                                  "Skewness of the meshes in the y direction.");
+
+                prm.declare_entry("skewness_z", "1.0", 
+                                  dealii::Patterns::Double(0, dealii::Patterns::Double::max_double_value),
+                                  "Skewness of the meshes in the z direction.");
+
+                prm.declare_entry("number_of_subdivisions_in_x_direction_free", "0",
+                                  dealii::Patterns::Integer(0, dealii::Patterns::Integer::max_int_value),
+                                  "Number of subdivisions in the x direction of free area for flat plate meshes.");
+
+                prm.declare_entry("number_of_subdivisions_in_x_direction_plate", "0",
+                                  dealii::Patterns::Integer(0, dealii::Patterns::Integer::max_int_value),
+                                  "Number of subdivisions in the x direction of plate area for flat plate meshes.");
+
+                prm.declare_entry("number_of_subdivisions_in_y_direction", "0",
+                                  dealii::Patterns::Integer(0, dealii::Patterns::Integer::max_int_value),
+                                  "Number of subdivisions in the y direction for flat plate meshes.");
+
+                prm.declare_entry("number_of_subdivisions_in_z_direction", "0",
+                                  dealii::Patterns::Integer(0, dealii::Patterns::Integer::max_int_value),
+                                  "Number of subdivisions in the z direction for flat plate meshes.");
+            }
+            prm.leave_subsection();
         }
         prm.leave_subsection();
 
@@ -254,6 +302,22 @@ void FlowSolverParam::parse_parameters(dealii::ParameterHandler &prm)
                 channel_length = prm.get_double("channel_length");
                 channel_height = prm.get_double("channel_height");
                 bump_height = prm.get_double("bump_height");
+            }
+            prm.leave_subsection();
+
+            prm.enter_subsection("flat_plate_2D");
+            {
+                number_of_subdivisions_in_x_direction_free = prm.get_integer("number_of_subdivisions_in_x_direction_free");
+                number_of_subdivisions_in_x_direction_plate = prm.get_integer("number_of_subdivisions_in_x_direction_plate");
+                number_of_subdivisions_in_y_direction = prm.get_integer("number_of_subdivisions_in_y_direction");
+                number_of_subdivisions_in_z_direction = prm.get_integer("number_of_subdivisions_in_z_direction");
+                free_length = prm.get_double("free_length");
+                free_height = prm.get_double("free_height");
+                plate_length = prm.get_double("plate_length");
+                skewness_x_free = prm.get_double("skewness_x_free");
+                skewness_x_plate = prm.get_double("skewness_x_plate");
+                skewness_y = prm.get_double("skewness_y");
+                skewness_z = prm.get_double("skewness_z");
             }
             prm.leave_subsection();
         }       

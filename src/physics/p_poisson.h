@@ -46,7 +46,8 @@ public:
         const dealii::Point<dim,real> &pos,
         const std::array<real,nstate> &conservative_soln,
         const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient,
-        const dealii::types::global_dof_index cell_index) const;
+        const dealii::types::global_dof_index cell_index,
+        const real post_processed_scalar) const;
 
     /// Source term for manufactured solution functions
     std::array<real,nstate> source_term (
@@ -154,6 +155,10 @@ public:
     /// For post processing purposes 
     dealii::UpdateFlags post_get_needed_update_flags () const;
 
+    real post_processed_scalar (
+        const std::array<real,nstate> &solution,
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient) const;
+
 protected:
     /// Templated convective flux
     template <typename real2>
@@ -187,6 +192,17 @@ protected:
         const std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_int,
         std::array<real,nstate> &soln_bc,
         std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_bc) const;
+
+    real wall_distance_post_processing(
+        const real &conservative_soln,
+        const dealii::Tensor<1,dim,real> &solution_gradient) const;
+
+private:
+    const real factor_p = 4.0;
+    const FadType factor_p_fad = 4.0;
+
+    const real stable_factor = 0.05;
+    const FadType stable_factor_fad = 0.05;
 };
 
 } // Physics namespace

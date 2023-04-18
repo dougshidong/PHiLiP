@@ -87,6 +87,9 @@ public:
      */
     int overintegration;
 
+    /// Flag to include embedded PDEs
+    bool embedded_pde;
+
     /// Flag to use weak or strong form of DG
     bool use_weak_form;
 

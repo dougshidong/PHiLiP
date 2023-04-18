@@ -30,6 +30,7 @@ void SetInitialCondition<dim,nstate,real>::interpolate_initial_condition(
     solution_no_ghost.reinit(dg->locally_owned_dofs, MPI_COMM_WORLD);
     dealii::VectorTools::interpolate(dg->dof_handler,*initial_condition_function,solution_no_ghost);
     dg->solution = solution_no_ghost;
+    dg->sub_solution = solution_no_ghost;
 }
 
 template<int dim, int nstate, typename real>
@@ -78,6 +79,7 @@ void SetInitialCondition<dim,nstate,real>::project_initial_condition(
             vol_projection.matrix_vector_mult_1D(exact_value, sol, vol_projection.oneD_vol_operator);
             for(unsigned int ishape=0; ishape<n_shape_fns; ishape++){
                 dg->solution[current_dofs_indices[ishape+istate*n_shape_fns]] = sol[ishape];
+                dg->sub_solution[current_dofs_indices[ishape+istate*n_shape_fns]] = sol[ishape];
             }
         }
     }

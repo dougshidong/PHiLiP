@@ -26,10 +26,15 @@ public:
     std::shared_ptr<Triangulation> generate_grid() const override;
 
 protected:
-    const int number_of_cells_per_direction; ///< Number of cells per direction for the grid
-    const double domain_left; ///< Domain left-boundary value for generating the grid
-    const double domain_right; ///< Domain right-boundary value for generating the grid
-    const double domain_size; ///< Domain size (length in 1D, area in 2D, and volume in 3D)
+    const double free_length; ///< Length of free area upwind to the flat plate
+    const double free_height; ///< Height of free area above the flat plate
+    const double plate_length; ///< Length of the flat plate
+    const double skewness_x_free; /// Skewness of the meshes in the x direction for the free area
+    const double skewness_x_plate; /// Skewness of the meshes in the x direction for the plate area
+    const double skewness_y; /// Skewness of the meshes in the y direction
+    const int number_of_subdivisions_in_x_direction_free; ///< Number of cells per x direction for the grid in free area 
+    const int number_of_subdivisions_in_x_direction_plate; ///< Number of cells per x direction for the grid in plate area
+    const int number_of_subdivisions_in_y_direction; ///< Number of cells per y direction for the grid
 
     /// Display additional more specific flow case parameters
     void display_additional_flow_case_specific_parameters() const override;

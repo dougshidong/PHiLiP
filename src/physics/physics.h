@@ -119,7 +119,8 @@ public:
         const dealii::Point<dim,real> &pos,
         const std::array<real,nstate> &solution,
         const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient,
-        const dealii::types::global_dof_index cell_index) const;
+        const dealii::types::global_dof_index cell_index,
+        const real post_processed_scalar) const;
 
     /// Artificial source term that does not require differentiation stemming from artificial dissipation.
     virtual std::array<real,nstate> artificial_source_term (
@@ -171,6 +172,13 @@ public:
     /** Only update the solution at the output points.
      */
     virtual dealii::UpdateFlags post_get_needed_update_flags () const;
+
+    /// Returns post-processed scalar based on current solution which can be used for another computations.
+    /** The implementation in this Physics base class simply returns zero.
+     */
+    virtual real post_processed_scalar (
+        const std::array<real,nstate> &solution,
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient) const;
     
 protected:
     /// ConditionalOStream.

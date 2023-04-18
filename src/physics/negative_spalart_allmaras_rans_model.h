@@ -91,7 +91,8 @@ public:
     std::array<real,nstate> compute_production_dissipation_cross_term (
         const dealii::Point<dim,real> &pos,
         const std::array<real,nstate> &conservative_solution,
-        const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient) const;
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient,
+        const real post_processed_scalar) const;
 
     /// For post processing purposes, returns conservative and primitive solution variables for the negative SA model
     dealii::Vector<double> post_compute_derived_quantities_vector (
@@ -163,6 +164,12 @@ protected:
         const std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_int,
         std::array<real,nstate> &soln_bc,
         std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_bc) const override;
+
+    /// Slip wall boundary condition
+    void boundary_riemann (
+        const dealii::Tensor<1,dim,real> &normal_int,
+        const std::array<real,nstate> &soln_int,
+        std::array<real,nstate> &soln_bc) const override;
 
 private:
     /// Templated nondimensionalized eddy viscosity for the negative SA model.

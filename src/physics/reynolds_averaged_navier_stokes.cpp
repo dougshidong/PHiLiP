@@ -326,10 +326,11 @@ std::array<real,nstate> ReynoldsAveragedNavierStokesBase<dim,nstate,real>
         const dealii::Point<dim,real> &pos,
         const std::array<real,nstate> &conservative_soln,
         const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient,
-        const dealii::types::global_dof_index /*cell_index*/) const
+        const dealii::types::global_dof_index /*cell_index*/,
+        const real post_processed_scalar) const
 {
     std::array<real,nstate> physical_source;
-    physical_source = this->compute_production_dissipation_cross_term(pos, conservative_soln, solution_gradient);
+    physical_source = this->compute_production_dissipation_cross_term(pos, conservative_soln, solution_gradient, post_processed_scalar);
 
     return physical_source;
 }
@@ -658,8 +659,9 @@ std::array<real,nstate> ReynoldsAveragedNavierStokesBase<dim,nstate,real>
     const std::array<dealii::Tensor<1,dim,real>,nstate> manufactured_solution_gradient = get_manufactured_solution_gradient(pos); // from Euler
     
     std::array<real,nstate> physical_source_source_term_computed_from_manufactured_solution;
+    real wall_distance = pos[1]+1.0;
     for (int i=0;i<nstate;++i){
-        physical_source_source_term_computed_from_manufactured_solution = physical_source_term(pos, manufactured_solution, manufactured_solution_gradient, cell_index);
+        physical_source_source_term_computed_from_manufactured_solution = physical_source_term(pos, manufactured_solution, manufactured_solution_gradient, cell_index, wall_distance);
     }
 
     return physical_source_source_term_computed_from_manufactured_solution;

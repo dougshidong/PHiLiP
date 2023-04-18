@@ -26,10 +26,22 @@ PhysicsFactory<dim,nstate,real>
 ::create_Physics(const Parameters::AllParameters               *const parameters_input,
                  std::shared_ptr< ModelBase<dim,nstate,real> > model_input)
 {
-    using PDE_enum = Parameters::AllParameters::PartialDifferentialEquation;
-    PDE_enum pde_type = parameters_input->pde_type;
+    if (parameters_input==nullptr && model_input==nullptr){
+        //std::shared_ptr< ManufacturedSolutionFunction<dim,real> >  manufactured_solution_function 
+        //    = ManufacturedSolutionFactory<dim,real>::create_ManufacturedSolution(parameters_input, nstate);
+        //if constexpr (nstate == 1) {
+        //    return std::make_shared < p_Poisson<dim,nstate,real> > (
+        //        manufactured_solution_function);
+        //} else {
+        //    return nullptr;
+        //}
+        return nullptr;
+    } else {
+        using PDE_enum = Parameters::AllParameters::PartialDifferentialEquation;
+        PDE_enum pde_type = parameters_input->pde_type;
 
-    return create_Physics(parameters_input, pde_type, model_input);
+        return create_Physics(parameters_input, pde_type, model_input);
+    }
 }
 
 template <int dim, int nstate, typename real>

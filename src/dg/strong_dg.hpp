@@ -9,20 +9,21 @@ namespace PHiLiP {
 /*  Contains the functions that need to be templated on the number of state variables.
  */
 #if PHILIP_DIM==1 // dealii::parallel::distributed::Triangulation<dim> does not work for 1D
-template <int dim, int nstate, typename real, typename MeshType = dealii::Triangulation<dim>>
+template <int dim, int nstate, typename real, typename MeshType = dealii::Triangulation<dim>, int sub_nstate = 1>
 #else
-template <int dim, int nstate, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
+template <int dim, int nstate, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>, int sub_nstate = 1>
 #endif
-class DGStrong: public DGBaseState<dim, nstate, real, MeshType>
+class DGStrong: public DGBaseState<dim, nstate, real, MeshType, sub_nstate>
 {
 protected:
     /// Alias to base class Triangulation.
-    using Triangulation = typename DGBaseState<dim,nstate,real,MeshType>::Triangulation;
+    using Triangulation = typename DGBaseState<dim,nstate,real,MeshType,sub_nstate>::Triangulation;
 
 public:
     /// Constructor
     DGStrong(
         const Parameters::AllParameters *const parameters_input,
+        const Parameters::AllParameters *const sub_parameters_input,
         const unsigned int degree,
         const unsigned int max_degree_input,
         const unsigned int grid_degree_input,
@@ -50,8 +51,11 @@ protected:
     /// Builds the necessary operators and assembles volume residual for either primary or auxiliary.
     void assemble_volume_term_and_build_operators(
         typename dealii::DoFHandler<dim>::active_cell_iterator cell,
+        typename dealii::DoFHandler<dim>::active_cell_iterator sub_cell,
         const dealii::types::global_dof_index                  current_cell_index,
+        const dealii::types::global_dof_index                  sub_current_cell_index,
         const std::vector<dealii::types::global_dof_index>     &cell_dofs_indices,
+        const std::vector<dealii::types::global_dof_index>     &sub_cell_dofs_indices,
         const std::vector<dealii::types::global_dof_index>     &metric_dof_indices,
         const unsigned int                                     poly_degree,
         const unsigned int                                     grid_degree,
@@ -62,8 +66,10 @@ protected:
         OPERATOR::mapping_shape_functions<dim,2*dim>           &mapping_basis,
         std::array<std::vector<real>,dim>                      &mapping_support_points,
         dealii::hp::FEValues<dim,dim>                          &/*fe_values_collection_volume*/,
+        dealii::hp::FEValues<dim,dim>                          &/*sub_fe_values_collection_volume*/,
         dealii::hp::FEValues<dim,dim>                          &/*fe_values_collection_volume_lagrange*/,
         const dealii::FESystem<dim,dim>                        &/*current_fe_ref*/,
+        const dealii::FESystem<dim,dim>                        &/*sub_current_fe_ref*/,
         dealii::Vector<real>                                   &local_rhs_int_cell,
         std::vector<dealii::Tensor<1,dim,real>>                &local_auxiliary_RHS,
         const bool                                             compute_auxiliary_right_hand_side,
@@ -292,12 +298,17 @@ protected:
     /** Compute both the right-hand side and the corresponding block of dRdW, dRdX, and/or d2R. */
     void assemble_volume_term_derivatives(
         typename dealii::DoFHandler<dim>::active_cell_iterator cell,
+        typename dealii::DoFHandler<dim>::active_cell_iterator sub_cell,
         const dealii::types::global_dof_index current_cell_index,
+        const dealii::types::global_dof_index sub_current_cell_index,
         const dealii::FEValues<dim,dim> &,//fe_values_vol,
+        const dealii::FEValues<dim,dim> &,//sub_fe_values_vol,
         const dealii::FESystem<dim,dim> &fe,
+        const dealii::FESystem<dim,dim> &sub_fe,
         const dealii::Quadrature<dim> &quadrature,
         const std::vector<dealii::types::global_dof_index> &metric_dof_indices,
         const std::vector<dealii::types::global_dof_index> &soln_dof_indices,
+        const std::vector<dealii::types::global_dof_index> &sub_soln_dof_indices,
         dealii::Vector<real> &local_rhs_cell,
         const dealii::FEValues<dim,dim> &/*fe_values_lagrange*/,
         const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R);
@@ -346,9 +357,13 @@ protected:
     /// Evaluate the integral over the cell volume
     void assemble_volume_term_explicit(
         typename dealii::DoFHandler<dim>::active_cell_iterator cell,
+        typename dealii::DoFHandler<dim>::active_cell_iterator sub_cell,
         const dealii::types::global_dof_index current_cell_index,
+        const dealii::types::global_dof_index sub_current_cell_index,
         const dealii::FEValues<dim,dim> &fe_values_volume,
+        const dealii::FEValues<dim,dim> &sub_fe_values_volume,
         const std::vector<dealii::types::global_dof_index> &current_dofs_indices,
+        const std::vector<dealii::types::global_dof_index> &sub_current_dofs_indices,
         const std::vector<dealii::types::global_dof_index> &metric_dof_indices,
         const unsigned int poly_degree,
         const unsigned int grid_degree,

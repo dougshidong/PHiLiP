@@ -70,9 +70,18 @@ public:
     double channel_height; ///< Height of channel for gaussian bump case
     double channel_length; ///< Width of channel for gaussian bump case
     double bump_height; ///< Height of gaussian bump
+    double free_height; ///< Height of free area for flat plate case
+    double free_length; ///< Length of free area for flat plate case
+    double plate_length; ///< Length of flat plate for flat plate case
+    double skewness_x_free; ///< Skewness of the meshes in the x direction for free area
+    double skewness_x_plate; ///< Skewness of the meshes in the x direction for plate area
+    double skewness_y; ///< Skewness of the meshes in the y direction
+    double skewness_z; ///< Skewness of the meshes in the z direction
+    int number_of_subdivisions_in_x_direction_free; ///< Number of subdivisions in x direction of free area for flat plate case
+    int number_of_subdivisions_in_x_direction_plate; ///< Number of subdivisions in x direction of plate area for flat plate case
     int number_of_subdivisions_in_x_direction; ///< Number of subdivisions in x direction for gaussian bump case
-    int number_of_subdivisions_in_y_direction; ///< Number of subdivisions in y direction for gaussian bump case
-    int number_of_subdivisions_in_z_direction; ///< Number of subdivisions in z direction for gaussian bump case
+    int number_of_subdivisions_in_y_direction; ///< Number of subdivisions in y direction for gaussian bump/flat plate case
+    int number_of_subdivisions_in_z_direction; ///< Number of subdivisions in z direction for gaussian bump/flat plate case
 
     /** For taylor green vortex integration tests, expected kinetic energy at final time. */
     double expected_kinetic_energy_at_final_time;

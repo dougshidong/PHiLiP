@@ -58,6 +58,10 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       "Number of extra quadrature points to use."
                       "If overintegration=0, then we use n_quad = soln_degree + 1.");
 
+    prm.declare_entry("embedded_pde", "false",
+                      dealii::Patterns::Bool(),
+                      "No embedded PDEs included by default. If true, include embedded PDEs.");
+
     prm.declare_entry("use_weak_form", "true",
                       dealii::Patterns::Bool(),
                       "Use weak form by default. If false, use strong form.");
@@ -345,6 +349,7 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     overintegration = prm.get_integer("overintegration");
 
     use_weak_form = prm.get_bool("use_weak_form");
+    embedded_pde = prm.get_bool("embedded_pde");
     use_collocated_nodes = prm.get_bool("use_collocated_nodes");
     use_split_form = prm.get_bool("use_split_form");
 

@@ -57,7 +57,7 @@ public:
 
 
 /// Selects which flow case to simulate.
-template <int dim, int nstate, int sub_nstate>
+template <int dim, int nstate, int sub_nstate = 1>
 class FlowSolver : public FlowSolverBase
 {
 public:
@@ -79,6 +79,9 @@ public:
 
     /// Pointer to Flow Solver Case
     std::shared_ptr<FlowSolverCaseBase<dim, nstate>> flow_solver_case;
+
+    /// Pointer to Sub Flow Solver Case
+    std::shared_ptr<FlowSolverCaseBase<dim, sub_nstate>> sub_flow_solver_case;
 
     /// Parameter handler for storing the .prm file being ran
     const dealii::ParameterHandler &parameter_handler;
@@ -109,10 +112,15 @@ protected:
      */
     dealii::ConditionalOStream pcout;
     const Parameters::AllParameters all_param; ///< All parameters
+    Parameters::AllParameters sub_all_param; ///< Sub all parameters
     const Parameters::FlowSolverParam flow_solver_param; ///< Flow solver parameters
+    Parameters::FlowSolverParam sub_flow_solver_param; ///< Sub flow solver parameters
     const Parameters::ODESolverParam ode_param; ///< ODE solver parameters
+    Parameters::ODESolverParam sub_ode_param; ///< Sub ODE solver parameters
     const unsigned int poly_degree; ///< Polynomial order
+    unsigned int sub_poly_degree; ///< Sub polynomial order
     const unsigned int grid_degree; ///< Polynomial order of the grid
+    unsigned int sub_grid_degree; ///< Sub polynomial order of the grid
     const double final_time; ///< Final time of solution
 
     /// Name of the reference copy of inputted parameters file; for restart purposes
@@ -149,17 +157,6 @@ private:
     /** Currently implemented for steady state flows.
      */
     void perform_steady_state_mesh_adaptation() const;
-
-public:
-    /// Pointer to Sub Flow Solver Case
-    std::shared_ptr<FlowSolverCaseBase<dim, sub_nstate>> sub_flow_solver_case;
-
-protected:
-    Parameters::AllParameters sub_all_param; ///< Sub all parameters
-    Parameters::FlowSolverParam sub_flow_solver_param; ///< Sub flow solver parameters
-    Parameters::ODESolverParam sub_ode_param; ///< Sub ODE solver parameters
-    unsigned int sub_poly_degree; ///< Sub polynomial order
-    unsigned int sub_grid_degree; ///< Sub polynomial order of the grid
 
 public:
     /// Pointer to sub dg so it can be accessed externally.

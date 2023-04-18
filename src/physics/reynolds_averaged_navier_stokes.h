@@ -86,7 +86,8 @@ public:
         const dealii::Point<dim,real> &pos,
         const std::array<real,nstate> &conservative_solution,
         const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient,
-        const dealii::types::global_dof_index cell_index) const override;
+        const dealii::types::global_dof_index cell_index,
+        const real post_processed_scalar) const override;
 
     /// Nondimensionalized Reynolds stress tensor, (tau^reynolds)*
     virtual dealii::Tensor<2,dim,real> compute_Reynolds_stress_tensor (
@@ -126,7 +127,8 @@ public:
     virtual std::array<real,nstate> compute_production_dissipation_cross_term (
         const dealii::Point<dim,real> &pos,
         const std::array<real,nstate> &conservative_solution,
-        const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient) const = 0;
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient,
+        const real post_processed_scalar) const = 0;
 
 protected:
     /// Returns the square of the magnitude of the vector 

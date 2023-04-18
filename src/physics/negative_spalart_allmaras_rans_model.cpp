@@ -301,7 +301,7 @@ real ReynoldsAveragedNavierStokes_SAneg<dim,nstate,real>
     const std::array<real,nstate_navier_stokes> &conservative_soln_rans,
     const std::array<dealii::Tensor<1,dim,real>,nstate_navier_stokes> &conservative_soln_gradient_rans) const
 {
-    // Compute s
+    // Compute s (non-dimensional)
     real s;
 
     // Get vorticity
@@ -320,7 +320,7 @@ real ReynoldsAveragedNavierStokes_SAneg<dim,nstate,real>
     const real nu_tilde,
     const real d_wall) const
 {
-    // Compute s_bar
+    // Compute s_bar (non-dimensional)
     real s_bar;
     const real f_v2 = compute_coefficient_f_v2(coefficient_Chi);
 
@@ -555,7 +555,8 @@ std::array<real,nstate> ReynoldsAveragedNavierStokes_SAneg<dim,nstate,real>
 ::compute_production_dissipation_cross_term (
     const dealii::Point<dim,real> &pos,
     const std::array<real,nstate> &conservative_soln,
-    const std::array<dealii::Tensor<1,dim,real>,nstate> &soln_gradient) const
+    const std::array<dealii::Tensor<1,dim,real>,nstate> &soln_gradient,
+    const real post_processed_scalar) const
 {
 
     const std::array<real,nstate_navier_stokes> conservative_soln_rans = this->extract_rans_conservative_solution(conservative_soln);
@@ -566,14 +567,23 @@ std::array<real,nstate> ReynoldsAveragedNavierStokes_SAneg<dim,nstate,real>
 
 
     const real density = conservative_soln_rans[0];
-    const real nu_tilde = conservative_soln[nstate-1]/conservative_soln_rans[0];
+    const real nu_tilde = conservative_soln[nstate_navier_stokes]/conservative_soln_rans[0];
     const real laminar_dynamic_viscosity = this->navier_stokes_physics->compute_viscosity_coefficient(primitive_soln_rans);
     const real laminar_kinematic_viscosity = laminar_dynamic_viscosity/density;
 
     const real coefficient_Chi = compute_coefficient_Chi(nu_tilde,laminar_kinematic_viscosity);
     const real coefficient_f_t2 = compute_coefficient_f_t2(coefficient_Chi); 
 
-    const real d_wall = pos[1]+1.0;
+    (void) pos;
+    const real d_wall = post_processed_scalar;
+    // only for work
+    //(void) post_processed_scalar;
+    //real d_wall;
+    //if (pos[0]>=0.0){
+    //    d_wall = pos[1];
+    //} else {
+    //    d_wall = sqrt(pos[0]*pos[0]+pos[1]*pos[1]);
+    //}
 
     const real s = compute_s(conservative_soln_rans, conservative_soln_gradient_rans);
     const real s_tilde = compute_s_tilde(coefficient_Chi, nu_tilde, d_wall, s);
@@ -684,6 +694,35 @@ void ReynoldsAveragedNavierStokes_SAneg<dim,nstate,real>
         soln_bc[istate] = soln_int[istate];
         soln_grad_bc[istate] = soln_grad_int[istate];
     }
+}
+//----------------------------------------------------------------
+template <int dim, int nstate, typename real>
+void ReynoldsAveragedNavierStokes_SAneg<dim,nstate,real>
+::boundary_riemann (
+   const dealii::Tensor<1,dim,real> &/*normal_int*/,
+   const std::array<real,nstate> &soln_int,
+   std::array<real,nstate> &soln_bc) const
+{
+    for (int istate=0; istate<nstate_navier_stokes; ++istate) {
+        soln_bc[istate] = 0.0;
+    }
+    for (int istate=nstate_navier_stokes; istate<nstate; ++istate) {
+        soln_bc[istate] = soln_int[istate];
+    }
+
+//    (void) soln_int;
+//    for (int istate=0; istate<nstate_navier_stokes; ++istate) {
+//        soln_bc[istate] = 0.0;
+//    }
+//    const real density_bc = this->navier_stokes_physics->density_inf;
+//    const real dynamic_viscosity_coefficient_bc = this->navier_stokes_physics->viscosity_coefficient_inf;
+//    const real kinematic_viscosity_coefficient_bc = dynamic_viscosity_coefficient_bc/density_bc;
+//   
+//    // Farfield boundary condition for nu_tilde (working variable of negative SA model)
+//    // nu_tilde = 3.0*kinematic_viscosity_inf to 5.0*kinematic_viscosity_inf
+//    for (int istate=nstate_navier_stokes; istate<nstate; ++istate) {
+//        soln_bc[istate] = density_bc*3.0*kinematic_viscosity_coefficient_bc;
+//    }
 }
 //----------------------------------------------------------------
 template <int dim, int nstate, typename real>

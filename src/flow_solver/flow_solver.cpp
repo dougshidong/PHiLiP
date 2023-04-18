@@ -37,6 +37,8 @@ FlowSolver<dim, nstate, sub_nstate>::FlowSolver(
 , input_parameters_file_reference_copy_filename(flow_solver_param.restart_files_directory_name + std::string("/") + std::string("input_copy.prm"))
 , dg(DGFactory<dim,double>::create_discontinuous_galerkin(&all_param, poly_degree, flow_solver_param.max_poly_degree_for_adaptation, grid_degree, flow_solver_case->generate_grid()))
 {
+    pcout << "No sub flow solver detected." << std::endl;
+    pcout << "Only Set up for main flow solver." << std::endl;
     main_flow_solver_setup();
 }
 
@@ -48,39 +50,44 @@ FlowSolver<dim, nstate, sub_nstate>::FlowSolver(
     const std::vector<dealii::ParameterHandler> &parameter_handler_input)
 : FlowSolverBase()
 , flow_solver_case(flow_solver_case_input)
+, sub_flow_solver_case(sub_flow_solver_case_input)
 , parameter_handler(parameter_handler_input[0])
 , mpi_communicator(MPI_COMM_WORLD)
 , mpi_rank(dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD))
 , n_mpi(dealii::Utilities::MPI::n_mpi_processes(MPI_COMM_WORLD))
 , pcout(std::cout, mpi_rank==0)
 , all_param(*parameters_input[0])
+, sub_all_param(*parameters_input[1])
 , flow_solver_param(all_param.flow_solver_param)
+, sub_flow_solver_param(sub_all_param.flow_solver_param)
 , ode_param(all_param.ode_solver_param)
+, sub_ode_param(sub_all_param.ode_solver_param)
 , poly_degree(flow_solver_param.poly_degree)
+, sub_poly_degree(sub_flow_solver_param.poly_degree)
 , grid_degree(flow_solver_param.grid_degree)
+, sub_grid_degree(sub_flow_solver_param.grid_degree)
 , final_time(flow_solver_param.final_time)
 , input_parameters_file_reference_copy_filename(flow_solver_param.restart_files_directory_name + std::string("/") + std::string("input_copy.prm"))
-, dg(DGFactory<dim,double>::create_discontinuous_galerkin(&all_param, 
+, dg(DGFactory<dim,double>::create_discontinuous_galerkin(&all_param,
+                                                          &sub_all_param, 
                                                           poly_degree,
                                                           flow_solver_param.max_poly_degree_for_adaptation, 
                                                           grid_degree, 
                                                           flow_solver_case->generate_grid()))
-, sub_flow_solver_case(sub_flow_solver_case_input)
-, sub_all_param(*(parameters_input[1]))
-, sub_flow_solver_param(sub_all_param.flow_solver_param)
-, sub_ode_param(sub_all_param.ode_solver_param)
-, sub_poly_degree(sub_flow_solver_param.poly_degree)
-, sub_grid_degree(sub_flow_solver_param.grid_degree)
 , sub_dg(DGFactory<dim,double>::create_discontinuous_galerkin(&sub_all_param, 
                                                               sub_poly_degree, 
                                                               sub_flow_solver_param.max_poly_degree_for_adaptation, 
                                                               sub_grid_degree, 
                                                               sub_flow_solver_case->generate_grid()))
 {
+    pcout << "A sub flow solver detected." << std::endl;
+    pcout << "Set up for main and sub flow solver:" << std::endl;
     pcout << "Set up main flow solver." << std::endl;
     main_flow_solver_setup();
+    pcout << "Done." << std::endl;
     pcout << "Set up sub flow solver." << std::endl;
     sub_flow_solver_setup();
+    pcout << "Done." << std::endl;
 }
 
 template <int dim, int nstate, int sub_nstate>
@@ -123,6 +130,7 @@ void FlowSolver<dim,nstate,sub_nstate>::main_flow_solver_setup()
         dealii::parallel::distributed::SolutionTransfer<dim, dealii::LinearAlgebra::distributed::Vector<double>, dealii::DoFHandler<dim>> solution_transfer(dg->dof_handler);
         solution_transfer.deserialize(solution_no_ghost);
         dg->solution = solution_no_ghost; //< assignment
+        dg->sub_solution = solution_no_ghost; //< assignment
 #endif
     } else {
         // Initialize solution from initial_condition_function
@@ -130,6 +138,7 @@ void FlowSolver<dim,nstate,sub_nstate>::main_flow_solver_setup()
         SetInitialCondition<dim,nstate,double>::set_initial_condition(flow_solver_case->initial_condition_function, dg, &all_param);
     }
     dg->solution.update_ghost_values();
+    dg->sub_solution.update_ghost_values();
     pcout << "done." << std::endl;
     ode_solver->allocate_ode_system();
 
@@ -560,7 +569,14 @@ int FlowSolver<dim,nstate,sub_nstate>::run() const
             sub_ode_solver->steady_state();
             sub_flow_solver_case->steady_state_postprocessing(sub_dg);
             pcout << "End calculation for the sub ODE solver..." << std::endl;
+
+            pcout << "Transfer the solution from sub dg to main dg..." << std::endl;
+            dg->import_sub_solution(sub_dg);
+        }else{
+            pcout << "No calculation for the sub ODE solver..." << std::endl;
         }
+
+        pcout << "Start calculation for the main ODE solver..." << std::endl;
         
         ode_solver->steady_state();
         flow_solver_case->steady_state_postprocessing(dg);

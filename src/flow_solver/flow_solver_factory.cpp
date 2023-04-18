@@ -71,7 +71,13 @@ FlowSolverFactory<dim,nstate,sub_nstate>
             return std::make_unique<FlowSolver<dim, nstate,1>>(parameters_input, flow_solver_case, parameter_handler_input);
         }
     } else if (flow_type == FlowCaseEnum::flat_plate_2D){
-        if constexpr (dim==2 && nstate==dim+3){
+        if constexpr (dim==2 && nstate==1){
+            std::shared_ptr<FlowSolverCaseBase<dim, nstate>> flow_solver_case = std::make_shared<FlatPlate2D<dim, nstate>>(parameters_input);
+            return std::make_unique<FlowSolver<dim, nstate,1>>(parameters_input, flow_solver_case, parameter_handler_input);
+        } else if constexpr (dim==2 && nstate==dim+2){
+            std::shared_ptr<FlowSolverCaseBase<dim, nstate>> flow_solver_case = std::make_shared<FlatPlate2D<dim, nstate>>(parameters_input);
+            return std::make_unique<FlowSolver<dim, nstate,1>>(parameters_input, flow_solver_case, parameter_handler_input);
+        } else if constexpr (dim==2 && nstate==dim+3){
             std::shared_ptr<FlowSolverCaseBase<dim, nstate>> flow_solver_case = std::make_shared<FlatPlate2D<dim, nstate>>(parameters_input);
             return std::make_unique<FlowSolver<dim, nstate,1>>(parameters_input, flow_solver_case, parameter_handler_input);
         }

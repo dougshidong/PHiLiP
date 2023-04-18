@@ -104,10 +104,11 @@ std::array<real,nstate> PhysicsModel<dim,nstate,real,nstate_baseline_physics>
     const dealii::Point<dim,real> &pos,
     const std::array<real,nstate> &conservative_soln,
     const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient,
-    const dealii::types::global_dof_index cell_index) const
+    const dealii::types::global_dof_index cell_index,
+    const real post_processed_scalar) const
 {
     // Initialize physical_source_term as the model source term
-    std::array<real,nstate> physical_source_term = model->physical_source_term(pos, conservative_soln, solution_gradient, cell_index);
+    std::array<real,nstate> physical_source_term = model->physical_source_term(pos, conservative_soln, solution_gradient, cell_index, post_processed_scalar);
 
     // Get baseline conservative solution with nstate_baseline_physics
     std::array<real,nstate_baseline_physics> baseline_conservative_soln;
@@ -120,7 +121,7 @@ std::array<real,nstate> PhysicsModel<dim,nstate,real,nstate_baseline_physics>
     // Get the baseline physics physical source term
     /* Note: Even though the physics baseline source term does not depend on cell_index, we pass it 
              anyways to accomodate the pure virtual member function defined in the PhysicsBase class */
-    std::array<real,nstate_baseline_physics> baseline_physical_source_term = physics_baseline->physical_source_term(pos,baseline_conservative_soln,baseline_solution_gradient,cell_index);
+    std::array<real,nstate_baseline_physics> baseline_physical_source_term = physics_baseline->physical_source_term(pos,baseline_conservative_soln,baseline_solution_gradient,cell_index,post_processed_scalar);
 
     // Add the baseline_physical_source_term terms to source_term
     for(int s=0; s<nstate_baseline_physics; ++s){

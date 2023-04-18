@@ -61,7 +61,8 @@ public:
         const dealii::Point<dim,real> &pos,
         const std::array<real,nstate> &solution,
         const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient,
-        const dealii::types::global_dof_index cell_index) const;
+        const dealii::types::global_dof_index cell_index,
+        const real post_processed_scalar) const;
 
     /// Manufactured source terms additional to the baseline physics (including manufactured source terms in additional PDEs of model)
     virtual std::array<real,nstate> source_term (

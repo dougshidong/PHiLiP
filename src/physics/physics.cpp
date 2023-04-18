@@ -118,15 +118,13 @@ std::array<real,nstate> PhysicsBase<dim,nstate,real>
     const dealii::Point<dim,real> &/*pos*/,
     const std::array<real,nstate> &/*solution*/,
     const std::array<dealii::Tensor<1,dim,real>,nstate> &/*solution_gradient*/,
-    const dealii::types::global_dof_index /*cell_index*/) const
+    const dealii::types::global_dof_index /*cell_index*/,
+    const real /*post_processed_scalar*/) const
 {
     std::array<real,nstate> physical_source;
-    for (int i=0; i<nstate; i++) {
-        physical_source[i] = 0;
-    }
+    physical_source.fill(0.0);
     return physical_source;
 }
-
 
 template <int dim, int nstate, typename real>
 void PhysicsBase<dim,nstate,real>
@@ -236,6 +234,17 @@ dealii::UpdateFlags PhysicsBase<dim,nstate,real>
 ::post_get_needed_update_flags () const
 {
     return dealii::update_values;
+}
+
+template <int dim, int nstate, typename real>
+real PhysicsBase<dim,nstate,real>
+::post_processed_scalar (
+    const std::array<real,nstate> &/*solution*/,
+    const std::array<dealii::Tensor<1,dim,real>,nstate> &/*solution_gradient*/) const
+{
+    real post_processed_scalar;
+    post_processed_scalar = 0;
+    return post_processed_scalar;
 }
 
 template class PhysicsBase < PHILIP_DIM, 1, double >;

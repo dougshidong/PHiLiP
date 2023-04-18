@@ -113,6 +113,8 @@ DGBase<dim,real,MeshType>::DGBase(
 
     set_all_cells_fe_degree(degree);
 
+    sub_fe_collection = &fe_collection;
+    sub_dof_handler = &dof_handler;
 }
 
 template <int dim, typename real, typename MeshType>
@@ -275,9 +277,10 @@ DGBase<dim,real,MeshType>::create_collection_tuple(
     return std::make_tuple(fe_coll, volume_quad_coll, face_quad_coll, fe_coll_lagr, fe_coll_1D, fe_coll_1D_1state, fe_coll_lagr_1D, oneD_quad_coll);
 }
 
-template <int dim, int nstate, typename real, typename MeshType>
-DGBaseState<dim,nstate,real,MeshType>::DGBaseState(
+template <int dim, int nstate, typename real, typename MeshType, int sub_nstate>
+DGBaseState<dim,nstate,real,MeshType,sub_nstate>::DGBaseState(
     const Parameters::AllParameters *const parameters_input,
+    const Parameters::AllParameters *const sub_parameters_input,
     const unsigned int degree,
     const unsigned int max_degree_input,
     const unsigned int grid_degree_input,
@@ -286,26 +289,40 @@ DGBaseState<dim,nstate,real,MeshType>::DGBaseState(
 {
     artificial_dissip = ArtificialDissipationFactory<dim,nstate> ::create_artificial_dissipation(parameters_input);
 
-    pde_model_double    = Physics::ModelFactory<dim,nstate,real>::create_Model(parameters_input);
-    pde_physics_double  = Physics::PhysicsFactory<dim,nstate,real>::create_Physics(parameters_input,pde_model_double);
+    pde_model_double       = Physics::ModelFactory<dim,nstate,real>::create_Model(parameters_input);
+    pde_physics_double     = Physics::PhysicsFactory<dim,nstate,real>::create_Physics(parameters_input,pde_model_double);
+    sub_pde_physics_double = Physics::PhysicsFactory<dim,sub_nstate,real>::create_Physics(sub_parameters_input,nullptr);
     
     pde_model_fad       = Physics::ModelFactory<dim,nstate,FadType>::create_Model(parameters_input);
     pde_physics_fad     = Physics::PhysicsFactory<dim,nstate,FadType>::create_Physics(parameters_input,pde_model_fad);
+    sub_pde_physics_fad = Physics::PhysicsFactory<dim,sub_nstate,FadType>::create_Physics(sub_parameters_input,nullptr);
     
     pde_model_rad       = Physics::ModelFactory<dim,nstate,RadType>::create_Model(parameters_input);
     pde_physics_rad     = Physics::PhysicsFactory<dim,nstate,RadType>::create_Physics(parameters_input,pde_model_rad);
+    sub_pde_physics_rad = Physics::PhysicsFactory<dim,sub_nstate,RadType>::create_Physics(sub_parameters_input,nullptr);
     
-    pde_model_fad_fad   = Physics::ModelFactory<dim,nstate,FadFadType>::create_Model(parameters_input);
-    pde_physics_fad_fad = Physics::PhysicsFactory<dim,nstate,FadFadType>::create_Physics(parameters_input,pde_model_fad_fad);
+    pde_model_fad_fad       = Physics::ModelFactory<dim,nstate,FadFadType>::create_Model(parameters_input);
+    pde_physics_fad_fad     = Physics::PhysicsFactory<dim,nstate,FadFadType>::create_Physics(parameters_input,pde_model_fad_fad);
+    sub_pde_physics_fad_fad = Physics::PhysicsFactory<dim,sub_nstate,FadFadType>::create_Physics(sub_parameters_input,nullptr);
     
-    pde_model_rad_fad   = Physics::ModelFactory<dim,nstate,RadFadType>::create_Model(parameters_input);
-    pde_physics_rad_fad = Physics::PhysicsFactory<dim,nstate,RadFadType>::create_Physics(parameters_input,pde_model_rad_fad);
+    pde_model_rad_fad       = Physics::ModelFactory<dim,nstate,RadFadType>::create_Model(parameters_input);
+    pde_physics_rad_fad     = Physics::PhysicsFactory<dim,nstate,RadFadType>::create_Physics(parameters_input,pde_model_rad_fad);
+    sub_pde_physics_rad_fad = Physics::PhysicsFactory<dim,sub_nstate,RadFadType>::create_Physics(sub_parameters_input,nullptr);
+
+    //only for work
+    //if (sub_parameters_input == nullptr){
+    //    sub_pde_physics_double = Physics::PhysicsFactory<dim,sub_nstate,real>::create_Physics(parameters_input,nullptr);
+    //    sub_pde_physics_fad = Physics::PhysicsFactory<dim,sub_nstate,FadType>::create_Physics(parameters_input,nullptr);
+    //    sub_pde_physics_rad = Physics::PhysicsFactory<dim,sub_nstate,RadType>::create_Physics(parameters_input,nullptr);
+    //    sub_pde_physics_fad_fad = Physics::PhysicsFactory<dim,sub_nstate,FadFadType>::create_Physics(parameters_input,nullptr);
+    //    sub_pde_physics_rad_fad = Physics::PhysicsFactory<dim,sub_nstate,RadFadType>::create_Physics(parameters_input,nullptr);
+    //}
 
     reset_numerical_fluxes();
 }
 
-template <int dim, int nstate, typename real, typename MeshType>
-void DGBaseState<dim,nstate,real,MeshType>::reset_numerical_fluxes()
+template <int dim, int nstate, typename real, typename MeshType, int sub_nstate>
+void DGBaseState<dim,nstate,real,MeshType,sub_nstate>::reset_numerical_fluxes()
 {
     conv_num_flux_double  = NumericalFlux::NumericalFluxFactory<dim, nstate, real> ::create_convective_numerical_flux (all_parameters->conv_num_flux_type, all_parameters->pde_type, all_parameters->model_type, pde_physics_double);
     diss_num_flux_double  = NumericalFlux::NumericalFluxFactory<dim, nstate, real> ::create_dissipative_numerical_flux (all_parameters->diss_num_flux_type, pde_physics_double, artificial_dissip);
@@ -323,8 +340,8 @@ void DGBaseState<dim,nstate,real,MeshType>::reset_numerical_fluxes()
     diss_num_flux_rad_fad = NumericalFlux::NumericalFluxFactory<dim, nstate, RadFadType> ::create_dissipative_numerical_flux (all_parameters->diss_num_flux_type, pde_physics_rad_fad, artificial_dissip);
 }
 
-template <int dim, int nstate, typename real, typename MeshType>
-void DGBaseState<dim,nstate,real,MeshType>::set_physics(
+template <int dim, int nstate, typename real, typename MeshType, int sub_nstate>
+void DGBaseState<dim,nstate,real,MeshType,sub_nstate>::set_physics(
     std::shared_ptr< Physics::PhysicsBase<dim, nstate, real       > > pde_physics_double_input,
     std::shared_ptr< Physics::PhysicsBase<dim, nstate, FadType    > > pde_physics_fad_input,
     std::shared_ptr< Physics::PhysicsBase<dim, nstate, RadType    > > pde_physics_rad_input,
@@ -340,8 +357,8 @@ void DGBaseState<dim,nstate,real,MeshType>::set_physics(
     reset_numerical_fluxes();
 }
 
-template <int dim, int nstate, typename real, typename MeshType>
-void DGBaseState<dim,nstate,real,MeshType>::allocate_model_variables()
+template <int dim, int nstate, typename real, typename MeshType, int sub_nstate>
+void DGBaseState<dim,nstate,real,MeshType,sub_nstate>::allocate_model_variables()
 {
     // allocate all model variables for each ModelBase object
     // -- double
@@ -361,8 +378,8 @@ void DGBaseState<dim,nstate,real,MeshType>::allocate_model_variables()
     pde_model_rad_fad->cellwise_volume.reinit(this->triangulation->n_active_cells(), this->mpi_communicator);
 }
 
-template <int dim, int nstate, typename real, typename MeshType>
-void DGBaseState<dim,nstate,real,MeshType>::update_model_variables()
+template <int dim, int nstate, typename real, typename MeshType, int sub_nstate>
+void DGBaseState<dim,nstate,real,MeshType,sub_nstate>::update_model_variables()
 {
     // allocate/reinit the model variables
     allocate_model_variables();
@@ -434,14 +451,14 @@ void DGBaseState<dim,nstate,real,MeshType>::update_model_variables()
     pde_model_rad_fad->cellwise_volume.update_ghost_values();
 }
 
-template <int dim, int nstate, typename real, typename MeshType>
-void DGBaseState<dim,nstate,real,MeshType>::set_use_auxiliary_eq()
+template <int dim, int nstate, typename real, typename MeshType, int sub_nstate>
+void DGBaseState<dim,nstate,real,MeshType,sub_nstate>::set_use_auxiliary_eq()
 {
     this->use_auxiliary_eq = pde_physics_double->has_nonzero_diffusion;
 }
 
-template <int dim, int nstate, typename real, typename MeshType>
-real DGBaseState<dim,nstate,real,MeshType>::evaluate_CFL (
+template <int dim, int nstate, typename real, typename MeshType, int sub_nstate>
+real DGBaseState<dim,nstate,real,MeshType,sub_nstate>::evaluate_CFL (
     std::vector< std::array<real,nstate> > soln_at_q,
     const real artificial_dissipation,
     const real cell_diameter,
@@ -668,9 +685,11 @@ template <int dim, typename real, typename MeshType>
 template<typename DoFCellAccessorType1, typename DoFCellAccessorType2>
 void DGBase<dim,real,MeshType>::assemble_cell_residual (
     const DoFCellAccessorType1 &current_cell,
+    const DoFCellAccessorType1 &sub_current_cell,
     const DoFCellAccessorType2 &current_metric_cell,
     const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R,
     dealii::hp::FEValues<dim,dim>        &fe_values_collection_volume,
+    dealii::hp::FEValues<dim,dim>        &sub_fe_values_collection_volume,
     dealii::hp::FEFaceValues<dim,dim>    &fe_values_collection_face_int,
     dealii::hp::FEFaceValues<dim,dim>    &fe_values_collection_face_ext,
     dealii::hp::FESubfaceValues<dim,dim> &fe_values_collection_subface,
@@ -686,13 +705,17 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
     std::array<dealii::LinearAlgebra::distributed::Vector<double>,dim> &rhs_aux)
 {
     std::vector<dealii::types::global_dof_index> current_dofs_indices;
+    std::vector<dealii::types::global_dof_index> sub_current_dofs_indices;
     std::vector<dealii::types::global_dof_index> neighbor_dofs_indices;
 
     // Current reference element related to this physical cell
     const int i_fele = current_cell->active_fe_index();
+    const int sub_i_fele = sub_current_cell->active_fe_index();
 
     const dealii::FESystem<dim,dim> &current_fe_ref = fe_collection[i_fele];
     const unsigned int n_dofs_curr_cell = current_fe_ref.n_dofs_per_cell();
+    const dealii::FESystem<dim,dim> &sub_current_fe_ref = (*sub_fe_collection)[sub_i_fele];
+    const unsigned int sub_n_dofs_curr_cell = sub_current_fe_ref.n_dofs_per_cell();
 
     // Local vector contribution from each cell
     dealii::Vector<real> current_cell_rhs (n_dofs_curr_cell); // Defaults to 0.0 initialization
@@ -702,6 +725,8 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
     // Obtain the mapping from local dof indices to global dof indices
     current_dofs_indices.resize(n_dofs_curr_cell);
     current_cell->get_dof_indices (current_dofs_indices);
+    sub_current_dofs_indices.resize(sub_n_dofs_curr_cell);
+    sub_current_cell->get_dof_indices (sub_current_dofs_indices);
 
     const unsigned int grid_degree = this->high_order_grid->fe_system.tensor_degree();
     const unsigned int poly_degree = i_fele;
@@ -723,6 +748,7 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
     //}
 
     const dealii::types::global_dof_index current_cell_index = current_cell->active_cell_index();
+    const dealii::types::global_dof_index sub_current_cell_index = sub_current_cell->active_cell_index();
 
     std::array<std::vector<real>,dim> mapping_support_points;
     //if have source term need to store vol flux nodes.
@@ -746,8 +772,11 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
 
     assemble_volume_term_and_build_operators(
         current_cell,
+        sub_current_cell,
         current_cell_index,
+        sub_current_cell_index,
         current_dofs_indices,
+        sub_current_dofs_indices,
         current_metric_dofs_indices,
         poly_degree,
         grid_degree,
@@ -758,8 +787,10 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
         mapping_basis,
         mapping_support_points,
         fe_values_collection_volume,
+        sub_fe_values_collection_volume,
         fe_values_collection_volume_lagrange,
         current_fe_ref,
+        sub_current_fe_ref,
         current_cell_rhs,
         current_cell_rhs_aux,
         compute_auxiliary_right_hand_side,
@@ -1416,6 +1447,7 @@ void DGBase<dim,real,MeshType>::assemble_residual (const bool compute_dRdW, cons
     dealii::hp::MappingCollection<dim> mapping_collection(mapping);
 
     dealii::hp::FEValues<dim,dim>        fe_values_collection_volume (mapping_collection, fe_collection, volume_quadrature_collection, this->volume_update_flags); ///< FEValues of volume.
+    dealii::hp::FEValues<dim,dim>        sub_fe_values_collection_volume (mapping_collection, *sub_fe_collection, volume_quadrature_collection, this->volume_update_flags); ///< sub_FEValues of volume.
     dealii::hp::FEFaceValues<dim,dim>    fe_values_collection_face_int (mapping_collection, fe_collection, face_quadrature_collection, this->face_update_flags); ///< FEValues of interior face.
     dealii::hp::FEFaceValues<dim,dim>    fe_values_collection_face_ext (mapping_collection, fe_collection, face_quadrature_collection, this->neighbor_face_update_flags); ///< FEValues of exterior face.
     dealii::hp::FESubfaceValues<dim,dim> fe_values_collection_subface (mapping_collection, fe_collection, face_quadrature_collection, this->face_update_flags); ///< FEValues of subface.
@@ -1448,7 +1480,9 @@ void DGBase<dim,real,MeshType>::assemble_residual (const bool compute_dRdW, cons
         assemble_auxiliary_residual();
 
         auto metric_cell = high_order_grid->dof_handler_grid.begin_active();
-        for (auto soln_cell = dof_handler.begin_active(); soln_cell != dof_handler.end(); ++soln_cell, ++metric_cell) {
+        for (auto soln_cell = dof_handler.begin_active(), sub_soln_cell = sub_dof_handler->begin_active(); 
+                  soln_cell != dof_handler.end() && sub_soln_cell != sub_dof_handler->end(); 
+                  ++soln_cell, ++sub_soln_cell, ++metric_cell) {
         //for (auto cell = triangulation->begin_active(); cell != triangulation->end(); ++cell) {
             if (!soln_cell->is_locally_owned()) continue;
 
@@ -1466,9 +1500,11 @@ void DGBase<dim,real,MeshType>::assemble_residual (const bool compute_dRdW, cons
             // Add right-hand side contributions this cell can compute
             assemble_cell_residual (
                 soln_cell,
+                sub_soln_cell,
                 metric_cell,
                 compute_dRdW, compute_dRdX, compute_d2R,
                 fe_values_collection_volume,
+                sub_fe_values_collection_volume,
                 fe_values_collection_face_int,
                 fe_values_collection_face_ext,
                 fe_values_collection_subface,
@@ -3425,28 +3461,35 @@ void DGBase<dim,real,MeshType>::set_current_time(const real current_time_input)
 //     }
 // }
 
+template<int dim, typename real, typename MeshType>
+void DGBase<dim,real,MeshType>::import_sub_solution(const std::shared_ptr<DGBase<dim, double>> sub_dg_input){
+    this->sub_solution = sub_dg_input->solution;
+    this->sub_dof_handler = &(sub_dg_input->dof_handler);
+    this->sub_fe_collection = &(sub_dg_input->fe_collection);
+}
+
 template class DGBase <PHILIP_DIM, double, dealii::Triangulation<PHILIP_DIM>>;
 template class DGBase <PHILIP_DIM, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-template class DGBaseState <PHILIP_DIM, 1, double, dealii::Triangulation<PHILIP_DIM>>;
-template class DGBaseState <PHILIP_DIM, 1, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-template class DGBaseState <PHILIP_DIM, 2, double, dealii::Triangulation<PHILIP_DIM>>;
-template class DGBaseState <PHILIP_DIM, 2, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-template class DGBaseState <PHILIP_DIM, 3, double, dealii::Triangulation<PHILIP_DIM>>;
-template class DGBaseState <PHILIP_DIM, 3, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-template class DGBaseState <PHILIP_DIM, 4, double, dealii::Triangulation<PHILIP_DIM>>;
-template class DGBaseState <PHILIP_DIM, 4, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-template class DGBaseState <PHILIP_DIM, 5, double, dealii::Triangulation<PHILIP_DIM>>;
-template class DGBaseState <PHILIP_DIM, 5, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-template class DGBaseState <PHILIP_DIM, 6, double, dealii::Triangulation<PHILIP_DIM>>;
-template class DGBaseState <PHILIP_DIM, 6, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class DGBaseState <PHILIP_DIM, 1, double, dealii::Triangulation<PHILIP_DIM>,1>;
+template class DGBaseState <PHILIP_DIM, 1, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>,1>;
+template class DGBaseState <PHILIP_DIM, 2, double, dealii::Triangulation<PHILIP_DIM>,1>;
+template class DGBaseState <PHILIP_DIM, 2, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>,1>;
+template class DGBaseState <PHILIP_DIM, 3, double, dealii::Triangulation<PHILIP_DIM>,1>;
+template class DGBaseState <PHILIP_DIM, 3, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>,1>;
+template class DGBaseState <PHILIP_DIM, 4, double, dealii::Triangulation<PHILIP_DIM>,1>;
+template class DGBaseState <PHILIP_DIM, 4, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>,1>;
+template class DGBaseState <PHILIP_DIM, 5, double, dealii::Triangulation<PHILIP_DIM>,1>;
+template class DGBaseState <PHILIP_DIM, 5, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>,1>;
+template class DGBaseState <PHILIP_DIM, 6, double, dealii::Triangulation<PHILIP_DIM>,1>;
+template class DGBaseState <PHILIP_DIM, 6, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>,1>;
 #if PHILIP_DIM!=1
 template class DGBase <PHILIP_DIM, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
-template class DGBaseState <PHILIP_DIM, 1, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
-template class DGBaseState <PHILIP_DIM, 2, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
-template class DGBaseState <PHILIP_DIM, 3, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
-template class DGBaseState <PHILIP_DIM, 4, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
-template class DGBaseState <PHILIP_DIM, 5, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
-template class DGBaseState <PHILIP_DIM, 6, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+template class DGBaseState <PHILIP_DIM, 1, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>,1>;
+template class DGBaseState <PHILIP_DIM, 2, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>,1>;
+template class DGBaseState <PHILIP_DIM, 3, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>,1>;
+template class DGBaseState <PHILIP_DIM, 4, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>,1>;
+template class DGBaseState <PHILIP_DIM, 5, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>,1>;
+template class DGBaseState <PHILIP_DIM, 6, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>,1>;
 #endif
 
 template double DGBase<PHILIP_DIM,double,dealii::Triangulation<PHILIP_DIM>>::discontinuity_sensor<double>(const dealii::Quadrature<PHILIP_DIM> &volume_quadrature, const std::vector< double > &soln_coeff_high, const dealii::FiniteElement<PHILIP_DIM,PHILIP_DIM> &fe_high, const std::vector<double>  &jac_det);
@@ -3473,9 +3516,11 @@ template RadFadType DGBase<PHILIP_DIM,double,dealii::parallel::shared::Triangula
 template void
 DGBase<PHILIP_DIM,double,dealii::Triangulation<PHILIP_DIM>>::assemble_cell_residual<dealii::TriaActiveIterator<dealii::DoFCellAccessor<PHILIP_DIM, PHILIP_DIM, false>>,dealii::TriaActiveIterator<dealii::DoFCellAccessor<PHILIP_DIM, PHILIP_DIM, false>>>(
     const dealii::TriaActiveIterator<dealii::DoFCellAccessor<PHILIP_DIM, PHILIP_DIM, false>> &current_cell,
+    const dealii::TriaActiveIterator<dealii::DoFCellAccessor<PHILIP_DIM, PHILIP_DIM, false>> &sub_current_cell,
     const dealii::TriaActiveIterator<dealii::DoFCellAccessor<PHILIP_DIM, PHILIP_DIM, false>> &current_metric_cell,
     const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R,
     dealii::hp::FEValues<PHILIP_DIM,PHILIP_DIM>        &fe_values_collection_volume,
+    dealii::hp::FEValues<PHILIP_DIM,PHILIP_DIM>        &sub_fe_values_collection_volume,
     dealii::hp::FEFaceValues<PHILIP_DIM,PHILIP_DIM>    &fe_values_collection_face_int,
     dealii::hp::FEFaceValues<PHILIP_DIM,PHILIP_DIM>    &fe_values_collection_face_ext,
     dealii::hp::FESubfaceValues<PHILIP_DIM,PHILIP_DIM> &fe_values_collection_subface,
@@ -3493,9 +3538,11 @@ DGBase<PHILIP_DIM,double,dealii::Triangulation<PHILIP_DIM>>::assemble_cell_resid
 template void
 DGBase<PHILIP_DIM,double,dealii::parallel::distributed::Triangulation<PHILIP_DIM>>::assemble_cell_residual<dealii::TriaActiveIterator<dealii::DoFCellAccessor<PHILIP_DIM, PHILIP_DIM, false>>,dealii::TriaActiveIterator<dealii::DoFCellAccessor<PHILIP_DIM, PHILIP_DIM, false>>>(
     const dealii::TriaActiveIterator<dealii::DoFCellAccessor<PHILIP_DIM, PHILIP_DIM, false>> &current_cell,
+    const dealii::TriaActiveIterator<dealii::DoFCellAccessor<PHILIP_DIM, PHILIP_DIM, false>> &sub_current_cell,
     const dealii::TriaActiveIterator<dealii::DoFCellAccessor<PHILIP_DIM, PHILIP_DIM, false>> &current_metric_cell,
     const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R,
     dealii::hp::FEValues<PHILIP_DIM,PHILIP_DIM>        &fe_values_collection_volume,
+    dealii::hp::FEValues<PHILIP_DIM,PHILIP_DIM>        &sub_fe_values_collection_volume,
     dealii::hp::FEFaceValues<PHILIP_DIM,PHILIP_DIM>    &fe_values_collection_face_int,
     dealii::hp::FEFaceValues<PHILIP_DIM,PHILIP_DIM>    &fe_values_collection_face_ext,
     dealii::hp::FESubfaceValues<PHILIP_DIM,PHILIP_DIM> &fe_values_collection_subface,
@@ -3513,9 +3560,11 @@ DGBase<PHILIP_DIM,double,dealii::parallel::distributed::Triangulation<PHILIP_DIM
 template void
 DGBase<PHILIP_DIM,double,dealii::parallel::shared::Triangulation<PHILIP_DIM>>::assemble_cell_residual<dealii::TriaActiveIterator<dealii::DoFCellAccessor<PHILIP_DIM, PHILIP_DIM, false>>,dealii::TriaActiveIterator<dealii::DoFCellAccessor<PHILIP_DIM, PHILIP_DIM, false>>>(
     const dealii::TriaActiveIterator<dealii::DoFCellAccessor<PHILIP_DIM, PHILIP_DIM, false>> &current_cell,
+    const dealii::TriaActiveIterator<dealii::DoFCellAccessor<PHILIP_DIM, PHILIP_DIM, false>> &sub_current_cell,
     const dealii::TriaActiveIterator<dealii::DoFCellAccessor<PHILIP_DIM, PHILIP_DIM, false>> &current_metric_cell,
     const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R,
     dealii::hp::FEValues<PHILIP_DIM,PHILIP_DIM>        &fe_values_collection_volume,
+    dealii::hp::FEValues<PHILIP_DIM,PHILIP_DIM>        &sub_fe_values_collection_volume,
     dealii::hp::FEFaceValues<PHILIP_DIM,PHILIP_DIM>    &fe_values_collection_face_int,
     dealii::hp::FEFaceValues<PHILIP_DIM,PHILIP_DIM>    &fe_values_collection_face_ext,
     dealii::hp::FESubfaceValues<PHILIP_DIM,PHILIP_DIM> &fe_values_collection_subface,

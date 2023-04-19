@@ -66,7 +66,9 @@ void RungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::step_in_time (real dt, 
 
         } // u_n + dt * sum(a_ij * k_j) <explicit> + dt * a_ii * u^(i) <implicit>
         
-        compute_stored_quantities(i);
+        // If using the entropy formulation of RRK, solutions must be stored.
+        // Call store_stage_solutions before overwriting rk_stage with the derivative.
+        store_stage_solutions(i);
 
         this->dg->solution = this->rk_stage[i];
 

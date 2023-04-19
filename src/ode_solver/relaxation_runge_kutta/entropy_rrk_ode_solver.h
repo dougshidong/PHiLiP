@@ -31,7 +31,7 @@ protected:
 
     /// Update stored quantities at the current stage
     /** Stores solution at stage, rk_stage_solution */
-    void compute_stored_quantities(const int istage) override;
+    void store_stage_solutions(const int istage) override;
 
     /// Compute relaxation parameter numerically (i.e. if energy is NOT the entropy variable)
     /// See Ranocha 2020, Eq. 2.4

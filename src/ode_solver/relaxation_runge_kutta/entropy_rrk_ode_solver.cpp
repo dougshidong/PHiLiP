@@ -19,7 +19,7 @@ EntropyRRKODESolver<dim,real,n_rk_stages,MeshType>::EntropyRRKODESolver(std::sha
 }
 
 template <int dim, typename real, int n_rk_stages, typename MeshType>
-void EntropyRRKODESolver<dim,real,n_rk_stages,MeshType>::compute_stored_quantities(const int istage)
+void EntropyRRKODESolver<dim,real,n_rk_stages,MeshType>::store_stage_solutions(const int istage)
 {
     //Store the solution value
     //This function is called before rk_stage is modified to hold the time-derivative

@@ -47,8 +47,9 @@ protected:
     virtual void modify_time_step(real &dt); 
 
     /// Update stored quantities at the current stage
-    /** Empty in this class; included for relaxation runge-kutta use */
-    virtual void compute_stored_quantities(const int /*istage*/) {};
+    /** Empty in this class.
+     *  Included such that RRK can store the solution at each stage. */
+    virtual void store_stage_solutions(const int /*istage*/) {};
 
     /// Indicator for zero diagonal elements; used to toggle implicit solve.
     std::vector<bool> butcher_tableau_aii_is_zero;

@@ -85,8 +85,8 @@ void ImplicitODESolver<dim,real,MeshType>::evaluate_cfl (double step_length, dou
 
     if (abs(step_length) > 0.) {
        if (abs(new_residual) < abs(initial_residual) 
-           && step_length == 1. 
-           && abs(new_residual / initial_residual) <= 0.5 ) {
+           // && step_length == 1. 
+           /* && abs(new_residual / initial_residual) <= 0.5 */ ) {
            this->CFL_factor *= 2.;
        } else if (abs(step_length) < minimum_step_length) {
            this->CFL_factor *= 0.1;

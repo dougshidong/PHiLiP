@@ -867,6 +867,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_volume_term_strong(
     const unsigned int n_quad_pts  = this->volume_quadrature_collection[poly_degree].size();
     const unsigned int n_dofs_cell = this->fe_collection[poly_degree].dofs_per_cell;
     const unsigned int n_shape_fns = n_dofs_cell / nstate; 
+    const unsigned int n_quad_pts_1D  = this->oneD_quadrature_collection[poly_degree].size();
     const std::vector<double> &vol_quad_weights = this->volume_quadrature_collection[poly_degree].get_weights();
     const std::vector<double> &oneD_vol_quad_weights = this->oneD_quadrature_collection[poly_degree].get_weights();
 
@@ -952,7 +953,22 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_volume_term_strong(
     std::array<std::vector<real>,nstate> physical_source_at_q;
 
     // The matrix of two-pt fluxes for Hadamard products
-    std::array<dealii::Tensor<1,dim,dealii::FullMatrix<real>>,nstate> conv_ref_2pt_flux_at_q;
+   // std::array<dealii::Tensor<1,dim,dealii::FullMatrix<real>>,nstate> conv_ref_2pt_flux_at_q;
+    std::array<std::array<dealii::FullMatrix<real>,dim>,nstate> conv_ref_2pt_flux_at_q;
+    //Hadamard tensor-product sparsity pattern
+    std::vector<std::array<unsigned int,dim>> Hadamard_rows_sparsity(n_quad_pts * n_quad_pts_1D);//size n^{d+1}
+    std::vector<std::array<unsigned int,dim>> Hadamard_columns_sparsity(n_quad_pts * n_quad_pts_1D);
+    //allocate reference 2pt flux for Hadamard product
+    if (this->all_parameters->use_split_form || this->all_parameters->use_curvilinear_split_form){
+        for(int istate=0; istate<nstate; istate++){
+            for(int idim=0; idim<dim; idim++){
+                conv_ref_2pt_flux_at_q[istate][idim].reinit(n_quad_pts, n_quad_pts_1D);//size n^d x n
+            }
+        }
+        //extract the dof pairs that give non-zero entries for each direction
+        //to use the "sum-factorized" Hadamard product.
+        flux_basis.sum_factorized_Hadamard_sparsity_pattern(n_quad_pts_1D, n_quad_pts_1D, Hadamard_rows_sparsity, Hadamard_columns_sparsity);
+    }
 
     for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
         //extract soln and auxiliary soln at quad pt to be used in physics
@@ -979,33 +995,43 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_volume_term_strong(
         // If 2pt flux, transform to reference at construction to improve performance.
         // We technically use a REFERENCE 2pt flux for all entropy stable schemes.
         std::array<dealii::Tensor<1,dim,real>,nstate> conv_phys_flux;
-        std::array<dealii::Tensor<1,dim,real>,nstate> conv_phys_flux_2pt;
-        std::vector<std::array<dealii::Tensor<1,dim,real>,nstate>> conv_ref_flux_2pt(n_quad_pts);
         if (this->all_parameters->use_split_form || this->all_parameters->use_curvilinear_split_form){
-            for (unsigned int flux_basis=iquad; flux_basis<n_quad_pts; ++flux_basis) {
+            //loop over all the non-zero entries for "sum-factorized" Hadamard product that corresponds to the iquad.
+            for(unsigned int row_index = iquad * n_quad_pts_1D, column_index = 0; 
+                Hadamard_rows_sparsity[row_index][0] == iquad; 
+                row_index++, column_index++){
 
                 // Copy Metric Cofactor in a way can use for transforming Tensor Blocks to reference space
                 // The way it is stored in metric_operators is to use sum-factorization in each direction,
                 // but here it is cleaner to apply a reference transformation in each Tensor block returned by physics.
-                dealii::Tensor<2,dim,real> metric_cofactor_flux_basis;
-                for(int idim=0; idim<dim; idim++){
-                    for(int jdim=0; jdim<dim; jdim++){
-                        metric_cofactor_flux_basis[idim][jdim] = metric_oper.metric_cofactor_vol[idim][jdim][flux_basis];
-                    }
-                }
-                std::array<real,nstate> soln_state_flux_basis;
-                for(int istate=0; istate<nstate; istate++){
-                    soln_state_flux_basis[istate] = soln_at_q[istate][flux_basis];
-                }
-                //Compute the physical flux
-                conv_phys_flux_2pt = this->pde_physics_double->convective_numerical_split_flux(soln_state, soln_state_flux_basis);
+            
+                for(int ref_dim=0; ref_dim<dim; ref_dim++){
+                    const unsigned int flux_quad = Hadamard_columns_sparsity[row_index][ref_dim];//extract flux_quad pt that corresponds to a non-zero entry for Hadamard product.
 
-                for(int istate=0; istate<nstate; istate++){
-                    //For each state, transform the physical flux to a reference flux.
-                    metric_oper.transform_physical_to_reference(
-                        conv_phys_flux_2pt[istate],
-                        0.5*(metric_cofactor + metric_cofactor_flux_basis),
-                        conv_ref_flux_2pt[flux_basis][istate]);
+                    dealii::Tensor<2,dim,real> metric_cofactor_flux_basis;
+                    for(int idim=0; idim<dim; idim++){
+                        for(int jdim=0; jdim<dim; jdim++){
+                            metric_cofactor_flux_basis[idim][jdim] = metric_oper.metric_cofactor_vol[idim][jdim][flux_quad];
+                        }
+                    }
+                    std::array<real,nstate> soln_state_flux_basis;
+                    for(int istate=0; istate<nstate; istate++){
+                        soln_state_flux_basis[istate] = soln_at_q[istate][flux_quad];
+                    }
+                    //Compute the physical flux
+                    std::array<dealii::Tensor<1,dim,real>,nstate> conv_phys_flux_2pt;
+                    conv_phys_flux_2pt = this->pde_physics_double->convective_numerical_split_flux(soln_state, soln_state_flux_basis);
+                     
+                    for(int istate=0; istate<nstate; istate++){
+                        dealii::Tensor<1,dim,real> conv_ref_flux_2pt;
+                        //For each state, transform the physical flux to a reference flux.
+                        metric_oper.transform_physical_to_reference(
+                            conv_phys_flux_2pt[istate],
+                            0.5*(metric_cofactor + metric_cofactor_flux_basis),
+                            conv_ref_flux_2pt);
+                        //write into reference Hadamard flux matrix
+                        conv_ref_2pt_flux_at_q[istate][ref_dim][iquad][column_index] = conv_ref_flux_2pt[ref_dim];
+                    }
                 }
             }
         }
@@ -1073,16 +1099,11 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_volume_term_strong(
                 //allocate
                 if(iquad == 0){
                     conv_ref_flux_at_q[istate][idim].resize(n_quad_pts);
-                    conv_ref_2pt_flux_at_q[istate][idim].reinit(n_quad_pts, n_quad_pts);
                     diffusive_ref_flux_at_q[istate][idim].resize(n_quad_pts);
                 }
                 //write data
                 if (this->all_parameters->use_split_form || this->all_parameters->use_curvilinear_split_form){
-                    for (unsigned int flux_basis=iquad; flux_basis<n_quad_pts; ++flux_basis) {
-                        //Note that the 2pt flux matrix is symmetric so we only computed upper triangular
-                        conv_ref_2pt_flux_at_q[istate][idim][iquad][flux_basis] = conv_ref_flux_2pt[flux_basis][istate][idim];
-                        conv_ref_2pt_flux_at_q[istate][idim][flux_basis][iquad] = conv_ref_flux_2pt[flux_basis][istate][idim];
-                    }
+                    //Do nothing because written in a Hadamard product sum-factorized form above.
                 }
                 else{
                     conv_ref_flux_at_q[istate][idim][iquad] = conv_ref_flux[idim];
@@ -1105,6 +1126,18 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_volume_term_strong(
         }
     }
 
+    // Get a flux basis reference gradient operator in a sum-factorized Hadamard product sparse form. Then apply the divergence.
+    std::array<dealii::FullMatrix<real>,dim> flux_basis_stiffness_skew_symm_oper_sparse;
+    if (this->all_parameters->use_split_form || this->all_parameters->use_curvilinear_split_form){
+        for(int idim=0; idim<dim; idim++){
+            flux_basis_stiffness_skew_symm_oper_sparse[idim].reinit(n_quad_pts, n_quad_pts_1D);
+        }
+        flux_basis.sum_factorized_Hadamard_basis_assembly(n_quad_pts_1D, n_quad_pts_1D, 
+                                                          Hadamard_rows_sparsity, Hadamard_columns_sparsity,
+                                                          flux_basis_stiffness.oneD_skew_symm_vol_oper, 
+                                                          oneD_vol_quad_weights,
+                                                          flux_basis_stiffness_skew_symm_oper_sparse);
+    }
 
     //For each state we:
     //  1. Compute reference divergence.
@@ -1120,7 +1153,18 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_volume_term_strong(
             // Same as the volume term in Eq. (15) in Chan, Jesse. "Skew-symmetric entropy stable modal discontinuous Galerkin formulations." Journal of Scientific Computing 81.1 (2019): 459-485. but, 
             // where we use the reference skew-symmetric stiffness operator of the flux basis for the Q operator and the reference two-point flux as to make use of Alex's Hadamard product
             // sum-factorization type algorithm that exploits the structure of the flux basis in the reference space to have O(n^{d+1}).
-            flux_basis.divergence_two_pt_flux_Hadamard_product(conv_ref_2pt_flux_at_q[istate], conv_flux_divergence, oneD_vol_quad_weights, flux_basis_stiffness.oneD_skew_symm_vol_oper, 1.0);
+
+            for(int ref_dim=0; ref_dim<dim; ref_dim++){
+                dealii::FullMatrix<real> divergence_ref_flux_Hadamard_product(n_quad_pts, n_quad_pts_1D);
+                flux_basis.Hadamard_product(flux_basis_stiffness_skew_symm_oper_sparse[ref_dim], conv_ref_2pt_flux_at_q[istate][ref_dim], divergence_ref_flux_Hadamard_product); 
+                //Hadamard product times the vector of ones.
+                for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
+                    for(unsigned int iquad_1D=0; iquad_1D<n_quad_pts_1D; iquad_1D++){
+                        conv_flux_divergence[iquad] += divergence_ref_flux_Hadamard_product[iquad][iquad_1D];
+                    }
+                }
+            }
+            
         }
         else{
             //Reference divergence of the reference convective flux.

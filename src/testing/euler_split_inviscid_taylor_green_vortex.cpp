@@ -275,18 +275,18 @@ int EulerTaylorGreen<dim, nstate>::run_test() const
     const unsigned int poly_degree= all_parameters->flow_solver_param.poly_degree;
 
     // set the warped grid
-//    const unsigned int grid_degree = poly_degree;
-//    PHiLiP::Grids::nonsymmetric_curved_grid<dim,Triangulation>(*grid, n_refinements);
+    const unsigned int grid_degree = poly_degree;
+    PHiLiP::Grids::nonsymmetric_curved_grid<dim,Triangulation>(*grid, n_refinements);
 
-    const unsigned int grid_degree = 1;
-    const bool colorize = true;
-    dealii::GridGenerator::hyper_cube(*grid, left, right, colorize);
-    std::vector<dealii::GridTools::PeriodicFacePair<typename dealii::Triangulation<PHILIP_DIM>::cell_iterator> > matched_pairs;
-    dealii::GridTools::collect_periodic_faces(*grid,0,1,0,matched_pairs);
-    dealii::GridTools::collect_periodic_faces(*grid,2,3,1,matched_pairs);
-    dealii::GridTools::collect_periodic_faces(*grid,4,5,2,matched_pairs);
-    grid->add_periodicity(matched_pairs);
-    grid->refine_global(n_refinements);
+//    const unsigned int grid_degree = 1;
+//    const bool colorize = true;
+//    dealii::GridGenerator::hyper_cube(*grid, left, right, colorize);
+//    std::vector<dealii::GridTools::PeriodicFacePair<typename dealii::Triangulation<PHILIP_DIM>::cell_iterator> > matched_pairs;
+//    dealii::GridTools::collect_periodic_faces(*grid,0,1,0,matched_pairs);
+//    dealii::GridTools::collect_periodic_faces(*grid,2,3,1,matched_pairs);
+//    dealii::GridTools::collect_periodic_faces(*grid,4,5,2,matched_pairs);
+//    grid->add_periodicity(matched_pairs);
+//    grid->refine_global(n_refinements);
 
     // Create DG
     std::shared_ptr < PHiLiP::DGBase<dim, double> > dg = PHiLiP::DGFactory<dim,double>::create_discontinuous_galerkin(&all_parameters_new, poly_degree, poly_degree, grid_degree, grid);

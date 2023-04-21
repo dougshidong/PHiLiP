@@ -818,13 +818,17 @@ void SumFactorizedOperators<dim,n_faces>::sum_factorized_Hadamard_sparsity_patte
     std::vector<std::array<unsigned int,dim>> &columns)
 {
     //Note that for all directions, the rows vector should always be the same.
-    const unsigned int n_rows = rows_size;
-    const unsigned int n_col = columns_size;
+//    const unsigned int n_rows = rows_size;
+//    const unsigned int n_col = columns_size;
     if constexpr(dim == 1){
-        for(unsigned int irow=0; irow<n_rows; irow++){
-            rows[irow][0] = irow;
+        for(unsigned int irow=0; irow<rows_size; irow++){
+            for(unsigned int icol=0; icol<columns_size; icol++){
+                const unsigned int array_index = irow * rows_size + icol;
+                rows[array_index][0]    = irow;
+                columns[array_index][0] = icol;
+            }
         }
-        for(unsigned int icol=0; icol<n_col; icol++){
+        for(unsigned int icol=0; icol<columns_size; icol++){
             columns[icol][0] = icol;
         }
     }

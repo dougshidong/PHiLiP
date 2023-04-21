@@ -150,11 +150,14 @@ int main (int argc, char * argv[])
                 sol_1D[idim].reinit(n_dofs_dim, n_dofs_1D);
                 basis.Hadamard_product(basis_sparse[idim], sol_hat_sparse[idim],sol_1D[idim]);
             }
-            dealii::Vector<real> ones_1D(n_dofs_1D);
             std::array<dealii::Vector<real>,dim> sol_1D_sum;//solution of A*u with sum-factorization
             for(int idim=0; idim<dim; idim++){
                 sol_1D_sum[idim].reinit(n_dofs_dim);
-                sol_1D[idim].vmult(sol_1D_sum[idim],ones_1D);
+                for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
+                    for(unsigned int i=0; i<n_quad_pts_1D; i++){
+                        sol_1D_sum[idim][iquad] += sol_1D[idim][iquad][i];
+                    }
+                }
             }
 
 
@@ -188,11 +191,14 @@ int main (int argc, char * argv[])
                     }
                 }
             }
-            dealii::Vector<real> ones_dim(n_quad_pts);
             std::array<dealii::Vector<real>,dim> sol_dim_sum;//solution of A*u with sum-factorization
             for(int idim=0; idim<dim; idim++){
                 sol_dim_sum[idim].reinit(n_quad_pts);
-                sol_dim[idim].vmult(sol_dim_sum[idim],ones_dim);
+                for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
+                    for(unsigned int i=0; i<n_quad_pts; i++){
+                        sol_dim_sum[idim][iquad] += sol_dim[idim][iquad][i];
+                    }
+                }
             }
              
              

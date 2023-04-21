@@ -27,7 +27,7 @@ set conv_num_flux = two_point_flux
 
 set use_energy = true
 
-set flux_reconstruction = cDG
+set flux_reconstruction = cPlus
 
 set use_inverse_mass_on_the_fly = true
 

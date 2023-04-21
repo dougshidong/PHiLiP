@@ -895,38 +895,36 @@ void SumFactorizedOperators<dim,n_faces>::sum_factorized_Hadamard_basis_assembly
     }
     if constexpr(dim == 2){
         const unsigned int total_size = rows.size();
-        for(unsigned int index=0, counter=0,dof_counter=0; index<total_size; index++, counter++){
+        for(unsigned int index=0, counter=0; index<total_size; index++, counter++){
             if(counter == columns_size_1D){
                 counter = 0;
-                dof_counter++;
             }
             //direction 0
             basis_sparse[0][rows[index][0]][counter] = basis[rows[index][0]%rows_size_1D][columns[index][0]%columns_size_1D]
-                                                     * weights[columns[index][1]/columns_size_1D];//need to do the corrcet weights
+                                                     * weights[rows[index][1]/columns_size_1D];//need to do the corrcet weights
             //direction 1
             basis_sparse[1][rows[index][1]][counter] = basis[rows[index][1]/rows_size_1D][columns[index][1]/columns_size_1D]
-                                                     * weights[columns[index][0]%columns_size_1D];
+                                                     * weights[rows[index][0]%columns_size_1D];
         }
     }
     if constexpr(dim == 3){
         const unsigned int total_size = rows.size();
-        for(unsigned int index=0, counter=0,dof_counter=0; index<total_size; index++, counter++){
+        for(unsigned int index=0, counter=0; index<total_size; index++, counter++){
             if(counter == columns_size_1D){
                 counter = 0;
-                dof_counter++;
             }
             //direction 0
             basis_sparse[0][rows[index][0]][counter] = basis[rows[index][0]%rows_size_1D][columns[index][0]%columns_size_1D]
-                                                     * weights[columns[index][1]%columns_size_1D]//need to do the corrcet weights
-                                                     * weights[columns[index][2]%columns_size_1D];
+                                                     * weights[(rows[index][1]/columns_size_1D)%columns_size_1D]//need to do the corrcet weights
+                                                     * weights[rows[index][2]/columns_size_1D/columns_size_1D];
             //direction 1
             basis_sparse[1][rows[index][1]][counter] = basis[(rows[index][1]/rows_size_1D)%rows_size_1D][(columns[index][1]/columns_size_1D)%columns_size_1D]
-                                                     * weights[columns[index][0]%columns_size_1D]
-                                                     * weights[columns[index][2]%columns_size_1D];
+                                                     * weights[rows[index][0]%columns_size_1D]
+                                                     * weights[rows[index][2]/columns_size_1D/columns_size_1D];
             //direction 2
             basis_sparse[2][rows[index][2]][counter] = basis[rows[index][2]/rows_size_1D/rows_size_1D][columns[index][2]/columns_size_1D/columns_size_1D]
-                                                     * weights[columns[index][0]%columns_size_1D]
-                                                     * weights[columns[index][1]%columns_size_1D];
+                                                     * weights[rows[index][0]%columns_size_1D]
+                                                     * weights[(rows[index][1]/columns_size_1D)%columns_size_1D];
         }
     }
 

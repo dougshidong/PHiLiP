@@ -90,13 +90,17 @@ int main (int argc, char * argv[])
         const unsigned int n_quad_pts_1D = quad1D.size();
         const unsigned int n_quad_pts = pow(n_quad_pts_1D, dim);
 
-        std::vector<double> ones(n_quad_pts_1D, 1.0);//to be used as the weights
-
         for(unsigned int ielement=0; ielement<10; ielement++){//do several loops as if there were elements
 
             std::vector<real> sol_hat(n_dofs);
             for(unsigned int idof=0; idof<n_dofs; idof++){
                 sol_hat[idof] = sqrt( 1e-8 + static_cast <float> (rand()) / ( static_cast <float> (RAND_MAX/(30-1e-8))) );
+            }
+            std::vector<double> weights(n_quad_pts_1D);
+            dealii::FullMatrix<double> weights_mat(n_quad_pts_1D);
+            for(unsigned int idof=0; idof<n_quad_pts_1D; idof++){
+                weights[idof] = sqrt( 1e-4 + static_cast <float> (rand()) / ( static_cast <float> (RAND_MAX/(1.0-1e-4))) );
+                weights_mat[idof][idof] = weights[idof];
             }
             
             dealii::FullMatrix<real> sol_hat_mat(n_dofs);
@@ -137,7 +141,8 @@ int main (int argc, char * argv[])
             }
             basis.sum_factorized_Hadamard_basis_assembly(n_dofs_1D, n_dofs_1D, 
                                                          Hadamard_rows_sparsity, Hadamard_columns_sparsity,
-                                                         basis.oneD_grad_operator, ones,
+                                                         basis.oneD_grad_operator, 
+                                                         weights,
                                                          basis_sparse);
 
             std::array<dealii::FullMatrix<real>,dim> sol_1D;//solution of A*u with sum-factorization
@@ -166,13 +171,14 @@ int main (int argc, char * argv[])
                 basis_dim[idim].reinit(n_quad_pts,n_quad_pts);
                 sol_dim[idim].reinit(n_quad_pts,n_quad_pts);
                 if(idim==0){
-                    basis_dim[idim] = basis.tensor_product(basis.oneD_grad_operator, basis.oneD_vol_operator, basis.oneD_vol_operator);
+                   // basis_dim[idim] = basis.tensor_product(basis.oneD_grad_operator, basis.oneD_vol_operator, basis.oneD_vol_operator);
+                    basis_dim[idim] = basis.tensor_product(basis.oneD_grad_operator, weights_mat, weights_mat);
                 }
                 if(idim==1){
-                    basis_dim[idim] = basis.tensor_product(basis.oneD_vol_operator, basis.oneD_grad_operator, basis.oneD_vol_operator);
+                    basis_dim[idim] = basis.tensor_product(weights_mat, basis.oneD_grad_operator, weights_mat);
                 }
                 if(idim==2){
-                    basis_dim[idim] = basis.tensor_product(basis.oneD_vol_operator, basis.oneD_vol_operator, basis.oneD_grad_operator);
+                    basis_dim[idim] = basis.tensor_product(weights_mat, weights_mat, basis.oneD_grad_operator);
                 }
 
                 for(unsigned int idof=0; idof< n_quad_pts; idof++){

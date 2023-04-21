@@ -122,6 +122,7 @@ int main (int argc, char * argv[])
                     }
                 }
             }
+            std::cout<<std::endl<<std::endl;
             if(dim==3){
                 for(unsigned int idof=0; idof< n_dofs_1D * n_dofs_1D * n_dofs_1D; idof++){
                     for(unsigned int idof2=0; idof2< n_dofs_1D * n_dofs_1D * n_dofs_1D; idof2++){
@@ -181,6 +182,7 @@ int main (int argc, char * argv[])
                     }
                 }
             }
+            std::cout<<std::endl<<std::endl;
             if(dim==3){
                 for(unsigned int idof=0; idof< n_dofs_1D * n_dofs_1D * n_dofs_1D; idof++){
                     for(unsigned int idof2=0; idof2< n_dofs_1D * n_dofs_1D * n_dofs_1D; idof2++){
@@ -226,6 +228,7 @@ int main (int argc, char * argv[])
                         }
                     }
                 }
+                std::cout<<std::endl<<std::endl;
                 if(dim==3){
                     for(unsigned int idof=0; idof< n_dofs_1D * n_dofs_1D * n_dofs_1D; idof++){
                         for(unsigned int idof2=0; idof2< n_dofs_1D * n_dofs_1D * n_dofs_1D; idof2++){
@@ -234,6 +237,7 @@ int main (int argc, char * argv[])
                         }
                     }
                 }
+                std::cout<<std::endl<<std::endl;
                 if(ielement==0)
                     time_diff_dir3[poly_degree] = clock() - tfirst_dir3;
                 else

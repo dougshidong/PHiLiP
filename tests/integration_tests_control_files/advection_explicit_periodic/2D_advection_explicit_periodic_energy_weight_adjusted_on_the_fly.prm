@@ -11,6 +11,8 @@ set overintegration = 0
 
 set flux_nodes_type = GL
 
+set renumber_dof_handler_Cuthill_Mckee = false
+
 set use_split_form = false
 
 set use_curvilinear_split_form = true

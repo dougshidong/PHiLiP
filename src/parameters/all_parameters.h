@@ -117,6 +117,9 @@ public:
      */
     bool use_periodic_bc;
 
+    /// Flag to renumber dof_handler with Cuthill Mckee.
+    bool renumber_dof_handler_Cuthill_Mckee;
+
     ///Flag to use an energy monotonicity test
     bool use_energy;
 

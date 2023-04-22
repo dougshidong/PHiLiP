@@ -90,6 +90,10 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       dealii::Patterns::Bool(),
                       "Use other boundary conditions by default. Otherwise use periodic (for 1d burgers only");
 
+    prm.declare_entry("renumber_dof_handler_Cuthill_Mckee", "true",
+                      dealii::Patterns::Bool(),
+                      "Renumber dof handler with Cuthill-Mckee by default. Don't renumber dof_handler if false.");
+
     prm.declare_entry("use_energy", "false",
                       dealii::Patterns::Bool(),
                       "Not calculate energy by default. Otherwise, get energy per iteration.");
@@ -378,6 +382,7 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     use_curvilinear_split_form = prm.get_bool("use_curvilinear_split_form");
     use_weight_adjusted_mass = prm.get_bool("use_weight_adjusted_mass");
     use_periodic_bc = prm.get_bool("use_periodic_bc");
+    renumber_dof_handler_Cuthill_Mckee= prm.get_bool("renumber_dof_handler_Cuthill_Mckee");
     use_energy = prm.get_bool("use_energy");
     use_L2_norm = prm.get_bool("use_L2_norm");
     use_classical_FR = prm.get_bool("use_classical_FR");

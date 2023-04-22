@@ -2095,7 +2095,9 @@ void DGBase<dim,real,MeshType>::allocate_system (
 
     dof_handler.distribute_dofs(fe_collection);
     //This Cuthill_McKee renumbering for dof_handlr uses a lot of memory in 3D, is there another way?
-    dealii::DoFRenumbering::Cuthill_McKee(dof_handler,true);
+    if(all_parameters->renumber_dof_handler_Cuthill_Mckee){
+        dealii::DoFRenumbering::Cuthill_McKee(dof_handler,true);
+    }
     //const bool reversed_numbering = true;
     //dealii::DoFRenumbering::Cuthill_McKee(dof_handler, reversed_numbering);
     //const bool reversed_numbering = false;

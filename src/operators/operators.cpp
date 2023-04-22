@@ -818,8 +818,6 @@ void SumFactorizedOperators<dim,n_faces>::sum_factorized_Hadamard_sparsity_patte
     std::vector<std::array<unsigned int,dim>> &columns)
 {
     //Note that for all directions, the rows vector should always be the same.
-//    const unsigned int n_rows = rows_size;
-//    const unsigned int n_col = columns_size;
     if constexpr(dim == 1){
         for(unsigned int irow=0; irow<rows_size; irow++){
             for(unsigned int icol=0; icol<columns_size; icol++){
@@ -827,9 +825,6 @@ void SumFactorizedOperators<dim,n_faces>::sum_factorized_Hadamard_sparsity_patte
                 rows[array_index][0]    = irow;
                 columns[array_index][0] = icol;
             }
-        }
-        for(unsigned int icol=0; icol<columns_size; icol++){
-            columns[icol][0] = icol;
         }
     }
     if constexpr(dim == 2){
@@ -905,7 +900,7 @@ void SumFactorizedOperators<dim,n_faces>::sum_factorized_Hadamard_basis_assembly
             }
             //direction 0
             basis_sparse[0][rows[index][0]][counter] = basis[rows[index][0]%rows_size_1D][columns[index][0]%columns_size_1D]
-                                                     * weights[rows[index][1]/columns_size_1D];//need to do the corrcet weights
+                                                     * weights[rows[index][1]/columns_size_1D];
             //direction 1
             basis_sparse[1][rows[index][1]][counter] = basis[rows[index][1]/rows_size_1D][columns[index][1]/columns_size_1D]
                                                      * weights[rows[index][0]%columns_size_1D];
@@ -919,7 +914,7 @@ void SumFactorizedOperators<dim,n_faces>::sum_factorized_Hadamard_basis_assembly
             }
             //direction 0
             basis_sparse[0][rows[index][0]][counter] = basis[rows[index][0]%rows_size_1D][columns[index][0]%columns_size_1D]
-                                                     * weights[(rows[index][1]/columns_size_1D)%columns_size_1D]//need to do the corrcet weights
+                                                     * weights[(rows[index][1]/columns_size_1D)%columns_size_1D]
                                                      * weights[rows[index][2]/columns_size_1D/columns_size_1D];
             //direction 1
             basis_sparse[1][rows[index][1]][counter] = basis[(rows[index][1]/rows_size_1D)%rows_size_1D][(columns[index][1]/columns_size_1D)%columns_size_1D]
@@ -932,6 +927,139 @@ void SumFactorizedOperators<dim,n_faces>::sum_factorized_Hadamard_basis_assembly
         }
     }
 
+}
+template <int dim, int n_faces>  
+void SumFactorizedOperators<dim,n_faces>::sum_factorized_Hadamard_surface_sparsity_pattern(
+    const unsigned int rows_size,
+    const unsigned int columns_size,
+    std::vector<unsigned int> &rows,
+    std::vector<unsigned int> &columns,
+    const int dim_not_zero)
+{
+    //Note that for all directions, the rows vector should always be the same.
+//    const unsigned int n_rows = rows_size;
+//    const unsigned int n_col = columns_size;
+    if constexpr(dim == 1){
+        for(unsigned int irow=0; irow<rows_size; irow++){
+            for(unsigned int icol=0; icol<columns_size; icol++){
+                const unsigned int array_index = irow * columns_size + icol;
+                rows[array_index]    = irow;
+                columns[array_index] = icol;
+            }
+        }
+    }
+    if constexpr(dim == 2){
+        for(unsigned int idiag=0; idiag<rows_size; idiag++){
+            for(unsigned int jdiag=0; jdiag<columns_size; jdiag++){
+                const unsigned int array_index = idiag * columns_size + jdiag ;
+
+                const unsigned int row_index = idiag;
+                rows[array_index] = row_index;
+                //direction 0
+                if(dim_not_zero == 0){
+                    const unsigned int col_index_0 = idiag * columns_size;
+                    columns[array_index] = col_index_0 + jdiag;
+                }
+                //direction 1
+                if(dim_not_zero == 1){
+                    const unsigned int col_index_1 = jdiag * columns_size;
+                    columns[array_index] = col_index_1 + idiag;
+                }
+            }
+        }
+    }
+    if constexpr(dim == 3){
+        for(unsigned int idiag=0; idiag<columns_size; idiag++){
+            for(unsigned int jdiag=0; jdiag<columns_size; jdiag++){
+                for(unsigned int kdiag=0; kdiag<columns_size; kdiag++){
+                    const unsigned int array_index = idiag * columns_size * columns_size 
+                                                   + jdiag * columns_size
+                                                   + kdiag;
+                    const unsigned int row_index = idiag * columns_size + jdiag;
+                    rows[array_index] = row_index;
+                    //direction 0
+                    if(dim_not_zero == 0){
+                        const unsigned int col_index_0 = idiag * columns_size * columns_size
+                                                       + jdiag * columns_size;
+                        columns[array_index] = col_index_0 + kdiag;
+                    }
+                    //direction 1
+                    if(dim_not_zero == 1){
+                        const unsigned int col_index_1 = kdiag * columns_size;
+                        columns[array_index] = col_index_1 + jdiag + idiag * columns_size * columns_size;
+                    }
+                    //direction 2
+                    if(dim_not_zero == 2){
+                        const unsigned int col_index_2 = kdiag * columns_size * columns_size;
+                        columns[array_index] = col_index_2 + jdiag + idiag * columns_size;
+                    }
+                }
+            }
+        }
+    }
+}
+template <int dim, int n_faces>  
+void SumFactorizedOperators<dim,n_faces>::sum_factorized_Hadamard_surface_basis_assembly(
+    const unsigned int rows_size,
+    const unsigned int columns_size_1D,
+    const std::vector<unsigned int> &rows,
+    const std::vector<unsigned int> &columns,
+    const dealii::FullMatrix<double> &basis,
+    const std::vector<double> &weights,
+    dealii::FullMatrix<double> &basis_sparse,
+    const int dim_not_zero)
+{
+    if constexpr(dim == 1){
+        for(unsigned int irow=0; irow<rows_size; irow++){
+            for(unsigned int icol=0; icol<columns_size_1D; icol++){
+                basis_sparse[irow][icol] = basis[irow][icol];
+            }
+        }
+    }
+    if constexpr(dim == 2){
+        const unsigned int total_size = rows.size();
+        for(unsigned int index=0, counter=0; index<total_size; index++, counter++){
+            if(counter == columns_size_1D){
+                counter = 0;
+            }
+            //direction 0
+            if(dim_not_zero == 0){
+                basis_sparse[rows[index]][counter] = basis[0][columns[index]%columns_size_1D]//oneD surf basis only 1 point
+                                                         * weights[rows[index]%columns_size_1D];
+            }
+            //direction 1
+            if(dim_not_zero == 1){
+                basis_sparse[rows[index]][counter] = basis[0][columns[index]/columns_size_1D]
+                                                         * weights[rows[index]%columns_size_1D];
+            }
+        }
+    }
+    if constexpr(dim == 3){
+        const unsigned int total_size = rows.size();
+        for(unsigned int index=0, counter=0; index<total_size; index++, counter++){
+            if(counter == columns_size_1D){
+                counter = 0;
+            }
+            //direction 0
+            if(dim_not_zero == 0){
+                basis_sparse[rows[index]][counter] = basis[0][columns[index]%columns_size_1D]//oneD surf basis only 1 point
+                                                   * weights[rows[index]%columns_size_1D]
+                                                   * weights[rows[index]/columns_size_1D];
+            }
+            //direction 1
+            if(dim_not_zero == 1){
+                basis_sparse[rows[index]][counter] = basis[0][(columns[index]/columns_size_1D)%columns_size_1D]
+                                                   * weights[rows[index]%columns_size_1D]
+                                                   * weights[rows[index]/columns_size_1D];
+            }
+            //direction 2
+            if(dim_not_zero == 2){
+                basis_sparse[rows[index]][counter] = basis[0][columns[index]/columns_size_1D/columns_size_1D]
+                                                   * weights[rows[index]%columns_size_1D]
+                                                   * weights[rows[index]/columns_size_1D];
+            }
+        }
+    }
 }
 
 /*******************************************

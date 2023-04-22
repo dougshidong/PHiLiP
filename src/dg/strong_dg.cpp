@@ -998,8 +998,14 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_volume_term_strong(
         if (this->all_parameters->use_split_form || this->all_parameters->use_curvilinear_split_form){
             //loop over all the non-zero entries for "sum-factorized" Hadamard product that corresponds to the iquad.
             for(unsigned int row_index = iquad * n_quad_pts_1D, column_index = 0; 
-                Hadamard_rows_sparsity[row_index][0] == iquad; 
+               // Hadamard_rows_sparsity[row_index][0] == iquad; 
+                column_index < n_quad_pts_1D; 
                 row_index++, column_index++){
+
+                if(Hadamard_rows_sparsity[row_index][0] != iquad){
+                    pcout<<"The volume Hadamard rows sparsity pattern does not match."<<std::endl;
+                    std::abort();
+                }
 
                 // Copy Metric Cofactor in a way can use for transforming Tensor Blocks to reference space
                 // The way it is stored in metric_operators is to use sum-factorization in each direction,
@@ -1531,6 +1537,8 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_strong(
 
     const unsigned int n_quad_pts_vol_int  = this->volume_quadrature_collection[poly_degree_int].size();
     const unsigned int n_quad_pts_vol_ext  = this->volume_quadrature_collection[poly_degree_ext].size();
+    const unsigned int n_quad_pts_1D_int  = this->oneD_quadrature_collection[poly_degree_int].size();
+    const unsigned int n_quad_pts_1D_ext  = this->oneD_quadrature_collection[poly_degree_ext].size();
 
     const unsigned int n_dofs_int = this->fe_collection[poly_degree_int].dofs_per_cell;
     const unsigned int n_dofs_ext = this->fe_collection[poly_degree_ext].dofs_per_cell;
@@ -1784,21 +1792,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_strong(
     // the outward reference normal dircetion.
     const dealii::Tensor<1,dim,double> unit_ref_normal_int = dealii::GeometryInfo<dim>::unit_normal_vector[iface];
     // Extract the reference direction that is outward facing on the facet.
-    int dim_not_zero_probe;
-    if constexpr(dim==1){
-      dim_not_zero_probe = abs(unit_ref_normal_int[0]) >= 1e-11 ? 0 : 1000;
-    }else if constexpr(dim==2){
-      dim_not_zero_probe = abs(unit_ref_normal_int[0]) >= 1e-11 ? 0 
-                     : (abs(unit_ref_normal_int[1]) >= 1e-11 ? 1 : 1000);
-    }else if constexpr(dim==3){
-      dim_not_zero_probe = abs(unit_ref_normal_int[0]) >= 1e-11 ? 0 
-                         : (abs(unit_ref_normal_int[1]) >= 1e-11 ? 1 
-                         : (abs(unit_ref_normal_int[2]) >= 1e-11 ? 2 : 1000));
-    }else{
-      pcout<<"Error with normals. Assume dim <=3. Aborting..."<<std::endl;
-      std::abort();
-    }
-    const int dim_not_zero = dim_not_zero_probe;
+    const int dim_not_zero = iface / 2;//reference direction of face integer division
     if(dim_not_zero == 1000){
         pcout<<"Error with normals. Normal direction is not defined. Aborting..."<<std::endl;
         std::abort();
@@ -1907,6 +1901,20 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_strong(
                                                      flux_basis_ext.oneD_vol_operator);
     }
 
+    //get the surface-volume sparsity pattern for a "sum-factorized" Hadamard product only computing terms needed for the operation.
+    const unsigned int row_size_int = n_face_quad_pts * n_quad_pts_1D_int;
+    const unsigned int col_size_int = n_face_quad_pts * n_quad_pts_1D_int;
+    std::vector<unsigned int> Hadamard_rows_sparsity_int(row_size_int);
+    std::vector<unsigned int> Hadamard_columns_sparsity_int(col_size_int);
+    const unsigned int row_size_ext = n_face_quad_pts * n_quad_pts_1D_ext;
+    const unsigned int col_size_ext = n_face_quad_pts * n_quad_pts_1D_ext;
+    std::vector<unsigned int> Hadamard_rows_sparsity_ext(row_size_ext);
+    std::vector<unsigned int> Hadamard_columns_sparsity_ext(col_size_ext);
+    if(this->all_parameters->use_split_form || this->all_parameters->use_curvilinear_split_form){
+        flux_basis_int.sum_factorized_Hadamard_surface_sparsity_pattern(n_face_quad_pts, n_quad_pts_1D_int, Hadamard_rows_sparsity_int, Hadamard_columns_sparsity_int, dim_not_zero);
+        flux_basis_ext.sum_factorized_Hadamard_surface_sparsity_pattern(n_face_quad_pts, n_quad_pts_1D_ext, Hadamard_rows_sparsity_ext, Hadamard_columns_sparsity_ext, dim_not_zero);
+    }
+
     std::array<std::vector<real>,nstate> surf_vol_ref_2pt_flux_interp_surf_int;
     std::array<std::vector<real>,nstate> surf_vol_ref_2pt_flux_interp_surf_ext;
     std::array<std::vector<real>,nstate> surf_vol_ref_2pt_flux_interp_vol_int;
@@ -1915,9 +1923,10 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_strong(
         //get surface-volume hybrid 2pt flux from Eq.(15) in Chan, Jesse. "Skew-symmetric entropy stable modal discontinuous Galerkin formulations." Journal of Scientific Computing 81.1 (2019): 459-485.
         std::array<dealii::FullMatrix<real>,nstate> surface_ref_2pt_flux_int;
         std::array<dealii::FullMatrix<real>,nstate> surface_ref_2pt_flux_ext;
+        //make use of the sparsity pattern from above to assemble only n^d non-zero entries without ever allocating not computing zeros.
         for(int istate=0; istate<nstate; istate++){
-            surface_ref_2pt_flux_int[istate].reinit(n_face_quad_pts, n_quad_pts_vol_int);
-            surface_ref_2pt_flux_ext[istate].reinit(n_face_quad_pts, n_quad_pts_vol_ext);
+            surface_ref_2pt_flux_int[istate].reinit(n_face_quad_pts, n_quad_pts_1D_int);
+            surface_ref_2pt_flux_ext[istate].reinit(n_face_quad_pts, n_quad_pts_1D_ext);
         }
         for(unsigned int iquad_face=0; iquad_face<n_face_quad_pts; iquad_face++){
             dealii::Tensor<2,dim,real> metric_cofactor_surf;
@@ -1939,7 +1948,17 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_strong(
             std::array<real,nstate> soln_state_face_ext;
             soln_state_face_ext = this->pde_physics_double->compute_conservative_variables_from_entropy_variables (entropy_var_face_ext);
 
-            for (unsigned int iquad_vol=0; iquad_vol<n_quad_pts_vol_int; ++iquad_vol) {
+            //only do the n_quad_1D vol points that give non-zero entries from Hadamard product.
+            for(unsigned int row_index = iquad_face * n_quad_pts_1D_int, column_index = 0; 
+                column_index < n_quad_pts_1D_int;
+                row_index++, column_index++){
+
+                if(Hadamard_rows_sparsity_int[row_index] != iquad_face){
+                    pcout<<"The interior Hadamard rows sparsity pattern does not match."<<std::endl;
+                    std::abort();
+                }
+
+                const unsigned int iquad_vol = Hadamard_columns_sparsity_int[row_index];//extract flux_quad pt that corresponds to a non-zero entry for Hadamard product.
                 // Copy Metric Cofactor in a way can use for transforming Tensor Blocks to reference space
                 // The way it is stored in metric_operators is to use sum-factorization in each direction,
                 // but here it is cleaner to apply a reference transformation in each Tensor block returned by physics.
@@ -1968,10 +1987,19 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_strong(
                         0.5*(metric_cofactor_surf + metric_cofactor_vol_int),
                         conv_ref_flux_2pt);
                     //only store the dim not zero in reference space bc dot product with unit ref normal later.
-                    surface_ref_2pt_flux_int[istate][iquad_face][iquad_vol] = conv_ref_flux_2pt[dim_not_zero];
+                    surface_ref_2pt_flux_int[istate][iquad_face][column_index] = conv_ref_flux_2pt[dim_not_zero];
                 }
             }
-            for (unsigned int iquad_vol=0; iquad_vol<n_quad_pts_vol_ext; ++iquad_vol) {
+            for(unsigned int row_index = iquad_face * n_quad_pts_1D_ext, column_index = 0; 
+                column_index < n_quad_pts_1D_ext;
+                row_index++, column_index++){
+
+                if(Hadamard_rows_sparsity_ext[row_index] != iquad_face){
+                    pcout<<"The exterior Hadamard rows sparsity pattern does not match."<<std::endl;
+                    std::abort();
+                }
+
+                const unsigned int iquad_vol = Hadamard_columns_sparsity_ext[row_index];//extract flux_quad pt that corresponds to a non-zero entry for Hadamard product.
                 // Copy Metric Cofactor in a way can use for transforming Tensor Blocks to reference space
                 // The way it is stored in metric_operators is to use sum-factorization in each direction,
                 // but here it is cleaner to apply a reference transformation in each Tensor block returned by physics.
@@ -1996,39 +2024,73 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_strong(
                         0.5*(metric_cofactor_surf + metric_cofactor_vol_ext),
                         conv_ref_flux_2pt);
                     //only store the dim not zero in reference space bc dot product with unit ref normal later.
-                    surface_ref_2pt_flux_ext[istate][iquad_face][iquad_vol] = conv_ref_flux_2pt[dim_not_zero];
+                    surface_ref_2pt_flux_ext[istate][iquad_face][column_index] = conv_ref_flux_2pt[dim_not_zero];
                 }
             }
         }
 
+        //get the surface basis operator from Hadamard sparsity pattern
+        //to be applied at n^d operations (on the face so n^{d+1-1}=n^d flops)
+        //also only allocates n^d terms.
+        const int iface_1D = iface % 2;//the reference face number
+        const std::vector<double> &oneD_quad_weights_vol_int = this->oneD_quadrature_collection[poly_degree_int].get_weights();
+        dealii::FullMatrix<real> surf_oper_sparse_int(n_face_quad_pts, n_quad_pts_1D_int);
+        flux_basis_int.sum_factorized_Hadamard_surface_basis_assembly(n_face_quad_pts, n_quad_pts_1D_int, 
+                                                                      Hadamard_rows_sparsity_int, Hadamard_columns_sparsity_int,
+                                                                      flux_basis_int.oneD_surf_operator[iface_1D], 
+                                                                      oneD_quad_weights_vol_int,
+                                                                      surf_oper_sparse_int,
+                                                                      dim_not_zero);
+        const int neighbor_iface_1D = neighbor_iface % 2;//the reference neighbour face number
+        const std::vector<double> &oneD_quad_weights_vol_ext = this->oneD_quadrature_collection[poly_degree_ext].get_weights();
+        dealii::FullMatrix<real> surf_oper_sparse_ext(n_face_quad_pts, n_quad_pts_1D_ext);
+        flux_basis_ext.sum_factorized_Hadamard_surface_basis_assembly(n_face_quad_pts, n_quad_pts_1D_ext, 
+                                                                      Hadamard_rows_sparsity_ext, Hadamard_columns_sparsity_ext,
+                                                                      flux_basis_ext.oneD_surf_operator[neighbor_iface_1D], 
+                                                                      oneD_quad_weights_vol_ext,
+                                                                      surf_oper_sparse_ext,
+                                                                      dim_not_zero);
+
         // Apply the surface Hadamard products and multiply with vector of ones for both off diagonal terms in
         // Eq.(15) in Chan, Jesse. "Skew-symmetric entropy stable modal discontinuous Galerkin formulations." Journal of Scientific Computing 81.1 (2019): 459-485.
-        const std::vector<double> &oneD_quad_weights_vol_int = this->oneD_quadrature_collection[poly_degree_int].get_weights();
-        const std::vector<double> &oneD_quad_weights_vol_ext = this->oneD_quadrature_collection[poly_degree_ext].get_weights();
         for(int istate=0; istate<nstate; istate++){
+            //first apply Hadamard product with the structure made above.
+            dealii::FullMatrix<real> surface_ref_2pt_flux_int_Hadamard_with_surf_oper(n_face_quad_pts, n_quad_pts_1D_int);
+            flux_basis_int.Hadamard_product(surf_oper_sparse_int, 
+                                            surface_ref_2pt_flux_int[istate], 
+                                            surface_ref_2pt_flux_int_Hadamard_with_surf_oper);
+            dealii::FullMatrix<real> surface_ref_2pt_flux_ext_Hadamard_with_surf_oper(n_face_quad_pts, n_quad_pts_1D_ext);
+            flux_basis_ext.Hadamard_product(surf_oper_sparse_ext, 
+                                            surface_ref_2pt_flux_ext[istate], 
+                                            surface_ref_2pt_flux_ext_Hadamard_with_surf_oper);
+            //sum with reference unit normal
             surf_vol_ref_2pt_flux_interp_surf_int[istate].resize(n_face_quad_pts);
             surf_vol_ref_2pt_flux_interp_surf_ext[istate].resize(n_face_quad_pts);
             surf_vol_ref_2pt_flux_interp_vol_int[istate].resize(n_quad_pts_vol_int);
             surf_vol_ref_2pt_flux_interp_vol_ext[istate].resize(n_quad_pts_vol_ext);
          
-            flux_basis_int.surface_two_pt_flux_Hadamard_product(surface_ref_2pt_flux_int[istate], 
-                                                                surf_vol_ref_2pt_flux_interp_vol_int[istate], 
-                                                                surf_vol_ref_2pt_flux_interp_surf_int[istate], 
-                                                                oneD_quad_weights_vol_int, 
-                                                                flux_basis_int.oneD_surf_operator, 
-                                                                iface,
-                                                                dim_not_zero, 
-                                                                unit_ref_normal_int[dim_not_zero]);
-            flux_basis_ext.surface_two_pt_flux_Hadamard_product(surface_ref_2pt_flux_ext[istate], 
-                                                                surf_vol_ref_2pt_flux_interp_vol_ext[istate], 
-                                                                surf_vol_ref_2pt_flux_interp_surf_ext[istate], 
-                                                                oneD_quad_weights_vol_ext, 
-                                                                flux_basis_ext.oneD_surf_operator, 
-                                                                neighbor_iface,
-                                                                dim_not_zero, 
-                                                                -unit_ref_normal_int[dim_not_zero]);
+            for(unsigned int iface_quad=0; iface_quad<n_face_quad_pts; iface_quad++){
+                for(unsigned int iquad_int=0; iquad_int<n_quad_pts_1D_int; iquad_int++){
+                    surf_vol_ref_2pt_flux_interp_surf_int[istate][iface_quad] 
+                        -= surface_ref_2pt_flux_int_Hadamard_with_surf_oper[iface_quad][iquad_int]
+                        * unit_ref_normal_int[dim_not_zero];
+                    const unsigned int column_index = iface_quad * n_quad_pts_1D_int + iquad_int;
+                    surf_vol_ref_2pt_flux_interp_vol_int[istate][Hadamard_columns_sparsity_int[column_index]] 
+                        += surface_ref_2pt_flux_int_Hadamard_with_surf_oper[iface_quad][iquad_int]
+                        * unit_ref_normal_int[dim_not_zero];
+                }
+                for(unsigned int iquad_ext=0; iquad_ext<n_quad_pts_1D_ext; iquad_ext++){
+                    surf_vol_ref_2pt_flux_interp_surf_ext[istate][iface_quad] 
+                        -= surface_ref_2pt_flux_ext_Hadamard_with_surf_oper[iface_quad][iquad_ext]
+                        * (-unit_ref_normal_int[dim_not_zero]);
+                    const unsigned int column_index = iface_quad * n_quad_pts_1D_ext + iquad_ext;
+                    surf_vol_ref_2pt_flux_interp_vol_ext[istate][Hadamard_columns_sparsity_ext[column_index]] 
+                        += surface_ref_2pt_flux_ext_Hadamard_with_surf_oper[iface_quad][iquad_ext]
+                        * (-unit_ref_normal_int[dim_not_zero]);
+                }
+            }
         }
-    }
+    }//end of if split form or curvilinear split form
 
 
 

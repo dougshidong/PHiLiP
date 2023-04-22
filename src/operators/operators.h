@@ -273,6 +273,25 @@ public:
         const std::vector<double> &weights,//Diagonal weights
         std::array<dealii::FullMatrix<double>,dim> &basis_sparse);//Sparse basis
 
+    /// Computes the rows and columns vectors with non-zero indices for surface sum-factorized Hadamard products.
+    void sum_factorized_Hadamard_surface_sparsity_pattern(
+        const unsigned int rows_size,
+        const unsigned int columns_size,
+        std::vector<unsigned int> &rows,//vector of non-zero row indices
+        std::vector<unsigned int> &columns,//vector of non-zero column indices
+        const int dim_not_zero);//ref direction face is on
+
+    /// Constructs the \f$ n^{d-1} \times n\f$ basis operator storing all non-zero entries for a "sum-factorized" surface Hadamard product.
+    void sum_factorized_Hadamard_surface_basis_assembly(
+        const unsigned int rows_size,
+        const unsigned int columns_size_1D,
+        const std::vector<unsigned int> &rows,//vector of non-zero row indices
+        const std::vector<unsigned int> &columns,//vector of non-zero column indices
+        const dealii::FullMatrix<double> &basis,//1D dense basis
+        const std::vector<double> &weights,//Diagonal weights
+        dealii::FullMatrix<double> &basis_sparse,//Sparse basis
+        const int dim_not_zero);//ref direction face is on
+
     /// Apply the matrix vector operation using the 1D operator in each direction
     /** This is for the case where the operator of size dim is the dyadic product of
     * the same 1D operator in each direction

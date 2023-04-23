@@ -1,0 +1,7 @@
+set(TEST_OUTPUT_DIR ${CMAKE_CURRENT_BINARY_DIR})                                                                     
+configure_file(3D_TGV_scaling_split_form.prm 3D_TGV_scaling_split_form.prm COPYONLY)                                                                                                                                            
+add_test(                                                                                                                                                                                                                                 
+ NAME MPI_3D_TAYLOR_GREEN_SCALING_SPLIT_FORM                                                                                                                                                                                    
+ COMMAND mpirun -n ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_3D -i ${CMAKE_CURRENT_BINARY_DIR}/3D_TGV_scaling_split_form.prm                                                                                                                                                                                                                                  
+  WORKING_DIRECTORY ${TEST_OUTPUT_DIR}                                                                                                                                                                                                      
+)                                                                                                                       

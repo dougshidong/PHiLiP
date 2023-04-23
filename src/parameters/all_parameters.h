@@ -162,6 +162,7 @@ public:
         euler_vortex,
         euler_entropy_waves,
         euler_split_taylor_green,
+        taylor_green_scaling,
         burgers_split_form,
         optimization_inverse_manufactured,
         euler_bump_optimization,

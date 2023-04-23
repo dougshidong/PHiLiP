@@ -222,7 +222,6 @@ double EulerTaylorGreenScaling<dim, nstate>::get_timestep(std::shared_ptr < DGBa
     std::shared_ptr < Physics::PhysicsBase<dim, nstate, double > > pde_physics_double  = PHiLiP::Physics::PhysicsFactory<dim,nstate,double>::create_Physics(dg->all_parameters);
     for (auto cell = dg->dof_handler.begin_active(); cell!=dg->dof_handler.end(); ++cell) {
         if (!cell->is_locally_owned()) continue;
-
         cell->get_dof_indices (dofs_indices1);
         std::vector< std::array<double,nstate>> soln_at_q(n_quad_pts);
         for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
@@ -287,7 +286,7 @@ int EulerTaylorGreenScaling<dim, nstate>::run_test() const
 
     const unsigned int poly_degree_start= all_parameters->flow_solver_param.poly_degree;
 
-    const unsigned int poly_degree_end = 5;
+    const unsigned int poly_degree_end = 11;//poly_degree=10 is as high can go locally
     std::array<clock_t,poly_degree_end> time_to_run;
     std::array<clock_t,poly_degree_end> time_to_run_mpi;
 
@@ -295,6 +294,7 @@ int EulerTaylorGreenScaling<dim, nstate>::run_test() const
 
         // set the warped grid
         const unsigned int grid_degree = poly_degree;
+     //   const unsigned int grid_degree = 1;
          
 //        const unsigned int grid_degree = 1;
         if(all_parameters->overintegration == 100){
@@ -305,25 +305,33 @@ int EulerTaylorGreenScaling<dim, nstate>::run_test() const
         std::shared_ptr < PHiLiP::DGBase<dim, double> > dg = PHiLiP::DGFactory<dim,double>::create_discontinuous_galerkin(&all_parameters_new, poly_degree, poly_degree, grid_degree, grid);
         dg->allocate_system (false,false,false);
          
+        MPI_Barrier(MPI_COMM_WORLD);
         std::cout << "Implement initial conditions" << std::endl;
+        MPI_Barrier(MPI_COMM_WORLD);
         std::shared_ptr< InitialConditionFunction<dim,nstate,double> > initial_condition_function = 
                     InitialConditionFactory<dim,nstate,double>::create_InitialConditionFunction(&all_parameters_new);
         SetInitialCondition<dim,nstate,double>::set_initial_condition(initial_condition_function, dg, &all_parameters_new);
+        std::cout << "Implemented initial conditions" << std::endl;
+        MPI_Barrier(MPI_COMM_WORLD);
          
         const unsigned int n_global_active_cells2 = grid->n_global_active_cells();
         double delta_x = (right-left)/pow(n_global_active_cells2,1.0/dim)/(poly_degree+1.0);
         pcout<<" delta x "<<delta_x<<std::endl;
          
         all_parameters_new.ode_solver_param.initial_time_step =  get_timestep(dg,poly_degree,delta_x);
+        std::cout << "got timestep, about to create ode solver" << std::endl;
+        MPI_Barrier(MPI_COMM_WORLD);
          
-        std::cout << "creating ODE solver" << std::endl;
+//        std::cout << "creating ODE solver" << std::endl;
         std::shared_ptr<ODE::ODESolverBase<dim, double>> ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
+        MPI_Barrier(MPI_COMM_WORLD);
         std::cout << "ODE solver successfully created" << std::endl;
        // const double finalTime = all_parameters_new.flow_solver_param.final_time;
        const double time_step_start = get_timestep(dg,poly_degree,delta_x);
         const double dt_start = dealii::Utilities::MPI::min(time_step_start, mpi_communicator);
        // const double finalTime = dt_start;
         const double finalTime = 100.0 * dt_start;
+      //  const double finalTime = 10.0 * dt_start;
          
         std::cout << " number dofs " << dg->dof_handler.n_dofs()<<std::endl;
         std::cout << "preparing to advance solution in time" << std::endl;
@@ -360,6 +368,7 @@ int EulerTaylorGreenScaling<dim, nstate>::run_test() const
        // time_to_run[poly_degree] = clock() - time_start;
         time_to_run[poly_degree] = dg->assemble_residual_time;
         time_to_run_mpi[poly_degree] = dealii::Utilities::MPI::sum(time_to_run[poly_degree], mpi_communicator);
+        pcout<<"Poly Degree "<<poly_degree<<" time to run Mpi "<<(double)time_to_run_mpi[poly_degree]/CLOCKS_PER_SEC<<std::endl;
     }//end of poly loop
 
     double avg_slope1 = 0.0;

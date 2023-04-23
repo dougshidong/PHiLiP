@@ -98,7 +98,14 @@ void HighOrderGrid<dim,real,MeshType,VectorType,DoFHandlerType>::initialize_with
     reset_initial_nodes();
     if (output_mesh) output_results_vtk(nth_refinement++);
 
+    //In future should have flag to check valid cell in allocation step or 
+    //how the oiperators do it on-the-fly.
+#if 0
     // Used to check Jacobian validity
+    //For future note: the 3D order of the Jacobian in each direction should be
+    // (max_degree-1) * max_degree * max_degree. Then exact_jacobian_order below
+    //is getting passed as a 1D order then a 3D finite element is created based off
+    // exact_jac_order*exact_jac_order*exact_jac_order which does not equal the above.
     const unsigned int exact_jacobian_order = (max_degree-1) * dim;
     const unsigned int min_jacobian_order = 1;
     const unsigned int used_jacobian_order = std::max(exact_jacobian_order, min_jacobian_order);
@@ -119,6 +126,7 @@ void HighOrderGrid<dim,real,MeshType,VectorType,DoFHandlerType>::initialize_with
             // if (fixed_invalid_cell) std::cout << "Fixed it." << std::endl;
         }
     }
+#endif
 }
 
 template <int dim, typename real, typename MeshType, typename VectorType, typename DoFHandlerType>
@@ -557,7 +565,7 @@ void HighOrderGrid<dim,real,MeshType,VectorType,DoFHandlerType>::evaluate_lagran
         }
     }
     lagrange_to_bernstein_operator.reinit(n_lagrange_pts, n_bernstein);
-    if (n_lagrange_pts > 1000) pcout << "Careful, about to invert a " << n_lagrange_pts << " x " << n_lagrange_pts << " dense matrix..." << std::endl;
+    if (n_lagrange_pts > 1000) pcout << "Careful, about to invert a " << n_lagrange_pts << " x " << n_lagrange_pts << " dense matrix for Mesh..." << std::endl;
     lagrange_to_bernstein_operator.invert(bernstein_to_lagrange);
     if (n_lagrange_pts > 1000) pcout << "Done inverting a " << n_lagrange_pts << " x " << n_lagrange_pts << " dense matrix..." << std::endl;
 }

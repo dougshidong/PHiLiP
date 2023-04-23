@@ -297,10 +297,13 @@ int EulerTaylorGreenScaling<dim, nstate>::run_test() const
         const unsigned int grid_degree = poly_degree;
          
 //        const unsigned int grid_degree = 1;
+        if(all_parameters->overintegration == 100){
+            all_parameters_new.overintegration = poly_degree+1;
+        }
          
         // Create DG
         std::shared_ptr < PHiLiP::DGBase<dim, double> > dg = PHiLiP::DGFactory<dim,double>::create_discontinuous_galerkin(&all_parameters_new, poly_degree, poly_degree, grid_degree, grid);
-        dg->allocate_system ();
+        dg->allocate_system (false,false,false);
          
         std::cout << "Implement initial conditions" << std::endl;
         std::shared_ptr< InitialConditionFunction<dim,nstate,double> > initial_condition_function = 
@@ -330,8 +333,8 @@ int EulerTaylorGreenScaling<dim, nstate>::run_test() const
         ode_solver->allocate_ode_system();
          
 
-        clock_t time_start;
-        time_start = clock();
+      //  clock_t time_start;
+      //  time_start = clock();
         while(ode_solver->current_time < finalTime){
             const double time_step =  get_timestep(dg,poly_degree, delta_x);
  //           if(ode_solver->current_iteration%all_parameters_new.ode_solver_param.print_iteration_modulo==0)
@@ -345,9 +348,17 @@ int EulerTaylorGreenScaling<dim, nstate>::run_test() const
  //               const int file_number = ode_solver->current_iteration / all_parameters_new.ode_solver_param.output_solution_every_x_steps;
  //               dg->output_results_vtk(file_number);
  //           }
+       //     const unsigned int n_quad= pow(poly_degree+1,dim);
+       //     dealii::FullMatrix<double> wrong_scaling(n_quad,n_quad);
+       //     for(unsigned int i=0;i<n_quad;i++){
+       //     for(unsigned int j=0;j<n_quad;j++){
+       //         wrong_scaling[i][j]=1.0;
+       //     }
+       //     }
         }
 
-        time_to_run[poly_degree] = clock() - time_start;
+       // time_to_run[poly_degree] = clock() - time_start;
+        time_to_run[poly_degree] = dg->assemble_residual_time;
         time_to_run_mpi[poly_degree] = dealii::Utilities::MPI::sum(time_to_run[poly_degree], mpi_communicator);
     }//end of poly loop
 

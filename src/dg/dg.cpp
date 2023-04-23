@@ -1410,6 +1410,17 @@ void DGBase<dim,real,MeshType>::assemble_residual (const bool compute_dRdW, cons
     const auto mapping = (*(high_order_grid->mapping_fe_field));
 
     dealii::hp::MappingCollection<dim> mapping_collection(mapping);
+   // dealii::hp::MappingCollection<dim> mapping_collection();
+//    dealii::UpdateFlags vol_update_flag = dealii::update_default;//default FEValues constructor does nothing because it constructs at O(n^{2d})
+//    dealii::UpdateFlags face_update_flag = dealii::update_default;//default FEValues constructor does nothing because it constructs at O(n^{2d})
+//    dealii::UpdateFlags neighbor_face_update_flag = dealii::update_default;
+//    if(all_parameters->use_weak_form){
+//    //    dealii::hp::MappingCollection<dim> mapping_temp(mapping);
+//    //    mapping_collection.push_back(mapping_temp);
+//        vol_update_flag = this->volume_update_flags;
+//        face_update_flag = this->face_update_flags;
+//        neighbor_face_update_flag = this->neighbor_face_update_flags;
+//    }
 
     dealii::hp::FEValues<dim,dim>        fe_values_collection_volume (mapping_collection, fe_collection, volume_quadrature_collection, this->volume_update_flags); ///< FEValues of volume.
     dealii::hp::FEFaceValues<dim,dim>    fe_values_collection_face_int (mapping_collection, fe_collection, face_quadrature_collection, this->face_update_flags); ///< FEValues of interior face.
@@ -1417,6 +1428,13 @@ void DGBase<dim,real,MeshType>::assemble_residual (const bool compute_dRdW, cons
     dealii::hp::FESubfaceValues<dim,dim> fe_values_collection_subface (mapping_collection, fe_collection, face_quadrature_collection, this->face_update_flags); ///< FEValues of subface.
 
     dealii::hp::FEValues<dim,dim>        fe_values_collection_volume_lagrange (mapping_collection, fe_collection_lagrange, volume_quadrature_collection, this->volume_update_flags);
+
+//    dealii::hp::FEValues<dim,dim>        fe_values_collection_volume (mapping_collection, fe_collection, volume_quadrature_collection, vol_update_flag); ///< FEValues of volume.
+//    dealii::hp::FEFaceValues<dim,dim>    fe_values_collection_face_int (mapping_collection, fe_collection, face_quadrature_collection, face_update_flag); ///< FEValues of interior face.
+//    dealii::hp::FEFaceValues<dim,dim>    fe_values_collection_face_ext (mapping_collection, fe_collection, face_quadrature_collection, neighbor_face_update_flag); ///< FEValues of exterior face.
+//    dealii::hp::FESubfaceValues<dim,dim> fe_values_collection_subface (mapping_collection, fe_collection, face_quadrature_collection, face_update_flag); ///< FEValues of subface.
+//
+//    dealii::hp::FEValues<dim,dim>        fe_values_collection_volume_lagrange (mapping_collection, fe_collection_lagrange, volume_quadrature_collection, vol_update_flag);
 
     const unsigned int init_grid_degree = high_order_grid->fe_system.tensor_degree();
     OPERATOR::basis_functions<dim,2*dim> soln_basis_int(1, max_degree, init_grid_degree); 
@@ -1442,6 +1460,9 @@ void DGBase<dim,real,MeshType>::assemble_residual (const bool compute_dRdW, cons
 
         // assembles and solves for auxiliary variable if necessary.
         assemble_auxiliary_residual();
+
+        clock_t time_start_cell_loop;
+        time_start_cell_loop = clock();
 
         auto metric_cell = high_order_grid->dof_handler_grid.begin_active();
         for (auto soln_cell = dof_handler.begin_active(); soln_cell != dof_handler.end(); ++soln_cell, ++metric_cell) {
@@ -1479,6 +1500,8 @@ void DGBase<dim,real,MeshType>::assemble_residual (const bool compute_dRdW, cons
                 right_hand_side,
                 auxiliary_right_hand_side);
         } // end of cell loop
+
+        assemble_residual_time += clock() - time_start_cell_loop;
     } catch(...) {
         assembly_error = 1;
     }
@@ -2153,14 +2176,17 @@ void DGBase<dim,real,MeshType>::allocate_system (
     // Allocate for auxiliary equation only.
     allocate_auxiliary_equation ();
 
+    // Set the assemble resiudla time to 0 for clock_t type
+    assemble_residual_time = clock() - clock();
+
     // System matrix allocation
-    dealii::DynamicSparsityPattern dsp(locally_relevant_dofs);
-    dealii::DoFTools::make_flux_sparsity_pattern(dof_handler, dsp);
-    dealii::SparsityTools::distribute_sparsity_pattern(dsp, dof_handler.locally_owned_dofs(), mpi_communicator, locally_relevant_dofs);
-
-    sparsity_pattern.copy_from(dsp);
-
     if (compute_dRdW || compute_dRdX || compute_d2R) {
+        dealii::DynamicSparsityPattern dsp(locally_relevant_dofs);
+        dealii::DoFTools::make_flux_sparsity_pattern(dof_handler, dsp);
+        dealii::SparsityTools::distribute_sparsity_pattern(dsp, dof_handler.locally_owned_dofs(), mpi_communicator, locally_relevant_dofs);
+         
+        sparsity_pattern.copy_from(dsp);
+
         system_matrix.reinit(locally_owned_dofs, sparsity_pattern, mpi_communicator);
     }
 
@@ -2766,6 +2792,9 @@ void DGBase<dim,real,MeshType>::apply_inverse_global_mass_matrix(
         }
     }
 
+    clock_t time_start_cell_loop;
+    time_start_cell_loop = clock();
+
     for (auto soln_cell = dof_handler.begin_active(); soln_cell != dof_handler.end(); ++soln_cell, ++metric_cell) {
         if (!soln_cell->is_locally_owned()) continue;
 
@@ -2880,6 +2909,8 @@ void DGBase<dim,real,MeshType>::apply_inverse_global_mass_matrix(
             }
         }//end of state loop
     }//end of cell loop
+
+    assemble_residual_time += clock() - time_start_cell_loop;
 }
 
 template<int dim, typename real, typename MeshType>

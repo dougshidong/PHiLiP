@@ -94,6 +94,10 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       dealii::Patterns::Bool(),
                       "Renumber dof handler with Cuthill-Mckee by default. Don't renumber dof_handler if false.");
 
+    prm.declare_entry("use_curvilinear_grid", "false",
+                      dealii::Patterns::Bool(),
+                      "Use straight grid by default. Curvilinear is true.");
+
     prm.declare_entry("use_energy", "false",
                       dealii::Patterns::Bool(),
                       "Not calculate energy by default. Otherwise, get energy per iteration.");
@@ -383,6 +387,7 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     if (two_point_num_flux_string == "Ra") { two_point_num_flux_type = TwoPointNumericalFlux::Ra; }
 
     use_curvilinear_split_form = prm.get_bool("use_curvilinear_split_form");
+    use_curvilinear_grid = prm.get_bool("use_curvilinear_grid");
     use_weight_adjusted_mass = prm.get_bool("use_weight_adjusted_mass");
     use_periodic_bc = prm.get_bool("use_periodic_bc");
     renumber_dof_handler_Cuthill_Mckee= prm.get_bool("renumber_dof_handler_Cuthill_Mckee");

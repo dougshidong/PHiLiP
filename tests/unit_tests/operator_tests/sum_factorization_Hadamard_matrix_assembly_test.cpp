@@ -256,13 +256,16 @@ int main (int argc, char * argv[])
     pcout<<"Normal operation A*u  | Slope |  "<<"Sum factorization | Slope "<<std::endl;
     for(unsigned int i=poly_min+1; i<poly_max; i++){
         pcout<<(double)time_diff_sparse[i]/CLOCKS_PER_SEC<<" "<<std::log(((double)time_diff_sparse[i]/CLOCKS_PER_SEC) / ((double)time_diff_sparse[i-1]/CLOCKS_PER_SEC))
-                        / std::log((double)((i)/(i-1.0)))<<" "<<
+                       // / std::log((double)((i)/(i-1.0)))<<" "<<
+                        / std::log((double)((i+1.0)/(i)))<<" "<<
         (double)time_diff_original[i]/CLOCKS_PER_SEC<<" "<<std::log(((double)time_diff_original[i]/CLOCKS_PER_SEC) /( (double)time_diff_original[i-1]/CLOCKS_PER_SEC))
-                        / std::log((double)((i)/(i-1.0)))<<
+                       // / std::log((double)((i)/(i-1.0)))<<
+                        / std::log((double)((i+1.0)/(i)))<<
         std::endl;
         if(i>poly_max-4){
             avg_slope1 += std::log(((double)time_diff_sparse[i]/CLOCKS_PER_SEC) /( (double)time_diff_sparse[i-1]/CLOCKS_PER_SEC))
-                        / std::log((double)((i)/(i-1.0)));
+                       // / std::log((double)((i)/(i-1.0)));
+                        / std::log((double)((i+1.0)/(i)));
         }
     }
     avg_slope1 /= (3.0);

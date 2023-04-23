@@ -271,18 +271,21 @@ int EulerTaylorGreenScaling<dim, nstate>::run_test() const
     double right = 2 * dealii::numbers::PI;
 
     const unsigned int n_refinements = all_parameters->flow_solver_param.number_of_grid_elements_per_dimension;
-    //if curvilinear
-    PHiLiP::Grids::nonsymmetric_curved_grid<dim,Triangulation>(*grid, n_refinements);
-
-    //if straight
-//    const bool colorize = true;
-//    dealii::GridGenerator::hyper_cube(*grid, left, right, colorize);
-//    std::vector<dealii::GridTools::PeriodicFacePair<typename dealii::Triangulation<PHILIP_DIM>::cell_iterator> > matched_pairs;
-//    dealii::GridTools::collect_periodic_faces(*grid,0,1,0,matched_pairs);
-//    dealii::GridTools::collect_periodic_faces(*grid,2,3,1,matched_pairs);
-//    dealii::GridTools::collect_periodic_faces(*grid,4,5,2,matched_pairs);
-//    grid->add_periodicity(matched_pairs);
-//    grid->refine_global(n_refinements);
+    if(all_parameters->use_curvilinear_grid){
+        //if curvilinear
+        PHiLiP::Grids::nonsymmetric_curved_grid<dim,Triangulation>(*grid, n_refinements);
+    }
+    else{
+        //if straight
+        const bool colorize = true;
+        dealii::GridGenerator::hyper_cube(*grid, left, right, colorize);
+        std::vector<dealii::GridTools::PeriodicFacePair<typename dealii::Triangulation<PHILIP_DIM>::cell_iterator> > matched_pairs;
+        dealii::GridTools::collect_periodic_faces(*grid,0,1,0,matched_pairs);
+        dealii::GridTools::collect_periodic_faces(*grid,2,3,1,matched_pairs);
+        dealii::GridTools::collect_periodic_faces(*grid,4,5,2,matched_pairs);
+        grid->add_periodicity(matched_pairs);
+        grid->refine_global(n_refinements);
+    }
 
     const unsigned int poly_degree_start= all_parameters->flow_solver_param.poly_degree;
 
@@ -293,12 +296,18 @@ int EulerTaylorGreenScaling<dim, nstate>::run_test() const
     for(unsigned int poly_degree = poly_degree_start; poly_degree<poly_degree_end; poly_degree++){
 
         // set the warped grid
-        const unsigned int grid_degree = poly_degree;
+       // const unsigned int grid_degree = poly_degree;
      //   const unsigned int grid_degree = 1;
+        const unsigned int grid_degree = (all_parameters->use_curvilinear_grid) ? poly_degree : 1;
          
 //        const unsigned int grid_degree = 1;
         if(all_parameters->overintegration == 100){
-            all_parameters_new.overintegration = poly_degree+1;
+            if(all_parameters->use_curvilinear_grid){
+                all_parameters_new.overintegration = 2*(poly_degree+1);
+            }
+            else{
+                all_parameters_new.overintegration = 2*(poly_degree+1);
+            }
         }
          
         // Create DG
@@ -368,7 +377,7 @@ int EulerTaylorGreenScaling<dim, nstate>::run_test() const
        // time_to_run[poly_degree] = clock() - time_start;
         time_to_run[poly_degree] = dg->assemble_residual_time;
         time_to_run_mpi[poly_degree] = dealii::Utilities::MPI::sum(time_to_run[poly_degree], mpi_communicator);
-        pcout<<"Poly Degree "<<poly_degree<<" time to run Mpi "<<(double)time_to_run_mpi[poly_degree]/CLOCKS_PER_SEC<<std::endl;
+        pcout<<"Poly Degree "<<poly_degree<<" time to run Mpi "<<std::fixed << std::setprecision(16) << (double)time_to_run_mpi[poly_degree]/CLOCKS_PER_SEC<<std::endl;
     }//end of poly loop
 
     double avg_slope1 = 0.0;
@@ -376,13 +385,16 @@ int EulerTaylorGreenScaling<dim, nstate>::run_test() const
     pcout<<"local time  | Slope |  "<<"MPI sum time | Slope "<<std::endl;
     for(unsigned int i=poly_degree_start+1; i<poly_degree_end; i++){
         pcout<<(double)time_to_run[i]/CLOCKS_PER_SEC<<" "<<std::log(((double)time_to_run[i]/CLOCKS_PER_SEC) / ((double)time_to_run[i-1]/CLOCKS_PER_SEC))
-                        / std::log((double)((i)/(i-1.0)))<<" "<<
+                       // / std::log((double)((i)/(i-1.0)))<<" "<<
+                        / std::log((double)((i+1.0)/(i)))<<" "<<
         (double)time_to_run_mpi[i]/CLOCKS_PER_SEC<<" "<<std::log(((double)time_to_run_mpi[i]/CLOCKS_PER_SEC) /( (double)time_to_run_mpi[i-1]/CLOCKS_PER_SEC))
-                        / std::log((double)((i)/(i-1.0)))<<
+                       // / std::log((double)((i)/(i-1.0)))<<
+                        / std::log((double)((i+1.0)/(i)))<<
         std::endl;
         if(i>poly_degree_end-4){
             avg_slope1 += std::log(((double)time_to_run[i]/CLOCKS_PER_SEC) /( (double)time_to_run_mpi[i-1]/CLOCKS_PER_SEC))
-                        / std::log((double)((i)/(i-1.0)));
+                       // / std::log((double)((i)/(i-1.0)));
+                        / std::log((double)((i+1.0)/(i)));
         }
     }
     avg_slope1 /= (3.0);

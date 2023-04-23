@@ -350,12 +350,15 @@ int main (int argc, char * argv[])
         avg_slope3 = 0.0;
         for(unsigned int i=poly_max-5; i<poly_max; i++){
                 avg_slope1 += std::log(((double)time_diff_sum[i]/CLOCKS_PER_SEC) /( (double)time_diff_sum[i-1]/CLOCKS_PER_SEC))
-                            / std::log((double)((i)/(i-1.0)));
+                           // / std::log((double)((i)/(i-1.0)));
+                            / std::log((double)((i+1.0)/(i)));
                 avg_slope2 += std::log(((double)time_diff_sum_dir2[i]/CLOCKS_PER_SEC) /( (double)time_diff_sum_dir2[i-1]/CLOCKS_PER_SEC))
-                            / std::log((double)((i)/(i-1.0)));
+                           // / std::log((double)((i)/(i-1.0)));
+                            / std::log((double)((i+1.0)/(i)));
                 if constexpr(dim==3){
                     avg_slope3 += std::log(((double)time_diff_sum_dir3[i]/CLOCKS_PER_SEC) /( (double)time_diff_sum_dir3[i-1]/CLOCKS_PER_SEC))
-                                / std::log((double)((i)/(i-1.0)));
+                             //   / std::log((double)((i)/(i-1.0)));
+                                / std::log((double)((i+1.0)/(i)));
                 }
         }
         avg_slope1 /= 4.0;

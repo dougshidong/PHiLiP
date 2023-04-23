@@ -306,7 +306,7 @@ int EulerTaylorGreenScaling<dim, nstate>::run_test() const
                 all_parameters_new.overintegration = 2*(poly_degree+1);
             }
             else{
-                all_parameters_new.overintegration = 2*(poly_degree+1);
+                all_parameters_new.overintegration = poly_degree+1;
             }
         }
          

@@ -377,6 +377,7 @@ void AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: compute_goal_orie
         // Compute Hessian
         cellwise_hessian[cell_index] = 0;
         // Hessian of source
+        // As derived in Brèthes, Gautier, and Alain Dervieux. "Anisotropic norm-oriented mesh adaptation for a Poisson problem.", jcp, 2016.
         std::array<dealii::Tensor<2,dim,real>,nstate> source_hessian; // 0 by default
         for(unsigned int idof = 0; idof<n_dofs_cell; ++idof)
         {

@@ -2152,13 +2152,13 @@ void DGBase<dim,real,MeshType>::allocate_system (
     allocate_auxiliary_equation ();
 
     // System matrix allocation
-    dealii::DynamicSparsityPattern dsp(locally_relevant_dofs);
-    dealii::DoFTools::make_flux_sparsity_pattern(dof_handler, dsp);
-    dealii::SparsityTools::distribute_sparsity_pattern(dsp, dof_handler.locally_owned_dofs(), mpi_communicator, locally_relevant_dofs);
-
-    sparsity_pattern.copy_from(dsp);
-
     if (compute_dRdW || compute_dRdX || compute_d2R) {
+        dealii::DynamicSparsityPattern dsp(locally_relevant_dofs);
+        dealii::DoFTools::make_flux_sparsity_pattern(dof_handler, dsp);
+        dealii::SparsityTools::distribute_sparsity_pattern(dsp, dof_handler.locally_owned_dofs(), mpi_communicator, locally_relevant_dofs);
+
+        sparsity_pattern.copy_from(dsp);
+        
         system_matrix.reinit(locally_owned_dofs, sparsity_pattern, mpi_communicator);
     }
 

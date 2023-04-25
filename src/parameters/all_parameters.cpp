@@ -286,7 +286,7 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
 
     prm.declare_entry("do_renumber_dofs", "true",
                       dealii::Patterns::Bool(),
-                      "Flag for renumbering DOFs. True by default. Set to false if doing 3D unsteady flow simulations.");
+                      "Flag for renumbering DOFs using Cuthill-McKee renumbering. True by default. Set to false if doing 3D unsteady flow simulations.");
 
     Parameters::LinearSolverParam::declare_parameters (prm);
     Parameters::ManufacturedConvergenceStudyParam::declare_parameters (prm);

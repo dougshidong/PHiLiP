@@ -98,9 +98,9 @@ void HighOrderGrid<dim,real,MeshType,VectorType,DoFHandlerType>::initialize_with
     reset_initial_nodes();
     if (output_mesh) output_results_vtk(nth_refinement++);
 
+#if 0
     //In future should have flag to check valid cell in allocation step or 
     //how the oiperators do it on-the-fly.
-#if 0
     // Used to check Jacobian validity
     //For future note: the 3D order of the Jacobian in each direction should be
     // (max_degree-1) * max_degree * max_degree. Then exact_jacobian_order below
@@ -191,7 +191,8 @@ HighOrderGrid<dim,real,MeshType,VectorType,DoFHandlerType>::allocate()
 {
     dof_handler_grid.initialize(*triangulation, fe_system);
     dof_handler_grid.distribute_dofs(fe_system);
-    dealii::DoFRenumbering::Cuthill_McKee(dof_handler_grid);
+    //if cuthill mckee renumbering
+//    dealii::DoFRenumbering::Cuthill_McKee(dof_handler_grid);
 
 
     locally_owned_dofs_grid = dof_handler_grid.locally_owned_dofs();

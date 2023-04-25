@@ -5,6 +5,7 @@
 #include "physics/initial_conditions/initial_condition_function.h"
 #include "mesh/grids/nonsymmetric_curved_periodic_grid.hpp"
 #include <time.h>
+#include <deal.II/base/timer.h>
 
 namespace PHiLiP {
 namespace Tests {
@@ -287,11 +288,19 @@ int EulerTaylorGreenScaling<dim, nstate>::run_test() const
         grid->refine_global(n_refinements);
     }
 
+    std::ofstream myfile (all_parameters_new.energy_file + ".gpl"  , std::ios::trunc);
     const unsigned int poly_degree_start= all_parameters->flow_solver_param.poly_degree;
+   // const unsigned int poly_degree_start= 11;
 
-    const unsigned int poly_degree_end = 11;//poly_degree=10 is as high can go locally
-    std::array<clock_t,poly_degree_end> time_to_run;
-    std::array<clock_t,poly_degree_end> time_to_run_mpi;
+    const unsigned int poly_degree_end = 20;//poly_degree=10 is as high can go locally
+ //   const unsigned int poly_degree_end = 12;//poly_degree=10 is as high can go locally
+  //  const unsigned int poly_degree_end = 10;//poly_degree=10 is as high can go locally
+  //  const unsigned int poly_degree_end = 8;//poly_degree=10 is as high can go locally
+    //const unsigned int poly_degree_end = all_parameters->flow_solver_param.max_poly_degree_for_adaptation;//poly_degree=10 is as high can go locally
+  //  std::array<clock_t,poly_degree_end> time_to_run;
+  //  std::array<clock_t,poly_degree_end> time_to_run_mpi;
+    std::array<double,poly_degree_end> time_to_run;
+    std::array<double,poly_degree_end> time_to_run_mpi;
 
     for(unsigned int poly_degree = poly_degree_start; poly_degree<poly_degree_end; poly_degree++){
 
@@ -312,7 +321,7 @@ int EulerTaylorGreenScaling<dim, nstate>::run_test() const
          
         // Create DG
         std::shared_ptr < PHiLiP::DGBase<dim, double> > dg = PHiLiP::DGFactory<dim,double>::create_discontinuous_galerkin(&all_parameters_new, poly_degree, poly_degree, grid_degree, grid);
-        dg->allocate_system (false,false,false);
+ //       dg->allocate_system (false,false,false);
          
         MPI_Barrier(MPI_COMM_WORLD);
         std::cout << "Implement initial conditions" << std::endl;
@@ -323,14 +332,16 @@ int EulerTaylorGreenScaling<dim, nstate>::run_test() const
         std::cout << "Implemented initial conditions" << std::endl;
         MPI_Barrier(MPI_COMM_WORLD);
          
-        const unsigned int n_global_active_cells2 = grid->n_global_active_cells();
-        double delta_x = (right-left)/pow(n_global_active_cells2,1.0/dim)/(poly_degree+1.0);
-        pcout<<" delta x "<<delta_x<<std::endl;
+ //       const unsigned int n_global_active_cells2 = grid->n_global_active_cells();
+ //       double delta_x = (right-left)/pow(n_global_active_cells2,1.0/dim)/(poly_degree+1.0);
+ //       pcout<<" delta x "<<delta_x<<std::endl;
          
-        all_parameters_new.ode_solver_param.initial_time_step =  get_timestep(dg,poly_degree,delta_x);
-        std::cout << "got timestep, about to create ode solver" << std::endl;
-        MPI_Barrier(MPI_COMM_WORLD);
+ //       all_parameters_new.ode_solver_param.initial_time_step =  get_timestep(dg,poly_degree,delta_x);
+ //       std::cout << "got timestep, about to create ode solver" << std::endl;
+ //       MPI_Barrier(MPI_COMM_WORLD);
          
+
+#if 0
 //        std::cout << "creating ODE solver" << std::endl;
         std::shared_ptr<ODE::ODESolverBase<dim, double>> ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
         MPI_Barrier(MPI_COMM_WORLD);
@@ -339,8 +350,9 @@ int EulerTaylorGreenScaling<dim, nstate>::run_test() const
        const double time_step_start = get_timestep(dg,poly_degree,delta_x);
         const double dt_start = dealii::Utilities::MPI::min(time_step_start, mpi_communicator);
        // const double finalTime = dt_start;
-        const double finalTime = 100.0 * dt_start;
-      //  const double finalTime = 10.0 * dt_start;
+      //  const double finalTime = 100.0 * dt_start;
+       // const double finalTime = 10000.0 * dt_start;
+        const double finalTime = 10.0 * dt_start;
          
         std::cout << " number dofs " << dg->dof_handler.n_dofs()<<std::endl;
         std::cout << "preparing to advance solution in time" << std::endl;
@@ -348,16 +360,26 @@ int EulerTaylorGreenScaling<dim, nstate>::run_test() const
          
         ode_solver->current_iteration = 0;
         ode_solver->allocate_ode_system();
-         
+#endif
+    dealii::LinearAlgebra::distributed::Vector<double> solution_update;
+    solution_update.reinit(dg->locally_owned_dofs, dg->ghost_dofs, this->mpi_communicator);
 
       //  clock_t time_start;
       //  time_start = clock();
-        while(ode_solver->current_time < finalTime){
-            const double time_step =  get_timestep(dg,poly_degree, delta_x);
+       // while(ode_solver->current_time < finalTime){
+        for(unsigned int i_step=0; i_step<10; i_step++){
+//            const double time_step =  get_timestep(dg,poly_degree, delta_x);
  //           if(ode_solver->current_iteration%all_parameters_new.ode_solver_param.print_iteration_modulo==0)
  //               pcout<<"time step "<<time_step<<" current time "<<ode_solver->current_time<<std::endl;
-            const double dt = dealii::Utilities::MPI::min(time_step, mpi_communicator);
-            ode_solver->step_in_time(dt, false);
+//            const double dt = dealii::Utilities::MPI::min(time_step, mpi_communicator);
+//            ode_solver->step_in_time(dt, false);
+            dg->assemble_residual();
+            //me apply in loo
+            if(all_parameters->use_inverse_mass_on_the_fly){
+                dg->apply_inverse_global_mass_matrix(dg->right_hand_side, solution_update); //rk_stage[i] = IMM*RHS = F(u_n + dt*sum(a_ij*k_j))
+            } else{
+                dg->global_inverse_mass_matrix.vmult(solution_update, dg->right_hand_side); //rk_stage[i] = IMM*RHS = F(u_n + dt*sum(a_ij*k_j))
+            }
            // ode_solver->advance_solution_time(dt);
       //      ode_solver->current_iteration += 1;
  //           const bool is_output_iteration = (ode_solver->current_iteration % all_parameters_new.ode_solver_param.output_solution_every_x_steps == 0);
@@ -376,23 +398,31 @@ int EulerTaylorGreenScaling<dim, nstate>::run_test() const
 
        // time_to_run[poly_degree] = clock() - time_start;
         time_to_run[poly_degree] = dg->assemble_residual_time;
-        time_to_run_mpi[poly_degree] = dealii::Utilities::MPI::sum(time_to_run[poly_degree], mpi_communicator);
-        pcout<<"Poly Degree "<<poly_degree<<" time to run Mpi "<<std::fixed << std::setprecision(16) << (double)time_to_run_mpi[poly_degree]/CLOCKS_PER_SEC<<std::endl;
+       // time_to_run_mpi[poly_degree] = dealii::Utilities::MPI::sum(time_to_run[poly_degree], mpi_communicator);
+//        time_to_run_mpi[poly_degree] = time_to_run[poly_degree];
+        time_to_run_mpi[poly_degree] = dealii::Utilities::MPI::sum(time_to_run[poly_degree], this->mpi_communicator);
+    //    pcout<<"Poly Degree "<<poly_degree<<" time to run Mpi "<<std::fixed << std::setprecision(16) << (double)time_to_run_mpi[poly_degree]/CLOCKS_PER_SEC<<std::endl;
+        pcout<<"Poly Degree "<<poly_degree<<" time to run Mpi "<<std::fixed << std::setprecision(16) << (double)time_to_run_mpi[poly_degree]<<std::endl;
+       // myfile << poly_degree << " " << std::fixed << std::setprecision(16) << (double)time_to_run_mpi[poly_degree]/CLOCKS_PER_SEC << std::endl;
+        myfile << poly_degree << " " << std::fixed << std::setprecision(16) << time_to_run_mpi[poly_degree]<< std::endl;
     }//end of poly loop
 
+
+    myfile.close();
     double avg_slope1 = 0.0;
     pcout<<"Times for one timestep"<<std::endl;
     pcout<<"local time  | Slope |  "<<"MPI sum time | Slope "<<std::endl;
     for(unsigned int i=poly_degree_start+1; i<poly_degree_end; i++){
-        pcout<<(double)time_to_run[i]/CLOCKS_PER_SEC<<" "<<std::log(((double)time_to_run[i]/CLOCKS_PER_SEC) / ((double)time_to_run[i-1]/CLOCKS_PER_SEC))
+       // pcout<<(double)time_to_run[i]/CLOCKS_PER_SEC<<" "<<std::log(((double)time_to_run[i]/CLOCKS_PER_SEC) / ((double)time_to_run[i-1]/CLOCKS_PER_SEC))
+        pcout<<(double)time_to_run[i]<<" "<<std::log(((double)time_to_run[i]) / ((double)time_to_run[i-1]))
                        // / std::log((double)((i)/(i-1.0)))<<" "<<
                         / std::log((double)((i+1.0)/(i)))<<" "<<
-        (double)time_to_run_mpi[i]/CLOCKS_PER_SEC<<" "<<std::log(((double)time_to_run_mpi[i]/CLOCKS_PER_SEC) /( (double)time_to_run_mpi[i-1]/CLOCKS_PER_SEC))
+        (double)time_to_run_mpi[i]<<" "<<std::log(((double)time_to_run_mpi[i]) /( (double)time_to_run_mpi[i-1]))
                        // / std::log((double)((i)/(i-1.0)))<<
                         / std::log((double)((i+1.0)/(i)))<<
         std::endl;
         if(i>poly_degree_end-4){
-            avg_slope1 += std::log(((double)time_to_run[i]/CLOCKS_PER_SEC) /( (double)time_to_run_mpi[i-1]/CLOCKS_PER_SEC))
+            avg_slope1 += std::log(((double)time_to_run[i]) /( (double)time_to_run_mpi[i-1]))
                        // / std::log((double)((i)/(i-1.0)));
                         / std::log((double)((i+1.0)/(i)));
         }

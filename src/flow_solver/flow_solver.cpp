@@ -42,7 +42,7 @@ FlowSolver<dim, nstate>::FlowSolver(
 , dg(DGFactory<dim,double>::create_discontinuous_galerkin(&all_param, poly_degree, flow_solver_param.max_poly_degree_for_adaptation, grid_degree, flow_solver_case->generate_grid()))
 {
     flow_solver_case->set_higher_order_grid(dg);
-    dg->allocate_system();
+    dg->allocate_system(false,false,false);
 
     if(ode_param.ode_solver_type == Parameters::ODESolverParam::pod_galerkin_solver || ode_param.ode_solver_type == Parameters::ODESolverParam::pod_petrov_galerkin_solver){
         std::shared_ptr<ProperOrthogonalDecomposition::OfflinePOD<dim>> pod = std::make_shared<ProperOrthogonalDecomposition::OfflinePOD<dim>>(dg);

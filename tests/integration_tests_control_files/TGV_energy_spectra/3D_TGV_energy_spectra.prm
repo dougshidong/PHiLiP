@@ -1,0 +1,111 @@
+# Listing of Parameters
+# ---------------------
+ 
+# Solver dim and run type
+set dimension = 3
+set run_type = flow_simulation
+ 
+# DG related parameters
+set overintegration = 0
+set use_weak_form = false
+set flux_nodes_type = GL
+set use_split_form = true
+set use_curvilinear_split_form = true
+set use_weight_adjusted_mass = true
+#set all_boundaries_are_periodic = true
+#set check_same_coords_in_weak_dg = false
+set flux_reconstruction = cDG
+set flux_reconstruction_aux = kDG
+set use_inverse_mass_on_the_fly = true
+set renumber_dof_handler_Cuthill_Mckee = false
+ 
+# PDE
+#set pde_type = navier_stokes
+set pde_type = euler
+set model_type = large_eddy_simulation
+ 
+# numerical fluxes
+set two_point_num_flux_type = Ra
+set conv_num_flux = two_point_flux
+#set diss_num_flux = symm_internal_penalty
+ 
+# additional parameters
+set solution_vtk_files_directory_name = solution_files
+set output_high_order_grid = false
+set enable_higher_order_vtk_output = true
+ 
+# ODE solver
+subsection ODE solver
+  set ode_output = quiet
+  set ode_solver_type = runge_kutta
+  set output_solution_every_dt_time_intervals = 0.0
+  set output_solution_at_fixed_times = true
+  set output_solution_fixed_times_string = 0.1 4.0 5.0 8.0 9.0 10.0 12.0 14.0 
+  set output_solution_at_exact_fixed_times = true
+  set runge_kutta_method = ssprk3_ex
+end
+ 
+# Euler; freestream Mach number
+subsection euler
+  set reference_length = 1.0
+  set mach_infinity = 0.1
+  set gamma_gas = 1.4
+end
+ 
+# Navier-Stokes; freestream Reynolds number and Prandtl number
+subsection navier_stokes
+  set prandtl_number = 0.71
+  set reynolds_number_inf = 1600.0
+  set temperature_inf = 273.15
+  set nondimensionalized_isothermal_wall_temperature = 1.0
+  set thermal_boundary_condition_type = adiabatic
+  set use_constant_viscosity = false
+  set nondimensionalized_constant_viscosity = 1.0
+end
+ 
+# Physics Model (if pde_type == physics_model)
+#subsection physics_model
+#  set euler_turbulence = false
+#  subsection large_eddy_simulation
+#    set SGS_model_type = smagorinsky
+#    set turbulent_prandtl_number = 0.6
+#    set smagorinsky_model_constant = 0.1
+#    set WALE_model_constant = 0.1
+#    set vreman_model_constant = 0.1
+#    set ratio_of_filter_width_to_cell_size = 1.0
+#  end
+#end
+ 
+# Flow Solver
+subsection flow_solver
+  set flow_case_type = taylor_green_vortex
+  #set poly_degree = 5
+  set poly_degree = 5
+ # set final_time = 20.001
+  set final_time = 14.0
+  set courant_friedrichs_lewy_number = 0.1
+  set unsteady_data_table_filename = turbulent_quantities
+  set steady_state = false
+  set adaptive_time_step = true
+  set output_restart_files = false
+  set restart_files_directory_name = restart_files
+  set output_restart_files_every_dt_time_intervals = 1.0
+  subsection grid
+    set grid_degree = 1
+    set grid_left_bound = -3.141592653589793238
+    set grid_right_bound = 3.141592653589793238
+   # set number_of_grid_elements_per_dimension = 16
+    set number_of_grid_elements_per_dimension = 4
+  end
+  subsection taylor_green_vortex
+    set density_initial_condition_type = isothermal
+  end
+  set apply_initial_condition_method = project_initial_condition_function
+  set input_flow_setup_filename_prefix = setup
+  subsection output_velocity_field
+    set output_velocity_field_at_fixed_times = true
+    set output_velocity_field_times_string = 0.1 8.0 9.0 
+    set output_vorticity_magnitude_field_in_addition_to_velocity = true
+    set output_flow_field_files_directory_name = flow_field_files
+  end
+end

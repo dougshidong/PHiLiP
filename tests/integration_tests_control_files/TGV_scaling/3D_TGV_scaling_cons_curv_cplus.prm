@@ -20,7 +20,7 @@ set use_curvilinear_split_form = false
 
 set use_curvilinear_grid = true
 
-set energy_file = testing_4x4
+set energy_file = cplus_cons_curv
 
 # The PDE we want to solve
 set pde_type = euler

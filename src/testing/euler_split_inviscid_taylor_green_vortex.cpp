@@ -339,7 +339,7 @@ int EulerTaylorGreen<dim, nstate>::run_test() const
 //    std::cout << std::setprecision(16) << std::fixed;
 //    pcout << "Energy at one timestep is " << initial_energy/(8*pow(dealii::numbers::PI,3)) << std::endl;
 //    // std::ofstream myfile ("kinetic_energy_3D_TGV_cdg_curv_grid_4x4.gpl" , std::ios::trunc);
-//    std::ofstream myfile (all_parameters_new.energy_file + ".gpl"  , std::ios::trunc);
+    std::ofstream myfile (all_parameters_new.energy_file + ".gpl"  , std::ios::trunc);
 
     ode_solver->current_iteration = 0;
     ode_solver->allocate_ode_system();
@@ -365,12 +365,14 @@ int EulerTaylorGreen<dim, nstate>::run_test() const
         const std::array<double,2> current_change_entropy = compute_change_in_entropy(dg, poly_degree);
         const double current_change_entropy_mpi = dealii::Utilities::MPI::sum(current_change_entropy[0], mpi_communicator);
         const double current_change_energy_mpi = dealii::Utilities::MPI::sum(current_change_entropy[1], mpi_communicator);
+        myfile<<ode_solver->current_time<<" "<< current_change_entropy_mpi <<std::endl;
         pcout << "M plus K norm Change in Entropy at time " << ode_solver->current_time << " is " << current_change_entropy_mpi<< std::endl;
         pcout << "M plus K norm Change in Kinetic Energy at time " << ode_solver->current_time << " is " << current_change_energy_mpi<< std::endl;
         const double current_energy = compute_kinetic_energy(dg, poly_degree);
         const double current_energy_mpi = (dealii::Utilities::MPI::sum(current_energy, mpi_communicator));
         pcout << "Normalized kinetic energy " << ode_solver->current_time << " is " << current_energy_mpi/initial_energy_mpi<< std::endl;
     }
+    myfile.close();
 
     return 0;
 }

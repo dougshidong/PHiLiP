@@ -1449,6 +1449,7 @@ void DGBase<dim,real,MeshType>::assemble_residual (const bool compute_dRdW, cons
 
     solution.update_ghost_values();
 
+
     int assembly_error = 0;
     try {
 
@@ -1461,8 +1462,10 @@ void DGBase<dim,real,MeshType>::assemble_residual (const bool compute_dRdW, cons
         // assembles and solves for auxiliary variable if necessary.
         assemble_auxiliary_residual();
 
-        clock_t time_start_cell_loop;
-        time_start_cell_loop = clock();
+      //  clock_t time_start_cell_loop;
+      //  time_start_cell_loop = clock();
+        dealii::Timer timer(this->mpi_communicator,false);
+        timer.start();
 
         auto metric_cell = high_order_grid->dof_handler_grid.begin_active();
         for (auto soln_cell = dof_handler.begin_active(); soln_cell != dof_handler.end(); ++soln_cell, ++metric_cell) {
@@ -1501,11 +1504,16 @@ void DGBase<dim,real,MeshType>::assemble_residual (const bool compute_dRdW, cons
                 auxiliary_right_hand_side);
         } // end of cell loop
 
-        assemble_residual_time += clock() - time_start_cell_loop;
+       // assemble_residual_time += clock() - time_start_cell_loop;
+       // assemble_residual_time += dealii::Utilities::MPI::max(timer.wall_time(), this->mpi_communicator);
+        timer.stop();
+       // assemble_residual_time += dealii::Utilities::MPI::sum(timer.cpu_time(), this->mpi_communicator);
+        assemble_residual_time += timer.cpu_time();
     } catch(...) {
         assembly_error = 1;
     }
     const int mpi_assembly_error = dealii::Utilities::MPI::sum(assembly_error, mpi_communicator);
+
 
     if (mpi_assembly_error != 0) {
         std::cout << "Invalid residual assembly encountered..."
@@ -2177,7 +2185,8 @@ void DGBase<dim,real,MeshType>::allocate_system (
     allocate_auxiliary_equation ();
 
     // Set the assemble resiudla time to 0 for clock_t type
-    assemble_residual_time = clock() - clock();
+   // assemble_residual_time = clock() - clock();
+    assemble_residual_time = 0.0;
 
     // System matrix allocation
     if (compute_dRdW || compute_dRdX || compute_d2R) {
@@ -2792,8 +2801,10 @@ void DGBase<dim,real,MeshType>::apply_inverse_global_mass_matrix(
         }
     }
 
-    clock_t time_start_cell_loop;
-    time_start_cell_loop = clock();
+  //  clock_t time_start_cell_loop;
+  //  time_start_cell_loop = clock();
+    dealii::Timer timer(this->mpi_communicator,false);
+    timer.start();
 
     for (auto soln_cell = dof_handler.begin_active(); soln_cell != dof_handler.end(); ++soln_cell, ++metric_cell) {
         if (!soln_cell->is_locally_owned()) continue;
@@ -2910,7 +2921,11 @@ void DGBase<dim,real,MeshType>::apply_inverse_global_mass_matrix(
         }//end of state loop
     }//end of cell loop
 
-    assemble_residual_time += clock() - time_start_cell_loop;
+   // assemble_residual_time += clock() - time_start_cell_loop;
+    timer.stop();
+   // assemble_residual_time += dealii::Utilities::MPI::sum(timer.cpu_time(), this->mpi_communicator);
+    assemble_residual_time += timer.cpu_time();
+   // assemble_residual_time += dealii::Utilities::MPI::max(timer.wall_time(), this->mpi_communicator);
 }
 
 template<int dim, typename real, typename MeshType>

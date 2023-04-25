@@ -43,6 +43,7 @@
 #include "artificial_dissipation_factory.h"
 
 #include <time.h>
+#include <deal.II/base/timer.h>
 
 // Template specialization of MappingFEField
 //extern template class dealii::MappingFEField<PHILIP_DIM,PHILIP_DIM,dealii::LinearAlgebra::distributed::Vector<double>, dealii::DoFHandler<PHILIP_DIM> >;
@@ -642,7 +643,8 @@ public:
     void set_current_time(const real current_time_input);
 
     /// Computational time for assembling residual.
-    clock_t assemble_residual_time;
+   // clock_t assemble_residual_time;
+    double assemble_residual_time;
 
 protected:
     /// The current time set in set_current_time()

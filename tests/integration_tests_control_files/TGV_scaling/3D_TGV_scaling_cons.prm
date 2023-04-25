@@ -18,7 +18,7 @@ set two_point_num_flux_type = Ra
 
 set use_curvilinear_split_form = false
 
-set energy_file = testing_4x4
+set energy_file = DG_cons_weak
 
 # The PDE we want to solve
 set pde_type = euler
@@ -68,6 +68,7 @@ subsection flow_solver
     set flow_case_type = taylor_green_vortex
     set apply_initial_condition_method = project_initial_condition_function
     set poly_degree = 1
+    set max_poly_degree_for_adaptation = 11
     set final_time = 14.0
     subsection grid
         set number_of_grid_elements_per_dimension = 2

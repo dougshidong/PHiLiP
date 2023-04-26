@@ -274,10 +274,15 @@ real ReynoldsAveragedNavierStokes_SAneg<dim,nstate,real>
 {
     // Compute coefficient r
     real coefficient_r;
+    real dimensional_r;
 
-    coefficient_r = nu_tilde/(s_tilde*kappa*kappa*d_wall*d_wall); 
-    coefficient_r = scale_coefficient(coefficient_r);
-    coefficient_r = coefficient_r <= r_lim ? coefficient_r : r_lim; 
+    if (s_tilde<=0.0){
+        coefficient_r = r_lim;
+    } else{
+        dimensional_r = nu_tilde/(s_tilde*kappa*kappa*d_wall*d_wall); 
+        dimensional_r = scale_coefficient(dimensional_r);
+        coefficient_r = dimensional_r <= r_lim ? dimensional_r : r_lim; 
+    }
 
     return coefficient_r;
 }
@@ -337,7 +342,7 @@ real ReynoldsAveragedNavierStokes_SAneg<dim,nstate,real>
     const real d_wall,
     const real s) const
 {
-    // Compute s_bar
+    // Compute s_tilde
     real s_tilde;
     const real s_bar = compute_s_bar(coefficient_Chi,nu_tilde,d_wall);
     const real scaled_s_bar = scale_coefficient(s_bar);
@@ -553,7 +558,7 @@ dealii::Tensor<2,dim,real2> ReynoldsAveragedNavierStokes_SAneg<dim,nstate,real>
 template <int dim, int nstate, typename real>
 std::array<real,nstate> ReynoldsAveragedNavierStokes_SAneg<dim,nstate,real>
 ::compute_production_dissipation_cross_term (
-    const dealii::Point<dim,real> &pos,
+    const dealii::Point<dim,real> &/*pos*/,
     const std::array<real,nstate> &conservative_soln,
     const std::array<dealii::Tensor<1,dim,real>,nstate> &soln_gradient,
     const real post_processed_scalar) const
@@ -574,16 +579,7 @@ std::array<real,nstate> ReynoldsAveragedNavierStokes_SAneg<dim,nstate,real>
     const real coefficient_Chi = compute_coefficient_Chi(nu_tilde,laminar_kinematic_viscosity);
     const real coefficient_f_t2 = compute_coefficient_f_t2(coefficient_Chi); 
 
-    (void) pos;
     const real d_wall = post_processed_scalar;
-    // only for work
-    //(void) post_processed_scalar;
-    //real d_wall;
-    //if (pos[0]>=0.0){
-    //    d_wall = pos[1];
-    //} else {
-    //    d_wall = sqrt(pos[0]*pos[0]+pos[1]*pos[1]);
-    //}
 
     const real s = compute_s(conservative_soln_rans, conservative_soln_gradient_rans);
     const real s_tilde = compute_s_tilde(coefficient_Chi, nu_tilde, d_wall, s);

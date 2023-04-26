@@ -27,14 +27,6 @@ PhysicsFactory<dim,nstate,real>
                  std::shared_ptr< ModelBase<dim,nstate,real> > model_input)
 {
     if (parameters_input==nullptr && model_input==nullptr){
-        //std::shared_ptr< ManufacturedSolutionFunction<dim,real> >  manufactured_solution_function 
-        //    = ManufacturedSolutionFactory<dim,real>::create_ManufacturedSolution(parameters_input, nstate);
-        //if constexpr (nstate == 1) {
-        //    return std::make_shared < p_Poisson<dim,nstate,real> > (
-        //        manufactured_solution_function);
-        //} else {
-        //    return nullptr;
-        //}
         return nullptr;
     } else {
         using PDE_enum = Parameters::AllParameters::PartialDifferentialEquation;

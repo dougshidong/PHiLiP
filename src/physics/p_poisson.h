@@ -201,8 +201,8 @@ private:
     const real factor_p = 4.0;
     const FadType factor_p_fad = 4.0;
 
-    const real stable_factor = 0.05;
-    const FadType stable_factor_fad = 0.05;
+    const real stable_factor = 0.01;
+    const FadType stable_factor_fad = 0.01;
 };
 
 } // Physics namespace

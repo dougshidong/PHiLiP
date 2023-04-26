@@ -669,7 +669,7 @@ void DGWeak<dim,nstate,real,MeshType,sub_nstate>::assemble_volume_term_explicit(
         if(this->pde_physics_double->has_nonzero_physical_source){
             physical_source_at_q.resize(n_quad_pts);
             const dealii::Point<dim,real> points = fe_values_vol.quadrature_point(iquad);
-            const real dummy_sub_physics_post_processed_scalar = 0.0;
+            const real dummy_sub_physics_post_processed_scalar = 1.0;
             physical_source_at_q[iquad] = this->pde_physics_double->physical_source_term (points,soln_at_q[iquad], soln_grad_at_q[iquad], current_cell_index, dummy_sub_physics_post_processed_scalar);
         }
     }
@@ -3790,14 +3790,6 @@ void DGWeak<dim,nstate,real,MeshType,sub_nstate>::assemble_volume_term(
             if (this->all_parameters->embedded_pde){
                 sub_physics_post_processed_scalar= sub_physics.post_processed_scalar(sub_soln_at_q[iquad], sub_soln_grad_at_q[iquad]);
             }
-            // only for work
-            //#if PHILIP_DIM > 1
-            //if (std::is_same<real2,double>::value){
-            //    if(nstate!=sub_nstate){
-            //        std::cout << " The calculated wall distance at " << ad_points[0] << "," << ad_points[1] << " with " << sub_physics_post_processed_scalar << std::endl;
-            //    }
-            //}
-            //#endif
             physical_source_at_q[iquad] = physics.physical_source_term (ad_points, soln_at_q[iquad], soln_grad_at_q[iquad], current_cell_index, sub_physics_post_processed_scalar);
         }
 

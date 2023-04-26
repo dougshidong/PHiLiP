@@ -195,7 +195,7 @@ void flat_plate_cube(std::shared_ptr<TriangulationType> &grid,
                         //std::cout << "wall BC is set for face center: " << cell->face(face)->center()[0] << "," << cell->face(face)->center()[1] << std::endl;
                     } 
                     if (std::abs(cell->face(face)->center()[1] - sub_grid_2_right_corner[1]) <=1e-10){
-                        cell->face(face)->set_boundary_id (1004);
+                        cell->face(face)->set_boundary_id (1005);
                         //std::cout << "Riemann BC is set for face center: " << cell->face(face)->center()[0] << "," << cell->face(face)->center()[1] << std::endl;
                     } 
                 }

@@ -141,6 +141,8 @@ PhysicsFactory<dim,nstate,real>
     } else if (pde_type == PDE_enum::p_poisson) {
         if constexpr (nstate == 1) 
             return std::make_shared < p_Poisson<dim,nstate,real> > (
+                parameters_input->p_poisson_param.factor_p,
+                parameters_input->p_poisson_param.stable_factor,
                 manufactured_solution_function);
     } else {
         // prevent warnings for dim=3,nstate=4, etc.

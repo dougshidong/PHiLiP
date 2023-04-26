@@ -24,6 +24,8 @@ protected:
 public:
     /// Constructor
     p_Poisson (
+        const double                                              factor_p_input,
+        const double                                              stable_factor_input,
         std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function = nullptr,
         const bool                                                has_nonzero_diffusion_input = true,
         const bool                                                has_nonzero_physical_source = true);
@@ -197,12 +199,12 @@ protected:
         const real &conservative_soln,
         const dealii::Tensor<1,dim,real> &solution_gradient) const;
 
-private:
-    const real factor_p = 4.0;
-    const FadType factor_p_fad = 4.0;
+public:
+    const real factor_p;
+    const FadType factor_p_fad;
 
-    const real stable_factor = 0.01;
-    const FadType stable_factor_fad = 0.01;
+    const real stable_factor;
+    const FadType stable_factor_fad;
 };
 
 } // Physics namespace

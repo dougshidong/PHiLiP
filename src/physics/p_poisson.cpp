@@ -13,11 +13,17 @@ namespace Physics {
 // p-Poisson Model
 //================================================================
 template <int dim, int nstate, typename real>
-p_Poisson<dim,nstate,real>::p_Poisson ( 
+p_Poisson<dim,nstate,real>::p_Poisson (
+    const double                                              factor_p_input,
+    const double                                              stable_factor_input, 
     std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function,
     const bool                                                has_nonzero_diffusion_input,
     const bool                                                has_nonzero_physical_source)
     : PhysicsBase<dim,nstate,real>(has_nonzero_diffusion_input,has_nonzero_physical_source,manufactured_solution_function)
+    , factor_p(factor_p_input)
+    , factor_p_fad(factor_p_input)
+    , stable_factor(stable_factor_input)
+    , stable_factor_fad(stable_factor_input)
 {
     static_assert(nstate==1, "Physics::p_Poisson() should be created with nstate==dim");
 }

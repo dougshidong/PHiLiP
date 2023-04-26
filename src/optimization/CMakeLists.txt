@@ -4,7 +4,6 @@ set(TESTS_SOURCE
     flow_constraints.cpp
     rol_objective.cpp
     full_space_step.cpp
-    optimizer.cpp
     )
 
 add_subdirectory(design_parameterization)

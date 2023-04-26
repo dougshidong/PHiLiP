@@ -4,7 +4,8 @@ set(MESH_ADAPTATION_SRC
     mesh_adaptation.cpp
     anisotropic_mesh_adaptation.cpp
     metric_to_mesh_generator.cpp
-    fe_values_shape_hessian.cpp)
+    fe_values_shape_hessian.cpp
+    mesh_optimizer.cpp)
 
 foreach(dim RANGE 1 3)
 

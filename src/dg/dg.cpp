@@ -2183,7 +2183,8 @@ void DGBase<dim,real,MeshType>::allocate_system (
     set_use_auxiliary_eq();
 
     // Allocate for auxiliary equation only.
-    allocate_auxiliary_equation ();
+    if(use_auxiliary_eq)
+        allocate_auxiliary_equation ();
 
     // Set the assemble resiudla time to 0 for clock_t type
    // assemble_residual_time = clock() - clock();

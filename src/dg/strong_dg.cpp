@@ -888,7 +888,12 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_volume_term_strong(
         for(int idim=0; idim<dim; idim++){
             if(ishape == 0)
                 aux_soln_coeff[istate][idim].resize(n_shape_fns);
-            aux_soln_coeff[istate][idim][ishape] = DGBase<dim,real,MeshType>::auxiliary_solution[idim](cell_dofs_indices[idof]);
+            if(this->use_auxiliary_eq){
+                aux_soln_coeff[istate][idim][ishape] = DGBase<dim,real,MeshType>::auxiliary_solution[idim](cell_dofs_indices[idof]);
+            }
+            else{
+                aux_soln_coeff[istate][idim][ishape] = 0.0;
+            }
         }
     }
     std::array<std::vector<real>,nstate> soln_at_q;
@@ -1277,7 +1282,12 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_strong(
                 aux_soln_coeff[istate][idim].resize(n_shape_fns);
             }
             //solve
-            aux_soln_coeff[istate][idim][ishape] = DGBase<dim,real,MeshType>::auxiliary_solution[idim](dof_indices[idof]);
+            if(this->use_auxiliary_eq){
+                aux_soln_coeff[istate][idim][ishape] = DGBase<dim,real,MeshType>::auxiliary_solution[idim](dof_indices[idof]);
+            }
+            else{
+                aux_soln_coeff[istate][idim][ishape] = 0.0;
+            }
         }
     }
     // Interpolate the modal coefficients to the volume cubature nodes.
@@ -1563,7 +1573,12 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_strong(
             if(ishape == 0){
                 aux_soln_coeff_int[istate][idim].resize(n_shape_fns_int);
             }
-            aux_soln_coeff_int[istate][idim][ishape] = DGBase<dim,real,MeshType>::auxiliary_solution[idim](dof_indices_int[idof]);
+            if(this->use_auxiliary_eq){
+                aux_soln_coeff_int[istate][idim][ishape] = DGBase<dim,real,MeshType>::auxiliary_solution[idim](dof_indices_int[idof]);
+            }
+            else{
+                aux_soln_coeff_int[istate][idim][ishape] = 0.0;
+            }
         }
     }
 
@@ -1581,7 +1596,12 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_strong(
             if(ishape == 0){
                 aux_soln_coeff_ext[istate][idim].resize(n_shape_fns_ext);
             }
-            aux_soln_coeff_ext[istate][idim][ishape] = DGBase<dim,real,MeshType>::auxiliary_solution[idim](dof_indices_ext[idof]);
+            if(this->use_auxiliary_eq){
+                aux_soln_coeff_ext[istate][idim][ishape] = DGBase<dim,real,MeshType>::auxiliary_solution[idim](dof_indices_ext[idof]);
+            }
+            else{
+                aux_soln_coeff_ext[istate][idim][ishape] = 0.0;
+            }
         }
     }
 

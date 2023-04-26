@@ -349,25 +349,45 @@ void PeriodicTurbulence<dim, nstate>::update_maximum_local_wave_speed(DGBase<dim
 
     // Overintegrate the error to make sure there is not integration error in the error estimate
     int overintegrate = 10;
+   // int overintegrate = 0;
+    const unsigned int grid_degree = dg.high_order_grid->fe_system.tensor_degree();
+    const unsigned int poly_degree = dg.max_degree;
     dealii::QGauss<dim> quad_extra(dg.max_degree+1+overintegrate);
-    dealii::FEValues<dim,dim> fe_values_extra(*(dg.high_order_grid->mapping_fe_field), dg.fe_collection[dg.max_degree], quad_extra,
-                                              dealii::update_values | dealii::update_gradients | dealii::update_JxW_values | dealii::update_quadrature_points);
+    const unsigned int n_quad_pts = quad_extra.size();
+    dealii::QGauss<1> quad_extra_1D(dg.max_degree+1+overintegrate);
+    OPERATOR::basis_functions<dim,2*dim> soln_basis(1, poly_degree, grid_degree); 
+    soln_basis.build_1D_volume_operator(dg.oneD_fe_collection_1state[poly_degree], quad_extra_1D);
 
-    const unsigned int n_quad_pts = fe_values_extra.n_quadrature_points;
-    std::array<double,nstate> soln_at_q;
+    const unsigned int n_dofs = dg.fe_collection[poly_degree].n_dofs_per_cell();
+    const unsigned int n_shape_fns = n_dofs / nstate;
 
-    std::vector<dealii::types::global_dof_index> dofs_indices (fe_values_extra.dofs_per_cell);
+    std::vector<dealii::types::global_dof_index> dofs_indices (n_dofs);
     for (auto cell = dg.dof_handler.begin_active(); cell!=dg.dof_handler.end(); ++cell) {
         if (!cell->is_locally_owned()) continue;
-        fe_values_extra.reinit (cell);
         cell->get_dof_indices (dofs_indices);
 
-        for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
+        std::array<std::vector<double>,nstate> soln_coeff;
+        for (unsigned int idof = 0; idof < n_dofs; ++idof) {
+            const unsigned int istate = dg.fe_collection[poly_degree].system_to_component_index(idof).first;
+            const unsigned int ishape = dg.fe_collection[poly_degree].system_to_component_index(idof).second;
+            if(ishape == 0){
+                soln_coeff[istate].resize(n_shape_fns);
+            }
+         
+            soln_coeff[istate][ishape] = dg.solution(dofs_indices[idof]);
+        }
+        std::array<std::vector<double>,nstate> soln_at_q_vect;
+        for(int istate=0; istate<nstate; istate++){
+            soln_at_q_vect[istate].resize(n_quad_pts);
+            // Interpolate soln coeff to volume cubature nodes.
+            soln_basis.matrix_vector_mult_1D(soln_coeff[istate], soln_at_q_vect[istate],
+                                             soln_basis.oneD_vol_operator);
+        }
 
-            std::fill(soln_at_q.begin(), soln_at_q.end(), 0.0);
-            for (unsigned int idof=0; idof<fe_values_extra.dofs_per_cell; ++idof) {
-                const unsigned int istate = fe_values_extra.get_fe().system_to_component_index(idof).first;
-                soln_at_q[istate] += dg.solution[dofs_indices[idof]] * fe_values_extra.shape_value_component(idof, iquad, istate);
+        for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
+            std::array<double,nstate> soln_at_q;
+            for(int istate=0; istate<nstate; istate++){
+                soln_at_q[istate] = soln_at_q_vect[istate][iquad];
             }
 
             // Update the maximum local wave speed (i.e. convective eigenvalue)
@@ -389,6 +409,7 @@ void PeriodicTurbulence<dim, nstate>::compute_and_update_integrated_quantities(D
 
     // Overintegrate the error to make sure there is not integration error in the error estimate
     int overintegrate = 10;
+  //  int overintegrate = 0;
 
     // Set the quadrature of size dim and 1D for sum-factorization.
     dealii::QGauss<dim> quad_extra(dg.max_degree+1+overintegrate);
@@ -421,7 +442,7 @@ void PeriodicTurbulence<dim, nstate>::compute_and_update_integrated_quantities(D
         if (!cell->is_locally_owned()) continue;
         cell->get_dof_indices (dofs_indices);
 
-        // We first need to extract the mapping support points (grid nodes) from high_order_grid.
+// We first need to extract the mapping support points (grid nodes) from high_order_grid.
         const dealii::FESystem<dim> &fe_metric = dg.high_order_grid->fe_system;
         const unsigned int n_metric_dofs = fe_metric.dofs_per_cell;
         const unsigned int n_grid_nodes  = n_metric_dofs / dim;

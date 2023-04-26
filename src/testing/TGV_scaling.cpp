@@ -292,7 +292,8 @@ int EulerTaylorGreenScaling<dim, nstate>::run_test() const
     const unsigned int poly_degree_start= all_parameters->flow_solver_param.poly_degree;
    // const unsigned int poly_degree_start= 11;
 
-    const unsigned int poly_degree_end = 20;//poly_degree=10 is as high can go locally
+   // const unsigned int poly_degree_end = 20;//poly_degree=10 is as high can go locally
+    const unsigned int poly_degree_end = 25;//poly_degree=10 is as high can go locally
  //   const unsigned int poly_degree_end = 12;//poly_degree=10 is as high can go locally
   //  const unsigned int poly_degree_end = 10;//poly_degree=10 is as high can go locally
   //  const unsigned int poly_degree_end = 8;//poly_degree=10 is as high can go locally
@@ -321,7 +322,7 @@ int EulerTaylorGreenScaling<dim, nstate>::run_test() const
          
         // Create DG
         std::shared_ptr < PHiLiP::DGBase<dim, double> > dg = PHiLiP::DGFactory<dim,double>::create_discontinuous_galerkin(&all_parameters_new, poly_degree, poly_degree, grid_degree, grid);
- //       dg->allocate_system (false,false,false);
+        dg->allocate_system (false,false,false);
          
         MPI_Barrier(MPI_COMM_WORLD);
         std::cout << "Implement initial conditions" << std::endl;
@@ -341,11 +342,11 @@ int EulerTaylorGreenScaling<dim, nstate>::run_test() const
  //       MPI_Barrier(MPI_COMM_WORLD);
          
 
-#if 0
 //        std::cout << "creating ODE solver" << std::endl;
         std::shared_ptr<ODE::ODESolverBase<dim, double>> ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
         MPI_Barrier(MPI_COMM_WORLD);
         std::cout << "ODE solver successfully created" << std::endl;
+#if 0
        // const double finalTime = all_parameters_new.flow_solver_param.final_time;
        const double time_step_start = get_timestep(dg,poly_degree,delta_x);
         const double dt_start = dealii::Utilities::MPI::min(time_step_start, mpi_communicator);
@@ -356,11 +357,11 @@ int EulerTaylorGreenScaling<dim, nstate>::run_test() const
          
         std::cout << " number dofs " << dg->dof_handler.n_dofs()<<std::endl;
         std::cout << "preparing to advance solution in time" << std::endl;
+#endif
          
          
         ode_solver->current_iteration = 0;
         ode_solver->allocate_ode_system();
-#endif
     dealii::LinearAlgebra::distributed::Vector<double> solution_update;
     solution_update.reinit(dg->locally_owned_dofs, dg->ghost_dofs, this->mpi_communicator);
 

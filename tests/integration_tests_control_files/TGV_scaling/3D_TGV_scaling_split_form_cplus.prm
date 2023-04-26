@@ -67,7 +67,7 @@ end
 subsection flow_solver
     set flow_case_type = taylor_green_vortex
     set apply_initial_condition_method = project_initial_condition_function
-    set poly_degree = 1
+    set poly_degree = 17
     set final_time = 14.0
     subsection grid
         set number_of_grid_elements_per_dimension = 2

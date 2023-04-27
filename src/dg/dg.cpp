@@ -2884,11 +2884,13 @@ template<int dim, typename real, typename MeshType>
 void DGBase<dim,real,MeshType>::apply_global_mass_matrix(
         const dealii::LinearAlgebra::distributed::Vector<double> &input_vector,
         dealii::LinearAlgebra::distributed::Vector<double> &output_vector,
-        const bool use_auxiliary_eq)
+        const bool use_auxiliary_eq,
+        const bool use_M_norm)
 {
     using FR_enum = Parameters::AllParameters::Flux_Reconstruction;
     using FR_Aux_enum = Parameters::AllParameters::Flux_Reconstruction_Aux;
-    const FR_enum FR_Type = this->all_parameters->flux_reconstruction_type;
+    const FR_enum FR_cDG = FR_enum::cDG;
+    const FR_enum FR_Type = (use_M_norm) ? FR_cDG : this->all_parameters->flux_reconstruction_type;
     const FR_Aux_enum FR_Type_Aux = this->all_parameters->flux_reconstruction_aux_type;
      
     const unsigned int init_grid_degree = high_order_grid->fe_system.tensor_degree();

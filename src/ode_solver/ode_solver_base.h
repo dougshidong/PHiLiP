@@ -66,6 +66,7 @@ public:
     double residual_norm; ///< Current residual norm. Only makes sense for steady state
     double residual_norm_decrease; ///< Current residual norm normalized by initial residual. Only makes sense for steady state
 
+    double FR_entropy_contribution; ///< Calculates the contribution to numerical entropy change due to the FR filter. Needed for numerical entropy change calculation in flow solver.
 protected:
     /// CFL factor for (un)successful linesearches
     /** When the linesearch succeeds on its first try, double the CFL on top of

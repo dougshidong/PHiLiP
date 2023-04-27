@@ -29,7 +29,7 @@ protected:
 
     /// Compute relaxation parameter explicitly (i.e. if energy is the entropy variable)
     /// See Ketcheson 2019, Eq. 2.4
-    real compute_relaxation_parameter(real &dt) const override;
+    real compute_relaxation_parameter(real &dt) override;
     
     /// Compute inner product according to the nodes being used
     /** This is the same calculation as energy, but using the residual instead of solution

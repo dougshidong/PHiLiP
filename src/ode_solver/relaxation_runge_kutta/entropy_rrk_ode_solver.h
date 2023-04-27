@@ -35,7 +35,7 @@ protected:
 
     /// Compute relaxation parameter numerically (i.e. if energy is NOT the entropy variable)
     /// See Ranocha 2020, Eq. 2.4
-    real compute_relaxation_parameter(real &dt) const override;
+    real compute_relaxation_parameter(real &dt) override;
 
     /// Compute the remainder of the root function Ranocha 2020 Eq. 2.4
     real compute_root_function(
@@ -47,14 +47,15 @@ protected:
 
     /// Compute numerical entropy
     real compute_numerical_entropy(
-            const dealii::LinearAlgebra::distributed::Vector<double> &u) const;
+            const dealii::LinearAlgebra::distributed::Vector<double> &u,
+            const bool adjust_FR = false) const;
     
     /// Compute numerical entropy by integrating over quadrature points
     real compute_integrated_numerical_entropy(
             const dealii::LinearAlgebra::distributed::Vector<double> &u) const;
     
     /// Compute the estimated entropy change during a timestep
-    real compute_entropy_change_estimate(real &dt) const;
+    real compute_entropy_change_estimate(real &dt, const bool use_M_norm_for_entropy_change_est = true) const;
 
     /// Return the entropy variables from a solution vector u
     dealii::LinearAlgebra::distributed::Vector<double> compute_entropy_vars(const dealii::LinearAlgebra::distributed::Vector<double> &u) const;

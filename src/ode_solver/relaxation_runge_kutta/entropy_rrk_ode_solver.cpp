@@ -27,7 +27,7 @@ void EntropyRRKODESolver<dim,real,n_rk_stages,MeshType>::store_stage_solutions(c
 }
 
 template <int dim, typename real, int n_rk_stages, typename MeshType>
-real EntropyRRKODESolver<dim,real,n_rk_stages,MeshType>::compute_relaxation_parameter(real &dt) const
+real EntropyRRKODESolver<dim,real,n_rk_stages,MeshType>::compute_relaxation_parameter(real &dt)
 {
     // Console output is based on linearsolverparam
     const bool do_output = (this->dg->all_parameters->linear_solver_param.linear_solver_output == Parameters::OutputEnum::verbose); 
@@ -44,7 +44,7 @@ real EntropyRRKODESolver<dim,real,n_rk_stages,MeshType>::compute_relaxation_para
 
     // n and np1 denote timestep indices
     const dealii::LinearAlgebra::distributed::Vector<double> u_n = this->solution_update;
-    const double num_entropy_n = compute_numerical_entropy(u_n);
+    const double num_entropy_n = compute_numerical_entropy(u_n, false);
     
     const bool use_secant = true;
     bool secant_failed = false;
@@ -52,7 +52,7 @@ real EntropyRRKODESolver<dim,real,n_rk_stages,MeshType>::compute_relaxation_para
     // k, kp1, km1 denote iteration indices of secant or bisection solvers
     double gamma_kp1; 
     // TEMP should have a parameter here
-    const double conv_tol = 5E-12; 
+    const double conv_tol = 5E-10; 
     int iter_counter = 0;
     const int iter_limit = 100;
     if (use_secant){
@@ -155,12 +155,27 @@ real EntropyRRKODESolver<dim,real,n_rk_stages,MeshType>::compute_relaxation_para
         std::abort();
         return -1;
     } else {
-        if (do_output) this->pcout << "Convergence reached!" << std::endl;
-        dealii::LinearAlgebra::distributed::Vector<double> temp = u_n;
-        temp.add(gamma_kp1, step_direction);
-        if (do_output) this->pcout << "    Estimate entropy change: " << entropy_change_est
-                                   << "    Actual entropy change:   " << compute_numerical_entropy(u_n) - compute_numerical_entropy(temp)
-                                   << std::endl;
+
+        this->FR_entropy_contribution = gamma_kp1 *(compute_entropy_change_estimate(dt, false) - compute_entropy_change_estimate(dt, true));
+
+        // TEMP store in dg so that flow solver case can access it
+        this->dg->FR_entropy_contribution = this->FR_entropy_contribution;
+
+        if (do_output) {
+            this->pcout << "Convergence reached!" << std::endl;
+            dealii::LinearAlgebra::distributed::Vector<double> temp = u_n;
+            temp.add(gamma_kp1, step_direction);
+
+            this->pcout << "  Entropy at prev timestep (DG) : " << num_entropy_n << std::endl
+                        << "  Entropy at current timestep (DG) : " << compute_numerical_entropy(temp) << std::endl;
+            this->pcout << "    Estimate entropy change (M norm): " << entropy_change_est << std::endl
+                        << "    Actual entropy change (DG):   " << compute_numerical_entropy(temp) - num_entropy_n << std::endl
+                        << "    FR contribution: " << this->FR_entropy_contribution << std::endl
+                        << "    Actual entropy change (FR):   " << compute_numerical_entropy(temp) - num_entropy_n + this->FR_entropy_contribution << std::endl
+                        << "  Entropy at current timestep (FR) : " << compute_numerical_entropy(temp) +  this->FR_entropy_contribution << std::endl
+                        << std::endl;
+        }
+
         return gamma_kp1;
     }
 }
@@ -183,9 +198,19 @@ real EntropyRRKODESolver<dim,real,n_rk_stages,MeshType>::compute_root_function(
 
 template <int dim, typename real, int n_rk_stages, typename MeshType>
 real EntropyRRKODESolver<dim,real,n_rk_stages,MeshType>::compute_numerical_entropy(
-        const dealii::LinearAlgebra::distributed::Vector<double> &u) const
+        const dealii::LinearAlgebra::distributed::Vector<double> &u,
+        const bool adjust_FR) const
 {
     real num_entropy = compute_integrated_numerical_entropy(u);
+
+    if (adjust_FR) {
+        using FREnum = Parameters::AllParameters::Flux_Reconstruction;
+        FREnum FR_type = this->dg->all_parameters->flux_reconstruction_type;
+        if (FR_type != FREnum::cDG){
+            num_entropy += this->dg->FR_entropy_contribution;
+        }
+    }
+
     return num_entropy;
     
 }
@@ -386,16 +411,26 @@ real EntropyRRKODESolver<dim,real,n_rk_stages,MeshType>::compute_integrated_nume
 }
 
 template <int dim, typename real, int n_rk_stages, typename MeshType>
-real EntropyRRKODESolver<dim,real,n_rk_stages,MeshType>::compute_entropy_change_estimate(real &dt) const
+real EntropyRRKODESolver<dim,real,n_rk_stages,MeshType>::compute_entropy_change_estimate(real &dt, const bool use_M_norm_for_entropy_change_est) const
 {
     double entropy_change_estimate = 0;
+
     for (int istage = 0; istage<n_rk_stages; ++istage){
 
         // Recall rk_stage is IMM * RHS
         // therefore, RHS = M * rk_stage = M * du/dt
         dealii::LinearAlgebra::distributed::Vector<double> mass_matrix_times_rk_stage(this->dg->solution);
         if(this->dg->all_parameters->use_inverse_mass_on_the_fly)
-            this->dg->apply_global_mass_matrix(this->rk_stage[istage],mass_matrix_times_rk_stage);
+        {
+            if (use_M_norm_for_entropy_change_est)
+                this->dg->apply_global_mass_matrix(this->rk_stage[istage],mass_matrix_times_rk_stage,
+                        this->dg->use_auxiliary_eq, // use_auxiliary_eq,
+                        true // use_M_norm
+                        );
+            else
+                this->dg->apply_global_mass_matrix(this->rk_stage[istage],mass_matrix_times_rk_stage);
+
+        }
         else
             this->dg->global_mass_matrix.vmult( mass_matrix_times_rk_stage, this->rk_stage[istage]);
         

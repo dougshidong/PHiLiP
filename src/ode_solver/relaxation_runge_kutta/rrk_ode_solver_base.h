@@ -39,7 +39,7 @@ protected:
     /// Compute relaxation parameter explicitly (i.e. if energy is the entropy variable)
     /// See Ketcheson 2019, Eq. 2.4
     /// See Ranocha 2020, Eq. 2.4
-    virtual real compute_relaxation_parameter(real &dt) const = 0;
+    virtual real compute_relaxation_parameter(real &dt) = 0;
 
 };
 

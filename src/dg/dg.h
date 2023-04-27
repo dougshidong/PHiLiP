@@ -263,11 +263,14 @@ public:
     /// Applies the local metric dependent mass matrices when the global is not stored.
     /** We use matrix-free methods to apply the local mass matrix on-the-fly 
     *   in each cell using sum-factorization techniques.
+    *   use_M_norm flag allows the unmodified mass matrix to be used 
+    *   i.e., M rather than M+K.
     */
     void apply_global_mass_matrix(
         const dealii::LinearAlgebra::distributed::Vector<double> &input_vector,
         dealii::LinearAlgebra::distributed::Vector<double> &output_vector,
-        const bool use_auxiliary_eq = false);
+        const bool use_auxiliary_eq = false,
+        const bool use_M_norm = false);
 
     /// Evaluates the maximum stable time step
     /** If exact_time_stepping = true, use the same time step for the entire solution
@@ -933,6 +936,15 @@ public:
     bool use_auxiliary_eq;
     /// Set use_auxiliary_eq flag
     virtual void set_use_auxiliary_eq() = 0;
+
+public:
+    /// Entropy contribution due to FR
+    /** This really shouldn't be stored in dg, but is a temporary measure because 
+     * flow solver cases have no access to ode solver. */
+    double FR_entropy_contribution;
+
+    /// FR-consistent entropy storage
+    double num_entropy_DG_previous;
 }; // end of DGBase class
 
 /// Abstract class templated on the number of state variables
@@ -1041,6 +1053,7 @@ protected:
     /** Usually called after setting physics.
      */
     void reset_numerical_fluxes();
+
 
 }; // end of DGBaseState class
 

@@ -19,11 +19,15 @@ foreach(dim RANGE 1 3)
     string(CONCAT HighOrderGridLib HighOrderGrid_${dim}D)
     target_link_libraries(${MeshAdaptationLib} ${HighOrderGridLib})
 
+    string(CONCAT OptimizationLib Optimization_${dim}D)
+    target_link_libraries(${MeshAdaptationLib} ${OptimizationLib})
+
     # Setup target with deal.II
     if(NOT DOC_ONLY)
         DEAL_II_SETUP_TARGET(${MeshAdaptationLib})
     endif()
 
     unset(HighOrderGridLib)
+    unset(OptimizationLib)
     unset(MeshAdaptationLib)
 endforeach()

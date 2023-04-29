@@ -80,7 +80,7 @@ real2 FunctionalNormLpVolume<dim,nstate,real,MeshType>::evaluate_volume_integran
 {
     real2 lpnorm_value = 0;
     for(unsigned int istate = 0; istate < nstate; ++istate)
-        lpnorm_value += pow(abs(soln_at_q[istate]), this->normLp);
+        lpnorm_value += pow(soln_at_q[istate], this->normLp);
     return lpnorm_value;
 }
 
@@ -117,7 +117,7 @@ real2 FunctionalNormLpBoundary<dim,nstate,real,MeshType>::evaluate_boundary_inte
         return lpnorm_value;
 
     for(unsigned int istate = 0; istate < nstate; ++istate)
-        lpnorm_value += pow(abs(soln_at_q[istate]), this->normLp);
+        lpnorm_value += pow(soln_at_q[istate], this->normLp);
 
     return lpnorm_value;
 }

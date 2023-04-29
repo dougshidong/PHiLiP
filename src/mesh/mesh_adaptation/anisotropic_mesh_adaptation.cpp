@@ -56,6 +56,9 @@ AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: AnisotropicMeshAdaptat
     Assert(this->dg->triangulation->get_mesh_smoothing() == typename dealii::Triangulation<dim>::MeshSmoothing(dealii::Triangulation<dim>::none),
            dealii::ExcMessage("Mesh smoothing might h-refine cells while changing p order."));
 
+    linear_solver_param = dg->all_parameters->linear_solver_param;
+    linear_solver_param.linear_residual = 1.0e-12;
+
 }
 
 template<int dim, int nstate, typename real, typename MeshType>
@@ -254,7 +257,7 @@ void AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: reconstruct_p2_so
     pcout<<"Reconstructing p2 solution."<<std::endl;
     dg->assemble_residual(true);
     VectorType delU = dg->solution;
-    solve_linear(dg->system_matrix, dg->right_hand_side, delU, dg->all_parameters->linear_solver_param);
+    solve_linear(dg->system_matrix, dg->right_hand_side, delU, linear_solver_param);
     delU *= -1.0;
     delU.update_ghost_values();
     dg->solution += delU;
@@ -325,7 +328,7 @@ void AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: compute_goal_orie
     VectorType adjoint(dg->solution); 
     dg->assemble_residual(true);
     functional->evaluate_functional(true);
-    solve_linear(dg->system_matrix_transpose, functional->dIdw, adjoint, dg->all_parameters->linear_solver_param);
+    solve_linear(dg->system_matrix_transpose, functional->dIdw, adjoint, linear_solver_param);
     adjoint *= -1.0;
     adjoint.update_ghost_values();
     //==========================================================================================

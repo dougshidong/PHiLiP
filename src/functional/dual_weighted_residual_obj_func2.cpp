@@ -34,6 +34,9 @@ DualWeightedResidualObjFunc2<dim, nstate, real> :: DualWeightedResidualObjFunc2(
     {
         this->pcout<<"Using coarse residual."<<std::endl;
     }
+    
+    linear_solver_param = this->dg->all_parameters->linear_solver_param;
+    linear_solver_param.linear_residual = 1.0e-12;
 }
 
 //===================================================================================================================================================
@@ -268,7 +271,7 @@ real DualWeightedResidualObjFunc2<dim, nstate, real> :: evaluate_objective_funct
     const bool compute_dIdW = true;
     functional->evaluate_functional(compute_dIdW);
 
-    solve_linear(this->dg->system_matrix_transpose, functional->dIdw, adjoint, this->dg->all_parameters->linear_solver_param);
+    solve_linear(this->dg->system_matrix_transpose, functional->dIdw, adjoint, linear_solver_param);
     adjoint *= -1.0;
     adjoint.update_ghost_values();
 
@@ -1291,7 +1294,7 @@ void DualWeightedResidualObjFunc2<dim, nstate, real> :: adjoint_x_vmult(
     matrix_ux.vmult(v1, in_vector);
     v1.update_ghost_values();
 
-    solve_linear(R_u_transpose, v1, out_vector, this->dg->all_parameters->linear_solver_param);
+    solve_linear(R_u_transpose, v1, out_vector, linear_solver_param);
     out_vector.update_ghost_values();
 }
 
@@ -1309,7 +1312,7 @@ void DualWeightedResidualObjFunc2<dim, nstate, real> :: adjoint_u_vmult(
     matrix_uu.vmult(v1, in_vector);
     v1.update_ghost_values();
 
-    solve_linear(R_u_transpose, v1, out_vector, this->dg->all_parameters->linear_solver_param);
+    solve_linear(R_u_transpose, v1, out_vector, linear_solver_param);
     out_vector.update_ghost_values();
 }
 
@@ -1324,7 +1327,7 @@ void DualWeightedResidualObjFunc2<dim, nstate, real> :: adjoint_x_Tvmult(
     VectorType v1;
     v1.reinit(vector_fine);
     VectorType in_vector_copy = in_vector; // because solve_linear() does not take it as a const.
-    solve_linear(R_u, in_vector_copy, v1, this->dg->all_parameters->linear_solver_param);
+    solve_linear(R_u, in_vector_copy, v1, linear_solver_param);
     v1.update_ghost_values();
 
     matrix_ux.Tvmult(out_vector, v1);
@@ -1342,7 +1345,7 @@ void DualWeightedResidualObjFunc2<dim, nstate, real> :: adjoint_u_Tvmult(
     VectorType v1;
     v1.reinit(vector_fine);
     VectorType in_vector_copy = in_vector;
-    solve_linear(R_u, in_vector_copy, v1, this->dg->all_parameters->linear_solver_param);
+    solve_linear(R_u, in_vector_copy, v1, linear_solver_param);
     v1.update_ghost_values();
 
     matrix_uu.Tvmult(out_vector, v1);

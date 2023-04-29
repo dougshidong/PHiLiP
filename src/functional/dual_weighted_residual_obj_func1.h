@@ -242,6 +242,9 @@ public:
 
     /// Stores interpolation matrix \f[ I_h \f] to interpolate onto fine space. Used to compute \f[ U_h^H = I_h u_H \f]. 
     MatrixType interpolation_matrix;
+    
+    /// Linear solver param with low residual tolerance.
+    Parameters::LinearSolverParam linear_solver_param;
 };
 
 } // namespace PHiLiP

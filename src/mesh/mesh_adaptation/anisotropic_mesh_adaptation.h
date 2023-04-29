@@ -120,6 +120,9 @@ private:
     
     /// Stores max dofs per cell to initialize dof_indices.
     const unsigned int max_dofs_per_cell;
+
+    /// Linear solver param with low residual tolerance.
+    Parameters::LinearSolverParam linear_solver_param;
 };
 
 } // PHiLiP namepsace

@@ -57,7 +57,7 @@ AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: AnisotropicMeshAdaptat
            dealii::ExcMessage("Mesh smoothing might h-refine cells while changing p order."));
 
     linear_solver_param = dg->all_parameters->linear_solver_param;
-    linear_solver_param.linear_residual = 1.0e-12;
+    linear_solver_param.linear_residual = 1.0e-15;
 
 }
 

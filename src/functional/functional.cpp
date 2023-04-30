@@ -102,7 +102,7 @@ template <typename real2>
 real2 FunctionalNormLpBoundary<dim,nstate,real,MeshType>::evaluate_boundary_integrand(
     const PHiLiP::Physics::PhysicsBase<dim,nstate,real2> &/* physics */,
     const unsigned int                                    boundary_id,
-    const dealii::Point<dim,real2> &                      /* phys_coord */,
+    const dealii::Point<dim,real2> &                      phys_coord,
     const dealii::Tensor<1,dim,real2> &                   /* normal */,
     const std::array<real2,nstate> &                      soln_at_q,
     const std::array<dealii::Tensor<1,dim,real2>,nstate> &/* soln_grad_at_q */) const
@@ -116,8 +116,18 @@ real2 FunctionalNormLpBoundary<dim,nstate,real,MeshType>::evaluate_boundary_inte
     if(!eval_boundary)
         return lpnorm_value;
 
+    //=======================================================================
+    // Evaluate continuous logistic heaviside.
+    const double xc = 0.8;
+    const double xmax = 0.9; // \in [0.9,1). 
+    const double log_term = log(1.0/xmax - 1.0);
+    const double epsilon_val = -(1.0 - xc)/log_term;
+    real2 x = phys_coord[0];
+    real2 heaviside_at_x = 1.0/(1.0 + exp(-(x-xc)/epsilon_val));
+    //=======================================================================
+
     for(unsigned int istate = 0; istate < nstate; ++istate)
-        lpnorm_value += pow(soln_at_q[istate], this->normLp);
+        lpnorm_value += heaviside_at_x * pow(soln_at_q[istate], this->normLp);
 
     return lpnorm_value;
 }

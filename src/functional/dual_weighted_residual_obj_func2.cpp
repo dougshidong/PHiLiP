@@ -36,7 +36,7 @@ DualWeightedResidualObjFunc2<dim, nstate, real> :: DualWeightedResidualObjFunc2(
     }
     
     linear_solver_param = this->dg->all_parameters->linear_solver_param;
-    linear_solver_param.linear_residual = 1.0e-12;
+    linear_solver_param.linear_residual = 1.0e-15;
 }
 
 //===================================================================================================================================================

@@ -1095,6 +1095,7 @@ template <int dim, typename real, typename MeshType>
 void DGBase<dim,real,MeshType>::set_dual(const dealii::LinearAlgebra::distributed::Vector<real> &dual_input)
 {
     dual = dual_input;
+    dual.update_ghost_values();
 }
 
 template <int dim, typename real, typename MeshType>

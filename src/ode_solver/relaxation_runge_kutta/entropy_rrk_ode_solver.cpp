@@ -39,7 +39,8 @@ real EntropyRRKODESolver<dim,real,n_rk_stages,MeshType>::compute_relaxation_para
     }
     step_direction *= dt;
     
-    const double entropy_change_est = compute_entropy_change_estimate(dt); //calculate
+    // Compute entropy change estimate in M norm , [ v^T (M) du/dt ]
+    const double entropy_change_est = compute_entropy_change_estimate(dt);
     if (do_output) this->pcout <<"Entropy change estimate: " << std::setprecision(16) << entropy_change_est << std::endl;
 
     // n and np1 denote timestep indices

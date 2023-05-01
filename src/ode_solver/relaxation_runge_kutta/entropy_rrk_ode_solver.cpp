@@ -156,6 +156,7 @@ real EntropyRRKODESolver<dim,real,n_rk_stages,MeshType>::compute_relaxation_para
         return -1;
     } else {
 
+        // Use [ gamma * (v^T (M+K) du/dt - v^T (M) du/dt ) ] as a workaround to calculate [ gamma * (v^T (K) du/dt) ]
         this->FR_entropy_contribution = gamma_kp1 *(compute_entropy_change_estimate(dt, false) - compute_entropy_change_estimate(dt, true));
 
         // TEMP store in dg so that flow solver case can access it

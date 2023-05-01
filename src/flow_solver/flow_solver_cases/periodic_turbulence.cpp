@@ -728,11 +728,16 @@ void PeriodicTurbulence<dim, nstate>::compute_unsteady_data_and_write_to_table(
     const double strain_rate_tensor_based_dissipation_rate = this->get_strain_rate_tensor_based_dissipation_rate();
     
     const double numerical_entropy_DG = this->get_numerical_entropy(dg);
-    const double numerical_entropy_change_FRcorrected = numerical_entropy_DG - dg->num_entropy_DG_previous + dg->FR_entropy_contribution;
+    if (current_time == 0.0) {
+        this->num_entropy_change_fromstarttime_FR = 0;
+        dg->num_entropy_DG_previous = numerical_entropy_DG;
+        dg->FR_entropy_contribution = 0;
+    }
+    const double numerical_entropy_change_FRcorrected = numerical_entropy_DG - dg->num_entropy_DG_previous  // change in DG sense
+                                                                + dg->FR_entropy_contribution;              // Adjust with K-norm correction -- calculated in RRK ode solver.
     this->num_entropy_change_fromstarttime_FR+= numerical_entropy_change_FRcorrected;
-    if (current_time == 0.0) this->num_entropy_change_fromstarttime_FR = 0;
     this->pcout << this->num_entropy_change_fromstarttime_FR;
-    dg->num_entropy_DG_previous = numerical_entropy_DG;
+    dg->num_entropy_DG_previous = numerical_entropy_DG; // Store previous numerical entropy in DG. This way ODE solver and flow solver can both access it. This structure isn't strictly neccessary in this version - should be stored in flow solver.
     
     // TEMP - should code gamma storage part this nicer
     using ODEEnum = Parameters::ODESolverParam::ODESolverEnum;

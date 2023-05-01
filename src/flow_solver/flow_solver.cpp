@@ -45,7 +45,7 @@ FlowSolver<dim, nstate>::FlowSolver(
     if (flow_solver_param.steady_state == false) {
         dg->allocate_system(false,false,false);
     } else {
-        dg->allocate_system(true,true,true);
+        dg->allocate_system(true,false,false);
     }
 
     if(ode_param.ode_solver_type == Parameters::ODESolverParam::pod_galerkin_solver || ode_param.ode_solver_type == Parameters::ODESolverParam::pod_petrov_galerkin_solver){

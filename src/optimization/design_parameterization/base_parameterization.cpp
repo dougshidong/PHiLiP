@@ -26,6 +26,7 @@ bool BaseParameterization<dim> :: has_design_variable_been_updated(
 {
     VectorType diff = current_design_var;
     diff -= updated_design_var;
+    diff.update_ghost_values();
     
     bool is_design_variable_updated = true;
     if(diff.l2_norm() == 0.0) {is_design_variable_updated = false;}

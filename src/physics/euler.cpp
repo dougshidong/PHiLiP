@@ -919,6 +919,22 @@ real Euler<dim,nstate,real>
 
 template <int dim, int nstate, typename real>
 real Euler<dim,nstate,real>
+::max_convective_normal_eigenvalue (
+    const std::array<real,nstate> &conservative_soln,
+    const dealii::Tensor<1,dim,real> &normal) const
+{
+    const dealii::Tensor<1,dim,real> vel = compute_velocities<real>(conservative_soln);
+
+    const real sound = compute_sound (conservative_soln);
+    real vel_dot_n = 0.0;
+    for (int d=0;d<dim;++d) { vel_dot_n += vel[d]*normal[d]; };
+    const real max_normal_eig = abs(vel_dot_n) + sound;
+
+    return max_normal_eig;
+}
+
+template <int dim, int nstate, typename real>
+real Euler<dim,nstate,real>
 ::max_viscous_eigenvalue (const std::array<real,nstate> &/*conservative_soln*/) const
 {
     return 0.0;

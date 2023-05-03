@@ -113,7 +113,12 @@ public:
     /// Destructor
     ~LaxFriedrichsRiemannSolverDissipation() {};
 
-    /// Returns the Lax-Friedrichs convective numerical flux at an interface.
+    /** Returns the Lax-Friedrichs convective numerical flux at an interface. 
+     *  Reference:
+     *    Section 3.1 of Bernardo Cockburn, and Chi-Wang Shu, 
+     *    "The Runge–Kutta Discontinuous Galerkin Method for Conservation Laws V", 
+     *    JOURNAL OF COMPUTATIONAL PHYSICS 141, 199–224 (1998).
+     * */
     std::array<real, nstate> evaluate_riemann_solver_dissipation (
         const std::array<real, nstate> &soln_int,
         const std::array<real, nstate> &soln_ext,

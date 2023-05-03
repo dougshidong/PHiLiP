@@ -731,7 +731,6 @@ void PeriodicTurbulence<dim, nstate>::compute_unsteady_data_and_write_to_table(
     const bool is_rrk = (this->all_param.ode_solver_param.ode_solver_type == ODEEnum::rrk_explicit_solver);
     const double dt_actual = current_time - previous_time;
     const double relaxation_parameter = dt_actual/dt_target;
-    this->pcout << current_time << " " << previous_time << " " << dt_target << std::endl;
 
     if(this->mpi_rank==0) {
         // Add values to data table

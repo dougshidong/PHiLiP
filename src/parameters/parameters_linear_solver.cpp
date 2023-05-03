@@ -76,6 +76,10 @@ void LinearSolverParam::declare_parameters (dealii::ParameterHandler &prm)
                               " Default value is the square root of machine epsilon.");
         }
         prm.leave_subsection();
+
+        prm.declare_entry("relaxation_runge_kutta_root_tolerance", "5E-10",
+                          dealii::Patterns::Double(),
+                          "Tolerance for root-finding problem in entropy RRK ode solver.");
     }
     prm.leave_subsection();
 }
@@ -115,6 +119,8 @@ void LinearSolverParam ::parse_parameters (dealii::ParameterHandler &prm)
             perturbation_magnitude = prm.get_double("perturbation_magnitude");
         }
         prm.leave_subsection();
+
+        relaxation_runge_kutta_root_tolerance = prm.get_double("relaxation_runge_kutta_root_tolerance");
     }
     prm.leave_subsection();
 }

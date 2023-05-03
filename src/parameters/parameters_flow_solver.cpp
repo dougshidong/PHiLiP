@@ -184,9 +184,15 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                               "Choices are "
                               " <uniform | "
                               " isothermal>.");
+            
             prm.declare_entry("do_calculate_numerical_entropy", "false",
                               dealii::Patterns::Bool(),
                               "Flag to calculate numerical entropy and write to file. By default, do not calculate.");
+            
+            prm.declare_entry("do_calculate_overintegrated_quantities", "true",
+                              dealii::Patterns::Bool(),
+                              "Flag to calculate overintegrated quantities (kinetic energy, enstrophy, etc) "
+                              "and write to file. By default, do calculate.");
         }
         prm.leave_subsection();
 
@@ -320,6 +326,7 @@ void FlowSolverParam::parse_parameters(dealii::ParameterHandler &prm)
             if      (density_initial_condition_type_string == "uniform")    {density_initial_condition_type = uniform;}
             else if (density_initial_condition_type_string == "isothermal") {density_initial_condition_type = isothermal;}
             do_calculate_numerical_entropy = prm.get_bool("do_calculate_numerical_entropy");
+            do_calculate_overintegrated_quantities = prm.get_bool("do_calculate_overintegrated_quantities");
         }
         prm.leave_subsection();
 

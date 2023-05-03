@@ -41,6 +41,8 @@ public:
     int newton_max_iterations; ///< Maximum number of Newton iterations (for Jacobian-free Newton-Krylov)
     double perturbation_magnitude; ///<Small perturbation magnitude for Jacobian-free methods
 
+    double relaxation_runge_kutta_root_tolerance; ///< Tolerance for root-finding problem in entropy RRK ode solver.
+
     /// Declares the possible variables and sets the defaults.
     static void declare_parameters (dealii::ParameterHandler &prm);
     /// Parses input file and sets the variables.

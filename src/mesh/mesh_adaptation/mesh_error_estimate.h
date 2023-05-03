@@ -204,10 +204,14 @@ public:
 
     /// Current refinement state of the solution
     SolutionRefinementStateEnum solution_refinement_state;
+    
+    /// Computes global \f[ \psi^TR \f].
+    real net_functional_error;
 
 protected:
     MPI_Comm mpi_communicator; ///< MPI communicator
     dealii::ConditionalOStream pcout; ///< Parallel std::cout that only outputs on mpi_rank==0
+    unsigned int icompute = 8000;
 
 }; // DualWeightedResidualError class
 

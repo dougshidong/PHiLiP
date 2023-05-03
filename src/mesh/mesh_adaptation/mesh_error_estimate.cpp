@@ -204,6 +204,7 @@ void DualWeightedResidualError<dim, nstate, real, MeshType>::coarse_to_fine()
     solution_transfer.prepare_for_coarsening_and_refinement(solution_coarse);
 
     this->dg->high_order_grid->prepare_for_coarsening_and_refinement();
+    this->dg->triangulation->prepare_coarsening_and_refinement();
 
     for (const auto &cell : this->dg->dof_handler.active_cell_iterators()) 
     {
@@ -240,6 +241,7 @@ void DualWeightedResidualError<dim, nstate, real, MeshType>::fine_to_coarse()
 {
     [[maybe_unused]] unsigned int no_of_cells_before_changing_p = this->dg->triangulation->n_active_cells(); // Used in assert (i.e remains unused in Release mode).
     this->dg->high_order_grid->prepare_for_coarsening_and_refinement();
+    this->dg->triangulation->prepare_coarsening_and_refinement();
 
     for (const auto &cell : this->dg->dof_handler.active_cell_iterators()) 
     {
@@ -344,6 +346,10 @@ dealii::Vector<real> DualWeightedResidualError<dim, nstate, real, MeshType>::dua
 
         dual_weighted_residual_fine[cell->active_cell_index()] = std::abs(dwr_cell);
     }
+    
+    net_functional_error = this->dg->right_hand_side * adjoint_fine;
+    output_results_vtk(icompute);
+    ++icompute;
 
     return dual_weighted_residual_fine;
 }
@@ -353,6 +359,15 @@ void DualWeightedResidualError<dim, nstate, real, MeshType>::output_results_vtk(
 {
     dealii::DataOut<dim, dealii::DoFHandler<dim>> data_out;
     data_out.attach_dof_handler(this->dg->dof_handler);
+
+    std::vector<std::string> position_names;
+    for(int d=0;d<dim;++d) {
+        if (d==0) position_names.push_back("x");
+        if (d==1) position_names.push_back("y");
+        if (d==2) position_names.push_back("z");
+    }
+    std::vector<dealii::DataComponentInterpretation::DataComponentInterpretation> data_component_interpretation(dim, dealii::DataComponentInterpretation::component_is_scalar);
+    data_out.add_data_vector (this->dg->high_order_grid->dof_handler_grid, this->dg->high_order_grid->volume_nodes, position_names, data_component_interpretation);
 
     const std::unique_ptr< dealii::DataPostprocessor<dim> > post_processor = Postprocess::PostprocessorFactory<dim>::create_Postprocessor(this->dg->all_parameters);
     data_out.add_data_vector(this->dg->solution, *post_processor);
@@ -406,14 +421,27 @@ void DualWeightedResidualError<dim, nstate, real, MeshType>::output_results_vtk(
         data_out.add_data_vector(derivative_functional_wrt_solution_coarse, derivative_functional_wrt_solution_names, dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim>::DataVectorType::type_dof_data);
         data_out.add_data_vector(adjoint_coarse, adjoint_names, dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim>::DataVectorType::type_dof_data);
     }
+    
+    typename dealii::DataOut<dim,dealii::DoFHandler<dim>>::CurvedCellRegion curved = dealii::DataOut<dim,dealii::DoFHandler<dim>>::CurvedCellRegion::curved_inner_cells;
+    const dealii::Mapping<dim> &mapping = (*(this->dg->high_order_grid->mapping_fe_field));
+    const int grid_degree = this->dg->high_order_grid->max_degree;
+    const int n_subdivisions = grid_degree;
+    data_out.build_patches(mapping, n_subdivisions, curved);
+    const bool write_higher_order_cells = (dim>1 && grid_degree > 1) ? true : false;
+    dealii::DataOutBase::VtkFlags vtkflags(0.0,cycle,true,dealii::DataOutBase::VtkFlags::ZlibCompressionLevel::best_compression,write_higher_order_cells);
+    data_out.set_flags(vtkflags);
 
     const int iproc = dealii::Utilities::MPI::this_mpi_process(mpi_communicator);
-    //data_out.build_patches (mapping_collection[mapping_collection.size()-1]);
-    data_out.build_patches();
-    // data_out.build_patches(*(this->dg->high_order_grid.mapping_fe_field), this->dg->max_degree, dealii::DataOut<dim, dealii::DoFHandler<dim>>::CurvedCellRegion::curved_inner_cells);
-    //data_out.build_patches(*(high_order_grid.mapping_fe_field), fe_collection.size(), dealii::DataOut<dim>::CurvedCellRegion::curved_inner_cells);
-    std::string filename = "adjoint-" ;
+    std::string filename = "DWR-" ;
     if(solution_refinement_state == SolutionRefinementStateEnum::fine)
+    {
+        filename += "fine-";
+    }
+    else if(solution_refinement_state == SolutionRefinementStateEnum::coarse)
+    {
+        filename += "coarse-";
+    }
+    filename += dealii::Utilities::int_to_string(dim, 1) + "D-";
     filename += dealii::Utilities::int_to_string(cycle, 4) + ".";
     filename += dealii::Utilities::int_to_string(iproc, 4);
     filename += ".vtu";
@@ -425,22 +453,30 @@ void DualWeightedResidualError<dim, nstate, real, MeshType>::output_results_vtk(
         std::vector<std::string> filenames;
         for (unsigned int iproc = 0; iproc < dealii::Utilities::MPI::n_mpi_processes(mpi_communicator); ++iproc) 
         {
-            std::string fn = "adjoint-";
+            std::string fn = "DWR-";
             if(solution_refinement_state == SolutionRefinementStateEnum::fine)
+            {
                 fn += "fine-";
+            }
             else if(solution_refinement_state == SolutionRefinementStateEnum::coarse)
+            {
                 fn += "coarse-";
+            }
             fn += dealii::Utilities::int_to_string(dim, 1) + "D-";
             fn += dealii::Utilities::int_to_string(cycle, 4) + ".";
             fn += dealii::Utilities::int_to_string(iproc, 4);
             fn += ".vtu";
             filenames.push_back(fn);
         }
-        std::string master_fn = "adjoint-";
+        std::string master_fn = "DWR-";
         if(solution_refinement_state == SolutionRefinementStateEnum::fine)
+        {
             master_fn += "fine-";
+        }
         else if(solution_refinement_state == SolutionRefinementStateEnum::coarse)
+        {
             master_fn += "coarse-";
+        }
         master_fn += dealii::Utilities::int_to_string(dim, 1) +"D-";
         master_fn += dealii::Utilities::int_to_string(cycle, 4) + ".pvtu";
         std::ofstream master_output(master_fn);

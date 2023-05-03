@@ -32,19 +32,22 @@ void MeshOptimizer<dim,nstate>::initialize_objfunc_and_design_parameterization()
     const bool uses_solution_gradient = false;
     if(use_full_space_method) {uses_coarse_residual = false;}
 
-    objective_function = std::make_shared<DualWeightedResidualObjFunc2<dim, nstate, double>> (dg,uses_solution_values,uses_solution_gradient,uses_coarse_residual);
+    objective_function = std::make_shared<DualWeightedResidualObjFunc1<dim, nstate, double>> (dg,uses_solution_values,uses_solution_gradient,uses_coarse_residual);
 }
 
 template<int dim, int nstate>
 void MeshOptimizer<dim,nstate>::initialize_state_design_and_dual_variables()
 {
-
+    dg->solution.update_ghost_values();
     dg->set_dual(dg->solution);
 
     state_variables = dg->solution;
     design_parameterization->initialize_design_variables(design_variables);
     dual_variables = dg->dual;
 
+    state_variables.update_ghost_values();
+    dual_variables.update_ghost_values();
+    design_variables.update_ghost_values();
 }
 
 template<int dim, int nstate>

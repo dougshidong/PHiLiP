@@ -9,6 +9,8 @@ RRKODESolverBase<dim,real,n_rk_stages,MeshType>::RRKODESolverBase(std::shared_pt
         : RungeKuttaODESolver<dim,real,n_rk_stages,MeshType>(dg_input,rk_tableau_input)
 {
     relaxation_parameter = 1.0;
+    this->dg->FR_entropy_contribution = 0.0;
+    this->dg->FR_entropy_cumulative=0.0;
 }
 
 template <int dim, typename real, int n_rk_stages, typename MeshType>

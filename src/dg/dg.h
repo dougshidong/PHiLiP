@@ -939,12 +939,19 @@ public:
 
 public:
     /// Entropy contribution due to FR
-    /** This really shouldn't be stored in dg, but is a temporary measure because 
+    /** Used in entropy-RRK ODE solver.
+     * This is stored in dg such that both flow solver case and ode solver can access it. 
      * flow solver cases have no access to ode solver. */
     double FR_entropy_contribution;
 
-    /// FR-consistent entropy storage
-    double num_entropy_DG_previous;
+    /// Entropy contribution due to FR summed over all previous timesteps
+    /** Used in entropy-RRK ODE solver.
+     * This is stored in dg such that both flow solver case and ode solver can access it. 
+     * flow solver cases have no access to ode solver. */
+    /** This really shouldn't be stored in dg, but is a temporary measure because 
+     * flow solver cases have no access to ode solver. */
+    double FR_entropy_cumulative;
+
 }; // end of DGBase class
 
 /// Abstract class templated on the number of state variables

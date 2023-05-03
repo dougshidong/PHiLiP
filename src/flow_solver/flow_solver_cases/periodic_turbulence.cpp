@@ -86,8 +86,6 @@ PeriodicTurbulence<dim, nstate>::PeriodicTurbulence(const PHiLiP::Parameters::Al
             }
         }
     }
-
-    this->num_entropy_change_fromstarttime_FR = 0;
 }
 
 template <int dim, int nstate>
@@ -727,18 +725,6 @@ void PeriodicTurbulence<dim, nstate>::compute_unsteady_data_and_write_to_table(
     const double deviatoric_strain_rate_tensor_based_dissipation_rate = this->get_deviatoric_strain_rate_tensor_based_dissipation_rate();
     const double strain_rate_tensor_based_dissipation_rate = this->get_strain_rate_tensor_based_dissipation_rate();
     
-    const double numerical_entropy_DG = this->get_numerical_entropy(dg);
-    if (current_time == 0.0) {
-        this->num_entropy_change_fromstarttime_FR = 0;
-        dg->num_entropy_DG_previous = numerical_entropy_DG;
-        dg->FR_entropy_contribution = 0;
-    }
-    const double numerical_entropy_change_FRcorrected = numerical_entropy_DG - dg->num_entropy_DG_previous  // change in DG sense
-                                                                + dg->FR_entropy_contribution;              // Adjust with K-norm correction -- calculated in RRK ode solver.
-    this->num_entropy_change_fromstarttime_FR+= numerical_entropy_change_FRcorrected;
-    this->pcout << this->num_entropy_change_fromstarttime_FR;
-    dg->num_entropy_DG_previous = numerical_entropy_DG; // Store previous numerical entropy in DG. This way ODE solver and flow solver can both access it. This structure isn't strictly neccessary in this version - should be stored in flow solver.
-    
     // TEMP - should code gamma storage part this nicer
     using ODEEnum = Parameters::ODESolverParam::ODESolverEnum;
     const bool is_rrk = (this->all_param.ode_solver_param.ode_solver_type == ODEEnum::rrk_explicit_solver);
@@ -748,7 +734,7 @@ void PeriodicTurbulence<dim, nstate>::compute_unsteady_data_and_write_to_table(
     if(this->mpi_rank==0) {
         // Add values to data table
         this->add_value_to_data_table(current_time,"time",unsteady_data_table);
-        if(do_calculate_numerical_entropy) this->add_value_to_data_table(this->num_entropy_change_fromstarttime_FR,"numerical_entropy",unsteady_data_table);
+        if(do_calculate_numerical_entropy) this->add_value_to_data_table(dg->FR_entropy_cumulative,"numerical_entropy",unsteady_data_table);
         if(is_rrk) this->add_value_to_data_table(relaxation_parameter, "relaxation_parameter",unsteady_data_table);
         this->add_value_to_data_table(integrated_kinetic_energy,"kinetic_energy",unsteady_data_table);
         this->add_value_to_data_table(integrated_enstrophy,"enstrophy",unsteady_data_table);
@@ -770,7 +756,7 @@ void PeriodicTurbulence<dim, nstate>::compute_unsteady_data_and_write_to_table(
                     << "    eps_p+eps_strain: " << (pressure_dilatation_based_dissipation_rate + strain_rate_tensor_based_dissipation_rate);
     }
     if(do_calculate_numerical_entropy){
-        this->pcout << "    Num. Entropy: " << std::setprecision(16) << this->num_entropy_change_fromstarttime_FR;
+        this->pcout << "    Num. Entropy: " << std::setprecision(16) << dg->FR_entropy_cumulative; 
     }
     if(is_rrk){
         this->pcout << "    Relaxation Parameter: " << std::setprecision(16) << relaxation_parameter;

@@ -32,6 +32,8 @@ real EntropyRRKODESolver<dim,real,n_rk_stages,MeshType>::compute_relaxation_para
     // Console output is based on linearsolverparam
     const bool do_output = (this->dg->all_parameters->linear_solver_param.linear_solver_output == Parameters::OutputEnum::verbose); 
 
+    // Note to self: this is repeating steps that are also done in runge_kutta_ode_solver.
+    // Should be combined.
     dealii::LinearAlgebra::distributed::Vector<double> step_direction;
     step_direction.reinit(this->rk_stage[0]);
     for (int i = 0; i < n_rk_stages; ++i){
@@ -162,19 +164,21 @@ real EntropyRRKODESolver<dim,real,n_rk_stages,MeshType>::compute_relaxation_para
 
         // TEMP store in dg so that flow solver case can access it
         this->dg->FR_entropy_contribution = this->FR_entropy_contribution;
+        dealii::LinearAlgebra::distributed::Vector<double> temp = u_n;
+        temp.add(gamma_kp1, step_direction);
+        const double num_entropy_npgamma = compute_numerical_entropy(temp);
+        this->dg->FR_entropy_cumulative += num_entropy_npgamma - num_entropy_n + this->FR_entropy_contribution;
 
         if (do_output) {
             this->pcout << "Convergence reached!" << std::endl;
-            dealii::LinearAlgebra::distributed::Vector<double> temp = u_n;
-            temp.add(gamma_kp1, step_direction);
 
-            this->pcout << "  Entropy at prev timestep (DG) : " << num_entropy_n << std::endl
-                        << "  Entropy at current timestep (DG) : " << compute_numerical_entropy(temp) << std::endl;
+            this->pcout << "  Entropy at prev timestep (DG) :     " << num_entropy_n << std::endl
+                        << "  Entropy at current timestep (DG) :  " << num_entropy_npgamma << std::endl;
             this->pcout << "    Estimate entropy change (M norm): " << entropy_change_est << std::endl
-                        << "    Actual entropy change (DG):   " << compute_numerical_entropy(temp) - num_entropy_n << std::endl
-                        << "    FR contribution: " << this->FR_entropy_contribution << std::endl
-                        << "    Actual entropy change (FR):   " << compute_numerical_entropy(temp) - num_entropy_n + this->FR_entropy_contribution << std::endl
-                        << "  Entropy at current timestep (FR) : " << compute_numerical_entropy(temp) +  this->FR_entropy_contribution << std::endl
+                        << "    Actual entropy change (DG):       " << num_entropy_npgamma - num_entropy_n << std::endl
+                        << "    FR contribution:                  " << this->FR_entropy_contribution << std::endl
+                        << "    Corrected entropy change (FR):    " << num_entropy_npgamma - num_entropy_n + this->FR_entropy_contribution << std::endl
+                        << "  Cumulative entropy change (FR):     " << this->dg->FR_entropy_cumulative << std::endl
                         << std::endl;
         }
 

@@ -113,20 +113,19 @@ void RungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::modify_time_step(real &
 template <int dim, typename real, int n_rk_stages, typename MeshType> 
 void RungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::allocate_ode_system ()
 {
-    this->pcout << "Allocating ODE system" << std::endl;
+    this->pcout << "Allocating ODE system..." << std::flush;
     this->solution_update.reinit(this->dg->right_hand_side);
-
-    const bool do_inverse_mass_matrix = !this->all_parameters->use_inverse_mass_on_the_fly;
-    if(do_inverse_mass_matrix){
-        this->dg->evaluate_mass_matrices(do_inverse_mass_matrix);
-        
+    if(this->all_parameters->use_inverse_mass_on_the_fly == false) {
+        this->pcout << " evaluating inverse mass matrix..." << std::flush;
+        this->dg->evaluate_mass_matrices(true); // creates and stores global inverse mass matrix
         //RRK needs both mass matrix and inverse mass matrix
         using ODEEnum = Parameters::ODESolverParam::ODESolverEnum;
         ODEEnum ode_type = this->ode_param.ode_solver_type;
         if (ode_type == ODEEnum::rrk_explicit_solver){
-            this->dg->evaluate_mass_matrices(!do_inverse_mass_matrix);
+            this->dg->evaluate_mass_matrices(false); // creates and stores global mass matrix
         }
     }
+    this->pcout << std::endl;
 
     this->rk_stage.resize(n_rk_stages);
     for (int i=0; i<n_rk_stages; ++i) {

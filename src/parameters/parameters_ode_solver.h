@@ -69,6 +69,9 @@ public:
     int n_rk_stages; ///< Number of stages for an RK method; assigned based on runge_kutta_method
     int rk_order; ///< Order of the RK method; assigned based on runge_kutta_method
 
+    /// Flag to signal that automatic differentiation (AD) matrix dRdW must be allocated
+    bool allocate_matrix_dRdW;
+
     static void declare_parameters (dealii::ParameterHandler &prm); ///< Declares the possible variables and sets the defaults.
     void parse_parameters (dealii::ParameterHandler &prm); ///< Parses input file and sets the variables.
 };

@@ -53,9 +53,8 @@ real EntropyRRKODESolver<dim,real,n_rk_stages,MeshType>::compute_relaxation_para
     bool secant_failed = false;
 
     // k, kp1, km1 denote iteration indices of secant or bisection solvers
-    double gamma_kp1; 
-    // TEMP should have a parameter here
-    const double conv_tol = 5E-10; 
+    double gamma_kp1 = 0; 
+    const double conv_tol = this->dg->all_parameters->linear_solver_param.relaxation_runge_kutta_root_tolerance;
     int iter_counter = 0;
     const int iter_limit = 100;
     if (use_secant){

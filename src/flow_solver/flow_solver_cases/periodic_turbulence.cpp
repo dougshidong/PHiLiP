@@ -760,7 +760,7 @@ void PeriodicTurbulence<dim, nstate>::compute_unsteady_data_and_write_to_table(
                     << "    eps_p+eps_strain: " << (pressure_dilatation_based_dissipation_rate + strain_rate_tensor_based_dissipation_rate);
     }
     if(do_calculate_numerical_entropy){
-        this->pcout << "    Num. FR-corrected Entropy, FR corrected: " << std::setprecision(16) << dg->FR_entropy_cumulative; 
+        this->pcout << "    Num. Entropy cumulative, FR corrected: " << std::setprecision(16) << dg->FR_entropy_cumulative; 
         this->pcout << "    Num. Entropy change, FR corrected: " << std::setprecision(16) << dg->FR_entropy_this_tstep; 
     }
     if(is_rrk){

@@ -736,6 +736,7 @@ void PeriodicTurbulence<dim, nstate>::compute_unsteady_data_and_write_to_table(
         // Add values to data table
         this->add_value_to_data_table(current_time,"time",unsteady_data_table);
         if(do_calculate_numerical_entropy) this->add_value_to_data_table(dg->FR_entropy_cumulative,"numerical_entropy",unsteady_data_table);
+        if(do_calculate_numerical_entropy) this->add_value_to_data_table(dg->FR_entropy_this_tstep,"numerical_entropy_this_tstep",unsteady_data_table);
         if(is_rrk) this->add_value_to_data_table(relaxation_parameter, "relaxation_parameter",unsteady_data_table);
         if (do_calculate_overintegrated_quantities) this->add_value_to_data_table(integrated_kinetic_energy,"kinetic_energy",unsteady_data_table);
         if (do_calculate_overintegrated_quantities) this->add_value_to_data_table(integrated_enstrophy,"enstrophy",unsteady_data_table);
@@ -759,7 +760,8 @@ void PeriodicTurbulence<dim, nstate>::compute_unsteady_data_and_write_to_table(
                     << "    eps_p+eps_strain: " << (pressure_dilatation_based_dissipation_rate + strain_rate_tensor_based_dissipation_rate);
     }
     if(do_calculate_numerical_entropy){
-        this->pcout << "    Num. Entropy: " << std::setprecision(16) << dg->FR_entropy_cumulative; 
+        this->pcout << "    Num. FR-corrected Entropy, FR corrected: " << std::setprecision(16) << dg->FR_entropy_cumulative; 
+        this->pcout << "    Num. Entropy change, FR corrected: " << std::setprecision(16) << dg->FR_entropy_this_tstep; 
     }
     if(is_rrk){
         this->pcout << "    Relaxation Parameter: " << std::setprecision(16) << relaxation_parameter;

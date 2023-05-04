@@ -938,13 +938,13 @@ public:
     virtual void set_use_auxiliary_eq() = 0;
 
 public:
-    /// Entropy contribution due to FR
+    /// Entropy change with FR correction at the current timestep
     /** Used in entropy-RRK ODE solver.
      * This is stored in dg such that both flow solver case and ode solver can access it. 
      * flow solver cases have no access to ode solver. */
-    double FR_entropy_contribution;
+    double FR_entropy_this_tstep;
 
-    /// Entropy contribution due to FR summed over all previous timesteps
+    /// Entropy change with FR contribution, summed over all previous timesteps
     /** Used in entropy-RRK ODE solver.
      * This is stored in dg such that both flow solver case and ode solver can access it. 
      * flow solver cases have no access to ode solver. */

@@ -47,7 +47,7 @@ real EntropyRRKODESolver<dim,real,n_rk_stages,MeshType>::compute_relaxation_para
 
     // n and np1 denote timestep indices
     const dealii::LinearAlgebra::distributed::Vector<double> u_n = this->solution_update;
-    const double num_entropy_n = compute_numerical_entropy(u_n, false);
+    const double num_entropy_n = compute_numerical_entropy(u_n);
     
     const bool use_secant = true;
     bool secant_failed = false;
@@ -162,11 +162,11 @@ real EntropyRRKODESolver<dim,real,n_rk_stages,MeshType>::compute_relaxation_para
         this->FR_entropy_contribution = gamma_kp1 *(compute_entropy_change_estimate(dt, false) - compute_entropy_change_estimate(dt, true));
 
         // TEMP store in dg so that flow solver case can access it
-        this->dg->FR_entropy_contribution = this->FR_entropy_contribution;
         dealii::LinearAlgebra::distributed::Vector<double> temp = u_n;
         temp.add(gamma_kp1, step_direction);
         const double num_entropy_npgamma = compute_numerical_entropy(temp);
-        this->dg->FR_entropy_cumulative += num_entropy_npgamma - num_entropy_n + this->FR_entropy_contribution;
+        this->dg->FR_entropy_this_tstep = num_entropy_npgamma - num_entropy_n + this->FR_entropy_contribution;
+        this->dg->FR_entropy_cumulative += this->dg->FR_entropy_this_tstep;
 
         if (do_output) {
             this->pcout << "Convergence reached!" << std::endl;
@@ -203,18 +203,9 @@ real EntropyRRKODESolver<dim,real,n_rk_stages,MeshType>::compute_root_function(
 
 template <int dim, typename real, int n_rk_stages, typename MeshType>
 real EntropyRRKODESolver<dim,real,n_rk_stages,MeshType>::compute_numerical_entropy(
-        const dealii::LinearAlgebra::distributed::Vector<double> &u,
-        const bool adjust_FR) const
+        const dealii::LinearAlgebra::distributed::Vector<double> &u) const 
 {
     real num_entropy = compute_integrated_numerical_entropy(u);
-
-    if (adjust_FR) {
-        using FREnum = Parameters::AllParameters::Flux_Reconstruction;
-        FREnum FR_type = this->dg->all_parameters->flux_reconstruction_type;
-        if (FR_type != FREnum::cDG){
-            num_entropy += this->dg->FR_entropy_contribution;
-        }
-    }
 
     return num_entropy;
     

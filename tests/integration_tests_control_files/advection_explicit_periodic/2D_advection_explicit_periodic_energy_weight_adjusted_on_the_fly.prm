@@ -51,6 +51,7 @@ subsection ODE solver
   set initial_time_step = 0.001
 
   set runge_kutta_method = rk4_ex
+#  set runge_kutta_method = euler_ex
 
 end
 

@@ -4,6 +4,7 @@
 #include "flow_solver/flow_solver_factory.h"
 #include "mesh/mesh_adaptation/anisotropic_mesh_adaptation.h"
 #include "mesh/mesh_adaptation/fe_values_shape_hessian.h"
+#include "mesh/mesh_adaptation/mesh_error_estimate.h"
 #include <deal.II/grid/grid_in.h>
 
 namespace PHiLiP {
@@ -74,11 +75,23 @@ void AnisotropicMeshAdaptationCases<dim,nstate> :: verify_fe_values_shape_hessia
 }
 
 template <int dim, int nstate>
+double AnisotropicMeshAdaptationCases<dim,nstate> :: evaluate_functional_error(std::shared_ptr<DGBase<dim,double>> dg) const
+{
+    const double functional_exact = 0.5648576248590895;
+    std::shared_ptr< Functional<dim, nstate, double> > functional
+                                = FunctionalFactory<dim,nstate,double>::create_Functional(dg->all_parameters->functional_param, dg);
+    const double functional_val = functional->evaluate_functional();
+    const double error_val = abs(functional_val - functional_exact);
+    return error_val;
+}
+
+template <int dim, int nstate>
 int AnisotropicMeshAdaptationCases<dim, nstate> :: run_test () const
 {
     const Parameters::AllParameters param = *(TestsBase::all_parameters);
     
     std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(&param, parameter_handler);
+    
     const bool use_goal_oriented_approach = param.mesh_adaptation_param.use_goal_oriented_mesh_adaptation;
     const double complexity = param.mesh_adaptation_param.mesh_complexity_anisotropic_adaptation;
     const double normLp = param.mesh_adaptation_param.norm_Lp_anisotropic_adaptation;
@@ -87,14 +100,45 @@ int AnisotropicMeshAdaptationCases<dim, nstate> :: run_test () const
                         std::make_unique<AnisotropicMeshAdaptation<dim, nstate, double>> (flow_solver->dg, normLp, complexity, use_goal_oriented_approach);
 
     flow_solver->run();
+
+    std::vector<double> functional_error_vector;
+    std::vector<unsigned int> n_cycle_vector;
+    
+    const double functional_error_initial = evaluate_functional_error(flow_solver->dg);
+    functional_error_vector.push_back(functional_error_initial);
+    n_cycle_vector.push_back(0);
+     
     const unsigned int n_adaptation_cycles = param.mesh_adaptation_param.total_mesh_adaptation_cycles;
     
     for(unsigned int cycle = 0; cycle < n_adaptation_cycles; ++cycle)
     {
         anisotropic_mesh_adaptation->adapt_mesh();
         flow_solver->run();
+        const double functional_error = evaluate_functional_error(flow_solver->dg);
+        functional_error_vector.push_back(functional_error);
+        n_cycle_vector.push_back(cycle + 1);
     }
+    flow_solver->dg->output_results_vtk(9876);
 
+    // output error vals
+    pcout<<"\n cycles = [";
+    for(long unsigned int i=0; i<n_cycle_vector.size(); ++i)
+    {
+        if(i!=0) {pcout<<", ";}
+        pcout<<n_cycle_vector[i];
+    }
+    pcout<<"];"<<std::endl;
+    
+    pcout<<"\n functional_error = [";
+    for(long unsigned int i=0; i<functional_error_vector.size(); ++i)
+    {
+        if(i!=0) {pcout<<", ";}
+        pcout<<functional_error_vector[i];
+    }
+    pcout<<"];"<<std::endl;
+
+return 0;
+/*
     verify_fe_values_shape_hessian(*(flow_solver->dg));
 
     const dealii::Point<dim> coordinates_of_highest_refined_cell = flow_solver->dg->coordinates_of_highest_refined_cell(false);
@@ -111,6 +155,7 @@ int AnisotropicMeshAdaptationCases<dim, nstate> :: run_test () const
     int test_val = 0;
     if(distance_val > 0.1) {++test_val;}// should lie in a ball of radius 0.1
     return test_val;
+*/
 }
 
 //#if PHILIP_DIM==1

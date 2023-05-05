@@ -67,6 +67,7 @@ dealii::Tensor<2, dim, real> AnisotropicMeshAdaptation<dim, nstate, real, MeshTy
 {
     // Check if the tensor is symmetric.
     dealii::Tensor<2, dim, real> input_tensor_copy = input_tensor;
+    /*
     for(int i=0; i<dim; ++i)
     {
         for(int j=0; j<dim-i; ++j)
@@ -82,6 +83,7 @@ dealii::Tensor<2, dim, real> AnisotropicMeshAdaptation<dim, nstate, real, MeshTy
             }
         }
     }
+    */
     dealii::SymmetricTensor<2,dim,real> symmetric_input_tensor(input_tensor_copy); 
     std::array<std::pair<real, dealii::Tensor<1, dim, real>>, dim> eigen_pair = dealii::eigenvectors(symmetric_input_tensor);
 

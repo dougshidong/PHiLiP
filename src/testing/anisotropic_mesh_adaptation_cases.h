@@ -26,6 +26,9 @@ public:
 
     /// Checks PHiLiP::FEValuesShapeHessian for MappingFEField with dealii's shape hessian for MappingQGeneric.
     void verify_fe_values_shape_hessian(const DGBase<dim, double> &dg) const;
+    
+    /// Checks PHiLiP::FEValuesShapeHessian for MappingFEField with dealii's shape hessian for MappingQGeneric.
+    double evaluate_functional_error(std::shared_ptr<DGBase<dim,double>> dg) const;
 }; 
 
 } // Tests namespace

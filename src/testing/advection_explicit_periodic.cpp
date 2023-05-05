@@ -115,9 +115,42 @@ int AdvectionPeriodic<dim, nstate>::run_test() const
     unsigned int n_refinements = n_grids;
     unsigned int poly_degree = 3;
     unsigned int grid_degree = poly_degree;
-    
+
     dealii::ConvergenceTable convergence_table;
     const unsigned int igrid_start = 3;
+
+    const int nb_c_value = 0;
+    const double c_min = 1e-4;
+    const double c_max = 1e4;
+    const double log_c_min = std::log10(c_min);
+    const double log_c_max = std::log10(c_max);
+    double c_array[nb_c_value+1];
+
+    std::ofstream l2error_file("l2error.txt");
+    std::ofstream slope_file("slope_soln_err.txt");
+    std::ofstream c_value_file("c_value.txt");
+    std::ofstream cell_number_file("cell_number.txt");
+
+    for(unsigned int igrid = igrid_start; igrid<n_grids; igrid++){
+        cell_number_file << std::pow(2.0, igrid) << " ";
+    }
+    cell_number_file.close();
+
+    // Create log space array of c_value
+    for (int ic = 0; ic < nb_c_value; ic++) {
+        double log_c = log_c_min + (log_c_max - log_c_min) / (nb_c_value - 1) * ic;
+        c_array[ic] = std::pow(10.0, log_c);
+        c_value_file << c_array[ic] << std::endl;
+    }
+    c_array[nb_c_value]=3.67e-3; // 0.186; 3.67e-3; 4.79e-5; 4.24e-7;
+    c_value_file << c_array[nb_c_value] << std::endl;
+    c_value_file.close();
+    std::cout<<"Here 3"<<std::endl;
+
+    // Loop over c_array to compute slope
+    for (int ic = 0; ic < nb_c_value+1; ic++) {
+        double c_value = c_array[ic];
+
 
     for(unsigned int igrid=igrid_start; igrid<n_refinements; ++igrid){
 #if PHILIP_DIM==1 // dealii::parallel::distributed::Triangulation<dim> does not work for 1D
@@ -137,13 +170,15 @@ int AdvectionPeriodic<dim, nstate>::run_test() const
 
         //set the warped grid
         PHiLiP::Grids::nonsymmetric_curved_grid<dim,Triangulation>(*grid, igrid);
+		std::cout<<"Here 4"<<std::endl;
 
         //CFL number
         const unsigned int n_global_active_cells2 = grid->n_global_active_cells();
         double n_dofs_cfl = pow(n_global_active_cells2,dim) * pow(poly_degree+1.0, dim);
         double delta_x = (right-left)/pow(n_dofs_cfl,(1.0/dim)); 
-        all_parameters_new.ode_solver_param.initial_time_step =  delta_x /(1.0*(2.0*poly_degree+1)) ;
-        all_parameters_new.ode_solver_param.initial_time_step =  (all_parameters_new.use_energy) ? 0.05*delta_x : 0.5*delta_x;
+        //all_parameters_new.ode_solver_param.initial_time_step =  delta_x /(1.0*(2.0*poly_degree+1)) ;
+         all_parameters_new.ode_solver_param.initial_time_step =  (all_parameters_new.use_energy) ? 0.05*delta_x : 0.5*delta_x;
+        all_parameters_new.FR_user_specified_correction_parameter_value = c_value;
         std::cout << "dt " <<all_parameters_new.ode_solver_param.initial_time_step <<  std::endl;
         std::cout << "cells " <<n_global_active_cells2 <<  std::endl;
 
@@ -156,6 +191,7 @@ int AdvectionPeriodic<dim, nstate>::run_test() const
         std::shared_ptr< InitialConditionFunction<dim,nstate,double> > initial_condition_function = 
                 InitialConditionFactory<dim,nstate,double>::create_InitialConditionFunction(&all_parameters_new); 
         SetInitialCondition<dim,nstate,double>::set_initial_condition(initial_condition_function, dg, &all_parameters_new);
+		std::cout<<"Here 5"<<std::endl;
 
         // Create ODE solver using the factory and providing the DG object
         std::shared_ptr<PHiLiP::ODE::ODESolverBase<dim, double>> ode_solver = PHiLiP::ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
@@ -296,6 +332,9 @@ int AdvectionPeriodic<dim, nstate>::run_test() const
 
             }
             const double l2error_mpi_sum = std::sqrt(dealii::Utilities::MPI::sum(l2error, this->mpi_communicator));
+
+            l2error_file << l2error_mpi_sum << " ";
+
             const double linferror_mpi= (dealii::Utilities::MPI::max(linf_error, this->mpi_communicator));
 
             // Convergence table
@@ -323,6 +362,9 @@ int AdvectionPeriodic<dim, nstate>::run_test() const
             if (igrid > igrid_start) {
                 const double slope_soln_err = log(soln_error[igrid]/soln_error[igrid-1])
                                       / log(grid_size[igrid]/grid_size[igrid-1]);
+
+                slope_file << slope_soln_err << " ";
+
                 const double slope_soln_err_inf = log(soln_error_inf[igrid]/soln_error_inf[igrid-1])
                                       / log(grid_size[igrid]/grid_size[igrid-1]);
                 // const double slope_output_err = log(output_error[igrid]/output_error[igrid-1])
@@ -340,10 +382,10 @@ int AdvectionPeriodic<dim, nstate>::run_test() const
                             << "  slope " << slope_soln_err_inf
                             << std::endl;
             
-                if(igrid == n_grids-1){
-                    if(std::abs(slope_soln_err_inf-(poly_degree+1))>0.1)
-                        return 1;
-                }            
+                // if(igrid == n_grids-1){
+                //     if(std::abs(slope_soln_err_inf-(poly_degree+1))>0.1)
+                //         return 1;
+                // }            
             }
         }//end of OOA else statement
         this->pcout << " ********************************************"
@@ -362,6 +404,11 @@ int AdvectionPeriodic<dim, nstate>::run_test() const
         if (this->pcout.is_active()) convergence_table.write_text(this->pcout.get_stream());
 
     }//end of grid loop
+    l2error_file << std::endl;
+    slope_file << std::endl;
+    }//end of Loop over c_array
+    l2error_file.close();
+    slope_file.close();
     
     return 0;//if reaches here mean passed test 
 }

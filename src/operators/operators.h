@@ -529,15 +529,19 @@ public:
         const int nstate_input,
         const unsigned int max_degree_input,
         const unsigned int grid_degree_input,
-        const Parameters::AllParameters::Flux_Reconstruction FR_param_input);
+        const Parameters::AllParameters::Flux_Reconstruction FR_param_input,
+        const double FR_user_specified_correction_parameter_value_input);
     ///Destructor.
     ~local_Flux_Reconstruction_operator () {};
 
-    ///Stores the degree of the current poly degree.
-    unsigned int current_degree;
-
     ///Flux reconstruction parameter type.
     const Parameters::AllParameters::Flux_Reconstruction FR_param_type;
+
+    /// User specified flux recontruction correction parameter value
+    const double FR_user_specified_correction_parameter_value;
+
+    ///Stores the degree of the current poly degree.
+    unsigned int current_degree;
 
     ///Flux reconstruction paramater value.
     double FR_param;
@@ -719,19 +723,23 @@ public:
         const unsigned int max_degree_input,
         const unsigned int grid_degree_input,
         const Parameters::AllParameters::Flux_Reconstruction FR_param_input,
+        const double FR_user_specified_correction_parameter_value_input,
         const bool store_transpose_input = false);
 
     ///Destructor.
     ~vol_projection_operator_FR () {};
+
+    ///Flux reconstruction parameter type.
+    const Parameters::AllParameters::Flux_Reconstruction FR_param_type;
+
+    /// User specified flux recontruction correction parameter value
+    const double FR_user_specified_correction_parameter_value;
 
     ///Stores the degree of the current poly degree.
     unsigned int current_degree;
 
     ///Flag is store transpose operator.
     bool store_transpose;
-
-    ///Flux reconstruction parameter type.
-    const Parameters::AllParameters::Flux_Reconstruction FR_param_type;
 
     ///Assembles the one dimensional operator.
     void build_1D_volume_operator(
@@ -786,16 +794,20 @@ public:
         const int nstate_input,
         const unsigned int max_degree_input,
         const unsigned int grid_degree_input,
-        const Parameters::AllParameters::Flux_Reconstruction FR_param_input);
+        const Parameters::AllParameters::Flux_Reconstruction FR_param_input,
+        const double FR_user_specified_correction_parameter_value_input);
 
     ///Destructor.
     ~FR_mass_inv () {};
 
-    ///Stores the degree of the current poly degree.
-    unsigned int current_degree;
-
     ///Flux reconstruction parameter type.
     const Parameters::AllParameters::Flux_Reconstruction FR_param_type;
+
+    /// User specified flux recontruction correction parameter value
+    const double FR_user_specified_correction_parameter_value;
+
+    ///Stores the degree of the current poly degree.
+    unsigned int current_degree;
 
     ///Assembles the one dimensional operator.
     void build_1D_volume_operator(
@@ -838,16 +850,20 @@ public:
         const int nstate_input,
         const unsigned int max_degree_input,
         const unsigned int grid_degree_input,
-        const Parameters::AllParameters::Flux_Reconstruction FR_param_input);
+        const Parameters::AllParameters::Flux_Reconstruction FR_param_input,
+        const double FR_user_specified_correction_parameter_value_input);
 
     ///Destructor.
     ~FR_mass () {};
 
-    ///Stores the degree of the current poly degree.
-    unsigned int current_degree;
-
     ///Flux reconstruction parameter type.
     const Parameters::AllParameters::Flux_Reconstruction FR_param_type;
+
+    /// User specified flux recontruction correction parameter value
+    const double FR_user_specified_correction_parameter_value;
+
+    ///Stores the degree of the current poly degree.
+    unsigned int current_degree;
 
     ///Assembles the one dimensional operator.
     void build_1D_volume_operator(
@@ -1007,16 +1023,20 @@ public:
         const int nstate_input,
         const unsigned int max_degree_input,
         const unsigned int grid_degree_input,
-        const Parameters::AllParameters::Flux_Reconstruction FR_param_input);
+        const Parameters::AllParameters::Flux_Reconstruction FR_param_input,
+        const double FR_user_specified_correction_parameter_value_input);
 
     ///Destructor.
     ~lifting_operator_FR () {};
 
-    ///Stores the degree of the current poly degree.
-    unsigned int current_degree;
-
     ///Flux reconstruction parameter type.
     const Parameters::AllParameters::Flux_Reconstruction FR_param_type;
+
+    /// User specified flux recontruction correction parameter value
+    const double FR_user_specified_correction_parameter_value;
+
+    ///Stores the degree of the current poly degree.
+    unsigned int current_degree;
 
     ///Assembles the one dimensional norm operator that it is lifted onto.
     /** Note that the norm is the FR mass matrix in this case. This has to be called before build_1D_surface_operator.

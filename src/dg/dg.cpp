@@ -2331,6 +2331,8 @@ void DGBase<dim,real,MeshType>::evaluate_mass_matrices (bool do_inverse_mass_mat
 {   
     using FR_enum = Parameters::AllParameters::Flux_Reconstruction;
     const FR_enum FR_Type = this->all_parameters->flux_reconstruction_type;
+
+    const double FR_user_specified_correction_parameter_value = this->all_parameters->FR_user_specified_correction_parameter_value;
     
     using FR_Aux_enum = Parameters::AllParameters::Flux_Reconstruction_Aux;
     const FR_Aux_enum FR_Type_Aux = this->all_parameters->flux_reconstruction_aux_type;
@@ -2388,7 +2390,7 @@ void DGBase<dim,real,MeshType>::evaluate_mass_matrices (bool do_inverse_mass_mat
     OPERATOR::mapping_shape_functions<dim,2*dim> mapping_basis(1, max_degree, init_grid_degree);//first set at max degree
     OPERATOR::basis_functions<dim,2*dim> basis(1, max_degree, init_grid_degree);
     OPERATOR::local_mass<dim,2*dim> reference_mass_matrix(1, max_degree, init_grid_degree);//first set at max degree
-    OPERATOR::local_Flux_Reconstruction_operator<dim,2*dim> reference_FR(1, max_degree, init_grid_degree, FR_Type);
+    OPERATOR::local_Flux_Reconstruction_operator<dim,2*dim> reference_FR(1, max_degree, init_grid_degree, FR_Type, FR_user_specified_correction_parameter_value);
     OPERATOR::local_Flux_Reconstruction_operator_aux<dim,2*dim> reference_FR_aux(1, max_degree, init_grid_degree, FR_Type_Aux);
     OPERATOR::derivative_p<dim,2*dim> deriv_p(1, max_degree, init_grid_degree);
 
@@ -2726,15 +2728,16 @@ void DGBase<dim,real,MeshType>::apply_inverse_global_mass_matrix(
     using FR_enum = Parameters::AllParameters::Flux_Reconstruction;
     using FR_Aux_enum = Parameters::AllParameters::Flux_Reconstruction_Aux;
     const FR_enum FR_Type = this->all_parameters->flux_reconstruction_type;
+    const double FR_user_specified_correction_parameter_value = this->all_parameters->FR_user_specified_correction_parameter_value;
     const FR_Aux_enum FR_Type_Aux = this->all_parameters->flux_reconstruction_aux_type;
      
     const unsigned int init_grid_degree = high_order_grid->fe_system.tensor_degree();
     OPERATOR::mapping_shape_functions<dim,2*dim> mapping_basis(1, max_degree, init_grid_degree);
      
-    OPERATOR::FR_mass_inv<dim,2*dim> mass_inv(1, max_degree, init_grid_degree, FR_Type);
+    OPERATOR::FR_mass_inv<dim,2*dim> mass_inv(1, max_degree, init_grid_degree, FR_Type, FR_user_specified_correction_parameter_value);
     OPERATOR::FR_mass_inv_aux<dim,2*dim> mass_inv_aux(1, max_degree, init_grid_degree, FR_Type_Aux);
      
-    OPERATOR::vol_projection_operator_FR<dim,2*dim> projection_oper(1, max_degree, init_grid_degree, FR_Type, true);
+    OPERATOR::vol_projection_operator_FR<dim,2*dim> projection_oper(1, max_degree, init_grid_degree, FR_Type, FR_user_specified_correction_parameter_value, true);
     OPERATOR::vol_projection_operator_FR_aux<dim,2*dim> projection_oper_aux(1, max_degree, init_grid_degree, FR_Type_Aux, true);
      
     mapping_basis.build_1D_shape_functions_at_volume_flux_nodes(high_order_grid->oneD_fe_system, oneD_quadrature_collection[max_degree]);
@@ -2889,12 +2892,13 @@ void DGBase<dim,real,MeshType>::apply_global_mass_matrix(
     using FR_enum = Parameters::AllParameters::Flux_Reconstruction;
     using FR_Aux_enum = Parameters::AllParameters::Flux_Reconstruction_Aux;
     const FR_enum FR_Type = this->all_parameters->flux_reconstruction_type;
+    const double FR_user_specified_correction_parameter_value = this->all_parameters->FR_user_specified_correction_parameter_value;
     const FR_Aux_enum FR_Type_Aux = this->all_parameters->flux_reconstruction_aux_type;
      
     const unsigned int init_grid_degree = high_order_grid->fe_system.tensor_degree();
     OPERATOR::mapping_shape_functions<dim,2*dim> mapping_basis(1, max_degree, init_grid_degree);
      
-    OPERATOR::FR_mass<dim,2*dim> mass(1, max_degree, init_grid_degree, FR_Type);
+    OPERATOR::FR_mass<dim,2*dim> mass(1, max_degree, init_grid_degree, FR_Type, FR_user_specified_correction_parameter_value);
     OPERATOR::FR_mass_aux<dim,2*dim> mass_aux(1, max_degree, init_grid_degree, FR_Type_Aux);
      
     OPERATOR::vol_projection_operator<dim,2*dim> projection_oper(1, max_degree, init_grid_degree);

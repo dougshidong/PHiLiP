@@ -245,9 +245,12 @@ public:
     DissipativeNumericalFlux diss_num_flux_type;
 
     /// Type of correction in Flux Reconstruction
-    enum Flux_Reconstruction {cDG, cSD, cHU, cNegative, cNegative2, cPlus, c10Thousand, cHULumped};
+    enum Flux_Reconstruction {cDG, cSD, cHU, cNegative, cNegative2, cPlus, c10Thousand, cHULumped, user_specified_value};
     /// Store flux reconstruction type
     Flux_Reconstruction flux_reconstruction_type;
+
+    /// User specified flux recontruction correction parameter value
+    double FR_user_specified_correction_parameter_value;
 
     /// Type of correction in Flux Reconstruction for the auxiliary variables
     enum Flux_Reconstruction_Aux {kDG, kSD, kHU, kNegative, kNegative2, kPlus, k10Thousand};

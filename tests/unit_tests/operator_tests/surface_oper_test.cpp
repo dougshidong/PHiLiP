@@ -175,7 +175,7 @@ int main (int argc, char * argv[])
                 }
             }
         }
-        PHiLiP::OPERATOR::lifting_operator_FR<dim,2*dim> lifting_FR(nstate, poly_degree, 1, FR_enum::cPlus);
+        PHiLiP::OPERATOR::lifting_operator_FR<dim,2*dim> lifting_FR(nstate, poly_degree, 1, FR_enum::cPlus, 0.0);
         lifting_FR.build_1D_volume_operator(fe_system, quad1D);
         lifting_FR.build_1D_surface_operator(fe_system, face_quad1D);
         std::array<dealii::FullMatrix<real>,2> surface_int_from_lift_FR;

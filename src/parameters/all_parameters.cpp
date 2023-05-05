@@ -104,10 +104,14 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
 
     prm.declare_entry("flux_reconstruction", "cDG",
                       dealii::Patterns::Selection(
-                      "cDG | cSD | cHU | cNegative | cNegative2 | cPlus | c10Thousand | cHULumped"),
+                      "cDG | cSD | cHU | cNegative | cNegative2 | cPlus | c10Thousand | cHULumped | user_specified_value"),
                       "Flux Reconstruction. "
                       "Choices are "
-                      " <cDG | cSD | cHU | cNegative | cNegative2 | cPlus | c10Thousand | cHULumped>.");
+                      " <cDG | cSD | cHU | cNegative | cNegative2 | cPlus | c10Thousand | cHULumped | user_specified_value>.");
+
+    prm.declare_entry("FR_user_specified_correction_parameter_value", "0.0",
+                      dealii::Patterns::Double(-dealii::Patterns::Double::max_double_value, dealii::Patterns::Double::max_double_value),
+                      "User specified flux recontruction correction parameter value. Default value is 0.0. ");
 
     prm.declare_entry("flux_reconstruction_aux", "kDG",
                       dealii::Patterns::Selection(
@@ -414,6 +418,10 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     if (flux_reconstruction_string == "cPlus")       { flux_reconstruction_type = cPlus; }
     if (flux_reconstruction_string == "c10Thousand") { flux_reconstruction_type = c10Thousand; }
     if (flux_reconstruction_string == "cHULumped")   { flux_reconstruction_type = cHULumped; }
+    if (flux_reconstruction_string == "user_specified_value") 
+                                                     { flux_reconstruction_type = user_specified_value; }
+
+    FR_user_specified_correction_parameter_value = prm.get_double("FR_user_specified_correction_parameter_value");
 
     const std::string flux_reconstruction_aux_string = prm.get("flux_reconstruction_aux");
     if (flux_reconstruction_aux_string == "kDG")         { flux_reconstruction_aux_type = kDG; }

@@ -1443,7 +1443,7 @@ void DGBase<dim,real,MeshType>::assemble_residual (const bool compute_dRdW, cons
     OPERATOR::basis_functions<dim,2*dim> flux_basis_int(1, max_degree, init_grid_degree); 
     OPERATOR::basis_functions<dim,2*dim> flux_basis_ext(1, max_degree, init_grid_degree); 
     OPERATOR::local_basis_stiffness<dim,2*dim> flux_basis_stiffness(1, max_degree, init_grid_degree, true); 
-    OPERATOR::mapping_shape_functions<dim,2*dim> mapping_basis(1, max_degree, init_grid_degree);
+    OPERATOR::mapping_shape_functions<dim,2*dim> mapping_basis(1, init_grid_degree, init_grid_degree);
 
     reinit_operators_for_cell_residual_loop(
         max_degree, max_degree, init_grid_degree, soln_basis_int, soln_basis_ext, flux_basis_int, flux_basis_ext, flux_basis_stiffness, mapping_basis);
@@ -2177,7 +2177,9 @@ void DGBase<dim,real,MeshType>::allocate_system (
     //right_hand_side.reinit(locally_owned_dofs, mpi_communicator);
     right_hand_side.reinit(locally_owned_dofs, ghost_dofs, mpi_communicator);
     right_hand_side.add(1.0); // Avoid 0 initial residual for output and logarithmic visualization.
-    dual.reinit(locally_owned_dofs, ghost_dofs, mpi_communicator);
+
+    allocate_dual_vector();
+//    dual.reinit(locally_owned_dofs, ghost_dofs, mpi_communicator);
 
     // Set use_auxiliary_eq flag
     set_use_auxiliary_eq();
@@ -2768,7 +2770,7 @@ void DGBase<dim,real,MeshType>::apply_inverse_global_mass_matrix(
     const FR_Aux_enum FR_Type_Aux = this->all_parameters->flux_reconstruction_aux_type;
      
     const unsigned int init_grid_degree = high_order_grid->fe_system.tensor_degree();
-    OPERATOR::mapping_shape_functions<dim,2*dim> mapping_basis(1, max_degree, init_grid_degree);
+    OPERATOR::mapping_shape_functions<dim,2*dim> mapping_basis(1, init_grid_degree, init_grid_degree);
      
     OPERATOR::FR_mass_inv<dim,2*dim> mass_inv(1, max_degree, init_grid_degree, FR_Type);
     OPERATOR::FR_mass_inv_aux<dim,2*dim> mass_inv_aux(1, max_degree, init_grid_degree, FR_Type_Aux);

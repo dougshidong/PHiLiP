@@ -153,6 +153,9 @@ private:
     /// Assembles the auxiliary equations' residuals and solves for the auxiliary variables.
     void assemble_auxiliary_residual ();
 
+    /// Allocate the dual vector for optimization.
+    void allocate_dual_vector ();
+
     /// Main function responsible for evaluating the integral over the cell volume and the specified derivatives.
     /** This function templates the solution and metric coefficients in order to possible AD the residual.
      */

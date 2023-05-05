@@ -407,12 +407,12 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_auxiliary_residual()
          
         dealii::hp::FEValues<dim,dim>        fe_values_collection_volume_lagrange (mapping_collection, this->fe_collection_lagrange, this->volume_quadrature_collection, this->volume_update_flags);
 
-        OPERATOR::basis_functions<dim,2*dim> soln_basis_int(nstate, this->max_degree, this->max_grid_degree); 
-        OPERATOR::basis_functions<dim,2*dim> soln_basis_ext(nstate, this->max_degree, this->max_grid_degree); 
-        OPERATOR::basis_functions<dim,2*dim> flux_basis_int(nstate, this->max_degree, this->max_grid_degree); 
-        OPERATOR::basis_functions<dim,2*dim> flux_basis_ext(nstate, this->max_degree, this->max_grid_degree); 
-        OPERATOR::local_basis_stiffness<dim,2*dim> flux_basis_stiffness(nstate, this->max_degree, this->max_grid_degree); 
-        OPERATOR::mapping_shape_functions<dim,2*dim> mapping_basis(nstate, this->max_degree, this->max_grid_degree);
+        OPERATOR::basis_functions<dim,2*dim> soln_basis_int(1, this->max_degree, this->max_grid_degree); 
+        OPERATOR::basis_functions<dim,2*dim> soln_basis_ext(1, this->max_degree, this->max_grid_degree); 
+        OPERATOR::basis_functions<dim,2*dim> flux_basis_int(1, this->max_degree, this->max_grid_degree); 
+        OPERATOR::basis_functions<dim,2*dim> flux_basis_ext(1, this->max_degree, this->max_grid_degree); 
+        OPERATOR::local_basis_stiffness<dim,2*dim> flux_basis_stiffness(1, this->max_degree, this->max_grid_degree); 
+        OPERATOR::mapping_shape_functions<dim,2*dim> mapping_basis(1, this->max_grid_degree, this->max_grid_degree);
          
         this->reinit_operators_for_cell_residual_loop(
             this->max_degree, this->max_degree, this->max_grid_degree, soln_basis_int, soln_basis_ext, flux_basis_int, flux_basis_ext, flux_basis_stiffness, mapping_basis);
@@ -868,6 +868,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_volume_term_strong(
     const unsigned int n_dofs_cell = this->fe_collection[poly_degree].dofs_per_cell;
     const unsigned int n_shape_fns = n_dofs_cell / nstate; 
     const unsigned int n_quad_pts_1D  = this->oneD_quadrature_collection[poly_degree].size();
+    assert(n_quad_pts == pow(n_quad_pts_1D, dim));
     const std::vector<double> &vol_quad_weights = this->volume_quadrature_collection[poly_degree].get_weights();
     const std::vector<double> &oneD_vol_quad_weights = this->oneD_quadrature_collection[poly_degree].get_weights();
 
@@ -1170,6 +1171,9 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_volume_term_strong(
                 flux_basis.Hadamard_product(flux_basis_stiffness_skew_symm_oper_sparse[ref_dim], conv_ref_2pt_flux_at_q[istate][ref_dim], divergence_ref_flux_Hadamard_product); 
                 //Hadamard product times the vector of ones.
                 for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
+                    if(ref_dim == 0){
+                        conv_flux_divergence[iquad] = 0.0;
+                    }
                     for(unsigned int iquad_1D=0; iquad_1D<n_quad_pts_1D; iquad_1D++){
                         conv_flux_divergence[iquad] += divergence_ref_flux_Hadamard_product[iquad][iquad_1D];
                     }
@@ -1813,10 +1817,10 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_strong(
     const dealii::Tensor<1,dim,double> unit_ref_normal_int = dealii::GeometryInfo<dim>::unit_normal_vector[iface];
     // Extract the reference direction that is outward facing on the facet.
     const int dim_not_zero = iface / 2;//reference direction of face integer division
-    if(dim_not_zero == 1000){
-        pcout<<"Error with normals. Normal direction is not defined. Aborting..."<<std::endl;
-        std::abort();
-    }
+//    if(dim_not_zero == 1000){
+//        pcout<<"Error with normals. Normal direction is not defined. Aborting..."<<std::endl;
+//        std::abort();
+//    }
 
     std::array<std::vector<real>,nstate> conv_int_vol_ref_flux_interp_to_face_dot_ref_normal;
     std::array<std::vector<real>,nstate> conv_ext_vol_ref_flux_interp_to_face_dot_ref_normal;
@@ -2257,7 +2261,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_strong(
         }
 
         // exterior RHS
-        std::vector<real> rhs_ext(n_shape_fns_int);
+        std::vector<real> rhs_ext(n_shape_fns_ext);
 
         // convective flux
         if(this->all_parameters->use_split_form || this->all_parameters->use_curvilinear_split_form){
@@ -2854,6 +2858,12 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_explicit(
     //Do nothing
 }
 
+
+template <int dim, int nstate, typename real, typename MeshType>
+void DGStrong<dim,nstate,real,MeshType>::allocate_dual_vector()
+{
+    //Do nothing.
+}
 
 // using default MeshType = Triangulation
 // 1D: dealii::Triangulation<dim>;

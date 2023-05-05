@@ -38,6 +38,9 @@ public:
      */
     void assemble_auxiliary_residual ();
 
+    /// Allocate the dual vector for optimization.
+    void allocate_dual_vector ();
+
 private:
     /// Assembles the auxiliary equations' cell residuals.
     template<typename DoFCellAccessorType1, typename DoFCellAccessorType2>

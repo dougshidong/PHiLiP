@@ -889,6 +889,11 @@ public:
     /// Asembles the auxiliary equations' residuals and solves.
     virtual void assemble_auxiliary_residual () = 0;
 
+    /// Allocate the dual vector for optimization.
+    /** Currently only used in weak form.
+    */
+    virtual void allocate_dual_vector () = 0;
+
 protected:
     MPI_Comm mpi_communicator; ///< MPI communicator
     dealii::ConditionalOStream pcout; ///< Parallel std::cout that only outputs on mpi_rank==0

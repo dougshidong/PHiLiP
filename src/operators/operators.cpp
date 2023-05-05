@@ -1334,8 +1334,12 @@ void local_basis_stiffness<dim,n_faces>::build_1D_volume_operator(
         //allocate
         oneD_skew_symm_vol_oper.reinit(n_dofs,n_dofs);
         //solve
-        oneD_skew_symm_vol_oper.add(1.0, this->oneD_vol_operator);
-        oneD_skew_symm_vol_oper.Tadd(-1.0, this->oneD_vol_operator);
+        for(unsigned int idof=0; idof<n_dofs; idof++){
+            for(unsigned int jdof=0; jdof<n_dofs; jdof++){
+                oneD_skew_symm_vol_oper[idof][jdof] = this->oneD_vol_operator[idof][jdof]
+                                                    - this->oneD_vol_operator[jdof][idof];
+            }
+        }
     }
 }
 
@@ -1772,7 +1776,11 @@ void vol_projection_operator_FR<dim,n_faces>::build_1D_volume_operator(
     
     if(store_transpose){
         oneD_transpose_vol_operator.reinit(n_quad_pts, n_dofs);
-        oneD_transpose_vol_operator.Tadd(1.0, this->oneD_vol_operator);
+        for(unsigned int idof=0; idof<n_dofs; idof++){
+            for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
+                oneD_transpose_vol_operator[iquad][idof] = this->oneD_vol_operator[idof][iquad];
+            }
+        }
     }
 }
 template <int dim, int n_faces>  
@@ -1808,7 +1816,11 @@ void vol_projection_operator_FR_aux<dim,n_faces>::build_1D_volume_operator(
     
     if(store_transpose){
         oneD_transpose_vol_operator.reinit(n_quad_pts, n_dofs);
-        oneD_transpose_vol_operator.Tadd(1.0, this->oneD_vol_operator);
+        for(unsigned int idof=0; idof<n_dofs; idof++){
+            for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
+                oneD_transpose_vol_operator[iquad][idof] = this->oneD_vol_operator[idof][iquad];
+            }
+        }
     }
 }
 

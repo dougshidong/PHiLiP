@@ -57,7 +57,7 @@ subsection functional
    set normLp = 2.0
 
    # boundaries to be used
-   set boundary_vector = [1]
+   set boundary_vector = [1, 2]
    set use_all_boundaries = false
 end
 

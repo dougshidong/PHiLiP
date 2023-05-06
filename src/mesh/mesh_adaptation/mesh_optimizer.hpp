@@ -42,7 +42,7 @@ public:
                   const bool _use_full_space_method);
     
     /// Destructor.
-    ~MeshOptimizer();
+    ~MeshOptimizer(){}
     
     /// Runs full-space optimizer.
     void run_full_space_optimizer();

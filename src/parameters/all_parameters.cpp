@@ -469,6 +469,9 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     pcout << "Parsing mesh adaptation subsection..." << std::endl;
     mesh_adaptation_param.parse_parameters (prm);
     
+    pcout << "Parsing optimization subsection..." << std::endl;
+    optimization_param.parse_parameters (prm);
+    
     pcout << "Parsing functional subsection..." << std::endl;
     functional_param.parse_parameters (prm);
 

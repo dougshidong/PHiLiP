@@ -5,6 +5,7 @@
 #include "mesh/mesh_adaptation/anisotropic_mesh_adaptation.h"
 #include "mesh/mesh_adaptation/fe_values_shape_hessian.h"
 #include "mesh/mesh_adaptation/mesh_error_estimate.h"
+#include "mesh/mesh_adaptation/mesh_optimizer.hpp"
 #include <deal.II/grid/grid_in.h>
 
 namespace PHiLiP {
@@ -91,14 +92,14 @@ int AnisotropicMeshAdaptationCases<dim, nstate> :: run_test () const
     const Parameters::AllParameters param = *(TestsBase::all_parameters);
     
     std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(&param, parameter_handler);
-    
+/*    
     const bool use_goal_oriented_approach = param.mesh_adaptation_param.use_goal_oriented_mesh_adaptation;
     const double complexity = param.mesh_adaptation_param.mesh_complexity_anisotropic_adaptation;
     const double normLp = param.mesh_adaptation_param.norm_Lp_anisotropic_adaptation;
 
     std::unique_ptr<AnisotropicMeshAdaptation<dim, nstate, double>> anisotropic_mesh_adaptation =
                         std::make_unique<AnisotropicMeshAdaptation<dim, nstate, double>> (flow_solver->dg, normLp, complexity, use_goal_oriented_approach);
-
+ */   
     flow_solver->run();
 
     std::vector<double> functional_error_vector;
@@ -112,8 +113,10 @@ int AnisotropicMeshAdaptationCases<dim, nstate> :: run_test () const
     
     for(unsigned int cycle = 0; cycle < n_adaptation_cycles; ++cycle)
     {
-        anisotropic_mesh_adaptation->adapt_mesh();
-        flow_solver->run();
+        //anisotropic_mesh_adaptation->adapt_mesh();
+        //flow_solver->run();
+        std::unique_ptr<MeshOptimizer<dim,nstate>> mesh_optimizer = std::make_unique<MeshOptimizer<dim,nstate>> (flow_solver->dg,&param, true);
+        mesh_optimizer->run_full_space_optimizer();
         const double functional_error = evaluate_functional_error(flow_solver->dg);
         functional_error_vector.push_back(functional_error);
         n_cycle_vector.push_back(cycle + 1);

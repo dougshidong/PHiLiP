@@ -35,7 +35,15 @@ DualWeightedResidualObjFunc1<dim, nstate, real> :: DualWeightedResidualObjFunc1(
     }
     
     linear_solver_param = this->dg->all_parameters->linear_solver_param;
-    linear_solver_param.linear_residual = 1.0e-15;
+    linear_solver_param.max_iterations = 1000;
+    linear_solver_param.restart_number = 200;
+    linear_solver_param.linear_residual = 1e-17;
+    linear_solver_param.ilut_fill = 50;
+    linear_solver_param.ilut_drop = 1e-8;
+    linear_solver_param.ilut_atol = 1e-5;
+    linear_solver_param.ilut_rtol = 1.0+1e-2;
+    linear_solver_param.linear_solver_output = Parameters::OutputEnum::verbose;
+    linear_solver_param.linear_solver_type = Parameters::LinearSolverParam::LinearSolverEnum::gmres;
 }
 
 //===================================================================================================================================================

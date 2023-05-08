@@ -6,10 +6,9 @@ namespace ODE {
 template <int dim, typename real, int n_rk_stages, typename MeshType>
 RRKODESolverBase<dim,real,n_rk_stages,MeshType>::RRKODESolverBase(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input,
             std::shared_ptr<RKTableauBase<dim,real,MeshType>> rk_tableau_input)
-        : RungeKuttaODESolver<dim,real,n_rk_stages,MeshType>(dg_input,rk_tableau_input)
+        : RKNumEntropy<dim,real,n_rk_stages,MeshType>(dg_input,rk_tableau_input)
 {
     relaxation_parameter = 1.0;
-    this->dg->FR_entropy_cumulative=0.0;
 }
 
 template <int dim, typename real, int n_rk_stages, typename MeshType>

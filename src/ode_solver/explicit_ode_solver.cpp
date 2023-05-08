@@ -100,6 +100,8 @@ void RungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::step_in_time (real dt, 
     }
     this->dg->solution = this->solution_update; // u_np1 = u_n + dt* sum(k_i * b_i)
 
+    this->dg->FR_entropy_contribution = compute_FR_entropy_contribution();
+
     ++(this->current_iteration);
     this->current_time += dt;
 }

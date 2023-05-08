@@ -25,14 +25,6 @@ public:
 
 protected:
 
-    /// Storage for the solution at each Runge-Kutta stage
-    /** Note that rk_stage is the time-derivative of the solution */
-    std::vector<dealii::LinearAlgebra::distributed::Vector<double>> rk_stage_solution;
-
-    /// Update stored quantities at the current stage
-    /** Stores solution at stage, rk_stage_solution */
-    void store_stage_solutions(const int istage) override;
-
     /// Compute relaxation parameter numerically (i.e. if energy is NOT the entropy variable)
     /// See Ranocha 2020, Eq. 2.4
     real compute_relaxation_parameter(real &dt) override;
@@ -56,12 +48,6 @@ protected:
     /// Compute the estimated entropy change during a timestep
     real compute_entropy_change_estimate(real &dt,
             const bool use_M_norm_for_entropy_change_est = true) const;
-
-    /// Return the entropy variables from a solution vector u
-    dealii::LinearAlgebra::distributed::Vector<double> compute_entropy_vars(const dealii::LinearAlgebra::distributed::Vector<double> &u) const;
-
-    // Euler physics pointer
-    std::shared_ptr < Physics::Euler<dim, dim+2, double > > euler_physics;
 
 };
 

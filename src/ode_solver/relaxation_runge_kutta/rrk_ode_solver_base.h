@@ -4,6 +4,7 @@
 #include "dg/dg.h"
 //#include "ode_solver/runge_kutta_ode_solver.h"
 #include "ode_solver/explicit_ode_solver.h"
+#include "ode_solver/relaxation_runge_kutta/runge_kutta_store_entropy.h"
 
 namespace PHiLiP {
 namespace ODE {
@@ -14,7 +15,7 @@ template <int dim, typename real, int n_rk_stages, typename MeshType = dealii::T
 #else
 template <int dim, typename real, int n_rk_stages, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
 #endif
-class RRKODESolverBase: public RungeKuttaODESolver <dim, real, n_rk_stages, MeshType>
+class RRKODESolverBase: public RKNumEntropy<dim, real, n_rk_stages, MeshType>
 {
 public:
     /// Default constructor that will set the constants.

@@ -944,6 +944,12 @@ public:
      * flow solver cases have no access to ode solver. */
     double FR_entropy_this_tstep;
 
+    /// Entropy FR correction at the current timestep
+    /** Used in entropy-RRK ODE solver.
+     * This is stored in dg such that both flow solver case and ode solver can access it. 
+     * flow solver cases have no access to ode solver. */
+    double FR_entropy_contribution;
+
     /// Entropy change with FR contribution, summed over all previous timesteps
     /** Used in entropy-RRK ODE solver.
      * This is stored in dg such that both flow solver case and ode solver can access it. 

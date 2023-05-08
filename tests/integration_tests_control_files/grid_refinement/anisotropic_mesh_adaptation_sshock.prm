@@ -13,7 +13,7 @@ set test_type = anisotropic_mesh_adaptation
 subsection linear solver
 #set linear_solver_type = direct
   subsection gmres options
-    set linear_residual_tolerance = 1e-4
+    set linear_residual_tolerance = 1e-13
     set max_iterations = 500
     set restart_number = 50
     set ilut_fill = 1
@@ -27,7 +27,7 @@ subsection mesh adaptation
   set mesh_adaptation_type = anisotropic_adaptation
   set use_goal_oriented_mesh_adaptation = true
   subsection anisotropic
-    set mesh_complexity_anisotropic_adaptation = 100.0
+    set mesh_complexity_anisotropic_adaptation = 40.0
     set norm_Lp_anisotropic_adaptation = 1.0
   end
 end
@@ -39,7 +39,7 @@ subsection optimization
 
     set gradient_tolerance = 1.0e-10 #1e-11
     set max_design_cycles = 50
-    set linear_iteration_limit = 10
+    set linear_iteration_limit = 120
     set initial_step_size = 1.0
     set functional_evaluation_limit = 30
     set line_search_method = Backtracking
@@ -76,7 +76,7 @@ subsection functional
   set functional_type = normLp_boundary
 
    # exponent
-   set normLp = 2.0
+   set normLp = 1.0
 
    # boundaries to be used
    set boundary_vector = [1, 2]
@@ -85,11 +85,11 @@ end
 
 subsection manufactured solution convergence study
   set use_manufactured_source_term = true
-  set manufactured_solution_type   = s_shock_solution
+  set manufactured_solution_type   = quadratic_solution
 
   # setting the advection vector
-  set advection_0 = 1.1
-  set advection_1 = -1.155727 # -pi/e
+  set advection_0 = 1.0
+  set advection_1 = -1.0 # -pi/e
 end
 
 subsection flow_solver
@@ -99,6 +99,6 @@ subsection flow_solver
   set poly_degree = 1
   set max_poly_degree_for_adaptation = 2
   subsection grid
-    set number_of_mesh_refinements = 4
+    set number_of_mesh_refinements = 3
   end
 end

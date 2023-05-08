@@ -27,8 +27,11 @@ public:
     /// Checks PHiLiP::FEValuesShapeHessian for MappingFEField with dealii's shape hessian for MappingQGeneric.
     void verify_fe_values_shape_hessian(const DGBase<dim, double> &dg) const;
     
-    /// Checks PHiLiP::FEValuesShapeHessian for MappingFEField with dealii's shape hessian for MappingQGeneric.
+    /// Evaluates \f[ J_exact - J(u_h) \f].
     double evaluate_functional_error(std::shared_ptr<DGBase<dim,double>> dg) const;
+    
+    /// Outputs vtk files with primal and adjoint solutions.
+    double output_vtk_files(std::shared_ptr<DGBase<dim,double>> dg) const;
 }; 
 
 } // Tests namespace

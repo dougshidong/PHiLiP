@@ -164,7 +164,16 @@ int AnisotropicMeshAdaptationCases<dim, nstate> :: run_test () const
     }
     pcout<<"];"<<std::endl;
     
-    pcout<<"\n functional_error = [";
+    std::string functional_type = "functional_error_";
+    if(run_mesh_optimizer) 
+    {
+        functional_type = functional_type + "fullspace";
+    }
+    else
+    {
+        functional_type = functional_type + "anisotropic";
+    }
+    pcout<<"\n "<<functional_type<<" = [";
     for(long unsigned int i=0; i<functional_error_vector.size(); ++i)
     {
         if(i!=0) {pcout<<", ";}

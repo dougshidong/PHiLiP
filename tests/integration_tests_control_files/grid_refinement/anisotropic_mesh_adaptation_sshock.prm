@@ -23,11 +23,11 @@ subsection linear solver
 end
 
 subsection mesh adaptation
-  set total_mesh_adaptation_cycles = 1
+  set total_mesh_adaptation_cycles = 20
   set mesh_adaptation_type = anisotropic_adaptation
   set use_goal_oriented_mesh_adaptation = true
   subsection anisotropic
-    set mesh_complexity_anisotropic_adaptation = 40.0
+    set mesh_complexity_anisotropic_adaptation = 300.0
     set norm_Lp_anisotropic_adaptation = 1.0
   end
 end
@@ -85,7 +85,7 @@ end
 
 subsection manufactured solution convergence study
   set use_manufactured_source_term = true
-  set manufactured_solution_type   = quadratic_solution
+  set manufactured_solution_type   = s_shock_solution
 
   # setting the advection vector
   set advection_0 = 1.0
@@ -99,6 +99,6 @@ subsection flow_solver
   set poly_degree = 1
   set max_poly_degree_for_adaptation = 2
   subsection grid
-    set number_of_mesh_refinements = 3
+    set number_of_mesh_refinements = 4
   end
 end

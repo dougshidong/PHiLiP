@@ -87,7 +87,7 @@ double AnisotropicMeshAdaptationCases<dim,nstate> :: output_vtk_files(std::share
 template <int dim, int nstate>
 double AnisotropicMeshAdaptationCases<dim,nstate> :: evaluate_functional_error(std::shared_ptr<DGBase<dim,double>> dg) const
 {
-    const double functional_exact = 2.666666664281137; // Quadratic solution with heaviside = 1.
+    const double functional_exact = -0.8039642358626924; // s_shock solution with heaviside xc = 0.8, xmax = 0.9.
     std::shared_ptr< Functional<dim, nstate, double> > functional
                                 = FunctionalFactory<dim,nstate,double>::create_Functional(dg->all_parameters->functional_param, dg);
     const double functional_val = functional->evaluate_functional();
@@ -96,11 +96,19 @@ double AnisotropicMeshAdaptationCases<dim,nstate> :: evaluate_functional_error(s
 }
 
 template <int dim, int nstate>
+double AnisotropicMeshAdaptationCases<dim,nstate> :: evaluate_abs_dwr_error(std::shared_ptr<DGBase<dim,double>> dg) const
+{
+    std::unique_ptr<DualWeightedResidualError<dim, nstate , double>> dwr_error_val = std::make_unique<DualWeightedResidualError<dim, nstate , double>>(dg);
+    const double abs_dwr_error = dwr_error_val->total_dual_weighted_residual_error();
+    return abs_dwr_error;
+}
+
+template <int dim, int nstate>
 int AnisotropicMeshAdaptationCases<dim, nstate> :: run_test () const
 {
     const Parameters::AllParameters param = *(TestsBase::all_parameters);
-    const bool run_mesh_optimizer = true;
-    const bool run_anisotropic_mesher = false;
+    const bool run_mesh_optimizer = false;
+    const bool run_anisotropic_mesher = true;
     
     std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(&param, parameter_handler);
 
@@ -111,12 +119,13 @@ int AnisotropicMeshAdaptationCases<dim, nstate> :: run_test () const
     std::unique_ptr<AnisotropicMeshAdaptation<dim, nstate, double>> anisotropic_mesh_adaptation =
                         std::make_unique<AnisotropicMeshAdaptation<dim, nstate, double>> (flow_solver->dg, normLp, complexity, use_goal_oriented_approach);
     
-    //flow_solver->run();
+    flow_solver->run();
 
     std::vector<double> functional_error_vector;
     std::vector<unsigned int> n_cycle_vector;
     
     const double functional_error_initial = evaluate_functional_error(flow_solver->dg);
+    //const double functional_error_initial = evaluate_abs_dwr_error(flow_solver->dg);
     functional_error_vector.push_back(functional_error_initial);
     n_cycle_vector.push_back(0);
      
@@ -140,6 +149,7 @@ int AnisotropicMeshAdaptationCases<dim, nstate> :: run_test () const
         }
 
         const double functional_error = evaluate_functional_error(flow_solver->dg);
+        //const double functional_error = evaluate_abs_dwr_error(flow_solver->dg);
         functional_error_vector.push_back(functional_error);
         n_cycle_vector.push_back(cycle + 1);
     }

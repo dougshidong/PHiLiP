@@ -16,6 +16,12 @@ PeriodicEntropyTests<dim, nstate>::PeriodicEntropyTests(const PHiLiP::Parameters
 {
     this->euler_physics = std::dynamic_pointer_cast<Physics::Euler<dim,dim+2,double>>(
             PHiLiP::Physics::PhysicsFactory<dim,nstate,double>::create_Physics(&(this->all_param)));
+
+    if (this->all_param.flux_reconstruction_type != Parameters::AllParameters::Flux_Reconstruction::cDG)
+    {
+        this->pcout << "WARNING: FR entropy correction has not been implemented in periodic_entropy_tests!" << std::endl 
+                    << "Recommended to modify code or params." << std::endl;
+    }
 }
 
 template <int dim, int nstate>

@@ -78,12 +78,14 @@ protected:
      */
     dealii::ConditionalOStream pcout;
 
+public:
     /// Add a value to a given data table with scientific format
     void add_value_to_data_table(
             const double value,
             const std::string value_string,
             const std::shared_ptr <dealii::TableHandler> data_table) const;
 
+protected:
     /// Display additional more specific flow case parameters
     virtual void display_additional_flow_case_specific_parameters() const = 0;
 

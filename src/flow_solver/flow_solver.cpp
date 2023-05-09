@@ -478,6 +478,7 @@ int FlowSolver<dim,nstate>::run() const
         // Time advancement loop with on-the-fly post-processing
         //----------------------------------------------------
         double next_time_step = time_step;
+        std::shared_ptr<dealii::TableHandler> timer_values_table = std::make_shared<dealii::TableHandler>();
         pcout << "Advancing solution in time... " << std::endl;
         pcout << "Timer starting. " << std::endl;
         dealii::Timer timer(this->mpi_communicator,false);
@@ -579,9 +580,26 @@ int FlowSolver<dim,nstate>::run() const
         } // close while
         timer.stop();
         pcout << "Timer stopped. " << std::endl;
-        const double max_wall_time = dealii::Utilities::MPI::max(timer.wall_time(), this->mpi_communicator);
-        pcout << "Elapsed wall time (mpi max): " << max_wall_time << " seconds." << std::endl;
-        pcout << "Elapsed CPU time: " << timer.cpu_time() << " seconds." << std::endl;
+        const double cpu_time = timer.cpu_time();
+        const double total_wall_time = dealii::Utilities::MPI::sum(timer.wall_time(), this->mpi_communicator);
+        const double number_of_time_steps = (double)ode_solver->current_iteration;
+        const double avg_cpu_time_per_time_step = cpu_time/number_of_time_steps;
+        const double avg_total_wall_time_per_time_step = total_wall_time/number_of_time_steps;
+        pcout << "Elapsed CPU time: " << cpu_time << " seconds." << std::endl;
+        pcout << "Elapsed total wall time (mpi max): " << total_wall_time << " seconds." << std::endl;
+        pcout << "Average CPU time per time step: " << avg_cpu_time_per_time_step << " seconds." << std::endl;
+        pcout << "Average total wall time per time step: " << avg_total_wall_time_per_time_step << " seconds." << std::endl;
+        // writing timing to file
+        if(mpi_rank==0) {
+            // add values to table
+            flow_solver_case->add_value_to_data_table(cpu_time,"total_cpu_time",timer_values_table);
+            flow_solver_case->add_value_to_data_table(total_wall_time,"total_wall_time",timer_values_table);
+            flow_solver_case->add_value_to_data_table(avg_cpu_time_per_time_step,"avg_cpu_time",timer_values_table);
+            flow_solver_case->add_value_to_data_table(avg_total_wall_time_per_time_step,"avg_wall_time",timer_values_table);
+            std::string timing_table_filename = std::string("timer_values.txt");
+            std::ofstream timer_values_table_file(timing_table_filename);
+            timer_values_table->write_text(timer_values_table_file);
+        }
     } else {
         //----------------------------------------------------
         // Steady-state solution

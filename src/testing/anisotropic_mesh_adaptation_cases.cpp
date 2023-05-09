@@ -107,8 +107,8 @@ template <int dim, int nstate>
 int AnisotropicMeshAdaptationCases<dim, nstate> :: run_test () const
 {
     const Parameters::AllParameters param = *(TestsBase::all_parameters);
-    const bool run_mesh_optimizer = false;
-    const bool run_anisotropic_mesher = true;
+    const bool run_mesh_optimizer = true;
+    const bool run_anisotropic_mesher = false;
     
     std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(&param, parameter_handler);
 

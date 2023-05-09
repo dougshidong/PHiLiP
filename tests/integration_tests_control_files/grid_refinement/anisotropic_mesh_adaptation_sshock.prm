@@ -23,7 +23,7 @@ subsection linear solver
 end
 
 subsection mesh adaptation
-  set total_mesh_adaptation_cycles = 10
+  set total_mesh_adaptation_cycles = 1
   set mesh_adaptation_type = anisotropic_adaptation
   set use_goal_oriented_mesh_adaptation = true
   subsection anisotropic
@@ -48,7 +48,7 @@ subsection optimization
     set full_space_preconditioner = P2A
     set mesh_weight_factor = 1.0  #5e-6
 
-    set regularization_parameter = 0.0
+    set regularization_parameter = 0.01
     set regularization_scaling = 2.0
     set regularization_tol_low = 1.0e-2
     set regularization_tol_high = 1.0e-1

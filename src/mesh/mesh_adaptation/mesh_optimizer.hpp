@@ -7,6 +7,7 @@
 #include "Teuchos_ParameterList.hpp"
 #include "functional/dual_weighted_residual_obj_func1.h"
 #include "functional/dual_weighted_residual_obj_func2.h"
+#include "functional/implicit_shocktracking_functional.h"
 #include "optimization/design_parameterization/inner_vol_parameterization.hpp"
 
 #include "Teuchos_GlobalMPISession.hpp"

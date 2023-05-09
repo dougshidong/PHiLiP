@@ -10,7 +10,6 @@ RKNumEntropy<dim,real,n_rk_stages,MeshType>::RKNumEntropy(std::shared_ptr< DGBas
             std::shared_ptr<RKTableauBase<dim,real,MeshType>> rk_tableau_input)
         : RungeKuttaODESolver<dim,real,n_rk_stages,MeshType>(dg_input,rk_tableau_input)
 {
-    this->dg->FR_entropy_cumulative=0.0;
     this->rk_stage_solution.resize(n_rk_stages);
    
     // TEMP this should select the actual physics of the problem
@@ -136,7 +135,7 @@ double RKNumEntropy<dim,real,n_rk_stages,MeshType>::compute_FR_entropy_contribut
         //transform solution into entropy variables
         dealii::LinearAlgebra::distributed::Vector<double> entropy_var_hat_global = this->compute_entropy_vars(this->rk_stage_solution[istage]);
         
-        double entropy_contribution_stage = entropy_var_hat_global * M_matrix_times_rk_stage - entropy_var_hat_global * MpK_matrix_times_rk_stage;
+        double entropy_contribution_stage = entropy_var_hat_global * MpK_matrix_times_rk_stage - entropy_var_hat_global * M_matrix_times_rk_stage;
         
         entropy_contribution += this->butcher_tableau->get_b(istage) * entropy_contribution_stage;
     }

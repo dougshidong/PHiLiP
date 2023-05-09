@@ -140,28 +140,27 @@ real EntropyRRKODESolver<dim,real,n_rk_stages,MeshType>::compute_relaxation_para
         secant_failed = true;
         std::abort();
         return -1;
-    } else {
-
-        // Use [ gamma * (v^T (M+K) du/dt - v^T (M) du/dt ) ] as a workaround to calculate [ gamma * (v^T (K) du/dt) ]
-        this->FR_entropy_contribution = gamma_kp1 *(compute_entropy_change_estimate(dt, false) - compute_entropy_change_estimate(dt, true));
-
-        // TEMP store in dg so that flow solver case can access it
-        dealii::LinearAlgebra::distributed::Vector<double> temp = u_n;
-        temp.add(gamma_kp1, step_direction);
-        const double num_entropy_npgamma = compute_numerical_entropy(temp);
-        this->dg->FR_entropy_this_tstep = num_entropy_npgamma - num_entropy_n + this->FR_entropy_contribution;
-        this->dg->FR_entropy_cumulative += this->dg->FR_entropy_this_tstep;
+    } else { // Root-finding was successful
 
         if (do_output) {
-            this->pcout << "Convergence reached!" << std::endl;
+            // Use [ gamma * dt * (v^T (M+K) du/dt - v^T (M) du/dt ) ] as a workaround to calculate [ gamma * (v^T (K) du/dt) ]
+            const double FR_entropy_contribution = gamma_kp1 *(compute_entropy_change_estimate(dt, false) - compute_entropy_change_estimate(dt, true));
 
+            // TEMP store in dg so that flow solver case can access it
+            dealii::LinearAlgebra::distributed::Vector<double> temp = u_n;
+            temp.add(gamma_kp1, step_direction);
+            const double num_entropy_npgamma = compute_numerical_entropy(temp);
+            const double FR_entropy_this_tstep = num_entropy_npgamma - num_entropy_n + FR_entropy_contribution;
+            this->FR_entropy_cumulative += FR_entropy_this_tstep;
+
+            this->pcout << "Convergence reached!" << std::endl;
             this->pcout << "  Entropy at prev timestep (DG) :     " << num_entropy_n << std::endl
                         << "  Entropy at current timestep (DG) :  " << num_entropy_npgamma << std::endl;
             this->pcout << "    Estimate entropy change (M norm): " << entropy_change_est << std::endl
                         << "    Actual entropy change (DG):       " << num_entropy_npgamma - num_entropy_n << std::endl
-                        << "    FR contribution:                  " << this->FR_entropy_contribution << std::endl
-                        << "    Corrected entropy change (FR):    " << num_entropy_npgamma - num_entropy_n + this->FR_entropy_contribution << std::endl
-                        << "  Cumulative entropy change (FR):     " << this->dg->FR_entropy_cumulative << std::endl
+                        << "    FR contribution:                  " << FR_entropy_contribution << std::endl
+                        << "    Corrected entropy change (FR):    " << FR_entropy_this_tstep << std::endl
+                        << "  Cumulative entropy change (FR):     " << this->FR_entropy_cumulative << std::endl
                         << std::endl;
         }
 

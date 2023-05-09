@@ -151,6 +151,12 @@ protected:
     /// Target dt for calculating relaxation parameter
     double dt_target = 1;
 
+    /// Numerical entropy at previous timestep
+    double previous_numerical_entropy = 0;
+
+    /// Cumulative change in numerical entropy
+    double cumulative_numerical_entropy_change_FRcorrected = 0;
+
     /// Times at which to output the velocity field
     dealii::Table<1,double> output_velocity_field_times;
 

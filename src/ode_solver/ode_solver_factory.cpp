@@ -124,7 +124,30 @@ std::shared_ptr<ODESolverBase<dim,real,MeshType>> ODESolverFactory<dim,real,Mesh
     const int n_rk_stages = dg_input->all_parameters->ode_solver_param.n_rk_stages;
     using ODEEnum = Parameters::ODESolverParam::ODESolverEnum;
     const ODEEnum ode_solver_type = dg_input->all_parameters->ode_solver_param.ode_solver_type;
-    if (ode_solver_type == ODEEnum::runge_kutta_solver) {
+    if (ode_solver_type == ODEEnum::runge_kutta_solver && dg_input->all_parameters->flow_solver_param.do_calculate_numerical_entropy) {
+        // If calculating numerical entropy, select the derived class which has that functionality
+        // Hard-coded templating of n_rk_stages because it is not known at compile time
+        pcout << "Creating Runge Kutta ODE Solver with " 
+              << n_rk_stages << " stage(s)..." << std::endl;
+        if (n_rk_stages == 1){
+            return std::make_shared<RKNumEntropy<dim,real,1,MeshType>>(dg_input,rk_tableau);
+        }
+        else if (n_rk_stages == 2){
+            return std::make_shared<RKNumEntropy<dim,real,2,MeshType>>(dg_input,rk_tableau);
+        }
+        else if (n_rk_stages == 3){
+            return std::make_shared<RKNumEntropy<dim,real,3,MeshType>>(dg_input,rk_tableau);
+        }
+        else if (n_rk_stages == 4){
+            return std::make_shared<RKNumEntropy<dim,real,4,MeshType>>(dg_input,rk_tableau);
+        }
+        else{
+            pcout << "Error: invalid number of stages. Aborting..." << std::endl;
+            std::abort();
+            return nullptr;
+        }
+    }
+    else if (ode_solver_type == ODEEnum::runge_kutta_solver) {
         // Hard-coded templating of n_rk_stages because it is not known at compile time
         pcout << "Creating Runge Kutta ODE Solver with " 
               << n_rk_stages << " stage(s)..." << std::endl;
@@ -146,7 +169,7 @@ std::shared_ptr<ODESolverBase<dim,real,MeshType>> ODESolverFactory<dim,real,Mesh
             return nullptr;
         }
     }
-    if (ode_solver_type == ODEEnum::rrk_explicit_solver){
+    else if (ode_solver_type == ODEEnum::rrk_explicit_solver){
 
         using PDEEnum = Parameters::AllParameters::PartialDifferentialEquation;
         const PDEEnum pde_type = dg_input->all_parameters->pde_type;

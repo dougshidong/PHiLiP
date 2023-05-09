@@ -49,6 +49,9 @@ protected:
     real compute_entropy_change_estimate(real &dt,
             const bool use_M_norm_for_entropy_change_est = true) const;
 
+    /// Storing cumulative entropy change for output 
+    real FR_entropy_cumulative = 0;
+
 };
 
 } // ODE namespace

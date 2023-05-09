@@ -9,6 +9,7 @@ SET(SOURCE
     dual_weighted_residual_obj_func2.cpp
     cell_distortion_functional.cpp
     mesh_vertex_deviation_functional.cpp
+    implicit_shocktracking_functional.cpp
     )
 
 foreach(dim RANGE 1 3)

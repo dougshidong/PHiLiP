@@ -666,16 +666,18 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
     const DoFCellAccessorType1 &current_cell,
     const DoFCellAccessorType2 &current_metric_cell,
     const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R,
-    dealii::hp::FEValues<dim,dim>        &fe_values_collection_volume,
-    dealii::hp::FEFaceValues<dim,dim>    &fe_values_collection_face_int,
-    dealii::hp::FEFaceValues<dim,dim>    &fe_values_collection_face_ext,
-    dealii::hp::FESubfaceValues<dim,dim> &fe_values_collection_subface,
-    dealii::hp::FEValues<dim,dim>        &fe_values_collection_volume_lagrange,
-    OPERATOR::basis_functions<dim,2*dim> &soln_basis_int,
-    OPERATOR::basis_functions<dim,2*dim> &soln_basis_ext,
-    OPERATOR::basis_functions<dim,2*dim> &flux_basis_int,
-    OPERATOR::basis_functions<dim,2*dim> &flux_basis_ext,
-    OPERATOR::local_basis_stiffness<dim,2*dim> &flux_basis_stiffness,
+    dealii::hp::FEValues<dim,dim>                &fe_values_collection_volume,
+    dealii::hp::FEFaceValues<dim,dim>            &fe_values_collection_face_int,
+    dealii::hp::FEFaceValues<dim,dim>            &fe_values_collection_face_ext,
+    dealii::hp::FESubfaceValues<dim,dim>         &fe_values_collection_subface,
+    dealii::hp::FEValues<dim,dim>                &fe_values_collection_volume_lagrange,
+    OPERATOR::basis_functions<dim,2*dim>         &soln_basis_int,
+    OPERATOR::basis_functions<dim,2*dim>         &soln_basis_ext,
+    OPERATOR::basis_functions<dim,2*dim>         &flux_basis_int,
+    OPERATOR::basis_functions<dim,2*dim>         &flux_basis_ext,
+    OPERATOR::local_basis_stiffness<dim,2*dim>   &flux_basis_stiffness,
+    OPERATOR::vol_projection_operator<dim,2*dim> &soln_basis_projection_oper_int,
+    OPERATOR::vol_projection_operator<dim,2*dim> &soln_basis_projection_oper_ext,
     OPERATOR::mapping_shape_functions<dim,2*dim> &mapping_basis,
     const bool compute_auxiliary_right_hand_side,
     dealii::LinearAlgebra::distributed::Vector<double> &rhs,
@@ -750,6 +752,8 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
         soln_basis_int,
         flux_basis_int,
         flux_basis_stiffness,
+        soln_basis_projection_oper_int,
+        soln_basis_projection_oper_ext,
         metric_oper_int,
         mapping_basis,
         mapping_support_points,
@@ -788,6 +792,8 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
                 soln_basis_int,
                 flux_basis_int,
                 flux_basis_stiffness,
+                soln_basis_projection_oper_int,
+                soln_basis_projection_oper_ext,
                 metric_oper_int,
                 mapping_basis,
                 mapping_support_points,
@@ -859,6 +865,8 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
                     flux_basis_int,
                     flux_basis_ext,
                     flux_basis_stiffness,
+                    soln_basis_projection_oper_int,
+                    soln_basis_projection_oper_ext,
                     metric_oper_int,
                     metric_oper_ext,
                     mapping_basis,
@@ -949,6 +957,8 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
                 flux_basis_int,
                 flux_basis_ext,
                 flux_basis_stiffness,
+                soln_basis_projection_oper_int,
+                soln_basis_projection_oper_ext,
                 metric_oper_int,
                 metric_oper_ext,
                 mapping_basis,
@@ -1025,6 +1035,8 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
                 flux_basis_int,
                 flux_basis_ext,
                 flux_basis_stiffness,
+                soln_basis_projection_oper_int,
+                soln_basis_projection_oper_ext,
                 metric_oper_int,
                 metric_oper_ext,
                 mapping_basis,
@@ -1261,6 +1273,8 @@ void DGBase<dim,real,MeshType>::reinit_operators_for_cell_residual_loop(
     OPERATOR::basis_functions<dim,2*dim> &flux_basis_int,
     OPERATOR::basis_functions<dim,2*dim> &flux_basis_ext,
     OPERATOR::local_basis_stiffness<dim,2*dim> &flux_basis_stiffness,
+    OPERATOR::vol_projection_operator<dim,2*dim> &soln_basis_projection_oper_int,
+    OPERATOR::vol_projection_operator<dim,2*dim> &soln_basis_projection_oper_ext,
     OPERATOR::mapping_shape_functions<dim,2*dim> &mapping_basis)
 {
     soln_basis_int.build_1D_volume_operator(oneD_fe_collection_1state[poly_degree_int], oneD_quadrature_collection[poly_degree_int]);
@@ -1285,6 +1299,10 @@ void DGBase<dim,real,MeshType>::reinit_operators_for_cell_residual_loop(
 
     //flux basis stiffness operator for skew-symmetric form
     flux_basis_stiffness.build_1D_volume_operator(oneD_fe_collection_flux[poly_degree_int], oneD_quadrature_collection[poly_degree_int]);
+
+    //basis functions projection operator
+    soln_basis_projection_oper_int.build_1D_volume_operator(oneD_fe_collection_1state[poly_degree_int], oneD_quadrature_collection[poly_degree_int]);
+    soln_basis_projection_oper_ext.build_1D_volume_operator(oneD_fe_collection_1state[poly_degree_int], oneD_quadrature_collection[poly_degree_int]);
 
     //We only need to compute the most recent mapping basis since we compute interior before looping faces
     mapping_basis.build_1D_shape_functions_at_grid_nodes(high_order_grid->oneD_fe_system, high_order_grid->oneD_grid_nodes);
@@ -1443,10 +1461,17 @@ void DGBase<dim,real,MeshType>::assemble_residual (const bool compute_dRdW, cons
     OPERATOR::basis_functions<dim,2*dim> flux_basis_int(1, max_degree, init_grid_degree); 
     OPERATOR::basis_functions<dim,2*dim> flux_basis_ext(1, max_degree, init_grid_degree); 
     OPERATOR::local_basis_stiffness<dim,2*dim> flux_basis_stiffness(1, max_degree, init_grid_degree, true); 
+    OPERATOR::vol_projection_operator<dim,2*dim> soln_basis_projection_oper_int(1, max_degree, init_grid_degree); 
+    OPERATOR::vol_projection_operator<dim,2*dim> soln_basis_projection_oper_ext(1, max_degree, init_grid_degree); 
     OPERATOR::mapping_shape_functions<dim,2*dim> mapping_basis(1, init_grid_degree, init_grid_degree);
 
     reinit_operators_for_cell_residual_loop(
-        max_degree, max_degree, init_grid_degree, soln_basis_int, soln_basis_ext, flux_basis_int, flux_basis_ext, flux_basis_stiffness, mapping_basis);
+        max_degree, max_degree, init_grid_degree, 
+        soln_basis_int, soln_basis_ext, 
+        flux_basis_int, flux_basis_ext, 
+        flux_basis_stiffness, 
+        soln_basis_projection_oper_int, soln_basis_projection_oper_ext,
+        mapping_basis);
 
     solution.update_ghost_values();
 
@@ -1499,6 +1524,8 @@ void DGBase<dim,real,MeshType>::assemble_residual (const bool compute_dRdW, cons
                 flux_basis_int,
                 flux_basis_ext,
                 flux_basis_stiffness,
+                soln_basis_projection_oper_int,
+                soln_basis_projection_oper_ext,
                 mapping_basis,
                 false,
                 right_hand_side,
@@ -3090,9 +3117,10 @@ void DGBase<dim,real,MeshType>::apply_global_mass_matrix(
                     projection_oper.matrix_vector_mult_1D(JxW,
                                                           temp,
                                                           projection_oper.oneD_vol_operator);
-                    mass.inner_product_1D(temp, ones,
-                                          local_output_vector,
-                                          mass.oneD_vol_operator);
+                   // mass.inner_product_1D(temp, ones,
+                    mass.matrix_vector_mult_1D(temp,
+                                               local_output_vector,
+                                               mass.oneD_vol_operator);
 
                 }
             }
@@ -3534,6 +3562,8 @@ DGBase<PHILIP_DIM,double,dealii::Triangulation<PHILIP_DIM>>::assemble_cell_resid
     OPERATOR::basis_functions<PHILIP_DIM,2*PHILIP_DIM> &flux_basis_int,
     OPERATOR::basis_functions<PHILIP_DIM,2*PHILIP_DIM> &flux_basis_ext,
     OPERATOR::local_basis_stiffness<PHILIP_DIM,2*PHILIP_DIM> &flux_basis_stiffness,
+    OPERATOR::vol_projection_operator<PHILIP_DIM,2*PHILIP_DIM> &soln_basis_projection_oper_int,
+    OPERATOR::vol_projection_operator<PHILIP_DIM,2*PHILIP_DIM> &soln_basis_projection_oper_ext,
     OPERATOR::mapping_shape_functions<PHILIP_DIM,2*PHILIP_DIM> &mapping_basis,
     const bool compute_auxiliary_right_hand_side,
     dealii::LinearAlgebra::distributed::Vector<double> &rhs,
@@ -3554,6 +3584,8 @@ DGBase<PHILIP_DIM,double,dealii::parallel::distributed::Triangulation<PHILIP_DIM
     OPERATOR::basis_functions<PHILIP_DIM,2*PHILIP_DIM> &flux_basis_int,
     OPERATOR::basis_functions<PHILIP_DIM,2*PHILIP_DIM> &flux_basis_ext,
     OPERATOR::local_basis_stiffness<PHILIP_DIM,2*PHILIP_DIM> &flux_basis_stiffness,
+    OPERATOR::vol_projection_operator<PHILIP_DIM,2*PHILIP_DIM> &soln_basis_projection_oper_int,
+    OPERATOR::vol_projection_operator<PHILIP_DIM,2*PHILIP_DIM> &soln_basis_projection_oper_ext,
     OPERATOR::mapping_shape_functions<PHILIP_DIM,2*PHILIP_DIM> &mapping_basis,
     const bool compute_auxiliary_right_hand_side,
     dealii::LinearAlgebra::distributed::Vector<double> &rhs,
@@ -3574,6 +3606,8 @@ DGBase<PHILIP_DIM,double,dealii::parallel::shared::Triangulation<PHILIP_DIM>>::a
     OPERATOR::basis_functions<PHILIP_DIM,2*PHILIP_DIM> &flux_basis_int,
     OPERATOR::basis_functions<PHILIP_DIM,2*PHILIP_DIM> &flux_basis_ext,
     OPERATOR::local_basis_stiffness<PHILIP_DIM,2*PHILIP_DIM> &flux_basis_stiffness,
+    OPERATOR::vol_projection_operator<PHILIP_DIM,2*PHILIP_DIM> &soln_basis_projection_oper_int,
+    OPERATOR::vol_projection_operator<PHILIP_DIM,2*PHILIP_DIM> &soln_basis_projection_oper_ext,
     OPERATOR::mapping_shape_functions<PHILIP_DIM,2*PHILIP_DIM> &mapping_basis,
     const bool compute_auxiliary_right_hand_side,
     dealii::LinearAlgebra::distributed::Vector<double> &rhs,

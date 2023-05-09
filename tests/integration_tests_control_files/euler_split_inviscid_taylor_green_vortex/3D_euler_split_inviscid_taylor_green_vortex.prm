@@ -10,7 +10,7 @@ set flux_nodes_type = GL
 
 set renumber_dof_handler_Cuthill_Mckee = false
 
-set overintegration = 0
+set overintegration = 2
 
 set use_split_form = true
 
@@ -71,7 +71,7 @@ subsection flow_solver
     set poly_degree = 3
     set final_time = 14.0
     subsection grid
-        set number_of_grid_elements_per_dimension = 3
+        set number_of_grid_elements_per_dimension = 2
     end
 end
 

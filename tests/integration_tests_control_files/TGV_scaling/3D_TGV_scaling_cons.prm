@@ -67,7 +67,7 @@ end
 subsection flow_solver
     set flow_case_type = taylor_green_vortex
     set apply_initial_condition_method = project_initial_condition_function
-    set poly_degree = 11
+    set poly_degree = 1
     set max_poly_degree_for_adaptation = 11
     set final_time = 14.0
     subsection grid

@@ -10,6 +10,7 @@ SET(SOURCE
     cell_distortion_functional.cpp
     mesh_vertex_deviation_functional.cpp
     implicit_shocktracking_functional.cpp
+    mesh_jacobian_deviation_functional.cpp
     )
 
 foreach(dim RANGE 1 3)

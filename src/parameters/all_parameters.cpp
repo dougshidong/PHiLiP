@@ -438,7 +438,6 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     if (non_physical_behavior_string == "abort_run")        { non_physical_behavior_type = abort_run;}
     if (non_physical_behavior_string == "print_warning")    { non_physical_behavior_type = print_warning;}
 
-
     solution_vtk_files_directory_name = prm.get("solution_vtk_files_directory_name");
     output_high_order_grid = prm.get_bool("output_high_order_grid");
     enable_higher_order_vtk_output = prm.get_bool("enable_higher_order_vtk_output");

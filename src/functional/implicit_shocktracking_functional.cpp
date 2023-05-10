@@ -2,7 +2,7 @@
 #include <deal.II/lac/dynamic_sparsity_pattern.h>
 #include <deal.II/lac/sparsity_tools.h>
 #include "linear_solver/linear_solver.h"
-#include "cell_distortion_functional.h"
+#include "mesh_jacobian_deviation_functional.h"
 
 namespace PHiLiP {
 
@@ -29,6 +29,8 @@ ImplicitShockTrackingFunctional<dim, nstate, real> :: ImplicitShockTrackingFunct
     {
         this->pcout<<"Using coarse residual."<<std::endl;
     }
+    
+    cell_distortion_functional = std::make_unique<MeshJacobianDeviation<dim, nstate, real>> (this->dg);
 }
 
 //===================================================================================================================================================
@@ -263,8 +265,8 @@ real ImplicitShockTrackingFunctional<dim, nstate, real> :: evaluate_objective_fu
     this->dg->solution = solution_coarse_stored; 
     this->dg->solution.update_ghost_values();
     
-    //const real obj_func_net = obj_func_global + cell_distortion_functional->evaluate_functional();
-    return obj_func_val;
+    const real obj_func_net = obj_func_val + cell_distortion_functional->evaluate_functional();
+    return obj_func_net;
 }
 
 template<int dim, int nstate, typename real>
@@ -318,13 +320,12 @@ void ImplicitShockTrackingFunctional<dim, nstate, real> :: store_dIdX()
     R_x.Tvmult(this->dIdX, residual_fine);
     this->dIdX.update_ghost_values();
 
-/*
+
     // Add derivative of cell distortion measure
     const bool compute_dIdW = false, compute_dIdX = true, compute_d2I = false;
     cell_distortion_functional->evaluate_functional(compute_dIdW, compute_dIdX, compute_d2I);
     this->dIdX += cell_distortion_functional->dIdX;
     this->dIdX.update_ghost_values();
-*/
 }
 
 template<int dim, int nstate, typename real>
@@ -465,7 +466,7 @@ void ImplicitShockTrackingFunctional<dim, nstate, real> :: d2IdXdX_vmult(
     out_vector += term2;
     out_vector.update_ghost_values();
 
-/*
+
     // Add Hessian-vector product of mesh distortion weight
     const bool compute_dIdW = false, compute_dIdX = false, compute_d2I = true;
     cell_distortion_functional->evaluate_functional(compute_dIdW, compute_dIdX, compute_d2I);
@@ -475,7 +476,6 @@ void ImplicitShockTrackingFunctional<dim, nstate, real> :: d2IdXdX_vmult(
 
     out_vector += out_vector2;
     out_vector.update_ghost_values();
-*/
 }
 
 template class ImplicitShockTrackingFunctional <PHILIP_DIM, 1, double>;

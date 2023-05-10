@@ -14,8 +14,6 @@ DualWeightedResidualObjFunc2<dim, nstate, real> :: DualWeightedResidualObjFunc2(
     const bool _use_coarse_residual)
     : Functional<dim, nstate, real> (dg_input, uses_solution_values, uses_solution_gradient)
     , use_coarse_residual(_use_coarse_residual)
-//    , mesh_weight(this->dg->all_parameters->optimization_param.mesh_weight_factor)
-//    , initial_vol_nodes(this->dg->high_order_grid->volume_nodes)
     , coarse_poly_degree(this->dg->get_min_fe_degree())
     , fine_poly_degree(coarse_poly_degree + 1)
 {

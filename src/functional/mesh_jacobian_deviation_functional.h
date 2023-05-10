@@ -18,7 +18,7 @@ public:
         const bool uses_solution_values = false,
         const bool uses_solution_gradient = false);
 
-    ~MeshJacobianDeviation();
+    ~MeshJacobianDeviation() {}
 
     real evaluate_functional(
         const bool compute_dIdw = false,

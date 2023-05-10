@@ -293,6 +293,10 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       dealii::Patterns::Bool(),
                       "Outputs the surface solution vtk files. False by default");
 
+    prm.declare_entry("do_renumber_dofs", "true",
+                      dealii::Patterns::Bool(),
+                      "Flag for renumbering DOFs using Cuthill-McKee renumbering. True by default. Set to false if doing 3D unsteady flow simulations.");
+
     Parameters::LinearSolverParam::declare_parameters (prm);
     Parameters::ManufacturedConvergenceStudyParam::declare_parameters (prm);
     Parameters::ODESolverParam::declare_parameters (prm);
@@ -442,6 +446,7 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     output_high_order_grid = prm.get_bool("output_high_order_grid");
     enable_higher_order_vtk_output = prm.get_bool("enable_higher_order_vtk_output");
     output_face_results_vtk = prm.get_bool("output_face_results_vtk");
+    do_renumber_dofs = prm.get_bool("do_renumber_dofs");
 
     output_high_order_grid = prm.get_bool("output_high_order_grid");
 

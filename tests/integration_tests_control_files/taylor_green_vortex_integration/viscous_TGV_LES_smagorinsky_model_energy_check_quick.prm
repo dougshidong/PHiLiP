@@ -15,6 +15,9 @@ set use_weak_form = true
 set use_periodic_bc = true
 set non_physical_behavior = abort_run
 
+# degree of freedom renumbering not necessary for explicit time advancement cases
+set do_renumber_dofs = false
+
 # numerical fluxes
 set conv_num_flux = roe
 set diss_num_flux = symm_internal_penalty

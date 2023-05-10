@@ -276,7 +276,6 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       "print_warning will print a warning to console. "
                       "Choices are <do_nothing | abort_run | print_warning>.");
 
-
     prm.declare_entry("solution_vtk_files_directory_name", ".",
                       dealii::Patterns::FileName(dealii::Patterns::FileName::FileType::input),
                       "Name of directory for writing solution vtk files. Current directory by default.");

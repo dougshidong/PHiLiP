@@ -131,7 +131,7 @@ void DGBase<dim,real,MeshType>::set_high_order_grid(std::shared_ptr<HighOrderGri
     triangulation = high_order_grid->triangulation;
     dof_handler.initialize(*triangulation, fe_collection);
     dof_handler_artificial_dissipation.initialize(*triangulation, fe_q_artificial_dissipation);
-    set_all_cells_fe_degree(max_degree);
+    set_all_cells_fe_degree(initial_degree);
 }
 
 
@@ -1962,7 +1962,7 @@ template <int dim, typename real, typename MeshType>
 void DGBase<dim,real,MeshType>::output_results_vtk (const unsigned int cycle, const double current_time)// const
 {
 #if PHILIP_DIM>1
-    output_face_results_vtk (cycle, current_time);
+    if(this->all_parameters->output_face_results_vtk) output_face_results_vtk (cycle, current_time);
 #endif
 
     const bool enable_higher_order_vtk_output = this->all_parameters->enable_higher_order_vtk_output;

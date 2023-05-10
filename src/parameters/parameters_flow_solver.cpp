@@ -27,7 +27,7 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                           " gaussian_bump | "
                           " isentropic_vortex | "
                           " kelvin_helmholtz_instability | "
-                          " sshock "),
+                          " non_periodic_cube_flow "),
                           "The type of flow we want to simulate. "
                           "Choices are "
                           " <taylor_green_vortex | "
@@ -42,7 +42,7 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                           " gaussian_bump | "
                           " isentropic_vortex | "
                           " kelvin_helmholtz_instability | "
-                          " sshock>. ");
+                          " non_periodic_cube_flow>. ");
 
         prm.declare_entry("poly_degree", "1",
                           dealii::Patterns::Integer(0, dealii::Patterns::Integer::max_int_value),
@@ -221,17 +221,12 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
         {
             prm.declare_entry("output_velocity_field_at_fixed_times", "false",
                               dealii::Patterns::Bool(),
-                              "Output velocity field (at equidistant nodes). False by default.");
+                              "Output velocity field (at equidistant nodes) at fixed times. False by default.");
 
             prm.declare_entry("output_velocity_field_times_string", " ",
                               dealii::Patterns::FileName(dealii::Patterns::FileName::FileType::input),
                               "String of the times at which to output the velocity field. "
-                              "Example: '0.0 1.0 2.0 3.0 '");
-
-            prm.declare_entry("number_of_times_to_output_velocity_field", "0",
-                              dealii::Patterns::Integer(0, dealii::Patterns::Integer::max_int_value),
-                              "Number of times to output the velocity field. "
-                              "Must correspond to output_velocity_field_times_string.");
+                              "Example: '0.0 1.0 2.0 3.0 ' or '0.0 1.0 2.0 3.0'");
 
             prm.declare_entry("output_vorticity_magnitude_field_in_addition_to_velocity", "false",
                               dealii::Patterns::Bool(),
@@ -240,12 +235,13 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
             prm.declare_entry("output_flow_field_files_directory_name", ".",
                               dealii::Patterns::FileName(dealii::Patterns::FileName::FileType::input),
                               "Name of directory for writing flow field files. Current directory by default.");
-
-            prm.declare_entry("output_solution_files_at_velocity_field_output_times", "false",
-                              dealii::Patterns::Bool(),
-                              "Output solution files (.vtu) at velocity field output times. False by default.");
         }
         prm.leave_subsection();
+
+        prm.declare_entry("end_exactly_at_final_time", "true",
+                          dealii::Patterns::Bool(),
+                          "Flag to adjust the last timestep such that the simulation "
+                          "ends exactly at final_time. True by default.");
     }
     prm.leave_subsection();
 }
@@ -269,7 +265,7 @@ void FlowSolverParam::parse_parameters(dealii::ParameterHandler &prm)
         else if (flow_case_type_string == "isentropic_vortex")          {flow_case_type = isentropic_vortex;}
         else if (flow_case_type_string == "kelvin_helmholtz_instability")   
                                                                         {flow_case_type = kelvin_helmholtz_instability;}
-        else if (flow_case_type_string == "sshock")                     {flow_case_type = sshock;}
+        else if (flow_case_type_string == "non_periodic_cube_flow")     {flow_case_type = non_periodic_cube_flow;}
 
         poly_degree = prm.get_integer("poly_degree");
         
@@ -344,12 +340,13 @@ void FlowSolverParam::parse_parameters(dealii::ParameterHandler &prm)
         {
           output_velocity_field_at_fixed_times = prm.get_bool("output_velocity_field_at_fixed_times");
           output_velocity_field_times_string = prm.get("output_velocity_field_times_string");
-          number_of_times_to_output_velocity_field = prm.get_integer("number_of_times_to_output_velocity_field");
+          number_of_times_to_output_velocity_field = get_number_of_values_in_string(output_velocity_field_times_string);
           output_vorticity_magnitude_field_in_addition_to_velocity = prm.get_bool("output_vorticity_magnitude_field_in_addition_to_velocity");
           output_flow_field_files_directory_name = prm.get("output_flow_field_files_directory_name");
-          output_solution_files_at_velocity_field_output_times = prm.get_bool("output_solution_files_at_velocity_field_output_times");
         }
         prm.leave_subsection();
+
+        end_exactly_at_final_time = prm.get_bool("end_exactly_at_final_time");
     }
     prm.leave_subsection();
 }

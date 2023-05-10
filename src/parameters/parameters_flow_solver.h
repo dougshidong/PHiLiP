@@ -28,7 +28,7 @@ public:
         gaussian_bump,
         isentropic_vortex,
         kelvin_helmholtz_instability,
-        sshock
+        non_periodic_cube_flow
         };
     FlowCaseType flow_case_type; ///< Selected FlowCaseType from the input file
 
@@ -96,12 +96,6 @@ public:
     /// For KHI, the atwood number
     double atwood_number;
 
-    /// Declares the possible variables and sets the defaults.
-    static void declare_parameters (dealii::ParameterHandler &prm);
-
-    /// Parses input file and sets the variables.
-    void parse_parameters (dealii::ParameterHandler &prm);
-
     /// Selects the method for applying the initial condition
     enum ApplyInitialConditionMethod{
         interpolate_initial_condition_function,
@@ -118,10 +112,17 @@ public:
 
     bool output_velocity_field_at_fixed_times; ///< Flag for outputting velocity field at fixed times
     std::string output_velocity_field_times_string; ///< String of velocity field output times
-    unsigned int number_of_times_to_output_velocity_field; ///< Number of times to output the velocity field
+    unsigned int number_of_times_to_output_velocity_field; ///< Number of fixed times to output the velocity field
     bool output_vorticity_magnitude_field_in_addition_to_velocity; ///< Flag for outputting vorticity magnitude field in addition to velocity field
     std::string output_flow_field_files_directory_name; ///< Name of directory for writing flow field files
-    bool output_solution_files_at_velocity_field_output_times; ///< Flag for outputting solution files at the velocity field output times
+
+    bool end_exactly_at_final_time; ///< Flag to adjust the last timestep such that the simulation ends exactly at final_time
+
+    /// Declares the possible variables and sets the defaults.
+    static void declare_parameters (dealii::ParameterHandler &prm);
+
+    /// Parses input file and sets the variables.
+    void parse_parameters (dealii::ParameterHandler &prm);
 };
 
 } // Parameters namespace

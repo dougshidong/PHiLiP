@@ -173,6 +173,7 @@ public:
         finite_difference_sensitivity,
         advection_periodicity,
         dual_weighted_residual_mesh_adaptation,
+        anisotropic_mesh_adaptation,
         taylor_green_vortex_energy_check,
         taylor_green_vortex_restart_check,
         time_refinement_study,
@@ -266,6 +267,10 @@ public:
 
     /// Enable writing of higher-order vtk results
     bool enable_higher_order_vtk_output;
+
+    /// Flag for outputting the surface solution vtk files
+    bool output_face_results_vtk;
+    
     /// Declare parameters that can be set as inputs and set up the default options
     /** This subroutine should call the sub-parameter classes static declare_parameters()
       * such that each sub-parameter class is responsible to declare their own parameters.

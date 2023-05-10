@@ -56,6 +56,12 @@ public:
     /** Note: Only support for zero convective term additional to the baseline physics */
     virtual real max_convective_eigenvalue (const std::array<real,nstate> &soln) const = 0;
 
+    /// Maximum convective normal eigenvalue (used in Lax-Friedrichs) of the additional models' PDEs
+    /** Note: Only support for zero convective term additional to the baseline physics */
+    virtual real max_convective_normal_eigenvalue (
+        const std::array<real,nstate> &soln,
+        const dealii::Tensor<1,dim,real> &normal) const = 0;
+
     /// Physical source terms additional to the baseline physics (including physical source terms in additional PDEs of model)
     virtual std::array<real,nstate> physical_source_term (
         const dealii::Point<dim,real> &pos,

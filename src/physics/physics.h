@@ -94,8 +94,13 @@ public:
         const std::array<real,nstate> &/*solution*/,
         const dealii::Tensor<1,dim,real> &/*normal*/) const = 0;
 
-    /// Maximum convective eigenvalue used in Lax-Friedrichs
+    /// Maximum convective eigenvalue
     virtual real max_convective_eigenvalue (const std::array<real,nstate> &soln) const = 0;
+
+    /// Maximum convective normal eigenvalue (used in Lax-Friedrichs)
+    virtual real max_convective_normal_eigenvalue (
+        const std::array<real,nstate> &soln,
+        const dealii::Tensor<1,dim,real> &normal) const;
 
     /// Maximum viscous eigenvalue.
     virtual real max_viscous_eigenvalue (const std::array<real,nstate> &soln) const = 0;

@@ -21,6 +21,7 @@ subsection artificial dissipation
 end
 
 set overintegration = 0
+set output_face_results_vtk = true
 
 subsection euler
   set reference_length = 1.0

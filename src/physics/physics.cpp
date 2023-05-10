@@ -72,6 +72,15 @@ std::array<dealii::Tensor<1,dim,real>,nstate> PhysicsBase<dim,nstate,real>::conv
     return dummy;
 }
 
+template <int dim, int nstate, typename real>
+real PhysicsBase<dim,nstate,real>
+::max_convective_normal_eigenvalue (
+    const std::array<real,nstate> &conservative_soln,
+    const dealii::Tensor<1,dim,real> &/*normal*/) const
+{
+    return max_convective_eigenvalue(conservative_soln);
+}
+
 /*
 template <int dim, int nstate, typename real>
 std::array<dealii::Tensor<1,dim,real>,nstate> PhysicsBase<dim,nstate,real>

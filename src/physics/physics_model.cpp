@@ -265,6 +265,27 @@ real PhysicsModel<dim,nstate,real,nstate_baseline_physics>
 
 template <int dim, int nstate, typename real, int nstate_baseline_physics>
 real PhysicsModel<dim,nstate,real,nstate_baseline_physics>
+::max_convective_normal_eigenvalue (
+    const std::array<real,nstate> &conservative_soln,
+    const dealii::Tensor<1,dim,real> &normal) const
+{
+    real max_eig;
+    if constexpr(nstate==nstate_baseline_physics) {
+        max_eig = physics_baseline->max_convective_normal_eigenvalue(conservative_soln,normal);
+    } else {
+        max_eig = model->max_convective_normal_eigenvalue(conservative_soln,normal);
+        std::array<real,nstate_baseline_physics> baseline_conservative_soln;
+        for(int s=0; s<nstate_baseline_physics; ++s){
+            baseline_conservative_soln[s] = conservative_soln[s];
+        }
+        real baseline_max_eig = physics_baseline->max_convective_normal_eigenvalue(baseline_conservative_soln,normal);
+        max_eig = max_eig > baseline_max_eig ? max_eig : baseline_max_eig;
+    }
+    return max_eig;
+}
+
+template <int dim, int nstate, typename real, int nstate_baseline_physics>
+real PhysicsModel<dim,nstate,real,nstate_baseline_physics>
 ::max_viscous_eigenvalue (const std::array<real,nstate> &/*conservative_soln*/) const
 {
     return 0.0;

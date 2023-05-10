@@ -158,6 +158,7 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       " finite_difference_sensitivity | "
                       " advection_periodicity | "
                       " dual_weighted_residual_mesh_adaptation | "
+                      " anisotropic_mesh_adaptation | "
                       " taylor_green_vortex_energy_check | "
                       " taylor_green_vortex_restart_check | "
                       " homogeneous_isotropic_turbulence_initialization_check | "
@@ -194,6 +195,7 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       "  finite_difference_sensitivity | "
                       "  advection_periodicity | "
                       "  dual_weighted_residual_mesh_adaptation | "
+                      "  anisotropic_mesh_adaptation | "
                       "  taylor_green_vortex_energy_check | "
                       "  taylor_green_vortex_restart_check | "
                       "  homogeneous_isotropic_turbulence_initialization_check | "
@@ -283,10 +285,14 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       dealii::Patterns::Bool(),
                       "Outputs the high-order mesh vtu files. False by default");
 
-    prm.declare_entry("enable_higher_order_vtk_output", "false",
+    prm.declare_entry("enable_higher_order_vtk_output", "true",
                       dealii::Patterns::Bool(),
-                      "Enable writing of higher-order vtk files. False by default. If modified to true,"
-                      "number of subdivisions will be chosen according to the max of grid_degree and poly_degree.");
+                      "Enable writing of higher-order vtk files. True by default; "
+                      "number of subdivisions is chosen according to the max of grid_degree and poly_degree.");
+
+    prm.declare_entry("output_face_results_vtk", "false",
+                      dealii::Patterns::Bool(),
+                      "Outputs the surface solution vtk files. False by default");
 
     Parameters::LinearSolverParam::declare_parameters (prm);
     Parameters::ManufacturedConvergenceStudyParam::declare_parameters (prm);
@@ -348,6 +354,7 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     else if (test_string == "euler_naca0012")                           { test_type = euler_naca0012; }
     else if (test_string == "optimization_inverse_manufactured")        { test_type = optimization_inverse_manufactured; }
     else if (test_string == "dual_weighted_residual_mesh_adaptation")   { test_type = dual_weighted_residual_mesh_adaptation; }
+    else if (test_string == "anisotropic_mesh_adaptation")              { test_type = anisotropic_mesh_adaptation; }
     else if (test_string == "taylor_green_vortex_energy_check")         { test_type = taylor_green_vortex_energy_check; }
     else if (test_string == "taylor_green_vortex_restart_check")        { test_type = taylor_green_vortex_restart_check; }
     else if (test_string == "homogeneous_isotropic_turbulence_initialization_check")
@@ -436,6 +443,7 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     solution_vtk_files_directory_name = prm.get("solution_vtk_files_directory_name");
     output_high_order_grid = prm.get_bool("output_high_order_grid");
     enable_higher_order_vtk_output = prm.get_bool("enable_higher_order_vtk_output");
+    output_face_results_vtk = prm.get_bool("output_face_results_vtk");
 
     output_high_order_grid = prm.get_bool("output_high_order_grid");
 

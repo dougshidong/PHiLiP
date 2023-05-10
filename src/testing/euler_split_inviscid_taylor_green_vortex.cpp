@@ -306,39 +306,11 @@ int EulerTaylorGreen<dim, nstate>::run_test() const
     std::cout << "creating ODE solver" << std::endl;
     std::shared_ptr<ODE::ODESolverBase<dim, double>> ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
     std::cout << "ODE solver successfully created" << std::endl;
-//    double finalTime = 14.;
     const double finalTime = all_parameters_new.flow_solver_param.final_time;
-//    finalTime = 0.4;
-    // finalTime = 0.1;//to speed things up locally in tests, doesn't need full 14seconds to verify.
-//    double dt = all_parameters_new.ode_solver_param.initial_time_step;
-    // double dt = all_parameters_new.ode_solver_param.initial_time_step / 10.0;
-//    finalTime = 14.0;
 
     std::cout << " number dofs " << dg->dof_handler.n_dofs()<<std::endl;
     std::cout << "preparing to advance solution in time" << std::endl;
 
-    // Currently the only way to calculate energy at each time-step is to advance solution by dt instead of finaltime
-    // this causes some issues with outputs (only one file is output, which is overwritten at each time step)
-    // also the ode solver output doesn't make sense (says "iteration 1 out of 1")
-    // but it works. I'll keep it for now and need to modify the output functions later to account for this.
-//    double initialcond_energy = compute_kinetic_energy(dg, poly_degree);
-//    double initialcond_energy_mpi = (dealii::Utilities::MPI::sum(initialcond_energy, mpi_communicator));
-//    std::cout << std::setprecision(16) << std::fixed;
-//    pcout << "Energy for initial condition " << initialcond_energy_mpi/(8*pow(dealii::numbers::PI,3)) << std::endl;
-
-//    pcout << "Energy at time " << 0 << " is " << compute_kinetic_energy(dg, poly_degree) << std::endl;
-//    ode_solver->current_iteration = 0;
-//    ode_solver->advance_solution_time(dt/10.0);
-//    double initial_energy = compute_kinetic_energy(dg, poly_degree);
-//    double initial_entropy = compute_entropy(dg, poly_degree);
-//    pcout<<"Initial MK Entropy "<<initial_entropy<<std::endl;
-//    std::array<double,2> initial_change_entropy = compute_change_in_entropy(dg, poly_degree);
-//    pcout<<"Initial change in Entropy "<<initial_change_entropy[0]<<std::endl;
-//    pcout<<"Initial change in kinetic Energy "<<initial_change_entropy[1]<<std::endl;
-//
-//    std::cout << std::setprecision(16) << std::fixed;
-//    pcout << "Energy at one timestep is " << initial_energy/(8*pow(dealii::numbers::PI,3)) << std::endl;
-//    // std::ofstream myfile ("kinetic_energy_3D_TGV_cdg_curv_grid_4x4.gpl" , std::ios::trunc);
     std::ofstream myfile (all_parameters_new.energy_file + ".gpl"  , std::ios::trunc);
 
     ode_solver->current_iteration = 0;
@@ -348,13 +320,10 @@ int EulerTaylorGreen<dim, nstate>::run_test() const
     const double initial_energy_mpi = (dealii::Utilities::MPI::sum(initial_energy, mpi_communicator));
     while(ode_solver->current_time < finalTime){
         const double time_step =  get_timestep(dg,poly_degree, delta_x);
-      //  const double M_infty_temp = sqrt(2.0/1.4);
-      //  double time_step = 0.1 * delta_x / M_infty_temp;
         if(ode_solver->current_iteration%all_parameters_new.ode_solver_param.print_iteration_modulo==0)
             pcout<<"time step "<<time_step<<" current time "<<ode_solver->current_time<<std::endl;
         const double dt = dealii::Utilities::MPI::min(time_step, mpi_communicator);
         ode_solver->step_in_time(dt, false);
-       // ode_solver->advance_solution_time(dt);
         ode_solver->current_iteration += 1;
         const bool is_output_iteration = (ode_solver->current_iteration % all_parameters_new.ode_solver_param.output_solution_every_x_steps == 0);
         if (is_output_iteration) {
@@ -371,6 +340,10 @@ int EulerTaylorGreen<dim, nstate>::run_test() const
         const double current_energy = compute_kinetic_energy(dg, poly_degree);
         const double current_energy_mpi = (dealii::Utilities::MPI::sum(current_energy, mpi_communicator));
         pcout << "Normalized kinetic energy " << ode_solver->current_time << " is " << current_energy_mpi/initial_energy_mpi<< std::endl;
+        if(abs(current_change_entropy[0]) > 1e-12 && (dg->all_parameters->two_point_num_flux_type == Parameters::AllParameters::TwoPointNumericalFlux::IR || dg->all_parameters->two_point_num_flux_type == Parameters::AllParameters::TwoPointNumericalFlux::CH || dg->all_parameters->two_point_num_flux_type == Parameters::AllParameters::TwoPointNumericalFlux::Ra)){
+          pcout << " Entropy was not monotonically decreasing" << std::endl;
+          return 1;
+        }
     }
     myfile.close();
 

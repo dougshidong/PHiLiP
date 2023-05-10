@@ -53,9 +53,13 @@ template <int dim, typename real, typename MeshType, typename VectorType, typena
 HighOrderGrid<dim,real,MeshType,VectorType,DoFHandlerType>::HighOrderGrid(
         const unsigned int max_degree,
         const std::shared_ptr<MeshType> triangulation_input,
+        const bool check_valid_metric_Jacobian_input,
+        const bool renumber_dof_handler_Cuthill_Mckee_input,
         const bool output_high_order_grid)
     : max_degree(max_degree)
     , triangulation(triangulation_input)
+    , check_valid_metric_Jacobian(check_valid_metric_Jacobian_input)
+    , renumber_dof_handler_Cuthill_Mckee(renumber_dof_handler_Cuthill_Mckee_input)
     , dof_handler_grid(*triangulation)
     , fe_q(max_degree) // The grid must be at least p1. A p0 solution required a p1 grid.
     , fe_system(dealii::FESystem<dim>(fe_q,dim)) // The grid must be at least p1. A p0 solution required a p1 grid.
@@ -98,35 +102,35 @@ void HighOrderGrid<dim,real,MeshType,VectorType,DoFHandlerType>::initialize_with
     reset_initial_nodes();
     if (output_mesh) output_results_vtk(nth_refinement++);
 
-#if 0
-    //In future should have flag to check valid cell in allocation step or 
-    //how the oiperators do it on-the-fly.
-    // Used to check Jacobian validity
-    //For future note: the 3D order of the Jacobian in each direction should be
-    // (max_degree-1) * max_degree * max_degree. Then exact_jacobian_order below
-    //is getting passed as a 1D order then a 3D finite element is created based off
-    // exact_jac_order*exact_jac_order*exact_jac_order which does not equal the above.
-    const unsigned int exact_jacobian_order = (max_degree-1) * dim;
-    const unsigned int min_jacobian_order = 1;
-    const unsigned int used_jacobian_order = std::max(exact_jacobian_order, min_jacobian_order);
-    evaluate_lagrange_to_bernstein_operator(used_jacobian_order);
-
-    auto cell = dof_handler_grid.begin_active();
-    auto endcell = dof_handler_grid.end();
-    // pcout << "Disabled check_valid_cells. Took too much time due to shape_grad()." << std::endl;
-    for (; cell!=endcell; ++cell) {
-        if (!cell->is_locally_owned())  continue;
-        const bool is_invalid_cell = check_valid_cell(cell);
-
-        if ( !is_invalid_cell ) {
-            std::cout << " Poly: " << max_degree
-                      << " Grid: " << nth_refinement
-                      << " Cell: " << cell->active_cell_index() << " has an invalid Jacobian." << std::endl;
-            // bool fixed_invalid_cell = fix_invalid_cell(cell);
-            // if (fixed_invalid_cell) std::cout << "Fixed it." << std::endl;
+    if(check_valid_metric_Jacobian){
+        // Used to check Jacobian validity
+        //For future note: the 3D order of the Jacobian in each direction should be
+        // (max_degree-1) * max_degree * max_degree. Then exact_jacobian_order below
+        //is getting passed as a 1D order then a 3D finite element is created based off
+        // exact_jac_order*exact_jac_order*exact_jac_order which does not equal the above.
+        //Also, when the metric terms are built from operators: metric_operators
+        //it check the validity of the metric Jacobian on-the-fly.
+        const unsigned int exact_jacobian_order = (max_degree-1) * dim;
+        const unsigned int min_jacobian_order = 1;
+        const unsigned int used_jacobian_order = std::max(exact_jacobian_order, min_jacobian_order);
+        evaluate_lagrange_to_bernstein_operator(used_jacobian_order);
+         
+        auto cell = dof_handler_grid.begin_active();
+        auto endcell = dof_handler_grid.end();
+        // pcout << "Disabled check_valid_cells. Took too much time due to shape_grad()." << std::endl;
+        for (; cell!=endcell; ++cell) {
+            if (!cell->is_locally_owned())  continue;
+            const bool is_invalid_cell = check_valid_cell(cell);
+         
+            if ( !is_invalid_cell ) {
+                std::cout << " Poly: " << max_degree
+                          << " Grid: " << nth_refinement
+                          << " Cell: " << cell->active_cell_index() << " has an invalid Jacobian." << std::endl;
+                // bool fixed_invalid_cell = fix_invalid_cell(cell);
+                // if (fixed_invalid_cell) std::cout << "Fixed it." << std::endl;
+            }
         }
     }
-#endif
 }
 
 template <int dim, typename real, typename MeshType, typename VectorType, typename DoFHandlerType>
@@ -192,7 +196,9 @@ HighOrderGrid<dim,real,MeshType,VectorType,DoFHandlerType>::allocate()
     dof_handler_grid.initialize(*triangulation, fe_system);
     dof_handler_grid.distribute_dofs(fe_system);
     //if cuthill mckee renumbering
-//    dealii::DoFRenumbering::Cuthill_McKee(dof_handler_grid);
+    if(renumber_dof_handler_Cuthill_Mckee){
+        dealii::DoFRenumbering::Cuthill_McKee(dof_handler_grid);
+    }
 
 
     locally_owned_dofs_grid = dof_handler_grid.locally_owned_dofs();

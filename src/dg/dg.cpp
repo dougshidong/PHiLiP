@@ -99,7 +99,7 @@ DGBase<dim,real,MeshType>::DGBase(
     , oneD_quadrature_collection(std::get<7>(collection_tuple))
     , oneD_face_quadrature(max_degree)
     , dof_handler(*triangulation, true)
-    , high_order_grid(std::make_shared<HighOrderGrid<dim,real,MeshType>>(grid_degree_input, triangulation, all_parameters->output_high_order_grid))
+    , high_order_grid(std::make_shared<HighOrderGrid<dim,real,MeshType>>(grid_degree_input, triangulation, all_parameters->check_valid_metric_Jacobian, all_parameters->renumber_dof_handler_Cuthill_Mckee, all_parameters->output_high_order_grid))
     , fe_q_artificial_dissipation(1)
     , dof_handler_artificial_dissipation(*triangulation, false)
     , mpi_communicator(MPI_COMM_WORLD)
@@ -1419,7 +1419,6 @@ void DGBase<dim,real,MeshType>::assemble_residual (const bool compute_dRdW, cons
     }
     right_hand_side = 0;
 
-    //pcout << std::endl;
 
     //const dealii::MappingManifold<dim,dim> mapping;
     //const dealii::MappingQ<dim,dim> mapping(10);//;max_degree+1);
@@ -1428,32 +1427,13 @@ void DGBase<dim,real,MeshType>::assemble_residual (const bool compute_dRdW, cons
     const auto mapping = (*(high_order_grid->mapping_fe_field));
 
     dealii::hp::MappingCollection<dim> mapping_collection(mapping);
-   // dealii::hp::MappingCollection<dim> mapping_collection();
-//    dealii::UpdateFlags vol_update_flag = dealii::update_default;//default FEValues constructor does nothing because it constructs at O(n^{2d})
-//    dealii::UpdateFlags face_update_flag = dealii::update_default;//default FEValues constructor does nothing because it constructs at O(n^{2d})
-//    dealii::UpdateFlags neighbor_face_update_flag = dealii::update_default;
-//    if(all_parameters->use_weak_form){
-//    //    dealii::hp::MappingCollection<dim> mapping_temp(mapping);
-//    //    mapping_collection.push_back(mapping_temp);
-//        vol_update_flag = this->volume_update_flags;
-//        face_update_flag = this->face_update_flags;
-//        neighbor_face_update_flag = this->neighbor_face_update_flags;
-//    }
 
     dealii::hp::FEValues<dim,dim>        fe_values_collection_volume (mapping_collection, fe_collection, volume_quadrature_collection, this->volume_update_flags); ///< FEValues of volume.
-   // this->fe_values_collection_volume.reinit(mapping_collection, fe_collection, volume_quadrature_collection, this->volume_update_flags); ///< FEValues of volume.
     dealii::hp::FEFaceValues<dim,dim>    fe_values_collection_face_int (mapping_collection, fe_collection, face_quadrature_collection, this->face_update_flags); ///< FEValues of interior face.
     dealii::hp::FEFaceValues<dim,dim>    fe_values_collection_face_ext (mapping_collection, fe_collection, face_quadrature_collection, this->neighbor_face_update_flags); ///< FEValues of exterior face.
     dealii::hp::FESubfaceValues<dim,dim> fe_values_collection_subface (mapping_collection, fe_collection, face_quadrature_collection, this->face_update_flags); ///< FEValues of subface.
 
     dealii::hp::FEValues<dim,dim>        fe_values_collection_volume_lagrange (mapping_collection, fe_collection_lagrange, volume_quadrature_collection, this->volume_update_flags);
-
-//    dealii::hp::FEValues<dim,dim>        fe_values_collection_volume (mapping_collection, fe_collection, volume_quadrature_collection, vol_update_flag); ///< FEValues of volume.
-//    dealii::hp::FEFaceValues<dim,dim>    fe_values_collection_face_int (mapping_collection, fe_collection, face_quadrature_collection, face_update_flag); ///< FEValues of interior face.
-//    dealii::hp::FEFaceValues<dim,dim>    fe_values_collection_face_ext (mapping_collection, fe_collection, face_quadrature_collection, neighbor_face_update_flag); ///< FEValues of exterior face.
-//    dealii::hp::FESubfaceValues<dim,dim> fe_values_collection_subface (mapping_collection, fe_collection, face_quadrature_collection, face_update_flag); ///< FEValues of subface.
-//
-//    dealii::hp::FEValues<dim,dim>        fe_values_collection_volume_lagrange (mapping_collection, fe_collection_lagrange, volume_quadrature_collection, vol_update_flag);
 
     const unsigned int init_grid_degree = high_order_grid->fe_system.tensor_degree();
     OPERATOR::basis_functions<dim,2*dim> soln_basis_int(1, max_degree, init_grid_degree); 

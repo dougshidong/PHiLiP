@@ -145,6 +145,9 @@ public:
     /// Flag to use inverse mass matrix on-the-fly for explicit solves.
     bool use_inverse_mass_on_the_fly;
 
+    /// Flag to check if the metric Jacobian is valid when high-order grid is constructed.
+    bool check_valid_metric_Jacobian;
+
     /// Energy file.
     std::string energy_file;
 

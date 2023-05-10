@@ -2134,9 +2134,10 @@ void DGBase<dim,real,MeshType>::allocate_system (
 
     dof_handler.distribute_dofs(fe_collection);
     //This Cuthill_McKee renumbering for dof_handlr uses a lot of memory in 3D, is there another way?
-    if(all_parameters->renumber_dof_handler_Cuthill_Mckee){
+    if(all_parameters->renumber_dof_handler_Cuthill_Mckee || all_parameters->do_renumber_dofs){
         dealii::DoFRenumbering::Cuthill_McKee(dof_handler,true);
     }
+
     //const bool reversed_numbering = true;
     //dealii::DoFRenumbering::Cuthill_McKee(dof_handler, reversed_numbering);
     //const bool reversed_numbering = false;
@@ -2196,7 +2197,6 @@ void DGBase<dim,real,MeshType>::allocate_system (
         allocate_auxiliary_equation ();
 
     // Set the assemble resiudla time to 0 for clock_t type
-   // assemble_residual_time = clock() - clock();
     assemble_residual_time = 0.0;
 
     // System matrix allocation
@@ -2206,7 +2206,6 @@ void DGBase<dim,real,MeshType>::allocate_system (
         dealii::SparsityTools::distribute_sparsity_pattern(dsp, dof_handler.locally_owned_dofs(), mpi_communicator, locally_relevant_dofs);
          
         sparsity_pattern.copy_from(dsp);
-
         system_matrix.reinit(locally_owned_dofs, sparsity_pattern, mpi_communicator);
     }
 
@@ -2932,11 +2931,8 @@ void DGBase<dim,real,MeshType>::apply_inverse_global_mass_matrix(
         }//end of state loop
     }//end of cell loop
 
-   // assemble_residual_time += clock() - time_start_cell_loop;
     timer.stop();
-   // assemble_residual_time += dealii::Utilities::MPI::sum(timer.cpu_time(), this->mpi_communicator);
     assemble_residual_time += timer.cpu_time();
-   // assemble_residual_time += dealii::Utilities::MPI::max(timer.wall_time(), this->mpi_communicator);
 }
 
 template<int dim, typename real, typename MeshType>

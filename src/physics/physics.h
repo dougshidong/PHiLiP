@@ -198,7 +198,6 @@ public:
      */
     template<typename real2> 
     real2 handle_non_physical_result () const;
-
     
 protected:
     /// ConditionalOStream.
@@ -211,7 +210,6 @@ protected:
      *  we should have a stable diffusive system
      */
     dealii::Tensor<2,dim,double> diffusion_tensor;
-
 };
 } // Physics namespace
 } // PHiLiP namespace

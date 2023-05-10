@@ -40,7 +40,7 @@ void OptimizationParam::declare_parameters (dealii::ParameterHandler &prm)
                            "Initial step size for backtracking.");
         
         prm.declare_entry("mesh_weight_factor", "0.5",
-                           dealii::Patterns::Double(0.0, 1.0),
+                           dealii::Patterns::Double(0.0, 10000000000.0),
                            "Weight of homotopy parameter added to the objective function.");
         
         prm.declare_entry("mesh_volume_power", "2",

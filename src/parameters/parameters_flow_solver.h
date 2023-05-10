@@ -142,6 +142,8 @@ public:
     bool output_vorticity_magnitude_field_in_addition_to_velocity; ///< Flag for outputting vorticity magnitude field in addition to velocity field
     std::string output_flow_field_files_directory_name; ///< Name of directory for writing flow field files
 
+    bool do_compute_unsteady_data_and_write_to_table;///< Flag for computing unsteady data and writting to table
+
     /// Declares the possible variables and sets the defaults.
     static void declare_parameters (dealii::ParameterHandler &prm);
 

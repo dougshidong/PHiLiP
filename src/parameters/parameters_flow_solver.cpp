@@ -290,6 +290,10 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                               "Name of directory for writing flow field files. Current directory by default.");
         }
         prm.leave_subsection();
+
+        prm.declare_entry("do_compute_unsteady_data_and_write_to_table", "true",
+                          dealii::Patterns::Bool(),
+                          "Flag for computing unsteady data and writting to table. True by default.");
     }
     prm.leave_subsection();
 }
@@ -413,6 +417,8 @@ void FlowSolverParam::parse_parameters(dealii::ParameterHandler &prm)
           output_flow_field_files_directory_name = prm.get("output_flow_field_files_directory_name");
         }
         prm.leave_subsection();
+
+        do_compute_unsteady_data_and_write_to_table = prm.get_bool("do_compute_unsteady_data_and_write_to_table");
     }
     prm.leave_subsection();
 }

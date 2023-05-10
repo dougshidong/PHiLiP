@@ -108,7 +108,8 @@ protected:
     const bool do_output_solution_at_fixed_times; ///< Flag for outputting solution at fixed times
     const unsigned int number_of_fixed_times_to_output_solution; ///< Number of fixed times to output the solution
     const bool output_solution_at_exact_fixed_times;///< Flag for outputting the solution at exact fixed times by decreasing the time step on the fly
-    
+    const bool do_compute_unsteady_data_and_write_to_table;///< Flag for computing unsteady data and writting to table
+
 public:
     /// Pointer to dg so it can be accessed externally.
     std::shared_ptr<DGBase<dim, double>> dg;

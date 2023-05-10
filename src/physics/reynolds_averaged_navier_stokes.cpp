@@ -325,6 +325,23 @@ real ReynoldsAveragedNavierStokesBase<dim,nstate,real>
 }
 //----------------------------------------------------------------
 template <int dim, int nstate, typename real>
+real ReynoldsAveragedNavierStokesBase<dim,nstate,real>
+::max_convective_normal_eigenvalue (
+    const std::array<real,nstate> &conservative_soln,
+    const dealii::Tensor<1,dim,real> &normal) const
+{
+    const std::array<real,nstate_navier_stokes> conservative_soln_rans = extract_rans_conservative_solution(conservative_soln);
+
+    const dealii::Tensor<1,dim,real> vel = this->navier_stokes_physics->template compute_velocities<real>(conservative_soln_rans);
+
+    real vel_dot_n = 0.0;
+    for (int d=0;d<dim;++d) { vel_dot_n += vel[d]*normal[d]; };
+    const real max_normal_eig = sqrt(vel_dot_n*vel_dot_n);
+
+    return max_normal_eig;
+}
+//----------------------------------------------------------------
+template <int dim, int nstate, typename real>
 std::array<real,nstate> ReynoldsAveragedNavierStokesBase<dim,nstate,real>
 ::physical_source_term (
         const dealii::Point<dim,real> &pos,

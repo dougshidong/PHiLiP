@@ -28,7 +28,7 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                           " channel_flow | "
                           " isentropic_vortex | "
                           " kelvin_helmholtz_instability | "
-                          " sshock "),
+                          " non_periodic_cube_flow "),
                           "The type of flow we want to simulate. "
                           "Choices are "
                           " <taylor_green_vortex | "
@@ -44,7 +44,7 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                           " channel_flow | "
                           " isentropic_vortex | "
                           " kelvin_helmholtz_instability | "
-                          " sshock>. ");
+                          " non_periodic_cube_flow>. ");
 
         prm.declare_entry("poly_degree", "1",
                           dealii::Patterns::Integer(0, dealii::Patterns::Integer::max_int_value),
@@ -291,6 +291,11 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
         }
         prm.leave_subsection();
 
+        prm.declare_entry("end_exactly_at_final_time", "true",
+                          dealii::Patterns::Bool(),
+                          "Flag to adjust the last timestep such that the simulation "
+                          "ends exactly at final_time. True by default.");
+
         prm.declare_entry("do_compute_unsteady_data_and_write_to_table", "true",
                           dealii::Patterns::Bool(),
                           "Flag for computing unsteady data and writting to table. True by default.");
@@ -318,7 +323,7 @@ void FlowSolverParam::parse_parameters(dealii::ParameterHandler &prm)
         else if (flow_case_type_string == "isentropic_vortex")          {flow_case_type = isentropic_vortex;}
         else if (flow_case_type_string == "kelvin_helmholtz_instability")   
                                                                         {flow_case_type = kelvin_helmholtz_instability;}
-        else if (flow_case_type_string == "sshock")                     {flow_case_type = sshock;}
+        else if (flow_case_type_string == "non_periodic_cube_flow")     {flow_case_type = non_periodic_cube_flow;}
 
         poly_degree = prm.get_integer("poly_degree");
         
@@ -418,6 +423,7 @@ void FlowSolverParam::parse_parameters(dealii::ParameterHandler &prm)
         }
         prm.leave_subsection();
 
+        end_exactly_at_final_time = prm.get_bool("end_exactly_at_final_time");
         do_compute_unsteady_data_and_write_to_table = prm.get_bool("do_compute_unsteady_data_and_write_to_table");
     }
     prm.leave_subsection();

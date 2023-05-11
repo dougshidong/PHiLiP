@@ -160,6 +160,7 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       " finite_difference_sensitivity | "
                       " advection_periodicity | "
                       " dual_weighted_residual_mesh_adaptation | "
+                      " anisotropic_mesh_adaptation | "
                       " taylor_green_vortex_energy_check | "
                       " taylor_green_vortex_restart_check | "
                       " homogeneous_isotropic_turbulence_initialization_check | "
@@ -196,6 +197,7 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       "  finite_difference_sensitivity | "
                       "  advection_periodicity | "
                       "  dual_weighted_residual_mesh_adaptation | "
+                      "  anisotropic_mesh_adaptation | "
                       "  taylor_green_vortex_energy_check | "
                       "  taylor_green_vortex_restart_check | "
                       "  homogeneous_isotropic_turbulence_initialization_check | "
@@ -288,7 +290,7 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
 
     prm.declare_entry("do_renumber_dofs", "true",
                       dealii::Patterns::Bool(),
-                      "Flag for renumbering DOFs. True by default. Set to false if doing 3D unsteady flow simulations.");
+                      "Flag for renumbering DOFs using Cuthill-McKee renumbering. True by default. Set to false if doing 3D unsteady flow simulations.");
 
     Parameters::LinearSolverParam::declare_parameters (prm);
     Parameters::ManufacturedConvergenceStudyParam::declare_parameters (prm);
@@ -350,6 +352,7 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     else if (test_string == "euler_naca0012")                           { test_type = euler_naca0012; }
     else if (test_string == "optimization_inverse_manufactured")        { test_type = optimization_inverse_manufactured; }
     else if (test_string == "dual_weighted_residual_mesh_adaptation")   { test_type = dual_weighted_residual_mesh_adaptation; }
+    else if (test_string == "anisotropic_mesh_adaptation")              { test_type = anisotropic_mesh_adaptation; }
     else if (test_string == "taylor_green_vortex_energy_check")         { test_type = taylor_green_vortex_energy_check; }
     else if (test_string == "taylor_green_vortex_restart_check")        { test_type = taylor_green_vortex_restart_check; }
     else if (test_string == "homogeneous_isotropic_turbulence_initialization_check")

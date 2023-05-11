@@ -17,6 +17,9 @@ set all_boundaries_are_periodic = true
 # memory allocation
 set do_renumber_dofs = false
 
+# degree of freedom renumbering not necessary for explicit time advancement cases
+set do_renumber_dofs = false
+
 # numerical fluxes
 set two_point_num_flux_type = IR
 set conv_num_flux = two_point_flux

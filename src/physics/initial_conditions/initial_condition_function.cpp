@@ -689,7 +689,7 @@ InitialConditionFactory<dim,nstate, real>::create_InitialConditionFunction(
         if constexpr (dim>1 && nstate==dim+2) return std::make_shared<InitialConditionFunction_IsentropicVortex<dim,nstate,real> > (param);
     } else if (flow_type == FlowCaseEnum::kelvin_helmholtz_instability) {
         if constexpr (dim>1 && nstate==dim+2) return std::make_shared<InitialConditionFunction_KHI<dim,nstate,real> > (param);
-    } else if (flow_type == FlowCaseEnum::sshock) {
+    } else if (flow_type == FlowCaseEnum::non_periodic_cube_flow) {
         if constexpr (dim==2 && nstate==1)  return std::make_shared<InitialConditionFunction_Zero<dim,nstate,real> > ();
     } else if (flow_type == FlowCaseEnum::channel_flow) {
         if constexpr (dim==3 && nstate==dim+2) {

@@ -130,12 +130,18 @@ void ODESolverParam::parse_parameters (dealii::ParameterHandler &prm)
         number_of_fixed_times_to_output_solution = get_number_of_values_in_string(output_solution_fixed_times_string);
         output_solution_at_exact_fixed_times = prm.get_bool("output_solution_at_exact_fixed_times");
 
+        // Assign ode_solver_type and the allocate AD matrix dRdW flag
         const std::string solver_string = prm.get("ode_solver_type");
-        if (solver_string == "runge_kutta")                 ode_solver_type = ODESolverEnum::runge_kutta_solver;
-        else if (solver_string == "implicit")               ode_solver_type = ODESolverEnum::implicit_solver;
-        else if (solver_string == "rrk_explicit")           ode_solver_type = ODESolverEnum::rrk_explicit_solver;
-        else if (solver_string == "pod_galerkin")           ode_solver_type = ODESolverEnum::pod_galerkin_solver;
-        else if (solver_string == "pod_petrov_galerkin")    ode_solver_type = ODESolverEnum::pod_petrov_galerkin_solver;
+        if (solver_string == "runge_kutta")              { ode_solver_type = ODESolverEnum::runge_kutta_solver;
+                                                           allocate_matrix_dRdW = false; }
+        else if (solver_string == "implicit")            { ode_solver_type = ODESolverEnum::implicit_solver;
+                                                           allocate_matrix_dRdW = true; }
+        else if (solver_string == "rrk_explicit")        { ode_solver_type = ODESolverEnum::rrk_explicit_solver;
+                                                           allocate_matrix_dRdW = false; }
+        else if (solver_string == "pod_galerkin")        { ode_solver_type = ODESolverEnum::pod_galerkin_solver;
+                                                           allocate_matrix_dRdW = true; }
+        else if (solver_string == "pod_petrov_galerkin") { ode_solver_type = ODESolverEnum::pod_petrov_galerkin_solver;
+                                                           allocate_matrix_dRdW = true; }
 
         nonlinear_steady_residual_tolerance  = prm.get_double("nonlinear_steady_residual_tolerance");
         nonlinear_max_iterations = prm.get_integer("nonlinear_max_iterations");

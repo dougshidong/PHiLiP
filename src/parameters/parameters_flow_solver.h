@@ -29,7 +29,7 @@ public:
         channel_flow,
         isentropic_vortex,
         kelvin_helmholtz_instability,
-        sshock
+        non_periodic_cube_flow
         };
     FlowCaseType flow_case_type; ///< Selected FlowCaseType from the input file
 
@@ -142,6 +142,7 @@ public:
     bool output_vorticity_magnitude_field_in_addition_to_velocity; ///< Flag for outputting vorticity magnitude field in addition to velocity field
     std::string output_flow_field_files_directory_name; ///< Name of directory for writing flow field files
 
+    bool end_exactly_at_final_time; ///< Flag to adjust the last timestep such that the simulation ends exactly at final_time
     bool do_compute_unsteady_data_and_write_to_table;///< Flag for computing unsteady data and writting to table
 
     /// Declares the possible variables and sets the defaults.

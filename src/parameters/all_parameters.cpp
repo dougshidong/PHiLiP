@@ -267,14 +267,14 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       "Dissipative numerical flux. "
                       "Choices are <symm_internal_penalty | bassi_rebay_2 | central_visc_flux>.");
 
-    prm.declare_entry("non_physical_behavior", "do_nothing",
-                      dealii::Patterns::Selection("do_nothing | abort_run | print_warning"),
+    prm.declare_entry("non_physical_behavior", "return_big_number",
+                      dealii::Patterns::Selection("return_big_number | abort_run | print_warning"),
                       "Behavior when a nonphysical result is detected in physics, "
                       "For example negative density or NaN. "
-                      "do_nothing will return BIG_NUMBER without any warnings "
+                      "return_big_number will return BIG_NUMBER without any warnings "
                       "abort_run will std::abort() "
-                      "print_warning will print a warning to console. "
-                      "Choices are <do_nothing | abort_run | print_warning>.");
+                      "print_warning will return BIG_NUMBER and print a warning to console. "
+                      "Choices are <return_big_number | abort_run | print_warning>.");
 
     prm.declare_entry("solution_vtk_files_directory_name", ".",
                       dealii::Patterns::FileName(dealii::Patterns::FileName::FileType::input),
@@ -438,7 +438,7 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     if (flux_reconstruction_aux_string == "k10Thousand") { flux_reconstruction_aux_type = k10Thousand; }
 
     const std::string non_physical_behavior_string = prm.get("non_physical_behavior");
-    if (non_physical_behavior_string == "do_nothing")       { non_physical_behavior_type = do_nothing;}
+    if (non_physical_behavior_string == "return_big_number")       { non_physical_behavior_type = return_big_number;}
     if (non_physical_behavior_string == "abort_run")        { non_physical_behavior_type = abort_run;}
     if (non_physical_behavior_string == "print_warning")    { non_physical_behavior_type = print_warning;}
 

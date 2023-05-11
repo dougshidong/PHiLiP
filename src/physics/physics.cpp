@@ -219,7 +219,7 @@ real2 PhysicsBase<dim,nstate,real>
         if (message != "") {
             this->pcout << std::endl << "    Message: " << message << std::endl;
         }
-    } else if (this->non_physical_behavior_type == NonPhysicalBehaviorEnum::do_nothing) {
+    } else if (this->non_physical_behavior_type == NonPhysicalBehaviorEnum::return_big_number) {
         // do nothing -- assume that the test or iterative solver can handle this.
     }
         

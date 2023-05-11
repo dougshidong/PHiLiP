@@ -255,7 +255,7 @@ public:
     Flux_Reconstruction_Aux flux_reconstruction_aux_type;
 
     /// Enum of nonphysical behavior
-    enum NonPhysicalBehaviorEnum {do_nothing, abort_run, print_warning};
+    enum NonPhysicalBehaviorEnum {return_big_number, abort_run, print_warning};
     /// Specify behavior on nonphysical results
     NonPhysicalBehaviorEnum non_physical_behavior_type;
 

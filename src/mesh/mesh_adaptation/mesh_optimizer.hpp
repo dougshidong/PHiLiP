@@ -4,27 +4,7 @@
 #include "dg/dg.h"
 #include "optimization/design_parameterization/base_parameterization.hpp"
 #include "functional/functional.h"
-#include "Teuchos_ParameterList.hpp"
-#include "functional/dual_weighted_residual_obj_func1.h"
-#include "functional/dual_weighted_residual_obj_func2.h"
-#include "functional/implicit_shocktracking_functional.h"
-#include "optimization/design_parameterization/inner_vol_parameterization.hpp"
-
-#include "Teuchos_GlobalMPISession.hpp"
-#include "ROL_Algorithm.hpp"
-#include "ROL_Reduced_Objective_SimOpt.hpp"
-#include "ROL_OptimizationSolver.hpp"
-#include "ROL_LineSearchStep.hpp"
-#include "ROL_StatusTest.hpp"
-
-
 #include <deal.II/optimization/rol/vector_adaptor.h>
-
-#include "optimization/rol_to_dealii_vector.hpp"
-#include "optimization/flow_constraints.hpp"
-#include "optimization/rol_objective.hpp"
-
-#include "optimization/full_space_step.hpp"
 
 namespace PHiLiP {
 

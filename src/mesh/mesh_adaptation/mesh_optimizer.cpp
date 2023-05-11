@@ -1,4 +1,23 @@
 #include "mesh_optimizer.hpp"
+#include "functional/dual_weighted_residual_obj_func1.h"
+#include "functional/dual_weighted_residual_obj_func2.h"
+#include "functional/implicit_shocktracking_functional.h"
+#include "optimization/design_parameterization/inner_vol_parameterization.hpp"
+#include "optimization/design_parameterization/sliding_boundary_parameterization.hpp"
+
+#include "Teuchos_ParameterList.hpp"
+#include "Teuchos_GlobalMPISession.hpp"
+#include "ROL_Algorithm.hpp"
+#include "ROL_Reduced_Objective_SimOpt.hpp"
+#include "ROL_OptimizationSolver.hpp"
+#include "ROL_LineSearchStep.hpp"
+#include "ROL_StatusTest.hpp"
+
+#include "optimization/rol_to_dealii_vector.hpp"
+#include "optimization/flow_constraints.hpp"
+#include "optimization/rol_objective.hpp"
+
+#include "optimization/full_space_step.hpp"
 
 namespace PHiLiP {
 
@@ -25,7 +44,8 @@ MeshOptimizer<dim,nstate>::MeshOptimizer(
 template<int dim, int nstate>
 void MeshOptimizer<dim,nstate>::initialize_objfunc_and_design_parameterization()
 {
-    design_parameterization = std::make_shared<InnerVolParameterization<dim>>(dg->high_order_grid); 
+    //design_parameterization = std::make_shared<InnerVolParameterization<dim>>(dg->high_order_grid); 
+    design_parameterization = std::make_shared<SlidingBoundaryParameterization<dim>>(dg->high_order_grid); 
 
     bool uses_coarse_residual = false;
     const bool uses_solution_values = true;

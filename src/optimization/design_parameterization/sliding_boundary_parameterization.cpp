@@ -42,6 +42,7 @@ void SlidingBoundaryParameterization<dim> :: compute_innersliding_vol_index_to_v
         {
             const double x = this->high_order_grid->volume_nodes(vol_index);
             const double y = this->high_order_grid->volume_nodes(vol_index + 1);
+            std::cout<<"On surface (x,y) = ("<<x<<", "<<y<<"). ";
             const double left_end = 0.0;
             const double right_end = 1.0;
 
@@ -50,12 +51,14 @@ void SlidingBoundaryParameterization<dim> :: compute_innersliding_vol_index_to_v
                 // Constrain x
                 is_a_fixed_node(vol_index) = 1;
                 ++n_fixed_nodes_local;
+                std::cout<<" x is constrained."<<std::endl;
             }
             if( (y == left_end) || (y == right_end) )
             {
                 // Constrain y
                 is_a_fixed_node(vol_index + 1) = 1;
                 ++n_fixed_nodes_local;
+                std::cout<<"y is constrained."<<std::endl;
             }
         }
     }

@@ -153,11 +153,11 @@ std::array<real,nstate> Euler<dim,nstate,real>
 
 template <int dim, int nstate, typename real>
 template<typename real2>
-void Euler<dim,nstate,real>::check_positive_quantity(real2 &qty) const {
+void Euler<dim,nstate,real>::check_positive_quantity(real2 &qty, const std::string qty_name) const {
     if (qty < 0.0) {
         // Refer to base class for non-physical results handling
-        // Compiler complains unless explicitly specify "template"
-        qty = this->template handle_non_physical_result<real2>();
+        // Compiler complains unless we explicitly specify "template"
+        qty = this->template handle_non_physical_result<real2>(qty_name + " is negative.");
     }
 }
 
@@ -172,10 +172,8 @@ inline std::array<real2,nstate> Euler<dim,nstate,real>
     dealii::Tensor<1,dim,real2> vel = compute_velocities<real2>(conservative_soln);
     real2 pressure = compute_pressure<real2>(conservative_soln);
 
-    //if (density < 0.0) density = density_inf;
-    //if (pressure < 0.0) pressure = pressure_inf;
-    check_positive_quantity<real2>(density);
-    check_positive_quantity<real2>(pressure);
+    check_positive_quantity<real2>(density, "density");
+    check_positive_quantity<real2>(pressure, "pressure");
 
     primitive_soln[0] = density;
     for (int d=0; d<dim; ++d) {
@@ -280,7 +278,7 @@ inline real Euler<dim,nstate,real>
 ::compute_entropy_measure ( const std::array<real,nstate> &conservative_soln ) const
 {
     real density = conservative_soln[0];
-    check_positive_quantity<real>(density);
+    check_positive_quantity<real>(density, "density");
     const real pressure = compute_pressure<real>(conservative_soln);
     return compute_entropy_measure(density, pressure);
 }
@@ -366,7 +364,7 @@ inline real2 Euler<dim,nstate,real>
     const real2 vel2 = compute_velocity_squared<real2>(vel);
     real2 pressure = gamm1*(tot_energy - 0.5*density*vel2);
     
-    check_positive_quantity<real2>(pressure);
+    check_positive_quantity<real2>(pressure, "pressure");
     
     return pressure;
 }
@@ -378,7 +376,7 @@ inline real2 Euler<dim,nstate,real>
 :: compute_entropy (const real2 density, const real2 pressure) const
 {
     real2 entropy = pressure * pow(density, -gam);
-    check_positive_quantity<real2>(entropy);
+    check_positive_quantity<real2>(entropy, "entropy");
     entropy = log(entropy);
     return entropy;
 
@@ -389,7 +387,7 @@ inline real Euler<dim,nstate,real>
 ::compute_sound ( const std::array<real,nstate> &conservative_soln ) const
 {
     real density = conservative_soln[0];
-    check_positive_quantity<real>(density);
+    check_positive_quantity<real>(density, "density");
     const real pressure = compute_pressure<real>(conservative_soln);
     const real sound = sqrt(pressure*gam/density);
     return sound;
@@ -1476,16 +1474,16 @@ template class Euler < PHILIP_DIM, PHILIP_DIM+2, RadFadType >;
 // -> Templated member functions: // could be automated later on using Boost MPL
 //------------------------------------------------------------------------------
 // -- check_positive_quantity
-template void Euler < PHILIP_DIM, PHILIP_DIM+2, double     >::check_positive_quantity< double     >(double     &density) const;
-template void Euler < PHILIP_DIM, PHILIP_DIM+2, FadType    >::check_positive_quantity< FadType    >(FadType    &density) const;
-template void Euler < PHILIP_DIM, PHILIP_DIM+2, RadType    >::check_positive_quantity< RadType    >(RadType    &density) const;
-template void Euler < PHILIP_DIM, PHILIP_DIM+2, FadFadType >::check_positive_quantity< FadFadType >(FadFadType &density) const;
-template void Euler < PHILIP_DIM, PHILIP_DIM+2, RadFadType >::check_positive_quantity< RadFadType >(RadFadType &density) const;
+template void Euler < PHILIP_DIM, PHILIP_DIM+2, double     >::check_positive_quantity< double     >(double     &qty, const std::string qty_name) const;
+template void Euler < PHILIP_DIM, PHILIP_DIM+2, FadType    >::check_positive_quantity< FadType    >(FadType    &qty, const std::string qty_name) const;
+template void Euler < PHILIP_DIM, PHILIP_DIM+2, RadType    >::check_positive_quantity< RadType    >(RadType    &qty, const std::string qty_name) const;
+template void Euler < PHILIP_DIM, PHILIP_DIM+2, FadFadType >::check_positive_quantity< FadFadType >(FadFadType &qty, const std::string qty_name) const;
+template void Euler < PHILIP_DIM, PHILIP_DIM+2, RadFadType >::check_positive_quantity< RadFadType >(RadFadType &qty, const std::string qty_name) const;
 // -- -- instantiate all the real types with real2 = FadType for automatic differentiation in NavierStokes::dissipative_flux_directional_jacobian()
-template void Euler < PHILIP_DIM, PHILIP_DIM+2, double     >::check_positive_quantity< FadType    >(FadType    &density) const;
-template void Euler < PHILIP_DIM, PHILIP_DIM+2, RadType    >::check_positive_quantity< FadType    >(FadType    &density) const;
-template void Euler < PHILIP_DIM, PHILIP_DIM+2, FadFadType >::check_positive_quantity< FadType    >(FadType    &density) const;
-template void Euler < PHILIP_DIM, PHILIP_DIM+2, RadFadType >::check_positive_quantity< FadType    >(FadType    &density) const;
+template void Euler < PHILIP_DIM, PHILIP_DIM+2, double     >::check_positive_quantity< FadType    >(FadType    &qty, const std::string qty_name) const;
+template void Euler < PHILIP_DIM, PHILIP_DIM+2, RadType    >::check_positive_quantity< FadType    >(FadType    &qty, const std::string qty_name) const;
+template void Euler < PHILIP_DIM, PHILIP_DIM+2, FadFadType >::check_positive_quantity< FadType    >(FadType    &qty, const std::string qty_name) const;
+template void Euler < PHILIP_DIM, PHILIP_DIM+2, RadFadType >::check_positive_quantity< FadType    >(FadType    &qty, const std::string qty_name) const;
 // -- compute_pressure()
 template double     Euler < PHILIP_DIM, PHILIP_DIM+2, double     >::compute_pressure< double     >(const std::array<double,    PHILIP_DIM+2> &conservative_soln) const;
 template FadType    Euler < PHILIP_DIM, PHILIP_DIM+2, FadType    >::compute_pressure< FadType    >(const std::array<FadType,   PHILIP_DIM+2> &conservative_soln) const;

@@ -206,7 +206,7 @@ protected:
     /** in PhysicsBase class
      */
     template<typename real2>
-    void check_positive_quantity(real2 &quantity) const;
+    void check_positive_quantity(real2 &quantity, const std::string qty_name) const;
 
 public:
     /// Given conservative variables [density, [momentum], total energy],

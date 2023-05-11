@@ -197,7 +197,7 @@ public:
      *  Returns BIG_NUMBER.
      */
     template<typename real2> 
-    real2 handle_non_physical_result () const;
+    real2 handle_non_physical_result (const std::string message = "") const;
 
     
 protected:

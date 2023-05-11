@@ -276,7 +276,6 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       "print_warning will print a warning to console. "
                       "Choices are <do_nothing | abort_run | print_warning>.");
 
-
     prm.declare_entry("solution_vtk_files_directory_name", ".",
                       dealii::Patterns::FileName(dealii::Patterns::FileName::FileType::input),
                       "Name of directory for writing solution vtk files. Current directory by default.");
@@ -293,6 +292,10 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
     prm.declare_entry("output_face_results_vtk", "false",
                       dealii::Patterns::Bool(),
                       "Outputs the surface solution vtk files. False by default");
+
+    prm.declare_entry("do_renumber_dofs", "true",
+                      dealii::Patterns::Bool(),
+                      "Flag for renumbering DOFs using Cuthill-McKee renumbering. True by default. Set to false if doing 3D unsteady flow simulations.");
 
     Parameters::LinearSolverParam::declare_parameters (prm);
     Parameters::ManufacturedConvergenceStudyParam::declare_parameters (prm);
@@ -439,11 +442,11 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     if (non_physical_behavior_string == "abort_run")        { non_physical_behavior_type = abort_run;}
     if (non_physical_behavior_string == "print_warning")    { non_physical_behavior_type = print_warning;}
 
-
     solution_vtk_files_directory_name = prm.get("solution_vtk_files_directory_name");
     output_high_order_grid = prm.get_bool("output_high_order_grid");
     enable_higher_order_vtk_output = prm.get_bool("enable_higher_order_vtk_output");
     output_face_results_vtk = prm.get_bool("output_face_results_vtk");
+    do_renumber_dofs = prm.get_bool("do_renumber_dofs");
 
     output_high_order_grid = prm.get_bool("output_high_order_grid");
 

@@ -7,7 +7,7 @@ namespace Physics {
 
 template <int dim, int nstate, typename real>
 BurgersRewienski<dim,nstate,real>::BurgersRewienski(
-        const Parameters::AllParameters *const                    parameters_input,
+        const Parameters::AllParameters *const parameters_input,
         const double rewienski_a,
         const double rewienski_b,
         const bool rewienski_manufactured_solution,

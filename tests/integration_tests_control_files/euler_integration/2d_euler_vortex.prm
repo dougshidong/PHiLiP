@@ -22,12 +22,12 @@ subsection ODE solver
   # Simply do 20 explicit time steps and compare with exact solution
   set nonlinear_max_iterations = 1000
 
-  #set output_solution_every_x_steps = 100
+  #set output_solution_every_x_steps = 1
 
   set initial_time_step = 0.0001
 
   # Print every print_iteration_modulo iterations of the nonlinear solver
-  set print_iteration_modulo = 1
+  set print_iteration_modulo = 100
 
   # Explicit or implicit solverChoices are <explicit|implicit>.
   set ode_solver_type     = runge_kutta

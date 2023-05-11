@@ -2137,7 +2137,6 @@ void DGBase<dim,real,MeshType>::allocate_system (
     if(all_parameters->renumber_dof_handler_Cuthill_Mckee || all_parameters->do_renumber_dofs){
         dealii::DoFRenumbering::Cuthill_McKee(dof_handler,true);
     }
-
     //const bool reversed_numbering = true;
     //dealii::DoFRenumbering::Cuthill_McKee(dof_handler, reversed_numbering);
     //const bool reversed_numbering = false;
@@ -2204,8 +2203,9 @@ void DGBase<dim,real,MeshType>::allocate_system (
         dealii::DynamicSparsityPattern dsp(locally_relevant_dofs);
         dealii::DoFTools::make_flux_sparsity_pattern(dof_handler, dsp);
         dealii::SparsityTools::distribute_sparsity_pattern(dsp, dof_handler.locally_owned_dofs(), mpi_communicator, locally_relevant_dofs);
-         
+
         sparsity_pattern.copy_from(dsp);
+        
         system_matrix.reinit(locally_owned_dofs, sparsity_pattern, mpi_communicator);
     }
 

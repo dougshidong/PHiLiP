@@ -1259,7 +1259,10 @@ void local_Flux_Reconstruction_operator<dim,n_faces>::get_FR_correction_paramete
         get_c_plus_parameter(curr_cell_degree, c); 
     } else if(FR_param_type == FR_enum::user_specified_value) {
         c = FR_user_specified_correction_parameter_value;
+        c/=2.0;//since orthonormal
+        c/=pow(pow(2.0,curr_cell_degree),2);//since ref elem [0,1]
     }
+    std::cout << "c " << c <<  std::endl;
 }
 template <int dim, int n_faces>  
 void local_Flux_Reconstruction_operator<dim,n_faces>::build_local_Flux_Reconstruction_operator(

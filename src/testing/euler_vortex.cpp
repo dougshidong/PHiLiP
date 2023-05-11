@@ -301,7 +301,7 @@ int EulerVortex<dim,nstate>
 
             }
             l2error = sqrt(l2error);
-
+std::cout << "it is the right testing file" << std::endl;
             // Convergence table
             double dx = 1.0/pow(n_dofs,(1.0/dim));
             //dx = dealii::GridTools::maximal_cell_diameter(*grid);

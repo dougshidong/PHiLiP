@@ -102,7 +102,7 @@ int AdvectionPeriodic<dim, nstate>::run_test() const
     printf("starting test\n");
     PHiLiP::Parameters::AllParameters all_parameters_new = *all_parameters;  
 
-    const unsigned int n_grids = (all_parameters_new.use_energy) ? 4 : 5;
+    const unsigned int n_grids = (all_parameters_new.use_energy) ? 4 : 7;
     std::vector<double> grid_size(n_grids);
     std::vector<double> soln_error(n_grids);
     std::vector<double> soln_error_inf(n_grids);
@@ -119,7 +119,7 @@ int AdvectionPeriodic<dim, nstate>::run_test() const
     dealii::ConvergenceTable convergence_table;
     const unsigned int igrid_start = 3;
 
-    const int nb_c_value = 0;
+    const int nb_c_value = 10;
     const double c_min = 1e-4;
     const double c_max = 1e4;
     const double log_c_min = std::log10(c_min);
@@ -137,12 +137,13 @@ int AdvectionPeriodic<dim, nstate>::run_test() const
     cell_number_file.close();
 
     // Create log space array of c_value
+    
     for (int ic = 0; ic < nb_c_value; ic++) {
         double log_c = log_c_min + (log_c_max - log_c_min) / (nb_c_value - 1) * ic;
         c_array[ic] = std::pow(10.0, log_c);
         c_value_file << c_array[ic] << std::endl;
     }
-    c_array[nb_c_value]=3.67e-3; // 0.186; 3.67e-3; 4.79e-5; 4.24e-7;
+    c_array[nb_c_value]=3.67e-3; ; // 0.186; 3.67e-3; 4.79e-5; 4.24e-7;    //cPlus in first place
     c_value_file << c_array[nb_c_value] << std::endl;
     c_value_file.close();
     std::cout<<"Here 3"<<std::endl;
@@ -176,9 +177,10 @@ int AdvectionPeriodic<dim, nstate>::run_test() const
         const unsigned int n_global_active_cells2 = grid->n_global_active_cells();
         double n_dofs_cfl = pow(n_global_active_cells2,dim) * pow(poly_degree+1.0, dim);
         double delta_x = (right-left)/pow(n_dofs_cfl,(1.0/dim)); 
-        //all_parameters_new.ode_solver_param.initial_time_step =  delta_x /(1.0*(2.0*poly_degree+1)) ;
-         all_parameters_new.ode_solver_param.initial_time_step =  (all_parameters_new.use_energy) ? 0.05*delta_x : 0.5*delta_x;
+        all_parameters_new.ode_solver_param.initial_time_step =  delta_x /(1.0*(2.0*poly_degree+1)) ;
+        all_parameters_new.ode_solver_param.initial_time_step =  (all_parameters_new.use_energy) ? 0.05*delta_x : 0.5*delta_x;
         all_parameters_new.FR_user_specified_correction_parameter_value = c_value;
+        std::cout << "c ESFR " <<all_parameters_new.FR_user_specified_correction_parameter_value <<  std::endl;
         std::cout << "dt " <<all_parameters_new.ode_solver_param.initial_time_step <<  std::endl;
         std::cout << "cells " <<n_global_active_cells2 <<  std::endl;
 

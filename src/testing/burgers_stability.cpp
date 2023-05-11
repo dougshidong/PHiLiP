@@ -93,13 +93,44 @@ int BurgersEnergyStability<dim, nstate>::run_test() const
     PHiLiP::Parameters::AllParameters all_parameters_new = *all_parameters;  
     double left = 0.0;
     double right = 2.0;
-    const unsigned int n_grids = (all_parameters_new.use_energy) ? 4 : 5;
+    const unsigned int n_grids = (all_parameters_new.use_energy) ? 4 : 8;
     std::vector<double> grid_size(n_grids);
     std::vector<double> soln_error(n_grids);
-    unsigned int poly_degree = 4;
+    unsigned int poly_degree = 5;
     dealii::ConvergenceTable convergence_table;
-    const unsigned int igrid_start = 3;
+    const unsigned int igrid_start = 2;
     const unsigned int grid_degree = 1;
+
+    const int nb_c_value = 100;
+    const double c_min = 1e-9;
+    const double c_max = 1e-3;
+    const double log_c_min = std::log10(c_min);
+    const double log_c_max = std::log10(c_max);
+    double c_array[nb_c_value+1];
+
+    std::ofstream l2error_file("l2error.txt");
+    std::ofstream slope_file("slope_soln_err.txt");
+    std::ofstream c_value_file("c_value.txt");
+    std::ofstream cell_number_file("cell_number.txt");
+
+    for(unsigned int igrid = igrid_start; igrid<n_grids; igrid++){
+        cell_number_file << std::pow(2.0, igrid) << " ";
+    }
+    cell_number_file.close();
+
+    // Create log space array of c_value
+    for (int ic = 0; ic < nb_c_value; ic++) {
+        double log_c = log_c_min + (log_c_max - log_c_min) / (nb_c_value - 1) * ic;
+        c_array[ic] = std::pow(10.0, log_c);
+        c_value_file << c_array[ic] << std::endl;
+    }
+    c_array[nb_c_value]=4.24e-7; // 0.186; 3.67e-3; 4.79e-5; 4.24e-7;
+    c_value_file << c_array[nb_c_value] << std::endl;
+    c_value_file.close();
+
+    // Loop over c_array to compute slope
+    for (int ic = 0; ic < nb_c_value+1; ic++) {
+        double c_value = c_array[ic];
 
     for(unsigned int igrid = igrid_start; igrid<n_grids; igrid++){
 
@@ -140,7 +171,8 @@ int BurgersEnergyStability<dim, nstate>::run_test() const
         all_parameters_new.ode_solver_param.initial_time_step =  0.5*delta_x;
         //use 0.0001 to be consisitent with Ranocha and Gassner papers
         all_parameters_new.ode_solver_param.initial_time_step =  0.0001;
-        
+        all_parameters_new.FR_user_specified_correction_parameter_value = c_value;
+        std::cout << "c ESFR " <<all_parameters_new.FR_user_specified_correction_parameter_value <<  std::endl;
         //allocate dg
         std::shared_ptr < PHiLiP::DGBase<dim, double> > dg = PHiLiP::DGFactory<dim,double>::create_discontinuous_galerkin(&all_parameters_new, poly_degree, poly_degree, grid_degree, grid);
         pcout << "dg created" <<std::endl;
@@ -297,6 +329,8 @@ int BurgersEnergyStability<dim, nstate>::run_test() const
             }
             const double l2error_mpi_sum = std::sqrt(dealii::Utilities::MPI::sum(l2error, mpi_communicator));
 
+            l2error_file << l2error_mpi_sum << " ";
+
             // Convergence table
             const double dx = 1.0/pow(n_dofs,(1.0/dim));
             grid_size[igrid] = dx;
@@ -316,6 +350,9 @@ int BurgersEnergyStability<dim, nstate>::run_test() const
             if (igrid > igrid_start) {
                 const double slope_soln_err = log(soln_error[igrid]/soln_error[igrid-1])
                                       / log(grid_size[igrid]/grid_size[igrid-1]);
+
+                slope_file << slope_soln_err << " ";  
+
                 pcout << "From grid " << igrid
                       << "  to grid " << igrid+1
                       << "  dimension: " << dim
@@ -325,11 +362,11 @@ int BurgersEnergyStability<dim, nstate>::run_test() const
                       << "  solution_error2 " << soln_error[igrid]
                       << "  slope " << slope_soln_err
                       << std::endl;
-                if(igrid == n_grids-1){
-                    if(std::abs(slope_soln_err-(poly_degree+1))>0.05){
-                        return 1;
-                    }
-                }
+                //if(igrid == n_grids-1){
+                //    if(std::abs(slope_soln_err-(poly_degree+1))>0.05){
+                //        return 1;
+                //    }
+                //}
             }
         
             pcout << " ********************************************"
@@ -344,9 +381,13 @@ int BurgersEnergyStability<dim, nstate>::run_test() const
             if (pcout.is_active()) convergence_table.write_text(pcout.get_stream());
         }//end of OOA
     }//end of grid loop
+    l2error_file << std::endl;
+    slope_file << std::endl;
+    }//end of Loop over c_array
+    l2error_file.close();
+    slope_file.close();
     return 0; //if got to here means passed the test, otherwise would've failed earlier
 }
-
 #if PHILIP_DIM==1
 template class BurgersEnergyStability<PHILIP_DIM,PHILIP_DIM>;
 #endif

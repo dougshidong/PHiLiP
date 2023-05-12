@@ -209,14 +209,14 @@ real2 PhysicsBase<dim,nstate,real>
 {
     if (this->non_physical_behavior_type == NonPhysicalBehaviorEnum::abort_run) {
         std::cout << "ERROR: Non-physical result has been detected. ";
-        if (message != "") {
+        if (!message.empty()) {
             std::cout << std::endl << "    Message: " << message << std::endl;
         }
         std::cout << " Aborting... " << std::endl << std::flush;
         std::abort();
     } else if (this->non_physical_behavior_type == NonPhysicalBehaviorEnum::print_warning) {
         std::cout << "WARNING: Non-physical result has been detected at a node." << std::endl;
-        if (message != "") {
+        if (!message.empty()) {
             std::cout << std::endl << "    Message: " << message << std::endl;
         }
     } else if (this->non_physical_behavior_type == NonPhysicalBehaviorEnum::return_big_number) {

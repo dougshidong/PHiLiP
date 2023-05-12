@@ -39,6 +39,7 @@ FlowSolver<dim, nstate>::FlowSolver(
 , do_output_solution_at_fixed_times(ode_param.output_solution_at_fixed_times)
 , number_of_fixed_times_to_output_solution(ode_param.number_of_fixed_times_to_output_solution)
 , output_solution_at_exact_fixed_times(ode_param.output_solution_at_exact_fixed_times)
+, do_compute_unsteady_data_and_write_to_table(flow_solver_param.do_compute_unsteady_data_and_write_to_table)
 , dg(DGFactory<dim,double>::create_discontinuous_galerkin(&all_param, poly_degree, flow_solver_param.max_poly_degree_for_adaptation, grid_degree, flow_solver_case->generate_grid()))
 {
     flow_solver_case->set_higher_order_grid(dg);
@@ -49,6 +50,7 @@ FlowSolver<dim, nstate>::FlowSolver(
         pcout << "Note: Allocating DG without AD matrices." << std::endl;
         dg->allocate_system(false,false,false);
     }
+    flow_solver_case->initialize_model_variables(dg);
 
     if(ode_param.ode_solver_type == Parameters::ODESolverParam::pod_galerkin_solver || ode_param.ode_solver_type == Parameters::ODESolverParam::pod_petrov_galerkin_solver){
         std::shared_ptr<ProperOrthogonalDecomposition::OfflinePOD<dim>> pod = std::make_shared<ProperOrthogonalDecomposition::OfflinePOD<dim>>(dg);
@@ -471,14 +473,17 @@ int FlowSolver<dim,nstate>::run() const
             pcout << "done." << std::endl;
         } else {
             // no restart:
-            pcout << "Writing unsteady data computed at initial time... " << std::endl;
-            flow_solver_case->compute_unsteady_data_and_write_to_table(ode_solver->current_iteration, ode_solver->current_time, dg, unsteady_data_table);
-            pcout << "done." << std::endl;
+            if(do_compute_unsteady_data_and_write_to_table){
+                pcout << "Writing unsteady data computed at initial time... " << std::endl;
+                flow_solver_case->compute_unsteady_data_and_write_to_table(ode_solver->current_iteration, ode_solver->current_time, dg, unsteady_data_table);
+                pcout << "done." << std::endl;
+            }
         }
         //----------------------------------------------------
         // Time advancement loop with on-the-fly post-processing
         //----------------------------------------------------
         double next_time_step = time_step;
+        std::shared_ptr<dealii::TableHandler> timer_values_table = std::make_shared<dealii::TableHandler>();
         pcout << "Advancing solution in time... " << std::endl;
         pcout << "Timer starting. " << std::endl;
         dealii::Timer timer(this->mpi_communicator,false);
@@ -502,11 +507,16 @@ int FlowSolver<dim,nstate>::run() const
             // update time step in flow_solver_case
             flow_solver_case->set_time_step(time_step);
 
+            // update model variables
+            flow_solver_case->update_model_variables(dg);
+
             // advance solution
             ode_solver->step_in_time(time_step,false); // pseudotime==false
 
             // Compute the unsteady quantities, write to the dealii table, and output to file
-            flow_solver_case->compute_unsteady_data_and_write_to_table(ode_solver->current_iteration, ode_solver->current_time, dg, unsteady_data_table);
+            if(do_compute_unsteady_data_and_write_to_table){
+                flow_solver_case->compute_unsteady_data_and_write_to_table(ode_solver->current_iteration, ode_solver->current_time, dg, unsteady_data_table);
+            }
             // update next time step
             if(flow_solver_param.adaptive_time_step == true) {
                 next_time_step = flow_solver_case->get_adaptive_time_step(dg);
@@ -577,9 +587,26 @@ int FlowSolver<dim,nstate>::run() const
         } // close while
         timer.stop();
         pcout << "Timer stopped. " << std::endl;
-        const double max_wall_time = dealii::Utilities::MPI::max(timer.wall_time(), this->mpi_communicator);
-        pcout << "Elapsed wall time (mpi max): " << max_wall_time << " seconds." << std::endl;
-        pcout << "Elapsed CPU time: " << timer.cpu_time() << " seconds." << std::endl;
+        const double cpu_time = timer.cpu_time();
+        const double total_wall_time = dealii::Utilities::MPI::sum(timer.wall_time(), this->mpi_communicator);
+        const double number_of_time_steps = (double)ode_solver->current_iteration;
+        const double avg_cpu_time_per_time_step = cpu_time/number_of_time_steps;
+        const double avg_total_wall_time_per_time_step = total_wall_time/number_of_time_steps;
+        pcout << "Elapsed CPU time: " << cpu_time << " seconds." << std::endl;
+        pcout << "Elapsed total wall time (mpi max): " << total_wall_time << " seconds." << std::endl;
+        pcout << "Average CPU time per time step: " << avg_cpu_time_per_time_step << " seconds." << std::endl;
+        pcout << "Average total wall time per time step: " << avg_total_wall_time_per_time_step << " seconds." << std::endl;
+        // writing timing to file
+        if(mpi_rank==0) {
+            // add values to table
+            flow_solver_case->add_value_to_data_table(cpu_time,"total_cpu_time",timer_values_table);
+            flow_solver_case->add_value_to_data_table(total_wall_time,"total_wall_time",timer_values_table);
+            flow_solver_case->add_value_to_data_table(avg_cpu_time_per_time_step,"avg_cpu_time",timer_values_table);
+            flow_solver_case->add_value_to_data_table(avg_total_wall_time_per_time_step,"avg_wall_time",timer_values_table);
+            std::string timing_table_filename = std::string("timer_values.txt");
+            std::ofstream timer_values_table_file(timing_table_filename);
+            timer_values_table->write_text(timer_values_table_file);
+        }
     } else {
         //----------------------------------------------------
         // Steady-state solution

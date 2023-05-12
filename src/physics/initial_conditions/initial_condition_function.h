@@ -6,6 +6,7 @@
 #include <deal.II/base/function.h>
 #include "parameters/all_parameters.h"
 #include "../euler.h" // for FreeStreamInitialConditions
+#include "../navier_stokes.h" // for InitialConditionFunction_TurbulentChannelFlow
 
 namespace PHiLiP {
 
@@ -59,6 +60,62 @@ public:
     {
         return farfield_conservative[istate];
     }
+};
+
+/// Function used to evaluate initial turbulent channel conservative solution
+template <int dim, int nstate, typename real>
+class InitialConditionFunction_TurbulentChannelFlow : public InitialConditionFunction<dim,nstate,real>
+{
+protected:
+    using dealii::Function<dim,real>::value; ///< dealii::Function we are templating on
+
+public:
+    /// Constructor.
+    InitialConditionFunction_TurbulentChannelFlow (
+        const Physics::NavierStokes<dim,nstate,double> navier_stokes_physics_,
+        const double channel_friction_velocity_reynolds_number_,
+        const double domain_length_x_,
+        const double domain_length_y_,
+        const double domain_length_z_);
+
+    const Physics::NavierStokes<dim,nstate,double> navier_stokes_physics; ///< Navier-Stokes physics object
+    const double channel_friction_velocity_reynolds_number; ///< Channel Reynolds number based on wall friction velocity
+    const double domain_length_x; ///< Domain length in x-direction
+    const double domain_length_y; ///< Domain length in y-direction
+    const double domain_length_z; ///< Domain length in z-direction
+    const double channel_height; ///< Channel height
+    const double half_channel_height; ///< Half channel height
+
+    /// Value of initial condition expressed in terms of conservative variables
+    real value (const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
+
+protected:
+    /// distance from closest wall
+    real get_distance_from_wall(const dealii::Point<dim,real> &point) const;
+    /// x-velocity
+    virtual real x_velocity (const dealii::Point<dim,real> &point, const real density, const real temperature) const;
+    /// y-velocity
+    real y_velocity (const dealii::Point<dim,real> &point) const;
+};
+
+template <int dim, int nstate, typename real>
+class InitialConditionFunction_TurbulentChannelFlow_Turbulent : public InitialConditionFunction_TurbulentChannelFlow<dim,nstate,real>
+{
+public:
+    /// Constructor.
+    /** Initial condition based on the Reichardt function
+     *  Reference: https://how4.cenaero.be/sites/how4.cenaero.be/files/BS2_ChannelFlowRe590.pdf
+     */
+    InitialConditionFunction_TurbulentChannelFlow_Turbulent (
+        const Physics::NavierStokes<dim,nstate,double> navier_stokes_physics_,
+        const double channel_friction_velocity_reynolds_number_,
+        const double domain_length_x_,
+        const double domain_length_y_,
+        const double domain_length_z_);
+
+protected:
+    /// x-velocity
+    real x_velocity (const dealii::Point<dim,real> &point, const real density, const real temperature) const override;
 };
 
 /// Initial Condition Function: Taylor Green Vortex (uniform density)
@@ -359,6 +416,8 @@ protected:
     using FlowCaseEnum = Parameters::FlowSolverParam::FlowCaseType;
     /// Enumeration of all taylor green vortex initial condition sub-types defined in the Parameters class
     using DensityInitialConditionEnum = Parameters::FlowSolverParam::DensityInitialConditionType;
+    /// Enumeration of all turbulent channel flow inition condition sub-types defined in the Parameters class
+    using XVelocityInitialConditionEnum = Parameters::FlowSolverParam::XVelocityInitialConditionType;
 
 public:
     /// Construct InitialConditionFunction object from global parameter file

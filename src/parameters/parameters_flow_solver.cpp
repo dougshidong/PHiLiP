@@ -25,6 +25,7 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                           " advection | "
                           " periodic_1D_unsteady | "
                           " gaussian_bump | "
+                          " channel_flow | "
                           " isentropic_vortex | "
                           " kelvin_helmholtz_instability | "
                           " non_periodic_cube_flow "),
@@ -40,6 +41,7 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                           " advection | "
                           " periodic_1D_unsteady | "
                           " gaussian_bump | "
+                          " channel_flow | "
                           " isentropic_vortex | "
                           " kelvin_helmholtz_instability | "
                           " non_periodic_cube_flow>. ");
@@ -190,6 +192,57 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
         }
         prm.leave_subsection();
 
+        prm.enter_subsection("channel_flow");
+        {
+            prm.declare_entry("channel_friction_velocity_reynolds_number", "590",
+                              dealii::Patterns::Double(0, dealii::Patterns::Double::max_double_value),
+                              "Channel Reynolds number based on wall friction velocity. Default is 590.");
+
+            prm.declare_entry("turbulent_channel_number_of_cells_x_direction","4",
+                              dealii::Patterns::Integer(0, dealii::Patterns::Integer::max_int_value),
+                              "Number of cells in the x-direction for channel flow case.");
+
+            prm.declare_entry("turbulent_channel_number_of_cells_y_direction","16",
+                              dealii::Patterns::Integer(0, dealii::Patterns::Integer::max_int_value),
+                              "Number of cells in the y-direction for channel flow case.");
+
+            prm.declare_entry("turbulent_channel_number_of_cells_z_direction","2",
+                              dealii::Patterns::Integer(0, dealii::Patterns::Integer::max_int_value),
+                              "Number of cells in the z-direction for channel flow case.");
+
+            prm.declare_entry("turbulent_channel_domain_length_x_direction", "6.283185307179586476",
+                              dealii::Patterns::Double(0, dealii::Patterns::Double::max_double_value),
+                              "Channel domain length for x-direction. Default is 2*PI.");
+
+            prm.declare_entry("turbulent_channel_domain_length_y_direction", "2.0",
+                              dealii::Patterns::Double(0, dealii::Patterns::Double::max_double_value),
+                              "Channel domain length for y-direction. Default is 2.0.");
+
+            prm.declare_entry("turbulent_channel_domain_length_z_direction", "3.141592653589793238",
+                              dealii::Patterns::Double(0, dealii::Patterns::Double::max_double_value),
+                              "Channel domain length for x-direction. Default is PI.");
+
+            prm.declare_entry("turbulent_channel_mesh_stretching_function_type", "gullbrand",
+                              dealii::Patterns::Selection(
+                              " gullbrand | "
+                              " carton_de_wiart_et_al | "
+                              " hopw "),
+                              "The type of mesh stretching function for channel flow case. "
+                              "Choices are "
+                              " <gullbrand | "
+                              " carton_de_wiart_et_al | "
+                              " hopw>.");
+            prm.declare_entry("xvelocity_initial_condition_type", "laminar",
+                              dealii::Patterns::Selection(
+                              " laminar | "
+                              " turbulent "),
+                              "The type of x-velocity initialization. "
+                              "Choices are "
+                              " <laminar | "
+                              " turbulent>.");
+        }
+        prm.leave_subsection();
+
         prm.enter_subsection("kelvin_helmholtz_instability");
         {
             prm.declare_entry("atwood_number", "0.5",
@@ -242,6 +295,10 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                           dealii::Patterns::Bool(),
                           "Flag to adjust the last timestep such that the simulation "
                           "ends exactly at final_time. True by default.");
+
+        prm.declare_entry("do_compute_unsteady_data_and_write_to_table", "true",
+                          dealii::Patterns::Bool(),
+                          "Flag for computing unsteady data and writting to table. True by default.");
     }
     prm.leave_subsection();
 }
@@ -262,6 +319,7 @@ void FlowSolverParam::parse_parameters(dealii::ParameterHandler &prm)
         else if (flow_case_type_string == "advection")                  {flow_case_type = advection;}
         else if (flow_case_type_string == "periodic_1D_unsteady")       {flow_case_type = periodic_1D_unsteady;}
         else if (flow_case_type_string == "gaussian_bump")              {flow_case_type = gaussian_bump;}
+        else if (flow_case_type_string == "channel_flow")               {flow_case_type = channel_flow;}
         else if (flow_case_type_string == "isentropic_vortex")          {flow_case_type = isentropic_vortex;}
         else if (flow_case_type_string == "kelvin_helmholtz_instability")   
                                                                         {flow_case_type = kelvin_helmholtz_instability;}
@@ -323,6 +381,25 @@ void FlowSolverParam::parse_parameters(dealii::ParameterHandler &prm)
         }
         prm.leave_subsection();
 
+        prm.enter_subsection("channel_flow");
+        {
+            turbulent_channel_friction_velocity_reynolds_number = prm.get_double("channel_friction_velocity_reynolds_number");
+            turbulent_channel_number_of_cells_x_direction = prm.get_integer("turbulent_channel_number_of_cells_x_direction");
+            turbulent_channel_number_of_cells_y_direction = prm.get_integer("turbulent_channel_number_of_cells_y_direction");
+            turbulent_channel_number_of_cells_z_direction = prm.get_integer("turbulent_channel_number_of_cells_z_direction");
+            turbulent_channel_domain_length_x_direction = prm.get_double("turbulent_channel_domain_length_x_direction");
+            turbulent_channel_domain_length_y_direction = prm.get_double("turbulent_channel_domain_length_y_direction");
+            turbulent_channel_domain_length_z_direction = prm.get_double("turbulent_channel_domain_length_z_direction");
+            const std::string turbulent_channel_mesh_stretching_function_type_string = prm.get("turbulent_channel_mesh_stretching_function_type");
+            if      (turbulent_channel_mesh_stretching_function_type_string == "gullbrand") {turbulent_channel_mesh_stretching_function_type = gullbrand;}
+            else if (turbulent_channel_mesh_stretching_function_type_string == "hopw")      {turbulent_channel_mesh_stretching_function_type = hopw;}
+            else if (turbulent_channel_mesh_stretching_function_type_string == "carton_de_wiart_et_al") {turbulent_channel_mesh_stretching_function_type = carton_de_wiart_et_al;}
+            const std::string xvelocity_initial_condition_type_string = prm.get("xvelocity_initial_condition_type");
+            if      (xvelocity_initial_condition_type_string == "laminar")   {xvelocity_initial_condition_type = laminar;}
+            else if (xvelocity_initial_condition_type_string == "turbulent") {xvelocity_initial_condition_type = turbulent;}
+        }
+        prm.leave_subsection();
+
         prm.enter_subsection("kelvin_helmholtz_instability");
         {
             atwood_number = prm.get_double("atwood_number");
@@ -347,6 +424,7 @@ void FlowSolverParam::parse_parameters(dealii::ParameterHandler &prm)
         prm.leave_subsection();
 
         end_exactly_at_final_time = prm.get_bool("end_exactly_at_final_time");
+        do_compute_unsteady_data_and_write_to_table = prm.get_bool("do_compute_unsteady_data_and_write_to_table");
     }
     prm.leave_subsection();
 }

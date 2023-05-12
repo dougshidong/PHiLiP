@@ -2222,9 +2222,8 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_face_term(
     //    }
     //}
 #endif
-
-    // Note: This is ignored when use_periodic_bc is set to true -- this variable has no other function when dim!=1
-    if(this->all_parameters->use_periodic_bc == false) {
+    
+    if(this->all_parameters->check_same_coords_in_weak_dg) {
         check_same_coords<dim,real2>(unit_quad_pts_int, unit_quad_pts_ext, coords_coeff_int, coords_coeff_ext, fe_metric, 1e-10);
     }
 

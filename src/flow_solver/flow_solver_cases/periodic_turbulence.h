@@ -108,27 +108,31 @@ protected:
     bool do_calculate_numerical_entropy = false; ///< Identifies if numerical entropy should be calculated; initialized as false.
 
     /// Display additional more specific flow case parameters
-    void display_additional_flow_case_specific_parameters() const override;
+    virtual void display_additional_flow_case_specific_parameters() const override;
 
+public:
     /// Function to compute the constant time step
     double get_constant_time_step(std::shared_ptr<DGBase<dim,double>> dg) const override;
 
     /// Function to compute the adaptive time step
-    double get_adaptive_time_step(std::shared_ptr<DGBase<dim,double>> dg) const override;
+    virtual double get_adaptive_time_step(std::shared_ptr<DGBase<dim,double>> dg) const override;
 
     /// Function to compute the initial adaptive time step
-    double get_adaptive_time_step_initial(std::shared_ptr<DGBase<dim,double>> dg) override;
+    virtual double get_adaptive_time_step_initial(std::shared_ptr<DGBase<dim,double>> dg) override;
 
+protected:
     /// Updates the maximum local wave speed
     void update_maximum_local_wave_speed(DGBase<dim, double> &dg);
 
+public:
     /// Compute the desired unsteady data and write it to a table
-    void compute_unsteady_data_and_write_to_table(
+    virtual void compute_unsteady_data_and_write_to_table(
             const unsigned int current_iteration,
             const double current_time,
             const std::shared_ptr <DGBase<dim, double>> dg,
             const std::shared_ptr<dealii::TableHandler> unsteady_data_table) override;
 
+protected:
     /// List of possible integrated quantities over the domain
     enum IntegratedQuantitiesEnum {
         kinetic_energy,

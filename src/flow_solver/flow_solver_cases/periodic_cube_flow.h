@@ -23,7 +23,7 @@ public:
     ~PeriodicCubeFlow() {};
 
     /// Function to generate the grid
-    std::shared_ptr<Triangulation> generate_grid() const override;
+    virtual std::shared_ptr<Triangulation> generate_grid() const override;
 
 protected:
     const int number_of_cells_per_direction; ///< Number of cells per direction for the grid
@@ -35,7 +35,7 @@ protected:
     virtual void display_additional_flow_case_specific_parameters() const override;
 
     /// Display grid parameters
-    void display_grid_parameters() const;
+    virtual void display_grid_parameters() const;
 };
 
 } // FlowSolver namespace

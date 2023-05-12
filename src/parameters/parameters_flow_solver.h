@@ -26,6 +26,7 @@ public:
         advection,
         periodic_1D_unsteady,
         gaussian_bump,
+        channel_flow,
         isentropic_vortex,
         kelvin_helmholtz_instability,
         non_periodic_cube_flow
@@ -36,7 +37,7 @@ public:
     unsigned int max_poly_degree_for_adaptation; ///< Maximum polynomial order of the DG basis functions for adaptation.
     double final_time; ///< Final solution time
     double constant_time_step; ///< Constant time step
-    double courant_friedrichs_lewy_number; ///< Courant-Friedrich-Lewy (CFL) number for constant time step
+    double courant_friedrichs_lewy_number; ///< Courant-Friedrichs-Lewy (CFL) number for constant time step
 
     /** Name of the output file for writing the unsteady data;
      *  will be written to file: unsteady_data_table_filename.txt */
@@ -93,6 +94,31 @@ public:
     /// For TGV, flag to calculate and write numerical entropy
     bool do_calculate_numerical_entropy;
 
+    double turbulent_channel_friction_velocity_reynolds_number; ///< For channel flow, channel Reynolds number based on wall friction velocity
+    int turbulent_channel_number_of_cells_x_direction; ///< For channel flow, number of cells in x-direction
+    int turbulent_channel_number_of_cells_y_direction; ///< For channel flow, number of cells in y-direction
+    int turbulent_channel_number_of_cells_z_direction; ///< For channel flow, number of cells in z-direction
+    double turbulent_channel_domain_length_x_direction; ///< For channel flow, domain length in x-direction
+    double turbulent_channel_domain_length_y_direction; ///< For channel flow, domain length in y-direction
+    double turbulent_channel_domain_length_z_direction; ///< For channel flow, domain length in z-direction
+    
+    /// For turbulent channel flow, selects the type of x-velocity initialization
+    enum XVelocityInitialConditionType{
+        laminar,
+        turbulent,
+        };
+    /// Selected XVelocityInitialConditionType from the input file
+    XVelocityInitialConditionType xvelocity_initial_condition_type;
+
+    /// For turbulent channel flow, selects the type of mesh stretching function
+    enum TurbulentChannelMeshStretchingFunctionType{
+        gullbrand,
+        hopw,
+        carton_de_wiart_et_al,
+        };
+    /// Selected DensityInitialConditionType from the input file
+    TurbulentChannelMeshStretchingFunctionType turbulent_channel_mesh_stretching_function_type;
+
     /// For KHI, the atwood number
     double atwood_number;
 
@@ -117,6 +143,7 @@ public:
     std::string output_flow_field_files_directory_name; ///< Name of directory for writing flow field files
 
     bool end_exactly_at_final_time; ///< Flag to adjust the last timestep such that the simulation ends exactly at final_time
+    bool do_compute_unsteady_data_and_write_to_table;///< Flag for computing unsteady data and writting to table
 
     /// Declares the possible variables and sets the defaults.
     static void declare_parameters (dealii::ParameterHandler &prm);

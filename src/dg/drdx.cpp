@@ -252,7 +252,7 @@ namespace PHiLiP {
 //
 //                fe_values_collection_face_int.reinit (current_cell, iface, quad_index, mapping_index, fe_index_curr_cell);
 //
-//                if(current_face->at_boundary() && all_parameters->use_periodic_bc == true && dim == 1) //using periodic BCs (for 1d)
+//                if(current_face->at_boundary() && all_parameters->all_boundaries_are_periodic == true && dim == 1) //using periodic BCs (for 1d)
 //                {
 //                    int cell_index  = current_cell->index();
 //                    //int cell_index = current_cell->index();

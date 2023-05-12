@@ -86,9 +86,15 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       dealii::Patterns::Bool(),
                       "Use original form by defualt. Otherwise, use the weight adjusted low storage mass matrix for curvilinear.");
 
-    prm.declare_entry("use_periodic_bc", "false",
+    prm.declare_entry("all_boundaries_are_periodic", "false",
                       dealii::Patterns::Bool(),
-                      "Use other boundary conditions by default. Otherwise use periodic (for 1d burgers only");
+                      "Flag to signal that all boundaries are periodic; if true surface flux nodes will not be stored for efficiency. "
+                      "Default is false; hence surface flux nodes are indeed stored by default.");
+
+    prm.declare_entry("check_same_coords_in_weak_dg", "true",
+                      dealii::Patterns::Bool(),
+                      "Flag to check if the coordinates of two points are same where expected in weak DG."
+                      "Default is true; set to false if you have periodic boundaries in your domain since it currently does not consider that case and will print large warning messages.");
 
     prm.declare_entry("use_energy", "false",
                       dealii::Patterns::Bool(),
@@ -97,10 +103,6 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
     prm.declare_entry("use_L2_norm", "false",
                       dealii::Patterns::Bool(),
                       "Not calculate L2 norm by default (M+K). Otherwise, get L2 norm per iteration.");
-
-    prm.declare_entry("use_classical_FR", "false",
-                      dealii::Patterns::Bool(),
-                      "Not use Classical Flux Reconstruction by default. Otherwise, use Classical Flux Reconstruction.");
 
     prm.declare_entry("flux_reconstruction", "cDG",
                       dealii::Patterns::Selection(
@@ -235,11 +237,13 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
 
     prm.declare_entry("model_type", "large_eddy_simulation",
                       dealii::Patterns::Selection(
-                      "large_eddy_simulation | reynolds_averaged_navier_stokes"),
+                      " large_eddy_simulation |"
+                      " reynolds_averaged_navier_stokes |"
+                      " navier_stokes_model"),
                       "Enum of physics models "
                       "(i.e. model equations and/or terms additional to Navier-Stokes or a chosen underlying baseline physics)."
                       "Choices are "
-                      " <large_eddy_simulation | reynolds_averaged_navier_stokes>.");
+                      " <large_eddy_simulation | reynolds_averaged_navier_stokes | navier_stokes_model>.");
 
     prm.declare_entry("conv_num_flux", "lax_friedrichs",
                       dealii::Patterns::Selection(
@@ -361,6 +365,53 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     else if (test_string == "h_refinement_study_isentropic_vortex")     { test_type = h_refinement_study_isentropic_vortex; }
     else if (test_string == "khi_robustness")                           { test_type = khi_robustness; }
     
+    // WARNING: Must assign model_type before pde_type
+    const std::string model_string = prm.get("model_type");
+    if (model_string == "large_eddy_simulation") { model_type = large_eddy_simulation; }
+    else if (model_string == "navier_stokes_model") { model_type = navier_stokes_model; }
+    else if (model_string == "reynolds_averaged_navier_stokes") { model_type = reynolds_averaged_navier_stokes; }
+
+    const std::string pde_string = prm.get("pde_type");
+    if (pde_string == "advection") {
+        pde_type = advection;
+        nstate = 1;
+    } else if (pde_string == "advection_vector") {
+        pde_type = advection_vector;
+        nstate = 2;
+    } else if (pde_string == "diffusion") {
+        pde_type = diffusion;
+        nstate = 1;
+    } else if (pde_string == "convection_diffusion") {
+        pde_type = convection_diffusion;
+        nstate = 1;
+    } else if (pde_string == "burgers_inviscid") {
+        pde_type = burgers_inviscid;
+        nstate = dimension;
+    } else if (pde_string == "burgers_viscous") {
+        pde_type = burgers_viscous;
+        nstate = dimension;
+    } else if (pde_string == "burgers_rewienski") {
+        pde_type = burgers_rewienski;
+        nstate = dimension;
+    } else if (pde_string == "euler") {
+        pde_type = euler;
+        nstate = dimension+2;
+    }
+    else if (pde_string == "navier_stokes") {
+        pde_type = navier_stokes;
+        nstate = dimension+2;
+    }
+    else if (pde_string == "physics_model") {
+        pde_type = physics_model;
+        if (model_type == large_eddy_simulation || model_type == navier_stokes_model) {
+            nstate = dimension+2;
+        } else if (model_type == reynolds_averaged_navier_stokes) {
+            if(physics_model_param.RANS_model_type == Parameters::PhysicsModelParam::ReynoldsAveragedNavierStokesModel::SA_negative) {
+              nstate = dimension+3;
+            }
+        }
+    }
+    
     overintegration = prm.get_integer("overintegration");
 
     use_weak_form = prm.get_bool("use_weak_form");
@@ -381,10 +432,10 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
 
     use_curvilinear_split_form = prm.get_bool("use_curvilinear_split_form");
     use_weight_adjusted_mass = prm.get_bool("use_weight_adjusted_mass");
-    use_periodic_bc = prm.get_bool("use_periodic_bc");
+    all_boundaries_are_periodic = prm.get_bool("all_boundaries_are_periodic");
+    check_same_coords_in_weak_dg = prm.get_bool("check_same_coords_in_weak_dg");
     use_energy = prm.get_bool("use_energy");
     use_L2_norm = prm.get_bool("use_L2_norm");
-    use_classical_FR = prm.get_bool("use_classical_FR");
     sipg_penalty_factor = prm.get_double("sipg_penalty_factor");
     use_invariant_curl_form = prm.get_bool("use_invariant_curl_form");
     use_inverse_mass_on_the_fly = prm.get_bool("use_inverse_mass_on_the_fly");
@@ -474,59 +525,33 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     
     pcout << "Parsing functional subsection..." << std::endl;
     functional_param.parse_parameters (prm);
-
-    // WARNING: Must assign model_type before pde_type
-    const std::string model_string = prm.get("model_type");
-    if (model_string == "large_eddy_simulation") { model_type = large_eddy_simulation; }
-    else if (model_string == "reynolds_averaged_navier_stokes") { model_type = reynolds_averaged_navier_stokes; }
-
-    const std::string pde_string = prm.get("pde_type");
-    if (pde_string == "advection") {
-        pde_type = advection;
-        nstate = 1;
-    } else if (pde_string == "advection_vector") {
-        pde_type = advection_vector;
-        nstate = 2;
-    } else if (pde_string == "diffusion") {
-        pde_type = diffusion;
-        nstate = 1;
-    } else if (pde_string == "convection_diffusion") {
-        pde_type = convection_diffusion;
-        nstate = 1;
-    } else if (pde_string == "burgers_inviscid") {
-        pde_type = burgers_inviscid;
-        nstate = dimension;
-    } else if (pde_string == "burgers_viscous") {
-        pde_type = burgers_viscous;
-        nstate = dimension;
-    } else if (pde_string == "burgers_rewienski") {
-        pde_type = burgers_rewienski;
-        nstate = dimension;
-    } else if (pde_string == "euler") {
-        pde_type = euler;
-        nstate = dimension+2;
-    }
-    else if (pde_string == "navier_stokes") {
-        pde_type = navier_stokes;
-        nstate = dimension+2;
-    }
-    else if (pde_string == "physics_model") {
-        pde_type = physics_model;
-        if (model_type == large_eddy_simulation)
-        {
-            nstate = dimension+2;
-        }
-        else if (model_type == reynolds_averaged_navier_stokes)
-        {
-            if(physics_model_param.RANS_model_type == Parameters::PhysicsModelParam::ReynoldsAveragedNavierStokesModel::SA_negative)
-              nstate = dimension+3;
-        }
-    }
     
     pcout << "Parsing time refinement study subsection..." << std::endl;
     time_refinement_study_param.parse_parameters (prm);
-    
+
     pcout << "Done parsing." << std::endl;
+
+    modify_parameters();
+}
+
+void AllParameters::modify_parameters () {
+    if(flow_solver_param.flow_case_type == flow_solver_param.FlowCaseType::channel_flow) {
+      /** 
+       * Bulk velocity Reynolds number computed from friction velocity based Reynolds numbers (Empirical relation)
+       * Reference:
+       *  - R. B. Dean, "Reynolds Number Dependence of Skin Friction and Other Bulk
+       *    Flow Variables in Two-Dimensional Rectangular Duct Flow", 
+       *    Journal of Fluids Engineering, 1978 
+       * */
+      pcout << "Setting freestream parameters for channel flow case to be based on bulk velocity Reynolds number... " << std::flush;
+      const double channel_bulk_velocity_reynolds_number = pow(0.073, -4.0/7.0)*pow(2.0, 5.0/7.0)*pow(flow_solver_param.turbulent_channel_friction_velocity_reynolds_number, 8.0/7.0);
+      // - Freestream Reynolds number
+      navier_stokes_param.reynolds_number_inf = channel_bulk_velocity_reynolds_number;
+      // - Reference length
+      euler_param.ref_length = flow_solver_param.turbulent_channel_domain_length_y_direction/2.0; // corresponds to half channel height
+      
+      pcout << "done." << std::endl;
+    }
 }
 
 } // Parameters namespace

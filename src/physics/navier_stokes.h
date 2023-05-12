@@ -84,6 +84,13 @@ public:
         const std::array<real2,nstate> &primitive_soln,
         const std::array<dealii::Tensor<1,dim,real2>,nstate> &primitive_soln_gradient) const;
 
+    /** Nondimensionalized wall shear stress */
+    template<typename real2>
+    real2 compute_wall_shear_stress (
+        const std::array<real2,nstate> &conservative_soln,
+        const std::array<dealii::Tensor<1,dim,real2>,nstate> &conservative_soln_gradient,
+        const dealii::Tensor<1,dim,real2> &normal_vector) const;
+
     /** Nondimensionalized viscosity coefficient, mu*
      *  Based on the use_constant_viscosity flag, it returns a value based on either:
      *  (1) Sutherland's viscosity law, or
@@ -91,6 +98,14 @@ public:
      */
     template<typename real2>
     real2 compute_viscosity_coefficient (const std::array<real2,nstate> &primitive_soln) const;
+
+    /** Nondimensionalized viscosity coefficient, mu*
+     *  Based on the use_constant_viscosity flag, it returns a value based on either:
+     *  (1) Sutherland's viscosity law, or
+     *  (2) Constant nondimensionalized viscosity value
+     */
+    template<typename real2>
+    real2 compute_viscosity_coefficient_from_temperature (const real2 temperature) const;
 
     /** Nondimensionalized viscosity coefficient, mu*
      *  Reference: Masatsuka 2018 "I do like CFD", p.148, eq.(4.14.16)
@@ -101,6 +116,16 @@ public:
      */
     template<typename real2>
     real2 compute_viscosity_coefficient_sutherlands_law (const std::array<real2,nstate> &primitive_soln) const;
+
+    /** Nondimensionalized viscosity coefficient, mu*
+     *  Reference: Masatsuka 2018 "I do like CFD", p.148, eq.(4.14.16)
+     * 
+     *  Based on Sutherland's law for viscosity
+     * * Reference: Sutherland, W. (1893), "The viscosity of gases and molecular force", Philosophical Magazine, S. 5, 36, pp. 507-531 (1893)
+     * * Values: https://www.cfd-online.com/Wiki/Sutherland%27s_law
+     */
+    template<typename real2>
+    real2 compute_viscosity_coefficient_sutherlands_law_from_temperature (const real2 temperature) const;
 
     /** Scaled nondimensionalized viscosity coefficient, hat{mu*}, given nondimensionalized viscosity coefficient
      *  Reference: Masatsuka 2018 "I do like CFD", p.148, eq.(4.14.14)
@@ -349,6 +374,24 @@ protected:
         const std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_int,
         std::array<real,nstate> &soln_bc,
         std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_bc) const override;
+
+public:
+    /// For post processing purposes (update comment later)
+    dealii::Vector<double> post_compute_derived_quantities_vector (
+        const dealii::Vector<double>              &uh,
+        const std::vector<dealii::Tensor<1,dim> > &duh,
+        const std::vector<dealii::Tensor<2,dim> > &dduh,
+        const dealii::Tensor<1,dim>               &normals,
+        const dealii::Point<dim>                  &evaluation_points) const override;
+    
+    /// For post processing purposes, sets the base names (with no prefix or suffix) of the computed quantities
+    std::vector<std::string> post_get_names () const override;
+    
+    /// For post processing purposes, sets the interpretation of each computed quantity as either scalar or vector
+    std::vector<dealii::DataComponentInterpretation::DataComponentInterpretation> post_get_data_component_interpretation () const override;
+    
+    /// For post processing purposes (update comment later)
+    dealii::UpdateFlags post_get_needed_update_flags () const override;
 
 private:
     /// Returns the square of the magnitude of the tensor (i.e. the double dot product of a tensor with itself)

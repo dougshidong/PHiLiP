@@ -431,9 +431,82 @@ void DGBaseState<dim,nstate,real,MeshType>::update_model_variables()
 }
 
 template <int dim, int nstate, typename real, typename MeshType>
+void DGBaseState<dim,nstate,real,MeshType>::set_constant_model_variables(
+        const double channel_height,
+        const double half_channel_height,
+        const double channel_friction_velocity_reynolds_number,
+        const double channel_bulk_velocity_reynolds_number)
+{
+    // channel_height
+    pde_model_double->channel_height  = channel_height;
+    pde_model_fad->channel_height     = channel_height;
+    pde_model_rad->channel_height     = channel_height;
+    pde_model_fad_fad->channel_height = channel_height;
+    pde_model_rad_fad->channel_height = channel_height;
+
+    // half_channel_height
+    pde_model_double->half_channel_height  = half_channel_height;
+    pde_model_fad->half_channel_height     = half_channel_height;
+    pde_model_rad->half_channel_height     = half_channel_height;
+    pde_model_fad_fad->half_channel_height = half_channel_height;
+    pde_model_rad_fad->half_channel_height = half_channel_height;
+
+    // channel_friction_velocity_reynolds_number
+    pde_model_double->channel_friction_velocity_reynolds_number  = channel_friction_velocity_reynolds_number;
+    pde_model_fad->channel_friction_velocity_reynolds_number     = channel_friction_velocity_reynolds_number;
+    pde_model_rad->channel_friction_velocity_reynolds_number     = channel_friction_velocity_reynolds_number;
+    pde_model_fad_fad->channel_friction_velocity_reynolds_number = channel_friction_velocity_reynolds_number;
+    pde_model_rad_fad->channel_friction_velocity_reynolds_number = channel_friction_velocity_reynolds_number;
+
+    // channel_bulk_velocity_reynolds_number
+    pde_model_double->channel_bulk_velocity_reynolds_number  = channel_bulk_velocity_reynolds_number;
+    pde_model_fad->channel_bulk_velocity_reynolds_number     = channel_bulk_velocity_reynolds_number;
+    pde_model_rad->channel_bulk_velocity_reynolds_number     = channel_bulk_velocity_reynolds_number;
+    pde_model_fad_fad->channel_bulk_velocity_reynolds_number = channel_bulk_velocity_reynolds_number;
+    pde_model_rad_fad->channel_bulk_velocity_reynolds_number = channel_bulk_velocity_reynolds_number;
+}
+
+template <int dim, int nstate, typename real, typename MeshType>
+void DGBaseState<dim,nstate,real,MeshType>::set_unsteady_model_variables(
+        const double bulk_density,
+        const double time_step)
+{
+    // bulk_density
+    pde_model_double->bulk_density  = bulk_density;
+    pde_model_fad->bulk_density     = bulk_density;
+    pde_model_rad->bulk_density     = bulk_density;
+    pde_model_fad_fad->bulk_density = bulk_density;
+    pde_model_rad_fad->bulk_density = bulk_density;
+
+    // time_step
+    pde_model_double->time_step  = time_step;
+    pde_model_fad->time_step     = time_step;
+    pde_model_rad->time_step     = time_step;
+    pde_model_fad_fad->time_step = time_step;
+    pde_model_rad_fad->time_step = time_step;
+}
+
+template <int dim, int nstate, typename real, typename MeshType>
 void DGBaseState<dim,nstate,real,MeshType>::set_use_auxiliary_eq()
 {
     this->use_auxiliary_eq = pde_physics_double->has_nonzero_diffusion;
+}
+
+template <int dim, int nstate, typename real, typename MeshType>
+void DGBaseState<dim,nstate,real,MeshType>::set_store_vol_flux_nodes()
+{
+    //if have source term need to store vol flux nodes.
+    this->store_vol_flux_nodes = (this->all_parameters->manufactured_convergence_study_param.manufactured_solution_param.use_manufactured_source_term
+                                     || pde_physics_double->has_nonzero_physical_source);
+}
+
+template <int dim, int nstate, typename real, typename MeshType>
+void DGBaseState<dim,nstate,real,MeshType>::set_store_surf_flux_nodes()
+{
+    //if all boundaries are periodic, we do not need to store surf flux nodes.
+    //for boundary conditions not periodic we need surface flux nodes
+    //should change this flag to something like if have face on boundary not periodic in the future
+    this->store_surf_flux_nodes = (this->all_parameters->all_boundaries_are_periodic) ? false : true;
 }
 
 template <int dim, int nstate, typename real, typename MeshType>
@@ -721,11 +794,6 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
     const dealii::types::global_dof_index current_cell_index = current_cell->active_cell_index();
 
     std::array<std::vector<real>,dim> mapping_support_points;
-    //if have source term need to store vol flux nodes.
-    const bool store_vol_flux_nodes = all_parameters->manufactured_convergence_study_param.manufactured_solution_param.use_manufactured_source_term;
-    //for boundary conditions not periodic we need surface flux nodes
-    //should change this flag to something like if have face on boundary not periodic in the future
-    const bool store_surf_flux_nodes = (all_parameters->use_periodic_bc) ? false : true;
     OPERATOR::metric_operators<real,dim,2*dim> metric_oper_int(nstate, poly_degree, grid_degree,
                                                                store_vol_flux_nodes,
                                                                store_surf_flux_nodes);
@@ -2147,6 +2215,12 @@ void DGBase<dim,real,MeshType>::allocate_system (
 
     // Set use_auxiliary_eq flag
     set_use_auxiliary_eq();
+
+    // Set store_vol_flux_nodes flag
+    set_store_vol_flux_nodes();
+
+    // Set store_surf_flux_nodes flag
+    set_store_surf_flux_nodes();
 
     // Allocate for auxiliary equation only.
     allocate_auxiliary_equation ();

@@ -49,6 +49,8 @@ std::string FlowSolverCaseBase<dim, nstate>::get_pde_string() const
             else if(sgs_model==SGSModel_enum::wall_adaptive_local_eddy_viscosity) sgs_model_string = "wall_adaptive_local_eddy_viscosity";
             else if(sgs_model==SGSModel_enum::vreman) sgs_model_string = "vreman";
             pde_string += std::string(" (Model: ") + model_string + std::string(", SGS Model: ") + sgs_model_string + std::string(")");
+        } else if(model == Model_enum::navier_stokes_model) {
+            model_string = "navier_stokes_model";
         }
         else if(model == Model_enum::reynolds_averaged_navier_stokes) {
             // assign model string
@@ -146,6 +148,18 @@ double FlowSolverCaseBase<dim,nstate>::get_adaptive_time_step_initial(std::share
 
 template <int dim, int nstate>
 void FlowSolverCaseBase<dim, nstate>::steady_state_postprocessing(std::shared_ptr <DGBase<dim, double>> /*dg*/) const
+{
+    // do nothing by default
+}
+
+template <int dim, int nstate>
+void FlowSolverCaseBase<dim,nstate>::initialize_model_variables(std::shared_ptr<DGBase<dim, double>> /*dg*/) const
+{
+    // do nothing by default
+}
+
+template <int dim, int nstate>
+void FlowSolverCaseBase<dim,nstate>::update_model_variables(std::shared_ptr<DGBase<dim, double>> /*dg*/) const
 {
     // do nothing by default
 }

@@ -197,8 +197,8 @@ std::array<real, nstate> LaxFriedrichsRiemannSolverDissipation<dim,nstate,real>
     const dealii::Tensor<1,dim,real> &normal_int) const
 {
     dealii::Tensor<1,dim,real> velocity;
-    velocity[0] = 1.0;
-    velocity[1] = -1.0;
+    velocity[0] = -1.0;
+    velocity[1] = 10.0;
 
     real normal_dot_velocity = 0.0;
     for(unsigned int idim = 0; idim < dim; ++idim)

@@ -176,7 +176,7 @@ int ConvectionDiffusionPeriodic<dim, nstate>::run_test() const
         // allocate dg
         std::shared_ptr < PHiLiP::DGBase<dim, double> > dg = PHiLiP::DGFactory<dim,double>::create_discontinuous_galerkin(&all_parameters_new, poly_degree, poly_degree, grid_degree, grid);
         this->pcout << "dg created" <<std::endl;
-        dg->allocate_system ();
+        dg->allocate_system (false,false,false);
 
         this->pcout << "Setting up Initial Condition" << std::endl;
         // Create initial condition function

@@ -2,7 +2,7 @@
 # Number of dimensions
 set dimension = 3
 
-set test_type = euler_split_taylor_green
+set test_type = taylor_green_scaling
 
 set use_weak_form = false
 
@@ -10,15 +10,15 @@ set flux_nodes_type = GL
 
 set renumber_dof_handler_Cuthill_Mckee = false
 
-set overintegration = 2
+set overintegration = 0
 
 set use_split_form = true
 
 set two_point_num_flux_type = Ra
 
-set use_curvilinear_split_form = true
+set use_curvilinear_split_form = false
 
-set energy_file = cplus_curv_not_weight_adj
+set energy_file = cplus_split_form
 
 # The PDE we want to solve
 set pde_type = euler
@@ -35,8 +35,9 @@ set use_inverse_mass_on_the_fly = true
 
 set use_weight_adjusted_mass = true
 
-set all_boundaries_are_periodic = true
-set check_same_coords_in_weak_dg = false
+set use_periodic_bc = true
+
+set use_classical_FR = false
 
 set enable_higher_order_vtk_output = true
 
@@ -52,8 +53,7 @@ subsection ODE solver
 
   set initial_time_step = 0.001
 
- # set output_solution_every_x_steps = 50
-  set output_solution_every_x_steps = -1
+  set output_solution_every_x_steps = 50
 
   set runge_kutta_method = rk4_ex
 
@@ -67,7 +67,7 @@ end
 subsection flow_solver
     set flow_case_type = taylor_green_vortex
     set apply_initial_condition_method = project_initial_condition_function
-    set poly_degree = 3
+    set poly_degree = 1
     set final_time = 14.0
     subsection grid
         set number_of_grid_elements_per_dimension = 2

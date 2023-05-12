@@ -42,6 +42,9 @@
 #include "operators/operators.h"
 #include "artificial_dissipation_factory.h"
 
+#include <time.h>
+#include <deal.II/base/timer.h>
+
 // Template specialization of MappingFEField
 //extern template class dealii::MappingFEField<PHILIP_DIM,PHILIP_DIM,dealii::LinearAlgebra::distributed::Vector<double>, dealii::DoFHandler<PHILIP_DIM> >;
 namespace PHiLiP {
@@ -219,6 +222,8 @@ public:
         OPERATOR::basis_functions<dim,2*dim> &flux_basis_int,
         OPERATOR::basis_functions<dim,2*dim> &flux_basis_ext,
         OPERATOR::local_basis_stiffness<dim,2*dim> &flux_basis_stiffness,
+        OPERATOR::vol_projection_operator<dim,2*dim> &soln_basis_projection_oper_int,
+        OPERATOR::vol_projection_operator<dim,2*dim> &soln_basis_projection_oper_ext,
         OPERATOR::mapping_shape_functions<dim,2*dim> &mapping_basis);
 
     /// Builds needed operators to compute mass matrices/inverses efficiently.
@@ -568,6 +573,8 @@ public:
         OPERATOR::basis_functions<dim,2*dim> &flux_basis_int,
         OPERATOR::basis_functions<dim,2*dim> &flux_basis_ext,
         OPERATOR::local_basis_stiffness<dim,2*dim> &flux_basis_stiffness,
+        OPERATOR::vol_projection_operator<dim,2*dim> &soln_basis_projection_oper_int,
+        OPERATOR::vol_projection_operator<dim,2*dim> &soln_basis_projection_oper_ext,
         OPERATOR::mapping_shape_functions<dim,2*dim> &mapping_basis,
         const bool compute_auxiliary_right_hand_side,//flag on whether computing the Auxiliary variable's equations' residuals
         dealii::LinearAlgebra::distributed::Vector<double> &rhs,
@@ -639,6 +646,10 @@ public:
     /// Sets the current time within DG to be used for unsteady source terms.
     void set_current_time(const real current_time_input);
 
+    /// Computational time for assembling residual.
+   // clock_t assemble_residual_time;
+    double assemble_residual_time;
+
 protected:
     /// The current time set in set_current_time()
     real current_time;
@@ -662,6 +673,8 @@ protected:
         OPERATOR::basis_functions<dim,2*dim>                   &soln_basis,
         OPERATOR::basis_functions<dim,2*dim>                   &flux_basis,
         OPERATOR::local_basis_stiffness<dim,2*dim>             &flux_basis_stiffness,
+        OPERATOR::vol_projection_operator<dim,2*dim>           &soln_basis_projection_oper_int,
+        OPERATOR::vol_projection_operator<dim,2*dim>           &soln_basis_projection_oper_ext,
         OPERATOR::metric_operators<real,dim,2*dim>             &metric_oper,
         OPERATOR::mapping_shape_functions<dim,2*dim>           &mapping_basis,
         std::array<std::vector<real>,dim>                      &mapping_support_points,
@@ -687,6 +700,8 @@ protected:
         OPERATOR::basis_functions<dim,2*dim>                   &soln_basis,
         OPERATOR::basis_functions<dim,2*dim>                   &flux_basis,
         OPERATOR::local_basis_stiffness<dim,2*dim>             &flux_basis_stiffness,
+        OPERATOR::vol_projection_operator<dim,2*dim>           &soln_basis_projection_oper_int,
+        OPERATOR::vol_projection_operator<dim,2*dim>           &soln_basis_projection_oper_ext,
         OPERATOR::metric_operators<real,dim,2*dim>             &metric_oper,
         OPERATOR::mapping_shape_functions<dim,2*dim>           &mapping_basis,
         std::array<std::vector<real>,dim>                      &mapping_support_points,
@@ -719,6 +734,8 @@ protected:
         OPERATOR::basis_functions<dim,2*dim>                   &flux_basis_int,
         OPERATOR::basis_functions<dim,2*dim>                   &flux_basis_ext,
         OPERATOR::local_basis_stiffness<dim,2*dim>             &flux_basis_stiffness,
+        OPERATOR::vol_projection_operator<dim,2*dim>           &soln_basis_projection_oper_int,
+        OPERATOR::vol_projection_operator<dim,2*dim>           &soln_basis_projection_oper_ext,
         OPERATOR::metric_operators<real,dim,2*dim>             &metric_oper_int,
         OPERATOR::metric_operators<real,dim,2*dim>             &metric_oper_ext,
         OPERATOR::mapping_shape_functions<dim,2*dim>           &mapping_basis,
@@ -756,6 +773,8 @@ protected:
         OPERATOR::basis_functions<dim,2*dim>                   &flux_basis_int,
         OPERATOR::basis_functions<dim,2*dim>                   &flux_basis_ext,
         OPERATOR::local_basis_stiffness<dim,2*dim>             &flux_basis_stiffness,
+        OPERATOR::vol_projection_operator<dim,2*dim>           &soln_basis_projection_oper_int,
+        OPERATOR::vol_projection_operator<dim,2*dim>           &soln_basis_projection_oper_ext,
         OPERATOR::metric_operators<real,dim,2*dim>             &metric_oper_int,
         OPERATOR::metric_operators<real,dim,2*dim>             &metric_oper_ext,
         OPERATOR::mapping_shape_functions<dim,2*dim>           &mapping_basis,
@@ -881,6 +900,11 @@ public:
 
     /// Asembles the auxiliary equations' residuals and solves.
     virtual void assemble_auxiliary_residual () = 0;
+
+    /// Allocate the dual vector for optimization.
+    /** Currently only used in weak form.
+    */
+    virtual void allocate_dual_vector () = 0;
 
 protected:
     MPI_Comm mpi_communicator; ///< MPI communicator

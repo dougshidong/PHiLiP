@@ -1,19 +1,21 @@
 #include <fstream>
 #include "dg/dg_factory.hpp"
-#include "euler_split_inviscid_taylor_green_vortex.h"
+#include "TGV_scaling.h"
 #include "physics/initial_conditions/set_initial_condition.h"
 #include "physics/initial_conditions/initial_condition_function.h"
 #include "mesh/grids/nonsymmetric_curved_periodic_grid.hpp"
+#include <time.h>
+#include <deal.II/base/timer.h>
 
 namespace PHiLiP {
 namespace Tests {
 
 template <int dim, int nstate>
-EulerTaylorGreen<dim, nstate>::EulerTaylorGreen(const Parameters::AllParameters *const parameters_input)
+EulerTaylorGreenScaling<dim, nstate>::EulerTaylorGreenScaling(const Parameters::AllParameters *const parameters_input)
     : TestsBase::TestsBase(parameters_input)
 {}
 template<int dim, int nstate>
-std::array<double,2> EulerTaylorGreen<dim, nstate>::compute_change_in_entropy(std::shared_ptr < DGBase<dim, double> > &dg, unsigned int poly_degree) const
+std::array<double,2> EulerTaylorGreenScaling<dim, nstate>::compute_change_in_entropy(std::shared_ptr < DGBase<dim, double> > &dg, unsigned int poly_degree) const
 {
     const unsigned int n_dofs_cell = dg->fe_collection[poly_degree].dofs_per_cell;
     const unsigned int n_quad_pts = dg->volume_quadrature_collection[poly_degree].size();
@@ -93,7 +95,7 @@ std::array<double,2> EulerTaylorGreen<dim, nstate>::compute_change_in_entropy(st
 }
 
 template<int dim, int nstate>
-double EulerTaylorGreen<dim, nstate>::compute_entropy(std::shared_ptr < DGBase<dim, double> > &dg, unsigned int poly_degree) const
+double EulerTaylorGreenScaling<dim, nstate>::compute_entropy(std::shared_ptr < DGBase<dim, double> > &dg, unsigned int poly_degree) const
 {
     //returns the entropy evaluated in the broken Sobolev-norm rather than L2-norm
     dealii::LinearAlgebra::distributed::Vector<double> mass_matrix_times_solution(dg->right_hand_side);
@@ -167,7 +169,7 @@ double EulerTaylorGreen<dim, nstate>::compute_entropy(std::shared_ptr < DGBase<d
 }
 
 template<int dim, int nstate>
-double EulerTaylorGreen<dim, nstate>::compute_kinetic_energy(std::shared_ptr < DGBase<dim, double> > &dg, unsigned int poly_degree) const
+double EulerTaylorGreenScaling<dim, nstate>::compute_kinetic_energy(std::shared_ptr < DGBase<dim, double> > &dg, unsigned int poly_degree) const
 {
     //returns the energy in the L2-norm (physically relevant)
     int overintegrate = 10 ;
@@ -210,7 +212,7 @@ double EulerTaylorGreen<dim, nstate>::compute_kinetic_energy(std::shared_ptr < D
 }
 
 template<int dim, int nstate>
-double EulerTaylorGreen<dim, nstate>::get_timestep(std::shared_ptr < DGBase<dim, double> > &dg, unsigned int poly_degree, const double delta_x) const
+double EulerTaylorGreenScaling<dim, nstate>::get_timestep(std::shared_ptr < DGBase<dim, double> > &dg, unsigned int poly_degree, const double delta_x) const
 {
     //get local CFL
     const unsigned int n_dofs_cell = nstate*pow(poly_degree+1,dim);
@@ -221,7 +223,6 @@ double EulerTaylorGreen<dim, nstate>::get_timestep(std::shared_ptr < DGBase<dim,
     std::shared_ptr < Physics::PhysicsBase<dim, nstate, double > > pde_physics_double  = PHiLiP::Physics::PhysicsFactory<dim,nstate,double>::create_Physics(dg->all_parameters);
     for (auto cell = dg->dof_handler.begin_active(); cell!=dg->dof_handler.end(); ++cell) {
         if (!cell->is_locally_owned()) continue;
-
         cell->get_dof_indices (dofs_indices1);
         std::vector< std::array<double,nstate>> soln_at_q(n_quad_pts);
         for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
@@ -253,7 +254,7 @@ double EulerTaylorGreen<dim, nstate>::get_timestep(std::shared_ptr < DGBase<dim,
 }
 
 template <int dim, int nstate>
-int EulerTaylorGreen<dim, nstate>::run_test() const
+int EulerTaylorGreenScaling<dim, nstate>::run_test() const
 {
     // using Triangulation = dealii::parallel::distributed::Triangulation<dim>;
     // std::shared_ptr<Triangulation> grid = std::make_shared<Triangulation> (mpi_communicator);
@@ -269,89 +270,110 @@ int EulerTaylorGreen<dim, nstate>::run_test() const
     PHiLiP::Parameters::AllParameters all_parameters_new = *all_parameters;  
     double left = 0.0;
     double right = 2 * dealii::numbers::PI;
-//    const int n_refinements = 2;
+
     const unsigned int n_refinements = all_parameters->flow_solver_param.number_of_grid_elements_per_dimension;
-//    unsigned int poly_degree = 3;
-    const unsigned int poly_degree= all_parameters->flow_solver_param.poly_degree;
-
-    // set the warped grid
-    const unsigned int grid_degree = poly_degree;
-    PHiLiP::Grids::nonsymmetric_curved_grid<dim,Triangulation>(*grid, n_refinements);
-
-//    const unsigned int grid_degree = 1;
-//    const bool colorize = true;
-//    dealii::GridGenerator::hyper_cube(*grid, left, right, colorize);
-//    std::vector<dealii::GridTools::PeriodicFacePair<typename dealii::Triangulation<PHILIP_DIM>::cell_iterator> > matched_pairs;
-//    dealii::GridTools::collect_periodic_faces(*grid,0,1,0,matched_pairs);
-//    dealii::GridTools::collect_periodic_faces(*grid,2,3,1,matched_pairs);
-//    dealii::GridTools::collect_periodic_faces(*grid,4,5,2,matched_pairs);
-//    grid->add_periodicity(matched_pairs);
-//    grid->refine_global(n_refinements);
-
-    // Create DG
-    std::shared_ptr < PHiLiP::DGBase<dim, double> > dg = PHiLiP::DGFactory<dim,double>::create_discontinuous_galerkin(&all_parameters_new, poly_degree, poly_degree, grid_degree, grid);
-    dg->allocate_system (false,false,false);
-
-    std::cout << "Implement initial conditions" << std::endl;
-    std::shared_ptr< InitialConditionFunction<dim,nstate,double> > initial_condition_function = 
-                InitialConditionFactory<dim,nstate,double>::create_InitialConditionFunction(&all_parameters_new);
-    SetInitialCondition<dim,nstate,double>::set_initial_condition(initial_condition_function, dg, &all_parameters_new);
-
-    const unsigned int n_global_active_cells2 = grid->n_global_active_cells();
-    double delta_x = (right-left)/pow(n_global_active_cells2,1.0/dim)/(poly_degree+1.0);
-    pcout<<" delta x "<<delta_x<<std::endl;
-
-    all_parameters_new.ode_solver_param.initial_time_step =  get_timestep(dg,poly_degree,delta_x);
-     
-    std::cout << "creating ODE solver" << std::endl;
-    std::shared_ptr<ODE::ODESolverBase<dim, double>> ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
-    std::cout << "ODE solver successfully created" << std::endl;
-    const double finalTime = all_parameters_new.flow_solver_param.final_time;
-
-    std::cout << " number dofs " << dg->dof_handler.n_dofs()<<std::endl;
-    std::cout << "preparing to advance solution in time" << std::endl;
+    if(all_parameters->use_curvilinear_grid){
+        //if curvilinear
+        PHiLiP::Grids::nonsymmetric_curved_grid<dim,Triangulation>(*grid, n_refinements);
+    }
+    else{
+        //if straight
+        const bool colorize = true;
+        dealii::GridGenerator::hyper_cube(*grid, left, right, colorize);
+        std::vector<dealii::GridTools::PeriodicFacePair<typename dealii::Triangulation<PHILIP_DIM>::cell_iterator> > matched_pairs;
+        dealii::GridTools::collect_periodic_faces(*grid,0,1,0,matched_pairs);
+        dealii::GridTools::collect_periodic_faces(*grid,2,3,1,matched_pairs);
+        dealii::GridTools::collect_periodic_faces(*grid,4,5,2,matched_pairs);
+        grid->add_periodicity(matched_pairs);
+        grid->refine_global(n_refinements);
+    }
 
     std::ofstream myfile (all_parameters_new.energy_file + ".gpl"  , std::ios::trunc);
+    const unsigned int poly_degree_start= all_parameters->flow_solver_param.poly_degree;
 
-    ode_solver->current_iteration = 0;
-    ode_solver->allocate_ode_system();
+    const unsigned int poly_degree_end = 25;
+    std::array<double,poly_degree_end> time_to_run;
+    std::array<double,poly_degree_end> time_to_run_mpi;
 
-    const double initial_energy = compute_kinetic_energy(dg, poly_degree);
-    const double initial_energy_mpi = (dealii::Utilities::MPI::sum(initial_energy, mpi_communicator));
-    while(ode_solver->current_time < finalTime){
-        const double time_step =  get_timestep(dg,poly_degree, delta_x);
-        if(ode_solver->current_iteration%all_parameters_new.ode_solver_param.print_iteration_modulo==0)
-            pcout<<"time step "<<time_step<<" current time "<<ode_solver->current_time<<std::endl;
-        const double dt = dealii::Utilities::MPI::min(time_step, mpi_communicator);
-        ode_solver->step_in_time(dt, false);
-        ode_solver->current_iteration += 1;
-        const bool is_output_iteration = (ode_solver->current_iteration % all_parameters_new.ode_solver_param.output_solution_every_x_steps == 0);
-        if (is_output_iteration) {
-            const int file_number = ode_solver->current_iteration / all_parameters_new.ode_solver_param.output_solution_every_x_steps;
-            dg->output_results_vtk(file_number);
+    for(unsigned int poly_degree = poly_degree_start; poly_degree<poly_degree_end; poly_degree++){
+
+        // set the warped grid
+        const unsigned int grid_degree = (all_parameters->use_curvilinear_grid) ? poly_degree : 1;
+         
+        if(all_parameters->overintegration == 100){
+            if(all_parameters->use_curvilinear_grid){
+                all_parameters_new.overintegration = 2*(poly_degree+1);
+            }
+            else{
+                all_parameters_new.overintegration = poly_degree+1;
+            }
+        }
+         
+        // Create DG
+        std::shared_ptr < PHiLiP::DGBase<dim, double> > dg = PHiLiP::DGFactory<dim,double>::create_discontinuous_galerkin(&all_parameters_new, poly_degree, poly_degree, grid_degree, grid);
+        dg->allocate_system (false,false,false);
+         
+        MPI_Barrier(MPI_COMM_WORLD);
+        std::cout << "Implement initial conditions" << std::endl;
+        MPI_Barrier(MPI_COMM_WORLD);
+        std::shared_ptr< InitialConditionFunction<dim,nstate,double> > initial_condition_function = 
+                    InitialConditionFactory<dim,nstate,double>::create_InitialConditionFunction(&all_parameters_new);
+        SetInitialCondition<dim,nstate,double>::set_initial_condition(initial_condition_function, dg, &all_parameters_new);
+        std::cout << "Implemented initial conditions" << std::endl;
+        MPI_Barrier(MPI_COMM_WORLD);
+         
+        std::shared_ptr<ODE::ODESolverBase<dim, double>> ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
+        MPI_Barrier(MPI_COMM_WORLD);
+        std::cout << "ODE solver successfully created. This verifies no memory jump from ODE Solver." << std::endl;
+         
+         
+        ode_solver->current_iteration = 0;
+        ode_solver->allocate_ode_system();
+        dealii::LinearAlgebra::distributed::Vector<double> solution_update;
+        solution_update.reinit(dg->locally_owned_dofs, dg->ghost_dofs, this->mpi_communicator);
+
+        for(unsigned int i_step=0; i_step<10; i_step++){
+            dg->assemble_residual();
+            if(all_parameters->use_inverse_mass_on_the_fly){
+                dg->apply_inverse_global_mass_matrix(dg->right_hand_side, solution_update); //rk_stage[i] = IMM*RHS = F(u_n + dt*sum(a_ij*k_j))
+            } else{
+                dg->global_inverse_mass_matrix.vmult(solution_update, dg->right_hand_side); //rk_stage[i] = IMM*RHS = F(u_n + dt*sum(a_ij*k_j))
+            }
         }
 
-        const std::array<double,2> current_change_entropy = compute_change_in_entropy(dg, poly_degree);
-        const double current_change_entropy_mpi = dealii::Utilities::MPI::sum(current_change_entropy[0], mpi_communicator);
-        const double current_change_energy_mpi = dealii::Utilities::MPI::sum(current_change_entropy[1], mpi_communicator);
-        myfile<<ode_solver->current_time<<" "<< current_change_entropy_mpi <<std::endl;
-        pcout << "M plus K norm Change in Entropy at time " << ode_solver->current_time << " is " << current_change_entropy_mpi<< std::endl;
-        pcout << "M plus K norm Change in Kinetic Energy at time " << ode_solver->current_time << " is " << current_change_energy_mpi<< std::endl;
-        const double current_energy = compute_kinetic_energy(dg, poly_degree);
-        const double current_energy_mpi = (dealii::Utilities::MPI::sum(current_energy, mpi_communicator));
-        pcout << "Normalized kinetic energy " << ode_solver->current_time << " is " << current_energy_mpi/initial_energy_mpi<< std::endl;
-        if(abs(current_change_entropy[0]) > 1e-12 && (dg->all_parameters->two_point_num_flux_type == Parameters::AllParameters::TwoPointNumericalFlux::IR || dg->all_parameters->two_point_num_flux_type == Parameters::AllParameters::TwoPointNumericalFlux::CH || dg->all_parameters->two_point_num_flux_type == Parameters::AllParameters::TwoPointNumericalFlux::Ra)){
-          pcout << " Entropy was not monotonically decreasing" << std::endl;
-          return 1;
+        time_to_run[poly_degree] = dg->assemble_residual_time;
+        time_to_run_mpi[poly_degree] = dealii::Utilities::MPI::sum(time_to_run[poly_degree], this->mpi_communicator);
+        pcout<<"Poly Degree "<<poly_degree<<" time to run Mpi "<<std::fixed << std::setprecision(16) << (double)time_to_run_mpi[poly_degree]<<std::endl;
+        myfile << poly_degree << " " << std::fixed << std::setprecision(16) << time_to_run_mpi[poly_degree]<< std::endl;
+    }//end of poly loop
+
+    myfile.close();
+    double avg_slope1 = 0.0;
+    pcout<<"Times for one timestep"<<std::endl;
+    pcout<<"local time  | Slope |  "<<"MPI sum time | Slope "<<std::endl;
+    for(unsigned int i=poly_degree_start+1; i<poly_degree_end; i++){
+        pcout<<(double)time_to_run[i]<<" "<<std::log(((double)time_to_run[i]) / ((double)time_to_run[i-1]))
+                        / std::log((double)((i+1.0)/(i)))<<" "<<
+        (double)time_to_run_mpi[i]<<" "<<std::log(((double)time_to_run_mpi[i]) /( (double)time_to_run_mpi[i-1]))
+                        / std::log((double)((i+1.0)/(i)))<<
+        std::endl;
+        if(i>poly_degree_end-4){
+            avg_slope1 += std::log(((double)time_to_run[i]) /( (double)time_to_run_mpi[i-1]))
+                        / std::log((double)((i+1.0)/(i)));
         }
     }
-    myfile.close();
+    avg_slope1 /= (3.0);
+
+    if(abs(dim + 1 - avg_slope1) > 0.1){
+        pcout<<"Did not scale at dim + 1. Instead scaled at "<<avg_slope1<<std::endl;
+        return 1;
+    }
 
     return 0;
 }
 
 #if PHILIP_DIM==3
-    template class EulerTaylorGreen <PHILIP_DIM,PHILIP_DIM+2>;
+    template class EulerTaylorGreenScaling <PHILIP_DIM,PHILIP_DIM+2>;
 #endif
 
 } // Tests namespace

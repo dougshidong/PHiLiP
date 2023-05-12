@@ -38,6 +38,9 @@ public:
      */
     void assemble_auxiliary_residual ();
 
+    /// Allocate the dual vector for optimization.
+    void allocate_dual_vector ();
+
 private:
     /// Assembles the auxiliary equations' cell residuals.
     template<typename DoFCellAccessorType1, typename DoFCellAccessorType2>
@@ -58,6 +61,8 @@ protected:
         OPERATOR::basis_functions<dim,2*dim>                   &soln_basis,
         OPERATOR::basis_functions<dim,2*dim>                   &flux_basis,
         OPERATOR::local_basis_stiffness<dim,2*dim>             &flux_basis_stiffness,
+        OPERATOR::vol_projection_operator<dim,2*dim>           &soln_basis_projection_oper_int,
+        OPERATOR::vol_projection_operator<dim,2*dim>           &soln_basis_projection_oper_ext,
         OPERATOR::metric_operators<real,dim,2*dim>             &metric_oper,
         OPERATOR::mapping_shape_functions<dim,2*dim>           &mapping_basis,
         std::array<std::vector<real>,dim>                      &mapping_support_points,
@@ -83,6 +88,8 @@ protected:
         OPERATOR::basis_functions<dim,2*dim>                   &soln_basis,
         OPERATOR::basis_functions<dim,2*dim>                   &flux_basis,
         OPERATOR::local_basis_stiffness<dim,2*dim>             &flux_basis_stiffness,
+        OPERATOR::vol_projection_operator<dim,2*dim>           &soln_basis_projection_oper_int,
+        OPERATOR::vol_projection_operator<dim,2*dim>           &soln_basis_projection_oper_ext,
         OPERATOR::metric_operators<real,dim,2*dim>             &metric_oper,
         OPERATOR::mapping_shape_functions<dim,2*dim>           &mapping_basis,
         std::array<std::vector<real>,dim>                      &mapping_support_points,
@@ -115,6 +122,8 @@ protected:
         OPERATOR::basis_functions<dim,2*dim>                   &flux_basis_int,
         OPERATOR::basis_functions<dim,2*dim>                   &flux_basis_ext,
         OPERATOR::local_basis_stiffness<dim,2*dim>             &flux_basis_stiffness,
+        OPERATOR::vol_projection_operator<dim,2*dim>           &soln_basis_projection_oper_int,
+        OPERATOR::vol_projection_operator<dim,2*dim>           &soln_basis_projection_oper_ext,
         OPERATOR::metric_operators<real,dim,2*dim>             &metric_oper_int,
         OPERATOR::metric_operators<real,dim,2*dim>             &metric_oper_ext,
         OPERATOR::mapping_shape_functions<dim,2*dim>           &mapping_basis,
@@ -154,6 +163,8 @@ protected:
         OPERATOR::basis_functions<dim,2*dim>                   &flux_basis_int,
         OPERATOR::basis_functions<dim,2*dim>                   &flux_basis_ext,
         OPERATOR::local_basis_stiffness<dim,2*dim>             &flux_basis_stiffness,
+        OPERATOR::vol_projection_operator<dim,2*dim>           &soln_basis_projection_oper_int,
+        OPERATOR::vol_projection_operator<dim,2*dim>           &soln_basis_projection_oper_ext,
         OPERATOR::metric_operators<real,dim,2*dim>             &metric_oper_int,
         OPERATOR::metric_operators<real,dim,2*dim>             &metric_oper_ext,
         OPERATOR::mapping_shape_functions<dim,2*dim>           &mapping_basis,
@@ -243,6 +254,7 @@ protected:
         OPERATOR::basis_functions<dim,2*dim>               &soln_basis,
         OPERATOR::basis_functions<dim,2*dim>               &flux_basis,
         OPERATOR::local_basis_stiffness<dim,2*dim>         &flux_basis_stiffness,
+        OPERATOR::vol_projection_operator<dim,2*dim>       &soln_basis_projection_oper,
         OPERATOR::metric_operators<real,dim,2*dim>         &metric_oper,
         dealii::Vector<real>                               &local_rhs_int_cell);
 
@@ -282,6 +294,8 @@ protected:
         OPERATOR::basis_functions<dim,2*dim>               &soln_basis_ext,
         OPERATOR::basis_functions<dim,2*dim>               &flux_basis_int,
         OPERATOR::basis_functions<dim,2*dim>               &flux_basis_ext,
+        OPERATOR::vol_projection_operator<dim,2*dim>       &soln_basis_projection_oper_int,
+        OPERATOR::vol_projection_operator<dim,2*dim>       &soln_basis_projection_oper_ext,
         OPERATOR::metric_operators<real,dim,2*dim>         &metric_oper_int,
         OPERATOR::metric_operators<real,dim,2*dim>         &metric_oper_ext,
         dealii::Vector<real>                               &local_rhs_int_cell,

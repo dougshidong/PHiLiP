@@ -438,9 +438,9 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     if (flux_reconstruction_aux_string == "k10Thousand") { flux_reconstruction_aux_type = k10Thousand; }
 
     const std::string non_physical_behavior_string = prm.get("non_physical_behavior");
-    if (non_physical_behavior_string == "return_big_number")       { non_physical_behavior_type = return_big_number;}
-    if (non_physical_behavior_string == "abort_run")        { non_physical_behavior_type = abort_run;}
-    if (non_physical_behavior_string == "print_warning")    { non_physical_behavior_type = print_warning;}
+    if (non_physical_behavior_string == "return_big_number") { non_physical_behavior_type = NonPhysicalBehaviorEnum::return_big_number;}
+    if (non_physical_behavior_string == "abort_run")         { non_physical_behavior_type = NonPhysicalBehaviorEnum::abort_run;}
+    if (non_physical_behavior_string == "print_warning")     { non_physical_behavior_type = NonPhysicalBehaviorEnum::print_warning;}
 
     solution_vtk_files_directory_name = prm.get("solution_vtk_files_directory_name");
     output_high_order_grid = prm.get_bool("output_high_order_grid");

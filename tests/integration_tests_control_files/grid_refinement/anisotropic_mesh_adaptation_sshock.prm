@@ -90,8 +90,8 @@ subsection manufactured solution convergence study
   #set manufactured_solution_type   = s_shock_solution
 
   # setting the advection vector
-  set advection_0 = -1.0
-  set advection_1 = 10.0 # -pi/e
+  set advection_0 = -0.27
+  set advection_1 = 1.0 # -pi/e
 end
 
 subsection flow_solver

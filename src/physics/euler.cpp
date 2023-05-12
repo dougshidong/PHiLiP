@@ -154,14 +154,17 @@ std::array<real,nstate> Euler<dim,nstate,real>
 template <int dim, int nstate, typename real>
 template<typename real2>
 bool Euler<dim,nstate,real>::check_positive_quantity(real2 &qty, const std::string qty_name) const {
+    bool qty_is_positive;
     if (qty < 0.0) {
         // Refer to base class for non-physical results handling
         // Compiler complains unless we explicitly specify "template"
         qty = this->template handle_non_physical_result<real2>(qty_name + " is negative.");
-        return false;
+        qty_is_positive = false;
     } else {
-        return true;
+        qty_is_positive = true;
     }
+
+    return qty_is_positive;
 }
 
 template <int dim, int nstate, typename real>

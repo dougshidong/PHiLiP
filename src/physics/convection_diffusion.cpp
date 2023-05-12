@@ -27,7 +27,16 @@ void ConvectionDiffusion<dim,nstate,real>
     std::array<real,nstate> boundary_values;
     std::array<dealii::Tensor<1,dim,real>,nstate> boundary_gradients;
     for (int i=0; i<nstate; i++) {
-        boundary_values[i] = this->manufactured_solution_function->value (pos, i);
+        //boundary_values[i] = this->manufactured_solution_function->value (pos, i);
+        if(pos[1] >= 0.5)
+        {
+            boundary_values[i] = 1.0;
+        }
+        else
+        {
+            boundary_values[i] = 0.0;
+        }
+
         boundary_gradients[i] = this->manufactured_solution_function->gradient (pos, i);
     }
 

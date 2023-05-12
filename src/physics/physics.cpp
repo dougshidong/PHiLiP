@@ -208,16 +208,16 @@ real2 PhysicsBase<dim,nstate,real>
 ::handle_non_physical_result(const std::string message) const
 {
     if (this->non_physical_behavior_type == NonPhysicalBehaviorEnum::abort_run) {
-        this->pcout << "ERROR: Non-physical result has been detected. ";
+        std::cout << "ERROR: Non-physical result has been detected. ";
         if (message != "") {
-            this->pcout << std::endl << "    Message: " << message << std::endl;
+            std::cout << std::endl << "    Message: " << message << std::endl;
         }
-        this->pcout << " Aborting... " << std::endl << std::flush;
+        std::cout << " Aborting... " << std::endl << std::flush;
         std::abort();
     } else if (this->non_physical_behavior_type == NonPhysicalBehaviorEnum::print_warning) {
-        this->pcout << "WARNING: Non-physical result has been detected at a node." << std::endl;
+        std::cout << "WARNING: Non-physical result has been detected at a node." << std::endl;
         if (message != "") {
-            this->pcout << std::endl << "    Message: " << message << std::endl;
+            std::cout << std::endl << "    Message: " << message << std::endl;
         }
     } else if (this->non_physical_behavior_type == NonPhysicalBehaviorEnum::return_big_number) {
         // do nothing -- assume that the test or iterative solver can handle this.

@@ -119,6 +119,18 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       "Flux Reconstruction for Auxiliary Equation. "
                       "Choices are <kDG | kSD | kHU | kNegative | kNegative2 | kPlus | k10Thousand>.");
 
+    prm.declare_entry("number_ESFR_parameter_values", "1",
+                      dealii::Patterns::Integer(),
+                      "Number of tested ESFR parameter values");
+
+    prm.declare_entry("ESFR_parameter_values_start", "1e-3",
+                      dealii::Patterns::Double(0.0, dealii::Patterns::Double::max_double_value),
+                      "Minimum ESFR parameter values >0 since logspace vector");
+
+    prm.declare_entry("ESFR_parameter_values_end", "1e-3",
+                      dealii::Patterns::Double(0.0, dealii::Patterns::Double::max_double_value),
+                      "Maximum ESFR parameter values >0 since logspace vector");
+
     prm.declare_entry("sipg_penalty_factor", "1.0",
                       dealii::Patterns::Double(1.0,1e200),
                       "Scaling of Symmetric Interior Penalty term to ensure coercivity.");
@@ -288,6 +300,7 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       dealii::Patterns::Bool(),
                       "Outputs the surface solution vtk files. False by default");
 
+
     Parameters::LinearSolverParam::declare_parameters (prm);
     Parameters::ManufacturedConvergenceStudyParam::declare_parameters (prm);
     Parameters::ODESolverParam::declare_parameters (prm);
@@ -422,6 +435,9 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
                                                      { flux_reconstruction_type = user_specified_value; }
 
     FR_user_specified_correction_parameter_value = prm.get_double("FR_user_specified_correction_parameter_value");
+    number_ESFR_parameter_values = prm.get_integer("number_ESFR_parameter_values");
+    ESFR_parameter_values_start = prm.get_double("ESFR_parameter_values_start");
+    ESFR_parameter_values_end = prm.get_double("ESFR_parameter_values_end");
 
     const std::string flux_reconstruction_aux_string = prm.get("flux_reconstruction_aux");
     if (flux_reconstruction_aux_string == "kDG")         { flux_reconstruction_aux_type = kDG; }

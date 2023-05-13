@@ -252,6 +252,15 @@ public:
     /// User specified flux recontruction correction parameter value
     double FR_user_specified_correction_parameter_value;
 
+    /// User specified flux recontruction correction parameter value
+    int number_ESFR_parameter_values;
+
+    /// User specified flux recontruction correction parameter value
+    double ESFR_parameter_values_start;
+
+    /// User specified flux recontruction correction parameter value
+    double ESFR_parameter_values_end;
+
     /// Type of correction in Flux Reconstruction for the auxiliary variables
     enum Flux_Reconstruction_Aux {kDG, kSD, kHU, kNegative, kNegative2, kPlus, k10Thousand};
     /// Store flux reconstruction type for the auxiliary variables

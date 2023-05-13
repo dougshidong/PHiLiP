@@ -247,8 +247,8 @@ int EulerVortex<dim,nstate>
 
             const unsigned int n_active_cells = grid->n_active_cells();
             const unsigned int n_dofs = dg->dof_handler.n_dofs();
-            std::cout
-                      << "Dimension: " << dim << "\t Polynomial degree p: " << poly_degree << std::endl
+                
+                 pcout<< "Dimension: " << dim << "\t Polynomial degree p: " << poly_degree << std::endl
                       << "Grid number: " << igrid+1 << "/" << n_grids
                       << ". Number of active cells: " << n_active_cells
                       << ". Number of degrees of freedom: " << n_dofs
@@ -258,6 +258,7 @@ int EulerVortex<dim,nstate>
             // Will have a low number of time steps in the control file (around 10-20)
             // We can then compare the exact solution to whatever time it reached
             ode_solver->steady_state();
+
             
             EulerVortexFunction<dim,double> final_vortex_function(*euler, initial_vortex_center, vortex_strength, vortex_stddev_decay);
             const double final_time = ode_solver->current_time;
@@ -277,7 +278,7 @@ int EulerVortex<dim,nstate>
             std::vector<dealii::types::global_dof_index> dofs_indices (fe_values_extra.dofs_per_cell);
             // Integrate solution error
             for (auto cell = dg->dof_handler.begin_active(); cell!=dg->dof_handler.end(); ++cell) {
-
+                if (!cell->is_locally_owned()) continue;
                 fe_values_extra.reinit (cell);
                 cell->get_dof_indices (dofs_indices);
 
@@ -300,8 +301,10 @@ int EulerVortex<dim,nstate>
                 }
 
             }
-            l2error = sqrt(l2error);
-std::cout << "it is the right testing file" << std::endl;
+            // l2error = sqrt(l2error);
+            const double l2error_mpi_sum = std::sqrt(dealii::Utilities::MPI::sum(l2error, mpi_communicator));
+            l2error = l2error_mpi_sum;
+
             // Convergence table
             double dx = 1.0/pow(n_dofs,(1.0/dim));
             //dx = dealii::GridTools::maximal_cell_diameter(*grid);
@@ -315,7 +318,7 @@ std::cout << "it is the right testing file" << std::endl;
             convergence_table.add_value("soln_L2_error", l2error);
 
 
-            std::cout   << " Grid size h: " << dx 
+                  pcout << " Grid size h: " << dx 
                         << " L2-soln_error: " << l2error
                         << " Residual: " << ode_solver->residual_norm
                         << std::endl;
@@ -323,7 +326,7 @@ std::cout << "it is the right testing file" << std::endl;
             if (igrid > 0) {
                 const double slope_soln_err = log(soln_error[igrid]/soln_error[igrid-1])
                                       / log(grid_size[igrid]/grid_size[igrid-1]);
-                std::cout << "From grid " << igrid-1
+                    pcout << "From grid " << igrid-1
                           << "  to grid " << igrid
                           << "  dimension: " << dim
                           << "  polynomial degree p: " << poly_degree
@@ -334,7 +337,7 @@ std::cout << "it is the right testing file" << std::endl;
                           << std::endl;
             }
         }
-        std::cout
+        pcout
             << " ********************************************"
             << std::endl
             << " Convergence rates for p = " << poly_degree
@@ -365,7 +368,7 @@ std::cout << "it is the right testing file" << std::endl;
         if(poly_degree == 0) slope_deficit_tolerance *= 2; // Otherwise, grid sizes need to be much bigger for p=0
 
         if (slope_diff < slope_deficit_tolerance) {
-            std::cout << std::endl
+                pcout << std::endl
                       << "Convergence order not achieved. Average last 2 slopes of "
                       << slope_avg << " instead of expected "
                       << expected_slope << " within a tolerance of "
@@ -377,19 +380,19 @@ std::cout << "it is the right testing file" << std::endl;
         }
 
     }
-    std::cout << std::endl
+        pcout << std::endl
               << std::endl
               << std::endl
               << std::endl;
-    std::cout << " ********************************************"
+        pcout <<  " ********************************************"
               << std::endl;
-    std::cout << " Convergence summary"
+        pcout << " Convergence summary"
               << std::endl;
-    std::cout << " ********************************************"
+        pcout << " ********************************************"
               << std::endl;
     for (auto conv = convergence_table_vector.begin(); conv!=convergence_table_vector.end(); conv++) {
         conv->write_text(std::cout);
-        std::cout << " ********************************************"
+            pcout << " ********************************************"
                   << std::endl;
     }
     int n_fail_poly = fail_conv_poly.size();
@@ -397,7 +400,7 @@ std::cout << "it is the right testing file" << std::endl;
         for (int ifail=0; ifail < n_fail_poly; ++ifail) {
             const double expected_slope = fail_conv_poly[ifail]+1;
             const double slope_deficit_tolerance = -0.1;
-            std::cout << std::endl
+                pcout << std::endl
                       << "Convergence order not achieved for polynomial p = "
                       << fail_conv_poly[ifail]
                       << ". Slope of "

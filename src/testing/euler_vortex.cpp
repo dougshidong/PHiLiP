@@ -201,7 +201,7 @@ int EulerVortex<dim,nstate>
             c_value_file << c_array[ic] << std::endl;
         }
         // Add cPlus value at the end
-        c_array[nb_c_value]=0.186; // 0.186; 3.67e-3; 4.79e-5; 4.24e-7;
+        c_array[nb_c_value]=3.67e-3; // 0.186; 3.67e-3; 4.79e-5; 4.24e-7;
         c_value_file << c_array[nb_c_value] << std::endl;
         c_value_file.close();
 
@@ -360,7 +360,7 @@ int EulerVortex<dim,nstate>
             if (ic == 0){
                 cell_number_file << grid_size[igrid] << " " << n_active_cells<< std::endl;
             }
-            cell_number_file.close();
+            
 
 
             if (igrid > 0) {
@@ -385,6 +385,7 @@ int EulerVortex<dim,nstate>
         }//end of Loop over c_array
         l2error_file.close();
         slope_file.close();
+        cell_number_file.close();
 
         pcout
             << " ********************************************"

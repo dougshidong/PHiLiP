@@ -335,7 +335,7 @@ int EulerTaylorGreenScaling<dim, nstate>::run_test() const
         for(unsigned int i_step=0; i_step<10; i_step++){
             dg->assemble_residual();
             if(all_parameters->use_inverse_mass_on_the_fly){
-                dg->apply_inverse_global_mass_matrix(dg->right_hand_side, solution_update); //rk_stage[i] = IMM*RHS = F(u_n + dt*sum(a_ij*k_j))
+                dg->apply_inverse_global_mass_matrix(dg->right_hand_side, solution_update);
             } else{
                 dg->global_inverse_mass_matrix.vmult(solution_update, dg->right_hand_side); //rk_stage[i] = IMM*RHS = F(u_n + dt*sum(a_ij*k_j))
             }

@@ -157,7 +157,6 @@ bool Euler<dim,nstate,real>::check_positive_quantity(real2 &qty, const std::stri
     bool qty_is_positive;
     if (qty < 0.0) {
         // Refer to base class for non-physical results handling
-        // Compiler complains unless we explicitly specify "template"
         qty = this->template handle_non_physical_result<real2>(qty_name + " is negative.");
         qty_is_positive = false;
     } else {

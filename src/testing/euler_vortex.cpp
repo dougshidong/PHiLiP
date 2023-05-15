@@ -290,7 +290,13 @@ int EulerVortex<dim,nstate>
             // Not really steady state
             // Will have a low number of time steps in the control file (around 10-20)
             // We can then compare the exact solution to whatever time it reached
-            ode_solver->steady_state();
+            // ode_solver->steady_state();
+
+            const double finalTime = 0.001;//This is sufficient for verification
+
+            ode_solver->current_iteration = 0;
+
+            ode_solver->advance_solution_time(finalTime);
 
             
             EulerVortexFunction<dim,double> final_vortex_function(*euler, initial_vortex_center, vortex_strength, vortex_stddev_decay);

@@ -597,7 +597,6 @@ public:
     /// Quadrature used to evaluate face integrals.
     dealii::hp::QCollection<dim-1>   face_quadrature_collection;
 
-protected:
     /// Lagrange basis used in strong form
     /** This is a collection of scalar Lagrange bases */
     const dealii::hp::FECollection<dim>  fe_collection_lagrange;

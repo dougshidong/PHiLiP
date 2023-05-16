@@ -342,7 +342,6 @@ public:
             const bool adding = false,
             const double factor = 1.0);
 
-//protected:
 
     ///Computes a single Hadamard product. 
     /** For input mat1 \f$ A \f$ and input mat2 \f$ B \f$, this computes

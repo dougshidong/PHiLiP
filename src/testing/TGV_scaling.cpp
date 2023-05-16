@@ -32,7 +32,7 @@ int EulerTaylorGreenScaling<dim, nstate>::run_test() const
     double left = 0.0;
     double right = 2 * dealii::numbers::PI;
 
-    const unsigned int n_refinements = all_parameters->flow_solver_param.number_of_grid_elements_per_dimension;
+    const unsigned int n_refinements = all_parameters->flow_solver_param.number_of_mesh_refinements;
     if(all_parameters->use_curvilinear_grid){
         //if curvilinear
         PHiLiP::Grids::nonsymmetric_curved_grid<dim,Triangulation>(*grid, n_refinements);

@@ -1468,9 +1468,7 @@ void DGBase<dim,real,MeshType>::assemble_residual (const bool compute_dRdW, cons
         // assembles and solves for auxiliary variable if necessary.
         assemble_auxiliary_residual();
 
-      //  clock_t time_start_cell_loop;
-      //  time_start_cell_loop = clock();
-        dealii::Timer timer(this->mpi_communicator,false);
+        dealii::Timer timer;
         timer.start();
 
         auto metric_cell = high_order_grid->dof_handler_grid.begin_active();
@@ -2811,9 +2809,7 @@ void DGBase<dim,real,MeshType>::apply_inverse_global_mass_matrix(
         }
     }
 
-  //  clock_t time_start_cell_loop;
-  //  time_start_cell_loop = clock();
-    dealii::Timer timer(this->mpi_communicator,false);
+    dealii::Timer timer;
     timer.start();
 
     for (auto soln_cell = dof_handler.begin_active(); soln_cell != dof_handler.end(); ++soln_cell, ++metric_cell) {

@@ -1,0 +1,82 @@
+# Listing of Parameters
+# ---------------------
+# Number of dimensions
+set dimension = 2
+
+# The PDE we want to solve. Choices are
+# <advection|diffusion|convection_diffusion>.
+set pde_type  = advection      
+set test_type = anisotropic_mesh_adaptation
+
+set sipg_penalty_factor = 20.0
+
+subsection linear solver
+#set linear_solver_type = direct
+  subsection gmres options
+    set linear_residual_tolerance = 1e-13
+    set max_iterations = 2000
+    set restart_number = 50
+    set ilut_fill = 1
+    set ilut_atol = 1.0e-5
+    # set ilut_drop = 1e-4
+  end 
+end
+
+subsection mesh adaptation
+  set total_mesh_adaptation_cycles = 4
+  set mesh_adaptation_type = anisotropic_adaptation
+  set use_goal_oriented_mesh_adaptation = true
+  subsection anisotropic
+    set mesh_complexity_anisotropic_adaptation = 50.0
+    set norm_Lp_anisotropic_adaptation = 1.0
+  end
+end
+
+subsection ODE solver
+  #output solution
+  #set output_solution_every_x_steps = 1
+
+  # Maximum nonlinear solver iterations
+  set nonlinear_max_iterations            = 500
+
+  # Nonlinear solver residual tolerance
+  set nonlinear_steady_residual_tolerance = 1e-12
+
+  # Print every print_iteration_modulo iterations of the nonlinear solver
+  set print_iteration_modulo              = 1
+
+  # Explicit or implicit solverChoices are <explicit|implicit>.
+  set ode_solver_type                     = implicit
+end
+
+subsection functional
+  # functional choice
+  set functional_type = normLp_boundary
+
+   # exponent
+   set normLp = 2.0
+
+   # boundaries to be used
+   set boundary_vector = [1]
+   set use_all_boundaries = false
+end
+
+subsection manufactured solution convergence study
+  set use_manufactured_source_term = true
+  set manufactured_solution_type   = s_shock_solution
+
+  # setting the advection vector
+  set advection_0 = 1.1
+  set advection_1 = -1.155727 # -pi/e
+end
+
+subsection flow_solver
+  set flow_case_type = non_periodic_cube_flow
+  set steady_state = true
+  set steady_state_polynomial_ramping = false
+  set poly_degree = 1
+  set max_poly_degree_for_adaptation = 2
+  subsection grid
+    set number_of_mesh_refinements = 4
+  end
+end

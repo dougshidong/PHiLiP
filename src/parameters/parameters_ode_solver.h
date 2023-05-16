@@ -26,6 +26,10 @@ public:
 
     int output_solution_every_x_steps; ///< Outputs the solution every x steps to .vtk file
     double output_solution_every_dt_time_intervals; ///< Outputs the solution every dt time intervals to .vtk file
+    bool output_solution_at_fixed_times; ///< Flag for outputting solution at fixed times
+    std::string output_solution_fixed_times_string; ///< String of fixed solution output times
+    unsigned int number_of_fixed_times_to_output_solution; ///< Number of fixed times to output the solution
+    bool output_solution_at_exact_fixed_times; ///< Flag for outputting the solution at exact fixed times by decreasing the time step on the fly
 
     unsigned int nonlinear_max_iterations; ///< Maximum number of iterations.
     unsigned int print_iteration_modulo; ///< If ode_output==verbose, print every print_iteration_modulo iterations.
@@ -62,6 +66,9 @@ public:
     RKMethodEnum runge_kutta_method; ///< Runge-kutta method.
     int n_rk_stages; ///< Number of stages for an RK method; assigned based on runge_kutta_method
     int rk_order; ///< Order of the RK method; assigned based on runge_kutta_method
+
+    /// Flag to signal that automatic differentiation (AD) matrix dRdW must be allocated
+    bool allocate_matrix_dRdW;
 
     static void declare_parameters (dealii::ParameterHandler &prm); ///< Declares the possible variables and sets the defaults.
     void parse_parameters (dealii::ParameterHandler &prm); ///< Parses input file and sets the variables.

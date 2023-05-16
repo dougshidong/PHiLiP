@@ -177,7 +177,7 @@ mkdir -p Codes
         # MPI_MAX is the number of cores to use by default for tests with MPI
         # USE_LD_GOLD uses the ld.gold linker, which is much faster than the default ld linker
         # 	however, it does not work well on Ubuntu with OpenMPI. Works well with Fedora
-        cmake ../ -DCMAKE_BUILD_TYPE=Release -DMPI_MAX=4 -DUSE_LD_GOLD=OFF ;\
+        cmake ../ -DCMAKE_BUILD_TYPE=Release -DMPIMAX=4 -DUSE_LD_GOLD=OFF ;\
         make -j4 ;\
         ctest ;\
 )

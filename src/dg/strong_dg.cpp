@@ -2009,7 +2009,11 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_strong(
         std::array<real,nstate> entropy_var_face_ext;
         std::array<dealii::Tensor<1,dim,real>,nstate> aux_soln_state_int;
         std::array<dealii::Tensor<1,dim,real>,nstate> aux_soln_state_ext;
+        std::array<real,nstate> soln_interp_to_face_int;
+        std::array<real,nstate> soln_interp_to_face_ext;
         for(int istate=0; istate<nstate; istate++){
+            soln_interp_to_face_int[istate] = soln_at_surf_q_int[istate][iquad];
+            soln_interp_to_face_ext[istate] = soln_at_surf_q_ext[istate][iquad];
             entropy_var_face_int[istate] = entropy_var_vol_int_interp_to_surf[istate][iquad];
             entropy_var_face_ext[istate] = entropy_var_vol_ext_interp_to_surf[istate][iquad];
             for(int idim=0; idim<dim; idim++){
@@ -2049,7 +2053,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_strong(
         diss_auxi_num_flux_dot_n_at_q = this->diss_num_flux_double->evaluate_auxiliary_flux(
             current_cell_index, neighbor_cell_index,
             0.0, 0.0,
-            soln_state_int, soln_state_ext,
+            soln_interp_to_face_int, soln_interp_to_face_ext,
             aux_soln_state_int, aux_soln_state_ext,
             unit_phys_normal_int, penalty, false);
 

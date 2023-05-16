@@ -89,7 +89,6 @@ public:
         std::string geo_name,
         std::string output_name);
 
-private:
     /// Writes the part of the .geo file associated wit the hyperdube geometry
     /** left and right specify the min and max axis aligned values in each direction.
       * Use colorize to number the domain boundaries in GMSH form

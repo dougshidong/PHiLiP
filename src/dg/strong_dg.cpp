@@ -1079,7 +1079,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_volume_term_strong(
                 row_index++, column_index++){
 
                 if(Hadamard_rows_sparsity[row_index][0] != iquad){
-                    pcout<<"The volume Hadamard rows sparsity pattern does not match."<<std::endl;
+                    pcout<<"The volume Hadamard rows sparsity pattern does not match. Aborting..."<<std::endl;
                     std::abort();
                 }
 

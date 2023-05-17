@@ -1742,8 +1742,6 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_strong(
             }
             // write data
             conv_flux_dot_normal[istate][iquad] = face_Jac_norm_scaled * conv_num_flux_dot_n_at_q[istate];
-           // conv_flux_dot_normal_diff[istate][iquad] = face_Jac_norm_scaled * conv_num_flux_dot_n_at_q[istate]
-           //                                          - conv_int_vol_ref_flux_interp_to_face_dot_ref_normal[istate][iquad];
             diss_flux_dot_normal_diff[istate][iquad] = face_Jac_norm_scaled * diss_auxi_num_flux_dot_n_at_q[istate]
                                                      - diffusive_int_vol_ref_flux_interp_to_face_dot_ref_normal[istate][iquad];
         }

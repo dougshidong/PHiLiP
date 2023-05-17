@@ -2184,7 +2184,6 @@ void DGBase<dim,real,MeshType>::allocate_system (
     right_hand_side.add(1.0); // Avoid 0 initial residual for output and logarithmic visualization.
 
     allocate_dual_vector();
-//    dual.reinit(locally_owned_dofs, ghost_dofs, mpi_communicator);
 
     // Set use_auxiliary_eq flag
     set_use_auxiliary_eq();

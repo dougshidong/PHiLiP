@@ -1781,7 +1781,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_strong(
                                             soln_basis.oneD_surf_operator, 
                                             soln_basis.oneD_vol_operator,
                                             true, -1.0);//adding=true, scaled by factor=-1.0 bc subtract it
-        //Dissipative surface nnumerical flux.
+        //Dissipative surface numerical flux.
         soln_basis.inner_product_surface_1D(iface, diss_flux_dot_normal_diff[istate], 
                                             face_quad_weights, rhs, 
                                             soln_basis.oneD_surf_operator, 

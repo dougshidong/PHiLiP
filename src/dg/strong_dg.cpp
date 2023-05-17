@@ -2086,10 +2086,6 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_strong(
     const dealii::Tensor<1,dim,double> unit_ref_normal_int = dealii::GeometryInfo<dim>::unit_normal_vector[iface];
     // Extract the reference direction that is outward facing on the facet.
     const int dim_not_zero = iface / 2;//reference direction of face integer division
-//    if(dim_not_zero == 1000){
-//        pcout<<"Error with normals. Normal direction is not defined. Aborting..."<<std::endl;
-//        std::abort();
-//    }
 
     std::array<std::vector<real>,nstate> conv_int_vol_ref_flux_interp_to_face_dot_ref_normal;
     std::array<std::vector<real>,nstate> conv_ext_vol_ref_flux_interp_to_face_dot_ref_normal;

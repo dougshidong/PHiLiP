@@ -127,8 +127,8 @@ int EulerTaylorGreenScaling<dim, nstate>::run_test() const
         return 1;
     }
 
-    //check that it can run up to p=25 without running out of memory.
-    const unsigned int poly_degree = 25;
+    //check that it can run up to p=50 for Cartesian or p=20 for curvilinear without running out of memory.
+    const unsigned int poly_degree = (all_parameters->use_curvilinear_grid) ? 20 : 50;
     const unsigned int grid_degree = (all_parameters->use_curvilinear_grid) ? poly_degree : 1;
      
     if(all_parameters->overintegration == 100){
@@ -140,6 +140,7 @@ int EulerTaylorGreenScaling<dim, nstate>::run_test() const
         }
     }
      
+    pcout<<"Checking that it does not run out of memory for poly degree "<<poly_degree<<std::endl;
     // Create DG
     std::shared_ptr < PHiLiP::DGBase<dim, double> > dg = PHiLiP::DGFactory<dim,double>::create_discontinuous_galerkin(&all_parameters_new, poly_degree, poly_degree, grid_degree, grid);
     dg->allocate_system (false,false,false);

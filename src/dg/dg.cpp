@@ -1510,10 +1510,7 @@ void DGBase<dim,real,MeshType>::assemble_residual (const bool compute_dRdW, cons
                 auxiliary_right_hand_side);
         } // end of cell loop
 
-       // assemble_residual_time += clock() - time_start_cell_loop;
-       // assemble_residual_time += dealii::Utilities::MPI::max(timer.wall_time(), this->mpi_communicator);
         timer.stop();
-       // assemble_residual_time += dealii::Utilities::MPI::sum(timer.cpu_time(), this->mpi_communicator);
         assemble_residual_time += timer.cpu_time();
     } catch(...) {
         assembly_error = 1;

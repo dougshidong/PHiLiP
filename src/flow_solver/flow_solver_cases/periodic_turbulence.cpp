@@ -441,7 +441,7 @@ void PeriodicTurbulence<dim, nstate>::compute_and_update_integrated_quantities(D
         if (!cell->is_locally_owned()) continue;
         cell->get_dof_indices (dofs_indices);
 
-// We first need to extract the mapping support points (grid nodes) from high_order_grid.
+        // We first need to extract the mapping support points (grid nodes) from high_order_grid.
         const dealii::FESystem<dim> &fe_metric = dg.high_order_grid->fe_system;
         const unsigned int n_metric_dofs = fe_metric.dofs_per_cell;
         const unsigned int n_grid_nodes  = n_metric_dofs / dim;

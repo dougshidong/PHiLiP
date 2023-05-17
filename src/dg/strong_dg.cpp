@@ -1774,7 +1774,6 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_strong(
                                                 soln_basis.oneD_vol_operator,
                                                 false, 1.0);//adding=false, scaled by factor=-1.0 bc subtract it
         }
-       // soln_basis.inner_product_surface_1D(iface, conv_flux_dot_normal_diff[istate], 
         //Convective surface nnumerical flux.
         soln_basis.inner_product_surface_1D(iface, conv_flux_dot_normal[istate], 
                                             face_quad_weights, rhs, 

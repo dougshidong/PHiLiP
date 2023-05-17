@@ -3088,7 +3088,6 @@ void DGBase<dim,real,MeshType>::apply_global_mass_matrix(
                     projection_oper.matrix_vector_mult_1D(JxW,
                                                           temp,
                                                           projection_oper.oneD_vol_operator);
-                   // mass.inner_product_1D(temp, ones,
                     mass.matrix_vector_mult_1D(temp,
                                                local_output_vector,
                                                mass.oneD_vol_operator);

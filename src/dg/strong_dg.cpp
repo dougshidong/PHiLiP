@@ -1485,11 +1485,6 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_strong(
     // the outward reference normal dircetion.
     const dealii::Tensor<1,dim,double> unit_ref_normal_int = dealii::GeometryInfo<dim>::unit_normal_vector[iface];
     const int dim_not_zero = iface / 2;//reference direction of face integer division
-//    int dim_not_zero = 0;
-//    for(int idim=0; idim<dim; idim++){
-//        if(std::abs(unit_ref_normal_int[idim]) >= 1e-11)//reference unit normal is 0 in all direction and 1 in outward normal direction
-//            dim_not_zero = idim;//this is outward pointing normal reference direction
-//    }
 
     std::array<std::vector<real>,nstate> conv_int_vol_ref_flux_interp_to_face_dot_ref_normal;
     std::array<std::vector<real>,nstate> diffusive_int_vol_ref_flux_interp_to_face_dot_ref_normal;

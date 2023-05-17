@@ -98,6 +98,7 @@ int EulerTaylorGreenScaling<dim, nstate>::run_test() const
         time_to_run_mpi[poly_degree] = dealii::Utilities::MPI::sum(time_to_run[poly_degree], this->mpi_communicator);
         
         std::cout<<"Poly Degree "<<poly_degree<<" time to run local cpu "<<std::fixed << std::setprecision(16) << (double)time_to_run[poly_degree]<<std::endl;
+        MPI_Barrier(MPI_COMM_WORLD);
         pcout<<"Poly Degree "<<poly_degree<<" time to run Mpi "<<std::fixed << std::setprecision(16) << (double)time_to_run_mpi[poly_degree]<<std::endl;
         myfile << poly_degree << " " << std::fixed << std::setprecision(16) << time_to_run_mpi[poly_degree]<< std::endl;
     }//end of poly loop

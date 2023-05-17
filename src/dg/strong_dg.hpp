@@ -268,6 +268,7 @@ protected:
         const std::vector<dealii::types::global_dof_index> &dof_indices,
         OPERATOR::basis_functions<dim,2*dim>               &soln_basis,
         OPERATOR::basis_functions<dim,2*dim>               &flux_basis,
+        OPERATOR::vol_projection_operator<dim,2*dim>       &soln_basis_projection_oper,
         OPERATOR::metric_operators<real,dim,2*dim>         &metric_oper,
         dealii::Vector<real>                               &local_rhs_cell);
 

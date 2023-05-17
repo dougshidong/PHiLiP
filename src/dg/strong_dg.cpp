@@ -142,7 +142,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_and_build_operat
     OPERATOR::basis_functions<dim,2*dim>                   &soln_basis,
     OPERATOR::basis_functions<dim,2*dim>                   &flux_basis,
     OPERATOR::local_basis_stiffness<dim,2*dim>             &/*flux_basis_stiffness*/,
-    OPERATOR::vol_projection_operator<dim,2*dim>           &/*soln_basis_projection_oper_int*/,
+    OPERATOR::vol_projection_operator<dim,2*dim>           &soln_basis_projection_oper_int,
     OPERATOR::vol_projection_operator<dim,2*dim>           &/*soln_basis_projection_oper_ext*/,
     OPERATOR::metric_operators<real,dim,2*dim>             &metric_oper,
     OPERATOR::mapping_shape_functions<dim,2*dim>           &mapping_basis,
@@ -182,6 +182,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_and_build_operat
             cell_dofs_indices, 
             soln_basis,
             flux_basis,
+            soln_basis_projection_oper_int,
             metric_oper,
             local_rhs_int_cell);
     }
@@ -1324,6 +1325,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_strong(
     const std::vector<dealii::types::global_dof_index> &dof_indices,
     OPERATOR::basis_functions<dim,2*dim> &soln_basis,
     OPERATOR::basis_functions<dim,2*dim> &flux_basis,
+    OPERATOR::vol_projection_operator<dim,2*dim> &soln_basis_projection_oper,
     OPERATOR::metric_operators<real,dim,2*dim> &metric_oper,
     dealii::Vector<real> &local_rhs_cell)
 {
@@ -1331,6 +1333,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_strong(
 
     const unsigned int n_face_quad_pts  = this->face_quadrature_collection[poly_degree].size();
     const unsigned int n_quad_pts_vol   = this->volume_quadrature_collection[poly_degree].size();
+    const unsigned int n_quad_pts_1D    = this->oneD_quadrature_collection[poly_degree].size();
     const unsigned int n_dofs = this->fe_collection[poly_degree].dofs_per_cell;
     const unsigned int n_shape_fns = n_dofs / nstate; 
     const std::vector<double> &face_quad_weights = this->face_quadrature_collection[poly_degree].get_weights();
@@ -1431,7 +1434,9 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_strong(
 
         // Evaluate physical convective flux
         std::array<dealii::Tensor<1,dim,real>,nstate> conv_phys_flux;
-        conv_phys_flux = this->pde_physics_double->convective_flux (soln_state);
+        if(!this->all_parameters->use_split_form && !this->all_parameters->use_curvilinear_split_form){
+            conv_phys_flux = this->pde_physics_double->convective_flux (soln_state);
+        }
 
         // Compute the physical dissipative flux
         std::array<dealii::Tensor<1,dim,real>,nstate> diffusive_phys_flux;
@@ -1442,10 +1447,12 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_strong(
             dealii::Tensor<1,dim,real> conv_ref_flux;
             dealii::Tensor<1,dim,real> diffusive_ref_flux;
             // transform the conservative convective physical flux to reference space
-            metric_oper.transform_physical_to_reference(
-                conv_phys_flux[istate],
-                metric_cofactor_vol,
-                conv_ref_flux);
+            if(!this->all_parameters->use_split_form && !this->all_parameters->use_curvilinear_split_form){
+                metric_oper.transform_physical_to_reference(
+                    conv_phys_flux[istate],
+                    metric_cofactor_vol,
+                    conv_ref_flux);
+            }
             // transform the dissipative flux to reference space
             metric_oper.transform_physical_to_reference(
                 diffusive_phys_flux[istate],
@@ -1462,7 +1469,9 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_strong(
                     diffusive_ref_flux_at_vol_q[istate][idim].resize(n_quad_pts_vol);
                 }
                 //write data
-                conv_ref_flux_at_vol_q[istate][idim][iquad] = conv_ref_flux[idim];
+                if(!this->all_parameters->use_split_form && !this->all_parameters->use_curvilinear_split_form){
+                    conv_ref_flux_at_vol_q[istate][idim][iquad] = conv_ref_flux[idim];
+                }
 
                 diffusive_ref_flux_at_vol_q[istate][idim][iquad] = diffusive_ref_flux[idim];
             }
@@ -1475,11 +1484,12 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_strong(
     // we exploit the fact that the unit reference normal has a value of 0 in all reference directions except
     // the outward reference normal dircetion.
     const dealii::Tensor<1,dim,double> unit_ref_normal_int = dealii::GeometryInfo<dim>::unit_normal_vector[iface];
-    int dim_not_zero = 0;
-    for(int idim=0; idim<dim; idim++){
-        if(std::abs(unit_ref_normal_int[idim]) >= 1e-11)//reference unit normal is 0 in all direction and 1 in outward normal direction
-            dim_not_zero = idim;//this is outward pointing normal reference direction
-    }
+    const int dim_not_zero = iface / 2;//reference direction of face integer division
+//    int dim_not_zero = 0;
+//    for(int idim=0; idim<dim; idim++){
+//        if(std::abs(unit_ref_normal_int[idim]) >= 1e-11)//reference unit normal is 0 in all direction and 1 in outward normal direction
+//            dim_not_zero = idim;//this is outward pointing normal reference direction
+//    }
 
     std::array<std::vector<real>,nstate> conv_int_vol_ref_flux_interp_to_face_dot_ref_normal;
     std::array<std::vector<real>,nstate> diffusive_int_vol_ref_flux_interp_to_face_dot_ref_normal;
@@ -1492,12 +1502,14 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_strong(
         //Note, since the normal is zero in all other reference directions, we only have to interpolate one given reference direction to the facet
 
         //interpolate reference volume convective flux to the facet, and apply unit reference normal as scaled by 1.0 or -1.0
-        flux_basis.matrix_vector_mult_surface_1D(iface, 
-                                                 conv_ref_flux_at_vol_q[istate][dim_not_zero],
-                                                 conv_int_vol_ref_flux_interp_to_face_dot_ref_normal[istate],
-                                                 flux_basis.oneD_surf_operator,//the flux basis interpolates from the flux nodes
-                                                 flux_basis.oneD_vol_operator,
-                                                 false, unit_ref_normal_int[dim_not_zero]);//don't add to previous value, scale by unit_normal int
+        if(!this->all_parameters->use_split_form && !this->all_parameters->use_curvilinear_split_form){
+            flux_basis.matrix_vector_mult_surface_1D(iface, 
+                                                     conv_ref_flux_at_vol_q[istate][dim_not_zero],
+                                                     conv_int_vol_ref_flux_interp_to_face_dot_ref_normal[istate],
+                                                     flux_basis.oneD_surf_operator,//the flux basis interpolates from the flux nodes
+                                                     flux_basis.oneD_vol_operator,
+                                                     false, unit_ref_normal_int[dim_not_zero]);//don't add to previous value, scale by unit_normal int
+        }
 
         //interpolate reference volume dissipative flux to the facet, and apply unit reference normal as scaled by 1.0 or -1.0
         flux_basis.matrix_vector_mult_surface_1D(iface, 
@@ -1508,8 +1520,173 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_strong(
                                                  false, unit_ref_normal_int[dim_not_zero]);
     }
 
+    //Note that for entropy-dissipation and entropy stability, the conservative variables
+    //are functions of projected entropy variables. For Euler etc, the transformation is nonlinear
+    //so careful attention to what is evaluated where and interpolated to where is needed.
+    //For further information, please see Chan, Jesse. "On discretely entropy conservative and entropy stable discontinuous Galerkin methods." Journal of Computational Physics 362 (2018): 346-374.
+    //pages 355 (Eq. 57 with text around it) and  page 359 (Eq 86 and text below it).
+
+    // First, transform the volume conservative solution at volume cubature nodes to entropy variables.
+    std::array<std::vector<real>,nstate> entropy_var_vol;
+    for(unsigned int iquad=0; iquad<n_quad_pts_vol; iquad++){
+        std::array<real,nstate> soln_state;
+        for(int istate=0; istate<nstate; istate++){
+            soln_state[istate] = soln_at_vol_q[istate][iquad];
+        }
+        std::array<real,nstate> entropy_var;
+        entropy_var = this->pde_physics_double->compute_entropy_variables(soln_state);
+        for(int istate=0; istate<nstate; istate++){
+            if(iquad==0){
+                entropy_var_vol[istate].resize(n_quad_pts_vol);
+            }
+            entropy_var_vol[istate][iquad] = entropy_var[istate];
+        }
+    }
+
+    //project it onto the solution basis functions and interpolate it
+    std::array<std::vector<real>,nstate> projected_entropy_var_vol;
+    std::array<std::vector<real>,nstate> projected_entropy_var_surf;
+    for(int istate=0; istate<nstate; istate++){
+        // allocate
+        projected_entropy_var_vol[istate].resize(n_quad_pts_vol);
+        projected_entropy_var_surf[istate].resize(n_face_quad_pts);
+
+        //interior
+        std::vector<real> entropy_var_coeff(n_shape_fns);
+        soln_basis_projection_oper.matrix_vector_mult_1D(entropy_var_vol[istate],
+                                                         entropy_var_coeff,
+                                                         soln_basis_projection_oper.oneD_vol_operator);
+        soln_basis.matrix_vector_mult_1D(entropy_var_coeff,
+                                         projected_entropy_var_vol[istate],
+                                         soln_basis.oneD_vol_operator);
+        soln_basis.matrix_vector_mult_surface_1D(iface,
+                                                 entropy_var_coeff, 
+                                                 projected_entropy_var_surf[istate],
+                                                 soln_basis.oneD_surf_operator,
+                                                 soln_basis.oneD_vol_operator);
+    }
+
+    //get the surface-volume sparsity pattern for a "sum-factorized" Hadamard product only computing terms needed for the operation.
+    const unsigned int row_size = n_face_quad_pts * n_quad_pts_1D;
+    const unsigned int col_size = n_face_quad_pts * n_quad_pts_1D;
+    std::vector<unsigned int> Hadamard_rows_sparsity(row_size);
+    std::vector<unsigned int> Hadamard_columns_sparsity(col_size);
+    if(this->all_parameters->use_split_form || this->all_parameters->use_curvilinear_split_form){
+        flux_basis.sum_factorized_Hadamard_surface_sparsity_pattern(n_face_quad_pts, n_quad_pts_1D, Hadamard_rows_sparsity, Hadamard_columns_sparsity, dim_not_zero);
+    }
+
+    std::array<std::vector<real>,nstate> surf_vol_ref_2pt_flux_interp_surf;
+    std::array<std::vector<real>,nstate> surf_vol_ref_2pt_flux_interp_vol;
+    if(this->all_parameters->use_split_form || this->all_parameters->use_curvilinear_split_form){
+        //get surface-volume hybrid 2pt flux from Eq.(15) in Chan, Jesse. "Skew-symmetric entropy stable modal discontinuous Galerkin formulations." Journal of Scientific Computing 81.1 (2019): 459-485.
+        std::array<dealii::FullMatrix<real>,nstate> surface_ref_2pt_flux;
+        //make use of the sparsity pattern from above to assemble only n^d non-zero entries without ever allocating not computing zeros.
+        for(int istate=0; istate<nstate; istate++){
+            surface_ref_2pt_flux[istate].reinit(n_face_quad_pts, n_quad_pts_1D);
+        }
+        for(unsigned int iquad_face=0; iquad_face<n_face_quad_pts; iquad_face++){
+            dealii::Tensor<2,dim,real> metric_cofactor_surf;
+            for(int idim=0; idim<dim; idim++){
+                for(int jdim=0; jdim<dim; jdim++){
+                    metric_cofactor_surf[idim][jdim] = metric_oper.metric_cofactor_surf[idim][jdim][iquad_face];
+                }
+            }
+             
+            //Compute the conservative values on the facet from the interpolated entorpy variables.
+            std::array<real,nstate> entropy_var_face;
+            for(int istate=0; istate<nstate; istate++){
+                entropy_var_face[istate] = projected_entropy_var_surf[istate][iquad_face];
+            }
+            std::array<real,nstate> soln_state_face;
+            soln_state_face= this->pde_physics_double->compute_conservative_variables_from_entropy_variables (entropy_var_face);
+
+            //only do the n_quad_1D vol points that give non-zero entries from Hadamard product.
+            for(unsigned int row_index = iquad_face * n_quad_pts_1D, column_index = 0; 
+                column_index < n_quad_pts_1D;
+                row_index++, column_index++){
+
+                if(Hadamard_rows_sparsity[row_index] != iquad_face){
+                    pcout<<"The boundary Hadamard rows sparsity pattern does not match."<<std::endl;
+                    std::abort();
+                }
+
+                const unsigned int iquad_vol = Hadamard_columns_sparsity[row_index];//extract flux_quad pt that corresponds to a non-zero entry for Hadamard product.
+                // Copy Metric Cofactor in a way can use for transforming Tensor Blocks to reference space
+                // The way it is stored in metric_operators is to use sum-factorization in each direction,
+                // but here it is cleaner to apply a reference transformation in each Tensor block returned by physics.
+                dealii::Tensor<2,dim,real> metric_cofactor_vol;
+                for(int idim=0; idim<dim; idim++){
+                    for(int jdim=0; jdim<dim; jdim++){
+                        metric_cofactor_vol[idim][jdim] = metric_oper.metric_cofactor_vol[idim][jdim][iquad_vol];
+                    }
+                }
+                std::array<real,nstate> entropy_var;
+                for(int istate=0; istate<nstate; istate++){
+                    entropy_var[istate] = projected_entropy_var_vol[istate][iquad_vol];
+                }
+                std::array<real,nstate> soln_state;
+                soln_state = this->pde_physics_double->compute_conservative_variables_from_entropy_variables (entropy_var);
+                //Note that the flux basis is collocated on the volume cubature set so we don't need to evaluate the entropy variables
+                //on the volume set then transform back to the conservative variables since the flux basis volume
+                //projection is identity.
+
+                //Compute the physical flux
+                std::array<dealii::Tensor<1,dim,real>,nstate> conv_phys_flux_2pt;
+                conv_phys_flux_2pt = this->pde_physics_double->convective_numerical_split_flux(soln_state, soln_state_face);
+                for(int istate=0; istate<nstate; istate++){
+                    dealii::Tensor<1,dim,real> conv_ref_flux_2pt;
+                    //For each state, transform the physical flux to a reference flux.
+                    metric_oper.transform_physical_to_reference(
+                        conv_phys_flux_2pt[istate],
+                        0.5*(metric_cofactor_surf + metric_cofactor_vol),
+                        conv_ref_flux_2pt);
+                    //only store the dim not zero in reference space bc dot product with unit ref normal later.
+                    surface_ref_2pt_flux[istate][iquad_face][column_index] = conv_ref_flux_2pt[dim_not_zero];
+                }
+            }
+        }
+        //get the surface basis operator from Hadamard sparsity pattern
+        //to be applied at n^d operations (on the face so n^{d+1-1}=n^d flops)
+        //also only allocates n^d terms.
+        const int iface_1D = iface % 2;//the reference face number
+        const std::vector<double> &oneD_quad_weights_vol= this->oneD_quadrature_collection[poly_degree].get_weights();
+        dealii::FullMatrix<real> surf_oper_sparse(n_face_quad_pts, n_quad_pts_1D);
+        flux_basis.sum_factorized_Hadamard_surface_basis_assembly(n_face_quad_pts, n_quad_pts_1D, 
+                                                                  Hadamard_rows_sparsity, Hadamard_columns_sparsity,
+                                                                  flux_basis.oneD_surf_operator[iface_1D], 
+                                                                  oneD_quad_weights_vol,
+                                                                  surf_oper_sparse,
+                                                                  dim_not_zero);
+
+        // Apply the surface Hadamard products and multiply with vector of ones for both off diagonal terms in
+        // Eq.(15) in Chan, Jesse. "Skew-symmetric entropy stable modal discontinuous Galerkin formulations." Journal of Scientific Computing 81.1 (2019): 459-485.
+        for(int istate=0; istate<nstate; istate++){
+            //first apply Hadamard product with the structure made above.
+            dealii::FullMatrix<real> surface_ref_2pt_flux_int_Hadamard_with_surf_oper(n_face_quad_pts, n_quad_pts_1D);
+            flux_basis.Hadamard_product(surf_oper_sparse, 
+                                        surface_ref_2pt_flux[istate], 
+                                        surface_ref_2pt_flux_int_Hadamard_with_surf_oper);
+            //sum with reference unit normal
+            surf_vol_ref_2pt_flux_interp_surf[istate].resize(n_face_quad_pts);
+            surf_vol_ref_2pt_flux_interp_vol[istate].resize(n_quad_pts_vol);
+         
+            for(unsigned int iface_quad=0; iface_quad<n_face_quad_pts; iface_quad++){
+                for(unsigned int iquad_int=0; iquad_int<n_quad_pts_1D; iquad_int++){
+                    surf_vol_ref_2pt_flux_interp_surf[istate][iface_quad] 
+                        -= surface_ref_2pt_flux_int_Hadamard_with_surf_oper[iface_quad][iquad_int]
+                        * unit_ref_normal_int[dim_not_zero];
+                    const unsigned int column_index = iface_quad * n_quad_pts_1D + iquad_int;
+                    surf_vol_ref_2pt_flux_interp_vol[istate][Hadamard_columns_sparsity[column_index]] 
+                        += surface_ref_2pt_flux_int_Hadamard_with_surf_oper[iface_quad][iquad_int]
+                        * unit_ref_normal_int[dim_not_zero];
+                }
+            }
+        }
+    }//end of if split form or curvilinear split form
+
+
     //the outward reference normal dircetion.
-    std::array<std::vector<real>,nstate> conv_flux_dot_normal_diff;
+    std::array<std::vector<real>,nstate> conv_flux_dot_normal;
     std::array<std::vector<real>,nstate> diss_flux_dot_normal_diff;
     // Get surface numerical fluxes
     for (unsigned int iquad=0; iquad<n_face_quad_pts; ++iquad) {
@@ -1565,12 +1742,13 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_strong(
         for(int istate=0; istate<nstate; istate++){
             // allocate
             if(iquad==0){
-                conv_flux_dot_normal_diff[istate].resize(n_face_quad_pts);
+                conv_flux_dot_normal[istate].resize(n_face_quad_pts);
                 diss_flux_dot_normal_diff[istate].resize(n_face_quad_pts);
             }
             // write data
-            conv_flux_dot_normal_diff[istate][iquad] = face_Jac_norm_scaled * conv_num_flux_dot_n_at_q[istate]
-                                                     - conv_int_vol_ref_flux_interp_to_face_dot_ref_normal[istate][iquad];
+            conv_flux_dot_normal[istate][iquad] = face_Jac_norm_scaled * conv_num_flux_dot_n_at_q[istate];
+           // conv_flux_dot_normal_diff[istate][iquad] = face_Jac_norm_scaled * conv_num_flux_dot_n_at_q[istate]
+           //                                          - conv_int_vol_ref_flux_interp_to_face_dot_ref_normal[istate][iquad];
             diss_flux_dot_normal_diff[istate][iquad] = face_Jac_norm_scaled * diss_auxi_num_flux_dot_n_at_q[istate]
                                                      - diffusive_int_vol_ref_flux_interp_to_face_dot_ref_normal[istate][iquad];
         }
@@ -1579,11 +1757,36 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_strong(
     //solve rhs
     for(int istate=0; istate<nstate; istate++){
         std::vector<real> rhs(n_shape_fns);
-        soln_basis.inner_product_surface_1D(iface, conv_flux_dot_normal_diff[istate], 
+        //Convective flux on the facet
+        if(this->all_parameters->use_split_form || this->all_parameters->use_curvilinear_split_form){
+            std::vector<real> ones_surf(n_face_quad_pts, 1.0);
+            soln_basis.inner_product_surface_1D(iface, 
+                                                surf_vol_ref_2pt_flux_interp_surf[istate], 
+                                                ones_surf, rhs, 
+                                                soln_basis.oneD_surf_operator, 
+                                                soln_basis.oneD_vol_operator,
+                                                false, -1.0);
+            std::vector<real> ones_vol(n_quad_pts_vol, 1.0);
+            soln_basis.inner_product_1D(surf_vol_ref_2pt_flux_interp_vol[istate], 
+                                            ones_vol, rhs, 
+                                            soln_basis.oneD_vol_operator, 
+                                            true, -1.0);
+        }
+        else{
+            soln_basis.inner_product_surface_1D(iface, conv_int_vol_ref_flux_interp_to_face_dot_ref_normal[istate], 
+                                                face_quad_weights, rhs, 
+                                                soln_basis.oneD_surf_operator, 
+                                                soln_basis.oneD_vol_operator,
+                                                false, 1.0);//adding=false, scaled by factor=-1.0 bc subtract it
+        }
+       // soln_basis.inner_product_surface_1D(iface, conv_flux_dot_normal_diff[istate], 
+        //Convective surface nnumerical flux.
+        soln_basis.inner_product_surface_1D(iface, conv_flux_dot_normal[istate], 
                                             face_quad_weights, rhs, 
                                             soln_basis.oneD_surf_operator, 
                                             soln_basis.oneD_vol_operator,
-                                            false, -1.0);//adding=false, scaled by factor=-1.0 bc subtract it
+                                            true, -1.0);//adding=true, scaled by factor=-1.0 bc subtract it
+        //Dissipative surface nnumerical flux.
         soln_basis.inner_product_surface_1D(iface, diss_flux_dot_normal_diff[istate], 
                                             face_quad_weights, rhs, 
                                             soln_basis.oneD_surf_operator, 
@@ -2061,8 +2264,6 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_strong(
             std::array<real,nstate> entropy_var_face_int;
             std::array<real,nstate> entropy_var_face_ext;
             for(int istate=0; istate<nstate; istate++){
-              //  entropy_var_face_int[istate] = entropy_var_vol_int_interp_to_surf[istate][iquad_face];
-              //  entropy_var_face_ext[istate] = entropy_var_vol_ext_interp_to_surf[istate][iquad_face];
                 entropy_var_face_int[istate] = projected_entropy_var_surf_int[istate][iquad_face];
                 entropy_var_face_ext[istate] = projected_entropy_var_surf_ext[istate][iquad_face];
             }

@@ -10,7 +10,7 @@ set flux_nodes_type = GL
 
 set renumber_dof_handler_Cuthill_Mckee = false
 
-set overintegration = 2
+set overintegration = 0
 
 set use_split_form = true
 
@@ -19,6 +19,8 @@ set two_point_num_flux_type = Ra
 set use_curvilinear_split_form = true
 
 set energy_file = cplus_curv_not_weight_adj
+
+set use_curvilinear_grid = false
 
 # The PDE we want to solve
 set pde_type = euler

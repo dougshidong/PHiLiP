@@ -2511,7 +2511,7 @@ void metric_operators<real,dim,n_faces>::build_determinant_metric_Jacobian(
         det_metric_Jac[iquad] = dealii::determinant(Jacobian_flux_nodes[iquad]);
         //check for valid cell
         if(det_metric_Jac[iquad] <= 1e-14){
-            std::cout<<"The determinant of the Jacobian is negative."<<std::endl;
+            std::cout<<"The determinant of the Jacobian is negative. Aborting..."<<std::endl;
             std::abort();
         }
     }

@@ -1536,9 +1536,7 @@ void DGBase<dim,real,MeshType>::assemble_residual (const bool compute_dRdW, cons
         // assembles and solves for auxiliary variable if necessary.
         assemble_auxiliary_residual();
 
-      //  clock_t time_start_cell_loop;
-      //  time_start_cell_loop = clock();
-        dealii::Timer timer(this->mpi_communicator,false);
+        dealii::Timer timer;
         timer.start();
 
         auto metric_cell = high_order_grid->dof_handler_grid.begin_active();
@@ -1580,10 +1578,7 @@ void DGBase<dim,real,MeshType>::assemble_residual (const bool compute_dRdW, cons
                 auxiliary_right_hand_side);
         } // end of cell loop
 
-       // assemble_residual_time += clock() - time_start_cell_loop;
-       // assemble_residual_time += dealii::Utilities::MPI::max(timer.wall_time(), this->mpi_communicator);
         timer.stop();
-       // assemble_residual_time += dealii::Utilities::MPI::sum(timer.cpu_time(), this->mpi_communicator);
         assemble_residual_time += timer.cpu_time();
     } catch(...) {
         assembly_error = 1;
@@ -2202,7 +2197,7 @@ void DGBase<dim,real,MeshType>::allocate_system (
 
     dof_handler.distribute_dofs(fe_collection);
     //This Cuthill_McKee renumbering for dof_handlr uses a lot of memory in 3D, is there another way?
-    if(all_parameters->renumber_dof_handler_Cuthill_Mckee || all_parameters->do_renumber_dofs){
+    if(all_parameters->renumber_dof_handler_Cuthill_Mckee && all_parameters->do_renumber_dofs){
         dealii::DoFRenumbering::Cuthill_McKee(dof_handler,true);
     }
     //const bool reversed_numbering = true;
@@ -2254,7 +2249,6 @@ void DGBase<dim,real,MeshType>::allocate_system (
     right_hand_side.add(1.0); // Avoid 0 initial residual for output and logarithmic visualization.
 
     allocate_dual_vector();
-//    dual.reinit(locally_owned_dofs, ghost_dofs, mpi_communicator);
 
     // Set use_auxiliary_eq flag
     set_use_auxiliary_eq();
@@ -2266,8 +2260,7 @@ void DGBase<dim,real,MeshType>::allocate_system (
     set_store_surf_flux_nodes();
 
     // Allocate for auxiliary equation only.
-    if(use_auxiliary_eq)
-        allocate_auxiliary_equation ();
+    if(use_auxiliary_eq) allocate_auxiliary_equation ();
 
     // Set the assemble resiudla time to 0 for clock_t type
     assemble_residual_time = 0.0;
@@ -2885,9 +2878,7 @@ void DGBase<dim,real,MeshType>::apply_inverse_global_mass_matrix(
         }
     }
 
-  //  clock_t time_start_cell_loop;
-  //  time_start_cell_loop = clock();
-    dealii::Timer timer(this->mpi_communicator,false);
+    dealii::Timer timer;
     timer.start();
 
     for (auto soln_cell = dof_handler.begin_active(); soln_cell != dof_handler.end(); ++soln_cell, ++metric_cell) {
@@ -3167,7 +3158,6 @@ void DGBase<dim,real,MeshType>::apply_global_mass_matrix(
                     projection_oper.matrix_vector_mult_1D(JxW,
                                                           temp,
                                                           projection_oper.oneD_vol_operator);
-                   // mass.inner_product_1D(temp, ones,
                     mass.matrix_vector_mult_1D(temp,
                                                local_output_vector,
                                                mass.oneD_vol_operator);

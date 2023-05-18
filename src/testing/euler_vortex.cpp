@@ -202,7 +202,8 @@ int EulerVortex<dim,nstate>
             c_value_file << c_array[ic] << std::endl;
         }
         // Add cPlus value at the end
-        c_array[nb_c_value]=3.67e-3; // 0.186; 3.67e-3; 4.79e-5; 4.24e-7;
+        c_array[nb_c_value] = param.FR_user_specified_correction_parameter_value;
+        // c_array[nb_c_value]=3.67e-3; // 0.186; 3.67e-3; 4.79e-5; 4.24e-7;
         c_value_file << c_array[nb_c_value] << std::endl;
         c_value_file.close();
 
@@ -330,7 +331,7 @@ int EulerVortex<dim,nstate>
             // We can then compare the exact solution to whatever time it reached
             // ode_solver->steady_state();
 
-            const double finalTime = 0.001;//This is sufficient for verification
+            const double finalTime = 0.01;//This is sufficient for verification
 
             ode_solver->current_iteration = 0;
 

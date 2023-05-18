@@ -73,21 +73,22 @@ inline real EulerVortexFunction<dim,real>
     const double x = new_loc[0];
     const double y = new_loc[1];
 
-    //const double local_radius_sqr = new_loc.square();
-    //const double pi = dealii::numbers::PI;
-    //const double perturbation_strength = vortex_strength * exp(0.5*variance*(1.0-local_radius_sqr)) * 0.5 / pi;
-    //const double delta_vel_x = -y * perturbation_strength;
-    //const double delta_vel_y =  x * perturbation_strength;
-    //const double delta_temp  =  euler_physics.temperature_inf / pow(euler_physics.sound_inf, 2) * 0.5*euler_physics.gamm1 * perturbation_strength*perturbation_strength;
+    const double local_radius_sqr = new_loc.square();
+    const double pi = dealii::numbers::PI;
+    const double perturbation_strength = vortex_strength * exp(0.5*variance*(1.0-local_radius_sqr)) * 0.5 / pi;
+    const double delta_vel_x = -y * perturbation_strength;
+    const double delta_vel_y =  x * perturbation_strength;
+    const double delta_temp  =  euler_physics.temperature_inf / pow(euler_physics.sound_inf, 2) * 0.5*euler_physics.gamm1 * perturbation_strength*perturbation_strength;
 
-    //const double vel_x = euler_physics.velocities_inf[0] + delta_vel_x;
-    //const double vel_y = euler_physics.velocities_inf[1] + delta_vel_y;
-    //const double temperature = (euler_physics.temperature_inf + delta_temp);
+    const double vel_x = euler_physics.velocities_inf[0] + delta_vel_x;
+    const double vel_y = euler_physics.velocities_inf[1] + delta_vel_y;
+    const double temperature = (euler_physics.temperature_inf - delta_temp);
 
-    //// Use isentropic relations to recover density and pressure
-    //const double density = euler_physics.density_inf*pow(temperature/euler_physics.temperature_inf, 1.0/euler_physics.gamm1);
-    ////const double pressure = euler_physics.pressure_inf * 1.0/euler_physics.gam * pow(temperature, euler_physics.gam/euler_physics.gamm1);
-    //const double pressure = euler_physics.pressure_inf * pow(temperature/euler_physics.temperature_inf, euler_physics.gam/euler_physics.gamm1);
+    // Use isentropic relations to recover density and pressure
+    // const double density = euler_physics.density_inf*pow(temperature/euler_physics.temperature_inf, 1.0/euler_physics.gamm1);
+    // const double pressure = euler_physics.pressure_inf * 1.0/euler_physics.gam * pow(temperature, euler_physics.gam/euler_physics.gamm1);
+    const double pressure = euler_physics.pressure_inf * pow(temperature/euler_physics.temperature_inf, euler_physics.gam/euler_physics.gamm1);
+    const double density = euler_physics.compute_density_from_pressure_temperature (pressure, temperature);
 
     // Spiegel2015 isentropic vortex
     //const double local_radius_sqr = new_loc.square();
@@ -104,13 +105,14 @@ inline real EulerVortexFunction<dim,real>
     //const double density = euler_physics.compute_density_from_pressure_temperature (pressure, temperature);
 
 
-    // Philip's isentropic vortex
-    const double r2 = (std::pow(x,2.0)+std::pow(y,2.0))/(variance);
-    const double density  = euler_physics.density_inf;
-    const double vel_x    = euler_physics.velocities_inf[0] - y*vortex_strength/(variance)*exp(-0.5*r2);
-    const double vel_y    = euler_physics.velocities_inf[1] + x*vortex_strength/(variance)*exp(-0.5*r2);
-    const double pressure = euler_physics.pressure_inf  - euler_physics.density_inf*(vortex_strength*vortex_strength)/(2*variance)*exp(-r2);
+    // // Philip's isentropic vortex
+    // const double r2 = (std::pow(x,2.0)+std::pow(y,2.0))/(variance);
+    // const double density  = euler_physics.density_inf;
+    // const double vel_x    = euler_physics.velocities_inf[0] - y*vortex_strength/(variance)*exp(-0.5*r2);
+    // const double vel_y    = euler_physics.velocities_inf[1] + x*vortex_strength/(variance)*exp(-0.5*r2);
+    // const double pressure = euler_physics.pressure_inf  - euler_physics.density_inf*(vortex_strength*vortex_strength)/(2*variance)*exp(-r2);
 
+    
     const std::array<double, 4> primitive_values = {{density, vel_x, vel_y, pressure}};
     const std::array<double, 4> conservative_values = euler_physics.convert_primitive_to_conservative(primitive_values);
 
@@ -161,10 +163,9 @@ int EulerVortex<dim,nstate>
     std::shared_ptr <Physics::Euler<dim,nstate,double>> euler = std::dynamic_pointer_cast<Physics::Euler<dim,nstate,double>>(physics);
 
     const dealii::Point<dim> initial_vortex_center(-0.0,-0.0);
-    const double vortex_strength = euler->mach_inf*4.0;
+    const double vortex_strength = 5;                 // euler->mach_inf*4.0;
     const double vortex_stddev_decay = 1.0;
     const double half_length = 5*euler->ref_length;
-    //const double half_length = 5*euler->ref_length;
     EulerVortexFunction<dim,double> initial_vortex_function(*euler, initial_vortex_center, vortex_strength, vortex_stddev_decay);
     initial_vortex_function.set_time(0.0);
 
@@ -210,63 +211,100 @@ int EulerVortex<dim,nstate>
             double c_value = c_array[ic];
 
         for (unsigned int igrid=0; igrid<n_grids; ++igrid) {
-            // Note that Triangulation must be declared before DG
-            // DG will be destructed before Triangulation
-            // thus removing any dependence of Triangulation and allowing Triangulation to be destructed
-            // Otherwise, a Subscriptor error will occur
+
             using Triangulation = dealii::parallel::distributed::Triangulation<dim>;
-            std::shared_ptr <Triangulation> grid = std::make_shared<Triangulation> (this->mpi_communicator,
+            std::shared_ptr<Triangulation> grid = std::make_shared<Triangulation>(
+                MPI_COMM_WORLD,
                 typename dealii::Triangulation<dim>::MeshSmoothing(
                     dealii::Triangulation<dim>::smoothing_on_refinement |
                     dealii::Triangulation<dim>::smoothing_on_coarsening));
 
-            // Generate hypercube
-            if ( manu_grid_conv_param.grid_type == GridEnum::hypercube || manu_grid_conv_param.grid_type == GridEnum::sinehypercube ) {
+            //straight grid setup
+            std::vector<unsigned int> n_subdivisions(2);
+                dealii::GridGenerator::subdivided_hyper_cube(*grid, n_1d_cells[igrid], -half_length,half_length, true);
+                    // dealii::GridGenerator::hyper_cube(*grid, -half_length,half_length, true);
 
-                std::vector<unsigned int> n_subdivisions(2);
-                n_subdivisions[0] = n_1d_cells[igrid];
-                n_subdivisions[1] = n_1d_cells[igrid];
-                const bool colorize = true;
-                dealii::Point<dim> p1(-half_length,-half_length), p2(half_length,half_length);
-                dealii::GridGenerator::subdivided_hyper_rectangle (*grid, n_subdivisions, p1, p2, colorize);
-                for (typename Triangulation::active_cell_iterator cell = grid->begin_active(); cell != grid->end(); ++cell) {
-                    // Set a dummy boundary ID
-                    for (unsigned int face=0; face<dealii::GeometryInfo<dim>::faces_per_cell; ++face) {
-                        if (cell->face(face)->at_boundary()) {
-                            unsigned int current_id = cell->face(face)->boundary_id();
-                            if (current_id == 0) {
-                                cell->face(face)->set_boundary_id (1004); // x_left, Farfield
-                            } else if (current_id == 1) {
-                                cell->face(face)->set_boundary_id (1004); // x_right, Symmetry/Wall
-                            } else if (current_id == 2) {
-                                cell->face(face)->set_boundary_id (1004); // y_bottom, Symmetry/Wall
-                            } else if (current_id == 3) {
-                                cell->face(face)->set_boundary_id (1004); // y_top, Wall
-                            } else {
-                                std::cout << "current_face_id " << current_id << std::endl;
-                                std::abort();
-                            }
-                        }
-                    }
-                }
-            //const double max_ratio = 1.5;
-            }
+            std::vector<dealii::GridTools::PeriodicFacePair<typename dealii::parallel::distributed::Triangulation<PHILIP_DIM>::cell_iterator> > matched_pairs;
+            dealii::GridTools::collect_periodic_faces(*grid,0,1,0,matched_pairs);
+            if(dim>=2) dealii::GridTools::collect_periodic_faces(*grid,2,3,1,matched_pairs);
+            if(dim>=3) dealii::GridTools::collect_periodic_faces(*grid,4,5,2,matched_pairs);
+            grid->add_periodicity(matched_pairs);
 
-            // Distort grid by random amount if requested
-            const double random_factor = manu_grid_conv_param.random_distortion;
-            const bool keep_boundary = true;
-            if (random_factor > 0.0) dealii::GridTools::distort_random (random_factor, *grid, keep_boundary);
-
-            // Allocate c ESFR parameter value
+                    // grid->refine_global(igrid);
+            pcout << "Grid generated and refined" << std::endl;
+            //CFL number
+            // const unsigned int n_global_active_cells2 = grid->n_global_active_cells();
+            // double n_dofs_cfl = pow(n_global_active_cells2,dim) * pow(poly_degree+1.0, dim);
+            // double delta_x = (right-left)/pow(n_dofs_cfl,(1.0/dim)); 
+            // all_parameters_new.ode_solver_param.initial_time_step =  0.5*delta_x;
+            // use 0.0001 to be consisitent with Ranocha and Gassner papers
+            // param.ode_solver_param.initial_time_step =  0.0001;
             param.FR_user_specified_correction_parameter_value = c_value;
             pcout << "c ESFR " <<param.FR_user_specified_correction_parameter_value <<  std::endl;
-
-            // Create DG object using the factory
-            std::shared_ptr < DGBase<dim, double> > dg = DGFactory<dim,double>::create_discontinuous_galerkin(&param, poly_degree, grid);
+            //allocate dg
+            // std::shared_ptr < DGBase<dim, double> > dg = DGFactory<dim,double>::create_discontinuous_galerkin(&param, poly_degree, grid);
+            std::shared_ptr < PHiLiP::DGBase<dim, double> > dg = PHiLiP::DGFactory<dim,double>::create_discontinuous_galerkin(&param, poly_degree, grid);
             dg->allocate_system ();
+            pcout << "dg created" << std::endl;
+
+            // Note that Triangulation must be declared before DG
+            // DG will be destructed before Triangulation
+            // thus removing any dependence of Triangulation and allowing Triangulation to be destructed
+            // Otherwise, a Subscriptor error will occur
+            // using Triangulation = dealii::parallel::distributed::Triangulation<dim>;
+            // std::shared_ptr <Triangulation> grid = std::make_shared<Triangulation> (this->mpi_communicator,
+            //     typename dealii::Triangulation<dim>::MeshSmoothing(
+            //         dealii::Triangulation<dim>::smoothing_on_refinement |
+            //         dealii::Triangulation<dim>::smoothing_on_coarsening));
+
+            // // Generate hypercube
+            // if ( manu_grid_conv_param.grid_type == GridEnum::hypercube || manu_grid_conv_param.grid_type == GridEnum::sinehypercube ) {
+
+            //     std::vector<unsigned int> n_subdivisions(2);
+            //     n_subdivisions[0] = n_1d_cells[igrid];
+            //     n_subdivisions[1] = n_1d_cells[igrid];
+            //     const bool colorize = true;
+            //     dealii::Point<dim> p1(-half_length,-half_length), p2(half_length,half_length);
+            //     dealii::GridGenerator::subdivided_hyper_rectangle (*grid, n_subdivisions, p1, p2, colorize);
+                // for (typename Triangulation::active_cell_iterator cell = grid->begin_active(); cell != grid->end(); ++cell) {
+                //     // Set a dummy boundary ID
+                //     for (unsigned int face=0; face<dealii::GeometryInfo<dim>::faces_per_cell; ++face) {
+                //         if (cell->face(face)->at_boundary()) {
+                //             unsigned int current_id = cell->face(face)->boundary_id();
+                //             if (current_id == 0) {
+                //                 cell->face(face)->set_boundary_id (1004); // x_left, Farfield
+                //             } else if (current_id == 1) {
+                //                 cell->face(face)->set_boundary_id (1004); // x_right, Symmetry/Wall
+                //             } else if (current_id == 2) {
+                //                 cell->face(face)->set_boundary_id (1004); // y_bottom, Symmetry/Wall
+                //             } else if (current_id == 3) {
+                //                 cell->face(face)->set_boundary_id (1004); // y_top, Wall
+                //             } else {
+                //                 std::cout << "current_face_id " << current_id << std::endl;
+                //                 std::abort();
+                //             }
+                //         }
+                //     }
+                // }
+            //const double max_ratio = 1.5;
+            // }
+
+            // // Distort grid by random amount if requested
+            // const double random_factor = manu_grid_conv_param.random_distortion;
+            // const bool keep_boundary = true;
+            // if (random_factor > 0.0) dealii::GridTools::distort_random (random_factor, *grid, keep_boundary);
+
+            // // Allocate c ESFR parameter value
+            // param.FR_user_specified_correction_parameter_value = c_value;
+            // pcout << "c ESFR " <<param.FR_user_specified_correction_parameter_value <<  std::endl;
+
+            // // Create DG object using the factory
+            // std::shared_ptr < DGBase<dim, double> > dg = DGFactory<dim,double>::create_discontinuous_galerkin(&param, poly_degree, grid);
+            // dg->allocate_system ();
 
             // Initialize solution with vortex function at time t=0
             dealii::VectorTools::interpolate(dg->dof_handler, initial_vortex_function, dg->solution);
+            // dg->output_results_vtk(igrid);
             // dealii::AffineConstraints<double> constraints;
             // constraints.close();
             // dealii::VectorTools::project (dg->dof_handler,
@@ -297,18 +335,22 @@ int EulerVortex<dim,nstate>
             ode_solver->current_iteration = 0;
 
             ode_solver->advance_solution_time(finalTime);
-
+            // ode_solver->allocate_ode_system();
+            // ode_solver->step_in_time(time_step);
             
             EulerVortexFunction<dim,double> final_vortex_function(*euler, initial_vortex_center, vortex_strength, vortex_stddev_decay);
             const double final_time = ode_solver->current_time;
+            pcout << "curent time" << final_time << std::endl;
             final_vortex_function.set_time(final_time);
 
             // Overintegrate the error to make sure there is not integration error in the error estimate
             int overintegrate = 10;
             dealii::QGauss<dim> quad_extra(dg->max_degree+1+overintegrate);
-            dealii::MappingQ<dim,dim> mappingq(dg->max_degree+overintegrate);
-            dealii::FEValues<dim,dim> fe_values_extra(mappingq, dg->fe_collection[poly_degree], quad_extra, 
+            // dealii::MappingQ<dim,dim> mappingq(dg->max_degree+overintegrate);
+            dealii::FEValues<dim,dim> fe_values_extra(*(dg->high_order_grid->mapping_fe_field), dg->fe_collection[poly_degree], quad_extra, 
                     dealii::update_values | dealii::update_JxW_values | dealii::update_quadrature_points);
+            // dealii::FEValues<dim,dim> fe_values_extra(mappingq, dg->fe_collection[poly_degree], quad_extra, 
+                    // dealii::update_values | dealii::update_JxW_values | dealii::update_quadrature_points);
             const unsigned int n_quad_pts = fe_values_extra.n_quadrature_points;
             std::array<double,nstate> soln_at_q;
 
@@ -317,13 +359,15 @@ int EulerVortex<dim,nstate>
             std::vector<dealii::types::global_dof_index> dofs_indices (fe_values_extra.dofs_per_cell);
             // Integrate solution error
             for (auto cell = dg->dof_handler.begin_active(); cell!=dg->dof_handler.end(); ++cell) {
+
                 if (!cell->is_locally_owned()) continue;
+                
                 fe_values_extra.reinit (cell);
                 cell->get_dof_indices (dofs_indices);
 
                 for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
 
-                    std::fill(soln_at_q.begin(), soln_at_q.end(), 0);
+                    std::fill(soln_at_q.begin(), soln_at_q.end(), 0.0);
                     for (unsigned int idof=0; idof<fe_values_extra.dofs_per_cell; ++idof) {
                         const unsigned int istate = fe_values_extra.get_fe().system_to_component_index(idof).first;
                         soln_at_q[istate] += dg->solution[dofs_indices[idof]] * fe_values_extra.shape_value_component(idof, iquad, istate);
@@ -333,13 +377,13 @@ int EulerVortex<dim,nstate>
 
                     // Check only density
                     // Check only energy
-                    for (int istate=3; istate<4; ++istate) {
+                    for (int istate=0; istate<1; ++istate) {
                         const double uexact = final_vortex_function.value(qpoint, istate);
                         l2error += pow(soln_at_q[istate] - uexact, 2) * fe_values_extra.JxW(iquad);
                     }
                 }
-
             }
+
             // l2error = sqrt(l2error);
             const double l2error_mpi_sum = std::sqrt(dealii::Utilities::MPI::sum(l2error, mpi_communicator));
             l2error = l2error_mpi_sum;
@@ -347,7 +391,7 @@ int EulerVortex<dim,nstate>
 
             // Convergence table
             double dx = 1.0/pow(n_dofs,(1.0/dim));
-            //dx = dealii::GridTools::maximal_cell_diameter(*grid);
+            dx = dealii::GridTools::maximal_cell_diameter(*grid);
             grid_size[igrid] = dx;
             soln_error[igrid] = l2error;
 

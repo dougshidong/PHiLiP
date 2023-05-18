@@ -25,6 +25,9 @@ public:
     /// Function to generate the grid
     std::shared_ptr<Triangulation> generate_grid() const override;
 
+    /// Will evaluate and print boundary layer informations
+    void steady_state_postprocessing(std::shared_ptr <DGBase<dim, double>> dg) const override;
+
 protected:
     const double free_length; ///< Length of free area upwind to the flat plate
     const double free_height; ///< Height of free area above the flat plate

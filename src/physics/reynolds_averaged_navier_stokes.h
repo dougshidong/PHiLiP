@@ -130,6 +130,16 @@ public:
         const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient,
         const real post_processed_scalar) const = 0;
 
+    /// Returns the conservative solutions of Reynolds-averaged Navier-Stokes equations (without additional RANS turbulence model)
+    template <typename real2>
+    std::array<real2,dim+2> extract_rans_conservative_solution (
+        const std::array<real2,nstate> &conservative_soln) const;
+
+    /// Returns the conservative solutions gradient of Reynolds-averaged Navier-Stokes equations (without additional RANS turbulence model)
+    template <typename real2>
+    std::array<dealii::Tensor<1,dim,real2>,dim+2> extract_rans_solution_gradient (
+        const std::array<dealii::Tensor<1,dim,real2>,nstate> &solution_gradient) const;
+
 protected:
     /// Returns the square of the magnitude of the vector 
     template<typename real2> 
@@ -150,16 +160,6 @@ protected:
     template<typename real2>
     std::array<dealii::Tensor<1,dim,real2>,nstate> convective_flux_templated (
         const std::array<real2,nstate> &conservative_soln) const;
-
-    /// Returns the conservative solutions of Reynolds-averaged Navier-Stokes equations (without additional RANS turbulence model)
-    template <typename real2>
-    std::array<real2,dim+2> extract_rans_conservative_solution (
-        const std::array<real2,nstate> &conservative_soln) const;
-
-    /// Returns the conservative solutions gradient of Reynolds-averaged Navier-Stokes equations (without additional RANS turbulence model)
-    template <typename real2>
-    std::array<dealii::Tensor<1,dim,real2>,dim+2> extract_rans_solution_gradient (
-        const std::array<dealii::Tensor<1,dim,real2>,nstate> &solution_gradient) const;
 
     /// Templated Additional viscous flux of RANS + viscous flux of turbulence model
     template <typename real2>

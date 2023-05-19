@@ -8,7 +8,7 @@ set overintegration = 0
 
 set flux_nodes_type = GL
 
-set use_split_form = true
+set use_split_form = false
 
 set use_energy = false
 
@@ -18,7 +18,13 @@ set use_classical_FR = false
 
 set use_periodic_bc = true
 
-set flux_reconstruction = cPlus
+#set flux_reconstruction = cPlus
+set flux_reconstruction = user_specified_value
+set FR_user_specified_correction_parameter_value = 3.67e-3
+
+set number_ESFR_parameter_values = 100
+set ESFR_parameter_values_start = 1.0e-5
+set ESFR_parameter_values_end = 1.0e3
 
 set use_inverse_mass_on_the_fly = true
 
@@ -36,7 +42,7 @@ subsection ODE solver
   
   set nonlinear_max_iterations = 500000
 
-  set print_iteration_modulo = 1000
+  set print_iteration_modulo = 10000
 
   set ode_solver_type = runge_kutta
 

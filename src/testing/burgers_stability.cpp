@@ -93,20 +93,20 @@ int BurgersEnergyStability<dim, nstate>::run_test() const
     PHiLiP::Parameters::AllParameters all_parameters_new = *all_parameters;  
     double left = 0.0;
     double right = 2.0;
-    const unsigned int n_grids = (all_parameters_new.use_energy) ? 4 : 8;
+    const unsigned int n_grids = (all_parameters_new.use_energy) ? 4 : 7;
     std::vector<double> grid_size(n_grids);
     std::vector<double> soln_error(n_grids);
-    unsigned int poly_degree = 5;
+    unsigned int poly_degree = 3;
     dealii::ConvergenceTable convergence_table;
-    const unsigned int igrid_start = 2;
+    const unsigned int igrid_start = 3;
     const unsigned int grid_degree = 1;
 
-    const int nb_c_value = 100;
-    const double c_min = 1e-9;
-    const double c_max = 1e-3;
+    const unsigned int nb_c_value = all_parameters_new.number_ESFR_parameter_values;
+    const double c_min = all_parameters_new.ESFR_parameter_values_start;
+    const double c_max = all_parameters_new.ESFR_parameter_values_end;
     const double log_c_min = std::log10(c_min);
     const double log_c_max = std::log10(c_max);
-    double c_array[nb_c_value+1];
+    std::vector<double> c_array(nb_c_value+1);
 
     std::ofstream l2error_file("l2error.txt");
     std::ofstream slope_file("slope_soln_err.txt");
@@ -119,17 +119,18 @@ int BurgersEnergyStability<dim, nstate>::run_test() const
     cell_number_file.close();
 
     // Create log space array of c_value
-    for (int ic = 0; ic < nb_c_value; ic++) {
+    for (unsigned int ic = 0; ic < nb_c_value; ic++) {
         double log_c = log_c_min + (log_c_max - log_c_min) / (nb_c_value - 1) * ic;
         c_array[ic] = std::pow(10.0, log_c);
         c_value_file << c_array[ic] << std::endl;
     }
-    c_array[nb_c_value]=4.24e-7; // 0.186; 3.67e-3; 4.79e-5; 4.24e-7;
+    // c_array[nb_c_value]=4.24e-7; // 0.186; 3.67e-3; 4.79e-5; 4.24e-7;
+    c_array[nb_c_value] = all_parameters_new.FR_user_specified_correction_parameter_value;
     c_value_file << c_array[nb_c_value] << std::endl;
     c_value_file.close();
 
     // Loop over c_array to compute slope
-    for (int ic = 0; ic < nb_c_value+1; ic++) {
+    for (unsigned int ic = 0; ic < nb_c_value+1; ic++) {
         double c_value = c_array[ic];
 
     for(unsigned int igrid = igrid_start; igrid<n_grids; igrid++){
@@ -165,10 +166,10 @@ int BurgersEnergyStability<dim, nstate>::run_test() const
         grid->refine_global(igrid);
         pcout << "Grid generated and refined" << std::endl;
         //CFL number
-        const unsigned int n_global_active_cells2 = grid->n_global_active_cells();
-        double n_dofs_cfl = pow(n_global_active_cells2,dim) * pow(poly_degree+1.0, dim);
-        double delta_x = (right-left)/pow(n_dofs_cfl,(1.0/dim)); 
-        all_parameters_new.ode_solver_param.initial_time_step =  0.5*delta_x;
+        // const unsigned int n_global_active_cells2 = grid->n_global_active_cells();
+        // double n_dofs_cfl = pow(n_global_active_cells2,dim) * pow(poly_degree+1.0, dim);
+        // double delta_x = (right-left)/pow(n_dofs_cfl,(1.0/dim)); 
+        // all_parameters_new.ode_solver_param.initial_time_step =  0.5*delta_x;
         //use 0.0001 to be consisitent with Ranocha and Gassner papers
         all_parameters_new.ode_solver_param.initial_time_step =  0.0001;
         all_parameters_new.FR_user_specified_correction_parameter_value = c_value;
@@ -274,7 +275,8 @@ int BurgersEnergyStability<dim, nstate>::run_test() const
             myfile2.close();
         }//end of energy
         else{//do OOA
-            finalTime = 0.001;//This is sufficient for verification
+            // finalTime = 0.001;//This is sufficient for verification
+            finalTime=2.0;
 
             ode_solver->current_iteration = 0;
 

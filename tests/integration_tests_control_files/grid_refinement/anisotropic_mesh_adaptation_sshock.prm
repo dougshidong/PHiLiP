@@ -39,7 +39,7 @@ subsection optimization
     set use_coarse_residual = false
     set use_fine_solution = false
 
-    set gradient_tolerance = 1.0e-10 #1e-11
+    set gradient_tolerance = 1.0e-9 #1e-11
     set max_design_cycles = 30
     set linear_iteration_limit = 200
     set initial_step_size = 1.0
@@ -90,7 +90,7 @@ subsection manufactured solution convergence study
   #set manufactured_solution_type   = s_shock_solution
 
   # setting the advection vector
-  set advection_0 = -0.27
+  set advection_0 = -0.05
   set advection_1 = 1.0 # -pi/e
 end
 

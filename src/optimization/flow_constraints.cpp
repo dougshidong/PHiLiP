@@ -359,6 +359,7 @@ void FlowConstraints<dim>
     //dRdW_mult += 2;
     n_vmult += 6;
     dRdW_mult += 6;
+    n_preconditioner_calls += 1;
 
 }
 
@@ -391,6 +392,7 @@ void FlowConstraints<dim>
     //dRdW_mult += 2;
     n_vmult += 6;
     dRdW_mult += 6;
+    n_preconditioner_calls += 1;
 }
 
 template<int dim>

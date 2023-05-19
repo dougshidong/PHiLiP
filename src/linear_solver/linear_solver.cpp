@@ -280,6 +280,7 @@ solve_linear (
         //dRdW_mult += 3*solver.NumIters();
         n_vmult += 7*solver.NumIters();
         dRdW_mult += 7*solver.NumIters();
+        n_preconditioner_calls += solver.NumIters();
 
         //std::abort();
         return {solver.NumIters(), solver.TrueResidual()};

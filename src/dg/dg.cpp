@@ -59,6 +59,7 @@ unsigned int dRdW_form;
 unsigned int dRdW_mult;
 unsigned int dRdX_mult;
 unsigned int d2R_mult;
+unsigned int n_preconditioner_calls;
 
 
 namespace PHiLiP {

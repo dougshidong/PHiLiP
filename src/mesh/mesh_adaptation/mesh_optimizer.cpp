@@ -18,6 +18,7 @@
 #include "optimization/rol_objective.hpp"
 
 #include "optimization/full_space_step.hpp"
+#include "global_counter.hpp"
 
 namespace PHiLiP {
 
@@ -39,6 +40,7 @@ MeshOptimizer<dim,nstate>::MeshOptimizer(
     initialize_objfunc_and_design_parameterization();
     initialize_state_design_and_dual_variables();
     initialize_output_stream();
+    n_preconditioner_calls = 0;
 }
 
 template<int dim, int nstate>
@@ -183,6 +185,8 @@ void MeshOptimizer<dim,nstate>::run_full_space_optimizer()
 
     const double timing_end = MPI_Wtime();
     *rcp_outstream << "The process took "<<timing_end - timing_start << " seconds to run."<<std::endl;
+    *rcp_outstream << "n_preconditioner_calls = "<<n_preconditioner_calls << std::endl;
+    *rcp_outstream << "n_design_variables = "<< design_variables.size() << std::endl;
     filebuffer.close(); 
 }
 
@@ -232,6 +236,8 @@ void MeshOptimizer<dim,nstate>::run_reduced_space_optimizer()
 
     const double timing_end = MPI_Wtime();
     *rcp_outstream << "The process took "<<timing_end - timing_start << " seconds to run."<<std::endl;
+    *rcp_outstream << "n_preconditioner_calls = "<<n_preconditioner_calls << std::endl;
+    *rcp_outstream << "n_design_variables = "<< design_variables.size() << std::endl;
     filebuffer.close();
 }
 

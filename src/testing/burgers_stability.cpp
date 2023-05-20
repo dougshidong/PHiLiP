@@ -93,12 +93,12 @@ int BurgersEnergyStability<dim, nstate>::run_test() const
     PHiLiP::Parameters::AllParameters all_parameters_new = *all_parameters;  
     double left = 0.0;
     double right = 2.0;
-    const unsigned int n_grids = (all_parameters_new.use_energy) ? 4 : 7;
+    const unsigned int n_grids = (all_parameters_new.use_energy) ? 4 : all_parameters_new.manufactured_convergence_study_param.initial_grid_size+all_parameters_new.manufactured_convergence_study_param.number_of_grids;
     std::vector<double> grid_size(n_grids);
     std::vector<double> soln_error(n_grids);
-    unsigned int poly_degree = 3;
+    unsigned int poly_degree = all_parameters_new.manufactured_convergence_study_param.degree_start;
     dealii::ConvergenceTable convergence_table;
-    const unsigned int igrid_start = 3;
+    const unsigned int igrid_start = all_parameters_new.manufactured_convergence_study_param.initial_grid_size;
     const unsigned int grid_degree = 1;
 
     const unsigned int nb_c_value = all_parameters_new.number_ESFR_parameter_values;

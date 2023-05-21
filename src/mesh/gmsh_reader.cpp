@@ -54,7 +54,7 @@ assign_1d_boundary_ids( const std::map<unsigned int, dealii::types::boundary_id>
 }
 
 template <int dim>
-void rotate_indices(std::vector<unsigned int> &numbers, const unsigned int n_indices_per_direction, const char direction, const bool /*mesh_reader_verbose_output*/)
+void rotate_indices(std::vector<unsigned int> &numbers, const unsigned int n_indices_per_direction, const char direction, const bool mesh_reader_verbose_output)
 {
 
     const int mpi_rank = dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD);
@@ -224,7 +224,7 @@ void rotate_indices(std::vector<unsigned int> &numbers, const unsigned int n_ind
        * 
        * 
        **/ 
-
+      
       switch (direction)                                                     
       {
           // Rotate Cube in Z-Axis
@@ -235,6 +235,7 @@ void rotate_indices(std::vector<unsigned int> &numbers, const unsigned int n_ind
                       {
                           unsigned int k = (ix) * n + n - (iy + 1) + (n * n * iz);
                           numbers[k]     = l++;
+                          if(mesh_reader_verbose_output) pcout << "3D rotation matrix, physical node mapping, Z-axis : " << k << std::endl;
                       }
               break;
           // Rotate Cube in X-Axis
@@ -245,6 +246,7 @@ void rotate_indices(std::vector<unsigned int> &numbers, const unsigned int n_ind
                       {
                           unsigned int k = (ix) + (n * (n-1)) + (n * n * iy) - (n * iz);
                           numbers[k] = l++;
+                          if(mesh_reader_verbose_output) pcout << "3D rotation matrix, physical node mapping, X-axis : " << k << std::endl;
                       }
               break;
           // Rotate Cube in Y-Axis
@@ -255,6 +257,7 @@ void rotate_indices(std::vector<unsigned int> &numbers, const unsigned int n_ind
                       {
                           unsigned int k = (ix * n * n) + (n - 1) + (iy * n) - (iz);
                           numbers[k] = l++;
+                          if(mesh_reader_verbose_output) pcout << "3D rotation matrix, physical node mapping, Y-axis : " << k << std::endl;
                       }
               break;
           // Flip Cube
@@ -265,6 +268,7 @@ void rotate_indices(std::vector<unsigned int> &numbers, const unsigned int n_ind
                       {
                           unsigned int k = (n * (n - 1)) + ix - (iy * n) + (n * n * iz);
                           numbers[k] = l++;
+                          if(mesh_reader_verbose_output) pcout << "3D rotation matrix, physical node mapping, Flip-axis : " << k << std::endl;
                       }
               break;
       }

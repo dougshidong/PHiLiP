@@ -23,7 +23,7 @@ PeriodicCubeFlow<dim, nstate>::PeriodicCubeFlow(const PHiLiP::Parameters::AllPar
 template <int dim, int nstate>
 std::shared_ptr<Triangulation> PeriodicCubeFlow<dim,nstate>::generate_grid() const
 {
-    if(this->all_param.flow_solver_param.use_input_mesh) {
+    if(this->all_param.flow_solver_param.use_gmsh_mesh) {
         if constexpr(dim == 3) {
             const std::string mesh_filename = this->all_param.flow_solver_param.input_mesh_filename + std::string(".msh");
             this->pcout << "- Generating grid using input mesh: " << mesh_filename << std::endl;

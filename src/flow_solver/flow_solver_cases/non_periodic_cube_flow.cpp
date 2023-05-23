@@ -15,15 +15,11 @@ std::shared_ptr<Triangulation> NonPeriodicCubeFlow<dim,nstate>::generate_grid() 
     std::shared_ptr<Triangulation> grid = std::make_shared<Triangulation> (this->mpi_communicator); // Mesh smoothing is set to none by default.
     
     const unsigned int number_of_refinements = this->all_param.flow_solver_param.number_of_mesh_refinements;
-    //const double domain_left = this->all_param.flow_solver_param.grid_left_bound;
-    //const double domain_right = this->all_param.flow_solver_param.grid_right_bound;
-    //const bool colorize = true;
-    dealii::Point<dim,double> p1, p2;
-    p1[0] = -1.0; p1[1] = 0.0;
-    p2[0] = 1.0; p2[1] = 1.0;
+    const double domain_left = this->all_param.flow_solver_param.grid_left_bound;
+    const double domain_right = this->all_param.flow_solver_param.grid_right_bound;
+    const bool colorize = true;
     
-    //dealii::GridGenerator::hyper_cube(*grid, domain_left, domain_right, colorize);
-    dealii::GridGenerator::hyper_rectangle(*grid, p1, p2);
+    dealii::GridGenerator::hyper_cube(*grid, domain_left, domain_right, colorize);
     grid->refine_global(number_of_refinements);
 
     return grid;

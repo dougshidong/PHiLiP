@@ -39,8 +39,8 @@ subsection optimization
     set use_coarse_residual = false
     set use_fine_solution = false
 
-    set gradient_tolerance = 1.0e-9 #1e-11
-    set max_design_cycles = 30
+    set gradient_tolerance = 1.0e-11 #1e-11
+    set max_design_cycles = 35
     set linear_iteration_limit = 200
     set initial_step_size = 1.0
     set functional_evaluation_limit = 30
@@ -81,7 +81,7 @@ subsection functional
    set normLp = 1.0
 
    # boundaries to be used
-   set boundary_vector = [1, 2]
+   set boundary_vector = [0, 3]
    set use_all_boundaries = false
 end
 
@@ -90,7 +90,7 @@ subsection manufactured solution convergence study
   #set manufactured_solution_type   = s_shock_solution
 
   # setting the advection vector
-  set advection_0 = -0.05
+  set advection_0 = -0.27
   set advection_1 = 1.0 # -pi/e
 end
 

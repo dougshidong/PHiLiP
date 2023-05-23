@@ -140,11 +140,11 @@ int AnisotropicMeshAdaptationCases<dim, nstate> :: run_test () const
 
         if(run_mesh_optimizer) // Use full-space optimizer to converge flow.
         {
-            //std::unique_ptr<MeshOptimizer<dim,nstate>> mesh_optimizer = std::make_unique<MeshOptimizer<dim,nstate>> (flow_solver->dg,&param, true);
-            //mesh_optimizer->run_full_space_optimizer();
+            std::unique_ptr<MeshOptimizer<dim,nstate>> mesh_optimizer = std::make_unique<MeshOptimizer<dim,nstate>> (flow_solver->dg,&param, true);
+            mesh_optimizer->run_full_space_optimizer();
             
-            std::unique_ptr<MeshOptimizer<dim,nstate>> mesh_optimizer = std::make_unique<MeshOptimizer<dim,nstate>> (flow_solver->dg,&param, false);
-            mesh_optimizer->run_reduced_space_optimizer();
+            //std::unique_ptr<MeshOptimizer<dim,nstate>> mesh_optimizer = std::make_unique<MeshOptimizer<dim,nstate>> (flow_solver->dg,&param, false);
+            //mesh_optimizer->run_reduced_space_optimizer();
         }
         else
         {

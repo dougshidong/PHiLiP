@@ -127,9 +127,34 @@ int HRefinementStudyIsentropicVortex<dim, nstate>::run_test() const
     }
 
     int testfail = 0;
+// cESFR range test -------------------------------------
+   
+    const unsigned int nb_c_value = this->all_parameters->number_ESFR_parameter_values;
+    const double c_min = this->all_parameters->ESFR_parameter_values_start;
+    const double c_max = this->all_parameters->ESFR_parameter_values_end;
+    const double log_c_min = std::log10(c_min);
+    const double log_c_max = std::log10(c_max);
+    std::vector<double> c_array(nb_c_value+1);
+
+
+    // Create log space array of c_value
+    for (unsigned int ic = 0; ic < nb_c_value; ic++) {
+        double log_c = log_c_min + (log_c_max - log_c_min) / (nb_c_value - 1) * ic;
+        c_array[ic] = std::pow(10.0, log_c);
+    }
+    // Add cPlus value at the end
+    c_array[nb_c_value] = this->all_parameters->FR_user_specified_correction_parameter_value;
+    // c_array[nb_c_value]=3.67e-3; // 0.186; 3.67e-3; 4.79e-5; 4.24e-7;
 
     dealii::ConvergenceTable convergence_table_density;
     dealii::ConvergenceTable convergence_table_pressure;
+
+    // Loop over c_array to compute slope
+    for (unsigned int ic = 0; ic < nb_c_value+1; ic++) {
+        double c_value = c_array[ic];
+
+// --------------------------------------------------------
+
     double L2_error_pressure_old = 0;
     double L2_error_pressure_conv_rate=0;
 
@@ -141,8 +166,10 @@ int HRefinementStudyIsentropicVortex<dim, nstate>::run_test() const
         pcout << "---------------------------------------------" << std::endl;
 
         const Parameters::AllParameters params = reinit_params_and_refine(refinement);
-        std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(&params, parameter_handler);
-        std::unique_ptr<FlowSolver::PeriodicEntropyTests<dim, nstate>> flow_solver_case = std::make_unique<FlowSolver::PeriodicEntropyTests<dim,nstate>>(&params);
+        auto params_modified = params;
+        params_modified.FR_user_specified_correction_parameter_value = c_value;
+        std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(&params_modified, parameter_handler);
+        std::unique_ptr<FlowSolver::PeriodicEntropyTests<dim, nstate>> flow_solver_case = std::make_unique<FlowSolver::PeriodicEntropyTests<dim,nstate>>(&params_modified);
     
         static_cast<void>(flow_solver->run());
         pcout << "Finished flowsolver " << std::endl;
@@ -151,23 +178,26 @@ int HRefinementStudyIsentropicVortex<dim, nstate>::run_test() const
         
         double L1_error_density=0;
         double L1_error_pressure=0;
-        calculate_Lp_error_at_final_time_wrt_function(L1_error_density, L1_error_pressure, flow_solver->dg, params,final_time_actual, 1);
+        calculate_Lp_error_at_final_time_wrt_function(L1_error_density, L1_error_pressure, flow_solver->dg, params_modified,final_time_actual, 1);
         double L2_error_density =0;
         double L2_error_pressure=0;
-        calculate_Lp_error_at_final_time_wrt_function(L2_error_density,L2_error_pressure, flow_solver->dg, params,final_time_actual, 2);
+        calculate_Lp_error_at_final_time_wrt_function(L2_error_density,L2_error_pressure, flow_solver->dg, params_modified,final_time_actual, 2);
         double Linfty_error_density = 0;
         double Linfty_error_pressure = 0;
-        calculate_Lp_error_at_final_time_wrt_function(Linfty_error_density,Linfty_error_pressure, flow_solver->dg, params,final_time_actual, -1);
+        calculate_Lp_error_at_final_time_wrt_function(Linfty_error_density,Linfty_error_pressure, flow_solver->dg, params_modified,final_time_actual, -1);
         pcout << "Computed density errors are: " << std::endl
               << "    L1:      " << L1_error_density << std::endl
               << "    L2:      " << L2_error_density << std::endl
               << "    Linfty:  " << Linfty_error_density << std::endl;
 
         const double dt = flow_solver_case->get_constant_time_step(flow_solver->dg);
-        const int n_cells = pow(params.flow_solver_param.number_of_grid_elements_per_dimension, PHILIP_DIM);
+        const int n_cells = pow(params_modified.flow_solver_param.number_of_grid_elements_per_dimension, PHILIP_DIM);
         pcout << " at dt = " << dt << std::endl;
         
         // Convergence for density
+        convergence_table_density.add_value("cESFR", params_modified.FR_user_specified_correction_parameter_value );
+        convergence_table_density.set_precision("cESFR", 16);
+        convergence_table_density.set_scientific("cESFR", true);
         convergence_table_density.add_value("refinement", refinement);
         convergence_table_density.add_value("dt", dt );
         convergence_table_density.set_precision("dt", 16);
@@ -183,7 +213,7 @@ int HRefinementStudyIsentropicVortex<dim, nstate>::run_test() const
         convergence_table_density.set_precision("Linfty_error_density", 16);
         convergence_table_density.evaluate_convergence_rates("Linfty_error_density", "n_cells", dealii::ConvergenceTable::reduction_rate_log2, PHILIP_DIM);
 
-        if (params.ode_solver_param.ode_solver_type == Parameters::ODESolverParam::ODESolverEnum::rrk_explicit_solver) {
+        if (params_modified.ode_solver_param.ode_solver_type == Parameters::ODESolverParam::ODESolverEnum::rrk_explicit_solver) {
             const double gamma_agg = final_time_actual / (dt * flow_solver->ode_solver->current_iteration);
 
             convergence_table_density.add_value("gamma_agg",gamma_agg-1.0);
@@ -192,6 +222,9 @@ int HRefinementStudyIsentropicVortex<dim, nstate>::run_test() const
         }
 
         // Convergence for pressure
+        convergence_table_pressure.add_value("cESFR", params_modified.FR_user_specified_correction_parameter_value );
+        convergence_table_pressure.set_precision("cESFR", 16);
+        convergence_table_pressure.set_scientific("cESFR", true);
         convergence_table_pressure.add_value("refinement", refinement);
         convergence_table_pressure.add_value("dt", dt );
         convergence_table_pressure.set_precision("dt", 16);
@@ -208,7 +241,7 @@ int HRefinementStudyIsentropicVortex<dim, nstate>::run_test() const
         convergence_table_pressure.evaluate_convergence_rates("Linfty_error_pressure", "n_cells", dealii::ConvergenceTable::reduction_rate_log2, PHILIP_DIM);
 
         //Checking convergence order
-        const double expected_order = params.flow_solver_param.poly_degree + 1; 
+        const double expected_order = params_modified.flow_solver_param.poly_degree + 1; 
         //set tolerance to make test pass for ctest. Note that the grids are very coarse (not in asymptotic range)
         const double order_tolerance = 1.0; 
         if (refinement > 0) {
@@ -225,7 +258,8 @@ int HRefinementStudyIsentropicVortex<dim, nstate>::run_test() const
             }
         }
         L2_error_pressure_old = L2_error_pressure;
-    }
+    }// refinement loop
+    }// c ESFR range loop
 
     //Printing and writing convergence tables
     pcout << std::endl;

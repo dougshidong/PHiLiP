@@ -20,11 +20,11 @@ set use_periodic_bc = true
 
 #set flux_reconstruction = cPlus
 set flux_reconstruction = user_specified_value
-set FR_user_specified_correction_parameter_value = 0.186 # 0.186  #0.186; 3.67e-3; 4.79e-5; 4.24e-7
+set FR_user_specified_correction_parameter_value = 0.0 #0.186; 3.67e-3; 4.79e-5; 4.24e-7
 
-set number_ESFR_parameter_values = 100
-set ESFR_parameter_values_start = 1.0e-3
-set ESFR_parameter_values_end = 1.0e5
+set number_ESFR_parameter_values = 0
+set ESFR_parameter_values_start = 1.0e-6
+set ESFR_parameter_values_end = 1.0e1
 
 set use_inverse_mass_on_the_fly = true
 
@@ -57,10 +57,10 @@ subsection manufactured solution convergence study
   set use_manufactured_source_term = true
 
   # Starting degree for convergence study
-  set degree_start      = 2
+  set degree_start      = 4
 
   # Initial grid of size 2^initial_grid_size
-  set initial_grid_size = 3
+  set initial_grid_size = 2
 
   # Number of grids in grid study
   set number_of_grids   = 4

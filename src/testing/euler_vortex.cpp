@@ -331,7 +331,7 @@ int EulerVortex<dim,nstate>
             // We can then compare the exact solution to whatever time it reached
             // ode_solver->steady_state();
 
-            const double finalTime = 0.01;//This is sufficient for verification
+            const double finalTime = 2.0;//This is sufficient for verification
 
             ode_solver->current_iteration = 0;
 

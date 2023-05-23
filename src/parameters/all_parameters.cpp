@@ -82,6 +82,10 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       dealii::Patterns::Bool(),
                       "Use original form by defualt. Otherwise, split the curvilinear fluxes.");
 
+    prm.declare_entry("store_residual_cpu_time", "false",
+                      dealii::Patterns::Bool(),
+                      "Do not store the residual local processor cpu time by default. Store the residual cpu time if true.");
+
     prm.declare_entry("use_weight_adjusted_mass", "false",
                       dealii::Patterns::Bool(),
                       "Use original form by defualt. Otherwise, use the weight adjusted low storage mass matrix for curvilinear.");
@@ -396,6 +400,7 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
 
     use_curvilinear_split_form = prm.get_bool("use_curvilinear_split_form");
     use_curvilinear_grid = prm.get_bool("use_curvilinear_grid");
+    store_residual_cpu_time = prm.get_bool("store_residual_cpu_time");
     use_weight_adjusted_mass = prm.get_bool("use_weight_adjusted_mass");
     use_periodic_bc = prm.get_bool("use_periodic_bc");
     renumber_dof_handler_Cuthill_Mckee= prm.get_bool("renumber_dof_handler_Cuthill_Mckee");

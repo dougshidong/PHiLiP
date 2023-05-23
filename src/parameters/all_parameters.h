@@ -112,6 +112,9 @@ public:
     /// Flag to use weight-adjusted Mass Matrix for curvilinear elements.
     bool use_weight_adjusted_mass;
 
+    /// Flag to store the residual local processor cput time.
+    bool store_residual_cpu_time;
+
     /// Flag to use periodic BC.
     /** Not fully tested.
      */

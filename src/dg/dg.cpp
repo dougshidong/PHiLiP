@@ -1469,7 +1469,9 @@ void DGBase<dim,real,MeshType>::assemble_residual (const bool compute_dRdW, cons
         assemble_auxiliary_residual();
 
         dealii::Timer timer;
-        timer.start();
+        if(all_parameters->store_residual_cpu_time){
+            timer.start();
+        }
 
         auto metric_cell = high_order_grid->dof_handler_grid.begin_active();
         for (auto soln_cell = dof_handler.begin_active(); soln_cell != dof_handler.end(); ++soln_cell, ++metric_cell) {
@@ -1510,8 +1512,10 @@ void DGBase<dim,real,MeshType>::assemble_residual (const bool compute_dRdW, cons
                 auxiliary_right_hand_side);
         } // end of cell loop
 
-        timer.stop();
-        assemble_residual_time += timer.cpu_time();
+        if(all_parameters->store_residual_cpu_time){
+            timer.stop();
+            assemble_residual_time += timer.cpu_time();
+        }
     } catch(...) {
         assembly_error = 1;
     }
@@ -2805,7 +2809,9 @@ void DGBase<dim,real,MeshType>::apply_inverse_global_mass_matrix(
     }
 
     dealii::Timer timer;
-    timer.start();
+    if(all_parameters->store_residual_cpu_time){
+        timer.start();
+    }
 
     for (auto soln_cell = dof_handler.begin_active(); soln_cell != dof_handler.end(); ++soln_cell, ++metric_cell) {
         if (!soln_cell->is_locally_owned()) continue;
@@ -2922,8 +2928,10 @@ void DGBase<dim,real,MeshType>::apply_inverse_global_mass_matrix(
         }//end of state loop
     }//end of cell loop
 
-    timer.stop();
-    assemble_residual_time += timer.cpu_time();
+    if(all_parameters->store_residual_cpu_time){
+        timer.stop();
+        assemble_residual_time += timer.cpu_time();
+    }
 }
 
 template<int dim, typename real, typename MeshType>

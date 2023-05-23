@@ -120,9 +120,6 @@ public:
      */
     bool use_periodic_bc;
 
-    /// Flag to renumber dof_handler with Cuthill Mckee.
-    bool renumber_dof_handler_Cuthill_Mckee;
-
     /// Flag to use curvilinear grid.
     bool use_curvilinear_grid;
 
@@ -281,6 +278,10 @@ public:
 
     /// Flag for renumbering DOFs
     bool do_renumber_dofs;
+    /// Renumber dofs type.
+    enum RenumberDofsType { CuthillMckee };
+    /// Store selected RenumberDofsType from the input file.
+    RenumberDofsType renumber_dofs_type;
     
     /// Declare parameters that can be set as inputs and set up the default options
     /** This subroutine should call the sub-parameter classes static declare_parameters()

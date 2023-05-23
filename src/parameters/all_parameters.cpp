@@ -94,10 +94,6 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       dealii::Patterns::Bool(),
                       "Use other boundary conditions by default. Otherwise use periodic (for 1d burgers only");
 
-    prm.declare_entry("renumber_dof_handler_Cuthill_Mckee", "true",
-                      dealii::Patterns::Bool(),
-                      "Renumber dof handler with Cuthill-Mckee by default. Don't renumber dof_handler if false.");
-
     prm.declare_entry("use_curvilinear_grid", "false",
                       dealii::Patterns::Bool(),
                       "Use straight grid by default. Curvilinear is true. Only used in taylor_green_scaling test.");
@@ -306,6 +302,11 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       dealii::Patterns::Bool(),
                       "Flag for renumbering DOFs using Cuthill-McKee renumbering. True by default. Set to false if doing 3D unsteady flow simulations.");
 
+    prm.declare_entry("renumber_dofs_type", "CuthillMckee",
+                      dealii::Patterns::Selection(
+                      "CuthillMckee"),
+                      "Renumber the dof handler type. Currently the only choice is Cuthill-Mckee.");
+
     Parameters::LinearSolverParam::declare_parameters (prm);
     Parameters::ManufacturedConvergenceStudyParam::declare_parameters (prm);
     Parameters::ODESolverParam::declare_parameters (prm);
@@ -403,7 +404,6 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     store_residual_cpu_time = prm.get_bool("store_residual_cpu_time");
     use_weight_adjusted_mass = prm.get_bool("use_weight_adjusted_mass");
     use_periodic_bc = prm.get_bool("use_periodic_bc");
-    renumber_dof_handler_Cuthill_Mckee= prm.get_bool("renumber_dof_handler_Cuthill_Mckee");
     use_energy = prm.get_bool("use_energy");
     use_L2_norm = prm.get_bool("use_L2_norm");
     use_classical_FR = prm.get_bool("use_classical_FR");
@@ -459,6 +459,9 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     enable_higher_order_vtk_output = prm.get_bool("enable_higher_order_vtk_output");
     output_face_results_vtk = prm.get_bool("output_face_results_vtk");
     do_renumber_dofs = prm.get_bool("do_renumber_dofs");
+
+    const std::string renumber_dofs_type_string = prm.get("renumber_dofs_type");
+    if (renumber_dofs_type_string == "CuthillMckee") { renumber_dofs_type = RenumberDofsType::CuthillMckee; }
 
     output_high_order_grid = prm.get_bool("output_high_order_grid");
 

@@ -8,7 +8,7 @@ set use_weak_form = false
 
 set flux_nodes_type = GL
 
-set renumber_dof_handler_Cuthill_Mckee = false
+set do_renumber_dofs = false
 
 set overintegration = 100
 

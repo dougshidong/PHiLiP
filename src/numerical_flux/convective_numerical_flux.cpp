@@ -35,6 +35,7 @@ std::array<real, nstate> NumericalFluxConvective<dim,nstate,real>
     const std::array<real, nstate> &soln_ext,
     const dealii::Tensor<1,dim,real> &normal_int) const
 {
+/*
     // baseline flux (without upwind dissipation)
     const std::array<real, nstate> baseline_flux_dot_n 
         = this->baseline->evaluate_flux(soln_int, soln_ext, normal_int);
@@ -48,6 +49,23 @@ std::array<real, nstate> NumericalFluxConvective<dim,nstate,real>
     for (int s=0; s<nstate; s++) {
         numerical_flux_dot_n[s] = baseline_flux_dot_n[s] + riemann_solver_dissipation_dot_n[s];
     }
+    return numerical_flux_dot_n;
+*/
+    dealii::Tensor<1,dim,real> velocity;
+    velocity[0] = 1.0;
+    velocity[1] = -1.0;
+
+    real normal_dot_velocity = 0.0;
+    for(unsigned int idim = 0; idim < dim; ++idim)
+    {
+        normal_dot_velocity += velocity[idim]*normal_int[idim];
+    }
+
+    const double a = 10;
+    real heaviside_normal_dot_velocity = 1.0/(1.0 + exp(-2.0*a*normal_dot_velocity));
+
+    std::array<real, nstate> numerical_flux_dot_n;
+    numerical_flux_dot_n[0] = normal_dot_velocity * (soln_int[0]*heaviside_normal_dot_velocity + soln_ext[0]*(1.0 - heaviside_normal_dot_velocity));
     return numerical_flux_dot_n;
 }
 

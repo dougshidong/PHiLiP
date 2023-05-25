@@ -974,6 +974,77 @@ void Euler<dim,nstate,real>
         vel_ext_dot_normal = vel_ext_dot_normal + velocities_ext[d]*normal_int[d];
     }
 
+    const real mach_int = vel_int_dot_normal/sound_int;
+    
+    real out_riemann_invariant;
+    real inc_riemann_invariant;
+    if(mach_int >= 1.0) // outflow supersonic
+    {
+        inc_riemann_invariant = vel_int_dot_normal - 2.0/gamm1*sound_int;
+        out_riemann_invariant = vel_int_dot_normal + 2.0/gamm1*sound_int;
+    }
+    else if(mach_int <= -1.0) // inflow supersonic
+    {
+        out_riemann_invariant = vel_ext_dot_normal + 2.0/gamm1*sound_ext;
+        inc_riemann_invariant = vel_ext_dot_normal - 2.0/gamm1*sound_ext;
+    }
+    else
+    {
+        out_riemann_invariant = vel_int_dot_normal + 2.0/gamm1*sound_int;
+        inc_riemann_invariant = vel_ext_dot_normal - 2.0/gamm1*sound_ext;
+    }
+
+    const real normal_velocity_bc = 0.5*(out_riemann_invariant + inc_riemann_invariant);
+    const real sound_bc = 0.25*gamm1*(out_riemann_invariant - inc_riemann_invariant);
+    
+    // Set right velocity
+    dealii::Tensor<1,dim,real> velocities_bc;
+    if(normal_velocity_bc > 0.0) // outflow
+    {
+        for(int d = 0; d < dim; ++d)
+        {
+            velocities_bc[d] = velocities_int[d] + (normal_velocity_bc - vel_int_dot_normal)*normal_int[d];
+        }
+    }
+    else // inflow
+    {
+        for(int d = 0; d < dim; ++d)
+        {
+            velocities_bc[d] = velocities_ext[d] + (normal_velocity_bc - vel_ext_dot_normal)*normal_int[d];
+        }
+    }
+
+    // Set right entropy
+    real entropy_bc;
+    if(normal_velocity_bc > 0.0) // outflow
+    {
+        real density_int = primitive_int[0];
+        entropy_bc = sound_int*sound_int/(gam*pow(density_int,gamm1));
+    }
+    else // inflow
+    {
+        real density_ext = primitive_ext[0];
+        entropy_bc = sound_ext*sound_ext/(gam*pow(density_ext,gamm1));
+    }
+
+    // Set right density and pressure
+    real density_bc = pow(sound_bc*sound_bc/(gam*entropy_bc), 1.0/gamm1);
+    real pressure_bc = density_bc*sound_bc*sound_bc/gam;
+
+    // Fill in primitive BC
+    std::array<real,nstate> primitive_bc;
+    primitive_bc[0] = density_bc;
+    for(int d=0; d<dim; ++d)
+    {
+        primitive_bc[1+d] = velocities_bc[d];
+    }
+    primitive_bc[nstate-1] = pressure_bc;
+
+    // Convert primitve to conservative
+    soln_bc = convert_primitive_to_conservative(primitive_bc); 
+
+
+/*
     // Riemann invariants
     const real out_riemann_invariant = vel_int_dot_normal + 2.0/gamm1*sound_int, // Outgoing
                inc_riemann_invariant = vel_ext_dot_normal - 2.0/gamm1*sound_ext; // Incoming
@@ -1018,8 +1089,8 @@ void Euler<dim,nstate,real>
         for (int d=0;d<dim;d++) { primitive_bc[1+d] = velocities_bc[d]; }
         primitive_bc[nstate-1] = pressure_bc;
     }
-
     soln_bc = convert_primitive_to_conservative(primitive_bc);
+*/
 }
 
 template <int dim, int nstate, typename real>

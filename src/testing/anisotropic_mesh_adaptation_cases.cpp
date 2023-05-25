@@ -120,6 +120,8 @@ int AnisotropicMeshAdaptationCases<dim, nstate> :: run_test () const
                         std::make_unique<AnisotropicMeshAdaptation<dim, nstate, double>> (flow_solver->dg, normLp, complexity, use_goal_oriented_approach);
     
     flow_solver->run();
+    output_vtk_files(flow_solver->dg);
+    return 0;
 
     std::vector<double> functional_error_vector;
     std::vector<unsigned int> n_cycle_vector;

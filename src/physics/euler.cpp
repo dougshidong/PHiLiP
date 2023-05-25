@@ -1109,32 +1109,27 @@ void Euler<dim,nstate,real>
     // Journal of Computational Physics, vol. 211, 2006, pp. 492–512.
     const std::array<real,nstate> primitive_interior_values = convert_conservative_to_primitive<real>(soln_int);
 
-    // Copy density and pressure
-    std::array<real,nstate> primitive_boundary_values;
-    primitive_boundary_values[0] = primitive_interior_values[0];
-    primitive_boundary_values[nstate-1] = primitive_interior_values[nstate-1];
-
-    const dealii::Tensor<1,dim,real> surface_normal = -normal_int;
     const dealii::Tensor<1,dim,real> velocities_int = extract_velocities_from_primitive<real>(primitive_interior_values);
     //const dealii::Tensor<1,dim,real> velocities_bc = velocities_int - 2.0*(velocities_int*surface_normal)*surface_normal;
     real vel_int_dot_normal = 0.0;
     for (int d=0; d<dim; d++) {
-        vel_int_dot_normal = vel_int_dot_normal + velocities_int[d]*surface_normal[d];
+        vel_int_dot_normal = vel_int_dot_normal + velocities_int[d]*normal_int[d];
     }
     dealii::Tensor<1,dim,real> velocities_bc;
     for (int d=0; d<dim; d++) {
-        velocities_bc[d] = velocities_int[d] - 2.0*(vel_int_dot_normal)*surface_normal[d];
+        //velocities_bc[d] = velocities_int[d] - 2.0*(vel_int_dot_normal)*surface_normal[d];
+        velocities_bc[d] = velocities_int[d] - vel_int_dot_normal*normal_int[d];
         //velocities_bc[d] = velocities_int[d] - (vel_int_dot_normal)*surface_normal[d];
         //velocities_bc[d] += velocities_int[d] * surface_normal.norm_square();
     }
-    for (int d=0; d<dim; ++d) {
-        primitive_boundary_values[1+d] = velocities_bc[d];
-    }
 
-    const std::array<real,nstate> modified_conservative_boundary_values = convert_primitive_to_conservative(primitive_boundary_values);
-    for (int istate=0; istate<nstate; ++istate) {
-        soln_bc[istate] = modified_conservative_boundary_values[istate];
+    const real density_int = soln_int[0];
+    soln_bc[0] = soln_int[0];
+    for(int d=0; d<dim; ++d)
+    {
+        soln_bc[1+d] = density_int*velocities_bc[d];
     }
+    soln_bc[nstate-1] = soln_int[nstate-1];
 
     for (int istate=0; istate<nstate; ++istate) {
         soln_grad_bc[istate] = -soln_grad_int[istate];

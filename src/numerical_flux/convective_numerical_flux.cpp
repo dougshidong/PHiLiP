@@ -219,20 +219,40 @@ std::array<real, nstate> LaxFriedrichsRiemannSolverDissipation<dim,nstate,real>
 template <int dim, int nstate, typename real>
 void RoePikeRiemannSolverDissipation<dim,nstate,real>
 ::evaluate_entropy_fix (
-    const std::array<real, 3> &eig_L,
-    const std::array<real, 3> &eig_R,
+    const std::array<real, 3> &/*eig_L*/,
+    const std::array<real, 3> &/*eig_R*/,
     std::array<real, 3> &eig_RoeAvg,
     const real /*vel2_ravg*/,
     const real /*sound_ravg*/) const
 {
     // Harten's entropy fix
-    // -- See Blazek 2015, p.103-105
+    // -- See Hartmann and Leicht, 2008 on pages 56-57.
+
+    real max_eig = -1.0;
+    for(int i=0; i<3; ++i)
+    {
+        if(max_eig < eig_RoeAvg[i])
+        {
+            max_eig = eig_RoeAvg[i];
+        }
+    }
+
+    const real delta = 0.1*max_eig;
+    for(int i=0; i<3; ++i)
+    {
+        if(eig_RoeAvg[i] < delta)
+        {
+            eig_RoeAvg[i] = (eig_RoeAvg[i]*eig_RoeAvg[i] + delta*delta)/(2.0*delta);
+        }
+    }
+/*
     for(int e=0;e<3;e++) {
         const real eps = std::max(abs(eig_RoeAvg[e] - eig_L[e]), abs(eig_R[e] - eig_RoeAvg[e]));
         if(eig_RoeAvg[e] < eps) {
             eig_RoeAvg[e] = 0.5*(eig_RoeAvg[e] * eig_RoeAvg[e]/eps + eps);
         }
     }
+*/
 }
 
 template <int dim, int nstate, typename real>

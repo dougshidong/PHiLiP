@@ -953,7 +953,9 @@ void Euler<dim,nstate,real>
 ::boundary_riemann (
    const dealii::Tensor<1,dim,real> &normal_int,
    const std::array<real,nstate> &soln_int,
-   std::array<real,nstate> &soln_bc) const
+   const std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_int,
+   std::array<real,nstate> &soln_bc,
+   std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_bc) const
 {
     std::array<real,nstate> primitive_int = convert_conservative_to_primitive<real>(soln_int);
     std::array<real,nstate> primitive_ext;
@@ -1043,6 +1045,9 @@ void Euler<dim,nstate,real>
     // Convert primitve to conservative
     soln_bc = convert_primitive_to_conservative(primitive_bc); 
 
+    for (int istate=0; istate<nstate; ++istate) {
+        soln_grad_bc[istate] = soln_grad_int[istate];
+    }
 
 /*
     // Riemann invariants
@@ -1103,10 +1108,7 @@ void Euler<dim,nstate,real>
    std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_bc) const
 {
     // Slip wall boundary conditions (No penetration)
-    // Given by Algorithm II of the following paper
-    // Krivodonova, L., and Berger, M.,
-    // “High-order accurate implementation of solid wall boundary conditions in curved geometries,”
-    // Journal of Computational Physics, vol. 211, 2006, pp. 492–512.
+    // Given by Carlson 2011
     const std::array<real,nstate> primitive_interior_values = convert_conservative_to_primitive<real>(soln_int);
 
     const dealii::Tensor<1,dim,real> velocities_int = extract_velocities_from_primitive<real>(primitive_interior_values);
@@ -1132,7 +1134,7 @@ void Euler<dim,nstate,real>
     soln_bc[nstate-1] = soln_int[nstate-1];
 
     for (int istate=0; istate<nstate; ++istate) {
-        soln_grad_bc[istate] = -soln_grad_int[istate];
+        soln_grad_bc[istate] = soln_grad_int[istate];
     }
 }
 
@@ -1404,7 +1406,7 @@ void Euler<dim,nstate,real>
     } 
     else if (boundary_type == 1004) {
         // Riemann-based farfield boundary condition
-        boundary_riemann (normal_int, soln_int, soln_bc);
+        boundary_riemann (normal_int, soln_int, soln_grad_int, soln_bc, soln_grad_bc);
     } 
     else if (boundary_type == 1005) {
         // Simple farfield boundary condition

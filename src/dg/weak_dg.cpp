@@ -1352,7 +1352,7 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_boundary_term(
         const dealii::Tensor<1,dim,real2> normal_int = phys_unit_normal[iquad];
         physics.boundary_face_values (boundary_id, real_quad_pts[iquad], normal_int, soln_int[iquad], soln_grad_int[iquad], soln_ext[iquad], soln_grad_ext[iquad]);
     }
-
+/*
     // Assemble BR2 gradient correction right-hand side
     const dealii::FiniteElement<dim> &base_fe_int = fe_soln.get_sub_fe(0,1);
     const unsigned int n_base_dofs_int = base_fe_int.n_dofs_per_cell();
@@ -1414,7 +1414,7 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_boundary_term(
         }
 
     } 
-
+*/
 
     std::vector<ADArray> conv_num_flux_dot_n(n_quad_pts);
     std::vector<ADArray> diss_soln_num_flux(n_quad_pts); // u*

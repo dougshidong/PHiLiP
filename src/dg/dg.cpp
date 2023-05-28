@@ -645,12 +645,12 @@ real DGBase<dim,real,MeshType>::evaluate_penalty_scaling (
 
     const unsigned int fe_index = cell->active_fe_index();
     const unsigned int degree = fe_collection[fe_index].tensor_degree();
-    const unsigned int degsq = (degree == 0) ? 1 : degree * (degree+1);
+    const unsigned int degsq = (degree == 0) ? 1 : degree * degree;
 
     const unsigned int normal_direction = dealii::GeometryInfo<dim>::unit_normal_direction[iface];
     const real vol_div_facearea = cell->extent_in_direction(normal_direction);
 
-    const real penalty = degsq / vol_div_facearea * this->all_parameters->sipg_penalty_factor;// * 20;
+    const real penalty = degsq / vol_div_facearea * this->all_parameters->sipg_penalty_factor * this->all_parameters->artificial_dissipation_param.mu_artificial_dissipation;// * 20;
 
     return penalty;
 }

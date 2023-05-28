@@ -3235,7 +3235,7 @@ real2 DGBase<dim,real,MeshType>::discontinuity_sensor(
 
     // Lower degree basis.
     const unsigned int lower_degree = degree-1;
-    const dealii::FE_DGQLegendre<dim> fe_dgq_lower(lower_degree);
+    const dealii::FE_DGQ<dim> fe_dgq_lower(lower_degree);
     const dealii::FESystem<dim,dim> fe_lower(fe_dgq_lower, nstate);
 
     // Projection quadrature.
@@ -3282,11 +3282,11 @@ real2 DGBase<dim,real,MeshType>::discontinuity_sensor(
 
     if (soln_norm < 1e-15) return 0;
 
-    const real2 S_e = sqrt(error / soln_norm);
+    const real2 S_e = error/soln_norm;
     const real2 s_e = log10(S_e);
 
     const double mu_scale = all_parameters->artificial_dissipation_param.mu_artificial_dissipation;
-    const double s_0 = -0.00 - 4.00*log10(degree);
+    const double s_0 = log10(0.25) - 4.00*log10(degree);
     const double kappa = all_parameters->artificial_dissipation_param.kappa_artificial_dissipation;
     const double low = s_0 - kappa;
     const double upp = s_0 + kappa;

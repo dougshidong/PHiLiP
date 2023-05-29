@@ -10,13 +10,22 @@ set test_type = anisotropic_mesh_adaptation
 
 set conv_num_flux = roe
 
+set diss_num_flux = symm_internal_penalty
+
 set output_face_results_vtk = true
 #set sipg_penalty_factor = 20.0
 
 subsection euler
   set reference_length = 1.0
-  set mach_infinity = 0.50
-  set angle_of_attack = 3.0
+  set mach_infinity = 1.2
+  set angle_of_attack = 1.25
+end
+
+subsection artificial dissipation
+  set add_artificial_dissipation = true
+  set artificial_dissipation_type = laplacian
+  set mu_artificial_dissipation = 1.0e-4
+  set kappa_artificial_dissipation = 0.4
 end
 
 subsection functional

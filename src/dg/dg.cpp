@@ -646,11 +646,16 @@ real DGBase<dim,real,MeshType>::evaluate_penalty_scaling (
     const unsigned int fe_index = cell->active_fe_index();
     const unsigned int degree = fe_collection[fe_index].tensor_degree();
     const unsigned int degsq = (degree == 0) ? 1 : degree * degree;
+    
+    const unsigned int n_elements = triangulation->n_global_active_cells();
+    const double diameter = pow(1.0/n_elements, 1.0/dim);
+    const double mu_scale = this->all_parameters->artificial_dissipation_param.mu_artificial_dissipation;
+    const double eps_0 = mu_scale * diameter / ( (degree==0)? 1 : degree );
 
     const unsigned int normal_direction = dealii::GeometryInfo<dim>::unit_normal_direction[iface];
     const real vol_div_facearea = cell->extent_in_direction(normal_direction);
 
-    const real penalty = degsq / vol_div_facearea * this->all_parameters->sipg_penalty_factor * this->all_parameters->artificial_dissipation_param.mu_artificial_dissipation;// * 20;
+    const real penalty = degsq / vol_div_facearea * this->all_parameters->sipg_penalty_factor * eps_0;// * 20;
 
     return penalty;
 }
@@ -3248,7 +3253,7 @@ real2 DGBase<dim,real,MeshType>::discontinuity_sensor(
     const unsigned int n_quad_pts = volume_quadrature.size();
     const unsigned int n_dofs_lower = fe_lower.dofs_per_cell;
 
-    real2 element_volume = 0.0;
+//    real2 element_volume = 0.0;
     real2 error = 0.0;
     real2 soln_norm = 0.0;
     std::vector<real2> soln_high(nstate);
@@ -3270,7 +3275,7 @@ real2 DGBase<dim,real,MeshType>::discontinuity_sensor(
         }
         // Quadrature
         const real2 JxW = jac_det[iquad] * volume_quadrature.weight(iquad);
-        element_volume += JxW;
+//        element_volume += JxW;
         // Only integrate over the first state variable.
         // Persson and Peraire only did density.
         for (unsigned int s=0; s<1/*nstate*/; ++s) 
@@ -3291,8 +3296,9 @@ real2 DGBase<dim,real,MeshType>::discontinuity_sensor(
     const double low = s_0 - kappa;
     const double upp = s_0 + kappa;
 
-    const real2 diameter = pow(element_volume, 1.0/dim);
-    const real2 eps_0 = mu_scale * diameter / (double)degree;
+    const unsigned int n_elements = triangulation->n_global_active_cells();
+    const double diameter = pow(1.0/n_elements, 1.0/dim);
+    const double eps_0 = mu_scale * diameter / (double)degree;
 
     if ( s_e < low) return 0.0;
 

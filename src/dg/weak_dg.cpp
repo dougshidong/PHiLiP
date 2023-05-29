@@ -3468,7 +3468,7 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_face_residual(
 template <int dim, int nstate, typename real, typename MeshType>
 template <typename real2>
 void DGWeak<dim,nstate,real,MeshType>::assemble_volume_term(
-    typename dealii::DoFHandler<dim>::active_cell_iterator cell,
+    typename dealii::DoFHandler<dim>::active_cell_iterator /*cell*/,
     const dealii::types::global_dof_index current_cell_index,
     const std::vector<real2> &soln_coeff, const std::vector<real2> &coords_coeff, const std::vector<real> &local_dual,
     const dealii::FESystem<dim,dim> &fe_soln, const dealii::FESystem<dim,dim> &fe_metric,
@@ -3628,6 +3628,7 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_volume_term(
     //const real2 artificial_diss_coeff = this->all_parameters->artificial_dissipation_param.add_artificial_dissipation ?
     //                                    this->discontinuity_sensor(cell_diameter, soln_coeff, fe_soln)
     //                                    : 0.0;
+/*
     const real2 artificial_diss_coeff = this->all_parameters->artificial_dissipation_param.add_artificial_dissipation ?
                                         this->artificial_dissipation_coeffs[current_cell_index]
                                         : 0.0;
@@ -3638,6 +3639,7 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_volume_term(
     const unsigned int n_dofs_arti_diss = this->fe_q_artificial_dissipation.dofs_per_cell;
     std::vector<dealii::types::global_dof_index> dof_indices_artificial_dissipation(n_dofs_arti_diss);
     artificial_dissipation_cell->get_dof_indices (dof_indices_artificial_dissipation);
+*/
 /*
     std::vector<real> artificial_diss_coeff_at_q(n_quad_pts);
     for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
@@ -3654,25 +3656,7 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_volume_term(
 
 */
 
-    std::vector<real2> artificial_diss_coeff_at_q(n_quad_pts);
-    real2 arti_diss = this->discontinuity_sensor(quadrature, soln_coeff, fe_soln, jac_det);
-    for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad)
-    {
-        artificial_diss_coeff_at_q[iquad] = arti_diss;
-       /* dealii::Point<dim,real> point = unit_quad_pts[iquad];
-        // Rescale over -1,1
-        for (int d=0; d<dim; ++d)
-        {
-            point[d] = point[d]*2 - 1.0;
-        }
-        double gegenbauer_factor = 0.1;
-        double gegenbauer = 1.0;
-        for (int d=0; d<dim; ++d)
-        {
-            gegenbauer *= std::pow(1-point[d]*point[d], gegenbauer_factor);
-        }
-        artificial_diss_coeff_at_q[iquad] = arti_diss * gegenbauer;*/
-    }
+    real2 artificial_diss_coeff = this->discontinuity_sensor(quadrature, soln_coeff, fe_soln, jac_det);
 
     std::vector< Array > soln_at_q(n_quad_pts);
     std::vector< ArrayTensor > soln_grad_at_q(n_quad_pts); // Tensor initialize with zeros
@@ -3711,7 +3695,7 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_volume_term(
         if (this->all_parameters->artificial_dissipation_param.add_artificial_dissipation) {
             ArrayTensor artificial_diss_phys_flux_at_q;
             //artificial_diss_phys_flux_at_q = physics.artificial_dissipative_flux (artificial_diss_coeff, soln_at_q[iquad], soln_grad_at_q[iquad]);
-            artificial_diss_phys_flux_at_q = this->artificial_dissip->calc_artificial_dissipation_flux(soln_at_q[iquad], soln_grad_at_q[iquad],artificial_diss_coeff_at_q[iquad]);
+            artificial_diss_phys_flux_at_q = this->artificial_dissip->calc_artificial_dissipation_flux(soln_at_q[iquad], soln_grad_at_q[iquad], artificial_diss_coeff);
             for (int s=0; s<nstate; s++) {
                 diss_phys_flux_at_q[iquad][s] += artificial_diss_phys_flux_at_q[s];
             }

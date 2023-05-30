@@ -221,18 +221,18 @@ std::array<real, nstate> SymmetricInternalPenalty<dim,nstate,real>
         artificial_phys_flux_int = artificial_dissip->calc_artificial_dissipation_flux (soln_int, soln_grad_int, artificial_diss_coeff_int);
         artificial_phys_flux_ext = artificial_dissip->calc_artificial_dissipation_flux (soln_ext, soln_grad_ext, artificial_diss_coeff_ext);
         ArrayTensor1 artificial_phys_flux_avg = array_average<nstate,dim,real>(artificial_phys_flux_int, artificial_phys_flux_ext);
-/*
+
         // {{A}}*[[u]]
         ArrayTensor1 artificial_A_jumpu_int, artificial_A_jumpu_ext;
         artificial_A_jumpu_int = artificial_dissip->calc_artificial_dissipation_flux (soln_int, soln_jump, artificial_diss_coeff_int);
         artificial_A_jumpu_ext = artificial_dissip->calc_artificial_dissipation_flux (soln_ext, soln_jump, artificial_diss_coeff_ext);
         const ArrayTensor1 artificial_A_jumpu_avg = array_average<nstate,dim,real>(artificial_A_jumpu_int, artificial_A_jumpu_ext);
-*/
+
         for (int s=0; s<nstate; s++) {
             //auxiliary_flux_dot_n[s] += (artificial_phys_flux_avg[s] - penalty * artificial_A_jumpu_avg[s]) * normal_int;
             real arti = 0.0;
             for (int d=0; d<dim; ++d) {
-                arti += (artificial_phys_flux_avg[s][d] + penalty * soln_jump[s][d]) * normal_int[d];
+                arti += (artificial_phys_flux_avg[s][d] - penalty * artificial_A_jumpu_avg[s][d]) * normal_int[d];
             }
             auxiliary_flux_dot_n[s] += arti;
         }

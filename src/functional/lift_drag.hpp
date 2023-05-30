@@ -102,7 +102,12 @@ public:
             assert(soln_at_q.size() == dim+2);
             const Physics::Euler<dim,dim+2,real2> &euler = dynamic_cast< const Physics::Euler<dim,dim+2,real2> &> (physics);
 
-            real2 pressure = euler.compute_pressure (soln_at_q);
+            dealii::Point<dim,real2> pos_dummy;
+            std::array<dealii::Tensor<1,dim,real2>,nstate> soln_grad_dummy;
+            std::array<real2,nstate> soln_bc_at_q;
+            euler.boundary_face_values(boundary_id, pos_dummy, normal, soln_at_q, soln_grad_dummy, soln_bc_at_q, soln_grad_dummy);
+
+            real2 pressure = euler.compute_pressure (soln_bc_at_q);
 
             //std::cout << " force_dimensionalization_factor: " << force_dimensionalization_factor
             //          << " pressure: " << pressure

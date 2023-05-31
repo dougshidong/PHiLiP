@@ -46,8 +46,8 @@ MeshOptimizer<dim,nstate>::MeshOptimizer(
 template<int dim, int nstate>
 void MeshOptimizer<dim,nstate>::initialize_objfunc_and_design_parameterization()
 {
-    //design_parameterization = std::make_shared<InnerVolParameterization<dim>>(dg->high_order_grid); 
-    design_parameterization = std::make_shared<SlidingBoundaryParameterization<dim>>(dg->high_order_grid); 
+    design_parameterization = std::make_shared<InnerVolParameterization<dim>>(dg->high_order_grid); 
+    //design_parameterization = std::make_shared<SlidingBoundaryParameterization<dim>>(dg->high_order_grid); 
 
     bool uses_coarse_residual = false;
     const bool uses_solution_values = true;

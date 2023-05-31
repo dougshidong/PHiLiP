@@ -87,7 +87,8 @@ double AnisotropicMeshAdaptationCases<dim,nstate> :: output_vtk_files(std::share
 template <int dim, int nstate>
 double AnisotropicMeshAdaptationCases<dim,nstate> :: evaluate_functional_error(std::shared_ptr<DGBase<dim,double>> dg) const
 {
-    const double functional_exact = -0.8039642358626924; // s_shock solution with heaviside xc = 0.8, xmax = 0.9.
+//    const double functional_exact = -0.8039642358626924; // s_shock solution with heaviside xc = 0.8, xmax = 0.9.
+    const double functional_exact = 0.0;
     std::shared_ptr< Functional<dim, nstate, double> > functional
                                 = FunctionalFactory<dim,nstate,double>::create_Functional(dg->all_parameters->functional_param, dg);
     const double functional_val = functional->evaluate_functional();
@@ -121,7 +122,6 @@ int AnisotropicMeshAdaptationCases<dim, nstate> :: run_test () const
     
     flow_solver->run();
     output_vtk_files(flow_solver->dg);
-    return 0;
 
     std::vector<double> functional_error_vector;
     std::vector<unsigned int> n_cycle_vector;

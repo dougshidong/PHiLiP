@@ -6,8 +6,6 @@
 #include "physics.h"
 #include "euler.h"
 
-const double BIG_NUMBER = 1e100;
-
 namespace PHiLiP {
 namespace Physics {
 
@@ -295,7 +293,7 @@ inline real Euler<dim,nstate,real>
     real density_check = density;
     const bool density_is_positive = check_positive_quantity<real>(density_check, "density");
     if (density_is_positive)     return pressure*pow(density,-gam);
-    else                         return BIG_NUMBER;
+    else                         return (real)this->BIG_NUMBER;
 }
 
 
@@ -393,7 +391,7 @@ inline real2 Euler<dim,nstate,real>
         entropy = log(entropy);
         return entropy;
     } else {
-        return BIG_NUMBER;
+        return (real2)this->BIG_NUMBER;
     }
 
 }

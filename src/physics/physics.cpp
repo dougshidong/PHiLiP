@@ -223,8 +223,7 @@ real2 PhysicsBase<dim,nstate,real>
         // do nothing -- assume that the test or iterative solver can handle this.
     }
         
-    const real2 BIG_NUMBER = 1e100;
-    return BIG_NUMBER;
+    return (real2)BIG_NUMBER;
 }
 
 template class PhysicsBase < PHILIP_DIM, 1, double >;

@@ -198,6 +198,12 @@ public:
      */
     template<typename real2> 
     real2 handle_non_physical_result (const std::string message = "") const;
+
+public:
+
+    /// BIG_NUMBER which is returned in place of NaN according to handle_non_physical_result()
+    /** Type double so that typecasting works with all real types */
+    const double BIG_NUMBER = 1e100;
     
 protected:
     /// ConditionalOStream.

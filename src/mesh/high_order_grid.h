@@ -135,6 +135,8 @@ public:
     HighOrderGrid(
         const unsigned int              max_degree, 
         const std::shared_ptr<MeshType> triangulation_input,
+        const bool                      check_valid_metric_Jacobian_input=true,
+        const bool                      renumber_dof_handler_Cuthill_Mckee_input=true,
         const bool                      output_high_order_grid=true);
 
     /// Reinitialize high_order_grid after a change in triangulation
@@ -162,6 +164,12 @@ public:
     const unsigned int max_degree;
 
     const std::shared_ptr<MeshType> triangulation; ///< Mesh
+
+    /// Flag to check validity of Jacobian.
+    const bool check_valid_metric_Jacobian;
+
+    /// Flag to renumber dof_handler_grid with Cuthill Mckee.
+    const bool renumber_dof_handler_Cuthill_Mckee;
 
     /// Degrees of freedom handler for the high-order grid
     dealii::DoFHandler<dim> dof_handler_grid;

@@ -676,6 +676,8 @@ void SumFactorizedOperators<dim,n_faces>::surface_two_pt_flux_Hadamard_product(
     }
 }
 
+
+
 template <int dim, int n_faces>  
 void SumFactorizedOperators<dim,n_faces>::two_pt_flux_Hadamard_product(
     const dealii::FullMatrix<double> &input_mat,
@@ -715,7 +717,6 @@ void SumFactorizedOperators<dim,n_faces>::two_pt_flux_Hadamard_product(
             }
         }
         if(direction == 1){
-           // for(unsigned int idiag=0; idiag<size; idiag++){
             for(unsigned int idiag=0; idiag<rows; idiag++){
                 const unsigned int row_index = idiag * size;
                 for(unsigned int jdiag=0; jdiag<size; jdiag++){
@@ -805,6 +806,256 @@ void SumFactorizedOperators<dim,n_faces>::Hadamard_product(
         for(unsigned int icol=0; icol<columns; icol++){
             output_mat[irow][icol] = input_mat1[irow][icol] 
                                    * input_mat2[irow][icol];
+        }
+    }
+}
+
+template <int dim, int n_faces>  
+void SumFactorizedOperators<dim,n_faces>::sum_factorized_Hadamard_sparsity_pattern(
+    const unsigned int rows_size,
+    const unsigned int columns_size,
+    std::vector<std::array<unsigned int,dim>> &rows,
+    std::vector<std::array<unsigned int,dim>> &columns)
+{
+    //Note that for all directions, the rows vector should always be the same.
+    if constexpr(dim == 1){
+        for(unsigned int irow=0; irow<rows_size; irow++){
+            for(unsigned int icol=0; icol<columns_size; icol++){
+                const unsigned int array_index = irow * rows_size + icol;
+                rows[array_index][0]    = irow;
+                columns[array_index][0] = icol;
+            }
+        }
+    }
+    if constexpr(dim == 2){
+        for(unsigned int idiag=0; idiag<rows_size; idiag++){
+            for(unsigned int jdiag=0; jdiag<columns_size; jdiag++){
+                for(unsigned int kdiag=0; kdiag<columns_size; kdiag++){
+                    const unsigned int array_index = idiag * rows_size * columns_size + jdiag * columns_size + kdiag;
+                    const unsigned int row_index = idiag * rows_size;
+                    rows[array_index][0] = row_index + jdiag;
+                    rows[array_index][1] = row_index + jdiag;
+                    //direction 0
+                    const unsigned int col_index_0 = idiag * columns_size;
+                    columns[array_index][0] = col_index_0 + kdiag;
+                    //direction 1
+                    const unsigned int col_index_1 = kdiag * columns_size;
+                    columns[array_index][1] = col_index_1 + jdiag;
+                }
+            }
+        }
+    }
+    if constexpr(dim == 3){
+        for(unsigned int idiag=0; idiag<rows_size; idiag++){
+            for(unsigned int jdiag=0; jdiag<columns_size; jdiag++){
+                for(unsigned int kdiag=0; kdiag<columns_size; kdiag++){
+                    for(unsigned int ldiag=0; ldiag<columns_size; ldiag++){
+                        const unsigned int array_index = idiag * rows_size * columns_size * columns_size 
+                                                       + jdiag * columns_size * columns_size 
+                                                       + kdiag * columns_size
+                                                       + ldiag;
+                        const unsigned int row_index = idiag * rows_size * columns_size
+                                                     + jdiag * columns_size;
+                        rows[array_index][0] = row_index + kdiag;
+                        rows[array_index][1] = row_index + kdiag;
+                        rows[array_index][2] = row_index + kdiag;
+                        //direction 0
+                        const unsigned int col_index_0 = idiag * columns_size * columns_size
+                                                     + jdiag * columns_size;
+                        columns[array_index][0] = col_index_0 + ldiag;
+                        //direction 1
+                        const unsigned int col_index_1 = ldiag * columns_size;
+                        columns[array_index][1] = col_index_1 + kdiag + idiag * columns_size * columns_size;
+                        //direction 2
+                        const unsigned int col_index_2 = ldiag * columns_size * columns_size;
+                        columns[array_index][2] = col_index_2 + kdiag + jdiag * columns_size;
+                    }
+                }
+            }
+        }
+    }
+}
+template <int dim, int n_faces>  
+void SumFactorizedOperators<dim,n_faces>::sum_factorized_Hadamard_basis_assembly(
+    const unsigned int rows_size_1D,
+    const unsigned int columns_size_1D,
+    const std::vector<std::array<unsigned int,dim>> &rows,
+    const std::vector<std::array<unsigned int,dim>> &columns,
+    const dealii::FullMatrix<double> &basis,
+    const std::vector<double> &weights,
+    std::array<dealii::FullMatrix<double>,dim> &basis_sparse)
+{
+    if constexpr(dim == 1){
+        for(unsigned int irow=0; irow<rows_size_1D; irow++){
+            for(unsigned int icol=0; icol<columns_size_1D; icol++){
+                basis_sparse[0][irow][icol] = basis[irow][icol];
+            }
+        }
+    }
+    if constexpr(dim == 2){
+        const unsigned int total_size = rows.size();
+        for(unsigned int index=0, counter=0; index<total_size; index++, counter++){
+            if(counter == columns_size_1D){
+                counter = 0;
+            }
+            //direction 0
+            basis_sparse[0][rows[index][0]][counter] = basis[rows[index][0]%rows_size_1D][columns[index][0]%columns_size_1D]
+                                                     * weights[rows[index][1]/columns_size_1D];
+            //direction 1
+            basis_sparse[1][rows[index][1]][counter] = basis[rows[index][1]/rows_size_1D][columns[index][1]/columns_size_1D]
+                                                     * weights[rows[index][0]%columns_size_1D];
+        }
+    }
+    if constexpr(dim == 3){
+        const unsigned int total_size = rows.size();
+        for(unsigned int index=0, counter=0; index<total_size; index++, counter++){
+            if(counter == columns_size_1D){
+                counter = 0;
+            }
+            //direction 0
+            basis_sparse[0][rows[index][0]][counter] = basis[rows[index][0]%rows_size_1D][columns[index][0]%columns_size_1D]
+                                                     * weights[(rows[index][1]/columns_size_1D)%columns_size_1D]
+                                                     * weights[rows[index][2]/columns_size_1D/columns_size_1D];
+            //direction 1
+            basis_sparse[1][rows[index][1]][counter] = basis[(rows[index][1]/rows_size_1D)%rows_size_1D][(columns[index][1]/columns_size_1D)%columns_size_1D]
+                                                     * weights[rows[index][0]%columns_size_1D]
+                                                     * weights[rows[index][2]/columns_size_1D/columns_size_1D];
+            //direction 2
+            basis_sparse[2][rows[index][2]][counter] = basis[rows[index][2]/rows_size_1D/rows_size_1D][columns[index][2]/columns_size_1D/columns_size_1D]
+                                                     * weights[rows[index][0]%columns_size_1D]
+                                                     * weights[(rows[index][1]/columns_size_1D)%columns_size_1D];
+        }
+    }
+
+}
+template <int dim, int n_faces>  
+void SumFactorizedOperators<dim,n_faces>::sum_factorized_Hadamard_surface_sparsity_pattern(
+    const unsigned int rows_size,
+    const unsigned int columns_size,
+    std::vector<unsigned int> &rows,
+    std::vector<unsigned int> &columns,
+    const int dim_not_zero)
+{
+    //Note that for all directions, the rows vector should always be the same.
+    if constexpr(dim == 1){
+        for(unsigned int irow=0; irow<rows_size; irow++){
+            for(unsigned int icol=0; icol<columns_size; icol++){
+                const unsigned int array_index = irow * columns_size + icol;
+                rows[array_index]    = irow;
+                columns[array_index] = icol;
+            }
+        }
+    }
+    if constexpr(dim == 2){
+        for(unsigned int idiag=0; idiag<rows_size; idiag++){
+            for(unsigned int jdiag=0; jdiag<columns_size; jdiag++){
+                const unsigned int array_index = idiag * columns_size + jdiag ;
+
+                const unsigned int row_index = idiag;
+                rows[array_index] = row_index;
+                //direction 0
+                if(dim_not_zero == 0){
+                    const unsigned int col_index_0 = idiag * columns_size;
+                    columns[array_index] = col_index_0 + jdiag;
+                }
+                //direction 1
+                if(dim_not_zero == 1){
+                    const unsigned int col_index_1 = jdiag * columns_size;
+                    columns[array_index] = col_index_1 + idiag;
+                }
+            }
+        }
+    }
+    if constexpr(dim == 3){
+        for(unsigned int idiag=0; idiag<columns_size; idiag++){
+            for(unsigned int jdiag=0; jdiag<columns_size; jdiag++){
+                for(unsigned int kdiag=0; kdiag<columns_size; kdiag++){
+                    const unsigned int array_index = idiag * columns_size * columns_size 
+                                                   + jdiag * columns_size
+                                                   + kdiag;
+                    const unsigned int row_index = idiag * columns_size + jdiag;
+                    rows[array_index] = row_index;
+                    //direction 0
+                    if(dim_not_zero == 0){
+                        const unsigned int col_index_0 = idiag * columns_size * columns_size
+                                                       + jdiag * columns_size;
+                        columns[array_index] = col_index_0 + kdiag;
+                    }
+                    //direction 1
+                    if(dim_not_zero == 1){
+                        const unsigned int col_index_1 = kdiag * columns_size;
+                        columns[array_index] = col_index_1 + jdiag + idiag * columns_size * columns_size;
+                    }
+                    //direction 2
+                    if(dim_not_zero == 2){
+                        const unsigned int col_index_2 = kdiag * columns_size * columns_size;
+                        columns[array_index] = col_index_2 + jdiag + idiag * columns_size;
+                    }
+                }
+            }
+        }
+    }
+}
+template <int dim, int n_faces>  
+void SumFactorizedOperators<dim,n_faces>::sum_factorized_Hadamard_surface_basis_assembly(
+    const unsigned int rows_size,
+    const unsigned int columns_size_1D,
+    const std::vector<unsigned int> &rows,
+    const std::vector<unsigned int> &columns,
+    const dealii::FullMatrix<double> &basis,
+    const std::vector<double> &weights,
+    dealii::FullMatrix<double> &basis_sparse,
+    const int dim_not_zero)
+{
+    if constexpr(dim == 1){
+        for(unsigned int irow=0; irow<rows_size; irow++){
+            for(unsigned int icol=0; icol<columns_size_1D; icol++){
+                basis_sparse[irow][icol] = basis[irow][icol];
+            }
+        }
+    }
+    if constexpr(dim == 2){
+        const unsigned int total_size = rows.size();
+        for(unsigned int index=0, counter=0; index<total_size; index++, counter++){
+            if(counter == columns_size_1D){
+                counter = 0;
+            }
+            //direction 0
+            if(dim_not_zero == 0){
+                basis_sparse[rows[index]][counter] = basis[0][columns[index]%columns_size_1D]//oneD surf basis only 1 point
+                                                         * weights[rows[index]%columns_size_1D];
+            }
+            //direction 1
+            if(dim_not_zero == 1){
+                basis_sparse[rows[index]][counter] = basis[0][columns[index]/columns_size_1D]
+                                                         * weights[rows[index]%columns_size_1D];
+            }
+        }
+    }
+    if constexpr(dim == 3){
+        const unsigned int total_size = rows.size();
+        for(unsigned int index=0, counter=0; index<total_size; index++, counter++){
+            if(counter == columns_size_1D){
+                counter = 0;
+            }
+            //direction 0
+            if(dim_not_zero == 0){
+                basis_sparse[rows[index]][counter] = basis[0][columns[index]%columns_size_1D]//oneD surf basis only 1 point
+                                                   * weights[rows[index]%columns_size_1D]
+                                                   * weights[rows[index]/columns_size_1D];
+            }
+            //direction 1
+            if(dim_not_zero == 1){
+                basis_sparse[rows[index]][counter] = basis[0][(columns[index]/columns_size_1D)%columns_size_1D]
+                                                   * weights[rows[index]%columns_size_1D]
+                                                   * weights[rows[index]/columns_size_1D];
+            }
+            //direction 2
+            if(dim_not_zero == 2){
+                basis_sparse[rows[index]][counter] = basis[0][columns[index]/columns_size_1D/columns_size_1D]
+                                                   * weights[rows[index]%columns_size_1D]
+                                                   * weights[rows[index]/columns_size_1D];
+            }
         }
     }
 }
@@ -1081,8 +1332,12 @@ void local_basis_stiffness<dim,n_faces>::build_1D_volume_operator(
         //allocate
         oneD_skew_symm_vol_oper.reinit(n_dofs,n_dofs);
         //solve
-        oneD_skew_symm_vol_oper.add(1.0, this->oneD_vol_operator);
-        oneD_skew_symm_vol_oper.Tadd(-1.0, this->oneD_vol_operator);
+        for(unsigned int idof=0; idof<n_dofs; idof++){
+            for(unsigned int jdof=0; jdof<n_dofs; jdof++){
+                oneD_skew_symm_vol_oper[idof][jdof] = this->oneD_vol_operator[idof][jdof]
+                                                    - this->oneD_vol_operator[jdof][idof];
+            }
+        }
     }
 }
 
@@ -1519,7 +1774,11 @@ void vol_projection_operator_FR<dim,n_faces>::build_1D_volume_operator(
     
     if(store_transpose){
         oneD_transpose_vol_operator.reinit(n_quad_pts, n_dofs);
-        oneD_transpose_vol_operator.Tadd(1.0, this->oneD_vol_operator);
+        for(unsigned int idof=0; idof<n_dofs; idof++){
+            for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
+                oneD_transpose_vol_operator[iquad][idof] = this->oneD_vol_operator[idof][iquad];
+            }
+        }
     }
 }
 template <int dim, int n_faces>  
@@ -1555,7 +1814,11 @@ void vol_projection_operator_FR_aux<dim,n_faces>::build_1D_volume_operator(
     
     if(store_transpose){
         oneD_transpose_vol_operator.reinit(n_quad_pts, n_dofs);
-        oneD_transpose_vol_operator.Tadd(1.0, this->oneD_vol_operator);
+        for(unsigned int idof=0; idof<n_dofs; idof++){
+            for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
+                oneD_transpose_vol_operator[iquad][idof] = this->oneD_vol_operator[idof][iquad];
+            }
+        }
     }
 }
 
@@ -2244,6 +2507,11 @@ void metric_operators<real,dim,n_faces>::build_determinant_metric_Jacobian(
 
     for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
         det_metric_Jac[iquad] = dealii::determinant(Jacobian_flux_nodes[iquad]);
+        //check for valid cell
+        if(det_metric_Jac[iquad] <= 1e-14){
+            std::cout<<"The determinant of the Jacobian is negative. Aborting..."<<std::endl;
+            std::abort();
+        }
     }
 }
 template <typename real, int dim, int n_faces>  

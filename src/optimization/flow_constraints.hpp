@@ -34,9 +34,11 @@ private:
     const int mpi_rank;
     /// Whether the current processor should print or not.
     const bool i_print;
+public:
     /// Smart pointer to DGBase
     std::shared_ptr<DGBase<dim,double>> dg;
 
+private:
     /// Parameterization which links design variables to the volume nodes.
     std::shared_ptr<BaseParameterization<dim>> design_parameterization;
 

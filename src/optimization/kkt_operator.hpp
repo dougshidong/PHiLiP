@@ -5,6 +5,12 @@
 #include "ROL_Objective.hpp"
 #include "ROL_Constraint.hpp"
 #include "ROL_Vector_SimOpt.hpp"
+#include "mesh/high_order_grid.h"
+#include "rol_to_dealii_vector.hpp"
+#include <deal.II/base/quadrature_lib.h>
+#include <deal.II/base/tensor.h>
+#include <deal.II/fe/fe_values.h>
+#include <deal.II/lac/trilinos_sparse_matrix.h>
 
 /// KKT_Operator to be used with dealii::SolverBase class.
 template<typename Real = double>
@@ -21,6 +27,10 @@ protected:
     const ROL::Ptr<const ROL::Vector<Real>> design_variables_;
     /// Lagrange multipliers.
     const ROL::Ptr<const ROL::Vector<Real>> lagrange_mult_;
+
+    const std::shared_ptr<PHiLiP::HighOrderGrid<PHILIP_DIM,double>> high_order_grid;
+
+    dealii::QGauss<PHILIP_DIM> quadrature;
 
 
 private:
@@ -42,6 +52,8 @@ public:
         , equal_constraints_(equal_constraints)
         , design_variables_(design_variables)
         , lagrange_mult_(lagrange_mult)
+        , high_order_grid(dynamic_cast<const PHiLiP::FlowConstraints<PHILIP_DIM>&>(*equal_constraints).dg->high_order_grid)
+        , quadrature(3)
         , temp_design_variables_size_vector_(design_variables->clone())
         , regularization_parameter(_regularization_parameter)
     { };
@@ -89,7 +101,8 @@ public:
             // Add regularization parameter times identity
             ROL::Ptr<ROL::Vector<Real>> dst_control = dynamic_cast<ROL::Vector_SimOpt<Real>&>(*dst_design).get_2();
             const ROL::Ptr<const ROL::Vector<Real>> src_control = dynamic_cast<const ROL::Vector_SimOpt<Real>&>(*src_design).get_2();
-            dst_control->axpy(regularization_parameter, *src_control);
+            //dst_control->axpy(regularization_parameter, *src_control);
+            regularization_vmult(*dst_control, *src_control);
             // Pretend Lagrangian Hessian is identity.
             //dst_design->set(*src_design);
         }
@@ -142,6 +155,64 @@ public:
            fullA.print_formatted(std::cout, 14, true, 10, "0", 1., 0.);
            std::abort();
        }
+    }
+
+    void regularization_vmult(ROL::Vector<double>& output_vector_rol, const ROL::Vector<double>& input_vector_rol) const
+    {
+        const auto &flow_constraint = dynamic_cast<const PHiLiP::FlowConstraints<PHILIP_DIM>&>(*equal_constraints_);
+        const auto &input_vector_control = PHiLiP::ROL_vector_to_dealii_vector_reference(input_vector_rol);
+        auto &output_vector_control = PHiLiP::ROL_vector_to_dealii_vector_reference(output_vector_rol);
+
+        using VectorType = dealii::LinearAlgebra::distributed::Vector<double>;
+        VectorType input_vector(high_order_grid->volume_nodes);
+        VectorType output_vector(high_order_grid->volume_nodes);
+        output_vector = 0;
+        flow_constraint.dXvdXp.vmult(input_vector, input_vector_control);
+        input_vector.update_ghost_values();
+        dealii::FEValues<PHILIP_DIM, PHILIP_DIM> fe_values(*(high_order_grid->mapping_fe_field), high_order_grid->fe_system, quadrature, dealii::update_gradients | dealii::update_JxW_values);
+
+        const unsigned int n_dofs_cell = high_order_grid->fe_system.dofs_per_cell;
+        const unsigned int n_quad_points = fe_values.n_quadrature_points;
+        std::vector<dealii::types::global_dof_index> dofs_indices(n_dofs_cell);
+        for(const auto &cell: high_order_grid->dof_handler_grid.active_cell_iterators())
+        {
+            if(! cell->is_locally_owned()) {continue;}
+            
+            fe_values.reinit(cell);
+            cell->get_dof_indices(dofs_indices);
+
+            std::vector<std::array< dealii::Tensor<1,PHILIP_DIM,double>, PHILIP_DIM>> input_grad(n_quad_points);
+            double cell_volume = 0;
+            for(unsigned int iquad = 0; iquad < n_quad_points; ++iquad)
+            {
+                for(int istate = 0; istate < PHILIP_DIM; ++istate)
+                {
+                    input_grad[iquad][istate] = 0.0;
+                }
+
+                for(unsigned int idof = 0; idof < n_dofs_cell; ++idof)
+                {
+                    const unsigned int istate = fe_values.get_fe().system_to_component_index(idof).first;
+                    input_grad[iquad][istate] += input_vector(dofs_indices[idof]) * fe_values.shape_grad_component(idof, iquad, istate);
+                }
+                cell_volume += fe_values.JxW(iquad);
+            }
+
+            for(unsigned int idof = 0; idof < n_dofs_cell; ++idof)
+            {
+                const unsigned int idof_global = dofs_indices[idof];
+                const unsigned int istate = fe_values.get_fe().system_to_component_index(idof).first;
+
+                for(unsigned int iquad = 0; iquad < n_quad_points; ++iquad)
+                {
+                    output_vector(idof_global) += regularization_parameter/cell_volume * fe_values.shape_grad_component(idof, iquad, istate)*input_grad[iquad][istate]*fe_values.JxW(iquad);
+                }
+            }
+        }
+        output_vector.update_ghost_values();
+
+        flow_constraint.dXvdXp.Tvmult_add(output_vector_control, output_vector);
+        output_vector_control.update_ghost_values();
     }
 };
 

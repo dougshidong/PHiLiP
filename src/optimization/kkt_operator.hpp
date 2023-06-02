@@ -32,6 +32,8 @@ protected:
 
     dealii::QGauss<PHILIP_DIM> quadrature;
 
+    double min_cell_volume;
+
 
 private:
 
@@ -56,7 +58,30 @@ public:
         , quadrature(3)
         , temp_design_variables_size_vector_(design_variables->clone())
         , regularization_parameter(_regularization_parameter)
-    { };
+    { 
+        double min_cell_volume_local = 1000000;
+        dealii::FEValues<PHILIP_DIM, PHILIP_DIM> fe_values(*(high_order_grid->mapping_fe_field), high_order_grid->fe_system, quadrature, dealii::update_gradients | dealii::update_JxW_values);
+        for(const auto &cell: high_order_grid->dof_handler_grid.active_cell_iterators())
+        {
+            if(! cell->is_locally_owned()) {continue;}
+
+            fe_values.reinit(cell);
+
+            double cell_volume = 0;
+
+            for(unsigned int iquad = 0; iquad < fe_values.n_quadrature_points; ++iquad)
+            {
+                cell_volume += fe_values.JxW(iquad);
+            }
+
+            if(cell_volume < min_cell_volume_local)
+            {
+                min_cell_volume_local = cell_volume;
+            }
+        }
+
+        min_cell_volume = dealii::Utilities::MPI::min(min_cell_volume_local, MPI_COMM_WORLD);
+    }
 
     /// Returns the size of the KKT system.
     unsigned int size()
@@ -205,7 +230,7 @@ public:
 
                 for(unsigned int iquad = 0; iquad < n_quad_points; ++iquad)
                 {
-                    output_vector(idof_global) += regularization_parameter/cell_volume * fe_values.shape_grad_component(idof, iquad, istate)*input_grad[iquad][istate]*fe_values.JxW(iquad);
+                    output_vector(idof_global) += regularization_parameter*min_cell_volume/cell_volume * fe_values.shape_grad_component(idof, iquad, istate)*input_grad[iquad][istate]*fe_values.JxW(iquad);
                 }
             }
         }

@@ -281,6 +281,15 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       "Dissipative numerical flux. "
                       "Choices are <symm_internal_penalty | bassi_rebay_2 | central_visc_flux>.");
 
+    prm.declare_entry("non_physical_behavior", "return_big_number",
+                      dealii::Patterns::Selection("return_big_number | abort_run | print_warning"),
+                      "Behavior when a nonphysical result is detected in physics, "
+                      "For example negative density or NaN. "
+                      "return_big_number will set the quantity to BIG_NUMBER without any warnings "
+                      "abort_run will std::abort() "
+                      "print_warning will return BIG_NUMBER and print a warning to console. "
+                      "Choices are <return_big_number | abort_run | print_warning>.");
+
     prm.declare_entry("solution_vtk_files_directory_name", ".",
                       dealii::Patterns::FileName(dealii::Patterns::FileName::FileType::input),
                       "Name of directory for writing solution vtk files. Current directory by default.");
@@ -453,6 +462,11 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     if (flux_reconstruction_aux_string == "kNegative2")  { flux_reconstruction_aux_type = kNegative2; }
     if (flux_reconstruction_aux_string == "kPlus")       { flux_reconstruction_aux_type = kPlus; }
     if (flux_reconstruction_aux_string == "k10Thousand") { flux_reconstruction_aux_type = k10Thousand; }
+
+    const std::string non_physical_behavior_string = prm.get("non_physical_behavior");
+    if (non_physical_behavior_string == "return_big_number") { non_physical_behavior_type = NonPhysicalBehaviorEnum::return_big_number;}
+    if (non_physical_behavior_string == "abort_run")         { non_physical_behavior_type = NonPhysicalBehaviorEnum::abort_run;}
+    if (non_physical_behavior_string == "print_warning")     { non_physical_behavior_type = NonPhysicalBehaviorEnum::print_warning;}
 
     solution_vtk_files_directory_name = prm.get("solution_vtk_files_directory_name");
     output_high_order_grid = prm.get_bool("output_high_order_grid");

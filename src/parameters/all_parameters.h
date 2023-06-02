@@ -264,6 +264,11 @@ public:
     /// Store flux reconstruction type for the auxiliary variables
     Flux_Reconstruction_Aux flux_reconstruction_aux_type;
 
+    /// Enum of nonphysical behavior
+    enum NonPhysicalBehaviorEnum {return_big_number, abort_run, print_warning};
+    /// Specify behavior on nonphysical results
+    NonPhysicalBehaviorEnum non_physical_behavior_type;
+
     /// Name of directory for writing solution vtk files
     std::string solution_vtk_files_directory_name;
 

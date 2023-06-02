@@ -7,6 +7,7 @@ namespace Physics {
 
 template <int dim, int nstate, typename real>
 BurgersRewienski<dim,nstate,real>::BurgersRewienski(
+        const Parameters::AllParameters *const parameters_input,
         const double rewienski_a,
         const double rewienski_b,
         const bool rewienski_manufactured_solution,
@@ -14,7 +15,8 @@ BurgersRewienski<dim,nstate,real>::BurgersRewienski(
         const bool diffusion,
         const dealii::Tensor<2, 3> input_diffusion_tensor,
         std::shared_ptr<ManufacturedSolutionFunction<dim, real>> manufactured_solution_function)
-        : Burgers<dim, nstate, real>(0, //Burgers rewienski diffusion coefficient is zero
+        : Burgers<dim, nstate, real>(parameters_input,
+                                     0, //Burgers rewienski diffusion coefficient is zero
                                      convection,
                                      diffusion,
                                      input_diffusion_tensor,

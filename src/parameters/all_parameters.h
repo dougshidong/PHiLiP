@@ -158,6 +158,7 @@ public:
     enum TestType {
         run_control,
         grid_refinement_study,
+        advection_limiter,
         burgers_energy_stability,
         diffusion_exact_adjoint,
         euler_gaussian_bump,
@@ -287,6 +288,13 @@ public:
     enum RenumberDofsType { CuthillMckee };
     /// Store selected RenumberDofsType from the input file.
     RenumberDofsType renumber_dofs_type;
+
+    /// Limiter type to be applied on the solution.
+    enum LimiterType {
+        none,
+        maximum_principle
+    };
+    LimiterType use_solution_limiter_type;
     
     /// Declare parameters that can be set as inputs and set up the default options
     /** This subroutine should call the sub-parameter classes static declare_parameters()

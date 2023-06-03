@@ -953,6 +953,19 @@ public:
     bool use_auxiliary_eq;
     /// Set use_auxiliary_eq flag
     virtual void set_use_auxiliary_eq() = 0;
+
+    /// Initial global maximum of solution in domain.
+    std::vector<real> global_max;
+    /// Initial global minimum of solution in domain.
+    std::vector<real> global_min;
+
+    // Obtains global maximum and minimum of solution in the domain
+    virtual void get_global_max_and_min_of_solution() = 0;
+
+    /// Applies maximum principle satisfying limiter to the global solution.
+    /** Using Zhang,Shu May 2010 Eq 3.8 and 3.9 we apply a limiter on the global solution**/
+    virtual void apply_maximum_principle_limiter() = 0;
+
 }; // end of DGBase class
 
 /// Abstract class templated on the number of state variables
@@ -1045,6 +1058,9 @@ public:
 
     /// Set use_auxiliary_eq flag
     void set_use_auxiliary_eq();
+
+    void get_global_max_and_min_of_solution();
+    void apply_maximum_principle_limiter();
 
 protected:
     /// Evaluate the time it takes for the maximum wavespeed to cross the cell domain.

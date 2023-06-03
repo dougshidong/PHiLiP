@@ -147,6 +147,7 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       dealii::Patterns::Selection(
                       " run_control | "
                       " grid_refinement_study | "
+                      " advection_limiter | "
                       " burgers_energy_stability | "
                       " diffusion_exact_adjoint | "
                       " optimization_inverse_manufactured | "
@@ -185,6 +186,7 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       "Choices are " 
                       " <run_control | " 
                       "  grid_refinement_study | "
+                      "  advection_limiter | "
                       "  burgers_energy_stability | "
                       "  diffusion_exact_adjoint | "
                       "  optimization_inverse_manufactured | "
@@ -316,6 +318,15 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       "CuthillMckee"),
                       "Renumber the dof handler type. Currently the only choice is Cuthill-Mckee.");
 
+    prm.declare_entry("use_solution_limiter", "none",
+        dealii::Patterns::Selection(
+            " none | "
+            " maximum_principle"),
+        "The type of limiter we want to apply to the solution. "
+        "Choices are "
+        " <none | "
+        "  maximum_principle>.");
+
     Parameters::LinearSolverParam::declare_parameters (prm);
     Parameters::ManufacturedConvergenceStudyParam::declare_parameters (prm);
     Parameters::ODESolverParam::declare_parameters (prm);
@@ -353,6 +364,7 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     const std::string test_string = prm.get("test_type");
     if      (test_string == "run_control")                              { test_type = run_control; }
     else if (test_string == "grid_refinement_study")                    { test_type = grid_refinement_study; }
+    else if (test_string == "advection_limiter")                        { test_type = advection_limiter; }
     else if (test_string == "burgers_energy_stability")                 { test_type = burgers_energy_stability; }
     else if (test_string == "diffusion_exact_adjoint")                  { test_type = diffusion_exact_adjoint; }
     else if (test_string == "euler_gaussian_bump")                      { test_type = euler_gaussian_bump; }
@@ -476,6 +488,10 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
 
     const std::string renumber_dofs_type_string = prm.get("renumber_dofs_type");
     if (renumber_dofs_type_string == "CuthillMckee") { renumber_dofs_type = RenumberDofsType::CuthillMckee; }
+
+    const std::string use_solution_limiter_string = prm.get("use_solution_limiter");
+    if (use_solution_limiter_string == "none") use_solution_limiter_type = none;
+    if (use_solution_limiter_string == "maximum_principle")     use_solution_limiter_type = maximum_principle;
 
     output_high_order_grid = prm.get_bool("output_high_order_grid");
 

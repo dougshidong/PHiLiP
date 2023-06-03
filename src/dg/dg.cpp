@@ -3329,7 +3329,206 @@ real2 DGBase<dim,real,MeshType>::discontinuity_sensor(
     eps *= eps_0 * 0.5;
     return eps;
 }
+template <int dim, int nstate, typename real, typename MeshType>
+void DGBaseState<dim, nstate, real, MeshType>::get_global_max_and_min_of_solution()
+{
+    for (auto soln_cell : this->dof_handler.active_cell_iterators()) {
+        if (!soln_cell->is_locally_owned()) continue;
 
+        std::vector<dealii::types::global_dof_index> current_dofs_indices;
+        // Current reference element related to this physical cell
+        const int i_fele = soln_cell->active_fe_index();
+        const int poly_degree = i_fele;
+
+        const dealii::FESystem<dim, dim>& current_fe_ref = this->fe_collection[poly_degree];
+        const unsigned int n_dofs_curr_cell = current_fe_ref.n_dofs_per_cell();
+        // Obtain the mapping from local dof indices to global dof indices
+        current_dofs_indices.resize(n_dofs_curr_cell);
+        soln_cell->get_dof_indices(current_dofs_indices);
+
+        //Extract the local solution dofs in the cell from the global solution dofs
+        if (this->global_max.size() < nstate && this->global_min.size() < nstate)
+        {
+            for (unsigned int istate = 0; istate < nstate; ++istate) {
+                this->global_max.push_back(-1e9);
+                this->global_min.push_back(1e9);
+            }
+        }
+
+        //get solution coeff
+        std::array<std::vector<real>, nstate> soln_dofs;
+        const unsigned int n_shape_fns = n_dofs_curr_cell / nstate;
+        for (unsigned int idof = 0; idof < n_dofs_curr_cell; ++idof) {
+            const unsigned int istate = this->fe_collection[poly_degree].system_to_component_index(idof).first;
+            const unsigned int ishape = this->fe_collection[poly_degree].system_to_component_index(idof).second;
+            if (ishape == 0) {
+                soln_dofs[istate].resize(n_shape_fns);
+            }
+            soln_dofs[istate][ishape] = this->solution[current_dofs_indices[idof]]; //
+        }
+        for (int istate = 0; istate < nstate; istate++) {
+            for (unsigned int iquad = 0; iquad < n_shape_fns; iquad++) {
+                if (soln_dofs[istate][iquad] > this->global_max[istate])
+                    this->global_max[istate] = soln_dofs[istate][iquad];
+                if (soln_dofs[istate][iquad] < this->global_min[istate])
+                    this->global_min[istate] = soln_dofs[istate][iquad];
+            }
+        }
+    }
+
+    for (unsigned int istate = 0; istate < nstate; ++istate) {
+        std::cout << std::fixed;
+        std::cout << std::setprecision(14);
+        std::cout << "global_max:   " << this->global_max[istate] << "   global_min:   " << this->global_min[istate] << std::endl;
+    }
+}
+
+template <int dim, int nstate, typename real, typename MeshType>
+void DGBaseState<dim, nstate, real, MeshType>::apply_maximum_principle_limiter()
+{
+
+    //create 1D solution polynomial basis functions and corresponding projection operator
+    //to interpolate the solution to the quadrature nodes, and to project it back to the
+    //modal coefficients.
+    const unsigned int init_grid_degree = this->high_order_grid->fe_system.tensor_degree();
+    //Constructor for the operators
+    OPERATOR::basis_functions<dim, 2 * dim> soln_basis(1, this->max_degree, init_grid_degree);
+    OPERATOR::vol_projection_operator<dim, 2 * dim> soln_basis_projection_oper(1, this->max_degree, init_grid_degree);
+
+
+    //build the oneD operator to perform interpolation/projection
+    soln_basis.build_1D_volume_operator(this->oneD_fe_collection_1state[this->max_degree], this->oneD_quadrature_collection[this->max_degree]);
+    soln_basis_projection_oper.build_1D_volume_operator(this->oneD_fe_collection_1state[this->max_degree], this->oneD_quadrature_collection[this->max_degree]);
+
+
+    if (this->global_max.empty() && this->global_min.empty())
+    {
+        this->get_global_max_and_min_of_solution();
+    }
+
+    auto metric_cell = this->high_order_grid->dof_handler_grid.begin_active();
+    for (auto soln_cell = this->dof_handler.begin_active(); soln_cell != this->dof_handler.end(); ++soln_cell, ++metric_cell) {
+        if (!soln_cell->is_locally_owned()) continue;
+
+        std::vector<dealii::types::global_dof_index> current_dofs_indices;
+        // Current reference element related to this physical cell
+        const int i_fele = soln_cell->active_fe_index();
+        const int poly_degree = i_fele;
+
+        const dealii::FESystem<dim, dim>& current_fe_ref = this->fe_collection[poly_degree];
+        const unsigned int n_dofs_curr_cell = current_fe_ref.n_dofs_per_cell();
+
+         // Obtain the mapping from local dof indices to global dof indices
+        current_dofs_indices.resize(n_dofs_curr_cell);
+        soln_cell->get_dof_indices(current_dofs_indices);
+
+        //Extract the local solution dofs in the cell from the global solution dofs
+       // std::vector<real> soln_dofs(n_dofs_curr_cell);
+        std::array<std::vector<real>, nstate> soln_dofs;
+        const unsigned int n_shape_fns = n_dofs_curr_cell / nstate;
+        std::array<real, nstate> local_max;
+        std::array<real, nstate> local_min;
+        for (unsigned int istate = 0; istate < nstate; ++istate) {
+            local_max[istate] = -1e9;
+            local_min[istate] = 1e9;
+
+            //allocate soln_dofs
+            soln_dofs[istate].resize(n_shape_fns);
+        }
+
+        for (unsigned int idof = 0; idof < n_dofs_curr_cell; ++idof) {
+            const unsigned int istate = this->fe_collection[poly_degree].system_to_component_index(idof).first;
+            const unsigned int ishape = this->fe_collection[poly_degree].system_to_component_index(idof).second;
+            soln_dofs[istate][ishape] = this->solution[current_dofs_indices[idof]]; //
+
+            if (soln_dofs[istate][ishape] > local_max[istate])
+                local_max[istate] = soln_dofs[istate][ishape];
+
+            if (soln_dofs[istate][ishape] < local_min[istate])
+                local_min[istate] = soln_dofs[istate][ishape];
+        }
+
+        const unsigned int n_quad_pts = this->volume_quadrature_collection[poly_degree].size();
+        const std::vector<real>& quad_weights = this->volume_quadrature_collection[poly_degree].get_weights();
+        //interpolate solution dofs to quadrature pts.
+        //and apply integral for the soln avg
+        std::array<real, nstate> soln_cell_avg = {};
+
+        std::array<std::vector<real>, nstate> soln_at_q;
+
+        for (int istate = 0; istate < nstate; istate++) {
+            soln_at_q[istate].resize(n_quad_pts);
+            soln_basis.matrix_vector_mult_1D(soln_dofs[istate], soln_at_q[istate],
+                soln_basis.oneD_vol_operator);
+            // set local_max and local_min at quadrature points
+            /*			for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
+                            if(soln_at_q[istate][iquad] > local_max[istate])
+                                local_max[istate] = soln_at_q[istate][iquad];
+                            if(soln_at_q[istate][iquad] < local_min[istate])
+                                local_min[istate] = soln_at_q[istate][iquad];
+                        }*/
+        }
+
+        for (unsigned int istate = 0; istate < nstate; ++istate) {
+            for (unsigned int iquad = 0; iquad < n_quad_pts; ++iquad) {
+                soln_cell_avg[istate] += quad_weights[iquad]
+                    * soln_at_q[istate][iquad];
+            }
+        }
+
+        //get theta value
+        std::array<real, nstate> theta = {};
+        for (unsigned int istate = 0; istate < nstate; ++istate)
+        {
+            real maxscale = 1.0;
+            real minscale = 1.0;
+
+            if (local_max[istate] - soln_cell_avg[istate] != 0)
+                maxscale = local_max[istate] - soln_cell_avg[istate];
+            if (local_min[istate] - soln_cell_avg[istate] != 0)
+                minscale = local_min[istate] - soln_cell_avg[istate];
+
+            theta[istate] = std::min({ abs((this->global_max[istate] - soln_cell_avg[istate]) / maxscale),
+                                      abs((this->global_min[istate] - soln_cell_avg[istate]) / minscale), 1.0 });
+        }
+
+        //apply limiter on soln values at quadrature points
+        for (unsigned int istate = 0; istate < nstate; ++istate) {
+            for (unsigned int iquad = 0; iquad < n_quad_pts; ++iquad) {
+                soln_at_q[istate][iquad] = theta[istate] * (soln_at_q[istate][iquad] - soln_cell_avg[istate])
+                    + soln_cell_avg[istate];
+            }
+        }
+
+        //project soln at quadrature points to dofs.
+        //Note this only works for collocated solutions for now. General projection tbd.
+        for (int istate = 0; istate < nstate; istate++) {
+            soln_basis_projection_oper.matrix_vector_mult_1D(soln_at_q[istate], soln_dofs[istate],
+                soln_basis_projection_oper.oneD_vol_operator);
+        }
+
+        for (int istate = 0; istate < nstate; istate++) {
+            for (unsigned int ishape = 0; ishape < n_shape_fns; ++ishape) {
+                const unsigned int idof = istate * n_shape_fns + ishape;
+                this->solution[current_dofs_indices[idof]] = soln_dofs[istate][ishape];
+
+                if (this->solution[current_dofs_indices[idof]] > this->global_max[istate] + 1e-13)
+                {
+                    std::cout << " Solution exceeds global maximum   -   Aborting... Value:   " << this->solution[current_dofs_indices[idof]] << std::endl << std::flush;
+                    this->pcout << "theta:   " << theta[istate] << "   local max:   " << local_max[istate] << "   soln_cell_avg:   " << soln_cell_avg[istate] << std::endl;
+                    std::abort();
+                }
+                if (this->solution[current_dofs_indices[idof]] < this->global_min[istate] - 1e-13)
+                {
+                    std::cout << " Solution exceeds global minimum   -   Aborting... Value:   " << this->solution[current_dofs_indices[idof]] << std::endl << std::flush;
+                    this->pcout << "theta:   " << theta[istate] << "   local_min:   " << local_min[istate] << "   soln_cell_avg:   " << soln_cell_avg[istate] << std::endl;
+                    std::abort();
+                }
+            }
+        }
+    }
+
+}
 template <int dim, typename real, typename MeshType>
 void DGBase<dim,real,MeshType>::set_current_time(const real current_time_input)
 {

@@ -1,0 +1,41 @@
+# -------------------
+
+set test_type = advection_limiter
+
+# Number of dimensions
+set dimension = 1
+
+set use_weak_form = false
+set flux_nodes_type = GLL
+set use_split_form = false
+
+# The PDE we want to solve
+set pde_type = advection
+
+set conv_num_flux = lax_friedrichs
+
+set use_periodic_bc = true
+
+set use_solution_limiter = maximum_principle
+
+subsection ODE solver
+
+  set ode_output = verbose
+  
+  set nonlinear_max_iterations = 500000
+
+  set print_iteration_modulo = 100
+
+  set ode_solver_type = runge_kutta
+
+  set initial_time_step = 0.0001
+
+  set runge_kutta_method = ssprk3_ex
+
+  set output_solution_every_x_steps = 1
+
+end
+
+subsection flow_solver
+    set flow_case_type = advection
+end

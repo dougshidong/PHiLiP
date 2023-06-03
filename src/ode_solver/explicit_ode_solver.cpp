@@ -68,6 +68,9 @@ void RungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::step_in_time (real dt, 
             
         this->dg->solution = this->rk_stage[i];
 
+        if (this->ODESolverBase<dim, real, MeshType>::all_parameters->use_solution_limiter_type == Parameters::AllParameters::LimiterType::maximum_principle)
+            this->dg->apply_maximum_principle_limiter();
+
         //set the DG current time for unsteady source terms
         this->dg->set_current_time(this->current_time + this->butcher_tableau->get_c(i)*dt);
         

@@ -126,6 +126,9 @@ public:
     ///Flag to use an energy monotonicity test
     bool use_energy;
 
+    //Flag to perform convergence test
+    bool use_OOA;
+
     ///Flag to use an L2 energy monotonicity test (for FR)
     bool use_L2_norm;
 
@@ -159,6 +162,7 @@ public:
         run_control,
         grid_refinement_study,
         advection_limiter,
+        burgers_limiter,
         burgers_energy_stability,
         diffusion_exact_adjoint,
         euler_gaussian_bump,

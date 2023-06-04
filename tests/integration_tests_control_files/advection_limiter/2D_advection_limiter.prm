@@ -16,6 +16,8 @@ set conv_num_flux = lax_friedrichs
 
 set use_solution_limiter = maximum_principle
 
+set do_renumber_dofs = false
+
 subsection ODE solver
 
   set ode_output = verbose

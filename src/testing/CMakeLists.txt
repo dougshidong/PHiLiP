@@ -4,6 +4,7 @@ set(TESTS_SOURCE
     grid_study.cpp
     grid_refinement_study.cpp
     advection_limiter.cpp
+    burgers_limiter.cpp
     burgers_stability.cpp
     diffusion_exact_adjoint.cpp
     euler_gaussian_bump.cpp

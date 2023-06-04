@@ -1,22 +1,28 @@
-# -------------------
+set test_type = burgers_limiter
 
-set test_type = advection_limiter
+set dimension = 2
 
-# Number of dimensions
-set dimension = 1
+set use_weak_form = false
 
-set use_weak_form = true
+#set overintegration = 5
+
 set flux_nodes_type = GLL
-set use_split_form = false
 
-# The PDE we want to solve
-set pde_type = advection
+set pde_type = burgers_inviscid
+
+#set use_split_form = true
+#set two_point_num_flux_type = Ra
 
 set conv_num_flux = lax_friedrichs
+#set conv_num_flux = two_point_flux_with_lax_friedrichs_dissipation
 
 set use_solution_limiter = maximum_principle
 
-set do_renumber_dofs = false
+#set flux_reconstruction = cPlus
+
+#set use_inverse_mass_on_the_fly = true
+
+set enable_higher_order_vtk_output = true
 
 subsection ODE solver
 
@@ -37,5 +43,5 @@ subsection ODE solver
 end
 
 subsection flow_solver
-    set flow_case_type = advection
+    set flow_case_type = burgers_inviscid
 end

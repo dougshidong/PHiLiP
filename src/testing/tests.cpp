@@ -12,6 +12,7 @@
 #include "grid_study.h"
 #include "grid_refinement_study.h"
 #include "advection_limiter.h"
+#include "burgers_limiter.h"
 #include "burgers_stability.h"
 #include "diffusion_exact_adjoint.h"
 #include "euler_gaussian_bump.h"
@@ -241,6 +242,9 @@ std::unique_ptr< TestsBase > TestsFactory<dim,nstate,MeshType>
     } else if (test_type == Test_enum::advection_limiter) {
         if constexpr (dim == 1 && nstate == 1) return std::make_unique<AdvectionLimiter<dim, nstate>>(parameters_input);
         if constexpr (dim == 2 && nstate == 1) return std::make_unique<AdvectionLimiter<dim, nstate>>(parameters_input);
+    } else if (test_type == Test_enum::burgers_limiter) {
+        if constexpr (dim == 1 && nstate == 1) return std::make_unique<BurgersLimiter<dim, nstate>>(parameters_input);
+        if constexpr (dim == 2 && nstate == 2) return std::make_unique<BurgersLimiter<dim, nstate>>(parameters_input);
     } else if(test_type == Test_enum::burgers_energy_stability) {
         if constexpr (dim==1 && nstate==1) return std::make_unique<BurgersEnergyStability<dim,nstate>>(parameters_input);
     } else if(test_type == Test_enum::diffusion_exact_adjoint) {

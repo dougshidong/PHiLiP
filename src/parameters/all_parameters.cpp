@@ -102,6 +102,10 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       dealii::Patterns::Bool(),
                       "Not calculate energy by default. Otherwise, get energy per iteration.");
 
+    prm.declare_entry("use_OOA", "false",
+        dealii::Patterns::Bool(),
+        "Does not perform Convergence Test by default. Otherwise, performs Convergence Test.");
+
     prm.declare_entry("use_L2_norm", "false",
                       dealii::Patterns::Bool(),
                       "Not calculate L2 norm by default (M+K). Otherwise, get L2 norm per iteration.");
@@ -148,6 +152,7 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       " run_control | "
                       " grid_refinement_study | "
                       " advection_limiter | "
+                      " burgers_limiter | "
                       " burgers_energy_stability | "
                       " diffusion_exact_adjoint | "
                       " optimization_inverse_manufactured | "
@@ -187,6 +192,7 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       " <run_control | " 
                       "  grid_refinement_study | "
                       "  advection_limiter | "
+                      "  burgers_limiter | "
                       "  burgers_energy_stability | "
                       "  diffusion_exact_adjoint | "
                       "  optimization_inverse_manufactured | "
@@ -365,6 +371,7 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     if      (test_string == "run_control")                              { test_type = run_control; }
     else if (test_string == "grid_refinement_study")                    { test_type = grid_refinement_study; }
     else if (test_string == "advection_limiter")                        { test_type = advection_limiter; }
+    else if (test_string == "burgers_limiter")                          { test_type = burgers_limiter; }
     else if (test_string == "burgers_energy_stability")                 { test_type = burgers_energy_stability; }
     else if (test_string == "diffusion_exact_adjoint")                  { test_type = diffusion_exact_adjoint; }
     else if (test_string == "euler_gaussian_bump")                      { test_type = euler_gaussian_bump; }
@@ -426,6 +433,7 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     use_weight_adjusted_mass = prm.get_bool("use_weight_adjusted_mass");
     use_periodic_bc = prm.get_bool("use_periodic_bc");
     use_energy = prm.get_bool("use_energy");
+    use_OOA = prm.get_bool("use_OOA");
     use_L2_norm = prm.get_bool("use_L2_norm");
     use_classical_FR = prm.get_bool("use_classical_FR");
     sipg_penalty_factor = prm.get_double("sipg_penalty_factor");

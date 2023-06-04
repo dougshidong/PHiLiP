@@ -269,22 +269,22 @@ inline real InitialConditionFunction_Advection<dim,nstate,real>
 ::value(const dealii::Point<dim,real> &point, const unsigned int /*istate*/) const
 {
     real value = 1.0;
-    //if constexpr(dim >= 1)
-    //    value *= sin(2.0*dealii::numbers::PI*point[0]);
-    //if constexpr(dim >= 2)
-    //    value *= sin(2.0*dealii::numbers::PI*point[1]);
-    //if constexpr(dim == 3)
-    //    value *= sin(2.0*dealii::numbers::PI*point[2]);
+    if constexpr(dim >= 1)
+        value *= sin(2.0*dealii::numbers::PI*point[0]);
+    if constexpr(dim >= 2)
+        value *= sin(2.0*dealii::numbers::PI*point[1]);
+    if constexpr(dim == 3)
+        value *= sin(2.0*dealii::numbers::PI*point[2]);
 
     // Limiter Test Initial Condition
-    if constexpr (dim == 1)
-    {
-        //value *= sin(2.0*dealii::numbers::PI*point[0]);
-        if (point[0] >= -1 && point[0] <= 0)
-            value *= 1.0;
-        if (point[0] > 0 && point[0] <= 1)
-            value *= -1.0;
-    }
+    //if constexpr (dim == 1)
+    //{
+    //    //value *= sin(2.0*dealii::numbers::PI*point[0]);
+    //    if (point[0] >= -1 && point[0] <= 0)
+    //        value *= 1.0;
+    //    if (point[0] > 0 && point[0] <= 1)
+    //        value *= -1.0;
+    //}
 
     return value;
 }
@@ -519,6 +519,7 @@ InitialConditionFactory<dim,nstate, real>::create_InitialConditionFunction(
         }
     } else if (flow_type == FlowCaseEnum::burgers_inviscid && param->use_energy==false) {
         if constexpr (dim==1 && nstate==1) return std::make_shared<InitialConditionFunction_BurgersInviscid<dim,nstate,real> > ();
+        if constexpr (dim==2 && nstate==2) return std::make_shared<InitialConditionFunction_BurgersInviscid<dim, nstate, real> >();
     } else if (flow_type == FlowCaseEnum::burgers_inviscid && param->use_energy==true) {
         if constexpr (dim==1 && nstate==1) return std::make_shared<InitialConditionFunction_BurgersInviscidEnergy<dim,nstate,real> > ();
     } else if (flow_type == FlowCaseEnum::advection && param->use_energy==true) {

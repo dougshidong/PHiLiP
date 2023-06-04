@@ -99,6 +99,9 @@ void RungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::step_in_time (real dt, 
     }
     this->dg->solution = this->solution_update; // u_np1 = u_n + dt* sum(k_i * b_i)
 
+    if (this->ODESolverBase<dim, real, MeshType>::all_parameters->use_solution_limiter_type == Parameters::AllParameters::LimiterType::maximum_principle)
+        this->dg->apply_maximum_principle_limiter();
+
     ++(this->current_iteration);
     this->current_time += dt;
 }

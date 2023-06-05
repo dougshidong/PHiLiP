@@ -117,10 +117,12 @@ protected:
 public:
     /// constructor
     diffusion_objective(
+        const Parameters::AllParameters *const                  parameters_input,
         const bool                                              convection, 
         const bool                                              diffusion,
         std::shared_ptr<ManufacturedSolutionFunction<dim,real>> manufactured_solution_function): 
             Physics::ConvectionDiffusion<dim,nstate,real>::ConvectionDiffusion(
+                parameters_input,
                 convection, 
                 diffusion,
                 default_diffusion_tensor(),
@@ -177,9 +179,11 @@ protected:
 public:
     /// constructor
     diffusion_u(
+        const Parameters::AllParameters *const parameters_input,
         const bool convection, 
         const bool diffusion): 
             diffusion_objective<dim,nstate,real>::diffusion_objective(
+                parameters_input,
                 convection, 
                 diffusion,
                 std::make_shared<ManufacturedSolutionU<dim,real>>())
@@ -214,9 +218,11 @@ protected:
 public:
     /// constructor
     diffusion_v(
+        const Parameters::AllParameters *const parameters_input,
         const bool convection, 
         const bool diffusion): 
             diffusion_objective<dim,nstate,real>::diffusion_objective(
+                parameters_input,
                 convection, 
                 diffusion,
                 std::make_shared<ManufacturedSolutionV<dim,real>>())

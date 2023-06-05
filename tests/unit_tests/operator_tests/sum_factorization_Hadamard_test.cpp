@@ -122,6 +122,7 @@ int main (int argc, char * argv[])
                     }
                 }
             }
+            std::cout<<std::endl<<std::endl;
             if(dim==3){
                 for(unsigned int idof=0; idof< n_dofs_1D * n_dofs_1D * n_dofs_1D; idof++){
                     for(unsigned int idof2=0; idof2< n_dofs_1D * n_dofs_1D * n_dofs_1D; idof2++){
@@ -181,6 +182,7 @@ int main (int argc, char * argv[])
                     }
                 }
             }
+            std::cout<<std::endl<<std::endl;
             if(dim==3){
                 for(unsigned int idof=0; idof< n_dofs_1D * n_dofs_1D * n_dofs_1D; idof++){
                     for(unsigned int idof2=0; idof2< n_dofs_1D * n_dofs_1D * n_dofs_1D; idof2++){
@@ -226,6 +228,7 @@ int main (int argc, char * argv[])
                         }
                     }
                 }
+                std::cout<<std::endl<<std::endl;
                 if(dim==3){
                     for(unsigned int idof=0; idof< n_dofs_1D * n_dofs_1D * n_dofs_1D; idof++){
                         for(unsigned int idof2=0; idof2< n_dofs_1D * n_dofs_1D * n_dofs_1D; idof2++){
@@ -234,6 +237,7 @@ int main (int argc, char * argv[])
                         }
                     }
                 }
+                std::cout<<std::endl<<std::endl;
                 if(ielement==0)
                     time_diff_dir3[poly_degree] = clock() - tfirst_dir3;
                 else
@@ -346,12 +350,15 @@ int main (int argc, char * argv[])
         avg_slope3 = 0.0;
         for(unsigned int i=poly_max-5; i<poly_max; i++){
                 avg_slope1 += std::log(((double)time_diff_sum[i]/CLOCKS_PER_SEC) /( (double)time_diff_sum[i-1]/CLOCKS_PER_SEC))
-                            / std::log((double)((i)/(i-1.0)));
+                           // / std::log((double)((i)/(i-1.0)));
+                            / std::log((double)((i+1.0)/(i)));
                 avg_slope2 += std::log(((double)time_diff_sum_dir2[i]/CLOCKS_PER_SEC) /( (double)time_diff_sum_dir2[i-1]/CLOCKS_PER_SEC))
-                            / std::log((double)((i)/(i-1.0)));
+                           // / std::log((double)((i)/(i-1.0)));
+                            / std::log((double)((i+1.0)/(i)));
                 if constexpr(dim==3){
                     avg_slope3 += std::log(((double)time_diff_sum_dir3[i]/CLOCKS_PER_SEC) /( (double)time_diff_sum_dir3[i-1]/CLOCKS_PER_SEC))
-                                / std::log((double)((i)/(i-1.0)));
+                             //   / std::log((double)((i)/(i-1.0)));
+                                / std::log((double)((i+1.0)/(i)));
                 }
         }
         avg_slope1 /= 4.0;

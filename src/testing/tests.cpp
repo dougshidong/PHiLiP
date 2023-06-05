@@ -22,6 +22,7 @@
 #include "euler_entropy_waves.h"
 #include "advection_explicit_periodic.h"
 #include "euler_split_inviscid_taylor_green_vortex.h"
+#include "TGV_scaling.h"
 #include "optimization_inverse_manufactured/optimization_inverse_manufactured.h"
 #include "euler_bump_optimization.h"
 #include "euler_naca0012_optimization.hpp"
@@ -260,6 +261,8 @@ std::unique_ptr< TestsBase > TestsFactory<dim,nstate,MeshType>
         if constexpr (dim>=2 && nstate==PHILIP_DIM+2) return std::make_unique<EulerEntropyWaves<dim,nstate>>(parameters_input);
     } else if(test_type == Test_enum::euler_split_taylor_green) {
         if constexpr (dim==3 && nstate == dim+2) return std::make_unique<EulerTaylorGreen<dim,nstate>>(parameters_input);
+    } else if(test_type == Test_enum::taylor_green_scaling) {
+        if constexpr (dim==3 && nstate == dim+2) return std::make_unique<EulerTaylorGreenScaling<dim,nstate>>(parameters_input);
     } else if(test_type == Test_enum::optimization_inverse_manufactured) {
         return std::make_unique<OptimizationInverseManufactured<dim,nstate>>(parameters_input);
     } else if(test_type == Test_enum::euler_bump_optimization) {

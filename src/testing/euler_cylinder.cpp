@@ -126,6 +126,7 @@ int EulerCylinder<dim,nstate>
 
     Physics::Euler<dim,nstate,double> euler_physics_double
         = Physics::Euler<dim, nstate, double>(
+                &param,
                 param.euler_param.ref_length,
                 param.euler_param.gamma_gas,
                 param.euler_param.mach_inf,

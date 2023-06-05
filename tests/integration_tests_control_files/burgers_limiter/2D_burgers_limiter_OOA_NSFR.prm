@@ -6,10 +6,10 @@ set use_weak_form = false
 
 set overintegration = 0
 
-set flux_nodes_type = GLL
+set flux_nodes_type = GL
 
-set use_split_form = false
-#set two_point_num_flux_type = Ra
+set use_split_form = true
+set two_point_num_flux_type = Ra
 
 set use_solution_limiter = maximum_principle
 
@@ -22,15 +22,15 @@ set use_classical_FR = false
 
 set use_periodic_bc = true
 
-#set flux_reconstruction = cDG
+set flux_reconstruction = cDG
 
-#set use_inverse_mass_on_the_fly = true
+set use_inverse_mass_on_the_fly = true
 
 set pde_type = burgers_inviscid
 
-set conv_num_flux = lax_friedrichs
+#set conv_num_flux = lax_friedrichs
 #set conv_num_flux = central_flux
-#set conv_num_flux = two_point_flux_with_lax_friedrichs_dissipation
+set conv_num_flux = two_point_flux_with_lax_friedrichs_dissipation
 
 set use_OOA = true
 
@@ -48,8 +48,6 @@ subsection ODE solver
   #set initial_time_step = 0.00005
 
   set runge_kutta_method = ssprk3_ex
-
-  #set output_solution_every_x_steps = 1
 
 end
 

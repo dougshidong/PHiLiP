@@ -42,9 +42,9 @@ int BurgersLimiter<dim, nstate>::run_test() const
     PHiLiP::Parameters::AllParameters all_parameters_new = *all_parameters;  
     double left = 0.0;
     double right = 2.0;
-    const unsigned int n_grids = (!all_parameters_new.use_OOA) ? 5 : 10;
-    unsigned int poly_degree = 2;
-    const unsigned int igrid_start = 4;
+    const unsigned int n_grids = (!all_parameters_new.use_OOA) ? 5 : 8;
+    unsigned int poly_degree = 3;
+    const unsigned int igrid_start = 3;
     const unsigned int grid_degree = 1;
     dealii::ConvergenceTable convergence_table;
     std::vector<double> grid_size(n_grids);
@@ -85,7 +85,7 @@ int BurgersLimiter<dim, nstate>::run_test() const
             const unsigned int n_global_active_cells2 = grid->n_global_active_cells();
             double n_dofs_cfl = pow(n_global_active_cells2, dim) * pow(poly_degree + 1.0, dim);
             double delta_x = (PHILIP_DIM == 2) ? (right - left) / pow(n_global_active_cells2, (1.0/dim)) : (right - left) / pow(n_dofs_cfl, (1.0 / dim));
-            all_parameters_new.ode_solver_param.initial_time_step = (PHILIP_DIM == 2) ? (1.0 / 14.0) * pow(delta_x, 1.0) : (1.0 / 24.0) * pow(delta_x, 1.0);
+            all_parameters_new.ode_solver_param.initial_time_step = (PHILIP_DIM == 2) ? (1.0 / 14.0) * pow(delta_x, (4.0/3.0)) : (1.0 / 24.0) * pow(delta_x, 1.0);
             pcout << "time_step:   " << all_parameters_new.ode_solver_param.initial_time_step << std::endl;
 
             //allocate dg
@@ -157,7 +157,7 @@ int BurgersLimiter<dim, nstate>::run_test() const
 
                         for (int istate = 0; istate < nstate; ++istate) {
                             const dealii::Point<dim> qpoint = (fe_values_extra.quadrature_point(iquad));
-                            double uexact = 0.0;
+                            double uexact = 1.0;
                             for (int idim = 0; idim < dim; idim++) {
                                 uexact *= cos(pi * (qpoint[idim] - finalTime));//for grid 1-3
                             }

@@ -4,6 +4,7 @@ set(DESIGN_PARAMETERIZATION_SRC
     identity_parameterization.cpp
     inner_vol_parameterization.cpp
     sliding_boundary_parameterization.cpp
+    box_bounded_parameterization.cpp
     )
 
 foreach(dim RANGE 1 3)

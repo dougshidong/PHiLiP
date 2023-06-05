@@ -4,6 +4,7 @@
 #include "functional/implicit_shocktracking_functional.h"
 #include "optimization/design_parameterization/inner_vol_parameterization.hpp"
 #include "optimization/design_parameterization/sliding_boundary_parameterization.hpp"
+#include "optimization/design_parameterization/box_bounded_parameterization.hpp"
 
 #include "Teuchos_ParameterList.hpp"
 #include "Teuchos_GlobalMPISession.hpp"
@@ -46,7 +47,8 @@ MeshOptimizer<dim,nstate>::MeshOptimizer(
 template<int dim, int nstate>
 void MeshOptimizer<dim,nstate>::initialize_objfunc_and_design_parameterization()
 {
-    design_parameterization = std::make_shared<InnerVolParameterization<dim>>(dg->high_order_grid); 
+    design_parameterization = std::make_shared<BoxBoundedParameterization<dim>>(dg->high_order_grid); 
+    //design_parameterization = std::make_shared<InnerVolParameterization<dim>>(dg->high_order_grid); 
     //design_parameterization = std::make_shared<SlidingBoundaryParameterization<dim>>(dg->high_order_grid); 
 
     bool uses_coarse_residual = false;

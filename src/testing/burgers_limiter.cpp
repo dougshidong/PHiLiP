@@ -85,7 +85,7 @@ int BurgersLimiter<dim, nstate>::run_test() const
             const unsigned int n_global_active_cells2 = grid->n_global_active_cells();
             double n_dofs_cfl = pow(n_global_active_cells2, dim) * pow(poly_degree + 1.0, dim);
             double delta_x = (PHILIP_DIM == 2) ? (right - left) / pow(n_global_active_cells2, (1.0/dim)) : (right - left) / pow(n_dofs_cfl, (1.0 / dim));
-            all_parameters_new.ode_solver_param.initial_time_step = (PHILIP_DIM == 2) ? (1.0 / 2.0) * pow(delta_x, 5.0 / 3.0) : (1.0 / 24.0) * pow(delta_x, 1.0);
+            all_parameters_new.ode_solver_param.initial_time_step = (PHILIP_DIM == 2) ? (1.0 / 14.0) * pow(delta_x, 1.0) : (1.0 / 24.0) * pow(delta_x, 1.0);
             pcout << "time_step:   " << all_parameters_new.ode_solver_param.initial_time_step << std::endl;
 
             //allocate dg
@@ -159,7 +159,7 @@ int BurgersLimiter<dim, nstate>::run_test() const
                             const dealii::Point<dim> qpoint = (fe_values_extra.quadrature_point(iquad));
                             double uexact = 0.0;
                             for (int idim = 0; idim < dim; idim++) {
-                                uexact += cos(pi * (qpoint[idim] - finalTime));//for grid 1-3
+                                uexact *= cos(pi * (qpoint[idim] - finalTime));//for grid 1-3
                             }
                             l2error += pow(soln_at_q[istate] - uexact, 2) * fe_values_extra.JxW(iquad);
                         }

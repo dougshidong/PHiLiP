@@ -120,8 +120,12 @@ int AnisotropicMeshAdaptationCases<dim, nstate> :: run_test () const
     std::unique_ptr<AnisotropicMeshAdaptation<dim, nstate, double>> anisotropic_mesh_adaptation =
                         std::make_unique<AnisotropicMeshAdaptation<dim, nstate, double>> (flow_solver->dg, normLp, complexity, use_goal_oriented_approach);
     
+ //   flow_solver->dg->output_results_vtk(98765);
+ //   return 0;
+    
     flow_solver->run();
     output_vtk_files(flow_solver->dg);
+    return 0;
 
     std::vector<double> functional_error_vector;
     std::vector<unsigned int> n_cycle_vector;

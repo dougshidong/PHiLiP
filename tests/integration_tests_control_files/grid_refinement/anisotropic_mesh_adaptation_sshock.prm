@@ -24,8 +24,8 @@ end
 subsection artificial dissipation
   set add_artificial_dissipation = true
   set artificial_dissipation_type = laplacian
-  set mu_artificial_dissipation = 0.001
-  set kappa_artificial_dissipation = 2.0
+  set mu_artificial_dissipation = 0.1
+  set kappa_artificial_dissipation = 5.0
 end
 
 subsection functional

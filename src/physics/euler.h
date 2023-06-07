@@ -90,6 +90,7 @@ public:
     using two_point_num_flux_enum = Parameters::AllParameters::TwoPointNumericalFlux;
     /// Constructor
     Euler ( 
+        const Parameters::AllParameters *const                    parameters_input,
         const double                                              ref_length,
         const double                                              gamma_gas,
         const double                                              mach_inf,
@@ -201,13 +202,11 @@ public:
         const dealii::Point<dim,real> &pos) const;
 
 protected:
-    /// Check positive density
+    /// Check positive quantity and modify it according to handle_non_physical_result()
+    /** in PhysicsBase class
+     */
     template<typename real2>
-    void check_positive_density(real2 &density) const;
-
-    /// Check positive pressure
-    template<typename real2>
-    void check_positive_pressure(real2 &pressure) const;
+    void check_positive_quantity(real2 &quantity) const;
 
 public:
     /// Given conservative variables [density, [momentum], total energy],

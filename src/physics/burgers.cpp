@@ -6,6 +6,25 @@ namespace PHiLiP {
 namespace Physics {
 
 template <int dim, int nstate, typename real>
+Burgers<dim,nstate,real>::Burgers(
+    const Parameters::AllParameters *const                    parameters_input,
+    const double                                              diffusion_coefficient,
+    const bool                                                convection, 
+    const bool                                                diffusion,
+    const dealii::Tensor<2,3,double>                          input_diffusion_tensor,
+    std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function,
+    const Parameters::AllParameters::TestType                 parameters_test,
+    const bool                                                has_nonzero_physical_source)
+    : PhysicsBase<dim,nstate,real>(parameters_input, diffusion, has_nonzero_physical_source, input_diffusion_tensor, manufactured_solution_function)
+    , diffusion_scaling_coeff(diffusion_coefficient)
+    , hasConvection(convection)
+    , hasDiffusion(diffusion)
+    , test_type(parameters_test)
+{
+    static_assert(nstate==dim, "Physics::Burgers() should be created with nstate==dim");
+}
+
+template <int dim, int nstate, typename real>
 void Burgers<dim,nstate,real>
 ::boundary_face_values (
    const int /*boundary_type*/,

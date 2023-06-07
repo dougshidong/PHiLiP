@@ -89,12 +89,13 @@ protected:
 public:
     /// Constructor
     MHD(
+        const Parameters::AllParameters *const                    parameters_input,
         const double                                              gamma_gas, 
         const dealii::Tensor<2,3,double>                          input_diffusion_tensor = Parameters::ManufacturedSolutionParam::get_default_diffusion_tensor(),
         std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function = nullptr,
         const bool                                                has_nonzero_diffusion = false,
         const bool                                                has_nonzero_physical_source = false)
-    : PhysicsBase<dim,nstate,real>(has_nonzero_diffusion, has_nonzero_physical_source, input_diffusion_tensor, manufactured_solution_function)
+    : PhysicsBase<dim,nstate,real>(parameters_input, has_nonzero_diffusion, has_nonzero_physical_source, input_diffusion_tensor, manufactured_solution_function)
     , gam(gamma_gas)
     , gamm1(gam-1.0)
     {

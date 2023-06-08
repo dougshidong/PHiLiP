@@ -282,6 +282,8 @@ public:
     /// Flag for outputting the surface solution vtk files
     bool output_face_results_vtk;
 
+    /// Flag for renumbering DOFs
+    bool do_renumber_dofs;
     /// Renumber dofs type.
     enum RenumberDofsType { CuthillMckee };
     /// Store selected RenumberDofsType from the input file.

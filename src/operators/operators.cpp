@@ -1466,23 +1466,17 @@ void local_Flux_Reconstruction_operator<dim,n_faces>::get_c_plus_parameter (
     double &c)
 {
     if(curr_cell_degree == 2){
-        c = 0.183; //RK44
-        // c = 0.173;//RK33
+        c = 0.186;
+//        c = 0.173;//RK33
     }
-    else if(curr_cell_degree == 3){
-        c = 3.60e-3; //RK44 or RK33
+    if(curr_cell_degree == 3)
+        c = 3.67e-3;
+    if(curr_cell_degree == 4){
+        c = 4.79e-5;
+//       c = 4.92e-5;//RK33
     }
-    else if(curr_cell_degree == 4){
-        c = 4.67e-5; //RK44
-        // c = 4.92e-5;//RK33
-    }
-    else if(curr_cell_degree == 5){
-        c = 4.28e-7; //RK44 or RK33
-    }
-    else{
-        this->pcout << "ERROR: cPlus values are only defined for p=2 through p=5. Aborting..." << std::endl;
-        std::abort();
-    }
+    if(curr_cell_degree == 5)
+       c = 4.24e-7;
 
     c/=2.0;//since orthonormal
     c/=pow(pow(2.0,curr_cell_degree),2);//since ref elem [0,1]

@@ -74,7 +74,7 @@ subsection optimization
 
     set gradient_tolerance = 1.0e-11 #1e-11
     set max_design_cycles = 50
-    set linear_iteration_limit = 100
+    set linear_iteration_limit = 200
     set initial_step_size = 1.0
     set functional_evaluation_limit = 30
     set line_search_method = Backtracking
@@ -83,8 +83,8 @@ subsection optimization
     set full_space_preconditioner = P2A
     set mesh_weight_factor = 0.1
 
-    set regularization_parameter = 100
-    set regularization_scaling = 1.0
+    set regularization_parameter = 10.0
+    set regularization_scaling = 2.0
     set regularization_tol_low = 1.0e-2
     set regularization_tol_high = 1.0e-1
 end

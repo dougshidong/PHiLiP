@@ -4293,6 +4293,8 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_volume_term_and_build_operators(
     OPERATOR::basis_functions<dim,2*dim>                   &/*soln_basis*/,
     OPERATOR::basis_functions<dim,2*dim>                   &/*flux_basis*/,
     OPERATOR::local_basis_stiffness<dim,2*dim>             &/*flux_basis_stiffness*/,
+    OPERATOR::vol_projection_operator<dim,2*dim>           &/*soln_basis_projection_oper_int*/,
+    OPERATOR::vol_projection_operator<dim,2*dim>           &/*soln_basis_projection_oper_ext*/,
     OPERATOR::metric_operators<real,dim,2*dim>             &/*metric_oper*/,
     OPERATOR::mapping_shape_functions<dim,2*dim>           &/*mapping_basis*/,
     std::array<std::vector<real>,dim>                      &/*mapping_support_points*/,
@@ -4350,6 +4352,8 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_boundary_term_and_build_operator
     OPERATOR::basis_functions<dim,2*dim>                   &/*soln_basis*/,
     OPERATOR::basis_functions<dim,2*dim>                   &/*flux_basis*/,
     OPERATOR::local_basis_stiffness<dim,2*dim>             &/*flux_basis_stiffness*/,
+    OPERATOR::vol_projection_operator<dim,2*dim>           &/*soln_basis_projection_oper_int*/,
+    OPERATOR::vol_projection_operator<dim,2*dim>           &/*soln_basis_projection_oper_ext*/,
     OPERATOR::metric_operators<real,dim,2*dim>             &/*metric_oper*/,
     OPERATOR::mapping_shape_functions<dim,2*dim>           &/*mapping_basis*/,
     std::array<std::vector<real>,dim>                      &/*mapping_support_points*/,
@@ -4399,6 +4403,8 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_face_term_and_build_operators(
     OPERATOR::basis_functions<dim,2*dim>                   &/*flux_basis_int*/,
     OPERATOR::basis_functions<dim,2*dim>                   &/*flux_basis_ext*/,
     OPERATOR::local_basis_stiffness<dim,2*dim>             &/*flux_basis_stiffness*/,
+    OPERATOR::vol_projection_operator<dim,2*dim>           &/*soln_basis_projection_oper_int*/,
+    OPERATOR::vol_projection_operator<dim,2*dim>           &/*soln_basis_projection_oper_ext*/,
     OPERATOR::metric_operators<real,dim,2*dim>             &/*metric_oper_int*/,
     OPERATOR::metric_operators<real,dim,2*dim>             &/*metric_oper_ext*/,
     OPERATOR::mapping_shape_functions<dim,2*dim>           &/*mapping_basis*/,
@@ -4490,6 +4496,8 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_subface_term_and_build_operators
     OPERATOR::basis_functions<dim,2*dim>                   &/*flux_basis_int*/,
     OPERATOR::basis_functions<dim,2*dim>                   &/*flux_basis_ext*/,
     OPERATOR::local_basis_stiffness<dim,2*dim>             &/*flux_basis_stiffness*/,
+    OPERATOR::vol_projection_operator<dim,2*dim>           &/*soln_basis_projection_oper_int*/,
+    OPERATOR::vol_projection_operator<dim,2*dim>           &/*soln_basis_projection_oper_ext*/,
     OPERATOR::metric_operators<real,dim,2*dim>             &/*metric_oper_int*/,
     OPERATOR::metric_operators<real,dim,2*dim>             &/*metric_oper_ext*/,
     OPERATOR::mapping_shape_functions<dim,2*dim>           &/*mapping_basis*/,
@@ -4564,6 +4572,12 @@ template <int dim, int nstate, typename real, typename MeshType>
 void DGWeak<dim,nstate,real,MeshType>::assemble_auxiliary_residual ()
 {
     //Do Nothing.
+}
+
+template <int dim, int nstate, typename real, typename MeshType>
+void DGWeak<dim,nstate,real,MeshType>::allocate_dual_vector ()
+{
+    this->dual.reinit(this->locally_owned_dofs, this->ghost_dofs, this->mpi_communicator);
 }
 
 // using default MeshType = Triangulation

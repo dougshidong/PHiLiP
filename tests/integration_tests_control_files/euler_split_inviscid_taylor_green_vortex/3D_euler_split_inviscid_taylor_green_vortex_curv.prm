@@ -10,7 +10,7 @@ set flux_nodes_type = GL
 
 set do_renumber_dofs = false
 
-set overintegration = 0
+set overintegration = 2
 
 set use_split_form = true
 
@@ -20,7 +20,7 @@ set use_curvilinear_split_form = true
 
 set energy_file = cplus_curv_not_weight_adj
 
-set use_curvilinear_grid = false
+set use_curvilinear_grid = true
 
 # The PDE we want to solve
 set pde_type = euler

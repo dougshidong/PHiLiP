@@ -558,10 +558,10 @@ dealii::Tensor<2,dim,real2> ReynoldsAveragedNavierStokes_SAneg<dim,nstate,real>
 template <int dim, int nstate, typename real>
 std::array<real,nstate> ReynoldsAveragedNavierStokes_SAneg<dim,nstate,real>
 ::compute_production_dissipation_cross_term (
-    const dealii::Point<dim,real> &pos,
+    const dealii::Point<dim,real> &/*pos*/,
     const std::array<real,nstate> &conservative_soln,
     const std::array<dealii::Tensor<1,dim,real>,nstate> &soln_gradient,
-    const real /*post_processed_scalar*/) const
+    const real post_processed_scalar) const
 {
 
     const std::array<real,nstate_navier_stokes> conservative_soln_rans = this->extract_rans_conservative_solution(conservative_soln);
@@ -569,7 +569,6 @@ std::array<real,nstate> ReynoldsAveragedNavierStokes_SAneg<dim,nstate,real>
     const std::array<real,nstate_navier_stokes> primitive_soln_rans = this->navier_stokes_physics->convert_conservative_to_primitive(conservative_soln_rans); // from Euler
     const std::array<dealii::Tensor<1,dim,real>,nstate_navier_stokes> primitive_soln_gradient_rans = this->navier_stokes_physics->convert_conservative_gradient_to_primitive_gradient(conservative_soln_rans, conservative_soln_gradient_rans);
     const std::array<dealii::Tensor<1,dim,real>,nstate_turbulence_model> primitive_soln_gradient_turbulence_model = this->convert_conservative_gradient_to_primitive_gradient_turbulence_model(conservative_soln, soln_gradient);
-
 
     const real density = conservative_soln_rans[0];
     const real nu_tilde = conservative_soln[nstate_navier_stokes]/conservative_soln_rans[0];
@@ -579,13 +578,13 @@ std::array<real,nstate> ReynoldsAveragedNavierStokes_SAneg<dim,nstate,real>
     const real coefficient_Chi = compute_coefficient_Chi(nu_tilde,laminar_kinematic_viscosity);
     const real coefficient_f_t2 = compute_coefficient_f_t2(coefficient_Chi); 
 
-    //const real d_wall = post_processed_scalar;
-    real d_wall;
-    if(pos[0]>=0){
-        d_wall = pos[1];
-    }else{
-        d_wall = sqrt(pos[0]*pos[0]+pos[1]*pos[1]);
-    }
+    const real d_wall = post_processed_scalar;
+    //real d_wall;
+    //if(pos[0]>=0){
+    //    d_wall = pos[1];
+    //}else{
+    //    d_wall = sqrt(pos[0]*pos[0]+pos[1]*pos[1]);
+    //}
 
     const real s = compute_s(conservative_soln_rans, conservative_soln_gradient_rans);
     const real s_tilde = compute_s_tilde(coefficient_Chi, nu_tilde, d_wall, s);

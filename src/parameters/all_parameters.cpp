@@ -294,6 +294,8 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
     Parameters::FunctionalParam::declare_parameters (prm);
     Parameters::TimeRefinementStudyParam::declare_parameters (prm);
     Parameters::PPoissonParam::declare_parameters (prm);
+    Parameters::BoundaryLayerExtractionParam::declare_parameters (prm);
+    Parameters::AmietParam::declare_parameters (prm);
 
     pcout << "Done declaring inputs." << std::endl;
 }
@@ -508,6 +510,12 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
 
     pcout << "Parsing p-Poisson subsection..." << std::endl;
     p_poisson_param.parse_parameters (prm);
+
+    pcout << "Parsing boundary layer extraction subsection..." << std::endl;
+    boundary_layer_extraction_param.parse_parameters (prm);
+
+    pcout << "Parsing amiet model subsection..." << std::endl;
+    amiet_param.parse_parameters (prm);
     
     pcout << "Done parsing." << std::endl;
 }

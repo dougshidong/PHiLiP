@@ -17,6 +17,8 @@ set(SOURCE
     parameters_burgers.cpp
     parameters_time_refinement_study.cpp
     parameters_p_poisson.cpp
+    parameters_boundary_layer_extraction.cpp
+    parameters_amiet_model.cpp
     all_parameters.cpp)
 
 # Output library

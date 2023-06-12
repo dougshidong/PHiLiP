@@ -270,11 +270,11 @@ protected:
         const unsigned int face_number,
         const dealii::Quadrature<dim-1> &face_quadrature) const;
 
-    /// Function to evaluate a straight line integral.
-    virtual real evaluate_straight_line_integral(
-        const dealii::Point<dim,real> &/*start_point*/,
-        const dealii::Point<dim,real> &/*end_point*/) const
-    { return (real) 0.0; }
+    ///// Function to evaluate a straight line integral.
+    //virtual real evaluate_straight_line_integral(
+    //    const dealii::Point<dim,real> &/*start_point*/,
+    //    const dealii::Point<dim,real> &/*end_point*/) const
+    //{ return (real) 0.0; }
 
     /// Virtual function for computation of cell volume functional term
     /** Used only in the computation of evaluate_function(). If not overriden returns 0. */
@@ -315,13 +315,13 @@ protected:
         const std::array<dealii::Tensor<1,dim,FadFadType>,nstate> &/*soln_grad_at_q*/) const
     { return (FadFadType) 0.0; }
 
-    /// Virtual function for computation of line functional term
-    /** Used only in the computation of evaluate_straight_line_integral(). If not overriden returns 0. */
-    virtual real evaluate_straight_line_integrand(
-        const dealii::Tensor<1,dim,real> &/*normal*/,
-        const std::array<real,nstate> &/*soln_at_q*/,
-        const std::array<dealii::Tensor<1,dim,real>,nstate> &/*soln_grad_at_q*/) const
-    { return (real) 0.0; }
+    ///// Virtual function for computation of line functional term
+    ///** Used only in the computation of evaluate_straight_line_integral(). If not overriden returns 0. */
+    //virtual real evaluate_straight_line_integrand(
+    //    const dealii::Tensor<1,dim,real> &/*normal*/,
+    //    const std::array<real,nstate> &/*soln_at_q*/,
+    //    const std::array<dealii::Tensor<1,dim,real>,nstate> &/*soln_grad_at_q*/) const
+    //{ return (real) 0.0; }
 
 protected:
     /// Update flags needed at volume points.

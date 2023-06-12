@@ -6,6 +6,8 @@ SET(SOURCE
     lift_drag.cpp
     target_wall_pressure.cpp
     extraction_functional.cpp
+    amiet_model.cpp
+    Faddeeva.cc
     )
 
 foreach(dim RANGE 1 3)

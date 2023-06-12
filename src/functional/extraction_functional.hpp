@@ -29,45 +29,56 @@ private:
      */
     using Functional<dim,nstate,real,MeshType>::evaluate_volume_integrand;
 
-    /// @brief Switches between displacement and momentum thickness.
-    Functional_types functional_type;
-
+    /// @brief Extraction start point on solid boundary surface.
     const dealii::Point<dim,real> start_point;
 
+    /// @brief Normal vector (points into fluid domain) on the solid boundary surface at extraction start point.
     dealii::Tensor<1,dim,real> start_point_normal_vector;
 
+    /// @brief Tangential vector (points to flow direction) on the solid boundary surface at extraction start point. 
     dealii::Tensor<1,dim,real> start_point_tangential_vector;
 
+    /// @brief Interpolated solutions at extraction start point.
     std::array<real,nstate> soln_at_start_point;
 
+    /// @brief Interpolated solution gradients at extraction start point.
     std::array<dealii::Tensor<1,dim,real>,nstate> soln_grad_at_start_point;
 
+    /// @brief Extraction end point. 
     dealii::Point<dim,real> end_point;
 
+    /// @brief Interpolated solutions at extraction end point.
     std::array<real,nstate> soln_at_end_point;
 
+    /// @brief Interpolated solution gradients at extraction end point.
     std::array<dealii::Tensor<1,dim,real>,nstate> soln_grad_at_end_point;
 
+    /// @brief Number of sampling points over the extraction line.
     const int number_of_sampling;
 
+    /// @brief Coordinate of sampling points over extraction line.
     std::vector<dealii::Point<dim,real>> coord_of_sampling;
 
+    /// @brief Interpolated solutions at each sampling points over extraction line.
     std::vector<std::array<real,nstate>> soln_of_sampling;
 
+    /// @brief Interpolated solution gradients at each sampling points over extraction line.
     std::vector<std::array<dealii::Tensor<1,dim,real>,nstate>> soln_grad_of_sampling;
 
+    /// @brief Length of extraction line 
     real length_of_sampling;
 
+public:
+    /// @brief Converged speed of free-stream flow over extraction line.
     real U_inf;
 
+    /// @brief Converged density of free-stream flow over extraction line.
     real density_inf;
 
-    /// @brief Casts DG's physics into an Euler physics reference.
-    //const Physics::Euler<dim,dim+2,FadFadType> &euler_fad_fad;
-
+    /// @brief Navier-Stokes physics reference.
     const Physics::NavierStokes<dim,dim+2,real> &navier_stokes_real;
-    //std::shared_ptr< Physics::PhysicsBase<dim,dim+2,real> > navier_stokes_real;
 
+    /// @brief Reynolds-averaged Navier-Stokes negative SA model pointer.
     std::shared_ptr <Physics::ReynoldsAveragedNavierStokes_SAneg<dim,dim+3,real>> rans_sa_neg_real;
 
 public:
@@ -82,44 +93,60 @@ public:
     real evaluate_functional( const bool compute_dIdW = false, const bool compute_dIdX = false, const bool compute_d2I = false) override;
 
 public:
+    /// Function to interpolate solutions and solution gradients on sampling points over extraction line.
     void evaluate_straight_line_sampling_point_soln();
 
+    /// Function to interpolate solutions and solution gradients on extraction start and end points.
     void evaluate_start_end_point_soln();
 
-    /// Function to evaluate a straight line integral.
+    /// Function to evaluate straight line integral.
     real evaluate_straight_line_integral(
+        const Functional_types &functional_type,
         const dealii::Point<dim,real> &start_point,
-        const dealii::Point<dim,real> &end_point) const override;
+        const dealii::Point<dim,real> &end_point) const;
 
-    /// Function for computation of line functional term
-    /** Used only in the computation of evaluate_straight_line_integral(). If not overriden returns 0. */
+    /// Function to evaluate integrand of straight line integral.
     real evaluate_straight_line_integrand(
+        const Functional_types &functional_type,
         const dealii::Tensor<1,dim,real> &normal,
         const std::array<real,nstate> &soln_at_q,
-        const std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_at_q) const override;
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_at_q) const;
 
+    /// Function to evaluate integrand for displacement thickness.
     real evaluate_displacement_thickness_integrand(
         const dealii::Tensor<1,dim,real> &normal,
-        const std::array<real,nstate> &soln_at_q,
-        const std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_at_q) const;
+        const std::array<real,nstate> &soln_at_q) const;
 
+    /// Function to evaluate integrand for momentum thickness.
     real evaluate_momentum_thickness_integrand(
         const dealii::Tensor<1,dim,real> &normal,
-        const std::array<real,nstate> &soln_at_q,
-        const std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_at_q) const;
+        const std::array<real,nstate> &soln_at_q) const;
 
-    real evaluate_displacement_thickness();
+    /// Function to evaluate displacement thickness.
+    real evaluate_displacement_thickness() const;
 
-    real evaluate_momentum_thickness();
+    /// Function to evaluate momentum thickness.
+    real evaluate_momentum_thickness() const;
 
-    real evaluate_edge_velocity();
+    /// Function to evaluate edge velocity of boundary layer.
+    real evaluate_edge_velocity() const;
 
-    real evaluate_wall_shear_stress();
+    /// Function to evaluate wall shear stress at extraction location.
+    real evaluate_wall_shear_stress() const;
 
-    real evaluate_friction_velocity();
+    /// Function to evaluate maximum shear stress over extraction line.
+    real evaluate_maximum_shear_stress() const;
 
-    real evaluate_boundary_layer_thickness();
+    /// Function to evaluate friction velocity at extraction location.
+    real evaluate_friction_velocity() const;
 
+    /// Function to evaluate boundary layer thickness at extraction location.
+    real evaluate_boundary_layer_thickness() const;
+
+    /// Function to evaluate pressure gradient over tangential direction on solid body at extraction location.
+    real evaluate_pressure_gradient_tangential() const;
+
+    /// Function to evaluate converged free-stream values, i.e. free-stream velocity and density, over extraction line.
     void evaluate_converged_free_stream_value();
 };
 

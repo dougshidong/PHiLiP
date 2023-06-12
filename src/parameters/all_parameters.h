@@ -23,6 +23,8 @@
 #include "parameters/parameters_functional.h"
 #include "parameters/parameters_time_refinement_study.h"
 #include "parameters/parameters_p_poisson.h"
+#include "parameters/parameters_boundary_layer_extraction.h"
+#include "parameters/parameters_amiet_model.h"
 
 namespace PHiLiP {
 namespace Parameters {
@@ -62,8 +64,12 @@ public:
     FunctionalParam functional_param;
     /// Contains the parameters for time refinement study
     TimeRefinementStudyParam time_refinement_study_param;
-    /// Contains parameters for the p-Poisson equations
+    /// Contains parameters for p-Poisson equations
     PPoissonParam p_poisson_param;
+    /// Contains parameters for boundary layer extraction
+    BoundaryLayerExtractionParam boundary_layer_extraction_param;
+    /// Contains parameters for Amiet's model
+    AmietParam amiet_param;
 
     /// Number of dimensions. Note that it has to match the executable PHiLiP_xD
     unsigned int dimension;

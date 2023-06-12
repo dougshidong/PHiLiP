@@ -7,6 +7,7 @@
 #include <deal.II/grid/grid_tools.h>
 #include "mesh/grids/naca_airfoil_grid.hpp"
 #include "functional/extraction_functional.hpp"
+#include "functional/amiet_model.hpp"
 
 namespace PHiLiP {
 
@@ -74,43 +75,52 @@ void FlatPlate2D<dim,nstate>::display_additional_flow_case_specific_parameters()
 template <int dim, int nstate>
 void FlatPlate2D<dim,nstate>::steady_state_postprocessing(std::shared_ptr<DGBase<dim, double>> dg) const
 {
-    std::cout << "in the steady_state_postprocessing" << std::endl;
     if constexpr(nstate!=1){
-        std::cout << "pin 1" << std::endl;
         dealii::Point<dim,double> extraction_point;
-        if constexpr(dim>1){
-            extraction_point[0] = 1.0;
-            extraction_point[1] = 0.0;
+        if constexpr(dim==2){
+            extraction_point[0] = this->all_param.boundary_layer_extraction_param.extraction_point_x;
+            extraction_point[1] = this->all_param.boundary_layer_extraction_param.extraction_point_y;
+        } else if constexpr(dim==3){
+            extraction_point[0] = this->all_param.boundary_layer_extraction_param.extraction_point_x;
+            extraction_point[1] = this->all_param.boundary_layer_extraction_param.extraction_point_y;
+            extraction_point[2] = this->all_param.boundary_layer_extraction_param.extraction_point_z;
         }
-        int number_of_sampling = 10;
+        int number_of_sampling = this->all_param.boundary_layer_extraction_param.number_of_sampling;
     
-        std::cout << "pin 2" << std::endl;
         ExtractionFunctional<dim,nstate,double,Triangulation> boundary_layer_extraction(dg, extraction_point, number_of_sampling);
-        std::cout << "pin 3" << std::endl;
-        double displacement_thickness = boundary_layer_extraction.evaluate_displacement_thickness();
-        std::cout << "pin 4" << std::endl;
-        double momentum_thickness = boundary_layer_extraction.evaluate_momentum_thickness();
-        std::cout << "pin 5" << std::endl;
-        double edge_velocity = boundary_layer_extraction.evaluate_edge_velocity();
-        std::cout << "pin 6" << std::endl;
-        double wall_shear_stress = boundary_layer_extraction.evaluate_wall_shear_stress();
-        std::cout << "pin 7" << std::endl;
-        double friction_velocity = boundary_layer_extraction.evaluate_friction_velocity();
-        std::cout << "pin 8" << std::endl;
-        double boundary_layer_thickness = boundary_layer_extraction.evaluate_boundary_layer_thickness();
-        std::cout << "pin 9" << std::endl;
+
+        const double displacement_thickness = boundary_layer_extraction.evaluate_displacement_thickness();
+
+        const double momentum_thickness = boundary_layer_extraction.evaluate_momentum_thickness();
+
+        const double edge_velocity = boundary_layer_extraction.evaluate_edge_velocity();
+
+        const double wall_shear_stress = boundary_layer_extraction.evaluate_wall_shear_stress();
+
+        const double maximum_shear_stress = boundary_layer_extraction.evaluate_maximum_shear_stress();
+
+        const double friction_velocity = boundary_layer_extraction.evaluate_friction_velocity();
+
+        const double boundary_layer_thickness = boundary_layer_extraction.evaluate_boundary_layer_thickness();
     
         this->pcout << " Extracted displacement_thickness : "   << displacement_thickness   << std::endl;
         this->pcout << " Extracted momentum_thickness : "       << momentum_thickness       << std::endl;
         this->pcout << " Extracted edge_velocity : "            << edge_velocity            << std::endl;
         this->pcout << " Extracted wall_shear_stress : "        << wall_shear_stress        << std::endl;
+        this->pcout << " Extracted maximum_shear_stress : "     << maximum_shear_stress     << std::endl;
         this->pcout << " Extracted friction_velocity : "        << friction_velocity        << std::endl;
         this->pcout << " Extracted boundary_layer_thickness : " << boundary_layer_thickness << std::endl;
-    
-        std::cout << "finish the steady_state_postprocessing" << std::endl;
-    }
 
-    (void) dg;
+        dealii::Point<3,double> observer_coord_ref;
+        observer_coord_ref[0] = this->all_param.amiet_param.observer_coord_ref_x;
+        observer_coord_ref[1] = this->all_param.amiet_param.observer_coord_ref_y;
+        observer_coord_ref[2] = this->all_param.amiet_param.observer_coord_ref_z;
+
+        AmietModelFunctional<dim,nstate,double,Triangulation> amiet_acoustic_response(dg,boundary_layer_extraction,observer_coord_ref);
+        amiet_acoustic_response.evaluate_wall_pressure_acoustic_spectrum();
+        amiet_acoustic_response.output_wall_pressure_acoustic_spectrum_dat();
+
+    }
 }
 
 

@@ -27,7 +27,8 @@ public:
         gaussian_bump,
         sshock,
         wall_distance_evaluation,
-        flat_plate_2D
+        flat_plate_2D,
+        airfoil_2D
         };
     FlowCaseType flow_case_type; ///< Selected FlowCaseType from the input file
 
@@ -82,6 +83,18 @@ public:
     int number_of_subdivisions_in_x_direction; ///< Number of subdivisions in x direction for gaussian bump case
     int number_of_subdivisions_in_y_direction; ///< Number of subdivisions in y direction for gaussian bump/flat plate case
     int number_of_subdivisions_in_z_direction; ///< Number of subdivisions in z direction for gaussian bump/flat plate case
+
+    double airfoil_length;
+    double height;
+    double length_b2;
+    double incline_factor;
+    double bias_factor;
+    unsigned int refinements;
+    unsigned int n_subdivision_x_0;
+    unsigned int n_subdivision_x_1;
+    unsigned int n_subdivision_x_2;
+    unsigned int n_subdivision_y;
+    unsigned int airfoil_sampling_factor;
 
     /** For taylor green vortex integration tests, expected kinetic energy at final time. */
     double expected_kinetic_energy_at_final_time;

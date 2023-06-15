@@ -26,7 +26,8 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                           " gaussian_bump | "
                           " sshock | "
                           " wall_distance_evaluation | "
-                          " flat_plate_2D"),
+                          " flat_plate_2D | "
+                          " airfoil_2D"),
                           "The type of flow we want to simulate. "
                           "Choices are "
                           " <taylor_green_vortex | "
@@ -40,7 +41,8 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                           " gaussian_bump | "
                           " sshock | "
                           " wall_distance_evaluation | "
-                          " flat_plate_2D>. ");
+                          " flat_plate_2D | "
+                          " airfoil_2D>. ");
 
         prm.declare_entry("poly_degree", "1",
                           dealii::Patterns::Integer(0, dealii::Patterns::Integer::max_int_value),
@@ -209,6 +211,54 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                                   "Number of subdivisions in the z direction for flat plate meshes.");
             }
             prm.leave_subsection();
+
+            prm.enter_subsection("airfoil_2D");
+            {
+                prm.declare_entry("airfoil_length", "1.0",
+                                  dealii::Patterns::Double(0, dealii::Patterns::Double::max_double_value),
+                                  "Lenght of airfoil.");
+
+                prm.declare_entry("height", "2.0",
+                                  dealii::Patterns::Double(0, dealii::Patterns::Double::max_double_value),
+                                  "Height of area surround airfoil.");
+
+                prm.declare_entry("length_b2", "2.0", 
+                                  dealii::Patterns::Double(0, dealii::Patterns::Double::max_double_value),
+                                  "Lenght between trailing edge and outlet farfield.");
+
+                prm.declare_entry("incline_factor", "0.0", 
+                                  dealii::Patterns::Double(0, dealii::Patterns::Double::max_double_value),
+                                  "Inclination factor.");
+
+                prm.declare_entry("bias_factor", "1.0", 
+                                  dealii::Patterns::Double(0, dealii::Patterns::Double::max_double_value),
+                                  "Bias factor.");
+
+                prm.declare_entry("refinements", "0", 
+                                  dealii::Patterns::Integer(0, dealii::Patterns::Integer::max_int_value),
+                                  "Number of global refinements.");
+
+                prm.declare_entry("n_subdivision_x_0", "30", 
+                                  dealii::Patterns::Integer(0, dealii::Patterns::Integer::max_int_value),
+                                  "Number of subdivisions along the airfoil in left block.");
+
+                prm.declare_entry("n_subdivision_x_1", "10",
+                                  dealii::Patterns::Integer(0, dealii::Patterns::Integer::max_int_value),
+                                  "Number of subdivisions along the airfoil in middle block.");
+
+                prm.declare_entry("n_subdivision_x_2", "30",
+                                  dealii::Patterns::Integer(0, dealii::Patterns::Integer::max_int_value),
+                                  "Number of subdivisions along the airfoil in right block.");
+
+                prm.declare_entry("n_subdivision_y", "20",
+                                  dealii::Patterns::Integer(0, dealii::Patterns::Integer::max_int_value),
+                                  "Number of subdivisions normal to the airfoil contour.");
+
+                prm.declare_entry("airfoil_sampling_factor", "3",
+                                  dealii::Patterns::Integer(0, dealii::Patterns::Integer::max_int_value),
+                                  "Airfoil sampling factor.");
+            }
+            prm.leave_subsection();
         }
         prm.leave_subsection();
 
@@ -262,6 +312,7 @@ void FlowSolverParam::parse_parameters(dealii::ParameterHandler &prm)
         else if (flow_case_type_string == "sshock")                     {flow_case_type = sshock;}
         else if (flow_case_type_string == "wall_distance_evaluation")   {flow_case_type = wall_distance_evaluation;}
         else if (flow_case_type_string == "flat_plate_2D")              {flow_case_type = flat_plate_2D;}
+        else if (flow_case_type_string == "airfoil_2D")                 {flow_case_type = airfoil_2D;}
 
         poly_degree = prm.get_integer("poly_degree");
         
@@ -318,6 +369,22 @@ void FlowSolverParam::parse_parameters(dealii::ParameterHandler &prm)
                 skewness_x_plate = prm.get_double("skewness_x_plate");
                 skewness_y = prm.get_double("skewness_y");
                 skewness_z = prm.get_double("skewness_z");
+            }
+            prm.leave_subsection();
+
+            prm.enter_subsection("airfoil_2D");
+            {
+                airfoil_length = prm.get_double("airfoil_length");
+                height = prm.get_double("height");
+                length_b2 = prm.get_double("length_b2");
+                incline_factor = prm.get_double("incline_factor");
+                bias_factor = prm.get_double("bias_factor");
+                refinements = prm.get_integer("refinements");
+                n_subdivision_x_0 = prm.get_integer("n_subdivision_x_0");
+                n_subdivision_x_1 = prm.get_integer("n_subdivision_x_1");
+                n_subdivision_x_2 = prm.get_integer("n_subdivision_x_2");
+                n_subdivision_y = prm.get_integer("n_subdivision_y");
+                airfoil_sampling_factor = prm.get_integer("airfoil_sampling_factor");
             }
             prm.leave_subsection();
         }       

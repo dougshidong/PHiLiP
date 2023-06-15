@@ -12,6 +12,7 @@
 #include "flow_solver_cases/non_periodic_cube_flow.h"
 #include "flow_solver_cases/wall_cube.h"
 #include "flow_solver_cases/flat_plate_2D.h"
+#include "flow_solver_cases/airfoil_2D.h"
 
 namespace PHiLiP {
 
@@ -81,6 +82,17 @@ FlowSolverFactory<dim,nstate,sub_nstate>
             std::shared_ptr<FlowSolverCaseBase<dim, nstate>> flow_solver_case = std::make_shared<FlatPlate2D<dim, nstate>>(parameters_input);
             return std::make_unique<FlowSolver<dim, nstate,1>>(parameters_input, flow_solver_case, parameter_handler_input);
         }
+    } else if (flow_type == FlowCaseEnum::airfoil_2D){
+        if constexpr (dim==2 && nstate==1){
+            std::shared_ptr<FlowSolverCaseBase<dim, nstate>> flow_solver_case = std::make_shared<Airfoil2D<dim, nstate>>(parameters_input);
+            return std::make_unique<FlowSolver<dim, nstate,1>>(parameters_input, flow_solver_case, parameter_handler_input);
+        } else if constexpr (dim==2 && nstate==dim+2){
+            std::shared_ptr<FlowSolverCaseBase<dim, nstate>> flow_solver_case = std::make_shared<Airfoil2D<dim, nstate>>(parameters_input);
+            return std::make_unique<FlowSolver<dim, nstate,1>>(parameters_input, flow_solver_case, parameter_handler_input);
+        } else if constexpr (dim==2 && nstate==dim+3){
+            std::shared_ptr<FlowSolverCaseBase<dim, nstate>> flow_solver_case = std::make_shared<Airfoil2D<dim, nstate>>(parameters_input);
+            return std::make_unique<FlowSolver<dim, nstate,1>>(parameters_input, flow_solver_case, parameter_handler_input);
+        }
     } else {
         std::cout << "Invalid flow case in a single parameters inputs. You probably forgot to add it to the list of flow cases in flow_solver.cpp" << std::endl;
         std::abort();
@@ -103,6 +115,25 @@ FlowSolverFactory<dim,nstate,sub_nstate>
                 if (sub_nstate==1){
                     std::shared_ptr<FlowSolverCaseBase<dim, nstate>> flow_solver_case = std::make_shared<FlatPlate2D<dim, nstate>>(parameters_input[0]);
                     std::shared_ptr<FlowSolverCaseBase<dim, sub_nstate>> sub_flow_solver_case = std::make_shared<FlatPlate2D<dim, sub_nstate>>(parameters_input[1]);
+                    return std::make_unique<FlowSolver<dim, nstate, sub_nstate>>(parameters_input, flow_solver_case, sub_flow_solver_case, parameter_handler_input);
+                }else{
+                    std::cout << "Invalid nstate for wall distance sub model." << std::endl;
+                    std::cout << "Only p-Poisson wall distance model is supported for RANS." << std::endl;
+                    std::cout << "Aborting..." << std::endl;
+                    std::abort();
+                }
+            } else {
+                std::cout << "Wall distance sub model is required for RANS calculation." << std::endl;
+                std::cout << "Aborting..." << std::endl;
+                std::abort();
+            }
+        }
+    } else if (flow_type == FlowCaseEnum::airfoil_2D){
+        if constexpr (dim==2 && nstate==dim+3){
+            if (parameters_input.size()==2){
+                if (sub_nstate==1){
+                    std::shared_ptr<FlowSolverCaseBase<dim, nstate>> flow_solver_case = std::make_shared<Airfoil2D<dim, nstate>>(parameters_input[0]);
+                    std::shared_ptr<FlowSolverCaseBase<dim, sub_nstate>> sub_flow_solver_case = std::make_shared<Airfoil2D<dim, sub_nstate>>(parameters_input[1]);
                     return std::make_unique<FlowSolver<dim, nstate, sub_nstate>>(parameters_input, flow_solver_case, sub_flow_solver_case, parameter_handler_input);
                 }else{
                     std::cout << "Invalid nstate for wall distance sub model." << std::endl;

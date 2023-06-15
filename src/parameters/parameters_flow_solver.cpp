@@ -28,7 +28,11 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                           " channel_flow | "
                           " isentropic_vortex | "
                           " kelvin_helmholtz_instability | "
-                          " non_periodic_cube_flow "),
+                          " non_periodic_cube_flow | "
+                          " sshock | "
+                          " wall_distance_evaluation | "
+                          " flat_plate_2D | "
+                          " airfoil_2D"),
                           "The type of flow we want to simulate. "
                           "Choices are "
                           " <taylor_green_vortex | "
@@ -44,7 +48,11 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                           " channel_flow | "
                           " isentropic_vortex | "
                           " kelvin_helmholtz_instability | "
-                          " non_periodic_cube_flow>. ");
+                          " non_periodic_cube_flow>. | "
+                          " sshock | "
+                          " wall_distance_evaluation | "
+                          " flat_plate_2D | "
+                          " airfoil_2D>. ");
 
         prm.declare_entry("poly_degree", "1",
                           dealii::Patterns::Integer(0, dealii::Patterns::Integer::max_int_value),
@@ -163,6 +171,102 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                 prm.declare_entry("number_of_subdivisions_in_z_direction", "0",
                                   dealii::Patterns::Integer(0, dealii::Patterns::Integer::max_int_value),
                                   "Number of subdivisions in the z direction for gaussian bump meshes.");
+            }
+            prm.leave_subsection();
+
+            prm.enter_subsection("flat_plate_2D");
+            {
+                prm.declare_entry("free_length", "0.5",
+                                  dealii::Patterns::Double(0, dealii::Patterns::Double::max_double_value),
+                                  "Lenght of free area upwind to the flat plate.");
+
+                prm.declare_entry("free_height", "1.0",
+                                  dealii::Patterns::Double(0, dealii::Patterns::Double::max_double_value),
+                                  "Height of free area above of the flat plate.");
+
+                prm.declare_entry("plate_length", "2.0", 
+                                  dealii::Patterns::Double(0, dealii::Patterns::Double::max_double_value),
+                                  "Lenght of the flat plate.");
+
+                prm.declare_entry("skewness_x_free", "1.0", 
+                                  dealii::Patterns::Double(0, dealii::Patterns::Double::max_double_value),
+                                  "Skewness of the meshes in the x direction.");
+
+                prm.declare_entry("skewness_x_plate", "1.0", 
+                                  dealii::Patterns::Double(0, dealii::Patterns::Double::max_double_value),
+                                  "Skewness of the meshes in the x direction.");
+
+                prm.declare_entry("skewness_y", "1.0", 
+                                  dealii::Patterns::Double(0, dealii::Patterns::Double::max_double_value),
+                                  "Skewness of the meshes in the y direction.");
+
+                prm.declare_entry("skewness_z", "1.0", 
+                                  dealii::Patterns::Double(0, dealii::Patterns::Double::max_double_value),
+                                  "Skewness of the meshes in the z direction.");
+
+                prm.declare_entry("number_of_subdivisions_in_x_direction_free", "0",
+                                  dealii::Patterns::Integer(0, dealii::Patterns::Integer::max_int_value),
+                                  "Number of subdivisions in the x direction of free area for flat plate meshes.");
+
+                prm.declare_entry("number_of_subdivisions_in_x_direction_plate", "0",
+                                  dealii::Patterns::Integer(0, dealii::Patterns::Integer::max_int_value),
+                                  "Number of subdivisions in the x direction of plate area for flat plate meshes.");
+
+                prm.declare_entry("number_of_subdivisions_in_y_direction", "0",
+                                  dealii::Patterns::Integer(0, dealii::Patterns::Integer::max_int_value),
+                                  "Number of subdivisions in the y direction for flat plate meshes.");
+
+                prm.declare_entry("number_of_subdivisions_in_z_direction", "0",
+                                  dealii::Patterns::Integer(0, dealii::Patterns::Integer::max_int_value),
+                                  "Number of subdivisions in the z direction for flat plate meshes.");
+            }
+            prm.leave_subsection();
+
+            prm.enter_subsection("airfoil_2D");
+            {
+                prm.declare_entry("airfoil_length", "1.0",
+                                  dealii::Patterns::Double(0, dealii::Patterns::Double::max_double_value),
+                                  "Lenght of airfoil.");
+
+                prm.declare_entry("height", "2.0",
+                                  dealii::Patterns::Double(0, dealii::Patterns::Double::max_double_value),
+                                  "Height of area surround airfoil.");
+
+                prm.declare_entry("length_b2", "2.0", 
+                                  dealii::Patterns::Double(0, dealii::Patterns::Double::max_double_value),
+                                  "Lenght between trailing edge and outlet farfield.");
+
+                prm.declare_entry("incline_factor", "0.0", 
+                                  dealii::Patterns::Double(0, dealii::Patterns::Double::max_double_value),
+                                  "Inclination factor.");
+
+                prm.declare_entry("bias_factor", "1.0", 
+                                  dealii::Patterns::Double(0, dealii::Patterns::Double::max_double_value),
+                                  "Bias factor.");
+
+                prm.declare_entry("refinements", "0", 
+                                  dealii::Patterns::Integer(0, dealii::Patterns::Integer::max_int_value),
+                                  "Number of global refinements.");
+
+                prm.declare_entry("n_subdivision_x_0", "30", 
+                                  dealii::Patterns::Integer(0, dealii::Patterns::Integer::max_int_value),
+                                  "Number of subdivisions along the airfoil in left block.");
+
+                prm.declare_entry("n_subdivision_x_1", "10",
+                                  dealii::Patterns::Integer(0, dealii::Patterns::Integer::max_int_value),
+                                  "Number of subdivisions along the airfoil in middle block.");
+
+                prm.declare_entry("n_subdivision_x_2", "30",
+                                  dealii::Patterns::Integer(0, dealii::Patterns::Integer::max_int_value),
+                                  "Number of subdivisions along the airfoil in right block.");
+
+                prm.declare_entry("n_subdivision_y", "20",
+                                  dealii::Patterns::Integer(0, dealii::Patterns::Integer::max_int_value),
+                                  "Number of subdivisions normal to the airfoil contour.");
+
+                prm.declare_entry("airfoil_sampling_factor", "3",
+                                  dealii::Patterns::Integer(0, dealii::Patterns::Integer::max_int_value),
+                                  "Airfoil sampling factor.");
             }
             prm.leave_subsection();
         }
@@ -332,6 +436,10 @@ void FlowSolverParam::parse_parameters(dealii::ParameterHandler &prm)
         else if (flow_case_type_string == "kelvin_helmholtz_instability")   
                                                                         {flow_case_type = kelvin_helmholtz_instability;}
         else if (flow_case_type_string == "non_periodic_cube_flow")     {flow_case_type = non_periodic_cube_flow;}
+        else if (flow_case_type_string == "sshock")                     {flow_case_type = sshock;}
+        else if (flow_case_type_string == "wall_distance_evaluation")   {flow_case_type = wall_distance_evaluation;}
+        else if (flow_case_type_string == "flat_plate_2D")              {flow_case_type = flat_plate_2D;}
+        else if (flow_case_type_string == "airfoil_2D")                 {flow_case_type = airfoil_2D;}
 
         poly_degree = prm.get_integer("poly_degree");
         

@@ -24,15 +24,11 @@ AmietModelFunctional<dim,nstate,real,MeshType>
     , numb_of_omega((omega_max-omega_min)/d_omega)
     , observer_coord_ref(observer_coord_ref_input)
     , R_specific(this->dg->all_parameters->amiet_param.R_specific)
-    //, ref_U(this->dg->all_parameters->amiet_param.ref_U)
     , ref_density(this->dg->all_parameters->amiet_param.ref_density)
-    //, ref_viscosity(this->dg->all_parameters->amiet_param.ref_viscosity)
     , ref_length(this->dg->all_parameters->euler_param.ref_length)
     , ref_temperature(this->dg->all_parameters->navier_stokes_param.temperature_inf)
-    //, ref_pressure(ref_density*R_specific*ref_temperature)
-    , ref_sound(sqrt(this->dg->all_parameters->euler_param.gamma_gas*R_specific*ref_temperature))
     , mach_inf(this->dg->all_parameters->euler_param.mach_inf)
-    , sound_inf(ref_sound)
+    , sound_inf(sqrt(this->dg->all_parameters->euler_param.gamma_gas*R_specific*ref_temperature))
     , ref_U(mach_inf*sound_inf)
     , ref_viscosity(ref_density*ref_U*ref_length/this->dg->all_parameters->navier_stokes_param.reynolds_number_inf)
     , U_inf(this->boundary_layer_extraction.U_inf*ref_U)
@@ -49,7 +45,7 @@ AmietModelFunctional<dim,nstate,real,MeshType>
     , wall_shear_stress(this->boundary_layer_extraction.evaluate_wall_shear_stress()*ref_density*ref_U*ref_U)
     , maximum_shear_stress(this->boundary_layer_extraction.evaluate_maximum_shear_stress()*ref_density*ref_U*ref_U)
     , kinematic_viscosity(ref_viscosity/ref_density)
-    , pressure_gradient_tangential(this->boundary_layer_extraction.evaluate_pressure_gradient_tangential()*ref_density*ref_U*ref_U/ref_length)
+    , pressure_gradient_tangential(std::abs(this->boundary_layer_extraction.evaluate_pressure_gradient_tangential())*ref_density*ref_U*ref_U/ref_length)
     , clauser_equilibrium_parameter(momentum_thickness/wall_shear_stress*pressure_gradient_tangential)
     , cole_wake_parameter(0.8*pow(clauser_equilibrium_parameter+0.5,3.0/4.0))
     , zagarola_smits_parameter(boundary_layer_thickness/displacement_thickness)
@@ -57,34 +53,16 @@ AmietModelFunctional<dim,nstate,real,MeshType>
     , beta_sqr(1.0-mach_inf*mach_inf)
     , S0(sqrt(observer_coord_ref[0]*observer_coord_ref[0]+beta_sqr*(observer_coord_ref[1]*observer_coord_ref[1]+observer_coord_ref[2]*observer_coord_ref[2])))
 {
-    //chord_length = 0.136;
-    //span_length = 0.3;
-    //mach_inf = 0.0466;
-    //sound_inf = 343.21;
-    //U_inf = mach_inf*sound_inf;
-    //density_inf = 1.204;
-    //U_c = U_inf/alpha;
-    //U_edge = 16.9;
-    //wall_shear_stress = 0.11;
-    //maximum_shear_stress = 0.167;
-    //friction_velocity = sqrt(wall_shear_stress/density_inf);
-    //boundary_layer_thickness = 4.98e-3;
-    //displacement_thickness = 2.24e-3;
-    //kinematic_viscosity = 1.516e-5;
-    //clauser_equilibrium_parameter = 20.9;
-    //cole_wake_parameter = 0.8*pow(clauser_equilibrium_parameter+0.5,3.0/4.0);
-    //zagarola_smits_parameter = boundary_layer_thickness/displacement_thickness;
-
     std::complex<real> imag (0.0,1.0);
     imag_unit = imag;
  
     std::cout << "ref_density is "                   << ref_density << std::endl;
     std::cout << "ref_temperature is "               << ref_temperature << std::endl;
-    std::cout << "ref_sound is "                     << ref_sound << std::endl;
     std::cout << "ref_U is "                         << ref_U << std::endl;
     std::cout << "ref_viscosity is "                 << ref_viscosity << std::endl;
 
     std::cout << "U_inf is "                         << U_inf << std::endl;
+    std::cout << "sound_inf is "                     << sound_inf << std::endl;
     std::cout << "density_inf is "                   << density_inf << std::endl;
     std::cout << "U_c is "                           << U_c << std::endl;
     std::cout << "U_edge is "                        << U_edge << std::endl;

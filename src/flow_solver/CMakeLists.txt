@@ -11,6 +11,7 @@ set(FLOW_SOLVER_SOURCE
     flow_solver_cases/gaussian_bump.cpp
     flow_solver_cases/wall_cube.cpp
     flow_solver_cases/flat_plate_2D.cpp
+    flow_solver_cases/airfoil_2D.cpp
     flow_solver.cpp
     flow_solver_factory.cpp)
 

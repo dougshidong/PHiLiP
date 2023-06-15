@@ -42,16 +42,9 @@ void AmietParam::declare_parameters (dealii::ParameterHandler &prm)
                           dealii::Patterns::Double(-1000.0, 1000.0),
                           "The x coordinate of farfield acoustic observer. Default value is 0.0. ");
 
-        //prm.declare_entry("ref_U", "1.0",
-        //                  dealii::Patterns::Double(0.0, 100000.0),
-        //                  "The reference flow speed. Default value is 1.0. ");
         prm.declare_entry("ref_density", "1.204",
                           dealii::Patterns::Double(0.0, 100000.0),
                           "The reference fluid density. Default value is 1.204. ");
-        //prm.declare_entry("ref_viscosity", "1.825e-5",
-        //                  dealii::Patterns::Double(0.0, 100000.0),
-        //                  "The reference viscosity. Default value is 1.825e-5. ");
-
         prm.declare_entry("chord_length", "1.0",
                           dealii::Patterns::Double(0.0, 100000.0),
                           "The chord length of airfoil. Default value is 1.0. ");
@@ -61,7 +54,6 @@ void AmietParam::declare_parameters (dealii::ParameterHandler &prm)
         prm.declare_entry("alpha", "1.43",
                           dealii::Patterns::Double(0.0, 100.0),
                           "The Ratio of free-stream and convection speed of turbulence. Default value is 1.43. ");
-
         prm.declare_entry("R_specific", "287.05",
                           dealii::Patterns::Double(0.0, 100000.0),
                           "The specific gas constant R. Default value is 287.05. ");
@@ -83,22 +75,19 @@ void AmietParam ::parse_parameters (dealii::ParameterHandler &prm)
         if (wall_pressure_spectral_model_type_string == "Rozenberg") wall_pressure_spectral_model_type = WallPressureSpectralModelEnum::Rozenberg;
         if (wall_pressure_spectral_model_type_string == "Kamruzzaman") wall_pressure_spectral_model_type = WallPressureSpectralModelEnum::Kamruzzaman;
 
-        omega_min = prm.get_double("omega_min");
-        omega_max = prm.get_double("omega_max");
+        omega_min      = prm.get_double("omega_min");
+        omega_max      = prm.get_double("omega_max");
         omega_interval = prm.get_double("omega_interval");
 
         observer_coord_ref_x = prm.get_double("observer_coord_ref_x");
         observer_coord_ref_y = prm.get_double("observer_coord_ref_y");
         observer_coord_ref_z = prm.get_double("observer_coord_ref_z");
 
-        //ref_U = prm.get_double("ref_U");
-        ref_density = prm.get_double("ref_density");
-        //ref_viscosity = prm.get_double("ref_viscosity");
-
+        ref_density  = prm.get_double("ref_density");
         chord_length = prm.get_double("chord_length");
-        span_length = prm.get_double("span_length");
-        alpha = prm.get_double("alpha");
-        R_specific = prm.get_double("R_specific");
+        span_length  = prm.get_double("span_length");
+        alpha        = prm.get_double("alpha");
+        R_specific   = prm.get_double("R_specific");
     }
     prm.leave_subsection();
 }

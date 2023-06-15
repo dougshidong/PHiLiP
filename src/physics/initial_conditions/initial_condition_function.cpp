@@ -383,16 +383,16 @@ InitialConditionFunction_PositiveConstant<dim,nstate,real>
 
 template <int dim, int nstate, typename real>
 real InitialConditionFunction_PositiveConstant<dim, nstate, real>
-::value(const dealii::Point<dim,real> &point, const unsigned int /*istate*/) const
+::value(const dealii::Point<dim,real> &/*point*/, const unsigned int /*istate*/) const
 {
-    real value;
-    if(point[0]>=0.0){
-        value = point[1];
-    }else{
-        value = sqrt(point[0]*point[0]+point[1]*point[1]);
-    }
-    return value;
-    //return 0.1;
+    //real value;
+    //if(point[0]>=0.0){
+    //    value = point[1];
+    //}else{
+    //    value = sqrt(point[0]*point[0]+point[1]*point[1]);
+    //}
+    //return value;
+    return 0.01;
 }
 
 // =========================================================
@@ -471,15 +471,28 @@ InitialConditionFactory<dim,nstate, real>::create_InitialConditionFunction(
                     param->euler_param.side_slip_angle,
                     param->navier_stokes_param.prandtl_number,
                     param->navier_stokes_param.reynolds_number_inf);
-            //Physics::ReynoldsAveragedNavierStokes_SAneg<dim,nstate,double> rans_sa_neg_double = Physics::ReynoldsAveragedNavierStokes_SAneg<dim, nstate, double>(
-            //        param->euler_param.ref_length,
-            //        param->euler_param.gamma_gas,
-            //        param->euler_param.mach_inf,
-            //        param->euler_param.angle_of_attack,
-            //        param->euler_param.side_slip_angle,
-            //        param->navier_stokes_param.prandtl_number,
-            //        param->navier_stokes_param.reynolds_number_inf,
-            //        param->physics_model_param.turbulent_prandtl_number);
+            return std::make_shared<FreeStreamInitialConditions_RANS_SA_negative<dim,nstate,real> > (rans_double);
+        }
+    } else if (flow_type == FlowCaseEnum::airfoil_2D) {
+        if constexpr (dim==2 && nstate==1)  return std::make_shared<InitialConditionFunction_PositiveConstant<dim,nstate,real> > ();
+        if constexpr (dim==2 && nstate==dim+2) {
+            Physics::Euler<dim,nstate,double> euler_physics_double = Physics::Euler<dim, nstate, double>(
+                    param->euler_param.ref_length,
+                    param->euler_param.gamma_gas,
+                    param->euler_param.mach_inf,
+                    param->euler_param.angle_of_attack,
+                    param->euler_param.side_slip_angle);
+            return std::make_shared<FreeStreamInitialConditions<dim,nstate,real>>(euler_physics_double);
+        }
+        if constexpr (dim==2 && nstate==dim+3) {
+            Physics::NavierStokes<dim,dim+2,double> rans_double = Physics::NavierStokes<dim, dim+2, double>(
+                    param->euler_param.ref_length,
+                    param->euler_param.gamma_gas,
+                    param->euler_param.mach_inf,
+                    param->euler_param.angle_of_attack,
+                    param->euler_param.side_slip_angle,
+                    param->navier_stokes_param.prandtl_number,
+                    param->navier_stokes_param.reynolds_number_inf);
             return std::make_shared<FreeStreamInitialConditions_RANS_SA_negative<dim,nstate,real> > (rans_double);
         }
     } else {

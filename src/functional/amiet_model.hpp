@@ -67,21 +67,12 @@ private:
 
     /// @brief Specific gas constant R. Units: [J/(kg*K)].
     const real R_specific;
-//    /// @brief Reference flow speed. Units: [m/s].
-//    const real ref_U;
     /// @brief Reference density. Units: [kg/m^3].
     const real ref_density;
-//    /// @brief Reference dynamic viscosity. Units: [kg/(m*s)].
-//    const real ref_viscosity;
     /// @brief Reference length. Units: [m].
     const real ref_length;
     /// @brief Reference temperature. Units: [K].
     const real ref_temperature;
-//    /// @brief Reference pressure. Units: [Pa] or [kg/(m*s^2)].
-//    const real ref_pressure;
-    /// @brief Reference sound speed. Units: [m/s].
-    const real ref_sound;
-
     /// @brief Mach number of free stream.
     const real mach_inf;
     /// @brief Dimensionalized sound speed of free stream. Units: [m/s].
@@ -153,31 +144,31 @@ public:
 
     real evaluate_functional( const bool compute_dIdW = false, const bool compute_dIdX = false, const bool compute_d2I = false) override;
 
-    /// Evaluate wall-pressure power spectral density, Phi_pp, for a given frequency, omega.
+    /// Function to evaluate wall-pressure power spectral density, Phi_pp, for a given frequency, omega.
     real wall_pressure_PSD(const real omega) const;
 
-    /// Evaluate wall-pressure power spectral density using Goody's model.
+    /// Function to evaluate wall-pressure power spectral density using Goody's model.
     real wall_pressure_PSD_Goody(const real omega) const;
 
-    /// Evaluate wall-pressure power spectral density using Rozenburg's model.
+    /// Function to evaluate wall-pressure power spectral density using Rozenburg's model.
     real wall_pressure_PSD_Rozenburg(const real omega) const;
 
-    /// Evaluate wall-pressure power spectral density using Kamruzzaman's model.
+    /// Function to evaluate wall-pressure power spectral density using Kamruzzaman's model.
     real wall_pressure_PSD_Kamruzzaman(const real omega) const;
 
-    /// Evaluate spanwise correlation length using Corcos's model.
+    /// Function to evaluate spanwise correlation length using Corcos's model.
     real spanwise_correlation_length(const real omega) const;
 
-    /// Evaluate complex function of Fresnel integral
+    /// Function to evaluate complex function of Fresnel integral
     std::complex<real> E (const std::complex<real> z) const;
 
-    /// Evaluate complex function of Fresnel integral
+    /// Function to evaluate complex function of Fresnel integral
     std::complex<real> E_star(const std::complex<real> z) const;
 
-    /// Evaluate new complex function of Fresnel integral
+    /// Function to evaluate new complex function of Fresnel integral
     std::complex<real> ES_star (const std::complex<real> z) const;
 
-    /// Evaluate radiation integral involving main contribution for supercritical or subcritical gust
+    /// Function to evaluate radiation integral involving main contribution for supercritical or subcritical gust
     std::complex<real> radiation_integral_trailing_edge_main (
         const real B,
         const real C,
@@ -187,7 +178,7 @@ public:
         const std::complex<real> A1_prime,
         const bool is_supercritical) const;
 
-    /// Evaluate radiation integral involving back-scattering correction for supercritical or subcritical gust
+    /// Function to evaluate radiation integral involving back-scattering correction for supercritical or subcritical gust
     std::complex<real> radiation_integral_trailing_edge_back (
         const real C,
         const real D,
@@ -204,17 +195,17 @@ public:
         const std::complex<real> H_prime,
         const bool is_supercritical) const;
 
-    /// Evaluate radiation integral involving main contribution and/or back-scattering correction for supercritical or subcritical gust
+    /// Function to evaluate radiation integral involving main contribution and/or back-scattering correction for supercritical or subcritical gust
     std::complex<real> radiation_integral_trailing_edge (const real omega) const;
 
     /// Evaluate far-field acoustic power spectral density, S_pp, for a given frequency, omega.
     real acoustic_PSD(const real omega,
                       const real Phi_pp_of_sampling) const;
 
-    /// Evaluate vector of wall-pressure spectrum and far-field acoustic spectrum over investigated frequency range
+    /// Function to evaluate vector of wall-pressure spectrum and far-field acoustic spectrum over investigated frequency range
     void evaluate_wall_pressure_acoustic_spectrum();
 
-    /// Output vector of wall-pressure spectrum and far-field acoustic spectrum over investigated frequency range in a .dat file
+    /// Function to output vector of wall-pressure spectrum and far-field acoustic spectrum over investigated frequency range in a .dat file
     void output_wall_pressure_acoustic_spectrum_dat();
 
 };

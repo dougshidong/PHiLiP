@@ -48,8 +48,6 @@ ExtractionFunctional<dim,nstate,real,MeshType>
         std::cout << "ERROR: Fail to capture cell that extraction point belongs to..." << std::endl;
         std::abort();
     }
-    //std::cout << "extraction point normal vector is ("     << start_point_normal_vector[0]     << "," << start_point_normal_vector[1]     << ")..." << std::endl;
-    //std::cout << "extraction point tangential vector is (" << start_point_tangential_vector[0] << "," << start_point_tangential_vector[1] << ")..." << std::endl;
 
     length_of_sampling = 8.0*(0.37*this->start_point[0]/pow(navier_stokes_real.reynolds_number_inf,1.0/5.0));
     std::cout << "length_of_sampling is " << length_of_sampling << std::endl;

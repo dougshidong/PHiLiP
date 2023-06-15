@@ -13,7 +13,7 @@ namespace PHiLiP {
 
 namespace FlowSolver {
 //=========================================================
-// DISTANCE EVALUATION IN BOUNDED CUBE DOMAIN
+// Flat Plate 2D
 //=========================================================
 template <int dim, int nstate>
 FlatPlate2D<dim, nstate>::FlatPlate2D(const PHiLiP::Parameters::AllParameters *const parameters_input)
@@ -119,7 +119,6 @@ void FlatPlate2D<dim,nstate>::steady_state_postprocessing(std::shared_ptr<DGBase
         AmietModelFunctional<dim,nstate,double,Triangulation> amiet_acoustic_response(dg,boundary_layer_extraction,observer_coord_ref);
         amiet_acoustic_response.evaluate_wall_pressure_acoustic_spectrum();
         amiet_acoustic_response.output_wall_pressure_acoustic_spectrum_dat();
-
     }
 }
 

@@ -102,7 +102,6 @@ public:
     /// Returns the istate-th farfield conservative value
     double value (const dealii::Point<dim> &/*point*/, const unsigned int istate) const
     {
-
         return RANS_SA_neg_farfield_conservative[istate];
     }
 };

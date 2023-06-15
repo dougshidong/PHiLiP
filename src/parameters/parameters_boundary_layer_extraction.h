@@ -9,10 +9,17 @@ namespace Parameters {
 class BoundaryLayerExtractionParam
 {
 public:
-    int number_of_sampling; ///< The number of sampling points on the extraction line.
-    double extraction_point_x; ///< The x coordinate of extraction start point.
-    double extraction_point_y; ///< The y coordinate of extraction start point.
-    double extraction_point_z; ///< The z coordinate of extraction start point.
+    ///< The number of sampling points on the extraction line.
+    int number_of_sampling;
+
+    ///< The x coordinate of extraction start point.
+    double extraction_point_x;
+
+    ///< The y coordinate of extraction start point.
+    double extraction_point_y;
+
+    ///< The z coordinate of extraction start point.
+    double extraction_point_z;
 
     BoundaryLayerExtractionParam (); ///< Constructor
 

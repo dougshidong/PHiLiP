@@ -276,7 +276,7 @@ real ReynoldsAveragedNavierStokes_SAneg<dim,nstate,real>
     real coefficient_r;
     real dimensional_r;
 
-    if (s_tilde<=0.0){
+    if (s_tilde==0.0){
         coefficient_r = r_lim;
     } else{
         dimensional_r = nu_tilde/(s_tilde*kappa*kappa*d_wall*d_wall); 
@@ -604,8 +604,11 @@ std::array<real,nstate> ReynoldsAveragedNavierStokes_SAneg<dim,nstate,real>
 template <int dim, int nstate, typename real>
 void ReynoldsAveragedNavierStokes_SAneg<dim,nstate,real>
 ::boundary_wall (
-   std::array<real,nstate> &soln_bc,
-   std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_bc) const
+    const dealii::Tensor<1,dim,real> &/*normal_int*/,
+    const std::array<real,nstate> &/*soln_int*/,
+    const std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_int,
+    std::array<real,nstate> &soln_bc,
+    std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_bc) const
 {
     for (int istate=0; istate<nstate_navier_stokes; ++istate) {
         soln_bc[istate] = 0.0;
@@ -615,7 +618,7 @@ void ReynoldsAveragedNavierStokes_SAneg<dim,nstate,real>
     // nu_tilde = 0
     for (int istate=nstate_navier_stokes; istate<nstate; ++istate) {
         soln_bc[istate] = 0.0;
-        soln_grad_bc[istate] = 0.0;
+        soln_grad_bc[istate] = soln_grad_int[istate];
     }
 }
 //----------------------------------------------------------------

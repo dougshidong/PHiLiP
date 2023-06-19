@@ -57,8 +57,11 @@ void ModelBase<dim,nstate,real>
 template <int dim, int nstate, typename real>
 void ModelBase<dim,nstate,real>
 ::boundary_wall (
-   std::array<real,nstate> &/*soln_bc*/,
-   std::array<dealii::Tensor<1,dim,real>,nstate> &/*soln_grad_bc*/) const
+    const dealii::Tensor<1,dim,real> &/*normal_int*/,
+    const std::array<real,nstate> &/*soln_int*/,
+    const std::array<dealii::Tensor<1,dim,real>,nstate> &/*soln_grad_int*/,
+    std::array<real,nstate> &/*soln_bc*/,
+    std::array<dealii::Tensor<1,dim,real>,nstate> &/*soln_grad_bc*/) const
 {
     // Do nothing for nstate==(dim+2)
     if constexpr(nstate>(dim+2)) {
@@ -162,7 +165,7 @@ void ModelBase<dim,nstate,real>
     } 
     else if (boundary_type == 1001) {
         // Wall boundary condition for working variables of RANS turbulence model
-        boundary_wall (soln_bc, soln_grad_bc);
+        boundary_wall (normal_int, soln_int, soln_grad_int, soln_bc, soln_grad_bc);
     } 
     else if (boundary_type == 1002) {
         // Outflow boundary condition 

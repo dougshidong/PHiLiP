@@ -130,6 +130,9 @@ protected:
      *  eq.(7)
      */ 
     void boundary_wall (
+        const dealii::Tensor<1,dim,real> &normal_int,
+        const std::array<real,nstate> &soln_int,
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_int,
         std::array<real,nstate> &soln_bc,
         std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_bc) const override;
 

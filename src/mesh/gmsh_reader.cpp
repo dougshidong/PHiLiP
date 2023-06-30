@@ -224,7 +224,7 @@ void rotate_indices(std::vector<unsigned int> &numbers, const unsigned int n_ind
        * 
        * 
        **/ 
-      
+
       switch (direction)                                                     
       {
           // Rotate Cube in Z-Axis
@@ -720,7 +720,6 @@ gmsh_hierarchic_to_lexicographic(const unsigned int degree, const bool mesh_read
 
             const unsigned int start = 0 + square_reduction;
             const unsigned int end = n - square_reduction;
-
 
             // First the four vertices
             {

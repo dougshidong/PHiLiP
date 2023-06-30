@@ -70,17 +70,25 @@ namespace PHiLiP {
               int requested_grid_order,
               const bool use_mesh_smoothing);
 
-    /// Reads Gmsh grid (Overload)
+    /** Reads Gmsh grid from file with all other arguments as default.
+     *  See function definition for what the defaults are set to.
+    */
     template <int dim, int spacedim>
     std::shared_ptr< HighOrderGrid<dim, double> >
     read_gmsh(std::string filename);
 
-    /// Reads Gmsh grid (Overload)
+    /** Reads Gmsh grid from file at a given requested_grid_order and use_mesh_smoothing input;
+     *  with all other arguments as default.
+     *  See function definition for what the defaults are set to.
+    */
     template <int dim, int spacedim>
     std::shared_ptr< HighOrderGrid<dim, double> >
     read_gmsh(std::string filename, int requested_grid_order, const bool use_mesh_smoothing);
 
-    /// Reads Gmsh grid (Overload)
+    /** Reads Gmsh grid from file that has periodic boundaries;
+     *  with all other arguments as default.
+     *  See function definition for what the defaults are set to.
+    */
     template <int dim, int spacedim>
     std::shared_ptr< HighOrderGrid<dim, double> >
     read_gmsh(std::string filename, const bool periodic_x, 

@@ -39,7 +39,8 @@ std::shared_ptr<Triangulation> PeriodicCubeFlow<dim,nstate>::generate_grid() con
                 this->all_param.flow_solver_param.y_periodic_id_face_2, 
                 this->all_param.flow_solver_param.z_periodic_id_face_1, 
                 this->all_param.flow_solver_param.z_periodic_id_face_2,
-                this->all_param.flow_solver_param.mesh_reader_verbose_output);
+                this->all_param.flow_solver_param.mesh_reader_verbose_output,
+                this->all_param.do_renumber_dofs);
 
             return cube_mesh->triangulation;
         } 

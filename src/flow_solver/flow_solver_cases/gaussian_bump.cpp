@@ -41,7 +41,7 @@ std::shared_ptr<Triangulation> GaussianBump<dim,nstate>::generate_grid() const
     } 
     else if constexpr(dim==3) {
         const std::string mesh_filename = this->all_param.flow_solver_param.input_mesh_filename+std::string(".msh");
-        std::shared_ptr<HighOrderGrid<dim,double>> gaussian_bump_mesh = read_gmsh<dim, dim> (mesh_filename);
+        std::shared_ptr<HighOrderGrid<dim,double>> gaussian_bump_mesh = read_gmsh<dim, dim> (mesh_filename, this->all_param.do_renumber_dofs);
         return gaussian_bump_mesh->triangulation;
     }
     
@@ -53,7 +53,7 @@ void GaussianBump<dim,nstate>::set_higher_order_grid(std::shared_ptr<DGBase<dim,
 {
     if constexpr(dim==3) {
         const std::string mesh_filename = this->all_param.flow_solver_param.input_mesh_filename+std::string(".msh");
-        std::shared_ptr<HighOrderGrid<dim,double>> gaussian_bump_mesh = read_gmsh<dim, dim> (mesh_filename);
+        std::shared_ptr<HighOrderGrid<dim,double>> gaussian_bump_mesh = read_gmsh<dim, dim> (mesh_filename, this->all_param.do_renumber_dofs);
         dg->set_high_order_grid(gaussian_bump_mesh);
         for (int i=0; i<this->all_param.flow_solver_param.number_of_mesh_refinements; ++i) {
             dg->high_order_grid->refine_global();

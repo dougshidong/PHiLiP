@@ -29,7 +29,9 @@ int main (int argc, char * argv[])
        }
     }
 
-    std::shared_ptr< HighOrderGrid<dim, double> > high_order_grid = read_gmsh <dim, dim> (filename);
+    const bool do_renumber_dofs = true;
+    std::cout << "Hello World" << std::endl;
+    std::shared_ptr< HighOrderGrid<dim, double> > high_order_grid = read_gmsh <dim, dim> (filename,do_renumber_dofs);
 
     dealii::GridOut gridout;
     gridout.write_mesh_per_processor_as_vtu(*(high_order_grid->triangulation), "tria");

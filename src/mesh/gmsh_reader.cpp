@@ -1250,6 +1250,7 @@ read_gmsh(std::string filename,
           const int y_periodic_1, const int y_periodic_2, 
           const int z_periodic_1, const int z_periodic_2, 
           const bool mesh_reader_verbose_output,
+          const bool do_renumber_dofs,
           int requested_grid_order,
           const bool use_mesh_smoothing)
 {
@@ -1718,7 +1719,8 @@ read_gmsh(std::string filename,
 
         dof_handler_equidistant.initialize(*triangulation, fe_system_equidistant);
         dof_handler_equidistant.distribute_dofs(fe_system_equidistant);
-        dealii::DoFRenumbering::Cuthill_McKee(dof_handler_equidistant);
+
+        if(do_renumber_dofs) dealii::DoFRenumbering::Cuthill_McKee(dof_handler_equidistant,true);
 
         auto equidistant_nodes = high_order_grid->volume_nodes;
         equidistant_nodes.update_ghost_values();
@@ -1770,7 +1772,8 @@ read_gmsh(std::string filename,
 
             dof_handler_equidistant.initialize(*triangulation, fe_system_equidistant);
             dof_handler_equidistant.distribute_dofs(fe_system_equidistant);
-            dealii::DoFRenumbering::Cuthill_McKee(dof_handler_equidistant);
+
+            if(do_renumber_dofs) dealii::DoFRenumbering::Cuthill_McKee(dof_handler_equidistant,true);
 
             auto equidistant_nodes = high_order_grid->volume_nodes;
             equidistant_nodes.update_ghost_values();
@@ -1811,7 +1814,7 @@ read_gmsh(std::string filename,
 
 template <int dim, int spacedim>
 std::shared_ptr< HighOrderGrid<dim, double> >
-read_gmsh(std::string filename, int requested_grid_order, const bool use_mesh_smoothing)
+read_gmsh(std::string filename, const bool do_renumber_dofs, int requested_grid_order, const bool use_mesh_smoothing)
 {
   // default parameters
   const bool periodic_x = false;
@@ -1831,13 +1834,14 @@ read_gmsh(std::string filename, int requested_grid_order, const bool use_mesh_sm
     y_periodic_1, y_periodic_2, 
     z_periodic_1, z_periodic_2, 
     mesh_reader_verbose_output,
+    do_renumber_dofs,
     requested_grid_order,
     use_mesh_smoothing);
 }
 
 #if PHILIP_DIM!=1 
-template std::shared_ptr< HighOrderGrid<PHILIP_DIM, double> > read_gmsh<PHILIP_DIM,PHILIP_DIM>(std::string filename, const bool periodic_x, const bool periodic_y, const bool periodic_z, const int x_periodic_1, const int x_periodic_2, const int y_periodic_1, const int y_periodic_2, const int z_periodic_1, const int z_periodic_2, const bool mesh_reader_verbose_output, int requested_grid_order, const bool use_mesh_smoothing);
-template std::shared_ptr< HighOrderGrid<PHILIP_DIM, double> > read_gmsh<PHILIP_DIM,PHILIP_DIM>(std::string filename, int requested_grid_order, const bool use_mesh_smoothing);
+template std::shared_ptr< HighOrderGrid<PHILIP_DIM, double> > read_gmsh<PHILIP_DIM,PHILIP_DIM>(std::string filename, const bool periodic_x, const bool periodic_y, const bool periodic_z, const int x_periodic_1, const int x_periodic_2, const int y_periodic_1, const int y_periodic_2, const int z_periodic_1, const int z_periodic_2, const bool mesh_reader_verbose_output, const bool do_renumber_dofs, int requested_grid_order, const bool use_mesh_smoothing);
+template std::shared_ptr< HighOrderGrid<PHILIP_DIM, double> > read_gmsh<PHILIP_DIM,PHILIP_DIM>(std::string filename, const bool do_renumber_dofs, int requested_grid_order, const bool use_mesh_smoothing);
 #endif
 
 } // namespace PHiLiP

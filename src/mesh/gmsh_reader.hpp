@@ -53,8 +53,8 @@
 #include "parameters/all_parameters.h"
 
 namespace PHiLiP {
-    /// Reads Gmsh grid.
-    /** Can request to convert the input grid's order to the 
+    /** Reads Gmsh grid from input file, supports periodic boundaries. 
+      * Can request to convert the input grid's order to the 
       * requested_grid_order, which will simply interpolate
       * the high-order nodes. Dealii's mesh smoothing can be set to none
       * while using goal oriented mesh adaptation.
@@ -67,37 +67,13 @@ namespace PHiLiP {
               const int y_periodic_1, const int y_periodic_2, 
               const int z_periodic_1, const int z_periodic_2, 
               const bool mesh_reader_verbose_output,
-              int requested_grid_order,
-              const bool use_mesh_smoothing);
+              int requested_grid_order=0,
+              const bool use_mesh_smoothing=true);
 
-    /** Reads Gmsh grid from file with all other arguments as default.
-     *  See function definition for what the defaults are set to.
-    */
+    /// Reads Gmsh grid from file at a given requested_grid_order and use_mesh_smoothing input
     template <int dim, int spacedim>
     std::shared_ptr< HighOrderGrid<dim, double> >
-    read_gmsh(std::string filename);
-
-    /** Reads Gmsh grid from file at a given requested_grid_order and use_mesh_smoothing input;
-     *  with all other arguments as default.
-     *  See function definition for what the defaults are set to.
-    */
-    template <int dim, int spacedim>
-    std::shared_ptr< HighOrderGrid<dim, double> >
-    read_gmsh(std::string filename, int requested_grid_order, const bool use_mesh_smoothing);
-
-    /** Reads Gmsh grid from file that has periodic boundaries;
-     *  with all other arguments as default.
-     *  See function definition for what the defaults are set to.
-    */
-    template <int dim, int spacedim>
-    std::shared_ptr< HighOrderGrid<dim, double> >
-    read_gmsh(std::string filename, const bool periodic_x, 
-              const bool periodic_y, const bool periodic_z, 
-              const int x_periodic_1, const int x_periodic_2, 
-              const int y_periodic_1, const int y_periodic_2, 
-              const int z_periodic_1, const int z_periodic_2, 
-              const bool mesh_reader_verbose_output);
-
+    read_gmsh(std::string filename, int requested_grid_order=0, const bool use_mesh_smoothing=true);
     
 } // namespace PHiLiP
 #endif

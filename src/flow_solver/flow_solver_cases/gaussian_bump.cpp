@@ -34,7 +34,6 @@ std::shared_ptr<Triangulation> GaussianBump<dim,nstate>::generate_grid() const
         std::vector<unsigned int> n_subdivisions(dim);
         n_subdivisions[0] = this->all_param.flow_solver_param.number_of_subdivisions_in_x_direction;
         n_subdivisions[1] = this->all_param.flow_solver_param.number_of_subdivisions_in_y_direction;
-        // n_subdivisions[2] = this->all_param.flow_solver_param.grid.gaussian_bump.number_of_subdivisions_in_z_direction;
 
         Grids::gaussian_bump<dim>(*grid, n_subdivisions, channel_length, channel_height, bump_height);
         grid->refine_global(number_of_refinements);

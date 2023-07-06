@@ -570,6 +570,14 @@ int FlowSolver<dim,nstate,sub_nstate>::run() const
             sub_flow_solver_case->steady_state_postprocessing(sub_dg);
             pcout << "End calculation for the sub ODE solver..." << std::endl;
 
+            if(sub_dg->max_degree!=dg->max_degree){
+                pcout << "Detect different polynomial degree between sub dg (poly_degree = " << sub_dg->max_degree << ") and main dg (poly_degree = " << dg->max_degree << ")..." << std::endl;
+                pcout << "Interpolate solution from current polynomial degree " << sub_dg->max_degree << " to desired polynomial degree " << dg->max_degree << " ..." << std::endl;
+                sub_dg->output_results_vtk(8888);
+                sub_ode_solver->interpolate_solution_polynomial_degree(dg->max_degree);
+                sub_dg->output_results_vtk(9999);
+            }
+
             pcout << "Transfer the solution from sub dg to main dg..." << std::endl;
             dg->import_sub_solution(sub_dg);
         }else{

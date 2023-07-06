@@ -44,6 +44,25 @@ void ODESolverBase<dim,real,MeshType>::initialize_steady_polynomial_ramping (con
     }
 }
 
+template <int dim, typename real, typename MeshType>
+void ODESolverBase<dim,real,MeshType>::interpolate_solution_polynomial_degree (const unsigned int poly_degree_to_interpolate)
+{
+    pcout << " ************************************************************************ " << std::endl;
+    pcout << " Initializing DG with polynomial degree = " << poly_degree_to_interpolate << " from current degree " << dg->max_degree << "... " << std::endl;
+    pcout << " ************************************************************************ " << std::endl;
+
+    // Transfer solution to current degree.
+    dealii::LinearAlgebra::distributed::Vector<double> old_solution(dg->solution);
+    old_solution.update_ghost_values();
+    dealii::parallel::distributed::SolutionTransfer<dim, dealii::LinearAlgebra::distributed::Vector<double>, dealii::DoFHandler<dim>> solution_transfer(dg->dof_handler);
+    solution_transfer.prepare_for_coarsening_and_refinement(old_solution);
+    dg->set_all_cells_fe_degree(poly_degree_to_interpolate);
+    dg->allocate_system ();
+    dg->solution.zero_out_ghosts();
+    solution_transfer.interpolate(dg->solution);
+    dg->solution.update_ghost_values();
+}
+
 
 template <int dim, typename real, typename MeshType>
 void ODESolverBase<dim,real,MeshType>::valid_initial_conditions () const

@@ -383,16 +383,16 @@ InitialConditionFunction_PositiveConstant<dim,nstate,real>
 
 template <int dim, int nstate, typename real>
 real InitialConditionFunction_PositiveConstant<dim, nstate, real>
-::value(const dealii::Point<dim,real> &point, const unsigned int /*istate*/) const
+::value(const dealii::Point<dim,real> &/*point*/, const unsigned int /*istate*/) const
 {
-    real value;
-    if(point[0]>=0.0){
-        value = point[1];
-    }else{
-        value = sqrt(point[0]*point[0]+point[1]*point[1]);
-    }
-    return value;
-    //return 0.01;
+    //real value;
+    //if(point[0]>=0.0){
+    //    value = point[1];
+    //}else{
+    //    value = sqrt(point[0]*point[0]+point[1]*point[1]);
+    //}
+    //return value;
+    return 0.01;
 }
 
 // =========================================================

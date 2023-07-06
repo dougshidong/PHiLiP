@@ -28,6 +28,18 @@ ExtractionFunctional<dim,nstate,real,MeshType>
         rans_sa_neg_real = std::dynamic_pointer_cast< Physics::ReynoldsAveragedNavierStokes_SAneg<dim,dim+3,real> >(PHiLiP::Physics::ModelFactory<dim,dim+3,real>::create_Model(this->dg->all_parameters)); 
     }
 
+    std::cout << "start_point original is " << start_point[0] << "," << start_point[1] << std::endl;
+    for (auto cell = this->dg->triangulation->begin_active(); cell != this->dg->triangulation->end(); ++cell) {
+        for (unsigned int face=0; face<dealii::GeometryInfo<dim>::faces_per_cell; ++face) {
+            if (cell->face(face)->at_boundary()) {
+                if (cell->face(face)->center()[0]-start_point[0]<=1e-3 && cell->face(face)->center()[1]>0.0){
+                    start_point = cell->face(face)->center();
+                }
+            }
+        }
+    }
+    std::cout << "start_point repicked is " << start_point[0] << "," << start_point[1] << std::endl;
+
     const auto extraction_cell = dealii::GridTools::find_active_cell_around_point(*(this->dg->triangulation),start_point);
     if(extraction_cell->at_boundary()){
         std::cout << "Captured cell that extraction point belongs to..." << std::endl;

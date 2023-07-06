@@ -30,7 +30,7 @@ private:
     using Functional<dim,nstate,real,MeshType>::evaluate_volume_integrand;
 
     /// @brief Extraction start point on solid boundary surface.
-    const dealii::Point<dim,real> start_point;
+    dealii::Point<dim,real> start_point;
 
     /// @brief Normal vector (points into fluid domain) on the solid boundary surface at extraction start point.
     dealii::Tensor<1,dim,real> start_point_normal_vector;

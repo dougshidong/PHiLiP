@@ -48,6 +48,8 @@ public:
      */
     void initialize_steady_polynomial_ramping (const unsigned int global_final_poly_degree);
 
+    void interpolate_solution_polynomial_degree (const unsigned int poly_degree_to_interpolate);
+
 
     /// Checks whether the DG vector has valid values.
     /** By default, the DG solution vector is initialized with the lowest possible value.

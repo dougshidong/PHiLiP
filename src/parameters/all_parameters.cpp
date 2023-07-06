@@ -288,6 +288,11 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       dealii::Patterns::Bool(),
                       "Flag for renumbering DOFs using Cuthill-McKee renumbering. True by default. Set to false if doing 3D unsteady flow simulations.");
 
+    prm.declare_entry("matching_surface_jac_det_tolerance", "1.3e-11",
+                      dealii::Patterns::Double(0, dealii::Patterns::Double::max_double_value),
+                      "Tolerance for checking that the determinant of surface jacobians at element faces matches. "
+                      "Note: Currently only used in weak dg.");
+
     Parameters::LinearSolverParam::declare_parameters (prm);
     Parameters::ManufacturedConvergenceStudyParam::declare_parameters (prm);
     Parameters::ODESolverParam::declare_parameters (prm);
@@ -435,6 +440,8 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     do_renumber_dofs = prm.get_bool("do_renumber_dofs");
 
     output_high_order_grid = prm.get_bool("output_high_order_grid");
+
+    matching_surface_jac_det_tolerance = prm.get_double("matching_surface_jac_det_tolerance");
 
     pcout << "Parsing linear solver subsection..." << std::endl;
     linear_solver_param.parse_parameters (prm);

@@ -5,10 +5,11 @@ configure_file(naca0012_hopw_ref2.msh naca0012_hopw_ref2.msh COPYONLY)
 configure_file(naca0012_hopw_ref3.msh naca0012_hopw_ref3.msh COPYONLY)
 configure_file(naca0012_hopw_ref4.msh naca0012_hopw_ref4.msh COPYONLY)
 configure_file(naca0012_hopw_ref5.msh naca0012_hopw_ref5.msh COPYONLY)
-configure_file(SD7003.msh SD7003.msh COPYONLY)
 configure_file(3d_gaussian_bump.msh 3d_gaussian_bump.msh COPYONLY)
 configure_file(3d_cube_periodic.msh 3d_cube_periodic.msh COPYONLY)
-configure_file(SD7003_periodic.msh SD7003_periodic.msh COPYONLY)
+configure_file(SD7003_1_cell_spanwise.msh SD7003_1_cell_spanwise.msh COPYONLY)
+configure_file(SD7003_4_cell_spanwise.msh SD7003_4_cell_spanwise.msh COPYONLY)
+configure_file(SD7003_12_cell_spanwise.msh SD7003_12_cell_spanwise.msh COPYONLY)
 
 set (filename "naca0012_hopw_ref0.msh")
 if(NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${filename})
@@ -41,17 +42,7 @@ set (filename "3d_gaussian_bump.msh")
 if(NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${filename})
   message(SEND_ERROR
 "Missing 3D GMSH file named ${filename}. Please download them from
-    https://drive.google.com/drive/folders/1ZjwSvbrRK5pHvMULfC69n6oierTej2Cv?usp=sharing
-and place them in
-      ${CMAKE_CURRENT_SOURCE_DIR}, or simply run get_gmsh_mesh_files_local.sh"
-      )
-endif()
-
-set (filename "SD7003.msh")
-if(NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${filename})
-  message(SEND_ERROR
-"Missing 3D GMSH file named ${filename}. Please download them from
-    https://drive.google.com/drive/folders/1ZjwSvbrRK5pHvMULfC69n6oierTej2Cv?usp=sharing
+    https://drive.google.com/drive/folders/1xaQRTCd8VXDeaV1alQ5oHI_YMm2X0X5R?usp=sharing
 and place them in
       ${CMAKE_CURRENT_SOURCE_DIR}, or simply run get_gmsh_mesh_files_local.sh"
       )
@@ -61,17 +52,37 @@ set (filename "3d_cube_periodic.msh")
 if(NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${filename})
     message(SEND_ERROR
 "Missing 3D GMSH file named ${filename}. Please download them from
-    https://drive.google.com/drive/folders/1ZjwSvbrRK5pHvMULfC69n6oierTej2Cv?usp=sharing
+    https://drive.google.com/drive/folders/1xaQRTCd8VXDeaV1alQ5oHI_YMm2X0X5R?usp=sharing
 and place them in
       ${CMAKE_CURRENT_SOURCE_DIR}, or simply run get_gmsh_mesh_files_local.sh"
       )
 endif()
 
-set (filename "SD7003_periodic.msh")
+set (filename "SD7003_1_cell_spanwise.msh")
 if(NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${filename})
     message(SEND_ERROR
 "Missing 3D GMSH file named ${filename}. Please download them from
-    https://drive.google.com/drive/folders/13cjiEOov0tJZGA1DNmq5B36Qycdyakl0
+    https://drive.google.com/drive/folders/1xaQRTCd8VXDeaV1alQ5oHI_YMm2X0X5R?usp=sharing
+and place them in
+      ${CMAKE_CURRENT_SOURCE_DIR}, or simply run get_gmsh_mesh_files_local.sh"
+      )
+endif()
+
+set (filename "SD7003_4_cell_spanwise.msh")
+if(NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${filename})
+    message(SEND_ERROR
+"Missing 3D GMSH file named ${filename}. Please download them from
+    https://drive.google.com/drive/folders/1xaQRTCd8VXDeaV1alQ5oHI_YMm2X0X5R?usp=sharing
+and place them in
+      ${CMAKE_CURRENT_SOURCE_DIR}, or simply run get_gmsh_mesh_files_local.sh"
+      )
+endif()
+
+set (filename "SD7003_12_cell_spanwise.msh")
+if(NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${filename})
+    message(SEND_ERROR
+"Missing 3D GMSH file named ${filename}. Please download them from
+    https://drive.google.com/drive/folders/1xaQRTCd8VXDeaV1alQ5oHI_YMm2X0X5R?usp=sharing
 and place them in
       ${CMAKE_CURRENT_SOURCE_DIR}, or simply run get_gmsh_mesh_files_local.sh"
       )

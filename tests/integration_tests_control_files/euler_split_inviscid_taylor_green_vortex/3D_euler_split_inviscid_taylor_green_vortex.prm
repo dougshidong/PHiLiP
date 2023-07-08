@@ -8,6 +8,8 @@ set use_weak_form = false
 
 set flux_nodes_type = GL
 
+set do_renumber_dofs = false
+
 set overintegration = 0
 
 set use_split_form = true
@@ -16,13 +18,16 @@ set two_point_num_flux_type = Ra
 
 set use_curvilinear_split_form = true
 
-set energy_file = testing_4x4
+set energy_file = cplus_curv_not_weight_adj
+
+set use_curvilinear_grid = false
 
 # The PDE we want to solve
 set pde_type = euler
 
 #set conv_num_flux = two_point_flux_with_lax_friedrichs_dissipation
 set conv_num_flux = two_point_flux
+#set conv_num_flux = roe
 
 set use_energy = true
 
@@ -36,6 +41,8 @@ set use_periodic_bc = true
 
 set use_classical_FR = false
 
+set enable_higher_order_vtk_output = true
+
 subsection ODE solver
 
   set ode_output = verbose
@@ -48,7 +55,8 @@ subsection ODE solver
 
   set initial_time_step = 0.001
 
-  set output_solution_every_x_steps = 1
+ # set output_solution_every_x_steps = 50
+  set output_solution_every_x_steps = -1
 
   set runge_kutta_method = rk4_ex
 
@@ -62,4 +70,10 @@ end
 subsection flow_solver
     set flow_case_type = taylor_green_vortex
     set apply_initial_condition_method = project_initial_condition_function
+    set poly_degree = 3
+    set final_time = 14.0
+    subsection grid
+        set number_of_grid_elements_per_dimension = 2
+    end
 end
+

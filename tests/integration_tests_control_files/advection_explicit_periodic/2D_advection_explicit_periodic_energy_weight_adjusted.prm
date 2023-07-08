@@ -7,7 +7,7 @@ set dimension = 2
 
 set use_weak_form = false
 
-set overintegration = 0
+set overintegration = 2
 
 set flux_nodes_type = GL
 

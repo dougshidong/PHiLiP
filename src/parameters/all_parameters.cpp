@@ -82,6 +82,10 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       dealii::Patterns::Bool(),
                       "Use original form by defualt. Otherwise, split the curvilinear fluxes.");
 
+    prm.declare_entry("store_residual_cpu_time", "false",
+                      dealii::Patterns::Bool(),
+                      "Do not store the residual local processor cpu time by default. Store the residual cpu time if true.");
+
     prm.declare_entry("use_weight_adjusted_mass", "false",
                       dealii::Patterns::Bool(),
                       "Use original form by defualt. Otherwise, use the weight adjusted low storage mass matrix for curvilinear.");
@@ -89,6 +93,10 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
     prm.declare_entry("use_periodic_bc", "false",
                       dealii::Patterns::Bool(),
                       "Use other boundary conditions by default. Otherwise use periodic (for 1d burgers only");
+
+    prm.declare_entry("use_curvilinear_grid", "false",
+                      dealii::Patterns::Bool(),
+                      "Use straight grid by default. Curvilinear is true. Only used in taylor_green_scaling test.");
 
     prm.declare_entry("use_energy", "false",
                       dealii::Patterns::Bool(),
@@ -127,6 +135,10 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       dealii::Patterns::Bool(),
                       "Build global mass inverse matrix and apply it. Otherwise, use inverse mass on-the-fly by default for explicit timestepping.");
 
+    prm.declare_entry("check_valid_metric_Jacobian", "true",
+                      dealii::Patterns::Bool(),
+                      "Check validty of metric Jacobian when high-order grid is constructed by default. Do not check if false. Not checking is useful if the metric terms are built on the fly with operators, it reduces the memory cost for high polynomial grids. The metric Jacobian is never checked for strong form, regardless of the user input.");
+
     prm.declare_entry("energy_file", "energy_file",
                       dealii::Patterns::FileName(dealii::Patterns::FileName::FileType::input),
                       "Input file for energy test.");
@@ -146,6 +158,7 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       " euler_vortex | "
                       " euler_entropy_waves | "
                       " euler_split_taylor_green | "
+                      " taylor_green_scaling | "
                       " euler_bump_optimization | "
                       " euler_naca_optimization | "
                       " shock_1d | "
@@ -183,6 +196,7 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       "  euler_vortex | "
                       "  euler_entropy_waves | "
                       "  euler_split_taylor_green |"
+                      " taylor_green_scaling | "
                       "  euler_bump_optimization | "
                       "  euler_naca_optimization | "
                       "  shock_1d | "
@@ -267,6 +281,15 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       "Dissipative numerical flux. "
                       "Choices are <symm_internal_penalty | bassi_rebay_2 | central_visc_flux>.");
 
+    prm.declare_entry("non_physical_behavior", "return_big_number",
+                      dealii::Patterns::Selection("return_big_number | abort_run | print_warning"),
+                      "Behavior when a nonphysical result is detected in physics, "
+                      "For example negative density or NaN. "
+                      "return_big_number will set the quantity to BIG_NUMBER without any warnings "
+                      "abort_run will std::abort() "
+                      "print_warning will return BIG_NUMBER and print a warning to console. "
+                      "Choices are <return_big_number | abort_run | print_warning>.");
+
     prm.declare_entry("solution_vtk_files_directory_name", ".",
                       dealii::Patterns::FileName(dealii::Patterns::FileName::FileType::input),
                       "Name of directory for writing solution vtk files. Current directory by default.");
@@ -287,6 +310,11 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
     prm.declare_entry("do_renumber_dofs", "true",
                       dealii::Patterns::Bool(),
                       "Flag for renumbering DOFs using Cuthill-McKee renumbering. True by default. Set to false if doing 3D unsteady flow simulations.");
+
+    prm.declare_entry("renumber_dofs_type", "CuthillMckee",
+                      dealii::Patterns::Selection(
+                      "CuthillMckee"),
+                      "Renumber the dof handler type. Currently the only choice is Cuthill-Mckee.");
 
     prm.declare_entry("matching_surface_jac_det_tolerance", "1.3e-11",
                       dealii::Patterns::Double(0, dealii::Patterns::Double::max_double_value),
@@ -342,6 +370,7 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     else if (test_string == "advection_periodicity")                    { test_type = advection_periodicity; }
     else if (test_string == "convection_diffusion_periodicity")         { test_type = convection_diffusion_periodicity; }
     else if (test_string == "euler_split_taylor_green")                 { test_type = euler_split_taylor_green; }
+    else if (test_string == "taylor_green_scaling")                     { test_type = taylor_green_scaling; }
     else if (test_string == "euler_bump_optimization")                  { test_type = euler_bump_optimization; }
     else if (test_string == "euler_naca_optimization")                  { test_type = euler_naca_optimization; }
     else if (test_string == "shock_1d")                                 { test_type = shock_1d; }
@@ -385,6 +414,8 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     if (two_point_num_flux_string == "Ra") { two_point_num_flux_type = TwoPointNumericalFlux::Ra; }
 
     use_curvilinear_split_form = prm.get_bool("use_curvilinear_split_form");
+    use_curvilinear_grid = prm.get_bool("use_curvilinear_grid");
+    store_residual_cpu_time = prm.get_bool("store_residual_cpu_time");
     use_weight_adjusted_mass = prm.get_bool("use_weight_adjusted_mass");
     use_periodic_bc = prm.get_bool("use_periodic_bc");
     use_energy = prm.get_bool("use_energy");
@@ -393,6 +424,10 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     sipg_penalty_factor = prm.get_double("sipg_penalty_factor");
     use_invariant_curl_form = prm.get_bool("use_invariant_curl_form");
     use_inverse_mass_on_the_fly = prm.get_bool("use_inverse_mass_on_the_fly");
+    check_valid_metric_Jacobian = prm.get_bool("check_valid_metric_Jacobian");
+    if(!use_weak_form){
+        check_valid_metric_Jacobian = false;
+    }
 
     energy_file = prm.get("energy_file");
 
@@ -433,13 +468,19 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     if (flux_reconstruction_aux_string == "kPlus")       { flux_reconstruction_aux_type = kPlus; }
     if (flux_reconstruction_aux_string == "k10Thousand") { flux_reconstruction_aux_type = k10Thousand; }
 
+    const std::string non_physical_behavior_string = prm.get("non_physical_behavior");
+    if (non_physical_behavior_string == "return_big_number") { non_physical_behavior_type = NonPhysicalBehaviorEnum::return_big_number;}
+    if (non_physical_behavior_string == "abort_run")         { non_physical_behavior_type = NonPhysicalBehaviorEnum::abort_run;}
+    if (non_physical_behavior_string == "print_warning")     { non_physical_behavior_type = NonPhysicalBehaviorEnum::print_warning;}
+
     solution_vtk_files_directory_name = prm.get("solution_vtk_files_directory_name");
     output_high_order_grid = prm.get_bool("output_high_order_grid");
     enable_higher_order_vtk_output = prm.get_bool("enable_higher_order_vtk_output");
     output_face_results_vtk = prm.get_bool("output_face_results_vtk");
     do_renumber_dofs = prm.get_bool("do_renumber_dofs");
 
-    output_high_order_grid = prm.get_bool("output_high_order_grid");
+    const std::string renumber_dofs_type_string = prm.get("renumber_dofs_type");
+    if (renumber_dofs_type_string == "CuthillMckee") { renumber_dofs_type = RenumberDofsType::CuthillMckee; }
 
     matching_surface_jac_det_tolerance = prm.get_double("matching_surface_jac_det_tolerance");
 

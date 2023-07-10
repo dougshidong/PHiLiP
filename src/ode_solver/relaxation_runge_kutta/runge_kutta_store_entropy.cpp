@@ -52,9 +52,6 @@ dealii::LinearAlgebra::distributed::Vector<double> RKNumEntropy<dim,real,n_rk_st
     dealii::LinearAlgebra::distributed::Vector<double> entropy_var_hat_global(this->dg->right_hand_side);
     std::vector<dealii::types::global_dof_index> dofs_indices (n_dofs_cell);
 
-    std::shared_ptr< Physics::Euler<dim,dim+2,double> > euler_physics = std::dynamic_pointer_cast<Physics::Euler<dim,dim+2,double>>(
-                Physics::PhysicsFactory<dim,dim+2,double>::create_Physics(this->dg->all_parameters));
-
     for (auto cell = this->dg->dof_handler.begin_active(); cell!=this->dg->dof_handler.end(); ++cell) {
         if (!cell->is_locally_owned()) continue;
         cell->get_dof_indices (dofs_indices);
@@ -81,7 +78,7 @@ dealii::LinearAlgebra::distributed::Vector<double> RKNumEntropy<dim,real,n_rk_st
                 soln_state[istate] = soln_at_q[istate][iquad];
             }
 
-            std::array<double,nstate> entropy_var = euler_physics->compute_entropy_variables(soln_state);
+            std::array<double,nstate> entropy_var = this->euler_physics->compute_entropy_variables(soln_state);
 
             for(unsigned int istate=0; istate<nstate; istate++){
                 if(iquad==0)

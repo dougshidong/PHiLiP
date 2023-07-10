@@ -549,8 +549,9 @@ void PeriodicTurbulence<dim, nstate>::compute_and_update_integrated_quantities(D
             }
         }
     }
-    this->maximum_local_wave_speed = dealii::Utilities::MPI::max(this->maximum_local_wave_speed, this->mpi_communicator);
-
+    if(this->all_param.flow_solver_param.adaptive_time_step == true) {
+        this->maximum_local_wave_speed = dealii::Utilities::MPI::max(this->maximum_local_wave_speed, this->mpi_communicator);
+    }
     // update integrated quantities
     for(int i_quantity=0; i_quantity<NUMBER_OF_INTEGRATED_QUANTITIES; ++i_quantity) {
         this->integrated_quantities[i_quantity] = dealii::Utilities::MPI::sum(integral_values[i_quantity], this->mpi_communicator);

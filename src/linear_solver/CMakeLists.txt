@@ -1,6 +1,7 @@
 set(SOURCE
     linear_solver.cpp
-    )
+    NNLS_solver.cpp
+	)
 
 # Output library
 string(CONCAT LinearSolverLib LinearSolver)

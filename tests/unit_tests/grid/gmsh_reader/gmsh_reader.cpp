@@ -20,17 +20,16 @@ int main (int argc, char * argv[])
        if (s.rfind("--input=", 0) == 0) {
            filename = s.substr(std::string("--input=").length());
            std::ifstream f(filename);
-           std::cout << "File " << filename;
+           std::cout << "iproc = " << mpi_rank << " : File " << filename;
            if (f.good()) std::cout << " exists" << std::endl;
            else std::cout << " not found" << std::endl;
            }
        else {
-           std::cout << "Unknown: " << s << std::endl;
+           std::cout << "iproc = " << mpi_rank << " : Unknown: " << s << std::endl;
        }
     }
 
     const bool do_renumber_dofs = true;
-    std::cout << "Hello World" << std::endl;
     std::shared_ptr< HighOrderGrid<dim, double> > high_order_grid = read_gmsh <dim, dim> (filename,do_renumber_dofs);
 
     dealii::GridOut gridout;

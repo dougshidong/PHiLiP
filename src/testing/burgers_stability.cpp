@@ -171,7 +171,7 @@ int BurgersEnergyStability<dim, nstate>::run_test() const
         // double delta_x = (right-left)/pow(n_dofs_cfl,(1.0/dim)); 
         // all_parameters_new.ode_solver_param.initial_time_step =  0.5*delta_x;
         //use 0.0001 to be consisitent with Ranocha and Gassner papers
-        all_parameters_new.ode_solver_param.initial_time_step =  0.0001;
+        // all_parameters_new.ode_solver_param.initial_time_step =  0.0001;
         all_parameters_new.FR_user_specified_correction_parameter_value = c_value;
         std::cout << "c ESFR " <<all_parameters_new.FR_user_specified_correction_parameter_value <<  std::endl;
         //allocate dg

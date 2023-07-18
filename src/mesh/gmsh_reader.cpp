@@ -1720,7 +1720,7 @@ read_gmsh(std::string filename,
         dof_handler_equidistant.initialize(*triangulation, fe_system_equidistant);
         dof_handler_equidistant.distribute_dofs(fe_system_equidistant);
 
-        if(do_renumber_dofs) dealii::DoFRenumbering::Cuthill_McKee(dof_handler_equidistant,true);
+        if(do_renumber_dofs) dealii::DoFRenumbering::Cuthill_McKee(dof_handler_equidistant);
 
         auto equidistant_nodes = high_order_grid->volume_nodes;
         equidistant_nodes.update_ghost_values();
@@ -1773,7 +1773,7 @@ read_gmsh(std::string filename,
             dof_handler_equidistant.initialize(*triangulation, fe_system_equidistant);
             dof_handler_equidistant.distribute_dofs(fe_system_equidistant);
 
-            if(do_renumber_dofs) dealii::DoFRenumbering::Cuthill_McKee(dof_handler_equidistant,true);
+            if(do_renumber_dofs) dealii::DoFRenumbering::Cuthill_McKee(dof_handler_equidistant);
 
             auto equidistant_nodes = high_order_grid->volume_nodes;
             equidistant_nodes.update_ghost_values();

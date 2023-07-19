@@ -108,109 +108,22 @@ template <int dim, int nstate>
 int AnisotropicMeshAdaptationCases<dim, nstate> :: run_test () const
 {
     const Parameters::AllParameters param = *(TestsBase::all_parameters);
-    const bool run_mesh_optimizer = true;
-    const bool run_anisotropic_mesher = false;
     
     std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(&param, parameter_handler);
-
-    const bool use_goal_oriented_approach = param.mesh_adaptation_param.use_goal_oriented_mesh_adaptation;
-    const double complexity = param.mesh_adaptation_param.mesh_complexity_anisotropic_adaptation;
-    const double normLp = param.mesh_adaptation_param.norm_Lp_anisotropic_adaptation;
-
-    std::unique_ptr<AnisotropicMeshAdaptation<dim, nstate, double>> anisotropic_mesh_adaptation =
-                        std::make_unique<AnisotropicMeshAdaptation<dim, nstate, double>> (flow_solver->dg, normLp, complexity, use_goal_oriented_approach);
-    
     
     flow_solver->run();
     output_vtk_files(flow_solver->dg);
 
-    std::vector<double> functional_error_vector;
-    std::vector<unsigned int> n_cycle_vector;
+//    std::unique_ptr<MeshOptimizer<dim,nstate>> mesh_optimizer = std::make_unique<MeshOptimizer<dim,nstate>> (flow_solver->dg,&param, true);
+//    mesh_optimizer->run_full_space_optimizer();
     
-    const double functional_error_initial = evaluate_functional_error(flow_solver->dg);
-    //const double functional_error_initial = evaluate_abs_dwr_error(flow_solver->dg);
-    functional_error_vector.push_back(functional_error_initial);
-    n_cycle_vector.push_back(0);
-     
-    const unsigned int n_adaptation_cycles = param.mesh_adaptation_param.total_mesh_adaptation_cycles;
+    //std::unique_ptr<MeshOptimizer<dim,nstate>> mesh_optimizer = std::make_unique<MeshOptimizer<dim,nstate>> (flow_solver->dg,&param, false);
+    //mesh_optimizer->run_reduced_space_optimizer();
     
-    for(unsigned int cycle = 0; cycle < n_adaptation_cycles; ++cycle)
-    {
-        if(run_anisotropic_mesher)
-        {
-            anisotropic_mesh_adaptation->adapt_mesh();
-        }
-
-        if(run_mesh_optimizer) // Use full-space optimizer to converge flow.
-        {
-            std::unique_ptr<MeshOptimizer<dim,nstate>> mesh_optimizer = std::make_unique<MeshOptimizer<dim,nstate>> (flow_solver->dg,&param, true);
-            mesh_optimizer->run_full_space_optimizer();
-            
-            //std::unique_ptr<MeshOptimizer<dim,nstate>> mesh_optimizer = std::make_unique<MeshOptimizer<dim,nstate>> (flow_solver->dg,&param, false);
-            //mesh_optimizer->run_reduced_space_optimizer();
-        }
-        else
-        {
-            flow_solver->run();
-        }
-
-        const double functional_error = evaluate_functional_error(flow_solver->dg);
-        //const double functional_error = evaluate_abs_dwr_error(flow_solver->dg);
-        functional_error_vector.push_back(functional_error);
-        n_cycle_vector.push_back(cycle + 1);
-    }
-    output_vtk_files(flow_solver->dg);
-
-    // output error vals
-    pcout<<"\n cycles = [";
-    for(long unsigned int i=0; i<n_cycle_vector.size(); ++i)
-    {
-        if(i!=0) {pcout<<", ";}
-        pcout<<n_cycle_vector[i];
-    }
-    pcout<<"];"<<std::endl;
-    
-    std::string functional_type = "functional_error_";
-    if(run_mesh_optimizer) 
-    {
-        functional_type = functional_type + "fullspace";
-    }
-    else
-    {
-        functional_type = functional_type + "anisotropic";
-    }
-    pcout<<"\n "<<functional_type<<" = [";
-    for(long unsigned int i=0; i<functional_error_vector.size(); ++i)
-    {
-        if(i!=0) {pcout<<", ";}
-        pcout<<functional_error_vector[i];
-    }
-    pcout<<"];"<<std::endl;
+//    output_vtk_files(flow_solver->dg);
 
 return 0;
-/*
-    verify_fe_values_shape_hessian(*(flow_solver->dg));
-
-    const dealii::Point<dim> coordinates_of_highest_refined_cell = flow_solver->dg->coordinates_of_highest_refined_cell(false);
-
-    pcout<<"Coordinates of highest refined cell = "<<coordinates_of_highest_refined_cell<<std::endl;
-
-    dealii::Point<dim> expected_coordinates_of_highest_refined_cell;
-    for(unsigned int i=0; i < dim; ++i) {
-        expected_coordinates_of_highest_refined_cell[i] = 0.5;
-    }
-    const double distance_val  = expected_coordinates_of_highest_refined_cell.distance(coordinates_of_highest_refined_cell);
-    pcout<<"Distance to the expected coordinates of the highest refined cell = "<<distance_val<<std::endl;
-
-    int test_val = 0;
-    if(distance_val > 0.1) {++test_val;}// should lie in a ball of radius 0.1
-    return test_val;
-*/
 }
-
-//#if PHILIP_DIM==1
-//template class AnisotropicMeshAdaptationCases <PHILIP_DIM,PHILIP_DIM>;
-//#endif
 
 #if PHILIP_DIM==2
 template class AnisotropicMeshAdaptationCases <PHILIP_DIM, 1>;

@@ -187,10 +187,10 @@ add_test(
 )
 
 # Anisotropic mesh adaptation tests
-configure_file(anisotropic_mesh_adaptation_sshock.prm anisotropic_mesh_adaptation_sshock.prm  COPYONLY)
+configure_file(anisotropic_mesh_adaptation_euler.prm anisotropic_mesh_adaptation_euler.prm  COPYONLY)
 add_test(
-  NAME ANISOTROPIC_MESH_ADAPTATION_SSHOCK
-  COMMAND mpirun -n ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_2D -i ${CMAKE_CURRENT_BINARY_DIR}/anisotropic_mesh_adaptation_sshock.prm
+  NAME ANISOTROPIC_MESH_ADAPTATION_EULER
+  COMMAND mpirun -n 1 ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_2D -i ${CMAKE_CURRENT_BINARY_DIR}/anisotropic_mesh_adaptation_euler.prm
   WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )
 

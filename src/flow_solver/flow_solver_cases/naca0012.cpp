@@ -56,45 +56,11 @@ std::shared_ptr<Triangulation> NACA0012<dim,nstate>::generate_grid() const
 #endif
     );
     dealii::GridGenerator::Airfoil::AdditionalData airfoil_data;
-    airfoil_data.airfoil_type = "NACA";
-    airfoil_data.naca_id = "0012";
-    airfoil_data.airfoil_length = 1.0;
-    const double farfield_length = 500.0;
-    airfoil_data.height = farfield_length;
-    airfoil_data.length_b2  = farfield_length;
-    airfoil_data.n_subdivision_x_0 = 2; // in front of leading edge.
-    airfoil_data.n_subdivision_x_1 = 1; // between top of the airfoil and trailing edge.
-    airfoil_data.n_subdivision_x_2 = 2; // vertical division behind trailing edge.
-    airfoil_data.n_subdivision_y = 3; // horizontal division of cmesh.
-    airfoil_data.refinements = 3;
-    airfoil_data.bias_factor = 4;
-    airfoil_data.airfoil_sampling_factor = 4;
-
     dealii::GridGenerator::Airfoil::create_triangulation(*grid, airfoil_data);
-    
-    // Set boundary type and design type
-    for (typename dealii::parallel::distributed::Triangulation<2>::active_cell_iterator cell = grid->begin_active(); cell != grid->end(); ++cell) 
-    {
-        if(! cell->is_locally_owned()) {continue;}
-        for (unsigned int face=0; face<dealii::GeometryInfo<2>::faces_per_cell; ++face) 
-        {
-            if (cell->face(face)->at_boundary()) 
-            {
-                unsigned int current_id = cell->face(face)->boundary_id();
-                if (current_id == 0 || current_id == 1 || current_id == 4 || current_id == 5) 
-                {
-                    cell->face(face)->set_boundary_id (1004); // farfield
-                } 
-                else 
-                {
-                    cell->face(face)->set_boundary_id (1001); // wall bc
-                }
-            }
-        }
-    }
+    grid->refine_global();
     return grid;
 }
-/*
+
 template <int dim, int nstate>
 void NACA0012<dim,nstate>::set_higher_order_grid(std::shared_ptr<DGBase<dim, double>> dg) const
 {
@@ -106,7 +72,7 @@ void NACA0012<dim,nstate>::set_higher_order_grid(std::shared_ptr<DGBase<dim, dou
         dg->high_order_grid->refine_global();
     }
 }
-*/
+
 template <int dim, int nstate>
 void NACA0012<dim,nstate>::steady_state_postprocessing(std::shared_ptr<DGBase<dim, double>> dg) const
 {

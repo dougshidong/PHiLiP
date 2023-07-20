@@ -95,7 +95,7 @@ The deal.II library has been setup with the following options:
 
 This section is aimed at McGill's group who use the Compute Canada (CC) clusters.
 
-If you have just cloned the code onto the cluster, **you must copy the large mesh files** that cannot be stored on GitHub, this can be done by explicitly running the following:
+If you have just cloned the code onto the cluster, **you must copy the large mesh and flow initialization files** that cannot be stored on GitHub, this can be done by explicitly running the following:
 ~~~~
 chmod +x get_gmsh_mesh_files_cluster.sh
 ./get_gmsh_mesh_files_cluster.sh

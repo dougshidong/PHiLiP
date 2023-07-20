@@ -144,7 +144,7 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                               dealii::Patterns::Bool(),
                               "Flag for verbose (true) or quiet (false) mesh reader output.");
 
-            prm.enter_subsection("boundary_IDs");
+            prm.enter_subsection("gmsh_boundary_IDs");
             {
 
                 prm.declare_entry("use_periodic_BC_in_x", "false",
@@ -349,7 +349,7 @@ void FlowSolverParam::parse_parameters(dealii::ParameterHandler &prm)
             use_gmsh_mesh = prm.get_bool("use_gmsh_mesh");
             mesh_reader_verbose_output = prm.get_bool("mesh_reader_verbose_output");
 
-            prm.enter_subsection("boundary_IDs");
+            prm.enter_subsection("gmsh_boundary_IDs");
             {
                 use_periodic_BC_in_x = prm.get_bool("use_periodic_BC_in_x");
                 use_periodic_BC_in_y = prm.get_bool("use_periodic_BC_in_y");

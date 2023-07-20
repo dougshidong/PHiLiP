@@ -50,7 +50,7 @@ subsection flow_solver
     set number_of_grid_elements_per_dimension = 4
     set input_mesh_filename = ../../meshes/3d_cube_periodic
     set use_gmsh_mesh = true
-    subsection boundary_IDs
+    subsection gmsh_boundary_IDs
       set use_periodic_BC_in_x = true
       set use_periodic_BC_in_y = true
       set use_periodic_BC_in_z = true

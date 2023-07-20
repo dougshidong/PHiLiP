@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <iostream>
 #include "mesh/grids/straight_periodic_cube.hpp"
+#include "mesh/gmsh_reader.hpp"
 
 namespace PHiLiP {
 
@@ -23,14 +24,44 @@ PeriodicCubeFlow<dim, nstate>::PeriodicCubeFlow(const PHiLiP::Parameters::AllPar
 template <int dim, int nstate>
 std::shared_ptr<Triangulation> PeriodicCubeFlow<dim,nstate>::generate_grid() const
 {
-    std::shared_ptr<Triangulation> grid = std::make_shared<Triangulation> (
+    if(this->all_param.flow_solver_param.use_gmsh_mesh) {
+        if constexpr(dim == 3) {
+            const std::string mesh_filename = this->all_param.flow_solver_param.input_mesh_filename + std::string(".msh");
+            this->pcout << "- Generating grid using input mesh: " << mesh_filename << std::endl;
+            
+            std::shared_ptr <HighOrderGrid<dim, double>> cube_mesh = read_gmsh<dim, dim>(
+                mesh_filename, 
+                this->all_param.flow_solver_param.use_periodic_BC_in_x, 
+                this->all_param.flow_solver_param.use_periodic_BC_in_y, 
+                this->all_param.flow_solver_param.use_periodic_BC_in_z, 
+                this->all_param.flow_solver_param.x_periodic_id_face_1, 
+                this->all_param.flow_solver_param.x_periodic_id_face_2, 
+                this->all_param.flow_solver_param.y_periodic_id_face_1, 
+                this->all_param.flow_solver_param.y_periodic_id_face_2, 
+                this->all_param.flow_solver_param.z_periodic_id_face_1, 
+                this->all_param.flow_solver_param.z_periodic_id_face_2,
+                this->all_param.flow_solver_param.mesh_reader_verbose_output,
+                this->all_param.do_renumber_dofs);
+
+            return cube_mesh->triangulation;
+        } 
+        else {
+            this->pcout << "ERROR: read_gmsh() has not been tested with periodic_cube_flow() for 1D and 2D. Aborting..." << std::endl;
+            std::abort();
+        }
+    } else {
+        this->pcout << "- Generating grid using dealii GridGenerator" << std::endl;
+        
+        std::shared_ptr<Triangulation> grid = std::make_shared<Triangulation> (
 #if PHILIP_DIM!=1
             this->mpi_communicator
 #endif
-    );
-    Grids::straight_periodic_cube<dim,Triangulation>(grid, domain_left, domain_right, number_of_cells_per_direction);
-
-    return grid;
+        );
+        
+        Grids::straight_periodic_cube<dim, Triangulation>(grid, domain_left, domain_right,
+                                                          number_of_cells_per_direction);
+        return grid;
+    }
 }
 
 template <int dim, int nstate>

@@ -1033,7 +1033,7 @@ read_gmsh(std::string filename, int requested_grid_order, const bool use_mesh_sm
     triangulation->repartition();
 
     dealii::GridOut gridout;
-    gridout.write_mesh_per_processor_as_vtu(*(high_order_grid->triangulation), "tria");
+    // gridout.write_mesh_per_processor_as_vtu(*(high_order_grid->triangulation), "tria");
   
     // in 1d, we also have to attach boundary ids to vertices, which does not
     // currently work through the call above
@@ -1204,7 +1204,7 @@ read_gmsh(std::string filename, int requested_grid_order, const bool use_mesh_sm
 
     high_order_grid->update_surface_nodes();
     high_order_grid->update_mapping_fe_field();
-    high_order_grid->output_results_vtk(9999);
+    // high_order_grid->output_results_vtk(9999);
     high_order_grid->reset_initial_nodes();
     
     //return high_order_grid;
@@ -1238,7 +1238,7 @@ read_gmsh(std::string filename, int requested_grid_order, const bool use_mesh_sm
         }
         grid->update_surface_nodes();
         grid->update_mapping_fe_field();
-        grid->output_results_vtk(9999);
+        // grid->output_results_vtk(9999);
         grid->reset_initial_nodes();
 
         return grid;

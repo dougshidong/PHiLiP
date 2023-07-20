@@ -22,6 +22,7 @@
 #include "parameters/parameters_mesh_adaptation.h"
 #include "parameters/parameters_functional.h"
 #include "parameters/parameters_time_refinement_study.h"
+#include "parameters/parameters_potential_source.h"
 
 namespace PHiLiP {
 namespace Parameters {
@@ -61,6 +62,9 @@ public:
     FunctionalParam functional_param;
     /// Contains the parameters for time refinement study
     TimeRefinementStudyParam time_refinement_study_param;
+    // Contains parameters for trailing edge serration geometry (potential source)
+    PotentialSourceParam potential_source_param;
+
 
     /// Number of dimensions. Note that it has to match the executable PHiLiP_xD
     unsigned int dimension;

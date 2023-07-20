@@ -21,6 +21,7 @@ AllParameters::AllParameters ()
     , mesh_adaptation_param(MeshAdaptationParam())
     , functional_param(FunctionalParam())
     , time_refinement_study_param(TimeRefinementStudyParam())
+    , potential_source_param(PotentialSourceParam())
     , pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD)==0)
 { }
 
@@ -330,6 +331,7 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
     Parameters::FlowSolverParam::declare_parameters (prm);
     Parameters::FunctionalParam::declare_parameters (prm);
     Parameters::TimeRefinementStudyParam::declare_parameters (prm);
+    Parameters::PotentialSourceParam::declare_parameters (prm);
 
     pcout << "Done declaring inputs." << std::endl;
 }
@@ -518,6 +520,9 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     pcout << "Parsing functional subsection..." << std::endl;
     functional_param.parse_parameters (prm);
 
+    pcout << "Parsing potential source subsection..." << std::endl;
+    potential_source_param.parse_parameters (prm);
+
     // WARNING: Must assign model_type before pde_type
     const std::string model_string = prm.get("model_type");
     if (model_string == "large_eddy_simulation") { model_type = large_eddy_simulation; }
@@ -548,8 +553,7 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     } else if (pde_string == "euler") {
         pde_type = euler;
         nstate = dimension+2;
-    }
-    else if (pde_string == "navier_stokes") {
+    } else if (pde_string == "navier_stokes") {
         pde_type = navier_stokes;
         nstate = dimension+2;
     }

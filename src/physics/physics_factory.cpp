@@ -139,6 +139,12 @@ PhysicsFactory<dim,nstate,real>
                 manufactured_solution_function,
                 parameters_input->two_point_num_flux_type);
         }
+    } else if (pde_type == PDE_enum::inviscid_real_gas) {
+        if constexpr (nstate==dim+2) {
+            return std::make_shared < InviscidRealGas<dim,nstate,real> > (
+                parameters_input,
+                manufactured_solution_function);
+        }
     } else if (pde_type == PDE_enum::physics_model) {
         if constexpr (nstate>=dim+2) {
             return create_Physics_Model(parameters_input,

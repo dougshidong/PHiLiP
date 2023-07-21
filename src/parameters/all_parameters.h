@@ -209,6 +209,7 @@ public:
         euler,
         mhd,
         navier_stokes,
+        inviscid_real_gas,
         physics_model,
     };
     /// Store the PDE type to be solved

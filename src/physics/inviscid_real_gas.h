@@ -27,9 +27,7 @@ public:
     /// Constructor
     InviscidRealGas ( 
         const Parameters::AllParameters *const                    parameters_input,
-        const double                                              mach_inf,
         std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function = nullptr,
-        const two_point_num_flux_enum                             two_point_num_flux_type = two_point_num_flux_enum::KG,
         const bool                                                has_nonzero_diffusion = false,
         const bool                                                has_nonzero_physical_source = false);
 
@@ -43,6 +41,14 @@ public:
     /// Convective flux: \f$ \mathbf{F}_{conv} \f$
     std::array<dealii::Tensor<1,dim,real>,nstate> convective_flux (
         const std::array<real,nstate> &conservative_soln) const;
+
+     /// Computes the entropy variables.
+    std::array<real,nstate> compute_entropy_variables (
+                const std::array<real,nstate> &conservative_soln) const;
+
+    /// Computes the conservative variables from the entropy variables.
+    std::array<real,nstate> compute_conservative_variables_from_entropy_variables (
+                const std::array<real,nstate> &entropy_var) const;
 
     /// Spectral radius of convective term Jacobian is 'c'
     std::array<real,nstate> convective_eigenvalues (

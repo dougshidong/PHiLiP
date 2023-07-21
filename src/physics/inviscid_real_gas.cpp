@@ -13,15 +13,13 @@ namespace Physics {
 template <int dim, int nstate, typename real>
 InviscidRealGas<dim,nstate,real>::InviscidRealGas ( 
     const Parameters::AllParameters *const                    parameters_input,
-    const double                                              mach_inf,
     std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function,
-    const two_point_num_flux_enum                             two_point_num_flux_type_input,
     const bool                                                has_nonzero_diffusion,
     const bool                                                has_nonzero_physical_source)
     : PhysicsBase<dim,nstate,real>(parameters_input, has_nonzero_diffusion,has_nonzero_physical_source,manufactured_solution_function)
-    , mach_inf(mach_inf)
+    , mach_inf(parameters_input->euler_param.mach_inf)
     , mach_inf_sqr(mach_inf*mach_inf)
-    , two_point_num_flux_type(two_point_num_flux_type_input)
+    , two_point_num_flux_type(parameters_input->two_point_num_flux_type)
 {
     static_assert(nstate==dim+2, "Physics::InviscidRealGas() should be created with nstate=dim+2"); // TO DO: UPDATE THIS with nspecies
 }
@@ -45,6 +43,26 @@ std::array<dealii::Tensor<1,dim,real>,nstate> InviscidRealGas<dim,nstate,real>
         // TO DO: now loop over nspecies
     }
     return conv_flux;
+}
+
+template <int dim, int nstate, typename real>
+std::array<real,nstate> InviscidRealGas<dim, nstate, real>
+::compute_entropy_variables (
+    const std::array<real,nstate> &conservative_soln) const
+{
+    std::cout<<"Entropy variables for InviscidRealGas hasn't been done yet."<<std::endl;
+    std::abort();
+    return conservative_soln;
+}
+
+template <int dim, int nstate, typename real>
+std::array<real,nstate> InviscidRealGas<dim, nstate, real>
+::compute_conservative_variables_from_entropy_variables (
+    const std::array<real,nstate> &entropy_var) const
+{
+    std::cout<<"Entropy variables for InviscidRealGas hasn't been done yet."<<std::endl;
+    std::abort();
+    return entropy_var;
 }
 
 template <int dim, int nstate, typename real>

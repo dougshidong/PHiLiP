@@ -232,6 +232,7 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       " euler |"
                       " mhd |"
                       " navier_stokes |"
+                      " inviscid_real_gas | "
                       " physics_model"),
                       "The PDE we want to solve. "
                       "Choices are " 
@@ -245,6 +246,7 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       "  euler | "
                       "  mhd |"
                       "  navier_stokes |"
+                      "  inviscid_real_gas | "
                       "  physics_model>.");
 
     prm.declare_entry("model_type", "large_eddy_simulation",
@@ -557,6 +559,11 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     else if (pde_string == "navier_stokes") {
         pde_type = navier_stokes;
         nstate = dimension+2;
+    }
+    else if(pde_string == "inviscid_real_gas") {
+        pde_type = inviscid_real_gas;
+        nstate = dimension+2;
+        // TO DO: change this when considering multispecies
     }
     else if (pde_string == "physics_model") {
         pde_type = physics_model;

@@ -15,6 +15,7 @@
 #include "mhd.h"
 #include "navier_stokes.h"
 #include "physics_model.h"
+#include "inviscid_real_gas.h"
 
 namespace PHiLiP {
 namespace Physics {

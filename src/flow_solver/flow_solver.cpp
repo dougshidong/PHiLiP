@@ -437,8 +437,12 @@ int FlowSolver<dim,nstate>::run() const
         //----------------------------------------------------
 #if PHILIP_DIM>1
         double current_desired_time_for_output_restart_files_every_dt_time_intervals = ode_solver->current_time; // when used, same as the initial time
-        while(current_desired_time_for_output_restart_files_every_dt_time_intervals <= ode_solver->current_time) {
-            current_desired_time_for_output_restart_files_every_dt_time_intervals += flow_solver_param.output_restart_files_every_dt_time_intervals;
+        if(flow_solver_param.output_restart_files == true) {
+            if(flow_solver_param.output_restart_files_every_dt_time_intervals > 0.0) {
+                while(current_desired_time_for_output_restart_files_every_dt_time_intervals <= ode_solver->current_time) {
+                    current_desired_time_for_output_restart_files_every_dt_time_intervals += flow_solver_param.output_restart_files_every_dt_time_intervals;
+                }
+            }
         }
 #endif
         //----------------------------------------------------

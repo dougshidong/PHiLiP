@@ -97,6 +97,11 @@ protected:
     /// Compute velocities from conservative_soln (use compute_density)
     template<typename real2>
     dealii::Tensor<1,dim,real2> compute_velocities ( const std::array<real2,nstate> &conservative_soln ) const;
+
+    /// Compute velocity_squared from conservative_soln (use compute velocity)
+    template<typename real2>
+    real2 compute_velocity_squared ( const dealii::Tensor<1,dim,real2> &velocities ) const;
+
 };
 
 } // Physics namespace

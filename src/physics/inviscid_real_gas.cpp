@@ -174,6 +174,19 @@ inline dealii::Tensor<1,dim,real2> InviscidRealGas<dim,nstate,real>
     return vel;
 }
 
+template <int dim, int nstate, typename real>
+template <typename real2>
+inline real2 InviscidRealGas<dim,nstate,real>
+::compute_velocity_squared ( const dealii::Tensor<1,dim,real2> &velocities ) const
+{
+    real2 vel2 = 0.0;
+    for (int d=0; d<dim; d++) { 
+        vel2 = vel2 + velocities[d]*velocities[d]; 
+    }    
+    
+    return vel2;
+}
+
 
 // Instantiate explicitly
 template class InviscidRealGas < PHILIP_DIM, PHILIP_DIM+2, double     >;

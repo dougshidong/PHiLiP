@@ -90,6 +90,10 @@ protected:
         const std::array<dealii::Tensor<1,dim,real>,nstate> &/*soln_grad_int*/,
         std::array<real,nstate> &/*soln_bc*/,
         std::array<dealii::Tensor<1,dim,real>,nstate> &/*soln_grad_bc*/) const;
+
+    /// Compute density from conservative_soln 
+    real compute_density ( const std::array<real,nstate> &conservative_soln ) const;
+
 };
 
 } // Physics namespace

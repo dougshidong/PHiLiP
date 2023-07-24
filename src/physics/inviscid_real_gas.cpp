@@ -155,6 +155,14 @@ void InviscidRealGas<dim,nstate,real>
     // TO DO: Update this you are using any kind of BC that is not periodic
 }
 
+template <int dim, int nstate, typename real>
+inline real InviscidRealGas<dim,nstate,real>
+:: compute_density ( const std::array<real,nstate> &conservative_soln ) const
+{
+    const real density = conservative_soln[0];
+    return density;
+}
+
 // Instantiate explicitly
 template class InviscidRealGas < PHILIP_DIM, PHILIP_DIM+2, double     >;
 template class InviscidRealGas < PHILIP_DIM, PHILIP_DIM+2, FadType    >;

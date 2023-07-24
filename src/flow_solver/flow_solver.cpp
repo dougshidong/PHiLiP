@@ -436,13 +436,17 @@ int FlowSolver<dim,nstate>::run() const
         // Initializing restart related variables
         //----------------------------------------------------
 #if PHILIP_DIM>1
-        double current_desired_time_for_output_restart_files_every_dt_time_intervals = ode_solver->current_time; // when used, same as the initial time
+        double current_desired_time_for_output_restart_files_every_dt_time_intervals = ode_solver->current_time;
+        unsigned int current_restart_file_number = 1;
         if(flow_solver_param.output_restart_files == true) {
             if(flow_solver_param.output_restart_files_every_dt_time_intervals > 0.0) {
                 while(current_desired_time_for_output_restart_files_every_dt_time_intervals <= ode_solver->current_time) {
                     current_desired_time_for_output_restart_files_every_dt_time_intervals += flow_solver_param.output_restart_files_every_dt_time_intervals;
                 }
             }
+        }
+        if(flow_solver_param.restart_computation_from_file == true) {
+            current_restart_file_number = flow_solver_param.restart_file_index + 1;
         }
 #endif
         //----------------------------------------------------
@@ -539,9 +543,9 @@ int FlowSolver<dim,nstate>::run() const
                                                  ((ode_solver->current_time + next_time_step) > current_desired_time_for_output_restart_files_every_dt_time_intervals)) 
                                                 || (ode_solver->current_time > current_desired_time_for_output_restart_files_every_dt_time_intervals);
                     if (is_output_time) {
-                        const unsigned int file_number = current_desired_time_for_output_restart_files_every_dt_time_intervals / flow_solver_param.output_restart_files_every_dt_time_intervals;
-                        output_restart_files(file_number, next_time_step, unsteady_data_table);
+                        output_restart_files(current_restart_file_number, next_time_step, unsteady_data_table);
                         current_desired_time_for_output_restart_files_every_dt_time_intervals += flow_solver_param.output_restart_files_every_dt_time_intervals;
+                        current_restart_file_number += 1;
                     }
                 } else /*if (flow_solver_param.output_restart_files_every_x_steps > 0)*/ {
                     const bool is_output_iteration = (ode_solver->current_iteration % flow_solver_param.output_restart_files_every_x_steps == 0);

@@ -121,6 +121,12 @@ public:
      **/
     bool check_same_coords_in_weak_dg;
 
+    /// Flag to renumber dof_handler with Cuthill Mckee.
+    bool renumber_dof_handler_Cuthill_Mckee;
+
+    /// Flag to use curvilinear grid.
+    bool use_curvilinear_grid;
+
     ///Flag to use an energy monotonicity test
     bool use_energy;
 
@@ -138,6 +144,9 @@ public:
 
     /// Flag to use inverse mass matrix on-the-fly for explicit solves.
     bool use_inverse_mass_on_the_fly;
+
+    /// Flag to check if the metric Jacobian is valid when high-order grid is constructed.
+    bool check_valid_metric_Jacobian;
 
     /// Energy file.
     std::string energy_file;
@@ -159,6 +168,7 @@ public:
         euler_vortex,
         euler_entropy_waves,
         euler_split_taylor_green,
+        taylor_green_scaling,
         burgers_split_form,
         optimization_inverse_manufactured,
         euler_bump_optimization,

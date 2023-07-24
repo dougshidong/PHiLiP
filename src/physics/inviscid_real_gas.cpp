@@ -163,6 +163,18 @@ inline real InviscidRealGas<dim,nstate,real>
     return density;
 }
 
+template <int dim, int nstate, typename real>
+template<typename real2>
+inline dealii::Tensor<1,dim,real2> InviscidRealGas<dim,nstate,real>
+::compute_velocities ( const std::array<real2,nstate> &conservative_soln ) const
+{
+    const real2 density = compute_density(conservative_soln);
+    dealii::Tensor<1,dim,real2> vel;
+    for (int d=0; d<dim; ++d) { vel[d] = conservative_soln[1+d]/density; }
+    return vel;
+}
+
+
 // Instantiate explicitly
 template class InviscidRealGas < PHILIP_DIM, PHILIP_DIM+2, double     >;
 template class InviscidRealGas < PHILIP_DIM, PHILIP_DIM+2, FadType    >;

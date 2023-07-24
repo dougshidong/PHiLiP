@@ -94,6 +94,9 @@ protected:
     /// Compute density from conservative_soln 
     real compute_density ( const std::array<real,nstate> &conservative_soln ) const;
 
+    /// Compute velocities from conservative_soln (use compute_density)
+    template<typename real2>
+    dealii::Tensor<1,dim,real2> compute_velocities ( const std::array<real2,nstate> &conservative_soln ) const;
 };
 
 } // Physics namespace

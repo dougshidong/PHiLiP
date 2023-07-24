@@ -34,7 +34,7 @@ add_test(
   COMMAND bash -c 
   "numprocs=1 ;
   numprocstimestwo=$(( $numprocs * 2 )) ;
-  while [[ $numprocstimestwo -le $MPIMAX ]];
+  while [[ $numprocstimestwo -le ${MPIMAX} ]];
   do 
     numprocs=$numprocstimestwo;
     numprocstimestwo=$(( $numprocs * 2 ));
@@ -54,7 +54,7 @@ add_test(
   return_val1=$? ;
   numprocs=1 ;
   numprocstimestwo=$(( $numprocs * 2 )) ;
-  while [[ $numprocstimestwo -le $MPIMAX ]];
+  while [[ $numprocstimestwo -le ${MPIMAX} ]];
   do 
     numprocs=$numprocstimestwo;
     numprocstimestwo=$(( $numprocs * 2 ));
@@ -106,7 +106,7 @@ add_test(
   COMMAND bash -c 
   "numprocs=1 ;
   numprocstimestwo=$(( $numprocs * 2 )) ;
-  while [[ $numprocstimestwo -le $MPIMAX ]];
+  while [[ $numprocstimestwo -le ${MPIMAX} ]];
   do 
     numprocs=$numprocstimestwo;
     numprocstimestwo=$(( $numprocs * 2 ));
@@ -126,7 +126,7 @@ add_test(
   return_val1=$? ;
   numprocs=1 ;
   numprocstimestwo=$(( $numprocs * 2 )) ;
-  while [[ $numprocstimestwo -le $MPIMAX ]];
+  while [[ $numprocstimestwo -le ${MPIMAX} ]];
   do 
     numprocs=$numprocstimestwo;
     numprocstimestwo=$(( $numprocs * 2 ));

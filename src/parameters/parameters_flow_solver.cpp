@@ -189,6 +189,9 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
             prm.declare_entry("do_calculate_numerical_entropy", "false",
                               dealii::Patterns::Bool(),
                               "Flag to calculate numerical entropy and write to file. By default, do not calculate.");
+            prm.declare_entry("check_nonphysical_flow_case_behavior", "false",
+                              dealii::Patterns::Bool(),
+                              "Flag to check if non-physical case dependant behaviour is encounted. By default, false.");
         }
         prm.leave_subsection();
 
@@ -378,6 +381,7 @@ void FlowSolverParam::parse_parameters(dealii::ParameterHandler &prm)
             if      (density_initial_condition_type_string == "uniform")    {density_initial_condition_type = uniform;}
             else if (density_initial_condition_type_string == "isothermal") {density_initial_condition_type = isothermal;}
             do_calculate_numerical_entropy = prm.get_bool("do_calculate_numerical_entropy");
+            check_nonphysical_flow_case_behavior = prm.get_bool("check_nonphysical_flow_case_behavior");
         }
         prm.leave_subsection();
 

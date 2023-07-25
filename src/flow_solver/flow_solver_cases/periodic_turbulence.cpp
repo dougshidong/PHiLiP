@@ -53,6 +53,9 @@ PeriodicTurbulence<dim, nstate>::PeriodicTurbulence(const PHiLiP::Parameters::Al
      */
     std::fill(this->integrated_quantities.begin(), this->integrated_quantities.end(), NAN);
 
+    // Initialize the integrated kinetic energy as NAN
+    this->integrated_kinetic_energy_at_previous_time_step = NAN;
+
     /// For outputting velocity field
     if(output_velocity_field_at_fixed_times && (number_of_times_to_output_velocity_field > 0)) {
         exact_output_times_of_velocity_field_files_table = std::make_shared<dealii::TableHandler>();
@@ -556,6 +559,17 @@ void PeriodicTurbulence<dim, nstate>::compute_and_update_integrated_quantities(D
     for(int i_quantity=0; i_quantity<NUMBER_OF_INTEGRATED_QUANTITIES; ++i_quantity) {
         this->integrated_quantities[i_quantity] = dealii::Utilities::MPI::sum(integral_values[i_quantity], this->mpi_communicator);
         this->integrated_quantities[i_quantity] /= this->domain_size; // divide by total domain volume
+    }
+    // check for case dependant non-physical behavior
+    if(this->all_param.flow_solver_param.check_nonphysical_flow_case_behavior == true) {
+        if(this->get_integrated_kinetic_energy() > this->integrated_kinetic_energy_at_previous_time_step) {
+            this->pcout << " ERROR: Non-physical behaviour encountered in PeriodicTurbulence." << std::endl;
+            this->pcout << "        --> Integrated kinetic energy has increased from the last time step in a closed system without any external sources." << std::endl;
+            this->pcout << "        ==> Consider decreasing the time step / CFL number." << std::endl;
+            std::abort();
+        } else {
+            this->integrated_kinetic_energy_at_previous_time_step = this->get_integrated_kinetic_energy();
+        }
     }
 }
 

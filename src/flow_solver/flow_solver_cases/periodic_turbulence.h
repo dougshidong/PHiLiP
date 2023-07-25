@@ -144,6 +144,9 @@ protected:
     /// Array for storing the integrated quantities; done for computational efficiency
     std::array<double,NUMBER_OF_INTEGRATED_QUANTITIES> integrated_quantities;
 
+    /// Integrated kinetic energy over the domain at previous time step; used for ensuring a physically consistent simulation
+    double integrated_kinetic_energy_at_previous_time_step;
+
     /// Maximum local wave speed (i.e. convective eigenvalue)
     double maximum_local_wave_speed;
 

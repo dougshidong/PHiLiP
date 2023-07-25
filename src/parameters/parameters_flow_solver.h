@@ -93,6 +93,8 @@ public:
     DensityInitialConditionType density_initial_condition_type;
     /// For TGV, flag to calculate and write numerical entropy
     bool do_calculate_numerical_entropy;
+    /// For TGV, flag to check if non-physical case dependant behaviour is encounted
+    bool check_nonphysical_flow_case_behavior;
 
     double turbulent_channel_friction_velocity_reynolds_number; ///< For channel flow, channel Reynolds number based on wall friction velocity
     int turbulent_channel_number_of_cells_x_direction; ///< For channel flow, number of cells in x-direction

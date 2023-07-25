@@ -6,7 +6,7 @@ set use_weak_form = false
 
 set overintegration = 2
 
-set renumber_dof_handler_Cuthill_Mckee = false
+set do_renumber_dofs = false
 
 set flux_nodes_type = GL
 

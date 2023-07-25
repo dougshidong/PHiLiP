@@ -99,7 +99,7 @@ DGBase<dim,real,MeshType>::DGBase(
     , oneD_quadrature_collection(std::get<7>(collection_tuple))
     , oneD_face_quadrature(max_degree)
     , dof_handler(*triangulation, true)
-    , high_order_grid(std::make_shared<HighOrderGrid<dim,real,MeshType>>(grid_degree_input, triangulation, all_parameters->check_valid_metric_Jacobian, all_parameters->renumber_dof_handler_Cuthill_Mckee, all_parameters->output_high_order_grid))
+    , high_order_grid(std::make_shared<HighOrderGrid<dim,real,MeshType>>(grid_degree_input, triangulation, all_parameters->check_valid_metric_Jacobian, all_parameters->do_renumber_dofs, all_parameters->output_high_order_grid))
     , fe_q_artificial_dissipation(1)
     , dof_handler_artificial_dissipation(*triangulation, false)
     , mpi_communicator(MPI_COMM_WORLD)
@@ -1537,7 +1537,9 @@ void DGBase<dim,real,MeshType>::assemble_residual (const bool compute_dRdW, cons
         assemble_auxiliary_residual();
 
         dealii::Timer timer;
-        timer.start();
+        if(all_parameters->store_residual_cpu_time){
+            timer.start();
+        }
 
         auto metric_cell = high_order_grid->dof_handler_grid.begin_active();
         for (auto soln_cell = dof_handler.begin_active(); soln_cell != dof_handler.end(); ++soln_cell, ++metric_cell) {
@@ -1578,8 +1580,10 @@ void DGBase<dim,real,MeshType>::assemble_residual (const bool compute_dRdW, cons
                 auxiliary_right_hand_side);
         } // end of cell loop
 
-        timer.stop();
-        assemble_residual_time += timer.cpu_time();
+        if(all_parameters->store_residual_cpu_time){
+            timer.stop();
+            assemble_residual_time += timer.cpu_time();
+        }
     } catch(...) {
         assembly_error = 1;
     }
@@ -2197,7 +2201,8 @@ void DGBase<dim,real,MeshType>::allocate_system (
 
     dof_handler.distribute_dofs(fe_collection);
     //This Cuthill_McKee renumbering for dof_handlr uses a lot of memory in 3D, is there another way?
-    if(all_parameters->renumber_dof_handler_Cuthill_Mckee && all_parameters->do_renumber_dofs){
+    using RenumberDofsType = Parameters::AllParameters::RenumberDofsType;
+    if(all_parameters->do_renumber_dofs && all_parameters->renumber_dofs_type == RenumberDofsType::CuthillMckee ){
         dealii::DoFRenumbering::Cuthill_McKee(dof_handler,true);
     }
     //const bool reversed_numbering = true;
@@ -2879,7 +2884,9 @@ void DGBase<dim,real,MeshType>::apply_inverse_global_mass_matrix(
     }
 
     dealii::Timer timer;
-    timer.start();
+    if(all_parameters->store_residual_cpu_time){
+        timer.start();
+    }
 
     for (auto soln_cell = dof_handler.begin_active(); soln_cell != dof_handler.end(); ++soln_cell, ++metric_cell) {
         if (!soln_cell->is_locally_owned()) continue;
@@ -2996,8 +3003,10 @@ void DGBase<dim,real,MeshType>::apply_inverse_global_mass_matrix(
         }//end of state loop
     }//end of cell loop
 
-    timer.stop();
-    assemble_residual_time += timer.cpu_time();
+    if(all_parameters->store_residual_cpu_time){
+        timer.stop();
+        assemble_residual_time += timer.cpu_time();
+    }
 }
 
 template<int dim, typename real, typename MeshType>

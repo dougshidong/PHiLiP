@@ -646,7 +646,6 @@ public:
     void set_current_time(const real current_time_input);
 
     /// Computational time for assembling residual.
-   // clock_t assemble_residual_time;
     double assemble_residual_time;
 
 protected:

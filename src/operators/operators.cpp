@@ -937,8 +937,6 @@ void SumFactorizedOperators<dim,n_faces>::sum_factorized_Hadamard_surface_sparsi
     const int dim_not_zero)
 {
     //Note that for all directions, the rows vector should always be the same.
-//    const unsigned int n_rows = rows_size;
-//    const unsigned int n_col = columns_size;
     if constexpr(dim == 1){
         for(unsigned int irow=0; irow<rows_size; irow++){
             for(unsigned int icol=0; icol<columns_size; icol++){

@@ -8,7 +8,7 @@ set use_weak_form = false
 
 set flux_nodes_type = GL
 
-set renumber_dof_handler_Cuthill_Mckee = false
+set do_renumber_dofs = false
 
 set overintegration = 100
 
@@ -35,7 +35,9 @@ set use_inverse_mass_on_the_fly = true
 
 set use_weight_adjusted_mass = true
 
-set use_periodic_bc = true
+set store_residual_cpu_time = true
+
+set all_boundaries_are_periodic = true
 
 set use_classical_FR = false
 

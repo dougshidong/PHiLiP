@@ -109,6 +109,9 @@ public:
     /// Flag to use curvilinear metric split form.
     bool use_curvilinear_split_form;
 
+    /// Flag to store the residual local processor cput time.
+    bool store_residual_cpu_time;
+
     /// Flag to use weight-adjusted Mass Matrix for curvilinear elements.
     bool use_weight_adjusted_mass;
 
@@ -120,9 +123,6 @@ public:
         it currently does not consider that case and will print large warning messages.
      **/
     bool check_same_coords_in_weak_dg;
-
-    /// Flag to renumber dof_handler with Cuthill Mckee.
-    bool renumber_dof_handler_Cuthill_Mckee;
 
     /// Flag to use curvilinear grid.
     bool use_curvilinear_grid;
@@ -279,6 +279,10 @@ public:
 
     /// Flag for renumbering DOFs
     bool do_renumber_dofs;
+    /// Renumber dofs type.
+    enum RenumberDofsType { CuthillMckee };
+    /// Store selected RenumberDofsType from the input file.
+    RenumberDofsType renumber_dofs_type;
     
     /// Declare parameters that can be set as inputs and set up the default options
     /** This subroutine should call the sub-parameter classes static declare_parameters()

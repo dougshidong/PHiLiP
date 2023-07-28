@@ -106,6 +106,8 @@ public:
     // Quantities needed to be updated by DG for the model -- accomplished by DGBase update_model_variables()
     dealii::LinearAlgebra::distributed::Vector<int> cellwise_poly_degree; ///< Cellwise polynomial degree
     dealii::LinearAlgebra::distributed::Vector<double> cellwise_volume; ////< Cellwise element volume
+    dealii::LinearAlgebra::distributed::Vector<int> cellwise_geometry_condition; ////< Cellwise check if element within potential body
+
 
 protected:
     /// Evaluate the manufactured solution boundary conditions.

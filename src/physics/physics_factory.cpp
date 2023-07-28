@@ -170,6 +170,9 @@ PhysicsFactory<dim,nstate,real>
     using RANSModel_enum = Parameters::PhysicsModelParam::ReynoldsAveragedNavierStokesModel;
     RANSModel_enum rans_model_type = parameters_input->physics_model_param.RANS_model_type;
 
+    using PS_enum = Parameters::PhysicsModelParam::PotentialFlowModel;
+    PS_enum potential_flow_model_type = parameters_input->physics_model_param.potential_flow_model_type;
+    
     // ===============================================================================
     // Physics Model
     // ===============================================================================
@@ -254,6 +257,50 @@ PhysicsFactory<dim,nstate,real>
                 std::cout << "Can't create RANS + negative SA model for nstate!=(dim+3). " << std::endl;
                 return nullptr;
             }
+        }
+    }
+    // -------------------------------------------------------------------------------
+    // Potential Source
+    // -------------------------------------------------------------------------------
+    else if (model_type == Model_enum::potential_source) {
+        has_nonzero_physical_source = true; // forcing physical source term
+        if constexpr ((nstate==dim+2) && (dim>=2)) {
+            // Assign baseline physics type (and corresponding nstates) based on the physics model type
+            // -- Assign nstates for the baseline physics (constexpr because template parameter)
+            constexpr int nstate_baseline_physics = dim+2;
+            // -- Assign baseline physics type
+            if (potential_flow_model_type == PS_enum::euler) {
+                has_nonzero_diffusion = false; // no diffusion in euler equations
+                baseline_physics_type = PDE_enum::euler;
+            }
+            else if (potential_flow_model_type == PS_enum::navier_stokes) {
+                has_nonzero_diffusion = true; // diffusion in navier-stokes equations
+                baseline_physics_type = PDE_enum::navier_stokes;
+            }
+            else {
+                std::cout << "Can't create PhysicsModel, invalid ModelType type: " << model_type << std::endl;
+                assert(0==1 && "Can't create PhysicsModel, invalid ModelType type");
+                (void) baseline_physics_type;
+                (void) has_nonzero_diffusion;
+                (void) has_nonzero_physical_source;
+                return nullptr;
+            }
+
+            // Create the physics model object in physics
+            return std::make_shared < PhysicsModel<dim,nstate,real,nstate_baseline_physics> > (
+                    parameters_input,
+                    baseline_physics_type,
+                    model_input,
+                    manufactured_solution_function,
+                    has_nonzero_diffusion,
+                    has_nonzero_physical_source);
+        }
+        else {
+            // LES does not exist for nstate!=(dim+2) || dim<2
+            (void) baseline_physics_type;
+            (void) has_nonzero_diffusion;
+            (void) has_nonzero_physical_source;
+            return nullptr;
         }
     }
     else {

@@ -10,6 +10,7 @@
 #include "large_eddy_simulation.h"
 #include "reynolds_averaged_navier_stokes.h"
 #include "negative_spalart_allmaras_rans_model.h"
+#include "potential_source.h"
 
 namespace PHiLiP {
 namespace Physics {
@@ -165,6 +166,55 @@ ModelFactory<dim,nstate,real>
                     return nullptr;
             }
         }
+        // -------------------------------------------------------------------------------
+        // Potential Source
+        // -------------------------------------------------------------------------------
+        else if (model_type == Model_enum::potential_source) {
+            if constexpr ((nstate==dim+2) && (dim>=2)) {
+                // -----------------------------------------------------------------------
+                // Euler or Navier Stokes model with added physical source terms
+                // -----------------------------------------------------------------------
+                using PS_enum = Parameters::PhysicsModelParam::PotentialFlowModel;
+                PS_enum potential_flow_model_type = parameters_input->physics_model_param.potential_flow_model_type;
+                if (potential_flow_model_type == PS_enum::euler || ((potential_flow_model_type == PS_enum::navier_stokes) && (dim==3))) {
+                    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+                    // Euler model exists for dim >=2, nstate==dim+2
+                    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+                    // Navier Stokes model exists for dim ==3, nstate==dim+2
+                    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+                    return std::make_shared < PotentialFlowBase<dim,nstate,real> > (
+                        parameters_input,
+                        parameters_input->euler_param.ref_length,
+                        parameters_input->euler_param.gamma_gas,
+                        parameters_input->euler_param.mach_inf,
+                        parameters_input->euler_param.angle_of_attack,
+                        parameters_input->euler_param.side_slip_angle,
+                        parameters_input->navier_stokes_param.prandtl_number,
+                        parameters_input->navier_stokes_param.reynolds_number_inf,
+                        parameters_input->navier_stokes_param.use_constant_viscosity,
+                        parameters_input->navier_stokes_param.nondimensionalized_constant_viscosity,
+                        parameters_input->navier_stokes_param.temperature_inf,
+                        parameters_input->navier_stokes_param.nondimensionalized_isothermal_wall_temperature,
+                        parameters_input->navier_stokes_param.thermal_boundary_condition_type,
+                        manufactured_solution_function,
+                        parameters_input->two_point_num_flux_type);
+                } else {
+                    if ((potential_flow_model_type == PS_enum::navier_stokes) && (dim!=3)) {
+                        assert(0==1 && "Navier Stokes model does not exist for dim!=3");
+                    }
+                    else {
+                        assert(0==1 && "Can't create PotentialFlowBase, invalid ModelType type");
+                    }
+                    return nullptr;
+                }
+            } 
+            else {
+                // Potential flow does not exist for nstate!=(dim+2) || dim<2
+                manufactured_solution_function = nullptr;
+                return nullptr;
+            }
+        }
+
         else {
             // prevent warnings for dim=3,nstate=4, etc.
             // to avoid "unused variable" warnings

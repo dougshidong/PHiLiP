@@ -71,6 +71,19 @@ void PhysicsModelParam::declare_parameters (dealii::ParameterHandler &prm)
 
         }
         prm.leave_subsection();
+
+        prm.enter_subsection("potential_source");
+        {
+            prm.declare_entry("potential_flow_model", "navier_stokes",
+                              dealii::Patterns::Selection(
+                              " euler | "
+                              " navier_stokes"),
+                              "Enum of potential flow physics models."
+                              "Choices are "
+                              " <euler | "
+                              "  navier_stokes>.");
+        }
+        prm.leave_subsection();
     }
     prm.leave_subsection();
 }
@@ -104,6 +117,14 @@ void PhysicsModelParam::parse_parameters (dealii::ParameterHandler &prm)
             if(RANS_model_type_string == "SA_negative") RANS_model_type = SA_negative;
 
             turbulent_prandtl_number = prm.get_double("turbulent_prandtl_number");
+        }
+        prm.leave_subsection();
+
+        prm.enter_subsection("potential_source");
+        {
+            const std::string potential_flow_model_type_string = prm.get("potential_flow_model");
+            if(potential_flow_model_type_string == "euler")             potential_flow_model_type = euler;
+            if(potential_flow_model_type_string == "navier_stokes")     potential_flow_model_type = navier_stokes;
         }
         prm.leave_subsection();
     }

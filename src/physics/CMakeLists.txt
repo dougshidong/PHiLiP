@@ -16,7 +16,7 @@ SET(SOURCE
     large_eddy_simulation.cpp
     reynolds_averaged_navier_stokes.cpp
     negative_spalart_allmaras_rans_model.cpp
-    navier_stokes_potential_source.cpp
+    potential_source.cpp
     model_factory.cpp)
 
 foreach(dim RANGE 1 3)

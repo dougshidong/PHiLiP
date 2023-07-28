@@ -320,6 +320,99 @@ void DGBaseState<dim,nstate,real,MeshType>::reset_numerical_fluxes()
 }
 
 template <int dim, int nstate, typename real, typename MeshType>
+bool DGBaseState<dim,nstate,real,MeshType>::potential_body_geometry(
+    const dealii::Point<dim,real> &pos)
+{
+    bool within_physical_body {false};
+
+    // LES geometry:
+    using PS_geometry_enum = Parameters::PotentialSourceParam::PotentialSourceGeometry;
+    const PS_geometry_enum potential_source_geometry = all_parameters->potential_source_param.potential_source_geometry;
+
+    if (potential_source_geometry == PS_geometry_enum::trailing_edge_serrations)    // I want to use constexpr, but "potential_source_geometry not initialized with a const expression"
+    {   
+        if constexpr(dim != 3)
+        {
+            std::cout << "Trailing Edge Serrations currently only applicable for dim == 3." << std::endl;
+            assert(false);
+            return false;
+        }
+        else {
+        const double pi = atan(1.0) * 4.0;
+
+        // TES parameters
+        const real TES_amplitude = this->all_parameters->potential_source_param.TES_h;
+        const real TES_frequency = this->all_parameters->potential_source_param.TES_frequency;
+        const real TES_thickness = this->all_parameters->potential_source_param.TES_thickness;
+
+        const double TES_flap_angle = this->all_parameters->potential_source_param.TES_flap_angle;
+
+        // TES shape
+        auto TES = [&](real v) { 
+            return (2 * TES_amplitude / pi) * asin(sin((2 * pi / TES_frequency) * (v - (TES_frequency / 4)))) + TES_amplitude; };
+
+        // Trailing Edge Origin (start at min. z)
+        const dealii::Point<dim,real> trailing_edge_location = {1, 0, 0};
+
+
+        // mapping from (x, y, z) -> (s, t, v) where TES lie on s, t plane.
+        dealii::Point<dim,real> mapped_pos;
+
+        // (x, y, z) -> s
+        mapped_pos[0] = ((pos[0] - trailing_edge_location[0]) * cos(TES_flap_angle) 
+                        - (pos[1] - trailing_edge_location[1]) * sin(TES_flap_angle));
+
+        // (x, y, z) -> t
+        mapped_pos[1] = ((pos[0] - trailing_edge_location[0]) * sin(TES_flap_angle) 
+                        + (pos[1] - trailing_edge_location[1]) * cos(TES_flap_angle));
+
+        //(x, y, z) -> v
+        mapped_pos[2] = pos[2] - trailing_edge_location[2];
+
+
+        // checking if position within TES geometry
+
+        // check s
+        real max_s = TES(mapped_pos[2]);
+        within_physical_body = (mapped_pos[0] >= 0 && mapped_pos[0] <= max_s);
+
+        if (within_physical_body) // checking t (thickness)
+        {
+            within_physical_body = (mapped_pos[1] >= - TES_thickness / 2 && mapped_pos[1] <= TES_thickness / 2);
+        }
+        }
+    }
+    else if (potential_source_geometry == PS_geometry_enum::circular_test)
+    {
+        real r;
+        dealii::Point<dim,real> mapped_pos;
+
+        // Trailing Edge Origin (start at min. z)
+        dealii::Point<dim,real> circle_origin;
+        circle_origin[0] = 3.0;
+        circle_origin[1] = 3.0;
+
+        // (x, y) -> (s, t)
+        mapped_pos[0] = (pos[0] - circle_origin[0]);
+        mapped_pos[1] = (pos[1] - circle_origin[1]);
+
+        r = sqrt((mapped_pos[0] * mapped_pos[0]) + (mapped_pos[1] * mapped_pos[1]));
+
+        if constexpr(dim==3) {   
+            circle_origin[2] = 3.0;
+            mapped_pos[2] = (pos[2] - circle_origin[2]);
+
+            r  = sqrt((mapped_pos[0] * mapped_pos[0]) + (mapped_pos[1] * mapped_pos[1]) + (mapped_pos[2] * mapped_pos[2]));
+        }
+        // maximum radius set in parameters file
+        const real circle_radius = this->all_parameters->potential_source_param.circle_radius;
+
+        within_physical_body = (r <= circle_radius);
+    }
+    return within_physical_body;
+}
+
+template <int dim, int nstate, typename real, typename MeshType>
 void DGBaseState<dim,nstate,real,MeshType>::set_physics(
     std::shared_ptr< Physics::PhysicsBase<dim, nstate, real       > > pde_physics_double_input,
     std::shared_ptr< Physics::PhysicsBase<dim, nstate, FadType    > > pde_physics_fad_input,
@@ -343,18 +436,23 @@ void DGBaseState<dim,nstate,real,MeshType>::allocate_model_variables()
     // -- double
     pde_model_double->cellwise_poly_degree.reinit(this->triangulation->n_active_cells(), this->mpi_communicator);
     pde_model_double->cellwise_volume.reinit(this->triangulation->n_active_cells(), this->mpi_communicator);
+    pde_model_double->cellwise_geometry_condition.reinit(this->triangulation->n_active_cells(), this->mpi_communicator);
     // -- FadType
     pde_model_fad->cellwise_poly_degree.reinit(this->triangulation->n_active_cells(), this->mpi_communicator);
     pde_model_fad->cellwise_volume.reinit(this->triangulation->n_active_cells(), this->mpi_communicator);
+    pde_model_fad->cellwise_geometry_condition.reinit(this->triangulation->n_active_cells(), this->mpi_communicator);
     // -- RadType
     pde_model_rad->cellwise_poly_degree.reinit(this->triangulation->n_active_cells(), this->mpi_communicator);
     pde_model_rad->cellwise_volume.reinit(this->triangulation->n_active_cells(), this->mpi_communicator);
+    pde_model_rad->cellwise_geometry_condition.reinit(this->triangulation->n_active_cells(), this->mpi_communicator);
     // -- FadFadType
     pde_model_fad_fad->cellwise_poly_degree.reinit(this->triangulation->n_active_cells(), this->mpi_communicator);
     pde_model_fad_fad->cellwise_volume.reinit(this->triangulation->n_active_cells(), this->mpi_communicator);
+    pde_model_fad_fad->cellwise_geometry_condition.reinit(this->triangulation->n_active_cells(), this->mpi_communicator);
     // -- RadFadType
     pde_model_rad_fad->cellwise_poly_degree.reinit(this->triangulation->n_active_cells(), this->mpi_communicator);
     pde_model_rad_fad->cellwise_volume.reinit(this->triangulation->n_active_cells(), this->mpi_communicator);
+    pde_model_rad_fad->cellwise_geometry_condition.reinit(this->triangulation->n_active_cells(), this->mpi_communicator);
 }
 
 template <int dim, int nstate, typename real, typename MeshType>
@@ -366,7 +464,7 @@ void DGBaseState<dim,nstate,real,MeshType>::update_model_variables()
     // get FEValues of volume
     const auto mapping = (*(this->high_order_grid->mapping_fe_field));
     dealii::hp::MappingCollection<dim> mapping_collection(mapping);
-    const dealii::UpdateFlags update_flags = dealii::update_values | dealii::update_JxW_values;
+    const dealii::UpdateFlags update_flags = dealii::update_values | dealii::update_JxW_values | dealii::update_quadrature_points;
     dealii::hp::FEValues<dim,dim> fe_values_collection_volume (mapping_collection, 
                                                                this->fe_collection, 
                                                                this->volume_quadrature_collection, 
@@ -401,33 +499,62 @@ void DGBaseState<dim,nstate,real,MeshType>::update_model_variables()
         const dealii::types::global_dof_index cell_index = cell->active_cell_index();
         // const dealii::types::global_dof_index cell_index = cell->global_active_cell_index(); // https://www.dealii.org/current/doxygen/deal.II/classCellAccessor.html
 
+        // get weighted cell position (currently using rms)
+        dealii::Point<dim,real> cell_location;
+
+        // iterating over quadrature points within each cell and averaging their location
+        for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
+            const dealii::Point<dim,real> &quad_point = fe_values_volume.quadrature_point(iquad);
+
+            for (unsigned int i=0; i<dim; i++) {
+                cell_location[i] += quad_point[i] * quad_point[i];
+            }
+        }
+        for (unsigned int i=0; i<dim; ++i) { 
+            cell_location[i] = sqrt(cell_location[i] / n_quad_pts); 
+        }
+
+        // determining if within artificial_geometry
+        const int within_physical_body = (int)potential_body_geometry(cell_location);
+        this->within_physical_body[cell_index] = (double)within_physical_body;
+
         // assign values
         // -- double
         pde_model_double->cellwise_poly_degree[cell_index] = cell_poly_degree;
         pde_model_double->cellwise_volume[cell_index] = cell_volume;
+        pde_model_double->cellwise_geometry_condition[cell_index] = within_physical_body;
         // -- FadType
         pde_model_fad->cellwise_poly_degree[cell_index] = cell_poly_degree;
         pde_model_fad->cellwise_volume[cell_index] = cell_volume;
+        pde_model_fad->cellwise_geometry_condition[cell_index] = within_physical_body;
         // -- RadType
         pde_model_rad->cellwise_poly_degree[cell_index] = cell_poly_degree;
         pde_model_rad->cellwise_volume[cell_index] = cell_volume;
+        pde_model_rad->cellwise_geometry_condition[cell_index] = within_physical_body;
         // -- FadFadType
         pde_model_fad_fad->cellwise_poly_degree[cell_index] = cell_poly_degree;
         pde_model_fad_fad->cellwise_volume[cell_index] = cell_volume;
+        pde_model_fad_fad->cellwise_geometry_condition[cell_index] = within_physical_body;
         // -- RadRadType
         pde_model_rad_fad->cellwise_poly_degree[cell_index] = cell_poly_degree;
         pde_model_rad_fad->cellwise_volume[cell_index] = cell_volume;
+        pde_model_rad_fad->cellwise_geometry_condition[cell_index] = within_physical_body;
     }
     pde_model_double->cellwise_poly_degree.update_ghost_values();
     pde_model_double->cellwise_volume.update_ghost_values();
+    pde_model_double->cellwise_geometry_condition.update_ghost_values();
     pde_model_fad->cellwise_poly_degree.update_ghost_values();
     pde_model_fad->cellwise_volume.update_ghost_values();
+    pde_model_fad->cellwise_geometry_condition.update_ghost_values();
     pde_model_rad->cellwise_poly_degree.update_ghost_values();
     pde_model_rad->cellwise_volume.update_ghost_values();
+    pde_model_rad->cellwise_geometry_condition.update_ghost_values();
     pde_model_fad_fad->cellwise_poly_degree.update_ghost_values();
     pde_model_fad_fad->cellwise_volume.update_ghost_values();
+    pde_model_fad_fad->cellwise_geometry_condition.update_ghost_values();
     pde_model_rad_fad->cellwise_poly_degree.update_ghost_values();
     pde_model_rad_fad->cellwise_volume.update_ghost_values();
+    pde_model_rad_fad->cellwise_geometry_condition.update_ghost_values();
 }
 
 template <int dim, int nstate, typename real, typename MeshType>
@@ -1912,6 +2039,7 @@ void DGBase<dim,real,MeshType>::output_face_results_vtk (const unsigned int cycl
 
     data_out.add_data_vector(cell_volume, std::string("cell_volume"), dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim-1,dim>::DataVectorType::type_cell_data);
 
+    data_out.add_data_vector(within_physical_body, "within_physical_body", dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim-1,dim>::DataVectorType::type_cell_data);
 
     // Let the physics post-processor determine what to output.
     const std::unique_ptr< dealii::DataPostprocessor<dim> > post_processor = Postprocess::PostprocessorFactory<dim>::create_Postprocessor(all_parameters);
@@ -2032,6 +2160,8 @@ void DGBase<dim,real,MeshType>::output_results_vtk (const unsigned int cycle, co
     data_out.add_data_vector(max_dt_cell, "max_dt_cell", dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim>::DataVectorType::type_cell_data);
 
     data_out.add_data_vector(cell_volume, "cell_volume", dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim>::DataVectorType::type_cell_data);
+
+    data_out.add_data_vector(within_physical_body, "within_physical_body", dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim>::DataVectorType::type_cell_data);
 
 
     // Let the physics post-processor determine what to output.
@@ -2174,9 +2304,11 @@ void DGBase<dim,real,MeshType>::allocate_system (
     
     max_dt_cell.reinit(triangulation->n_active_cells());
     cell_volume.reinit(triangulation->n_active_cells());
+    within_physical_body.reinit(triangulation->n_active_cells());
 
     // allocates model variables only if there is a model
     if(all_parameters->pde_type == Parameters::AllParameters::PartialDifferentialEquation::physics_model) allocate_model_variables();
+    std::cout << "Completed Allocate Model Variables" << std::endl;
 
     solution.reinit(locally_owned_dofs, ghost_dofs, mpi_communicator);
     solution *= 0.0;

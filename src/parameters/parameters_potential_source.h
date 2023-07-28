@@ -10,18 +10,29 @@ namespace Parameters {
 class PotentialSourceParam
 {
 public:
-    // Trailing Edge Serrations (TES)
-    //// to achieve significant noise reduction 2h >= freq [Gruber, 2012] ////
+    // Solution parameters
+    bool use_viscous_drag; ///> applies viscous drag contribution to the physical source 
+
+    // Selects the potential source geometry used
+    enum PotentialSourceGeometry{
+        trailing_edge_serrations,
+        circular_test,
+        none,
+        };
+    PotentialSourceGeometry potential_source_geometry; ///< Selected PotentialSourceGeometry from the input file
+
+    /// Trailing Edge Serrations (TES) options
     double TES_frequency; ///< frequency of Trailing Edge Serrations.
     double TES_h; ///< half length of Trailing Edge Serrations. 
     double TES_thickness; ///< thickness of Trailing Edge Serrations.
+    //// to achieve significant noise reduction 2h >= freq [Gruber, 2012] ////
 
     double TES_effective_length_factor; ///< effective length factor -> experimentally determined, dependent on airfoil
     /// Input file provides in degrees, but the value stored here is in radians
-    double TES_gamma; ///< angle between Trailing Edge Serration and chord.
+    double TES_flap_angle; ///< angle between Trailing Edge Serration and chord.
 
-    // Solution parameters
-    bool use_viscous_drag;
+    /// Circular Test options
+    double circle_radius; 
 
     PotentialSourceParam (); ///< Constructor
 

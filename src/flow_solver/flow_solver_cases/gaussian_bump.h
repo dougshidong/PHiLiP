@@ -27,6 +27,9 @@ public:
     /// Function to generate the grid
     std::shared_ptr<Triangulation> generate_grid() const override;
 
+    /// Function to set the higher order grid
+    void set_higher_order_grid(std::shared_ptr <DGBase<dim, double>> dg) const override;
+
 protected:
     /// Display additional more specific flow case parameters
     void display_additional_flow_case_specific_parameters() const override;

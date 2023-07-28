@@ -250,11 +250,11 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
 
     prm.declare_entry("model_type", "large_eddy_simulation",
                       dealii::Patterns::Selection(
-                      "large_eddy_simulation | reynolds_averaged_navier_stokes"),
+                      "large_eddy_simulation | reynolds_averaged_navier_stokes | potential_source"),
                       "Enum of physics models "
                       "(i.e. model equations and/or terms additional to Navier-Stokes or a chosen underlying baseline physics)."
                       "Choices are "
-                      " <large_eddy_simulation | reynolds_averaged_navier_stokes>.");
+                      " <large_eddy_simulation | reynolds_averaged_navier_stokes | potential_source>.");
 
     prm.declare_entry("conv_num_flux", "lax_friedrichs",
                       dealii::Patterns::Selection(
@@ -316,6 +316,11 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       dealii::Patterns::Selection(
                       "CuthillMckee"),
                       "Renumber the dof handler type. Currently the only choice is Cuthill-Mckee.");
+
+    prm.declare_entry("matching_surface_jac_det_tolerance", "1.3e-11",
+                      dealii::Patterns::Double(0, dealii::Patterns::Double::max_double_value),
+                      "Tolerance for checking that the determinant of surface jacobians at element faces matches. "
+                      "Note: Currently only used in weak dg.");
 
     Parameters::LinearSolverParam::declare_parameters (prm);
     Parameters::ManufacturedConvergenceStudyParam::declare_parameters (prm);
@@ -479,7 +484,7 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     const std::string renumber_dofs_type_string = prm.get("renumber_dofs_type");
     if (renumber_dofs_type_string == "CuthillMckee") { renumber_dofs_type = RenumberDofsType::CuthillMckee; }
 
-    output_high_order_grid = prm.get_bool("output_high_order_grid");
+    matching_surface_jac_det_tolerance = prm.get_double("matching_surface_jac_det_tolerance");
 
     pcout << "Parsing linear solver subsection..." << std::endl;
     linear_solver_param.parse_parameters (prm);
@@ -527,6 +532,8 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     const std::string model_string = prm.get("model_type");
     if (model_string == "large_eddy_simulation") { model_type = large_eddy_simulation; }
     else if (model_string == "reynolds_averaged_navier_stokes") { model_type = reynolds_averaged_navier_stokes; }
+    else if (model_string == "potential_source") { model_type = potential_source; }
+
 
     const std::string pde_string = prm.get("pde_type");
     if (pde_string == "advection") {
@@ -559,7 +566,7 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     }
     else if (pde_string == "physics_model") {
         pde_type = physics_model;
-        if (model_type == large_eddy_simulation)
+        if (model_type == large_eddy_simulation || model_type == potential_source)
         {
             nstate = dimension+2;
         }

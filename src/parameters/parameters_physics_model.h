@@ -34,6 +34,14 @@ public:
     /// Store the Reynolds-averaged Navier-Stokes (RANS) model type
     ReynoldsAveragedNavierStokesModel RANS_model_type;
 
+    /// Types of Reynolds-averaged Navier-Stokes (RANS) models that can be used.
+    enum PotentialFlowModel {
+        euler, 
+        navier_stokes
+    };
+    /// Store the Potential flow model type
+    PotentialFlowModel potential_flow_model_type;
+
     /// Turbulent flow characteristics:
     double turbulent_prandtl_number; ///< Turbulent Prandtl number
 

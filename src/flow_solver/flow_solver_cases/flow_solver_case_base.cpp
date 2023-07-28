@@ -20,6 +20,7 @@ std::string FlowSolverCaseBase<dim, nstate>::get_pde_string() const
     using Model_enum     = Parameters::AllParameters::ModelType;
     using SGSModel_enum  = Parameters::PhysicsModelParam::SubGridScaleModel;
     using RANSModel_enum = Parameters::PhysicsModelParam::ReynoldsAveragedNavierStokesModel;
+    using PotentialModel_enum = Parameters::PhysicsModelParam::PotentialFlowModel;
     
     const PDE_enum pde_type = this->all_param.pde_type;
     std::string pde_string;
@@ -60,9 +61,20 @@ std::string FlowSolverCaseBase<dim, nstate>::get_pde_string() const
             if (rans_model==RANSModel_enum::SA_negative) rans_model_string = "SA_negative";
             pde_string += std::string(" (Model: ") + model_string + std::string(", RANS Model: ") + rans_model_string + std::string(")");
         }
+        else if(model == Model_enum::potential_source) {
+            // assign model string
+            model_string = "potential_source";
+            // potential flow model
+            const PotentialModel_enum PS_model = this->all_param.physics_model_param.potential_flow_model_type;
+            std::string potential_flow_model_string = "WARNING: invalid potential flow model";
+            // assign potential flow model string
+            if     (PS_model==PotentialModel_enum::euler) potential_flow_model_string = "euler";
+            else if(PS_model==PotentialModel_enum::navier_stokes) potential_flow_model_string = "navier_stokes";
+            pde_string += std::string(" (Model: ") + model_string + std::string(", Potential Flow Model: ") + potential_flow_model_string + std::string(")");
+        }
+
         if(pde_string == "physics_model") pde_string += std::string(" (Model: ") + model_string + std::string(")");
     }
-    
     return pde_string;
 }
 

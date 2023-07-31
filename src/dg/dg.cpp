@@ -2308,7 +2308,6 @@ void DGBase<dim,real,MeshType>::allocate_system (
 
     // allocates model variables only if there is a model
     if(all_parameters->pde_type == Parameters::AllParameters::PartialDifferentialEquation::physics_model) allocate_model_variables();
-    std::cout << "Completed Allocate Model Variables" << std::endl;
 
     solution.reinit(locally_owned_dofs, ghost_dofs, mpi_communicator);
     solution *= 0.0;

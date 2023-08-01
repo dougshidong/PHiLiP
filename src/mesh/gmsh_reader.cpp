@@ -1560,7 +1560,7 @@ read_gmsh(std::string filename,
       dealii::GridReordering<dim, spacedim>::invert_all_cells_of_negative_grid(vertices, p1_cells);
     }
     dealii::GridReordering<dim, spacedim>::reorder_cells(p1_cells);
-    triangulation->create_triangulation_compatibility(vertices, p1_cells, subcelldata);
+    triangulation->create_triangulation_compatibility(vertices, p1_cells, subcelldata); /// <<< FAILING HERE >>>
 
     triangulation->repartition();
 
@@ -1752,7 +1752,6 @@ read_gmsh(std::string filename,
     if (periodic_x || periodic_y || periodic_z) {
         high_order_grid->triangulation->add_periodicity(matched_pairs);
     }
-
 
     if (requested_grid_order > 0) {
         auto grid = std::make_shared<HighOrderGrid<dim, double>>(requested_grid_order, triangulation);

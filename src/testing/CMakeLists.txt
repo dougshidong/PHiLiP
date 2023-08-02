@@ -1,8 +1,9 @@
-
 set(TESTS_SOURCE
     tests.cpp
     grid_study.cpp
     grid_refinement_study.cpp
+    advection_limiter.cpp
+    burgers_limiter.cpp
     burgers_stability.cpp
     diffusion_exact_adjoint.cpp
     euler_gaussian_bump.cpp
@@ -35,6 +36,7 @@ set(TESTS_SOURCE
     euler_entropy_conserving_split_forms_check.cpp
     homogeneous_isotropic_turbulence_initialization_check.cpp
     khi_robustness.cpp
+    low_density_2d.cpp
     )
 
 foreach(dim RANGE 1 3)

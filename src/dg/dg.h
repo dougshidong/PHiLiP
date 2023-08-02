@@ -953,6 +953,34 @@ public:
     bool use_auxiliary_eq;
     /// Set use_auxiliary_eq flag
     virtual void set_use_auxiliary_eq() = 0;
+
+    /// Initial global maximum of solution in domain.
+    std::vector<real> global_max;
+    /// Initial global minimum of solution in domain.
+    std::vector<real> global_min;
+
+    double h = all_parameters->tvb_h;
+
+    // Obtains global maximum and minimum of solution in the domain
+    virtual void get_global_max_and_min_of_solution() = 0;
+
+    /// Applies maximum principle satisfying limiter to the global solution.
+    /** Using Zhang,Shu May 2010 Eq 3.8 and 3.9 we apply a limiter on the global solution**/
+    virtual void apply_maximum_principle_limiter() = 0;
+
+    /// Applies positivity preserving limiter to the global solution.
+    /** Using Zhang,Shu Aug 2010 Eq 3.15-3.19 we apply a limiter on the global solution**/
+    virtual void apply_positivity_preserving_limiter2010() = 0;
+
+    /// Applies positivity preserving limiter to the global solution.
+    /** Using Wang, Zhang,Shu, Ning May 2011 Eq 3.2-3.7 we apply a limiter on the global solution**/
+    virtual void apply_positivity_preserving_limiter2011() = 0;
+
+
+    /// Applies TVB limiter to the global solution.
+    /** Using Chen,Shu May 2017 thm 3.7 we apply a limiter on the global solution**/
+    virtual void apply_tvb_limiter() = 0;
+
 }; // end of DGBase class
 
 /// Abstract class templated on the number of state variables
@@ -1045,6 +1073,13 @@ public:
 
     /// Set use_auxiliary_eq flag
     void set_use_auxiliary_eq();
+
+    // Bound preserving limiter functions
+    void get_global_max_and_min_of_solution();
+    void apply_maximum_principle_limiter();
+    void apply_positivity_preserving_limiter2010();
+    void apply_positivity_preserving_limiter2011();
+    void apply_tvb_limiter();
 
 protected:
     /// Evaluate the time it takes for the maximum wavespeed to cross the cell domain.

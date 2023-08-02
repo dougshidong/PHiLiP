@@ -147,6 +147,8 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       dealii::Patterns::Selection(
                       " run_control | "
                       " grid_refinement_study | "
+                      " advection_limiter | "
+                      " burgers_limiter | "
                       " burgers_energy_stability | "
                       " diffusion_exact_adjoint | "
                       " optimization_inverse_manufactured | "
@@ -180,11 +182,14 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       " burgers_energy_conservation_rrk | "
                       " euler_entropy_conserving_split_forms_check | "
                       " h_refinement_study_isentropic_vortex | "
-                      " khi_robustness"),
+                      " khi_robustness | "
+                      " low_density "),
                       "The type of test we want to solve. "
                       "Choices are " 
                       " <run_control | " 
                       "  grid_refinement_study | "
+                      "  advection_limiter | "
+                      "  burgers_limiter | "
                       "  burgers_energy_stability | "
                       "  diffusion_exact_adjoint | "
                       "  optimization_inverse_manufactured | "
@@ -218,7 +223,8 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       "  burgers_energy_conservation_rrk | "
                       "  euler_entropy_conserving_split_forms_check | "
                       "  h_refinement_study_isentropic_vortex | "
-                      "  khi_robustness>.");
+                      "  khi_robustness | "
+                      "  low_density>.");
 
     prm.declare_entry("pde_type", "advection",
                       dealii::Patterns::Selection(
@@ -321,6 +327,45 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       "Tolerance for checking that the determinant of surface jacobians at element faces matches. "
                       "Note: Currently only used in weak dg.");
 
+    prm.declare_entry("use_OOA", "false",
+        dealii::Patterns::Bool(),
+        "Does not perform Convergence Test by default. Otherwise, performs Convergence Test.");
+
+    prm.declare_entry("use_scaling_limiter", "none",
+        dealii::Patterns::Selection(
+            " none | "
+            " maximum_principle | "
+            " positivity_preserving2010 | "
+            " positivity_preserving2011 "),
+        "The type of limiter we want to apply to the solution. "
+        "Choices are "
+        " <none | "
+        "  maximum_principle | "
+        " positivity_preserving2010 | "
+        " positivity_preserving2011>.");
+
+    prm.declare_entry("pos_eps", "1e-13",
+        dealii::Patterns::Double(1e-20, 1e200),
+        "Small value greater than zero which the solution is greater than at all times.");
+
+    prm.declare_entry("use_tvb_limiter", "false",
+        dealii::Patterns::Bool(),
+        "Applies TVB Limiter to solution. Tune M and h to obtain favourable results.");
+
+    prm.declare_entry("tvb_h", "1.0",
+                      dealii::Patterns::Double(1e-13,1e200),
+                      "Maximum delta_x.");
+
+    prm.declare_entry("tvb_M1", "1.0",
+                      dealii::Patterns::Double(1e-13,1e200),
+                      "Maximum delta_x.");
+    prm.declare_entry("tvb_M2", "1.0",
+                      dealii::Patterns::Double(1e-13,1e200),
+                      "Maximum delta_x.");
+    prm.declare_entry("tvb_M3", "1.0",
+                      dealii::Patterns::Double(1e-13,1e200),
+                      "Maximum delta_x.");
+
     Parameters::LinearSolverParam::declare_parameters (prm);
     Parameters::ManufacturedConvergenceStudyParam::declare_parameters (prm);
     Parameters::ODESolverParam::declare_parameters (prm);
@@ -355,9 +400,11 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     else if (mesh_type_string == "parallel_shared_triangulation")      { mesh_type = parallel_shared_triangulation; }
     else if (mesh_type_string == "parallel_distributed_triangulation") { mesh_type = parallel_distributed_triangulation; }
 
-    const std::string test_string = prm.get("test_type");
+const std::string test_string = prm.get("test_type");
     if      (test_string == "run_control")                              { test_type = run_control; }
     else if (test_string == "grid_refinement_study")                    { test_type = grid_refinement_study; }
+    else if (test_string == "advection_limiter")                        { test_type = advection_limiter; }
+    else if (test_string == "burgers_limiter")                          { test_type = burgers_limiter; }
     else if (test_string == "burgers_energy_stability")                 { test_type = burgers_energy_stability; }
     else if (test_string == "diffusion_exact_adjoint")                  { test_type = diffusion_exact_adjoint; }
     else if (test_string == "euler_gaussian_bump")                      { test_type = euler_gaussian_bump; }
@@ -394,6 +441,7 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
                                                                         { test_type = euler_entropy_conserving_split_forms_check; }
     else if (test_string == "h_refinement_study_isentropic_vortex")     { test_type = h_refinement_study_isentropic_vortex; }
     else if (test_string == "khi_robustness")                           { test_type = khi_robustness; }
+    else if (test_string == "low_density")                              { test_type = low_density; }
     
     overintegration = prm.get_integer("overintegration");
 
@@ -483,6 +531,22 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     if (renumber_dofs_type_string == "CuthillMckee") { renumber_dofs_type = RenumberDofsType::CuthillMckee; }
 
     matching_surface_jac_det_tolerance = prm.get_double("matching_surface_jac_det_tolerance");
+
+    use_OOA = prm.get_bool("use_OOA");
+
+    const std::string use_scaling_limiter_string = prm.get("use_scaling_limiter");
+    if (use_scaling_limiter_string == "none") use_scaling_limiter_type = none;
+    if (use_scaling_limiter_string == "maximum_principle")     use_scaling_limiter_type = maximum_principle;
+    if (use_scaling_limiter_string == "positivity_preserving2010")     use_scaling_limiter_type = positivity_preserving2010;
+    if (use_scaling_limiter_string == "positivity_preserving2011")     use_scaling_limiter_type = positivity_preserving2011;
+    pos_eps = prm.get_double("pos_eps");
+
+    use_tvb_limiter = prm.get_bool("use_tvb_limiter");
+    tvb_h = prm.get_double("tvb_h");
+    tvb_M1 = prm.get_double("tvb_M1");
+    tvb_M2 = prm.get_double("tvb_M2");
+    tvb_M3 = prm.get_double("tvb_M3");
+
 
     pcout << "Parsing linear solver subsection..." << std::endl;
     linear_solver_param.parse_parameters (prm);

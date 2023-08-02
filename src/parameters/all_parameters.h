@@ -158,6 +158,8 @@ public:
     enum TestType {
         run_control,
         grid_refinement_study,
+        advection_limiter,
+        burgers_limiter,
         burgers_energy_stability,
         diffusion_exact_adjoint,
         euler_gaussian_bump,
@@ -193,6 +195,7 @@ public:
         h_refinement_study_isentropic_vortex,
         khi_robustness,
         homogeneous_isotropic_turbulence_initialization_check,
+        low_density
     };
     /// Store selected TestType from the input file.
     TestType test_type;
@@ -293,6 +296,30 @@ public:
      *  Note: Currently only used in weak dg. */
     double matching_surface_jac_det_tolerance;
     
+    //Flag to perform convergence test
+    bool use_OOA;
+
+    /// Limiter type to be applied on the solution.
+    enum LimiterType {
+        none,
+        maximum_principle,
+        positivity_preserving2010,
+        positivity_preserving2011
+    };
+    LimiterType use_scaling_limiter_type;
+
+    // Epsilon value for Positivity-Preserving Limiter
+    double pos_eps;
+
+    /// Flag for applying tvb limiter
+    bool use_tvb_limiter;
+
+    /// Maximum delta_x for tvb limiter
+    double tvb_h;
+    double tvb_M1;
+    double tvb_M2;
+    double tvb_M3;
+
     /// Declare parameters that can be set as inputs and set up the default options
     /** This subroutine should call the sub-parameter classes static declare_parameters()
       * such that each sub-parameter class is responsible to declare their own parameters.

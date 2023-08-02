@@ -335,6 +335,54 @@ protected:
 
 };
 
+/// Initial Condition Function: 1D Sod Shock Tube
+template <int dim, int nstate, typename real>
+class InitialConditionFunction_SodShockTube: public InitialConditionFunction<dim,nstate,real>
+{
+protected:
+    using dealii::Function<dim,real>::value; ///< dealii::Function we are templating on
+
+public:
+    /// Constructor for InitialConditionFunction_BurgersRewienski
+    /** Calls the Function(const unsigned int n_components) constructor in deal.II*/
+    InitialConditionFunction_SodShockTube ();
+
+    /// Value of initial condition
+    real value (const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
+};
+
+/// Initial Condition Function: 2D Low Density Euler
+template <int dim, int nstate, typename real>
+class InitialConditionFunction_LowDensity2D: public InitialConditionFunction<dim,nstate,real>
+{
+protected:
+    using dealii::Function<dim,real>::value; ///< dealii::Function we are templating on
+
+public:
+    /// Constructor for InitialConditionFunction_BurgersRewienski
+    /** Calls the Function(const unsigned int n_components) constructor in deal.II*/
+    InitialConditionFunction_LowDensity2D ();
+
+    /// Value of initial condition
+    real value (const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
+};
+
+/// Initial Condition Function: 1D Leblanc Shock Tube
+template <int dim, int nstate, typename real>
+class InitialConditionFunction_LeblancShockTube: public InitialConditionFunction<dim,nstate,real>
+{
+protected:
+    using dealii::Function<dim,real>::value; ///< dealii::Function we are templating on
+
+public:
+    /// Constructor for InitialConditionFunction_BurgersRewienski
+    /** Calls the Function(const unsigned int n_components) constructor in deal.II*/
+    InitialConditionFunction_LeblancShockTube ();
+
+    /// Value of initial condition
+    real value (const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
+};
+
 /// Initial condition 0.
 template <int dim, int nstate, typename real>
 class InitialConditionFunction_Zero : public InitialConditionFunction<dim,nstate,real>

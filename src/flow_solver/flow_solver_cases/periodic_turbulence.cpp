@@ -560,17 +560,6 @@ void PeriodicTurbulence<dim, nstate>::compute_and_update_integrated_quantities(D
         this->integrated_quantities[i_quantity] = dealii::Utilities::MPI::sum(integral_values[i_quantity], this->mpi_communicator);
         this->integrated_quantities[i_quantity] /= this->domain_size; // divide by total domain volume
     }
-    // check for case dependant non-physical behavior
-    if(this->all_param.flow_solver_param.check_nonphysical_flow_case_behavior == true) {
-        if(this->get_integrated_kinetic_energy() > this->integrated_kinetic_energy_at_previous_time_step) {
-            this->pcout << " ERROR: Non-physical behaviour encountered in PeriodicTurbulence." << std::endl;
-            this->pcout << "        --> Integrated kinetic energy has increased from the last time step in a closed system without any external sources." << std::endl;
-            this->pcout << "        ==> Consider decreasing the time step / CFL number." << std::endl;
-            std::abort();
-        } else {
-            this->integrated_kinetic_energy_at_previous_time_step = this->get_integrated_kinetic_energy();
-        }
-    }
 }
 
 template<int dim, int nstate>
@@ -790,8 +779,20 @@ void PeriodicTurbulence<dim, nstate>::compute_unsteady_data_and_write_to_table(
     // Abort if energy is nan
     if(std::isnan(integrated_kinetic_energy)) {
         this->pcout << " ERROR: Kinetic energy at time " << current_time << " is nan." << std::endl;
-        this->pcout << "        Consider decreasing the time step / CFL number." << std::endl;
-        std::abort();
+        this->pcout << "        Consider decreasing the time step / CFL number. Aborting..." << std::endl;
+        if(this->mpi_rank==0) std::abort();
+    }
+
+    // check for case dependant non-physical behavior
+    if(this->all_param.flow_solver_param.check_nonphysical_flow_case_behavior == true) {
+        if(this->get_integrated_kinetic_energy() > this->integrated_kinetic_energy_at_previous_time_step) {
+            this->pcout << " ERROR: Non-physical behaviour encountered in PeriodicTurbulence." << std::endl;
+            this->pcout << "        --> Integrated kinetic energy has increased from the last time step in a closed system without any external sources." << std::endl;
+            this->pcout << "        ==> Consider decreasing the time step / CFL number. Aborting..." << std::endl;
+            if(this->mpi_rank==0) std::abort();
+        } else {
+            this->integrated_kinetic_energy_at_previous_time_step = this->get_integrated_kinetic_energy();
+        }
     }
 
     // Output velocity field for spectra obtaining kinetic energy spectra

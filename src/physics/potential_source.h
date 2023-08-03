@@ -66,6 +66,10 @@ public:
     /// Drag force vector, assumes that the drag is the force in the positive x-direction.
     const dealii::Tensor<1,dim,double> drag_vector;
 
+    /// saved zero array and tensor array
+    std::array<real, nstate> zero_array; ///< Array of zeros
+    std::array<dealii::Tensor<1,dim,real>,nstate> zero_tensor_array; ///< Tensor array of zeros
+
     //// Overwriting virtual class functions ////
 
     /// Convective flux: \f$ \mathbf{F}_{conv} \f$
@@ -110,15 +114,12 @@ public:
         const dealii::types::global_dof_index cell_index) const override;
 
 protected:
-    std::array<real, nstate> zero_array; ///< Array of zeros
-    std::array<dealii::Tensor<1,dim,real>,nstate> zero_tensor_array; ///< Tensor array of zeros
-
     // returns the area and volume of a (COMPLETE) serration ### WARNING: error introduced if not full ###
     template<typename real2>
-    constexpr std::tuple<real2, real2> TES_geometry () const;
+    std::tuple<real2, real2> TES_geometry () const;
 
     // returns the freestream speed using the constant viscosity, density and reynolds number
-    constexpr double freestream_speed () const;
+    double freestream_speed () const;
 
     // returns lift direction unit vector
     dealii::Tensor<1,dim,double> initialize_lift_vector () const;

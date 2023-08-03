@@ -10,7 +10,7 @@ void PotentialSourceParam::declare_parameters (dealii::ParameterHandler &prm)
 {
     prm.enter_subsection("potential_source");
     {
-        prm.declare_entry("potential_source_geometry", "trailing_edge_serrations",
+        prm.declare_entry("potential_source_geometry", "none",
                       dealii::Patterns::Selection("trailing_edge_serrations|circular_test|none"),
                       "Choose geometry used for potential source term. "
                       "Choices are <trailing_edge_serrations|circular_test|none>.");

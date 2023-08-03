@@ -499,23 +499,37 @@ void DGBaseState<dim,nstate,real,MeshType>::update_model_variables()
         const dealii::types::global_dof_index cell_index = cell->active_cell_index();
         // const dealii::types::global_dof_index cell_index = cell->global_active_cell_index(); // https://www.dealii.org/current/doxygen/deal.II/classCellAccessor.html
 
-        // get weighted cell position (currently using rms)
-        dealii::Point<dim,real> cell_location;
+        /// Checking if cell within potential body geometry
+        using PDE_enum = Parameters::AllParameters::PartialDifferentialEquation;
+        PDE_enum pde_type = this->all_parameters->pde_type;
+        using Model_enum = Parameters::AllParameters::ModelType;
+        Model_enum model_type = this->all_parameters->model_type;
 
-        // iterating over quadrature points within each cell and averaging their location
-        for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
-            const dealii::Point<dim,real> &quad_point = fe_values_volume.quadrature_point(iquad);
+        int within_physical_body_estimate = 0;
 
-            for (unsigned int i=0; i<dim; i++) {
-                cell_location[i] += quad_point[i] * quad_point[i];
+        if (pde_type == PDE_enum::physics_model && model_type == Model_enum::potential_source)
+        {
+            // get weighted cell position (currently using rms)
+            dealii::Point<dim,real> cell_location;
+
+            // iterating over quadrature points within each cell and averaging their location
+            for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
+                const dealii::Point<dim,real> &quad_point = fe_values_volume.quadrature_point(iquad);
+
+                for (unsigned int i=0; i<dim; i++) {
+                    cell_location[i] += quad_point[i] * quad_point[i];
+                }
             }
-        }
-        for (unsigned int i=0; i<dim; ++i) { 
-            cell_location[i] = sqrt(cell_location[i] / n_quad_pts); 
-        }
+            for (unsigned int i=0; i<dim; ++i) { 
+                cell_location[i] = sqrt(cell_location[i] / n_quad_pts); 
+            }
 
-        // determining if within artificial_geometry
-        const int within_physical_body = (int)potential_body_geometry(cell_location);
+            // determining if within artificial_geometry
+            within_physical_body_estimate = (int)potential_body_geometry(cell_location);
+        }
+                
+        // assigning values
+        const int within_physical_body = (int)within_physical_body_estimate;
         this->within_physical_body[cell_index] = (double)within_physical_body;
 
         // assign values

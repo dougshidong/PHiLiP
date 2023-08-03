@@ -36,19 +36,23 @@ std::shared_ptr<Triangulation> NonPeriodicCubeFlow<dim,nstate>::generate_grid() 
     const bool colorize = true;
     
     dealii::GridGenerator::hyper_cube(*grid, domain_left, domain_right, colorize);
-    for (auto cell = grid->begin_active(); cell != grid->end(); ++cell) {
+    if(this->all_param.flow_solver_param.flow_case_type == Parameters::FlowSolverParam::FlowCaseType::sod_shock_tube
+         || this->all_param.flow_solver_param.flow_case_type == Parameters::FlowSolverParam::FlowCaseType::leblanc_shock_tube)
+    {
+        for (auto cell = grid->begin_active(); cell != grid->end(); ++cell) {
             // Set a dummy boundary ID
             cell->set_material_id(9002);
-        if (cell == grid->begin_active())
-        {
-            for (unsigned int face=0; face<dealii::GeometryInfo<dim>::faces_per_cell; ++face) {
-                if (cell->face(face)->at_boundary()) cell->face(face)->set_boundary_id (1001);
+            if (cell == grid->begin_active())
+            {
+                for (unsigned int face=0; face<dealii::GeometryInfo<dim>::faces_per_cell; ++face) {
+                    if (cell->face(face)->at_boundary()) cell->face(face)->set_boundary_id (1001);
+                }
             }
-        }
-        else if (cell == grid->end())
-        {
-            for (unsigned int face=0; face<dealii::GeometryInfo<dim>::faces_per_cell; ++face) {
-                if (cell->face(face)->at_boundary()) cell->face(face)->set_boundary_id (1001);
+            else if (cell == grid->end())
+            {
+                for (unsigned int face=0; face<dealii::GeometryInfo<dim>::faces_per_cell; ++face) {
+                    if (cell->face(face)->at_boundary()) cell->face(face)->set_boundary_id (1001);
+                }
             }
         }
     }

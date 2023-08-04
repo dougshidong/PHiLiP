@@ -337,7 +337,14 @@ Functional<dim,nstate,real,MeshType>::Functional(
     using FadType = Sacado::Fad::DFad<real>;
     using FadFadType = Sacado::Fad::DFad<FadType>;
     std::shared_ptr<Physics::ModelBase<dim,nstate,FadFadType>> model_fad_fad = Physics::ModelFactory<dim,nstate,FadFadType>::create_Model(dg->all_parameters);
-    physics_fad_fad = Physics::PhysicsFactory<dim,nstate,FadFadType>::create_Physics(dg->all_parameters,model_fad_fad);
+    physics_fad_fad = Physics::PhysicsFactory<dim,nstate,FadFadType>::create_Physics(dg->all_parameters, model_fad_fad);
+
+    /// Currently no adjustment to account for ModelBase case, or any situations where the physics have been changed.
+    /// Reinitialize convective and dissipative fluxes for ModelBase
+
+    artificial_dissip = ArtificialDissipationFactory<dim,nstate> ::create_artificial_dissipation(dg->all_parameters);
+    conv_num_flux_fad_fad = NumericalFlux::NumericalFluxFactory<dim, nstate, FadFadType> ::create_convective_numerical_flux (dg->all_parameters->conv_num_flux_type, dg->all_parameters->pde_type, dg->all_parameters->model_type, physics_fad_fad);
+    diss_num_flux_fad_fad = NumericalFlux::NumericalFluxFactory<dim, nstate, FadFadType> ::create_dissipative_numerical_flux (dg->all_parameters->diss_num_flux_type, physics_fad_fad, artificial_dissip);
 
     init_vectors();
 }

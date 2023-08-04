@@ -137,7 +137,7 @@ public:
         const std::shared_ptr<MeshType> triangulation_input,
         const bool                      check_valid_metric_Jacobian_input=true,
         const bool                      renumber_dof_handler_Cuthill_Mckee_input=true,
-        const bool                      output_high_order_grid=true);
+        const bool                      output_high_order_grid=false);
 
     /// Reinitialize high_order_grid after a change in triangulation
     void reinit();

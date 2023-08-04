@@ -140,7 +140,15 @@ protected:
 public:
     /// Constructor
     RoeBaseRiemannSolverDissipation(std::shared_ptr <Physics::PhysicsBase<dim, nstate, real>> physics_input)
-    : euler_physics(std::dynamic_pointer_cast<Physics::Euler<dim,nstate,real>>(physics_input)) {};
+    : euler_physics(std::dynamic_pointer_cast<Physics::Euler<dim,nstate,real>>(physics_input)) 
+    {
+        // TO DO: Implement test to raise error if physics cast to invalid type
+        // >> need to account for edge case where cast is partially successful, but fails later due to improper physics.
+
+        // Simple test to check if dynamic cast failed, doesn't account for edge case 
+        assert((euler_physics != nullptr) && "Physcis input cannot be cast to euler.");
+    };
+
 
     /// Destructor
     ~RoeBaseRiemannSolverDissipation() {};

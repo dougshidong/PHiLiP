@@ -67,8 +67,13 @@ std::shared_ptr<Triangulation> NACA0012<dim,nstate>::generate_grid() const
 
         const std::string mesh_filename = this->all_param.flow_solver_param.input_mesh_filename+std::string(".msh");
         const bool use_mesh_smoothing = false;
-        // const unsigned int grid_degree = 0;
+        // requested grid order
         const unsigned int grid_degree = this->all_param.flow_solver_param.grid_degree;
+        // verbose output flag
+        const bool mesh_reader_verbose_output = this->all_param.flow_solver_param.mesh_reader_verbose_output;
+        // mesh output flag
+        const bool output_high_order_grid = this->all_param.output_high_order_grid;
+
         
         // Check if periodic BC exist
         const bool periodic_x = this->all_param.flow_solver_param.use_periodic_BC_in_x;
@@ -76,7 +81,6 @@ std::shared_ptr<Triangulation> NACA0012<dim,nstate>::generate_grid() const
         const bool periodic_z = this->all_param.flow_solver_param.use_periodic_BC_in_z;
 
         if (periodic_x || periodic_y || periodic_z) {
-            const bool mesh_reader_verbose_output = true;
 
             // Default parameters
             int x_periodic_1_temp = 0; 
@@ -116,9 +120,11 @@ std::shared_ptr<Triangulation> NACA0012<dim,nstate>::generate_grid() const
                                                 z_periodic_1, z_periodic_2, 
                                                 mesh_reader_verbose_output,
                                                 this->all_param.do_renumber_dofs,
-                                                grid_degree, use_mesh_smoothing);
+                                                grid_degree, use_mesh_smoothing, 
+                                                output_high_order_grid);
         } else {
-            naca0012_mesh = read_gmsh<dim, dim> (mesh_filename, this->all_param.do_renumber_dofs, grid_degree, use_mesh_smoothing);
+            naca0012_mesh = read_gmsh<dim, dim> (mesh_filename, this->all_param.do_renumber_dofs, grid_degree, use_mesh_smoothing, 
+                                                mesh_reader_verbose_output, output_high_order_grid);
         }
         return naca0012_mesh->triangulation;
     }
@@ -134,6 +140,10 @@ void NACA0012<dim,nstate>::set_higher_order_grid(std::shared_ptr<DGBase<dim, dou
     const std::string mesh_filename = this->all_param.flow_solver_param.input_mesh_filename+std::string(".msh");
     const bool use_mesh_smoothing = false;
     const unsigned int grid_degree = this->all_param.flow_solver_param.grid_degree;
+    // verbose output flag
+    const bool mesh_reader_verbose_output = this->all_param.flow_solver_param.mesh_reader_verbose_output;
+    // mesh output flag
+    const bool output_high_order_grid = this->all_param.output_high_order_grid;
     
     // Check if periodic BC exist
     const bool periodic_x = this->all_param.flow_solver_param.use_periodic_BC_in_x;
@@ -141,7 +151,6 @@ void NACA0012<dim,nstate>::set_higher_order_grid(std::shared_ptr<DGBase<dim, dou
     const bool periodic_z = this->all_param.flow_solver_param.use_periodic_BC_in_z;
 
     if (periodic_x || periodic_y || periodic_z) {
-        const bool mesh_reader_verbose_output = true;
 
         // Default parameters
         int x_periodic_1_temp = 0; 
@@ -181,9 +190,11 @@ void NACA0012<dim,nstate>::set_higher_order_grid(std::shared_ptr<DGBase<dim, dou
                                             z_periodic_1, z_periodic_2, 
                                             mesh_reader_verbose_output,
                                             this->all_param.do_renumber_dofs,
-                                            grid_degree, use_mesh_smoothing);    
+                                            grid_degree, use_mesh_smoothing,
+                                            output_high_order_grid);    
     } else {
-        naca0012_mesh = read_gmsh<dim, dim> (mesh_filename, this->all_param.do_renumber_dofs, grid_degree, use_mesh_smoothing);
+        naca0012_mesh = read_gmsh<dim, dim> (mesh_filename, this->all_param.do_renumber_dofs, grid_degree, use_mesh_smoothing, 
+                                            mesh_reader_verbose_output, output_high_order_grid);
     }
 
     dg->set_high_order_grid(naca0012_mesh);

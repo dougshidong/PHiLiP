@@ -264,7 +264,7 @@ PhysicsFactory<dim,nstate,real>
     // -------------------------------------------------------------------------------
     else if (model_type == Model_enum::potential_source) {
         has_nonzero_physical_source = true; // forcing physical source term
-        if constexpr ((nstate==dim+2) && (dim>=2)) {
+        if constexpr ((nstate==dim+2) && (dim>1)) {
             // Assign baseline physics type (and corresponding nstates) based on the physics model type
             // -- Assign nstates for the baseline physics (constexpr because template parameter)
             constexpr int nstate_baseline_physics = dim+2;

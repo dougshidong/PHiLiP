@@ -49,7 +49,6 @@ PotentialFlowBase<dim, nstate, real>::PotentialFlowBase(
     if constexpr(dim==1) {
         std::cout << "ModelBase::PotentialFlowBase() should be created with dim>=2.";
     }
-    std::cout << "Initializing PotentialFlowBase" << std::endl;
     // Initialize zero arrays / tensors
     for (int s=0; s<nstate; ++s) 
     {

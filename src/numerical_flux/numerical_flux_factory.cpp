@@ -69,26 +69,7 @@ NumericalFluxFactory<dim, nstate, real>
     using Model_enum = Parameters::AllParameters::ModelType;
     std::shared_ptr<Physics::PhysicsBase<dim, nstate, real>> euler_based_physics_to_be_passed = physics_input;
 
-#if PHILIP_DIM==3
-    if((pde_type==PDE_enum::physics_model && 
-        (model_type==Model_enum::large_eddy_simulation))) 
-    {
-        if constexpr (dim+2==nstate) {
-            std::shared_ptr<Physics::PhysicsModel<dim,dim+2,real,dim+2>> physics_model = std::dynamic_pointer_cast<Physics::PhysicsModel<dim,dim+2,real,dim+2>>(physics_input);
-            std::shared_ptr<Physics::Euler<dim,dim+2,real>> physics_baseline = std::dynamic_pointer_cast<Physics::Euler<dim,dim+2,real>>(physics_model->physics_baseline);
-            euler_based_physics_to_be_passed = physics_baseline;
-        }
-    }
-    else if((pde_type==PDE_enum::physics_model && 
-             model_type!=Model_enum::large_eddy_simulation))
-    {
-        std::cout << "Invalid convective numerical flux for physics_model and/or corresponding baseline_physics_type" << std::endl;
-        if(nstate!=(dim+2)) std::cout << "Error: Cannot create_euler_based_convective_numerical_flux() for nstate_baseline_physics != nstate." << std::endl;
-        std::abort();
-    }
-#endif
-    
-#if PHILIP_DIM!=1
+#if PHILIP_DIM==2
     // to do: improve / clean up this implementation
     if((pde_type==PDE_enum::physics_model && 
         (model_type==Model_enum::potential_source))) 
@@ -107,6 +88,26 @@ NumericalFluxFactory<dim, nstate, real>
         std::abort();
     }
 #endif
+
+#if PHILIP_DIM==3
+    if((pde_type==PDE_enum::physics_model) && 
+        ((model_type==Model_enum::large_eddy_simulation) || (model_type==Model_enum::potential_source))) 
+    {
+        if constexpr (dim+2==nstate) {
+            std::shared_ptr<Physics::PhysicsModel<dim,dim+2,real,dim+2>> physics_model = std::dynamic_pointer_cast<Physics::PhysicsModel<dim,dim+2,real,dim+2>>(physics_input);
+            std::shared_ptr<Physics::Euler<dim,dim+2,real>> physics_baseline = std::dynamic_pointer_cast<Physics::Euler<dim,dim+2,real>>(physics_model->physics_baseline);
+            euler_based_physics_to_be_passed = physics_baseline;
+        }
+    }
+    else if((pde_type==PDE_enum::physics_model && 
+             (model_type!=Model_enum::large_eddy_simulation && model_type!=Model_enum::potential_source)))
+    {
+        std::cout << "Invalid convective numerical flux for physics_model and/or corresponding baseline_physics_type" << std::endl;
+        if(nstate!=(dim+2)) std::cout << "Error: Cannot create_euler_based_convective_numerical_flux() for nstate_baseline_physics != nstate." << std::endl;
+        std::abort();
+    }
+#endif
+    
     if(conv_num_flux_type == AllParam::ConvectiveNumericalFlux::roe) {
         if constexpr (dim+2==nstate) return std::make_unique< RoePike<dim, nstate, real> > (euler_based_physics_to_be_passed);
     } 

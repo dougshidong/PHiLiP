@@ -176,7 +176,7 @@ ModelFactory<dim,nstate,real>
                 // -----------------------------------------------------------------------
                 using PS_enum = Parameters::PhysicsModelParam::PotentialFlowModel;
                 PS_enum potential_flow_model_type = parameters_input->physics_model_param.potential_flow_model_type;
-                if (potential_flow_model_type == PS_enum::euler || ((potential_flow_model_type == PS_enum::navier_stokes) && (dim==3))) {
+                if (potential_flow_model_type == PS_enum::euler || (potential_flow_model_type == PS_enum::navier_stokes)) {
                     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
                     // Euler model exists for dim >=2, nstate==dim+2
                     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -199,16 +199,11 @@ ModelFactory<dim,nstate,real>
                         manufactured_solution_function,
                         parameters_input->two_point_num_flux_type);
                 } else {
-                    if ((potential_flow_model_type == PS_enum::navier_stokes) && (dim!=3)) {
-                        assert(0==1 && "Navier Stokes model does not exist for dim!=3");
-                    }
-                    else {
-                        assert(0==1 && "Can't create PotentialFlowBase, invalid ModelType type");
-                    }
+                    assert(0==1 && "Can't create PotentialFlowBase, invalid ModelType type");
                     return nullptr;
                 }
-            } 
-            else {
+            
+            } else {
                 // Potential flow does not exist for nstate!=(dim+2) || dim<2
                 manufactured_solution_function = nullptr;
                 return nullptr;

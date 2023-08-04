@@ -69,12 +69,14 @@ namespace PHiLiP {
               const bool mesh_reader_verbose_output,
               const bool do_renumber_dofs,
               int requested_grid_order=0,
-              const bool use_mesh_smoothing=true);
+              const bool use_mesh_smoothing=true,
+              const bool output_high_order_grid=false);
 
     /// Reads Gmsh grid from file at a given requested_grid_order and use_mesh_smoothing input
     template <int dim, int spacedim>
     std::shared_ptr< HighOrderGrid<dim, double> >
-    read_gmsh(std::string filename, const bool do_renumber_dofs, int requested_grid_order=0, const bool use_mesh_smoothing=true);
+    read_gmsh(std::string filename, const bool do_renumber_dofs, int requested_grid_order=0, 
+      const bool use_mesh_smoothing=true, const bool mesh_reader_verbose_output = true, const bool output_high_order_grid=false);
     
 } // namespace PHiLiP
 #endif

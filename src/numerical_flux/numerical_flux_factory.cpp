@@ -71,7 +71,7 @@ NumericalFluxFactory<dim, nstate, real>
 
 #if PHILIP_DIM==3
     if((pde_type==PDE_enum::physics_model && 
-        (model_type==Model_enum::large_eddy_simulation || model_type==Model_enum::potential_source))) 
+        (model_type==Model_enum::large_eddy_simulation))) 
     {
         if constexpr (dim+2==nstate) {
             std::shared_ptr<Physics::PhysicsModel<dim,dim+2,real,dim+2>> physics_model = std::dynamic_pointer_cast<Physics::PhysicsModel<dim,dim+2,real,dim+2>>(physics_input);
@@ -87,6 +87,7 @@ NumericalFluxFactory<dim, nstate, real>
         std::abort();
     }
 #endif
+    
 #if PHILIP_DIM!=1
     // to do: improve / clean up this implementation
     if((pde_type==PDE_enum::physics_model && 

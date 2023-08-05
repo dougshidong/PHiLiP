@@ -39,7 +39,7 @@ public:
     ~PotentialFlowBase() {};
 
     /// Pointer to all input parameters
-    const Parameters::AllParameters *const all_parameters;
+    const Parameters::PotentialSourceParam potential_source_param;
     
     /// Potential Source Geometry
     const PS_geometry_enum potential_source_geometry;
@@ -59,8 +59,6 @@ public:
     /// Nondimensionalized constant viscosity
     const double const_viscosity; ///< Constant viscosity of fluid
 
-    /// Angle of trailing edge serration flaps
-    const double TES_flap_angle;
     /// Lift force vector, assumes that the lift is the force in the positive y-direction.
     const dealii::Tensor<1,dim,double> lift_vector;
     /// Drag force vector, assumes that the drag is the force in the positive x-direction.

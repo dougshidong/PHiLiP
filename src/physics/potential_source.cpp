@@ -32,15 +32,14 @@ PotentialFlowBase<dim, nstate, real>::PotentialFlowBase(
     std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function,
     const two_point_num_flux_enum                             /*two_point_num_flux_type*/)
     : ModelBase<dim,nstate,real>(manufactured_solution_function)
-    , all_parameters(parameters_input)
-    , potential_source_geometry(parameters_input->potential_source_param.potential_source_geometry)
+    , potential_source_param(parameters_input->potential_source_param)
+    , potential_source_geometry(potential_source_param.potential_source_geometry)
     , ref_length(ref_length)
     , gamma_gas(gamma_gas)
     , density_inf(1.0) // Nondimensional - Free stream values
     , angle_of_attack(angle_of_attack)
     , reynolds_number_inf(reynolds_number_inf)
     , const_viscosity(constant_viscosity) // Nondimensional - Free stream values
-    , TES_flap_angle(parameters_input->potential_source_param.TES_flap_angle)
     , lift_vector(initialize_lift_vector())
     , drag_vector(initialize_drag_vector())
 {
@@ -66,9 +65,9 @@ inline std::tuple<real2, real2> PotentialFlowBase<dim,nstate,real>
 ::TES_geometry () const
 {
     // geometric parameters
-    const real2 TES_h = this->all_parameters->potential_source_param.TES_h;
-    const real2 TES_frequency = this->all_parameters->potential_source_param.TES_frequency;
-    const real2 TES_thickness = this->all_parameters->potential_source_param.TES_thickness;
+    const real2 TES_h = this->potential_source_param.TES_h;
+    const real2 TES_frequency = this->potential_source_param.TES_frequency;
+    const real2 TES_thickness = this->potential_source_param.TES_thickness;
 
     // area
     const real2 TES_area = (TES_h * TES_frequency);    // TES_h = 1/2 triangle height
@@ -146,13 +145,16 @@ dealii::Tensor<1,dim,double> PotentialFlowBase<dim,nstate,real>
         body_force[3] = 0.0; }
 
     // LES body force:
-    if (potential_source_geometry == PS_geometry_enum::trailing_edge_serrations)    // I want to use constexpr, but "potential_source_geometry not initialized with a const expression"
+    if (potential_source_geometry == PS_geometry_enum::trailing_edge_serrations)
     {
         const double pi = atan(1.0) * 4.0;
 
+        // TES trailing flap angle
+        const double TES_flap_angle = this->potential_source_param.TES_flap_angle;
+
         // geometric parameters
-        const double TES_h = this->all_parameters->potential_source_param.TES_h;
-        const double TES_effective_length_factor = this->all_parameters->potential_source_param.TES_effective_length_factor;
+        const double TES_h = this->potential_source_param.TES_h;
+        const double TES_effective_length_factor = this->potential_source_param.TES_effective_length_factor;
 
         // TES area and volume
         const auto [TES_area, TES_volume] = this->TES_geometry<double>();
@@ -166,21 +168,21 @@ dealii::Tensor<1,dim,double> PotentialFlowBase<dim,nstate,real>
         const double freestream_U = this->freestream_speed();
 
         // lift and drag coefficients -> Flat Plate assumption: See [Cao et al, 2021]
-        const double pressure_force_coeff = ((2 * pi * (this->angle_of_attack + this->TES_flap_angle) * TES_effective_length) / this->ref_length);
+        const double pressure_force_coeff = ((2 * pi * (this->angle_of_attack + TES_flap_angle) * TES_effective_length) / this->ref_length);
         double friction_coeff = 0.0;
 
-        if (all_parameters->potential_source_param.use_viscous_drag) {
+        if (potential_source_param.use_viscous_drag) {
             friction_coeff = 0.072 * pow(this->reynolds_number_inf / this->density_inf, -1 / 5); }
 
-        const double lift_coeff = pressure_force_coeff * cos(this->TES_flap_angle);
-        const double drag_coeff = 2 * friction_coeff + pressure_force_coeff * sin(this->TES_flap_angle);
+        const double lift_coeff = pressure_force_coeff * cos(TES_flap_angle);
+        const double drag_coeff = 2 * friction_coeff + pressure_force_coeff * sin(TES_flap_angle);
 
         // force computation
         body_force = (0.5 * TES_area * (cell_volume / TES_volume) * (this->density_inf * freestream_U * freestream_U)
                      * (lift_coeff * this->lift_vector + drag_coeff * this->drag_vector));
 
     }
-    else if (potential_source_geometry == PS_geometry_enum::circular_test)    // I want to use constexpr, but "potential_source_geometry not initialized with a const expression"
+    else if (potential_source_geometry == PS_geometry_enum::circular_test)
     {
         body_force[0] = 1;
         body_force[1] = 0.0;

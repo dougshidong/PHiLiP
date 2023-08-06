@@ -9,13 +9,13 @@ LiftDragFunctional<dim,nstate,real,MeshType>
     const Functional_types functional_type)
     : Functional<dim,nstate,real,MeshType>(dg_input)
     , functional_type(functional_type)
-    , euler_fad_fad(dynamic_cast< Physics::Euler<dim,dim+2,FadFadType> &>(*(this->physics_fad_fad)))
-    , angle_of_attack(this->euler_fad_fad.angle_of_attack)
+    // , euler_fad_fad(dynamic_cast< Physics::Euler<dim,dim+2,FadFadType> &>(*(this->physics_fad_fad)))
+    , angle_of_attack(dg_input->all_parameters->euler_param.angle_of_attack)
     , rotation_matrix(initialize_rotation_matrix(this->angle_of_attack))
     , lift_vector(initialize_lift_vector(this->rotation_matrix))
     , drag_vector(initialize_drag_vector(this->rotation_matrix))
     , force_dimensionalization_factor(this->initialize_force_dimensionalization_factor())
-{
+{   
     switch(functional_type) {
         case Functional_types::lift : this->force_vector = lift_vector; break;
         case Functional_types::drag : this->force_vector = drag_vector; break;
@@ -27,8 +27,8 @@ template <int dim,int nstate,typename real,typename MeshType>
 double LiftDragFunctional<dim,nstate,real,MeshType>
 ::initialize_force_dimensionalization_factor()
 {
-    const double ref_length = this->euler_fad_fad.ref_length;
-    const double dynamic_pressure_inf = this->euler_fad_fad.dynamic_pressure_inf;
+    const double ref_length = this->euler_fad_fad->ref_length;
+    const double dynamic_pressure_inf = this->euler_fad_fad->dynamic_pressure_inf;
 
     return 1.0 / (ref_length * dynamic_pressure_inf);
 }

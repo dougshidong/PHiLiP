@@ -63,6 +63,10 @@ protected:
     /// Link to Artificial dissipation class (with three dissipation types, depending on the input). 
     std::shared_ptr <ArtificialDissipationBase<dim,nstate>> artificial_dissip;
 
+    /// Casts DG's physics into an Euler physics object.
+    std::shared_ptr<Physics::Euler<dim,dim+2,FadFadType>> euler_fad_fad;
+
+
 
 public:
     /** Constructor.

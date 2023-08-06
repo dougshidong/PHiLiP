@@ -184,12 +184,11 @@ dealii::Tensor<1,dim,double> PotentialFlowBase<dim,nstate,real>
     }
     else if (potential_source_geometry == PS_geometry_enum::circular_test)
     {
-        body_force[0] = 1;
+        body_force[0] = -1.0;
         body_force[1] = 0.0;
 
-        if constexpr(dim!=2)
+        if constexpr(dim>2)
         {
-            std::cout << "Circular test currently only applicable for dim == 2." << std::endl;
             body_force[2] = 0.0;  
         }
     }
@@ -202,33 +201,30 @@ dealii::Tensor<1,dim,double> PotentialFlowBase<dim,nstate,real>
 template <int dim, int nstate, typename real>
 std::array<real,nstate> PotentialFlowBase<dim,nstate,real>
 ::physical_source_term (
-        const dealii::Point<dim,real> &/*pos*/,
-        const std::array<real,nstate> &/*conservative_soln*/,
-        const std::array<dealii::Tensor<1,dim,real>,nstate> &/*solution_gradient*/,
-        const dealii::types::global_dof_index /*cell_index*/) const
+        const dealii::Point<dim,real> &pos,
+        const std::array<real,nstate> &conservative_soln,
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient,
+        const dealii::types::global_dof_index cell_index) const
 {
-    return zero_array;
+    std::array<real,nstate> physical_source;
+    std::fill(physical_source.begin(), physical_source.end(), 0.0);
 
-    // std::array<real,nstate> physical_source;
-    // std::fill(physical_source.begin(), physical_source.end(), 0.0);
+    if (this->cellwise_geometry_condition[cell_index])
+    {
+        // // density
+        // physical_source[0] = 0;
 
-    // if (this->cellwise_geometry_condition[cell_index])
-    // {
-    //     // // density
-    //     // physical_source[0] = 0;
-    //     std::cout << "About to compute_body_force" << std::endl;
+        // // momentum
+        dealii::Tensor<1,dim,double> body_force = this->compute_body_force(pos, conservative_soln, solution_gradient, cell_index);
+        for (unsigned int i=0;i<dim;++i)
+        {
+            physical_source[i+1] = body_force[i];
+        }
 
-    //     // // momentum
-    //     dealii::Tensor<1,dim,double> body_force = this->compute_body_force(pos, conservative_soln, solution_gradient, cell_index);
-    //     for (unsigned int i=0;i<dim;++i)
-    //     {
-    //         physical_source[i+1] = body_force[i];
-    //     }
-
-    //     // // energy
-    //     // physical_source[nstate - 1] = 0;
-    // }
-    // return physical_source;
+        // // energy
+        // physical_source[nstate - 1] = 0;
+    }
+    return physical_source;
 }
 
 //// Overwriting virtual methods ////

@@ -22,6 +22,7 @@
 #include "physics/physics_factory.h"
 #include "physics/model.h"
 #include "physics/model_factory.h"
+#include "physics/physics_model.h"
 #include "dg/dg.h"
 #include "functional.h"
 #include "lift_drag.hpp"
@@ -346,6 +347,24 @@ Functional<dim,nstate,real,MeshType>::Functional(
     conv_num_flux_fad_fad = NumericalFlux::NumericalFluxFactory<dim, nstate, FadFadType> ::create_convective_numerical_flux (dg->all_parameters->conv_num_flux_type, dg->all_parameters->pde_type, dg->all_parameters->model_type, physics_fad_fad);
     diss_num_flux_fad_fad = NumericalFlux::NumericalFluxFactory<dim, nstate, FadFadType> ::create_dissipative_numerical_flux (dg->all_parameters->diss_num_flux_type, physics_fad_fad, artificial_dissip);
 
+
+    // initializing euler_fad_fad - checking if physics_model
+    using PDE_enum = Parameters::AllParameters::PartialDifferentialEquation;
+    PDE_enum pde_type = dg->all_parameters->pde_type;
+
+    if (pde_type == PDE_enum::physics_model)
+    {
+        if constexpr (nstate==dim+2) {
+            std::shared_ptr<Physics::PhysicsModel<dim,dim+2,FadFadType,dim+2>> physics_model = std::dynamic_pointer_cast<Physics::PhysicsModel<dim,dim+2,FadFadType,dim+2>>(physics_fad_fad);
+            std::shared_ptr<Physics::Euler<dim,dim+2,FadFadType>> physics_baseline = std::dynamic_pointer_cast<Physics::Euler<dim,dim+2,FadFadType>>(physics_model->physics_baseline);
+            euler_fad_fad = physics_baseline;
+        }
+    } 
+    else {
+        std::shared_ptr<Physics::Euler<dim,dim+2,FadFadType>> physics_cast = std::dynamic_pointer_cast<Physics::Euler<dim,dim+2,FadFadType>>(physics_fad_fad);
+        euler_fad_fad = physics_cast;
+    }
+    std::dynamic_pointer_cast<Physics::Euler<dim,dim+2,FadFadType>>(physics_fad_fad);
     init_vectors();
 }
 template <int dim, int nstate, typename real, typename MeshType>

@@ -33,7 +33,7 @@ private:
     const Functional_types functional_type;
 
     /// @brief Casts DG's physics into an Euler physics reference.
-    const Physics::Euler<dim,dim+2,FadFadType> &euler_fad_fad;
+   /////// // const Physics::Euler<dim,dim+2,FadFadType> &euler_fad_fad;
     /// @brief Angle of attack retrieved from euler_fad_fad.
     const double angle_of_attack;
     /// @brief Rotation matrix based on angle of attack.

@@ -146,7 +146,7 @@ public:
         // >> need to account for edge case where cast is partially successful, but fails later due to improper physics.
 
         // Simple test to check if dynamic cast failed, doesn't account for edge case 
-        assert((euler_physics != nullptr) && "Physcis input cannot be cast to euler.");
+        assert((euler_physics != nullptr) && "Physics input cannot be cast to euler.");
     };
 
 

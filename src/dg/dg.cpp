@@ -389,8 +389,8 @@ bool DGBaseState<dim,nstate,real,MeshType>::potential_body_geometry(
 
         // Trailing Edge Origin (start at min. z)
         dealii::Point<dim,real> circle_origin;
-        circle_origin[0] = 3.0;
-        circle_origin[1] = 3.0;
+        circle_origin[0] = 0.0;
+        circle_origin[1] = 0.0;
 
         // (x, y) -> (s, t)
         mapped_pos[0] = (pos[0] - circle_origin[0]);
@@ -399,7 +399,7 @@ bool DGBaseState<dim,nstate,real,MeshType>::potential_body_geometry(
         r = sqrt((mapped_pos[0] * mapped_pos[0]) + (mapped_pos[1] * mapped_pos[1]));
 
         if constexpr(dim==3) {   
-            circle_origin[2] = 3.0;
+            circle_origin[2] = 0.0;
             mapped_pos[2] = (pos[2] - circle_origin[2]);
 
             r  = sqrt((mapped_pos[0] * mapped_pos[0]) + (mapped_pos[1] * mapped_pos[1]) + (mapped_pos[2] * mapped_pos[2]));
@@ -509,7 +509,7 @@ void DGBaseState<dim,nstate,real,MeshType>::update_model_variables()
 
         if (pde_type == PDE_enum::physics_model && model_type == Model_enum::potential_source)
         {
-            // get weighted cell position (currently using rms)
+            // get weighted cell position (currently using average location of quadrature nodes)
             dealii::Point<dim,real> cell_location;
 
             // iterating over quadrature points within each cell and averaging their location
@@ -517,11 +517,11 @@ void DGBaseState<dim,nstate,real,MeshType>::update_model_variables()
                 const dealii::Point<dim,real> &quad_point = fe_values_volume.quadrature_point(iquad);
 
                 for (unsigned int i=0; i<dim; i++) {
-                    cell_location[i] += quad_point[i] * quad_point[i];
+                    cell_location[i] += quad_point[i];
                 }
             }
             for (unsigned int i=0; i<dim; ++i) { 
-                cell_location[i] = sqrt(cell_location[i] / n_quad_pts); 
+                cell_location[i] = (cell_location[i] / n_quad_pts); 
             }
 
             // determining if within artificial_geometry

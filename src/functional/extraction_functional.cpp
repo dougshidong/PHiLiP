@@ -32,7 +32,7 @@ ExtractionFunctional<dim,nstate,real,MeshType>
     for (auto cell = this->dg->triangulation->begin_active(); cell != this->dg->triangulation->end(); ++cell) {
         for (unsigned int face=0; face<dealii::GeometryInfo<dim>::faces_per_cell; ++face) {
             if (cell->face(face)->at_boundary()) {
-                if (cell->face(face)->center()[0]-start_point[0]<=1e-3 && cell->face(face)->center()[1]>0.0){
+                if (std::abs(cell->face(face)->center()[0]-start_point[0])<=1e-3 && cell->face(face)->center()[1]>=0.0){
                     start_point = cell->face(face)->center();
                 }
             }

@@ -68,7 +68,8 @@ std::shared_ptr<Triangulation> NACA0012<dim,nstate>::generate_grid() const
         const std::string mesh_filename = this->all_param.flow_solver_param.input_mesh_filename+std::string(".msh");
         const bool use_mesh_smoothing = false;
         // requested grid order
-        const unsigned int grid_degree = this->all_param.flow_solver_param.grid_degree;
+        // const unsigned int grid_degree = this->all_param.flow_solver_param.grid_degree; << deal.ii raises error when making higher order grid
+        const unsigned int grid_degree = 0;
         // verbose output flag
         const bool mesh_reader_verbose_output = this->all_param.flow_solver_param.mesh_reader_verbose_output;
         // mesh output flag
@@ -139,7 +140,8 @@ void NACA0012<dim,nstate>::set_higher_order_grid(std::shared_ptr<DGBase<dim, dou
 
     const std::string mesh_filename = this->all_param.flow_solver_param.input_mesh_filename+std::string(".msh");
     const bool use_mesh_smoothing = false;
-    const unsigned int grid_degree = this->all_param.flow_solver_param.grid_degree;
+    // const unsigned int grid_degree = this->all_param.flow_solver_param.grid_degree;
+    const unsigned int grid_degree = 0;
     // verbose output flag
     const bool mesh_reader_verbose_output = this->all_param.flow_solver_param.mesh_reader_verbose_output;
     // mesh output flag

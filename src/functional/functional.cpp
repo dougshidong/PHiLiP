@@ -312,7 +312,7 @@ real2 OutletPressureIntegral<dim,nstate,real,MeshType>::evaluate_boundary_integr
 
     if(boundary_id == 1002){
         // casting it to a physics euler as it is needed for the pressure computation
-        const Physics::Euler<dim,nstate,real2>& euler_physics = dynamic_cast<const Physics::Euler<dim,nstate,real2>&>(physics);
+        const Physics::Euler<dim,nstate,real2>& euler_physics = dynamic_cast<const Physics::Euler<dim,nstate,real2>&>(physics); // TO DO: Check for ModelBase case
 
         // converting the state vector to the point pressure
         pressure = euler_physics.compute_pressure(soln_at_q);

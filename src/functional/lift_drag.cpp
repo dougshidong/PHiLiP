@@ -9,7 +9,6 @@ LiftDragFunctional<dim,nstate,real,MeshType>
     const Functional_types functional_type)
     : Functional<dim,nstate,real,MeshType>(dg_input)
     , functional_type(functional_type)
-    // , euler_fad_fad(dynamic_cast< Physics::Euler<dim,dim+2,FadFadType> &>(*(this->physics_fad_fad)))
     , angle_of_attack(dg_input->all_parameters->euler_param.angle_of_attack)
     , rotation_matrix(initialize_rotation_matrix(this->angle_of_attack))
     , lift_vector(initialize_lift_vector(this->rotation_matrix))

@@ -2,6 +2,7 @@
 #define __PHILIP_LIFT_DRAG_H__
 
 #include "functional.h"
+#include "physics/physics_model.h"
 
 namespace PHiLiP {
 
@@ -100,9 +101,26 @@ public:
     {
         if (boundary_id == 1001) {
             assert(soln_at_q.size() == dim+2);
-            const Physics::Euler<dim,dim+2,real2> &euler = dynamic_cast< const Physics::Euler<dim,dim+2,real2> &> (physics);
 
-            real2 pressure = euler.compute_pressure (soln_at_q);
+            real2 pressure {0.0};
+
+            // checking for ModelBase
+            using PDE_enum = Parameters::AllParameters::PartialDifferentialEquation;
+            PDE_enum pde_type = this->dg->all_parameters->pde_type;
+
+            if (pde_type == PDE_enum::physics_model)
+            {
+            if constexpr (nstate==dim+2) 
+            {
+                const Physics::PhysicsModel<dim,dim+2,real2,dim+2> &physics_model = dynamic_cast<const Physics::PhysicsModel<dim,dim+2,real2,dim+2> &>(physics);
+                std::shared_ptr<Physics::Euler<dim,dim+2,real2>> euler_physics = std::dynamic_pointer_cast<Physics::Euler<dim,dim+2,real2>>(physics_model.physics_baseline);
+
+                pressure = euler_physics->compute_pressure (soln_at_q);
+            }
+            } else {
+                const Physics::Euler<dim,dim+2,real2> &euler = dynamic_cast<const Physics::Euler<dim,dim+2,real2> &>(physics);
+                pressure = euler.compute_pressure (soln_at_q);
+            }
 
             //std::cout << " force_dimensionalization_factor: " << force_dimensionalization_factor
             //          << " pressure: " << pressure
@@ -110,7 +128,7 @@ public:
             //          << std::endl;
 
             return force_dimensionalization_factor * pressure * (normal * force_vector);
-        } 
+        }
         return (real2) 0.0;
     }
 

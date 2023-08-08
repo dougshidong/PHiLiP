@@ -863,11 +863,17 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
 
     const dealii::types::global_dof_index current_cell_index = current_cell->active_cell_index();
 
+    // checking for physical source term as well
+    using PDE_enum = Parameters::AllParameters::PartialDifferentialEquation;
+    using Model_enum = Parameters::AllParameters::ModelType;
+
+    const bool using_physical_source = ((all_parameters->pde_type == PDE_enum::physics_model) && (all_parameters->model_type == Model_enum::potential_source));
+
     std::array<std::vector<real>,dim> mapping_support_points;
     //if have source term need to store vol flux nodes.
-    const bool store_vol_flux_nodes = all_parameters->manufactured_convergence_study_param.manufactured_solution_param.use_manufactured_source_term;
+    const bool store_vol_flux_nodes = ((all_parameters->manufactured_convergence_study_param.manufactured_solution_param.use_manufactured_source_term) || using_physical_source);
     //for boundary conditions not periodic we need surface flux nodes
-    //should change this flag to something like if have face on boundary not periodic in the future
+    //should change this flag to use_only_periodic_bc
     const bool store_surf_flux_nodes = (all_parameters->use_periodic_bc) ? false : true;
     OPERATOR::metric_operators<real,dim,2*dim> metric_oper_int(nstate, poly_degree, grid_degree,
                                                                store_vol_flux_nodes,

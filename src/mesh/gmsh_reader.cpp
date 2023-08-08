@@ -1561,7 +1561,7 @@ read_gmsh(std::string filename,
       dealii::GridReordering<dim, spacedim>::invert_all_cells_of_negative_grid(vertices, p1_cells);
     }
     dealii::GridReordering<dim, spacedim>::reorder_cells(p1_cells);
-    triangulation->create_triangulation_compatibility(vertices, p1_cells, subcelldata); /// <<< FAILING HERE >>>
+    triangulation->create_triangulation_compatibility(vertices, p1_cells, subcelldata);
 
     triangulation->repartition();
 

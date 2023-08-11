@@ -59,11 +59,6 @@ public:
     /// Nondimensionalized constant viscosity
     const double const_viscosity; ///< Constant viscosity of fluid
 
-    /// Lift force vector, assumes that the lift is the force in the positive y-direction.
-    const dealii::Tensor<1,dim,double> lift_vector;
-    /// Drag force vector, assumes that the drag is the force in the positive x-direction.
-    const dealii::Tensor<1,dim,double> drag_vector;
-
     //// Overwriting virtual class functions ////
 
     /// Convective flux: \f$ \mathbf{F}_{conv} \f$
@@ -112,6 +107,14 @@ protected:
     std::array<real, nstate> zero_array; ///< Array of zeros
     std::array<dealii::Tensor<1,dim,real>,nstate> zero_tensor_array; ///< Tensor array of zeros
 
+    /// Rotation matrix based on TES flap angle, rotation CW about z axis
+    const dealii::Tensor<2,dim,double> rotation_matrix;
+    /// Pressure force vector, assumes that the lift is the force normal to the flat plate (TES)
+    const dealii::Tensor<1,dim,double> normal_vector;
+    /// Drag force vector, assumes that the drag is the force tangential to the flat plate (TES)
+    const dealii::Tensor<1,dim,double> tangential_vector;
+
+private:
     // returns the area and volume of a (COMPLETE) serration ### WARNING: error introduced if not full ###
     template<typename real2>
     std::tuple<real2, real2> TES_geometry () const;
@@ -119,11 +122,16 @@ protected:
     // returns the freestream speed using the constant viscosity, density and reynolds number
     double freestream_speed () const;
 
-    // returns lift direction unit vector
-    dealii::Tensor<1,dim,double> initialize_lift_vector () const;
+    // Initialize rotation matrix based on serration flap angle.
+        /// The chord is aligned with the x-axis, drag is along [1, 0, 0]^T
+        /// The chord is aligned with the x-axis, lift is along [0, 1, 0]^T
+    dealii::Tensor<2,dim,double> initialize_rotation_matrix(const double TES_flap_angle);
 
-    // returns drag direction unit vector
-    dealii::Tensor<1,dim,double> initialize_drag_vector () const;
+    // returns unit vector normal to TES
+    dealii::Tensor<1,dim,double> initialize_normal_vector (const dealii::Tensor<2,dim,double> &rotation_matrix);
+
+    // returns unit vector tangential to TES
+    dealii::Tensor<1,dim,double> initialize_tangent_vector (const dealii::Tensor<2,dim,double> &rotation_matrix);
 
     // computes the force acting at a point within a physical body
     dealii::Tensor<1,dim,double> compute_body_force (
@@ -131,9 +139,6 @@ protected:
         const std::array<real,nstate> &conservative_soln,
         const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient,
         const dealii::types::global_dof_index cell_index) const;
-
-private:
-
 };
 
 

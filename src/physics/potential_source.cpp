@@ -40,8 +40,9 @@ PotentialFlowBase<dim, nstate, real>::PotentialFlowBase(
     , angle_of_attack(angle_of_attack)
     , reynolds_number_inf(reynolds_number_inf)
     , const_viscosity(constant_viscosity) // Nondimensional - Free stream values
-    , lift_vector(initialize_lift_vector())
-    , drag_vector(initialize_drag_vector())
+    , rotation_matrix(initialize_rotation_matrix(this->potential_source_param.TES_flap_angle))
+    , normal_vector(initialize_normal_vector(this->rotation_matrix))
+    , tangential_vector(initialize_tangent_vector(this->rotation_matrix))
 {
     static_assert(nstate>=dim+2, "ModelBase::PotentialFlowBase() should be created with nstate>=dim+2");
     // static_assert(dim>=2, "ModelBase::PotentialFlowBase() should be created with dim>=2");
@@ -90,42 +91,76 @@ inline double PotentialFlowBase<dim,nstate,real>
 }
 
 // Lift and Drag Vectors
+
+template <int dim,int nstate,typename real>
+dealii::Tensor<2,dim,double> PotentialFlowBase<dim,nstate,real>
+::initialize_rotation_matrix(const double TES_flap_angle)
+{
+    dealii::Tensor<2,dim,double> rotation_matrix;
+    if constexpr (dim == 1) {
+        assert(false);
+    }
+    // rotates [1, 0]^T [0, 1]^T CW about origin by TES_flap_angle
+    rotation_matrix[0][0] = cos(TES_flap_angle);
+    rotation_matrix[0][1] = sin(TES_flap_angle);
+    rotation_matrix[1][0] = -sin(TES_flap_angle);
+    rotation_matrix[1][1] = cos(TES_flap_angle);
+    //
+    //      | cos(B)    sin(B) | 
+    //      |-sin(B)    cos(B) |
+    //
+    if constexpr (dim == 3) {
+        rotation_matrix[0][2] = 0.0;
+        rotation_matrix[1][2] = 0.0;
+        rotation_matrix[2][0] = 0.0;
+        rotation_matrix[2][1] = 0.0;
+        rotation_matrix[2][2] = 1.0;
+    }
+    return rotation_matrix;
+}
+// Lift vector = normal vector
 template <int dim, int nstate, typename real>
 dealii::Tensor<1,dim,double> PotentialFlowBase<dim,nstate,real>
-::initialize_lift_vector () const
+::initialize_normal_vector (const dealii::Tensor<2,dim,double> &rotation_matrix)
 {
+    if constexpr (dim == 1) {
+        assert(false);
+    }
+
     dealii::Tensor<1,dim,double> lift_direction;
     lift_direction[0] = 0.0;
     lift_direction[1] = 1.0;
 
-    if constexpr (dim == 1) {
-        assert(false);
-    }
     if constexpr (dim == 3) {
         lift_direction[2] = 0.0;
     }
 
-    /// The chord is aligned with the x-axis, lift is [0, 1, 0]^T
-    return lift_direction;
-}
+    dealii::Tensor<1,dim,double> normal_vec;
+    normal_vec = rotation_matrix * lift_direction;
 
+    return normal_vec;
+}
+// Drag vector = tangential vector
 template <int dim, int nstate, typename real>
 dealii::Tensor<1,dim,double> PotentialFlowBase<dim,nstate,real>
-::initialize_drag_vector () const
+::initialize_tangent_vector (const dealii::Tensor<2,dim,double> &rotation_matrix)
 {
+     if constexpr (dim == 1) {
+        assert(false);
+    }
+
     dealii::Tensor<1,dim,double> drag_direction;
     drag_direction[0] = 1.0;
     drag_direction[1] = 0.0;
 
-    if constexpr (dim == 1) {
-        assert(false);
-    }
     if constexpr (dim == 3) {
         drag_direction[2] = 0.0;
     }
 
-    /// The chord is aligned with the x-axis, drag is [1, 0, 0]^T
-    return drag_direction;
+    dealii::Tensor<1,dim,double> tang_vec;
+    tang_vec = rotation_matrix * drag_direction;
+
+    return tang_vec;
 }
 
 
@@ -168,23 +203,20 @@ dealii::Tensor<1,dim,double> PotentialFlowBase<dim,nstate,real>
         const double freestream_U = this->freestream_speed();
 
         // lift and drag coefficients -> Flat Plate assumption: See [Cao et al, 2021]
-        const double pressure_force_coeff = ((2 * pi * (this->angle_of_attack + TES_flap_angle) * TES_effective_length) / this->ref_length);
-        double friction_coeff = 0.0;
-
+        const double pressure_coeff = ((2 * pi * (this->angle_of_attack + TES_flap_angle) * TES_effective_length) / this->ref_length);
+        
+        double drag_coeff = 0.0;
         if (potential_source_param.use_viscous_drag) {
-            friction_coeff = 0.072 * pow(this->reynolds_number_inf / this->density_inf, -1 / 5); }
-
-        const double lift_coeff = pressure_force_coeff * cos(TES_flap_angle);
-        const double drag_coeff = 2 * friction_coeff + pressure_force_coeff * sin(TES_flap_angle);
+            drag_coeff = 0.072 * pow(this->reynolds_number_inf, -1 / 5); }
 
         // force computation
         body_force = (0.5 * TES_area * (cell_volume / TES_volume) * (this->density_inf * freestream_U * freestream_U)
-                     * (lift_coeff * this->lift_vector + drag_coeff * this->drag_vector));
+                     * (pressure_coeff * this->normal_vector + 2 * drag_coeff * this->tangential_vector));
 
     }
     else if (potential_source_geometry == PS_geometry_enum::circular_test)
     {
-        body_force[0] = -1.0;
+        body_force[0] = 1.0;
         body_force[1] = 0.0;
 
         if constexpr(dim>2)
@@ -218,7 +250,7 @@ std::array<real,nstate> PotentialFlowBase<dim,nstate,real>
         dealii::Tensor<1,dim,double> body_force = this->compute_body_force(pos, conservative_soln, solution_gradient, cell_index);
         for (unsigned int i=0;i<dim;++i)
         {
-            physical_source[i+1] = body_force[i];
+            physical_source[i+1] = - body_force[i]; // negative as the computed force is applied to the fluid, not the body
         }
 
         // // energy

@@ -43,6 +43,7 @@
 #include "euler_entropy_conserving_split_forms_check.h"
 #include "homogeneous_isotropic_turbulence_initialization_check.h"
 #include "khi_robustness.h"
+#include "build_NNLS_problem.h"
 
 namespace PHiLiP {
 namespace Tests {
@@ -301,6 +302,8 @@ std::unique_ptr< TestsBase > TestsFactory<dim,nstate,MeshType>
         if constexpr (dim==3 && nstate==dim+2)  return std::make_unique<EulerSplitEntropyCheck<dim, nstate>>(parameters_input, parameter_handler_input);
     } else if(test_type == Test_enum::khi_robustness) {
         if constexpr (dim==2 && nstate==dim+2)  return std::make_unique<KHIRobustness<dim, nstate>>(parameters_input, parameter_handler_input);
+    } else if(test_type == Test_enum::build_NNLS_problem) {
+        if constexpr (dim==1 && nstate==1)  return std::make_unique<BuildNNLSProblem<dim,nstate>>(parameters_input, parameter_handler_input);
     } else {
         std::cout << "Invalid test. You probably forgot to add it to the list of tests in tests.cpp" << std::endl;
         std::abort();

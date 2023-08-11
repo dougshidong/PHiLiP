@@ -35,6 +35,7 @@ set(TESTS_SOURCE
     euler_entropy_conserving_split_forms_check.cpp
     homogeneous_isotropic_turbulence_initialization_check.cpp
     khi_robustness.cpp
+    build_NNLS_problem.cpp
     )
 
 foreach(dim RANGE 1 3)
@@ -59,6 +60,7 @@ foreach(dim RANGE 1 3)
     string(CONCAT FlowSolverLib FlowSolver_${dim}D)
     string(CONCAT ExactSolutionsLib ExactSolutions_${dim}D)
     string(CONCAT MeshAdaptationLib MeshAdaptation_${dim}D)
+    string(CONCAT ECSWLib ECSW_${dim}D)
     target_link_libraries(${TestsLib} ${GridsLib})
     target_link_libraries(${TestsLib} ${NumericalFluxLib})
     target_link_libraries(${TestsLib} ${PhysicsLib})
@@ -73,6 +75,7 @@ foreach(dim RANGE 1 3)
     target_link_libraries(${TestsLib} ${FlowSolverLib})
     target_link_libraries(${TestsLib} ${ExactSolutionsLib})
     target_link_libraries(${TestsLib} ${MeshAdaptationLib})
+    target_link_libraries(${TestsLib} ${ECSWLib})
     # Setup target with deal.II
     if(NOT DOC_ONLY)
         DEAL_II_SETUP_TARGET(${TestsLib})
@@ -93,4 +96,5 @@ foreach(dim RANGE 1 3)
     unset(FlowSolverLib)
     unset(ExactSolutionsLib)
     unset(MeshAdaptationLib)
+    unset(ECSWLib)
 endforeach()

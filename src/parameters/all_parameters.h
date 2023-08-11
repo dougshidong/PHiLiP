@@ -193,6 +193,7 @@ public:
         h_refinement_study_isentropic_vortex,
         khi_robustness,
         homogeneous_isotropic_turbulence_initialization_check,
+        build_NNLS_problem,
     };
     /// Store selected TestType from the input file.
     TestType test_type;

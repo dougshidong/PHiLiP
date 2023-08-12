@@ -19,8 +19,7 @@ namespace PHiLiP {
             soln_cell->get_dof_indices(current_dofs_indices);
 
             //Extract the local solution dofs in the cell from the global solution dofs
-            if (this->global_max.size() < nstate && this->global_min.size() < nstate)
-            {
+            if (this->global_max.size() < nstate && this->global_min.size() < nstate) {
                 for (unsigned int istate = 0; istate < nstate; ++istate) {
                     this->global_max.push_back(-1e9);
                     this->global_min.push_back(1e9);
@@ -70,9 +69,7 @@ namespace PHiLiP {
 
 
         if (this->global_max.empty() && this->global_min.empty())
-        {
             this->get_global_max_and_min_of_solution();
-        }
 
         for (auto soln_cell : this->dof_handler.active_cell_iterators()) {
             if (!soln_cell->is_locally_owned()) continue;
@@ -118,7 +115,7 @@ namespace PHiLiP {
             const std::vector<real>& quad_weights = this->volume_quadrature_collection[poly_degree].get_weights();
             //interpolate solution dofs to quadrature pts.
             //and apply integral for the soln avg
-            std::array<real, nstate> soln_cell_avg = {};
+            std::array<real, nstate> soln_cell_avg;
 
             std::array<std::vector<real>, nstate> soln_at_q;
 
@@ -136,9 +133,8 @@ namespace PHiLiP {
             }
 
             //get theta value
-            std::array<real, nstate> theta = {};
-            for (unsigned int istate = 0; istate < nstate; ++istate)
-            {
+            std::array<real, nstate> theta;
+            for (unsigned int istate = 0; istate < nstate; ++istate) {
                 real maxscale = 1.0;
                 real minscale = 1.0;
 
@@ -170,14 +166,12 @@ namespace PHiLiP {
                     const unsigned int idof = istate * n_shape_fns + ishape;
                     this->solution[current_dofs_indices[idof]] = soln_dofs[istate][ishape];
 
-                    if (this->solution[current_dofs_indices[idof]] > this->global_max[istate] + 1e-13)
-                    {
+                    if (this->solution[current_dofs_indices[idof]] > this->global_max[istate] + 1e-13) {
                         std::cout << " Solution exceeds global maximum   -   Aborting... Value:   " << this->solution[current_dofs_indices[idof]] << std::endl << std::flush;
                         this->pcout << "theta:   " << theta[istate] << "   local max:   " << local_max[istate] << "   soln_cell_avg:   " << soln_cell_avg[istate] << std::endl;
                         std::abort();
                     }
-                    if (this->solution[current_dofs_indices[idof]] < this->global_min[istate] - 1e-13)
-                    {
+                    if (this->solution[current_dofs_indices[idof]] < this->global_min[istate] - 1e-13) {
                         std::cout << " Solution exceeds global minimum   -   Aborting... Value:   " << this->solution[current_dofs_indices[idof]] << std::endl << std::flush;
                         this->pcout << "theta:   " << theta[istate] << "   local_min:   " << local_min[istate] << "   soln_cell_avg:   " << soln_cell_avg[istate] << std::endl;
                         std::abort();
@@ -246,7 +240,7 @@ namespace PHiLiP {
             const std::vector<real>& quad_weights = this->volume_quadrature_collection[poly_degree].get_weights();
             //interpolate solution dofs to quadrature pts.
             //and apply integral for the soln avg
-            std::array<real, nstate> soln_cell_avg = {};
+            std::array<real, nstate> soln_cell_avg;
 
             std::array<std::vector<real>, nstate> soln_at_q;
 
@@ -257,14 +251,11 @@ namespace PHiLiP {
             }
 
             for (unsigned int istate = 0; istate < nstate; ++istate) {
-                for (unsigned int iquad = 0; iquad < n_quad_pts; ++iquad)
-                {
-                    if (flux_nodes_type == FluxNodes::GL)
-                    {
+                for (unsigned int iquad = 0; iquad < n_quad_pts; ++iquad) {
+                    if (flux_nodes_type == FluxNodes::GL) {
                         if (soln_at_q[istate][iquad] < local_min[istate])
                             local_min[istate] = soln_at_q[istate][iquad];
                     }
-
                     soln_cell_avg[istate] += quad_weights[iquad]
                         * soln_at_q[istate][iquad];
                 }
@@ -273,8 +264,7 @@ namespace PHiLiP {
             real eps = 1e-13;
             real gamma = 1.4;
 
-            if (nstate == PHILIP_DIM + 2)
-            {
+            if (nstate == PHILIP_DIM + 2) {
                 // compute value of pressure at soln_cell_avg
                 real rho_avg = soln_cell_avg[0];
                 real tot_energy_avg = soln_cell_avg[nstate - 1];
@@ -299,19 +289,16 @@ namespace PHiLiP {
             //apply limiter on density values at quadrature points
             for (unsigned int istate = 0; istate < 1/*nstate*/; ++istate) {
                 for (unsigned int iquad = 0; iquad < n_quad_pts; ++iquad) {
-                    if (isnan(soln_at_q[istate][iquad]))
-                    {
+                    if (isnan(soln_at_q[istate][iquad])) {
                         std::cout << " Density is NaN - Aborting... " << std::endl << std::flush;
                         std::abort();
                     }
-
                     soln_at_q[istate][iquad] = theta * (soln_at_q[istate][iquad] - soln_cell_avg[istate])
                         + soln_cell_avg[istate];
                 }
             }
 
-            if (nstate == PHILIP_DIM + 2)
-            {
+            if (nstate == PHILIP_DIM + 2) {
                 std::vector< real > p_lim(n_quad_pts);
                 for (unsigned int iquad = 0; iquad < n_quad_pts; ++iquad) {
                     p_lim[iquad] = (gamma - 1) * (soln_at_q[nstate - 1][iquad] -
@@ -325,11 +312,8 @@ namespace PHiLiP {
                 std::vector<real> theta2(n_quad_pts, 1);
                 for (unsigned int iquad = 0; iquad < n_quad_pts; ++iquad) {
                     if (p_lim[iquad] >= eps)
-                    {
                         theta2[iquad] = 1;
-                    }
-                    else
-                    {
+                    else {
                         real a = (soln_at_q[nstate - 1][iquad] - soln_cell_avg[nstate - 1]) * (soln_at_q[0][iquad] - soln_cell_avg[0]) - 0.5 * pow(soln_at_q[1][iquad] - soln_cell_avg[1], 2);
 
                         real b = soln_cell_avg[0] * (soln_at_q[nstate - 1][iquad] - soln_cell_avg[nstate - 1]) + soln_cell_avg[nstate - 1] * (soln_at_q[0][iquad] - soln_cell_avg[0])
@@ -337,15 +321,13 @@ namespace PHiLiP {
 
                         real c = (soln_cell_avg[nstate - 1] * soln_cell_avg[0]) - 0.5 * pow(soln_cell_avg[1], 2) - (eps / gamma) * soln_cell_avg[0];
 
-                        if (dim > 1)
-                        {
+                        if (dim > 1) {
                             a -= 0.5 * pow(soln_at_q[2][iquad] - soln_cell_avg[2], 2);
                             b -= soln_cell_avg[2] * (soln_at_q[2][iquad] - soln_cell_avg[2]);
                             c -= 0.5 * pow(soln_cell_avg[2], 2);
                         }
 
-                        if (dim > 2)
-                        {
+                        if (dim > 2) {
                             a -= 0.5 * pow(soln_at_q[3][iquad] - soln_cell_avg[3], 2);
                             b -= soln_cell_avg[3] * (soln_at_q[3][iquad] - soln_cell_avg[3]);
                             c -= 0.5 * pow(soln_cell_avg[3], 2);
@@ -353,14 +335,12 @@ namespace PHiLiP {
 
                         real discriminant = b * b - 4 * a * c;
 
-                        if (discriminant >= 0)
-                        {
+                        if (discriminant >= 0) {
                             real t1 = (-b + sqrt(discriminant)) / (2 * a);
                             real t2 = (-b - sqrt(discriminant)) / (2 * a);
                             theta2[iquad] = std::min(t1, t2);
                         }
-                        else
-                        {
+                        else {
                             theta2[iquad] = 0; // (-b) / (2 * a);
                         }
                     }
@@ -386,10 +366,8 @@ namespace PHiLiP {
                     const unsigned int idof = istate * n_shape_fns + ishape;
                     this->solution[current_dofs_indices[idof]] = soln_dofs[istate][ishape]; //
 
-                    if (istate == 0)
-                    {
-                        if (this->solution[current_dofs_indices[idof]] < 0)
-                        {
+                    if (istate == 0) {
+                        if (this->solution[current_dofs_indices[idof]] < 0) {
                             std::cout << "Density is a negative value - Aborting... " << std::endl << this->solution[current_dofs_indices[idof]] << std::endl << std::flush;
                             std::abort();
                         }
@@ -455,7 +433,7 @@ namespace PHiLiP {
             const std::vector<real>& quad_weights = this->volume_quadrature_collection[poly_degree].get_weights();
             //interpolate solution dofs to quadrature pts.
             //and apply integral for the soln avg
-            std::array<real, nstate> soln_cell_avg = {};
+            std::array<real, nstate> soln_cell_avg;
 
             std::array<std::vector<real>, nstate> soln_at_q;
 
@@ -466,8 +444,7 @@ namespace PHiLiP {
             }
 
             for (unsigned int istate = 0; istate < nstate; ++istate) {
-                for (unsigned int iquad = 0; iquad < n_quad_pts; ++iquad)
-                {
+                for (unsigned int iquad = 0; iquad < n_quad_pts; ++iquad) {
                     if (soln_at_q[istate][iquad] < local_min[istate])
                         local_min[istate] = soln_at_q[istate][iquad];
 
@@ -479,8 +456,7 @@ namespace PHiLiP {
             real eps = 1e-13;
             real gamma = 1.4;
 
-            if (nstate == PHILIP_DIM + 2)
-            {
+            if (nstate == PHILIP_DIM + 2) {
                 // compute value of pressure at soln_cell_avg
                 real rho_avg = soln_cell_avg[0];
                 real tot_energy_avg = soln_cell_avg[nstate - 1];
@@ -508,8 +484,7 @@ namespace PHiLiP {
             //apply limiter on density values at quadrature points
             for (unsigned int istate = 0; istate < 1/*nstate*/; ++istate) {
                 for (unsigned int iquad = 0; iquad < n_quad_pts; ++iquad) {
-                    if (isnan(soln_at_q[istate][iquad]))
-                    {
+                    if (isnan(soln_at_q[istate][iquad])) {
                         std::cout << " Density is NaN - Aborting... " << std::endl << std::flush;
                         std::abort();
                     }
@@ -519,8 +494,7 @@ namespace PHiLiP {
                 }
             }
 
-            if (nstate == PHILIP_DIM + 2)
-            {
+            if (nstate == PHILIP_DIM + 2) {
                 real p_lim = 0.0;
                 real p_avg = 0.0;
                 std::vector<real> t2(n_quad_pts, 1);
@@ -542,21 +516,14 @@ namespace PHiLiP {
                         p_lim += (gamma - 1) * (-0.5 * (pow(soln_at_q[3][iquad], 2) / soln_at_q[0][iquad]));
 
                     if (p_lim >= 0)
-                    {
                         t2[iquad] = 1;
-                    }
                     else
-                    {
                         t2[iquad] = p_avg / (p_avg - p_lim);
-                    }
 
-                    if (t2[iquad] != 1)
-                    {
-                        if (t2[iquad] >= 0 && t2[iquad] <= 1 && t2[iquad] < theta2)
-                        {
+                    if (t2[iquad] != 1) {
+                        if (t2[iquad] >= 0 && t2[iquad] <= 1 && t2[iquad] < theta2) {
                             theta2 = t2[iquad];
                         }
-
                     }
                 }
 
@@ -581,10 +548,8 @@ namespace PHiLiP {
                     const unsigned int idof = istate * n_shape_fns + ishape;
                     this->solution[current_dofs_indices[idof]] = soln_dofs[istate][ishape]; //
 
-                    if (istate == 0)
-                    {
-                        if (this->solution[current_dofs_indices[idof]] < 0)
-                        {
+                    if (istate == 0) {
+                        if (this->solution[current_dofs_indices[idof]] < 0) {
                             std::cout << "Density is a negative value - Aborting... " << std::endl << this->solution[current_dofs_indices[idof]] << std::endl << std::flush;
                             std::abort();
                         }
@@ -597,16 +562,9 @@ namespace PHiLiP {
     template <int dim, int nstate, typename real, typename MeshType>
     void DGBaseState<dim, nstate, real, MeshType>::apply_tvb_limiter()
     {
-        std::array<real, nstate> M = {};
+        std::array<real, nstate> M;
         for (unsigned int istate = 0; istate < nstate; ++istate) {
             M[istate] = 0.05 / pow(this->h, 2);
-        }
-
-        if (nstate == 3)
-        {
-            M[0] = all_parameters->tvb_M1;
-            M[1] = all_parameters->tvb_M2;
-            M[2] = all_parameters->tvb_M3;
         }
 
         //create 1D solution polynomial basis functions and corresponding projection operator
@@ -624,12 +582,10 @@ namespace PHiLiP {
 
         for (auto soln_cell : this->dof_handler.active_cell_iterators()) {
             if (!soln_cell->is_locally_owned()) continue;
-            if (soln_cell->neighbor(0).state() != dealii::IteratorState::valid) continue;
-            if (soln_cell->neighbor(1).state() != dealii::IteratorState::valid) continue;
 
-            std::array<real, nstate> prev_cell_avg = {};
-            std::array<real, nstate> soln_cell_avg = {};
-            std::array<real, nstate> next_cell_avg = {};
+            std::array<real, nstate> prev_cell_avg;
+            std::array<real, nstate> soln_cell_avg;
+            std::array<real, nstate> next_cell_avg;
 
             for (const auto face_no : soln_cell->face_indices()) {
                 if (soln_cell->neighbor(face_no).state() != dealii::IteratorState::valid) continue;
@@ -665,7 +621,7 @@ namespace PHiLiP {
 
                 //interpolate solution dofs to quadrature pts.
                 //and apply integral for the soln avg
-                std::array<real, nstate> neigh_cell_avg = {};
+                std::array<real, nstate> neigh_cell_avg;
 
                 std::array<std::vector<real>, nstate> soln_at_q_neigh;
 
@@ -737,13 +693,13 @@ namespace PHiLiP {
                 }
             }
 
-            std::array<real, nstate> soln_cell_0 = {};
-            std::array<real, nstate> soln_cell_k = {};
-            std::array<real, nstate> diff_next = {};
-            std::array<real, nstate> diff_prev = {};
-            std::array<real, nstate> soln_0_lim = {};
-            std::array<real, nstate> soln_k_lim = {};
-            std::array<real, nstate> theta = {};
+            std::array<real, nstate> soln_cell_0};
+            std::array<real, nstate> soln_cell_k;
+            std::array<real, nstate> diff_next;
+            std::array<real, nstate> diff_prev;
+            std::array<real, nstate> soln_0_lim;
+            std::array<real, nstate> soln_k_lim;
+            std::array<real, nstate> theta;
 
             for (unsigned int istate = 0; istate < nstate; ++istate) {
                 soln_cell_0[istate] = soln_at_q[istate][0];
@@ -758,14 +714,11 @@ namespace PHiLiP {
 
             for (unsigned int istate = 0; istate < nstate; ++istate) {
                 a = soln_cell_avg[istate] - soln_cell_0[istate];
-                if (abs(a) <= M[istate] * pow(this->h, 2.0))
-                {
+                if (abs(a) <= M[istate] * pow(this->h, 2.0)) {
                     soln_0_lim[istate] = soln_cell_avg[istate] - a;
                 }
-                else //if (abs(a) > M * h * h)
-                {
-                    if (signbit(a) == signbit(diff_next[istate]) && signbit(a) == signbit(diff_prev[istate]))
-                    {
+                else {
+                    if (signbit(a) == signbit(diff_next[istate]) && signbit(a) == signbit(diff_prev[istate])) {
                         minmod = std::min({ abs(a), abs(diff_next[istate]), abs(diff_prev[istate]) });
 
                         if (signbit(a))
@@ -778,14 +731,11 @@ namespace PHiLiP {
                 }
 
                 a = soln_cell_k[istate] - soln_cell_avg[istate];
-                if (abs(a) <= M[istate] * pow(this->h, 2.0))
-                {
+                if (abs(a) <= M[istate] * pow(this->h, 2.0)) {
                     soln_k_lim[istate] = soln_cell_avg[istate] + a;
                 }
-                else //if (abs(a) > M * h * h)
-                {
-                    if (signbit(a) == signbit(diff_next[istate]) && signbit(a) == signbit(diff_prev[istate]))
-                    {
+                else {
+                    if (signbit(a) == signbit(diff_next[istate]) && signbit(a) == signbit(diff_prev[istate])) {
                         minmod = std::min({ abs(a), abs(diff_next[istate]), abs(diff_prev[istate]) });
 
                         if (signbit(a))
@@ -810,8 +760,7 @@ namespace PHiLiP {
                         soln_at_q[istate][iquad] = soln_0_lim[istate];
                     else if (iquad == n_quad_pts - 1)
                         soln_at_q[istate][iquad] = soln_k_lim[istate];
-                    else
-                    {
+                    else {
                         soln_at_q[istate][iquad] = theta[istate] * (soln_at_q[istate][iquad] - soln_cell_avg[istate])
                             + soln_cell_avg[istate];
                     }

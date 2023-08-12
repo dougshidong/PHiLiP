@@ -16,16 +16,7 @@ template <int dim, typename real, int n_rk_stages, typename MeshType>
 void RungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::step_in_time (real dt, const bool pseudotime)
 {
     //apply limiter on initial step
-    if (this->ODESolverBase<dim, real, MeshType>::all_parameters->use_tvb_limiter)
-        this->dg->apply_tvb_limiter();
-
-
-    if (this->ODESolverBase<dim, real, MeshType>::all_parameters->use_scaling_limiter_type == Parameters::AllParameters::LimiterType::maximum_principle)
-        this->dg->apply_maximum_principle_limiter();
-    if (this->ODESolverBase<dim, real, MeshType>::all_parameters->use_scaling_limiter_type == Parameters::AllParameters::LimiterType::positivity_preserving2010)
-        this->dg->apply_positivity_preserving_limiter2010();
-    if (this->ODESolverBase<dim, real, MeshType>::all_parameters->use_scaling_limiter_type == Parameters::AllParameters::LimiterType::positivity_preserving2011)
-        this->dg->apply_positivity_preserving_limiter2011();
+    this->dg->apply_bound_preserving_limiter();
 
     this->original_time_step = dt;
     this->solution_update = this->dg->solution; //storing u_n
@@ -81,16 +72,7 @@ void RungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::step_in_time (real dt, 
         this->dg->solution = this->rk_stage[i];
 
         //apply limiter on initial step
-        if (this->ODESolverBase<dim, real, MeshType>::all_parameters->use_tvb_limiter)
-            this->dg->apply_tvb_limiter();
-
-
-        if (this->ODESolverBase<dim, real, MeshType>::all_parameters->use_scaling_limiter_type == Parameters::AllParameters::LimiterType::maximum_principle)
-            this->dg->apply_maximum_principle_limiter();
-        if (this->ODESolverBase<dim, real, MeshType>::all_parameters->use_scaling_limiter_type == Parameters::AllParameters::LimiterType::positivity_preserving2010)
-            this->dg->apply_positivity_preserving_limiter2010();
-        if (this->ODESolverBase<dim, real, MeshType>::all_parameters->use_scaling_limiter_type == Parameters::AllParameters::LimiterType::positivity_preserving2011)
-            this->dg->apply_positivity_preserving_limiter2011();
+        this->dg->apply_bound_preserving_limiter();
 
         //set the DG current time for unsteady source terms
         this->dg->set_current_time(this->current_time + this->butcher_tableau->get_c(i)*dt);
@@ -120,17 +102,7 @@ void RungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::step_in_time (real dt, 
     }
     this->dg->solution = this->solution_update; // u_np1 = u_n + dt* sum(k_i * b_i)
 
-    //apply limiter on initial step
-    if (this->ODESolverBase<dim, real, MeshType>::all_parameters->use_tvb_limiter)
-        this->dg->apply_tvb_limiter();
-
-
-    if (this->ODESolverBase<dim, real, MeshType>::all_parameters->use_scaling_limiter_type == Parameters::AllParameters::LimiterType::maximum_principle)
-        this->dg->apply_maximum_principle_limiter();
-    if (this->ODESolverBase<dim, real, MeshType>::all_parameters->use_scaling_limiter_type == Parameters::AllParameters::LimiterType::positivity_preserving2010)
-        this->dg->apply_positivity_preserving_limiter2010();
-    if (this->ODESolverBase<dim, real, MeshType>::all_parameters->use_scaling_limiter_type == Parameters::AllParameters::LimiterType::positivity_preserving2011)
-        this->dg->apply_positivity_preserving_limiter2011();
+    this->dg->apply_bound_preserving_limiter();
 
     ++(this->current_iteration);
     this->current_time += dt;

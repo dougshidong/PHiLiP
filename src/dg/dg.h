@@ -961,6 +961,8 @@ public:
 
     double h = all_parameters->tvb_h;
 
+    void apply_bound_preserving_limiter();
+
     // Obtains global maximum and minimum of solution in the domain
     virtual void get_global_max_and_min_of_solution() = 0;
 

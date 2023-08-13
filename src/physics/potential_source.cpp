@@ -177,7 +177,7 @@ dealii::Tensor<1,dim,double> PotentialFlowBase<dim,nstate,real>
     body_force[0] = 0.0;
     body_force[1] = 0.0;
     if constexpr(dim==3) {
-        body_force[3] = 0.0; }
+        body_force[2] = 0.0; }
 
     // LES body force:
     if (potential_source_geometry == PS_geometry_enum::trailing_edge_serrations)

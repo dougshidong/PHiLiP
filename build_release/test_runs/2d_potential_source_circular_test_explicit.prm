@@ -1,0 +1,102 @@
+## Listing of Parameters
+# ---------------------
+
+set dimension = 2
+set run_type = flow_simulation
+set pde_type  = physics_model
+set model_type = potential_source
+
+subsection physics_model
+  subsection potential_source
+    set potential_flow_model = euler
+  end
+end
+
+# DG formulation
+set use_weak_form = false
+set flux_nodes_type = GLL
+set use_split_form = true
+
+# numerical fluxes
+set conv_num_flux = roe
+set diss_num_flux = symm_internal_penalty
+
+set solution_vtk_files_directory_name = /home/aidan/Codes/PHiLiP/build_release/test_runs/solution_files
+set output_high_order_grid = false
+set enable_higher_order_vtk_output = true
+
+set overintegration = 0
+
+#set sipg_penalty_factor = 20
+set output_face_results_vtk = false
+
+subsection euler
+  set reference_length = 1.0
+  set mach_infinity = 0.50
+  set angle_of_attack = 1.0
+end
+
+subsection potential_source
+  
+  # Choose geometry used for potential source term
+  set potential_source_geometry = circular_test
+
+  # If true, includes the contribution of the viscous drag.
+  set viscous_drag = true
+  
+  subsection trailing edge serrations
+
+    # Distance between consecutive trailing edge serrations
+    set trailing_edge_serration_frequency = 0.015
+
+    # Half the length of trailing edge serrations
+    set half_trailing_edge_serration_length = 0.015
+
+    # Thickness of trailing edge serrations
+    set trailing_edge_serration_thickness = 0.001
+
+    # Effective length factor for trailing edge serrations
+    set trailing_edge_serration_effective_length_factor = 0.5
+
+    # Angle of trailing edge flap in degrees (gamma)
+    set angle_of_serrations = 0.0
+
+  end
+
+  subsection circular test
+    # Radius of circle
+    set circle_radius = 1.0
+  end
+
+end
+
+
+subsection ODE solver
+  set output_solution_every_x_steps = 100
+
+  set ode_solver_type = runge_kutta
+  set runge_kutta_method = ssprk3_ex
+
+  set initial_time_step = 1e-5
+
+  # set output_solution_every_dt_time_intervals = 0.0
+  # set output_solution_at_fixed_times = true
+  # set output_solution_fixed_times_string = 0.01, 0.1, 1.0, 2.0, 3.0, 5.0
+  # set output_solution_at_exact_fixed_times = true
+end
+
+subsection flow_solver
+  set flow_case_type = naca0012
+  set poly_degree = 1
+
+  set steady_state = false
+  set final_time = 5.0
+
+  set adaptive_time_step = false
+  set unsteady_data_table_filename = 2d_unsteady_data
+  subsection grid
+    set input_mesh_filename = /home/aidan/Codes/PHiLiP/build_release/test_runs/test_meshes/CartesianGrid01
+    # set input_mesh_filename = /home/aidan/Codes/PHiLiP/build_release/tests/meshes/naca0012_hopw_ref4
+    set grid_degree = 1
+  end
+end

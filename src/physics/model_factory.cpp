@@ -186,18 +186,19 @@ ModelFactory<dim,nstate,real>
                         parameters_input,
                         parameters_input->euler_param.ref_length,
                         parameters_input->euler_param.gamma_gas,
-                        parameters_input->euler_param.mach_inf,
+                        // parameters_input->euler_param.mach_inf,
                         parameters_input->euler_param.angle_of_attack,
-                        parameters_input->euler_param.side_slip_angle,
-                        parameters_input->navier_stokes_param.prandtl_number,
+                        // parameters_input->euler_param.side_slip_angle,
+                        // parameters_input->navier_stokes_param.prandtl_number,
                         parameters_input->navier_stokes_param.reynolds_number_inf,
-                        parameters_input->navier_stokes_param.use_constant_viscosity,
+                        // parameters_input->navier_stokes_param.use_constant_viscosity,
                         parameters_input->navier_stokes_param.nondimensionalized_constant_viscosity,
-                        parameters_input->navier_stokes_param.temperature_inf,
-                        parameters_input->navier_stokes_param.nondimensionalized_isothermal_wall_temperature,
-                        parameters_input->navier_stokes_param.thermal_boundary_condition_type,
-                        manufactured_solution_function,
-                        parameters_input->two_point_num_flux_type);
+                        // parameters_input->navier_stokes_param.temperature_inf,
+                        // parameters_input->navier_stokes_param.nondimensionalized_isothermal_wall_temperature,
+                        // parameters_input->navier_stokes_param.thermal_boundary_condition_type,
+                        manufactured_solution_function
+                        // parameters_input->two_point_num_flux_type
+                        );
                 } else {
                     assert(0==1 && "Can't create PotentialFlowBase, invalid ModelType type");
                     return nullptr;

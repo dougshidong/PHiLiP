@@ -308,14 +308,28 @@ real2 OutletPressureIntegral<dim,nstate,real,MeshType>::evaluate_boundary_integr
         const std::array<real2,nstate> &                      soln_at_q,
         const std::array<dealii::Tensor<1,dim,real2>,nstate> & /*soln_grad_at_q*/ ) const
 {
-    real2 pressure = 0;
+    real2 pressure {0.0};
 
     if(boundary_id == 1002){
         // casting it to a physics euler as it is needed for the pressure computation
-        const Physics::Euler<dim,nstate,real2>& euler_physics = dynamic_cast<const Physics::Euler<dim,nstate,real2>&>(physics); // TO DO: Check for ModelBase case
 
-        // converting the state vector to the point pressure
-        pressure = euler_physics.compute_pressure(soln_at_q);
+        // checking for ModelBase
+        using PDE_enum = Parameters::AllParameters::PartialDifferentialEquation;
+        PDE_enum pde_type = this->dg->all_parameters->pde_type;
+
+        if (pde_type == PDE_enum::physics_model)
+        {
+            if constexpr (nstate==dim+2) 
+            {
+                const Physics::PhysicsModel<dim,dim+2,real2,dim+2> &physics_model = dynamic_cast<const Physics::PhysicsModel<dim,dim+2,real2,dim+2> &>(physics);
+                std::shared_ptr<Physics::Euler<dim,dim+2,real2>> euler_physics = std::dynamic_pointer_cast<Physics::Euler<dim,dim+2,real2>>(physics_model.physics_baseline);
+
+                pressure = euler_physics->compute_pressure (soln_at_q);
+            }
+        } else {
+            const Physics::Euler<dim,nstate,real2> &euler_physics = dynamic_cast<const Physics::Euler<dim,dim+2,real2> &>(physics);
+            pressure = euler_physics.compute_pressure (soln_at_q);
+        }
     }
 
     return pressure;

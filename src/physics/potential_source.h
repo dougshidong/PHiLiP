@@ -22,23 +22,24 @@ public:
         const Parameters::AllParameters *const                    parameters_input,
 	    const double                                              ref_length,
         const double                                              gamma_gas,
-        const double                                              mach_inf,
+        // const double                                              mach_inf,
         const double                                              angle_of_attack,
-        const double                                              side_slip_angle,
-        const double                                              prandtl_number,
+        // const double                                              side_slip_angle,
+        // const double                                              prandtl_number,
         const double                                              reynolds_number_inf,
-        const bool                                                use_constant_viscosity,
+        // const bool                                                use_constant_viscosity,
         const double                                              constant_viscosity,
-        const double                                              temperature_inf = 273.15,
-        const double                                              isothermal_wall_temperature = 1.0,
-        const thermal_boundary_condition_enum                     thermal_boundary_condition_type = thermal_boundary_condition_enum::adiabatic,
-        std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function = nullptr,
-        const two_point_num_flux_enum                             two_point_num_flux_type = two_point_num_flux_enum::KG);
+        // const double                                              temperature_inf = 273.15,
+        // const double                                              isothermal_wall_temperature = 1.0,
+        // const thermal_boundary_condition_enum                     thermal_boundary_condition_type = thermal_boundary_condition_enum::adiabatic,
+        std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function = nullptr
+        // const two_point_num_flux_enum                             two_point_num_flux_type = two_point_num_flux_enum::KG
+        );
 
     /// Destructor
     ~PotentialFlowBase() {};
 
-    /// Pointer to all input parameters
+    /// Geometric parameter object
     const Parameters::PotentialSourceParam potential_source_param;
     
     /// Potential Source Geometry
@@ -115,7 +116,7 @@ protected:
     const dealii::Tensor<1,dim,double> tangential_vector;
 
 private:
-    // returns the area and volume of a (COMPLETE) serration ### WARNING: error introduced if not full ###
+    // returns the area and volume of a (COMPLETE) serration ### WARNING: spanwise length must be divisible by TES frequency to avoid introducing error in final serration ###
     template<typename real2>
     std::tuple<real2, real2> TES_geometry () const;
 
@@ -135,9 +136,6 @@ private:
 
     // computes the force acting at a point within a physical body
     dealii::Tensor<1,dim,double> compute_body_force (
-        const dealii::Point<dim,real> &pos,
-        const std::array<real,nstate> &conservative_soln,
-        const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient,
         const dealii::types::global_dof_index cell_index) const;
 };
 

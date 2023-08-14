@@ -110,13 +110,13 @@ public:
 
             if (pde_type == PDE_enum::physics_model)
             {
-            if constexpr (nstate==dim+2) 
-            {
-                const Physics::PhysicsModel<dim,dim+2,real2,dim+2> &physics_model = dynamic_cast<const Physics::PhysicsModel<dim,dim+2,real2,dim+2> &>(physics);
-                std::shared_ptr<Physics::Euler<dim,dim+2,real2>> euler_physics = std::dynamic_pointer_cast<Physics::Euler<dim,dim+2,real2>>(physics_model.physics_baseline);
+                if constexpr (nstate==dim+2) 
+                {
+                    const Physics::PhysicsModel<dim,dim+2,real2,dim+2> &physics_model = dynamic_cast<const Physics::PhysicsModel<dim,dim+2,real2,dim+2> &>(physics);
+                    std::shared_ptr<Physics::Euler<dim,dim+2,real2>> euler_physics = std::dynamic_pointer_cast<Physics::Euler<dim,dim+2,real2>>(physics_model.physics_baseline);
 
-                pressure = euler_physics->compute_pressure (soln_at_q);
-            }
+                    pressure = euler_physics->compute_pressure (soln_at_q);
+                }
             } else {
                 const Physics::Euler<dim,dim+2,real2> &euler = dynamic_cast<const Physics::Euler<dim,dim+2,real2> &>(physics);
                 pressure = euler.compute_pressure (soln_at_q);

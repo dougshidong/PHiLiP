@@ -329,7 +329,7 @@ bool DGBaseState<dim,nstate,real,MeshType>::potential_body_geometry(
     using PS_geometry_enum = Parameters::PotentialSourceParam::PotentialSourceGeometry;
     const PS_geometry_enum potential_source_geometry = all_parameters->potential_source_param.potential_source_geometry;
 
-    if (potential_source_geometry == PS_geometry_enum::trailing_edge_serrations)    // I want to use constexpr, but "potential_source_geometry not initialized with a const expression"
+    if (potential_source_geometry == PS_geometry_enum::trailing_edge_serrations)
     {   
         if constexpr(dim != 3)
         {
@@ -347,13 +347,8 @@ bool DGBaseState<dim,nstate,real,MeshType>::potential_body_geometry(
 
         const double TES_flap_angle = this->all_parameters->potential_source_param.TES_flap_angle;
 
-        // TES shape
-        auto TES = [&](real v) { 
-            return (2 * TES_amplitude / pi) * asin(sin((2 * pi / TES_frequency) * (v - (TES_frequency / 4)))) + TES_amplitude; };
-
         // Trailing Edge Origin (start at min. z)
         const dealii::Point<dim,real> trailing_edge_location = {1, 0, 0};
-
 
         // mapping from (x, y, z) -> (s, t, v) where TES lie on s, t plane.
         dealii::Point<dim,real> mapped_pos;
@@ -371,6 +366,10 @@ bool DGBaseState<dim,nstate,real,MeshType>::potential_body_geometry(
 
 
         // checking if position within TES geometry
+        // TES shape
+        auto TES = [&](real v) { 
+            return (2 * TES_amplitude / pi) * asin(sin((2 * pi / TES_frequency) * (v - (TES_frequency / 4)))) + TES_amplitude; };
+
 
         // check s
         real max_s = TES(mapped_pos[2]);

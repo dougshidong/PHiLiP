@@ -19,18 +19,19 @@ PotentialFlowBase<dim, nstate, real>::PotentialFlowBase(
     const Parameters::AllParameters *const                    parameters_input,
     const double                                              ref_length,
     const double                                              gamma_gas,
-    const double                                              /*mach_inf*/,
+    // const double                                              /*mach_inf*/,
     const double                                              angle_of_attack,
-    const double                                              /*side_slip_angle*/,
-    const double                                              /*prandtl_number*/,
+    // const double                                              /*side_slip_angle*/,
+    // const double                                              /*prandtl_number*/,
     const double                                              reynolds_number_inf,
-    const bool                                                /*use_constant_viscosity*/,
+    // const bool                                                /*use_constant_viscosity*/,
     const double                                              constant_viscosity,
-    const double                                              /*temperature_inf*/,
-    const double                                              /*isothermal_wall_temperature*/,
-    const thermal_boundary_condition_enum                     /*thermal_boundary_condition_type*/,
-    std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function,
-    const two_point_num_flux_enum                             /*two_point_num_flux_type*/)
+    // const double                                              /*temperature_inf*/,
+    // const double                                              /*isothermal_wall_temperature*/,
+    // const thermal_boundary_condition_enum                     /*thermal_boundary_condition_type*/,
+    std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function
+    // const two_point_num_flux_enum                             /*two_point_num_flux_type*/
+    )
     : ModelBase<dim,nstate,real>(manufactured_solution_function)
     , potential_source_param(parameters_input->potential_source_param)
     , potential_source_geometry(potential_source_param.potential_source_geometry)
@@ -45,7 +46,6 @@ PotentialFlowBase<dim, nstate, real>::PotentialFlowBase(
     , tangential_vector(initialize_tangent_vector(this->rotation_matrix))
 {
     static_assert(nstate>=dim+2, "ModelBase::PotentialFlowBase() should be created with nstate>=dim+2");
-    // static_assert(dim>=2, "ModelBase::PotentialFlowBase() should be created with dim>=2");
     if constexpr(dim==1) {
         std::cout << "ModelBase::PotentialFlowBase() should be created with dim>=2.";
     }
@@ -168,9 +168,6 @@ dealii::Tensor<1,dim,double> PotentialFlowBase<dim,nstate,real>
 template <int dim, int nstate, typename real>
 dealii::Tensor<1,dim,double> PotentialFlowBase<dim,nstate,real>
 ::compute_body_force (
-        const dealii::Point<dim,real> &/*pos*/,
-        const std::array<real,nstate> &/*conservative_soln*/,
-        const std::array<dealii::Tensor<1,dim,real>,nstate> &/*solution_gradient*/,
         const dealii::types::global_dof_index cell_index) const
 {   
     dealii::Tensor<1,dim,double> body_force;
@@ -219,7 +216,7 @@ dealii::Tensor<1,dim,double> PotentialFlowBase<dim,nstate,real>
         body_force[0] = 1.0;
         body_force[1] = 0.0;
 
-        if constexpr(dim>2)
+        if constexpr(dim==3)
         {
             body_force[2] = 0.0;  
         }
@@ -233,13 +230,13 @@ dealii::Tensor<1,dim,double> PotentialFlowBase<dim,nstate,real>
 template <int dim, int nstate, typename real>
 std::array<real,nstate> PotentialFlowBase<dim,nstate,real>
 ::physical_source_term (
-        const dealii::Point<dim,real> &pos,
-        const std::array<real,nstate> &conservative_soln,
-        const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient,
+        const dealii::Point<dim,real> &/*pos*/,
+        const std::array<real,nstate> &/*conservative_soln*/,
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &/*solution_gradient*/,
         const dealii::types::global_dof_index cell_index) const
 {
     std::array<real,nstate> physical_source;
-    std::fill(physical_source.begin(), physical_source.end(), 0.0);
+    physical_source.fill(0.0);
 
     if (this->cellwise_geometry_condition[cell_index])
     {
@@ -247,7 +244,7 @@ std::array<real,nstate> PotentialFlowBase<dim,nstate,real>
         // physical_source[0] = 0;
 
         // // momentum
-        dealii::Tensor<1,dim,double> body_force = this->compute_body_force(pos, conservative_soln, solution_gradient, cell_index);
+        dealii::Tensor<1,dim,double> body_force = this->compute_body_force(cell_index);
         for (unsigned int i=0;i<dim;++i)
         {
             physical_source[i+1] = - body_force[i]; // negative as the computed force is applied to the fluid, not the body

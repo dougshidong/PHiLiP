@@ -79,9 +79,12 @@ template <int dim, int nstate>
 double AnisotropicMeshAdaptationCases<dim,nstate> :: output_vtk_files(std::shared_ptr<DGBase<dim,double>> dg) const
 {
     dg->output_results_vtk(98765);
+/*
     std::unique_ptr<DualWeightedResidualError<dim, nstate , double>> dwr_error_val = std::make_unique<DualWeightedResidualError<dim, nstate , double>>(dg);
     const double abs_dwr_error = dwr_error_val->total_dual_weighted_residual_error();
     return abs_dwr_error;
+*/
+    return 0;
 }
 
 template <int dim, int nstate>

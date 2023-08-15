@@ -51,6 +51,7 @@
 
 #include <EpetraExt_Transpose_RowMatrix.h>
 
+#include "bound_preserving_limiter.h"
 
 #include "global_counter.hpp"
 
@@ -281,6 +282,7 @@ DGBaseState<dim,nstate,real,MeshType>::DGBaseState(
     : DGBase<dim,real,MeshType>::DGBase(nstate, parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input) // Use DGBase constructor
 {
     artificial_dissip = ArtificialDissipationFactory<dim,nstate> ::create_artificial_dissipation(parameters_input);
+    limiter = std::make_shared<BoundPreservingLimiter<dim, nstate, real>>(parameters_input);
 
     pde_model_double    = Physics::ModelFactory<dim,nstate,real>::create_Model(parameters_input);
     pde_physics_double  = Physics::PhysicsFactory<dim,nstate,real>::create_Physics(parameters_input,pde_model_double);
@@ -3330,19 +3332,19 @@ real2 DGBase<dim,real,MeshType>::discontinuity_sensor(
     return eps;
 }
 
-template <int dim, typename real, typename MeshType>
-void DGBase<dim, real, MeshType>::apply_bound_preserving_limiter()
+template <int dim, int nstate, typename real, typename MeshType>
+void DGBaseState<dim, nstate, real, MeshType>::apply_bound_preserving_limiter()
 {
     if (all_parameters->use_tvb_limiter)
-        apply_tvb_limiter();
+        this->limiter->apply_tvb_limiter();
 
 
     if (all_parameters->use_scaling_limiter_type == Parameters::AllParameters::LimiterType::maximum_principle)
-        apply_maximum_principle_limiter();
+        this->limiter->apply_maximum_principle_limiter();
     if (all_parameters->use_scaling_limiter_type == Parameters::AllParameters::LimiterType::positivity_preserving2010)
-        apply_positivity_preserving_limiter2010();
+        this->limiter->apply_positivity_preserving_limiter2010();
     if (all_parameters->use_scaling_limiter_type == Parameters::AllParameters::LimiterType::positivity_preserving2011)
-        apply_positivity_preserving_limiter2011();
+        this->limiter->apply_positivity_preserving_limiter2011();
 }
 
 template <int dim, typename real, typename MeshType>

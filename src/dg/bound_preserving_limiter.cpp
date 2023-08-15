@@ -1,8 +1,18 @@
-#include "dg.h"
+#include "bound_preserving_limiter.h"
 
 namespace PHiLiP {
-    template <int dim, int nstate, typename real, typename MeshType>
-    void DGBaseState<dim, nstate, real, MeshType>::get_global_max_and_min_of_solution()
+
+    template <int dim, int nstate, typename real>
+    BoundPreservingLimiter<dim, nstate, real>::BoundPreservingLimiter( 
+        const Parameters::AllParameters* const parameters_input)
+        : all_parameters(parameters_input) {}
+
+    // Destructor
+    template <int dim, int nstate, typename real>
+    BoundPreservingLimiter<dim, nstate, real>::~BoundPreservingLimiter() {}
+
+    template <int dim, int nstate, typename real>
+    void BoundPreservingLimiter<dim, nstate, real>::get_global_max_and_min_of_solution()
     {
         for (auto soln_cell : this->dof_handler.active_cell_iterators()) {
             if (!soln_cell->is_locally_owned()) continue;
@@ -50,8 +60,8 @@ namespace PHiLiP {
         }
     }
 
-    template <int dim, int nstate, typename real, typename MeshType>
-    void DGBaseState<dim, nstate, real, MeshType>::apply_maximum_principle_limiter()
+    template <int dim, int nstate, typename real>
+    void BoundPreservingLimiter<dim, nstate, real>::apply_maximum_principle_limiter()
     {
 
         //create 1D solution polynomial basis functions and corresponding projection operator
@@ -181,8 +191,8 @@ namespace PHiLiP {
         }
     }
 
-    template <int dim, int nstate, typename real, typename MeshType>
-    void DGBaseState<dim, nstate, real, MeshType>::apply_positivity_preserving_limiter2010()
+    template <int dim, int nstate, typename real>
+    void BoundPreservingLimiter<dim, nstate, real>::apply_positivity_preserving_limiter2010()
     {
         //create 1D solution polynomial basis functions and corresponding projection operator
         //to interpolate the solution to the quadrature nodes, and to project it back to the
@@ -206,7 +216,7 @@ namespace PHiLiP {
             const int poly_degree = i_fele;
 
             using FluxNodes = Parameters::AllParameters::FluxNodes;
-            const FluxNodes flux_nodes_type = all_parameters->flux_nodes_type;
+            const FluxNodes flux_nodes_type = this->all_parameters->flux_nodes_type;
 
             const dealii::FESystem<dim, dim>& current_fe_ref = this->fe_collection[poly_degree];
             const unsigned int n_dofs_curr_cell = current_fe_ref.n_dofs_per_cell();
@@ -278,8 +288,8 @@ namespace PHiLiP {
                     p_avg += -0.5 * ((soln_cell_avg[3] * soln_cell_avg[3]) / rho_avg);
 
                 //get epsilon (lower bound for density) for theta limiter
-                eps = std::min({ all_parameters->pos_eps, rho_avg, p_avg });
-                if (eps < 0) eps = all_parameters->pos_eps;
+                eps = std::min({ this->all_parameters->pos_eps, rho_avg, p_avg });
+                if (eps < 0) eps = this->all_parameters->pos_eps;
             }
 
             real theta = 1.0;
@@ -377,8 +387,8 @@ namespace PHiLiP {
         }
     }
 
-    template <int dim, int nstate, typename real, typename MeshType>
-    void DGBaseState<dim, nstate, real, MeshType>::apply_positivity_preserving_limiter2011()
+    template <int dim, int nstate, typename real>
+    void BoundPreservingLimiter<dim, nstate, real>::apply_positivity_preserving_limiter2011()
     {
         //create 1D solution polynomial basis functions and corresponding projection operator
         //to interpolate the solution to the quadrature nodes, and to project it back to the
@@ -470,8 +480,8 @@ namespace PHiLiP {
                     p_avg += -0.5 * (gamma - 1) * ((soln_cell_avg[3] * soln_cell_avg[3]) / rho_avg);
 
                 //get epsilon (lower bound for rho) for theta limiter
-                eps = std::min({ all_parameters->pos_eps, rho_avg, p_avg });
-                if (eps < 0) eps = all_parameters->pos_eps;
+                eps = std::min({ this->all_parameters->pos_eps, rho_avg, p_avg });
+                if (eps < 0) eps = this->all_parameters->pos_eps;
             }
 
             real theta = 1.0;
@@ -559,8 +569,8 @@ namespace PHiLiP {
         }
     }
 
-    template <int dim, int nstate, typename real, typename MeshType>
-    void DGBaseState<dim, nstate, real, MeshType>::apply_tvb_limiter()
+    template <int dim, int nstate, typename real>
+    void BoundPreservingLimiter<dim, nstate, real>::apply_tvb_limiter()
     {
         std::array<real, nstate> M;
         for (unsigned int istate = 0; istate < nstate; ++istate) {
@@ -693,7 +703,7 @@ namespace PHiLiP {
                 }
             }
 
-            std::array<real, nstate> soln_cell_0};
+            std::array<real, nstate> soln_cell_0;
             std::array<real, nstate> soln_cell_k;
             std::array<real, nstate> diff_next;
             std::array<real, nstate> diff_prev;
@@ -783,27 +793,10 @@ namespace PHiLiP {
         }
     }
 
-template class DGBase <PHILIP_DIM, double, dealii::Triangulation<PHILIP_DIM>>;
-template class DGBase <PHILIP_DIM, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-template class DGBaseState <PHILIP_DIM, 1, double, dealii::Triangulation<PHILIP_DIM>>;
-template class DGBaseState <PHILIP_DIM, 1, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-template class DGBaseState <PHILIP_DIM, 2, double, dealii::Triangulation<PHILIP_DIM>>;
-template class DGBaseState <PHILIP_DIM, 2, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-template class DGBaseState <PHILIP_DIM, 3, double, dealii::Triangulation<PHILIP_DIM>>;
-template class DGBaseState <PHILIP_DIM, 3, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-template class DGBaseState <PHILIP_DIM, 4, double, dealii::Triangulation<PHILIP_DIM>>;
-template class DGBaseState <PHILIP_DIM, 4, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-template class DGBaseState <PHILIP_DIM, 5, double, dealii::Triangulation<PHILIP_DIM>>;
-template class DGBaseState <PHILIP_DIM, 5, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-template class DGBaseState <PHILIP_DIM, 6, double, dealii::Triangulation<PHILIP_DIM>>;
-template class DGBaseState <PHILIP_DIM, 6, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-#if PHILIP_DIM!=1
-template class DGBase <PHILIP_DIM, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
-template class DGBaseState <PHILIP_DIM, 1, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
-template class DGBaseState <PHILIP_DIM, 2, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
-template class DGBaseState <PHILIP_DIM, 3, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
-template class DGBaseState <PHILIP_DIM, 4, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
-template class DGBaseState <PHILIP_DIM, 5, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
-template class DGBaseState <PHILIP_DIM, 6, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
-#endif
+    template class BoundPreservingLimiter <PHILIP_DIM, 1, double>;
+    template class BoundPreservingLimiter <PHILIP_DIM, 2, double>;
+    template class BoundPreservingLimiter <PHILIP_DIM, 3, double>;
+    template class BoundPreservingLimiter <PHILIP_DIM, 4, double>;
+    template class BoundPreservingLimiter <PHILIP_DIM, 5, double>;
+    template class BoundPreservingLimiter <PHILIP_DIM, 6, double>;
 }

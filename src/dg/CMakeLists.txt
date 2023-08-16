@@ -6,7 +6,6 @@ set(DG_SOURCE
     strong_dg.cpp
     artificial_dissipation.cpp
     artificial_dissipation_factory.cpp
-    bound_preserving_limiter.cpp
     )
 
 foreach(dim RANGE 1 3)

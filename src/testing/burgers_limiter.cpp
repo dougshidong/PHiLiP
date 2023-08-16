@@ -102,8 +102,8 @@ int BurgersLimiter<dim, nstate>::run_test() const
             SetInitialCondition<dim, nstate, double>::set_initial_condition(initial_condition_function, dg, &all_parameters_new);
 
             //get the global max and min of initial condition.
-            dg->get_global_max_and_min_of_solution();
-            dg->h = delta_x;
+            //dg->get_global_max_and_min_of_solution();
+            //dg->h = delta_x;
             // Create ODE solver using the factory and providing the DG object
             std::shared_ptr<ODE::ODESolverBase<dim, double>> ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
 

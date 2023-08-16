@@ -25,6 +25,7 @@ foreach(dim RANGE 1 3)
     string(CONCAT DiscontinuousGalerkinLib DiscontinuousGalerkin_${dim}D)
     string(CONCAT LinearSolverLib LinearSolver)
     target_link_libraries(${ODESolverLib} ${DiscontinuousGalerkinLib})
+    target_link_libraries(${ODESolverLib} ${LimiterLib})
     target_link_libraries(${ODESolverLib} ${HighOrderGridLib})
     target_link_libraries(${ODESolverLib} ${LinearSolverLib})
     # Setup target with deal.II

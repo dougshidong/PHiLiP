@@ -1,0 +1,112 @@
+# Listing of Parameters
+# ---------------------
+# Number of dimensions
+
+set dimension = 3
+set run_type = flow_simulation
+set pde_type  = physics_model
+set model_type = potential_source
+
+subsection physics_model
+  subsection potential_source
+    set potential_flow_model = euler
+  end
+end
+
+# DG formulation
+set use_weak_form = true
+set flux_nodes_type = GLL
+
+# Note: this was added to turn off check_same_coords() -- has no other function when dim!=1
+set use_periodic_bc = true
+
+# numerical fluxes
+set conv_num_flux = roe
+set diss_num_flux = symm_internal_penalty
+
+# File output
+set solution_vtk_files_directory_name = /home/aidan/Codes/PHiLiP/build_release/test_runs/solution_files
+set output_high_order_grid = false
+set enable_higher_order_vtk_output = true
+
+# ODE solver
+subsection ODE solver
+  set output_solution_every_x_steps = 1
+
+  # Maximum nonlinear solver iterations
+  set nonlinear_max_iterations = 2000
+
+  # Nonlinear solver residual tolerance
+  set nonlinear_steady_residual_tolerance = 1e-14
+
+  set ode_output = quiet
+
+  # Explicit
+#  set ode_solver_type = runge_kutta
+#  set output_solution_every_x_steps = 1
+#  set initial_time_step = 1.0e-5
+#  set runge_kutta_method = ssprk3_ex
+
+  # Implicit
+  set ode_solver_type  = implicit
+  set initial_time_step = 1e3
+  set time_step_factor_residual = 15.0
+  set time_step_factor_residual_exp = 2
+end
+
+subsection linear solver
+# set linear_solver_type = direct
+  subsection gmres options
+    set linear_residual_tolerance = 1e-12
+    set max_iterations = 2000
+    set restart_number = 100
+    set ilut_fill = 1
+    # set ilut_drop = 1e-4
+  end 
+end
+
+# ----------------------------------------
+# - References for flow variables:
+# - (1) Uranga et al. 
+# - (2) Garmann et al.
+# - (3) Vermeire, Witherden, and Vincent (JCP, 2017)
+# ----------------------------------------
+
+# freestream Mach number
+subsection euler
+  set reference_length = 1.0
+  set mach_infinity = 0.2
+  set angle_of_attack = 5.0
+end
+
+# freestream Reynolds number and Prandtl number
+subsection navier_stokes
+  set prandtl_number = 0.72
+  set reynolds_number_inf = 60000.0
+  set thermal_boundary_condition_type = adiabatic
+  set use_constant_viscosity = true
+  set nondimensionalized_constant_viscosity = 1.0
+end
+
+subsection flow_solver
+  set flow_case_type = naca0012
+  set steady_state = false
+  set poly_degree = 1
+
+  set final_time = 20.0001 # for non steady state
+  # set courant_friedrichs_lewy_number = 0.01
+  set unsteady_data_table_filename = naca0012_unsteady_data_table
+
+  subsection grid
+    set input_mesh_filename = /home/aidan/Codes/PHiLiP/build_release/test_runs/test_meshes/naca0012_3D
+    set grid_degree = 2
+    set mesh_reader_verbose_output = false
+    subsection gmsh_boundary_IDs
+      set use_periodic_BC_in_x = false
+      set use_periodic_BC_in_y = false
+      set use_periodic_BC_in_z = true
+      set z_periodic_id_face_1 = 2005
+      set z_periodic_id_face_2 = 2006
+    end
+  end
+end

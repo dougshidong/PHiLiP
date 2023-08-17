@@ -123,8 +123,8 @@ std::shared_ptr<Triangulation> NACA0012<dim,nstate>::generate_grid() const
                                                 this->all_param.do_renumber_dofs,
                                                 grid_degree, use_mesh_smoothing, 
                                                 output_high_order_grid);
-            const unsigned int n_spanwise = 4;
-            for (unsigned int i=1; i<n_spanwise; ++i) {
+            const unsigned int n_spanwise_divisions = this->all_param.flow_solver_param.n_spanwise_divisions;
+            for (unsigned int i=1; i<n_spanwise_divisions; ++i) {
                 // For a one cell spanwise 3D grid, refine in z
                 naca0012_mesh->prepare_for_coarsening_and_refinement();
                 for (const auto &cell : naca0012_mesh->dof_handler_grid.active_cell_iterators()) {
@@ -208,8 +208,8 @@ void NACA0012<dim,nstate>::set_higher_order_grid(std::shared_ptr<DGBase<dim, dou
                                             output_high_order_grid);    
 
         // refine spanwise in z
-            const unsigned int n_spanwise = 4;
-            for (unsigned int i=1; i<n_spanwise; ++i) {
+            const unsigned int n_spanwise_divisions = this->all_param.flow_solver_param.n_spanwise_divisions;
+            for (unsigned int i=1; i<n_spanwise_divisions; ++i) {
                 // For a one cell spanwise 3D grid, refine in z
                 naca0012_mesh->prepare_for_coarsening_and_refinement();
                 for (const auto &cell : naca0012_mesh->dof_handler_grid.active_cell_iterators()) {

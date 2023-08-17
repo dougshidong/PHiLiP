@@ -144,6 +144,10 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                               dealii::Patterns::Bool(),
                               "Flag for verbose (true) or quiet (false) mesh reader output.");
 
+            prm.declare_entry("number_of_spanwise_refinements", "1",
+                              dealii::Patterns::Integer(1, 999),
+                              "Number of z direction refinements for the 3d naca0012 periodic case.");
+
             prm.enter_subsection("gmsh_boundary_IDs");
             {
 
@@ -348,6 +352,7 @@ void FlowSolverParam::parse_parameters(dealii::ParameterHandler &prm)
             number_of_mesh_refinements = prm.get_integer("number_of_mesh_refinements");
             use_gmsh_mesh = prm.get_bool("use_gmsh_mesh");
             mesh_reader_verbose_output = prm.get_bool("mesh_reader_verbose_output");
+            n_spanwise_divisions = prm.get_integer("number_of_spanwise_refinements");
 
             prm.enter_subsection("gmsh_boundary_IDs");
             {

@@ -98,6 +98,8 @@ public:
     int number_of_subdivisions_in_y_direction; ///< Number of subdivisions in y direction for gaussian bump case
     int number_of_subdivisions_in_z_direction; ///< Number of subdivisions in z direction for gaussian bump case
 
+    unsigned int n_spanwise_divisions; ///< Number of cell refinements performed in the z (spanwise) direction for a 3D periodic gmsh file
+
     /** For taylor green vortex integration tests, expected kinetic energy at final time. */
     double expected_kinetic_energy_at_final_time;
 

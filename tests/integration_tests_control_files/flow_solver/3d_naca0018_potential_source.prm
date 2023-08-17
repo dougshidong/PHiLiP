@@ -106,7 +106,8 @@ subsection flow_solver
     # set input_mesh_filename = /home/aidan/Codes/PHiLiP/build_release/test_runs/test_meshes/naca0018_3D_test
     # set input_mesh_filename = /home/aidan/Codes/PHiLiP/build_release/test_runs/test_meshes/naca0012_3D
     set grid_degree = 2
-    set mesh_reader_verbose_output = true
+    set mesh_reader_verbose_output = false
+    set number_of_spanwise_refinements = 4
     subsection gmsh_boundary_IDs
       set use_periodic_BC_in_x = false
       set use_periodic_BC_in_y = false

@@ -508,20 +508,20 @@ void DGBaseState<dim,nstate,real,MeshType>::update_model_variables()
 
         if (pde_type == PDE_enum::physics_model && model_type == Model_enum::potential_source)
         {
-            // get weighted cell position (currently using average location of quadrature nodes)
-            dealii::Point<dim,real> cell_location;
+            // Compute centroid of cell
+            const dealii::Point<dim,double> cell_location = cell->barycenter();
 
-            // iterating over quadrature points within each cell and averaging their location
-            for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
-                const dealii::Point<dim,real> &quad_point = fe_values_volume.quadrature_point(iquad);
+            // // iterating over quadrature points within each cell and averaging their location
+            // for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
+            //     const dealii::Point<dim,real> &quad_point = fe_values_volume.quadrature_point(iquad);
 
-                for (unsigned int i=0; i<dim; i++) {
-                    cell_location[i] += quad_point[i];
-                }
-            }
-            for (unsigned int i=0; i<dim; ++i) { 
-                cell_location[i] = (cell_location[i] / n_quad_pts); 
-            }
+            //     for (unsigned int i=0; i<dim; i++) {
+            //         cell_location[i] += quad_point[i];
+            //     }
+            // }
+            // for (unsigned int i=0; i<dim; ++i) { 
+            //     cell_location[i] = (cell_location[i] / n_quad_pts); 
+            // }
 
             // determining if within artificial_geometry
             within_physical_body_estimate = (int)potential_body_geometry(cell_location);

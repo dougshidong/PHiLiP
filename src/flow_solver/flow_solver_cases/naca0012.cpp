@@ -123,6 +123,18 @@ std::shared_ptr<Triangulation> NACA0012<dim,nstate>::generate_grid() const
                                                 this->all_param.do_renumber_dofs,
                                                 grid_degree, use_mesh_smoothing, 
                                                 output_high_order_grid);
+            const unsigned int n_spanwise = 4;
+            for (unsigned int i=1; i<n_spanwise; ++i) {
+                // For a one cell spanwise 3D grid, refine in z
+                naca0012_mesh->prepare_for_coarsening_and_refinement();
+                for (const auto &cell : naca0012_mesh->dof_handler_grid.active_cell_iterators()) {
+                    if (!(cell->is_locally_owned()))  {continue;}
+                    cell->set_refine_flag(dealii::RefinementCase<dim>::cut_axis(2));
+                }
+                naca0012_mesh->triangulation->execute_coarsening_and_refinement();
+                naca0012_mesh->execute_coarsening_and_refinement();
+            }
+
         } else {
             naca0012_mesh = read_gmsh<dim, dim> (mesh_filename, this->all_param.do_renumber_dofs, grid_degree, use_mesh_smoothing, 
                                                 mesh_reader_verbose_output, output_high_order_grid);
@@ -194,6 +206,19 @@ void NACA0012<dim,nstate>::set_higher_order_grid(std::shared_ptr<DGBase<dim, dou
                                             this->all_param.do_renumber_dofs,
                                             grid_degree, use_mesh_smoothing,
                                             output_high_order_grid);    
+
+        // refine spanwise in z
+            const unsigned int n_spanwise = 4;
+            for (unsigned int i=1; i<n_spanwise; ++i) {
+                // For a one cell spanwise 3D grid, refine in z
+                naca0012_mesh->prepare_for_coarsening_and_refinement();
+                for (const auto &cell : naca0012_mesh->dof_handler_grid.active_cell_iterators()) {
+                    if (!(cell->is_locally_owned()))  {continue;}
+                    cell->set_refine_flag(dealii::RefinementCase<dim>::cut_axis(2));
+                }
+                naca0012_mesh->triangulation->execute_coarsening_and_refinement();
+                naca0012_mesh->execute_coarsening_and_refinement();
+            }
     } else {
         naca0012_mesh = read_gmsh<dim, dim> (mesh_filename, this->all_param.do_renumber_dofs, grid_degree, use_mesh_smoothing, 
                                             mesh_reader_verbose_output, output_high_order_grid);

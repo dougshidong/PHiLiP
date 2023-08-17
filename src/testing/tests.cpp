@@ -74,6 +74,7 @@ std::string TestsBase::get_pde_string(const Parameters::AllParameters *const par
     using Model_enum     = PHiLiP::Parameters::AllParameters::ModelType;
     using SGSModel_enum  = PHiLiP::Parameters::PhysicsModelParam::SubGridScaleModel;
     using RANSModel_enum = PHiLiP::Parameters::PhysicsModelParam::ReynoldsAveragedNavierStokesModel;
+    using PSModel_enum   = PHiLiP::Parameters::PhysicsModelParam::PotentialFlowModel;
     
     const PDE_enum pde_type = param->pde_type;
     std::string pde_string;
@@ -112,6 +113,17 @@ std::string TestsBase::get_pde_string(const Parameters::AllParameters *const par
             // assign RANS model string
             if     (rans_model==RANSModel_enum::SA_negative) rans_model_string = "SA_negative";
             pde_string += std::string(" (Model: ") + model_string + std::string(", RANS Model: ") + rans_model_string + std::string(")");
+        }
+        else if(model == Model_enum::potential_source) {
+            // assign model string
+            model_string = "potential_source";
+            // potential source
+            const PSModel_enum ps_model = param->physics_model_param.potential_flow_model_type;
+            std::string ps_model_string = "WARNING: invalid RANS model";
+            // assign RANS model string
+            if     (ps_model==PSModel_enum::euler) ps_model_string = "Euler";
+            if     (ps_model==PSModel_enum::navier_stokes) ps_model_string = "Navier Stokes";
+            pde_string += std::string(" (Model: ") + model_string + std::string(", Potential Flow Model: ") + ps_model_string + std::string(")");
         }
         if(pde_string == "physics_model") pde_string += std::string(" (Model: ") + model_string + std::string(")");
     }

@@ -63,9 +63,82 @@ std::shared_ptr<Triangulation> NACA0012<dim,nstate>::generate_grid() const
         return grid;
     } 
     else if constexpr(dim==3) {
+        std::shared_ptr<HighOrderGrid<dim,double>> naca0012_mesh = nullptr;
+
         const std::string mesh_filename = this->all_param.flow_solver_param.input_mesh_filename+std::string(".msh");
         const bool use_mesh_smoothing = false;
-        std::shared_ptr<HighOrderGrid<dim,double>> naca0012_mesh = read_gmsh<dim, dim> (mesh_filename, this->all_param.do_renumber_dofs, 0, use_mesh_smoothing);
+        // requested grid order
+        // const unsigned int grid_degree = this->all_param.flow_solver_param.grid_degree; << deal.ii raises error when making higher order grid
+        const unsigned int grid_degree = 0;
+        // verbose output flag
+        const bool mesh_reader_verbose_output = this->all_param.flow_solver_param.mesh_reader_verbose_output;
+        // mesh output flag
+        const bool output_high_order_grid = this->all_param.output_high_order_grid;
+
+        
+        // Check if periodic BC exist
+        const bool periodic_x = this->all_param.flow_solver_param.use_periodic_BC_in_x;
+        const bool periodic_y = this->all_param.flow_solver_param.use_periodic_BC_in_y;
+        const bool periodic_z = this->all_param.flow_solver_param.use_periodic_BC_in_z;
+
+        if (periodic_x || periodic_y || periodic_z) {
+
+            // Default parameters
+            int x_periodic_1_temp = 0; 
+            int x_periodic_2_temp = 0;
+            int y_periodic_1_temp = 0; 
+            int y_periodic_2_temp = 0;
+            int z_periodic_1_temp = 0; 
+            int z_periodic_2_temp = 0;
+
+            if (periodic_x) {
+                x_periodic_1_temp = this->all_param.flow_solver_param.x_periodic_id_face_1;
+                x_periodic_2_temp = this->all_param.flow_solver_param.x_periodic_id_face_2;
+            }
+
+            if (periodic_y) {
+                y_periodic_1_temp = this->all_param.flow_solver_param.y_periodic_id_face_1;
+                y_periodic_2_temp = this->all_param.flow_solver_param.y_periodic_id_face_2;
+            }
+
+            if (periodic_z) {
+                z_periodic_1_temp = this->all_param.flow_solver_param.z_periodic_id_face_1;
+                z_periodic_2_temp = this->all_param.flow_solver_param.z_periodic_id_face_2;
+            }
+            
+            // Assign periodic BC
+            const int x_periodic_1 = x_periodic_1_temp; 
+            const int x_periodic_2 = x_periodic_2_temp;
+            const int y_periodic_1 = y_periodic_1_temp; 
+            const int y_periodic_2 = y_periodic_2_temp;
+            const int z_periodic_1 = z_periodic_1_temp; 
+            const int z_periodic_2 = z_periodic_2_temp;
+
+            naca0012_mesh = read_gmsh<dim, dim> (mesh_filename, 
+                                                periodic_x, periodic_y, periodic_z,
+                                                x_periodic_1, x_periodic_2, 
+                                                y_periodic_1, y_periodic_2, 
+                                                z_periodic_1, z_periodic_2, 
+                                                mesh_reader_verbose_output,
+                                                this->all_param.do_renumber_dofs,
+                                                grid_degree, use_mesh_smoothing, 
+                                                output_high_order_grid);
+            const unsigned int n_spanwise_divisions = this->all_param.flow_solver_param.n_spanwise_divisions;
+            for (unsigned int i=1; i<n_spanwise_divisions; ++i) {
+                // For a one cell spanwise 3D grid, refine in z
+                naca0012_mesh->prepare_for_coarsening_and_refinement();
+                for (const auto &cell : naca0012_mesh->dof_handler_grid.active_cell_iterators()) {
+                    if (!(cell->is_locally_owned()))  {continue;}
+                    cell->set_refine_flag(dealii::RefinementCase<dim>::cut_axis(2));
+                }
+                naca0012_mesh->triangulation->execute_coarsening_and_refinement();
+                naca0012_mesh->execute_coarsening_and_refinement();
+            }
+
+        } else {
+            naca0012_mesh = read_gmsh<dim, dim> (mesh_filename, this->all_param.do_renumber_dofs, grid_degree, use_mesh_smoothing, 
+                                                mesh_reader_verbose_output, output_high_order_grid);
+        }
         return naca0012_mesh->triangulation;
     }
     
@@ -75,9 +148,82 @@ std::shared_ptr<Triangulation> NACA0012<dim,nstate>::generate_grid() const
 template <int dim, int nstate>
 void NACA0012<dim,nstate>::set_higher_order_grid(std::shared_ptr<DGBase<dim, double>> dg) const
 {
+    std::shared_ptr<HighOrderGrid<dim,double>> naca0012_mesh = nullptr;
+
     const std::string mesh_filename = this->all_param.flow_solver_param.input_mesh_filename+std::string(".msh");
     const bool use_mesh_smoothing = false;
-    std::shared_ptr<HighOrderGrid<dim,double>> naca0012_mesh = read_gmsh<dim, dim> (mesh_filename, this->all_param.do_renumber_dofs, 0, use_mesh_smoothing);
+    // const unsigned int grid_degree = this->all_param.flow_solver_param.grid_degree;
+    const unsigned int grid_degree = 0;
+    // verbose output flag
+    const bool mesh_reader_verbose_output = this->all_param.flow_solver_param.mesh_reader_verbose_output;
+    // mesh output flag
+    const bool output_high_order_grid = this->all_param.output_high_order_grid;
+    
+    // Check if periodic BC exist
+    const bool periodic_x = this->all_param.flow_solver_param.use_periodic_BC_in_x;
+    const bool periodic_y = this->all_param.flow_solver_param.use_periodic_BC_in_y;
+    const bool periodic_z = this->all_param.flow_solver_param.use_periodic_BC_in_z;
+
+    if (periodic_x || periodic_y || periodic_z) {
+
+        // Default parameters
+        int x_periodic_1_temp = 0; 
+        int x_periodic_2_temp = 0;
+        int y_periodic_1_temp = 0; 
+        int y_periodic_2_temp = 0;
+        int z_periodic_1_temp = 0; 
+        int z_periodic_2_temp = 0;
+
+        if (periodic_x) {
+            x_periodic_1_temp = this->all_param.flow_solver_param.x_periodic_id_face_1;
+            x_periodic_2_temp = this->all_param.flow_solver_param.x_periodic_id_face_2;
+        }
+
+        if (periodic_y) {
+            y_periodic_1_temp = this->all_param.flow_solver_param.y_periodic_id_face_1;
+            y_periodic_2_temp = this->all_param.flow_solver_param.y_periodic_id_face_2;
+        }
+
+        if (periodic_z) {
+            z_periodic_1_temp = this->all_param.flow_solver_param.z_periodic_id_face_1;
+            z_periodic_2_temp = this->all_param.flow_solver_param.z_periodic_id_face_2;
+        }
+
+        // Assign periodic BC
+        const int x_periodic_1 = x_periodic_1_temp; 
+        const int x_periodic_2 = x_periodic_2_temp;
+        const int y_periodic_1 = y_periodic_1_temp; 
+        const int y_periodic_2 = y_periodic_2_temp;
+        const int z_periodic_1 = z_periodic_1_temp; 
+        const int z_periodic_2 = z_periodic_2_temp;
+
+        naca0012_mesh = read_gmsh<dim, dim> (mesh_filename, 
+                                            periodic_x, periodic_y, periodic_z,
+                                            x_periodic_1, x_periodic_2, 
+                                            y_periodic_1, y_periodic_2, 
+                                            z_periodic_1, z_periodic_2, 
+                                            mesh_reader_verbose_output,
+                                            this->all_param.do_renumber_dofs,
+                                            grid_degree, use_mesh_smoothing,
+                                            output_high_order_grid);    
+
+        // refine spanwise in z
+            const unsigned int n_spanwise_divisions = this->all_param.flow_solver_param.n_spanwise_divisions;
+            for (unsigned int i=1; i<n_spanwise_divisions; ++i) {
+                // For a one cell spanwise 3D grid, refine in z
+                naca0012_mesh->prepare_for_coarsening_and_refinement();
+                for (const auto &cell : naca0012_mesh->dof_handler_grid.active_cell_iterators()) {
+                    if (!(cell->is_locally_owned()))  {continue;}
+                    cell->set_refine_flag(dealii::RefinementCase<dim>::cut_axis(2));
+                }
+                naca0012_mesh->triangulation->execute_coarsening_and_refinement();
+                naca0012_mesh->execute_coarsening_and_refinement();
+            }
+    } else {
+        naca0012_mesh = read_gmsh<dim, dim> (mesh_filename, this->all_param.do_renumber_dofs, grid_degree, use_mesh_smoothing, 
+                                            mesh_reader_verbose_output, output_high_order_grid);
+    }
+
     dg->set_high_order_grid(naca0012_mesh);
     for (int i=0; i<this->all_param.flow_solver_param.number_of_mesh_refinements; ++i) {
         dg->high_order_grid->refine_global();

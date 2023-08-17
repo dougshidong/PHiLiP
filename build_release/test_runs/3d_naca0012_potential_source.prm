@@ -1,0 +1,151 @@
+# Listing of Parameters
+# ---------------------
+
+# Number of dimensions and run type
+set dimension = 3
+set run_type = flow_simulation
+
+# PDE
+set pde_type = physics_model
+set model_type = potential_source
+
+
+# Physics Model (if pde_type == physics_model)
+subsection physics_model
+  subsection potential_source
+    set potential_flow_model = euler
+  end
+end
+
+
+# DG formulation
+set use_weak_form = false
+set flux_nodes_type = GLL
+set use_split_form = true
+
+set overintegration = 0
+
+# set flux_reconstruction = cDG
+# set flux_reconstruction_aux = kDG
+
+# Note: this was added to turn off check_same_coords() -- has no other function when dim!=1
+set use_periodic_bc = false # set false for explicit to ensure constructed properly, true for implicit
+
+# Numerical fluxes
+set two_point_num_flux_type = IR
+set conv_num_flux = roe
+set diss_num_flux = symm_internal_penalty
+
+# File output
+set solution_vtk_files_directory_name = /home/aidan/Codes/PHiLiP/build_release/test_runs/solution_files
+set output_high_order_grid = false
+set enable_higher_order_vtk_output = true
+
+# set do_renumber_dofs = false 
+
+# ODE solver
+subsection ODE solver
+  set ode_output = quiet
+
+  # Explicit
+  set ode_solver_type = runge_kutta
+  set runge_kutta_method = ssprk3_ex
+
+  set initial_time_step = 1.3e-7
+
+  set output_solution_every_x_steps = 1
+
+  ## fixed output
+  # set output_solution_every_dt_time_intervals = 0.0
+  # set output_solution_at_fixed_times = true
+  # set output_solution_fixed_times_string = 1.0 2.0 4.0 5.0 8.0 9.0 10.0 12.0 15.0 16.0 20.0
+  # set output_solution_at_exact_fixed_times = true
+end
+
+# ----------------------------------------
+# - References for flow variables:
+# - (1)  Avallone 2018
+# - (2) 
+# - (3) 
+# ----------------------------------------
+
+# freestream Mach number
+subsection euler
+  set reference_length = 1.0
+  set mach_infinity = 0.06
+  set gamma_gas = 1.4
+  set angle_of_attack = 0.0
+end
+
+# freestream Reynolds number and Prandtl number
+subsection navier_stokes
+  set prandtl_number = 0.72
+  set reynolds_number_inf = 263000.0
+  set nondimensionalized_isothermal_wall_temperature = 1.0
+  set thermal_boundary_condition_type = adiabatic
+  set use_constant_viscosity = true
+  set nondimensionalized_constant_viscosity = 1.0
+end
+
+subsection flow_solver
+  set flow_case_type = naca0012
+  set steady_state = false
+  set poly_degree = 1
+
+  set final_time = 0.5
+  # set constant_time_step = 1.3e-7
+
+  # set courant_friedrichs_lewy_number = 0.01
+
+  set adaptive_time_step = false
+  set unsteady_data_table_filename = naca0012_unsteady_data_table
+
+  subsection grid
+    # using naca0018 airfoil
+    set input_mesh_filename = /home/aidan/Codes/PHiLiP/build_release/test_runs/test_meshes/naca0018_3D_test
+    # set input_mesh_filename = /home/aidan/Codes/PHiLiP/build_release/test_runs/test_meshes/naca0012_3D
+    set grid_degree = 2
+    set mesh_reader_verbose_output = false
+    subsection gmsh_boundary_IDs
+      set use_periodic_BC_in_x = false
+      set use_periodic_BC_in_y = false
+      set use_periodic_BC_in_z = true
+      set z_periodic_id_face_1 = 2005
+      set z_periodic_id_face_2 = 2006
+    end
+  end
+end
+
+# ----------------------------------------
+# - References for TES geometry:
+# - (1)  Avallone 2018
+# - (2) Cao, Zhang
+# - (3) 
+# ----------------------------------------
+
+subsection potential_source
+  
+  # Choose geometry used for potential source term
+  set potential_source_geometry = trailing_edge_serrations
+
+  # If true, includes the contribution of the viscous drag.
+  set viscous_drag = true
+  
+  subsection trailing edge serrations
+
+    # Distance between consecutive trailing edge serrations
+    set trailing_edge_serration_frequency = 0.1
+
+    # Half the length of trailing edge serrations
+    set half_trailing_edge_serration_length = 0.1
+
+    # Thickness of trailing edge serrations
+    set trailing_edge_serration_thickness = 0.00378 # same as blunt trailing edge
+
+    # Effective length factor for trailing edge serrations
+    set trailing_edge_serration_effective_length_factor = 0.125
+
+    # Angle of trailing edge flap in degrees (gamma)
+    set angle_of_serrations = 0.0
+  end
+end

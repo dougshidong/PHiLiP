@@ -137,7 +137,7 @@ public:
         const std::shared_ptr<MeshType> triangulation_input,
         const bool                      check_valid_metric_Jacobian_input=true,
         const bool                      renumber_dof_handler_Cuthill_Mckee_input=true,
-        const bool                      output_high_order_grid=true);
+        const bool                      output_high_order_grid=false);
 
     /// Reinitialize high_order_grid after a change in triangulation
     void reinit();
@@ -152,7 +152,7 @@ public:
     void ensure_conforming_mesh();
 
     /// Sets the volume_nodes to the interpolated position of the Manifold associated to the triangulation.
-    void initialize_with_triangulation_manifold(const bool output_mesh = true);
+    void initialize_with_triangulation_manifold(const bool output_mesh = false);
 
     /// Needed to allocate the correct number of volume_nodes when initializing and after the mesh is refined
     void allocate();

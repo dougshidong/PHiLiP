@@ -55,6 +55,18 @@ public:
 protected:
     /// Physics that should correspond to the one in DGBase
     std::shared_ptr<Physics::PhysicsBase<dim,nstate,FadFadType>> physics_fad_fad;
+    /// Convective numerical flux with FadFadType
+    std::unique_ptr < NumericalFlux::NumericalFluxConvective<dim, nstate, FadFadType > > conv_num_flux_fad_fad;
+    /// Dissipative numerical flux with FadFadType
+    std::unique_ptr < NumericalFlux::NumericalFluxDissipative<dim, nstate, FadFadType > > diss_num_flux_fad_fad;
+
+    /// Link to Artificial dissipation class (with three dissipation types, depending on the input). 
+    std::shared_ptr <ArtificialDissipationBase<dim,nstate>> artificial_dissip;
+
+    /// Casts DG's physics into an Euler physics object.
+    std::shared_ptr<Physics::Euler<dim,dim+2,FadFadType>> euler_fad_fad;
+
+
 
 public:
     /** Constructor.

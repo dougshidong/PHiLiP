@@ -22,6 +22,7 @@
 #include "physics/physics_factory.h"
 #include "physics/model.h"
 #include "physics/model_factory.h"
+#include "physics/physics_model.h"
 #include "dg/dg.h"
 #include "functional.h"
 #include "lift_drag.hpp"
@@ -307,14 +308,28 @@ real2 OutletPressureIntegral<dim,nstate,real,MeshType>::evaluate_boundary_integr
         const std::array<real2,nstate> &                      soln_at_q,
         const std::array<dealii::Tensor<1,dim,real2>,nstate> & /*soln_grad_at_q*/ ) const
 {
-    real2 pressure = 0;
+    real2 pressure {0.0};
 
     if(boundary_id == 1002){
         // casting it to a physics euler as it is needed for the pressure computation
-        const Physics::Euler<dim,nstate,real2>& euler_physics = dynamic_cast<const Physics::Euler<dim,nstate,real2>&>(physics);
 
-        // converting the state vector to the point pressure
-        pressure = euler_physics.compute_pressure(soln_at_q);
+        // checking for ModelBase
+        using PDE_enum = Parameters::AllParameters::PartialDifferentialEquation;
+        PDE_enum pde_type = this->dg->all_parameters->pde_type;
+
+        if (pde_type == PDE_enum::physics_model)
+        {
+            if constexpr (nstate==dim+2) 
+            {
+                const Physics::PhysicsModel<dim,dim+2,real2,dim+2> &physics_model = dynamic_cast<const Physics::PhysicsModel<dim,dim+2,real2,dim+2> &>(physics);
+                std::shared_ptr<Physics::Euler<dim,dim+2,real2>> euler_physics = std::dynamic_pointer_cast<Physics::Euler<dim,dim+2,real2>>(physics_model.physics_baseline);
+
+                pressure = euler_physics->compute_pressure (soln_at_q);
+            }
+        } else {
+            const Physics::Euler<dim,nstate,real2> &euler_physics = dynamic_cast<const Physics::Euler<dim,dim+2,real2> &>(physics);
+            pressure = euler_physics.compute_pressure (soln_at_q);
+        }
     }
 
     return pressure;
@@ -337,8 +352,33 @@ Functional<dim,nstate,real,MeshType>::Functional(
     using FadType = Sacado::Fad::DFad<real>;
     using FadFadType = Sacado::Fad::DFad<FadType>;
     std::shared_ptr<Physics::ModelBase<dim,nstate,FadFadType>> model_fad_fad = Physics::ModelFactory<dim,nstate,FadFadType>::create_Model(dg->all_parameters);
-    physics_fad_fad = Physics::PhysicsFactory<dim,nstate,FadFadType>::create_Physics(dg->all_parameters,model_fad_fad);
+    physics_fad_fad = Physics::PhysicsFactory<dim,nstate,FadFadType>::create_Physics(dg->all_parameters, model_fad_fad);
 
+    /// Currently no adjustment to account for ModelBase case, or any situations where the physics have been changed.
+    /// Reinitialize convective and dissipative fluxes for ModelBase
+
+    artificial_dissip = ArtificialDissipationFactory<dim,nstate> ::create_artificial_dissipation(dg->all_parameters);
+    conv_num_flux_fad_fad = NumericalFlux::NumericalFluxFactory<dim, nstate, FadFadType> ::create_convective_numerical_flux (dg->all_parameters->conv_num_flux_type, dg->all_parameters->pde_type, dg->all_parameters->model_type, physics_fad_fad);
+    diss_num_flux_fad_fad = NumericalFlux::NumericalFluxFactory<dim, nstate, FadFadType> ::create_dissipative_numerical_flux (dg->all_parameters->diss_num_flux_type, physics_fad_fad, artificial_dissip);
+
+
+    // initializing euler_fad_fad - checking if physics_model
+    using PDE_enum = Parameters::AllParameters::PartialDifferentialEquation;
+    PDE_enum pde_type = dg->all_parameters->pde_type;
+
+    if (pde_type == PDE_enum::physics_model)
+    {
+        if constexpr (nstate==dim+2) {
+            std::shared_ptr<Physics::PhysicsModel<dim,dim+2,FadFadType,dim+2>> physics_model = std::dynamic_pointer_cast<Physics::PhysicsModel<dim,dim+2,FadFadType,dim+2>>(physics_fad_fad);
+            std::shared_ptr<Physics::Euler<dim,dim+2,FadFadType>> physics_baseline = std::dynamic_pointer_cast<Physics::Euler<dim,dim+2,FadFadType>>(physics_model->physics_baseline);
+            euler_fad_fad = physics_baseline;
+        }
+    } 
+    else {
+        std::shared_ptr<Physics::Euler<dim,dim+2,FadFadType>> physics_cast = std::dynamic_pointer_cast<Physics::Euler<dim,dim+2,FadFadType>>(physics_fad_fad);
+        euler_fad_fad = physics_cast;
+    }
+    std::dynamic_pointer_cast<Physics::Euler<dim,dim+2,FadFadType>>(physics_fad_fad);
     init_vectors();
 }
 template <int dim, int nstate, typename real, typename MeshType>

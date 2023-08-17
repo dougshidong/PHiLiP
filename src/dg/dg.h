@@ -439,6 +439,8 @@ public:
      */
     dealii::Vector<double> cell_volume;
 
+    dealii::Vector<double> within_physical_body;
+
     /// Time it takes for the maximum wavespeed to cross the cell domain.
     /** Uses evaluate_CFL() which would be defined in the subclasses.
      *  This is because DGBase isn't templated on nstate and therefore, can't use
@@ -1046,6 +1048,7 @@ public:
     /// Set use_auxiliary_eq flag
     void set_use_auxiliary_eq();
 
+
 protected:
     /// Evaluate the time it takes for the maximum wavespeed to cross the cell domain.
     /** Currently only uses the convective eigenvalues. Future changes would take in account
@@ -1061,6 +1064,10 @@ protected:
     /** Usually called after setting physics.
      */
     void reset_numerical_fluxes();
+
+    // Potential source function to check geometry
+    bool potential_body_geometry(const dealii::Point<dim,real> &pos);
+
 }; // end of DGBaseState class
 
 } // PHiLiP namespace

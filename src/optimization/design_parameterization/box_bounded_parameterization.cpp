@@ -16,10 +16,10 @@ BoxBoundedParameterization<dim> :: BoxBoundedParameterization(
 template<int dim>
 void BoxBoundedParameterization<dim> :: compute_control_index_to_vol_index()
 {
-    const double x_low = -0.8;
-    const double x_high = 24.0;
-    const double y_low = -20.0;
-    const double y_high = 15.5;
+    const double x_low = -0.6;
+    const double x_high = 1.2;
+    const double y_low = -1.3;
+    const double y_high = 1.4;
     const unsigned int n_vol_nodes = this->high_order_grid->volume_nodes.size();
     const unsigned int n_surf_nodes = this->high_order_grid->surface_nodes.size();
 
@@ -35,12 +35,7 @@ void BoxBoundedParameterization<dim> :: compute_control_index_to_vol_index()
     for(unsigned int i_vol = 0; i_vol<n_vol_nodes; ++i_vol) 
     {
         if(!(volume_range.is_element(i_vol))) continue;
-/*
-        const unsigned int vol_index = this->high_order_grid->surface_to_volume_indices(i_surf);
-        Assert(volume_range.is_element(vol_index), 
-                dealii::ExcMessage("Surface index is in range, so vol index is expected to be in the range of this processor."));
-        is_a_surface_node(vol_index) = 1;
-*/
+        
         if(i_vol % dim == 0.0)
         {
             const double x = this->high_order_grid->volume_nodes(i_vol);

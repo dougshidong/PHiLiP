@@ -18,14 +18,14 @@ set diss_num_flux = symm_internal_penalty
 subsection euler
   set reference_length = 1.0
   set mach_infinity = 1.5
-  set angle_of_attack = 0.0
+  set angle_of_attack = 3.0
 end
 
 subsection artificial dissipation
   set add_artificial_dissipation = true
   set artificial_dissipation_type = laplacian
-  set mu_artificial_dissipation = 0.1
-  set kappa_artificial_dissipation = 5.0
+  set mu_artificial_dissipation = 0.05
+  set kappa_artificial_dissipation = 1.0
 end
 
 subsection functional
@@ -48,7 +48,7 @@ subsection linear solver
     # structure
     set ilut_fill                 = 10
     # Linear residual tolerance for convergence of the linear system
-    set linear_residual_tolerance = 1e-13
+    set linear_residual_tolerance = 1e-4
     # Maximum number of iterations for linear solver
     set max_iterations            = 2000
     # Number of iterations before restarting GMRES
@@ -72,7 +72,7 @@ subsection optimization
     set full_space_preconditioner = P2A
     set mesh_weight_factor = 0.1
 
-    set regularization_parameter = 10.0
+    set regularization_parameter = 1.0
     set regularization_scaling = 2.0
     set regularization_tol_low = 1.0e-2
     set regularization_tol_high = 1.0e-1

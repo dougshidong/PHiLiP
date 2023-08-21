@@ -56,8 +56,8 @@ void MeshOptimizer<dim,nstate>::initialize_objfunc_and_design_parameterization()
     const bool uses_solution_gradient = false;
     if(use_full_space_method) {uses_coarse_residual = false;}
 
-    objective_function = std::make_shared<ImplicitShockTrackingFunctional<dim, nstate, double>> (dg,uses_solution_values,uses_solution_gradient,uses_coarse_residual);
-    //objective_function = std::make_shared<DualWeightedResidualObjFunc2<dim, nstate, double>> (dg,uses_solution_values,uses_solution_gradient,uses_coarse_residual);
+//    objective_function = std::make_shared<ImplicitShockTrackingFunctional<dim, nstate, double>> (dg,uses_solution_values,uses_solution_gradient,uses_coarse_residual);
+    objective_function = std::make_shared<DualWeightedResidualObjFunc2<dim, nstate, double>> (dg,uses_solution_values,uses_solution_gradient,uses_coarse_residual);
 }
 
 template<int dim, int nstate>

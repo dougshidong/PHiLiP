@@ -38,6 +38,15 @@ void BoxBoundedParameterization<dim> :: compute_control_index_to_vol_index()
         
         if(i_vol % dim == 0.0)
         {
+            if(!(volume_range.is_element(i_vol+1)))
+            {
+                std::cout<<"ivol+1 does not belong to the same processor, as initially expected. Aborting.."<<std::endl<<std::flush;
+                std::abort();
+            }
+        }
+        
+        if(i_vol % dim == 0.0)
+        {
             const double x = this->high_order_grid->volume_nodes(i_vol);
             const double y = this->high_order_grid->volume_nodes(i_vol+1);
 

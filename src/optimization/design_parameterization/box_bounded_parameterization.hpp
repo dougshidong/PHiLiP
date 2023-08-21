@@ -41,6 +41,8 @@ private:
     
     dealii::IndexSet control_index_range;
     
+    dealii::IndexSet control_ghost_range;
+    
     dealii::LinearAlgebra::distributed::Vector<int> control_index_to_vol_index;
 };
 

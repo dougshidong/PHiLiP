@@ -103,7 +103,9 @@ void BoxBoundedParameterization<dim> :: compute_control_index_to_vol_index()
 template<int dim>
 void BoxBoundedParameterization<dim> :: initialize_design_variables(VectorType &design_var)
 {
-    design_var.reinit(control_index_range, this->mpi_communicator);
+    control_ghost_range.set_size(n_control_nodes);
+    control_ghost_range.add_range(0, n_control_nodes);
+    design_var.reinit(control_index_range, control_ghost_range, this->mpi_communicator);
 
     for(unsigned int i_control=0; i_control<n_control_nodes; ++i_control)
     {
@@ -113,8 +115,8 @@ void BoxBoundedParameterization<dim> :: initialize_design_variables(VectorType &
             design_var[i_control] = this->high_order_grid->volume_nodes[vol_index];
         }
     }
+    design_var.update_ghost_values();
     current_design_var = design_var;
-    design_var.update_ghost_values(); // Not required as there are no ghost values. Might be required later.
     current_design_var.update_ghost_values();
 }
 

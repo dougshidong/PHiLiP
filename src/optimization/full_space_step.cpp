@@ -351,7 +351,8 @@ std::vector<double> FullSpace_BirosGhattas<Real>::solve_linear (
     //const double tolerance = 1e-11;
     //const double tolerance = std::max(1e-3 * rhs_norm, 1e-11);
     // Used for almost all the results:
-    const double tolerance = std::min(1e-4, std::max(1e-6 * rhs_norm, 1e-11));
+    //const double tolerance = std::min(1e-4, std::max(1e-6 * rhs_norm, 1e-11));
+    const double tolerance = std::max(1e-4 * rhs_norm, 1e-11);
 
     dealii::SolverControl solver_control(linear_iteration_limit, tolerance, true, true);
     solver_control.enable_history_data();

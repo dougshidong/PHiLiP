@@ -37,16 +37,16 @@ subsection linear solver
   subsection gmres options
     # Factor by which the diagonal of the matrix will be scaled, which
     # sometimes can help to get better preconditioners
-    set ilut_atol                 = 1e-4
+    set ilut_atol                 = 1e-5
     # Amount of an absolute perturbation that will be added to the diagonal of
     # the matrix, which sometimes can help to get better preconditioners
-    set ilut_rtol                 = 1.00001
+    set ilut_rtol                 = 1.01
     # relative size of elements which should be dropped when forming an
     # incomplete lu decomposition with threshold
-    set ilut_drop                 = 0.0
+    set ilut_drop                 = 1.0e-8
     # Amount of additional fill-in elements besides the sparse matrix
     # structure
-    set ilut_fill                 = 10
+    set ilut_fill                 = 20
     # Linear residual tolerance for convergence of the linear system
     set linear_residual_tolerance = 1e-4
     # Maximum number of iterations for linear solver

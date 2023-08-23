@@ -62,8 +62,8 @@ subsection optimization
     set use_fine_solution = false
 
     set gradient_tolerance = 1.0e-11 #1e-11
-    set max_design_cycles = 3
-    set linear_iteration_limit = 2000
+    set max_design_cycles = 30
+    set linear_iteration_limit = 1000
     set initial_step_size = 1.0
     set functional_evaluation_limit = 30
     set line_search_method = Backtracking

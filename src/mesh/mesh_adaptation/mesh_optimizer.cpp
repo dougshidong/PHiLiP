@@ -47,17 +47,17 @@ MeshOptimizer<dim,nstate>::MeshOptimizer(
 template<int dim, int nstate>
 void MeshOptimizer<dim,nstate>::initialize_objfunc_and_design_parameterization()
 {
-    design_parameterization = std::make_shared<BoxBoundedParameterization<dim>>(dg->high_order_grid); 
-    //design_parameterization = std::make_shared<InnerVolParameterization<dim>>(dg->high_order_grid); 
-    //design_parameterization = std::make_shared<SlidingBoundaryParameterization<dim>>(dg->high_order_grid); 
+//    design_parameterization = std::make_shared<BoxBoundedParameterization<dim>>(dg->high_order_grid); 
+    design_parameterization = std::make_shared<InnerVolParameterization<dim>>(dg->high_order_grid); 
+//    design_parameterization = std::make_shared<SlidingBoundaryParameterization<dim>>(dg->high_order_grid); 
 
     bool uses_coarse_residual = false;
     const bool uses_solution_values = true;
     const bool uses_solution_gradient = false;
     if(use_full_space_method) {uses_coarse_residual = false;}
 
-    objective_function = std::make_shared<ImplicitShockTrackingFunctional<dim, nstate, double>> (dg,uses_solution_values,uses_solution_gradient,uses_coarse_residual);
-//    objective_function = std::make_shared<DualWeightedResidualObjFunc2<dim, nstate, double>> (dg,uses_solution_values,uses_solution_gradient,uses_coarse_residual);
+//    objective_function = std::make_shared<ImplicitShockTrackingFunctional<dim, nstate, double>> (dg,uses_solution_values,uses_solution_gradient,uses_coarse_residual);
+    objective_function = std::make_shared<DualWeightedResidualObjFunc2<dim, nstate, double>> (dg,uses_solution_values,uses_solution_gradient,uses_coarse_residual);
 }
 
 template<int dim, int nstate>

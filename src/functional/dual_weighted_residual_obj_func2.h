@@ -2,6 +2,7 @@
 #define __DUAL_WEIGHTED_RESIDUAL_OBJ_FUNC2_H__
 
 #include "functional.h"
+#include "Ifpack.h"
 
 namespace PHiLiP {
 
@@ -20,8 +21,8 @@ public:
         const bool uses_solution_gradient = false,
         const bool _use_coarse_residual = false);
 
-    /// Destructor
-    ~DualWeightedResidualObjFunc2(){}
+    /// Destructor. Destroys preconditioners.
+    ~DualWeightedResidualObjFunc2();
 
 
     /// Computes \f[ out_vector = d2IdWdW*in_vector \f]. 
@@ -159,6 +160,12 @@ private:
 
     /// Stores dIdX
     void store_dIdX();
+
+    int construct_preconditioners();
+
+    void apply_inverse_jacobian_preconditioner(VectorType &out_vector, VectorType &in_vector) const;
+    
+    void apply_inverse_adjointjacobian_preconditioner(VectorType &out_vector, VectorType &in_vector) const;
     
     /// Stores \f[ \eta = [\eta_k, k=1,2,..N_k], \eta_k = \left(\psi^T R \right)_k \f].
     VectorType dwr_error;
@@ -240,6 +247,16 @@ private:
 
     /// Functional used to evaluate cell distortion.
     std::unique_ptr< Functional<dim, nstate, real> > cell_distortion_functional;
+    
+    /// Jacobian preconditioner.
+    /** Currently uses ILUT */
+    Ifpack_Preconditioner *jacobian_prec;
+    
+    /// Adjoint Jacobian preconditioner.
+    /** Currently uses ILUT */
+    Ifpack_Preconditioner *adjoint_jacobian_prec;
+
+    bool use_preconditioners;
     
 public:
     /// Stores global dof indices of the fine mesh.

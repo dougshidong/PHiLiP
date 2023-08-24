@@ -28,13 +28,20 @@ class AssembleECSW
 public:
     /// Constructor
     AssembleECSW(
+        const PHiLiP::Parameters::AllParameters *const parameters_input,
+        const dealii::ParameterHandler &parameter_handler_input,
         std::shared_ptr<DGBase<dim,double>> &dg_input, 
         std::shared_ptr<ProperOrthogonalDecomposition::PODBase<dim>> pod,
-        double * params,
+        std::shared_ptr<Tests::AdaptiveSampling<dim,nstate>> parameter_sampling_input,
         Parameters::ODESolverParam::ODESolverEnum ode_solver_type);
 
     /// Destructor
     ~AssembleECSW () {};
+
+    const Parameters::AllParameters *const all_parameters; ///< Pointer to all parameters
+
+    /// Parameter handler for storing the .prm file being ran
+    const dealii::ParameterHandler &parameter_handler;
 
     /// dg
     std::shared_ptr<DGBase<dim,double>> dg;
@@ -43,10 +50,8 @@ public:
     std::shared_ptr<ProperOrthogonalDecomposition::PODBase<dim>> pod;
 
     /// Sampling Class
-    //std::shared_ptr<Tests::AdaptiveSampling<dim,nstate>> parameter_sampling;
+    std::shared_ptr<Tests::AdaptiveSampling<dim,nstate>> parameter_sampling;
 
-    /// Parameter array
-    double * params;
 
     const MPI_Comm mpi_communicator; ///< MPI communicator.
 

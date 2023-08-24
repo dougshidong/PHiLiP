@@ -5,6 +5,8 @@
 #include "flow_solver/flow_solver_factory.h"
 #include "ode_solver/ode_solver_factory.h"
 #include "hyper_reduction/assemble_problem_ECSW.h"
+#include "linear_solver/NNLS_solver.h"
+#include "../tests/unit_tests/linear_solver/helper_functions.cpp"
 #include "pod_adaptive_sampling.cpp"
 #include <iostream>
 
@@ -18,32 +20,142 @@ BuildNNLSProblem<dim, nstate>::BuildNNLSProblem(const Parameters::AllParameters 
         , parameter_handler(parameter_handler_input)
 {}
 
+std::shared_ptr<Epetra_CrsMatrix> local_generate_test_basis(Parameters::ODESolverParam::ODESolverEnum ode_solver_type, Epetra_CrsMatrix &system_matrix, const Epetra_CrsMatrix &pod_basis){
+    using ODEEnum = Parameters::ODESolverParam::ODESolverEnum;
+    if(ode_solver_type == ODEEnum::pod_galerkin_solver){ 
+        return std::make_shared<Epetra_CrsMatrix>(pod_basis);
+    }
+    else if(ode_solver_type == ODEEnum::pod_petrov_galerkin_solver){ 
+        Epetra_Map system_matrix_rowmap = system_matrix.RowMap();
+        Epetra_CrsMatrix petrov_galerkin_basis(Epetra_DataAccess::Copy, system_matrix_rowmap, pod_basis.NumGlobalCols());
+        EpetraExt::MatrixMatrix::Multiply(system_matrix, false, pod_basis, false, petrov_galerkin_basis, true);
+
+        return std::make_shared<Epetra_CrsMatrix>(petrov_galerkin_basis);
+    }
+    else {
+        // display_error_ode_solver_factory(ode_solver_type, true);
+        return nullptr;
+    }
+}
+
+
 template <int dim, int nstate>
 int BuildNNLSProblem<dim, nstate>::run_test() const
 {
     std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver_petrov_galerkin = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(all_parameters, parameter_handler);
     auto ode_solver_type = Parameters::ODESolverParam::ODESolverEnum::pod_petrov_galerkin_solver;
-    std::shared_ptr<ProperOrthogonalDecomposition::OfflinePOD<dim>> pod_petrov_galerkin = std::make_shared<ProperOrthogonalDecomposition::OfflinePOD<dim>>(flow_solver_petrov_galerkin->dg);
+    // std::shared_ptr<ProperOrthogonalDecomposition::OfflinePOD<dim>> pod_petrov_galerkin = std::make_shared<ProperOrthogonalDecomposition::OfflinePOD<dim>>(flow_solver_petrov_galerkin->dg);
     std::shared_ptr<AdaptiveSampling<dim,nstate>> parameter_sampling = std::make_unique<AdaptiveSampling<dim,nstate>>(all_parameters, parameter_handler);
 
     parameter_sampling->configureInitialParameterSpace();
-    // parameter_sampling->placeInitialSnapshots();
+    parameter_sampling->placeInitialSnapshots();
+    parameter_sampling->current_pod->computeBasis();
     MatrixXd snapshot_parameters = parameter_sampling->snapshot_parameters;
-    double *params = new double[snapshot_parameters.rows()];
-    for (int i = 0; i < snapshot_parameters.rows(); i++){
-        params[i] = snapshot_parameters(i, 0);
-    }
-    std::sort(params, params+snapshot_parameters.rows());
-    std::cout << "Sorted Array looks like this." << std::endl;
-    for (int i = 0; i <snapshot_parameters.rows(); i++){
-        std::cout << params[i] << " ";}
 
     std::cout << "Construct instance of Assembler..."<< std::endl;
-    HyperReduction::AssembleECSW<dim,nstate> constructer_NNLS_problem(flow_solver_petrov_galerkin->dg, pod_petrov_galerkin, params, ode_solver_type);
+    HyperReduction::AssembleECSW<dim,nstate> constructer_NNLS_problem(all_parameters, parameter_handler, flow_solver_petrov_galerkin->dg, parameter_sampling->current_pod, parameter_sampling, ode_solver_type);
     std::cout << "Build Problem..."<< std::endl;
     constructer_NNLS_problem.build_problem();
 
-    return 0;
+    /* UNCOMMENT TO SAVE THE RESIDUAL AND TEST BASIS FOR EACH OF THE SNAPSHOTS, used to feed MATLAB and build C/d
+    std::shared_ptr<DGBase<dim,double>> dg = flow_solver_petrov_galerkin->dg;
+    MatrixXd snapshotMatrix = parameter_sampling->current_pod->getSnapshotMatrix();
+    const Epetra_CrsMatrix epetra_pod_basis = parameter_sampling->current_pod->getPODBasis()->trilinos_matrix();
+    Epetra_CrsMatrix epetra_system_matrix = dg->system_matrix.trilinos_matrix();
+
+    int N_e = dg->triangulation->n_active_cells(); // Number of elements (? should be the same as N ?)
+    int snap_num = 0;
+    for(auto snap_param : parameter_sampling->snapshot_parameters.rowwise()){
+        std::cout << "Extract Snapshot from matrix"<< std::endl;
+        dealii::LinearAlgebra::ReadWriteVector<double> snapshot_s;
+        snapshot_s.reinit(N_e);
+        for (int snap_row = 0; snap_row < N_e; snap_row++){
+            snapshot_s(snap_row) = snapshotMatrix(snap_row, snap_num);
+        }
+        dealii::LinearAlgebra::distributed::Vector<double> reference_solution(dg->solution);
+        reference_solution.import(snapshot_s, dealii::VectorOperation::values::insert);
+        
+        Parameters::AllParameters params = parameter_sampling->reinitParams(snap_param);
+        
+        std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(&params, parameter_handler);
+        dg = flow_solver->dg;
+
+        std::cout << "Set dg solution to snapshot"<< std::endl;
+        dg->solution = reference_solution;
+        // reference_solution.print(std::cout, 7);
+        const bool compute_dRdW = true;
+        std::cout << "Re-compute the residual"<< std::endl;
+        dg->assemble_residual(compute_dRdW);
+
+        std::cout << "Compute test basis with system matrix and pod basis"<< std::endl;
+        epetra_system_matrix = dg->system_matrix.trilinos_matrix();
+        std::shared_ptr<Epetra_CrsMatrix> epetra_test_basis = local_generate_test_basis(ode_solver_type, epetra_system_matrix, epetra_pod_basis);
+
+
+        std::cout << "Place residual in Epetra vector"<< std::endl;
+        // std::cout << "Residual"<< std::endl;
+        // dg->right_hand_side.print(std::cout);
+        Epetra_Vector epetra_right_hand_side(Epetra_DataAccess::Copy, epetra_system_matrix.RowMap(), dg->right_hand_side.begin());
+
+
+        snap_num +=1;
+
+        std::ofstream out_file(std::to_string(snap_num) + "_residual.txt");
+        for(int i = 0 ; i < epetra_right_hand_side.GlobalLength() ; i++){
+            out_file << " " << std::setprecision(17) << epetra_right_hand_side[i] << " \n";
+        }
+        out_file.close();
+
+        dealii::LAPACKFullMatrix<double> test_basis;
+        test_basis.reinit(epetra_test_basis->NumGlobalRows(), epetra_test_basis->NumGlobalCols());
+        for (int m = 0; m < epetra_test_basis->NumGlobalRows(); m++) {
+            double *row = (*epetra_test_basis)[m];
+            for (int n = 0; n < epetra_test_basis->NumGlobalCols(); n++) {
+                test_basis.set(m, n, row[n]);
+            }
+        }
+        std::ofstream basis_out_file(std::to_string(snap_num) + "_test_basis.txt");
+        unsigned int precision = 16;
+        test_basis.print_formatted(basis_out_file, precision);
+    }
+        
+    */
+    std::cout << "Load Matlab Results" << std::endl;
+    Eigen::MatrixXd C_MAT = load_csv<MatrixXd>("C.csv");
+    Eigen::MatrixXd d_MAT = load_csv<MatrixXd>("d.csv");
+    Eigen::MatrixXd x_MAT = load_csv<MatrixXd>("x.csv");
+
+    Epetra_MpiComm Comm( MPI_COMM_WORLD );
+    Epetra_Map bMap = (constructer_NNLS_problem.A->trilinos_matrix()).RowMap();
+    Epetra_Vector b_Epetra (bMap);
+    auto b = constructer_NNLS_problem.b;
+    for(unsigned int i = 0 ; i < b.size() ; i++){
+        b_Epetra[i] = b(i);
+    }
+/*     Eigen::MatrixXd b_eig(b_Epetra.GlobalLength(),1);
+    epetra_to_eig_vec(b_Epetra.GlobalLength(), b_Epetra, b_eig);
+    bool b_bool = true;
+    for(unsigned int i = 0 ; i < b.size() ; i++){
+        std::cout << "eig: " << b_eig(i,0)<< std::endl;
+        std::cout << (b_eig(i,0) - d_MAT(i,0)) << std::endl;
+        b_bool &= (b_eig(i,0) == d_MAT(i,0));
+    } */
+    double tau = 1E-8;
+    const int max_iter = 10000;
+    std::cout << "Create NNLS problem..."<< std::endl;
+    NNLS_solver NNLS_prob(constructer_NNLS_problem.A->trilinos_matrix(), Comm, b_Epetra, max_iter, tau);
+    std::cout << "Solve NNLS problem..."<< std::endl;
+    bool exit_con = NNLS_prob.solve();
+    
+    Epetra_Vector weights = NNLS_prob.getSolution();
+    Eigen::MatrixXd weights_eig(weights.GlobalLength(),1);
+    epetra_to_eig_vec(weights.GlobalLength(), weights , weights_eig);
+    exit_con &= x_MAT.isApprox(weights_eig, 1E-2);
+
+    std::cout << "ECSW Weights"<< std::endl;
+    std::cout << weights << std::endl;
+
+    return !exit_con;
 }
 
 #if PHILIP_DIM==1

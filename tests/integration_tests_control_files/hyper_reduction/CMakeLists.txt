@@ -1,5 +1,8 @@
 set(TEST_OUTPUT_DIR ${CMAKE_CURRENT_BINARY_DIR})
 
+file(GLOB MY_FILES "*.csv")
+file(COPY ${MY_FILES} DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
+
 # =======================================
 # Test Burgers Rewienski Galerkin and Petrov-Galerkin reduced-order solvers
 # =======================================

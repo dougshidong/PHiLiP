@@ -6,19 +6,26 @@
 #include <EpetraExt_MatrixMatrix.h>
 #include <iostream>
 
+#include "flow_solver/flow_solver.h"
+#include "flow_solver/flow_solver_factory.h"
+
 namespace PHiLiP {
 namespace HyperReduction {
 using Eigen::MatrixXd;
 
 template <int dim, int nstate>
 AssembleECSW<dim,nstate>::AssembleECSW(
+    const PHiLiP::Parameters::AllParameters *const parameters_input,
+    const dealii::ParameterHandler &parameter_handler_input,
     std::shared_ptr<DGBase<dim,double>> &dg_input, 
     std::shared_ptr<ProperOrthogonalDecomposition::PODBase<dim>> pod, 
-    double *params,
+    std::shared_ptr<Tests::AdaptiveSampling<dim,nstate>> parameter_sampling_input,
     Parameters::ODESolverParam::ODESolverEnum ode_solver_type)
-        : dg(dg_input)
+        : all_parameters(parameters_input)
+        , parameter_handler(parameter_handler_input)
+        , dg(dg_input)
         , pod(pod)
-        , params(params)
+        , parameter_sampling(parameter_sampling_input)
         , mpi_communicator(MPI_COMM_WORLD)
         , ode_solver_type(ode_solver_type)
         , A(std::make_shared<dealii::TrilinosWrappers::SparseMatrix>())
@@ -57,9 +64,6 @@ void AssembleECSW<dim,nstate>::build_problem(){
     int N = epetra_pod_basis.NumGlobalRows(); // Length of solution vector
     int N_e = dg->triangulation->n_active_cells(); // Number of elements (? should be the same as N ?)
 
-    std::cout << "CONFIGURE PARAMETER SPACE"<< std::endl;
-    //parameter_sampling->configureInitialParameterSpace();
-
     std::cout << "Build C and d empty structs"<< std::endl;
     Epetra_MpiComm epetra_comm(MPI_COMM_WORLD);
     Epetra_Map RowMap((n*num_snaps), 0, epetra_comm);
@@ -72,25 +76,32 @@ void AssembleECSW<dim,nstate>::build_problem(){
     const unsigned int max_dofs_per_cell = dg->dof_handler.get_fe_collection().max_dofs_per_cell();
     std::vector<dealii::types::global_dof_index> current_dofs_indices(max_dofs_per_cell); 
     int row_num = 0;
-    for (int j = 0; j < num_snaps; ++j){
+    int snap_num = 0;
+    for(auto snap_param : parameter_sampling->snapshot_parameters.rowwise()){
         std::cout << "Extract Snapshot from matrix"<< std::endl;
         dealii::LinearAlgebra::ReadWriteVector<double> snapshot_s;
         snapshot_s.reinit(N_e);
         for (int snap_row = 0; snap_row < N_e; snap_row++){
-            snapshot_s(snap_row) = snapshotMatrix(snap_row, j);
+            snapshot_s(snap_row) = snapshotMatrix(snap_row, snap_num);
         }
         dealii::LinearAlgebra::distributed::Vector<double> reference_solution(dg->solution);
         reference_solution.import(snapshot_s, dealii::VectorOperation::values::insert);
+        
+        Parameters::AllParameters params = parameter_sampling->reinitParams(snap_param);
+        
+        std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(&params, parameter_handler);
+        dg = flow_solver->dg;
+
         std::cout << "Set dg solution to snapshot"<< std::endl;
         dg->solution = reference_solution;
-        reference_solution.print(std::cout, 7);
+        // reference_solution.print(std::cout, 7);
         const bool compute_dRdW = true;
         std::cout << "Re-compute the residual"<< std::endl;
         dg->assemble_residual(compute_dRdW);
 
         std::cout << "Place residual in Epetra vector"<< std::endl;
-        std::cout << "Residual"<< std::endl;
-        dg->right_hand_side.print(std::cout);
+        // std::cout << "Residual"<< std::endl;
+        // dg->right_hand_side.print(std::cout);
         Epetra_Vector epetra_right_hand_side(Epetra_DataAccess::Copy, epetra_system_matrix.RowMap(), dg->right_hand_side.begin());
 
         std::cout << "Compute test basis with system matrix and pod basis"<< std::endl;
@@ -148,6 +159,7 @@ void AssembleECSW<dim,nstate>::build_problem(){
             
         }
         row_num+=n;
+        snap_num+=1;
     }
 
     C.FillComplete(ColMap, RowMap);

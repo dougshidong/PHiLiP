@@ -232,6 +232,11 @@ private:
     /// Stores the fine poly degree.
     const unsigned int fine_poly_degree;
 
+    /// Stores lower tolerance for linear solver
+    const double linear_solver_tolerance_low;
+    
+    /// Stores higher tolerance for linear solver
+    const double linear_solver_tolerance_high;
 
     /// Functional used to evaluate cell distortion.
     std::unique_ptr< Functional<dim, nstate, real> > cell_distortion_functional;

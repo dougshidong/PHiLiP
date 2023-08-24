@@ -16,6 +16,8 @@ DualWeightedResidualObjFunc2<dim, nstate, real> :: DualWeightedResidualObjFunc2(
     , use_coarse_residual(_use_coarse_residual)
     , coarse_poly_degree(this->dg->get_min_fe_degree())
     , fine_poly_degree(coarse_poly_degree + 1)
+    , linear_solver_tolerance_low(1.0e-11)
+    , linear_solver_tolerance_high(1.0e-3)
 {
     AssertDimension(this->dg->high_order_grid->max_degree, 1);
     if(this->dg->get_min_fe_degree() != this->dg->get_max_fe_degree())
@@ -34,7 +36,7 @@ DualWeightedResidualObjFunc2<dim, nstate, real> :: DualWeightedResidualObjFunc2(
     }
     
     linear_solver_param = this->dg->all_parameters->linear_solver_param;
-    linear_solver_param.linear_residual = 1.0e-15;
+    linear_solver_param.linear_residual = linear_solver_tolerance_high;
 }
 
 //===================================================================================================================================================
@@ -231,13 +233,16 @@ real DualWeightedResidualObjFunc2<dim, nstate, real> :: evaluate_functional(
 
     if(actually_compute_value)
     {
+        linear_solver_param.linear_residual = linear_solver_tolerance_low;
         this->current_functional_value = evaluate_objective_function(); // also stores adjoint and residual_used.
         this->pcout<<"Evaluated objective function."<<std::endl;
         AssertDimension(this->dg->solution.size(), vector_coarse.size());
+        linear_solver_param.linear_residual = linear_solver_tolerance_high;
     }
 
     if(compute_derivatives)
     {
+        linear_solver_param.linear_residual = linear_solver_tolerance_low;
         this->pcout<<"Computing common vectors and matrices."<<std::endl;
         compute_common_vectors_and_matrices();
         AssertDimension(this->dg->solution.size(), vector_coarse.size());
@@ -246,6 +251,7 @@ real DualWeightedResidualObjFunc2<dim, nstate, real> :: evaluate_functional(
         this->pcout<<"Stored dIdX."<<std::endl;
         store_dIdW();
         this->pcout<<"Stored dIdw."<<std::endl;
+        linear_solver_param.linear_residual = linear_solver_tolerance_high;
     }
 
     return this->current_functional_value;

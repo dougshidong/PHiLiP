@@ -256,6 +256,8 @@ private:
     /** Currently uses ILUT */
     Ifpack_Preconditioner *adjoint_jacobian_prec;
 
+    const bool preconditioner_flag;
+
     bool use_preconditioners;
     
 public:

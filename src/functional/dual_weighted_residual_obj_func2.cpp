@@ -18,6 +18,9 @@ DualWeightedResidualObjFunc2<dim, nstate, real> :: DualWeightedResidualObjFunc2(
     , fine_poly_degree(coarse_poly_degree + 1)
     , linear_solver_tolerance_low(1.0e-11)
     , linear_solver_tolerance_high(linear_solver_tolerance_low)
+    , jacobian_prec(nullptr)
+    , adjoint_jacobian_prec(nullptr)
+    , preconditioner_flag(true)
 {
     AssertDimension(this->dg->high_order_grid->max_degree, 1);
     if(this->dg->get_min_fe_degree() != this->dg->get_max_fe_degree())
@@ -37,7 +40,7 @@ DualWeightedResidualObjFunc2<dim, nstate, real> :: DualWeightedResidualObjFunc2(
     
     linear_solver_param = this->dg->all_parameters->linear_solver_param;
     linear_solver_param.linear_residual = linear_solver_tolerance_high;
-    use_preconditioners = true;
+    use_preconditioners = preconditioner_flag;
 }
 
 //===================================================================================================================================================
@@ -240,7 +243,7 @@ real DualWeightedResidualObjFunc2<dim, nstate, real> :: evaluate_functional(
         this->pcout<<"Evaluated objective function."<<std::endl;
         AssertDimension(this->dg->solution.size(), vector_coarse.size());
         linear_solver_param.linear_residual = linear_solver_tolerance_high;
-        use_preconditioners = true;
+        use_preconditioners = preconditioner_flag;
     }
 
     if(compute_derivatives)
@@ -256,7 +259,7 @@ real DualWeightedResidualObjFunc2<dim, nstate, real> :: evaluate_functional(
         store_dIdW();
         this->pcout<<"Stored dIdw."<<std::endl;
         linear_solver_param.linear_residual = linear_solver_tolerance_high;
-        use_preconditioners = true;
+        use_preconditioners = preconditioner_flag;
     }
 
     return this->current_functional_value;
@@ -346,7 +349,6 @@ void DualWeightedResidualObjFunc2<dim, nstate, real> :: compute_common_vectors_a
     R_u.copy_from(this->dg->system_matrix);
     R_u_transpose.reinit(this->dg->system_matrix_transpose);
     R_u_transpose.copy_from(this->dg->system_matrix_transpose);
-    construct_preconditioners();
     
     compute_dRdW = false, compute_dRdX = true, compute_d2R = false;
     this->dg->assemble_residual(compute_dRdW, compute_dRdX, compute_d2R);
@@ -428,6 +430,7 @@ void DualWeightedResidualObjFunc2<dim, nstate, real> :: compute_common_vectors_a
         dwr_dwr_RI_times_rux.compress(dealii::VectorOperation::add);
         dwr_dwr_RI_times_ruu.compress(dealii::VectorOperation::add);
     }
+    construct_preconditioners();
 }
 
 template<int dim, int nstate, typename real>
@@ -1407,7 +1410,6 @@ template<int dim, int nstate, typename real>
 int DualWeightedResidualObjFunc2<dim, nstate, real> :: construct_preconditioners()
 {
     // Assumes dg has already assembled R_u and R_u^T.
-
     Epetra_CrsMatrix * jacobian = const_cast<Epetra_CrsMatrix *>(&(R_u.trilinos_matrix()));
     delete jacobian_prec; jacobian_prec = nullptr;
 

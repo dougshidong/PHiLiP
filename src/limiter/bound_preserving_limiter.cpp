@@ -28,7 +28,7 @@
 namespace PHiLiP {
     namespace LIMITER {
         // Constructor
-        template <int dim, int nstate, typename real>
+        template <int dim, typename real>
         BoundPreservingLimiter<dim, nstate, real>::BoundPreservingLimiter(
             const Parameters::AllParameters* const parameters_input)
             : all_parameters(parameters_input) {}
@@ -880,12 +880,12 @@ namespace PHiLiP {
             }
         }
 
-        template class BoundPreservingLimiter <PHILIP_DIM, 1, double>;
-        template class BoundPreservingLimiter <PHILIP_DIM, 2, double>;
-        template class BoundPreservingLimiter <PHILIP_DIM, 3, double>;
-        template class BoundPreservingLimiter <PHILIP_DIM, 4, double>;
-        template class BoundPreservingLimiter <PHILIP_DIM, 5, double>;
-        template class BoundPreservingLimiter <PHILIP_DIM, 6, double>;
+        template class BoundPreservingLimiter <PHILIP_DIM, double>;
+        template class BoundPreservingLimiter <PHILIP_DIM, double>;
+        template class BoundPreservingLimiter <PHILIP_DIM, double>;
+        template class BoundPreservingLimiter <PHILIP_DIM, double>;
+        template class BoundPreservingLimiter <PHILIP_DIM, double>;
+        template class BoundPreservingLimiter <PHILIP_DIM, double>;
 
         template class TVBLimiter <PHILIP_DIM, 1, double>;
         template class TVBLimiter <PHILIP_DIM, 2, double>;

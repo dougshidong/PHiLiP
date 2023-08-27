@@ -31,19 +31,23 @@
 namespace PHiLiP {
     namespace LIMITER {
 
-        template<int dim, int nstate, typename real>
+        template<int dim, typename real>
         class BoundPreservingLimiter
         {
         public:
             /// Constructor
             BoundPreservingLimiter(
-                const Parameters::AllParameters* const parameters_input);
+                const int nstate_input,//number of states input
+                const Parameters::AllParameters* const parameters_input);//pointer to parameters
 
             /// Destructor
             ~BoundPreservingLimiter() {};
 
             /// Pointer to parameters object
             const Parameters::AllParameters* const all_parameters;
+
+            ///Number of states
+            const int nstate;
 
             virtual void limit(
                 dealii::LinearAlgebra::distributed::Vector<double>      solution,
@@ -54,7 +58,7 @@ namespace PHiLiP {
         }; // End of BoundPreservingLimiter Class
 
         template<int dim, int nstate, typename real>
-        class TVBLimiter : public BoundPreservingLimiter <dim, nstate, real>
+        class TVBLimiter : public BoundPreservingLimiter <dim, real>
         {
         public:
             /// Constructor
@@ -74,7 +78,7 @@ namespace PHiLiP {
         }; // End of TVBLimiter Class
 
         template<int dim, int nstate, typename real>
-        class MaximumPrincipleLimiter : public BoundPreservingLimiter <dim, nstate, real>
+        class MaximumPrincipleLimiter : public BoundPreservingLimiter <dim, real>
         {
         public:
             /// Constructor
@@ -104,7 +108,7 @@ namespace PHiLiP {
         }; // End of MaximumPrincipleLimiter Class
 
         template<int dim, int nstate, typename real>
-        class PositivityPreservingLimiter : public BoundPreservingLimiter <dim, nstate, real>
+        class PositivityPreservingLimiter : public BoundPreservingLimiter <dim, real>
         {
         public:
             /// Constructor
@@ -123,7 +127,7 @@ namespace PHiLiP {
         }; // End of PositivityPreservingLimiter Class
 
         template<int dim, int nstate, typename real>
-        class PositivityPreservingLimiterRobust : public BoundPreservingLimiter <dim, nstate, real>
+        class PositivityPreservingLimiterRobust : public BoundPreservingLimiter <dim, real>
         {
         public:
             /// Constructor

@@ -46,12 +46,12 @@ void SpecificNodesParameterization<dim> :: compute_control_index_to_vol_index()
             const double x = this->high_order_grid->volume_nodes(i_vol);
             const double y = this->high_order_grid->volume_nodes(i_vol+1);
 
-            dealii::Point<dim> start_point, end_point1, end_point2;
-            start_point[0] = -0.054; start_point[1] = 0.0;
-            end_point1[0] = 0.5; end_point1[1] = 3.0;
-            end_point2[0] = 0.5; end_point2[1] = -3.0;
-            const bool is_part_of_line1 = check_if_node_belongs_to_the_line(start_point, end_point1, x, y);
-            const bool is_part_of_line2 = check_if_node_belongs_to_the_line(start_point, end_point2, x, y);
+            dealii::Point<dim> A_right, B_right, C_right;
+            A_right[0] = -0.107; A_right[1] = 0.0;
+            B_right[0] = 0.2; B_right[1] = 3.0;
+            C_right[0] = 0.2; C_right[1] = -3.0;
+            const bool is_part_of_line1 = check_if_node_belongs_to_the_line(A_right, B_right, x, y);
+            const bool is_part_of_line2 = check_if_node_belongs_to_the_line(A_right, C_right, x, y);
 
             if( is_part_of_line1 || is_part_of_line2 )
             {

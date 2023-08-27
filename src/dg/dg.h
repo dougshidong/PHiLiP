@@ -41,6 +41,7 @@
 #include "parameters/all_parameters.h"
 #include "operators/operators.h"
 #include "artificial_dissipation_factory.h"
+#include "limiter/bound_preserving_limiter.h"
 
 #include <time.h>
 #include <deal.II/base/timer.h>
@@ -953,6 +954,8 @@ public:
     bool use_auxiliary_eq;
     /// Set use_auxiliary_eq flag
     virtual void set_use_auxiliary_eq() = 0;
+
+    virtual void apply_bound_preserving_limiter() = 0;
 }; // end of DGBase class
 
 /// Abstract class templated on the number of state variables
@@ -990,6 +993,9 @@ public:
     std::unique_ptr < NumericalFlux::NumericalFluxDissipative<dim, nstate, real > > diss_num_flux_double;
     /// Link to Artificial dissipation class (with three dissipation types, depending on the input). 
     std::shared_ptr <ArtificialDissipationBase<dim,nstate>> artificial_dissip;
+
+    /// Link to Limiter class (with three Limiter types, depending on the input). 
+    std::shared_ptr <BoundPreservingLimiter<dim,real>> limiter;
 
     /// Contains the physics of the PDE with FadType
     std::shared_ptr < Physics::PhysicsBase<dim, nstate, FadType > > pde_physics_fad;
@@ -1045,6 +1051,8 @@ public:
 
     /// Set use_auxiliary_eq flag
     void set_use_auxiliary_eq();
+
+    void apply_bound_preserving_limiter();
 
 protected:
     /// Evaluate the time it takes for the maximum wavespeed to cross the cell domain.

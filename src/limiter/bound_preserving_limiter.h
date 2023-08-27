@@ -29,8 +29,6 @@
 #include "dg/dg.h"
 
 namespace PHiLiP {
-    namespace LIMITER {
-
         template<int dim, typename real>
         class BoundPreservingLimiter
         {
@@ -51,8 +49,8 @@ namespace PHiLiP {
 
             virtual void limit(
                 dealii::LinearAlgebra::distributed::Vector<double>      solution,
-                dealii::DoFHandler<dim>                                 dof_handler,
-                dealii::FESystem<dim, dim>&                             current_fe_ref,
+                const dealii::DoFHandler<dim>&                          dof_handler,
+                const dealii::hp::FECollection<dim>&                    current_fe_ref,
                 dealii::hp::QCollection<dim>                            volume_quadrature_collection) = 0;
 
         }; // End of BoundPreservingLimiter Class
@@ -71,8 +69,8 @@ namespace PHiLiP {
 
             void limit(
                 dealii::LinearAlgebra::distributed::Vector<double>      solution,
-                dealii::DoFHandler<dim>                                 dof_handler,
-                dealii::FESystem<dim, dim>&                             current_fe_ref,
+                const dealii::DoFHandler<dim>&                          dof_handler,
+                const dealii::hp::FECollection<dim>&                    current_fe_ref,
                 dealii::hp::QCollection<dim>                            volume_quadrature_collection);
 
         }; // End of TVBLimiter Class
@@ -95,14 +93,14 @@ namespace PHiLiP {
 
             void get_global_max_and_min_of_solution(
                 dealii::LinearAlgebra::distributed::Vector<double>      solution,
-                dealii::DoFHandler<dim>                                 dof_handler,
-                dealii::FESystem<dim, dim>& current_fe_ref,
+                const dealii::DoFHandler<dim>&                          dof_handler,
+                const dealii::hp::FECollection<dim>&                    current_fe_ref,
                 dealii::hp::QCollection<dim>                            volume_quadrature_collection);
 
             void limit(
                 dealii::LinearAlgebra::distributed::Vector<double>      solution,
-                dealii::DoFHandler<dim>                                 dof_handler,
-                dealii::FESystem<dim, dim>& current_fe_ref,
+                const dealii::DoFHandler<dim>&                          dof_handler,
+                const dealii::hp::FECollection<dim>&                    current_fe_ref,
                 dealii::hp::QCollection<dim>                            volume_quadrature_collection);
 
         }; // End of MaximumPrincipleLimiter Class
@@ -120,8 +118,8 @@ namespace PHiLiP {
 
             void limit(
                 dealii::LinearAlgebra::distributed::Vector<double>      solution,
-                dealii::DoFHandler<dim>                                 dof_handler,
-                dealii::FESystem<dim, dim>& current_fe_ref,
+                const dealii::DoFHandler<dim>&                          dof_handler,
+                const dealii::hp::FECollection<dim>&                    current_fe_ref,
                 dealii::hp::QCollection<dim>                            volume_quadrature_collection);
 
         }; // End of PositivityPreservingLimiter Class
@@ -139,12 +137,11 @@ namespace PHiLiP {
 
             void limit(
                 dealii::LinearAlgebra::distributed::Vector<double>      solution,
-                dealii::DoFHandler<dim>                                 dof_handler,
-                dealii::FESystem<dim, dim>& current_fe_ref,
+                const dealii::DoFHandler<dim>&                          dof_handler,
+                const dealii::hp::FECollection<dim>&                    current_fe_ref,
                 dealii::hp::QCollection<dim>                            volume_quadrature_collection);
 
         }; // End of PositivityPreservingLimiterRobust Class
-    }// LIMITER namespace
 } // PHiLiP namespace
 
 #endif

@@ -26,12 +26,13 @@
 #include "bound_preserving_limiter.h"
 
 namespace PHiLiP {
-    namespace LIMITER {
         // Constructor
         template <int dim, typename real>
-        BoundPreservingLimiter<dim, nstate, real>::BoundPreservingLimiter(
+        BoundPreservingLimiter<dim, real>::BoundPreservingLimiter(
+            const int nstate_input,
             const Parameters::AllParameters* const parameters_input)
-            : all_parameters(parameters_input) {}
+            : nstate(nstate_input)
+            , all_parameters(parameters_input) {}
 
         /**********************************
         *
@@ -47,8 +48,8 @@ namespace PHiLiP {
         template <int dim, int nstate, typename real>
         void TVBLimiter<dim, nstate, real>::limit(
             dealii::LinearAlgebra::distributed::Vector<double>      solution,
-            dealii::DoFHandler<dim>                                 dof_handler,
-            dealii::FESystem<dim, dim>& current_fe_ref,
+            const dealii::DoFHandler<dim>&                          dof_handler,
+            const dealii::hp::FECollection<dim>&                    current_fe_ref,
             dealii::hp::QCollection<dim>                            volume_quadrature_collection)
         {
             std::array<real, nstate> M;
@@ -287,8 +288,8 @@ namespace PHiLiP {
         template <int dim, int nstate, typename real>
         void MaximumPrincipleLimiter<dim, nstate, real>::get_global_max_and_min_of_solution(
             dealii::LinearAlgebra::distributed::Vector<double>      solution,
-            dealii::DoFHandler<dim>                                 dof_handler,
-            dealii::FESystem<dim, dim>& current_fe_ref,
+            const dealii::DoFHandler<dim>&                          dof_handler,
+            const dealii::hp::FECollection<dim>&                    current_fe_ref,
             dealii::hp::QCollection<dim>                            volume_quadrature_collection)
         {
             for (auto soln_cell : this->dof_handler.active_cell_iterators()) {
@@ -340,8 +341,8 @@ namespace PHiLiP {
         template <int dim, int nstate, typename real>
         void MaximumPrincipleLimiter<dim, nstate, real>::limit(
             dealii::LinearAlgebra::distributed::Vector<double>      solution,
-            dealii::DoFHandler<dim>                                 dof_handler,
-            dealii::FESystem<dim, dim>& current_fe_ref,
+            const dealii::DoFHandler<dim>&                          dof_handler,
+            const dealii::hp::FECollection<dim>&                    current_fe_ref,
             dealii::hp::QCollection<dim>                            volume_quadrature_collection)
         {
             //create 1D solution polynomial basis functions and corresponding projection operator
@@ -485,8 +486,8 @@ namespace PHiLiP {
         template <int dim, int nstate, typename real>
         void PositivityPreservingLimiter<dim, nstate, real>::limit(
             dealii::LinearAlgebra::distributed::Vector<double>      solution,
-            dealii::DoFHandler<dim>                                 dof_handler,
-            dealii::FESystem<dim, dim>& current_fe_ref,
+            const dealii::DoFHandler<dim>&                          dof_handler,
+            const dealii::hp::FECollection<dim>&                    current_fe_ref,
             dealii::hp::QCollection<dim>                            volume_quadrature_collection)
         {
             //create 1D solution polynomial basis functions and corresponding projection operator
@@ -697,8 +698,8 @@ namespace PHiLiP {
         template <int dim, int nstate, typename real>
         void PositivityPreservingLimiterRobust<dim, nstate, real>::limit(
             dealii::LinearAlgebra::distributed::Vector<double>      solution,
-            dealii::DoFHandler<dim>                                 dof_handler,
-            dealii::FESystem<dim, dim>& current_fe_ref,
+            const dealii::DoFHandler<dim>&                          dof_handler,
+            const dealii::hp::FECollection<dim>&                    current_fe_ref,
             dealii::hp::QCollection<dim>                            volume_quadrature_collection)
         {
             //create 1D solution polynomial basis functions and corresponding projection operator
@@ -914,5 +915,4 @@ namespace PHiLiP {
         template class PositivityPreservingLimiterRobust <PHILIP_DIM, 4, double>;
         template class PositivityPreservingLimiterRobust <PHILIP_DIM, 5, double>;
         template class PositivityPreservingLimiterRobust <PHILIP_DIM, 6, double>;
-    } // LIMITER namespace
 } // PHiLiP namespace

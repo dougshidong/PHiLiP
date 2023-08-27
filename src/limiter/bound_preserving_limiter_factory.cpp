@@ -1,42 +1,44 @@
-#include <deal.II/base/geometry_info.h>
+#include "parameters/all_parameters.h"
 #include "bound_preserving_limiter_factory.hpp"
 #include "bound_preserving_limiter.h"
 
 namespace PHiLiP {
-namespace LIMITER {
-
 template <int dim, typename real>
 std::shared_ptr< BoundPreservingLimiterBase<dim,real> >//returns type OperatorsBase
 BoundPreservingLimiterFactory<dim,real>
-::create_operators(
+::create_limiters(
         const Parameters::AllParameters *const parameters_input,
         const int nstate_input)
 {
-        if(nstate_input == 1){
-            return std::make_shared< BoundPreservingLimiterBase<dim,real,1> >(parameters_input);//
+    using limiter_enum = Parameters::AllParameters::LimiterType;
+    limiter_enum limiter_type = parameters_input->use_scaling_limiter;
+
+    switch(limiter_type)
+    {
+        case limiter_enum::none:
+        {
+            return std::make_shared< BoundPreservingLimiter<dim,real> >(parameters_input,nstate_input);
+            break;
         }
-        else if(nstate_input == 2){
-            return std::make_shared< BoundPreservingLimiterBase<dim,real,2> >(parameters_input);//
+        case limiter_enum::maximum_principle:
+        {
+            return std::make_shared< MaximumPrincipleLimiter<dim,real,nstate_input> >(parameters_input);
+            break;
         }
-        else if(nstate_input == 3){
-            return std::make_shared< BoundPreservingLimiterBase<dim,real,3> >(parameters_input);//
+        case limiter_enum::positivity_preserving2010:
+        {
+            return std::make_shared< PositivityPreservingLimiter<dim,real,nstate_input> >(parameters_input);
+            break;
         }
-        else if(nstate_input == 4){
-            return std::make_shared< BoundPreservingLimiterBase<dim,real,4> >(parameters_input);//
+        case limiter_enum::positivity_preserving2011:
+        {
+            return std::make_shared< PositivityPreservingLimiterRobust<dim,real,nstate_input> >(parameters_input);
+            break;
         }
-        else if(nstate_input == 5){
-            return std::make_shared< BoundPreservingLimiterBase<dim,real,5> >(parameters_input);//
-        }
-        else if (nstate_input == 6) {
-            return std::make_shared< BoundPreservingLimiterBase<dim,real,6> >(parameters_input);//
-        }
-        else{
-            std::cout<<"Number of states "<<nstate_input<<"not supported."<<std::endl;
-            return nullptr;
-        }
+    }
+    assert(0==1 && "Cannot create limiter pointer due to an invalid limiter type specified"); 
+    return nullptr;
 }
 
 template class BoundPreservingLimiterFactory <PHILIP_DIM, double>;
-
-} // LIMITER namespace
 } // PHiLiP namespace

@@ -9,7 +9,10 @@ MeshVertexDeviation<dim, nstate, real> :: MeshVertexDeviation(
     const bool uses_solution_gradient)
     : Functional<dim,nstate,real>(dg_input,uses_solution_values, uses_solution_gradient)
     , initial_vol_nodes(this->dg->high_order_grid->volume_nodes)
-{}
+    , mesh_weight(this->dg->all_parameters->optimization_param.mesh_weight_factor)
+{
+    initial_vol_nodes.update_ghost_values();
+}
 
 template<int dim, int nstate, typename real>
 real MeshVertexDeviation<dim,nstate,real> :: evaluate_functional(
@@ -114,7 +117,7 @@ real MeshVertexDeviation<dim,nstate,real> :: evaluate_functional(
     this->current_functional_value = dealii::Utilities::MPI::sum(local_functional, MPI_COMM_WORLD);
     if (actually_compute_dIdX) this->dIdX.compress(dealii::VectorOperation::add);
     if (actually_compute_d2I) this->d2IdXdX->compress(dealii::VectorOperation::add);
-
+ 
     return this->current_functional_value;
 }
 
@@ -133,11 +136,16 @@ real2 MeshVertexDeviation<dim,nstate,real> :: evaluate_cell_volume_term(
     for(unsigned int idof = 0; idof < target_values.size(); ++idof)
     {
         real2 diff = coords_coeff[idof] - target_values[idof];
-        cell_volume_term += diff*diff;
+        cell_volume_term += mesh_weight*diff*diff;
     }
     return cell_volume_term;
 }
 
+template class MeshVertexDeviation<PHILIP_DIM, 1, double>;
+template class MeshVertexDeviation<PHILIP_DIM, 2, double>;
+template class MeshVertexDeviation<PHILIP_DIM, 3, double>;
+template class MeshVertexDeviation<PHILIP_DIM, 4, double>;
+template class MeshVertexDeviation<PHILIP_DIM, 5, double>;
 } // PHiLiP namespace
 
 

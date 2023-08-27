@@ -33,7 +33,8 @@ private:
         const dealii::FESystem<dim> &fe_metric,
         const dealii::Quadrature<dim> &volume_quadrature) const;
 
-    const VectorType initial_vol_nodes;
+    VectorType initial_vol_nodes;
+    const double mesh_weight;
 
 };
 } // PHiLiP namespace

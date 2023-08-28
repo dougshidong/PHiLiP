@@ -1,6 +1,6 @@
 SET(LIMSOURCE
     bound_preserving_limiter.cpp
-#    bound_preserving_limiter_factory.cpp
+    bound_preserving_limiter_factory.cpp
     )
 
 foreach(dim RANGE 1 3)

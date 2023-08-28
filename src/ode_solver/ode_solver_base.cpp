@@ -18,7 +18,7 @@ ODESolverBase<dim,real,MeshType>::ODESolverBase(std::shared_ptr< DGBase<dim, rea
         , mpi_rank(dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD))
         , pcout(std::cout, mpi_rank==0)
 {
-    limiter = BoundPreservingLimiterFactory<dim,real> ::create_limiter(all_parameters);
+    limiter = BoundPreservingLimiterFactory<dim,real>::create_limiter(all_parameters, this->dg->nstate);
 }
 
 template <int dim, typename real, typename MeshType>

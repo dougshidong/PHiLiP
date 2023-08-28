@@ -463,7 +463,7 @@ namespace PHiLiP {
                     for (unsigned int ishape = 0; ishape < n_shape_fns; ++ishape) {
                         const unsigned int idof = istate * n_shape_fns + ishape;
                         solution[current_dofs_indices[idof]] = soln_dofs[istate][ishape];
-
+                        std::cout << solution[current_dofs_indices[idof]] << "  ";
                         if (solution[current_dofs_indices[idof]] > this->global_max[istate] + 1e-13) {
                             std::cout << " Solution exceeds global maximum   -   Aborting... Value:   " << solution[current_dofs_indices[idof]] << std::endl << std::flush;
                             std::cout << "theta:   " << theta[istate] << "   local max:   " << local_max[istate] << "   soln_cell_avg:   " << soln_cell_avg[istate] << std::endl;
@@ -476,6 +476,7 @@ namespace PHiLiP {
                         }
                     }
                 }
+                std::cout << std::endl;
             }
         }
 

@@ -11,9 +11,8 @@ template <int dim, typename real>
 class BoundPreservingLimiterFactory
 {
 public:
-    static std::shared_ptr< BoundPreservingLimiter<dim,real> > create_limiters(
-        const Parameters::AllParameters *const parameters_input,
-        const int nstate_input);
+    static std::shared_ptr< BoundPreservingLimiter<dim,real> > create_limiter(
+        const Parameters::AllParameters *const parameters_input);
 
 };
 

@@ -7,6 +7,7 @@
 #include <deal.II/lac/vector.h>
 #include "parameters/all_parameters.h"
 #include "dg/dg.h"
+#include "limiter/bound_preserving_limiter_factory.hpp"
 #include <stdexcept>
 
 namespace PHiLiP {
@@ -83,6 +84,9 @@ protected:
 public:
     /// Smart pointer to DGBase
     std::shared_ptr<DGBase<dim,real,MeshType>> dg;
+
+    /// Pointer to BoundPreservingLimiter
+    std::shared_ptr<BoundPreservingLimiter<dim,real>> limiter;
 
 protected:
     /// Input parameters.

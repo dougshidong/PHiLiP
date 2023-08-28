@@ -43,17 +43,17 @@ namespace PHiLiP {
         template <int dim, int nstate, typename real>
         TVBLimiter<dim, nstate, real>::TVBLimiter(
             const Parameters::AllParameters* const parameters_input)
-            : all_parameters(parameters_input) {}
+            : BoundPreservingLimiter<dim,real>::BoundPreservingLimiter(nstate, parameters_input) {}
 
         template <int dim, int nstate, typename real>
         void TVBLimiter<dim, nstate, real>::limit(
-            dealii::LinearAlgebra::distributed::Vector<double>      solution,
+            dealii::LinearAlgebra::distributed::Vector<double>&      solution,
             const dealii::DoFHandler<dim>&                          dof_handler,
-            const dealii::hp::FECollection<dim>&                    current_fe_ref,
+            const dealii::hp::FECollection<dim>&                    fe_collection,
             dealii::hp::QCollection<dim>                            volume_quadrature_collection)
         {
             std::array<real, nstate> M;
-            double h = all_parameters->tvb_h;
+            double h = this->all_parameters->tvb_h;
             for (unsigned int istate = 0; istate < nstate; ++istate) {
                 M[istate] = 0.05 / pow(h, 2);
             }
@@ -71,7 +71,7 @@ namespace PHiLiP {
             soln_basis.build_1D_volume_operator(this->oneD_fe_collection_1state[this->max_degree], this->oneD_quadrature_collection[this->max_degree]);
             soln_basis_projection_oper.build_1D_volume_operator(this->oneD_fe_collection_1state[this->max_degree], this->oneD_quadrature_collection[this->max_degree]);
 
-            for (auto soln_cell : this->dof_handler.active_cell_iterators()) {
+            for (auto soln_cell : dof_handler.active_cell_iterators()) {
                 if (!soln_cell->is_locally_owned()) continue;
 
                 std::array<real, nstate> prev_cell_avg;
@@ -87,7 +87,7 @@ namespace PHiLiP {
                     const int i_fele = neigh->active_fe_index();
                     const int poly_degree = i_fele;
 
-                    const dealii::FESystem<dim, dim>& neigh_fe_ref = this->fe_collection[poly_degree];
+                    const dealii::FESystem<dim, dim>& neigh_fe_ref = fe_collection[poly_degree];
                     const unsigned int n_dofs_neigh_cell = neigh_fe_ref.n_dofs_per_cell();
                     // Obtain the mapping from local dof indices to global dof indices
                     neigh_dofs_indices.resize(n_dofs_neigh_cell);
@@ -103,12 +103,12 @@ namespace PHiLiP {
                     }
 
                     for (unsigned int idof = 0; idof < n_dofs_neigh_cell; ++idof) {
-                        const unsigned int istate = this->fe_collection[poly_degree].system_to_component_index(idof).first;
-                        const unsigned int ishape = this->fe_collection[poly_degree].system_to_component_index(idof).second;
-                        soln_dofs[istate][ishape] = this->solution[neigh_dofs_indices[idof]]; //
+                        const unsigned int istate = fe_collection[poly_degree].system_to_component_index(idof).first;
+                        const unsigned int ishape = fe_collection[poly_degree].system_to_component_index(idof).second;
+                        soln_dofs[istate][ishape] = solution[neigh_dofs_indices[idof]]; //
                     }
-                    const unsigned int n_quad_pts = this->volume_quadrature_collection[poly_degree].size();
-                    const std::vector<real>& quad_weights = this->volume_quadrature_collection[poly_degree].get_weights();
+                    const unsigned int n_quad_pts = volume_quadrature_collection[poly_degree].size();
+                    const std::vector<real>& quad_weights = volume_quadrature_collection[poly_degree].get_weights();
 
                     //interpolate solution dofs to quadrature pts.
                     //and apply integral for the soln avg
@@ -142,7 +142,7 @@ namespace PHiLiP {
                 const int i_fele = soln_cell->active_fe_index();
                 const int poly_degree = i_fele;
 
-                const dealii::FESystem<dim, dim>& current_fe_ref = this->fe_collection[poly_degree];
+                const dealii::FESystem<dim, dim>& current_fe_ref = fe_collection[poly_degree];
                 const unsigned int n_dofs_curr_cell = current_fe_ref.n_dofs_per_cell();
                 // Obtain the mapping from local dof indices to global dof indices
                 current_dofs_indices.resize(n_dofs_curr_cell);
@@ -158,14 +158,14 @@ namespace PHiLiP {
                 }
 
                 for (unsigned int idof = 0; idof < n_dofs_curr_cell; ++idof) {
-                    const unsigned int istate = this->fe_collection[poly_degree].system_to_component_index(idof).first;
-                    const unsigned int ishape = this->fe_collection[poly_degree].system_to_component_index(idof).second;
-                    soln_dofs[istate][ishape] = this->solution[current_dofs_indices[idof]]; //
+                    const unsigned int istate = fe_collection[poly_degree].system_to_component_index(idof).first;
+                    const unsigned int ishape = fe_collection[poly_degree].system_to_component_index(idof).second;
+                    soln_dofs[istate][ishape] = solution[current_dofs_indices[idof]]; //
                 }
 
 
-                const unsigned int n_quad_pts = this->volume_quadrature_collection[poly_degree].size();
-                const std::vector<real>& quad_weights = this->volume_quadrature_collection[poly_degree].get_weights();
+                const unsigned int n_quad_pts = volume_quadrature_collection[poly_degree].size();
+                const std::vector<real>& quad_weights = volume_quadrature_collection[poly_degree].get_weights();
 
                 //interpolate solution dofs to quadrature pts.
                 //and apply integral for the soln avg
@@ -205,7 +205,7 @@ namespace PHiLiP {
 
                 for (unsigned int istate = 0; istate < nstate; ++istate) {
                     a = soln_cell_avg[istate] - soln_cell_0[istate];
-                    if (abs(a) <= M[istate] * pow(this->h, 2.0)) {
+                    if (abs(a) <= M[istate] * pow(h, 2.0)) {
                         soln_0_lim[istate] = soln_cell_avg[istate] - a;
                     }
                     else {
@@ -213,16 +213,16 @@ namespace PHiLiP {
                             minmod = std::min({ abs(a), abs(diff_next[istate]), abs(diff_prev[istate]) });
 
                             if (signbit(a))
-                                soln_0_lim[istate] = soln_cell_avg[istate] + std::max(abs(minmod), M[istate] * pow(this->h, 2.0));
+                                soln_0_lim[istate] = soln_cell_avg[istate] + std::max(abs(minmod), M[istate] * pow(h, 2.0));
                             else
-                                soln_0_lim[istate] = soln_cell_avg[istate] - std::max(abs(minmod), M[istate] * pow(this->h, 2.0));
+                                soln_0_lim[istate] = soln_cell_avg[istate] - std::max(abs(minmod), M[istate] * pow(h, 2.0));
                         }
                         else
-                            soln_0_lim[istate] = soln_cell_avg[istate] - M[istate] * pow(this->h, 2.0);
+                            soln_0_lim[istate] = soln_cell_avg[istate] - M[istate] * pow(h, 2.0);
                     }
 
                     a = soln_cell_k[istate] - soln_cell_avg[istate];
-                    if (abs(a) <= M[istate] * pow(this->h, 2.0)) {
+                    if (abs(a) <= M[istate] * pow(h, 2.0)) {
                         soln_k_lim[istate] = soln_cell_avg[istate] + a;
                     }
                     else {
@@ -230,12 +230,12 @@ namespace PHiLiP {
                             minmod = std::min({ abs(a), abs(diff_next[istate]), abs(diff_prev[istate]) });
 
                             if (signbit(a))
-                                soln_k_lim[istate] = soln_cell_avg[istate] - std::max(abs(minmod), M[istate] * pow(this->h, 2.0));
+                                soln_k_lim[istate] = soln_cell_avg[istate] - std::max(abs(minmod), M[istate] * pow(h, 2.0));
                             else
-                                soln_k_lim[istate] = soln_cell_avg[istate] + std::max(abs(minmod), M[istate] * pow(this->h, 2.0));
+                                soln_k_lim[istate] = soln_cell_avg[istate] + std::max(abs(minmod), M[istate] * pow(h, 2.0));
                         }
                         else
-                            soln_k_lim[istate] = soln_cell_avg[istate] + M[istate] * pow(this->h, 2.0);
+                            soln_k_lim[istate] = soln_cell_avg[istate] + M[istate] * pow(h, 2.0);
                     }
 
                     real scale = ((soln_cell_0[istate] - soln_cell_avg[istate]) + (soln_cell_k[istate] - soln_cell_avg[istate]));
@@ -268,7 +268,7 @@ namespace PHiLiP {
                 for (int istate = 0; istate < nstate; istate++) {
                     for (unsigned int ishape = 0; ishape < n_shape_fns; ++ishape) {
                         const unsigned int idof = istate * n_shape_fns + ishape;
-                        this->solution[current_dofs_indices[idof]] = soln_dofs[istate][ishape];
+                        solution[current_dofs_indices[idof]] = soln_dofs[istate][ishape];
                     }
                 }
             }
@@ -283,16 +283,15 @@ namespace PHiLiP {
         template <int dim, int nstate, typename real>
         MaximumPrincipleLimiter<dim, nstate, real>::MaximumPrincipleLimiter(
             const Parameters::AllParameters* const parameters_input)
-            : all_parameters(parameters_input) {}
+            : BoundPreservingLimiter<dim,real>::BoundPreservingLimiter(nstate, parameters_input) {}
 
         template <int dim, int nstate, typename real>
         void MaximumPrincipleLimiter<dim, nstate, real>::get_global_max_and_min_of_solution(
             dealii::LinearAlgebra::distributed::Vector<double>      solution,
             const dealii::DoFHandler<dim>&                          dof_handler,
-            const dealii::hp::FECollection<dim>&                    current_fe_ref,
-            dealii::hp::QCollection<dim>                            volume_quadrature_collection)
+            const dealii::hp::FECollection<dim>&                    fe_collection)
         {
-            for (auto soln_cell : this->dof_handler.active_cell_iterators()) {
+            for (auto soln_cell : dof_handler.active_cell_iterators()) {
                 if (!soln_cell->is_locally_owned()) continue;
 
                 std::vector<dealii::types::global_dof_index> current_dofs_indices;
@@ -300,7 +299,7 @@ namespace PHiLiP {
                 const int i_fele = soln_cell->active_fe_index();
                 const int poly_degree = i_fele;
 
-                const dealii::FESystem<dim, dim>& current_fe_ref = this->fe_collection[poly_degree];
+                const dealii::FESystem<dim, dim>& current_fe_ref = fe_collection[poly_degree];
                 const unsigned int n_dofs_curr_cell = current_fe_ref.n_dofs_per_cell();
                 // Obtain the mapping from local dof indices to global dof indices
                 current_dofs_indices.resize(n_dofs_curr_cell);
@@ -318,12 +317,12 @@ namespace PHiLiP {
                 std::array<std::vector<real>, nstate> soln_dofs;
                 const unsigned int n_shape_fns = n_dofs_curr_cell / nstate;
                 for (unsigned int idof = 0; idof < n_dofs_curr_cell; ++idof) {
-                    const unsigned int istate = this->fe_collection[poly_degree].system_to_component_index(idof).first;
-                    const unsigned int ishape = this->fe_collection[poly_degree].system_to_component_index(idof).second;
+                    const unsigned int istate = fe_collection[poly_degree].system_to_component_index(idof).first;
+                    const unsigned int ishape = fe_collection[poly_degree].system_to_component_index(idof).second;
                     if (ishape == 0) {
                         soln_dofs[istate].resize(n_shape_fns);
                     }
-                    soln_dofs[istate][ishape] = this->solution[current_dofs_indices[idof]]; //
+                    soln_dofs[istate][ishape] = solution[current_dofs_indices[idof]]; //
                     if (soln_dofs[istate][ishape] > this->global_max[istate])
                         this->global_max[istate] = soln_dofs[istate][ishape];
                     if (soln_dofs[istate][ishape] < this->global_min[istate])
@@ -340,9 +339,9 @@ namespace PHiLiP {
 
         template <int dim, int nstate, typename real>
         void MaximumPrincipleLimiter<dim, nstate, real>::limit(
-            dealii::LinearAlgebra::distributed::Vector<double>      solution,
+            dealii::LinearAlgebra::distributed::Vector<double>&      solution,
             const dealii::DoFHandler<dim>&                          dof_handler,
-            const dealii::hp::FECollection<dim>&                    current_fe_ref,
+            const dealii::hp::FECollection<dim>&                    fe_collection,
             dealii::hp::QCollection<dim>                            volume_quadrature_collection)
         {
             //create 1D solution polynomial basis functions and corresponding projection operator
@@ -362,7 +361,7 @@ namespace PHiLiP {
             if (this->global_max.empty() && this->global_min.empty())
                 this->get_global_max_and_min_of_solution();
 
-            for (auto soln_cell : this->dof_handler.active_cell_iterators()) {
+            for (auto soln_cell : dof_handler.active_cell_iterators()) {
                 if (!soln_cell->is_locally_owned()) continue;
 
                 std::vector<dealii::types::global_dof_index> current_dofs_indices;
@@ -370,7 +369,7 @@ namespace PHiLiP {
                 const int i_fele = soln_cell->active_fe_index();
                 const int poly_degree = i_fele;
 
-                const dealii::FESystem<dim, dim>& current_fe_ref = this->fe_collection[poly_degree];
+                const dealii::FESystem<dim, dim>& current_fe_ref = fe_collection[poly_degree];
                 const unsigned int n_dofs_curr_cell = current_fe_ref.n_dofs_per_cell();
 
                 // Obtain the mapping from local dof indices to global dof indices
@@ -391,9 +390,9 @@ namespace PHiLiP {
                 }
 
                 for (unsigned int idof = 0; idof < n_dofs_curr_cell; ++idof) {
-                    const unsigned int istate = this->fe_collection[poly_degree].system_to_component_index(idof).first;
-                    const unsigned int ishape = this->fe_collection[poly_degree].system_to_component_index(idof).second;
-                    soln_dofs[istate][ishape] = this->solution[current_dofs_indices[idof]]; //
+                    const unsigned int istate = fe_collection[poly_degree].system_to_component_index(idof).first;
+                    const unsigned int ishape = fe_collection[poly_degree].system_to_component_index(idof).second;
+                    soln_dofs[istate][ishape] = solution[current_dofs_indices[idof]]; //
 
                     if (soln_dofs[istate][ishape] > local_max[istate])
                         local_max[istate] = soln_dofs[istate][ishape];
@@ -402,8 +401,8 @@ namespace PHiLiP {
                         local_min[istate] = soln_dofs[istate][ishape];
                 }
 
-                const unsigned int n_quad_pts = this->volume_quadrature_collection[poly_degree].size();
-                const std::vector<real>& quad_weights = this->volume_quadrature_collection[poly_degree].get_weights();
+                const unsigned int n_quad_pts = volume_quadrature_collection[poly_degree].size();
+                const std::vector<real>& quad_weights = volume_quadrature_collection[poly_degree].get_weights();
                 //interpolate solution dofs to quadrature pts.
                 //and apply integral for the soln avg
                 std::array<real, nstate> soln_cell_avg;
@@ -455,16 +454,16 @@ namespace PHiLiP {
                 for (int istate = 0; istate < nstate; istate++) {
                     for (unsigned int ishape = 0; ishape < n_shape_fns; ++ishape) {
                         const unsigned int idof = istate * n_shape_fns + ishape;
-                        this->solution[current_dofs_indices[idof]] = soln_dofs[istate][ishape];
+                        solution[current_dofs_indices[idof]] = soln_dofs[istate][ishape];
 
-                        if (this->solution[current_dofs_indices[idof]] > this->global_max[istate] + 1e-13) {
-                            std::cout << " Solution exceeds global maximum   -   Aborting... Value:   " << this->solution[current_dofs_indices[idof]] << std::endl << std::flush;
-                            this->pcout << "theta:   " << theta[istate] << "   local max:   " << local_max[istate] << "   soln_cell_avg:   " << soln_cell_avg[istate] << std::endl;
+                        if (solution[current_dofs_indices[idof]] > this->global_max[istate] + 1e-13) {
+                            std::cout << " Solution exceeds global maximum   -   Aborting... Value:   " << solution[current_dofs_indices[idof]] << std::endl << std::flush;
+                            std::cout << "theta:   " << theta[istate] << "   local max:   " << local_max[istate] << "   soln_cell_avg:   " << soln_cell_avg[istate] << std::endl;
                             std::abort();
                         }
-                        if (this->solution[current_dofs_indices[idof]] < this->global_min[istate] - 1e-13) {
-                            std::cout << " Solution exceeds global minimum   -   Aborting... Value:   " << this->solution[current_dofs_indices[idof]] << std::endl << std::flush;
-                            this->pcout << "theta:   " << theta[istate] << "   local_min:   " << local_min[istate] << "   soln_cell_avg:   " << soln_cell_avg[istate] << std::endl;
+                        if (solution[current_dofs_indices[idof]] < this->global_min[istate] - 1e-13) {
+                            std::cout << " Solution exceeds global minimum   -   Aborting... Value:   " << solution[current_dofs_indices[idof]] << std::endl << std::flush;
+                            std::cout << "theta:   " << theta[istate] << "   local_min:   " << local_min[istate] << "   soln_cell_avg:   " << soln_cell_avg[istate] << std::endl;
                             std::abort();
                         }
                     }
@@ -481,13 +480,13 @@ namespace PHiLiP {
         template <int dim, int nstate, typename real>
         PositivityPreservingLimiter<dim, nstate, real>::PositivityPreservingLimiter(
             const Parameters::AllParameters* const parameters_input)
-            : all_parameters(parameters_input) {}
+            : BoundPreservingLimiter<dim,real>::BoundPreservingLimiter(nstate, parameters_input) {}
 
         template <int dim, int nstate, typename real>
         void PositivityPreservingLimiter<dim, nstate, real>::limit(
-            dealii::LinearAlgebra::distributed::Vector<double>      solution,
+            dealii::LinearAlgebra::distributed::Vector<double>&     solution,
             const dealii::DoFHandler<dim>&                          dof_handler,
-            const dealii::hp::FECollection<dim>&                    current_fe_ref,
+            const dealii::hp::FECollection<dim>&                    fe_collection,
             dealii::hp::QCollection<dim>                            volume_quadrature_collection)
         {
             //create 1D solution polynomial basis functions and corresponding projection operator
@@ -503,7 +502,7 @@ namespace PHiLiP {
             soln_basis.build_1D_volume_operator(this->oneD_fe_collection_1state[this->max_degree], this->oneD_quadrature_collection[this->max_degree]);
             soln_basis_projection_oper.build_1D_volume_operator(this->oneD_fe_collection_1state[this->max_degree], this->oneD_quadrature_collection[this->max_degree]);
 
-            for (auto soln_cell : this->dof_handler.active_cell_iterators()) {
+            for (auto soln_cell : dof_handler.active_cell_iterators()) {
                 if (!soln_cell->is_locally_owned()) continue;
 
                 std::vector<dealii::types::global_dof_index> current_dofs_indices;
@@ -514,7 +513,7 @@ namespace PHiLiP {
                 using FluxNodes = Parameters::AllParameters::FluxNodes;
                 const FluxNodes flux_nodes_type = this->all_parameters->flux_nodes_type;
 
-                const dealii::FESystem<dim, dim>& current_fe_ref = this->fe_collection[poly_degree];
+                const dealii::FESystem<dim, dim>& current_fe_ref = fe_collection[poly_degree];
                 const unsigned int n_dofs_curr_cell = current_fe_ref.n_dofs_per_cell();
 
                 // Obtain the mapping from local dof indices to global dof indices
@@ -534,16 +533,16 @@ namespace PHiLiP {
                 }
 
                 for (unsigned int idof = 0; idof < n_dofs_curr_cell; ++idof) {
-                    const unsigned int istate = this->fe_collection[poly_degree].system_to_component_index(idof).first;
-                    const unsigned int ishape = this->fe_collection[poly_degree].system_to_component_index(idof).second;
-                    soln_dofs[istate][ishape] = this->solution[current_dofs_indices[idof]]; //
+                    const unsigned int istate = fe_collection[poly_degree].system_to_component_index(idof).first;
+                    const unsigned int ishape = fe_collection[poly_degree].system_to_component_index(idof).second;
+                    soln_dofs[istate][ishape] = solution[current_dofs_indices[idof]]; //
 
                     if (soln_dofs[istate][ishape] < local_min[istate])
                         local_min[istate] = soln_dofs[istate][ishape];
                 }
 
-                const unsigned int n_quad_pts = this->volume_quadrature_collection[poly_degree].size();
-                const std::vector<real>& quad_weights = this->volume_quadrature_collection[poly_degree].get_weights();
+                const unsigned int n_quad_pts = volume_quadrature_collection[poly_degree].size();
+                const std::vector<real>& quad_weights = volume_quadrature_collection[poly_degree].get_weights();
                 //interpolate solution dofs to quadrature pts.
                 //and apply integral for the soln avg
                 std::array<real, nstate> soln_cell_avg;
@@ -670,11 +669,11 @@ namespace PHiLiP {
                 for (int istate = 0; istate < nstate; istate++) {
                     for (unsigned int ishape = 0; ishape < n_shape_fns; ++ishape) {
                         const unsigned int idof = istate * n_shape_fns + ishape;
-                        this->solution[current_dofs_indices[idof]] = soln_dofs[istate][ishape]; //
+                        solution[current_dofs_indices[idof]] = soln_dofs[istate][ishape]; //
 
                         if (istate == 0) {
-                            if (this->solution[current_dofs_indices[idof]] < 0) {
-                                std::cout << "Density is a negative value - Aborting... " << std::endl << this->solution[current_dofs_indices[idof]] << std::endl << std::flush;
+                            if (solution[current_dofs_indices[idof]] < 0) {
+                                std::cout << "Density is a negative value - Aborting... " << std::endl << solution[current_dofs_indices[idof]] << std::endl << std::flush;
                                 std::abort();
                             }
                         }
@@ -693,13 +692,13 @@ namespace PHiLiP {
         template <int dim, int nstate, typename real>
         PositivityPreservingLimiterRobust<dim, nstate, real>::PositivityPreservingLimiterRobust(
             const Parameters::AllParameters* const parameters_input)
-            : all_parameters(parameters_input) {}
+            : BoundPreservingLimiter<dim,real>::BoundPreservingLimiter(nstate, parameters_input) {}
 
         template <int dim, int nstate, typename real>
         void PositivityPreservingLimiterRobust<dim, nstate, real>::limit(
-            dealii::LinearAlgebra::distributed::Vector<double>      solution,
+            dealii::LinearAlgebra::distributed::Vector<double>&      solution,
             const dealii::DoFHandler<dim>&                          dof_handler,
-            const dealii::hp::FECollection<dim>&                    current_fe_ref,
+            const dealii::hp::FECollection<dim>&                    fe_collection,
             dealii::hp::QCollection<dim>                            volume_quadrature_collection)
         {
             //create 1D solution polynomial basis functions and corresponding projection operator
@@ -715,7 +714,7 @@ namespace PHiLiP {
             soln_basis.build_1D_volume_operator(this->oneD_fe_collection_1state[this->max_degree], this->oneD_quadrature_collection[this->max_degree]);
             soln_basis_projection_oper.build_1D_volume_operator(this->oneD_fe_collection_1state[this->max_degree], this->oneD_quadrature_collection[this->max_degree]);
 
-            for (auto soln_cell : this->dof_handler.active_cell_iterators()) {
+            for (auto soln_cell : dof_handler.active_cell_iterators()) {
                 if (!soln_cell->is_locally_owned()) continue;
 
                 std::vector<dealii::types::global_dof_index> current_dofs_indices;
@@ -723,7 +722,7 @@ namespace PHiLiP {
                 const int i_fele = soln_cell->active_fe_index();
                 const int poly_degree = i_fele;
 
-                const dealii::FESystem<dim, dim>& current_fe_ref = this->fe_collection[poly_degree];
+                const dealii::FESystem<dim, dim>& current_fe_ref = fe_collection[poly_degree];
                 const unsigned int n_dofs_curr_cell = current_fe_ref.n_dofs_per_cell();
 
                 // Obtain the mapping from local dof indices to global dof indices
@@ -743,16 +742,16 @@ namespace PHiLiP {
                 }
 
                 for (unsigned int idof = 0; idof < n_dofs_curr_cell; ++idof) {
-                    const unsigned int istate = this->fe_collection[poly_degree].system_to_component_index(idof).first;
-                    const unsigned int ishape = this->fe_collection[poly_degree].system_to_component_index(idof).second;
-                    soln_dofs[istate][ishape] = this->solution[current_dofs_indices[idof]];
+                    const unsigned int istate = fe_collection[poly_degree].system_to_component_index(idof).first;
+                    const unsigned int ishape = fe_collection[poly_degree].system_to_component_index(idof).second;
+                    soln_dofs[istate][ishape] = solution[current_dofs_indices[idof]];
 
                     if (soln_dofs[istate][ishape] < local_min[istate])
                         local_min[istate] = soln_dofs[istate][ishape];
                 }
 
-                const unsigned int n_quad_pts = this->volume_quadrature_collection[poly_degree].size();
-                const std::vector<real>& quad_weights = this->volume_quadrature_collection[poly_degree].get_weights();
+                const unsigned int n_quad_pts = volume_quadrature_collection[poly_degree].size();
+                const std::vector<real>& quad_weights = volume_quadrature_collection[poly_degree].get_weights();
                 //interpolate solution dofs to quadrature pts.
                 //and apply integral for the soln avg
                 std::array<real, nstate> soln_cell_avg;
@@ -868,11 +867,11 @@ namespace PHiLiP {
                 for (int istate = 0; istate < nstate; istate++) {
                     for (unsigned int ishape = 0; ishape < n_shape_fns; ++ishape) {
                         const unsigned int idof = istate * n_shape_fns + ishape;
-                        this->solution[current_dofs_indices[idof]] = soln_dofs[istate][ishape]; //
+                        solution[current_dofs_indices[idof]] = soln_dofs[istate][ishape]; //
 
                         if (istate == 0) {
-                            if (this->solution[current_dofs_indices[idof]] < 0) {
-                                std::cout << "Density is a negative value - Aborting... " << std::endl << this->solution[current_dofs_indices[idof]] << std::endl << std::flush;
+                            if (solution[current_dofs_indices[idof]] < 0) {
+                                std::cout << "Density is a negative value - Aborting... " << std::endl << solution[current_dofs_indices[idof]] << std::endl << std::flush;
                                 std::abort();
                             }
                         }
@@ -881,11 +880,6 @@ namespace PHiLiP {
             }
         }
 
-        template class BoundPreservingLimiter <PHILIP_DIM, double>;
-        template class BoundPreservingLimiter <PHILIP_DIM, double>;
-        template class BoundPreservingLimiter <PHILIP_DIM, double>;
-        template class BoundPreservingLimiter <PHILIP_DIM, double>;
-        template class BoundPreservingLimiter <PHILIP_DIM, double>;
         template class BoundPreservingLimiter <PHILIP_DIM, double>;
 
         template class TVBLimiter <PHILIP_DIM, 1, double>;

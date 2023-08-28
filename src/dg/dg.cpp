@@ -43,7 +43,6 @@
 #include "dg.h"
 #include "physics/physics_factory.h"
 #include "physics/model_factory.h"
-#include "limiter/bound_preserving_limiter_factory.hpp"
 #include "post_processor/physics_post_processor.h"
 
 #include <deal.II/numerics/derivative_approximation.h>
@@ -281,7 +280,6 @@ DGBaseState<dim,nstate,real,MeshType>::DGBaseState(
     : DGBase<dim,real,MeshType>::DGBase(nstate, parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input) // Use DGBase constructor
 {
     artificial_dissip = ArtificialDissipationFactory<dim,nstate> ::create_artificial_dissipation(parameters_input);
-    limiter = BoundPreservingLimiterFactory<dim,real> ::create_limiters(parameters_input, nstate);
 
     pde_model_double    = Physics::ModelFactory<dim,nstate,real>::create_Model(parameters_input);
     pde_physics_double  = Physics::PhysicsFactory<dim,nstate,real>::create_Physics(parameters_input,pde_model_double);
@@ -3329,12 +3327,6 @@ real2 DGBase<dim,real,MeshType>::discontinuity_sensor(
     real2 eps = 1.0 + sin(PI * (s_e - s_0) * 0.5 / kappa);
     eps *= eps_0 * 0.5;
     return eps;
-}
-
-template <int dim, int nstate, typename real, typename MeshType>
-void DGBaseState<dim, nstate, real, MeshType>::apply_bound_preserving_limiter()
-{
-    this->limiter->limit(this->solution, this->dof_handler, this->fe_collection, this->volume_quadrature_collection);
 }
 
 template <int dim, typename real, typename MeshType>

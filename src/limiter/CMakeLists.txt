@@ -13,7 +13,6 @@ foreach(dim RANGE 1 3)
     string(CONCAT ParameterLib ParametersLibrary)
     target_link_libraries(${ParameterLib})
     target_link_libraries(${LimiterLib} ${PhysicsLib})
-    target_link_libraries(${LimiterLib} ${OperatorsLib})
 
     # Setup target with deal.II
     if(NOT DOC_ONLY)
@@ -21,7 +20,6 @@ foreach(dim RANGE 1 3)
     endif()
 
     unset(PhysicsLib)
-    unset(OperatorsLib)
     unset(LimiterLib)
 
 endforeach()

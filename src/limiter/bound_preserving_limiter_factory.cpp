@@ -6,9 +6,8 @@ namespace PHiLiP {
 template <int dim, typename real>
 std::shared_ptr< BoundPreservingLimiterBase<dim,real> >//returns type OperatorsBase
 BoundPreservingLimiterFactory<dim,real>
-::create_limiters(
-        const Parameters::AllParameters *const parameters_input,
-        const int nstate_input)
+::create_limiter(
+        const Parameters::AllParameters *const parameters_input)
 {
     using limiter_enum = Parameters::AllParameters::LimiterType;
     limiter_enum limiter_type = parameters_input->use_scaling_limiter;
@@ -17,22 +16,22 @@ BoundPreservingLimiterFactory<dim,real>
     {
         case limiter_enum::none:
         {
-            return std::make_shared< BoundPreservingLimiter<dim,real> >(parameters_input,nstate_input);
+            return nullptr;
             break;
         }
         case limiter_enum::maximum_principle:
         {
-            return std::make_shared< MaximumPrincipleLimiter<dim,real,nstate_input> >(parameters_input);
+            return std::make_shared< MaximumPrincipleLimiter<dim, nstate, real> >(parameters_input);
             break;
         }
         case limiter_enum::positivity_preserving2010:
         {
-            return std::make_shared< PositivityPreservingLimiter<dim,real,nstate_input> >(parameters_input);
+            return std::make_shared< PositivityPreservingLimiter<dim, nstate, real> >(parameters_input);
             break;
         }
         case limiter_enum::positivity_preserving2011:
         {
-            return std::make_shared< PositivityPreservingLimiterRobust<dim,real,nstate_input> >(parameters_input);
+            return std::make_shared< PositivityPreservingLimiterRobust<dim, nstate, real> >(parameters_input);
             break;
         }
     }

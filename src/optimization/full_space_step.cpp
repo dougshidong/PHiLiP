@@ -632,7 +632,7 @@ void FullSpace_BirosGhattas<Real>::compute(
 
     //#pen_ = parlist.sublist("Step").sublist("Augmented Lagrangian").get("Initial Penalty Parameter",ten);
     /* Create merit function based on augmented Lagrangian */
-    const Real penalty_offset = 1.0e-4;//1e-4;
+    const Real penalty_offset = 10.0;//1e-4;
     penalty_value_ = computeAugmentedLagrangianPenalty(
         search_direction,
         *lagrange_mult_search_direction_,
@@ -643,7 +643,7 @@ void FullSpace_BirosGhattas<Real>::compute(
         equal_constraints,
         penalty_offset);
     const auto reduced_gradient = (dynamic_cast<Vector_SimOpt<Real>&>(*lagrangian_gradient)).get_2();
-    penalty_value_ = std::max(1e-3/reduced_gradient->norm(), 1.0);
+    penalty_value_ = std::max(1.0/reduced_gradient->norm(), 1.0);
     //penalty_value_ = std::max(1e-2/lagrangian_gradient->norm(), 1.0);
     pcout
         << "Finished computeAugmentedLagrangianPenalty..."

@@ -30,11 +30,11 @@ void SpecificNodesParameterization<dim> :: compute_control_index_to_vol_index()
     
     dealii::Point<dim> A_right, B_right, C_right, D_left, E_left, F_left;
     A_right[0] = -0.107; A_right[1] = 0.0;
-    B_right[0] = 0.2; B_right[1] = 3.0;
-    C_right[0] = 0.2; C_right[1] = -3.0;
+    B_right[0] = 0.8; B_right[1] = 3.0;
+    C_right[0] = 0.8; C_right[1] = -3.0;
     D_left[0] = 1.0; D_left[1] = 0.0;
-    E_left[0] = 3.0; E_left[1] = 3.0;
-    F_left[0] = 3.0; F_left[1] = -3.0;
+    E_left[0] = 2.6; E_left[1] = 3.0;
+    F_left[0] = 2.6; F_left[1] = -3.0;
 
     for(unsigned int i_vol = 0; i_vol<n_vol_nodes; ++i_vol) 
     {

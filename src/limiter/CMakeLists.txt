@@ -5,7 +5,7 @@ SET(LIMSOURCE
 
 foreach(dim RANGE 1 3)
     # Output library
-    string(CONCAT LimiterLib Limiter_Lib_${dim}D)
+    string(CONCAT LimiterLib Limiter_${dim}D)
     add_library(${LimiterLib} STATIC ${LIMSOURCE})
 
     target_compile_definitions(${LimiterLib} PRIVATE PHILIP_DIM=${dim})

@@ -47,10 +47,14 @@ namespace PHiLiP {
 
         template <int dim, int nstate, typename real>
         void TVBLimiter<dim, nstate, real>::limit(
-            dealii::LinearAlgebra::distributed::Vector<double>&      solution,
-            const dealii::DoFHandler<dim>&                          dof_handler,
-            const dealii::hp::FECollection<dim>&                    fe_collection,
-            dealii::hp::QCollection<dim>                            volume_quadrature_collection)
+            dealii::LinearAlgebra::distributed::Vector<double>& solution,
+            const dealii::DoFHandler<dim>& dof_handler,
+            const dealii::hp::FECollection<dim>& fe_collection,
+            dealii::hp::QCollection<dim>                            volume_quadrature_collection,
+            unsigned int                                            tensor_degree,
+            unsigned int                                            max_degree,
+            const dealii::hp::FECollection<1>                       oneD_fe_collection_1state,
+            dealii::hp::QCollection<1>                              oneD_quadrature_collection)
         {
             std::array<real, nstate> M;
             double h = this->all_parameters->tvb_h;
@@ -61,15 +65,15 @@ namespace PHiLiP {
             //create 1D solution polynomial basis functions and corresponding projection operator
             //to interpolate the solution to the quadrature nodes, and to project it back to the
             //modal coefficients.
-            const unsigned int init_grid_degree = this->high_order_grid->fe_system.tensor_degree();
+            const unsigned int init_grid_degree = tensor_degree;
             //Constructor for the operators
-            OPERATOR::basis_functions<dim, 2 * dim> soln_basis(1, this->max_degree, init_grid_degree);
-            OPERATOR::vol_projection_operator<dim, 2 * dim> soln_basis_projection_oper(1, this->max_degree, init_grid_degree);
+            OPERATOR::basis_functions<dim, 2 * dim> soln_basis(1, max_degree, init_grid_degree);
+            OPERATOR::vol_projection_operator<dim, 2 * dim> soln_basis_projection_oper(1, max_degree, init_grid_degree);
 
 
             //build the oneD operator to perform interpolation/projection
-            soln_basis.build_1D_volume_operator(this->oneD_fe_collection_1state[this->max_degree], this->oneD_quadrature_collection[this->max_degree]);
-            soln_basis_projection_oper.build_1D_volume_operator(this->oneD_fe_collection_1state[this->max_degree], this->oneD_quadrature_collection[this->max_degree]);
+            soln_basis.build_1D_volume_operator(oneD_fe_collection_1state[max_degree], oneD_quadrature_collection[max_degree]);
+            soln_basis_projection_oper.build_1D_volume_operator(oneD_fe_collection_1state[max_degree], oneD_quadrature_collection[max_degree]);
 
             for (auto soln_cell : dof_handler.active_cell_iterators()) {
                 if (!soln_cell->is_locally_owned()) continue;
@@ -339,27 +343,31 @@ namespace PHiLiP {
 
         template <int dim, int nstate, typename real>
         void MaximumPrincipleLimiter<dim, nstate, real>::limit(
-            dealii::LinearAlgebra::distributed::Vector<double>&      solution,
+            dealii::LinearAlgebra::distributed::Vector<double>&     solution,
             const dealii::DoFHandler<dim>&                          dof_handler,
             const dealii::hp::FECollection<dim>&                    fe_collection,
-            dealii::hp::QCollection<dim>                            volume_quadrature_collection)
+            dealii::hp::QCollection<dim>                            volume_quadrature_collection,
+            unsigned int                                            tensor_degree,
+            unsigned int                                            max_degree,
+            const dealii::hp::FECollection<1>                       oneD_fe_collection_1state,
+            dealii::hp::QCollection<1>                              oneD_quadrature_collection)
         {
             //create 1D solution polynomial basis functions and corresponding projection operator
             //to interpolate the solution to the quadrature nodes, and to project it back to the
             //modal coefficients.
-            const unsigned int init_grid_degree = this->high_order_grid->fe_system.tensor_degree();
+            const unsigned int init_grid_degree = tensor_degree;
             //Constructor for the operators
-            OPERATOR::basis_functions<dim, 2 * dim> soln_basis(1, this->max_degree, init_grid_degree);
-            OPERATOR::vol_projection_operator<dim, 2 * dim> soln_basis_projection_oper(1, this->max_degree, init_grid_degree);
+            OPERATOR::basis_functions<dim, 2 * dim> soln_basis(1, max_degree, init_grid_degree);
+            OPERATOR::vol_projection_operator<dim, 2 * dim> soln_basis_projection_oper(1, max_degree, init_grid_degree);
 
 
             //build the oneD operator to perform interpolation/projection
-            soln_basis.build_1D_volume_operator(this->oneD_fe_collection_1state[this->max_degree], this->oneD_quadrature_collection[this->max_degree]);
-            soln_basis_projection_oper.build_1D_volume_operator(this->oneD_fe_collection_1state[this->max_degree], this->oneD_quadrature_collection[this->max_degree]);
+            soln_basis.build_1D_volume_operator(oneD_fe_collection_1state[max_degree], oneD_quadrature_collection[max_degree]);
+            soln_basis_projection_oper.build_1D_volume_operator(oneD_fe_collection_1state[max_degree], oneD_quadrature_collection[max_degree]);
 
 
             if (this->global_max.empty() && this->global_min.empty())
-                this->get_global_max_and_min_of_solution();
+                get_global_max_and_min_of_solution(solution, dof_handler, fe_collection);
 
             for (auto soln_cell : dof_handler.active_cell_iterators()) {
                 if (!soln_cell->is_locally_owned()) continue;
@@ -484,23 +492,27 @@ namespace PHiLiP {
 
         template <int dim, int nstate, typename real>
         void PositivityPreservingLimiter<dim, nstate, real>::limit(
-            dealii::LinearAlgebra::distributed::Vector<double>&     solution,
-            const dealii::DoFHandler<dim>&                          dof_handler,
-            const dealii::hp::FECollection<dim>&                    fe_collection,
-            dealii::hp::QCollection<dim>                            volume_quadrature_collection)
+            dealii::LinearAlgebra::distributed::Vector<double>& solution,
+            const dealii::DoFHandler<dim>& dof_handler,
+            const dealii::hp::FECollection<dim>& fe_collection,
+            dealii::hp::QCollection<dim>                            volume_quadrature_collection,
+            unsigned int                                            tensor_degree,
+            unsigned int                                            max_degree,
+            const dealii::hp::FECollection<1>                       oneD_fe_collection_1state,
+            dealii::hp::QCollection<1>                              oneD_quadrature_collection)
         {
             //create 1D solution polynomial basis functions and corresponding projection operator
             //to interpolate the solution to the quadrature nodes, and to project it back to the
             //modal coefficients.
-            const unsigned int init_grid_degree = this->high_order_grid->fe_system.tensor_degree();
+            const unsigned int init_grid_degree = tensor_degree;
 
             //Constructor for the operators
-            OPERATOR::basis_functions<dim, 2 * dim> soln_basis(1, this->max_degree, init_grid_degree);
-            OPERATOR::vol_projection_operator<dim, 2 * dim> soln_basis_projection_oper(1, this->max_degree, init_grid_degree);
+            OPERATOR::basis_functions<dim, 2 * dim> soln_basis(1, max_degree, init_grid_degree);
+            OPERATOR::vol_projection_operator<dim, 2 * dim> soln_basis_projection_oper(1, max_degree, init_grid_degree);
 
             //build the oneD operator to perform interpolation/projection
-            soln_basis.build_1D_volume_operator(this->oneD_fe_collection_1state[this->max_degree], this->oneD_quadrature_collection[this->max_degree]);
-            soln_basis_projection_oper.build_1D_volume_operator(this->oneD_fe_collection_1state[this->max_degree], this->oneD_quadrature_collection[this->max_degree]);
+            soln_basis.build_1D_volume_operator(oneD_fe_collection_1state[max_degree], oneD_quadrature_collection[max_degree]);
+            soln_basis_projection_oper.build_1D_volume_operator(oneD_fe_collection_1state[max_degree], oneD_quadrature_collection[max_degree]);
 
             for (auto soln_cell : dof_handler.active_cell_iterators()) {
                 if (!soln_cell->is_locally_owned()) continue;
@@ -696,23 +708,27 @@ namespace PHiLiP {
 
         template <int dim, int nstate, typename real>
         void PositivityPreservingLimiterRobust<dim, nstate, real>::limit(
-            dealii::LinearAlgebra::distributed::Vector<double>&      solution,
-            const dealii::DoFHandler<dim>&                          dof_handler,
-            const dealii::hp::FECollection<dim>&                    fe_collection,
-            dealii::hp::QCollection<dim>                            volume_quadrature_collection)
+            dealii::LinearAlgebra::distributed::Vector<double>& solution,
+            const dealii::DoFHandler<dim>& dof_handler,
+            const dealii::hp::FECollection<dim>& fe_collection,
+            dealii::hp::QCollection<dim>                            volume_quadrature_collection,
+            unsigned int                                            tensor_degree,
+            unsigned int                                            max_degree,
+            const dealii::hp::FECollection<1>                       oneD_fe_collection_1state,
+            dealii::hp::QCollection<1>                              oneD_quadrature_collection)
         {
             //create 1D solution polynomial basis functions and corresponding projection operator
             //to interpolate the solution to the quadrature nodes, and to project it back to the
             //modal coefficients.
-            const unsigned int init_grid_degree = this->high_order_grid->fe_system.tensor_degree();
+            const unsigned int init_grid_degree = tensor_degree;
 
             //Constructor for the operators
-            OPERATOR::basis_functions<dim, 2 * dim> soln_basis(1, this->max_degree, init_grid_degree);
-            OPERATOR::vol_projection_operator<dim, 2 * dim> soln_basis_projection_oper(1, this->max_degree, init_grid_degree);
+            OPERATOR::basis_functions<dim, 2 * dim> soln_basis(1, max_degree, init_grid_degree);
+            OPERATOR::vol_projection_operator<dim, 2 * dim> soln_basis_projection_oper(1, max_degree, init_grid_degree);
 
             //build the oneD operator to perform interpolation/projection
-            soln_basis.build_1D_volume_operator(this->oneD_fe_collection_1state[this->max_degree], this->oneD_quadrature_collection[this->max_degree]);
-            soln_basis_projection_oper.build_1D_volume_operator(this->oneD_fe_collection_1state[this->max_degree], this->oneD_quadrature_collection[this->max_degree]);
+            soln_basis.build_1D_volume_operator(oneD_fe_collection_1state[max_degree], oneD_quadrature_collection[max_degree]);
+            soln_basis_projection_oper.build_1D_volume_operator(oneD_fe_collection_1state[max_degree], oneD_quadrature_collection[max_degree]);
 
             for (auto soln_cell : dof_handler.active_cell_iterators()) {
                 if (!soln_cell->is_locally_owned()) continue;

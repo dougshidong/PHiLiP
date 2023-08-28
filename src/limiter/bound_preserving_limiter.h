@@ -48,10 +48,14 @@ namespace PHiLiP {
             const Parameters::AllParameters* const all_parameters;
 
             virtual void limit(
-                dealii::LinearAlgebra::distributed::Vector<double>&      solution,
-                const dealii::DoFHandler<dim>&                          dof_handler,
-                const dealii::hp::FECollection<dim>&                    fe_collection,
-                dealii::hp::QCollection<dim>                            volume_quadrature_collection) = 0;
+                dealii::LinearAlgebra::distributed::Vector<double>& solution,
+                const dealii::DoFHandler<dim>& dof_handler,
+                const dealii::hp::FECollection<dim>& fe_collection,
+                dealii::hp::QCollection<dim>                            volume_quadrature_collection,
+                unsigned int                                            tensor_degree,
+                unsigned int                                            max_degree,
+                const dealii::hp::FECollection<1>                       oneD_fe_collection_1state,
+                dealii::hp::QCollection<1>                              oneD_quadrature_collection) = 0;
 
         }; // End of BoundPreservingLimiter Class
 
@@ -67,10 +71,14 @@ namespace PHiLiP {
             ~TVBLimiter() {};
 
             void limit(
-                dealii::LinearAlgebra::distributed::Vector<double>&      solution,
-                const dealii::DoFHandler<dim>&                          dof_handler,
-                const dealii::hp::FECollection<dim>&                    fe_collection,
-                dealii::hp::QCollection<dim>                            volume_quadrature_collection);
+                dealii::LinearAlgebra::distributed::Vector<double>& solution,
+                const dealii::DoFHandler<dim>& dof_handler,
+                const dealii::hp::FECollection<dim>& fe_collection,
+                dealii::hp::QCollection<dim>                            volume_quadrature_collection,
+                unsigned int                                            tensor_degree,
+                unsigned int                                            max_degree,
+                const dealii::hp::FECollection<1>                       oneD_fe_collection_1state,
+                dealii::hp::QCollection<1>                              oneD_quadrature_collection);
 
         }; // End of TVBLimiter Class
 
@@ -96,10 +104,14 @@ namespace PHiLiP {
                 const dealii::hp::FECollection<dim>&                    fe_collection);
 
             void limit(
-                dealii::LinearAlgebra::distributed::Vector<double>&     solution,
-                const dealii::DoFHandler<dim>&                          dof_handler,
-                const dealii::hp::FECollection<dim>&                    fe_collection,
-                dealii::hp::QCollection<dim>                            volume_quadrature_collection);
+                dealii::LinearAlgebra::distributed::Vector<double>& solution,
+                const dealii::DoFHandler<dim>& dof_handler,
+                const dealii::hp::FECollection<dim>& fe_collection,
+                dealii::hp::QCollection<dim>                            volume_quadrature_collection,
+                unsigned int                                            tensor_degree,
+                unsigned int                                            max_degree,
+                const dealii::hp::FECollection<1>                       oneD_fe_collection_1state,
+                dealii::hp::QCollection<1>                              oneD_quadrature_collection);
 
         }; // End of MaximumPrincipleLimiter Class
 
@@ -115,10 +127,14 @@ namespace PHiLiP {
             ~PositivityPreservingLimiter() {};
 
             void limit(
-                dealii::LinearAlgebra::distributed::Vector<double>&      solution,
-                const dealii::DoFHandler<dim>&                          dof_handler,
-                const dealii::hp::FECollection<dim>&                    fe_collection,
-                dealii::hp::QCollection<dim>                            volume_quadrature_collection);
+                dealii::LinearAlgebra::distributed::Vector<double>& solution,
+                const dealii::DoFHandler<dim>& dof_handler,
+                const dealii::hp::FECollection<dim>& fe_collection,
+                dealii::hp::QCollection<dim>                            volume_quadrature_collection,
+                unsigned int                                            tensor_degree,
+                unsigned int                                            max_degree,
+                const dealii::hp::FECollection<1>                       oneD_fe_collection_1state,
+                dealii::hp::QCollection<1>                              oneD_quadrature_collection);
 
         }; // End of PositivityPreservingLimiter Class
 
@@ -134,10 +150,14 @@ namespace PHiLiP {
             ~PositivityPreservingLimiterRobust() {};
 
             void limit(
-                dealii::LinearAlgebra::distributed::Vector<double>&      solution,
-                const dealii::DoFHandler<dim>&                          dof_handler,
-                const dealii::hp::FECollection<dim>&                    fe_collection,
-                dealii::hp::QCollection<dim>                            volume_quadrature_collection);
+                dealii::LinearAlgebra::distributed::Vector<double>& solution,
+                const dealii::DoFHandler<dim>& dof_handler,
+                const dealii::hp::FECollection<dim>& fe_collection,
+                dealii::hp::QCollection<dim>                            volume_quadrature_collection,
+                unsigned int                                            tensor_degree,
+                unsigned int                                            max_degree,
+                const dealii::hp::FECollection<1>                       oneD_fe_collection_1state,
+                dealii::hp::QCollection<1>                              oneD_quadrature_collection);
 
         }; // End of PositivityPreservingLimiterRobust Class
 } // PHiLiP namespace

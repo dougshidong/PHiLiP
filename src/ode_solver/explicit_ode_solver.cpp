@@ -15,7 +15,14 @@ RungeKuttaODESolver<dim,real,n_rk_stages, MeshType>::RungeKuttaODESolver(std::sh
 template <int dim, typename real, int n_rk_stages, typename MeshType> 
 void RungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::step_in_time (real dt, const bool pseudotime)
 {
-    this->limiter->limit(this->dg->solution, this->dg->dof_handler, this->dg->fe_collection, this->dg->volume_quadrature_collection);
+    this->limiter->limit(this->dg->solution, 
+                         this->dg->dof_handler,
+                         this->dg->fe_collection,
+                         this->dg->volume_quadrature_collection,
+                         this->dg->high_order_grid->fe_system.tensor_degree(),
+                         this->dg->max_degree,
+                         this->dg->oneD_fe_collection_1state,
+                         this->dg->oneD_quadrature_collection);
 
     this->original_time_step = dt;
     this->solution_update = this->dg->solution; //storing u_n
@@ -70,7 +77,14 @@ void RungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::step_in_time (real dt, 
             
         this->dg->solution = this->rk_stage[i];
 
-        this->limiter->limit(this->dg->solution, this->dg->dof_handler, this->dg->fe_collection, this->dg->volume_quadrature_collection);
+        this->limiter->limit(this->dg->solution,
+            this->dg->dof_handler,
+            this->dg->fe_collection,
+            this->dg->volume_quadrature_collection,
+            this->dg->high_order_grid->fe_system.tensor_degree(),
+            this->dg->max_degree,
+            this->dg->oneD_fe_collection_1state,
+            this->dg->oneD_quadrature_collection);
 
         //set the DG current time for unsteady source terms
         this->dg->set_current_time(this->current_time + this->butcher_tableau->get_c(i)*dt);
@@ -100,7 +114,14 @@ void RungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::step_in_time (real dt, 
     }
     this->dg->solution = this->solution_update; // u_np1 = u_n + dt* sum(k_i * b_i)
 
-    this->limiter->limit(this->dg->solution, this->dg->dof_handler, this->dg->fe_collection, this->dg->volume_quadrature_collection);
+    this->limiter->limit(this->dg->solution,
+        this->dg->dof_handler,
+        this->dg->fe_collection,
+        this->dg->volume_quadrature_collection,
+        this->dg->high_order_grid->fe_system.tensor_degree(),
+        this->dg->max_degree,
+        this->dg->oneD_fe_collection_1state,
+        this->dg->oneD_quadrature_collection);
     
     ++(this->current_iteration);
     this->current_time += dt;

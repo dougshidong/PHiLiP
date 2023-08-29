@@ -220,6 +220,7 @@ template <int dim, int nstate, typename real>
 inline real InviscidRealGas<dim,nstate,real>
 :: compute_Cp ( const real temperature ) const
 {
+    /// This should be made as a function ...
     /// It is for N2, T range: 200[K] - 1000[K]
     real a1 = 2.210371497e+04;
     real a2 = -3.818461820e+02;
@@ -239,16 +240,57 @@ inline real InviscidRealGas<dim,nstate,real>
     real N_N2 = 28.01340 * 10e-4;  // [kg/mol]
     real R_N2 = Ru/N_N2;           // [J/kg]
     R_N2 = R_N2/R_ref;         // [...]
-    ///
+    /// This should be madde as a function...
+
     /// temperature
     real temperature_ref = 273.15; // [K]
     /// dimensinalize... T
     real T = temperature*temperature_ref; // [K]
+
     /// polynomial
     real Cp = a1/pow(T,2.0) + a2/T + a3 + a4*T + a5*pow(T,2.0) + a6*pow(T,3.0) + a7*pow(T,4.0);
     Cp = Cp*R_N2;
     return Cp;
 }
+
+/// It is for h computation
+template <int dim, int nstate, typename real>
+inline real InviscidRealGas<dim,nstate,real>
+:: compute_enthalpy ( const real temperature  ) const
+{
+    /// This should be made as a function ...
+    /// It is for N2, T range: 200[K] - 1000[K]
+    real a1 = 2.210371497e+04;
+    real a2 = -3.818461820e+02;
+    real a3 = 6.082738360e+00;
+    real a4 = -8.530914410e-03;
+    real a5 = 1.384646189e-05;
+    real a6 = -9.625793620e-09;
+    real a7= 2.519705809e-12;
+    real b1 = 7.108460860e+02;
+    /// 
+    /// gas constant_air
+    real N_air = 28.96470 * 10e-4; // [kg/mol]
+    real Ru = 8.314;               // [J/mol]
+    real R_air = Ru/N_air;              // [J/kg]
+    real R_ref = R_air; // [J/kg]
+    /// gas constant_N2
+    real N_N2 = 28.01340 * 10e-4;  // [kg/mol]
+    real R_N2 = Ru/N_N2;           // [J/kg]
+    R_N2 = R_N2/R_ref;         // [...]
+    /// This should be madde as a function...
+
+    /// temperature
+    real temperature_ref = 273.15; // [K]
+    /// dimensinalize... T
+    real T = temperature*temperature_ref; // [K]
+
+
+    /// polynomial
+    real enthalpy = -a1/pow(T,2.0) + a2*(log(T))/T + a3 + a4*T/2 + a5*pow(T,2.0)/3 + a6*pow(T,3.0)/4 + a7*pow(T,4.00)/5 +b1/T;
+    return enthalpy;
+}
+
 
 
 /// IT IS FOR ALGORITHM 4

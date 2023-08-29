@@ -108,6 +108,9 @@ protected:
     /// Compute Cp from temperature
     real compute_Cp ( const real temperature ) const;
 
+    /// Compute Cp from temperature
+    real compute_enthalpy ( const real temperature  ) const;
+
 };
 
 } // Physics namespace

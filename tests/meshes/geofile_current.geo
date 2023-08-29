@@ -6,11 +6,11 @@ slope_leading = 3.31794/(2.35822 + 0.0894631);
 x_trailing = farfield/slope_trailing + 1.0;
 x_leading = farfield/slope_leading - 0.0894631;
 
-A_left = -0.164;
+A_left = -0.2; //-0.164;
 A_right = -0.06;//-0.054;
-B_left = -0.15; 
+B_left = -0.2; 
 B_right = -0.07;  //0.5 
-C_left = -0.15; 
+C_left = -0.2; 
 C_right = -0.07;  //0.5
 D_right = 1.14;
 E_left = 2.6;
@@ -30,7 +30,7 @@ progression_smallleading = 1;
 n_airfoilmid = 6;
 progression_airfoilmid = 1;
 n_leading = 4;
-progression_leading = 2.0;
+progression_leading = 1.5;
 n_leading_small_horizontal = 5;
 progression_leading_small_horizontal = 2.0;
 

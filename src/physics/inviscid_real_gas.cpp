@@ -291,20 +291,53 @@ inline real InviscidRealGas<dim,nstate,real>
     return enthalpy;
 }
 
+/// IT IS FOR ALGORITHM 3
+template <int dim, int nstate, typename real>
+inline real InviscidRealGas<dim,nstate,real>
+:: compute_temperature ( const std::array<real,nstate> &conservative_soln ) const
+{
+    const real density = compute_density(conservative_soln);
+    const dealii::Tensor<1,dim,real> vel = compute_velocities(conservative_soln);
+    const real vel2 = compute_velocity_squared(vel);
 
+    /// initial guess: This must be modified...
+    real temperature_old = 1.0; /// [...]
+    ///
 
-/// IT IS FOR ALGORITHM 4
-// template <int dim, int nstate, typename real>
-// inline real InviscidRealGas<dim,nstate,real>
-// :: compute_temperature ( const std::array<real,nstate> &conservative_soln ) const
-// {
-//     const real density = compute_density<real>(conservative_soln);
-//     const dealii::Tensor<1,dim,real> vel = compute_velocities<real>(conservative_soln);
-//     const real vel2 = compute_velocity_squared<real>(vel);
+    /// This must be constant (outside the function)
+    /// gas constant_air
+    real N_air = 28.96470 * 10e-4; // [kg/mol]
+    real Ru = 8.314;               // [J/mol]
+    real R_air = Ru/N_air;         // [J/kg]
+    real R_ref = R_air;            // [J/kg]
+    /// gas constant_N2
+    real N_N2 = 28.01340 * 10e-4;  // [kg/mol]
+    real R_N2 = Ru/N_N2;           // [J/kg]
+    R_N2 = R_N2/R_ref;             // [...]
+    /// temperature
+    real temperature_ref = 273.15; // [K]
+    /// velocity
+    real vel_ref = 1.0; /// mach_inf???
+    /// This should be madde as a function...
 
+    /// initial guess.... this must be modified
+    real temperature = temperature_old;
 
-//     return compute_temperature;
-// }
+    /// Newton-Raphson method
+    real tol = 1.0;
+    do {
+        real Cp = compute_Cp(temperature);
+        real enthalpy = compute_enthalpy(temperature);
+        real f_T  = (enthalpy - (R_ref*temperature_ref/pow(vel_ref,2.0))*R_N2*temperature) - (conservative_soln[3]/density - 0.50*vel2);
+        real f_Td = (R_ref*temperature_ref/pow(vel_ref,2.0)) * (Cp - R_N2);
+        temperature = temperature_old - f_T/f_Td;
+        tol = abs(temperature - temperature_old);
+        temperature_old = temperature;
+    }
+    while (tol > 1.0e-5); // this should be modifieds
+
+    return temperature;
+}
 
 
 // Instantiate explicitly

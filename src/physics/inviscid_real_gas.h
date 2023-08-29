@@ -111,6 +111,9 @@ protected:
     /// Compute Cp from temperature
     real compute_enthalpy ( const real temperature  ) const;
 
+    /// Compute temperature from conservative_soln
+    real compute_temperature ( const std::array<real,nstate> &conservative_soln ) const;
+
 };
 
 } // Physics namespace

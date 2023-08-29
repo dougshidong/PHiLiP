@@ -102,6 +102,12 @@ protected:
     template<typename real2>
     real2 compute_velocity_squared ( const dealii::Tensor<1,dim,real2> &velocities ) const;
 
+    // /// Get NASA coefficients
+    // std::array<real,8> get_NASA_coeff ( const real temperature ) const;
+
+    /// Compute Cp from temperature
+    real compute_Cp ( const real temperature ) const;
+
 };
 
 } // Physics namespace

@@ -187,6 +187,83 @@ inline real2 InviscidRealGas<dim,nstate,real>
     return vel2;
 }
 
+// template <int dim, int nstate, typename real>
+// inline std::array<real,nstate> InviscidRealGas<dim,nstate,real>
+// :: get_NASA_coeff ( const real temperature ) const
+// {
+//     /// delete this
+//     temperature = temperature;
+//     ///
+//     /// IT is for N2, T range: 200[K] - 1000[K]
+//     real a1 = 2.210371497e+04;
+//     real a2 = -3.818461820e+02;
+//     real a3 = 6.082738360e+00;
+//     real a4 = -8.530914410e-03;
+//     real a5 = 1.384646189e-05;
+//     real a6 = -9.625793620e-09;
+//     real a7= 2.519705809e-12;
+//     real b1 = 7.108460860e+02;
+//     /// array
+//     real coeff[0] = a1;
+//     real coeff[1] = a2;
+//     real coeff[2] = a3;
+//     real coeff[3] = a4;
+//     real coeff[4] = a5;
+//     real coeff[5] = a6;
+//     real coeff[6] = a7;
+//     real coeff[7] = b1;
+//     return coeff;
+// }
+
+/// It IS FOR Cp computation
+template <int dim, int nstate, typename real>
+inline real InviscidRealGas<dim,nstate,real>
+:: compute_Cp ( const real temperature ) const
+{
+    /// It is for N2, T range: 200[K] - 1000[K]
+    real a1 = 2.210371497e+04;
+    real a2 = -3.818461820e+02;
+    real a3 = 6.082738360e+00;
+    real a4 = -8.530914410e-03;
+    real a5 = 1.384646189e-05;
+    real a6 = -9.625793620e-09;
+    real a7= 2.519705809e-12;
+    // real b1 = 7.108460860e+02;
+    /// 
+    /// gas constant_air
+    real N_air = 28.96470 * 10e-4; // [kg/mol]
+    real Ru = 8.314;               // [J/mol]
+    real R_air = Ru/N_air;              // [J/kg]
+    real R_ref = R_air; // [J/kg]
+    /// gas constant_N2
+    real N_N2 = 28.01340 * 10e-4;  // [kg/mol]
+    real R_N2 = Ru/N_N2;           // [J/kg]
+    R_N2 = R_N2/R_ref;         // [...]
+    ///
+    /// temperature
+    real temperature_ref = 273.15; // [K]
+    /// dimensinalize... T
+    real T = temperature*temperature_ref; // [K]
+    /// polynomial
+    real Cp = a1/pow(T,2.0) + a2/T + a3 + a4*T + a5*pow(T,2.0) + a6*pow(T,3.0) + a7*pow(T,4.0);
+    Cp = Cp*R_N2;
+    return Cp;
+}
+
+
+/// IT IS FOR ALGORITHM 4
+// template <int dim, int nstate, typename real>
+// inline real InviscidRealGas<dim,nstate,real>
+// :: compute_temperature ( const std::array<real,nstate> &conservative_soln ) const
+// {
+//     const real density = compute_density<real>(conservative_soln);
+//     const dealii::Tensor<1,dim,real> vel = compute_velocities<real>(conservative_soln);
+//     const real vel2 = compute_velocity_squared<real>(vel);
+
+
+//     return compute_temperature;
+// }
+
 
 // Instantiate explicitly
 template class InviscidRealGas < PHILIP_DIM, PHILIP_DIM+2, double     >;

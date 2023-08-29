@@ -7,19 +7,19 @@ x_trailing = farfield/slope_trailing + 1.0;
 x_leading = farfield/slope_leading - 0.0894631;
 
 A_left = -0.164;
-A_right = -0.107;//-0.054;
-B_left = 0.0; 
-B_right = 0.2;  //0.5 
-C_left = 0.0; 
-C_right = 0.2;  //0.5
+A_right = -0.06;//-0.054;
+B_left = -0.15; 
+B_right = -0.07;  //0.5 
+C_left = -0.15; 
+C_right = -0.07;  //0.5
 D_right = 1.14;
-E_left = 4.5;
+E_left = 2.6;
 E_right = 4.9;
-F_left = 5.06;
+F_left = 2.6;
 F_right = 5.288;
 
 // Parameters for transfinite mesh
-n_verticallines = 10;
+n_verticallines = 9;
 progression_verticallines = 1.5;
 n_wake = 5;
 progression_wake = 1.5;
@@ -31,8 +31,8 @@ n_airfoilmid = 6;
 progression_airfoilmid = 1;
 n_leading = 4;
 progression_leading = 2.0;
-n_leading_small_horizontal = 6;
-progression_leading_small_horizontal = 1.8;
+n_leading_small_horizontal = 5;
+progression_leading_small_horizontal = 2.0;
 
 
 // Points to define line near the shock 
@@ -56,7 +56,7 @@ Point(214) = {D_right, 0, 0, 1.0};
 Point(215) = {E_right, farfield, 0, 1.0};
 Point(216) = {F_right, -farfield, 0, 1.0};
 
-h = 0.2;
+h = 0.3;
 x_top_left = h*(B_left - A_left)/farfield + A_left;
 Point(217) = {x_top_left, h, 0, 1.0};
 x_bottom_left = A_left - h*(A_left - C_left)/farfield;
@@ -265,7 +265,9 @@ Transfinite Curve {49, 55, 50, 52, 46} = n_smallleading Using Progression progre
 //+
 Transfinite Curve {13, -30, -16, 31, -4} = n_leading Using Progression progression_leading;
 //+
-Transfinite Curve {-27, 40, 42, -57, 58, -44, 41, 28} = n_leading_small_horizontal Using Progression progression_leading_small_horizontal;
+Transfinite Curve {-57, 58} = n_leading_small_horizontal Using Progression progression_leading_small_horizontal;
+//+
+Transfinite Curve {-27, 40, 42, -44, 41, 28} = n_leading_small_horizontal Using Progression 1;
 //+
 Transfinite Surface {1};
 //+

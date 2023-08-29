@@ -24,26 +24,26 @@ InviscidRealGas<dim,nstate,real>::InviscidRealGas (
     static_assert(nstate==dim+2, "Physics::InviscidRealGas() should be created with nstate=dim+2"); // TO DO: UPDATE THIS with nspecies
 }
 
-template <int dim, int nstate, typename real>
-std::array<dealii::Tensor<1,dim,real>,nstate> InviscidRealGas<dim,nstate,real>
-::convective_flux (const std::array<real,nstate> &/*conservative_soln*/) const
-{
-    std::array<dealii::Tensor<1,dim,real>,nstate> conv_flux;
+// template <int dim, int nstate, typename real>
+// std::array<dealii::Tensor<1,dim,real>,nstate> InviscidRealGas<dim,nstate,real>
+// ::convective_flux (const std::array<real,nstate> &/*conservative_soln*/) const
+// {
+//     std::array<dealii::Tensor<1,dim,real>,nstate> conv_flux;
 
-    for (int flux_dim=0; flux_dim<dim; ++flux_dim) {
-        // Density equation
-        conv_flux[0][flux_dim] = 0.0;
-        // Momentum equation
-        for (int velocity_dim=0; velocity_dim<dim; ++velocity_dim){
-            conv_flux[1+velocity_dim][flux_dim] = 0.0;
-        }
-        conv_flux[1+flux_dim][flux_dim] += 0.0;
-        // Energy equation
-        conv_flux[nstate-1][flux_dim] = 0.0;
-        // TO DO: now loop over nspecies
-    }
-    return conv_flux;
-}
+//     for (int flux_dim=0; flux_dim<dim; ++flux_dim) {
+//         // Density equation
+//         conv_flux[0][flux_dim] = 0.0;
+//         // Momentum equation
+//         for (int velocity_dim=0; velocity_dim<dim; ++velocity_dim){
+//             conv_flux[1+velocity_dim][flux_dim] = 0.0;
+//         }
+//         conv_flux[1+flux_dim][flux_dim] += 0.0;
+//         // Energy equation
+//         conv_flux[nstate-1][flux_dim] = 0.0;
+//         // TO DO: now loop over nspecies
+//     }
+//     return conv_flux;
+// }
 
 template <int dim, int nstate, typename real>
 std::array<real,nstate> InviscidRealGas<dim, nstate, real>
@@ -381,6 +381,33 @@ inline real InviscidRealGas<dim,nstate,real>
 
     return total_enthalpy;
 }
+
+/// IT IS FOR ALGORITHM 7
+template <int dim, int nstate, typename real>
+std::array<dealii::Tensor<1,dim,real>,nstate> InviscidRealGas<dim,nstate,real>
+::convective_flux (const std::array<real,nstate> &conservative_soln) const
+{
+    std::array<dealii::Tensor<1,dim,real>,nstate> conv_flux;
+    const real density = compute_density(conservative_soln);
+    const real pressure = compute_pressure(conservative_soln);
+    const dealii::Tensor<1,dim,real> vel = compute_velocities(conservative_soln);
+    const real total_enthalpy = compute_total_enthalpy(conservative_soln);
+
+    for (int flux_dim=0; flux_dim<dim; ++flux_dim) {
+        // Density equation
+        conv_flux[0][flux_dim] = conservative_soln[1+flux_dim];
+        // Momentum equation
+        for (int velocity_dim=0; velocity_dim<dim; ++velocity_dim){
+            conv_flux[1+velocity_dim][flux_dim] = density*vel[flux_dim]*vel[velocity_dim];
+        }
+        conv_flux[1+flux_dim][flux_dim] += pressure; // Add diagonal of pressure
+        // Energy equation
+        conv_flux[nstate-1][flux_dim] = density*vel[flux_dim]*total_enthalpy;
+        // TO DO: now loop over nspecies
+    }
+    return conv_flux;
+}
+
 
 
 // Instantiate explicitly

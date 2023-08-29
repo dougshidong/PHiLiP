@@ -38,9 +38,9 @@ public:
     const double mach_inf_sqr; ///< Farfield Mach number squared.
     const two_point_num_flux_enum two_point_num_flux_type; ///< Two point numerical flux type (for split form)
 
-    /// Convective flux: \f$ \mathbf{F}_{conv} \f$
-    std::array<dealii::Tensor<1,dim,real>,nstate> convective_flux (
-        const std::array<real,nstate> &conservative_soln) const;
+    // /// Convective flux: \f$ \mathbf{F}_{conv} \f$
+    // std::array<dealii::Tensor<1,dim,real>,nstate> convective_flux (
+    //     const std::array<real,nstate> &conservative_soln) const;
 
      /// Computes the entropy variables.
     std::array<real,nstate> compute_entropy_variables (
@@ -119,6 +119,11 @@ protected:
 
     /// Compute total enthalpy from conservative_soln
     real compute_total_enthalpy( const std::array<real,nstate> &conservative_soln ) const;
+
+    /// Compute convective flux from conservative_soln
+    std::array<dealii::Tensor<1,dim,real>,nstate> convective_flux (
+        const std::array<real,nstate> &conservative_soln) const;
+
 
 };
 

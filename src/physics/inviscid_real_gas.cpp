@@ -339,6 +339,49 @@ inline real InviscidRealGas<dim,nstate,real>
     return temperature;
 }
 
+/// IT IS FOR ALGORITHM 4
+template <int dim, int nstate, typename real>
+inline real InviscidRealGas<dim,nstate,real>
+:: compute_pressure ( const std::array<real,nstate> &conservative_soln ) const
+{
+    const real density = compute_density(conservative_soln);
+
+    /// This must be constant (outside the function)
+    /// gas constant_air
+    real N_air = 28.96470 * 10e-4; // [kg/mol]
+    real Ru = 8.314;               // [J/mol]
+    real R_air = Ru/N_air;         // [J/kg]
+    real R_ref = R_air;            // [J/kg]
+    /// gas constant_N2
+    real N_N2 = 28.01340 * 10e-4;  // [kg/mol]
+    real R_N2 = Ru/N_N2;           // [J/kg]
+    R_N2 = R_N2/R_ref;             // [...]
+    /// gamma
+    real gam_ref = 1.4;
+    /// mach_ref
+    real mach_ref = 1.0;
+
+    /// This should be madde as a function...
+
+    real temperature = compute_temperature(conservative_soln);
+    real pressure = (density*R_N2*temperature) / (gam_ref*pow(mach_ref,2.0));
+
+    return pressure;
+}
+
+/// IT IS FOR ALGORITHM 6, IT is only valid for single species. For multi-species, adding algorism 5 and modify largely this.
+template <int dim, int nstate, typename real>
+inline real InviscidRealGas<dim,nstate,real>
+:: compute_total_enthalpy ( const std::array<real,nstate> &conservative_soln ) const
+{
+    const real density = compute_density(conservative_soln);
+    const real pressure = compute_pressure(conservative_soln);
+    const real total_energy = conservative_soln[3]/density;
+    real total_enthalpy = total_energy + pressure/density;
+
+    return total_enthalpy;
+}
+
 
 // Instantiate explicitly
 template class InviscidRealGas < PHILIP_DIM, PHILIP_DIM+2, double     >;

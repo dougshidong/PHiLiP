@@ -114,6 +114,12 @@ protected:
     /// Compute temperature from conservative_soln
     real compute_temperature ( const std::array<real,nstate> &conservative_soln ) const;
 
+    /// Compute pressure from conservative_soln
+    real compute_pressure ( const std::array<real,nstate> &conservative_soln ) const;
+
+    /// Compute total enthalpy from conservative_soln
+    real compute_total_enthalpy( const std::array<real,nstate> &conservative_soln ) const;
+
 };
 
 } // Physics namespace

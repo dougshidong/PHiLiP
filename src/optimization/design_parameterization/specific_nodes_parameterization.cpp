@@ -17,7 +17,7 @@ template<int dim>
 void SpecificNodesParameterization<dim> :: compute_control_index_to_vol_index()
 {
     const unsigned int n_vol_nodes = this->high_order_grid->volume_nodes.size();
-    const unsigned int n_surf_nodes = this->high_order_grid->surface_nodes.size();
+//    const unsigned int n_surf_nodes = this->high_order_grid->surface_nodes.size();
 
     dealii::LinearAlgebra::distributed::Vector<int> is_a_control_node;
     is_a_control_node.reinit(this->high_order_grid->volume_nodes); // Copies parallel layout, without values. Initializes to 0 by default.
@@ -26,7 +26,7 @@ void SpecificNodesParameterization<dim> :: compute_control_index_to_vol_index()
 
     // Get locally owned volume and surface ranges of indices held by current processor.
     const dealii::IndexSet &volume_range = this->high_order_grid->volume_nodes.get_partitioner()->locally_owned_range();
-    const dealii::IndexSet &surface_range = this->high_order_grid->surface_nodes.get_partitioner()->locally_owned_range();
+ //   const dealii::IndexSet &surface_range = this->high_order_grid->surface_nodes.get_partitioner()->locally_owned_range();
     
     dealii::Point<dim> A_right, B_right, C_right, D_left, E_left, F_left;
     A_right[0] = -0.06; A_right[1] = 0.0;
@@ -67,7 +67,7 @@ void SpecificNodesParameterization<dim> :: compute_control_index_to_vol_index()
         }
     }
     is_a_control_node.update_ghost_values();
-
+/*
     for(unsigned int i_surf = 0; i_surf < n_surf_nodes; ++i_surf)
     {
         if(!(surface_range.is_element(i_surf))) continue;
@@ -75,6 +75,7 @@ void SpecificNodesParameterization<dim> :: compute_control_index_to_vol_index()
         is_a_control_node(vol_index) = 0;
     }
     is_a_control_node.update_ghost_values();
+*/
     n_control_nodes = is_a_control_node.l1_norm();
 
     unsigned int n_control_nodes_this_processor = 0;

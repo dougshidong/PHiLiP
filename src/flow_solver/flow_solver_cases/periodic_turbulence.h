@@ -163,6 +163,23 @@ protected:
     std::shared_ptr<dealii::TableHandler> exact_output_times_of_velocity_field_files_table;
 };
 
+template <int dim, int nstate>
+class PeriodicTurbulence_ShearImprovedEddyViscosity : public PeriodicTurbulence<dim,nstate>
+{
+public:
+    /// Constructor
+    PeriodicTurbulence_ShearImprovedEddyViscosity(const Parameters::AllParameters *const parameters_input);
+
+    /// Destructor
+    ~PeriodicTurbulence_ShearImprovedEddyViscosity() {};
+    
+    /// Initialize model variables; specifically the mean strain rate tensor magnitude
+    void initialize_model_variables(std::shared_ptr<DGBase<dim, double>> dg) const override;
+
+    /// Update model variables; specifically the mean strain rate tensor magnitude
+    void update_model_variables(std::shared_ptr<DGBase<dim, double>> dg) const override;
+};
+
 } // FlowSolver namespace
 } // PHiLiP namespace
 #endif

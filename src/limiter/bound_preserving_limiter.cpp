@@ -47,9 +47,9 @@ namespace PHiLiP {
 
         template <int dim, int nstate, typename real>
         void TVBLimiter<dim, nstate, real>::limit(
-            dealii::LinearAlgebra::distributed::Vector<double>& solution,
-            const dealii::DoFHandler<dim>& dof_handler,
-            const dealii::hp::FECollection<dim>& fe_collection,
+            dealii::LinearAlgebra::distributed::Vector<double>&     solution,
+            const dealii::DoFHandler<dim>&                          dof_handler,
+            const dealii::hp::FECollection<dim>&                    fe_collection,
             dealii::hp::QCollection<dim>                            volume_quadrature_collection,
             unsigned int                                            tensor_degree,
             unsigned int                                            max_degree,
@@ -59,7 +59,7 @@ namespace PHiLiP {
             std::array<real, nstate> M;
             double h = this->all_parameters->tvb_h;
             for (unsigned int istate = 0; istate < nstate; ++istate) {
-                M[istate] = 0.05 / pow(h, 2);
+                M[istate] = 0.1;
             }
 
             //create 1D solution polynomial basis functions and corresponding projection operator
@@ -78,9 +78,9 @@ namespace PHiLiP {
             for (auto soln_cell : dof_handler.active_cell_iterators()) {
                 if (!soln_cell->is_locally_owned()) continue;
 
-                std::array<real, nstate> prev_cell_avg;
-                std::array<real, nstate> soln_cell_avg;
-                std::array<real, nstate> next_cell_avg;
+                std::array<real, nstate> prev_cell_avg = {};
+                std::array<real, nstate> soln_cell_avg = {};
+                std::array<real, nstate> next_cell_avg = {};
 
                 for (const auto face_no : soln_cell->face_indices()) {
                     if (soln_cell->neighbor(face_no).state() != dealii::IteratorState::valid) continue;
@@ -287,7 +287,10 @@ namespace PHiLiP {
         template <int dim, int nstate, typename real>
         MaximumPrincipleLimiter<dim, nstate, real>::MaximumPrincipleLimiter(
             const Parameters::AllParameters* const parameters_input)
-            : BoundPreservingLimiter<dim,real>::BoundPreservingLimiter(nstate, parameters_input) {}
+            : BoundPreservingLimiter<dim,real>::BoundPreservingLimiter(nstate, parameters_input) 
+        {
+            tvbLimiter = std::make_shared < TVBLimiter<dim, nstate, real> >(parameters_input);
+        }
 
         template <int dim, int nstate, typename real>
         void MaximumPrincipleLimiter<dim, nstate, real>::get_global_max_and_min_of_solution(
@@ -352,6 +355,10 @@ namespace PHiLiP {
             const dealii::hp::FECollection<1>                       oneD_fe_collection_1state,
             dealii::hp::QCollection<1>                              oneD_quadrature_collection)
         {
+            if (this->all_parameters->use_tvb_limiter == true)
+            {
+                this->tvbLimiter->limit(solution, dof_handler, fe_collection, volume_quadrature_collection, tensor_degree, max_degree, oneD_fe_collection_1state, oneD_quadrature_collection);
+            }
             //create 1D solution polynomial basis functions and corresponding projection operator
             //to interpolate the solution to the quadrature nodes, and to project it back to the
             //modal coefficients.
@@ -413,7 +420,7 @@ namespace PHiLiP {
                 const std::vector<real>& quad_weights = volume_quadrature_collection[poly_degree].get_weights();
                 //interpolate solution dofs to quadrature pts.
                 //and apply integral for the soln avg
-                std::array<real, nstate> soln_cell_avg;
+                std::array<real, nstate> soln_cell_avg={};
 
                 std::array<std::vector<real>, nstate> soln_at_q;
 
@@ -463,7 +470,6 @@ namespace PHiLiP {
                     for (unsigned int ishape = 0; ishape < n_shape_fns; ++ishape) {
                         const unsigned int idof = istate * n_shape_fns + ishape;
                         solution[current_dofs_indices[idof]] = soln_dofs[istate][ishape];
-                        std::cout << solution[current_dofs_indices[idof]] << "  ";
                         if (solution[current_dofs_indices[idof]] > this->global_max[istate] + 1e-13) {
                             std::cout << " Solution exceeds global maximum   -   Aborting... Value:   " << solution[current_dofs_indices[idof]] << std::endl << std::flush;
                             std::cout << "theta:   " << theta[istate] << "   local max:   " << local_max[istate] << "   soln_cell_avg:   " << soln_cell_avg[istate] << std::endl;
@@ -476,7 +482,6 @@ namespace PHiLiP {
                         }
                     }
                 }
-                std::cout << std::endl;
             }
         }
 
@@ -489,7 +494,10 @@ namespace PHiLiP {
         template <int dim, int nstate, typename real>
         PositivityPreservingLimiter<dim, nstate, real>::PositivityPreservingLimiter(
             const Parameters::AllParameters* const parameters_input)
-            : BoundPreservingLimiter<dim,real>::BoundPreservingLimiter(nstate, parameters_input) {}
+            : BoundPreservingLimiter<dim,real>::BoundPreservingLimiter(nstate, parameters_input)
+        {
+            tvbLimiter = std::make_shared < TVBLimiter<dim, nstate, real> >(parameters_input);
+        }
 
         template <int dim, int nstate, typename real>
         void PositivityPreservingLimiter<dim, nstate, real>::limit(
@@ -502,6 +510,10 @@ namespace PHiLiP {
             const dealii::hp::FECollection<1>                       oneD_fe_collection_1state,
             dealii::hp::QCollection<1>                              oneD_quadrature_collection)
         {
+            if (this->all_parameters->use_tvb_limiter == true)
+            {
+                this->tvbLimiter->limit(solution, dof_handler, fe_collection, volume_quadrature_collection, tensor_degree, max_degree, oneD_fe_collection_1state, oneD_quadrature_collection);
+            }
             //create 1D solution polynomial basis functions and corresponding projection operator
             //to interpolate the solution to the quadrature nodes, and to project it back to the
             //modal coefficients.
@@ -558,7 +570,7 @@ namespace PHiLiP {
                 const std::vector<real>& quad_weights = volume_quadrature_collection[poly_degree].get_weights();
                 //interpolate solution dofs to quadrature pts.
                 //and apply integral for the soln avg
-                std::array<real, nstate> soln_cell_avg;
+                std::array<real, nstate> soln_cell_avg = {};
 
                 std::array<std::vector<real>, nstate> soln_at_q;
 
@@ -705,7 +717,10 @@ namespace PHiLiP {
         template <int dim, int nstate, typename real>
         PositivityPreservingLimiterRobust<dim, nstate, real>::PositivityPreservingLimiterRobust(
             const Parameters::AllParameters* const parameters_input)
-            : BoundPreservingLimiter<dim,real>::BoundPreservingLimiter(nstate, parameters_input) {}
+            : BoundPreservingLimiter<dim,real>::BoundPreservingLimiter(nstate, parameters_input)
+        {
+            tvbLimiter = std::make_shared < TVBLimiter<dim, nstate, real> >(parameters_input);
+        }
 
         template <int dim, int nstate, typename real>
         void PositivityPreservingLimiterRobust<dim, nstate, real>::limit(
@@ -718,6 +733,10 @@ namespace PHiLiP {
             const dealii::hp::FECollection<1>                       oneD_fe_collection_1state,
             dealii::hp::QCollection<1>                              oneD_quadrature_collection)
         {
+            if (this->all_parameters->use_tvb_limiter == true)
+            {
+                this->tvbLimiter->limit(solution, dof_handler, fe_collection, volume_quadrature_collection, tensor_degree, max_degree, oneD_fe_collection_1state, oneD_quadrature_collection);
+            }
             //create 1D solution polynomial basis functions and corresponding projection operator
             //to interpolate the solution to the quadrature nodes, and to project it back to the
             //modal coefficients.
@@ -771,7 +790,7 @@ namespace PHiLiP {
                 const std::vector<real>& quad_weights = volume_quadrature_collection[poly_degree].get_weights();
                 //interpolate solution dofs to quadrature pts.
                 //and apply integral for the soln avg
-                std::array<real, nstate> soln_cell_avg;
+                std::array<real, nstate> soln_cell_avg = {};
 
                 std::array<std::vector<real>, nstate> soln_at_q;
 

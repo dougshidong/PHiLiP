@@ -353,17 +353,17 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
         "Applies TVB Limiter to solution. Tune M and h to obtain favourable results.");
 
     prm.declare_entry("tvb_h", "1.0",
-                      dealii::Patterns::Double(1e-13,1e200),
+                      dealii::Patterns::Double(0,1e200),
                       "Maximum delta_x.");
 
     prm.declare_entry("tvb_M1", "1.0",
-                      dealii::Patterns::Double(1e-13,1e200),
+                      dealii::Patterns::Double(0,1e200),
                       "Maximum delta_x.");
     prm.declare_entry("tvb_M2", "1.0",
-                      dealii::Patterns::Double(1e-13,1e200),
+                      dealii::Patterns::Double(0,1e200),
                       "Maximum delta_x.");
     prm.declare_entry("tvb_M3", "1.0",
-                      dealii::Patterns::Double(1e-13,1e200),
+                      dealii::Patterns::Double(0,1e200),
                       "Maximum delta_x.");
 
     Parameters::LinearSolverParam::declare_parameters (prm);

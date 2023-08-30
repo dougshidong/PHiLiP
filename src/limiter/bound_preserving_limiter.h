@@ -65,7 +65,7 @@ namespace PHiLiP {
         public:
             /// Constructor
             TVBLimiter(
-                const Parameters::AllParameters* const parameters_input);//max poly degree
+                const Parameters::AllParameters* const parameters_input);
 
             /// Destructor
             ~TVBLimiter() {};
@@ -98,6 +98,9 @@ namespace PHiLiP {
             /// Initial global minimum of solution in domain.
             std::vector<real> global_min;
 
+            /// Pointer to TVB limiter (can be applied with this limiter)
+            std::shared_ptr<BoundPreservingLimiter<dim, real>> tvbLimiter;
+
             void get_global_max_and_min_of_solution(
                 dealii::LinearAlgebra::distributed::Vector<double>      solution,
                 const dealii::DoFHandler<dim>&                          dof_handler,
@@ -126,6 +129,9 @@ namespace PHiLiP {
             /// Destructor
             ~PositivityPreservingLimiter() {};
 
+            /// Pointer to TVB limiter (can be applied with this limiter)
+            std::shared_ptr<BoundPreservingLimiter<dim, real>> tvbLimiter;
+
             void limit(
                 dealii::LinearAlgebra::distributed::Vector<double>& solution,
                 const dealii::DoFHandler<dim>& dof_handler,
@@ -148,6 +154,9 @@ namespace PHiLiP {
 
             /// Destructor
             ~PositivityPreservingLimiterRobust() {};
+
+            /// Pointer to TVB limiter (can be applied with this limiter)
+            std::shared_ptr<BoundPreservingLimiter<dim, real>> tvbLimiter;
 
             void limit(
                 dealii::LinearAlgebra::distributed::Vector<double>& solution,

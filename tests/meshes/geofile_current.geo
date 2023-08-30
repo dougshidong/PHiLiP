@@ -14,15 +14,15 @@ C_left = -0.2;
 C_right = -0.07;  //0.5
 D_right = 1.14;
 E_left = 2.6;
-E_right = 4.9;
+E_right = 3.0;
 F_left = 2.6;
-F_right = 5.288;
+F_right = 3.0;
 
 // Parameters for transfinite mesh
 n_verticallines = 9;
 progression_verticallines = 1.5;
 n_wake = 5;
-progression_wake = 1.5;
+progression_wake = 1.6;
 n_smalltrailing = 2;
 progression_smalltrailing = 1;
 n_smallleading = 2;

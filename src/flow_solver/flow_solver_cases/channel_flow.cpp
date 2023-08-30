@@ -33,7 +33,14 @@ ChannelFlow<dim, nstate>::ChannelFlow(const PHiLiP::Parameters::AllParameters *c
         , domain_volume(domain_length_x*domain_length_y*domain_length_z)
         , channel_bulk_velocity_reynolds_number(pow(0.073, -4.0/7.0)*pow(2.0, 5.0/7.0)*pow(channel_friction_velocity_reynolds_number, 8.0/7.0))
         , channel_centerline_velocity_reynolds_number(1.28*pow(2.0, -0.0116)*pow(channel_bulk_velocity_reynolds_number,1.0-0.0116))
-{ }
+{
+    // initialize zero tensor
+    for (int d1=0; d1<dim; ++d1) {
+        for (int d2=0; d2<dim; ++d2) {
+            zero_tensor[d1][d2] = 0.0;
+        }
+    }
+}
 
 template <int dim, int nstate>
 void ChannelFlow<dim, nstate>::compute_unsteady_data_and_write_to_table(
@@ -322,7 +329,8 @@ void ChannelFlow<dim,nstate>::update_model_variables(std::shared_ptr<DGBase<dim,
 
     dg->set_unsteady_model_variables(
         bulk_density,
-        this->get_time_step());
+        this->get_time_step(),
+        this->zero_tensor); // <-- no need to update the mean strain rate tensor for this case; passing zero tensor as dummy argument
 }
 
 template<int dim, int nstate>

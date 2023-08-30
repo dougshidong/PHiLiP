@@ -112,6 +112,7 @@ public:
     double channel_friction_velocity_reynolds_number; ///< Channel Reynolds number based on the wall friction velocity
     double channel_bulk_velocity_reynolds_number; ///< Channel Reynolds number based on the bulk velocity
     double time_step; ///< Current time step
+    dealii::Tensor<2,dim,double> mean_strain_rate_tensor; ///< Mean strain rate tensor; used for shear-improved eddy viscosity model
 
 protected:
     /// Evaluate the manufactured solution boundary conditions.

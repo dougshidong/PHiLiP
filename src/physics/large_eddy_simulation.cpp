@@ -59,7 +59,7 @@ real2 LargeEddySimulationBase<dim,nstate,real>
 ::get_tensor_magnitude_sqr (
     const dealii::Tensor<2,dim,real2> &tensor) const
 {
-    real2 tensor_magnitude_sqr; // complex initializes it as 0+0i
+    real2 tensor_magnitude_sqr = 0.0; // complex initializes it as 0+0i
     if(std::is_same<real2,real>::value){
         tensor_magnitude_sqr = 0.0;
     }
@@ -69,6 +69,16 @@ real2 LargeEddySimulationBase<dim,nstate,real>
         }
     }
     return tensor_magnitude_sqr;
+}
+//----------------------------------------------------------------
+template <int dim, int nstate, typename real>
+template<typename real2>
+real2 LargeEddySimulationBase<dim,nstate,real>
+::get_tensor_magnitude (
+    const dealii::Tensor<2,dim,real2> &tensor) const
+{
+    const real2 tensor_magnitude_sqr = this->template get_tensor_magnitude_sqr<real2>(tensor);
+    return sqrt(2.0*tensor_magnitude_sqr);
 }
 //----------------------------------------------------------------
 template <int dim, int nstate, typename real>
@@ -531,9 +541,9 @@ real2 LargeEddySimulation_Smagorinsky<dim,nstate,real>
     // Product of the model constant (Cs) and the filter width (delta)
     const real2 model_constant_times_filter_width = get_model_constant_times_filter_width(cell_index);
     // Get magnitude of strain_rate_tensor
-    const real2 strain_rate_tensor_magnitude_sqr = this->template get_tensor_magnitude_sqr<real2>(strain_rate_tensor);
+    const real2 strain_rate_tensor_magnitude = this->template get_tensor_magnitude<real2>(strain_rate_tensor);
     // Compute the eddy viscosity
-    const real2 eddy_viscosity = model_constant_times_filter_width*model_constant_times_filter_width*sqrt(2.0*strain_rate_tensor_magnitude_sqr);
+    const real2 eddy_viscosity = model_constant_times_filter_width*model_constant_times_filter_width*strain_rate_tensor_magnitude;
 
     return eddy_viscosity;
 }
@@ -914,6 +924,101 @@ real2 LargeEddySimulation_Vreman<dim,nstate,real>
     return eddy_viscosity;
 }
 //----------------------------------------------------------------
+//================================================================
+// Shear-improved Smagorinsky eddy viscosity model
+//================================================================
+template <int dim, int nstate, typename real>
+LargeEddySimulation_ShearImprovedSmagorinsky<dim, nstate, real>::LargeEddySimulation_ShearImprovedSmagorinsky(
+    const double                                              ref_length,
+    const double                                              gamma_gas,
+    const double                                              mach_inf,
+    const double                                              angle_of_attack,
+    const double                                              side_slip_angle,
+    const double                                              prandtl_number,
+    const double                                              reynolds_number_inf,
+    const bool                                                use_constant_viscosity,
+    const double                                              constant_viscosity,
+    const double                                              temperature_inf,
+    const double                                              turbulent_prandtl_number,
+    const double                                              ratio_of_filter_width_to_cell_size,
+    const double                                              model_constant,
+    const double                                              isothermal_wall_temperature,
+    const thermal_boundary_condition_enum                     thermal_boundary_condition_type,
+    std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function,
+    const two_point_num_flux_enum                             two_point_num_flux_type)
+    : LargeEddySimulation_Smagorinsky<dim,nstate,real>(ref_length,
+                                                       gamma_gas,
+                                                       mach_inf,
+                                                       angle_of_attack,
+                                                       side_slip_angle,
+                                                       prandtl_number,
+                                                       reynolds_number_inf,
+                                                       use_constant_viscosity,
+                                                       constant_viscosity,
+                                                       temperature_inf,
+                                                       turbulent_prandtl_number,
+                                                       ratio_of_filter_width_to_cell_size,
+                                                       model_constant,
+                                                       isothermal_wall_temperature,
+                                                       thermal_boundary_condition_type,
+                                                       manufactured_solution_function,
+                                                       two_point_num_flux_type)
+{ }
+//----------------------------------------------------------------
+template <int dim, int nstate, typename real>
+real LargeEddySimulation_ShearImprovedSmagorinsky<dim,nstate,real>
+::compute_eddy_viscosity (
+    const std::array<real,nstate> &primitive_soln,
+    const std::array<dealii::Tensor<1,dim,real>,nstate> &primitive_soln_gradient,
+    const dealii::types::global_dof_index cell_index) const
+{
+    return compute_eddy_viscosity_templated<real>(primitive_soln,primitive_soln_gradient,cell_index);
+}
+//----------------------------------------------------------------
+template <int dim, int nstate, typename real>
+FadType LargeEddySimulation_ShearImprovedSmagorinsky<dim,nstate,real>
+::compute_eddy_viscosity_fad (
+    const std::array<FadType,nstate> &primitive_soln,
+    const std::array<dealii::Tensor<1,dim,FadType>,nstate> &primitive_soln_gradient,
+    const dealii::types::global_dof_index cell_index) const
+{
+    return compute_eddy_viscosity_templated<FadType>(primitive_soln,primitive_soln_gradient,cell_index);
+}
+//----------------------------------------------------------------
+template <int dim, int nstate, typename real>
+template<typename real2>
+real2 LargeEddySimulation_ShearImprovedSmagorinsky<dim,nstate,real>
+::compute_eddy_viscosity_templated (
+    const std::array<real2,nstate> &/*primitive_soln*/,
+    const std::array<dealii::Tensor<1,dim,real2>,nstate> &primitive_soln_gradient,
+    const dealii::types::global_dof_index cell_index) const
+{
+    /* This SGS model modifies the original Smagorinsky model, therefore two references are provided:
+     *  - Reference 1: de la Llave Plata et al. (2019). "On the performance of a high-order multiscale DG approach to LES at increasing Reynolds number."
+     *  - Reference 2: E. Leveque, F. Toschi, L. Shao and J.-P. Bertoglio (2007, J. Fluid Mech.) "Shear-improved Smagorinsky model for large-eddy simulation of wall-bounded turbulent flows"
+     * This implementation uses Equation (14) in reference 1 for the original Smagorinsky model,
+     * and the modification provided by equation (2.4) in reference 2.
+    */
+    // Get velocity gradient
+    const dealii::Tensor<2,dim,real2> vel_gradient 
+        = this->navier_stokes_physics->extract_velocities_gradient_from_primitive_solution_gradient(primitive_soln_gradient);
+    // Get strain rate tensor
+    const dealii::Tensor<2,dim,real2> strain_rate_tensor 
+        = this->navier_stokes_physics->compute_strain_rate_tensor(vel_gradient);
+    
+    // Product of the model constant (Cs) and the filter width (delta)
+    const real2 model_constant_times_filter_width = this->get_model_constant_times_filter_width(cell_index);
+    // Get magnitude of strain_rate_tensor
+    const real2 strain_rate_tensor_magnitude = this->template get_tensor_magnitude<real2>(strain_rate_tensor);
+    // Get magnitude of mean_strain_rate_tensor
+    const real2 mean_strain_rate_tensor_magnitude = this->template get_tensor_magnitude<double>(this->mean_strain_rate_tensor);
+    // Compute the eddy viscosity; Eq.(14) in reference 1 with modification by Eq.(2.4) in reference 2
+    const real2 eddy_viscosity = model_constant_times_filter_width*model_constant_times_filter_width*(
+                                    strain_rate_tensor_magnitude - mean_strain_rate_tensor_magnitude);
+
+    return eddy_viscosity;
+}
+//----------------------------------------------------------------
 //----------------------------------------------------------------
 //----------------------------------------------------------------
 // Instantiate explicitly
@@ -941,6 +1046,12 @@ template class LargeEddySimulation_Vreman      < PHILIP_DIM, PHILIP_DIM+2, FadTy
 template class LargeEddySimulation_Vreman      < PHILIP_DIM, PHILIP_DIM+2, RadType  >;
 template class LargeEddySimulation_Vreman      < PHILIP_DIM, PHILIP_DIM+2, FadFadType >;
 template class LargeEddySimulation_Vreman      < PHILIP_DIM, PHILIP_DIM+2, RadFadType >;
+// -- LargeEddySimulation_ShearImprovedSmagorinsky
+template class LargeEddySimulation_ShearImprovedSmagorinsky < PHILIP_DIM, PHILIP_DIM+2, double >;
+template class LargeEddySimulation_ShearImprovedSmagorinsky < PHILIP_DIM, PHILIP_DIM+2, FadType  >;
+template class LargeEddySimulation_ShearImprovedSmagorinsky < PHILIP_DIM, PHILIP_DIM+2, RadType  >;
+template class LargeEddySimulation_ShearImprovedSmagorinsky < PHILIP_DIM, PHILIP_DIM+2, FadFadType >;
+template class LargeEddySimulation_ShearImprovedSmagorinsky < PHILIP_DIM, PHILIP_DIM+2, RadFadType >;
 //-------------------------------------------------------------------------------------
 // Templated members used by derived classes, defined in respective parent classes
 //-------------------------------------------------------------------------------------
@@ -955,6 +1066,17 @@ template FadType    LargeEddySimulationBase < PHILIP_DIM, PHILIP_DIM+2, double  
 template FadType    LargeEddySimulationBase < PHILIP_DIM, PHILIP_DIM+2, RadType    >::get_tensor_magnitude_sqr< FadType    >(const dealii::Tensor<2,PHILIP_DIM,FadType   > &tensor) const;
 template FadType    LargeEddySimulationBase < PHILIP_DIM, PHILIP_DIM+2, FadFadType >::get_tensor_magnitude_sqr< FadType    >(const dealii::Tensor<2,PHILIP_DIM,FadType   > &tensor) const;
 template FadType    LargeEddySimulationBase < PHILIP_DIM, PHILIP_DIM+2, RadFadType >::get_tensor_magnitude_sqr< FadType    >(const dealii::Tensor<2,PHILIP_DIM,FadType   > &tensor) const;
+// -- get_tensor_magnitude()
+template double     LargeEddySimulationBase < PHILIP_DIM, PHILIP_DIM+2, double     >::get_tensor_magnitude< double     >(const dealii::Tensor<2,PHILIP_DIM,double    > &tensor) const;
+template FadType    LargeEddySimulationBase < PHILIP_DIM, PHILIP_DIM+2, FadType    >::get_tensor_magnitude< FadType    >(const dealii::Tensor<2,PHILIP_DIM,FadType   > &tensor) const;
+template RadType    LargeEddySimulationBase < PHILIP_DIM, PHILIP_DIM+2, RadType    >::get_tensor_magnitude< RadType    >(const dealii::Tensor<2,PHILIP_DIM,RadType   > &tensor) const;
+template FadFadType LargeEddySimulationBase < PHILIP_DIM, PHILIP_DIM+2, FadFadType >::get_tensor_magnitude< FadFadType >(const dealii::Tensor<2,PHILIP_DIM,FadFadType> &tensor) const;
+template RadFadType LargeEddySimulationBase < PHILIP_DIM, PHILIP_DIM+2, RadFadType >::get_tensor_magnitude< RadFadType >(const dealii::Tensor<2,PHILIP_DIM,RadFadType> &tensor) const;
+// -- -- instantiate all the real types with real2 = FadType for automatic differentiation
+template FadType    LargeEddySimulationBase < PHILIP_DIM, PHILIP_DIM+2, double     >::get_tensor_magnitude< FadType    >(const dealii::Tensor<2,PHILIP_DIM,FadType   > &tensor) const;
+template FadType    LargeEddySimulationBase < PHILIP_DIM, PHILIP_DIM+2, RadType    >::get_tensor_magnitude< FadType    >(const dealii::Tensor<2,PHILIP_DIM,FadType   > &tensor) const;
+template FadType    LargeEddySimulationBase < PHILIP_DIM, PHILIP_DIM+2, FadFadType >::get_tensor_magnitude< FadType    >(const dealii::Tensor<2,PHILIP_DIM,FadType   > &tensor) const;
+template FadType    LargeEddySimulationBase < PHILIP_DIM, PHILIP_DIM+2, RadFadType >::get_tensor_magnitude< FadType    >(const dealii::Tensor<2,PHILIP_DIM,FadType   > &tensor) const;
 
 
 } // Physics namespace

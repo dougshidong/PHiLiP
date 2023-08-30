@@ -106,6 +106,7 @@ protected:
     bool is_decaying_homogeneous_isotropic_turbulence = false; ///< Identified if DHIT case; initialized as false.
     bool is_viscous_flow = true; ///< Identifies if viscous flow; initialized as true.
     bool do_calculate_numerical_entropy = false; ///< Identifies if numerical entropy should be calculated; initialized as false.
+    bool do_compute_mean_strain_rate_tensor = false; ///< Identifies if the mean strain rate tensor must be calculated
 
     /// Display additional more specific flow case parameters
     virtual void display_additional_flow_case_specific_parameters() const override;
@@ -119,6 +120,9 @@ public:
 
     /// Function to compute the initial adaptive time step
     virtual double get_adaptive_time_step_initial(std::shared_ptr<DGBase<dim,double>> dg) override;
+
+    /// Update model variables; specifically the mean strain rate tensor magnitude if needed
+    void update_model_variables(std::shared_ptr<DGBase<dim, double>> dg) const override;
 
 protected:
     /// Updates the maximum local wave speed
@@ -161,23 +165,9 @@ protected:
 
     /// Data table storing the exact output times for the velocity field files
     std::shared_ptr<dealii::TableHandler> exact_output_times_of_velocity_field_files_table;
-};
 
-template <int dim, int nstate>
-class PeriodicTurbulence_ShearImprovedEddyViscosity : public PeriodicTurbulence<dim,nstate>
-{
-public:
-    /// Constructor
-    PeriodicTurbulence_ShearImprovedEddyViscosity(const Parameters::AllParameters *const parameters_input);
-
-    /// Destructor
-    ~PeriodicTurbulence_ShearImprovedEddyViscosity() {};
-    
-    /// Initialize model variables; specifically the mean strain rate tensor magnitude
-    void initialize_model_variables(std::shared_ptr<DGBase<dim, double>> dg) const override;
-
-    /// Update model variables; specifically the mean strain rate tensor magnitude
-    void update_model_variables(std::shared_ptr<DGBase<dim, double>> dg) const override;
+    /// Mean strain rate tensor
+    dealii::Tensor<2,dim,double> mean_strain_rate_tensor;
 };
 
 } // FlowSolver namespace

@@ -216,6 +216,14 @@ public:
         const std::array<real,nstate> &conservative_soln,
         const std::array<dealii::Tensor<1,dim,real>,nstate> &conservative_soln_gradient) const;
 
+    /** Nondimensionalized strain rate tensor, S*, from conservative solution and solution gradient
+     *  Reference: Masatsuka 2018 "I do like CFD", p.148, extracted from eq.(4.14.12)
+     */
+    template<typename real2>
+    dealii::Tensor<2,dim,real2> compute_strain_rate_tensor_from_conservative (
+        const std::array<real2,nstate> &conservative_soln,
+        const std::array<dealii::Tensor<1,dim,real2>,nstate> &conservative_soln_gradient) const;
+
     /// Evaluate the square of the deviatoric strain-rate tensor magnitude (i.e. double dot product) from conservative variables and gradient of conservative variables
     real compute_deviatoric_strain_rate_tensor_magnitude_sqr (
         const std::array<real,nstate> &conservative_soln,

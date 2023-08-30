@@ -41,9 +41,24 @@ PeriodicTurbulence<dim, nstate>::PeriodicTurbulence(const PHiLiP::Parameters::Al
     this->is_viscous_flow = (this->all_param.pde_type != Parameters::AllParameters::PartialDifferentialEquation::euler);
     this->do_calculate_numerical_entropy= this->all_param.flow_solver_param.do_calculate_numerical_entropy;
 
+    // Determine if the mean strain rate tensor must be computed
+    using PDE_enum = Parameters::AllParameters::PartialDifferentialEquation;
+    const PDE_enum pde_type = this->all_param.pde_type;
+    if(pde_type == PDE_enum::physics_model) {
+        using Model_enum = Parameters::AllParameters::ModelType;
+        const Model_enum model_type = this->all_param.model_type;
+        if(model_type == Model_enum::large_eddy_simulation) {
+            using SGS_enum = Parameters::PhysicsModelParam::SubGridScaleModel;
+            const SGS_enum SGS_model_type = this->all_param.physics_model_param.SGS_model_type;
+            if(SGS_model_type == SGS_enum::shear_improved_smagorinsky) {
+                this->do_compute_mean_strain_rate_tensor = true;
+            }
+        }
+    }
+    
     // Navier-Stokes object; create using dynamic_pointer_cast and the create_Physics factory
     PHiLiP::Parameters::AllParameters parameters_navier_stokes = this->all_param;
-    parameters_navier_stokes.pde_type = Parameters::AllParameters::PartialDifferentialEquation::navier_stokes;
+    parameters_navier_stokes.pde_type = PDE_enum::navier_stokes;
     this->navier_stokes_physics = std::dynamic_pointer_cast<Physics::NavierStokes<dim,dim+2,double>>(
                 Physics::PhysicsFactory<dim,dim+2,double>::create_Physics(&parameters_navier_stokes));
 
@@ -100,6 +115,9 @@ void PeriodicTurbulence<dim,nstate>::display_additional_flow_case_specific_param
         this->pcout << "- - Freestream Reynolds number: " << this->all_param.navier_stokes_param.reynolds_number_inf << std::endl;
         this->pcout << "- - Freestream Mach number: " << this->all_param.euler_param.mach_inf << std::endl;
     }
+    if(this->do_compute_mean_strain_rate_tensor) {
+        this->pcout << "- - Computing mean strain rate tensor at each time step." << std::endl;  
+    } 
     this->display_grid_parameters();
 }
 
@@ -408,6 +426,16 @@ void PeriodicTurbulence<dim, nstate>::compute_and_update_integrated_quantities(D
     // Initialize the maximum local wave speed to zero; only used for adaptive time step
     if(this->all_param.flow_solver_param.adaptive_time_step == true) this->maximum_local_wave_speed = 0.0;
 
+    // Initialize the strain rate tensor integral (for computing the mean) to zero
+    dealii::Tensor<2,dim,double> strain_rate_tensor_integral;
+    if(this->do_compute_mean_strain_rate_tensor){
+        for (int d1=0; d1<dim; ++d1) {
+            for (int d2=0; d2<dim; ++d2) {
+                strain_rate_tensor_integral[d1][d2] = 0.0;
+            }
+        }
+    }
+
     // Overintegrate the error to make sure there is not integration error in the error estimate
     int overintegrate = 10;
 
@@ -525,7 +553,7 @@ void PeriodicTurbulence<dim, nstate>::compute_and_update_integrated_quantities(D
 
             std::array<double,nstate> soln_at_q;
             std::array<dealii::Tensor<1,dim,double>,nstate> soln_grad_at_q;
-            // Extract solution and gradient in a way that the physics ca n use them.
+            // Extract solution and gradient in a way that the physics can use them.
             for(int istate=0; istate<nstate; istate++){
                 soln_at_q[istate] = soln_at_q_vect[istate][iquad];
                 for(int idim=0; idim<dim; idim++){
@@ -550,6 +578,16 @@ void PeriodicTurbulence<dim, nstate>::compute_and_update_integrated_quantities(D
                 const double local_wave_speed = this->navier_stokes_physics->max_convective_eigenvalue(soln_at_q);
                 if(local_wave_speed > this->maximum_local_wave_speed) this->maximum_local_wave_speed = local_wave_speed;
             }
+
+            if(this->do_compute_mean_strain_rate_tensor){
+                // Get strain rate tensor
+                const dealii::Tensor<2,dim,double> strain_rate_tensor = this->navier_stokes_physics->compute_strain_rate_tensor_from_conservative(soln_at_q,soln_grad_at_q);
+                for (int d1=0; d1<dim; ++d1) {
+                    for (int d2=0; d2<dim; ++d2) {
+                        strain_rate_tensor_integral[d1][d2] += strain_rate_tensor[d1][d2] * quad_weights[iquad] * metric_oper.det_Jac_vol[iquad];
+                    }
+                }
+            }
         }
     }
     if(this->all_param.flow_solver_param.adaptive_time_step == true) {
@@ -559,6 +597,14 @@ void PeriodicTurbulence<dim, nstate>::compute_and_update_integrated_quantities(D
     for(int i_quantity=0; i_quantity<NUMBER_OF_INTEGRATED_QUANTITIES; ++i_quantity) {
         this->integrated_quantities[i_quantity] = dealii::Utilities::MPI::sum(integral_values[i_quantity], this->mpi_communicator);
         this->integrated_quantities[i_quantity] /= this->domain_size; // divide by total domain volume
+    }
+    if(this->do_compute_mean_strain_rate_tensor){
+        for (int d1=0; d1<dim; ++d1) {
+            for (int d2=0; d2<dim; ++d2) {
+                this->mean_strain_rate_tensor[d1][d2] = dealii::Utilities::MPI::sum(strain_rate_tensor_integral[d1][d2], this->mpi_communicator);
+                this->mean_strain_rate_tensor[d1][d2] /= this->domain_size; // divide by total domain volume
+            }
+        }
     }
 }
 
@@ -820,141 +866,15 @@ void PeriodicTurbulence<dim, nstate>::compute_unsteady_data_and_write_to_table(
     }
 }
 
-//=========================================================
-// Shear improved eddy viscosity model for periodic turbulence cases
-//=========================================================
 template <int dim, int nstate>
-PeriodicTurbulence_ShearImprovedEddyViscosity<dim, nstate>::PeriodicTurbulence_ShearImprovedEddyViscosity(const PHiLiP::Parameters::AllParameters *const parameters_input)
-        : PeriodicTurbulence<dim, nstate>(parameters_input)
+void PeriodicTurbulence<dim,nstate>::update_model_variables(std::shared_ptr<DGBase<dim, double>> dg) const
 {
-    // do nothing
-}
-
-template <int dim, int nstate>
-void PeriodicTurbulence_ShearImprovedEddyViscosity<dim,nstate>::initialize_model_variables(std::shared_ptr<DGBase<dim, double>> dg) const
-{
-    dg->set_constant_model_variables(
-        this->channel_height,
-        this->half_channel_height,
-        this->channel_friction_velocity_reynolds_number,
-        this->channel_bulk_velocity_reynolds_number);
-}
-
-template <int dim, int nstate>
-void PeriodicTurbulence_ShearImprovedEddyViscosity<dim,nstate>::update_model_variables(std::shared_ptr<DGBase<dim, double>> dg) const
-{
-    const double bulk_density = get_bulk_density(*dg);
-
-    dg->set_unsteady_model_variables(
-        bulk_density,
-        this->get_time_step());
-}
-
-// update this for the strain rate tensor + check with periodic turbulence for the faster integration implementation
-template<int dim, int nstate>
-double PeriodicTurbulence_ShearImprovedEddyViscosity<dim, nstate>::get_bulk_density(DGBase<dim, double> &dg) const
-{
-    double integral_value = 0.0;
-
-    // Overintegrate the error to make sure there is not integration error in the error estimate
-    int overintegrate = 10;
-    dealii::QGauss<dim> quad_extra(dg.max_degree+1+overintegrate);
-    dealii::FEValues<dim,dim> fe_values_extra(*(dg.high_order_grid->mapping_fe_field), dg.fe_collection[dg.max_degree], quad_extra,
-                                              dealii::update_values /*| dealii::update_gradients*/ | dealii::update_JxW_values | dealii::update_quadrature_points);
-
-    const unsigned int n_quad_pts = fe_values_extra.n_quadrature_points;
-    std::array<double,nstate> soln_at_q;
-    // std::array<dealii::Tensor<1,dim,double>,nstate> soln_grad_at_q;
-
-    std::vector<dealii::types::global_dof_index> dofs_indices (fe_values_extra.dofs_per_cell);
-    for (auto cell : dg.dof_handler.active_cell_iterators()) {
-        if (!cell->is_locally_owned()) continue;
-        fe_values_extra.reinit (cell);
-        cell->get_dof_indices (dofs_indices);
-
-        for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
-
-            std::fill(soln_at_q.begin(), soln_at_q.end(), 0.0);
-            // for (int s=0; s<nstate; ++s) {
-            //     for (int d=0; d<dim; ++d) {
-            //         soln_grad_at_q[s][d] = 0.0;
-            //     }
-            // }
-            for (unsigned int idof=0; idof<fe_values_extra.dofs_per_cell; ++idof) {
-                const unsigned int istate = fe_values_extra.get_fe().system_to_component_index(idof).first;
-                soln_at_q[istate] += dg.solution[dofs_indices[idof]] * fe_values_extra.shape_value_component(idof, iquad, istate);
-                // soln_grad_at_q[istate] += dg.solution[dofs_indices[idof]] * fe_values_extra.shape_grad_component(idof,iquad,istate);
-            }
-            // const dealii::Point<dim> qpoint = (fe_values_extra.quadrature_point(iquad));
-
-            double integrand_value = soln_at_q[0]; // density
-            integral_value += integrand_value * fe_values_extra.JxW(iquad);
-        }
+    if(this->do_compute_mean_strain_rate_tensor) {
+        dg->set_unsteady_model_variables(
+            0.0, // no need to update bulk density
+            0.0, // no need to update time step
+            this->mean_strain_rate_tensor);
     }
-    const double mpi_sum_integral_value = dealii::Utilities::MPI::sum(integral_value, this->mpi_communicator);
-    const double averaged_value = mpi_sum_integral_value/domain_volume;
-    return averaged_value;
-}
-
-// update this for the strain rate tensor + check with periodic turbulence for the faster integration implementation
-template<int dim, int nstate>
-double PeriodicTurbulence_ShearImprovedEddyViscosity<dim, nstate>::get_average_wall_shear_stress(DGBase<dim, double> &dg) const
-{
-    /// Update flags needed at face points.
-    const dealii::UpdateFlags face_update_flags = dealii::update_values | dealii::update_gradients | dealii::update_quadrature_points | dealii::update_JxW_values | dealii::update_normal_vectors;
-    double integral_value = 0.0;
-    double integral_area_value = 0.0;
-
-    // Overintegrate the error to make sure there is not integration error in the error estimate
-    int overintegrate = 10;
-    dealii::QGauss<dim-1> quad_extra(dg.max_degree+1+overintegrate);
-    dealii::FEFaceValues<dim,dim> fe_face_values_extra(*(dg.high_order_grid->mapping_fe_field), dg.fe_collection[dg.max_degree], quad_extra, 
-                                                  face_update_flags);
-
-    
-    std::array<double,nstate> soln_at_q;
-    std::array<dealii::Tensor<1,dim,double>,nstate> soln_grad_at_q;
-
-    std::vector<dealii::types::global_dof_index> dofs_indices (fe_face_values_extra.dofs_per_cell);
-    for (auto cell : dg.dof_handler.active_cell_iterators()) {
-        if (!cell->is_locally_owned()) continue;
-        
-        cell->get_dof_indices (dofs_indices);
-
-        for(unsigned int iface = 0; iface < dealii::GeometryInfo<dim>::faces_per_cell; ++iface){
-            auto face = cell->face(iface);
-            
-            if(face->at_boundary()){
-                const unsigned int boundary_id = face->boundary_id();
-                if(boundary_id==1001){
-                    fe_face_values_extra.reinit (cell,iface);
-                    const unsigned int n_quad_pts = fe_face_values_extra.n_quadrature_points;
-                    for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
-                        std::fill(soln_at_q.begin(), soln_at_q.end(), 0.0);
-                        for (int s=0; s<nstate; ++s) {
-                            for (int d=0; d<dim; ++d) {
-                                soln_grad_at_q[s][d] = 0.0;
-                            }
-                        }
-                        for (unsigned int idof=0; idof<fe_face_values_extra.dofs_per_cell; ++idof) {
-                            const unsigned int istate = fe_face_values_extra.get_fe().system_to_component_index(idof).first;
-                            soln_at_q[istate] += dg.solution[dofs_indices[idof]] * fe_face_values_extra.shape_value_component(idof, iquad, istate);
-                            soln_grad_at_q[istate] += dg.solution[dofs_indices[idof]] * fe_face_values_extra.shape_grad_component(idof,iquad,istate);
-                        }
-                        // const dealii::Point<dim> qpoint = (fe_face_values_extra.quadrature_point(iquad));
-                        const dealii::Tensor<1,dim,double> normal_vector = fe_face_values_extra.normal_vector(iquad);
-                        double integrand_value = this->navier_stokes_physics->compute_wall_shear_stress(soln_at_q,soln_grad_at_q,normal_vector);
-                        integral_value += integrand_value * fe_face_values_extra.JxW(iquad);
-                        integral_area_value += fe_face_values_extra.JxW(iquad);
-                    }
-                }
-            }
-        }
-    }
-    const double mpi_sum_integral_value = dealii::Utilities::MPI::sum(integral_value, this->mpi_communicator);
-    const double mpi_sum_integral_area_value = dealii::Utilities::MPI::sum(integral_area_value, this->mpi_communicator);
-    const double averaged_value = mpi_sum_integral_value/mpi_sum_integral_area_value;
-    return averaged_value;
 }
 
 #if PHILIP_DIM==3

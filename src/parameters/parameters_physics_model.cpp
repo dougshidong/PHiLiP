@@ -21,12 +21,14 @@ void PhysicsModelParam::declare_parameters (dealii::ParameterHandler &prm)
                               dealii::Patterns::Selection(
                               " smagorinsky | "
                               " wall_adaptive_local_eddy_viscosity | "
-                              " vreman"),
+                              " vreman | "
+                              " shear_improved_smagorinsky "),
                               "Enum of sub-grid scale models."
                               "Choices are "
                               " <smagorinsky | "
                               "  wall_adaptive_local_eddy_viscosity | "
-                              "  vreman>.");
+                              "  vreman | "
+                              "  shear_improved_smagorinsky>.");
 
             prm.declare_entry("turbulent_prandtl_number", "0.6",
                               dealii::Patterns::Double(1e-15, dealii::Patterns::Double::max_double_value),
@@ -87,6 +89,7 @@ void PhysicsModelParam::parse_parameters (dealii::ParameterHandler &prm)
             if(SGS_model_type_string == "smagorinsky")                        SGS_model_type = smagorinsky;
             if(SGS_model_type_string == "wall_adaptive_local_eddy_viscosity") SGS_model_type = wall_adaptive_local_eddy_viscosity;
             if(SGS_model_type_string == "vreman")                             SGS_model_type = vreman;
+            if(SGS_model_type_string == "shear_improved_smagorinsky")         SGS_model_type = shear_improved_smagorinsky;
 
             turbulent_prandtl_number           = prm.get_double("turbulent_prandtl_number");
             smagorinsky_model_constant         = prm.get_double("smagorinsky_model_constant");

@@ -22,6 +22,7 @@ public:
         smagorinsky
        ,wall_adaptive_local_eddy_viscosity
        ,vreman
+       ,shear_improved_smagorinsky
     };
     /// Store the SubGridScale (SGS) model type
     SubGridScaleModel SGS_model_type;

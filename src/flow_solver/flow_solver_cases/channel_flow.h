@@ -92,6 +92,8 @@ protected:
      **/
     std::vector<double> get_mesh_step_size_y_direction_carton_de_wiart_et_al() const;
 
+    dealii::Tensor<2,dim,double> zero_tensor; ///< Tensor of zeros
+
 public:
     /// Function to compute the adaptive time step
     double get_adaptive_time_step(std::shared_ptr<DGBase<dim,double>> dg) const override;

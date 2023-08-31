@@ -5,7 +5,7 @@
 
 #include "physics.h"
 #include "euler.h"
-#include "inviscid_real_gas.h"
+#include "inviscid_real_gas.h" 
 
 namespace PHiLiP {
 namespace Physics {
@@ -187,33 +187,41 @@ inline real2 InviscidRealGas<dim,nstate,real>
     return vel2;
 }
 
-// template <int dim, int nstate, typename real>
-// inline std::array<real,nstate> InviscidRealGas<dim,nstate,real>
-// :: get_NASA_coeff ( const real temperature ) const
-// {
-//     /// delete this
-//     temperature = temperature;
-//     ///
-//     /// IT is for N2, T range: 200[K] - 1000[K]
-//     real a1 = 2.210371497e+04;
-//     real a2 = -3.818461820e+02;
-//     real a3 = 6.082738360e+00;
-//     real a4 = -8.530914410e-03;
-//     real a5 = 1.384646189e-05;
-//     real a6 = -9.625793620e-09;
-//     real a7= 2.519705809e-12;
-//     real b1 = 7.108460860e+02;
-//     /// array
-//     real coeff[0] = a1;
-//     real coeff[1] = a2;
-//     real coeff[2] = a3;
-//     real coeff[3] = a4;
-//     real coeff[4] = a5;
-//     real coeff[5] = a6;
-//     real coeff[6] = a7;
-//     real coeff[7] = b1;
-//     return coeff;
-// }
+/// It is for NASA polynom1ial
+template <int dim, int nstate, typename real>
+dealii::Tensor<1,8,real> InviscidRealGas<dim,nstate,real>
+:: get_NASA_coefficients (const int species)
+{
+    dealii::Tensor<1,8,real> NASA_CAP;
+    real a1,a2,a3,a4,a5,a6,a7,b1;
+
+    if (species == 1) // N2: Nitrogen
+    {
+        /// It is for N2, T range: 200[K] - 1000[K]
+        a1 =  2.210371497e+04;
+        a2 = -3.818461820e+02;
+        a3 =  6.082738360e+00;
+        a4 = -8.530914410e-03;
+        a5 =  1.384646189e-05;
+        a6 = -9.625793620e-09;
+        a7 =  2.519705809e-12;
+        b1 =  7.108460860e+02;     
+    }
+    if (species == 2) // O2: Oxygen, etc...
+    {
+        //... write data for all the species we use
+    }
+    NASA_CAP[0] = a1;
+    NASA_CAP[1] = a2;
+    NASA_CAP[2] = a3;
+    NASA_CAP[3] = a4;
+    NASA_CAP[4] = a5;
+    NASA_CAP[5] = a6;
+    NASA_CAP[6] = a7;
+    NASA_CAP[7] = b1;
+
+    return NASA_CAP;
+}
 
 /// It IS FOR Cp computation
 template <int dim, int nstate, typename real>
@@ -407,6 +415,57 @@ std::array<dealii::Tensor<1,dim,real>,nstate> InviscidRealGas<dim,nstate,real>
     }
     return conv_flux;
 }
+
+// /// array test
+// /// IT IS FOR ALGORITHM 7
+// template <int dim, int nstate, typename real>
+// std::array<dealii::Tensor<1,dim,real>,nstate> InviscidRealGas<dim,nstate,real>
+// ::array_test (const std::array<real,nstate> &conservative_soln) const
+// {
+//     std::array<dealii::Tensor<1,dim,real>,nstate> coeff;
+//     coeff[0] = conservative_soln[0];
+//     coeff[1] = 1.0;
+//     coeff[2] = 2.0;
+//     coeff[3] = 3.0;
+//     coeff[4] = 4.0;
+//     return coeff;
+// } 
+
+// /// It is for NASA polynom1ial
+// template <int dim, int nstate, typename real>
+// dealii::Tensor<1,8,real> InviscidRealGas<dim,nstate,real>
+// :: get_NASA_coefficients (const int species)
+// {
+//     dealii::Tensor<1,8,real> NASA_CAP;
+//     real a1,a2,a3,a4,a5,a6,a7,b1;
+
+//     if (species == 1) // N2: Nitrogen
+//     {
+//         /// It is for N2, T range: 200[K] - 1000[K]
+//         a1 =  2.210371497e+04;
+//         a2 = -3.818461820e+02;
+//         a3 =  6.082738360e+00;
+//         a4 = -8.530914410e-03;
+//         a5 =  1.384646189e-05;
+//         a6 = -9.625793620e-09;
+//         a7 =  2.519705809e-12;
+//         b1 =  7.108460860e+02;     
+//     }
+//     if (species == 2) // O2: Oxygen, etc...
+//     {
+//         //... write data for all the species we use
+//     }
+//     NASA_CAP[0] = a1;
+//     NASA_CAP[1] = a2;
+//     NASA_CAP[2] = a3;
+//     NASA_CAP[3] = a4;
+//     NASA_CAP[4] = a5;
+//     NASA_CAP[5] = a6;
+//     NASA_CAP[6] = a7;
+//     NASA_CAP[7] = b1;
+
+//     return NASA_CAP;
+// }
 
 
 

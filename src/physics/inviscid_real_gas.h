@@ -102,8 +102,8 @@ protected:
     template<typename real2>
     real2 compute_velocity_squared ( const dealii::Tensor<1,dim,real2> &velocities ) const;
 
-    // /// Get NASA coefficients
-    // std::array<real,8> get_NASA_coeff ( const real temperature ) const;
+    /// Get NASA coeefients from NASA-CAP program
+    dealii::Tensor<1,8,real> get_NASA_coefficients (const int species);  
 
     /// Compute Cp from temperature
     real compute_Cp ( const real temperature ) const;
@@ -123,6 +123,10 @@ protected:
     /// Compute convective flux from conservative_soln
     std::array<dealii::Tensor<1,dim,real>,nstate> convective_flux (
         const std::array<real,nstate> &conservative_soln) const;
+
+    // /// array test
+    // std::array<dealii::Tensor<1,dim,real>,nstate> array_test (
+    //     const std::array<real,nstate> &conservative_soln) const; 
 
 
 };

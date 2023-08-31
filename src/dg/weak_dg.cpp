@@ -148,7 +148,7 @@ DGWeak<dim,nstate,real,MeshType>::DGWeak(
     const unsigned int max_degree_input,
     const unsigned int grid_degree_input,
     const std::shared_ptr<Triangulation> triangulation_input)
-    : DGBaseState<dim,nstate,real,MeshType>::DGBaseState(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input)
+    : this->DGBaseState(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input)
 { }
 // Destructor
 template <int dim, int nstate, typename real,typename MeshType>
@@ -584,7 +584,7 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_volume_term_explicit(
 
     std::vector< real > soln_coeff(n_soln_dofs_int);
     for (unsigned int idof = 0; idof < n_soln_dofs_int; ++idof) {
-        soln_coeff[idof] = DGBase<dim,real,MeshType>::solution(soln_dof_indices_int[idof]);
+        soln_coeff[idof] = this->solution(soln_dof_indices_int[idof]);
     }
 
     typename dealii::DoFHandler<dim>::active_cell_iterator artificial_dissipation_cell(
@@ -630,7 +630,7 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_volume_term_explicit(
         conv_phys_flux_at_q[iquad] = this->pde_physics_double->convective_flux (soln_at_q[iquad]);
         diss_phys_flux_at_q[iquad] = this->pde_physics_double->dissipative_flux (soln_at_q[iquad], soln_grad_at_q[iquad], current_cell_index);
         if(this->all_parameters->artificial_dissipation_param.add_artificial_dissipation) {
-            const ADArrayTensor1 artificial_diss_phys_flux_at_q = DGBaseState<dim,nstate,real,MeshType>::artificial_dissip->calc_artificial_dissipation_flux (soln_at_q[iquad], soln_grad_at_q[iquad], artificial_diss_coeff);
+            const ADArrayTensor1 artificial_diss_phys_flux_at_q = this->artificial_dissip->calc_artificial_dissipation_flux (soln_at_q[iquad], soln_grad_at_q[iquad], artificial_diss_coeff);
             for (int istate=0; istate<nstate; istate++) {
                 diss_phys_flux_at_q[iquad][istate] += artificial_diss_phys_flux_at_q[istate];
             }
@@ -639,7 +639,7 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_volume_term_explicit(
             source_at_q.resize(n_quad_pts);
             const dealii::Point<dim,real> point = fe_values_vol.quadrature_point(iquad);
             source_at_q[iquad] = this->pde_physics_double->source_term (point, soln_at_q[iquad], this->current_time, current_cell_index);
-            //std::array<real,nstate> artificial_source_at_q = DGBaseState<dim,nstate,real,MeshType>::pde_physics_double->artificial_source_term (artificial_diss_coeff, point, soln_at_q[iquad]);
+            //std::array<real,nstate> artificial_source_at_q = this->pde_physics_double->artificial_source_term (artificial_diss_coeff, point, soln_at_q[iquad]);
             //for (int s=0;s<nstate;++s) source_at_q[iquad][s] += artificial_source_at_q[s];
         }
         if(this->pde_physics_double->has_nonzero_physical_source){
@@ -657,7 +657,7 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_volume_term_explicit(
     //const real cell_diameter = cell_volume;
     const real cell_radius = 0.5 * cell_diameter;
     this->cell_volume[cell_index] = cell_volume;
-    this->max_dt_cell[cell_index] = DGBaseState<dim,nstate,real,MeshType>::evaluate_CFL ( soln_at_q, max_artificial_diss, cell_radius, cell_degree);
+    this->max_dt_cell[cell_index] = this->evaluate_CFL ( soln_at_q, max_artificial_diss, cell_radius, cell_degree);
 
     // Weak form
     // The right-hand side sends all the term to the side of the source term
@@ -733,7 +733,7 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_boundary_term_explicit(
     // AD variable
     std::vector< real > soln_coeff_int(n_soln_dofs_int);
     for (unsigned int idof = 0; idof < n_soln_dofs_int; ++idof) {
-        soln_coeff_int[idof] = DGBase<dim,real,MeshType>::solution(soln_dof_indices_int[idof]);
+        soln_coeff_int[idof] = this->solution(soln_dof_indices_int[idof]);
     }
 
     for (unsigned int iquad=0; iquad<n_face_quad_pts; ++iquad) {
@@ -783,7 +783,7 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_boundary_term_explicit(
         }
 
         const dealii::Point<dim, real> real_quad_point = quad_pts[iquad];
-        DGBaseState<dim,nstate,real,MeshType>::pde_physics_double->boundary_face_values (boundary_id, real_quad_point, normal_int, soln_int[iquad], soln_grad_int[iquad], soln_ext[iquad], soln_grad_ext[iquad]);
+        this->pde_physics_double->boundary_face_values (boundary_id, real_quad_point, normal_int, soln_int[iquad], soln_grad_int[iquad], soln_ext[iquad], soln_grad_ext[iquad]);
 
         // Evaluate physical convective flux, physical dissipative flux
         // Following the the boundary treatment given by
@@ -796,9 +796,9 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_boundary_term_explicit(
         // Changing it back to the standdard F* = F*(Uin, Ubc)
         // This is known not be adjoint consistent as per the paper above. Page 85, second to last paragraph.
         // Losing 2p+1 OOA on functionals for all PDEs.
-        conv_num_flux_dot_n[iquad] = DGBaseState<dim,nstate,real,MeshType>::conv_num_flux_double->evaluate_flux(soln_int[iquad], soln_ext[iquad], normal_int);
+        conv_num_flux_dot_n[iquad] = this->conv_num_flux_double->evaluate_flux(soln_int[iquad], soln_ext[iquad], normal_int);
         // Notice that the flux uses the solution given by the Dirichlet or Neumann boundary condition
-        diss_soln_num_flux[iquad] = DGBaseState<dim,nstate,real,MeshType>::diss_num_flux_double->evaluate_solution_flux(soln_ext[iquad], soln_ext[iquad], normal_int);
+        diss_soln_num_flux[iquad] = this->diss_num_flux_double->evaluate_solution_flux(soln_ext[iquad], soln_ext[iquad], normal_int);
 
         ADArrayTensor1 diss_soln_jump_int;
         for (int s=0; s<nstate; s++) {
@@ -814,7 +814,7 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_boundary_term_explicit(
             }
         }
 
-        diss_auxi_num_flux_dot_n[iquad] = DGBaseState<dim,nstate,real,MeshType>::diss_num_flux_double->evaluate_auxiliary_flux(
+        diss_auxi_num_flux_dot_n[iquad] = this->diss_num_flux_double->evaluate_auxiliary_flux(
             current_cell_index,
             current_cell_index,
             artificial_diss_coeff,
@@ -907,10 +907,10 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_face_term_explicit(
     std::vector<doubleArrayTensor1> diss_flux_jump_ext(n_face_quad_pts); // u*-u_ext
     // AD variable
     for (unsigned int idof = 0; idof < n_soln_dofs_int; ++idof) {
-        soln_coeff_int[idof] = DGBase<dim,real,MeshType>::solution(soln_dof_indices_int[idof]);
+        soln_coeff_int[idof] = this->solution(soln_dof_indices_int[idof]);
     }
     for (unsigned int idof = 0; idof < n_soln_dofs_ext; ++idof) {
-        soln_coeff_ext[idof] = DGBase<dim,real,MeshType>::solution(soln_dof_indices_ext[idof]);
+        soln_coeff_ext[idof] = this->solution(soln_dof_indices_ext[idof]);
     }
     for (unsigned int iquad=0; iquad<n_face_quad_pts; ++iquad) {
         for (int istate=0; istate<nstate; istate++) {
@@ -973,8 +973,8 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_face_term_explicit(
         }
 
         // Evaluate physical convective flux, physical dissipative flux, and source term
-        conv_num_flux_dot_n[iquad] = DGBaseState<dim,nstate,real,MeshType>::conv_num_flux_double->evaluate_flux(soln_int[iquad], soln_ext[iquad], normal_int);
-        diss_soln_num_flux[iquad] = DGBaseState<dim,nstate,real,MeshType>::diss_num_flux_double->evaluate_solution_flux(soln_int[iquad], soln_ext[iquad], normal_int);
+        conv_num_flux_dot_n[iquad] = this->conv_num_flux_double->evaluate_flux(soln_int[iquad], soln_ext[iquad], normal_int);
+        diss_soln_num_flux[iquad] = this->diss_num_flux_double->evaluate_solution_flux(soln_int[iquad], soln_ext[iquad], normal_int);
 
         doubleArrayTensor1 diss_soln_jump_int, diss_soln_jump_ext;
         for (int s=0; s<nstate; s++) {
@@ -983,19 +983,19 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_face_term_explicit(
                 diss_soln_jump_ext[s][d] = (diss_soln_num_flux[iquad][s] - soln_ext[iquad][s]) * normal_ext[d];
             }
         }
-        diss_flux_jump_int[iquad] = DGBaseState<dim,nstate,real,MeshType>::pde_physics_double->dissipative_flux (soln_int[iquad], diss_soln_jump_int, current_cell_index);
-        diss_flux_jump_ext[iquad] = DGBaseState<dim,nstate,real,MeshType>::pde_physics_double->dissipative_flux (soln_ext[iquad], diss_soln_jump_ext, neighbor_cell_index);
+        diss_flux_jump_int[iquad] = this->pde_physics_double->dissipative_flux (soln_int[iquad], diss_soln_jump_int, current_cell_index);
+        diss_flux_jump_ext[iquad] = this->pde_physics_double->dissipative_flux (soln_ext[iquad], diss_soln_jump_ext, neighbor_cell_index);
 
         if (this->all_parameters->artificial_dissipation_param.add_artificial_dissipation) {
-            const doubleArrayTensor1 artificial_diss_flux_jump_int = DGBaseState<dim,nstate,real,MeshType>::artificial_dissip->calc_artificial_dissipation_flux(soln_int[iquad], diss_soln_jump_int, artificial_diss_coeff_int);
-            const doubleArrayTensor1 artificial_diss_flux_jump_ext = DGBaseState<dim,nstate,real,MeshType>::artificial_dissip->calc_artificial_dissipation_flux(soln_ext[iquad], diss_soln_jump_ext, artificial_diss_coeff_ext);
+            const doubleArrayTensor1 artificial_diss_flux_jump_int = this->artificial_dissip->calc_artificial_dissipation_flux(soln_int[iquad], diss_soln_jump_int, artificial_diss_coeff_int);
+            const doubleArrayTensor1 artificial_diss_flux_jump_ext = this->artificial_dissip->calc_artificial_dissipation_flux(soln_ext[iquad], diss_soln_jump_ext, artificial_diss_coeff_ext);
             for (int s=0; s<nstate; s++) {
                 diss_flux_jump_int[iquad][s] += artificial_diss_flux_jump_int[s];
                 diss_flux_jump_ext[iquad][s] += artificial_diss_flux_jump_ext[s];
             }
         }
 
-        diss_auxi_num_flux_dot_n[iquad] = DGBaseState<dim,nstate,real,MeshType>::diss_num_flux_double->evaluate_auxiliary_flux(
+        diss_auxi_num_flux_dot_n[iquad] = this->diss_num_flux_double->evaluate_auxiliary_flux(
             current_cell_index,
             neighbor_cell_index,
             artificial_diss_coeff_int,
@@ -1478,7 +1478,7 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_boundary_term(
         diss_flux_jump_int[iquad] = physics.dissipative_flux (soln_int[iquad], diss_soln_jump_int, current_cell_index);
 
         if (this->all_parameters->artificial_dissipation_param.add_artificial_dissipation) {
-            const ADArrayTensor1 artificial_diss_flux_jump_int = DGBaseState<dim,nstate,real,MeshType>::artificial_dissip->calc_artificial_dissipation_flux(soln_int[iquad], diss_soln_jump_int,artificial_diss_coeff_at_q[iquad]);
+            const ADArrayTensor1 artificial_diss_flux_jump_int = this->artificial_dissip->calc_artificial_dissipation_flux(soln_int[iquad], diss_soln_jump_int,artificial_diss_coeff_at_q[iquad]);
             for (int s=0; s<nstate; s++) {
                 diss_flux_jump_int[iquad][s] += artificial_diss_flux_jump_int[s];
             }
@@ -1587,9 +1587,9 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_boundary_term_derivatives(
         local_dual[itest] = this->dual[soln_dof_indices[itest]];
     }
 
-    const auto &physics = *(DGBaseState<dim,nstate,real,MeshType>::pde_physics_fad_fad);
-    const auto &conv_num_flux = *(DGBaseState<dim,nstate,real,MeshType>::conv_num_flux_fad_fad);
-    const auto &diss_num_flux = *(DGBaseState<dim,nstate,real,MeshType>::diss_num_flux_fad_fad);
+    const auto &physics = *(this->pde_physics_fad_fad);
+    const auto &conv_num_flux = *(this->conv_num_flux_fad_fad);
+    const auto &diss_num_flux = *(this->diss_num_flux_fad_fad);
 
     std::vector<adtype> rhs(n_soln_dofs);
     adtype dual_dot_residual;
@@ -1966,9 +1966,9 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_boundary_term_derivatives(
             quadrature,
             metric_dof_indices,
             soln_dof_indices,
-            *(DGBaseState<dim,nstate,real,MeshType>::pde_physics_rad_fad),
-            *(DGBaseState<dim,nstate,real,MeshType>::conv_num_flux_rad_fad),
-            *(DGBaseState<dim,nstate,real,MeshType>::diss_num_flux_rad_fad),
+            *(this->pde_physics_rad_fad),
+            *(this->conv_num_flux_rad_fad),
+            *(this->diss_num_flux_rad_fad),
             local_rhs_cell,
             compute_dRdW, compute_dRdX, compute_d2R);
     } else if (compute_dRdW || compute_dRdX) {
@@ -1983,9 +1983,9 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_boundary_term_derivatives(
             quadrature,
             metric_dof_indices,
             soln_dof_indices,
-            *(DGBaseState<dim,nstate,real,MeshType>::pde_physics_rad),
-            *(DGBaseState<dim,nstate,real,MeshType>::conv_num_flux_rad),
-            *(DGBaseState<dim,nstate,real,MeshType>::diss_num_flux_rad),
+            *(this->pde_physics_rad),
+            *(this->conv_num_flux_rad),
+            *(this->diss_num_flux_rad),
             local_rhs_cell,
             compute_dRdW, compute_dRdX, compute_d2R);
     } else {
@@ -2000,9 +2000,9 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_boundary_term_derivatives(
             quadrature,
             metric_dof_indices,
             soln_dof_indices,
-            *(DGBaseState<dim,nstate,real,MeshType>::pde_physics_double),
-            *(DGBaseState<dim,nstate,real,MeshType>::conv_num_flux_double),
-            *(DGBaseState<dim,nstate,real,MeshType>::diss_num_flux_double),
+            *(this->pde_physics_double),
+            *(this->conv_num_flux_double),
+            *(this->diss_num_flux_double),
             local_rhs_cell,
             compute_dRdW, compute_dRdX, compute_d2R);
     }
@@ -2509,8 +2509,8 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_face_term(
         if (this->all_parameters->artificial_dissipation_param.add_artificial_dissipation) {
             //const ADArrayTensor1 artificial_diss_flux_jump_int = physics.artificial_dissipative_flux (artificial_diss_coeff_int, soln_int[iquad], diss_soln_jump_int);
             //const ADArrayTensor1 artificial_diss_flux_jump_ext = physics.artificial_dissipative_flux (artificial_diss_coeff_ext, soln_ext[iquad], diss_soln_jump_ext);
-            const ADArrayTensor1 artificial_diss_flux_jump_int =  DGBaseState<dim,nstate,real,MeshType>::artificial_dissip->calc_artificial_dissipation_flux(soln_int[iquad], diss_soln_jump_int,artificial_diss_coeff_at_q[iquad]);
-            const ADArrayTensor1 artificial_diss_flux_jump_ext =  DGBaseState<dim,nstate,real,MeshType>::artificial_dissip->calc_artificial_dissipation_flux(soln_ext[iquad], diss_soln_jump_ext,artificial_diss_coeff_at_q[iquad]);
+            const ADArrayTensor1 artificial_diss_flux_jump_int =  this->artificial_dissip->calc_artificial_dissipation_flux(soln_int[iquad], diss_soln_jump_int,artificial_diss_coeff_at_q[iquad]);
+            const ADArrayTensor1 artificial_diss_flux_jump_ext =  this->artificial_dissip->calc_artificial_dissipation_flux(soln_ext[iquad], diss_soln_jump_ext,artificial_diss_coeff_at_q[iquad]);
             for (int s=0; s<nstate; s++) {
                 diss_flux_jump_int[s] += artificial_diss_flux_jump_int[s];
                 diss_flux_jump_ext[s] += artificial_diss_flux_jump_ext[s];
@@ -2677,9 +2677,9 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_face_term_derivatives(
     std::vector<adtype> rhs_ext(n_soln_dofs_ext);
     adtype dual_dot_residual;
 
-    const auto &physics = *(DGBaseState<dim,nstate,real,MeshType>::pde_physics_fad_fad);
-    const auto &conv_num_flux = *(DGBaseState<dim,nstate,real,MeshType>::conv_num_flux_fad_fad);
-    const auto &diss_num_flux = *(DGBaseState<dim,nstate,real,MeshType>::diss_num_flux_fad_fad);
+    const auto &physics = *(this->pde_physics_fad_fad);
+    const auto &conv_num_flux = *(this->conv_num_flux_fad_fad);
+    const auto &diss_num_flux = *(this->diss_num_flux_fad_fad);
     assemble_face_term(
         cell,
         current_cell_index,
@@ -3796,7 +3796,7 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_volume_term_derivatives(
         current_cell_index,
         soln_coeff, coords_coeff, local_dual,
         fe_soln, fe_metric, quadrature,
-        *(DGBaseState<dim,nstate,real,MeshType>::pde_physics_fad_fad),
+        *(this->pde_physics_fad_fad),
         rhs, dual_dot_residual,
         compute_metric_derivatives, fe_values_vol);
 
@@ -4149,7 +4149,7 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_volume_term_derivatives(
             metric_dof_indices, soln_dof_indices,
             local_rhs_cell,
             fe_values_lagrange,
-            *(DGBaseState<dim,nstate,real,MeshType>::pde_physics_rad_fad),
+            *(this->pde_physics_rad_fad),
             compute_dRdW, compute_dRdX, compute_d2R);
     } else if (compute_dRdW || compute_dRdX) {
         assemble_volume_codi_taped_derivatives<codi_JacobianComputationType>(
@@ -4160,7 +4160,7 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_volume_term_derivatives(
             metric_dof_indices, soln_dof_indices,
             local_rhs_cell,
             fe_values_lagrange,
-            *(DGBaseState<dim,nstate,real,MeshType>::pde_physics_rad),
+            *(this->pde_physics_rad),
             compute_dRdW, compute_dRdX, compute_d2R);
     } else {
         assemble_volume_residual(
@@ -4171,7 +4171,7 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_volume_term_derivatives(
             metric_dof_indices, soln_dof_indices,
             local_rhs_cell,
             fe_values_lagrange,
-            *(DGBaseState<dim,nstate,real,MeshType>::pde_physics_double),
+            *(this->pde_physics_double),
             compute_dRdW, compute_dRdX, compute_d2R);
     }
 }
@@ -4220,9 +4220,9 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_face_term_derivatives(
             metric_dof_indices_ext,
             soln_dof_indices_int,
             soln_dof_indices_ext,
-            *(DGBaseState<dim,nstate,real,MeshType>::pde_physics_rad_fad),
-            *(DGBaseState<dim,nstate,real,MeshType>::conv_num_flux_rad_fad),
-            *(DGBaseState<dim,nstate,real,MeshType>::diss_num_flux_rad_fad),
+            *(this->pde_physics_rad_fad),
+            *(this->conv_num_flux_rad_fad),
+            *(this->diss_num_flux_rad_fad),
             local_rhs_int_cell,
             local_rhs_ext_cell,
             compute_dRdW, compute_dRdX, compute_d2R);
@@ -4245,9 +4245,9 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_face_term_derivatives(
             metric_dof_indices_ext,
             soln_dof_indices_int,
             soln_dof_indices_ext,
-            *(DGBaseState<dim,nstate,real,MeshType>::pde_physics_rad),
-            *(DGBaseState<dim,nstate,real,MeshType>::conv_num_flux_rad),
-            *(DGBaseState<dim,nstate,real,MeshType>::diss_num_flux_rad),
+            *(this->pde_physics_rad),
+            *(this->conv_num_flux_rad),
+            *(this->diss_num_flux_rad),
             local_rhs_int_cell,
             local_rhs_ext_cell,
             compute_dRdW, compute_dRdX, compute_d2R);
@@ -4270,9 +4270,9 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_face_term_derivatives(
             metric_dof_indices_ext,
             soln_dof_indices_int,
             soln_dof_indices_ext,
-            *(DGBaseState<dim,nstate,real,MeshType>::pde_physics_double),
-            *(DGBaseState<dim,nstate,real,MeshType>::conv_num_flux_double),
-            *(DGBaseState<dim,nstate,real,MeshType>::diss_num_flux_double),
+            *(this->pde_physics_double),
+            *(this->conv_num_flux_double),
+            *(this->diss_num_flux_double),
             local_rhs_int_cell,
             local_rhs_ext_cell,
             compute_dRdW, compute_dRdX, compute_d2R);

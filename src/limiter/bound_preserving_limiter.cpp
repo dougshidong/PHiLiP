@@ -24,6 +24,7 @@
 #include <deal.II/hp/fe_values.h>
 
 #include "bound_preserving_limiter.h"
+#include "physics/physics_factory.h"
 
 namespace PHiLiP {
         // Constructor
@@ -492,15 +493,38 @@ namespace PHiLiP {
         **********************************/
         // Constructor
         template <int dim, int nstate, typename real>
-        PositivityPreservingLimiter<dim, nstate, real>::PositivityPreservingLimiter(
+        PositivityPreservingLimiter_Zhang2010<dim, nstate, real>::PositivityPreservingLimiter_Zhang2010(
             const Parameters::AllParameters* const parameters_input)
             : BoundPreservingLimiter<dim,real>::BoundPreservingLimiter(nstate, parameters_input)
         {
+            using PDE_enum = Parameters::AllParameters::PartialDifferentialEquation;
+            PDE_enum pde_type = parameters_input->pde_type;
+
+            std::shared_ptr< ManufacturedSolutionFunction<dim, real> >  manufactured_solution_function
+                = ManufacturedSolutionFactory<dim, real>::create_ManufacturedSolution(parameters_input, nstate);
+
+            if (pde_type == PDE_enum::euler && nstate == dim + 2)
+            {
+                euler_physics = std::make_shared < Physics::Euler<dim, nstate, real> >(
+                    parameters_input,
+                    parameters_input->euler_param.ref_length,
+                    parameters_input->euler_param.gamma_gas,
+                    parameters_input->euler_param.mach_inf,
+                    parameters_input->euler_param.angle_of_attack,
+                    parameters_input->euler_param.side_slip_angle,
+                    manufactured_solution_function,
+                    parameters_input->two_point_num_flux_type);
+            }
+            else
+            {
+                euler_physics = nullptr;
+            }
+
             tvbLimiter = std::make_shared < TVBLimiter<dim, nstate, real> >(parameters_input);
         }
 
         template <int dim, int nstate, typename real>
-        void PositivityPreservingLimiter<dim, nstate, real>::limit(
+        void PositivityPreservingLimiter_Zhang2010<dim, nstate, real>::limit(
             dealii::LinearAlgebra::distributed::Vector<double>& solution,
             const dealii::DoFHandler<dim>& dof_handler,
             const dealii::hp::FECollection<dim>& fe_collection,
@@ -591,24 +615,14 @@ namespace PHiLiP {
                     }
                 }
 
-                real eps = 1e-13;
-                real gamma = 1.4;
+                real eps = this->all_parameters->pos_eps;
 
                 if (nstate == PHILIP_DIM + 2) {
                     // compute value of pressure at soln_cell_avg
-                    real rho_avg = soln_cell_avg[0];
-                    real tot_energy_avg = soln_cell_avg[nstate - 1];
-                    real m_avg = soln_cell_avg[1];
-
-
-                    real p_avg = (gamma - 1) * (tot_energy_avg - 0.5 * (((m_avg * m_avg) / rho_avg)));
-                    if (dim > 1)
-                        p_avg += -0.5 * ((soln_cell_avg[2] * soln_cell_avg[2]) / rho_avg);
-                    if (dim > 2)
-                        p_avg += -0.5 * ((soln_cell_avg[3] * soln_cell_avg[3]) / rho_avg);
+                    real p_avg = euler_physics->compute_pressure(soln_cell_avg);
 
                     //get epsilon (lower bound for density) for theta limiter
-                    eps = std::min({ this->all_parameters->pos_eps, rho_avg, p_avg });
+                    eps = std::min({ this->all_parameters->pos_eps, soln_cell_avg[0], p_avg});
                     if (eps < 0) eps = this->all_parameters->pos_eps;
                 }
 
@@ -630,13 +644,12 @@ namespace PHiLiP {
 
                 if (nstate == PHILIP_DIM + 2) {
                     std::vector< real > p_lim(n_quad_pts);
+                    std::array<real, nstate> soln_at_iquad = {};
                     for (unsigned int iquad = 0; iquad < n_quad_pts; ++iquad) {
-                        p_lim[iquad] = (gamma - 1) * (soln_at_q[nstate - 1][iquad] -
-                            0.5 * ((soln_at_q[1][iquad] * soln_at_q[1][iquad]) / soln_at_q[0][iquad]));
-                        if (dim > 1)
-                            p_lim[iquad] += (gamma - 1) * (-0.5 * ((soln_at_q[2][iquad] * soln_at_q[2][iquad]) / soln_at_q[0][iquad]));
-                        if (dim > 2)
-                            p_lim[iquad] += (gamma - 1) * (-0.5 * ((soln_at_q[3][iquad] * soln_at_q[3][iquad]) / soln_at_q[0][iquad]));
+                        for (unsigned int istate = 0; istate < nstate; ++istate) {
+                            soln_at_iquad[istate] = soln_at_q[istate][iquad];
+                        }
+                        p_lim[iquad] = euler_physics->compute_pressure(soln_at_iquad);
                     }
 
                     std::vector<real> theta2(n_quad_pts, 1);
@@ -644,30 +657,30 @@ namespace PHiLiP {
                         if (p_lim[iquad] >= eps)
                             theta2[iquad] = 1;
                         else {
-                            real a = (soln_at_q[nstate - 1][iquad] - soln_cell_avg[nstate - 1]) * (soln_at_q[0][iquad] - soln_cell_avg[0]) - 0.5 * pow(soln_at_q[1][iquad] - soln_cell_avg[1], 2);
+                            real s_coeff1 = (soln_at_q[nstate - 1][iquad] - soln_cell_avg[nstate - 1]) * (soln_at_q[0][iquad] - soln_cell_avg[0]) - 0.5 * pow(soln_at_q[1][iquad] - soln_cell_avg[1], 2);
 
-                            real b = soln_cell_avg[0] * (soln_at_q[nstate - 1][iquad] - soln_cell_avg[nstate - 1]) + soln_cell_avg[nstate - 1] * (soln_at_q[0][iquad] - soln_cell_avg[0])
-                                - soln_cell_avg[1] * (soln_at_q[1][iquad] - soln_cell_avg[1]) - (eps / gamma) * (soln_at_q[0][iquad] - soln_cell_avg[0]);
+                            real s_coeff2 = soln_cell_avg[0] * (soln_at_q[nstate - 1][iquad] - soln_cell_avg[nstate - 1]) + soln_cell_avg[nstate - 1] * (soln_at_q[0][iquad] - soln_cell_avg[0])
+                                - soln_cell_avg[1] * (soln_at_q[1][iquad] - soln_cell_avg[1]) - (eps / euler_physics->gam) * (soln_at_q[0][iquad] - soln_cell_avg[0]);
 
-                            real c = (soln_cell_avg[nstate - 1] * soln_cell_avg[0]) - 0.5 * pow(soln_cell_avg[1], 2) - (eps / gamma) * soln_cell_avg[0];
+                            real s_coeff3 = (soln_cell_avg[nstate - 1] * soln_cell_avg[0]) - 0.5 * pow(soln_cell_avg[1], 2) - (eps / euler_physics->gam) * soln_cell_avg[0];
 
                             if (dim > 1) {
-                                a -= 0.5 * pow(soln_at_q[2][iquad] - soln_cell_avg[2], 2);
-                                b -= soln_cell_avg[2] * (soln_at_q[2][iquad] - soln_cell_avg[2]);
-                                c -= 0.5 * pow(soln_cell_avg[2], 2);
+                                s_coeff1 -= 0.5 * pow(soln_at_q[2][iquad] - soln_cell_avg[2], 2);
+                                s_coeff2 -= soln_cell_avg[2] * (soln_at_q[2][iquad] - soln_cell_avg[2]);
+                                s_coeff3 -= 0.5 * pow(soln_cell_avg[2], 2);
                             }
 
                             if (dim > 2) {
-                                a -= 0.5 * pow(soln_at_q[3][iquad] - soln_cell_avg[3], 2);
-                                b -= soln_cell_avg[3] * (soln_at_q[3][iquad] - soln_cell_avg[3]);
-                                c -= 0.5 * pow(soln_cell_avg[3], 2);
+                                s_coeff1 -= 0.5 * pow(soln_at_q[3][iquad] - soln_cell_avg[3], 2);
+                                s_coeff2 -= soln_cell_avg[3] * (soln_at_q[3][iquad] - soln_cell_avg[3]);
+                                s_coeff3 -= 0.5 * pow(soln_cell_avg[3], 2);
                             }
 
-                            real discriminant = b * b - 4 * a * c;
+                            real discriminant = s_coeff2 * s_coeff2 - 4 * s_coeff1 * s_coeff3;
 
                             if (discriminant >= 0) {
-                                real t1 = (-b + sqrt(discriminant)) / (2 * a);
-                                real t2 = (-b - sqrt(discriminant)) / (2 * a);
+                                real t1 = (-s_coeff2 + sqrt(discriminant)) / (2 * s_coeff1);
+                                real t2 = (-s_coeff2 - sqrt(discriminant)) / (2 * s_coeff1);
                                 theta2[iquad] = std::min(t1, t2);
                             }
                             else {
@@ -715,15 +728,38 @@ namespace PHiLiP {
         **********************************/
         // Constructor
         template <int dim, int nstate, typename real>
-        PositivityPreservingLimiterRobust<dim, nstate, real>::PositivityPreservingLimiterRobust(
+        PositivityPreservingLimiter_Wang2012<dim, nstate, real>::PositivityPreservingLimiter_Wang2012(
             const Parameters::AllParameters* const parameters_input)
             : BoundPreservingLimiter<dim,real>::BoundPreservingLimiter(nstate, parameters_input)
         {
+            using PDE_enum = Parameters::AllParameters::PartialDifferentialEquation;
+            PDE_enum pde_type = parameters_input->pde_type;
+
+            std::shared_ptr< ManufacturedSolutionFunction<dim, real> >  manufactured_solution_function
+                = ManufacturedSolutionFactory<dim, real>::create_ManufacturedSolution(parameters_input, nstate);
+
+            if (pde_type == PDE_enum::euler && nstate == dim+2)
+            {
+                euler_physics = std::make_shared < Physics::Euler<dim, nstate, real> >(
+                    parameters_input,
+                    parameters_input->euler_param.ref_length,
+                    parameters_input->euler_param.gamma_gas,
+                    parameters_input->euler_param.mach_inf,
+                    parameters_input->euler_param.angle_of_attack,
+                    parameters_input->euler_param.side_slip_angle,
+                    manufactured_solution_function,
+                    parameters_input->two_point_num_flux_type);
+            }
+            else
+            {
+                euler_physics = nullptr;
+            }
+
             tvbLimiter = std::make_shared < TVBLimiter<dim, nstate, real> >(parameters_input);
         }
 
         template <int dim, int nstate, typename real>
-        void PositivityPreservingLimiterRobust<dim, nstate, real>::limit(
+        void PositivityPreservingLimiter_Wang2012<dim, nstate, real>::limit(
             dealii::LinearAlgebra::distributed::Vector<double>& solution,
             const dealii::DoFHandler<dim>& dof_handler,
             const dealii::hp::FECollection<dim>& fe_collection,
@@ -811,23 +847,13 @@ namespace PHiLiP {
                 }
 
                 real eps = 1e-13;
-                real gamma = 1.4;
 
                 if (nstate == PHILIP_DIM + 2) {
                     // compute value of pressure at soln_cell_avg
-                    real rho_avg = soln_cell_avg[0];
-                    real tot_energy_avg = soln_cell_avg[nstate - 1];
-                    real m_avg = soln_cell_avg[1];
-
-
-                    real p_avg = (gamma - 1) * (tot_energy_avg - 0.5 * (((m_avg * m_avg) / rho_avg)));
-                    if (dim > 1)
-                        p_avg += -0.5 * (gamma - 1) * ((soln_cell_avg[2] * soln_cell_avg[2]) / rho_avg);
-                    if (dim > 2)
-                        p_avg += -0.5 * (gamma - 1) * ((soln_cell_avg[3] * soln_cell_avg[3]) / rho_avg);
+                    real p_avg = euler_physics->compute_pressure(soln_cell_avg);
 
                     //get epsilon (lower bound for rho) for theta limiter
-                    eps = std::min({ this->all_parameters->pos_eps, rho_avg, p_avg });
+                    eps = std::min({ this->all_parameters->pos_eps, soln_cell_avg[0], p_avg});
                     if (eps < 0) eps = this->all_parameters->pos_eps;
                 }
 
@@ -852,25 +878,16 @@ namespace PHiLiP {
                 }
 
                 if (nstate == PHILIP_DIM + 2) {
-                    real p_lim = 0.0;
-                    real p_avg = 0.0;
+                    real p_avg = euler_physics->compute_pressure(soln_cell_avg);
                     std::vector<real> t2(n_quad_pts, 1);
                     real theta2 = 1.0;
-
-                    p_avg = (gamma - 1) * (soln_cell_avg[nstate - 1] - 0.5 * (pow(soln_cell_avg[1], 2) / soln_cell_avg[0]));
-                    if (dim > 1)
-                        p_avg += -0.5 * (gamma - 1) * (pow(soln_cell_avg[2], 2) / soln_cell_avg[0]);
-                    if (dim > 2)
-                        p_avg += -0.5 * (gamma - 1) * (pow(soln_cell_avg[3], 2) / soln_cell_avg[0]);
+                    std::array<real, nstate> soln_at_iquad = {};
 
                     for (unsigned int iquad = 0; iquad < n_quad_pts; ++iquad) {
-                        p_lim = 0.0;
-                        p_lim = (gamma - 1) * (soln_at_q[nstate - 1][iquad] -
-                            0.5 * (pow(soln_at_q[1][iquad], 2) / soln_at_q[0][iquad]));
-                        if (dim > 1)
-                            p_lim += (gamma - 1) * (-0.5 * (pow(soln_at_q[2][iquad], 2) / soln_at_q[0][iquad]));
-                        if (dim > 2)
-                            p_lim += (gamma - 1) * (-0.5 * (pow(soln_at_q[3][iquad], 2) / soln_at_q[0][iquad]));
+                        for (unsigned int istate = 0; istate < nstate; ++istate) {
+                            soln_at_iquad[istate] = soln_at_q[istate][iquad];
+                        }
+                        real p_lim = euler_physics->compute_pressure(soln_at_iquad);
 
                         if (p_lim >= 0)
                             t2[iquad] = 1;
@@ -932,17 +949,17 @@ namespace PHiLiP {
         template class MaximumPrincipleLimiter <PHILIP_DIM, 5, double>;
         template class MaximumPrincipleLimiter <PHILIP_DIM, 6, double>;
 
-        template class PositivityPreservingLimiter <PHILIP_DIM, 1, double>;
-        template class PositivityPreservingLimiter <PHILIP_DIM, 2, double>;
-        template class PositivityPreservingLimiter <PHILIP_DIM, 3, double>;
-        template class PositivityPreservingLimiter <PHILIP_DIM, 4, double>;
-        template class PositivityPreservingLimiter <PHILIP_DIM, 5, double>;
-        template class PositivityPreservingLimiter <PHILIP_DIM, 6, double>;
+        template class PositivityPreservingLimiter_Zhang2010 <PHILIP_DIM, 1, double>;
+        template class PositivityPreservingLimiter_Zhang2010 <PHILIP_DIM, 2, double>;
+        template class PositivityPreservingLimiter_Zhang2010 <PHILIP_DIM, 3, double>;
+        template class PositivityPreservingLimiter_Zhang2010 <PHILIP_DIM, 4, double>;
+        template class PositivityPreservingLimiter_Zhang2010 <PHILIP_DIM, 5, double>;
+        template class PositivityPreservingLimiter_Zhang2010 <PHILIP_DIM, 6, double>;
 
-        template class PositivityPreservingLimiterRobust <PHILIP_DIM, 1, double>;
-        template class PositivityPreservingLimiterRobust <PHILIP_DIM, 2, double>;
-        template class PositivityPreservingLimiterRobust <PHILIP_DIM, 3, double>;
-        template class PositivityPreservingLimiterRobust <PHILIP_DIM, 4, double>;
-        template class PositivityPreservingLimiterRobust <PHILIP_DIM, 5, double>;
-        template class PositivityPreservingLimiterRobust <PHILIP_DIM, 6, double>;
+        template class PositivityPreservingLimiter_Wang2012 <PHILIP_DIM, 1, double>;
+        template class PositivityPreservingLimiter_Wang2012 <PHILIP_DIM, 2, double>;
+        template class PositivityPreservingLimiter_Wang2012 <PHILIP_DIM, 3, double>;
+        template class PositivityPreservingLimiter_Wang2012 <PHILIP_DIM, 4, double>;
+        template class PositivityPreservingLimiter_Wang2012 <PHILIP_DIM, 5, double>;
+        template class PositivityPreservingLimiter_Wang2012 <PHILIP_DIM, 6, double>;
 } // PHiLiP namespace

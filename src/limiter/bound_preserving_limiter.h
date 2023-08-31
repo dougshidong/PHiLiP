@@ -27,6 +27,7 @@
 #include <deal.II/hp/fe_values.h>
 
 #include "dg/dg.h"
+#include "physics/physics.h"
 
 namespace PHiLiP {
         template<int dim, typename real>
@@ -119,18 +120,20 @@ namespace PHiLiP {
         }; // End of MaximumPrincipleLimiter Class
 
         template<int dim, int nstate, typename real>
-        class PositivityPreservingLimiter : public BoundPreservingLimiter <dim, real>
+        class PositivityPreservingLimiter_Zhang2010 : public BoundPreservingLimiter <dim, real>
         {
         public:
             /// Constructor
-            PositivityPreservingLimiter(
+            PositivityPreservingLimiter_Zhang2010(
                 const Parameters::AllParameters* const parameters_input);
 
             /// Destructor
-            ~PositivityPreservingLimiter() {};
+            ~PositivityPreservingLimiter_Zhang2010() {};
 
             /// Pointer to TVB limiter (can be applied with this limiter)
             std::shared_ptr<BoundPreservingLimiter<dim, real>> tvbLimiter;
+            // Euler physics pointer. Used to compute pressure.
+            std::shared_ptr < Physics::Euler<dim, nstate, double > > euler_physics;
 
             void limit(
                 dealii::LinearAlgebra::distributed::Vector<double>& solution,
@@ -142,21 +145,23 @@ namespace PHiLiP {
                 const dealii::hp::FECollection<1>                       oneD_fe_collection_1state,
                 dealii::hp::QCollection<1>                              oneD_quadrature_collection);
 
-        }; // End of PositivityPreservingLimiter Class
+        }; // End of PositivityPreservingLimiter_Zhang2010 Class
 
         template<int dim, int nstate, typename real>
-        class PositivityPreservingLimiterRobust : public BoundPreservingLimiter <dim, real>
+        class PositivityPreservingLimiter_Wang2012 : public BoundPreservingLimiter <dim, real>
         {
         public:
             /// Constructor
-            PositivityPreservingLimiterRobust(
+            PositivityPreservingLimiter_Wang2012(
                 const Parameters::AllParameters* const parameters_input);
 
             /// Destructor
-            ~PositivityPreservingLimiterRobust() {};
+            ~PositivityPreservingLimiter_Wang2012() {};
 
             /// Pointer to TVB limiter (can be applied with this limiter)
             std::shared_ptr<BoundPreservingLimiter<dim, real>> tvbLimiter;
+            // Euler physics pointer. Used to compute pressure.
+            std::shared_ptr < Physics::Euler<dim, nstate, double > > euler_physics;
 
             void limit(
                 dealii::LinearAlgebra::distributed::Vector<double>& solution,
@@ -168,7 +173,7 @@ namespace PHiLiP {
                 const dealii::hp::FECollection<1>                       oneD_fe_collection_1state,
                 dealii::hp::QCollection<1>                              oneD_quadrature_collection);
 
-        }; // End of PositivityPreservingLimiterRobust Class
+        }; // End of PositivityPreservingLimiter_Wang2012 Class
 } // PHiLiP namespace
 
 #endif

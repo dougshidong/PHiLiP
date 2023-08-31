@@ -44,7 +44,7 @@ int BurgersLimiter<dim, nstate>::run_test() const
     double right = 2.0;
     const unsigned int n_grids = (!all_parameters_new.use_OOA) ? 8 : 10;
     unsigned int poly_degree = 2;
-    const unsigned int igrid_start = 7;
+    const unsigned int igrid_start = 3;
     const unsigned int grid_degree = 1;
     dealii::ConvergenceTable convergence_table;
     std::vector<double> grid_size(n_grids);

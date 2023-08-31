@@ -29,11 +29,11 @@ BoundPreservingLimiterFactory<dim,real>
         }
         else if (limiter_type == limiter_enum::positivity_preserving2010)
         {
-            return std::make_shared< PositivityPreservingLimiter<dim, 1, real> >(parameters_input);
+            return std::make_shared< PositivityPreservingLimiter_Zhang2010<dim, 1, real> >(parameters_input);
         }
         else if (limiter_type == limiter_enum::positivity_preserving2011)
         {
-            return std::make_shared< PositivityPreservingLimiterRobust<dim, 1, real> >(parameters_input);
+            return std::make_shared< PositivityPreservingLimiter_Wang2012<dim, 1, real> >(parameters_input);
         }
     }
     else if (nstate_input == 2) {
@@ -50,11 +50,11 @@ BoundPreservingLimiterFactory<dim,real>
         }
         else if (limiter_type == limiter_enum::positivity_preserving2010)
         {
-            return std::make_shared< PositivityPreservingLimiter<dim, 2, real> >(parameters_input);
+            return std::make_shared< PositivityPreservingLimiter_Zhang2010<dim, 2, real> >(parameters_input);
         }
         else if (limiter_type == limiter_enum::positivity_preserving2011)
         {
-            return std::make_shared< PositivityPreservingLimiterRobust<dim, 2, real> >(parameters_input);
+            return std::make_shared< PositivityPreservingLimiter_Wang2012<dim, 2, real> >(parameters_input);
         }
     }
     else if (nstate_input == 3) {
@@ -71,11 +71,11 @@ BoundPreservingLimiterFactory<dim,real>
         }
         else if (limiter_type == limiter_enum::positivity_preserving2010)
         {
-            return std::make_shared< PositivityPreservingLimiter<dim, 3, real> >(parameters_input);
+            return std::make_shared< PositivityPreservingLimiter_Zhang2010<dim, 3, real> >(parameters_input);
         }
         else if (limiter_type == limiter_enum::positivity_preserving2011)
         {
-            return std::make_shared< PositivityPreservingLimiterRobust<dim, 3, real> >(parameters_input);
+            return std::make_shared< PositivityPreservingLimiter_Wang2012<dim, 3, real> >(parameters_input);
         }
     }
     else if (nstate_input == 4) {
@@ -92,11 +92,11 @@ BoundPreservingLimiterFactory<dim,real>
         }
         else if (limiter_type == limiter_enum::positivity_preserving2010)
         {
-            return std::make_shared< PositivityPreservingLimiter<dim, 4, real> >(parameters_input);
+            return std::make_shared< PositivityPreservingLimiter_Zhang2010<dim, 4, real> >(parameters_input);
         }
         else if (limiter_type == limiter_enum::positivity_preserving2011)
         {
-            return std::make_shared< PositivityPreservingLimiterRobust<dim, 4, real> >(parameters_input);
+            return std::make_shared< PositivityPreservingLimiter_Wang2012<dim, 4, real> >(parameters_input);
         }
     }
     else if (nstate_input == 5) {
@@ -113,11 +113,11 @@ BoundPreservingLimiterFactory<dim,real>
         }
         else if (limiter_type == limiter_enum::positivity_preserving2010)
         {
-            return std::make_shared< PositivityPreservingLimiter<dim, 5, real> >(parameters_input);
+            return std::make_shared< PositivityPreservingLimiter_Zhang2010<dim, 5, real> >(parameters_input);
         }
         else if (limiter_type == limiter_enum::positivity_preserving2011)
         {
-            return std::make_shared< PositivityPreservingLimiterRobust<dim, 5, real> >(parameters_input);
+            return std::make_shared< PositivityPreservingLimiter_Wang2012<dim, 5, real> >(parameters_input);
         }
     }
     else if (nstate_input == 6) {
@@ -134,11 +134,11 @@ BoundPreservingLimiterFactory<dim,real>
         }
         else if (limiter_type == limiter_enum::positivity_preserving2010)
         {
-            return std::make_shared< PositivityPreservingLimiter<dim, 6, real> >(parameters_input);
+            return std::make_shared< PositivityPreservingLimiter_Zhang2010<dim, 6, real> >(parameters_input);
         }
         else if (limiter_type == limiter_enum::positivity_preserving2011)
         {
-            return std::make_shared< PositivityPreservingLimiterRobust<dim, 6, real> >(parameters_input);
+            return std::make_shared< PositivityPreservingLimiter_Wang2012<dim, 6, real> >(parameters_input);
         }
     }
     else {

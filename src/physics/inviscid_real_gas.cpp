@@ -20,6 +20,11 @@ InviscidRealGas<dim,nstate,real>::InviscidRealGas (
     , mach_inf(parameters_input->euler_param.mach_inf)
     , mach_inf_sqr(mach_inf*mach_inf)
     , two_point_num_flux_type(parameters_input->two_point_num_flux_type)
+    , N_air(28.96470 * 10e-4)
+    , Ru(8.314)
+    , R_air(Ru/N_air)
+    , R_ref(R_air)
+    , temperature_ref(273.15)
 {
     static_assert(nstate==dim+2, "Physics::InviscidRealGas() should be created with nstate=dim+2"); // TO DO: UPDATE THIS with nspecies
 }
@@ -253,25 +258,18 @@ inline real InviscidRealGas<dim,nstate,real>
     real a7 = NASA_CAP[6];
     // real b1 = NASA_CAP[7];
 
-    /// gas constant_air
-    real N_air = 28.96470 * 10e-4; // [kg/mol]
-    real Ru = 8.314;               // [J/mol]
-    real R_air = Ru/N_air;              // [J/kg]
-    real R_ref = R_air; // [J/kg]
     /// gas constant_N2
     real N_N2 = 28.01340 * 10e-4;  // [kg/mol]
-    real R_N2 = Ru/N_N2;           // [J/kg]
-    R_N2 = R_N2/R_ref;         // [...]
+    real R_N2 = this->Ru/N_N2;           // [J/kg]
+    R_N2 = R_N2/this->R_ref;         // [...]
     /// This should be madde as a function...
 
-    /// temperature
-    real temperature_ref = 273.15; // [K]
     /// dimensinalize... T
-    real T = temperature*temperature_ref; // [K]
+    real T = temperature*this->temperature_ref; // [K]
 
     /// polynomial
     real Cp = a1/pow(T,2.0) + a2/T + a3 + a4*T + a5*pow(T,2.0) + a6*pow(T,3.0) + a7*pow(T,4.0);
-    Cp = Cp*R_N2;
+    Cp *= R_N2;
     return Cp;
 }
 
@@ -305,22 +303,14 @@ inline real InviscidRealGas<dim,nstate,real>
     real a7 = NASA_CAP[6];
     real b1 = NASA_CAP[7];
 
-    /// 
-    /// gas constant_air
-    real N_air = 28.96470 * 10e-4; // [kg/mol]
-    real Ru = 8.314;               // [J/mol]
-    real R_air = Ru/N_air;              // [J/kg]
-    real R_ref = R_air; // [J/kg]
     /// gas constant_N2
     real N_N2 = 28.01340 * 10e-4;  // [kg/mol]
-    real R_N2 = Ru/N_N2;           // [J/kg]
-    R_N2 = R_N2/R_ref;         // [...]
+    real R_N2 = this->Ru/N_N2;           // [J/kg]
+    R_N2 = R_N2/this->R_ref;         // [...]
     /// This should be madde as a function...
 
-    /// temperature
-    real temperature_ref = 273.15; // [K]
     /// dimensinalize... T
-    real T = temperature*temperature_ref; // [K]
+    real T = temperature*this->temperature_ref; // [K]
 
 
     /// polynomial
@@ -341,18 +331,10 @@ inline real InviscidRealGas<dim,nstate,real>
     real temperature_old = 1.0; /// [...]
     ///
 
-    /// This must be constant (outside the function)
-    /// gas constant_air
-    real N_air = 28.96470 * 10e-4; // [kg/mol]
-    real Ru = 8.314;               // [J/mol]
-    real R_air = Ru/N_air;         // [J/kg]
-    real R_ref = R_air;            // [J/kg]
     /// gas constant_N2
     real N_N2 = 28.01340 * 10e-4;  // [kg/mol]
-    real R_N2 = Ru/N_N2;           // [J/kg]
-    R_N2 = R_N2/R_ref;             // [...]
-    /// temperature
-    real temperature_ref = 273.15; // [K]
+    real R_N2 = this->Ru/N_N2;           // [J/kg]
+    R_N2 = R_N2/this->R_ref;             // [...]
     /// velocity
     real vel_ref = 1.0; /// mach_inf???
     /// This should be madde as a function...
@@ -365,8 +347,8 @@ inline real InviscidRealGas<dim,nstate,real>
     do {
         real Cp = compute_Cp(temperature);
         real enthalpy = compute_enthalpy(temperature);
-        real f_T  = (enthalpy - (R_ref*temperature_ref/pow(vel_ref,2.0))*R_N2*temperature) - (conservative_soln[3]/density - 0.50*vel2);
-        real f_Td = (R_ref*temperature_ref/pow(vel_ref,2.0)) * (Cp - R_N2);
+        real f_T  = (enthalpy - (this->R_ref*this->temperature_ref/pow(vel_ref,2.0))*R_N2*temperature) - (conservative_soln[3]/density - 0.50*vel2);
+        real f_Td = (this->R_ref*this->temperature_ref/pow(vel_ref,2.0)) * (Cp - R_N2);
         temperature = temperature_old - f_T/f_Td;
         tol = abs(temperature - temperature_old);
         temperature_old = temperature;
@@ -383,16 +365,10 @@ inline real InviscidRealGas<dim,nstate,real>
 {
     const real density = compute_density(conservative_soln);
 
-    /// This must be constant (outside the function)
-    /// gas constant_air
-    real N_air = 28.96470 * 10e-4; // [kg/mol]
-    real Ru = 8.314;               // [J/mol]
-    real R_air = Ru/N_air;         // [J/kg]
-    real R_ref = R_air;            // [J/kg]
     /// gas constant_N2
     real N_N2 = 28.01340 * 10e-4;  // [kg/mol]
-    real R_N2 = Ru/N_N2;           // [J/kg]
-    R_N2 = R_N2/R_ref;             // [...]
+    real R_N2 = this->Ru/N_N2;           // [J/kg]
+    R_N2 = R_N2/this->R_ref;             // [...]
     /// gamma
     real gam_ref = 1.4;
     /// mach_ref

@@ -38,6 +38,15 @@ public:
     const double mach_inf_sqr; ///< Farfield Mach number squared.
     const two_point_num_flux_enum two_point_num_flux_type; ///< Two point numerical flux type (for split form)
 
+protected:
+    const double N_air; ///< TO DO: add description leave the units [kg/mol]
+    const double Ru; ///< [J/mol]
+    const double R_air; ///< [J/kg]
+    const double R_ref; ///< [J/kg]
+    const double temperature_ref; ///< Reference temperature [K]
+
+public:
+
     // /// Convective flux: \f$ \mathbf{F}_{conv} \f$
     // std::array<dealii::Tensor<1,dim,real>,nstate> convective_flux (
     //     const std::array<real,nstate> &conservative_soln) const;

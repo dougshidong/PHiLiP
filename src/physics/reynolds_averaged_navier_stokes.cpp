@@ -15,6 +15,7 @@ namespace Physics {
 //================================================================
 template <int dim, int nstate, typename real>
 ReynoldsAveragedNavierStokesBase<dim, nstate, real>::ReynoldsAveragedNavierStokesBase(
+    const Parameters::AllParameters *const                    parameters_input,
     const double                                              ref_length,
     const double                                              gamma_gas,
     const double                                              mach_inf,
@@ -33,6 +34,7 @@ ReynoldsAveragedNavierStokesBase<dim, nstate, real>::ReynoldsAveragedNavierStoke
     : ModelBase<dim,nstate,real>(manufactured_solution_function) 
     , turbulent_prandtl_number(turbulent_prandtl_number)
     , navier_stokes_physics(std::make_unique < NavierStokes<dim,nstate_navier_stokes,real> > (
+            parameters_input,
             ref_length,
             gamma_gas,
             mach_inf,
@@ -322,6 +324,23 @@ real ReynoldsAveragedNavierStokesBase<dim,nstate,real>
     const real max_eig = sqrt(vel2);
 
     return max_eig;
+}
+//----------------------------------------------------------------
+template <int dim, int nstate, typename real>
+real ReynoldsAveragedNavierStokesBase<dim,nstate,real>
+::max_convective_normal_eigenvalue (
+    const std::array<real,nstate> &conservative_soln,
+    const dealii::Tensor<1,dim,real> &normal) const
+{
+    const std::array<real,nstate_navier_stokes> conservative_soln_rans = extract_rans_conservative_solution(conservative_soln);
+
+    const dealii::Tensor<1,dim,real> vel = this->navier_stokes_physics->template compute_velocities<real>(conservative_soln_rans);
+
+    real vel_dot_n = 0.0;
+    for (int d=0;d<dim;++d) { vel_dot_n += vel[d]*normal[d]; };
+    const real max_normal_eig = sqrt(vel_dot_n*vel_dot_n);
+
+    return max_normal_eig;
 }
 //----------------------------------------------------------------
 template <int dim, int nstate, typename real>

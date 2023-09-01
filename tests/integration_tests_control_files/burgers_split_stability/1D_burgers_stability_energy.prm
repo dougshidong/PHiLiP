@@ -6,6 +6,8 @@ set use_weak_form = false
 
 set overintegration = 2
 
+set do_renumber_dofs = false
+
 set flux_nodes_type = GL
 
 set use_split_form = true

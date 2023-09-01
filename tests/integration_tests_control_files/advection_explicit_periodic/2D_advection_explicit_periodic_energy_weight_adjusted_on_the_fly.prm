@@ -11,6 +11,8 @@ set overintegration = 0
 
 set flux_nodes_type = GL
 
+set do_renumber_dofs = false
+
 set use_split_form = false
 
 set use_curvilinear_split_form = true
@@ -49,6 +51,7 @@ subsection ODE solver
   set initial_time_step = 0.001
 
   set runge_kutta_method = rk4_ex
+#  set runge_kutta_method = euler_ex
 
 end
 

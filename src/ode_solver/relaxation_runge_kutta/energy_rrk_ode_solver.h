@@ -15,7 +15,7 @@ template <int dim, typename real, int n_rk_stages, typename MeshType = dealii::T
 #else
 template <int dim, typename real, int n_rk_stages, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
 #endif
-class EnergyRRKODESolver: public RRKODESolverBase<dim, real, n_rk_stages, MeshType>
+class EnergyRRKODESolver: public RungeKuttaODESolver<dim, real, n_rk_stages, MeshType>
 {
 public:
     /// Default constructor that will set the constants.
@@ -24,12 +24,17 @@ public:
 
     /// Destructor
     ~EnergyRRKODESolver() {};
+    
+    real relaxation_parameter;
 
 protected:
 
+    /// Modify timestep based on relaxation
+    void modify_time_step (real &dt) override;
+
     /// Compute relaxation parameter explicitly (i.e. if energy is the entropy variable)
     /// See Ketcheson 2019, Eq. 2.4
-    real compute_relaxation_parameter(real &dt) override;
+    real compute_relaxation_parameter(real &dt);
     
     /// Compute inner product according to the nodes being used
     /** This is the same calculation as energy, but using the residual instead of solution

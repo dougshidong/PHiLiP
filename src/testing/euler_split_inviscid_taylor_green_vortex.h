@@ -54,7 +54,7 @@ private:
     /** In the future this function should change to: let \f$ v\f$ represent the kinetic energy "entropy" variables, it computes \f$v(M+K)u^T\f$. 
     */
     double compute_kinetic_energy(const std::shared_ptr < DGBase<dim, double> > &dg, unsigned int poly_degree) const;
-
+    
     ///Computes entropy in the norm.
     /** That is let \f$ v\f$ represent the entropy variables, it computes \f$v(M+K)u^T\f$. 
      */

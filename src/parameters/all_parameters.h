@@ -3,6 +3,7 @@
 
 #include <deal.II/base/conditional_ostream.h>
 #include <deal.II/base/parameter_handler.h>
+#include <deal.II/base/tensor.h>
 
 #include "parameters.h"
 #include "parameters/parameters_ode_solver.h"
@@ -303,22 +304,23 @@ public:
     enum LimiterType {
         none,
         maximum_principle,
-        positivity_preserving2010,
-        positivity_preserving2011
+        positivity_preservingZhang2010,
+        positivity_preservingWang2012
     };
-    LimiterType use_scaling_limiter_type;
+    LimiterType bound_preserving_limiter;
 
     // Epsilon value for Positivity-Preserving Limiter
     double pos_eps;
 
-    /// Flag for applying tvb limiter
+    /// Flag for applying TVB Limiter
     bool use_tvb_limiter;
 
-    /// Maximum delta_x for tvb limiter
+    /// Maximum delta_x for TVB Limiter
     double tvb_h;
-    double tvb_M1;
-    double tvb_M2;
-    double tvb_M3;
+
+    /// Tuning parameters for TVB Limiter
+    /**TVB Limiter can only be run for 1D, so max length is max nstate = 4*/
+    dealii::Tensor<1, 4, double> tvb_M;
 
     /// Declare parameters that can be set as inputs and set up the default options
     /** This subroutine should call the sub-parameter classes static declare_parameters()

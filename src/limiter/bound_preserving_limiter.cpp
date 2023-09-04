@@ -60,7 +60,7 @@ namespace PHiLiP {
             std::array<real, nstate> M;
             double h = this->all_parameters->tvb_h;
             for (unsigned int istate = 0; istate < nstate; ++istate) {
-                M[istate] = 0.1;
+                M[istate] = this->all_parameters->tvb_M[istate];
             }
 
             //create 1D solution polynomial basis functions and corresponding projection operator
@@ -79,9 +79,15 @@ namespace PHiLiP {
             for (auto soln_cell : dof_handler.active_cell_iterators()) {
                 if (!soln_cell->is_locally_owned()) continue;
 
-                std::array<real, nstate> prev_cell_avg = {};
-                std::array<real, nstate> soln_cell_avg = {};
-                std::array<real, nstate> next_cell_avg = {};
+                std::array<real, nstate> prev_cell_avg;
+                std::array<real, nstate> soln_cell_avg;
+                std::array<real, nstate> next_cell_avg;
+
+                for (unsigned int istate = 0; istate < nstate; ++istate) {
+                    prev_cell_avg[istate] = 0;
+                    soln_cell_avg[istate] = 0;
+                    next_cell_avg[istate] = 0;
+                }
 
                 for (const auto face_no : soln_cell->face_indices()) {
                     if (soln_cell->neighbor(face_no).state() != dealii::IteratorState::valid) continue;
@@ -118,6 +124,9 @@ namespace PHiLiP {
                     //interpolate solution dofs to quadrature pts.
                     //and apply integral for the soln avg
                     std::array<real, nstate> neigh_cell_avg;
+                    for (unsigned int istate = 0; istate < nstate; ++istate) {
+                        neigh_cell_avg[istate] = 0;
+                    }
 
                     std::array<std::vector<real>, nstate> soln_at_q_neigh;
 
@@ -290,7 +299,13 @@ namespace PHiLiP {
             const Parameters::AllParameters* const parameters_input)
             : BoundPreservingLimiter<dim,real>::BoundPreservingLimiter(nstate, parameters_input) 
         {
-            tvbLimiter = std::make_shared < TVBLimiter<dim, nstate, real> >(parameters_input);
+            if (parameters_input->use_tvb_limiter) {
+                if (dim == 1)
+                    tvbLimiter = std::make_shared < TVBLimiter<dim, nstate, real> >(parameters_input);
+                else {
+                    assert(0 == 1 && "Cannot create TVB limiter for dim > 1");
+                }
+            }
         }
 
         template <int dim, int nstate, typename real>
@@ -421,7 +436,10 @@ namespace PHiLiP {
                 const std::vector<real>& quad_weights = volume_quadrature_collection[poly_degree].get_weights();
                 //interpolate solution dofs to quadrature pts.
                 //and apply integral for the soln avg
-                std::array<real, nstate> soln_cell_avg={};
+                std::array<real, nstate> soln_cell_avg;
+                for (unsigned int istate = 0; istate < nstate; ++istate) {
+                    soln_cell_avg[istate] = 0;
+                }
 
                 std::array<std::vector<real>, nstate> soln_at_q;
 
@@ -520,7 +538,13 @@ namespace PHiLiP {
                 euler_physics = nullptr;
             }
 
-            tvbLimiter = std::make_shared < TVBLimiter<dim, nstate, real> >(parameters_input);
+            if (parameters_input->use_tvb_limiter) {
+                if (dim == 1)
+                    tvbLimiter = std::make_shared < TVBLimiter<dim, nstate, real> >(parameters_input);
+                else {
+                    assert(0 == 1 && "Cannot create TVB limiter for dim > 1");
+                }
+            }
         }
 
         template <int dim, int nstate, typename real>
@@ -594,7 +618,10 @@ namespace PHiLiP {
                 const std::vector<real>& quad_weights = volume_quadrature_collection[poly_degree].get_weights();
                 //interpolate solution dofs to quadrature pts.
                 //and apply integral for the soln avg
-                std::array<real, nstate> soln_cell_avg = {};
+                std::array<real, nstate> soln_cell_avg;
+                for (unsigned int istate = 0; istate < nstate; ++istate) {
+                    soln_cell_avg[istate] = 0;
+                }
 
                 std::array<std::vector<real>, nstate> soln_at_q;
 
@@ -755,7 +782,14 @@ namespace PHiLiP {
                 euler_physics = nullptr;
             }
 
-            tvbLimiter = std::make_shared < TVBLimiter<dim, nstate, real> >(parameters_input);
+            if (parameters_input->use_tvb_limiter) {
+                if(dim==1)
+                    tvbLimiter = std::make_shared < TVBLimiter<dim, nstate, real> >(parameters_input);
+                else {
+                    assert(0 == 1 && "Cannot create TVB limiter for dim > 1");
+                }
+            }
+            
         }
 
         template <int dim, int nstate, typename real>
@@ -826,7 +860,10 @@ namespace PHiLiP {
                 const std::vector<real>& quad_weights = volume_quadrature_collection[poly_degree].get_weights();
                 //interpolate solution dofs to quadrature pts.
                 //and apply integral for the soln avg
-                std::array<real, nstate> soln_cell_avg = {};
+                std::array<real, nstate> soln_cell_avg;
+                for (unsigned int istate = 0; istate < nstate; ++istate) {
+                    soln_cell_avg[istate] = 0;
+                }
 
                 std::array<std::vector<real>, nstate> soln_at_q;
 
@@ -846,7 +883,7 @@ namespace PHiLiP {
                     }
                 }
 
-                real eps = 1e-13;
+                real eps = this->all_parameters->pos_eps;
 
                 if (nstate == PHILIP_DIM + 2) {
                     // compute value of pressure at soln_cell_avg
@@ -939,8 +976,6 @@ namespace PHiLiP {
         template class TVBLimiter <PHILIP_DIM, 2, double>;
         template class TVBLimiter <PHILIP_DIM, 3, double>;
         template class TVBLimiter <PHILIP_DIM, 4, double>;
-        template class TVBLimiter <PHILIP_DIM, 5, double>;
-        template class TVBLimiter <PHILIP_DIM, 6, double>;
 
         template class MaximumPrincipleLimiter <PHILIP_DIM, 1, double>;
         template class MaximumPrincipleLimiter <PHILIP_DIM, 2, double>;

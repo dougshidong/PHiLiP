@@ -11,133 +11,134 @@ BoundPreservingLimiterFactory<dim,real>
         const int nstate_input)
 {
     using limiter_enum = Parameters::AllParameters::LimiterType;
-    limiter_enum limiter_type = parameters_input->use_scaling_limiter_type;
+    limiter_enum limiter_type = parameters_input->bound_preserving_limiter;
     bool apply_tvb = parameters_input->use_tvb_limiter;
 
-
     if (nstate_input == 1) {
-        if (limiter_type == limiter_enum::none)
-        {
-            if (apply_tvb == true)
-                return std::make_shared < TVBLimiter<dim, 1, real> >(parameters_input);
+        if (limiter_type == limiter_enum::none) {
+            if (apply_tvb == true) {
+                if (dim == 1)
+                    return std::make_shared < TVBLimiter<dim, 1, real> >(parameters_input);
+                else {
+                    assert(0 == 1 && "Cannot create TVB limiter for dim > 1");
+                    return nullptr;
+                }
+
+            }
             else
                 return nullptr;
         }
-        else if (limiter_type == limiter_enum::maximum_principle)
-        {
+        else if (limiter_type == limiter_enum::maximum_principle) {
             return std::make_shared< MaximumPrincipleLimiter<dim, 1, real> >(parameters_input);
         }
-        else if (limiter_type == limiter_enum::positivity_preserving2010)
-        {
+        else if (limiter_type == limiter_enum::positivity_preservingZhang2010) {
             return std::make_shared< PositivityPreservingLimiter_Zhang2010<dim, 1, real> >(parameters_input);
         }
-        else if (limiter_type == limiter_enum::positivity_preserving2011)
-        {
+        else if (limiter_type == limiter_enum::positivity_preservingWang2012) {
             return std::make_shared< PositivityPreservingLimiter_Wang2012<dim, 1, real> >(parameters_input);
         }
     }
     else if (nstate_input == 2) {
-        if (limiter_type == limiter_enum::none)
-        {
-            if (apply_tvb == true)
-                return std::make_shared < TVBLimiter<dim, 2, real> >(parameters_input);
+        if (limiter_type == limiter_enum::none) {
+            if (apply_tvb == true) {
+                if (dim == 1)
+                    return std::make_shared < TVBLimiter<dim, 2, real> >(parameters_input);
+                else {
+                    assert(0 == 1 && "Cannot create TVB limiter for dim > 1");
+                    return nullptr;
+                }
+
+            }
             else
                 return nullptr;
         }
-        else if (limiter_type == limiter_enum::maximum_principle)
-        {
+        else if (limiter_type == limiter_enum::maximum_principle) {
             return std::make_shared< MaximumPrincipleLimiter<dim, 2, real> >(parameters_input);
         }
-        else if (limiter_type == limiter_enum::positivity_preserving2010)
-        {
+        else if (limiter_type == limiter_enum::positivity_preservingZhang2010) {
             return std::make_shared< PositivityPreservingLimiter_Zhang2010<dim, 2, real> >(parameters_input);
         }
-        else if (limiter_type == limiter_enum::positivity_preserving2011)
-        {
+        else if (limiter_type == limiter_enum::positivity_preservingWang2012) {
             return std::make_shared< PositivityPreservingLimiter_Wang2012<dim, 2, real> >(parameters_input);
         }
     }
     else if (nstate_input == 3) {
-        if (limiter_type == limiter_enum::none)
-        {
-            if (apply_tvb == true)
-                return std::make_shared < TVBLimiter<dim, 3, real> >(parameters_input);
+        if (limiter_type == limiter_enum::none) {
+            if (apply_tvb == true) {
+                if (dim == 1)
+                    return std::make_shared < TVBLimiter<dim, 3, real> >(parameters_input);
+                else {
+                    assert(0 == 1 && "Cannot create TVB limiter for dim > 1");
+                    return nullptr;
+                }
+
+            }
             else
                 return nullptr;
         }
-        else if (limiter_type == limiter_enum::maximum_principle)
-        {
+        else if (limiter_type == limiter_enum::maximum_principle) {
             return std::make_shared< MaximumPrincipleLimiter<dim, 3, real> >(parameters_input);
         }
-        else if (limiter_type == limiter_enum::positivity_preserving2010)
-        {
+        else if (limiter_type == limiter_enum::positivity_preservingZhang2010) {
             return std::make_shared< PositivityPreservingLimiter_Zhang2010<dim, 3, real> >(parameters_input);
         }
-        else if (limiter_type == limiter_enum::positivity_preserving2011)
-        {
+        else if (limiter_type == limiter_enum::positivity_preservingWang2012) {
             return std::make_shared< PositivityPreservingLimiter_Wang2012<dim, 3, real> >(parameters_input);
         }
     }
     else if (nstate_input == 4) {
-        if (limiter_type == limiter_enum::none)
-        {
-            if (apply_tvb == true)
-                return std::make_shared < TVBLimiter<dim, 4, real> >(parameters_input);
+        std::cout << "nstate is 4" << std::endl;
+        if (limiter_type == limiter_enum::none) {
+            std::cout << "limiter type is none" << std::endl;
+            if (apply_tvb == true) {
+                std::cout << "apply_tvb is true" << std::endl;
+                if (dim == 1)
+                    return std::make_shared < TVBLimiter<dim, 4, real> >(parameters_input);
+                else {
+                    std::cout << "dim > 1" << std::endl;
+                    assert(0 == 1 && "Cannot create TVB limiter for dim > 1");
+                    return nullptr;
+                }
+
+            }
             else
                 return nullptr;
         }
-        else if (limiter_type == limiter_enum::maximum_principle)
-        {
+        else if (limiter_type == limiter_enum::maximum_principle) {
             return std::make_shared< MaximumPrincipleLimiter<dim, 4, real> >(parameters_input);
         }
-        else if (limiter_type == limiter_enum::positivity_preserving2010)
-        {
+        else if (limiter_type == limiter_enum::positivity_preservingZhang2010) {
             return std::make_shared< PositivityPreservingLimiter_Zhang2010<dim, 4, real> >(parameters_input);
         }
-        else if (limiter_type == limiter_enum::positivity_preserving2011)
-        {
+        else if (limiter_type == limiter_enum::positivity_preservingWang2012) {
             return std::make_shared< PositivityPreservingLimiter_Wang2012<dim, 4, real> >(parameters_input);
         }
     }
     else if (nstate_input == 5) {
-        if (limiter_type == limiter_enum::none)
-        {
-            if (apply_tvb == true)
-                return std::make_shared < TVBLimiter<dim, 5, real> >(parameters_input);
-            else
+        if (limiter_type == limiter_enum::none) {
                 return nullptr;
         }
-        else if (limiter_type == limiter_enum::maximum_principle)
-        {
+        else if (limiter_type == limiter_enum::maximum_principle) {
             return std::make_shared< MaximumPrincipleLimiter<dim, 5, real> >(parameters_input);
         }
-        else if (limiter_type == limiter_enum::positivity_preserving2010)
-        {
+        else if (limiter_type == limiter_enum::positivity_preservingZhang2010) {
             return std::make_shared< PositivityPreservingLimiter_Zhang2010<dim, 5, real> >(parameters_input);
         }
-        else if (limiter_type == limiter_enum::positivity_preserving2011)
-        {
+        else if (limiter_type == limiter_enum::positivity_preservingWang2012) {
             return std::make_shared< PositivityPreservingLimiter_Wang2012<dim, 5, real> >(parameters_input);
         }
     }
     else if (nstate_input == 6) {
-        if (limiter_type == limiter_enum::none)
-        {
-            if (apply_tvb == true)
-                return std::make_shared < TVBLimiter<dim, 6, real> >(parameters_input);
-            else
+        if (limiter_type == limiter_enum::none) {
                 return nullptr;
         }
-        else if (limiter_type == limiter_enum::maximum_principle)
-        {
+        else if (limiter_type == limiter_enum::maximum_principle) {
             return std::make_shared< MaximumPrincipleLimiter<dim, 6, real> >(parameters_input);
         }
-        else if (limiter_type == limiter_enum::positivity_preserving2010)
-        {
+        else if (limiter_type == limiter_enum::positivity_preservingZhang2010) {
             return std::make_shared< PositivityPreservingLimiter_Zhang2010<dim, 6, real> >(parameters_input);
         }
-        else if (limiter_type == limiter_enum::positivity_preserving2011)
-        {
+        else if (limiter_type == limiter_enum::positivity_preservingWang2012) {
             return std::make_shared< PositivityPreservingLimiter_Wang2012<dim, 6, real> >(parameters_input);
         }
     }

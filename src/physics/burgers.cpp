@@ -219,7 +219,7 @@ std::array<real,nstate> Burgers<dim,nstate,real>
             
             if(dim==1)
             {
-                source[istate] += pi * sin(pi*(pos[0] - current_time))
+                source[istate] = pi * sin(pi*(pos[0] - current_time))
                                    *(1.0 - cos(pi * (pos[0] - current_time)));
             }
 
@@ -231,7 +231,7 @@ std::array<real,nstate> Burgers<dim,nstate,real>
                                *pow(cos(pi*(pos[1]-current_time)),2.0);
                 real sourcedy = -pi*sin(pi*(pos[1]-current_time))*(cos(pi*(pos[1]-current_time)))
                                *pow(cos(pi*(pos[0]-current_time)),2.0);
-                source[istate] = sourcedt + sourcedx+ sourcedy;
+                source[istate] = sourcedt + sourcedx + sourcedy;
             }
 
             if(dim==3)

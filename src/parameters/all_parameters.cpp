@@ -1,5 +1,6 @@
 #include <deal.II/base/mpi.h>
 #include <deal.II/base/utilities.h>
+#include <deal.II/base/patterns.h>
 
 #include "parameters/all_parameters.h"
 
@@ -331,18 +332,18 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
         dealii::Patterns::Bool(),
         "Does not perform Convergence Test by default. Otherwise, performs Convergence Test.");
 
-    prm.declare_entry("use_scaling_limiter", "none",
+    prm.declare_entry("bound_preserving_limiter", "none",
         dealii::Patterns::Selection(
-            " none | "
-            " maximum_principle | "
-            " positivity_preserving2010 | "
-            " positivity_preserving2011 "),
+            "none | "
+            "maximum_principle | "
+            "positivity_preservingZhang2010 | "
+            "positivity_preservingWang2012 "),
         "The type of limiter we want to apply to the solution. "
         "Choices are "
         " <none | "
-        "  maximum_principle | "
-        " positivity_preserving2010 | "
-        " positivity_preserving2011>.");
+        " maximum_principle | "
+        " positivity_preservingZhang2010 | "
+        " positivity_preservingWang2012>.");
 
     prm.declare_entry("pos_eps", "1e-13",
         dealii::Patterns::Double(1e-20, 1e200),
@@ -356,15 +357,8 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       dealii::Patterns::Double(0,1e200),
                       "Maximum delta_x.");
 
-    prm.declare_entry("tvb_M1", "1.0",
-                      dealii::Patterns::Double(0,1e200),
-                      "Maximum delta_x.");
-    prm.declare_entry("tvb_M2", "1.0",
-                      dealii::Patterns::Double(0,1e200),
-                      "Maximum delta_x.");
-    prm.declare_entry("tvb_M3", "1.0",
-                      dealii::Patterns::Double(0,1e200),
-                      "Maximum delta_x.");
+    using convert_tensor = dealii::Patterns::Tools::Convert<dealii::Tensor<1, 4, double>>;
+    prm.declare_entry("tvb_M", "0,0,0,0", *convert_tensor::to_pattern(), "TVB Limiter tuning parameters for each state.");
 
     Parameters::LinearSolverParam::declare_parameters (prm);
     Parameters::ManufacturedConvergenceStudyParam::declare_parameters (prm);
@@ -534,18 +528,18 @@ const std::string test_string = prm.get("test_type");
 
     use_OOA = prm.get_bool("use_OOA");
 
-    const std::string use_scaling_limiter_string = prm.get("use_scaling_limiter");
-    if (use_scaling_limiter_string == "none") use_scaling_limiter_type = none;
-    if (use_scaling_limiter_string == "maximum_principle")     use_scaling_limiter_type = maximum_principle;
-    if (use_scaling_limiter_string == "positivity_preserving2010")     use_scaling_limiter_type = positivity_preserving2010;
-    if (use_scaling_limiter_string == "positivity_preserving2011")     use_scaling_limiter_type = positivity_preserving2011;
+    const std::string bound_preserving_limiter_string = prm.get("bound_preserving_limiter");
+    if (bound_preserving_limiter_string == "none")                          bound_preserving_limiter = none;
+    if (bound_preserving_limiter_string == "maximum_principle")             bound_preserving_limiter = maximum_principle;
+    if (bound_preserving_limiter_string == "positivity_preservingZhang2010")     bound_preserving_limiter = positivity_preservingZhang2010;
+    if (bound_preserving_limiter_string == "positivity_preservingWang2012")     bound_preserving_limiter = positivity_preservingWang2012;
     pos_eps = prm.get_double("pos_eps");
 
     use_tvb_limiter = prm.get_bool("use_tvb_limiter");
     tvb_h = prm.get_double("tvb_h");
-    tvb_M1 = prm.get_double("tvb_M1");
-    tvb_M2 = prm.get_double("tvb_M2");
-    tvb_M3 = prm.get_double("tvb_M3");
+
+    using convert_tensor = dealii::Patterns::Tools::Convert<dealii::Tensor<1, 4, double>>;
+    tvb_M = convert_tensor::to_value(prm.get("tvb_M"));
 
 
     pcout << "Parsing linear solver subsection..." << std::endl;

@@ -175,8 +175,8 @@ inline std::array<real2,nstate> Euler<dim,nstate,real>
     dealii::Tensor<1,dim,real2> vel = compute_velocities<real2>(conservative_soln);
     real2 pressure = compute_pressure<real2>(conservative_soln);
 
-    if (this->all_parameters->use_scaling_limiter_type != Parameters::AllParameters::LimiterType::positivity_preserving2010 
-        && this->all_parameters->use_scaling_limiter_type != Parameters::AllParameters::LimiterType::positivity_preserving2011)
+    if (this->all_parameters->bound_preserving_limiter != Parameters::AllParameters::LimiterType::positivity_preservingZhang2010 
+        && this->all_parameters->bound_preserving_limiter != Parameters::AllParameters::LimiterType::positivity_preservingWang2012)
     {
         check_positive_quantity<real2>(density, "density");
         check_positive_quantity<real2>(pressure, "pressure");
@@ -374,8 +374,8 @@ inline real2 Euler<dim,nstate,real>
     const real2 vel2 = compute_velocity_squared<real2>(vel);
     real2 pressure = gamm1*(tot_energy - 0.5*density*vel2);
     
-    if (this->all_parameters->use_scaling_limiter_type != Parameters::AllParameters::LimiterType::positivity_preserving2010 
-        && this->all_parameters->use_scaling_limiter_type != Parameters::AllParameters::LimiterType::positivity_preserving2011)
+    if (this->all_parameters->bound_preserving_limiter != Parameters::AllParameters::LimiterType::positivity_preservingZhang2010 
+        && this->all_parameters->bound_preserving_limiter != Parameters::AllParameters::LimiterType::positivity_preservingWang2012)
     {
         check_positive_quantity<real2>(pressure, "pressure");
     }

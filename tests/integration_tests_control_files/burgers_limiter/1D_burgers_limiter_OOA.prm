@@ -14,7 +14,7 @@ set use_split_form = false
 set conv_num_flux = lax_friedrichs
 
 
-set use_scaling_limiter = maximum_principle
+set bound_preserving_limiter = maximum_principle
 
 subsection ODE solver
 

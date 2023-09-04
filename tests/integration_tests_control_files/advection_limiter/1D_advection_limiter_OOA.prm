@@ -18,7 +18,7 @@ set pde_type = advection
 
 
 
-set use_scaling_limiter = maximum_principle
+set bound_preserving_limiter = maximum_principle
 
 set do_renumber_dofs = false
 

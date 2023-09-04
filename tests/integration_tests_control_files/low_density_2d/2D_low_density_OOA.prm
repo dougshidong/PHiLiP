@@ -24,7 +24,7 @@ set conv_num_flux = lax_friedrichs
 
 
 #limiter flags
-set use_scaling_limiter = positivity_preserving2010
+set bound_preserving_limiter = positivity_preservingZhang2010
 set pos_eps = 0.0099
 
 set use_OOA = true

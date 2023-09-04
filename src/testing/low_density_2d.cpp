@@ -88,7 +88,7 @@ int LowDensity2D<dim, nstate>::run_test() const
             pcout << "ndofs: " << pow(n_global_active_cells2, (1.0/dim)) << "  x_step:   " << delta_x << std::endl;
             all_parameters_new.ode_solver_param.initial_time_step = (1.0/50.0)*pow(delta_x,2);
             pcout << "time_step:   " << all_parameters_new.ode_solver_param.initial_time_step << std::endl;
-
+            pcout << "nstate:  " << nstate << std::endl;
             //allocate dg
             std::shared_ptr < PHiLiP::DGBase<dim, double> > dg = PHiLiP::DGFactory<dim, double>::create_discontinuous_galerkin(&all_parameters_new, poly_degree, poly_degree, grid_degree, grid);
             pcout << "dg created" << std::endl;

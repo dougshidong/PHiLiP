@@ -347,7 +347,7 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
 
     prm.declare_entry("pos_eps", "1e-13",
         dealii::Patterns::Double(1e-20, 1e200),
-        "Small value greater than zero which the solution is greater than at all times.");
+        "Lower bound for density used in Positivity-Preserving Limiter. Small value greater than zero, less than solution at all times.");
 
     prm.declare_entry("use_tvb_limiter", "false",
         dealii::Patterns::Bool(),

@@ -216,35 +216,38 @@ std::array<real,nstate> Burgers<dim,nstate,real>
         for(int istate =0; istate<nstate; istate++){
             source[istate] = 0.0;
             const double pi = atan(1)*4.0;
-            
+            real pi_xmt = pi * (pos[0] - current_time);
+            real pi_ymt = pi * (pos[1] - current_time);
+            real pi_zmt = pi * (pos[2] - current_time);
+
             if(dim==1)
             {
-                source[istate] = pi * sin(pi*(pos[0] - current_time))
-                                   *(1.0 - cos(pi * (pos[0] - current_time)));
+                source[istate] = pi * sin(pi_xmt)
+                                   *(1.0 - cos(pi_xmt));
             }
 
             if(dim==2)
             {
-                real sourcedt = pi*sin(pi*(pos[0]-current_time))*cos(pi*(pos[1]-current_time))
-                               +pi*cos(pi*(pos[0]-current_time))*sin(pi*(pos[1]-current_time));
-                real sourcedx = -pi*sin(pi*(pos[0]-current_time))*(cos(pi*(pos[0]-current_time)))
-                               *pow(cos(pi*(pos[1]-current_time)),2.0);
-                real sourcedy = -pi*sin(pi*(pos[1]-current_time))*(cos(pi*(pos[1]-current_time)))
-                               *pow(cos(pi*(pos[0]-current_time)),2.0);
+                real sourcedt = pi*sin(pi_xmt)*cos(pi_ymt)
+                               +pi*cos(pi_xmt)*sin(pi_ymt);
+                real sourcedx = -pi*sin(pi_xmt)*(cos(pi_xmt))
+                               *pow(cos(pi_ymt),2.0);
+                real sourcedy = -pi*sin(pi_ymt)*(cos(pi_ymt))
+                               *pow(cos(pi_xmt),2.0);
                 source[istate] = sourcedt + sourcedx + sourcedy;
             }
 
             if(dim==3)
             {
-                real sourcedt = pi*sin(pi*(pos[0]-current_time))*cos(pi*(pos[1]-current_time))*cos(pi*(pos[2]-current_time))
-                               +pi*cos(pi*(pos[0]-current_time))*sin(pi*(pos[1]-current_time))*cos(pi*(pos[2]-current_time))
-                               +pi*cos(pi*(pos[0]-current_time))*cos(pi*(pos[1]-current_time))*sin(pi*(pos[2]-current_time));
-                real sourcedx = -pi*sin(pi*(pos[0]-current_time))*(cos(pi*(pos[0]-current_time)))
-                               *pow(cos(pi*(pos[1]-current_time)),2.0)*pow(cos(pi*(pos[2]-current_time)),2.0);
-                real sourcedy = -pi*sin(pi*(pos[1]-current_time))*(cos(pi*(pos[1]-current_time)))
-                               *pow(cos(pi*(pos[0]-current_time)),2.0)*pow(cos(pi*(pos[2]-current_time)),2.0);
-                real sourcedz = -pi*sin(pi*(pos[2]-current_time))*(cos(pi*(pos[2]-current_time)))
-                               *pow(cos(pi*(pos[0]-current_time)),2.0)*pow(cos(pi*(pos[1]-current_time)),2.0);
+                real sourcedt = pi*sin(pi_xmt)*cos(pi_ymt)*cos(pi_zmt)
+                               +pi*cos(pi_xmt)*sin(pi_ymt)*cos(pi_zmt)
+                               +pi*cos(pi_xmt)*cos(pi_ymt)*sin(pi_zmt);
+                real sourcedx = -pi*sin(pi_xmt)*(cos(pi_xmt))
+                               *pow(cos(pi_ymt),2.0)*pow(cos(pi_zmt),2.0);
+                real sourcedy = -pi*sin(pi_ymt)*(cos(pi_ymt))
+                               *pow(cos(pi_xmt),2.0)*pow(cos(pi_zmt),2.0);
+                real sourcedz = -pi*sin(pi_zmt)*(cos(pi_zmt))
+                               *pow(cos(pi_xmt),2.0)*pow(cos(pi_ymt),2.0);
                 source[istate] = sourcedt + sourcedx + sourcedy + sourcedz;
             }
         }

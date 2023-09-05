@@ -32,10 +32,20 @@ BoundPreservingLimiterFactory<dim,real>
             return std::make_shared< MaximumPrincipleLimiter<dim, 1, real> >(parameters_input);
         }
         else if (limiter_type == limiter_enum::positivity_preservingZhang2010) {
-            return std::make_shared< PositivityPreservingLimiter_Zhang2010<dim, 1, real> >(parameters_input);
+            if(nstate_input == dim + 2)
+                return std::make_shared< PositivityPreservingLimiter_Zhang2010<dim, 1, real> >(parameters_input);
+            else {
+                assert(0 == 1 && "Cannot create Positivity-Preserving limiter for nstate_input != dim + 2");
+                return nullptr;
+            }
         }
         else if (limiter_type == limiter_enum::positivity_preservingWang2012) {
-            return std::make_shared< PositivityPreservingLimiter_Wang2012<dim, 1, real> >(parameters_input);
+            if (nstate_input == dim + 2)
+                return std::make_shared< PositivityPreservingLimiter_Wang2012<dim, 1, real> >(parameters_input);
+            else {
+                assert(0 == 1 && "Cannot create Positivity-Preserving limiter for nstate_input != dim + 2");
+                return nullptr;
+            }
         }
     }
     else if (nstate_input == 2) {
@@ -56,10 +66,20 @@ BoundPreservingLimiterFactory<dim,real>
             return std::make_shared< MaximumPrincipleLimiter<dim, 2, real> >(parameters_input);
         }
         else if (limiter_type == limiter_enum::positivity_preservingZhang2010) {
-            return std::make_shared< PositivityPreservingLimiter_Zhang2010<dim, 2, real> >(parameters_input);
+            if (nstate_input == dim + 2)
+                return std::make_shared< PositivityPreservingLimiter_Zhang2010<dim, 2, real> >(parameters_input);
+            else {
+                assert(0 == 1 && "Cannot create Positivity-Preserving limiter for nstate_input != dim + 2");
+                return nullptr;
+            }
         }
         else if (limiter_type == limiter_enum::positivity_preservingWang2012) {
-            return std::make_shared< PositivityPreservingLimiter_Wang2012<dim, 2, real> >(parameters_input);
+            if (nstate_input == dim + 2)
+                return std::make_shared< PositivityPreservingLimiter_Wang2012<dim, 2, real> >(parameters_input);
+            else {
+                assert(0 == 1 && "Cannot create Positivity-Preserving limiter for nstate_input != dim + 2");
+                return nullptr;
+            }
         }
     }
     else if (nstate_input == 3) {
@@ -80,14 +100,24 @@ BoundPreservingLimiterFactory<dim,real>
             return std::make_shared< MaximumPrincipleLimiter<dim, 3, real> >(parameters_input);
         }
         else if (limiter_type == limiter_enum::positivity_preservingZhang2010) {
-            return std::make_shared< PositivityPreservingLimiter_Zhang2010<dim, 3, real> >(parameters_input);
+            if (nstate_input == dim + 2)
+                return std::make_shared< PositivityPreservingLimiter_Zhang2010<dim, 3, real> >(parameters_input);
+            else {
+                assert(0 == 1 && "Cannot create Positivity-Preserving limiter for nstate_input != dim + 2");
+                return nullptr;
+            }
         }
         else if (limiter_type == limiter_enum::positivity_preservingWang2012) {
-            return std::make_shared< PositivityPreservingLimiter_Wang2012<dim, 3, real> >(parameters_input);
+            if (nstate_input == dim + 2)
+                return std::make_shared< PositivityPreservingLimiter_Wang2012<dim, 3, real> >(parameters_input);
+            else {
+                assert(0 == 1 && "Cannot create Positivity-Preserving limiter for nstate_input != dim + 2");
+                return nullptr;
+            }
         }
     }
     else if (nstate_input == 4) {
-        std::cout << "nstate is 4" << std::endl;
+        std::cout << "nstate_input is 4" << std::endl;
         if (limiter_type == limiter_enum::none) {
             std::cout << "limiter type is none" << std::endl;
             if (apply_tvb == true) {
@@ -108,10 +138,20 @@ BoundPreservingLimiterFactory<dim,real>
             return std::make_shared< MaximumPrincipleLimiter<dim, 4, real> >(parameters_input);
         }
         else if (limiter_type == limiter_enum::positivity_preservingZhang2010) {
-            return std::make_shared< PositivityPreservingLimiter_Zhang2010<dim, 4, real> >(parameters_input);
+            if (nstate_input == dim + 2)
+                return std::make_shared< PositivityPreservingLimiter_Zhang2010<dim, 4, real> >(parameters_input);
+            else {
+                assert(0 == 1 && "Cannot create Positivity-Preserving limiter for nstate_input != dim + 2");
+                return nullptr;
+            }
         }
         else if (limiter_type == limiter_enum::positivity_preservingWang2012) {
-            return std::make_shared< PositivityPreservingLimiter_Wang2012<dim, 4, real> >(parameters_input);
+            if (nstate_input == dim + 2)
+                return std::make_shared< PositivityPreservingLimiter_Wang2012<dim, 4, real> >(parameters_input);
+            else {
+                assert(0 == 1 && "Cannot create Positivity-Preserving limiter for nstate_input != dim + 2");
+                return nullptr;
+            }
         }
     }
     else if (nstate_input == 5) {
@@ -122,10 +162,20 @@ BoundPreservingLimiterFactory<dim,real>
             return std::make_shared< MaximumPrincipleLimiter<dim, 5, real> >(parameters_input);
         }
         else if (limiter_type == limiter_enum::positivity_preservingZhang2010) {
-            return std::make_shared< PositivityPreservingLimiter_Zhang2010<dim, 5, real> >(parameters_input);
+            if (nstate_input == dim + 2)
+                return std::make_shared< PositivityPreservingLimiter_Zhang2010<dim, 5, real> >(parameters_input);
+            else {
+                assert(0 == 1 && "Cannot create Positivity-Preserving limiter for nstate_input != dim + 2");
+                return nullptr;
+            }
         }
         else if (limiter_type == limiter_enum::positivity_preservingWang2012) {
-            return std::make_shared< PositivityPreservingLimiter_Wang2012<dim, 5, real> >(parameters_input);
+            if (nstate_input == dim + 2)
+                return std::make_shared< PositivityPreservingLimiter_Wang2012<dim, 5, real> >(parameters_input);
+            else {
+                assert(0 == 1 && "Cannot create Positivity-Preserving limiter for nstate_input != dim + 2");
+                return nullptr;
+            }
         }
     }
     else if (nstate_input == 6) {
@@ -136,10 +186,20 @@ BoundPreservingLimiterFactory<dim,real>
             return std::make_shared< MaximumPrincipleLimiter<dim, 6, real> >(parameters_input);
         }
         else if (limiter_type == limiter_enum::positivity_preservingZhang2010) {
-            return std::make_shared< PositivityPreservingLimiter_Zhang2010<dim, 6, real> >(parameters_input);
+            if (nstate_input == dim + 2)
+                return std::make_shared< PositivityPreservingLimiter_Zhang2010<dim, 6, real> >(parameters_input);
+            else {
+                assert(0 == 1 && "Cannot create Positivity-Preserving limiter for nstate_input != dim + 2");
+                return nullptr;
+            }
         }
         else if (limiter_type == limiter_enum::positivity_preservingWang2012) {
-            return std::make_shared< PositivityPreservingLimiter_Wang2012<dim, 6, real> >(parameters_input);
+            if (nstate_input == dim + 2)
+                return std::make_shared< PositivityPreservingLimiter_Wang2012<dim, 6, real> >(parameters_input);
+            else {
+                assert(0 == 1 && "Cannot create Positivity-Preserving limiter for nstate_input != dim + 2");
+                return nullptr;
+            }
         }
     }
     else {

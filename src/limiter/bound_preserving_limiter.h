@@ -48,6 +48,7 @@ namespace PHiLiP {
             /// Pointer to parameters object
             const Parameters::AllParameters* const all_parameters;
 
+            /// Function to limit the solution
             virtual void limit(
                 dealii::LinearAlgebra::distributed::Vector<double>& solution,
                 const dealii::DoFHandler<dim>& dof_handler,
@@ -71,6 +72,9 @@ namespace PHiLiP {
             /// Destructor
             ~TVBLimiter() {};
 
+            /// Applies total variation bounded limiter to the solution.
+            /** Using Chen,Shu September 2017 Thm3.7 we apply a limiter on the solution
+            */
             void limit(
                 dealii::LinearAlgebra::distributed::Vector<double>& solution,
                 const dealii::DoFHandler<dim>& dof_handler,
@@ -94,19 +98,23 @@ namespace PHiLiP {
             /// Destructor
             ~MaximumPrincipleLimiter() {};
 
-            /// Initial global maximum of solution in domain.
+            /// Maximum of initial solution in domain.
             std::vector<real> global_max;
-            /// Initial global minimum of solution in domain.
+            /// Minimum of initial solution in domain.
             std::vector<real> global_min;
 
-            /// Pointer to TVB limiter (can be applied with this limiter)
+            /// Pointer to TVB limiter class (TVB limiter can be applied in conjunction with this limiter)
             std::shared_ptr<BoundPreservingLimiter<dim, real>> tvbLimiter;
 
+            /// Function to obtain the maximum and minimum of the initial solution
             void get_global_max_and_min_of_solution(
                 dealii::LinearAlgebra::distributed::Vector<double>      solution,
                 const dealii::DoFHandler<dim>&                          dof_handler,
                 const dealii::hp::FECollection<dim>&                    fe_collection);
 
+            /// Applies maximum-principle-satisfying limiter to the solution.
+            /** Using Zhang,Shu May 2010 Eq 3.8 and 3.9 we apply a limiter on the global solution
+            */
             void limit(
                 dealii::LinearAlgebra::distributed::Vector<double>& solution,
                 const dealii::DoFHandler<dim>& dof_handler,
@@ -130,11 +138,14 @@ namespace PHiLiP {
             /// Destructor
             ~PositivityPreservingLimiter_Zhang2010() {};
 
-            /// Pointer to TVB limiter (can be applied with this limiter)
+            /// Pointer to TVB limiter class (TVB limiter can be applied in conjunction with this limiter)
             std::shared_ptr<BoundPreservingLimiter<dim, real>> tvbLimiter;
             // Euler physics pointer. Used to compute pressure.
             std::shared_ptr < Physics::Euler<dim, nstate, double > > euler_physics;
 
+            /// Applies positivity-preserving limiter to the solution.
+            /** Using Zhang,Shu November 2010 Eq 3.14-3.19 we apply a limiter on the global solution
+            */
             void limit(
                 dealii::LinearAlgebra::distributed::Vector<double>& solution,
                 const dealii::DoFHandler<dim>& dof_handler,
@@ -158,11 +169,14 @@ namespace PHiLiP {
             /// Destructor
             ~PositivityPreservingLimiter_Wang2012() {};
 
-            /// Pointer to TVB limiter (can be applied with this limiter)
+            /// Pointer to TVB limiter class (TVB limiter can be applied in conjunction with this limiter)
             std::shared_ptr<BoundPreservingLimiter<dim, real>> tvbLimiter;
             // Euler physics pointer. Used to compute pressure.
             std::shared_ptr < Physics::Euler<dim, nstate, double > > euler_physics;
 
+            /// Applies positivity-preserving limiter to the solution.
+            /** Using Wang,Shu January 2012 Eq 3.2-3.7 we apply a limiter on the global solution
+            */
             void limit(
                 dealii::LinearAlgebra::distributed::Vector<double>& solution,
                 const dealii::DoFHandler<dim>& dof_handler,

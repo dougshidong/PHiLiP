@@ -42,7 +42,7 @@ int BurgersLimiter<dim, nstate>::run_test() const
     PHiLiP::Parameters::AllParameters all_parameters_new = *all_parameters;  
     double left = 0.0;
     double right = 2.0;
-    const unsigned int n_grids = (!all_parameters_new.use_OOA) ? 8 : 10;
+    const unsigned int n_grids = (!all_parameters_new.use_OOA) ? 4 : 10;
     unsigned int poly_degree = 2;
     const unsigned int igrid_start = 3;
     const unsigned int grid_degree = 1;

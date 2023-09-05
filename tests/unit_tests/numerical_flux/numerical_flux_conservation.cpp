@@ -104,11 +104,15 @@ int test_dissipative_numerical_flux_conservation (const PHiLiP::Parameters::AllP
                  artificial_diss_int, artificial_diss_ext,
                  soln_int, soln_ext,
                  soln_grad_int, soln_grad_ext,
+                 soln_int, soln_ext,
+                 soln_grad_int, soln_grad_ext,
                  normal_int, penalty);
 
     std::array<double, nstate> diss_auxi_num_flux_dot_n_2 = diss_num_flux->evaluate_auxiliary_flux(
                  cell_index_ext, cell_index_int,
                  artificial_diss_ext, artificial_diss_int,
+                 soln_ext, soln_int,
+                 soln_grad_ext, soln_grad_int,
                  soln_ext, soln_int,
                  soln_grad_ext, soln_grad_int,
                  -normal_int, penalty);
@@ -166,6 +170,8 @@ int test_dissipative_numerical_flux_consistency (const PHiLiP::Parameters::AllPa
     const std::array<double, nstate> diss_auxi_num_flux_dot_n = diss_num_flux->evaluate_auxiliary_flux(
                  cell_index_int, cell_index_ext,
                  artificial_diss_int, artificial_diss_ext,
+                 soln_int, soln_ext,
+                 soln_grad_int, soln_grad_ext,
                  soln_int, soln_ext,
                  soln_grad_int, soln_grad_ext,
                  normal_int, penalty);

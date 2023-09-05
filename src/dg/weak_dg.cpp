@@ -821,6 +821,8 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_boundary_term_explicit(
             artificial_diss_coeff,
             soln_int[iquad], soln_ext[iquad],
             soln_grad_int[iquad], soln_grad_ext[iquad],
+            soln_int[iquad], soln_ext[iquad],
+            soln_grad_int[iquad], soln_grad_ext[iquad],
             normal_int, penalty, true);
     }
 
@@ -1000,6 +1002,8 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_face_term_explicit(
             neighbor_cell_index,
             artificial_diss_coeff_int,
             artificial_diss_coeff_ext,
+            soln_int[iquad], soln_ext[iquad],
+            soln_grad_int[iquad], soln_grad_ext[iquad],
             soln_int[iquad], soln_ext[iquad],
             soln_grad_int[iquad], soln_grad_ext[iquad],
             normal_int, penalty);
@@ -1491,6 +1495,8 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_boundary_term(
             current_cell_index,
             artificial_diss_coeff_at_q[iquad],
             artificial_diss_coeff_at_q[iquad],
+            soln_int[iquad], soln_ext[iquad],
+            soln_grad_int[iquad], soln_grad_ext[iquad],
             soln_int[iquad], soln_ext[iquad],
             soln_grad_int[iquad], soln_grad_ext[iquad],
             normal_int, penalty, true);
@@ -2525,6 +2531,8 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_face_term(
             neighbor_cell_index,
             artificial_diss_coeff_at_q[iquad],
             artificial_diss_coeff_at_q[iquad],
+            soln_int[iquad], soln_ext[iquad],
+            soln_grad_int[iquad], soln_grad_ext[iquad],
             soln_int[iquad], soln_ext[iquad],
             soln_grad_int[iquad], soln_grad_ext[iquad],
             phys_unit_normal_int[iquad], penalty);

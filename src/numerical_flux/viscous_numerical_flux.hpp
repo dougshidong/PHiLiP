@@ -35,6 +35,10 @@ virtual std::array<real, nstate> evaluate_auxiliary_flux (
     const std::array<real, nstate> &soln_ext,
     const std::array<dealii::Tensor<1,dim,real>, nstate> &soln_grad_int,
     const std::array<dealii::Tensor<1,dim,real>, nstate> &soln_grad_ext,
+    const std::array<real, nstate> &filtered_soln_int,
+    const std::array<real, nstate> &filtered_soln_ext,
+    const std::array<dealii::Tensor<1,dim,real>, nstate> &filtered_soln_grad_int,
+    const std::array<dealii::Tensor<1,dim,real>, nstate> &filtered_soln_grad_ext,
     const dealii::Tensor<1,dim,real> &normal_int,
     const real &penalty,
     const bool on_boundary = false) const = 0;
@@ -80,6 +84,10 @@ std::array<real, nstate> evaluate_auxiliary_flux (
     const std::array<real, nstate> &soln_ext,
     const std::array<dealii::Tensor<1,dim,real>, nstate> &soln_grad_int,
     const std::array<dealii::Tensor<1,dim,real>, nstate> &soln_grad_ext,
+    const std::array<real, nstate> &filtered_soln_int,
+    const std::array<real, nstate> &filtered_soln_ext,
+    const std::array<dealii::Tensor<1,dim,real>, nstate> &filtered_soln_grad_int,
+    const std::array<dealii::Tensor<1,dim,real>, nstate> &filtered_soln_grad_ext,
     const dealii::Tensor<1,dim,real> &normal_int,
     const real &penalty,
     const bool on_boundary = false) const override;
@@ -122,6 +130,10 @@ std::array<real, nstate> evaluate_auxiliary_flux (
     const std::array<real, nstate> &soln_ext,
     const std::array<dealii::Tensor<1,dim,real>, nstate> &soln_grad_int,
     const std::array<dealii::Tensor<1,dim,real>, nstate> &soln_grad_ext,
+    const std::array<real, nstate> &filtered_soln_int,
+    const std::array<real, nstate> &filtered_soln_ext,
+    const std::array<dealii::Tensor<1,dim,real>, nstate> &filtered_soln_grad_int,
+    const std::array<dealii::Tensor<1,dim,real>, nstate> &filtered_soln_grad_ext,
     const dealii::Tensor<1,dim,real> &normal_int,
     const real &penalty,
     const bool on_boundary = false) const override;
@@ -163,6 +175,10 @@ std::array<real, nstate> evaluate_auxiliary_flux (
     const std::array<real, nstate> &soln_ext,
     const std::array<dealii::Tensor<1,dim,real>, nstate> &soln_grad_int,
     const std::array<dealii::Tensor<1,dim,real>, nstate> &soln_grad_ext,
+    const std::array<real, nstate> &filtered_soln_int,
+    const std::array<real, nstate> &filtered_soln_ext,
+    const std::array<dealii::Tensor<1,dim,real>, nstate> &filtered_soln_grad_int,
+    const std::array<dealii::Tensor<1,dim,real>, nstate> &filtered_soln_grad_ext,
     const dealii::Tensor<1,dim,real> &normal_int,
     const real &penalty,
     const bool on_boundary = false) const override;

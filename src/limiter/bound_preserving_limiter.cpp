@@ -673,64 +673,64 @@ namespace PHiLiP {
                         + soln_cell_avg[0];
                 }
 
-                std::vector< real > p_lim(n_quad_pts);
-                std::array<real, nstate> soln_at_iquad;
+                if (nstate == dim + 2) {
+                    std::vector< real > p_lim(n_quad_pts);
+                    std::array<real, nstate> soln_at_iquad;
 
-                // Compute pressure at quadrature points
-                for (unsigned int iquad = 0; iquad < n_quad_pts; ++iquad) {
-                    for (unsigned int istate = 0; istate < nstate; ++istate) {
-                        soln_at_iquad[istate] = soln_at_q[istate][iquad];
-                    }
-                    if(nstate == dim + 2)
-                        p_lim[iquad] = euler_physics->compute_pressure(soln_at_iquad);
-                }
-
-                // Compute value of theta2
-                std::vector<real> theta2(n_quad_pts, 1);
-                for (unsigned int iquad = 0; iquad < n_quad_pts; ++iquad) {
-                    if (p_lim[iquad] >= eps)
-                        theta2[iquad] = 1;
-                    else {
-                        real s_coeff1 = (soln_at_q[nstate - 1][iquad] - soln_cell_avg[nstate - 1]) * (soln_at_q[0][iquad] - soln_cell_avg[0]) - 0.5 * pow(soln_at_q[1][iquad] - soln_cell_avg[1], 2);
-
-                        real s_coeff2 = soln_cell_avg[0] * (soln_at_q[nstate - 1][iquad] - soln_cell_avg[nstate - 1]) + soln_cell_avg[nstate - 1] * (soln_at_q[0][iquad] - soln_cell_avg[0])
-                            - soln_cell_avg[1] * (soln_at_q[1][iquad] - soln_cell_avg[1]) - (eps / euler_physics->gam) * (soln_at_q[0][iquad] - soln_cell_avg[0]);
-
-                        real s_coeff3 = (soln_cell_avg[nstate - 1] * soln_cell_avg[0]) - 0.5 * pow(soln_cell_avg[1], 2) - (eps / euler_physics->gam) * soln_cell_avg[0];
-
-                        if (dim > 1) {
-                            s_coeff1 -= 0.5 * pow(soln_at_q[2][iquad] - soln_cell_avg[2], 2);
-                            s_coeff2 -= soln_cell_avg[2] * (soln_at_q[2][iquad] - soln_cell_avg[2]);
-                            s_coeff3 -= 0.5 * pow(soln_cell_avg[2], 2);
-                        }
-
-                        if (dim > 2) {
-                            s_coeff1 -= 0.5 * pow(soln_at_q[3][iquad] - soln_cell_avg[3], 2);
-                            s_coeff2 -= soln_cell_avg[3] * (soln_at_q[3][iquad] - soln_cell_avg[3]);
-                            s_coeff3 -= 0.5 * pow(soln_cell_avg[3], 2);
-                        }
-
-                        real discriminant = s_coeff2 * s_coeff2 - 4 * s_coeff1 * s_coeff3;
-
-                        if (discriminant >= 0) {
-                            real t1 = (-s_coeff2 + sqrt(discriminant)) / (2 * s_coeff1);
-                            real t2 = (-s_coeff2 - sqrt(discriminant)) / (2 * s_coeff1);
-                            theta2[iquad] = std::min(t1, t2);
-                        }
-                        else {
-                            theta2[iquad] = 0;
-                        }
-                    }
-                }
-
-                // Limit values at quadrature points
-                for (unsigned int istate = 0; istate < nstate; ++istate) {
+                    // Compute pressure at quadrature points
                     for (unsigned int iquad = 0; iquad < n_quad_pts; ++iquad) {
-                        soln_at_q[istate][iquad] = theta2[iquad] * (soln_at_q[istate][iquad] - soln_cell_avg[istate])
-                            + soln_cell_avg[istate];
+                        for (unsigned int istate = 0; istate < nstate; ++istate) {
+                            soln_at_iquad[istate] = soln_at_q[istate][iquad];
+                        }
+                        p_lim[iquad] = euler_physics->compute_pressure(soln_at_iquad);
+                    }
+
+                    // Compute value of theta2
+                    std::vector<real> theta2(n_quad_pts, 1);
+                    for (unsigned int iquad = 0; iquad < n_quad_pts; ++iquad) {
+                        if (p_lim[iquad] >= eps)
+                            theta2[iquad] = 1;
+                        else {
+                            real s_coeff1 = (soln_at_q[nstate - 1][iquad] - soln_cell_avg[nstate - 1]) * (soln_at_q[0][iquad] - soln_cell_avg[0]) - 0.5 * pow(soln_at_q[1][iquad] - soln_cell_avg[1], 2);
+
+                            real s_coeff2 = soln_cell_avg[0] * (soln_at_q[nstate - 1][iquad] - soln_cell_avg[nstate - 1]) + soln_cell_avg[nstate - 1] * (soln_at_q[0][iquad] - soln_cell_avg[0])
+                                - soln_cell_avg[1] * (soln_at_q[1][iquad] - soln_cell_avg[1]) - (eps / euler_physics->gam) * (soln_at_q[0][iquad] - soln_cell_avg[0]);
+
+                            real s_coeff3 = (soln_cell_avg[nstate - 1] * soln_cell_avg[0]) - 0.5 * pow(soln_cell_avg[1], 2) - (eps / euler_physics->gam) * soln_cell_avg[0];
+
+                            if (dim > 1) {
+                                s_coeff1 -= 0.5 * pow(soln_at_q[2][iquad] - soln_cell_avg[2], 2);
+                                s_coeff2 -= soln_cell_avg[2] * (soln_at_q[2][iquad] - soln_cell_avg[2]);
+                                s_coeff3 -= 0.5 * pow(soln_cell_avg[2], 2);
+                            }
+
+                            if (dim > 2) {
+                                s_coeff1 -= 0.5 * pow(soln_at_q[3][iquad] - soln_cell_avg[3], 2);
+                                s_coeff2 -= soln_cell_avg[3] * (soln_at_q[3][iquad] - soln_cell_avg[3]);
+                                s_coeff3 -= 0.5 * pow(soln_cell_avg[3], 2);
+                            }
+
+                            real discriminant = s_coeff2 * s_coeff2 - 4 * s_coeff1 * s_coeff3;
+
+                            if (discriminant >= 0) {
+                                real t1 = (-s_coeff2 + sqrt(discriminant)) / (2 * s_coeff1);
+                                real t2 = (-s_coeff2 - sqrt(discriminant)) / (2 * s_coeff1);
+                                theta2[iquad] = std::min(t1, t2);
+                            }
+                            else {
+                                theta2[iquad] = 0;
+                            }
+                        }
+                    }
+
+                    // Limit values at quadrature points
+                    for (unsigned int istate = 0; istate < nstate; ++istate) {
+                        for (unsigned int iquad = 0; iquad < n_quad_pts; ++iquad) {
+                            soln_at_q[istate][iquad] = theta2[iquad] * (soln_at_q[istate][iquad] - soln_cell_avg[istate])
+                                + soln_cell_avg[istate];
+                        }
                     }
                 }
-
 
                 // Project soln at quadrature points to dofs.
                 for (int istate = 0; istate < nstate; istate++) {
@@ -896,7 +896,7 @@ namespace PHiLiP {
                 }
 
                 real eps = this->all_parameters->pos_eps;
-                real p_avg = 0;
+                real p_avg = 1e-13;
 
                 if (nstate == dim + 2) {
                     // Compute average value of pressure using soln_cell_avg
@@ -926,37 +926,39 @@ namespace PHiLiP {
                         + soln_cell_avg[0];
                 }
 
-                std::vector<real> t2(n_quad_pts, 1);
-                real theta2 = 1.0;
-                std::array<real, nstate> soln_at_iquad = {};
+                if (nstate == dim + 2) {
+                    std::vector<real> t2(n_quad_pts, 1);
+                    real theta2 = 1.0;
+                    std::array<real, nstate> soln_at_iquad = {};
 
-                // Obtain theta2 value
-                for (unsigned int iquad = 0; iquad < n_quad_pts; ++iquad) {
-                    for (unsigned int istate = 0; istate < nstate; ++istate) {
-                        soln_at_iquad[istate] = soln_at_q[istate][iquad];
-                    }
-                    real p_lim = 0;
-                    
-                    if(nstate == dim + 2)
-                        p_lim = euler_physics->compute_pressure(soln_at_iquad);
+                    // Obtain theta2 value
+                    for (unsigned int iquad = 0; iquad < n_quad_pts; ++iquad) {
+                        for (unsigned int istate = 0; istate < nstate; ++istate) {
+                            soln_at_iquad[istate] = soln_at_q[istate][iquad];
+                        }
+                        real p_lim = 0;
 
-                    if (p_lim >= 0)
-                        t2[iquad] = 1;
-                    else
-                        t2[iquad] = p_avg / (p_avg - p_lim);
+                        if (nstate == dim + 2)
+                            p_lim = euler_physics->compute_pressure(soln_at_iquad);
 
-                    if (t2[iquad] != 1) {
-                        if (t2[iquad] >= 0 && t2[iquad] <= 1 && t2[iquad] < theta2) {
-                            theta2 = t2[iquad];
+                        if (p_lim >= 0)
+                            t2[iquad] = 1;
+                        else
+                            t2[iquad] = p_avg / (p_avg - p_lim);
+
+                        if (t2[iquad] != 1) {
+                            if (t2[iquad] >= 0 && t2[iquad] <= 1 && t2[iquad] < theta2) {
+                                theta2 = t2[iquad];
+                            }
                         }
                     }
-                }
 
-                // Limit values at quadrature points
-                for (unsigned int istate = 0; istate < nstate; ++istate) {
-                    for (unsigned int iquad = 0; iquad < n_quad_pts; ++iquad) {
-                        soln_at_q[istate][iquad] = theta2 * (soln_at_q[istate][iquad] - soln_cell_avg[istate])
-                            + soln_cell_avg[istate];
+                    // Limit values at quadrature points
+                    for (unsigned int istate = 0; istate < nstate; ++istate) {
+                        for (unsigned int iquad = 0; iquad < n_quad_pts; ++iquad) {
+                            soln_at_q[istate][iquad] = theta2 * (soln_at_q[istate][iquad] - soln_cell_avg[istate])
+                                + soln_cell_avg[istate];
+                        }
                     }
                 }
 

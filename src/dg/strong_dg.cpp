@@ -971,6 +971,34 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_volume_term_strong(
         }
     }
 
+    // Details: this projects to Legendre basis, truncates, then interpolates back to quad nodes.
+    // -- Constructor for tensor product polynomials based on Polynomials::Legendre interpolation. 
+    dealii::FE_DGQLegendre<1,1> legendre_poly_1D(this->max_degree);
+    // -- projection operator for legendre basis
+    OPERATOR::vol_projection_operator<dim,2*dim> legendre_soln_basis_projection_oper(1, this->max_degree, this->max_grid_degree);
+    legendre_soln_basis_projection_oper.build_1D_volume_operator(legendre_poly_1D, this->oneD_quadrature_collection[this->max_degree]);
+    // -- legendre basis functions 
+    OPERATOR::basis_functions<dim,2*dim> legendre_soln_basis(1, this->max_degree, this->max_grid_degree);
+    legendre_soln_basis.build_1D_volume_operator(legendre_poly_1D, this->oneD_quadrature_collection[this->max_degree]);
+    // -- solution at legendre poly
+    std::array<std::vector<real>,nstate> legendre_soln_at_q;
+    for(int istate=0; istate<nstate; istate++){
+        // (1) Project to Legrendre basis
+        std::vector<real> legendre_soln_coeff(n_shape_fns);
+        legendre_soln_basis_projection_oper.matrix_vector_mult_1D(soln_at_q[istate], legendre_soln_coeff,
+                                                                  legendre_soln_basis_projection_oper.oneD_vol_operator);
+        // (2) Truncate modes for high-pass filter (i.e. DG-VMS like)
+        for(unsigned int ishape=0; ishape<n_shape_fns; ishape++){
+            if(ishape < p_min_filtered){
+                legendre_soln_coeff[ishape] = 0.0;
+            }
+        }
+        // (3) Interpolate filtered solution back to quadrature points
+        legendre_soln_at_q[istate].resize(n_quad_pts);
+        legendre_soln_basis.matrix_vector_mult_1D(legendre_soln_coeff, lenegdre_soln_at_q[istate],
+                                                  legendre_soln_basis.oneD_vol_operator);
+    }
+
     // For pseudotime, we need to compute the time_scaled_solution.
     // Thus, we need to evaluate the max_dt_cell (as previously done in dg/weak_dg.cpp -> assemble_volume_term_explicit)
     // Get max artificial dissipation

@@ -211,6 +211,79 @@ void evaluate_covariant_metric_jacobian (
 
 }
 
+/// Code taken directly from deal.II's FullMatrix::gauss_jordan function, but adapted to
+/// handle AD variable.
+template <typename number>
+void gauss_jordan(dealii::FullMatrix<number> &input_matrix)
+{
+    Assert(!input_matrix.empty(), dealii::ExcMessage("Empty matrix"))
+    Assert(input_matrix.n_cols() == input_matrix.n_rows(), dealii::ExcMessage("Non quadratic matrix"));
+  
+    // Gauss-Jordan-Algorithm from Stoer & Bulirsch I (4th Edition) p. 153
+    const size_t N = input_matrix.n();
+  
+    // First get an estimate of the size of the elements of this matrix,
+    // for later checks whether the pivot element is large enough,
+    // for whether we have to fear that the matrix is not regular
+    number diagonal_sum = 0;
+    for (size_t i = 0; i < N; ++i)
+        diagonal_sum = diagonal_sum + abs(input_matrix(i, i));
+    const number typical_diagonal_element = diagonal_sum / N;
+    (void)typical_diagonal_element;
+  
+    // initialize the array that holds the permutations that we find during pivot search
+    std::vector<size_t> p(N);
+    for (size_t i = 0; i < N; ++i)
+        p[i] = i;
+  
+    for (size_t j = 0; j < N; ++j) {
+        // pivot search: search that part of the line on and
+        // right of the diagonal for the largest element
+        number max_pivot = abs(input_matrix(j, j));
+        size_t r   = j;
+        for (size_t i = j + 1; i < N; ++i) {
+            if (abs(input_matrix(i, j)) > max_pivot) {
+                max_pivot = abs(input_matrix(i, j));
+                r   = i;
+            }
+        }
+        // check whether the pivot is too small
+        Assert(max_pivot > 1.e-16 * typical_diagonal_element, dealii::ExcMessage("Non regular matrix"));
+  
+        // row interchange
+        if (r > j) {
+            for (size_t k = 0; k < N; ++k)
+                std::swap(input_matrix(j, k), input_matrix(r, k));
+  
+            std::swap(p[j], p[r]);
+        }
+  
+        // transformation
+        const number hr = number(1.) / input_matrix(j, j);
+        input_matrix(j, j)   = hr;
+        for (size_t k = 0; k < N; ++k) {
+            if (k == j) continue;
+            for (size_t i = 0; i < N; ++i) {
+                if (i == j) continue;
+                input_matrix(i, k) -= input_matrix(i, j) * input_matrix(j, k) * hr;
+            }
+        }
+        for (size_t i = 0; i < N; ++i) {
+            input_matrix(i, j) *= hr;
+            input_matrix(j, i) *= -hr;
+        }
+        input_matrix(j, j) = hr;
+    }
+    // column interchange
+    std::vector<number> hv(N);
+    for (size_t i = 0; i < N; ++i) {
+        for (size_t k = 0; k < N; ++k)
+            hv[p[k]] = input_matrix(i, k);
+        for (size_t k = 0; k < N; ++k)
+            input_matrix(i, k) = hv[k];
+    }
+}
+
 
 template<int dim, typename real>
 std::vector< real > project_function(
@@ -285,7 +358,8 @@ std::vector< real > project_function(
             }
         }
         dealii::FullMatrix<real> inverse_mass(n_dofs_out, n_dofs_out);
-        inverse_mass.invert(mass);
+        inverse_mass = mass;
+        gauss_jordan(inverse_mass);
 
         for(unsigned int row=0; row<n_dofs_out; ++row) {
             const unsigned int idof_vector = fe_output.component_to_system_index(istate,row);

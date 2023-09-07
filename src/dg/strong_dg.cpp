@@ -1955,7 +1955,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_strong(
         }
         soln_coeff_int[istate][ishape] = this->solution(dof_indices_int[idof]);
         if(ishape >= p_min_filtered){
-            filtered_soln_coeff_int[istate][ishape] = this->solution(dofs_indices_int[idof]);
+            filtered_soln_coeff_int[istate][ishape] = this->solution(dof_indices_int[idof]);
         }
         for(int idim=0; idim<dim; idim++){
             if(ishape == 0){
@@ -1965,7 +1965,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_strong(
             if(this->use_auxiliary_eq){
                 aux_soln_coeff_int[istate][idim][ishape] = this->auxiliary_solution[idim](dof_indices_int[idof]);
                 if(ishape >= p_min_filtered){
-                    filtered_aux_soln_coeff_int[istate][idim][ishape] = this->auxiliary_solution[idim](dofs_indices_int[idof]);
+                    filtered_aux_soln_coeff_int[istate][idim][ishape] = this->auxiliary_solution[idim](dof_indices_int[idof]);
                 }
             }
             else{
@@ -1989,7 +1989,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_strong(
         }
         soln_coeff_ext[istate][ishape] = this->solution(dof_indices_ext[idof]);
         if(ishape >= p_min_filtered){
-            filtered_soln_coeff_ext[istate][ishape] = this->solution(dofs_indices_ext[idof]);
+            filtered_soln_coeff_ext[istate][ishape] = this->solution(dof_indices_ext[idof]);
         }
         for(int idim=0; idim<dim; idim++){
             if(ishape == 0){

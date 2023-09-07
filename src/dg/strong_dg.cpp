@@ -1414,7 +1414,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_strong(
         // solve
         soln_coeff[istate][ishape] = this->solution(dof_indices[idof]);
         if(ishape >= p_min_filtered){
-            filtered_soln_coeff[istate][ishape] = this->solution(dofs_indices[idof]);
+            filtered_soln_coeff[istate][ishape] = this->solution(dof_indices[idof]);
         }
         for(int idim=0; idim<dim; idim++){
             //allocate
@@ -1426,7 +1426,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_strong(
             if(this->use_auxiliary_eq){
                 aux_soln_coeff[istate][idim][ishape] = this->auxiliary_solution[idim](dof_indices[idof]);
                 if(ishape >= p_min_filtered){
-                    filtered_aux_soln_coeff[istate][idim][ishape] = this->auxiliary_solution[idim](dofs_indices[idof]);
+                    filtered_aux_soln_coeff[istate][idim][ishape] = this->auxiliary_solution[idim](dof_indices[idof]);
                 }
             }
             else{

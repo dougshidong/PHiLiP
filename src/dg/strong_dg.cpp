@@ -1548,7 +1548,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_strong(
     // -- Legendre basis functions 
     OPERATOR::basis_functions<dim,2*dim> legendre_soln_basis(1, poly_degree, this->max_grid_degree);
     legendre_soln_basis.build_1D_volume_operator(legendre_poly_1D, this->oneD_quadrature_collection[poly_degree]);
-    legendre_soln_basis.build_1D_surface_operator(legendre_poly_1D, this->oneD_quadrature_collection[poly_degree]);
+    legendre_soln_basis.build_1D_surface_operator(legendre_poly_1D, this->oneD_face_quadrature);
     // -- Solution at legendre poly
     // -- (a) Interpolate the modal coefficients to the volume cubature nodes.
     std::array<std::vector<real>,nstate> legendre_soln_at_vol_q;
@@ -2242,10 +2242,10 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_strong(
     // -- Legendre basis functions 
     OPERATOR::basis_functions<dim,2*dim> legendre_soln_basis_int(1, poly_degree_int, this->max_grid_degree);
     legendre_soln_basis_int.build_1D_volume_operator(legendre_poly_1D_int, this->oneD_quadrature_collection[poly_degree_int]);
-    legendre_soln_basis_int.build_1D_surface_operator(legendre_poly_1D_int, this->oneD_quadrature_collection[poly_degree_int]);
+    legendre_soln_basis_int.build_1D_surface_operator(legendre_poly_1D_int, this->oneD_face_quadrature);
     OPERATOR::basis_functions<dim,2*dim> legendre_soln_basis_ext(1, poly_degree_ext, this->max_grid_degree);
     legendre_soln_basis_ext.build_1D_volume_operator(legendre_poly_1D_ext, this->oneD_quadrature_collection[poly_degree_ext]);
-    legendre_soln_basis_ext.build_1D_surface_operator(legendre_poly_1D_ext, this->oneD_quadrature_collection[poly_degree_ext]);
+    legendre_soln_basis_ext.build_1D_surface_operator(legendre_poly_1D_ext, this->oneD_face_quadrature);
     // -- Solution at legendre poly
     // -- (a) Interpolate the modal coefficients to the volume cubature nodes.
     std::array<std::vector<real>,nstate> legendre_soln_at_vol_q_int;

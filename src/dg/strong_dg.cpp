@@ -2451,10 +2451,10 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_strong(
         std::array<dealii::Tensor<1,dim,real>,nstate> filtered_aux_soln_state;
         for(int istate=0; istate<nstate; istate++){
             soln_state[istate] = soln_at_vol_q_ext[istate][iquad];
-            filtered_soln_state[istate] = filtered_soln_at_vol_q_ext[istate][iquad];
+            filtered_soln_state[istate] = legendre_soln_at_vol_q_ext[istate][iquad];
             for(int idim=0; idim<dim; idim++){
                 aux_soln_state[istate][idim] = aux_soln_at_vol_q_ext[istate][idim][iquad];
-                filtered_aux_soln_state[istate][idim] = filtered_aux_soln_at_vol_q_ext[istate][idim][iquad];
+                filtered_aux_soln_state[istate][idim] = legendre_aux_soln_at_vol_q_ext[istate][idim][iquad];
             }
         }
 

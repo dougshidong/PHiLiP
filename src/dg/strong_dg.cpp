@@ -995,7 +995,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_volume_term_strong(
         }
         // (3) Interpolate filtered solution back to quadrature points
         legendre_soln_at_q[istate].resize(n_quad_pts);
-        legendre_soln_basis.matrix_vector_mult_1D(legendre_soln_coeff, lenegdre_soln_at_q[istate],
+        legendre_soln_basis.matrix_vector_mult_1D(legendre_soln_coeff, legendre_soln_at_q[istate],
                                                   legendre_soln_basis.oneD_vol_operator);
     }
 

@@ -1,4 +1,4 @@
-set test_type = stability_fr_parameter_range
+set test_type = burgers_energy_stability
 
 set dimension = 1
 
@@ -8,7 +8,7 @@ set overintegration = 0
 
 set flux_nodes_type = GL
 
-set use_split_form = false
+set use_split_form = true
 
 set use_energy = false
 
@@ -18,13 +18,7 @@ set use_classical_FR = false
 
 set use_periodic_bc = true
 
-#set flux_reconstruction = cPlus
-set flux_reconstruction = user_specified_value
-set FR_user_specified_correction_parameter_value = 0.0 #0.186; 3.67e-3; 4.79e-5; 4.24e-7
-
-set number_ESFR_parameter_values = 0
-set ESFR_parameter_values_start = 1.0e-6
-set ESFR_parameter_values_end = 1.0e1
+set flux_reconstruction = cPlus
 
 set use_inverse_mass_on_the_fly = true
 
@@ -42,11 +36,11 @@ subsection ODE solver
   
   set nonlinear_max_iterations = 500000
 
-  set print_iteration_modulo = 10000
+  set print_iteration_modulo = 1000
 
   set ode_solver_type = runge_kutta
 
-  set initial_time_step = 0.00005
+  set initial_time_step = 0.0001
   #set initial_time_step = 0.00005
 
   set runge_kutta_method = rk4_ex
@@ -55,17 +49,7 @@ end
 
 subsection manufactured solution convergence study
   set use_manufactured_source_term = true
-
-  # Starting degree for convergence study
-  set degree_start      = 5
-
-  # Initial grid of size 2^initial_grid_size
-  set initial_grid_size = 5
-
-  # Number of grids in grid study
-  set number_of_grids   = 2
 end
-
 
 subsection flow_solver
     set flow_case_type = burgers_inviscid

@@ -73,22 +73,21 @@ inline real EulerVortexFunction<dim,real>
     const double x = new_loc[0];
     const double y = new_loc[1];
 
-    const double local_radius_sqr = new_loc.square();
-    const double pi = dealii::numbers::PI;
-    const double perturbation_strength = vortex_strength * exp(0.5*variance*(1.0-local_radius_sqr)) * 0.5 / pi;
-    const double delta_vel_x = -y * perturbation_strength;
-    const double delta_vel_y =  x * perturbation_strength;
-    const double delta_temp  =  euler_physics.temperature_inf / pow(euler_physics.sound_inf, 2) * 0.5*euler_physics.gamm1 * perturbation_strength*perturbation_strength;
+    //const double local_radius_sqr = new_loc.square();
+    //const double pi = dealii::numbers::PI;
+    //const double perturbation_strength = vortex_strength * exp(0.5*variance*(1.0-local_radius_sqr)) * 0.5 / pi;
+    //const double delta_vel_x = -y * perturbation_strength;
+    //const double delta_vel_y =  x * perturbation_strength;
+    //const double delta_temp  =  euler_physics.temperature_inf / pow(euler_physics.sound_inf, 2) * 0.5*euler_physics.gamm1 * perturbation_strength*perturbation_strength;
 
-    const double vel_x = euler_physics.velocities_inf[0] + delta_vel_x;
-    const double vel_y = euler_physics.velocities_inf[1] + delta_vel_y;
-    const double temperature = (euler_physics.temperature_inf - delta_temp);
+    //const double vel_x = euler_physics.velocities_inf[0] + delta_vel_x;
+    //const double vel_y = euler_physics.velocities_inf[1] + delta_vel_y;
+    //const double temperature = (euler_physics.temperature_inf + delta_temp);
 
-    // Use isentropic relations to recover density and pressure
-    // const double density = euler_physics.density_inf*pow(temperature/euler_physics.temperature_inf, 1.0/euler_physics.gamm1);
-    // const double pressure = euler_physics.pressure_inf * 1.0/euler_physics.gam * pow(temperature, euler_physics.gam/euler_physics.gamm1);
-    const double pressure = euler_physics.pressure_inf * pow(temperature/euler_physics.temperature_inf, euler_physics.gam/euler_physics.gamm1);
-    const double density = euler_physics.compute_density_from_pressure_temperature (pressure, temperature);
+    //// Use isentropic relations to recover density and pressure
+    //const double density = euler_physics.density_inf*pow(temperature/euler_physics.temperature_inf, 1.0/euler_physics.gamm1);
+    ////const double pressure = euler_physics.pressure_inf * 1.0/euler_physics.gam * pow(temperature, euler_physics.gam/euler_physics.gamm1);
+    //const double pressure = euler_physics.pressure_inf * pow(temperature/euler_physics.temperature_inf, euler_physics.gam/euler_physics.gamm1);
 
     // Spiegel2015 isentropic vortex
     //const double local_radius_sqr = new_loc.square();
@@ -105,14 +104,13 @@ inline real EulerVortexFunction<dim,real>
     //const double density = euler_physics.compute_density_from_pressure_temperature (pressure, temperature);
 
 
-    // // Philip's isentropic vortex
-    // const double r2 = (std::pow(x,2.0)+std::pow(y,2.0))/(variance);
-    // const double density  = euler_physics.density_inf;
-    // const double vel_x    = euler_physics.velocities_inf[0] - y*vortex_strength/(variance)*exp(-0.5*r2);
-    // const double vel_y    = euler_physics.velocities_inf[1] + x*vortex_strength/(variance)*exp(-0.5*r2);
-    // const double pressure = euler_physics.pressure_inf  - euler_physics.density_inf*(vortex_strength*vortex_strength)/(2*variance)*exp(-r2);
+    // Philip's isentropic vortex
+    const double r2 = (std::pow(x,2.0)+std::pow(y,2.0))/(variance);
+    const double density  = euler_physics.density_inf;
+    const double vel_x    = euler_physics.velocities_inf[0] - y*vortex_strength/(variance)*exp(-0.5*r2);
+    const double vel_y    = euler_physics.velocities_inf[1] + x*vortex_strength/(variance)*exp(-0.5*r2);
+    const double pressure = euler_physics.pressure_inf  - euler_physics.density_inf*(vortex_strength*vortex_strength)/(2*variance)*exp(-r2);
 
-    
     const std::array<double, 4> primitive_values = {{density, vel_x, vel_y, pressure}};
     const std::array<double, 4> conservative_values = euler_physics.convert_primitive_to_conservative(primitive_values);
 
@@ -142,8 +140,7 @@ int EulerVortex<dim,nstate>
 {
     using ManParam = Parameters::ManufacturedConvergenceStudyParam;
     using GridEnum = ManParam::GridEnum;
-    // PHiLiP::Parameters::AllParameters all_parameters_new = *all_parameters;
-    Parameters::AllParameters param = *(TestsBase::all_parameters);
+    const Parameters::AllParameters param = *(TestsBase::all_parameters);
 
     Assert(dim == param.dimension, dealii::ExcDimensionMismatch(dim, param.dimension));
     Assert(dim == 2, dealii::ExcDimensionMismatch(dim, 2));
@@ -163,16 +160,12 @@ int EulerVortex<dim,nstate>
     std::shared_ptr <Physics::Euler<dim,nstate,double>> euler = std::dynamic_pointer_cast<Physics::Euler<dim,nstate,double>>(physics);
 
     const dealii::Point<dim> initial_vortex_center(-0.0,-0.0);
-    const double vortex_strength = 5;                 // euler->mach_inf*4.0;
+    const double vortex_strength = euler->mach_inf*4.0;
     const double vortex_stddev_decay = 1.0;
     const double half_length = 5*euler->ref_length;
+    //const double half_length = 5*euler->ref_length;
     EulerVortexFunction<dim,double> initial_vortex_function(*euler, initial_vortex_center, vortex_strength, vortex_stddev_decay);
     initial_vortex_function.set_time(0.0);
-
-    std::ofstream l2error_file("l2error.txt");
-    std::ofstream slope_file("slope_soln_err.txt");
-    std::ofstream c_value_file("c_value.txt");
-    std::ofstream cell_number_file("cell_number.txt");
 
     for (unsigned int poly_degree = p_start; poly_degree <= p_end; ++poly_degree) {
 
@@ -187,125 +180,60 @@ int EulerVortex<dim,nstate>
 
         dealii::ConvergenceTable convergence_table;
 
-        const unsigned int nb_c_value = param.number_ESFR_parameter_values;
-        const double c_min = param.ESFR_parameter_values_start;
-        const double c_max = param.ESFR_parameter_values_end;
-        const double log_c_min = std::log10(c_min);
-        const double log_c_max = std::log10(c_max);
-        std::vector<double> c_array(nb_c_value+1);
-
-
-        // Create log space array of c_value
-        for (unsigned int ic = 0; ic < nb_c_value; ic++) {
-            double log_c = log_c_min + (log_c_max - log_c_min) / (nb_c_value - 1) * ic;
-            c_array[ic] = std::pow(10.0, log_c);
-            c_value_file << c_array[ic] << std::endl;
-        }
-        // Add cPlus value at the end
-        c_array[nb_c_value] = param.FR_user_specified_correction_parameter_value;
-        // c_array[nb_c_value]=3.67e-3; // 0.186; 3.67e-3; 4.79e-5; 4.24e-7;
-        c_value_file << c_array[nb_c_value] << std::endl;
-        c_value_file.close();
-
-        // Loop over c_array to compute slope
-        for (unsigned int ic = 0; ic < nb_c_value+1; ic++) {
-            double c_value = c_array[ic];
-
         for (unsigned int igrid=0; igrid<n_grids; ++igrid) {
-
-            using Triangulation = dealii::parallel::distributed::Triangulation<dim>;
-            std::shared_ptr<Triangulation> grid = std::make_shared<Triangulation>(
-                MPI_COMM_WORLD,
-                typename dealii::Triangulation<dim>::MeshSmoothing(
-                    dealii::Triangulation<dim>::smoothing_on_refinement |
-                    dealii::Triangulation<dim>::smoothing_on_coarsening));
-
-            //straight grid setup
-            std::vector<unsigned int> n_subdivisions(2);
-                dealii::GridGenerator::subdivided_hyper_cube(*grid, n_1d_cells[igrid], -half_length,half_length, true);
-                    // dealii::GridGenerator::hyper_cube(*grid, -half_length,half_length, true);
-
-            std::vector<dealii::GridTools::PeriodicFacePair<typename dealii::parallel::distributed::Triangulation<PHILIP_DIM>::cell_iterator> > matched_pairs;
-            dealii::GridTools::collect_periodic_faces(*grid,0,1,0,matched_pairs);
-            if(dim>=2) dealii::GridTools::collect_periodic_faces(*grid,2,3,1,matched_pairs);
-            if(dim>=3) dealii::GridTools::collect_periodic_faces(*grid,4,5,2,matched_pairs);
-            grid->add_periodicity(matched_pairs);
-
-                    // grid->refine_global(igrid);
-            pcout << "Grid generated and refined" << std::endl;
-            //CFL number
-            // const unsigned int n_global_active_cells2 = grid->n_global_active_cells();
-            // double n_dofs_cfl = pow(n_global_active_cells2,dim) * pow(poly_degree+1.0, dim);
-            // double delta_x = (right-left)/pow(n_dofs_cfl,(1.0/dim)); 
-            // all_parameters_new.ode_solver_param.initial_time_step =  0.5*delta_x;
-            // use 0.0001 to be consisitent with Ranocha and Gassner papers
-            // param.ode_solver_param.initial_time_step =  0.0001;
-            param.FR_user_specified_correction_parameter_value = c_value;
-            pcout << "c ESFR " <<param.FR_user_specified_correction_parameter_value <<  std::endl;
-            //allocate dg
-            // std::shared_ptr < DGBase<dim, double> > dg = DGFactory<dim,double>::create_discontinuous_galerkin(&param, poly_degree, grid);
-            std::shared_ptr < PHiLiP::DGBase<dim, double> > dg = PHiLiP::DGFactory<dim,double>::create_discontinuous_galerkin(&param, poly_degree, grid);
-            dg->allocate_system ();
-            pcout << "dg created" << std::endl;
-
             // Note that Triangulation must be declared before DG
             // DG will be destructed before Triangulation
             // thus removing any dependence of Triangulation and allowing Triangulation to be destructed
             // Otherwise, a Subscriptor error will occur
-            // using Triangulation = dealii::parallel::distributed::Triangulation<dim>;
-            // std::shared_ptr <Triangulation> grid = std::make_shared<Triangulation> (this->mpi_communicator,
-            //     typename dealii::Triangulation<dim>::MeshSmoothing(
-            //         dealii::Triangulation<dim>::smoothing_on_refinement |
-            //         dealii::Triangulation<dim>::smoothing_on_coarsening));
+            using Triangulation = dealii::parallel::distributed::Triangulation<dim>;
+            std::shared_ptr <Triangulation> grid = std::make_shared<Triangulation> (this->mpi_communicator,
+                typename dealii::Triangulation<dim>::MeshSmoothing(
+                    dealii::Triangulation<dim>::smoothing_on_refinement |
+                    dealii::Triangulation<dim>::smoothing_on_coarsening));
 
-            // // Generate hypercube
-            // if ( manu_grid_conv_param.grid_type == GridEnum::hypercube || manu_grid_conv_param.grid_type == GridEnum::sinehypercube ) {
+            // Generate hypercube
+            if ( manu_grid_conv_param.grid_type == GridEnum::hypercube || manu_grid_conv_param.grid_type == GridEnum::sinehypercube ) {
 
-            //     std::vector<unsigned int> n_subdivisions(2);
-            //     n_subdivisions[0] = n_1d_cells[igrid];
-            //     n_subdivisions[1] = n_1d_cells[igrid];
-            //     const bool colorize = true;
-            //     dealii::Point<dim> p1(-half_length,-half_length), p2(half_length,half_length);
-            //     dealii::GridGenerator::subdivided_hyper_rectangle (*grid, n_subdivisions, p1, p2, colorize);
-                // for (typename Triangulation::active_cell_iterator cell = grid->begin_active(); cell != grid->end(); ++cell) {
-                //     // Set a dummy boundary ID
-                //     for (unsigned int face=0; face<dealii::GeometryInfo<dim>::faces_per_cell; ++face) {
-                //         if (cell->face(face)->at_boundary()) {
-                //             unsigned int current_id = cell->face(face)->boundary_id();
-                //             if (current_id == 0) {
-                //                 cell->face(face)->set_boundary_id (1004); // x_left, Farfield
-                //             } else if (current_id == 1) {
-                //                 cell->face(face)->set_boundary_id (1004); // x_right, Symmetry/Wall
-                //             } else if (current_id == 2) {
-                //                 cell->face(face)->set_boundary_id (1004); // y_bottom, Symmetry/Wall
-                //             } else if (current_id == 3) {
-                //                 cell->face(face)->set_boundary_id (1004); // y_top, Wall
-                //             } else {
-                //                 std::cout << "current_face_id " << current_id << std::endl;
-                //                 std::abort();
-                //             }
-                //         }
-                //     }
-                // }
+                std::vector<unsigned int> n_subdivisions(2);
+                n_subdivisions[0] = n_1d_cells[igrid];
+                n_subdivisions[1] = n_1d_cells[igrid];
+                const bool colorize = true;
+                dealii::Point<dim> p1(-half_length,-half_length), p2(half_length,half_length);
+                dealii::GridGenerator::subdivided_hyper_rectangle (*grid, n_subdivisions, p1, p2, colorize);
+                for (typename Triangulation::active_cell_iterator cell = grid->begin_active(); cell != grid->end(); ++cell) {
+                    // Set a dummy boundary ID
+                    for (unsigned int face=0; face<dealii::GeometryInfo<dim>::faces_per_cell; ++face) {
+                        if (cell->face(face)->at_boundary()) {
+                            unsigned int current_id = cell->face(face)->boundary_id();
+                            if (current_id == 0) {
+                                cell->face(face)->set_boundary_id (1004); // x_left, Farfield
+                            } else if (current_id == 1) {
+                                cell->face(face)->set_boundary_id (1004); // x_right, Symmetry/Wall
+                            } else if (current_id == 2) {
+                                cell->face(face)->set_boundary_id (1004); // y_bottom, Symmetry/Wall
+                            } else if (current_id == 3) {
+                                cell->face(face)->set_boundary_id (1004); // y_top, Wall
+                            } else {
+                                std::cout << "current_face_id " << current_id << std::endl;
+                                std::abort();
+                            }
+                        }
+                    }
+                }
             //const double max_ratio = 1.5;
-            // }
+            }
 
-            // // Distort grid by random amount if requested
-            // const double random_factor = manu_grid_conv_param.random_distortion;
-            // const bool keep_boundary = true;
-            // if (random_factor > 0.0) dealii::GridTools::distort_random (random_factor, *grid, keep_boundary);
+            // Distort grid by random amount if requested
+            const double random_factor = manu_grid_conv_param.random_distortion;
+            const bool keep_boundary = true;
+            if (random_factor > 0.0) dealii::GridTools::distort_random (random_factor, *grid, keep_boundary);
 
-            // // Allocate c ESFR parameter value
-            // param.FR_user_specified_correction_parameter_value = c_value;
-            // pcout << "c ESFR " <<param.FR_user_specified_correction_parameter_value <<  std::endl;
-
-            // // Create DG object using the factory
-            // std::shared_ptr < DGBase<dim, double> > dg = DGFactory<dim,double>::create_discontinuous_galerkin(&param, poly_degree, grid);
-            // dg->allocate_system ();
+            // Create DG object using the factory
+            std::shared_ptr < DGBase<dim, double> > dg = DGFactory<dim,double>::create_discontinuous_galerkin(&param, poly_degree, grid);
+            dg->allocate_system ();
 
             // Initialize solution with vortex function at time t=0
             dealii::VectorTools::interpolate(dg->dof_handler, initial_vortex_function, dg->solution);
-            // dg->output_results_vtk(igrid);
             // dealii::AffineConstraints<double> constraints;
             // constraints.close();
             // dealii::VectorTools::project (dg->dof_handler,
@@ -319,8 +247,8 @@ int EulerVortex<dim,nstate>
 
             const unsigned int n_active_cells = grid->n_active_cells();
             const unsigned int n_dofs = dg->dof_handler.n_dofs();
-                
-                 pcout<< "Dimension: " << dim << "\t Polynomial degree p: " << poly_degree << std::endl
+            std::cout
+                      << "Dimension: " << dim << "\t Polynomial degree p: " << poly_degree << std::endl
                       << "Grid number: " << igrid+1 << "/" << n_grids
                       << ". Number of active cells: " << n_active_cells
                       << ". Number of degrees of freedom: " << n_dofs
@@ -329,29 +257,18 @@ int EulerVortex<dim,nstate>
             // Not really steady state
             // Will have a low number of time steps in the control file (around 10-20)
             // We can then compare the exact solution to whatever time it reached
-            // ode_solver->steady_state();
-
-            const double finalTime = 2.0;//This is sufficient for verification
-
-            ode_solver->current_iteration = 0;
-
-            ode_solver->advance_solution_time(finalTime);
-            // ode_solver->allocate_ode_system();
-            // ode_solver->step_in_time(time_step);
+            ode_solver->steady_state();
             
             EulerVortexFunction<dim,double> final_vortex_function(*euler, initial_vortex_center, vortex_strength, vortex_stddev_decay);
             const double final_time = ode_solver->current_time;
-            pcout << "curent time" << final_time << std::endl;
             final_vortex_function.set_time(final_time);
 
             // Overintegrate the error to make sure there is not integration error in the error estimate
             int overintegrate = 10;
             dealii::QGauss<dim> quad_extra(dg->max_degree+1+overintegrate);
-            // dealii::MappingQ<dim,dim> mappingq(dg->max_degree+overintegrate);
-            dealii::FEValues<dim,dim> fe_values_extra(*(dg->high_order_grid->mapping_fe_field), dg->fe_collection[poly_degree], quad_extra, 
+            dealii::MappingQ<dim,dim> mappingq(dg->max_degree+overintegrate);
+            dealii::FEValues<dim,dim> fe_values_extra(mappingq, dg->fe_collection[poly_degree], quad_extra, 
                     dealii::update_values | dealii::update_JxW_values | dealii::update_quadrature_points);
-            // dealii::FEValues<dim,dim> fe_values_extra(mappingq, dg->fe_collection[poly_degree], quad_extra, 
-                    // dealii::update_values | dealii::update_JxW_values | dealii::update_quadrature_points);
             const unsigned int n_quad_pts = fe_values_extra.n_quadrature_points;
             std::array<double,nstate> soln_at_q;
 
@@ -361,14 +278,12 @@ int EulerVortex<dim,nstate>
             // Integrate solution error
             for (auto cell = dg->dof_handler.begin_active(); cell!=dg->dof_handler.end(); ++cell) {
 
-                if (!cell->is_locally_owned()) continue;
-                
                 fe_values_extra.reinit (cell);
                 cell->get_dof_indices (dofs_indices);
 
                 for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
 
-                    std::fill(soln_at_q.begin(), soln_at_q.end(), 0.0);
+                    std::fill(soln_at_q.begin(), soln_at_q.end(), 0);
                     for (unsigned int idof=0; idof<fe_values_extra.dofs_per_cell; ++idof) {
                         const unsigned int istate = fe_values_extra.get_fe().system_to_component_index(idof).first;
                         soln_at_q[istate] += dg->solution[dofs_indices[idof]] * fe_values_extra.shape_value_component(idof, iquad, istate);
@@ -378,21 +293,18 @@ int EulerVortex<dim,nstate>
 
                     // Check only density
                     // Check only energy
-                    for (int istate=0; istate<1; ++istate) {
+                    for (int istate=3; istate<4; ++istate) {
                         const double uexact = final_vortex_function.value(qpoint, istate);
                         l2error += pow(soln_at_q[istate] - uexact, 2) * fe_values_extra.JxW(iquad);
                     }
                 }
-            }
 
-            // l2error = sqrt(l2error);
-            const double l2error_mpi_sum = std::sqrt(dealii::Utilities::MPI::sum(l2error, mpi_communicator));
-            l2error = l2error_mpi_sum;
-            l2error_file << l2error_mpi_sum << " ";
+            }
+            l2error = sqrt(l2error);
 
             // Convergence table
             double dx = 1.0/pow(n_dofs,(1.0/dim));
-            dx = dealii::GridTools::maximal_cell_diameter(*grid);
+            //dx = dealii::GridTools::maximal_cell_diameter(*grid);
             grid_size[igrid] = dx;
             soln_error[igrid] = l2error;
 
@@ -403,24 +315,15 @@ int EulerVortex<dim,nstate>
             convergence_table.add_value("soln_L2_error", l2error);
 
 
-                  pcout << " Grid size h: " << dx 
+            std::cout   << " Grid size h: " << dx 
                         << " L2-soln_error: " << l2error
                         << " Residual: " << ode_solver->residual_norm
                         << std::endl;
 
-            if (ic == 0){
-                cell_number_file << grid_size[igrid] << " " << n_active_cells<< std::endl;
-            }
-            
-
-
             if (igrid > 0) {
                 const double slope_soln_err = log(soln_error[igrid]/soln_error[igrid-1])
                                       / log(grid_size[igrid]/grid_size[igrid-1]);
-
-                    slope_file << slope_soln_err << " ";                    
-                                  
-                    pcout << "From grid " << igrid-1
+                std::cout << "From grid " << igrid-1
                           << "  to grid " << igrid
                           << "  dimension: " << dim
                           << "  polynomial degree p: " << poly_degree
@@ -430,15 +333,8 @@ int EulerVortex<dim,nstate>
                           << "  slope " << slope_soln_err
                           << std::endl;
             }
-            }//end of grid loop
-        l2error_file << std::endl;
-        slope_file << std::endl;
-        }//end of Loop over c_array
-        l2error_file.close();
-        slope_file.close();
-        cell_number_file.close();
-
-        pcout
+        }
+        std::cout
             << " ********************************************"
             << std::endl
             << " Convergence rates for p = " << poly_degree
@@ -469,7 +365,7 @@ int EulerVortex<dim,nstate>
         if(poly_degree == 0) slope_deficit_tolerance *= 2; // Otherwise, grid sizes need to be much bigger for p=0
 
         if (slope_diff < slope_deficit_tolerance) {
-                pcout << std::endl
+            std::cout << std::endl
                       << "Convergence order not achieved. Average last 2 slopes of "
                       << slope_avg << " instead of expected "
                       << expected_slope << " within a tolerance of "
@@ -481,39 +377,37 @@ int EulerVortex<dim,nstate>
         }
 
     }
-
-        pcout << std::endl
+    std::cout << std::endl
               << std::endl
               << std::endl
               << std::endl;
-        pcout <<  " ********************************************"
+    std::cout << " ********************************************"
               << std::endl;
-        pcout << " Convergence summary"
+    std::cout << " Convergence summary"
               << std::endl;
-        pcout << " ********************************************"
+    std::cout << " ********************************************"
               << std::endl;
     for (auto conv = convergence_table_vector.begin(); conv!=convergence_table_vector.end(); conv++) {
         conv->write_text(std::cout);
-            pcout << " ********************************************"
+        std::cout << " ********************************************"
                   << std::endl;
     }
-    // int n_fail_poly = fail_conv_poly.size();
-    // if (n_fail_poly > 0) {
-    //     for (int ifail=0; ifail < n_fail_poly; ++ifail) {
-    //         const double expected_slope = fail_conv_poly[ifail]+1;
-    //         const double slope_deficit_tolerance = -0.1;
-    //             pcout << std::endl
-    //                   << "Convergence order not achieved for polynomial p = "
-    //                   << fail_conv_poly[ifail]
-    //                   << ". Slope of "
-    //                   << fail_conv_slop[ifail] << " instead of expected "
-    //                   << expected_slope << " within a tolerance of "
-    //                   << slope_deficit_tolerance
-    //                   << std::endl;
-    //     }
-    // }
-    // return n_fail_poly;
-    return 0; 
+    int n_fail_poly = fail_conv_poly.size();
+    if (n_fail_poly > 0) {
+        for (int ifail=0; ifail < n_fail_poly; ++ifail) {
+            const double expected_slope = fail_conv_poly[ifail]+1;
+            const double slope_deficit_tolerance = -0.1;
+            std::cout << std::endl
+                      << "Convergence order not achieved for polynomial p = "
+                      << fail_conv_poly[ifail]
+                      << ". Slope of "
+                      << fail_conv_slop[ifail] << " instead of expected "
+                      << expected_slope << " within a tolerance of "
+                      << slope_deficit_tolerance
+                      << std::endl;
+        }
+    }
+    return n_fail_poly;
 }
 
 #if PHILIP_DIM==2

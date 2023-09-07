@@ -9,30 +9,22 @@ set pde_type = euler
 
 # DG formulation
 set use_weak_form = false
-set use_split_form = false
-set flux_nodes_type = GL
+set use_split_form = true
+set flux_nodes_type = GLL
 
-#set flux_reconstruction = cPlus
-set flux_reconstruction = user_specified_value
-set FR_user_specified_correction_parameter_value = 3.67e-3 #0.186; 3.67e-3; 4.79e-5; 4.24e-7
+set flux_reconstruction = cDG
 set use_inverse_mass_on_the_fly = true
-
-set number_ESFR_parameter_values = 3
-set ESFR_parameter_values_start = 1.0e-4
-set ESFR_parameter_values_end = 1.0e2
 
 # Note: this was added to turn off check_same_coords() -- has no other function when dim!=1
 set use_periodic_bc = true
 
 # numerical fluxes
-#set conv_num_flux = two_point_flux
-#set two_point_num_flux_type = IR
-set conv_num_flux = roe # lax_friedrichs 
+set conv_num_flux = two_point_flux
+set two_point_num_flux_type = IR
 
 # ODE solver
 subsection ODE solver
   set ode_output = quiet 
-  set output_solution_every_x_steps = 1
   set ode_solver_type = runge_kutta 
   set runge_kutta_method = rk4_ex
 end
@@ -55,14 +47,12 @@ subsection flow_solver
   set flow_case_type = isentropic_vortex
   set poly_degree = 3
   #set final_time = 23.66431913239 #=20 * sqrt(1.4), time for vortex to advect around the domain
-  #set final_time = 5.9160797831 #1/4 cycle to make ctest faster. Full cycle is recommended for better results.
-  set final_time = 1.479019946  #1/16 cycle to make study of c ESFR parameter range faster.
-  #set final_time = 0.0
+  set final_time = 5.9160797831 #1/4 cycle to make ctest faster. Full cycle is recommended for better results.
   set courant_friedrichs_lewy_number = 0.1
   set unsteady_data_table_filename = isentropic_vortex_time_table
   subsection grid
     set grid_left_bound = -10.0
     set grid_right_bound = 10.0
-    set number_of_grid_elements_per_dimension = 32
+    set number_of_grid_elements_per_dimension = 8
   end
 end

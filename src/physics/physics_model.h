@@ -13,6 +13,16 @@ namespace Physics {
 template <int dim, int nstate, typename real, int nstate_baseline_physics>
 class PhysicsModel : public PhysicsBase <dim, nstate, real>
 {
+protected:
+    // For overloading the virtual functions defined in PhysicsBase
+    /** Once you overload a function from Base class in Derived class,
+     *  all functions with the same name in the Base class get hidden in Derived class.  
+     *  
+     *  Solution: In order to make the hidden function visible in derived class, 
+     *  we need to add the following:
+    */
+    using PhysicsBase<dim,nstate,real>::dissipative_flux; // can delete if the arguments of this function are updated to match PhysicsBase with filtered solution being passed
+    using PhysicsBase<dim,nstate,real>::boundary_face_values; // can delete if the arguments of this function are updated to match PhysicsBase with filtered solution being passed
 public:
     /// Constructor
     PhysicsModel(

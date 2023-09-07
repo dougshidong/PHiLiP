@@ -39,6 +39,7 @@ protected:
     */
     using PhysicsBase<dim,nstate,real>::dissipative_flux;
     using PhysicsBase<dim,nstate,real>::source_term;
+    using PhysicsBase<dim,nstate,real>::boundary_face_values;
 protected:
     /// Diffusion scaling coefficient in front of the diffusion tensor.
     double diffusion_scaling_coeff;

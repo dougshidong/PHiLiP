@@ -21,6 +21,7 @@ protected:
     */
     using PhysicsBase<dim,nstate,real>::dissipative_flux;
     using PhysicsBase<dim,nstate,real>::source_term;
+    using PhysicsBase<dim,nstate,real>::boundary_face_values;
 public:
     using thermal_boundary_condition_enum = Parameters::NavierStokesParam::ThermalBoundaryCondition;
     using two_point_num_flux_enum = Parameters::AllParameters::TwoPointNumericalFlux;

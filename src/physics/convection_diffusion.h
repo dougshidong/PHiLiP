@@ -38,6 +38,7 @@ protected:
     */
     using PhysicsBase<dim,nstate,real>::dissipative_flux;
     using PhysicsBase<dim,nstate,real>::source_term;
+    using PhysicsBase<dim,nstate,real>::boundary_face_values;
 protected:
     /// Linear advection velocity in x, y, and z directions.
     double linear_advection_velocity[3] = { 1.1, -atan(1)*4.0 / exp(1), exp(1)/(atan(1)*4.0) };

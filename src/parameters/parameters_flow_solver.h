@@ -31,7 +31,8 @@ public:
         non_periodic_cube_flow,
         sod_shock_tube,
         low_density_2d,
-        leblanc_shock_tube
+        leblanc_shock_tube,
+        shu_osher_problem
         };
     FlowCaseType flow_case_type; ///< Selected FlowCaseType from the input file
 

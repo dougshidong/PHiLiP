@@ -569,6 +569,48 @@ inline real InitialConditionFunction_LeblancShockTube<dim,nstate,real>
     return value;
 
 }
+
+// ========================================================
+// 1D Shu-Osher Problem -- Initial Condition
+// ========================================================
+template <int dim, int nstate, typename real>
+InitialConditionFunction_ShuOsherProblem<dim, nstate, real>
+::InitialConditionFunction_ShuOsherProblem()
+    : InitialConditionFunction<dim, nstate, real>()
+{
+    // Nothing to do here yet
+}
+
+template <int dim, int nstate, typename real>
+inline real InitialConditionFunction_ShuOsherProblem<dim, nstate, real>
+::value(const dealii::Point<dim, real>& point, const unsigned int istate) const
+{
+    real value = 0;
+    real density = 0.0;
+    real vel = 0.0;
+    real pressure = 0.0;
+
+    if (point[0] < -4.0) {
+        density = 3.857143;
+        vel = 2.629369;
+        pressure = 10.33333;
+    }
+    else {
+        density = 1 + 0.2 * sin(5 * point[0]);
+        vel = 0.0;
+        pressure = 1.0;
+    }
+    if (istate == 0)//density
+        value = density;
+    if (istate == 1)//momentum
+        value = density * vel;
+    if (istate == 2)//energy
+        value = pressure / 0.4 + 0.5 * vel * vel * density;
+
+    return value;
+
+}
+
 // ========================================================
 // ZERO INITIAL CONDITION
 // ========================================================
@@ -653,6 +695,8 @@ InitialConditionFactory<dim,nstate, real>::create_InitialConditionFunction(
         if constexpr (dim==2 && nstate==dim+2)  return std::make_shared<InitialConditionFunction_LowDensity2D<dim,nstate,real> > ();
     } else if (flow_type == FlowCaseEnum::leblanc_shock_tube) {
         if constexpr (dim==1 && nstate==dim+2)  return std::make_shared<InitialConditionFunction_LeblancShockTube<dim,nstate,real> > ();
+    } else if (flow_type == FlowCaseEnum::shu_osher_problem) {
+        if constexpr (dim == 1 && nstate == dim + 2)  return std::make_shared<InitialConditionFunction_ShuOsherProblem<dim, nstate, real> >();
     } else {
         std::cout << "Invalid Flow Case Type. You probably forgot to add it to the list of flow cases in initial_condition_function.cpp" << std::endl;
         std::abort();
@@ -679,6 +723,7 @@ template class InitialConditionFunction_BurgersInviscid <PHILIP_DIM, 1, double>;
 template class InitialConditionFunction_BurgersInviscidEnergy <PHILIP_DIM, 1, double>;
 template class InitialConditionFunction_SodShockTube <PHILIP_DIM,PHILIP_DIM+2,double>;
 template class InitialConditionFunction_LeblancShockTube <PHILIP_DIM,PHILIP_DIM+2,double>;
+template class InitialConditionFunction_ShuOsherProblem <PHILIP_DIM, PHILIP_DIM + 2, double>;
 #endif
 #if PHILIP_DIM==3
 template class InitialConditionFunction_TaylorGreenVortex <PHILIP_DIM, PHILIP_DIM+2, double>;

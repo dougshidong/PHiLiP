@@ -35,9 +35,13 @@ std::shared_ptr<Triangulation> NonPeriodicCubeFlow<dim,nstate>::generate_grid() 
     const double domain_right = this->all_param.flow_solver_param.grid_right_bound;
     const bool colorize = true;
     
+    using flow_case_enum = Parameters::FlowSolverParam::FlowCaseType;
+    flow_case_enum flow_case_type = this->all_param.flow_solver_param.flow_case_type;
+
     dealii::GridGenerator::hyper_cube(*grid, domain_left, domain_right, colorize);
-    if(this->all_param.flow_solver_param.flow_case_type == Parameters::FlowSolverParam::FlowCaseType::sod_shock_tube
-         || this->all_param.flow_solver_param.flow_case_type == Parameters::FlowSolverParam::FlowCaseType::leblanc_shock_tube)
+    if(flow_case_type == flow_case_enum::sod_shock_tube
+         || flow_case_type == flow_case_enum::leblanc_shock_tube
+         || flow_case_type == flow_case_enum::shu_osher_problem)
     {
         for (auto cell = grid->begin_active(); cell != grid->end(); ++cell) {
             // Set a dummy boundary ID
@@ -45,7 +49,12 @@ std::shared_ptr<Triangulation> NonPeriodicCubeFlow<dim,nstate>::generate_grid() 
             if (cell == grid->begin_active())
             {
                 for (unsigned int face=0; face<dealii::GeometryInfo<dim>::faces_per_cell; ++face) {
-                    if (cell->face(face)->at_boundary()) cell->face(face)->set_boundary_id (1001);
+                    if (flow_case_type == flow_case_enum::shu_osher_problem) {
+                        if (cell->face(face)->at_boundary()) cell->face(face)->set_boundary_id(1004);
+                    }
+                    else {
+                        if (cell->face(face)->at_boundary()) cell->face(face)->set_boundary_id(1001);
+                    }
                 }
             }
             else if (cell == grid->end())

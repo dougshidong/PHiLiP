@@ -1006,7 +1006,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_volume_term_strong(
         //==================================================
         // Auxiliary Solution (gradients)
         //==================================================
-        dealii::Tensor<1,dim,std::vector<real>> legendre_aux_soln_coeff(n_shape_fns);
+        dealii::Tensor<1,dim,std::vector<real>> legendre_aux_soln_coeff;
         for(int idim=0; idim<dim; idim++){
             // -- (1) Project to Legrendre basis
             legendre_aux_soln_coeff[idim].resize(n_shape_fns);

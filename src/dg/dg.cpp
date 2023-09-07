@@ -22,6 +22,7 @@
 #include <deal.II/lac/vector.h>
 #include <deal.II/lac/dynamic_sparsity_pattern.h>
 #include <deal.II/lac/sparse_matrix.h>
+#include <deal.II/lac/full_matrix.templates.h>
 
 #include <deal.II/fe/fe_dgq.h>
 
@@ -62,6 +63,10 @@ unsigned int dRdW_mult;
 unsigned int dRdX_mult;
 unsigned int d2R_mult;
 unsigned int n_design_iterations;
+
+namespace {
+    unsigned int FREEZE_ARTIFICIAL_DISSIPATION_AFTER_DESIGN = 50;
+}
 
 
 namespace PHiLiP {
@@ -734,6 +739,7 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
                     current_cell_index,
                     iface, boundary_id, fe_values_face_int, penalty,
                     current_fe_ref, face_quadrature,
+                    volume_quadrature_collection[i_quad],
                     current_metric_dofs_indices, current_dofs_indices, current_cell_rhs,
                     compute_dRdW, compute_dRdX, compute_d2R);
 
@@ -802,6 +808,7 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
                                                                                                   used_face_quadrature.size());
                     assemble_face_term_derivatives (
                         current_cell,
+                        neighbor_cell,
                         current_cell_index,
                         neighbor_cell_index,
                         face_subface_int, face_subface_ext,
@@ -811,6 +818,8 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
                         penalty,
                         fe_collection[i_fele], fe_collection[i_fele_n],
                         used_face_quadrature,
+                        volume_quadrature_collection[i_quad],
+                        volume_quadrature_collection[i_quad_n],
                         current_metric_dofs_indices, neighbor_metric_dofs_indices,
                         current_dofs_indices, neighbor_dofs_indices,
                         current_cell_rhs, neighbor_cell_rhs,
@@ -909,6 +918,7 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
                                                                                                     neighbor_cell->subface_case(neighbor_iface));
                 assemble_face_term_derivatives (
                     current_cell,
+                    neighbor_cell,
                     current_cell_index,
                     neighbor_cell_index,
                     face_subface_int, face_subface_ext,
@@ -918,6 +928,8 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
                     penalty,
                     fe_collection[i_fele], fe_collection[i_fele_n],
                     used_face_quadrature,
+                    volume_quadrature_collection[i_quad],
+                    volume_quadrature_collection[i_quad_n],
                     current_metric_dofs_indices, neighbor_metric_dofs_indices,
                     current_dofs_indices, neighbor_dofs_indices,
                     current_cell_rhs, neighbor_cell_rhs,
@@ -990,6 +1002,7 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
                                                                                               used_face_quadrature.size());
                 assemble_face_term_derivatives (
                     current_cell,
+                    neighbor_cell,
                     current_cell_index,
                     neighbor_cell_index,
                     face_subface_int, face_subface_ext,
@@ -999,6 +1012,8 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
                     penalty,
                     fe_collection[i_fele], fe_collection[i_fele_n],
                     used_face_quadrature,
+                    volume_quadrature_collection[i_quad],
+                    volume_quadrature_collection[i_quad_n],
                     current_metric_dofs_indices, neighbor_metric_dofs_indices,
                     current_dofs_indices, neighbor_dofs_indices,
                     current_cell_rhs, neighbor_cell_rhs,
@@ -1058,11 +1073,15 @@ void DGBase<dim,real,MeshType>::update_artificial_dissipation_discontinuity_sens
 
     std::vector<real> coords_coeff(n_metric_dofs);
 
-    //if (freeze_artificial_dissipation) return;
+    if (n_design_iterations > FREEZE_ARTIFICIAL_DISSIPATION_AFTER_DESIGN) {
+        artificial_dissipation_c0 *= 0.0;
+        return;
+    }
+    if (freeze_artificial_dissipation) return;
+
+    // If we don't reset to 0, it will keep the maximum artificial dissipation c0 over the iterations.
     artificial_dissipation_c0 *= 0.0;
-    if (n_design_iterations>20) return;
-    //for (auto cell : dof_handler.active_cell_iterators()) {
-    //    if (!(cell->is_locally_owned() || cell->is_ghost())) continue;
+
 
     for (auto cell = triangulation->begin_active(); cell != triangulation->end(); ++cell) {
         if (!cell->is_locally_owned()) continue;
@@ -1182,12 +1201,18 @@ void DGBase<dim,real,MeshType>::update_artificial_dissipation_discontinuity_sens
         const double diameter = std::pow(element_volume, 1.0/dim);
         const double eps_0 = mu_scale * diameter / (double)degree;
     
-        //std::cout << " lower < s_e < upp " << low << " < " << s_e << " < " << upp << " ? " << std::endl;
 
         if ( s_e < low) continue;
 
+        //std::cout << " lower < s_e < upp " << low << " < " << s_e << " < " << upp << " ? " << std::endl;
         if ( s_e > upp) {
             artificial_dissipation_coeffs[cell_index] += eps_0;
+            dof_indices_artificial_dissipation.resize(n_dofs_arti_diss);
+            artificial_dissipation_cell->get_dof_indices (dof_indices_artificial_dissipation);
+            for (unsigned int idof=0; idof<n_dofs_arti_diss; ++idof) {
+                const unsigned int index = dof_indices_artificial_dissipation[idof];
+                artificial_dissipation_c0[index] = std::max(artificial_dissipation_c0[index], eps_0);
+            }
             if(eps_0 > max_artificial_dissipation_coeff)
             {
                 max_artificial_dissipation_coeff = eps_0;
@@ -1207,6 +1232,8 @@ void DGBase<dim,real,MeshType>::update_artificial_dissipation_discontinuity_sens
 
         artificial_dissipation_coeffs[cell_index] += eps;
         artificial_dissipation_se[cell_index] = s_e;
+
+        //std::cout << "eps: " << eps << "s_e: " << s_e << std::endl;
 
         dof_indices_artificial_dissipation.resize(n_dofs_arti_diss);
         artificial_dissipation_cell->get_dof_indices (dof_indices_artificial_dissipation);
@@ -1231,15 +1258,15 @@ void DGBase<dim,real,MeshType>::update_artificial_dissipation_discontinuity_sens
     //artificial_dissipation_c0 *= 0.0;
     //artificial_dissipation_c0.add(1e-1);
 
-    // dealii::IndexSet boundary_dofs(dof_handler_artificial_dissipation.n_dofs());
-    // dealii::DoFTools::extract_boundary_dofs(dof_handler_artificial_dissipation,
-    //                             dealii::ComponentMask(),
-    //                             boundary_dofs);
-    // for (unsigned int i = 0; i < dof_handler_artificial_dissipation.n_dofs(); ++i) {
-    //     if (boundary_dofs.is_element(i)) {
-    //         artificial_dissipation_c0[i] = 0.0;
-    //     }
-    // }
+    dealii::IndexSet boundary_dofs(dof_handler_artificial_dissipation.n_dofs());
+    dealii::DoFTools::extract_boundary_dofs(dof_handler_artificial_dissipation,
+                                dealii::ComponentMask(),
+                                boundary_dofs);
+    for (unsigned int i = 0; i < dof_handler_artificial_dissipation.n_dofs(); ++i) {
+        if (boundary_dofs.is_element(i)) {
+            artificial_dissipation_c0[i] = 0.0;
+        }
+    }
 
     artificial_dissipation_c0.update_ghost_values();
 }
@@ -1257,7 +1284,7 @@ void DGBase<dim,real,MeshType>::assemble_residual (const bool compute_dRdW, cons
     max_artificial_dissipation_coeff = 0.0;
     //pcout << "Assembling DG residual...";
     if (compute_dRdW) {
-        pcout << " with dRdW...";
+        //pcout << " with dRdW...";
 
         auto diff_sol = solution;
         diff_sol -= solution_dRdW;
@@ -1271,7 +1298,7 @@ void DGBase<dim,real,MeshType>::assemble_residual (const bool compute_dRdW, cons
 
             if (l2_norm_node == 0.0) {
                 if (CFL_mass_dRdW == CFL_mass) {
-                    pcout << " which is already assembled..." << std::endl;
+                    //pcout << " which is already assembled..." << std::endl;
                     return;
                 }
             }
@@ -1289,7 +1316,7 @@ void DGBase<dim,real,MeshType>::assemble_residual (const bool compute_dRdW, cons
         system_matrix = 0;
     }
     if (compute_dRdX) {
-        pcout << " with dRdX...";
+        //pcout << " with dRdX...";
 
         auto diff_sol = solution;
         diff_sol -= solution_dRdX;
@@ -1302,7 +1329,7 @@ void DGBase<dim,real,MeshType>::assemble_residual (const bool compute_dRdW, cons
             const double l2_norm_node = diff_node.l2_norm();
 
             if (l2_norm_node == 0.0) {
-                pcout << " which is already assembled..." << std::endl;
+                //pcout << " which is already assembled..." << std::endl;
                 return;
             }
         }
@@ -1316,7 +1343,7 @@ void DGBase<dim,real,MeshType>::assemble_residual (const bool compute_dRdW, cons
         dRdXv = 0;
     }
     if (compute_d2R) {
-        pcout << " with d2RdWdW, d2RdWdX, d2RdXdX...";
+        //pcout << " with d2RdWdW, d2RdWdX, d2RdXdX...";
         auto diff_sol = solution;
         diff_sol -= solution_d2R;
         const double l2_norm_sol = diff_sol.l2_norm();
@@ -1333,7 +1360,7 @@ void DGBase<dim,real,MeshType>::assemble_residual (const bool compute_dRdW, cons
                 diff_dual -= dual_d2R;
                 const double l2_norm_dual = diff_dual.l2_norm();
                 if (l2_norm_dual < 1e-12) {
-                    pcout << " which is already assembled..." << std::endl;
+                    //pcout << " which is already assembled..." << std::endl;
                     return;
                 } else {
                     pcout << " Reassembling Hessian since dual differ by " << diff_dual.l2_norm() << " since last computation" << std::endl;
@@ -1444,11 +1471,9 @@ void DGBase<dim,real,MeshType>::assemble_residual (const bool compute_dRdW, cons
     bool inconsistent_normals = false;
     try {
 
-        if (!freeze_artificial_dissipation) {
+        if (all_parameters->artificial_dissipation_param.add_artificial_dissipation) {
             update_artificial_dissipation_discontinuity_sensor();
         }
-        // update artificial dissipation discontinuity sensor only if using artificial dissipation
-        if(all_parameters->artificial_dissipation_param.add_artificial_dissipation) update_artificial_dissipation_discontinuity_sensor();
         
         // updates model variables only if there is a model
         if(all_parameters->pde_type == Parameters::AllParameters::PartialDifferentialEquation::physics_model) update_model_variables();
@@ -1583,7 +1608,6 @@ void DGBase<dim,real,MeshType>::assemble_residual (const bool compute_dRdW, cons
 template <int dim, typename real, typename MeshType>
 double DGBase<dim,real,MeshType>::get_residual_linfnorm () const
 {
-    pcout << "Evaluating residual Linf-norm..." << std::endl;
     const auto mapping = (*(high_order_grid->mapping_fe_field));
     dealii::hp::MappingCollection<dim> mapping_collection(mapping);
 
@@ -2458,92 +2482,94 @@ real2 DGBase<dim,real,MeshType>::discontinuity_sensor(
     const dealii::FESystem<dim,dim> &fe_metric,
     const std::vector<real2> &jac_det)
 {
-    (void)volume_quadrature;
-    (void)soln_coeff_high;
-    (void)fe_high;
-    (void)coords_coeff;
-    (void)fe_metric;
-    (void)jac_det;
-    return 0;
+    //(void)volume_quadrature;
+    //(void)soln_coeff_high;
+    //(void)fe_high;
+    //(void)coords_coeff;
+    //(void)fe_metric;
+    //(void)jac_det;
+    //return 0;
 
-    //const unsigned int degree = fe_high.tensor_degree();
+    //if (n_design_iterations>20) return 0;
+    const unsigned int degree = fe_high.tensor_degree();
 
-    //if (degree == 0) return 0;
+    if (degree == 0) return 0;
 
-    //const unsigned int nstate = fe_high.components;
-    //const unsigned int n_dofs_high = fe_high.dofs_per_cell;
+    const unsigned int nstate = fe_high.components;
+    const unsigned int n_dofs_high = fe_high.dofs_per_cell;
 
-    //// Lower degree basis.
-    //const unsigned int lower_degree = degree-1;
-    //const dealii::FE_DGQLegendre<dim> fe_dgq_lower(lower_degree);
-    //const dealii::FESystem<dim,dim> fe_lower(fe_dgq_lower, nstate);
+    // Lower degree basis.
+    const unsigned int lower_degree = degree-1;
+    const dealii::FE_DGQLegendre<dim> fe_dgq_lower(lower_degree);
+    const dealii::FESystem<dim,dim> fe_lower(fe_dgq_lower, nstate);
 
-    //// Projection quadrature.
-    //const dealii::QGauss<dim> projection_quadrature(degree+5);
-    //std::vector< real2 > soln_coeff_lower = project_function<dim,real2>( soln_coeff_high, fe_high, fe_lower, coords_coeff, fe_metric, projection_quadrature);
+    // Projection quadrature.
+    const dealii::QGauss<dim> projection_quadrature(degree+5);
+    std::vector< real2 > soln_coeff_lower = project_function<dim,real2>( soln_coeff_high, fe_high, fe_lower, coords_coeff, fe_metric, projection_quadrature);
 
-    //// Quadrature used for solution difference.
-    //const std::vector<dealii::Point<dim,double>> &unit_quad_pts = volume_quadrature.get_points();
+    // Quadrature used for solution difference.
+    const std::vector<dealii::Point<dim,double>> &unit_quad_pts = volume_quadrature.get_points();
 
-    //const unsigned int n_quad_pts = volume_quadrature.size();
-    //const unsigned int n_dofs_lower = fe_lower.dofs_per_cell;
+    const unsigned int n_quad_pts = volume_quadrature.size();
+    const unsigned int n_dofs_lower = fe_lower.dofs_per_cell;
 
-    //real2 element_volume = 0.0;
-    //real2 error = 0.0;
-    //real2 soln_norm = 0.0;
-    //std::vector<real2> soln_high(nstate);
-    //std::vector<real2> soln_lower(nstate);
-    //for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
-    //    for (unsigned int s=0; s<nstate; ++s) {
-    //        soln_high[s] = 0.0;
-    //        soln_lower[s] = 0.0;
-    //    }
-    //    // Interpolate solution
-    //    for (unsigned int idof=0; idof<n_dofs_high; ++idof) {
-    //          const unsigned int istate = fe_high.system_to_component_index(idof).first;
-    //          soln_high[istate] += soln_coeff_high[idof] * fe_high.shape_value_component(idof,unit_quad_pts[iquad],istate);
-    //    }
-    //    // Interpolate low order solution
-    //    for (unsigned int idof=0; idof<n_dofs_lower; ++idof) {
-    //          const unsigned int istate = fe_lower.system_to_component_index(idof).first;
-    //          soln_lower[istate] += soln_coeff_lower[idof] * fe_lower.shape_value_component(idof,unit_quad_pts[iquad],istate);
-    //    }
-    //    // Quadrature
-    //    const real2 JxW = jac_det[iquad] * volume_quadrature.weight(iquad);
-    //    element_volume += JxW;
-    //    // Only integrate over the first state variable.
-    //    // Persson and Peraire only did density.
-    //    for (unsigned int s=0; s<1/*nstate*/; ++s) {
-    //        error += (soln_high[s] - soln_lower[s]) * (soln_high[s] - soln_lower[s]) * JxW;
-    //        soln_norm += soln_high[s] * soln_high[s] * JxW;
-    //    }
-    //}
+    real2 element_volume = 0.0;
+    real2 error = 0.0;
+    real2 soln_norm = 0.0;
+    std::vector<real2> soln_high(nstate);
+    std::vector<real2> soln_lower(nstate);
+    for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
+        for (unsigned int s=0; s<nstate; ++s) {
+            soln_high[s] = 0.0;
+            soln_lower[s] = 0.0;
+        }
+        // Interpolate solution
+        for (unsigned int idof=0; idof<n_dofs_high; ++idof) {
+              const unsigned int istate = fe_high.system_to_component_index(idof).first;
+              soln_high[istate] += soln_coeff_high[idof] * fe_high.shape_value_component(idof,unit_quad_pts[iquad],istate);
+        }
+        // Interpolate low order solution
+        for (unsigned int idof=0; idof<n_dofs_lower; ++idof) {
+              const unsigned int istate = fe_lower.system_to_component_index(idof).first;
+              soln_lower[istate] += soln_coeff_lower[idof] * fe_lower.shape_value_component(idof,unit_quad_pts[iquad],istate);
+        }
+        // Quadrature
+        const real2 JxW = jac_det[iquad] * volume_quadrature.weight(iquad);
+        element_volume += JxW;
+        // Only integrate over the first state variable.
+        // Persson and Peraire only did density.
+        for (unsigned int s=0; s<1/*nstate*/; ++s) {
+            error += (soln_high[s] - soln_lower[s]) * (soln_high[s] - soln_lower[s]) * JxW;
+            soln_norm += soln_high[s] * soln_high[s] * JxW;
+        }
+    }
 
-    //if (soln_norm < 1e-12) return 0;
+    if (soln_norm < 1e-12) return 0;
 
-    //real2 S_e, s_e;
-    //S_e = sqrt(error / soln_norm);
-    //s_e = log10(S_e);
+    real2 S_e, s_e;
+    S_e = sqrt(error / soln_norm);
+    s_e = log10(S_e);
 
     //const double mu_scale = 2.0 * 1e-0;
-    //const double s_0 = -0.00 - 4.00*log10(degree);
-    //const double kappa = 2.0;
-    //const double low = s_0 - kappa;
-    //const double upp = s_0 + kappa;
+    const double mu_scale = all_parameters->artificial_dissipation_param.mu_artificial_dissipation; //1.0
+    const double s_0 = 0.50 - 4.00*log10(degree);
+    const double kappa = all_parameters->artificial_dissipation_param.kappa_artificial_dissipation; //1.0
+    const double low = s_0 - kappa;
+    const double upp = s_0 + kappa;
 
-    //const real2 diameter = pow(element_volume, 1.0/dim);
-    //const real2 eps_0 = mu_scale * diameter / (double)degree;
+    const real2 diameter = pow(element_volume, 1.0/dim);
+    const real2 eps_0 = mu_scale * diameter / (double)degree;
 
-    //if ( s_e < low) return 0.0;
+    if ( s_e < low) return 0.0;
 
-    //if ( s_e > upp) {
-    //    return eps_0;
-    //}
+    if ( s_e > upp) {
+        return eps_0;
+    }
 
-    //const double PI = 4*atan(1);
-    //real2 eps = 1.0 + sin(PI * (s_e - s_0) * 0.5 / kappa);
-    //eps *= eps_0 * 0.5;
-    //return eps;
+    const double PI = 4*atan(1);
+    real2 eps = 1.0 + sin(PI * (s_e - s_0) * 0.5 / kappa);
+    eps *= eps_0 * 0.5;
+    return eps;
 }
 
 // No support for anisotropic mesh refinement with parallel::distributed::Triangulation

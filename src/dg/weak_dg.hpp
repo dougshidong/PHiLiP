@@ -70,6 +70,7 @@ private:
         const dealii::FESystem<dim,dim> &fe_soln,
         const dealii::FESystem<dim,dim> &fe_metric,
         const dealii::Quadrature<dim-1> &quadrature,
+        const dealii::Quadrature<dim> &volume_quadrature_int,
         std::vector<adtype> &rhs,
         adtype &dual_dot_residual,
         const bool compute_metric_derivatives);
@@ -80,6 +81,7 @@ private:
     template <typename real2>
     void assemble_face_term(
         typename dealii::DoFHandler<dim>::active_cell_iterator cell,
+        typename dealii::DoFHandler<dim>::active_cell_iterator neighbor_cell,
         const dealii::types::global_dof_index current_cell_index,
         const dealii::types::global_dof_index neighbor_cell_index,
         const std::vector< real2 > &soln_coeff_int,
@@ -102,6 +104,8 @@ private:
         const dealii::FESystem<dim,dim> &fe_ext,
         const dealii::FESystem<dim,dim> &fe_metric,
         const dealii::Quadrature<dim-1> &face_quadrature,
+        const dealii::Quadrature<dim> &volume_quadrature_int,
+        const dealii::Quadrature<dim> &volume_quadrature_ext,
         std::vector<real2> &rhs_int,
         std::vector<real2> &rhs_ext,
         real2 &dual_dot_residual,
@@ -141,6 +145,7 @@ private:
         const real penalty,
         const dealii::FESystem<dim,dim> &fe_soln,
         const dealii::Quadrature<dim-1> &quadrature,
+        const dealii::Quadrature<dim> &volume_quadrature_int,
         const std::vector<dealii::types::global_dof_index> &metric_dof_indices,
         const std::vector<dealii::types::global_dof_index> &soln_dof_indices,
         const Physics::PhysicsBase<dim, nstate, adtype> &physics,
@@ -158,6 +163,7 @@ private:
     template <typename adtype>
     void assemble_face_codi_taped_derivatives(
         typename dealii::DoFHandler<dim>::active_cell_iterator cell,
+        typename dealii::DoFHandler<dim>::active_cell_iterator neighbor_cell,
         const dealii::types::global_dof_index current_cell_index,
         const dealii::types::global_dof_index neighbor_cell_index,
         const std::pair<unsigned int, int> face_subface_int,
@@ -170,6 +176,8 @@ private:
         const dealii::FESystem<dim,dim> &fe_int,
         const dealii::FESystem<dim,dim> &fe_ext,
         const dealii::Quadrature<dim-1> &face_quadrature,
+        const dealii::Quadrature<dim> &volume_quadrature_int,
+        const dealii::Quadrature<dim> &volume_quadrature_ext,
         const std::vector<dealii::types::global_dof_index> &metric_dof_indices_int,
         const std::vector<dealii::types::global_dof_index> &metric_dof_indices_ext,
         const std::vector<dealii::types::global_dof_index> &soln_dof_indices_int,
@@ -210,6 +218,7 @@ private:
         const real penalty,
         const dealii::FESystem<dim,dim> &fe,
         const dealii::Quadrature<dim-1> &quadrature,
+        const dealii::Quadrature<dim> &volume_quadrature_int,
         const std::vector<dealii::types::global_dof_index> &metric_dof_indices,
         const std::vector<dealii::types::global_dof_index> &soln_dof_indices,
         dealii::Vector<real> &local_rhs_cell,
@@ -221,7 +230,8 @@ private:
      *  This adds the contribution to both cell's residual and effectively
      *  computes 4 block contributions to dRdX blocks. */
     void assemble_face_term_derivatives(
-        typename dealii::DoFHandler<dim>::active_cell_iterator cell,
+        typename dealii::DoFHandler<dim>::active_cell_iterator cell_int,
+        typename dealii::DoFHandler<dim>::active_cell_iterator cell_ext,
         const dealii::types::global_dof_index current_cell_index,
         const dealii::types::global_dof_index neighbor_cell_index,
         const std::pair<unsigned int, int> face_subface_int,
@@ -234,6 +244,8 @@ private:
         const dealii::FESystem<dim,dim> &fe_int,
         const dealii::FESystem<dim,dim> &fe_ext,
         const dealii::Quadrature<dim-1> &face_quadrature,
+        const dealii::Quadrature<dim> &volume_quadrature_int,
+        const dealii::Quadrature<dim> &volume_quadrature_ext,
         const std::vector<dealii::types::global_dof_index> &metric_dof_indices_int,
         const std::vector<dealii::types::global_dof_index> &metric_dof_indices_ext,
         const std::vector<dealii::types::global_dof_index> &soln_dof_indices_int,
@@ -270,6 +282,7 @@ private:
         const real penalty,
         const dealii::FESystem<dim,dim> &fe_soln,
         const dealii::Quadrature<dim-1> &quadrature,
+        const dealii::Quadrature<dim> &volume_quadrature_int,
         const std::vector<dealii::types::global_dof_index> &metric_dof_indices,
         const std::vector<dealii::types::global_dof_index> &soln_dof_indices,
         const Physics::PhysicsBase<dim, nstate, real> &physics,
@@ -281,7 +294,8 @@ private:
     /// Evaluate the integral over the internal face.
     /** Compute the right-hand side only. */
     void assemble_face_residual(
-        typename dealii::DoFHandler<dim>::active_cell_iterator cell,
+        typename dealii::DoFHandler<dim>::active_cell_iterator cell_int,
+        typename dealii::DoFHandler<dim>::active_cell_iterator cell_ext,
         const dealii::types::global_dof_index current_cell_index,
         const dealii::types::global_dof_index neighbor_cell_index,
         const std::pair<unsigned int, int> face_subface_int,
@@ -294,6 +308,8 @@ private:
         const dealii::FESystem<dim,dim> &fe_int,
         const dealii::FESystem<dim,dim> &fe_ext,
         const dealii::Quadrature<dim-1> &face_quadrature,
+        const dealii::Quadrature<dim> &volume_quadrature_int,
+        const dealii::Quadrature<dim> &volume_quadrature_ext,
         const std::vector<dealii::types::global_dof_index> &metric_dof_indices_int,
         const std::vector<dealii::types::global_dof_index> &metric_dof_indices_ext,
         const std::vector<dealii::types::global_dof_index> &soln_dof_indices_int,

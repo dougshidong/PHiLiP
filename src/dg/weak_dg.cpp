@@ -23,81 +23,96 @@
 #define KOPRIVA_METRICS_BOUNDARY
 //#define FADFAD
 
-const bool DO_USE_GEGENBAUER = false;
-const bool DO_USE_C0_ARTIFICIAL_DISSIPATION = true;
+namespace {
+    constexpr bool DO_USE_ARTIFICIAL_DISSIPATION_AT_BOUNDARY = false;
+    constexpr bool DO_USE_GEGENBAUER = false;
+    constexpr bool DO_USE_C0_ARTIFICIAL_DISSIPATION = true;
+    constexpr bool DO_DIFFERENTIATE_ARTIFICIAL_DISSIPATION = false;
 
-/// Code taken directly from deal.II's FullMatrix::gauss_jordan function, but adapted to
-/// handle AD variable.
-template <typename number>
-void gauss_jordan(dealii::FullMatrix<number> &input_matrix)
-{
-    Assert(!input_matrix.empty(), dealii::ExcMessage("Empty matrix"))
-    Assert(input_matrix.n_cols() == input_matrix.n_rows(), dealii::ExcMessage("Non quadratic matrix"));
-  
-    // Gauss-Jordan-Algorithm from Stoer & Bulirsch I (4th Edition) p. 153
-    const size_t N = input_matrix.n();
-  
-    // First get an estimate of the size of the elements of this matrix,
-    // for later checks whether the pivot element is large enough,
-    // for whether we have to fear that the matrix is not regular
-    number diagonal_sum = 0;
-    for (size_t i = 0; i < N; ++i)
-        diagonal_sum = diagonal_sum + abs(input_matrix(i, i));
-    const number typical_diagonal_element = diagonal_sum / N;
-    (void)typical_diagonal_element;
-  
-    // initialize the array that holds the permutations that we find during pivot search
-    std::vector<size_t> p(N);
-    for (size_t i = 0; i < N; ++i)
-        p[i] = i;
-  
-    for (size_t j = 0; j < N; ++j) {
-        // pivot search: search that part of the line on and
-        // right of the diagonal for the largest element
-        number max_pivot = abs(input_matrix(j, j));
-        size_t r   = j;
-        for (size_t i = j + 1; i < N; ++i) {
-            if (abs(input_matrix(i, j)) > max_pivot) {
-                max_pivot = abs(input_matrix(i, j));
-                r   = i;
-            }
-        }
-        // check whether the pivot is too small
-        Assert(max_pivot > 1.e-16 * typical_diagonal_element, dealii::ExcMessage("Non regular matrix"));
-  
-        // row interchange
-        if (r > j) {
-            for (size_t k = 0; k < N; ++k)
-                std::swap(input_matrix(j, k), input_matrix(r, k));
-  
-            std::swap(p[j], p[r]);
-        }
-  
-        // transformation
-        const number hr = number(1.) / input_matrix(j, j);
-        input_matrix(j, j)   = hr;
-        for (size_t k = 0; k < N; ++k) {
-            if (k == j) continue;
-            for (size_t i = 0; i < N; ++i) {
-                if (i == j) continue;
-                input_matrix(i, k) -= input_matrix(i, j) * input_matrix(j, k) * hr;
-            }
-        }
-        for (size_t i = 0; i < N; ++i) {
-            input_matrix(i, j) *= hr;
-            input_matrix(j, i) *= -hr;
-        }
-        input_matrix(j, j) = hr;
-    }
-    // column interchange
-    std::vector<number> hv(N);
-    for (size_t i = 0; i < N; ++i) {
-        for (size_t k = 0; k < N; ++k)
-            hv[p[k]] = input_matrix(i, k);
-        for (size_t k = 0; k < N; ++k)
-            input_matrix(i, k) = hv[k];
-    }
+    //constexpr bool DO_USE_ARTIFICIAL_DISSIPATION_AT_BOUNDARY = true;
+    //constexpr bool DO_USE_GEGENBAUER = false;
+    //constexpr bool DO_USE_C0_ARTIFICIAL_DISSIPATION = false;
+    //constexpr bool DO_DIFFERENTIATE_ARTIFICIAL_DISSIPATION = true;
+
+    static_assert((DO_DIFFERENTIATE_ARTIFICIAL_DISSIPATION
+                    && !DO_USE_C0_ARTIFICIAL_DISSIPATION
+                    && !DO_USE_GEGENBAUER)
+                  || !DO_DIFFERENTIATE_ARTIFICIAL_DISSIPATION);
 }
+//const bool DO_USE_C0_ARTIFICIAL_DISSIPATION = false;
+
+// /// Code taken directly from deal.II's FullMatrix::gauss_jordan function, but adapted to
+// /// handle AD variable.
+// template <typename number>
+// void gauss_jordan(dealii::FullMatrix<number> &input_matrix)
+// {
+//     Assert(!input_matrix.empty(), dealii::ExcMessage("Empty matrix"))
+//     Assert(input_matrix.n_cols() == input_matrix.n_rows(), dealii::ExcMessage("Non quadratic matrix"));
+//   
+//     // Gauss-Jordan-Algorithm from Stoer & Bulirsch I (4th Edition) p. 153
+//     const size_t N = input_matrix.n();
+//   
+//     // First get an estimate of the size of the elements of this matrix,
+//     // for later checks whether the pivot element is large enough,
+//     // for whether we have to fear that the matrix is not regular
+//     number diagonal_sum = 0;
+//     for (size_t i = 0; i < N; ++i)
+//         diagonal_sum = diagonal_sum + abs(input_matrix(i, i));
+//     const number typical_diagonal_element = diagonal_sum / N;
+//     (void)typical_diagonal_element;
+//   
+//     // initialize the array that holds the permutations that we find during pivot search
+//     std::vector<size_t> p(N);
+//     for (size_t i = 0; i < N; ++i)
+//         p[i] = i;
+//   
+//     for (size_t j = 0; j < N; ++j) {
+//         // pivot search: search that part of the line on and
+//         // right of the diagonal for the largest element
+//         number max_pivot = abs(input_matrix(j, j));
+//         size_t r   = j;
+//         for (size_t i = j + 1; i < N; ++i) {
+//             if (abs(input_matrix(i, j)) > max_pivot) {
+//                 max_pivot = abs(input_matrix(i, j));
+//                 r   = i;
+//             }
+//         }
+//         // check whether the pivot is too small
+//         Assert(max_pivot > 1.e-16 * typical_diagonal_element, dealii::ExcMessage("Non regular matrix"));
+//   
+//         // row interchange
+//         if (r > j) {
+//             for (size_t k = 0; k < N; ++k)
+//                 std::swap(input_matrix(j, k), input_matrix(r, k));
+//   
+//             std::swap(p[j], p[r]);
+//         }
+//   
+//         // transformation
+//         const number hr = number(1.) / input_matrix(j, j);
+//         input_matrix(j, j)   = hr;
+//         for (size_t k = 0; k < N; ++k) {
+//             if (k == j) continue;
+//             for (size_t i = 0; i < N; ++i) {
+//                 if (i == j) continue;
+//                 input_matrix(i, k) -= input_matrix(i, j) * input_matrix(j, k) * hr;
+//             }
+//         }
+//         for (size_t i = 0; i < N; ++i) {
+//             input_matrix(i, j) *= hr;
+//             input_matrix(j, i) *= -hr;
+//         }
+//         input_matrix(j, j) = hr;
+//     }
+//     // column interchange
+//     std::vector<number> hv(N);
+//     for (size_t i = 0; i < N; ++i) {
+//         for (size_t k = 0; k < N; ++k)
+//             hv[p[k]] = input_matrix(i, k);
+//         for (size_t k = 0; k < N; ++k)
+//             input_matrix(i, k) = hv[k];
+//     }
+// }
 
 /// Returns the value from a CoDiPack variable.
 /** The recursive calling allows to retrieve nested CoDiPack types.
@@ -624,7 +639,7 @@ template <typename real2>
 void DGWeak<dim,nstate,real,MeshType>::assemble_boundary_term(
     typename dealii::DoFHandler<dim>::active_cell_iterator cell,
     const dealii::types::global_dof_index current_cell_index,
-    const std::vector< real2 > &soln_coeff,
+    const std::vector< real2 > &soln_coeff_int,
     const std::vector< real2 > &coords_coeff,
     const std::vector< real > &local_dual,
     const unsigned int face_number,
@@ -637,6 +652,7 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_boundary_term(
     const dealii::FESystem<dim,dim> &fe_soln,
     const dealii::FESystem<dim,dim> &fe_metric,
     const dealii::Quadrature<dim-1> &quadrature,
+    const dealii::Quadrature<dim> &volume_quadrature_int,
     std::vector<real2> &rhs,
     real2 &dual_dot_residual,
     const bool compute_metric_derivatives)
@@ -791,7 +807,7 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_boundary_term(
     std::vector<std::array<real2,nstate>> soln_int(n_quad_pts), soln_ext(n_quad_pts);
     std::vector<std::array< dealii::Tensor<1,dim,real2>, nstate >> soln_grad_int(n_quad_pts), soln_grad_ext(n_quad_pts);
 
-    evaluate_finite_element_values<dim, real2, nstate> (unit_quad_pts, soln_coeff, fe_soln, soln_int);
+    evaluate_finite_element_values<dim, real2, nstate> (unit_quad_pts, soln_coeff_int, fe_soln, soln_int);
 
     for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
 
@@ -801,7 +817,7 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_boundary_term(
         for (unsigned int idof=0; idof<n_soln_dofs; ++idof) {
             const int istate = fe_values_boundary.get_fe().system_to_component_index(idof).first;
             for (int d=0;d<dim;++d) {
-                soln_grad_int[iquad][istate][d] += soln_coeff[idof] * gradient_operator[d][idof][iquad];
+                soln_grad_int[iquad][istate][d] += soln_coeff_int[idof] * gradient_operator[d][idof][iquad];
             }
         }
     }
@@ -881,7 +897,7 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_boundary_term(
 
     //const real2 cell_diameter = fe_values_boundary.get_cell()->diameter();
     //const real2 artificial_diss_coeff = this->all_parameters->artificial_dissipation_param.add_artificial_dissipation ?
-    //                                       this->discontinuity_sensor(cell_diameter, soln_coeff, fe_values_boundary.get_fe())
+    //                                       this->discontinuity_sensor(cell_diameter, soln_coeff_int, fe_values_boundary.get_fe())
     //                                       : 0.0;
     const real2 artificial_diss_coeff = this->all_parameters->artificial_dissipation_param.add_artificial_dissipation ?
                                          this->artificial_dissipation_coeffs[current_cell_index]
@@ -906,6 +922,40 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_boundary_term(
         }
         if (!DO_USE_C0_ARTIFICIAL_DISSIPATION || DO_USE_GEGENBAUER) artificial_diss_coeff_at_q[iquad] = 0.0;
     }
+    if (!DO_USE_C0_ARTIFICIAL_DISSIPATION && !DO_USE_GEGENBAUER && this->all_parameters->artificial_dissipation_param.add_artificial_dissipation) {
+        const unsigned int n_volume_quadrature_pts_int = volume_quadrature_int.size();
+        std::vector<real2> volume_jacobian_determinant_int(n_volume_quadrature_pts_int);
+        std::vector<Tensor2D> jac_inv_tran_int(n_volume_quadrature_pts_int);
+
+#ifndef KOPRIVA_METRICS_VOL
+        const std::vector<dealii::Point<dim>> &quadrature_points_int = volume_quadrature_int.get_points ();
+        std::vector<Tensor2D> metric_jacobian;
+        if (compute_metric_derivatives) metric_jacobian = evaluate_metric_jacobian ( quadrature_points_int, coords_coeff, fe_metric);
+        for (unsigned int iquad=0; iquad<n_volume_quadrature_pts_int; ++iquad) {
+            if (compute_metric_derivatives) {
+                const real2 jacobian_determinant = dealii::determinant(metric_jacobian[iquad]);
+                volume_jacobian_determinant_int[iquad] = jacobian_determinant;
+            } else {
+                volume_jacobian_determinant_int[iquad] = fe_values_vol.JxW(iquad) / volume_quadrature_int.weight(iquad);
+            }
+        }
+#endif
+#ifdef KOPRIVA_METRICS_VOL
+        if constexpr (dim != 1) {
+            evaluate_covariant_metric_jacobian<dim,real2> ( volume_quadrature_int, coords_coeff, fe_metric, jac_inv_tran_int, volume_jacobian_determinant_int);
+        }
+#endif
+
+        const real2 artificial_diss_coeff_discontinuous_int = this->discontinuity_sensor(volume_quadrature_int, soln_coeff_int, fe_soln, coords_coeff, fe_metric, volume_jacobian_determinant_int);
+        for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
+            artificial_diss_coeff_at_q[iquad] = artificial_diss_coeff_discontinuous_int;
+        }
+    }
+    if (!DO_USE_ARTIFICIAL_DISSIPATION_AT_BOUNDARY) {
+        for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
+            artificial_diss_coeff_at_q[iquad] = 0.0;
+        }
+    }
 
     for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
 
@@ -922,6 +972,7 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_boundary_term(
         // Changing it back to the standdard F* = F*(Uin, Ubc)
         // This is known not be adjoint consistent as per the paper above. Page 85, second to last paragraph.
         // Losing 2p+1 OOA on functionals for all PDEs.
+        //conv_num_flux_dot_n[iquad] = conv_num_flux.evaluate_flux(soln_int[iquad], soln_ext[iquad], normal_int);
         //conv_num_flux_dot_n[iquad] = conv_num_flux.evaluate_flux(soln_int[iquad], soln_ext[iquad], normal_int);
         conv_num_flux_dot_n[iquad] = conv_num_flux.evaluate_flux(soln_int[iquad], soln_ext[iquad], normal_int);
         // Notice that the flux uses the solution given by the Dirichlet or Neumann boundary condition
@@ -949,8 +1000,10 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_boundary_term(
             current_cell_index,
             artificial_diss_coeff_at_q[iquad],
             artificial_diss_coeff_at_q[iquad],
-            soln_int[iquad], soln_ext[iquad],
-            soln_grad_int[iquad], soln_grad_ext[iquad],
+            soln_int[iquad], soln_int[iquad],
+            soln_grad_int[iquad], soln_grad_int[iquad],
+            //soln_int[iquad], soln_int[iquad],
+            //soln_grad_int[iquad], soln_grad_int[iquad],
             normal_int, penalty, true);
     }
 
@@ -990,6 +1043,7 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_boundary_term_derivatives(
     const real penalty,
     const dealii::FESystem<dim,dim> &fe_soln,
     const dealii::Quadrature<dim-1> &quadrature,
+    const dealii::Quadrature<dim> &volume_quadrature_int,
     const std::vector<dealii::types::global_dof_index> &metric_dof_indices,
     const std::vector<dealii::types::global_dof_index> &soln_dof_indices,
     dealii::Vector<real> &local_rhs_cell,
@@ -1067,6 +1121,7 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_boundary_term_derivatives(
         fe_soln,
         fe_metric,
         quadrature,
+        volume_quadrature_int,
         rhs,
         dual_dot_residual,
         compute_metric_derivatives);
@@ -1144,6 +1199,7 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_boundary_codi_taped_derivatives(
     const real penalty,
     const dealii::FESystem<dim,dim> &fe_soln,
     const dealii::Quadrature<dim-1> &quadrature,
+    const dealii::Quadrature<dim> &volume_quadrature_int,
     const std::vector<dealii::types::global_dof_index> &metric_dof_indices,
     const std::vector<dealii::types::global_dof_index> &soln_dof_indices,
     const Physics::PhysicsBase<dim, nstate, adtype> &physics,
@@ -1218,6 +1274,7 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_boundary_codi_taped_derivatives(
         fe_soln,
         fe_metric,
         quadrature,
+        volume_quadrature_int,
         rhs,
         dual_dot_residual,
         compute_metric_derivatives);
@@ -1330,6 +1387,7 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_boundary_residual(
     const real penalty,
     const dealii::FESystem<dim,dim> &fe_soln,
     const dealii::Quadrature<dim-1> &quadrature,
+    const dealii::Quadrature<dim> &volume_quadrature_int,
     const std::vector<dealii::types::global_dof_index> &metric_dof_indices,
     const std::vector<dealii::types::global_dof_index> &soln_dof_indices,
     const Physics::PhysicsBase<dim, nstate, real> &physics,
@@ -1384,6 +1442,7 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_boundary_residual(
         fe_soln,
         fe_metric,
         quadrature,
+        volume_quadrature_int,
         rhs,
         dual_dot_residual,
         compute_metric_derivatives);
@@ -1406,6 +1465,7 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_boundary_term_derivatives(
     const real penalty,
     const dealii::FESystem<dim,dim> &fe_soln,
     const dealii::Quadrature<dim-1> &quadrature,
+    const dealii::Quadrature<dim> &volume_quadrature_int,
     const std::vector<dealii::types::global_dof_index> &metric_dof_indices,
     const std::vector<dealii::types::global_dof_index> &soln_dof_indices,
     dealii::Vector<real> &local_rhs_cell,
@@ -1422,6 +1482,7 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_boundary_term_derivatives(
             penalty,
             fe_soln,
             quadrature,
+            volume_quadrature_int,
             metric_dof_indices,
             soln_dof_indices,
             *(DGBaseState<dim,nstate,real,MeshType>::pde_physics_rad_fad),
@@ -1439,6 +1500,7 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_boundary_term_derivatives(
             penalty,
             fe_soln,
             quadrature,
+            volume_quadrature_int,
             metric_dof_indices,
             soln_dof_indices,
             *(DGBaseState<dim,nstate,real,MeshType>::pde_physics_rad),
@@ -1456,6 +1518,7 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_boundary_term_derivatives(
             penalty,
             fe_soln,
             quadrature,
+            volume_quadrature_int,
             metric_dof_indices,
             soln_dof_indices,
             *(DGBaseState<dim,nstate,real,MeshType>::pde_physics_double),
@@ -1471,7 +1534,8 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_boundary_term_derivatives(
 template <int dim, int nstate, typename real, typename MeshType>
 template <typename real2>
 void DGWeak<dim,nstate,real,MeshType>::assemble_face_term(
-    typename dealii::DoFHandler<dim>::active_cell_iterator cell,
+    typename dealii::DoFHandler<dim>::active_cell_iterator cell_int,
+    typename dealii::DoFHandler<dim>::active_cell_iterator cell_ext,
     const dealii::types::global_dof_index current_cell_index,
     const dealii::types::global_dof_index neighbor_cell_index,
     const std::vector< real2 > &soln_coeff_int,
@@ -1494,6 +1558,8 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_face_term(
     const dealii::FESystem<dim,dim> &fe_ext,
     const dealii::FESystem<dim,dim> &fe_metric,
     const dealii::Quadrature<dim-1> &face_quadrature,
+    const dealii::Quadrature<dim> &volume_quadrature_int,
+    const dealii::Quadrature<dim> &volume_quadrature_ext,
     std::vector<real2> &rhs_int,
     std::vector<real2> &rhs_ext,
     real2 &dual_dot_residual,
@@ -1582,14 +1648,6 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_face_term(
     // Might want to use the maximum n_quad_pts1 and n_quad_pts2
     //const unsigned int n_face_quad_pts = fe_values_ext.n_quadrature_points;
 
-    //const real2 cell_diameter_int = fe_values_int.get_cell()->diameter();
-    //const real2 cell_diameter_ext = fe_values_ext.get_cell()->diameter();
-    //const real2 artificial_diss_coeff_int = this->all_parameters->artificial_dissipation_param.add_artificial_dissipation ?
-    //                                        this->discontinuity_sensor(cell_diameter_int, soln_coeff_int, fe_values_int.get_fe())
-    //                                        : 0.0;
-    //const real2 artificial_diss_coeff_ext = this->all_parameters->artificial_dissipation_param.add_artificial_dissipation ?
-    //                                        this->discontinuity_sensor(cell_diameter_ext, soln_coeff_ext, fe_values_ext.get_fe())
-    //                                        : 0.0;
     const real2 artificial_diss_coeff_int = this->all_parameters->artificial_dissipation_param.add_artificial_dissipation ?
                                             this->artificial_dissipation_coeffs[current_cell_index]
                                             : 0.0;
@@ -1599,24 +1657,84 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_face_term(
 
     (void) artificial_diss_coeff_int;
     (void) artificial_diss_coeff_ext;
-    typename dealii::DoFHandler<dim>::active_cell_iterator artificial_dissipation_cell(
-        this->triangulation.get(), cell->level(), cell->index(), &(this->dof_handler_artificial_dissipation));
-    const unsigned int n_dofs_arti_diss = this->fe_q_artificial_dissipation.dofs_per_cell;
-    std::vector<dealii::types::global_dof_index> dof_indices_artificial_dissipation(n_dofs_arti_diss);
-    artificial_dissipation_cell->get_dof_indices (dof_indices_artificial_dissipation);
 
-    std::vector<real2> artificial_diss_coeff_at_q(n_face_quad_pts);
+    const unsigned int n_dofs_arti_diss = this->fe_q_artificial_dissipation.dofs_per_cell;
+
+    typename dealii::DoFHandler<dim>::active_cell_iterator artificial_dissipation_cell_int(
+        this->triangulation.get(), cell_int->level(), cell_int->index(), &(this->dof_handler_artificial_dissipation));
+    std::vector<dealii::types::global_dof_index> dof_indices_artificial_dissipation_int(n_dofs_arti_diss);
+    artificial_dissipation_cell_int->get_dof_indices (dof_indices_artificial_dissipation_int);
+
+    typename dealii::DoFHandler<dim>::active_cell_iterator artificial_dissipation_cell_ext(
+        this->triangulation.get(), cell_ext->level(), cell_ext->index(), &(this->dof_handler_artificial_dissipation));
+    std::vector<dealii::types::global_dof_index> dof_indices_artificial_dissipation_ext(n_dofs_arti_diss);
+    artificial_dissipation_cell_ext->get_dof_indices (dof_indices_artificial_dissipation_ext);
+
+    std::vector<real2> artificial_diss_coeff_at_q_int(n_face_quad_pts);
+    std::vector<real2> artificial_diss_coeff_at_q_ext(n_face_quad_pts);
     for (unsigned int iquad=0; iquad<n_face_quad_pts; ++iquad) {
-        artificial_diss_coeff_at_q[iquad] = 0.0;
+        artificial_diss_coeff_at_q_int[iquad] = 0.0;
 
         if ( this->all_parameters->artificial_dissipation_param.add_artificial_dissipation ) {
             const dealii::Point<dim,real> point = unit_quad_pts_int[iquad];
             for (unsigned int idof=0; idof<n_dofs_arti_diss; ++idof) {
-                const unsigned int index = dof_indices_artificial_dissipation[idof];
-                artificial_diss_coeff_at_q[iquad] += this->artificial_dissipation_c0[index] * this->fe_q_artificial_dissipation.shape_value(idof, point);
+                const unsigned int index = dof_indices_artificial_dissipation_int[idof];
+                artificial_diss_coeff_at_q_int[iquad] += this->artificial_dissipation_c0[index] * this->fe_q_artificial_dissipation.shape_value(idof, point);
+            }
+            for (unsigned int idof=0; idof<n_dofs_arti_diss; ++idof) {
+                const unsigned int index = dof_indices_artificial_dissipation_ext[idof];
+                artificial_diss_coeff_at_q_ext[iquad] += this->artificial_dissipation_c0[index] * this->fe_q_artificial_dissipation.shape_value(idof, point);
             }
         }
-        if (!DO_USE_C0_ARTIFICIAL_DISSIPATION || DO_USE_GEGENBAUER) artificial_diss_coeff_at_q[iquad] = 0.0;
+        if (!DO_USE_C0_ARTIFICIAL_DISSIPATION || DO_USE_GEGENBAUER) {
+            artificial_diss_coeff_at_q_int[iquad] = 0.0;
+            artificial_diss_coeff_at_q_ext[iquad] = 0.0;
+        }
+    }
+    if (!DO_USE_C0_ARTIFICIAL_DISSIPATION && !DO_USE_GEGENBAUER && this->all_parameters->artificial_dissipation_param.add_artificial_dissipation) {
+        const unsigned int n_volume_quadrature_pts_int = volume_quadrature_int.size();
+        std::vector<real2> volume_jacobian_determinant_int(n_volume_quadrature_pts_int);
+        std::vector<Tensor2D> jac_inv_tran_int(n_volume_quadrature_pts_int);
+
+        const unsigned int n_volume_quadrature_pts_ext = volume_quadrature_ext.size();
+        std::vector<real2> volume_jacobian_determinant_ext(n_volume_quadrature_pts_ext);
+        std::vector<Tensor2D> jac_inv_tran_ext(n_volume_quadrature_pts_ext);
+
+#ifndef KOPRIVA_METRICS_VOL
+        const std::vector<dealii::Point<dim>> &quadrature_points_int = volume_quadrature_int.get_points ();
+        std::vector<Tensor2D> metric_jacobian;
+        if (compute_metric_derivatives) metric_jacobian = evaluate_metric_jacobian ( quadrature_points_int, coords_coeff_int, fe_metric);
+        for (unsigned int iquad=0; iquad<n_volume_quadrature_pts_int; ++iquad) {
+            if (compute_metric_derivatives) {
+                const real2 jacobian_determinant = dealii::determinant(metric_jacobian[iquad]);
+                volume_jacobian_determinant_int[iquad] = jacobian_determinant;
+            } else {
+                volume_jacobian_determinant_int[iquad] = fe_values_vol.JxW(iquad) / volume_quadrature_int.weight(iquad);
+            }
+        }
+        if (compute_metric_derivatives) metric_jacobian = evaluate_metric_jacobian ( quadrature_points_ext, coords_coeff_ext, fe_metric);
+        for (unsigned int iquad=0; iquad<n_volume_quadrature_pts_ext; ++iquad) {
+            if (compute_metric_derivatives) {
+                const real2 jacobian_determinant = dealii::determinant(metric_jacobian[iquad]);
+                volume_jacobian_determinant_ext[iquad] = jacobian_determinant;
+            } else {
+                volume_jacobian_determinant_ext[iquad] = fe_values_vol.JxW(iquad) / volume_quadrature_ext.weight(iquad);
+            }
+        }
+#endif
+#ifdef KOPRIVA_METRICS_VOL
+        if constexpr (dim != 1) {
+            evaluate_covariant_metric_jacobian<dim,real2> ( volume_quadrature_int, coords_coeff_int, fe_metric, jac_inv_tran_int, volume_jacobian_determinant_int);
+            evaluate_covariant_metric_jacobian<dim,real2> ( volume_quadrature_ext, coords_coeff_ext, fe_metric, jac_inv_tran_ext, volume_jacobian_determinant_ext);
+        }
+#endif
+
+        const real2 artificial_diss_coeff_discontinuous_int = this->discontinuity_sensor(volume_quadrature_int, soln_coeff_int, fe_int, coords_coeff_int, fe_metric, volume_jacobian_determinant_int);
+        const real2 artificial_diss_coeff_discontinuous_ext = this->discontinuity_sensor(volume_quadrature_ext, soln_coeff_ext, fe_ext, coords_coeff_ext, fe_metric, volume_jacobian_determinant_ext);
+        for (unsigned int iquad=0; iquad<n_face_quad_pts; ++iquad) {
+            artificial_diss_coeff_at_q_int[iquad] = artificial_diss_coeff_discontinuous_int;
+            artificial_diss_coeff_at_q_ext[iquad] = artificial_diss_coeff_discontinuous_ext;
+        }
     }
 
     std::vector<real2> jacobian_determinant_int(n_face_quad_pts);
@@ -1970,8 +2088,10 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_face_term(
         if (this->all_parameters->artificial_dissipation_param.add_artificial_dissipation) {
             //const ADArrayTensor1 artificial_diss_flux_jump_int = physics.artificial_dissipative_flux (artificial_diss_coeff_int, soln_int[iquad], diss_soln_jump_int);
             //const ADArrayTensor1 artificial_diss_flux_jump_ext = physics.artificial_dissipative_flux (artificial_diss_coeff_ext, soln_ext[iquad], diss_soln_jump_ext);
-            const ADArrayTensor1 artificial_diss_flux_jump_int =  DGBaseState<dim,nstate,real,MeshType>::artificial_dissip->calc_artificial_dissipation_flux(soln_int[iquad], diss_soln_jump_int,artificial_diss_coeff_at_q[iquad]);
-            const ADArrayTensor1 artificial_diss_flux_jump_ext =  DGBaseState<dim,nstate,real,MeshType>::artificial_dissip->calc_artificial_dissipation_flux(soln_ext[iquad], diss_soln_jump_ext,artificial_diss_coeff_at_q[iquad]);
+            const ADArrayTensor1 artificial_diss_flux_jump_int =  DGBaseState<dim,nstate,real,MeshType>::artificial_dissip->calc_artificial_dissipation_flux(
+                soln_int[iquad], diss_soln_jump_int,artificial_diss_coeff_at_q_int[iquad]);
+            const ADArrayTensor1 artificial_diss_flux_jump_ext =  DGBaseState<dim,nstate,real,MeshType>::artificial_dissip->calc_artificial_dissipation_flux(
+                soln_ext[iquad], diss_soln_jump_ext,artificial_diss_coeff_at_q_ext[iquad]);
             for (int s=0; s<nstate; s++) {
                 diss_flux_jump_int[s] += artificial_diss_flux_jump_int[s];
                 diss_flux_jump_ext[s] += artificial_diss_flux_jump_ext[s];
@@ -1980,12 +2100,10 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_face_term(
 
 
         diss_auxi_num_flux_dot_n = diss_num_flux.evaluate_auxiliary_flux(
-            //artificial_diss_coeff_int,
-            //artificial_diss_coeff_ext,
             current_cell_index,
             neighbor_cell_index,
-            artificial_diss_coeff_at_q[iquad],
-            artificial_diss_coeff_at_q[iquad],
+            artificial_diss_coeff_at_q_int[iquad],
+            artificial_diss_coeff_at_q_ext[iquad],
             soln_int[iquad], soln_ext[iquad],
             soln_grad_int[iquad], soln_grad_ext[iquad],
             phys_unit_normal_int[iquad], penalty);
@@ -2033,6 +2151,7 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_face_term(
 template <int dim, int nstate, typename real, typename MeshType>
 void DGWeak<dim,nstate,real,MeshType>::assemble_face_term_derivatives(
     typename dealii::DoFHandler<dim>::active_cell_iterator cell,
+    typename dealii::DoFHandler<dim>::active_cell_iterator cell_ext,
     const dealii::types::global_dof_index current_cell_index,
     const dealii::types::global_dof_index neighbor_cell_index,
     const std::pair<unsigned int, int> face_subface_int,
@@ -2045,6 +2164,8 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_face_term_derivatives(
     const dealii::FESystem<dim,dim> &fe_int,
     const dealii::FESystem<dim,dim> &fe_ext,
     const dealii::Quadrature<dim-1> &face_quadrature,
+    const dealii::Quadrature<dim> &volume_quadrature_int,
+    const dealii::Quadrature<dim> &volume_quadrature_ext,
     const std::vector<dealii::types::global_dof_index> &metric_dof_indices_int,
     const std::vector<dealii::types::global_dof_index> &metric_dof_indices_ext,
     const std::vector<dealii::types::global_dof_index> &soln_dof_indices_int,
@@ -2143,6 +2264,7 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_face_term_derivatives(
     const auto &diss_num_flux = *(DGBaseState<dim,nstate,real,MeshType>::diss_num_flux_fad_fad);
     assemble_face_term(
         cell,
+        cell_ext,
         current_cell_index,
         neighbor_cell_index,
         soln_coeff_int,
@@ -2376,7 +2498,8 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_face_term_derivatives(
 template <int dim, int nstate, typename real, typename MeshType>
 template <typename adtype>
 void DGWeak<dim,nstate,real,MeshType>::assemble_face_codi_taped_derivatives(
-    typename dealii::DoFHandler<dim>::active_cell_iterator cell,
+    typename dealii::DoFHandler<dim>::active_cell_iterator cell_int,
+    typename dealii::DoFHandler<dim>::active_cell_iterator cell_ext,
     const dealii::types::global_dof_index current_cell_index,
     const dealii::types::global_dof_index neighbor_cell_index,
     const std::pair<unsigned int, int> face_subface_int,
@@ -2389,6 +2512,8 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_face_codi_taped_derivatives(
     const dealii::FESystem<dim,dim> &fe_int,
     const dealii::FESystem<dim,dim> &fe_ext,
     const dealii::Quadrature<dim-1> &face_quadrature,
+    const dealii::Quadrature<dim> &volume_quadrature_int,
+    const dealii::Quadrature<dim> &volume_quadrature_ext,
     const std::vector<dealii::types::global_dof_index> &metric_dof_indices_int,
     const std::vector<dealii::types::global_dof_index> &metric_dof_indices_ext,
     const std::vector<dealii::types::global_dof_index> &soln_dof_indices_int,
@@ -2485,7 +2610,8 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_face_codi_taped_derivatives(
     adtype dual_dot_residual;
 
     assemble_face_term(
-        cell,
+        cell_int,
+        cell_ext,
         current_cell_index,
         neighbor_cell_index,
         soln_coeff_int,
@@ -2508,6 +2634,8 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_face_codi_taped_derivatives(
         fe_ext,
         fe_metric,
         face_quadrature,
+        volume_quadrature_int,
+        volume_quadrature_ext,
         rhs_int,
         rhs_ext,
         dual_dot_residual,
@@ -2766,7 +2894,8 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_face_codi_taped_derivatives(
 
 template <int dim, int nstate, typename real, typename MeshType>
 void DGWeak<dim,nstate,real,MeshType>::assemble_face_residual(
-    typename dealii::DoFHandler<dim>::active_cell_iterator cell,
+    typename dealii::DoFHandler<dim>::active_cell_iterator cell_int,
+    typename dealii::DoFHandler<dim>::active_cell_iterator cell_ext,
     const dealii::types::global_dof_index current_cell_index,
     const dealii::types::global_dof_index neighbor_cell_index,
     const std::pair<unsigned int, int> face_subface_int,
@@ -2779,6 +2908,8 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_face_residual(
     const dealii::FESystem<dim,dim> &fe_int,
     const dealii::FESystem<dim,dim> &fe_ext,
     const dealii::Quadrature<dim-1> &face_quadrature,
+    const dealii::Quadrature<dim> &volume_quadrature_int,
+    const dealii::Quadrature<dim> &volume_quadrature_ext,
     const std::vector<dealii::types::global_dof_index> &metric_dof_indices_int,
     const std::vector<dealii::types::global_dof_index> &metric_dof_indices_ext,
     const std::vector<dealii::types::global_dof_index> &soln_dof_indices_int,
@@ -2840,7 +2971,8 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_face_residual(
     real dual_dot_residual;
 
     assemble_face_term(
-        cell,
+        cell_int,
+        cell_ext,
         current_cell_index,
         neighbor_cell_index,
         soln_coeff_int,
@@ -2863,6 +2995,8 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_face_residual(
         fe_ext,
         fe_metric,
         face_quadrature,
+        volume_quadrature_int,
+        volume_quadrature_ext,
         rhs_int,
         rhs_ext,
         dual_dot_residual,
@@ -3628,7 +3762,8 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_volume_term_derivatives(
 
 template <int dim, int nstate, typename real, typename MeshType>
 void DGWeak<dim,nstate,real,MeshType>::assemble_face_term_derivatives(
-    typename dealii::DoFHandler<dim>::active_cell_iterator cell,
+    typename dealii::DoFHandler<dim>::active_cell_iterator cell_int,
+    typename dealii::DoFHandler<dim>::active_cell_iterator cell_ext,
     const dealii::types::global_dof_index current_cell_index,
     const dealii::types::global_dof_index neighbor_cell_index,
     const std::pair<unsigned int, int> face_subface_int,
@@ -3641,6 +3776,8 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_face_term_derivatives(
     const dealii::FESystem<dim,dim> &fe_int,
     const dealii::FESystem<dim,dim> &fe_ext,
     const dealii::Quadrature<dim-1> &face_quadrature,
+    const dealii::Quadrature<dim> &volume_quadrature_int,
+    const dealii::Quadrature<dim> &volume_quadrature_ext,
     const std::vector<dealii::types::global_dof_index> &metric_dof_indices_int,
     const std::vector<dealii::types::global_dof_index> &metric_dof_indices_ext,
     const std::vector<dealii::types::global_dof_index> &soln_dof_indices_int,
@@ -3653,7 +3790,8 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_face_term_derivatives(
     (void) neighbor_cell_index;
     if (compute_d2R) {
         assemble_face_codi_taped_derivatives<codi_HessianComputationType>(
-        cell,
+        cell_int,
+        cell_ext,
             current_cell_index,
             neighbor_cell_index,
             face_subface_int,
@@ -3666,6 +3804,8 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_face_term_derivatives(
             fe_int,
             fe_ext,
             face_quadrature,
+            volume_quadrature_int,
+            volume_quadrature_ext,
             metric_dof_indices_int,
             metric_dof_indices_ext,
             soln_dof_indices_int,
@@ -3678,7 +3818,8 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_face_term_derivatives(
             compute_dRdW, compute_dRdX, compute_d2R);
     } else if (compute_dRdW || compute_dRdX) {
         assemble_face_codi_taped_derivatives<codi_JacobianComputationType>(
-        cell,
+        cell_int,
+        cell_ext,
             current_cell_index,
             neighbor_cell_index,
             face_subface_int,
@@ -3691,6 +3832,8 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_face_term_derivatives(
             fe_int,
             fe_ext,
             face_quadrature,
+            volume_quadrature_int,
+            volume_quadrature_ext,
             metric_dof_indices_int,
             metric_dof_indices_ext,
             soln_dof_indices_int,
@@ -3703,7 +3846,8 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_face_term_derivatives(
             compute_dRdW, compute_dRdX, compute_d2R);
     } else {
         assemble_face_residual(
-        cell,
+        cell_int,
+        cell_ext,
             current_cell_index,
             neighbor_cell_index,
             face_subface_int,
@@ -3716,6 +3860,8 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_face_term_derivatives(
             fe_int,
             fe_ext,
             face_quadrature,
+            volume_quadrature_int,
+            volume_quadrature_ext,
             metric_dof_indices_int,
             metric_dof_indices_ext,
             soln_dof_indices_int,

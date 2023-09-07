@@ -1,6 +1,6 @@
 # -------------------
 
-set test_type = advection_periodicity
+set test_type = stability_fr_parameter_range
 
 # Number of dimensions
 set dimension = 1
@@ -13,7 +13,7 @@ set flux_nodes_type = GL
 
 set use_split_form = false
 
-set use_curvilinear_split_form = true
+set use_curvilinear_split_form = false
 
 set use_weight_adjusted_mass = true
 
@@ -24,7 +24,11 @@ set use_energy = false
 set flux_reconstruction = user_specified_value
 set FR_user_specified_correction_parameter_value = 0.0
 
-set use_inverse_mass_on_the_fly = false
+set number_ESFR_parameter_values = 10
+set ESFR_parameter_values_start = 1.0e-4
+set ESFR_parameter_values_end = 1.0e4
+
+set use_inverse_mass_on_the_fly = true
 
 set use_classical_FR = false
 
@@ -32,7 +36,6 @@ set use_classical_FR = false
 set pde_type = advection
 
 set conv_num_flux = lax_friedrichs
-#set conv_num_flux = central_flux
 
 subsection ODE solver
 
@@ -53,7 +56,27 @@ subsection ODE solver
 
 end
 
+subsection manufactured solution convergence study
+  #set use_manufactured_source_term = true
+
+  # Starting degree for convergence study
+  set degree_start      = 2
+
+  # Initial grid of size 2^initial_grid_size
+  set initial_grid_size = 3
+
+  # Number of grids in grid study
+  set number_of_grids   = 5
+end
+
 subsection flow_solver
-    set flow_case_type = convection_diffusion
-    set apply_initial_condition_method = project_initial_condition_function
+  set flow_case_type = convection_diffusion
+  set apply_initial_condition_method = project_initial_condition_function
+  set poly_degree = 3
+  set final_time = 0.5
+  subsection grid
+    set grid_left_bound = -1.0
+    set grid_right_bound = 1.0
+    set number_of_grid_elements_per_dimension = 32
+  end
 end

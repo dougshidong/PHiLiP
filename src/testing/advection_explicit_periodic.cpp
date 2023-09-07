@@ -114,7 +114,7 @@ int AdvectionPeriodic<dim, nstate>::run_test() const
     const double right = 1.0;
     unsigned int n_refinements = n_grids;
     unsigned int poly_degree = 3;
-    unsigned int grid_degree = poly_degree;
+    unsigned int grid_degree = 1;
 
     dealii::ConvergenceTable convergence_table;
     const unsigned int igrid_start = 3;
@@ -146,7 +146,6 @@ int AdvectionPeriodic<dim, nstate>::run_test() const
     c_array[nb_c_value]=3.67e-3; ; // 0.186; 3.67e-3; 4.79e-5; 4.24e-7;    //cPlus in first place
     c_value_file << c_array[nb_c_value] << std::endl;
     c_value_file.close();
-    std::cout<<"Here 3"<<std::endl;
 
     // Loop over c_array to compute slope
     for (int ic = 0; ic < nb_c_value+1; ic++) {
@@ -171,8 +170,7 @@ int AdvectionPeriodic<dim, nstate>::run_test() const
 
         //set the warped grid
         PHiLiP::Grids::nonsymmetric_curved_grid<dim,Triangulation>(*grid, igrid);
-		std::cout<<"Here 4"<<std::endl;
-
+	
         //CFL number
         const unsigned int n_global_active_cells2 = grid->n_global_active_cells();
         double n_dofs_cfl = pow(n_global_active_cells2,dim) * pow(poly_degree+1.0, dim);
@@ -193,7 +191,6 @@ int AdvectionPeriodic<dim, nstate>::run_test() const
         std::shared_ptr< InitialConditionFunction<dim,nstate,double> > initial_condition_function = 
                 InitialConditionFactory<dim,nstate,double>::create_InitialConditionFunction(&all_parameters_new); 
         SetInitialCondition<dim,nstate,double>::set_initial_condition(initial_condition_function, dg, &all_parameters_new);
-		std::cout<<"Here 5"<<std::endl;
 
         // Create ODE solver using the factory and providing the DG object
         std::shared_ptr<PHiLiP::ODE::ODESolverBase<dim, double>> ode_solver = PHiLiP::ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
@@ -331,7 +328,6 @@ int AdvectionPeriodic<dim, nstate>::run_test() const
                         }
                     }
                 }
-
             }
             const double l2error_mpi_sum = std::sqrt(dealii::Utilities::MPI::sum(l2error, this->mpi_communicator));
 

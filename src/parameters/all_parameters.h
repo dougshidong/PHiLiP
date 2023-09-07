@@ -158,6 +158,7 @@ public:
     enum TestType {
         run_control,
         grid_refinement_study,
+		stability_fr_parameter_range,
         burgers_energy_stability,
         diffusion_exact_adjoint,
         euler_gaussian_bump,

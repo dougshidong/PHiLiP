@@ -41,6 +41,21 @@ add_test(
   COMMAND mpirun -np ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_2D -i ${CMAKE_CURRENT_BINARY_DIR}/2D_inviscid_isentropic_vortex_h_refinement.prm
   WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )
+# =======================================
+# Inviscid Isentropic Vortex -- 2D -- h refinement  -- ESFR parameter range
+# =======================================
+# ----------------------------------------
+# - Parameters are  chosen to run in a reasonable amount of time
+# - Number of refinements and end time should be increased for better results
+# ----------------------------------------
+configure_file(2D_inviscid_isentropic_vortex_OOA_ESFR_parameter_range.prm 2D_inviscid_isentropic_vortex_OOA_ESFR_parameter_range.prm COPYONLY)
+add_test(
+  NAME MPI_2D_H_REFINEMENT_INVISCID_ISENTROPIC_VORTEX_ESFR_RANGE
+  COMMAND mpirun -np ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_2D -i ${CMAKE_CURRENT_BINARY_DIR}/2D_inviscid_isentropic_vortex_OOA_ESFR_parameter_range.prm
+  WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
+)
+
+
 # ----------------------------------------
 # =======================================
 # Inviscid Isentropic Vortex -- 3D

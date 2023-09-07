@@ -142,9 +142,15 @@ int HRefinementStudyIsentropicVortex<dim, nstate>::run_test() const
         double log_c = log_c_min + (log_c_max - log_c_min) / (nb_c_value - 1) * ic;
         c_array[ic] = std::pow(10.0, log_c);
     }
-    // Add cPlus value at the end
-    c_array[nb_c_value] = this->all_parameters->FR_user_specified_correction_parameter_value;
-    // c_array[nb_c_value]=3.67e-3; // 0.186; 3.67e-3; 4.79e-5; 4.24e-7;
+    if (this->all_parameters->flux_reconstruction_type == PHiLiP::Parameters::AllParameters::Flux_Reconstruction::user_specified_value){
+        // Add cPlus value at the end
+        c_array[nb_c_value] = this->all_parameters->FR_user_specified_correction_parameter_value;
+        // c_array[nb_c_value]=3.67e-3; // 0.186; 3.67e-3; 4.79e-5; 4.24e-7;
+    }
+    else{
+        // default value to not let it empty, it won't be use later.
+        c_array[nb_c_value] = 0.0;
+    }
 
     dealii::ConvergenceTable convergence_table_density;
     dealii::ConvergenceTable convergence_table_pressure;
@@ -167,7 +173,9 @@ int HRefinementStudyIsentropicVortex<dim, nstate>::run_test() const
 
         const Parameters::AllParameters params = reinit_params_and_refine(refinement);
         auto params_modified = params;
-        params_modified.FR_user_specified_correction_parameter_value = c_value;
+        if (nb_c_value > 0){
+            params_modified.FR_user_specified_correction_parameter_value = c_value;
+        }
         std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(&params_modified, parameter_handler);
         std::unique_ptr<FlowSolver::PeriodicEntropyTests<dim, nstate>> flow_solver_case = std::make_unique<FlowSolver::PeriodicEntropyTests<dim,nstate>>(&params_modified);
     
@@ -195,9 +203,11 @@ int HRefinementStudyIsentropicVortex<dim, nstate>::run_test() const
         pcout << " at dt = " << dt << std::endl;
         
         // Convergence for density
-        convergence_table_density.add_value("cESFR", params_modified.FR_user_specified_correction_parameter_value );
-        convergence_table_density.set_precision("cESFR", 16);
-        convergence_table_density.set_scientific("cESFR", true);
+        if (this->all_parameters->flux_reconstruction_type == PHiLiP::Parameters::AllParameters::Flux_Reconstruction::user_specified_value){
+            convergence_table_density.add_value("cESFR", params_modified.FR_user_specified_correction_parameter_value );
+            convergence_table_density.set_precision("cESFR", 16);
+            convergence_table_density.set_scientific("cESFR", true);
+        }
         convergence_table_density.add_value("refinement", refinement);
         convergence_table_density.add_value("dt", dt );
         convergence_table_density.set_precision("dt", 16);
@@ -222,9 +232,11 @@ int HRefinementStudyIsentropicVortex<dim, nstate>::run_test() const
         }
 
         // Convergence for pressure
-        convergence_table_pressure.add_value("cESFR", params_modified.FR_user_specified_correction_parameter_value );
-        convergence_table_pressure.set_precision("cESFR", 16);
-        convergence_table_pressure.set_scientific("cESFR", true);
+        if (this->all_parameters->flux_reconstruction_type == PHiLiP::Parameters::AllParameters::Flux_Reconstruction::user_specified_value){
+            convergence_table_pressure.add_value("cESFR", params_modified.FR_user_specified_correction_parameter_value );
+            convergence_table_pressure.set_precision("cESFR", 16);
+            convergence_table_pressure.set_scientific("cESFR", true);
+        }
         convergence_table_pressure.add_value("refinement", refinement);
         convergence_table_pressure.add_value("dt", dt );
         convergence_table_pressure.set_precision("dt", 16);

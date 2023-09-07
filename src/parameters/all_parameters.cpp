@@ -127,7 +127,7 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       "Flux Reconstruction for Auxiliary Equation. "
                       "Choices are <kDG | kSD | kHU | kNegative | kNegative2 | kPlus | k10Thousand>.");
 
-    prm.declare_entry("number_ESFR_parameter_values", "1",
+    prm.declare_entry("number_ESFR_parameter_values", "0",
                       dealii::Patterns::Integer(),
                       "Number of tested ESFR parameter values");
 
@@ -163,6 +163,7 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       dealii::Patterns::Selection(
                       " run_control | "
                       " grid_refinement_study | "
+                      " stability_fr_parameter_range | "
                       " burgers_energy_stability | "
                       " diffusion_exact_adjoint | "
                       " optimization_inverse_manufactured | "
@@ -201,6 +202,7 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       "Choices are " 
                       " <run_control | " 
                       "  grid_refinement_study | "
+                      "  stability_fr_parameter_range | "
                       "  burgers_energy_stability | "
                       "  diffusion_exact_adjoint | "
                       "  optimization_inverse_manufactured | "
@@ -374,6 +376,7 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     const std::string test_string = prm.get("test_type");
     if      (test_string == "run_control")                              { test_type = run_control; }
     else if (test_string == "grid_refinement_study")                    { test_type = grid_refinement_study; }
+    else if (test_string == "stability_fr_parameter_range")             { test_type = stability_fr_parameter_range; }
     else if (test_string == "burgers_energy_stability")                 { test_type = burgers_energy_stability; }
     else if (test_string == "diffusion_exact_adjoint")                  { test_type = diffusion_exact_adjoint; }
     else if (test_string == "euler_gaussian_bump")                      { test_type = euler_gaussian_bump; }

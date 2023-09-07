@@ -1,5 +1,5 @@
-#ifndef __BURGERS_STABILITY_FR_PARAMETERS_RANGE_H__
-#define __BURGERS_STABILITY_FR_PARAMETERS_RANGE_H__
+#ifndef __STABILITY_FR_PARAMETERS_RANGE_H__
+#define __STABILITY_FR_PARAMETERS_RANGE_H__
 
 #include "tests.h"
 #include "dg/dg.h"
@@ -10,14 +10,14 @@ namespace Tests {
 
 /// Burgers' periodic unsteady test
 template <int dim, int nstate>
-class BurgersStabilityFRParametersRange: public TestsBase
+class StabilityFRParametersRange: public TestsBase
 {
 public:
     /// Constructor
-    BurgersStabilityFRParametersRange(const Parameters::AllParameters *const parameters_input);
+    StabilityFRParametersRange(const Parameters::AllParameters *const parameters_input);
 
     /// Destructor
-    ~BurgersStabilityFRParametersRange() {};
+    ~StabilityFRParametersRange() {};
 
     /// Run test
     int run_test () const override;

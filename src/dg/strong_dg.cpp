@@ -924,9 +924,9 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_volume_term_strong(
             filtered_soln_coeff[istate].resize(n_shape_fns);
         }
         soln_coeff[istate][ishape] = this->solution(cell_dofs_indices[idof]);
-	    if(ishape >= p_min_filtered){
+        if(ishape >= p_min_filtered){
             filtered_soln_coeff[istate][ishape] = this->solution(cell_dofs_indices[idof]);
-	    }
+        }
         for(int idim=0; idim<dim; idim++){
             if(ishape == 0){
                 aux_soln_coeff[istate][idim].resize(n_shape_fns);
@@ -934,7 +934,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_volume_term_strong(
             }
             if(this->use_auxiliary_eq){
                 aux_soln_coeff[istate][idim][ishape] = this->auxiliary_solution[idim](cell_dofs_indices[idof]);
-        		if(ishape >= p_min_filtered){
+                if(ishape >= p_min_filtered){
                     filtered_aux_soln_coeff[istate][idim][ishape] = this->auxiliary_solution[idim](cell_dofs_indices[idof]);
         		}
             }
@@ -982,21 +982,55 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_volume_term_strong(
     legendre_soln_basis.build_1D_volume_operator(legendre_poly_1D, this->oneD_quadrature_collection[this->max_degree]);
     // -- solution at legendre poly
     std::array<std::vector<real>,nstate> legendre_soln_at_q;
+    std::array<dealii::Tensor<1,dim,std::vector<real>>,nstate> legendre_aux_soln_at_q; // legendre auxiliary sol at flux nodes
     for(int istate=0; istate<nstate; istate++){
-        // (1) Project to Legrendre basis
+        //==================================================
+        // Solution
+        //==================================================
+        // -- (1) Project to Legrendre basis
         std::vector<real> legendre_soln_coeff(n_shape_fns);
         legendre_soln_basis_projection_oper.matrix_vector_mult_1D(soln_at_q[istate], legendre_soln_coeff,
                                                                   legendre_soln_basis_projection_oper.oneD_vol_operator);
-        // (2) Truncate modes for high-pass filter (i.e. DG-VMS like)
+        // -- (2) Truncate modes for high-pass filter (i.e. DG-VMS like)
         for(unsigned int ishape=0; ishape<n_shape_fns; ishape++){
             if(ishape < p_min_filtered){
                 legendre_soln_coeff[ishape] = 0.0;
             }
         }
-        // (3) Interpolate filtered solution back to quadrature points
+        // -- (3) Interpolate filtered solution back to quadrature points
         legendre_soln_at_q[istate].resize(n_quad_pts);
         legendre_soln_basis.matrix_vector_mult_1D(legendre_soln_coeff, legendre_soln_at_q[istate],
                                                   legendre_soln_basis.oneD_vol_operator);
+        //==================================================
+
+        //==================================================
+        // Auxiliary Solution (gradients)
+        //==================================================
+        dealii::Tensor<1,dim,std::vector<real>> legendre_aux_soln_coeff(n_shape_fns);
+        for(int idim=0; idim<dim; idim++){
+            // -- (1) Project to Legrendre basis
+            legendre_aux_soln_coeff[idim].resize(n_shape_fns);
+            if(this->use_auxiliary_eq){
+                legendre_soln_basis_projection_oper.matrix_vector_mult_1D(aux_soln_at_q[istate][idim], legendre_aux_soln_coeff[idim],
+                                                                          legendre_soln_basis_projection_oper.oneD_vol_operator);
+                // -- (2) Truncate modes for high-pass filter (i.e. DG-VMS like)
+                for(unsigned int ishape=0; ishape<n_shape_fns; ishape++){
+                    if(ishape < p_min_filtered){
+                        legendre_aux_soln_coeff[idim][ishape] = 0.0;
+                    }
+                }
+            }
+            else {
+                for(unsigned int ishape=0; ishape<n_shape_fns; ishape++){
+                    legendre_aux_soln_coeff[idim][ishape] = 0.0;
+                }
+            }
+            // -- (3) Interpolate filtered solution back to quadrature points
+            legendre_aux_soln_at_q[istate][idim].resize(n_quad_pts);
+            legendre_soln_basis.matrix_vector_mult_1D(legendre_aux_soln_coeff[idim], legendre_aux_soln_at_q[istate][idim],
+                                                      legendre_soln_basis.oneD_vol_operator);
+        }
+        //==================================================
     }
 
     // For pseudotime, we need to compute the time_scaled_solution.

@@ -2292,7 +2292,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_strong(
         legendre_soln_basis_ext.matrix_vector_mult_1D(legendre_soln_coeff_ext, legendre_soln_at_vol_q_ext[istate],
                                                       legendre_soln_basis_ext.oneD_vol_operator);
         legendre_soln_at_surf_q_ext[istate].resize(n_face_quad_pts);
-        legendre_soln_basis_ext.matrix_vector_mult_surface_1D(iface,
+        legendre_soln_basis_ext.matrix_vector_mult_surface_1D(neighbor_iface,
                                                               legendre_soln_coeff_ext, legendre_soln_at_surf_q_ext[istate],
                                                               legendre_soln_basis_ext.oneD_surf_operator,
                                                               legendre_soln_basis_ext.oneD_vol_operator);
@@ -2333,12 +2333,20 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_strong(
                 }
             }
             // -- (3) Interpolate filtered solution back to quadrature points
-            legendre_aux_soln_at_vol_q[istate][idim].resize(n_quad_pts_vol);
-            legendre_soln_basis_int.matrix_vector_mult_1D(legendre_aux_soln_coeff[idim], legendre_aux_soln_at_vol_q[istate][idim],
+            legendre_aux_soln_at_vol_q_int[istate][idim].resize(n_quad_pts_vol_int);
+            legendre_soln_basis_int.matrix_vector_mult_1D(legendre_aux_soln_coeff_int[idim], legendre_aux_soln_at_vol_q_int[istate][idim],
                                                           legendre_soln_basis_int.oneD_vol_operator);
-            legendre_aux_soln_at_surf_q[istate][idim].resize(n_face_quad_pts);
-            legendre_soln_basis_ext.matrix_vector_mult_surface_1D(iface,
-                                                                  legendre_aux_soln_coeff[idim], legendre_aux_soln_at_surf_q[istate][idim],
+            legendre_aux_soln_at_surf_q_int[istate][idim].resize(n_face_quad_pts);
+            legendre_soln_basis_int.matrix_vector_mult_surface_1D(iface,
+                                                                  legendre_aux_soln_coeff_int[idim], legendre_aux_soln_at_surf_q_int[istate][idim],
+                                                                  legendre_soln_basis_int.oneD_surf_operator,
+                                                                  legendre_soln_basis_int.oneD_vol_operator);
+            legendre_aux_soln_at_vol_q_ext[istate][idim].resize(n_quad_pts_vol_ext);
+            legendre_soln_basis_ext.matrix_vector_mult_1D(legendre_aux_soln_coeff_ext[idim], legendre_aux_soln_at_vol_q_ext[istate][idim],
+                                                          legendre_soln_basis_ext.oneD_vol_operator);
+            legendre_aux_soln_at_surf_q_ext[istate][idim].resize(n_face_quad_pts);
+            legendre_soln_basis_ext.matrix_vector_mult_surface_1D(neighbor_iface,
+                                                                  legendre_aux_soln_coeff_ext[idim], legendre_aux_soln_at_surf_q_ext[istate][idim],
                                                                   legendre_soln_basis_ext.oneD_surf_operator,
                                                                   legendre_soln_basis_ext.oneD_vol_operator);
         }

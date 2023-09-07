@@ -33,7 +33,7 @@ public:
     {
         double value = Functional<dim,nstate,real>::evaluate_functional( compute_dIdW, compute_dIdX, compute_d2I);
 
-        this->pcout << "Geometric volume: " << value << "\n";
+        //this->pcout << "Geometric volume: " << value << "\n";
 
         return value;
     }

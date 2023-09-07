@@ -89,7 +89,7 @@ public:
         //if(Functional<dim,nstate,real>::dg->get_residual_l2norm() > 1e-9) return 1.7e199;
         double value = Functional<dim,nstate,real>::evaluate_functional( compute_dIdW, compute_dIdX, compute_d2I);
 
-		this->pcout << "ZMoment value: " << value << "\n";
+		//this->pcout << "ZMoment value: " << value << "\n";
         return value;
     }
 

@@ -162,12 +162,12 @@ public:
         double value = Functional<dim,nstate,real>::evaluate_functional( compute_dIdW, compute_dIdX, compute_d2I);
 
         if (functional_type == Functional_types::lift) {
-            this->pcout << "Lift value: " << value << "\n";
+            //this->pcout << "Lift value: " << value << "\n";
             //std::cout << "Lift value: " << value << std::cout;
             //std::cout << "Lift value: " << value << std::cout;
         }
         if (functional_type == Functional_types::drag) {
-            this->pcout << "Drag value: " << value << "\n";
+            //this->pcout << "Drag value: " << value << "\n";
             value = abs(value);
         }
 

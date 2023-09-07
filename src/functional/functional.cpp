@@ -25,6 +25,9 @@
 #include "dg/dg.h"
 #include "functional.h"
 
+namespace {
+    int IS_VERBOSE = 0;
+}
 /// Returns y = Ax.
 /** Had to rewrite this instead of 
  *  dealii::contract<1,0>(A,x);
@@ -639,7 +642,7 @@ template <int dim, int nstate, typename real, typename MeshType>
 void Functional<dim,nstate,real,MeshType>::need_compute(bool &compute_value, bool &compute_dIdW, bool &compute_dIdX, bool &compute_d2I)
 {
     if (compute_value) {
-        pcout << " with value...";
+        if (IS_VERBOSE > 0) pcout << " with value...";
 
         if (dg->solution.size() == solution_value.size() 
             && dg->high_order_grid->volume_nodes.size() == volume_nodes_value.size()) {
@@ -655,7 +658,7 @@ void Functional<dim,nstate,real,MeshType>::need_compute(bool &compute_value, boo
                 const double l2_norm_node = diff_node.l2_norm();
 
                 if (l2_norm_node == 0.0) {
-                    pcout << " which is already assembled...";
+                    if (IS_VERBOSE > 0) pcout << " which is already assembled...";
                     compute_value = false;
                 }
             }
@@ -664,7 +667,7 @@ void Functional<dim,nstate,real,MeshType>::need_compute(bool &compute_value, boo
         volume_nodes_value = dg->high_order_grid->volume_nodes;
     }
     if (compute_dIdW) {
-        pcout << " with dIdW...";
+        if (IS_VERBOSE > 0) pcout << " with dIdW...";
 
         if (dg->solution.size() == solution_dIdW.size() 
             && dg->high_order_grid->volume_nodes.size() == volume_nodes_dIdW.size()) {
@@ -680,7 +683,7 @@ void Functional<dim,nstate,real,MeshType>::need_compute(bool &compute_value, boo
                 const double l2_norm_node = diff_node.l2_norm();
 
                 if (l2_norm_node == 0.0) {
-                    pcout << " which is already assembled...";
+                    if (IS_VERBOSE > 0) pcout << " which is already assembled...";
                     compute_dIdW = false;
                 }
             }
@@ -689,7 +692,7 @@ void Functional<dim,nstate,real,MeshType>::need_compute(bool &compute_value, boo
         volume_nodes_dIdW = dg->high_order_grid->volume_nodes;
     }
     if (compute_dIdX) {
-        pcout << " with dIdX...";
+        if (IS_VERBOSE > 0) pcout << " with dIdX...";
 
         if (dg->solution.size() == solution_dIdX.size() 
             && dg->high_order_grid->volume_nodes.size() == volume_nodes_dIdX.size()) {
@@ -704,7 +707,7 @@ void Functional<dim,nstate,real,MeshType>::need_compute(bool &compute_value, boo
                 const double l2_norm_node = diff_node.l2_norm();
 
                 if (l2_norm_node == 0.0) {
-                    pcout << " which is already assembled...";
+                    if (IS_VERBOSE > 0) pcout << " which is already assembled...";
                     compute_dIdX = false;
                 }
             }
@@ -713,7 +716,7 @@ void Functional<dim,nstate,real,MeshType>::need_compute(bool &compute_value, boo
         volume_nodes_dIdX = dg->high_order_grid->volume_nodes;
     }
     if (compute_d2I) {
-        pcout << " with d2IdWdW, d2IdWdX, d2IdXdX...";
+        if (IS_VERBOSE > 0) pcout << " with d2IdWdW, d2IdWdX, d2IdXdX...";
 
         if (dg->solution.size() == solution_d2I.size() 
             && dg->high_order_grid->volume_nodes.size() == volume_nodes_d2I.size()) {
@@ -730,7 +733,7 @@ void Functional<dim,nstate,real,MeshType>::need_compute(bool &compute_value, boo
 
                 if (l2_norm_node == 0.0) {
 
-                    pcout << " which is already assembled...";
+                    if (IS_VERBOSE > 0) pcout << " which is already assembled...";
                     compute_d2I = false;
                 }
             }
@@ -754,9 +757,9 @@ real Functional<dim, nstate, real, MeshType>::evaluate_functional(
     bool actually_compute_dIdX = compute_dIdX;
     bool actually_compute_d2I  = compute_d2I;
 
-    pcout << "Evaluating functional... ";
+    if (IS_VERBOSE > 0) pcout << "Evaluating functional... ";
     need_compute(actually_compute_value, actually_compute_dIdW, actually_compute_dIdX, actually_compute_d2I);
-    pcout << std::endl;
+    if (IS_VERBOSE > 0) pcout << std::endl;
 
     if (!actually_compute_value && !actually_compute_dIdW && !actually_compute_dIdX && !actually_compute_d2I) {
         return current_functional_value;

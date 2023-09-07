@@ -973,14 +973,14 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_volume_term_strong(
 
     // Details: this projects to Legendre basis, truncates, then interpolates back to quad nodes.
     // -- Constructor for tensor product polynomials based on Polynomials::Legendre interpolation. 
-    dealii::FE_DGQLegendre<1,1> legendre_poly_1D(this->max_degree);
-    // -- projection operator for legendre basis
-    OPERATOR::vol_projection_operator<dim,2*dim> legendre_soln_basis_projection_oper(1, this->max_degree, this->max_grid_degree);
-    legendre_soln_basis_projection_oper.build_1D_volume_operator(legendre_poly_1D, this->oneD_quadrature_collection[this->max_degree]);
-    // -- legendre basis functions 
-    OPERATOR::basis_functions<dim,2*dim> legendre_soln_basis(1, this->max_degree, this->max_grid_degree);
-    legendre_soln_basis.build_1D_volume_operator(legendre_poly_1D, this->oneD_quadrature_collection[this->max_degree]);
-    // -- solution at legendre poly
+    dealii::FE_DGQLegendre<1,1> legendre_poly_1D(poly_degree);
+    // -- Projection operator for legendre basis
+    OPERATOR::vol_projection_operator<dim,2*dim> legendre_soln_basis_projection_oper(1, poly_degree, this->max_grid_degree);
+    legendre_soln_basis_projection_oper.build_1D_volume_operator(legendre_poly_1D, this->oneD_quadrature_collection[poly_degree]);
+    // -- Legendre basis functions 
+    OPERATOR::basis_functions<dim,2*dim> legendre_soln_basis(1, poly_degree, this->max_grid_degree);
+    legendre_soln_basis.build_1D_volume_operator(legendre_poly_1D, this->oneD_quadrature_collection[poly_degree]);
+    // -- Solution at legendre poly
     std::array<std::vector<real>,nstate> legendre_soln_at_q;
     std::array<dealii::Tensor<1,dim,std::vector<real>>,nstate> legendre_aux_soln_at_q; // legendre auxiliary sol at flux nodes
     for(int istate=0; istate<nstate; istate++){
@@ -1131,10 +1131,10 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_volume_term_strong(
         std::array<dealii::Tensor<1,dim,real>,nstate> filtered_aux_soln_state;
         for(int istate=0; istate<nstate; istate++){
             soln_state[istate] = soln_at_q[istate][iquad];
-            filtered_soln_state[istate] = filtered_soln_at_q[istate][iquad];
+            filtered_soln_state[istate] = legendre_soln_at_q[istate][iquad];
             for(int idim=0; idim<dim; idim++){
                 aux_soln_state[istate][idim] = aux_soln_at_q[istate][idim][iquad];
-                filtered_aux_soln_state[istate][idim] = filtered_aux_soln_at_q[istate][idim][iquad];
+                filtered_aux_soln_state[istate][idim] = legendre_aux_soln_at_q[istate][idim][iquad];
             }
         }
 
@@ -1539,6 +1539,83 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_strong(
         }
     }
 
+    // Details: this projects to Legendre basis, truncates, then interpolates back to quad nodes.
+    // -- Constructor for tensor product polynomials based on Polynomials::Legendre interpolation. 
+    dealii::FE_DGQLegendre<1,1> legendre_poly_1D(poly_degree);
+    // -- Projection operator for legendre basis
+    OPERATOR::vol_projection_operator<dim,2*dim> legendre_soln_basis_projection_oper(1, poly_degree, this->max_grid_degree);
+    legendre_soln_basis_projection_oper.build_1D_volume_operator(legendre_poly_1D, this->oneD_quadrature_collection[poly_degree]);
+    // -- Legendre basis functions 
+    OPERATOR::basis_functions<dim,2*dim> legendre_soln_basis(1, poly_degree, this->max_grid_degree);
+    legendre_soln_basis.build_1D_volume_operator(legendre_poly_1D, this->oneD_quadrature_collection[poly_degree]);
+    legendre_soln_basis.build_1D_surface_operator(legendre_poly_1D, this->oneD_quadrature_collection[poly_degree]);
+    // -- Solution at legendre poly
+    // -- (a) Interpolate the modal coefficients to the volume cubature nodes.
+    std::array<std::vector<real>,nstate> legendre_soln_at_vol_q;
+    std::array<dealii::Tensor<1,dim,std::vector<real>>,nstate> legendre_aux_soln_at_vol_q; // legendre auxiliary sol at flux nodes
+    // -- (b) Interpolate modal soln coefficients to the facet.
+    std::array<std::vector<real>,nstate> legendre_soln_at_surf_q;
+    std::array<dealii::Tensor<1,dim,std::vector<real>>,nstate> legendre_aux_soln_at_surf_q; // legendre auxiliary sol at flux nodes
+    for(int istate=0; istate<nstate; istate++){
+        //==================================================
+        // Solution
+        //==================================================
+        // -- (1) Project to Legrendre basis
+        std::vector<real> legendre_soln_coeff(n_shape_fns);
+        legendre_soln_basis_projection_oper.matrix_vector_mult_1D(soln_at_vol_q[istate], legendre_soln_coeff,
+                                                                  legendre_soln_basis_projection_oper.oneD_vol_operator);
+        // -- (2) Truncate modes for high-pass filter (i.e. DG-VMS like)
+        for(unsigned int ishape=0; ishape<n_shape_fns; ishape++){
+            if(ishape < p_min_filtered){
+                legendre_soln_coeff[ishape] = 0.0;
+            }
+        }
+        // -- (3) Interpolate filtered solution back to quadrature points
+        legendre_soln_at_vol_q[istate].resize(n_quad_pts_vol);
+        legendre_soln_basis.matrix_vector_mult_1D(legendre_soln_coeff, legendre_soln_at_vol_q[istate],
+                                                  legendre_soln_basis.oneD_vol_operator);
+        legendre_soln_at_surf_q[istate].resize(n_face_quad_pts);
+        legendre_soln_basis.matrix_vector_mult_surface_1D(iface,
+                                                          legendre_soln_coeff, legendre_soln_at_surf_q[istate],
+                                                          legendre_soln_basis.oneD_surf_operator,
+                                                          legendre_soln_basis.oneD_vol_operator);
+        //==================================================
+
+        //==================================================
+        // Auxiliary Solution (gradients)
+        //==================================================
+        dealii::Tensor<1,dim,std::vector<real>> legendre_aux_soln_coeff;
+        for(int idim=0; idim<dim; idim++){
+            // -- (1) Project to Legrendre basis
+            legendre_aux_soln_coeff[idim].resize(n_shape_fns);
+            if(this->use_auxiliary_eq){
+                legendre_soln_basis_projection_oper.matrix_vector_mult_1D(aux_soln_at_vol_q[istate][idim], legendre_aux_soln_coeff[idim],
+                                                                          legendre_soln_basis_projection_oper.oneD_vol_operator);
+                // -- (2) Truncate modes for high-pass filter (i.e. DG-VMS like)
+                for(unsigned int ishape=0; ishape<n_shape_fns; ishape++){
+                    if(ishape < p_min_filtered){
+                        legendre_aux_soln_coeff[idim][ishape] = 0.0;
+                    }
+                }
+            }
+            else {
+                for(unsigned int ishape=0; ishape<n_shape_fns; ishape++){
+                    legendre_aux_soln_coeff[idim][ishape] = 0.0;
+                }
+            }
+            // -- (3) Interpolate filtered solution back to quadrature points
+            legendre_aux_soln_at_vol_q[istate][idim].resize(n_quad_pts_vol);
+            legendre_soln_basis.matrix_vector_mult_1D(legendre_aux_soln_coeff[idim], legendre_aux_soln_at_vol_q[istate][idim],
+                                                      legendre_soln_basis.oneD_vol_operator);
+            legendre_aux_soln_at_surf_q[istate][idim].resize(n_face_quad_pts);
+            legendre_soln_basis.matrix_vector_mult_surface_1D(iface,
+                                                              legendre_aux_soln_coeff[idim], legendre_aux_soln_at_surf_q[istate][idim],
+                                                              legendre_soln_basis.oneD_surf_operator,
+                                                              legendre_soln_basis.oneD_vol_operator);
+        }
+        //==================================================
+    }
+
     // Get volume reference fluxes and interpolate them to the facet.
     // Compute reference volume fluxes in both interior and exterior cells.
 
@@ -1561,10 +1638,10 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_strong(
         std::array<dealii::Tensor<1,dim,real>,nstate> filtered_aux_soln_state;
         for(int istate=0; istate<nstate; istate++){
             soln_state[istate] = soln_at_vol_q[istate][iquad];
-            filtered_soln_state[istate] = filtered_soln_at_vol_q[istate][iquad];
+            filtered_soln_state[istate] = legendre_soln_at_vol_q[istate][iquad];
             for(int idim=0; idim<dim; idim++){
                 aux_soln_state[istate][idim] = aux_soln_at_vol_q[istate][idim][iquad];
-                filtered_aux_soln_state[istate][idim] = filtered_aux_soln_at_vol_q[istate][idim][iquad];
+                filtered_aux_soln_state[istate][idim] = legendre_aux_soln_at_vol_q[istate][idim][iquad];
             }
         }
 
@@ -1846,10 +1923,10 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_strong(
         std::array<dealii::Tensor<1,dim,real>,nstate> filtered_aux_soln_state;
         for(int istate=0; istate<nstate; istate++){
             soln_state[istate] = soln_at_surf_q[istate][iquad];
-            filtered_soln_state[istate] = filtered_soln_at_surf_q[istate][iquad];
+            filtered_soln_state[istate] = legendre_soln_at_surf_q[istate][iquad];
             for(int idim=0; idim<dim; idim++){
                 aux_soln_state[istate][idim] = aux_soln_at_surf_q[istate][idim][iquad];
-                filtered_aux_soln_state[istate][idim] = filtered_aux_soln_at_surf_q[istate][idim][iquad];
+                filtered_aux_soln_state[istate][idim] = legendre_aux_soln_at_surf_q[istate][idim][iquad];
             }
         }
 
@@ -2153,6 +2230,121 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_strong(
         }
     }
 
+    // Details: this projects to Legendre basis, truncates, then interpolates back to quad nodes.
+    // -- Constructor for tensor product polynomials based on Polynomials::Legendre interpolation. 
+    dealii::FE_DGQLegendre<1,1> legendre_poly_1D_int(poly_degree_int);
+    dealii::FE_DGQLegendre<1,1> legendre_poly_1D_ext(poly_degree_ext);
+    // -- Projection operator for legendre basis
+    OPERATOR::vol_projection_operator<dim,2*dim> legendre_soln_basis_projection_oper_int(1, poly_degree_int, this->max_grid_degree);
+    legendre_soln_basis_projection_oper_int.build_1D_volume_operator(legendre_poly_1D_int, this->oneD_quadrature_collection[poly_degree_int]);
+    OPERATOR::vol_projection_operator<dim,2*dim> legendre_soln_basis_projection_oper_ext(1, poly_degree_ext, this->max_grid_degree);
+    legendre_soln_basis_projection_oper_ext.build_1D_volume_operator(legendre_poly_1D_ext, this->oneD_quadrature_collection[poly_degree_ext]);
+    // -- Legendre basis functions 
+    OPERATOR::basis_functions<dim,2*dim> legendre_soln_basis_int(1, poly_degree_int, this->max_grid_degree);
+    legendre_soln_basis_int.build_1D_volume_operator(legendre_poly_1D_int, this->oneD_quadrature_collection[poly_degree_int]);
+    legendre_soln_basis_int.build_1D_surface_operator(legendre_poly_1D_int, this->oneD_quadrature_collection[poly_degree_int]);
+    OPERATOR::basis_functions<dim,2*dim> legendre_soln_basis_ext(1, poly_degree_ext, this->max_grid_degree);
+    legendre_soln_basis_ext.build_1D_volume_operator(legendre_poly_1D_ext, this->oneD_quadrature_collection[poly_degree_ext]);
+    legendre_soln_basis_ext.build_1D_surface_operator(legendre_poly_1D_ext, this->oneD_quadrature_collection[poly_degree_ext]);
+    // -- Solution at legendre poly
+    // -- (a) Interpolate the modal coefficients to the volume cubature nodes.
+    std::array<std::vector<real>,nstate> legendre_soln_at_vol_q_int;
+    std::array<dealii::Tensor<1,dim,std::vector<real>>,nstate> legendre_aux_soln_at_vol_q_int; // legendre auxiliary sol at flux nodes
+    std::array<std::vector<real>,nstate> legendre_soln_at_vol_q_ext;
+    std::array<dealii::Tensor<1,dim,std::vector<real>>,nstate> legendre_aux_soln_at_vol_q_ext; // legendre auxiliary sol at flux nodes
+    // -- (b) Interpolate modal soln coefficients to the facet.
+    std::array<std::vector<real>,nstate> legendre_soln_at_surf_q_int;
+    std::array<dealii::Tensor<1,dim,std::vector<real>>,nstate> legendre_aux_soln_at_surf_q_int; // legendre auxiliary sol at flux nodes
+    std::array<std::vector<real>,nstate> legendre_soln_at_surf_q_ext;
+    std::array<dealii::Tensor<1,dim,std::vector<real>>,nstate> legendre_aux_soln_at_surf_q_ext; // legendre auxiliary sol at flux nodes
+    for(int istate=0; istate<nstate; istate++){
+        //==================================================
+        // Solution
+        //==================================================
+        // -- (1) Project to Legrendre basis
+        std::vector<real> legendre_soln_coeff_int(n_shape_fns_int);
+        legendre_soln_basis_projection_oper_int.matrix_vector_mult_1D(soln_at_vol_q_int[istate], legendre_soln_coeff_int,
+                                                                      legendre_soln_basis_projection_oper_int.oneD_vol_operator);
+        std::vector<real> legendre_soln_coeff_ext(n_shape_fns_ext);
+        legendre_soln_basis_projection_oper_ext.matrix_vector_mult_1D(soln_at_vol_q_ext[istate], legendre_soln_coeff_ext,
+                                                                      legendre_soln_basis_projection_oper_ext.oneD_vol_operator);
+        // -- (2) Truncate modes for high-pass filter (i.e. DG-VMS like)
+        for(unsigned int ishape=0; ishape<n_shape_fns_int; ishape++){
+            if(ishape < p_min_filtered){
+                legendre_soln_coeff_int[ishape] = 0.0;
+            }
+        }
+        for(unsigned int ishape=0; ishape<n_shape_fns_ext; ishape++){
+            if(ishape < p_min_filtered){
+                legendre_soln_coeff_ext[ishape] = 0.0;
+            }
+        }
+        // -- (3) Interpolate filtered solution back to quadrature points
+        legendre_soln_at_vol_q_int[istate].resize(n_quad_pts_vol_int);
+        legendre_soln_basis_int.matrix_vector_mult_1D(legendre_soln_coeff_int, legendre_soln_at_vol_q_int[istate],
+                                                      legendre_soln_basis_int.oneD_vol_operator);
+        legendre_soln_at_surf_q_int[istate].resize(n_face_quad_pts);
+        legendre_soln_basis_int.matrix_vector_mult_surface_1D(iface,
+                                                              legendre_soln_coeff_int, legendre_soln_at_surf_q_int[istate],
+                                                              legendre_soln_basis_int.oneD_surf_operator,
+                                                              legendre_soln_basis_int.oneD_vol_operator);
+        legendre_soln_at_vol_q_ext[istate].resize(n_quad_pts_vol_ext);
+        legendre_soln_basis_ext.matrix_vector_mult_1D(legendre_soln_coeff_ext, legendre_soln_at_vol_q_ext[istate],
+                                                      legendre_soln_basis_ext.oneD_vol_operator);
+        legendre_soln_at_surf_q_ext[istate].resize(n_face_quad_pts);
+        legendre_soln_basis_ext.matrix_vector_mult_surface_1D(iface,
+                                                              legendre_soln_coeff_ext, legendre_soln_at_surf_q_ext[istate],
+                                                              legendre_soln_basis_ext.oneD_surf_operator,
+                                                              legendre_soln_basis_ext.oneD_vol_operator);
+        //==================================================
+
+        //==================================================
+        // Auxiliary Solution (gradients)
+        //==================================================
+        dealii::Tensor<1,dim,std::vector<real>> legendre_aux_soln_coeff_int;
+        dealii::Tensor<1,dim,std::vector<real>> legendre_aux_soln_coeff_ext;
+        for(int idim=0; idim<dim; idim++){
+            // -- (1) Project to Legrendre basis
+            legendre_aux_soln_coeff_int[idim].resize(n_shape_fns_int);
+            legendre_aux_soln_coeff_ext[idim].resize(n_shape_fns_ext);
+            if(this->use_auxiliary_eq){
+                legendre_soln_basis_projection_oper_int.matrix_vector_mult_1D(aux_soln_at_vol_q_int[istate][idim], legendre_aux_soln_coeff_int[idim],
+                                                                              legendre_soln_basis_projection_oper_int.oneD_vol_operator);
+                legendre_soln_basis_projection_oper_ext.matrix_vector_mult_1D(aux_soln_at_vol_q_ext[istate][idim], legendre_aux_soln_coeff_ext[idim],
+                                                                              legendre_soln_basis_projection_oper_ext.oneD_vol_operator);
+                // -- (2) Truncate modes for high-pass filter (i.e. DG-VMS like)
+                for(unsigned int ishape=0; ishape<n_shape_fns_int; ishape++){
+                    if(ishape < p_min_filtered){
+                        legendre_aux_soln_coeff_int[idim][ishape] = 0.0;
+                    }
+                }
+                for(unsigned int ishape=0; ishape<n_shape_fns_ext; ishape++){
+                    if(ishape < p_min_filtered){
+                        legendre_aux_soln_coeff_ext[idim][ishape] = 0.0;
+                    }
+                }
+            }
+            else {
+                for(unsigned int ishape=0; ishape<n_shape_fns_int; ishape++){
+                    legendre_aux_soln_coeff_int[idim][ishape] = 0.0;
+                }
+                for(unsigned int ishape=0; ishape<n_shape_fns_ext; ishape++){
+                    legendre_aux_soln_coeff_ext[idim][ishape] = 0.0;
+                }
+            }
+            // -- (3) Interpolate filtered solution back to quadrature points
+            legendre_aux_soln_at_vol_q[istate][idim].resize(n_quad_pts_vol);
+            legendre_soln_basis_int.matrix_vector_mult_1D(legendre_aux_soln_coeff[idim], legendre_aux_soln_at_vol_q[istate][idim],
+                                                          legendre_soln_basis_int.oneD_vol_operator);
+            legendre_aux_soln_at_surf_q[istate][idim].resize(n_face_quad_pts);
+            legendre_soln_basis_ext.matrix_vector_mult_surface_1D(iface,
+                                                                  legendre_aux_soln_coeff[idim], legendre_aux_soln_at_surf_q[istate][idim],
+                                                                  legendre_soln_basis_ext.oneD_surf_operator,
+                                                                  legendre_soln_basis_ext.oneD_vol_operator);
+        }
+        //==================================================
+    }
+
 
 
 
@@ -2178,10 +2370,10 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_strong(
         std::array<dealii::Tensor<1,dim,real>,nstate> filtered_aux_soln_state;
         for(int istate=0; istate<nstate; istate++){
             soln_state[istate] = soln_at_vol_q_int[istate][iquad];
-            filtered_soln_state[istate] = filtered_soln_at_vol_q_int[istate][iquad];
+            filtered_soln_state[istate] = legendre_soln_at_vol_q_int[istate][iquad];
             for(int idim=0; idim<dim; idim++){
                 aux_soln_state[istate][idim] = aux_soln_at_vol_q_int[istate][idim][iquad];
-                filtered_aux_soln_state[istate][idim] = filtered_aux_soln_at_vol_q_int[istate][idim][iquad];
+                filtered_aux_soln_state[istate][idim] = legendre_aux_soln_at_vol_q_int[istate][idim][iquad];
             }
         }
 
@@ -2665,15 +2857,15 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_strong(
         for(int istate=0; istate<nstate; istate++){
             soln_interp_to_face_int[istate] = soln_at_surf_q_int[istate][iquad];
             soln_interp_to_face_ext[istate] = soln_at_surf_q_ext[istate][iquad];
-            filtered_soln_interp_to_face_int[istate] = filtered_soln_at_surf_q_int[istate][iquad];
-            filtered_soln_interp_to_face_ext[istate] = filtered_soln_at_surf_q_ext[istate][iquad];
+            filtered_soln_interp_to_face_int[istate] = legendre_soln_at_surf_q_int[istate][iquad];
+            filtered_soln_interp_to_face_ext[istate] = legendre_soln_at_surf_q_ext[istate][iquad];
             entropy_var_face_int[istate] = projected_entropy_var_surf_int[istate][iquad];
             entropy_var_face_ext[istate] = projected_entropy_var_surf_ext[istate][iquad];
             for(int idim=0; idim<dim; idim++){
                 aux_soln_state_int[istate][idim] = aux_soln_at_surf_q_int[istate][idim][iquad];
                 aux_soln_state_ext[istate][idim] = aux_soln_at_surf_q_ext[istate][idim][iquad];
-                filtered_aux_soln_state_int[istate][idim] = filtered_aux_soln_at_surf_q_int[istate][idim][iquad];
-                filtered_aux_soln_state_ext[istate][idim] = filtered_aux_soln_at_surf_q_ext[istate][idim][iquad];
+                filtered_aux_soln_state_int[istate][idim] = legendre_aux_soln_at_surf_q_int[istate][idim][iquad];
+                filtered_aux_soln_state_ext[istate][idim] = legendre_aux_soln_at_surf_q_ext[istate][idim][iquad];
             }
         }
 

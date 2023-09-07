@@ -1378,7 +1378,7 @@ void DGBase<dim,real,MeshType>::reinit_operators_for_cell_residual_loop(
 
     //basis functions projection operator
     soln_basis_projection_oper_int.build_1D_volume_operator(oneD_fe_collection_1state[poly_degree_int], oneD_quadrature_collection[poly_degree_int]);
-    soln_basis_projection_oper_ext.build_1D_volume_operator(oneD_fe_collection_1state[poly_degree_int], oneD_quadrature_collection[poly_degree_int]);
+    soln_basis_projection_oper_ext.build_1D_volume_operator(oneD_fe_collection_1state[poly_degree_ext], oneD_quadrature_collection[poly_degree_ext]);
 
     //We only need to compute the most recent mapping basis since we compute interior before looping faces
     mapping_basis.build_1D_shape_functions_at_grid_nodes(high_order_grid->oneD_fe_system, high_order_grid->oneD_grid_nodes);

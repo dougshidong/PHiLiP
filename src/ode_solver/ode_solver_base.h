@@ -90,11 +90,12 @@ protected:
     /// Pointer to MeshAdaptation
     std::unique_ptr<MeshAdaptation<dim,real,MeshType>> meshadaptation;
 
+public:
     /// Input parameters.
-    const Parameters::AllParameters *const all_parameters;
+    const Parameters::AllParameters *all_parameters;
 
     /// Input ODE solver parameters
-    const Parameters::ODESolverParam ode_param;
+    Parameters::ODESolverParam ode_param;
 
 public:
     /// Useful for accurate time-stepping.
@@ -115,7 +116,6 @@ protected:
     const int mpi_rank; ///< MPI rank.
     dealii::ConditionalOStream pcout; ///< Parallel std::cout that only outputs on mpi_rank==0
     bool refine_mesh_in_ode_solver; ///< Flag to perform mesh adaptation in steady state ode solver.
-
 };
 } // ODE namespace
 } // PHiLiP namespace

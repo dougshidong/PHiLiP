@@ -1,4 +1,12 @@
+#include <typeinfo>
+
 #include "ode_solver_base.h"
+#include "explicit_ode_solver.h"
+#include "implicit_ode_solver.h"
+
+#include <deal.II/numerics/vector_tools.h>
+#include "physics/euler.h"
+#include "physics/initial_conditions/initial_condition.h"
 
 namespace PHiLiP {
 namespace ODE{
@@ -84,6 +92,7 @@ void ODESolverBase<dim,real,MeshType>::write_ode_solver_steady_state_convergence
 template <int dim, typename real, typename MeshType>
 int ODESolverBase<dim,real,MeshType>::steady_state ()
 {
+
     try {
         valid_initial_conditions();
     }
@@ -110,6 +119,7 @@ int ODESolverBase<dim,real,MeshType>::steady_state ()
           << std::endl
           << " Initial absolute residual l2norm: " << this->residual_l2norm
           << " residual linfnorm: " << this->residual_linfnorm
+          << " target l2norm: " << ode_param.nonlinear_steady_residual_tolerance
           << std::endl;
 
     if (ode_param.output_ode_solver_steady_state_convergence_table == true) {
@@ -118,7 +128,7 @@ int ODESolverBase<dim,real,MeshType>::steady_state ()
     }
 
     // Initial Courant-Friedrichs-Lax number
-    const double initial_CFL = all_parameters->ode_solver_param.initial_time_step;
+    const double initial_CFL = ode_param.initial_time_step;
     CFL_factor = 1.0;
 
     auto initial_solution = dg->solution;
@@ -126,9 +136,10 @@ int ODESolverBase<dim,real,MeshType>::steady_state ()
     double old_residual_norm = this->residual_l2norm; (void) old_residual_norm;
 
     // Output initial solution
-    //int convergence_error = this->residual_l2norm > ode_param.nonlinear_steady_residual_tolerance;
-    int convergence_error = this->residual_linfnorm > ode_param.nonlinear_steady_residual_tolerance;
+    int convergence_error = this->residual_l2norm > ode_param.nonlinear_steady_residual_tolerance;
+    //int convergence_error = this->residual_linfnorm > ode_param.nonlinear_steady_residual_tolerance;
 
+    this->dg->freeze_artificial_dissipation = false;
     while (    convergence_error
                && this->residual_norm_decrease > ode_param.nonlinear_steady_residual_tolerance
                //&& update_norm             > ode_param.nonlinear_steady_residual_tolerance
@@ -168,7 +179,8 @@ int ODESolverBase<dim,real,MeshType>::steady_state ()
         ramped_CFL = std::max(ramped_CFL,initial_CFL*CFL_factor);
         pcout << "Initial CFL = " << initial_CFL << ". Current CFL = " << ramped_CFL << std::endl;
 
-        if (this->residual_l2norm < 1e-10) {
+        //if (this->current_iteration > 15) {//10) {
+        if (this->residual_l2norm < 1e-8) {//10) {
             this->dg->freeze_artificial_dissipation = true;
         } else {
             this->dg->freeze_artificial_dissipation = false;
@@ -179,7 +191,7 @@ int ODESolverBase<dim,real,MeshType>::steady_state ()
 
         this->dg->assemble_residual ();
 
-        this->dg->freeze_artificial_dissipation = false;
+        //this->dg->freeze_artificial_dissipation = false;
 
         if (ode_param.output_solution_every_x_steps > 0) {
             const bool is_output_iteration = (this->current_iteration % ode_param.output_solution_every_x_steps == 0);
@@ -208,12 +220,19 @@ int ODESolverBase<dim,real,MeshType>::steady_state ()
                             && this->residual_norm_decrease > ode_param.nonlinear_steady_residual_tolerance;
     }
     if (this->residual_l2norm > 1e5
+        || this->current_iteration >= ode_param.nonlinear_max_iterations
         || std::isnan(this->residual_l2norm)
         || CFL_factor <= 1e-2)
     {
         this->dg->solution = initial_solution;
 
         if(CFL_factor <= 1e-2) this->dg->right_hand_side.add(1.0);
+
+        pcout << " ********************************************************** "
+              << std::endl
+              << " ODE solver FAILED to converge. Resetting to original solution. "
+              << " ********************************************************** "
+              << std::endl;
     }
 
     if (ode_param.output_solution_vector_modulo > 0) {

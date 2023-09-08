@@ -82,12 +82,14 @@ template <int dim, typename real, typename MeshType>
 double ImplicitODESolver<dim,real,MeshType>::linesearch ()
 {
     const auto old_solution = this->dg->solution;
+    const auto old_dissipation = this->dg->artificial_dissipation_c0;
     double step_length = 1.0;
 
     const double step_reduction = 0.5;
     const int maxline = 10;
-    const double reduction_tolerance_1 = 1.0;
+    const double reduction_tolerance_1 = 10.0;
     const double reduction_tolerance_2 = 2.0;
+    const double reduction_tolerance_3 = 10.0;
 
     const double initial_l2residual = this->dg->get_residual_l2norm();
 
@@ -105,6 +107,7 @@ double ImplicitODESolver<dim,real,MeshType>::linesearch ()
     for (iline = 0; iline < maxline && new_l2residual > initial_l2residual * reduction_tolerance_1; ++iline) {
         step_length = step_length * step_reduction;
         this->dg->solution = old_solution;
+        this->dg->artificial_dissipation_c0 = old_dissipation;
         this->dg->solution.add(step_length, this->solution_update);
         this->dg->assemble_residual ();
 
@@ -114,6 +117,14 @@ double ImplicitODESolver<dim,real,MeshType>::linesearch ()
         this->pcout << " Step length " << step_length << " . Old l2residual: " << initial_l2residual << " New l2residual: " << new_l2residual << std::endl;
     }
     if (iline == 0) this->CFL_factor *= 2.0;
+    if (iline >= maxline/2) this->CFL_factor *= 0.5;
+    if (iline == maxline) {
+        this->pcout << " Reached maximum number of linesearches. Terminating... " << std::endl;
+        this->pcout << " Resetting solution and reducing CFL_factor by : " << this->CFL_factor << std::endl;
+        this->dg->solution = old_solution;
+        this->dg->artificial_dissipation_c0 = old_dissipation;
+        return 0.0;
+    }
 
     if (iline == maxline) {
         step_length = 1.0;
@@ -125,6 +136,7 @@ double ImplicitODESolver<dim,real,MeshType>::linesearch ()
         for (iline = 0; iline < maxline && new_l2residual > initial_l2residual * reduction_tolerance_2 ; ++iline) {
             step_length = step_length * step_reduction;
             this->dg->solution = old_solution;
+            this->dg->artificial_dissipation_c0 = old_dissipation;
             this->dg->solution.add(step_length, this->solution_update);
             this->dg->assemble_residual ();
             this->dg->right_hand_side.add(step_length, mass_dw);
@@ -132,11 +144,32 @@ double ImplicitODESolver<dim,real,MeshType>::linesearch ()
             this->pcout << " Step length " << step_length << " . Old l2residual: " << initial_l2residual << " New l2residual: " << new_l2residual << std::endl;
         }
     }
+    if (iline == maxline) this->CFL_factor *= 0.5;
+
     if (iline == maxline) {
-        this->CFL_factor *= 0.5;
+        step_length = 1.0;
+        this->pcout << " Line search failed. Will accept any valid l2residual less than " << reduction_tolerance_3 << " times the current " << initial_l2residual << "l2residual. " << std::endl;
+        this->dg->solution.add(step_length, this->solution_update);
+        this->dg->assemble_residual ();
+        new_l2residual = this->dg->get_residual_l2norm();
+        this->pcout << " Step length " << step_length << " . Old l2residual: " << initial_l2residual << " New l2residual: " << new_l2residual << std::endl;
+        for (iline = 0; iline < maxline && new_l2residual > initial_l2residual * reduction_tolerance_3 ; ++iline) {
+            step_length = step_length * step_reduction;
+            this->dg->solution = old_solution;
+            this->dg->artificial_dissipation_c0 = old_dissipation;
+            this->dg->solution.add(step_length, this->solution_update);
+            this->dg->assemble_residual ();
+            this->dg->right_hand_side.add(step_length, mass_dw);
+            new_l2residual = this->dg->get_residual_l2norm();
+            this->pcout << " Step length " << step_length << " . Old l2residual: " << initial_l2residual << " New l2residual: " << new_l2residual << std::endl;
+        }
+    }
+
+    if (iline == maxline) {
         this->pcout << " Reached maximum number of linesearches. Terminating... " << std::endl;
         this->pcout << " Resetting solution and reducing CFL_factor by : " << this->CFL_factor << std::endl;
         this->dg->solution = old_solution;
+        this->dg->artificial_dissipation_c0 = old_dissipation;
         return 0.0;
     }
 
@@ -150,6 +183,7 @@ double ImplicitODESolver<dim,real,MeshType>::linesearch ()
         for (iline = 0; iline < maxline && new_l2residual > initial_l2residual * reduction_tolerance_1 ; ++iline) {
             step_length = step_length * step_reduction;
             this->dg->solution = old_solution;
+            this->dg->artificial_dissipation_c0 = old_dissipation;
             this->dg->solution.add(step_length, this->solution_update);
             this->dg->assemble_residual ();
             this->dg->right_hand_side.add(step_length, mass_dw);
@@ -169,6 +203,7 @@ double ImplicitODESolver<dim,real,MeshType>::linesearch ()
         for (iline = 0; iline < maxline && new_l2residual > initial_l2residual * reduction_tolerance_2 ; ++iline) {
             step_length = step_length * step_reduction;
             this->dg->solution = old_solution;
+            this->dg->artificial_dissipation_c0 = old_dissipation;
             this->dg->solution.add(step_length, this->solution_update);
             this->dg->assemble_residual ();
             this->dg->right_hand_side.add(step_length, mass_dw);
@@ -181,6 +216,7 @@ double ImplicitODESolver<dim,real,MeshType>::linesearch ()
         this->pcout << " Reached maximum number of linesearches. Terminating... " << std::endl;
         this->pcout << " Resetting solution and reducing CFL_factor by : " << this->CFL_factor << std::endl;
         this->dg->solution = old_solution;
+        this->dg->artificial_dissipation_c0 = old_dissipation;
         this->CFL_factor *= 0.5;
     }
 

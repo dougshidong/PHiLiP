@@ -27,6 +27,7 @@ DGStrong<dim,nstate,real,MeshType>::DGStrong(
     const unsigned int grid_degree_input,
     const std::shared_ptr<Triangulation> triangulation_input)
     : DGBaseState<dim,nstate,real,MeshType>::DGBaseState(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input)
+    , poly_degree_max_large_scales(this->all_parameters->physics_model_param.poly_degree_max_large_scales)
 { }
 
 // Destructor
@@ -915,7 +916,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_volume_term_strong(
     std::array<dealii::Tensor<1,dim,std::vector<real>>,nstate> aux_soln_coeff;
     // std::array<std::vector<real>,nstate> filtered_soln_coeff;
     // std::array<dealii::Tensor<1,dim,std::vector<real>>,nstate> filtered_aux_soln_coeff;
-    const unsigned int p_min_filtered = this->max_degree - 1; // TO DO: Modify this
+    const unsigned int p_min_filtered = this->poly_degree_max_large_scales + 1;
     for (unsigned int idof = 0; idof < n_dofs_cell; ++idof) {
         const unsigned int istate = this->fe_collection[poly_degree].system_to_component_index(idof).first;
         const unsigned int ishape = this->fe_collection[poly_degree].system_to_component_index(idof).second;
@@ -1436,7 +1437,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_strong(
     std::array<dealii::Tensor<1,dim,std::vector<real>>,nstate> aux_soln_coeff;
     // std::array<std::vector<real>,nstate> filtered_soln_coeff;
     // std::array<dealii::Tensor<1,dim,std::vector<real>>,nstate> filtered_aux_soln_coeff;
-    const unsigned int p_min_filtered = this->max_degree - 1; // TO DO: Modify this
+    const unsigned int p_min_filtered = this->poly_degree_max_large_scales + 1;
     for (unsigned int idof = 0; idof < n_dofs; ++idof) {
         const unsigned int istate = this->fe_collection[poly_degree].system_to_component_index(idof).first;
         const unsigned int ishape = this->fe_collection[poly_degree].system_to_component_index(idof).second;
@@ -2056,7 +2057,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_strong(
     std::array<dealii::Tensor<1,dim,std::vector<real>>,nstate> aux_soln_coeff_int;
     // std::array<std::vector<real>,nstate> filtered_soln_coeff_int;
     // std::array<dealii::Tensor<1,dim,std::vector<real>>,nstate> filtered_aux_soln_coeff_int;
-    const unsigned int p_min_filtered = this->max_degree - 1; // TO DO: Modify this
+    const unsigned int p_min_filtered = this->poly_degree_max_large_scales + 1;
     for (unsigned int idof = 0; idof < n_dofs_int; ++idof) {
         const unsigned int istate = this->fe_collection[poly_degree_int].system_to_component_index(idof).first;
         const unsigned int ishape = this->fe_collection[poly_degree_int].system_to_component_index(idof).second;

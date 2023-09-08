@@ -43,6 +43,7 @@ public:
     double WALE_model_constant; ///< WALE (Wall-Adapting Local Eddy-viscosity) eddy viscosity model constant
     double vreman_model_constant; ///< Vreman eddy viscosity model constant
     double ratio_of_filter_width_to_cell_size; ///< Ratio of the large eddy simulation filter width to the cell size
+    unsigned int poly_degree_max_large_scales; ///< Max poly degree representing the large scales for LES VMS filtering
 
     /// Declares the possible variables and sets the defaults.
     static void declare_parameters (dealii::ParameterHandler &prm);

@@ -210,6 +210,7 @@ public:
         mhd,
         navier_stokes,
         physics_model,
+        physics_model_filtered,
     };
     /// Store the PDE type to be solved
     PartialDifferentialEquation pde_type;

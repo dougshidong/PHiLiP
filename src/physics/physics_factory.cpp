@@ -154,6 +154,7 @@ PhysicsFactory<dim,nstate,real>
                        std::shared_ptr< ModelBase<dim,nstate,real> >             model_input)
 {
     using PDE_enum = Parameters::AllParameters::PartialDifferentialEquation;
+    const PDE_enum pde_type = parameters_input->pde_type;
 
     using Model_enum = Parameters::AllParameters::ModelType;
     const Model_enum model_type = parameters_input->model_type;

@@ -164,6 +164,7 @@ protected:
     */
     // using PhysicsBase<dim,nstate,real>::dissipative_flux; // can delete if the arguments of this function are updated to match PhysicsBase with filtered solution being passed
     using PhysicsBase<dim,nstate,real>::boundary_face_values; // can delete if the arguments of this function are updated to match PhysicsBase with filtered solution being passed
+    using PhysicsModel<dim,nstate,real,nstate_baseline_physics>::dissipative_flux;
 public:
     /// Constructor
     PhysicsModelFiltered(

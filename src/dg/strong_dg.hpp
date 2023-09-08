@@ -31,6 +31,8 @@ public:
     /// Destructor
     ~DGStrong();
 
+    const unsigned int poly_degree_max_large_scales; ///< For filtered solution
+
     /// Assembles the auxiliary equations' residuals and solves for the auxiliary variables.
     /** For information regarding auxiliary vs. primary quations, see 
      *  Quaegebeur, Nadarajah, Navah and Zwanenburg 2019: Stability of Energy Stable Flux 

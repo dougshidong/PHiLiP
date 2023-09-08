@@ -50,6 +50,12 @@ void PhysicsModelParam::declare_parameters (dealii::ParameterHandler &prm)
                               dealii::Patterns::Double(1e-15, dealii::Patterns::Double::max_double_value),
                               "Ratio of the large eddy simulation filter width to the cell size (default is 1)");
 
+            prm.declare_entry("poly_degree_max_large_scales", "0",
+                              dealii::Patterns::Integer(0, dealii::Patterns::Integer::max_int_value),
+                              "Used for variational-multiscale (VMS) filtering of the solution. "
+                              "This represents the maximum polynomial order for the large scales. "
+                              "Warning: This must be less than the poly_degree of the solution.");
+
         }
         prm.leave_subsection();
 
@@ -96,6 +102,7 @@ void PhysicsModelParam::parse_parameters (dealii::ParameterHandler &prm)
             WALE_model_constant                = prm.get_double("WALE_model_constant");
             vreman_model_constant              = prm.get_double("vreman_model_constant");
             ratio_of_filter_width_to_cell_size = prm.get_double("ratio_of_filter_width_to_cell_size");
+            poly_degree_max_large_scales       = prm.get_integer("poly_degree_max_large_scales");
         }
         prm.leave_subsection();
 

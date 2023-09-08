@@ -424,12 +424,12 @@ PhysicsModelFiltered<dim,nstate,real,nstate_baseline_physics>::PhysicsModelFilte
     std::shared_ptr< ManufacturedSolutionFunction<dim,real> >    manufactured_solution_function,
     const bool                                                   has_nonzero_diffusion,
     const bool                                                   has_nonzero_physical_source)
-    : PhysicsModel<dim,nstate,real>(parameters_input,
-                                    baseline_physics_type,
-                                    model_input,
-                                    manufactured_solution_function,
-                                    has_nonzero_diffusion,
-                                    has_nonzero_physical_source)
+    : PhysicsModel<dim,nstate,real,nstate_baseline_physics>(parameters_input,
+                                                            baseline_physics_type,
+                                                            model_input,
+                                                            manufactured_solution_function,
+                                                            has_nonzero_diffusion,
+                                                            has_nonzero_physical_source)
 { }
 
 template <int dim, int nstate, typename real, int nstate_baseline_physics>
@@ -460,10 +460,10 @@ std::array<dealii::Tensor<1,dim,real>,nstate> PhysicsModelFiltered<dim,nstate,re
     /* Note: Even though the physics baseline dissipative flux does not depend on cell_index, we pass it 
              anyways to accomodate the pure virtual member function defined in the PhysicsBase class */
     std::array<dealii::Tensor<1,dim,real>,nstate_baseline_physics> baseline_diss_flux
-        = physics_baseline->dissipative_flux(baseline_conservative_soln, baseline_solution_gradient, cell_index);
+        = this->physics_baseline->dissipative_flux(baseline_conservative_soln, baseline_solution_gradient, cell_index);
 
     // Initialize diss_flux as the model dissipative flux; NOTE: passing the filtered solution
-    std::array<dealii::Tensor<1,dim,real>,nstate> diss_flux = model->dissipative_flux(filtered_solution, filtered_solution_gradient, cell_index);
+    std::array<dealii::Tensor<1,dim,real>,nstate> diss_flux = this->model->dissipative_flux(filtered_solution, filtered_solution_gradient, cell_index);
 
     // Add the baseline_diss_flux terms to diss_flux
     for(int s=0; s<nstate_baseline_physics; ++s){

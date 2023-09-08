@@ -27,6 +27,7 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                           " gaussian_bump | "
                           " isentropic_vortex | "
                           " kelvin_helmholtz_instability | "
+                          " acoustic_wave | "
                           " non_periodic_cube_flow "),
                           "The type of flow we want to simulate. "
                           "Choices are "
@@ -42,6 +43,7 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                           " gaussian_bump | "
                           " isentropic_vortex | "
                           " kelvin_helmholtz_instability | "
+                          " acoustic_wave | "
                           " non_periodic_cube_flow>. ");
 
         prm.declare_entry("poly_degree", "1",
@@ -312,6 +314,7 @@ void FlowSolverParam::parse_parameters(dealii::ParameterHandler &prm)
         else if (flow_case_type_string == "periodic_1D_unsteady")       {flow_case_type = periodic_1D_unsteady;}
         else if (flow_case_type_string == "gaussian_bump")              {flow_case_type = gaussian_bump;}
         else if (flow_case_type_string == "isentropic_vortex")          {flow_case_type = isentropic_vortex;}
+        else if (flow_case_type_string == "acoustic_wave")              {flow_case_type = acoustic_wave;}
         else if (flow_case_type_string == "kelvin_helmholtz_instability")   
                                                                         {flow_case_type = kelvin_helmholtz_instability;}
         else if (flow_case_type_string == "non_periodic_cube_flow")     {flow_case_type = non_periodic_cube_flow;}

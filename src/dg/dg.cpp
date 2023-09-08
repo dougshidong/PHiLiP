@@ -1533,13 +1533,14 @@ void DGBase<dim,real,MeshType>::assemble_residual (const bool compute_dRdW, cons
 
 
     int assembly_error = 0;
-    try {
+    // try {
 
         // update artificial dissipation discontinuity sensor only if using artificial dissipation
         if(all_parameters->artificial_dissipation_param.add_artificial_dissipation) update_artificial_dissipation_discontinuity_sensor();
         
         // updates model variables only if there is a model
-        if(all_parameters->pde_type == Parameters::AllParameters::PartialDifferentialEquation::physics_model) update_model_variables();
+        if(all_parameters->pde_type == Parameters::AllParameters::PartialDifferentialEquation::physics_model ||
+           all_parameters->pde_type == Parameters::AllParameters::PartialDifferentialEquation::physics_model_filtered) update_model_variables();
 
         // assembles and solves for auxiliary variable if necessary.
         assemble_auxiliary_residual();
@@ -1592,9 +1593,9 @@ void DGBase<dim,real,MeshType>::assemble_residual (const bool compute_dRdW, cons
             timer.stop();
             assemble_residual_time += timer.cpu_time();
         }
-    } catch(...) {
-        assembly_error = 1;
-    }
+    // } catch(...) {
+    //     assembly_error = 1;
+    // }
     const int mpi_assembly_error = dealii::Utilities::MPI::sum(assembly_error, mpi_communicator);
 
 
@@ -2252,7 +2253,8 @@ void DGBase<dim,real,MeshType>::allocate_system (
     cell_volume.reinit(triangulation->n_active_cells());
 
     // allocates model variables only if there is a model
-    if(all_parameters->pde_type == Parameters::AllParameters::PartialDifferentialEquation::physics_model) allocate_model_variables();
+    if(all_parameters->pde_type == Parameters::AllParameters::PartialDifferentialEquation::physics_model ||
+       all_parameters->pde_type == Parameters::AllParameters::PartialDifferentialEquation::physics_model_filtered) allocate_model_variables();
 
     solution.reinit(locally_owned_dofs, ghost_dofs, mpi_communicator);
     solution *= 0.0;

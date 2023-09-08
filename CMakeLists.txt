@@ -239,3 +239,7 @@ MESSAGE(STATUS "
 #
 ###
 ")
+
+# ignore BOOST deprecated headers
+add_definitions("-DBOOST_ALLOW_DEPRECATED_HEADERS")
+

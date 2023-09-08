@@ -441,7 +441,6 @@ std::array<dealii::Tensor<1,dim,real>,nstate> PhysicsModelFiltered<dim,nstate,re
     const std::array<dealii::Tensor<1,dim,real>,nstate> &filtered_solution_gradient,
     const dealii::types::global_dof_index cell_index) const
 {
-    this->pcout << "\n\n ************** I am inside physics model filtered dissipative flux function ************** \n \n" << std::endl; // remove this once tested
     // Get baseline conservative solution with nstate_baseline_physics
     std::array<real,nstate_baseline_physics> baseline_conservative_soln;
     for(int s=0; s<nstate_baseline_physics; ++s){

@@ -343,7 +343,7 @@ protected:
     using dealii::Function<dim,real>::value; ///< dealii::Function we are templating on
 
 public:
-    /// Constructor for InitialConditionFunction_BurgersRewienski
+    /// Constructor for InitialConditionFunction_SodShockTube
     /** Calls the Function(const unsigned int n_components) constructor in deal.II*/
     InitialConditionFunction_SodShockTube ();
 
@@ -359,7 +359,7 @@ protected:
     using dealii::Function<dim,real>::value; ///< dealii::Function we are templating on
 
 public:
-    /// Constructor for InitialConditionFunction_BurgersRewienski
+    /// Constructor for InitialConditionFunction_LowDensity2D
     /** Calls the Function(const unsigned int n_components) constructor in deal.II*/
     InitialConditionFunction_LowDensity2D ();
 
@@ -375,7 +375,7 @@ protected:
     using dealii::Function<dim,real>::value; ///< dealii::Function we are templating on
 
 public:
-    /// Constructor for InitialConditionFunction_BurgersRewienski
+    /// Constructor for InitialConditionFunction_LeblancShockTube
     /** Calls the Function(const unsigned int n_components) constructor in deal.II*/
     InitialConditionFunction_LeblancShockTube ();
 
@@ -391,7 +391,7 @@ protected:
     using dealii::Function<dim, real>::value; ///< dealii::Function we are templating on
 
 public:
-    /// Constructor for InitialConditionFunction_BurgersRewienski
+    /// Constructor for InitialConditionFunction_ShuOsherProblem
     /** Calls the Function(const unsigned int n_components) constructor in deal.II*/
     InitialConditionFunction_ShuOsherProblem();
 

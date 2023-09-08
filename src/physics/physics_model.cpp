@@ -413,6 +413,67 @@ dealii::UpdateFlags PhysicsModel<dim,nstate,real,nstate_baseline_physics>
     }
 }
 
+//===========================================================================================
+// Physics Model Filtered
+//===========================================================================================
+template <int dim, int nstate, typename real, int nstate_baseline_physics>
+PhysicsModelFiltered<dim,nstate,real,nstate_baseline_physics>::PhysicsModelFiltered( 
+    const Parameters::AllParameters                              *const parameters_input,
+    Parameters::AllParameters::PartialDifferentialEquation       baseline_physics_type,
+    std::shared_ptr< ModelBase<dim,nstate,real> >                model_input,
+    std::shared_ptr< ManufacturedSolutionFunction<dim,real> >    manufactured_solution_function,
+    const bool                                                   has_nonzero_diffusion,
+    const bool                                                   has_nonzero_physical_source)
+    : PhysicsModel<dim,nstate,real>(parameters_input,
+                                    baseline_physics_type,
+                                    model_input,
+                                    manufactured_solution_function,
+                                    has_nonzero_diffusion,
+                                    has_nonzero_physical_source)
+{ }
+
+template <int dim, int nstate, typename real, int nstate_baseline_physics>
+std::array<dealii::Tensor<1,dim,real>,nstate> PhysicsModelFiltered<dim,nstate,real,nstate_baseline_physics>
+::dissipative_flux (
+    const std::array<real,nstate> &conservative_soln,
+    const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient,
+    const std::array<real,nstate> &filtered_solution,
+    const std::array<dealii::Tensor<1,dim,real>,nstate> &filtered_solution_gradient,
+    const dealii::types::global_dof_index cell_index) const
+{
+    this->pcout << "\n\n ************** I am inside physics model filtered dissipative flux function ************** \n \n" << std::endl; // remove this once tested
+    // Get baseline conservative solution with nstate_baseline_physics
+    std::array<real,nstate_baseline_physics> baseline_conservative_soln;
+    for(int s=0; s<nstate_baseline_physics; ++s){
+        baseline_conservative_soln[s] = conservative_soln[s];
+    }
+
+    // Get baseline conservative solution gradient with nstate_baseline_physics
+    std::array<dealii::Tensor<1,dim,real>,nstate_baseline_physics> baseline_solution_gradient;
+    for(int s=0; s<nstate_baseline_physics; ++s){
+        for (int d=0; d<dim; ++d) {
+            baseline_solution_gradient[s][d] = solution_gradient[s][d];
+        }
+    }
+
+    // Get baseline dissipative flux
+    /* Note: Even though the physics baseline dissipative flux does not depend on cell_index, we pass it 
+             anyways to accomodate the pure virtual member function defined in the PhysicsBase class */
+    std::array<dealii::Tensor<1,dim,real>,nstate_baseline_physics> baseline_diss_flux
+        = physics_baseline->dissipative_flux(baseline_conservative_soln, baseline_solution_gradient, cell_index);
+
+    // Initialize diss_flux as the model dissipative flux; NOTE: passing the filtered solution
+    std::array<dealii::Tensor<1,dim,real>,nstate> diss_flux = model->dissipative_flux(filtered_solution, filtered_solution_gradient, cell_index);
+
+    // Add the baseline_diss_flux terms to diss_flux
+    for(int s=0; s<nstate_baseline_physics; ++s){
+        for (int d=0; d<dim; ++d) {
+            diss_flux[s][d] += baseline_diss_flux[s][d];
+        }
+    }
+    return diss_flux;
+}
+
 // Instantiate explicitly
 template class PhysicsModel < PHILIP_DIM, PHILIP_DIM+2, double    , PHILIP_DIM+2 >;
 template class PhysicsModel < PHILIP_DIM, PHILIP_DIM+2, FadType   , PHILIP_DIM+2 >;
@@ -425,6 +486,18 @@ template class PhysicsModel < PHILIP_DIM, PHILIP_DIM+3, FadType   , PHILIP_DIM+2
 template class PhysicsModel < PHILIP_DIM, PHILIP_DIM+3, RadType   , PHILIP_DIM+2 >;
 template class PhysicsModel < PHILIP_DIM, PHILIP_DIM+3, FadFadType, PHILIP_DIM+2 >;
 template class PhysicsModel < PHILIP_DIM, PHILIP_DIM+3, RadFadType, PHILIP_DIM+2 >;
+
+template class PhysicsModelFiltered < PHILIP_DIM, PHILIP_DIM+2, double    , PHILIP_DIM+2 >;
+template class PhysicsModelFiltered < PHILIP_DIM, PHILIP_DIM+2, FadType   , PHILIP_DIM+2 >;
+template class PhysicsModelFiltered < PHILIP_DIM, PHILIP_DIM+2, RadType   , PHILIP_DIM+2 >;
+template class PhysicsModelFiltered < PHILIP_DIM, PHILIP_DIM+2, FadFadType, PHILIP_DIM+2 >;
+template class PhysicsModelFiltered < PHILIP_DIM, PHILIP_DIM+2, RadFadType, PHILIP_DIM+2 >;
+
+template class PhysicsModelFiltered < PHILIP_DIM, PHILIP_DIM+3, double    , PHILIP_DIM+2 >;
+template class PhysicsModelFiltered < PHILIP_DIM, PHILIP_DIM+3, FadType   , PHILIP_DIM+2 >;
+template class PhysicsModelFiltered < PHILIP_DIM, PHILIP_DIM+3, RadType   , PHILIP_DIM+2 >;
+template class PhysicsModelFiltered < PHILIP_DIM, PHILIP_DIM+3, FadFadType, PHILIP_DIM+2 >;
+template class PhysicsModelFiltered < PHILIP_DIM, PHILIP_DIM+3, RadFadType, PHILIP_DIM+2 >;
 
 } // Physics namespace
 } // PHiLiP namespace

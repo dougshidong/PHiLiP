@@ -27,7 +27,7 @@ public:
             std::shared_ptr< ModelBase<dim,nstate,real> >                model_input = nullptr);
 
 private:
-    /// Factory to return the correct physics model, i.e. when PDE_type==physics_model, given input file
+    /// Factory to return the correct physics model, i.e. when PDE_type==physics_model  || PDE_type==physics_model_filtered, given input file
     static std::shared_ptr< PhysicsBase<dim,nstate,real> >
         create_Physics_Model(
             const Parameters::AllParameters                           *const parameters_input,

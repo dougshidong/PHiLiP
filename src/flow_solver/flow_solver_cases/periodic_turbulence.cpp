@@ -44,7 +44,7 @@ PeriodicTurbulence<dim, nstate>::PeriodicTurbulence(const PHiLiP::Parameters::Al
     // Determine if the mean strain rate tensor must be computed
     using PDE_enum = Parameters::AllParameters::PartialDifferentialEquation;
     const PDE_enum pde_type = this->all_param.pde_type;
-    if(pde_type == PDE_enum::physics_model) {
+    if(pde_type == PDE_enum::physics_model  || pde_type == PDE_enum::physics_model_filtered) {
         using Model_enum = Parameters::AllParameters::ModelType;
         const Model_enum model_type = this->all_param.model_type;
         if(model_type == Model_enum::large_eddy_simulation) {

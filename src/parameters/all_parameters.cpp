@@ -234,6 +234,7 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       " euler |"
                       " mhd |"
                       " navier_stokes |"
+                      " physics_model_filtered |"
                       " physics_model"),
                       "The PDE we want to solve. "
                       "Choices are " 
@@ -247,6 +248,7 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       "  euler | "
                       "  mhd |"
                       "  navier_stokes |"
+                      "  physics_model_filtered |"
                       "  physics_model>.");
 
     prm.declare_entry("model_type", "large_eddy_simulation",
@@ -429,6 +431,11 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
             if(physics_model_param.RANS_model_type == Parameters::PhysicsModelParam::ReynoldsAveragedNavierStokesModel::SA_negative) {
               nstate = dimension+3;
             }
+        }
+    } else if (pde_string == "physics_model_filtered") {
+        pde_type = physics_model_filtered;
+        if (model_type == large_eddy_simulation || model_type == navier_stokes_model) {
+            nstate = dimension+2;
         }
     }
     

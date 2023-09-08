@@ -23,7 +23,7 @@ ModelFactory<dim,nstate,real>
     using PDE_enum = Parameters::AllParameters::PartialDifferentialEquation;
     PDE_enum pde_type = parameters_input->pde_type;
 
-    if(pde_type == PDE_enum::physics_model) {
+    if(pde_type == PDE_enum::physics_model || pde_type == PDE_enum::physics_model_filtered) {
         // generating the manufactured solution from the manufactured solution factory
         std::shared_ptr< ManufacturedSolutionFunction<dim,real> >  manufactured_solution_function 
             = ManufacturedSolutionFactory<dim,real>::create_ManufacturedSolution(parameters_input, nstate);

@@ -148,6 +148,44 @@ protected:
     dealii::ConditionalOStream pcout;
 };
 
+/** Physics Model Filtered equations.
+ *  Derived from PhysicsModel, holds a baseline physics and model terms and
+ *  equations but passes the filtered solution to the model dissipative flux. */ 
+template <int dim, int nstate, typename real, int nstate_baseline_physics>
+class PhysicsModelFiltered : public PhysicsModel <dim, nstate, real, nstate_baseline_physics>
+{
+protected:
+    // For overloading the virtual functions defined in PhysicsBase
+    /** Once you overload a function from Base class in Derived class,
+     *  all functions with the same name in the Base class get hidden in Derived class.  
+     *  
+     *  Solution: In order to make the hidden function visible in derived class, 
+     *  we need to add the following:
+    */
+    // using PhysicsBase<dim,nstate,real>::dissipative_flux; // can delete if the arguments of this function are updated to match PhysicsBase with filtered solution being passed
+    using PhysicsBase<dim,nstate,real>::boundary_face_values; // can delete if the arguments of this function are updated to match PhysicsBase with filtered solution being passed
+public:
+    /// Constructor
+    PhysicsModelFiltered(
+        const Parameters::AllParameters                              *const parameters_input,
+        Parameters::AllParameters::PartialDifferentialEquation       baseline_physics_type,
+        std::shared_ptr< ModelBase<dim,nstate,real> >                model_input,
+        std::shared_ptr< ManufacturedSolutionFunction<dim,real> >    manufactured_solution_function,
+        const bool                                                   has_nonzero_diffusion,
+        const bool                                                   has_nonzero_physical_source);
+
+    /// Destructor
+    ~PhysicsModelFiltered() {};
+
+    /// Dissipative (i.e. viscous) flux: \f$ \mathbf{F}_{diss} \f$ 
+    std::array<dealii::Tensor<1,dim,real>,nstate> dissipative_flux (
+        const std::array<real,nstate> &solution,
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient,
+        const std::array<real,nstate> &filtered_solution,
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &filtered_solution_gradient,
+        const dealii::types::global_dof_index cell_index) const override;
+};
+
 } // Physics namespace
 } // PHiLiP namespace
 

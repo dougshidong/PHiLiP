@@ -38,7 +38,7 @@ std::unique_ptr< dealii::DataPostprocessor<dim> > PostprocessorFactory<dim>
         return std::make_unique< PhysicsPostprocessor<dim,dim+3> >(parameters_input);
     } 
 #if PHILIP_DIM==3
-    else if ((pde_type == PDE_enum::physics_model) && (model_type==Model_enum::large_eddy_simulation || model_type==Model_enum::navier_stokes_model)) {
+    else if ((pde_type == PDE_enum::physics_model || pde_type == PDE_enum::physics_model_filtered) && (model_type==Model_enum::large_eddy_simulation || model_type==Model_enum::navier_stokes_model)) {
         return std::make_unique< PhysicsPostprocessor<dim,dim+2> >(parameters_input);
     } 
 #endif

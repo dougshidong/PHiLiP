@@ -33,8 +33,9 @@ std::string FlowSolverCaseBase<dim, nstate>::get_pde_string() const
     if (pde_type == PDE_enum::mhd)                  {pde_string = "mhd";}
     if (pde_type == PDE_enum::euler)                {pde_string = "euler";}
     if (pde_type == PDE_enum::navier_stokes)        {pde_string = "navier_stokes";}
-    if (pde_type == PDE_enum::physics_model) {
-        pde_string = "physics_model";
+    if (pde_type == PDE_enum::physics_model || pde_type == PDE_enum::physics_model_filtered) {
+        if(pde_type == PDE_enum::physics_model) pde_string = "physics_model";
+        else if(pde_type == PDE_enum::physics_model_filtered) pde_string = "physics_model_filtered";
         // add the model name + sub model name (if applicable)
         const Model_enum model = this->all_param.model_type;
         std::string model_string = "WARNING: invalid model";
@@ -63,6 +64,7 @@ std::string FlowSolverCaseBase<dim, nstate>::get_pde_string() const
             pde_string += std::string(" (Model: ") + model_string + std::string(", RANS Model: ") + rans_model_string + std::string(")");
         }
         if(pde_string == "physics_model") pde_string += std::string(" (Model: ") + model_string + std::string(")");
+        else if(pde_string == "physics_model_filtered") pde_string += std::string(" (Model: ") + model_string + std::string(")");
     }
     
     return pde_string;

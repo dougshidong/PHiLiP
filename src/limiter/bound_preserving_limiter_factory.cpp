@@ -23,7 +23,6 @@ BoundPreservingLimiterFactory<dim,real>
                     assert(0 == 1 && "Cannot create TVB limiter for dim > 1");
                     return nullptr;
                 }
-
             }
             else
                 return nullptr;
@@ -57,7 +56,6 @@ BoundPreservingLimiterFactory<dim,real>
                     assert(0 == 1 && "Cannot create TVB limiter for dim > 1");
                     return nullptr;
                 }
-
             }
             else
                 return nullptr;
@@ -91,7 +89,6 @@ BoundPreservingLimiterFactory<dim,real>
                     assert(0 == 1 && "Cannot create TVB limiter for dim > 1");
                     return nullptr;
                 }
-
             }
             else
                 return nullptr;
@@ -129,7 +126,6 @@ BoundPreservingLimiterFactory<dim,real>
                     assert(0 == 1 && "Cannot create TVB limiter for dim > 1");
                     return nullptr;
                 }
-
             }
             else
                 return nullptr;

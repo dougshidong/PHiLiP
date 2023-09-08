@@ -264,10 +264,12 @@ namespace PHiLiP {
                 // Limit the values at the quadrature points
                 for (unsigned int istate = 0; istate < nstate; ++istate) {
                     for (unsigned int iquad = 0; iquad < n_quad_pts; ++iquad) {
-                        if (iquad == 0)
+                        if (iquad == 0) {
                             soln_at_q[istate][iquad] = soln_0_lim[istate];
-                        else if (iquad == n_quad_pts - 1)
+                        }
+                        else if (iquad == n_quad_pts - 1) {
                             soln_at_q[istate][iquad] = soln_k_lim[istate];
+                        }
                         else {
                             soln_at_q[istate][iquad] = theta[istate] * (soln_at_q[istate][iquad] - soln_cell_avg[istate])
                                 + soln_cell_avg[istate];
@@ -306,9 +308,8 @@ namespace PHiLiP {
             if (parameters_input->use_tvb_limiter) {
                 if (dim == 1)
                     tvbLimiter = std::make_shared < TVBLimiter<dim, nstate, real> >(parameters_input);
-                else {
+                else
                     assert(0 == 1 && "Cannot create TVB limiter for dim > 1");
-                }
             }
         }
 
@@ -378,9 +379,7 @@ namespace PHiLiP {
         {
             // If use_tvb_limiter is true, apply TVB limiter before applying maximum-principle-satisfying limiter
             if (this->all_parameters->use_tvb_limiter == true)
-            {
                 this->tvbLimiter->limit(solution, dof_handler, fe_collection, volume_quadrature_collection, tensor_degree, max_degree, oneD_fe_collection_1state, oneD_quadrature_collection);
-            }
 
             //create 1D solution polynomial basis functions and corresponding projection operator
             //to interpolate the solution to the quadrature nodes, and to project it back to the
@@ -452,8 +451,7 @@ namespace PHiLiP {
                 // Interpolate solution dofs to quadrature pts.
                 for (int istate = 0; istate < nstate; istate++) {
                     soln_at_q[istate].resize(n_quad_pts);
-                    soln_basis.matrix_vector_mult_1D(soln_dofs[istate], soln_at_q[istate],
-                        soln_basis.oneD_vol_operator);
+                    soln_basis.matrix_vector_mult_1D(soln_dofs[istate], soln_at_q[istate], soln_basis.oneD_vol_operator);
                 }
 
                 // Apply integral for solution cell average (dealii quadrature operates from [0,1])
@@ -531,8 +529,7 @@ namespace PHiLiP {
             std::shared_ptr< ManufacturedSolutionFunction<dim, real> >  manufactured_solution_function
                 = ManufacturedSolutionFactory<dim, real>::create_ManufacturedSolution(parameters_input, nstate);
 
-            if (pde_type == PDE_enum::euler && nstate == dim + 2)
-            {
+            if (pde_type == PDE_enum::euler && nstate == dim + 2) {
                 euler_physics = std::make_shared < Physics::Euler<dim, nstate, real> >(
                     parameters_input,
                     parameters_input->euler_param.ref_length,
@@ -543,8 +540,7 @@ namespace PHiLiP {
                     manufactured_solution_function,
                     parameters_input->two_point_num_flux_type);
             }
-            else
-            {
+            else {
                 assert(0 == 1 && "Positivity-Preserving Limiter can only be applied for pde_type==euler");
             }
 
@@ -552,9 +548,8 @@ namespace PHiLiP {
             if (parameters_input->use_tvb_limiter) {
                 if (dim == 1)
                     tvbLimiter = std::make_shared < TVBLimiter<dim, nstate, real> >(parameters_input);
-                else {
+                else
                     assert(0 == 1 && "Cannot create TVB limiter for dim > 1");
-                }
             }
         }
 
@@ -571,9 +566,7 @@ namespace PHiLiP {
         {
             // If use_tvb_limiter is true, apply TVB limiter before applying positivity-preserving limiter
             if (this->all_parameters->use_tvb_limiter == true)
-            {
                 this->tvbLimiter->limit(solution, dof_handler, fe_collection, volume_quadrature_collection, tensor_degree, max_degree, oneD_fe_collection_1state, oneD_quadrature_collection);
-            }
 
             //create 1D solution polynomial basis functions and corresponding projection operator
             //to interpolate the solution to the quadrature nodes, and to project it back to the
@@ -688,8 +681,9 @@ namespace PHiLiP {
                     // Compute value of theta2
                     std::vector<real> theta2(n_quad_pts, 1);
                     for (unsigned int iquad = 0; iquad < n_quad_pts; ++iquad) {
-                        if (p_lim[iquad] >= eps)
+                        if (p_lim[iquad] >= eps) {
                             theta2[iquad] = 1;
+                        }
                         else {
                             real s_coeff1 = (soln_at_q[nstate - 1][iquad] - soln_cell_avg[nstate - 1]) * (soln_at_q[0][iquad] - soln_cell_avg[0]) - 0.5 * pow(soln_at_q[1][iquad] - soln_cell_avg[1], 2);
 
@@ -734,8 +728,7 @@ namespace PHiLiP {
 
                 // Project soln at quadrature points to dofs.
                 for (int istate = 0; istate < nstate; istate++) {
-                    soln_basis_projection_oper.matrix_vector_mult_1D(soln_at_q[istate], soln_dofs[istate],
-                        soln_basis_projection_oper.oneD_vol_operator);
+                    soln_basis_projection_oper.matrix_vector_mult_1D(soln_at_q[istate], soln_dofs[istate], soln_basis_projection_oper.oneD_vol_operator);
                 }
 
                 // Write limited solution dofs to the global solution vector.
@@ -775,8 +768,7 @@ namespace PHiLiP {
             std::shared_ptr< ManufacturedSolutionFunction<dim, real> >  manufactured_solution_function
                 = ManufacturedSolutionFactory<dim, real>::create_ManufacturedSolution(parameters_input, nstate);
 
-            if (pde_type == PDE_enum::euler && nstate == dim + 2)
-            {
+            if (pde_type == PDE_enum::euler && nstate == dim + 2) {
                 euler_physics = std::make_shared < Physics::Euler<dim, nstate, real> >(
                     parameters_input,
                     parameters_input->euler_param.ref_length,
@@ -787,8 +779,7 @@ namespace PHiLiP {
                     manufactured_solution_function,
                     parameters_input->two_point_num_flux_type);
             }
-            else
-            {
+            else {
                 assert(0 == 1 && "Positivity-Preserving Limiter can only be applied for pde_type==euler");
             }
 
@@ -796,9 +787,8 @@ namespace PHiLiP {
             if (parameters_input->use_tvb_limiter) {
                 if (dim == 1)
                     tvbLimiter = std::make_shared < TVBLimiter<dim, nstate, real> >(parameters_input);
-                else {
+                else
                     assert(0 == 1 && "Cannot create TVB limiter for dim > 1");
-                }
             }
         }
 
@@ -815,9 +805,7 @@ namespace PHiLiP {
         {
             // If use_tvb_limiter is true, apply TVB limiter before applying positivity-preserving limiter
             if (this->all_parameters->use_tvb_limiter == true)
-            {
                 this->tvbLimiter->limit(solution, dof_handler, fe_collection, volume_quadrature_collection, tensor_degree, max_degree, oneD_fe_collection_1state, oneD_quadrature_collection);
-            }
 
             // Create 1D solution polynomial basis functions and corresponding projection operator
             //to interpolate the solution to the quadrature nodes, and to project it back to the
@@ -964,8 +952,7 @@ namespace PHiLiP {
 
                 // Project soln at quadrature points to dofs.
                 for (int istate = 0; istate < nstate; istate++) {
-                    soln_basis_projection_oper.matrix_vector_mult_1D(soln_at_q[istate], soln_dofs[istate],
-                        soln_basis_projection_oper.oneD_vol_operator);
+                    soln_basis_projection_oper.matrix_vector_mult_1D(soln_at_q[istate], soln_dofs[istate], soln_basis_projection_oper.oneD_vol_operator);
                 }
 
                 // Write limited solution dofs to the global solution vector.

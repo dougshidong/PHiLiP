@@ -34,6 +34,8 @@ std::unique_ptr< dealii::DataPostprocessor<dim> > PostprocessorFactory<dim>
         return std::make_unique< PhysicsPostprocessor<dim,dim+2> >(parameters_input);
     } else if (pde_type == PDE_enum::navier_stokes) {
         return std::make_unique< PhysicsPostprocessor<dim,dim+2> >(parameters_input);
+    } else if (pde_type == PDE_enum::inviscid_real_gas) {
+        return std::make_unique< PhysicsPostprocessor<dim,dim+2> >(parameters_input);
     } else if ((pde_type == PDE_enum::physics_model) && (model_type == Model_enum::reynolds_averaged_navier_stokes) && (rans_model_type == RANSModel_enum::SA_negative)) {
         return std::make_unique< PhysicsPostprocessor<dim,dim+3> >(parameters_input);
     } 

@@ -493,7 +493,7 @@ real InitialConditionFunction_AcousticWave<dim,nstate,real>
 {
     // Note: This is in non-dimensional form (free-stream values as reference)
     real value = 0.;
-    if constexpr(dim == 3) {
+    if constexpr(dim == 2) {
         const real x = point[0], y = point[1];
 
         if(istate==0) {
@@ -509,10 +509,6 @@ real InitialConditionFunction_AcousticWave<dim,nstate,real>
             value = -cos(x)*sin(y);
         }
         if(istate==3) {
-            // z-velocity
-            value = 0.0;
-        }
-        if(istate==4) {
             // pressure
             value = 1.0/(this->gamma_gas*this->mach_inf_sqr) + (1.0/16.0)*(cos(2.0*x)+cos(2.0*y))*(2.0);
         }

@@ -48,9 +48,9 @@ namespace PHiLiP {
             PHiLiP::Parameters::AllParameters all_parameters_new = *all_parameters;
             double left = -1;
             double right = 1;
-            const unsigned int n_grids = (!all_parameters_new.use_OOA) ? 5 : 8;
+            const unsigned int n_grids = (!all_parameters_new.limiter_param.use_OOA) ? 5 : 8;
             unsigned int poly_degree = 3;
-            const unsigned int igrid_start = (!all_parameters_new.use_OOA) ? 4 : 3;
+            const unsigned int igrid_start = (!all_parameters_new.limiter_param.use_OOA) ? 4 : 3;
             const unsigned int grid_degree = 1;
             dealii::ConvergenceTable convergence_table;
             std::vector<double> grid_size(n_grids);
@@ -112,7 +112,7 @@ namespace PHiLiP {
                 // Create ODE solver using the factory and providing the DG object
                 std::shared_ptr<ODE::ODESolverBase<dim, double>> ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
 
-                if (!all_parameters_new.use_OOA)
+                if (!all_parameters_new.limiter_param.use_OOA)
                 {
                     double finalTime = 2.0;
                     ode_solver->advance_solution_time(finalTime);

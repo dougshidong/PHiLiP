@@ -15,10 +15,11 @@ RungeKuttaODESolver<dim,real,n_rk_stages, MeshType>::RungeKuttaODESolver(std::sh
 template <int dim, typename real, int n_rk_stages, typename MeshType> 
 void RungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::step_in_time (real dt, const bool pseudotime)
 {
-    using limiter_enum = Parameters::AllParameters::LimiterType;
-    limiter_enum limiter_type = this->all_parameters->bound_preserving_limiter;
+    using limiter_enum = Parameters::LimiterParam::LimiterType;
+    limiter_enum limiter_type = this->all_parameters->limiter_param.bound_preserving_limiter;
+    bool apply_tvb = this->all_parameters->limiter_param.use_tvb_limiter;
     // Apply limiter at every RK stage
-    if ( limiter_type != limiter_enum::none || this->all_parameters->use_tvb_limiter == true) {
+    if ( limiter_type != limiter_enum::none || apply_tvb == true) {
         this->limiter->limit(this->dg->solution,
             this->dg->dof_handler,
             this->dg->fe_collection,
@@ -83,7 +84,7 @@ void RungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::step_in_time (real dt, 
         this->dg->solution = this->rk_stage[i];
 
         // Apply limiter at every RK stage
-        if (limiter_type != limiter_enum::none || this->all_parameters->use_tvb_limiter == true) {
+        if (limiter_type != limiter_enum::none || apply_tvb == true) {
             this->limiter->limit(this->dg->solution,
                 this->dg->dof_handler,
                 this->dg->fe_collection,
@@ -123,7 +124,7 @@ void RungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::step_in_time (real dt, 
     this->dg->solution = this->solution_update; // u_np1 = u_n + dt* sum(k_i * b_i)
 
     // Apply limiter at every RK stage
-    if (limiter_type != limiter_enum::none || this->all_parameters->use_tvb_limiter == true) {
+    if ( limiter_type != limiter_enum::none || apply_tvb == true) {
         this->limiter->limit(this->dg->solution,
             this->dg->dof_handler,
             this->dg->fe_collection,

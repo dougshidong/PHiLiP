@@ -42,7 +42,7 @@ int BurgersLimiter<dim, nstate>::run_test() const
     PHiLiP::Parameters::AllParameters all_parameters_new = *all_parameters;  
     double left = 0.0;
     double right = 2.0;
-    const unsigned int n_grids = (!all_parameters_new.use_OOA) ? 4 : 10;
+    const unsigned int n_grids = (!all_parameters_new.limiter_param.use_OOA) ? 4 : 10;
     unsigned int poly_degree = 2;
     const unsigned int igrid_start = 3;
     const unsigned int grid_degree = 1;
@@ -107,7 +107,7 @@ int BurgersLimiter<dim, nstate>::run_test() const
             // Create ODE solver using the factory and providing the DG object
             std::shared_ptr<ODE::ODESolverBase<dim, double>> ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
 
-            if (!all_parameters_new.use_OOA)
+            if (!all_parameters_new.limiter_param.use_OOA)
             {
                 double finalTime = 2.0;
                 ode_solver->advance_solution_time(finalTime);

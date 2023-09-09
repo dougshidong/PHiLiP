@@ -57,11 +57,11 @@ namespace PHiLiP {
             const dealii::hp::FECollection<1>                       oneD_fe_collection_1state,
             dealii::hp::QCollection<1>                              oneD_quadrature_collection)
         {
-            double h = this->all_parameters->tvb_h;
+            double h = this->all_parameters->limiter_param.tvb_h;
 
             std::array<real, nstate> M;
             for (unsigned int istate = 0; istate < nstate; ++istate) {
-                M[istate] = this->all_parameters->tvb_M[istate];
+                M[istate] = this->all_parameters->limiter_param.tvb_M[istate];
             }
 
             //create 1D solution polynomial basis functions and corresponding projection operator
@@ -305,7 +305,7 @@ namespace PHiLiP {
             : BoundPreservingLimiter<dim,real>::BoundPreservingLimiter(nstate, parameters_input) 
         {
             // Create pointer to TVB Limiter class if use_tvb_limiter==true && dim == 1
-            if (parameters_input->use_tvb_limiter) {
+            if (parameters_input->limiter_param.use_tvb_limiter) {
                 if (dim == 1)
                     tvbLimiter = std::make_shared < TVBLimiter<dim, nstate, real> >(parameters_input);
                 else
@@ -378,7 +378,7 @@ namespace PHiLiP {
             dealii::hp::QCollection<1>                              oneD_quadrature_collection)
         {
             // If use_tvb_limiter is true, apply TVB limiter before applying maximum-principle-satisfying limiter
-            if (this->all_parameters->use_tvb_limiter == true)
+            if (this->all_parameters->limiter_param.use_tvb_limiter == true)
                 this->tvbLimiter->limit(solution, dof_handler, fe_collection, volume_quadrature_collection, tensor_degree, max_degree, oneD_fe_collection_1state, oneD_quadrature_collection);
 
             //create 1D solution polynomial basis functions and corresponding projection operator
@@ -545,7 +545,7 @@ namespace PHiLiP {
             }
 
             // Create pointer to TVB Limiter class if use_tvb_limiter==true && dim == 1
-            if (parameters_input->use_tvb_limiter) {
+            if (parameters_input->limiter_param.use_tvb_limiter) {
                 if (dim == 1)
                     tvbLimiter = std::make_shared < TVBLimiter<dim, nstate, real> >(parameters_input);
                 else
@@ -565,7 +565,7 @@ namespace PHiLiP {
             dealii::hp::QCollection<1>                              oneD_quadrature_collection)
         {
             // If use_tvb_limiter is true, apply TVB limiter before applying positivity-preserving limiter
-            if (this->all_parameters->use_tvb_limiter == true)
+            if (this->all_parameters->limiter_param.use_tvb_limiter == true)
                 this->tvbLimiter->limit(solution, dof_handler, fe_collection, volume_quadrature_collection, tensor_degree, max_degree, oneD_fe_collection_1state, oneD_quadrature_collection);
 
             //create 1D solution polynomial basis functions and corresponding projection operator
@@ -641,7 +641,7 @@ namespace PHiLiP {
                     }
                 }
 
-                real eps = this->all_parameters->pos_eps;
+                real eps = this->all_parameters->limiter_param.pos_eps;
                 real p_avg = 1e-13;
                 if (nstate == dim + 2) {
                     // Compute average value of pressure using soln_cell_avg
@@ -649,8 +649,8 @@ namespace PHiLiP {
                 }
                 
                 // Get epsilon (lower bound for density) for theta limiter
-                eps = std::min({ this->all_parameters->pos_eps, soln_cell_avg[0], p_avg});
-                if (eps < 0) eps = this->all_parameters->pos_eps;
+                eps = std::min({ this->all_parameters->limiter_param.pos_eps, soln_cell_avg[0], p_avg});
+                if (eps < 0) eps = this->all_parameters->limiter_param.pos_eps;
 
                 real theta = 1.0;
                 if (soln_cell_avg[0] - local_min[0] > 1e-13)
@@ -784,7 +784,7 @@ namespace PHiLiP {
             }
 
             // Create pointer to TVB Limiter class if use_tvb_limiter==true && dim == 1
-            if (parameters_input->use_tvb_limiter) {
+            if (parameters_input->limiter_param.use_tvb_limiter) {
                 if (dim == 1)
                     tvbLimiter = std::make_shared < TVBLimiter<dim, nstate, real> >(parameters_input);
                 else
@@ -804,7 +804,7 @@ namespace PHiLiP {
             dealii::hp::QCollection<1>                              oneD_quadrature_collection)
         {
             // If use_tvb_limiter is true, apply TVB limiter before applying positivity-preserving limiter
-            if (this->all_parameters->use_tvb_limiter == true)
+            if (this->all_parameters->limiter_param.use_tvb_limiter == true)
                 this->tvbLimiter->limit(solution, dof_handler, fe_collection, volume_quadrature_collection, tensor_degree, max_degree, oneD_fe_collection_1state, oneD_quadrature_collection);
 
             // Create 1D solution polynomial basis functions and corresponding projection operator
@@ -883,7 +883,7 @@ namespace PHiLiP {
                     }
                 }
 
-                real eps = this->all_parameters->pos_eps;
+                real eps = this->all_parameters->limiter_param.pos_eps;
                 real p_avg = 1e-13;
 
                 if (nstate == dim + 2) {
@@ -892,8 +892,8 @@ namespace PHiLiP {
                 }
                 
                 // Get epsilon (lower bound for rho) for theta limiter
-                eps = std::min({ this->all_parameters->pos_eps, soln_cell_avg[0], p_avg});
-                if (eps < 0) eps = this->all_parameters->pos_eps;
+                eps = std::min({ this->all_parameters->limiter_param.pos_eps, soln_cell_avg[0], p_avg});
+                if (eps < 0) eps = this->all_parameters->limiter_param.pos_eps;
 
 
                 real theta = 1.0;

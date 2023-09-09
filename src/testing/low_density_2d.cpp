@@ -42,9 +42,9 @@ int LowDensity2D<dim, nstate>::run_test() const
     const double pi = atan(1) * 4.0; 
     double left = 0.0;
     double right = 2.0 * pi;
-    const unsigned int n_grids = (!all_parameters_new.use_OOA) ? 3 : 8;
+    const unsigned int n_grids = (!all_parameters_new.limiter_param.use_OOA) ? 3 : 8;
     unsigned int poly_degree = 2;
-    const unsigned int igrid_start = (!all_parameters_new.use_OOA) ? 2 : 2;
+    const unsigned int igrid_start = (!all_parameters_new.limiter_param.use_OOA) ? 2 : 4;
     const unsigned int grid_degree = 1;
     dealii::ConvergenceTable convergence_table;
     std::vector<double> grid_size(n_grids);
@@ -105,7 +105,7 @@ int LowDensity2D<dim, nstate>::run_test() const
             //dg->get_global_max_and_min_of_solution();
             // Create ODE solver using the factory and providing the DG object
             std::shared_ptr<ODE::ODESolverBase<dim, double>> ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
-            if (!all_parameters_new.use_OOA)
+            if (!all_parameters_new.limiter_param.use_OOA)
             {
                 double finalTime = 0.1;
                 ode_solver->advance_solution_time(finalTime);

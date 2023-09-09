@@ -10,9 +10,9 @@ BoundPreservingLimiterFactory<dim,real>
         const Parameters::AllParameters *const parameters_input,
         const int nstate_input)
 {
-    using limiter_enum = Parameters::AllParameters::LimiterType;
-    limiter_enum limiter_type = parameters_input->bound_preserving_limiter;
-    bool apply_tvb = parameters_input->use_tvb_limiter;
+    using limiter_enum = Parameters::LimiterParam::LimiterType;
+    limiter_enum limiter_type = parameters_input->limiter_param.bound_preserving_limiter;
+    bool apply_tvb = parameters_input->limiter_param.use_tvb_limiter;
 
     if (nstate_input == 1) {
         if (limiter_type == limiter_enum::none) {

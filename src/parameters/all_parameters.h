@@ -19,6 +19,7 @@
 #include "parameters/parameters_grid_refinement_study.h"
 #include "parameters/parameters_grid_refinement.h"
 #include "parameters/parameters_artificial_dissipation.h"
+#include "parameters/parameters_limiter.h"
 #include "parameters/parameters_flow_solver.h"
 #include "parameters/parameters_mesh_adaptation.h"
 #include "parameters/parameters_functional.h"
@@ -54,6 +55,8 @@ public:
     GridRefinementStudyParam grid_refinement_study_param;
     /// Contains parameters for artificial dissipation
     ArtificialDissipationParam artificial_dissipation_param;
+    /// Contains parameters for limiter
+    LimiterParam limiter_param;
     /// Contains the parameters for simulation cases (flow solver test)
     FlowSolverParam flow_solver_param;
     /// Constains parameters for mesh adaptation
@@ -296,31 +299,6 @@ public:
     /** Tolerance for checking that the determinant of surface jacobians at element faces matches.
      *  Note: Currently only used in weak dg. */
     double matching_surface_jac_det_tolerance;
-    
-    //Flag to perform convergence test
-    bool use_OOA;
-
-    /// Limiter type to be applied on the solution.
-    enum LimiterType {
-        none,
-        maximum_principle,
-        positivity_preservingZhang2010,
-        positivity_preservingWang2012
-    };
-    LimiterType bound_preserving_limiter;
-
-    // Epsilon value for Positivity-Preserving Limiter
-    double pos_eps;
-
-    /// Flag for applying TVB Limiter
-    bool use_tvb_limiter;
-
-    /// Maximum delta_x for TVB Limiter
-    double tvb_h;
-
-    /// Tuning parameters for TVB Limiter
-    /**TVB Limiter can only be run for 1D, so max length is max nstate = 4*/
-    dealii::Tensor<1, 4, double> tvb_M;
 
     /// Declare parameters that can be set as inputs and set up the default options
     /** This subroutine should call the sub-parameter classes static declare_parameters()

@@ -50,6 +50,14 @@ void PhysicsModelParam::declare_parameters (dealii::ParameterHandler &prm)
                               dealii::Patterns::Double(1e-15, dealii::Patterns::Double::max_double_value),
                               "Ratio of the large eddy simulation filter width to the cell size (default is 1)");
 
+            prm.declare_entry("do_compute_filtered_solution", "false",
+                              dealii::Patterns::Bool(),
+                              "Flag to compute the filtered solution. By default, false.");
+
+            prm.declare_entry("apply_modal_high_pass_filter_on_filtered_solution", "false",
+                              dealii::Patterns::Bool(),
+                              "Flag to apply a modal high pass filter the filtered solution. By default, false.");
+
             prm.declare_entry("poly_degree_max_large_scales", "0",
                               dealii::Patterns::Integer(0, dealii::Patterns::Integer::max_int_value),
                               "Used for variational-multiscale (VMS) filtering of the solution. "
@@ -102,6 +110,9 @@ void PhysicsModelParam::parse_parameters (dealii::ParameterHandler &prm)
             WALE_model_constant                = prm.get_double("WALE_model_constant");
             vreman_model_constant              = prm.get_double("vreman_model_constant");
             ratio_of_filter_width_to_cell_size = prm.get_double("ratio_of_filter_width_to_cell_size");
+            do_compute_filtered_solution         = prm.get_bool("do_compute_filtered_solution");
+            apply_modal_high_pass_filter_on_filtered_solution 
+                                               = prm.get_bool("apply_modal_high_pass_filter_on_filtered_solution");
             poly_degree_max_large_scales       = prm.get_integer("poly_degree_max_large_scales");
         }
         prm.leave_subsection();

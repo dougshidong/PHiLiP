@@ -43,6 +43,8 @@ public:
     double WALE_model_constant; ///< WALE (Wall-Adapting Local Eddy-viscosity) eddy viscosity model constant
     double vreman_model_constant; ///< Vreman eddy viscosity model constant
     double ratio_of_filter_width_to_cell_size; ///< Ratio of the large eddy simulation filter width to the cell size
+    bool do_compute_filtered_solution; ///< Flag to compute the filtered solution
+    bool apply_modal_high_pass_filter_on_filtered_solution; ///< Flag to apply modal high pass filter on the filtered solution
     unsigned int poly_degree_max_large_scales; ///< Max poly degree representing the large scales for LES VMS filtering
 
     /// Declares the possible variables and sets the defaults.

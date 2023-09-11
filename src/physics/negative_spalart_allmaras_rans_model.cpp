@@ -564,8 +564,8 @@ std::array<real,nstate> ReynoldsAveragedNavierStokes_SAneg<dim,nstate,real>
 
     const std::array<real,nstate_navier_stokes> conservative_soln_rans = this->extract_rans_conservative_solution(conservative_soln);
     const std::array<dealii::Tensor<1,dim,real>,nstate_navier_stokes> conservative_soln_gradient_rans = this->extract_rans_solution_gradient(soln_gradient);
-    const std::array<real,nstate_navier_stokes> primitive_soln_rans = this->navier_stokes_physics->convert_conservative_to_primitive(conservative_soln_rans); // from Euler
-    const std::array<dealii::Tensor<1,dim,real>,nstate_navier_stokes> primitive_soln_gradient_rans = this->navier_stokes_physics->convert_conservative_gradient_to_primitive_gradient(conservative_soln_rans, conservative_soln_gradient_rans);
+    const std::array<real,nstate_navier_stokes> primitive_soln_rans = this->navier_stokes_physics->convert_conservative_to_primitive_templated(conservative_soln_rans); // from Euler
+    const std::array<dealii::Tensor<1,dim,real>,nstate_navier_stokes> primitive_soln_gradient_rans = this->navier_stokes_physics->convert_conservative_gradient_to_primitive_gradient_templated(conservative_soln_rans, conservative_soln_gradient_rans);
     const std::array<dealii::Tensor<1,dim,real>,nstate_turbulence_model> primitive_soln_gradient_turbulence_model = this->convert_conservative_gradient_to_primitive_gradient_turbulence_model(conservative_soln, soln_gradient);
 
 

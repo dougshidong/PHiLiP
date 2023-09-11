@@ -34,6 +34,70 @@ PhysicsModel<dim,nstate,real,nstate_baseline_physics>::PhysicsModel(
 { }
 
 template <int dim, int nstate, typename real, int nstate_baseline_physics>
+std::array<real,nstate> PhysicsModel<dim,nstate,real,nstate_baseline_physics>
+::convert_conservative_to_primitive ( const std::array<real,nstate> &conservative_soln ) const
+{
+    std::array<real,nstate> primitive_soln;
+    if constexpr(nstate==nstate_baseline_physics) {
+        primitive_soln = physics_baseline->convert_conservative_to_primitive(conservative_soln);
+    } else {
+        pcout << "Error: convert_conservative_to_primitive() not implemented for nstate!=nstate_baseline_physics." << std::endl;
+        pcout << "Aborting..." << std::endl;
+        std::abort();
+    }    
+    return primitive_soln;
+}
+
+template <int dim, int nstate, typename real, int nstate_baseline_physics>
+std::array<real,nstate> PhysicsModel<dim,nstate,real,nstate_baseline_physics>
+::convert_primitive_to_conservative ( const std::array<real,nstate> &primitive_soln ) const
+{
+    std::array<real,nstate> conservative_soln;
+    if constexpr(nstate==nstate_baseline_physics) {
+        conservative_soln = physics_baseline->convert_primitive_to_conservative(primitive_soln);
+    } else {
+        pcout << "Error: convert_primitive_to_conservative() not implemented for nstate!=nstate_baseline_physics." << std::endl;
+        pcout << "Aborting..." << std::endl;
+        std::abort();
+    }    
+    return conservative_soln;
+}
+
+template <int dim, int nstate, typename real, int nstate_baseline_physics>
+std::array<dealii::Tensor<1,dim,real>,nstate> PhysicsModel<dim,nstate,real,nstate_baseline_physics>
+::convert_primitive_gradient_to_conservative_gradient (
+    const std::array<real,nstate> &primitive_soln,
+    const std::array<dealii::Tensor<1,dim,real>,nstate> &primitive_soln_gradient) const
+{
+    std::array<dealii::Tensor<1,dim,real>,nstate> conservative_soln_gradient;
+    if constexpr(nstate==nstate_baseline_physics) {
+        conservative_soln_gradient = physics_baseline->convert_primitive_gradient_to_conservative_gradient(primitive_soln,primitive_soln_gradient);
+    } else {
+        pcout << "Error: convert_primitive_gradient_to_conservative_gradient() not implemented for nstate!=nstate_baseline_physics." << std::endl;
+        pcout << "Aborting..." << std::endl;
+        std::abort();
+    }    
+    return conservative_soln_gradient;
+}
+
+template <int dim, int nstate, typename real, int nstate_baseline_physics>
+std::array<dealii::Tensor<1,dim,real>,nstate> PhysicsModel<dim,nstate,real,nstate_baseline_physics>
+::convert_conservative_gradient_to_primitive_gradient (
+    const std::array<real,nstate> &conservative_soln,
+    const std::array<dealii::Tensor<1,dim,real>,nstate> &conservative_soln_gradient) const
+{
+    std::array<dealii::Tensor<1,dim,real>,nstate> primitive_soln_gradient;
+    if constexpr(nstate==nstate_baseline_physics) {
+        primitive_soln_gradient = physics_baseline->convert_conservative_gradient_to_primitive_gradient(conservative_soln,conservative_soln_gradient);
+    } else {
+        pcout << "Error: convert_conservative_gradient_to_primitive_gradient() not implemented for nstate!=nstate_baseline_physics." << std::endl;
+        pcout << "Aborting..." << std::endl;
+        std::abort();
+    }    
+    return primitive_soln_gradient;
+}
+
+template <int dim, int nstate, typename real, int nstate_baseline_physics>
 std::array<dealii::Tensor<1,dim,real>,nstate> PhysicsModel<dim,nstate,real,nstate_baseline_physics>
 ::convective_flux (const std::array<real,nstate> &conservative_soln) const
 {

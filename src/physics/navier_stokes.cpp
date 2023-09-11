@@ -53,54 +53,6 @@ NavierStokes<dim, nstate, real>::NavierStokes(
 
 template <int dim, int nstate, typename real>
 template<typename real2>
-std::array<dealii::Tensor<1,dim,real2>,nstate> NavierStokes<dim,nstate,real>
-::convert_conservative_gradient_to_primitive_gradient (
-    const std::array<real2,nstate> &conservative_soln,
-    const std::array<dealii::Tensor<1,dim,real2>,nstate> &conservative_soln_gradient) const
-{
-    // conservative_soln_gradient is solution_gradient
-    std::array<dealii::Tensor<1,dim,real2>,nstate> primitive_soln_gradient;
-
-    // get primitive solution
-    const std::array<real2,nstate> primitive_soln = this->template convert_conservative_to_primitive<real2>(conservative_soln); // from Euler
-    // extract from primitive solution
-    const real2 density = primitive_soln[0];
-    const dealii::Tensor<1,dim,real2> vel = this->template extract_velocities_from_primitive<real2>(primitive_soln); // from Euler
-
-    // density gradient
-    for (int d=0; d<dim; d++) {
-        primitive_soln_gradient[0][d] = conservative_soln_gradient[0][d];
-    }
-    // velocities gradient
-    for (int d1=0; d1<dim; d1++) {
-        for (int d2=0; d2<dim; d2++) {
-            primitive_soln_gradient[1+d1][d2] = (conservative_soln_gradient[1+d1][d2] - vel[d1]*conservative_soln_gradient[0][d2])/density;
-        }        
-    }
-    // pressure gradient
-    // -- formulation 1:
-    // const real2 vel2 = this->template compute_velocity_squared<real2>(vel); // from Euler
-    // for (int d1=0; d1<dim; d1++) {
-    //     primitive_soln_gradient[nstate-1][d1] = conservative_soln_gradient[nstate-1][d1] - 0.5*vel2*conservative_soln_gradient[0][d1];
-    //     for (int d2=0; d2<dim; d2++) {
-    //         primitive_soln_gradient[nstate-1][d1] -= conservative_soln[1+d2]*primitive_soln_gradient[1+d2][d1];
-    //     }
-    //     primitive_soln_gradient[nstate-1][d1] *= this->gamm1;
-    // }
-    // -- formulation 2 (equivalent to formulation 1):
-    for (int d1=0; d1<dim; d1++) {
-        primitive_soln_gradient[nstate-1][d1] = conservative_soln_gradient[nstate-1][d1];
-        for (int d2=0; d2<dim; d2++) {
-            primitive_soln_gradient[nstate-1][d1] -= 0.5*(primitive_soln[1+d2]*conservative_soln_gradient[1+d2][d1]  
-                                                           + conservative_soln[1+d2]*primitive_soln_gradient[1+d2][d1]);
-        }
-        primitive_soln_gradient[nstate-1][d1] *= this->gamm1;
-    }
-    return primitive_soln_gradient;
-}
-
-template <int dim, int nstate, typename real>
-template<typename real2>
 dealii::Tensor<1,dim,real2> NavierStokes<dim,nstate,real>
 ::compute_temperature_gradient (
     const std::array<real2,nstate> &primitive_soln,
@@ -128,11 +80,11 @@ real2 NavierStokes<dim,nstate,real>
     // NOTE: Currently this is only implemented for channel flow
 
     // get primitive solution
-    const std::array<real2,nstate> primitive_soln = this->template convert_conservative_to_primitive<real2>(conservative_soln); // from Euler
+    const std::array<real2,nstate> primitive_soln = this->template convert_conservative_to_primitive_templated<real2>(conservative_soln); // from Euler
     // extract from primitive solution
     // const dealii::Tensor<1,dim,real2> velocities = this->template extract_velocities_from_primitive<real2>(primitive_soln); // from Euler
     const std::array<dealii::Tensor<1,dim,real2>,nstate> primitive_soln_gradient
-                 = this->template convert_conservative_gradient_to_primitive_gradient<real2>(conservative_soln,conservative_soln_gradient);
+                 = this->template convert_conservative_gradient_to_primitive_gradient_templated<real2>(conservative_soln,conservative_soln_gradient);
     const dealii::Tensor<2,dim,real2> velocities_gradient = extract_velocities_gradient_from_primitive_solution_gradient<real2>(primitive_soln_gradient);
 
     // // compute normal velocity
@@ -328,7 +280,7 @@ dealii::Tensor<1,3,real2> NavierStokes<dim,nstate,real>
     }
     if constexpr(dim>1) {
         // Get velocity gradient
-        const std::array<dealii::Tensor<1,dim,real2>,nstate> primitive_soln_gradient = convert_conservative_gradient_to_primitive_gradient<real2>(conservative_soln, conservative_soln_gradient);
+        const std::array<dealii::Tensor<1,dim,real2>,nstate> primitive_soln_gradient = this->template convert_conservative_gradient_to_primitive_gradient_templated<real2>(conservative_soln, conservative_soln_gradient);
         const dealii::Tensor<2,dim,real2> velocities_gradient = extract_velocities_gradient_from_primitive_solution_gradient<real2>(primitive_soln_gradient);
         if constexpr(dim==2) {
             // vorticity exists only in z-component
@@ -401,7 +353,7 @@ real NavierStokes<dim,nstate,real>
     const real pressure = this->template compute_pressure<real>(conservative_soln);
 
     // Get velocity gradient
-    const std::array<dealii::Tensor<1,dim,real>,nstate> primitive_soln_gradient = convert_conservative_gradient_to_primitive_gradient<real>(conservative_soln, conservative_soln_gradient);
+    const std::array<dealii::Tensor<1,dim,real>,nstate> primitive_soln_gradient = this->template convert_conservative_gradient_to_primitive_gradient_templated<real>(conservative_soln, conservative_soln_gradient);
     const dealii::Tensor<2,dim,real> velocities_gradient = extract_velocities_gradient_from_primitive_solution_gradient<real>(primitive_soln_gradient);
 
     // Compute the pressure dilatation
@@ -422,7 +374,7 @@ dealii::Tensor<2,dim,real2> NavierStokes<dim,nstate,real>
     const std::array<dealii::Tensor<1,dim,real2>,nstate> &conservative_soln_gradient) const
 {
     // Get velocity gradient
-    const std::array<dealii::Tensor<1,dim,real2>,nstate> primitive_soln_gradient = convert_conservative_gradient_to_primitive_gradient<real2>(conservative_soln, conservative_soln_gradient);
+    const std::array<dealii::Tensor<1,dim,real2>,nstate> primitive_soln_gradient = this->template convert_conservative_gradient_to_primitive_gradient_templated<real2>(conservative_soln, conservative_soln_gradient);
     const dealii::Tensor<2,dim,real2> velocities_gradient = extract_velocities_gradient_from_primitive_solution_gradient<real2>(primitive_soln_gradient);
 
     // Strain rate tensor, S_{i,j}
@@ -437,7 +389,7 @@ dealii::Tensor<2,dim,real> NavierStokes<dim,nstate,real>
     const std::array<dealii::Tensor<1,dim,real>,nstate> &conservative_soln_gradient) const
 {
     // Get velocity gradient
-    const std::array<dealii::Tensor<1,dim,real>,nstate> primitive_soln_gradient = convert_conservative_gradient_to_primitive_gradient<real>(conservative_soln, conservative_soln_gradient);
+    const std::array<dealii::Tensor<1,dim,real>,nstate> primitive_soln_gradient = this->template convert_conservative_gradient_to_primitive_gradient_templated<real>(conservative_soln, conservative_soln_gradient);
     const dealii::Tensor<2,dim,real> velocities_gradient = extract_velocities_gradient_from_primitive_solution_gradient<real>(primitive_soln_gradient);
 
     // Strain rate tensor, S_{i,j}
@@ -535,7 +487,7 @@ real NavierStokes<dim,nstate,real>
     const std::array<dealii::Tensor<1,dim,real>,nstate> &conservative_soln_gradient) const
 {
     // Get velocity gradient
-    const std::array<dealii::Tensor<1,dim,real>,nstate> primitive_soln_gradient = convert_conservative_gradient_to_primitive_gradient<real>(conservative_soln, conservative_soln_gradient);
+    const std::array<dealii::Tensor<1,dim,real>,nstate> primitive_soln_gradient = this->template convert_conservative_gradient_to_primitive_gradient_templated<real>(conservative_soln, conservative_soln_gradient);
     const dealii::Tensor<2,dim,real> velocities_gradient = extract_velocities_gradient_from_primitive_solution_gradient<real>(primitive_soln_gradient);
 
     // Compute the strain rate tensor
@@ -891,7 +843,7 @@ inline real NavierStokes<dim,nstate,real>
     using adtype = FadType;
 
     // Step 1: Primitive solution
-    const std::array<real,nstate> primitive_soln = this->template convert_conservative_to_primitive<real>(conservative_soln); // from Euler
+    const std::array<real,nstate> primitive_soln = this->template convert_conservative_to_primitive_templated<real>(conservative_soln); // from Euler
     
     // Step 2: Compute temperature
     real temperature = this->template compute_temperature<real>(primitive_soln); // from Euler
@@ -921,10 +873,10 @@ std::array<dealii::Tensor<1,dim,real2>,nstate> NavierStokes<dim,nstate,real>
      */
 
     // Step 1: Primitive solution
-    const std::array<real2,nstate> primitive_soln = this->template convert_conservative_to_primitive<real2>(conservative_soln); // from Euler
+    const std::array<real2,nstate> primitive_soln = this->template convert_conservative_to_primitive_templated<real2>(conservative_soln); // from Euler
     
     // Step 2: Gradient of primitive solution
-    const std::array<dealii::Tensor<1,dim,real2>,nstate> primitive_soln_gradient = convert_conservative_gradient_to_primitive_gradient<real2>(conservative_soln, solution_gradient);
+    const std::array<dealii::Tensor<1,dim,real2>,nstate> primitive_soln_gradient = this->template convert_conservative_gradient_to_primitive_gradient_templated<real2>(conservative_soln, solution_gradient);
     
     // Step 3: Viscous stress tensor, Velocities, Heat flux
     const dealii::Tensor<2,dim,real2> viscous_stress_tensor = compute_viscous_stress_tensor<real2>(primitive_soln, primitive_soln_gradient);
@@ -983,7 +935,7 @@ void NavierStokes<dim,nstate,real>
     // No-slip wall boundary conditions
     // Given by equations 460-461 of the following paper
     // Hartmann, Ralf. "Numerical analysis of higher order discontinuous Galerkin finite element methods." (2008): 1-107.
-    const std::array<real,nstate> primitive_interior_values = this->template convert_conservative_to_primitive<real>(soln_int);
+    const std::array<real,nstate> primitive_interior_values = this->template convert_conservative_to_primitive_templated<real>(soln_int);
 
     // Copy density
     std::array<real,nstate> primitive_boundary_values;
@@ -1062,7 +1014,7 @@ dealii::Vector<double> NavierStokes<dim,nstate,real>::post_compute_derived_quant
         for (unsigned int s=0; s<nstate; ++s) {
             conservative_soln[s] = uh(s);
         }
-        const std::array<double, nstate> primitive_soln = this->template convert_conservative_to_primitive<real>(conservative_soln);
+        const std::array<double, nstate> primitive_soln = this->template convert_conservative_to_primitive_templated<real>(conservative_soln);
         // if (primitive_soln[0] < 0) this->pcout << evaluation_points << std::endl;
 
         std::array<dealii::Tensor<1,dim,double>,nstate> conservative_soln_gradient;
@@ -1212,12 +1164,6 @@ template RadFadType NavierStokes < PHILIP_DIM, PHILIP_DIM+2, RadFadType>::comput
 //------------------------------------------------------------------------------
 // -->Required templated member functions by classes derived from ModelBase or FlowSolverCaseBase
 //------------------------------------------------------------------------------
-// -- convert_conservative_gradient_to_primitive_gradient()
-template std::array<dealii::Tensor<1,PHILIP_DIM,double    >,PHILIP_DIM+2> NavierStokes<PHILIP_DIM,PHILIP_DIM+2,double    >::convert_conservative_gradient_to_primitive_gradient<double    >(const std::array<double    ,PHILIP_DIM+2> &conservative_soln, const std::array<dealii::Tensor<1,PHILIP_DIM,double    >,PHILIP_DIM+2> &conservative_soln_gradient) const;
-template std::array<dealii::Tensor<1,PHILIP_DIM,FadType   >,PHILIP_DIM+2> NavierStokes<PHILIP_DIM,PHILIP_DIM+2,FadType   >::convert_conservative_gradient_to_primitive_gradient<FadType   >(const std::array<FadType   ,PHILIP_DIM+2> &conservative_soln, const std::array<dealii::Tensor<1,PHILIP_DIM,FadType   >,PHILIP_DIM+2> &conservative_soln_gradient) const;
-template std::array<dealii::Tensor<1,PHILIP_DIM,RadType   >,PHILIP_DIM+2> NavierStokes<PHILIP_DIM,PHILIP_DIM+2,RadType   >::convert_conservative_gradient_to_primitive_gradient<RadType   >(const std::array<RadType   ,PHILIP_DIM+2> &conservative_soln, const std::array<dealii::Tensor<1,PHILIP_DIM,RadType   >,PHILIP_DIM+2> &conservative_soln_gradient) const;
-template std::array<dealii::Tensor<1,PHILIP_DIM,FadFadType>,PHILIP_DIM+2> NavierStokes<PHILIP_DIM,PHILIP_DIM+2,FadFadType>::convert_conservative_gradient_to_primitive_gradient<FadFadType>(const std::array<FadFadType,PHILIP_DIM+2> &conservative_soln, const std::array<dealii::Tensor<1,PHILIP_DIM,FadFadType>,PHILIP_DIM+2> &conservative_soln_gradient) const;
-template std::array<dealii::Tensor<1,PHILIP_DIM,RadFadType>,PHILIP_DIM+2> NavierStokes<PHILIP_DIM,PHILIP_DIM+2,RadFadType>::convert_conservative_gradient_to_primitive_gradient<RadFadType>(const std::array<RadFadType,PHILIP_DIM+2> &conservative_soln, const std::array<dealii::Tensor<1,PHILIP_DIM,RadFadType>,PHILIP_DIM+2> &conservative_soln_gradient) const;
 // -- compute_wall_shear_stress()
 template double     NavierStokes<PHILIP_DIM,PHILIP_DIM+2,double    >::compute_wall_shear_stress<double    >(const std::array<double    ,PHILIP_DIM+2> &conservative_soln, const std::array<dealii::Tensor<1,PHILIP_DIM,double    >,PHILIP_DIM+2> &conservative_soln_gradient, const dealii::Tensor<1,PHILIP_DIM,double    > &normal_vector) const;
 template FadType    NavierStokes<PHILIP_DIM,PHILIP_DIM+2,FadType   >::compute_wall_shear_stress<FadType   >(const std::array<FadType   ,PHILIP_DIM+2> &conservative_soln, const std::array<dealii::Tensor<1,PHILIP_DIM,FadType   >,PHILIP_DIM+2> &conservative_soln_gradient, const dealii::Tensor<1,PHILIP_DIM,FadType   > &normal_vector) const;
@@ -1280,12 +1226,6 @@ template dealii::Tensor<2,PHILIP_DIM,FadType   > NavierStokes<PHILIP_DIM,PHILIP_
 template dealii::Tensor<2,PHILIP_DIM,FadType   > NavierStokes<PHILIP_DIM,PHILIP_DIM+2,RadType   >::compute_viscous_stress_tensor_via_scaled_viscosity_and_strain_rate_tensor<FadType   > (const FadType    scaled_viscosity_coefficient, const dealii::Tensor<2,PHILIP_DIM,FadType   > &strain_rate_tensor) const;
 template dealii::Tensor<2,PHILIP_DIM,FadType   > NavierStokes<PHILIP_DIM,PHILIP_DIM+2,FadFadType>::compute_viscous_stress_tensor_via_scaled_viscosity_and_strain_rate_tensor<FadType   > (const FadType    scaled_viscosity_coefficient, const dealii::Tensor<2,PHILIP_DIM,FadType   > &strain_rate_tensor) const;
 template dealii::Tensor<2,PHILIP_DIM,FadType   > NavierStokes<PHILIP_DIM,PHILIP_DIM+2,RadFadType>::compute_viscous_stress_tensor_via_scaled_viscosity_and_strain_rate_tensor<FadType   > (const FadType    scaled_viscosity_coefficient, const dealii::Tensor<2,PHILIP_DIM,FadType   > &strain_rate_tensor) const;
-// -- convert_conservative_gradient_to_primitive_gradient()
-// -- -- instantiate all the real types with real2 = FadType for automatic differentiation in classes derived from LargeEddySimulationBase
-template std::array<dealii::Tensor<1,PHILIP_DIM,FadType   >,PHILIP_DIM+2> NavierStokes<PHILIP_DIM,PHILIP_DIM+2,double    >::convert_conservative_gradient_to_primitive_gradient<FadType   >(const std::array<FadType   ,PHILIP_DIM+2> &conservative_soln, const std::array<dealii::Tensor<1,PHILIP_DIM,FadType   >,PHILIP_DIM+2> &conservative_soln_gradient) const;
-template std::array<dealii::Tensor<1,PHILIP_DIM,FadType   >,PHILIP_DIM+2> NavierStokes<PHILIP_DIM,PHILIP_DIM+2,RadType   >::convert_conservative_gradient_to_primitive_gradient<FadType   >(const std::array<FadType   ,PHILIP_DIM+2> &conservative_soln, const std::array<dealii::Tensor<1,PHILIP_DIM,FadType   >,PHILIP_DIM+2> &conservative_soln_gradient) const;
-template std::array<dealii::Tensor<1,PHILIP_DIM,FadType   >,PHILIP_DIM+2> NavierStokes<PHILIP_DIM,PHILIP_DIM+2,FadFadType>::convert_conservative_gradient_to_primitive_gradient<FadType   >(const std::array<FadType   ,PHILIP_DIM+2> &conservative_soln, const std::array<dealii::Tensor<1,PHILIP_DIM,FadType   >,PHILIP_DIM+2> &conservative_soln_gradient) const;
-template std::array<dealii::Tensor<1,PHILIP_DIM,FadType   >,PHILIP_DIM+2> NavierStokes<PHILIP_DIM,PHILIP_DIM+2,RadFadType>::convert_conservative_gradient_to_primitive_gradient<FadType   >(const std::array<FadType   ,PHILIP_DIM+2> &conservative_soln, const std::array<dealii::Tensor<1,PHILIP_DIM,FadType   >,PHILIP_DIM+2> &conservative_soln_gradient) const;
 // -- compute_heat_flux_given_scaled_heat_conductivity_and_temperature_gradient()
 template dealii::Tensor<1,PHILIP_DIM,double    > NavierStokes<PHILIP_DIM,PHILIP_DIM+2,double    >::compute_heat_flux_given_scaled_heat_conductivity_and_temperature_gradient<double    > (const double     scaled_heat_conductivity, const dealii::Tensor<1,PHILIP_DIM,double    > &temperature_gradient) const;
 template dealii::Tensor<1,PHILIP_DIM,FadType   > NavierStokes<PHILIP_DIM,PHILIP_DIM+2,FadType   >::compute_heat_flux_given_scaled_heat_conductivity_and_temperature_gradient<FadType   > (const FadType    scaled_heat_conductivity, const dealii::Tensor<1,PHILIP_DIM,FadType   > &temperature_gradient) const;

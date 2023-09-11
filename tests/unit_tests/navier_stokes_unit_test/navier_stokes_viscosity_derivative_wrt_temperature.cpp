@@ -55,7 +55,7 @@ int main (int argc, char * argv[])
                 soln[s] = navier_stokes_physics.manufactured_solution_function->value(vertex, s);
             }
             // Compute the analytical derivative of viscosity wrt to temperature
-            primitive_soln = navier_stokes_physics.convert_conservative_to_primitive(soln); // from Euler
+            primitive_soln = navier_stokes_physics.convert_conservative_to_primitive_templated(soln); // from Euler
             temperature = navier_stokes_physics.compute_temperature(primitive_soln); // from Euler
             scaled_viscosity_coefficient = navier_stokes_physics.compute_scaled_viscosity_coefficient(primitive_soln);
             // -- Matasuka (2018), Eq.(4.14.17)

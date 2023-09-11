@@ -40,7 +40,7 @@ int main (int argc, char * argv[])
             for (int s=0; s<nstate; s++) {
                 conservative_soln[s] = euler_physics.manufactured_solution_function->value(vertex, s);
             }
-            primitive_soln = euler_physics.convert_conservative_to_primitive(conservative_soln);
+            primitive_soln = euler_physics.convert_conservative_to_primitive_templated(conservative_soln);
             conservative_soln2 = euler_physics.convert_primitive_to_conservative(primitive_soln);
 
             // Flipping back and forth between conservative and primitive solution result

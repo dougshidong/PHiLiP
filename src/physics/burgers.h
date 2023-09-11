@@ -80,6 +80,24 @@ public:
                 const std::array<real,nstate> &conservative_soln1,
                 const std::array<real,nstate> &conservative_soln2) const override;
 
+    /// Convert conservative variables to primitive variables
+    std::array<real,nstate> convert_conservative_to_primitive ( const std::array<real,nstate> &conservative_soln ) const;
+
+    /// Convert primitive solution to conservative solution
+    std::array<real,nstate> convert_primitive_to_conservative ( const std::array<real,nstate> &primitive_soln ) const;
+
+    /** Obtain gradient of primitive variables from gradient of conservative variables */
+    std::array<dealii::Tensor<1,dim,real>,nstate> 
+    convert_conservative_gradient_to_primitive_gradient (
+        const std::array<real,nstate> &conservative_soln,
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &conservative_soln_gradient) const;
+
+    /** Obtain gradient of conservative variables from gradient of primitive variables */
+    std::array<dealii::Tensor<1,dim,real>,nstate> 
+    convert_primitive_gradient_to_conservative_gradient (
+        const std::array<real,nstate> &primitive_soln,
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &primitive_soln_gradient) const;
+
     /// Computes the entropy variables.
     std::array<real,nstate> compute_entropy_variables (
                 const std::array<real,nstate> &conservative_soln) const;

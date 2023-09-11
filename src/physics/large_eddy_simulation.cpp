@@ -112,8 +112,8 @@ std::array<dealii::Tensor<1,dim,real2>,nstate> LargeEddySimulationBase<dim,nstat
     const dealii::types::global_dof_index cell_index) const
 {   
     // Step 1,2: Primitive solution and Gradient of primitive solution
-    const std::array<dealii::Tensor<1,dim,real2>,nstate> primitive_soln_gradient = this->navier_stokes_physics->convert_conservative_gradient_to_primitive_gradient(conservative_soln, solution_gradient);
-    const std::array<real2,nstate> primitive_soln = this->navier_stokes_physics->convert_conservative_to_primitive(conservative_soln); // from Euler
+    const std::array<dealii::Tensor<1,dim,real2>,nstate> primitive_soln_gradient = this->navier_stokes_physics->convert_conservative_gradient_to_primitive_gradient_templated(conservative_soln, solution_gradient);
+    const std::array<real2,nstate> primitive_soln = this->navier_stokes_physics->convert_conservative_to_primitive_templated(conservative_soln); // from Euler
 
     // Step 3: Viscous stress tensor, Velocities, Heat flux
     const dealii::Tensor<1,dim,real2> vel = this->navier_stokes_physics->extract_velocities_from_primitive(primitive_soln); // from Euler
@@ -210,7 +210,7 @@ std::array<real,nstate> LargeEddySimulationBase<dim,nstate,real>
 
     // Get nondimensional (w.r.t. freestream) bulk velocity
     // const real density = conservative_soln[0];
-    const std::array<real,nstate> primitive_soln = this->navier_stokes_physics->convert_conservative_to_primitive(conservative_soln);
+    const std::array<real,nstate> primitive_soln = this->navier_stokes_physics->convert_conservative_to_primitive_templated(conservative_soln);
     // const real viscosity_coefficient = this->navier_stokes_physics->compute_viscosity_coefficient(primitive_soln);
     // const real bulk_velocity = viscosity_coefficient*(this->channel_bulk_velocity_reynolds_number)/(density*this->half_channel_height*this->navier_stokes_physics->reynolds_number_inf);
     const real bulk_velocity = 1.0; // since we nondimensionalize w.r.t. freestream values, which are set at the bulk values, this value is simply 1.0

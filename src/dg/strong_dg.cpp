@@ -997,7 +997,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_volume_term_strong(
             legendre_soln_basis_projection_oper.matrix_vector_mult_1D(soln_at_q[istate], legendre_soln_coeff,
                                                                       legendre_soln_basis_projection_oper.oneD_vol_operator);
             // -- (2) Truncate modes for high-pass filter (i.e. DG-VMS like)
-            if(this->apply_modal_high_pass_filter_on_filtered_solution) {
+            if(this->apply_modal_high_pass_filter_on_filtered_solution && (istate!=0 && istate!=(nstate-1))) {
                 for(unsigned int ishape=0; ishape<n_shape_fns; ishape++){
                     if(ishape < p_min_filtered){
                         legendre_soln_coeff[ishape] = 0.0;
@@ -1021,7 +1021,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_volume_term_strong(
                     legendre_soln_basis_projection_oper.matrix_vector_mult_1D(aux_soln_at_q[istate][idim], legendre_aux_soln_coeff[idim],
                                                                               legendre_soln_basis_projection_oper.oneD_vol_operator);
                     // -- (2) Truncate modes for high-pass filter (i.e. DG-VMS like)
-                    if(this->apply_modal_high_pass_filter_on_filtered_solution) {
+                    if(this->apply_modal_high_pass_filter_on_filtered_solution && (istate!=0 && istate!=(nstate-1))) {
                         for(unsigned int ishape=0; ishape<n_shape_fns; ishape++){
                             if(ishape < p_min_filtered){
                                 legendre_aux_soln_coeff[idim][ishape] = 0.0;
@@ -1577,7 +1577,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_strong(
             legendre_soln_basis_projection_oper.matrix_vector_mult_1D(soln_at_vol_q[istate], legendre_soln_coeff,
                                                                       legendre_soln_basis_projection_oper.oneD_vol_operator);
             // -- (2) Truncate modes for high-pass filter (i.e. DG-VMS like)
-            if(this->apply_modal_high_pass_filter_on_filtered_solution) {
+            if(this->apply_modal_high_pass_filter_on_filtered_solution && (istate!=0 && istate!=(nstate-1))) {
                 for(unsigned int ishape=0; ishape<n_shape_fns; ishape++){
                     if(ishape < p_min_filtered){
                         legendre_soln_coeff[ishape] = 0.0;
@@ -1606,7 +1606,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_strong(
                     legendre_soln_basis_projection_oper.matrix_vector_mult_1D(aux_soln_at_vol_q[istate][idim], legendre_aux_soln_coeff[idim],
                                                                               legendre_soln_basis_projection_oper.oneD_vol_operator);
                     // -- (2) Truncate modes for high-pass filter (i.e. DG-VMS like)
-                    if(this->apply_modal_high_pass_filter_on_filtered_solution) {
+                    if(this->apply_modal_high_pass_filter_on_filtered_solution && (istate!=0 && istate!=(nstate-1))) {
                         for(unsigned int ishape=0; ishape<n_shape_fns; ishape++){
                             if(ishape < p_min_filtered){
                                 legendre_aux_soln_coeff[idim][ishape] = 0.0;
@@ -2287,7 +2287,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_strong(
             legendre_soln_basis_projection_oper_ext.matrix_vector_mult_1D(soln_at_vol_q_ext[istate], legendre_soln_coeff_ext,
                                                                           legendre_soln_basis_projection_oper_ext.oneD_vol_operator);
             // -- (2) Truncate modes for high-pass filter (i.e. DG-VMS like)
-            if(this->apply_modal_high_pass_filter_on_filtered_solution) {
+            if(this->apply_modal_high_pass_filter_on_filtered_solution && (istate!=0 && istate!=(nstate-1))) {
                 for(unsigned int ishape=0; ishape<n_shape_fns_int; ishape++){
                     if(ishape < p_min_filtered){
                         legendre_soln_coeff_int[ishape] = 0.0;
@@ -2333,7 +2333,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_strong(
                     legendre_soln_basis_projection_oper_ext.matrix_vector_mult_1D(aux_soln_at_vol_q_ext[istate][idim], legendre_aux_soln_coeff_ext[idim],
                                                                                   legendre_soln_basis_projection_oper_ext.oneD_vol_operator);
                     // -- (2) Truncate modes for high-pass filter (i.e. DG-VMS like)
-                    if(this->apply_modal_high_pass_filter_on_filtered_solution) {
+                    if(this->apply_modal_high_pass_filter_on_filtered_solution && (istate!=0 && istate!=(nstate-1))) {
                         for(unsigned int ishape=0; ishape<n_shape_fns_int; ishape++){
                             if(ishape < p_min_filtered){
                                 legendre_aux_soln_coeff_int[idim][ishape] = 0.0;

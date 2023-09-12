@@ -23,10 +23,18 @@ file(COPY ${MY_FILES} DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 # )
 
 configure_file(1d_burgers_rewienski_reduced_order_consistency_snapshots.sh 1d_burgers_rewienski_reduced_order_consistency_snapshots.sh COPYONLY)
-configure_file(1d_burgers_rewienski_reduced_order_consistency.prm 1d_burgers_rewienski_reduced_order_consistency.prm COPYONLY)
+configure_file(1d_burgers_rewienski_build_NNLS_problem.prm 1d_burgers_rewienski_build_NNLS_problem.prm COPYONLY)
 add_test(
         NAME 1D_BURGERS_NNLS_PROBLEM_ASSEMBLY
-        COMMAND mpirun -np 1 ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_1D -i ${CMAKE_CURRENT_BINARY_DIR}/1d_burgers_rewienski_reduced_order_consistency.prm 
+        COMMAND mpirun -np 1 ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_1D -i ${CMAKE_CURRENT_BINARY_DIR}/1d_burgers_rewienski_build_NNLS_problem.prm 
         WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )
+
+configure_file(1d_burgers_rewienski_hyper_reduction_test.prm 1d_burgers_rewienski_hyper_reduction_test.prm COPYONLY)
+add_test(
+        NAME 1D_BURGERS_HYPER_REDUCTION_TEST
+        COMMAND mpirun -np 1 ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_1D -i ${CMAKE_CURRENT_BINARY_DIR}/1d_burgers_rewienski_hyper_reduction_test.prm 
+        WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
+)
+
 

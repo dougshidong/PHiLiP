@@ -181,7 +181,8 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       " euler_entropy_conserving_split_forms_check | "
                       " h_refinement_study_isentropic_vortex | "
                       " khi_robustness | "
-                      " build_NNLS_problem"),
+                      " build_NNLS_problem |"
+                      " hyper_reduction_comparison"),
                       "The type of test we want to solve. "
                       "Choices are " 
                       " <run_control | " 
@@ -220,7 +221,8 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       "  euler_entropy_conserving_split_forms_check | "
                       "  h_refinement_study_isentropic_vortex | "
                       "  khi_robustness | "
-                      "  build_NNLS_problem.");
+                      "  build_NNLS_problem |"
+                      " hyper_reduction_comparison.");
 
     prm.declare_entry("pde_type", "advection",
                       dealii::Patterns::Selection(
@@ -392,6 +394,7 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     else if (test_string == "h_refinement_study_isentropic_vortex")     { test_type = h_refinement_study_isentropic_vortex; }
     else if (test_string == "khi_robustness")                           { test_type = khi_robustness; }
     else if (test_string == "build_NNLS_problem")                       { test_type = build_NNLS_problem; }
+    else if (test_string == "hyper_reduction_comparison")               { test_type = hyper_reduction_comparison; }
 
     overintegration = prm.get_integer("overintegration");
 

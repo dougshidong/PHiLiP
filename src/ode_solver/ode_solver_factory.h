@@ -26,11 +26,17 @@ public:
     /// Creates either POD-Galerkin or POD-Petrov-Galerkin ODE solver based on parameter value (POD basis given)
     static std::shared_ptr<ODESolverBase<dim,real,MeshType>> create_ODESolver(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input, std::shared_ptr<ProperOrthogonalDecomposition::PODBase<dim>> pod);
 
+    /// Creates Hyper-reduced POD-Petrov-Galerkin ODE solver based on parameter value (POD basis and ECSW weights given)
+    static std::shared_ptr<ODESolverBase<dim,real,MeshType>> create_ODESolver(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input, std::shared_ptr<ProperOrthogonalDecomposition::PODBase<dim>> pod, Epetra_Vector weights);
+
     /// Creates either implicit or explicit ODE solver based on manual input (no POD basis given)
     static std::shared_ptr<ODESolverBase<dim,real,MeshType>> create_ODESolver_manual(Parameters::ODESolverParam::ODESolverEnum ode_solver_type, std::shared_ptr< DGBase<dim, real, MeshType> > dg_input);
 
     /// Creates either POD-Galerkin or POD-Petrov-Galerkin ODE solver based on manual input (POD basis given)
     static std::shared_ptr<ODESolverBase<dim,real,MeshType>> create_ODESolver_manual(Parameters::ODESolverParam::ODESolverEnum ode_solver_type, std::shared_ptr< DGBase<dim, real, MeshType> > dg_input, std::shared_ptr<ProperOrthogonalDecomposition::PODBase<dim>> pod);
+
+    /// Creates Hyper-reduced POD-Petrov-Galerkin ODE solver based on manual input (POD basis and ECSW weights given)
+    static std::shared_ptr<ODESolverBase<dim,real,MeshType>> create_ODESolver_manual(Parameters::ODESolverParam::ODESolverEnum ode_solver_type, std::shared_ptr< DGBase<dim, real, MeshType> > dg_input, std::shared_ptr<ProperOrthogonalDecomposition::PODBase<dim>> pod, Epetra_Vector weights);
 
     /// Output error message for Implicit and Explicit solver
     static void display_error_ode_solver_factory(Parameters::ODESolverParam::ODESolverEnum ode_solver_type, bool reduced_order);

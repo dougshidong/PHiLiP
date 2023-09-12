@@ -1,6 +1,7 @@
 set(SOURCE
     linear_solver.cpp
     NNLS_solver.cpp
+    helper_functions.cpp
 	)
 
 # Output library

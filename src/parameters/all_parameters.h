@@ -194,6 +194,7 @@ public:
         khi_robustness,
         homogeneous_isotropic_turbulence_initialization_check,
         build_NNLS_problem,
+        hyper_reduction_comparison
     };
     /// Store selected TestType from the input file.
     TestType test_type;

@@ -7,7 +7,7 @@
 namespace PHiLiP {
 namespace Tests {
 
-/// Test assembling NNLS problem from Offline POD
+/// Test assembling NNLS problem from Online POD
 template <int dim, int nstate>
 class BuildNNLSProblem: public TestsBase
 {

@@ -6,8 +6,8 @@
 #include "ode_solver/ode_solver_factory.h"
 #include "hyper_reduction/assemble_problem_ECSW.h"
 #include "linear_solver/NNLS_solver.h"
-#include "../tests/unit_tests/linear_solver/helper_functions.cpp"
-#include "pod_adaptive_sampling.cpp"
+#include "linear_solver/helper_functions.h"
+#include "pod_adaptive_sampling.h"
 #include <iostream>
 
 namespace PHiLiP {
@@ -33,7 +33,6 @@ std::shared_ptr<Epetra_CrsMatrix> local_generate_test_basis(Parameters::ODESolve
         return std::make_shared<Epetra_CrsMatrix>(petrov_galerkin_basis);
     }
     else {
-        // display_error_ode_solver_factory(ode_solver_type, true);
         return nullptr;
     }
 }
@@ -42,16 +41,18 @@ std::shared_ptr<Epetra_CrsMatrix> local_generate_test_basis(Parameters::ODESolve
 template <int dim, int nstate>
 int BuildNNLSProblem<dim, nstate>::run_test() const
 {
+    // Create flow solver and adaptive sampling class instances
     std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver_petrov_galerkin = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(all_parameters, parameter_handler);
     auto ode_solver_type = Parameters::ODESolverParam::ODESolverEnum::pod_petrov_galerkin_solver;
-    // std::shared_ptr<ProperOrthogonalDecomposition::OfflinePOD<dim>> pod_petrov_galerkin = std::make_shared<ProperOrthogonalDecomposition::OfflinePOD<dim>>(flow_solver_petrov_galerkin->dg);
     std::shared_ptr<AdaptiveSampling<dim,nstate>> parameter_sampling = std::make_unique<AdaptiveSampling<dim,nstate>>(all_parameters, parameter_handler);
 
+    // Place minimum number of snapshots in the parameter space (3 snapshots in 1 parameter cases)
     parameter_sampling->configureInitialParameterSpace();
     parameter_sampling->placeInitialSnapshots();
     parameter_sampling->current_pod->computeBasis();
     MatrixXd snapshot_parameters = parameter_sampling->snapshot_parameters;
 
+    // Create instance of NNLS Problem assembler
     std::cout << "Construct instance of Assembler..."<< std::endl;
     HyperReduction::AssembleECSW<dim,nstate> constructer_NNLS_problem(all_parameters, parameter_handler, flow_solver_petrov_galerkin->dg, parameter_sampling->current_pod, parameter_sampling, ode_solver_type);
     std::cout << "Build Problem..."<< std::endl;
@@ -132,24 +133,23 @@ int BuildNNLSProblem<dim, nstate>::run_test() const
     for(unsigned int i = 0 ; i < b.size() ; i++){
         b_Epetra[i] = b(i);
     }
-/*     Eigen::MatrixXd b_eig(b_Epetra.GlobalLength(),1);
-    epetra_to_eig_vec(b_Epetra.GlobalLength(), b_Epetra, b_eig);
-    bool b_bool = true;
-    for(unsigned int i = 0 ; i < b.size() ; i++){
-        std::cout << "eig: " << b_eig(i,0)<< std::endl;
-        std::cout << (b_eig(i,0) - d_MAT(i,0)) << std::endl;
-        b_bool &= (b_eig(i,0) == d_MAT(i,0));
-    } */
+
+    // Build NNLS Solver with C and d
+    // Solver parameters
     double tau = 1E-8;
     const int max_iter = 10000;
     std::cout << "Create NNLS problem..."<< std::endl;
     NNLS_solver NNLS_prob(constructer_NNLS_problem.A->trilinos_matrix(), Comm, b_Epetra, max_iter, tau);
     std::cout << "Solve NNLS problem..."<< std::endl;
+    // Solve NNLS problem (should return 1 if solver achieves the accuracy tau before the max number of iterations)
     bool exit_con = NNLS_prob.solve();
     
+    // Extract the weights
     Epetra_Vector weights = NNLS_prob.getSolution();
     Eigen::MatrixXd weights_eig(weights.GlobalLength(),1);
     epetra_to_eig_vec(weights.GlobalLength(), weights , weights_eig);
+
+    // Compare with the MATLAB results (expected to be close but not identical)
     exit_con &= x_MAT.isApprox(weights_eig, 1E-2);
 
     std::cout << "ECSW Weights"<< std::endl;

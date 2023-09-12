@@ -16,12 +16,10 @@ namespace HyperReduction {
 using Eigen::MatrixXd;
 using Eigen::VectorXd;
 
-/// Class for assembling NNLS problem (C matrix & d vector from the residual) for ECSW
-/* #if PHILIP_DIM==1
-template <int dim, typename real, typename MeshType = dealii::Triangulation<dim>>
-#else
-template <int dim, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
-#endif */
+/// Class for assembling NNLS problem (C matrix & d vector from the residual of each snapshot) for finding
+/// the weights for the ECSW hyper-reduction approach. NOTE: This class does not solve for the weights, but
+/// A and b can be passed to the NNLS solver class.
+
 template <int dim, int nstate>
 class AssembleECSW
 {
@@ -49,20 +47,24 @@ public:
     /// POD
     std::shared_ptr<ProperOrthogonalDecomposition::PODBase<dim>> pod;
 
-    /// Sampling Class
+    /// Sampling Class (currently being used for the reinitParams and snapshot_parameters)
     std::shared_ptr<Tests::AdaptiveSampling<dim,nstate>> parameter_sampling;
-
 
     const MPI_Comm mpi_communicator; ///< MPI communicator.
 
+    /// ODE Solve Type/ Projection Type (galerkin or petrov-galerkins)
     Parameters::ODESolverParam::ODESolverEnum ode_solver_type;
 
+    /// Matrix for the NNLS Problem
     std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> A;
 
+    /// RHS Vector for the NNLS Problem
     dealii::LinearAlgebra::ReadWriteVector<double> b;
 
+    /// Generate Test Basis from the pod and snapshot info depending on the ode_solve_type (copied from the ODE solvers)
     std::shared_ptr<Epetra_CrsMatrix> local_generate_test_basis(Epetra_CrsMatrix &system_matrix, const Epetra_CrsMatrix &pod_basis);
-
+    
+    /// Fill entries of A and b
     void build_problem();
 };
 

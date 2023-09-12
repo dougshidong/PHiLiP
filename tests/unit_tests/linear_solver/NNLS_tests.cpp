@@ -1,5 +1,5 @@
 #include "linear_solver/NNLS_solver.h"
-#include "helper_functions.cpp"
+#include "linear_solver/helper_functions.h"
 #include <iostream>
 #include <vector>
 #include <fstream>

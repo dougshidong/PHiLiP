@@ -20,7 +20,8 @@ Euler<dim,nstate,real>::Euler (
     std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function,
     const two_point_num_flux_enum                             two_point_num_flux_type_input,
     const bool                                                has_nonzero_diffusion,
-    const bool                                                has_nonzero_physical_source)
+    const bool                                                has_nonzero_physical_source,
+	const double                                              rot_frequency)
     : PhysicsBase<dim,nstate,real>(parameters_input, has_nonzero_diffusion,has_nonzero_physical_source,manufactured_solution_function)
     , ref_length(ref_length)
     , gam(gamma_gas)
@@ -30,6 +31,7 @@ Euler<dim,nstate,real>::Euler (
     , mach_inf_sqr(mach_inf*mach_inf)
     , angle_of_attack(angle_of_attack)
     , side_slip_angle(side_slip_angle)
+	, freq_inf(rot_frequency*ref_length)
     , sound_inf(1.0/(mach_inf))
     , pressure_inf(1.0/(gam*mach_inf_sqr))
     , entropy_inf(pressure_inf*pow(density_inf,-gam))
@@ -38,6 +40,12 @@ Euler<dim,nstate,real>::Euler (
     // Note: Eq.(3.11.18) has a typo in internal_energy_inf expression, mach_inf_sqr should be in denominator. 
 {
     static_assert(nstate==dim+2, "Physics::Euler() should be created with nstate=dim+2");
+	
+	if(std::abs(freq_inf) > 0) {
+		has_rotational_frequency = true;
+	} else {
+		has_rotational_frequency = false;
+	}
 
     // Nondimensional temperature at infinity
     temperature_inf = gam*pressure_inf/density_inf * mach_inf_sqr; // Note by JB: this can simply be set = 1
@@ -150,6 +158,41 @@ std::array<real,nstate> Euler<dim,nstate,real>
 }
 
 template <int dim, int nstate, typename real>
+std::array<real,nstate> Euler<dim,nstate,real>
+::physical_source_term (
+    const dealii::Point<dim,real> &pos,
+	const std::array<real,nstate> &conservative_soln,
+	const std::array<dealii::Tensor<1,dim,real>,nstate> &conservative_soln_gradient,
+	const dealii::types::global_dof_index cell_index) const
+{
+	if (has_rotational_frequency == false) return PhysicsBase<dim,nstate,real>::physical_source_term(pos, conservative_soln, conservative_soln_gradient, cell_index);
+	else                                   return rotational_physical_source_term(pos, conservative_soln, conservative_soln_gradient, cell_index);
+	
+}
+
+template <int dim, int nstate, typename real>
+std::array<real,nstate> Euler<dim,nstate,real>
+::rotational_physical_source_term (
+    const dealii::Point<dim,real> &pos,
+	const std::array<real,nstate> &conservative_soln,
+	const std::array<dealii::Tensor<1,dim,real>,nstate> &conservative_soln_gradient,
+	const dealii::types::global_dof_index /*cell_index*/) const
+{
+	std::array<real,nstate> physical_source;
+
+	for (int istate=0; istate<nstate; istate++) {
+		physical_source[istate] = this->freq_inf * (conservative_soln_gradient[istate][2] * pos[0] - conservative_soln_gradient[istate][0] * pos[2]);
+	}
+	real rhoU = conservative_soln[1];
+	real rhoW = conservative_soln[3];
+	physical_source[1] += rhoW * this->freq_inf;
+	physical_source[3] -= rhoU * this->freq_inf;
+	return physical_source;
+}
+
+
+
+template <int dim, int nstate, typename real>
 template<typename real2>
 bool Euler<dim,nstate,real>::check_positive_quantity(real2 &qty, const std::string qty_name) const {
     bool qty_is_positive;
@@ -191,7 +234,6 @@ template <int dim, int nstate, typename real>
 inline std::array<real,nstate> Euler<dim,nstate,real>
 ::convert_primitive_to_conservative ( const std::array<real,nstate> &primitive_soln ) const
 {
-
     const real density = primitive_soln[0];
     const dealii::Tensor<1,dim,real> velocities = extract_velocities_from_primitive<real>(primitive_soln);
 
@@ -798,7 +840,7 @@ std::array<dealii::Tensor<1,dim,real>,nstate> Euler<dim,nstate,real>
         // Energy equation
         conv_flux[nstate-1][flux_dim] = density*vel[flux_dim]*specific_total_enthalpy;
     }
-    return conv_flux;
+	return conv_flux;	
 }
 
 template <int dim, int nstate, typename real>

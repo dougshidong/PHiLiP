@@ -193,6 +193,7 @@ public:
         h_refinement_study_isentropic_vortex,
         khi_robustness,
         homogeneous_isotropic_turbulence_initialization_check,
+		caradonna_tung,
     };
     /// Store selected TestType from the input file.
     TestType test_type;
@@ -283,10 +284,15 @@ public:
 
     /// Flag for renumbering DOFs
     bool do_renumber_dofs;
+
     /// Renumber dofs type.
     enum RenumberDofsType { CuthillMckee };
     /// Store selected RenumberDofsType from the input file.
     RenumberDofsType renumber_dofs_type;
+
+    /** Tolerance for checking that the determinant of surface jacobians at element faces matches.
+     *  Note: Currently only used in weak dg. */
+    double matching_surface_jac_det_tolerance;
     
     /// Declare parameters that can be set as inputs and set up the default options
     /** This subroutine should call the sub-parameter classes static declare_parameters()

@@ -16,6 +16,7 @@ public:
     double angle_of_attack;
     /// Input file provides in degrees, but the value stored here is in radians
     double side_slip_angle;
+	double rot_frequency; ///< Rotational Frequency input in rotations/s.
 
     EulerParam (); ///< Constructor
 

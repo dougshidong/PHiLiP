@@ -35,6 +35,7 @@ set(TESTS_SOURCE
     euler_entropy_conserving_split_forms_check.cpp
     homogeneous_isotropic_turbulence_initialization_check.cpp
     khi_robustness.cpp
+	euler_caradonna_tung.cpp
     )
 
 foreach(dim RANGE 1 3)

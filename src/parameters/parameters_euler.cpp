@@ -25,7 +25,10 @@ void EulerParam::declare_parameters (dealii::ParameterHandler &prm)
         prm.declare_entry("side_slip_angle", "0.0",
                           dealii::Patterns::Double(-180, 180),
                           "Side slip angle in degrees. Required for 3D");
-    }
+    	prm.declare_entry("rotational_frequency", "0.0",
+						  dealii::Patterns::Double(0, 10000),
+    					  "Rotational Frequency of Horizontal Rotor in rotations/s.");
+        }
     prm.leave_subsection();
 }
 
@@ -39,6 +42,7 @@ void EulerParam ::parse_parameters (dealii::ParameterHandler &prm)
         const double pi = atan(1.0) * 4.0;
         angle_of_attack = prm.get_double("angle_of_attack") * pi/180.0;
         side_slip_angle = prm.get_double("side_slip_angle") * pi/180.0;
+		rot_frequency   = prm.get_double("rotational_frequency");
     }
     prm.leave_subsection();
 }

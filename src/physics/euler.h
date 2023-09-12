@@ -99,7 +99,8 @@ public:
         std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function = nullptr,
         const two_point_num_flux_enum                             two_point_num_flux_type = two_point_num_flux_enum::KG,
         const bool                                                has_nonzero_diffusion = false,
-        const bool                                                has_nonzero_physical_source = false);
+        const bool                                                has_nonzero_physical_source = false,
+		const double                                              rot_frequency = 0.0);
 
     /// Destructor
     // virtual ~Euler() =0;
@@ -125,7 +126,7 @@ public:
      */
     const double side_slip_angle;
 
-
+    const double freq_inf; ///< Non-dimensionalized frequency* at infinity
     const double sound_inf; ///< Non-dimensionalized sound* at infinity
     const double pressure_inf; ///< Non-dimensionalized pressure* at infinity
     const double entropy_inf; ///< Entropy measure at infinity
@@ -133,6 +134,8 @@ public:
     double temperature_inf; ///< Non-dimensionalized temperature* at infinity. Should equal 1/density*(inf)
     double dynamic_pressure_inf; ///< Non-dimensionalized dynamic pressure* at infinity
 
+    bool has_rotational_frequency; ///< Checks if there is a rotational frequency in the fluid. 
+	
     //const double internal_energy_inf;
     /// Non-dimensionalized Velocity vector at farfield
     /** Evaluated using mach_number, angle_of_attack, and side_slip_angle.
@@ -150,7 +153,7 @@ public:
 
     /// Convective normal flux: \f$ \mathbf{F}_{conv} \cdot \hat{n} \f$
     std::array<real,nstate> convective_normal_flux (const std::array<real,nstate> &conservative_soln, const dealii::Tensor<1,dim,real> &normal) const;
-
+	
     /// Convective flux Jacobian: \f$ \frac{\partial \mathbf{F}_{conv}}{\partial w} \cdot \mathbf{n} \f$
     dealii::Tensor<2,nstate,real> convective_flux_directional_jacobian (
         const std::array<real,nstate> &conservative_soln,
@@ -200,6 +203,20 @@ public:
     /// Convective flux contribution to the source term
     std::array<real,nstate> convective_source_term (
         const dealii::Point<dim,real> &pos) const;
+	
+	/// Physical source terms. Used for special sub-cases of Euler.
+	std::array<real,nstate> physical_source_term(
+		const dealii::Point<dim,real> &pos,
+		const std::array<real,nstate> &conservative_soln,
+		const std::array<dealii::Tensor<1,dim,real>,nstate> &conservative_soln_gradient,
+		const dealii::types::global_dof_index cell_index) const override;
+	
+	/// Rotational physical source term
+	std::array<real,nstate> rotational_physical_source_term(
+		const dealii::Point<dim,real> &pos,
+		const std::array<real,nstate> &conservative_soln,
+		const std::array<dealii::Tensor<1,dim,real>,nstate> &conservative_soln_gradient,
+		const dealii::types::global_dof_index cell_index) const;
 
 protected:
     /// Check positive quantity and modify it according to handle_non_physical_result()

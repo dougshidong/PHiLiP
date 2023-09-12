@@ -916,58 +916,39 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_volume_term_strong(
     // mult would sum the states at the quadrature point.
     std::array<std::vector<real>,nstate> soln_coeff;
     std::array<dealii::Tensor<1,dim,std::vector<real>>,nstate> aux_soln_coeff;
-    // std::array<std::vector<real>,nstate> filtered_soln_coeff;
-    // std::array<dealii::Tensor<1,dim,std::vector<real>>,nstate> filtered_aux_soln_coeff;
     const unsigned int p_min_filtered = this->poly_degree_max_large_scales + 1;
     for (unsigned int idof = 0; idof < n_dofs_cell; ++idof) {
         const unsigned int istate = this->fe_collection[poly_degree].system_to_component_index(idof).first;
         const unsigned int ishape = this->fe_collection[poly_degree].system_to_component_index(idof).second;
         if(ishape == 0){
             soln_coeff[istate].resize(n_shape_fns);
-            // filtered_soln_coeff[istate].resize(n_shape_fns);
         }
         soln_coeff[istate][ishape] = this->solution(cell_dofs_indices[idof]);
-        // if(ishape >= p_min_filtered){
-        //     filtered_soln_coeff[istate][ishape] = this->solution(cell_dofs_indices[idof]);
-        // }
         for(int idim=0; idim<dim; idim++){
             if(ishape == 0){
                 aux_soln_coeff[istate][idim].resize(n_shape_fns);
-                // filtered_aux_soln_coeff[istate][idim].resize(n_shape_fns);
             }
             if(this->use_auxiliary_eq){
                 aux_soln_coeff[istate][idim][ishape] = this->auxiliary_solution[idim](cell_dofs_indices[idof]);
-                // if(ishape >= p_min_filtered){
-                //     filtered_aux_soln_coeff[istate][idim][ishape] = this->auxiliary_solution[idim](cell_dofs_indices[idof]);
-        		// }
             }
             else{
                 aux_soln_coeff[istate][idim][ishape] = 0.0;
-                // filtered_aux_soln_coeff[istate][idim][ishape] = 0.0;
             }
         }
     }
     std::array<std::vector<real>,nstate> soln_at_q;
     std::array<dealii::Tensor<1,dim,std::vector<real>>,nstate> aux_soln_at_q; //auxiliary sol at flux nodes
     std::vector<std::array<real,nstate>> soln_at_q_for_max_CFL(n_quad_pts);//Need soln written in a different for to use pre-existing max CFL function
-    // std::array<std::vector<real>,nstate> filtered_soln_at_q;
-    // std::array<dealii::Tensor<1,dim,std::vector<real>>,nstate> filtered_aux_soln_at_q; // filtered auxiliary sol at flux nodes
     // Interpolate each state to the quadrature points using sum-factorization
     // with the basis functions in each reference direction.
     for(int istate=0; istate<nstate; istate++){
         soln_at_q[istate].resize(n_quad_pts);
         soln_basis.matrix_vector_mult_1D(soln_coeff[istate], soln_at_q[istate],
                                          soln_basis.oneD_vol_operator);
-        // filtered_soln_at_q[istate].resize(n_quad_pts);
-        // soln_basis.matrix_vector_mult_1D(filtered_soln_coeff[istate], filtered_soln_at_q[istate],
-        //                                  soln_basis.oneD_vol_operator);
         for(int idim=0; idim<dim; idim++){
             aux_soln_at_q[istate][idim].resize(n_quad_pts);
             soln_basis.matrix_vector_mult_1D(aux_soln_coeff[istate][idim], aux_soln_at_q[istate][idim],
                                              soln_basis.oneD_vol_operator);
-            // filtered_aux_soln_at_q[istate][idim].resize(n_quad_pts);
-            // soln_basis.matrix_vector_mult_1D(filtered_aux_soln_coeff[istate][idim], filtered_aux_soln_at_q[istate][idim],
-            //                                  soln_basis.oneD_vol_operator);
         }
         for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
             soln_at_q_for_max_CFL[iquad][istate] = soln_at_q[istate][iquad];
@@ -1517,8 +1498,6 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_strong(
     // mult would sum the states at the quadrature point.
     std::array<std::vector<real>,nstate> soln_coeff;
     std::array<dealii::Tensor<1,dim,std::vector<real>>,nstate> aux_soln_coeff;
-    // std::array<std::vector<real>,nstate> filtered_soln_coeff;
-    // std::array<dealii::Tensor<1,dim,std::vector<real>>,nstate> filtered_aux_soln_coeff;
     const unsigned int p_min_filtered = this->poly_degree_max_large_scales + 1;
     for (unsigned int idof = 0; idof < n_dofs; ++idof) {
         const unsigned int istate = this->fe_collection[poly_degree].system_to_component_index(idof).first;
@@ -1526,42 +1505,29 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_strong(
         // allocate
         if(ishape == 0){
             soln_coeff[istate].resize(n_shape_fns);
-            // filtered_soln_coeff[istate].resize(n_shape_fns);
         }
         // solve
         soln_coeff[istate][ishape] = this->solution(dof_indices[idof]);
-        // if(ishape >= p_min_filtered){
-        //     filtered_soln_coeff[istate][ishape] = this->solution(dof_indices[idof]);
-        // }
         for(int idim=0; idim<dim; idim++){
             //allocate
             if(ishape == 0){
                 aux_soln_coeff[istate][idim].resize(n_shape_fns);
-                // filtered_aux_soln_coeff[istate][idim].resize(n_shape_fns);
             }
             //solve
             if(this->use_auxiliary_eq){
                 aux_soln_coeff[istate][idim][ishape] = this->auxiliary_solution[idim](dof_indices[idof]);
-                // if(ishape >= p_min_filtered){
-                //     filtered_aux_soln_coeff[istate][idim][ishape] = this->auxiliary_solution[idim](dof_indices[idof]);
-                // }
             }
             else{
                 aux_soln_coeff[istate][idim][ishape] = 0.0;
-                // filtered_aux_soln_coeff[istate][idim][ishape] = 0.0;
             }
         }
     }
     // Interpolate the modal coefficients to the volume cubature nodes.
     std::array<std::vector<real>,nstate> soln_at_vol_q;
     std::array<dealii::Tensor<1,dim,std::vector<real>>,nstate> aux_soln_at_vol_q;
-    // std::array<std::vector<real>,nstate> filtered_soln_at_vol_q;
-    // std::array<dealii::Tensor<1,dim,std::vector<real>>,nstate> filtered_aux_soln_at_vol_q;
     // Interpolate modal soln coefficients to the facet.
     std::array<std::vector<real>,nstate> soln_at_surf_q;
     std::array<dealii::Tensor<1,dim,std::vector<real>>,nstate> aux_soln_at_surf_q;
-    // std::array<std::vector<real>,nstate> filtered_soln_at_surf_q;
-    // std::array<dealii::Tensor<1,dim,std::vector<real>>,nstate> filtered_aux_soln_at_surf_q;
     for(int istate=0; istate<nstate; ++istate){
         //allocate
         soln_at_vol_q[istate].resize(n_quad_pts_vol);
@@ -1577,20 +1543,6 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_strong(
                                                  soln_basis.oneD_surf_operator,
                                                  soln_basis.oneD_vol_operator);
 
-        // //allocate
-        // filtered_soln_at_vol_q[istate].resize(n_quad_pts_vol);
-        // //solve filtered soln at volume cubature nodes
-        // soln_basis.matrix_vector_mult_1D(filtered_soln_coeff[istate], filtered_soln_at_vol_q[istate],
-        //                                  soln_basis.oneD_vol_operator);
-
-        // //allocate
-        // filtered_soln_at_surf_q[istate].resize(n_face_quad_pts);
-        // //solve filtered soln at facet cubature nodes
-        // soln_basis.matrix_vector_mult_surface_1D(iface,
-        //                                          filtered_soln_coeff[istate], filtered_soln_at_surf_q[istate],
-        //                                          soln_basis.oneD_surf_operator,
-        //                                          soln_basis.oneD_vol_operator);
-
         for(int idim=0; idim<dim; idim++){
             //alocate
             aux_soln_at_vol_q[istate][idim].resize(n_quad_pts_vol);
@@ -1605,20 +1557,6 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_strong(
                                                      aux_soln_coeff[istate][idim], aux_soln_at_surf_q[istate][idim],
                                                      soln_basis.oneD_surf_operator,
                                                      soln_basis.oneD_vol_operator);
-
-            // //alocate
-            // filtered_aux_soln_at_vol_q[istate][idim].resize(n_quad_pts_vol);
-            // //solve filtered auxiliary soln at volume cubature nodes
-            // soln_basis.matrix_vector_mult_1D(filtered_aux_soln_coeff[istate][idim], filtered_aux_soln_at_vol_q[istate][idim],
-            //                                  soln_basis.oneD_vol_operator);
-
-            // //allocate
-            // filtered_aux_soln_at_surf_q[istate][idim].resize(n_face_quad_pts);
-            // //solve filtered auxiliary soln at facet cubature nodes
-            // soln_basis.matrix_vector_mult_surface_1D(iface,
-            //                                          filtered_aux_soln_coeff[istate][idim], filtered_aux_soln_at_surf_q[istate][idim],
-            //                                          soln_basis.oneD_surf_operator,
-            //                                          soln_basis.oneD_vol_operator);
         }
     }
 
@@ -2271,34 +2209,23 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_strong(
     // Extract interior modal coefficients of solution
     std::array<std::vector<real>,nstate> soln_coeff_int;
     std::array<dealii::Tensor<1,dim,std::vector<real>>,nstate> aux_soln_coeff_int;
-    // std::array<std::vector<real>,nstate> filtered_soln_coeff_int;
-    // std::array<dealii::Tensor<1,dim,std::vector<real>>,nstate> filtered_aux_soln_coeff_int;
     const unsigned int p_min_filtered = this->poly_degree_max_large_scales + 1;
     for (unsigned int idof = 0; idof < n_dofs_int; ++idof) {
         const unsigned int istate = this->fe_collection[poly_degree_int].system_to_component_index(idof).first;
         const unsigned int ishape = this->fe_collection[poly_degree_int].system_to_component_index(idof).second;
         if(ishape == 0){
             soln_coeff_int[istate].resize(n_shape_fns_int);
-            // filtered_soln_coeff_int[istate].resize(n_shape_fns_int);
         }
         soln_coeff_int[istate][ishape] = this->solution(dof_indices_int[idof]);
-        // if(ishape >= p_min_filtered){
-        //     filtered_soln_coeff_int[istate][ishape] = this->solution(dof_indices_int[idof]);
-        // }
         for(int idim=0; idim<dim; idim++){
             if(ishape == 0){
                 aux_soln_coeff_int[istate][idim].resize(n_shape_fns_int);
-                // filtered_aux_soln_coeff_int[istate][idim].resize(n_shape_fns_int);
             }
             if(this->use_auxiliary_eq){
                 aux_soln_coeff_int[istate][idim][ishape] = this->auxiliary_solution[idim](dof_indices_int[idof]);
-                // if(ishape >= p_min_filtered){
-                //     filtered_aux_soln_coeff_int[istate][idim][ishape] = this->auxiliary_solution[idim](dof_indices_int[idof]);
-                // }
             }
             else{
                 aux_soln_coeff_int[istate][idim][ishape] = 0.0;
-                // filtered_aux_soln_coeff_int[istate][idim][ishape] = 0.0;
             }
         }
     }
@@ -2306,33 +2233,22 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_strong(
     // Extract exterior modal coefficients of solution
     std::array<std::vector<real>,nstate> soln_coeff_ext;
     std::array<dealii::Tensor<1,dim,std::vector<real>>,nstate> aux_soln_coeff_ext;
-    // std::array<std::vector<real>,nstate> filtered_soln_coeff_ext;
-    // std::array<dealii::Tensor<1,dim,std::vector<real>>,nstate> filtered_aux_soln_coeff_ext;
     for (unsigned int idof = 0; idof < n_dofs_ext; ++idof) {
         const unsigned int istate = this->fe_collection[poly_degree_ext].system_to_component_index(idof).first;
         const unsigned int ishape = this->fe_collection[poly_degree_ext].system_to_component_index(idof).second;
         if(ishape == 0){
             soln_coeff_ext[istate].resize(n_shape_fns_ext);
-            // filtered_soln_coeff_ext[istate].resize(n_shape_fns_ext);
         }
         soln_coeff_ext[istate][ishape] = this->solution(dof_indices_ext[idof]);
-        // if(ishape >= p_min_filtered){
-        //     filtered_soln_coeff_ext[istate][ishape] = this->solution(dof_indices_ext[idof]);
-        // }
         for(int idim=0; idim<dim; idim++){
             if(ishape == 0){
                 aux_soln_coeff_ext[istate][idim].resize(n_shape_fns_ext);
-                // filtered_aux_soln_coeff_ext[istate][idim].resize(n_shape_fns_ext);
             }
             if(this->use_auxiliary_eq){
                 aux_soln_coeff_ext[istate][idim][ishape] = this->auxiliary_solution[idim](dof_indices_ext[idof]);
-                // if(ishape >= p_min_filtered){
-                //     filtered_aux_soln_coeff_ext[istate][idim][ishape] = this->auxiliary_solution[idim](dof_indices_ext[idof]);
-                // }
             }
             else{
                 aux_soln_coeff_ext[istate][idim][ishape] = 0.0;
-                // filtered_aux_soln_coeff_ext[istate][idim][ishape] = 0.0;
             }
         }
     }
@@ -2342,19 +2258,11 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_strong(
     std::array<std::vector<real>,nstate> soln_at_vol_q_ext;
     std::array<dealii::Tensor<1,dim,std::vector<real>>,nstate> aux_soln_at_vol_q_int;
     std::array<dealii::Tensor<1,dim,std::vector<real>>,nstate> aux_soln_at_vol_q_ext;
-    // std::array<std::vector<real>,nstate> filtered_soln_at_vol_q_int;
-    // std::array<std::vector<real>,nstate> filtered_soln_at_vol_q_ext;
-    // std::array<dealii::Tensor<1,dim,std::vector<real>>,nstate> filtered_aux_soln_at_vol_q_int;
-    // std::array<dealii::Tensor<1,dim,std::vector<real>>,nstate> filtered_aux_soln_at_vol_q_ext;
     // Interpolate modal soln coefficients to the facet.
     std::array<std::vector<real>,nstate> soln_at_surf_q_int;
     std::array<std::vector<real>,nstate> soln_at_surf_q_ext;
     std::array<dealii::Tensor<1,dim,std::vector<real>>,nstate> aux_soln_at_surf_q_int;
     std::array<dealii::Tensor<1,dim,std::vector<real>>,nstate> aux_soln_at_surf_q_ext;
-    // std::array<std::vector<real>,nstate> filtered_soln_at_surf_q_int;
-    // std::array<std::vector<real>,nstate> filtered_soln_at_surf_q_ext;
-    // std::array<dealii::Tensor<1,dim,std::vector<real>>,nstate> filtered_aux_soln_at_surf_q_int;
-    // std::array<dealii::Tensor<1,dim,std::vector<real>>,nstate> filtered_aux_soln_at_surf_q_ext;
     for(int istate=0; istate<nstate; ++istate){
         // allocate
         soln_at_vol_q_int[istate].resize(n_quad_pts_vol_int);
@@ -2378,28 +2286,6 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_strong(
                                                      soln_basis_ext.oneD_surf_operator,
                                                      soln_basis_ext.oneD_vol_operator);
 
-        // // allocate
-        // filtered_soln_at_vol_q_int[istate].resize(n_quad_pts_vol_int);
-        // filtered_soln_at_vol_q_ext[istate].resize(n_quad_pts_vol_ext);
-        // // solve soln at volume cubature nodes
-        // soln_basis_int.matrix_vector_mult_1D(filtered_soln_coeff_int[istate], filtered_soln_at_vol_q_int[istate],
-        //                                      soln_basis_int.oneD_vol_operator);
-        // soln_basis_ext.matrix_vector_mult_1D(filtered_soln_coeff_ext[istate], filtered_soln_at_vol_q_ext[istate],
-        //                                      soln_basis_ext.oneD_vol_operator);
-
-        // // allocate
-        // filtered_soln_at_surf_q_int[istate].resize(n_face_quad_pts);
-        // filtered_soln_at_surf_q_ext[istate].resize(n_face_quad_pts);
-        // // solve soln at facet cubature nodes
-        // soln_basis_int.matrix_vector_mult_surface_1D(iface,
-        //                                              filtered_soln_coeff_int[istate], filtered_soln_at_surf_q_int[istate],
-        //                                              soln_basis_int.oneD_surf_operator,
-        //                                              soln_basis_int.oneD_vol_operator);
-        // soln_basis_ext.matrix_vector_mult_surface_1D(neighbor_iface,
-        //                                              filtered_soln_coeff_ext[istate], filtered_soln_at_surf_q_ext[istate],
-        //                                              soln_basis_ext.oneD_surf_operator,
-        //                                              soln_basis_ext.oneD_vol_operator);
-
         for(int idim=0; idim<dim; idim++){
             // alocate
             aux_soln_at_vol_q_int[istate][idim].resize(n_quad_pts_vol_int);
@@ -2422,28 +2308,6 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_strong(
                                                          aux_soln_coeff_ext[istate][idim], aux_soln_at_surf_q_ext[istate][idim],
                                                          soln_basis_ext.oneD_surf_operator,
                                                          soln_basis_ext.oneD_vol_operator);
-
-            // // alocate
-            // filtered_aux_soln_at_vol_q_int[istate][idim].resize(n_quad_pts_vol_int);
-            // filtered_aux_soln_at_vol_q_ext[istate][idim].resize(n_quad_pts_vol_ext);
-            // // solve filtered auxiliary soln at volume cubature nodes
-            // soln_basis_int.matrix_vector_mult_1D(filtered_aux_soln_coeff_int[istate][idim], filtered_aux_soln_at_vol_q_int[istate][idim],
-            //                                      soln_basis_int.oneD_vol_operator);
-            // soln_basis_ext.matrix_vector_mult_1D(filtered_aux_soln_coeff_ext[istate][idim], filtered_aux_soln_at_vol_q_ext[istate][idim],
-            //                                      soln_basis_ext.oneD_vol_operator);
-
-            // // allocate
-            // filtered_aux_soln_at_surf_q_int[istate][idim].resize(n_face_quad_pts);
-            // filtered_aux_soln_at_surf_q_ext[istate][idim].resize(n_face_quad_pts);
-            // // solve filtered auxiliary soln at facet cubature nodes
-            // soln_basis_int.matrix_vector_mult_surface_1D(iface,
-            //                                              filtered_aux_soln_coeff_int[istate][idim], filtered_aux_soln_at_surf_q_int[istate][idim],
-            //                                              soln_basis_int.oneD_surf_operator,
-            //                                              soln_basis_int.oneD_vol_operator);
-            // soln_basis_ext.matrix_vector_mult_surface_1D(neighbor_iface,
-            //                                              filtered_aux_soln_coeff_ext[istate][idim], filtered_aux_soln_at_surf_q_ext[istate][idim],
-            //                                              soln_basis_ext.oneD_surf_operator,
-            //                                              soln_basis_ext.oneD_vol_operator);
         }
     }
 

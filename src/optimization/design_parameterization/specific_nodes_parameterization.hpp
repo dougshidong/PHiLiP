@@ -33,10 +33,9 @@ public:
     
     void compute_control_index_to_vol_index();
 
-    bool check_if_node_belongs_to_the_line(
-        const dealii::Point<dim> &start_point, 
-        const dealii::Point<dim> &end_point,
-        const double x, const double y) const;
+    bool check_if_node_belongs_to_the_region_between_lines(
+        const double x, 
+        const double y) const;
 
 private:
     

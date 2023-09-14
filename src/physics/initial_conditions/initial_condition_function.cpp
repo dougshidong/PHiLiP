@@ -502,15 +502,24 @@ real InitialConditionFunction_AcousticWave<dim,nstate,real>
         }
         if(istate==1) {
             // x-velocity
-            value = sin(x)*cos(y);
+            // value = sin(x)*cos(y);
+            value = 0.0;
         }
         if(istate==2) {
             // y-velocity
-            value = -cos(x)*sin(y);
+            // value = -cos(x)*sin(y);
+            value = 0.0;
         }
         if(istate==3) {
             // pressure
-            value = 1.0/(this->gamma_gas*this->mach_inf_sqr) + (1.0/16.0)*(cos(2.0*x)+cos(2.0*y))*(2.0);
+            // value = 1.0/(this->gamma_gas*this->mach_inf_sqr) + (1.0/16.0)*(cos(2.0*x)+cos(2.0*y))*(2.0);
+            // value = 1.0 + (x-x+y-y);
+            double const sigma = 0.5;
+            double const pi = 6.28318530717958623200 / 2; // pi
+            double const mu = 6.28318530717958623200 / 2 ; //max of x
+            double fx = (1.0/sqrt(2.0*pi*sigma*sigma))*exp(-((x-mu)*(x-mu))/(2.0*(sigma*sigma)));
+            double fy = (1.0/sqrt(2.0*pi*sigma*sigma))*exp(-((y-mu)*(y-mu))/(2.0*(sigma*sigma)));
+            value = 1.0/(this->gamma_gas*this->mach_inf_sqr) + fx*fy;
         }
     }
     return value;

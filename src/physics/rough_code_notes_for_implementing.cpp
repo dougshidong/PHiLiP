@@ -55,3 +55,34 @@ const real x_velocity = u_plus*friction_velocity;
 
 
 
+double GetVibTemp(double *Qvec, double *Sp_Density, double r0)
+{
+    /* Newton's method for root finding */
+    register double r1 = r0;
+    register double err = 1.1;
+    register double dr;
+    register int i = 0;
+    register int maxIter = 5000;
+    
+    while(err > RootFindingTolerance_Vib)
+    {
+        r0 = r1;
+        dr = f_GetVibTemp_Newton(Qvec, Sp_Density, r0)/df_GetVibTemp_Newton(Sp_Density, r0);
+        r1 = r0 - dr;
+        err = abs(r1-r0);
+        i += 1;
+        
+        // if(i%100 == 0)
+        // {
+        //  cout << "\t i = " << i << "\t error = " << err << endl;
+        // }
+
+        if(i>maxIter)
+        {
+            cout << "ERROR: GetVibTemp() reached maximum number of iterations." << endl;
+            break;  
+        }
+    }
+    return r1;
+}
+

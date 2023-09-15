@@ -26,6 +26,7 @@ InviscidRealGas<dim,nstate,real>::InviscidRealGas (
     , R_ref(R_air)
     , temperature_ref(273.15)
 {
+    // std::cout<<"In constructor of inviscid real gas."<<std::endl<<std::flush;
     static_assert(nstate==dim+2, "Physics::InviscidRealGas() should be created with nstate=dim+2"); // TO DO: UPDATE THIS with nspecies
 }
 
@@ -233,6 +234,7 @@ template <int dim, int nstate, typename real>
 inline real InviscidRealGas<dim,nstate,real>
 :: compute_Cp ( const real temperature ) const
 {
+    // std::cout<<"In compute_Cp()."<<std::endl<<std::flush;
     // /// This should be made as a function ...
     // /// It is for N2, T range: 200[K] - 1000[K]
     // real a1 = 2.210371497e+04;
@@ -270,6 +272,7 @@ inline real InviscidRealGas<dim,nstate,real>
     /// polynomial
     real Cp = a1/pow(T,2.0) + a2/T + a3 + a4*T + a5*pow(T,2.0) + a6*pow(T,3.0) + a7*pow(T,4.0);
     Cp *= R_N2;
+    // std::cout<<"Computed Cp. Cp = "<<Cp<<std::endl<<std::flush;
     return Cp;
 }
 
@@ -323,37 +326,56 @@ template <int dim, int nstate, typename real>
 inline real InviscidRealGas<dim,nstate,real>
 :: compute_temperature ( const std::array<real,nstate> &conservative_soln ) const
 {
+    // std::cout<<"In compute_temperature() "<<std::endl<<std::flush;
     const real density = compute_density(conservative_soln);
     const dealii::Tensor<1,dim,real> vel = compute_velocities(conservative_soln);
     const real vel2 = compute_velocity_squared(vel);
 
-    /// initial guess: This must be modified...
-    real temperature_old = 1.0; /// [...]
+    // /// gas constant_N2
+    // real N_N2 = 28.01340 * 10e-4;  // [kg/mol]
+    // real R_N2 = this->Ru/N_N2;           // [J/kg]
+    // R_N2 = R_N2/this->R_ref;             // [...]
+    // /// velocity
+    // real vel_ref = 1.0; /// mach_inf???
+    // /// This should be madde as a function...
+
+    // /// initial guess: This must be modified... ///
+    // /// gamma
+    // real gam_ref = 1.4; /// This is "gam" probably
+    // /// This should be made as a function...
+    // const real total_energy = conservative_soln[3]/density;
+    // real pressure = (gam_ref-1)*(density*total_energy - 0.5*vel2);
+    // real temperature_old = pressure*gam_ref*mach_inf_sqr / (density*R_N2);
+    // ///
+
+    // /// initial guess.... this must be modified
+    // real temperature = temperature_old;
+
+    // /// Newton-Raphson method
+    // real tol = 1.0;
+    // do {
+    //     real Cp = compute_Cp(temperature);
+    // 	std::cout<<"Temparature = "<<temperature<<std::endl<<std::flush;
+    //     real enthalpy = compute_enthalpy(temperature);
+    //     real f_T  = (enthalpy - (this->R_ref*this->temperature_ref/pow(vel_ref,2.0))*R_N2*temperature) - (conservative_soln[3]/density - 0.50*vel2);
+    //     real f_Td = (this->R_ref*this->temperature_ref/pow(vel_ref,2.0)) * (Cp - R_N2);
+    //     temperature = temperature_old - f_T/f_Td;
+    //     tol = abs(temperature - temperature_old);
+    //     temperature_old = temperature;
+    // }
+    // while (tol > 0.9); // this should be modifieds
+
+        /// initial guess: This must be modified... ///
+    /// gamma
+    real gam_ref = 1.4; /// This is "gam" probably
+    /// This should be made as a function...
+    const real total_energy = conservative_soln[nstate-1]/density;
+    real pressure = (gam_ref-1)*(density*total_energy - 0.5*gam_ref*vel2);
+    real temperature = pressure*gam_ref*mach_inf_sqr / (density);
     ///
 
-    /// gas constant_N2
-    real N_N2 = 28.01340 * 10e-4;  // [kg/mol]
-    real R_N2 = this->Ru/N_N2;           // [J/kg]
-    R_N2 = R_N2/this->R_ref;             // [...]
-    /// velocity
-    real vel_ref = 1.0; /// mach_inf???
-    /// This should be madde as a function...
-
-    /// initial guess.... this must be modified
-    real temperature = temperature_old;
-
-    /// Newton-Raphson method
-    real tol = 1.0;
-    do {
-        real Cp = compute_Cp(temperature);
-        real enthalpy = compute_enthalpy(temperature);
-        real f_T  = (enthalpy - (this->R_ref*this->temperature_ref/pow(vel_ref,2.0))*R_N2*temperature) - (conservative_soln[3]/density - 0.50*vel2);
-        real f_Td = (this->R_ref*this->temperature_ref/pow(vel_ref,2.0)) * (Cp - R_N2);
-        temperature = temperature_old - f_T/f_Td;
-        tol = abs(temperature - temperature_old);
-        temperature_old = temperature;
-    }
-    while (tol > 1.0e-5); // this should be modifieds
+    // std::cout<<"Pressurefrom Newton-Raphson= "<<pressure<<std::endl<<std::flush;
+    //std::cout<<"Temperature from Newton-Raphson= "<<temperature<<std::endl<<std::flush;
 
     return temperature;
 }
@@ -365,19 +387,18 @@ inline real InviscidRealGas<dim,nstate,real>
 {
     const real density = compute_density(conservative_soln);
 
-    /// gas constant_N2
-    real N_N2 = 28.01340 * 10e-4;  // [kg/mol]
-    real R_N2 = this->Ru/N_N2;           // [J/kg]
-    R_N2 = R_N2/this->R_ref;             // [...]
-    /// gamma
+    // /// gas constant_N2
+    // real N_N2 = 28.01340 * 10e-4;  // [kg/mol]
+    // real R_N2 = this->Ru/N_N2;           // [J/kg]
+    // R_N2 = R_N2/this->R_ref;             // [...]
+    // gamma
     real gam_ref = 1.4;
-    /// mach_ref
-    real mach_ref = 1.0;
 
     /// This should be madde as a function...
 
     real temperature = compute_temperature(conservative_soln);
-    real pressure = (density*R_N2*temperature) / (gam_ref*pow(mach_ref,2.0));
+    // real pressure = (density*R_N2*temperature) / (gam*pow(mach_inf,2.0));
+    real pressure = density*temperature/(gam_ref*mach_inf_sqr);
 
     return pressure;
 }
@@ -419,6 +440,126 @@ std::array<dealii::Tensor<1,dim,real>,nstate> InviscidRealGas<dim,nstate,real>
         // TO DO: now loop over nspecies
     }
     return conv_flux;
+}
+
+template <int dim, int nstate, typename real>
+dealii::Vector<double> InviscidRealGas<dim,nstate,real>::post_compute_derived_quantities_vector (
+    const dealii::Vector<double>              &uh,
+    const std::vector<dealii::Tensor<1,dim> > &duh,
+    const std::vector<dealii::Tensor<2,dim> > &dduh,
+    const dealii::Tensor<1,dim>               &normals,
+    const dealii::Point<dim>                  &evaluation_points) const
+{
+    std::vector<std::string> names = post_get_names ();
+    dealii::Vector<double> computed_quantities = PhysicsBase<dim,nstate,real>::post_compute_derived_quantities_vector ( uh, duh, dduh, normals, evaluation_points);
+    unsigned int current_data_index = computed_quantities.size() - 1;
+    computed_quantities.grow_or_shrink(names.size());
+    if constexpr (std::is_same<real,double>::value) {
+
+        std::array<double, nstate> conservative_soln;
+        for (unsigned int s=0; s<nstate; ++s) {
+            conservative_soln[s] = uh(s);
+        }
+        /*const std::array<double, nstate> primitive_soln = convert_conservative_to_primitive<real>(conservative_soln);*/
+        // if (primitive_soln[0] < 0) this->pcout << evaluation_points << std::endl;
+
+        // Density
+          /*computed_quantities(++current_data_index) = primitive_soln[0];*/
+            computed_quantities(++current_data_index) = conservative_soln[0];
+        // Velocities
+        for (unsigned int d=0; d<dim; ++d) {
+            /*computed_quantities(++current_data_index) = primitive_soln[1+d];*/
+            computed_quantities(++current_data_index) = conservative_soln[1+d]/conservative_soln[0];
+        }
+        // Momentum
+        for (unsigned int d=0; d<dim; ++d) {
+            computed_quantities(++current_data_index) = conservative_soln[1+d];
+        }
+        // Energy
+        computed_quantities(++current_data_index) = conservative_soln[nstate-1];
+        // Pressure
+        /*computed_quantities(++current_data_index) = primitive_soln[nstate-1];*/
+        computed_quantities(++current_data_index) = compute_pressure(conservative_soln);
+        // Pressure coefficient
+        /*computed_quantities(++current_data_index) = (primitive_soln[nstate-1] - pressure_inf) / dynamic_pressure_inf;*/
+        computed_quantities(++current_data_index) = 999;
+        // Temperature
+        /*computed_quantities(++current_data_index) = compute_temperature<real>(primitive_soln);*/
+        computed_quantities(++current_data_index) = compute_temperature(conservative_soln);
+        // Entropy generation
+        /*computed_quantities(++current_data_index) = compute_entropy_measure(conservative_soln) - entropy_inf;*/
+        computed_quantities(++current_data_index) = 999;
+        // Mach Number
+        /*computed_quantities(++current_data_index) = compute_mach_number(conservative_soln);*/
+        computed_quantities(++current_data_index) = 999;
+
+    }
+    if (computed_quantities.size()-1 != current_data_index) {
+        this->pcout << " Did not assign a value to all the data. Missing " << computed_quantities.size() - current_data_index << " variables."
+                  << " If you added a new output variable, make sure the names and DataComponentInterpretation match the above. "
+                  << std::endl;
+    }
+
+    return computed_quantities;
+}
+
+template <int dim, int nstate, typename real>
+std::vector<dealii::DataComponentInterpretation::DataComponentInterpretation> InviscidRealGas<dim,nstate,real>
+::post_get_data_component_interpretation () const
+{
+    namespace DCI = dealii::DataComponentInterpretation;
+    std::vector<DCI::DataComponentInterpretation> interpretation = PhysicsBase<dim,nstate,real>::post_get_data_component_interpretation (); // state variables
+    interpretation.push_back (DCI::component_is_scalar); // Density
+    for (unsigned int d=0; d<dim; ++d) {
+        interpretation.push_back (DCI::component_is_part_of_vector); // Velocity
+    }
+    for (unsigned int d=0; d<dim; ++d) {
+        interpretation.push_back (DCI::component_is_part_of_vector); // Momentum
+    }
+    interpretation.push_back (DCI::component_is_scalar); // Energy
+    interpretation.push_back (DCI::component_is_scalar); // Pressure
+    interpretation.push_back (DCI::component_is_scalar); // Pressure coefficient
+    interpretation.push_back (DCI::component_is_scalar); // Temperature
+    interpretation.push_back (DCI::component_is_scalar); // Entropy generation
+    interpretation.push_back (DCI::component_is_scalar); // Mach number
+
+    std::vector<std::string> names = post_get_names();
+    if (names.size() != interpretation.size()) {
+        this->pcout << "Number of DataComponentInterpretation is not the same as number of names for output file" << std::endl;
+    }
+    return interpretation;
+}
+
+template <int dim, int nstate, typename real>
+std::vector<std::string> InviscidRealGas<dim,nstate,real>
+::post_get_names () const
+{
+    std::vector<std::string> names = PhysicsBase<dim,nstate,real>::post_get_names ();
+    names.push_back ("density");
+    for (unsigned int d=0; d<dim; ++d) {
+      names.push_back ("velocity");
+    }
+    for (unsigned int d=0; d<dim; ++d) {
+      names.push_back ("momentum");
+    }
+    names.push_back ("energy");
+    names.push_back ("pressure");
+    names.push_back ("pressure_coeffcient");
+    names.push_back ("temperature");
+
+    names.push_back ("entropy_generation");
+    names.push_back ("mach_number");
+    return names;
+}
+
+template <int dim, int nstate, typename real>
+dealii::UpdateFlags InviscidRealGas<dim,nstate,real>
+::post_get_needed_update_flags () const
+{
+    //return update_values | update_gradients;
+    return dealii::update_values
+           | dealii::update_quadrature_points
+           ;
 }
 
 

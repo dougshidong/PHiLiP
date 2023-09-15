@@ -133,6 +133,23 @@ protected:
     std::array<dealii::Tensor<1,dim,real>,nstate> convective_flux (
         const std::array<real,nstate> &conservative_soln) const;
 
+    /// For post processing purposes (update comment later)
+    virtual dealii::Vector<double> post_compute_derived_quantities_vector (
+        const dealii::Vector<double>              &uh,
+        const std::vector<dealii::Tensor<1,dim> > &duh,
+        const std::vector<dealii::Tensor<2,dim> > &dduh,
+        const dealii::Tensor<1,dim>               &normals,
+        const dealii::Point<dim>                  &evaluation_points) const;
+    
+    /// For post processing purposes, sets the base names (with no prefix or suffix) of the computed quantities
+    virtual std::vector<std::string> post_get_names () const;
+    
+    /// For post processing purposes, sets the interpretation of each computed quantity as either scalar or vector
+    virtual std::vector<dealii::DataComponentInterpretation::DataComponentInterpretation> post_get_data_component_interpretation () const;
+    
+    /// For post processing purposes (update comment later)
+    virtual dealii::UpdateFlags post_get_needed_update_flags () const;
+
     // /// array test
     // std::array<dealii::Tensor<1,dim,real>,nstate> array_test (
     //     const std::array<real,nstate> &conservative_soln) const; 

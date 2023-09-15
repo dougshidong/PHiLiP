@@ -30,3 +30,12 @@ add_test(
   COMMAND mpirun -np ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_2D -i ${CMAKE_CURRENT_BINARY_DIR}/2d_inviscid_acoustic_wave_air.prm
   WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )
+# ----------------------------------------
+# add details here: acoustic wave (nitrogen)
+# ----------------------------------------
+configure_file(2d_inviscid_acoustic_wave_nitrogen.prm 2d_inviscid_acoustic_wave_nitrogen.prm COPYONLY)
+add_test(
+  NAME MPI_2D_INVISCID_ACOUSTIC_WAVE_NITROGEN
+  COMMAND mpirun -np ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_2D -i ${CMAKE_CURRENT_BINARY_DIR}/2d_inviscid_acoustic_wave_nitrogen.prm
+  WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
+)

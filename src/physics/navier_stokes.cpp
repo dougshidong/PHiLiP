@@ -88,7 +88,7 @@ real2 NavierStokes<dim,nstate,real>
     const dealii::Tensor<2,dim,real2> velocities_gradient = extract_velocities_gradient_from_primitive_solution_gradient<real2>(primitive_soln_gradient);
 
     // // compute normal velocity
-    // real2 wall_parallel_velocity = 0.0;
+    // real2 normal_velocity = 0.0;
     // for(int d=0;d<dim;++d){
     //     normal_velocity += velocities[d]*normal_vector[d];
     // }

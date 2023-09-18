@@ -2,7 +2,7 @@
 #include <deal.II/grid/grid_tools.h>
 
 #include <Sacado.hpp>
-#include "non_periodic_cube_flow.h"
+#include "non_periodic_cube.h"
 
 namespace PHiLiP {
 namespace Grids {

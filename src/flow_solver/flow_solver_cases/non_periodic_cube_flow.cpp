@@ -1,5 +1,5 @@
 #include "non_periodic_cube_flow.h"
-#include "mesh/grids/non_periodic_cube_flow.h"
+#include "mesh/grids/non_periodic_cube.h"
 #include <deal.II/grid/grid_generator.h>
 #include "physics/physics_factory.h"
 

@@ -185,7 +185,6 @@ inline std::array<real2,nstate> Euler<dim,nstate,real>
 
     check_positive_quantity<real2>(density, "density");
     check_positive_quantity<real2>(pressure, "pressure");
-    
     primitive_soln[0] = density;
     for (int d=0; d<dim; ++d) {
         primitive_soln[1+d] = vel[d];

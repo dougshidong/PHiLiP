@@ -336,6 +336,10 @@ protected:
 };
 
 /// Initial Condition Function: 1D Sod Shock Tube
+/** See Chen & Shu, Entropy stable high order discontinuous 
+*   Galerkin methods with suitable quadrature rules for hyperbolic 
+*   conservation laws., 2017, Pg. 25
+*/
 template <int dim, int nstate, typename real>
 class InitialConditionFunction_SodShockTube: public InitialConditionFunction<dim,nstate,real>
 {
@@ -356,6 +360,10 @@ public:
 };
 
 /// Initial Condition Function: 2D Low Density Euler
+/** See Zhang & Shu, On positivity-preserving high order 
+*   discontinuous Galerkin schemes for compressible Euler 
+*   equations on rectangular meshes, 2010 Pg. 10
+*/
 template <int dim, int nstate, typename real>
 class InitialConditionFunction_LowDensity2D: public InitialConditionFunction<dim,nstate,real>
 {
@@ -375,6 +383,10 @@ public:
 };
 
 /// Initial Condition Function: 1D Leblanc Shock Tube
+/** See Zhang & Shu, On positivity-preserving high order
+*   discontinuous Galerkin schemes for compressible Euler
+*   equations on rectangular meshes, 2010 Pg. 14
+*/
 template <int dim, int nstate, typename real>
 class InitialConditionFunction_LeblancShockTube: public InitialConditionFunction<dim,nstate,real>
 {
@@ -394,6 +406,10 @@ public:
 };
 
 /// Initial Condition Function: 1D Shu Osher Problem
+/** See Johnsen et al., Assessment of high-resolution methods 
+*   for numerical simulations of compressible turbulence with 
+*   shock waves, 2010 Pg. 7
+*/
 template <int dim, int nstate, typename real>
 class InitialConditionFunction_ShuOsherProblem : public InitialConditionFunction<dim, nstate, real>
 {

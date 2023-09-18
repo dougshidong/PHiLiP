@@ -378,7 +378,6 @@ inline real2 Euler<dim,nstate,real>
     real2 pressure = gamm1*(tot_energy - 0.5*density*vel2);
     
     check_positive_quantity<real2>(pressure, "pressure");
-        
     return pressure;
 }
 

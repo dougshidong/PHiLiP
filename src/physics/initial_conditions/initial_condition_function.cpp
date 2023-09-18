@@ -43,12 +43,12 @@ inline real InitialConditionFunction_TurbulentChannelFlow<dim, nstate, real>
 {
     // Get closest wall normal distance
     real y = point[1]; // y-coordinate of position
-    real dist_from_wall = 0.0; // represents distance normal to top/bottom wall (which ever is closer); y-domain bounds are [-half_channel_height, half_channel_height]
+    real dist_from_wall = half_channel_height; // represents distance normal to top/bottom wall (which ever is closer); y-domain bounds are [-half_channel_height, half_channel_height]
     if(y > 0.0){
         // top wall
-        dist_from_wall = half_channel_height - y; // distance from top wall
+        dist_from_wall -= y; // distance from top wall
     } else if(y < 0.0) {
-        dist_from_wall = y - half_channel_height; // distance from bottom wall
+        dist_from_wall += y; // distance from bottom wall
     }
     return dist_from_wall;
 }

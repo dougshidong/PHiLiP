@@ -38,7 +38,7 @@ subsection ODE solver
   set initial_time_step = 0.00000001
   set output_solution_every_x_steps = 1
   set runge_kutta_method = ssprk3_ex
-  set print_iteration_modulo = 1
+  set print_iteration_modulo = 100
 end
 
 # freestream Mach number

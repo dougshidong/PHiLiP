@@ -31,7 +31,7 @@ public:
     double tvb_h;
 
     /// Tuning parameters for TVB Limiter
-    /**TVB Limiter can only be run for 1D, so max length is max nstate = 4*/
+    /** TVB Limiter can only be run for 1D, so max length is max nstate = 4 **/
     dealii::Tensor<1, 4, double> tvb_M;
 
     /// Constructor

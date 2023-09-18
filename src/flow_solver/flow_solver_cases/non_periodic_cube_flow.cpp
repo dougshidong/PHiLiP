@@ -17,8 +17,7 @@ NonPeriodicCubeFlow<dim, nstate>::NonPeriodicCubeFlow(const PHiLiP::Parameters::
 template <int dim, int nstate>
 std::shared_ptr<Triangulation> NonPeriodicCubeFlow<dim,nstate>::generate_grid() const
 {
-    //std::shared_ptr<Triangulation> grid = std::make_shared<Triangulation> (this->mpi_communicator); // Mesh smoothing is set to none by default.
-        std::shared_ptr<Triangulation> grid = std::make_shared<Triangulation> (
+    std::shared_ptr<Triangulation> grid = std::make_shared<Triangulation> (
     #if PHILIP_DIM!=1
                 this->mpi_communicator
     #endif
@@ -50,9 +49,11 @@ std::shared_ptr<Triangulation> NonPeriodicCubeFlow<dim,nstate>::generate_grid() 
             {
                 for (unsigned int face=0; face<dealii::GeometryInfo<dim>::faces_per_cell; ++face) {
                     if (flow_case_type == flow_case_enum::shu_osher_problem) {
+                        // Set left boundary to Riemann Far Field condition
                         if (cell->face(face)->at_boundary()) cell->face(face)->set_boundary_id(1004);
                     }
                     else {
+                        // Set left boundary to Wall Boundary
                         if (cell->face(face)->at_boundary()) cell->face(face)->set_boundary_id(1001);
                     }
                 }
@@ -60,6 +61,7 @@ std::shared_ptr<Triangulation> NonPeriodicCubeFlow<dim,nstate>::generate_grid() 
             else if (cell == grid->end())
             {
                 for (unsigned int face=0; face<dealii::GeometryInfo<dim>::faces_per_cell; ++face) {
+                    // Set left boundary to Wall Boundary
                     if (cell->face(face)->at_boundary()) cell->face(face)->set_boundary_id (1001);
                 }
             }
@@ -84,7 +86,7 @@ double NonPeriodicCubeFlow<dim,nstate>::get_adaptive_time_step(std::shared_ptr<D
     const double approximate_grid_spacing = (this->all_param.flow_solver_param.grid_right_bound-this->all_param.flow_solver_param.grid_left_bound)/pow(number_of_degrees_of_freedom_per_state,(1.0/dim));
     const double cfl_number = this->all_param.flow_solver_param.courant_friedrichs_lewy_number;
     const double time_step = cfl_number * approximate_grid_spacing / this->maximum_local_wave_speed;
-    //std::cout << "new time step:  " << time_step << std::endl;
+    
     return time_step;
 }
 
@@ -128,7 +130,6 @@ void NonPeriodicCubeFlow<dim, nstate>::update_maximum_local_wave_speed(DGBase<di
             }
 
             // Update the maximum local wave speed (i.e. convective eigenvalue)
-           // const double local_wave_speed = this->navier_stokes_physics->max_convective_eigenvalue(soln_at_q);
             const double local_wave_speed = this->pde_physics->max_convective_eigenvalue(soln_at_q);
             if(local_wave_speed > this->maximum_local_wave_speed) this->maximum_local_wave_speed = local_wave_speed;
         }

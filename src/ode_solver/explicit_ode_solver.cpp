@@ -18,17 +18,6 @@ void RungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::step_in_time (real dt, 
     using limiter_enum = Parameters::LimiterParam::LimiterType;
     limiter_enum limiter_type = this->all_parameters->limiter_param.bound_preserving_limiter;
     bool apply_tvb = this->all_parameters->limiter_param.use_tvb_limiter;
-    // Apply limiter at every RK stage
-    if ( limiter_type != limiter_enum::none || apply_tvb == true) {
-        this->limiter->limit(this->dg->solution,
-            this->dg->dof_handler,
-            this->dg->fe_collection,
-            this->dg->volume_quadrature_collection,
-            this->dg->high_order_grid->fe_system.tensor_degree(),
-            this->dg->max_degree,
-            this->dg->oneD_fe_collection_1state,
-            this->dg->oneD_quadrature_collection);
-    }
 
     this->original_time_step = dt;
     this->solution_update = this->dg->solution; //storing u_n

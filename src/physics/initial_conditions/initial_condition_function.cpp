@@ -196,9 +196,6 @@ inline real InitialConditionFunction_BurgersInviscid<dim,nstate,real>
         value *= cos(dealii::numbers::PI*point[1]);
     if constexpr(dim == 3)
         value *= cos(dealii::numbers::PI*point[2]);
-/*    real value = 1.0;
-    if constexpr(dim >= 1)
-        value *= 0.25+0.5*sin(dealii::numbers::PI*point[0]);*/
 
     return value;
 }
@@ -456,20 +453,24 @@ inline real InitialConditionFunction_KHI<dim,nstate,real>
 
 // ========================================================
 // 1D Sod Shock tube -- Initial Condition
+// See Chen & Shu, Entropy stable high order..., 2017, Pg. 25
 // ========================================================
 template <int dim, int nstate, typename real>
 InitialConditionFunction_SodShockTube<dim,nstate,real>
-::InitialConditionFunction_SodShockTube ()
+::InitialConditionFunction_SodShockTube (
+        Parameters::AllParameters const* const param)
         : InitialConditionFunction<dim,nstate,real>()
 {
-    // Nothing to do here yet
+    // Euler object; create using dynamic_pointer_cast and the create_Physics factory
+    // This test should only be used for Euler
+    this->euler_physics = std::dynamic_pointer_cast<Physics::Euler<dim, dim + 2, double>>(
+        Physics::PhysicsFactory<dim, dim + 2, double>::create_Physics(param));
 }
 
 template <int dim, int nstate, typename real>
 inline real InitialConditionFunction_SodShockTube<dim,nstate,real>
 ::value(const dealii::Point<dim,real> &point, const unsigned int istate) const
 {
-    real value = 0;
     real density = 0.0;
     real vel = 0.0;
     real pressure = 0.0;
@@ -483,68 +484,71 @@ inline real InitialConditionFunction_SodShockTube<dim,nstate,real>
         vel = 0.0;
         pressure = 0.1;
     }
-    if(istate == 0)//density
-        value = density;
-    if(istate == 1)//momentum
-        value = density * vel;
-    if(istate == 2)//energy
-        value = pressure/0.4 + 0.5 * vel * vel * density;
+    std::array<real, nstate> soln_primitive;
+    soln_primitive[0] = density;
+    soln_primitive[1] = vel;
+    soln_primitive[2] = pressure;
 
-    return value;
-
+    const std::array<real, nstate> soln_conservative = this->euler_physics->convert_primitive_to_conservative(soln_primitive);
+    return soln_conservative[istate];
 }
 
 
 // ========================================================
 // 2D Low Density Euler -- Initial Condition
+// See Zhang & Shu, On positivity-preserving..., 2010 Pg. 10
 // ========================================================
 template <int dim, int nstate, typename real>
 InitialConditionFunction_LowDensity2D<dim,nstate,real>
-::InitialConditionFunction_LowDensity2D ()
-        : InitialConditionFunction<dim,nstate,real>()
+::InitialConditionFunction_LowDensity2D(
+    Parameters::AllParameters const* const param)
+    : InitialConditionFunction<dim, nstate, real>()
 {
-    // Nothing to do here yet
+    // Euler object; create using dynamic_pointer_cast and the create_Physics factory
+    // This test should only be used for Euler
+    this->euler_physics = std::dynamic_pointer_cast<Physics::Euler<dim, dim + 2, double>>(
+        Physics::PhysicsFactory<dim, dim + 2, double>::create_Physics(param));
 }
 
 template <int dim, int nstate, typename real>
 inline real InitialConditionFunction_LowDensity2D<dim,nstate,real>
 ::value(const dealii::Point<dim,real> &point, const unsigned int istate) const
 {
-    real value = 0;
     real density = 1+0.99*sin(point[0]+point[1]);
     real vel_x = 1.0;
     real vel_y = 1.0;
     real pressure = 1.0;
 
-    if(istate == 0)//density
-        value = density;
-    if(istate == 1)//momentum
-        value = density * vel_x;
-    if(istate == 2)//momentum
-        value = density * vel_y;
-    if(istate == 3)//energy
-        value = pressure/0.4 + (0.5 * vel_x * vel_x * density)+ (0.5 * vel_y * vel_y * density);
+    std::array<real, nstate> soln_primitive;
+    soln_primitive[0] = density;
+    soln_primitive[1] = vel_x;
+    soln_primitive[2] = vel_y;
+    soln_primitive[3] = pressure;
 
-    return value;
-
+    const std::array<real, nstate> soln_conservative = this->euler_physics->convert_primitive_to_conservative(soln_primitive);
+    return soln_conservative[istate];
 }
 
 // ========================================================
 // 1D Leblanc Shock tube -- Initial Condition
+// See Zhang & Shu, On positivity-preserving..., 2010 Pg. 14
 // ========================================================
 template <int dim, int nstate, typename real>
 InitialConditionFunction_LeblancShockTube<dim,nstate,real>
-::InitialConditionFunction_LeblancShockTube ()
-        : InitialConditionFunction<dim,nstate,real>()
+::InitialConditionFunction_LeblancShockTube(
+    Parameters::AllParameters const* const param)
+    : InitialConditionFunction<dim, nstate, real>()
 {
-    // Nothing to do here yet
+    // Euler object; create using dynamic_pointer_cast and the create_Physics factory
+    // This test should only be used for Euler
+    this->euler_physics = std::dynamic_pointer_cast<Physics::Euler<dim, dim + 2, double>>(
+        Physics::PhysicsFactory<dim, dim + 2, double>::create_Physics(param));
 }
 
 template <int dim, int nstate, typename real>
 inline real InitialConditionFunction_LeblancShockTube<dim,nstate,real>
 ::value(const dealii::Point<dim,real> &point, const unsigned int istate) const
 {
-    real value = 0;
     real density = 0.0;
     real vel = 0.0;
     real pressure = 0.0;
@@ -559,33 +563,36 @@ inline real InitialConditionFunction_LeblancShockTube<dim,nstate,real>
         vel = 0.0;
         pressure = 1;
     }
-    if(istate == 0)//density
-        value = density;
-    if(istate == 1)//momentum
-        value = density * vel;
-    if(istate == 2)//energy
-        value = pressure/0.4 + 0.5 * vel * vel * density;
 
-    return value;
+    std::array<real, nstate> soln_primitive;
+    soln_primitive[0] = density;
+    soln_primitive[1] = vel;
+    soln_primitive[2] = pressure;
 
+    const std::array<real, nstate> soln_conservative = this->euler_physics->convert_primitive_to_conservative(soln_primitive);
+    return soln_conservative[istate];
 }
 
 // ========================================================
 // 1D Shu-Osher Problem -- Initial Condition
+// See Johnsen et al., Assessment of high-resolution..., 2010 Pg. 7
 // ========================================================
 template <int dim, int nstate, typename real>
 InitialConditionFunction_ShuOsherProblem<dim, nstate, real>
-::InitialConditionFunction_ShuOsherProblem()
+::InitialConditionFunction_ShuOsherProblem(
+    Parameters::AllParameters const* const param)
     : InitialConditionFunction<dim, nstate, real>()
 {
-    // Nothing to do here yet
+    // Euler object; create using dynamic_pointer_cast and the create_Physics factory
+    // This test should only be used for Euler
+    this->euler_physics = std::dynamic_pointer_cast<Physics::Euler<dim, dim + 2, double>>(
+        Physics::PhysicsFactory<dim, dim + 2, double>::create_Physics(param));
 }
 
 template <int dim, int nstate, typename real>
 inline real InitialConditionFunction_ShuOsherProblem<dim, nstate, real>
 ::value(const dealii::Point<dim, real>& point, const unsigned int istate) const
 {
-    real value = 0;
     real density = 0.0;
     real vel = 0.0;
     real pressure = 0.0;
@@ -600,15 +607,14 @@ inline real InitialConditionFunction_ShuOsherProblem<dim, nstate, real>
         vel = 0.0;
         pressure = 1.0;
     }
-    if (istate == 0)//density
-        value = density;
-    if (istate == 1)//momentum
-        value = density * vel;
-    if (istate == 2)//energy
-        value = pressure / 0.4 + 0.5 * vel * vel * density;
 
-    return value;
+    std::array<real, nstate> soln_primitive;
+    soln_primitive[0] = density;
+    soln_primitive[1] = vel;
+    soln_primitive[2] = pressure;
 
+    const std::array<real, nstate> soln_conservative = this->euler_physics->convert_primitive_to_conservative(soln_primitive);
+    return soln_conservative[istate];
 }
 
 // ========================================================
@@ -690,13 +696,13 @@ InitialConditionFactory<dim,nstate, real>::create_InitialConditionFunction(
     } else if (flow_type == FlowCaseEnum::non_periodic_cube_flow) {
         if constexpr (dim==2 && nstate==1)  return std::make_shared<InitialConditionFunction_Zero<dim,nstate,real> > ();
     } else if (flow_type == FlowCaseEnum::sod_shock_tube) {
-        if constexpr (dim==1 && nstate==dim+2)  return std::make_shared<InitialConditionFunction_SodShockTube<dim,nstate,real> > ();
+        if constexpr (dim==1 && nstate==dim+2)  return std::make_shared<InitialConditionFunction_SodShockTube<dim,nstate,real> > (param);
     } else if (flow_type == FlowCaseEnum::low_density_2d) {
-        if constexpr (dim==2 && nstate==dim+2)  return std::make_shared<InitialConditionFunction_LowDensity2D<dim,nstate,real> > ();
+        if constexpr (dim==2 && nstate==dim+2)  return std::make_shared<InitialConditionFunction_LowDensity2D<dim,nstate,real> > (param);
     } else if (flow_type == FlowCaseEnum::leblanc_shock_tube) {
-        if constexpr (dim==1 && nstate==dim+2)  return std::make_shared<InitialConditionFunction_LeblancShockTube<dim,nstate,real> > ();
+        if constexpr (dim==1 && nstate==dim+2)  return std::make_shared<InitialConditionFunction_LeblancShockTube<dim,nstate,real> > (param);
     } else if (flow_type == FlowCaseEnum::shu_osher_problem) {
-        if constexpr (dim == 1 && nstate == dim + 2)  return std::make_shared<InitialConditionFunction_ShuOsherProblem<dim, nstate, real> >();
+        if constexpr (dim == 1 && nstate == dim + 2)  return std::make_shared<InitialConditionFunction_ShuOsherProblem<dim, nstate, real> >(param);
     } else {
         std::cout << "Invalid Flow Case Type. You probably forgot to add it to the list of flow cases in initial_condition_function.cpp" << std::endl;
         std::abort();

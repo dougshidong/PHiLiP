@@ -342,10 +342,14 @@ class InitialConditionFunction_SodShockTube: public InitialConditionFunction<dim
 protected:
     using dealii::Function<dim,real>::value; ///< dealii::Function we are templating on
 
+    // Euler physics pointer. Used to convert primitive to conservative.
+    std::shared_ptr < Physics::Euler<dim, nstate, double > > euler_physics;
+
 public:
     /// Constructor for InitialConditionFunction_SodShockTube
     /** Calls the Function(const unsigned int n_components) constructor in deal.II*/
-    InitialConditionFunction_SodShockTube ();
+    InitialConditionFunction_SodShockTube (
+            Parameters::AllParameters const* const param);
 
     /// Value of initial condition
     real value (const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
@@ -358,10 +362,13 @@ class InitialConditionFunction_LowDensity2D: public InitialConditionFunction<dim
 protected:
     using dealii::Function<dim,real>::value; ///< dealii::Function we are templating on
 
+    // Euler physics pointer. Used to convert primitive to conservative.
+    std::shared_ptr < Physics::Euler<dim, nstate, double > > euler_physics;
 public:
     /// Constructor for InitialConditionFunction_LowDensity2D
     /** Calls the Function(const unsigned int n_components) constructor in deal.II*/
-    InitialConditionFunction_LowDensity2D ();
+    InitialConditionFunction_LowDensity2D (
+            Parameters::AllParameters const* const param);
 
     /// Value of initial condition
     real value (const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
@@ -374,10 +381,13 @@ class InitialConditionFunction_LeblancShockTube: public InitialConditionFunction
 protected:
     using dealii::Function<dim,real>::value; ///< dealii::Function we are templating on
 
+    // Euler physics pointer. Used to convert primitive to conservative.
+    std::shared_ptr < Physics::Euler<dim, nstate, double > > euler_physics;
 public:
     /// Constructor for InitialConditionFunction_LeblancShockTube
     /** Calls the Function(const unsigned int n_components) constructor in deal.II*/
-    InitialConditionFunction_LeblancShockTube ();
+    InitialConditionFunction_LeblancShockTube (
+            Parameters::AllParameters const* const param);
 
     /// Value of initial condition
     real value (const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
@@ -390,10 +400,13 @@ class InitialConditionFunction_ShuOsherProblem : public InitialConditionFunction
 protected:
     using dealii::Function<dim, real>::value; ///< dealii::Function we are templating on
 
+    // Euler physics pointer. Used to convert primitive to conservative.
+    std::shared_ptr < Physics::Euler<dim, nstate, double > > euler_physics;
 public:
     /// Constructor for InitialConditionFunction_ShuOsherProblem
     /** Calls the Function(const unsigned int n_components) constructor in deal.II*/
-    InitialConditionFunction_ShuOsherProblem();
+    InitialConditionFunction_ShuOsherProblem(
+            Parameters::AllParameters const* const param);
 
     /// Value of initial condition
     real value(const dealii::Point<dim, real>& point, const unsigned int istate = 0) const override;

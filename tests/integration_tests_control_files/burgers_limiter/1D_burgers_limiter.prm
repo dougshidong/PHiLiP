@@ -35,7 +35,7 @@ subsection ODE solver
 
   set runge_kutta_method = ssprk3_ex
 
-  set output_solution_every_x_steps = 1
+  set output_solution_every_x_steps = 10
 end
 
 subsection manufactured solution convergence study

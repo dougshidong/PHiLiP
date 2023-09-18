@@ -20,8 +20,8 @@ BoundPreservingLimiterFactory<dim,real>
                 if (dim == 1)
                     return std::make_shared < TVBLimiter<dim, 1, real> >(parameters_input);
                 else {
-                    assert(0 == 1 && "Cannot create TVB limiter for dim > 1");
-                    return nullptr;
+                    std::cout << "Error: Cannot create TVB limiter for dim > 1" << std::endl;
+                    std::abort();
                 }
             }
             else
@@ -34,16 +34,16 @@ BoundPreservingLimiterFactory<dim,real>
             if(nstate_input == dim + 2)
                 return std::make_shared< PositivityPreservingLimiter_Zhang2010<dim, 1, real> >(parameters_input);
             else {
-                assert(0 == 1 && "Cannot create Positivity-Preserving limiter for nstate_input != dim + 2");
-                return nullptr;
+                std::cout << "Error: Cannot create Positivity-Preserving limiter for nstate_input != dim + 2" << std::endl;
+                std::abort();
             }
         }
         else if (limiter_type == limiter_enum::positivity_preservingWang2012) {
             if (nstate_input == dim + 2)
                 return std::make_shared< PositivityPreservingLimiter_Wang2012<dim, 1, real> >(parameters_input);
             else {
-                assert(0 == 1 && "Cannot create Positivity-Preserving limiter for nstate_input != dim + 2");
-                return nullptr;
+                std::cout << "Error: Cannot create Positivity-Preserving limiter for nstate_input != dim + 2" << std::endl;
+                std::abort();
             }
         }
     }
@@ -53,8 +53,8 @@ BoundPreservingLimiterFactory<dim,real>
                 if (dim == 1)
                     return std::make_shared < TVBLimiter<dim, 2, real> >(parameters_input);
                 else {
-                    assert(0 == 1 && "Cannot create TVB limiter for dim > 1");
-                    return nullptr;
+                    std::cout << "Error: Cannot create TVB limiter for dim > 1" << std::endl;
+                    std::abort();
                 }
             }
             else
@@ -67,16 +67,16 @@ BoundPreservingLimiterFactory<dim,real>
             if (nstate_input == dim + 2)
                 return std::make_shared< PositivityPreservingLimiter_Zhang2010<dim, 2, real> >(parameters_input);
             else {
-                assert(0 == 1 && "Cannot create Positivity-Preserving limiter for nstate_input != dim + 2");
-                return nullptr;
+                std::cout << "Error: Cannot create Positivity-Preserving limiter for nstate_input != dim + 2" << std::endl;
+                std::abort();
             }
         }
         else if (limiter_type == limiter_enum::positivity_preservingWang2012) {
             if (nstate_input == dim + 2)
                 return std::make_shared< PositivityPreservingLimiter_Wang2012<dim, 2, real> >(parameters_input);
             else {
-                assert(0 == 1 && "Cannot create Positivity-Preserving limiter for nstate_input != dim + 2");
-                return nullptr;
+                std::cout << "Error: Cannot create Positivity-Preserving limiter for nstate_input != dim + 2" << std::endl;
+                std::abort();
             }
         }
     }
@@ -86,8 +86,8 @@ BoundPreservingLimiterFactory<dim,real>
                 if (dim == 1)
                     return std::make_shared < TVBLimiter<dim, 3, real> >(parameters_input);
                 else {
-                    assert(0 == 1 && "Cannot create TVB limiter for dim > 1");
-                    return nullptr;
+                    std::cout << "Error: Cannot create TVB limiter for dim > 1" << std::endl;
+                    std::abort();
                 }
             }
             else
@@ -100,31 +100,27 @@ BoundPreservingLimiterFactory<dim,real>
             if (nstate_input == dim + 2)
                 return std::make_shared< PositivityPreservingLimiter_Zhang2010<dim, 3, real> >(parameters_input);
             else {
-                assert(0 == 1 && "Cannot create Positivity-Preserving limiter for nstate_input != dim + 2");
-                return nullptr;
+                std::cout << "Error: Cannot create Positivity-Preserving limiter for nstate_input != dim + 2" << std::endl;
+                std::abort();
             }
         }
         else if (limiter_type == limiter_enum::positivity_preservingWang2012) {
             if (nstate_input == dim + 2)
                 return std::make_shared< PositivityPreservingLimiter_Wang2012<dim, 3, real> >(parameters_input);
             else {
-                assert(0 == 1 && "Cannot create Positivity-Preserving limiter for nstate_input != dim + 2");
-                return nullptr;
+                std::cout << "Error: Cannot create Positivity-Preserving limiter for nstate_input != dim + 2" << std::endl;
+                std::abort();
             }
         }
     }
     else if (nstate_input == 4) {
-        std::cout << "nstate_input is 4" << std::endl;
         if (limiter_type == limiter_enum::none) {
-            std::cout << "limiter type is none" << std::endl;
             if (apply_tvb == true) {
-                std::cout << "apply_tvb is true" << std::endl;
                 if (dim == 1)
                     return std::make_shared < TVBLimiter<dim, 4, real> >(parameters_input);
                 else {
-                    std::cout << "dim > 1" << std::endl;
-                    assert(0 == 1 && "Cannot create TVB limiter for dim > 1");
-                    return nullptr;
+                    std::cout << "Error: Cannot create TVB limiter for dim > 1" << std::endl;
+                    std::abort();
                 }
             }
             else
@@ -137,16 +133,16 @@ BoundPreservingLimiterFactory<dim,real>
             if (nstate_input == dim + 2)
                 return std::make_shared< PositivityPreservingLimiter_Zhang2010<dim, 4, real> >(parameters_input);
             else {
-                assert(0 == 1 && "Cannot create Positivity-Preserving limiter for nstate_input != dim + 2");
-                return nullptr;
+                std::cout << "Error: Cannot create Positivity-Preserving limiter for nstate_input != dim + 2" << std::endl;
+                std::abort();
             }
         }
         else if (limiter_type == limiter_enum::positivity_preservingWang2012) {
             if (nstate_input == dim + 2)
                 return std::make_shared< PositivityPreservingLimiter_Wang2012<dim, 4, real> >(parameters_input);
             else {
-                assert(0 == 1 && "Cannot create Positivity-Preserving limiter for nstate_input != dim + 2");
-                return nullptr;
+                std::cout << "Error: Cannot create Positivity-Preserving limiter for nstate_input != dim + 2" << std::endl;
+                std::abort();
             }
         }
     }
@@ -161,16 +157,16 @@ BoundPreservingLimiterFactory<dim,real>
             if (nstate_input == dim + 2)
                 return std::make_shared< PositivityPreservingLimiter_Zhang2010<dim, 5, real> >(parameters_input);
             else {
-                assert(0 == 1 && "Cannot create Positivity-Preserving limiter for nstate_input != dim + 2");
-                return nullptr;
+                std::cout << "Error: Cannot create Positivity-Preserving limiter for nstate_input != dim + 2" << std::endl;
+                std::abort();
             }
         }
         else if (limiter_type == limiter_enum::positivity_preservingWang2012) {
             if (nstate_input == dim + 2)
                 return std::make_shared< PositivityPreservingLimiter_Wang2012<dim, 5, real> >(parameters_input);
             else {
-                assert(0 == 1 && "Cannot create Positivity-Preserving limiter for nstate_input != dim + 2");
-                return nullptr;
+                std::cout << "Error: Cannot create Positivity-Preserving limiter for nstate_input != dim + 2" << std::endl;
+                std::abort();
             }
         }
     }
@@ -185,25 +181,26 @@ BoundPreservingLimiterFactory<dim,real>
             if (nstate_input == dim + 2)
                 return std::make_shared< PositivityPreservingLimiter_Zhang2010<dim, 6, real> >(parameters_input);
             else {
-                assert(0 == 1 && "Cannot create Positivity-Preserving limiter for nstate_input != dim + 2");
-                return nullptr;
+                std::cout << "Error: Cannot create Positivity-Preserving limiter for nstate_input != dim + 2" << std::endl;
+                std::abort();
             }
         }
         else if (limiter_type == limiter_enum::positivity_preservingWang2012) {
             if (nstate_input == dim + 2)
                 return std::make_shared< PositivityPreservingLimiter_Wang2012<dim, 6, real> >(parameters_input);
             else {
-                assert(0 == 1 && "Cannot create Positivity-Preserving limiter for nstate_input != dim + 2");
-                return nullptr;
+                std::cout << "Error: Cannot create Positivity-Preserving limiter for nstate_input != dim + 2" << std::endl;
+                std::abort();
             }
         }
     }
     else {
-        std::cout << "Number of states " << nstate_input << "not supported." << std::endl;
-        return nullptr;
+        std::cout << "Error: Number of states " << nstate_input << "not supported." << std::endl;
+        std::abort();
     }
 
-    assert(0 == 1 && "Cannot create limiter pointer due to an invalid limiter type specified");
+    std::cout << "Error: Cannot create limiter pointer due to an invalid limiter type specified" << std::endl;
+    std::abort();
     return nullptr;
 }
 

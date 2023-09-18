@@ -39,8 +39,7 @@ class NonPeriodicCubeFlow : public FlowSolverCaseBase<dim, nstate>
     /// Maximum local wave speed (i.e. convective eigenvalue)
     double maximum_local_wave_speed;
 
-    /// Pointer to Navier-Stokes physics object for computing things on the fly
-   // std::shared_ptr< Physics::NavierStokes<dim,dim+2,double> > navier_stokes_physics;
+    /// Pointer to Physics object for computing things on the fly
     std::shared_ptr< Physics::PhysicsBase<dim,nstate,double> > pde_physics;
 
 };

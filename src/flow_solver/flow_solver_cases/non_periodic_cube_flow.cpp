@@ -1,4 +1,5 @@
 #include "non_periodic_cube_flow.h"
+#include "mesh/grids/non_periodic_cube_flow.h"
 #include <deal.II/grid/grid_generator.h>
 #include "physics/physics_factory.h"
 
@@ -9,7 +10,7 @@ template <int dim, int nstate>
 NonPeriodicCubeFlow<dim, nstate>::NonPeriodicCubeFlow(const PHiLiP::Parameters::AllParameters *const parameters_input)
     : FlowSolverCaseBase<dim, nstate>(parameters_input)
 {
-    //create the NS physics object
+    //create the Physics object
     this->pde_physics = std::dynamic_pointer_cast<Physics::PhysicsBase<dim,nstate,double>>(
                 Physics::PhysicsFactory<dim,nstate,double>::create_Physics(parameters_input));
 }
@@ -34,39 +35,20 @@ std::shared_ptr<Triangulation> NonPeriodicCubeFlow<dim,nstate>::generate_grid() 
     const double domain_right = this->all_param.flow_solver_param.grid_right_bound;
     const bool colorize = true;
     
+    bool shock_tube = false;
+    bool shu_osher = false;
     using flow_case_enum = Parameters::FlowSolverParam::FlowCaseType;
     flow_case_enum flow_case_type = this->all_param.flow_solver_param.flow_case_type;
 
-    dealii::GridGenerator::hyper_cube(*grid, domain_left, domain_right, colorize);
-    if(flow_case_type == flow_case_enum::sod_shock_tube
-         || flow_case_type == flow_case_enum::leblanc_shock_tube
-         || flow_case_type == flow_case_enum::shu_osher_problem)
-    {
-        for (auto cell = grid->begin_active(); cell != grid->end(); ++cell) {
-            // Set a dummy boundary ID
-            cell->set_material_id(9002);
-            if (cell == grid->begin_active())
-            {
-                for (unsigned int face=0; face<dealii::GeometryInfo<dim>::faces_per_cell; ++face) {
-                    if (flow_case_type == flow_case_enum::shu_osher_problem) {
-                        // Set left boundary to Riemann Far Field condition
-                        if (cell->face(face)->at_boundary()) cell->face(face)->set_boundary_id(1004);
-                    }
-                    else {
-                        // Set left boundary to Wall Boundary
-                        if (cell->face(face)->at_boundary()) cell->face(face)->set_boundary_id(1001);
-                    }
-                }
-            }
-            else if (cell == grid->end())
-            {
-                for (unsigned int face=0; face<dealii::GeometryInfo<dim>::faces_per_cell; ++face) {
-                    // Set left boundary to Wall Boundary
-                    if (cell->face(face)->at_boundary()) cell->face(face)->set_boundary_id (1001);
-                }
-            }
-        }
+    if (flow_case_type == flow_case_enum::sod_shock_tube
+        || flow_case_type == flow_case_enum::leblanc_shock_tube) {
+        shock_tube = true;
+    } else if (flow_case_type == flow_case_enum::shu_osher_problem) {
+        shu_osher = true;
     }
+
+
+    Grids::non_periodic_cube_flow<dim>(*grid, domain_left, domain_right, colorize, shock_tube, shu_osher);
     grid->refine_global(number_of_refinements);
 
     return grid;

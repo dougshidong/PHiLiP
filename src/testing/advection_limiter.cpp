@@ -220,7 +220,6 @@ namespace PHiLiP {
                     if (this->pcout.is_active()) convergence_table.write_text(this->pcout.get_stream());
                 }
             }//end of grid loop
-            //want to add some condition to check for if(){return 1} else{return 0}
             return 0; //if got to here means passed the test, otherwise would've failed earlier
         }
 

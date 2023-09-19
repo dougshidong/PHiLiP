@@ -1,5 +1,8 @@
 SET(LIMSOURCE
     bound_preserving_limiter.cpp
+    tvb_limiter.cpp
+    maximum_principle_limiter.cpp
+    positivity_preserving_limiter.cpp
     bound_preserving_limiter_factory.cpp
     )
 

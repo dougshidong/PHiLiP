@@ -42,9 +42,9 @@ int BurgersLimiter<dim, nstate>::run_test() const
     PHiLiP::Parameters::AllParameters all_parameters_new = *all_parameters;  
     double left = 0.0;
     double right = 2.0;
-    const unsigned int n_grids = (!all_parameters_new.limiter_param.use_OOA) ? 4 : 10;
-    unsigned int poly_degree = 2;
-    const unsigned int igrid_start = 3;
+    const unsigned int n_grids = (!all_parameters_new.limiter_param.use_OOA) ? 7 : 10;
+    unsigned int poly_degree = 4;
+    const unsigned int igrid_start = 6;
     const unsigned int grid_degree = 1;
     dealii::ConvergenceTable convergence_table;
     std::vector<double> grid_size(n_grids);
@@ -211,8 +211,6 @@ int BurgersLimiter<dim, nstate>::run_test() const
                 if (pcout.is_active()) convergence_table.write_text(pcout.get_stream());
             }
      }//end of grid loop
-   
-    //want to add some condition to check for if(){return 1} else{return 0}
     return 0; //if got to here means passed the test, otherwise would've failed earlier
 }
 

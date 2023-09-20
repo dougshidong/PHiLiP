@@ -73,7 +73,7 @@ void RungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::step_in_time (real dt, 
         this->dg->solution = this->rk_stage[i];
 
         // Apply limiter at every RK stage
-        if (limiter_type != limiter_enum::none || apply_tvb == true) {
+        if (limiter_type != limiter_enum::none || apply_tvb) {
             this->limiter->limit(this->dg->solution,
                 this->dg->dof_handler,
                 this->dg->fe_collection,

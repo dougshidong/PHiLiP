@@ -3,7 +3,6 @@
 
 #include "flow_solver_case_base.h"
 #include "dg/dg.h"
-#include "physics/navier_stokes.h"
 
 namespace PHiLiP {
 namespace FlowSolver {

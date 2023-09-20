@@ -1,5 +1,5 @@
-#ifndef __NON_PERIODIC_CUBE_FLOW_H__
-#define __NON_PERIODIC_CUBE_FLOW_H__
+#ifndef __NON_PERIODIC_CUBE_H__
+#define __NON_PERIODIC_CUBE_H__
 
 #include <deal.II/grid/manifold_lib.h>
 #include <deal.II/distributed/tria.h>
@@ -8,7 +8,7 @@ namespace PHiLiP {
 namespace Grids {
 
 template<int dim, typename TriangulationType>
-void non_periodic_cube_flow(
+void non_periodic_cube(
     TriangulationType& grid,
     double domain_left,
     double domain_right,

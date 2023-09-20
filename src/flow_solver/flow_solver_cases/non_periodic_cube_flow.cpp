@@ -48,7 +48,7 @@ std::shared_ptr<Triangulation> NonPeriodicCubeFlow<dim,nstate>::generate_grid() 
     }
 
 
-    Grids::non_periodic_cube_flow<dim>(*grid, domain_left, domain_right, colorize, shock_tube, shu_osher);
+    Grids::non_periodic_cube<dim>(*grid, domain_left, domain_right, colorize, shock_tube, shu_osher);
     grid->refine_global(number_of_refinements);
 
     return grid;

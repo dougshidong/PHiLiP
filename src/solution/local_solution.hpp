@@ -5,6 +5,8 @@
 
 #include <vector>
 
+namespace PHiLiP {
+
 template <typename real, int dim, int n_components>
 struct LocalSolution {
     /// Solution coefficients in the finite element basis.
@@ -66,4 +68,5 @@ struct LocalSolution {
     }
 };
 
+}
 #endif  // PHILIP_LOCAL_SOLUTION_HPP

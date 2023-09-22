@@ -228,8 +228,8 @@ template <int dim, typename real>
 bool check_same_coords (
     const std::vector<dealii::Point<dim>> &unit_quad_pts_int,
     const std::vector<dealii::Point<dim>> &unit_quad_pts_ext,
-    const LocalSolution<real, dim, dim> &metric_int,
-    const LocalSolution<real, dim, dim> &metric_ext,
+    const PHiLiP::LocalSolution<real, dim, dim> &metric_int,
+    const PHiLiP::LocalSolution<real, dim, dim> &metric_ext,
     const double tolerance)
 {
     assert(unit_quad_pts_int.size() == unit_quad_pts_ext.size());
@@ -268,7 +268,7 @@ bool check_same_coords (
 template <int dim, typename real>
 std::vector<dealii::Tensor<2,dim,real>> evaluate_metric_jacobian (
     const std::vector<dealii::Point<dim>> &points,
-    const LocalSolution<real, dim, dim> metric_solution)
+    const PHiLiP::LocalSolution<real, dim, dim> metric_solution)
 {
     const unsigned int n_dofs = metric_solution.finite_element.dofs_per_cell;
     (void) n_dofs;
@@ -314,7 +314,7 @@ std::vector <real> determinant_ArrayTensor(std::vector<CoordGrad<real,dim>> &coo
 template <int dim, typename real>
 void evaluate_covariant_metric_jacobian (
     const dealii::Quadrature<dim> &quadrature,
-    const LocalSolution<real, dim, dim> metric_solution,
+    const PHiLiP::LocalSolution<real, dim, dim> metric_solution,
     std::vector<dealii::Tensor<2,dim,real>> &covariant_metric_jacobian,
     std::vector<real> &jacobian_determinants)
 {

@@ -234,42 +234,18 @@ void automatic_differentiation_indexing_2(
     }
 }
 
-template <int dim, typename real, int n_components>
-void evaluate_finite_element_values (
-    const std::vector<dealii::Point<dim>> &unit_points,
-    const LocalSolution<real, dim> &solution,
-    std::vector< std::array<real,n_components> > &values)
-{
-    const unsigned int n_dofs = solution.finite_element.dofs_per_cell;
-    const unsigned int n_pts = unit_points.size();
-
-    AssertDimension(n_dofs, solution.coefficients.size());
-
-    for (unsigned int ipoint=0; ipoint<n_pts; ++ipoint) {
-        for (int icomp=0; icomp<n_components; ++icomp) {
-            values[ipoint][icomp] = 0;
-        }
-        for (unsigned int idof = 0; idof < n_dofs; ++idof) {
-            const int icomp = solution.finite_element.system_to_component_index(idof).first;
-            values[ipoint][icomp] += solution.coefficients[idof] * solution.finite_element.shape_value_component(idof, unit_points[ipoint], icomp);
-        }
-    }
-}
-
 template <int dim, typename real>
 bool check_same_coords (
     const std::vector<dealii::Point<dim>> &unit_quad_pts_int,
     const std::vector<dealii::Point<dim>> &unit_quad_pts_ext,
-    const LocalSolution<real, dim> &metric_int,
-    const LocalSolution<real, dim> &metric_ext,
+    const LocalSolution<real, dim, dim> &metric_int,
+    const LocalSolution<real, dim, dim> &metric_ext,
     const double tolerance)
 {
     assert(unit_quad_pts_int.size() == unit_quad_pts_ext.size());
     const unsigned int nquad = unit_quad_pts_int.size();
-    std::vector < std::array< real,dim> > coords_int(nquad);
-    std::vector < std::array< real,dim> > coords_ext(nquad);
-    evaluate_finite_element_values  <dim, real, dim> (unit_quad_pts_int, metric_int, coords_int);
-    evaluate_finite_element_values  <dim, real, dim> (unit_quad_pts_ext, metric_ext, coords_ext);
+    std::vector<std::array<real,dim>> coords_int = metric_int.evaluate_values(unit_quad_pts_int);
+    std::vector<std::array<real,dim>> coords_ext = metric_ext.evaluate_values(unit_quad_pts_ext);
 
     bool issame = true;
     for (unsigned int iquad = 0; iquad < nquad; ++iquad) {
@@ -299,38 +275,10 @@ bool check_same_coords (
     return issame;
 }
 
-template <int dim, typename real, int n_components>
-void evaluate_finite_element_gradients (
-    const std::vector<dealii::Point<dim>> &unit_points,
-    const LocalSolution<real, dim> solution,
-    std::vector < std::array< dealii::Tensor<1,dim,real>, n_components > > &gradients)
-{
-    AssertDimension(unit_points.size(), gradients.size());
-    const unsigned int n_dofs = solution.finite_element.dofs_per_cell;
-    const unsigned int n_pts = unit_points.size();
-
-    AssertDimension(n_dofs, solution.coefficients.size());
-    AssertDimension(solution.finite_element.n_components(), n_components);
-
-    for (unsigned int ipoint=0; ipoint<n_pts; ++ipoint) {
-        for (int icomp=0; icomp<n_components; ++icomp) {
-            gradients[ipoint][icomp] = 0;
-        }
-        for (unsigned int idof = 0; idof < n_dofs; ++idof) {
-            const int icomp = solution.finite_element.system_to_component_index(idof).first;
-            dealii::Tensor<1,dim,double> shape_grad = solution.finite_element.shape_grad_component (idof, unit_points[ipoint], icomp);
-            for (int d=0; d<dim; ++d) {
-                gradients[ipoint][icomp][d] += solution.coefficients[idof] * shape_grad[d];
-            }
-        }
-    }
-}
-
-
 template <int dim, typename real>
 std::vector<dealii::Tensor<2,dim,real>> evaluate_metric_jacobian (
     const std::vector<dealii::Point<dim>> &points,
-    const LocalSolution<real, dim> metric_solution)
+    const LocalSolution<real, dim, dim> metric_solution)
 {
     const unsigned int n_dofs = metric_solution.finite_element.dofs_per_cell;
     (void) n_dofs;
@@ -338,8 +286,7 @@ std::vector<dealii::Tensor<2,dim,real>> evaluate_metric_jacobian (
 
     AssertDimension(n_dofs, metric_solution.coefficients.size());
 
-    std::vector < std::array< dealii::Tensor<1,dim,real>, dim > > coords_gradients(n_pts);
-    evaluate_finite_element_gradients<dim, real, dim> (points, metric_solution , coords_gradients);
+    std::vector < std::array< dealii::Tensor<1,dim,real>, dim > > coords_gradients = metric_solution.evaluate_reference_gradients(points);
 
     std::vector<dealii::Tensor<2,dim,real>> metric_jacobian(n_pts);
 
@@ -400,7 +347,7 @@ unsigned int root(unsigned int base, unsigned int n) {
 template <int dim, typename real>
 void evaluate_covariant_metric_jacobian (
     const dealii::Quadrature<dim> &quadrature,
-    const LocalSolution<real, dim> metric_solution,
+    const LocalSolution<real, dim, dim> metric_solution,
     std::vector<dealii::Tensor<2,dim,real>> &covariant_metric_jacobian,
     std::vector<real> &jacobian_determinants)
 {
@@ -413,16 +360,11 @@ void evaluate_covariant_metric_jacobian (
     const std::vector< dealii::Point<dim,double> > &unit_grid_pts = fe_lagrange_grid.get_unit_support_points();
     const unsigned int n_grid_pts = unit_grid_pts.size();
 
-    std::vector < std::array< real,dim> > coords(n_grid_pts);
-    evaluate_finite_element_values  <dim, real, dim> (unit_grid_pts, metric_solution, coords);
+    std::vector < std::array< real,dim> > coords = metric_solution.evaluate_values(unit_grid_pts);
 
-    std::vector < std::array< dealii::Tensor<1,dim,real>, dim > > coords_gradients(n_grid_pts);
-    evaluate_finite_element_gradients <dim, real, dim> (unit_grid_pts, metric_solution, coords_gradients);
+    std::vector < std::array< dealii::Tensor<1,dim,real>, dim > > coords_gradients = metric_solution.evaluate_reference_gradients(unit_grid_pts);
 
-    std::vector < std::array< dealii::Tensor<1,dim,real>, dim > > quad_pts_coords_gradients(n_quad_pts);
-    evaluate_finite_element_gradients <dim, real, dim> (unit_quad_pts, metric_solution, quad_pts_coords_gradients);
-
-    jacobian_determinants = determinant_ArrayTensor<dim,real>(quad_pts_coords_gradients);
+    jacobian_determinants = determinant_ArrayTensor<dim,real>(coords_gradients);
 
     if constexpr (dim==1) {
         for (unsigned int iquad = 0; iquad<n_quad_pts; ++iquad) {
@@ -477,8 +419,8 @@ void evaluate_covariant_metric_jacobian (
     if constexpr (dim == 3) {
 
         // Evaluate the physical (Y grad Z), (Z grad X), (X grad
-        std::vector<real> Ta(n_grid_pts); 
-        std::vector<real> Tb(n_grid_pts); 
+        std::vector<real> Ta(n_grid_pts);
+        std::vector<real> Tb(n_grid_pts);
         std::vector<real> Tc(n_grid_pts);
 
         std::vector<real> Td(n_grid_pts);
@@ -836,12 +778,12 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_boundary_term_explicit(
 
 template <int dim, int nstate, typename real, typename MeshType>
 void DGWeak<dim,nstate,real,MeshType>::assemble_face_term_explicit(
-    const unsigned int /*iface*/, 
+    const unsigned int /*iface*/,
     const unsigned int /*neighbor_iface*/,
     typename dealii::DoFHandler<dim>::active_cell_iterator /*cell*/,
     const dealii::types::global_dof_index current_cell_index,
     const dealii::types::global_dof_index neighbor_cell_index,
-    const unsigned int /*poly_degree*/, 
+    const unsigned int /*poly_degree*/,
     const unsigned int /*grid_degree*/,
     const dealii::FEFaceValuesBase<dim,dim>     &fe_values_int,
     const dealii::FEFaceValuesBase<dim,dim>     &fe_values_ext,
@@ -1031,7 +973,7 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_face_term_explicit(
 template <int dim, int nstate, typename real2>
 void compute_br2_correction(
     const dealii::FESystem<dim,dim> &fe_soln,
-    const LocalSolution<real2, dim> &metric_solution,
+    const LocalSolution<real2, dim, dim> &metric_solution,
     const std::vector< std::array<real2,nstate> > &lifting_op_R_rhs,
     std::vector< std::array<real2,nstate> > &soln_grad_correction
     )
@@ -1155,8 +1097,8 @@ template <typename real2>
 void DGWeak<dim,nstate,real,MeshType>::assemble_boundary_term(
     typename dealii::DoFHandler<dim>::active_cell_iterator cell,
     const dealii::types::global_dof_index current_cell_index,
-    const LocalSolution<real2, dim> &local_solution,
-    const LocalSolution<real2, dim> &local_metric,
+    const LocalSolution<real2, dim, nstate> &local_solution,
+    const LocalSolution<real2, dim, dim> &local_metric,
     const std::vector< real > &local_dual,
     const unsigned int face_number,
     const unsigned int boundary_id,
@@ -1219,7 +1161,7 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_boundary_term(
             // Technically the normals have jac_det multiplied.
             // However, we use normalized normals by convention, so the term
             // ends up appearing in the surface jacobian.
-            for (int d=0;d<dim;++d) { 
+            for (int d=0;d<dim;++d) {
                 phys_unit_normal[iquad][d] = normal[d] / area;
             }
 
@@ -1255,7 +1197,7 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_boundary_term(
             // Technically the normals have jac_det multiplied.
             // However, we use normalized normals by convention, so the term
             // ends up appearing in the surface jacobian.
-            for (int d=0;d<dim;++d) { 
+            for (int d=0;d<dim;++d) {
                 phys_unit_normal[iquad][d] = normal[d] / area;
             }
         }
@@ -1297,10 +1239,9 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_boundary_term(
     }
 
 
-    std::vector<std::array<real2,nstate>> soln_int(n_quad_pts), soln_ext(n_quad_pts);
+    std::vector<std::array<real2,nstate>> soln_int = local_solution.evaluate_values(unit_quad_pts);
+    std::vector<std::array<real2,nstate>> soln_ext(n_quad_pts);
     std::vector<std::array< dealii::Tensor<1,dim,real2>, nstate >> soln_grad_int(n_quad_pts), soln_grad_ext(n_quad_pts);
-
-    evaluate_finite_element_values<dim, real2, nstate> (unit_quad_pts, local_solution,soln_int);
 
     for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
 
@@ -1380,7 +1321,7 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_boundary_term(
             physics.boundary_face_values (boundary_id, real_quad_pts[iquad], phys_unit_normal[iquad], soln_int[iquad], soln_grad_int[iquad], soln_ext[iquad], soln_grad_ext[iquad]);
         }
 
-    } 
+    }
 
 
     std::vector<ADArray> conv_num_flux_dot_n(n_quad_pts);
@@ -1669,8 +1610,8 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_boundary_codi_taped_derivatives(
     const bool compute_metric_derivatives = true;//(!compute_dRdX && !compute_d2R) ? false : true;
     AssertDimension (n_soln_dofs, soln_dof_indices.size());
 
-    LocalSolution<adtype, dim> local_solution(fe_soln);
-    LocalSolution<adtype, dim> local_metric(fe_metric);
+    LocalSolution<adtype, dim, nstate> local_solution(fe_soln);
+    LocalSolution<adtype, dim, dim> local_metric(fe_metric);
 
     unsigned int w_start, w_end, x_start, x_end;
     automatic_differentiation_indexing_1( compute_dRdW, compute_dRdX, compute_d2R,
@@ -1856,8 +1797,8 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_boundary_residual(
     const bool compute_metric_derivatives = true; //= (!compute_dRdX && !compute_d2R) ? false : true;
     AssertDimension (n_soln_dofs, soln_dof_indices.size());
 
-    LocalSolution<real, dim> local_solution(fe_soln);
-    LocalSolution<real, dim> local_metric(fe_metric);
+    LocalSolution<real, dim, nstate> local_solution(fe_soln);
+    LocalSolution<real, dim, dim> local_metric(fe_metric);
 
     for (unsigned int idof = 0; idof < n_soln_dofs; ++idof) {
         const real val = this->solution(soln_dof_indices[idof]);
@@ -1979,10 +1920,10 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_face_term(
     typename dealii::DoFHandler<dim>::active_cell_iterator cell,
     const dealii::types::global_dof_index current_cell_index,
     const dealii::types::global_dof_index neighbor_cell_index,
-    const LocalSolution<real2, dim> &soln_int,
-    const LocalSolution<real2, dim> &soln_ext,
-    const LocalSolution<real2, dim> &metric_int,
-    const LocalSolution<real2, dim> &metric_ext,
+    const LocalSolution<real2, dim, nstate> &soln_int,
+    const LocalSolution<real2, dim, nstate> &soln_ext,
+    const LocalSolution<real2, dim, dim> &metric_int,
+    const LocalSolution<real2, dim, dim> &metric_ext,
     const std::vector< double > &dual_int,
     const std::vector< double > &dual_ext,
     const std::pair<unsigned int, int> face_subface_int,
@@ -2245,7 +2186,7 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_face_term(
                     if(abs(surface_jac_det_int-surface_jac_det_ext) > this->all_parameters->matching_surface_jac_det_tolerance) {
                         pcout << std::endl;
                         pcout << "iquad " << iquad << " Non-matching surface jacobians, int = "
-                              << surface_jac_det_int << ", ext = " << surface_jac_det_ext << ", diff = " 
+                              << surface_jac_det_int << ", ext = " << surface_jac_det_ext << ", diff = "
                               << abs(surface_jac_det_int-surface_jac_det_ext) << std::endl;
 
                         assert(abs(surface_jac_det_int-surface_jac_det_ext) < this->all_parameters->matching_surface_jac_det_tolerance);
@@ -2263,7 +2204,7 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_face_term(
                     std::cout << "Non-matching normals. Error norm: " << diff_norm << std::endl;
                     for (int d=0;d<dim;++d) {
                         //assert(abs(phys_unit_normal_int[iquad][d]+phys_unit_normal_ext[iquad][d]) < 1e-10);
-                        std::cout << " normal_int["<<d<<"] : " << phys_unit_normal_int[iquad][d] 
+                        std::cout << " normal_int["<<d<<"] : " << phys_unit_normal_int[iquad][d]
                                   << " normal_ext["<<d<<"] : " << phys_unit_normal_ext[iquad][d]
                                   << std::endl;
                     }
@@ -2344,9 +2285,8 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_face_term(
 
 
     // Interpolate solution
-    std::vector<ADArray> soln_int_at_q(n_face_quad_pts), soln_ext_at_q(n_face_quad_pts);
-    evaluate_finite_element_values<dim, real2, nstate> (unit_quad_pts_int, soln_int, soln_int_at_q);
-    evaluate_finite_element_values<dim, real2, nstate> (unit_quad_pts_ext, soln_ext, soln_ext_at_q);
+    std::vector<ADArray> soln_int_at_q = soln_int.evaluate_values(unit_quad_pts_int);
+    std::vector<ADArray> soln_ext_at_q = soln_ext.evaluate_values(unit_quad_pts_ext);
 
     // Interpolate solution gradient
     std::vector<ADArrayTensor1> soln_grad_int(n_face_quad_pts), soln_grad_ext(n_face_quad_pts);
@@ -2907,10 +2847,10 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_face_codi_taped_derivatives(
     AssertDimension (n_soln_dofs_int, soln_dof_indices_int.size());
     AssertDimension (n_soln_dofs_ext, soln_dof_indices_ext.size());
 
-    LocalSolution<adtype, dim> soln_int(fe_int);
-    LocalSolution<adtype, dim> soln_ext(fe_ext);
-    LocalSolution<adtype, dim> metric_int(fe_metric);
-    LocalSolution<adtype, dim> metric_ext(fe_metric);
+    LocalSolution<adtype, dim, nstate> soln_int(fe_int);
+    LocalSolution<adtype, dim, nstate> soln_ext(fe_ext);
+    LocalSolution<adtype, dim, dim> metric_int(fe_metric);
+    LocalSolution<adtype, dim, dim> metric_ext(fe_metric);
 
     // Current derivative ordering is: soln_int, soln_ext, metric_int, metric_ext
     unsigned int w_int_start, w_int_end, w_ext_start, w_ext_end,
@@ -3288,10 +3228,10 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_face_residual(
     AssertDimension (n_soln_dofs_int, soln_dof_indices_int.size());
     AssertDimension (n_soln_dofs_ext, soln_dof_indices_ext.size());
 
-    LocalSolution<real, dim> soln_int(fe_int);
-    LocalSolution<real, dim> soln_ext(fe_ext);
-    LocalSolution<real, dim> metric_int(fe_metric);
-    LocalSolution<real, dim> metric_ext(fe_metric);
+    LocalSolution<real, dim, nstate> soln_int(fe_int);
+    LocalSolution<real, dim, nstate> soln_ext(fe_ext);
+    LocalSolution<real, dim, dim> metric_int(fe_metric);
+    LocalSolution<real, dim, dim> metric_ext(fe_metric);
 
     for (unsigned int idof = 0; idof < n_soln_dofs_int; ++idof) {
         const real val = this->solution(soln_dof_indices_int[idof]);
@@ -3364,8 +3304,8 @@ template <typename real2>
 void DGWeak<dim,nstate,real,MeshType>::assemble_volume_term(
     typename dealii::DoFHandler<dim>::active_cell_iterator cell,
     const dealii::types::global_dof_index current_cell_index,
-    const LocalSolution<real2, dim> &local_solution,
-    const LocalSolution<real2, dim> &local_metric,
+    const LocalSolution<real2, dim, nstate> &local_solution,
+    const LocalSolution<real2, dim, dim> &local_metric,
     const std::vector<real> &local_dual,
     const dealii::Quadrature<dim> &quadrature,
     const Physics::PhysicsBase<dim, nstate, real2> &physics,
@@ -3808,8 +3748,8 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_volume_codi_taped_derivatives(
     const dealii::FESystem<dim> &fe_metric = this->high_order_grid->fe_system;
     const unsigned int n_metric_dofs = fe_metric.dofs_per_cell;
 
-    LocalSolution<adtype, dim> local_solution(fe_soln);
-    LocalSolution<adtype, dim> local_metric(fe_metric);
+    LocalSolution<adtype, dim, nstate> local_solution(fe_soln);
+    LocalSolution<adtype, dim, dim> local_metric(fe_metric);
 
     std::vector<real> local_dual(n_soln_dofs);
     for (unsigned int itest=0; itest<n_soln_dofs; ++itest) {
@@ -3991,8 +3931,8 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_volume_residual(
 
     AssertDimension (n_soln_dofs, soln_dof_indices.size());
 
-    LocalSolution<double, dim> local_solution(fe_soln);
-    LocalSolution<double, dim> local_metric(fe_metric);
+    LocalSolution<double, dim, nstate> local_solution(fe_soln);
+    LocalSolution<double, dim, dim> local_metric(fe_metric);
 
     std::vector<real> local_dual(n_soln_dofs);
     for (unsigned int itest=0; itest<n_soln_dofs; ++itest) {
@@ -4228,7 +4168,7 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_volume_term_and_build_operators(
         fe_values_lagrange);
     //set current rhs to zero since the explicit call was just to set the max_dt_cell.
     local_rhs_int_cell*=0.0;
-    
+
     assemble_volume_term_derivatives (
         cell,
         current_cell_index,
@@ -4332,7 +4272,7 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_face_term_and_build_operators(
     const dealii::FEFaceValues<dim,dim> &fe_values_face_int = fe_values_collection_face_int.get_present_fe_values();
     const dealii::FEFaceValues<dim,dim> &fe_values_face_ext = fe_values_collection_face_ext.get_present_fe_values();
     const dealii::Quadrature<dim-1> &used_face_quadrature = this->face_quadrature_collection[(i_quad_n > i_quad) ? i_quad_n : i_quad]; // Use larger quadrature order on the face
-     
+
     std::pair<unsigned int, int> face_subface_int = std::make_pair(iface, -1);
     std::pair<unsigned int, int> face_subface_ext = std::make_pair(neighbor_iface, -1);
     const auto face_data_set_int = dealii::QProjector<dim>::DataSetDescriptor::face (
@@ -4426,8 +4366,8 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_subface_term_and_build_operators
     const dealii::Quadrature<dim-1> &used_face_quadrature = this->face_quadrature_collection[(i_quad_n > i_quad) ? i_quad_n : i_quad]; // Use larger quadrature order on the face
     std::pair<unsigned int, int> face_subface_int = std::make_pair(iface, -1);
     std::pair<unsigned int, int> face_subface_ext = std::make_pair(neighbor_iface, (int)neighbor_i_subface);
-     
-    const auto face_data_set_int = dealii::QProjector<dim>::DataSetDescriptor::face( 
+
+    const auto face_data_set_int = dealii::QProjector<dim>::DataSetDescriptor::face(
                                                                                      dealii::ReferenceCell::get_hypercube(dim),
                                                                                      iface,
                                                                                      cell->face_orientation(iface),

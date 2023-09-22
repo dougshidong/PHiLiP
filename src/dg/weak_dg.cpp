@@ -318,19 +318,19 @@ void evaluate_covariant_metric_jacobian (
     std::vector<dealii::Tensor<2,dim,real>> &covariant_metric_jacobian,
     std::vector<real> &jacobian_determinants)
 {
-    const std::vector< dealii::Point<dim,double> > &unit_quad_pts = quadrature.get_points();
-    const unsigned int n_quad_pts = unit_quad_pts.size();
-
-    //const unsigned int grid_degree = fe_metric.tensor_degree();
-    //const dealii::FE_Q<dim> fe_lagrange_grid(2*grid_degree);
     const dealii::FiniteElement<dim> &fe_lagrange_grid = metric_solution.finite_element.base_element(0);
-    const std::vector< dealii::Point<dim,double> > &unit_grid_pts = fe_lagrange_grid.get_unit_support_points();
-    const unsigned int n_grid_pts = unit_grid_pts.size();
 
+    const std::vector< dealii::Point<dim,double> > &unit_grid_pts = fe_lagrange_grid.get_unit_support_points();
     std::vector<Coord<real, dim>> coords = metric_solution.evaluate_values(unit_grid_pts);
     std::vector<CoordGrad<real, dim>> coords_gradients = metric_solution.evaluate_reference_gradients(unit_grid_pts);
 
-    jacobian_determinants = determinant_ArrayTensor<dim,real>(coords_gradients);
+    const std::vector< dealii::Point<dim,double> > &unit_quad_pts = quadrature.get_points();
+    std::vector<CoordGrad<real, dim>> quad_pts_coords_gradients = metric_solution.evaluate_reference_gradients(unit_quad_pts);
+
+    const unsigned int n_grid_pts = unit_grid_pts.size();
+    const unsigned int n_quad_pts = unit_quad_pts.size();
+
+    jacobian_determinants = determinant_ArrayTensor<dim,real>(quad_pts_coords_gradients);
 
     if constexpr (dim==1) {
         for (unsigned int iquad = 0; iquad<n_quad_pts; ++iquad) {

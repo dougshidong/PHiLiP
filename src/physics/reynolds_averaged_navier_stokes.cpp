@@ -182,6 +182,32 @@ std::array<dealii::Tensor<1,dim,real2>,nstate> ReynoldsAveragedNavierStokesBase<
 }
 //----------------------------------------------------------------
 template <int dim, int nstate, typename real>
+std::array<real,nstate> ReynoldsAveragedNavierStokesBase<dim,nstate,real>
+::dissipative_flux_dot_normal (
+        const std::array<real,nstate> &solution,
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient,
+        const std::array<real,nstate> &/*filtered_solution*/,
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &/*filtered_solution_gradient*/,
+        const bool /*on_boundary*/,
+        const dealii::types::global_dof_index cell_index,
+        const dealii::Tensor<1,dim,real> &normal,
+        const int /*boundary_type*/) const
+{
+    const std::array<dealii::Tensor<1,dim,real>,nstate> dissipative_flux = dissipative_flux_templated<real>(solution,solution_gradient,cell_index);
+
+    std::array<real,nstate> dissipative_flux_dot_normal;
+    dissipative_flux_dot_normal.fill(0.0); // initialize
+    // compute the dot product with the normal vector
+    for (int s=0; s<nstate; s++) {
+        for (int d=0; d<dim; ++d) {
+            dissipative_flux_dot_normal[s] += dissipative_flux[s][d] * normal[d];//compute dot product
+        }
+    }
+
+    return dissipative_flux_dot_normal;
+}
+//----------------------------------------------------------------
+template <int dim, int nstate, typename real>
 template <typename real2>
 std::array<real2,dim+2> ReynoldsAveragedNavierStokesBase<dim,nstate,real>
 ::extract_rans_conservative_solution (

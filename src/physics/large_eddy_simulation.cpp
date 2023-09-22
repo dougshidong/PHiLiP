@@ -142,6 +142,65 @@ std::array<dealii::Tensor<1,dim,real2>,nstate> LargeEddySimulationBase<dim,nstat
 //----------------------------------------------------------------
 template <int dim, int nstate, typename real>
 std::array<real,nstate> LargeEddySimulationBase<dim,nstate,real>
+::dissipative_flux_dot_normal (
+        const std::array<real,nstate> &solution,
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient,
+        const std::array<real,nstate> &/*filtered_solution*/,
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &/*filtered_solution_gradient*/,
+        const bool on_boundary,
+        const dealii::types::global_dof_index cell_index,
+        const dealii::Tensor<1,dim,real> &normal,
+        const int boundary_type) const
+{
+    std::array<dealii::Tensor<1,dim,real>,nstate> dissipative_flux;
+    std::array<real,nstate> dissipative_flux_dot_normal;
+    dissipative_flux_dot_normal.fill(0.0); // initialize
+    // Associated thermal boundary condition
+    if((on_boundary && (navier_stokes_physics->thermal_boundary_condition_type == thermal_boundary_condition_enum::adiabatic))
+        && ((boundary_type == 1001) || (boundary_type == 1006))) { 
+
+        /** If adiabatic on either slip (1001) or no-slip (1006) wall BCs */
+        // adiabatic boundary
+        // --> Modify viscous flux such that normal_vector dot gradient of temperature must be zero
+
+        // REFERENCES:
+        /* (1) Masatsuka 2018 "I do like CFD", p.148, eq.(4.12.1-4.12.4)
+         * (2) For the boundary condition case, refer to the equation above equation 458 of the following paper:
+         *  Hartmann, Ralf. "Numerical analysis of higher order discontinuous Galerkin finite element methods." (2008): 1-107.
+         */
+
+        // Step 1,2: Primitive solution and Gradient of primitive solution
+        const std::array<dealii::Tensor<1,dim,real>,nstate> primitive_soln_gradient = this->navier_stokes_physics->convert_conservative_gradient_to_primitive_gradient_templated(solution, solution_gradient);
+        const std::array<real,nstate> primitive_soln = this->navier_stokes_physics->convert_conservative_to_primitive_templated(solution); // from Euler
+
+        // Step 3: Viscous stress tensor, Velocities, Heat flux
+        const dealii::Tensor<1,dim,real> vel = this->navier_stokes_physics->extract_velocities_from_primitive(primitive_soln); // from Euler
+        dealii::Tensor<2,dim,real> viscous_stress_tensor = compute_SGS_stress_tensor(primitive_soln, primitive_soln_gradient,cell_index);
+        dealii::Tensor<1,dim,real> heat_flux;
+        for (int flux_dim=0; flux_dim<dim; ++flux_dim) {
+            // set the heat flux to zero since we want the normal dot gradient of temperature to be zero for an adiabatic boundary
+            heat_flux[flux_dim] = 0.0;
+        }
+        // Step 4: Construct viscous flux; Note: sign corresponds to LHS
+        dissipative_flux = this->navier_stokes_physics->dissipative_flux_given_velocities_viscous_stress_tensor_and_heat_flux(vel,viscous_stress_tensor,heat_flux);
+    } else {
+        // if not on boundary and for all other types of boundary conditions (including isothermal) --> no change to dissipative flux
+        // no change to dissipative flux for BCs that do not impose a condition on the gradient at the boundary
+        dissipative_flux = dissipative_flux_templated<real>(solution,solution_gradient,cell_index);
+    }
+
+    // compute the dot product with the normal vector
+    for (int s=0; s<nstate; s++) {
+        for (int d=0; d<dim; ++d) {
+            dissipative_flux_dot_normal[s] += dissipative_flux[s][d] * normal[d];//compute dot product
+        }
+    }
+
+    return dissipative_flux_dot_normal;
+}
+//----------------------------------------------------------------
+template <int dim, int nstate, typename real>
+std::array<real,nstate> LargeEddySimulationBase<dim,nstate,real>
 ::convective_eigenvalues (
     const std::array<real,nstate> &/*conservative_soln*/,
     const dealii::Tensor<1,dim,real> &/*normal*/) const

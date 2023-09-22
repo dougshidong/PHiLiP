@@ -65,62 +65,51 @@ template<int dim, int nstate, typename real>
 std::array<real, nstate> CentralViscousNumericalFlux<dim,nstate,real>
 ::evaluate_auxiliary_flux (
     const dealii::types::global_dof_index current_cell_index,
-    const dealii::types::global_dof_index neighbor_cell_index,
+    const dealii::types::global_dof_index neighbor_cell_index_,
     const real artificial_diss_coeff_int,
-    const real artificial_diss_coeff_ext,
+    const real artificial_diss_coeff_ext_,
     const std::array<real, nstate> &soln_int,
     const std::array<real, nstate> &soln_ext,
     const std::array<dealii::Tensor<1,dim,real>, nstate> &soln_grad_int,
-    const std::array<dealii::Tensor<1,dim,real>, nstate> &soln_grad_ext,
+    const std::array<dealii::Tensor<1,dim,real>, nstate> &soln_grad_ext_,
     const std::array<real, nstate> &filtered_soln_int,
     const std::array<real, nstate> &filtered_soln_ext,
     const std::array<dealii::Tensor<1,dim,real>, nstate> &filtered_soln_grad_int,
-    const std::array<dealii::Tensor<1,dim,real>, nstate> &filtered_soln_grad_ext,
+    const std::array<dealii::Tensor<1,dim,real>, nstate> &filtered_soln_grad_ext_,
     const dealii::Tensor<1,dim,real> &normal_int,
     const real &penalty,
-    const bool on_boundary) const
+    const bool on_boundary,
+    const int boundary_type) const
 {
     using ArrayTensor1 = std::array<dealii::Tensor<1,dim,real>, nstate>;
 
+    real artificial_diss_coeff_ext;
+    dealii::types::global_dof_index neighbor_cell_index;
+    std::array<dealii::Tensor<1,dim,real>, nstate> soln_grad_ext;
+    std::array<dealii::Tensor<1,dim,real>, nstate> filtered_soln_grad_ext;
     if (on_boundary) {
         // Following the the boundary treatment given by 
         // Hartmann, R., Numerical Analysis of Higher Order Discontinuous Galerkin Finite Element Methods, Institute of Aerodynamics and Flow Technology, DLR (German Aerospace Center), 2008.
         // Details given on page 93
-        const std::array<real, nstate> soln_bc = soln_ext;
-        const std::array<dealii::Tensor<1,dim,real>, nstate> soln_grad_bc = soln_grad_int;
-        const std::array<real, nstate> filtered_soln_bc = filtered_soln_ext;
-        const std::array<dealii::Tensor<1,dim,real>, nstate> filtered_soln_grad_bc = filtered_soln_grad_int;
-        //const std::array<dealii::Tensor<1,dim,real>, nstate> soln_grad_bc = soln_grad_ext;
-        real artificial_diss_coeff_bc = artificial_diss_coeff_int;
-        const dealii::types::global_dof_index boundary_cell_index = current_cell_index;
-
-        return evaluate_auxiliary_flux ( current_cell_index, boundary_cell_index,
-                                         artificial_diss_coeff_int, artificial_diss_coeff_bc,
-                                         soln_int, soln_bc,
-                                         soln_grad_int, soln_grad_bc,
-                                         filtered_soln_int, filtered_soln_bc,
-                                         filtered_soln_grad_int, filtered_soln_grad_bc,
-                                         normal_int, penalty,
-                                         false);
+        artificial_diss_coeff_ext = artificial_diss_coeff_int;
+        neighbor_cell_index = current_cell_index;
+        soln_grad_ext = soln_grad_int;
+        //soln_grad_ext = soln_grad_ext_;
+        filtered_soln_grad_ext = filtered_soln_grad_int;
+    } else {
+        artificial_diss_coeff_ext = artificial_diss_coeff_ext_;
+        neighbor_cell_index = neighbor_cell_index_;
+        soln_grad_ext = soln_grad_ext_;
+        filtered_soln_grad_ext = filtered_soln_grad_ext_;
     }
-
-    ArrayTensor1 phys_flux_int, phys_flux_ext;
 
     // {{A*grad_u}}
-    phys_flux_int = pde_physics->dissipative_flux (soln_int, soln_grad_int, filtered_soln_int, filtered_soln_grad_int, current_cell_index);
-    phys_flux_ext = pde_physics->dissipative_flux (soln_ext, soln_grad_ext, filtered_soln_ext, filtered_soln_grad_ext, neighbor_cell_index);
+    std::array<real,nstate> phys_flux_int_dot_n, phys_flux_ext_dot_n;
+    phys_flux_int_dot_n = pde_physics->dissipative_flux_dot_normal (soln_int, soln_grad_int, filtered_soln_int, filtered_soln_grad_int, on_boundary, current_cell_index, normal_int, boundary_type);
+    phys_flux_ext_dot_n = pde_physics->dissipative_flux_dot_normal (soln_ext, soln_grad_ext, filtered_soln_ext, filtered_soln_grad_ext, on_boundary, neighbor_cell_index, normal_int, boundary_type);
+    const std::array<real,nstate> phys_flux_avg_dot_n = array_average<nstate,real>(phys_flux_int_dot_n,phys_flux_ext_dot_n);
 
-    ArrayTensor1 phys_flux_avg = array_average<nstate,dim,real>(phys_flux_int, phys_flux_ext);
-
-    std::array<real,nstate> auxiliary_flux_dot_n;
-    for (int s=0; s<nstate; s++) {
-        //auxiliary_flux_dot_n[s] = (phys_flux_avg[s]) * normal_int;
-        real phys = 0.0;
-        for (int d=0; d<dim; ++d) {
-            phys += (phys_flux_avg[s][d]) * normal_int[d];
-        }
-        auxiliary_flux_dot_n[s] = phys;
-    }
+    std::array<real,nstate> auxiliary_flux_dot_n = phys_flux_avg_dot_n;
 
     if (artificial_diss_coeff_int > 1e-13 || artificial_diss_coeff_ext > 1e-13) {
         ArrayTensor1 artificial_phys_flux_int, artificial_phys_flux_ext;
@@ -166,69 +155,61 @@ template<int dim, int nstate, typename real>
 std::array<real, nstate> SymmetricInternalPenalty<dim,nstate,real>
 ::evaluate_auxiliary_flux (
     const dealii::types::global_dof_index current_cell_index,
-    const dealii::types::global_dof_index neighbor_cell_index,
+    const dealii::types::global_dof_index neighbor_cell_index_,
     const real artificial_diss_coeff_int,
-    const real artificial_diss_coeff_ext,
+    const real artificial_diss_coeff_ext_,
     const std::array<real, nstate> &soln_int,
     const std::array<real, nstate> &soln_ext,
     const std::array<dealii::Tensor<1,dim,real>, nstate> &soln_grad_int,
-    const std::array<dealii::Tensor<1,dim,real>, nstate> &soln_grad_ext,
+    const std::array<dealii::Tensor<1,dim,real>, nstate> &soln_grad_ext_,
     const std::array<real, nstate> &filtered_soln_int,
     const std::array<real, nstate> &filtered_soln_ext,
     const std::array<dealii::Tensor<1,dim,real>, nstate> &filtered_soln_grad_int,
-    const std::array<dealii::Tensor<1,dim,real>, nstate> &filtered_soln_grad_ext,
+    const std::array<dealii::Tensor<1,dim,real>, nstate> &filtered_soln_grad_ext_,
     const dealii::Tensor<1,dim,real> &normal_int,
     const real &penalty,
-    const bool on_boundary) const
+    const bool on_boundary,
+    const int boundary_type) const
 {
     using ArrayTensor1 = std::array<dealii::Tensor<1,dim,real>, nstate>;
 
+    real artificial_diss_coeff_ext;
+    dealii::types::global_dof_index neighbor_cell_index;
+    std::array<dealii::Tensor<1,dim,real>, nstate> soln_grad_ext;
+    std::array<dealii::Tensor<1,dim,real>, nstate> filtered_soln_grad_ext;
     if (on_boundary) {
         // Following the the boundary treatment given by 
         // Hartmann, R., Numerical Analysis of Higher Order Discontinuous Galerkin Finite Element Methods, Institute of Aerodynamics and Flow Technology, DLR (German Aerospace Center), 2008.
         // Details given on page 93
-        const std::array<real, nstate> soln_bc = soln_ext;
-        const std::array<dealii::Tensor<1,dim,real>, nstate> soln_grad_bc = soln_grad_int;
-        const std::array<real, nstate> filtered_soln_bc = filtered_soln_ext;
-        const std::array<dealii::Tensor<1,dim,real>, nstate> filtered_soln_grad_bc = filtered_soln_grad_int;
-        //const std::array<dealii::Tensor<1,dim,real>, nstate> soln_grad_bc = soln_grad_ext;
-        real artificial_diss_coeff_bc = artificial_diss_coeff_int;
-        const dealii::types::global_dof_index boundary_cell_index = current_cell_index;
-
-        return evaluate_auxiliary_flux ( current_cell_index, boundary_cell_index,
-                                         artificial_diss_coeff_int, artificial_diss_coeff_bc,
-                                         soln_int, soln_bc,
-                                         soln_grad_int, soln_grad_bc,
-                                         filtered_soln_int, filtered_soln_bc,
-                                         filtered_soln_grad_int, filtered_soln_grad_bc,
-                                         normal_int, penalty,
-                                         false);
+        artificial_diss_coeff_ext = artificial_diss_coeff_int;
+        neighbor_cell_index = current_cell_index;
+        soln_grad_ext = soln_grad_int;
+        //soln_grad_ext = soln_grad_ext_;
+        filtered_soln_grad_ext = filtered_soln_grad_int;
+    } else {
+        artificial_diss_coeff_ext = artificial_diss_coeff_ext_;
+        neighbor_cell_index = neighbor_cell_index_;
+        soln_grad_ext = soln_grad_ext_;
+        filtered_soln_grad_ext = filtered_soln_grad_ext_;
     }
 
-    ArrayTensor1 phys_flux_int, phys_flux_ext;
-
     // {{A*grad_u}}
-    phys_flux_int = pde_physics->dissipative_flux (soln_int, soln_grad_int, filtered_soln_int, filtered_soln_grad_int, current_cell_index);
-    phys_flux_ext = pde_physics->dissipative_flux (soln_ext, soln_grad_ext, filtered_soln_ext, filtered_soln_grad_ext, neighbor_cell_index);
-
-    ArrayTensor1 phys_flux_avg = array_average<nstate,dim,real>(phys_flux_int, phys_flux_ext);
+    std::array<real,nstate> phys_flux_int_dot_n, phys_flux_ext_dot_n;
+    phys_flux_int_dot_n = pde_physics->dissipative_flux_dot_normal (soln_int, soln_grad_int, filtered_soln_int, filtered_soln_grad_int, on_boundary, current_cell_index, normal_int, boundary_type);
+    phys_flux_ext_dot_n = pde_physics->dissipative_flux_dot_normal (soln_ext, soln_grad_ext, filtered_soln_ext, filtered_soln_grad_ext, on_boundary, neighbor_cell_index, normal_int, boundary_type);
+    const std::array<real,nstate> phys_flux_avg_dot_n = array_average<nstate,real>(phys_flux_int_dot_n,phys_flux_ext_dot_n);
 
     // {{A}}*[[u]]
     ArrayTensor1 soln_jump     = array_jump<dim,nstate,real>(soln_int, soln_ext, normal_int);
     ArrayTensor1 filtered_soln_jump = array_jump<dim,nstate,real>(filtered_soln_int, filtered_soln_ext, normal_int);
-    ArrayTensor1 A_jumpu_int, A_jumpu_ext;
-    A_jumpu_int = pde_physics->dissipative_flux (soln_int, soln_jump, filtered_soln_int, filtered_soln_jump, current_cell_index);
-    A_jumpu_ext = pde_physics->dissipative_flux (soln_ext, soln_jump, filtered_soln_ext, filtered_soln_jump, neighbor_cell_index);
-    const ArrayTensor1 A_jumpu_avg = array_average<nstate,dim,real>(A_jumpu_int, A_jumpu_ext);
+    std::array<real,nstate> A_jumpu_int_dot_n, A_jumpu_ext_dot_n;
+    A_jumpu_int_dot_n = pde_physics->dissipative_flux_dot_normal (soln_int, soln_jump, filtered_soln_int, filtered_soln_jump, on_boundary, current_cell_index, normal_int, boundary_type);
+    A_jumpu_ext_dot_n = pde_physics->dissipative_flux_dot_normal (soln_ext, soln_jump, filtered_soln_ext, filtered_soln_jump, on_boundary, neighbor_cell_index, normal_int, boundary_type);
+    const std::array<real,nstate> A_jumpu_avg_dot_n = array_average<nstate,real>(A_jumpu_int_dot_n, A_jumpu_ext_dot_n);
 
     std::array<real,nstate> auxiliary_flux_dot_n;
     for (int s=0; s<nstate; s++) {
-        //auxiliary_flux_dot_n[s] = (phys_flux_avg[s] - penalty * A_jumpu_avg[s]) * normal_int;
-        real phys = 0.0;
-        for (int d=0; d<dim; ++d) {
-            phys += (phys_flux_avg[s][d] - penalty * A_jumpu_avg[s][d]) * normal_int[d];
-        }
-        auxiliary_flux_dot_n[s] = phys;
+        auxiliary_flux_dot_n[s] = phys_flux_avg_dot_n[s] - penalty * A_jumpu_avg_dot_n[s];
     }
 
     if (artificial_diss_coeff_int > 1e-13 || artificial_diss_coeff_ext > 1e-13) {
@@ -274,57 +255,54 @@ template<int dim, int nstate, typename real>
 std::array<real, nstate> BassiRebay2<dim,nstate,real>
 ::evaluate_auxiliary_flux (
     const dealii::types::global_dof_index current_cell_index,
-    const dealii::types::global_dof_index neighbor_cell_index,
+    const dealii::types::global_dof_index neighbor_cell_index_,
     const real artificial_diss_coeff_int,
-    const real artificial_diss_coeff_ext,
+    const real artificial_diss_coeff_ext_,
     const std::array<real, nstate> &soln_int,
     const std::array<real, nstate> &soln_ext,
     const std::array<dealii::Tensor<1,dim,real>, nstate> &soln_grad_int,
-    const std::array<dealii::Tensor<1,dim,real>, nstate> &soln_grad_ext,
+    const std::array<dealii::Tensor<1,dim,real>, nstate> &soln_grad_ext_,
     const std::array<real, nstate> &filtered_soln_int,
     const std::array<real, nstate> &filtered_soln_ext,
     const std::array<dealii::Tensor<1,dim,real>, nstate> &filtered_soln_grad_int,
-    const std::array<dealii::Tensor<1,dim,real>, nstate> &filtered_soln_grad_ext,
+    const std::array<dealii::Tensor<1,dim,real>, nstate> &filtered_soln_grad_ext_,
     const dealii::Tensor<1,dim,real> &normal_int,
     const real &penalty,
-    const bool on_boundary) const
+    const bool on_boundary,
+    const int boundary_type) const
 {
     using ArrayTensor1 = std::array<dealii::Tensor<1,dim,real>, nstate>;
 
     (void) on_boundary;
     (void) penalty;
+
+    real artificial_diss_coeff_ext;
+    dealii::types::global_dof_index neighbor_cell_index;
+    std::array<dealii::Tensor<1,dim,real>, nstate> soln_grad_ext;
+    std::array<dealii::Tensor<1,dim,real>, nstate> filtered_soln_grad_ext;
     //if (on_boundary) {
     //    // Following the the boundary treatment given by 
     //    // Hartmann, R., Numerical Analysis of Higher Order Discontinuous Galerkin Finite Element Methods, Institute of Aerodynamics and Flow Technology, DLR (German Aerospace Center), 2008.
     //    // Details given on page 93
-    //    const std::array<real, nstate> soln_bc = soln_ext;
-    //    const std::array<dealii::Tensor<1,dim,real>, nstate> soln_grad_bc = soln_grad_int;
-    //    //const std::array<dealii::Tensor<1,dim,real>, nstate> soln_grad_bc = soln_grad_ext;
-    //    real artificial_diss_coeff_bc = artificial_diss_coeff_int;
-
-    //    return evaluate_auxiliary_flux ( artificial_diss_coeff_int, artificial_diss_coeff_bc,
-    //                                     soln_int, soln_bc,
-    //                                     soln_grad_int, soln_grad_bc,
-    //                                     normal_int, penalty,
-    //                                     false);
+    //    artificial_diss_coeff_ext = artificial_diss_coeff_int;
+    //    neighbor_cell_index = current_cell_index;
+    //    soln_grad_ext = soln_grad_int;
+    //    //soln_grad_ext = soln_grad_ext_;
+    //    filtered_soln_grad_ext = filtered_soln_grad_int;
+    //} else {
+        artificial_diss_coeff_ext = artificial_diss_coeff_ext_;
+        neighbor_cell_index = neighbor_cell_index_;
+        soln_grad_ext = soln_grad_ext_;
+        filtered_soln_grad_ext = filtered_soln_grad_ext_;
     //}
 
-    ArrayTensor1 phys_flux_int, phys_flux_ext;
-
     // {{A*grad_u}}
-    phys_flux_int = pde_physics->dissipative_flux (soln_int, soln_grad_int, filtered_soln_int, filtered_soln_grad_int, current_cell_index);
-    phys_flux_ext = pde_physics->dissipative_flux (soln_ext, soln_grad_ext, filtered_soln_ext, filtered_soln_grad_ext, neighbor_cell_index);
+    std::array<real,nstate> phys_flux_int_dot_n, phys_flux_ext_dot_n;
+    phys_flux_int_dot_n = pde_physics->dissipative_flux_dot_normal (soln_int, soln_grad_int, filtered_soln_int, filtered_soln_grad_int, on_boundary, current_cell_index, normal_int, boundary_type);
+    phys_flux_ext_dot_n = pde_physics->dissipative_flux_dot_normal (soln_ext, soln_grad_ext, filtered_soln_ext, filtered_soln_grad_ext, on_boundary, neighbor_cell_index, normal_int, boundary_type);
+    const std::array<real,nstate> phys_flux_avg_dot_n = array_average<nstate,real>(phys_flux_int_dot_n,phys_flux_ext_dot_n);
 
-    ArrayTensor1 phys_flux_avg = array_average<nstate,dim,real>(phys_flux_int, phys_flux_ext);
-
-    std::array<real,nstate> auxiliary_flux_dot_n;
-    for (int s=0; s<nstate; s++) {
-        real phys = 0.0;
-        for (int d=0; d<dim; ++d) {
-            phys += phys_flux_avg[s][d] * normal_int[d];
-        }
-        auxiliary_flux_dot_n[s] = phys;
-    }
+    std::array<real,nstate> auxiliary_flux_dot_n = phys_flux_avg_dot_n;
 
     if (artificial_diss_coeff_int > 1e-13 || artificial_diss_coeff_ext > 1e-13) {
         ArrayTensor1 artificial_phys_flux_int, artificial_phys_flux_ext;

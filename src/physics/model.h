@@ -45,6 +45,17 @@ public:
     	const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient,
         const dealii::types::global_dof_index cell_index) const = 0;
 
+    /// Dissipative flux terms additional to the baseline physics (including dissipative flux terms in additional PDEs of model) dot normal vector
+    virtual std::array<real,nstate> dissipative_flux_dot_normal (
+        const std::array<real,nstate> &solution,
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient,
+        const std::array<real,nstate> &filtered_solution,
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &filtered_solution_gradient,
+        const bool on_boundary,
+        const dealii::types::global_dof_index cell_index,
+        const dealii::Tensor<1,dim,real> &normal,
+        const int boundary_type) const = 0;
+
     /// Convective eigenvalues of the additional models' PDEs
     /** Note: Only support for zero convective term additional to the baseline physics 
       *       The entries associated with baseline physics are assigned to be zero */

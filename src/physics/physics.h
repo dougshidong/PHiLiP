@@ -117,6 +117,17 @@ public:
     //     const std::array<real,nstate> &solution,
     //     const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_grad) const = 0;
 
+    /// Dissipative fluxes dot normal vector
+    virtual std::array<real,nstate> dissipative_flux_dot_normal (
+        const std::array<real,nstate> &solution,
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient,
+        const std::array<real,nstate> &filtered_solution,
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &filtered_solution_gradient,
+        const bool on_boundary,
+        const dealii::types::global_dof_index cell_index,
+        const dealii::Tensor<1,dim,real> &normal,
+        const int boundary_type) const;
+
     /// Dissipative fluxes that will be differentiated ONCE in space.
     virtual std::array<dealii::Tensor<1,dim,real>,nstate> dissipative_flux (
         const std::array<real,nstate> &solution,

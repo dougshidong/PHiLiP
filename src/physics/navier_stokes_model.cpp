@@ -75,6 +75,24 @@ std::array<dealii::Tensor<1,dim,real>,nstate> NavierStokesWithModelSourceTerms<d
 //----------------------------------------------------------------
 template <int dim, int nstate, typename real>
 std::array<real,nstate> NavierStokesWithModelSourceTerms<dim,nstate,real>
+::dissipative_flux_dot_normal (
+        const std::array<real,nstate> &/*solution*/,
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &/*solution_gradient*/,
+        const std::array<real,nstate> &/*filtered_solution*/,
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &/*filtered_solution_gradient*/,
+        const bool /*on_boundary*/,
+        const dealii::types::global_dof_index /*cell_index*/,
+        const dealii::Tensor<1,dim,real> &/*normal*/,
+        const int /*boundary_type*/) const
+{
+    std::array<real,nstate> dissipative_flux_dot_normal;
+    dissipative_flux_dot_normal.fill(0.0); // initialize
+
+    return dissipative_flux_dot_normal;
+}
+//----------------------------------------------------------------
+template <int dim, int nstate, typename real>
+std::array<real,nstate> NavierStokesWithModelSourceTerms<dim,nstate,real>
 ::convective_eigenvalues (
     const std::array<real,nstate> &/*conservative_soln*/,
     const dealii::Tensor<1,dim,real> &/*normal*/) const

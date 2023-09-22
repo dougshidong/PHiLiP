@@ -106,7 +106,7 @@ int test_dissipative_numerical_flux_conservation (const PHiLiP::Parameters::AllP
                  soln_grad_int, soln_grad_ext,
                  soln_int, soln_ext,
                  soln_grad_int, soln_grad_ext,
-                 normal_int, penalty);
+                 normal_int, penalty, false);
 
     std::array<double, nstate> diss_auxi_num_flux_dot_n_2 = diss_num_flux->evaluate_auxiliary_flux(
                  cell_index_ext, cell_index_int,
@@ -115,7 +115,7 @@ int test_dissipative_numerical_flux_conservation (const PHiLiP::Parameters::AllP
                  soln_grad_ext, soln_grad_int,
                  soln_ext, soln_int,
                  soln_grad_ext, soln_grad_int,
-                 -normal_int, penalty);
+                 -normal_int, penalty, false);
  
 
     std::cout << "Dissipative solution flux conservation (should be equal since not dotted with normal)" << std::endl;
@@ -174,7 +174,7 @@ int test_dissipative_numerical_flux_consistency (const PHiLiP::Parameters::AllPa
                  soln_grad_int, soln_grad_ext,
                  soln_int, soln_ext,
                  soln_grad_int, soln_grad_ext,
-                 normal_int, penalty);
+                 normal_int, penalty, false);
 
 
     std::array<dealii::Tensor<1,dim,double>, nstate> diss_phys_flux_int;

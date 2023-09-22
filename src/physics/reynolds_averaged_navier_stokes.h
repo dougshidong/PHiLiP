@@ -58,6 +58,17 @@ public:
         const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient,
         const dealii::types::global_dof_index cell_index) const;
 
+    /// Additional viscous flux of RANS + viscous flux of turbulence model dot normal
+    std::array<real,nstate> dissipative_flux_dot_normal (
+        const std::array<real,nstate> &solution,
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient,
+        const std::array<real,nstate> &filtered_solution,
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &filtered_solution_gradient,
+        const bool on_boundary,
+        const dealii::types::global_dof_index cell_index,
+        const dealii::Tensor<1,dim,real> &normal,
+        const int boundary_type) const;
+
     /// Convective eigenvalues of the additional models' PDEs
     /** For RANS model, all entries associated with RANS are assigned to be zero 
      *                  all entries associated with turbulence model are assigned to be the corresponding eigenvalues*/

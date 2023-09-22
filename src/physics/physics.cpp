@@ -95,6 +95,29 @@ std::array<dealii::Tensor<1,dim,real>,nstate> PhysicsBase<dim,nstate,real>
 */
 
 template <int dim, int nstate, typename real>
+std::array<real,nstate> PhysicsBase<dim,nstate,real>
+::dissipative_flux_dot_normal (
+        const std::array<real,nstate> &solution,
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient,
+        const std::array<real,nstate> &filtered_solution,
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &filtered_solution_gradient,
+        const bool /*on_boundary*/,
+        const dealii::types::global_dof_index cell_index,
+        const dealii::Tensor<1,dim,real> &normal,
+        const int /*boundary_type*/) const
+{
+    std::array<dealii::Tensor<1,dim,real>,nstate> dissipative_flux = this->dissipative_flux(solution,solution_gradient,filtered_solution,filtered_solution_gradient,cell_index);
+    std::array<real,nstate> dissipative_flux_dot_normal;
+    dissipative_flux_dot_normal.fill(0.0); // initialize
+    for (int s=0; s<nstate; s++) {
+        for (int d=0; d<dim; ++d) {
+            dissipative_flux_dot_normal[s] += dissipative_flux[s][d] * normal[d];//compute dot product
+        }
+    }
+    return dissipative_flux_dot_normal;
+}
+
+template <int dim, int nstate, typename real>
 std::array<dealii::Tensor<1,dim,real>,nstate> PhysicsBase<dim,nstate,real>
 ::dissipative_flux (
         const std::array<real,nstate> &solution,

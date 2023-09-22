@@ -22,13 +22,17 @@ void PhysicsModelParam::declare_parameters (dealii::ParameterHandler &prm)
                               " smagorinsky | "
                               " wall_adaptive_local_eddy_viscosity | "
                               " vreman | "
-                              " shear_improved_smagorinsky "),
+                              " shear_improved_smagorinsky | "
+                              " small_small_variational_multiscale | "
+                              " all_all_variational_multiscale "),
                               "Enum of sub-grid scale models."
                               "Choices are "
                               " <smagorinsky | "
                               "  wall_adaptive_local_eddy_viscosity | "
                               "  vreman | "
-                              "  shear_improved_smagorinsky>.");
+                              "  shear_improved_smagorinsky | "
+                              "  small_small_variational_multiscale | "
+                              "  all_all_variational_multiscale>.");
 
             prm.declare_entry("turbulent_prandtl_number", "0.6",
                               dealii::Patterns::Double(1e-15, dealii::Patterns::Double::max_double_value),
@@ -104,13 +108,15 @@ void PhysicsModelParam::parse_parameters (dealii::ParameterHandler &prm)
             if(SGS_model_type_string == "wall_adaptive_local_eddy_viscosity") SGS_model_type = wall_adaptive_local_eddy_viscosity;
             if(SGS_model_type_string == "vreman")                             SGS_model_type = vreman;
             if(SGS_model_type_string == "shear_improved_smagorinsky")         SGS_model_type = shear_improved_smagorinsky;
+            if(SGS_model_type_string == "small_small_variational_multiscale") SGS_model_type = small_small_variational_multiscale;
+            if(SGS_model_type_string == "all_all_variational_multiscale")     SGS_model_type = all_all_variational_multiscale;
 
             turbulent_prandtl_number           = prm.get_double("turbulent_prandtl_number");
             smagorinsky_model_constant         = prm.get_double("smagorinsky_model_constant");
             WALE_model_constant                = prm.get_double("WALE_model_constant");
             vreman_model_constant              = prm.get_double("vreman_model_constant");
             ratio_of_filter_width_to_cell_size = prm.get_double("ratio_of_filter_width_to_cell_size");
-            do_compute_filtered_solution         = prm.get_bool("do_compute_filtered_solution");
+            do_compute_filtered_solution       = prm.get_bool("do_compute_filtered_solution");
             apply_modal_high_pass_filter_on_filtered_solution 
                                                = prm.get_bool("apply_modal_high_pass_filter_on_filtered_solution");
             poly_degree_max_large_scales       = prm.get_integer("poly_degree_max_large_scales");

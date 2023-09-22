@@ -49,6 +49,12 @@ std::string FlowSolverCaseBase<dim, nstate>::get_pde_string() const
             if     (sgs_model==SGSModel_enum::smagorinsky) sgs_model_string = "smagorinsky";
             else if(sgs_model==SGSModel_enum::wall_adaptive_local_eddy_viscosity) sgs_model_string = "wall_adaptive_local_eddy_viscosity";
             else if(sgs_model==SGSModel_enum::vreman) sgs_model_string = "vreman";
+            else if(sgs_model==SGSModel_enum::shear_improved_smagorinsky) sgs_model_string = "shear_improved_smagorinsky";
+            else if(sgs_model==SGSModel_enum::small_small_variational_multiscale) sgs_model_string = "small_small_variational_multiscale";
+            else if(sgs_model==SGSModel_enum::all_all_variational_multiscale) sgs_model_string = "all_all_variational_multiscale";
+            if(pde_string == "physics_model_filtered"){
+                pde_string += std::string(" (pL=") + std::to_string(this->all_param.physics_model_param.poly_degree_max_large_scales) + std::string(")");
+            }
             pde_string += std::string(" (Model: ") + model_string + std::string(", SGS Model: ") + sgs_model_string + std::string(")");
         } else if(model == Model_enum::navier_stokes_model) {
             model_string = "navier_stokes_model";
@@ -64,7 +70,7 @@ std::string FlowSolverCaseBase<dim, nstate>::get_pde_string() const
             pde_string += std::string(" (Model: ") + model_string + std::string(", RANS Model: ") + rans_model_string + std::string(")");
         }
         if(pde_string == "physics_model") pde_string += std::string(" (Model: ") + model_string + std::string(")");
-        else if(pde_string == "physics_model_filtered") pde_string += std::string(" (Model: ") + model_string + std::string(")");
+        else if(pde_string == "physics_model_filtered") pde_string += std::string(" (pL=") + std::to_string(this->all_param.physics_model_param.poly_degree_max_large_scales) + std::string(") (Model: ") + model_string + std::string(")");
     }
     
     return pde_string;

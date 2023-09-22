@@ -331,29 +331,6 @@ std::vector <real> determinant_ArrayTensor(std::vector<CoordGrad<real,dim>> &coo
     return determinants;
 }
 
-// Integer root from
-// https://rosettacode.org/wiki/Integer_roots#C.2B.2B
-unsigned int root(unsigned int base, unsigned int n) {
-    if (base < 2) return base;
-    if (n == 0) return 1;
-
-    unsigned int n1 = n - 1;
-    unsigned int n2 = n;
-    unsigned int n3 = n1;
-    unsigned int c = 1;
-    auto d = (n3 + base) / n2;
-    auto e = (n3 * d + base / pow(d, n1)) / n2;
-
-    while (c != d && c != e) {
-        c = d;
-        d = e;
-        e = (n3*e + base / pow(e, n1)) / n2;
-    }
-
-    if (d < e) return d;
-    return e;
-}
-
 template <int dim, typename real>
 void evaluate_covariant_metric_jacobian (
     const dealii::Quadrature<dim> &quadrature,

@@ -37,6 +37,8 @@ inline real WallModel_TurbulentChannelFlow<dim, nstate, real>
     // or take advantage of the parameters object but still create a wall dist factory
     // based on the flow case; there are constants in here that need to be initialized
 
+    const real half_channel_height = this->all_parameters.flow_solver_params.half_channel_height;
+
     // Get closest wall normal distance
     real y = point[1]; // y-coordinate of position
     real dist_from_wall = 0.0; // represents distance normal to top/bottom wall (which ever is closer); y-domain bounds are [-half_channel_height, half_channel_height]
@@ -50,15 +52,18 @@ inline real WallModel_TurbulentChannelFlow<dim, nstate, real>
 }
 
 
+// template <int dim, int nstate, typename real>
+// inline real WallModel_TurbulentChannelFlow<dim, nstate, real>
+
 /// Evaluates boundary values and gradients on the other side of the face.
 void boundary_face_values (
     const int /*boundary_type*/,
-    const dealii::Point<dim, real> &/*pos*/,
-    const dealii::Tensor<1,dim,real> &/*normal*/,
-    const std::array<real,nstate> &/*soln_int*/,
-    const std::array<dealii::Tensor<1,dim,real>,nstate> &/*soln_grad_int*/,
-    std::array<real,nstate> &/*soln_bc*/,
-    std::array<dealii::Tensor<1,dim,real>,nstate> &/*soln_grad_bc*/) const
+    const dealii::Point<dim, real> &pos,
+    const dealii::Tensor<1,dim,real> &normal,
+    const std::array<real,nstate> &soln_int,
+    const std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_int,
+    std::array<real,nstate> &soln_bc,
+    std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_bc) const
 {
     // from PhysicsBase
     // Turbulent velocity profile using Reichart's law of the wall
@@ -66,13 +71,13 @@ void boundary_face_values (
     // (1) Get the friction velocity
     // Get the nondimensional (w.r.t. freestream) friction velocity
     const real viscosity_coefficient = this->navier_stokes_physics.constant_viscosity;
-    const real wall_distance = wall_geometry.get_distance_from_wall(point,normal); // TO DO: Update this line
+    const real wall_distance = get_distance_from_wall(point,normal); // TO DO: may want to pass an object for this; can be done later one
     const real density = soln_int[0];
-    const real wall_parallel_velocity = this->get_wall_parallel_velocity(normal,soln_int);
+    const real wall_parallel_velocity = this->navier_stokes_physics.compute_velocities_parallel_to_wall(soln_int,normal);
     const real friction_velocity = get_friction_velocity(density,
                                                          wall_distance,
                                                          wall_parallel_velocity,
-                                                         initial_guess_for_friction_velocity)
+                                                         initial_guess_for_friction_velocity);
     // (2) Get wall shear stress
     const real wall_shear_stress = density*friction_velocity*friction_velocity;
     const real gradient_of_parallel_velocity_in_direction_normal_to_wall 
@@ -82,6 +87,47 @@ void boundary_face_values (
     // use the gradient_of_parallel_velocity_in_direction_normal_to_wall 
     // to assign the value to that vel grad component then convert 
     // the primitive gradients to conservative using navier stokes
+
+
+    using thermal_boundary_condition_enum = Parameters::NavierStokesParam::ThermalBoundaryCondition;
+
+    // No-slip wall boundary conditions
+    // Given by equations 460-461 of the following paper
+    // Hartmann, Ralf. "Numerical analysis of higher order discontinuous Galerkin finite element methods." (2008): 1-107.
+    const std::array<real,nstate> primitive_interior_values = this->template convert_conservative_to_primitive<real>(soln_int);
+
+    // Copy density
+    std::array<real,nstate> primitive_boundary_values;
+    primitive_boundary_values[0] = primitive_interior_values[0];
+
+    // Associated thermal boundary condition
+    if(thermal_boundary_condition_type == thermal_boundary_condition_enum::isothermal) { 
+        // isothermal boundary
+        primitive_boundary_values[nstate-1] = this->compute_pressure_from_density_temperature(primitive_boundary_values[0], isothermal_wall_temperature);
+    } else if(thermal_boundary_condition_type == thermal_boundary_condition_enum::adiabatic) {
+        // adiabatic boundary
+        primitive_boundary_values[nstate-1] = primitive_interior_values[nstate-1];
+    }
+    
+    // No-slip boundary condition on velocity
+    dealii::Tensor<1,dim,real> velocities_bc;
+    for (int d=0; d<dim; d++) {
+        velocities_bc[d] = 0.0;
+    }
+    for (int d=0; d<dim; ++d) {
+        primitive_boundary_values[1+d] = velocities_bc[d];
+    }
+
+    // Apply boundary conditions:
+    // -- solution at boundary
+    const std::array<real,nstate> modified_conservative_boundary_values = this->convert_primitive_to_conservative(primitive_boundary_values);
+    for (int istate=0; istate<nstate; ++istate) {
+        soln_bc[istate] = modified_conservative_boundary_values[istate];
+    }
+    // -- gradient of solution at boundary
+    for (int istate=0; istate<nstate; ++istate) {
+        soln_grad_bc[istate] = soln_grad_int[istate];// how to apply the tau_wall gradient to this?
+    }
 }
 
 

@@ -69,6 +69,26 @@ dealii::Tensor<1,dim,real2> NavierStokes<dim,nstate,real>
 }
 
 template <int dim, int nstate, typename real>
+dealii::Tensor<1,dim,real2> NavierStokes<dim,nstate,real>
+::compute_velocities_parallel_to_wall(
+    const std::array<real2,nstate> &conservative_soln,
+    const dealii::Tensor<1,dim,real2> &normal_vector)
+{
+    // extract velocities
+    const dealii::Tensor<1,dim,real> velocities = compute_velocities<real>(conservative_soln);
+    // compute normal velocity
+    real normal_velocity = 0.0;
+    for(int d=0;d<dim;++d){
+        normal_velocity += velocities[d]*normal_vector[d];
+    }
+    // compute wall parallel velocities
+    dealii::Tensor<1,dim,real> velocities_parallel_to_wall;
+    for(int d=0;d<dim;++d){
+        velocities_parallel_to_wall[d] = velocities[d] - normal_velocity*normal_vector[d];
+    }
+}
+
+template <int dim, int nstate, typename real>
 template<typename real2>
 real2 NavierStokes<dim,nstate,real>
 ::compute_wall_shear_stress (

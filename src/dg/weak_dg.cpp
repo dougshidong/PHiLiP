@@ -1472,6 +1472,42 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_boundary_term_derivatives(
 #endif
 
 
+
+template<int dim>
+dealii::Quadrature<dim> project_face_quadrature(
+    const dealii::Quadrature<dim - 1> &face_quadrature_lower_dim, const std::pair<unsigned int, int> face_subface_pair,
+    const typename dealii::QProjector<dim>::DataSetDescriptor face_data_set) {
+    dealii::Quadrature<dim> face_quadrature;
+
+    if constexpr (dim == 3) {
+        const dealii::Quadrature<dim> all_faces_quad =
+            face_subface_pair.second == -1 ? dealii::QProjector<dim>::project_to_all_faces(
+                                                 dealii::ReferenceCell::get_hypercube(dim), face_quadrature_lower_dim)
+                                           : dealii::QProjector<dim>::project_to_all_subfaces(
+                                                 dealii::ReferenceCell::get_hypercube(dim), face_quadrature_lower_dim);
+        const unsigned int n_face_quad_pts = face_quadrature.size();
+        std::vector<dealii::Point<dim>> points(n_face_quad_pts);
+        std::vector<double> weights(n_face_quad_pts);
+        for (unsigned int iquad = 0; iquad < n_face_quad_pts; ++iquad) {
+            points[iquad] = all_faces_quad.point(iquad + face_data_set);
+            weights[iquad] = all_faces_quad.weight(iquad + face_data_set);
+        }
+        face_quadrature = dealii::Quadrature<dim>(points, weights);
+
+    } else {
+        (void) face_data_set;
+        if (face_subface_pair.second == -1) {
+            face_quadrature = dealii::QProjector<dim>::project_to_face(
+                dealii::ReferenceCell::get_hypercube(dim), face_quadrature_lower_dim, face_subface_pair.first);
+        } else {
+            face_quadrature = dealii::QProjector<dim>::project_to_subface(
+                dealii::ReferenceCell::get_hypercube(dim), face_quadrature_lower_dim, face_subface_pair.first,
+                face_subface_pair.second, dealii::RefinementCase<dim - 1>::isotropic_refinement);
+        }
+    }
+    return face_quadrature;
+}
+
 template <int dim, int nstate, typename real, typename MeshType>
 template <typename real2>
 void DGWeak<dim,nstate,real,MeshType>::assemble_face_term(
@@ -1518,49 +1554,8 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_face_term(
     using Tensor1D = dealii::Tensor<1,dim,real2>;
     using Tensor2D = dealii::Tensor<2,dim,real2>;
 
-    (void) face_data_set_int; (void) face_data_set_ext;
-    dealii::Quadrature<dim> face_quadrature_int, face_quadrature_ext;
-    if constexpr (dim < 3) {
-        face_quadrature_int = face_subface_int.second == -1 ?
-                              dealii::QProjector<dim>::project_to_face(dealii::ReferenceCell::get_hypercube(dim),
-                                                                       face_quadrature,
-                                                                       face_subface_int.first):
-                              dealii::QProjector<dim>::project_to_subface(dealii::ReferenceCell::get_hypercube(dim),
-                                                                       face_quadrature,
-                                                                       face_subface_int.first,
-                                                                       face_subface_int.second,
-                                                                       dealii::RefinementCase<dim-1>::isotropic_refinement);
-        face_quadrature_ext = face_subface_ext.second == -1 ?
-                              dealii::QProjector<dim>::project_to_face(dealii::ReferenceCell::get_hypercube(dim),
-                                                                       face_quadrature,
-                                                                       face_subface_ext.first):
-                              dealii::QProjector<dim>::project_to_subface(dealii::ReferenceCell::get_hypercube(dim),
-                                                                       face_quadrature,
-                                                                       face_subface_ext.first,
-                                                                       face_subface_ext.second,
-                                                                       dealii::RefinementCase<dim-1>::isotropic_refinement);
-    } else {
-        const dealii::Quadrature<dim> all_faces_quad_int = face_subface_int.second == -1 ?
-                                                           dealii::QProjector<dim>::project_to_all_faces (dealii::ReferenceCell::get_hypercube(dim), face_quadrature) :
-                                                           dealii::QProjector<dim>::project_to_all_subfaces (dealii::ReferenceCell::get_hypercube(dim), face_quadrature);
-        const dealii::Quadrature<dim> all_faces_quad_ext = face_subface_ext.second == -1 ?
-                                                           dealii::QProjector<dim>::project_to_all_faces (dealii::ReferenceCell::get_hypercube(dim), face_quadrature) :
-                                                           dealii::QProjector<dim>::project_to_all_subfaces (dealii::ReferenceCell::get_hypercube(dim), face_quadrature);
-        std::vector< dealii::Point< dim >> points(n_face_quad_pts);
-        std::vector< double > weights(n_face_quad_pts);
-        for (unsigned int iquad = 0; iquad < n_face_quad_pts; ++iquad) {
-            points[iquad] = all_faces_quad_int.point(iquad+face_data_set_int);
-            weights[iquad] = all_faces_quad_int.weight(iquad+face_data_set_int);
-        }
-        face_quadrature_int = dealii::Quadrature<dim>(points, weights);
-
-        for (unsigned int iquad = 0; iquad < n_face_quad_pts; ++iquad) {
-            points[iquad] = all_faces_quad_ext.point(iquad+face_data_set_ext);
-            weights[iquad] = all_faces_quad_ext.weight(iquad+face_data_set_ext);
-        }
-        face_quadrature_ext = dealii::Quadrature<dim>(points, weights);
-    }
-
+    dealii::Quadrature<dim> face_quadrature_int = project_face_quadrature<dim>(face_quadrature, face_subface_int, face_data_set_int);
+    dealii::Quadrature<dim> face_quadrature_ext = project_face_quadrature<dim>(face_quadrature, face_subface_ext, face_data_set_ext);
 
     (void) compute_dRdW; (void) compute_dRdX; (void) compute_d2R;
     const bool compute_metric_derivatives = true; //(!compute_dRdX && !compute_d2R) ? false : true;

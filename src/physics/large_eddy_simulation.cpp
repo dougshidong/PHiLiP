@@ -1232,7 +1232,7 @@ LargeEddySimulation_AllAllVMS<dim, nstate, real>::LargeEddySimulation_AllAllVMS(
                                                poly_degree,
                                                poly_degree_large_scales,
                                                mesh_size,
-                                               0.159, // Equation 14 in reference
+                                               1.082, // Equation 14 in reference
                                                isothermal_wall_temperature,
                                                thermal_boundary_condition_type,
                                                manufactured_solution_function,

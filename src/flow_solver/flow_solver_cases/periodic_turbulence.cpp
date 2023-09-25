@@ -426,16 +426,6 @@ void PeriodicTurbulence<dim, nstate>::compute_and_update_integrated_quantities(D
     // Initialize the maximum local wave speed to zero; only used for adaptive time step
     if(this->all_param.flow_solver_param.adaptive_time_step == true) this->maximum_local_wave_speed = 0.0;
 
-    // Initialize the strain rate tensor integral (for computing the mean) to zero
-    dealii::Tensor<2,dim,double> strain_rate_tensor_integral;
-    if(this->do_compute_mean_strain_rate_tensor){
-        for (int d1=0; d1<dim; ++d1) {
-            for (int d2=0; d2<dim; ++d2) {
-                strain_rate_tensor_integral[d1][d2] = 0.0;
-            }
-        }
-    }
-
     // Overintegrate the error to make sure there is not integration error in the error estimate
     int overintegrate = 10;
 
@@ -469,6 +459,16 @@ void PeriodicTurbulence<dim, nstate>::compute_and_update_integrated_quantities(D
     for (auto cell = dg.dof_handler.begin_active(); cell!= dg.dof_handler.end(); ++cell, ++metric_cell) {
         if (!cell->is_locally_owned()) continue;
         cell->get_dof_indices (dofs_indices);
+
+        // Initialize the strain rate tensor integral (for computing the mean) to zero
+        dealii::Tensor<2,dim,double> strain_rate_tensor_integral;
+        if(this->do_compute_mean_strain_rate_tensor){
+            for (int d1=0; d1<dim; ++d1) {
+                for (int d2=0; d2<dim; ++d2) {
+                    strain_rate_tensor_integral[d1][d2] = 0.0;
+                }
+            }
+        }
 
         // We first need to extract the mapping support points (grid nodes) from high_order_grid.
         const dealii::FESystem<dim> &fe_metric = dg.high_order_grid->fe_system;
@@ -589,6 +589,18 @@ void PeriodicTurbulence<dim, nstate>::compute_and_update_integrated_quantities(D
                 }
             }
         }
+        if(this->do_compute_mean_strain_rate_tensor){
+            dealii::Tensor<2,dim,double> mean_strain_rate_tensor;
+            for (int d1=0; d1<dim; ++d1) {
+                for (int d2=0; d2<dim; ++d2) {
+                    mean_strain_rate_tensor[d1][d2] = dealii::Utilities::MPI::sum(strain_rate_tensor_integral[d1][d2], this->mpi_communicator);
+                    // NOTE: this next line would be better if I could access the model variables; note - the variable needs to be created
+                    mean_strain_rate_tensor[d1][d2] /= this->domain_size_per_element; // divide by total domain volume
+                }
+            }
+            const dealii::types::global_dof_index cell_index = cell->active_cell_index();
+            this->cellwise_mean_strain_rate_tensor_magnitude[cell_index] = get_tensor_magnitude(mean_strain_rate_tensor); // TO DO: add this function
+        }
     }
     if(this->all_param.flow_solver_param.adaptive_time_step == true) {
         this->maximum_local_wave_speed = dealii::Utilities::MPI::max(this->maximum_local_wave_speed, this->mpi_communicator);
@@ -599,12 +611,7 @@ void PeriodicTurbulence<dim, nstate>::compute_and_update_integrated_quantities(D
         this->integrated_quantities[i_quantity] /= this->domain_size; // divide by total domain volume
     }
     if(this->do_compute_mean_strain_rate_tensor){
-        for (int d1=0; d1<dim; ++d1) {
-            for (int d2=0; d2<dim; ++d2) {
-                this->mean_strain_rate_tensor[d1][d2] = dealii::Utilities::MPI::sum(strain_rate_tensor_integral[d1][d2], this->mpi_communicator);
-                this->mean_strain_rate_tensor[d1][d2] /= this->domain_size; // divide by total domain volume
-            }
-        }
+        this->cellwise_mean_strain_rate_tensor_magnitude.update_ghost_values();
     }
 }
 

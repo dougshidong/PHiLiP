@@ -7,18 +7,20 @@
 #include "parameters/all_parameters.h"
 
 // for generate_grid
-#include <deal.II/grid/tria.h>
+#include <deal.II/base/function.h>
 #include <deal.II/distributed/shared_tria.h>
 #include <deal.II/distributed/tria.h>
-#include <deal.II/base/function.h>
-#include <stdlib.h>
-#include <iostream>
 #include <deal.II/dofs/dof_tools.h>
 #include <deal.II/grid/grid_tools.h>
+#include <deal.II/grid/tria.h>
 #include <deal.II/numerics/vector_tools.h>
-#include "physics/physics_factory.h"
-#include "dg/dg.h"
+#include <stdlib.h>
+
+#include <iostream>
+
+#include "dg/dg_base.h"
 #include "dg/dg_factory.hpp"
+#include "physics/physics_factory.h"
 //#include "ode_solver/runge_kutta_ode_solver.h"
 #include "ode_solver/explicit_ode_solver.h"
 #include "ode_solver/ode_solver_factory.h"

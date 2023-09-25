@@ -1,18 +1,18 @@
 #ifndef __DIFFUSION_EXACT_ADJOINT_H__
 #define __DIFFUSION_EXACT_ADJOINT_H__
 
-#include <memory>
-
 #include <deal.II/base/tensor.h>
 #include <deal.II/base/types.h>
 
-#include "tests.h"
-#include "dg/dg.h"
-#include "physics/physics.h"
+#include <memory>
+
+#include "dg/dg_base.h"
+#include "functional/functional.h"
+#include "parameters/all_parameters.h"
 #include "physics/convection_diffusion.h"
 #include "physics/manufactured_solution.h"
-#include "parameters/all_parameters.h"
-#include "functional/functional.h"
+#include "physics/physics.h"
+#include "tests.h"
 
 namespace PHiLiP {
 namespace Tests {

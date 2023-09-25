@@ -1,7 +1,7 @@
 #ifndef __STRONG_DISCONTINUOUSGALERKIN_H__
 #define __STRONG_DISCONTINUOUSGALERKIN_H__
 
-#include "dg.h"
+#include "dg_base_state.hpp"
 
 namespace PHiLiP {
 

@@ -1,9 +1,9 @@
 #ifndef __POD_GALERKIN_ODE_SOLVER__
 #define __POD_GALERKIN_ODE_SOLVER__
 
-#include "dg/dg.h"
-#include "reduced_order_ode_solver.h"
+#include "dg/dg_base.h"
 #include "reduced_order/pod_basis_base.h"
+#include "reduced_order_ode_solver.h"
 
 namespace PHiLiP {
 namespace ODE {

@@ -1,6 +1,7 @@
 set(DG_SOURCE
     dg_factory.cpp
-    dg.cpp
+    dg_base.cpp
+    dg_base_state.cpp
     residual_sparsity_patterns.cpp
     weak_dg.cpp
     strong_dg.cpp

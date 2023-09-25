@@ -1,7 +1,7 @@
 #include <deal.II/lac/dynamic_sparsity_pattern.h>
 #include <deal.II/lac/sparsity_tools.h>
 
-#include "dg.h"
+#include "dg_base.h"
 
 namespace PHiLiP {
 

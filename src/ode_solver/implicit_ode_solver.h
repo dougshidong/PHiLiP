@@ -1,9 +1,9 @@
 #ifndef __IMPLICIT_ODESOLVER__
 #define __IMPLICIT_ODESOLVER__
 
-#include "dg/dg.h"
-#include "ode_solver_base.h"
+#include "dg/dg_base.h"
 #include "linear_solver/linear_solver.h"
+#include "ode_solver_base.h"
 
 namespace PHiLiP {
 namespace ODE {

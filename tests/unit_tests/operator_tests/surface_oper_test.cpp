@@ -38,24 +38,23 @@
 
 // Finally, we take our exact solution from the library as well as volume_quadrature
 // and additional tools.
+#include <deal.II/dofs/dof_handler.h>
+#include <deal.II/fe/fe_dgq.h>
+#include <deal.II/fe/fe_system.h>
+#include <deal.II/fe/mapping_fe_field.h>
+#include <deal.II/fe/mapping_q.h>
+#include <deal.II/fe/mapping_q_generic.h>
+#include <deal.II/grid/manifold_lib.h>
 #include <deal.II/numerics/data_out.h>
 #include <deal.II/numerics/data_out_dof_data.h>
 #include <deal.II/numerics/vector_tools.h>
 #include <deal.II/numerics/vector_tools.templates.h>
 
-#include <deal.II/grid/manifold_lib.h>
-#include <deal.II/fe/mapping_q.h>
-#include <deal.II/fe/mapping_q_generic.h>
-#include <deal.II/fe/fe_dgq.h>
-#include <deal.II/fe/fe_system.h>
-#include <deal.II/dofs/dof_handler.h>
-#include <deal.II/fe/mapping_fe_field.h> 
-
+#include "dg/dg_base.h"
+#include "dg/dg_factory.hpp"
+#include "operators/operators.h"
 #include "parameters/all_parameters.h"
 #include "parameters/parameters.h"
-#include "operators/operators.h"
-#include "dg/dg.h"
-#include "dg/dg_factory.hpp"
 
 const double TOLERANCE = 1E-6;
 using namespace std;

@@ -3,17 +3,12 @@
 
 #include <deal.II/optimization/rol/vector_adaptor.h>
 
-#include "ROL_Constraint_SimOpt.hpp"
-
-#include "linear_solver/linear_solver.h"
-
-#include "parameters/all_parameters.h"
-
-#include "dg/dg.h"
-
 #include "Ifpack.h"
-
+#include "ROL_Constraint_SimOpt.hpp"
 #include "design_parameterization/base_parameterization.hpp"
+#include "dg/dg_base.h"
+#include "linear_solver/linear_solver.h"
+#include "parameters/all_parameters.h"
 
 namespace PHiLiP {
 

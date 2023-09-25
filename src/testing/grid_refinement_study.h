@@ -1,13 +1,12 @@
 #ifndef __GRID_REFINEMENT_STUDY_H__
 #define __GRID_REFINEMENT_STUDY_H__
 
-#include "tests.h"
-#include "dg/dg.h"
-#include "physics/physics.h"
-#include "physics/model.h"
-#include "parameters/all_parameters.h"
-
+#include "dg/dg_base.h"
 #include "grid_refinement/gnu_out.h"
+#include "parameters/all_parameters.h"
+#include "physics/model.h"
+#include "physics/physics.h"
+#include "tests.h"
 
 namespace PHiLiP {
 

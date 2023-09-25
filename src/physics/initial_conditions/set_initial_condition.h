@@ -1,10 +1,11 @@
 #ifndef __SET_INITIAL_CONDITION_H__
 #define __SET_INITIAL_CONDITION_H__
 
-#include "parameters/all_parameters.h"
-#include "dg/dg.h"
-#include "initial_condition_function.h"
 #include <string>
+
+#include "dg/dg_base.h"
+#include "initial_condition_function.h"
+#include "parameters/all_parameters.h"
 
 namespace PHiLiP {
 

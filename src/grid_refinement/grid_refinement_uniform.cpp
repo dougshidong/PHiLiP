@@ -1,11 +1,10 @@
+#include "grid_refinement_uniform.h"
+
 #include <deal.II/dofs/dof_tools.h>
 
-#include "parameters/parameters_grid_refinement.h"
-
-#include "dg/dg.h"
+#include "dg/dg_base.h"
 #include "mesh/high_order_grid.h"
-
-#include "grid_refinement_uniform.h"
+#include "parameters/parameters_grid_refinement.h"
 
 namespace PHiLiP {
 

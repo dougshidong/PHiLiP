@@ -1,43 +1,32 @@
-#include <stdlib.h>
-#include <iostream>
-
-#include <deal.II/base/convergence_table.h>
-
-#include <deal.II/dofs/dof_tools.h>
-
-#include <deal.II/distributed/solution_transfer.h>
-#include <deal.II/distributed/tria.h>
-
-
-#include <deal.II/distributed/grid_refinement.h>
-#include <deal.II/grid/grid_generator.h>
-#include <deal.II/grid/grid_refinement.h>
-#include <deal.II/grid/grid_tools.h>
-#include <deal.II/grid/grid_out.h>
-#include <deal.II/grid/grid_in.h>
-
-#include <deal.II/numerics/vector_tools.h>
-
-#include <deal.II/fe/fe_values.h>
-
-#include <deal.II/fe/mapping_q.h>
-
-
 #include "euler_cylinder_adjoint.h"
 
+#include <deal.II/base/convergence_table.h>
+#include <deal.II/distributed/grid_refinement.h>
+#include <deal.II/distributed/solution_transfer.h>
+#include <deal.II/distributed/tria.h>
+#include <deal.II/dofs/dof_tools.h>
+#include <deal.II/fe/fe_values.h>
+#include <deal.II/fe/mapping_q.h>
+#include <deal.II/grid/grid_generator.h>
+#include <deal.II/grid/grid_in.h>
+#include <deal.II/grid/grid_out.h>
+#include <deal.II/grid/grid_refinement.h>
+#include <deal.II/grid/grid_tools.h>
+#include <deal.II/numerics/vector_tools.h>
+#include <stdlib.h>
+
+#include <iostream>
+
+#include "dg/dg_base.h"
+#include "dg/dg_factory.hpp"
+#include "functional/adjoint.h"
+#include "functional/functional.h"
+#include "ode_solver/ode_solver_factory.h"
+#include "physics/euler.h"
+#include "physics/initial_conditions/initial_condition_function.h"
+#include "physics/manufactured_solution.h"
 #include "physics/physics.h"
 #include "physics/physics_factory.h"
-#include "physics/initial_conditions/initial_condition_function.h"
-#include "physics/euler.h"
-#include "physics/manufactured_solution.h"
-
-#include "dg/dg.h"
-#include "dg/dg_factory.hpp"
-#include "ode_solver/ode_solver_factory.h"
-
-#include "functional/functional.h"
-#include "functional/adjoint.h"
-
 
 namespace PHiLiP {
 namespace Tests {

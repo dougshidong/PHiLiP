@@ -2,19 +2,17 @@
 #define __ADJOINT_H__
 
 /* includes */
-#include <vector>
-#include <iostream>
-
-#include <deal.II/lac/la_parallel_vector.h>
 #include <deal.II/distributed/solution_transfer.h>
-
 #include <deal.II/fe/fe_q.h>
 #include <deal.II/fe/fe_values.h>
+#include <deal.II/lac/la_parallel_vector.h>
 
-#include "parameters/all_parameters.h"
+#include <iostream>
+#include <vector>
 
+#include "dg/dg_base.h"
 #include "functional.h"
-#include "dg/dg.h"
+#include "parameters/all_parameters.h"
 #include "physics/physics.h"
 
 namespace PHiLiP {

@@ -1,15 +1,17 @@
 #ifndef __POD_BASIS_OFFLINE__
 #define __POD_BASIS_OFFLINE__
 
-#include <deal.II/numerics/vector_tools.h>
-#include <deal.II/lac/full_matrix.h>
 #include <deal.II/base/conditional_ostream.h>
+#include <deal.II/lac/full_matrix.h>
 #include <deal.II/lac/trilinos_sparse_matrix.h>
 #include <deal.II/lac/vector_operation.h>
-#include "parameters/all_parameters.h"
-#include "dg/dg.h"
-#include "pod_basis_base.h"
+#include <deal.II/numerics/vector_tools.h>
+
 #include <eigen/Eigen/Dense>
+
+#include "dg/dg_base.h"
+#include "parameters/all_parameters.h"
+#include "pod_basis_base.h"
 
 namespace PHiLiP {
 namespace ProperOrthogonalDecomposition {

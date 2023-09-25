@@ -1,10 +1,11 @@
 #ifndef __PERIODIC_TURBULENCE_H__
 #define __PERIODIC_TURBULENCE_H__
 
-#include "periodic_cube_flow.h"
-#include "dg/dg.h"
-#include "physics/navier_stokes.h"
 #include <deal.II/base/table.h>
+
+#include "dg/dg_base.h"
+#include "periodic_cube_flow.h"
+#include "physics/navier_stokes.h"
 
 namespace PHiLiP {
 namespace FlowSolver {

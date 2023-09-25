@@ -1,11 +1,12 @@
 #ifndef __GRID_STUDY_H__
 #define __GRID_STUDY_H__
 
-#include "tests.h"
-#include "dg/dg.h"
-#include "physics/physics.h"
-#include "parameters/all_parameters.h"
 #include <deal.II/base/convergence_table.h>
+
+#include "dg/dg_base.h"
+#include "parameters/all_parameters.h"
+#include "physics/physics.h"
+#include "tests.h"
 
 namespace PHiLiP {
 namespace Tests {

@@ -1,7 +1,7 @@
 #ifndef __DG_FACTORY_H__
 #define __DG_FACTORY_H__
 
-#include "dg.h"
+#include "dg_base.h"
 
 namespace PHiLiP {
 

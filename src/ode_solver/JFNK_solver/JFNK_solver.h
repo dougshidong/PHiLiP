@@ -1,10 +1,11 @@
 #ifndef __JFNK_SOLVER__
 #define __JFNK_SOLVER__
 
-#include "dg/dg.h"
-#include <deal.II/lac/solver_gmres.h>
-#include "jacobian_vector_product.h"
 #include <deal.II/base/conditional_ostream.h>
+#include <deal.II/lac/solver_gmres.h>
+
+#include "dg/dg_base.h"
+#include "jacobian_vector_product.h"
 
 namespace PHiLiP {
 namespace ODE{

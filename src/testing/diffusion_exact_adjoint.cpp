@@ -25,6 +25,7 @@
 #include "physics/euler.h"
 #include "physics/manufactured_solution.h"
 #include "dg/dg_factory.hpp"
+#include "dg/dg_base_state.hpp"
 #include "ode_solver/ode_solver_factory.h"
 
 #include "functional/functional.h"

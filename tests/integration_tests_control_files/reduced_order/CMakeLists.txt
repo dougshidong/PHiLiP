@@ -80,6 +80,16 @@ add_test(
 )
 
 # =======================================
+# 3D Inviscid NACA0012 Adaptive Sampling
+# =======================================
+configure_file(3d_inviscid_naca0012_adaptive_sampling.prm 3d_inviscid_naca0012_adaptive_sampling.prm COPYONLY)
+add_test(
+        NAME 3D_INVISCID_NACA0012_ADAPTIVE_SAMPLING
+        COMMAND mpirun -np ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_3D -i ${CMAKE_CURRENT_BINARY_DIR}/3d_inviscid_naca0012_adaptive_sampling.prm
+        WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
+)
+
+# =======================================
 # Inviscid NACA0012 Adaptive Sampling Testing
 # =======================================
 #configure_file(inviscid_naca0012_adaptive_sampling_testing.prm inviscid_naca0012_adaptive_sampling_testing.prm COPYONLY)

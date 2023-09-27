@@ -40,21 +40,6 @@ PeriodicTurbulence<dim, nstate>::PeriodicTurbulence(const PHiLiP::Parameters::Al
     this->is_decaying_homogeneous_isotropic_turbulence = (flow_type == FlowCaseEnum::decaying_homogeneous_isotropic_turbulence);
     this->is_viscous_flow = (this->all_param.pde_type != Parameters::AllParameters::PartialDifferentialEquation::euler);
     this->do_calculate_numerical_entropy= this->all_param.flow_solver_param.do_calculate_numerical_entropy;
-
-    // Determine if the mean strain rate tensor must be computed
-    using PDE_enum = Parameters::AllParameters::PartialDifferentialEquation;
-    const PDE_enum pde_type = this->all_param.pde_type;
-    if(pde_type == PDE_enum::physics_model  || pde_type == PDE_enum::physics_model_filtered) {
-        using Model_enum = Parameters::AllParameters::ModelType;
-        const Model_enum model_type = this->all_param.model_type;
-        if(model_type == Model_enum::large_eddy_simulation) {
-            using SGS_enum = Parameters::PhysicsModelParam::SubGridScaleModel;
-            const SGS_enum SGS_model_type = this->all_param.physics_model_param.SGS_model_type;
-            if(SGS_model_type == SGS_enum::shear_improved_smagorinsky) {
-                this->do_compute_mean_strain_rate_tensor = true;
-            }
-        }
-    }
     
     // Navier-Stokes object; create using dynamic_pointer_cast and the create_Physics factory
     PHiLiP::Parameters::AllParameters parameters_navier_stokes = this->all_param;
@@ -115,9 +100,6 @@ void PeriodicTurbulence<dim,nstate>::display_additional_flow_case_specific_param
         this->pcout << "- - Freestream Reynolds number: " << this->all_param.navier_stokes_param.reynolds_number_inf << std::endl;
         this->pcout << "- - Freestream Mach number: " << this->all_param.euler_param.mach_inf << std::endl;
     }
-    if(this->do_compute_mean_strain_rate_tensor) {
-        this->pcout << "- - Computing mean strain rate tensor at each time step." << std::endl;  
-    } 
     this->display_grid_parameters();
 }
 
@@ -460,16 +442,6 @@ void PeriodicTurbulence<dim, nstate>::compute_and_update_integrated_quantities(D
         if (!cell->is_locally_owned()) continue;
         cell->get_dof_indices (dofs_indices);
 
-        // Initialize the strain rate tensor integral (for computing the mean) to zero
-        dealii::Tensor<2,dim,double> strain_rate_tensor_integral;
-        if(this->do_compute_mean_strain_rate_tensor){
-            for (int d1=0; d1<dim; ++d1) {
-                for (int d2=0; d2<dim; ++d2) {
-                    strain_rate_tensor_integral[d1][d2] = 0.0;
-                }
-            }
-        }
-
         // We first need to extract the mapping support points (grid nodes) from high_order_grid.
         const dealii::FESystem<dim> &fe_metric = dg.high_order_grid->fe_system;
         const unsigned int n_metric_dofs = fe_metric.dofs_per_cell;
@@ -578,28 +550,6 @@ void PeriodicTurbulence<dim, nstate>::compute_and_update_integrated_quantities(D
                 const double local_wave_speed = this->navier_stokes_physics->max_convective_eigenvalue(soln_at_q);
                 if(local_wave_speed > this->maximum_local_wave_speed) this->maximum_local_wave_speed = local_wave_speed;
             }
-
-            if(this->do_compute_mean_strain_rate_tensor){
-                // Get strain rate tensor
-                const dealii::Tensor<2,dim,double> strain_rate_tensor = this->navier_stokes_physics->compute_strain_rate_tensor_from_conservative(soln_at_q,soln_grad_at_q);
-                for (int d1=0; d1<dim; ++d1) {
-                    for (int d2=0; d2<dim; ++d2) {
-                        strain_rate_tensor_integral[d1][d2] += strain_rate_tensor[d1][d2] * quad_weights[iquad] * metric_oper.det_Jac_vol[iquad];
-                    }
-                }
-            }
-        }
-        if(this->do_compute_mean_strain_rate_tensor){
-            dealii::Tensor<2,dim,double> mean_strain_rate_tensor;
-            for (int d1=0; d1<dim; ++d1) {
-                for (int d2=0; d2<dim; ++d2) {
-                    mean_strain_rate_tensor[d1][d2] = dealii::Utilities::MPI::sum(strain_rate_tensor_integral[d1][d2], this->mpi_communicator);
-                    // NOTE: this next line would be better if I could access the model variables; note - the variable needs to be created
-                    mean_strain_rate_tensor[d1][d2] /= this->domain_size_per_element; // divide by total domain volume
-                }
-            }
-            const dealii::types::global_dof_index cell_index = cell->active_cell_index();
-            this->cellwise_mean_strain_rate_tensor_magnitude[cell_index] = get_tensor_magnitude(mean_strain_rate_tensor); // TO DO: add this function
         }
     }
     if(this->all_param.flow_solver_param.adaptive_time_step == true) {
@@ -609,9 +559,6 @@ void PeriodicTurbulence<dim, nstate>::compute_and_update_integrated_quantities(D
     for(int i_quantity=0; i_quantity<NUMBER_OF_INTEGRATED_QUANTITIES; ++i_quantity) {
         this->integrated_quantities[i_quantity] = dealii::Utilities::MPI::sum(integral_values[i_quantity], this->mpi_communicator);
         this->integrated_quantities[i_quantity] /= this->domain_size; // divide by total domain volume
-    }
-    if(this->do_compute_mean_strain_rate_tensor){
-        this->cellwise_mean_strain_rate_tensor_magnitude.update_ghost_values();
     }
 }
 
@@ -870,17 +817,6 @@ void PeriodicTurbulence<dim, nstate>::compute_unsteady_data_and_write_to_table(
                 this->index_of_current_desired_time_to_output_velocity_field += 1;
             }
         }
-    }
-}
-
-template <int dim, int nstate>
-void PeriodicTurbulence<dim,nstate>::update_model_variables(std::shared_ptr<DGBase<dim, double>> dg) const
-{
-    if(this->do_compute_mean_strain_rate_tensor) {
-        dg->set_unsteady_model_variables(
-            0.0, // no need to update bulk density
-            0.0, // no need to update time step
-            this->mean_strain_rate_tensor);
     }
 }
 

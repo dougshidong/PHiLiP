@@ -121,9 +121,6 @@ public:
     /// Function to compute the initial adaptive time step
     virtual double get_adaptive_time_step_initial(std::shared_ptr<DGBase<dim,double>> dg) override;
 
-    /// Update model variables; specifically the mean strain rate tensor magnitude if needed
-    void update_model_variables(std::shared_ptr<DGBase<dim, double>> dg) const override;
-
 protected:
     /// Updates the maximum local wave speed
     void update_maximum_local_wave_speed(DGBase<dim, double> &dg);

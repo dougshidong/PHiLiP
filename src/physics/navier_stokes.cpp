@@ -427,6 +427,14 @@ real NavierStokes<dim,nstate,real>
 
 template <int dim, int nstate, typename real>
 real NavierStokes<dim,nstate,real>
+::get_tensor_magnitude (
+    const dealii::Tensor<2,dim,real> &tensor) const
+{
+    return sqrt(get_tensor_magnitude_sqr(tensor));
+}
+
+template <int dim, int nstate, typename real>
+real NavierStokes<dim,nstate,real>
 ::compute_deviatoric_strain_rate_tensor_magnitude_sqr (
     const std::array<real,nstate> &conservative_soln,
     const std::array<dealii::Tensor<1,dim,real>,nstate> &conservative_soln_gradient) const

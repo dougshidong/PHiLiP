@@ -411,9 +411,12 @@ public:
     /// For post processing purposes (update comment later)
     dealii::UpdateFlags post_get_needed_update_flags () const override;
 
-private:
+public:
     /// Returns the square of the magnitude of the tensor (i.e. the double dot product of a tensor with itself)
     real get_tensor_magnitude_sqr (const dealii::Tensor<2,dim,real> &tensor) const;
+
+    /// Returns the the magnitude of the tensor (i.e. the double dot product of a tensor with itself)
+    real get_tensor_magnitude (const dealii::Tensor<2,dim,real> &tensor) const;
 
 };
 

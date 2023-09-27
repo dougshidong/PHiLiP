@@ -1057,10 +1057,10 @@ public:
         std::shared_ptr< Physics::PhysicsBase<dim, nstate, RadFadType > > pde_physics_rad_fad_input);
 
     /// Allocate the necessary variables declared in src/physics/model.h
-    void allocate_model_variables();
+    virtual void allocate_model_variables();
 
     /// Update the necessary variables declared in src/physics/model.h
-    void update_model_variables();
+    virtual void update_model_variables();
 
     /// Set the necessary constant variables declared in src/physics/model.h
     void set_constant_model_variables(

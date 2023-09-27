@@ -17,7 +17,7 @@ void RungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::step_in_time (real dt, 
 {
     using limiter_enum = Parameters::LimiterParam::LimiterType;
     limiter_enum limiter_type = this->all_parameters->limiter_param.bound_preserving_limiter;
-    bool apply_tvb = this->all_parameters->limiter_param.use_tvb_limiter;
+    const bool apply_tvb = this->all_parameters->limiter_param.use_tvb_limiter;
 
     this->original_time_step = dt;
     this->solution_update = this->dg->solution; //storing u_n

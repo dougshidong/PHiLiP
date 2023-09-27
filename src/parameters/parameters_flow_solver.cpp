@@ -327,6 +327,7 @@ void FlowSolverParam::parse_parameters(dealii::ParameterHandler &prm)
         else if (flow_case_type_string == "low_density_2d")             {flow_case_type = low_density_2d;}
         else if (flow_case_type_string == "leblanc_shock_tube")         {flow_case_type = leblanc_shock_tube;}
         else if (flow_case_type_string == "shu_osher_problem")          {flow_case_type = shu_osher_problem;}
+        
         poly_degree = prm.get_integer("poly_degree");
         
         // get max poly degree for adaptation

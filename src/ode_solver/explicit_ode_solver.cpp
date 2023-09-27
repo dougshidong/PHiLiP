@@ -17,7 +17,7 @@ void RungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::step_in_time (real dt, 
 {
     using limiter_enum = Parameters::LimiterParam::LimiterType;
     limiter_enum limiter_type = this->all_parameters->limiter_param.bound_preserving_limiter;
-    bool apply_tvb = this->all_parameters->limiter_param.use_tvb_limiter;
+    const bool apply_tvb = this->all_parameters->limiter_param.use_tvb_limiter;
 
     this->original_time_step = dt;
     this->solution_update = this->dg->solution; //storing u_n
@@ -73,7 +73,7 @@ void RungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::step_in_time (real dt, 
         this->dg->solution = this->rk_stage[i];
 
         // Apply limiter at every RK stage
-        if (limiter_type != limiter_enum::none || apply_tvb == true) {
+        if (limiter_type != limiter_enum::none || apply_tvb) {
             this->limiter->limit(this->dg->solution,
                 this->dg->dof_handler,
                 this->dg->fe_collection,
@@ -113,7 +113,7 @@ void RungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::step_in_time (real dt, 
     this->dg->solution = this->solution_update; // u_np1 = u_n + dt* sum(k_i * b_i)
 
     // Apply limiter at every RK stage
-    if ( limiter_type != limiter_enum::none || apply_tvb == true) {
+    if ( limiter_type != limiter_enum::none || apply_tvb) {
         this->limiter->limit(this->dg->solution,
             this->dg->dof_handler,
             this->dg->fe_collection,

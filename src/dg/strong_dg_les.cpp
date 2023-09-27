@@ -39,7 +39,7 @@ DGStrongLES<dim,nstate,real,MeshType>::DGStrongLES(
     //     (model_type==Model_enum::large_eddy_simulation || model_type==Model_enum::navier_stokes_model))) 
     // {
         if constexpr (dim+2==nstate) {
-            this->pde_model_les_double = std::dynamic_pointer_cast<Physics::LargeEddySimulationBase<dim,dim+2,real,dim+2>>(this->pde_model_double);
+            this->pde_model_les_double = std::dynamic_pointer_cast<Physics::LargeEddySimulationBase<dim,dim+2,real>>(this->pde_model_double);
         }
     // }
     // else if((pde_type==PDE_enum::physics_model  || pde_type==PDE_enum::physics_model_filtered) && 
@@ -254,7 +254,7 @@ void DGStrongLES_ShearImproved<dim,nstate,real,MeshType>::update_cellwise_mean_q
                 soln_coeff[istate].resize(n_shape_fns);
             }
          
-            soln_coeff[istate][ishape] = dg.solution(dofs_indices[idof]);
+            soln_coeff[istate][ishape] = this->solution(dofs_indices[idof]);
         }
         // Interpolate each state to the quadrature points using sum-factorization
         // with the basis functions in each reference direction.

@@ -42,6 +42,7 @@ PeriodicTurbulence<dim, nstate>::PeriodicTurbulence(const PHiLiP::Parameters::Al
     this->do_calculate_numerical_entropy= this->all_param.flow_solver_param.do_calculate_numerical_entropy;
     
     // Navier-Stokes object; create using dynamic_pointer_cast and the create_Physics factory
+    using PDE_enum = Parameters::AllParameters::PartialDifferentialEquation;
     PHiLiP::Parameters::AllParameters parameters_navier_stokes = this->all_param;
     parameters_navier_stokes.pde_type = PDE_enum::navier_stokes;
     this->navier_stokes_physics = std::dynamic_pointer_cast<Physics::NavierStokes<dim,dim+2,double>>(

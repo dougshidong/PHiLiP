@@ -1,38 +1,17 @@
 #ifndef __TVB_LIMITER__
 #define __TVB_LIMITER__
 
-#include "physics/physics.h"
-#include "parameters/all_parameters.h"
-#include <deal.II/dofs/dof_handler.h>
-
-#include <deal.II/base/conditional_ostream.h>
-#include <deal.II/base/parameter_handler.h>
-
-#include <deal.II/base/qprojector.h>
-#include <deal.II/base/geometry_info.h>
-
-#include <deal.II/grid/tria.h>
-
-#include <deal.II/fe/fe_dgq.h>
-#include <deal.II/fe/fe_dgp.h>
-#include <deal.II/fe/fe_system.h>
-#include <deal.II/fe/mapping_fe_field.h>
-#include <deal.II/fe/mapping_q1_eulerian.h>
-
-
-#include <deal.II/dofs/dof_handler.h>
-
-#include <deal.II/hp/q_collection.h>
-#include <deal.II/hp/mapping_collection.h>
-#include <deal.II/hp/fe_values.h>
-
-#include "dg/dg.h"
-#include "physics/physics.h"
 #include "bound_preserving_limiter.h"
 
 namespace PHiLiP {
+/**********************************
+* Chen, Tianheng, and Chi-Wang Shu. 
+* "Entropy stable high order discontinuous Galerkin methods with  
+* suitable quadrature rules for hyperbolic conservation laws." 
+* Journal of Computational Physics 345 (2017): 427-461.
+**********************************/
 template<int dim, int nstate, typename real>
-class TVBLimiter : public BoundPreservingLimiter <dim, real>
+class TVBLimiter : public BoundPreservingLimiterState <dim, nstate, real>
 {
 public:
     /// Constructor
@@ -70,6 +49,9 @@ private:
         const std::vector<real>& quad_weights);
 
 public:
+    /// Function to obtain the solution cell average
+    using BoundPreservingLimiterState<dim, nstate, real>::get_soln_cell_avg;
+
     /// Applies total variation bounded limiter to the solution.
     /** Using Chen,Shu September 2017 Thm3.7 we apply a limiter on the solution
     */

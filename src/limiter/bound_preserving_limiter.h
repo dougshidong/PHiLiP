@@ -1,33 +1,12 @@
 #ifndef __BOUND_PRESERVING_LIMITER__
 #define __BOUND_PRESERVING_LIMITER__
 
-#include "physics/physics.h"
-#include "parameters/all_parameters.h"
 #include <deal.II/dofs/dof_handler.h>
-
-#include <deal.II/base/conditional_ostream.h>
 #include <deal.II/base/parameter_handler.h>
 
-#include <deal.II/base/qprojector.h>
-#include <deal.II/base/geometry_info.h>
-
-#include <deal.II/grid/tria.h>
-
-#include <deal.II/fe/fe_dgq.h>
-#include <deal.II/fe/fe_dgp.h>
-#include <deal.II/fe/fe_system.h>
-#include <deal.II/fe/mapping_fe_field.h>
-#include <deal.II/fe/mapping_q1_eulerian.h>
-
-
-#include <deal.II/dofs/dof_handler.h>
-
-#include <deal.II/hp/q_collection.h>
-#include <deal.II/hp/mapping_collection.h>
-#include <deal.II/hp/fe_values.h>
-
-#include "dg/dg.h"
-#include "physics/physics.h"
+#include "parameters/all_parameters.h"
+#include "operators/operators.h"
+#include "physics/euler.h"
 
 namespace PHiLiP {
 template<int dim, typename real>
@@ -58,8 +37,39 @@ public:
         unsigned int                                            max_degree,
         const dealii::hp::FECollection<1>                       oneD_fe_collection_1state,
         dealii::hp::QCollection<1>                              oneD_quadrature_collection) = 0;
-
 }; // End of BoundPreservingLimiter Class
+
+template<int dim, int nstate, typename real>
+class BoundPreservingLimiterState : public BoundPreservingLimiter <dim, real>
+{
+public:
+    /// Pointer to parameters object
+    using BoundPreservingLimiter<dim, real>::all_parameters;
+
+    /// Constructor
+    BoundPreservingLimiterState(
+        const Parameters::AllParameters* const parameters_input);
+
+    /// Destructor
+    ~BoundPreservingLimiterState() {};
+
+    /// Function to limit the solution
+    virtual void limit(
+        dealii::LinearAlgebra::distributed::Vector<double>& solution,
+        const dealii::DoFHandler<dim>& dof_handler,
+        const dealii::hp::FECollection<dim>& fe_collection,
+        dealii::hp::QCollection<dim>                            volume_quadrature_collection,
+        unsigned int                                            tensor_degree,
+        unsigned int                                            max_degree,
+        const dealii::hp::FECollection<1>                       oneD_fe_collection_1state,
+        dealii::hp::QCollection<1>                              oneD_quadrature_collection) = 0;
+
+    std::array<real, nstate> get_soln_cell_avg(
+        std::array<std::vector<real>, nstate> soln_at_q,
+        const unsigned int n_quad_pts,
+        const std::vector<real>& quad_weights);
+
+}; // End of BoundPreservingLimiterState Class
 } // PHiLiP namespace
 
 #endif

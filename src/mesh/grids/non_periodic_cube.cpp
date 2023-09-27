@@ -20,7 +20,6 @@ void non_periodic_cube(
 
     if (shock_tube || shu_osher) {
         for (auto cell = grid.begin_active(); cell != grid.end(); ++cell) {
-            std::cout << "cell" << std::endl;
             // Set a dummy material ID
             cell->set_material_id(9002);
             if (shu_osher) {

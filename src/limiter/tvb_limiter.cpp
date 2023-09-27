@@ -1,30 +1,4 @@
-#include "physics/physics.h"
-#include "parameters/all_parameters.h"
-#include <deal.II/dofs/dof_handler.h>
-
-#include <deal.II/base/conditional_ostream.h>
-#include <deal.II/base/parameter_handler.h>
-
-#include <deal.II/base/qprojector.h>
-#include <deal.II/base/geometry_info.h>
-
-#include <deal.II/grid/tria.h>
-
-#include <deal.II/fe/fe_dgq.h>
-#include <deal.II/fe/fe_dgp.h>
-#include <deal.II/fe/fe_system.h>
-#include <deal.II/fe/mapping_fe_field.h>
-#include <deal.II/fe/mapping_q1_eulerian.h>
-
-
-#include <deal.II/dofs/dof_handler.h>
-
-#include <deal.II/hp/q_collection.h>
-#include <deal.II/hp/mapping_collection.h>
-#include <deal.II/hp/fe_values.h>
-
 #include "tvb_limiter.h"
-#include "physics/physics_factory.h"
 
 namespace PHiLiP {
 /**********************************
@@ -36,7 +10,7 @@ namespace PHiLiP {
 template <int dim, int nstate, typename real>
 TVBLimiter<dim, nstate, real>::TVBLimiter(
     const Parameters::AllParameters* const parameters_input)
-    : BoundPreservingLimiter<dim,real>::BoundPreservingLimiter(nstate, parameters_input) {}
+    : BoundPreservingLimiterState<dim,nstate,real>::BoundPreservingLimiterState( parameters_input) {}
 
 template <int dim, int nstate, typename real>
 std::array<std::vector<real>, nstate> TVBLimiter<dim, nstate, real>::limit_cell(
@@ -183,28 +157,6 @@ std::array<real, nstate> TVBLimiter<dim, nstate, real>::get_neighbour_cell_avg(
 }
 
 template <int dim, int nstate, typename real>
-std::array<real, nstate> TVBLimiter<dim, nstate, real>::get_current_cell_avg(
-    std::array<std::vector<real>, nstate>                   soln_at_q,
-    const unsigned int                                      n_quad_pts,
-    const std::vector<real>&                                quad_weights)
-{
-    std::array<real, nstate> soln_cell_avg;
-    for (unsigned int istate = 0; istate < nstate; ++istate) {
-        soln_cell_avg[istate] = 0;
-    }
-
-    // Apply integral for solution cell average (dealii quadrature operates from [0,1])
-    for (unsigned int istate = 0; istate < nstate; ++istate) {
-        for (unsigned int iquad = 0; iquad < n_quad_pts; ++iquad) {
-            soln_cell_avg[istate] += quad_weights[iquad]
-                * soln_at_q[istate][iquad];
-        }
-    }
-
-    return soln_cell_avg;
-}
-
-template <int dim, int nstate, typename real>
 void TVBLimiter<dim, nstate, real>::limit(
     dealii::LinearAlgebra::distributed::Vector<double>&     solution,
     const dealii::DoFHandler<dim>&                          dof_handler,
@@ -312,7 +264,7 @@ void TVBLimiter<dim, nstate, real>::limit(
                 soln_basis.oneD_vol_operator);
         }
 
-        std::array<real, nstate> soln_cell_avg = get_current_cell_avg(soln_at_q, n_quad_pts, quad_weights);
+        std::array<real, nstate> soln_cell_avg = get_soln_cell_avg(soln_at_q, n_quad_pts, quad_weights);
 
         std::array<std::vector<real>, nstate> soln_at_q_lim = limit_cell(soln_at_q, n_quad_pts, prev_cell_avg, soln_cell_avg, next_cell_avg, M, h);
 
@@ -332,10 +284,12 @@ void TVBLimiter<dim, nstate, real>::limit(
     }
 }
 
+#if PHILIP_DIM==1
 template class TVBLimiter <PHILIP_DIM, 1, double>;
 template class TVBLimiter <PHILIP_DIM, 2, double>;
 template class TVBLimiter <PHILIP_DIM, 3, double>;
 template class TVBLimiter <PHILIP_DIM, 4, double>;
 template class TVBLimiter <PHILIP_DIM, 5, double>;
 template class TVBLimiter <PHILIP_DIM, 6, double>;
+#endif
 } // PHiLiP namespace

@@ -2,6 +2,7 @@
 #define PHILIP_DG_STRONG_LES_HPP
 
 #include "strong_dg.hpp"
+#include "physics/large_eddy_simulation.h"
 
 namespace PHiLiP {
 

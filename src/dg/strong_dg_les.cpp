@@ -335,59 +335,16 @@ void DGStrongLES_ShearImproved<dim,nstate,real,MeshType>::update_cellwise_mean_q
     this->pde_model_double->cellwise_mean_strain_rate_tensor_magnitude.update_ghost_values();
 }
 
-
-
-
-// using default MeshType = Triangulation
-// 1D: dealii::Triangulation<dim>;
-// Otherwise: dealii::parallel::distributed::Triangulation<dim>;
-template class DGStrongLES <PHILIP_DIM, 1, double, dealii::Triangulation<PHILIP_DIM>>;
-template class DGStrongLES <PHILIP_DIM, 2, double, dealii::Triangulation<PHILIP_DIM>>;
-template class DGStrongLES <PHILIP_DIM, 3, double, dealii::Triangulation<PHILIP_DIM>>;
-template class DGStrongLES <PHILIP_DIM, 4, double, dealii::Triangulation<PHILIP_DIM>>;
-template class DGStrongLES <PHILIP_DIM, 5, double, dealii::Triangulation<PHILIP_DIM>>;
-template class DGStrongLES <PHILIP_DIM, 6, double, dealii::Triangulation<PHILIP_DIM>>;
-
-template class DGStrongLES <PHILIP_DIM, 1, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-template class DGStrongLES <PHILIP_DIM, 2, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-template class DGStrongLES <PHILIP_DIM, 3, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-template class DGStrongLES <PHILIP_DIM, 4, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-template class DGStrongLES <PHILIP_DIM, 5, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-template class DGStrongLES <PHILIP_DIM, 6, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-
-#if PHILIP_DIM!=1
-template class DGStrongLES <PHILIP_DIM, 1, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
-template class DGStrongLES <PHILIP_DIM, 2, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
-template class DGStrongLES <PHILIP_DIM, 3, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
-template class DGStrongLES <PHILIP_DIM, 4, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
-template class DGStrongLES <PHILIP_DIM, 5, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
-template class DGStrongLES <PHILIP_DIM, 6, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+#if PHILIP_DIM==3
+template class DGStrongLES <PHILIP_DIM, PHILIP_DIM+2, double, dealii::Triangulation<PHILIP_DIM>>;
+template class DGStrongLES <PHILIP_DIM, PHILIP_DIM+2, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class DGStrongLES <PHILIP_DIM, PHILIP_DIM+2, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
 #endif
 
-// using default MeshType = Triangulation
-// 1D: dealii::Triangulation<dim>;
-// Otherwise: dealii::parallel::distributed::Triangulation<dim>;
-template class DGStrongLES_ShearImproved <PHILIP_DIM, 1, double, dealii::Triangulation<PHILIP_DIM>>;
-template class DGStrongLES_ShearImproved <PHILIP_DIM, 2, double, dealii::Triangulation<PHILIP_DIM>>;
-template class DGStrongLES_ShearImproved <PHILIP_DIM, 3, double, dealii::Triangulation<PHILIP_DIM>>;
-template class DGStrongLES_ShearImproved <PHILIP_DIM, 4, double, dealii::Triangulation<PHILIP_DIM>>;
-template class DGStrongLES_ShearImproved <PHILIP_DIM, 5, double, dealii::Triangulation<PHILIP_DIM>>;
-template class DGStrongLES_ShearImproved <PHILIP_DIM, 6, double, dealii::Triangulation<PHILIP_DIM>>;
-
-template class DGStrongLES_ShearImproved <PHILIP_DIM, 1, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-template class DGStrongLES_ShearImproved <PHILIP_DIM, 2, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-template class DGStrongLES_ShearImproved <PHILIP_DIM, 3, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-template class DGStrongLES_ShearImproved <PHILIP_DIM, 4, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-template class DGStrongLES_ShearImproved <PHILIP_DIM, 5, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-template class DGStrongLES_ShearImproved <PHILIP_DIM, 6, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-
-#if PHILIP_DIM!=1
-template class DGStrongLES_ShearImproved <PHILIP_DIM, 1, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
-template class DGStrongLES_ShearImproved <PHILIP_DIM, 2, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
-template class DGStrongLES_ShearImproved <PHILIP_DIM, 3, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
-template class DGStrongLES_ShearImproved <PHILIP_DIM, 4, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
-template class DGStrongLES_ShearImproved <PHILIP_DIM, 5, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
-template class DGStrongLES_ShearImproved <PHILIP_DIM, 6, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+#if PHILIP_DIM==3
+template class DGStrongLES_ShearImproved <PHILIP_DIM, PHILIP_DIM+2, double, dealii::Triangulation<PHILIP_DIM>>;
+template class DGStrongLES_ShearImproved <PHILIP_DIM, PHILIP_DIM+2, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class DGStrongLES_ShearImproved <PHILIP_DIM, PHILIP_DIM+2, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
 #endif
 
 } // PHiLiP namespace

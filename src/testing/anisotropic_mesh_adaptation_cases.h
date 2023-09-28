@@ -1,7 +1,7 @@
 #ifndef __ANISOTROPICMESHADAPTATIONCASES_H__ 
 #define __ANISOTROPICMESHADAPTATIONCASES_H__
 
-#include "dg/dg_base.h"
+#include "dg/dg_base.hpp"
 #include "parameters/all_parameters.h"
 #include "physics/physics.h"
 #include "tests.h"

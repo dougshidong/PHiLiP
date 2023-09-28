@@ -6,7 +6,7 @@
 
 #include <memory>
 
-#include "dg/dg_base.h"
+#include "dg/dg_base.hpp"
 #include "functional/functional.h"
 #include "parameters/all_parameters.h"
 #include "physics/convection_diffusion.h"

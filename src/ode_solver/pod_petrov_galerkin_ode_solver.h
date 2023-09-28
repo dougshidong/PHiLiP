@@ -1,7 +1,7 @@
 #ifndef __POD_PETROV_GALERKIN_ODE_SOLVER__
 #define __POD_PETROV_GALERKIN_ODE_SOLVER__
 
-#include "dg/dg_base.h"
+#include "dg/dg_base.hpp"
 #include "reduced_order/pod_basis_base.h"
 #include "reduced_order_ode_solver.h"
 

@@ -18,7 +18,7 @@
 
 #include <iostream>
 
-#include "dg/dg_base.h"
+#include "dg/dg_base.hpp"
 #include "dg/dg_factory.hpp"
 #include "physics/physics_factory.h"
 //#include "ode_solver/runge_kutta_ode_solver.h"

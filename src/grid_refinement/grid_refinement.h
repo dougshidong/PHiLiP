@@ -3,7 +3,7 @@
 
 #include <deal.II/grid/tria.h>
 
-#include "dg/dg_base.h"
+#include "dg/dg_base.hpp"
 #include "functional/adjoint.h"
 #include "functional/functional.h"
 #include "grid_refinement/field.h"

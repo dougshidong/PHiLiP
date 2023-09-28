@@ -19,7 +19,7 @@
 #include <iostream>
 #include <type_traits>
 
-#include "dg/dg_base.h"
+#include "dg/dg_base.hpp"
 #include "dg/dg_factory.hpp"
 #include "functional/adjoint.h"
 #include "functional/functional.h"

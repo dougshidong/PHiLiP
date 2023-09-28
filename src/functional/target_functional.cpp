@@ -13,7 +13,7 @@
 #include <Sacado.hpp>
 #include <vector>
 
-#include "dg/dg_base.h"
+#include "dg/dg_base.hpp"
 #include "physics/model.h"
 #include "physics/model_factory.h"
 #include "physics/physics.h"

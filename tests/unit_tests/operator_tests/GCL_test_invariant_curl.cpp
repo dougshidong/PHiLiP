@@ -42,7 +42,7 @@
 #include <deal.II/numerics/vector_tools.h>
 #include <deal.II/numerics/vector_tools.templates.h>
 
-#include "dg/dg_base.h"
+#include "dg/dg_base.hpp"
 #include "dg/dg_factory.hpp"
 #include "operators/operators.h"
 #include "parameters/all_parameters.h"

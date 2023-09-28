@@ -4,7 +4,7 @@
 #include <deal.II/base/conditional_ostream.h>
 #include <deal.II/lac/solver_gmres.h>
 
-#include "dg/dg_base.h"
+#include "dg/dg_base.hpp"
 #include "jacobian_vector_product.h"
 
 namespace PHiLiP {

@@ -3,7 +3,7 @@
 
 #include <string>
 
-#include "dg/dg_base.h"
+#include "dg/dg_base.hpp"
 #include "initial_condition_function.h"
 #include "parameters/all_parameters.h"
 

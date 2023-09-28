@@ -6,7 +6,7 @@
 #include "Ifpack.h"
 #include "ROL_Constraint_SimOpt.hpp"
 #include "design_parameterization/base_parameterization.hpp"
-#include "dg/dg_base.h"
+#include "dg/dg_base.hpp"
 #include "linear_solver/linear_solver.h"
 #include "parameters/all_parameters.h"
 

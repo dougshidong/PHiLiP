@@ -1,7 +1,7 @@
 #ifndef __ADVECTION_EXPLICIT_PERIODIC_H__
 #define __ADVECTION_EXPLICIT_PERIODIC_H__
 
-#include "dg/dg_base.h"
+#include "dg/dg_base.hpp"
 #include "parameters/all_parameters.h"
 #include "tests.h"
 

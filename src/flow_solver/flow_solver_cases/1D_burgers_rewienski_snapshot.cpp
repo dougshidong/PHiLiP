@@ -12,7 +12,7 @@
 
 #include <iostream>
 
-#include "dg/dg_base.h"
+#include "dg/dg_base.hpp"
 #include "linear_solver/linear_solver.h"
 #include "physics/physics_factory.h"
 

@@ -3,10 +3,17 @@
 
 #include <deal.II/fe/fe_system.h>
 
-#include <vector>
-
 namespace PHiLiP {
 
+/// Class to store local solution coefficients and provide evaluation functions.
+/** This class is used to store the solution coefficients in the finite element basis and provide functions to evaluate the solution
+ * value and gradients at arbitrary points. It can be used for both state and metric solutions since they are both represented by a
+ * finite element discretization.
+ * The template parameters are: \n
+ * - real: The floating point type used to represent the solution coefficients. This is usually double or an AD type.
+ * - dim: The dimension of the problem.
+ * - n_components: The number of components of the solution. This is nstate for state solutions and dim for metric solutions.
+ */
 template <typename real, int dim, int n_components>
 class LocalSolution {
    public:

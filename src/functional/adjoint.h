@@ -10,7 +10,7 @@
 #include <iostream>
 #include <vector>
 
-#include "dg/dg_base.h"
+#include "dg/dg_base.hpp"
 #include "functional.h"
 #include "parameters/all_parameters.h"
 #include "physics/physics.h"

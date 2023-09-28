@@ -1,7 +1,7 @@
 #ifndef __JACOBIAN_VECTOR_PRODUCT__
 #define __JACOBIAN_VECTOR_PRODUCT__
 
-#include "dg/dg_base.h"
+#include "dg/dg_base.hpp"
 
 namespace PHiLiP {
 namespace ODE{

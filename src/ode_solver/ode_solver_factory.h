@@ -1,7 +1,7 @@
 #ifndef __ODE_SOLVER_FACTORY__
 #define __ODE_SOLVER_FACTORY__
 
-#include "dg/dg_base.h"
+#include "dg/dg_base.hpp"
 #include "ode_solver_base.h"
 #include "parameters/all_parameters.h"
 #include "reduced_order/pod_basis_base.h"

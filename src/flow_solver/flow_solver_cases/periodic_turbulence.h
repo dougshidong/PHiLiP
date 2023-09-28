@@ -3,7 +3,7 @@
 
 #include <deal.II/base/table.h>
 
-#include "dg/dg_base.h"
+#include "dg/dg_base.hpp"
 #include "periodic_cube_flow.h"
 #include "physics/navier_stokes.h"
 

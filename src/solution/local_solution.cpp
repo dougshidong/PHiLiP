@@ -4,16 +4,14 @@
 
 namespace PHiLiP {
 
-/// Constructor
 template <typename real, int dim, int n_components>
-LocalSolution<real, dim, n_components>::LocalSolution(const dealii::FESystem<dim, dim> &finite_element)
-    : finite_element(finite_element), n_dofs(finite_element.dofs_per_cell) {
+LocalSolution<real, dim, n_components>::LocalSolution(const dealii::FESystem<dim, dim> &i_finite_element)
+    : finite_element(i_finite_element), n_dofs(i_finite_element.dofs_per_cell) {
     Assert(n_components == finite_element.n_components(),
            dealii::ExcMessage("Number of components must match finite element system"));
     coefficients.resize(finite_element.dofs_per_cell);
 }
 
-/// Obtain values at unit points.
 template <typename real, int dim, int n_components>
 std::vector<std::array<real, n_components>> LocalSolution<real, dim, n_components>::evaluate_values(
     const std::vector<dealii::Point<dim>> &unit_points) const {
@@ -60,7 +58,7 @@ LocalSolution<real, dim, n_components>::evaluate_reference_gradients(const std::
 #define POSSIBLE_NSTATE (1)(2)(3)(4)(5)(6)(7)
 
 // Define a macro to instantiate MyTemplate for a specific index
-#define INSTANTIATE_DISTRIBUTED(r, data, nstate)                                 \
+#define INSTANTIATE_DISTRIBUTED(r, data, nstate)                  \
     template class LocalSolution<double, PHILIP_DIM, nstate>;     \
     template class LocalSolution<FadType, PHILIP_DIM, nstate>;    \
     template class LocalSolution<RadType, PHILIP_DIM, nstate>;    \

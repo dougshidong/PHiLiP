@@ -16,7 +16,7 @@
 
 #include <fstream>
 
-#include "dg/dg_base.h"
+#include "dg/dg_base.hpp"
 #include "dg/dg_factory.hpp"
 #include "ode_solver/ode_solver_base.h"
 #include "ode_solver/ode_solver_factory.h"

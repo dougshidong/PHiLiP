@@ -6,7 +6,7 @@
 #include <deal.II/distributed/shared_tria.h>
 #include <deal.II/distributed/tria.h>
 
-#include "dg/dg_base.h"
+#include "dg/dg_base.hpp"
 #include "flow_solver_case_base.h"
 #include "parameters/all_parameters.h"
 #include "physics/initial_conditions/initial_condition_function.h"

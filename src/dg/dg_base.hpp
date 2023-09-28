@@ -1,5 +1,5 @@
-#ifndef __DISCONTINUOUSGALERKIN_H__
-#define __DISCONTINUOUSGALERKIN_H__
+#ifndef PHILIP_DG_BASE_HPP
+#define PHILIP_DG_BASE_HPP
 
 #include <deal.II/base/conditional_ostream.h>
 #include <deal.II/base/parameter_handler.h>

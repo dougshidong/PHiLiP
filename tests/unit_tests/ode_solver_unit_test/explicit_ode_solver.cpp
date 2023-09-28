@@ -8,7 +8,7 @@
 #include <deal.II/grid/tria.h>
 #include <deal.II/numerics/vector_tools.h>
 
-#include "dg/dg_base.h"
+#include "dg/dg_base.hpp"
 #include "dg/dg_factory.hpp"
 #include "numerical_flux/numerical_flux_factory.hpp"
 #include "ode_solver/ode_solver_factory.h"

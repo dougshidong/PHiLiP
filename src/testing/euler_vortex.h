@@ -1,7 +1,7 @@
 #ifndef __EULER_VORTEX_H__
 #define __EULER_VORTEX_H__
 
-#include "dg/dg_base.h"
+#include "dg/dg_base.hpp"
 #include "parameters/all_parameters.h"
 #include "physics/euler.h"
 #include "tests.h"

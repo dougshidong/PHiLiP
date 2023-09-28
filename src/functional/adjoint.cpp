@@ -16,7 +16,7 @@
 #include <iostream>
 #include <vector>
 
-#include "dg/dg_base.h"
+#include "dg/dg_base.hpp"
 #include "functional.h"
 #include "linear_solver/linear_solver.h"
 #include "parameters/all_parameters.h"

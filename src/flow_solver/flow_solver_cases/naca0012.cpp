@@ -12,7 +12,7 @@
 
 #include <iostream>
 
-#include "dg/dg_base.h"
+#include "dg/dg_base.hpp"
 #include "functional/lift_drag.hpp"
 #include "mesh/gmsh_reader.hpp"
 #include "mesh/grids/naca_airfoil_grid.hpp"

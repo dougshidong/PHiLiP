@@ -1,9 +1,10 @@
 #ifndef PHILIP_DG_BASE_STATE_HPP
 #define PHILIP_DG_BASE_STATE_HPP
 
-#include "dg_base.h"
-#include "parameters/all_parameters.h"
 #include <deal.II/distributed/tria.h>
+
+#include "dg_base.hpp"
+#include "parameters/all_parameters.h"
 namespace PHiLiP {
 
 /// Abstract class templated on the number of state variables

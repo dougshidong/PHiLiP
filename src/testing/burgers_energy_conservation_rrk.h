@@ -3,7 +3,7 @@
 
 #include <deal.II/base/convergence_table.h>
 
-#include "dg/dg_base.h"
+#include "dg/dg_base.hpp"
 #include "tests.h"
 
 namespace PHiLiP {

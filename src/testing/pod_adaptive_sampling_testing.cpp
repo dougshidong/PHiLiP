@@ -5,7 +5,7 @@
 #include <eigen/Eigen/Dense>
 #include <fstream>
 
-#include "dg/dg_base.h"
+#include "dg/dg_base.hpp"
 #include "flow_solver/flow_solver.h"
 #include "flow_solver/flow_solver_factory.h"
 #include "functional/functional.h"

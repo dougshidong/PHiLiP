@@ -8,7 +8,7 @@
 #include <iostream>
 #include <stdexcept>
 
-#include "dg/dg_base.h"
+#include "dg/dg_base.hpp"
 #include "parameters/all_parameters.h"
 
 namespace PHiLiP {

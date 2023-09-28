@@ -11,7 +11,7 @@
 #include <fstream>
 #include <iostream>
 
-#include "dg/dg_base.h"
+#include "dg/dg_base.hpp"
 #include "parameters/parameters.h"
 #include "physics/physics.h"
 

@@ -2,7 +2,7 @@
 #define __RUNGE_KUTTA_ODESOLVER__
 
 #include "JFNK_solver/JFNK_solver.h"
-#include "dg/dg_base.h"
+#include "dg/dg_base.hpp"
 #include "ode_solver_base.h"
 #include "runge_kutta_methods/rk_tableau_base.h"
 

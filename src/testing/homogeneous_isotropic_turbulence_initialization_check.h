@@ -1,7 +1,7 @@
 #ifndef __homogeneous_isotropic_turbulence_initialization_check__
 #define __homogeneous_isotropic_turbulence_initialization_check__
 
-#include "dg/dg_base.h"
+#include "dg/dg_base.hpp"
 #include "parameters/all_parameters.h"
 #include "tests.h"
 

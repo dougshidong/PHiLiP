@@ -1,7 +1,7 @@
 #ifndef __OPTIMIZATION_INVERSE_MANUFACTURED_H__
 #define __OPTIMIZATION_INVERSE_MANUFACTURED_H__
 
-#include "dg/dg_base.h"
+#include "dg/dg_base.hpp"
 #include "parameters/all_parameters.h"
 #include "physics/physics.h"
 #include "testing/tests.h"

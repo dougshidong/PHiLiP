@@ -43,7 +43,7 @@
 #include <deal.II/numerics/vector_tools.h>
 #include <deal.II/numerics/vector_tools.templates.h>
 
-#include "dg_base.h"
+#include "dg_base.hpp"
 #include "global_counter.hpp"
 #include "post_processor/physics_post_processor.h"
 

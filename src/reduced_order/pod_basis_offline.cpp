@@ -12,7 +12,7 @@
 #include <filesystem>
 #include <iostream>
 
-#include "dg/dg_base.h"
+#include "dg/dg_base.hpp"
 #include "pod_basis_base.h"
 
 namespace PHiLiP {

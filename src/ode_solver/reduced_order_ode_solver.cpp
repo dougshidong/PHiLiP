@@ -7,7 +7,7 @@
 #include <deal.II/lac/trilinos_sparsity_pattern.h>
 
 #include "Amesos_BaseSolver.h"
-#include "dg/dg_base.h"
+#include "dg/dg_base.hpp"
 #include "linear_solver/linear_solver.h"
 #include "ode_solver_base.h"
 #include "reduced_order/pod_basis_base.h"

@@ -2,7 +2,7 @@
 
 #include <deal.II/dofs/dof_tools.h>
 
-#include "dg/dg_base.h"
+#include "dg/dg_base.hpp"
 #include "mesh/high_order_grid.h"
 #include "parameters/parameters_grid_refinement.h"
 

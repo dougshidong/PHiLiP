@@ -1,7 +1,7 @@
 #ifndef __GRID_REFINEMENT_STUDY_H__
 #define __GRID_REFINEMENT_STUDY_H__
 
-#include "dg/dg_base.h"
+#include "dg/dg_base.hpp"
 #include "grid_refinement/gnu_out.h"
 #include "parameters/all_parameters.h"
 #include "physics/model.h"

@@ -10,7 +10,7 @@
 
 #include <eigen/Eigen/Dense>
 
-#include "dg/dg_base.h"
+#include "dg/dg_base.hpp"
 #include "parameters/all_parameters.h"
 #include "pod_basis_base.h"
 

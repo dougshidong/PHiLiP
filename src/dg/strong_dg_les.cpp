@@ -162,6 +162,13 @@ DGStrongLES_ShearImproved<dim,nstate,real,MeshType>::DGStrongLES_ShearImproved(
     // do nothing
 }
 
+// Destructor
+template <int dim, int nstate, typename real, typename MeshType>
+DGStrongLES_ShearImproved<dim,nstate,real,MeshType>::~DGStrongLES_ShearImproved()
+{
+    pcout << "Destructing DGStrongLES_ShearImproved..." << std::endl;
+}
+
 template <int dim, int nstate, typename real, typename MeshType>
 void DGStrongLES_ShearImproved<dim,nstate,real,MeshType>::update_cellwise_mean_quantities()
 {

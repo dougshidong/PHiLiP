@@ -22,8 +22,8 @@ class DGBaseState : public DGBase<dim, real, MeshType>
     using Triangulation = typename DGBase<dim,real,MeshType>::Triangulation;
 
    public:
-    using DGBase<dim,real,MeshType>::all_parameters; ///< Parallel std::cout that only outputs on mpi_rank==0
-    /// Number of states for the artificial dissipation class, differs for physics type.
+    using DGBase<dim,real,MeshType>::all_parameters; ///< Input parameters.
+
     /// Constructor.
     DGBaseState(
         const Parameters::AllParameters *const parameters_input,

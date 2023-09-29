@@ -2,21 +2,18 @@
 #define __PHILIP_TARGET_WALL_PRESSURE_H__
 
 /* includes */
-#include <vector>
-#include <iostream>
-
-#include <Sacado.hpp>
-
-#include <deal.II/lac/la_parallel_vector.h>
-
 #include <deal.II/differentiation/ad/sacado_math.h>
 #include <deal.II/differentiation/ad/sacado_number_types.h>
 #include <deal.II/differentiation/ad/sacado_product_types.h>
-
 #include <deal.II/fe/fe_q.h>
 #include <deal.II/fe/fe_values.h>
+#include <deal.II/lac/la_parallel_vector.h>
 
-#include "dg/dg.h"
+#include <Sacado.hpp>
+#include <iostream>
+#include <vector>
+
+#include "dg/dg_base.hpp"
 #include "physics/physics.h"
 #include "target_functional.h"
 

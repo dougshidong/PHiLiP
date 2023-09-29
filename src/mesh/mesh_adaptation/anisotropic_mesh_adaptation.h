@@ -1,7 +1,7 @@
 #ifndef __ANISOTROPIC_MESH_ADAPTATION__
 #define __ANISOTROPIC_MESH_ADAPTATION__
 
-#include "dg/dg.h"
+#include "dg/dg_base.hpp"
 #include "functional/functional.h"
 
 namespace PHiLiP {

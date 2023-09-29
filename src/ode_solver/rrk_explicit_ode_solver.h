@@ -1,7 +1,7 @@
 #ifndef __RRK_EXPLICIT_ODESOLVER__
 #define __RRK_EXPLICIT_ODESOLVER__
 
-#include "dg/dg.h"
+#include "dg/dg_base.hpp"
 #include "ode_solver_base.h"
 //#include "runge_kutta_ode_solver.h"
 #include "explicit_ode_solver.h"

@@ -1,30 +1,26 @@
 // includes
-#include <vector>
-#include <algorithm>
-
-#include <Sacado.hpp>
+#include "functional.h"
 
 #include <deal.II/base/function.h>
 #include <deal.II/base/symmetric_tensor.h>
-
-#include <deal.II/lac/la_parallel_vector.h>
-
 #include <deal.II/differentiation/ad/sacado_math.h>
 #include <deal.II/differentiation/ad/sacado_number_types.h>
 #include <deal.II/differentiation/ad/sacado_product_types.h>
-
+#include <deal.II/dofs/dof_tools.h>
 #include <deal.II/fe/fe_q.h>
 #include <deal.II/fe/fe_values.h>
+#include <deal.II/lac/la_parallel_vector.h>
 
-#include <deal.II/dofs/dof_tools.h>
+#include <Sacado.hpp>
+#include <algorithm>
+#include <vector>
 
-#include "physics/physics.h"
-#include "physics/physics_factory.h"
+#include "dg/dg_base_state.hpp"
+#include "lift_drag.hpp"
 #include "physics/model.h"
 #include "physics/model_factory.h"
-#include "dg/dg.h"
-#include "functional.h"
-#include "lift_drag.hpp"
+#include "physics/physics.h"
+#include "physics/physics_factory.h"
 
 /// Returns y = Ax.
 /** Had to rewrite this instead of 

@@ -1,9 +1,10 @@
 #ifndef __H_REFINEMENT_STUDY_ISENTROPIC_VORTEX__
 #define __H_REFINEMENT_STUDY_ISENTROPIC_VORTEX__
 
-#include "tests.h"
 #include <deal.II/base/convergence_table.h>
-#include "dg/dg.h"
+
+#include "dg/dg_base.hpp"
+#include "tests.h"
 
 namespace PHiLiP {
 namespace Tests {

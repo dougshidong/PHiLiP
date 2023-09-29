@@ -22,7 +22,7 @@ set use_periodic_bc = true
 set use_energy = false
 
 set flux_reconstruction = user_specified_value
-set FR_user_specified_correction_parameter_value = 0.0
+set FR_user_specified_correction_parameter_value = 0.186
 
 set number_ESFR_parameter_values = 10
 set ESFR_parameter_values_start = 1.0e-4
@@ -72,11 +72,10 @@ end
 subsection flow_solver
   set flow_case_type = convection_diffusion
   set apply_initial_condition_method = project_initial_condition_function
-  set poly_degree = 3
+  set poly_degree = 2
   set final_time = 0.5
   subsection grid
     set grid_left_bound = -1.0
     set grid_right_bound = 1.0
-    set number_of_grid_elements_per_dimension = 32
   end
 end

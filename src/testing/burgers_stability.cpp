@@ -286,11 +286,11 @@ int BurgersEnergyStability<dim, nstate>::run_test() const
                     }
 
                     for (int istate=0; istate<nstate; ++istate) {
-                    const dealii::Point<dim> qpoint = (fe_values_extra.quadrature_point(iquad));
-                    double uexact = 0.0;
-                    for(int idim=0; idim<dim; idim++){
-                        uexact += cos(pi*(qpoint[idim]-finalTime));//for grid 1-3
-                    }
+                        const dealii::Point<dim> qpoint = (fe_values_extra.quadrature_point(iquad));
+                        double uexact = 0.0;
+                        for(int idim=0; idim<dim; idim++){
+                            uexact += cos(pi*(qpoint[idim]-finalTime));//for grid 1-3
+                        }
                         l2error += pow(soln_at_q[istate] - uexact, 2) * fe_values_extra.JxW(iquad);
                     }
                 }

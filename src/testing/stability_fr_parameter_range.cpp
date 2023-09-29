@@ -100,6 +100,7 @@ int StabilityFRParametersRange<dim, nstate>::run_test() const
     unsigned int poly_degree = all_parameters_new.manufactured_convergence_study_param.degree_start;
     dealii::ConvergenceTable convergence_table;
     const unsigned int igrid_start = all_parameters_new.manufactured_convergence_study_param.initial_grid_size;
+    pcout << " igrid_start" << igrid_start << std::endl;
     const unsigned int grid_degree = 1;
 
     const unsigned int nb_c_value = all_parameters_new.number_ESFR_parameter_values;
@@ -167,10 +168,13 @@ int StabilityFRParametersRange<dim, nstate>::run_test() const
         grid->refine_global(igrid);
         pcout << "Grid generated and refined" << std::endl;
         //CFL number
+
+
         // const unsigned int n_global_active_cells2 = grid->n_global_active_cells();
         // double n_dofs_cfl = pow(n_global_active_cells2,dim) * pow(poly_degree+1.0, dim);
         // double delta_x = (right-left)/pow(n_dofs_cfl,(1.0/dim)); 
         // all_parameters_new.ode_solver_param.initial_time_step =  0.5*delta_x;
+        
         //use 0.0001 to be consisitent with Ranocha and Gassner papers
         // all_parameters_new.ode_solver_param.initial_time_step =  0.0001;
         all_parameters_new.FR_user_specified_correction_parameter_value = c_value;
@@ -217,7 +221,7 @@ int StabilityFRParametersRange<dim, nstate>::run_test() const
         double l2error = 0.0;
         double linf_error = 0.0;
         // if (all_parameters_new.pde_type == PHiLiP::Parameters::AllParameters::PartialDifferentialEquation::advection){
-            const dealii::Tensor<1,3,double> adv_speeds = Parameters::ManufacturedSolutionParam::get_default_advection_vector();
+        //     const dealii::Tensor<1,3,double> adv_speeds = Parameters::ManufacturedSolutionParam::get_default_advection_vector();
         // }
 
         // Integrate solution error and output error
@@ -239,13 +243,17 @@ int StabilityFRParametersRange<dim, nstate>::run_test() const
                 }
 
                 for (int istate=0; istate<nstate; ++istate) {
-                    const dealii::Point<dim> qpoint = (fe_values_extra.quadrature_point(iquad));
                     double uexact = 0.0;
-                    for(int idim=0; idim<dim; idim++){
-                        if (all_parameters->pde_type == PHiLiP::Parameters::AllParameters::PartialDifferentialEquation::burgers_inviscid){
+                    const dealii::Point<dim> qpoint = (fe_values_extra.quadrature_point(iquad));
+                    if (all_parameters->pde_type == PHiLiP::Parameters::AllParameters::PartialDifferentialEquation::burgers_inviscid){
+                        for(int idim=0; idim<dim; idim++){
                             uexact += cos(pi*(qpoint[idim]-finalTime));//for grid 1-3
                         }
-                        else if (all_parameters->pde_type == PHiLiP::Parameters::AllParameters::PartialDifferentialEquation::advection){
+                    }
+                    else if (all_parameters->pde_type == PHiLiP::Parameters::AllParameters::PartialDifferentialEquation::advection){
+                        uexact = 1.0;
+                        const dealii::Tensor<1,3,double> adv_speeds = Parameters::ManufacturedSolutionParam::get_default_advection_vector();
+                        for(int idim=0; idim<dim; idim++){
                             if(left==0){
                                 uexact *= sin(2.0*pi*(qpoint[idim]-adv_speeds[idim]*finalTime));//for grid 1-3
                             }
@@ -254,8 +262,7 @@ int StabilityFRParametersRange<dim, nstate>::run_test() const
                             }
                         }
                     }
-                    l2error += pow(soln_at_q[istate] - uexact, 2) * fe_values_extra.JxW(iquad);
-
+                    l2error += pow(soln_at_q[istate] - uexact, 2) * fe_values_extra.JxW(iquad);   
                     double inf_temp = std::abs(soln_at_q[istate]-uexact);
                     //store pointwise inf error
                     if(inf_temp > linf_error){

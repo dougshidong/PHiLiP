@@ -469,8 +469,7 @@ void DGBaseState<dim,nstate,real,MeshType>::set_constant_model_variables(
 template <int dim, int nstate, typename real, typename MeshType>
 void DGBaseState<dim,nstate,real,MeshType>::set_unsteady_model_variables(
         const double bulk_density,
-        const double time_step,
-        const dealii::Tensor<2,dim,double> &mean_strain_rate_tensor)
+        const double time_step)
 {
     // bulk_density
     pde_model_double->bulk_density  = bulk_density;
@@ -485,13 +484,6 @@ void DGBaseState<dim,nstate,real,MeshType>::set_unsteady_model_variables(
     pde_model_rad->time_step     = time_step;
     pde_model_fad_fad->time_step = time_step;
     pde_model_rad_fad->time_step = time_step;
-
-    // mean_strain_rate_tensor
-    pde_model_double->mean_strain_rate_tensor  = mean_strain_rate_tensor;
-    pde_model_fad->mean_strain_rate_tensor     = mean_strain_rate_tensor;
-    pde_model_rad->mean_strain_rate_tensor     = mean_strain_rate_tensor;
-    pde_model_fad_fad->mean_strain_rate_tensor = mean_strain_rate_tensor;
-    pde_model_rad_fad->mean_strain_rate_tensor = mean_strain_rate_tensor;
 }
 
 template <int dim, int nstate, typename real, typename MeshType>

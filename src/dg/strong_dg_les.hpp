@@ -56,7 +56,7 @@ protected:
     
 }; // end of DGStrongLES class
 
-/// DGStrongLES class templated on the number of state variables
+/// DGStrongLES_ShearImproved class templated on the number of state variables
 /*  Contains the functions that need to be templated on the number of state variables.
  */
 #if PHILIP_DIM==1 // dealii::parallel::distributed::Triangulation<dim> does not work for 1D

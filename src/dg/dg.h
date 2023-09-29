@@ -958,8 +958,7 @@ public:
     /// Set the necessary unsteady variables declared in src/physics/model.h
     virtual void set_unsteady_model_variables(
         const double bulk_density,
-        const double time_step,
-        const dealii::Tensor<2,dim,double> &mean_strain_rate_tensor) = 0;
+        const double time_step) = 0;
     /// Flag for using the auxiliary equation
     bool use_auxiliary_eq;
     /// Set use_auxiliary_eq flag
@@ -1072,8 +1071,7 @@ public:
     /// Set the necessary unsteady variables declared in src/physics/model.h
     void set_unsteady_model_variables(
         const double bulk_density,
-        const double time_step,
-        const dealii::Tensor<2,dim,double> &mean_strain_rate_tensor);
+        const double time_step);
 
     /// Set use_auxiliary_eq flag
     void set_use_auxiliary_eq();

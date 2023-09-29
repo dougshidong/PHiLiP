@@ -1069,11 +1069,9 @@ real2 LargeEddySimulation_ShearImprovedSmagorinsky<dim,nstate,real>
     const real2 model_constant_times_filter_width = this->get_model_constant_times_filter_width(cell_index);
     // Get magnitude of strain_rate_tensor
     const real2 strain_rate_tensor_magnitude = this->template get_tensor_magnitude<real2>(strain_rate_tensor);
-    // Get magnitude of mean_strain_rate_tensor
-    const real2 mean_strain_rate_tensor_magnitude = this->template get_tensor_magnitude<double>(this->mean_strain_rate_tensor);
     // Compute the eddy viscosity; Eq.(14) in reference 1 with modification by Eq.(2.4) in reference 2
     const real2 eddy_viscosity = model_constant_times_filter_width*model_constant_times_filter_width*(
-                                    strain_rate_tensor_magnitude - mean_strain_rate_tensor_magnitude);
+                                    strain_rate_tensor_magnitude - this->cellwise_mean_strain_rate_tensor_magnitude[cell_index]);
 
     return eddy_viscosity;
 }

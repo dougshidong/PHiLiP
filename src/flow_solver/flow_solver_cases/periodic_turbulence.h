@@ -162,9 +162,6 @@ protected:
 
     /// Data table storing the exact output times for the velocity field files
     std::shared_ptr<dealii::TableHandler> exact_output_times_of_velocity_field_files_table;
-
-    /// Mean strain rate tensor
-    dealii::Tensor<2,dim,double> mean_strain_rate_tensor;
 };
 
 } // FlowSolver namespace

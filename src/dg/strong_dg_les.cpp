@@ -324,7 +324,7 @@ void DGStrongLES_ShearImproved<dim,nstate,real,MeshType>::update_cellwise_mean_q
         for (int d1=0; d1<dim; ++d1) {
             for (int d2=0; d2<dim; ++d2) {
                 cell_mean_strain_rate_tensor[d1][d2] = dealii::Utilities::MPI::sum(cell_strain_rate_tensor_integral[d1][d2], this->mpi_communicator);
-                cell_mean_strain_rate_tensor[d1][d2] /= this->pde_model_double->cellwise_volume[cell_index]; // divide by total domain volume
+                cell_mean_strain_rate_tensor[d1][d2] /= this->pde_model_double->cellwise_volume[cell_index]; // divide by current cell volume
             }
         }
         // update the cellwise mean strain rate tensor magnitude at the current cell

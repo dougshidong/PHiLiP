@@ -4,6 +4,7 @@
 #include <deal.II/fe/fe_system.h>
 #include <deal.II/base/types.h>
 
+
 namespace PHiLiP {
 
 /// Class to store local solution coefficients and provide evaluation functions.

@@ -1,9 +1,9 @@
 #ifndef __homogeneous_isotropic_turbulence_initialization_check__
 #define __homogeneous_isotropic_turbulence_initialization_check__
 
-#include "tests.h"
-#include "dg/dg.h"
+#include "dg/dg_base.hpp"
 #include "parameters/all_parameters.h"
+#include "tests.h"
 
 namespace PHiLiP {
 namespace Tests {

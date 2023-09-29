@@ -112,9 +112,6 @@ private:
     /// Get the stretched mesh size
     double get_stretched_mesh_size(const int i) const;
 
-    /// Get the integrated density over the domain
-    double get_bulk_density(DGBase<dim, double> &dg) const;
-
     /// Get the average wall shear stress
     double get_average_wall_shear_stress(DGBase<dim, double> &dg) const;
 };

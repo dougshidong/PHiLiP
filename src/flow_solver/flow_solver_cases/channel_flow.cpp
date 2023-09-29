@@ -329,53 +329,7 @@ void ChannelFlow<dim,nstate>::update_model_variables(std::shared_ptr<DGBase<dim,
 
     dg->set_unsteady_model_variables(
         bulk_density,
-        this->get_time_step(),
-        this->zero_tensor); // <-- no need to update the mean strain rate tensor for this case; passing zero tensor as dummy argument
-}
-
-template<int dim, int nstate>
-double ChannelFlow<dim, nstate>::get_bulk_density(DGBase<dim, double> &dg) const
-{
-    double integral_value = 0.0;
-
-    // Overintegrate the error to make sure there is not integration error in the error estimate
-    int overintegrate = 10;
-    dealii::QGauss<dim> quad_extra(dg.max_degree+1+overintegrate);
-    dealii::FEValues<dim,dim> fe_values_extra(*(dg.high_order_grid->mapping_fe_field), dg.fe_collection[dg.max_degree], quad_extra,
-                                              dealii::update_values /*| dealii::update_gradients*/ | dealii::update_JxW_values | dealii::update_quadrature_points);
-
-    const unsigned int n_quad_pts = fe_values_extra.n_quadrature_points;
-    std::array<double,nstate> soln_at_q;
-    // std::array<dealii::Tensor<1,dim,double>,nstate> soln_grad_at_q;
-
-    std::vector<dealii::types::global_dof_index> dofs_indices (fe_values_extra.dofs_per_cell);
-    for (auto cell : dg.dof_handler.active_cell_iterators()) {
-        if (!cell->is_locally_owned()) continue;
-        fe_values_extra.reinit (cell);
-        cell->get_dof_indices (dofs_indices);
-
-        for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
-
-            std::fill(soln_at_q.begin(), soln_at_q.end(), 0.0);
-            // for (int s=0; s<nstate; ++s) {
-            //     for (int d=0; d<dim; ++d) {
-            //         soln_grad_at_q[s][d] = 0.0;
-            //     }
-            // }
-            for (unsigned int idof=0; idof<fe_values_extra.dofs_per_cell; ++idof) {
-                const unsigned int istate = fe_values_extra.get_fe().system_to_component_index(idof).first;
-                soln_at_q[istate] += dg.solution[dofs_indices[idof]] * fe_values_extra.shape_value_component(idof, iquad, istate);
-                // soln_grad_at_q[istate] += dg.solution[dofs_indices[idof]] * fe_values_extra.shape_grad_component(idof,iquad,istate);
-            }
-            // const dealii::Point<dim> qpoint = (fe_values_extra.quadrature_point(iquad));
-
-            double integrand_value = soln_at_q[0]; // density
-            integral_value += integrand_value * fe_values_extra.JxW(iquad);
-        }
-    }
-    const double mpi_sum_integral_value = dealii::Utilities::MPI::sum(integral_value, this->mpi_communicator);
-    const double averaged_value = mpi_sum_integral_value/domain_volume;
-    return averaged_value;
+        this->get_time_step());
 }
 
 template<int dim, int nstate>

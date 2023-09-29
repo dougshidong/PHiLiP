@@ -326,7 +326,7 @@ template <int dim, int nstate>
 void ChannelFlow<dim,nstate>::update_model_variables(std::shared_ptr<DGBase<dim, double>> dg) const
 {
     dg->set_unsteady_model_variables(
-        bulk_density,
+        0.0,
         this->get_time_step());
 }
 

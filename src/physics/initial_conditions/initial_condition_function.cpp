@@ -513,7 +513,7 @@ real InitialConditionFunction_SodShockTube<dim, nstate, real>
 ::primitive_value(const dealii::Point<dim, real>& point, const unsigned int istate) const
 {
     real value = 0.0;
-    if constexpr (dim == 1) {
+    if constexpr (dim == 1 && nstate == (dim+2)) {
         const real x = point[0];
         if (x < 0) {
             if (istate == 0) {
@@ -562,7 +562,7 @@ real InitialConditionFunction_LowDensity2D<dim, nstate, real>
 ::primitive_value(const dealii::Point<dim, real>& point, const unsigned int istate) const
 {
     real value = 0.0;
-    if constexpr (dim == 2) {
+    if constexpr (dim == 2 && nstate == (dim + 2)) {
         const real x = point[0], y = point[1];
         if (istate == 0) {
             // density
@@ -600,7 +600,7 @@ real InitialConditionFunction_LeblancShockTube<dim, nstate, real>
 ::primitive_value(const dealii::Point<dim, real>& point, const unsigned int istate) const
 {
     real value = 0.0;
-    if constexpr (dim == 1) {
+    if constexpr (dim == 1 && nstate == (dim + 2)) {
         const real x = point[0];
         if (x < 0) {
             if (istate == 0) {
@@ -650,7 +650,7 @@ real InitialConditionFunction_ShuOsherProblem<dim, nstate, real>
 ::primitive_value(const dealii::Point<dim, real>& point, const unsigned int istate) const
 {
     real value = 0.0;
-    if constexpr (dim == 1) {
+    if constexpr (dim == 1 && nstate == (dim + 2)) {
         const real x = point[0];
         if (x < -4.0) {
             if (istate == 0) {

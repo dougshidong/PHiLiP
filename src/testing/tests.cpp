@@ -305,11 +305,9 @@ std::unique_ptr< TestsBase > TestsFactory<dim,nstate,MeshType>
     } else if(test_type == Test_enum::khi_robustness) {
         if constexpr (dim==2 && nstate==dim+2)  return std::make_unique<KHIRobustness<dim, nstate>>(parameters_input, parameter_handler_input);
     } else if (test_type == Test_enum::advection_limiter) {
-        if constexpr (dim == 1 && nstate == 1) return std::make_unique<AdvectionLimiter<dim, nstate>>(parameters_input);
-        if constexpr (dim == 2 && nstate == 1) return std::make_unique<AdvectionLimiter<dim, nstate>>(parameters_input);
+        if constexpr (nstate == dim && dim < 3) return std::make_unique<AdvectionLimiter<dim, nstate>>(parameters_input);
     } else if (test_type == Test_enum::burgers_limiter) {
-        if constexpr (dim == 1 && nstate == 1) return std::make_unique<BurgersLimiter<dim, nstate>>(parameters_input);
-        if constexpr (dim == 2 && nstate == 2) return std::make_unique<BurgersLimiter<dim, nstate>>(parameters_input);
+        if constexpr (nstate == dim && dim < 3) return std::make_unique<BurgersLimiter<dim, nstate>>(parameters_input);
     } else if(test_type == Test_enum::low_density) {
         if constexpr (dim==2 && nstate==dim+2)  return std::make_unique<LowDensity2D<dim, nstate>>(parameters_input);
     } else {

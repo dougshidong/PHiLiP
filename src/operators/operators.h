@@ -58,9 +58,6 @@ public:
           const int nstate_input,//number of states input
           const unsigned int max_degree_input,//max poly degree for operators
           const unsigned int grid_degree_input);//max grid degree for operators
-    
-    /// Destructor
-    ~OperatorsBase() {};
 
     ///Max polynomial degree.
     const unsigned int max_degree;
@@ -136,9 +133,6 @@ public:
         const int nstate_input,
         const unsigned int max_degree_input,
         const unsigned int grid_degree_input);
-
-    ///Destructor
-    ~SumFactorizedOperators () {};
 
     ///Computes a matrix-vector product using sum-factorization. Pass the one-dimensional basis, where x runs the fastest, then y, and z runs the slowest. Also, assume each one-dimensional basis is the same size.
     /** Uses sum-factorization with BLAS techniques to solve the the matrix-vector multiplication, where the matrix is the tensor product of three one-dimensional matrices. We use the standard notation that x runs the fastest, then y, and z runs the slowest.
@@ -390,9 +384,6 @@ public:
         const unsigned int max_degree_input,
         const unsigned int grid_degree_input);
 
-    /// Destructor.
-    ~basis_functions () {};
-
     ///Stores the degree of the current poly degree.
     unsigned int current_degree;
 
@@ -428,9 +419,6 @@ public:
         const unsigned int max_degree_input,
         const unsigned int grid_degree_input);
 
-    /// Destructor.
-    ~vol_integral_basis () {};
-
     /// Stores the degree of the current poly degree.
     unsigned int current_degree;
 
@@ -450,9 +438,6 @@ public:
         const int nstate_input,
         const unsigned int max_degree_input,
         const unsigned int grid_degree_input);
-
-    /// Destructor.
-    ~local_mass () {};
 
     /// Stores the degree of the current poly degree.
     unsigned int current_degree;
@@ -491,9 +476,6 @@ public:
         const unsigned int grid_degree_input,
         const bool store_skew_symmetric_form_input = false);
 
-    /// Destructor.
-    ~local_basis_stiffness () {};
-
     /// Stores the degree of the current poly degree.
     unsigned int current_degree;
 
@@ -520,9 +502,6 @@ public:
         const unsigned int max_degree_input,
         const unsigned int grid_degree_input);
 
-    /// Destructor.
-    ~modal_basis_differential_operator () {};
-
     /// Stores the degree of the current poly degree.
     unsigned int current_degree;
 
@@ -542,9 +521,6 @@ public:
         const int nstate_input,
         const unsigned int max_degree_input,
         const unsigned int grid_degree_input);
-
-    /// Destructor.
-    ~derivative_p () {};
 
     /// Stores the degree of the current poly degree.
     unsigned int current_degree;
@@ -566,8 +542,6 @@ public:
         const unsigned int max_degree_input,
         const unsigned int grid_degree_input,
         const Parameters::AllParameters::Flux_Reconstruction FR_param_input);
-    ///Destructor.
-    ~local_Flux_Reconstruction_operator () {};
 
     ///Stores the degree of the current poly degree.
     unsigned int current_degree;
@@ -685,9 +659,6 @@ public:
         const unsigned int grid_degree_input,
         const Parameters::AllParameters::Flux_Reconstruction_Aux FR_param_aux_input);
 
-    ///Destructor.
-    ~local_Flux_Reconstruction_operator_aux () {};
-
     ///Stores the degree of the current poly degree.
     unsigned int current_degree;
 
@@ -726,9 +697,6 @@ public:
         const unsigned int max_degree_input,
         const unsigned int grid_degree_input);
 
-    ///Destructor.
-    ~vol_projection_operator () {};
-
     ///Stores the degree of the current poly degree.
     unsigned int current_degree;
 
@@ -756,9 +724,6 @@ public:
         const unsigned int grid_degree_input,
         const Parameters::AllParameters::Flux_Reconstruction FR_param_input,
         const bool store_transpose_input = false);
-
-    ///Destructor.
-    ~vol_projection_operator_FR () {};
 
     ///Stores the degree of the current poly degree.
     unsigned int current_degree;
@@ -791,9 +756,6 @@ public:
         const Parameters::AllParameters::Flux_Reconstruction_Aux FR_param_input,
         const bool store_transpose_input = false);
 
-    ///Destructor.
-    ~vol_projection_operator_FR_aux () {};
-
     ///Stores the degree of the current poly degree.
     unsigned int current_degree;
 
@@ -824,9 +786,6 @@ public:
         const unsigned int grid_degree_input,
         const Parameters::AllParameters::Flux_Reconstruction FR_param_input);
 
-    ///Destructor.
-    ~FR_mass_inv () {};
-
     ///Stores the degree of the current poly degree.
     unsigned int current_degree;
 
@@ -849,9 +808,6 @@ public:
         const unsigned int max_degree_input,
         const unsigned int grid_degree_input,
         const Parameters::AllParameters::Flux_Reconstruction_Aux FR_param_input);
-
-    ///Destructor.
-    ~FR_mass_inv_aux () {};
 
     ///Stores the degree of the current poly degree.
     unsigned int current_degree;
@@ -876,9 +832,6 @@ public:
         const unsigned int grid_degree_input,
         const Parameters::AllParameters::Flux_Reconstruction FR_param_input);
 
-    ///Destructor.
-    ~FR_mass () {};
-
     ///Stores the degree of the current poly degree.
     unsigned int current_degree;
 
@@ -902,9 +855,6 @@ public:
         const unsigned int max_degree_input,
         const unsigned int grid_degree_input,
         const Parameters::AllParameters::Flux_Reconstruction_Aux FR_param_input);
-
-    ///Destructor.
-    ~FR_mass_aux () {};
 
     ///Stores the degree of the current poly degree.
     unsigned int current_degree;
@@ -935,9 +885,6 @@ public:
         const int nstate_input,
         const unsigned int max_degree_input,
         const unsigned int grid_degree_input);
-
-    ///Destructor.
-    ~vol_integral_gradient_basis () {};
 
     ///Stores the degree of the current poly degree.
     unsigned int current_degree;
@@ -972,9 +919,6 @@ public:
         const unsigned int max_degree_input,
         const unsigned int grid_degree_input);
 
-    ///Destructor.
-    ~face_integral_basis () {};
-
     ///Stores the degree of the current poly degree.
     unsigned int current_degree;
 
@@ -999,9 +943,6 @@ public:
         const int nstate_input,
         const unsigned int max_degree_input,
         const unsigned int grid_degree_input);
-
-    ///Destructor.
-    ~lifting_operator () {};
 
     ///Stores the degree of the current poly degree.
     unsigned int current_degree;
@@ -1045,9 +986,6 @@ public:
         const unsigned int grid_degree_input,
         const Parameters::AllParameters::Flux_Reconstruction FR_param_input);
 
-    ///Destructor.
-    ~lifting_operator_FR () {};
-
     ///Stores the degree of the current poly degree.
     unsigned int current_degree;
 
@@ -1090,9 +1028,6 @@ public:
         const int nstate_input,
         const unsigned int max_degree_input,
         const unsigned int grid_degree_input);
-
-    ///Destructor.
-    ~mapping_shape_functions() {};
 
     ///Stores the degree of the current poly degree.
     unsigned int current_degree;
@@ -1156,9 +1091,6 @@ public:
         const bool store_vol_flux_nodes_input = false,
         const bool store_surf_flux_nodes_input = false,
         const bool store_Jacobian_input = false);
-
-    ///Destructor.
-    ~metric_operators() {};
 
     ///Flag if store metric Jacobian at flux nodes.
     const bool store_Jacobian;
@@ -1362,9 +1294,6 @@ public:
         const unsigned int max_degree_input,
         const unsigned int grid_degree_input);
 
-    ///Destructor.
-    ~SumFactorizedOperatorsState () {}; 
-
     ///Stores the one dimensional volume operator.
     std::array<dealii::FullMatrix<double>,nstate>  oneD_vol_state_operator;
 
@@ -1388,9 +1317,6 @@ public:
     basis_functions_state (
         const unsigned int max_degree_input,
         const unsigned int grid_degree_input);
-
-    ///Destructor.
-    ~basis_functions_state () {};
 
     ///Stores the degree of the current poly degree.
     unsigned int current_degree;
@@ -1423,9 +1349,6 @@ public:
     flux_basis_functions_state (
         const unsigned int max_degree_input,
         const unsigned int grid_degree_input);
-
-    ///Destructor.
-    ~flux_basis_functions_state () {};
 
     ///Stores the degree of the current poly degree.
     unsigned int current_degree;
@@ -1461,9 +1384,6 @@ public:
     local_flux_basis_stiffness (
         const unsigned int max_degree_input,
         const unsigned int grid_degree_input);
-
-    ///Destructor.
-    ~local_flux_basis_stiffness () {};
 
     ///Stores the degree of the current poly degree.
     unsigned int current_degree;

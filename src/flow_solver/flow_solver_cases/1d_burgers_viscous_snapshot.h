@@ -26,10 +26,7 @@ class BurgersViscousSnapshot: public FlowSolverCaseBase<dim, nstate>
 {
 public:
     /// Constructor.
-    BurgersViscousSnapshot(const Parameters::AllParameters *const parameters_input);
-
-    /// Destructor
-    ~BurgersViscousSnapshot() {};
+    explicit BurgersViscousSnapshot(const Parameters::AllParameters *const parameters_input);
 
     /// Virtual function to generate the grid
     std::shared_ptr<Triangulation> generate_grid() const override;

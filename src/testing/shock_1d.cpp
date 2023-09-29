@@ -54,9 +54,6 @@ public:
     : ManufacturedSolutionFunction<dim,real> (nstate)
     { };
 
-    /// Destructor
-    ~Shocked1D1State() {};
-  
     /// Manufactured solution exact value
     /** 
      *  \f$ u = x \f$ when \f$ x < 0.5 \f$

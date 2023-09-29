@@ -94,6 +94,7 @@ public:
     //    const FreeFormDeformation<dim> &_ffd,
     //    std::vector< std::pair< unsigned int, unsigned int > > &_ffd_design_variables_indices_dim,
     //    const dealii::TrilinosWrappers::SparseMatrix *existing_dXvdXp = NULL);
+
     /// Destructor.
     ~FlowConstraints();
 

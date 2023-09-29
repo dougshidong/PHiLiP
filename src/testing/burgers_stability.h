@@ -16,9 +16,6 @@ public:
     /// Constructor
     BurgersEnergyStability(const Parameters::AllParameters *const parameters_input);
 
-    /// Destructor
-    ~BurgersEnergyStability() {};
-
     /// Run test
     int run_test () const override;
 private:

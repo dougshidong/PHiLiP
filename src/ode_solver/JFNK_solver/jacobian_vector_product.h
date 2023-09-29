@@ -13,9 +13,6 @@ public:
     /// Constructor
     JacobianVectorProduct(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input);
 
-    ///Destructor
-    ~JacobianVectorProduct() {};
-
     /// Reinitializes the stored data for a new timestep.
     void reinit_for_next_timestep(const double dt_input,
                 const double fd_perturbation_input,

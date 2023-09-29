@@ -23,8 +23,6 @@ public:
      */
     GridStudy(const Parameters::AllParameters *const parameters_input);
 
-    ~GridStudy() {}; ///< Destructor.
-
     /// Manufactured grid convergence
     /** Will run the a grid convergence test for various p
      *  on multiple grids to determine the order of convergence.

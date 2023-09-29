@@ -26,9 +26,6 @@ public:
     /// Constructor
     OfflinePOD(std::shared_ptr<DGBase<dim,double>> &dg_input);
 
-    /// Destructor
-    ~OfflinePOD () {};
-
     ///Function to get POD basis for all derived classes
     std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> getPODBasis() override;
 

@@ -28,9 +28,6 @@ public:
     const real dimensional_density_inf; ///< Dimensional density at infinity.
     real Q_inf; ///< Velocity at infinity.
 
-    /// Destructor
-    ~EulerEntropyWavesFunction() {};
-  
     /// Manufactured solution exact value
     /** Given A, density_inf, u_inf, v_inf, w_inf, and p_inf
      *  \code

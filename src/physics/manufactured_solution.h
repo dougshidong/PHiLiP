@@ -41,9 +41,6 @@ public:
      */
     ManufacturedSolutionFunction (const unsigned int nstate = 1);
 
-    /// Destructor
-    ~ManufacturedSolutionFunction() {};
-  
     /// Manufactured solution exact value
     /** \code
      *  u[s] = A[s]*sin(freq[s][0]*x)*sin(freq[s][1]*y)*sin(freq[s][2]*z);

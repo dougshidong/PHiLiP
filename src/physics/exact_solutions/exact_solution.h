@@ -18,8 +18,6 @@ protected:
 public:
     /// Constructor
     ExactSolutionFunction();
-    /// Destructor
-    ~ExactSolutionFunction() {};
 
     /// Value of the exact solution at a point 
     virtual real value (const dealii::Point<dim,real> &point, const unsigned int istate = 0) const = 0;

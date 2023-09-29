@@ -21,8 +21,6 @@ public:
      */
     EulerCylinder(const Parameters::AllParameters *const parameters_input);
 
-    ~EulerCylinder() {}; ///< Destructor.
-
     // Warp grid into Gaussian bump
     static dealii::Point<dim> warp (const dealii::Point<dim> &p);
 

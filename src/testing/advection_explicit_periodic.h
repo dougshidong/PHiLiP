@@ -16,9 +16,6 @@ public:
     /// Constructor
     AdvectionPeriodic(const Parameters::AllParameters *const parameters_input);
 
-    /// Destructor
-    ~AdvectionPeriodic() {};
-    
     /// Run test
     int run_test () const override;
 private:

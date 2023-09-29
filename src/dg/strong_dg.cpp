@@ -29,13 +29,6 @@ DGStrong<dim,nstate,real,MeshType>::DGStrong(
     : DGBaseState<dim,nstate,real,MeshType>::DGBaseState(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input)
 { }
 
-// Destructor
-template <int dim, int nstate, typename real, typename MeshType>
-DGStrong<dim,nstate,real,MeshType>::~DGStrong()
-{
-    pcout << "Destructing DGStrong..." << std::endl;
-}
-
 /***********************************************************
 *
 *       Build operators and solve for RHS

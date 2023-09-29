@@ -3,8 +3,6 @@
 namespace PHiLiP
 {
 
-template <int dim, int nstate>
-ArtificialDissipationBase<dim,nstate> :: ~ArtificialDissipationBase() {}
 //=====================================================
 //  LAPLACIAN DISSIPATION FUNCTIONS 
 //=====================================================

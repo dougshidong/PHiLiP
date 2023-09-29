@@ -2,6 +2,7 @@
 #define PHILIP_LOCAL_SOLUTION_HPP
 
 #include <deal.II/fe/fe_system.h>
+#include <deal.II/base/types.h>
 
 namespace PHiLiP {
 

@@ -27,9 +27,6 @@ public:
     /// Constructor
     OnlinePOD(std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> _system_matrix);
 
-    /// Destructor
-    ~OnlinePOD () {};
-
     ///Function to get POD basis for all derived classes
     std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> getPODBasis() override;
 

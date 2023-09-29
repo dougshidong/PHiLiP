@@ -73,9 +73,6 @@ public:
         const bool _uses_solution_values = true,
         const bool _uses_solution_gradient = true);
 
-    /// Destructor.
-    virtual ~Functional(){};
-
 public:
     /** Set the associated @ref DGBase's solution to @p solution_set. */
     void set_state(const dealii::LinearAlgebra::distributed::Vector<real> &solution_set);

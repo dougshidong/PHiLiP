@@ -29,8 +29,6 @@ public:
     GridRefinementStudy(
         const Parameters::AllParameters *const parameters_input);
 
-    ~GridRefinementStudy() {}; ///< Destructor.
-
     int run_test() const;
 
     /// gets the grid from the enum and reads file if neccesary

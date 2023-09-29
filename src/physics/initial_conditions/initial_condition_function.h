@@ -19,8 +19,6 @@ protected:
 public:
     /// Constructor
     InitialConditionFunction();
-    /// Destructor
-    ~InitialConditionFunction() {};
 
     /// Value of the initial condition
     virtual real value (const dealii::Point<dim,real> &point, const unsigned int istate = 0) const = 0;

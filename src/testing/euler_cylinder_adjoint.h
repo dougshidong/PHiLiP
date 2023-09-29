@@ -21,8 +21,6 @@ public:
      */
     EulerCylinderAdjoint(const Parameters::AllParameters *const parameters_input);
 
-    ~EulerCylinderAdjoint() {}; ///< Destructor.
-
     /// Grid convergence on Euler Gaussian Bump
     /** Will run the a grid convergence test for various p
      *  on multiple grids to determine the order of convergence.

@@ -69,8 +69,6 @@ public:
             test_type(parameters_test)
     {};
 
-    /// Destructor
-    ~ConvectionDiffusion () {};
     /// Convective flux: \f$ \mathbf{F}_{conv} =  u \f$
     std::array<dealii::Tensor<1,dim,real>,nstate> convective_flux (const std::array<real,nstate> &solution) const;
 

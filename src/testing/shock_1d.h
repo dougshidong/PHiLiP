@@ -21,8 +21,6 @@ public:
      */
     Shock1D(const Parameters::AllParameters *const parameters_input);
 
-    ~Shock1D() {}; ///< Destructor.
-
     /// Manufactured grid convergence
     /** Will run the a grid convergence test for various p
      *  on multiple grids to determine the order of convergence.

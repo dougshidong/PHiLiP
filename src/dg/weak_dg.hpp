@@ -28,8 +28,6 @@ public:
         const unsigned int grid_degree_input,
         const std::shared_ptr<Triangulation> triangulation_input);
 
-    ~DGWeak(); ///< Destructor.
-
 private:
 
     /// Builds the necessary fe values and assembles volume residual.

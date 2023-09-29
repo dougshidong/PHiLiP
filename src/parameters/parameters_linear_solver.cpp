@@ -3,9 +3,6 @@
 namespace PHiLiP {
 namespace Parameters {
 
-// Linear solver inputs
-LinearSolverParam::LinearSolverParam () {}
-
 void LinearSolverParam::declare_parameters (dealii::ParameterHandler &prm)
 {
     prm.enter_subsection("linear solver");

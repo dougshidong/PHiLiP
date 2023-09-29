@@ -37,9 +37,6 @@ public:
     /// Default constructor that will set the constants.
     ImplicitODESolver(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input); ///< Constructor.
 
-    /// Destructor.
-    ~ImplicitODESolver() {};
-
     /// Function to evaluate solution update
     void step_in_time(real dt, const bool pseudotime);
 

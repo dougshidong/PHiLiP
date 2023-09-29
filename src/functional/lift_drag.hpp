@@ -82,7 +82,6 @@ public:
         std::shared_ptr<DGBase<dim,real,MeshType>> dg_input,
         const Functional_types functional_type);
     /// Destructor
-    ~LiftDragFunctional(){};
 
     real evaluate_functional( const bool compute_dIdW = false, const bool compute_dIdX = false, const bool compute_d2I = false) override;
 

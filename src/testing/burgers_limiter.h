@@ -2,7 +2,7 @@
 #define __BURGERS_LIMITER_H__
 
 #include "tests.h"
-#include "dg/dg.h"
+#include "dg/dg_base.hpp"
 #include "parameters/all_parameters.h"
 
 namespace PHiLiP {
@@ -14,10 +14,10 @@ class BurgersLimiter: public TestsBase
 {
 public:
     /// Constructor
-    BurgersLimiter(const Parameters::AllParameters *const parameters_input);
+    explicit BurgersLimiter(const Parameters::AllParameters *const parameters_input);
 
     /// Destructor
-    ~BurgersLimiter() {};
+    ~BurgersLimiter() = default;
 
     /// Run test
     int run_test () const override;

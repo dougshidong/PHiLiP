@@ -17,7 +17,7 @@
 #include "parameters/parameters.h"
 #include "physics/physics_factory.h"
 #include "physics/physics.h"
-#include "dg/dg.h"
+#include "dg/dg_base.hpp"
 #include "dg/dg_factory.hpp"
 #include "ode_solver/ode_solver_base.h"
 #include <fstream>
@@ -43,7 +43,7 @@ int BurgersLimiter<dim, nstate>::run_test() const
     double left = 0.0;
     double right = 2.0;
     const unsigned int n_grids = (!all_parameters_new.limiter_param.use_OOA) ? 7 : 10;
-    unsigned int poly_degree = 4;
+    unsigned int poly_degree = 2;
     const unsigned int igrid_start = 6;
     const unsigned int grid_degree = 1;
     dealii::ConvergenceTable convergence_table;

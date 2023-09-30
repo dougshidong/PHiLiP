@@ -48,6 +48,14 @@ private:
         const unsigned int n_quad_pts,
         const std::vector<real>& quad_weights);
 
+    real apply_modified_minmod(
+        const double        a_state,
+        const double        M_state,
+        const double        h,
+        const double        diff_next_state,
+        const double        diff_prev_state,
+        const double        cell_avg_state,
+        const bool          left_face);
 public:
     /// Function to obtain the solution cell average
     using BoundPreservingLimiterState<dim, nstate, real>::get_soln_cell_avg;

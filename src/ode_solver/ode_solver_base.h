@@ -5,7 +5,6 @@
 #include <deal.II/base/table_handler.h>
 #include <deal.II/lac/vector.h>
 #include "parameters/all_parameters.h"
-#include "dg/dg.h"
 #include "limiter/bound_preserving_limiter_factory.hpp"
 #include <iostream>
 #include <stdexcept>

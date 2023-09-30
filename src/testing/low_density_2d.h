@@ -2,7 +2,7 @@
 #define __LOW_DENSITY_H__
 
 #include "tests.h"
-#include "dg/dg.h"
+#include "dg/dg_base.hpp"
 #include "parameters/all_parameters.h"
 
 namespace PHiLiP {
@@ -14,10 +14,10 @@ class LowDensity2D: public TestsBase
 {
 public:
     /// Constructor
-    LowDensity2D(const Parameters::AllParameters *const parameters_input);
+    explicit LowDensity2D(const Parameters::AllParameters *const parameters_input);
 
     /// Destructor
-    ~LowDensity2D() {};
+    ~LowDensity2D() = default;
 
     /// Run test
     int run_test () const override;

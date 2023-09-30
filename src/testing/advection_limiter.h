@@ -2,7 +2,7 @@
 #define __ADVECTION_LIMITER_H__
 
 #include "tests.h"
-#include "dg/dg.h"
+#include "dg/dg_base.hpp"
 #include "parameters/all_parameters.h"
 
 namespace PHiLiP {
@@ -14,7 +14,7 @@ namespace PHiLiP {
         {
         public:
             /// Constructor.
-            AdvectionLimiter(const Parameters::AllParameters* const parameters_input);
+            explicit AdvectionLimiter(const Parameters::AllParameters* const parameters_input);
 
             /// Currently passes no matter what.
             /** Since it is linear advection, the exact solution about time T is known. Convergence orders can/should be checked.

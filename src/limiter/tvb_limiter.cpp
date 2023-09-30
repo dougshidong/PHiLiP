@@ -13,6 +13,49 @@ TVBLimiter<dim, nstate, real>::TVBLimiter(
     : BoundPreservingLimiterState<dim,nstate,real>::BoundPreservingLimiterState( parameters_input) {}
 
 template <int dim, int nstate, typename real>
+real TVBLimiter<dim, nstate, real>::apply_modified_minmod(
+    const double        a_state,
+    const double        M_state,
+    const double        h,
+    const double        diff_next_state,
+    const double        diff_prev_state,
+    const double        cell_avg_state,
+    const bool          left_face)
+{
+    real limited_value = 0.0;
+    real minmod = 0.0;
+    if (abs(a_state) <= M_state * pow(h, 2.0) && left_face) {
+        limited_value = cell_avg_state - a_state;
+    } else if (abs(a_state) <= M_state * pow(h, 2.0) && !left_face) {
+        limited_value = cell_avg_state + a_state;
+    } else if (left_face) {
+        if (signbit(a_state) == signbit(diff_next_state) && signbit(a_state) == signbit(diff_prev_state)) {
+            minmod = std::min({ abs(a_state), abs(diff_next_state), abs(diff_prev_state) });
+
+            if (signbit(a_state))
+                limited_value = cell_avg_state + std::max(abs(minmod), M_state * pow(h, 2.0));
+            else
+                limited_value = cell_avg_state - std::max(abs(minmod), M_state * pow(h, 2.0));
+        }
+        else
+            limited_value = cell_avg_state - M_state * pow(h, 2.0);
+    } else if (!left_face) {
+        if (signbit(a_state) == signbit(diff_next_state) && signbit(a_state) == signbit(diff_prev_state)) {
+            minmod = std::min({ abs(a_state), abs(diff_next_state), abs(diff_prev_state) });
+
+            if (signbit(a_state))
+                limited_value = cell_avg_state - std::max(abs(minmod), M_state * pow(h, 2.0));
+            else
+                limited_value = cell_avg_state + std::max(abs(minmod), M_state * pow(h, 2.0));
+        }
+        else
+            limited_value = cell_avg_state - M_state * pow(h, 2.0);
+    }
+
+    return limited_value;
+}
+
+template <int dim, int nstate, typename real>
 std::array<std::vector<real>, nstate> TVBLimiter<dim, nstate, real>::limit_cell(
     std::array<std::vector<real>, nstate>                   soln_at_q,
     const unsigned int                                      n_quad_pts,
@@ -41,42 +84,13 @@ std::array<std::vector<real>, nstate> TVBLimiter<dim, nstate, real>::limit_cell(
     }
 
     real a = 0.0; // Chen,Shu 2017, Thm 3.7 minmod function
-    real minmod = 0.0;
 
     for (unsigned int istate = 0; istate < nstate; ++istate) {
         a = soln_cell_avg[istate] - soln_cell_0[istate];
-        if (abs(a) <= M[istate] * pow(h, 2.0)) {
-            soln_0_lim[istate] = soln_cell_avg[istate] - a;
-        }
-        else {
-            if (signbit(a) == signbit(diff_next[istate]) && signbit(a) == signbit(diff_prev[istate])) {
-                minmod = std::min({ abs(a), abs(diff_next[istate]), abs(diff_prev[istate]) });
-
-                if (signbit(a))
-                    soln_0_lim[istate] = soln_cell_avg[istate] + std::max(abs(minmod), M[istate] * pow(h, 2.0));
-                else
-                    soln_0_lim[istate] = soln_cell_avg[istate] - std::max(abs(minmod), M[istate] * pow(h, 2.0));
-            }
-            else
-                soln_0_lim[istate] = soln_cell_avg[istate] - M[istate] * pow(h, 2.0);
-        }
+        soln_0_lim[istate] = apply_modified_minmod(a, M[istate], h, diff_next[istate], diff_prev[istate], soln_cell_avg[istate], true);
 
         a = soln_cell_k[istate] - soln_cell_avg[istate];
-        if (abs(a) <= M[istate] * pow(h, 2.0)) {
-            soln_k_lim[istate] = soln_cell_avg[istate] + a;
-        }
-        else {
-            if (signbit(a) == signbit(diff_next[istate]) && signbit(a) == signbit(diff_prev[istate])) {
-                minmod = std::min({ abs(a), abs(diff_next[istate]), abs(diff_prev[istate]) });
-
-                if (signbit(a))
-                    soln_k_lim[istate] = soln_cell_avg[istate] - std::max(abs(minmod), M[istate] * pow(h, 2.0));
-                else
-                    soln_k_lim[istate] = soln_cell_avg[istate] + std::max(abs(minmod), M[istate] * pow(h, 2.0));
-            }
-            else
-                soln_k_lim[istate] = soln_cell_avg[istate] + M[istate] * pow(h, 2.0);
-        }
+        soln_k_lim[istate] = apply_modified_minmod(a, M[istate], h, diff_next[istate], diff_prev[istate], soln_cell_avg[istate], false);
 
         real scale = ((soln_cell_0[istate] - soln_cell_avg[istate]) + (soln_cell_k[istate] - soln_cell_avg[istate]));
         if (scale != 0)

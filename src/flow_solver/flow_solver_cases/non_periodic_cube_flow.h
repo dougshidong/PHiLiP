@@ -2,7 +2,7 @@
 #define __NON_PERIODIC_CUBE_FLOW__
 
 #include "flow_solver_case_base.h"
-#include "dg/dg.h"
+#include "dg/dg_base.hpp"
 
 namespace PHiLiP {
 namespace FlowSolver {

@@ -34,7 +34,8 @@ class NonPeriodicCubeFlow : public FlowSolverCaseBase<dim, nstate>
 
     /// Updates the maximum local wave speed
     void update_maximum_local_wave_speed(DGBase<dim, double> &dg);
-
+ 
+ private:
     /// Maximum local wave speed (i.e. convective eigenvalue)
     double maximum_local_wave_speed;
 

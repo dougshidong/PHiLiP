@@ -19,9 +19,9 @@ BoundPreservingLimiterState<dim, nstate, real>::BoundPreservingLimiterState(
 
 template <int dim, int nstate, typename real>
 std::array<real, nstate> BoundPreservingLimiterState<dim, nstate, real>::get_soln_cell_avg(
-    std::array<std::vector<real>, nstate> soln_at_q,
-    const unsigned int n_quad_pts,
-    const std::vector<real>& quad_weights)
+    const std::array<std::vector<real>, nstate>&        soln_at_q,
+    const unsigned int                                  n_quad_pts,
+    const std::vector<real>&                            quad_weights)
 {
     std::array<real, nstate> soln_cell_avg;
     for (unsigned int istate = 0; istate < nstate; ++istate) {

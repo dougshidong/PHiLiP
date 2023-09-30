@@ -216,9 +216,9 @@ std::array<real,nstate> Burgers<dim,nstate,real>
         for(int istate =0; istate<nstate; istate++){
             source[istate] = 0.0;
             const double pi = atan(1)*4.0;
-            real pi_xmt = pi * (pos[0] - current_time);
-            real pi_ymt = pi * (pos[1] - current_time);
-            real pi_zmt = pi * (pos[2] - current_time);
+            const real pi_xmt = pi * (pos[0] - current_time);
+            const real pi_ymt = pi * (pos[1] - current_time);
+            const real pi_zmt = pi * (pos[2] - current_time);
 
             if(dim==1)
             {

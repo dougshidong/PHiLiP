@@ -35,20 +35,19 @@ std::shared_ptr<Triangulation> NonPeriodicCubeFlow<dim,nstate>::generate_grid() 
     const double domain_right = this->all_param.flow_solver_param.grid_right_bound;
     const bool colorize = true;
     
-    bool shock_tube = false;
-    bool shu_osher = false;
+    int left_boundary_id = 9999;
     using flow_case_enum = Parameters::FlowSolverParam::FlowCaseType;
     flow_case_enum flow_case_type = this->all_param.flow_solver_param.flow_case_type;
 
     if (flow_case_type == flow_case_enum::sod_shock_tube
         || flow_case_type == flow_case_enum::leblanc_shock_tube) {
-        shock_tube = true;
+        left_boundary_id = 1001;
     } else if (flow_case_type == flow_case_enum::shu_osher_problem) {
-        shu_osher = true;
+        left_boundary_id = 1004;
     }
 
 
-    Grids::non_periodic_cube<dim>(*grid, domain_left, domain_right, colorize, shock_tube, shu_osher);
+    Grids::non_periodic_cube<dim>(*grid, domain_left, domain_right, colorize, left_boundary_id);
     grid->refine_global(number_of_refinements);
 
     return grid;

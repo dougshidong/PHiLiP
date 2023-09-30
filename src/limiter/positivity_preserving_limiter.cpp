@@ -4,12 +4,12 @@
 namespace {
     template <int dim, int nstate, typename real>
     std::vector<real> get_theta2_Zhang2010(
-        std::vector< real > p_lim,
-        std::array<real, nstate> soln_cell_avg,
-        std::array<std::vector<real>, nstate> soln_at_q,
-        const unsigned int n_quad_pts,
-        real eps,
-        real gamma
+        const std::vector< real >&                      p_lim,
+        const std::array<real, nstate>&                 soln_cell_avg,
+        const std::array<std::vector<real>, nstate>&    soln_at_q,
+        const unsigned int                              n_quad_pts,
+        const double                                    eps,
+        const double                                    gamma
     )
     {
         std::vector<real> theta2(n_quad_pts, 1); // Value used to linearly scale state variables
@@ -55,10 +55,10 @@ namespace {
 
     template <int dim, int nstate, typename real>
     real get_density_scaling_value(
-        real density_avg,
-        real density_min,
-        real pos_eps,
-        real p_avg)
+        const double    density_avg,
+        const double    density_min,
+        const double    pos_eps,
+        const double    p_avg)
     {
         // Get epsilon (lower bound for rho) for theta limiter
         real eps = std::min({ pos_eps, density_avg, p_avg });
@@ -76,10 +76,10 @@ namespace {
 
     template <int dim, int nstate, typename real>
     void write_limited_solution(
-        dealii::LinearAlgebra::distributed::Vector<double>&      solution,
-        std::array<std::vector<real>, nstate>                   soln_dofs,
+        dealii::LinearAlgebra::distributed::Vector<double>&     solution,
+        const std::array<std::vector<real>, nstate>&            soln_dofs,
         const unsigned int                                      n_shape_fns,
-        std::vector<dealii::types::global_dof_index>            current_dofs_indices)
+        const std::vector<dealii::types::global_dof_index>&     current_dofs_indices)
     {
         // Write limited solution dofs to the global solution vector.
         for (int istate = 0; istate < nstate; istate++) {
@@ -88,11 +88,9 @@ namespace {
                 solution[current_dofs_indices[idof]] = soln_dofs[istate][ishape]; //
 
                 // Verify that positivity of density is preserved after application of theta2 limiter
-                if (istate == 0) {
-                    if (solution[current_dofs_indices[idof]] < 0) {
-                        std::cout << "Error: Density is a negative value - Aborting... " << std::endl << solution[current_dofs_indices[idof]] << std::endl << std::flush;
-                        std::abort();
-                    }
+                if (istate == 0 && solution[current_dofs_indices[idof]] < 0) {
+                    std::cout << "Error: Density is a negative value - Aborting... " << std::endl << solution[current_dofs_indices[idof]] << std::endl << std::flush;
+                    std::abort();
                 }
             }
         }
@@ -147,14 +145,14 @@ PositivityPreservingLimiter_Zhang2010<dim, nstate, real>::PositivityPreservingLi
 
 template <int dim, int nstate, typename real>
 void PositivityPreservingLimiter_Zhang2010<dim, nstate, real>::limit(
-    dealii::LinearAlgebra::distributed::Vector<double>& solution,
-    const dealii::DoFHandler<dim>& dof_handler,
-    const dealii::hp::FECollection<dim>& fe_collection,
-    dealii::hp::QCollection<dim>                            volume_quadrature_collection,
-    unsigned int                                            grid_degree,
-    unsigned int                                            max_degree,
+    dealii::LinearAlgebra::distributed::Vector<double>&     solution,
+    const dealii::DoFHandler<dim>&                          dof_handler,
+    const dealii::hp::FECollection<dim>&                    fe_collection,
+    const dealii::hp::QCollection<dim>&                     volume_quadrature_collection,
+    const unsigned int                                      grid_degree,
+    const unsigned int                                      max_degree,
     const dealii::hp::FECollection<1>                       oneD_fe_collection_1state,
-    dealii::hp::QCollection<1>                              oneD_quadrature_collection)
+    const dealii::hp::QCollection<1>                        oneD_quadrature_collection)
 {
     // If use_tvb_limiter is true, apply TVB limiter before applying positivity-preserving limiter
     if (this->all_parameters->limiter_param.use_tvb_limiter == true)
@@ -325,14 +323,14 @@ PositivityPreservingLimiter_Wang2012<dim, nstate, real>::PositivityPreservingLim
 
 template <int dim, int nstate, typename real>
 void PositivityPreservingLimiter_Wang2012<dim, nstate, real>::limit(
-    dealii::LinearAlgebra::distributed::Vector<double>& solution,
-    const dealii::DoFHandler<dim>& dof_handler,
-    const dealii::hp::FECollection<dim>& fe_collection,
-    dealii::hp::QCollection<dim>                            volume_quadrature_collection,
-    unsigned int                                            grid_degree,
-    unsigned int                                            max_degree,
+    dealii::LinearAlgebra::distributed::Vector<double>&     solution,
+    const dealii::DoFHandler<dim>&                          dof_handler,
+    const dealii::hp::FECollection<dim>&                    fe_collection,
+    const dealii::hp::QCollection<dim>&                     volume_quadrature_collection,
+    const unsigned int                                      grid_degree,
+    const unsigned int                                      max_degree,
     const dealii::hp::FECollection<1>                       oneD_fe_collection_1state,
-    dealii::hp::QCollection<1>                              oneD_quadrature_collection)
+    const dealii::hp::QCollection<1>                        oneD_quadrature_collection)
 {
     // If use_tvb_limiter is true, apply TVB limiter before applying positivity-preserving limiter
     if (this->all_parameters->limiter_param.use_tvb_limiter == true)

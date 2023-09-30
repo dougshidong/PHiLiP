@@ -14,7 +14,7 @@ class BoundPreservingLimiter
 {
 public:
     /// Constructor
-    BoundPreservingLimiter(
+    explicit BoundPreservingLimiter(
         const int nstate_input,//number of states input
         const Parameters::AllParameters* const parameters_input);//pointer to parameters
 
@@ -29,14 +29,14 @@ public:
 
     /// Function to limit the solution
     virtual void limit(
-        dealii::LinearAlgebra::distributed::Vector<double>& solution,
-        const dealii::DoFHandler<dim>& dof_handler,
-        const dealii::hp::FECollection<dim>& fe_collection,
-        dealii::hp::QCollection<dim>                            volume_quadrature_collection,
-        unsigned int                                            tensor_degree,
-        unsigned int                                            max_degree,
+        dealii::LinearAlgebra::distributed::Vector<double>&     solution,
+        const dealii::DoFHandler<dim>&                          dof_handler,
+        const dealii::hp::FECollection<dim>&                    fe_collection,
+        const dealii::hp::QCollection<dim>&                     volume_quadrature_collection,
+        const unsigned int                                      grid_degree,
+        const unsigned int                                      max_degree,
         const dealii::hp::FECollection<1>                       oneD_fe_collection_1state,
-        dealii::hp::QCollection<1>                              oneD_quadrature_collection) = 0;
+        const dealii::hp::QCollection<1>                        oneD_quadrature_collection) = 0;
 }; // End of BoundPreservingLimiter Class
 
 template<int dim, int nstate, typename real>
@@ -47,27 +47,27 @@ public:
     using BoundPreservingLimiter<dim, real>::all_parameters;
 
     /// Constructor
-    BoundPreservingLimiterState(
+    explicit BoundPreservingLimiterState(
         const Parameters::AllParameters* const parameters_input);
 
     /// Destructor
-    ~BoundPreservingLimiterState() {};
+    ~BoundPreservingLimiterState() = default;
 
     /// Function to limit the solution
     virtual void limit(
-        dealii::LinearAlgebra::distributed::Vector<double>& solution,
-        const dealii::DoFHandler<dim>& dof_handler,
-        const dealii::hp::FECollection<dim>& fe_collection,
-        dealii::hp::QCollection<dim>                            volume_quadrature_collection,
-        unsigned int                                            tensor_degree,
-        unsigned int                                            max_degree,
+        dealii::LinearAlgebra::distributed::Vector<double>&     solution,
+        const dealii::DoFHandler<dim>&                          dof_handler,
+        const dealii::hp::FECollection<dim>&                    fe_collection,
+        const dealii::hp::QCollection<dim>&                     volume_quadrature_collection,
+        const unsigned int                                      grid_degree,
+        const unsigned int                                      max_degree,
         const dealii::hp::FECollection<1>                       oneD_fe_collection_1state,
-        dealii::hp::QCollection<1>                              oneD_quadrature_collection) = 0;
+        const dealii::hp::QCollection<1>                        oneD_quadrature_collection) = 0;
 
     std::array<real, nstate> get_soln_cell_avg(
-        std::array<std::vector<real>, nstate> soln_at_q,
-        const unsigned int n_quad_pts,
-        const std::vector<real>& quad_weights);
+        const std::array<std::vector<real>, nstate>&            soln_at_q,
+        const unsigned int                                      n_quad_pts,
+        const std::vector<real>&                                quad_weights);
 
 }; // End of BoundPreservingLimiterState Class
 } // PHiLiP namespace

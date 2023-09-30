@@ -4,7 +4,7 @@ namespace PHiLiP {
 namespace Parameters {
 
 // Limiter inputs
-LimiterParam::LimiterParam() {}
+LimiterParam::LimiterParam() = default;
 
 void LimiterParam::declare_parameters (dealii::ParameterHandler &prm)
 {
@@ -35,12 +35,12 @@ void LimiterParam::declare_parameters (dealii::ParameterHandler &prm)
                           dealii::Patterns::Bool(),
                           "Applies TVB Limiter to solution. Tune M and h to obtain favourable results.");
 
-        prm.declare_entry("tvb_h", "1.0",
+        prm.declare_entry("max_delta_x", "1.0",
                           dealii::Patterns::Double(0, 1e200),
                           "Maximum delta_x.");
 
         using convert_tensor = dealii::Patterns::Tools::Convert<dealii::Tensor<1, 4, double>>;
-        prm.declare_entry("tvb_M", "0,0,0,0", 
+        prm.declare_entry("tuning_parameter_for_each_state", "0,0,0,0", 
                           *convert_tensor::to_pattern(), 
                           "TVB Limiter tuning parameters for each state.");
     }
@@ -51,21 +51,20 @@ void LimiterParam::parse_parameters (dealii::ParameterHandler &prm)
 {
     prm.enter_subsection("limiter");
     {
-
         use_OOA = prm.get_bool("use_OOA");
 
         const std::string bound_preserving_limiter_string = prm.get("bound_preserving_limiter");
-        if (bound_preserving_limiter_string == "none")                               bound_preserving_limiter = none;
-        if (bound_preserving_limiter_string == "maximum_principle")                  bound_preserving_limiter = maximum_principle;
-        if (bound_preserving_limiter_string == "positivity_preservingZhang2010")     bound_preserving_limiter = positivity_preservingZhang2010;
-        if (bound_preserving_limiter_string == "positivity_preservingWang2012")      bound_preserving_limiter = positivity_preservingWang2012;
+        if (bound_preserving_limiter_string == "none")                               bound_preserving_limiter = LimiterType::none;
+        if (bound_preserving_limiter_string == "maximum_principle")                  bound_preserving_limiter = LimiterType::maximum_principle;
+        if (bound_preserving_limiter_string == "positivity_preservingZhang2010")     bound_preserving_limiter = LimiterType::positivity_preservingZhang2010;
+        if (bound_preserving_limiter_string == "positivity_preservingWang2012")      bound_preserving_limiter = LimiterType::positivity_preservingWang2012;
         pos_eps = prm.get_double("pos_eps");
 
         use_tvb_limiter = prm.get_bool("use_tvb_limiter");
-        tvb_h = prm.get_double("tvb_h");
+        max_delta_x = prm.get_double("max_delta_x");
 
         using convert_tensor = dealii::Patterns::Tools::Convert<dealii::Tensor<1, 4, double>>;
-        tvb_M = convert_tensor::to_value(prm.get("tvb_M"));
+        tuning_parameter_for_each_state = convert_tensor::to_value(prm.get("tuning_parameter_for_each_state"));
     }
     prm.leave_subsection();
 }

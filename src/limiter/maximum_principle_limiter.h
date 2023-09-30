@@ -14,11 +14,11 @@ class MaximumPrincipleLimiter : public BoundPreservingLimiterState <dim, nstate,
 {
 public:
     /// Constructor
-    MaximumPrincipleLimiter(
+    explicit MaximumPrincipleLimiter(
         const Parameters::AllParameters* const parameters_input);
 
     /// Destructor
-    ~MaximumPrincipleLimiter() {};
+    ~MaximumPrincipleLimiter() = default;
 
     /// Maximum of initial solution in domain.
     std::vector<real> global_max;
@@ -31,9 +31,9 @@ public:
 private:
     /// Function to obtain the maximum and minimum of the initial solution
     void get_global_max_and_min_of_solution(
-        const dealii::LinearAlgebra::distributed::Vector<double>      solution,
-        const dealii::DoFHandler<dim>&                          dof_handler,
-        const dealii::hp::FECollection<dim>&                    fe_collection);
+        const dealii::LinearAlgebra::distributed::Vector<double>&       solution,
+        const dealii::DoFHandler<dim>&                                  dof_handler,
+        const dealii::hp::FECollection<dim>&                            fe_collection);
 
     /// Function to obtain the solution cell average
     using BoundPreservingLimiterState<dim, nstate, real>::get_soln_cell_avg;
@@ -41,23 +41,23 @@ private:
     /// Function to verify the limited solution satisfies the strict maximum principle
     void write_limited_solution(
         dealii::LinearAlgebra::distributed::Vector<double>&      solution,
-        std::array<std::vector<real>, nstate>                   soln_dofs,
-        const unsigned int                                      n_shape_fns,
-        std::vector<dealii::types::global_dof_index>            current_dofs_indices);
+        const std::array<std::vector<real>, nstate>&             soln_dofs,
+        const unsigned int                                       n_shape_fns,
+        const std::vector<dealii::types::global_dof_index>&      current_dofs_indices);
 
 public:
     /// Applies maximum-principle-satisfying limiter to the solution.
     /** Using Zhang,Shu May 2010 Eq 3.8 and 3.9 we apply a limiter on the global solution
     */
     void limit(
-        dealii::LinearAlgebra::distributed::Vector<double>& solution,
-        const dealii::DoFHandler<dim>& dof_handler,
-        const dealii::hp::FECollection<dim>& fe_collection,
-        dealii::hp::QCollection<dim>                            volume_quadrature_collection,
-        unsigned int                                            tensor_degree,
-        unsigned int                                            max_degree,
+        dealii::LinearAlgebra::distributed::Vector<double>&     solution,
+        const dealii::DoFHandler<dim>&                          dof_handler,
+        const dealii::hp::FECollection<dim>&                    fe_collection,
+        const dealii::hp::QCollection<dim>&                     volume_quadrature_collection,
+        const unsigned int                                      grid_degree,
+        const unsigned int                                      max_degree,
         const dealii::hp::FECollection<1>                       oneD_fe_collection_1state,
-        dealii::hp::QCollection<1>                              oneD_quadrature_collection);
+        const dealii::hp::QCollection<1>                        oneD_quadrature_collection);
 
 }; // End of MaximumPrincipleLimiter Class
 } // PHiLiP namespace

@@ -15,11 +15,11 @@ class PositivityPreservingLimiter_Zhang2010 : public BoundPreservingLimiterState
 {
 public:
     /// Constructor
-    PositivityPreservingLimiter_Zhang2010(
+    explicit PositivityPreservingLimiter_Zhang2010(
         const Parameters::AllParameters* const parameters_input);
 
     /// Destructor
-    ~PositivityPreservingLimiter_Zhang2010() {};
+    ~PositivityPreservingLimiter_Zhang2010() = default;
 
     /// Pointer to TVB limiter class (TVB limiter can be applied in conjunction with this limiter)
     std::shared_ptr<BoundPreservingLimiterState<dim, nstate, real>> tvbLimiter;
@@ -33,14 +33,14 @@ public:
     /** Using Zhang,Shu November 2010 Eq 3.14-3.19 we apply a limiter on the global solution
     */
     void limit(
-        dealii::LinearAlgebra::distributed::Vector<double>& solution,
-        const dealii::DoFHandler<dim>& dof_handler,
-        const dealii::hp::FECollection<dim>& fe_collection,
-        dealii::hp::QCollection<dim>                            volume_quadrature_collection,
-        unsigned int                                            grid_degree,
-        unsigned int                                            max_degree,
+        dealii::LinearAlgebra::distributed::Vector<double>&     solution,
+        const dealii::DoFHandler<dim>&                          dof_handler,
+        const dealii::hp::FECollection<dim>&                    fe_collection,
+        const dealii::hp::QCollection<dim>&                     volume_quadrature_collection,
+        const unsigned int                                      grid_degree,
+        const unsigned int                                      max_degree,
         const dealii::hp::FECollection<1>                       oneD_fe_collection_1state,
-        dealii::hp::QCollection<1>                              oneD_quadrature_collection);
+        const dealii::hp::QCollection<1>                        oneD_quadrature_collection);
 
 }; // End of PositivityPreservingLimiter_Zhang2010 Class
 
@@ -54,11 +54,11 @@ class PositivityPreservingLimiter_Wang2012 : public BoundPreservingLimiterState 
 {
 public:
     /// Constructor
-    PositivityPreservingLimiter_Wang2012(
+    explicit PositivityPreservingLimiter_Wang2012(
         const Parameters::AllParameters* const parameters_input);
 
     /// Destructor
-    ~PositivityPreservingLimiter_Wang2012() {};
+    ~PositivityPreservingLimiter_Wang2012() = default;
 
     /// Pointer to TVB limiter class (TVB limiter can be applied in conjunction with this limiter)
     std::shared_ptr<BoundPreservingLimiterState<dim, nstate, real>> tvbLimiter;
@@ -72,14 +72,14 @@ public:
     /** Using Wang,Shu January 2012 Eq 3.2-3.7 we apply a limiter on the global solution
     */
     void limit(
-        dealii::LinearAlgebra::distributed::Vector<double>& solution,
-        const dealii::DoFHandler<dim>& dof_handler,
-        const dealii::hp::FECollection<dim>& fe_collection,
-        dealii::hp::QCollection<dim>                            volume_quadrature_collection,
-        unsigned int                                            grid_degree,
-        unsigned int                                            max_degree,
+        dealii::LinearAlgebra::distributed::Vector<double>&     solution,
+        const dealii::DoFHandler<dim>&                          dof_handler,
+        const dealii::hp::FECollection<dim>&                    fe_collection,
+        const dealii::hp::QCollection<dim>&                     volume_quadrature_collection,
+        const unsigned int                                      grid_degree,
+        const unsigned int                                      max_degree,
         const dealii::hp::FECollection<1>                       oneD_fe_collection_1state,
-        dealii::hp::QCollection<1>                              oneD_quadrature_collection);
+        const dealii::hp::QCollection<1>                        oneD_quadrature_collection);
 
 }; // End of PositivityPreservingLimiter_Wang2012 Class
 } // PHiLiP namespace

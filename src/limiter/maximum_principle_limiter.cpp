@@ -27,9 +27,9 @@ MaximumPrincipleLimiter<dim, nstate, real>::MaximumPrincipleLimiter(
 
 template <int dim, int nstate, typename real>
 void MaximumPrincipleLimiter<dim, nstate, real>::get_global_max_and_min_of_solution(
-    const dealii::LinearAlgebra::distributed::Vector<double>      solution,
-    const dealii::DoFHandler<dim>&                          dof_handler,
-    const dealii::hp::FECollection<dim>&                    fe_collection)
+    const dealii::LinearAlgebra::distributed::Vector<double>&   solution,
+    const dealii::DoFHandler<dim>&                              dof_handler,
+    const dealii::hp::FECollection<dim>&                        fe_collection)
 {
     for (auto soln_cell : dof_handler.active_cell_iterators()) {
         if (!soln_cell->is_locally_owned()) continue;
@@ -81,9 +81,9 @@ void MaximumPrincipleLimiter<dim, nstate, real>::get_global_max_and_min_of_solut
 template <int dim, int nstate, typename real>
 void MaximumPrincipleLimiter<dim, nstate, real>::write_limited_solution(
     dealii::LinearAlgebra::distributed::Vector<double>&      solution,
-    std::array<std::vector<real>, nstate>                   soln_dofs,
-    const unsigned int                                      n_shape_fns,
-    std::vector<dealii::types::global_dof_index>            current_dofs_indices)
+    const std::array<std::vector<real>, nstate>&             soln_dofs,
+    const unsigned int                                       n_shape_fns,
+    const std::vector<dealii::types::global_dof_index>&      current_dofs_indices)
 {
     // Write limited solution back to global solution & verify that strict maximum principle is satisfied
     for (int istate = 0; istate < nstate; istate++) {
@@ -104,23 +104,23 @@ void MaximumPrincipleLimiter<dim, nstate, real>::write_limited_solution(
 
 template <int dim, int nstate, typename real>
 void MaximumPrincipleLimiter<dim, nstate, real>::limit(
-    dealii::LinearAlgebra::distributed::Vector<double>&     solution,
-    const dealii::DoFHandler<dim>&                          dof_handler,
-    const dealii::hp::FECollection<dim>&                    fe_collection,
-    dealii::hp::QCollection<dim>                            volume_quadrature_collection,
-    unsigned int                                            tensor_degree,
-    unsigned int                                            max_degree,
-    const dealii::hp::FECollection<1>                       oneD_fe_collection_1state,
-    dealii::hp::QCollection<1>                              oneD_quadrature_collection)
+        dealii::LinearAlgebra::distributed::Vector<double>&     solution,
+        const dealii::DoFHandler<dim>&                          dof_handler,
+        const dealii::hp::FECollection<dim>&                    fe_collection,
+        const dealii::hp::QCollection<dim>&                     volume_quadrature_collection,
+        const unsigned int                                      grid_degree,
+        const unsigned int                                      max_degree,
+        const dealii::hp::FECollection<1>                       oneD_fe_collection_1state,
+        const dealii::hp::QCollection<1>                        oneD_quadrature_collection)
 {
     // If use_tvb_limiter is true, apply TVB limiter before applying maximum-principle-satisfying limiter
     if (this->all_parameters->limiter_param.use_tvb_limiter == true)
-        this->tvbLimiter->limit(solution, dof_handler, fe_collection, volume_quadrature_collection, tensor_degree, max_degree, oneD_fe_collection_1state, oneD_quadrature_collection);
+        this->tvbLimiter->limit(solution, dof_handler, fe_collection, volume_quadrature_collection, grid_degree, max_degree, oneD_fe_collection_1state, oneD_quadrature_collection);
 
     //create 1D solution polynomial basis functions and corresponding projection operator
     //to interpolate the solution to the quadrature nodes, and to project it back to the
     //modal coefficients.
-    const unsigned int init_grid_degree = tensor_degree;
+    const unsigned int init_grid_degree = grid_degree;
     //Constructor for the operators
     OPERATOR::basis_functions<dim, 2 * dim> soln_basis(1, max_degree, init_grid_degree);
     OPERATOR::vol_projection_operator<dim, 2 * dim> soln_basis_projection_oper(1, max_degree, init_grid_degree);

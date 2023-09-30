@@ -344,7 +344,7 @@ protected:
 
 public:
     /// Constructor for test cases using Euler equations.
-    InitialConditionFunction_EulerBase(
+    explicit InitialConditionFunction_EulerBase(
         Parameters::AllParameters const* const param);
 
     /// Value of initial condition expressed in terms of conservative variables
@@ -357,6 +357,7 @@ protected:
     /// Converts value from: primitive to conservative
     real convert_primitive_to_conversative_value(const dealii::Point<dim, real>& point, const unsigned int istate = 0) const;
 
+private:
     // Euler physics pointer. Used to convert primitive to conservative.
     std::shared_ptr < Physics::Euler<dim, nstate, double > > euler_physics;
 };
@@ -376,7 +377,7 @@ protected:
 public:
     /// Constructor for InitialConditionFunction_SodShockTube
     /** Calls the Function(const unsigned int n_components) constructor in deal.II*/
-    InitialConditionFunction_SodShockTube (
+    explicit InitialConditionFunction_SodShockTube (
             Parameters::AllParameters const* const param);
 };
 
@@ -395,7 +396,7 @@ protected:
 public:
     /// Constructor for InitialConditionFunction_SodShockTube
     /** Calls the Function(const unsigned int n_components) constructor in deal.II*/
-    InitialConditionFunction_LowDensity2D(
+    explicit InitialConditionFunction_LowDensity2D(
         Parameters::AllParameters const* const param);
 };
 
@@ -414,7 +415,7 @@ protected:
 public:
     /// Constructor for InitialConditionFunction_SodShockTube
     /** Calls the Function(const unsigned int n_components) constructor in deal.II*/
-    InitialConditionFunction_LeblancShockTube(
+    explicit InitialConditionFunction_LeblancShockTube(
         Parameters::AllParameters const* const param);
 };
 
@@ -433,7 +434,7 @@ protected:
 public:
     /// Constructor for InitialConditionFunction_SodShockTube
     /** Calls the Function(const unsigned int n_components) constructor in deal.II*/
-    InitialConditionFunction_ShuOsherProblem(
+    explicit InitialConditionFunction_ShuOsherProblem(
         Parameters::AllParameters const* const param);
 };
 

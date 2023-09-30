@@ -16,11 +16,11 @@ template <int dim, int nstate, typename real>
 std::array<std::vector<real>, nstate> TVBLimiter<dim, nstate, real>::limit_cell(
     std::array<std::vector<real>, nstate>                   soln_at_q,
     const unsigned int                                      n_quad_pts,
-    std::array<real, nstate>                                prev_cell_avg,
-    std::array<real, nstate>                                soln_cell_avg,
-    std::array<real, nstate>                                next_cell_avg,
-    std::array<real, nstate>                                M,
-    double                                                  h)
+    const std::array<real, nstate>                          prev_cell_avg,
+    const std::array<real, nstate>                          soln_cell_avg,
+    const std::array<real, nstate>                          next_cell_avg,
+    const std::array<real, nstate>                          M,
+    const double                                            h)
 {
     std::array<real, nstate> soln_cell_0;
     std::array<real, nstate> soln_cell_k;
@@ -106,13 +106,13 @@ std::array<std::vector<real>, nstate> TVBLimiter<dim, nstate, real>::limit_cell(
 
 template <int dim, int nstate, typename real>
 std::array<real, nstate> TVBLimiter<dim, nstate, real>::get_neighbour_cell_avg(
-    dealii::LinearAlgebra::distributed::Vector<double>      solution,
-    const dealii::hp::FECollection<dim>&                    fe_collection,
-    dealii::hp::QCollection<dim>                            volume_quadrature_collection,
-    OPERATOR::basis_functions<dim, 2 * dim>                 soln_basis,
-    const int                                               poly_degree,
-    std::vector<dealii::types::global_dof_index>            neigh_dofs_indices,
-    const unsigned int                                      n_dofs_neigh_cell)
+    const dealii::LinearAlgebra::distributed::Vector<double>&       solution,
+    const dealii::hp::FECollection<dim>&                            fe_collection,
+    const dealii::hp::QCollection<dim>&                             volume_quadrature_collection,
+    OPERATOR::basis_functions<dim, 2 * dim>                         soln_basis,
+    const int                                                       poly_degree,
+    const std::vector<dealii::types::global_dof_index>&             neigh_dofs_indices,
+    const unsigned int                                              n_dofs_neigh_cell)
 {
     // Extract the local solution dofs in the cell from the global solution dofs
     std::array<std::vector<real>, nstate> soln_dofs;
@@ -161,23 +161,23 @@ void TVBLimiter<dim, nstate, real>::limit(
     dealii::LinearAlgebra::distributed::Vector<double>&     solution,
     const dealii::DoFHandler<dim>&                          dof_handler,
     const dealii::hp::FECollection<dim>&                    fe_collection,
-    dealii::hp::QCollection<dim>                            volume_quadrature_collection,
-    unsigned int                                            tensor_degree,
-    unsigned int                                            max_degree,
+    const dealii::hp::QCollection<dim>&                     volume_quadrature_collection,
+    const unsigned int                                      grid_degree,
+    const unsigned int                                      max_degree,
     const dealii::hp::FECollection<1>                       oneD_fe_collection_1state,
     dealii::hp::QCollection<1>                              oneD_quadrature_collection)
 {
-    double h = this->all_parameters->limiter_param.tvb_h;
+    double h = this->all_parameters->limiter_param.max_delta_x;
 
     std::array<real, nstate> M;
     for (unsigned int istate = 0; istate < nstate; ++istate) {
-        M[istate] = this->all_parameters->limiter_param.tvb_M[istate];
+        M[istate] = this->all_parameters->limiter_param.tuning_parameter_for_each_state[istate];
     }
 
     //create 1D solution polynomial basis functions and corresponding projection operator
     //to interpolate the solution to the quadrature nodes, and to project it back to the
     //modal coefficients.
-    const unsigned int init_grid_degree = tensor_degree;
+    const unsigned int init_grid_degree = grid_degree;
     //Constructor for the operators
     OPERATOR::basis_functions<dim, 2 * dim> soln_basis(1, max_degree, init_grid_degree);
     OPERATOR::vol_projection_operator<dim, 2 * dim> soln_basis_projection_oper(1, max_degree, init_grid_degree);

@@ -86,7 +86,7 @@ public:
     std::shared_ptr<DGBase<dim,real,MeshType>> dg;
 
     /// Pointer to BoundPreservingLimiter
-    std::shared_ptr<BoundPreservingLimiter<dim,real>> limiter;
+    std::unique_ptr<BoundPreservingLimiter<dim,real>> limiter;
 
 protected:
     /// Input parameters.

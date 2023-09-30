@@ -4,17 +4,14 @@
 #include <deal.II/grid/manifold_lib.h>
 #include <deal.II/distributed/tria.h>
 
-namespace PHiLiP {
-namespace Grids {
+namespace PHiLiP::Grids {
 
 template<int dim, typename TriangulationType>
 void non_periodic_cube(
-    TriangulationType& grid,
-    double domain_left,
-    double domain_right,
-    bool colorize,
-    bool shock_tube,
-    bool shu_osher);
-} // namespace Grids
-} // namespace PHiLiP
+    TriangulationType&  grid,
+    double              domain_left,
+    double              domain_right,
+    bool                colorize,
+    const int           left_boundary_id);
+} // namespace PHiLiP::Grids
 #endif

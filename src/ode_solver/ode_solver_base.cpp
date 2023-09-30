@@ -7,6 +7,7 @@ namespace ODE{
 template <int dim, typename real, typename MeshType>
 ODESolverBase<dim,real,MeshType>::ODESolverBase(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input)
         : dg(dg_input)
+        , limiter(BoundPreservingLimiterFactory<dim, real>::create_limiter(dg->all_parameters, dg->nstate))
         , all_parameters(dg->all_parameters)
         , ode_param(all_parameters->ode_solver_param)
         , current_time(ode_param.initial_time)
@@ -17,9 +18,7 @@ ODESolverBase<dim,real,MeshType>::ODESolverBase(std::shared_ptr< DGBase<dim, rea
         , mpi_communicator(MPI_COMM_WORLD)
         , mpi_rank(dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD))
         , pcout(std::cout, mpi_rank==0)
-{
-    limiter = BoundPreservingLimiterFactory<dim,real>::create_limiter(all_parameters, this->dg->nstate);
-}
+{}
 
 template <int dim, typename real, typename MeshType>
 double ODESolverBase<dim,real,MeshType>::get_original_time_step() const

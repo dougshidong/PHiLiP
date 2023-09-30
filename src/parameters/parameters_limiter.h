@@ -13,7 +13,7 @@ public:
     bool use_OOA;
 
     /// Limiter type to be applied on the solution.
-    enum LimiterType {
+    enum class LimiterType {
         none,
         maximum_principle,
         positivity_preservingZhang2010,
@@ -28,11 +28,11 @@ public:
     bool use_tvb_limiter;
 
     /// Maximum delta_x for TVB Limiter
-    double tvb_h;
+    double max_delta_x;
 
     /// Tuning parameters for TVB Limiter
     /** TVB Limiter can only be run for 1D, so max length is max nstate = 4 **/
-    dealii::Tensor<1, 4, double> tvb_M;
+    dealii::Tensor<1, 4, double> tuning_parameter_for_each_state;
 
     /// Constructor
     LimiterParam();

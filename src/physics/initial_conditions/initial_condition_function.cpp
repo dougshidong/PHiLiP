@@ -563,7 +563,8 @@ real InitialConditionFunction_LowDensity2D<dim, nstate, real>
 {
     real value = 0.0;
     if constexpr (dim == 2 && nstate == (dim + 2)) {
-        const real x = point[0], y = point[1];
+        const real x = point[0];
+        const real y = point[1];
         if (istate == 0) {
             // density
             value = 1 + 0.99 * sin(x + y);

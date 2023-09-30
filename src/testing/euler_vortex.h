@@ -1,10 +1,10 @@
 #ifndef __EULER_VORTEX_H__
 #define __EULER_VORTEX_H__
 
-#include "tests.h"
-#include "dg/dg.h"
-#include "physics/euler.h"
+#include "dg/dg_base.hpp"
 #include "parameters/all_parameters.h"
+#include "physics/euler.h"
+#include "tests.h"
 
 namespace PHiLiP {
 namespace Tests {

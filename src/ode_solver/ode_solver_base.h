@@ -3,12 +3,15 @@
 
 #include <deal.II/base/conditional_ostream.h>
 #include <deal.II/base/table_handler.h>
-#include <iostream>
 #include <deal.II/lac/vector.h>
 #include "parameters/all_parameters.h"
 #include "dg/dg.h"
 #include "limiter/bound_preserving_limiter_factory.hpp"
+#include <iostream>
 #include <stdexcept>
+
+#include "dg/dg_base.hpp"
+#include "parameters/all_parameters.h"
 
 namespace PHiLiP {
 namespace ODE {

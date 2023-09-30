@@ -3,10 +3,10 @@
 
 #include <deal.II/grid/manifold_lib.h>
 
-#include "tests.h"
-#include "dg/dg.h"
-#include "physics/physics.h"
+#include "dg/dg_base.hpp"
 #include "parameters/all_parameters.h"
+#include "physics/physics.h"
+#include "tests.h"
 
 namespace PHiLiP {
 namespace Tests {

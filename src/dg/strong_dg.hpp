@@ -1,7 +1,7 @@
 #ifndef __STRONG_DISCONTINUOUSGALERKIN_H__
 #define __STRONG_DISCONTINUOUSGALERKIN_H__
 
-#include "dg.h"
+#include "dg_base_state.hpp"
 
 namespace PHiLiP {
 
@@ -370,34 +370,6 @@ protected:
         dealii::Vector<real> &current_cell_rhs,
         const dealii::FEValues<dim,dim> &fe_values_lagrange);
     
-    /// Evaluate the integral over the cell edges that are on domain boundaries
-    void assemble_boundary_term_explicit(
-        typename dealii::DoFHandler<dim>::active_cell_iterator cell,
-        const dealii::types::global_dof_index current_cell_index,
-        const unsigned int boundary_id,
-        const dealii::FEFaceValuesBase<dim,dim> &fe_values_face_int,
-        const real penalty,
-        const std::vector<dealii::types::global_dof_index> &current_dofs_indices,
-        dealii::Vector<real> &current_cell_rhs);
-    
-    /// Evaluate the integral over the internal cell edges
-    void assemble_face_term_explicit(
-        const unsigned int iface, 
-        const unsigned int neighbor_iface,
-        typename dealii::DoFHandler<dim>::active_cell_iterator cell,
-        const dealii::types::global_dof_index current_cell_index,
-        const dealii::types::global_dof_index neighbor_cell_index,
-        const unsigned int poly_degree, 
-        const unsigned int grid_degree,
-        const dealii::FEFaceValuesBase<dim,dim>     &fe_values_face_int,
-        const dealii::FEFaceValuesBase<dim,dim>     &fe_values_face_ext,
-        const real penalty,
-        const std::vector<dealii::types::global_dof_index> &current_dofs_indices,
-        const std::vector<dealii::types::global_dof_index> &neighbor_dofs_indices,
-        const std::vector<dealii::types::global_dof_index> &metric_dof_indices_int,
-        const std::vector<dealii::types::global_dof_index> &metric_dof_indices_ext,
-        dealii::Vector<real>          &current_cell_rhs,
-        dealii::Vector<real>          &neighbor_cell_rhs);
 
     using DGBase<dim,real,MeshType>::pcout; ///< Parallel std::cout that only outputs on mpi_rank==0
     

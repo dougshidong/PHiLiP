@@ -53,6 +53,9 @@ template <int dim, int n_faces>
 class OperatorsBase
 {
 public:
+    /// Destructor
+        virtual ~OperatorsBase() = default;
+
     /// Constructor
     OperatorsBase(
           const int nstate_input,//number of states input

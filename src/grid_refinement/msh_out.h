@@ -34,10 +34,13 @@ template <int dim>
 class MshOutData
 {
 public:
+    /// Destructor
+    virtual ~ MshOutData() = default;
+
     /// Delegated constructor
     /** Sets only the internal storage type for header creation
       */ 
-    MshOutData(
+    explicit MshOutData(
         StorageType storage_type) :
             storage_type(storage_type){};
 
@@ -209,7 +212,7 @@ public:
     /** Mesh description dealii::DoFHandler used to specify the linear mesh to 
       * be written along with any additional data fields in a consistent way. 
       */ 
-    MshOut(
+    explicit MshOut(
         const dealii::DoFHandler<dim> &dof_handler) :
             dof_handler(dof_handler){};
 

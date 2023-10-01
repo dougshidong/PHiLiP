@@ -101,7 +101,7 @@ public:
      *  Also stores the current solution and distribution of polynomial orders
      *  for the mesh for converting back to coarse state after refinement.
      */
-    DualWeightedResidualError(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input);
+    explicit DualWeightedResidualError(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input);
 
     /// Reinitializes member variables of DualWeightedResidualError.
     /** Sets solution_refinement_state to SolutionRefinementStateEnum::coarse and stores the current

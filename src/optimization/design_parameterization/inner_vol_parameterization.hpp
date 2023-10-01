@@ -14,7 +14,7 @@ class InnerVolParameterization : public BaseParameterization<dim> {
 
 public:
     /// Constructor
-    InnerVolParameterization(
+    explicit InnerVolParameterization(
         std::shared_ptr<HighOrderGrid<dim,double>> _high_order_grid); 
 
     /// Initializes design variables with inner volume nodes and set locally owned and ghost indices. Overrides the virtual function in base class.

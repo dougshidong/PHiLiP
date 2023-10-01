@@ -54,6 +54,8 @@ protected:
     std::shared_ptr<Physics::PhysicsBase<dim,nstate,FadFadType>> physics_fad_fad;
 
 public:
+    /// Destructor
+    virtual ~Functional() = default;
     /** Constructor.
      *  Since we don't have access to the Physics through DGBase, we recreate a Physics
      *  based on the parameter file of DGBase. However, this will not work if the

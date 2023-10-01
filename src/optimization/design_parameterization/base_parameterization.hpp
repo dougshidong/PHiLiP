@@ -14,7 +14,7 @@ class BaseParameterization {
 
 public:
     /// Constructor
-    BaseParameterization(std::shared_ptr<HighOrderGrid<dim,double>> _high_order_grid);
+    explicit BaseParameterization(std::shared_ptr<HighOrderGrid<dim,double>> _high_order_grid);
     
     /// Destructor
     virtual ~BaseParameterization() = default;

@@ -31,7 +31,7 @@ class CentralBaselineNumericalFluxConvective : public BaselineNumericalFluxConve
 {
 public:
     /// Constructor
-    CentralBaselineNumericalFluxConvective(std::shared_ptr <Physics::PhysicsBase<dim, nstate, real>> physics_input)
+    explicit CentralBaselineNumericalFluxConvective(std::shared_ptr <Physics::PhysicsBase<dim, nstate, real>> physics_input)
     : pde_physics(physics_input) {};
     
     /// Returns the convective numerical flux at an interface.
@@ -51,7 +51,7 @@ class EntropyConservingBaselineNumericalFluxConvective : public BaselineNumerica
 {
 public:
     /// Constructor
-    EntropyConservingBaselineNumericalFluxConvective(std::shared_ptr <Physics::PhysicsBase<dim, nstate, real>> physics_input)
+    explicit EntropyConservingBaselineNumericalFluxConvective(std::shared_ptr <Physics::PhysicsBase<dim, nstate, real>> physics_input)
     : pde_physics(physics_input) {};
     
     /// Returns the convective numerical flux at an interface.
@@ -98,7 +98,7 @@ class LaxFriedrichsRiemannSolverDissipation : public RiemannSolverDissipation<di
 {
 public:
     /// Constructor
-    LaxFriedrichsRiemannSolverDissipation(std::shared_ptr <Physics::PhysicsBase<dim, nstate, real>> physics_input)
+    explicit LaxFriedrichsRiemannSolverDissipation(std::shared_ptr <Physics::PhysicsBase<dim, nstate, real>> physics_input)
     : pde_physics(physics_input) {};
 
     /** Returns the Lax-Friedrichs convective numerical flux at an interface. 
@@ -127,7 +127,7 @@ protected:
 
 public:
     /// Constructor
-    RoeBaseRiemannSolverDissipation(std::shared_ptr <Physics::PhysicsBase<dim, nstate, real>> physics_input)
+    explicit RoeBaseRiemannSolverDissipation(std::shared_ptr <Physics::PhysicsBase<dim, nstate, real>> physics_input)
     : euler_physics(std::dynamic_pointer_cast<Physics::Euler<dim,nstate,real>>(physics_input)) {};
 
     /// Virtual member function for evaluating the entropy fix for a Roe-Pike flux.
@@ -164,7 +164,7 @@ class RoePikeRiemannSolverDissipation : public RoeBaseRiemannSolverDissipation<d
 {
 public:
     /// Constructor
-    RoePikeRiemannSolverDissipation(std::shared_ptr <Physics::PhysicsBase<dim, nstate, real>> physics_input)
+    explicit RoePikeRiemannSolverDissipation(std::shared_ptr <Physics::PhysicsBase<dim, nstate, real>> physics_input)
     : RoeBaseRiemannSolverDissipation<dim, nstate, real>(physics_input){};
 
     /// Evaluates the entropy fix of Harten
@@ -193,7 +193,7 @@ class L2RoeRiemannSolverDissipation : public RoeBaseRiemannSolverDissipation<dim
 {
 public:
     /// Constructor
-    L2RoeRiemannSolverDissipation(std::shared_ptr <Physics::PhysicsBase<dim, nstate, real>> physics_input)
+    explicit L2RoeRiemannSolverDissipation(std::shared_ptr <Physics::PhysicsBase<dim, nstate, real>> physics_input)
     : RoeBaseRiemannSolverDissipation<dim, nstate, real>(physics_input){};
 
     /// (1) Van Leer et al. (1989 Sonic) entropy fix for acoustic waves (i.e. i=1,5)
@@ -257,7 +257,7 @@ class LaxFriedrichs : public NumericalFluxConvective<dim, nstate, real>
 {
 public:
     /// Constructor
-    LaxFriedrichs(std::shared_ptr<Physics::PhysicsBase<dim, nstate, real>> physics_input);
+    explicit LaxFriedrichs(std::shared_ptr<Physics::PhysicsBase<dim, nstate, real>> physics_input);
 
 };
 
@@ -267,7 +267,7 @@ class RoePike : public NumericalFluxConvective<dim, nstate, real>
 {
 public:
     /// Constructor
-    RoePike(std::shared_ptr<Physics::PhysicsBase<dim, nstate, real>> physics_input);
+    explicit RoePike(std::shared_ptr<Physics::PhysicsBase<dim, nstate, real>> physics_input);
 };
 
 /// L2Roe numerical flux. Derived from NumericalFluxConvective.
@@ -276,7 +276,7 @@ class L2Roe : public NumericalFluxConvective<dim, nstate, real>
 {
 public:
     /// Constructor
-    L2Roe(std::shared_ptr<Physics::PhysicsBase<dim, nstate, real>> physics_input);
+    explicit L2Roe(std::shared_ptr<Physics::PhysicsBase<dim, nstate, real>> physics_input);
 };
 
 /// Central numerical flux. Derived from NumericalFluxConvective.
@@ -285,7 +285,7 @@ class Central : public NumericalFluxConvective<dim, nstate, real>
 {
 public:
     /// Constructor
-    Central(std::shared_ptr<Physics::PhysicsBase<dim, nstate, real>> physics_input);
+    explicit Central(std::shared_ptr<Physics::PhysicsBase<dim, nstate, real>> physics_input);
 };
 
 /// Entropy conserving numerical flux. Derived from NumericalFluxConvective.
@@ -294,7 +294,7 @@ class EntropyConserving : public NumericalFluxConvective<dim, nstate, real>
 {
 public:
     /// Constructor
-    EntropyConserving(std::shared_ptr<Physics::PhysicsBase<dim, nstate, real>> physics_input);
+    explicit EntropyConserving(std::shared_ptr<Physics::PhysicsBase<dim, nstate, real>> physics_input);
 };
 
 /// Entropy conserving numerical flux with Lax Friedrichs dissipation. Derived from NumericalFluxConvective.
@@ -303,7 +303,7 @@ class EntropyConservingWithLaxFriedrichsDissipation : public NumericalFluxConvec
 {
 public:
     /// Constructor
-    EntropyConservingWithLaxFriedrichsDissipation(std::shared_ptr<Physics::PhysicsBase<dim, nstate, real>> physics_input);
+    explicit EntropyConservingWithLaxFriedrichsDissipation(std::shared_ptr<Physics::PhysicsBase<dim, nstate, real>> physics_input);
 };
 
 /// Entropy conserving numerical flux with Roe dissipation. Derived from NumericalFluxConvective.
@@ -312,7 +312,7 @@ class EntropyConservingWithRoeDissipation : public NumericalFluxConvective<dim, 
 {
 public:
     /// Constructor
-    EntropyConservingWithRoeDissipation(std::shared_ptr<Physics::PhysicsBase<dim, nstate, real>> physics_input);
+    explicit EntropyConservingWithRoeDissipation(std::shared_ptr<Physics::PhysicsBase<dim, nstate, real>> physics_input);
 };
 
 /// Entropy conserving numerical flux with L2Roe dissipation. Derived from NumericalFluxConvective.
@@ -321,7 +321,7 @@ class EntropyConservingWithL2RoeDissipation : public NumericalFluxConvective<dim
 {
 public:
     /// Constructor
-    EntropyConservingWithL2RoeDissipation(std::shared_ptr<Physics::PhysicsBase<dim, nstate, real>> physics_input);
+    explicit EntropyConservingWithL2RoeDissipation(std::shared_ptr<Physics::PhysicsBase<dim, nstate, real>> physics_input);
 };
 
 } /// NumericalFlux namespace

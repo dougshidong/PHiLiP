@@ -1,7 +1,7 @@
 #ifndef __ENERGY_RRK_ODESOLVER_H__
 #define __ENERGY_RRK_ODESOLVER_H__
 
-#include "dg/dg.h"
+#include "dg/dg_base.hpp"
 #include "rrk_ode_solver_base.h"
 
 namespace PHiLiP {

@@ -35,7 +35,7 @@ class MshOutData
 {
 public:
     /// Destructor
-    virtual ~ MshOutData() = default;
+    virtual ~MshOutData() = default;
 
     /// Delegated constructor
     /** Sets only the internal storage type for header creation

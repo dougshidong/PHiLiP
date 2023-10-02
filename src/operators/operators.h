@@ -54,7 +54,7 @@ class OperatorsBase
 {
 public:
     /// Destructor
-        virtual ~OperatorsBase() = default;
+    virtual ~OperatorsBase() = default;
 
     /// Constructor
     OperatorsBase(

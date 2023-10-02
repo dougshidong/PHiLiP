@@ -60,6 +60,46 @@ std::shared_ptr<Triangulation> LimiterConvTests<dim,nstate>::generate_grid() con
 }
 
 template <int dim, int nstate>
+double LimiterConvTests<dim, nstate>::get_adaptive_time_step(std::shared_ptr<DGBase<dim, double>> dg) const
+{
+    using flow_case_enum = Parameters::FlowSolverParam::FlowCaseType;
+    flow_case_enum flow_case = this->all_param.flow_solver_param.flow_case_type;
+
+    double left = this->all_param.flow_solver_param.grid_left_bound;
+    double right = this->all_param.flow_solver_param.grid_right_bound;
+
+    const unsigned int n_global_active_cells = dg->triangulation->n_global_active_cells();
+    const unsigned int n_dofs_cfl = dg->dof_handler.n_dofs() / nstate;
+    double delta_x = (PHILIP_DIM == 2) ? (right - left) / pow(n_global_active_cells, (1.0 / dim)) : (right - left) / pow(n_dofs_cfl, (1.0 / dim));
+    double time_step = 1e-5;
+
+    /**********************************
+    * These values for the time step are chosen to show dominant spatial accuracy in the OOA results for P2
+    * For >=P3 timestep values  refer to: 
+    * Zhang, Xiangxiong, and Chi-Wang Shu. 
+    * "On maximum-principle-satisfying high order schemes for scalar conservation laws." 
+    * Journal of Computational Physics 229.9 (2010): 3091-3120.
+    **********************************/
+   
+    if(flow_case == Parameters::FlowSolverParam::FlowCaseType::advection_limiter)
+        time_step = (PHILIP_DIM == 2) ? (1.0 / 14.0) * delta_x : (1.0 / 3.0) * pow(delta_x, 2.0);
+    
+    if(flow_case == Parameters::FlowSolverParam::FlowCaseType::burgers_limiter)
+        time_step = (PHILIP_DIM == 2) ? (1.0 / 14.0) * delta_x : (1.0 / 24.0) * pow(delta_x, (1.0));
+
+    return time_step;
+}
+
+template <int dim, int nstate>
+double LimiterConvTests<dim, nstate>::get_adaptive_time_step_initial(std::shared_ptr<DGBase<dim, double>> dg)
+{
+    // compute time step based on advection speed (i.e. maximum local wave speed)
+    const double time_step = get_adaptive_time_step(dg);
+    std::cout << "time_step:   " << time_step << std::endl;
+    return time_step;
+}
+
+template <int dim, int nstate>
 void LimiterConvTests<dim, nstate>::display_additional_flow_case_specific_parameters() const
 {
     this->pcout << "- - Courant-Friedrichs-Lewy number: " << this->all_param.flow_solver_param.courant_friedrichs_lewy_number << std::endl;

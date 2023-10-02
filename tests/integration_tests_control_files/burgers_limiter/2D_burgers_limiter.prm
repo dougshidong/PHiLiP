@@ -47,14 +47,13 @@ subsection flow_solver
   set flow_case_type = burgers_limiter
   set poly_degree = 2
   set final_time = 2.0
-  set constant_time_step = 0.0024
-  set courant_friedrichs_lewy_number = 0.25
-  set adaptive_time_step = false
-  set unsteady_data_table_filename = advection_shock_energy
+  set adaptive_time_step = true
+  set courant_friedrichs_lewy_number = 0.1
+  set unsteady_data_table_filename = burgers_shock_energy
   subsection grid
-    set grid_left_bound = -1.0
-    set grid_right_bound = 1.0
-    set number_of_grid_elements_per_dimension = 256
+    set grid_left_bound = 0.0
+    set grid_right_bound = 2.0
+    set number_of_grid_elements_per_dimension = 64
     set number_of_mesh_refinements = 0
   end
 end

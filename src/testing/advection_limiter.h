@@ -30,8 +30,6 @@ private:
     int run_advection_lim() const;
 
     int run_advection_lim_conv() const;
-
-    void set_initial_time_step(const unsigned int n_global_active_cells, const int poly_degree) const;
 };
 
 } // End of Tests namespace

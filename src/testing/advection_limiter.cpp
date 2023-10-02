@@ -22,19 +22,6 @@ AdvectionLimiter<dim, nstate>::AdvectionLimiter(
 {}
 
 template <int dim, int nstate>
-void AdvectionLimiter<dim, nstate>::set_initial_time_step(const unsigned int n_global_active_cells, const int poly_degree) const
-{
-    PHiLiP::Parameters::AllParameters all_parameters_new = *all_parameters;
-    double left = all_parameters_new.flow_solver_param.grid_left_bound;
-    double right = all_parameters_new.flow_solver_param.grid_right_bound;
-            
-    double n_dofs_cfl = pow(n_global_active_cells, dim) * pow(poly_degree + 1.0, dim);
-    double delta_x = (PHILIP_DIM == 2) ? (right - left) / pow(n_global_active_cells, (1.0 / dim)) : (right - left) / pow(n_dofs_cfl, (1.0 / dim));
-    all_parameters_new.ode_solver_param.initial_time_step = (PHILIP_DIM == 2) ? (1.0 / 14.0) * pow(delta_x, (4.0 / 3.0)) : (1.0 / 3.0) * pow(delta_x, 2.0);
-    std::cout << "time_step:   " << all_parameters_new.ode_solver_param.initial_time_step << std::endl;
-}
-
-template <int dim, int nstate>
 int AdvectionLimiter<dim, nstate>::run_test() const
 {
     pcout << " Running Advection limiter test. " << std::endl;
@@ -59,11 +46,6 @@ int AdvectionLimiter<dim, nstate>::run_advection_lim() const
     PHiLiP::Parameters::AllParameters all_parameters_new = *all_parameters;
     Parameters::AllParameters param = *(TestsBase::all_parameters);
     std::unique_ptr<FlowSolver::FlowSolver<dim, nstate>> flow_solver = FlowSolver::FlowSolverFactory<dim, nstate>::select_flow_case(&param, parameter_handler);
-    const unsigned int n_global_active_cells = flow_solver->dg->triangulation->n_global_active_cells();
-    const int poly_degree = all_parameters_new.flow_solver_param.poly_degree;
-
-    set_initial_time_step(n_global_active_cells, poly_degree);
-
     flow_solver->run();
 
     return 0;
@@ -89,8 +71,6 @@ int AdvectionLimiter<dim, nstate>::run_advection_lim_conv() const
         std::unique_ptr<FlowSolver::FlowSolver<dim, nstate>> flow_solver = FlowSolver::FlowSolverFactory<dim, nstate>::select_flow_case(&param, parameter_handler);
         const unsigned int n_global_active_cells = flow_solver->dg->triangulation->n_global_active_cells();
         const int poly_degree = all_parameters_new.flow_solver_param.poly_degree;
-
-        set_initial_time_step(n_global_active_cells, poly_degree);
 
         flow_solver->run();
 

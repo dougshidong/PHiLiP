@@ -27,6 +27,12 @@ public:
     /// Function to generate the grid
     std::shared_ptr<Triangulation> generate_grid() const override;
 
+    /// Function to compute the initial adaptive time step
+    double get_adaptive_time_step(std::shared_ptr<DGBase<dim,double>> dg) const override;
+
+    /// Function to compute the initial adaptive time step
+    double get_adaptive_time_step_initial(std::shared_ptr<DGBase<dim,double>> dg) override;
+
 protected:
     /// Display additional more specific flow case parameters
     void display_additional_flow_case_specific_parameters() const override;

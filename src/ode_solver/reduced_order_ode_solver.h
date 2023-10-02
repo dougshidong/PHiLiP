@@ -1,7 +1,7 @@
 #ifndef __REDUCED_ORDER_ODE_SOLVER__
 #define __REDUCED_ORDER_ODE_SOLVER__
 
-#include "dg/dg.h"
+#include "dg/dg_base.hpp"
 #include "ode_solver_base.h"
 #include "reduced_order/pod_basis_base.h"
 

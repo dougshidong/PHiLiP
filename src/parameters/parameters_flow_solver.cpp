@@ -112,7 +112,7 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
 
         prm.enter_subsection("grid");
         {
-            prm.declare_entry("input_mesh_filename", "naca0012",
+            prm.declare_entry("input_mesh_filename", "",
                               dealii::Patterns::FileName(dealii::Patterns::FileName::FileType::input),
                               "Filename of the input mesh: input_mesh_filename.msh. For cases that import a mesh file.");
 
@@ -135,6 +135,55 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
             prm.declare_entry("number_of_mesh_refinements", "0",
                               dealii::Patterns::Integer(0, dealii::Patterns::Integer::max_int_value),
                               "Number of mesh refinements for Gaussian bump and naca0012 based cases.");
+
+            prm.declare_entry("use_gmsh_mesh", "false",
+                              dealii::Patterns::Bool(),
+                              "Use the input .msh file which calls read_gmsh. False by default.");
+
+            prm.declare_entry("mesh_reader_verbose_output", "false",
+                              dealii::Patterns::Bool(),
+                              "Flag for verbose (true) or quiet (false) mesh reader output.");
+
+            prm.enter_subsection("gmsh_boundary_IDs");
+            {
+
+                prm.declare_entry("use_periodic_BC_in_x", "false",
+                                  dealii::Patterns::Bool(),
+                                  "Use periodic boundary condition in the x-direction. False by default.");
+
+                prm.declare_entry("use_periodic_BC_in_y", "false",
+                                  dealii::Patterns::Bool(),
+                                  "Use periodic boundary condition in the y-direction. False by default.");
+
+                prm.declare_entry("use_periodic_BC_in_z", "false",
+                                  dealii::Patterns::Bool(),
+                                  "Use periodic boundary condition in the z-direction. False by default.");
+
+                prm.declare_entry("x_periodic_id_face_1", "2001",
+                                  dealii::Patterns::Integer(1, dealii::Patterns::Integer::max_int_value),
+                                  "Boundary ID for the first periodic boundary face in the x-direction.");
+
+                prm.declare_entry("x_periodic_id_face_2", "2002",
+                                  dealii::Patterns::Integer(1, dealii::Patterns::Integer::max_int_value),
+                                  "Boundary ID for the second periodic boundary face in the x-direction.");
+
+                prm.declare_entry("y_periodic_id_face_1", "2003",
+                                  dealii::Patterns::Integer(1, dealii::Patterns::Integer::max_int_value),
+                                  "Boundary ID for the first periodic boundary face in the y-direction.");
+
+                prm.declare_entry("y_periodic_id_face_2", "2004",
+                                  dealii::Patterns::Integer(1, dealii::Patterns::Integer::max_int_value),
+                                  "Boundary ID for the second periodic boundary face in the y-direction.");
+
+                prm.declare_entry("z_periodic_id_face_1", "2005",
+                                  dealii::Patterns::Integer(1, dealii::Patterns::Integer::max_int_value),
+                                  "Boundary ID for the first periodic boundary face in the z-direction.");
+
+                prm.declare_entry("z_periodic_id_face_2", "2006",
+                                  dealii::Patterns::Integer(1, dealii::Patterns::Integer::max_int_value),
+                                  "Boundary ID for the second periodic boundary face in the z-direction.");
+            }
+            prm.leave_subsection();
 
             prm.enter_subsection("gaussian_bump");
             {
@@ -303,6 +352,22 @@ void FlowSolverParam::parse_parameters(dealii::ParameterHandler &prm)
             grid_right_bound = prm.get_double("grid_right_bound");
             number_of_grid_elements_per_dimension = prm.get_integer("number_of_grid_elements_per_dimension");
             number_of_mesh_refinements = prm.get_integer("number_of_mesh_refinements");
+            use_gmsh_mesh = prm.get_bool("use_gmsh_mesh");
+            mesh_reader_verbose_output = prm.get_bool("mesh_reader_verbose_output");
+
+            prm.enter_subsection("gmsh_boundary_IDs");
+            {
+                use_periodic_BC_in_x = prm.get_bool("use_periodic_BC_in_x");
+                use_periodic_BC_in_y = prm.get_bool("use_periodic_BC_in_y");
+                use_periodic_BC_in_z = prm.get_bool("use_periodic_BC_in_z");
+                x_periodic_id_face_1 = prm.get_integer("x_periodic_id_face_1");
+                x_periodic_id_face_2 = prm.get_integer("x_periodic_id_face_2");
+                y_periodic_id_face_1 = prm.get_integer("y_periodic_id_face_1");
+                y_periodic_id_face_2 = prm.get_integer("y_periodic_id_face_2");
+                z_periodic_id_face_1 = prm.get_integer("z_periodic_id_face_1");
+                z_periodic_id_face_2 = prm.get_integer("z_periodic_id_face_2");
+            }
+            prm.leave_subsection();
 
             prm.enter_subsection("gaussian_bump");
             {

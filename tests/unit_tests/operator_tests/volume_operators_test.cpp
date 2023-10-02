@@ -122,7 +122,7 @@ int main (int argc, char * argv[])
                                                     mass_matrix.oneD_vol_operator,
                                                     mass_matrix.oneD_vol_operator,mass_matrix.oneD_vol_operator);
 
-        PHiLiP::OPERATOR::local_Flux_Reconstruction_operator<dim,2*dim> local_FR(nstate, poly_degree, 1, FR_enum::cHU);
+        PHiLiP::OPERATOR::local_Flux_Reconstruction_operator<dim,2*dim> local_FR(nstate, poly_degree, 1, FR_enum::cHU, 0.0);
         local_FR.build_1D_volume_operator(fe_system,quad1D);
         dealii::FullMatrix<real> FR_dim(n_dofs);
         FR_dim = local_FR.build_dim_Flux_Reconstruction_operator(mass_matrix.oneD_vol_operator, nstate, n_dofs);

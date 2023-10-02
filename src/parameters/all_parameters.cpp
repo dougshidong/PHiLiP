@@ -112,16 +112,32 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
 
     prm.declare_entry("flux_reconstruction", "cDG",
                       dealii::Patterns::Selection(
-                      "cDG | cSD | cHU | cNegative | cNegative2 | cPlus | c10Thousand | cHULumped"),
+                      "cDG | cSD | cHU | cNegative | cNegative2 | cPlus | c10Thousand | cHULumped | user_specified_value"),
                       "Flux Reconstruction. "
                       "Choices are "
-                      " <cDG | cSD | cHU | cNegative | cNegative2 | cPlus | c10Thousand | cHULumped>.");
+                      " <cDG | cSD | cHU | cNegative | cNegative2 | cPlus | c10Thousand | cHULumped | user_specified_value>.");
+
+    prm.declare_entry("FR_user_specified_correction_parameter_value", "0.0",
+                      dealii::Patterns::Double(-dealii::Patterns::Double::max_double_value, dealii::Patterns::Double::max_double_value),
+                      "User specified flux recontruction correction parameter value. Default value is 0.0. ");
 
     prm.declare_entry("flux_reconstruction_aux", "kDG",
                       dealii::Patterns::Selection(
                       "kDG | kSD | kHU | kNegative | kNegative2 | kPlus | k10Thousand"),
                       "Flux Reconstruction for Auxiliary Equation. "
                       "Choices are <kDG | kSD | kHU | kNegative | kNegative2 | kPlus | k10Thousand>.");
+
+    prm.declare_entry("number_ESFR_parameter_values", "0",
+                      dealii::Patterns::Integer(),
+                      "Number of tested ESFR parameter values");
+
+    prm.declare_entry("ESFR_parameter_values_start", "1e-3",
+                      dealii::Patterns::Double(0.0, dealii::Patterns::Double::max_double_value),
+                      "Minimum ESFR parameter values >0 since logspace vector");
+
+    prm.declare_entry("ESFR_parameter_values_end", "1e-3",
+                      dealii::Patterns::Double(0.0, dealii::Patterns::Double::max_double_value),
+                      "Maximum ESFR parameter values >0 since logspace vector");
 
     prm.declare_entry("sipg_penalty_factor", "1.0",
                       dealii::Patterns::Double(1.0,1e200),
@@ -147,6 +163,7 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       dealii::Patterns::Selection(
                       " run_control | "
                       " grid_refinement_study | "
+                      " stability_fr_parameter_range | "
                       " burgers_energy_stability | "
                       " diffusion_exact_adjoint | "
                       " optimization_inverse_manufactured | "
@@ -185,6 +202,7 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       "Choices are " 
                       " <run_control | " 
                       "  grid_refinement_study | "
+                      "  stability_fr_parameter_range | "
                       "  burgers_energy_stability | "
                       "  diffusion_exact_adjoint | "
                       "  optimization_inverse_manufactured | "
@@ -358,6 +376,7 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     const std::string test_string = prm.get("test_type");
     if      (test_string == "run_control")                              { test_type = run_control; }
     else if (test_string == "grid_refinement_study")                    { test_type = grid_refinement_study; }
+    else if (test_string == "stability_fr_parameter_range")             { test_type = stability_fr_parameter_range; }
     else if (test_string == "burgers_energy_stability")                 { test_type = burgers_energy_stability; }
     else if (test_string == "diffusion_exact_adjoint")                  { test_type = diffusion_exact_adjoint; }
     else if (test_string == "euler_gaussian_bump")                      { test_type = euler_gaussian_bump; }
@@ -458,6 +477,13 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     if (flux_reconstruction_string == "cPlus")       { flux_reconstruction_type = cPlus; }
     if (flux_reconstruction_string == "c10Thousand") { flux_reconstruction_type = c10Thousand; }
     if (flux_reconstruction_string == "cHULumped")   { flux_reconstruction_type = cHULumped; }
+    if (flux_reconstruction_string == "user_specified_value") 
+                                                     { flux_reconstruction_type = user_specified_value; }
+
+    FR_user_specified_correction_parameter_value = prm.get_double("FR_user_specified_correction_parameter_value");
+    number_ESFR_parameter_values = prm.get_integer("number_ESFR_parameter_values");
+    ESFR_parameter_values_start = prm.get_double("ESFR_parameter_values_start");
+    ESFR_parameter_values_end = prm.get_double("ESFR_parameter_values_end");
 
     const std::string flux_reconstruction_aux_string = prm.get("flux_reconstruction_aux");
     if (flux_reconstruction_aux_string == "kDG")         { flux_reconstruction_aux_type = kDG; }

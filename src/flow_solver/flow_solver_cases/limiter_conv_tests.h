@@ -19,7 +19,7 @@ class LimiterConvTests : public FlowSolverCaseBase<dim, nstate>
 #endif
 public:
     /// Constructor
-    LimiterConvTests(const Parameters::AllParameters *const parameters_input);
+    explicit LimiterConvTests(const Parameters::AllParameters *const parameters_input);
     
     /// Destructor
     ~LimiterConvTests() = default;

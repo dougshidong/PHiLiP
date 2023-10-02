@@ -19,7 +19,7 @@ public:
         const Parameters::AllParameters* const parameters_input);//pointer to parameters
 
     /// Destructor
-    ~BoundPreservingLimiter() {};
+    ~BoundPreservingLimiter() = default;
 
     /// Number of states
     const int nstate;

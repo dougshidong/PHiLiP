@@ -83,7 +83,7 @@ double LimiterConvTests<dim, nstate>::get_adaptive_time_step(std::shared_ptr<DGB
         time_step = (PHILIP_DIM == 2) ? (1.0 / 14.0) * delta_x : (1.0 / 3.0) * pow(delta_x, 2.0);
     
     if(flow_case == Parameters::FlowSolverParam::FlowCaseType::burgers_limiter)
-        time_step = (PHILIP_DIM == 2) ? (1.0 / 14.0) * delta_x : (1.0 / 24.0) * pow(delta_x, (1.0));
+        time_step = (PHILIP_DIM == 2) ? (1.0 / 14.0) * delta_x : (1.0 / 24.0) * delta_x;
 
     if (flow_case == Parameters::FlowSolverParam::FlowCaseType::low_density_2d)
         time_step = (1.0 / 50.0) * pow(delta_x , 2.0);

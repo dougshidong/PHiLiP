@@ -95,9 +95,7 @@ template <int dim, int nstate>
 double LimiterConvTests<dim, nstate>::get_adaptive_time_step_initial(std::shared_ptr<DGBase<dim, double>> dg)
 {
     // compute time step based on advection speed (i.e. maximum local wave speed)
-    const double time_step = get_adaptive_time_step(dg);
-
-    return time_step;
+    return get_adaptive_time_step(dg);
 }
 
 template <int dim, int nstate>

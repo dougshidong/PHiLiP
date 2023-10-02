@@ -1,16 +1,10 @@
-#include <deal.II/base/tensor.h>
-#include <deal.II/base/function.h>
-#include <deal.II/numerics/data_out.h>
-#include <deal.II/numerics/vector_tools.h>
-#include <deal.II/numerics/solution_transfer.h>
-#include <deal.II/base/numbers.h>
 #include <stdlib.h>     /* srand, rand */
 #include <iostream>
 
 #include <deal.II/base/convergence_table.h>
 #include <deal.II/fe/fe_values.h>
 
-#include "burgers_limiter.h"
+#include "bound_preserving_limiter_tests.h"
 
 #include "physics/initial_conditions/initial_condition_function.h"
 #include "flow_solver/flow_solver_factory.h"
@@ -19,7 +13,7 @@ namespace PHiLiP {
 namespace Tests {
 
 template <int dim, int nstate>
-BurgersLimiter<dim, nstate>::BurgersLimiter(
+BoundPreservingLimiterTests<dim, nstate>::BoundPreservingLimiterTests(
     const PHiLiP::Parameters::AllParameters* const parameters_input,
     const dealii::ParameterHandler& parameter_handler_input)
     :
@@ -28,30 +22,63 @@ BurgersLimiter<dim, nstate>::BurgersLimiter(
 {}
 
 template <int dim, int nstate>
-int BurgersLimiter<dim, nstate>::run_test() const
+double BoundPreservingLimiterTests<dim, nstate>::calculate_uexact(const dealii::Point<dim> qpoint, const dealii::Tensor<1, 3, double> adv_speeds, double final_time) const
 {
-    pcout << " Running Burgers limiter test. " << std::endl;
+    PHiLiP::Parameters::AllParameters all_parameters_new = *all_parameters;
+    using flow_case_enum = Parameters::FlowSolverParam::FlowCaseType;
+    flow_case_enum flow_case = all_parameters_new.flow_solver_param.flow_case_type;
+    const double pi = atan(1) * 4.0;
+
+    double uexact = 1.0;
+    if (flow_case == Parameters::FlowSolverParam::FlowCaseType::low_density_2d && dim == 2) {
+        uexact = 1.00 + 0.99 * sin(qpoint[0] + qpoint[1] - (2.00 * final_time));
+    }
+    else {
+        for (int idim = 0; idim < dim; idim++) {
+            if (flow_case == Parameters::FlowSolverParam::FlowCaseType::burgers_limiter)
+                uexact *= cos(pi * (qpoint[idim] - final_time));//for grid 1-3
+            if (flow_case == Parameters::FlowSolverParam::FlowCaseType::advection_limiter)
+                uexact *= sin(2.0 * pi * (qpoint[idim] - adv_speeds[idim] * final_time));//for grid 1-3
+        }
+    }
+
+    return uexact;
+}
+
+template <int dim, int nstate>
+int BoundPreservingLimiterTests<dim, nstate>::run_test() const
+{
+    pcout << " Running Bound Preserving Limiter test. " << std::endl;
     pcout << dim << "    " << nstate << std::endl;
     PHiLiP::Parameters::AllParameters all_parameters_new = *all_parameters;
 
     int test_result = 1;
 
     if (!all_parameters_new.limiter_param.use_OOA) {
-        test_result = run_burgers_lim();
+        test_result = run_full_limiter_test();
     }
     else {
-        test_result = run_burgers_lim_conv();
+        test_result = run_convergence_test();
     }
     return test_result; //if got to here means passed the test, otherwise would've failed earlier
 }
 
 template <int dim, int nstate>
-int BurgersLimiter<dim, nstate>::run_burgers_lim() const
+int BoundPreservingLimiterTests<dim, nstate>::run_full_limiter_test() const
 {
     pcout << "\n" << "Creating FlowSolver" << std::endl;
 
     PHiLiP::Parameters::AllParameters all_parameters_new = *all_parameters;
     Parameters::AllParameters param = *(TestsBase::all_parameters);
+
+    using flow_case_enum = Parameters::FlowSolverParam::FlowCaseType;
+    flow_case_enum flow_case = all_parameters_new.flow_solver_param.flow_case_type;
+    const double pi = atan(1) * 4.0;
+    if (flow_case == Parameters::FlowSolverParam::FlowCaseType::low_density_2d) {
+        param.flow_solver_param.grid_left_bound = 0.0;
+        param.flow_solver_param.grid_right_bound = 2.0 * pi;
+    }
+
     std::unique_ptr<FlowSolver::FlowSolver<dim, nstate>> flow_solver = FlowSolver::FlowSolverFactory<dim, nstate>::select_flow_case(&param, parameter_handler);
     flow_solver->run();
 
@@ -59,9 +86,8 @@ int BurgersLimiter<dim, nstate>::run_burgers_lim() const
 }
 
 template <int dim, int nstate>
-int BurgersLimiter<dim, nstate>::run_burgers_lim_conv() const
+int BoundPreservingLimiterTests<dim, nstate>::run_convergence_test() const
 {
-    std::cout << "correct condition" << std::endl;
     PHiLiP::Parameters::AllParameters all_parameters_new = *all_parameters;
     PHiLiP::Parameters::ManufacturedConvergenceStudyParam manu_grid_conv_param = all_parameters_new.manufactured_convergence_study_param;
 
@@ -76,9 +102,20 @@ int BurgersLimiter<dim, nstate>::run_burgers_lim_conv() const
 
         Parameters::AllParameters param = *(TestsBase::all_parameters);
         param.flow_solver_param.number_of_mesh_refinements = igrid;
+
+        using flow_case_enum = Parameters::FlowSolverParam::FlowCaseType;
+        flow_case_enum flow_case = all_parameters_new.flow_solver_param.flow_case_type;
+        const double pi = atan(1) * 4.0;
+
+        if (flow_case == Parameters::FlowSolverParam::FlowCaseType::low_density_2d) {
+            param.flow_solver_param.grid_left_bound = 0.0;
+            param.flow_solver_param.grid_right_bound = 2.0 * pi;
+        }
+
         std::unique_ptr<FlowSolver::FlowSolver<dim, nstate>> flow_solver = FlowSolver::FlowSolverFactory<dim, nstate>::select_flow_case(&param, parameter_handler);
         const unsigned int n_global_active_cells = flow_solver->dg->triangulation->n_global_active_cells();
         const int poly_degree = all_parameters_new.flow_solver_param.poly_degree;
+        double final_time = all_parameters_new.flow_solver_param.final_time;
 
         flow_solver->run();
 
@@ -103,8 +140,8 @@ int BurgersLimiter<dim, nstate>::run_burgers_lim_conv() const
         double l2error = 0.0;
 
         // Integrate every cell and compute L2
-        const double pi = atan(1) * 4.0;
         std::vector<dealii::types::global_dof_index> dofs_indices(fe_values_extra.dofs_per_cell);
+        const dealii::Tensor<1, 3, double> adv_speeds = Parameters::ManufacturedSolutionParam::get_default_advection_vector();
         for (auto cell = flow_solver->dg->dof_handler.begin_active(); cell != flow_solver->dg->dof_handler.end(); ++cell) {
             if (!cell->is_locally_owned()) continue;
 
@@ -119,14 +156,9 @@ int BurgersLimiter<dim, nstate>::run_burgers_lim_conv() const
                     soln_at_q[istate] += flow_solver->dg->solution[dofs_indices[idof]] * fe_values_extra.shape_value_component(idof, iquad, istate);
                 }
 
-                for (int istate = 0; istate < nstate; ++istate) {
-                    const dealii::Point<dim> qpoint = (fe_values_extra.quadrature_point(iquad));
-                    double uexact = 1.0;
-                    for (int idim = 0; idim < dim; idim++) {
-                        uexact *= cos(pi * (qpoint[idim] - all_parameters_new.flow_solver_param.final_time));//for grid 1-3
-                    }
-                    l2error += pow(soln_at_q[istate] - uexact, 2) * fe_values_extra.JxW(iquad);
-                }
+                const dealii::Point<dim> qpoint = (fe_values_extra.quadrature_point(iquad));
+                double uexact = calculate_uexact(qpoint, adv_speeds, final_time);
+                l2error += pow(soln_at_q[0] - uexact, 2) * fe_values_extra.JxW(iquad);
             }
 
         }
@@ -176,10 +208,13 @@ int BurgersLimiter<dim, nstate>::run_burgers_lim_conv() const
     return 0;
 }
 
-//double finalTime = 2.0;
-//double finalTime = (PHILIP_DIM == 2) ? 0.05 : 0.15;//Comparison with 2010 Zhang Shu Paper
-
-template class BurgersLimiter<PHILIP_DIM,PHILIP_DIM>;
+#if PHILIP_DIM==1
+template class BoundPreservingLimiterTests<PHILIP_DIM, PHILIP_DIM>;
+#elif PHILIP_DIM==2
+template class BoundPreservingLimiterTests<PHILIP_DIM, PHILIP_DIM>;
+template class BoundPreservingLimiterTests<PHILIP_DIM, PHILIP_DIM + 2>;
+template class BoundPreservingLimiterTests<PHILIP_DIM, 1>;
+#endif
 
 } // Tests namespace
 } // PHiLiP namespace

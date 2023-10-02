@@ -53,6 +53,6 @@ subsection flow_solver
   subsection grid
     set grid_left_bound = 0.0
     set grid_right_bound = 2.0
-    set number_of_mesh_refinements = 9
+    set number_of_mesh_refinements = 5
   end
 end

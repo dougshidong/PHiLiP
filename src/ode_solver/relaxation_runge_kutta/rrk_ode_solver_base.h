@@ -1,9 +1,10 @@
 #ifndef __RRK_ODE_SOLVER_BASE_H__
 #define __RRK_ODE_SOLVER_BASE_H__
 
-#include "dg/dg.h"
-//#include "ode_solver/runge_kutta_ode_solver.h"
-#include "ode_solver/explicit_ode_solver.h"
+#include "dg/dg_base.hpp"
+#include "ode_solver_base.h"
+//#include "runge_kutta_ode_solver.h"
+#include "explicit_ode_solver.h"
 
 namespace PHiLiP {
 namespace ODE {

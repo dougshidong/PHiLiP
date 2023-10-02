@@ -26,7 +26,7 @@ module load petsc/3.14.1
 module load trilinos/13.0.1
 export TRILINOS_DIR=$EBROOTTRILINOS
 module load opencascade/7.5.0
-module load gmsh/4.7.0
+module load gmsh/4.11.1
 module load metis/5.1.0
 module load muparser/2.3.2
 module load boost-mpi/1.72.0
@@ -49,7 +49,7 @@ if [ ${CLUSTER_NAME} == "beluga" ]; then
 elif [ ${CLUSTER_NAME} == "narval" ]; then
     export DEAL_II_DIR=/project/def-nadaraja/Libraries/dealii_updated_reinstalled/dealii/install/install
 fi
-export GMSH_DIR=/cvmfs/soft.computecanada.ca/easybuild/software/2020/avx512/Compiler/intel2020/gmsh/4.7.0
+export GMSH_DIR=/cvmfs/soft.computecanada.ca/easybuild/software/2020/avx512/Compiler/intel2020/gmsh/4.11.1
 export OMP_NUM_THREADS=1
 
 cd ${SLURM_TMPDIR}

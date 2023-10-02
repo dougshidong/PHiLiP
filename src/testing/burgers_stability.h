@@ -1,9 +1,9 @@
 #ifndef __BURGERS_STABILITY_H__
 #define __BURGERS_STABILITY_H__
 
-#include "tests.h"
-#include "dg/dg.h"
+#include "dg/dg_base.hpp"
 #include "parameters/all_parameters.h"
+#include "tests.h"
 
 namespace PHiLiP {
 namespace Tests {

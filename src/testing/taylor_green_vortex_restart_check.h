@@ -1,9 +1,9 @@
 #ifndef __TAYLOR_GREEN_VORTEX_RESTART_CHECK__
 #define __TAYLOR_GREEN_VORTEX_RESTART_CHECK__
 
-#include "tests.h"
-#include "dg/dg.h"
+#include "dg/dg_base.hpp"
 #include "parameters/all_parameters.h"
+#include "tests.h"
 
 namespace PHiLiP {
 namespace Tests {

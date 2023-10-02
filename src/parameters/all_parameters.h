@@ -112,10 +112,16 @@ public:
     /// Flag to use weight-adjusted Mass Matrix for curvilinear elements.
     bool use_weight_adjusted_mass;
 
+    /// Flag to store the residual local processor cput time.
+    bool store_residual_cpu_time;
+
     /// Flag to use periodic BC.
     /** Not fully tested.
      */
     bool use_periodic_bc;
+
+    /// Flag to use curvilinear grid.
+    bool use_curvilinear_grid;
 
     ///Flag to use an energy monotonicity test
     bool use_energy;
@@ -139,6 +145,9 @@ public:
     /// Flag to use inverse mass matrix on-the-fly for explicit solves.
     bool use_inverse_mass_on_the_fly;
 
+    /// Flag to check if the metric Jacobian is valid when high-order grid is constructed.
+    bool check_valid_metric_Jacobian;
+
     /// Energy file.
     std::string energy_file;
 
@@ -159,6 +168,7 @@ public:
         euler_vortex,
         euler_entropy_waves,
         euler_split_taylor_green,
+        taylor_green_scaling,
         burgers_split_form,
         optimization_inverse_manufactured,
         euler_bump_optimization,
@@ -254,6 +264,11 @@ public:
     /// Store flux reconstruction type for the auxiliary variables
     Flux_Reconstruction_Aux flux_reconstruction_aux_type;
 
+    /// Enum of nonphysical behavior
+    enum NonPhysicalBehaviorEnum {return_big_number, abort_run, print_warning};
+    /// Specify behavior on nonphysical results
+    NonPhysicalBehaviorEnum non_physical_behavior_type;
+
     /// Name of directory for writing solution vtk files
     std::string solution_vtk_files_directory_name;
 
@@ -268,6 +283,15 @@ public:
 
     /// Flag for renumbering DOFs
     bool do_renumber_dofs;
+
+    /// Renumber dofs type.
+    enum RenumberDofsType { CuthillMckee };
+    /// Store selected RenumberDofsType from the input file.
+    RenumberDofsType renumber_dofs_type;
+
+    /** Tolerance for checking that the determinant of surface jacobians at element faces matches.
+     *  Note: Currently only used in weak dg. */
+    double matching_surface_jac_det_tolerance;
     
     /// Declare parameters that can be set as inputs and set up the default options
     /** This subroutine should call the sub-parameter classes static declare_parameters()

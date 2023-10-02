@@ -1,9 +1,9 @@
 #ifndef __CONVECTION_DIFFUSION_EXPLICIT_PERIODIC_H__
 #define __CONVECTION_DIFFUSION_EXPLICIT_PERIODIC_H__
 
-#include "tests.h"
-#include "dg/dg.h"
+#include "dg/dg_base.hpp"
 #include "parameters/all_parameters.h"
+#include "tests.h"
 
 namespace PHiLiP {
 namespace Tests {

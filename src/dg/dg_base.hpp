@@ -1,5 +1,5 @@
-#ifndef __DISCONTINUOUSGALERKIN_H__
-#define __DISCONTINUOUSGALERKIN_H__
+#ifndef PHILIP_DG_BASE_HPP
+#define PHILIP_DG_BASE_HPP
 
 #include <deal.II/base/conditional_ostream.h>
 #include <deal.II/base/parameter_handler.h>
@@ -41,6 +41,9 @@
 #include "parameters/all_parameters.h"
 #include "operators/operators.h"
 #include "artificial_dissipation_factory.h"
+
+#include <time.h>
+#include <deal.II/base/timer.h>
 
 // Template specialization of MappingFEField
 //extern template class dealii::MappingFEField<PHILIP_DIM,PHILIP_DIM,dealii::LinearAlgebra::distributed::Vector<double>, dealii::DoFHandler<PHILIP_DIM> >;
@@ -219,6 +222,8 @@ public:
         OPERATOR::basis_functions<dim,2*dim> &flux_basis_int,
         OPERATOR::basis_functions<dim,2*dim> &flux_basis_ext,
         OPERATOR::local_basis_stiffness<dim,2*dim> &flux_basis_stiffness,
+        OPERATOR::vol_projection_operator<dim,2*dim> &soln_basis_projection_oper_int,
+        OPERATOR::vol_projection_operator<dim,2*dim> &soln_basis_projection_oper_ext,
         OPERATOR::mapping_shape_functions<dim,2*dim> &mapping_basis);
 
     /// Builds needed operators to compute mass matrices/inverses efficiently.
@@ -568,6 +573,8 @@ public:
         OPERATOR::basis_functions<dim,2*dim> &flux_basis_int,
         OPERATOR::basis_functions<dim,2*dim> &flux_basis_ext,
         OPERATOR::local_basis_stiffness<dim,2*dim> &flux_basis_stiffness,
+        OPERATOR::vol_projection_operator<dim,2*dim> &soln_basis_projection_oper_int,
+        OPERATOR::vol_projection_operator<dim,2*dim> &soln_basis_projection_oper_ext,
         OPERATOR::mapping_shape_functions<dim,2*dim> &mapping_basis,
         const bool compute_auxiliary_right_hand_side,//flag on whether computing the Auxiliary variable's equations' residuals
         dealii::LinearAlgebra::distributed::Vector<double> &rhs,
@@ -590,7 +597,6 @@ public:
     /// Quadrature used to evaluate face integrals.
     dealii::hp::QCollection<dim-1>   face_quadrature_collection;
 
-protected:
     /// Lagrange basis used in strong form
     /** This is a collection of scalar Lagrange bases */
     const dealii::hp::FECollection<dim>  fe_collection_lagrange;
@@ -639,6 +645,9 @@ public:
     /// Sets the current time within DG to be used for unsteady source terms.
     void set_current_time(const real current_time_input);
 
+    /// Computational time for assembling residual.
+    double assemble_residual_time;
+
 protected:
     /// The current time set in set_current_time()
     real current_time;
@@ -662,6 +671,8 @@ protected:
         OPERATOR::basis_functions<dim,2*dim>                   &soln_basis,
         OPERATOR::basis_functions<dim,2*dim>                   &flux_basis,
         OPERATOR::local_basis_stiffness<dim,2*dim>             &flux_basis_stiffness,
+        OPERATOR::vol_projection_operator<dim,2*dim>           &soln_basis_projection_oper_int,
+        OPERATOR::vol_projection_operator<dim,2*dim>           &soln_basis_projection_oper_ext,
         OPERATOR::metric_operators<real,dim,2*dim>             &metric_oper,
         OPERATOR::mapping_shape_functions<dim,2*dim>           &mapping_basis,
         std::array<std::vector<real>,dim>                      &mapping_support_points,
@@ -687,6 +698,8 @@ protected:
         OPERATOR::basis_functions<dim,2*dim>                   &soln_basis,
         OPERATOR::basis_functions<dim,2*dim>                   &flux_basis,
         OPERATOR::local_basis_stiffness<dim,2*dim>             &flux_basis_stiffness,
+        OPERATOR::vol_projection_operator<dim,2*dim>           &soln_basis_projection_oper_int,
+        OPERATOR::vol_projection_operator<dim,2*dim>           &soln_basis_projection_oper_ext,
         OPERATOR::metric_operators<real,dim,2*dim>             &metric_oper,
         OPERATOR::mapping_shape_functions<dim,2*dim>           &mapping_basis,
         std::array<std::vector<real>,dim>                      &mapping_support_points,
@@ -719,6 +732,8 @@ protected:
         OPERATOR::basis_functions<dim,2*dim>                   &flux_basis_int,
         OPERATOR::basis_functions<dim,2*dim>                   &flux_basis_ext,
         OPERATOR::local_basis_stiffness<dim,2*dim>             &flux_basis_stiffness,
+        OPERATOR::vol_projection_operator<dim,2*dim>           &soln_basis_projection_oper_int,
+        OPERATOR::vol_projection_operator<dim,2*dim>           &soln_basis_projection_oper_ext,
         OPERATOR::metric_operators<real,dim,2*dim>             &metric_oper_int,
         OPERATOR::metric_operators<real,dim,2*dim>             &metric_oper_ext,
         OPERATOR::mapping_shape_functions<dim,2*dim>           &mapping_basis,
@@ -756,6 +771,8 @@ protected:
         OPERATOR::basis_functions<dim,2*dim>                   &flux_basis_int,
         OPERATOR::basis_functions<dim,2*dim>                   &flux_basis_ext,
         OPERATOR::local_basis_stiffness<dim,2*dim>             &flux_basis_stiffness,
+        OPERATOR::vol_projection_operator<dim,2*dim>           &soln_basis_projection_oper_int,
+        OPERATOR::vol_projection_operator<dim,2*dim>           &soln_basis_projection_oper_ext,
         OPERATOR::metric_operators<real,dim,2*dim>             &metric_oper_int,
         OPERATOR::metric_operators<real,dim,2*dim>             &metric_oper_ext,
         OPERATOR::mapping_shape_functions<dim,2*dim>           &mapping_basis,
@@ -836,33 +853,6 @@ protected:
         const unsigned int grid_degree,
         dealii::Vector<real> &current_cell_rhs,
         const dealii::FEValues<dim,dim> &fe_values_lagrange) = 0;
-    /// Evaluate the integral over the cell edges that are on domain boundaries
-    virtual void assemble_boundary_term_explicit(
-        typename dealii::DoFHandler<dim>::active_cell_iterator cell,
-        const dealii::types::global_dof_index current_cell_index,
-        const unsigned int boundary_id,
-        const dealii::FEFaceValuesBase<dim,dim> &fe_values_face_int,
-        const real penalty,
-        const std::vector<dealii::types::global_dof_index> &current_dofs_indices,
-        dealii::Vector<real> &current_cell_rhs) = 0;
-    /// Evaluate the integral over the internal cell edges
-    virtual void assemble_face_term_explicit(
-        const unsigned int iface, 
-        const unsigned int neighbor_iface,
-        typename dealii::DoFHandler<dim>::active_cell_iterator cell,
-        const dealii::types::global_dof_index current_cell_index,
-        const dealii::types::global_dof_index neighbor_cell_index,
-        const unsigned int poly_degree, 
-        const unsigned int grid_degree,
-        const dealii::FEFaceValuesBase<dim,dim>     &fe_values_face_int,
-        const dealii::FEFaceValuesBase<dim,dim>     &fe_values_face_ext,
-        const real penalty,
-        const std::vector<dealii::types::global_dof_index> &current_dofs_indices,
-        const std::vector<dealii::types::global_dof_index> &neighbor_dofs_indices,
-        const std::vector<dealii::types::global_dof_index> &metric_dof_indices_int,
-        const std::vector<dealii::types::global_dof_index> &metric_dof_indices_ext,
-        dealii::Vector<real>          &current_cell_rhs,
-        dealii::Vector<real>          &neighbor_cell_rhs) = 0;
 
 
 
@@ -883,6 +873,11 @@ public:
 
     /// Asembles the auxiliary equations' residuals and solves.
     virtual void assemble_auxiliary_residual () = 0;
+
+    /// Allocate the dual vector for optimization.
+    /** Currently only used in weak form.
+    */
+    virtual void allocate_dual_vector () = 0;
 
 protected:
     MPI_Comm mpi_communicator; ///< MPI communicator
@@ -934,115 +929,6 @@ public:
     /// Set use_auxiliary_eq flag
     virtual void set_use_auxiliary_eq() = 0;
 }; // end of DGBase class
-
-/// Abstract class templated on the number of state variables
-/*  Contains the objects and functions that need to be templated on the number of state variables.
- */
-#if PHILIP_DIM==1 // dealii::parallel::distributed::Triangulation<dim> does not work for 1D
-template <int dim, int nstate, typename real, typename MeshType = dealii::Triangulation<dim>>
-#else
-template <int dim, int nstate, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
-#endif
-class DGBaseState : public DGBase<dim, real, MeshType>
-{
-protected:
-    /// Alias to base class Triangulation.
-    using Triangulation = typename DGBase<dim,real,MeshType>::Triangulation;
-
-public:
-    using DGBase<dim,real,MeshType>::all_parameters; ///< Parallel std::cout that only outputs on mpi_rank==0
-    /// Number of states for the artificial dissipation class, differs for physics type.
-    /// Constructor.
-    DGBaseState(
-        const Parameters::AllParameters *const parameters_input,
-        const unsigned int degree,
-        const unsigned int max_degree_input,
-        const unsigned int grid_degree_input,
-        const std::shared_ptr<Triangulation> triangulation_input);
-
-    /// Contains the physics of the PDE with real type
-    std::shared_ptr < Physics::PhysicsBase<dim, nstate, real > > pde_physics_double;
-    /// Contains the model terms of the PDEType == PhysicsModel with real type
-    std::shared_ptr < Physics::ModelBase<dim, nstate, real > > pde_model_double;
-    /// Convective numerical flux with real type
-    std::unique_ptr < NumericalFlux::NumericalFluxConvective<dim, nstate, real > > conv_num_flux_double;
-    /// Dissipative numerical flux with real type
-    std::unique_ptr < NumericalFlux::NumericalFluxDissipative<dim, nstate, real > > diss_num_flux_double;
-    /// Link to Artificial dissipation class (with three dissipation types, depending on the input). 
-    std::shared_ptr <ArtificialDissipationBase<dim,nstate>> artificial_dissip;
-
-    /// Contains the physics of the PDE with FadType
-    std::shared_ptr < Physics::PhysicsBase<dim, nstate, FadType > > pde_physics_fad;
-    /// Contains the model terms of the PDEType == PhysicsModel with FadType
-    std::shared_ptr < Physics::ModelBase<dim, nstate, FadType > > pde_model_fad;
-    /// Convective numerical flux with FadType
-    std::unique_ptr < NumericalFlux::NumericalFluxConvective<dim, nstate, FadType > > conv_num_flux_fad;
-    /// Dissipative numerical flux with FadType
-    std::unique_ptr < NumericalFlux::NumericalFluxDissipative<dim, nstate, FadType > > diss_num_flux_fad;
-
-    /// Contains the physics of the PDE with RadType
-    std::shared_ptr < Physics::PhysicsBase<dim, nstate, RadType > > pde_physics_rad;
-    /// Contains the model terms of the PDEType == PhysicsModel with RadType
-    std::shared_ptr < Physics::ModelBase<dim, nstate, RadType > > pde_model_rad;
-    /// Convective numerical flux with RadType
-    std::unique_ptr < NumericalFlux::NumericalFluxConvective<dim, nstate, RadType > > conv_num_flux_rad;
-    /// Dissipative numerical flux with RadType
-    std::unique_ptr < NumericalFlux::NumericalFluxDissipative<dim, nstate, RadType > > diss_num_flux_rad;
-
-    /// Contains the physics of the PDE with FadFadType
-    std::shared_ptr < Physics::PhysicsBase<dim, nstate, FadFadType > > pde_physics_fad_fad;
-    /// Contains the model terms of the PDEType == PhysicsModel with FadFadType
-    std::shared_ptr < Physics::ModelBase<dim, nstate, FadFadType > > pde_model_fad_fad;
-    /// Convective numerical flux with FadFadType
-    std::unique_ptr < NumericalFlux::NumericalFluxConvective<dim, nstate, FadFadType > > conv_num_flux_fad_fad;
-    /// Dissipative numerical flux with FadFadType
-    std::unique_ptr < NumericalFlux::NumericalFluxDissipative<dim, nstate, FadFadType > > diss_num_flux_fad_fad;
-
-    /// Contains the physics of the PDE with RadFadDtype
-    std::shared_ptr < Physics::PhysicsBase<dim, nstate, RadFadType > > pde_physics_rad_fad;
-    /// Contains the model terms of the PDEType == PhysicsModel with RadFadType
-    std::shared_ptr < Physics::ModelBase<dim, nstate, RadFadType > > pde_model_rad_fad;
-    /// Convective numerical flux with RadFadDtype
-    std::unique_ptr < NumericalFlux::NumericalFluxConvective<dim, nstate, RadFadType > > conv_num_flux_rad_fad;
-    /// Dissipative numerical flux with RadFadDtype
-    std::unique_ptr < NumericalFlux::NumericalFluxDissipative<dim, nstate, RadFadType > > diss_num_flux_rad_fad;
-
-    /** Change the physics object.
-     *  Must provide all the AD types to ensure that the derivatives are consistent.
-     */
-    void set_physics(
-        std::shared_ptr< Physics::PhysicsBase<dim, nstate, real       > > pde_physics_double_input,
-        std::shared_ptr< Physics::PhysicsBase<dim, nstate, FadType    > > pde_physics_fad_input,
-        std::shared_ptr< Physics::PhysicsBase<dim, nstate, RadType    > > pde_physics_rad_input,
-        std::shared_ptr< Physics::PhysicsBase<dim, nstate, FadFadType > > pde_physics_fad_fad_input,
-        std::shared_ptr< Physics::PhysicsBase<dim, nstate, RadFadType > > pde_physics_rad_fad_input);
-
-    /// Allocate the necessary variables declared in src/physics/model.h
-    void allocate_model_variables();
-
-    /// Update the necessary variables declared in src/physics/model.h
-    void update_model_variables();
-
-    /// Set use_auxiliary_eq flag
-    void set_use_auxiliary_eq();
-
-protected:
-    /// Evaluate the time it takes for the maximum wavespeed to cross the cell domain.
-    /** Currently only uses the convective eigenvalues. Future changes would take in account
-     *  the maximum diffusivity and take the minimum time between dx/conv_eig and dx*dx/max_visc
-     *  to determine the minimum travel time of information.
-     *
-     *  Furthermore, a more robust implementation would convert the values to a Bezier basis where
-     *  the maximum and minimum values would be bounded by the Bernstein modal coefficients.
-     */
-    real evaluate_CFL (std::vector< std::array<real,nstate> > soln_at_q, const real artificial_dissipation, const real cell_diameter, const unsigned int cell_degree);
-
-    /// Reinitializes the numerical fluxes based on the current physics.
-    /** Usually called after setting physics.
-     */
-    void reset_numerical_fluxes();
-
-}; // end of DGBaseState class
 
 } // PHiLiP namespace
 

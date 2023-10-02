@@ -1,15 +1,16 @@
 #ifndef __MESHADAPTATION_H__
 #define __MESHADAPTATION_H__
 
-#include "parameters/all_parameters.h"
-#include "dg/dg.h"
-#include "mesh_error_estimate.h"
-#include <deal.II/grid/grid_refinement.h>
-#include <deal.II/grid/tria.h>
+#include <deal.II/distributed/grid_refinement.h>
 #include <deal.II/distributed/shared_tria.h>
 #include <deal.II/distributed/tria.h>
-#include <deal.II/distributed/grid_refinement.h>
+#include <deal.II/grid/grid_refinement.h>
+#include <deal.II/grid/tria.h>
+
+#include "dg/dg_base.hpp"
+#include "mesh_error_estimate.h"
 #include "mesh_error_factory.h"
+#include "parameters/all_parameters.h"
 
 namespace PHiLiP {
 

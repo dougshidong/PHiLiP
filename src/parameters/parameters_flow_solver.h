@@ -51,9 +51,32 @@ public:
      *   will be written to file: sensitivity_table_filename.txt */
     std::string sensitivity_table_filename;
 
-    /** Name of the Gmsh file to be read if the flow_solver_case indeed reads a mesh;
-     *  will read file: input_mesh_filename.msh */
+    /** Name of the Gmsh file to be read if the flow_solver_case reads a mesh file;
+     *  will read the file: input_mesh_filename.msh */
     std::string input_mesh_filename;
+    bool use_gmsh_mesh; ///<< Flag for using input mesh file
+    bool mesh_reader_verbose_output;///<< Flag for verbose (true) or quiet (false) mesh reader output
+
+    /** Toggle for specifiying periodic boundary conditions on x, y, or z-direction
+    **/
+    bool use_periodic_BC_in_x; ///< Flag for using periodic boundary conditions in the x-direction
+    bool use_periodic_BC_in_y; ///< Flag for using periodic boundary conditions in the y-direction
+    bool use_periodic_BC_in_z; ///< Flag for using periodic boundary conditions in the z-direction
+
+    /** Custom periodic boundary condition ID in x-direction
+    **/
+    int x_periodic_id_face_1; ///< Custom Boundary IDs for the first periodic face in the x-direction
+    int x_periodic_id_face_2; ///< Custom Boundary IDs for the second periodic face in the x-direction
+
+    /** Custom periodic boundary condition ID in y-direction
+    **/
+    int y_periodic_id_face_1; ///< Custom Boundary IDs for the first periodic face in the y-direction
+    int y_periodic_id_face_2; ///< Custom Boundary IDs for the second periodic face in the y-direction
+
+    /** Custom periodic boundary condition ID in z-direction
+    **/
+    int z_periodic_id_face_1; ///< Custom Boundary IDs for the first periodic face in the z-direction
+    int z_periodic_id_face_2; ///< Custom Boundary IDs for the first periodic face in the z-direction
 
     bool restart_computation_from_file; ///< Restart computation from restart file
     bool output_restart_files; ///< Output the restart files

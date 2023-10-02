@@ -85,12 +85,12 @@ class LaplacianArtificialDissipation: public ArtificialDissipationBase <dim, nst
  
     public:
     /// Constructor of LaplacianArtificialDissipation.
-    LaplacianArtificialDissipation(): 
-    convection_diffusion_double(false,true,this->diffusion_tensor,Parameters::ManufacturedSolutionParam::get_default_advection_vector(),1.0),
-    convection_diffusion_FadType(false,true,this->diffusion_tensor,Parameters::ManufacturedSolutionParam::get_default_advection_vector(),1.0),
-    convection_diffusion_RadType(false,true,this->diffusion_tensor,Parameters::ManufacturedSolutionParam::get_default_advection_vector(),1.0),
-    convection_diffusion_FadFadType(false,true,this->diffusion_tensor,Parameters::ManufacturedSolutionParam::get_default_advection_vector(),1.0),
-    convection_diffusion_RadFadType(false,true,this->diffusion_tensor,Parameters::ManufacturedSolutionParam::get_default_advection_vector(),1.0)
+    LaplacianArtificialDissipation(const Parameters::AllParameters *const parameters_input): 
+    convection_diffusion_double(parameters_input,false,true,this->diffusion_tensor,Parameters::ManufacturedSolutionParam::get_default_advection_vector(),1.0),
+    convection_diffusion_FadType(parameters_input,false,true,this->diffusion_tensor,Parameters::ManufacturedSolutionParam::get_default_advection_vector(),1.0),
+    convection_diffusion_RadType(parameters_input,false,true,this->diffusion_tensor,Parameters::ManufacturedSolutionParam::get_default_advection_vector(),1.0),
+    convection_diffusion_FadFadType(parameters_input,false,true,this->diffusion_tensor,Parameters::ManufacturedSolutionParam::get_default_advection_vector(),1.0),
+    convection_diffusion_RadFadType(parameters_input,false,true,this->diffusion_tensor,Parameters::ManufacturedSolutionParam::get_default_advection_vector(),1.0)
     {}
 
     /// Destructor of LaplacianArtificialDissipation
@@ -152,6 +152,7 @@ class PhysicalArtificialDissipation: public ArtificialDissipationBase <dim, nsta
     /// Constructor of PhysicalArtificialDissipation.
     PhysicalArtificialDissipation(const Parameters::AllParameters *const parameters_input): //input_parameters(parameters_input) {}
     navier_stokes_double(
+        parameters_input,
         parameters_input->euler_param.ref_length,
         parameters_input->euler_param.gamma_gas,
         parameters_input->euler_param.mach_inf,
@@ -163,6 +164,7 @@ class PhysicalArtificialDissipation: public ArtificialDissipationBase <dim, nsta
         parameters_input->navier_stokes_param.nondimensionalized_constant_viscosity,
         parameters_input->navier_stokes_param.temperature_inf),
     navier_stokes_FadType(
+        parameters_input,
         parameters_input->euler_param.ref_length,
         parameters_input->euler_param.gamma_gas,
         parameters_input->euler_param.mach_inf,
@@ -174,6 +176,7 @@ class PhysicalArtificialDissipation: public ArtificialDissipationBase <dim, nsta
         parameters_input->navier_stokes_param.nondimensionalized_constant_viscosity,
         parameters_input->navier_stokes_param.temperature_inf),
     navier_stokes_RadType(
+        parameters_input,
         parameters_input->euler_param.ref_length,
         parameters_input->euler_param.gamma_gas,
         parameters_input->euler_param.mach_inf,
@@ -185,6 +188,7 @@ class PhysicalArtificialDissipation: public ArtificialDissipationBase <dim, nsta
         parameters_input->navier_stokes_param.nondimensionalized_constant_viscosity,
         parameters_input->navier_stokes_param.temperature_inf),
     navier_stokes_FadFadType(
+        parameters_input,
         parameters_input->euler_param.ref_length,
         parameters_input->euler_param.gamma_gas,
         parameters_input->euler_param.mach_inf,
@@ -196,6 +200,7 @@ class PhysicalArtificialDissipation: public ArtificialDissipationBase <dim, nsta
         parameters_input->navier_stokes_param.nondimensionalized_constant_viscosity,
         parameters_input->navier_stokes_param.temperature_inf),
     navier_stokes_RadFadType(
+        parameters_input,
         parameters_input->euler_param.ref_length,
         parameters_input->euler_param.gamma_gas,
         parameters_input->euler_param.mach_inf,
@@ -268,6 +273,7 @@ class EnthalpyConservingArtificialDissipation: public ArtificialDissipationBase 
     /// Constructor of EnthalpyConservingArtificialDissipation
     EnthalpyConservingArtificialDissipation(const Parameters::AllParameters *const parameters_input): //input_parameters(parameters_input) {}
     navier_stokes_double(
+        parameters_input,
         parameters_input->euler_param.ref_length,
         parameters_input->euler_param.gamma_gas,
         parameters_input->euler_param.mach_inf,
@@ -279,6 +285,7 @@ class EnthalpyConservingArtificialDissipation: public ArtificialDissipationBase 
         parameters_input->navier_stokes_param.nondimensionalized_constant_viscosity,
         parameters_input->navier_stokes_param.temperature_inf),
     navier_stokes_FadType(
+        parameters_input,
         parameters_input->euler_param.ref_length,
         parameters_input->euler_param.gamma_gas,
         parameters_input->euler_param.mach_inf,
@@ -290,6 +297,7 @@ class EnthalpyConservingArtificialDissipation: public ArtificialDissipationBase 
         parameters_input->navier_stokes_param.nondimensionalized_constant_viscosity,
         parameters_input->navier_stokes_param.temperature_inf),
     navier_stokes_RadType(
+        parameters_input,
         parameters_input->euler_param.ref_length,
         parameters_input->euler_param.gamma_gas,
         parameters_input->euler_param.mach_inf,
@@ -301,6 +309,7 @@ class EnthalpyConservingArtificialDissipation: public ArtificialDissipationBase 
         parameters_input->navier_stokes_param.nondimensionalized_constant_viscosity,
         parameters_input->navier_stokes_param.temperature_inf),
     navier_stokes_FadFadType(
+        parameters_input,
         parameters_input->euler_param.ref_length,
         parameters_input->euler_param.gamma_gas,
         parameters_input->euler_param.mach_inf,
@@ -312,6 +321,7 @@ class EnthalpyConservingArtificialDissipation: public ArtificialDissipationBase 
         parameters_input->navier_stokes_param.nondimensionalized_constant_viscosity,
         parameters_input->navier_stokes_param.temperature_inf),
     navier_stokes_RadFadType(
+        parameters_input,
         parameters_input->euler_param.ref_length,
         parameters_input->euler_param.gamma_gas,
         parameters_input->euler_param.mach_inf,

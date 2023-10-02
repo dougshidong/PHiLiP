@@ -2,12 +2,13 @@
 #define __FLOW_SOLVER_CASE_BASE__
 
 // for FlowSolver class:
-#include "physics/initial_conditions/initial_condition_function.h"
-#include "dg/dg.h"
-#include "parameters/all_parameters.h"
 #include <deal.II/base/table_handler.h>
 #include <deal.II/distributed/shared_tria.h>
 #include <deal.II/distributed/tria.h>
+
+#include "dg/dg_base.hpp"
+#include "parameters/all_parameters.h"
+#include "physics/initial_conditions/initial_condition_function.h"
 
 namespace PHiLiP {
 namespace FlowSolver {

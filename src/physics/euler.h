@@ -90,6 +90,7 @@ public:
     using two_point_num_flux_enum = Parameters::AllParameters::TwoPointNumericalFlux;
     /// Constructor
     Euler ( 
+        const Parameters::AllParameters *const                    parameters_input,
         const double                                              ref_length,
         const double                                              gamma_gas,
         const double                                              mach_inf,
@@ -145,7 +146,7 @@ public:
 
     /// Convective flux: \f$ \mathbf{F}_{conv} \f$
     std::array<dealii::Tensor<1,dim,real>,nstate> convective_flux (
-        const std::array<real,nstate> &conservative_soln) const;
+        const std::array<real,nstate> &conservative_soln) const override;
 
     /// Convective normal flux: \f$ \mathbf{F}_{conv} \cdot \hat{n} \f$
     std::array<real,nstate> convective_normal_flux (const std::array<real,nstate> &conservative_soln, const dealii::Tensor<1,dim,real> &normal) const;
@@ -158,10 +159,10 @@ public:
     /// Spectral radius of convective term Jacobian is 'c'
     std::array<real,nstate> convective_eigenvalues (
         const std::array<real,nstate> &/*conservative_soln*/,
-        const dealii::Tensor<1,dim,real> &/*normal*/) const;
+        const dealii::Tensor<1,dim,real> &/*normal*/) const override;
 
     /// Maximum convective eigenvalue
-    real max_convective_eigenvalue (const std::array<real,nstate> &soln) const;
+    real max_convective_eigenvalue (const std::array<real,nstate> &soln) const override;
 
     /// Maximum convective normal eigenvalue (used in Lax-Friedrichs)
     /** See the book I do like CFD, equation 3.6.18 */
@@ -170,7 +171,7 @@ public:
         const dealii::Tensor<1,dim,real> &normal) const override;
 
     /// Maximum viscous eigenvalue.
-    real max_viscous_eigenvalue (const std::array<real,nstate> &soln) const;
+    real max_viscous_eigenvalue (const std::array<real,nstate> &soln) const override;
 
     /// Dissipative flux: 0
     std::array<dealii::Tensor<1,dim,real>,nstate> dissipative_flux (
@@ -201,13 +202,11 @@ public:
         const dealii::Point<dim,real> &pos) const;
 
 protected:
-    /// Check positive density
+    /// Check positive quantity and modify it according to handle_non_physical_result()
+    /** in PhysicsBase class
+     */
     template<typename real2>
-    void check_positive_density(real2 &density) const;
-
-    /// Check positive pressure
-    template<typename real2>
-    void check_positive_pressure(real2 &pressure) const;
+    bool check_positive_quantity(real2 &quantity, const std::string qty_name) const;
 
 public:
     /// Given conservative variables [density, [momentum], total energy],

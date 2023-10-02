@@ -1,35 +1,34 @@
-#include <deal.II/base/tensor.h>
+#include "advection_explicit_periodic.h"
+
+#include <deal.II/base/convergence_table.h>
 #include <deal.II/base/function.h>
-#include <deal.II/numerics/data_out.h>
-#include <deal.II/numerics/vector_tools.h>
-#include <deal.II/numerics/solution_transfer.h>
-#include <deal.II/base/numbers.h>
 #include <deal.II/base/function_parser.h>
+#include <deal.II/base/numbers.h>
+#include <deal.II/base/tensor.h>
+#include <deal.II/fe/mapping_q.h>
 #include <deal.II/grid/grid_generator.h>
+#include <deal.II/grid/grid_in.h>
+#include <deal.II/grid/grid_out.h>
 #include <deal.II/grid/grid_refinement.h>
 #include <deal.II/grid/grid_tools.h>
-#include <deal.II/grid/grid_out.h>
-#include <deal.II/grid/grid_in.h>
-#include <deal.II/base/convergence_table.h>
+#include <deal.II/grid/manifold_lib.h>
+#include <deal.II/numerics/data_out.h>
+#include <deal.II/numerics/solution_transfer.h>
+#include <deal.II/numerics/vector_tools.h>
+#include <fenv.h>
 
+#include <fstream>
+
+#include "dg/dg_base.hpp"
+#include "dg/dg_factory.hpp"
+#include "mesh/grids/nonsymmetric_curved_periodic_grid.hpp"
+#include "ode_solver/ode_solver_factory.h"
 #include "parameters/all_parameters.h"
 #include "parameters/parameters.h"
-#include "physics/physics_factory.h"
-#include "physics/physics.h"
-#include "dg/dg.h"
-#include "dg/dg_factory.hpp"
-#include "ode_solver/ode_solver_factory.h"
-#include "advection_explicit_periodic.h"
-#include "physics/initial_conditions/set_initial_condition.h"
 #include "physics/initial_conditions/initial_condition_function.h"
-
-#include "mesh/grids/nonsymmetric_curved_periodic_grid.hpp"
-
-#include<fenv.h>
-
-#include <deal.II/grid/manifold_lib.h>
-#include <deal.II/fe/mapping_q.h>
-#include <fstream>
+#include "physics/initial_conditions/set_initial_condition.h"
+#include "physics/physics.h"
+#include "physics/physics_factory.h"
 
 namespace PHiLiP {
 namespace Tests {
@@ -149,7 +148,7 @@ int AdvectionPeriodic<dim, nstate>::run_test() const
 
         //Set the DG spatial sys
         std::shared_ptr < PHiLiP::DGBase<dim, double> > dg = PHiLiP::DGFactory<dim,double>::create_discontinuous_galerkin(&all_parameters_new, poly_degree, poly_degree, grid_degree, grid);
-        dg->allocate_system ();
+        dg->allocate_system (false,false,false);
 
         std::cout << "Implement initial conditions" << std::endl;
         // Create initial condition function

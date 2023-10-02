@@ -19,6 +19,7 @@ set(TESTS_SOURCE
     advection_explicit_periodic.cpp
     convection_diffusion_explicit_periodic.cpp
     euler_split_inviscid_taylor_green_vortex.cpp
+    TGV_scaling.cpp
     optimization_inverse_manufactured/optimization_inverse_manufactured.cpp
     dual_weighted_residual_mesh_adaptation.cpp
     anisotropic_mesh_adaptation_cases.cpp

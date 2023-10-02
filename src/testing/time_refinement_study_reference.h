@@ -1,9 +1,10 @@
 #ifndef __TIME_REFINEMENT_STUDY_REFERENCE__
 #define __TIME_REFINEMENT_STUDY_REFERENCE__
 
-#include "tests.h"
 #include <deal.II/base/convergence_table.h>
-#include "dg/dg.h"
+
+#include "dg/dg_base.hpp"
+#include "tests.h"
 
 namespace PHiLiP {
 namespace Tests {

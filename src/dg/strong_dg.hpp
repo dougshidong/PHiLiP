@@ -1,7 +1,7 @@
 #ifndef __STRONG_DISCONTINUOUSGALERKIN_H__
 #define __STRONG_DISCONTINUOUSGALERKIN_H__
 
-#include "dg.h"
+#include "dg_base_state.hpp"
 
 namespace PHiLiP {
 
@@ -38,6 +38,9 @@ public:
      */
     void assemble_auxiliary_residual ();
 
+    /// Allocate the dual vector for optimization.
+    void allocate_dual_vector ();
+
 private:
     /// Assembles the auxiliary equations' cell residuals.
     template<typename DoFCellAccessorType1, typename DoFCellAccessorType2>
@@ -58,6 +61,8 @@ protected:
         OPERATOR::basis_functions<dim,2*dim>                   &soln_basis,
         OPERATOR::basis_functions<dim,2*dim>                   &flux_basis,
         OPERATOR::local_basis_stiffness<dim,2*dim>             &flux_basis_stiffness,
+        OPERATOR::vol_projection_operator<dim,2*dim>           &soln_basis_projection_oper_int,
+        OPERATOR::vol_projection_operator<dim,2*dim>           &soln_basis_projection_oper_ext,
         OPERATOR::metric_operators<real,dim,2*dim>             &metric_oper,
         OPERATOR::mapping_shape_functions<dim,2*dim>           &mapping_basis,
         std::array<std::vector<real>,dim>                      &mapping_support_points,
@@ -83,6 +88,8 @@ protected:
         OPERATOR::basis_functions<dim,2*dim>                   &soln_basis,
         OPERATOR::basis_functions<dim,2*dim>                   &flux_basis,
         OPERATOR::local_basis_stiffness<dim,2*dim>             &flux_basis_stiffness,
+        OPERATOR::vol_projection_operator<dim,2*dim>           &soln_basis_projection_oper_int,
+        OPERATOR::vol_projection_operator<dim,2*dim>           &soln_basis_projection_oper_ext,
         OPERATOR::metric_operators<real,dim,2*dim>             &metric_oper,
         OPERATOR::mapping_shape_functions<dim,2*dim>           &mapping_basis,
         std::array<std::vector<real>,dim>                      &mapping_support_points,
@@ -115,6 +122,8 @@ protected:
         OPERATOR::basis_functions<dim,2*dim>                   &flux_basis_int,
         OPERATOR::basis_functions<dim,2*dim>                   &flux_basis_ext,
         OPERATOR::local_basis_stiffness<dim,2*dim>             &flux_basis_stiffness,
+        OPERATOR::vol_projection_operator<dim,2*dim>           &soln_basis_projection_oper_int,
+        OPERATOR::vol_projection_operator<dim,2*dim>           &soln_basis_projection_oper_ext,
         OPERATOR::metric_operators<real,dim,2*dim>             &metric_oper_int,
         OPERATOR::metric_operators<real,dim,2*dim>             &metric_oper_ext,
         OPERATOR::mapping_shape_functions<dim,2*dim>           &mapping_basis,
@@ -154,6 +163,8 @@ protected:
         OPERATOR::basis_functions<dim,2*dim>                   &flux_basis_int,
         OPERATOR::basis_functions<dim,2*dim>                   &flux_basis_ext,
         OPERATOR::local_basis_stiffness<dim,2*dim>             &flux_basis_stiffness,
+        OPERATOR::vol_projection_operator<dim,2*dim>           &soln_basis_projection_oper_int,
+        OPERATOR::vol_projection_operator<dim,2*dim>           &soln_basis_projection_oper_ext,
         OPERATOR::metric_operators<real,dim,2*dim>             &metric_oper_int,
         OPERATOR::metric_operators<real,dim,2*dim>             &metric_oper_ext,
         OPERATOR::mapping_shape_functions<dim,2*dim>           &mapping_basis,
@@ -243,6 +254,7 @@ protected:
         OPERATOR::basis_functions<dim,2*dim>               &soln_basis,
         OPERATOR::basis_functions<dim,2*dim>               &flux_basis,
         OPERATOR::local_basis_stiffness<dim,2*dim>         &flux_basis_stiffness,
+        OPERATOR::vol_projection_operator<dim,2*dim>       &soln_basis_projection_oper,
         OPERATOR::metric_operators<real,dim,2*dim>         &metric_oper,
         dealii::Vector<real>                               &local_rhs_int_cell);
 
@@ -256,6 +268,7 @@ protected:
         const std::vector<dealii::types::global_dof_index> &dof_indices,
         OPERATOR::basis_functions<dim,2*dim>               &soln_basis,
         OPERATOR::basis_functions<dim,2*dim>               &flux_basis,
+        OPERATOR::vol_projection_operator<dim,2*dim>       &soln_basis_projection_oper,
         OPERATOR::metric_operators<real,dim,2*dim>         &metric_oper,
         dealii::Vector<real>                               &local_rhs_cell);
 
@@ -282,6 +295,8 @@ protected:
         OPERATOR::basis_functions<dim,2*dim>               &soln_basis_ext,
         OPERATOR::basis_functions<dim,2*dim>               &flux_basis_int,
         OPERATOR::basis_functions<dim,2*dim>               &flux_basis_ext,
+        OPERATOR::vol_projection_operator<dim,2*dim>       &soln_basis_projection_oper_int,
+        OPERATOR::vol_projection_operator<dim,2*dim>       &soln_basis_projection_oper_ext,
         OPERATOR::metric_operators<real,dim,2*dim>         &metric_oper_int,
         OPERATOR::metric_operators<real,dim,2*dim>         &metric_oper_ext,
         dealii::Vector<real>                               &local_rhs_int_cell,
@@ -355,34 +370,6 @@ protected:
         dealii::Vector<real> &current_cell_rhs,
         const dealii::FEValues<dim,dim> &fe_values_lagrange);
     
-    /// Evaluate the integral over the cell edges that are on domain boundaries
-    void assemble_boundary_term_explicit(
-        typename dealii::DoFHandler<dim>::active_cell_iterator cell,
-        const dealii::types::global_dof_index current_cell_index,
-        const unsigned int boundary_id,
-        const dealii::FEFaceValuesBase<dim,dim> &fe_values_face_int,
-        const real penalty,
-        const std::vector<dealii::types::global_dof_index> &current_dofs_indices,
-        dealii::Vector<real> &current_cell_rhs);
-    
-    /// Evaluate the integral over the internal cell edges
-    void assemble_face_term_explicit(
-        const unsigned int iface, 
-        const unsigned int neighbor_iface,
-        typename dealii::DoFHandler<dim>::active_cell_iterator cell,
-        const dealii::types::global_dof_index current_cell_index,
-        const dealii::types::global_dof_index neighbor_cell_index,
-        const unsigned int poly_degree, 
-        const unsigned int grid_degree,
-        const dealii::FEFaceValuesBase<dim,dim>     &fe_values_face_int,
-        const dealii::FEFaceValuesBase<dim,dim>     &fe_values_face_ext,
-        const real penalty,
-        const std::vector<dealii::types::global_dof_index> &current_dofs_indices,
-        const std::vector<dealii::types::global_dof_index> &neighbor_dofs_indices,
-        const std::vector<dealii::types::global_dof_index> &metric_dof_indices_int,
-        const std::vector<dealii::types::global_dof_index> &metric_dof_indices_ext,
-        dealii::Vector<real>          &current_cell_rhs,
-        dealii::Vector<real>          &neighbor_cell_rhs);
 
     using DGBase<dim,real,MeshType>::pcout; ///< Parallel std::cout that only outputs on mpi_rank==0
     

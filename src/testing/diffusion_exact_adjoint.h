@@ -1,18 +1,18 @@
 #ifndef __DIFFUSION_EXACT_ADJOINT_H__
 #define __DIFFUSION_EXACT_ADJOINT_H__
 
-#include <memory>
-
 #include <deal.II/base/tensor.h>
 #include <deal.II/base/types.h>
 
-#include "tests.h"
-#include "dg/dg.h"
-#include "physics/physics.h"
+#include <memory>
+
+#include "dg/dg_base.hpp"
+#include "functional/functional.h"
+#include "parameters/all_parameters.h"
 #include "physics/convection_diffusion.h"
 #include "physics/manufactured_solution.h"
-#include "parameters/all_parameters.h"
-#include "functional/functional.h"
+#include "physics/physics.h"
+#include "tests.h"
 
 namespace PHiLiP {
 namespace Tests {
@@ -117,10 +117,12 @@ protected:
 public:
     /// constructor
     diffusion_objective(
+        const Parameters::AllParameters *const                  parameters_input,
         const bool                                              convection, 
         const bool                                              diffusion,
         std::shared_ptr<ManufacturedSolutionFunction<dim,real>> manufactured_solution_function): 
             Physics::ConvectionDiffusion<dim,nstate,real>::ConvectionDiffusion(
+                parameters_input,
                 convection, 
                 diffusion,
                 default_diffusion_tensor(),
@@ -177,9 +179,11 @@ protected:
 public:
     /// constructor
     diffusion_u(
+        const Parameters::AllParameters *const parameters_input,
         const bool convection, 
         const bool diffusion): 
             diffusion_objective<dim,nstate,real>::diffusion_objective(
+                parameters_input,
                 convection, 
                 diffusion,
                 std::make_shared<ManufacturedSolutionU<dim,real>>())
@@ -214,9 +218,11 @@ protected:
 public:
     /// constructor
     diffusion_v(
+        const Parameters::AllParameters *const parameters_input,
         const bool convection, 
         const bool diffusion): 
             diffusion_objective<dim,nstate,real>::diffusion_objective(
+                parameters_input,
                 convection, 
                 diffusion,
                 std::make_shared<ManufacturedSolutionV<dim,real>>())

@@ -6,24 +6,34 @@
 #include "parameters/all_parameters.h"
 
 namespace PHiLiP {
-    namespace Tests {
+namespace Tests {
 
-        /// Linear advection through periodic boundary conditions.
-        template <int dim, int nstate>
-        class AdvectionLimiter : public TestsBase
-        {
-        public:
-            /// Constructor.
-            explicit AdvectionLimiter(const Parameters::AllParameters* const parameters_input);
+/// Linear advection through periodic boundary conditions.
+template <int dim, int nstate>
+class AdvectionLimiter : public TestsBase
+{
+public:
+    /// Constructor.
+    explicit AdvectionLimiter(const Parameters::AllParameters* const parameters_input,
+        const dealii::ParameterHandler& parameter_handler_input);
 
-            /// Currently passes no matter what.
-            /** Since it is linear advection, the exact solution about time T is known. Convergence orders can/should be checked.
-             *  TO BE FIXED.
-             */
-            int run_test() const override;
-        private:
-        };
+    /// Parameter handler for storing the .prm file being ran
+    const dealii::ParameterHandler& parameter_handler;
 
-    } // End of Tests namespace
+    /// Currently passes no matter what.
+    /** Since it is linear advection, the exact solution about time T is known. Convergence orders can/should be checked.
+        *  TO BE FIXED.
+        */
+    int run_test() const override;
+
+private:
+    int run_advection_lim() const;
+
+    int run_advection_lim_conv() const;
+
+    void set_initial_time_step(const unsigned int n_global_active_cells, const int poly_degree) const;
+};
+
+} // End of Tests namespace
 } // End of PHiLiP namespace
 #endif

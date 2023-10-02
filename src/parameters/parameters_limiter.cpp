@@ -27,7 +27,7 @@ void LimiterParam::declare_parameters (dealii::ParameterHandler &prm)
                            " positivity_preservingZhang2010 | "
                            " positivity_preservingWang2012>.");
 
-        prm.declare_entry("pos_eps", "1e-13",
+        prm.declare_entry("min_density", "1e-13",
                           dealii::Patterns::Double(1e-20, 1e200),
                           "Lower bound for density used in Positivity-Preserving Limiter. Small value greater than zero, less than solution at all times.");
 
@@ -58,7 +58,8 @@ void LimiterParam::parse_parameters (dealii::ParameterHandler &prm)
         if (bound_preserving_limiter_string == "maximum_principle")                  bound_preserving_limiter = LimiterType::maximum_principle;
         if (bound_preserving_limiter_string == "positivity_preservingZhang2010")     bound_preserving_limiter = LimiterType::positivity_preservingZhang2010;
         if (bound_preserving_limiter_string == "positivity_preservingWang2012")      bound_preserving_limiter = LimiterType::positivity_preservingWang2012;
-        pos_eps = prm.get_double("pos_eps");
+
+        min_density = prm.get_double("min_density");
 
         use_tvb_limiter = prm.get_bool("use_tvb_limiter");
         max_delta_x = prm.get_double("max_delta_x");

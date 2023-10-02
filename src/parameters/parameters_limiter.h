@@ -22,7 +22,7 @@ public:
     LimiterType bound_preserving_limiter;
 
     // Epsilon value for Positivity-Preserving Limiter
-    double pos_eps;
+    double min_density;
 
     /// Flag for applying TVB Limiter
     bool use_tvb_limiter;

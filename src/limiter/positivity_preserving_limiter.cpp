@@ -220,7 +220,7 @@ void PositivityPreservingLimiter_Zhang2010<dim, nstate, real>::limit(
         // Obtain solution cell average
         std::array<real, nstate> soln_cell_avg = get_soln_cell_avg(soln_at_q, n_quad_pts, quad_weights);
 
-        real pos_eps = this->all_parameters->limiter_param.pos_eps;
+        real pos_eps = this->all_parameters->limiter_param.min_density;
         real p_avg = 1e-13;
         if (nstate == dim + 2) {
             // Compute average value of pressure using soln_cell_avg
@@ -398,7 +398,7 @@ void PositivityPreservingLimiter_Wang2012<dim, nstate, real>::limit(
         // Obtain solution cell average
         std::array<real, nstate> soln_cell_avg = get_soln_cell_avg(soln_at_q, n_quad_pts, quad_weights);
 
-        real pos_eps = this->all_parameters->limiter_param.pos_eps;
+        real pos_eps = this->all_parameters->limiter_param.min_density;
         real p_avg = 1e-13;
 
         if (nstate == dim + 2) {

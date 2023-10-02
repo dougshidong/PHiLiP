@@ -32,7 +32,9 @@ public:
         sod_shock_tube,
         low_density_2d,
         leblanc_shock_tube,
-        shu_osher_problem
+        shu_osher_problem,
+        advection_limiter,
+        burgers_limiter
         };
     FlowCaseType flow_case_type; ///< Selected FlowCaseType from the input file
 

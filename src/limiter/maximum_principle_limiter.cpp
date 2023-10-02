@@ -90,6 +90,7 @@ void MaximumPrincipleLimiter<dim, nstate, real>::write_limited_solution(
         for (unsigned int ishape = 0; ishape < n_shape_fns; ++ishape) {
             const unsigned int idof = istate * n_shape_fns + ishape;
             solution[current_dofs_indices[idof]] = soln_dofs[istate][ishape];
+
             if (solution[current_dofs_indices[idof]] > global_max[istate] + 1e-13) {
                 std::cout << "Error: Solution exceeds global maximum   -   Aborting... Value:   " << solution[current_dofs_indices[idof]] << std::endl << std::flush;
                 std::abort();

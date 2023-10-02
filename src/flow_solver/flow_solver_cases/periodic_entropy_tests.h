@@ -55,6 +55,9 @@ protected:
     
     /// Storing entropy at first step
     double initial_entropy;
+
+    /// Store previous entropy
+    double previous_numerical_entropy;
     
     /// Last time (for calculating relaxation factor)
     double previous_time=0;

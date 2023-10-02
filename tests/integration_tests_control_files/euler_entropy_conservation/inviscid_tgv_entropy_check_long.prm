@@ -13,7 +13,7 @@ set use_weak_form = false
 set use_split_form = true
 set flux_nodes_type = GLL
 
-set flux_reconstruction = cDG
+set flux_reconstruction = cPlus
 set use_inverse_mass_on_the_fly = true
 
 # Note: this was added to turn off check_same_coords() -- has no other function when dim!=1
@@ -26,8 +26,19 @@ set two_point_num_flux_type = Ra
 # ODE solver
 subsection ODE solver
   set ode_output = quiet
-  set ode_solver_type = runge_kutta
+  set ode_solver_type = rrk_explicit 
+  #set ode_solver_type = runge_kutta
   set runge_kutta_method = ssprk3_ex
+end
+
+subsection linear solver
+  set linear_solver_output = verbose
+  subsection gmres options
+    set linear_residual_tolerance = 1e-5
+  end
+  subsection JFNK options
+    set newton_residual = 0.0024
+  end
 end
 
 # freestream Mach number

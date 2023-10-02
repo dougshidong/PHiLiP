@@ -35,8 +35,8 @@ set enable_higher_order_vtk_output = true
 # ODE solver
 subsection ODE solver
   set ode_output = quiet
-  #set ode_solver_type = rrk_explicit
-  set ode_solver_type = runge_kutta
+  set ode_solver_type = rrk_explicit
+  #set ode_solver_type = runge_kutta
   set output_solution_every_dt_time_intervals = 0.0
   set output_solution_at_fixed_times = true
   set output_solution_fixed_times_string = 4.0 5.0 8.0 9.0 10.0 12.0 15.0 16.0 20.0 
@@ -78,7 +78,7 @@ end
 # Flow Solver
 subsection flow_solver
   set flow_case_type = taylor_green_vortex
-  set poly_degree = 5
+  set poly_degree = 3
   set final_time = 20.001
   set courant_friedrichs_lewy_number = 0.1
   set unsteady_data_table_filename = turbulent_quantities
@@ -91,7 +91,7 @@ subsection flow_solver
     set grid_degree = 1
     set grid_left_bound = -3.141592653589793238
     set grid_right_bound = 3.141592653589793238
-    set number_of_grid_elements_per_dimension = 4
+    set number_of_grid_elements_per_dimension = 8
   end
   subsection taylor_green_vortex
     set density_initial_condition_type = isothermal

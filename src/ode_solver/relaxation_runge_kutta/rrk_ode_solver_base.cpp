@@ -6,7 +6,7 @@ namespace ODE {
 template <int dim, typename real, int n_rk_stages, typename MeshType>
 RRKODESolverBase<dim,real,n_rk_stages,MeshType>::RRKODESolverBase(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input,
             std::shared_ptr<RKTableauBase<dim,real,MeshType>> rk_tableau_input)
-        : RungeKuttaODESolver<dim,real,n_rk_stages,MeshType>(dg_input,rk_tableau_input)
+        : RKNumEntropy<dim,real,n_rk_stages,MeshType>(dg_input,rk_tableau_input)
 {
     relaxation_parameter = 1.0;
 }
@@ -19,8 +19,6 @@ void RRKODESolverBase<dim,real,n_rk_stages,MeshType>::modify_time_step(real &dt)
     this->dg->assemble_residual();
 
     relaxation_parameter = compute_relaxation_parameter(dt);
-    if (this->all_parameters->ode_solver_param.ode_output == Parameters::OutputEnum::verbose) 
-        this->pcout << "time = " << this->current_time << " relaxation parameter = " << relaxation_parameter << std::endl;
 
     if (relaxation_parameter < 0.5 ){
         this->pcout << "RRK failed to find a reasonable relaxation factor. Aborting..." << std::endl;

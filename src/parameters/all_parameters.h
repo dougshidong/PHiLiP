@@ -266,6 +266,7 @@ public:
 
     /// Enum of nonphysical behavior
     enum NonPhysicalBehaviorEnum {return_big_number, abort_run, print_warning};
+    
     /// Specify behavior on nonphysical results
     NonPhysicalBehaviorEnum non_physical_behavior_type;
 
@@ -283,9 +284,9 @@ public:
 
     /// Flag for renumbering DOFs
     bool do_renumber_dofs;
-
     /// Renumber dofs type.
     enum RenumberDofsType { CuthillMckee };
+    
     /// Store selected RenumberDofsType from the input file.
     RenumberDofsType renumber_dofs_type;
 

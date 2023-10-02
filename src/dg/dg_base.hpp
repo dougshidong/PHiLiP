@@ -268,11 +268,14 @@ public:
     /// Applies the local metric dependent mass matrices when the global is not stored.
     /** We use matrix-free methods to apply the local mass matrix on-the-fly 
     *   in each cell using sum-factorization techniques.
+    *   use_M_norm flag allows the unmodified mass matrix to be used 
+    *   i.e., M rather than M+K.
     */
     void apply_global_mass_matrix(
         const dealii::LinearAlgebra::distributed::Vector<double> &input_vector,
         dealii::LinearAlgebra::distributed::Vector<double> &output_vector,
-        const bool use_auxiliary_eq = false);
+        const bool use_auxiliary_eq = false,
+        const bool use_M_norm = false);
 
     /// Evaluates the maximum stable time step
     /** If exact_time_stepping = true, use the same time step for the entire solution
@@ -928,6 +931,15 @@ public:
     bool use_auxiliary_eq;
     /// Set use_auxiliary_eq flag
     virtual void set_use_auxiliary_eq() = 0;
+
+public:
+    
+    /// Entropy FR correction at the current timestep
+    /** Used in entropy-RRK ODE solver.
+     * This is stored in dg such that both flow solver case and ode solver can access it. 
+     * flow solver cases have no access to ode solver. */
+    double FR_entropy_contribution;
+
 }; // end of DGBase class
 
 } // PHiLiP namespace

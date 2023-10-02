@@ -252,7 +252,11 @@ void PeriodicEntropyTests<dim, nstate>::compute_unsteady_data_and_write_to_table
 
     // All discrete proofs use solution nodes, therefore it is best to report 
     // entropy on the solution nodes rather than by overintegrating.
-    const double entropy = this->compute_integrated_quantities(*dg, IntegratedQuantityEnum::numerical_entropy, 0); //do not overintegrate
+    const double current_numerical_entropy = this->compute_integrated_quantities(*dg, IntegratedQuantityEnum::numerical_entropy, 0); //do not overintegrate
+    if (current_iteration==0) this->previous_numerical_entropy = current_numerical_entropy;
+    const double entropy = current_numerical_entropy - previous_numerical_entropy + dg->FR_entropy_contribution;
+    this->previous_numerical_entropy = current_numerical_entropy;
+
     if (std::isnan(entropy)){
         // Note that this throws an exception rather than using abort()
         // such that the test khi_robustness can start another test after
@@ -260,7 +264,7 @@ void PeriodicEntropyTests<dim, nstate>::compute_unsteady_data_and_write_to_table
         this->pcout << "Entropy is nan. Ending flow simulation by throwing an exception..." << std::endl << std::flush;
         throw current_time;
     }
-    if (current_iteration == 0)  initial_entropy = entropy;
+    if (current_iteration == 0)  initial_entropy = current_numerical_entropy;
 
     double relaxation_parameter = 0;
     if (is_rrk) relaxation_parameter = dt_actual/dt;
@@ -283,7 +287,7 @@ void PeriodicEntropyTests<dim, nstate>::compute_unsteady_data_and_write_to_table
             this->pcout << "    Iter: " << current_iteration
                         << "    Time: " << std::setprecision(16) << current_time
                         << "    Entropy: " << entropy
-                        << "    U/Uo: " << entropy/initial_entropy
+                        << "    (U-Uo)/Uo: " << entropy/initial_entropy
                         << "    Kinetic energy: " << kinetic_energy;
             if (is_rrk)
                 this->pcout << "    Relaxation Parameter: " << relaxation_parameter;

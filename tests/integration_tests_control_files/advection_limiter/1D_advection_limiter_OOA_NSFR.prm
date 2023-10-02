@@ -1,12 +1,11 @@
 # -------------------
-
 set test_type = advection_limiter
 
 # Number of dimensions
 set dimension = 1
 
 set use_weak_form = false
-set flux_nodes_type = GLL
+set flux_nodes_type = GL
 
 # NSFR - Ra
 set use_split_form = true
@@ -37,10 +36,28 @@ subsection ODE solver
 
   set runge_kutta_method = ssprk3_ex
 
-  set output_solution_every_x_steps = 100
+  set output_solution_every_x_steps = 0
 
 end
 
 subsection flow_solver
-    set flow_case_type = advection
+  set flow_case_type = advection_limiter
+  set poly_degree = 2
+  set final_time = 0.1
+  set constant_time_step = 0.0024
+  set courant_friedrichs_lewy_number = 0.25
+  set adaptive_time_step = false
+  set unsteady_data_table_filename = advection_shock_energy
+  subsection grid
+    set grid_left_bound = -1.0
+    set grid_right_bound = 1.0
+    set number_of_grid_elements_per_dimension = 256
+    set number_of_mesh_refinements = 1
+  end
 end
+
+subsection manufactured solution convergence study
+  set use_manufactured_source_term = false
+  set number_of_grids = 8
+end
+

@@ -26,8 +26,8 @@ subsection limiter
   set pos_eps = 1e-13
 
   set use_tvb_limiter = true
-  set tvb_h = 0.0390625
-  set tvb_M = 0.1,10,10,1
+  set max_delta_x = 0.0390625
+  set tuning_parameter_for_each_state = 0.1,100,100,0
 end
 
 

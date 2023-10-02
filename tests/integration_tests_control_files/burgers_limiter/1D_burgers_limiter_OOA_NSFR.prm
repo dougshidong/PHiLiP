@@ -1,26 +1,34 @@
+# -------------------
 set test_type = burgers_limiter
 
+# Number of dimensions
 set dimension = 1
 
 set use_weak_form = false
 set flux_nodes_type = GL
 
-set use_periodic_bc = true
-set pde_type = burgers_inviscid
+# Strong DG - LaxF
+#set use_split_form = false
+#set conv_num_flux = lax_friedrichs
 
 # NSFR - Ra
 set use_split_form = true
 set two_point_num_flux_type = Ra
 set conv_num_flux = two_point_flux_with_lax_friedrichs_dissipation
 
+# The PDE we want to solve
+set pde_type = burgers_inviscid
+
 subsection limiter
   set bound_preserving_limiter = maximum_principle
   set use_OOA = true
 end
 
+set do_renumber_dofs = false
+
 subsection ODE solver
 
-  set ode_output = verbose
+  set ode_output = quiet
   
   set nonlinear_max_iterations = 500000
 
@@ -32,13 +40,27 @@ subsection ODE solver
 
   set runge_kutta_method = ssprk3_ex
 
-  set output_solution_every_x_steps = 1o
+  set output_solution_every_x_steps = 0
+
+end
+
+subsection flow_solver
+  set flow_case_type = burgers_limiter
+  set poly_degree = 2
+  set final_time = 0.15
+  set constant_time_step = 0.0024
+  set courant_friedrichs_lewy_number = 0.15
+  set adaptive_time_step = false
+  set unsteady_data_table_filename = advection_shock_energy
+  subsection grid
+    set grid_left_bound = -1.0
+    set grid_right_bound = 1.0
+    set number_of_grid_elements_per_dimension = 256
+    set number_of_mesh_refinements = 0
+  end
 end
 
 subsection manufactured solution convergence study
   set use_manufactured_source_term = true
-end
-
-subsection flow_solver
-    set flow_case_type = burgers_inviscid
+  set number_of_grids = 10
 end

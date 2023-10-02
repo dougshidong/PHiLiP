@@ -1,7 +1,7 @@
 #ifndef __RK_NUM_ENTROPY_H__
 #define __RK_NUM_ENTROPY_H__
 
-#include "dg/dg.h"
+#include "dg/dg_base.hpp"
 //#include "ode_solver/runge_kutta_ode_solver.h"
 #include "ode_solver/explicit_ode_solver.h"
 

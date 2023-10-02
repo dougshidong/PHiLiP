@@ -1,7 +1,7 @@
 #ifndef __ENTROPY_RRK_ODESOLVER_H_
 #define __ENTROPY_RRK_ODESOLVER_H_
 
-#include "dg/dg.h"
+#include "dg/dg_base.hpp"
 #include "rrk_ode_solver_base.h"
 
 namespace PHiLiP {

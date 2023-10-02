@@ -53,9 +53,8 @@ subsection flow_solver
   set adaptive_time_step = false
   set unsteady_data_table_filename = burgers_shock_energy
   subsection grid
-    set grid_left_bound = -1.0
-    set grid_right_bound = 1.0
-    set number_of_grid_elements_per_dimension = 256
+    set grid_left_bound = 0.0
+    set grid_right_bound = 2.0
     set number_of_mesh_refinements = 0
   end
 end

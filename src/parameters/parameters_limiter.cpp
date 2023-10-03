@@ -37,12 +37,12 @@ void LimiterParam::declare_parameters (dealii::ParameterHandler &prm)
 
         prm.declare_entry("max_delta_x", "1.0",
                           dealii::Patterns::Double(0, 1e200),
-                          "Maximum delta_x.");
+                          "Maximum delta_x required for minmod function within TVB Limiter.");
 
         using convert_tensor = dealii::Patterns::Tools::Convert<dealii::Tensor<1, 4, double>>;
         prm.declare_entry("tuning_parameter_for_each_state", "0,0,0,0", 
                           *convert_tensor::to_pattern(), 
-                          "TVB Limiter tuning parameters for each state.");
+                          "TVB Limiter tuning parameters for each state. Set to 0 if TVD is required.");
     }
     prm.leave_subsection();
 }

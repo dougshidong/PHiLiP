@@ -23,18 +23,11 @@ template <int dim, int nstate, typename real>
 InitialConditionFunction_TaylorGreenVortex<dim,nstate,real>
 ::InitialConditionFunction_TaylorGreenVortex (
         Parameters::AllParameters const *const param)
-    : InitialConditionFunction<dim,nstate,real>()
+    : InitialConditionFunction_EulerBase<dim, nstate, real>(param)
     , gamma_gas(param->euler_param.gamma_gas)
     , mach_inf(param->euler_param.mach_inf)
     , mach_inf_sqr(mach_inf*mach_inf)
-{
-    // Euler object; create using dynamic_pointer_cast and the create_Physics factory
-    // Note that Euler primitive/conservative vars are the same as NS
-    PHiLiP::Parameters::AllParameters parameters_euler = *param;
-    parameters_euler.pde_type = Parameters::AllParameters::PartialDifferentialEquation::euler;
-    this->euler_physics = std::dynamic_pointer_cast<Physics::Euler<dim,dim+2,double>>(
-                Physics::PhysicsFactory<dim,dim+2,double>::create_Physics(&parameters_euler));
-}
+{}
 template <int dim, int nstate, typename real>
 real InitialConditionFunction_TaylorGreenVortex<dim,nstate,real>
 ::primitive_value(const dealii::Point<dim,real> &point, const unsigned int istate) const
@@ -65,37 +58,6 @@ real InitialConditionFunction_TaylorGreenVortex<dim,nstate,real>
             value = 1.0/(this->gamma_gas*this->mach_inf_sqr) + (1.0/16.0)*(cos(2.0*x)+cos(2.0*y))*(cos(2.0*z)+2.0);
         }
     }
-    return value;
-}
-
-template <int dim, int nstate, typename real>
-real InitialConditionFunction_TaylorGreenVortex<dim,nstate,real>
-::convert_primitive_to_conversative_value(
-    const dealii::Point<dim,real> &point, const unsigned int istate) const
-{
-    real value = 0.0;
-    if constexpr(dim == 3) {
-        std::array<real,nstate> soln_primitive;
-
-        soln_primitive[0] = primitive_value(point,0);
-        soln_primitive[1] = primitive_value(point,1);
-        soln_primitive[2] = primitive_value(point,2);
-        soln_primitive[3] = primitive_value(point,3);
-        soln_primitive[4] = primitive_value(point,4);
-
-        const std::array<real,nstate> soln_conservative = this->euler_physics->convert_primitive_to_conservative(soln_primitive);
-        value = soln_conservative[istate];
-    }
-
-    return value;
-}
-
-template <int dim, int nstate, typename real>
-inline real InitialConditionFunction_TaylorGreenVortex<dim, nstate, real>
-::value(const dealii::Point<dim,real> &point, const unsigned int istate) const
-{
-    real value = 0.0;
-    value = convert_primitive_to_conversative_value(point,istate);
     return value;
 }
 
@@ -477,9 +439,9 @@ real InitialConditionFunction_EulerBase<dim, nstate, real>
     soln_primitive[1] = primitive_value(point, 1);
     soln_primitive[2] = primitive_value(point, 2);
     
-    if(dim > 1)
+    if constexpr (dim > 1)
         soln_primitive[3] = primitive_value(point, 3);
-    if(dim > 2)
+    if constexpr (dim > 2)
         soln_primitive[4] = primitive_value(point, 4);
 
     const std::array<real, nstate> soln_conservative = this->euler_physics->convert_primitive_to_conservative(soln_primitive);
@@ -658,11 +620,11 @@ real InitialConditionFunction_ShuOsherProblem<dim, nstate, real>
                 // density
                 value = 3.857143;
             }
-            if (istate == 1) {
+            else if (istate == 1) {
                 // x-velocity
                 value = 2.629369;
             }
-            if (istate == 2) {
+            else if (istate == 2) {
                 // pressure
                 value = 10.33333;
             }
@@ -672,11 +634,11 @@ real InitialConditionFunction_ShuOsherProblem<dim, nstate, real>
                 // density
                 value = 1 + 0.2 * sin(5 * x);
             }
-            if (istate == 1) {
+            else if (istate == 1) {
                 // x-velocity
                 value = 0.0;
             }
-            if (istate == 2) {
+            else if (istate == 2) {
                 // pressure
                 value = 1.0;
             }

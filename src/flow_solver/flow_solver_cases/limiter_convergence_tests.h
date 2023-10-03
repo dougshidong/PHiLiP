@@ -1,5 +1,5 @@
-#ifndef __LIMITER_CONV_TESTS__
-#define __LIMITER_CONV_TESTS__
+#ifndef __LIMITER_CONVERGENCE_TESTS__
+#define __LIMITER_CONVERGENCE_TESTS__
 
 #include "flow_solver_case_base.h"
 
@@ -10,7 +10,7 @@ namespace FlowSolver{
 // Limiter Convergence Tests (Advection, Burgers, 2D Low Density)
 //===============================================================
 template <int dim, int nstate>
-class LimiterConvTests : public FlowSolverCaseBase<dim, nstate>
+class LimiterConvergenceTests : public FlowSolverCaseBase<dim, nstate>
 {
 #if PHILIP_DIM==1
     using Triangulation = dealii::Triangulation<PHILIP_DIM>;
@@ -19,10 +19,10 @@ class LimiterConvTests : public FlowSolverCaseBase<dim, nstate>
 #endif
 public:
     /// Constructor
-    explicit LimiterConvTests(const Parameters::AllParameters *const parameters_input);
+    explicit LimiterConvergenceTests(const Parameters::AllParameters *const parameters_input);
     
     /// Destructor
-    ~LimiterConvTests() = default;
+    ~LimiterConvergenceTests() = default;
 
     /// Function to generate the grid
     std::shared_ptr<Triangulation> generate_grid() const override;

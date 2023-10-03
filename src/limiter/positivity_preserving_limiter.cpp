@@ -50,9 +50,9 @@ PositivityPreservingLimiter<dim, nstate, real>::PositivityPreservingLimiter(
 
 template <int dim, int nstate, typename real>
 std::vector<real> PositivityPreservingLimiter<dim, nstate, real>::get_theta2_Zhang2010(
-    const std::vector< real >& p_lim,
-    const std::array<real, nstate>& soln_cell_avg,
-    const std::array<std::vector<real>, nstate>& soln_at_q,
+    const std::vector< real >&                      p_lim,
+    const std::array<real, nstate>&                 soln_cell_avg,
+    const std::array<std::vector<real>, nstate>&    soln_at_q,
     const unsigned int                              n_quad_pts,
     const double                                    eps,
     const double                                    gamma)
@@ -100,7 +100,7 @@ std::vector<real> PositivityPreservingLimiter<dim, nstate, real>::get_theta2_Zha
 
 template <int dim, int nstate, typename real>
 real PositivityPreservingLimiter<dim, nstate, real>::get_theta2_Wang2012(
-    const std::array<std::vector<real>, nstate>& soln_at_q,
+    const std::array<std::vector<real>, nstate>&    soln_at_q,
     const unsigned int                              n_quad_pts,
     const double                                    p_avg)
 {

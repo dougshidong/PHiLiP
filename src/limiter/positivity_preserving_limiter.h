@@ -48,15 +48,15 @@ public:
         const dealii::hp::QCollection<1>                        oneD_quadrature_collection);
 protected:
     std::vector<real> get_theta2_Zhang2010(
-        const std::vector< real >& p_lim,
-        const std::array<real, nstate>& soln_cell_avg,
-        const std::array<std::vector<real>, nstate>& soln_at_q,
+        const std::vector< real >&                      p_lim,
+        const std::array<real, nstate>&                 soln_cell_avg,
+        const std::array<std::vector<real>, nstate>&    soln_at_q,
         const unsigned int                              n_quad_pts,
         const double                                    eps,
         const double                                    gamma);
 
     real get_theta2_Wang2012(
-        const std::array<std::vector<real>, nstate>& soln_at_q,
+        const std::array<std::vector<real>, nstate>&    soln_at_q,
         const unsigned int                              n_quad_pts,
         const double                                    p_avg);
 
@@ -67,10 +67,10 @@ protected:
         const double    p_avg);
 
     void write_limited_solution(
-        dealii::LinearAlgebra::distributed::Vector<double>& solution,
-        const std::array<std::vector<real>, nstate>& soln_dofs,
+        dealii::LinearAlgebra::distributed::Vector<double>&     solution,
+        const std::array<std::vector<real>, nstate>&            soln_dofs,
         const unsigned int                                      n_shape_fns,
-        const std::vector<dealii::types::global_dof_index>& current_dofs_indices);
+        const std::vector<dealii::types::global_dof_index>&     current_dofs_indices);
 
 }; // End of PositivityPreservingLimiter Class
 } // PHiLiP namespace

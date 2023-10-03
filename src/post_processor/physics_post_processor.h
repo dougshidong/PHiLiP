@@ -26,7 +26,7 @@ class PhysicsPostprocessor : public dealii::DataPostprocessor<dim>
 {
 public:
     /// Constructor.
-    PhysicsPostprocessor (const Parameters::AllParameters *const parameters_input);
+    explicit PhysicsPostprocessor (const Parameters::AllParameters *const parameters_input);
 
     /// Model passed to create_Physics
     std::shared_ptr < Physics::ModelBase<dim, nstate, double > > model;

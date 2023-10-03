@@ -12,7 +12,6 @@ namespace Parameters {
 class FlowSolverParam
 {
 public:
-    FlowSolverParam(); ///< Constructor
 
     /// Selects the flow case to be simulated
     enum FlowCaseType{

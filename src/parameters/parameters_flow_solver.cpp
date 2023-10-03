@@ -6,9 +6,6 @@ namespace PHiLiP {
 
 namespace Parameters {
 
-// Flow Solver inputs
-FlowSolverParam::FlowSolverParam() {}
-
 void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
 {
     prm.enter_subsection("flow_solver");

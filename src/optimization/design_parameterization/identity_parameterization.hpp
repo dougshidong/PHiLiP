@@ -14,12 +14,9 @@ class IdentityParameterization : public BaseParameterization<dim> {
 
 public:
     /// Constructor
-    IdentityParameterization(
+    explicit IdentityParameterization(
         std::shared_ptr<HighOrderGrid<dim,double>> _high_order_grid); 
-    
-    /// Destructor
-    ~IdentityParameterization() {};
-    
+
     /// Initializes design variables with volume nodes and set locally owned and ghost indices. Overrides the virtual function in base class.
     void initialize_design_variables(VectorType &design_var) override;
     

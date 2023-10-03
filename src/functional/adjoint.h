@@ -56,9 +56,6 @@ public:
         std::shared_ptr< Functional<dim, nstate, real, MeshType> > _functional,
         std::shared_ptr< Physics::PhysicsBase<dim,nstate,Sacado::Fad::DFad<real>> > _physics);
 
-    ///destructor
-    ~Adjoint();
-
     /// Reinitialize Adjoint with the same pointers
     /** Sets adjoint_state to AdjointEnum::coarse and stores the current
      *  solution and polynomial order distribution

@@ -9,9 +9,6 @@ namespace PHiLiP {
 
 namespace Parameters {
 
-// Manufactured Solution inputs
-GridRefinementParam::GridRefinementParam(){}
-
 void GridRefinementParam::declare_parameters(dealii::ParameterHandler &prm)
 {
     // prm.enter_subsection("grid refinement");

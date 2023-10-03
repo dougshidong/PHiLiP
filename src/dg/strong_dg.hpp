@@ -28,9 +28,6 @@ public:
         const unsigned int grid_degree_input,
         const std::shared_ptr<Triangulation> triangulation_input);
 
-    /// Destructor
-    ~DGStrong();
-
     /// Assembles the auxiliary equations' residuals and solves for the auxiliary variables.
     /** For information regarding auxiliary vs. primary quations, see 
      *  Quaegebeur, Nadarajah, Navah and Zwanenburg 2019: Stability of Energy Stable Flux 

@@ -37,9 +37,6 @@ public:
         std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function = nullptr,
         const two_point_num_flux_enum                             two_point_num_flux_type = two_point_num_flux_enum::KG);
 
-    /// Destructor
-    ~ReynoldsAveragedNavierStokes_SAneg() {};
-
     /// Number of PDEs for RANS equations
     static const int nstate_navier_stokes = dim+2;
 

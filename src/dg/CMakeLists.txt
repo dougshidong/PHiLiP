@@ -15,6 +15,7 @@ foreach(dim RANGE 1 3)
     add_library(${DiscontinuousGalerkinLib} STATIC ${DG_SOURCE})
     # Replace occurences of PHILIP_DIM with 1, 2, or 3 in the code
     target_compile_definitions(${DiscontinuousGalerkinLib} PRIVATE PHILIP_DIM=${dim})
+    set_source_files_properties(${DG_SOURCE} LANGUAGE CXX)
 
     # Library dependency
     string(CONCAT SolutionLib Solution_${dim}D)

@@ -42,7 +42,6 @@ std::shared_ptr<Triangulation> LimiterConvergenceTests<dim,nstate>::generate_gri
 
     PHiLiP::Grids::straight_periodic_cube<dim, Triangulation>(grid, left, right, pow(2.0, number_of_refinements));
 
-    //grid->refine_global(number_of_refinements);
     std::cout << "Grid generated and refined" << std::endl;
 
     return grid;

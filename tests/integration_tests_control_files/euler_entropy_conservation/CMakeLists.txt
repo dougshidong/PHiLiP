@@ -21,13 +21,14 @@ add_test(
 # =======================================
 # ----------------------------------------
 # - Runs full time on inviscid TGV
+# - Included for test set-up; should not be included in ctest
 # ----------------------------------------
-configure_file(inviscid_tgv_entropy_check_long.prm inviscid_tgv_entropy_check_long.prm COPYONLY)
-add_test(
-    NAME MPI_3D_EULER_RRK_ENTROPY_CONSERVING_CHECK_LONG
-  COMMAND mpirun -np ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_3D -i ${CMAKE_CURRENT_BINARY_DIR}/inviscid_tgv_entropy_check_long.prm
-  WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
-)
+#configure_file(inviscid_tgv_entropy_check_long.prm inviscid_tgv_entropy_check_long.prm COPYONLY)
+#add_test(
+#    NAME MPI_3D_EULER_RRK_ENTROPY_CONSERVING_CHECK_LONG
+#  COMMAND mpirun -np ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_3D -i ${CMAKE_CURRENT_BINARY_DIR}/inviscid_tgv_entropy_check_long.prm
+#  WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
+#)
 
 # ----------------------------------------
 # =======================================
@@ -35,11 +36,12 @@ add_test(
 # =======================================
 # ----------------------------------------
 # - Runs full time on viscous TGV
+# - Included for test set-up; should not be included in ctest
 # ----------------------------------------
-configure_file(viscous_tgv_entropy_check_long.prm viscous_tgv_entropy_check_long.prm COPYONLY)
-add_test(
-    NAME MPI_3D_NAVIER_STOKES_RRK_ENTROPY_CHECK_LONG
-  COMMAND mpirun -np ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_3D -i ${CMAKE_CURRENT_BINARY_DIR}/viscous_tgv_entropy_check_long.prm
-  WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
-)
+#configure_file(viscous_tgv_entropy_check_long.prm viscous_tgv_entropy_check_long.prm COPYONLY)
+#add_test(
+#    NAME MPI_3D_NAVIER_STOKES_RRK_ENTROPY_CHECK_LONG
+#  COMMAND mpirun -np ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_3D -i ${CMAKE_CURRENT_BINARY_DIR}/viscous_tgv_entropy_check_long.prm
+#  WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
+#)
 # ----------------------------------------

@@ -42,7 +42,7 @@ public:
     dealiiSolverVectorWrappingROL() = default;
 
     /// Constructor where data is given.
-    dealiiSolverVectorWrappingROL(ROL::Ptr<ROL::Vector<Real>> input_vector)
+    explicit dealiiSolverVectorWrappingROL(ROL::Ptr<ROL::Vector<Real>> input_vector)
     : rol_vector_ptr(input_vector)
     {};
 

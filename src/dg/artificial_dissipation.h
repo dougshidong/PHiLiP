@@ -85,7 +85,7 @@ class LaplacianArtificialDissipation: public ArtificialDissipationBase <dim, nst
  
     public:
     /// Constructor of LaplacianArtificialDissipation.
-    LaplacianArtificialDissipation(const Parameters::AllParameters *const parameters_input): 
+    explicit LaplacianArtificialDissipation(const Parameters::AllParameters *const parameters_input):
     convection_diffusion_double(parameters_input,false,true,this->diffusion_tensor,Parameters::ManufacturedSolutionParam::get_default_advection_vector(),1.0),
     convection_diffusion_FadType(parameters_input,false,true,this->diffusion_tensor,Parameters::ManufacturedSolutionParam::get_default_advection_vector(),1.0),
     convection_diffusion_RadType(parameters_input,false,true,this->diffusion_tensor,Parameters::ManufacturedSolutionParam::get_default_advection_vector(),1.0),
@@ -146,7 +146,7 @@ class PhysicalArtificialDissipation: public ArtificialDissipationBase <dim, nsta
 
     public:
     /// Constructor of PhysicalArtificialDissipation.
-    PhysicalArtificialDissipation(const Parameters::AllParameters *const parameters_input): //input_parameters(parameters_input) {}
+    explicit PhysicalArtificialDissipation(const Parameters::AllParameters *const parameters_input): //input_parameters(parameters_input) {}
     navier_stokes_double(
         parameters_input,
         parameters_input->euler_param.ref_length,
@@ -264,7 +264,7 @@ class EnthalpyConservingArtificialDissipation: public ArtificialDissipationBase 
 
     public:
     /// Constructor of EnthalpyConservingArtificialDissipation
-    EnthalpyConservingArtificialDissipation(const Parameters::AllParameters *const parameters_input): //input_parameters(parameters_input) {}
+    explicit EnthalpyConservingArtificialDissipation(const Parameters::AllParameters *const parameters_input): //input_parameters(parameters_input) {}
     navier_stokes_double(
         parameters_input,
         parameters_input->euler_param.ref_length,

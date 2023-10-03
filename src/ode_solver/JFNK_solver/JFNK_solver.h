@@ -16,7 +16,7 @@ class JFNKSolver{
 public:
 
     /// Constructor
-    JFNKSolver(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input);
+    explicit JFNKSolver(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input);
     
     /// Solve an implicit Euler step according to Jacobian-free Newton-Krylov method
     /** See for example Knoll & Keyes 2004 "Jacobian-free Newton-Krylov methods; a survey of approaches and applications

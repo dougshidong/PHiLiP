@@ -62,7 +62,7 @@ public:
      *  physics have been overriden through DGWeak::set_physics() as seen in the
      *  diffusion_exact_adjoint test case.
      */
-    Functional(
+    explicit Functional(
         std::shared_ptr<PHiLiP::DGBase<dim,real,MeshType>> _dg,
         const bool _uses_solution_values = true,
         const bool _uses_solution_gradient = true);

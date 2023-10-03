@@ -19,7 +19,7 @@ public:
     /// Constructor.
     /** Simply calls the TestsBase constructor to set its parameters = parameters_input
      */
-    EulerCylinder(const Parameters::AllParameters *const parameters_input);
+    explicit EulerCylinder(const Parameters::AllParameters *const parameters_input);
 
     // Warp grid into Gaussian bump
     static dealii::Point<dim> warp (const dealii::Point<dim> &p);

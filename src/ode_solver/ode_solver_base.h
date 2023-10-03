@@ -25,7 +25,7 @@ class ODESolverBase
 {
 public:
     /// Default constructor that will set the constants.
-    ODESolverBase(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input); ///< Constructor.
+    explicit ODESolverBase(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input); ///< Constructor.
 
     virtual ~ODESolverBase() = default; ///< Destructor.
 

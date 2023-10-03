@@ -68,7 +68,7 @@ public:
     /// Constructor.
     /** Simply calls the TestsBase constructor to set its parameters = parameters_input
      */
-    EulerEntropyWaves(const Parameters::AllParameters *const parameters_input);
+    explicit EulerEntropyWaves(const Parameters::AllParameters *const parameters_input);
 
     /// Manufactured grid convergence
     /** Will run the a grid convergence test for various p

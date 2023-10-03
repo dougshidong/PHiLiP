@@ -3,7 +3,7 @@
 #include <deal.II/base/tensor.h>
 #include "artificial_dissipation_factory.h"
 #include "artificial_dissipation.h"
- 
+
 namespace PHiLiP {
 
 template <int dim, int nstate>

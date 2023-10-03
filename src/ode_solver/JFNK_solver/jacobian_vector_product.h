@@ -11,7 +11,7 @@ template <int dim, typename real, typename MeshType>
 class JacobianVectorProduct{
 public:
     /// Constructor
-    JacobianVectorProduct(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input);
+    explicit JacobianVectorProduct(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input);
 
     /// Reinitializes the stored data for a new timestep.
     void reinit_for_next_timestep(const double dt_input,

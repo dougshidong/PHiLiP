@@ -33,7 +33,7 @@ protected:
 
 public:
     /// Constructor for ExactSolutionFunction_Zero
-    ExactSolutionFunction_Zero (double time_compare);
+    explicit ExactSolutionFunction_Zero (double time_compare);
 
     /// Time at which to compute the exact solution
     const double t; 
@@ -53,7 +53,7 @@ protected:
 public:
     /// Constructor for ExactSolutionFunction_1DSine
     /** Calls the Function(const unsigned int n_components) constructor in deal.II*/
-    ExactSolutionFunction_1DSine (double time_compare);
+    explicit ExactSolutionFunction_1DSine (double time_compare);
 
     /// Time at which to compute the exact solution
     const double t; 
@@ -73,7 +73,7 @@ protected:
 public:
     /// Constructor for ExactSolutionFunction_IsentropicVortex
     /** Calls the Function(const unsigned int n_components) constructor in deal.II*/
-    ExactSolutionFunction_IsentropicVortex (double time_compare);
+    explicit ExactSolutionFunction_IsentropicVortex (double time_compare);
 
     /// Time at which to compute the exact solution
     const double t; 

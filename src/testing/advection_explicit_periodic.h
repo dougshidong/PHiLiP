@@ -14,7 +14,7 @@ class AdvectionPeriodic: public TestsBase
 {
 public:
     /// Constructor
-    AdvectionPeriodic(const Parameters::AllParameters *const parameters_input);
+    explicit AdvectionPeriodic(const Parameters::AllParameters *const parameters_input);
 
     /// Run test
     int run_test () const override;

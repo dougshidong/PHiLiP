@@ -422,9 +422,11 @@ InitialConditionFunction_EulerBase<dim, nstate, real>
     : InitialConditionFunction<dim, nstate, real>()
 {
     // Euler object; create using dynamic_pointer_cast and the create_Physics factory
-    // This test should only be used for Euler
-    this->euler_physics = std::dynamic_pointer_cast<Physics::Euler<dim, dim + 2, double>>(
-        Physics::PhysicsFactory<dim, dim + 2, double>::create_Physics(param));
+    // Note that Euler primitive/conservative vars are the same as NS
+    PHiLiP::Parameters::AllParameters parameters_euler = *param;
+    parameters_euler.pde_type = Parameters::AllParameters::PartialDifferentialEquation::euler;
+    this->euler_physics = std::dynamic_pointer_cast<Physics::Euler<dim,dim+2,double>>(
+                Physics::PhysicsFactory<dim,dim+2,double>::create_Physics(&parameters_euler));
 }
 
 template <int dim, int nstate, typename real>

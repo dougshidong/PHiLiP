@@ -31,7 +31,6 @@ void JacobianVectorProduct<dim,real,MeshType>::compute_dg_residual(dealii::Linea
     dg->solution = w;
     dg->assemble_residual();
     
-    //dg->global_inverse_mass_matrix.vmult(dg->solution, dg->right_hand_side);//dg->solution = IMM * RHS
     if(dg->all_parameters->use_inverse_mass_on_the_fly){
         dg->apply_inverse_global_mass_matrix(dg->right_hand_side, dg->solution);//dg->solution = IMM * RHS
     } else{

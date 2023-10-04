@@ -284,6 +284,7 @@ public:
 
     /// Flag for renumbering DOFs
     bool do_renumber_dofs;
+
     /// Renumber dofs type.
     enum RenumberDofsType { CuthillMckee };
     

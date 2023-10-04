@@ -22,9 +22,6 @@ public:
     RRKODESolverBase(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input,
             std::shared_ptr<RKTableauBase<dim,real,MeshType>> rk_tableau_input);
 
-    /// Destructor
-    ~RRKODESolverBase() {};
-
     /// Relaxation Runge-Kutta parameter gamma^n
     /** See:  Ketcheson 2019, "Relaxation Runge--Kutta methods: Conservation and stability for inner-product norms"
      *       Ranocha 2020, "Relaxation Runge--Kutta Methods: Fully Discrete Explicit Entropy-Stable Schemes for the Compressible Euler and Navier--Stokes Equations"

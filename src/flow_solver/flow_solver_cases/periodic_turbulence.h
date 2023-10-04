@@ -106,9 +106,8 @@ protected:
     bool is_taylor_green_vortex = false; ///< Identifies if taylor green vortex case; initialized as false.
     bool is_decaying_homogeneous_isotropic_turbulence = false; ///< Identified if DHIT case; initialized as false.
     bool is_viscous_flow = true; ///< Identifies if viscous flow; initialized as true.
-    bool do_calculate_numerical_entropy; ///< Identifies if numerical entropy should be calculated; initialized as false.
-
-    bool do_calculate_overintegrated_quantities; ///< Identifies if numerical entropy should be calculated; initialized as false.
+    bool do_calculate_numerical_entropy=false; ///< Identifies if numerical entropy should be calculated; initialized as false.
+    bool do_calculate_overintegrated_quantities=false; ///< Identifies if overintegrated quantities should be calculated; initialized as false.
 
     /// Display additional more specific flow case parameters
     void display_additional_flow_case_specific_parameters() const override;

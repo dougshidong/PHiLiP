@@ -17,7 +17,7 @@ public:
     /// Destructor
     ~Periodic1DUnsteady() {};
 
-    /// Calculate energy
+    /// Calculate energy as a matrix-vector product,  solution^T (M+K) solution
     double compute_energy(const std::shared_ptr <DGBase<dim, double>> dg) const;
 protected:
 

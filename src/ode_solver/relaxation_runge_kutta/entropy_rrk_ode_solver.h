@@ -20,9 +20,6 @@ public:
     EntropyRRKODESolver(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input,
             std::shared_ptr<RKTableauBase<dim,real,MeshType>> rk_tableau_input);
 
-    /// Destructor
-    ~EntropyRRKODESolver() {};
-
 protected:
 
     /// Compute relaxation parameter numerically (i.e. if energy is NOT the entropy variable)

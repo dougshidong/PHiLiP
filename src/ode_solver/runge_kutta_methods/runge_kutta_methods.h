@@ -19,9 +19,6 @@ public:
     SSPRK3Explicit(const int n_rk_stages, const std::string rk_method_string_input) 
         : RKTableauBase<dim,real,MeshType>(n_rk_stages, rk_method_string_input) { }
 
-    /// Destructor
-    ~SSPRK3Explicit() {};
-
 protected:
     /// Setter for butcher_tableau_a
     void set_a() override;
@@ -45,9 +42,6 @@ public:
     /// Constructor
     RK4Explicit(const int n_rk_stages, const std::string rk_method_string_input) 
         : RKTableauBase<dim,real,MeshType>(n_rk_stages, rk_method_string_input) { }
-
-    /// Destructor
-    ~RK4Explicit() {};
 
 protected:
     /// Setter for butcher_tableau_a
@@ -73,9 +67,6 @@ public:
     EulerExplicit(const int n_rk_stages, const std::string rk_method_string_input) 
         : RKTableauBase<dim,real,MeshType>(n_rk_stages, rk_method_string_input) { }
 
-    /// Destructor
-    ~EulerExplicit() {};
-    
 protected:
     /// Setter for butcher_tableau_a
     void set_a() override;
@@ -101,9 +92,6 @@ public:
     HeunExplicit(const int n_rk_stages, const std::string rk_method_string_input) 
         : RKTableauBase<dim,real,MeshType>(n_rk_stages, rk_method_string_input) { }
 
-    /// Destructor
-    ~HeunExplicit() {};
-    
 protected:
     /// Setter for butcher_tableau_a
     void set_a() override;
@@ -129,9 +117,6 @@ public:
     EulerImplicit(const int n_rk_stages, const std::string rk_method_string_input) 
         : RKTableauBase<dim,real,MeshType>(n_rk_stages, rk_method_string_input) { }
 
-    /// Destructor
-    ~EulerImplicit() {};
-    
 protected:
     /// Setter for butcher_tableau_a
     void set_a() override;
@@ -156,9 +141,6 @@ public:
     DIRK2Implicit(const int n_rk_stages, const std::string rk_method_string_input) 
         : RKTableauBase<dim,real,MeshType>(n_rk_stages, rk_method_string_input) { }
 
-    /// Destructor
-    ~DIRK2Implicit() {};
-    
 protected:
     /// Setter for butcher_tableau_a
     void set_a() override;
@@ -183,9 +165,6 @@ public:
     DIRK3Implicit(const int n_rk_stages, const std::string rk_method_string_input) 
         : RKTableauBase<dim,real,MeshType>(n_rk_stages, rk_method_string_input) { }
 
-    /// Destructor
-    ~DIRK3Implicit() {};
-    
 protected:
 
     const double gam = 0.435866521508458999416019; ///< Constant "gamma" given by Kennedy & Carpenter

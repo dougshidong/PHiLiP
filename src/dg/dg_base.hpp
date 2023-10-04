@@ -269,7 +269,7 @@ public:
     /** We use matrix-free methods to apply the local mass matrix on-the-fly 
     *   in each cell using sum-factorization techniques.
     *   use_M_norm flag allows the unmodified mass matrix to be used 
-    *   i.e., M rather than M+K.
+    *   for FR, i.e., use M rather than M+K.
     */
     void apply_global_mass_matrix(
         const dealii::LinearAlgebra::distributed::Vector<double> &input_vector,
@@ -856,8 +856,6 @@ protected:
         const unsigned int grid_degree,
         dealii::Vector<real> &current_cell_rhs,
         const dealii::FEValues<dim,dim> &fe_values_lagrange) = 0;
-
-
 
     /// Update flags needed at volume points.
     const dealii::UpdateFlags volume_update_flags = dealii::update_values | dealii::update_gradients | dealii::update_quadrature_points | dealii::update_JxW_values

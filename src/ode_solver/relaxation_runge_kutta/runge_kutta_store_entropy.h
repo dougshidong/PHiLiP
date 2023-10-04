@@ -21,9 +21,6 @@ public:
     RKNumEntropy(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input,
             std::shared_ptr<RKTableauBase<dim,real,MeshType>> rk_tableau_input);
 
-    /// Destructor
-    ~RKNumEntropy() {};
-
     /// Calculate FR entropy adjustment
     /** FR_contribution = dt \sum_i=1^s b_i v^{(i)} K du^{(i)}/dt
      */

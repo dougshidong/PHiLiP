@@ -25,9 +25,7 @@ public:
     EnergyRRKODESolver(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input,
             std::shared_ptr<RKTableauBase<dim,real,MeshType>> rk_tableau_input);
 
-    /// Destructor
-    ~EnergyRRKODESolver() {};
-    
+    /// Value of the relaxation parameter.
     real relaxation_parameter;
 
 protected:

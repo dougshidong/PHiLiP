@@ -1,6 +1,14 @@
+#include <deal.II/base/mpi.h>
+#include <deal.II/base/utilities.h>
+#include <deal.II/base/conditional_ostream.h>
+
 #include "parameters_flow_solver.h"
 
 #include <string>
+
+//for checking output directories
+#include <sys/types.h>
+#include <sys/stat.h>
 
 namespace PHiLiP {
 
@@ -297,6 +305,8 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
 
 void FlowSolverParam::parse_parameters(dealii::ParameterHandler &prm)
 {   
+    const int mpi_rank = dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD);
+    dealii::ConditionalOStream pcout(std::cout, mpi_rank==0);
     prm.enter_subsection("flow_solver");
     {
         const std::string flow_case_type_string = prm.get("flow_case_type");
@@ -334,6 +344,13 @@ void FlowSolverParam::parse_parameters(dealii::ParameterHandler &prm)
         restart_computation_from_file = prm.get_bool("restart_computation_from_file");
         output_restart_files = prm.get_bool("output_restart_files");
         restart_files_directory_name = prm.get("restart_files_directory_name");
+        // Check if directory exists - see https://stackoverflow.com/a/18101042
+        struct stat info;
+        if( stat( restart_files_directory_name.c_str(), &info ) != 0 ){
+            pcout << "Error: No restart directory named " << restart_files_directory_name << " exists." << std::endl
+                      << "Please create the directory and restart." << std::endl;
+            std::abort();
+        }
         restart_file_index = prm.get_integer("restart_file_index");
         output_restart_files_every_x_steps = prm.get_integer("output_restart_files_every_x_steps");
         output_restart_files_every_dt_time_intervals = prm.get_double("output_restart_files_every_dt_time_intervals");
@@ -408,6 +425,13 @@ void FlowSolverParam::parse_parameters(dealii::ParameterHandler &prm)
           number_of_times_to_output_velocity_field = get_number_of_values_in_string(output_velocity_field_times_string);
           output_vorticity_magnitude_field_in_addition_to_velocity = prm.get_bool("output_vorticity_magnitude_field_in_addition_to_velocity");
           output_flow_field_files_directory_name = prm.get("output_flow_field_files_directory_name");
+            // Check if directory exists - see https://stackoverflow.com/a/18101042
+            struct stat info;
+            if( stat( output_flow_field_files_directory_name.c_str(), &info ) != 0 ){
+                pcout << "Error: No flow field files directory named " << output_flow_field_files_directory_name << " exists." << std::endl
+                          << "Please create the directory and restart." << std::endl;
+                std::abort();
+            }
         }
         prm.leave_subsection();
 

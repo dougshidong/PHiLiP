@@ -74,7 +74,7 @@ void DGStrongLES<dim,nstate,real,MeshType>::allocate_model_variables()
     // -- double
     this->pde_model_double->cellwise_poly_degree.reinit(this->triangulation->n_active_cells(), this->mpi_communicator);
     this->pde_model_double->cellwise_volume.reinit(this->triangulation->n_active_cells(), this->mpi_communicator);
-    // this->pde_model_double->cellwise_mean_strain_rate_tensor_magnitude.reinit(this->triangulation->n_active_cells(), this->mpi_communicator);
+    this->pde_model_double->cellwise_mean_strain_rate_tensor_magnitude.reinit(this->triangulation->n_active_cells(), this->mpi_communicator);
 }
 
 template <int dim, int nstate, typename real, typename MeshType>
@@ -172,8 +172,8 @@ DGStrongLES_ShearImproved<dim,nstate,real,MeshType>::~DGStrongLES_ShearImproved(
 template <int dim, int nstate, typename real, typename MeshType>
 void DGStrongLES_ShearImproved<dim,nstate,real,MeshType>::update_cellwise_mean_quantities()
 {
-    // Allocate the cellwise mean strain rate tensor magnitude distributed vector
-    this->pde_model_double->cellwise_mean_strain_rate_tensor_magnitude.reinit(this->triangulation->n_active_cells(), this->mpi_communicator);
+    // // Allocate the cellwise mean strain rate tensor magnitude distributed vector
+    // this->pde_model_double->cellwise_mean_strain_rate_tensor_magnitude.reinit(this->triangulation->n_active_cells(), this->mpi_communicator);
 
     // Overintegrate the error to make sure there is not integration error in the error estimate
     int overintegrate = 0; // set to zero to reduce computational cost

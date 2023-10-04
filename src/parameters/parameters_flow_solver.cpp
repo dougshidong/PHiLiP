@@ -347,7 +347,7 @@ void FlowSolverParam::parse_parameters(dealii::ParameterHandler &prm)
         // Check if directory exists - see https://stackoverflow.com/a/18101042
         struct stat info;
         if( stat( restart_files_directory_name.c_str(), &info ) != 0 ){
-            pcout << "Error: No restart directory named " << restart_files_directory_name << " exists." << std::endl
+            pcout << "Error: No restart files directory named " << restart_files_directory_name << " exists." << std::endl
                       << "Please create the directory and restart. Aborting..." << std::endl;
             std::abort();
         }

@@ -429,7 +429,7 @@ void FlowSolverParam::parse_parameters(dealii::ParameterHandler &prm)
             struct stat info;
             if( stat( output_flow_field_files_directory_name.c_str(), &info ) != 0 ){
                 pcout << "Error: No flow field files directory named " << output_flow_field_files_directory_name << " exists." << std::endl
-                          << "Please create the directory and restart." << std::endl;
+                          << "Please create the directory and restart. Aborting..." << std::endl;
                 std::abort();
             }
         }

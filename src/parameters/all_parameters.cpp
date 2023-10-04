@@ -482,7 +482,7 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     struct stat info;
     if( stat( solution_vtk_files_directory_name.c_str(), &info ) != 0 ){
         pcout << "Error: No solution vtk files directory named " << solution_vtk_files_directory_name << " exists." << std::endl
-                  << "Please create the directory and restart." << std::endl;
+                  << "Please create the directory and restart. Aborting..." << std::endl;
         std::abort();
     }
     output_high_order_grid = prm.get_bool("output_high_order_grid");

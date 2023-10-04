@@ -36,7 +36,7 @@ public:
     std::shared_ptr < Physics::LargeEddySimulationBase<dim, nstate, real > > pde_model_les_double;
 
     /// Allocate the necessary variables declared in src/physics/model.h
-    void allocate_model_variables() override;
+    virtual void allocate_model_variables() override;
 
     /// Update the necessary variables declared in src/physics/model.h
     void update_model_variables() override;
@@ -81,6 +81,9 @@ public:
 
     /// Destructor
     ~DGStrongLES_ShearImproved();
+
+    /// Allocate the necessary variables declared in src/physics/model.h
+    void allocate_model_variables() override;
 
 protected:
     /// Update the cellwise mean quantities

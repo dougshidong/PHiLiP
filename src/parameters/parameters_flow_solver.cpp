@@ -345,8 +345,8 @@ void FlowSolverParam::parse_parameters(dealii::ParameterHandler &prm)
         output_restart_files = prm.get_bool("output_restart_files");
         restart_files_directory_name = prm.get("restart_files_directory_name");
         // Check if directory exists - see https://stackoverflow.com/a/18101042
-        struct stat info;
-        if( stat( restart_files_directory_name.c_str(), &info ) != 0 ){
+        struct stat info_restart;
+        if( stat( restart_files_directory_name.c_str(), &info_restart ) != 0 ){
             pcout << "Error: No restart directory named " << restart_files_directory_name << " exists." << std::endl
                       << "Please create the directory and restart." << std::endl;
             std::abort();
@@ -426,8 +426,8 @@ void FlowSolverParam::parse_parameters(dealii::ParameterHandler &prm)
           output_vorticity_magnitude_field_in_addition_to_velocity = prm.get_bool("output_vorticity_magnitude_field_in_addition_to_velocity");
           output_flow_field_files_directory_name = prm.get("output_flow_field_files_directory_name");
             // Check if directory exists - see https://stackoverflow.com/a/18101042
-            struct stat info;
-            if( stat( output_flow_field_files_directory_name.c_str(), &info ) != 0 ){
+            struct stat info_flow;
+            if( stat( output_flow_field_files_directory_name.c_str(), &info_flow ) != 0 ){
                 pcout << "Error: No flow field files directory named " << output_flow_field_files_directory_name << " exists." << std::endl
                           << "Please create the directory and restart." << std::endl;
                 std::abort();

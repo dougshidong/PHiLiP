@@ -479,8 +479,8 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
 
     solution_vtk_files_directory_name = prm.get("solution_vtk_files_directory_name");
     // Check if directory exists - see https://stackoverflow.com/a/18101042
-    struct stat info;
-    if( stat( solution_vtk_files_directory_name.c_str(), &info ) != 0 ){
+    struct stat info_vtk;
+    if( stat( solution_vtk_files_directory_name.c_str(), &info_vtk ) != 0 ){
         pcout << "Error: No solution vtk files directory named " << solution_vtk_files_directory_name << " exists." << std::endl
                   << "Please create the directory and restart." << std::endl;
         std::abort();

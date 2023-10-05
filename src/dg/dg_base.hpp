@@ -936,7 +936,13 @@ public:
     /** Used in entropy-RRK ODE solver.
      * This is stored in dg such that both flow solver case and ode solver can access it. 
      * flow solver cases have no access to ode solver. */
-    double FR_entropy_contribution;
+    double FR_entropy_contribution=0;
+
+    /// Relaxation parameter
+    /** Used in RRK ODE solver.
+     * This is stored in dg such that both flow solver case and ode solver can access it. 
+     * flow solver cases have no access to ode solver. */
+    double relaxation_parameter=1;
 
 }; // end of DGBase class
 

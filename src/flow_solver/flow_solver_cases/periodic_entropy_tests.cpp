@@ -248,7 +248,6 @@ void PeriodicEntropyTests<dim, nstate>::compute_unsteady_data_and_write_to_table
     
     using ODEEnum = Parameters::ODESolverParam::ODESolverEnum;
     const bool is_rrk = (this->all_param.ode_solver_param.ode_solver_type == ODEEnum::rrk_explicit_solver);
-    const double dt_actual = current_time - previous_time;
 
     // All discrete proofs use solution nodes, therefore it is best to report 
     // entropy on the solution nodes rather than by overintegrating.
@@ -266,8 +265,7 @@ void PeriodicEntropyTests<dim, nstate>::compute_unsteady_data_and_write_to_table
     }
     if (current_iteration == 0)  initial_entropy = current_numerical_entropy;
 
-    double relaxation_parameter = 0;
-    if (is_rrk) relaxation_parameter = dt_actual/dt;
+    double relaxation_parameter = dg->relaxation_parameter;
 
     const double kinetic_energy = this->compute_integrated_quantities(*dg, IntegratedQuantityEnum::kinetic_energy);
     if (std::isnan(kinetic_energy)){

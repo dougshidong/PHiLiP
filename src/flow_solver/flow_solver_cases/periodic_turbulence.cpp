@@ -749,8 +749,7 @@ void PeriodicTurbulence<dim, nstate>::compute_unsteady_data_and_write_to_table(
     // TEMP - should code gamma storage part this nicer
     using ODEEnum = Parameters::ODESolverParam::ODESolverEnum;
     const bool is_rrk = (this->all_param.ode_solver_param.ode_solver_type == ODEEnum::rrk_explicit_solver);
-    const double dt_actual = current_time - previous_time;
-    const double relaxation_parameter = dt_actual/dt_target;
+    const double relaxation_parameter = dg->relaxation_parameter;
 
     double current_numerical_entropy_change_FRcorrected=0;
     if (do_calculate_numerical_entropy){

@@ -11,6 +11,9 @@ set use_weak_form = true
 # set flux_nodes_type = GLL
 set non_physical_behavior = abort_run
 
+# set directry to write output data
+set solution_vtk_files_directory_name = realgas
+
 # Note: this was added to turn off check_same_coords() -- has no other function when dim!=1
 set use_periodic_bc = true
 
@@ -40,8 +43,8 @@ end
 subsection flow_solver
   set flow_case_type = acoustic_wave
   set poly_degree = 5
-  set final_time = 0.2e-03
-  # set final_time = 1.2566370614400000e-1
+  set final_time = 0.1e-01
+  # set final_time = 1.2566370614400000e-2
   set adaptive_time_step = false
   set constant_time_step = 0.001
   subsection grid

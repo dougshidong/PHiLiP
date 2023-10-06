@@ -116,12 +116,12 @@ double RKNumEntropy<dim,real,n_rk_stages,MeshType>::compute_FR_entropy_contribut
         if(this->dg->all_parameters->use_inverse_mass_on_the_fly)
         {
             this->dg->apply_global_mass_matrix(this->rk_stage[istage],M_matrix_times_rk_stage,
-                    this->dg->use_auxiliary_eq, // use_auxiliary_eq,
+                    false, // use_auxiliary_eq,
                     true // use M norm
                     );
 
             this->dg->apply_global_mass_matrix(this->rk_stage[istage],MpK_matrix_times_rk_stage,
-                    this->dg->use_auxiliary_eq, // use_auxiliary_eq,
+                    false, // use_auxiliary_eq,
                     false // use M+K norm
                     );
         } else {

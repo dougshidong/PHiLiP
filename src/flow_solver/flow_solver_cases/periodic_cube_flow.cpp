@@ -77,6 +77,20 @@ void PeriodicCubeFlow<dim,nstate>::display_grid_parameters() const
     if constexpr(dim==1) this->pcout << "- - Domain length: " << this->domain_size << std::endl;
     if constexpr(dim==2) this->pcout << "- - Domain area: " << this->domain_size << std::endl;
     if constexpr(dim==3) this->pcout << "- - Domain volume: " << this->domain_size << std::endl;
+
+    std::string c_parameter_string;
+    using FREnum = Parameters::AllParameters::Flux_Reconstruction;
+    FREnum fr_type = this->all_param.flux_reconstruction_type;
+    if (fr_type == FREnum::cDG)         c_parameter_string = "cDG";
+    if (fr_type == FREnum::cSD)         c_parameter_string = "cSD";
+    if (fr_type == FREnum::cHU)         c_parameter_string = "cHU";
+    if (fr_type == FREnum::cNegative)   c_parameter_string = "cNegative";
+    if (fr_type == FREnum::cNegative2)  c_parameter_string = "cNegative2";
+    if (fr_type == FREnum::cPlus)       c_parameter_string = "cPlus";
+    if (fr_type == FREnum::c10Thousand) c_parameter_string = "c10Thousand";
+    if (fr_type == FREnum::cHULumped)   c_parameter_string = "cHULumped";
+
+    this->pcout << "- Using c parameter: " << c_parameter_string << std::endl;
 }
 
 template <int dim, int nstate>

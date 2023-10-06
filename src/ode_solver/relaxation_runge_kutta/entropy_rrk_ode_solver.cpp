@@ -402,8 +402,8 @@ real EntropyRRKODESolver<dim,real,n_rk_stages,MeshType>::compute_entropy_change_
         if(this->dg->all_parameters->use_inverse_mass_on_the_fly)
         {
             if (use_M_norm_for_entropy_change_est)
-                this->dg->apply_global_mass_matrix(this->rk_stage[istage],mass_matrix_times_rk_stage,
-                        this->dg->use_auxiliary_eq, // use_auxiliary_eq,
+                this->dg->apply_global_mass_matrix(this->rk_stage[istage], mass_matrix_times_rk_stage,
+                        false, // use_auxiliary_eq,
                         true // use_M_norm
                         );
             else

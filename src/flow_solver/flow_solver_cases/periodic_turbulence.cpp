@@ -752,10 +752,14 @@ void PeriodicTurbulence<dim, nstate>::compute_unsteady_data_and_write_to_table(
     const double relaxation_parameter = dg->relaxation_parameter;
 
     double current_numerical_entropy_change_FRcorrected=0;
+    
     if (do_calculate_numerical_entropy){
         const double current_numerical_entropy = this->get_numerical_entropy(dg);
-        if (current_iteration==0) this->previous_numerical_entropy = current_numerical_entropy;
-        current_numerical_entropy_change_FRcorrected = current_numerical_entropy - previous_numerical_entropy + dg->FR_entropy_contribution;
+        if (current_iteration==0) {
+            this->previous_numerical_entropy = current_numerical_entropy;
+            this->initial_numerical_entropy = current_numerical_entropy;
+        }
+        current_numerical_entropy_change_FRcorrected = (current_numerical_entropy - previous_numerical_entropy + dg->FR_entropy_contribution)/initial_numerical_entropy;
         this->previous_numerical_entropy = current_numerical_entropy;
     }
     this->cumulative_numerical_entropy_change_FRcorrected+=current_numerical_entropy_change_FRcorrected;
@@ -763,8 +767,8 @@ void PeriodicTurbulence<dim, nstate>::compute_unsteady_data_and_write_to_table(
     if(this->mpi_rank==0) {
         // Add values to data table
         this->add_value_to_data_table(current_time,"time",unsteady_data_table);
-        if(do_calculate_numerical_entropy) this->add_value_to_data_table(this->cumulative_numerical_entropy_change_FRcorrected,"numerical_entropy_cumulative",unsteady_data_table);
-        if(do_calculate_numerical_entropy) this->add_value_to_data_table(current_numerical_entropy_change_FRcorrected,"numerical_entropy_this_tstep",unsteady_data_table);
+        if(do_calculate_numerical_entropy) this->add_value_to_data_table(this->cumulative_numerical_entropy_change_FRcorrected,"numerical_entropy_scaled_cumulative",unsteady_data_table);
+        //if(do_calculate_numerical_entropy) this->add_value_to_data_table(current_numerical_entropy_change_FRcorrected,"numerical_entropy_scaled_this_tstep",unsteady_data_table);
         if(is_rrk) this->add_value_to_data_table(relaxation_parameter, "relaxation_parameter",unsteady_data_table);
         if (do_calculate_overintegrated_quantities) this->add_value_to_data_table(integrated_kinetic_energy,"kinetic_energy",unsteady_data_table);
         if (do_calculate_overintegrated_quantities) this->add_value_to_data_table(integrated_enstrophy,"enstrophy",unsteady_data_table);

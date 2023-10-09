@@ -192,6 +192,11 @@ add_test(
   COMMAND mpirun -np ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_3D -i ${CMAKE_CURRENT_BINARY_DIR}/viscous_TGV_LES_shear_improved_smagorinsky_model_energy_check_nsfr_quick.prm
   WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )
+add_test(
+  NAME SERIAL_VISCOUS_TGV_LES_SHEAR_IMPROVED_SMAGORINSKY_MODEL_ENERGY_CHECK_NSFR_QUICK
+  COMMAND mpirun -np 1 ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_3D -i ${CMAKE_CURRENT_BINARY_DIR}/viscous_TGV_LES_shear_improved_smagorinsky_model_energy_check_nsfr_quick.prm
+  WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
+)
 # ----------------------------------------
 configure_file(viscous_TGV_LES_smagorinsky_model_energy_check_nsfr_legendre_proj_quick.prm viscous_TGV_LES_smagorinsky_model_energy_check_nsfr_legendre_proj_quick.prm COPYONLY)
 add_test(

@@ -757,9 +757,9 @@ void PeriodicTurbulence<dim, nstate>::compute_unsteady_data_and_write_to_table(
         const double current_numerical_entropy = this->get_numerical_entropy(dg);
         if (current_iteration==0) {
             this->previous_numerical_entropy = current_numerical_entropy;
-            this->initial_numerical_entropy = current_numerical_entropy;
+            this->initial_numerical_entropy_abs = abs(current_numerical_entropy);
         }
-        current_numerical_entropy_change_FRcorrected = (current_numerical_entropy - previous_numerical_entropy + dg->FR_entropy_contribution)/initial_numerical_entropy;
+        current_numerical_entropy_change_FRcorrected = (current_numerical_entropy - previous_numerical_entropy + dg->FR_entropy_contribution)/initial_numerical_entropy_abs;
         this->previous_numerical_entropy = current_numerical_entropy;
     }
     this->cumulative_numerical_entropy_change_FRcorrected+=current_numerical_entropy_change_FRcorrected;

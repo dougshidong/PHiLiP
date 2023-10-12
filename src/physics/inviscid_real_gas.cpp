@@ -17,6 +17,7 @@ InviscidRealGas<dim,nstate,real>::InviscidRealGas (
     const bool                                                has_nonzero_diffusion,
     const bool                                                has_nonzero_physical_source)
     : PhysicsBase<dim,nstate,real>(parameters_input, has_nonzero_diffusion,has_nonzero_physical_source,manufactured_solution_function)
+    , gam(parameters_input->euler_param.gamma_gas)
     , mach_inf(parameters_input->euler_param.mach_inf)
     , mach_inf_sqr(mach_inf*mach_inf)
     , two_point_num_flux_type(parameters_input->two_point_num_flux_type)

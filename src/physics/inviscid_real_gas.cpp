@@ -252,7 +252,6 @@ template <int dim, int nstate, typename real>
 inline real InviscidRealGas<dim,nstate,real>
 :: compute_Cp ( const real temperature ) const
 {
-    // std::cout<<"In compute_Cp()."<<std::endl<<std::flush;
     // This will be changed when you implement multi-species
     int species = 1;
 
@@ -279,7 +278,6 @@ inline real InviscidRealGas<dim,nstate,real>
     /// polynomial
     real Cp = a1/pow(T,2.0) + a2/T + a3 + a4*T + a5*pow(T,2.0) + a6*pow(T,3.0) + a7*pow(T,4.0);
     Cp *= R_N2;
-    // std::cout<<"Computed Cp. Cp = "<<Cp<<std::endl<<std::flush;
     return Cp;
 }
 

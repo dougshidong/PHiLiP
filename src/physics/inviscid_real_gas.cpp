@@ -95,6 +95,22 @@ real InviscidRealGas<dim,nstate,real>
 
 template <int dim, int nstate, typename real>
 real InviscidRealGas<dim,nstate,real>
+::max_convective_normal_eigenvalue (
+    const std::array<real,nstate> &conservative_soln,
+    const dealii::Tensor<1,dim,real> &normal) const
+{
+    const dealii::Tensor<1,dim,real> vel = compute_velocities<real>(conservative_soln);
+
+    const real sound = compute_sound (conservative_soln);
+    real vel_dot_n = 0.0;
+    for (int d=0;d<dim;++d) { vel_dot_n += vel[d]*normal[d]; };
+    const real max_normal_eig = abs(vel_dot_n) + sound;
+
+    return max_normal_eig;
+}
+
+template <int dim, int nstate, typename real>
+real InviscidRealGas<dim,nstate,real>
 ::max_viscous_eigenvalue (const std::array<real,nstate> &/*conservative_soln*/) const
 {
     // zero because inviscid
@@ -443,6 +459,16 @@ std::array<dealii::Tensor<1,dim,real>,nstate> InviscidRealGas<dim,nstate,real>
         // TO DO: now loop over nspecies
     }
     return conv_flux;
+}
+
+template <int dim, int nstate, typename real>
+inline real InviscidRealGas<dim,nstate,real>
+::compute_sound ( const std::array<real,nstate> &conservative_soln ) const
+{
+    real density = conservative_soln[0];
+    const real pressure = compute_pressure<real>(conservative_soln);
+    const real sound = sqrt(pressure*gam/density);
+    return sound;
 }
 
 template <int dim, int nstate, typename real>

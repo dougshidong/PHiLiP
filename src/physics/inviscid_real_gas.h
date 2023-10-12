@@ -68,6 +68,13 @@ public:
     /// Maximum convective eigenvalue
     real max_convective_eigenvalue (const std::array<real,nstate> &soln) const;
 
+    /// Maximum convective normal eigenvalue (used in Lax-Friedrichs)
+    /** See the book I do like CFD, equation 3.6.18 */
+    real max_convective_normal_eigenvalue (
+        const std::array<real,nstate> &soln,
+        const dealii::Tensor<1,dim,real> &normal) const override;
+
+
     /// Maximum viscous eigenvalue.
     real max_viscous_eigenvalue (const std::array<real,nstate> &soln) const;
 
@@ -135,6 +142,9 @@ protected:
     /// Compute convective flux from conservative_soln
     std::array<dealii::Tensor<1,dim,real>,nstate> convective_flux (
         const std::array<real,nstate> &conservative_soln) const;
+
+    /// Evaluate speed of sound from conservative variables
+    real compute_sound ( const std::array<real,nstate> &conservative_soln ) const;
 
     /// For post processing purposes (update comment later)
     virtual dealii::Vector<double> post_compute_derived_quantities_vector (

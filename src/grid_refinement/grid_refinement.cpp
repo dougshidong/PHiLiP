@@ -1,47 +1,35 @@
-#include <vector>
-
-#include <deal.II/grid/tria.h>
-#include <deal.II/distributed/shared_tria.h>
-#include <deal.II/distributed/tria.h>
-
-#include <deal.II/grid/grid_out.h>
-#include <deal.II/grid/grid_in.h>
-#include <deal.II/grid/grid_refinement.h>
-
-#include <deal.II/distributed/grid_refinement.h>
-
-#include <deal.II/dofs/dof_tools.h>
+#include "grid_refinement.h"
 
 #include <deal.II/base/quadrature_lib.h>
-
+#include <deal.II/distributed/grid_refinement.h>
+#include <deal.II/distributed/shared_tria.h>
+#include <deal.II/distributed/tria.h>
+#include <deal.II/dofs/dof_tools.h>
 #include <deal.II/fe/fe_values.h>
-
+#include <deal.II/grid/grid_in.h>
+#include <deal.II/grid/grid_out.h>
+#include <deal.II/grid/grid_refinement.h>
+#include <deal.II/grid/tria.h>
 #include <deal.II/numerics/data_out.h>
 
+#include <vector>
+
+#include "dg/dg_base.hpp"
+#include "functional/adjoint.h"
+#include "functional/functional.h"
+#include "grid_refinement/field.h"
+#include "grid_refinement/gmsh_out.h"
+#include "grid_refinement/grid_refinement_continuous.h"
+#include "grid_refinement/grid_refinement_fixed_fraction.h"
+#include "grid_refinement/grid_refinement_uniform.h"
+#include "grid_refinement/msh_out.h"
+#include "grid_refinement/reconstruct_poly.h"
+#include "grid_refinement/size_field.h"
+#include "mesh/high_order_grid.h"
 #include "parameters/all_parameters.h"
 #include "parameters/parameters_grid_refinement.h"
-
-#include "dg/dg.h"
-#include "mesh/high_order_grid.h"
-
-#include "functional/functional.h"
-#include "functional/adjoint.h"
-
 #include "physics/physics.h"
-
 #include "post_processor/physics_post_processor.h"
-
-#include "grid_refinement/gmsh_out.h"
-#include "grid_refinement/msh_out.h"
-#include "grid_refinement/size_field.h"
-#include "grid_refinement/reconstruct_poly.h"
-#include "grid_refinement/field.h"
-
-#include "grid_refinement/grid_refinement_uniform.h"
-#include "grid_refinement/grid_refinement_fixed_fraction.h"
-#include "grid_refinement/grid_refinement_continuous.h"
-
-#include "grid_refinement.h"
 
 namespace PHiLiP {
 

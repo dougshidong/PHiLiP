@@ -1,7 +1,7 @@
 #ifndef __ANISOTROPIC_MESH_ADAPTATION__
 #define __ANISOTROPIC_MESH_ADAPTATION__
 
-#include "dg/dg.h"
+#include "dg/dg_base.hpp"
 #include "functional/functional.h"
 
 namespace PHiLiP {
@@ -30,9 +30,6 @@ public:
         const real _norm_Lp,
         const real _complexity,
         const bool _use_goal_oriented_approach = false);
-
-    /// Destructor
-    ~AnisotropicMeshAdaptation(){};
 
     /// Function which adapts mesh and loads in new mesh.
     void adapt_mesh();

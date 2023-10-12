@@ -2,14 +2,15 @@
 #define __1D_BURGERS_REWIENSKI_SNAPSHOT__
 
 // for FlowSolver class:
-#include "physics/initial_conditions/initial_condition_function.h"
-#include "dg/dg.h"
-#include "physics/physics.h"
-#include "parameters/all_parameters.h"
 #include <deal.II/base/table_handler.h>
 #include <deal.II/distributed/shared_tria.h>
 #include <deal.II/distributed/tria.h>
+
+#include "dg/dg_base.hpp"
 #include "flow_solver_case_base.h"
+#include "parameters/all_parameters.h"
+#include "physics/initial_conditions/initial_condition_function.h"
+#include "physics/physics.h"
 
 namespace PHiLiP {
 namespace FlowSolver {
@@ -25,10 +26,7 @@ class BurgersRewienskiSnapshot: public FlowSolverCaseBase<dim, nstate>
 {
 public:
     /// Constructor.
-    BurgersRewienskiSnapshot(const Parameters::AllParameters *const parameters_input);
-
-    /// Destructor
-    ~BurgersRewienskiSnapshot() {};
+    explicit BurgersRewienskiSnapshot(const Parameters::AllParameters *const parameters_input);
 
     /// Function to generate the grid
     std::shared_ptr<Triangulation> generate_grid() const override;

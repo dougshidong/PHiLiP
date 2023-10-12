@@ -1,28 +1,29 @@
-#include <deal.II/base/tensor.h>
+#include "burgers_stability.h"
+
+#include <deal.II/base/convergence_table.h>
 #include <deal.II/base/function.h>
-#include <deal.II/numerics/data_out.h>
-#include <deal.II/numerics/vector_tools.h>
-#include <deal.II/numerics/solution_transfer.h>
-#include <deal.II/base/numbers.h>
 #include <deal.II/base/function_parser.h>
+#include <deal.II/base/numbers.h>
+#include <deal.II/base/tensor.h>
 #include <deal.II/grid/grid_generator.h>
+#include <deal.II/grid/grid_in.h>
+#include <deal.II/grid/grid_out.h>
 #include <deal.II/grid/grid_refinement.h>
 #include <deal.II/grid/grid_tools.h>
-#include <deal.II/grid/grid_out.h>
-#include <deal.II/grid/grid_in.h>
-#include <deal.II/base/convergence_table.h>
+#include <deal.II/numerics/data_out.h>
+#include <deal.II/numerics/solution_transfer.h>
+#include <deal.II/numerics/vector_tools.h>
 
-#include "burgers_stability.h"
-#include "parameters/all_parameters.h"
-#include "parameters/parameters.h"
-#include "dg/dg.h"
+#include <fstream>
+
+#include "dg/dg_base.hpp"
 #include "dg/dg_factory.hpp"
 #include "ode_solver/ode_solver_base.h"
-#include <fstream>
 #include "ode_solver/ode_solver_factory.h"
-#include "physics/initial_conditions/set_initial_condition.h"
+#include "parameters/all_parameters.h"
+#include "parameters/parameters.h"
 #include "physics/initial_conditions/initial_condition_function.h"
-
+#include "physics/initial_conditions/set_initial_condition.h"
 
 namespace PHiLiP {
 namespace Tests {

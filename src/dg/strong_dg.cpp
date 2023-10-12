@@ -29,13 +29,6 @@ DGStrong<dim,nstate,real,MeshType>::DGStrong(
     : DGBaseState<dim,nstate,real,MeshType>::DGBaseState(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input)
 { }
 
-// Destructor
-template <int dim, int nstate, typename real, typename MeshType>
-DGStrong<dim,nstate,real,MeshType>::~DGStrong()
-{
-    pcout << "Destructing DGStrong..." << std::endl;
-}
-
 /***********************************************************
 *
 *       Build operators and solve for RHS
@@ -3134,39 +3127,6 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_volume_term_explicit(
     const dealii::FEValues<dim,dim> &/*fe_values_lagrange*/)
 {
     //do nothing
-}
-
-template <int dim, int nstate, typename real, typename MeshType>
-void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_explicit(
-    typename dealii::DoFHandler<dim>::active_cell_iterator /*cell*/,
-    const dealii::types::global_dof_index /*current_cell_index*/,
-    const unsigned int /*boundary_id*/,
-    const dealii::FEFaceValuesBase<dim,dim> &/*fe_values_boundary*/,
-    const real /*penalty*/,
-    const std::vector<dealii::types::global_dof_index> &/*dof_indices_int*/,
-    dealii::Vector<real> &/*local_rhs_int_cell*/)
-{
-    //Do nothing
-}
-
-template <int dim, int nstate, typename real, typename MeshType>
-void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_explicit(
-    const unsigned int /*iface*/, const unsigned int /*neighbor_iface*/, 
-    typename dealii::DoFHandler<dim>::active_cell_iterator /*cell*/,
-    const dealii::types::global_dof_index /*current_cell_index*/,
-    const dealii::types::global_dof_index /*neighbor_cell_index*/,
-    const unsigned int /*poly_degree*/, const unsigned int /*grid_degree*/,
-    const dealii::FEFaceValuesBase<dim,dim>     &/*fe_values_int*/,
-    const dealii::FEFaceValuesBase<dim,dim>     &/*fe_values_ext*/,
-    const real /*penalty*/,
-    const std::vector<dealii::types::global_dof_index> &/*dof_indices_int*/,
-    const std::vector<dealii::types::global_dof_index> &/*dof_indices_ext*/,
-    const std::vector<dealii::types::global_dof_index> &/*metric_dof_indices_int*/,
-    const std::vector<dealii::types::global_dof_index> &/*metric_dof_indices_ext*/,
-    dealii::Vector<real>          &/*local_rhs_int_cell*/,
-    dealii::Vector<real>          &/*local_rhs_ext_cell*/)
-{
-    //Do nothing
 }
 
 

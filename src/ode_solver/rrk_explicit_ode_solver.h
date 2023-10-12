@@ -1,7 +1,7 @@
 #ifndef __RRK_EXPLICIT_ODESOLVER__
 #define __RRK_EXPLICIT_ODESOLVER__
 
-#include "dg/dg.h"
+#include "dg/dg_base.hpp"
 #include "ode_solver_base.h"
 //#include "runge_kutta_ode_solver.h"
 #include "explicit_ode_solver.h"
@@ -21,9 +21,6 @@ public:
     /// Default constructor that will set the constants.
     RRKExplicitODESolver(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input,
             std::shared_ptr<RKTableauBase<dim,real,MeshType>> rk_tableau_input);
-
-    /// Destructor
-    ~RRKExplicitODESolver() {};
 
     /// Relaxation Runge-Kutta parameter gamma^n
     /** See:  Ketcheson 2019, "Relaxation Runge--Kutta methods: Conservation and stability for inner-product norms"

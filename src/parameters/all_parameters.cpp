@@ -3,6 +3,10 @@
 
 #include "parameters/all_parameters.h"
 
+//for checking output directories
+#include <sys/types.h>
+#include <sys/stat.h>
+
 namespace PHiLiP {
 namespace Parameters {
 
@@ -316,6 +320,11 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       "CuthillMckee"),
                       "Renumber the dof handler type. Currently the only choice is Cuthill-Mckee.");
 
+    prm.declare_entry("matching_surface_jac_det_tolerance", "1.3e-11",
+                      dealii::Patterns::Double(0, dealii::Patterns::Double::max_double_value),
+                      "Tolerance for checking that the determinant of surface jacobians at element faces matches. "
+                      "Note: Currently only used in weak dg.");
+
     Parameters::LinearSolverParam::declare_parameters (prm);
     Parameters::ManufacturedConvergenceStudyParam::declare_parameters (prm);
     Parameters::ODESolverParam::declare_parameters (prm);
@@ -469,6 +478,13 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     if (non_physical_behavior_string == "print_warning")     { non_physical_behavior_type = NonPhysicalBehaviorEnum::print_warning;}
 
     solution_vtk_files_directory_name = prm.get("solution_vtk_files_directory_name");
+    // Check if directory exists - see https://stackoverflow.com/a/18101042
+    struct stat info_vtk;
+    if( stat( solution_vtk_files_directory_name.c_str(), &info_vtk ) != 0 ){
+        pcout << "Error: No solution vtk files directory named " << solution_vtk_files_directory_name << " exists." << std::endl
+                  << "Please create the directory and restart. Aborting..." << std::endl;
+        std::abort();
+    }
     output_high_order_grid = prm.get_bool("output_high_order_grid");
     enable_higher_order_vtk_output = prm.get_bool("enable_higher_order_vtk_output");
     output_face_results_vtk = prm.get_bool("output_face_results_vtk");
@@ -477,7 +493,7 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     const std::string renumber_dofs_type_string = prm.get("renumber_dofs_type");
     if (renumber_dofs_type_string == "CuthillMckee") { renumber_dofs_type = RenumberDofsType::CuthillMckee; }
 
-    output_high_order_grid = prm.get_bool("output_high_order_grid");
+    matching_surface_jac_det_tolerance = prm.get_double("matching_surface_jac_det_tolerance");
 
     pcout << "Parsing linear solver subsection..." << std::endl;
     linear_solver_param.parse_parameters (prm);

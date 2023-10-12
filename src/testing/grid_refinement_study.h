@@ -1,13 +1,12 @@
 #ifndef __GRID_REFINEMENT_STUDY_H__
 #define __GRID_REFINEMENT_STUDY_H__
 
-#include "tests.h"
-#include "dg/dg.h"
-#include "physics/physics.h"
-#include "physics/model.h"
-#include "parameters/all_parameters.h"
-
+#include "dg/dg_base.hpp"
 #include "grid_refinement/gnu_out.h"
+#include "parameters/all_parameters.h"
+#include "physics/model.h"
+#include "physics/physics.h"
+#include "tests.h"
 
 namespace PHiLiP {
 
@@ -27,10 +26,8 @@ public:
     /// Constructor.
     /** Simply calls the TestsBase constructor to set its parameters = parameters_input
      */
-    GridRefinementStudy(
+    explicit GridRefinementStudy(
         const Parameters::AllParameters *const parameters_input);
-
-    ~GridRefinementStudy() {}; ///< Destructor.
 
     int run_test() const;
 

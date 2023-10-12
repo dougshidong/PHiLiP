@@ -1,49 +1,38 @@
-#include <stdlib.h>     /* srand, rand */
-#include <iostream>
-#include <chrono>
-
-#include <type_traits>
-
-#include <deal.II/base/convergence_table.h>
-
-#include <deal.II/dofs/dof_tools.h>
-
-#include <deal.II/grid/tria.h>
-#include <deal.II/distributed/shared_tria.h>
-#include <deal.II/distributed/tria.h>
-
-#include <deal.II/grid/grid_generator.h>
-#include <deal.II/grid/grid_refinement.h>
-#include <deal.II/grid/grid_tools.h>
-#include <deal.II/grid/grid_out.h>
-#include <deal.II/grid/grid_in.h>
-
-#include <deal.II/numerics/vector_tools.h>
-
-#include <deal.II/fe/fe_values.h>
-
-#include <Sacado.hpp>
-
-#include "tests.h"
 #include "grid_refinement_study.h"
 
-#include "physics/physics_factory.h"
-#include "physics/model_factory.h"
-#include "physics/manufactured_solution.h"
+#include <deal.II/base/convergence_table.h>
+#include <deal.II/distributed/shared_tria.h>
+#include <deal.II/distributed/tria.h>
+#include <deal.II/dofs/dof_tools.h>
+#include <deal.II/fe/fe_values.h>
+#include <deal.II/grid/grid_generator.h>
+#include <deal.II/grid/grid_in.h>
+#include <deal.II/grid/grid_out.h>
+#include <deal.II/grid/grid_refinement.h>
+#include <deal.II/grid/grid_tools.h>
+#include <deal.II/grid/tria.h>
+#include <deal.II/numerics/vector_tools.h>
+#include <stdlib.h> /* srand, rand */
 
-#include "dg/dg.h"
+#include <Sacado.hpp>
+#include <chrono>
+#include <iostream>
+#include <type_traits>
+
+#include "dg/dg_base.hpp"
 #include "dg/dg_factory.hpp"
-
-#include "ode_solver/ode_solver_factory.h"
-
-#include "functional/functional.h"
 #include "functional/adjoint.h"
-
-#include "grid_refinement/grid_refinement.h"
+#include "functional/functional.h"
 #include "grid_refinement/gmsh_out.h"
+#include "grid_refinement/gnu_out.h"
+#include "grid_refinement/grid_refinement.h"
 #include "grid_refinement/msh_out.h"
 #include "grid_refinement/size_field.h"
-#include "grid_refinement/gnu_out.h"
+#include "ode_solver/ode_solver_factory.h"
+#include "physics/manufactured_solution.h"
+#include "physics/model_factory.h"
+#include "physics/physics_factory.h"
+#include "tests.h"
 
 namespace PHiLiP {
     

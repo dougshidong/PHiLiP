@@ -39,20 +39,19 @@ public:
      *  This sets the public attribute n_components = nstate, which can then be accessed
      *  by all the other functions
      */
-    ManufacturedSolutionFunction (const unsigned int nstate = 1);
+    explicit ManufacturedSolutionFunction (const unsigned int nstate = 1);
 
-    /// Destructor
-    ~ManufacturedSolutionFunction() {};
-  
-    /// Manufactured solution exact value
-    /** \code
+    /// Manufactured solution exact value.
+    /** For example
+     *  \code
      *  u[s] = A[s]*sin(freq[s][0]*x)*sin(freq[s][1]*y)*sin(freq[s][2]*z);
      *  \endcode
      */
     virtual real value (const dealii::Point<dim,real> &point, const unsigned int istate = 0) const = 0;
 
     /// Gradient of the exact manufactured solution
-    /** \code
+    /** For example
+     *  \code
      *  grad_u[s][0] = A[s]*freq[s][0]*cos(freq[s][0]*x)*sin(freq[s][1]*y)*sin(freq[s][2]*z);
      *  grad_u[s][1] = A[s]*freq[s][1]*sin(freq[s][0]*x)*cos(freq[s][1]*y)*sin(freq[s][2]*z);
      *  grad_u[s][2] = A[s]*freq[s][2]*sin(freq[s][0]*x)*sin(freq[s][1]*y)*cos(freq[s][2]*z);
@@ -64,7 +63,8 @@ public:
     dealii::Tensor<1,dim,real> gradient_fd (const dealii::Point<dim,real> &point, const unsigned int istate = 0) const;
 
     /// Hessian of the exact manufactured solution
-    /** \code
+    /** For example
+     *  \code
      *  hess_u[s][0][0] = -A[s]*freq[s][0]*freq[s][0]*sin(freq[s][0]*x)*sin(freq[s][1]*y)*sin(freq[s][2]*z);
      *  hess_u[s][0][1] =  A[s]*freq[s][0]*freq[s][1]*cos(freq[s][0]*x)*cos(freq[s][1]*y)*sin(freq[s][2]*z);
      *  hess_u[s][0][2] =  A[s]*freq[s][0]*freq[s][2]*cos(freq[s][0]*x)*sin(freq[s][1]*y)*cos(freq[s][2]*z);
@@ -151,7 +151,7 @@ protected:
 
 public:
     /// Constructor
-    ManufacturedSolutionZero(const unsigned int nstate = 1)
+    explicit ManufacturedSolutionZero(const unsigned int nstate = 1)
             :   ManufacturedSolutionFunction<dim,real>(nstate){}
     /// Value
     real value (const dealii::Point<dim,real> &/*point*/, const unsigned int /*istate*/ = 0) const override;
@@ -178,7 +178,7 @@ protected:
 
 public:
     /// Constructor
-    ManufacturedSolutionSine(const unsigned int nstate = 1)
+    explicit ManufacturedSolutionSine(const unsigned int nstate = 1)
         :   ManufacturedSolutionFunction<dim,real>(nstate){}
     /// Value
     real value (const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
@@ -204,7 +204,7 @@ protected:
     using dealii::Function<dim,real>::hessian;
 public:
     /// Constructor
-    ManufacturedSolutionCosine(const unsigned int nstate = 1)
+    explicit ManufacturedSolutionCosine(const unsigned int nstate = 1)
         :   ManufacturedSolutionFunction<dim,real>(nstate){}
     /// Value
     real value (const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
@@ -230,7 +230,7 @@ protected:
     using dealii::Function<dim,real>::hessian;
 public:
     /// Constructor
-    ManufacturedSolutionAdd(const unsigned int nstate = 1)
+    explicit ManufacturedSolutionAdd(const unsigned int nstate = 1)
         :   ManufacturedSolutionFunction<dim,real>(nstate){}
     /// Value
     real value (const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
@@ -256,7 +256,7 @@ protected:
     using dealii::Function<dim,real>::hessian;
 public:
     /// Constructor
-    ManufacturedSolutionExp(const unsigned int nstate = 1)
+    explicit ManufacturedSolutionExp(const unsigned int nstate = 1)
         :   ManufacturedSolutionFunction<dim,real>(nstate){}
     /// Value
     real value (const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
@@ -282,7 +282,7 @@ protected:
     using dealii::Function<dim,real>::hessian;
 public:
     /// Constructor
-    ManufacturedSolutionPoly(const unsigned int nstate = 1)
+    explicit ManufacturedSolutionPoly(const unsigned int nstate = 1)
         :   ManufacturedSolutionFunction<dim,real>(nstate){}
     /// Value
     real value (const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
@@ -308,7 +308,7 @@ protected:
     using dealii::Function<dim,real>::hessian;
 public:
     /// Constructor
-    ManufacturedSolutionEvenPoly(const unsigned int nstate = 1)
+    explicit ManufacturedSolutionEvenPoly(const unsigned int nstate = 1)
         :   ManufacturedSolutionFunction<dim,real>(nstate){}
     /// Value
     real value (const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
@@ -334,7 +334,7 @@ protected:
     using dealii::Function<dim,real>::hessian;
 public:
     /// Constructor
-    ManufacturedSolutionAtan(const unsigned int nstate = 1)
+    explicit ManufacturedSolutionAtan(const unsigned int nstate = 1)
         :   ManufacturedSolutionFunction<dim,real>(nstate)
     {
         n_shocks.resize(dim);
@@ -389,7 +389,7 @@ protected:
     using dealii::Function<dim,real>::hessian;
 public:
     /// Constructor
-    ManufacturedSolutionBoundaryLayer(const unsigned int nstate = 1)
+    explicit ManufacturedSolutionBoundaryLayer(const unsigned int nstate = 1)
         : ManufacturedSolutionFunction<dim,real>(nstate)
         , epsilon(nstate)
     {
@@ -428,7 +428,7 @@ protected:
     using dealii::Function<dim,real>::hessian;
 public:
     /// Constructor
-    ManufacturedSolutionSShock(const unsigned int nstate = 1)
+    explicit ManufacturedSolutionSShock(const unsigned int nstate = 1)
         :   ManufacturedSolutionFunction<dim,real>(nstate)
     {
         // setting constant for function
@@ -483,7 +483,7 @@ protected:
     using dealii::Function<dim,real>::hessian;
 public:
     /// Constructor
-    ManufacturedSolutionQuadratic(const unsigned int nstate = 1)
+    explicit ManufacturedSolutionQuadratic(const unsigned int nstate = 1)
         :   ManufacturedSolutionFunction<dim,real>(nstate)
     {
         // assigning the scaling coeffs for hessian diagonals
@@ -522,7 +522,7 @@ protected:
     using dealii::Function<dim,real>::hessian;
 public:
     ///Constructor
-    ManufacturedSolutionExample(const unsigned int nstate = 1)
+    explicit ManufacturedSolutionExample(const unsigned int nstate = 1)
         :   ManufacturedSolutionFunction<dim,real>(nstate){}
     /// Value
     real value (const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
@@ -549,7 +549,7 @@ protected:
     using dealii::Function<dim,real>::hessian;
 public:
     /// Constructor
-    ManufacturedSolutionNavahBase(const unsigned int nstate = 4)
+    explicit ManufacturedSolutionNavahBase(const unsigned int nstate = 4)
         :   ManufacturedSolutionFunction<dim,real>(nstate)
     {
         // static_assert(dim==2, "ManufacturedSolutionNavahBase() should be created with dim=2");
@@ -587,7 +587,7 @@ public:
      *  Matrix with all coefficients of the various manufactured solutions given in Navah's paper. 
      *  Reference: Navah F. and Nadarajah S., A comprehensive high-order solver verification methodology for free fluid flows, 2018
      */
-    ManufacturedSolutionNavah_MS1(const unsigned int nstate = 4)
+    explicit ManufacturedSolutionNavah_MS1(const unsigned int nstate = 4)
         :   ManufacturedSolutionNavahBase<dim,real>(nstate)
     {
         std::array<dealii::Tensor<1,7,double>,5> ncm; ///< Navah Coefficient Matrix (ncm)
@@ -614,7 +614,7 @@ public:
      *  Matrix with all coefficients of the various manufactured solutions given in Navah's paper. 
      *  Reference: Navah F. and Nadarajah S., A comprehensive high-order solver verification methodology for free fluid flows, 2018
      */
-    ManufacturedSolutionNavah_MS2(const unsigned int nstate = 4)
+    explicit ManufacturedSolutionNavah_MS2(const unsigned int nstate = 4)
         :   ManufacturedSolutionNavahBase<dim,real>(nstate)
     {
         std::array<dealii::Tensor<1,7,double>,5> ncm; ///< Navah Coefficient Matrix (ncm)
@@ -641,7 +641,7 @@ public:
      *  Matrix with all coefficients of the various manufactured solutions given in Navah's paper. 
      *  Reference: Navah F. and Nadarajah S., A comprehensive high-order solver verification methodology for free fluid flows, 2018
      */
-    ManufacturedSolutionNavah_MS3(const unsigned int nstate = 4)
+    explicit ManufacturedSolutionNavah_MS3(const unsigned int nstate = 4)
         :   ManufacturedSolutionNavahBase<dim,real>(nstate)
     {
         std::array<dealii::Tensor<1,7,double>,5> ncm; ///< Navah Coefficient Matrix (ncm)
@@ -668,7 +668,7 @@ public:
      *  Matrix with all coefficients of the various manufactured solutions given in Navah's paper. 
      *  Reference: Navah F. and Nadarajah S., A comprehensive high-order solver verification methodology for free fluid flows, 2018
      */
-    ManufacturedSolutionNavah_MS4(const unsigned int nstate = 4)
+    explicit ManufacturedSolutionNavah_MS4(const unsigned int nstate = 4)
         :   ManufacturedSolutionNavahBase<dim,real>(nstate)
     {
         std::array<dealii::Tensor<1,7,double>,5> ncm; ///< Navah Coefficient Matrix (ncm)
@@ -693,7 +693,7 @@ public:
      *  Matrix with all coefficients of the various manufactured solutions given in Navah's paper. 
      *  Reference: Navah F. and Nadarajah S., A comprehensive high-order solver verification methodology for free fluid flows, 2018
      */
-    ManufacturedSolutionNavah_MS5(const unsigned int nstate = 4)
+    explicit ManufacturedSolutionNavah_MS5(const unsigned int nstate = 4)
         :   ManufacturedSolutionNavahBase<dim,real>(nstate)
     {
         std::array<dealii::Tensor<1,7,double>,5> ncm; ///< Navah Coefficient Matrix (ncm)

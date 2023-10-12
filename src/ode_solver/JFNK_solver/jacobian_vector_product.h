@@ -1,7 +1,7 @@
 #ifndef __JACOBIAN_VECTOR_PRODUCT__
 #define __JACOBIAN_VECTOR_PRODUCT__
 
-#include "dg/dg.h"
+#include "dg/dg_base.hpp"
 
 namespace PHiLiP {
 namespace ODE{
@@ -11,10 +11,7 @@ template <int dim, typename real, typename MeshType>
 class JacobianVectorProduct{
 public:
     /// Constructor
-    JacobianVectorProduct(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input);
-
-    ///Destructor
-    ~JacobianVectorProduct() {};
+    explicit JacobianVectorProduct(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input);
 
     /// Reinitializes the stored data for a new timestep.
     void reinit_for_next_timestep(const double dt_input,

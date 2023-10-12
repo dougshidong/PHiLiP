@@ -1,10 +1,10 @@
 #ifndef __EULER_ENTROPY_WAVES_H__
 #define __EULER_ENTROPY_WAVES_H__
 
-#include "tests.h"
-#include "dg/dg.h"
-#include "physics/euler.h"
+#include "dg/dg_base.hpp"
 #include "parameters/all_parameters.h"
+#include "physics/euler.h"
+#include "tests.h"
 
 namespace PHiLiP {
 namespace Tests {
@@ -28,9 +28,6 @@ public:
     const real dimensional_density_inf; ///< Dimensional density at infinity.
     real Q_inf; ///< Velocity at infinity.
 
-    /// Destructor
-    ~EulerEntropyWavesFunction() {};
-  
     /// Manufactured solution exact value
     /** Given A, density_inf, u_inf, v_inf, w_inf, and p_inf
      *  \code
@@ -71,7 +68,7 @@ public:
     /// Constructor.
     /** Simply calls the TestsBase constructor to set its parameters = parameters_input
      */
-    EulerEntropyWaves(const Parameters::AllParameters *const parameters_input);
+    explicit EulerEntropyWaves(const Parameters::AllParameters *const parameters_input);
 
     /// Manufactured grid convergence
     /** Will run the a grid convergence test for various p

@@ -102,7 +102,8 @@ protected:
         std::array<dealii::Tensor<1,dim,real>,nstate> &/*soln_grad_bc*/) const;
 
     /// Compute density from conservative_soln 
-    real compute_density ( const std::array<real,nstate> &conservative_soln ) const;
+    template<typename real2>
+    real2 compute_density ( const std::array<real2,nstate> &conservative_soln ) const;
 
     /// Compute velocities from conservative_soln (use compute_density)
     template<typename real2>
@@ -125,7 +126,8 @@ protected:
     real compute_temperature ( const std::array<real,nstate> &conservative_soln ) const;
 
     /// Compute pressure from conservative_soln
-    real compute_pressure ( const std::array<real,nstate> &conservative_soln ) const;
+    template<typename real2>
+    real2 compute_pressure ( const std::array<real2,nstate> &conservative_soln ) const;
 
     /// Compute total enthalpy from conservative_soln
     real compute_total_enthalpy( const std::array<real,nstate> &conservative_soln ) const;

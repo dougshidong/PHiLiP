@@ -163,10 +163,11 @@ void InviscidRealGas<dim,nstate,real>
 }
 
 template <int dim, int nstate, typename real>
-inline real InviscidRealGas<dim,nstate,real>
-:: compute_density ( const std::array<real,nstate> &conservative_soln ) const
+template<typename real2>
+inline real2 InviscidRealGas<dim,nstate,real>
+:: compute_density ( const std::array<real2,nstate> &conservative_soln ) const
 {
-    const real density = conservative_soln[0];
+    const real2 density = conservative_soln[0];
     return density;
 }
 
@@ -383,8 +384,9 @@ inline real InviscidRealGas<dim,nstate,real>
 
 /// IT IS FOR ALGORITHM 4
 template <int dim, int nstate, typename real>
-inline real InviscidRealGas<dim,nstate,real>
-:: compute_pressure ( const std::array<real,nstate> &conservative_soln ) const
+template<typename real2>
+inline real2 InviscidRealGas<dim,nstate,real>
+::compute_pressure ( const std::array<real2,nstate> &conservative_soln ) const
 {
     const real density = compute_density(conservative_soln);
 

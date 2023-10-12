@@ -316,86 +316,33 @@ inline real InviscidRealGas<dim,nstate,real>
     return enthalpy;
 }
 
-/// IT IS FOR ALGORITHM 3
+/// IT IS FOR ALGORITHM 3 (Standard Euler for now)
 template <int dim, int nstate, typename real>
 inline real InviscidRealGas<dim,nstate,real>
 :: compute_temperature ( const std::array<real,nstate> &conservative_soln ) const
 {
-    // std::cout<<"In compute_temperature() "<<std::endl<<std::flush;
     const real density = compute_density(conservative_soln);
     const dealii::Tensor<1,dim,real> vel = compute_velocities(conservative_soln);
     const real vel2 = compute_velocity_squared(vel);
-
-    // /// gas constant_N2
-    // real N_N2 = 28.01340 * 10e-4;  // [kg/mol]
-    // real R_N2 = this->Ru/N_N2;           // [J/kg]
-    // R_N2 = R_N2/this->R_ref;             // [...]
-    // /// velocity
-    // real vel_ref = 1.0; /// mach_inf???
-    // /// This should be madde as a function...
-
-    // /// initial guess: This must be modified... ///
-    // /// gamma
-    // real gam_ref = 1.4; /// This is "gam" probably
-    // /// This should be made as a function...
-    // const real total_energy = conservative_soln[3]/density;
-    // real pressure = (gam_ref-1)*(density*total_energy - 0.5*vel2);
-    // real temperature_old = pressure*gam_ref*mach_inf_sqr / (density*R_N2);
-    // ///
-
-    // /// initial guess.... this must be modified
-    // real temperature = temperature_old;
-
-    // /// Newton-Raphson method
-    // real tol = 1.0;
-    // do {
-    //     real Cp = compute_Cp(temperature);
-    // 	std::cout<<"Temparature = "<<temperature<<std::endl<<std::flush;
-    //     real enthalpy = compute_enthalpy(temperature);
-    //     real f_T  = (enthalpy - (this->R_ref*this->temperature_ref/pow(vel_ref,2.0))*R_N2*temperature) - (conservative_soln[3]/density - 0.50*vel2);
-    //     real f_Td = (this->R_ref*this->temperature_ref/pow(vel_ref,2.0)) * (Cp - R_N2);
-    //     temperature = temperature_old - f_T/f_Td;
-    //     tol = abs(temperature - temperature_old);
-    //     temperature_old = temperature;
-    // }
-    // while (tol > 0.9); // this should be modifieds
-
-        /// initial guess: This must be modified... ///
-    /// gamma
-    real gam_ref = 1.4; /// This is "gam" probably
-    /// This should be made as a function...
     const real total_energy = conservative_soln[nstate-1]/density;
-    real pressure = (gam_ref-1)*(density*total_energy - 0.5*gam_ref*vel2);
-    real temperature = pressure*gam_ref*mach_inf_sqr / (density);
-    ///
-
-    // std::cout<<"Pressurefrom Newton-Raphson= "<<pressure<<std::endl<<std::flush;
-    //std::cout<<"Temperature from Newton-Raphson= "<<temperature<<std::endl<<std::flush;
+    real pressure = (gam-1)*density*(total_energy - 0.5*vel2);
+    real temperature = pressure*gam*mach_inf_sqr / (density);
 
     return temperature;
 }
 
-/// IT IS FOR ALGORITHM 4
+/// IT IS FOR ALGORITHM 4 (Standard Euler for now)
 template <int dim, int nstate, typename real>
 template<typename real2>
 inline real2 InviscidRealGas<dim,nstate,real>
 ::compute_pressure ( const std::array<real2,nstate> &conservative_soln ) const
 {
-    const real density = compute_density(conservative_soln);
-
-    // /// gas constant_N2
-    // real N_N2 = 28.01340 * 10e-4;  // [kg/mol]
-    // real R_N2 = this->Ru/N_N2;           // [J/kg]
-    // R_N2 = R_N2/this->R_ref;             // [...]
-    // gamma
-    real gam_ref = 1.4;
-
-    /// This should be madde as a function...
-
-    real temperature = compute_temperature(conservative_soln);
-    // real pressure = (density*R_N2*temperature) / (gam*pow(mach_inf,2.0));
-    real pressure = density*temperature/(gam_ref*mach_inf_sqr);
-
+    const real2 density = conservative_soln[0];
+    const real2 tot_energy  = conservative_soln[nstate-1];
+    const dealii::Tensor<1,dim,real2> vel = compute_velocities<real2>(conservative_soln);
+    const real2 vel2 = compute_velocity_squared<real2>(vel);
+    real2 pressure = (gam-1)*(tot_energy - 0.5*density*vel2);
+    
     return pressure;
 }
 

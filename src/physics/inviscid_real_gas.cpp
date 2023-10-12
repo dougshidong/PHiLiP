@@ -253,17 +253,6 @@ inline real InviscidRealGas<dim,nstate,real>
 :: compute_Cp ( const real temperature ) const
 {
     // std::cout<<"In compute_Cp()."<<std::endl<<std::flush;
-    // /// This should be made as a function ...
-    // /// It is for N2, T range: 200[K] - 1000[K]
-    // real a1 = 2.210371497e+04;
-    // real a2 = -3.818461820e+02;
-    // real a3 = 6.082738360e+00;
-    // real a4 = -8.530914410e-03;
-    // real a5 = 1.384646189e-05;
-    // real a6 = -9.625793620e-09;
-    // real a7= 2.519705809e-12;
-    // // real b1 = 7.108460860e+02;
-
     // This will be changed when you implement multi-species
     int species = 1;
 
@@ -299,16 +288,6 @@ template <int dim, int nstate, typename real>
 inline real InviscidRealGas<dim,nstate,real>
 :: compute_enthalpy ( const real temperature  ) const
 {
-    // /// This should be made as a function ...
-    // /// It is for N2, T range: 200[K] - 1000[K]
-    // real a1 = 2.210371497e+04;
-    // real a2 = -3.818461820e+02;
-    // real a3 = 6.082738360e+00;
-    // real a4 = -8.530914410e-03;
-    // real a5 = 1.384646189e-05;
-    // real a6 = -9.625793620e-09;
-    // real a7= 2.519705809e-12;
-    // real b1 = 7.108460860e+02;
 
     // This will be changed when you implement multi-species
     int species = 1;

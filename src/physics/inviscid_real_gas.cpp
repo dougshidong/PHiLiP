@@ -175,7 +175,7 @@ template<typename real2>
 inline dealii::Tensor<1,dim,real2> InviscidRealGas<dim,nstate,real>
 ::compute_velocities ( const std::array<real2,nstate> &conservative_soln ) const
 {
-    const real2 density = compute_density(conservative_soln);
+    const real2 density = compute_density<real2>(conservative_soln);
     dealii::Tensor<1,dim,real2> vel;
     for (int d=0; d<dim; ++d) { vel[d] = conservative_soln[1+d]/density; }
     return vel;
@@ -409,8 +409,8 @@ template <int dim, int nstate, typename real>
 inline real InviscidRealGas<dim,nstate,real>
 :: compute_total_enthalpy ( const std::array<real,nstate> &conservative_soln ) const
 {
-    const real density = compute_density(conservative_soln);
-    const real pressure = compute_pressure(conservative_soln);
+    const real density = compute_density<real>(conservative_soln);
+    const real pressure = compute_pressure<real>(conservative_soln);
     const real total_energy = conservative_soln[3]/density;
     real total_enthalpy = total_energy + pressure/density;
 
@@ -423,10 +423,10 @@ std::array<dealii::Tensor<1,dim,real>,nstate> InviscidRealGas<dim,nstate,real>
 ::convective_flux (const std::array<real,nstate> &conservative_soln) const
 {
     std::array<dealii::Tensor<1,dim,real>,nstate> conv_flux;
-    const real density = compute_density(conservative_soln);
-    const real pressure = compute_pressure(conservative_soln);
-    const dealii::Tensor<1,dim,real> vel = compute_velocities(conservative_soln);
-    const real total_enthalpy = compute_total_enthalpy(conservative_soln);
+    const real density = compute_density<real>(conservative_soln);
+    const real pressure = compute_pressure<real>(conservative_soln);
+    const dealii::Tensor<1,dim,real> vel = compute_velocities<real>(conservative_soln);
+    const real total_enthalpy = compute_total_enthalpy(conservative_soln);    //note: missing <real>
 
     for (int flux_dim=0; flux_dim<dim; ++flux_dim) {
         // Density equation
@@ -480,13 +480,13 @@ dealii::Vector<double> InviscidRealGas<dim,nstate,real>::post_compute_derived_qu
         computed_quantities(++current_data_index) = conservative_soln[nstate-1];
         // Pressure
         /*computed_quantities(++current_data_index) = primitive_soln[nstate-1];*/
-        computed_quantities(++current_data_index) = compute_pressure(conservative_soln);
+        computed_quantities(++current_data_index) = compute_pressure<real>(conservative_soln);
         // Pressure coefficient
         /*computed_quantities(++current_data_index) = (primitive_soln[nstate-1] - pressure_inf) / dynamic_pressure_inf;*/
         computed_quantities(++current_data_index) = 999;
         // Temperature
         /*computed_quantities(++current_data_index) = compute_temperature<real>(primitive_soln);*/
-        computed_quantities(++current_data_index) = compute_temperature(conservative_soln);
+        computed_quantities(++current_data_index) = compute_temperature(conservative_soln);     //note: missing <real>
         // Entropy generation
         /*computed_quantities(++current_data_index) = compute_entropy_measure(conservative_soln) - entropy_inf;*/
         computed_quantities(++current_data_index) = 999;

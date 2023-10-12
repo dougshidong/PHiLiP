@@ -31,27 +31,6 @@ InviscidRealGas<dim,nstate,real>::InviscidRealGas (
     static_assert(nstate==dim+2, "Physics::InviscidRealGas() should be created with nstate=dim+2"); // TO DO: UPDATE THIS with nspecies
 }
 
-// template <int dim, int nstate, typename real>
-// std::array<dealii::Tensor<1,dim,real>,nstate> InviscidRealGas<dim,nstate,real>
-// ::convective_flux (const std::array<real,nstate> &/*conservative_soln*/) const
-// {
-//     std::array<dealii::Tensor<1,dim,real>,nstate> conv_flux;
-
-//     for (int flux_dim=0; flux_dim<dim; ++flux_dim) {
-//         // Density equation
-//         conv_flux[0][flux_dim] = 0.0;
-//         // Momentum equation
-//         for (int velocity_dim=0; velocity_dim<dim; ++velocity_dim){
-//             conv_flux[1+velocity_dim][flux_dim] = 0.0;
-//         }
-//         conv_flux[1+flux_dim][flux_dim] += 0.0;
-//         // Energy equation
-//         conv_flux[nstate-1][flux_dim] = 0.0;
-//         // TO DO: now loop over nspecies
-//     }
-//     return conv_flux;
-// }
-
 template <int dim, int nstate, typename real>
 std::array<real,nstate> InviscidRealGas<dim, nstate, real>
 ::compute_entropy_variables (
@@ -305,7 +284,7 @@ inline real InviscidRealGas<dim,nstate,real>
     real N_N2 = 28.01340 * 10e-4;  // [kg/mol]
     real R_N2 = this->Ru/N_N2;           // [J/kg]
     R_N2 = R_N2/this->R_ref;         // [...]
-    /// This should be madde as a function...
+    /// This should be made as a function...
 
     /// dimensinalize... T
     real T = temperature*this->temperature_ref; // [K]

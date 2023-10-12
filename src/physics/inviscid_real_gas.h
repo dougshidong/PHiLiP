@@ -47,11 +47,6 @@ protected:
     const double temperature_ref; ///< Reference temperature [K]
 
 public:
-
-    // /// Convective flux: \f$ \mathbf{F}_{conv} \f$
-    // std::array<dealii::Tensor<1,dim,real>,nstate> convective_flux (
-    //     const std::array<real,nstate> &conservative_soln) const;
-
      /// Computes the entropy variables.
     std::array<real,nstate> compute_entropy_variables (
                 const std::array<real,nstate> &conservative_soln) const;
@@ -162,11 +157,6 @@ protected:
     
     /// For post processing purposes (update comment later)
     virtual dealii::UpdateFlags post_get_needed_update_flags () const;
-
-    // /// array test
-    // std::array<dealii::Tensor<1,dim,real>,nstate> array_test (
-    //     const std::array<real,nstate> &conservative_soln) const; 
-
 
 };
 

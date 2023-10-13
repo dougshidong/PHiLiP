@@ -175,17 +175,16 @@ void DGStrongLES_ShearImproved<dim,nstate,real,MeshType>::allocate_model_variabl
     // -- double
     this->pde_model_double->cellwise_poly_degree.reinit(this->triangulation->n_active_cells(), this->mpi_communicator);
     this->pde_model_double->cellwise_volume.reinit(this->triangulation->n_active_cells(), this->mpi_communicator);
+    // allocate the cellwise mean strain rate tensor magnitude distributed vector
+    // -- double
     this->pde_model_double->cellwise_mean_strain_rate_tensor_magnitude.reinit(this->triangulation->n_active_cells(), this->mpi_communicator);
 }
 
 template <int dim, int nstate, typename real, typename MeshType>
 void DGStrongLES_ShearImproved<dim,nstate,real,MeshType>::update_cellwise_mean_quantities()
 {
-    // // Allocate the cellwise mean strain rate tensor magnitude distributed vector
-    // this->pde_model_double->cellwise_mean_strain_rate_tensor_magnitude.reinit(this->triangulation->n_active_cells(), this->mpi_communicator);
-
     // Overintegrate the error to make sure there is not integration error in the error estimate
-    int overintegrate = 0; // set to zero to reduce computational cost
+    int overintegrate = 10; // set to zero to reduce computational cost; currently set to 10 for peace of mind
 
     // Set the quadrature of size dim and 1D for sum-factorization.
     dealii::QGauss<dim> quad_extra(this->max_degree+1+overintegrate);
@@ -215,7 +214,7 @@ void DGStrongLES_ShearImproved<dim,nstate,real,MeshType>::update_cellwise_mean_q
     auto metric_cell = this->high_order_grid->dof_handler_grid.begin_active();
     // Changed for loop to update metric_cell.
     for (auto cell = this->dof_handler.begin_active(); cell!= this->dof_handler.end(); ++cell, ++metric_cell) {
-        if (!cell->is_locally_owned()) continue;
+        if (!(cell->is_locally_owned() || cell->is_ghost())) continue;
         cell->get_dof_indices (dofs_indices);
 
         // Initialize the strain rate tensor integral (for computing the mean) to zero
@@ -332,15 +331,15 @@ void DGStrongLES_ShearImproved<dim,nstate,real,MeshType>::update_cellwise_mean_q
         dealii::Tensor<2,dim,double> cell_mean_strain_rate_tensor;
         for (int d1=0; d1<dim; ++d1) {
             for (int d2=0; d2<dim; ++d2) {
-                cell_mean_strain_rate_tensor[d1][d2] = dealii::Utilities::MPI::sum(cell_strain_rate_tensor_integral[d1][d2], this->mpi_communicator);
+                cell_mean_strain_rate_tensor[d1][d2] = cell_strain_rate_tensor_integral[d1][d2];
                 cell_mean_strain_rate_tensor[d1][d2] /= this->pde_model_double->cellwise_volume[cell_index]; // divide by current cell volume
             }
         }
         // update the cellwise mean strain rate tensor magnitude at the current cell
-        this->pde_model_double->cellwise_mean_strain_rate_tensor_magnitude[cell_index] = this->pde_model_les_double->navier_stokes_physics->get_tensor_magnitude(cell_mean_strain_rate_tensor);
+        const double cell_mean_strain_rate_tensor_magnitude = this->pde_model_les_double->navier_stokes_physics->get_tensor_magnitude(cell_mean_strain_rate_tensor);
+        this->pde_model_double->cellwise_mean_strain_rate_tensor_magnitude[cell_index] = cell_mean_strain_rate_tensor_magnitude;
     }
-
-    // TO DO: should this be called later after this function call?
+    // update ghost values
     this->pde_model_double->cellwise_mean_strain_rate_tensor_magnitude.update_ghost_values();
 }
 

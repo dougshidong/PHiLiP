@@ -1697,12 +1697,27 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_strong(
         const double face_Jac_norm_scaled = unit_phys_normal_int.norm();
         unit_phys_normal_int /= face_Jac_norm_scaled;//normalize it. 
 
-        std::array<real,nstate> soln_state;
-        std::array<dealii::Tensor<1,dim,real>,nstate> aux_soln_state;
+        //get the projected entropy variables, soln, and 
+        //auxiliary solution on the surface point.
+        std::array<real,nstate> entropy_var_face_int;
+        std::array<dealii::Tensor<1,dim,real>,nstate> aux_soln_state_int;
+        std::array<real,nstate> soln_interp_to_face_int;
         for(int istate=0; istate<nstate; istate++){
-            soln_state[istate] = soln_at_surf_q[istate][iquad];
+            soln_interp_to_face_int[istate] = soln_at_surf_q[istate][iquad];
+            entropy_var_face_int[istate] = projected_entropy_var_surf[istate][iquad];
             for(int idim=0; idim<dim; idim++){
-                aux_soln_state[istate][idim] = aux_soln_at_surf_q[istate][idim][iquad];
+                aux_soln_state_int[istate][idim] = aux_soln_at_surf_q[istate][idim][iquad];
+            }
+        }
+
+        //extract solution on surface from projected entropy variables
+        std::array<real,nstate> soln_state_int;
+        soln_state_int = this->pde_physics_double->compute_conservative_variables_from_entropy_variables (entropy_var_face_int);
+
+
+        if(!this->all_parameters->use_split_form && !this->all_parameters->use_curvilinear_split_form){
+            for(int istate=0; istate<nstate; istate++){
+                soln_state_int[istate] = soln_at_surf_q[istate][iquad];
             }
         }
 
@@ -1712,19 +1727,23 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_strong(
         for(int idim=0; idim<dim; idim++){
             surf_flux_node[idim] = metric_oper.flux_nodes_surf[iface][idim][iquad];
         }
-        this->pde_physics_double->boundary_face_values (boundary_id, surf_flux_node, unit_phys_normal_int, soln_state, aux_soln_state, soln_boundary, grad_soln_boundary);
+        //I am not sure if BC should be from solution interpolated to face
+        //or solution from the projected entropy variables.
+        //Now, it uses projected entropy variables for NSFR, and solution
+        //interpolated to face for conservative DG.
+        this->pde_physics_double->boundary_face_values (boundary_id, surf_flux_node, unit_phys_normal_int, soln_state_int, aux_soln_state_int, soln_boundary, grad_soln_boundary);
         
         // Convective numerical flux.
         std::array<real,nstate> conv_num_flux_dot_n_at_q;
-        conv_num_flux_dot_n_at_q = this->conv_num_flux_double->evaluate_flux(soln_state, soln_boundary, unit_phys_normal_int);
+        conv_num_flux_dot_n_at_q = this->conv_num_flux_double->evaluate_flux(soln_state_int, soln_boundary, unit_phys_normal_int);
         
         // Dissipative numerical flux
         std::array<real,nstate> diss_auxi_num_flux_dot_n_at_q;
         diss_auxi_num_flux_dot_n_at_q = this->diss_num_flux_double->evaluate_auxiliary_flux(
             current_cell_index, current_cell_index,
             0.0, 0.0,
-            soln_state, soln_boundary,
-            aux_soln_state, grad_soln_boundary,
+            soln_interp_to_face_int, soln_boundary,
+            aux_soln_state_int, grad_soln_boundary,
             unit_phys_normal_int, penalty, true);
 
         for(int istate=0; istate<nstate; istate++){

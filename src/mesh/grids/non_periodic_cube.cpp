@@ -18,8 +18,6 @@ void non_periodic_cube(
 
     if (left_boundary_id != 9999) {
         for (auto cell = grid.begin_active(); cell != grid.end(); ++cell) {
-            // Set a dummy material ID
-            cell->set_material_id(9002);
             if (cell->face(0)->at_boundary()) cell->face(0)->set_boundary_id(left_boundary_id);
             if (cell->face(1)->at_boundary()) cell->face(1)->set_boundary_id(1001);
         }

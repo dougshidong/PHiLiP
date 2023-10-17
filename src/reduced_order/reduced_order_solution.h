@@ -22,9 +22,6 @@ public:
     /// Constructor
     ROMSolution(Parameters::AllParameters params, dealii::LinearAlgebra::distributed::Vector<double> _solution, dealii::LinearAlgebra::distributed::Vector<double> _gradient);
 
-    /// Destructor
-    ~ROMSolution () {};
-
     /// Stores all parameters
     Parameters::AllParameters params;
 

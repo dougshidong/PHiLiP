@@ -19,10 +19,7 @@ class GaussianBump : public FlowSolverCaseBase<dim, nstate>
 #endif
 public:
     /// Constructor
-    GaussianBump(const Parameters::AllParameters *const parameters_input);
-    
-    /// Destructor
-    ~GaussianBump() {};
+    explicit GaussianBump(const Parameters::AllParameters *const parameters_input);
 
     /// Function to generate the grid
     std::shared_ptr<Triangulation> generate_grid() const override;

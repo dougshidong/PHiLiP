@@ -45,11 +45,8 @@ namespace FlowSolver {
 class FlowSolverBase
 {
 public:
-    /// Constructor
-    FlowSolverBase () {};
-
     /// Destructor
-    virtual ~FlowSolverBase() {};
+    virtual ~FlowSolverBase() = default;
 
     /// Basically the main and only function of this class.
     /** This will get overloaded by the derived flow solver class.
@@ -69,9 +66,6 @@ public:
         std::shared_ptr<FlowSolverCaseBase<dim, nstate>> flow_solver_case_input,
         const dealii::ParameterHandler &parameter_handler_input);
     
-    /// Destructor
-    ~FlowSolver() {};
-
     /// Pointer to Flow Solver Case
     std::shared_ptr<FlowSolverCaseBase<dim, nstate>> flow_solver_case;
 

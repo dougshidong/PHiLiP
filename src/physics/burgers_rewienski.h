@@ -31,9 +31,6 @@ public:
             const dealii::Tensor<2,3,double>                          input_diffusion_tensor = Parameters::ManufacturedSolutionParam::get_default_diffusion_tensor(),
             std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function = nullptr);
 
-    /// Destructor
-    ~BurgersRewienski () {};
-
     /// Parameter a for eq.(18) in Carlberg 2011
     const double rewienski_a;
 

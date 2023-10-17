@@ -102,9 +102,6 @@ public:
         static_assert(nstate==8, "Physics::MHD() should be created with nstate=8");
 
     };
-    /// Destructor
-    ~MHD ()
-    {};
 
     /// Constant heat capacity ratio of air
     const double gam;

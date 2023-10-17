@@ -18,9 +18,6 @@ public:
     /// Constructor
     NearestNeighbors();
 
-    /// Destructor
-    ~NearestNeighbors() {};
-
     /// Add snapshot
     void updateSnapshots(const MatrixXd& snapshot_parameters, dealii::LinearAlgebra::distributed::Vector<double> snapshot);
 

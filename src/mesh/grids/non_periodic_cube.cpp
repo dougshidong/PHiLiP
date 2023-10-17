@@ -15,12 +15,15 @@ void non_periodic_cube(
     const int           left_boundary_id) 
 {
     dealii::GridGenerator::hyper_cube(grid, domain_left, domain_right, colorize);
-
+    std::cout << left_boundary_id << std::endl;
+    // Other tests cases set boundary outside of the flow_solver case so 
+    // if left_boundary_id is not set, it is skipped so it can be set elsewhere.
     if (left_boundary_id != 9999) {
         for (auto cell = grid.begin_active(); cell != grid.end(); ++cell) {
+            // Set a dummy material ID - Fails without this for some reason
+            cell->set_material_id(9002);
             if (cell->face(0)->at_boundary()) cell->face(0)->set_boundary_id(left_boundary_id);
-            else if (cell->face(1)->at_boundary()) cell->face(1)->set_boundary_id(1001);
-            else cell->set_material_id(9002); // Set a dummy material ID
+            if (cell->face(1)->at_boundary()) cell->face(1)->set_boundary_id(1001);
         }
     }
 }

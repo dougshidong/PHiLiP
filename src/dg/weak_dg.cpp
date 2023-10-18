@@ -1477,7 +1477,7 @@ dealii::Quadrature<dim> project_face_quadrature(
                                                  dealii::ReferenceCell::get_hypercube(dim), face_quadrature_lower_dim)
                                            : dealii::QProjector<dim>::project_to_all_subfaces(
                                                  dealii::ReferenceCell::get_hypercube(dim), face_quadrature_lower_dim);
-        const unsigned int n_face_quad_pts = face_quadrature.size();
+        const unsigned int n_face_quad_pts = face_quadrature_lower_dim.size();
         std::vector<dealii::Point<dim>> points(n_face_quad_pts);
         std::vector<double> weights(n_face_quad_pts);
         for (unsigned int iquad = 0; iquad < n_face_quad_pts; ++iquad) {

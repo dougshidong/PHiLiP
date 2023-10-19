@@ -2,21 +2,18 @@
 #define __FUNCTIONAL_H__
 
 /* includes */
-#include <vector>
-#include <iostream>
-
-#include <Sacado.hpp>
-
-#include <deal.II/lac/la_parallel_vector.h>
-
 #include <deal.II/differentiation/ad/sacado_math.h>
 #include <deal.II/differentiation/ad/sacado_number_types.h>
 #include <deal.II/differentiation/ad/sacado_product_types.h>
-
 #include <deal.II/fe/fe_q.h>
 #include <deal.II/fe/fe_values.h>
+#include <deal.II/lac/la_parallel_vector.h>
 
-#include "dg/dg.h"
+#include <Sacado.hpp>
+#include <iostream>
+#include <vector>
+
+#include "dg/dg_base.hpp"
 #include "physics/physics.h"
 
 namespace PHiLiP {
@@ -57,13 +54,15 @@ protected:
     std::shared_ptr<Physics::PhysicsBase<dim,nstate,FadFadType>> physics_fad_fad;
 
 public:
+    /// Destructor
+    virtual ~Functional() = default;
     /** Constructor.
      *  Since we don't have access to the Physics through DGBase, we recreate a Physics
      *  based on the parameter file of DGBase. However, this will not work if the
      *  physics have been overriden through DGWeak::set_physics() as seen in the
      *  diffusion_exact_adjoint test case.
      */
-    Functional(
+    explicit Functional(
         std::shared_ptr<PHiLiP::DGBase<dim,real,MeshType>> _dg,
         const bool _uses_solution_values = true,
         const bool _uses_solution_gradient = true);
@@ -75,9 +74,6 @@ public:
         std::shared_ptr<PHiLiP::Physics::PhysicsBase<dim,nstate,Sacado::Fad::DFad<Sacado::Fad::DFad<real>> >> _physics_fad_fad,
         const bool _uses_solution_values = true,
         const bool _uses_solution_gradient = true);
-
-    /// Destructor.
-    virtual ~Functional(){};
 
 public:
     /** Set the associated @ref DGBase's solution to @p solution_set. */

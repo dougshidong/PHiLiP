@@ -2,19 +2,17 @@
 #define __ADJOINT_H__
 
 /* includes */
-#include <vector>
-#include <iostream>
-
-#include <deal.II/lac/la_parallel_vector.h>
 #include <deal.II/distributed/solution_transfer.h>
-
 #include <deal.II/fe/fe_q.h>
 #include <deal.II/fe/fe_values.h>
+#include <deal.II/lac/la_parallel_vector.h>
 
-#include "parameters/all_parameters.h"
+#include <iostream>
+#include <vector>
 
+#include "dg/dg_base.hpp"
 #include "functional.h"
-#include "dg/dg.h"
+#include "parameters/all_parameters.h"
 #include "physics/physics.h"
 
 namespace PHiLiP {
@@ -57,9 +55,6 @@ public:
         std::shared_ptr< DGBase<dim,real,MeshType> > _dg,
         std::shared_ptr< Functional<dim, nstate, real, MeshType> > _functional,
         std::shared_ptr< Physics::PhysicsBase<dim,nstate,Sacado::Fad::DFad<real>> > _physics);
-
-    ///destructor
-    ~Adjoint();
 
     /// Reinitialize Adjoint with the same pointers
     /** Sets adjoint_state to AdjointEnum::coarse and stores the current

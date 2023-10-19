@@ -3,10 +3,10 @@
 
 #include <deal.II/grid/manifold_lib.h>
 
-#include "tests.h"
-#include "dg/dg.h"
-#include "physics/physics.h"
+#include "dg/dg_base.hpp"
 #include "parameters/all_parameters.h"
+#include "physics/physics.h"
+#include "tests.h"
 
 namespace PHiLiP {
 namespace Tests {
@@ -31,7 +31,7 @@ public:
     /// Constructor.
     /** Simply calls the TestsBase constructor to set its parameters = parameters_input
      */
-    EulerBumpOptimization(const Parameters::AllParameters *const parameters_input);
+    explicit EulerBumpOptimization(const Parameters::AllParameters *const parameters_input);
 
     /// Grid convergence on Euler Gaussian Bump
     /** Will run the a grid convergence test for various p

@@ -1,10 +1,11 @@
 #ifndef __JFNK_SOLVER__
 #define __JFNK_SOLVER__
 
-#include "dg/dg.h"
-#include <deal.II/lac/solver_gmres.h>
-#include "jacobian_vector_product.h"
 #include <deal.II/base/conditional_ostream.h>
+#include <deal.II/lac/solver_gmres.h>
+
+#include "dg/dg_base.hpp"
+#include "jacobian_vector_product.h"
 
 namespace PHiLiP {
 namespace ODE{
@@ -15,11 +16,8 @@ class JFNKSolver{
 public:
 
     /// Constructor
-    JFNKSolver(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input);
+    explicit JFNKSolver(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input);
     
-    /// Destructor
-    ~JFNKSolver() {};
-
     /// Solve an implicit Euler step according to Jacobian-free Newton-Krylov method
     /** See for example Knoll & Keyes 2004 "Jacobian-free Newton-Krylov methods; a survey of approaches and applications
      * Solves J(wk) * dwk = -R*(wk), where R*= dw/dt - R is unsteady residual and J is its Jacobian

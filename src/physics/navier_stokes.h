@@ -69,8 +69,6 @@ protected:
     //@}
 
 public:
-    /// Destructor
-    ~NavierStokes() {};
 
     /** Obtain gradient of primitive variables from gradient of conservative variables */
     template<typename real2>

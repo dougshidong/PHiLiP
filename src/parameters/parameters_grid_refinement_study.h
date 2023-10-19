@@ -22,8 +22,6 @@ class GridRefinementStudyParam
     static const unsigned int MAX_REFINEMENTS = 10;
 
 public:
-    GridRefinementStudyParam(); ///< Constructor
-
     /// Functional parameters to be used with grid refinement study
     FunctionalParam functional_param;
 

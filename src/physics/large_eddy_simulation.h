@@ -35,9 +35,6 @@ public:
         std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function = nullptr,
         const two_point_num_flux_enum                             two_point_num_flux_type = two_point_num_flux_enum::KG);
 
-    /// Destructor
-    ~LargeEddySimulationBase() {};
-
     /// Turbulent Prandtl number
     const double turbulent_prandtl_number;
 
@@ -187,9 +184,6 @@ public:
     /// SGS model constant
     const double model_constant;
 
-    /// Destructor
-    ~LargeEddySimulation_Smagorinsky() {};
-
     /// Returns the product of the eddy viscosity model constant and the filter width
     double get_model_constant_times_filter_width (const dealii::types::global_dof_index cell_index) const;
 
@@ -287,10 +281,7 @@ public:
         std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function = nullptr,
         const two_point_num_flux_enum                             two_point_num_flux_type = two_point_num_flux_enum::KG);
 
-    /// Destructor
-    ~LargeEddySimulation_WALE() {};
-
-    /** Nondimensionalized eddy viscosity for the WALE model. 
+    /** Nondimensionalized eddy viscosity for the WALE model.
      *  Reference: Nicoud & Ducros (1999) "Subgrid-scale stress modelling based on the square of the velocity gradient tensor"
      */
     real compute_eddy_viscosity(
@@ -346,10 +337,7 @@ public:
         std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function = nullptr,
         const two_point_num_flux_enum                             two_point_num_flux_type = two_point_num_flux_enum::KG);
 
-    /// Destructor
-    ~LargeEddySimulation_Vreman() {};
-
-    /** Nondimensionalized eddy viscosity for the Vreman model. 
+    /** Nondimensionalized eddy viscosity for the Vreman model.
      *  Reference: Vreman, A. W. (2004) "An eddy-viscosity subgrid-scale model for turbulent shear flow: Algebraic theory and applications."
      */
     real compute_eddy_viscosity(

@@ -1,31 +1,26 @@
-#include <vector>
-#include <iostream>
-#include <fstream>
+#include "adjoint.h"
 
 #include <Epetra_RowMatrixTransposer.h>
-
-#include <deal.II/dofs/dof_tools.h>
-
-#include <deal.II/grid/tria.h>
 #include <deal.II/distributed/shared_tria.h>
-#include <deal.II/distributed/tria.h>
-
-#include <deal.II/lac/la_parallel_vector.h>
 #include <deal.II/distributed/solution_transfer.h>
-
+#include <deal.II/distributed/tria.h>
+#include <deal.II/dofs/dof_tools.h>
 #include <deal.II/fe/fe_q.h>
 #include <deal.II/fe/fe_values.h>
-
-#include <deal.II/numerics/vector_tools.h>
+#include <deal.II/grid/tria.h>
+#include <deal.II/lac/la_parallel_vector.h>
 #include <deal.II/numerics/data_out.h>
+#include <deal.II/numerics/vector_tools.h>
 
-#include "parameters/all_parameters.h"
+#include <fstream>
+#include <iostream>
+#include <vector>
 
-#include "dg/dg.h"
-#include "adjoint.h"
+#include "dg/dg_base.hpp"
 #include "functional.h"
-#include "physics/physics.h"
 #include "linear_solver/linear_solver.h"
+#include "parameters/all_parameters.h"
+#include "physics/physics.h"
 #include "post_processor/physics_post_processor.h"
 
 namespace PHiLiP {
@@ -53,10 +48,6 @@ Adjoint<dim, nstate, real, MeshType>::Adjoint(
         if(cell->is_locally_owned())
             coarse_fe_index[cell->active_cell_index()] = cell->active_fe_index();
 }
-
-// destructor
-template <int dim, int nstate, typename real, typename MeshType>
-Adjoint<dim, nstate, real, MeshType>::~Adjoint(){}
 
 template <int dim, int nstate, typename real, typename MeshType>
 void Adjoint<dim, nstate, real, MeshType>::reinit()

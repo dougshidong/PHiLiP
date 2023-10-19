@@ -6,8 +6,6 @@ namespace PHiLiP {
 
 namespace Parameters {
 
-TimeRefinementStudyParam::TimeRefinementStudyParam() {}
-
 void TimeRefinementStudyParam::declare_parameters(dealii::ParameterHandler &prm)
 {
     prm.enter_subsection("time_refinement_study");

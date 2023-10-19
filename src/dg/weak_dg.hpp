@@ -1,7 +1,8 @@
 #ifndef __WEAK_DISCONTINUOUSGALERKIN_H__
 #define __WEAK_DISCONTINUOUSGALERKIN_H__
 
-#include "dg.h"
+#include "dg_base_state.hpp"
+#include "solution/local_solution.hpp"
 
 namespace PHiLiP {
 
@@ -26,8 +27,6 @@ public:
         const unsigned int max_degree_input,
         const unsigned int grid_degree_input,
         const std::shared_ptr<Triangulation> triangulation_input);
-
-    ~DGWeak(); ///< Destructor.
 
 private:
 
@@ -171,40 +170,35 @@ private:
     void assemble_volume_term(
         typename dealii::DoFHandler<dim>::active_cell_iterator cell,
         const dealii::types::global_dof_index current_cell_index,
-        const std::vector<real2> &soln_coeff,
-        const std::vector<real2> &coords_coeff,
+        const LocalSolution<real2, dim, nstate> &local_solution,
+        const LocalSolution<real2, dim, dim> &local_metric,
         const std::vector<real> &local_dual,
-        const dealii::FESystem<dim,dim> &fe_soln,
-        const dealii::FESystem<dim,dim> &fe_metric,
         const dealii::Quadrature<dim> &quadrature,
         const Physics::PhysicsBase<dim, nstate, real2> &physics,
-        std::vector<real2> &rhs,
-        real2 &dual_dot_residual,
+        std::vector<real2> &rhs, real2 &dual_dot_residual,
         const bool compute_metric_derivatives,
         const dealii::FEValues<dim,dim> &fe_values_vol);
 
     /// Main function responsible for evaluating the boundary integral and the specified derivatives.
     /** This function templates the solution and metric coefficients in order to possible AD the residual.
      */
-    template <typename adtype>
+    template <typename real2>
     void assemble_boundary_term(
         typename dealii::DoFHandler<dim>::active_cell_iterator cell,
         const dealii::types::global_dof_index current_cell_index,
-        const std::vector< adtype > &soln_coeff,
-        const std::vector< adtype > &coords_coeff,
+        const LocalSolution<real2, dim, nstate> &local_solution,
+        const LocalSolution<real2, dim, dim> &local_metric,
         const std::vector< real > &local_dual,
         const unsigned int face_number,
         const unsigned int boundary_id,
-        const Physics::PhysicsBase<dim, nstate, adtype> &physics,
-        const NumericalFlux::NumericalFluxConvective<dim, nstate, adtype> &conv_num_flux,
-        const NumericalFlux::NumericalFluxDissipative<dim, nstate, adtype> &diss_num_flux,
+        const Physics::PhysicsBase<dim, nstate, real2> &physics,
+        const NumericalFlux::NumericalFluxConvective<dim, nstate, real2> &conv_num_flux,
+        const NumericalFlux::NumericalFluxDissipative<dim, nstate, real2> &diss_num_flux,
         const dealii::FEFaceValuesBase<dim,dim> &fe_values_boundary,
         const real penalty,
-        const dealii::FESystem<dim,dim> &fe_soln,
-        const dealii::FESystem<dim,dim> &fe_metric,
         const dealii::Quadrature<dim-1> &quadrature,
-        std::vector<adtype> &rhs,
-        adtype &dual_dot_residual,
+        std::vector<real2> &rhs,
+        real2 &dual_dot_residual,
         const bool compute_metric_derivatives);
 
     /// Main function responsible for evaluating the internal face integral and the specified derivatives.
@@ -215,10 +209,10 @@ private:
         typename dealii::DoFHandler<dim>::active_cell_iterator cell,
         const dealii::types::global_dof_index current_cell_index,
         const dealii::types::global_dof_index neighbor_cell_index,
-        const std::vector< real2 > &soln_coeff_int,
-        const std::vector< real2 > &soln_coeff_ext,
-        const std::vector< real2 > &coords_coeff_int,
-        const std::vector< real2 > &coords_coeff_ext,
+        const LocalSolution<real2, dim, nstate> &soln_int,
+        const LocalSolution<real2, dim, nstate> &soln_ext,
+        const LocalSolution<real2, dim, dim> &metric_int,
+        const LocalSolution<real2, dim, dim> &metric_ext,
         const std::vector< double > &dual_int,
         const std::vector< double > &dual_ext,
         const std::pair<unsigned int, int> face_subface_int,
@@ -228,12 +222,9 @@ private:
         const Physics::PhysicsBase<dim, nstate, real2> &physics,
         const NumericalFlux::NumericalFluxConvective<dim, nstate, real2> &conv_num_flux,
         const NumericalFlux::NumericalFluxDissipative<dim, nstate, real2> &diss_num_flux,
-        const dealii::FEFaceValuesBase<dim,dim> &fe_values_int,
-        const dealii::FEFaceValuesBase<dim,dim> &fe_values_ext,
+        const dealii::FEFaceValuesBase<dim,dim>     &fe_values_int,
+        const dealii::FEFaceValuesBase<dim,dim>     &fe_values_ext,
         const real penalty,
-        const dealii::FESystem<dim,dim> &fe_int,
-        const dealii::FESystem<dim,dim> &fe_ext,
-        const dealii::FESystem<dim,dim> &fe_metric,
         const dealii::Quadrature<dim-1> &face_quadrature,
         std::vector<real2> &rhs_int,
         std::vector<real2> &rhs_ext,
@@ -449,34 +440,6 @@ private:
         dealii::Vector<real> &current_cell_rhs,
         const dealii::FEValues<dim,dim> &fe_values_lagrange);
     
-    /// Evaluate the integral over the cell edges that are on domain boundaries
-    void assemble_boundary_term_explicit(
-        typename dealii::DoFHandler<dim>::active_cell_iterator cell,
-        const dealii::types::global_dof_index current_cell_index,
-        const unsigned int boundary_id,
-        const dealii::FEFaceValuesBase<dim,dim> &fe_values_face_int,
-        const real penalty,
-        const std::vector<dealii::types::global_dof_index> &current_dofs_indices,
-        dealii::Vector<real> &current_cell_rhs);
-    
-    /// Evaluate the integral over the internal cell edges
-    void assemble_face_term_explicit(
-        const unsigned int /*iface*/, 
-        const unsigned int /*neighbor_iface*/,
-        typename dealii::DoFHandler<dim>::active_cell_iterator cell,
-        const dealii::types::global_dof_index current_cell_index,
-        const dealii::types::global_dof_index neighbor_cell_index,
-        const unsigned int poly_degree, 
-        const unsigned int grid_degree,
-        const dealii::FEFaceValuesBase<dim,dim>     &fe_values_face_int,
-        const dealii::FEFaceValuesBase<dim,dim>     &fe_values_face_ext,
-        const real penalty,
-        const std::vector<dealii::types::global_dof_index> &current_dofs_indices,
-        const std::vector<dealii::types::global_dof_index> &neighbor_dofs_indices,
-        const std::vector<dealii::types::global_dof_index> &metric_dof_indices_int,
-        const std::vector<dealii::types::global_dof_index> &metric_dof_indices_ext,
-        dealii::Vector<real>          &current_cell_rhs,
-        dealii::Vector<real>          &neighbor_cell_rhs);
 
     using DGBase<dim,real,MeshType>::pcout; ///< Parallel std::cout that only outputs on mpi_rank==0
 }; // end of DGWeak class

@@ -3,17 +3,13 @@
 
 #include <deal.II/grid/tria.h>
 
+#include "dg/dg_base.hpp"
+#include "functional/adjoint.h"
+#include "functional/functional.h"
+#include "grid_refinement/field.h"
 #include "parameters/all_parameters.h"
 #include "parameters/parameters_grid_refinement.h"
-
-#include "dg/dg.h"
-
-#include "functional/functional.h"
-#include "functional/adjoint.h"
-
 #include "physics/physics.h"
-
-#include "grid_refinement/field.h"
 
 namespace PHiLiP {
 
@@ -46,8 +42,8 @@ template <int dim, int nstate, typename real, typename MeshType = dealii::parall
 class GridRefinementBase
 {
 public:
-    /// Deleted default constructor
-    GridRefinementBase() = delete;
+     /// Destructor
+    virtual ~GridRefinementBase() = default;
 
     /// Constructor. Stores the adjoint object, physics and parameters
     GridRefinementBase(

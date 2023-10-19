@@ -1,9 +1,8 @@
+#include <deal.II/dofs/dof_tools.h>
 #include <deal.II/lac/dynamic_sparsity_pattern.h>
 #include <deal.II/lac/sparsity_tools.h>
 
-#include <deal.II/dofs/dof_tools.h>
-
-#include "dg.h"
+#include "dg_base.hpp"
 
 namespace PHiLiP {
 

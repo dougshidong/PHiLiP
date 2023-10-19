@@ -3,17 +3,12 @@
 
 #include <deal.II/optimization/rol/vector_adaptor.h>
 
-#include "ROL_Constraint_SimOpt.hpp"
-
-#include "linear_solver/linear_solver.h"
-
-#include "parameters/all_parameters.h"
-
-#include "dg/dg.h"
-
 #include "Ifpack.h"
-
+#include "ROL_Constraint_SimOpt.hpp"
 #include "design_parameterization/base_parameterization.hpp"
+#include "dg/dg_base.hpp"
+#include "linear_solver/linear_solver.h"
+#include "parameters/all_parameters.h"
 
 namespace PHiLiP {
 
@@ -93,12 +88,7 @@ public:
         std::shared_ptr<DGBase<dim,double>> &_dg,
         std::shared_ptr<BaseParameterization<dim>> _design_parameterization,
         std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> precomputed_dXvdXp = nullptr);
-    ///// Constructor
-    //FlowConstraints(
-    //    std::shared_ptr<DGBase<dim,double>> &_dg, 
-    //    const FreeFormDeformation<dim> &_ffd,
-    //    std::vector< std::pair< unsigned int, unsigned int > > &_ffd_design_variables_indices_dim,
-    //    const dealii::TrilinosWrappers::SparseMatrix *existing_dXvdXp = NULL);
+
     /// Destructor.
     ~FlowConstraints();
 

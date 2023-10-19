@@ -34,7 +34,7 @@ public:
         std::shared_ptr<MeshType> _triangulation);
 
     /// Destructor
-    ~MetricToMeshGenerator(){};
+    ~MetricToMeshGenerator() = default;
     
     /// Generates mesh from the input cellwise metric.
     void generate_mesh_from_cellwise_metric(const std::vector<dealii::Tensor<2, dim, real>> &cellwise_optimal_metric);

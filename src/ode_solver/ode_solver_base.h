@@ -3,11 +3,13 @@
 
 #include <deal.II/base/conditional_ostream.h>
 #include <deal.II/base/table_handler.h>
-#include <iostream>
 #include <deal.II/lac/vector.h>
-#include "parameters/all_parameters.h"
-#include "dg/dg.h"
+
+#include <iostream>
 #include <stdexcept>
+
+#include "dg/dg_base.hpp"
+#include "parameters/all_parameters.h"
 
 namespace PHiLiP {
 namespace ODE {
@@ -23,9 +25,9 @@ class ODESolverBase
 {
 public:
     /// Default constructor that will set the constants.
-    ODESolverBase(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input); ///< Constructor.
+    explicit ODESolverBase(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input); ///< Constructor.
 
-    virtual ~ODESolverBase() {}; ///< Destructor.
+    virtual ~ODESolverBase() = default; ///< Destructor.
 
     /// Table used to output solution vector at each time step
     dealii::TableHandler solutions_table;

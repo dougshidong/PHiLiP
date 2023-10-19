@@ -1,10 +1,10 @@
 #ifndef __BURGERS_STEADYSHOCK_H__
 #define __BURGERS_STEADYSHOCK_H__
 
-#include "tests.h"
-#include "dg/dg.h"
-#include "physics/physics.h"
+#include "dg/dg_base.hpp"
 #include "parameters/all_parameters.h"
+#include "physics/physics.h"
+#include "tests.h"
 
 namespace PHiLiP {
 namespace Tests {
@@ -19,9 +19,7 @@ public:
     /// Constructor.
     /** Simply calls the TestsBase constructor to set its parameters = parameters_input
      */
-    Shock1D(const Parameters::AllParameters *const parameters_input);
-
-    ~Shock1D() {}; ///< Destructor.
+    explicit Shock1D(const Parameters::AllParameters *const parameters_input);
 
     /// Manufactured grid convergence
     /** Will run the a grid convergence test for various p

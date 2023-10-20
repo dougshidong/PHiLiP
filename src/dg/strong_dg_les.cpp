@@ -552,12 +552,8 @@ void DGStrongLES_DynamicSmagorinsky<dim,nstate,real,MeshType>::update_cellwise_m
         cell->get_dof_indices (dofs_indices);
 
         // Initialize the strain rate tensor integral (for computing the mean) to zero
-        dealii::Tensor<2,dim,double> cell_strain_rate_tensor_integral;
-        for (int d1=0; d1<dim; ++d1) {
-            for (int d2=0; d2<dim; ++d2) {
-                cell_strain_rate_tensor_integral[d1][d2] = 0.0;
-            }
-        }
+        real cell_matrix_L_times_matrix_M_integral = 0.0;
+        real cell_matrix_M_times_matrix_M_integral = 0.0;
 
         // We first need to extract the mapping support points (grid nodes) from high_order_grid.
         const dealii::FESystem<dim> &fe_metric = this->high_order_grid->fe_system;
@@ -640,6 +636,8 @@ void DGStrongLES_DynamicSmagorinsky<dim,nstate,real,MeshType>::update_cellwise_m
         // -- Solution at legendre poly
         std::array<std::vector<real>,nstate> legendre_soln_at_q_vect;
         std::array<dealii::Tensor<1,dim,std::vector<real>>,nstate> legendre_aux_soln_at_q_vect; // legendre auxiliary sol at flux nodes
+        dealii::Tensor<2,dim,std::vector<real>> legendre_matrix_L_component_at_q_vect;
+        dealii::Tensor<2,dim,std::vector<real>> legendre_matrix_M_component_at_q_vect;
         if(this->do_compute_filtered_solution) {
             const unsigned int p_min_filtered = this->poly_degree_max_large_scales + 1;
             //==================================================
@@ -647,11 +645,8 @@ void DGStrongLES_DynamicSmagorinsky<dim,nstate,real,MeshType>::update_cellwise_m
             //==================================================
             std::array<std::vector<real>,nstate> primitive_soln_at_q;
             std::array<dealii::Tensor<1,dim,std::vector<real>>,nstate> primitive_aux_soln_at_q; // primitive auxiliary sol at flux nodes
-            dealii::Tensor<2,dim,std::vector<real>> strain_rate_tensor_at_q;
-            
-            // HERE's where I would have to compute L and M matrices
-            // step (1): filter a matrix dim x dim (e.g. strain rate tensor as a first step); then rest will be easy
-            // note: this should be similar to what i did for primitive aux soln in strong DG
+            dealii::Tensor<2,dim,std::vector<real>> matrix_L_component_at_q;
+            dealii::Tensor<2,dim,std::vector<real>> matrix_M_component_at_q;
             
             // Resize the primitive soln arrays
             for(int istate=0; istate<nstate; istate++){
@@ -662,7 +657,8 @@ void DGStrongLES_DynamicSmagorinsky<dim,nstate,real,MeshType>::update_cellwise_m
             }
             for(int jdim=0; jdim<dim; jdim++){
                 for(int idim=0; idim<dim; idim++){
-                    strain_rate_tensor_at_q[jdim][idim].resize(n_quad_pts);
+                    matrix_L_component_at_q[jdim][idim].resize(n_quad_pts);
+                    matrix_M_component_at_q[jdim][idim].resize(n_quad_pts);
                 }
             }
             
@@ -688,11 +684,20 @@ void DGStrongLES_DynamicSmagorinsky<dim,nstate,real,MeshType>::update_cellwise_m
                     }
                 }
                 // compute the DMS matrices
-                const dealii::Tensor<2,dim,real> strain_rate_tensor_state = this->pde_model_les_double->navier_stokes_physics->compute_strain_rate_tensor_from_conservative(soln_state,aux_soln_state);
-                // store the DMS matrices
+                // -- matrix L
+                const dealii::Tensor<2,dim,real> matrix_L_component_state = this->pde_model_les_double->navier_stokes_physics->compute_germano_idendity_matrix_L_component(soln_state);
+                // store the DMS matrix L
                 for(int jdim=0; jdim<dim; jdim++){
                     for(int idim=0; idim<dim; idim++){
-                        strain_rate_tensor_at_q[jdim][idim][iquad] = strain_rate_tensor_state[jdim][idim];
+                        matrix_L_component_at_q[jdim][idim][iquad] = matrix_L_component_state[jdim][idim];
+                    }
+                }
+                // -- matrix M
+                const dealii::Tensor<2,dim,real> matrix_M_component_state = this->pde_model_les_double->navier_stokes_physics->compute_germano_idendity_matrix_M_component(soln_state,aux_soln_state);
+                // store the DMS matrix M
+                for(int jdim=0; jdim<dim; jdim++){
+                    for(int idim=0; idim<dim; idim++){
+                        matrix_M_component_at_q[jdim][idim][iquad] = matrix_M_component_state[jdim][idim];
                     }
                 }
             }
@@ -763,27 +768,36 @@ void DGStrongLES_DynamicSmagorinsky<dim,nstate,real,MeshType>::update_cellwise_m
             // PROJECT TO LEGENDRE BASIS AND MODALLY FILTER
             //==================================================
             // -- Some DSM matrix
-            dealii::Tensor<2,dim,std::vector<real>> legendre_strain_rate_tensor_at_q;
+            dealii::Tensor<2,dim,std::vector<real>> legendre_matrix_L_component_at_q;
+            dealii::Tensor<2,dim,std::vector<real>> legendre_matrix_M_component_at_q;
             
             for(int jdim=0; jdim<dim; jdim++){
-                dealii::Tensor<1,dim,std::vector<real>> legendre_aux_soln_coeff;
+                dealii::Tensor<1,dim,std::vector<real>> legendre_matrix_L_component_coeff;
+                dealii::Tensor<1,dim,std::vector<real>> legendre_matrix_M_component_coeff;
                 for(int idim=0; idim<dim; idim++){
                     // -- (1) Project to Legendre basis
-                    legendre_aux_soln_coeff[idim].resize(n_shape_fns);
-                    legendre_soln_basis_projection_oper.matrix_vector_mult_1D(strain_rate_tensor_at_q[jdim][idim], legendre_aux_soln_coeff[idim],
+                    legendre_matrix_L_component_coeff[idim].resize(n_shape_fns);
+                    legendre_soln_basis_projection_oper.matrix_vector_mult_1D(matrix_L_component_at_q[jdim][idim], legendre_matrix_L_component_coeff[idim],
+                                                                              legendre_soln_basis_projection_oper.oneD_vol_operator);
+                    legendre_matrix_M_component_coeff[idim].resize(n_shape_fns);
+                    legendre_soln_basis_projection_oper.matrix_vector_mult_1D(matrix_M_component_at_q[jdim][idim], legendre_matrix_M_component_coeff[idim],
                                                                               legendre_soln_basis_projection_oper.oneD_vol_operator);
                     // -- (2) Truncate modes for high-pass filter (i.e. DG-VMS like)
                     if(this->apply_modal_high_pass_filter_on_filtered_solution) {
                         for(unsigned int ishape=0; ishape<n_shape_fns; ishape++){
                             if(ishape < p_min_filtered){
-                                legendre_aux_soln_coeff[idim][ishape] = 0.0;
+                                legendre_matrix_L_component_coeff[idim][ishape] = 0.0;// TO DO: Confirm the indexing here
+                                legendre_matrix_M_component_coeff[idim][ishape] = 0.0;// TO DO: Confirm the indexing here, and throughout this loop
                             }
-                        }    
+                        }
                     }
                     
                     // -- (3) Interpolate filtered solution back to quadrature points
-                    legendre_strain_rate_tensor_at_q[jdim][idim].resize(n_quad_pts);
-                    legendre_soln_basis.matrix_vector_mult_1D(legendre_aux_soln_coeff[idim], legendre_strain_rate_tensor_at_q[jdim][idim],
+                    legendre_matrix_L_component_at_q[jdim][idim].resize(n_quad_pts);
+                    legendre_soln_basis.matrix_vector_mult_1D(legendre_matrix_L_component_coeff[idim], legendre_matrix_L_component_at_q[jdim][idim],
+                                                              legendre_soln_basis.oneD_vol_operator);
+                    legendre_matrix_M_component_at_q[jdim][idim].resize(n_quad_pts);
+                    legendre_soln_basis.matrix_vector_mult_1D(legendre_matrix_M_component_coeff[idim], legendre_matrix_M_component_at_q[jdim][idim],
                                                               legendre_soln_basis.oneD_vol_operator);
                 }
                 //==================================================
@@ -802,7 +816,8 @@ void DGStrongLES_DynamicSmagorinsky<dim,nstate,real,MeshType>::update_cellwise_m
             }
             for(int jdim=0; jdim<dim; jdim++){
                 for(int idim=0; idim<dim; idim++){
-                    legendre_strain_rate_tensor_at_q_vect[jdim][idim].resize(n_quad_pts);
+                    legendre_matrix_L_component_at_q_vect[jdim][idim].resize(n_quad_pts);
+                    legendre_matrix_M_component_at_q_vect[jdim][idim].resize(n_quad_pts);
                 }
             }
             // Compute the primitive soln at all iquad and fill arrays
@@ -828,7 +843,8 @@ void DGStrongLES_DynamicSmagorinsky<dim,nstate,real,MeshType>::update_cellwise_m
                 }
                 for(int jdim=0; jdim<dim; jdim++){
                     for(int idim=0; idim<dim; idim++){
-                        legendre_strain_rate_tensor_at_q_vect[jdim][idim][iquad] = legendre_strain_rate_tensor_at_q[jdim][idim];
+                        legendre_matrix_L_component_at_q_vect[jdim][idim][iquad] = legendre_matrix_L_component_at_q[jdim][idim];
+                        legendre_matrix_M_component_at_q_vect[jdim][idim][iquad] = legendre_matrix_M_component_at_q[jdim][idim];
                     }
                 }
             }
@@ -839,41 +855,58 @@ void DGStrongLES_DynamicSmagorinsky<dim,nstate,real,MeshType>::update_cellwise_m
 
             std::array<double,nstate> soln_at_q;
             std::array<dealii::Tensor<1,dim,double>,nstate> soln_grad_at_q;
+            std::array<double,nstate> filtered_soln_at_q;
+            std::array<dealii::Tensor<1,dim,double>,nstate> filtered_soln_grad_at_q;
             // Extract solution and gradient in a way that the physics can use them.
             for(int istate=0; istate<nstate; istate++){
-                if(this->do_compute_filtered_solution) soln_at_q[istate] = legendre_soln_at_q_vect[istate][iquad];
-                else soln_at_q[istate] = soln_at_q_vect[istate][iquad];
+                filtered_soln_at_q[istate] = legendre_soln_at_q_vect[istate][iquad];
+                soln_at_q[istate] = soln_at_q_vect[istate][iquad];
                 for(int idim=0; idim<dim; idim++){
-                    if(this->do_compute_filtered_solution) soln_grad_at_q[istate][idim] = legendre_aux_soln_at_q_vect[istate][idim][iquad];
-                    else soln_grad_at_q[istate][idim] = soln_grad_at_q_vect[istate][idim][iquad];
+                    filtered_soln_grad_at_q[istate][idim] = legendre_aux_soln_at_q_vect[istate][idim][iquad];
+                    soln_grad_at_q[istate][idim] = soln_grad_at_q_vect[istate][idim][iquad];
                 }
             }
 
             // Get strain rate tensor
-            const dealii::Tensor<2,dim,double> strain_rate_tensor = this->pde_model_les_double->navier_stokes_physics->compute_strain_rate_tensor_from_conservative(soln_at_q,soln_grad_at_q);
-            for (int d1=0; d1<dim; ++d1) {
-                for (int d2=0; d2<dim; ++d2) {
-                    cell_strain_rate_tensor_integral[d1][d2] += strain_rate_tensor[d1][d2] * quad_weights[iquad] * metric_oper.det_Jac_vol[iquad];
+            const dealii::Tensor<2,dim,real> matrix_L_component_state_from_filtered_soln = this->pde_model_les_double->navier_stokes_physics->compute_germano_idendity_matrix_L_component(filtered_soln_at_q);
+            const dealii::Tensor<2,dim,real> matrix_M_component_state_from_filtered_soln = this->pde_model_les_double->navier_stokes_physics->compute_germano_idendity_matrix_M_component(filtered_soln_at_q,filtered_soln_grad_at_q);
+            
+            dealii::Tensor<2,dim,real> filtered_matrix_L_component_state;
+            dealii::Tensor<2,dim,real> filtered_matrix_M_component_state;
+            for(int jdim=0; jdim<dim; jdim++){
+                for(int idim=0; idim<dim; idim++){
+                    filtered_matrix_L_component_state[jdim][idim] = legendre_matrix_L_component_at_q_vect[jdim][idim][iquad];
+                    filtered_matrix_M_component_state[jdim][idim] = legendre_matrix_M_component_at_q_vect[jdim][idim][iquad];
                 }
             }
+
+            dealii::Tensor<2,dim,real> matrix_L;
+            dealii::Tensor<2,dim,real> matrix_M;
+            const double filter_ratio = (1.0*poly_degree)/(1.0*p_min_filtered);
+            for (int d1=0; d1<dim; ++d1) {
+                for (int d2=0; d2<dim; ++d2) {
+                    matrix_L[d1][d2] = filtered_matrix_L_component_state[d1][d2] - matrix_L_component_state_from_filtered_soln[d1][d2];
+                    matrix_M[d1][d2] = filtered_matrix_M_component_state[d1][d2] - filter_ratio*matrix_M_component_state_from_filtered_soln[d1][d2];
+                }
+            }
+
+            const real matrix_L_times_matrix_M = get_tensor_product_magnitude_sqr(matrix_L,matrix_M);
+            const real matrix_M_times_matrix_M = get_tensor_product_magnitude_sqr(matrix_M,matrix_M);
+
+            cell_matrix_L_times_matrix_M_integral += matrix_L_times_matrix_M * quad_weights[iquad] * metric_oper.det_Jac_vol[iquad];
+            cell_matrix_M_times_matrix_M_integral += matrix_M_times_matrix_M * quad_weights[iquad] * metric_oper.det_Jac_vol[iquad];
         }
         
         // get cell index
         const dealii::types::global_dof_index cell_index = cell->active_cell_index();
-        // get mean strain rate tensor
-        dealii::Tensor<2,dim,double> cell_mean_strain_rate_tensor;
-        for (int d1=0; d1<dim; ++d1) {
-            for (int d2=0; d2<dim; ++d2) {
-                cell_mean_strain_rate_tensor[d1][d2] = cell_strain_rate_tensor_integral[d1][d2];
-                cell_mean_strain_rate_tensor[d1][d2] /= this->pde_model_double->cellwise_volume[cell_index]; // divide by current cell volume
-            }
-        }
-        // update the cellwise mean strain rate tensor magnitude at the current cell
-        const double cell_mean_strain_rate_tensor_magnitude = this->pde_model_les_double->navier_stokes_physics->get_tensor_magnitude(cell_mean_strain_rate_tensor);
-        this->pde_model_double->dynamic_smagorinsky_model_constant_times_filter_width_sqr[cell_index] = cell_mean_strain_rate_tensor_magnitude;
+        // get mean
+        real cell_volume = this->pde_model_double->cellwise_volume[cell_index];
+        real cell_averaged_matrix_L_times_matrix_M = cell_matrix_L_times_matrix_M_integral/cell_volume;
+        real cell_averaged_matrix_M_times_matrix_M = cell_matrix_M_times_matrix_M_integral/cell_volume;
+        // update the DSM constant times filter width (all) squared
+        this->pde_model_double->dynamic_smagorinsky_model_constant_times_filter_width_sqr[cell_index] = cell_averaged_matrix_L_times_matrix_M/cell_averaged_matrix_M_times_matrix_M;
     }
     // update ghost values
-    this->pde_model_double->cellwise_mean_strain_rate_tensor_magnitude.update_ghost_values();
     this->pde_model_double->dynamic_smagorinsky_model_constant_times_filter_width_sqr.update_ghost_values();
 }
 

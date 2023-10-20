@@ -23,7 +23,7 @@ set conv_num_flux = lax_friedrichs
 
 subsection limiter
   set bound_preserving_limiter = positivity_preservingZhang2010
-  set pos_eps = 1e-13
+  set min_density = 1e-13
 
   set use_tvb_limiter = true
   set max_delta_x = 0.0390625

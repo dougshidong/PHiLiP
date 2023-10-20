@@ -17,10 +17,8 @@ class NonPeriodicCubeFlow : public FlowSolverCaseBase<dim, nstate>
  #endif
 
  public:
-     NonPeriodicCubeFlow(const Parameters::AllParameters *const parameters_input);
+     explicit NonPeriodicCubeFlow(const Parameters::AllParameters *const parameters_input);
      
-     ~NonPeriodicCubeFlow() {};
- 
      std::shared_ptr<Triangulation> generate_grid() const override;
 
      void display_additional_flow_case_specific_parameters() const override;

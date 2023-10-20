@@ -26,9 +26,6 @@ public:
     AdaptiveSampling(const PHiLiP::Parameters::AllParameters *const parameters_input,
                      const dealii::ParameterHandler &parameter_handler_input);
 
-    /// Destructor
-    ~AdaptiveSampling() {};
-
     /// Matrix of snapshot parameters
     mutable MatrixXd snapshot_parameters;
 

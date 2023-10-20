@@ -4,6 +4,10 @@
 
 #include "parameters/all_parameters.h"
 
+//for checking output directories
+#include <sys/types.h>
+#include <sys/stat.h>
+
 namespace PHiLiP {
 namespace Parameters {
 
@@ -486,6 +490,13 @@ const std::string test_string = prm.get("test_type");
     if (non_physical_behavior_string == "print_warning")     { non_physical_behavior_type = NonPhysicalBehaviorEnum::print_warning;}
 
     solution_vtk_files_directory_name = prm.get("solution_vtk_files_directory_name");
+    // Check if directory exists - see https://stackoverflow.com/a/18101042
+    struct stat info_vtk;
+    if( stat( solution_vtk_files_directory_name.c_str(), &info_vtk ) != 0 ){
+        pcout << "Error: No solution vtk files directory named " << solution_vtk_files_directory_name << " exists." << std::endl
+                  << "Please create the directory and restart. Aborting..." << std::endl;
+        std::abort();
+    }
     output_high_order_grid = prm.get_bool("output_high_order_grid");
     enable_higher_order_vtk_output = prm.get_bool("enable_higher_order_vtk_output");
     output_face_results_vtk = prm.get_bool("output_face_results_vtk");

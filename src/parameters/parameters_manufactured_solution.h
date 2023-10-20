@@ -14,8 +14,6 @@ namespace Parameters {
 class ManufacturedSolutionParam
 {
 public:
-    ManufacturedSolutionParam(); ///< Constructor
-
     /// Uses non-zero source term based on the manufactured solution and the PDE.
     bool use_manufactured_source_term;
     

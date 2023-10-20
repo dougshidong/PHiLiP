@@ -26,9 +26,9 @@ class ODESolverBase
 {
 public:
     /// Default constructor that will set the constants.
-    ODESolverBase(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input); ///< Constructor.
+    explicit ODESolverBase(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input); ///< Constructor.
 
-    virtual ~ODESolverBase() {}; ///< Destructor.
+    virtual ~ODESolverBase() = default; ///< Destructor.
 
     /// Table used to output solution vector at each time step
     dealii::TableHandler solutions_table;

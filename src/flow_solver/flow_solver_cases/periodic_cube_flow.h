@@ -17,10 +17,7 @@ class PeriodicCubeFlow : public FlowSolverCaseBase<dim,nstate>
 {
 public:
     /// Constructor.
-    PeriodicCubeFlow(const Parameters::AllParameters *const parameters_input);
-
-    /// Destructor
-    ~PeriodicCubeFlow() {};
+    explicit PeriodicCubeFlow(const Parameters::AllParameters *const parameters_input);
 
     /// Function to generate the grid
     std::shared_ptr<Triangulation> generate_grid() const override;

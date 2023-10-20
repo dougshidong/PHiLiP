@@ -239,14 +239,14 @@ std::array<real,nstate> Burgers<dim,nstate,real>
 
             if(dim==3)
             {
-                real sourcedt = pi*sin(pi_xmt)*cos(pi_ymt)*cos(pi_zmt)
+                const real sourcedt = pi*sin(pi_xmt)*cos(pi_ymt)*cos(pi_zmt)
                                +pi*cos(pi_xmt)*sin(pi_ymt)*cos(pi_zmt)
                                +pi*cos(pi_xmt)*cos(pi_ymt)*sin(pi_zmt);
-                real sourcedx = -pi*sin(pi_xmt)*(cos(pi_xmt))
+                const real sourcedx = -pi*sin(pi_xmt)*(cos(pi_xmt))
                                *pow(cos(pi_ymt),2.0)*pow(cos(pi_zmt),2.0);
-                real sourcedy = -pi*sin(pi_ymt)*(cos(pi_ymt))
+                const real sourcedy = -pi*sin(pi_ymt)*(cos(pi_ymt))
                                *pow(cos(pi_xmt),2.0)*pow(cos(pi_zmt),2.0);
-                real sourcedz = -pi*sin(pi_zmt)*(cos(pi_zmt))
+                const real sourcedz = -pi*sin(pi_zmt)*(cos(pi_zmt))
                                *pow(cos(pi_xmt),2.0)*pow(cos(pi_ymt),2.0);
                 source[istate] = sourcedt + sourcedx + sourcedy + sourcedz;
             }

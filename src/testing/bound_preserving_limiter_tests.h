@@ -26,16 +26,24 @@ public:
     const dealii::ParameterHandler& parameter_handler;
 
     /// Currently passes no matter what.
+    /// Checks are included within the limiter to ensure that the principle 
+    /// it is meant to preserve is satisfied at each node.
     int run_test() const override;
 
 private:
+    /// Runs full test and outputs VTK files
     int run_full_limiter_test() const;
 
+    /// Runs convergence test and prints out results in console
     int run_convergence_test() const;
 
+    /// Calculate and return the exact value at the point depending on the case being run
     double calculate_uexact(const dealii::Point<dim> qpoint,
         const dealii::Tensor<1, 3, double> adv_speeds,
         double final_time) const;
+
+    /// Calculate and return the L2 Error
+    double calculate_l2error(std::shared_ptr<DGBase<dim, double>> flow_solver_dg, const int poly_degree, const double final_time) const;
 };
 
 } // End of Tests namespace

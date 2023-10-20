@@ -46,6 +46,48 @@ double BoundPreservingLimiterTests<dim, nstate>::calculate_uexact(const dealii::
 }
 
 template <int dim, int nstate>
+double BoundPreservingLimiterTests<dim, nstate>::calculate_l2error(
+    std::shared_ptr<DGBase<dim, double>> flow_solver_dg,
+    const int poly_degree,
+    const double final_time) const
+{
+    // Overintegrate the error to make sure there is not integration error in the error estimate
+    int overintegrate = 10;
+    dealii::QGauss<dim> quad_extra(poly_degree + 1 + overintegrate);
+    dealii::FEValues<dim, dim> fe_values_extra(*(flow_solver_dg->high_order_grid->mapping_fe_field), flow_solver_dg->fe_collection[poly_degree], quad_extra,
+        dealii::update_values | dealii::update_JxW_values | dealii::update_quadrature_points);
+    const unsigned int n_quad_pts = fe_values_extra.n_quadrature_points;
+    std::array<double, nstate> soln_at_q;
+
+    double l2error = 0.0;
+
+    // Integrate every cell and compute L2
+    std::vector<dealii::types::global_dof_index> dofs_indices(fe_values_extra.dofs_per_cell);
+    const dealii::Tensor<1, 3, double> adv_speeds = Parameters::ManufacturedSolutionParam::get_default_advection_vector();
+    for (auto cell = flow_solver_dg->dof_handler.begin_active(); cell != flow_solver_dg->dof_handler.end(); ++cell) {
+        if (!cell->is_locally_owned()) continue;
+
+        fe_values_extra.reinit(cell);
+        cell->get_dof_indices(dofs_indices);
+
+        for (unsigned int iquad = 0; iquad < n_quad_pts; ++iquad) {
+
+            std::fill(soln_at_q.begin(), soln_at_q.end(), 0.0);
+            for (unsigned int idof = 0; idof < fe_values_extra.dofs_per_cell; ++idof) {
+                const unsigned int istate = fe_values_extra.get_fe().system_to_component_index(idof).first;
+                soln_at_q[istate] += flow_solver_dg->solution[dofs_indices[idof]] * fe_values_extra.shape_value_component(idof, iquad, istate);
+            }
+
+            const dealii::Point<dim> qpoint = (fe_values_extra.quadrature_point(iquad));
+            double uexact = calculate_uexact(qpoint, adv_speeds, final_time);
+            l2error += pow(soln_at_q[0] - uexact, 2) * fe_values_extra.JxW(iquad);
+        }
+    }
+    const double l2error_mpi_sum = std::sqrt(dealii::Utilities::MPI::sum(l2error, this->mpi_communicator));
+    return l2error_mpi_sum;
+}
+
+template <int dim, int nstate>
 int BoundPreservingLimiterTests<dim, nstate>::run_test() const
 {
     pcout << " Running Bound Preserving Limiter test. " << std::endl;
@@ -115,54 +157,21 @@ int BoundPreservingLimiterTests<dim, nstate>::run_convergence_test() const
         std::unique_ptr<FlowSolver::FlowSolver<dim, nstate>> flow_solver = FlowSolver::FlowSolverFactory<dim, nstate>::select_flow_case(&param, parameter_handler);
         const unsigned int n_global_active_cells = flow_solver->dg->triangulation->n_global_active_cells();
         const int poly_degree = all_parameters_new.flow_solver_param.poly_degree;
-        double final_time = all_parameters_new.flow_solver_param.final_time;
+        const double final_time = all_parameters_new.flow_solver_param.final_time;
 
         flow_solver->run();
 
         // output results
         const unsigned int n_dofs = flow_solver->dg->dof_handler.n_dofs();
         this->pcout << "Dimension: " << dim
-            << "\t Polynomial degree p: " << poly_degree
-            << std::endl
-            << "Grid number: " << igrid + 1 << "/" << n_grids
-            << ". Number of active cells: " << n_global_active_cells
-            << ". Number of degrees of freedom: " << n_dofs
-            << std::endl;
+        << "\t Polynomial degree p: " << poly_degree
+        << std::endl
+        << "Grid number: " << igrid + 1 << "/" << n_grids
+        << ". Number of active cells: " << n_global_active_cells
+        << ". Number of degrees of freedom: " << n_dofs
+        << std::endl;
 
-        // Overintegrate the error to make sure there is not integration error in the error estimate
-        int overintegrate = 10;
-        dealii::QGauss<dim> quad_extra(poly_degree + 1 + overintegrate);
-        dealii::FEValues<dim, dim> fe_values_extra(*(flow_solver->dg->high_order_grid->mapping_fe_field), flow_solver->dg->fe_collection[poly_degree], quad_extra,
-            dealii::update_values | dealii::update_JxW_values | dealii::update_quadrature_points);
-        const unsigned int n_quad_pts = fe_values_extra.n_quadrature_points;
-        std::array<double, nstate> soln_at_q;
-
-        double l2error = 0.0;
-
-        // Integrate every cell and compute L2
-        std::vector<dealii::types::global_dof_index> dofs_indices(fe_values_extra.dofs_per_cell);
-        const dealii::Tensor<1, 3, double> adv_speeds = Parameters::ManufacturedSolutionParam::get_default_advection_vector();
-        for (auto cell = flow_solver->dg->dof_handler.begin_active(); cell != flow_solver->dg->dof_handler.end(); ++cell) {
-            if (!cell->is_locally_owned()) continue;
-
-            fe_values_extra.reinit(cell);
-            cell->get_dof_indices(dofs_indices);
-
-            for (unsigned int iquad = 0; iquad < n_quad_pts; ++iquad) {
-
-                std::fill(soln_at_q.begin(), soln_at_q.end(), 0.0);
-                for (unsigned int idof = 0; idof < fe_values_extra.dofs_per_cell; ++idof) {
-                    const unsigned int istate = fe_values_extra.get_fe().system_to_component_index(idof).first;
-                    soln_at_q[istate] += flow_solver->dg->solution[dofs_indices[idof]] * fe_values_extra.shape_value_component(idof, iquad, istate);
-                }
-
-                const dealii::Point<dim> qpoint = (fe_values_extra.quadrature_point(iquad));
-                double uexact = calculate_uexact(qpoint, adv_speeds, final_time);
-                l2error += pow(soln_at_q[0] - uexact, 2) * fe_values_extra.JxW(iquad);
-            }
-
-        }
-        const double l2error_mpi_sum = std::sqrt(dealii::Utilities::MPI::sum(l2error, this->mpi_communicator));
+        const double l2error_mpi_sum = calculate_l2error(flow_solver->dg, poly_degree, final_time);
 
         // Convergence table
         const double dx = 1.0 / pow(n_dofs, (1.0 / dim));

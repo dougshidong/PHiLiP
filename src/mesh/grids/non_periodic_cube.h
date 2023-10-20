@@ -6,6 +6,9 @@
 
 namespace PHiLiP::Grids {
 
+/// Create a nonperiodic cube mesh
+/// Boundary IDs are assigned for limiter_convergence_tests
+/// Unassigned otherwise
 template<int dim, typename TriangulationType>
 void non_periodic_cube(
     TriangulationType&  grid,

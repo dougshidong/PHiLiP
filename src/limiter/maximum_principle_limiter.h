@@ -20,16 +20,16 @@ public:
     /// Destructor
     ~MaximumPrincipleLimiter() = default;
 
-    /// Maximum of initial solution in domain.
+    /// Maximum of initial solution for each state in domain.
     std::vector<real> global_max;
-    /// Minimum of initial solution in domain.
+    /// Minimum of initial solution for each state in domain.
     std::vector<real> global_min;
 
     /// Pointer to TVB limiter class (TVB limiter can be applied in conjunction with this limiter)
     std::shared_ptr<BoundPreservingLimiter<dim, real>> tvbLimiter;
 
 private:
-    /// Function to obtain the maximum and minimum of the initial solution
+    /// Function to obtain the maximum and minimum of the initial solution for each state
     void get_global_max_and_min_of_solution(
         const dealii::LinearAlgebra::distributed::Vector<double>&       solution,
         const dealii::DoFHandler<dim>&                                  dof_handler,
@@ -39,6 +39,7 @@ private:
     using BoundPreservingLimiterState<dim, nstate, real>::get_soln_cell_avg;
     
     /// Function to verify the limited solution satisfies the strict maximum principle
+    /// and write back limited solution
     void write_limited_solution(
         dealii::LinearAlgebra::distributed::Vector<double>&      solution,
         const std::array<std::vector<real>, nstate>&             soln_dofs,
@@ -47,8 +48,7 @@ private:
 
 public:
     /// Applies maximum-principle-satisfying limiter to the solution.
-    /** Using Zhang,Shu May 2010 Eq 3.8 and 3.9 we apply a limiter on the global solution
-    */
+    /// Using Zhang,Shu May 2010 Eq 3.8 and 3.9 we apply a limiter on the global solution
     void limit(
         dealii::LinearAlgebra::distributed::Vector<double>&     solution,
         const dealii::DoFHandler<dim>&                          dof_handler,

@@ -64,6 +64,7 @@ public:
         const dealii::hp::FECollection<1>                       oneD_fe_collection_1state,
         const dealii::hp::QCollection<1>                        oneD_quadrature_collection) = 0;
 
+    // Function to obtain the solution cell average
     std::array<real, nstate> get_soln_cell_avg(
         const std::array<std::vector<real>, nstate>&            soln_at_q,
         const unsigned int                                      n_quad_pts,

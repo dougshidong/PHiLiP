@@ -115,6 +115,8 @@ public:
 
     /// Pointer to ode solver so it can be accessed externally.
     std::shared_ptr<ODE::ODESolverBase<dim, double>> ode_solver;
+    
+    bool use_polynomial_ramping;
 
 private:
     /** Returns the column names of a dealii::TableHandler object

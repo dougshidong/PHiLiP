@@ -1237,6 +1237,57 @@ LargeEddySimulation_AllAllVMS<dim, nstate, real>::LargeEddySimulation_AllAllVMS(
                                                two_point_num_flux_type)
 { }
 //----------------------------------------------------------------
+//================================================================
+// Dynamic Smagorinsky Model (DSM)
+//================================================================
+template <int dim, int nstate, typename real>
+LargeEddySimulation_DSM<dim, nstate, real>::LargeEddySimulation_DSM(
+    const double                                              ref_length,
+    const double                                              gamma_gas,
+    const double                                              mach_inf,
+    const double                                              angle_of_attack,
+    const double                                              side_slip_angle,
+    const double                                              prandtl_number,
+    const double                                              reynolds_number_inf,
+    const bool                                                use_constant_viscosity,
+    const double                                              constant_viscosity,
+    const double                                              temperature_inf,
+    const double                                              turbulent_prandtl_number,
+    const double                                              ratio_of_filter_width_to_cell_size,
+    const double                                              model_constant,
+    const double                                              isothermal_wall_temperature,
+    const thermal_boundary_condition_enum                     thermal_boundary_condition_type,
+    std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function,
+    const two_point_num_flux_enum                             two_point_num_flux_type)
+    : LargeEddySimulation_Smagorinsky<dim,nstate,real>(ref_length,
+                                                       gamma_gas,
+                                                       mach_inf,
+                                                       angle_of_attack,
+                                                       side_slip_angle,
+                                                       prandtl_number,
+                                                       reynolds_number_inf,
+                                                       use_constant_viscosity,
+                                                       constant_viscosity,
+                                                       temperature_inf,
+                                                       turbulent_prandtl_number,
+                                                       ratio_of_filter_width_to_cell_size,
+                                                       model_constant,
+                                                       isothermal_wall_temperature,
+                                                       thermal_boundary_condition_type,
+                                                       manufactured_solution_function,
+                                                       two_point_num_flux_type)
+{ }
+//----------------------------------------------------------------
+template <int dim, int nstate, typename real>
+double LargeEddySimulation_DSM<dim,nstate,real>
+::get_model_constant_times_filter_width (
+    const dealii::types::global_dof_index cell_index) const
+{
+    // Model constant times filter width
+    return sqrt(this->dynamic_smagorinsky_model_constant_times_filter_width_sqr[cell_index]);
+}
+//----------------------------------------------------------------
+//----------------------------------------------------------------
 //----------------------------------------------------------------
 //----------------------------------------------------------------
 // Instantiate explicitly
@@ -1288,6 +1339,12 @@ template class LargeEddySimulation_AllAllVMS < PHILIP_DIM, PHILIP_DIM+2, FadType
 template class LargeEddySimulation_AllAllVMS < PHILIP_DIM, PHILIP_DIM+2, RadType  >;
 template class LargeEddySimulation_AllAllVMS < PHILIP_DIM, PHILIP_DIM+2, FadFadType >;
 template class LargeEddySimulation_AllAllVMS < PHILIP_DIM, PHILIP_DIM+2, RadFadType >;
+// -- LargeEddySimulation_DSM
+template class LargeEddySimulation_DSM < PHILIP_DIM, PHILIP_DIM+2, double >;
+template class LargeEddySimulation_DSM < PHILIP_DIM, PHILIP_DIM+2, FadType  >;
+template class LargeEddySimulation_DSM < PHILIP_DIM, PHILIP_DIM+2, RadType  >;
+template class LargeEddySimulation_DSM < PHILIP_DIM, PHILIP_DIM+2, FadFadType >;
+template class LargeEddySimulation_DSM < PHILIP_DIM, PHILIP_DIM+2, RadFadType >;
 //-------------------------------------------------------------------------------------
 // Templated members used by derived classes, defined in respective parent classes
 //-------------------------------------------------------------------------------------

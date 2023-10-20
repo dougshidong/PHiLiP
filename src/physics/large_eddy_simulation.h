@@ -582,6 +582,44 @@ public:
     ~LargeEddySimulation_AllAllVMS() {};
 };
 
+/// Dynamic Smagorinsky Model (DSM) eddy viscosity model. Derived from LargeEddySimulation_Smagorinsky for only modifying compute_eddy_viscosity.
+template <int dim, int nstate, typename real>
+class LargeEddySimulation_DSM : public LargeEddySimulation_Smagorinsky <dim, nstate, real>
+{
+public:
+    using thermal_boundary_condition_enum = Parameters::NavierStokesParam::ThermalBoundaryCondition;
+    using two_point_num_flux_enum = Parameters::AllParameters::TwoPointNumericalFlux;
+    /** Constructor for the sub-grid scale (SGS) model: Dynamic Smagorinsky Model (DSM)
+     *  Reference: Flad and Gassner 2017
+     */
+    LargeEddySimulation_DSM(
+        const double                                              ref_length,
+        const double                                              gamma_gas,
+        const double                                              mach_inf,
+        const double                                              angle_of_attack,
+        const double                                              side_slip_angle,
+        const double                                              prandtl_number,
+        const double                                              reynolds_number_inf,
+        const bool                                                use_constant_viscosity,
+        const double                                              constant_viscosity,
+        const double                                              temperature_inf,
+        const double                                              turbulent_prandtl_number,
+        const double                                              ratio_of_filter_width_to_cell_size,
+        const double                                              model_constant,
+        const double                                              isothermal_wall_temperature = 1.0,
+        const thermal_boundary_condition_enum                     thermal_boundary_condition_type = thermal_boundary_condition_enum::adiabatic,
+        std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function = nullptr,
+        const two_point_num_flux_enum                             two_point_num_flux_type = two_point_num_flux_enum::KG);
+
+    /// Destructor
+    ~LargeEddySimulation_DSM() {};
+
+    /** Returns the product of the eddy viscosity model constant and the filter width
+     *  Reference: Flad and Gassner 2017
+     */
+    double get_model_constant_times_filter_width (const dealii::types::global_dof_index cell_index) const override;
+};
+
 } // Physics namespace
 } // PHiLiP namespace
 

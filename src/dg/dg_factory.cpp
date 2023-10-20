@@ -85,6 +85,9 @@ DGFactory<dim,real,MeshType>
                     // TO DO: Create DGStrongLES_ConstantModelCoefficient
                     // TO DO: Create DGStrongLES_ShearImproved
                     return std::make_shared< DGStrongLES_ShearImproved<dim,dim+2,real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
+                } else if(SGS_model_type == SGS_enum::dynamic_smagorinsky) {
+                    return std::make_shared< DGStrongLES_DynamicSmagorinsky<dim,dim+2,real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
+
                 // } else {
                     // return std::make_shared< DGStrong<dim,dim+2,real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
                 // }

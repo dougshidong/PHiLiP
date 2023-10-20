@@ -23,6 +23,7 @@ public:
        ,wall_adaptive_local_eddy_viscosity
        ,vreman
        ,shear_improved_smagorinsky
+       ,dynamic_smagorinsky
        ,small_small_variational_multiscale
        ,all_all_variational_multiscale
     };

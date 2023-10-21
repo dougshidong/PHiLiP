@@ -4,6 +4,7 @@
 #include "bound_preserving_limiter.h"
 
 namespace PHiLiP {
+/// Class for implementation of two forms of the Positivity-Preserving limiter derived from BoundPreservingLimiterState class
 /**********************************
 * Zhang, Xiangxiong, and Chi-Wang Shu. 
 * "On positivity-preserving high order discontinuous Galerkin schemes 
@@ -29,7 +30,7 @@ public:
     /// Pointer to TVB limiter class (TVB limiter can be applied in conjunction with this limiter)
     std::shared_ptr<BoundPreservingLimiterState<dim, nstate, real>> tvbLimiter;
 
-    // Euler physics pointer. Used to compute pressure.
+    /// Euler physics pointer. Used to compute pressure.
     std::shared_ptr < Physics::Euler<dim, nstate, double > > euler_physics;
 
     /// Function to obtain the solution cell average

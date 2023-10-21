@@ -7,10 +7,8 @@
 
 namespace PHiLiP {
 namespace Tests {
-
+/// Class used to run tests that verify implementation of bound preserving limiters
 /************************************************************
-* Class used to run full tests (with output) as well as
-* convergence tests for bound_preserving_limiter cases.
 * Cases include: Linear Advection (1D & 2D), Burgers' 
 * Equation (1D & 2D) and Low Density Accuracy Test (2D Euler)
 *************************************************************/

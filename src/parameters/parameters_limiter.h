@@ -19,9 +19,10 @@ public:
         positivity_preservingZhang2010,
         positivity_preservingWang2012
     };
+    /// Variable to store specified limiter type
     LimiterType bound_preserving_limiter;
 
-    // Epsilon value for Positivity-Preserving Limiter
+    /// Epsilon value for Positivity-Preserving Limiter
     double min_density;
 
     /// Flag for applying TVB Limiter

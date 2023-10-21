@@ -9,6 +9,16 @@
 #include "physics/euler.h"
 
 namespace PHiLiP {
+
+/// Base Class for implementation of bound preserving limiters
+/**
+* Bound preserving limiters were developed by Zhang and Shu (2010)
+* to maintain a physical bound for numerical approximations
+* Currently, there are three forms of bound preserving limiters implemented:
+* (1) Maximum-Principle-Satisfying limiter
+* (2) Positivity-Preserving Limiter
+* (3) TVB/TVD Limiter
+*/
 template<int dim, typename real>
 class BoundPreservingLimiter
 {
@@ -39,6 +49,7 @@ public:
         const dealii::hp::QCollection<1>                        oneD_quadrature_collection) = 0;
 }; // End of BoundPreservingLimiter Class
 
+/// Base Class for bound preserving limiters templated on state
 template<int dim, int nstate, typename real>
 class BoundPreservingLimiterState : public BoundPreservingLimiter <dim, real>
 {
@@ -64,7 +75,7 @@ public:
         const dealii::hp::FECollection<1>                       oneD_fe_collection_1state,
         const dealii::hp::QCollection<1>                        oneD_quadrature_collection) = 0;
 
-    // Function to obtain the solution cell average
+    /// Function to obtain the solution cell average
     std::array<real, nstate> get_soln_cell_avg(
         const std::array<std::vector<real>, nstate>&            soln_at_q,
         const unsigned int                                      n_quad_pts,

@@ -4,6 +4,7 @@
 #include "bound_preserving_limiter.h"
 
 namespace PHiLiP {
+/// Class for implementation of Maximum-Principle-Satisfying limiter derived from BoundPreservingLimiterState class
 /**********************************
 * Zhang, Xiangxiong, and Chi-Wang Shu. 
 * "On maximum-principle-satisfying high order schemes for scalar conservation laws." 

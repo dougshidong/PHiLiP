@@ -7,7 +7,7 @@ namespace PHiLiP {
 namespace FlowSolver{
 
 //===============================================================
-// Limiter Convergence Tests (Advection, Burgers, 2D Low Density)
+/// Limiter Convergence Tests (Advection, Burgers, 2D Low Density)
 //===============================================================
 template <int dim, int nstate>
 class LimiterConvergenceTests : public FlowSolverCaseBase<dim, nstate>

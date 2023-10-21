@@ -4,6 +4,7 @@
 #include "bound_preserving_limiter.h"
 
 namespace PHiLiP {
+/// Class for implementation of a TVD/TVB limiter derived from BoundPreservingLimiterState class
 /**********************************
 * Chen, Tianheng, and Chi-Wang Shu. 
 * "Entropy stable high order discontinuous Galerkin methods with  

@@ -210,9 +210,9 @@ void PositivityPreservingLimiter<dim, nstate, real>::limit(
         std::vector<dealii::types::global_dof_index> current_dofs_indices;
         // Current reference element related to this physical cell
         const int i_fele = soln_cell->active_fe_index();
-        const int poly_degree = i_fele;
+        const dealii::FESystem<dim, dim>& current_fe_ref = fe_collection[i_fele];
+        const int poly_degree = current_fe_ref.tensor_degree();
 
-        const dealii::FESystem<dim, dim>& current_fe_ref = fe_collection[poly_degree];
         const unsigned int n_dofs_curr_cell = current_fe_ref.n_dofs_per_cell();
 
         // Obtain the mapping from local dof indices to global dof indices

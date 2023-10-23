@@ -57,13 +57,22 @@ subsection linear solver
   end
 end
 
+subsection mesh adaptation
+   set total_mesh_adaptation_cycles = 5
+   set use_goal_oriented_mesh_adaptation = true
+   set mesh_adaptation_type = h_adaptation
+   subsection fixed-fraction
+     set refine_fraction = 1.0
+   end
+end
+
 subsection optimization
     set optimization_type = full_space
     set use_coarse_residual = false
     set use_fine_solution = false
 
-    set gradient_tolerance = 1.0e-10 #1e-11
-    set max_design_cycles = 500
+    set gradient_tolerance = 1.0e-10 
+    set max_design_cycles = 0 #200
     set linear_iteration_limit = 1000
     set initial_step_size = 1.0
     set functional_evaluation_limit = 30

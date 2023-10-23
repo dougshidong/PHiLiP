@@ -606,8 +606,6 @@ dealii::Tensor<2,dim,real> NavierStokes<dim,nstate,real>
     const dealii::Tensor<2,dim,real> strain_rate_tensor = compute_strain_rate_tensor_from_conservative(conservative_soln, conservative_soln_gradient);
     const real strain_rate_tensor_magnitude = get_tensor_magnitude(strain_rate_tensor);
 
-    // TO DO: confirm that i'm not missing a factor of 1/2
-
     // Compute divergence of velocity
     real strain_rate_tensor_trace = 0.0;
     for(int i=0; i<dim; ++i) {

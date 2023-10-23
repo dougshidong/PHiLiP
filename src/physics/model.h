@@ -123,8 +123,12 @@ public:
     double channel_friction_velocity_reynolds_number; ///< Channel Reynolds number based on the wall friction velocity
     double channel_bulk_velocity_reynolds_number; ///< Channel Reynolds number based on the bulk velocity
     double time_step; ///< Current time step
-    dealii::LinearAlgebra::distributed::Vector<double> cellwise_mean_strain_rate_tensor_magnitude; ////< Cellwise mean strain rate tensor magnitude; used for shear-improved eddy viscosity model
-    dealii::LinearAlgebra::distributed::Vector<double> dynamic_smagorinsky_model_constant_times_filter_width_sqr; ////< Cellwise dynamic Smagorinsky model constant filter width squared; used for dynamic Smagorinsky eddy viscosity model
+    /** Cellwise mean strain rate tensor magnitude;
+     *  used for shear-improved eddy viscosity model */ 
+    dealii::LinearAlgebra::distributed::Vector<double> cellwise_mean_strain_rate_tensor_magnitude;
+    /** Cellwise dynamic Smagorinsky model constant times filter width squared;
+     *  used for dynamic Smagorinsky eddy viscosity model */
+    dealii::LinearAlgebra::distributed::Vector<double> dynamic_smagorinsky_model_constant_times_filter_width_sqr;
 
 protected:
     /// Evaluate the manufactured solution boundary conditions.

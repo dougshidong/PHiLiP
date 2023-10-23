@@ -89,10 +89,6 @@ protected:
     /// Update the cellwise mean quantities
     void update_cellwise_mean_quantities() override;
 
-    // const bool do_compute_filtered_solution; ///< Flag to compute the filtered solution
-    // const bool apply_modal_high_pass_filter_on_filtered_solution; ///< Flag to apply modal high pass filter on the filtered solution
-    // const unsigned int poly_degree_max_large_scales; ///< For filtered solution; lower bound of high pass filter
-
     using DGBase<dim,real,MeshType>::pcout; ///< Parallel std::cout that only outputs on mpi_rank==0
     
 }; // end of DGStrongLES class
@@ -129,10 +125,6 @@ public:
 protected:
     /// Update the cellwise mean quantities
     void update_cellwise_mean_quantities() override;
-
-    // const bool do_compute_filtered_solution; ///< Flag to compute the filtered solution
-    // const bool apply_modal_high_pass_filter_on_filtered_solution; ///< Flag to apply modal high pass filter on the filtered solution
-    // const unsigned int poly_degree_max_large_scales; ///< For filtered solution; lower bound of high pass filter
 
     using DGBase<dim,real,MeshType>::pcout; ///< Parallel std::cout that only outputs on mpi_rank==0
     

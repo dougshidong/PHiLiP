@@ -488,9 +488,6 @@ DGStrongLES_DynamicSmagorinsky<dim,nstate,real,MeshType>::DGStrongLES_DynamicSma
     const unsigned int grid_degree_input,
     const std::shared_ptr<Triangulation> triangulation_input)
     : DGStrongLES<dim,nstate,real,MeshType>::DGStrongLES(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input)
-    // , do_compute_filtered_solution(this->all_parameters->physics_model_param.do_compute_filtered_solution)
-    // , apply_modal_high_pass_filter_on_filtered_solution(this->all_parameters->physics_model_param.apply_modal_high_pass_filter_on_filtered_solution)
-    // , poly_degree_max_large_scales(this->all_parameters->physics_model_param.poly_degree_max_large_scales)
 { 
     // do nothing
 }
@@ -893,8 +890,8 @@ void DGStrongLES_DynamicSmagorinsky<dim,nstate,real,MeshType>::update_cellwise_m
                 }
             }
 
-            const real matrix_L_times_matrix_M = get_tensor_product_magnitude_sqr(matrix_L,matrix_M);
-            const real matrix_M_times_matrix_M = get_tensor_product_magnitude_sqr(matrix_M,matrix_M);
+            const real matrix_L_times_matrix_M = this->pde_model_les_double->navier_stokes_physics->get_tensor_product_magnitude_sqr(matrix_L,matrix_M);
+            const real matrix_M_times_matrix_M = this->pde_model_les_double->navier_stokes_physics->get_tensor_product_magnitude_sqr(matrix_M,matrix_M);
 
             cell_matrix_L_times_matrix_M_integral += matrix_L_times_matrix_M * quad_weights[iquad] * metric_oper.det_Jac_vol[iquad];
             cell_matrix_M_times_matrix_M_integral += matrix_M_times_matrix_M * quad_weights[iquad] * metric_oper.det_Jac_vol[iquad];

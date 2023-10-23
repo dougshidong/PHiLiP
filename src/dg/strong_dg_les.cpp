@@ -635,7 +635,7 @@ void DGStrongLES_DynamicSmagorinsky<dim,nstate,real,MeshType>::update_cellwise_m
         std::array<dealii::Tensor<1,dim,std::vector<real>>,nstate> legendre_aux_soln_at_q_vect; // legendre auxiliary sol at flux nodes
         dealii::Tensor<2,dim,std::vector<real>> legendre_matrix_L_component_at_q_vect;
         dealii::Tensor<2,dim,std::vector<real>> legendre_matrix_M_component_at_q_vect;
-        if(this->do_compute_filtered_solution) {
+        /*if(this->do_compute_filtered_solution) {*/
             const unsigned int p_min_filtered = this->poly_degree_max_large_scales + 1;
             //==================================================
             // GET THE PRIMITIVE SOLUTION AND DSM MATRICES
@@ -724,7 +724,7 @@ void DGStrongLES_DynamicSmagorinsky<dim,nstate,real,MeshType>::update_cellwise_m
                 legendre_soln_basis_projection_oper.matrix_vector_mult_1D(primitive_soln_at_q[istate], legendre_soln_coeff,
                                                                           legendre_soln_basis_projection_oper.oneD_vol_operator);
                 // -- (2) Truncate modes for high-pass filter (i.e. DG-VMS like)
-                if(this->apply_modal_high_pass_filter_on_filtered_solution && (istate!=0 && istate!=(nstate-1))) {
+                if(/*this->apply_modal_high_pass_filter_on_filtered_solution && */(istate!=0 && istate!=(nstate-1))) {
                     for(unsigned int ishape=0; ishape<n_shape_fns; ishape++){
                         if(ishape < p_min_filtered){
                             legendre_soln_coeff[ishape] = 0.0;
@@ -779,7 +779,7 @@ void DGStrongLES_DynamicSmagorinsky<dim,nstate,real,MeshType>::update_cellwise_m
                     legendre_soln_basis_projection_oper.matrix_vector_mult_1D(matrix_M_component_at_q[jdim][idim], legendre_matrix_M_component_coeff[idim],
                                                                               legendre_soln_basis_projection_oper.oneD_vol_operator);
                     // -- (2) Truncate modes for high-pass filter (i.e. DG-VMS like)
-                    if(this->apply_modal_high_pass_filter_on_filtered_solution) {
+                    if(/*this->apply_modal_high_pass_filter_on_filtered_solution*/) {
                         for(unsigned int ishape=0; ishape<n_shape_fns; ishape++){
                             if(ishape < p_min_filtered){
                                 legendre_matrix_L_component_coeff[idim][ishape] = 0.0;
@@ -844,7 +844,7 @@ void DGStrongLES_DynamicSmagorinsky<dim,nstate,real,MeshType>::update_cellwise_m
                     }
                 }
             }
-        }
+        /*}*/
 
         // Loop over quadrature nodes, compute quantities to be integrated, and integrate them.
         for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {

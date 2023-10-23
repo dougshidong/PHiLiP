@@ -779,14 +779,14 @@ void DGStrongLES_DynamicSmagorinsky<dim,nstate,real,MeshType>::update_cellwise_m
                     legendre_soln_basis_projection_oper.matrix_vector_mult_1D(matrix_M_component_at_q[jdim][idim], legendre_matrix_M_component_coeff[idim],
                                                                               legendre_soln_basis_projection_oper.oneD_vol_operator);
                     // -- (2) Truncate modes for high-pass filter (i.e. DG-VMS like)
-                    if(/*this->apply_modal_high_pass_filter_on_filtered_solution*/) {
+                    /*if(this->apply_modal_high_pass_filter_on_filtered_solution) {*/
                         for(unsigned int ishape=0; ishape<n_shape_fns; ishape++){
                             if(ishape < p_min_filtered){
                                 legendre_matrix_L_component_coeff[idim][ishape] = 0.0;
                                 legendre_matrix_M_component_coeff[idim][ishape] = 0.0;
                             }
                         }
-                    }
+                    /*}*/
                     
                     // -- (3) Interpolate filtered solution back to quadrature points
                     legendre_matrix_L_component_at_q[jdim][idim].resize(n_quad_pts);
@@ -846,6 +846,11 @@ void DGStrongLES_DynamicSmagorinsky<dim,nstate,real,MeshType>::update_cellwise_m
             }
         /*}*/
 
+        // get cell index
+        const dealii::types::global_dof_index cell_index = cell->active_cell_index();
+        const real filter_width = this->pde_model_les_double->get_filter_width(cell_index);
+        const real test_filter_width = this->pde_model_les_double->get_filter_width_from_poly_degree(cell_index,(int)this->poly_degree_max_large_scales);
+
         // Loop over quadrature nodes, compute quantities to be integrated, and integrate them.
         for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
 
@@ -876,13 +881,8 @@ void DGStrongLES_DynamicSmagorinsky<dim,nstate,real,MeshType>::update_cellwise_m
                 }
             }
 
-            // get cell index
-            const dealii::types::global_dof_index cell_index = cell->active_cell_index();
-
             dealii::Tensor<2,dim,real> matrix_L; // Leonard stress tensor associated with the test filter
             dealii::Tensor<2,dim,real> matrix_M;
-            const real filter_width = this->pde_model_les_double->get_filter_width(cell_index);
-            const real test_filter_width = this->pde_model_les_double->get_filter_width_from_poly_degree(cell_index,(int)this->poly_degree_max_large_scales);
             for (int d1=0; d1<dim; ++d1) {
                 for (int d2=0; d2<dim; ++d2) {
                     matrix_L[d1][d2] = filtered_matrix_L_component_state[d1][d2] - matrix_L_component_state_from_filtered_soln[d1][d2];
@@ -896,7 +896,6 @@ void DGStrongLES_DynamicSmagorinsky<dim,nstate,real,MeshType>::update_cellwise_m
             cell_matrix_L_times_matrix_M_integral += matrix_L_times_matrix_M * quad_weights[iquad] * metric_oper.det_Jac_vol[iquad];
             cell_matrix_M_times_matrix_M_integral += matrix_M_times_matrix_M * quad_weights[iquad] * metric_oper.det_Jac_vol[iquad];
         }
-        
         // get the mean
         const real cell_volume = this->pde_model_double->cellwise_volume[cell_index];
         const real cell_averaged_matrix_L_times_matrix_M = cell_matrix_L_times_matrix_M_integral/cell_volume;

@@ -592,7 +592,7 @@ public:
 
 /// Dynamic Smagorinsky Model (DSM) eddy viscosity model. Derived from LargeEddySimulation_Smagorinsky for only modifying compute_eddy_viscosity.
 template <int dim, int nstate, typename real>
-class LargeEddySimulation_DSM : public LargeEddySimulation_Smagorinsky <dim, nstate, real>
+class LargeEddySimulation_DynamicSmagorinsky : public LargeEddySimulation_Smagorinsky <dim, nstate, real>
 {
 public:
     using thermal_boundary_condition_enum = Parameters::NavierStokesParam::ThermalBoundaryCondition;
@@ -600,7 +600,7 @@ public:
     /** Constructor for the sub-grid scale (SGS) model: Dynamic Smagorinsky Model (DSM)
      *  Reference: Flad and Gassner 2017
      */
-    LargeEddySimulation_DSM(
+    LargeEddySimulation_DynamicSmagorinsky(
         const double                                              ref_length,
         const double                                              gamma_gas,
         const double                                              mach_inf,
@@ -620,7 +620,7 @@ public:
         const two_point_num_flux_enum                             two_point_num_flux_type = two_point_num_flux_enum::KG);
 
     /// Destructor
-    ~LargeEddySimulation_DSM() {};
+    ~LargeEddySimulation_DynamicSmagorinsky() {};
 
     /** Returns the product of the eddy viscosity model constant and the filter width squared
      *  Reference: Flad and Gassner 2017, Blazek 2001 CFD Chapter 7

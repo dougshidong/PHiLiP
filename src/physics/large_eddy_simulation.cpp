@@ -1265,7 +1265,7 @@ LargeEddySimulation_AllAllVMS<dim, nstate, real>::LargeEddySimulation_AllAllVMS(
 // Dynamic Smagorinsky Model (DSM)
 //================================================================
 template <int dim, int nstate, typename real>
-LargeEddySimulation_DSM<dim, nstate, real>::LargeEddySimulation_DSM(
+LargeEddySimulation_DynamicSmagorinsky<dim, nstate, real>::LargeEddySimulation_DynamicSmagorinsky(
     const double                                              ref_length,
     const double                                              gamma_gas,
     const double                                              mach_inf,
@@ -1303,7 +1303,7 @@ LargeEddySimulation_DSM<dim, nstate, real>::LargeEddySimulation_DSM(
 { }
 //----------------------------------------------------------------
 template <int dim, int nstate, typename real>
-double LargeEddySimulation_DSM<dim,nstate,real>
+double LargeEddySimulation_DynamicSmagorinsky<dim,nstate,real>
 ::get_model_constant_times_filter_width_squared (
     const dealii::types::global_dof_index cell_index) const
 {
@@ -1363,12 +1363,12 @@ template class LargeEddySimulation_AllAllVMS < PHILIP_DIM, PHILIP_DIM+2, FadType
 template class LargeEddySimulation_AllAllVMS < PHILIP_DIM, PHILIP_DIM+2, RadType  >;
 template class LargeEddySimulation_AllAllVMS < PHILIP_DIM, PHILIP_DIM+2, FadFadType >;
 template class LargeEddySimulation_AllAllVMS < PHILIP_DIM, PHILIP_DIM+2, RadFadType >;
-// -- LargeEddySimulation_DSM
-template class LargeEddySimulation_DSM < PHILIP_DIM, PHILIP_DIM+2, double >;
-template class LargeEddySimulation_DSM < PHILIP_DIM, PHILIP_DIM+2, FadType  >;
-template class LargeEddySimulation_DSM < PHILIP_DIM, PHILIP_DIM+2, RadType  >;
-template class LargeEddySimulation_DSM < PHILIP_DIM, PHILIP_DIM+2, FadFadType >;
-template class LargeEddySimulation_DSM < PHILIP_DIM, PHILIP_DIM+2, RadFadType >;
+// -- LargeEddySimulation_DynamicSmagorinsky
+template class LargeEddySimulation_DynamicSmagorinsky < PHILIP_DIM, PHILIP_DIM+2, double >;
+template class LargeEddySimulation_DynamicSmagorinsky < PHILIP_DIM, PHILIP_DIM+2, FadType  >;
+template class LargeEddySimulation_DynamicSmagorinsky < PHILIP_DIM, PHILIP_DIM+2, RadType  >;
+template class LargeEddySimulation_DynamicSmagorinsky < PHILIP_DIM, PHILIP_DIM+2, FadFadType >;
+template class LargeEddySimulation_DynamicSmagorinsky < PHILIP_DIM, PHILIP_DIM+2, RadFadType >;
 //-------------------------------------------------------------------------------------
 // Templated members used by derived classes, defined in respective parent classes
 //-------------------------------------------------------------------------------------

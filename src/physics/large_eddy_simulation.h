@@ -100,6 +100,11 @@ public:
     /// Compute the nondimensionalized filter width used by the SGS model given a cell index
     double get_filter_width (const dealii::types::global_dof_index cell_index) const;
 
+    /// Compute the nondimensionalized filter width used by the SGS model given a cell index
+    double get_filter_width_from_poly_degree (
+        const dealii::types::global_dof_index cell_index,
+        const int cell_poly_degree) const;
+
     /// Nondimensionalized sub-grid scale (SGS) stress tensor, (tau^sgs)*
     virtual dealii::Tensor<2,dim,real> compute_SGS_stress_tensor (
         const std::array<real,nstate> &primitive_soln,
@@ -219,6 +224,9 @@ public:
 
     /// Returns the product of the eddy viscosity model constant and the filter width
     virtual double get_model_constant_times_filter_width (const dealii::types::global_dof_index cell_index) const;
+
+    /// Returns the product of the eddy viscosity model constant and the filter width squared
+    virtual double get_model_constant_times_filter_width_squared (const dealii::types::global_dof_index cell_index) const;
 
     /// Nondimensionalized sub-grid scale (SGS) stress tensor, (tau^sgs)*
     dealii::Tensor<2,dim,real> compute_SGS_stress_tensor (
@@ -614,10 +622,10 @@ public:
     /// Destructor
     ~LargeEddySimulation_DSM() {};
 
-    /** Returns the product of the eddy viscosity model constant and the filter width
-     *  Reference: Flad and Gassner 2017
+    /** Returns the product of the eddy viscosity model constant and the filter width squared
+     *  Reference: Flad and Gassner 2017, Blazek 2001 CFD Chapter 7
      */
-    double get_model_constant_times_filter_width (const dealii::types::global_dof_index cell_index) const override;
+    double get_model_constant_times_filter_width_squared (const dealii::types::global_dof_index cell_index) const override;
 };
 
 } // Physics namespace

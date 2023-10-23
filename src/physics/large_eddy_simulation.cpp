@@ -294,6 +294,20 @@ double LargeEddySimulationBase<dim,nstate,real>
      *  Computers and Fluids 194 (2019), Page 4, Eq.(14).
      * */
     const int cell_poly_degree = this->cellwise_poly_degree[cell_index];
+    return get_filter_width_from_poly_degree(cell_index,cell_poly_degree);
+}
+//----------------------------------------------------------------
+template <int dim, int nstate, typename real>
+double LargeEddySimulationBase<dim,nstate,real>
+::get_filter_width_from_poly_degree (
+    const dealii::types::global_dof_index cell_index, 
+    const int cell_poly_degree) const
+{ 
+    // Compute the LES filter width
+    /** Reference: Marta de la Llave Plata, et al. "On the performance of a 
+     *  high-order multiscale DG approach to LES at increasing Reynolds number."
+     *  Computers and Fluids 194 (2019), Page 4, Eq.(14).
+     * */
     const double cell_volume = this->cellwise_volume[cell_index];
     double filter_width = pow(cell_volume, (1.0/3.0))/(cell_poly_degree+1);
     // Resize given the ratio of filter width to cell size
@@ -563,6 +577,16 @@ double LargeEddySimulation_Smagorinsky<dim,nstate,real>
 }
 //----------------------------------------------------------------
 template <int dim, int nstate, typename real>
+double LargeEddySimulation_Smagorinsky<dim,nstate,real>
+::get_model_constant_times_filter_width_squared (
+    const dealii::types::global_dof_index cell_index) const
+{
+    // Product of the model constant (Cs) and the filter width (delta) all squared
+    const double model_constant_times_filter_width = get_model_constant_times_filter_width(cell_index);
+    return model_constant_times_filter_width*model_constant_times_filter_width;
+}
+//----------------------------------------------------------------
+template <int dim, int nstate, typename real>
 real LargeEddySimulation_Smagorinsky<dim,nstate,real>
 ::compute_eddy_viscosity (
     const std::array<real,nstate> &primitive_soln,
@@ -598,11 +622,11 @@ real2 LargeEddySimulation_Smagorinsky<dim,nstate,real>
         = this->navier_stokes_physics->compute_strain_rate_tensor(vel_gradient);
     
     // Product of the model constant (Cs) and the filter width (delta)
-    const real2 model_constant_times_filter_width = get_model_constant_times_filter_width(cell_index);
+    const real2 model_constant_times_filter_width_squared = get_model_constant_times_filter_width_squared(cell_index);
     // Get magnitude of strain_rate_tensor
     const real2 strain_rate_tensor_magnitude = this->template get_tensor_magnitude<real2>(strain_rate_tensor);
     // Compute the eddy viscosity
-    const real2 eddy_viscosity = model_constant_times_filter_width*model_constant_times_filter_width*strain_rate_tensor_magnitude;
+    const real2 eddy_viscosity = model_constant_times_filter_width_squared*strain_rate_tensor_magnitude;
 
     return eddy_viscosity;
 }
@@ -809,8 +833,8 @@ real2 LargeEddySimulation_WALE<dim,nstate,real>
     const dealii::Tensor<2,dim,real2> strain_rate_tensor 
         = this->navier_stokes_physics->compute_strain_rate_tensor(vel_gradient);
     
-    // Product of the model constant (Cs) and the filter width (delta)
-    const real2 model_constant_times_filter_width = this->get_model_constant_times_filter_width(cell_index);
+    // Product of the model constant (Cs) and the filter width (delta) squared
+    const real2 model_constant_times_filter_width_squared = this->get_model_constant_times_filter_width_squared(cell_index);
 
     /** Get traceless symmetric square of velocity gradient tensor, i.e. $\bm{S}^{d}$
      *  Reference: Nicoud and Ducros (1999) - Equation (10)
@@ -856,7 +880,7 @@ real2 LargeEddySimulation_WALE<dim,nstate,real>
          *  we must explicitly set the eddy viscosity to zero to avoid a division by zero.
          *  Or equivalently, update it from its zero initialization only if there is turbulence.
         */
-        eddy_viscosity = model_constant_times_filter_width*model_constant_times_filter_width*pow(traceless_symmetric_square_of_velocity_gradient_tensor_magnitude_sqr,1.5)/(pow(strain_rate_tensor_magnitude_sqr,2.5) + pow(traceless_symmetric_square_of_velocity_gradient_tensor_magnitude_sqr,1.25));
+        eddy_viscosity = model_constant_times_filter_width_squared*pow(traceless_symmetric_square_of_velocity_gradient_tensor_magnitude_sqr,1.5)/(pow(strain_rate_tensor_magnitude_sqr,2.5) + pow(traceless_symmetric_square_of_velocity_gradient_tensor_magnitude_sqr,1.25));
     }
 
     return eddy_viscosity;
@@ -1065,12 +1089,12 @@ real2 LargeEddySimulation_ShearImprovedSmagorinsky<dim,nstate,real>
     const dealii::Tensor<2,dim,real2> strain_rate_tensor 
         = this->navier_stokes_physics->compute_strain_rate_tensor(vel_gradient);
     
-    // Product of the model constant (Cs) and the filter width (delta)
-    const real2 model_constant_times_filter_width = this->get_model_constant_times_filter_width(cell_index);
+    // Product of the model constant (Cs) and the filter width (delta) squared
+    const real2 model_constant_times_filter_width_squared = this->get_model_constant_times_filter_width_squared(cell_index);
     // Get magnitude of strain_rate_tensor
     const real2 strain_rate_tensor_magnitude = this->template get_tensor_magnitude<real2>(strain_rate_tensor);
     // Compute the eddy viscosity; Eq.(14) in reference 1 with modification by Eq.(2.4) in reference 2
-    const real2 eddy_viscosity = model_constant_times_filter_width*model_constant_times_filter_width*(
+    const real2 eddy_viscosity = model_constant_times_filter_width_squared*(
                                     strain_rate_tensor_magnitude - this->cellwise_mean_strain_rate_tensor_magnitude[cell_index]);
 
     return eddy_viscosity;
@@ -1280,11 +1304,11 @@ LargeEddySimulation_DSM<dim, nstate, real>::LargeEddySimulation_DSM(
 //----------------------------------------------------------------
 template <int dim, int nstate, typename real>
 double LargeEddySimulation_DSM<dim,nstate,real>
-::get_model_constant_times_filter_width (
+::get_model_constant_times_filter_width_squared (
     const dealii::types::global_dof_index cell_index) const
 {
-    // Model constant times filter width
-    return sqrt(this->dynamic_smagorinsky_model_constant_times_filter_width_sqr[cell_index]);
+    // Model constant times filter width squared
+    return this->dynamic_smagorinsky_model_constant_times_filter_width_sqr[cell_index];
 }
 //----------------------------------------------------------------
 //----------------------------------------------------------------

@@ -551,7 +551,7 @@ void DGStrongLES_DynamicSmagorinsky<dim,nstate,real,MeshType>::update_cellwise_m
         if (!(cell->is_locally_owned() || cell->is_ghost())) continue;
         cell->get_dof_indices (dofs_indices);
 
-        // Initialize the strain rate tensor integral (for computing the mean) to zero
+        // Initialize the matrix product integrals (for computing the means) to zero
         real cell_matrix_L_times_matrix_M_integral = 0.0;
         real cell_matrix_M_times_matrix_M_integral = 0.0;
 
@@ -767,10 +767,9 @@ void DGStrongLES_DynamicSmagorinsky<dim,nstate,real,MeshType>::update_cellwise_m
             //==================================================
             // PROJECT TO LEGENDRE BASIS AND MODALLY FILTER
             //==================================================
-            // -- Some DSM matrix
+            // Compute the filtered DSM matrix components
             dealii::Tensor<2,dim,std::vector<real>> legendre_matrix_L_component_at_q;
             dealii::Tensor<2,dim,std::vector<real>> legendre_matrix_M_component_at_q;
-            
             for(int jdim=0; jdim<dim; jdim++){
                 dealii::Tensor<1,dim,std::vector<real>> legendre_matrix_L_component_coeff;
                 dealii::Tensor<1,dim,std::vector<real>> legendre_matrix_M_component_coeff;
@@ -786,8 +785,8 @@ void DGStrongLES_DynamicSmagorinsky<dim,nstate,real,MeshType>::update_cellwise_m
                     if(this->apply_modal_high_pass_filter_on_filtered_solution) {
                         for(unsigned int ishape=0; ishape<n_shape_fns; ishape++){
                             if(ishape < p_min_filtered){
-                                legendre_matrix_L_component_coeff[idim][ishape] = 0.0;// TO DO: Confirm the indexing here
-                                legendre_matrix_M_component_coeff[idim][ishape] = 0.0;// TO DO: Confirm the indexing here, and throughout this loop
+                                legendre_matrix_L_component_coeff[idim][ishape] = 0.0;
+                                legendre_matrix_M_component_coeff[idim][ishape] = 0.0;
                             }
                         }
                     }
@@ -843,8 +842,8 @@ void DGStrongLES_DynamicSmagorinsky<dim,nstate,real,MeshType>::update_cellwise_m
                 }
                 for(int jdim=0; jdim<dim; jdim++){
                     for(int idim=0; idim<dim; idim++){
-                        legendre_matrix_L_component_at_q_vect[jdim][idim][iquad] = legendre_matrix_L_component_at_q[jdim][idim];
-                        legendre_matrix_M_component_at_q_vect[jdim][idim][iquad] = legendre_matrix_M_component_at_q[jdim][idim];
+                        legendre_matrix_L_component_at_q_vect[jdim][idim][iquad] = legendre_matrix_L_component_at_q[jdim][idim][iquad];
+                        legendre_matrix_M_component_at_q_vect[jdim][idim][iquad] = legendre_matrix_M_component_at_q[jdim][idim][iquad];
                     }
                 }
             }
@@ -880,13 +879,17 @@ void DGStrongLES_DynamicSmagorinsky<dim,nstate,real,MeshType>::update_cellwise_m
                 }
             }
 
-            dealii::Tensor<2,dim,real> matrix_L;
+            // get cell index
+            const dealii::types::global_dof_index cell_index = cell->active_cell_index();
+
+            dealii::Tensor<2,dim,real> matrix_L; // Leonard stress tensor associated with the test filter
             dealii::Tensor<2,dim,real> matrix_M;
-            const double filter_ratio = (1.0*poly_degree)/(1.0*p_min_filtered);
+            const real filter_width = this->pde_model_les_double->get_filter_width(cell_index);
+            const real test_filter_width = this->pde_model_les_double->get_filter_width_from_poly_degree(cell_index,(int)this->poly_degree_max_large_scales);
             for (int d1=0; d1<dim; ++d1) {
                 for (int d2=0; d2<dim; ++d2) {
                     matrix_L[d1][d2] = filtered_matrix_L_component_state[d1][d2] - matrix_L_component_state_from_filtered_soln[d1][d2];
-                    matrix_M[d1][d2] = filtered_matrix_M_component_state[d1][d2] - filter_ratio*matrix_M_component_state_from_filtered_soln[d1][d2];
+                    matrix_M[d1][d2] = filter_width*filter_width*filtered_matrix_M_component_state[d1][d2] - test_filter_width*test_filter_width*matrix_M_component_state_from_filtered_soln[d1][d2];
                 }
             }
 
@@ -897,14 +900,14 @@ void DGStrongLES_DynamicSmagorinsky<dim,nstate,real,MeshType>::update_cellwise_m
             cell_matrix_M_times_matrix_M_integral += matrix_M_times_matrix_M * quad_weights[iquad] * metric_oper.det_Jac_vol[iquad];
         }
         
-        // get cell index
-        const dealii::types::global_dof_index cell_index = cell->active_cell_index();
-        // get mean
-        real cell_volume = this->pde_model_double->cellwise_volume[cell_index];
-        real cell_averaged_matrix_L_times_matrix_M = cell_matrix_L_times_matrix_M_integral/cell_volume;
-        real cell_averaged_matrix_M_times_matrix_M = cell_matrix_M_times_matrix_M_integral/cell_volume;
+        // get the mean
+        const real cell_volume = this->pde_model_double->cellwise_volume[cell_index];
+        const real cell_averaged_matrix_L_times_matrix_M = cell_matrix_L_times_matrix_M_integral/cell_volume;
+        const real cell_averaged_matrix_M_times_matrix_M = cell_matrix_M_times_matrix_M_integral/cell_volume;
         // update the DSM constant times filter width (all) squared
-        this->pde_model_double->dynamic_smagorinsky_model_constant_times_filter_width_sqr[cell_index] = cell_averaged_matrix_L_times_matrix_M/cell_averaged_matrix_M_times_matrix_M;
+        real dynamic_smagorinsky_model_constant = -0.5*cell_averaged_matrix_L_times_matrix_M/cell_averaged_matrix_M_times_matrix_M;
+        if(dynamic_smagorinsky_model_constant < 0.0) dynamic_smagorinsky_model_constant = 0.0;// clip values less than zero
+        this->pde_model_double->dynamic_smagorinsky_model_constant_times_filter_width_sqr[cell_index] = dynamic_smagorinsky_model_constant*filter_width*filter_width;
     }
     // update ghost values
     this->pde_model_double->dynamic_smagorinsky_model_constant_times_filter_width_sqr.update_ghost_values();

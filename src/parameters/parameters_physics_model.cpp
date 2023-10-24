@@ -70,6 +70,10 @@ void PhysicsModelParam::declare_parameters (dealii::ParameterHandler &prm)
                               "This represents the maximum polynomial order for the large scales. "
                               "Warning: This must be less than the poly_degree of the solution.");
 
+            prm.declare_entry("dynamic_smagorinsky_model_constant_clipping_limit", "0.01",
+                              dealii::Patterns::Double(1e-15, dealii::Patterns::Double::max_double_value),
+                              "Clipping limit for the Dynamic Smagorinsky model constant (default is 0.01).");
+
         }
         prm.leave_subsection();
 
@@ -123,6 +127,8 @@ void PhysicsModelParam::parse_parameters (dealii::ParameterHandler &prm)
             apply_modal_high_pass_filter_on_filtered_solution 
                                                = prm.get_bool("apply_modal_high_pass_filter_on_filtered_solution");
             poly_degree_max_large_scales       = prm.get_integer("poly_degree_max_large_scales");
+            dynamic_smagorinsky_model_constant_clipping_limit 
+                                               = prm.get_double("dynamic_smagorinsky_model_constant_clipping_limit");
         }
         prm.leave_subsection();
 

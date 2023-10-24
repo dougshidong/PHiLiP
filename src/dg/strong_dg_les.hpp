@@ -119,6 +119,9 @@ public:
     /// Destructor
     ~DGStrongLES_DynamicSmagorinsky();
 
+    /// Clipping limit for the Dynamic Smagorinsky model constant
+    const double dynamic_smagorinsky_model_constant_clipping_limit;
+
     /// Allocate the necessary variables declared in src/physics/model.h
     void allocate_model_variables() override;
 

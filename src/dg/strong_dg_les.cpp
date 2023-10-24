@@ -488,6 +488,7 @@ DGStrongLES_DynamicSmagorinsky<dim,nstate,real,MeshType>::DGStrongLES_DynamicSma
     const unsigned int grid_degree_input,
     const std::shared_ptr<Triangulation> triangulation_input)
     : DGStrongLES<dim,nstate,real,MeshType>::DGStrongLES(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input)
+    , dynamic_smagorinsky_model_constant_clipping_limit(this->all_parameters->physics_model_param.dynamic_smagorinsky_model_constant_clipping_limit)
 { 
     // do nothing
 }
@@ -902,7 +903,13 @@ void DGStrongLES_DynamicSmagorinsky<dim,nstate,real,MeshType>::update_cellwise_m
         const real cell_averaged_matrix_M_times_matrix_M = cell_matrix_M_times_matrix_M_integral/cell_volume;
         // update the DSM constant times filter width (all) squared
         real dynamic_smagorinsky_model_constant = -0.5*cell_averaged_matrix_L_times_matrix_M/cell_averaged_matrix_M_times_matrix_M;
-        if(dynamic_smagorinsky_model_constant < 0.0) dynamic_smagorinsky_model_constant = 0.0;// clip values less than zero
+        if(dynamic_smagorinsky_model_constant < 0.0) {
+            // clip values less than zero
+            dynamic_smagorinsky_model_constant = 0.0;
+        } else if(dynamic_smagorinsky_model_constant > dynamic_smagorinsky_model_constant_clipping_limit) {
+            // clip values greater than the chosen clipping limit
+            dynamic_smagorinsky_model_constant = dynamic_smagorinsky_model_constant_clipping_limit;
+        }
         this->pde_model_double->dynamic_smagorinsky_model_constant_times_filter_width_sqr[cell_index] = dynamic_smagorinsky_model_constant*filter_width*filter_width;
     }
     // update ghost values

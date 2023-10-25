@@ -26,7 +26,7 @@ subsection artificial dissipation
   set add_artificial_dissipation = true
   set artificial_dissipation_type = laplacian
   set mu_artificial_dissipation = 0.1
-  set kappa_artificial_dissipation = 10.0
+  set kappa_artificial_dissipation = 5.0
 end
 
 subsection functional
@@ -58,7 +58,7 @@ subsection linear solver
 end
 
 subsection mesh adaptation
-   set total_mesh_adaptation_cycles = 5
+   set total_mesh_adaptation_cycles = 0
    set use_goal_oriented_mesh_adaptation = true
    set mesh_adaptation_type = h_adaptation
    subsection fixed-fraction

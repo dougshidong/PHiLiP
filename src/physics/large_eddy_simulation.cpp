@@ -544,7 +544,8 @@ LargeEddySimulation_Smagorinsky<dim, nstate, real>::LargeEddySimulation_Smagorin
     const double                                              isothermal_wall_temperature,
     const thermal_boundary_condition_enum                     thermal_boundary_condition_type,
     std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function,
-    const two_point_num_flux_enum                             two_point_num_flux_type)
+    const two_point_num_flux_enum                             two_point_num_flux_type,
+    const bool                                                apply_low_reynolds_number_eddy_viscosity_correction)
     : LargeEddySimulationBase<dim,nstate,real>(ref_length,
                                                gamma_gas,
                                                mach_inf,
@@ -562,6 +563,7 @@ LargeEddySimulation_Smagorinsky<dim, nstate, real>::LargeEddySimulation_Smagorin
                                                manufactured_solution_function,
                                                two_point_num_flux_type)
     , model_constant(model_constant)
+    , apply_low_reynolds_number_eddy_viscosity_correction(apply_low_reynolds_number_eddy_viscosity_correction)
 { }
 //----------------------------------------------------------------
 template <int dim, int nstate, typename real>
@@ -584,6 +586,39 @@ double LargeEddySimulation_Smagorinsky<dim,nstate,real>
     // Product of the model constant (Cs) and the filter width (delta) all squared
     const double model_constant_times_filter_width = get_model_constant_times_filter_width(cell_index);
     return model_constant_times_filter_width*model_constant_times_filter_width;
+}
+//----------------------------------------------------------------
+template <int dim, int nstate, typename real>
+real LargeEddySimulation_Smagorinsky<dim,nstate,real>
+::get_corrected_eddy_viscosity_low_reynolds_number(
+        const std::array<real,nstate> &primitive_soln,
+        const real uncorrected_eddy_viscosity) const
+{
+    return get_corrected_eddy_viscosity_low_reynolds_number<real>(primitive_soln,uncorrected_eddy_viscosity);
+}
+//----------------------------------------------------------------
+template <int dim, int nstate, typename real>
+FadType LargeEddySimulation_Smagorinsky<dim,nstate,real>
+::get_corrected_eddy_viscosity_low_reynolds_number_fad(
+        const std::array<FadType,nstate> &primitive_soln,
+        const FadType uncorrected_eddy_viscosity) const
+{
+    return get_corrected_eddy_viscosity_low_reynolds_number<FadType>(primitive_soln,uncorrected_eddy_viscosity);
+}
+//----------------------------------------------------------------
+template <int dim, int nstate, typename real>
+template<typename real2>
+real2 LargeEddySimulation_Smagorinsky<dim,nstate,real>
+::get_corrected_eddy_viscosity_low_reynolds_number_templated(
+        const std::array<real2,nstate> &primitive_soln,
+        const real2 uncorrected_eddy_viscosity) const
+{
+    // Get fluid kinematic viscosity
+    const dealii::Tensor<2,dim,real2> fluid_viscosity 
+        = this->navier_stokes_physics->compute_viscosity_coefficient(primitive_soln)/primitive_soln[0];
+
+    const real2 corrected_eddy_viscosity = sqrt(uncorrected_eddy_viscosity*uncorrected_eddy_viscosity + fluid_viscosity*fluid_viscosity) - fluid_viscosity;
+    return corrected_eddy_viscosity;
 }
 //----------------------------------------------------------------
 template <int dim, int nstate, typename real>
@@ -676,9 +711,15 @@ dealii::Tensor<1,dim,real2> LargeEddySimulation_Smagorinsky<dim,nstate,real>
     real2 eddy_viscosity;
     if constexpr(std::is_same<real2,real>::value){ 
         eddy_viscosity = compute_eddy_viscosity(primitive_soln,primitive_soln_gradient,cell_index);
+        if(apply_low_reynolds_number_eddy_viscosity_correction){
+            eddy_viscosity = get_corrected_eddy_viscosity_low_reynolds_number(primitive_soln,eddy_viscosity);
+        }
     }
     else if constexpr(std::is_same<real2,FadType>::value){ 
         eddy_viscosity = compute_eddy_viscosity_fad(primitive_soln,primitive_soln_gradient,cell_index);
+        if(apply_low_reynolds_number_eddy_viscosity_correction){
+            eddy_viscosity = get_corrected_eddy_viscosity_low_reynolds_number_fad(primitive_soln,eddy_viscosity);
+        }
     }
     else{
         std::cout << "ERROR in physics/large_eddy_simulation.cpp --> compute_SGS_heat_flux_templated(): real2 != real or FadType" << std::endl;
@@ -732,9 +773,15 @@ dealii::Tensor<2,dim,real2> LargeEddySimulation_Smagorinsky<dim,nstate,real>
     real2 eddy_viscosity;
     if constexpr(std::is_same<real2,real>::value){ 
         eddy_viscosity = compute_eddy_viscosity(primitive_soln,primitive_soln_gradient,cell_index);
+        if(apply_low_reynolds_number_eddy_viscosity_correction){
+            eddy_viscosity = get_corrected_eddy_viscosity_low_reynolds_number(primitive_soln,eddy_viscosity);
+        }
     }
     else if constexpr(std::is_same<real2,FadType>::value){ 
         eddy_viscosity = compute_eddy_viscosity_fad(primitive_soln,primitive_soln_gradient,cell_index);
+        if(apply_low_reynolds_number_eddy_viscosity_correction){
+            eddy_viscosity = get_corrected_eddy_viscosity_low_reynolds_number_fad(primitive_soln,eddy_viscosity);
+        }
     }
     else{
         std::cout << "ERROR in physics/large_eddy_simulation.cpp --> compute_SGS_stress_tensor_templated(): real2 != real or FadType" << std::endl;

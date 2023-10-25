@@ -50,6 +50,7 @@ public:
     bool apply_modal_high_pass_filter_on_filtered_solution; ///< Flag to apply modal high pass filter on the filtered solution
     unsigned int poly_degree_max_large_scales; ///< Max poly degree representing the large scales for LES VMS filtering
     double dynamic_smagorinsky_model_constant_clipping_limit; ///< Clipping limit for the Dynamic Smagorinsky model constant
+    bool apply_low_reynolds_number_eddy_viscosity_correction; ///< Flag for applying the low Reynolds number eddy viscosity correction
 
     /// Declares the possible variables and sets the defaults.
     static void declare_parameters (dealii::ParameterHandler &prm);

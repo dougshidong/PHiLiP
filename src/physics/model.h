@@ -130,6 +130,9 @@ public:
      *  used for dynamic Smagorinsky eddy viscosity model */
     dealii::LinearAlgebra::distributed::Vector<double> dynamic_smagorinsky_model_constant_times_filter_width_sqr;
 
+    /// Setter for the unfiltered conservative solution
+    void set_unfiltered_conservative_solution(const std::array<real,nstate> unfiltered_conservative_solution);
+
 protected:
     /// Evaluate the manufactured solution boundary conditions.
     virtual void boundary_manufactured_solution (
@@ -176,6 +179,9 @@ protected:
         const std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_int,
         std::array<real,nstate> &soln_bc,
         std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_bc) const;
+
+    /// The unfiltered conservative solution
+    std::array<real,nstate> unfiltered_conservative_solution;
 };
 
 } // Physics namespace

@@ -214,10 +214,11 @@ public:
         const double                                              isothermal_wall_temperature = 1.0,
         const thermal_boundary_condition_enum                     thermal_boundary_condition_type = thermal_boundary_condition_enum::adiabatic,
         std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function = nullptr,
-        const two_point_num_flux_enum                             two_point_num_flux_type = two_point_num_flux_enum::KG);
+        const two_point_num_flux_enum                             two_point_num_flux_type = two_point_num_flux_enum::KG,
+        const bool                                                apply_low_reynolds_number_eddy_viscosity_correction = false);
 
-    /// SGS model constant
-    const double model_constant;
+    const double model_constant; ///< SGS model constant
+    const bool apply_low_reynolds_number_eddy_viscosity_correction; ///< Flag for applying the low Reynolds number eddy viscosity correction
 
     /// Destructor
     ~LargeEddySimulation_Smagorinsky() {};
@@ -227,6 +228,16 @@ public:
 
     /// Returns the product of the eddy viscosity model constant and the filter width squared
     virtual double get_model_constant_times_filter_width_squared (const dealii::types::global_dof_index cell_index) const;
+
+    /// Corrected eddy viscosity for low Reynolds number flows
+    real get_corrected_eddy_viscosity_low_reynolds_number(
+        const std::array<real,nstate> &primitive_soln,
+        const real uncorrected_eddy_viscosity) const;
+
+    /// Corrected eddy viscosity for low Reynolds number flows (Automatic Differentiation Type: FadType)
+    FadType get_corrected_eddy_viscosity_low_reynolds_number_fad(
+        const std::array<FadType,nstate> &primitive_soln,
+        const FadType uncorrected_eddy_viscosity) const;
 
     /// Nondimensionalized sub-grid scale (SGS) stress tensor, (tau^sgs)*
     dealii::Tensor<2,dim,real> compute_SGS_stress_tensor (
@@ -289,6 +300,15 @@ private:
         const std::array<real2,nstate> &primitive_soln,
         const std::array<dealii::Tensor<1,dim,real2>,nstate> &primitive_soln_gradient,
         const dealii::types::global_dof_index cell_index) const;
+
+    /** Templated corrected eddy viscosity for low Reynolds number flows
+     *  References: 
+     *  (1) Chapelier, Jean-Baptiste, Marta De La Llave Plata, and Florent Renac. "Inviscid and viscous simulations of the Taylor-Green vortex flow using a modal discontinuous Galerkin approach." 42nd AIAA fluid dynamics conference and exhibit. 2012.
+     *  (2) Meyers, J. and Sagaut, P., “On the model coefficients for the standard and the variational multi-scale Smagorinsky model,” J. Fluid Mech., Vol. 569, No.-1, 2006, pp. 287–319.
+     */ 
+    template<typename real2> real2 get_corrected_eddy_viscosity_low_reynolds_number_templated(
+        const std::array<real2,nstate> &primitive_soln,
+        const real2 uncorrected_eddy_viscosity) const;
 };
 
 /// WALE (Wall-Adapting Local Eddy-viscosity) eddy viscosity model. Derived from LargeEddySimulation_Smagorinsky for only modifying compute_eddy_viscosity.
@@ -319,7 +339,8 @@ public:
         const double                                              isothermal_wall_temperature = 1.0,
         const thermal_boundary_condition_enum                     thermal_boundary_condition_type = thermal_boundary_condition_enum::adiabatic,
         std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function = nullptr,
-        const two_point_num_flux_enum                             two_point_num_flux_type = two_point_num_flux_enum::KG);
+        const two_point_num_flux_enum                             two_point_num_flux_type = two_point_num_flux_enum::KG,
+        const bool                                                apply_low_reynolds_number_eddy_viscosity_correction = false);
 
     /// Destructor
     ~LargeEddySimulation_WALE() {};
@@ -377,7 +398,8 @@ public:
         const double                                              isothermal_wall_temperature = 1.0,
         const thermal_boundary_condition_enum                     thermal_boundary_condition_type = thermal_boundary_condition_enum::adiabatic,
         std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function = nullptr,
-        const two_point_num_flux_enum                             two_point_num_flux_type = two_point_num_flux_enum::KG);
+        const two_point_num_flux_enum                             two_point_num_flux_type = two_point_num_flux_enum::KG,
+        const bool                                                apply_low_reynolds_number_eddy_viscosity_correction = false);
 
     /// Destructor
     ~LargeEddySimulation_Vreman() {};
@@ -436,7 +458,8 @@ public:
         const double                                              isothermal_wall_temperature = 1.0,
         const thermal_boundary_condition_enum                     thermal_boundary_condition_type = thermal_boundary_condition_enum::adiabatic,
         std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function = nullptr,
-        const two_point_num_flux_enum                             two_point_num_flux_type = two_point_num_flux_enum::KG);
+        const two_point_num_flux_enum                             two_point_num_flux_type = two_point_num_flux_enum::KG,
+        const bool                                                apply_low_reynolds_number_eddy_viscosity_correction = false);
 
     /// Destructor
     ~LargeEddySimulation_ShearImprovedSmagorinsky() {};
@@ -502,7 +525,8 @@ public:
         const double                                              isothermal_wall_temperature = 1.0,
         const thermal_boundary_condition_enum                     thermal_boundary_condition_type = thermal_boundary_condition_enum::adiabatic,
         std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function = nullptr,
-        const two_point_num_flux_enum                             two_point_num_flux_type = two_point_num_flux_enum::KG);
+        const two_point_num_flux_enum                             two_point_num_flux_type = two_point_num_flux_enum::KG,
+        const bool                                                apply_low_reynolds_number_eddy_viscosity_correction = false);
 
     /// Destructor
     ~LargeEddySimulation_VMS() {};
@@ -548,7 +572,8 @@ public:
         const double                                              isothermal_wall_temperature = 1.0,
         const thermal_boundary_condition_enum                     thermal_boundary_condition_type = thermal_boundary_condition_enum::adiabatic,
         std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function = nullptr,
-        const two_point_num_flux_enum                             two_point_num_flux_type = two_point_num_flux_enum::KG);
+        const two_point_num_flux_enum                             two_point_num_flux_type = two_point_num_flux_enum::KG,
+        const bool                                                apply_low_reynolds_number_eddy_viscosity_correction = false);
 
     /// Destructor
     ~LargeEddySimulation_SmallSmallVMS() {};
@@ -584,7 +609,8 @@ public:
         const double                                              isothermal_wall_temperature = 1.0,
         const thermal_boundary_condition_enum                     thermal_boundary_condition_type = thermal_boundary_condition_enum::adiabatic,
         std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function = nullptr,
-        const two_point_num_flux_enum                             two_point_num_flux_type = two_point_num_flux_enum::KG);
+        const two_point_num_flux_enum                             two_point_num_flux_type = two_point_num_flux_enum::KG,
+        const bool                                                apply_low_reynolds_number_eddy_viscosity_correction = false);
 
     /// Destructor
     ~LargeEddySimulation_AllAllVMS() {};
@@ -617,7 +643,8 @@ public:
         const double                                              isothermal_wall_temperature = 1.0,
         const thermal_boundary_condition_enum                     thermal_boundary_condition_type = thermal_boundary_condition_enum::adiabatic,
         std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function = nullptr,
-        const two_point_num_flux_enum                             two_point_num_flux_type = two_point_num_flux_enum::KG);
+        const two_point_num_flux_enum                             two_point_num_flux_type = two_point_num_flux_enum::KG,
+        const bool                                                apply_low_reynolds_number_eddy_viscosity_correction = false);
 
     /// Destructor
     ~LargeEddySimulation_DynamicSmagorinsky() {};

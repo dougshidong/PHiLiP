@@ -63,7 +63,8 @@ ModelFactory<dim,nstate,real>
                         parameters_input->navier_stokes_param.nondimensionalized_isothermal_wall_temperature,
                         parameters_input->navier_stokes_param.thermal_boundary_condition_type,
                         manufactured_solution_function,
-                        parameters_input->two_point_num_flux_type);
+                        parameters_input->two_point_num_flux_type,
+                        parameters_input->physics_model_param.apply_low_reynolds_number_eddy_viscosity_correction);
                 } else if (sgs_model_type == SGS_enum::wall_adaptive_local_eddy_viscosity) {
                     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
                     // WALE (Wall-Adapting Local Eddy-viscosity) eddy viscosity model
@@ -85,7 +86,8 @@ ModelFactory<dim,nstate,real>
                         parameters_input->navier_stokes_param.nondimensionalized_isothermal_wall_temperature,
                         parameters_input->navier_stokes_param.thermal_boundary_condition_type,
                         manufactured_solution_function,
-                        parameters_input->two_point_num_flux_type);
+                        parameters_input->two_point_num_flux_type,
+                        parameters_input->physics_model_param.apply_low_reynolds_number_eddy_viscosity_correction);
                 } else if (sgs_model_type == SGS_enum::vreman) {
                     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
                     // Vreman eddy viscosity model
@@ -107,7 +109,8 @@ ModelFactory<dim,nstate,real>
                         parameters_input->navier_stokes_param.nondimensionalized_isothermal_wall_temperature,
                         parameters_input->navier_stokes_param.thermal_boundary_condition_type,
                         manufactured_solution_function,
-                        parameters_input->two_point_num_flux_type);
+                        parameters_input->two_point_num_flux_type,
+                        parameters_input->physics_model_param.apply_low_reynolds_number_eddy_viscosity_correction);
                 } else if (sgs_model_type == SGS_enum::shear_improved_smagorinsky) {
                     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
                     // Shear-improved Smagorinsky model
@@ -129,7 +132,8 @@ ModelFactory<dim,nstate,real>
                         parameters_input->navier_stokes_param.nondimensionalized_isothermal_wall_temperature,
                         parameters_input->navier_stokes_param.thermal_boundary_condition_type,
                         manufactured_solution_function,
-                        parameters_input->two_point_num_flux_type);
+                        parameters_input->two_point_num_flux_type,
+                        parameters_input->physics_model_param.apply_low_reynolds_number_eddy_viscosity_correction);
                 } else if ((sgs_model_type == SGS_enum::small_small_variational_multiscale) ||
                            (sgs_model_type == SGS_enum::all_all_variational_multiscale)) {
                     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -164,7 +168,8 @@ ModelFactory<dim,nstate,real>
                             parameters_input->navier_stokes_param.nondimensionalized_isothermal_wall_temperature,
                             parameters_input->navier_stokes_param.thermal_boundary_condition_type,
                             manufactured_solution_function,
-                            parameters_input->two_point_num_flux_type);
+                            parameters_input->two_point_num_flux_type,
+                            parameters_input->physics_model_param.apply_low_reynolds_number_eddy_viscosity_correction);
                     } else if (sgs_model_type == SGS_enum::all_all_variational_multiscale) {
                         // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
                         // All-All Variational multiscale (AllAllVMS) eddy viscosity model
@@ -189,7 +194,8 @@ ModelFactory<dim,nstate,real>
                             parameters_input->navier_stokes_param.nondimensionalized_isothermal_wall_temperature,
                             parameters_input->navier_stokes_param.thermal_boundary_condition_type,
                             manufactured_solution_function,
-                            parameters_input->two_point_num_flux_type);
+                            parameters_input->two_point_num_flux_type,
+                            parameters_input->physics_model_param.apply_low_reynolds_number_eddy_viscosity_correction);
                     } else {
                         std::cout << "Can't create LargeEddySimulationVMS, invalid SGSModelType type: " << sgs_model_type << std::endl;
                         assert(0==1 && "Can't create LargeEddySimulationVMS, invalid SGSModelType type");
@@ -216,7 +222,8 @@ ModelFactory<dim,nstate,real>
                         parameters_input->navier_stokes_param.nondimensionalized_isothermal_wall_temperature,
                         parameters_input->navier_stokes_param.thermal_boundary_condition_type,
                         manufactured_solution_function,
-                        parameters_input->two_point_num_flux_type);
+                        parameters_input->two_point_num_flux_type,
+                        parameters_input->physics_model_param.apply_low_reynolds_number_eddy_viscosity_correction);
                 } 
                 else {
                     std::cout << "Can't create LargeEddySimulationBase, invalid SGSModelType type: " << sgs_model_type << std::endl;

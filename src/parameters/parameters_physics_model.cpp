@@ -74,6 +74,10 @@ void PhysicsModelParam::declare_parameters (dealii::ParameterHandler &prm)
                               dealii::Patterns::Double(1e-15, dealii::Patterns::Double::max_double_value),
                               "Clipping limit for the Dynamic Smagorinsky model constant (default is 0.01).");
 
+            prm.declare_entry("apply_low_reynolds_number_eddy_viscosity_correction", "false",
+                              dealii::Patterns::Bool(),
+                              "Flag for applying the low Reynolds number eddy viscosity correction. By default, false.");
+
         }
         prm.leave_subsection();
 
@@ -129,6 +133,8 @@ void PhysicsModelParam::parse_parameters (dealii::ParameterHandler &prm)
             poly_degree_max_large_scales       = prm.get_integer("poly_degree_max_large_scales");
             dynamic_smagorinsky_model_constant_clipping_limit 
                                                = prm.get_double("dynamic_smagorinsky_model_constant_clipping_limit");
+            apply_low_reynolds_number_eddy_viscosity_correction
+                                               = prm.get_bool("apply_low_reynolds_number_eddy_viscosity_correction");
         }
         prm.leave_subsection();
 

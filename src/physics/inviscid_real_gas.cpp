@@ -158,6 +158,25 @@ void InviscidRealGas<dim,nstate,real>
 }
 
 template <int dim, int nstate, typename real>
+inline std::array<real,nstate> InviscidRealGas<dim,nstate,real>
+::convert_primitive_to_conservative ( const std::array<real,nstate> &primitive_soln ) const
+{
+
+    const real density = primitive_soln[0];
+    dealii::Tensor<1,dim,real> vel;;
+    for (int d=0; d<dim; ++d) { vel[d] = primitive_soln[1+d]; }
+
+    std::array<real, nstate> conservative_soln;
+    conservative_soln[0] = density;
+    for (int d=0; d<dim; ++d) {
+        conservative_soln[1+d] = density*vel[d];
+    }
+    conservative_soln[nstate-1] = primitive_soln[nstate-1]/(this->gam-1.0)+0.5*density*(vel[0]*vel[0]+vel[1]*vel[1]); ///compute_total_energy(primitive_soln); /// change THIS
+
+    return conservative_soln;
+}
+
+template <int dim, int nstate, typename real>
 template<typename real2>
 inline real2 InviscidRealGas<dim,nstate,real>
 :: compute_density ( const std::array<real2,nstate> &conservative_soln ) const

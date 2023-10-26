@@ -6,6 +6,7 @@
 #include <deal.II/base/function.h>
 #include "parameters/all_parameters.h"
 #include "../euler.h" // for FreeStreamInitialConditions
+#include "../inviscid_real_gas.h" // for FreeStreamInitialConditions
 
 namespace PHiLiP {
 
@@ -417,7 +418,7 @@ protected:
     real convert_primitive_to_conversative_value(const dealii::Point<dim,real> &point, const unsigned int istate = 0) const;
 
     // Euler physics pointer. Used to convert primitive to conservative.
-    std::shared_ptr < Physics::Euler<dim, nstate, double > > euler_physics;
+    std::shared_ptr < Physics::InviscidRealGas<dim, nstate, double > > inviscid_real_gas_physics;
 };
 
 /// Initial condition function factory

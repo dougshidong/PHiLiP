@@ -103,6 +103,14 @@ protected:
         std::array<real,nstate> &/*soln_bc*/,
         std::array<dealii::Tensor<1,dim,real>,nstate> &/*soln_grad_bc*/) const;
 
+public: /// used for initial condition (initial_condition_function.cpp)
+    /// Given primitive variables [density, [velocities], pressure],
+    /// returns conservative variables [density, [momentum], total energy].
+    ///
+    /// Opposite of convert_primitive_to_conservative
+    std::array<real,nstate> convert_primitive_to_conservative ( const std::array<real,nstate> &primitive_soln ) const;
+
+protected:
     /// Compute density from conservative_soln 
     template<typename real2>
     real2 compute_density ( const std::array<real2,nstate> &conservative_soln ) const;

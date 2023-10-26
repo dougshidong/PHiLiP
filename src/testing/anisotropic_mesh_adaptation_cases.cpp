@@ -92,7 +92,7 @@ double AnisotropicMeshAdaptationCases<dim,nstate> :: output_vtk_files(std::share
 template <int dim, int nstate>
 double AnisotropicMeshAdaptationCases<dim,nstate> :: evaluate_functional_error(std::shared_ptr<DGBase<dim,double>> dg) const
 {
-    const double functional_exact = 0.0;
+    const double functional_exact = 0.1615892748498965;
     std::shared_ptr< Functional<dim, nstate, double> > functional
                                 = FunctionalFactory<dim,nstate,double>::create_Functional(dg->all_parameters->functional_param, dg);
     const double functional_val = functional->evaluate_functional();
@@ -124,7 +124,7 @@ int AnisotropicMeshAdaptationCases<dim, nstate> :: run_test () const
     std::vector<unsigned int> n_cycle_vector;
     std::vector<unsigned int> n_dofs_vector;
 
-    const double functional_error_initial = evaluate_abs_dwr_error(flow_solver->dg);
+    const double functional_error_initial = evaluate_functional_error(flow_solver->dg);
     pcout<<"Functional error initial = "<<std::setprecision(16)<<functional_error_initial<<std::endl; // can be deleted later. 
     functional_error_vector.push_back(functional_error_initial);
     n_dofs_vector.push_back(flow_solver->dg->n_dofs());
@@ -137,7 +137,7 @@ int AnisotropicMeshAdaptationCases<dim, nstate> :: run_test () const
         std::unique_ptr<MeshOptimizer<dim,nstate>> mesh_optimizer = std::make_unique<MeshOptimizer<dim,nstate>> (flow_solver->dg,&param, true);
         mesh_optimizer->run_full_space_optimizer();
 
-        const double functional_error = evaluate_abs_dwr_error(flow_solver->dg);
+        const double functional_error = evaluate_functional_error(flow_solver->dg);
         functional_error_vector.push_back(functional_error);
         n_dofs_vector.push_back(flow_solver->dg->n_dofs());
         n_cycle_vector.push_back(current_cycle++);
@@ -158,7 +158,7 @@ int AnisotropicMeshAdaptationCases<dim, nstate> :: run_test () const
             meshadaptation->adapt_mesh();
             flow_solver->run();
 
-            const double functional_error = evaluate_abs_dwr_error(flow_solver->dg);
+            const double functional_error = evaluate_functional_error(flow_solver->dg);
             functional_error_vector.push_back(functional_error);
             n_dofs_vector.push_back(flow_solver->dg->n_dofs());
             n_cycle_vector.push_back(current_cycle++);

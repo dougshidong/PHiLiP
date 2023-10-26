@@ -348,9 +348,9 @@ public:
     real value(const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
 };
 
-/// Initial Condition Function: AcousticWave (uniform density)
+/// Initial Condition Function: AcousticWave_Air (uniform density)
 template <int dim, int nstate, typename real>
-class InitialConditionFunction_AcousticWave : public InitialConditionFunction<dim,nstate,real>
+class InitialConditionFunction_AcousticWave_Air : public InitialConditionFunction<dim,nstate,real>
 {
 protected:
     using dealii::Function<dim,real>::value; ///< dealii::Function we are templating on
@@ -363,7 +363,7 @@ public:
      *  Reference: TBD
      *  These initial conditions are given in nondimensional form (free-stream as reference)
      */
-    InitialConditionFunction_AcousticWave (
+    InitialConditionFunction_AcousticWave_Air (
             Parameters::AllParameters const *const param);
 
     const double gamma_gas; ///< Constant heat capacity ratio of fluid.

@@ -469,11 +469,11 @@ real InitialConditionFunction_Zero<dim, nstate, real>
 }
 
 // ========================================================
-// Acoustic Wave -- Initial Condition (Uniform density)
+// Acoustic Wave (Air) -- Initial Condition (Uniform density)
 // ========================================================
 template <int dim, int nstate, typename real>
-InitialConditionFunction_AcousticWave<dim,nstate,real>
-::InitialConditionFunction_AcousticWave (
+InitialConditionFunction_AcousticWave_Air<dim,nstate,real>
+::InitialConditionFunction_AcousticWave_Air (
         Parameters::AllParameters const *const param)
     : InitialConditionFunction<dim,nstate,real>()
     , gamma_gas(param->euler_param.gamma_gas)
@@ -488,7 +488,7 @@ InitialConditionFunction_AcousticWave<dim,nstate,real>
                 Physics::PhysicsFactory<dim,dim+2,double>::create_Physics(&parameters_euler));
 }
 template <int dim, int nstate, typename real>
-real InitialConditionFunction_AcousticWave<dim,nstate,real>
+real InitialConditionFunction_AcousticWave_Air<dim,nstate,real>
 ::primitive_value(const dealii::Point<dim,real> &point, const unsigned int istate) const
 {
     // Note: This is in non-dimensional form (free-stream values as reference)
@@ -526,7 +526,7 @@ real InitialConditionFunction_AcousticWave<dim,nstate,real>
 }
 
 template <int dim, int nstate, typename real>
-real InitialConditionFunction_AcousticWave<dim,nstate,real>
+real InitialConditionFunction_AcousticWave_Air<dim,nstate,real>
 ::convert_primitive_to_conversative_value(
     const dealii::Point<dim,real> &point, const unsigned int istate) const
 {
@@ -546,7 +546,7 @@ real InitialConditionFunction_AcousticWave<dim,nstate,real>
 }
 
 template <int dim, int nstate, typename real>
-inline real InitialConditionFunction_AcousticWave<dim, nstate, real>
+inline real InitialConditionFunction_AcousticWave_Air<dim, nstate, real>
 ::value(const dealii::Point<dim,real> &point, const unsigned int istate) const
 {
     real value = 0.0;
@@ -613,9 +613,9 @@ InitialConditionFactory<dim,nstate, real>::create_InitialConditionFunction(
         if constexpr (dim>1 && nstate==dim+2) return std::make_shared<InitialConditionFunction_KHI<dim,nstate,real> > (param);
     } else if (flow_type == FlowCaseEnum::non_periodic_cube_flow) {
         if constexpr (dim==2 && nstate==1)  return std::make_shared<InitialConditionFunction_Zero<dim,nstate,real> > ();
-    } else if (flow_type == FlowCaseEnum::acoustic_wave) {
+    } else if (flow_type == FlowCaseEnum::acoustic_wave_air) {
         if constexpr (dim==2 && nstate==dim+2){ 
-            return std::make_shared<InitialConditionFunction_AcousticWave<dim,nstate,real> >(param);
+            return std::make_shared<InitialConditionFunction_AcousticWave_Air<dim,nstate,real> >(param);
         }
     } else {
         std::cout << "Invalid Flow Case Type. You probably forgot to add it to the list of flow cases in initial_condition_function.cpp" << std::endl;
@@ -651,7 +651,7 @@ template class InitialConditionFunction_IsentropicVortex <PHILIP_DIM, PHILIP_DIM
 #endif
 #if PHILIP_DIM==2
 template class InitialConditionFunction_KHI <PHILIP_DIM, PHILIP_DIM+2, double>;
-template class InitialConditionFunction_AcousticWave <PHILIP_DIM, PHILIP_DIM+2, double>;
+template class InitialConditionFunction_AcousticWave_Air <PHILIP_DIM, PHILIP_DIM+2, double>;
 #endif
 // functions instantiated for all dim
 template class InitialConditionFunction_Zero <PHILIP_DIM,1, double>;

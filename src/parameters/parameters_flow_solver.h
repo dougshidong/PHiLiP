@@ -27,7 +27,7 @@ public:
         gaussian_bump,
         isentropic_vortex,
         kelvin_helmholtz_instability,
-        acoustic_wave,
+        acoustic_wave_air,
         non_periodic_cube_flow
         };
     FlowCaseType flow_case_type; ///< Selected FlowCaseType from the input file

@@ -39,6 +39,14 @@ public:
         const std::array<real,nstate> &conservative_soln) const = 0;
 
     /// Dissipative flux terms additional to the baseline physics (including dissipative flux terms in additional PDEs of model)
+    virtual std::array<dealii::Tensor<1,dim,real>,nstate> dissipative_flux (
+        const std::array<real,nstate> &solution,
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient,
+        const std::array<real,nstate> &filtered_solution,
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &filtered_solution_gradient,
+        const dealii::types::global_dof_index cell_index) const = 0;
+
+    /// Dissipative flux terms additional to the baseline physics (including dissipative flux terms in additional PDEs of model)
 	virtual std::array<dealii::Tensor<1,dim,real>,nstate> 
 	dissipative_flux (
     	const std::array<real,nstate> &conservative_soln,

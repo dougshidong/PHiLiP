@@ -96,6 +96,18 @@ std::array<dealii::Tensor<1,dim,real>,nstate> LargeEddySimulationBase<dim,nstate
 template <int dim, int nstate, typename real>
 std::array<dealii::Tensor<1,dim,real>,nstate> LargeEddySimulationBase<dim,nstate,real>
 ::dissipative_flux (
+        const std::array<real,nstate> &solution,
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient,
+        const std::array<real,nstate> &/*filtered_solution*/,
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &/*filtered_solution_gradient*/,
+        const dealii::types::global_dof_index cell_index) const
+{
+    return this->dissipative_flux(solution,solution_gradient,cell_index);
+}
+//----------------------------------------------------------------
+template <int dim, int nstate, typename real>
+std::array<dealii::Tensor<1,dim,real>,nstate> LargeEddySimulationBase<dim,nstate,real>
+::dissipative_flux (
     const std::array<real,nstate> &conservative_soln,
     const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient,
     const dealii::types::global_dof_index cell_index) const

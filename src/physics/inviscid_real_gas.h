@@ -35,8 +35,8 @@ public:
     ~InviscidRealGas() {};
 
     const double gam_ref; ///< reference gamma
-    const double mach_inf; ///< Farfield Mach number.
-    const double mach_inf_sqr; ///< Farfield Mach number squared.
+    const double mach_ref; ///< reference mach number (Farfield Mach number)
+    const double mach_ref_sqr; ///< reference mach number (Farfield Mach number squared)
     const two_point_num_flux_enum two_point_num_flux_type; ///< Two point numerical flux type (for split form)
 
 protected:

@@ -17,7 +17,7 @@ InviscidRealGas<dim,nstate,real>::InviscidRealGas (
     const bool                                                has_nonzero_diffusion,
     const bool                                                has_nonzero_physical_source)
     : PhysicsBase<dim,nstate,real>(parameters_input, has_nonzero_diffusion,has_nonzero_physical_source,manufactured_solution_function)
-    , gam(parameters_input->euler_param.gamma_gas)
+    , gam_ref(parameters_input->euler_param.gamma_gas)
     , mach_inf(parameters_input->euler_param.mach_inf)
     , mach_inf_sqr(mach_inf*mach_inf)
     , two_point_num_flux_type(parameters_input->two_point_num_flux_type)
@@ -171,7 +171,7 @@ inline std::array<real,nstate> InviscidRealGas<dim,nstate,real>
     for (int d=0; d<dim; ++d) {
         conservative_soln[1+d] = density*vel[d];
     }
-    conservative_soln[nstate-1] = primitive_soln[nstate-1]/(this->gam-1.0)+0.5*density*(vel[0]*vel[0]+vel[1]*vel[1]); ///compute_total_energy(primitive_soln); /// change THIS
+    conservative_soln[nstate-1] = primitive_soln[nstate-1]/(this->gam_ref-1.0)+0.5*density*(vel[0]*vel[0]+vel[1]*vel[1]); ///compute_total_energy(primitive_soln); /// change THIS
 
     return conservative_soln;
 }
@@ -323,8 +323,8 @@ inline real InviscidRealGas<dim,nstate,real>
     const dealii::Tensor<1,dim,real> vel = compute_velocities(conservative_soln);
     const real vel2 = compute_velocity_squared(vel);
     const real total_energy = conservative_soln[nstate-1]/density;
-    real pressure = (gam-1)*density*(total_energy - 0.5*vel2);
-    real temperature = pressure*gam*mach_inf_sqr / (density);
+    real pressure = (this->gam_ref-1.0)*density*(total_energy - 0.5*vel2);
+    real temperature = pressure*(this->gam_ref)*mach_inf_sqr / (density);
 
     return temperature;
 }
@@ -339,7 +339,7 @@ inline real2 InviscidRealGas<dim,nstate,real>
     const real2 tot_energy  = conservative_soln[nstate-1];
     const dealii::Tensor<1,dim,real2> vel = compute_velocities<real2>(conservative_soln);
     const real2 vel2 = compute_velocity_squared<real2>(vel);
-    real2 pressure = (gam-1)*(tot_energy - 0.5*density*vel2);
+    real2 pressure = (this->gam_ref-1.0)*(tot_energy - 0.5*density*vel2);
     
     return pressure;
 }
@@ -389,7 +389,7 @@ inline real InviscidRealGas<dim,nstate,real>
 {
     real density = conservative_soln[0];
     const real pressure = compute_pressure<real>(conservative_soln);
-    const real sound = sqrt(pressure*gam/density);
+    const real sound = sqrt(pressure*this->gam_ref/density);
     return sound;
 }
 

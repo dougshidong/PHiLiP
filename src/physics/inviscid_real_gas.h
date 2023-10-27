@@ -45,6 +45,8 @@ protected:
     const double R_air; ///< [J/kg]
     const double R_ref; ///< [J/kg]
     const double temperature_ref; ///< Reference temperature [K]
+    const double temperature_ref; ///< reference temperature [K]
+    const double u_ref; ///< reference velocity [m/s]
 
 public:
      /// Computes the entropy variables.

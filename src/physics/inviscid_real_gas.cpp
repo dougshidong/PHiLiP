@@ -326,7 +326,7 @@ inline real InviscidRealGas<dim,nstate,real>
     const real vel2 = compute_velocity_squared(vel);
     const real total_energy = conservative_soln[nstate-1]/density;
     real pressure = (this->gam_ref-1.0)*density*(total_energy - 0.5*vel2);
-    real temperature = pressure*(this->gam_ref)*mach_inf_sqr / (density);
+    real temperature = pressure*(this->gam_ref)*this->mach_ref_sqr / (density);
 
     return temperature;
 }

@@ -625,9 +625,9 @@ real2 LargeEddySimulation_Smagorinsky<dim,nstate,real>
         const std::array<real2,nstate> &primitive_soln,
         const real2 uncorrected_eddy_viscosity) const
 {
-    // Get fluid kinematic viscosity
+    // Get scaled fluid kinematic viscosity
     const dealii::Tensor<2,dim,real2> fluid_viscosity 
-        = this->navier_stokes_physics->compute_viscosity_coefficient(primitive_soln)/primitive_soln[0];
+        = this->navier_stokes_physics->compute_scaled_viscosity_coefficient(primitive_soln)/primitive_soln[0];
 
     const real2 corrected_eddy_viscosity = sqrt(uncorrected_eddy_viscosity*uncorrected_eddy_viscosity + fluid_viscosity*fluid_viscosity) - fluid_viscosity;
     return corrected_eddy_viscosity;

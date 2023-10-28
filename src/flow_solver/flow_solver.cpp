@@ -40,6 +40,7 @@ FlowSolver<dim, nstate>::FlowSolver(
 , number_of_fixed_times_to_output_solution(ode_param.number_of_fixed_times_to_output_solution)
 , output_solution_at_exact_fixed_times(ode_param.output_solution_at_exact_fixed_times)
 , dg(DGFactory<dim,double>::create_discontinuous_galerkin(&all_param, poly_degree, flow_solver_param.max_poly_degree_for_adaptation, grid_degree, flow_solver_case->generate_grid()))
+, use_polynomial_ramping(flow_solver_param.steady_state_polynomial_ramping)
 {
     flow_solver_case->set_higher_order_grid(dg);
     dg->allocate_system();
@@ -579,13 +580,13 @@ int FlowSolver<dim,nstate>::run() const
         // Steady-state solution
         //----------------------------------------------------
         using ODEEnum = Parameters::ODESolverParam::ODESolverEnum;
-        if(flow_solver_param.steady_state_polynomial_ramping && (ode_param.ode_solver_type != ODEEnum::pod_galerkin_solver && ode_param.ode_solver_type != ODEEnum::pod_petrov_galerkin_solver)) {
+        if(use_polynomial_ramping && (ode_param.ode_solver_type != ODEEnum::pod_galerkin_solver && ode_param.ode_solver_type != ODEEnum::pod_petrov_galerkin_solver)) {
             ode_solver->initialize_steady_polynomial_ramping(poly_degree);
         }
 
         ode_solver->steady_state();
         flow_solver_case->steady_state_postprocessing(dg);
-        
+/*        
         const bool use_isotropic_mesh_adaptation = (all_param.mesh_adaptation_param.total_mesh_adaptation_cycles > 0) 
                                         && (all_param.mesh_adaptation_param.mesh_adaptation_type != Parameters::MeshAdaptationParam::MeshAdaptationType::anisotropic_adaptation);
         
@@ -593,6 +594,7 @@ int FlowSolver<dim,nstate>::run() const
         {
             perform_steady_state_mesh_adaptation();
         }
+*/
     }
     pcout << "done." << std::endl;
     return 0;

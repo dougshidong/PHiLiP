@@ -28,14 +28,6 @@ void SpecificNodesParameterization<dim> :: compute_control_index_to_vol_index()
     const dealii::IndexSet &volume_range = this->high_order_grid->volume_nodes.get_partitioner()->locally_owned_range();
  //   const dealii::IndexSet &surface_range = this->high_order_grid->surface_nodes.get_partitioner()->locally_owned_range();
     
-    dealii::Point<dim> A_right, B_right, C_right, D_left, E_left, F_left;
-    A_right[0] = -0.06; A_right[1] = 0.0;
-    B_right[0] = -0.07; B_right[1] = 3.0;
-    C_right[0] = -0.07; C_right[1] = -3.0;
-    D_left[0] = 1.0; D_left[1] = 0.0;
-    E_left[0] = 2.6; E_left[1] = 3.0;
-    F_left[0] = 2.6; F_left[1] = -3.0;
-
     for(unsigned int i_vol = 0; i_vol<n_vol_nodes; ++i_vol) 
     {
         if(!(volume_range.is_element(i_vol))) continue;
@@ -54,12 +46,9 @@ void SpecificNodesParameterization<dim> :: compute_control_index_to_vol_index()
             const double x = this->high_order_grid->volume_nodes(i_vol);
             const double y = this->high_order_grid->volume_nodes(i_vol+1);
 
-            const bool is_part_of_line1 = check_if_node_belongs_to_the_line(A_right, B_right, x, y);
-            const bool is_part_of_line2 = check_if_node_belongs_to_the_line(A_right, C_right, x, y);
-    //        const bool is_part_of_line3 = check_if_node_belongs_to_the_line(D_left, E_left, x, y);
-    //        const bool is_part_of_line4 = check_if_node_belongs_to_the_line(D_left, F_left, x, y);
+            const bool is_part_of_region = check_if_node_belongs_to_the_region_between_lines(x, y);
 
-            if( is_part_of_line1 || is_part_of_line2)// || is_part_of_line3 || is_part_of_line4 )
+            if( is_part_of_region )
             {
                 is_a_control_node(i_vol) = 1;
                 is_a_control_node(i_vol+1) = 0;
@@ -247,25 +236,28 @@ int SpecificNodesParameterization<dim> :: is_design_variable_valid(
 }
     
 template<int dim>
-bool SpecificNodesParameterization<dim> :: check_if_node_belongs_to_the_line(
-    const dealii::Point<dim> &start_point, 
-    const dealii::Point<dim> &end_point,
-    const double x, const double y) const
+bool SpecificNodesParameterization<dim> :: check_if_node_belongs_to_the_region_between_lines(
+    const double x, 
+    const double y) const
 {
-    const double start_x = start_point[0];
-    const double start_y = start_point[1];
-    const double end_x = end_point[0];
-    const double end_y = end_point[1];
+    const double x1 = -0.19;
+    const double y1 = 0;
+    const double x2 = -0.18;
+    const double y2 = (y>=0) ? 3.0 : -3.0;
+    const double x3 = -0.018;
+    const double y3 = 0;
+    const double x4 = 1.45;
+    const double y4 = (y>=0) ? 3.0 : -3.0;
 
-    if(  (x - start_x)*(x - end_x) > 1.0e-6) {return false;}
-    if(  (y - start_y)*(y - end_y) > 1.0e-6) {return false;}
+    const double y_line1 = (y2 - y1)/(x2 - x1) * (x-x2) + y2;
+    const double y_line2 = (y4-y3)/(x4-x3)*(x-x4) + y4;
 
-    const double y_expected = (end_y - start_y)/(end_x - start_x) * (x - start_x) + start_y;
+    if( (y-y_line1)*(y-y_line2) < 0.0 )
+    {
+        return true;
+    }
 
-    const double diff = abs(y - y_expected);
-    if(diff > 1.0e-5) {return false;}
-
-    return true;
+    return false;
 }
 
 template class SpecificNodesParameterization<PHILIP_DIM>;

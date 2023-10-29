@@ -134,6 +134,7 @@ int AnisotropicMeshAdaptationCases<dim, nstate> :: run_test () const
 
     if(run_mesh_optimizer)
     {
+        flow_solver->dg->freeze_artificial_dissipation=true;
         std::unique_ptr<MeshOptimizer<dim,nstate>> mesh_optimizer = std::make_unique<MeshOptimizer<dim,nstate>> (flow_solver->dg,&param, true);
         mesh_optimizer->run_full_space_optimizer();
 

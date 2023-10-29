@@ -6,7 +6,7 @@ configure_file(naca0012_hopw_ref3.msh naca0012_hopw_ref3.msh COPYONLY)
 configure_file(naca0012_hopw_ref4.msh naca0012_hopw_ref4.msh COPYONLY)
 configure_file(naca0012_hopw_ref5.msh naca0012_hopw_ref5.msh COPYONLY)
 configure_file(mesh_naca0012.msh mesh_naca0012.msh COPYONLY)
-configure_file(cylindermesh.msh cylindermesh.msh COPYONLY)
+configure_file(nozzlemesh.msh nozzlemesh.msh COPYONLY)
 
 set (filename "naca0012_hopw_ref0.msh")
 if(NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${filename})

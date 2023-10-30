@@ -48,6 +48,9 @@ private:
     dealii::IndexSet control_ghost_range;
     
     dealii::LinearAlgebra::distributed::Vector<int> control_index_to_vol_index;
+    
+    dealii::LinearAlgebra::distributed::Vector<int> is_a_control_node;
+    dealii::LinearAlgebra::distributed::Vector<int> is_on_boundary;
 };
 
 } // namespace PHiLiP

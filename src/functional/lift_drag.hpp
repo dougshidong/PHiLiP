@@ -93,11 +93,24 @@ public:
     real2 evaluate_boundary_integrand(
         const PHiLiP::Physics::PhysicsBase<dim,nstate,real2> &physics,
         const unsigned int boundary_id,
-        const dealii::Point<dim,real2> &/*phys_coord*/,
-        const dealii::Tensor<1,dim,real2> &normal,
+        const dealii::Point<dim,real2> & phys_coord,
+        const dealii::Tensor<1,dim,real2> & /*normal*/,
         const std::array<real2,nstate> &soln_at_q,
         const std::array<dealii::Tensor<1,dim,real2>,nstate> &/*soln_grad_at_q*/) const
     {
+        if(boundary_id == 1004)
+        {
+            const real2 x = phys_coord[0];
+            if(x > 0.0)
+            {
+                const Physics::Euler<dim,dim+2,real2> &euler = dynamic_cast< const Physics::Euler<dim,dim+2,real2> &> (physics);
+                const real2 pressure = euler.compute_pressure(soln_at_q);
+                const real2 enthalpy = euler.compute_specific_enthalpy(soln_at_q,pressure);
+                return enthalpy;
+            }
+        }
+        return (real2) 0.0;
+        /*
         if (boundary_id == 1001) {
             assert(soln_at_q.size() == dim+2);
             const Physics::Euler<dim,dim+2,real2> &euler = dynamic_cast< const Physics::Euler<dim,dim+2,real2> &> (physics);
@@ -117,6 +130,7 @@ public:
             return force_dimensionalization_factor * pressure * (normal * force_vector);
         } 
         return (real2) 0.0;
+        */
     }
 
     /// Virtual function for computation of cell boundary functional term
@@ -159,20 +173,46 @@ public:
 
     /// Virtual function for computation of cell volume functional term
     /** Used only in the computation of evaluate_function(). If not overriden returns 0. */
+    template<typename real2>
+    real2 evaluate_volume_integrand(
+        const PHiLiP::Physics::PhysicsBase<dim,nstate,real2> & /*physics*/,
+        const dealii::Point<dim,real2> &/*phys_coord*/,
+        const std::array<real2,nstate> & /*soln_at_q*/,
+        const std::array<dealii::Tensor<1,dim,real2>,nstate> &/*soln_grad_at_q*/) const
+    {
+        return (real2) 0.0;
+    /*
+        const Physics::Euler<dim,dim+2,real2> &euler = dynamic_cast< const Physics::Euler<dim,dim+2,real2> &> (physics);
+        const real2 pressure = euler.compute_pressure(soln_at_q);
+        const real2 enthalpy = euler.compute_specific_enthalpy(soln_at_q,pressure);
+        return pow(enthalpy,2);
+    */
+    }
     virtual real evaluate_volume_integrand(
-        const PHiLiP::Physics::PhysicsBase<dim,nstate,real> &/*physics*/,
-        const dealii::Point<dim,real> &/*phys_coord*/,
-        const std::array<real,nstate> &/*soln_at_q*/,
-        const std::array<dealii::Tensor<1,dim,real>,nstate> &/*soln_grad_at_q*/) const
-    { return (real) 0.0; }
+        const PHiLiP::Physics::PhysicsBase<dim,nstate,real> &physics,
+        const dealii::Point<dim,real> &phys_coord,
+        const std::array<real,nstate> &soln_at_q,
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_at_q) const override
+    { return evaluate_volume_integrand<real>( 
+                physics,
+                phys_coord,
+                soln_at_q,
+                soln_grad_at_q);
+    }
 
     /// Virtual function for Sacado computation of cell volume functional term and derivatives
     /** Used only in the computation of evaluate_dIdw(). If not overriden returns 0. */
     virtual FadFadType evaluate_volume_integrand(
-        const PHiLiP::Physics::PhysicsBase<dim,nstate,FadFadType> &/*physics*/,
-        const dealii::Point<dim,FadFadType> &/*phys_coord*/, const std::array<FadFadType,nstate> &/*soln_at_q*/,
-        const std::array<dealii::Tensor<1,dim,FadFadType>,nstate> &/*soln_grad_at_q*/) const
-    { return (FadFadType) 0.0; }
+        const PHiLiP::Physics::PhysicsBase<dim,nstate,FadFadType> & physics,
+        const dealii::Point<dim,FadFadType> & phys_coord,
+        const std::array<FadFadType,nstate> & soln_at_q,
+        const std::array<dealii::Tensor<1,dim,FadFadType>,nstate> & soln_grad_at_q) const override
+    { return evaluate_volume_integrand<FadFadType>( 
+                physics,
+                phys_coord,
+                soln_at_q,
+                soln_grad_at_q);
+    }
 
 
 };

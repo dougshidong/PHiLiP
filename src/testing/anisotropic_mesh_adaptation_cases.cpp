@@ -92,7 +92,18 @@ double AnisotropicMeshAdaptationCases<dim,nstate> :: output_vtk_files(std::share
 template <int dim, int nstate>
 double AnisotropicMeshAdaptationCases<dim,nstate> :: evaluate_functional_error(std::shared_ptr<DGBase<dim,double>> dg) const
 {
-    const double functional_exact = 0.1615892748498965;
+//    const double functional_exact = 0.1615892748498965;
+    const double mach_inf = dg->all_parameters->euler_param.mach_inf;
+    const double desnity_inf = 1.0;
+    const double gam = 1.4;
+    const double pressure_inf = 1.0/(gam * pow(mach_inf,2)); 
+    const double tot_energy = pressure_inf/(gam - 1.0) + 0.5*desnity_inf;
+    const double enthalpy_inf = (tot_energy + pressure_inf)/desnity_inf;
+
+    const double domain_volume = 16;
+    const double functional_exact = enthalpy_inf*domain_volume;
+
+
     std::shared_ptr< Functional<dim, nstate, double> > functional
                                 = FunctionalFactory<dim,nstate,double>::create_Functional(dg->all_parameters->functional_param, dg);
     const double functional_val = functional->evaluate_functional();

@@ -17,16 +17,18 @@ template<int dim>
 void SpecificNodesParameterization<dim> :: compute_control_index_to_vol_index()
 {
     const unsigned int n_vol_nodes = this->high_order_grid->volume_nodes.size();
-//    const unsigned int n_surf_nodes = this->high_order_grid->surface_nodes.size();
+    const unsigned int n_surf_nodes = this->high_order_grid->surface_nodes.size();
 
-    dealii::LinearAlgebra::distributed::Vector<int> is_a_control_node;
     is_a_control_node.reinit(this->high_order_grid->volume_nodes); // Copies parallel layout, without values. Initializes to 0 by default.
     is_a_control_node = 0;
     is_a_control_node.update_ghost_values();
+    is_on_boundary.reinit(this->high_order_grid->volume_nodes); // Copies parallel layout, without values. Initializes to 0 by default.
+    is_on_boundary = 0;
+    is_on_boundary.update_ghost_values();
 
     // Get locally owned volume and surface ranges of indices held by current processor.
     const dealii::IndexSet &volume_range = this->high_order_grid->volume_nodes.get_partitioner()->locally_owned_range();
- //   const dealii::IndexSet &surface_range = this->high_order_grid->surface_nodes.get_partitioner()->locally_owned_range();
+    const dealii::IndexSet &surface_range = this->high_order_grid->surface_nodes.get_partitioner()->locally_owned_range();
     
     for(unsigned int i_vol = 0; i_vol<n_vol_nodes; ++i_vol) 
     {
@@ -56,15 +58,19 @@ void SpecificNodesParameterization<dim> :: compute_control_index_to_vol_index()
         }
     }
     is_a_control_node.update_ghost_values();
-/*
+
     for(unsigned int i_surf = 0; i_surf < n_surf_nodes; ++i_surf)
     {
         if(!(surface_range.is_element(i_surf))) continue;
         const unsigned int vol_index = this->high_order_grid->surface_to_volume_indices(i_surf);
-        is_a_control_node(vol_index) = 0;
+        if(is_a_control_node(vol_index) == 1)
+        {
+            is_on_boundary(vol_index) = 1;
+        }
     }
     is_a_control_node.update_ghost_values();
-*/
+    is_on_boundary.update_ghost_values();
+
     n_control_nodes = is_a_control_node.l1_norm();
 
     unsigned int n_control_nodes_this_processor = 0;
@@ -139,7 +145,12 @@ void SpecificNodesParameterization<dim> :: compute_dXv_dXp(MatrixType &dXv_dXp) 
     {
         if(control_index_range.is_element(i_control))
         {
-            dsp.add(control_index_to_vol_index[i_control],i_control);
+            const unsigned int ivol = control_index_to_vol_index[i_control];
+            dsp.add(ivol, i_control);
+            if(is_on_boundary(ivol))
+            {
+                dsp.add(ivol+1, i_control);
+            }
         }
     }
 
@@ -155,7 +166,18 @@ void SpecificNodesParameterization<dim> :: compute_dXv_dXp(MatrixType &dXv_dXp) 
     {
         if(control_index_range.is_element(i_control))
         {
-            dXv_dXp.set(control_index_to_vol_index[i_control], i_control, 1.0);
+            const unsigned int ivol = control_index_to_vol_index[i_control];
+            dXv_dXp.set(ivol, i_control, 1.0);
+            if(is_on_boundary(ivol))
+            {
+                double slope = 0.05;
+                if(this->high_order_grid->volume_nodes(ivol + 1) < 0)
+                {
+                    slope = -slope;
+                }
+
+                dXv_dXp.set(ivol+1, i_control, slope);
+            }    
         }
     }
 
@@ -238,21 +260,11 @@ int SpecificNodesParameterization<dim> :: is_design_variable_valid(
 template<int dim>
 bool SpecificNodesParameterization<dim> :: check_if_node_belongs_to_the_region_between_lines(
     const double x, 
-    const double y) const
+    const double /*y*/) const
 {
-    const double x1 = -0.19;
-    const double y1 = 0;
-    const double x2 = -0.18;
-    const double y2 = (y>=0) ? 3.0 : -3.0;
-    const double x3 = -0.018;
-    const double y3 = 0;
-    const double x4 = 1.45;
-    const double y4 = (y>=0) ? 3.0 : -3.0;
-
-    const double y_line1 = (y2 - y1)/(x2 - x1) * (x-x2) + y2;
-    const double y_line2 = (y4-y3)/(x4-x3)*(x-x4) + y4;
-
-    if( (y-y_line1)*(y-y_line2) < 0.0 )
+    const double x_min = 1.0;
+    const double x_max = 3.5;
+    if( (x_min < x) && (x < x_max) )
     {
         return true;
     }

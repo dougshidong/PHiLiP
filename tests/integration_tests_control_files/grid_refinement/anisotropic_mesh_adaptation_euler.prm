@@ -18,7 +18,7 @@ set diss_num_flux = symm_internal_penalty
 
 subsection euler
   set reference_length = 1.0
-  set mach_infinity = 0.545 #0.54
+  set mach_infinity = 0.55 #0.54
   set angle_of_attack = 0
 end
 

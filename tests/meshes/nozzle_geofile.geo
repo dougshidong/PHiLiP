@@ -1,7 +1,7 @@
 ht = 1.0;
-hi = 1.5;
-he = 1.5;
-m = 0.05;
+hi = 1.4;
+he = 1.4;
+m = 0.02;
 
 lt = 0.5;
 l_i_e = 1.0;
@@ -110,11 +110,11 @@ Transfinite Curve {12, 13, 14, 15, 16, 6} = n_horizontal Using Progression 1;
 //+
 Transfinite Curve {1, 11} = n_inlet_front Using Progression 1;
 //+
-Transfinite Curve {2, 10} = n_inlet Using Progression 1;
+Transfinite Curve {2, -10} = n_inlet Using Progression 1;
 //+
 Transfinite Curve {3, 9} = n_throat Using Progression 1;
 //+
-Transfinite Curve {4, 8} = n_exit Using Progression 1;
+Transfinite Curve {-4, 8} = n_exit Using Progression 1;
 //+
 Transfinite Curve {5, 7} = n_exit_back Using Progression 1;
 //+

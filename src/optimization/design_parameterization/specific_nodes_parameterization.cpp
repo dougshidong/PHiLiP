@@ -170,7 +170,7 @@ void SpecificNodesParameterization<dim> :: compute_dXv_dXp(MatrixType &dXv_dXp) 
             dXv_dXp.set(ivol, i_control, 1.0);
             if(is_on_boundary(ivol))
             {
-                double slope = 0.05;
+                double slope = 0.02;
                 if(this->high_order_grid->volume_nodes(ivol + 1) < 0)
                 {
                     slope = -slope;
@@ -262,8 +262,8 @@ bool SpecificNodesParameterization<dim> :: check_if_node_belongs_to_the_region_b
     const double x, 
     const double /*y*/) const
 {
-    const double x_min = 1.0;
-    const double x_max = 3.5;
+    const double x_min = 2.0;
+    const double x_max = 4.0;
     if( (x_min < x) && (x < x_max) )
     {
         return true;

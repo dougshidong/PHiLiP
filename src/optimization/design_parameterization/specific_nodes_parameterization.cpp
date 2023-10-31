@@ -262,8 +262,8 @@ bool SpecificNodesParameterization<dim> :: check_if_node_belongs_to_the_region_b
     const double x, 
     const double /*y*/) const
 {
-    const double x_min = 2.0;
-    const double x_max = 4.0;
+    const double x_min = 6.0;
+    const double x_max = 8.0;
     if( (x_min < x) && (x < x_max) )
     {
         return true;

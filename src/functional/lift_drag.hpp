@@ -93,26 +93,29 @@ public:
     real2 evaluate_boundary_integrand(
         const PHiLiP::Physics::PhysicsBase<dim,nstate,real2> &physics,
         const unsigned int boundary_id,
-        const dealii::Point<dim,real2> & /*phys_coord*/,
+        const dealii::Point<dim,real2> & phys_coord,
         const dealii::Tensor<1,dim,real2> & normal,
         const std::array<real2,nstate> &soln_at_q,
         const std::array<dealii::Tensor<1,dim,real2>,nstate> &/*soln_grad_at_q*/) const
     {
-        if(boundary_id == 1001)
+        if(boundary_id == 1004)
         {
-        //    const real2 x = phys_coord[0];
-//            if(x > 0.0)
-//            {
-            const Physics::Euler<dim,dim+2,real2> &euler = dynamic_cast< const Physics::Euler<dim,dim+2,real2> &> (physics);
-            dealii::Point<dim,real2> pos_dummy;
-            std::array<dealii::Tensor<1,dim,real2>,nstate> soln_grad_dummy;
-            std::array<real2,nstate> soln_bc_at_q; 
-            euler.boundary_face_values(boundary_id, pos_dummy, normal, soln_at_q, soln_grad_dummy, soln_bc_at_q, soln_grad_dummy);
-
-            const real2 pressure = euler.compute_pressure(soln_bc_at_q);
-            //const real2 enthalpy = euler.compute_specific_enthalpy(soln_bc_at_q,pressure);
-            return (pressure*normal[1]);
-//            }
+            const real2 x = phys_coord[0];
+            if(x > 0.0)
+            {
+                const Physics::Euler<dim,dim+2,real2> &euler = dynamic_cast< const Physics::Euler<dim,dim+2,real2> &> (physics);
+                dealii::Point<dim,real2> pos_dummy;
+                std::array<dealii::Tensor<1,dim,real2>,nstate> soln_grad_dummy;
+                std::array<real2,nstate> soln_bc_at_q; 
+                euler.boundary_face_values(boundary_id, pos_dummy, normal, soln_at_q, soln_grad_dummy, soln_bc_at_q, soln_grad_dummy);
+    
+                //const real2 pressure = euler.compute_pressure(soln_bc_at_q);
+                //const real2 enthalpy = euler.compute_specific_enthalpy(soln_bc_at_q,pressure);
+    
+                //const real2 kinetic_energy = 1.0/(2.0*soln_bc_at_q[0]) * (pow(soln_bc_at_q[1],2) + pow(soln_bc_at_q[2],2));
+                const real2 mass_flow_rate = soln_bc_at_q[1]*normal[0] + soln_bc_at_q[2]*normal[1];
+                return mass_flow_rate;
+            }
         }
         return (real2) 0.0;
         /*
@@ -186,12 +189,12 @@ public:
         const std::array<dealii::Tensor<1,dim,real2>,nstate> &/*soln_grad_at_q*/) const
     {
         return (real2) 0.0;
-    /*
-        const Physics::Euler<dim,dim+2,real2> &euler = dynamic_cast< const Physics::Euler<dim,dim+2,real2> &> (physics);
-        const real2 pressure = euler.compute_pressure(soln_at_q);
-        const real2 enthalpy = euler.compute_specific_enthalpy(soln_at_q,pressure);
-        return pow(enthalpy,2);
-    */
+    
+        //const Physics::Euler<dim,dim+2,real2> &euler = dynamic_cast< const Physics::Euler<dim,dim+2,real2> &> (physics);
+        //const real2 pressure = euler.compute_pressure(soln_at_q);
+        //const real2 enthalpy = euler.compute_specific_enthalpy(soln_at_q,pressure);
+       // return (soln_at_q[0]);
+    
     }
     virtual real evaluate_volume_integrand(
         const PHiLiP::Physics::PhysicsBase<dim,nstate,real> &physics,

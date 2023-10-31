@@ -18,7 +18,7 @@ set diss_num_flux = symm_internal_penalty
 
 subsection euler
   set reference_length = 1.0
-  set mach_infinity = 0.5
+  set mach_infinity = 0.545 #0.54
   set angle_of_attack = 0
 end
 
@@ -82,7 +82,7 @@ subsection optimization
     set full_space_preconditioner = P2A
     set mesh_weight_factor = 0.0
 
-    set regularization_parameter = 1.0
+    set regularization_parameter = 3.0
     set regularization_scaling = 2.0
     set regularization_tol_low = 1.0e-2
     set regularization_tol_high = 1.0e-1

@@ -643,7 +643,7 @@ void FullSpace_BirosGhattas<Real>::compute(
         equal_constraints,
         penalty_offset);
     const auto reduced_gradient = (dynamic_cast<Vector_SimOpt<Real>&>(*lagrangian_gradient)).get_2();
-    penalty_value_ = std::max(1.0/reduced_gradient->norm(), 1.0);
+    penalty_value_ = std::max(1.0e-2/reduced_gradient->norm(), 1.0);
     //penalty_value_ = std::max(1e-2/lagrangian_gradient->norm(), 1.0);
     pcout
         << "Finished computeAugmentedLagrangianPenalty..."

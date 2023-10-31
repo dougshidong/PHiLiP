@@ -47,7 +47,7 @@ double BoundPreservingLimiterTests<dim, nstate>::calculate_uexact(const dealii::
 
 template <int dim, int nstate>
 double BoundPreservingLimiterTests<dim, nstate>::calculate_l2error(
-    std::shared_ptr<DGBase<dim, double>> flow_solver_dg,
+    std::shared_ptr<DGBase<dim, double>> dg,
     const int poly_degree,
     const double final_time) const
 {

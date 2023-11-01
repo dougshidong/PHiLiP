@@ -158,7 +158,7 @@ protected:
     double cumulative_numerical_entropy_change_FRcorrected = 0;
 
     /// Numerical entropy at initial time
-    double initial_numerical_entropy = 0;
+    double initial_numerical_entropy_abs = 0;
 
     /// Times at which to output the velocity field
     dealii::Table<1,double> output_velocity_field_times;

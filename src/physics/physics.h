@@ -126,7 +126,7 @@ public:
         const bool on_boundary,
         const dealii::types::global_dof_index cell_index,
         const dealii::Tensor<1,dim,real> &normal,
-        const int boundary_type) const;
+        const int boundary_type);
 
     /// Dissipative fluxes that will be differentiated ONCE in space.
     virtual std::array<dealii::Tensor<1,dim,real>,nstate> dissipative_flux (
@@ -134,7 +134,7 @@ public:
         const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient,
         const std::array<real,nstate> &filtered_solution,
         const std::array<dealii::Tensor<1,dim,real>,nstate> &filtered_solution_gradient,
-        const dealii::types::global_dof_index cell_index) const;
+        const dealii::types::global_dof_index cell_index);
 
     /// Dissipative fluxes that will be differentiated ONCE in space.
     virtual std::array<dealii::Tensor<1,dim,real>,nstate> dissipative_flux (

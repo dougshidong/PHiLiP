@@ -975,7 +975,7 @@ std::array<real,nstate> NavierStokes<dim,nstate,real>
         const bool on_boundary,
         const dealii::types::global_dof_index /*cell_index*/,
         const dealii::Tensor<1,dim,real> &normal,
-        const int boundary_type) const
+        const int boundary_type)
 {
     std::array<dealii::Tensor<1,dim,real>,nstate> dissipative_flux;
     std::array<real,nstate> dissipative_flux_dot_normal;

@@ -39,14 +39,6 @@ public:
         const std::array<real,nstate> &conservative_soln) const = 0;
 
     /// Dissipative flux terms additional to the baseline physics (including dissipative flux terms in additional PDEs of model)
-    virtual std::array<dealii::Tensor<1,dim,real>,nstate> dissipative_flux (
-        const std::array<real,nstate> &solution,
-        const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient,
-        const std::array<real,nstate> &filtered_solution,
-        const std::array<dealii::Tensor<1,dim,real>,nstate> &filtered_solution_gradient,
-        const dealii::types::global_dof_index cell_index) const = 0;
-
-    /// Dissipative flux terms additional to the baseline physics (including dissipative flux terms in additional PDEs of model)
 	virtual std::array<dealii::Tensor<1,dim,real>,nstate> 
 	dissipative_flux (
     	const std::array<real,nstate> &conservative_soln,
@@ -62,7 +54,7 @@ public:
         const bool on_boundary,
         const dealii::types::global_dof_index cell_index,
         const dealii::Tensor<1,dim,real> &normal,
-        const int boundary_type) const = 0;
+        const int boundary_type) const = 0;// Note: defined as const here since only PhysicsModel (i.e. PhysicsBase) has to be non-const
 
     /// Convective eigenvalues of the additional models' PDEs
     /** Note: Only support for zero convective term additional to the baseline physics 
@@ -139,7 +131,7 @@ public:
     dealii::LinearAlgebra::distributed::Vector<double> dynamic_smagorinsky_model_constant_times_filter_width_sqr;
 
     /// Setter for the unfiltered conservative solution
-    void set_unfiltered_conservative_solution(const std::array<real,nstate> unfiltered_conservative_solution);
+    virtual void set_unfiltered_conservative_solution(const std::array<real,nstate> &unfiltered_conservative_solution_);
 
 protected:
     /// Evaluate the manufactured solution boundary conditions.

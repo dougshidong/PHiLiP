@@ -118,18 +118,6 @@ std::array<dealii::Tensor<1,dim,real2>,nstate> ReynoldsAveragedNavierStokesBase<
 template <int dim, int nstate, typename real>
 std::array<dealii::Tensor<1,dim,real>,nstate> ReynoldsAveragedNavierStokesBase<dim,nstate,real>
 ::dissipative_flux (
-        const std::array<real,nstate> &solution,
-        const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient,
-        const std::array<real,nstate> &/*filtered_solution*/,
-        const std::array<dealii::Tensor<1,dim,real>,nstate> &/*filtered_solution_gradient*/,
-        const dealii::types::global_dof_index cell_index) const
-{
-    return dissipative_flux(solution,solution_gradient,cell_index);
-}
-//----------------------------------------------------------------
-template <int dim, int nstate, typename real>
-std::array<dealii::Tensor<1,dim,real>,nstate> ReynoldsAveragedNavierStokesBase<dim,nstate,real>
-::dissipative_flux (
     const std::array<real,nstate> &conservative_soln,
     const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient,
     const dealii::types::global_dof_index cell_index) const
@@ -198,14 +186,14 @@ std::array<real,nstate> ReynoldsAveragedNavierStokesBase<dim,nstate,real>
 ::dissipative_flux_dot_normal (
         const std::array<real,nstate> &solution,
         const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient,
-        const std::array<real,nstate> &filtered_solution,
-        const std::array<dealii::Tensor<1,dim,real>,nstate> &filtered_solution_gradient,
+        const std::array<real,nstate> &/*filtered_solution*/,
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &/*filtered_solution_gradient*/,
         const bool /*on_boundary*/,
         const dealii::types::global_dof_index cell_index,
         const dealii::Tensor<1,dim,real> &normal,
         const int /*boundary_type*/) const
 {
-    const std::array<dealii::Tensor<1,dim,real>,nstate> dissipative_flux = dissipative_flux(solution,solution_gradient,filtered_solution,filtered_solution_gradient,cell_index);
+    const std::array<dealii::Tensor<1,dim,real>,nstate> dissipative_flux = dissipative_flux_templated<real>(solution,solution_gradient,cell_index);
 
     std::array<real,nstate> dissipative_flux_dot_normal;
     dissipative_flux_dot_normal.fill(0.0); // initialize

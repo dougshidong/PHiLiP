@@ -104,7 +104,7 @@ std::array<real,nstate> PhysicsBase<dim,nstate,real>
         const bool /*on_boundary*/,
         const dealii::types::global_dof_index cell_index,
         const dealii::Tensor<1,dim,real> &normal,
-        const int /*boundary_type*/) const
+        const int /*boundary_type*/)
 {
     std::array<dealii::Tensor<1,dim,real>,nstate> dissipative_flux = this->dissipative_flux(solution,solution_gradient,filtered_solution,filtered_solution_gradient,cell_index);
     std::array<real,nstate> dissipative_flux_dot_normal;
@@ -124,7 +124,7 @@ std::array<dealii::Tensor<1,dim,real>,nstate> PhysicsBase<dim,nstate,real>
         const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient,
         const std::array<real,nstate> &/*filtered_solution*/,
         const std::array<dealii::Tensor<1,dim,real>,nstate> &/*filtered_solution_gradient*/,
-        const dealii::types::global_dof_index cell_index) const
+        const dealii::types::global_dof_index cell_index)
 {
     return this->dissipative_flux(solution,solution_gradient,cell_index);
 }

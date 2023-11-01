@@ -52,14 +52,6 @@ public:
 
     /// Dissipative (i.e. viscous) flux: \f$ \mathbf{F}_{diss} \f$ 
     std::array<dealii::Tensor<1,dim,real>,nstate> dissipative_flux (
-        const std::array<real,nstate> &solution,
-        const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient,
-        const std::array<real,nstate> &filtered_solution,
-        const std::array<dealii::Tensor<1,dim,real>,nstate> &filtered_solution_gradient,
-        const dealii::types::global_dof_index cell_index) const;
-
-    /// Dissipative (i.e. viscous) flux: \f$ \mathbf{F}_{diss} \f$ 
-    std::array<dealii::Tensor<1,dim,real>,nstate> dissipative_flux (
         const std::array<real,nstate> &conservative_soln,
         const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient,
         const dealii::types::global_dof_index cell_index) const;
@@ -231,6 +223,9 @@ public:
     /// Destructor
     ~LargeEddySimulation_Smagorinsky() {};
 
+    /// Setter for the unfiltered conservative solution (also sets the scaled_fluid_kinematic_viscosity_from_unfiltered_solution)
+    void set_unfiltered_conservative_solution(const std::array<real,nstate> &unfiltered_conservative_solution_) override;
+
     /// Returns the product of the eddy viscosity model constant and the filter width
     virtual double get_model_constant_times_filter_width (const dealii::types::global_dof_index cell_index) const;
 
@@ -239,13 +234,14 @@ public:
 
     /// Corrected eddy viscosity for low Reynolds number flows
     real get_corrected_eddy_viscosity_low_reynolds_number(
-        const std::array<real,nstate> &primitive_soln,
         const real uncorrected_eddy_viscosity) const;
 
     /// Corrected eddy viscosity for low Reynolds number flows (Automatic Differentiation Type: FadType)
     FadType get_corrected_eddy_viscosity_low_reynolds_number_fad(
-        const std::array<FadType,nstate> &primitive_soln,
         const FadType uncorrected_eddy_viscosity) const;
+
+    /// Scaled fluid kinematic viscosity from unfiltered solution
+    real get_scaled_fluid_kinematic_viscosity_from_unfiltered_solution() const;
 
     /// Nondimensionalized sub-grid scale (SGS) stress tensor, (tau^sgs)*
     dealii::Tensor<2,dim,real> compute_SGS_stress_tensor (
@@ -302,6 +298,9 @@ protected:
         const std::array<real2,nstate> &primitive_soln,
         const real2 eddy_viscosity) const;
 
+    /// Scaled fluid kinematic viscosity based on the unfiltered solution
+    double scaled_fluid_kinematic_viscosity_from_unfiltered_solution;
+
 private:
     /// Templated nondimensionalized eddy viscosity for the Smagorinsky model.
     template<typename real2> real2 compute_eddy_viscosity_templated(
@@ -315,7 +314,6 @@ private:
      *  (2) Meyers, J. and Sagaut, P., “On the model coefficients for the standard and the variational multi-scale Smagorinsky model,” J. Fluid Mech., Vol. 569, No.-1, 2006, pp. 287–319.
      */ 
     template<typename real2> real2 get_corrected_eddy_viscosity_low_reynolds_number_templated(
-        const std::array<real2,nstate> &primitive_soln,
         const real2 uncorrected_eddy_viscosity) const;
 };
 

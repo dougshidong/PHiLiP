@@ -239,3 +239,10 @@ add_test(
   COMMAND mpirun -np ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_3D -i ${CMAKE_CURRENT_BINARY_DIR}/viscous_TGV_LES_hpf_dynamic_smagorinsky_model_energy_check_nsfr_quick.prm
   WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )
+# ----------------------------------------
+configure_file(viscous_TGV_LES_hpf_dynamic_smagorinsky_model_low_Re_correction_energy_check_nsfr_quick.prm viscous_TGV_LES_hpf_dynamic_smagorinsky_model_low_Re_correction_energy_check_nsfr_quick.prm COPYONLY)
+add_test(
+  NAME MPI_VISCOUS_TGV_LES_HPF_DYNAMIC_SMAGORINSKY_MODEL_LOW_RE_CORRECTION_ENERGY_CHECK_NSFR_QUICK
+  COMMAND mpirun -np ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_3D -i ${CMAKE_CURRENT_BINARY_DIR}/viscous_TGV_LES_hpf_dynamic_smagorinsky_model_low_Re_correction_energy_check_nsfr_quick.prm
+  WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
+)

@@ -54,7 +54,7 @@ double BoundPreservingLimiterTests<dim, nstate>::calculate_l2error(
     // Overintegrate the error to make sure there is not integration error in the error estimate
     int overintegrate = 10;
     dealii::QGauss<dim> quad_extra(poly_degree + 1 + overintegrate);
-    dealii::FEValues<dim, dim> fe_values_extra(*(flow_solver_dg->high_order_grid->mapping_fe_field), flow_solver_dg->fe_collection[poly_degree], quad_extra,
+    dealii::FEValues<dim, dim> fe_values_extra(*(dg->high_order_grid->mapping_fe_field), dg->fe_collection[poly_degree], quad_extra,
         dealii::update_values | dealii::update_JxW_values | dealii::update_quadrature_points);
     const unsigned int n_quad_pts = fe_values_extra.n_quadrature_points;
     std::array<double, nstate> soln_at_q;
@@ -64,7 +64,7 @@ double BoundPreservingLimiterTests<dim, nstate>::calculate_l2error(
     // Integrate every cell and compute L2
     std::vector<dealii::types::global_dof_index> dofs_indices(fe_values_extra.dofs_per_cell);
     const dealii::Tensor<1, 3, double> adv_speeds = Parameters::ManufacturedSolutionParam::get_default_advection_vector();
-    for (auto cell = flow_solver_dg->dof_handler.begin_active(); cell != flow_solver_dg->dof_handler.end(); ++cell) {
+    for (auto cell = dg->dof_handler.begin_active(); cell != dg->dof_handler.end(); ++cell) {
         if (!cell->is_locally_owned()) continue;
 
         fe_values_extra.reinit(cell);
@@ -75,7 +75,7 @@ double BoundPreservingLimiterTests<dim, nstate>::calculate_l2error(
             std::fill(soln_at_q.begin(), soln_at_q.end(), 0.0);
             for (unsigned int idof = 0; idof < fe_values_extra.dofs_per_cell; ++idof) {
                 const unsigned int istate = fe_values_extra.get_fe().system_to_component_index(idof).first;
-                soln_at_q[istate] += flow_solver_dg->solution[dofs_indices[idof]] * fe_values_extra.shape_value_component(idof, iquad, istate);
+                soln_at_q[istate] += dg->solution[dofs_indices[idof]] * fe_values_extra.shape_value_component(idof, iquad, istate);
             }
 
             const dealii::Point<dim> qpoint = (fe_values_extra.quadrature_point(iquad));

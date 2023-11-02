@@ -129,18 +129,18 @@ std::array<real, nstate> TVBLimiter<dim, nstate, real>::get_neighbour_cell_avg(
     const unsigned int                                              n_dofs_neigh_cell)
 {
     // Extract the local solution dofs in the cell from the global solution dofs
-    std::array<std::vector<real>, nstate> soln_dofs;
+    std::array<std::vector<real>, nstate> soln_coeff;
     const unsigned int n_shape_fns = n_dofs_neigh_cell / nstate;
 
     for (unsigned int istate = 0; istate < nstate; ++istate) {
-        soln_dofs[istate].resize(n_shape_fns);
+        soln_coeff[istate].resize(n_shape_fns);
     }
 
-    // Allocate soln_dofs
+    // Allocate soln_coeff
     for (unsigned int idof = 0; idof < n_dofs_neigh_cell; ++idof) {
         const unsigned int istate = fe_collection[poly_degree].system_to_component_index(idof).first;
         const unsigned int ishape = fe_collection[poly_degree].system_to_component_index(idof).second;
-        soln_dofs[istate][ishape] = solution[neigh_dofs_indices[idof]];
+        soln_coeff[istate][ishape] = solution[neigh_dofs_indices[idof]];
     }
     const unsigned int n_quad_pts = volume_quadrature_collection[poly_degree].size();
     const std::vector<real>& quad_weights = volume_quadrature_collection[poly_degree].get_weights();
@@ -155,7 +155,7 @@ std::array<real, nstate> TVBLimiter<dim, nstate, real>::get_neighbour_cell_avg(
     // Interpolate solution dofs to quadrature pts
     for (int istate = 0; istate < nstate; istate++) {
         soln_at_q_neigh[istate].resize(n_quad_pts);
-        soln_basis.matrix_vector_mult_1D(soln_dofs[istate], soln_at_q_neigh[istate],
+        soln_basis.matrix_vector_mult_1D(soln_coeff[istate], soln_at_q_neigh[istate],
             soln_basis.oneD_vol_operator);
     }
 
@@ -251,18 +251,18 @@ void TVBLimiter<dim, nstate, real>::limit(
         soln_cell->get_dof_indices(current_dofs_indices);
 
         // Extract the local solution dofs in the cell from the global solution dofs
-        std::array<std::vector<real>, nstate> soln_dofs;
+        std::array<std::vector<real>, nstate> soln_coeff;
         const unsigned int n_shape_fns = n_dofs_curr_cell / nstate;
 
         for (unsigned int istate = 0; istate < nstate; ++istate) {
-            soln_dofs[istate].resize(n_shape_fns);
+            soln_coeff[istate].resize(n_shape_fns);
         }
 
-        // Allocate soln_dofs
+        // Allocate soln_coeff
         for (unsigned int idof = 0; idof < n_dofs_curr_cell; ++idof) {
             const unsigned int istate = fe_collection[poly_degree].system_to_component_index(idof).first;
             const unsigned int ishape = fe_collection[poly_degree].system_to_component_index(idof).second;
-            soln_dofs[istate][ishape] = solution[current_dofs_indices[idof]];
+            soln_coeff[istate][ishape] = solution[current_dofs_indices[idof]];
         }
 
 
@@ -274,7 +274,7 @@ void TVBLimiter<dim, nstate, real>::limit(
         // Interpolate solution dofs to quadrature pts.
         for (int istate = 0; istate < nstate; istate++) {
             soln_at_q[istate].resize(n_quad_pts);
-            soln_basis.matrix_vector_mult_1D(soln_dofs[istate], soln_at_q[istate],
+            soln_basis.matrix_vector_mult_1D(soln_coeff[istate], soln_at_q[istate],
                 soln_basis.oneD_vol_operator);
         }
 
@@ -284,7 +284,7 @@ void TVBLimiter<dim, nstate, real>::limit(
 
         // Project solution at quadrature points to dofs.
         for (int istate = 0; istate < nstate; istate++) {
-            soln_basis_projection_oper.matrix_vector_mult_1D(soln_at_q_lim[istate], soln_dofs[istate],
+            soln_basis_projection_oper.matrix_vector_mult_1D(soln_at_q_lim[istate], soln_coeff[istate],
                 soln_basis_projection_oper.oneD_vol_operator);
         }
 
@@ -292,7 +292,7 @@ void TVBLimiter<dim, nstate, real>::limit(
         for (int istate = 0; istate < nstate; istate++) {
             for (unsigned int ishape = 0; ishape < n_shape_fns; ++ishape) {
                 const unsigned int idof = istate * n_shape_fns + ishape;
-                solution[current_dofs_indices[idof]] = soln_dofs[istate][ishape];
+                solution[current_dofs_indices[idof]] = soln_coeff[istate][ishape];
             }
         }
     }

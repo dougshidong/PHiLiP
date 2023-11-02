@@ -43,7 +43,7 @@ private:
     /// and write back limited solution
     void write_limited_solution(
         dealii::LinearAlgebra::distributed::Vector<double>&      solution,
-        const std::array<std::vector<real>, nstate>&             soln_dofs,
+        const std::array<std::vector<real>, nstate>&             soln_coeff,
         const unsigned int                                       n_shape_fns,
         const std::vector<dealii::types::global_dof_index>&      current_dofs_indices);
 

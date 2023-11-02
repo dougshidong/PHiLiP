@@ -157,7 +157,7 @@ real PositivityPreservingLimiter<dim, nstate, real>::get_density_scaling_value(
 template <int dim, int nstate, typename real>
 void PositivityPreservingLimiter<dim, nstate, real>::write_limited_solution(
     dealii::LinearAlgebra::distributed::Vector<double>& solution,
-    const std::array<std::vector<real>, nstate>& soln_dofs,
+    const std::array<std::vector<real>, nstate>& soln_coeff,
     const unsigned int                                      n_shape_fns,
     const std::vector<dealii::types::global_dof_index>& current_dofs_indices)
 {
@@ -165,7 +165,7 @@ void PositivityPreservingLimiter<dim, nstate, real>::write_limited_solution(
     for (int istate = 0; istate < nstate; istate++) {
         for (unsigned int ishape = 0; ishape < n_shape_fns; ++ishape) {
             const unsigned int idof = istate * n_shape_fns + ishape;
-            solution[current_dofs_indices[idof]] = soln_dofs[istate][ishape]; //
+            solution[current_dofs_indices[idof]] = soln_coeff[istate][ishape]; //
 
             // Verify that positivity of density is preserved after application of theta2 limiter
             if (istate == 0 && solution[current_dofs_indices[idof]] < 0) {
@@ -220,23 +220,23 @@ void PositivityPreservingLimiter<dim, nstate, real>::limit(
         soln_cell->get_dof_indices(current_dofs_indices);
 
         // Extract the local solution dofs in the cell from the global solution dofs
-        std::array<std::vector<real>, nstate> soln_dofs;
+        std::array<std::vector<real>, nstate> soln_coeff;
 
         const unsigned int n_shape_fns = n_dofs_curr_cell / nstate;
         std::array<real, nstate> local_min;
         for (unsigned int istate = 0; istate < nstate; ++istate) {
             local_min[istate] = 1e9;
-            soln_dofs[istate].resize(n_shape_fns);
+            soln_coeff[istate].resize(n_shape_fns);
         }
 
         // Allocate solution dofs and set local min
         for (unsigned int idof = 0; idof < n_dofs_curr_cell; ++idof) {
             const unsigned int istate = fe_collection[poly_degree].system_to_component_index(idof).first;
             const unsigned int ishape = fe_collection[poly_degree].system_to_component_index(idof).second;
-            soln_dofs[istate][ishape] = solution[current_dofs_indices[idof]]; //
+            soln_coeff[istate][ishape] = solution[current_dofs_indices[idof]]; //
 
-            if (soln_dofs[istate][ishape] < local_min[istate])
-                local_min[istate] = soln_dofs[istate][ishape];
+            if (soln_coeff[istate][ishape] < local_min[istate])
+                local_min[istate] = soln_coeff[istate][ishape];
         }
 
         const unsigned int n_quad_pts = volume_quadrature_collection[poly_degree].size();
@@ -246,7 +246,7 @@ void PositivityPreservingLimiter<dim, nstate, real>::limit(
         // Interpolate solution dofs to quadrature pts.
         for (int istate = 0; istate < nstate; istate++) {
             soln_at_q[istate].resize(n_quad_pts);
-            soln_basis.matrix_vector_mult_1D(soln_dofs[istate], soln_at_q[istate],
+            soln_basis.matrix_vector_mult_1D(soln_coeff[istate], soln_at_q[istate],
                 soln_basis.oneD_vol_operator);
         }
 
@@ -315,11 +315,11 @@ void PositivityPreservingLimiter<dim, nstate, real>::limit(
 
         // Project soln at quadrature points to dofs.
         for (int istate = 0; istate < nstate; istate++) {
-            soln_basis_projection_oper.matrix_vector_mult_1D(soln_at_q[istate], soln_dofs[istate], soln_basis_projection_oper.oneD_vol_operator);
+            soln_basis_projection_oper.matrix_vector_mult_1D(soln_at_q[istate], soln_coeff[istate], soln_basis_projection_oper.oneD_vol_operator);
         }
 
         // Write limited solution back and verify that positivity of density is satisfied
-        write_limited_solution(solution, soln_dofs, n_shape_fns, current_dofs_indices);
+        write_limited_solution(solution, soln_coeff, n_shape_fns, current_dofs_indices);
     }
 }
 

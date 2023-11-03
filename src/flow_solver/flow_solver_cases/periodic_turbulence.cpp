@@ -768,6 +768,7 @@ void PeriodicTurbulence<dim, nstate>::compute_unsteady_data_and_write_to_table(
         // Add values to data table
         this->add_value_to_data_table(current_time,"time",unsteady_data_table);
         if(do_calculate_numerical_entropy) this->add_value_to_data_table(this->cumulative_numerical_entropy_change_FRcorrected,"numerical_entropy_scaled_cumulative",unsteady_data_table);
+        if(do_calculate_numerical_entropy) this->add_value_to_data_table(dg->entropy_M_norm,"entropy_change_estimate_M_norm",unsteady_data_table);
         //if(do_calculate_numerical_entropy) this->add_value_to_data_table(current_numerical_entropy_change_FRcorrected,"numerical_entropy_scaled_this_tstep",unsteady_data_table);
         if(is_rrk) this->add_value_to_data_table(relaxation_parameter, "relaxation_parameter",unsteady_data_table);
         if (do_calculate_overintegrated_quantities) this->add_value_to_data_table(integrated_kinetic_energy,"kinetic_energy",unsteady_data_table);
@@ -781,6 +782,7 @@ void PeriodicTurbulence<dim, nstate>::compute_unsteady_data_and_write_to_table(
         unsteady_data_table->write_text(unsteady_data_table_file);
     }
     // Print to console
+    
     this->pcout << "    Iter: " << current_iteration
                 << "    Time: " << current_time;
     if (do_calculate_overintegrated_quantities) {
@@ -794,6 +796,7 @@ void PeriodicTurbulence<dim, nstate>::compute_unsteady_data_and_write_to_table(
     if(do_calculate_numerical_entropy){
         this->pcout << "    Num. Entropy cumulative, FR corrected: " << std::setprecision(16) << this->cumulative_numerical_entropy_change_FRcorrected; 
         this->pcout << "    Num. Entropy change, FR corrected: " << std::setprecision(16) << current_numerical_entropy_change_FRcorrected; 
+        this->pcout << "    \\gamma \\Delta t sum bi v^T M u: " << std::setprecision(16) <<  dg->entropy_M_norm;
     }
     if(is_rrk){
         this->pcout << "    Relaxation Parameter: " << std::setprecision(16) << relaxation_parameter;

@@ -54,7 +54,7 @@ protected:
     /// Compute contribution to entropy from FR.
     /** Empty in this class.
      *  Only relevant when numerical entropy must be computed for a non-cDG case. */
-    virtual double compute_FR_entropy_contribution() const {return 0;};
+    virtual double compute_FR_entropy_contribution(const bool /*compute_K_norm=true*/) const {return 0;};
 
     /// Indicator for zero diagonal elements; used to toggle implicit solve.
     std::vector<bool> butcher_tableau_aii_is_zero;

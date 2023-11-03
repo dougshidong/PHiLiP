@@ -24,7 +24,7 @@ public:
     /// Calculate FR entropy adjustment
     /** FR_contribution = dt \sum_i=1^s b_i v^{(i)} K du^{(i)}/dt
      */
-    double compute_FR_entropy_contribution() const override;
+    double compute_FR_entropy_contribution(const bool compute_K_norm) const override;
 protected:
 
     /// Storage for the solution at each Runge-Kutta stage

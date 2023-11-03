@@ -103,7 +103,7 @@ dealii::LinearAlgebra::distributed::Vector<double> RKNumEntropy<dim,real,n_rk_st
 
 
 template <int dim, typename real, int n_rk_stages, typename MeshType>
-double RKNumEntropy<dim,real,n_rk_stages,MeshType>::compute_FR_entropy_contribution() const
+double RKNumEntropy<dim,real,n_rk_stages,MeshType>::compute_FR_entropy_contribution(const bool compute_K_norm) const
 {
     double entropy_contribution = 0;
 
@@ -132,7 +132,12 @@ double RKNumEntropy<dim,real,n_rk_stages,MeshType>::compute_FR_entropy_contribut
         //transform solution into entropy variables
         dealii::LinearAlgebra::distributed::Vector<double> entropy_var_hat_global = this->compute_entropy_vars(this->rk_stage_solution[istage]);
         
-        double entropy_contribution_stage = entropy_var_hat_global * MpK_matrix_times_rk_stage - entropy_var_hat_global * M_matrix_times_rk_stage;
+        double entropy_contribution_stage = 0;
+        if (compute_K_norm) {
+            entropy_contribution_stage = entropy_var_hat_global * MpK_matrix_times_rk_stage - entropy_var_hat_global * M_matrix_times_rk_stage;
+        }else {
+            entropy_contribution_stage = entropy_var_hat_global * M_matrix_times_rk_stage;
+        }
         
         entropy_contribution += this->butcher_tableau->get_b(istage) * entropy_contribution_stage;
     }

@@ -937,6 +937,13 @@ public:
      * This is stored in dg such that both flow solver case and ode solver can access it. 
      * flow solver cases have no access to ode solver. */
     double FR_entropy_contribution=0;
+    
+    /// Entropy in the M norm
+    /** Rather than M+K norm, which is relevant for stabililty in FR.
+     * Used in entropy-RRK ODE solver.
+     * This is stored in dg such that both flow solver case and ode solver can access it. 
+     * flow solver cases have no access to ode solver. */
+    double entropy_M_norm=0;
 
     /// Relaxation parameter
     /** Used in RRK ODE solver.

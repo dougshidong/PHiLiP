@@ -262,8 +262,36 @@ bool SpecificNodesParameterization<dim> :: check_if_node_belongs_to_the_region_b
     const double x, 
     const double /*y*/) const
 {
-    const double x_min = 6.0;
-    const double x_max = 8.0;
+    double x_min = 6.0;
+    double x_max = 8.0;
+
+    const unsigned int ncells_level1 = 27;
+    const unsigned int ncells_level2 = ncells_level1*4;
+//    const unsigned int ncells_level3 = ncells_level2*4;
+//    const unsigned int ncells_level4 = ncells_level3*4;
+    const unsigned int n_cells = this->high_order_grid->triangulation->n_global_active_cells();
+    if(n_cells == ncells_level1)
+    {
+        x_min = 6.0;
+        x_max = 8.0;
+    }
+    else if(n_cells == ncells_level2)
+    {
+        x_min = 7.467117359655316;
+        x_max = 7.681882617331053;
+    }
+    /*
+    else if(n_cells == ncells_level3)
+    {
+        x_min = ;
+        x_max = ;
+    }
+    else if(n_cells == ncells_level4)
+    {
+        x_min = ;
+        x_max = ;
+    }
+*/
     if( (x_min < x) && (x < x_max) )
     {
         return true;

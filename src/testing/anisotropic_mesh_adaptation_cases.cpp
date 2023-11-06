@@ -156,6 +156,7 @@ if constexpr (nstate==dim+2)
     std::array<double,nstate> soln_at_q;
 
     double l2error = 0;
+    double l1error = 0;
 
     std::vector<dealii::types::global_dof_index> dofs_indices (n_dofs_cell);
 
@@ -178,11 +179,13 @@ if constexpr (nstate==dim+2)
             const double pressure = euler_physics_double.compute_pressure(soln_at_q);
             const double enthalpy_at_q = euler_physics_double.compute_specific_enthalpy(soln_at_q,pressure);
             l2error += pow((enthalpy_at_q - enthalpy_inf),2) * fe_values_extra.JxW(iquad);
+            l1error += pow(euler_physics_double.compute_entropy_measure(soln_at_q) - euler_physics_double.entropy_inf,2) * fe_values_extra.JxW(iquad);
         }
     } // cell loop ends
     const double l2error_global = sqrt(dealii::Utilities::MPI::sum(l2error, MPI_COMM_WORLD));
-
-    return l2error_global;
+    const double l1error_global = sqrt(dealii::Utilities::MPI::sum(l1error, MPI_COMM_WORLD));
+    (void) l2error_global;
+    return l1error_global;
 }
 std::abort();
 return 0.0;
@@ -219,20 +222,30 @@ int AnisotropicMeshAdaptationCases<dim, nstate> :: run_test () const
     if(run_mesh_optimizer)
     {
         flow_solver->dg->freeze_artificial_dissipation=true;
-        std::unique_ptr<MeshOptimizer<dim,nstate>> mesh_optimizer = std::make_unique<MeshOptimizer<dim,nstate>> (flow_solver->dg,&param, true);
-        mesh_optimizer->run_full_space_optimizer();
+        for(unsigned int i=0; i<1; ++i)
+        {
+            std::unique_ptr<MeshOptimizer<dim,nstate>> mesh_optimizer = std::make_unique<MeshOptimizer<dim,nstate>> (flow_solver->dg,&param, true);
+            mesh_optimizer->run_full_space_optimizer();
 
-        const double functional_error = evaluate_functional_error(flow_solver->dg);
-        const double enthalpy_error = evaluate_enthalpy_error(flow_solver->dg);
-        functional_error_vector.push_back(functional_error);
-        enthalpy_error_vector.push_back(enthalpy_error);
-        n_dofs_vector.push_back(flow_solver->dg->n_dofs());
-        n_cycle_vector.push_back(current_cycle++);
+            const double functional_error = evaluate_functional_error(flow_solver->dg);
+            const double enthalpy_error = evaluate_enthalpy_error(flow_solver->dg);
+            functional_error_vector.push_back(functional_error);
+            enthalpy_error_vector.push_back(enthalpy_error);
+            n_dofs_vector.push_back(flow_solver->dg->n_dofs());
+            n_cycle_vector.push_back(current_cycle++);
 
-        convergence_table_functional.add_value("cells", flow_solver->dg->triangulation->n_global_active_cells());
-        convergence_table_functional.add_value("functional_error",functional_error);
-        convergence_table_enthalpy.add_value("cells", flow_solver->dg->triangulation->n_global_active_cells());
-        convergence_table_enthalpy.add_value("enthalpy_error",enthalpy_error);
+            convergence_table_functional.add_value("cells", flow_solver->dg->triangulation->n_global_active_cells());
+            convergence_table_functional.add_value("functional_error",functional_error);
+            convergence_table_enthalpy.add_value("cells", flow_solver->dg->triangulation->n_global_active_cells());
+            convergence_table_enthalpy.add_value("enthalpy_error",enthalpy_error);
+           
+            auto mesh_adaptation_param2 = param.mesh_adaptation_param;
+            mesh_adaptation_param2.use_goal_oriented_mesh_adaptation = false;
+            mesh_adaptation_param2.refine_fraction = 1.0;
+            std::unique_ptr<MeshAdaptation<dim,double>> meshadaptation =
+            std::make_unique<MeshAdaptation<dim,double>>(flow_solver->dg, &(mesh_adaptation_param2));
+            meshadaptation->adapt_mesh();
+        }
     }
 
     if(run_fixedfraction_mesh_adaptation)

@@ -368,7 +368,6 @@ DGStrong_ChannelFlow<dim,nstate,real,MeshType>::DGStrong_ChannelFlow(
     , domain_volume(domain_length_x*domain_length_y*domain_length_z)
     , channel_bulk_velocity_reynolds_number(pow(0.073, -4.0/7.0)*pow(2.0, 5.0/7.0)*pow(channel_friction_velocity_reynolds_number, 8.0/7.0))
     , channel_centerline_velocity_reynolds_number(1.28*pow(2.0, -0.0116)*pow(channel_bulk_velocity_reynolds_number,1.0-0.0116))
-
 { 
 #if PHILIP_DIM==3
     // // TO DO: move this if statement logic to the DGFactory
@@ -395,6 +394,26 @@ DGStrong_ChannelFlow<dim,nstate,real,MeshType>::DGStrong_ChannelFlow(
     // if(pde_type == PDE_enum::physics_model  || pde_type == PDE_enum::physics_model_filtered) {
         
     // }
+}
+
+// Destructor
+template <int dim, int nstate, typename real, typename MeshType>
+DGStrong_ChannelFlow<dim,nstate,real,MeshType>::~DGStrong_ChannelFlow()
+{
+    pcout << "Destructing DGStrong_ChannelFlow..." << std::endl;
+}
+
+template <int dim, int nstate, typename real, typename MeshType>
+void DGStrong_ChannelFlow<dim,nstate,real,MeshType>::allocate_model_variables()
+{
+    // do nothing
+}
+
+template <int dim, int nstate, typename real, typename MeshType>
+void DGStrong_ChannelFlow<dim,nstate,real,MeshType>::update_model_variables()
+{
+    // get the bulk density for the source term used to force the mass flow rate
+    this->pde_model_double->bulk_density = get_bulk_density();
 }
 
 template<int dim, int nstate>

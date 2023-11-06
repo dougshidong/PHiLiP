@@ -124,12 +124,48 @@ public:
     ~DGStrong_ChannelFlow();
 
 protected:
-    /// Update the cellwise mean quantities
-    void update_cellwise_mean_quantities() override;
+    // TO DO: reduce these
+    const double channel_height; ///< Channel height
+    const double half_channel_height; ///< Half channel height
+    const double channel_friction_velocity_reynolds_number; ///< Channel Reynolds number based on wall friction velocity
+    const int number_of_cells_x_direction; ///< Number of cells in x-direction
+    const int number_of_cells_y_direction; ///< Number of cells in y-direction
+    const int number_of_cells_z_direction; ///< Number of cells in z-direction
+    const double pi_val; ///< Value of pi
+    const double domain_length_x; ///< Domain length in x-direction
+    const double domain_length_y; ///< Domain length in y-direction
+    const double domain_length_z; ///< Domain length in z-direction
+    const double domain_volume; ///< Domain volume
 
-    // const bool do_compute_filtered_solution; ///< Flag to compute the filtered solution
-    // const bool apply_modal_high_pass_filter_on_filtered_solution; ///< Flag to apply modal high pass filter on the filtered solution
-    // const unsigned int poly_degree_max_large_scales; ///< For filtered solution; lower bound of high pass filter
+    /** 
+     * Bulk velocity Reynolds number computed from friction velocity based Reynolds numbers (Empirical relation)
+     * Reference:
+     *  - R. B. Dean, "Reynolds Number Dependence of Skin Friction and Other Bulk
+     *    Flow Variables in Two-Dimensional Rectangular Duct Flow", 
+     *    Journal of Fluids Engineering, 1978 
+     * */
+    const double channel_bulk_velocity_reynolds_number;
+
+    /** 
+     * Centerline velocity Reynolds number computed from friction velocity based Reynolds numbers (Empirical relation)
+     * Reference:
+     *  - R. B. Dean, "Reynolds Number Dependence of Skin Friction and Other Bulk
+     *    Flow Variables in Two-Dimensional Rectangular Duct Flow", 
+     *    Journal of Fluids Engineering, 1978 
+     * */
+    const double channel_centerline_velocity_reynolds_number;
+
+public:
+    /// Contains the large eddy simulation object
+    std::shared_ptr < Physics::LargeEddySimulationBase<dim, nstate, real > > pde_model_les_double;
+
+    /// Allocate the necessary variables declared in src/physics/model.h
+    void allocate_model_variables() override;
+
+    /// Update the necessary variables declared in src/physics/model.h
+    void update_model_variables() override;
+
+protected:
 
     using DGBase<dim,real,MeshType>::pcout; ///< Parallel std::cout that only outputs on mpi_rank==0
     

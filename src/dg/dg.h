@@ -949,16 +949,8 @@ public:
     virtual void allocate_model_variables() = 0;
     /// Update the necessary variables declared in src/physics/model.h
     virtual void update_model_variables() = 0;
-    /// Set the necessary constant variables declared in src/physics/model.h
-    virtual void set_constant_model_variables(
-        const double channel_height,
-        const double half_channel_height,
-        const double channel_friction_velocity_reynolds_number,
-        const double channel_bulk_velocity_reynolds_number) = 0;
     /// Set the necessary unsteady variables declared in src/physics/model.h
-    virtual void set_unsteady_model_variables(
-        const double bulk_density,
-        const double time_step) = 0;
+    virtual void set_unsteady_model_time_step(const double time_step) = 0;
     /// Flag for using the auxiliary equation
     bool use_auxiliary_eq;
     /// Set use_auxiliary_eq flag
@@ -1060,18 +1052,9 @@ public:
 
     /// Update the necessary variables declared in src/physics/model.h
     virtual void update_model_variables();
-
-    /// Set the necessary constant variables declared in src/physics/model.h
-    void set_constant_model_variables(
-        const double channel_height,
-        const double half_channel_height,
-        const double channel_friction_velocity_reynolds_number,
-        const double channel_bulk_velocity_reynolds_number);
     
     /// Set the necessary unsteady variables declared in src/physics/model.h
-    void set_unsteady_model_variables(
-        const double bulk_density,
-        const double time_step);
+    void set_unsteady_model_time_step(const double time_step);
 
     /// Set use_auxiliary_eq flag
     void set_use_auxiliary_eq();

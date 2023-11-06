@@ -153,10 +153,10 @@ std::array<real,nstate> NavierStokesWithModelSourceTerms<dim,nstate,real>
 
     // Get nondimensional (w.r.t. freestream) bulk velocity
     const std::array<real,nstate> primitive_soln = this->navier_stokes_physics->convert_conservative_to_primitive_templated(conservative_soln);
-    const real density = conservative_soln[0];
-    const real viscosity_coefficient = this->navier_stokes_physics->compute_viscosity_coefficient(primitive_soln);
-    const real bulk_velocity = viscosity_coefficient*(this->channel_bulk_velocity_reynolds_number)/(density*this->half_channel_height*this->navier_stokes_physics->reynolds_number_inf);
-    // const real bulk_velocity = 1.0; // since we nondimensionalize w.r.t. freestream values, which are set at the bulk values, this value is simply 1.0
+    // const real density = conservative_soln[0];
+    // const real viscosity_coefficient = this->navier_stokes_physics->compute_viscosity_coefficient(primitive_soln);
+    // const real bulk_velocity = viscosity_coefficient*(this->channel_bulk_velocity_reynolds_number)/(density*this->half_channel_height*this->navier_stokes_physics->reynolds_number_inf);
+    const real bulk_velocity = 1.0; // since we nondimensionalize w.r.t. freestream values, which are set at the bulk values, this value is simply 1.0
     
     // x-momentum term
     const real bulk_density = this->bulk_density;

@@ -29,12 +29,6 @@ public:
     /// Function to set the higher order grid
     void set_higher_order_grid(std::shared_ptr <DGBase<dim, double>> dg) const override;
 
-    /// Initialize model variables
-    void initialize_model_variables(std::shared_ptr<DGBase<dim, double>> dg) const override;
-
-    /// Update model variables
-    void update_model_variables(std::shared_ptr<DGBase<dim, double>> dg) const override;
-
 protected:
     const double channel_height; ///< Channel height
     const double half_channel_height; ///< Half channel height

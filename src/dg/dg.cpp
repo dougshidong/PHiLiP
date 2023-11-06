@@ -431,59 +431,15 @@ void DGBaseState<dim,nstate,real,MeshType>::update_model_variables()
 }
 
 template <int dim, int nstate, typename real, typename MeshType>
-void DGBaseState<dim,nstate,real,MeshType>::set_constant_model_variables(
-        const double channel_height,
-        const double half_channel_height,
-        const double channel_friction_velocity_reynolds_number,
-        const double channel_bulk_velocity_reynolds_number)
-{
-    // channel_height
-    pde_model_double->channel_height  = channel_height;
-    pde_model_fad->channel_height     = channel_height;
-    pde_model_rad->channel_height     = channel_height;
-    pde_model_fad_fad->channel_height = channel_height;
-    pde_model_rad_fad->channel_height = channel_height;
-
-    // half_channel_height
-    pde_model_double->half_channel_height  = half_channel_height;
-    pde_model_fad->half_channel_height     = half_channel_height;
-    pde_model_rad->half_channel_height     = half_channel_height;
-    pde_model_fad_fad->half_channel_height = half_channel_height;
-    pde_model_rad_fad->half_channel_height = half_channel_height;
-
-    // channel_friction_velocity_reynolds_number
-    pde_model_double->channel_friction_velocity_reynolds_number  = channel_friction_velocity_reynolds_number;
-    pde_model_fad->channel_friction_velocity_reynolds_number     = channel_friction_velocity_reynolds_number;
-    pde_model_rad->channel_friction_velocity_reynolds_number     = channel_friction_velocity_reynolds_number;
-    pde_model_fad_fad->channel_friction_velocity_reynolds_number = channel_friction_velocity_reynolds_number;
-    pde_model_rad_fad->channel_friction_velocity_reynolds_number = channel_friction_velocity_reynolds_number;
-
-    // channel_bulk_velocity_reynolds_number
-    pde_model_double->channel_bulk_velocity_reynolds_number  = channel_bulk_velocity_reynolds_number;
-    pde_model_fad->channel_bulk_velocity_reynolds_number     = channel_bulk_velocity_reynolds_number;
-    pde_model_rad->channel_bulk_velocity_reynolds_number     = channel_bulk_velocity_reynolds_number;
-    pde_model_fad_fad->channel_bulk_velocity_reynolds_number = channel_bulk_velocity_reynolds_number;
-    pde_model_rad_fad->channel_bulk_velocity_reynolds_number = channel_bulk_velocity_reynolds_number;
-}
-
-template <int dim, int nstate, typename real, typename MeshType>
-void DGBaseState<dim,nstate,real,MeshType>::set_unsteady_model_variables(
-        const double bulk_density,
+void DGBaseState<dim,nstate,real,MeshType>::set_unsteady_model_time_step(
         const double time_step)
 {
-    // bulk_density
-    pde_model_double->bulk_density  = bulk_density;
-    pde_model_fad->bulk_density     = bulk_density;
-    pde_model_rad->bulk_density     = bulk_density;
-    pde_model_fad_fad->bulk_density = bulk_density;
-    pde_model_rad_fad->bulk_density = bulk_density;
-
     // time_step
-    pde_model_double->time_step  = time_step;
-    pde_model_fad->time_step     = time_step;
-    pde_model_rad->time_step     = time_step;
-    pde_model_fad_fad->time_step = time_step;
-    pde_model_rad_fad->time_step = time_step;
+    if(pde_model_double)  pde_model_double->time_step  = time_step;
+    if(pde_model_fad)     pde_model_fad->time_step     = time_step;
+    if(pde_model_rad)     pde_model_rad->time_step     = time_step;
+    if(pde_model_fad_fad) pde_model_fad_fad->time_step = time_step;
+    if(pde_model_rad_fad) pde_model_rad_fad->time_step = time_step;
 }
 
 template <int dim, int nstate, typename real, typename MeshType>

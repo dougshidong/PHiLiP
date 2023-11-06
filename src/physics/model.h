@@ -118,10 +118,6 @@ public:
     dealii::LinearAlgebra::distributed::Vector<int> cellwise_poly_degree; ///< Cellwise polynomial degree
     dealii::LinearAlgebra::distributed::Vector<double> cellwise_volume; ////< Cellwise element volume
     double bulk_density; ///< bulk density
-    double channel_height; ///< Channel height
-    double half_channel_height; ///< Half channel height
-    double channel_friction_velocity_reynolds_number; ///< Channel Reynolds number based on the wall friction velocity
-    double channel_bulk_velocity_reynolds_number; ///< Channel Reynolds number based on the bulk velocity
     double time_step; ///< Current time step
     dealii::LinearAlgebra::distributed::Vector<double> cellwise_mean_strain_rate_tensor_magnitude; ////< Cellwise mean strain rate tensor magnitude; used for shear-improved eddy viscosity model
 

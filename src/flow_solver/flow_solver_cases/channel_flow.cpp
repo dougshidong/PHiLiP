@@ -69,6 +69,8 @@ void ChannelFlow<dim, nstate>::compute_unsteady_data_and_write_to_table(
                 << "    tau_w: " << average_wall_shear_stress
                 << std::endl;
 
+    // TO DO: print t/2pi and Re_b calculated to track the convergence of the flow; add these to the table
+
     // Abort if average_wall_shear_stress is nan
     if(std::isnan(average_wall_shear_stress)) {
         this->pcout << " ERROR: Wall shear stress at time " << current_time << " is nan." << std::endl;
@@ -310,24 +312,6 @@ void ChannelFlow<dim,nstate>::set_higher_order_grid(std::shared_ptr<DGBase<dim, 
     // dg->set_high_order_grid(mesh);
 
     // do nothing if using dealii mesh generator
-}
-
-template <int dim, int nstate>
-void ChannelFlow<dim,nstate>::initialize_model_variables(std::shared_ptr<DGBase<dim, double>> dg) const
-{
-    dg->set_constant_model_variables(
-        this->channel_height,
-        this->half_channel_height,
-        this->channel_friction_velocity_reynolds_number,
-        this->channel_bulk_velocity_reynolds_number);
-}
-
-template <int dim, int nstate>
-void ChannelFlow<dim,nstate>::update_model_variables(std::shared_ptr<DGBase<dim, double>> dg) const
-{
-    dg->set_unsteady_model_variables(
-        0.0,
-        this->get_time_step());
 }
 
 template<int dim, int nstate>

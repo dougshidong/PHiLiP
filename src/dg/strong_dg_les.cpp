@@ -416,8 +416,8 @@ void DGStrong_ChannelFlow<dim,nstate,real,MeshType>::update_model_variables()
     this->pde_model_double->bulk_density = get_bulk_density();
 }
 
-template<int dim, int nstate>
-double DGStrong_ChannelFlow<dim, nstate>::get_bulk_density() const
+template <int dim, int nstate, typename real, typename MeshType>
+double DGStrong_ChannelFlow<dim,nstate,real,MeshType>::get_bulk_density() const
 {
     double integral_value = 0.0;
 

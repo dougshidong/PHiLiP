@@ -109,7 +109,7 @@ class DGStrong_ChannelFlow: public DGStrong<dim, nstate, real, MeshType>
 {
 protected:
     /// Alias to base class Triangulation.
-    using Triangulation = typename DGStrongLES<dim,nstate,real,MeshType>::Triangulation;
+    using Triangulation = typename DGStrong<dim,nstate,real,MeshType>::Triangulation;
 
 public:
     /// Constructor

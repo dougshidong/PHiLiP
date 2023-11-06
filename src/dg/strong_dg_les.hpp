@@ -166,8 +166,9 @@ public:
     void update_model_variables() override;
 
 protected:
-
     using DGBase<dim,real,MeshType>::pcout; ///< Parallel std::cout that only outputs on mpi_rank==0
+
+    double get_bulk_density() const; ///< computes the bulk density
     
 }; // end of DGStrong_ChannelFlow class
 

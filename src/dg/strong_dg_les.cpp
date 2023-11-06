@@ -355,16 +355,16 @@ DGStrong_ChannelFlow<dim,nstate,real,MeshType>::DGStrong_ChannelFlow(
     // , do_compute_filtered_solution(this->all_parameters->physics_model_param.do_compute_filtered_solution)
     // , apply_modal_high_pass_filter_on_filtered_solution(this->all_parameters->physics_model_param.apply_modal_high_pass_filter_on_filtered_solution)
     // , poly_degree_max_large_scales(this->all_parameters->physics_model_param.poly_degree_max_large_scales)
-    , channel_height(this->all_parameters.flow_solver_param.turbulent_channel_domain_length_y_direction)
+    , channel_height(parameters_input->flow_solver_param.turbulent_channel_domain_length_y_direction)
     , half_channel_height(channel_height/2.0)
-    , channel_friction_velocity_reynolds_number(this->all_parameters.flow_solver_param.turbulent_channel_friction_velocity_reynolds_number)
-    , number_of_cells_x_direction(this->all_parameters.flow_solver_param.turbulent_channel_number_of_cells_x_direction)
-    , number_of_cells_y_direction(this->all_parameters.flow_solver_param.turbulent_channel_number_of_cells_y_direction)
-    , number_of_cells_z_direction(this->all_parameters.flow_solver_param.turbulent_channel_number_of_cells_z_direction)
+    , channel_friction_velocity_reynolds_number(parameters_input->flow_solver_param.turbulent_channel_friction_velocity_reynolds_number)
+    , number_of_cells_x_direction(parameters_input->flow_solver_param.turbulent_channel_number_of_cells_x_direction)
+    , number_of_cells_y_direction(parameters_input->flow_solver_param.turbulent_channel_number_of_cells_y_direction)
+    , number_of_cells_z_direction(parameters_input->flow_solver_param.turbulent_channel_number_of_cells_z_direction)
     , pi_val(3.141592653589793238)
-    , domain_length_x(this->all_parameters.flow_solver_param.turbulent_channel_domain_length_x_direction)
+    , domain_length_x(parameters_input->flow_solver_param.turbulent_channel_domain_length_x_direction)
     , domain_length_y(channel_height)
-    , domain_length_z(this->all_parameters.flow_solver_param.turbulent_channel_domain_length_z_direction)
+    , domain_length_z(parameters_input->flow_solver_param.turbulent_channel_domain_length_z_direction)
     , domain_volume(domain_length_x*domain_length_y*domain_length_z)
     , channel_bulk_velocity_reynolds_number(pow(0.073, -4.0/7.0)*pow(2.0, 5.0/7.0)*pow(channel_friction_velocity_reynolds_number, 8.0/7.0))
     , channel_centerline_velocity_reynolds_number(1.28*pow(2.0, -0.0116)*pow(channel_bulk_velocity_reynolds_number,1.0-0.0116))
@@ -477,6 +477,12 @@ template class DGStrongLES <PHILIP_DIM, PHILIP_DIM+2, double, dealii::parallel::
 template class DGStrongLES_ShearImproved <PHILIP_DIM, PHILIP_DIM+2, double, dealii::Triangulation<PHILIP_DIM>>;
 template class DGStrongLES_ShearImproved <PHILIP_DIM, PHILIP_DIM+2, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
 template class DGStrongLES_ShearImproved <PHILIP_DIM, PHILIP_DIM+2, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+#endif
+
+#if PHILIP_DIM==3
+template class DGStrong_ChannelFlow <PHILIP_DIM, PHILIP_DIM+2, double, dealii::Triangulation<PHILIP_DIM>>;
+template class DGStrong_ChannelFlow <PHILIP_DIM, PHILIP_DIM+2, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class DGStrong_ChannelFlow <PHILIP_DIM, PHILIP_DIM+2, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
 #endif
 
 } // PHiLiP namespace

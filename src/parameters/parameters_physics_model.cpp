@@ -23,6 +23,7 @@ void PhysicsModelParam::declare_parameters (dealii::ParameterHandler &prm)
                               " wall_adaptive_local_eddy_viscosity | "
                               " vreman | "
                               " shear_improved_smagorinsky | "
+                              " dynamic_smagorinsky | "
                               " small_small_variational_multiscale | "
                               " all_all_variational_multiscale "),
                               "Enum of sub-grid scale models."
@@ -31,6 +32,7 @@ void PhysicsModelParam::declare_parameters (dealii::ParameterHandler &prm)
                               "  wall_adaptive_local_eddy_viscosity | "
                               "  vreman | "
                               "  shear_improved_smagorinsky | "
+                              "  dynamic_smagorinsky | "
                               "  small_small_variational_multiscale | "
                               "  all_all_variational_multiscale>.");
 
@@ -67,6 +69,14 @@ void PhysicsModelParam::declare_parameters (dealii::ParameterHandler &prm)
                               "Used for variational-multiscale (VMS) filtering of the solution. "
                               "This represents the maximum polynomial order for the large scales. "
                               "Warning: This must be less than the poly_degree of the solution.");
+
+            prm.declare_entry("dynamic_smagorinsky_model_constant_clipping_limit", "0.01",
+                              dealii::Patterns::Double(1e-15, dealii::Patterns::Double::max_double_value),
+                              "Clipping limit for the Dynamic Smagorinsky model constant (default is 0.01).");
+
+            prm.declare_entry("apply_low_reynolds_number_eddy_viscosity_correction", "false",
+                              dealii::Patterns::Bool(),
+                              "Flag for applying the low Reynolds number eddy viscosity correction. By default, false.");
 
         }
         prm.leave_subsection();
@@ -108,6 +118,7 @@ void PhysicsModelParam::parse_parameters (dealii::ParameterHandler &prm)
             if(SGS_model_type_string == "wall_adaptive_local_eddy_viscosity") SGS_model_type = wall_adaptive_local_eddy_viscosity;
             if(SGS_model_type_string == "vreman")                             SGS_model_type = vreman;
             if(SGS_model_type_string == "shear_improved_smagorinsky")         SGS_model_type = shear_improved_smagorinsky;
+            if(SGS_model_type_string == "dynamic_smagorinsky")                SGS_model_type = dynamic_smagorinsky;
             if(SGS_model_type_string == "small_small_variational_multiscale") SGS_model_type = small_small_variational_multiscale;
             if(SGS_model_type_string == "all_all_variational_multiscale")     SGS_model_type = all_all_variational_multiscale;
 
@@ -120,6 +131,10 @@ void PhysicsModelParam::parse_parameters (dealii::ParameterHandler &prm)
             apply_modal_high_pass_filter_on_filtered_solution 
                                                = prm.get_bool("apply_modal_high_pass_filter_on_filtered_solution");
             poly_degree_max_large_scales       = prm.get_integer("poly_degree_max_large_scales");
+            dynamic_smagorinsky_model_constant_clipping_limit 
+                                               = prm.get_double("dynamic_smagorinsky_model_constant_clipping_limit");
+            apply_low_reynolds_number_eddy_viscosity_correction
+                                               = prm.get_bool("apply_low_reynolds_number_eddy_viscosity_correction");
         }
         prm.leave_subsection();
 

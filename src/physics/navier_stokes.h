@@ -268,7 +268,6 @@ public:
     real compute_strain_rate_tensor_based_dissipation_rate_from_integrated_strain_rate_tensor_magnitude_sqr (
         const real integrated_strain_rate_tensor_magnitude_sqr) const;
 
-
     /** Nondimensionalized viscous stress tensor, tau*
      *  Reference: Masatsuka 2018 "I do like CFD", p.148, eq.(4.14.12)
      */
@@ -287,6 +286,24 @@ public:
         const std::array<real2,nstate> &primitive_soln,
         const std::array<dealii::Tensor<1,dim,real2>,nstate> &primitive_soln_gradient) const;
 
+    /// Tensor product magnitude squared
+    real get_tensor_product_magnitude_sqr (
+        const dealii::Tensor<2,dim,real> &tensor1,
+        const dealii::Tensor<2,dim,real> &tensor2) const;
+
+    /** Nondimensionalized Germano identity tensor, L*, from conservative solution and solution gradient
+     *  Reference: Flad and Gassner 2017
+     */
+    dealii::Tensor<2,dim,real> compute_germano_idendity_matrix_L_component (
+        const std::array<real,nstate> &conservative_soln) const;
+
+    /** Nondimensionalized Germano identity tensor, M*, from conservative solution and solution gradient
+     *  Reference: Flad and Gassner 2017
+     */
+    dealii::Tensor<2,dim,real> compute_germano_idendity_matrix_M_component (
+        const std::array<real,nstate> &conservative_soln,
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &conservative_soln_gradient) const;
+
     /** Nondimensionalized viscous flux (i.e. dissipative flux) dot normal vector that accounts for gradient boundary conditions
      *  References: 
      *  (1) Masatsuka 2018 "I do like CFD", p.142, eq.(4.12.1-4.12.4),
@@ -301,7 +318,7 @@ public:
         const bool on_boundary,
         const dealii::types::global_dof_index cell_index,
         const dealii::Tensor<1,dim,real> &normal,
-        const int boundary_type) const override;
+        const int boundary_type) override;
 
     /** Nondimensionalized viscous flux (i.e. dissipative flux)
      *  Reference: Masatsuka 2018 "I do like CFD", p.142, eq.(4.12.1-4.12.4)

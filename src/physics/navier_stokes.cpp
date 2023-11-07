@@ -580,6 +580,66 @@ dealii::Tensor<2,dim,real2> NavierStokes<dim,nstate,real>
 }
 
 template <int dim, int nstate, typename real>
+dealii::Tensor<2,dim,real> NavierStokes<dim,nstate,real>
+::compute_germano_idendity_matrix_L_component (
+    const std::array<real,nstate> &conservative_soln) const
+{
+    const dealii::Tensor<1,dim,real> vel = this->template compute_velocities<real>(conservative_soln);
+    dealii::Tensor<2,dim,real> matrix_L;
+    for (int i=0; i<dim; i++) {
+        for (int j=0; j<dim; j++) {
+            matrix_L[i][j] = vel[i]*vel[j];
+        }
+    }
+    return matrix_L;
+}
+
+template <int dim, int nstate, typename real>
+dealii::Tensor<2,dim,real> NavierStokes<dim,nstate,real>
+::compute_germano_idendity_matrix_M_component (
+    const std::array<real,nstate> &conservative_soln,
+    const std::array<dealii::Tensor<1,dim,real>,nstate> &conservative_soln_gradient) const
+{
+    dealii::Tensor<2,dim,real> matrix_M;
+
+    // Strain rate tensor, S_{i,j}
+    const dealii::Tensor<2,dim,real> strain_rate_tensor = compute_strain_rate_tensor_from_conservative(conservative_soln, conservative_soln_gradient);
+    const real strain_rate_tensor_magnitude = get_tensor_magnitude(strain_rate_tensor);
+
+    // Compute divergence of velocity
+    real strain_rate_tensor_trace = 0.0;
+    for(int i=0; i<dim; ++i) {
+        strain_rate_tensor_trace += strain_rate_tensor[i][i];
+    }
+
+    // Compute the deviatoric strain rate tensor
+    dealii::Tensor<2,dim,real> deviatoric_strain_rate_tensor;
+    for(int i=0; i<dim; ++i) {
+        for(int j=0; j<dim; ++j) {
+            matrix_M[i][j] = strain_rate_tensor_magnitude*strain_rate_tensor[i][j];
+        }
+        matrix_M[i][i] -= strain_rate_tensor_magnitude*(1.0/3.0)*strain_rate_tensor_trace;
+    }
+    return matrix_M;
+}
+
+//----------------------------------------------------------------
+template <int dim, int nstate, typename real>
+real NavierStokes<dim,nstate,real>
+::get_tensor_product_magnitude_sqr (
+    const dealii::Tensor<2,dim,real> &tensor1,
+    const dealii::Tensor<2,dim,real> &tensor2) const
+{
+    real tensor_product_magnitude_sqr = 0.0;
+    for (int i=0; i<dim; ++i) {
+        for (int j=0; j<dim; ++j) {
+            tensor_product_magnitude_sqr += tensor1[i][j]*tensor2[i][j];
+        }
+    }
+    return tensor_product_magnitude_sqr;
+}
+
+template <int dim, int nstate, typename real>
 std::array<dealii::Tensor<1,dim,real>,nstate> NavierStokes<dim,nstate,real>
 ::dissipative_flux (
     const std::array<real,nstate> &conservative_soln,
@@ -915,7 +975,7 @@ std::array<real,nstate> NavierStokes<dim,nstate,real>
         const bool on_boundary,
         const dealii::types::global_dof_index /*cell_index*/,
         const dealii::Tensor<1,dim,real> &normal,
-        const int boundary_type) const
+        const int boundary_type)
 {
     std::array<dealii::Tensor<1,dim,real>,nstate> dissipative_flux;
     std::array<real,nstate> dissipative_flux_dot_normal;
@@ -1241,6 +1301,11 @@ template FadType    NavierStokes < PHILIP_DIM, PHILIP_DIM+2, FadType   >::comput
 template RadType    NavierStokes < PHILIP_DIM, PHILIP_DIM+2, RadType   >::compute_scaled_viscosity_coefficient< RadType    >(const std::array<RadType   ,PHILIP_DIM+2> &primitive_soln) const;
 template FadFadType NavierStokes < PHILIP_DIM, PHILIP_DIM+2, FadFadType>::compute_scaled_viscosity_coefficient< FadFadType >(const std::array<FadFadType,PHILIP_DIM+2> &primitive_soln) const;
 template RadFadType NavierStokes < PHILIP_DIM, PHILIP_DIM+2, RadFadType>::compute_scaled_viscosity_coefficient< RadFadType >(const std::array<RadFadType,PHILIP_DIM+2> &primitive_soln) const;
+// -- -- instantiate all the real types with real2 = FadType for automatic differentiation in classes derived from LargeEddySimulationBase
+template FadType    NavierStokes < PHILIP_DIM, PHILIP_DIM+2, double    >::compute_scaled_viscosity_coefficient< FadType    >(const std::array<FadType   ,PHILIP_DIM+2> &primitive_soln) const;
+template FadType    NavierStokes < PHILIP_DIM, PHILIP_DIM+2, RadType   >::compute_scaled_viscosity_coefficient< FadType    >(const std::array<FadType   ,PHILIP_DIM+2> &primitive_soln) const;
+template FadType    NavierStokes < PHILIP_DIM, PHILIP_DIM+2, FadFadType>::compute_scaled_viscosity_coefficient< FadType    >(const std::array<FadType   ,PHILIP_DIM+2> &primitive_soln) const;
+template FadType    NavierStokes < PHILIP_DIM, PHILIP_DIM+2, RadFadType>::compute_scaled_viscosity_coefficient< FadType    >(const std::array<FadType   ,PHILIP_DIM+2> &primitive_soln) const;
 //------------------------------------------------------------------------------
 // -->Required templated member functions by classes derived from ModelBase or FlowSolverCaseBase
 //------------------------------------------------------------------------------

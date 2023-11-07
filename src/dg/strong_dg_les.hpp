@@ -191,6 +191,7 @@ protected:
      * */
     const double channel_centerline_velocity_reynolds_number;
 
+    const double total_wall_area; ///< Total wall area
 public:
     /// Contains the large eddy simulation object
     std::shared_ptr < Physics::LargeEddySimulationBase<dim, nstate, real > > pde_model_les_double;
@@ -204,7 +205,8 @@ public:
 protected:
     using DGBase<dim,real,MeshType>::pcout; ///< Parallel std::cout that only outputs on mpi_rank==0
 
-    double get_bulk_density() const; ///< computes the bulk density
+    void set_bulk_flow_quantities(); ///< Sets the bulk flow quantities (density, mass flow rate, and velocity)
+    double get_average_wall_shear_stress() const; ///< computes the average wall shear stress
     
 }; // end of DGStrong_ChannelFlow class
 

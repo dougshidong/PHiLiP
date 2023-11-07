@@ -95,7 +95,7 @@ protected:
 
     /// Channel flow source term
     /** Forcing function to maintain the expected bulk Reynolds number throughout the solution
-     *  Reference: Brian Vermeire 2014 PhD Thesis
+     *  Reference: Equation 34 of Lodato G, Castonguay P, Jameson A. Discrete filter operators for large-eddy simulation using high-order spectral difference methods. International Journal for Numerical Methods in Fluids2013;72(2):231–258. 
      */
     std::array<real,nstate> channel_flow_source_term (
         const std::array<real,nstate> &conservative_soln) const;

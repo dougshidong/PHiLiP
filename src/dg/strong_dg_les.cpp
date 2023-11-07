@@ -940,6 +940,7 @@ DGStrong_ChannelFlow<dim,nstate,real,MeshType>::DGStrong_ChannelFlow(
     , domain_volume(domain_length_x*domain_length_y*domain_length_z)
     , channel_bulk_velocity_reynolds_number(pow(0.073, -4.0/7.0)*pow(2.0, 5.0/7.0)*pow(channel_friction_velocity_reynolds_number, 8.0/7.0))
     , channel_centerline_velocity_reynolds_number(1.28*pow(2.0, -0.0116)*pow(channel_bulk_velocity_reynolds_number,1.0-0.0116))
+    , total_wall_area(2.0*domain_length_x*domain_length_z) // times two because 2 walls
 { 
 #if PHILIP_DIM==3
     // // TO DO: move this if statement logic to the DGFactory
@@ -977,20 +978,29 @@ DGStrong_ChannelFlow<dim,nstate,real,MeshType>::~DGStrong_ChannelFlow()
 template <int dim, int nstate, typename real, typename MeshType>
 void DGStrong_ChannelFlow<dim,nstate,real,MeshType>::allocate_model_variables()
 {
-    // do nothing
+    // set the constant model variables
+    this->pde_model_double->domain_volume = this->domain_volume;
 }
 
 template <int dim, int nstate, typename real, typename MeshType>
 void DGStrong_ChannelFlow<dim,nstate,real,MeshType>::update_model_variables()
 {
-    // get the bulk density for the source term used to force the mass flow rate
-    this->pde_model_double->bulk_density = get_bulk_density();
+    set_bulk_flow_quantities();
+    this->pde_model_double->resultant_wall_shear_force = get_average_wall_shear_stress()*this->total_wall_area;
 }
 
 template <int dim, int nstate, typename real, typename MeshType>
-double DGStrong_ChannelFlow<dim,nstate,real,MeshType>::get_bulk_density() const
+void DGStrong_ChannelFlow<dim,nstate,real,MeshType>::set_bulk_flow_quantities()
 {
-    double integral_value = 0.0;
+    const int NUMBER_OF_INTEGRATED_QUANTITIES = 2;
+    std::array<double,NUMBER_OF_INTEGRATED_QUANTITIES> integrated_quantities;
+    /// List of possible integrated quantities over the domain
+    enum IntegratedQuantitiesEnum {
+        bulk_density,
+        bulk_mass_flow_rate
+    };
+    std::array<double,NUMBER_OF_INTEGRATED_QUANTITIES> integral_values;
+    std::fill(integral_values.begin(), integral_values.end(), 0.0);
 
     // Overintegrate the error to make sure there is not integration error in the error estimate
     int overintegrate = 10; // TO DO: could reduce this to reduce computational cost
@@ -1024,17 +1034,89 @@ double DGStrong_ChannelFlow<dim,nstate,real,MeshType>::get_bulk_density() const
             }
             // const dealii::Point<dim> qpoint = (fe_values_extra.quadrature_point(iquad));
 
-            double integrand_value = soln_at_q[0]; // density
+            std::array<double,NUMBER_OF_INTEGRATED_QUANTITIES> integrand_values;
+            std::fill(integrand_values.begin(), integrand_values.end(), 0.0);
+            integrand_values[IntegratedQuantitiesEnum::bulk_density] = soln_at_q[0]; // density
+            integrand_values[IntegratedQuantitiesEnum::bulk_mass_flow_rate] = soln_at_q[1]; // x-momentum
+
             // cellwise_integrand_value += integrand_value * fe_values_extra.JxW(iquad);
-            integral_value += integrand_value * fe_values_extra.JxW(iquad);
+
+            for(int i_quantity=0; i_quantity<NUMBER_OF_INTEGRATED_QUANTITIES; ++i_quantity) {
+                integral_values[i_quantity] += integrand_values[i_quantity] * fe_values_extra.JxW(iquad);
+            }
         }
         // // get cell index
         // const dealii::types::global_dof_index cell_index = cell->active_cell_index();
         // const double cellwise_average = cellwise_integrand_value/this->pde_model_double->cellwise_volume[cell_index];
         // integral_value += cellwise_average;
     }
+    // update integrated quantities
+    for(int i_quantity=0; i_quantity<NUMBER_OF_INTEGRATED_QUANTITIES; ++i_quantity) {
+        integrated_quantities[i_quantity] = dealii::Utilities::MPI::sum(integral_values[i_quantity], this->mpi_communicator);
+        integrated_quantities[i_quantity] /= this->domain_volume; // divide by total domain volume
+    }
+    // set the bulk density, mass flow rate, and velocity for the source term used to force the mass flow rate
+    this->pde_model_double->bulk_density = integrated_quantities[IntegratedQuantitiesEnum::bulk_density];
+    this->pde_model_double->bulk_mass_flow_rate = integrated_quantities[IntegratedQuantitiesEnum::bulk_mass_flow_rate];
+    this->pde_model_double->bulk_velocity = this->pde_model_double->bulk_mass_flow_rate/this->pde_model_double->bulk_density;
+}
+
+template <int dim, int nstate, typename real, typename MeshType>
+double DGStrong_ChannelFlow<dim,nstate,real,MeshType>::get_average_wall_shear_stress() const
+{
+    /// Update flags needed at face points.
+    const dealii::UpdateFlags face_update_flags = dealii::update_values | dealii::update_gradients | dealii::update_quadrature_points | dealii::update_JxW_values | dealii::update_normal_vectors;
+    double integral_value = 0.0;
+    double integral_area_value = 0.0;
+
+    // Overintegrate the error to make sure there is not integration error in the error estimate
+    int overintegrate = 10;
+    dealii::QGauss<dim-1> quad_extra(this->max_degree+1+overintegrate);
+    dealii::FEFaceValues<dim,dim> fe_face_values_extra(*(this->high_order_grid->mapping_fe_field), this->fe_collection[this->max_degree], quad_extra, 
+                                                  face_update_flags);
+    
+    std::array<double,nstate> soln_at_q;
+    std::array<dealii::Tensor<1,dim,double>,nstate> soln_grad_at_q;
+
+    std::vector<dealii::types::global_dof_index> dofs_indices (fe_face_values_extra.dofs_per_cell);
+    for (auto cell : this->dof_handler.active_cell_iterators()) {
+        if (!cell->is_locally_owned()) continue;
+        
+        cell->get_dof_indices (dofs_indices);
+
+        for(unsigned int iface = 0; iface < dealii::GeometryInfo<dim>::faces_per_cell; ++iface){
+            auto face = cell->face(iface);
+            
+            if(face->at_boundary()){
+                const unsigned int boundary_id = face->boundary_id();
+                if(boundary_id==1001){
+                    fe_face_values_extra.reinit (cell,iface);
+                    const unsigned int n_quad_pts = fe_face_values_extra.n_quadrature_points;
+                    for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
+                        std::fill(soln_at_q.begin(), soln_at_q.end(), 0.0);
+                        for (int s=0; s<nstate; ++s) {
+                            for (int d=0; d<dim; ++d) {
+                                soln_grad_at_q[s][d] = 0.0;
+                            }
+                        }
+                        for (unsigned int idof=0; idof<fe_face_values_extra.dofs_per_cell; ++idof) {
+                            const unsigned int istate = fe_face_values_extra.get_fe().system_to_component_index(idof).first;
+                            soln_at_q[istate] += this->solution[dofs_indices[idof]] * fe_face_values_extra.shape_value_component(idof, iquad, istate);
+                            soln_grad_at_q[istate] += this->solution[dofs_indices[idof]] * fe_face_values_extra.shape_grad_component(idof,iquad,istate);
+                        }
+                        // const dealii::Point<dim> qpoint = (fe_face_values_extra.quadrature_point(iquad));
+                        const dealii::Tensor<1,dim,double> normal_vector = fe_face_values_extra.normal_vector(iquad);
+                        double integrand_value = this->pde_model_les_double->navier_stokes_physics->compute_wall_shear_stress(soln_at_q,soln_grad_at_q,normal_vector);
+                        integral_value += integrand_value * fe_face_values_extra.JxW(iquad);
+                        integral_area_value += fe_face_values_extra.JxW(iquad);
+                    }
+                }
+            }
+        }
+    }
     const double mpi_sum_integral_value = dealii::Utilities::MPI::sum(integral_value, this->mpi_communicator);
-    const double averaged_value = mpi_sum_integral_value/this->domain_volume;// volume division is accomplished cellwise
+    const double mpi_sum_integral_area_value = dealii::Utilities::MPI::sum(integral_area_value, this->mpi_communicator);
+    const double averaged_value = mpi_sum_integral_value/mpi_sum_integral_area_value;
     return averaged_value;
 }
 

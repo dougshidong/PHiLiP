@@ -48,7 +48,7 @@ inline real InitialConditionFunction_TurbulentChannelFlow<dim, nstate, real>
         // top wall
         dist_from_wall = half_channel_height - y; // distance from top wall
     } else if(y < 0.0) {
-        dist_from_wall = y - half_channel_height; // distance from bottom wall
+        dist_from_wall = half_channel_height + y; // distance from bottom wall
     }
     return dist_from_wall;
 }

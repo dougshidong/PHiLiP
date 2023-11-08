@@ -948,7 +948,7 @@ DGStrong_ChannelFlow<dim,nstate,real,MeshType>::DGStrong_ChannelFlow(
     //     (model_type==Model_enum::large_eddy_simulation || model_type==Model_enum::navier_stokes_model))) 
     // {
         if constexpr (dim+2==nstate) {
-            this->pde_model_les_double = std::dynamic_pointer_cast<Physics::LargeEddySimulationBase<dim,dim+2,real>>(this->pde_model_double);
+            this->pde_model_navier_stokes_double = std::dynamic_pointer_cast<Physics::NavierStokesWithModelSourceTerms<dim,dim+2,real>>(this->pde_model_double);
         }
     // }
     // else if((pde_type==PDE_enum::physics_model  || pde_type==PDE_enum::physics_model_filtered) && 
@@ -1106,7 +1106,7 @@ double DGStrong_ChannelFlow<dim,nstate,real,MeshType>::get_average_wall_shear_st
                         }
                         // const dealii::Point<dim> qpoint = (fe_face_values_extra.quadrature_point(iquad));
                         const dealii::Tensor<1,dim,double> normal_vector = fe_face_values_extra.normal_vector(iquad);
-                        double integrand_value = this->pde_model_les_double->navier_stokes_physics->compute_wall_shear_stress(soln_at_q,soln_grad_at_q,normal_vector);
+                        double integrand_value = this->pde_model_navier_stokes_double->navier_stokes_physics->compute_wall_shear_stress(soln_at_q,soln_grad_at_q,normal_vector);
                         integral_value += integrand_value * fe_face_values_extra.JxW(iquad);
                         integral_area_value += fe_face_values_extra.JxW(iquad);
                     }

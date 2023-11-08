@@ -3,6 +3,7 @@
 
 #include "strong_dg.hpp"
 #include "physics/large_eddy_simulation.h"
+#include "physics/navier_stokes_model.h"
 
 namespace PHiLiP {
 
@@ -193,8 +194,8 @@ protected:
 
     const double total_wall_area; ///< Total wall area
 public:
-    /// Contains the large eddy simulation object
-    std::shared_ptr < Physics::LargeEddySimulationBase<dim, nstate, real > > pde_model_les_double;
+    /// Contains the Navier-Stokes with model source terms object
+    std::shared_ptr < Physics::NavierStokesWithModelSourceTerms<dim, nstate, real > > pde_model_navier_stokes_double;
 
     /// Allocate the necessary variables declared in src/physics/model.h
     void allocate_model_variables() override;

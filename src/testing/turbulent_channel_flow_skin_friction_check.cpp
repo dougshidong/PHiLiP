@@ -33,8 +33,8 @@ template <int dim, int nstate>
 double TurbulentChannelFlowSkinFrictionCheck<dim, nstate>::compute_wall_shear_stress() const
 {
     // for constant viscosity we can write:
-    const double nondimensionalized_constant_viscosity = this->all_parameters.navier_stokes_param.nondimensionalized_constant_viscosity;
-    const double scaled_nondim_viscosity = nondimensionalized_constant_viscosity/this->all_parameters.navier_stokes_param.reynolds_number_inf;
+    const double nondimensionalized_constant_viscosity = this->all_parameters->navier_stokes_param.nondimensionalized_constant_viscosity;
+    const double scaled_nondim_viscosity = nondimensionalized_constant_viscosity/this->all_parameters->navier_stokes_param.reynolds_number_inf;
     const double wall_shear_stress = scaled_nondim_viscosity*get_x_velocity_gradient(-1.0); // should be the same for both walls
     return wall_shear_stress;
 }

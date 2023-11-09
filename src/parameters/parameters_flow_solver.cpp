@@ -244,7 +244,7 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                               " <laminar | "
                               " turbulent>.");
             prm.declare_entry("relaxation_coefficient_for_turbulent_channel_flow_source_term", "0.0",
-                              dealii::Patterns::Double(0, dealii::Patterns::Double::max_double_value),
+                              dealii::Patterns::Double(-dealii::Patterns::Double::max_double_value, dealii::Patterns::Double::max_double_value),
                               "Relaxation coefficient for the turbulent channel flow source term. Default is 0.");
         }
         prm.leave_subsection();

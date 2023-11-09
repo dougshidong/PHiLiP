@@ -103,7 +103,8 @@ public:
     double turbulent_channel_domain_length_x_direction; ///< For channel flow, domain length in x-direction
     double turbulent_channel_domain_length_y_direction; ///< For channel flow, domain length in y-direction
     double turbulent_channel_domain_length_z_direction; ///< For channel flow, domain length in z-direction
-    
+    double relaxation_coefficient_for_turbulent_channel_flow_source_term;///< For channel flow, relaxation coefficient for the source term
+
     /// For turbulent channel flow, selects the type of x-velocity initialization
     enum XVelocityInitialConditionType{
         laminar,

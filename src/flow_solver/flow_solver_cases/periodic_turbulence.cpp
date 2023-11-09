@@ -95,7 +95,10 @@ PeriodicTurbulence<dim, nstate>::PeriodicTurbulence(const PHiLiP::Parameters::Al
 template <int dim, int nstate>
 void PeriodicTurbulence<dim,nstate>::display_additional_flow_case_specific_parameters() const
 {
-    this->pcout << "- - Courant-Friedrichs-Lewy number: " << this->all_param.flow_solver_param.courant_friedrichs_lewy_number << std::endl;
+    if(this->all_param.flow_solver_param.adaptive_time_step)
+        this->pcout << "- - Courant-Friedrichs-Lewy number: " << this->all_param.flow_solver_param.courant_friedrichs_lewy_number << std::endl;
+    else
+        this->pcout << "- - Constant time step: " << this->all_param.flow_solver_param.constant_time_step << std::endl;
     std::string flow_type_string;
     if(this->is_taylor_green_vortex || this->is_decaying_homogeneous_isotropic_turbulence) {
         this->pcout << "- - Freestream Reynolds number: " << this->all_param.navier_stokes_param.reynolds_number_inf << std::endl;

@@ -259,7 +259,8 @@ ModelFactory<dim,nstate,real>
                     parameters_input->navier_stokes_param.nondimensionalized_isothermal_wall_temperature,
                     parameters_input->navier_stokes_param.thermal_boundary_condition_type,
                     manufactured_solution_function,
-                    parameters_input->two_point_num_flux_type);
+                    parameters_input->two_point_num_flux_type,
+                    parameters_input->flow_solver_param.relaxation_coefficient_for_turbulent_channel_flow_source_term);
             } else {
                 // Navier-Stokes model does not exist for nstate!=(dim+2) || dim!=3
                 manufactured_solution_function = nullptr;

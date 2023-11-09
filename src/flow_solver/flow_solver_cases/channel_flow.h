@@ -108,6 +108,16 @@ private:
 
     /// Get the average wall shear stress
     double get_average_wall_shear_stress(DGBase<dim, double> &dg) const;
+
+    /// Set the bulk flow quantities
+    void set_bulk_flow_quantities(DGBase<dim, double> &dg);
+
+    /// Get the skin friction coefficient from the average wall shear stress
+    double get_skin_friction_coefficient_from_average_wall_shear_stress(const double avg_wall_shear_stress) const;
+
+    double bulk_density; ///< Bulk density
+    double bulk_mass_flow_rate; ///< Bulk mass flow rate
+    double bulk_velocity; ///< Bulk velocity
 };
 
 } // FlowSolver namespace

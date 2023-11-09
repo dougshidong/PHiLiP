@@ -243,6 +243,9 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                               "Choices are "
                               " <laminar | "
                               " turbulent>.");
+            prm.declare_entry("relaxation_coefficient_for_turbulent_channel_flow_source_term", "0.0",
+                              dealii::Patterns::Double(0, dealii::Patterns::Double::max_double_value),
+                              "Relaxation coefficient for the turbulent channel flow source term. Default is 0.");
         }
         prm.leave_subsection();
 
@@ -401,6 +404,7 @@ void FlowSolverParam::parse_parameters(dealii::ParameterHandler &prm)
             const std::string xvelocity_initial_condition_type_string = prm.get("xvelocity_initial_condition_type");
             if      (xvelocity_initial_condition_type_string == "laminar")   {xvelocity_initial_condition_type = laminar;}
             else if (xvelocity_initial_condition_type_string == "turbulent") {xvelocity_initial_condition_type = turbulent;}
+            relaxation_coefficient_for_turbulent_channel_flow_source_term = prm.get_double("relaxation_coefficient_for_turbulent_channel_flow_source_term");
         }
         prm.leave_subsection();
 

@@ -27,7 +27,8 @@ NavierStokesWithModelSourceTerms<dim, nstate, real>::NavierStokesWithModelSource
     const double                                              isothermal_wall_temperature,
     const thermal_boundary_condition_enum                     thermal_boundary_condition_type,
     std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function,
-    const two_point_num_flux_enum                             two_point_num_flux_type)
+    const two_point_num_flux_enum                             two_point_num_flux_type,
+    const double                                              relaxation_coefficient)
     : ModelBase<dim,nstate,real>(manufactured_solution_function) 
     , navier_stokes_physics(std::make_unique < NavierStokes<dim,nstate,real> > (
             ref_length,
@@ -44,6 +45,7 @@ NavierStokesWithModelSourceTerms<dim, nstate, real>::NavierStokesWithModelSource
             thermal_boundary_condition_type,
             manufactured_solution_function,
             two_point_num_flux_type))
+    , relaxation_coefficient(relaxation_coefficient)
 {
     static_assert(nstate==dim+2, "ModelBase::NavierStokesWithModelSourceTerms() should be created with nstate=dim+2");
     // initialize zero arrays / tensors
@@ -162,8 +164,7 @@ std::array<real,nstate> NavierStokesWithModelSourceTerms<dim,nstate,real>
     // x-momentum term
     const real bulk_reynolds_number = this->navier_stokes_physics->reynolds_number_inf;
     const real expected_mass_flow_rate = this->navier_stokes_physics->constant_viscosity * bulk_reynolds_number / 1.0;
-    const real relaxation_coefficient = 0.3; // alpha in Eq.(34)
-    source_term[1] = this->resultant_wall_shear_force/this->domain_volume - relaxation_coefficient*(this->bulk_mass_flow_rate - expected_mass_flow_rate)/this->time_step;
+    source_term[1] = this->resultant_wall_shear_force/this->domain_volume - this->relaxation_coefficient*(this->bulk_mass_flow_rate - expected_mass_flow_rate)/this->time_step;
 
     // energy term
     source_term[nstate-1] = this->bulk_velocity*source_term[1];

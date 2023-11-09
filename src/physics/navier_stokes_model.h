@@ -27,11 +27,11 @@ public:
         const bool                                                use_constant_viscosity,
         const double                                              constant_viscosity,
         const double                                              temperature_inf,
+        const double                                              relaxation_coefficient,
         const double                                              isothermal_wall_temperature = 1.0,
         const thermal_boundary_condition_enum                     thermal_boundary_condition_type = thermal_boundary_condition_enum::adiabatic,
         std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function = nullptr,
-        const two_point_num_flux_enum                             two_point_num_flux_type = two_point_num_flux_enum::KG,
-        const double                                              relaxation_coefficient);
+        const two_point_num_flux_enum                             two_point_num_flux_type = two_point_num_flux_enum::KG);
 
     /// Destructor
     ~NavierStokesWithModelSourceTerms() {};

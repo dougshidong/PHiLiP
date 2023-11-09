@@ -24,12 +24,13 @@ NavierStokesWithModelSourceTerms<dim, nstate, real>::NavierStokesWithModelSource
     const bool                                                use_constant_viscosity,
     const double                                              constant_viscosity,
     const double                                              temperature_inf,
+    const double                                              relaxation_coefficient,
     const double                                              isothermal_wall_temperature,
     const thermal_boundary_condition_enum                     thermal_boundary_condition_type,
     std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function,
-    const two_point_num_flux_enum                             two_point_num_flux_type,
-    const double                                              relaxation_coefficient)
+    const two_point_num_flux_enum                             two_point_num_flux_type)
     : ModelBase<dim,nstate,real>(manufactured_solution_function) 
+    , relaxation_coefficient(relaxation_coefficient)
     , navier_stokes_physics(std::make_unique < NavierStokes<dim,nstate,real> > (
             ref_length,
             gamma_gas,
@@ -45,7 +46,6 @@ NavierStokesWithModelSourceTerms<dim, nstate, real>::NavierStokesWithModelSource
             thermal_boundary_condition_type,
             manufactured_solution_function,
             two_point_num_flux_type))
-    , relaxation_coefficient(relaxation_coefficient)
 {
     static_assert(nstate==dim+2, "ModelBase::NavierStokesWithModelSourceTerms() should be created with nstate=dim+2");
     // initialize zero arrays / tensors

@@ -102,12 +102,11 @@ public:
             const std::shared_ptr <DGBase<dim, double>> dg,
             const std::shared_ptr<dealii::TableHandler> unsteady_data_table) override;
 
+    /// Get the average wall shear stress
+    double get_average_wall_shear_stress(DGBase<dim, double> &dg) const;
 private:
     /// Get the stretched mesh size
     double get_stretched_mesh_size(const int i) const;
-
-    /// Get the average wall shear stress
-    double get_average_wall_shear_stress(DGBase<dim, double> &dg) const;
 
     /// Set the bulk flow quantities
     void set_bulk_flow_quantities(DGBase<dim, double> &dg);

@@ -83,9 +83,9 @@ double AnisotropicMeshAdaptationCases<dim,nstate> :: output_vtk_files(std::share
 {
     dg->output_results_vtk(98765);
 
-    std::unique_ptr<DualWeightedResidualError<dim, nstate , double>> dwr_error_val = std::make_unique<DualWeightedResidualError<dim, nstate , double>>(dg);
-    const double abs_dwr_error = dwr_error_val->total_dual_weighted_residual_error();
-    return abs_dwr_error;
+//    std::unique_ptr<DualWeightedResidualError<dim, nstate , double>> dwr_error_val = std::make_unique<DualWeightedResidualError<dim, nstate , double>>(dg);
+//    const double abs_dwr_error = dwr_error_val->total_dual_weighted_residual_error();
+//    return abs_dwr_error;
 
     return 0;
 }
@@ -185,7 +185,8 @@ if constexpr (nstate==dim+2)
     const double l2error_global = sqrt(dealii::Utilities::MPI::sum(l2error, MPI_COMM_WORLD));
     const double l1error_global = sqrt(dealii::Utilities::MPI::sum(l1error, MPI_COMM_WORLD));
     (void) l2error_global;
-    return l1error_global;
+    (void) l1error_global;
+    return l2error_global;
 }
 std::abort();
 return 0.0;
@@ -218,14 +219,13 @@ int AnisotropicMeshAdaptationCases<dim, nstate> :: run_test () const
     n_cycle_vector.push_back(current_cycle++);
     dealii::ConvergenceTable convergence_table_functional;
     dealii::ConvergenceTable convergence_table_enthalpy;
-
     if(run_mesh_optimizer)
     {
         flow_solver->dg->freeze_artificial_dissipation=true;
-        for(unsigned int i=0; i<1; ++i)
+        for(unsigned int i=0; i<2; ++i)
         {
-            std::unique_ptr<MeshOptimizer<dim,nstate>> mesh_optimizer = std::make_unique<MeshOptimizer<dim,nstate>> (flow_solver->dg,&param, true);
-            mesh_optimizer->run_full_space_optimizer();
+            //std::unique_ptr<MeshOptimizer<dim,nstate>> mesh_optimizer = std::make_unique<MeshOptimizer<dim,nstate>> (flow_solver->dg,&param, true);
+            //mesh_optimizer->run_full_space_optimizer();
 
             const double functional_error = evaluate_functional_error(flow_solver->dg);
             const double enthalpy_error = evaluate_enthalpy_error(flow_solver->dg);
@@ -245,6 +245,7 @@ int AnisotropicMeshAdaptationCases<dim, nstate> :: run_test () const
             std::unique_ptr<MeshAdaptation<dim,double>> meshadaptation =
             std::make_unique<MeshAdaptation<dim,double>>(flow_solver->dg, &(mesh_adaptation_param2));
             meshadaptation->adapt_mesh();
+            flow_solver->run();
         }
     }
 

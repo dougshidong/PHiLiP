@@ -109,6 +109,7 @@ public:
     enum XVelocityInitialConditionType{
         laminar,
         turbulent,
+        manufactured,
         };
     /// Selected XVelocityInitialConditionType from the input file
     XVelocityInitialConditionType xvelocity_initial_condition_type;

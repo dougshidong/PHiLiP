@@ -12,12 +12,25 @@ TurbulentChannelFlowSkinFrictionCheck<dim, nstate>::TurbulentChannelFlowSkinFric
         : TestsBase::TestsBase(parameters_input)
         , parameter_handler(parameter_handler_input)
         , half_channel_height(parameters_input->flow_solver_param.turbulent_channel_domain_length_y_direction/2.0)
+        , xvelocity_initial_condition_type(parameters_input->flow_solver_param.xvelocity_initial_condition_type)
+        , y_top_wall(1.0)
+        , y_bottom_wall(-1.0)
+        , normal_vector_top_wall(-1.0)
+        , normal_vector_bottom_wall(1.0)
 {}
 
 template <int dim, int nstate>
 double TurbulentChannelFlowSkinFrictionCheck<dim, nstate>::get_x_velocity(const double y) const 
 {
-    const double x_velocity = (15.0/8.0)*pow(1.0-pow(y/this->half_channel_height,2.0),2.0);
+    double x_velocity = 0.0;
+    if(this->xvelocity_initial_condition_type == XVelocityInitialConditionEnum::laminar)
+    {
+        x_velocity = (15.0/8.0)*pow(1.0-pow(y/this->half_channel_height,2.0),2.0);
+    }
+    else if(this->xvelocity_initial_condition_type == XVelocityInitialConditionEnum::manufactured)
+    {
+        x_velocity = (15.0/8.0)*pow(y/this->half_channel_height,4.0);
+    }
     return x_velocity;
 }
 
@@ -25,8 +38,16 @@ double TurbulentChannelFlowSkinFrictionCheck<dim, nstate>::get_x_velocity(const 
 template <int dim, int nstate>
 double TurbulentChannelFlowSkinFrictionCheck<dim, nstate>::get_x_velocity_gradient(const double y) const 
 {
-    const double x_velocity_gradient_wrt_y = (15.0/2.0)*y*(y*y - this->half_channel_height*this->half_channel_height)/pow(this->half_channel_height,4.0);
-    return x_velocity_gradient_wrt_y;
+    double x_velocity_gradient = 0.0;
+    if(this->xvelocity_initial_condition_type == XVelocityInitialConditionEnum::laminar)
+    {
+        x_velocity_gradient = (15.0/2.0)*y*(y*y - this->half_channel_height*this->half_channel_height)/pow(this->half_channel_height,4.0);
+    }
+    else if(this->xvelocity_initial_condition_type == XVelocityInitialConditionEnum::manufactured)
+    {
+        x_velocity_gradient = (15.0/2.0)*y*y*y/pow(this->half_channel_height,4.0);
+    }
+    return x_velocity_gradient;
 }
 
 template <int dim, int nstate>
@@ -35,8 +56,10 @@ double TurbulentChannelFlowSkinFrictionCheck<dim, nstate>::compute_wall_shear_st
     // for constant viscosity we can write:
     const double nondimensionalized_constant_viscosity = this->all_parameters->navier_stokes_param.nondimensionalized_constant_viscosity;
     const double scaled_nondim_viscosity = nondimensionalized_constant_viscosity/this->all_parameters->navier_stokes_param.reynolds_number_inf;
-    const double wall_shear_stress = scaled_nondim_viscosity*get_x_velocity_gradient(-1.0); // should be the same for both walls
-    return wall_shear_stress;
+    const double wall_shear_stress_top_wall = scaled_nondim_viscosity*get_x_velocity_gradient(this->y_top_wall)*this->normal_vector_top_wall;
+    const double wall_shear_stress_bottom_wall = scaled_nondim_viscosity*get_x_velocity_gradient(this->y_bottom_wall)*this->normal_vector_bottom_wall;
+    const double average_wall_shear_stress = 0.5*(wall_shear_stress_top_wall + wall_shear_stress_bottom_wall);
+    return average_wall_shear_stress;
 }
 
 template <int dim, int nstate>

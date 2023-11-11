@@ -35,6 +35,7 @@ set do_renumber_dofs = false
 subsection ODE solver
   set ode_output = quiet
   set ode_solver_type = runge_kutta
+  set output_solution_every_x_steps = 1
   set output_solution_every_dt_time_intervals = 0.0
   set output_solution_at_fixed_times = false
   set runge_kutta_method = ssprk3_ex
@@ -101,7 +102,7 @@ subsection flow_solver
     set turbulent_channel_domain_length_y_direction = 2.0
     set turbulent_channel_domain_length_z_direction = 3.141592653589793238
     set turbulent_channel_mesh_stretching_function_type = carton_de_wiart_et_al
-    set xvelocity_initial_condition_type = laminar
+    set xvelocity_initial_condition_type = manufactured
     set relaxation_coefficient_for_turbulent_channel_flow_source_term = 0.0
   end
   set apply_initial_condition_method = project_initial_condition_function

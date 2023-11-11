@@ -182,6 +182,34 @@ inline real InitialConditionFunction_TurbulentChannelFlow_Turbulent<dim, nstate,
 }
 
 // ========================================================
+// Turbulent Channel Flow -- Initial Condition (Manufactured x-velocity)
+// ========================================================
+template <int dim, int nstate, typename real>
+InitialConditionFunction_TurbulentChannelFlow_Manufactured<dim,nstate,real>
+::InitialConditionFunction_TurbulentChannelFlow_Manufactured (
+    const Physics::NavierStokes<dim,nstate,double> navier_stokes_physics_,
+    const double channel_friction_velocity_reynolds_number_,
+    const double domain_length_x_,
+    const double domain_length_y_,
+    const double domain_length_z_)
+    : InitialConditionFunction_TurbulentChannelFlow<dim,nstate,real>(
+        navier_stokes_physics_,
+        channel_friction_velocity_reynolds_number_,
+        domain_length_x_,
+        domain_length_y_,
+        domain_length_z_)
+{}
+
+template <int dim, int nstate, typename real>
+inline real InitialConditionFunction_TurbulentChannelFlow_Manufactured<dim, nstate, real>
+::x_velocity(const dealii::Point<dim,real> &point, const real /*density*/, const real /*temperature*/) const
+{
+    // Manufactured velocity profile
+    const real x_velocity = (15.0/8.0)*pow(point[1]/this->half_channel_height,4.0);
+    return x_velocity;
+}
+
+// ========================================================
 // TAYLOR GREEN VORTEX -- Initial Condition (Uniform density)
 // ========================================================
 template <int dim, int nstate, typename real>
@@ -724,6 +752,13 @@ InitialConditionFactory<dim,nstate, real>::create_InitialConditionFunction(
                     param->flow_solver_param.turbulent_channel_domain_length_x_direction,
                     param->flow_solver_param.turbulent_channel_domain_length_y_direction,
                     param->flow_solver_param.turbulent_channel_domain_length_z_direction);
+            } else if(xvelocity_initial_condition_type == XVelocityInitialConditionEnum::manufactured) {
+                return std::make_shared<InitialConditionFunction_TurbulentChannelFlow_Manufactured<dim,nstate,real>>(
+                    navier_stokes_physics_double,
+                    param->flow_solver_param.turbulent_channel_friction_velocity_reynolds_number,
+                    param->flow_solver_param.turbulent_channel_domain_length_x_direction,
+                    param->flow_solver_param.turbulent_channel_domain_length_y_direction,
+                    param->flow_solver_param.turbulent_channel_domain_length_z_direction);
             }
         }
     } else {
@@ -756,6 +791,7 @@ template class InitialConditionFunction_TaylorGreenVortex <PHILIP_DIM, PHILIP_DI
 template class InitialConditionFunction_TaylorGreenVortex_Isothermal <PHILIP_DIM, PHILIP_DIM+2, double>;
 template class InitialConditionFunction_TurbulentChannelFlow <PHILIP_DIM, PHILIP_DIM+2, double>;
 template class InitialConditionFunction_TurbulentChannelFlow_Turbulent <PHILIP_DIM, PHILIP_DIM+2, double>;
+template class InitialConditionFunction_TurbulentChannelFlow_Manufactured <PHILIP_DIM, PHILIP_DIM+2, double>;
 #endif
 #if PHILIP_DIM>1
 template class InitialConditionFunction_IsentropicVortex <PHILIP_DIM, PHILIP_DIM+2, double>;

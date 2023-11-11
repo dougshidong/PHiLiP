@@ -64,6 +64,8 @@ Euler<dim,nstate,real>::Euler (
 
     double velocity_inf_sqr = 1.0;
     dynamic_pressure_inf = 0.5 * density_inf * velocity_inf_sqr;
+
+    enthalpy_inf = gam/gamm1 * pressure_inf/density_inf + 0.5*velocity_inf_sqr;
 }
 
 template <int dim, int nstate, typename real>
@@ -1465,6 +1467,10 @@ dealii::Vector<double> Euler<dim,nstate,real>::post_compute_derived_quantities_v
         computed_quantities(++current_data_index) = compute_entropy_measure(conservative_soln) - entropy_inf;
         // Mach Number
         computed_quantities(++current_data_index) = compute_mach_number(conservative_soln);
+        // Enthalpy error
+        const double pressure = primitive_soln[nstate-1];
+        computed_quantities(++current_data_index) = compute_specific_enthalpy(conservative_soln,pressure) - enthalpy_inf;
+
 
     }
     if (computed_quantities.size()-1 != current_data_index) {
@@ -1495,6 +1501,7 @@ std::vector<dealii::DataComponentInterpretation::DataComponentInterpretation> Eu
     interpretation.push_back (DCI::component_is_scalar); // Temperature
     interpretation.push_back (DCI::component_is_scalar); // Entropy generation
     interpretation.push_back (DCI::component_is_scalar); // Mach number
+    interpretation.push_back (DCI::component_is_scalar); // Enthalpy error
 
     std::vector<std::string> names = post_get_names();
     if (names.size() != interpretation.size()) {
@@ -1523,6 +1530,7 @@ std::vector<std::string> Euler<dim,nstate,real>
 
     names.push_back ("entropy_generation");
     names.push_back ("mach_number");
+    names.push_back ("enthalpy_error");
     return names;
 }
 

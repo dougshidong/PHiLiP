@@ -131,6 +131,7 @@ public:
     const two_point_num_flux_enum two_point_num_flux_type; ///< Two point numerical flux type (for split form)
     double temperature_inf; ///< Non-dimensionalized temperature* at infinity. Should equal 1/density*(inf)
     double dynamic_pressure_inf; ///< Non-dimensionalized dynamic pressure* at infinity
+    double enthalpy_inf; ///< Enthalpy at infinity
 
     //const double internal_energy_inf;
     /// Non-dimensionalized Velocity vector at farfield

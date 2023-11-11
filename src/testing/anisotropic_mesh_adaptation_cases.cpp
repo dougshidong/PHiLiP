@@ -128,15 +128,6 @@ double AnisotropicMeshAdaptationCases<dim,nstate> :: evaluate_enthalpy_error(std
 {
 if constexpr (nstate==dim+2)
 {
-//===================== Evaluate exact enthalpy ===================================================
-    const double mach_inf = dg->all_parameters->euler_param.mach_inf;
-    const double desnity_inf = 1.0;
-    const double gam = 1.4;
-    const double pressure_inf = 1.0/(gam * pow(mach_inf,2)); 
-    const double tot_energy = pressure_inf/(gam - 1.0) + 0.5*desnity_inf;
-    const double enthalpy_inf = (tot_energy + pressure_inf)/desnity_inf;
-
-//===================== Evaluate error in enthalpy ===================================================
     Physics::Euler<dim,nstate,double> euler_physics_double
         = Physics::Euler<dim, nstate, double>(
                 dg->all_parameters->euler_param.ref_length,
@@ -178,7 +169,7 @@ if constexpr (nstate==dim+2)
             
             const double pressure = euler_physics_double.compute_pressure(soln_at_q);
             const double enthalpy_at_q = euler_physics_double.compute_specific_enthalpy(soln_at_q,pressure);
-            l2error += pow((enthalpy_at_q - enthalpy_inf),2) * fe_values_extra.JxW(iquad);
+            l2error += pow((enthalpy_at_q - euler_physics_double.enthalpy_inf),2) * fe_values_extra.JxW(iquad);
             l1error += pow(euler_physics_double.compute_entropy_measure(soln_at_q) - euler_physics_double.entropy_inf,2) * fe_values_extra.JxW(iquad);
         }
     } // cell loop ends

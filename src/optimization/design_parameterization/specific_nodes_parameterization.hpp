@@ -33,9 +33,9 @@ public:
     
     void compute_control_index_to_vol_index();
 
-    bool check_if_node_belongs_to_the_region_between_lines(
-        const double x, 
-        const double y) const;
+    bool check_if_node_belongs_to_the_region(const double x) const;
+
+    double get_slope_y(const unsigned int ivol, const bool on_boundary) const;
 
 private:
     
@@ -49,7 +49,10 @@ private:
     
     dealii::LinearAlgebra::distributed::Vector<int> control_index_to_vol_index;
     
-    dealii::LinearAlgebra::distributed::Vector<int> is_a_control_node;
+    dealii::LinearAlgebra::distributed::Vector<int> control_index_to_left_vol_index;
+    
+    dealii::LinearAlgebra::distributed::Vector<int> control_index_to_right_vol_index;
+    
     dealii::LinearAlgebra::distributed::Vector<int> is_on_boundary;
 };
 

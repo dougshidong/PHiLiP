@@ -19,9 +19,11 @@ void SpecificNodesParameterization<dim> :: compute_control_index_to_vol_index()
     const unsigned int n_vol_nodes = this->high_order_grid->volume_nodes.size();
     const unsigned int n_surf_nodes = this->high_order_grid->surface_nodes.size();
 
+    dealii::LinearAlgebra::distributed::Vector<int> is_a_control_node;
     is_a_control_node.reinit(this->high_order_grid->volume_nodes); // Copies parallel layout, without values. Initializes to 0 by default.
     is_a_control_node = 0;
     is_a_control_node.update_ghost_values();
+    
     is_on_boundary.reinit(this->high_order_grid->volume_nodes); // Copies parallel layout, without values. Initializes to 0 by default.
     is_on_boundary = 0;
     is_on_boundary.update_ghost_values();
@@ -29,7 +31,7 @@ void SpecificNodesParameterization<dim> :: compute_control_index_to_vol_index()
     // Get locally owned volume and surface ranges of indices held by current processor.
     const dealii::IndexSet &volume_range = this->high_order_grid->volume_nodes.get_partitioner()->locally_owned_range();
     const dealii::IndexSet &surface_range = this->high_order_grid->surface_nodes.get_partitioner()->locally_owned_range();
-    
+
     for(unsigned int i_vol = 0; i_vol<n_vol_nodes; ++i_vol) 
     {
         if(!(volume_range.is_element(i_vol))) continue;
@@ -48,17 +50,26 @@ void SpecificNodesParameterization<dim> :: compute_control_index_to_vol_index()
             const double x = this->high_order_grid->volume_nodes(i_vol);
             const double y = this->high_order_grid->volume_nodes(i_vol+1);
 
-            const bool is_part_of_region = check_if_node_belongs_to_the_region_between_lines(x, y);
-
-            if( is_part_of_region )
+            const bool is_part_of_region = check_if_node_belongs_to_the_region(x);
+            
+            if( is_part_of_region)
             {
                 is_a_control_node(i_vol) = 1;
-                is_a_control_node(i_vol+1) = 0;
+                is_a_control_node(i_vol+1) = 1;
+
+                if( y==0 || y==1)
+                {
+                    is_a_control_node(i_vol+1) = 0;
+                    if( (y==1) && (x==3.0/8.0))
+                    {
+                        is_a_control_node(i_vol) = 0;
+                    }
+                }
             }
         }
     }
     is_a_control_node.update_ghost_values();
-
+    
     for(unsigned int i_surf = 0; i_surf < n_surf_nodes; ++i_surf)
     {
         if(!(surface_range.is_element(i_surf))) continue;
@@ -70,7 +81,154 @@ void SpecificNodesParameterization<dim> :: compute_control_index_to_vol_index()
     }
     is_a_control_node.update_ghost_values();
     is_on_boundary.update_ghost_values();
+    
+    dealii::LinearAlgebra::distributed::Vector<int> left_control_index;
+    left_control_index.reinit(this->high_order_grid->volume_nodes); // copies parallel layout, without values. initializes to 0 by default.
+    left_control_index = 0;
+    left_control_index.update_ghost_values();
+    dealii::LinearAlgebra::distributed::Vector<int> right_control_index;
+    right_control_index.reinit(this->high_order_grid->volume_nodes); // copies parallel layout, without values. initializes to 0 by default.
+    right_control_index = 0;
+    right_control_index.update_ghost_values();
 
+    dealii::LinearAlgebra::distributed::Vector<int> left_update;
+    left_update.reinit(this->high_order_grid->volume_nodes);
+    dealii::LinearAlgebra::distributed::Vector<int> right_update;
+    right_update.reinit(this->high_order_grid->volume_nodes);
+    
+    std::vector<int> index_adj1(16);
+    std::vector<int> index_adj2(8);
+    index_adj1[0] = 12;      
+    index_adj1[1] = 13;
+    index_adj1[2] = 12;
+    index_adj1[3] = 13;
+    index_adj1[4] = 8;
+    index_adj1[5] = 9;
+    index_adj1[6] = 14;
+    index_adj1[7] = 15;
+    index_adj1[8] = 16;
+    index_adj1[9] = 17;
+    index_adj1[10] = 16;
+    index_adj1[11] = 17;
+    index_adj1[12] = 16;
+    index_adj1[13] = 17;
+    index_adj1[14] = 16;
+    index_adj1[15] = 17;
+    
+    index_adj2[0] = 8;
+    index_adj2[1] = 9;
+    index_adj2[2] = 10;
+    index_adj2[3] = 11;
+    index_adj2[4] = 14;
+    index_adj2[5] = 15;
+    index_adj2[6] = 10;
+    index_adj2[7] = 11;
+    
+
+    const dealii::FESystem<dim,dim> &fe_metric = this->high_order_grid->fe_system;
+    const unsigned int n_metric_dofs_cell = fe_metric.n_dofs_per_cell();
+    std::vector<dealii::types::global_dof_index> dofs_indices(n_metric_dofs_cell);
+    for (const auto &cell : this->high_order_grid->dof_handler_grid.active_cell_iterators()) 
+    {
+        if (! cell->is_locally_owned()) {continue;}
+
+        if(this->high_order_grid->max_degree == 1) {continue;}
+ 
+        cell->get_dof_indices (dofs_indices);
+
+        for(unsigned int idof = 0; idof < n_metric_dofs_cell; ++idof)
+        {
+            const unsigned int ivol = dofs_indices[idof];
+
+            if( (ivol % dim) != 0.0) {continue;}
+            
+            const double x_val = this->high_order_grid->volume_nodes(ivol);
+
+            if(is_a_control_node(ivol)==1)
+            {
+                const unsigned int idof1 = index_adj1[idof];
+                const unsigned int ivol1 = dofs_indices[idof1];
+                if(is_a_control_node(ivol1)==0)
+                {
+                    const double x_val1 = this->high_order_grid->volume_nodes(ivol1);
+
+                    if(x_val1 < x_val)
+                    {
+                        left_control_index(ivol) += ivol1;
+                        left_update(ivol) += 1;
+                        if(is_a_control_node(ivol+1))
+                        {
+                            left_control_index(ivol+1) += ivol1+1;
+                            left_update(ivol+1) += 1;
+                        }
+                    }
+                    else
+                    {
+                        right_control_index(ivol) += ivol1;
+                        right_update(ivol) += 1;
+                        if(is_a_control_node(ivol+1))
+                        {
+                            right_control_index(ivol+1) += ivol1+1;
+                            right_update(ivol+1) += 1;
+                        }
+                    }
+                } // ivol1 ends
+                if(idof <= 7)
+                {
+                    const unsigned int idof2 = index_adj2[idof];
+                    const unsigned int ivol2 = dofs_indices[idof2];
+                    if(is_a_control_node(ivol2)==0)
+                    {
+                        const double x_val2 = this->high_order_grid->volume_nodes(ivol2);
+
+                        if(x_val2 < x_val)
+                        {
+                            left_control_index(ivol) += ivol2;
+                            left_update(ivol) += 1;
+                            if(is_a_control_node(ivol+1))
+                            {
+                                left_control_index(ivol+1) += ivol2+1;
+                                left_update(ivol+1) += 1;
+                            }
+                        }
+                        else
+                        {
+                            right_control_index(ivol) += ivol2;
+                            right_update(ivol) += 1;
+                            if(is_a_control_node(ivol+1))
+                            {
+                                right_control_index(ivol+1) += ivol2+1;
+                                right_update(ivol+1) += 1;
+                            }
+                        }
+                    } // ivol2 ends
+                }
+            } // ivol if ends
+        } // for idof ends
+    } // cell loop ends
+
+
+    left_control_index.compress(dealii::VectorOperation::add);
+    right_control_index.compress(dealii::VectorOperation::add);
+    left_update.compress(dealii::VectorOperation::add);
+    right_update.compress(dealii::VectorOperation::add);
+    left_control_index.update_ghost_values();
+    right_control_index.update_ghost_values();
+    for(unsigned int ivol = 0; ivol < n_vol_nodes; ++ivol)
+    {
+        if(! volume_range.is_element(ivol)) {continue;}
+        if(left_update(ivol) != 0)
+        {
+            left_control_index(ivol) = left_control_index(ivol)/left_update(ivol);
+        }
+        if(right_update(ivol) != 0)
+        {
+            right_control_index(ivol) = right_control_index(ivol)/right_update(ivol);
+        }
+    }
+    left_control_index.update_ghost_values();
+    right_control_index.update_ghost_values();
+    
     n_control_nodes = is_a_control_node.l1_norm();
 
     unsigned int n_control_nodes_this_processor = 0;
@@ -97,9 +255,14 @@ void SpecificNodesParameterization<dim> :: compute_control_index_to_vol_index()
 
     control_index_range.set_size(n_control_nodes);
     control_index_range.add_range(lower_index, higher_index);
+
+    control_ghost_range.set_size(n_control_nodes);
+    control_ghost_range.add_range(0,n_control_nodes);
     
     //=========== Set control_index_to_vol_index ================================================================
-    control_index_to_vol_index.reinit(control_index_range, this->mpi_communicator); // No need of ghosts. To be verified later.
+    control_index_to_vol_index.reinit(control_index_range, control_ghost_range, this->mpi_communicator);  
+    control_index_to_left_vol_index.reinit(control_index_range, control_ghost_range, this->mpi_communicator); 
+    control_index_to_right_vol_index.reinit(control_index_range, control_ghost_range, this->mpi_communicator); 
 
     unsigned int count1 = lower_index;
     for(unsigned int i_vol = 0; i_vol < n_vol_nodes; ++i_vol)
@@ -108,12 +271,18 @@ void SpecificNodesParameterization<dim> :: compute_control_index_to_vol_index()
         
         if(is_a_control_node(i_vol) == 1)
         {
+            if(this->high_order_grid->max_degree > 1)
+            {
+                control_index_to_left_vol_index[count1] = left_control_index(i_vol);
+                control_index_to_right_vol_index[count1] = right_control_index(i_vol);
+            }
             control_index_to_vol_index[count1++] = i_vol;
         }
     }
     AssertDimension(count1, higher_index);
-    control_ghost_range.set_size(n_control_nodes);
-    control_ghost_range.add_range(0, n_control_nodes);
+    control_index_to_vol_index.update_ghost_values();
+    control_index_to_left_vol_index.update_ghost_values();
+    control_index_to_right_vol_index.update_ghost_values();    
 }
 
 template<int dim>
@@ -138,46 +307,77 @@ template<int dim>
 void SpecificNodesParameterization<dim> :: compute_dXv_dXp(MatrixType &dXv_dXp) const
 {
     const dealii::IndexSet &volume_range = this->high_order_grid->volume_nodes.get_partitioner()->locally_owned_range();
+    dealii::IndexSet locally_relevant_dofs;
+    dealii::DoFTools::extract_locally_relevant_dofs(this->high_order_grid->dof_handler_grid, locally_relevant_dofs);
+
     const unsigned int n_vol_nodes = this->high_order_grid->volume_nodes.size();
     
     dealii::DynamicSparsityPattern dsp(n_vol_nodes, n_control_nodes, volume_range);
     for(unsigned int i_control=0; i_control<n_control_nodes; ++i_control)
     {
-        if(control_index_range.is_element(i_control))
+    
+        const unsigned int ivol = control_index_to_vol_index[i_control];
+        if(volume_range.is_element(ivol))
         {
-            const unsigned int ivol = control_index_to_vol_index[i_control];
             dsp.add(ivol, i_control);
-            if(is_on_boundary(ivol))
-            {
-                dsp.add(ivol+1, i_control);
-            }
         }
+        if(is_on_boundary(ivol))
+        {
+            dsp.add(ivol+1, i_control);
+        }
+        
+        if(this->high_order_grid->max_degree > 1)
+        {
+            const unsigned int ivol1 = control_index_to_left_vol_index[i_control];
+            const unsigned int ivol2 = control_index_to_right_vol_index[i_control];
+
+            if(volume_range.is_element(ivol1))
+            {
+                dsp.add(ivol1, i_control);
+            }
+            if(volume_range.is_element(ivol2))
+            {
+                dsp.add(ivol2, i_control);
+            }
+            
+        }
+    
     }
 
 
-    dealii::IndexSet locally_relevant_dofs;
-    dealii::DoFTools::extract_locally_relevant_dofs(this->high_order_grid->dof_handler_grid, locally_relevant_dofs);
-
     dealii::SparsityTools::distribute_sparsity_pattern(dsp, volume_range, this->mpi_communicator, locally_relevant_dofs);
+    dealii::SparsityPattern full_sp;
+    full_sp.copy_from(dsp);
 
-    dXv_dXp.reinit(volume_range, control_index_range, dsp, this->mpi_communicator);
+    dXv_dXp.reinit(volume_range, control_index_range, full_sp, this->mpi_communicator);
 
     for(unsigned int i_control=0; i_control<n_control_nodes; ++i_control)
     {
-        if(control_index_range.is_element(i_control))
+        const unsigned int ivol = control_index_to_vol_index[i_control];
+        if(volume_range.is_element(ivol))
         {
-            const unsigned int ivol = control_index_to_vol_index[i_control];
             dXv_dXp.set(ivol, i_control, 1.0);
-            if(is_on_boundary(ivol))
-            {
-                double slope = 0.02;
-                if(this->high_order_grid->volume_nodes(ivol + 1) < 0)
-                {
-                    slope = -slope;
-                }
+        }
+        if(is_on_boundary(ivol))
+        {
+            const bool on_boundary=true;
+            const double slope = get_slope_y(ivol, on_boundary);
+            dXv_dXp.set(ivol+1, i_control, slope);
+        }    
+        
+        if(this->high_order_grid->max_degree > 1)
+        {
+            const unsigned int ivol1 = control_index_to_left_vol_index[i_control];
+            const unsigned int ivol2 = control_index_to_right_vol_index[i_control];
 
-                dXv_dXp.set(ivol+1, i_control, slope);
-            }    
+            if(volume_range.is_element(ivol1))
+            {
+                dXv_dXp.set(ivol1, i_control, 0.5);
+            }
+            if(volume_range.is_element(ivol2))
+            {
+                dXv_dXp.set(ivol2, i_control, 0.5);
+            } 
         }
     }
 
@@ -258,46 +458,27 @@ int SpecificNodesParameterization<dim> :: is_design_variable_valid(
 }
     
 template<int dim>
-bool SpecificNodesParameterization<dim> :: check_if_node_belongs_to_the_region_between_lines(
-    const double x, 
-    const double /*y*/) const
+bool SpecificNodesParameterization<dim> :: check_if_node_belongs_to_the_region(const double x) const
 {
-    double x_min = 6.0;
-    double x_max = 8.0;
-
-    const unsigned int ncells_level1 = 27;
-    const unsigned int ncells_level2 = ncells_level1*4;
-//    const unsigned int ncells_level3 = ncells_level2*4;
-//    const unsigned int ncells_level4 = ncells_level3*4;
-    const unsigned int n_cells = this->high_order_grid->triangulation->n_global_active_cells();
-    if(n_cells == ncells_level1)
-    {
-        x_min = 6.0;
-        x_max = 8.0;
-    }
-    else if(n_cells == ncells_level2)
-    {
-        x_min = 7.467117359655316;
-        x_max = 7.681882617331053;
-    }
-    /*
-    else if(n_cells == ncells_level3)
-    {
-        x_min = ;
-        x_max = ;
-    }
-    else if(n_cells == ncells_level4)
-    {
-        x_min = ;
-        x_max = ;
-    }
-*/
-    if( (x_min < x) && (x < x_max) )
-    {
-        return true;
-    }
+    if(x > (3.0/8.0 - 0.01) && x < (3.0/8.0 + 0.01)) {return true;}
 
     return false;
+}
+
+template<int dim>
+double SpecificNodesParameterization<dim> :: get_slope_y(
+    const unsigned int ivol, 
+    const bool on_boundary) const
+{
+    if(! on_boundary) {return 0.0;}
+    
+    double slope = 0.02;
+    if(this->high_order_grid->volume_nodes(ivol + 1) < 0)
+    {
+        slope = -slope;
+    }
+
+    return slope;
 }
 
 template class SpecificNodesParameterization<PHILIP_DIM>;

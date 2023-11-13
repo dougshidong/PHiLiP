@@ -387,9 +387,27 @@ double ChannelFlow<dim, nstate>::get_average_wall_shear_stress(DGBase<dim, doubl
 template <int dim, int nstate>
 double ChannelFlow<dim, nstate>::get_skin_friction_coefficient_from_average_wall_shear_stress(const double avg_wall_shear_stress) const
 {
-    // Reference: Reference: Equation 34 of Lodato G, Castonguay P, Jameson A. Discrete filter operators for large-eddy simulation using high-order spectral difference methods. International Journal for Numerical Methods in Fluids2013;72(2):231–258. 
+    // Reference: Equation 34 of Lodato G, Castonguay P, Jameson A. Discrete filter operators for large-eddy simulation using high-order spectral difference methods. International Journal for Numerical Methods in Fluids2013;72(2):231–258. 
     const double skin_friction_coefficient = 2.0*avg_wall_shear_stress/(this->bulk_density*this->bulk_velocity*this->bulk_velocity);
     return skin_friction_coefficient;
+}
+
+template <int dim, int nstate>
+double ChannelFlow<dim, nstate>::get_bulk_density() const
+{
+    return this->bulk_density;
+}
+
+template <int dim, int nstate>
+double ChannelFlow<dim, nstate>::get_bulk_mass_flow_rate() const
+{
+    return this->bulk_mass_flow_rate;
+}
+
+template <int dim, int nstate>
+double ChannelFlow<dim, nstate>::get_bulk_velocity() const
+{
+    return this->bulk_velocity;
 }
 
 template <int dim, int nstate>

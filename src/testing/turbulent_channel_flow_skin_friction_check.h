@@ -42,7 +42,9 @@ public:
 private:
     double get_x_velocity(const double y) const;
     double get_x_velocity_gradient(const double y) const;
-    double compute_wall_shear_stress() const;
+    double get_wall_shear_stress() const;
+    double get_bulk_velocity() const;
+    double get_skin_friction_coefficient() const;
     
 };
 

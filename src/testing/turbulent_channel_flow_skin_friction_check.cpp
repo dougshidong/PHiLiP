@@ -51,7 +51,7 @@ double TurbulentChannelFlowSkinFrictionCheck<dim, nstate>::get_x_velocity_gradie
 }
 
 template <int dim, int nstate>
-double TurbulentChannelFlowSkinFrictionCheck<dim, nstate>::compute_wall_shear_stress() const
+double TurbulentChannelFlowSkinFrictionCheck<dim, nstate>::get_wall_shear_stress() const
 {
     // for constant viscosity we can write:
     const double nondimensionalized_constant_viscosity = this->all_parameters->navier_stokes_param.nondimensionalized_constant_viscosity;
@@ -63,6 +63,33 @@ double TurbulentChannelFlowSkinFrictionCheck<dim, nstate>::compute_wall_shear_st
 }
 
 template <int dim, int nstate>
+double TurbulentChannelFlowSkinFrictionCheck<dim, nstate>::get_bulk_velocity() const
+{
+    double bulk_velocity = 0.0;
+    if(this->xvelocity_initial_condition_type == XVelocityInitialConditionEnum::laminar)
+    {
+        bulk_velocity = 1.0;
+    }
+    else if(this->xvelocity_initial_condition_type == XVelocityInitialConditionEnum::manufactured)
+    {
+        bulk_velocity = (3.0/8.0);
+    }
+    
+    return bulk_velocity;
+}
+
+template <int dim, int nstate>
+double TurbulentChannelFlowSkinFrictionCheck<dim, nstate>::get_skin_friction_coefficient() const
+{
+    // Reference: Equation 34 of Lodato G, Castonguay P, Jameson A. Discrete filter operators for large-eddy simulation using high-order spectral difference methods. International Journal for Numerical Methods in Fluids2013;72(2):231–258. 
+    const double avg_wall_shear_stress = this->get_wall_shear_stress();
+    const double bulk_density = 1.0; // based on initial condition
+    const double bulk_velocity = this->get_bulk_velocity();
+    const double skin_friction_coefficient = 2.0*avg_wall_shear_stress/(bulk_density*bulk_velocity*bulk_velocity);
+    return skin_friction_coefficient;
+}
+
+template <int dim, int nstate>
 int TurbulentChannelFlowSkinFrictionCheck<dim, nstate>::run_test() const
 {
     // Integrate to final time
@@ -71,24 +98,31 @@ int TurbulentChannelFlowSkinFrictionCheck<dim, nstate>::run_test() const
 
     // Compute kinetic energy and theoretical dissipation rate
     std::unique_ptr<FlowSolver::ChannelFlow<dim, nstate>> flow_solver_case = std::make_unique<FlowSolver::ChannelFlow<dim,nstate>>(this->all_parameters);
-    const double wall_shear_stress_computed = flow_solver_case->get_average_wall_shear_stress(*(flow_solver->dg));
-    pcout << "computed wall shear stress is " << wall_shear_stress_computed << std::endl;
-    pcout << "expected wall shear stress is " << compute_wall_shear_stress() << std::endl;
-    // flow_solver_case->compute_and_update_integrated_quantities(*(flow_solver->dg));
-    // const double kinetic_energy_computed = flow_solver_case->get_integrated_kinetic_energy();
-    // const double theoretical_dissipation_rate_computed = flow_solver_case->get_vorticity_based_dissipation_rate();
-
-    // const double relative_error_kinetic_energy = abs(kinetic_energy_computed - kinetic_energy_expected)/kinetic_energy_expected;
-    // const double relative_error_theoretical_dissipation_rate = abs(theoretical_dissipation_rate_computed - theoretical_dissipation_rate_expected)/theoretical_dissipation_rate_expected;
-    // if (relative_error_kinetic_energy > 1.0e-10) {
-    //     pcout << "Computed kinetic energy is not within specified tolerance with respect to expected value." << std::endl;
-    //     return 1;
-    // }
-    // if (relative_error_theoretical_dissipation_rate > 1.0e-10) {
-    //     pcout << "Computed theoretical dissipation rate is not within specified tolerance with respect to expected value." << std::endl;
-    //     return 1;
-    // }
-    // pcout << " Test passed, computed kinetic energy and theoretical dissipation rate are within specified tolerance." << std::endl;
+    const double computed_wall_shear_stress = flow_solver_case->get_average_wall_shear_stress(*(flow_solver->dg));
+    pcout << "computed wall shear stress is " << computed_wall_shear_stress << std::endl; // remove
+    pcout << "expected wall shear stress is " << get_wall_shear_stress() << std::endl; // remove
+    const double expected_wall_shear_stress = this->get_wall_shear_stress();
+    const double relative_error_wall_shear_stress = abs(computed_wall_shear_stress - expected_wall_shear_stress)/expected_wall_shear_stress;
+    if (relative_error_wall_shear_stress > 1.0e-10) {
+        pcout << "Computed wall shear stress is not within specified tolerance with respect to expected value." << std::endl;
+        return 1;
+    }
+    flow_solver_case->set_bulk_flow_quantities(*(flow_solver->dg));
+    const double computed_bulk_velocity = flow_solver_case->get_bulk_velocity();
+    const double computed_skin_friction_coefficient = flow_solver_case->get_skin_friction_coefficient_from_average_wall_shear_stress(computed_wall_shear_stress);
+    const double expected_bulk_velocity = this->get_bulk_velocity();
+    const double expected_skin_friction_coefficient = this->get_skin_friction_coefficient();
+    const double relative_error_bulk_velocity = abs(computed_bulk_velocity - expected_bulk_velocity)/expected_bulk_velocity;
+    if (relative_error_bulk_velocity > 1.0e-10) {
+        pcout << "Computed bulk velocity is not within specified tolerance with respect to expected value." << std::endl;
+        return 1;
+    }
+    const double relative_error_skin_friction_coefficient = abs(computed_skin_friction_coefficient - expected_skin_friction_coefficient)/expected_skin_friction_coefficient;
+    if (relative_error_skin_friction_coefficient > 1.0e-10) {
+        pcout << "Computed skin friction coefficient is not within specified tolerance with respect to expected value." << std::endl;
+        return 1;
+    }
+    pcout << " Test passed, computed wall shear stress and skin friction coefficient are within specified tolerance." << std::endl;
     return 0;
 }
 

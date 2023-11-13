@@ -369,7 +369,7 @@ double ChannelFlow<dim, nstate>::get_average_wall_shear_stress(DGBase<dim, doubl
                             soln_grad_at_q[istate] += dg.solution[dofs_indices[idof]] * fe_face_values_extra.shape_grad_component(idof,iquad,istate);
                         }
                         // const dealii::Point<dim> qpoint = (fe_face_values_extra.quadrature_point(iquad));
-                        const dealii::Tensor<1,dim,double> normal_vector = fe_face_values_extra.normal_vector(iquad);
+                        const dealii::Tensor<1,dim,double> normal_vector = -fe_face_values_extra.normal_vector(iquad); // minus for wall normal from face normal
                         double integrand_value = this->navier_stokes_physics->compute_wall_shear_stress(soln_at_q,soln_grad_at_q,normal_vector);
                         integral_value += integrand_value * fe_face_values_extra.JxW(iquad);
                         integral_area_value += fe_face_values_extra.JxW(iquad);

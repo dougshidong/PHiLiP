@@ -1315,6 +1315,12 @@ template FadType    NavierStokes<PHILIP_DIM,PHILIP_DIM+2,FadType   >::compute_wa
 template RadType    NavierStokes<PHILIP_DIM,PHILIP_DIM+2,RadType   >::compute_wall_shear_stress<RadType   >(const std::array<RadType   ,PHILIP_DIM+2> &conservative_soln, const std::array<dealii::Tensor<1,PHILIP_DIM,RadType   >,PHILIP_DIM+2> &conservative_soln_gradient, const dealii::Tensor<1,PHILIP_DIM,RadType   > &normal_vector) const;
 template FadFadType NavierStokes<PHILIP_DIM,PHILIP_DIM+2,FadFadType>::compute_wall_shear_stress<FadFadType>(const std::array<FadFadType,PHILIP_DIM+2> &conservative_soln, const std::array<dealii::Tensor<1,PHILIP_DIM,FadFadType>,PHILIP_DIM+2> &conservative_soln_gradient, const dealii::Tensor<1,PHILIP_DIM,FadFadType> &normal_vector) const;
 template RadFadType NavierStokes<PHILIP_DIM,PHILIP_DIM+2,RadFadType>::compute_wall_shear_stress<RadFadType>(const std::array<RadFadType,PHILIP_DIM+2> &conservative_soln, const std::array<dealii::Tensor<1,PHILIP_DIM,RadFadType>,PHILIP_DIM+2> &conservative_soln_gradient, const dealii::Tensor<1,PHILIP_DIM,RadFadType> &normal_vector) const;
+// -- scale_viscosity_coefficient()
+template double     NavierStokes<PHILIP_DIM,PHILIP_DIM+2,double    >::scale_viscosity_coefficient<double    > (const double     viscosity_coefficient) const;
+template FadType    NavierStokes<PHILIP_DIM,PHILIP_DIM+2,FadType   >::scale_viscosity_coefficient<FadType   > (const FadType    viscosity_coefficient) const;
+template RadType    NavierStokes<PHILIP_DIM,PHILIP_DIM+2,RadType   >::scale_viscosity_coefficient<RadType   > (const RadType    viscosity_coefficient) const;
+template FadFadType NavierStokes<PHILIP_DIM,PHILIP_DIM+2,FadFadType>::scale_viscosity_coefficient<FadFadType> (const FadFadType viscosity_coefficient) const;
+template RadFadType NavierStokes<PHILIP_DIM,PHILIP_DIM+2,RadFadType>::scale_viscosity_coefficient<RadFadType> (const RadFadType viscosity_coefficient) const;
 // -- extract_velocities_gradient_from_primitive_solution_gradient()
 template dealii::Tensor<2,PHILIP_DIM,double    > NavierStokes<PHILIP_DIM,PHILIP_DIM+2,double    >::extract_velocities_gradient_from_primitive_solution_gradient<double    > (const std::array<dealii::Tensor<1,PHILIP_DIM,double    >,PHILIP_DIM+2> &primitive_soln_gradient) const;
 template dealii::Tensor<2,PHILIP_DIM,FadType   > NavierStokes<PHILIP_DIM,PHILIP_DIM+2,FadType   >::extract_velocities_gradient_from_primitive_solution_gradient<FadType   > (const std::array<dealii::Tensor<1,PHILIP_DIM,FadType   >,PHILIP_DIM+2> &primitive_soln_gradient) const;

@@ -163,7 +163,9 @@ std::array<real,nstate> NavierStokesWithModelSourceTerms<dim,nstate,real>
     }
     // x-momentum term
     const real bulk_reynolds_number = this->navier_stokes_physics->reynolds_number_inf;
-    const real expected_mass_flow_rate = this->navier_stokes_physics->constant_viscosity * bulk_reynolds_number / 1.0;
+    const real viscosity_coefficient = this->navier_stokes_physics->constant_viscosity;
+    const real scaled_viscosity_coefficient = this->navier_stokes_physics->scale_viscosity_coefficient(viscosity_coefficient);
+    const real expected_mass_flow_rate = scaled_viscosity_coefficient * bulk_reynolds_number / this->half_channel_height;
     source_term[1] = this->resultant_wall_shear_force/this->domain_volume - this->relaxation_coefficient*(this->bulk_mass_flow_rate - expected_mass_flow_rate)/this->time_step;
 
     // energy term

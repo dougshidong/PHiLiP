@@ -980,6 +980,7 @@ void DGStrong_ChannelFlow<dim,nstate,real,MeshType>::allocate_model_variables()
 {
     // set the constant model variables
     this->pde_model_double->domain_volume = this->domain_volume;
+    this->pde_model_double->half_channel_height = this->half_channel_height;
 }
 
 template <int dim, int nstate, typename real, typename MeshType>

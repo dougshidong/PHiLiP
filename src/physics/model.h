@@ -121,6 +121,7 @@ public:
     double bulk_mass_flow_rate; ///< Bulk mass flow rate, needed for channel flow case
     double bulk_velocity; ///< Bulk velocity, needed for channel flow case
     double domain_volume; ///< Domain volume, needed for channel flow case
+    double half_channel_height; ///< Half channel height, needed for channel flow case
     double resultant_wall_shear_force; ///< Resultant wall shear force, needed for channel flow case
     double time_step; ///< Current time step
     /** Cellwise mean strain rate tensor magnitude;

@@ -78,6 +78,12 @@ public:
         const std::array<real2,nstate> &primitive_soln,
         const std::array<dealii::Tensor<1,dim,real2>,nstate> &primitive_soln_gradient) const;
 
+    /** Nondimensionalized velocities parallel to wall */
+    template<typename real2>
+    dealii::Tensor<1,dim,real2> compute_velocities_parallel_to_wall(
+        const std::array<real2,nstate> &conservative_soln,
+        const dealii::Tensor<1,dim,real2> &normal_vector) const;
+
     /** Nondimensionalized wall shear stress */
     template<typename real2>
     real2 compute_wall_shear_stress (

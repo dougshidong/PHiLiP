@@ -69,13 +69,14 @@ dealii::Tensor<1,dim,real2> NavierStokes<dim,nstate,real>
 }
 
 template <int dim, int nstate, typename real>
+template<typename real2>
 dealii::Tensor<1,dim,real2> NavierStokes<dim,nstate,real>
 ::compute_velocities_parallel_to_wall(
     const std::array<real2,nstate> &conservative_soln,
-    const dealii::Tensor<1,dim,real2> &normal_vector)
+    const dealii::Tensor<1,dim,real2> &normal_vector) const
 {
     // extract velocities
-    const dealii::Tensor<1,dim,real> velocities = compute_velocities<real>(conservative_soln);
+    const dealii::Tensor<1,dim,real> velocities = this->template compute_velocities<real2>(conservative_soln);// from Euler
     // compute normal velocity
     real normal_velocity = 0.0;
     for(int d=0;d<dim;++d){

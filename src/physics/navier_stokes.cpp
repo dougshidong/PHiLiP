@@ -103,6 +103,7 @@ real2 NavierStokes<dim,nstate,real>
     const std::array<real2,nstate> primitive_soln = this->template convert_conservative_to_primitive_templated<real2>(conservative_soln); // from Euler
     const std::array<dealii::Tensor<1,dim,real2>,nstate> primitive_soln_gradient
                  = this->template convert_conservative_gradient_to_primitive_gradient_templated<real2>(conservative_soln,conservative_soln_gradient);
+    /*
     const dealii::Tensor<2,dim,real2> velocities_gradient = extract_velocities_gradient_from_primitive_solution_gradient<real2>(primitive_soln_gradient);
     
     // - compute normal velocity gradient
@@ -138,6 +139,19 @@ real2 NavierStokes<dim,nstate,real>
     // Reference: https://www.cfd-online.com/Wiki/Wall_shear_stress
     const real2 scaled_viscosity_coefficient = compute_scaled_viscosity_coefficient<real2>(primitive_soln);
     const real2 wall_shear_stress = scaled_viscosity_coefficient*velocity_gradient_of_parallel_velocity_in_the_direction_normal_to_wall;
+    */
+
+    // For 3D flow over curved walls, reference: https://www.cfd-online.com/Forums/main/11103-calculate-y-u-how-get-wall-shear-stress.html
+    const dealii::Tensor<2,dim,real2> viscous_stress_tensor = compute_viscous_stress_tensor<real2>(primitive_soln,primitive_soln_gradient);
+    real2 wall_shear_stress = 0.0;
+    for(int i=0;i<dim;++i){
+        real2 val = 0.0;
+        for(int j=0;j<dim;++j){
+            val = viscous_stress_tensor[i][j]*normal_vector[j];
+        }
+        wall_shear_stress += val*val;
+    }
+    wall_shear_stress = pow(wall_shear_stress,0.5);
 
     return wall_shear_stress;
 }

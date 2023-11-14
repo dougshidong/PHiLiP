@@ -103,9 +103,9 @@ real2 NavierStokes<dim,nstate,real>
     const std::array<real2,nstate> primitive_soln = this->template convert_conservative_to_primitive_templated<real2>(conservative_soln); // from Euler
     const std::array<dealii::Tensor<1,dim,real2>,nstate> primitive_soln_gradient
                  = this->template convert_conservative_gradient_to_primitive_gradient_templated<real2>(conservative_soln,conservative_soln_gradient);
-    /*
-    const dealii::Tensor<2,dim,real2> velocities_gradient = extract_velocities_gradient_from_primitive_solution_gradient<real2>(primitive_soln_gradient);
     
+    const dealii::Tensor<2,dim,real2> velocities_gradient = extract_velocities_gradient_from_primitive_solution_gradient<real2>(primitive_soln_gradient);
+    /*
     // - compute normal velocity gradient
     dealii::Tensor<1,dim,real2> velocity_normal_to_wall_gradient;
     for(int dspace=0;dspace<dim;++dspace){
@@ -130,17 +130,17 @@ real2 NavierStokes<dim,nstate,real>
         }
         velocity_parallel_to_wall_gradient[dspace] = pow(magnitude,0.5);
     }
+    */
     // - compute wall parallel velocity gradient in the direction normal to the wall
     real2 velocity_gradient_of_parallel_velocity_in_the_direction_normal_to_wall = 0.0;
     for(int d=0;d<dim;++d){
-        // velocity_gradient_of_parallel_velocity_in_the_direction_normal_to_wall += velocities_gradient[0][d]*normal_vector[d]; // for channel flow (simplest case, x-velocity is the wall parallel velocity)
-        velocity_gradient_of_parallel_velocity_in_the_direction_normal_to_wall += velocity_parallel_to_wall_gradient[d]*normal_vector[d];
+        velocity_gradient_of_parallel_velocity_in_the_direction_normal_to_wall += velocities_gradient[0][d]*normal_vector[d]; // for channel flow (simplest case, x-velocity is the wall parallel velocity)
+        // velocity_gradient_of_parallel_velocity_in_the_direction_normal_to_wall += velocity_parallel_to_wall_gradient[d]*normal_vector[d];
     }
     // Reference: https://www.cfd-online.com/Wiki/Wall_shear_stress
     const real2 scaled_viscosity_coefficient = compute_scaled_viscosity_coefficient<real2>(primitive_soln);
     const real2 wall_shear_stress = scaled_viscosity_coefficient*velocity_gradient_of_parallel_velocity_in_the_direction_normal_to_wall;
-    */
-
+    /*
     // For 3D flow over curved walls, reference: https://www.cfd-online.com/Forums/main/11103-calculate-y-u-how-get-wall-shear-stress.html
     const dealii::Tensor<2,dim,real2> viscous_stress_tensor = compute_viscous_stress_tensor<real2>(primitive_soln,primitive_soln_gradient);
     real2 wall_shear_stress = 0.0;
@@ -152,6 +152,7 @@ real2 NavierStokes<dim,nstate,real>
         wall_shear_stress += val*val;
     }
     wall_shear_stress = pow(wall_shear_stress,0.5);
+    */
 
     return wall_shear_stress;
 }
@@ -199,7 +200,7 @@ inline real2 NavierStokes<dim,nstate,real>
      * Based on Sutherland's law for viscosity
      * * Reference: Sutherland, W. (1893), "The viscosity of gases and molecular force", Philosophical Magazine, S. 5, 36, pp. 507-531 (1893)
      * * Values: https://www.cfd-online.com/Wiki/Sutherland%27s_law
-     */
+     
     const real2 temperature = this->template compute_temperature<real2>(primitive_soln); // from Euler
 
     const real2 viscosity_coefficient = compute_viscosity_coefficient_sutherlands_law_from_temperature<real2>(temperature);

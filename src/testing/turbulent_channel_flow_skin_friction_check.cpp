@@ -102,7 +102,7 @@ int TurbulentChannelFlowSkinFrictionCheck<dim, nstate>::run_test() const
     pcout << "computed wall shear stress is " << computed_wall_shear_stress << std::endl; // remove
     pcout << "expected wall shear stress is " << get_wall_shear_stress() << std::endl; // remove
     const double expected_wall_shear_stress = this->get_wall_shear_stress();
-    const double relative_error_wall_shear_stress = abs(computed_wall_shear_stress - expected_wall_shear_stress)/expected_wall_shear_stress;
+    const double relative_error_wall_shear_stress = abs(computed_wall_shear_stress - expected_wall_shear_stress);
     if (relative_error_wall_shear_stress > 1.0e-10) {
         pcout << "Computed wall shear stress is not within specified tolerance with respect to expected value." << std::endl;
         return 1;
@@ -112,12 +112,12 @@ int TurbulentChannelFlowSkinFrictionCheck<dim, nstate>::run_test() const
     const double computed_skin_friction_coefficient = flow_solver_case->get_skin_friction_coefficient_from_average_wall_shear_stress(computed_wall_shear_stress);
     const double expected_bulk_velocity = this->get_bulk_velocity();
     const double expected_skin_friction_coefficient = this->get_skin_friction_coefficient();
-    const double relative_error_bulk_velocity = abs(computed_bulk_velocity - expected_bulk_velocity)/expected_bulk_velocity;
+    const double relative_error_bulk_velocity = abs(computed_bulk_velocity - expected_bulk_velocity);
     if (relative_error_bulk_velocity > 1.0e-10) {
         pcout << "Computed bulk velocity is not within specified tolerance with respect to expected value." << std::endl;
         return 1;
     }
-    const double relative_error_skin_friction_coefficient = abs(computed_skin_friction_coefficient - expected_skin_friction_coefficient)/expected_skin_friction_coefficient;
+    const double relative_error_skin_friction_coefficient = abs(computed_skin_friction_coefficient - expected_skin_friction_coefficient);
     if (relative_error_skin_friction_coefficient > 1.0e-10) {
         pcout << "Computed skin friction coefficient is not within specified tolerance with respect to expected value." << std::endl;
         return 1;

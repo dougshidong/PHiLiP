@@ -50,7 +50,6 @@ FlowSolver<dim, nstate>::FlowSolver(
         pcout << "Note: Allocating DG without AD matrices." << std::endl;
         dg->allocate_system(false,false,false);
     }
-    flow_solver_case->initialize_model_variables(dg);
 
     if(ode_param.ode_solver_type == Parameters::ODESolverParam::pod_galerkin_solver || ode_param.ode_solver_type == Parameters::ODESolverParam::pod_petrov_galerkin_solver){
         std::shared_ptr<ProperOrthogonalDecomposition::OfflinePOD<dim>> pod = std::make_shared<ProperOrthogonalDecomposition::OfflinePOD<dim>>(dg);
@@ -471,6 +470,7 @@ int FlowSolver<dim,nstate>::run() const
             }
         }
         flow_solver_case->set_time_step(time_step);
+        dg->set_unsteady_model_time_step(time_step);
         pcout << "done." << std::endl;
         //----------------------------------------------------
         // dealii::TableHandler and data at initial time
@@ -517,9 +517,7 @@ int FlowSolver<dim,nstate>::run() const
 
             // update time step in flow_solver_case
             flow_solver_case->set_time_step(time_step);
-
-            // update model variables
-            flow_solver_case->update_model_variables(dg);
+            dg->set_unsteady_model_time_step(time_step);
 
             // advance solution
             ode_solver->step_in_time(time_step,false); // pseudotime==false

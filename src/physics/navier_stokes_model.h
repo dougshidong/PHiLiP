@@ -27,6 +27,7 @@ public:
         const bool                                                use_constant_viscosity,
         const double                                              constant_viscosity,
         const double                                              temperature_inf,
+        const double                                              relaxation_coefficient,
         const double                                              isothermal_wall_temperature = 1.0,
         const thermal_boundary_condition_enum                     thermal_boundary_condition_type = thermal_boundary_condition_enum::adiabatic,
         std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function = nullptr,
@@ -34,6 +35,8 @@ public:
 
     /// Destructor
     ~NavierStokesWithModelSourceTerms() {};
+
+    const double relaxation_coefficient; ///< Relaxation coefficient for the channel flow source term
 
     /// Pointer to Navier-Stokes physics object
     std::unique_ptr< NavierStokes<dim,nstate,real> > navier_stokes_physics;
@@ -95,7 +98,7 @@ protected:
 
     /// Channel flow source term
     /** Forcing function to maintain the expected bulk Reynolds number throughout the solution
-     *  Reference: Brian Vermeire 2014 PhD Thesis
+     *  Reference: Equation 34 of Lodato G, Castonguay P, Jameson A. Discrete filter operators for large-eddy simulation using high-order spectral difference methods. International Journal for Numerical Methods in Fluids2013;72(2):231–258. 
      */
     std::array<real,nstate> channel_flow_source_term (
         const std::array<real,nstate> &conservative_soln) const;

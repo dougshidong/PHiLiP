@@ -121,9 +121,6 @@ public:
     /// Function to compute the initial adaptive time step
     virtual double get_adaptive_time_step_initial(std::shared_ptr<DGBase<dim,double>> dg) override;
 
-    /// Update model variables; specifically the mean strain rate tensor magnitude if needed
-    void update_model_variables(std::shared_ptr<DGBase<dim, double>> dg) const override;
-
 protected:
     /// Updates the maximum local wave speed
     void update_maximum_local_wave_speed(DGBase<dim, double> &dg);
@@ -165,9 +162,6 @@ protected:
 
     /// Data table storing the exact output times for the velocity field files
     std::shared_ptr<dealii::TableHandler> exact_output_times_of_velocity_field_files_table;
-
-    /// Mean strain rate tensor
-    dealii::Tensor<2,dim,double> mean_strain_rate_tensor;
 };
 
 } // FlowSolver namespace

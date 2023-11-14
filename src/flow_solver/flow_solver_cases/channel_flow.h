@@ -29,12 +29,6 @@ public:
     /// Function to set the higher order grid
     void set_higher_order_grid(std::shared_ptr <DGBase<dim, double>> dg) const override;
 
-    /// Initialize model variables
-    void initialize_model_variables(std::shared_ptr<DGBase<dim, double>> dg) const override;
-
-    /// Update model variables
-    void update_model_variables(std::shared_ptr<DGBase<dim, double>> dg) const override;
-
 protected:
     const double channel_height; ///< Channel height
     const double half_channel_height; ///< Half channel height
@@ -108,15 +102,25 @@ public:
             const std::shared_ptr <DGBase<dim, double>> dg,
             const std::shared_ptr<dealii::TableHandler> unsteady_data_table) override;
 
+    /// Get the average wall shear stress
+    double get_average_wall_shear_stress(DGBase<dim, double> &dg) const;
+
+    double get_bulk_density() const; ///< Getter for the bulk density
+    double get_bulk_velocity() const; ///< Getter for the bulk velocity
+    double get_bulk_mass_flow_rate() const; ///< Getter for the bulk mass flow rate
+
+    /// Get the skin friction coefficient from the average wall shear stress
+    double get_skin_friction_coefficient_from_average_wall_shear_stress(const double avg_wall_shear_stress) const;
+
+    /// Set the bulk flow quantities
+    void set_bulk_flow_quantities(DGBase<dim, double> &dg);
 private:
     /// Get the stretched mesh size
     double get_stretched_mesh_size(const int i) const;
 
-    /// Get the integrated density over the domain
-    double get_bulk_density(DGBase<dim, double> &dg) const;
-
-    /// Get the average wall shear stress
-    double get_average_wall_shear_stress(DGBase<dim, double> &dg) const;
+    double bulk_density; ///< Bulk density
+    double bulk_mass_flow_rate; ///< Bulk mass flow rate
+    double bulk_velocity; ///< Bulk velocity
 };
 
 } // FlowSolver namespace

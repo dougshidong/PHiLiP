@@ -17,6 +17,7 @@ PeriodicCubeFlow<dim, nstate>::PeriodicCubeFlow(const PHiLiP::Parameters::AllPar
         , domain_left(this->all_param.flow_solver_param.grid_left_bound)
         , domain_right(this->all_param.flow_solver_param.grid_right_bound)
         , domain_size(pow(this->domain_right - this->domain_left, dim))
+        , domain_size_per_element(this->domain_size/pow(this->number_of_cells_per_direction,dim))
 { }
 
 template <int dim, int nstate>

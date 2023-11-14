@@ -100,6 +100,11 @@ public:
     /// Compute the nondimensionalized filter width used by the SGS model given a cell index
     double get_filter_width (const dealii::types::global_dof_index cell_index) const;
 
+    /// Compute the nondimensionalized filter width used by the SGS model given a cell index
+    double get_filter_width_from_poly_degree (
+        const dealii::types::global_dof_index cell_index,
+        const int cell_poly_degree) const;
+
     /// Nondimensionalized sub-grid scale (SGS) stress tensor, (tau^sgs)*
     virtual dealii::Tensor<2,dim,real> compute_SGS_stress_tensor (
         const std::array<real,nstate> &primitive_soln,
@@ -209,16 +214,34 @@ public:
         const double                                              isothermal_wall_temperature = 1.0,
         const thermal_boundary_condition_enum                     thermal_boundary_condition_type = thermal_boundary_condition_enum::adiabatic,
         std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function = nullptr,
-        const two_point_num_flux_enum                             two_point_num_flux_type = two_point_num_flux_enum::KG);
+        const two_point_num_flux_enum                             two_point_num_flux_type = two_point_num_flux_enum::KG,
+        const bool                                                apply_low_reynolds_number_eddy_viscosity_correction = false);
 
-    /// SGS model constant
-    const double model_constant;
+    const double model_constant; ///< SGS model constant
+    const bool apply_low_reynolds_number_eddy_viscosity_correction; ///< Flag for applying the low Reynolds number eddy viscosity correction
 
     /// Destructor
     ~LargeEddySimulation_Smagorinsky() {};
 
+    /// Setter for the unfiltered conservative solution (also sets the scaled_fluid_kinematic_viscosity_from_unfiltered_solution)
+    void set_unfiltered_conservative_solution(const std::array<real,nstate> &unfiltered_conservative_solution_) override;
+
     /// Returns the product of the eddy viscosity model constant and the filter width
     virtual double get_model_constant_times_filter_width (const dealii::types::global_dof_index cell_index) const;
+
+    /// Returns the product of the eddy viscosity model constant and the filter width squared
+    virtual double get_model_constant_times_filter_width_squared (const dealii::types::global_dof_index cell_index) const;
+
+    /// Corrected eddy viscosity for low Reynolds number flows
+    real get_corrected_eddy_viscosity_low_reynolds_number(
+        const real uncorrected_eddy_viscosity) const;
+
+    /// Corrected eddy viscosity for low Reynolds number flows (Automatic Differentiation Type: FadType)
+    FadType get_corrected_eddy_viscosity_low_reynolds_number_fad(
+        const FadType uncorrected_eddy_viscosity) const;
+
+    /// Scaled fluid kinematic viscosity from unfiltered solution
+    real get_scaled_fluid_kinematic_viscosity_from_unfiltered_solution() const;
 
     /// Nondimensionalized sub-grid scale (SGS) stress tensor, (tau^sgs)*
     dealii::Tensor<2,dim,real> compute_SGS_stress_tensor (
@@ -275,12 +298,23 @@ protected:
         const std::array<real2,nstate> &primitive_soln,
         const real2 eddy_viscosity) const;
 
+    /// Scaled fluid kinematic viscosity based on the unfiltered solution
+    double scaled_fluid_kinematic_viscosity_from_unfiltered_solution;
+
 private:
     /// Templated nondimensionalized eddy viscosity for the Smagorinsky model.
     template<typename real2> real2 compute_eddy_viscosity_templated(
         const std::array<real2,nstate> &primitive_soln,
         const std::array<dealii::Tensor<1,dim,real2>,nstate> &primitive_soln_gradient,
         const dealii::types::global_dof_index cell_index) const;
+
+    /** Templated corrected eddy viscosity for low Reynolds number flows
+     *  References: 
+     *  (1) Chapelier, Jean-Baptiste, Marta De La Llave Plata, and Florent Renac. "Inviscid and viscous simulations of the Taylor-Green vortex flow using a modal discontinuous Galerkin approach." 42nd AIAA fluid dynamics conference and exhibit. 2012.
+     *  (2) Meyers, J. and Sagaut, P., “On the model coefficients for the standard and the variational multi-scale Smagorinsky model,” J. Fluid Mech., Vol. 569, No.-1, 2006, pp. 287–319.
+     */ 
+    template<typename real2> real2 get_corrected_eddy_viscosity_low_reynolds_number_templated(
+        const real2 uncorrected_eddy_viscosity) const;
 };
 
 /// WALE (Wall-Adapting Local Eddy-viscosity) eddy viscosity model. Derived from LargeEddySimulation_Smagorinsky for only modifying compute_eddy_viscosity.
@@ -311,7 +345,8 @@ public:
         const double                                              isothermal_wall_temperature = 1.0,
         const thermal_boundary_condition_enum                     thermal_boundary_condition_type = thermal_boundary_condition_enum::adiabatic,
         std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function = nullptr,
-        const two_point_num_flux_enum                             two_point_num_flux_type = two_point_num_flux_enum::KG);
+        const two_point_num_flux_enum                             two_point_num_flux_type = two_point_num_flux_enum::KG,
+        const bool                                                apply_low_reynolds_number_eddy_viscosity_correction = false);
 
     /// Destructor
     ~LargeEddySimulation_WALE() {};
@@ -369,7 +404,8 @@ public:
         const double                                              isothermal_wall_temperature = 1.0,
         const thermal_boundary_condition_enum                     thermal_boundary_condition_type = thermal_boundary_condition_enum::adiabatic,
         std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function = nullptr,
-        const two_point_num_flux_enum                             two_point_num_flux_type = two_point_num_flux_enum::KG);
+        const two_point_num_flux_enum                             two_point_num_flux_type = two_point_num_flux_enum::KG,
+        const bool                                                apply_low_reynolds_number_eddy_viscosity_correction = false);
 
     /// Destructor
     ~LargeEddySimulation_Vreman() {};
@@ -428,7 +464,8 @@ public:
         const double                                              isothermal_wall_temperature = 1.0,
         const thermal_boundary_condition_enum                     thermal_boundary_condition_type = thermal_boundary_condition_enum::adiabatic,
         std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function = nullptr,
-        const two_point_num_flux_enum                             two_point_num_flux_type = two_point_num_flux_enum::KG);
+        const two_point_num_flux_enum                             two_point_num_flux_type = two_point_num_flux_enum::KG,
+        const bool                                                apply_low_reynolds_number_eddy_viscosity_correction = false);
 
     /// Destructor
     ~LargeEddySimulation_ShearImprovedSmagorinsky() {};
@@ -494,7 +531,8 @@ public:
         const double                                              isothermal_wall_temperature = 1.0,
         const thermal_boundary_condition_enum                     thermal_boundary_condition_type = thermal_boundary_condition_enum::adiabatic,
         std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function = nullptr,
-        const two_point_num_flux_enum                             two_point_num_flux_type = two_point_num_flux_enum::KG);
+        const two_point_num_flux_enum                             two_point_num_flux_type = two_point_num_flux_enum::KG,
+        const bool                                                apply_low_reynolds_number_eddy_viscosity_correction = false);
 
     /// Destructor
     ~LargeEddySimulation_VMS() {};
@@ -540,7 +578,8 @@ public:
         const double                                              isothermal_wall_temperature = 1.0,
         const thermal_boundary_condition_enum                     thermal_boundary_condition_type = thermal_boundary_condition_enum::adiabatic,
         std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function = nullptr,
-        const two_point_num_flux_enum                             two_point_num_flux_type = two_point_num_flux_enum::KG);
+        const two_point_num_flux_enum                             two_point_num_flux_type = two_point_num_flux_enum::KG,
+        const bool                                                apply_low_reynolds_number_eddy_viscosity_correction = false);
 
     /// Destructor
     ~LargeEddySimulation_SmallSmallVMS() {};
@@ -576,10 +615,50 @@ public:
         const double                                              isothermal_wall_temperature = 1.0,
         const thermal_boundary_condition_enum                     thermal_boundary_condition_type = thermal_boundary_condition_enum::adiabatic,
         std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function = nullptr,
-        const two_point_num_flux_enum                             two_point_num_flux_type = two_point_num_flux_enum::KG);
+        const two_point_num_flux_enum                             two_point_num_flux_type = two_point_num_flux_enum::KG,
+        const bool                                                apply_low_reynolds_number_eddy_viscosity_correction = false);
 
     /// Destructor
     ~LargeEddySimulation_AllAllVMS() {};
+};
+
+/// Dynamic Smagorinsky Model (DSM) eddy viscosity model. Derived from LargeEddySimulation_Smagorinsky for only modifying compute_eddy_viscosity.
+template <int dim, int nstate, typename real>
+class LargeEddySimulation_DynamicSmagorinsky : public LargeEddySimulation_Smagorinsky <dim, nstate, real>
+{
+public:
+    using thermal_boundary_condition_enum = Parameters::NavierStokesParam::ThermalBoundaryCondition;
+    using two_point_num_flux_enum = Parameters::AllParameters::TwoPointNumericalFlux;
+    /** Constructor for the sub-grid scale (SGS) model: Dynamic Smagorinsky Model (DSM)
+     *  Reference: Flad and Gassner 2017
+     */
+    LargeEddySimulation_DynamicSmagorinsky(
+        const double                                              ref_length,
+        const double                                              gamma_gas,
+        const double                                              mach_inf,
+        const double                                              angle_of_attack,
+        const double                                              side_slip_angle,
+        const double                                              prandtl_number,
+        const double                                              reynolds_number_inf,
+        const bool                                                use_constant_viscosity,
+        const double                                              constant_viscosity,
+        const double                                              temperature_inf,
+        const double                                              turbulent_prandtl_number,
+        const double                                              ratio_of_filter_width_to_cell_size,
+        const double                                              model_constant,
+        const double                                              isothermal_wall_temperature = 1.0,
+        const thermal_boundary_condition_enum                     thermal_boundary_condition_type = thermal_boundary_condition_enum::adiabatic,
+        std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function = nullptr,
+        const two_point_num_flux_enum                             two_point_num_flux_type = two_point_num_flux_enum::KG,
+        const bool                                                apply_low_reynolds_number_eddy_viscosity_correction = false);
+
+    /// Destructor
+    ~LargeEddySimulation_DynamicSmagorinsky() {};
+
+    /** Returns the product of the eddy viscosity model constant and the filter width squared
+     *  Reference: Flad and Gassner 2017, Blazek 2001 CFD Chapter 7
+     */
+    double get_model_constant_times_filter_width_squared (const dealii::types::global_dof_index cell_index) const override;
 };
 
 } // Physics namespace

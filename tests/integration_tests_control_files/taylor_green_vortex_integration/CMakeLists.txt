@@ -186,6 +186,18 @@ add_test(
   WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )
 # ----------------------------------------
+configure_file(viscous_TGV_LES_shear_improved_smagorinsky_model_energy_check_nsfr_quick.prm viscous_TGV_LES_shear_improved_smagorinsky_model_energy_check_nsfr_quick.prm COPYONLY)
+add_test(
+  NAME MPI_VISCOUS_TGV_LES_SHEAR_IMPROVED_SMAGORINSKY_MODEL_ENERGY_CHECK_NSFR_QUICK
+  COMMAND mpirun -np ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_3D -i ${CMAKE_CURRENT_BINARY_DIR}/viscous_TGV_LES_shear_improved_smagorinsky_model_energy_check_nsfr_quick.prm
+  WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
+)
+add_test(
+  NAME SERIAL_VISCOUS_TGV_LES_SHEAR_IMPROVED_SMAGORINSKY_MODEL_ENERGY_CHECK_NSFR_QUICK
+  COMMAND mpirun -np 1 ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_3D -i ${CMAKE_CURRENT_BINARY_DIR}/viscous_TGV_LES_shear_improved_smagorinsky_model_energy_check_nsfr_quick.prm
+  WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
+)
+# ----------------------------------------
 configure_file(viscous_TGV_LES_smagorinsky_model_energy_check_nsfr_legendre_proj_quick.prm viscous_TGV_LES_smagorinsky_model_energy_check_nsfr_legendre_proj_quick.prm COPYONLY)
 add_test(
   NAME MPI_VISCOUS_TGV_LES_SMAGORINSKY_MODEL_ENERGY_CHECK_NSFR_LEGENDRE_PROJ_QUICK
@@ -197,5 +209,40 @@ configure_file(viscous_TGV_LES_hpf_smagorinsky_model_energy_check_nsfr_quick.prm
 add_test(
   NAME MPI_VISCOUS_TGV_LES_HPF_SMAGORINSKY_MODEL_ENERGY_CHECK_NSFR_QUICK
   COMMAND mpirun -np ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_3D -i ${CMAKE_CURRENT_BINARY_DIR}/viscous_TGV_LES_hpf_smagorinsky_model_energy_check_nsfr_quick.prm
+  WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
+)
+# ----------------------------------------
+configure_file(viscous_TGV_LES_shear_improved_smagorinsky_model_energy_check_nsfr_legendre_proj_quick.prm viscous_TGV_LES_shear_improved_smagorinsky_model_energy_check_nsfr_legendre_proj_quick.prm COPYONLY)
+add_test(
+  NAME MPI_VISCOUS_TGV_LES_SHEAR_IMPROVED_SMAGORINSKY_MODEL_ENERGY_CHECK_NSFR_LEGENDRE_PROJ_QUICK
+  COMMAND mpirun -np ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_3D -i ${CMAKE_CURRENT_BINARY_DIR}/viscous_TGV_LES_shear_improved_smagorinsky_model_energy_check_nsfr_legendre_proj_quick.prm
+  WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
+)
+# ----------------------------------------
+configure_file(viscous_TGV_LES_hpf_shear_improved_smagorinsky_model_energy_check_nsfr_quick.prm viscous_TGV_LES_hpf_shear_improved_smagorinsky_model_energy_check_nsfr_quick.prm COPYONLY)
+add_test(
+  NAME MPI_VISCOUS_TGV_LES_HPF_SHEAR_IMPROVED_SMAGORINSKY_MODEL_ENERGY_CHECK_NSFR_QUICK
+  COMMAND mpirun -np ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_3D -i ${CMAKE_CURRENT_BINARY_DIR}/viscous_TGV_LES_hpf_shear_improved_smagorinsky_model_energy_check_nsfr_quick.prm
+  WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
+)
+# ----------------------------------------
+configure_file(viscous_TGV_LES_dynamic_smagorinsky_model_energy_check_nsfr_quick.prm viscous_TGV_LES_dynamic_smagorinsky_model_energy_check_nsfr_quick.prm COPYONLY)
+add_test(
+  NAME MPI_VISCOUS_TGV_LES_DYNAMIC_SMAGORINSKY_MODEL_ENERGY_CHECK_NSFR_QUICK
+  COMMAND mpirun -np ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_3D -i ${CMAKE_CURRENT_BINARY_DIR}/viscous_TGV_LES_dynamic_smagorinsky_model_energy_check_nsfr_quick.prm
+  WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
+)
+# ----------------------------------------
+configure_file(viscous_TGV_LES_hpf_dynamic_smagorinsky_model_energy_check_nsfr_quick.prm viscous_TGV_LES_hpf_dynamic_smagorinsky_model_energy_check_nsfr_quick.prm COPYONLY)
+add_test(
+  NAME MPI_VISCOUS_TGV_LES_HPF_DYNAMIC_SMAGORINSKY_MODEL_ENERGY_CHECK_NSFR_QUICK
+  COMMAND mpirun -np ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_3D -i ${CMAKE_CURRENT_BINARY_DIR}/viscous_TGV_LES_hpf_dynamic_smagorinsky_model_energy_check_nsfr_quick.prm
+  WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
+)
+# ----------------------------------------
+configure_file(viscous_TGV_LES_hpf_dynamic_smagorinsky_model_low_Re_correction_energy_check_nsfr_quick.prm viscous_TGV_LES_hpf_dynamic_smagorinsky_model_low_Re_correction_energy_check_nsfr_quick.prm COPYONLY)
+add_test(
+  NAME MPI_VISCOUS_TGV_LES_HPF_DYNAMIC_SMAGORINSKY_MODEL_LOW_RE_CORRECTION_ENERGY_CHECK_NSFR_QUICK
+  COMMAND mpirun -np ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_3D -i ${CMAKE_CURRENT_BINARY_DIR}/viscous_TGV_LES_hpf_dynamic_smagorinsky_model_low_Re_correction_energy_check_nsfr_quick.prm
   WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )

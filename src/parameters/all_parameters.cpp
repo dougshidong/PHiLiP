@@ -177,6 +177,7 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       " taylor_green_vortex_energy_check | "
                       " taylor_green_vortex_restart_check | "
                       " homogeneous_isotropic_turbulence_initialization_check | "
+                      " turbulent_channel_flow_skin_friction_check | "
                       " time_refinement_study | "
                       " time_refinement_study_reference | "
                       " burgers_energy_conservation_rrk | "
@@ -198,7 +199,7 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       "  euler_vortex | "
                       "  euler_entropy_waves | "
                       "  euler_split_taylor_green |"
-                      " taylor_green_scaling | "
+                      "  taylor_green_scaling | "
                       "  euler_bump_optimization | "
                       "  euler_naca_optimization | "
                       "  shock_1d | "
@@ -215,6 +216,7 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       "  taylor_green_vortex_energy_check | "
                       "  taylor_green_vortex_restart_check | "
                       "  homogeneous_isotropic_turbulence_initialization_check | "
+                      "  turbulent_channel_flow_skin_friction_check | "
                       "  time_refinement_study | "
                       "  time_refinement_study_reference | "
                       "  burgers_energy_conservation_rrk | "
@@ -379,6 +381,8 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     else if (test_string == "taylor_green_vortex_restart_check")        { test_type = taylor_green_vortex_restart_check; }
     else if (test_string == "homogeneous_isotropic_turbulence_initialization_check")
                                                                         { test_type = homogeneous_isotropic_turbulence_initialization_check; }
+    else if (test_string == "turbulent_channel_flow_skin_friction_check")
+                                                                        { test_type = turbulent_channel_flow_skin_friction_check; }
     else if (test_string == "time_refinement_study")                    { test_type = time_refinement_study; }
     else if (test_string == "time_refinement_study_reference")          { test_type = time_refinement_study_reference; }
     else if (test_string == "burgers_energy_conservation_rrk")          { test_type = burgers_energy_conservation_rrk; }
@@ -476,10 +480,10 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     energy_file = prm.get("energy_file");
 
     const std::string conv_num_flux_string = prm.get("conv_num_flux");
-    if (conv_num_flux_string == "lax_friedrichs")                                          { conv_num_flux_type = ConvectiveNumericalFlux::lax_friedrichs; }
-    if (conv_num_flux_string == "roe")                                                     { conv_num_flux_type = ConvectiveNumericalFlux::roe; }
-    if (conv_num_flux_string == "l2roe")                                                   { conv_num_flux_type = ConvectiveNumericalFlux::l2roe; }
-    if (conv_num_flux_string == "central_flux")                                            { conv_num_flux_type = ConvectiveNumericalFlux::central_flux; }
+    if (conv_num_flux_string == "lax_friedrichs")                                 { conv_num_flux_type = ConvectiveNumericalFlux::lax_friedrichs; }
+    if (conv_num_flux_string == "roe")                                            { conv_num_flux_type = ConvectiveNumericalFlux::roe; }
+    if (conv_num_flux_string == "l2roe")                                          { conv_num_flux_type = ConvectiveNumericalFlux::l2roe; }
+    if (conv_num_flux_string == "central_flux")                                   { conv_num_flux_type = ConvectiveNumericalFlux::central_flux; }
     if (conv_num_flux_string == "two_point_flux")                                 { conv_num_flux_type = ConvectiveNumericalFlux::two_point_flux; }
     if (conv_num_flux_string == "two_point_flux_with_lax_friedrichs_dissipation") { conv_num_flux_type = ConvectiveNumericalFlux::two_point_flux_with_lax_friedrichs_dissipation; }
     if (conv_num_flux_string == "two_point_flux_with_roe_dissipation")            { conv_num_flux_type = ConvectiveNumericalFlux::two_point_flux_with_roe_dissipation; }

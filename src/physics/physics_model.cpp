@@ -133,8 +133,10 @@ std::array<real,nstate> PhysicsModel<dim,nstate,real,nstate_baseline_physics>
         const bool on_boundary,
         const dealii::types::global_dof_index cell_index,
         const dealii::Tensor<1,dim,real> &normal,
-        const int boundary_type) const
+        const int boundary_type)
 {
+    this->model->set_unfiltered_conservative_solution(solution);
+
     // Get baseline conservative solution with nstate_baseline_physics
     std::array<real,nstate_baseline_physics> baseline_conservative_soln;
     for(int s=0; s<nstate_baseline_physics; ++s){
@@ -163,6 +165,19 @@ std::array<real,nstate> PhysicsModel<dim,nstate,real,nstate_baseline_physics>
         diss_flux_dot_n[s] += baseline_diss_flux_dot_n[s];
     }
     return diss_flux_dot_n;
+}
+
+template <int dim, int nstate, typename real, int nstate_baseline_physics>
+std::array<dealii::Tensor<1,dim,real>,nstate> PhysicsModel<dim,nstate,real,nstate_baseline_physics>
+::dissipative_flux (
+    const std::array<real,nstate> &solution,
+    const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient,
+    const std::array<real,nstate> &/*filtered_solution*/,
+    const std::array<dealii::Tensor<1,dim,real>,nstate> &/*filtered_solution_gradient*/,
+    const dealii::types::global_dof_index cell_index)
+{
+    this->model->set_unfiltered_conservative_solution(solution);
+    return this->dissipative_flux(solution,solution_gradient,cell_index);
 }
 
 template <int dim, int nstate, typename real, int nstate_baseline_physics>
@@ -541,16 +556,18 @@ PhysicsModelFiltered<dim,nstate,real,nstate_baseline_physics>::PhysicsModelFilte
 template <int dim, int nstate, typename real, int nstate_baseline_physics>
 std::array<dealii::Tensor<1,dim,real>,nstate> PhysicsModelFiltered<dim,nstate,real,nstate_baseline_physics>
 ::dissipative_flux (
-    const std::array<real,nstate> &conservative_soln,
+    const std::array<real,nstate> &solution,
     const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient,
     const std::array<real,nstate> &filtered_solution,
     const std::array<dealii::Tensor<1,dim,real>,nstate> &filtered_solution_gradient,
-    const dealii::types::global_dof_index cell_index) const
+    const dealii::types::global_dof_index cell_index)
 {
+    this->model->set_unfiltered_conservative_solution(solution);
+
     // Get baseline conservative solution with nstate_baseline_physics
     std::array<real,nstate_baseline_physics> baseline_conservative_soln;
     for(int s=0; s<nstate_baseline_physics; ++s){
-        baseline_conservative_soln[s] = conservative_soln[s];
+        baseline_conservative_soln[s] = solution[s];
     }
 
     // Get baseline conservative solution gradient with nstate_baseline_physics
@@ -589,8 +606,9 @@ std::array<real,nstate> PhysicsModelFiltered<dim,nstate,real,nstate_baseline_phy
         const bool on_boundary,
         const dealii::types::global_dof_index cell_index,
         const dealii::Tensor<1,dim,real> &normal,
-        const int boundary_type) const
+        const int boundary_type)
 {
+    this->model->set_unfiltered_conservative_solution(solution);
     // Get baseline conservative solution with nstate_baseline_physics
     std::array<real,nstate_baseline_physics> baseline_conservative_soln;
     for(int s=0; s<nstate_baseline_physics; ++s){

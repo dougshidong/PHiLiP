@@ -238,11 +238,16 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
             prm.declare_entry("xvelocity_initial_condition_type", "laminar",
                               dealii::Patterns::Selection(
                               " laminar | "
+                              " manufactured | "
                               " turbulent "),
                               "The type of x-velocity initialization. "
                               "Choices are "
                               " <laminar | "
+                              " manufactured | "
                               " turbulent>.");
+            prm.declare_entry("relaxation_coefficient_for_turbulent_channel_flow_source_term", "0.0",
+                              dealii::Patterns::Double(-dealii::Patterns::Double::max_double_value, dealii::Patterns::Double::max_double_value),
+                              "Relaxation coefficient for the turbulent channel flow source term. Default is 0.");
         }
         prm.leave_subsection();
 
@@ -395,12 +400,14 @@ void FlowSolverParam::parse_parameters(dealii::ParameterHandler &prm)
             turbulent_channel_domain_length_y_direction = prm.get_double("turbulent_channel_domain_length_y_direction");
             turbulent_channel_domain_length_z_direction = prm.get_double("turbulent_channel_domain_length_z_direction");
             const std::string turbulent_channel_mesh_stretching_function_type_string = prm.get("turbulent_channel_mesh_stretching_function_type");
-            if      (turbulent_channel_mesh_stretching_function_type_string == "gullbrand") {turbulent_channel_mesh_stretching_function_type = gullbrand;}
-            else if (turbulent_channel_mesh_stretching_function_type_string == "hopw")      {turbulent_channel_mesh_stretching_function_type = hopw;}
+            if      (turbulent_channel_mesh_stretching_function_type_string == "gullbrand")             {turbulent_channel_mesh_stretching_function_type = gullbrand;}
+            else if (turbulent_channel_mesh_stretching_function_type_string == "hopw")                  {turbulent_channel_mesh_stretching_function_type = hopw;}
             else if (turbulent_channel_mesh_stretching_function_type_string == "carton_de_wiart_et_al") {turbulent_channel_mesh_stretching_function_type = carton_de_wiart_et_al;}
             const std::string xvelocity_initial_condition_type_string = prm.get("xvelocity_initial_condition_type");
-            if      (xvelocity_initial_condition_type_string == "laminar")   {xvelocity_initial_condition_type = laminar;}
-            else if (xvelocity_initial_condition_type_string == "turbulent") {xvelocity_initial_condition_type = turbulent;}
+            if      (xvelocity_initial_condition_type_string == "laminar")      {xvelocity_initial_condition_type = laminar;}
+            else if (xvelocity_initial_condition_type_string == "turbulent")    {xvelocity_initial_condition_type = turbulent;}
+            else if (xvelocity_initial_condition_type_string == "manufactured") {xvelocity_initial_condition_type = manufactured;}
+            relaxation_coefficient_for_turbulent_channel_flow_source_term = prm.get_double("relaxation_coefficient_for_turbulent_channel_flow_source_term");
         }
         prm.leave_subsection();
 

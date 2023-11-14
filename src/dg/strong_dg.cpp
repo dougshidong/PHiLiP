@@ -1014,7 +1014,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_volume_term_strong(
             //==================================================
             // Solution
             //==================================================
-            // -- (1) Project to Legrendre basis
+            // -- (1) Project to Legendre basis
             std::vector<real> legendre_soln_coeff(n_shape_fns);
             legendre_soln_basis_projection_oper.matrix_vector_mult_1D(primitive_soln_at_q[istate], legendre_soln_coeff,
                                                                       legendre_soln_basis_projection_oper.oneD_vol_operator);
@@ -1037,7 +1037,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_volume_term_strong(
             //==================================================
             dealii::Tensor<1,dim,std::vector<real>> legendre_aux_soln_coeff;
             for(int idim=0; idim<dim; idim++){
-                // -- (1) Project to Legrendre basis
+                // -- (1) Project to Legendre basis
                 legendre_aux_soln_coeff[idim].resize(n_shape_fns);
                 if(this->use_auxiliary_eq){
                     legendre_soln_basis_projection_oper.matrix_vector_mult_1D(primitive_aux_soln_at_q[istate][idim], legendre_aux_soln_coeff[idim],
@@ -1653,7 +1653,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_strong(
             //==================================================
             // Solution
             //==================================================
-            // -- (1) Project to Legrendre basis
+            // -- (1) Project to Legendre basis
             std::vector<real> legendre_soln_coeff(n_shape_fns);
             legendre_soln_basis_projection_oper.matrix_vector_mult_1D(primitive_soln_at_vol_q[istate], legendre_soln_coeff,
                                                                       legendre_soln_basis_projection_oper.oneD_vol_operator);
@@ -1681,7 +1681,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_strong(
             //==================================================
             dealii::Tensor<1,dim,std::vector<real>> legendre_aux_soln_coeff;
             for(int idim=0; idim<dim; idim++){
-                // -- (1) Project to Legrendre basis
+                // -- (1) Project to Legendre basis
                 legendre_aux_soln_coeff[idim].resize(n_shape_fns);
                 if(this->use_auxiliary_eq){
                     legendre_soln_basis_projection_oper.matrix_vector_mult_1D(primitive_aux_soln_at_vol_q[istate][idim], legendre_aux_soln_coeff[idim],
@@ -2470,7 +2470,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_strong(
             //==================================================
             // Solution
             //==================================================
-            // -- (1) Project to Legrendre basis
+            // -- (1) Project to Legendre basis
             std::vector<real> legendre_soln_coeff_int(n_shape_fns_int);
             legendre_soln_basis_projection_oper_int.matrix_vector_mult_1D(primitive_soln_at_vol_q_int[istate], legendre_soln_coeff_int,
                                                                           legendre_soln_basis_projection_oper_int.oneD_vol_operator);
@@ -2515,7 +2515,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_strong(
             dealii::Tensor<1,dim,std::vector<real>> legendre_aux_soln_coeff_int;
             dealii::Tensor<1,dim,std::vector<real>> legendre_aux_soln_coeff_ext;
             for(int idim=0; idim<dim; idim++){
-                // -- (1) Project to Legrendre basis
+                // -- (1) Project to Legendre basis
                 legendre_aux_soln_coeff_int[idim].resize(n_shape_fns_int);
                 legendre_aux_soln_coeff_ext[idim].resize(n_shape_fns_ext);
                 if(this->use_auxiliary_eq){

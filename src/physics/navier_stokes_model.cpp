@@ -24,11 +24,13 @@ NavierStokesWithModelSourceTerms<dim, nstate, real>::NavierStokesWithModelSource
     const bool                                                use_constant_viscosity,
     const double                                              constant_viscosity,
     const double                                              temperature_inf,
+    const double                                              relaxation_coefficient,
     const double                                              isothermal_wall_temperature,
     const thermal_boundary_condition_enum                     thermal_boundary_condition_type,
     std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function,
     const two_point_num_flux_enum                             two_point_num_flux_type)
     : ModelBase<dim,nstate,real>(manufactured_solution_function) 
+    , relaxation_coefficient(relaxation_coefficient)
     , navier_stokes_physics(std::make_unique < NavierStokes<dim,nstate,real> > (
             ref_length,
             gamma_gas,
@@ -146,25 +148,28 @@ std::array<real,nstate> NavierStokesWithModelSourceTerms<dim,nstate,real>
 template <int dim, int nstate, typename real>
 std::array<real,nstate> NavierStokesWithModelSourceTerms<dim,nstate,real>
 ::channel_flow_source_term (
-    const std::array<real,nstate> &conservative_soln) const
+    const std::array<real,nstate> &/*conservative_soln*/) const
 {
     std::array<real,nstate> source_term;
     std::fill(source_term.begin(), source_term.end(), 0.0);
 
-    // Get nondimensional (w.r.t. freestream) bulk velocity
-    const std::array<real,nstate> primitive_soln = this->navier_stokes_physics->convert_conservative_to_primitive_templated(conservative_soln);
-    const real density = conservative_soln[0];
-    const real viscosity_coefficient = this->navier_stokes_physics->compute_viscosity_coefficient(primitive_soln);
-    const real bulk_velocity = viscosity_coefficient*(this->channel_bulk_velocity_reynolds_number)/(density*this->half_channel_height*this->navier_stokes_physics->reynolds_number_inf);
-    // const real bulk_velocity = 1.0; // since we nondimensionalize w.r.t. freestream values, which are set at the bulk values, this value is simply 1.0
-    
+    /** Source term for driving the flow
+     *  Reference: Lodato G, Castonguay P, Jameson A. Discrete filter operators for large-eddy simulation using high-order spectral difference methods. International Journal for Numerical Methods in Fluids2013;72(2):231–258. 
+     */
+    if(!this->navier_stokes_physics->use_constant_viscosity){
+        // TO DO: use pcout and move this to the constructor
+        std::cout << "ERROR: Cannot run the turbulent channel flow with a non-constant viscosity. Aborting..." << std::endl;
+        std::abort();
+    }
     // x-momentum term
-    const real bulk_density = this->bulk_density;
-    source_term[1] = (bulk_density*bulk_velocity - conservative_soln[1])/this->time_step;
-    
+    const real bulk_reynolds_number = this->navier_stokes_physics->reynolds_number_inf;
+    const real viscosity_coefficient = this->navier_stokes_physics->constant_viscosity;
+    const real scaled_viscosity_coefficient = this->navier_stokes_physics->scale_viscosity_coefficient(viscosity_coefficient);
+    const real expected_mass_flow_rate = scaled_viscosity_coefficient * bulk_reynolds_number / this->half_channel_height;
+    source_term[1] = this->resultant_wall_shear_force/this->domain_volume - this->relaxation_coefficient*(this->bulk_mass_flow_rate - expected_mass_flow_rate)/this->time_step;
+
     // energy term
-    const real x_velocity = primitive_soln[1];
-    source_term[nstate-1] = x_velocity*source_term[1];
+    source_term[nstate-1] = this->bulk_velocity*source_term[1];
     
     return source_term;
 }

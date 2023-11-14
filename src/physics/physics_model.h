@@ -68,6 +68,14 @@ public:
         const std::array<real,nstate> &conservative_soln) const;
 
     /// Dissipative (i.e. viscous) flux: \f$ \mathbf{F}_{diss} \f$ 
+    virtual std::array<dealii::Tensor<1,dim,real>,nstate> dissipative_flux (
+        const std::array<real,nstate> &solution,
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient,
+        const std::array<real,nstate> &filtered_solution,
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &filtered_solution_gradient,
+        const dealii::types::global_dof_index cell_index) override;
+
+    /// Dissipative (i.e. viscous) flux: \f$ \mathbf{F}_{diss} \f$ 
     std::array<dealii::Tensor<1,dim,real>,nstate> dissipative_flux (
         const std::array<real,nstate> &conservative_soln,
         const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient,
@@ -82,7 +90,7 @@ public:
         const bool on_boundary,
         const dealii::types::global_dof_index cell_index,
         const dealii::Tensor<1,dim,real> &normal,
-        const int boundary_type) const override;
+        const int boundary_type) override;
 
     /// Physical source term
     std::array<real,nstate> physical_source_term (
@@ -213,7 +221,7 @@ public:
         const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient,
         const std::array<real,nstate> &filtered_solution,
         const std::array<dealii::Tensor<1,dim,real>,nstate> &filtered_solution_gradient,
-        const dealii::types::global_dof_index cell_index) const override;
+        const dealii::types::global_dof_index cell_index) override;
 
     /// Dissipative (i.e. viscous) flux: \f$ \mathbf{F}_{diss} \f$ dot normal vector
     std::array<real,nstate> dissipative_flux_dot_normal (
@@ -224,7 +232,7 @@ public:
         const bool on_boundary,
         const dealii::types::global_dof_index cell_index,
         const dealii::Tensor<1,dim,real> &normal,
-        const int boundary_type) const override;
+        const int boundary_type) override;
 };
 
 } // Physics namespace

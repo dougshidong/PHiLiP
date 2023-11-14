@@ -37,6 +37,15 @@ std::array<real,nstate> ModelBase<dim, nstate, real>
 //----------------------------------------------------------------
 template <int dim, int nstate, typename real>
 void ModelBase<dim,nstate,real>
+::set_unfiltered_conservative_solution(const std::array<real,nstate> &unfiltered_conservative_solution_)
+{
+    for(int s=0; s<nstate; ++s){
+        this->unfiltered_conservative_solution[s] = unfiltered_conservative_solution_[s];
+    }
+}
+//----------------------------------------------------------------
+template <int dim, int nstate, typename real>
+void ModelBase<dim,nstate,real>
 ::boundary_manufactured_solution (
     const dealii::Point<dim, real> &/*pos*/,
     const dealii::Tensor<1,dim,real> &/*normal_int*/,

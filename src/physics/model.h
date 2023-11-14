@@ -54,7 +54,7 @@ public:
         const bool on_boundary,
         const dealii::types::global_dof_index cell_index,
         const dealii::Tensor<1,dim,real> &normal,
-        const int boundary_type) const = 0;
+        const int boundary_type) const = 0;// Note: defined as const here since only PhysicsModel (i.e. PhysicsBase) has to be non-const
 
     /// Convective eigenvalues of the additional models' PDEs
     /** Note: Only support for zero convective term additional to the baseline physics 
@@ -117,13 +117,22 @@ public:
     // Quantities needed to be updated by DG for the model -- accomplished by DGBase update_model_variables()
     dealii::LinearAlgebra::distributed::Vector<int> cellwise_poly_degree; ///< Cellwise polynomial degree
     dealii::LinearAlgebra::distributed::Vector<double> cellwise_volume; ////< Cellwise element volume
-    double bulk_density; ///< bulk density
-    double channel_height; ///< Channel height
-    double half_channel_height; ///< Half channel height
-    double channel_friction_velocity_reynolds_number; ///< Channel Reynolds number based on the wall friction velocity
-    double channel_bulk_velocity_reynolds_number; ///< Channel Reynolds number based on the bulk velocity
+    double bulk_density; ///< Bulk density, needed for channel flow case
+    double bulk_mass_flow_rate; ///< Bulk mass flow rate, needed for channel flow case
+    double bulk_velocity; ///< Bulk velocity, needed for channel flow case
+    double domain_volume; ///< Domain volume, needed for channel flow case
+    double half_channel_height; ///< Half channel height, needed for channel flow case
+    double resultant_wall_shear_force; ///< Resultant wall shear force, needed for channel flow case
     double time_step; ///< Current time step
-    dealii::Tensor<2,dim,double> mean_strain_rate_tensor; ///< Mean strain rate tensor; used for shear-improved eddy viscosity model
+    /** Cellwise mean strain rate tensor magnitude;
+     *  used for shear-improved eddy viscosity model */ 
+    dealii::LinearAlgebra::distributed::Vector<double> cellwise_mean_strain_rate_tensor_magnitude;
+    /** Cellwise dynamic Smagorinsky model constant times filter width squared;
+     *  used for dynamic Smagorinsky eddy viscosity model */
+    dealii::LinearAlgebra::distributed::Vector<double> dynamic_smagorinsky_model_constant_times_filter_width_sqr;
+
+    /// Setter for the unfiltered conservative solution
+    virtual void set_unfiltered_conservative_solution(const std::array<real,nstate> &unfiltered_conservative_solution_);
 
 protected:
     /// Evaluate the manufactured solution boundary conditions.
@@ -171,6 +180,9 @@ protected:
         const std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_int,
         std::array<real,nstate> &soln_bc,
         std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_bc) const;
+
+    /// The unfiltered conservative solution
+    std::array<real,nstate> unfiltered_conservative_solution;
 };
 
 } // Physics namespace

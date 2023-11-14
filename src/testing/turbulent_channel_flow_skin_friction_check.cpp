@@ -99,10 +99,11 @@ int TurbulentChannelFlowSkinFrictionCheck<dim, nstate>::run_test() const
     // Compute kinetic energy and theoretical dissipation rate
     std::unique_ptr<FlowSolver::ChannelFlow<dim, nstate>> flow_solver_case = std::make_unique<FlowSolver::ChannelFlow<dim,nstate>>(this->all_parameters);
     const double computed_wall_shear_stress = flow_solver_case->get_average_wall_shear_stress(*(flow_solver->dg));
-    pcout << "computed wall shear stress is " << computed_wall_shear_stress << std::endl; // remove
-    pcout << "expected wall shear stress is " << get_wall_shear_stress() << std::endl; // remove
     const double expected_wall_shear_stress = this->get_wall_shear_stress();
     const double relative_error_wall_shear_stress = abs(computed_wall_shear_stress - expected_wall_shear_stress);
+    pcout << "computed wall shear stress is " << computed_wall_shear_stress << std::endl; // remove
+    pcout << "expected wall shear stress is " << expected_wall_shear_stress << std::endl; // remove
+    pcout << "error is " << relative_error_wall_shear_stress << std::endl;
     if (relative_error_wall_shear_stress > 1.0e-10) {
         pcout << "Computed wall shear stress is not within specified tolerance with respect to expected value." << std::endl;
         return 1;

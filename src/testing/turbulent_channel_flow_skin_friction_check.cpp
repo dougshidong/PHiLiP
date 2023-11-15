@@ -121,6 +121,7 @@ int TurbulentChannelFlowSkinFrictionCheck<dim, nstate>::run_test() const
     const double relative_error_skin_friction_coefficient = abs(computed_skin_friction_coefficient - expected_skin_friction_coefficient);
     if (relative_error_skin_friction_coefficient > 1.0e-9) {
         pcout << "Computed skin friction coefficient is not within specified tolerance with respect to expected value." << std::endl;
+	pcout << "Error is : " << relative_error_skin_friction_coefficient << std::endl;
         return 1;
     }
     pcout << " Test passed, computed wall shear stress and skin friction coefficient are within specified tolerance." << std::endl;

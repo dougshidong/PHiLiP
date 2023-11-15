@@ -84,6 +84,12 @@ public:
         const std::array<real2,nstate> &conservative_soln,
         const dealii::Tensor<1,dim,real2> &normal_vector) const;
 
+    /** Nondimensionalized wall tangent vector */
+    template<typename real2>
+    dealii::Tensor<1,dim,real2> compute_wall_tangent_vector(
+        const std::array<real2,nstate> &conservative_soln,
+        const dealii::Tensor<1,dim,real2> &normal_vector) const;
+
     /** Nondimensionalized wall shear stress */
     template<typename real2>
     real2 compute_wall_shear_stress (

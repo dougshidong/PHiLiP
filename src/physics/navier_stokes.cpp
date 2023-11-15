@@ -92,6 +92,29 @@ dealii::Tensor<1,dim,real2> NavierStokes<dim,nstate,real>
 
 template <int dim, int nstate, typename real>
 template<typename real2>
+dealii::Tensor<1,dim,real2> NavierStokes<dim,nstate,real>
+::compute_wall_tangent_vector(
+    const std::array<real2,nstate> &conservative_soln,
+    const dealii::Tensor<1,dim,real2> &normal_vector) const
+{
+    // compute wall parallel velocities
+    const dealii::Tensor<1,dim,real2> velocities_parallel_to_wall = compute_velocities_parallel_to_wall(conservative_soln,normal_vector);
+    // get magnitude
+    real2 magnitude = 0.0;
+    for(int d=0;d<dim;++d){
+        magnitude += velocities_parallel_to_wall[d]*velocities_parallel_to_wall[d];
+    }
+    magnitude = pow(magnitude,0.5);
+    // compute tangent vector
+    dealii::Tensor<1,dim,real2> tangent_vector;
+    for(int d=0;d<dim;++d){
+        tangent_vector[d] = velocities_parallel_to_wall[d]/magnitude;
+    }
+    return tangent_vector;
+}
+
+template <int dim, int nstate, typename real>
+template<typename real2>
 real2 NavierStokes<dim,nstate,real>
 ::compute_wall_shear_stress (
     const std::array<real2,nstate> &conservative_soln,
@@ -104,7 +127,7 @@ real2 NavierStokes<dim,nstate,real>
     const std::array<dealii::Tensor<1,dim,real2>,nstate> primitive_soln_gradient
                  = this->template convert_conservative_gradient_to_primitive_gradient_templated<real2>(conservative_soln,conservative_soln_gradient);
     
-    const dealii::Tensor<2,dim,real2> velocities_gradient = extract_velocities_gradient_from_primitive_solution_gradient<real2>(primitive_soln_gradient);
+    // const dealii::Tensor<2,dim,real2> velocities_gradient = extract_velocities_gradient_from_primitive_solution_gradient<real2>(primitive_soln_gradient);
     /*
     // - compute normal velocity gradient
     dealii::Tensor<1,dim,real2> velocity_normal_to_wall_gradient;
@@ -131,6 +154,7 @@ real2 NavierStokes<dim,nstate,real>
         velocity_parallel_to_wall_gradient[dspace] = pow(magnitude,0.5);
     }
     */
+    /*
     // - compute wall parallel velocity gradient in the direction normal to the wall
     real2 velocity_gradient_of_parallel_velocity_in_the_direction_normal_to_wall = 0.0;
     for(int d=0;d<dim;++d){
@@ -140,19 +164,19 @@ real2 NavierStokes<dim,nstate,real>
     // Reference: https://www.cfd-online.com/Wiki/Wall_shear_stress
     const real2 scaled_viscosity_coefficient = compute_scaled_viscosity_coefficient<real2>(primitive_soln);
     const real2 wall_shear_stress = scaled_viscosity_coefficient*velocity_gradient_of_parallel_velocity_in_the_direction_normal_to_wall;
-    /*
+    */
     // For 3D flow over curved walls, reference: https://www.cfd-online.com/Forums/main/11103-calculate-y-u-how-get-wall-shear-stress.html
+    const dealii::Tensor<1,dim,real2> tangent_vector = compute_wall_tangent_vector<real2>(conservative_soln,normal_vector);
     const dealii::Tensor<2,dim,real2> viscous_stress_tensor = compute_viscous_stress_tensor<real2>(primitive_soln,primitive_soln_gradient);
     real2 wall_shear_stress = 0.0;
     for(int i=0;i<dim;++i){
         real2 val = 0.0;
         for(int j=0;j<dim;++j){
-            val = viscous_stress_tensor[i][j]*normal_vector[j];
+            val += viscous_stress_tensor[i][j]*tangent_vector[j];
         }
         wall_shear_stress += val*val;
     }
     wall_shear_stress = pow(wall_shear_stress,0.5);
-    */
 
     return wall_shear_stress;
 }

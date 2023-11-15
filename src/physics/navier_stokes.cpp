@@ -200,6 +200,7 @@ inline real2 NavierStokes<dim,nstate,real>
      * Based on Sutherland's law for viscosity
      * * Reference: Sutherland, W. (1893), "The viscosity of gases and molecular force", Philosophical Magazine, S. 5, 36, pp. 507-531 (1893)
      * * Values: https://www.cfd-online.com/Wiki/Sutherland%27s_law
+     */
      
     const real2 temperature = this->template compute_temperature<real2>(primitive_soln); // from Euler
 

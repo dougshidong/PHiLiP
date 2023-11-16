@@ -387,6 +387,7 @@ inline real InviscidRealGas<dim,nstate,real>
     real density = conservative_soln[0];
     const real pressure = compute_pressure<real>(conservative_soln);
     const real sound = sqrt(pressure*this->gam_ref/density);
+
     return sound;
 }
 

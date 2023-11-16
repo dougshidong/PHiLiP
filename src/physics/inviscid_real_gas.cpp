@@ -338,11 +338,9 @@ inline real2 InviscidRealGas<dim,nstate,real>
 ::compute_pressure ( const std::array<real2,nstate> &conservative_soln ) const
 {
     const real2 density = conservative_soln[0];
-    const real2 tot_energy  = conservative_soln[nstate-1];
-    const dealii::Tensor<1,dim,real2> vel = compute_velocities<real2>(conservative_soln);
-    const real2 vel2 = compute_velocity_squared<real2>(vel);
-    real2 pressure = (this->gam_ref-1.0)*(tot_energy - 0.5*density*vel2);
-    
+    const real temperature = compute_temperature(conservative_soln);
+    const real pressure = (density*temperature)/(this->gam_ref*this->mach_ref_sqr);
+
     return pressure;
 }
 

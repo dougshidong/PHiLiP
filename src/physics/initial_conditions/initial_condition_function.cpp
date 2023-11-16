@@ -520,6 +520,7 @@ real InitialConditionFunction_AcousticWave_Air<dim,nstate,real>
             double fx = (1.0/sqrt(2.0*pi*sigma*sigma))*exp(-((x-mu)*(x-mu))/(2.0*(sigma*sigma)));
             double fy = (1.0/sqrt(2.0*pi*sigma*sigma))*exp(-((y-mu)*(y-mu))/(2.0*(sigma*sigma)));
             value = 1.0/(this->gamma_gas*this->mach_inf_sqr) + fx*fy;
+            value = value*3.0/3.0; // chnege this if you want to vary initial temperature 
         }
     }
     return value;
@@ -606,6 +607,7 @@ real InitialConditionFunction_AcousticWave_Species<dim,nstate,real>
             double fx = (1.0/sqrt(2.0*pi*sigma*sigma))*exp(-((x-mu)*(x-mu))/(2.0*(sigma*sigma)));
             double fy = (1.0/sqrt(2.0*pi*sigma*sigma))*exp(-((y-mu)*(y-mu))/(2.0*(sigma*sigma)));
             value = 1.0/(this->gamma_gas*this->mach_inf_sqr) + fx*fy;
+            value = value*3.0/3.0; // chnege this if you want to vary initial temperature 
         }
     }
     return value;

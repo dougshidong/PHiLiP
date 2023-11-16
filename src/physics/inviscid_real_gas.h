@@ -151,6 +151,9 @@ protected:
     /// Evaluate speed of sound from conservative variables
     real compute_sound ( const std::array<real,nstate> &conservative_soln ) const;
 
+    /// Compute kinetic energy (0.50*rho*(vel2)) from conservative variables
+    real compute_kinetic_energy ( const std::array<real,nstate> &conservative_soln ) const;
+
     /// For post processing purposes (update comment later)
     virtual dealii::Vector<double> post_compute_derived_quantities_vector (
         const dealii::Vector<double>              &uh,

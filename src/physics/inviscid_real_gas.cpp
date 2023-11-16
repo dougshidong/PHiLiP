@@ -396,6 +396,18 @@ inline real InviscidRealGas<dim,nstate,real>
 }
 
 template <int dim, int nstate, typename real>
+inline real InviscidRealGas<dim,nstate,real>
+::compute_kinetic_energy ( const std::array<real,nstate> &conservative_soln ) const
+{
+    const real density = conservative_soln[0];
+    const dealii::Tensor<1,dim,real> vel = compute_velocities<real>(conservative_soln);
+    const real vel2 = compute_velocity_squared(vel);
+    const real kinetic_energy = 0.50*density*vel2;
+
+    return kinetic_energy;
+}
+
+template <int dim, int nstate, typename real>
 dealii::Vector<double> InviscidRealGas<dim,nstate,real>::post_compute_derived_quantities_vector (
     const dealii::Vector<double>              &uh,
     const std::vector<dealii::Tensor<1,dim> > &duh,

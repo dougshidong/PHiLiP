@@ -21,13 +21,13 @@ InviscidRealGas<dim,nstate,real>::InviscidRealGas (
     , mach_ref(parameters_input->euler_param.mach_inf)
     , mach_ref_sqr(mach_ref*mach_ref)
     , two_point_num_flux_type(parameters_input->two_point_num_flux_type)
-    , N_air(28.96470 * 10e-4)
-    , Ru(8.314)
-    , R_air(Ru/N_air)
-    , R_ref(R_air)
-    , temperature_ref(273.15)
+    , Ru(8.31446261815324) /// [J/(mol·K)]
+    , MW_Air(28.9651159 * pow(10,-3)) /// [kg/mol]
+    , R_Air_Dim(Ru/MW_Air) /// [J/(kg·K)] 
+    , R_ref(R_Air_Dim) /// [J/(kg·K)] 
+    , R_Air_NonDim(R_Air_Dim/R_ref) /// []
     , temperature_ref(298.15) /// [K]
-    , u_ref(mach_ref*sqrt(gam_ref*R_N2_Dim*temperature_ref)) /// [m/s]
+    , u_ref(mach_ref*sqrt(gam_ref*R_Air_Dim*temperature_ref)) /// [m/s]
     , u_ref_sqr(u_ref*u_ref) /// [m/s]^2
 {
     // std::cout<<"In constructor of inviscid real gas."<<std::endl<<std::flush;
@@ -220,9 +220,9 @@ dealii::Tensor<1,8,real> InviscidRealGas<dim,nstate,real>
     dealii::Tensor<1,8,real> NASA_CAP;
     real a1,a2,a3,a4,a5,a6,a7,b1;
 
-    if (species == 1) // N2: Nitrogen
+    if (species == 1) //Air
     {
-        /// It is for N2, T range: 200[K] - 1000[K]
+        /// It is for Air, T range: 200[K] - 1000[K]
         a1 =  1.009950160e+04;
         a2 = -1.968275610e+02;
         a3 =  5.009155110e+00;
@@ -272,7 +272,7 @@ inline real InviscidRealGas<dim,nstate,real>
 
     /// polynomial
     real Cp = a1/pow(T,2.0) + a2/T + a3 + a4*T + a5*pow(T,2.0) + a6*pow(T,3.0) + a7*pow(T,4.0); // NASA polynomial
-    Cp = Cp*this->R_N2_Dim; // Dim
+    Cp = Cp*this->R_Air_Dim; // Dim
     Cp = Cp/this->R_ref;  // NonDim
     return Cp;
 }
@@ -302,7 +302,7 @@ inline real InviscidRealGas<dim,nstate,real>
 
     /// polynomial
     real enthalpy = -a1/pow(T,2.0) + a2*(log(T))/T + a3 + a4*T/2 + a5*pow(T,2.0)/3 + a6*pow(T,3.0)/4 + a7*pow(T,4.00)/5 +b1/T; // NASA polynomial
-    enthalpy = enthalpy*this->R_N2_Dim*T; // Dim
+    enthalpy = enthalpy*this->R_Air_Dim*T; // Dim
     enthalpy = enthalpy/this->u_ref_sqr; // NonDim
     return enthalpy;
 }

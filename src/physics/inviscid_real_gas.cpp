@@ -168,13 +168,19 @@ inline std::array<real,nstate> InviscidRealGas<dim,nstate,real>
     const real density = primitive_soln[0];
     dealii::Tensor<1,dim,real> vel;;
     for (int d=0; d<dim; ++d) { vel[d] = primitive_soln[1+d]; }
-
+    const real pressure = primitive_soln[nstate-1];
+    const real temperature = (this->gam_ref*this->mach_ref_sqr)*pressure/density;
+    const real vel2 = compute_velocity_squared(vel);
+    const real kinetic_energy = 0.5*density*vel2;
+    const real enthalpy = compute_enthalpy(temperature);
+    const real specific_internal_energy = enthalpy - (this->R_ref*this->temperature_ref/this->u_ref_sqr)*this->R_Air_NonDim*temperature;
+    const real total_energy = density*specific_internal_energy + kinetic_energy; //rhoE
     std::array<real, nstate> conservative_soln;
     conservative_soln[0] = density;
     for (int d=0; d<dim; ++d) {
         conservative_soln[1+d] = density*vel[d];
     }
-    conservative_soln[nstate-1] = primitive_soln[nstate-1]/(this->gam_ref-1.0)+0.5*density*(vel[0]*vel[0]+vel[1]*vel[1]); ///compute_total_energy(primitive_soln); /// change THIS
+    conservative_soln[nstate-1] = total_energy;
 
     return conservative_soln;
 }

@@ -47,6 +47,7 @@ protected:
     const double temperature_ref; ///< Reference temperature [K]
     const double temperature_ref; ///< reference temperature [K]
     const double u_ref; ///< reference velocity [m/s]
+    const double u_ref_sqr; ///< reference velocity squared[m/s]^2
 
 public:
      /// Computes the entropy variables.

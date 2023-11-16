@@ -266,18 +266,13 @@ inline real InviscidRealGas<dim,nstate,real>
     real a7 = NASA_CAP[6];
     // real b1 = NASA_CAP[7];
 
-    /// gas constant_N2
-    real N_N2 = 28.01340 * 10e-4;  // [kg/mol]
-    real R_N2 = this->Ru/N_N2;           // [J/kg]
-    R_N2 = R_N2/this->R_ref;         // [...]
-    /// This should be madde as a function...
-
     /// dimensinalize... T
-    real T = temperature*this->temperature_ref; // [K]
+    const real T = temperature*this->temperature_ref; // [K]
 
     /// polynomial
-    real Cp = a1/pow(T,2.0) + a2/T + a3 + a4*T + a5*pow(T,2.0) + a6*pow(T,3.0) + a7*pow(T,4.0);
-    Cp *= R_N2;
+    real Cp = a1/pow(T,2.0) + a2/T + a3 + a4*T + a5*pow(T,2.0) + a6*pow(T,3.0) + a7*pow(T,4.0); // NASA polynomial
+    Cp = Cp*this->R_N2_Dim; // Dim
+    Cp = Cp/this->R_ref;  // NonDim
     return Cp;
 }
 
@@ -301,18 +296,13 @@ inline real InviscidRealGas<dim,nstate,real>
     real a7 = NASA_CAP[6];
     real b1 = NASA_CAP[7];
 
-    /// gas constant_N2
-    real N_N2 = 28.01340 * 10e-4;  // [kg/mol]
-    real R_N2 = this->Ru/N_N2;           // [J/kg]
-    R_N2 = R_N2/this->R_ref;         // [...]
-    /// This should be made as a function...
-
     /// dimensinalize... T
-    real T = temperature*this->temperature_ref; // [K]
-
+    const real T = temperature*this->temperature_ref; // [K]
 
     /// polynomial
-    real enthalpy = -a1/pow(T,2.0) + a2*(log(T))/T + a3 + a4*T/2 + a5*pow(T,2.0)/3 + a6*pow(T,3.0)/4 + a7*pow(T,4.00)/5 +b1/T;
+    real enthalpy = -a1/pow(T,2.0) + a2*(log(T))/T + a3 + a4*T/2 + a5*pow(T,2.0)/3 + a6*pow(T,3.0)/4 + a7*pow(T,4.00)/5 +b1/T; // NASA polynomial
+    enthalpy = enthalpy*this->R_N2_Dim*T; // Dim
+    enthalpy = enthalpy/this->u_ref_sqr; // NonDim
     return enthalpy;
 }
 

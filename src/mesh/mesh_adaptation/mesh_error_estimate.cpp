@@ -49,7 +49,12 @@ dealii::Vector<real> ResidualErrorEstimate<dim, real, MeshType> :: compute_cellw
     std::vector<dealii::types::global_dof_index> dofs_indices;
     dealii::Vector<real> cellwise_errors (this->dg->high_order_grid->triangulation->n_active_cells());
     this->dg->assemble_residual();
-
+  /*  
+    const unsigned int coarse_poly_degree = this->dg->get_min_fe_degree();
+    const unsigned int fine_poly_degree = coarse_poly_degree + 1;
+    this->dg->set_p_degree_and_interpolate_solution(fine_poly_degree);
+    this->dg->assemble_residual();
+*/
     for (const auto &cell : this->dg->dof_handler.active_cell_iterators()) 
     {
         if(!cell->is_locally_owned())  continue;
@@ -69,7 +74,10 @@ dealii::Vector<real> ResidualErrorEstimate<dim, real, MeshType> :: compute_cellw
         }
         cellwise_errors[cell->active_cell_index()] = max_residual;
     }
-
+/*
+    this->dg->set_p_degree_and_interpolate_solution(coarse_poly_degree);
+    this->dg->assemble_residual();
+*/
     return cellwise_errors;
 }
 

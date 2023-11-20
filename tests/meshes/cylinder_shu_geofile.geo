@@ -58,7 +58,9 @@ Plane Surface(1) = {1};
 //+
 Physical Surface("innervol", 5) = {1};
 //+
-Physical Curve("riemann", 1004) = {2, 4, 3};
+Physical Curve("supersonic_inflow", 1007) = {2};
+//+
+Physical Curve("supersonic_outflow", 1008) = {3, 4};
 //+
 Physical Curve("slipwall", 1001) = {1};
 

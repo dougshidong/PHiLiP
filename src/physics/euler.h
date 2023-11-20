@@ -428,6 +428,15 @@ protected:
     /// Simple farfield boundary conditions based on freestream values
     void boundary_farfield (
         std::array<real,nstate> &soln_bc) const;
+    
+    /// Supersonic inflow
+    void boundary_supersonic_inflow (
+        std::array<real,nstate> &soln_bc) const;
+    
+    /// Supersonic outflow
+    void boundary_supersonic_outflow (
+        const std::array<real,nstate> &soln_int,
+        std::array<real,nstate> &soln_bc) const;
 
     /// Get manufactured solution value
     std::array<real,nstate> get_manufactured_solution_value(

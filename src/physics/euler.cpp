@@ -1376,6 +1376,26 @@ void Euler<dim,nstate,real>
 
 template <int dim, int nstate, typename real>
 void Euler<dim,nstate,real>
+::boundary_supersonic_inflow (
+   std::array<real,nstate> &soln_bc) const
+{
+    boundary_farfield(soln_bc);
+}
+
+template <int dim, int nstate, typename real>
+void Euler<dim,nstate,real>
+::boundary_supersonic_outflow (
+   const std::array<real,nstate> &soln_int, 
+   std::array<real,nstate> &soln_bc) const
+{
+    for(int istate=0; istate<nstate; ++istate)
+    {
+        soln_bc[istate] = soln_int[istate];
+    }
+}
+
+template <int dim, int nstate, typename real>
+void Euler<dim,nstate,real>
 ::boundary_face_values (
    const int boundary_type,
    const dealii::Point<dim, real> &pos,
@@ -1417,6 +1437,14 @@ void Euler<dim,nstate,real>
     else if (boundary_type == 1006) {
         // Slip wall boundary condition
         boundary_slip_wall (normal_int, soln_int, soln_grad_int, soln_bc, soln_grad_bc);
+    } 
+    else if (boundary_type == 1007) {
+        // Supersonic inflow boundary condition
+        boundary_supersonic_inflow (soln_bc);
+    } 
+    else if (boundary_type == 1008) {
+        // Supersonic outflow boundary condition
+        boundary_supersonic_outflow (soln_int, soln_bc);
     } 
     else {
         this->pcout << "Invalid boundary_type: " << boundary_type << std::endl;

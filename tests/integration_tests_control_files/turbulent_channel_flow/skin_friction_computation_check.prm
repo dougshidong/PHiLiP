@@ -80,7 +80,7 @@ end
 # Flow Solver
 subsection flow_solver
   set flow_case_type = channel_flow
-  set poly_degree = 5
+  set poly_degree = 3
   set final_time = 0.0
   set constant_time_step = 0.000068
   set courant_friedrichs_lewy_number = 0.1

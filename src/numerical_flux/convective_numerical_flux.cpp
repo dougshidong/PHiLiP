@@ -221,10 +221,11 @@ void RoePikeRiemannSolverDissipation<dim,nstate,real>
 ::evaluate_entropy_fix (
     const std::array<real, 3> &/*eig_L*/,
     const std::array<real, 3> &/*eig_R*/,
-    std::array<real, 3> &eig_RoeAvg,
+    std::array<real, 3> & /*eig_RoeAvg*/,
     const real /*vel2_ravg*/,
     const real /*sound_ravg*/) const
 {
+/*
     // Harten's entropy fix
     // -- See Hartmann and Leicht, 2008 on pages 56-57.
 
@@ -245,6 +246,7 @@ void RoePikeRiemannSolverDissipation<dim,nstate,real>
             eig_RoeAvg[i] = (eig_RoeAvg[i]*eig_RoeAvg[i] + delta*delta)/(2.0*delta);
         }
     }
+*/
 /*
     for(int e=0;e<3;e++) {
         const real eps = std::max(abs(eig_RoeAvg[e] - eig_L[e]), abs(eig_R[e] - eig_RoeAvg[e]));

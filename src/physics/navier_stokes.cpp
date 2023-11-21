@@ -179,7 +179,7 @@ real2 NavierStokes<dim,nstate,real>
     // }
     // wall_shear_stress = pow(wall_shear_stress,0.5);
 
-    // build tangential operator (can be used to get the surface tangential component of some vector)
+    /*// build tangential operator (can be used to get the surface tangential component of some vector)
     dealii::Tensor<2,dim,real2> tangential_operator;
     for(int i=0;i<dim;++i){
         for(int j=0;j<dim;++j){
@@ -187,7 +187,7 @@ real2 NavierStokes<dim,nstate,real>
             if(j==i) tangential_operator[i][j] = 1.0;
             tangential_operator[i][j] -= normal_vector[j]*normal_vector[i];
         }
-    }
+    }*/
     // viscous stress tensor times normal vector (contains all components on the surface associated with the normal vector)
     dealii::Tensor<1,dim,real2> viscous_stress_tensor_times_normal_vector;
     for(int i=0;i<dim;++i){
@@ -196,18 +196,19 @@ real2 NavierStokes<dim,nstate,real>
             viscous_stress_tensor_times_normal_vector[i] += viscous_stress_tensor[i][j]*normal_vector[j];
         }
     }
-    // components tangent to the surface
+    /*// components tangent to the surface
     dealii::Tensor<1,dim,real2> viscous_stress_tensor_times_tangent_vector;
     for(int i=0;i<dim;++i){
         viscous_stress_tensor_times_tangent_vector[i] = 0.0;
         for(int j=0;j<dim;++j){
             viscous_stress_tensor_times_tangent_vector[i] += tangential_operator[i][j]*viscous_stress_tensor_times_normal_vector[j];
         }
-    }
+    }*/
     // compute magnitude
     real2 wall_shear_stress = 0.0;
     for(int i=0;i<dim;++i){
-        wall_shear_stress += viscous_stress_tensor_times_tangent_vector[i]*viscous_stress_tensor_times_tangent_vector[i];
+        // wall_shear_stress += viscous_stress_tensor_times_tangent_vector[i]*viscous_stress_tensor_times_tangent_vector[i];
+        wall_shear_stress += viscous_stress_tensor_times_normal_vector[i]*viscous_stress_tensor_times_normal_vector[i];
     }
     wall_shear_stress = pow(wall_shear_stress,0.5);
 

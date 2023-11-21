@@ -1329,6 +1329,47 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_boundary_term(
         }
     }
 
+    // Assuming cylindrical wall boundary centered at (0,0).
+    const unsigned int boundary_id_slipwall = 1001;
+    if(boundary_id == boundary_id_slipwall)
+    {
+        const double radius = 1.0;
+        for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) 
+        {
+            dealii::Tensor<2,dim,real2> cofactor_J;
+            const real2 x = real_quad_pts[iquad][0];
+            const real2 y = real_quad_pts[iquad][1];
+            const real2 x_epsilon = metric_jacobian[iquad][0][0];
+            const real2 x_eta = metric_jacobian[iquad][0][1];
+            const real2 y_epsilon = metric_jacobian[iquad][1][0];
+            const real2 y_eta = metric_jacobian[iquad][1][1];
+            const real2 c1 = -y*x_eta + x*y_eta;
+            const real2 c2 = y*x_epsilon - x*y_epsilon;
+            const real2 norm_x = sqrt(x*x + y*y);
+            const real2 mult_factor = radius/pow(norm_x,3);
+            cofactor_J[0][0] = x*c1;
+            cofactor_J[0][1] = x*c2;
+            cofactor_J[1][0] = y*c1;
+            cofactor_J[1][1] = y*c2;
+            cofactor_J *= mult_factor;
+            
+            const dealii::Tensor<1,dim,real2> scaled_normal = vmult(cofactor_J, unit_normal);
+            
+            const real2 area = norm(scaled_normal);
+
+            surface_jac_det[iquad] = area;
+            // Technically the normals have jac_det multiplied.
+            // However, we use normalized normals by convention, so the the term
+            // ends up appearing in the surface jacobian.
+            for (int d=0;d<dim;++d) 
+            { 
+                phys_unit_normal[iquad][d] = scaled_normal[d] / area;
+            }
+
+            faceJxW[iquad] = surface_jac_det[iquad] * face_quadrature.weight(iquad);
+        }
+    }
+
 
     std::vector<std::array<real2,nstate>> soln_int(n_quad_pts), soln_ext(n_quad_pts);
     std::vector<std::array< dealii::Tensor<1,dim,real2>, nstate >> soln_grad_int(n_quad_pts), soln_grad_ext(n_quad_pts);

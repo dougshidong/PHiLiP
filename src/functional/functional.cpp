@@ -623,8 +623,8 @@ real2 Functional<dim,nstate,real,MeshType>::evaluate_boundary_cell_functional(
         jacobian_transpose_inverse = dealii::transpose(dealii::invert(metric_jacobian));
 
         const dealii::Tensor<1,dim,real2> phys_normal = vmult(jacobian_transpose_inverse, surface_unit_normal);
-        const real2 area = norm(phys_normal);
-        const dealii::Tensor<1,dim,real2> phys_unit_normal = phys_normal/area;
+        real2 area = norm(phys_normal);
+        dealii::Tensor<1,dim,real2> phys_unit_normal = phys_normal/area;
 
         real2 surface_jacobian_determinant = area*jacobian_determinant;
 
@@ -642,6 +642,42 @@ real2 Functional<dim,nstate,real,MeshType>::evaluate_boundary_cell_functional(
                 soln_grad_at_q[istate] += soln_coeff[idof] * phys_shape_grad;
             }
         }
+    
+        const unsigned int boundary_id_slipwall = 1001;
+        if(boundary_id == boundary_id_slipwall)
+        {
+            const double radius = 1.0;
+            dealii::Tensor<2,dim,real2> cofactor_J;
+            const real2 x = phys_coord[0];
+            const real2 y = phys_coord[1];
+            const real2 x_epsilon = metric_jacobian[0][0];
+            const real2 x_eta = metric_jacobian[0][1];
+            const real2 y_epsilon = metric_jacobian[1][0];
+            const real2 y_eta = metric_jacobian[1][1];
+            const real2 c1 = -y*x_eta + x*y_eta;
+            const real2 c2 = y*x_epsilon - x*y_epsilon;
+            const real2 norm_x = sqrt(x*x + y*y);
+            const real2 mult_factor = radius/pow(norm_x,3);
+            cofactor_J[0][0] = x*c1;
+            cofactor_J[0][1] = x*c2;
+            cofactor_J[1][0] = y*c1;
+            cofactor_J[1][1] = y*c2;
+            cofactor_J *= mult_factor;
+            
+            const dealii::Tensor<1,dim,real2> scaled_normal = vmult(cofactor_J, surface_unit_normal);
+            
+            area = norm(scaled_normal);
+
+            surface_jacobian_determinant = area;
+            // Technically the normals have jac_det multiplied.
+            // However, we use normalized normals by convention, so the the term
+            // ends up appearing in the surface jacobian.
+            for (int d=0;d<dim;++d) 
+            { 
+                phys_unit_normal[d] = scaled_normal[d] / area;
+            }
+        }
+
         real2 boundary_integrand = this->evaluate_boundary_integrand(physics, boundary_id, phys_coord, phys_unit_normal, soln_at_q, soln_grad_at_q);
 
         boundary_local_sum += boundary_integrand * surface_jacobian_determinant * quad_weight;

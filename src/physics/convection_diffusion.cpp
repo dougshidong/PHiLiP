@@ -159,7 +159,7 @@ std::array<dealii::Tensor<1,dim,real>,nstate> ConvectionDiffusion<dim,nstate,rea
         for (int d1=0; d1<dim; d1++) {
             diss_flux[i][d1] = 0.0;
             for (int d2=0; d2<dim; d2++) {
-                diss_flux[i][d1] += -diff_coeff*(this->diffusion_tensor[d1][d2]*solution_gradient[i][d2]);
+                diss_flux[i][d1] = diss_flux[i][d1] - diff_coeff * (this->diffusion_tensor[d1][d2]*solution_gradient[i][d2]);
             }
         }
     }
@@ -227,7 +227,7 @@ std::array<real,nstate> ConvectionDiffusion<dim,nstate,real>
                 hess += (this->diffusion_tensor)[dr][dc] * manufactured_hessian[dr][dc];
             }
         }
-        source[istate] += -diff_coeff*hess;
+        source[istate] = source[istate] - diff_coeff*hess;
     }
     return source;
 }

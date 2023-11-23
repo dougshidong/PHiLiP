@@ -1000,8 +1000,8 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_boundary_term(
             current_cell_index,
             artificial_diss_coeff_at_q[iquad],
             artificial_diss_coeff_at_q[iquad],
-            soln_int[iquad], soln_int[iquad],
-            soln_grad_int[iquad], soln_grad_int[iquad],
+            soln_int[iquad], soln_ext[iquad],
+            soln_grad_int[iquad], soln_grad_ext[iquad],
             //soln_int[iquad], soln_int[iquad],
             //soln_grad_int[iquad], soln_grad_int[iquad],
             normal_int, penalty, true);

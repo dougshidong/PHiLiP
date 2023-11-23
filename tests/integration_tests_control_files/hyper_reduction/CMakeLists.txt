@@ -37,4 +37,31 @@ add_test(
         WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )
 
+configure_file(1d_burgers_rewienski_hyper_adaptive_sampling.prm 1d_burgers_rewienski_hyper_adaptive_sampling.prm COPYONLY)
+add_test(
+        NAME 1D_BURGERS_HYPER_ADAPTIVE_SAMPLING_TEST
+        COMMAND mpirun -np 1 ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_1D -i ${CMAKE_CURRENT_BINARY_DIR}/1d_burgers_rewienski_hyper_adaptive_sampling.prm 
+        WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
+)
+
+configure_file(1d_burgers_rewienski_hyper_post_sampling.prm 1d_burgers_rewienski_hyper_post_sampling.prm COPYONLY)
+add_test(
+        NAME 1D_BURGERS_HYPER_POST_SAMPLING
+        COMMAND mpirun -np 1 ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_1D -i ${CMAKE_CURRENT_BINARY_DIR}/1d_burgers_rewienski_hyper_post_sampling.prm 
+        WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
+)
+
+configure_file(inviscid_naca0012_hyper_post_sampling.prm inviscid_naca0012_hyper_post_sampling.prm COPYONLY)
+add_test(
+        NAME INVISCID_NACA0012_HYPER_POST_SAMPLING
+        COMMAND mpirun -np 1 ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_2D -i ${CMAKE_CURRENT_BINARY_DIR}/inviscid_naca0012_hyper_post_sampling.prm
+        WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
+)
+
+configure_file(inviscid_naca0012_hyper_adaptive_sampling.prm inviscid_naca0012_hyper_adaptive_sampling.prm COPYONLY)
+add_test(
+        NAME INVISCID_NACA0012_HYPER_ADAPTIVE_SAMPLING_TEST
+        COMMAND mpirun -np 1 ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_2D -i ${CMAKE_CURRENT_BINARY_DIR}/inviscid_naca0012_hyper_adaptive_sampling.prm
+        WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
+)
 

@@ -1,5 +1,7 @@
 set(SOURCE
-assemble_problem_ECSW.cpp)
+assemble_problem_ECSW.cpp
+assemble_ECSW_jacobian.cpp
+hyper_reduced_adaptive_sampling.cpp)
 
 foreach(dim RANGE 1 3)
     # Output library

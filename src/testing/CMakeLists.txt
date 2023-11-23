@@ -37,6 +37,8 @@ set(TESTS_SOURCE
     khi_robustness.cpp
     build_NNLS_problem.cpp
     hyper_reduction_comparison.cpp
+    hyper_adaptive_sampling_test.cpp
+    hyper_reduction_post_sampling.cpp
     )
 
 foreach(dim RANGE 1 3)

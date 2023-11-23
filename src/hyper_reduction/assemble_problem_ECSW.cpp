@@ -77,6 +77,8 @@ void AssembleECSW<dim,nstate>::build_problem(){
     int row_num = 0;
     int snap_num = 0;
     for(auto snap_param : parameter_sampling->snapshot_parameters.rowwise()){
+        std::cout << "snap_param" << std::endl;
+        std::cout << snap_param << std::endl;
         dealii::LinearAlgebra::ReadWriteVector<double> snapshot_s;
         snapshot_s.reinit(N_e);
         // Extract snapshot from the snapshotMatrix

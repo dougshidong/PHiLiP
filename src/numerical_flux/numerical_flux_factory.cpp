@@ -20,6 +20,7 @@ NumericalFluxFactory<dim, nstate, real>
 {
     // checks if conv_num_flux_type exists only for Euler equations
     const bool is_euler_based = ((conv_num_flux_type == AllParam::ConvectiveNumericalFlux::roe) ||
+                                 (conv_num_flux_type == AllParam::ConvectiveNumericalFlux::hllc) || 
                                  (conv_num_flux_type == AllParam::ConvectiveNumericalFlux::l2roe) || 
                                  (conv_num_flux_type == AllParam::ConvectiveNumericalFlux::two_point_flux_with_roe_dissipation) || 
                                  (conv_num_flux_type == AllParam::ConvectiveNumericalFlux::two_point_flux_with_l2roe_dissipation));
@@ -89,6 +90,9 @@ NumericalFluxFactory<dim, nstate, real>
 #endif
     if(conv_num_flux_type == AllParam::ConvectiveNumericalFlux::roe) {
         if constexpr (dim+2==nstate) return std::make_unique< RoePike<dim, nstate, real> > (euler_based_physics_to_be_passed);
+    } 
+    if(conv_num_flux_type == AllParam::ConvectiveNumericalFlux::hllc) {
+        if constexpr (dim+2==nstate) return std::make_unique< HLLC<dim, nstate, real> > (euler_based_physics_to_be_passed);
     } 
     else if(conv_num_flux_type == AllParam::ConvectiveNumericalFlux::l2roe) {
         if constexpr (dim+2==nstate) return std::make_unique< L2Roe<dim, nstate, real> > (euler_based_physics_to_be_passed);

@@ -246,6 +246,7 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       dealii::Patterns::Selection(
                       " lax_friedrichs | "
                       " roe | "
+                      " hllc | "
                       " l2roe | "
                       " central_flux | "
                       " two_point_flux | "
@@ -256,6 +257,7 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       "Choices are "
                       " <lax_friedrichs | "
                       " roe | "
+                      " hllc | "
                       " l2roe | "
                       " central_flux | "
                       " two_point_flux | "
@@ -392,6 +394,7 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     const std::string conv_num_flux_string = prm.get("conv_num_flux");
     if (conv_num_flux_string == "lax_friedrichs")                                          { conv_num_flux_type = ConvectiveNumericalFlux::lax_friedrichs; }
     if (conv_num_flux_string == "roe")                                                     { conv_num_flux_type = ConvectiveNumericalFlux::roe; }
+    if (conv_num_flux_string == "hllc")                                                    { conv_num_flux_type = ConvectiveNumericalFlux::hllc; }
     if (conv_num_flux_string == "l2roe")                                                   { conv_num_flux_type = ConvectiveNumericalFlux::l2roe; }
     if (conv_num_flux_string == "central_flux")                                            { conv_num_flux_type = ConvectiveNumericalFlux::central_flux; }
     if (conv_num_flux_string == "two_point_flux")                                 { conv_num_flux_type = ConvectiveNumericalFlux::two_point_flux; }

@@ -76,6 +76,14 @@ L2Roe<dim, nstate, real>::L2Roe(
 {}
 
 template <int dim, int nstate, typename real>
+HLLC<dim, nstate, real>::HLLC(
+    std::shared_ptr<Physics::PhysicsBase<dim, nstate, real>> physics_input)
+    : NumericalFluxConvective<dim,nstate,real>(
+        std::make_unique< HLLCBaselineNumericalFluxConvective<dim, nstate, real> > (physics_input), 
+        std::make_unique< ZeroRiemannSolverDissipation<dim, nstate, real> > ())
+{}
+
+template <int dim, int nstate, typename real>
 Central<dim, nstate, real>::Central(
     std::shared_ptr<Physics::PhysicsBase<dim, nstate, real>> physics_input)
     : NumericalFluxConvective<dim,nstate,real>(
@@ -170,6 +178,153 @@ std::array<real, nstate> EntropyConservingBaselineNumericalFluxConvective<dim,ns
         }
         numerical_flux_dot_n[s] = flux_dot_n;
     }
+    return numerical_flux_dot_n;
+}
+
+template <int dim, int nstate, typename real>
+std::array<real, nstate> HLLCBaselineNumericalFluxConvective<dim,nstate,real>::evaluate_flux(
+    const std::array<real, nstate> &soln_int,
+    const std::array<real, nstate> &soln_ext,
+    const dealii::Tensor<1,dim,real> &normal_int) const
+{
+    // Using HLLC from Appendix B of Yu Lv and Matthias Ihme, 2014, Discontinuous Galerkin method for 
+    // multicomponent chemically reacting ﬂows and combustion.
+    using RealArrayVector = std::array<dealii::Tensor<1,dim,real>,nstate>;
+    
+    const std::array<real,nstate> prim_soln_L = euler_physics->convert_conservative_to_primitive(soln_int);
+    const std::array<real,nstate> prim_soln_R = euler_physics->convert_conservative_to_primitive(soln_ext);
+
+    const real density_L = prim_soln_L[0];
+    const real density_R = prim_soln_R[0];
+    const real pressure_L = prim_soln_L[nstate-1];
+    const real pressure_R = prim_soln_R[nstate-1];
+    const dealii::Tensor< 1,dim,real > velocities_L = euler_physics->extract_velocities_from_primitive(prim_soln_L);
+    const dealii::Tensor< 1,dim,real > velocities_R = euler_physics->extract_velocities_from_primitive(prim_soln_R);
+    real velocity_dot_n_L = 0;
+    real velocity_dot_n_R = 0;
+    for(int d=0; d<dim; ++d)
+    {
+        velocity_dot_n_L += velocities_L[d]*normal_int[d];
+        velocity_dot_n_R += velocities_R[d]*normal_int[d];
+    }
+    
+    const real sound_L = euler_physics->compute_sound(density_L, pressure_L);
+    const real sound_R = euler_physics->compute_sound(density_R, pressure_R);
+
+    const real density_avg = 0.5*(density_L + density_R);
+    const real sound_avg = 0.5*(sound_L + sound_R);
+
+    const real pressure_pvrs = 0.5*(pressure_L + pressure_R) - 0.5*(velocity_dot_n_R - velocity_dot_n_L)*density_avg*sound_avg;
+    real pressure_star = 0;
+    if(pressure_pvrs > 0.0)
+    {
+        pressure_star = pressure_pvrs;
+    }
+
+    const real gam_fraction = (1.4 + 1.0)/(2.0*1.4);
+    real q_L = 1.0;
+    if(pressure_star > pressure_L)
+    {
+        const real val = 1.0 + gam_fraction*(pressure_star/pressure_L - 1.0);
+        q_L = sqrt(val);
+    }
+    real q_R = 1.0;
+    if(pressure_star > pressure_R)
+    {
+        const real val = 1.0 + gam_fraction*(pressure_star/pressure_R - 1.0);
+        q_R = sqrt(val);
+    }
+
+    const real S_L = velocity_dot_n_L - sound_L*q_L;
+    const real S_R = velocity_dot_n_R + sound_R*q_R;
+
+    const real S_star = 
+            (pressure_R - pressure_L + density_L*velocity_dot_n_L*(S_L - velocity_dot_n_L) 
+            - density_R*velocity_dot_n_R*(S_R - velocity_dot_n_R))/(density_L*(S_L - velocity_dot_n_L) - density_R*(S_R - velocity_dot_n_R));
+
+    std::array<real, nstate> soln_star_L;
+    std::array<real, nstate> soln_star_R;
+    const real multfactor_L = (S_L - velocity_dot_n_L)/(S_L - S_star);
+    const real multfactor_R = (S_R - velocity_dot_n_R)/(S_R - S_star);
+
+    soln_star_L[0] = soln_int[0];
+    soln_star_R[0] = soln_ext[0];
+
+    for(int d=0; d<dim; ++d)
+    {
+        soln_star_L[1+d] = soln_int[1+d] + density_L*(S_star - velocity_dot_n_L)*normal_int[d];
+        
+        soln_star_R[1+d] = soln_ext[1+d] + density_R*(S_star - velocity_dot_n_R)*normal_int[d];
+    }
+
+    soln_star_L[nstate-1] = soln_int[nstate-1] + (S_star - velocity_dot_n_L)*(density_L*S_star + pressure_L/(S_L - velocity_dot_n_L));
+    soln_star_R[nstate-1] = soln_ext[nstate-1] + (S_star - velocity_dot_n_R)*(density_R*S_star + pressure_R/(S_R - velocity_dot_n_R));
+
+    for(int s=0; s<nstate; ++s)
+    {
+        soln_star_L[s] *= multfactor_L;
+        soln_star_R[s] *= multfactor_R;
+    }
+
+    RealArrayVector conv_phys_flux_int;
+    RealArrayVector conv_phys_flux_ext;
+
+    conv_phys_flux_int = euler_physics->convective_flux (soln_int);
+    conv_phys_flux_ext = euler_physics->convective_flux (soln_ext);
+    
+
+    std::array<real, nstate> numerical_flux_dot_n_L;
+    std::array<real, nstate> numerical_flux_dot_n_R;
+
+    for(int s = 0; s<nstate; ++s)
+    {
+        real flux_dot_n_L = 0.0;
+        real flux_dot_n_R = 0.0;
+        for(int d=0; d<dim; ++d)
+        {
+            flux_dot_n_L += conv_phys_flux_int[s][d]*normal_int[d];
+            flux_dot_n_R += conv_phys_flux_ext[s][d]*normal_int[d];
+        }
+        numerical_flux_dot_n_L[s] = flux_dot_n_L;
+        numerical_flux_dot_n_R[s] = flux_dot_n_R;
+    }
+
+    std::array<real, nstate> numerical_flux_dot_n;
+
+    if(0.0 < S_L)
+    {
+        for(int s=0; s<nstate; ++s)
+        {
+            numerical_flux_dot_n[s] = numerical_flux_dot_n_L[s];
+        }
+    }
+    else if( (S_L <= 0.0) && (0.0 < S_star))
+    {
+        for(int s=0; s<nstate; ++s)
+        {
+            numerical_flux_dot_n[s] = numerical_flux_dot_n_L[s] + S_L*(soln_star_L[s] - soln_int[s]);
+        } 
+    }
+    else if( (S_star <= 0.0) && (0.0 < S_R))
+    {
+        for(int s=0; s<nstate; ++s)
+        {
+            numerical_flux_dot_n[s] = numerical_flux_dot_n_R[s] + S_R*(soln_star_R[s] - soln_ext[s]);
+        } 
+    }
+    else if(S_R <= 0.0)
+    {
+        for(int s=0; s<nstate; ++s)
+        {
+            numerical_flux_dot_n[s] = numerical_flux_dot_n_R[s];
+        } 
+    }
+    else
+    {
+        std::cout<<"Shouldn't have reached here in HLLC flux."<<std::endl;
+        std::abort();
+    }
+
     return numerical_flux_dot_n;
 }
 
@@ -579,6 +734,11 @@ template class L2Roe<PHILIP_DIM, PHILIP_DIM+2, FadType >;
 template class L2Roe<PHILIP_DIM, PHILIP_DIM+2, RadType >;
 template class L2Roe<PHILIP_DIM, PHILIP_DIM+2, FadFadType >;
 template class L2Roe<PHILIP_DIM, PHILIP_DIM+2, RadFadType >;
+template class HLLC<PHILIP_DIM, PHILIP_DIM+2, double>;
+template class HLLC<PHILIP_DIM, PHILIP_DIM+2, FadType >;
+template class HLLC<PHILIP_DIM, PHILIP_DIM+2, RadType >;
+template class HLLC<PHILIP_DIM, PHILIP_DIM+2, FadFadType >;
+template class HLLC<PHILIP_DIM, PHILIP_DIM+2, RadFadType >;
 
 template class Central<PHILIP_DIM, 1, double>;
 template class Central<PHILIP_DIM, 2, double>;
@@ -901,5 +1061,10 @@ template class L2RoeRiemannSolverDissipation<PHILIP_DIM, PHILIP_DIM+2, RadType >
 template class L2RoeRiemannSolverDissipation<PHILIP_DIM, PHILIP_DIM+2, FadFadType >;
 template class L2RoeRiemannSolverDissipation<PHILIP_DIM, PHILIP_DIM+2, RadFadType >;
 
+template class HLLCBaselineNumericalFluxConvective<PHILIP_DIM, PHILIP_DIM+2, double>;
+template class HLLCBaselineNumericalFluxConvective<PHILIP_DIM, PHILIP_DIM+2, FadType >;
+template class HLLCBaselineNumericalFluxConvective<PHILIP_DIM, PHILIP_DIM+2, RadType >;
+template class HLLCBaselineNumericalFluxConvective<PHILIP_DIM, PHILIP_DIM+2, FadFadType >;
+template class HLLCBaselineNumericalFluxConvective<PHILIP_DIM, PHILIP_DIM+2, RadFadType >;
 } // NumericalFlux namespace
 } // PHiLiP namespace

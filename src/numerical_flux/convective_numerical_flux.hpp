@@ -70,6 +70,28 @@ protected:
     const std::shared_ptr < Physics::PhysicsBase<dim, nstate, real> > pde_physics;
 };
 
+/// HLLC numerical flux. Derived from BaselineNumericalFluxConvective.
+template<int dim, int nstate, typename real>
+class HLLCBaselineNumericalFluxConvective : public BaselineNumericalFluxConvective<dim, nstate, real>
+{
+public:
+    /// Constructor
+    HLLCBaselineNumericalFluxConvective(std::shared_ptr <Physics::PhysicsBase<dim, nstate, real>> physics_input)
+    : euler_physics(std::dynamic_pointer_cast<Physics::Euler<dim,nstate,real>>(physics_input)) {};
+    
+    /// Destructor
+    ~HLLCBaselineNumericalFluxConvective() {};
+
+    /// Returns the convective numerical flux at an interface.
+    std::array<real, nstate> evaluate_flux (
+        const std::array<real, nstate> &soln_int,
+        const std::array<real, nstate> &soln_ext,
+        const dealii::Tensor<1,dim,real> &normal1) const override;
+
+protected:
+    const std::shared_ptr < Physics::Euler<dim, nstate, real> > euler_physics;
+};
+
 /// Base class of Riemann solver dissipation (i.e. upwind-term) for numerical flux associated with convection
 template<int dim, int nstate, typename real>
 class RiemannSolverDissipation
@@ -286,6 +308,18 @@ public:
 
     /// Destructor
     ~RoePike() {};
+};
+
+/// HLLC numerical flux. Derived from NumericalFluxConvective.
+template<int dim, int nstate, typename real>
+class HLLC : public NumericalFluxConvective<dim, nstate, real>
+{
+public:
+    /// Constructor
+    HLLC(std::shared_ptr<Physics::PhysicsBase<dim, nstate, real>> physics_input);
+
+    /// Destructor
+    ~HLLC() {};
 };
 
 /// L2Roe numerical flux. Derived from NumericalFluxConvective.

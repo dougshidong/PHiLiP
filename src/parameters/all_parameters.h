@@ -231,7 +231,8 @@ public:
     /// Possible convective numerical flux types
     enum ConvectiveNumericalFlux { 
         lax_friedrichs, 
-        roe, 
+        roe,
+        hllc,
         l2roe, 
         central_flux,
         two_point_flux,

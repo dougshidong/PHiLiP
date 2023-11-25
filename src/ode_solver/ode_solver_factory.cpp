@@ -255,27 +255,11 @@ std::shared_ptr<RKTableauBase<dim,real,MeshType>> ODESolverFactory<dim,real,Mesh
             return nullptr;
         } else return std::make_shared<EulerExplicit<dim, real, MeshType>>  (n_rk_stages, "Forward Euler (explicit)");
     }
-    if constexpr(dim==1){
-        // Implicit only tested in 1D with Burgers and advection
-        using PDEEnum = Parameters::AllParameters::PartialDifferentialEquation;
-        const PDEEnum pde_type = dg_input->all_parameters->pde_type;
-        if ((pde_type==PDEEnum::burgers_inviscid) || (pde_type==PDEEnum::advection)){
-            if (rk_method == RKMethodEnum::euler_im)    return std::make_shared<EulerImplicit<dim, real, MeshType>>  (n_rk_stages, "Implicit Euler (implicit)");
-            if (rk_method == RKMethodEnum::dirk_2_im)   return std::make_shared<DIRK2Implicit<dim, real, MeshType>>  (n_rk_stages, "2nd order diagonally-implicit (implicit)");
-            if (rk_method == RKMethodEnum::dirk_3_im)   return std::make_shared<DIRK3Implicit<dim, real, MeshType>>  (n_rk_stages, "3nd order diagonally-implicit (implicit)");
-            else {
-                pcout << "Error: invalid RK method. Aborting..." << std::endl;
-                std::abort();
-                return nullptr;
-            }
-        } else {
-            pcout << "Error: implicit RK only tested for 1D advection and Burgers'. Aborting..."  << std::endl;
-            std::abort();
-            return nullptr;
-        }
-    }
+    if (rk_method == RKMethodEnum::euler_im)    return std::make_shared<EulerImplicit<dim, real, MeshType>>  (n_rk_stages, "Implicit Euler (implicit)");
+    if (rk_method == RKMethodEnum::dirk_2_im)   return std::make_shared<DIRK2Implicit<dim, real, MeshType>>  (n_rk_stages, "2nd order diagonally-implicit (implicit)");
+    if (rk_method == RKMethodEnum::dirk_3_im)   return std::make_shared<DIRK3Implicit<dim, real, MeshType>>  (n_rk_stages, "3nd order diagonally-implicit (implicit)");
     else {
-        pcout << "Error: invalid RK method, or attempted to use implicit RK with dim > 1. Aborting..." << std::endl;
+        pcout << "Error: invalid RK method. Aborting..." << std::endl;
         std::abort();
         return nullptr;
     }

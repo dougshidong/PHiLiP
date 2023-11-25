@@ -2412,11 +2412,11 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_strong(
                 for(unsigned int iquad_ext=0; iquad_ext<n_quad_pts_1D_ext; iquad_ext++){
                     surf_vol_ref_2pt_flux_interp_surf_ext[istate][iface_quad] 
                         -= surface_ref_2pt_flux_ext_Hadamard_with_surf_oper[iface_quad][iquad_ext]
-                        * (-unit_ref_normal_int[dim_not_zero_ext]);
+                        * (unit_ref_normal_ext[dim_not_zero_ext]);
                     const unsigned int column_index = iface_quad * n_quad_pts_1D_ext + iquad_ext;
                     surf_vol_ref_2pt_flux_interp_vol_ext[istate][Hadamard_columns_sparsity_ext[column_index]] 
                         += surface_ref_2pt_flux_ext_Hadamard_with_surf_oper[iface_quad][iquad_ext]
-                        * (-unit_ref_normal_int[dim_not_zero_ext]);
+                        * (unit_ref_normal_ext[dim_not_zero_ext]);
                 }
             }
         }

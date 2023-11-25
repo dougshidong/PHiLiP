@@ -155,7 +155,7 @@ int test (
             if (dg->locally_owned_dofs.is_element(iresidual) ) {
                 const double drdx_entry = perturbed_residual_p[iresidual];
                 if (std::abs(drdx_entry) >= 1e-12) {
-                    std::cout << iresidual << " " << inode << std::endl;
+                    // std::cout << iresidual << " " << inode << std::endl;
                     dRdXv_fd.add(iresidual,inode,drdx_entry);
                 }
             }

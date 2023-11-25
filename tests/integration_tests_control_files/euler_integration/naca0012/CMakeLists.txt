@@ -33,6 +33,19 @@ add_test(
         WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )
 
+configure_file(STRONG_naca0012_unsteady.prm STRONG_naca0012_unsteady.prm COPYONLY)
+add_test(
+    NAME 2D_EULER_INTEGRATION_NACA0012_SUBSONIC_STRONG
+  COMMAND mpirun -np ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_2D -i ${CMAKE_CURRENT_BINARY_DIR}/STRONG_naca0012_unsteady.prm
+  WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
+)
+
+configure_file(WEAK_naca0012_unsteady.prm WEAK_naca0012_unsteady.prm COPYONLY)
+add_test(
+    NAME 2D_EULER_INTEGRATION_NACA0012_SUBSONIC_WEAK
+  COMMAND mpirun -np ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_2D -i ${CMAKE_CURRENT_BINARY_DIR}/WEAK_naca0012_unsteady.prm
+  WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
+)
 #configure_file(2d_navier_stokes_naca0012_subsonic_05_200.prm 2d_navier_stokes_naca0012_subsonic_05_200.prm COPYONLY)
 #add_test(
 #  NAME 2D_NAVIER_STOKES_INTEGRATION_NACA0012_SUBSONIC_LONG

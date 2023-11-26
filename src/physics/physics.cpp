@@ -180,6 +180,28 @@ void PhysicsBase<dim,nstate,real>
 }
 
 template <int dim, int nstate, typename real>
+void PhysicsBase<dim,nstate,real>
+::boundary_face_values_viscous_flux (
+        const int boundary_type,
+        const dealii::Point<dim, real> &pos,
+        const dealii::Tensor<1,dim,real> &normal,
+        const std::array<real,nstate> &soln_int,
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_int,
+        const std::array<real,nstate> &/*filtered_soln_int*/,
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &/*filtered_soln_grad_int*/,
+        std::array<real,nstate> &soln_bc,
+        std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_bc) const
+{
+    this->boundary_face_values(boundary_type,
+                               pos,
+                               normal,
+                               soln_int,
+                               soln_grad_int,
+                               soln_bc,
+                               soln_grad_bc);
+}
+
+template <int dim, int nstate, typename real>
 std::array<real,nstate> PhysicsBase<dim,nstate,real>
 ::physical_source_term (
     const dealii::Point<dim,real> &/*pos*/,

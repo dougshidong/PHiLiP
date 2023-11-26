@@ -1171,47 +1171,46 @@ std::array<dealii::Tensor<1,dim,real2>,nstate> NavierStokes<dim,nstate,real>
 
 template <int dim, int nstate, typename real>
 void NavierStokes<dim,nstate,real>
-::boundary_wall (
+::boundary_face_values_viscous_flux (
+        const int boundary_type,
+        const dealii::Point<dim, real> &pos,
+        const dealii::Tensor<1,dim,real> &normal_int,
+        const std::array<real,nstate> &soln_int,
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_int,
+        const std::array<real,nstate> &/*filtered_soln_int*/,
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &/*filtered_soln_grad_int*/,
+        std::array<real,nstate> &soln_bc,
+        std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_bc) const
+{
+    if (boundary_type == 1000) {
+        // Manufactured solution boundary condition
+        boundary_manufactured_solution (pos, normal_int, soln_int, soln_grad_int, soln_bc, soln_grad_bc);
+    } 
+    else if (boundary_type == 1001) {
+        // Wall boundary condition
+        boundary_wall_viscous_flux (normal_int, soln_int, soln_grad_int, soln_bc, soln_grad_bc);
+    }
+}
+
+template <int dim, int nstate, typename real>
+void NavierStokes<dim,nstate,real>
+::boundary_wall_viscous_flux (
    const dealii::Tensor<1,dim,real> &/*normal_int*/,
    const std::array<real,nstate> &soln_int,
    const std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_int,
    std::array<real,nstate> &soln_bc,
    std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_bc) const
 {
-    using thermal_boundary_condition_enum = Parameters::NavierStokesParam::ThermalBoundaryCondition;
+    // using thermal_boundary_condition_enum = Parameters::NavierStokesParam::ThermalBoundaryCondition;
 
     // No-slip wall boundary conditions
-    // Given by equations 460-461 of the following paper
-    // Hartmann, Ralf. "Numerical analysis of higher order discontinuous Galerkin finite element methods." (2008): 1-107.
-    const std::array<real,nstate> primitive_interior_values = this->template convert_conservative_to_primitive_templated<real>(soln_int);
-
-    // Copy density
-    std::array<real,nstate> primitive_boundary_values;
-    primitive_boundary_values[0] = primitive_interior_values[0];
-
-    // Associated thermal boundary condition
-    if(thermal_boundary_condition_type == thermal_boundary_condition_enum::isothermal) { 
-        // isothermal boundary
-        primitive_boundary_values[nstate-1] = this->compute_pressure_from_density_temperature(primitive_boundary_values[0], isothermal_wall_temperature);
-    } else if(thermal_boundary_condition_type == thermal_boundary_condition_enum::adiabatic) {
-        // adiabatic boundary
-        primitive_boundary_values[nstate-1] = primitive_interior_values[nstate-1];
-    }
-    
-    // No-slip boundary condition on velocity
-    dealii::Tensor<1,dim,real> velocities_bc;
-    for (int d=0; d<dim; d++) {
-        velocities_bc[d] = 0.0;
-    }
-    for (int d=0; d<dim; ++d) {
-        primitive_boundary_values[1+d] = velocities_bc[d];
-    }
 
     // Apply boundary conditions:
     // -- solution at boundary
-    const std::array<real,nstate> modified_conservative_boundary_values = this->convert_primitive_to_conservative(primitive_boundary_values);
-    for (int istate=0; istate<nstate; ++istate) {
-        soln_bc[istate] = modified_conservative_boundary_values[istate];
+    soln_bc[0] = soln_int[0];
+    soln_bc[nstate-1] = soln_int[nstate-1];
+    for (int d=0; d<dim; ++d) {
+        soln_bc[1+d] = -soln_int[1+d];
     }
     // -- gradient of solution at boundary
     for (int istate=0; istate<nstate; ++istate) {

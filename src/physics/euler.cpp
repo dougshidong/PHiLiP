@@ -1447,7 +1447,7 @@ void Euler<dim,nstate,real>
         boundary_manufactured_solution (pos, normal_int, soln_int, soln_grad_int, soln_bc, soln_grad_bc);
     } 
     else if (boundary_type == 1001) {
-        // Wall boundary condition (slip for Euler, no-slip for Navier-Stokes; done through polymorphism)
+        // Wall boundary condition (solid wall)
         boundary_wall (normal_int, soln_int, soln_grad_int, soln_bc, soln_grad_bc);
     } 
     else if (boundary_type == 1002) {

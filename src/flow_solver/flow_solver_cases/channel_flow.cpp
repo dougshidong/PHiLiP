@@ -50,7 +50,7 @@ void ChannelFlow<dim, nstate>::compute_unsteady_data_and_write_to_table(
         const std::shared_ptr <dealii::TableHandler> unsteady_data_table)
 {
     // Update maximum local wave speed for adaptive time_step
-    this->update_maximum_local_wave_speed(*dg);
+    if(this->all_param.flow_solver_param.adaptive_time_step) this->update_maximum_local_wave_speed(*dg);
     // get averaged wall shear stress
     const double average_wall_shear_stress = get_average_wall_shear_stress(*dg);
     set_bulk_flow_quantities(*dg);

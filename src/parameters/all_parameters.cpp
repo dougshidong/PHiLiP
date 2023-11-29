@@ -184,6 +184,7 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       " burgers_energy_conservation_rrk | "
                       " euler_entropy_conserving_split_forms_check | "
                       " h_refinement_study_isentropic_vortex | "
+                      " real_gas_vs_euler_primitive_to_conservative_check | "
                       " khi_robustness"),
                       "The type of test we want to solve. "
                       "Choices are " 
@@ -222,6 +223,7 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       "  burgers_energy_conservation_rrk | "
                       "  euler_entropy_conserving_split_forms_check | "
                       "  h_refinement_study_isentropic_vortex | "
+                      "  real_gas_vs_euler_primitive_to_conservative_check | "
                       "  khi_robustness>.");
 
     prm.declare_entry("pde_type", "advection",
@@ -399,6 +401,8 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     else if (test_string == "euler_entropy_conserving_split_forms_check") 
                                                                         { test_type = euler_entropy_conserving_split_forms_check; }
     else if (test_string == "h_refinement_study_isentropic_vortex")     { test_type = h_refinement_study_isentropic_vortex; }
+    else if (test_string == "real_gas_vs_euler_primitive_to_conservative_check")
+                                                                        { test_type = real_gas_vs_euler_primitive_to_conservative_check;}
     else if (test_string == "khi_robustness")                           { test_type = khi_robustness; }
     
     overintegration = prm.get_integer("overintegration");

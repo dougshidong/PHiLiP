@@ -48,6 +48,7 @@ protected:
     const double temperature_ref; ///< reference temperature [K]
     const double u_ref; ///< reference velocity [m/s]
     const double u_ref_sqr; ///< reference velocity squared[m/s]^2
+    const double tol; ///< tolerance for NRM (Newton-raphson Method) [m/s]
 
 public:
      /// Computes the entropy variables.

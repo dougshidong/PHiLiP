@@ -17,6 +17,7 @@ SET(SOURCE
     reynolds_averaged_navier_stokes.cpp
     negative_spalart_allmaras_rans_model.cpp
     inviscid_real_gas.cpp
+    real_gas.cpp
     model_factory.cpp)
 
 foreach(dim RANGE 1 3)

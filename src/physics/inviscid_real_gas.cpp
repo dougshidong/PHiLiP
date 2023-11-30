@@ -391,9 +391,11 @@ template <int dim, int nstate, typename real>
 inline real InviscidRealGas<dim,nstate,real>
 ::compute_sound ( const std::array<real,nstate> &conservative_soln ) const
 {
-    real density = conservative_soln[0];
-    const real pressure = compute_pressure<real>(conservative_soln);
-    const real sound = sqrt(pressure*this->gam_ref/density);
+    const real density = conservative_soln[0];
+    const real pressure = compute_pressure(conservative_soln);
+    const real temperature = compute_temperature(conservative_soln);
+    const real gamma = compute_gamma(temperature);
+    const real sound = sqrt(gamma*pressure/density);
 
     return sound;
 }
@@ -460,6 +462,19 @@ dealii::Vector<double> InviscidRealGas<dim,nstate,real>::post_compute_derived_qu
         // Mach Number
         /*computed_quantities(++current_data_index) = compute_mach_number(conservative_soln);*/
         computed_quantities(++current_data_index) = 999;
+        // e_comparison
+        const real e = conservative_soln[nstate-1]/conservative_soln[0];
+        // NASA_CAP
+        const real temperature = compute_temperature(conservative_soln);
+        dealii::Tensor<1,9,real> NASA_CAP = get_NASA_coefficients(temperature);
+        const real heat_of_formation = NASA_CAP[8];
+        const real energy_of_formation_Dim = (heat_of_formation-this->Ru*this->temperature_ref)/MW_Air; /// From Toy Code
+        const real energy_of_formation = energy_of_formation_Dim/this->u_ref_sqr;
+        computed_quantities(++current_data_index) = e-energy_of_formation;
+        // speed of sound
+        computed_quantities(++current_data_index) = compute_sound(conservative_soln);
+        // temperature dim
+        computed_quantities(++current_data_index) = compute_temperature(conservative_soln)*this->temperature_ref;
 
     }
     if (computed_quantities.size()-1 != current_data_index) {
@@ -490,6 +505,9 @@ std::vector<dealii::DataComponentInterpretation::DataComponentInterpretation> In
     interpretation.push_back (DCI::component_is_scalar); // Temperature
     interpretation.push_back (DCI::component_is_scalar); // Entropy generation
     interpretation.push_back (DCI::component_is_scalar); // Mach number
+    interpretation.push_back (DCI::component_is_scalar); // e_comparison
+    interpretation.push_back (DCI::component_is_scalar); // Sound 
+    interpretation.push_back (DCI::component_is_scalar); // temperature (Dim)
 
     std::vector<std::string> names = post_get_names();
     if (names.size() != interpretation.size()) {
@@ -517,6 +535,10 @@ std::vector<std::string> InviscidRealGas<dim,nstate,real>
 
     names.push_back ("entropy_generation");
     names.push_back ("mach_number");
+    names.push_back ("e_comparison");
+    names.push_back ("speed_of_sound");
+    names.push_back ("dimensional_temperature");
+
     return names;
 }
 

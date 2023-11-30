@@ -413,6 +413,25 @@ inline real InviscidRealGas<dim,nstate,real>
 }
 
 template <int dim, int nstate, typename real>
+inline real InviscidRealGas<dim,nstate,real>
+:: compute_Cv ( const real temperature ) const
+{
+    const real Cp = compute_Cp(temperature);
+    const real Cv = Cp - this->R_Air_NonDim;
+    return Cv;
+}
+
+template <int dim, int nstate, typename real>
+inline real InviscidRealGas<dim,nstate,real>
+:: compute_gamma ( const real temperature ) const
+{
+    const real Cp = compute_Cp(temperature);
+    const real Cv = compute_Cv(temperature);
+    const real gamma = Cp/Cv;
+    return gamma;
+}
+
+template <int dim, int nstate, typename real>
 dealii::Vector<double> InviscidRealGas<dim,nstate,real>::post_compute_derived_quantities_vector (
     const dealii::Vector<double>              &uh,
     const std::vector<dealii::Tensor<1,dim> > &duh,

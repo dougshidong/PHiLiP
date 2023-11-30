@@ -355,7 +355,7 @@ inline real InviscidRealGas<dim,nstate,real>
 {
     const real density = compute_density<real>(conservative_soln);
     const real pressure = compute_pressure<real>(conservative_soln);
-    const real total_energy = conservative_soln[3]/density;
+    const real total_energy = conservative_soln[nstate-1]/density;
     real total_enthalpy = total_energy + pressure/density;
 
     return total_enthalpy;

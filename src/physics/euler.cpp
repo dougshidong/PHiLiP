@@ -34,6 +34,13 @@ Euler<dim,nstate,real>::Euler (
     , pressure_inf(1.0/(gam*mach_inf_sqr))
     , entropy_inf(pressure_inf*pow(density_inf,-gam))
     , two_point_num_flux_type(two_point_num_flux_type_input)
+    /// air
+    , Ru(8.31446261815324) /// [J/(mol·K)]
+    , MW_Air(28.9651159 * pow(10,-3)) /// [kg/mol]
+    , R_Air_Dim(Ru/MW_Air) /// [J/(kg·K)] 
+    , temperature_ref(298.15) /// [K]
+    , u_ref(mach_inf*sqrt(gam*R_Air_Dim*temperature_ref)) /// [m/s]
+    , u_ref_sqr(u_ref*u_ref) /// [m/s]^2
     //, internal_energy_inf(1.0/(gam*(gam-1.0)*mach_inf_sqr)) 
     // Note: Eq.(3.11.18) has a typo in internal_energy_inf expression, mach_inf_sqr should be in denominator. 
 {

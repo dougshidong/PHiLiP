@@ -126,6 +126,15 @@ public:
     const double pressure_inf; ///< Non-dimensionalized pressure* at infinity
     const double entropy_inf; ///< Entropy measure at infinity
     const two_point_num_flux_enum two_point_num_flux_type; ///< Two point numerical flux type (for split form)
+
+    /// Air Properties (reference value)
+    const double Ru; ///< universal gas constant: [J/(mol·K)]
+    const double MW_Air; ///< molar weight of Air: [kg/mol]
+    const double R_Air_Dim; ///< gas constant of Air: [J/(kg·K)] 
+    const double temperature_ref; ///< reference temperature [K]
+    const double u_ref; ///< reference velocity [m/s]
+    const double u_ref_sqr; ///< reference velocity squared[m/s]^2
+
     double temperature_inf; ///< Non-dimensionalized temperature* at infinity. Should equal 1/density*(inf)
     double dynamic_pressure_inf; ///< Non-dimensionalized dynamic pressure* at infinity
 

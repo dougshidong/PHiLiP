@@ -220,13 +220,15 @@ inline real2 InviscidRealGas<dim,nstate,real>
 
 /// It is for NASA polynom1ial
 template <int dim, int nstate, typename real>
-dealii::Tensor<1,8,real> InviscidRealGas<dim,nstate,real>
-:: get_NASA_coefficients (const int species) const
+dealii::Tensor<1,9,real> InviscidRealGas<dim,nstate,real>
+:: get_NASA_coefficients (const real temperature) const
 {
-    dealii::Tensor<1,8,real> NASA_CAP;
+    dealii::Tensor<1,9,real> NASA_CAP;
     real a1,a2,a3,a4,a5,a6,a7,b1;
+    real heat_of_formation;
+    const real T = temperature*this->temperature_ref;
 
-    if (species == 1) //Air
+    if (200.0<= T && T<=1000.0) 
     {
         /// It is for Air, T range: 200[K] - 1000[K]
         a1 =  1.009950160e+04;
@@ -236,11 +238,21 @@ dealii::Tensor<1,8,real> InviscidRealGas<dim,nstate,real>
         a5 =  1.066859930e-05;
         a6 = -7.940297970e-09;
         a7 =  2.185231910e-12;
-        b1 = -1.767967310e+02;     
+        b1 = -1.767967310e+02;
+        heat_of_formation = -125.530; // [J/mol]     
     }
-    if (species == 2) // O2: Oxygen, etc...
+    if (1000.0<=T && T<=6000.0) 
     {
-        //... write data for all the species we use
+        /// It is for Air, T range: 1000[K] - 6000[K]
+        a1 =  2.415214430e+05;
+        a2 = -1.257874600e+03;
+        a3 =  5.144558670e+00;
+        a4 = -2.138541790e-04;
+        a5 =  7.065227840e-08;
+        a6 = -1.071483490e-11;
+        a7 =  6.577800150e-16;
+        b1 =  6.462263190e+03;
+        heat_of_formation = -125.530; // [J/mol]    
     }
     NASA_CAP[0] = a1;
     NASA_CAP[1] = a2;
@@ -250,6 +262,7 @@ dealii::Tensor<1,8,real> InviscidRealGas<dim,nstate,real>
     NASA_CAP[5] = a6;
     NASA_CAP[6] = a7;
     NASA_CAP[7] = b1;
+    NASA_CAP[8] = heat_of_formation;
 
     return NASA_CAP;
 }
@@ -259,11 +272,8 @@ template <int dim, int nstate, typename real>
 inline real InviscidRealGas<dim,nstate,real>
 :: compute_Cp ( const real temperature ) const
 {
-    // This will be changed when you implement multi-species
-    int species = 1;
-
     // NASA_CAP
-    dealii::Tensor<1,8,real> NASA_CAP = get_NASA_coefficients(species);
+    dealii::Tensor<1,9,real> NASA_CAP = get_NASA_coefficients(temperature);
     real a1 = NASA_CAP[0];
     real a2 = NASA_CAP[1];
     real a3 = NASA_CAP[2];
@@ -288,12 +298,8 @@ template <int dim, int nstate, typename real>
 inline real InviscidRealGas<dim,nstate,real>
 :: compute_enthalpy ( const real temperature  ) const
 {
-
-    // This will be changed when you implement multi-species
-    int species = 1;
-
     // NASA_CAP
-    dealii::Tensor<1,8,real> NASA_CAP = get_NASA_coefficients(species);
+    dealii::Tensor<1,9,real> NASA_CAP = get_NASA_coefficients(temperature);
     real a1 = NASA_CAP[0];
     real a2 = NASA_CAP[1];
     real a3 = NASA_CAP[2];

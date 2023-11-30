@@ -36,6 +36,10 @@ void ODESolverParam::declare_parameters (dealii::ParameterHandler &prm)
                           "Output solution at exact fixed times by decreasing the time step on the fly. False by default. "
                           "NOTE: Should be set to false if doing stability studies so that the time step is never influenced by solution file soutput times.");
 
+        prm.declare_entry("output_solution_start_time", "0.0",
+                          dealii::Patterns::Double(0,dealii::Patterns::Double::max_double_value),
+                          "Time at which to start outputting the solution in .vtk files");
+
         prm.declare_entry("ode_solver_type", "implicit",
                           dealii::Patterns::Selection(
                           " runge_kutta | "
@@ -129,6 +133,7 @@ void ODESolverParam::parse_parameters (dealii::ParameterHandler &prm)
         output_solution_fixed_times_string = prm.get("output_solution_fixed_times_string");
         number_of_fixed_times_to_output_solution = get_number_of_values_in_string(output_solution_fixed_times_string);
         output_solution_at_exact_fixed_times = prm.get_bool("output_solution_at_exact_fixed_times");
+        output_solution_start_time = prm.get_double("output_solution_start_time");
 
         // Assign ode_solver_type and the allocate AD matrix dRdW flag
         const std::string solver_string = prm.get("ode_solver_type");

@@ -404,7 +404,7 @@ int FlowSolver<dim,nstate>::run() const
         } else if (ode_param.output_solution_every_dt_time_intervals > 0.0) {
             pcout << "  ... Writing vtk solution file at initial time ..." << std::endl;
             dg->output_results_vtk(ode_solver->current_iteration);
-            ode_solver->current_desired_time_for_output_solution_every_dt_time_intervals += ode_param.output_solution_every_dt_time_intervals;
+            ode_solver->current_desired_time_for_output_solution_every_dt_time_intervals += ode_param.output_solution_start_time + ode_param.output_solution_every_dt_time_intervals;
         } else if (this->do_output_solution_at_fixed_times && (this->number_of_fixed_times_to_output_solution > 0)) {
             pcout << "  ... Writing vtk solution file at initial time ..." << std::endl;
             dg->output_results_vtk(ode_solver->current_iteration);

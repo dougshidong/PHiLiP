@@ -34,8 +34,6 @@ public:
     /// Maximum value of parameters
     std::vector<double> parameter_max_values;
 
-    ReducedOrderModelParam (); ///< Constructor
-
     /// Declares the possible variables and sets the defaults.
     static void declare_parameters (dealii::ParameterHandler &prm);
     /// Parses input file and sets the variables.

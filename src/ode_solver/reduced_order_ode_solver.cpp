@@ -1,14 +1,16 @@
 #include "reduced_order_ode_solver.h"
-#include "dg/dg.h"
-#include "ode_solver_base.h"
-#include "linear_solver/linear_solver.h"
-#include "reduced_order/pod_basis_base.h"
-#include <deal.II/lac/trilinos_sparsity_pattern.h>
+
+#include <Amesos_Lapack.h>
+#include <Epetra_LinearProblem.h>
 #include <Epetra_Vector.h>
 #include <deal.II/lac/la_parallel_vector.h>
-#include <Epetra_LinearProblem.h>
+#include <deal.II/lac/trilinos_sparsity_pattern.h>
+
 #include "Amesos_BaseSolver.h"
-#include <Amesos_Lapack.h>
+#include "dg/dg_base.hpp"
+#include "linear_solver/linear_solver.h"
+#include "ode_solver_base.h"
+#include "reduced_order/pod_basis_base.h"
 
 namespace PHiLiP {
 namespace ODE {

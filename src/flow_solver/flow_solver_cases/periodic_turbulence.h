@@ -1,10 +1,11 @@
 #ifndef __PERIODIC_TURBULENCE_H__
 #define __PERIODIC_TURBULENCE_H__
 
-#include "periodic_cube_flow.h"
-#include "dg/dg.h"
-#include "physics/navier_stokes.h"
 #include <deal.II/base/table.h>
+
+#include "dg/dg_base.hpp"
+#include "periodic_cube_flow.h"
+#include "physics/navier_stokes.h"
 
 namespace PHiLiP {
 namespace FlowSolver {
@@ -19,11 +20,8 @@ class PeriodicTurbulence : public PeriodicCubeFlow<dim,nstate>
 
 public:
     /// Constructor.
-    PeriodicTurbulence(const Parameters::AllParameters *const parameters_input);
+    explicit PeriodicTurbulence(const Parameters::AllParameters *const parameters_input);
 
-    /// Destructor
-    ~PeriodicTurbulence() {};
-    
     /** Computes the integrated quantities over the domain simultaneously and updates the array storing them
      *  Note: For efficiency, this also simultaneously updates the local maximum wave speed
      * */

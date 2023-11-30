@@ -1,15 +1,17 @@
 #ifndef __POD_BASIS_OFFLINE__
 #define __POD_BASIS_OFFLINE__
 
-#include <deal.II/numerics/vector_tools.h>
-#include <deal.II/lac/full_matrix.h>
 #include <deal.II/base/conditional_ostream.h>
+#include <deal.II/lac/full_matrix.h>
 #include <deal.II/lac/trilinos_sparse_matrix.h>
 #include <deal.II/lac/vector_operation.h>
-#include "parameters/all_parameters.h"
-#include "dg/dg.h"
-#include "pod_basis_base.h"
+#include <deal.II/numerics/vector_tools.h>
+
 #include <eigen/Eigen/Dense>
+
+#include "dg/dg_base.hpp"
+#include "parameters/all_parameters.h"
+#include "pod_basis_base.h"
 
 namespace PHiLiP {
 namespace ProperOrthogonalDecomposition {
@@ -22,10 +24,7 @@ class OfflinePOD: public PODBase<dim>
 {
 public:
     /// Constructor
-    OfflinePOD(std::shared_ptr<DGBase<dim,double>> &dg_input);
-
-    /// Destructor
-    ~OfflinePOD () {};
+    explicit OfflinePOD(std::shared_ptr<DGBase<dim,double>> &dg_input);
 
     ///Function to get POD basis for all derived classes
     std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> getPODBasis() override;

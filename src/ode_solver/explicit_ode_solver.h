@@ -1,9 +1,9 @@
 #ifndef __RUNGE_KUTTA_ODESOLVER__
 #define __RUNGE_KUTTA_ODESOLVER__
 
-#include "dg/dg.h"
-#include "ode_solver_base.h"
 #include "JFNK_solver/JFNK_solver.h"
+#include "dg/dg_base.hpp"
+#include "ode_solver_base.h"
 #include "runge_kutta_methods/rk_tableau_base.h"
 
 namespace PHiLiP {
@@ -20,9 +20,6 @@ class RungeKuttaODESolver: public ODESolverBase <dim, real, MeshType>
 public:
     RungeKuttaODESolver(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input,
             std::shared_ptr<RKTableauBase<dim,real,MeshType>> rk_tableau_input); ///< Constructor.
-
-    /// Destructor
-    ~RungeKuttaODESolver() {};
 
     /// Function to evaluate solution update
     void step_in_time(real dt, const bool pseudotime);

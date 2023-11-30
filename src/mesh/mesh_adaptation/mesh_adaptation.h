@@ -1,15 +1,16 @@
 #ifndef __MESHADAPTATION_H__
 #define __MESHADAPTATION_H__
 
-#include "parameters/all_parameters.h"
-#include "dg/dg.h"
-#include "mesh_error_estimate.h"
-#include <deal.II/grid/grid_refinement.h>
-#include <deal.II/grid/tria.h>
+#include <deal.II/distributed/grid_refinement.h>
 #include <deal.II/distributed/shared_tria.h>
 #include <deal.II/distributed/tria.h>
-#include <deal.II/distributed/grid_refinement.h>
+#include <deal.II/grid/grid_refinement.h>
+#include <deal.II/grid/tria.h>
+
+#include "dg/dg_base.hpp"
+#include "mesh_error_estimate.h"
 #include "mesh_error_factory.h"
+#include "parameters/all_parameters.h"
 
 namespace PHiLiP {
 
@@ -31,7 +32,7 @@ public:
     MeshAdaptation(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input, const Parameters::MeshAdaptationParam *const mesh_adaptation_param_input);
 
     /// Destructor
-    ~MeshAdaptation(){};
+    ~MeshAdaptation() = default;
 
     /// Pointer to the error estimator class.
     std::unique_ptr<MeshErrorEstimateBase<dim, real, MeshType>> mesh_error;

@@ -527,7 +527,7 @@ int EulerNACAOptimization<dim,nstate>
         //const double pi = atan(1.0) * 4.0;
         //param_target.euler_param.angle_of_attack = target_AoA * pi/170.0;
         std::shared_ptr < DGBase<dim, double> > dg_target = DGFactory<dim,double>::create_discontinuous_galerkin(&param_target, poly_degree, grid);
-        std::shared_ptr<HighOrderGrid<dim,double>> naca0012_mesh = read_gmsh <dim, dim> ("naca0012.msh");
+        std::shared_ptr<HighOrderGrid<dim,double>> naca0012_mesh = read_gmsh <dim, dim> ("naca0012.msh",param_target.do_renumber_dofs);
         dg_target->set_high_order_grid(naca0012_mesh);
 
         ffd.deform_mesh (*(dg_target->high_order_grid));
@@ -546,7 +546,7 @@ int EulerNACAOptimization<dim,nstate>
     std::shared_ptr < DGBase<dim, double> > dg = DGFactory<dim,double>::create_discontinuous_galerkin(&param, poly_degree, grid);
 
     //naca0012_mesh->refine_global();
-    std::shared_ptr<HighOrderGrid<dim,double>> naca0012_mesh = read_gmsh <dim, dim> ("naca0012.msh");
+    std::shared_ptr<HighOrderGrid<dim,double>> naca0012_mesh = read_gmsh <dim, dim> ("naca0012.msh",param.do_renumber_dofs);
     dg->set_high_order_grid(naca0012_mesh);
 
     dg->allocate_system ();

@@ -1,37 +1,29 @@
-#include <vector>
-#include <iostream>
-#include <fstream>
+#include "mesh_error_estimate.h"
 
 #include <Epetra_RowMatrixTransposer.h>
-
-#include <deal.II/dofs/dof_tools.h>
-
-#include <deal.II/grid/tria.h>
 #include <deal.II/distributed/shared_tria.h>
-#include <deal.II/distributed/tria.h>
-
-#include <deal.II/lac/la_parallel_vector.h>
 #include <deal.II/distributed/solution_transfer.h>
-
+#include <deal.II/distributed/tria.h>
+#include <deal.II/dofs/dof_tools.h>
 #include <deal.II/fe/fe_q.h>
 #include <deal.II/fe/fe_values.h>
-
-#include <deal.II/numerics/vector_tools.h>
+#include <deal.II/grid/tria.h>
+#include <deal.II/lac/la_parallel_vector.h>
 #include <deal.II/numerics/data_out.h>
+#include <deal.II/numerics/vector_tools.h>
 
-#include "parameters/all_parameters.h"
+#include <fstream>
+#include <iostream>
+#include <vector>
 
-#include "dg/dg.h"
-#include "mesh_error_estimate.h"
+#include "dg/dg_base.hpp"
 #include "functional/functional.h"
-#include "physics/physics.h"
 #include "linear_solver/linear_solver.h"
+#include "parameters/all_parameters.h"
+#include "physics/physics.h"
 #include "post_processor/physics_post_processor.h"
 
 namespace PHiLiP {
-
-template <int dim, typename real, typename MeshType>
-MeshErrorEstimateBase<dim, real, MeshType> :: ~MeshErrorEstimateBase(){}
 
 template <int dim, typename real, typename MeshType>
 MeshErrorEstimateBase<dim, real, MeshType> :: MeshErrorEstimateBase(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input)

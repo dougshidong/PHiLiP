@@ -3,10 +3,10 @@
 
 #include <deal.II/grid/manifold_lib.h>
 
-#include "tests.h"
-#include "dg/dg.h"
-#include "physics/physics.h"
+#include "dg/dg_base.hpp"
 #include "parameters/all_parameters.h"
+#include "physics/physics.h"
+#include "tests.h"
 
 namespace PHiLiP {
 namespace Tests {
@@ -35,9 +35,7 @@ public:
     /// Constructor.
     /** Simply calls the TestsBase constructor to set its parameters = parameters_input
      */
-    EulerGaussianBumpAdjoint(const Parameters::AllParameters *const parameters_input);
-
-    ~EulerGaussianBumpAdjoint() {}; ///< Destructor.
+    explicit EulerGaussianBumpAdjoint(const Parameters::AllParameters *const parameters_input);
 
     /// Warp grid into Gaussian bump
     static dealii::Point<dim> warp (const dealii::Point<dim> &p);

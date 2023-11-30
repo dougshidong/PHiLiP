@@ -1413,6 +1413,17 @@ dealii::Vector<double> Euler<dim,nstate,real>::post_compute_derived_quantities_v
         computed_quantities(++current_data_index) = compute_entropy_measure(conservative_soln) - entropy_inf;
         // Mach Number
         computed_quantities(++current_data_index) = compute_mach_number(conservative_soln);
+        // e_comparison
+        const real vel2 = primitive_soln[1]*primitive_soln[1] + primitive_soln[2]*primitive_soln[2];
+        const real e = conservative_soln[nstate-1]/primitive_soln[0]- 0.5*vel2;
+        const real e_ref_Dim = (this->Ru/this->gamm1)/this->MW_Air*this->temperature_ref; /// From Toy Code
+        const real e_ref = e_ref_Dim/this->u_ref_sqr;
+        computed_quantities(++current_data_index) = e-e_ref;    
+        // speed of sound
+        computed_quantities(++current_data_index) = compute_sound(conservative_soln);
+        // temperature dim
+        computed_quantities(++current_data_index) = compute_temperature<real>(primitive_soln)*this->temperature_ref;
+
 
     }
     if (computed_quantities.size()-1 != current_data_index) {
@@ -1443,6 +1454,9 @@ std::vector<dealii::DataComponentInterpretation::DataComponentInterpretation> Eu
     interpretation.push_back (DCI::component_is_scalar); // Temperature
     interpretation.push_back (DCI::component_is_scalar); // Entropy generation
     interpretation.push_back (DCI::component_is_scalar); // Mach number
+    interpretation.push_back (DCI::component_is_scalar); // e_comparison   
+    interpretation.push_back (DCI::component_is_scalar); // Sound 
+    interpretation.push_back (DCI::component_is_scalar); // temperature (Dim)
 
     std::vector<std::string> names = post_get_names();
     if (names.size() != interpretation.size()) {
@@ -1471,6 +1485,9 @@ std::vector<std::string> Euler<dim,nstate,real>
 
     names.push_back ("entropy_generation");
     names.push_back ("mach_number");
+    names.push_back ("e_compariosn");
+    names.push_back ("speed_of_sound");
+    names.push_back ("dimensional_temperature");
     return names;
 }
 

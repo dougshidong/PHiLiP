@@ -44,7 +44,7 @@
 
 #include "parameters/all_parameters.h"
 #include "parameters/parameters.h"
-#include "dg/dg.h"
+#include "dg/dg_base.hpp"
 #include <deal.II/grid/manifold_lib.h>
 #include <deal.II/fe/mapping_q.h>
 #include "dg/dg_factory.hpp"

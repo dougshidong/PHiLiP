@@ -1,5 +1,5 @@
 #include "hyper_reduced_petrov_galerkin_ode_solver.h"
-#include "dg/dg.h"
+#include "dg/dg_base.hpp"
 #include "ode_solver_base.h"
 #include "linear_solver/linear_solver.h"
 #include "reduced_order/pod_basis_base.h"

@@ -29,6 +29,7 @@ InviscidRealGas<dim,nstate,real>::InviscidRealGas (
     , temperature_ref(298.15) /// [K]
     , u_ref(mach_ref*sqrt(gam_ref*R_Air_Dim*temperature_ref)) /// [m/s]
     , u_ref_sqr(u_ref*u_ref) /// [m/s]^2
+    , tol(1.0e-10) /// []
 {
     // std::cout<<"In constructor of inviscid real gas."<<std::endl<<std::flush;
     static_assert(nstate==dim+2, "Physics::InviscidRealGas() should be created with nstate=dim+2"); // TO DO: UPDATE THIS with nspecies

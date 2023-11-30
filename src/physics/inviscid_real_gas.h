@@ -128,7 +128,7 @@ protected:
     real2 compute_velocity_squared ( const dealii::Tensor<1,dim,real2> &velocities ) const;
 
     /// Get NASA coeefients from NASA-CAP program
-    dealii::Tensor<1,8,real> get_NASA_coefficients (const int species) const;  
+    dealii::Tensor<1,9,real> get_NASA_coefficients (const real temperature) const;  
 
     /// Compute Cp from temperature
     real compute_Cp ( const real temperature ) const;

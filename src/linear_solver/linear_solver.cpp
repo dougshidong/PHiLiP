@@ -116,11 +116,22 @@ solve_linear3 (
     dealii::LinearAlgebra::distributed::Vector<double> &solution,
     const Parameters::LinearSolverParam &param)
 {
+    Parameters::LinearSolverParam::LinearSolverEnum direct_type = Parameters::LinearSolverParam::LinearSolverEnum::direct;
+    if (param.linear_solver_type == direct_type) {
+
+        dealii::SolverControl solver_control(1, 0);
+        dealii::TrilinosWrappers::SolverDirect::AdditionalData data(false);
+        //dealii::TrilinosWrappers::SolverDirect::AdditionalData data(parameters.output == Parameters::Solver::verbose);
+        dealii::TrilinosWrappers::SolverDirect direct(solver_control, data);
+
+        direct.solve(system_matrix, solution, right_hand_side);
+        return {solver_control.last_step(), solver_control.last_value()};
+    }
     std::shared_ptr<dealii::TrilinosWrappers::PreconditionBase> preconditioner;
+    const unsigned int overlap = 1;
     // ILU Preconditioner
     if (param.ilut_fill < 1) {
         typedef dealii::TrilinosWrappers::PreconditionILU::AdditionalData AddiData_ILU;
-        const unsigned int overlap = 1;
         AddiData_ILU precond_settings(std::abs(param.ilut_fill), param.ilut_atol, param.ilut_rtol, overlap);
 
         std::shared_ptr<dealii::TrilinosWrappers::PreconditionILU> ilu_preconditioner = std::make_shared<dealii::TrilinosWrappers::PreconditionILU> ();
@@ -129,8 +140,7 @@ solve_linear3 (
         preconditioner = ilu_preconditioner;
     } else {
         typedef dealii::TrilinosWrappers::PreconditionILUT::AdditionalData AddiData_ILUT;
-        const unsigned int overlap = 1;
-        AddiData_ILUT precond_settings(param.ilut_fill, param.ilut_atol, param.ilut_rtol, overlap);
+        AddiData_ILUT precond_settings(param.ilut_drop, param.ilut_fill, param.ilut_atol, param.ilut_rtol, overlap);
 
         std::shared_ptr<dealii::TrilinosWrappers::PreconditionILUT> ilut_preconditioner = std::make_shared<dealii::TrilinosWrappers::PreconditionILUT> ();
         ilut_preconditioner->initialize(system_matrix, precond_settings);
@@ -144,7 +154,7 @@ solve_linear3 (
     const int max_iterations = param.max_iterations;
 
     const bool log_history = (param.linear_solver_output == Parameters::OutputEnum::verbose);
-    const bool log_result = true;//(param.linear_solver_output == Parameters::OutputEnum::verbose);
+    const bool log_result = (param.linear_solver_output == Parameters::OutputEnum::verbose);
     dealii::SolverControl solver_control(max_iterations, linear_residual_tolerance, log_history, log_result);
     if (log_history) solver_control.enable_history_data();
 
@@ -157,7 +167,15 @@ solve_linear3 (
     dealii::SolverGMRES<VectorType> solver_gmres(solver_control, add_data_gmres);
 
 
-    solver_gmres.solve(system_matrix, solution, right_hand_side, *preconditioner);
+    try {
+        solver_gmres.solve(system_matrix, solution, right_hand_side, *preconditioner);
+    } catch (dealii::SolverControl::NoConvergence &e) {
+        dealii::ConditionalOStream pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD)==0);
+        if (pcout.is_active()) {
+            e.print_info(pcout.get_stream());
+        }
+        return {99999, solver_control.last_value()};
+    }
 
     return {solver_control.last_step(), solver_control.last_value()};
 
@@ -170,6 +188,7 @@ solve_linear (
     dealii::LinearAlgebra::distributed::Vector<double> &solution,
     const Parameters::LinearSolverParam &param)
 {
+    //return solve_linear3(system_matrix, right_hand_side, solution, param);
 
     // if (pcout.is_active()) system_matrix.print(pcout.get_stream(), true);
     // if (pcout.is_active()) solution.print(pcout.get_stream());

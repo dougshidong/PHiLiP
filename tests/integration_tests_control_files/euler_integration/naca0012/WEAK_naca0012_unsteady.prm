@@ -25,8 +25,9 @@ end
 subsection flow_solver
   set flow_case_type = naca0012
   set steady_state = false
-  set constant_time_step = 0.0001
-  set final_time = 0.001
+  set poly_degree = 3
+  set constant_time_step = 0.00005
+  set final_time = 0.0005
   subsection grid
     set input_mesh_filename = ../../../meshes/naca0012_hopw_ref2
   end

@@ -18,7 +18,7 @@ int NACA0012UnsteadyCheckQuick<dim, nstate>::run_test() const
 {
     double lift_expected;
     double drag_expected;
-    const double acceptable_tolerance = 0.05;
+    const double acceptable_tolerance = 0.00001;
 
     // These values are hard-coded from the results of running the test case.
     // It is expected that changes such as boundary implementation,
@@ -26,16 +26,16 @@ int NACA0012UnsteadyCheckQuick<dim, nstate>::run_test() const
     // in the future.
     if (this->all_parameters->use_weak_form) {
         // Weak, Roe flux
-        lift_expected = 0.110977;
-        drag_expected = 0.123985;
+        lift_expected = 0.198245;
+        drag_expected = 0.220394;
     }else if (this->all_parameters->use_split_form) {
         // Strong, Ra two-point flux
-        lift_expected = 0.127556;
-        drag_expected = 0.135251;
+        lift_expected = 0.24326;
+        drag_expected = 0.268897;
     } else {
         // Strong, Roe flux
-        lift_expected = 0.110977;
-        drag_expected = 0.123985;
+        lift_expected = 0.198245;
+        drag_expected = 0.220394;
     }
 
     // Initialize flow_solver

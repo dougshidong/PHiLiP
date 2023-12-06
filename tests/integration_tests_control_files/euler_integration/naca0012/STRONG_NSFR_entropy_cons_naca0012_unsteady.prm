@@ -1,7 +1,7 @@
 # Listing of Parameters                                                                                                                                                                                            
 # ---------------------
 
-set test_type = euler_naca0012
+set test_type = naca0012_unsteady_check_quick
 
 set use_weak_form = false
 # Number of dimensions

@@ -38,9 +38,34 @@ void ArtificialDissipationParam::declare_parameters (dealii::ParameterHandler &p
                       dealii::Patterns::Double(-1e20,1e20),
                       "Kappa from Persson's subcell shock capturing");
 
+    prm.declare_entry("freeze_artificial_dissipation_below_residual", "1e-9",
+                      dealii::Patterns::Double(0.0, dealii::Patterns::Double::max_double_value),
+                      "If the residual is below this value, we freeze the artificial dissipation. "
+                      "This is useful to avoid stall in convergence when the artificial dissipation changes with the residual.");
+
     prm.declare_entry("use_enthalpy_error", "false",
                       dealii::Patterns::Bool(),
-                      "By default we calculate the entropy error from the conservative variables. Otherwise, compute the enthalpy error. An example is in Euler Gaussian bump.");
+                      "By default we calculate the entropy error from the conservative variables. "
+                      "Otherwise, compute the enthalpy error. An example is in Euler Gaussian bump.");
+
+    prm.declare_entry("include_artificial_dissipation_in_jacobian", "true",
+                      dealii::Patterns::Bool(),
+                      "Differentiate artificial dissipation contribution and include it in the Jacobian.");
+
+    prm.declare_entry("use_c0_smoothed_artificial_dissipation", "false",
+                        dealii::Patterns::Bool(),
+                        "Smooths out artificial dissipation through a C0-continuous function. "
+                        "Note, it can not be used with the Gegenbauer-smoothed artificial dissipation.");
+
+    prm.declare_entry("use_gegenbauer_smoothed_artificial_dissipation", "true",
+                        dealii::Patterns::Bool(),
+                        "Smooths out artificial dissipation through a Gegenbauer-continuous function. "
+                        "Note, it can not be used with the C0-smoothed artificial dissipation.");
+
+    prm.declare_entry("zero_artificial_dissipation_at_boundary", "true",
+                        dealii::Patterns::Bool(),
+                        "Zero out artificial dissipation at the boundary.");
+                            
 
     }
     prm.leave_subsection();
@@ -88,6 +113,19 @@ void ArtificialDissipationParam::parse_parameters (dealii::ParameterHandler &prm
 
         mu_artificial_dissipation = prm.get_double("mu_artificial_dissipation");
         kappa_artificial_dissipation = prm.get_double("kappa_artificial_dissipation");
+        freeze_artificial_dissipation_below_residual = prm.get_double("freeze_artificial_dissipation_below_residual");
+        include_artificial_dissipation_in_jacobian = prm.get_bool("include_artificial_dissipation_in_jacobian");
+        use_c0_smoothed_artificial_dissipation = prm.get_bool("use_c0_smoothed_artificial_dissipation");
+        use_gegenbauer_smoothed_artificial_dissipation = prm.get_bool("use_gegenbauer_smoothed_artificial_dissipation");
+        zero_artificial_dissipation_at_boundary = prm.get_bool("zero_artificial_dissipation_at_boundary");
+
+        if (use_c0_smoothed_artificial_dissipation && include_artificial_dissipation_in_jacobian) {
+            throw std::invalid_argument("The C0-smoothed artificial dissipation cannot be used with the artificial dissipation included in the Jacobian.");
+        }
+        if (use_c0_smoothed_artificial_dissipation && use_gegenbauer_smoothed_artificial_dissipation) {
+            throw std::invalid_argument("The C0-smoothed artificial dissipation cannot be used with the Gegenbauer-smoothed artificial dissipation.");
+        }
+
     }
     prm.leave_subsection();
 }

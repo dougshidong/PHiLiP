@@ -673,7 +673,7 @@ public:
     /// Stores maximum artificial dissipation while assembling the residual.
     double max_artificial_dissipation_coeff;
     /// Update discontinuity sensor.
-    void update_artificial_dissipation_discontinuity_sensor();
+    void update_artificial_dissipation_discontinuity_sensor(const Parameters::ArtificialDissipationParam &artificial_dissipation_parameters);
     /// Allocate the necessary variables declared in src/physics/model.h
     virtual void allocate_model_variables() = 0;
     /// Update the necessary variables declared in src/physics/model.h

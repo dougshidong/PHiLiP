@@ -1054,7 +1054,7 @@ void DGBase<dim,real,MeshType>::set_dual(const dealii::LinearAlgebra::distribute
 }
 
 template <int dim, typename real, typename MeshType>
-void DGBase<dim,real,MeshType>::update_artificial_dissipation_discontinuity_sensor()
+void DGBase<dim,real,MeshType>::update_artificial_dissipation_discontinuity_sensor(const Parameters::ArtificialDissipationParam &artificial_dissipation_parameters)
 {
     const auto mapping = (*(high_order_grid->mapping_fe_field));
     dealii::hp::MappingCollection<dim> mapping_collection(mapping);
@@ -1173,11 +1173,7 @@ void DGBase<dim,real,MeshType>::update_artificial_dissipation_discontinuity_sens
             }
         }
 
-        //std::cout << " error: " << error
-        //          << " soln_norm: " << soln_norm << std::endl;
-        //if (error < 1e-12) continue;
-        if (soln_norm < 1e-12) 
-        {
+        if (soln_norm < 1e-12) {
             continue;
         }
 
@@ -1185,41 +1181,38 @@ void DGBase<dim,real,MeshType>::update_artificial_dissipation_discontinuity_sens
         S_e = sqrt(error / soln_norm);
         s_e = log10(S_e);
 
-        //const double mu_scale = 1.0;
-        //const double s_0 = log10(0.1) - 4.25*log10(degree);
-        //const double s_0 = -0.5 - 4.25*log10(degree);
-        //const double kappa = 1.0;
-
-        const double mu_scale = all_parameters->artificial_dissipation_param.mu_artificial_dissipation; //1.0
-        //const double s_0 = - 4.25*log10(degree);
-        //const double s_0 = -0.00 - 4.00*log10(degree);
+        const double mu_scale = artificial_dissipation_parameters.mu_artificial_dissipation; //1.0
         const double s_0 = 0.50 - 4.00*log10(degree);
-        const double kappa = all_parameters->artificial_dissipation_param.kappa_artificial_dissipation; //1.0
+        const double kappa = artificial_dissipation_parameters.kappa_artificial_dissipation; //1.0
         const double low = s_0 - kappa;
         const double upp = s_0 + kappa;
 
         const double diameter = std::pow(element_volume, 1.0/dim);
         const double eps_0 = mu_scale * diameter / (double)degree;
     
-
+        // If the error is below min threshold, do not add artificial dissipation.
         if ( s_e < low) continue;
 
-        //std::cout << " lower < s_e < upp " << low << " < " << s_e << " < " << upp << " ? " << std::endl;
+        // If the error is above max threshold, add maximum artificial dissipation eps_0
         if ( s_e > upp) {
             artificial_dissipation_coeffs[cell_index] += eps_0;
-            dof_indices_artificial_dissipation.resize(n_dofs_arti_diss);
             artificial_dissipation_cell->get_dof_indices (dof_indices_artificial_dissipation);
+
+            if (artificial_dissipation_parameters.use_c0_smoothed_artificial_dissipation) {
+                // Furthermore, if c0-smoothing is used, then use maximum artificial dissipation of all vertex neighbors.
             for (unsigned int idof=0; idof<n_dofs_arti_diss; ++idof) {
                 const unsigned int index = dof_indices_artificial_dissipation[idof];
                 artificial_dissipation_c0[index] = std::max(artificial_dissipation_c0[index], eps_0);
             }
-            if(eps_0 > max_artificial_dissipation_coeff)
-            {
+            }
+            // Store maximum artificial dissipation coefficient.
+            if(eps_0 > max_artificial_dissipation_coeff) {
                 max_artificial_dissipation_coeff = eps_0;
             }
             continue;
         }
 
+        // If the error is between min and max threshold, add artificial dissipation eps through a smooth transition.
         const double PI = 4*atan(1);
         double eps = 1.0 + sin(PI * (s_e - s_0) * 0.5 / kappa);
         eps *= eps_0 * 0.5;
@@ -1233,31 +1226,21 @@ void DGBase<dim,real,MeshType>::update_artificial_dissipation_discontinuity_sens
         artificial_dissipation_coeffs[cell_index] += eps;
         artificial_dissipation_se[cell_index] = s_e;
 
-        //std::cout << "eps: " << eps << "s_e: " << s_e << std::endl;
-
         dof_indices_artificial_dissipation.resize(n_dofs_arti_diss);
         artificial_dissipation_cell->get_dof_indices (dof_indices_artificial_dissipation);
+        if (artificial_dissipation_parameters.use_c0_smoothed_artificial_dissipation) {
         for (unsigned int idof=0; idof<n_dofs_arti_diss; ++idof) {
             const unsigned int index = dof_indices_artificial_dissipation[idof];
             artificial_dissipation_c0[index] = std::max(artificial_dissipation_c0[index], eps);
         }
+        }
 
-        //const unsigned int dofs_per_face = fe_q_artificial_dissipation.n_dofs_per_face();
-        //for (unsigned int iface=0; iface < dealii::GeometryInfo<dim>::faces_per_cell; ++iface) {
-        //    const auto face = cell->face(iface);
-        //    if (face->at_boundary()) {
-        //        for (unsigned int idof_face=0; idof_face<dofs_per_face; ++idof_face) {
-        //            unsigned int idof_cell = fe_q_artificial_dissipation.face_to_cell_index(idof_face, iface);
-        //            const dealii::types::global_dof_index index = dof_indices_artificial_dissipation[idof_cell];
-        //            artificial_dissipation_c0[index] = 0.0;
-        //        }
-        //    }
-        //}
     }
 
     //artificial_dissipation_c0 *= 0.0;
     //artificial_dissipation_c0.add(1e-1);
 
+    if (artificial_dissipation_parameters.zero_artificial_dissipation_at_boundary) {
     dealii::IndexSet boundary_dofs(dof_handler_artificial_dissipation.n_dofs());
     dealii::DoFTools::extract_boundary_dofs(dof_handler_artificial_dissipation,
                                 dealii::ComponentMask(),
@@ -1265,6 +1248,7 @@ void DGBase<dim,real,MeshType>::update_artificial_dissipation_discontinuity_sens
     for (unsigned int i = 0; i < dof_handler_artificial_dissipation.n_dofs(); ++i) {
         if (boundary_dofs.is_element(i)) {
             artificial_dissipation_c0[i] = 0.0;
+            }
         }
     }
 
@@ -1472,7 +1456,7 @@ void DGBase<dim,real,MeshType>::assemble_residual (const bool compute_dRdW, cons
     try {
 
         if (all_parameters->artificial_dissipation_param.add_artificial_dissipation) {
-            update_artificial_dissipation_discontinuity_sensor();
+            update_artificial_dissipation_discontinuity_sensor(all_parameters->artificial_dissipation_param);
         }
         
         // updates model variables only if there is a model

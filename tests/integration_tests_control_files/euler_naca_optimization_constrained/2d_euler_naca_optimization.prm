@@ -18,6 +18,10 @@ set use_split_form = false
 
 subsection artificial dissipation
 	set add_artificial_dissipation = true
+	set kappa_artificial_dissipation = 1.0
+  set include_artificial_dissipation_in_jacobian = false
+  set use_c0_smoothed_artificial_dissipation = true
+  set use_gegenbauer_smoothed_artificial_dissipation = false
 end
 set overintegration = 0
 

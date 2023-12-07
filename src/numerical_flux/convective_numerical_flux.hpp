@@ -168,7 +168,11 @@ public:
         const std::array<real, 3> &eig_R,
         std::array<real, 3> &eig_RoeAvg,
         const real vel2_ravg,
-        const real sound_ravg) const = 0;
+        const real sound_ravg,
+        const real sound_L,
+        const real sound_R,
+        const real pressure_L,
+        const real pressure_R) const = 0;
 
     /// Virtual member function for evaluating additional modifications/corrections for a Roe-Pike flux.
     virtual void evaluate_additional_modifications (
@@ -206,7 +210,11 @@ public:
         const std::array<real, 3> &eig_R,
         std::array<real, 3> &eig_RoeAvg,
         const real vel2_ravg,
-        const real sound_ravg) const;
+        const real sound_ravg,
+        const real sound_L,
+        const real sound_R,
+        const real pressure_L,
+        const real pressure_R) const override;
 
     /// Empty function. No additional modifications for the Roe-Pike scheme.
     void evaluate_additional_modifications(
@@ -236,7 +244,11 @@ public:
         const std::array<real, 3> &eig_R,
         std::array<real, 3> &eig_RoeAvg,
         const real vel2_ravg,
-        const real sound_ravg) const;
+        const real sound_ravg,
+        const real sound_L,
+        const real sound_R,
+        const real pressure_L,
+        const real pressure_R) const override;
     
     /// Osswald's two modifications to Roe-Pike scheme --> L2Roe
     /// --- Scale jump in (1) normal and (2) tangential velocities using a blending factor

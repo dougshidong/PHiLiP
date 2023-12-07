@@ -384,42 +384,59 @@ std::array<real, nstate> LaxFriedrichsRiemannSolverDissipation<dim,nstate,real>
 template <int dim, int nstate, typename real>
 void RoePikeRiemannSolverDissipation<dim,nstate,real>
 ::evaluate_entropy_fix (
-    const std::array<real, 3> &/*eig_L*/,
-    const std::array<real, 3> &/*eig_R*/,
-    std::array<real, 3> & /*eig_RoeAvg*/,
+    const std::array<real, 3> &eig_L,
+    const std::array<real, 3> &eig_R,
+    std::array<real, 3> & eig_RoeAvg,
     const real /*vel2_ravg*/,
-    const real /*sound_ravg*/) const
+    const real /*sound_ravg*/,
+    const real sound_L,
+    const real sound_R,
+    const real pressure_L,
+    const real pressure_R) const
 {
-/*
-    // Harten's entropy fix
-    // -- See Hartmann and Leicht, 2008 on pages 56-57.
+    const real u_L = eig_L[2] - sound_L;
+    const real u_R = eig_R[2] - sound_R;
+    const double gamma_val = 1.4;
+    const double z_val = (gamma_val - 1.0)/(2.0*gamma_val);
 
-    real max_eig = -1.0;
-    for(int i=0; i<3; ++i)
+    const real numerator = sound_L + sound_R - (gamma_val-1.0)/2.0*(u_R - u_L);
+    const real denominator = sound_L/pow(pressure_L,z_val) + sound_R/pow(pressure_R, z_val);
+    const real p_star = pow(numerator/denominator, 1.0/z_val);
+    
     {
-        if(max_eig < eig_RoeAvg[i])
+        // Verify if left wave u-a is a sonic rarefaction and update eigenvalue if it is.
+        const real a_star_L = sound_L*pow(p_star/pressure_L,z_val);
+        const real u_star_L = u_L + 2.0/(gamma_val-1.0)*(sound_L - a_star_L);
+
+        const real lambda1_L = u_L - sound_L;
+        const real lambda1_star_L = u_star_L - a_star_L;
+        if( (lambda1_L < 0.0) && (lambda1_star_L > 0.0) )
         {
-            max_eig = eig_RoeAvg[i];
+            // sonic rarefaction
+            const real lambda1_bar = eig_RoeAvg[0];
+            const real lambda1_new_L = lambda1_L*(lambda1_star_L - lambda1_bar)/(lambda1_star_L - lambda1_L);
+            const real lambda1_new_R = lambda1_star_L*(lambda1_bar - lambda1_L)/(lambda1_star_L - lambda1_L);
+            eig_RoeAvg[0] = abs(lambda1_new_R) + abs(lambda1_new_L);
         }
     }
 
-    const real delta = 0.1*max_eig;
-    for(int i=0; i<3; ++i)
     {
-        if(eig_RoeAvg[i] < delta)
+        // Verify if right wave u+a is a sonic rarefaction and update eigenvalue if it is.
+        const real a_star_R = sound_R*pow(p_star/pressure_R,z_val);
+        const real u_star_R = u_R + 2.0/(gamma_val-1.0)*(a_star_R - sound_R);
+
+        const real lambda5_star_R = u_star_R + a_star_R;
+        const real lambda5_R = u_R + sound_R;
+
+        if( (lambda5_star_R<0.0) && (lambda5_R > 0.0))
         {
-            eig_RoeAvg[i] = (eig_RoeAvg[i]*eig_RoeAvg[i] + delta*delta)/(2.0*delta);
+            // sonic rarefaction at right wave
+            const real lambda5_bar = eig_RoeAvg[2];
+            const real lambda5_new_star = lambda5_star_R*(lambda5_R - lambda5_bar)/(lambda5_R - lambda5_star_R);
+            const real lambda5_new_R = lambda5_R*(lambda5_bar - lambda5_star_R)/(lambda5_R - lambda5_star_R);
+            eig_RoeAvg[2] = abs(lambda5_new_star) + abs(lambda5_new_R);
         }
     }
-*/
-/*
-    for(int e=0;e<3;e++) {
-        const real eps = std::max(abs(eig_RoeAvg[e] - eig_L[e]), abs(eig_R[e] - eig_RoeAvg[e]));
-        if(eig_RoeAvg[e] < eps) {
-            eig_RoeAvg[e] = 0.5*(eig_RoeAvg[e] * eig_RoeAvg[e]/eps + eps);
-        }
-    }
-*/
 }
 
 template <int dim, int nstate, typename real>
@@ -467,7 +484,11 @@ void L2RoeRiemannSolverDissipation<dim,nstate,real>
     const std::array<real, 3> &eig_R,
     std::array<real, 3> &eig_RoeAvg,
     const real vel2_ravg,
-    const real sound_ravg) const
+    const real sound_ravg,
+    const real /*sound_L*/,
+    const real /*sound_R*/,
+    const real /*pressure_L*/,
+    const real /*pressure_R*/) const
 {
     // Van Leer et al. (1989 Sonic) entropy fix for acoustic waves
     // -- p.74 of Osswald et al. (2016 L2Roe)
@@ -587,21 +608,21 @@ std::array<real, nstate> RoeBaseRiemannSolverDissipation<dim,nstate,real>
 
     // Compute eigenvalues
     std::array<real, 3> eig_ravg;
-    eig_ravg[0] = abs(normal_vel_ravg-sound_ravg);
-    eig_ravg[1] = abs(normal_vel_ravg);
-    eig_ravg[2] = abs(normal_vel_ravg+sound_ravg);
+    eig_ravg[0] = normal_vel_ravg-sound_ravg;
+    eig_ravg[1] = normal_vel_ravg;
+    eig_ravg[2] = normal_vel_ravg+sound_ravg;
 
     const real sound_L = euler_physics->compute_sound(density_L, pressure_L);
     std::array<real, 3> eig_L;
-    eig_L[0] = abs(normal_vel_L-sound_L);
-    eig_L[1] = abs(normal_vel_L);
-    eig_L[2] = abs(normal_vel_L+sound_L);
+    eig_L[0] = normal_vel_L-sound_L;
+    eig_L[1] = normal_vel_L;
+    eig_L[2] = normal_vel_L+sound_L;
 
     const real sound_R = euler_physics->compute_sound(density_R, pressure_R);
     std::array<real, 3> eig_R;
-    eig_R[0] = abs(normal_vel_R-sound_R);
-    eig_R[1] = abs(normal_vel_R);
-    eig_R[2] = abs(normal_vel_R+sound_R);
+    eig_R[0] = normal_vel_R-sound_R;
+    eig_R[1] = normal_vel_R;
+    eig_R[2] = normal_vel_R+sound_R;
 
     // Jumps in pressure and density
     const real dp = pressure_R - pressure_L;
@@ -617,7 +638,13 @@ std::array<real, nstate> RoeBaseRiemannSolverDissipation<dim,nstate,real>
     }
 
     // Evaluate entropy fix on wave speeds
-    evaluate_entropy_fix (eig_L, eig_R, eig_ravg, vel2_ravg, sound_ravg);
+    evaluate_entropy_fix (eig_L, eig_R, eig_ravg, vel2_ravg, sound_ravg, sound_L, sound_R, pressure_L, pressure_R);
+    for(int i=0; i<3; ++i)
+    {
+        eig_ravg[i] = abs(eig_ravg[i]);
+        eig_L[i] = abs(eig_L[i]);
+        eig_R[i] = abs(eig_R[i]);
+    }
 
     // Evaluate additional modifications to the Roe-Pike scheme (if applicable)
     evaluate_additional_modifications (soln_int, soln_ext, eig_L, eig_R, dVn, dVt);

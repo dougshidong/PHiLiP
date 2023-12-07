@@ -180,7 +180,7 @@ int ODESolverBase<dim,real,MeshType>::steady_state ()
         pcout << "Initial CFL = " << initial_CFL << ". Current CFL = " << ramped_CFL << std::endl;
 
         //if (this->current_iteration > 15) {//10) {
-        if (this->residual_l2norm < 1e-8) {//10) {
+        if (this->residual_l2norm < this->all_parameters->artificial_dissipation_param.freeze_artificial_dissipation_below_residual) {
             this->dg->freeze_artificial_dissipation = true;
         } else {
             this->dg->freeze_artificial_dissipation = false;

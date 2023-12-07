@@ -50,9 +50,5 @@ int ElecPolyDeg, NumElecPolys, k_ElecTempInt;
 double *ElecTempIntUpper;
 double ***Sp_ElecEnergyCoeff;
 
-/* Debugging */
-double global_time;
-int debugDummyInt = 0;
-
 } // RealGasConstants namespace
 } // PHiLiP namespace

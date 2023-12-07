@@ -28,8 +28,8 @@ namespace RealGasConstants {
 // std::string nameinitmixfrac = "./InitialMixtureFiles/InitialMixtureFractions_Clarey_5species.txt";
 
 /* '11species': */
-std::string namechem = "./ReactionFiles/airmech_clarey2019.kinetics";
-std::string nameinitmixfrac = "./InitialMixtureFiles/InitialMixtureFractions_11species.txt";
+std::string namechem = "/home/julien/Codes/NEQZD/ReactionFiles/airmech_clarey2019.kinetics";
+std::string nameinitmixfrac = "/home/julien/Codes/NEQZD/InitialMixtureFiles/InitialMixtureFractions_11species.txt";
 
 /* Ibraguimova 'oxygen': */
 // std::string namechem = "./ReactionFiles/airmech_clarey2019_oxygen.kinetics";

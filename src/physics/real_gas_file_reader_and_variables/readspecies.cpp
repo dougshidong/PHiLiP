@@ -20,6 +20,9 @@ Includes:
 #include "NonEquilibriumVar.h"
 
 using namespace std;
+
+namespace PHiLiP {
+namespace RealGasConstants {
 //===============================================
 // string delSpaces(string str) 
 // {
@@ -111,9 +114,9 @@ void getSpeciesIndex(int i, string sp)
 	}
 }
 //===============================================
-void readspecies(string reactionFilename)
+void readspecies(std::string reactionFilename)
 {
-	int error_g, ios, dumint, ii, jj;
+	int ii, jj;
     string line, dum_char;
 
 	ifstream REACTF (reactionFilename);
@@ -725,3 +728,6 @@ void readspecies(string reactionFilename)
 		Le_k[i] = 1.0;
 	}
 }
+
+} // RealGasConstants namespace
+} // PHiLiP namespace

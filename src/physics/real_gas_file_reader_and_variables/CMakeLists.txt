@@ -3,16 +3,17 @@ set(SOURCE
     allocatePointersLib.cpp
     NonEquilibriumVar.cpp
     ReactiveVar.cpp
+    strManipLib.cpp
     readspecies.cpp
     )
 
 # Output library
-set(ParameterLib ParametersLibrary)
-add_library(${ParameterLib} STATIC ${SOURCE})
+set(AllRealGasConstantsLib AllRealGasConstantsLibrary)
+add_library(${AllRealGasConstantsLib} STATIC ${SOURCE})
 
 # Setup target with deal.II
 if(NOT DOC_ONLY)
-    DEAL_II_SETUP_TARGET(${ParameterLib})
+    DEAL_II_SETUP_TARGET(${AllRealGasConstantsLib})
 endif()
 
-unset(ParameterLib)
+unset(AllRealGasConstantsLib)

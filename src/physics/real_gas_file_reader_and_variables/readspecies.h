@@ -7,6 +7,12 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+namespace PHiLiP {
+namespace RealGasConstants {
+
 void readspecies(std::string);
+
+} // RealGasConstants namespace
+} // PHiLiP namespace
 
 #endif

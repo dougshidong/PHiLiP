@@ -10,7 +10,6 @@
 #include "testing/tests.h"
 #include "flow_solver/flow_solver_factory.h"
 #include "parameters/all_parameters.h"
-// #include "combustion/all_real_gas_constants.h"
 
 #include "global_counter.hpp"
 
@@ -57,14 +56,7 @@ int main (int argc, char *argv[])
         PHiLiP::Parameters::AllParameters all_parameters;
         pcout << "Reading input..." << std::endl;
         all_parameters.parse_parameters (parameter_handler);
-
-        // // [update this] Read inputs from parameter file and set those values in AllParameters object
-        // if(all_parameters.pde_type==PHiLiP::Parameters::AllParameters::PartialDifferentialEquation::real_gas 
-        //     && all_parameters.reaction_filename!=" "){ 
-        //     PHiLiP::RealGasConstants real_gas_constants;
-        //     pcout << "Reading real gas constants input..." << std::endl;
-        //     real_gas_constants.read_species(all_parameters.reaction_filename);
-        // }
+        
         AssertDimension(all_parameters.dimension, PHILIP_DIM);
 
         const int max_dim = PHILIP_DIM;

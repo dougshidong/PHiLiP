@@ -16,6 +16,7 @@
 #include "navier_stokes.h"
 #include "physics_model.h"
 #include "inviscid_real_gas.h"
+#include "real_gas.h"
 
 namespace PHiLiP {
 namespace Physics {
@@ -142,6 +143,12 @@ PhysicsFactory<dim,nstate,real>
     } else if (pde_type == PDE_enum::inviscid_real_gas) {
         if constexpr (nstate==dim+2) {
             return std::make_shared < InviscidRealGas<dim,nstate,real> > (
+                parameters_input,
+                manufactured_solution_function);
+        }
+    } else if (pde_type == PDE_enum::real_gas) {
+        if constexpr (nstate==dim+2) {
+            return std::make_shared < RealGas<dim,nstate,real> > (
                 parameters_input,
                 manufactured_solution_function);
         }

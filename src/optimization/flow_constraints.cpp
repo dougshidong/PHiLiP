@@ -177,24 +177,58 @@ void FlowConstraints<dim>
     update_2(des_var_ctl);
 
     std::shared_ptr<ODE::ODESolverBase<dim, double>> ode_solver_1 = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
+    bool same_as_previous = false;
+    if (previous_des_var_sim.is_null()) {
+        previous_des_var_sim = des_var_sim.clone();
+        previous_des_var_sim->zero();
+    }
+    auto temp = previous_des_var_sim->clone();
+    temp->set(*previous_des_var_sim);
+    temp->axpy(-1.0, des_var_sim);
+    double diff_sim = temp->norm();
+
+    if (previous_des_var_ctl.is_null()) {
+        previous_des_var_ctl = des_var_ctl.clone();
+        previous_des_var_ctl->zero();
+    }
+    temp = previous_des_var_ctl->clone();
+    temp->set(*previous_des_var_ctl);
+    temp->axpy(-1.0, des_var_ctl);
+    double diff_ctl = temp->norm();
+    same_as_previous = (diff_sim == 0.0) && (diff_ctl == 0.0);
+    same_as_previous = (diff_ctl == 0.0);
+
     try {
         dg->assemble_residual();
         tol = dg->get_residual_l2norm();
-        if (tol > 1e-11) {
-            ode_solver_1->initialize_steady_polynomial_ramping (dg->max_degree);
+        //if (tol > 1e-12) {
+            if (!same_as_previous) ode_solver_1->initialize_steady_polynomial_ramping (dg->max_degree);
+            //if (!same_as_previous) ode_solver_1->steady_state();
             dg->output_results_vtk(i_out++);
             ffd.output_ffd_vtu(i_out);
-        }
-        ode_solver_1->steady_state();
+        //}
+        //if (!same_as_previous) ode_solver_1->steady_state();
         dg->assemble_residual();
     } catch(const PHiLiP::ExcInconsistentNormals& e) {
         tol = 1e99;
     }
-    tol = dg->get_residual_l2norm();
     auto &constraint = ROL_vector_to_dealii_vector_reference(constraint_values);
+    tol = dg->get_residual_l2norm();
+    if (tol > 1e-11) {
+        previous_des_var_sim = des_var_sim.clone();
+        previous_des_var_sim->set(des_var_sim);
+        previous_des_var_ctl = des_var_ctl.clone();
+        previous_des_var_ctl->set(des_var_ctl);
+        return;
+    }
     constraint = dg->right_hand_side;
     auto &des_var_sim_v = ROL_vector_to_dealii_vector_reference(des_var_sim);
     des_var_sim_v = dg->solution;
+
+    previous_des_var_sim = des_var_sim.clone();
+    previous_des_var_sim->set(des_var_sim);
+    previous_des_var_ctl = des_var_ctl.clone();
+    previous_des_var_ctl->set(des_var_ctl);
 }
 
 template<int dim>

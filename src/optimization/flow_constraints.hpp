@@ -62,6 +62,9 @@ private:
     /** Currently uses ILUT */
     Ifpack_Preconditioner *adjoint_jacobian_prec;
 
+    ROL::Ptr<ROL::Vector<double>> previous_des_var_sim;
+    ROL::Ptr<ROL::Vector<double>> previous_des_var_ctl;
+
 public:
     /// ID used when outputting the flow solution.
     int i_out = 1000;

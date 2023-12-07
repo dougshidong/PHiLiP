@@ -11,7 +11,7 @@
 #include "ROL_Bounds.hpp"
 #include "ROL_BoundConstraint_SimOpt.hpp"
 #include "ROL_Algorithm.hpp"
-#include "ROL_Reduced_Objective_SimOpt.hpp"
+#include "optimization/rol_modified/ROL_Reduced_Objective_SimOpt_FailSafe.hpp"
 #include "ROL_Reduced_Constraint_SimOpt.hpp"
 
 #include "ROL_Constraint_Partitioned.hpp"
@@ -259,7 +259,7 @@ int check_objective(
     int test_error = 0;
     const bool storage = false;
     const bool useFDHessian = false;
-    auto robj = ROL::makePtr<ROL::Reduced_Objective_SimOpt<double>>( objective, flow_constraints, des_var_sim_rol_p, des_var_ctl_rol_p, des_var_adj_rol_p, storage, useFDHessian);
+    auto robj = ROL::makePtr<ROL::Reduced_Objective_SimOpt_FailSafe<double>>( objective, flow_constraints, des_var_sim_rol_p, des_var_ctl_rol_p, des_var_adj_rol_p, storage, useFDHessian);
 
     auto des_var_p = ROL::makePtr<ROL::Vector_SimOpt<double>>(des_var_sim_rol_p, des_var_ctl_rol_p);
 
@@ -366,7 +366,7 @@ ROL::Ptr<ROL::Objective<double>> getObjective(
     const bool storage = true;
     const bool useFDHessian = false;
 
-    return ROL::makePtr<ROL::Reduced_Objective_SimOpt<double>>( objective_simopt, flow_constraints, simulation_variables, control_variables, adjoint, storage, useFDHessian);
+    return ROL::makePtr<ROL::Reduced_Objective_SimOpt_FailSafe<double>>( objective_simopt, flow_constraints, simulation_variables, control_variables, adjoint, storage, useFDHessian);
 }
 
 ROL::Ptr<ROL::BoundConstraint<double>> getDesignBoundConstraint(
@@ -457,7 +457,7 @@ std::vector<ROL::Ptr<ROL::Constraint<double>>> getInequalityConstraint(
         ROL::Ptr<ROL::Vector<double>> lift_adjoint = simulation_variables->clone();
         const bool storage = true;
         const bool useFDHessian = false;
-        auto reduced_lift_objective = ROL::makePtr<ROL::Reduced_Objective_SimOpt<double>>( lift_objective, flow_constraints, simulation_variables, control_variables, lift_adjoint, storage, useFDHessian);
+        auto reduced_lift_objective = ROL::makePtr<ROL::Reduced_Objective_SimOpt_FailSafe<double>>( lift_objective, flow_constraints, simulation_variables, control_variables, lift_adjoint, storage, useFDHessian);
 
         const auto state_constraints = ROL::makePtrFromRef<PHiLiP::FlowConstraints<PHILIP_DIM>>(dynamic_cast<PHiLiP::FlowConstraints<PHILIP_DIM>&>(*flow_constraints));
         //int objective_check_error = check_objective<PHILIP_DIM,PHILIP_DIM+2>( lift_objective, state_constraints, simulation_variables, control_variables, lift_adjoint);
@@ -468,7 +468,7 @@ std::vector<ROL::Ptr<ROL::Constraint<double>>> getInequalityConstraint(
         cvec.push_back(lift_constraint);
         //if (volume_target > 0) {
             ROL::Ptr<ROL::Vector<double>> volume_adjoint = simulation_variables->clone();
-            auto reduced_volume_objective = ROL::makePtr<ROL::Reduced_Objective_SimOpt<double>>( volume_objective, flow_constraints, simulation_variables, control_variables, volume_adjoint, storage, useFDHessian);
+            auto reduced_volume_objective = ROL::makePtr<ROL::Reduced_Objective_SimOpt_FailSafe<double>>( volume_objective, flow_constraints, simulation_variables, control_variables, volume_adjoint, storage, useFDHessian);
             const ROL::Ptr<ROL::Constraint<double>> volume_constraint = ROL::makePtr<ROL::ConstraintFromObjective<double>> (reduced_volume_objective, volume_target);
             cvec.push_back(volume_constraint);
         //}
@@ -481,7 +481,7 @@ std::vector<ROL::Ptr<ROL::Constraint<double>>> getInequalityConstraint(
             //const bool storage = true;
             //const bool useFDHessian = false;
             //ROL::Ptr<ROL::Vector<double>> volume_adjoint = simulation_variables->clone();
-            //auto reduced_volume_objective = ROL::makePtr<ROL::Reduced_Objective_SimOpt<double>>( volume_objective, flow_constraints, simulation_variables, control_variables, lift_adjoint, storage, useFDHessian);
+            //auto reduced_volume_objective = ROL::makePtr<ROL::Reduced_Objective_SimOpt_FailSafe<double>>( volume_objective, flow_constraints, simulation_variables, control_variables, lift_adjoint, storage, useFDHessian);
             const ROL::Ptr<ROL::Constraint<double>> volume_constraint = ROL::makePtr<PHiLiP::ConstraintFromObjective_SimOpt<double>> (volume_objective, volume_target);
             cvec.push_back(volume_constraint);
         //}

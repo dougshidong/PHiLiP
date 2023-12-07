@@ -9,7 +9,6 @@
 
 #include "Teuchos_GlobalMPISession.hpp"
 #include "ROL_Algorithm.hpp"
-#include "ROL_Reduced_Objective_SimOpt.hpp"
 #include "ROL_OptimizationSolver.hpp"
 #include "ROL_LineSearchStep.hpp"
 #include "ROL_StatusTest.hpp"
@@ -29,6 +28,7 @@
 #include "optimization/rol_to_dealii_vector.hpp"
 #include "optimization/flow_constraints.hpp"
 #include "optimization/rol_objective.hpp"
+#include "optimization/rol_modified/ROL_Reduced_Objective_SimOpt_FailSafe.hpp"
 
 #include "optimization/full_space_step.hpp"
 
@@ -320,7 +320,7 @@ int EulerBumpOptimization<dim,nstate>
         auto con  = ROL::makePtr<FlowConstraints<dim>>(dg,ffd,ffd_design_variables_indices_dim);
         const bool storage = false;
         const bool useFDHessian = false;
-        auto robj = ROL::makePtr<ROL::Reduced_Objective_SimOpt<double>>( obj, con, des_var_sim_rol_p, des_var_ctl_rol_p, des_var_adj_rol_p, storage, useFDHessian);
+        auto robj = ROL::makePtr<ROL::Reduced_Objective_SimOpt_FailSafe<double>>( obj, con, des_var_sim_rol_p, des_var_ctl_rol_p, des_var_adj_rol_p, storage, useFDHessian);
 
         ROL::OptimizationProblem<double> opt = ROL::OptimizationProblem<double> ( robj, des_var_ctl_rol_p );
         ROL::EProblem problemType = opt.getProblemType();
@@ -459,7 +459,7 @@ int EulerBumpOptimization<dim,nstate>
             // Reduced space problem
             const bool storage = true;
             const bool useFDHessian = false;
-            auto robj = ROL::makePtr<ROL::Reduced_Objective_SimOpt<double>>( obj, con, des_var_sim_rol_p, des_var_ctl_rol_p, des_var_adj_rol_p, storage, useFDHessian);
+            auto robj = ROL::makePtr<ROL::Reduced_Objective_SimOpt_FailSafe<double>>( obj, con, des_var_sim_rol_p, des_var_ctl_rol_p, des_var_adj_rol_p, storage, useFDHessian);
             opt = ROL::OptimizationProblem<double> ( robj, des_var_ctl_rol_p );
             ROL::EProblem problemType = opt.getProblemType();
             std::cout << ROL::EProblemToString(problemType) << std::endl;

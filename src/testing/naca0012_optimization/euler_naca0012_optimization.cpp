@@ -9,7 +9,7 @@
 
 #include "Teuchos_GlobalMPISession.hpp"
 #include "ROL_Algorithm.hpp"
-#include "ROL_Reduced_Objective_SimOpt.hpp"
+#include "optimization/rol_modified/ROL_Reduced_Objective_SimOpt_FailSafe.hpp"
 #include "ROL_OptimizationSolver.hpp"
 #include "ROL_LineSearchStep.hpp"
 #include "ROL_StatusTest.hpp"
@@ -68,10 +68,10 @@ const std::vector<BirosGhattasPreconditioner> precond_list { P2A };//, P2, P4, P
 //const std::vector<OptimizationAlgorithm> opt_list { full_space_birosghattas, reduced_space_bfgs, reduced_space_newton };
 //const std::vector<OptimizationAlgorithm> opt_list { full_space_birosghattas, reduced_space_bfgs, reduced_space_newton };
 //const std::vector<OptimizationAlgorithm> opt_list { reduced_space_newton };
-//const std::vector<OptimizationAlgorithm> opt_list { full_space_birosghattas, reduced_space_bfgs};
-const std::vector<OptimizationAlgorithm> opt_list { reduced_space_bfgs};
+const std::vector<OptimizationAlgorithm> opt_list { full_space_birosghattas, reduced_space_bfgs};
+//const std::vector<OptimizationAlgorithm> opt_list { reduced_space_bfgs};
 
-const unsigned int POLY_START = 1;
+const unsigned int POLY_START = 0;
 const unsigned int POLY_END = 1; // Can do until at least P2
 
 const unsigned int n_des_var_start = 10;//20;
@@ -270,7 +270,7 @@ int check_objective(
     int test_error = 0;
     const bool storage = false;
     const bool useFDHessian = false;
-    auto robj = ROL::makePtr<ROL::Reduced_Objective_SimOpt<double>>( objective, flow_constraints, des_var_sim_rol_p, des_var_ctl_rol_p, des_var_adj_rol_p, storage, useFDHessian);
+    auto robj = ROL::makePtr<ROL::Reduced_Objective_SimOpt_FailSafe<double>>( objective, flow_constraints, des_var_sim_rol_p, des_var_ctl_rol_p, des_var_adj_rol_p, storage, useFDHessian);
     //const bool full_space = true;
     ROL::OptimizationProblem<double> opt;
     // Set parameters.
@@ -578,7 +578,7 @@ int EulerNACAOptimization<dim,nstate>
     LiftDragFunctional<dim,nstate,double> lift_functional( dg, LiftDragFunctional<dim,dim+2,double>::Functional_types::lift );
     LiftDragFunctional<dim,nstate,double> drag_functional( dg, LiftDragFunctional<dim,dim+2,double>::Functional_types::drag );
 
-    std::cout << " Current lift = " << lift_functional.evaluate_functional()
+    this->pcout << " Current lift = " << lift_functional.evaluate_functional()
               << ". Current drag = " << drag_functional.evaluate_functional()
               << std::endl;
 
@@ -592,19 +592,19 @@ int EulerNACAOptimization<dim,nstate>
     auto con  = ROL::makePtr<FlowConstraints<dim>>(dg,ffd,ffd_design_variables_indices_dim);
     //int flow_constraints_check_error = check_flow_constraints<dim,nstate>( nx_ffd, con, des_var_sim_rol_p, des_var_ctl_rol_p, des_var_adj_rol_p);
 
-    std::cout << " Constructing lift ROL objective " << std::endl;
+    this->pcout << " Constructing lift ROL objective " << std::endl;
     auto lift_obj = ROL::makePtr<ROLObjectiveSimOpt<dim,nstate>>( lift_functional, ffd, ffd_design_variables_indices_dim, &(con->dXvdXp) );
-    std::cout << " Constructing lift ROL constraint " << std::endl;
+    this->pcout << " Constructing lift ROL constraint " << std::endl;
     auto lift_con = ROL::makePtr<PHiLiP::ConstraintFromObjective_SimOpt<double>> (lift_obj, lift_target);
 
     //int objective_check_error = check_objective<dim,nstate>( nx_ffd, dg, lift_obj, con, des_var_sim_rol_p, des_var_ctl_rol_p, des_var_adj_rol_p);
 
-    std::cout << " Constructing drag ROL objective " << std::endl;
+    this->pcout << " Constructing drag ROL objective " << std::endl;
     auto drag_obj = ROL::makePtr<ROLObjectiveSimOpt<dim,nstate>>( drag_functional, ffd, ffd_design_variables_indices_dim, &(con->dXvdXp) );
 
     //objective_check_error = check_objective<dim,nstate>( nx_ffd, dg, drag_obj, con, des_var_sim_rol_p, des_var_ctl_rol_p, des_var_adj_rol_p);
 
-    std::cout << " Constructing drag quadratic penalty lift ROL objective " << std::endl;
+    this->pcout << " Constructing drag quadratic penalty lift ROL objective " << std::endl;
     ROL::SingletonVector<double> zero_lagrange_mult(0.0);
     ROL::SingletonVector<double> single_contraint(0.0);
     ROL::ParameterList empty_parlist;
@@ -618,7 +618,7 @@ int EulerNACAOptimization<dim,nstate>
     //objective_check_error = check_objective<dim,nstate>( nx_ffd, dg, obj, con, des_var_sim_rol_p, des_var_ctl_rol_p, des_var_adj_rol_p);
 
     double tol = 0.0;
-    std::cout << "Drag with quadratic lift penalty = " << obj->value(*des_var_sim_rol_p, *des_var_ctl_rol_p, tol) << std::endl;
+    this->pcout << "Drag with quadratic lift penalty = " << obj->value(*des_var_sim_rol_p, *des_var_ctl_rol_p, tol) << std::endl;
 
     dg->output_results_vtk(9999);
 
@@ -690,10 +690,10 @@ int EulerNACAOptimization<dim,nstate>
             // Reduced space problem
             const bool storage = true;
             const bool useFDHessian = false;
-            auto robj = ROL::makePtr<ROL::Reduced_Objective_SimOpt<double>>( obj, con, des_var_sim_rol_p, des_var_ctl_rol_p, des_var_adj_rol_p, storage, useFDHessian);
+            auto robj = ROL::makePtr<ROL::Reduced_Objective_SimOpt_FailSafe<double>>( obj, con, des_var_sim_rol_p, des_var_ctl_rol_p, des_var_adj_rol_p, storage, useFDHessian);
             opt = ROL::OptimizationProblem<double> ( robj, des_var_ctl_rol_p );
             ROL::EProblem problemType = opt.getProblemType();
-            std::cout << ROL::EProblemToString(problemType) << std::endl;
+            this->pcout << ROL::EProblemToString(problemType) << std::endl;
 
             parlist.sublist("Step").set("Type","Line Search");
 
@@ -733,12 +733,12 @@ int EulerNACAOptimization<dim,nstate>
             break;
         }
     }
-    std::cout << " Current lift = " << lift_functional.evaluate_functional()
+    this->pcout << " Current lift = " << lift_functional.evaluate_functional()
               << ". Current drag = " << drag_functional.evaluate_functional()
               << ". Penalty = " << lift_penalty
               << ". Drag with quadratic lift penalty = " << obj->value(*des_var_sim_rol_p, *des_var_ctl_rol_p, tol);
     static int resulting_optimization = 5000;
-    std::cout << "Outputting final grid resulting_optimization: " << resulting_optimization << std::endl;
+    this->pcout << "Outputting final grid resulting_optimization: " << resulting_optimization << std::endl;
     dg->output_results_vtk(resulting_optimization++);
 
 

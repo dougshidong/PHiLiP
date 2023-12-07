@@ -50,7 +50,6 @@
 
 #include "ROL_Constraint_Partitioned.hpp"
 #include "ROL_Objective_SimOpt.hpp"
-#include "ROL_Reduced_Objective_SimOpt.hpp"
 #include "ROL_SlacklessObjective.hpp"
 
 #include <deal.II/lac/full_matrix.h>
@@ -60,6 +59,7 @@
 #include "optimization/pdas_preconditioner.hpp"
 #include "optimization/primal_dual_active_set.hpp"
 #include "optimization/dealii_solver_rol_vector.hpp"
+#include "optimization/rol_modified/ROL_Reduced_Objective_SimOpt_FailSafe.hpp"
 
 #include "global_counter.hpp"
 
@@ -783,8 +783,7 @@ void PrimalDualActiveSetStep<Real>::compute(
 
         auto approximate_flow_constraints = ROL::makePtr<ApproximateJacobianFlowConstraints>( flow_constraints, design_simulation, design_control);
         (void) approximate_flow_constraints;
-        //auto robj = ROL::makePtr<ROL::Reduced_Objective_SimOpt<double>>( objective_simopt, flow_constraints, design_simulation, design_control, dual_state);
-        auto robj = ROL::makePtr<ROL::Reduced_Objective_SimOpt<double>>( objective_simopt, approximate_flow_constraints, design_simulation_clone, design_control_clone, dual_state_clone);
+        auto robj = ROL::makePtr<ROL::Reduced_Objective_SimOpt_FailSafe<double>>( objective_simopt, approximate_flow_constraints, design_simulation_clone, design_control_clone, dual_state_clone);
 
         auto oldVec = design_control->clone();
         auto newVec = design_control->clone();

@@ -11,7 +11,7 @@
 #include "ROL_Bounds.hpp"
 #include "ROL_BoundConstraint_SimOpt.hpp"
 #include "ROL_Algorithm.hpp"
-#include "ROL_Reduced_Objective_SimOpt.hpp"
+#include "optimization/rol_modified/ROL_Reduced_Objective_SimOpt_FailSafe.hpp"
 #include "ROL_Reduced_Constraint_SimOpt.hpp"
 
 #include "ROL_Constraint_Partitioned.hpp"
@@ -265,7 +265,7 @@ int EulerNACADragOptimizationLiftConstrained<dim,nstate>
     int test_error = 0;
     const bool storage = false;
     const bool useFDHessian = false;
-    auto robj = ROL::makePtr<ROL::Reduced_Objective_SimOpt<double>>( objective_simopt, flow_constraints, design_simulation, design_control, dual_equality_state, storage, useFDHessian);
+    auto robj = ROL::makePtr<ROL::Reduced_Objective_SimOpt_FailSafe<double>>( objective_simopt, flow_constraints, design_simulation, design_control, dual_equality_state, storage, useFDHessian);
 
     auto des_var_p = ROL::makePtr<ROL::Vector_SimOpt<double>>(design_simulation, design_control);
 
@@ -468,7 +468,7 @@ getObjective(
     const bool storage = true;
     const bool useFDHessian = false;
 
-    return ROL::makePtr<ROL::Reduced_Objective_SimOpt<double>>( objective, flow_constraints, simulation_variables, control_variables, drag_adjoint, storage, useFDHessian);
+    return ROL::makePtr<ROL::Reduced_Objective_SimOpt_FailSafe<double>>( objective, flow_constraints, simulation_variables, control_variables, drag_adjoint, storage, useFDHessian);
 }
 
 template <int dim, int nstate>
@@ -567,7 +567,7 @@ getInequalityConstraint(
 		for (unsigned int i = 0; i < constraints_as_objective.size(); ++i) {
 			ROL::Ptr<ROL::Vector<double>> adjoint = simulation_variables->clone();
 			adjoint->setScalar(1.0);
-			auto reduced_objective = ROL::makePtr<ROL::Reduced_Objective_SimOpt<double>>(
+			auto reduced_objective = ROL::makePtr<ROL::Reduced_Objective_SimOpt_FailSafe<double>>(
 				constraints_as_objective[i], flow_constraints, simulation_variables, control_variables, adjoint, storage, useFDHessian);
 			//const auto state_constraints = ROL::makePtrFromRef<PHiLiP::FlowConstraints<PHILIP_DIM>>(dynamic_cast<PHiLiP::FlowConstraints<PHILIP_DIM>&>(*flow_constraints));
 			//int objective_check_error = check_objective<PHILIP_DIM,PHILIP_DIM+2>( constraints_as_objective[i], state_constraints, simulation_variables, control_variables, adjoint);
@@ -1104,19 +1104,19 @@ int EulerNACADragOptimizationLiftConstrained<dim,nstate>
         //     const bool useFDHessian = false;
         //     // Create reduced-objective by combining objective with PDE constraints.
         //     ROL::Ptr<ROL::Vector<double>> drag_adjoint = ROL::makePtr<VectorAdaptor>(des_var_adj_rol);
-        //     auto reduced_drag_objective = ROL::makePtr<ROL::Reduced_Objective_SimOpt<double>>( objective, flow_constraints, simulation_variables, control_variables, drag_adjoint, storage, useFDHessian);
+        //     auto reduced_drag_objective = ROL::makePtr<ROL::Reduced_Objective_SimOpt_FailSafe<double>>( objective, flow_constraints, simulation_variables, control_variables, drag_adjoint, storage, useFDHessian);
 
         //     // Create reduced-constraint by combining lift-objective with PDE constraints.
         //     ROL::Ptr<ROL::SimController<double> > stateStore = ROL::makePtr<ROL::SimController<double>>();
         //     ROL::Ptr<ROL::Vector<double>> lift_adjoint = drag_adjoint->clone();
         //     ROL::Ptr<ROL::SingletonVector<double>> lift_constraint_residual_rol_p = ROL::makePtr<ROL::SingletonVector<double>> (0.0);
-        //     //auto reduced_lift_constraint = ROL::makePtr<ROL::Reduced_Constraint_SimOpt<double>>(
+        //     //auto reduced_lift_constraint = ROL::makePtr<ROL::Reduced_Constraint_SimOpt_FailSafe<double>>(
         //     //    lift_constraint, flow_constraints, stateStore,
         //     //    simulation_variables, control_variables, lift_adjoint, lift_constraint_residual_rol_p,
         //     //    storage, useFDHessian);
 
         //     // Create reduced-objective by combining objective with PDE constraints.
-        //     auto reduced_lift_objective = ROL::makePtr<ROL::Reduced_Objective_SimOpt<double>>( constraint1, flow_constraints, simulation_variables, control_variables, lift_adjoint, storage, useFDHessian);
+        //     auto reduced_lift_objective = ROL::makePtr<ROL::Reduced_Objective_SimOpt_FailSafe<double>>( constraint1, flow_constraints, simulation_variables, control_variables, lift_adjoint, storage, useFDHessian);
         //     std::cout << " Converting reduced lift objective into reduced_lift_constraint " << std::endl;
         //     ROL::Ptr<ROL::Constraint<double>> reduced_lift_constraint = ROL::makePtr<ROL::ConstraintFromObjective<double>> (reduced_lift_objective, lift_target);
 

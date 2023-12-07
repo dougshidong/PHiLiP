@@ -62,12 +62,6 @@ unsigned int dRdW_form;
 unsigned int dRdW_mult;
 unsigned int dRdX_mult;
 unsigned int d2R_mult;
-unsigned int n_design_iterations;
-
-namespace {
-    unsigned int FREEZE_ARTIFICIAL_DISSIPATION_AFTER_DESIGN = 50;
-}
-
 
 namespace PHiLiP {
 
@@ -1073,10 +1067,6 @@ void DGBase<dim,real,MeshType>::update_artificial_dissipation_discontinuity_sens
 
     std::vector<real> coords_coeff(n_metric_dofs);
 
-    if (n_design_iterations > FREEZE_ARTIFICIAL_DISSIPATION_AFTER_DESIGN) {
-        artificial_dissipation_c0 *= 0.0;
-        return;
-    }
     if (freeze_artificial_dissipation) return;
 
     // If we don't reset to 0, it will keep the maximum artificial dissipation c0 over the iterations.
@@ -1189,7 +1179,7 @@ void DGBase<dim,real,MeshType>::update_artificial_dissipation_discontinuity_sens
 
         const double diameter = std::pow(element_volume, 1.0/dim);
         const double eps_0 = mu_scale * diameter / (double)degree;
-    
+
         // If the error is below min threshold, do not add artificial dissipation.
         if ( s_e < low) continue;
 
@@ -1200,10 +1190,10 @@ void DGBase<dim,real,MeshType>::update_artificial_dissipation_discontinuity_sens
 
             if (artificial_dissipation_parameters.use_c0_smoothed_artificial_dissipation) {
                 // Furthermore, if c0-smoothing is used, then use maximum artificial dissipation of all vertex neighbors.
-            for (unsigned int idof=0; idof<n_dofs_arti_diss; ++idof) {
-                const unsigned int index = dof_indices_artificial_dissipation[idof];
-                artificial_dissipation_c0[index] = std::max(artificial_dissipation_c0[index], eps_0);
-            }
+                for (unsigned int idof=0; idof<n_dofs_arti_diss; ++idof) {
+                    const unsigned int index = dof_indices_artificial_dissipation[idof];
+                    artificial_dissipation_c0[index] = std::max(artificial_dissipation_c0[index], eps_0);
+                }
             }
             // Store maximum artificial dissipation coefficient.
             if(eps_0 > max_artificial_dissipation_coeff) {
@@ -1229,10 +1219,10 @@ void DGBase<dim,real,MeshType>::update_artificial_dissipation_discontinuity_sens
         dof_indices_artificial_dissipation.resize(n_dofs_arti_diss);
         artificial_dissipation_cell->get_dof_indices (dof_indices_artificial_dissipation);
         if (artificial_dissipation_parameters.use_c0_smoothed_artificial_dissipation) {
-        for (unsigned int idof=0; idof<n_dofs_arti_diss; ++idof) {
-            const unsigned int index = dof_indices_artificial_dissipation[idof];
-            artificial_dissipation_c0[index] = std::max(artificial_dissipation_c0[index], eps);
-        }
+            for (unsigned int idof=0; idof<n_dofs_arti_diss; ++idof) {
+                const unsigned int index = dof_indices_artificial_dissipation[idof];
+                artificial_dissipation_c0[index] = std::max(artificial_dissipation_c0[index], eps);
+            }
         }
 
     }
@@ -1241,13 +1231,13 @@ void DGBase<dim,real,MeshType>::update_artificial_dissipation_discontinuity_sens
     //artificial_dissipation_c0.add(1e-1);
 
     if (artificial_dissipation_parameters.zero_artificial_dissipation_at_boundary) {
-    dealii::IndexSet boundary_dofs(dof_handler_artificial_dissipation.n_dofs());
-    dealii::DoFTools::extract_boundary_dofs(dof_handler_artificial_dissipation,
-                                dealii::ComponentMask(),
-                                boundary_dofs);
-    for (unsigned int i = 0; i < dof_handler_artificial_dissipation.n_dofs(); ++i) {
-        if (boundary_dofs.is_element(i)) {
-            artificial_dissipation_c0[i] = 0.0;
+        dealii::IndexSet boundary_dofs(dof_handler_artificial_dissipation.n_dofs());
+        dealii::DoFTools::extract_boundary_dofs(dof_handler_artificial_dissipation,
+                                    dealii::ComponentMask(),
+                                    boundary_dofs);
+        for (unsigned int i = 0; i < dof_handler_artificial_dissipation.n_dofs(); ++i) {
+            if (boundary_dofs.is_element(i)) {
+                artificial_dissipation_c0[i] = 0.0;
             }
         }
     }
@@ -2474,7 +2464,6 @@ real2 DGBase<dim,real,MeshType>::discontinuity_sensor(
     //(void)jac_det;
     //return 0;
 
-    //if (n_design_iterations>20) return 0;
     const unsigned int degree = fe_high.tensor_degree();
 
     if (degree == 0) return 0;

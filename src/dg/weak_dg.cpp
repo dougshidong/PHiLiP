@@ -23,22 +23,6 @@
 #define KOPRIVA_METRICS_BOUNDARY
 //#define FADFAD
 
-namespace {
-    constexpr bool DO_USE_ARTIFICIAL_DISSIPATION_AT_BOUNDARY = false;
-    constexpr bool DO_USE_GEGENBAUER = false;
-    constexpr bool DO_USE_C0_ARTIFICIAL_DISSIPATION = true;
-    constexpr bool DO_DIFFERENTIATE_ARTIFICIAL_DISSIPATION = false;
-
-    // constexpr bool DO_USE_ARTIFICIAL_DISSIPATION_AT_BOUNDARY = true;
-    // constexpr bool DO_USE_GEGENBAUER = true;
-    // constexpr bool DO_USE_C0_ARTIFICIAL_DISSIPATION = false;
-    // constexpr bool DO_DIFFERENTIATE_ARTIFICIAL_DISSIPATION = true;
-
-    static_assert((DO_DIFFERENTIATE_ARTIFICIAL_DISSIPATION
-                    && !DO_USE_C0_ARTIFICIAL_DISSIPATION
-                    )//&& !DO_USE_GEGENBAUER)
-                  || !DO_DIFFERENTIATE_ARTIFICIAL_DISSIPATION);
-}
 
 /// Returns the value from a CoDiPack variable.
 /** The recursive calling allows to retrieve nested CoDiPack types.

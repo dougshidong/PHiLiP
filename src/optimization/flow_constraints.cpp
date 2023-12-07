@@ -13,6 +13,35 @@
 
 namespace PHiLiP {
 
+std::string get_restart_filename_without_extension(const int restart_index_input) {
+    // returns the restart file index as a string with appropriate padding
+    std::string restart_index_string = std::to_string(restart_index_input);
+    const unsigned int length_of_index_with_padding = 5;
+    const int number_of_zeros = length_of_index_with_padding - restart_index_string.length();
+    restart_index_string.insert(0, number_of_zeros, '0');
+
+    const std::string prefix = "restart-";
+    const std::string restart_filename_without_extension = prefix+restart_index_string;
+
+    return restart_filename_without_extension;
+}
+
+template <int dim>
+void output_restart_files(
+    const DGBase<dim,double> &dg, 
+    const int current_restart_index)
+{
+    std::cout << "  ... Writing restart files ... " << std::endl;
+    const std::string restart_filename_without_extension = get_restart_filename_without_extension(current_restart_index);
+
+    // solution files
+    dealii::parallel::distributed::SolutionTransfer<dim, dealii::LinearAlgebra::distributed::Vector<double>, dealii::DoFHandler<dim>> solution_transfer(dg.dof_handler);
+    solution_transfer.prepare_for_serialization(dg.solution);
+    if constexpr (dim!=1) {
+        dg.triangulation->save(std::string("./") + restart_filename_without_extension);
+    }
+}
+
 template<int dim>
 FlowConstraints<dim>
 ::FlowConstraints(std::shared_ptr<DGBase<dim,double>> &_dg, 
@@ -130,6 +159,7 @@ void FlowConstraints<dim>
 
         dg->output_results_vtk(iupdate);
         ffd.output_ffd_vtu(iupdate);
+        output_restart_files(*dg, iupdate);
         iupdate++;
     }
 }

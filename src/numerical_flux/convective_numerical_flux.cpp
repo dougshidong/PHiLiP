@@ -210,7 +210,7 @@ std::array<real, nstate> HLLCBaselineNumericalFluxConvective<dim,nstate,real>::e
     
     const real sound_L = euler_physics->compute_sound(density_L, pressure_L);
     const real sound_R = euler_physics->compute_sound(density_R, pressure_R);
-
+/*
     const real density_avg = 0.5*(density_L + density_R);
     const real sound_avg = 0.5*(sound_L + sound_R);
 
@@ -237,6 +237,16 @@ std::array<real, nstate> HLLCBaselineNumericalFluxConvective<dim,nstate,real>::e
 
     const real S_L = velocity_dot_n_L - sound_L*q_L;
     const real S_R = velocity_dot_n_R + sound_R*q_R;
+*/
+    // Einfieldt's approach
+    const real eta2 = 0.5 * sqrt(density_L)*sqrt(density_R)/(pow(sqrt(density_L) + sqrt(density_R),2));
+    const real dbar_squared = (sqrt(density_L)*pow(sound_L,2) + sqrt(density_R)*pow(sound_R,2))/(sqrt(density_L) + sqrt(density_R))
+                                + eta2*pow(velocity_dot_n_R - velocity_dot_n_L,2);
+    const real dbar = sqrt(dbar_squared);
+    const real ubar = (sqrt(density_L)*velocity_dot_n_L + sqrt(density_R)*velocity_dot_n_R)/(sqrt(density_L) + sqrt(density_R));
+    const real S_L = ubar - dbar;
+    const real S_R = ubar + dbar;
+
 
     const real S_star = 
             (pressure_R - pressure_L + density_L*velocity_dot_n_L*(S_L - velocity_dot_n_L) 

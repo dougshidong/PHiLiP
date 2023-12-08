@@ -17,8 +17,6 @@ public:
     /// Constructor
     AllRealGasConstants();
 
-    /// Reads and allocates all real gas constants and variables from input files
-    void read_species ();
 protected:
     dealii::ConditionalOStream pcout; ///< Parallel std::cout that only outputs on mpi_rank==0
 

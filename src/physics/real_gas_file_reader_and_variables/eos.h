@@ -29,6 +29,14 @@ void GetMolarity_rhoW(double*, double*);
 double GetMeanMolecularWeight_Molarity(double, double*);
 double GetMeanNumberDensity_Molarity(double*);
 void GetSpeciesDensity_Qvec(double*, double, double*);
+void GetSpeciesEnergyFormation(double *);
+void GetSpeciesTransRotCv(double *);
+void CalcSpeciesTransRotEnergy(double *, double *);
+double f_GetTemp_Newton(double *, double *, double);
+void CalcInternalEnergyDerivative_NASACAP(double, double *);
+double df_GetTemp_Newton(double *Sp_Density, double RT_);
+double GetTemp(double *, double *, double);
+void GetEnergyFormation(double *);
 
 } // RealGasConstants namespace
 } // PHiLiP namespace

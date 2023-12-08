@@ -33,10 +33,10 @@ RealGas<dim,nstate,real>::RealGas (
     , u_ref_sqr(u_ref*u_ref) /// [m/s]^2
 {
     PHiLiP::RealGasConstants::AllRealGasConstants real_gas_constants = PHiLiP::RealGasConstants::AllRealGasConstants();
-    real_gas_constants.read_species();
+    (void)real_gas_constants; // to ignore unused variable errors
 
     for(int ispecies=0; ispecies<PHiLiP::RealGasConstants::N_species; ispecies++) {
-        std::cout<< PHiLiP::RealGasConstants::Sp_name[ispecies] << ",   Molecular weight: " << PHiLiP::RealGasConstants::Sp_W[ispecies] << "units?" <<std::endl;    
+        std::cout<< PHiLiP::RealGasConstants::Sp_name[ispecies] << ",   Molecular weight: " << PHiLiP::RealGasConstants::Sp_W[ispecies] <<std::endl;    
     }
     
     // std::cout<<"In constructor of real gas."<<std::endl<<std::flush;

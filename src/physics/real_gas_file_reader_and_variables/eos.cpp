@@ -383,6 +383,176 @@ void GetSpeciesDensity_Qvec(double *Qvec, double rho_mean, double *Sp_Density)
 	// species density [Kg/m3]
 }
 //===============================================
+void GetSpeciesEnergyFormation(double *Sp_EnergyFormation) // TO DO: call this somewhere
+{
+	/* Species energy of formation at T_ref */
+	for(int i=0; i<N_species; i++)
+	{
+		Sp_EnergyFormation[i] = (Sp_EnthalpyFormation[i] - R_universal*T_ref)/Sp_W[i];
+	}
+	/* Units: [J/kg] */
+}
+//===============================================
+void GetSpeciesTransRotCv(double *Sp_TransRotCv)
+{
+	/* Species specific heat at constant volume for
+	   translational-rotational mode */
+	for(int i=0; i<N_species; i++)
+	{	
+		if((Sp_CharVibTemp[i] != 0.0) && (i != i_electron))
+		{
+			/* Diatomic species */
+			Sp_TransRotCv[i] = 2.5*(R_universal/Sp_W[i]);
+		}
+		else
+		{
+			/* Monatomic species and electrons */
+			Sp_TransRotCv[i] = 1.5*(R_universal/Sp_W[i]);
+		}
+	}
+	// Units: [J/(kg-K)]
+}
+//===============================================
+void CalcSpeciesTransRotEnergy(double *RT, double *e_trs)
+{
+	if(NonEqFlag == 1)
+	{
+		/* -- Nonequilibrium -- */
+		double T_tr, T_ee;
+
+		T_tr = RT[0]/R_universal;
+		
+		if(nTEMP == 3)
+		{
+			T_ee = RT[2]/R_universal;
+		}
+		
+		for(int i=0; i<N_species; i++)
+		{	
+			if((i == i_electron) && (nTEMP == 3))
+			{
+				e_trs[i] = Sp_TransRotCv[i]*T_ee;
+			}
+			else
+			{
+				e_trs[i] = Sp_TransRotCv[i]*T_tr;
+			}
+			// species translational-rotational energy per unit mass [J/kg]
+			/* Display trans-rot energies */
+			// cout << "Species: " << Sp_name[i] << "\t e_trs [J/kg] = " << e_trs[i] << endl;
+		}
+	}
+	else
+	{
+		cout << "ERROR: Function 'CalcSpeciesTransRotEnergy()' only valid for nonequilibrium thermodynamics." << endl;
+	}
+}
+//===============================================
+//===============================================
+// NOTE: The following 3 functions are for 
+//       the get temp root finding Newton method
+//===============================================
+double f_GetTemp_Newton(double *Qvec, double *Sp_Density, double RT_)
+{
+	double f_val = Qvec[i_VibEnergy]; // TO DO: MODIFY THIS
+	double *e_s = dvector(N_species);
+	
+	NASACAP_GetHSCp(H, S, Cp_molar, Cv_molar, RT_);
+	CalcSpeciesInternalEnergy(RT_, H, e_s);
+	
+	for(int i=0; i<N_species; i++)
+	{
+		f_val -= Sp_Density[i]*e_s[i];
+	}
+
+	/* Delete local pointers */
+	delete [] e_s;
+
+	return f_val;
+}
+//===============================================
+void CalcInternalEnergyDerivative_NASACAP(double T, double *de_s)
+{
+	GetNASACAP_TemperatureIndex(T, Sp_TempIndex);
+
+	for(int i=0; i<N_species; i++)
+	{
+		int T_Index = Sp_TempIndex[i];
+
+		de_s[i] = 0.0;
+		for(int j=0; j<7; j++)
+		{
+			de_s[i] += NASACAPCoeffs[i][j][T_Index]*pow(T, double(j-2));
+		}
+		de_s[i] *= R_universal; // [J/mol] dH/dT
+		de_s[i] -= R_universal; // [J/mol] dH/dT - R
+		de_s[i] /= Sp_W[i]; // [J/kg]
+	}
+}
+//===============================================
+double df_GetTemp_Newton(double *Sp_Density, double RT_)
+{
+	double *de_s = dvector(N_species);
+
+	double T_ = RT_/R_universal;
+
+	CalcInternalEnergyDerivative_NASACAP(T_,de_s);
+
+	double df_val = 0.0;
+	for(int i=0; i<N_species; i++)
+	{
+		df_val -= Sp_Density[i]*de_s[i];
+	}
+
+	/* Delete local pointers */
+	delete [] de_s;
+
+	return df_val;
+}
+//===============================================
+double GetTemp(double *Qvec, double *Sp_Density, double r0)
+{
+	/* Newton's method for root finding */
+	double r1 = r0;
+	double err = 1.1;
+	double dr;
+	int i = 0;
+	int maxIter = 5000;
+	
+	while(err > RootFindingTolerance_Vib)
+	{
+		r0 = r1;
+		dr = f_GetTemp_Newton(Qvec, Sp_Density, r0)/df_GetTemp_Newton(Sp_Density, r0);
+		r1 = r0 - dr;
+		err = abs(r1-r0);
+		i += 1;
+		
+		// if(i%100 == 0)
+		// {
+		// 	cout << "\t i = " << i << "\t error = " << err << endl;
+		// }
+
+		if(i>maxIter)
+		{
+			cout << "ERROR: GetTemp() reached maximum number of iterations." << endl;
+			break;	
+		}
+	}
+	return r1;
+}
+//===============================================
+void GetEnergyFormation(double *Sp_Density)
+{
+	/* Remove this later on by incorporating it directly were needed */
+	EnergyFormation = 0.0;
+	/* Mixture energy of formation at T_ref */
+	for(int i=0; i<N_species; i++)
+	{
+		EnergyFormation += Sp_Density[i]*Sp_EnergyFormation[i];
+	}
+	/* Units: [J/m3] */
+}
+//===============================================
 
 } // RealGasConstants namespace
 } // PHiLiP namespace

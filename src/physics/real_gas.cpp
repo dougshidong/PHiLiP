@@ -36,8 +36,8 @@ RealGas<dim,nstate,real>::RealGas (
     (void)real_gas_cap; // to ignore unused variable errors
     // real_gas_cap.Sp_W[real_gas_cap.i_N2]
 
-    for(int ispecies=0; ispecies<PHiLiP::RealGasConstants::N_species; ispecies++) {
-        std::cout<< PHiLiP::RealGasConstants::Sp_name[ispecies] << ",   Molecular weight: " << PHiLiP::RealGasConstants::Sp_W[ispecies] <<std::endl;    
+    for(int ispecies=0; ispecies<real_gas_cap.N_species; ispecies++) {
+        std::cout<< real_gas_cap.Sp_name[ispecies] << ",   Molecular weight: " << real_gas_cap.Sp_W[ispecies] <<std::endl;    
     }
     
     // std::cout<<"In constructor of real gas."<<std::endl<<std::flush;

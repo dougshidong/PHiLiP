@@ -471,9 +471,10 @@ double SpecificNodesParameterization<dim> :: get_slope_y(
     const bool on_boundary) const
 {
     if(! on_boundary) {return 0.0;}
-    
-    double slope = 0.02;
-    if(this->high_order_grid->volume_nodes(ivol + 1) < 0)
+   
+    const double PI = 4.0*atan(1.0);
+    double slope = 5.0/2.0 * tan(5.0*PI/12.0);
+    if(this->high_order_grid->volume_nodes(ivol + 1) > 0)
     {
         slope = -slope;
     }

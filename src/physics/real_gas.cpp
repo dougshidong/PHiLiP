@@ -32,8 +32,9 @@ RealGas<dim,nstate,real>::RealGas (
     , u_ref(mach_ref*sqrt(gam_ref*R_Air_Dim*temperature_ref)) /// [m/s]
     , u_ref_sqr(u_ref*u_ref) /// [m/s]^2
 {
-    PHiLiP::RealGasConstants::AllRealGasConstants real_gas_constants = PHiLiP::RealGasConstants::AllRealGasConstants();
-    (void)real_gas_constants; // to ignore unused variable errors
+    PHiLiP::RealGasConstants::AllRealGasConstants real_gas_cap = PHiLiP::RealGasConstants::AllRealGasConstants();
+    (void)real_gas_cap; // to ignore unused variable errors
+    // real_gas_cap.Sp_W[real_gas_cap.i_N2]
 
     for(int ispecies=0; ispecies<PHiLiP::RealGasConstants::N_species; ispecies++) {
         std::cout<< PHiLiP::RealGasConstants::Sp_name[ispecies] << ",   Molecular weight: " << PHiLiP::RealGasConstants::Sp_W[ispecies] <<std::endl;    

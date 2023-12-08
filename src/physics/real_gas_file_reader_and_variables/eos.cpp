@@ -454,7 +454,8 @@ void CalcSpeciesTransRotEnergy(double *RT, double *e_trs)
 //===============================================
 double f_GetTemp_Newton(double *Qvec, double *Sp_Density, double RT_)
 {
-	double f_val = Qvec[i_VibEnergy]; // TO DO: MODIFY THIS
+	double f_val = Qvec[i_VibEnergy]; // TO DO: MODIFY THIS by replacing with something like below
+	// double f_val = getInternalEnergyFromConservativeSolution(cons_soln);
 	double *e_s = dvector(N_species);
 	
 	NASACAP_GetHSCp(H, S, Cp_molar, Cv_molar, RT_);

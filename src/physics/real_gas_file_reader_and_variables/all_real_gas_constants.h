@@ -17,6 +17,9 @@ public:
     /// Constructor
     AllRealGasConstants();
 
+    /// Destructor
+    ~AllRealGasConstants() {};
+
     // Thermodynamic Nonequilibrium Flow Variables
     /*struct NonequilibriumVars
     {*/

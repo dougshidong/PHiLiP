@@ -1776,7 +1776,6 @@ void PrimalDualActiveSetStep<Real>::update(
             lagrangian_secant_->updateStorage(*getCtlOpt(design_variables),*getCtlOpt(*(step_state->gradientVec)),*getCtlOpt(*old_gradient_),*getCtlOpt(*search_design),design_snorm,algo_state.iter+1);
         //}
     }
-    n_design_iterations = algo_state.iter;
 
     printDesignDual("After Update", design_variables, bound_constraints, *dual_inequality_, *des_plus_dual_, dual_equality);
 

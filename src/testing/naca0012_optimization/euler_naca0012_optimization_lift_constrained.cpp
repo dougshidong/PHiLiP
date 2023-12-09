@@ -55,6 +55,11 @@
 #include "global_counter.hpp"
 
 namespace {
+const bool USE_LIFT_CONSTRAINT   = true;
+const bool USE_MOMENT_CONSTRAINT = false;
+const bool USE_VOLUME_CONSTRAINT = true;
+const bool USE_DESIGN_CONSTRAINT = true;
+
 enum class OptimizationAlgorithm { full_space_birosghattas, full_space_composite_step, reduced_space_bfgs, reduced_space_newton, reduced_sqp };
 enum class Preconditioner { P2, P2A, P4, P4A, identity };
 enum class GridType {naca0012, cylinder};
@@ -1002,12 +1007,6 @@ int EulerNACADragOptimizationLiftConstrained<dim,nstate>
     parlist.sublist("Full Space").set("Preconditioner",preconditioner_string);
 
     ROL::Ptr< const ROL::AlgorithmState <double> > algo_state;
-    n_vmult = 0;
-    dRdW_form = 0;
-    dRdW_mult = 0;
-    dRdX_mult = 0;
-    d2R_mult = 0;
-    n_design_iterations = 0;
 
     switch (opt_type) {
         case OptimizationAlgorithm::full_space_composite_step: {

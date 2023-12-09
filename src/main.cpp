@@ -27,7 +27,6 @@ int main (int argc, char *argv[])
     dRdW_mult = 0;
     dRdX_mult = 0;
     d2R_mult = 0;
-    n_design_iterations = 0;
 
     dealii::Utilities::MPI::MPI_InitFinalize mpi_initialization(argc, argv, 1);
     const int n_mpi = dealii::Utilities::MPI::n_mpi_processes(MPI_COMM_WORLD);

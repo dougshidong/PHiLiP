@@ -64,7 +64,7 @@ Physical Curve("supersonic_outflow", 1008) = {3, 4};
 //+
 Physical Curve("slipwall", 1001) = {1};
 
-n_cylinder = 8;
+n_cylinder = 7;
 n_curved = 6;
 factor = 1;
 n_cylinder = n_cylinder*factor;
@@ -72,7 +72,7 @@ n_curved = n_curved*factor;
 //+
 Transfinite Curve {2, 1} = n_cylinder Using Progression 1;
 //+
-Transfinite Curve {4, 3} = n_curved Using Progression 1;
+Transfinite Curve {-4, 3} = n_curved Using Progression 1.25;
 //+
 Transfinite Surface {1};
 

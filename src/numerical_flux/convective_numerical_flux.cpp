@@ -695,6 +695,88 @@ std::array<real, nstate> RoeBaseRiemannSolverDissipation<dim,nstate,real>
     }
 
     return numerical_flux_dot_n;
+/*
+//=====================================================================================================================
+//                                          CUSP SCHEME
+//=====================================================================================================================
+
+    //CUSP scheme
+    const real pressure_int = euler_physics->compute_pressure(soln_int);
+    const real pressure_ext = euler_physics->compute_pressure(soln_ext);
+    const real specific_total_enthalpy_int = soln_int[nstate-1] / soln_int[0] + pressure_int / soln_int[0];
+    const real specific_total_enthalpy_ext = soln_ext[nstate-1] / soln_ext[0] + pressure_ext / soln_ext[0];
+
+    //Compute Roe averages
+    dealii::Tensor<1,dim,real> vel_roe_avg;
+    real vel_roe_avg_sqr = 0.0;
+    real contravariant_vel = 0.0;
+    real vel_R = 0.0;
+    real vel_L = 0.0;
+    for(int idim=0; idim<dim; idim++){
+        vel_roe_avg[idim] = (soln_int[idim+1]/soln_int[0]*sqrt(soln_int[0])
+                          + soln_ext[idim+1]/soln_ext[0]*sqrt(soln_ext[0]))
+                          / (sqrt(soln_int[0]) + sqrt(soln_ext[0]));
+        vel_roe_avg_sqr += vel_roe_avg[idim] * vel_roe_avg[idim];
+        contravariant_vel += vel_roe_avg[idim] * normal_int[idim];
+        vel_R += soln_ext[idim+1] / soln_ext[0] * normal_int[idim];
+        vel_L += soln_int[idim+1] / soln_int[0] * normal_int[idim];
+    }
+    const real enthalpy_roe_avg = (specific_total_enthalpy_int*sqrt(soln_int[0])
+                                + specific_total_enthalpy_ext*sqrt(soln_ext[0]))
+                                / (sqrt(soln_int[0]) + sqrt(soln_ext[0]));
+    const real speed_sound = sqrt(euler_physics->gamm1 * (enthalpy_roe_avg - 0.5 * vel_roe_avg_sqr));
+    const real gamma_minus = (euler_physics->gam + 1.0) / (2.0*euler_physics->gam) * contravariant_vel
+                           - sqrt( (euler_physics->gamm1/(2.0*euler_physics->gam)*contravariant_vel) *(euler_physics->gamm1/(2.0*euler_physics->gam)*contravariant_vel) + speed_sound * speed_sound / euler_physics->gam );
+    const real gamma_plus = (euler_physics->gam + 1.0) / (2.0*euler_physics->gam) * contravariant_vel
+                           + sqrt( (euler_physics->gamm1/(2.0*euler_physics->gam)*contravariant_vel) *(euler_physics->gamm1/(2.0*euler_physics->gam)*contravariant_vel) + speed_sound * speed_sound / euler_physics->gam );
+    const real mach_number = contravariant_vel / speed_sound;
+    real beta = 0.0;
+    if(mach_number < 1.0 && mach_number >= 0.0) {
+        real val = (contravariant_vel + gamma_minus) / (contravariant_vel - gamma_minus);
+        if(val > 0.0)
+            beta = val;
+        else
+            beta = 0.0;
+    }
+    else if(mach_number < 0.0 && mach_number >= -1){
+        real val = (contravariant_vel + gamma_plus) / (contravariant_vel - gamma_plus);
+        if(val > 0.0)
+            beta = - val;
+        else
+            beta = 0.0;
+    }
+    else if(mach_number >= 1.0)
+        beta = 1.0;
+    else if(mach_number <= -1.0)
+        beta = -1.0;
+
+    real alpha_c = 0.0;
+    if(abs(beta) <= 1e-14)
+        alpha_c = abs(contravariant_vel);
+    else if (beta > 0.0 && 0.0 < mach_number && mach_number < 1.0)
+        alpha_c = - (1.0 + beta) * gamma_minus;
+    else if (beta < 0.0 && -1.0 < mach_number && mach_number < 0.0)
+        alpha_c =  (1.0 - beta) * gamma_plus;
+    else if (abs(mach_number) >= 1.0)
+        alpha_c = 0.0;
+
+    std::array<real,nstate> dissipation;
+    for(int istate=0;istate<nstate; istate++){
+        const real u_L = (istate == nstate-1) ? soln_int[0] * specific_total_enthalpy_int
+                  : soln_int[istate];
+        const real u_R = (istate == nstate-1) ? soln_ext[0] * specific_total_enthalpy_ext
+                  : soln_ext[istate];
+        dissipation[istate] = - 0.5 * alpha_c * (u_R - u_L);
+        dissipation[istate] -= 0.5 * beta *(u_R * vel_R - u_L * vel_L);
+        if(istate > 0 && istate < nstate - 1){//momentum equations add pressure
+            dissipation[istate] -= 0.5 * beta * (pressure_ext * normal_int[istate-1]
+                                 - pressure_int * normal_int[istate-1]);
+        }
+
+    }
+
+    return dissipation;
+*/
 }
 
 // Instantiation

@@ -8,7 +8,7 @@ set dimension = 2
 set pde_type  = euler      
 set test_type = anisotropic_mesh_adaptation
 
-set conv_num_flux = hllc
+set conv_num_flux = roe
 
 set diss_num_flux = symm_internal_penalty
 

@@ -1646,7 +1646,7 @@ double DGBase<dim,real,MeshType>::get_residual_l2norm () const
 {
 
     //return get_residual_linfnorm ();
-    //return right_hand_side.l2_norm();
+    return right_hand_side.l2_norm();
     //return right_hand_side.l2_norm() / right_hand_side.size();
     //auto scaled_residual = right_hand_side;
     //global_mass_matrix.vmult(scaled_residual, right_hand_side);

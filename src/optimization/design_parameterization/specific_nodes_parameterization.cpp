@@ -74,10 +74,7 @@ void SpecificNodesParameterization<dim> :: compute_control_index_to_vol_index()
     {
         if(!(surface_range.is_element(i_surf))) continue;
         const unsigned int vol_index = this->high_order_grid->surface_to_volume_indices(i_surf);
-        if(is_a_control_node(vol_index) == 1)
-        {
-            is_on_boundary(vol_index) = 1;
-        }
+        is_on_boundary(vol_index) = 1;
     }
     is_a_control_node.update_ghost_values();
     is_on_boundary.update_ghost_values();
@@ -315,15 +312,14 @@ void SpecificNodesParameterization<dim> :: compute_dXv_dXp(MatrixType &dXv_dXp) 
     dealii::DynamicSparsityPattern dsp(n_vol_nodes, n_control_nodes, volume_range);
     for(unsigned int i_control=0; i_control<n_control_nodes; ++i_control)
     {
-    
         const unsigned int ivol = control_index_to_vol_index[i_control];
         if(volume_range.is_element(ivol))
         {
             dsp.add(ivol, i_control);
-        }
-        if(is_on_boundary(ivol))
-        {
-            dsp.add(ivol+1, i_control);
+            if(is_on_boundary(ivol)) // Assuming only x is the control node on boundary.
+            {
+                dsp.add(ivol+1, i_control);
+            }
         }
         
         if(this->high_order_grid->max_degree > 1)
@@ -334,22 +330,27 @@ void SpecificNodesParameterization<dim> :: compute_dXv_dXp(MatrixType &dXv_dXp) 
             if(volume_range.is_element(ivol1))
             {
                 dsp.add(ivol1, i_control);
+                if(is_on_boundary(ivol1))
+                {
+                    dsp.add(ivol1+1,i_control); 
+                }
             }
             if(volume_range.is_element(ivol2))
             {
                 dsp.add(ivol2, i_control);
+                if(is_on_boundary(ivol2))
+                {
+                    dsp.add(ivol2+1,i_control); 
+                }
             }
             
         }
     
     }
 
-
     dealii::SparsityTools::distribute_sparsity_pattern(dsp, volume_range, this->mpi_communicator, locally_relevant_dofs);
-    dealii::SparsityPattern full_sp;
-    full_sp.copy_from(dsp);
 
-    dXv_dXp.reinit(volume_range, control_index_range, full_sp, this->mpi_communicator);
+    dXv_dXp.reinit(volume_range, control_index_range, dsp, this->mpi_communicator);
 
     for(unsigned int i_control=0; i_control<n_control_nodes; ++i_control)
     {
@@ -357,13 +358,13 @@ void SpecificNodesParameterization<dim> :: compute_dXv_dXp(MatrixType &dXv_dXp) 
         if(volume_range.is_element(ivol))
         {
             dXv_dXp.set(ivol, i_control, 1.0);
+            if(is_on_boundary(ivol))
+            {
+                const bool on_boundary=true;
+                const double slope = get_slope_y(ivol, on_boundary);
+                dXv_dXp.set(ivol+1, i_control, slope);
+            }    
         }
-        if(is_on_boundary(ivol))
-        {
-            const bool on_boundary=true;
-            const double slope = get_slope_y(ivol, on_boundary);
-            dXv_dXp.set(ivol+1, i_control, slope);
-        }    
         
         if(this->high_order_grid->max_degree > 1)
         {
@@ -373,10 +374,22 @@ void SpecificNodesParameterization<dim> :: compute_dXv_dXp(MatrixType &dXv_dXp) 
             if(volume_range.is_element(ivol1))
             {
                 dXv_dXp.set(ivol1, i_control, 0.5);
+                if(is_on_boundary(ivol1))
+                {
+                    const bool on_boundary=true;
+                    const double half_slope = 0.5*get_slope_y(ivol1, on_boundary);
+                    dXv_dXp.set(ivol1+1,i_control,half_slope);
+                }
             }
             if(volume_range.is_element(ivol2))
             {
                 dXv_dXp.set(ivol2, i_control, 0.5);
+                if(is_on_boundary(ivol2))
+                {
+                    const bool on_boundary=true;
+                    const double half_slope = 0.5*get_slope_y(ivol2, on_boundary);
+                    dXv_dXp.set(ivol2+1,i_control,half_slope);
+                }
             } 
         }
     }

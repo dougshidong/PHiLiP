@@ -519,7 +519,7 @@ void correct_the_gradient(
     const dealii::FESystem<dim,dim>                                      &fe_soln,
     const std::vector<std::array<dealii::Tensor<1,dim,real2>, nstate>>   &soln_jump,
     const dealii::FullMatrix<double>                                     &interpolation_operator,
-    const std::array<dealii::FullMatrix<real2>,dim>                      &gradient_operator,
+    const std::array<dealii::Table<2,real2>,dim>                      &gradient_operator,
     std::vector<std::array< dealii::Tensor<1,dim,real2>, nstate >>       &soln_grad)
 {
     (void) soln_jump;
@@ -1703,7 +1703,7 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_face_term(
 
     dealii::FullMatrix<real> interpolation_operator_int(n_soln_dofs_int, n_face_quad_pts);
     dealii::FullMatrix<real> interpolation_operator_ext(n_soln_dofs_ext, n_face_quad_pts);
-    std::array<dealii::FullMatrix<real2>,dim> gradient_operator_int, gradient_operator_ext;
+    std::array<dealii::Table<2,real2>,dim> gradient_operator_int, gradient_operator_ext;
     for (int d=0;d<dim;++d) {
         gradient_operator_int[d].reinit(dealii::TableIndices<2>(n_soln_dofs_int, n_face_quad_pts));
         gradient_operator_ext[d].reinit(dealii::TableIndices<2>(n_soln_dofs_ext, n_face_quad_pts));
@@ -3017,7 +3017,7 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_volume_term(
     // for (int d=0;d<dim;++d) {
     //     gradient_operator[d].reinit(n_soln_dofs, n_quad_pts);
     // }
-    std::array<dealii::FullMatrix<real2>,dim> gradient_operator;
+    std::array<dealii::Table<2,real2>,dim> gradient_operator;
     for (int d=0;d<dim;++d) {
         gradient_operator[d].reinit(dealii::TableIndices<2>(n_soln_dofs, n_quad_pts));
     }

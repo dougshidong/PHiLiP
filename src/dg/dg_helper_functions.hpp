@@ -214,13 +214,13 @@ void evaluate_covariant_metric_jacobian (
 /// Code taken directly from deal.II's FullMatrix::gauss_jordan function, but adapted to
 /// handle AD variable.
 template <typename number>
-void gauss_jordan(dealii::FullMatrix<number> &input_matrix)
+void gauss_jordan(dealii::Table<2,number> &input_matrix)
 {
     Assert(!input_matrix.empty(), dealii::ExcMessage("Empty matrix"))
-    Assert(input_matrix.n_cols() == input_matrix.n_rows(), dealii::ExcMessage("Non quadratic matrix"));
+    Assert(input_matrix.size(0) == input_matrix.size(1), dealii::ExcMessage("Non quadratic matrix"));
   
     // Gauss-Jordan-Algorithm from Stoer & Bulirsch I (4th Edition) p. 153
-    const size_t N = input_matrix.n();
+    const size_t N = input_matrix.size(0);
   
     // First get an estimate of the size of the elements of this matrix,
     // for later checks whether the pivot element is large enough,
@@ -321,7 +321,7 @@ std::vector< real > project_function(
         std::vector< real > function_at_quad(n_quad_pts);
 
         // Output interpolation_operator is V^T in the notes.
-        dealii::FullMatrix<real> interpolation_operator(n_dofs_out,n_quad_pts);
+        dealii::Table<2,real> interpolation_operator(n_dofs_out,n_quad_pts);
 
         for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
             function_at_quad[iquad] = 0.0;
@@ -344,7 +344,7 @@ std::vector< real > project_function(
             }
         }
 
-        dealii::FullMatrix<real> mass(n_dofs_out, n_dofs_out);
+        dealii::Table<2,real> mass(n_dofs_out, n_dofs_out);
         for(unsigned int row=0; row<n_dofs_out; ++row) {
             for(unsigned int col=0; col<n_dofs_out; ++col) {
                 mass[row][col] = 0;
@@ -357,7 +357,7 @@ std::vector< real > project_function(
                 }
             }
         }
-        dealii::FullMatrix<real> inverse_mass(n_dofs_out, n_dofs_out);
+        dealii::Table<2,real> inverse_mass(n_dofs_out, n_dofs_out);
         inverse_mass = mass;
         gauss_jordan(inverse_mass);
 

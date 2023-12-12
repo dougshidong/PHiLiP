@@ -201,7 +201,7 @@ int AnisotropicMeshAdaptationCases<dim, nstate> :: run_test () const
     std::vector<unsigned int> n_dofs_vector;
 
     const double functional_error_initial = evaluate_functional_error(flow_solver->dg);
-    pcout<<"Functional error initial = "<<std::setprecision(16)<<functional_error_initial<<std::endl; // can be deleted later.
+    //pcout<<"Functional error initial = "<<std::setprecision(16)<<functional_error_initial<<std::endl; // can be deleted later.
     const double enthalpy_error_initial = evaluate_enthalpy_error(flow_solver->dg);
     functional_error_vector.push_back(functional_error_initial);
     enthalpy_error_vector.push_back(enthalpy_error_initial);
@@ -213,10 +213,10 @@ int AnisotropicMeshAdaptationCases<dim, nstate> :: run_test () const
     if(run_mesh_optimizer)
     {
         flow_solver->dg->freeze_artificial_dissipation=true;
-        for(unsigned int i=0; i<2; ++i)
-        {
-            //std::unique_ptr<MeshOptimizer<dim,nstate>> mesh_optimizer = std::make_unique<MeshOptimizer<dim,nstate>> (flow_solver->dg,&param, true);
-            //mesh_optimizer->run_full_space_optimizer();
+        //for(unsigned int i=0; i<2; ++i)
+        //{
+            std::unique_ptr<MeshOptimizer<dim,nstate>> mesh_optimizer = std::make_unique<MeshOptimizer<dim,nstate>> (flow_solver->dg,&param, true);
+            mesh_optimizer->run_full_space_optimizer();
 
             const double functional_error = evaluate_functional_error(flow_solver->dg);
             const double enthalpy_error = evaluate_enthalpy_error(flow_solver->dg);
@@ -229,7 +229,7 @@ int AnisotropicMeshAdaptationCases<dim, nstate> :: run_test () const
             convergence_table_functional.add_value("functional_error",functional_error);
             convergence_table_enthalpy.add_value("cells", flow_solver->dg->triangulation->n_global_active_cells());
             convergence_table_enthalpy.add_value("enthalpy_error",enthalpy_error);
-           
+            /*      
             auto mesh_adaptation_param2 = param.mesh_adaptation_param;
             mesh_adaptation_param2.use_goal_oriented_mesh_adaptation = false;
             mesh_adaptation_param2.refine_fraction = 1.0;
@@ -237,7 +237,8 @@ int AnisotropicMeshAdaptationCases<dim, nstate> :: run_test () const
             std::make_unique<MeshAdaptation<dim,double>>(flow_solver->dg, &(mesh_adaptation_param2));
             meshadaptation->adapt_mesh();
             flow_solver->run();
-        }
+            */
+        //}
     }
 
     if(run_fixedfraction_mesh_adaptation)

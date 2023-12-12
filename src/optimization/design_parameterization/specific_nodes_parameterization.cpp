@@ -10,7 +10,26 @@ SpecificNodesParameterization<dim> :: SpecificNodesParameterization(
     std::shared_ptr<HighOrderGrid<dim,double>> _high_order_grid)
     : BaseParameterization<dim>(_high_order_grid)
 {
+    store_prespecified_control_nodes();
     compute_control_index_to_vol_index();
+}
+
+template<int dim>
+void SpecificNodesParameterization<dim> :: store_prespecified_control_nodes()
+{
+    x_control_nodes.push_back(-0.499195); y_control_nodes.push_back(-3.20866);
+    x_control_nodes.push_back(-0.921053); y_control_nodes.push_back(-2.78084);
+    x_control_nodes.push_back(-1.34291); y_control_nodes.push_back(-2.35302);
+    x_control_nodes.push_back(-1.56494); y_control_nodes.push_back(-1.78645);
+    x_control_nodes.push_back(-1.78698); y_control_nodes.push_back(-1.21988);
+    x_control_nodes.push_back(-1.85786); y_control_nodes.push_back(-0.609941);
+    x_control_nodes.push_back(-1.92874); y_control_nodes.push_back(9.52624e-10);
+    x_control_nodes.push_back(-1.85786); y_control_nodes.push_back(0.609941);
+    x_control_nodes.push_back(-1.78698); y_control_nodes.push_back(1.21988);
+    x_control_nodes.push_back(-1.56494); y_control_nodes.push_back(1.78645);
+    x_control_nodes.push_back(-1.34291); y_control_nodes.push_back(2.35302);
+    x_control_nodes.push_back(-0.921053); y_control_nodes.push_back(2.78084);
+    x_control_nodes.push_back(-0.499195); y_control_nodes.push_back(3.20866);
 }
 
 template<int dim>
@@ -27,10 +46,17 @@ void SpecificNodesParameterization<dim> :: compute_control_index_to_vol_index()
     is_on_boundary.reinit(this->high_order_grid->volume_nodes); // Copies parallel layout, without values. Initializes to 0 by default.
     is_on_boundary = 0;
     is_on_boundary.update_ghost_values();
+    const dealii::IndexSet &surface_range = this->high_order_grid->surface_nodes.get_partitioner()->locally_owned_range();
+    for(unsigned int i_surf = 0; i_surf < n_surf_nodes; ++i_surf)
+    {
+        if(!(surface_range.is_element(i_surf))) continue;
+        const unsigned int vol_index = this->high_order_grid->surface_to_volume_indices(i_surf);
+        is_on_boundary(vol_index) = 1;
+    }
+    is_on_boundary.update_ghost_values();
 
     // Get locally owned volume and surface ranges of indices held by current processor.
     const dealii::IndexSet &volume_range = this->high_order_grid->volume_nodes.get_partitioner()->locally_owned_range();
-    const dealii::IndexSet &surface_range = this->high_order_grid->surface_nodes.get_partitioner()->locally_owned_range();
 
     for(unsigned int i_vol = 0; i_vol<n_vol_nodes; ++i_vol) 
     {
@@ -50,35 +76,22 @@ void SpecificNodesParameterization<dim> :: compute_control_index_to_vol_index()
             const double x = this->high_order_grid->volume_nodes(i_vol);
             const double y = this->high_order_grid->volume_nodes(i_vol+1);
 
-            const bool is_part_of_region = check_if_node_belongs_to_the_region(x);
+            const bool is_part_of_region = check_if_node_belongs_to_the_region(x,y);
             
-            if( is_part_of_region)
+            if(is_part_of_region)
             {
                 is_a_control_node(i_vol) = 1;
                 is_a_control_node(i_vol+1) = 1;
 
-                if( y==0 || y==1)
+                if(is_on_boundary(i_vol))
                 {
                     is_a_control_node(i_vol+1) = 0;
-                    if( (y==1) && (x==3.0/8.0))
-                    {
-                        is_a_control_node(i_vol) = 0;
-                    }
                 }
             }
         }
     }
     is_a_control_node.update_ghost_values();
-    
-    for(unsigned int i_surf = 0; i_surf < n_surf_nodes; ++i_surf)
-    {
-        if(!(surface_range.is_element(i_surf))) continue;
-        const unsigned int vol_index = this->high_order_grid->surface_to_volume_indices(i_surf);
-        is_on_boundary(vol_index) = 1;
-    }
-    is_a_control_node.update_ghost_values();
-    is_on_boundary.update_ghost_values();
-    
+     
     dealii::LinearAlgebra::distributed::Vector<int> left_control_index;
     left_control_index.reinit(this->high_order_grid->volume_nodes); // copies parallel layout, without values. initializes to 0 by default.
     left_control_index = 0;
@@ -471,10 +484,16 @@ int SpecificNodesParameterization<dim> :: is_design_variable_valid(
 }
     
 template<int dim>
-bool SpecificNodesParameterization<dim> :: check_if_node_belongs_to_the_region(const double x) const
+bool SpecificNodesParameterization<dim> :: check_if_node_belongs_to_the_region(const double x, const double y) const
 {
-    if(x > (3.0/8.0 - 0.01) && x < (3.0/8.0 + 0.01)) {return true;}
-
+    const double tol = 1.0e-3;
+    for(unsigned int i=0; i<x_control_nodes.size(); ++i)
+    {
+        if( sqrt(pow(x-x_control_nodes[i],2) + pow(y-y_control_nodes[i],2)) < tol )
+        {
+            return true;
+        }
+    }
     return false;
 }
 

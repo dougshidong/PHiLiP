@@ -33,9 +33,11 @@ public:
     
     void compute_control_index_to_vol_index();
 
-    bool check_if_node_belongs_to_the_region(const double x) const;
+    bool check_if_node_belongs_to_the_region(const double x, const double y) const;
 
     double get_slope_y(const unsigned int ivol, const bool on_boundary) const;
+    
+    void store_prespecified_control_nodes();
 
 private:
     
@@ -54,6 +56,9 @@ private:
     dealii::LinearAlgebra::distributed::Vector<int> control_index_to_right_vol_index;
     
     dealii::LinearAlgebra::distributed::Vector<int> is_on_boundary;
+    
+    std::vector<double> x_control_nodes;
+    std::vector<double> y_control_nodes;
 };
 
 } // namespace PHiLiP

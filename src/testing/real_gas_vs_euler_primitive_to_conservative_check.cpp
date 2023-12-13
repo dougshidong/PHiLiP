@@ -26,12 +26,40 @@ int RealGasVsEulerPrimitiveToConservativeCheck<dim, nstate>::run_test() const
     // static_cast<void>(flow_solver->run());
 
     // Create IRG physics
-    std::shared_ptr<Physics::InviscidRealGas<dim, nstate, double>> inviscid_real_gas_physics = std::dynamic_pointer_cast<Physics::InviscidRealGas<dim,nstate,double>>(
+    std::shared_ptr<Physics::InviscidRealGas<dim, nstate, double>> air_physics = std::dynamic_pointer_cast<Physics::InviscidRealGas<dim,nstate,double>>(
             Physics::PhysicsFactory<dim,nstate,double>::create_Physics(this->all_parameters,PDE_enum::inviscid_real_gas/*,nullptr*/));
     // Create Euler physics
     std::shared_ptr<Physics::Euler<dim, nstate, double>> euler_physics = std::dynamic_pointer_cast<Physics::Euler<dim,nstate,double>>(
             Physics::PhysicsFactory<dim,nstate,double>::create_Physics(this->all_parameters,PDE_enum::euler/*,nullptr*/));
     
+    const std::string data_table_filename = "air_vs_euler_sound_speed.txt";
+    std::ofstream FILE;
+    FILE.open(data_table_filename);
+
+    double T = 273.15;
+    double T_ref = 273.15;
+    double Tmax = 5000.0;
+    double euler_sound_speed = 0.0;
+    double air_sound_speed = 0.0;
+    double dT = 1.0;
+    double density = 1.0;
+
+    if(!FILE.is_open()) {
+        std::abort();
+        std::cout << "cannot open file: " << data_table_filename << std::endl;
+    }
+
+    while (T<Tmax) {
+        double T_nondim = T/T_ref;
+        euler_sound_speed = euler_physics->compute_sound(density, euler_physics->compute_pressure_from_density_temperature(density,T_nondim));
+        // double temperature = T_nondim;
+        double pressure = (density*T_nondim)/(air_physics->gam_ref*air_physics->mach_ref_sqr);
+        air_sound_speed = sqrt(pressure*air_physics->compute_gamma(T_nondim)/density);
+
+        FILE << std::setprecision(16) << T << "\t" << std::setprecision(16) << air_sound_speed/euler_sound_speed << "\n";  
+        T += dT;
+    }
+    FILE.close();
     // Compute kinetic energy and theoretical dissipation rate
     // const double kinetic_energy_computed = flow_solver_case->get_integrated_kinetic_energy();
     // const double theoretical_dissipation_rate_computed = flow_solver_case->get_vorticity_based_dissipation_rate();

@@ -47,12 +47,16 @@ add_test(
   COMMAND mpirun -np ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_2D -i ${CMAKE_CURRENT_BINARY_DIR}/2d_inviscid_acoustic_wave_nitrogen.prm
   WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )
+
+# =======================================
+# Unit Test 
+# =======================================
 # ----------------------------------------
 # primitive to conservative variable check
 # ----------------------------------------
 configure_file(2d_primitive_to_conservative_monospecies_real_gas_vs_euler.prm 2d_primitive_to_conservative_monospecies_real_gas_vs_euler.prm COPYONLY)
 add_test(
   NAME MPI_2D_REAL_GAS_PRIMITIVE_TO_CONSERVATIVE_VS_EULER
-  COMMAND mpirun -np ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_2D -i ${CMAKE_CURRENT_BINARY_DIR}/2d_primitive_to_conservative_monospecies_real_gas_vs_euler.prm
+  COMMAND mpirun -np 1 ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_2D -i ${CMAKE_CURRENT_BINARY_DIR}/2d_primitive_to_conservative_monospecies_real_gas_vs_euler.prm
   WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )

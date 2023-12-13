@@ -325,12 +325,30 @@ template <int dim, int nstate, typename real>
 inline real InviscidRealGas<dim,nstate,real>
 :: compute_temperature ( const std::array<real,nstate> &conservative_soln ) const
 {
-    const real density = compute_density(conservative_soln);
-    const dealii::Tensor<1,dim,real> vel = compute_velocities(conservative_soln);
-    const real vel2 = compute_velocity_squared(vel);
-    const real total_energy = conservative_soln[nstate-1]/density;
-    real pressure = (this->gam_ref-1.0)*density*(total_energy - 0.5*vel2);
-    real temperature = pressure*(this->gam_ref)*this->mach_ref_sqr / (density);
+    const real Q3 = conservative_soln[nstate-1];
+    const real density = compute_density<real>(conservative_soln);
+    const real kinetic_energy = compute_kinetic_energy(conservative_soln);
+
+    real err = 999.9;
+    int it = 0; /// delete this
+    real temperature = 3.0; //// This is guess, NonDim, must change this to guessing functin using Pressure
+    real temperature_Dim = temperature*temperature_ref; /// Dim [K]
+    do
+    {
+        it = it + 1; /// delete this
+        temperature = temperature_Dim/temperature_ref;
+        real h = compute_enthalpy(temperature); /// NonDim        
+        h = h*this->u_ref_sqr; /// Dim       
+        real Cp = compute_Cp(temperature); /// NonDim
+        Cp = Cp*this->R_Air_Dim; /// Dim
+        real f = (h - R_Air_Dim*temperature_Dim)/this->u_ref_sqr - (Q3/density -kinetic_energy/density) ; /// NonDim
+        real f_d = (Cp-this->R_Air_Dim)/this->u_ref_sqr; /// NonDim
+        real temperature_Dim_old = temperature_Dim; 
+        temperature_Dim = temperature_Dim - f/f_d; /// NRM main eq
+        err = abs(temperature_Dim - temperature_Dim_old);
+    }
+    while (err>this->tol);
+    temperature = temperature_Dim/this->temperature_ref;
 
     return temperature;
 }

@@ -3,8 +3,12 @@ set(TEST_OUTPUT_DIR ${CMAKE_CURRENT_BINARY_DIR})
 # =======================================
 # Inviscid Real Gas Tests
 # =======================================
+
+# =======================================
+# Gaussian Bump 2D
+# =======================================
 # ----------------------------------------
-# add details here
+# Gaussian Bump 2D (Air)
 # ----------------------------------------
 configure_file(2d_gaussian_bump_inviscid_air.prm 2d_gaussian_bump_inviscid_air.prm COPYONLY)
 add_test(
@@ -13,7 +17,7 @@ add_test(
   WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )
 # ----------------------------------------
-# add details here
+# Gaussian Bump 2D (Nitrogen)
 # ----------------------------------------
 configure_file(2d_gaussian_bump_inviscid_nitrogen.prm 2d_gaussian_bump_inviscid_nitrogen.prm COPYONLY)
 add_test(
@@ -21,8 +25,12 @@ add_test(
   COMMAND mpirun -np ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_2D -i ${CMAKE_CURRENT_BINARY_DIR}/2d_gaussian_bump_inviscid_nitrogen.prm
   WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )
+
+# =======================================
+# Accoustic Wave 2D
+# =======================================
 # ----------------------------------------
-# add details here
+# Accoustic Wave 2D (Air)
 # ----------------------------------------
 configure_file(2d_inviscid_acoustic_wave_air.prm 2d_inviscid_acoustic_wave_air.prm COPYONLY)
 add_test(
@@ -31,7 +39,7 @@ add_test(
   WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )
 # ----------------------------------------
-# add details here: acoustic wave (nitrogen)
+# Accoustic Wave 2D (Nitrogen)
 # ----------------------------------------
 configure_file(2d_inviscid_acoustic_wave_nitrogen.prm 2d_inviscid_acoustic_wave_nitrogen.prm COPYONLY)
 add_test(

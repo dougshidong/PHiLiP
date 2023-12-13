@@ -5,6 +5,7 @@
 #include "physics.h"
 #include "parameters/all_parameters.h"
 #include "parameters/parameters_manufactured_solution.h"
+#include "real_gas_file_reader_and_variables/all_real_gas_constants.h"
 
 namespace PHiLiP {
 namespace Physics {
@@ -48,6 +49,9 @@ protected:
     const double temperature_ref; ///< reference temperature [K]
     const double u_ref; ///< reference velocity [m/s]
     const double u_ref_sqr; ///< reference velocity squared[m/s]^2
+
+    /// Pointer to all real gas constants object for accessing the coefficients and properties (CAP)
+    std::shared_ptr< PHiLiP::RealGasConstants::AllRealGasConstants > real_gas_cap;
 
 public:
      /// Computes the entropy variables.

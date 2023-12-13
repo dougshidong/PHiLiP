@@ -5,6 +5,8 @@ set(SOURCE
     ReactiveVar.cpp
     strManipLib.cpp
     readspecies.cpp
+    eos.cpp
+    var.cpp
     )
 
 # Output library

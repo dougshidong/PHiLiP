@@ -6,8 +6,6 @@
 #include "physics.h"
 #include "euler.h"
 #include "real_gas.h" 
-#include "real_gas_file_reader_and_variables/all_real_gas_constants.h"
-#include "real_gas_file_reader_and_variables/ReactiveVar.h"
 
 namespace PHiLiP {
 namespace Physics {
@@ -32,11 +30,14 @@ RealGas<dim,nstate,real>::RealGas (
     , u_ref(mach_ref*sqrt(gam_ref*R_Air_Dim*temperature_ref)) /// [m/s]
     , u_ref_sqr(u_ref*u_ref) /// [m/s]^2
 {
-    PHiLiP::RealGasConstants::AllRealGasConstants real_gas_constants = PHiLiP::RealGasConstants::AllRealGasConstants();
-    real_gas_constants.read_species();
 
-    for(int ispecies=0; ispecies<PHiLiP::RealGasConstants::N_species; ispecies++) {
-        std::cout<< PHiLiP::RealGasConstants::Sp_name[ispecies] << ",   Molecular weight: " << PHiLiP::RealGasConstants::Sp_W[ispecies] << "units?" <<std::endl;    
+    this->real_gas_cap = std::dynamic_pointer_cast<PHiLiP::RealGasConstants::AllRealGasConstants>(
+                std::make_shared<PHiLiP::RealGasConstants::AllRealGasConstants>());
+    // (void)real_gas_cap; // to ignore unused variable errors
+    // real_gas_cap.Sp_W[real_gas_cap.i_N2]
+
+    for(int ispecies=0; ispecies<real_gas_cap->N_species; ispecies++) {
+        std::cout<< real_gas_cap->Sp_name[ispecies] << ",   Molecular weight: " << real_gas_cap->Sp_W[ispecies] <<std::endl;    
     }
     
     // std::cout<<"In constructor of real gas."<<std::endl<<std::flush;

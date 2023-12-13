@@ -50,6 +50,6 @@ subsection flow_solver
   subsection grid
     set grid_left_bound = 0.0
     set grid_right_bound = 6.28318530717958623200
-    set number_of_grid_elements_per_dimension = 16
+    set number_of_grid_elements_per_dimension = 4
   end
 end

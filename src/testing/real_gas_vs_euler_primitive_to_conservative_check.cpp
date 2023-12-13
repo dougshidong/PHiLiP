@@ -3,6 +3,13 @@
 #include "physics/euler.h"
 #include "physics/physics_factory.h"
 
+#include <iostream>
+#include <fstream> // for writing to files
+#include <string> // for strings
+#include <stdlib.h>
+#include <math.h>
+#include <iomanip>
+
 namespace PHiLiP {
 namespace Tests {
 

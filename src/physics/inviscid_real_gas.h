@@ -156,6 +156,13 @@ protected:
     /// Compute kinetic energy (0.50*rho*(vel2)) from conservative variables
     real compute_kinetic_energy ( const std::array<real,nstate> &conservative_soln ) const;
 
+    /// Compute Cv from temperature
+    real compute_Cv ( const real temperature ) const;
+
+public:
+    /// Compute gamma from temperature
+    real compute_gamma ( const real temperature ) const;
+protected:
     /// For post processing purposes (update comment later)
     virtual dealii::Vector<double> post_compute_derived_quantities_vector (
         const dealii::Vector<double>              &uh,

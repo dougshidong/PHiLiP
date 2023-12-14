@@ -76,8 +76,8 @@ public:
         /* Initial mixture read file --> Dictates what the initial composition of the gas mixture is */
 
         /* GRI-Mech Methane Combustion */
-        // std::string namechem = "/home/julien/Codes/NEQZD/ReactionFiles/grimech30.kinetics";
-        // std::string nameinitmixfrac = "/home/julien/Codes/NEQZD/InitialMixtureFiles/InitialMixtureFractions_grimech30.txt";
+        // std::string namechem = "/home/liki/Codes/NEQZD/ReactionFiles/grimech30.kinetics";
+        // std::string nameinitmixfrac = "/home/liki/Codes/NEQZD/InitialMixtureFiles/InitialMixtureFractions_grimech30.txt";
 
         /* Clarey 2019 JTHT: */
         // std::string namechem = "./ReactionFiles/airmech_clarey2019.kinetics";
@@ -92,8 +92,8 @@ public:
         // std::string nameinitmixfrac = "./InitialMixtureFiles/InitialMixtureFractions_Clarey_5species.txt";
 
         /* '11species': */
-        std::string namechem = "/home/julien/Codes/NEQZD/ReactionFiles/airmech_clarey2019.kinetics";
-        std::string nameinitmixfrac = "/home/julien/Codes/NEQZD/InitialMixtureFiles/InitialMixtureFractions_11species.txt";
+        std::string namechem = "/home/liki/Codes/NEQZD/ReactionFiles/airmech_clarey2019.kinetics";
+        std::string nameinitmixfrac = "/home/liki/Codes/NEQZD/InitialMixtureFiles/InitialMixtureFractions_11species.txt";
 
         /* Ibraguimova 'oxygen': */
         // std::string namechem = "./ReactionFiles/airmech_clarey2019_oxygen.kinetics";

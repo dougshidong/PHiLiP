@@ -216,7 +216,7 @@ int AnisotropicMeshAdaptationCases<dim, nstate> :: run_test () const
     if(run_mesh_optimizer)
     {
         flow_solver->dg->freeze_artificial_dissipation=true;
-        flow_solver->dg->set_p_degree_and_interpolate_solution(1);
+//        flow_solver->dg->set_p_degree_and_interpolate_solution(1);
         output_vtk_files(flow_solver->dg, output_val++);
         //for(unsigned int i=0; i<2; ++i)
         //{

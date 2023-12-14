@@ -196,9 +196,6 @@ int AnisotropicMeshAdaptationCases<dim, nstate> :: run_test () const
     
     flow_solver->run();
     output_vtk_files(flow_solver->dg, output_val++);
-    flow_solver->dg->set_p_degree_and_interpolate_solution(1);
-    output_vtk_files(flow_solver->dg, output_val++);
-    return 0;
     flow_solver->use_polynomial_ramping = false;
 
     std::vector<double> functional_error_vector;
@@ -220,6 +217,7 @@ int AnisotropicMeshAdaptationCases<dim, nstate> :: run_test () const
     {
         flow_solver->dg->freeze_artificial_dissipation=true;
         flow_solver->dg->set_p_degree_and_interpolate_solution(1);
+        output_vtk_files(flow_solver->dg, output_val++);
         //for(unsigned int i=0; i<2; ++i)
         //{
             std::unique_ptr<MeshOptimizer<dim,nstate>> mesh_optimizer = std::make_unique<MeshOptimizer<dim,nstate>> (flow_solver->dg,&param, true);

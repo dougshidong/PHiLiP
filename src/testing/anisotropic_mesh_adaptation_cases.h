@@ -34,7 +34,7 @@ public:
     double evaluate_abs_dwr_error(std::shared_ptr<DGBase<dim,double>> dg) const;
     
     /// Outputs vtk files with primal and adjoint solutions.
-    double output_vtk_files(std::shared_ptr<DGBase<dim,double>> dg) const;
+    double output_vtk_files(std::shared_ptr<DGBase<dim,double>> dg, const int count_val) const;
     
     /// Evaluates l2 norm of solution error.
     double evaluate_enthalpy_error(std::shared_ptr<DGBase<dim,double>> dg) const;

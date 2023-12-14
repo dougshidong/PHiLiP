@@ -26,13 +26,13 @@ Euler<dim,nstate,real>::Euler (
     , ref_length(ref_length)
     , gam(gamma_gas)
     , gamm1(gam-1.0)
-    , density_inf(1.0) // Nondimensional - Free stream values
+    , density_inf(gam) // Nondimensional - Free stream values
     , mach_inf(mach_inf)
     , mach_inf_sqr(mach_inf*mach_inf)
     , angle_of_attack(angle_of_attack)
     , side_slip_angle(side_slip_angle)
-    , sound_inf(1.0/(mach_inf))
-    , pressure_inf(1.0/(gam*mach_inf_sqr))
+    , sound_inf(1.0)
+    , pressure_inf(1.0)
     , entropy_inf(pressure_inf*pow(density_inf,-gam))
     , two_point_num_flux_type(two_point_num_flux_type_input)
     //, internal_energy_inf(1.0/(gam*(gam-1.0)*mach_inf_sqr)) 
@@ -41,7 +41,7 @@ Euler<dim,nstate,real>::Euler (
     static_assert(nstate==dim+2, "Physics::Euler() should be created with nstate=dim+2");
 
     // Nondimensional temperature at infinity
-    temperature_inf = gam*pressure_inf/density_inf * mach_inf_sqr; // Note by JB: this can simply be set = 1
+    temperature_inf = gam*pressure_inf/density_inf; // Note by JB: this can simply be set = 1
 
     // For now, don't allow side-slip angle
     if (std::abs(side_slip_angle) >= 1e-14) {
@@ -52,8 +52,8 @@ Euler<dim,nstate,real>::Euler (
     if(dim==1) {
         velocities_inf[0] = 1.0;
     } else if(dim==2) {
-        velocities_inf[0] = cos(angle_of_attack);
-        velocities_inf[1] = sin(angle_of_attack); // Maybe minus?? -- Clarify with Doug
+        velocities_inf[0] = mach_inf*cos(angle_of_attack);
+        velocities_inf[1] = mach_inf*sin(angle_of_attack); // Maybe minus?? -- Clarify with Doug
     } else if (dim==3) {
         velocities_inf[0] = cos(angle_of_attack)*cos(side_slip_angle);
         velocities_inf[1] = sin(angle_of_attack)*cos(side_slip_angle);
@@ -62,7 +62,7 @@ Euler<dim,nstate,real>::Euler (
 
     assert(std::abs(velocities_inf.norm() - 1.0) < 1e-14);
 
-    double velocity_inf_sqr = 1.0;
+    double velocity_inf_sqr = mach_inf_sqr;
     dynamic_pressure_inf = 0.5 * density_inf * velocity_inf_sqr;
 
     enthalpy_inf = gam/gamm1 * pressure_inf/density_inf + 0.5*velocity_inf_sqr;
@@ -338,7 +338,7 @@ inline real2 Euler<dim,nstate,real>
 {
     const real2 density = primitive_soln[0];
     const real2 pressure = primitive_soln[nstate-1];
-    const real2 temperature = gam*mach_inf_sqr*(pressure/density);
+    const real2 temperature = gam*(pressure/density);
     return temperature;
 }
 
@@ -346,7 +346,7 @@ template <int dim, int nstate, typename real>
 inline real Euler<dim,nstate,real>
 ::compute_density_from_pressure_temperature ( const real pressure, const real temperature ) const
 {
-    const real density = gam*mach_inf_sqr*(pressure/temperature);
+    const real density = gam*(pressure/temperature);
     return density;
 }
 
@@ -354,7 +354,7 @@ template <int dim, int nstate, typename real>
 inline real Euler<dim,nstate,real>
 ::compute_temperature_from_density_pressure ( const real density, const real pressure ) const
 {
-    const real temperature = gam*mach_inf_sqr*(pressure/density);
+    const real temperature = gam*(pressure/density);
     return temperature;
 }
 
@@ -362,7 +362,7 @@ template <int dim, int nstate, typename real>
 inline real Euler<dim,nstate,real>
 ::compute_pressure_from_density_temperature ( const real density, const real temperature ) const
 {
-    const real pressure = density*temperature/(gam*mach_inf_sqr);
+    const real pressure = density*temperature/(gam);
     return pressure;
 }
 
@@ -1362,12 +1362,10 @@ void Euler<dim,nstate,real>
 ::boundary_farfield (
    std::array<real,nstate> &soln_bc) const
 {
-   const real density_bc = density_inf;
-   const real pressure_bc = 1.0/(gam*mach_inf_sqr);
    std::array<real,nstate> primitive_boundary_values;
-   primitive_boundary_values[0] = density_bc;
-   for (int d=0;d<dim;d++) { primitive_boundary_values[1+d] = velocities_inf[d]; } // minus since it's inflow
-   primitive_boundary_values[nstate-1] = pressure_bc;
+   primitive_boundary_values[0] = density_inf;
+   for (int d=0;d<dim;d++) { primitive_boundary_values[1+d] = velocities_inf[d]; } 
+   primitive_boundary_values[nstate-1] = pressure_inf;
    const std::array<real,nstate> conservative_bc = convert_primitive_to_conservative(primitive_boundary_values);
    for (int istate=0; istate<nstate; ++istate) {
       soln_bc[istate] = conservative_bc[istate];

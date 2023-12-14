@@ -79,9 +79,10 @@ void AnisotropicMeshAdaptationCases<dim,nstate> :: verify_fe_values_shape_hessia
 }
 
 template <int dim, int nstate>
-double AnisotropicMeshAdaptationCases<dim,nstate> :: output_vtk_files(std::shared_ptr<DGBase<dim,double>> dg) const
+double AnisotropicMeshAdaptationCases<dim,nstate> :: output_vtk_files(std::shared_ptr<DGBase<dim,double>> dg, const int countval) const
 {
-    dg->output_results_vtk(98765);
+    const int outputval = 7000 + countval;
+    dg->output_results_vtk(outputval);
 
 //    std::unique_ptr<DualWeightedResidualError<dim, nstate , double>> dwr_error_val = std::make_unique<DualWeightedResidualError<dim, nstate , double>>(dg);
 //    const double abs_dwr_error = dwr_error_val->total_dual_weighted_residual_error();
@@ -186,6 +187,7 @@ return 0.0;
 template <int dim, int nstate>
 int AnisotropicMeshAdaptationCases<dim, nstate> :: run_test () const
 {
+    int output_val = 0;
     const Parameters::AllParameters param = *(TestsBase::all_parameters);
     const bool run_mesh_optimizer = param.optimization_param.max_design_cycles > 0;
     const bool run_fixedfraction_mesh_adaptation = param.mesh_adaptation_param.total_mesh_adaptation_cycles > 0;
@@ -193,6 +195,10 @@ int AnisotropicMeshAdaptationCases<dim, nstate> :: run_test () const
     std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(&param, parameter_handler);
     
     flow_solver->run();
+    output_vtk_files(flow_solver->dg, output_val++);
+    flow_solver->dg->set_p_degree_and_interpolate_solution(1);
+    output_vtk_files(flow_solver->dg, output_val++);
+    return 0;
     flow_solver->use_polynomial_ramping = false;
 
     std::vector<double> functional_error_vector;
@@ -213,6 +219,7 @@ int AnisotropicMeshAdaptationCases<dim, nstate> :: run_test () const
     if(run_mesh_optimizer)
     {
         flow_solver->dg->freeze_artificial_dissipation=true;
+        flow_solver->dg->set_p_degree_and_interpolate_solution(1);
         //for(unsigned int i=0; i<2; ++i)
         //{
             std::unique_ptr<MeshOptimizer<dim,nstate>> mesh_optimizer = std::make_unique<MeshOptimizer<dim,nstate>> (flow_solver->dg,&param, true);
@@ -267,7 +274,7 @@ int AnisotropicMeshAdaptationCases<dim, nstate> :: run_test () const
         }
     }
 
-    output_vtk_files(flow_solver->dg);
+    output_vtk_files(flow_solver->dg, output_val++);
 
     // output error vals
     pcout<<"\n cycles = [";

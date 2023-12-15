@@ -29,8 +29,8 @@ RealGas<dim,nstate,real>::RealGas (
     , temperature_ref(298.15) /// [K]
     , u_ref(mach_ref*sqrt(gam_ref*R_Air_Dim*temperature_ref)) /// [m/s]
     , u_ref_sqr(u_ref*u_ref) /// [m/s]^2
+    , tol(1.0e-10) /// []
 {
-
     this->real_gas_cap = std::dynamic_pointer_cast<PHiLiP::RealGasConstants::AllRealGasConstants>(
                 std::make_shared<PHiLiP::RealGasConstants::AllRealGasConstants>());
     // (void)real_gas_cap; // to ignore unused variable errors
@@ -230,13 +230,15 @@ inline real2 RealGas<dim,nstate,real>
 
 /// It is for NASA polynom1ial
 template <int dim, int nstate, typename real>
-dealii::Tensor<1,8,real> RealGas<dim,nstate,real>
-:: get_NASA_coefficients (const int species) const
+dealii::Tensor<1,9,real> RealGas<dim,nstate,real>
+:: get_NASA_coefficients (const real temperature) const
 {
-    dealii::Tensor<1,8,real> NASA_CAP;
+    dealii::Tensor<1,9,real> NASA_CAP;
     real a1,a2,a3,a4,a5,a6,a7,b1;
+    real heat_of_formation;
+    const real T = temperature*this->temperature_ref;
 
-    if (species == 1) //Air
+    if (200.0<= T && T<=1000.0) 
     {
         /// It is for Air, T range: 200[K] - 1000[K]
         a1 =  1.009950160e+04;
@@ -246,11 +248,21 @@ dealii::Tensor<1,8,real> RealGas<dim,nstate,real>
         a5 =  1.066859930e-05;
         a6 = -7.940297970e-09;
         a7 =  2.185231910e-12;
-        b1 = -1.767967310e+02;     
+        b1 = -1.767967310e+02;
+        heat_of_formation = -125.530; // [J/mol]     
     }
-    if (species == 2) // O2: Oxygen, etc...
+    if (1000.0<=T && T<=6000.0) 
     {
-        //... write data for all the species we use
+        /// It is for Air, T range: 1000[K] - 6000[K]
+        a1 =  2.415214430e+05;
+        a2 = -1.257874600e+03;
+        a3 =  5.144558670e+00;
+        a4 = -2.138541790e-04;
+        a5 =  7.065227840e-08;
+        a6 = -1.071483490e-11;
+        a7 =  6.577800150e-16;
+        b1 =  6.462263190e+03;
+        heat_of_formation = -125.530; // [J/mol]    
     }
     NASA_CAP[0] = a1;
     NASA_CAP[1] = a2;
@@ -260,6 +272,7 @@ dealii::Tensor<1,8,real> RealGas<dim,nstate,real>
     NASA_CAP[5] = a6;
     NASA_CAP[6] = a7;
     NASA_CAP[7] = b1;
+    NASA_CAP[8] = heat_of_formation;
 
     return NASA_CAP;
 }
@@ -269,11 +282,8 @@ template <int dim, int nstate, typename real>
 inline real RealGas<dim,nstate,real>
 :: compute_Cp ( const real temperature ) const
 {
-    // This will be changed when you implement multi-species
-    int species = 1;
-
     // NASA_CAP
-    dealii::Tensor<1,8,real> NASA_CAP = get_NASA_coefficients(species);
+    dealii::Tensor<1,9,real> NASA_CAP = get_NASA_coefficients(temperature);
     real a1 = NASA_CAP[0];
     real a2 = NASA_CAP[1];
     real a3 = NASA_CAP[2];
@@ -298,12 +308,8 @@ template <int dim, int nstate, typename real>
 inline real RealGas<dim,nstate,real>
 :: compute_enthalpy ( const real temperature  ) const
 {
-
-    // This will be changed when you implement multi-species
-    int species = 1;
-
     // NASA_CAP
-    dealii::Tensor<1,8,real> NASA_CAP = get_NASA_coefficients(species);
+    dealii::Tensor<1,9,real> NASA_CAP = get_NASA_coefficients(temperature);
     real a1 = NASA_CAP[0];
     real a2 = NASA_CAP[1];
     real a3 = NASA_CAP[2];
@@ -328,12 +334,30 @@ template <int dim, int nstate, typename real>
 inline real RealGas<dim,nstate,real>
 :: compute_temperature ( const std::array<real,nstate> &conservative_soln ) const
 {
-    const real density = compute_density(conservative_soln);
-    const dealii::Tensor<1,dim,real> vel = compute_velocities(conservative_soln);
-    const real vel2 = compute_velocity_squared(vel);
-    const real total_energy = conservative_soln[nstate-1]/density;
-    real pressure = (this->gam_ref-1.0)*density*(total_energy - 0.5*vel2);
-    real temperature = pressure*(this->gam_ref)*this->mach_ref_sqr / (density);
+    const real Q3 = conservative_soln[nstate-1];
+    const real density = compute_density<real>(conservative_soln);
+    const real kinetic_energy = compute_kinetic_energy(conservative_soln);
+
+    real err = 999.9;
+    int it = 0; /// delete this
+    real temperature = 3.0; //// This is guess, NonDim, must change this to guessing functin using Pressure
+    real temperature_Dim = temperature*temperature_ref; /// Dim [K]
+    do
+    {
+        it = it + 1; /// delete this
+        temperature = temperature_Dim/temperature_ref;
+        real h = compute_enthalpy(temperature); /// NonDim        
+        h = h*this->u_ref_sqr; /// Dim       
+        real Cp = compute_Cp(temperature); /// NonDim
+        Cp = Cp*this->R_Air_Dim; /// Dim
+        real f = (h - R_Air_Dim*temperature_Dim)/this->u_ref_sqr - (Q3/density -kinetic_energy/density) ; /// NonDim
+        real f_d = (Cp-this->R_Air_Dim)/this->u_ref_sqr; /// NonDim
+        real temperature_Dim_old = temperature_Dim; 
+        temperature_Dim = temperature_Dim - f/f_d; /// NRM main eq
+        err = abs(temperature_Dim - temperature_Dim_old);
+    }
+    while (err>this->tol);
+    temperature = temperature_Dim/this->temperature_ref;
 
     return temperature;
 }
@@ -358,7 +382,7 @@ inline real RealGas<dim,nstate,real>
 {
     const real density = compute_density<real>(conservative_soln);
     const real pressure = compute_pressure<real>(conservative_soln);
-    const real total_energy = conservative_soln[3]/density;
+    const real total_energy = conservative_soln[nstate-1]/density;
     real total_enthalpy = total_energy + pressure/density;
 
     return total_enthalpy;
@@ -394,9 +418,11 @@ template <int dim, int nstate, typename real>
 inline real RealGas<dim,nstate,real>
 ::compute_sound ( const std::array<real,nstate> &conservative_soln ) const
 {
-    real density = conservative_soln[0];
-    const real pressure = compute_pressure<real>(conservative_soln);
-    const real sound = sqrt(pressure*this->gam_ref/density);
+    const real density = conservative_soln[0];
+    const real pressure = compute_pressure(conservative_soln);
+    const real temperature = compute_temperature(conservative_soln);
+    const real gamma = compute_gamma(temperature);
+    const real sound = sqrt(gamma*pressure/density);
 
     return sound;
 }
@@ -411,6 +437,25 @@ inline real RealGas<dim,nstate,real>
     const real kinetic_energy = 0.50*density*vel2;
 
     return kinetic_energy;
+}
+
+template <int dim, int nstate, typename real>
+inline real RealGas<dim,nstate,real>
+:: compute_Cv ( const real temperature ) const
+{
+    const real Cp = compute_Cp(temperature);
+    const real Cv = Cp - this->R_Air_NonDim;
+    return Cv;
+}
+
+template <int dim, int nstate, typename real>
+inline real RealGas<dim,nstate,real>
+:: compute_gamma ( const real temperature ) const
+{
+    const real Cp = compute_Cp(temperature);
+    const real Cv = compute_Cv(temperature);
+    const real gamma = Cp/Cv;
+    return gamma;
 }
 
 template <int dim, int nstate, typename real>
@@ -463,6 +508,19 @@ dealii::Vector<double> RealGas<dim,nstate,real>::post_compute_derived_quantities
         // Mach Number
         /*computed_quantities(++current_data_index) = compute_mach_number(conservative_soln);*/
         computed_quantities(++current_data_index) = 999;
+        // e_comparison
+        const real e = conservative_soln[nstate-1]/conservative_soln[0];
+        // NASA_CAP
+        const real temperature = compute_temperature(conservative_soln);
+        dealii::Tensor<1,9,real> NASA_CAP = get_NASA_coefficients(temperature);
+        const real heat_of_formation = NASA_CAP[8];
+        const real energy_of_formation_Dim = (heat_of_formation-this->Ru*this->temperature_ref)/MW_Air; /// From Toy Code
+        const real energy_of_formation = energy_of_formation_Dim/this->u_ref_sqr;
+        computed_quantities(++current_data_index) = e-energy_of_formation;
+        // speed of sound
+        computed_quantities(++current_data_index) = compute_sound(conservative_soln);
+        // temperature dim
+        computed_quantities(++current_data_index) = compute_temperature(conservative_soln)*this->temperature_ref;
 
     }
     if (computed_quantities.size()-1 != current_data_index) {
@@ -493,6 +551,9 @@ std::vector<dealii::DataComponentInterpretation::DataComponentInterpretation> Re
     interpretation.push_back (DCI::component_is_scalar); // Temperature
     interpretation.push_back (DCI::component_is_scalar); // Entropy generation
     interpretation.push_back (DCI::component_is_scalar); // Mach number
+    interpretation.push_back (DCI::component_is_scalar); // e_comparison
+    interpretation.push_back (DCI::component_is_scalar); // Sound 
+    interpretation.push_back (DCI::component_is_scalar); // temperature (Dim)
 
     std::vector<std::string> names = post_get_names();
     if (names.size() != interpretation.size()) {
@@ -520,6 +581,10 @@ std::vector<std::string> RealGas<dim,nstate,real>
 
     names.push_back ("entropy_generation");
     names.push_back ("mach_number");
+    names.push_back ("e_comparison");
+    names.push_back ("speed_of_sound");
+    names.push_back ("dimensional_temperature");
+
     return names;
 }
 

@@ -49,7 +49,7 @@ protected:
     const double temperature_ref; ///< reference temperature [K]
     const double u_ref; ///< reference velocity [m/s]
     const double u_ref_sqr; ///< reference velocity squared[m/s]^2
-
+    const double tol; ///< tolerance for NRM (Newton-raphson Method) [m/s] 
     /// Pointer to all real gas constants object for accessing the coefficients and properties (CAP)
     std::shared_ptr< PHiLiP::RealGasConstants::AllRealGasConstants > real_gas_cap;
 
@@ -131,7 +131,7 @@ protected:
     real2 compute_velocity_squared ( const dealii::Tensor<1,dim,real2> &velocities ) const;
 
     /// Get NASA coeefients from NASA-CAP program
-    dealii::Tensor<1,8,real> get_NASA_coefficients (const int species) const;  
+    dealii::Tensor<1,9,real> get_NASA_coefficients (const real temperature) const;  
 
     /// Compute Cp from temperature
     real compute_Cp ( const real temperature ) const;
@@ -159,6 +159,13 @@ protected:
     /// Compute kinetic energy (0.50*rho*(vel2)) from conservative variables
     real compute_kinetic_energy ( const std::array<real,nstate> &conservative_soln ) const;
 
+    /// Compute Cv from temperature
+    real compute_Cv ( const real temperature ) const;
+
+public:
+    /// Compute gamma from temperature
+    real compute_gamma ( const real temperature ) const;
+protected:
     /// For post processing purposes (update comment later)
     virtual dealii::Vector<double> post_compute_derived_quantities_vector (
         const dealii::Vector<double>              &uh,

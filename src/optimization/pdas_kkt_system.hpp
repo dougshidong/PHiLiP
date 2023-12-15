@@ -1,6 +1,8 @@
 #ifndef PHILIP_PDAS_KKT_SYSTEM_HPP
 #define PHILIP_PDAS_KKT_SYSTEM_HPP
 
+#include <deal.II/base/conditional_ostream.h>
+
 #include "ROL_Vector.hpp"
 #include "ROL_Vector_SimOpt.hpp"
 #include "ROL_BoundConstraint.hpp"
@@ -29,11 +31,12 @@ class PDAS_KKT_System : public ROL::LinearOperator<Real> {
 
         ROL::Ptr<ROL::Vector<Real> > v_;
 
-        Real add_identity_;
+        const Real add_identity_;
         Real max_eig_estimate_;
-        Real bounded_constraint_tolerance_;
+        const Real bounded_constraint_tolerance_;
         const ROL::Ptr<ROL::Secant<Real> > secant_;
         bool useSecant_;
+        dealii::ConditionalOStream pcout; ///< Parallel std::cout that only outputs on mpi_rank==0
     public:
       PDAS_KKT_System(
                 const ROL::Ptr<ROL::Objective<Real> > &objective,
@@ -48,6 +51,32 @@ class PDAS_KKT_System : public ROL::LinearOperator<Real> {
                 const bool useSecant = false );
       void apply( ROL::Vector<Real> &Hv, const ROL::Vector<Real> &v, Real &tol ) const;
 };
+
+//template<typename Real>
+//class IPrimalDualActiveSet_KarushKuhnTucket_System : public ROL::LinearOperator<Real> {
+//    public:
+//        void apply( ROL::Vector<Real> &output, const ROL::Vector<Real> &input, Real &tol ) const;
+//        {
+//            ROL::PartitionedVector<Real> &output_partitioned = dynamic_cast<ROL::PartitionedVector<Real>&>(Hv);
+//            const ROL::PartitionedVector<Real> &input_partitioned = dynamic_cast<const ROL::PartitionedVector<Real>&>(v);
+//  
+//            const ROL::Ptr< const ROL::Vector<Real> > input_design           = input_partitioned.get(0);
+//
+//            const ROL::Ptr< const ROL::Vector<Real> > input_design_sim_ctl = (dynamic_cast<const ROL::PartitionedVector<Real>&>(*input_design)).get(0);
+//            const ROL::Ptr< const ROL::Vector<Real> > input_design_simulation = (dynamic_cast<const ROL::Vector_SimOpt<Real>&>(*input_design_sim_ctl)).get_1();
+//            const ROL::Ptr< const ROL::Vector<Real> > input_design_control    = (dynamic_cast<const ROL::Vector_SimOpt<Real>&>(*input_design_sim_ctl)).get_2();
+//            const ROL::Ptr< const ROL::Vector<Real> > input_dual_equality    = input_partitioned.get(1);
+//            const ROL::Ptr< const ROL::Vector<Real> > input_dual_inequality  = input_partitioned.get(2);
+//  
+//            const ROL::Ptr<       ROL::Vector<Real> > output_design          = output_partitioned.get(0);
+//            const ROL::Ptr<       ROL::Vector<Real> > output_dual_equality   = output_partitioned.get(1);
+//            const ROL::Ptr<       ROL::Vector<Real> > output_dual_inequality = output_partitioned.get(2);
+//
+//            output_design->zero();
+//            output_dual_equality->zero();
+//            output_dual_inequality->zero();
+//        }
+//};
 
 } // namespace PHiLiP
 #endif

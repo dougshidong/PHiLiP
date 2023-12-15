@@ -146,6 +146,7 @@ private:
   
     // Krylov Parameters
     int iter_Krylov_;  ///< CR iteration counter
+    double residual_Krylov_;  ///< Linear solver residual
     int flag_Krylov_;  ///< CR termination flag
     int n_active_;  ///< CR termination flag
     Real itol_;   ///< Inexact CR tolerance
@@ -157,7 +158,7 @@ private:
     Real stol_;      ///< PDAS minimum step size stopping tolerance
     Real gtol_;      ///< PDAS gradient stopping tolerance
     Real scale_;     ///< Scale for dual variables in the active set, \f$c\f$, NOTE: papers usually scale primal variables, so this scale_ = 1/c of most papers from Hintermuller, Ito, Kunisch
-    Real neps_;      ///< \f$\epsilon\f$-active set parameter 
+    Real active_set_tolerance_;      ///< \f$\epsilon\f$-active set parameter 
     bool feasible_;  ///< Flag whether the current iterate is feasible or not
     int kkt_linesearches_;  ///< Number of linesearches done within the KKT iteration.
     unsigned int index_to_project_interior;
@@ -188,6 +189,13 @@ private:
     VectorPtr old_gradient_;   ///< Container for temporary gradient storage
     VectorPtr gradient_tmp1_;   ///< Container for temporary gradient storage
    
+    VectorPtr old_active_set;            ///< Container for primal plus dual variables
+    VectorPtr old_inactive_set;            ///< Container for primal plus dual variables
+    VectorPtr active_set;            ///< Container for primal plus dual variables
+    VectorPtr inactive_set;            ///< Container for primal plus dual variables
+    VectorPtr uncertain_set;            ///< Container for primal plus dual variables
+    VectorPtr changing_set;            ///< Container for primal plus dual variables
+    VectorPtr changing_set_count;            ///< Container for primal plus dual variables
 
     VectorPtr search_direction_dual_;  ///< Container for dual variable search direction
 
@@ -198,6 +206,7 @@ private:
     bool useSecantPrecond_; 
     bool useSecantHessVec_;
     bool d_force_use_bfgs; ///< Line search was bad with Newton step, recompute search direction using BFGS.
+    bool larger_identity; ///< Line search was bad with Newton step, recompute search direction with larger diagonal before switching to BFGS.
 
 private:
 

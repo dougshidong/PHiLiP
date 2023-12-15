@@ -24,6 +24,7 @@
 
 
 #define SYMMETRIZE_MATRIX_ true
+//#define SYMMETRIZE_MATRIX_ false
 
 namespace PHiLiP {
 
@@ -194,6 +195,12 @@ template <typename Real>
 class Identity_Preconditioner : public ROL::LinearOperator<Real> {
     public:
       void apply( ROL::Vector<Real> &Hv, const ROL::Vector<Real> &v, Real &tol ) const
+      {
+          (void) v;
+          (void) tol;
+          Hv.set(v);
+      }
+      void applyInverse( ROL::Vector<Real> &Hv, const ROL::Vector<Real> &v, Real &tol ) const
       {
           (void) v;
           (void) tol;
@@ -526,7 +533,46 @@ void printVec(const ROL::Vector<Real>& vec)
 }
   
 
+template <typename Real>
+void setActiveEntriesToOne(ROL::BoundConstraint<Real> &bound_constraint, ROL::Vector<Real> &v, const ROL::Vector<Real> &x, Real eps = 0 ) {
+    if (bound_constraint.isActivated()) {
+        Real one(1);
+
+        v.setScalar(one);
+        bound_constraint.pruneInactive(v, x, eps);
+        bound_constraint.pruneLowerActive(v, x, eps);
+
+        ROL::Ptr<ROL::Vector<Real> > tmp = v.clone();
+        tmp->setScalar(-one);
+        bound_constraint.pruneInactive(*tmp, x, eps);
+        bound_constraint.pruneUpperActive(*tmp, x, eps);
+        v.axpy(one,*tmp);
+    }
+}
   
+template <typename Real>
+void setInactiveEntriesToOne(ROL::BoundConstraint<Real> &bound_constraint, ROL::Vector<Real> &v, const ROL::Vector<Real> &x, Real eps = 0 ) {
+    if (bound_constraint.isActivated()) {
+        Real one(1);
+        v.setScalar(one);
+        bound_constraint.pruneActive(v, x, eps);
+    }
+}
+
+template <typename Real>
+unsigned int count_constraint_partitioned_size(const ROL::Constraint_Partitioned<Real> &constraint)
+{
+    unsigned int partitioned_size = 0;
+    try {
+        while (true) {
+            constraint.get(partitioned_size);
+            partitioned_size++;
+        }
+    } catch (const std::exception& e) {
+    }
+    return partitioned_size;
+}
+
 } // namespace PHiLiP
 
 #endif

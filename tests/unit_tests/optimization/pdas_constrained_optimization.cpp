@@ -55,9 +55,13 @@ enum class ObjectiveType { quadratic, polynomial, rosenbrock };
 //    //= ObjectiveType::polynomial;
 //    = ObjectiveType::rosenbrock;
 
-const int ITERATION_LIMIT = 2000;
-const int LINESEARCH_MAX_ITER = 10;
-const int PDAS_MAX_ITER = 10;
+//const int ITERATION_LIMIT = 2000;
+const int ITERATION_LIMIT = 500;
+const int LINESEARCH_MAX_ITER = 20;
+const int PDAS_MAX_ITER = 1;
+const int INCLUDE_SLACK_CONSTRAINTS = true;
+const int INCLUDE_DESIGN_LOWER_BOUND_CONSTRAINTS = true;
+const int INCLUDE_DESIGN_UPPER_BOUND_CONSTRAINTS = true;
 
 // This test is used to check that the dealii::LinearAlgebra::distributed::Vector<double>
 // is working properly with ROL. This is done by performing an unconstrained optimization
@@ -390,6 +394,7 @@ public:
     Real value(const ROL::Vector<Real> &x, Real & /*tol*/)
     {
         Teuchos::RCP<const VectorType> xp = get_rcp_to_VectorType<VectorType,Real>(x);
+        xp->update_ghost_values();
         Real local_rosenbrock = 0.0;
 
         const dealii::IndexSet &local_range = (*xp).locally_owned_elements ();
@@ -398,7 +403,9 @@ public:
             if (i == (*xp).size() - 1) continue;
             const Real &x0 = (*xp)[i];
             const Real &x1 = (*xp)[i+1];
-            local_rosenbrock += 100*(x1 - x0*x0)*(x1 - x0*x0) + (1.0-x0)*(1.0-x0);
+            const Real term1 = std::pow(x1 - x0 * x0, 2);
+            const Real term2 = std::pow(1.0 - x0, 2);
+            local_rosenbrock += 100 * term1 + term2;
         }
         const Real rosenbrock = dealii::Utilities::MPI::sum(local_rosenbrock, MPI_COMM_WORLD);
         if (dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD) == 0) {
@@ -417,6 +424,8 @@ public:
         Teuchos::RCP<const VectorType> xp = get_rcp_to_VectorType<VectorType,Real>(x);
         Teuchos::RCP<VectorType>       gp = get_rcp_to_VectorType<VectorType,Real>(g);
 
+        xp->update_ghost_values();
+
         (*gp) *= 0.0;
         const dealii::IndexSet &local_range = (*xp).locally_owned_elements ();
         for (auto ip = local_range.begin(); ip != local_range.end(); ++ip) {
@@ -426,6 +435,7 @@ public:
             const Real &x2 = (*xp)[i+1];
             // https://www.wolframalpha.com/input/?i=f%28a%2Cb%29+%3D+100*%28b-a*a%29%5E2+%2B+%281-a%29%5E2%2C+df%2Fda
             const Real drosenbrock_dx1 = 2.0*(200*x1*x1*x1 - 200*x1*x2 + x1 - 1.0);
+
             (*gp)[i]  = drosenbrock_dx1;
         }
         for (auto ip = local_range.begin(); ip != local_range.end(); ++ip) {
@@ -436,26 +446,101 @@ public:
             const Real drosenbrock_dx2 = 200.0*(x2-x1*x1);
             (*gp)[i] += drosenbrock_dx2;
         }
-    }
-    // /// Return the quadratic objective hessian vector product.
-    // void hessVec(ROL::Vector<Real> &hv, const ROL::Vector<Real> &v, const ROL::Vector<Real> &x, Real & /*tol*/) override
-    // {
-    //     (void) x;
-    //     Teuchos::RCP<const VectorType> vp = get_rcp_to_VectorType<VectorType,Real>(v);
-    //     Teuchos::RCP<VectorType>       hvp = get_rcp_to_VectorType<VectorType,Real>(hv);
 
-    //     const dealii::IndexSet &local_range = (*vp).locally_owned_elements ();
-    //     double quadratic_term = 1.0;
-    //     for (auto ip = local_range.begin(); ip != local_range.end(); ++ip) {
-    //         const auto i = *ip;
-    //         const Real &v1 = (*vp)[i];
-    //         Real drosenbrock_dx1 = 0.0;
-    //         drosenbrock_dx1 = quadratic_term;
-    //         //quadratic_term *= 0.85;
-    //         (*hvp)[i]  = drosenbrock_dx1 * v1;
-    //     }
-    //     return;
-    // }
+        gp->update_ghost_values();
+
+    }
+    /// Return the quadratic objective hessian vector product.
+    void hessVec(ROL::Vector<Real> &hv, const ROL::Vector<Real> &v, const ROL::Vector<Real> &x, Real & /*tol*/) override
+    //void hessVec2(ROL::Vector<Real> &hv, const ROL::Vector<Real> &v, const ROL::Vector<Real> &x, Real & /*tol*/) 
+    {
+        Teuchos::RCP<const VectorType> xp = get_rcp_to_VectorType<VectorType,Real>(x);
+        Teuchos::RCP<const VectorType> vp = get_rcp_to_VectorType<VectorType,Real>(v);
+        Teuchos::RCP<VectorType>       hvp = get_rcp_to_VectorType<VectorType,Real>(hv);
+
+        xp->update_ghost_values();
+
+		(*hvp) *= 0.0;
+        const dealii::IndexSet &local_range = (*hvp).locally_owned_elements ();
+
+        for (auto ip = local_range.begin(); ip != local_range.end(); ++ip) {
+            const auto i = *ip;
+			
+            if (i != 0 && i != (*xp).size()-1) {
+                const Real &vl = (*vp)[i-1];
+                const Real &vm = (*vp)[i];
+                const Real &vr = (*vp)[i+1];
+
+                const Real &xl = (*xp)[i-1];
+                const Real &xm = (*xp)[i];
+                const Real &xr = (*xp)[i+1];
+
+                const Real diag = 1200 * xm*xm - 400 * xr + 2 + 200;
+                const Real left_diag = -400 * xl;
+                const Real right_diag = -400 * xm;
+
+                std::cout << "Row: " << i << " Left: " << left_diag << " Diag: " << diag << " Right: " << right_diag << std::endl;
+                (*hvp)[i] += left_diag * vl;
+                (*hvp)[i] += diag * vm;
+                (*hvp)[i] += right_diag * vr;
+            } else if (i == 0) {
+                const Real &vm = (*vp)[i];
+                const Real &vr = (*vp)[i+1];
+
+                const Real &xm = (*xp)[i];
+                const Real &xr = (*xp)[i+1];
+
+                const Real diag = 1200 * xm*xm - 400 * xr + 2 + 200;
+                const Real right_diag = -400 * xm;
+
+                std::cout << "Row: " << i << " Left: na Diag: " << diag << " Right: " << right_diag << std::endl;
+                (*hvp)[i] += diag * vm;
+                (*hvp)[i] += right_diag * vr;
+            } else if (i == (*xp).size()-1) {
+                const Real &vl = (*vp)[i-1];
+                const Real &vm = (*vp)[i];
+
+                const Real &xl = (*xp)[i-1];
+                const Real &xm = (*xp)[i];
+
+                const Real diag = 1200 * xm*xm + 2 + 200;
+                const Real left_diag = -400 * xl;
+
+                std::cout << "Row: " << i << " Left: " << left_diag << " Diag: " << diag << " Right: nothing" << std::endl;
+                (*hvp)[i] += left_diag * vl;
+                (*hvp)[i] += diag * vm;
+            }
+		}
+
+        //for (auto ip = local_range.begin(); ip != local_range.end(); ++ip) {
+        //    const auto i = *ip;
+        //    if (i==0) continue;
+		//	
+        //    const Real &v0 = (*vp)[i-1];
+        //    const Real &v1 = (*vp)[i];
+
+		//	const Real diag = 200;
+		//	const Real lower_diag = -400 * (*xp)[i-1];
+		//	const Real upper_diag = -400 * (*xp)[i-1];
+
+        //    std::cout << "Row: " << i << " Lower: " << lower_diag << " Diag: " << diag << " Upper: " << upper_diag << std::endl;
+        //    (*hvp)[i] += lower_diag * v0;
+        //    (*hvp)[i] += diag * v1;
+        //    (*hvp)[i-1] += upper_diag * v1;
+		//}
+
+
+        //for (auto ip = local_range.begin(); ip != local_range.end(); ++ip) {
+        //    const auto i = *ip;
+        //    if (i==(*xp).size()-1) continue;
+		//	
+        //    const Real &v1 = (*vp)[i];
+		//	const Real diag = 1200 * std::pow((*xp)[i], 2) - 400 * (*xp)[i+1] + 2;
+        //    (*hvp)[i] += diag * v1;
+		//}
+
+        return;
+    }
 };
 
 template <class VectorType, class Real = double>
@@ -518,8 +603,9 @@ std::vector<ROL::Ptr<ROL::BoundConstraint<double>>> getSlackBoundConstraint(ROL:
     const double multiple = 0.49;
     const double factor = (constraint_type == ConstraintType::linear) ? multiple : multiple*multiple;
     const unsigned int n = design_variables->dimension();
-    const ROL::Ptr<ROL::SingletonVector<double>> slack_upper_bound = ROL::makePtr<ROL::SingletonVector<double>> (n*factor);
-    //const ROL::Ptr<ROL::SingletonVector<double>> slack_upper_bound = ROL::makePtr<ROL::SingletonVector<double>> (ROL::ROL_INF<double>());
+    const ROL::Ptr<ROL::SingletonVector<double>> slack_upper_bound = INCLUDE_SLACK_CONSTRAINTS ? 
+                                                                     ROL::makePtr<ROL::SingletonVector<double>> (n*factor)
+                                                                     : ROL::makePtr<ROL::SingletonVector<double>> (ROL::ROL_INF<double>());
     auto slack_bounds = ROL::makePtr<ROL::Bounds<double>> (slack_lower_bound, slack_upper_bound);
     bcon.push_back(slack_bounds);
     return bcon;
@@ -531,8 +617,7 @@ ROL::Ptr<ROL::BoundConstraint<double>> getBoundConstraint(ROL::Ptr<ROL::Vector<d
         public:
             setUpper() : zero_(0) {}
             double apply(const double &/*x*/) const {
-                return 0.60;
-                return ROL::ROL_INF<double>();
+                return INCLUDE_DESIGN_UPPER_BOUND_CONSTRAINTS ? 0.60 : ROL::ROL_INF<double>();
             }
     } setupper;
     struct setLower : public ROL::Elementwise::UnaryFunction<double> {
@@ -541,8 +626,7 @@ ROL::Ptr<ROL::BoundConstraint<double>> getBoundConstraint(ROL::Ptr<ROL::Vector<d
         public:
             setLower() : zero_(0) {}
             double apply(const double &/*x*/) const {
-                return 0.40;
-                return -1.0*ROL::ROL_INF<double>();
+                return INCLUDE_DESIGN_LOWER_BOUND_CONSTRAINTS ? 0.40 : -ROL::ROL_INF<double>();
             }
     } setlower;
 
@@ -593,9 +677,15 @@ int test(const unsigned int n_des_var, const ObjectiveType objective_type, const
     }
 
   
-    for (auto xi = design_variables_rcp->begin(); xi != design_variables_rcp->end(); ++xi) {
-        *xi = 1.01;
-    }
+    //for (auto xi = design_variables_rcp->begin(); xi != design_variables_rcp->end(); ++xi) {
+    //    *xi = 0.5;
+    //}
+    //const dealii::IndexSet &local_range = (*design_variables_rcp).locally_owned_elements ();
+    //for (auto ip = local_range.begin(); ip != local_range.end(); ++ip) {
+    //    const auto i = *ip;
+    //    (*design_variables_rcp)[i] += i*0.01;
+    //}
+
     design_variables_rcp->update_ghost_values();
 
     dealii::Rol::VectorAdaptor<VectorType> design_variables_rol(design_variables_rcp);
@@ -605,7 +695,7 @@ int test(const unsigned int n_des_var, const ObjectiveType objective_type, const
     Teuchos::ParameterList parlist;
     parlist.sublist("Secant").set("Use as Preconditioner", false);
     parlist.sublist("Status Test").set("Gradient Tolerance", 1e-8);
-    parlist.sublist("Status Test").set("Step Tolerance", 1e-12);
+    parlist.sublist("Status Test").set("Step Tolerance", 1e-14);
     parlist.sublist("Status Test").set("Iteration Limit", ITERATION_LIMIT);
 
     parlist.sublist("Step").sublist("Primal Dual Active Set").set("Iteration Limit",PDAS_MAX_ITER);

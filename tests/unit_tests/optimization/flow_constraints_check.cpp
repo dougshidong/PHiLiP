@@ -77,6 +77,9 @@ int test(const unsigned int nx_ffd)
     parameter_handler.set("time_step_factor_residual", 25.0);
     parameter_handler.set("time_step_factor_residual_exp", 4.0);
     parameter_handler.leave_subsection();
+    parameter_handler.enter_subsection("linear solver");
+    parameter_handler.set("linear_solver_output", "verbose");
+    parameter_handler.leave_subsection();
 
     Parameters::AllParameters param;
     param.parse_parameters (parameter_handler);

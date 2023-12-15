@@ -1,6 +1,10 @@
 project(PHiLiP)
 
 CMAKE_MINIMUM_REQUIRED(VERSION 3.3.0)
+# This will automatically create a compile_commands.json file when cmake is run.
+# This file can then be used by IDEs like VSCode to setup the project.
+
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON) 
 set(CMAKE_CXX_COMPILER mpicxx)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_STANDARD 17)

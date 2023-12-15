@@ -1,3 +1,4 @@
+#include <fenv.h> // catch nan
 #include <stdlib.h>     /* srand, rand */
 #include <iostream>
 
@@ -47,12 +48,16 @@
 
 #include "mesh/gmsh_reader.hpp"
 #include "mesh/grids/half_cylinder.hpp"
+#include "mesh/grids/naca_airfoil_grid.hpp"
 #include "functional/lift_drag.hpp"
 #include "functional/moment.hpp"
 #include "functional/geometric_volume.hpp"
 #include "functional/target_wall_pressure.hpp"
 
 #include "global_counter.hpp"
+
+//#define CREATE_RST
+//#define REMOVE_BOUND
 
 namespace {
 const bool USE_LIFT_CONSTRAINT   = true;
@@ -63,11 +68,13 @@ const bool USE_DESIGN_CONSTRAINT = true;
 enum class OptimizationAlgorithm { full_space_birosghattas, full_space_composite_step, reduced_space_bfgs, reduced_space_newton, reduced_sqp };
 enum class Preconditioner { P2, P2A, P4, P4A, identity };
 enum class GridType {naca0012, cylinder};
+enum class OptimizationProblemType { drag_minimization, lift_target, inverse_pressure_design };
 
 //const GridType grid_type = GridType::cylinder;
 const GridType grid_type = GridType::naca0012;
-const bool DO_DRAG_MINIMIZATION = false;//true;
-//const bool DO_DRAG_MINIMIZATION = true;
+const OptimizationProblemType optimization_problem_type = OptimizationProblemType::drag_minimization;
+//const OptimizationProblemType optimization_problem_type = OptimizationProblemType::lift_target;
+//const OptimizationProblemType optimization_problem_type = OptimizationProblemType::inverse_pressure_design;
 
 const std::vector<Preconditioner> precond_list { Preconditioner::P4A };
 //const std::vector<Preconditioner> precond_list { Preconditioner::P2, Preconditioner::P2A, Preconditioner::P4, Preconditioner::P4A };
@@ -83,21 +90,43 @@ const std::vector<OptimizationAlgorithm> opt_list {
     OptimizationAlgorithm::reduced_space_bfgs,
     };
 
-const unsigned int POLY_START = 1;
-const unsigned int POLY_END = 1; // Can do until at least P2
+const unsigned int POLY_START = 0;
+const unsigned int POLY_END = 0; // Can do until at least P2
 
-const unsigned int n_des_var_start = 10;//20;
-const unsigned int n_des_var_end   = 40;//100;
-const unsigned int n_des_var_step  = 10;//20;
+//const unsigned int n_des_var_start = 10;//20;
+//const unsigned int n_des_var_end   = 40;//100;
+//const unsigned int n_des_var_step  = 10;//20;
+//const std::vector<unsigned int> n_des_var_list { 10, 20, 40, 80, 160, 320};//20;
+//const std::vector<unsigned int> n_des_var_list { 40, 80, 160, 320};//20;
+//const std::vector<unsigned int> n_des_var_list { 80, 160, 320};//20;
+//const std::vector<unsigned int> n_des_var_list { 320};//20;
+//const std::vector<unsigned int> n_des_var_list { 5, 10, 20, 40 };//20;
+//const std::vector<unsigned int> n_des_var_list { 15, 25, 30, 35 };//20;
+//const std::vector<unsigned int> n_des_var_list { 40 };//20;
+//const std::vector<unsigned int> n_des_var_list { 5, 10, 15, 20, 25, 30, 35, 40 };//20;
+//const std::vector<unsigned int> n_des_var_list { 30, 35, 40 };//20;
+//const std::vector<unsigned int> n_des_var_list { 5 };
+const std::vector<unsigned int> n_des_var_list { 10 };
+//const std::vector<unsigned int> n_des_var_list { 160, 320};//20;
+//const std::vector<unsigned int> n_des_var_list { 80, 160};//20;
+//const std::vector<unsigned int> n_des_var_list { 20, 40};//20;
+//const std::vector<unsigned int> n_des_var_list { 40, 80, 160};//20;
+//const std::vector<unsigned int> n_des_var_list { 160, 320};//20;
+//const std::vector<unsigned int> n_des_var_list { 10, 20 } ;//20;
 
-const int max_design_cycle = 1000;
+const int max_design_cycle = 1500;
+const double GRAD_CONVERGENCE = 1e-7;
 
 const double FD_TOL = 1e-6;
 const double CONSISTENCY_ABS_TOL = 1e-10;
 
-const int LINESEARCH_MAX_ITER = 10;
+const int LINESEARCH_MAX_ITER = 5;
 const double BACKTRACKING_RATE = 0.5;
 const int PDAS_MAX_ITER = 1;
+
+const double LINEAR_SOLVER_ABS_TOL = 1e-12;
+const double LINEAR_SOLVER_REL_TOL = 1e-4;
+const int LINEAR_SOLVER_MAX_ITS = 500;
 
 const std::string line_search_curvature = "Null Curvature Condition";
 const std::string line_search_method = "Backtracking";
@@ -118,6 +147,21 @@ namespace {
         }
         return max_rel_err;
     }
+
+#ifndef CREATE_RST
+    std::string get_restart_filename_without_extension(const int restart_index_input) {
+        // returns the restart file index as a string with appropriate padding
+        std::string restart_index_string = std::to_string(restart_index_input);
+        const unsigned int length_of_index_with_padding = 5;
+        const int number_of_zeros = length_of_index_with_padding - restart_index_string.length();
+        restart_index_string.insert(0, number_of_zeros, '0');
+
+        const std::string prefix = "restart-";
+        const std::string restart_filename_without_extension = prefix+restart_index_string;
+
+        return restart_filename_without_extension;
+    }
+#endif
 }
 
 template<int dim, int nstate>
@@ -497,8 +541,13 @@ getDesignBoundConstraint(
                     else        { return ROL::ROL_INF<double>(); }
                     //else { return zero_+0.1; }
                 } else if (grid_type == GridType::naca0012) {
+                    if (USE_DESIGN_CONSTRAINT) {
                     if(x>zero_) { return 0.1; }//ROL::ROL_INF<double>(); }
                     else { return zero_; }
+                    } else {
+                        if(x>zero_) { return ROL::ROL_INF<double>(); }
+                        else        { return ROL::ROL_INF<double>(); }
+                    }
                 }
             }
     } setupper;
@@ -514,8 +563,13 @@ getDesignBoundConstraint(
                     if(x>zero_) { return -ROL::ROL_INF<double>(); }
                     else        { return -ROL::ROL_INF<double>(); }
                 } else if (grid_type == GridType::naca0012) {
+                    if (USE_DESIGN_CONSTRAINT) {
                     if(x<zero_) { return -1.0*0.1; }//ROL::ROL_INF<double>(); }
                     else { return zero_; }
+                    } else {
+                        if(x>zero_) { return -ROL::ROL_INF<double>(); }
+                        else        { return -ROL::ROL_INF<double>(); }
+                    }
                 }
             }
     } setlower;
@@ -648,11 +702,7 @@ int EulerNACADragOptimizationLiftConstrained<dim,nstate>
     if (this->mpi_rank == 0) filebuffer.close();
 
     for (unsigned int poly_degree = POLY_START; poly_degree <= POLY_END; ++poly_degree) {
-        for (unsigned int n_des_var = n_des_var_start; n_des_var <= n_des_var_end; n_des_var += n_des_var_step) {
-        //for (unsigned int n_des_var = n_des_var_start; n_des_var <= n_des_var_end; n_des_var *= 2) {
-            // assert(n_des_var%2 == 0);
-            // assert(n_des_var>=2);
-            // const unsigned int nx_ffd = n_des_var / 2 + 2;
+        for (const unsigned int n_des_var : n_des_var_list) {
             const unsigned int nx_ffd = n_des_var + 2;
             test_error += optimize(nx_ffd, poly_degree);
         }
@@ -662,7 +712,7 @@ int EulerNACADragOptimizationLiftConstrained<dim,nstate>
 
 template<int dim, int nstate>
 int EulerNACADragOptimizationLiftConstrained<dim,nstate>
-::optimize (const unsigned int nx_ffd, const unsigned int poly_degree) const
+::optimize (const unsigned int nx_ffd, const unsigned int level) const
 {
     int test_error = 0;
 
@@ -721,8 +771,7 @@ int EulerNACADragOptimizationLiftConstrained<dim,nstate>
             break;
         }
     }
-    opt_output_name = opt_output_name + "_"
-                      + "P" + std::to_string(poly_degree);
+    opt_output_name = opt_output_name + "_" + "P" + std::to_string(level);
 
     // Output stream
     ROL::nullstream bhs; // outputs nothing
@@ -748,6 +797,12 @@ int EulerNACADragOptimizationLiftConstrained<dim,nstate>
 
     ManParam manu_grid_conv_param = param.manufactured_convergence_study_param;
 
+    n_vmult = 0;
+    dRdW_form = 0;
+    dRdW_mult = 0;
+    dRdX_mult = 0;
+    d2R_mult = 0;
+    
 
     Physics::Euler<dim,nstate,double> euler_physics_double
         = Physics::Euler<dim, nstate, double>(
@@ -766,23 +821,28 @@ int EulerNACADragOptimizationLiftConstrained<dim,nstate>
             dealii::Triangulation<dim>::smoothing_on_coarsening));
 
 
+    unsigned int n_design_variables = 0;
     dealii::Point<dim> ffd_origin;
     std::array<double,dim> ffd_rectangle_lengths;
+    std::array<unsigned int,dim> ffd_ndim_control_pts;
+    std::vector< std::pair< unsigned int, unsigned int > > ffd_design_variables_indices_dim;
+    if constexpr (dim == 2) {
     if (grid_type == GridType::cylinder) {
         ffd_origin = dealii::Point<dim> (-0.60,-0.51);
         ffd_rectangle_lengths = std::array<double,dim> {{1.0+0.2,1.0+0.02}};
     } else if (grid_type == GridType::naca0012) {
         ffd_origin = dealii::Point<dim> (0.0,-0.061);
         ffd_rectangle_lengths = std::array<double,dim> {{0.999,0.122}};
+            //ffd_rectangle_lengths = std::array<double,dim> {{1.0,0.122}};
+        }
+
+        ffd_ndim_control_pts = {{nx_ffd,3}};
+
     }
-
-    const std::array<unsigned int,dim> ffd_ndim_control_pts = {{nx_ffd,3}};
     FreeFormDeformation<dim> ffd( ffd_origin, ffd_rectangle_lengths, ffd_ndim_control_pts);
-
-    unsigned int n_design_variables = 0;
+    if constexpr (dim == 2) {
     // Vector of ijk indices and dimension.
     // Each entry in the vector points to a design variable's ijk ctl point and its acting dimension.
-    std::vector< std::pair< unsigned int, unsigned int > > ffd_design_variables_indices_dim;
     for (unsigned int i_ctl = 0; i_ctl < ffd.n_control_pts; ++i_ctl) {
 
         const std::array<unsigned int,dim> ijk = ffd.global_to_grid ( i_ctl );
@@ -798,6 +858,8 @@ int EulerNACADragOptimizationLiftConstrained<dim,nstate>
             ++n_design_variables;
             ffd_design_variables_indices_dim.push_back(std::make_pair(i_ctl, d_ffd));
         }
+        }
+    }
     }
 
     const dealii::IndexSet row_part = dealii::Utilities::MPI::create_evenly_distributed_partitioning(MPI_COMM_WORLD,n_design_variables);
@@ -818,6 +880,7 @@ int EulerNACADragOptimizationLiftConstrained<dim,nstate>
     grid->clear();
     dealii::GridGenerator::hyper_cube(*grid);
 
+    if constexpr (dim == 2) {
     if (grid_type == GridType::cylinder) {
         //int n_cells_circle = 45;
         //int n_cells_radial = 45;
@@ -852,19 +915,74 @@ int EulerNACADragOptimizationLiftConstrained<dim,nstate>
             }
         }
 
+        }
     }
 
+    const int poly_degree = level;
     std::shared_ptr < DGBase<dim, double> > dg = DGFactory<dim,double>::create_discontinuous_galerkin(&param, poly_degree, grid);
 
     if (grid_type == GridType::naca0012) {
-        std::shared_ptr<HighOrderGrid<dim,double>> naca0012_mesh = read_gmsh <dim, dim> ("naca0012.msh");
-        //std::shared_ptr<HighOrderGrid<dim,double>> naca0012_mesh = read_gmsh <dim, dim> ("naca0012_hopw_ref2.msh");
-        //std::shared_ptr<HighOrderGrid<dim,double>> naca0012_mesh = read_gmsh <dim, dim> ("naca0012_hopw_ref2.msh");
+        //const double farfield_length = 20.0;
+        //dealii::GridGenerator::Airfoil::AdditionalData airfoil_data;
+        //airfoil_data.airfoil_type = "NACA";
+        //airfoil_data.naca_id      = "0012";
+        //airfoil_data.airfoil_length = 1.0;
+        //airfoil_data.height         = farfield_length;
+        //airfoil_data.length_b2      = farfield_length;
+        //airfoil_data.incline_factor = 0.35;
+        //airfoil_data.bias_factor    = 3.5; // default good enough?
+        //airfoil_data.refinements    = 0;
+
+
+        //const double multiplier = 1.0;
+        //const int n_cells_leading_edge = 10 * multiplier;
+        //const int n_cells_trailing_edge = 10 * multiplier;
+        //const int n_cells_normal_to_airfoil = 10 * multiplier;
+        //const int n_cells_downstream = 10 * multiplier;
+        //airfoil_data.n_subdivision_x_0 = n_cells_leading_edge;
+        //airfoil_data.n_subdivision_x_1 = n_cells_trailing_edge;
+        //airfoil_data.n_subdivision_x_2 = n_cells_downstream;
+        //airfoil_data.n_subdivision_y = n_cells_normal_to_airfoil;
+        //airfoil_data.airfoil_sampling_factor = 3; // default 2
+        //PHiLiP::Grids::naca_airfoil(*grid, airfoil_data);
+
+        //dg = DGFactory<dim,double>::create_discontinuous_galerkin(&param, poly_degree, grid);
+
+        if (dim==2) {
+            //std::shared_ptr<HighOrderGrid<dim,double>> naca0012_mesh = read_gmsh <dim, dim> ("naca0012.msh",1);
+            //std::shared_ptr<HighOrderGrid<dim,double>> naca0012_mesh = read_gmsh <dim, dim> ("naca0012_hopw_ref"+std::to_string(level)+".msh",1);
+            //std::shared_ptr<HighOrderGrid<dim,double>> naca0012_mesh = read_gmsh <dim, dim> ("naca0012_hopw_ref3.msh",1);
+            //std::shared_ptr<HighOrderGrid<dim,double>> naca0012_mesh = read_gmsh <dim, dim> ("naca0012_hopw_ref1.msh", 1);
+            std::shared_ptr<HighOrderGrid<dim,double>> naca0012_mesh = read_gmsh <dim, dim> ("naca0012_hopw_ref1.msh", true, 1, false);
+            //std::shared_ptr<HighOrderGrid<dim,double>> naca0012_mesh = read_gmsh <dim, dim> ("naca0012_hopw_ref2.msh", 1);
         //naca0012_mesh->refine_global();
         dg->set_high_order_grid(naca0012_mesh);
+        } else if (dim==3) {
+            std::shared_ptr<HighOrderGrid<dim,double>> naca0012_mesh = read_gmsh <dim, dim> ("naca0012_wing_unstructured_cutoff.msh", true, 1, false);
+            dg->set_high_order_grid(naca0012_mesh);
+        }
     }
 
     dg->allocate_system ();
+
+#ifndef CREATE_RST
+    DealiiVector target_solution;
+    if (OptimizationProblemType::inverse_pressure_design == optimization_problem_type) {
+        const std::string restart_filename_without_extension = get_restart_filename_without_extension(99299);
+        dg->triangulation->load(std::string("./") + restart_filename_without_extension);
+        dealii::parallel::distributed::SolutionTransfer<dim, dealii::LinearAlgebra::distributed::Vector<double>, dealii::DoFHandler<dim>> solution_transfer(dg->dof_handler);
+
+        dealii::LinearAlgebra::distributed::Vector<double> solution_no_ghost;
+        solution_no_ghost.reinit(dg->locally_owned_dofs, this->mpi_communicator);
+        solution_transfer.deserialize(solution_no_ghost);
+
+        dg->solution = solution_no_ghost; //< assignment
+        dg->solution.update_ghost_values();
+        target_solution = dg->solution;
+    }
+    TargetWallPressure<dim,nstate,double> target_wall_pressure_functional(dg, target_solution);
+#endif
+
     dealii::VectorTools::interpolate(dg->dof_handler, initial_conditions, dg->solution);
     // Create ODE solver and ramp up the solution from p0
     std::shared_ptr<ODE::ODESolverBase<dim, double>> ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
@@ -905,23 +1023,58 @@ int EulerNACADragOptimizationLiftConstrained<dim,nstate>
     double lift_target;
     double volume_target;
     double moment_target;
+
+    if (optimization_problem_type == OptimizationProblemType::drag_minimization) {
+        lift_target = lift_functional.evaluate_functional() * 1.0;
+        volume_target = volume_functional.evaluate_functional() * 1.0;
+        moment_target = moment_functional.evaluate_functional() * 1.0;
+    } else if (optimization_problem_type == OptimizationProblemType::lift_target) {
+        lift_target = lift_functional.evaluate_functional() * 2.0;
+        volume_target = volume_functional.evaluate_functional() * 1.0;
+        moment_target = std::abs(moment_functional.evaluate_functional() * 1.0) * 9.0;
+    } else if (optimization_problem_type == OptimizationProblemType::inverse_pressure_design) {
+        lift_target = lift_functional.evaluate_functional() * 1.1;
+        volume_target = volume_functional.evaluate_functional() * 0.9;
+        moment_target = moment_functional.evaluate_functional() * 1.0;
+    }
     if (grid_type == GridType::cylinder) {
         lift_target = 0.3;
         volume_target = 0.08;
         moment_target = 0.04;
-    } else if (grid_type == GridType::naca0012) {
-        lift_target = lift_functional.evaluate_functional() * 2.0;
-        volume_target = volume_functional.evaluate_functional() * 1.0;
-        moment_target = std::abs(moment_functional.evaluate_functional() * 1.0) * 9.0;
     }
-    if (DO_DRAG_MINIMIZATION) {
-        lift_target = lift_functional.evaluate_functional() * 1.0;
-    }
+
+
+//    const std::string restart_filename_without_extension = get_restart_filename_without_extension(flow_solver_param.restart_file_index);
+//#if PHILIP_DIM>1
+//    dg->triangulation->load(flow_solver_param.restart_files_directory_name + std::string("/") + restart_filename_without_extension);
+//    dealii::parallel::distributed::SolutionTransfer<dim, dealii::LinearAlgebra::distributed::Vector<double>, dealii::DoFHandler<dim>> solution_transfer(dg->dof_handler);
+//    solution_transfer.deserialize(solution_no_ghost);
+//#endif
 
 
     ffd.output_ffd_vtu(8999);
     auto flow_constraints  = ROL::makePtr<FlowConstraints<dim>>(dg,ffd,ffd_design_variables_indices_dim);
-    ROL::Ptr<ROL::Vector<double>> drag_adjoint = ROL::makePtr<VectorAdaptor>(des_var_adj_rol);
+
+    auto volume_objective = ROL::makePtr<ROLObjectiveSimOpt<dim,nstate>>( volume_functional, ffd, ffd_design_variables_indices_dim, &(flow_constraints->dXvdXp) );
+    auto moment_objective = ROL::makePtr<ROLObjectiveSimOpt<dim,nstate>>( moment_functional, ffd, ffd_design_variables_indices_dim, &(flow_constraints->dXvdXp) );
+	auto constraint1 = volume_objective;
+
+    const double constraint1_lower_bound_dx = USE_VOLUME_CONSTRAINT ? -1e-4 : -ROL::ROL_INF<double>();
+    const double constraint1_upper_bound_dx = USE_VOLUME_CONSTRAINT ? 1e-4  : ROL::ROL_INF<double>();
+
+	auto constraint2 = moment_objective;
+//#ifdef CREATE_RST
+//    const double constraint2_lower_bound_dx = -1e-3;
+//    const double constraint2_upper_bound_dx = 1e-3;
+//#else
+//    const double constraint2_lower_bound_dx = -ROL::ROL_INF<double>();
+//    const double constraint2_upper_bound_dx = ROL::ROL_INF<double>();
+//#endif
+
+    const double constraint2_lower_bound_dx = USE_MOMENT_CONSTRAINT ? -1e-3 : -ROL::ROL_INF<double>();
+    const double constraint2_upper_bound_dx = USE_MOMENT_CONSTRAINT ?  1e-3 :  ROL::ROL_INF<double>();
+
+    //ROL::Ptr<ROL::Vector<double>> drag_adjoint = ROL::makePtr<VectorAdaptor>(des_var_adj_rol);
     // int flow_constraints_check_error
     //     = check_flow_constraints<dim,nstate>( nx_ffd,
     //                                            flow_constraints,
@@ -930,36 +1083,33 @@ int EulerNACADragOptimizationLiftConstrained<dim,nstate>
     //                                            drag_adjoint);
     // (void) flow_constraints_check_error;
 
-    auto volume_objective = ROL::makePtr<ROLObjectiveSimOpt<dim,nstate>>( volume_functional, ffd, ffd_design_variables_indices_dim, &(flow_constraints->dXvdXp) );
-    auto moment_objective = ROL::makePtr<ROLObjectiveSimOpt<dim,nstate>>( moment_functional, ffd, ffd_design_variables_indices_dim, &(flow_constraints->dXvdXp) );
-	auto constraint1 = volume_objective;
-    const double constraint1_lower_bound_dx = -1e-4;
-    const double constraint1_upper_bound_dx = 1e-1;
-	auto constraint2 = moment_objective;
-    const double constraint2_lower_bound_dx = -1e-3;
-    const double constraint2_upper_bound_dx = 1e-3;
-
     ROL::Ptr<ROL::Objective_SimOpt<double>> objective;
     std::vector<ROL::Ptr<ROL::Objective_SimOpt<double>>> nonlinear_inequalities_as_objectives {constraint1, constraint2};//, constraint2};
     std::vector<double> nonlinear_inequality_targets {volume_target, moment_target};
     std::vector<double> constraint_lower_bound_dx {constraint1_lower_bound_dx, constraint2_lower_bound_dx};
     std::vector<double> constraint_upper_bound_dx {constraint1_upper_bound_dx, constraint2_upper_bound_dx};
 
-    if (DO_DRAG_MINIMIZATION) {
+    if (optimization_problem_type == OptimizationProblemType::drag_minimization) {
+        // Objective
         auto drag_objective = ROL::makePtr<ROLObjectiveSimOpt<dim,nstate>>( drag_functional, ffd, ffd_design_variables_indices_dim, &(flow_constraints->dXvdXp) );
-
         objective = drag_objective;
 
+        // Additional lift constraint
         auto lift_objective = ROL::makePtr<ROLObjectiveSimOpt<dim,nstate>>( lift_functional, ffd, ffd_design_variables_indices_dim, &(flow_constraints->dXvdXp) );
-        auto lift_target_constraint = ROL::makePtr<PHiLiP::ConstraintFromObjective_SimOpt<double>>( lift_objective, 0.0);
 
+        nonlinear_inequalities_as_objectives.push_back(lift_objective);
         nonlinear_inequality_targets.push_back(lift_target);
+        if (USE_LIFT_CONSTRAINT) {
         constraint_lower_bound_dx.push_back(-lift_target*0.05);
         constraint_upper_bound_dx.push_back(ROL::ROL_INF<double>());
-
     } else {
+            constraint_lower_bound_dx.push_back(-ROL::ROL_INF<double>());
+            constraint_upper_bound_dx.push_back(ROL::ROL_INF<double>());
+        }
 
-        // Constrast lift-target minimization objective
+    } else if (optimization_problem_type == OptimizationProblemType::lift_target) {
+
+        // Constraint lift-target minimization objective
         auto lift_objective = ROL::makePtr<ROLObjectiveSimOpt<dim,nstate>>( lift_functional, ffd, ffd_design_variables_indices_dim, &(flow_constraints->dXvdXp) );
         auto lift_target_constraint = ROL::makePtr<PHiLiP::ConstraintFromObjective_SimOpt<double>>( lift_objective, lift_target );
         const ROL::Ptr<ROL::SingletonVector<double>> lift_constraint_dual = ROL::makePtr<ROL::SingletonVector<double>> (0.0);
@@ -973,7 +1123,28 @@ int EulerNACADragOptimizationLiftConstrained<dim,nstate>
                                                                                                   *control_variables,
                                                                                                   *lift_constraint_value);
         objective = lift_target_quadratic_objective;
+
+    } else if (optimization_problem_type == OptimizationProblemType::inverse_pressure_design) {
+
+        // Additional lift constraint
+        auto lift_objective = ROL::makePtr<ROLObjectiveSimOpt<dim,nstate>>( lift_functional, ffd, ffd_design_variables_indices_dim, &(flow_constraints->dXvdXp) );
+        nonlinear_inequalities_as_objectives.push_back(lift_objective);
+        nonlinear_inequality_targets.push_back(lift_target);
+        constraint_lower_bound_dx.push_back(-lift_target*0.005);
+        //constraint_lower_bound_dx.push_back(-ROL::ROL_INF<double>());
+        constraint_upper_bound_dx.push_back(ROL::ROL_INF<double>());
+
+#ifndef CREATE_RST
+        auto pressure_obj = ROL::makePtr<ROLObjectiveSimOpt<dim,nstate>>( target_wall_pressure_functional, ffd, ffd_design_variables_indices_dim, &(flow_constraints->dXvdXp) );
+        objective = pressure_obj;
+#endif
     }
+    //for (auto& lower : constraint_lower_bound_dx) {
+    //    lower = -ROL::ROL_INF<double>();
+    //}
+    //for (auto& upper : constraint_upper_bound_dx) {
+    //    upper = ROL::ROL_INF<double>();
+    //}
 
     double tol = 0.0;
     std::cout << "Objective value= " << objective->value(*simulation_variables, *control_variables, tol) << std::endl;
@@ -986,7 +1157,7 @@ int EulerNACADragOptimizationLiftConstrained<dim,nstate>
     parlist.sublist("General").set("Print Verbosity", 1);
 
     //parlist.sublist("Status Test").set("Gradient Tolerance", 1e-9);
-    parlist.sublist("Status Test").set("Gradient Tolerance", 1e-6);
+    parlist.sublist("Status Test").set("Gradient Tolerance", GRAD_CONVERGENCE);
     parlist.sublist("Status Test").set("Iteration Limit", max_design_cycle);
 
     parlist.sublist("Step").sublist("Line Search").set("User Defined Initial Step Size",true);
@@ -1002,7 +1173,7 @@ int EulerNACADragOptimizationLiftConstrained<dim,nstate>
     parlist.sublist("General").sublist("Secant").set("Type","Limited-Memory BFGS");
     //parlist.sublist("General").sublist("Secant").set("Type","Limited-Memory SR1");
     //parlist.sublist("General").sublist("Secant").set("Maximum Storage",(int)n_design_variables);
-    parlist.sublist("General").sublist("Secant").set("Maximum Storage", 100);
+    parlist.sublist("General").sublist("Secant").set("Maximum Storage", 200);
 
     parlist.sublist("Full Space").set("Preconditioner",preconditioner_string);
 
@@ -1060,9 +1231,9 @@ int EulerNACADragOptimizationLiftConstrained<dim,nstate>
             if (problem_type_opt != problem_type) std::abort();
 
             parlist.sublist("Step").sublist("Primal Dual Active Set").set("Iteration Limit",PDAS_MAX_ITER);
-            parlist.sublist("General").sublist("Krylov").set("Absolute Tolerance", 1e-10);
-            parlist.sublist("General").sublist("Krylov").set("Relative Tolerance", 1e-8);
-            parlist.sublist("General").sublist("Krylov").set("Iteration Limit", 300);
+            parlist.sublist("General").sublist("Krylov").set("Absolute Tolerance", LINEAR_SOLVER_ABS_TOL);
+            parlist.sublist("General").sublist("Krylov").set("Relative Tolerance", LINEAR_SOLVER_REL_TOL);
+            parlist.sublist("General").sublist("Krylov").set("Iteration Limit", LINEAR_SOLVER_MAX_ITS);
             parlist.sublist("General").sublist("Krylov").set("Use Initial Guess", true);
 
             parlist.sublist("Step").sublist("Line Search").set("User Defined Initial Step Size",true);
@@ -1160,9 +1331,9 @@ int EulerNACADragOptimizationLiftConstrained<dim,nstate>
 
             parlist.sublist("Step").sublist("Primal Dual Active Set").set("Iteration Limit",PDAS_MAX_ITER);
             parlist.sublist("General").sublist("Secant").set("Use as Preconditioner", true);
-            parlist.sublist("General").sublist("Krylov").set("Absolute Tolerance", 1e-12);
-            parlist.sublist("General").sublist("Krylov").set("Relative Tolerance", 1e-4);
-            parlist.sublist("General").sublist("Krylov").set("Iteration Limit", 400);
+            parlist.sublist("General").sublist("Krylov").set("Absolute Tolerance", LINEAR_SOLVER_ABS_TOL);
+            parlist.sublist("General").sublist("Krylov").set("Relative Tolerance", LINEAR_SOLVER_REL_TOL);
+            parlist.sublist("General").sublist("Krylov").set("Iteration Limit", LINEAR_SOLVER_MAX_ITS);
             parlist.sublist("General").sublist("Krylov").set("Use Initial Guess", true);
 
             parlist.sublist("Step").sublist("Line Search").set("User Defined Initial Step Size",true);

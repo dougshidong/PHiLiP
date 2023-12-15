@@ -11,6 +11,11 @@
 
 #include "global_counter.hpp"
 
+namespace {
+    const int IS_VERBOSE = 0;
+    enum class SolverType { ILU, ILUT };
+    const SolverType solverType = SolverType::ILU;
+}
 namespace PHiLiP {
 
 std::string get_restart_filename_without_extension(const int restart_index_input) {
@@ -49,7 +54,7 @@ FlowConstraints<dim>
                  std::vector< std::pair< unsigned int, unsigned int > > &_ffd_design_variables_indices_dim,
                  dealii::TrilinosWrappers::SparseMatrix *precomputed_dXvdXp)
     : mpi_rank(dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD))
-    , i_print(mpi_rank==0)
+    , i_print(mpi_rank==-1)
     , dg(_dg)
     , ffd(_ffd)
     , ffd_design_variables_indices_dim(_ffd_design_variables_indices_dim)
@@ -89,11 +94,11 @@ FlowConstraints<dim>
     this->linear_solver_param.linear_residual = 1e-17;
     //this->linear_solver_param.ilut_fill = 1.0;//2; 50
     this->linear_solver_param.ilut_fill = 50;
-    this->linear_solver_param.ilut_drop = 1e-8;
+    this->linear_solver_param.ilut_drop = 0.0;//1e-8;
     //this->linear_solver_param.ilut_atol = 1e-3;
     //this->linear_solver_param.ilut_rtol = 1.0+1e-2;
-    this->linear_solver_param.ilut_atol = 1e-5;
-    this->linear_solver_param.ilut_rtol = 1.0+1e-2;
+    this->linear_solver_param.ilut_atol = 1e-4;
+    this->linear_solver_param.ilut_rtol = 1.0+1e-3;
     this->linear_solver_param.linear_solver_output = dg->all_parameters->linear_solver_param.linear_solver_output;
     this->linear_solver_param.linear_solver_type = Parameters::LinearSolverParam::LinearSolverEnum::gmres;
     //this->linear_solver_param.linear_solver_type = Parameters::LinearSolverParam::LinearSolverEnum::direct;
@@ -173,7 +178,7 @@ void FlowConstraints<dim>
     double& tol
     )
 {
-    if(i_print) std::cout << __PRETTY_FUNCTION__ << std::endl;
+    if (IS_VERBOSE > 0 && i_print) std::cout << __PRETTY_FUNCTION__ << std::endl;
     update_2(des_var_ctl);
 
     std::shared_ptr<ODE::ODESolverBase<dim, double>> ode_solver_1 = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
@@ -214,7 +219,7 @@ void FlowConstraints<dim>
     }
     auto &constraint = ROL_vector_to_dealii_vector_reference(constraint_values);
     tol = dg->get_residual_l2norm();
-    if (tol > 1e-11) {
+    if (tol > dg->all_parameters->ode_solver_param.nonlinear_steady_residual_tolerance) {
         previous_des_var_sim = des_var_sim.clone();
         previous_des_var_sim->set(des_var_sim);
         previous_des_var_ctl = des_var_ctl.clone();
@@ -303,7 +308,7 @@ void FlowConstraints<dim>
     )
 {
 
-    if(i_print) std::cout << __PRETTY_FUNCTION__ << std::endl;
+    if (IS_VERBOSE > 0 && i_print) std::cout << __PRETTY_FUNCTION__ << std::endl;
     update_1(des_var_sim);
     update_2(des_var_ctl);
 
@@ -342,7 +347,7 @@ void FlowConstraints<dim>
     } catch(const PHiLiP::ExcInconsistentNormals& e) {
     }
 
-    if(i_print) std::cout << __PRETTY_FUNCTION__ << std::endl;
+    if (IS_VERBOSE > 0 && i_print) std::cout << __PRETTY_FUNCTION__ << std::endl;
 
     // Input vector is copied into temporary non-const vector.
     auto input_vector_v = ROL_vector_to_dealii_vector_reference(input_vector);
@@ -371,7 +376,7 @@ int FlowConstraints<dim>
     const ROL::Vector<double>& des_var_sim,
     const ROL::Vector<double>& des_var_ctl)
 {
-    if(i_print) std::cout << __PRETTY_FUNCTION__ << std::endl;
+    if (IS_VERBOSE > 0 && i_print) std::cout << __PRETTY_FUNCTION__ << std::endl;
     update_1(des_var_sim);
     update_2(des_var_ctl);
 
@@ -388,14 +393,19 @@ int FlowConstraints<dim>
 
     Teuchos::ParameterList List;
 
-    const std::string PrecType = "ILUT"; 
-    List.set("fact: ilut level-of-fill", 50.0);        //50.0);
+    std::string PrecType = "ILUT"; 
     List.set("fact: absolute threshold", 1e-5);      //1e-3);
     List.set("fact: relative threshold", 1.0+1e-2);  //1.01);//1.0+1e-2);
-    List.set("fact: drop tolerance"    , 1e-8);      //0.0);//1e-12);
+    if (solverType == SolverType::ILUT) {
+        PrecType = "ILUT"; 
+        List.set("fact: ilut level-of-fill", 50.0);        //50.0);
+        List.set("fact: drop tolerance"    , 1e-8);      //0.0);//1e-12);
+    }
+    if (solverType == SolverType::ILU) {
+        PrecType = "ILU"; 
+        List.set("fact: level-of-fill", 1);
+    }
 
-    //const std::string PrecType = "ILU"; 
-    //List.set("fact: level-of-fill", 0);
 
     List.set("schwarz: reordering type", "rcm");
     const int OverlapLevel = 1; // one row of overlap among the processes
@@ -419,7 +429,7 @@ int FlowConstraints<dim>
     const ROL::Vector<double>& des_var_sim,
     const ROL::Vector<double>& des_var_ctl)
 {
-    if(i_print) std::cout << __PRETTY_FUNCTION__ << std::endl;
+    if (IS_VERBOSE > 0 && i_print) std::cout << __PRETTY_FUNCTION__ << std::endl;
     update_1(des_var_sim);
     update_2(des_var_ctl);
 
@@ -436,14 +446,18 @@ int FlowConstraints<dim>
 
     Teuchos::ParameterList List;
 
-    const std::string PrecType = "ILUT"; 
-    List.set("fact: ilut level-of-fill", 50.0);        //50.0);
+    std::string PrecType = "ILUT"; 
     List.set("fact: absolute threshold", 1e-5);      //1e-3);
     List.set("fact: relative threshold", 1.0+1e-2);  //1.01);//1.0+1e-2);
-    List.set("fact: drop tolerance"    , 1e-8);      //0.0);//1e-12);
-
-    //const std::string PrecType = "ILU"; 
-    //List.set("fact: level-of-fill", 0);
+    if (solverType == SolverType::ILUT) {
+        PrecType = "ILUT"; 
+        List.set("fact: ilut level-of-fill", 50.0);        //50.0);
+        List.set("fact: drop tolerance"    , 1e-8);      //0.0);//1e-12);
+    }
+    if (solverType == SolverType::ILU) {
+        PrecType = "ILU"; 
+        List.set("fact: level-of-fill", 1);
+    }
 
     List.set("schwarz: reordering type", "rcm");
     const int OverlapLevel = 1; // one row of overlap among the processes
@@ -469,7 +483,7 @@ void FlowConstraints<dim>
 {
     (void) des_var_sim; // Preconditioner should be built.
     (void) des_var_ctl; // Preconditioner should be built.
-    if(i_print) std::cout << __PRETTY_FUNCTION__ << std::endl;
+    if (IS_VERBOSE > 0 && i_print) std::cout << __PRETTY_FUNCTION__ << std::endl;
 
     // Input vector is copied into temporary non-const vector.
     auto input_vector_v = ROL_vector_to_dealii_vector_reference(input_vector);
@@ -501,7 +515,7 @@ void FlowConstraints<dim>
 {
     (void) des_var_sim; // Preconditioner should be built.
     (void) des_var_ctl; // Preconditioner should be built.
-    if(i_print) std::cout << __PRETTY_FUNCTION__ << std::endl;
+    if (IS_VERBOSE > 0 && i_print) std::cout << __PRETTY_FUNCTION__ << std::endl;
 
     // Input vector is copied into temporary non-const vector.
     auto input_vector_v = ROL_vector_to_dealii_vector_reference(input_vector);
@@ -530,7 +544,7 @@ const ROL::Vector<double>& des_var_ctl,
 double& /*tol*/ )
 {
 
-    if(i_print) std::cout << __PRETTY_FUNCTION__ << std::endl;
+    if (IS_VERBOSE > 0 && i_print) std::cout << __PRETTY_FUNCTION__ << std::endl;
     update_1(des_var_sim);
     update_2(des_var_ctl);
 
@@ -557,7 +571,7 @@ const ROL::Vector<double>& des_var_ctl,
 double& /*tol*/ )
 {
 
-    if(i_print) std::cout << __PRETTY_FUNCTION__ << std::endl;
+    if (IS_VERBOSE > 0 && i_print) std::cout << __PRETTY_FUNCTION__ << std::endl;
     update_1(des_var_sim);
     update_2(des_var_ctl);
 
@@ -610,7 +624,7 @@ const ROL::Vector<double>& des_var_ctl,
 double& /*tol*/ )
 {
 
-    if(i_print) std::cout << __PRETTY_FUNCTION__ << std::endl;
+    if (IS_VERBOSE > 0 && i_print) std::cout << __PRETTY_FUNCTION__ << std::endl;
     update_1(des_var_sim);
     update_2(des_var_ctl);
 
@@ -638,7 +652,7 @@ const ROL::Vector<double>& des_var_ctl,
 double& /*tol*/ )
 {
 
-    if(i_print) std::cout << __PRETTY_FUNCTION__ << std::endl;
+    if (IS_VERBOSE > 0 && i_print) std::cout << __PRETTY_FUNCTION__ << std::endl;
     update_1(des_var_sim);
     update_2(des_var_ctl);
 
@@ -693,7 +707,7 @@ void FlowConstraints<dim>
     // ROL_vector_to_dealii_vector_reference(output_vector) *= 0.0;
     // return;
 
-    if(i_print) std::cout << __PRETTY_FUNCTION__ << std::endl;
+    if (IS_VERBOSE > 0 && i_print) std::cout << __PRETTY_FUNCTION__ << std::endl;
     (void) tol;
     dg->set_dual(ROL_vector_to_dealii_vector_reference(dual));
     dg->dual.update_ghost_values();
@@ -723,7 +737,7 @@ void FlowConstraints<dim>
     // ROL_vector_to_dealii_vector_reference(output_vector) *= 0.0;
     // return;
 
-    if(i_print) std::cout << __PRETTY_FUNCTION__ << std::endl;
+    if (IS_VERBOSE > 0 && i_print) std::cout << __PRETTY_FUNCTION__ << std::endl;
     (void) tol;
     update_1(des_var_sim);
     update_2(des_var_ctl);
@@ -783,7 +797,7 @@ void FlowConstraints<dim>
     // ROL_vector_to_dealii_vector_reference(output_vector) *= 0.0;
     // return;
 
-    if(i_print) std::cout << __PRETTY_FUNCTION__ << std::endl;
+    if (IS_VERBOSE > 0 && i_print) std::cout << __PRETTY_FUNCTION__ << std::endl;
     (void) tol;
     update_1(des_var_sim);
     update_2(des_var_ctl);
@@ -845,7 +859,7 @@ void FlowConstraints<dim>
     // ROL_vector_to_dealii_vector_reference(output_vector) *= 0.0;
     // return;
 
-    if(i_print) std::cout << __PRETTY_FUNCTION__ << std::endl;
+    if (IS_VERBOSE > 0 && i_print) std::cout << __PRETTY_FUNCTION__ << std::endl;
     (void) tol;
 
     update_1(des_var_sim);

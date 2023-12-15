@@ -29,6 +29,7 @@ public:
         kelvin_helmholtz_instability,
         acoustic_wave_air,
         acoustic_wave_species,
+        multi_species_acoustic_wave,
         non_periodic_cube_flow
         };
     FlowCaseType flow_case_type; ///< Selected FlowCaseType from the input file

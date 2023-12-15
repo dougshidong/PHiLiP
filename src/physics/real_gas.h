@@ -118,53 +118,17 @@ public: /// used for initial condition (initial_condition_function.cpp)
     std::array<real,nstate> convert_primitive_to_conservative ( const std::array<real,nstate> &primitive_soln ) const;
 
 protected:
-    /// Compute density from conservative_soln 
-    template<typename real2>
-    real2 compute_density ( const std::array<real2,nstate> &conservative_soln ) const;
-
     /// Compute velocities from conservative_soln (use compute_density)
     template<typename real2>
     dealii::Tensor<1,dim,real2> compute_velocities ( const std::array<real2,nstate> &conservative_soln ) const;
 
-    /// Compute velocity_squared from conservative_soln (use compute velocity)
-    template<typename real2>
-    real2 compute_velocity_squared ( const dealii::Tensor<1,dim,real2> &velocities ) const;
-
-    /// Get NASA coeefients from NASA-CAP program
-    dealii::Tensor<1,9,real> get_NASA_coefficients (const real temperature) const;  
-
-    /// Compute Cp from temperature
-    real compute_Cp ( const real temperature ) const;
-
-    /// Compute Cp from temperature
-    real compute_enthalpy ( const real temperature  ) const;
-
-    /// Compute temperature from conservative_soln
-    real compute_temperature ( const std::array<real,nstate> &conservative_soln ) const;
-
-    /// Compute pressure from conservative_soln
-    template<typename real2>
-    real2 compute_pressure ( const std::array<real2,nstate> &conservative_soln ) const;
-
-    /// Compute total enthalpy from conservative_soln
-    real compute_total_enthalpy( const std::array<real,nstate> &conservative_soln ) const;
+    /// Evaluate speed of sound from conservative variables
+    real compute_sound ( const std::array<real,nstate> &conservative_soln ) const;
 
     /// Compute convective flux from conservative_soln
     std::array<dealii::Tensor<1,dim,real>,nstate> convective_flux (
         const std::array<real,nstate> &conservative_soln) const;
 
-    /// Evaluate speed of sound from conservative variables
-    real compute_sound ( const std::array<real,nstate> &conservative_soln ) const;
-
-    /// Compute kinetic energy (0.50*rho*(vel2)) from conservative variables
-    real compute_kinetic_energy ( const std::array<real,nstate> &conservative_soln ) const;
-
-    /// Compute Cv from temperature
-    real compute_Cv ( const real temperature ) const;
-
-public:
-    /// Compute gamma from temperature
-    real compute_gamma ( const real temperature ) const;
 protected:
     /// For post processing purposes (update comment later)
     virtual dealii::Vector<double> post_compute_derived_quantities_vector (

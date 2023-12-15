@@ -174,34 +174,13 @@ template <int dim, int nstate, typename real>
 inline std::array<real,nstate> RealGas<dim,nstate,real>
 ::convert_primitive_to_conservative ( const std::array<real,nstate> &primitive_soln ) const
 {
-
-    const real density = primitive_soln[0];
-    dealii::Tensor<1,dim,real> vel;;
-    for (int d=0; d<dim; ++d) { vel[d] = primitive_soln[1+d]; }
-    const real pressure = primitive_soln[nstate-1];
-    const real temperature = (this->gam_ref*this->mach_ref_sqr)*pressure/density;
-    const real vel2 = compute_velocity_squared(vel);
-    const real kinetic_energy = 0.5*density*vel2;
-    const real enthalpy = compute_enthalpy(temperature);
-    const real specific_internal_energy = enthalpy - (this->R_ref*this->temperature_ref/this->u_ref_sqr)*this->R_Air_NonDim*temperature;
-    const real total_energy = density*specific_internal_energy + kinetic_energy; //rhoE
     std::array<real, nstate> conservative_soln;
-    conservative_soln[0] = density;
-    for (int d=0; d<dim; ++d) {
-        conservative_soln[1+d] = density*vel[d];
+    for (int i=0; i<nstate; i++)
+    {
+        conservative_soln[i] = 0.0*primitive_soln[0];
     }
-    conservative_soln[nstate-1] = total_energy;
 
     return conservative_soln;
-}
-
-template <int dim, int nstate, typename real>
-template<typename real2>
-inline real2 RealGas<dim,nstate,real>
-:: compute_density ( const std::array<real2,nstate> &conservative_soln ) const
-{
-    const real2 density = conservative_soln[0];
-    return density;
 }
 
 template <int dim, int nstate, typename real>
@@ -209,183 +188,17 @@ template<typename real2>
 inline dealii::Tensor<1,dim,real2> RealGas<dim,nstate,real>
 ::compute_velocities ( const std::array<real2,nstate> &conservative_soln ) const
 {
-    const real2 density = compute_density<real2>(conservative_soln);
+    const real2 density = conservative_soln[0];
     dealii::Tensor<1,dim,real2> vel;
     for (int d=0; d<dim; ++d) { vel[d] = conservative_soln[1+d]/density; }
     return vel;
 }
 
 template <int dim, int nstate, typename real>
-template <typename real2>
-inline real2 RealGas<dim,nstate,real>
-::compute_velocity_squared ( const dealii::Tensor<1,dim,real2> &velocities ) const
-{
-    real2 vel2 = 0.0;
-    for (int d=0; d<dim; d++) { 
-        vel2 = vel2 + velocities[d]*velocities[d]; 
-    }    
-    
-    return vel2;
-}
-
-/// It is for NASA polynom1ial
-template <int dim, int nstate, typename real>
-dealii::Tensor<1,9,real> RealGas<dim,nstate,real>
-:: get_NASA_coefficients (const real temperature) const
-{
-    dealii::Tensor<1,9,real> NASA_CAP;
-    real a1,a2,a3,a4,a5,a6,a7,b1;
-    real heat_of_formation;
-    const real T = temperature*this->temperature_ref;
-
-    if (200.0<= T && T<=1000.0) 
-    {
-        /// It is for Air, T range: 200[K] - 1000[K]
-        a1 =  1.009950160e+04;
-        a2 = -1.968275610e+02;
-        a3 =  5.009155110e+00;
-        a4 = -5.761013730e-03;
-        a5 =  1.066859930e-05;
-        a6 = -7.940297970e-09;
-        a7 =  2.185231910e-12;
-        b1 = -1.767967310e+02;
-        heat_of_formation = -125.530; // [J/mol]     
-    }
-    if (1000.0<=T && T<=6000.0) 
-    {
-        /// It is for Air, T range: 1000[K] - 6000[K]
-        a1 =  2.415214430e+05;
-        a2 = -1.257874600e+03;
-        a3 =  5.144558670e+00;
-        a4 = -2.138541790e-04;
-        a5 =  7.065227840e-08;
-        a6 = -1.071483490e-11;
-        a7 =  6.577800150e-16;
-        b1 =  6.462263190e+03;
-        heat_of_formation = -125.530; // [J/mol]    
-    }
-    NASA_CAP[0] = a1;
-    NASA_CAP[1] = a2;
-    NASA_CAP[2] = a3;
-    NASA_CAP[3] = a4;
-    NASA_CAP[4] = a5;
-    NASA_CAP[5] = a6;
-    NASA_CAP[6] = a7;
-    NASA_CAP[7] = b1;
-    NASA_CAP[8] = heat_of_formation;
-
-    return NASA_CAP;
-}
-
-/// It IS FOR Cp computation
-template <int dim, int nstate, typename real>
 inline real RealGas<dim,nstate,real>
-:: compute_Cp ( const real temperature ) const
+::compute_sound ( const std::array<real,nstate> &conservative_soln ) const
 {
-    // NASA_CAP
-    dealii::Tensor<1,9,real> NASA_CAP = get_NASA_coefficients(temperature);
-    real a1 = NASA_CAP[0];
-    real a2 = NASA_CAP[1];
-    real a3 = NASA_CAP[2];
-    real a4 = NASA_CAP[3];
-    real a5 = NASA_CAP[4];
-    real a6 = NASA_CAP[5];
-    real a7 = NASA_CAP[6];
-    // real b1 = NASA_CAP[7];
-
-    /// dimensinalize... T
-    const real T = temperature*this->temperature_ref; // [K]
-
-    /// polynomial
-    real Cp = a1/pow(T,2.0) + a2/T + a3 + a4*T + a5*pow(T,2.0) + a6*pow(T,3.0) + a7*pow(T,4.0); // NASA polynomial
-    Cp = Cp*this->R_Air_Dim; // Dim
-    Cp = Cp/this->R_ref;  // NonDim
-    return Cp;
-}
-
-/// It is for h computation
-template <int dim, int nstate, typename real>
-inline real RealGas<dim,nstate,real>
-:: compute_enthalpy ( const real temperature  ) const
-{
-    // NASA_CAP
-    dealii::Tensor<1,9,real> NASA_CAP = get_NASA_coefficients(temperature);
-    real a1 = NASA_CAP[0];
-    real a2 = NASA_CAP[1];
-    real a3 = NASA_CAP[2];
-    real a4 = NASA_CAP[3];
-    real a5 = NASA_CAP[4];
-    real a6 = NASA_CAP[5];
-    real a7 = NASA_CAP[6];
-    real b1 = NASA_CAP[7];
-
-    /// dimensinalize... T
-    const real T = temperature*this->temperature_ref; // [K]
-
-    /// polynomial
-    real enthalpy = -a1/pow(T,2.0) + a2*(log(T))/T + a3 + a4*T/2 + a5*pow(T,2.0)/3 + a6*pow(T,3.0)/4 + a7*pow(T,4.00)/5 +b1/T; // NASA polynomial
-    enthalpy = enthalpy*this->R_Air_Dim*T; // Dim
-    enthalpy = enthalpy/this->u_ref_sqr; // NonDim
-    return enthalpy;
-}
-
-/// IT IS FOR ALGORITHM 3 (Standard Euler for now)
-template <int dim, int nstate, typename real>
-inline real RealGas<dim,nstate,real>
-:: compute_temperature ( const std::array<real,nstate> &conservative_soln ) const
-{
-    const real Q3 = conservative_soln[nstate-1];
-    const real density = compute_density<real>(conservative_soln);
-    const real kinetic_energy = compute_kinetic_energy(conservative_soln);
-
-    real err = 999.9;
-    int it = 0; /// delete this
-    real temperature = 3.0; //// This is guess, NonDim, must change this to guessing functin using Pressure
-    real temperature_Dim = temperature*temperature_ref; /// Dim [K]
-    do
-    {
-        it = it + 1; /// delete this
-        temperature = temperature_Dim/temperature_ref;
-        real h = compute_enthalpy(temperature); /// NonDim        
-        h = h*this->u_ref_sqr; /// Dim       
-        real Cp = compute_Cp(temperature); /// NonDim
-        Cp = Cp*this->R_Air_Dim; /// Dim
-        real f = (h - R_Air_Dim*temperature_Dim)/this->u_ref_sqr - (Q3/density -kinetic_energy/density) ; /// NonDim
-        real f_d = (Cp-this->R_Air_Dim)/this->u_ref_sqr; /// NonDim
-        real temperature_Dim_old = temperature_Dim; 
-        temperature_Dim = temperature_Dim - f/f_d; /// NRM main eq
-        err = abs(temperature_Dim - temperature_Dim_old);
-    }
-    while (err>this->tol);
-    temperature = temperature_Dim/this->temperature_ref;
-
-    return temperature;
-}
-
-/// IT IS FOR ALGORITHM 4 (Standard Euler for now)
-template <int dim, int nstate, typename real>
-template<typename real2>
-inline real2 RealGas<dim,nstate,real>
-::compute_pressure ( const std::array<real2,nstate> &conservative_soln ) const
-{
-    const real2 density = conservative_soln[0];
-    const real temperature = compute_temperature(conservative_soln);
-    const real pressure = (density*temperature)/(this->gam_ref*this->mach_ref_sqr);
-
-    return pressure;
-}
-
-/// IT IS FOR ALGORITHM 6, IT is only valid for single species. For multi-species, adding algorism 5 and modify largely this.
-template <int dim, int nstate, typename real>
-inline real RealGas<dim,nstate,real>
-:: compute_total_enthalpy ( const std::array<real,nstate> &conservative_soln ) const
-{
-    const real density = compute_density<real>(conservative_soln);
-    const real pressure = compute_pressure<real>(conservative_soln);
-    const real total_energy = conservative_soln[nstate-1]/density;
-    real total_enthalpy = total_energy + pressure/density;
-
-    return total_enthalpy;
+    return conservative_soln[0]*0.0;
 }
 
 /// IT IS FOR ALGORITHM 7
@@ -394,68 +207,11 @@ std::array<dealii::Tensor<1,dim,real>,nstate> RealGas<dim,nstate,real>
 ::convective_flux (const std::array<real,nstate> &conservative_soln) const
 {
     std::array<dealii::Tensor<1,dim,real>,nstate> conv_flux;
-    const real density = compute_density<real>(conservative_soln);
-    const real pressure = compute_pressure<real>(conservative_soln);
-    const dealii::Tensor<1,dim,real> vel = compute_velocities<real>(conservative_soln);
-    const real total_enthalpy = compute_total_enthalpy(conservative_soln);    //note: missing <real>
-
-    for (int flux_dim=0; flux_dim<dim; ++flux_dim) {
-        // Density equation
-        conv_flux[0][flux_dim] = conservative_soln[1+flux_dim];
-        // Momentum equation
-        for (int velocity_dim=0; velocity_dim<dim; ++velocity_dim){
-            conv_flux[1+velocity_dim][flux_dim] = density*vel[flux_dim]*vel[velocity_dim];
-        }
-        conv_flux[1+flux_dim][flux_dim] += pressure; // Add diagonal of pressure
-        // Energy equation
-        conv_flux[nstate-1][flux_dim] = density*vel[flux_dim]*total_enthalpy;
-        // TO DO: now loop over nspecies
+    for (int i=0; i<nstate; i++)
+    {
+        conv_flux[i] = conservative_soln[i]*0.0;
     }
     return conv_flux;
-}
-
-template <int dim, int nstate, typename real>
-inline real RealGas<dim,nstate,real>
-::compute_sound ( const std::array<real,nstate> &conservative_soln ) const
-{
-    const real density = conservative_soln[0];
-    const real pressure = compute_pressure(conservative_soln);
-    const real temperature = compute_temperature(conservative_soln);
-    const real gamma = compute_gamma(temperature);
-    const real sound = sqrt(gamma*pressure/density);
-
-    return sound;
-}
-
-template <int dim, int nstate, typename real>
-inline real RealGas<dim,nstate,real>
-::compute_kinetic_energy ( const std::array<real,nstate> &conservative_soln ) const
-{
-    const real density = conservative_soln[0];
-    const dealii::Tensor<1,dim,real> vel = compute_velocities<real>(conservative_soln);
-    const real vel2 = compute_velocity_squared(vel);
-    const real kinetic_energy = 0.50*density*vel2;
-
-    return kinetic_energy;
-}
-
-template <int dim, int nstate, typename real>
-inline real RealGas<dim,nstate,real>
-:: compute_Cv ( const real temperature ) const
-{
-    const real Cp = compute_Cp(temperature);
-    const real Cv = Cp - this->R_Air_NonDim;
-    return Cv;
-}
-
-template <int dim, int nstate, typename real>
-inline real RealGas<dim,nstate,real>
-:: compute_gamma ( const real temperature ) const
-{
-    const real Cp = compute_Cp(temperature);
-    const real Cv = compute_Cv(temperature);
-    const real gamma = Cp/Cv;
-    return gamma;
 }
 
 template <int dim, int nstate, typename real>
@@ -495,32 +251,25 @@ dealii::Vector<double> RealGas<dim,nstate,real>::post_compute_derived_quantities
         computed_quantities(++current_data_index) = conservative_soln[nstate-1];
         // Pressure
         /*computed_quantities(++current_data_index) = primitive_soln[nstate-1];*/
-        computed_quantities(++current_data_index) = compute_pressure<real>(conservative_soln);
+        computed_quantities(++current_data_index) = 999;
         // Pressure coefficient
         /*computed_quantities(++current_data_index) = (primitive_soln[nstate-1] - pressure_inf) / dynamic_pressure_inf;*/
         computed_quantities(++current_data_index) = 999;
         // Temperature
         /*computed_quantities(++current_data_index) = compute_temperature<real>(primitive_soln);*/
-        computed_quantities(++current_data_index) = compute_temperature(conservative_soln);     //note: missing <real>
+        computed_quantities(++current_data_index) = 999;     //note: missing <real>
         // Entropy generation
         /*computed_quantities(++current_data_index) = compute_entropy_measure(conservative_soln) - entropy_inf;*/
         computed_quantities(++current_data_index) = 999;
         // Mach Number
         /*computed_quantities(++current_data_index) = compute_mach_number(conservative_soln);*/
         computed_quantities(++current_data_index) = 999;
-        // e_comparison
-        const real e = conservative_soln[nstate-1]/conservative_soln[0];
         // NASA_CAP
-        const real temperature = compute_temperature(conservative_soln);
-        dealii::Tensor<1,9,real> NASA_CAP = get_NASA_coefficients(temperature);
-        const real heat_of_formation = NASA_CAP[8];
-        const real energy_of_formation_Dim = (heat_of_formation-this->Ru*this->temperature_ref)/MW_Air; /// From Toy Code
-        const real energy_of_formation = energy_of_formation_Dim/this->u_ref_sqr;
-        computed_quantities(++current_data_index) = e-energy_of_formation;
+        computed_quantities(++current_data_index) = 999;
         // speed of sound
-        computed_quantities(++current_data_index) = compute_sound(conservative_soln);
+        computed_quantities(++current_data_index) = 999;
         // temperature dim
-        computed_quantities(++current_data_index) = compute_temperature(conservative_soln)*this->temperature_ref;
+        computed_quantities(++current_data_index) = 999;
 
     }
     if (computed_quantities.size()-1 != current_data_index) {

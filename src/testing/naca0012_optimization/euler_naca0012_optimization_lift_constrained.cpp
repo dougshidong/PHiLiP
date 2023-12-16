@@ -841,28 +841,27 @@ int EulerNACADragOptimizationLiftConstrained<dim,nstate>
     }
     FreeFormDeformation<dim> ffd( ffd_origin, ffd_rectangle_lengths, ffd_ndim_control_pts);
     if constexpr (dim == 2) {
-    // Vector of ijk indices and dimension.
-    // Each entry in the vector points to a design variable's ijk ctl point and its acting dimension.
-    for (unsigned int i_ctl = 0; i_ctl < ffd.n_control_pts; ++i_ctl) {
+        // Vector of ijk indices and dimension.
+        // Each entry in the vector points to a design variable's ijk ctl point and its acting dimension.
+        for (unsigned int i_ctl = 0; i_ctl < ffd.n_control_pts; ++i_ctl) {
 
-        const std::array<unsigned int,dim> ijk = ffd.global_to_grid ( i_ctl );
-        for (unsigned int d_ffd = 0; d_ffd < dim; ++d_ffd) {
+            const std::array<unsigned int,dim> ijk = ffd.global_to_grid ( i_ctl );
+            for (unsigned int d_ffd = 0; d_ffd < dim; ++d_ffd) {
 
-            if (   ijk[0] == 0 // Constrain first column of FFD points.
-                || ijk[0] == ffd_ndim_control_pts[0] - 1  // Constrain last column of FFD points.
-                || ijk[1] == 1 // Constrain middle row of FFD points.
-                || d_ffd == 0 // Constrain x-direction of FFD points.
-               ) {
-                continue;
+                if (   ijk[0] == 0 // Constrain first column of FFD points.
+                    || ijk[0] == ffd_ndim_control_pts[0] - 1  // Constrain last column of FFD points.
+                    || ijk[1] == 1 // Constrain middle row of FFD points.
+                    || d_ffd == 0 // Constrain x-direction of FFD points.
+                ) {
+                    continue;
+                }
+                ++n_design_variables;
+                ffd_design_variables_indices_dim.push_back(std::make_pair(i_ctl, d_ffd));
             }
-            ++n_design_variables;
-            ffd_design_variables_indices_dim.push_back(std::make_pair(i_ctl, d_ffd));
         }
-        }
-    }
     }
 
-    const dealii::IndexSet row_part = dealii::Utilities::MPI::create_evenly_distributed_partitioning(MPI_COMM_WORLD,n_design_variables);
+    const dealii::IndexSet row_part = dealii::Utilities::MPI::create_evenly_distributed_partitioning(MPI_COMM_WORLD, n_design_variables);
     dealii::IndexSet ghost_row_part(n_design_variables);
     ghost_row_part.add_range(0,n_design_variables);
     DealiiVector ffd_design_variables(row_part,ghost_row_part,MPI_COMM_WORLD);
@@ -952,15 +951,16 @@ int EulerNACADragOptimizationLiftConstrained<dim,nstate>
             //std::shared_ptr<HighOrderGrid<dim,double>> naca0012_mesh = read_gmsh <dim, dim> ("naca0012.msh",1);
             //std::shared_ptr<HighOrderGrid<dim,double>> naca0012_mesh = read_gmsh <dim, dim> ("naca0012_hopw_ref"+std::to_string(level)+".msh",1);
             //std::shared_ptr<HighOrderGrid<dim,double>> naca0012_mesh = read_gmsh <dim, dim> ("naca0012_hopw_ref3.msh",1);
-            //std::shared_ptr<HighOrderGrid<dim,double>> naca0012_mesh = read_gmsh <dim, dim> ("naca0012_hopw_ref1.msh", 1);
-            std::shared_ptr<HighOrderGrid<dim,double>> naca0012_mesh = read_gmsh <dim, dim> ("naca0012_hopw_ref1.msh", true, 1, false);
+            std::shared_ptr<HighOrderGrid<dim,double>> naca0012_mesh = read_gmsh <dim, dim> ("naca0012_hopw_ref1.msh", 1);
+            //std::shared_ptr<HighOrderGrid<dim,double>> naca0012_mesh = read_gmsh <dim, dim> ("naca0012_hopw_ref1.msh", true, 1, false);
             //std::shared_ptr<HighOrderGrid<dim,double>> naca0012_mesh = read_gmsh <dim, dim> ("naca0012_hopw_ref2.msh", 1);
-        //naca0012_mesh->refine_global();
-        dg->set_high_order_grid(naca0012_mesh);
-        } else if (dim==3) {
-            std::shared_ptr<HighOrderGrid<dim,double>> naca0012_mesh = read_gmsh <dim, dim> ("naca0012_wing_unstructured_cutoff.msh", true, 1, false);
+            //naca0012_mesh->refine_global();
             dg->set_high_order_grid(naca0012_mesh);
         }
+        //if (dim==3) {
+        //    std::shared_ptr<HighOrderGrid<dim,double>> naca0012_mesh = read_gmsh <dim, dim> ("naca0012_wing_unstructured_cutoff.msh", true, 1, false);
+        //    dg->set_high_order_grid(naca0012_mesh);
+        //}
     }
 
     dg->allocate_system ();
